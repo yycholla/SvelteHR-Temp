@@ -1,11 +1,110 @@
 // Document management endpoints (Feature 024)
+// GET /api/documents/[id] - Get document by ID
 // DELETE /api/documents/[id] - Soft delete a document
+// Migrated to GraphQL backend (Phase 2 - Document API Migration)
 
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { transaction, setJWTClaims } from '$lib/server/db';
+import { createUrqlClient } from '$lib/graphql/client';
+import { gql } from '@urql/core';
 
-export const DELETE: RequestHandler = async ({ params, locals, request }) => {
+const GET_DOCUMENT_QUERY = gql`
+	query GetDocument($id: UUID!) {
+		document(id: $id) {
+			id
+			title
+			description
+			categoryId
+			filePath
+			fileSize
+			mimeType
+			uploaderId
+			accessLevel
+			isEncrypted
+			expiryDate
+			versionNumber
+			createdAt
+			updatedAt
+			deletedAt
+		}
+	}
+`;
+
+const DELETE_DOCUMENT_MUTATION = gql`
+	mutation DeleteDocument($id: UUID!) {
+		deleteDocument(id: $id)
+	}
+`;
+
+const CREATE_ACCESS_LOG_MUTATION = gql`
+	mutation CreateDocumentAccessLog($input: CreateDocumentAccessLogInput!) {
+		createDocumentAccessLog(input: $input) {
+			id
+			documentId
+			userId
+			accessType
+			accessedAt
+		}
+	}
+`;
+
+export const GET: RequestHandler = async ({ params, locals, cookies, fetch }) => {
+	// Step 1: Validate authentication
+	if (!locals.user) {
+		throw error(401, { message: 'Authentication required' });
+	}
+
+	const documentId = params.id;
+
+	try {
+		// Step 2: Create GraphQL client with session cookies
+		const urqlClient = createUrqlClient(fetch, undefined, undefined, cookies.get('hr_session'));
+
+		// Step 3: Query document via GraphQL
+		const result = await urqlClient
+			.query(GET_DOCUMENT_QUERY, {
+				id: documentId
+			})
+			.toPromise();
+
+		if (result.error) {
+			console.error('GraphQL error:', result.error);
+			throw error(500, { message: 'Failed to fetch document from GraphQL backend' });
+		}
+
+		const document = result.data?.document;
+
+		if (!document) {
+			throw error(404, { message: 'Document not found' });
+		}
+
+		// Step 4: Apply RBAC filtering
+		const userRole = locals.user.role || 'employee';
+		const userId = locals.user.id;
+
+		if (userRole !== 'super_admin' && userRole !== 'admin') {
+			// Employee/Manager can only view documents uploaded by them
+			if (document.uploaderId !== userId) {
+				throw error(403, {
+					message: 'Insufficient permissions to view this document'
+				});
+			}
+		}
+
+		return json(document);
+	} catch (err) {
+		console.error('Document fetch error:', err);
+
+		// Re-throw SvelteKit errors
+		if (err && typeof err === 'object' && 'status' in err) {
+			throw err;
+		}
+
+		throw error(500, { message: 'Internal server error during document fetch' });
+	}
+};
+
+export const DELETE: RequestHandler = async ({ params, locals, request, cookies, fetch }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
 		throw error(401, { message: 'Authentication required' });
@@ -23,75 +122,55 @@ export const DELETE: RequestHandler = async ({ params, locals, request }) => {
 	}
 
 	try {
-		console.log(`[DELETE] Starting delete for document ${documentId} by user ${userId} (${userRole})`);
+		console.log(
+			`[DELETE] Starting delete for document ${documentId} by user ${userId} (${userRole})`
+		);
 
-		// Step 3: Perform soft delete and log the action
-		const result = await transaction(async (client) => {
-			// Set JWT claims for RLS
-			await setJWTClaims(client, userId, userRole);
-			console.log(`[DELETE] JWT claims set for user ${userId}`);
+		// Step 3: Create GraphQL client with session cookies
+		const urqlClient = createUrqlClient(fetch, undefined, undefined, cookies.get('hr_session'));
 
-			// Check if document exists
-			const checkResult = await client.query(
-				`SELECT id, filename, is_deleted FROM hr_public.documents WHERE id = $1`,
-				[documentId]
-			);
-			console.log(`[DELETE] Document query result: ${checkResult.rows.length} rows`);
+		// Step 4: Perform soft delete via GraphQL
+		const deleteResult = await urqlClient
+			.mutation(DELETE_DOCUMENT_MUTATION, {
+				id: documentId
+			})
+			.toPromise();
 
-			if (checkResult.rows.length === 0) {
-				console.log(`[DELETE] Document not found: ${documentId}`);
-				return { success: false, error: 'Document not found' };
-			}
-
-			const document = checkResult.rows[0];
-			console.log(`[DELETE] Document found: ${document.filename}, is_deleted: ${document.is_deleted}`);
-
-			if (document.is_deleted) {
-				console.log(`[DELETE] Document already deleted: ${documentId}`);
-				return { success: false, error: 'Document is already deleted' };
-			}
-
-			// Soft delete the document
-			console.log(`[DELETE] Performing soft delete on document ${documentId}`);
-			await client.query(
-				`UPDATE hr_public.documents
-				 SET is_deleted = true
-				 WHERE id = $1`,
-				[documentId]
-			);
-			console.log(`[DELETE] Document marked as deleted`);
-
-			// Log the deletion in access logs
-			const clientIp =
-				request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-				request.headers.get('x-real-ip')?.trim() ||
-				null; // Use NULL for inet type when IP is unknown
-			const userAgent = request.headers.get('user-agent') || null;
-
-			console.log(`[DELETE] Logging access: ip=${clientIp}, ua=${userAgent}`);
-			// Note: Using 'view' access_type since 'delete' is not a valid access_type
-			// Valid types are: 'view', 'download', 'preview' (see migrations/20251007_010_create_access_logs.sql)
-			await client.query(
-				`INSERT INTO hr_public.document_access_logs
-				 (document_id, user_id, access_type, access_outcome, ip_address, user_agent)
-				 VALUES ($1, $2, $3, $4, $5, $6)`,
-				[documentId, userId, 'view', 'success', clientIp, userAgent]
-			);
-			console.log(`[DELETE] Access log created successfully`);
-
-			return { success: true, filename: document.filename };
-		});
-
-		console.log(`[DELETE] Transaction completed, result:`, result);
-
-		if (!result.success) {
-			console.log(`[DELETE] Transaction failed: ${result.error}`);
-			throw error(400, { message: result.error || 'Failed to delete document' });
+		if (deleteResult.error) {
+			console.error('GraphQL delete error:', deleteResult.error);
+			throw error(500, { message: 'Failed to delete document via GraphQL backend' });
 		}
+
+		if (!deleteResult.data?.deleteDocument) {
+			throw error(404, { message: 'Document not found or already deleted' });
+		}
+
+		// Step 5: Log the deletion in access logs
+		const clientIp =
+			request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+			request.headers.get('x-real-ip')?.trim() ||
+			'unknown';
+		const userAgent = request.headers.get('user-agent') || 'unknown';
+
+		console.log(`[DELETE] Logging access: ip=${clientIp}, ua=${userAgent}`);
+
+		await urqlClient
+			.mutation(CREATE_ACCESS_LOG_MUTATION, {
+				input: {
+					documentId: documentId,
+					userId: userId,
+					accessType: 'view', // Using 'view' since 'delete' is not a valid type
+					ipAddress: clientIp,
+					userAgent: userAgent
+				}
+			})
+			.toPromise();
+
+		console.log(`[DELETE] Access log created successfully`);
 
 		return json({
 			success: true,
-			message: `Document "${result.filename}" has been deleted successfully.`
+			message: `Document has been deleted successfully.`
 		});
 	} catch (err) {
 		console.error('[DELETE] Document delete error:', err);

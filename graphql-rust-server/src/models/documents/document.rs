@@ -270,4 +270,27 @@ impl Model {
 
         Ok(logs)
     }
+
+    /// Encrypted file storage relationship (lazy-loaded)
+    /// Returns the encrypted file data with IV and encryption key ID
+    /// Used for document preview and download operations
+    #[graphql(name = "encryptedFileStorage")]
+    async fn encrypted_file_storage(
+        &self,
+        ctx: &async_graphql::Context<'_>,
+    ) -> GqlResult<Option<super::encrypted_file_storage::Model>> {
+        let db = get_db_from_context(ctx)?;
+
+        // Only return encrypted file storage if document is marked as encrypted
+        if !self.is_encrypted {
+            return Ok(None);
+        }
+
+        let storage = super::encrypted_file_storage::Entity::find()
+            .filter(super::encrypted_file_storage::Column::DocumentId.eq(self.id))
+            .one(&db)
+            .await?;
+
+        Ok(storage)
+    }
 }

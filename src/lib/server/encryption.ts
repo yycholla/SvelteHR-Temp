@@ -303,3 +303,86 @@ export async function retrieveAndDecryptFile(
 
 	return decrypted;
 }
+
+/**
+ * Decrypt file data from GraphQL response
+ * Handles base64 decoding and unpacking the encryption format used by Rust backend
+ *
+ * @param encryptedDataBase64 - Base64-encoded encrypted data from GraphQL
+ * @param ivBase64 - Base64-encoded IV from GraphQL
+ * @param encryptionKey - Decrypted encryption key buffer
+ * @returns Decrypted file data as Buffer
+ *
+ * @example
+ * ```typescript
+ * import { decryptFileFromGraphQL } from '$lib/server/encryption';
+ *
+ * // Get encrypted data from GraphQL
+ * const document = result.data.document;
+ * const storage = document.encryptedFileStorage;
+ *
+ * // Decrypt using key from database
+ * const decrypted = decryptFileFromGraphQL(
+ *   storage.encryptedData,
+ *   storage.iv,
+ *   encryptionKeyBuffer
+ * );
+ * ```
+ */
+export function decryptFileFromGraphQL(
+	encryptedDataBase64: string,
+	ivBase64: string,
+	encryptionKey: Buffer
+): Buffer {
+	// Decode base64 data from GraphQL
+	const ivBuffer = Buffer.from(ivBase64, 'base64');
+	const encryptedDataBuffer = Buffer.from(encryptedDataBase64, 'base64');
+
+	// IMPORTANT: Rust backend prepends IV before storing, so encrypted_data format is:
+	// [IV_prepended (12)][Auth Tag (16)][Encrypted Data]
+	// The IV is also stored separately in the iv column
+
+	if (encryptedDataBuffer.length < IV_LENGTH + AUTH_TAG_LENGTH) {
+		throw new Error('Encrypted data is too small');
+	}
+
+	// Skip the prepended IV (first 12 bytes)
+	const dataAfterIv = encryptedDataBuffer.subarray(IV_LENGTH);
+
+	// Unpackage: [Auth Tag (16)][Encrypted Data]
+	const authTag = dataAfterIv.subarray(0, AUTH_TAG_LENGTH);
+	const encrypted = dataAfterIv.subarray(AUTH_TAG_LENGTH);
+
+	// Decrypt file using AES-256-GCM
+	return decryptFile(encrypted, encryptionKey, ivBuffer, authTag);
+}
+
+/**
+ * Retrieve decryption key from database
+ * Uses hr_public.decrypt_key_data function to decrypt the stored encryption key
+ *
+ * @param client - PostgreSQL client (from transaction or pool)
+ * @param encryptionKeyId - UUID of encryption key to retrieve
+ * @returns Decrypted encryption key as Buffer
+ *
+ * @example
+ * ```typescript
+ * import { getDecryptionKey } from '$lib/server/encryption';
+ *
+ * const keyBuffer = await getDecryptionKey(client, keyId);
+ * ```
+ */
+export async function getDecryptionKey(client: any, encryptionKeyId: string): Promise<Buffer> {
+	const keyResult = await client.query(
+		`SELECT hr_public.decrypt_key_data(encrypted_key, key_name) as decrypted_key
+		 FROM hr_public.encryption_keys
+		 WHERE id = $1 AND is_active = true`,
+		[encryptionKeyId]
+	);
+
+	if (keyResult.rows.length === 0) {
+		throw new Error('Encryption key not found or inactive');
+	}
+
+	return Buffer.from(keyResult.rows[0].decrypted_key);
+}
