@@ -38,10 +38,9 @@ configuration:
         s3Url: http://minio.backup-system.svc.cluster.local:9000
         publicUrl: http://minio.backup-system.svc.cluster.local:9000
 
-  # Volume snapshot location (optional - for persistent volume snapshots)
-  # volumeSnapshotLocation:
-  #   - name: default
-  #     provider: aws
+  # Volume snapshot location - DISABLED (not needed for MinIO filesystem backups)
+  # We use kopia for filesystem backups, not cloud provider volume snapshots
+  volumeSnapshotLocation: []  # Explicitly disable to prevent null values
 
   # Default backup retention
   defaultBackupTTL: 720h  # 30 days
