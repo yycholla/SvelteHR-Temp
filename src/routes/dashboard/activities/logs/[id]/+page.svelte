@@ -32,6 +32,17 @@
 	interface Props {
 		data: {
 			log: any;
+			timelineLogs?: Array<{
+				id: string;
+				employee_name: string;
+				action: string;
+				resource_type: string;
+				resource_id: string;
+				created_at: string;
+				ip_address: string | null;
+				is_rollback: boolean;
+				is_current: boolean;
+			}>;
 			rollbackLog: any | null;
 			originalLog: any | null;
 			activeRequest: any | null;
@@ -321,6 +332,83 @@
 				</div>
 			</Card.Content>
 		</Card.Root>
+
+		<!-- Timeline - All Edits of this Resource -->
+		{#if data.timelineLogs && data.timelineLogs.length > 1}
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Edit History</Card.Title>
+					<Card.Description>
+						All changes to this resource ({data.timelineLogs.length} total edits)
+					</Card.Description>
+				</Card.Header>
+				<Card.Content>
+					<div class="space-y-3">
+						{#each data.timelineLogs as timelineLog}
+							<div
+								class="flex items-start gap-3 p-3 rounded-lg border transition-colors {timelineLog.is_current
+									? 'bg-primary/5 border-primary'
+									: 'hover:bg-muted/50'}"
+							>
+								<div class="flex flex-col items-center gap-1">
+									{#if timelineLog.is_current}
+										<div class="h-3 w-3 rounded-full bg-primary"></div>
+									{:else}
+										<div class="h-2 w-2 rounded-full bg-muted-foreground"></div>
+									{/if}
+									{#if timelineLog !== data.timelineLogs[data.timelineLogs.length - 1]}
+										<div class="h-full w-px bg-border"></div>
+									{/if}
+								</div>
+								<div class="flex-1 min-w-0">
+									<div class="flex items-start justify-between gap-2">
+										<div class="flex-1 min-w-0">
+											<div class="flex items-center gap-2 mb-1">
+												<Badge
+													variant={timelineLog.is_current ? 'default' : 'secondary'}
+													class="text-xs"
+												>
+													{timelineLog.action}
+												</Badge>
+												{#if timelineLog.is_rollback}
+													<Badge variant="outline" class="text-xs">
+														<GitBranch class="mr-1 h-2.5 w-2.5" />
+														Rollback
+													</Badge>
+												{/if}
+												{#if timelineLog.is_current}
+													<Badge variant="outline" class="text-xs bg-primary/10">
+														Current
+													</Badge>
+												{/if}
+											</div>
+											<p class="text-sm font-medium">{timelineLog.employee_name}</p>
+											<p class="text-xs text-muted-foreground">
+												{formatDate(timelineLog.created_at)}
+											</p>
+											{#if timelineLog.ip_address}
+												<p class="text-xs text-muted-foreground font-mono">
+													{timelineLog.ip_address}
+												</p>
+											{/if}
+										</div>
+										{#if !timelineLog.is_current}
+											<Button
+												variant="ghost"
+												size="sm"
+												onclick={() => goto(`/dashboard/activities/logs/${timelineLog.id}`)}
+											>
+												View
+											</Button>
+										{/if}
+									</div>
+								</div>
+							</div>
+						{/each}
+					</div>
+				</Card.Content>
+			</Card.Root>
+		{/if}
 	</div>
 
 	<!-- Field Changes Diff -->

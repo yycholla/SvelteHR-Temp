@@ -196,8 +196,7 @@
 			section: 'documents',
 			items: [
 				{ title: 'My Documents', url: '/dashboard/documents' },
-				...(isManager ? [{ title: 'Upload Document', url: '/dashboard/documents/upload' }] : []),
-				...(isAdmin ? [{ title: 'Audit Logs', url: '/dashboard/documents/audit' }] : [])
+				...(isManager ? [{ title: 'Upload Document', url: '/dashboard/documents/upload' }] : [])
 			]
 		}
 	];

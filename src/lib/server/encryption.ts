@@ -207,12 +207,17 @@ export function encryptFileWithNewKey(fileData: Buffer): EncryptionResult {
  * @returns Combined buffer ready for storage
  */
 export function packageEncryptedData(encrypted: Buffer, iv: Buffer, authTag: Buffer): Buffer {
-	return Buffer.concat([iv, authTag, encrypted]);
+	// Package as [Encrypted][AuthTag] since Rust backend will prepend IV
+	// Final format in DB will be: [IV (prepended by Rust)][Encrypted][AuthTag]
+	// This matches standard AES-GCM format where auth tag is at the end
+	return Buffer.concat([encrypted, authTag]);
 }
 
 /**
  * Unpackage stored encrypted data into components
  * Reverses packageEncryptedData operation
+ *
+ * Expected format from DB: [IV (prepended by Rust)][Encrypted][AuthTag (16 bytes)]
  *
  * @param packagedData - Combined buffer from storage
  * @returns Object with separated IV, auth tag, and encrypted data
@@ -226,9 +231,10 @@ export function unpackageEncryptedData(packagedData: Buffer): {
 		throw new Error('Invalid packaged data: too small');
 	}
 
+	// Format: [IV (12)][Encrypted][AuthTag (16)]
 	const iv = packagedData.subarray(0, IV_LENGTH);
-	const authTag = packagedData.subarray(IV_LENGTH, IV_LENGTH + AUTH_TAG_LENGTH);
-	const encrypted = packagedData.subarray(IV_LENGTH + AUTH_TAG_LENGTH);
+	const authTag = packagedData.subarray(packagedData.length - AUTH_TAG_LENGTH); // Last 16 bytes
+	const encrypted = packagedData.subarray(IV_LENGTH, packagedData.length - AUTH_TAG_LENGTH); // Between IV and auth tag
 
 	return { iv, authTag, encrypted };
 }
@@ -339,8 +345,9 @@ export function decryptFileFromGraphQL(
 	const encryptedDataBuffer = Buffer.from(encryptedDataBase64, 'base64');
 
 	// IMPORTANT: Rust backend prepends IV before storing, so encrypted_data format is:
-	// [IV_prepended (12)][Auth Tag (16)][Encrypted Data]
+	// [IV (12 bytes)][Ciphertext][Auth Tag (16 bytes)]
 	// The IV is also stored separately in the iv column
+	// In AES-GCM, the auth tag is always at the END of the ciphertext
 
 	if (encryptedDataBuffer.length < IV_LENGTH + AUTH_TAG_LENGTH) {
 		throw new Error('Encrypted data is too small');
@@ -349,9 +356,9 @@ export function decryptFileFromGraphQL(
 	// Skip the prepended IV (first 12 bytes)
 	const dataAfterIv = encryptedDataBuffer.subarray(IV_LENGTH);
 
-	// Unpackage: [Auth Tag (16)][Encrypted Data]
-	const authTag = dataAfterIv.subarray(0, AUTH_TAG_LENGTH);
-	const encrypted = dataAfterIv.subarray(AUTH_TAG_LENGTH);
+	// In AES-GCM, auth tag is at the END: [Ciphertext][Auth Tag (16)]
+	const authTag = dataAfterIv.subarray(dataAfterIv.length - AUTH_TAG_LENGTH);
+	const encrypted = dataAfterIv.subarray(0, dataAfterIv.length - AUTH_TAG_LENGTH);
 
 	// Decrypt file using AES-256-GCM
 	return decryptFile(encrypted, encryptionKey, ivBuffer, authTag);
@@ -384,5 +391,23 @@ export async function getDecryptionKey(client: any, encryptionKeyId: string): Pr
 		throw new Error('Encryption key not found or inactive');
 	}
 
-	return Buffer.from(keyResult.rows[0].decrypted_key);
+	const decryptedKey = keyResult.rows[0].decrypted_key;
+
+	// The decrypt_key_data function returns bytea, which pg driver gives us as Buffer
+	if (Buffer.isBuffer(decryptedKey)) {
+		return decryptedKey;
+	}
+
+	// If it's a hex string, convert accordingly
+	if (typeof decryptedKey === 'string') {
+		// Try to detect if it's hex (bytea is often returned as \x... format)
+		if (decryptedKey.startsWith('\\x')) {
+			const hexString = decryptedKey.slice(2); // Remove \x prefix
+			return Buffer.from(hexString, 'hex');
+		}
+		// Otherwise assume it's already hex or base64
+		return Buffer.from(decryptedKey, 'hex');
+	}
+
+	return Buffer.from(decryptedKey);
 }

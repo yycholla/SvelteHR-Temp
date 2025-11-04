@@ -52,17 +52,28 @@ impl Extension for AuditExtensionImpl {
         // Execute the operation first
         let response = next.run(ctx, operation_name).await;
 
+        // Debug: Log that we're checking for mutations
+        tracing::debug!("AuditExtension: Checking operation {:?}", operation_name);
+
         // Only log mutations (not queries or subscriptions)
-        if let Some(doc) = ctx.data_opt::<ExecutableDocument>() {
-            if is_mutation_operation(doc) {
+        // Detect mutations by operation name since ExecutableDocument is not available in execute phase
+        if let Some(op_name) = operation_name {
+            if is_mutation_by_name(op_name) {
+                tracing::debug!("AuditExtension: Mutation detected by name: {}", op_name);
+
                 // Spawn async task for audit logging to avoid blocking response
                 let db = ctx.data_opt::<DatabaseConnection>().cloned();
                 let auth_session = ctx.data_opt::<AuthSession<AuthBackend>>().cloned();
                 let operation_name = operation_name.map(String::from);
                 let variables = ctx.data_opt::<Variables>().cloned();
+                let request_metadata = ctx.data_opt::<crate::handlers::RequestMetadata>().cloned();
 
-                // Clone response errors for logging (if any)
+                tracing::debug!("AuditExtension: db={:?}, auth_session={:?}, op_name={:?}, metadata={:?}",
+                    db.is_some(), auth_session.is_some(), operation_name, request_metadata.is_some());
+
+                // Clone response data and errors for logging
                 let had_errors = !response.errors.is_empty();
+                let response_data = response.data.clone();
 
                 tokio::spawn(async move {
                     if let Err(e) = log_mutation_audit(
@@ -71,10 +82,16 @@ impl Extension for AuditExtensionImpl {
                         operation_name,
                         variables,
                         had_errors,
+                        request_metadata,
+                        response_data,
                     ).await {
                         tracing::error!("Failed to create audit log: {:?}", e);
+                    } else {
+                        tracing::debug!("Audit log created successfully");
                     }
                 });
+            } else {
+                tracing::debug!("AuditExtension: Not a mutation operation (query or subscription)");
             }
         }
 
@@ -82,7 +99,28 @@ impl Extension for AuditExtensionImpl {
     }
 }
 
-/// Check if the current operation is a mutation
+/// Check if the current operation is a mutation based on operation name
+///
+/// Since ExecutableDocument is not available in the execute phase,
+/// we detect mutations by operation name prefixes that indicate write operations
+fn is_mutation_by_name(operation_name: &str) -> bool {
+    let name_lower = operation_name.to_lowercase();
+
+    // Common mutation prefixes that indicate write operations
+    let mutation_prefixes = [
+        "create", "update", "edit", "delete", "remove",
+        "upload", "assign", "unassign", "approve", "reject",
+        "add", "set", "insert", "modify", "revoke", "grant",
+        "activate", "deactivate", "enable", "disable",
+        "submit", "cancel", "complete", "archive", "restore"
+    ];
+
+    mutation_prefixes.iter().any(|prefix| name_lower.starts_with(prefix))
+}
+
+/// Check if the current operation is a mutation (legacy method using ExecutableDocument)
+/// This is kept for reference but not used since ExecutableDocument is not available in execute phase
+#[allow(dead_code)]
 fn is_mutation_operation(doc: &ExecutableDocument) -> bool {
     for (_name, definition) in doc.operations.iter() {
         if matches!(definition.node.ty, OperationType::Mutation) {
@@ -151,7 +189,7 @@ fn to_snake_case(s: &str) -> String {
 /// Extract resource ID from mutation variables
 fn extract_resource_id(variables: &Variables) -> Option<Uuid> {
     // Try common ID field names
-    for key in &["id", "documentId", "employeeId", "userId", "categoryId"] {
+    for key in &["id", "documentId", "employeeId", "userId", "categoryId", "taskId", "eventId"] {
         if let Some(Value::String(id_str)) = variables.get(*key) {
             if let Ok(uuid) = Uuid::parse_str(id_str) {
                 return Some(uuid);
@@ -171,6 +209,26 @@ fn extract_resource_id(variables: &Variables) -> Option<Uuid> {
     None
 }
 
+/// Extract resource ID from mutation response data
+fn extract_resource_id_from_response(response_data: &Value) -> Option<Uuid> {
+    // Try to find ID in the response object
+    if let Value::Object(obj) = response_data {
+        // Response might be wrapped in a mutation name key
+        for (_key, value) in obj.iter() {
+            if let Value::Object(inner) = value {
+                // Try to find id field
+                if let Some(Value::String(id_str)) = inner.get("id") {
+                    if let Ok(uuid) = Uuid::parse_str(id_str) {
+                        return Some(uuid);
+                    }
+                }
+            }
+        }
+    }
+
+    None
+}
+
 /// Create audit log entry for mutation
 async fn log_mutation_audit(
     db: Option<DatabaseConnection>,
@@ -178,6 +236,8 @@ async fn log_mutation_audit(
     operation_name: Option<String>,
     variables: Option<Variables>,
     had_errors: bool,
+    request_metadata: Option<crate::handlers::RequestMetadata>,
+    response_data: Value,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let db = db.ok_or("Database connection not available")?;
     let auth_session = auth_session.ok_or("Auth session not available")?;
@@ -192,8 +252,9 @@ async fn log_mutation_audit(
     let action = extract_action_from_mutation(&operation_name);
     let resource_type = extract_resource_type_from_mutation(&operation_name);
 
-    // Extract resource ID and other details from variables
-    let resource_id = variables.as_ref().and_then(extract_resource_id);
+    // Extract resource ID from variables or response
+    let resource_id = variables.as_ref().and_then(extract_resource_id)
+        .or_else(|| extract_resource_id_from_response(&response_data));
 
     // Create details JSON with mutation variables (excluding sensitive fields)
     let mut details = json!({
@@ -201,7 +262,7 @@ async fn log_mutation_audit(
         "had_errors": had_errors,
     });
 
-    if let Some(vars) = variables {
+    if let Some(vars) = &variables {
         // Filter out sensitive fields like passwords, tokens, encrypted data
         let mut filtered_vars = vars.clone();
         filtered_vars.remove("password");
@@ -211,6 +272,19 @@ async fn log_mutation_audit(
 
         details["variables"] = serde_json::to_value(&filtered_vars)?;
     }
+
+    // Capture after_snapshot from response data (if not error response)
+    // Convert async_graphql::Value to serde_json::Value
+    let after_snapshot = if !had_errors && !matches!(response_data, Value::Null) {
+        // Convert async_graphql::Value to serde_json::Value
+        serde_json::to_value(&response_data).ok()
+    } else {
+        None
+    };
+
+    // Extract IP address and User-Agent from request metadata
+    let ip_address = request_metadata.as_ref().and_then(|m| m.ip_address.clone());
+    let user_agent = request_metadata.as_ref().and_then(|m| m.user_agent.clone());
 
     // Create activity log entry
     let activity_log = ActivityLogActiveModel {
@@ -222,11 +296,11 @@ async fn log_mutation_audit(
         resource_id: Set(resource_id),
         details: Set(Some(details)),
         before_snapshot: NotSet, // TODO: Capture before snapshot for UPDATE/DELETE
-        after_snapshot: NotSet,  // TODO: Capture after snapshot from response
+        after_snapshot: Set(after_snapshot),
         is_rollback: Set(false),
         rolled_back_log_id: NotSet,
-        ip_address: NotSet, // TODO: Extract from request context
-        user_agent: NotSet, // TODO: Extract from request context
+        ip_address: Set(ip_address),
+        user_agent: Set(user_agent),
         signature_id: NotSet,
         batch_id: NotSet,
         created_at: Set(chrono::Utc::now()),

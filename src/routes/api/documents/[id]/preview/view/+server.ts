@@ -22,6 +22,11 @@ const GET_DOCUMENT_FOR_PREVIEW_QUERY = gql`
 			uploaderId
 			isEncrypted
 			createdAt
+			encryptedFileStorage {
+				encryptedData
+				iv
+				encryptionKeyId
+			}
 		}
 	}
 `;
@@ -46,7 +51,11 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 
 	try {
 		// Step 2: Retrieve document metadata via GraphQL
-		const urqlClient = createUrqlClient(fetch, undefined, undefined, cookies.get('hr_session'));
+		// Forward all cookies for session-based authentication
+		const cookieHeader = Array.from(cookies.getAll())
+			.map((c) => `${c.name}=${c.value}`)
+			.join('; ');
+		const urqlClient = createUrqlClient(fetch, undefined, undefined, cookieHeader);
 
 		const docResult = await urqlClient
 			.query(GET_DOCUMENT_FOR_PREVIEW_QUERY, {

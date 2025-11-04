@@ -35,10 +35,21 @@ pub use optimistic_lock::{
 pub async fn create_pool(database_url: &str) -> Result<DbPool> {
     let pool = PgPoolOptions::new()
         .max_connections(20)
+        .after_connect(|conn, _meta| {
+            Box::pin(async move {
+                // Set search_path to include hr_public schema for all tables
+                sqlx::query("SET search_path TO hr_public, public")
+                    .execute(&mut *conn)
+                    .await?;
+
+                tracing::debug!("Set search_path to hr_public, public for new connection");
+                Ok(())
+            })
+        })
         .connect(database_url)
         .await?;
 
-    tracing::info!("Database pool created successfully");
+    tracing::info!("Database pool created successfully with hr_public schema in search_path");
 
     Ok(pool)
 }

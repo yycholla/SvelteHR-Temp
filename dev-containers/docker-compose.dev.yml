@@ -49,7 +49,7 @@ services:
   hr-graphql-rust:
     build:
       context: ../graphql-rust-server
-      dockerfile: Dockerfile.dev.bacon # Use development Dockerfile with bacon (faster, smarter hot-reload)
+      dockerfile: Dockerfile.dev # Use development Dockerfile with cargo-watch for hot-reload
     container_name: sveltehr-graphql-rust
     volumes:
       # Mount source code for hot-reloading
@@ -60,7 +60,6 @@ services:
       - ../graphql-rust-server/Cargo.toml:/app/Cargo.toml
       - ../graphql-rust-server/Cargo.lock:/app/Cargo.lock
       - ../graphql-rust-server/.cargo:/app/.cargo:ro
-      - ../graphql-rust-server/bacon.toml:/app/bacon.toml:ro
       # CRITICAL: Use Docker volume for target directory (NOT bind-mounted)
       # This avoids I/O overhead and significantly speeds up compilation
       - rust_target_cache:/app/target

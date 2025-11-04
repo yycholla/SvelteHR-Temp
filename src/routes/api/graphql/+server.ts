@@ -2,12 +2,12 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
 /**
- * PostGraphile GraphQL Proxy for SvelteHR
+ * GraphQL Proxy for SvelteHR
  *
- * Secure proxy that forwards GraphQL requests to PostGraphile with proper JWT authentication
- * - Extracts JWT tokens from httpOnly cookies for security
- * - Forwards requests with Authorization header to PostGraphile
+ * Secure proxy that forwards GraphQL requests to Rust GraphQL backend with session authentication
+ * - Forwards session cookies from browser to backend
  * - Implements security headers and validation
+ * - Enables client-side GraphQL mutations with proper authentication
  */
 
 import { env } from '$env/dynamic/private';
@@ -15,7 +15,8 @@ import { env } from '$env/dynamic/private';
 const POSTGRAPHILE_URL =
 	env.POSTGRAPHILE_URL ||
 	env.GRAPHQL_URL ||
-	'http://sveltehr-backend-dev:4000/graphql';
+	env.PUBLIC_API_URL ||
+	'http://hr-graphql-rust:4000/graphql';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	try {
@@ -31,23 +32,24 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			return json({ errors: [{ message: 'Query too large' }] }, { status: 413 });
 		}
 
-		// Get JWT token from httpOnly cookie (more secure than localStorage)
-		const token = cookies.get('hr_token') || cookies.get('auth-token') || cookies.get('jwt-token');
+		// Get all cookies from the request to forward to backend
+		const cookieHeader = request.headers.get('cookie');
 
-		// Prepare headers for PostGraphile request
+		// Prepare headers for GraphQL backend request
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json'
 		};
 
-		// Add JWT token to Authorization header if available
-		if (token) {
-			headers['Authorization'] = `Bearer ${token}`;
+		// Forward cookies to backend for session authentication
+		if (cookieHeader) {
+			headers['Cookie'] = cookieHeader;
 		}
 
-		// Forward GraphQL request to PostGraphile
+		// Forward GraphQL request to Rust GraphQL backend
 		const postgraphileResponse = await fetch(POSTGRAPHILE_URL, {
 			method: 'POST',
 			headers,
+			credentials: 'include',
 			body: JSON.stringify({
 				query,
 				variables: variables || {},

@@ -2,7 +2,12 @@
 // Admin-only page for managing roles, permissions, and user-role assignments
 
 import type { PageServerLoad, Actions } from './$types';
-import { createUrqlClient, executeQuery, executeMutation } from '$lib/graphql/client';
+import {
+	createUrqlClient,
+	executeQuery,
+	executeMutation,
+	serializeCookies
+} from '$lib/graphql/client';
 import {
 	GET_ROLES_WITH_PERMISSIONS,
 	GET_ALL_PERMISSIONS,
@@ -43,7 +48,8 @@ export const load: PageServerLoad = async ({ locals, parent, fetch: fetchFn }) =
 
 	try {
 		// Create GraphQL client with server-side fetch (session-based auth)
-		const client = createUrqlClient(fetchFn);
+		const cookieHeader = serializeCookies(cookies);
+		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 
 		// Execute queries in parallel for optimal performance
 		const [rolesData, permissionsData, usersData] = await Promise.all([
@@ -86,7 +92,8 @@ export const actions: Actions = {
 		}
 
 		try {
-			const client = createUrqlClient(fetchFn);
+			const cookieHeader = serializeCookies(cookies);
+		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			await executeMutation(client, CREATE_ROLE, {
 				input: { name, description: description || null }
 			});
@@ -116,7 +123,8 @@ export const actions: Actions = {
 		}
 
 		try {
-			const client = createUrqlClient(fetchFn);
+			const cookieHeader = serializeCookies(cookies);
+		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			await executeMutation(client, UPDATE_ROLE, {
 				input: { id, name, description: description || null }
 			});
@@ -144,7 +152,8 @@ export const actions: Actions = {
 		}
 
 		try {
-			const client = createUrqlClient(fetchFn);
+			const cookieHeader = serializeCookies(cookies);
+		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			await executeMutation(client, DELETE_ROLE, { input: { id } });
 
 			return { success: true, message: 'Role deleted successfully' };
@@ -171,7 +180,8 @@ export const actions: Actions = {
 		}
 
 		try {
-			const client = createUrqlClient(fetchFn);
+			const cookieHeader = serializeCookies(cookies);
+		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			await executeMutation(client, ASSIGN_PERMISSION_TO_ROLE, {
 				input: { roleId, permissionId }
 			});
@@ -200,7 +210,8 @@ export const actions: Actions = {
 		}
 
 		try {
-			const client = createUrqlClient(fetchFn);
+			const cookieHeader = serializeCookies(cookies);
+		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			await executeMutation(client, REMOVE_PERMISSION_FROM_ROLE, {
 				input: { roleId, permissionId }
 			});
@@ -230,7 +241,8 @@ export const actions: Actions = {
 		}
 
 		try {
-			const client = createUrqlClient(fetchFn);
+			const cookieHeader = serializeCookies(cookies);
+		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			const desiredPermissionIds = JSON.parse(permissionIds) as string[];
 
 			// Get current permissions for the role
@@ -315,7 +327,8 @@ export const actions: Actions = {
 		}
 
 		try {
-			const client = createUrqlClient(fetchFn);
+			const cookieHeader = serializeCookies(cookies);
+		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			const permissionIdArray = JSON.parse(permissionIds);
 
 			await executeMutation(client, BULK_REMOVE_PERMISSIONS, {
@@ -346,7 +359,8 @@ export const actions: Actions = {
 		}
 
 		try {
-			const client = createUrqlClient(fetchFn);
+			const cookieHeader = serializeCookies(cookies);
+		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			await executeMutation(client, ASSIGN_ROLE_TO_USER, {
 				input: { userId, roleId }
 			});
@@ -375,7 +389,8 @@ export const actions: Actions = {
 		}
 
 		try {
-			const client = createUrqlClient(fetchFn);
+			const cookieHeader = serializeCookies(cookies);
+		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			await executeMutation(client, REMOVE_ROLE_FROM_USER, {
 				input: { userId, roleId }
 			});

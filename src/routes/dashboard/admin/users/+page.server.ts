@@ -2,7 +2,7 @@
 // Admin-only page for managing all system users
 
 import type { PageServerLoad } from './$types';
-import { createUrqlClient, executeQuery } from '$lib/graphql/client';
+import { createUrqlClient, executeQuery, serializeCookies } from '$lib/graphql/client';
 import { error } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ locals, url, parent, cookies, fetch: fetchFn }) => {
@@ -24,8 +24,9 @@ export const load: PageServerLoad = async ({ locals, url, parent, cookies, fetch
 	const statusFilter = url.searchParams.get('status') || '';
 
 	try {
-		// Create GraphQL client with server-side fetch (session-based auth)
-		const client = createUrqlClient(fetchFn);
+		// Create GraphQL client with server-side fetch and forward session cookies
+		const cookieHeader = serializeCookies(cookies);
+		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 
 		// NOTE: Rust GraphQL backend does NOT support complex filter parameter
 		// Fetch all users and filter client-side for department, status, and role

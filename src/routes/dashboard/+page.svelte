@@ -103,34 +103,30 @@
 	// Local events state for optimistic updates
 	let localEvents = $state<any[]>([]);
 
-	// Effect to initialize local state from dashboard data
+	// Effect to update local state from dashboard data (reactive to data changes)
 	$effect(() => {
 		data.dashboardDataPromise.then((resolvedData) => {
-			// Initialize tasks if empty
-			if (localTasks.length === 0) {
-				const tasks = resolvedData.dashboardData.tasks || [];
-				localTasks = [...tasks].sort((a, b) => {
-					const priorityA = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 4;
-					const priorityB = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 4;
-					const priorityDiff = priorityA - priorityB;
-					if (priorityDiff !== 0) return priorityDiff;
+			// Always update tasks when data changes (not just when empty)
+			const tasks = resolvedData.dashboardData.tasks || [];
+			localTasks = [...tasks].sort((a, b) => {
+				const priorityA = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 4;
+				const priorityB = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 4;
+				const priorityDiff = priorityA - priorityB;
+				if (priorityDiff !== 0) return priorityDiff;
 
-					if (a.dueDate && b.dueDate) {
-						return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-					}
-					if (a.dueDate) return -1;
-					if (b.dueDate) return 1;
+				if (a.dueDate && b.dueDate) {
+					return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+				}
+				if (a.dueDate) return -1;
+				if (b.dueDate) return 1;
 
-					return a.title.localeCompare(b.title);
-				});
-				totalCompletedTasks = resolvedData.dashboardData.metrics?.completedTaskCount || 0;
-				totalTasksCount = resolvedData.dashboardData.metrics?.totalTaskCount || 0;
-			}
+				return a.title.localeCompare(b.title);
+			});
+			totalCompletedTasks = resolvedData.dashboardData.metrics?.completedTaskCount || 0;
+			totalTasksCount = resolvedData.dashboardData.metrics?.totalTaskCount || 0;
 
-			// Initialize events if empty
-			if (localEvents.length === 0) {
-				localEvents = resolvedData.dashboardData.events || [];
-			}
+			// Always update events when data changes
+			localEvents = resolvedData.dashboardData.events || [];
 		});
 	});
 
@@ -858,7 +854,11 @@
 						assignees={data.assignees || []}
 						taskTypes={data.taskTypes || []}
 						canAssign={false}
-						onSuccess={() => invalidateAll()}
+						formAction="/dashboard/tasks"
+						onSuccess={async () => {
+							// Refresh the dashboard data including tasks
+							await invalidateAll();
+						}}
 					/>
 				</div>
 				<Card.Description>Pending items requiring your attention</Card.Description>

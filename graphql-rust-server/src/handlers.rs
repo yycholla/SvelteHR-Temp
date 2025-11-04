@@ -367,18 +367,49 @@ pub async fn sessions_handler(
     }))
 }
 
+/// Request metadata for audit logging
+#[derive(Debug, Clone)]
+pub struct RequestMetadata {
+    pub ip_address: Option<String>,
+    pub user_agent: Option<String>,
+}
+
 /// GraphQL handler
 pub async fn graphql_handler(
     State(app_state): State<AppState>,
     auth_session: AuthSession<AuthBackend>,
+    headers: axum::http::HeaderMap,
     req: async_graphql_axum::GraphQLRequest,
 ) -> async_graphql_axum::GraphQLResponse {
     // Create request context with database and auth session
     let mut request = req.into_inner();
 
+    // Extract request metadata for audit logging
+    let ip_address = headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.split(',').next().unwrap_or(s).trim().to_string())
+        .or_else(|| {
+            headers
+                .get("x-real-ip")
+                .and_then(|v| v.to_str().ok())
+                .map(String::from)
+        });
+
+    let user_agent = headers
+        .get("user-agent")
+        .and_then(|v| v.to_str().ok())
+        .map(String::from);
+
+    let request_metadata = RequestMetadata {
+        ip_address,
+        user_agent,
+    };
+
     // Add database connection to request context
     request = request.data(app_state.db.clone());
     request = request.data(auth_session.clone());
+    request = request.data(request_metadata);
 
     // Add DataLoaders to request context
     request = request.data(app_state.dataloaders.clone());

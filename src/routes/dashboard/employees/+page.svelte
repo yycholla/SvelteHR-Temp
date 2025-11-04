@@ -18,6 +18,7 @@
 	import type { EmployeeStatistic } from '$lib/graphql/employee-operations';
 	import EmployeeDataTable from '$lib/components/ui/employee-datatable.svelte';
 	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
+	import EmployeeCreateDialog from '$lib/components/employees/EmployeeCreateDialog.svelte';
 	import {
 		Users,
 		Search,
@@ -110,6 +111,9 @@
 	let currentPage = $state(1);
 	let pageSize = $state(20);
 	let viewMode = $state<'grid' | 'list'>('list'); // Default to table view
+
+	// Employee creation dialog state
+	let createDialogOpen = $state(false);
 
 	// Column visibility state for datatable
 	// Managers and above can see all columns, employees see limited columns
@@ -377,6 +381,12 @@
 			return 'N/A';
 		}
 	}
+
+	// Handle employee creation success - refresh the page to show new employee
+	function handleEmployeeCreated() {
+		// Invalidate and reload the page data
+		goto(currentPathname, { invalidateAll: true });
+	}
 </script>
 
 <svelte:head>
@@ -402,7 +412,7 @@
 
 		<div class="flex gap-2">
 			{#if canManageEmployees}
-				<Button size="sm" href="/dashboard/employees/new" data-testid="employee-add-button">
+				<Button size="sm" onclick={() => (createDialogOpen = true)} data-testid="employee-add-button">
 					<UserPlus class="mr-2 h-4 w-4" />
 					Add Employee
 				</Button>
@@ -1060,7 +1070,7 @@
 						{/if}
 					</p>
 					{#if canManageEmployees && !filters.searchTerm && !filters.departmentFilter && !filters.statusFilter}
-						<Button class="mt-4" href="/dashboard/employees/new">
+						<Button class="mt-4" onclick={() => (createDialogOpen = true)}>
 							<UserPlus class="mr-2 h-4 w-4" />
 							Add First Employee
 						</Button>
@@ -1070,3 +1080,11 @@
 		</Card.Root>
 	{/if}
 </div>
+
+<!-- Employee Creation Dialog -->
+<EmployeeCreateDialog
+	bind:open={createDialogOpen}
+	onOpenChange={(open) => (createDialogOpen = open)}
+	departments={departments.map(d => ({ id: d.id, name: d.name }))}
+	onSuccess={handleEmployeeCreated}
+/>

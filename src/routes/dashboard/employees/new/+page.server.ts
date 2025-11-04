@@ -125,6 +125,8 @@ export const actions: Actions = {
 			const jobTitle = formData.get('jobTitle')?.toString();
 			const departmentId = formData.get('departmentId')?.toString();
 			const hireDate = formData.get('hireDate')?.toString();
+			const role = formData.get('role')?.toString() || 'employee';
+			const password = formData.get('password')?.toString();
 
 			// Validate required fields
 			if (!firstName || !lastName || !email) {
@@ -145,9 +147,6 @@ export const actions: Actions = {
 			};
 
 			// Create user via GraphQL mutation
-			// Note: Password will be set separately via password reset flow
-			// Note: Role is hardcoded to "hr_employee" in the backend
-
 			// Build input object, only including fields that have values
 			const input: any = {
 				email,
@@ -157,9 +156,11 @@ export const actions: Actions = {
 			};
 
 			// Only add optional fields if they have values
+			if (role) input.role = role;
 			if (phone) input.phone = phone;
 			if (jobTitle) input.jobTitle = jobTitle;
 			if (departmentId) input.departmentId = departmentId;
+			if (password) input.password = password;
 			if (hireDate) {
 				// Ensure hire date is in ISO 8601 format
 				input.hireDate = new Date(hireDate).toISOString();
@@ -171,14 +172,16 @@ export const actions: Actions = {
 				body: JSON.stringify({
 					query: `
 						mutation CreateEmployee($input: CreateUserInput!) {
-							createUser(input: $input) {
-								id
-								firstName
-								lastName
-								email
-								role
-								hireDate
-								departmentId
+							users {
+								createUser(input: $input) {
+									id
+									firstName
+									lastName
+									email
+									role
+									hireDate
+									departmentId
+								}
 							}
 						}
 					`,
@@ -204,7 +207,7 @@ export const actions: Actions = {
 				});
 			}
 
-			const newEmployeeId = createData.data?.createUser?.id;
+			const newEmployeeId = createData.data?.users?.createUser?.id;
 
 			if (!newEmployeeId) {
 				return fail(500, {

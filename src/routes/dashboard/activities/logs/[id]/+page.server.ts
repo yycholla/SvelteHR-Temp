@@ -91,6 +91,65 @@ export const load: PageServerLoad = async (event) => {
 			user_agent: log.userAgent || null
 		};
 
+		// Fetch all logs for the same resource (timeline)
+		// Note: The activityLogs query doesn't support resourceType/resourceId filters,
+		// so we fetch a larger set and filter on the server side
+		let timelineLogs: any[] = [];
+		if (transformedLog.resource_id) {
+			const timelineQuery = `
+				query GetResourceTimeline {
+					activityLogs(limit: 500, offset: 0) {
+						id
+						employeeId
+						action
+						resourceType
+						resourceId
+						createdAt
+						ipAddress
+						isRollback
+						employee {
+							id
+							displayName
+						}
+					}
+				}
+			`;
+
+			try {
+				const timelineResult = await client.query(timelineQuery, {});
+
+				const rawTimelineLogs = timelineResult.data?.activityLogs || [];
+
+				// Filter logs for the same resource type and resource ID
+				const filteredLogs = rawTimelineLogs.filter(
+					(tlog: any) =>
+						tlog.resourceType === transformedLog.resource_type &&
+						tlog.resourceId === transformedLog.resource_id
+				);
+
+				// Transform timeline logs and sort by timestamp (newest first)
+				timelineLogs = filteredLogs
+					.map((tlog: any) => ({
+						id: tlog.id,
+						employee_name: tlog.employee?.displayName || 'Unknown',
+						action: tlog.action.toUpperCase(),
+						resource_type: tlog.resourceType,
+						resource_id: tlog.resourceId,
+						created_at: tlog.createdAt,
+						ip_address: tlog.ipAddress || null,
+						is_rollback: tlog.isRollback || false,
+						is_current: tlog.id === logId
+					}))
+					.sort(
+						(a: any, b: any) =>
+							new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+					);
+			} catch (timelineError) {
+				console.error('[ActivityLogDetail] Error loading timeline:', timelineError);
+				// Continue without timeline if query fails
+			}
+		}
+
 		// TODO: Implement rollback-related queries when rollback functionality is added
 		// - Query for rollback log if this log has been rolled back
 		// - Query for original log if this is a rollback log
@@ -107,6 +166,7 @@ export const load: PageServerLoad = async (event) => {
 
 		return {
 			log: transformedLog,
+			timelineLogs,
 			rollbackLog,
 			originalLog,
 			activeRequest,
@@ -142,6 +202,23 @@ export const load: PageServerLoad = async (event) => {
 };
 
 /**
+ * Unwrap GraphQL response structure to get the actual data
+ * GraphQL responses are often wrapped like: { "createTask": { "id": "...", ... } }
+ */
+function unwrapGraphQLResponse(data: Record<string, any> | null): Record<string, any> | null {
+	if (!data) return null;
+
+	// If there's only one top-level key and its value is an object, unwrap it
+	const keys = Object.keys(data);
+	if (keys.length === 1 && typeof data[keys[0]] === 'object' && data[keys[0]] !== null) {
+		// This looks like a wrapped GraphQL response
+		return data[keys[0]] as Record<string, any>;
+	}
+
+	return data;
+}
+
+/**
  * Compare before and after snapshots to identify changed fields
  */
 function calculateFieldChanges(
@@ -160,30 +237,40 @@ function calculateFieldChanges(
 		changeType: 'added' | 'removed' | 'modified';
 	}> = [];
 
+	// Unwrap GraphQL response structures
+	const unwrappedBefore = unwrapGraphQLResponse(before);
+	const unwrappedAfter = unwrapGraphQLResponse(after);
+
 	// Handle null snapshots
-	if (!before && !after) {
+	if (!unwrappedBefore && !unwrappedAfter) {
 		return changes; // Both null, no changes to report
 	}
 
-	if (!before && after) {
+	if (!unwrappedBefore && unwrappedAfter) {
 		// CREATE operation - all fields are added
-		for (const field in after) {
+		for (const field in unwrappedAfter) {
+			// Skip internal/system fields that aren't meaningful to show
+			if (field.startsWith('__')) continue;
+
 			changes.push({
 				field,
 				beforeValue: null,
-				afterValue: after[field],
+				afterValue: unwrappedAfter[field],
 				changeType: 'added'
 			});
 		}
 		return changes.sort((a, b) => a.field.localeCompare(b.field));
 	}
 
-	if (before && !after) {
+	if (unwrappedBefore && !unwrappedAfter) {
 		// DELETE operation - all fields are removed
-		for (const field in before) {
+		for (const field in unwrappedBefore) {
+			// Skip internal/system fields
+			if (field.startsWith('__')) continue;
+
 			changes.push({
 				field,
-				beforeValue: before[field],
+				beforeValue: unwrappedBefore[field],
 				afterValue: null,
 				changeType: 'removed'
 			});
@@ -193,31 +280,37 @@ function calculateFieldChanges(
 
 	// UPDATE operation - both snapshots exist
 	// Find modified and removed fields
-	for (const field in before!) {
-		if (!(field in after!)) {
+	for (const field in unwrappedBefore!) {
+		// Skip internal/system fields
+		if (field.startsWith('__')) continue;
+
+		if (!(field in unwrappedAfter!)) {
 			changes.push({
 				field,
-				beforeValue: before![field],
+				beforeValue: unwrappedBefore![field],
 				afterValue: null,
 				changeType: 'removed'
 			});
-		} else if (JSON.stringify(before![field]) !== JSON.stringify(after![field])) {
+		} else if (JSON.stringify(unwrappedBefore![field]) !== JSON.stringify(unwrappedAfter![field])) {
 			changes.push({
 				field,
-				beforeValue: before![field],
-				afterValue: after![field],
+				beforeValue: unwrappedBefore![field],
+				afterValue: unwrappedAfter![field],
 				changeType: 'modified'
 			});
 		}
 	}
 
 	// Find added fields
-	for (const field in after!) {
-		if (!(field in before!)) {
+	for (const field in unwrappedAfter!) {
+		// Skip internal/system fields
+		if (field.startsWith('__')) continue;
+
+		if (!(field in unwrappedBefore!)) {
 			changes.push({
 				field,
 				beforeValue: null,
-				afterValue: after![field],
+				afterValue: unwrappedAfter![field],
 				changeType: 'added'
 			});
 		}

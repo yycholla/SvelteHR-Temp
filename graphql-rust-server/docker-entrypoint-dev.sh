@@ -50,10 +50,10 @@ else
     echo "⏭️  Seed data disabled (ENABLE_SEED_DATA not set)"
 fi
 
-# Start bacon for hot-reloading
-echo "🔥 Starting bacon with hot-reloading..."
+# Start cargo-watch for hot-reloading
+echo "🔥 Starting cargo-watch with hot-reloading..."
 echo "   Watching: src/, migration/, Cargo.toml"
 echo "   GraphQL API will be available at http://0.0.0.0:$PORT"
 echo ""
 
-exec bacon --headless run
+exec cargo watch -x 'run --release --bin hr-graphql-server'
