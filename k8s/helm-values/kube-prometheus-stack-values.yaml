@@ -368,13 +368,15 @@ grafana:
                 "targets": [
                   {
                     "expr": "{namespace=\"sveltehr-prod\", pod=~\"sveltehr-backend.*\"}",
-                    "datasource": {"type": "loki"}
+                    "refId": "A",
+                    "datasource": {"type": "loki", "uid": "${DS_LOKI}"}
                   }
                 ],
                 "options": {
                   "showTime": true,
                   "wrapLogMessage": true,
-                  "enableLogDetails": true
+                  "enableLogDetails": true,
+                  "sortOrder": "Descending"
                 }
               },
               {
@@ -384,13 +386,15 @@ grafana:
                 "targets": [
                   {
                     "expr": "{namespace=\"sveltehr-prod\", pod=~\".*postgres.*\"}",
-                    "datasource": {"type": "loki"}
+                    "refId": "A",
+                    "datasource": {"type": "loki", "uid": "${DS_LOKI}"}
                   }
                 ],
                 "options": {
                   "showTime": true,
                   "wrapLogMessage": true,
-                  "enableLogDetails": true
+                  "enableLogDetails": true,
+                  "sortOrder": "Descending"
                 }
               },
               {
@@ -400,13 +404,15 @@ grafana:
                 "targets": [
                   {
                     "expr": "{namespace=\"sveltehr-prod\", pod=~\".*redis.*\"}",
-                    "datasource": {"type": "loki"}
+                    "refId": "A",
+                    "datasource": {"type": "loki", "uid": "${DS_LOKI}"}
                   }
                 ],
                 "options": {
                   "showTime": true,
                   "wrapLogMessage": true,
-                  "enableLogDetails": true
+                  "enableLogDetails": true,
+                  "sortOrder": "Descending"
                 }
               },
               {
@@ -416,13 +422,15 @@ grafana:
                 "targets": [
                   {
                     "expr": "{namespace=\"backup-system\", pod=~\"(minio|velero).*\"}",
-                    "datasource": {"type": "loki"}
+                    "refId": "A",
+                    "datasource": {"type": "loki", "uid": "${DS_LOKI}"}
                   }
                 ],
                 "options": {
                   "showTime": true,
                   "wrapLogMessage": true,
-                  "enableLogDetails": true
+                  "enableLogDetails": true,
+                  "sortOrder": "Descending"
                 }
               }
             ]
