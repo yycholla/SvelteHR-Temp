@@ -1,0 +1,196 @@
+# Traefik Configuration for Kubernetes Ingress
+# Modern HTTP reverse proxy and load balancer
+# Chart: traefik/traefik version 37.2.0 (Traefik v3.5.3)
+
+# Deployment configuration
+deployment:
+  enabled: true
+  kind: Deployment
+  replicas: 1
+
+# Image configuration
+image:
+  registry: docker.io
+  repository: traefik
+  tag: ""  # Use chart default (v3.5.3)
+  pullPolicy: IfNotPresent
+
+# Ports configuration
+ports:
+  web:
+    port: 80
+    exposedPort: 80
+    nodePort: 30080  # Fixed NodePort for external access
+    expose:
+      default: true
+    protocol: TCP
+
+  websecure:
+    port: 443
+    exposedPort: 443
+    nodePort: 30443  # Fixed NodePort for HTTPS
+    expose:
+      default: true
+    protocol: TCP
+    tls:
+      enabled: true
+
+  traefik:
+    port: 9000
+    exposedPort: 9000
+    expose:
+      default: false  # Dashboard not exposed externally
+    protocol: TCP
+
+# Service configuration
+service:
+  enabled: true
+  type: LoadBalancer
+  # k3s will assign LoadBalancer IP from MetalLB/ServiceLB
+
+# IngressClass
+ingressClass:
+  enabled: true
+  isDefaultClass: true  # Make Traefik the default IngressClass
+
+# IngressRoute for Traefik dashboard (optional - disabled by default)
+ingressRoute:
+  dashboard:
+    enabled: false  # Enable via Tailscale if needed
+
+# Resources
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+    add:
+      - NET_BIND_SERVICE
+
+# Pod security context
+podSecurityContext:
+  seccompProfile:
+    type: RuntimeDefault
+
+# Logs
+logs:
+  general:
+    level: INFO  # DEBUG, INFO, WARN, ERROR
+  access:
+    enabled: true
+    format: json
+
+# Metrics for Prometheus
+metrics:
+  prometheus:
+    enabled: true
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    addServicesLabels: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+      additionalLabels:
+        release: kube-prometheus-stack
+
+# Global arguments
+globalArguments:
+  - "--global.checknewversion=false"
+  - "--global.sendanonymoususage=false"
+
+# Additional arguments
+additionalArguments:
+  - "--serversTransport.insecureSkipVerify=true"  # Allow self-signed certs for backend services
+
+# TLS configuration
+tlsOptions:
+  default:
+    minVersion: VersionTLS12
+    cipherSuites:
+      - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+
+# RBAC
+rbac:
+  enabled: true
+
+# Service account
+serviceAccount:
+  create: true
+  name: traefik
+
+# Persistence for certificates
+persistence:
+  enabled: true
+  storageClass: ""  # Use default (local-path)
+  size: 1Gi
+  accessMode: ReadWriteOnce
+  path: /data
+
+# Affinity (optional)
+# affinity: {}
+
+# Node selector (optional)
+# nodeSelector: {}
+
+# Tolerations (optional)
+# tolerations: []
+
+# =============================================================================
+# Usage Notes
+# =============================================================================
+#
+# Traefik is the default ingress controller for k3s and handles:
+#   - HTTP/HTTPS traffic routing
+#   - Automatic HTTPS with Let's Encrypt (via cert-manager)
+#   - Load balancing
+#   - Path-based and host-based routing
+#
+# Access Traefik dashboard (if enabled):
+#   kubectl port-forward -n kube-system svc/traefik 9000:9000
+#   Open: http://localhost:9000/dashboard/
+#
+# Create an Ingress resource:
+#   apiVersion: networking.k8s.io/v1
+#   kind: Ingress
+#   metadata:
+#     name: example
+#   spec:
+#     ingressClassName: traefik
+#     rules:
+#       - host: example.com
+#         http:
+#           paths:
+#             - path: /
+#               pathType: Prefix
+#               backend:
+#                 service:
+#                   name: example-service
+#                   port:
+#                     number: 80
+#
+# TLS with cert-manager:
+#   Add annotations:
+#     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+#   Add tls section:
+#     tls:
+#       - hosts:
+#           - example.com
+#         secretName: example-tls
+#
+# =============================================================================
