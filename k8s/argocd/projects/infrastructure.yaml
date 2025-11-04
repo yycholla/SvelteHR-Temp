@@ -19,6 +19,7 @@ spec:
     - https://pkgs.tailscale.com/helmcharts
     - https://charts.external-secrets.io
     - https://charts.bitnami.com/bitnami
+    - https://charts.min.io/  # Official MinIO Helm charts
     - https://vmware-tanzu.github.io/helm-charts
 
   # Allowed destinations for infrastructure
