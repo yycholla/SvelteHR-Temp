@@ -120,16 +120,11 @@ promtail:
 
     # Scrape configuration
     scrape_configs:
-      # Kubernetes pods
+      # Kubernetes pods - collect from ALL pods
       - job_name: kubernetes-pods
         kubernetes_sd_configs:
           - role: pod
         relabel_configs:
-          # Only scrape pods with prometheus.io/scrape: true annotation
-          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
-            action: keep
-            regex: true
-
           # Add namespace label
           - source_labels: [__meta_kubernetes_namespace]
             target_label: namespace
@@ -150,6 +145,11 @@ promtail:
           - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
             target_label: app_name
 
+          # Drop logs from kube-system namespace to reduce noise (optional)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: drop
+            regex: kube-system
+
   # Resources
   resources:
     requests:
@@ -158,6 +158,34 @@ promtail:
     limits:
       cpu: 200m
       memory: 256Mi
+
+  # Init container to increase file descriptor limits
+  initContainer:
+    - name: init-sysctl
+      image: busybox:1.36
+      imagePullPolicy: IfNotPresent
+      command:
+        - sh
+        - -c
+        - |
+          echo "Increasing file descriptor limits for Promtail"
+          ulimit -n 65536
+      securityContext:
+        privileged: true
+        runAsUser: 0
+
+  # Container security context for file descriptor limits
+  containerSecurityContext:
+    capabilities:
+      add:
+        - SYS_RESOURCE
+    # Allow setting ulimits
+    allowPrivilegeEscalation: true
+
+  # Extra environment variables to increase file limits
+  extraEnv:
+    - name: GOMEMLIMIT
+      value: "200MiB"
 
   # ServiceMonitor for Prometheus
   serviceMonitor:
