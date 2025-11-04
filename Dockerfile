@@ -65,9 +65,9 @@ ENV NODE_ENV=${NODE_ENV}
 RUN --mount=type=cache,target=/app/node_modules/.vite \
     npx vite build
 
-# Verify build output exists
-RUN test -d /app/.svelte-kit/output || \
-    (echo "Build failed: .svelte-kit/output directory not found" && exit 1)
+# Verify build output exists (adapter-node outputs to build/ directory)
+RUN test -d /app/build || \
+    (echo "Build failed: build directory not found" && exit 1)
 
 # =============================================================================
 # Stage 4: Production Runtime
@@ -90,8 +90,8 @@ COPY --from=deps-prod --chown=svelte:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=svelte:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=svelte:nodejs /app/package-lock.json ./package-lock.json
 
-# Copy built application
-COPY --from=builder --chown=svelte:nodejs /app/.svelte-kit/output ./.svelte-kit/output
+# Copy built application (adapter-node outputs to build/ directory)
+COPY --from=builder --chown=svelte:nodejs /app/build ./build
 
 # Copy runtime config files (needed for adapter-node)
 COPY --chown=svelte:nodejs svelte.config.js ./
@@ -112,8 +112,8 @@ ENV HOST=0.0.0.0
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3000/health || exit 1
 
-# Start the application
-CMD ["node", ".svelte-kit/output/server/index.js"]
+# Start the application (adapter-node entry point)
+CMD ["node", "build"]
 
 # =============================================================================
 # Build Instructions
