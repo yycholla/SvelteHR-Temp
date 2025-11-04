@@ -26,12 +26,19 @@ resources:
 
 # Backup configuration
 configuration:
+  # Environment variables to force credentials from file (not EC2 IMDS)
+  extraEnvVars:
+    AWS_SHARED_CREDENTIALS_FILE: /credentials/cloud
+
   # Backup storage location (MinIO S3-compatible)
   backupStorageLocation:
     - name: default
       provider: aws
       bucket: velero
       default: true
+      credential:
+        name: velero-credentials
+        key: cloud
       config:
         region: minio  # Dummy region for MinIO
         s3ForcePathStyle: "true"  # Required for MinIO
