@@ -130,6 +130,15 @@ grafana:
 
   # Datasources - auto-configured by chart, no custom config needed
   # The chart automatically creates a Prometheus datasource
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      access: proxy
+      url: http://loki-stack:3100
+      jsonData:
+        maxLines: 1000
+      isDefault: false
+      editable: true
 
   # Default dashboards
   defaultDashboardsEnabled: true

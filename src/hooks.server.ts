@@ -18,6 +18,7 @@ const PUBLIC_ROUTES = new Set([
 	'/privacy',
 	'/terms',
 	'/health',
+	'/metrics', // Prometheus metrics endpoint (unauthenticated for cluster scraping)
 	'/api/auth/login',
 	'/api/health',
 	'/api/metrics',

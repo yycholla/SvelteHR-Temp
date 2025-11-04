@@ -1,0 +1,52 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: loki-stack
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"  # After MinIO (requires MinIO buckets and credentials)
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: infrastructure
+
+  sources:
+    # Source 1: Values from Git repository (MUST be first for $values reference)
+    - repoURL: https://github.com/Mountain-Care-Rx/SvelteHR.git
+      targetRevision: main
+      ref: values
+
+    # Source 2: Helm chart from Grafana official repo
+    - repoURL: https://grafana.github.io/helm-charts
+      chart: loki-stack
+      targetRevision: 2.10.x  # Stable loki-stack chart version
+      helm:
+        releaseName: loki-stack
+        valueFiles:
+          - $values/k8s/helm-values/loki-stack-values.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring  # Deploy to monitoring namespace with Prometheus/Grafana
+
+  syncPolicy:
+    # MANUAL SYNC during migration
+    automated: null
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        maxDuration: 3m
+
+  # Ignore differences for DaemonSet status (Promtail)
+  ignoreDifferences:
+    - group: apps
+      kind: DaemonSet
+      jsonPointers:
+        - /status
+
+  revisionHistoryLimit: 10

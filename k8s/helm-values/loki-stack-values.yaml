@@ -1,0 +1,178 @@
+# Grafana Loki Stack Configuration
+# Chart: grafana/loki-stack
+# Purpose: Log aggregation with MinIO backend storage
+
+loki:
+  enabled: true
+
+  # Use persistent storage for better performance
+  persistence:
+    enabled: true
+    storageClassName: ""  # Use default (local-path)
+    size: 10Gi
+
+  # Configuration for Loki
+  config:
+    auth_enabled: false
+
+    # Ingester configuration
+    ingester:
+      chunk_idle_period: 3m
+      chunk_block_size: 262144
+      chunk_retain_period: 1m
+      max_transfer_retries: 0
+      lifecycler:
+        ring:
+          kvstore:
+            store: inmemory
+          replication_factor: 1
+
+    # Limits configuration
+    limits_config:
+      enforce_metric_name: false
+      reject_old_samples: true
+      reject_old_samples_max_age: 168h  # 7 days
+      ingestion_rate_mb: 10
+      ingestion_burst_size_mb: 20
+
+    # Schema configuration
+    schema_config:
+      configs:
+        - from: 2024-01-01
+          store: boltdb-shipper
+          object_store: s3
+          schema: v11
+          index:
+            prefix: loki_index_
+            period: 24h
+
+    # Server configuration
+    server:
+      http_listen_port: 3100
+
+    # Storage configuration - MinIO backend
+    storage_config:
+      boltdb_shipper:
+        active_index_directory: /loki/boltdb-shipper-active
+        cache_location: /loki/boltdb-shipper-cache
+        cache_ttl: 24h
+        shared_store: s3
+
+      aws:
+        s3: http://minio.backup-system.svc.cluster.local:9000/loki
+        s3forcepathstyle: true
+        bucketnames: loki
+        endpoint: minio.backup-system.svc.cluster.local:9000
+        access_key_id: ${MINIO_ROOT_USER}
+        secret_access_key: ${MINIO_ROOT_PASSWORD}
+        insecure: true
+
+    # Table manager configuration
+    table_manager:
+      retention_deletes_enabled: true
+      retention_period: 720h  # 30 days retention
+
+  # Environment variables for MinIO credentials
+  env:
+    - name: MINIO_ROOT_USER
+      valueFrom:
+        secretKeyRef:
+          name: minio-credentials
+          key: rootUser
+    - name: MINIO_ROOT_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: minio-credentials
+          key: rootPassword
+
+  # Resources
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # ServiceMonitor for Prometheus
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: kube-prometheus-stack
+
+# Promtail configuration (log shipper)
+promtail:
+  enabled: true
+
+  config:
+    # Server configuration
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+
+    # Promtail positions file
+    positions:
+      filename: /run/promtail/positions.yaml
+
+    # Loki client configuration
+    clients:
+      - url: http://{{ .Release.Name }}:3100/loki/api/v1/push
+
+    # Scrape configuration
+    scrape_configs:
+      # Kubernetes pods
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          # Only scrape pods with prometheus.io/scrape: true annotation
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+
+          # Add namespace label
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+
+          # Add pod name label
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+
+          # Add container name label
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            target_label: container
+
+          # Add app label
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: app
+
+          # Add app.kubernetes.io/name label
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+            target_label: app_name
+
+  # Resources
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+  # ServiceMonitor for Prometheus
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: kube-prometheus-stack
+
+# Grafana configuration (we already have Grafana, so disable)
+grafana:
+  enabled: false
+
+# Fluent Bit (alternative log shipper - disabled, using Promtail)
+fluent-bit:
+  enabled: false
+
+# Log Gateway (disabled for now)
+loki-gateway:
+  enabled: false
