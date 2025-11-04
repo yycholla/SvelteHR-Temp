@@ -553,8 +553,8 @@ version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85a885520bf6249ab931a764ffdb87b0ceef48e6e7d807cfdb21b751e086e1ad"
 dependencies = [
- "prost",
- "prost-types",
+ "prost 0.14.1",
+ "prost-types 0.14.1",
  "tonic",
  "tonic-prost",
  "ureq",
@@ -570,7 +570,7 @@ dependencies = [
  "bollard-buildkit-proto",
  "bytes",
  "chrono",
- "prost",
+ "prost 0.14.1",
  "serde",
  "serde_json",
  "serde_repr",
@@ -1658,7 +1658,9 @@ dependencies = [
  "tower-http 0.5.2",
  "tower-sessions",
  "tracing",
+ "tracing-loki",
  "tracing-subscriber",
+ "url",
  "uuid",
 ]
 
@@ -2166,6 +2168,16 @@ name = "log"
 version = "0.4.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
+
+[[package]]
+name = "loki-api"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bdc38a304f59a03e6efa3876766a48c70a766a93f88341c3fff4212834b8e327"
+dependencies = [
+ "prost 0.13.5",
+ "prost-types 0.13.5",
+]
 
 [[package]]
 name = "lru"
@@ -2810,12 +2822,35 @@ dependencies = [
 
 [[package]]
 name = "prost"
+version = "0.13.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2796faa41db3ec313a31f7624d9286acf277b52de526150b7e69f3debf891ee5"
+dependencies = [
+ "bytes",
+ "prost-derive 0.13.5",
+]
+
+[[package]]
+name = "prost"
 version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7231bd9b3d3d33c86b58adbac74b5ec0ad9f496b19d22801d773636feaa95f3d"
 dependencies = [
  "bytes",
- "prost-derive",
+ "prost-derive 0.14.1",
+]
+
+[[package]]
+name = "prost-derive"
+version = "0.13.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
+dependencies = [
+ "anyhow",
+ "itertools",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -2833,11 +2868,20 @@ dependencies = [
 
 [[package]]
 name = "prost-types"
+version = "0.13.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52c2c1bf36ddb1a1c396b3601a3cec27c2462e45f07c386894ec3ccf5332bd16"
+dependencies = [
+ "prost 0.13.5",
+]
+
+[[package]]
+name = "prost-types"
 version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9b4db3d6da204ed77bb26ba83b6122a73aeb2e87e25fbf7ad2e84c4ccbf8f72"
 dependencies = [
- "prost",
+ "prost 0.14.1",
 ]
 
 [[package]]
@@ -3759,6 +3803,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 
 [[package]]
+name = "snap"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b6b67fb9a61334225b5b790716f609cd58395f895b3fe8b328786812a40bc3b"
+
+[[package]]
 name = "socket2"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4494,7 +4544,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "66bd50ad6ce1252d87ef024b3d64fe4c3cf54a86fb9ef4c631fdd0ded7aeaa67"
 dependencies = [
  "bytes",
- "prost",
+ "prost 0.14.1",
  "tonic",
 ]
 
@@ -4691,6 +4741,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing-loki"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba3beec919fbdf99d719de8eda6adae3281f8a5b71ae40431f44dc7423053d34"
+dependencies = [
+ "loki-api",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "snap",
+ "tokio",
+ "tokio-stream",
+ "tracing",
+ "tracing-core",
+ "tracing-log",
+ "tracing-serde",
+ "tracing-subscriber",
+ "url",
+]
+
+[[package]]
+name = "tracing-serde"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "704b1aeb7be0d0a84fc9828cae51dab5970fee5088f83d1dd7ee6f6246fc6ff1"
+dependencies = [
+ "serde",
+ "tracing-core",
+]
+
+[[package]]
 name = "tracing-subscriber"
 version = "0.3.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4700,12 +4781,15 @@ dependencies = [
  "nu-ansi-term",
  "once_cell",
  "regex-automata",
+ "serde",
+ "serde_json",
  "sharded-slab",
  "smallvec",
  "thread_local",
  "tracing",
  "tracing-core",
  "tracing-log",
+ "tracing-serde",
 ]
 
 [[package]]

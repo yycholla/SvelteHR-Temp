@@ -1,11 +1,34 @@
 // Employee document assignment endpoint (Feature 024)
 // POST /api/employees/[id]/assign-documents - Assign documents to an employee
+// ✅ Migrated to GraphQL backend (Phase 3 - Document API Migration)
 
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { transaction, setJWTClaims } from '$lib/server/db';
+import { createUrqlClient } from '$lib/graphql/client';
+import { gql } from '@urql/core';
 
-export const POST: RequestHandler = async ({ params, locals, request }) => {
+const CREATE_DOCUMENT_ASSIGNMENT_MUTATION = gql`
+	mutation CreateDocumentAssignment($input: CreateDocumentAssignmentInput!) {
+		createDocumentAssignment(input: $input) {
+			id
+			documentId
+			employeeId
+			assignedBy
+			assignedAt
+		}
+	}
+`;
+
+const GET_USER_QUERY = gql`
+	query GetUser($id: UUID!) {
+		user(id: $id) {
+			id
+			email
+		}
+	}
+`;
+
+export const POST: RequestHandler = async ({ params, locals, request, cookies, fetch }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
 		throw error(401, { message: 'Authentication required' });
@@ -33,101 +56,77 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
 
 		console.log(`[ASSIGN DOCS] User ${userId} assigning ${documentIds.length} documents to employee ${employeeId}`);
 
-		// Step 4: Perform bulk assignment
-		const result = await transaction(async (client) => {
-			// Set JWT claims for RLS
-			await setJWTClaims(client, userId, userRole);
+		// Step 4: Create GraphQL client
+		const urqlClient = createUrqlClient(fetch, undefined, undefined, cookies.get('hr_session'));
 
-			// Verify employee exists
-			const employeeCheck = await client.query(
-				`SELECT id, email FROM hr_public.users WHERE id = $1`,
-				[employeeId]
-			);
+		// Verify employee exists via GraphQL
+		const employeeResult = await urqlClient
+			.query(GET_USER_QUERY, { id: employeeId })
+			.toPromise();
 
-			if (employeeCheck.rows.length === 0) {
-				return { success: false, error: 'Employee not found' };
-			}
-
-			const employee = employeeCheck.rows[0];
-
-			// Verify all documents exist and are not deleted
-			const docsCheck = await client.query(
-				`SELECT id, filename FROM hr_public.documents
-				 WHERE id = ANY($1) AND is_deleted = false`,
-				[documentIds]
-			);
-
-			if (docsCheck.rows.length !== documentIds.length) {
-				return {
-					success: false,
-					error: `Some documents not found or deleted. Found ${docsCheck.rows.length} of ${documentIds.length} requested.`
-				};
-			}
-
-			// Check which documents are already assigned
-			const existingAssignments = await client.query(
-				`SELECT document_id FROM hr_public.document_assignments
-				 WHERE document_id = ANY($1) AND employee_id = $2`,
-				[documentIds, employeeId]
-			);
-
-			const existingDocIds = existingAssignments.rows.map((row) => row.document_id);
-			const newDocIds = documentIds.filter((id) => !existingDocIds.includes(id));
-
-			// Insert new assignments
-			let assignedCount = 0;
-			if (newDocIds.length > 0) {
-				const values = newDocIds
-					.map((_, i) => `($${i * 3 + 1}, $${i * 3 + 2}, $${i * 3 + 3})`)
-					.join(', ');
-
-				const params = newDocIds.flatMap((docId) => [docId, employeeId, userId]);
-
-				await client.query(
-					`INSERT INTO hr_public.document_assignments
-					 (document_id, employee_id, assigned_by)
-					 VALUES ${values}`,
-					params
-				);
-
-				assignedCount = newDocIds.length;
-			}
-
-			// Log the assignments in access logs
-			const clientIp =
-				request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-				request.headers.get('x-real-ip')?.trim() ||
-				null;
-			const userAgent = request.headers.get('user-agent') || null;
-
-			for (const docId of newDocIds) {
-				await client.query(
-					`INSERT INTO hr_public.document_access_logs
-					 (document_id, user_id, access_type, access_outcome, ip_address, user_agent)
-					 VALUES ($1, $2, $3, $4, $5, $6)`,
-					[docId, userId, 'view', 'success', clientIp, userAgent]
-				);
-			}
-
-			return {
-				success: true,
-				assignedCount,
-				skippedCount: existingDocIds.length,
-				employeeEmail: employee.email
-			};
-		});
-
-		if (!result.success) {
-			throw error(400, { message: result.error || 'Failed to assign documents' });
+		if (employeeResult.error || !employeeResult.data?.user) {
+			throw error(404, { message: 'Employee not found' });
 		}
 
-		console.log(`[ASSIGN DOCS] Successfully assigned ${result.assignedCount} documents, skipped ${result.skippedCount} already assigned`);
+		const employee = employeeResult.data.user;
+
+		// Step 5: Perform bulk assignment via GraphQL
+		let assignedCount = 0;
+		let skippedCount = 0;
+		const errors: string[] = [];
+
+		for (const documentId of documentIds) {
+			try {
+				const assignmentResult = await urqlClient
+					.mutation(CREATE_DOCUMENT_ASSIGNMENT_MUTATION, {
+						input: {
+							documentId,
+							employeeId,
+							assignedBy: userId
+						}
+					})
+					.toPromise();
+
+				if (assignmentResult.error) {
+					// Check if error is due to duplicate assignment
+					const errorMsg = assignmentResult.error.message || '';
+					if (errorMsg.includes('duplicate') || errorMsg.includes('already assigned')) {
+						skippedCount++;
+						console.log(`[ASSIGN DOCS] Document ${documentId} already assigned to employee ${employeeId}`);
+					} else {
+						errors.push(`Document ${documentId}: ${errorMsg}`);
+						console.error(`[ASSIGN DOCS] Error assigning document ${documentId}:`, assignmentResult.error);
+					}
+				} else {
+					assignedCount++;
+					console.log(`[ASSIGN DOCS] Document ${documentId} assigned to employee ${employeeId}`);
+				}
+			} catch (err) {
+				errors.push(`Document ${documentId}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+				console.error(`[ASSIGN DOCS] Exception assigning document ${documentId}:`, err);
+			}
+		}
+
+		// Step 6: Return results
+		if (errors.length > 0 && assignedCount === 0) {
+			throw error(400, {
+				message: `Failed to assign any documents. Errors: ${errors.join('; ')}`
+			});
+		}
+
+		const message = errors.length > 0
+			? `Assigned ${assignedCount} document(s), skipped ${skippedCount}, ${errors.length} errors`
+			: `Successfully assigned ${assignedCount} document(s) to ${employee.email}`;
+
+		console.log(`[ASSIGN DOCS] Completed: ${assignedCount} assigned, ${skippedCount} skipped, ${errors.length} errors`);
 
 		return json({
 			success: true,
-			message: `Successfully assigned ${result.assignedCount} document(s) to ${result.employeeEmail}`,
-			assignedCount: result.assignedCount,
-			skippedCount: result.skippedCount
+			message,
+			assignedCount,
+			skippedCount,
+			errorCount: errors.length,
+			errors: errors.length > 0 ? errors : undefined
 		});
 	} catch (err) {
 		console.error('[ASSIGN DOCS] Error:', err);

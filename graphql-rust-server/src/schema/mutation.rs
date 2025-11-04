@@ -4087,4 +4087,9 @@ impl MutationRoot {
     async fn employee(&self) -> EmployeeMutations {
         EmployeeMutations
     }
+
+    /// Rollback execution and snapshot operations
+    async fn rollback(&self) -> crate::schema::mutations::RollbackMutations {
+        crate::schema::mutations::RollbackMutations
+    }
 }

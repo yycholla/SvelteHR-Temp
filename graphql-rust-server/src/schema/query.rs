@@ -1655,6 +1655,11 @@ impl QueryRoot {
 
         Ok(permissions)
     }
+
+    /// Rollback and snapshot queries
+    async fn rollback(&self) -> crate::schema::mutations::RollbackQueries {
+        crate::schema::mutations::RollbackQueries
+    }
 }
 
 #[cfg(test)]

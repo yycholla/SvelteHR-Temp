@@ -13,8 +13,11 @@ pub type GraphQLSchema = async_graphql::Schema<QueryRoot, MutationRoot, async_gr
 /// This function builds the schema once at startup and returns it.
 /// The schema is configured with empty data that gets populated per-request
 /// through the request context.
+///
+/// Includes AuditExtension for automatic mutation logging to activity_logs table.
 pub fn create_schema() -> GraphQLSchema {
     async_graphql::Schema::build(QueryRoot, MutationRoot, async_graphql::EmptySubscription)
+        .extension(crate::middleware::AuditExtension)
         .finish()
 }
 
