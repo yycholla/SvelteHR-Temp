@@ -37,6 +37,7 @@ mod database;
 mod dataloader;
 mod error;
 mod handlers;
+mod logging;
 mod middleware;
 mod models;
 mod scheduler;
@@ -44,10 +45,8 @@ mod schema;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize tracing
-    tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .init();
+    // Initialize logging with optional Loki integration
+    logging::init_logging()?;
 
     // Load configuration
     dotenv::dotenv().ok();

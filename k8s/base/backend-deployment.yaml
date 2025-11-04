@@ -72,6 +72,13 @@ spec:
                 secretKeyRef:
                   name: sveltehr-secrets
                   key: service-auth-key
+            # Loki logging configuration
+            - name: LOKI_ENABLED
+              value: 'true'
+            - name: LOKI_URL
+              value: 'http://loki-stack.monitoring.svc.cluster.local:3100'
+            - name: RUST_LOG
+              value: 'info'
           envFrom:
             - configMapRef:
                 name: sveltehr-config

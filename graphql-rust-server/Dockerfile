@@ -29,14 +29,14 @@ RUN apt-get update && apt-get install -y \
 # Copy dependency recipe from planner
 COPY --from=planner /app/recipe.json recipe.json
 
-# Build dependencies (this layer will be cached unless dependencies change)
-RUN cargo chef cook --release --recipe-path recipe.json
+# Build dependencies with Loki feature (this layer will be cached unless dependencies change)
+RUN cargo chef cook --release --features loki --recipe-path recipe.json
 
 # Copy actual source code
 COPY . .
 
-# Build application, migration, and seed-data binaries (only rebuilds if source changed)
-RUN cargo build --release --bin hr-graphql-server && \
+# Build application, migration, and seed-data binaries with Loki feature (only rebuilds if source changed)
+RUN cargo build --release --features loki --bin hr-graphql-server && \
     cargo build --release --bin migration && \
     cargo build --release --bin seed-data
 
