@@ -101,8 +101,10 @@ loki:
       release: kube-prometheus-stack
 
 # Promtail configuration (log shipper)
+# DISABLED: Applications will push logs directly to Loki instead of file scraping
+# This saves resources and avoids "too many open files" issues
 promtail:
-  enabled: true
+  enabled: false
 
   config:
     # Server configuration
