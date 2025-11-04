@@ -158,6 +158,276 @@ grafana:
           options:
             path: /var/lib/grafana/dashboards/default
 
+  # Custom dashboards
+  dashboards:
+    default:
+      sveltehr-pods-monitoring:
+        json: |
+          {
+            "title": "SvelteHR Pods Monitoring",
+            "tags": ["sveltehr", "kubernetes", "monitoring"],
+            "timezone": "browser",
+            "editable": true,
+            "graphTooltip": 1,
+            "time": {
+              "from": "now-1h",
+              "to": "now"
+            },
+            "refresh": "30s",
+            "panels": [
+              {
+                "title": "Pod Status Overview",
+                "type": "stat",
+                "gridPos": {"h": 4, "w": 24, "x": 0, "y": 0},
+                "targets": [
+                  {
+                    "expr": "sum(kube_pod_status_phase{namespace=~\"sveltehr-prod|backup-system\", phase=\"Running\"})",
+                    "legendFormat": "Running Pods"
+                  }
+                ],
+                "fieldConfig": {
+                  "defaults": {
+                    "color": {"mode": "thresholds"},
+                    "thresholds": {
+                      "mode": "absolute",
+                      "steps": [
+                        {"color": "green", "value": null},
+                        {"color": "red", "value": 1}
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "title": "Backend CPU Usage",
+                "type": "timeseries",
+                "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+                "targets": [
+                  {
+                    "expr": "rate(container_cpu_usage_seconds_total{namespace=\"sveltehr-prod\", pod=~\"sveltehr-backend.*\"}[5m]) * 100",
+                    "legendFormat": "{{pod}}"
+                  }
+                ],
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "percent"
+                  }
+                }
+              },
+              {
+                "title": "Backend Memory Usage",
+                "type": "timeseries",
+                "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+                "targets": [
+                  {
+                    "expr": "container_memory_working_set_bytes{namespace=\"sveltehr-prod\", pod=~\"sveltehr-backend.*\"} / 1024 / 1024",
+                    "legendFormat": "{{pod}}"
+                  }
+                ],
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "MiB"
+                  }
+                }
+              },
+              {
+                "title": "PostgreSQL CPU",
+                "type": "timeseries",
+                "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+                "targets": [
+                  {
+                    "expr": "rate(container_cpu_usage_seconds_total{namespace=\"sveltehr-prod\", pod=~\".*postgres.*\"}[5m]) * 100",
+                    "legendFormat": "{{pod}}"
+                  }
+                ],
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "percent"
+                  }
+                }
+              },
+              {
+                "title": "PostgreSQL Memory",
+                "type": "timeseries",
+                "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+                "targets": [
+                  {
+                    "expr": "container_memory_working_set_bytes{namespace=\"sveltehr-prod\", pod=~\".*postgres.*\"} / 1024 / 1024",
+                    "legendFormat": "{{pod}}"
+                  }
+                ],
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "MiB"
+                  }
+                }
+              },
+              {
+                "title": "PostgreSQL Connections",
+                "type": "timeseries",
+                "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+                "targets": [
+                  {
+                    "expr": "cnpg_backends_total{namespace=\"sveltehr-prod\"}",
+                    "legendFormat": "{{pod}} - {{state}}"
+                  }
+                ]
+              },
+              {
+                "title": "PostgreSQL Disk Usage",
+                "type": "gauge",
+                "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+                "targets": [
+                  {
+                    "expr": "(kubelet_volume_stats_used_bytes{namespace=\"sveltehr-prod\", persistentvolumeclaim=~\".*postgres.*\"} / kubelet_volume_stats_capacity_bytes{namespace=\"sveltehr-prod\", persistentvolumeclaim=~\".*postgres.*\"}) * 100",
+                    "legendFormat": "{{persistentvolumeclaim}}"
+                  }
+                ],
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "percent",
+                    "thresholds": {
+                      "mode": "absolute",
+                      "steps": [
+                        {"color": "green", "value": null},
+                        {"color": "yellow", "value": 70},
+                        {"color": "red", "value": 85}
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "title": "Redis CPU",
+                "type": "timeseries",
+                "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
+                "targets": [
+                  {
+                    "expr": "rate(container_cpu_usage_seconds_total{namespace=\"sveltehr-prod\", pod=~\".*redis.*\"}[5m]) * 100",
+                    "legendFormat": "{{pod}}"
+                  }
+                ],
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "percent"
+                  }
+                }
+              },
+              {
+                "title": "Redis Memory",
+                "type": "timeseries",
+                "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
+                "targets": [
+                  {
+                    "expr": "container_memory_working_set_bytes{namespace=\"sveltehr-prod\", pod=~\".*redis.*\"} / 1024 / 1024",
+                    "legendFormat": "{{pod}}"
+                  }
+                ],
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "MiB"
+                  }
+                }
+              },
+              {
+                "title": "MinIO CPU",
+                "type": "timeseries",
+                "gridPos": {"h": 8, "w": 12, "x": 0, "y": 36},
+                "targets": [
+                  {
+                    "expr": "rate(container_cpu_usage_seconds_total{namespace=\"backup-system\", pod=~\"minio.*\"}[5m]) * 100",
+                    "legendFormat": "{{pod}}"
+                  }
+                ],
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "percent"
+                  }
+                }
+              },
+              {
+                "title": "MinIO Memory",
+                "type": "timeseries",
+                "gridPos": {"h": 8, "w": 12, "x": 12, "y": 36},
+                "targets": [
+                  {
+                    "expr": "container_memory_working_set_bytes{namespace=\"backup-system\", pod=~\"minio.*\"} / 1024 / 1024",
+                    "legendFormat": "{{pod}}"
+                  }
+                ],
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "MiB"
+                  }
+                }
+              },
+              {
+                "title": "Backend Logs",
+                "type": "logs",
+                "gridPos": {"h": 12, "w": 24, "x": 0, "y": 44},
+                "targets": [
+                  {
+                    "expr": "{namespace=\"sveltehr-prod\", pod=~\"sveltehr-backend.*\"}",
+                    "datasource": {"type": "loki"}
+                  }
+                ],
+                "options": {
+                  "showTime": true,
+                  "wrapLogMessage": true,
+                  "enableLogDetails": true
+                }
+              },
+              {
+                "title": "PostgreSQL Logs",
+                "type": "logs",
+                "gridPos": {"h": 12, "w": 24, "x": 0, "y": 56},
+                "targets": [
+                  {
+                    "expr": "{namespace=\"sveltehr-prod\", pod=~\".*postgres.*\"}",
+                    "datasource": {"type": "loki"}
+                  }
+                ],
+                "options": {
+                  "showTime": true,
+                  "wrapLogMessage": true,
+                  "enableLogDetails": true
+                }
+              },
+              {
+                "title": "Redis Logs",
+                "type": "logs",
+                "gridPos": {"h": 12, "w": 24, "x": 0, "y": 68},
+                "targets": [
+                  {
+                    "expr": "{namespace=\"sveltehr-prod\", pod=~\".*redis.*\"}",
+                    "datasource": {"type": "loki"}
+                  }
+                ],
+                "options": {
+                  "showTime": true,
+                  "wrapLogMessage": true,
+                  "enableLogDetails": true
+                }
+              },
+              {
+                "title": "Backup System Logs",
+                "type": "logs",
+                "gridPos": {"h": 12, "w": 24, "x": 0, "y": 80},
+                "targets": [
+                  {
+                    "expr": "{namespace=\"backup-system\", pod=~\"(minio|velero).*\"}",
+                    "datasource": {"type": "loki"}
+                  }
+                ],
+                "options": {
+                  "showTime": true,
+                  "wrapLogMessage": true,
+                  "enableLogDetails": true
+                }
+              }
+            ]
+          }
+
 # Node Exporter
 nodeExporter:
   enabled: true
