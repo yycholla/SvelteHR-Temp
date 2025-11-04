@@ -58,6 +58,7 @@ spec:
 #   - external-secrets (External Secrets Operator) - Wave 1
 #   - minio (Backup storage) - Wave 2
 #   - velero (Backup operator) - Wave 2
+#   - loki-stack (Log aggregation with Grafana Loki) - Wave 3
 #
 # Deployment:
 #   kubectl apply -f k8s/argocd/apps/infrastructure.yaml
