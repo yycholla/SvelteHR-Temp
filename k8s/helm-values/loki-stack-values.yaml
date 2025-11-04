@@ -53,8 +53,8 @@ loki:
     # Storage configuration - MinIO backend
     storage_config:
       boltdb_shipper:
-        active_index_directory: /loki/boltdb-shipper-active
-        cache_location: /loki/boltdb-shipper-cache
+        active_index_directory: /data/boltdb-shipper-active
+        cache_location: /data/boltdb-shipper-cache
         cache_ttl: 24h
         shared_store: s3
 
