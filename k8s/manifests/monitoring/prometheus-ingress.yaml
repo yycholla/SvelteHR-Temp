@@ -1,0 +1,20 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prometheus
+  namespace: monitoring
+  annotations:
+    # Tailscale ingress configuration
+    tailscale.com/funnel: "false"  # Private Tailnet access only
+    tailscale.com/hostname: "prometheus"  # Will be prometheus.your-tailnet.ts.net
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service:
+      name: kube-prometheus-stack-prometheus
+      port:
+        number: 9090
+  tls:
+    - hosts:
+        - prometheus
