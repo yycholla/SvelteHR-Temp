@@ -1,101 +1,89 @@
 # MinIO Configuration for Kubernetes Backup Storage
 # S3-compatible object storage for Velero backups
-# Chart version: 17.x
-
-# Authentication (using External Secrets from Doppler)
-auth:
-  rootUser: ""  # Ignored when existingSecret is set
-  rootPassword: ""  # Ignored when existingSecret is set
-  existingSecret: minio-secret  # Created by ExternalSecret from Doppler
-  # Secret must contain keys: root-user, root-password
-
-# Persistence
-persistence:
-  enabled: true
-  storageClass: ""  # Use default storage class (local-path)
-  size: 100Gi
-  mountPath: /bitnami/minio/data
-  accessModes:
-    - ReadWriteOnce
-
-# Service configuration
-service:
-  type: ClusterIP
-  ports:
-    api: 9000
-    console: 9001
-
-# Default buckets (comma-separated list for standalone mode)
-defaultBuckets: "velero"
+# Chart: minio/minio version 5.4.0
 
 # Deployment mode
 mode: standalone  # standalone or distributed
 
+# Images use quay.io (more reliable than Docker Hub)
+image:
+  repository: quay.io/minio/minio
+  tag: RELEASE.2024-12-18T13-15-44Z
+  pullPolicy: IfNotPresent
+
+# Root credentials from External Secrets (Doppler)
+rootUser: ""  # Ignored when existingSecret is set
+rootPassword: ""  # Ignored when existingSecret is set
+existingSecret: minio-secret  # Created by ExternalSecret
+# Secret must contain keys: rootUser, rootPassword
+
+# Persistence
+persistence:
+  enabled: true
+  storageClass: ""  # Use default (local-path)
+  size: 100Gi
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 9000
+
+consoleService:
+  type: ClusterIP
+  port: 9001
+
 # Resources
 resources:
-  limits:
-    cpu: 500m
-    memory: 1Gi
   requests:
     cpu: 250m
     memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
 
-# ServiceMonitor for Prometheus
+# Security context
+securityContext:
+  enabled: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+# Buckets to create on startup
+buckets:
+  - name: velero
+    policy: none
+    purge: false
+
+# Metrics
 metrics:
   serviceMonitor:
     enabled: true
-    interval: 30s
-    labels:
+    additionalLabels:
       release: kube-prometheus-stack
-
-# Security context
-podSecurityContext:
-  enabled: true
-  fsGroup: 1001
-  fsGroupChangePolicy: "OnRootMismatch"
-
-containerSecurityContext:
-  enabled: true
-  runAsUser: 1001
-  runAsNonRoot: true
-  allowPrivilegeEscalation: false
-  readOnlyRootFilesystem: false
-  capabilities:
-    drop:
-      - ALL
 
 # Ingress (disabled)
 ingress:
   enabled: false
 
 # =============================================================================
-# Post-Installation: Manual Velero User Configuration
+# Post-Installation: Velero User Configuration
 # =============================================================================
 #
-# After MinIO is deployed, create Velero user and policy manually:
+# After MinIO is deployed, create Velero service account via MinIO Console:
 #
 # 1. Port-forward to MinIO Console:
-#    kubectl port-forward svc/minio -n backup-system 9001:9001
+#    kubectl port-forward svc/minio-console -n backup-system 9001:9001
 #
-# 2. Login to MinIO Console at http://localhost:9001
-#    Username: admin
-#    Password: changeme123
+# 2. Login at http://localhost:9001
+#    Credentials synced from Doppler (MINIO_ROOT_USER / MINIO_ROOT_PASSWORD)
 #
-# 3. Create Velero service account:
+# 3. Create Service Account for Velero:
 #    - Navigate to: Identity > Service Accounts
-#    - Click "Create Service Account"
-#    - Name: velero
-#    - Policy: readwrite (or create custom policy for "velero" bucket only)
+#    - Create service account with readwrite policy on velero bucket
 #    - Save Access Key and Secret Key
 #
-# 4. Update Velero credentials with the generated keys:
-#    - Edit velero-values.yaml with the service account credentials
-#    - Or create a Kubernetes secret manually
-#
-# Alternative: Use mc (MinIO Client) CLI:
-#    kubectl run mc --image=bitnami/minio-client:latest --rm -it -- /bin/bash
-#    mc alias set minio http://minio.backup-system.svc.cluster.local:9000 admin changeme123
-#    mc admin user add minio velero VELERO_PASSWORD
-#    mc admin policy attach minio readwrite --user velero
+# 4. Update Doppler with Velero credentials:
+#    VELERO_MINIO_ACCESS_KEY=<access-key>
+#    VELERO_MINIO_SECRET_KEY=<secret-key>
 #
 # =============================================================================
