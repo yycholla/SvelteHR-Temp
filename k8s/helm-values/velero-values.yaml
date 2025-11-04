@@ -28,7 +28,8 @@ resources:
 configuration:
   # Environment variables to force credentials from file (not EC2 IMDS)
   extraEnvVars:
-    AWS_SHARED_CREDENTIALS_FILE: /credentials/cloud
+    - name: AWS_SHARED_CREDENTIALS_FILE
+      value: /credentials/cloud
 
   # Backup storage location (MinIO S3-compatible)
   backupStorageLocation:
