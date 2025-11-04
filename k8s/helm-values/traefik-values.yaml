@@ -131,8 +131,7 @@ rbac:
 
 # Service account
 serviceAccount:
-  create: true
-  name: traefik
+  name: ""  # Empty string creates service account automatically with fullname template
 
 # Persistence for certificates
 persistence:
