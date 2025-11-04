@@ -67,12 +67,11 @@ resources:
     cpu: 500m
     memory: 512Mi
 
-# Security context
+# Security context (container level)
 securityContext:
   runAsNonRoot: true
   runAsUser: 65532
   runAsGroup: 65532
-  fsGroup: 65532
   readOnlyRootFilesystem: true
   capabilities:
     drop:
@@ -80,8 +79,9 @@ securityContext:
     add:
       - NET_BIND_SERVICE
 
-# Pod security context
+# Pod security context (pod level)
 podSecurityContext:
+  fsGroup: 65532  # fsGroup belongs at pod level, not container level
   seccompProfile:
     type: RuntimeDefault
 
