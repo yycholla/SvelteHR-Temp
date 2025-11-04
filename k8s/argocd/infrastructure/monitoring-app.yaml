@@ -27,6 +27,11 @@ spec:
         valueFiles:
           - $values/k8s/helm-values/kube-prometheus-stack-values.yaml
 
+    # Source 3: Additional manifests (Tailscale ingresses, etc.)
+    - repoURL: https://github.com/Mountain-Care-Rx/SvelteHR.git
+      targetRevision: main
+      path: k8s/manifests/monitoring
+
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring

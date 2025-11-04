@@ -26,6 +26,11 @@ spec:
         valueFiles:
           - $values/k8s/helm-values/minio-values.yaml
 
+    # Source 3: Additional manifests (Tailscale ingress for console)
+    - repoURL: https://github.com/Mountain-Care-Rx/SvelteHR.git
+      targetRevision: main
+      path: k8s/manifests/backup-system
+
   destination:
     server: https://kubernetes.default.svc
     namespace: backup-system  # Correct namespace
