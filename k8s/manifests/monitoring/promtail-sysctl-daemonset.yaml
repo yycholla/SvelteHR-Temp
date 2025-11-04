@@ -39,10 +39,10 @@ spec:
             runAsUser: 0
           resources:
             requests:
-              cpu: 10m
+              cpu: 5m    # Reduced to minimal
               memory: 16Mi
             limits:
-              cpu: 50m
+              cpu: 20m
               memory: 32Mi
       containers:
         - name: pause
@@ -50,10 +50,10 @@ spec:
           resources:
             requests:
               cpu: 1m
-              memory: 8Mi
+              memory: 4Mi
             limits:
-              cpu: 10m
-              memory: 16Mi
+              cpu: 5m
+              memory: 8Mi
       tolerations:
         - operator: Exists
           effect: NoSchedule

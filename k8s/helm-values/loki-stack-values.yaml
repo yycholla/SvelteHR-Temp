@@ -151,10 +151,10 @@ promtail:
           - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
             target_label: app_name
 
-  # Resources
+  # Resources (reduced CPU request due to node allocation limits)
   resources:
     requests:
-      cpu: 100m
+      cpu: 50m   # Reduced from 100m to fit within node capacity
       memory: 128Mi
     limits:
       cpu: 200m
