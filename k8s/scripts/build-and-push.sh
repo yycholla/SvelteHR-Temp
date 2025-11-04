@@ -30,7 +30,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 if [ -z "$GITHUB_REPOSITORY" ]; then
     GIT_REMOTE=$(git config --get remote.origin.url 2>/dev/null || echo "")
     if [[ "$GIT_REMOTE" =~ github\.com[:/](.+/.+)(\.git)?$ ]]; then
-        GITHUB_REPOSITORY="${BASH_MATCH[1]%.git}"
+        GITHUB_REPOSITORY="${BASH_REMATCH[1]%.git}"
     else
         GITHUB_REPOSITORY="mountain-care-rx/sveltehr"
         warn "Could not detect GitHub repository. Using default: $GITHUB_REPOSITORY"
