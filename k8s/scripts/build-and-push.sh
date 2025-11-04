@@ -193,7 +193,7 @@ build_frontend() {
     info "Building ${REGISTRY_PATH}/frontend:${VERSION}"
 
     docker build \
-        --target runtime \
+        --target production \
         --cache-from ${REGISTRY_PATH}/frontend:latest \
         -t ${REGISTRY_PATH}/frontend:${VERSION} \
         -t ${REGISTRY_PATH}/frontend:${GIT_SHA} \

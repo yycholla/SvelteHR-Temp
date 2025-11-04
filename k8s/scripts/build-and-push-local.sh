@@ -135,7 +135,7 @@ build_frontend() {
     info "Building ${REGISTRY}/sveltehr-frontend:${VERSION}"
 
     docker build \
-        --target runtime \
+        --target production \
         --cache-from ${REGISTRY}/sveltehr-frontend:${VERSION} \
         --cache-from ${REGISTRY}/sveltehr-frontend:latest \
         -t ${REGISTRY}/sveltehr-frontend:${VERSION} \
