@@ -24,6 +24,8 @@ spec:
 
   # Allowed destinations for infrastructure
   destinations:
+    - namespace: argocd
+      server: https://kubernetes.default.svc
     - namespace: monitoring
       server: https://kubernetes.default.svc
     - namespace: cnpg-system
