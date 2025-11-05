@@ -14,7 +14,7 @@ frontend:
   image:
     repository: localhost:5000/sveltehr-frontend
     pullPolicy: Always
-    tag: latest
+    tag: "1.0.0"  # Must match production tag for ArgoCD Image Updater
     target: development  # Use development Dockerfile target
 
   service:
@@ -50,7 +50,7 @@ backend:
   image:
     repository: localhost:5000/sveltehr-backend
     pullPolicy: Always
-    tag: latest
+    tag: "1.0.0"  # Must match production tag for ArgoCD Image Updater
     target: development
 
   service:
