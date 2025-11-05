@@ -26,6 +26,24 @@ VERSION="${IMAGE_TAG:-${1:-latest}}"
 REGISTRY="${2:-ghcr.io}"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
+# Logging functions (defined early so they can be used during initialization)
+log_msg() {
+    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
+}
+
+log_info() {
+    echo -e "${BLUE}[INFO] $1${NC}"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN] $1${NC}"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR] $1${NC}" >&2
+}
+
+
 # Detect if VERSION is a semantic version tag (v1.2.3 format)
 SEMVER_TAGS=()
 if [[ "$VERSION" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)(-[a-zA-Z0-9.]+)?$ ]]; then
@@ -78,23 +96,6 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
-
-# Logging functions (defined early so they can be used during initialization)
-log_msg() {
-    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
-}
-
-log_info() {
-    echo -e "${BLUE}[INFO] $1${NC}"
-}
-
-log_warn() {
-    echo -e "${YELLOW}[WARN] $1${NC}"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR] $1${NC}" >&2
-}
 
 # Enable BuildKit for faster builds and cache mounts
 export DOCKER_BUILDKIT=1
