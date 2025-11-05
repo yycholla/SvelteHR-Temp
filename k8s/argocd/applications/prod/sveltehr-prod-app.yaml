@@ -84,7 +84,7 @@ spec:
       kind: Cluster
       jsonPointers:
         - /status
-        - /spec/affinity/podAntiAffinityType
+        - /spec/affinity
         - /spec/bootstrap/initdb/encoding
         - /spec/bootstrap/initdb/localeCType
         - /spec/bootstrap/initdb/localeCollate
