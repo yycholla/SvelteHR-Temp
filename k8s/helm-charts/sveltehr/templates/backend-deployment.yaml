@@ -75,8 +75,15 @@ spec:
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.externalSecrets.enabled }}
+                  # Use Doppler password in production
+                  name: {{ include "sveltehr.fullname" . }}-secrets
+                  key: password
+                  {{- else }}
+                  # Use Helm-generated password in dev
                   name: {{ include "sveltehr.fullname" . }}-postgres-app-secret
                   key: password
+                  {{- end }}
 
       containers:
         - name: graphql-server

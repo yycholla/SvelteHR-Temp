@@ -96,8 +96,15 @@ spec:
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.externalSecrets.enabled }}
+                  # Use Doppler password in production
+                  name: {{ include "sveltehr.fullname" . }}-secrets
+                  key: password
+                  {{- else }}
+                  # Use Helm-generated password in dev
                   name: {{ include "sveltehr.fullname" . }}-postgres-app-secret
                   key: password
+                  {{- end }}
 
             # Service authentication
             - name: SERVICE_AUTH_KEY
