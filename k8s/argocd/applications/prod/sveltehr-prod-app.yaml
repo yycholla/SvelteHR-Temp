@@ -11,7 +11,8 @@ metadata:
 
     # ===== ArgoCD Image Updater Configuration =====
     # Enable automated GHCR image updates with semantic versioning
-    argocd-image-updater.argoproj.io/image-list: backend=ghcr.io/mountain-care-rx/sveltehr/backend-server,frontend=ghcr.io/mountain-care-rx/sveltehr/frontend
+    # Specify current semver tag so Image Updater knows the baseline version
+    argocd-image-updater.argoproj.io/image-list: backend=ghcr.io/mountain-care-rx/sveltehr/backend-server:v1.0.0,frontend=ghcr.io/mountain-care-rx/sveltehr/frontend:v1.0.0
 
     # Pull secret configuration (required for private GHCR registry)
     argocd-image-updater.argoproj.io/backend.pull-secret: pullsecret:sveltehr-prod/ghcr-pull-secret
