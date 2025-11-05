@@ -51,14 +51,14 @@ spec:
         authScripts:
           enabled: false
 
-        # Resource limits (minimal for resource-constrained environment)
+        # Resource limits (BestEffort CPU for overcommitment on resource-constrained nodes)
         resources:
           requests:
             memory: "64Mi"
-            cpu: "25m"
+            # No CPU request/limit - allows scheduling on fully allocated nodes
           limits:
             memory: "128Mi"
-            cpu: "50m"
+            # No CPU limit - prevents Kubernetes from auto-setting CPU request
 
         # Metrics for monitoring
         metrics:
