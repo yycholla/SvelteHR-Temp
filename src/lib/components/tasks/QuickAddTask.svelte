@@ -33,12 +33,14 @@
 		assignees = [],
 		taskTypes = [],
 		canAssign = false,
+		formAction = '/dashboard/tasks',
 		onSuccess
 	}: {
 		currentUser: { id: string; displayName: string; role: string };
 		assignees: Array<{ id: string; displayName: string }>;
 		taskTypes: Array<{ id: string; name: string; colorCode: string }>;
 		canAssign?: boolean;
+		formAction?: string;
 		onSuccess?: () => void;
 	} = $props();
 
@@ -61,11 +63,16 @@
 
 	// Selected assignee display name
 	let selectedAssigneeName = $derived(
-		assignees.find((a) => a.id === quickAddAssigneeId)?.displayName || currentUser.displayName
+		assignees.find((a) => a.id === quickAddAssigneeId)?.displayName ||
+		currentUser.displayName ||
+		currentUser.email ||
+		'User'
 	);
 
 	// Get first name from display name
-	let selectedAssigneeFirstName = $derived(selectedAssigneeName.split(' ')[0]);
+	let selectedAssigneeFirstName = $derived(
+		selectedAssigneeName ? selectedAssigneeName.split(' ')[0] : 'User'
+	);
 
 	// Selected task type name and color
 	let selectedTaskType = $derived(taskTypes.find((t) => t.id === quickAddTaskTypeId));
@@ -147,13 +154,17 @@
 	<Popover.Content class="w-[550px] p-4" align="end">
 		<form
 			method="POST"
-			action="/dashboard/tasks"
+			action={formAction}
 			use:enhance={() => {
 				isSubmitting = true;
 				return async ({ result, update }) => {
 					isSubmitting = false;
 					if (result.type === 'success') {
-						// Reset form
+						// Update page data
+						await update();
+						// Call success callback if provided (must await to ensure data refresh completes)
+						await onSuccess?.();
+						// Reset form after data is refreshed
 						quickAddTitle = '';
 						quickAddDescription = '';
 						quickAddPriority = 'MEDIUM';
@@ -161,10 +172,6 @@
 						quickAddAssigneeId = currentUser.id;
 						quickAddTaskTypeId = '';
 						isQuickAddOpen = false;
-						// Update page data
-						await update();
-						// Call success callback if provided
-						onSuccess?.();
 					} else if (result.type === 'failure') {
 						alert(result.data?.error || 'Failed to create task');
 					}

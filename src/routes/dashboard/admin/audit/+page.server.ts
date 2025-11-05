@@ -2,9 +2,9 @@
 // Admin-only page for viewing system audit logs
 
 import type { PageServerLoad } from './$types';
-import { createUrqlClient } from '$lib/graphql/client';
+import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 
-export const load: PageServerLoad = async ({ locals, url, parent }) => {
+export const load: PageServerLoad = async ({ locals, url, parent, cookies }) => {
 	// Auth check already done by admin +layout.server.ts
 	const { isAdmin } = await parent();
 
@@ -24,7 +24,8 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 	const dateTo = url.searchParams.get('dateTo') || '';
 
 	try {
-		const client = createUrqlClient();
+		const cookieHeader = serializeCookies(cookies);
+		const client = createUrqlClient(undefined, undefined, undefined, cookieHeader);
 
 		// Query audit logs
 		// Note: Audit logging not implemented - audit_logs table missing from schema

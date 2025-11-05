@@ -31,6 +31,8 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     # Mold linker for significantly faster linking
     mold \
+    # Clang compiler required for mold linker
+    clang \
     # PostgreSQL client for pg_isready (database readiness check)
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*

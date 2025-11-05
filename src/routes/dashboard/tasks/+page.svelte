@@ -13,7 +13,7 @@
 	import type { PageData } from './$types';
 	import type { TaskFilterState } from '$lib/components/tasks/TaskFilters.svelte';
 	import { page } from '$app/stores';
-	import { goto, replaceState } from '$app/navigation';
+	import { goto, replaceState, invalidateAll } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
@@ -207,6 +207,10 @@
 			assignees={data.assignees}
 			taskTypes={data.taskTypes}
 			canAssign={canAssign}
+			onSuccess={async () => {
+				// Refresh the page data after task creation
+				await invalidateAll();
+			}}
 		/>
 	</div>
 

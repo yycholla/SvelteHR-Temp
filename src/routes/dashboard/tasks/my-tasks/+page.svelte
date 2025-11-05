@@ -229,6 +229,11 @@
 			assignees={data.assignees}
 			taskTypes={data.taskTypes}
 			canAssign={false}
+			formAction="/dashboard/tasks/my-tasks"
+			onSuccess={async () => {
+				// Refresh the page data after task creation
+				await invalidateAll();
+			}}
 		/>
 	</div>
 

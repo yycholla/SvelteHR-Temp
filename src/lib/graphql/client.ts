@@ -248,6 +248,9 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string, url
 			// For server-side requests, explicitly forward cookies
 			if (!browser && cookies) {
 				headers['Cookie'] = cookies;
+				console.log('[GraphQL Client] Forwarding session cookies to backend:', cookies.substring(0, 50) + '...');
+			} else if (!browser) {
+				console.warn('[GraphQL Client] WARNING: No cookies to forward! Authentication may fail.');
 			}
 
 			return {
@@ -321,6 +324,26 @@ if (browser) {
 	window.addEventListener('network-error', ((event: CustomEvent) => {
 		networkStatus.lastError = event.detail.error;
 	}) as EventListener);
+}
+
+/**
+ * Serialize SvelteKit cookies to Cookie header format
+ * @param cookies - SvelteKit Cookies object
+ * @returns Serialized cookie string for headers
+ */
+export function serializeCookies(cookies: any): string {
+	if (!cookies || typeof cookies.getAll !== 'function') {
+		return '';
+	}
+
+	try {
+		return cookies
+			.getAll()
+			.map((c: { name: string; value: string }) => `${c.name}=${c.value}`)
+			.join('; ');
+	} catch {
+		return '';
+	}
 }
 
 // Export types for TypeScript support

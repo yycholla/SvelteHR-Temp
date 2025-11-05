@@ -303,11 +303,11 @@
 		<!-- Security notice -->
 		<Alert.Root class="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
 			<Lock class="h-5 w-5 text-blue-600 dark:text-blue-400" />
-			<Alert.Title>End-to-End Encryption</Alert.Title>
+			<Alert.Title>Server-Side Encryption</Alert.Title>
 			<Alert.Description>
-				Your document is encrypted using AES-GCM-256 on your device before upload. The server never
-				has access to your unencrypted files. Only authorized users with the decryption key can
-				access the document content.
+				Your document is encrypted using AES-256-GCM on the server before storage. Files are
+				securely encrypted in memory and never stored unencrypted. Only authorized users with proper
+				permissions can decrypt and access the document content.
 			</Alert.Description>
 		</Alert.Root>
 	{/if}

@@ -23,14 +23,38 @@ impl UserMutations {
     async fn create_user(&self, ctx: &Context<'_>, input: CreateUserInput) -> Result<User> {
         let db = get_db_from_context(ctx)?;
 
-        // Generate a temporary secure password hash
-        // Users should reset their password on first login
-        let temp_password = format!("TempPass{}", uuid::Uuid::new_v4().to_string()[..8].to_uppercase());
-        let password_hash = bcrypt::hash(&temp_password, bcrypt::DEFAULT_COST)
+        // Check if email already exists
+        let existing_user = crate::models::user::Entity::find()
+            .filter(crate::models::user::Column::Email.eq(&input.email))
+            .filter(crate::models::user::Column::DeletedAt.is_null())
+            .one(&db)
+            .await?;
+
+        if existing_user.is_some() {
+            return Err(AppError::Validation(format!("Email '{}' is already in use", input.email)).into());
+        }
+
+        // Use provided password or generate a temporary one
+        let (password_to_hash, password_source) = if let Some(provided_password) = input.password {
+            (provided_password, "provided")
+        } else {
+            // Generate a temporary secure password
+            let temp_password = format!("TempPass{}", uuid::Uuid::new_v4().to_string()[..8].to_uppercase());
+            (temp_password, "generated")
+        };
+
+        let password_hash = bcrypt::hash(&password_to_hash, bcrypt::DEFAULT_COST)
             .map_err(|e| AppError::Internal(format!("Failed to hash password: {}", e)))?;
 
-        // Log the temporary password (in production, this should be sent via email)
-        tracing::info!("Created user {} with temporary password: {}", input.email, temp_password);
+        // Log password info (in production, generated passwords should be sent via email)
+        if password_source == "generated" {
+            tracing::info!("Created user {} with temporary password: {}", input.email, password_to_hash);
+        } else {
+            tracing::info!("Created user {} with provided password", input.email);
+        }
+
+        // Use provided role or default to "hr_employee"
+        let user_role = input.role.unwrap_or_else(|| "hr_employee".to_string());
 
         // Create SeaORM active model
         // Note: display_name and full_name are GENERATED columns in the database
@@ -42,7 +66,7 @@ impl UserMutations {
             last_name: Set(input.last_name.clone()),
             // display_name: NotSet - generated column, don't set
             // full_name: NotSet - generated column, don't set
-            role: Set("hr_employee".to_string()), // Default role
+            role: Set(user_role),
             phone_number: Set(input.phone.clone()),
             job_title: Set(input.job_title.clone()),
             department_id: Set(input.department_id),

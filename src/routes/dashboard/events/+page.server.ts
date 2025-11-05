@@ -5,7 +5,7 @@
 import type { PageServerLoad, Actions } from './$types';
 import { error, redirect, fail } from '@sveltejs/kit';
 import { EventsOperations } from '$lib/graphql/events-operations';
-import { createUrqlClient } from '$lib/graphql/client';
+import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 import type { EventVisibilityType, EventStatus, EventType } from '$lib/graphql/types';
 import { gql } from '@urql/svelte';
 // Feature 026: Import GraphQL operations for comments, history, waitlist
@@ -33,10 +33,11 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	};
 
 	try {
-		// Initialize GraphQL client and operations
-		// For server-side: createUrqlClient(fetchFn?, authToken?)
-		// Session-based auth doesn't use JWT tokens
-		const urqlClient = createUrqlClient();
+		// Initialize GraphQL client and operations with session cookie forwarding
+		// For server-side: createUrqlClient(fetchFn?, authToken?, url?, cookies?)
+		// Session-based auth forwards cookies for authentication
+		const cookieHeader = serializeCookies(cookies);
+		const urqlClient = createUrqlClient(undefined, undefined, undefined, cookieHeader);
 		const eventsOps = new EventsOperations(urqlClient);
 
 		// Get query parameters for filtering
@@ -350,8 +351,9 @@ export const actions: Actions = {
 		}
 
 		try {
-			// Session-based auth doesn't use JWT tokens
-			const urqlClient = createUrqlClient();
+			// Session-based auth - forward cookies for authentication
+			const cookieHeader = serializeCookies(cookies);
+			const urqlClient = createUrqlClient(undefined, undefined, undefined, cookieHeader);
 			const eventsOps = new EventsOperations(urqlClient);
 
 			// T036: Session-based authentication - jwtToken not needed
@@ -526,8 +528,9 @@ export const actions: Actions = {
 		}
 
 		try {
-			// Session-based auth doesn't use JWT tokens
-			const urqlClient = createUrqlClient();
+			// Session-based auth - forward cookies for authentication
+			const cookieHeader = serializeCookies(cookies);
+			const urqlClient = createUrqlClient(undefined, undefined, undefined, cookieHeader);
 			const eventsOps = new EventsOperations(urqlClient);
 
 			// T036: Session-based authentication - jwtToken not needed
@@ -614,8 +617,9 @@ export const actions: Actions = {
 		}
 
 		try {
-			// Session-based auth doesn't use JWT tokens
-			const urqlClient = createUrqlClient();
+			// Session-based auth - forward cookies for authentication
+			const cookieHeader = serializeCookies(cookies);
+			const urqlClient = createUrqlClient(undefined, undefined, undefined, cookieHeader);
 			const eventsOps = new EventsOperations(urqlClient);
 
 			// T036: Session-based authentication - jwtToken not needed
@@ -673,8 +677,9 @@ export const actions: Actions = {
 
 		try {
 			console.log('[SERVER] Creating URQL client and EventsOperations');
-			// Session-based auth doesn't use JWT tokens
-			const urqlClient = createUrqlClient();
+			// Session-based auth - forward cookies for authentication
+			const cookieHeader = serializeCookies(cookies);
+			const urqlClient = createUrqlClient(undefined, undefined, undefined, cookieHeader);
 			const eventsOps = new EventsOperations(urqlClient);
 
 			// T036: Session-based authentication - jwtToken not needed
@@ -797,8 +802,9 @@ export const actions: Actions = {
 		}
 
 		try {
-			// Session-based auth doesn't use JWT tokens
-			const urqlClient = createUrqlClient();
+			// Session-based auth - forward cookies for authentication
+			const cookieHeader = serializeCookies(cookies);
+			const urqlClient = createUrqlClient(undefined, undefined, undefined, cookieHeader);
 			const eventsOps = new EventsOperations(urqlClient);
 
 			// T036: Session-based authentication - jwtToken not needed

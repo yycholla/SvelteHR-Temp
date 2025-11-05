@@ -2,9 +2,9 @@
 // Admin-only page for generating and viewing compliance reports
 
 import type { PageServerLoad } from './$types';
-import { createUrqlClient } from '$lib/graphql/client';
+import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 
-export const load: PageServerLoad = async ({ locals, parent }) => {
+export const load: PageServerLoad = async ({ locals, parent, cookies }) => {
 	// Auth check already done by admin +layout.server.ts
 	const { isAdmin } = await parent();
 
@@ -13,7 +13,8 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 	}
 
 	try {
-		const client = createUrqlClient();
+		const cookieHeader = serializeCookies(cookies);
+		const client = createUrqlClient(undefined, undefined, undefined, cookieHeader);
 
 		// Query data for compliance metrics
 		// NOTE: Using Rust GraphQL schema (direct arrays, no .nodes wrapper)

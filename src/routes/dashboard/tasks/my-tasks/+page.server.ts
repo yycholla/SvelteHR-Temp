@@ -37,72 +37,63 @@ export const load: PageServerLoad = async (event) => {
 	const searchTerm = url.searchParams.get('search') || '';
 
 	try {
-		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+		const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
-
-		// Get JWT token from cookies for authentication
-
-		// Headers for session-based authentication (cookies sent automatically)
-		const headers: Record<string, string> = {
-			'Content-Type': 'application/json',
-		};
 
 		console.log('[My Tasks] Loading tasks for user:', locals.user.id);
 
-		// Load user's tasks
+		// Load user's tasks with authenticated request (forwards session cookies)
 		// NOTE: Rust GraphQL schema uses TaskFilter input object
 		// Status/priority filtering will be done client-side
-		const tasksResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetMyTasks($filter: TaskFilter!, $limit: Int!, $offset: Int!) {
-						tasks(filter: $filter, limit: $limit, offset: $offset) {
+		const tasksResponse = await authenticatedGraphQLRequest(
+			graphqlEndpoint,
+			`
+				query GetMyTasks($filter: TaskFilter!, $limit: Int!, $offset: Int!) {
+					tasks(filter: $filter, limit: $limit, offset: $offset) {
+						id
+						title
+						description
+						status
+						priority
+						dueDate
+						requiresManualReassignment
+						archived
+						createdAt
+						updatedAt
+						assignee {
+							id
+							displayName
+							email
+						}
+						department {
+							id
+							name
+							description
+						}
+						creator {
+							id
+							displayName
+							email
+						}
+						taskType {
+							id
+							name
+						}
+						parentTask {
 							id
 							title
-							description
 							status
-							priority
-							dueDate
-							requiresManualReassignment
-							archived
-							createdAt
-							updatedAt
-							assignee {
-								id
-								displayName
-								email
-							}
-							department {
-								id
-								name
-								description
-							}
-							creator {
-								id
-								displayName
-								email
-							}
-							taskType {
-								id
-								name
-							}
-							parentTask {
-								id
-								title
-								status
-							}
 						}
 					}
-				`,
-				variables: {
-					filter: { assigneeId: locals.user.id },
-					limit: 100,
-					offset: 0
 				}
-			})
-		});
+			`,
+			{
+				filter: { assigneeId: locals.user.id },
+				limit: 100,
+				offset: 0
+			},
+			event.request
+		);
 
 		const tasksData = await tasksResponse.json();
 		console.log('[My Tasks] Tasks response:', tasksData);
@@ -155,6 +146,48 @@ export const load: PageServerLoad = async (event) => {
 			}).length
 		};
 
+		// Load assignees (users) for QuickAddTask component
+		const assigneesResponse = await authenticatedGraphQLRequest(
+			graphqlEndpoint,
+			`
+				query GetUsersForAssigneeFilter($limit: Int!) {
+					users(limit: $limit) {
+						id
+						displayName
+						email
+						role
+					}
+				}
+			`,
+			{
+				limit: 100
+			},
+			event.request
+		);
+
+		const assigneesData = await assigneesResponse.json();
+
+		// Load task types for QuickAddTask component
+		const taskTypesResponse = await authenticatedGraphQLRequest(
+			graphqlEndpoint,
+			`
+				query GetTaskTypesForFilter($isActive: Boolean) {
+					taskTypes(isActive: $isActive) {
+						id
+						name
+						description
+						defaultPriority
+						colorCode
+						isActive
+					}
+				}
+			`,
+			{},
+			event.request
+		);
+
+		const taskTypesData = await taskTypesResponse.json();
+
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
 
@@ -164,6 +197,8 @@ export const load: PageServerLoad = async (event) => {
 			tasks,
 			totalTasks: tasks.length,
 			taskStats,
+			assignees: assigneesData?.data?.users || [],
+			taskTypes: taskTypesData?.data?.taskTypes || [],
 			filters: {
 				searchTerm,
 				statusFilter,
@@ -224,7 +259,9 @@ export const actions: Actions = {
 				priority,
 				assigneeId,
 				dueDate,
-				taskTypeId
+				taskTypeId,
+				currentUserId: locals.user.id,
+				assigneeMatchesUser: assigneeId === locals.user.id
 			});
 
 			// Prepare create input for Rust GraphQL schema
