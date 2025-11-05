@@ -150,9 +150,9 @@ ghcr_login() {
     fi
 }
 
-# Build backend images (3 separate targets)
+# Build unified backend image with all binaries
 build_backend() {
-    log "Building backend images with multi-target Dockerfile..."
+    log "Building unified backend image (includes server, migration, seed binaries)..."
 
     BACKEND_DIR="${PROJECT_ROOT}/graphql-rust-server"
 
@@ -164,8 +164,8 @@ build_backend() {
     cd "$BACKEND_DIR"
     info "Backend directory: $(pwd)"
 
-    # Build server image
-    log "Building server image (target: server)..."
+    # Build single server image with all binaries included
+    log "Building backend-server image (target: server) with all binaries..."
     BUILD_ARGS=(
         --target server
         --cache-from ${REGISTRY_PATH}/backend-server:latest
@@ -181,56 +181,13 @@ build_backend() {
 
     docker build "${BUILD_ARGS[@]}" -f Dockerfile.prod .
 
-    info "Server image built: ${REGISTRY_PATH}/backend-server:${VERSION}"
+    info "Backend server image built: ${REGISTRY_PATH}/backend-server:${VERSION}"
+    info "  Includes binaries: hr-graphql-server, hr-migration, hr-seed"
     for tag in "${SEMVER_TAGS[@]}"; do
         info "  Additional tag: ${REGISTRY_PATH}/backend-server:${tag}"
     done
 
-    # Build migration image
-    log "Building migration image (target: migration)..."
-    BUILD_ARGS=(
-        --target migration
-        --cache-from ${REGISTRY_PATH}/backend-migration:latest
-        -t ${REGISTRY_PATH}/backend-migration:${VERSION}
-        -t ${REGISTRY_PATH}/backend-migration:${GIT_SHA}
-        -t ${REGISTRY_PATH}/backend-migration:latest
-    )
-
-    # Add semantic version tags if detected
-    for tag in "${SEMVER_TAGS[@]}"; do
-        BUILD_ARGS+=(-t ${REGISTRY_PATH}/backend-migration:${tag})
-    done
-
-    docker build "${BUILD_ARGS[@]}" -f Dockerfile.prod .
-
-    info "Migration image built: ${REGISTRY_PATH}/backend-migration:${VERSION}"
-    for tag in "${SEMVER_TAGS[@]}"; do
-        info "  Additional tag: ${REGISTRY_PATH}/backend-migration:${tag}"
-    done
-
-    # Build seed image
-    log "Building seed image (target: seed)..."
-    BUILD_ARGS=(
-        --target seed
-        --cache-from ${REGISTRY_PATH}/backend-seed:latest
-        -t ${REGISTRY_PATH}/backend-seed:${VERSION}
-        -t ${REGISTRY_PATH}/backend-seed:${GIT_SHA}
-        -t ${REGISTRY_PATH}/backend-seed:latest
-    )
-
-    # Add semantic version tags if detected
-    for tag in "${SEMVER_TAGS[@]}"; do
-        BUILD_ARGS+=(-t ${REGISTRY_PATH}/backend-seed:${tag})
-    done
-
-    docker build "${BUILD_ARGS[@]}" -f Dockerfile.prod .
-
-    info "Seed image built: ${REGISTRY_PATH}/backend-seed:${VERSION}"
-    for tag in "${SEMVER_TAGS[@]}"; do
-        info "  Additional tag: ${REGISTRY_PATH}/backend-seed:${tag}"
-    done
-
-    log "All backend images built successfully!"
+    log "Backend image built successfully!"
 }
 
 # Build frontend image with BuildKit
@@ -267,31 +224,13 @@ build_frontend() {
 push_images() {
     log "Pushing images to registry ${REGISTRY_PATH}..."
 
-    # Push backend server image (all tags)
-    info "Pushing backend server image..."
+    # Push unified backend server image (all tags)
+    info "Pushing backend server image (includes all binaries)..."
     docker push ${REGISTRY_PATH}/backend-server:${VERSION}
     docker push ${REGISTRY_PATH}/backend-server:${GIT_SHA}
     docker push ${REGISTRY_PATH}/backend-server:latest
     for tag in "${SEMVER_TAGS[@]}"; do
         docker push ${REGISTRY_PATH}/backend-server:${tag}
-    done
-
-    # Push migration image (all tags)
-    info "Pushing migration image..."
-    docker push ${REGISTRY_PATH}/backend-migration:${VERSION}
-    docker push ${REGISTRY_PATH}/backend-migration:${GIT_SHA}
-    docker push ${REGISTRY_PATH}/backend-migration:latest
-    for tag in "${SEMVER_TAGS[@]}"; do
-        docker push ${REGISTRY_PATH}/backend-migration:${tag}
-    done
-
-    # Push seed image (all tags)
-    info "Pushing seed image..."
-    docker push ${REGISTRY_PATH}/backend-seed:${VERSION}
-    docker push ${REGISTRY_PATH}/backend-seed:${GIT_SHA}
-    docker push ${REGISTRY_PATH}/backend-seed:latest
-    for tag in "${SEMVER_TAGS[@]}"; do
-        docker push ${REGISTRY_PATH}/backend-seed:${tag}
     done
 
     # Push frontend image (all tags)
@@ -312,7 +251,7 @@ show_build_stats() {
     echo ""
     echo "Image sizes:"
     docker images --format "table {{.Repository}}:{{.Tag}}\t{{.Size}}" | \
-        grep -E "(backend-server|backend-migration|backend-seed|frontend)" | \
+        grep -E "(backend-server|frontend)" | \
         grep -E "(${VERSION}|${GIT_SHA}|latest)"
     echo ""
 }
@@ -323,10 +262,10 @@ show_next_steps() {
 
     echo ""
     echo "Images built and pushed to GHCR:"
-    echo "  - ${REGISTRY_PATH}/backend-server:${VERSION} (GraphQL server)"
-    echo "  - ${REGISTRY_PATH}/backend-migration:${VERSION} (Database migrations)"
-    echo "  - ${REGISTRY_PATH}/backend-seed:${VERSION} (Database seeding)"
-    echo "  - ${REGISTRY_PATH}/frontend:${VERSION} (SvelteKit frontend)"
+    echo "  - ${REGISTRY_PATH}/backend-server:${VERSION}"
+    echo "    → Includes: hr-graphql-server, hr-migration, hr-seed binaries"
+    echo "  - ${REGISTRY_PATH}/frontend:${VERSION}"
+    echo "    → SvelteKit production build"
     echo ""
     echo "Additional tags:"
     echo "  - :${GIT_SHA} (git commit SHA)"
