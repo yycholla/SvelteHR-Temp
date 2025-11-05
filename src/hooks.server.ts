@@ -409,7 +409,8 @@ export const handle: Handle = sequence(Sentry.sentryHandle(), async ({ event, re
 			"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net", // Allow FullCalendar CSS from CDN
 			"img-src 'self' data: https:",
 			"font-src 'self' data:",
-			"connect-src 'self' https://cloudflareinsights.com", // Allow connections to same origin and Cloudflare analytics
+			"connect-src 'self' https://cloudflareinsights.com https://*.ingest.us.sentry.io", // Allow Cloudflare and Sentry
+			"worker-src 'self' blob:", // Allow Sentry session replay workers
 			isPreviewEndpoint ? "frame-ancestors 'self'" : "frame-ancestors 'none'",
 			"base-uri 'self'",
 			"form-action 'self'"
