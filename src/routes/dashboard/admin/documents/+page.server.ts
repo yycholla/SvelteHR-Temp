@@ -53,14 +53,11 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 		const [totalCount, assigneeMap] = await dbTransaction(async (dbClient) => {
 			await setDbClaims(dbClient, userId, userPermissions);
 
-			// Get document count (only for documents assigned to current user)
+			// Get document count
 			const countResult = await dbClient.query(
-				`SELECT COUNT(DISTINCT d.id) as count
-				 FROM hr_public.documents d
-				 INNER JOIN hr_public.document_assignments da ON d.id = da.document_id
-				 WHERE d.deleted_at IS NULL
-				 AND da.user_id = $1::uuid`,
-				[userId]
+				`SELECT COUNT(*) as count
+				 FROM hr_public.documents
+				 WHERE deleted_at IS NULL`
 			);
 
 			const count = parseInt(countResult.rows[0].count, 10);
@@ -88,13 +85,8 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 			return [count, userMap];
 		});
 
-		// Step 7: Filter documents to only show those assigned to current user
-		const userDocuments = (response.data?.documents || []).filter((doc: any) => {
-			return (doc.assignments || []).some((a: any) => a.userId === userId);
-		});
-
-		// Step 8: Transform GraphQL response to match page format
-		const documents = userDocuments.map((doc: any) => ({
+		// Step 7: Transform GraphQL response to match page format
+		const documents = (response.data?.documents || []).map((doc: any) => ({
 			id: doc.id,
 			filename: doc.title,
 			file_type: doc.mimeType,
@@ -118,14 +110,14 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 			})
 		}));
 
-		// Step 9: Get all assignee options for MultiSearchInput
+		// Step 8: Get all assignee options for MultiSearchInput
 		const assigneeOptions = Array.from(assigneeMap.values()).map((user) => ({
 			id: user.id,
 			displayName: user.displayName,
 			email: user.email
 		}));
 
-		// Step 10: Return data for the page
+		// Step 9: Return data for the page
 		return {
 			documents,
 			totalCount,

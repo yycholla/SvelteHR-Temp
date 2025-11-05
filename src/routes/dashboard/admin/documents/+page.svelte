@@ -290,21 +290,21 @@
 </script>
 
 <svelte:head>
-	<title>My Documents | HR System</title>
+	<title>All Documents | HR System</title>
 </svelte:head>
 
 <div class="container mx-auto space-y-6 py-6">
 	<!-- Page header -->
 	<div class="flex items-start justify-between gap-4">
 		<div class="space-y-1">
-			<h1 class="text-3xl font-bold tracking-tight">My Documents</h1>
+			<h1 class="text-3xl font-bold tracking-tight">All Documents</h1>
 			<p class="text-muted-foreground">
-				Access documents assigned to you with end-to-end encryption
+				Manage and access all employee documents with end-to-end encryption
 			</p>
 		</div>
 
 		{#if canUpload}
-			<Button href="/dashboard/documents/upload" class="gap-2">
+			<Button href="/dashboard/admin/documents/upload" class="gap-2">
 				<Upload class="h-4 w-4" />
 				Upload Document
 			</Button>

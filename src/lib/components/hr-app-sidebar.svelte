@@ -258,6 +258,7 @@
 	// T044-T046: Added Feature 020 audit logging pages
 	const adminItems = [
 		{ title: 'All Tasks', url: '/dashboard/tasks', icon: ListTodo },
+		{ title: 'All Documents', url: '/dashboard/admin/documents', icon: FolderOpen },
 		{ title: 'User Management', url: '/dashboard/admin/users', icon: Users },
 		{ title: 'Task Types', url: '/dashboard/admin/task-types', icon: Tags },
 		{ title: 'System Settings', url: '/dashboard/admin/settings', icon: Settings },

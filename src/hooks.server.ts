@@ -403,11 +403,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 		// Note: connect-src allows 'self' which includes the current origin and all SvelteKit API routes
 		const cspDirectives = [
 			"default-src 'self'",
-			"script-src 'self' 'unsafe-inline' 'unsafe-eval'", // TODO: Remove unsafe-eval once app is CSP-compliant
+			"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com", // Allow Cloudflare analytics
 			"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net", // Allow FullCalendar CSS from CDN
 			"img-src 'self' data: https:",
 			"font-src 'self' data:",
-			"connect-src 'self'", // Allow connections to same origin (includes /api/* routes)
+			"connect-src 'self' https://cloudflareinsights.com", // Allow connections to same origin and Cloudflare analytics
 			isPreviewEndpoint ? "frame-ancestors 'self'" : "frame-ancestors 'none'",
 			"base-uri 'self'",
 			"form-action 'self'"
