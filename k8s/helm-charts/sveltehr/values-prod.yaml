@@ -85,12 +85,11 @@ postgresql:
       memory: 512Mi
       cpu: 500m
 
-  # Anti-affinity for pod distribution
+  # Anti-affinity for pod distribution (CloudNativePG format)
   affinity:
     podAntiAffinity:
       preferredDuringSchedulingIgnoredDuringExecution:
-        - weight: 100
-          podAffinityTerm:
+        - podAffinityTerm:
             labelSelector:
               matchExpressions:
                 - key: app.kubernetes.io/name
@@ -98,6 +97,7 @@ postgresql:
                   values:
                     - postgresql
             topologyKey: kubernetes.io/hostname
+          weight: 100
 
 # -----------------------------------------------------------------------------
 # Redis Configuration (Bitnami Redis) - High Availability
