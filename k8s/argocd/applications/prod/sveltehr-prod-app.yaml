@@ -31,8 +31,8 @@ metadata:
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
 
-    # Helm values file to update
-    argocd-image-updater.argoproj.io/write-back-target: helmvalues:k8s/helm-charts/sveltehr/values-prod.yaml
+    # Helm values file to update (relative to chart path: k8s/helm-charts/sveltehr)
+    argocd-image-updater.argoproj.io/write-back-target: helmvalues:values-prod.yaml
 
     # Helm parameter paths for image tags
     argocd-image-updater.argoproj.io/backend.helm.image-name: backend.image.repository
