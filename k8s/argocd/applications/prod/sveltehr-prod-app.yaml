@@ -11,8 +11,8 @@ metadata:
 
     # ===== ArgoCD Image Updater Configuration =====
     # Enable automated GHCR image updates with semantic versioning
-    # Specify current semver tag so Image Updater knows the baseline version
-    argocd-image-updater.argoproj.io/image-list: backend=ghcr.io/mountain-care-rx/sveltehr/backend-server:v1.0.0,frontend=ghcr.io/mountain-care-rx/sveltehr/frontend:v1.0.0
+    # Use plain semver tags (1.x.x) without v-prefix for compatibility with Masterminds/semver library
+    argocd-image-updater.argoproj.io/image-list: backend=ghcr.io/mountain-care-rx/sveltehr/backend-server:1.0.0,frontend=ghcr.io/mountain-care-rx/sveltehr/frontend:1.0.0
 
     # Pull secret configuration (required for private GHCR registry)
     argocd-image-updater.argoproj.io/backend.pull-secret: pullsecret:sveltehr-prod/ghcr-pull-secret
@@ -22,9 +22,9 @@ metadata:
     argocd-image-updater.argoproj.io/backend.update-strategy: semver
     argocd-image-updater.argoproj.io/frontend.update-strategy: semver
 
-    # Semantic version constraints (allow v1.x.x updates, not major version changes)
-    argocd-image-updater.argoproj.io/backend.allow-tags: regexp:^v1\.[0-9]+\.[0-9]+$
-    argocd-image-updater.argoproj.io/frontend.allow-tags: regexp:^v1\.[0-9]+\.[0-9]+$
+    # Semantic version constraints (allow 1.x.x updates without v-prefix)
+    argocd-image-updater.argoproj.io/backend.allow-tags: regexp:^1\.[0-9]+\.[0-9]+$
+    argocd-image-updater.argoproj.io/frontend.allow-tags: regexp:^1\.[0-9]+\.[0-9]+$
 
     # Git write-back configuration
     argocd-image-updater.argoproj.io/write-back-method: git

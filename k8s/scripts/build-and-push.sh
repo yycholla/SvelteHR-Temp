@@ -44,26 +44,35 @@ log_error() {
 }
 
 
-# Detect if VERSION is a semantic version tag (v1.2.3 format)
+# Detect if VERSION is a semantic version tag (v1.2.3 or 1.2.3 format)
 SEMVER_TAGS=()
+PLAIN_SEMVER_TAGS=()
 if [[ "$VERSION" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)(-[a-zA-Z0-9.]+)?$ ]]; then
     MAJOR="${BASH_REMATCH[1]}"
     MINOR="${BASH_REMATCH[2]}"
     PATCH="${BASH_REMATCH[3]}"
     PRERELEASE="${BASH_REMATCH[4]}"
 
-    # Normalize to v-prefixed version
+    # Normalize to v-prefixed version for display
     VERSION="v${MAJOR}.${MINOR}.${PATCH}${PRERELEASE}"
+    PLAIN_VERSION="${MAJOR}.${MINOR}.${PATCH}${PRERELEASE}"
+
+    # Create both v-prefixed and plain tags for maximum compatibility
+    # Plain tags (1.0.0) for ArgoCD Image Updater compatibility
+    PLAIN_SEMVER_TAGS+=("${PLAIN_VERSION}")
 
     # Only create major/minor tags for stable releases (no prerelease)
     if [ -z "$PRERELEASE" ]; then
         SEMVER_TAGS+=("v${MAJOR}.${MINOR}")
         SEMVER_TAGS+=("v${MAJOR}")
+        PLAIN_SEMVER_TAGS+=("${MAJOR}.${MINOR}")
+        PLAIN_SEMVER_TAGS+=("${MAJOR}")
     fi
 
-    log_info "Detected semantic version: ${VERSION}"
+    log_info "Detected semantic version: ${VERSION} (plain: ${PLAIN_VERSION})"
     if [ ${#SEMVER_TAGS[@]} -gt 0 ]; then
-        log_info "Additional semver tags: ${SEMVER_TAGS[*]}"
+        log_info "Additional v-prefixed tags: ${SEMVER_TAGS[*]}"
+        log_info "Additional plain tags: ${PLAIN_SEMVER_TAGS[*]}"
     fi
 fi
 
@@ -176,8 +185,11 @@ build_backend() {
         -t ${REGISTRY_PATH}/backend-server:latest
     )
 
-    # Add semantic version tags if detected
+    # Add semantic version tags if detected (both v-prefixed and plain)
     for tag in "${SEMVER_TAGS[@]}"; do
+        BUILD_ARGS+=(-t ${REGISTRY_PATH}/backend-server:${tag})
+    done
+    for tag in "${PLAIN_SEMVER_TAGS[@]}"; do
         BUILD_ARGS+=(-t ${REGISTRY_PATH}/backend-server:${tag})
     done
 
@@ -186,7 +198,10 @@ build_backend() {
     log_info "Backend server image built: ${REGISTRY_PATH}/backend-server:${VERSION}"
     log_info "  Includes binaries: hr-graphql-server, hr-migration, hr-seed"
     for tag in "${SEMVER_TAGS[@]}"; do
-        log_info "  Additional tag: ${REGISTRY_PATH}/backend-server:${tag}"
+        log_info "  V-prefixed tag: ${REGISTRY_PATH}/backend-server:${tag}"
+    done
+    for tag in "${PLAIN_SEMVER_TAGS[@]}"; do
+        log_info "  Plain semver tag: ${REGISTRY_PATH}/backend-server:${tag}"
     done
 
     log_msg "Backend image built successfully!"
@@ -209,8 +224,11 @@ build_frontend() {
         -t ${REGISTRY_PATH}/frontend:latest
     )
 
-    # Add semantic version tags if detected
+    # Add semantic version tags if detected (both v-prefixed and plain)
     for tag in "${SEMVER_TAGS[@]}"; do
+        BUILD_ARGS+=(-t ${REGISTRY_PATH}/frontend:${tag})
+    done
+    for tag in "${PLAIN_SEMVER_TAGS[@]}"; do
         BUILD_ARGS+=(-t ${REGISTRY_PATH}/frontend:${tag})
     done
 
@@ -218,7 +236,10 @@ build_frontend() {
 
     log_msg "Frontend image built successfully!"
     for tag in "${SEMVER_TAGS[@]}"; do
-        log_info "  Additional tag: ${REGISTRY_PATH}/frontend:${tag}"
+        log_info "  V-prefixed tag: ${REGISTRY_PATH}/frontend:${tag}"
+    done
+    for tag in "${PLAIN_SEMVER_TAGS[@]}"; do
+        log_info "  Plain semver tag: ${REGISTRY_PATH}/frontend:${tag}"
     done
 }
 
@@ -234,6 +255,9 @@ push_images() {
     for tag in "${SEMVER_TAGS[@]}"; do
         docker push ${REGISTRY_PATH}/backend-server:${tag}
     done
+    for tag in "${PLAIN_SEMVER_TAGS[@]}"; do
+        docker push ${REGISTRY_PATH}/backend-server:${tag}
+    done
 
     # Push frontend image (all tags)
     log_info "Pushing frontend image..."
@@ -241,6 +265,9 @@ push_images() {
     docker push ${REGISTRY_PATH}/frontend:${GIT_SHA}
     docker push ${REGISTRY_PATH}/frontend:latest
     for tag in "${SEMVER_TAGS[@]}"; do
+        docker push ${REGISTRY_PATH}/frontend:${tag}
+    done
+    for tag in "${PLAIN_SEMVER_TAGS[@]}"; do
         docker push ${REGISTRY_PATH}/frontend:${tag}
     done
 
