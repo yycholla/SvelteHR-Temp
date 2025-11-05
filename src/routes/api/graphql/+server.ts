@@ -15,8 +15,8 @@ import { env } from '$env/dynamic/private';
 const POSTGRAPHILE_URL =
 	env.POSTGRAPHILE_URL ||
 	env.GRAPHQL_URL ||
-	env.PUBLIC_API_URL ||
-	'http://hr-graphql-rust:4000/graphql';
+	(env.PUBLIC_API_URL ? `${env.PUBLIC_API_URL}/graphql` : null) ||
+	'http://sveltehr-backend:4000/graphql';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	try {

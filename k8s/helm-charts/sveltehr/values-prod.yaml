@@ -256,6 +256,12 @@ frontend:
       memory: 512Mi
       cpu: 200m
 
+  # Environment variables for GraphQL proxy
+  env:
+    POSTGRAPHILE_URL: "http://sveltehr-backend:4000/graphql"
+    GRAPHQL_URL: "http://sveltehr-backend:4000/graphql"
+    PUBLIC_API_URL: "http://sveltehr-backend:4000"
+
   # Wait for backend before starting (dependency ordering)
   waitForBackend: true
 
