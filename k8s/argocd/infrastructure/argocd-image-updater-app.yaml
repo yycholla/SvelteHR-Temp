@@ -1,0 +1,125 @@
+---
+# ArgoCD Application for ArgoCD Image Updater
+# Enables automated GHCR image updates with semantic versioning
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-image-updater
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"  # Install after monitoring (wave 0)
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  # Use infrastructure AppProject
+  project: infrastructure
+
+  # Source: Official ArgoCD Helm chart repository
+  source:
+    repoURL: https://argoproj.github.io/argo-helm
+    targetRevision: 0.14.0
+    chart: argocd-image-updater
+    helm:
+      releaseName: argocd-image-updater
+
+      # Image Updater configuration
+      values: |
+        # Config for Image Updater
+        config:
+          # ArgoCD API configuration
+          argocd:
+            serverAddress: "http://argocd-server.argocd.svc.cluster.local"
+            insecure: true
+            plaintext: true
+
+          # Registry configurations for GHCR
+          registries:
+            - name: GHCR
+              prefix: ghcr.io
+              api_url: https://ghcr.io
+              ping: yes
+              credentials: pullsecret:sveltehr-prod/ghcr-pull-secret
+              default: yes
+
+          # Update interval (default: 2 minutes)
+          interval: 2m
+
+          # Log level
+          logLevel: info
+
+        # Authentication method (use existing ArgoCD credentials)
+        authScripts:
+          enabled: false
+
+        # Resource limits (minimal for resource-constrained environment)
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "25m"
+          limits:
+            memory: "128Mi"
+            cpu: "50m"
+
+        # Metrics for monitoring
+        metrics:
+          enabled: true
+          serviceMonitor:
+            enabled: true
+            namespace: argocd
+            additionalLabels:
+              release: prometheus
+
+        # Security context
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          readOnlyRootFilesystem: true
+
+        # Service account
+        serviceAccount:
+          create: true
+          name: argocd-image-updater
+
+  # Destination: ArgoCD namespace
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  # Sync policy: Manual sync for infrastructure components
+  syncPolicy:
+    automated: null  # Manual sync for infrastructure
+
+    syncOptions:
+      - CreateNamespace=false  # Namespace already exists
+      - ServerSideApply=true
+
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+
+# =============================================================================
+# ArgoCD Image Updater Deployment Notes
+# =============================================================================
+#
+# Installation:
+#   kubectl apply -f k8s/argocd/infrastructure/argocd-image-updater-app.yaml
+#   argocd app sync argocd-image-updater
+#
+# Verify Installation:
+#   kubectl get pods -n argocd -l app.kubernetes.io/name=argocd-image-updater
+#   kubectl logs -n argocd -l app.kubernetes.io/name=argocd-image-updater -f
+#
+# Test Registry Access:
+#   kubectl exec -n argocd $(kubectl get pod -n argocd -l app.kubernetes.io/name=argocd-image-updater -o name) -- \
+#     argocd-image-updater test ghcr.io/mountain-care-rx/sveltehr/frontend --semver-constraint "^v1.0.0"
+#
+# Configuration:
+#   - Uses existing GHCR pull secret in sveltehr-prod namespace
+#   - Polls GHCR every 2 minutes for new semantic version tags
+#   - Writes back to Git repository (main branch) when new versions detected
+#   - Requires manual sync approval for production deployments
+#
+# =============================================================================

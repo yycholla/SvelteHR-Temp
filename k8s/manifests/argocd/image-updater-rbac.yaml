@@ -1,0 +1,152 @@
+---
+# RBAC Configuration for ArgoCD Image Updater
+# Enables Image Updater to:
+# 1. Read ArgoCD Applications
+# 2. Access registry credentials across namespaces
+# 3. Write back to Git repository
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argocd-image-updater
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-image-updater
+    app.kubernetes.io/component: image-updater
+---
+# Role in argocd namespace for reading Applications and Secrets
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: argocd-image-updater
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-image-updater
+    app.kubernetes.io/component: image-updater
+rules:
+  # Read Applications to discover image update annotations
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications"]
+    verbs: ["get", "list", "watch"]
+
+  # Read Secrets for registry credentials and Git auth
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+
+  # Read ConfigMaps for configuration
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]
+
+  # Write Events for status updates
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argocd-image-updater
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-image-updater
+    app.kubernetes.io/component: image-updater
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: argocd-image-updater
+subjects:
+  - kind: ServiceAccount
+    name: argocd-image-updater
+    namespace: argocd
+---
+# Cross-namespace Role for accessing GHCR pull secret in sveltehr-prod
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: argocd-image-updater-registry-access
+  namespace: sveltehr-prod
+  labels:
+    app.kubernetes.io/name: argocd-image-updater
+    app.kubernetes.io/component: image-updater
+rules:
+  # Read GHCR pull secret for registry authentication
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["ghcr-pull-secret"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argocd-image-updater-registry-access
+  namespace: sveltehr-prod
+  labels:
+    app.kubernetes.io/name: argocd-image-updater
+    app.kubernetes.io/component: image-updater
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: argocd-image-updater-registry-access
+subjects:
+  - kind: ServiceAccount
+    name: argocd-image-updater
+    namespace: argocd
+---
+# ClusterRole for reading Applications across all namespaces (if needed)
+# Currently scoped to argocd namespace only
+# Uncomment if Image Updater needs to manage applications in multiple namespaces
+#
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRole
+# metadata:
+#   name: argocd-image-updater
+#   labels:
+#     app.kubernetes.io/name: argocd-image-updater
+#     app.kubernetes.io/component: image-updater
+# rules:
+#   - apiGroups: ["argoproj.io"]
+#     resources: ["applications"]
+#     verbs: ["get", "list", "watch"]
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRoleBinding
+# metadata:
+#   name: argocd-image-updater
+#   labels:
+#     app.kubernetes.io/name: argocd-image-updater
+#     app.kubernetes.io/component: image-updater
+# roleRef:
+#   apiGroup: rbac.authorization.k8s.io
+#   kind: ClusterRole
+#   name: argocd-image-updater
+# subjects:
+#   - kind: ServiceAccount
+#     name: argocd-image-updater
+#     namespace: argocd
+
+# =============================================================================
+# RBAC Configuration Notes
+# =============================================================================
+#
+# Permissions Granted:
+#   1. Read ArgoCD Applications (to detect image update annotations)
+#   2. Read Secrets in argocd namespace (for Git credentials)
+#   3. Read GHCR pull secret in sveltehr-prod namespace (for registry auth)
+#   4. Create Events (for status reporting)
+#
+# Security Considerations:
+#   - Minimal permissions following principle of least privilege
+#   - Namespace-scoped roles (not ClusterRole) for better isolation
+#   - Specific secret name restriction for registry access
+#   - No write permissions to Applications (read-only)
+#
+# Deployment:
+#   kubectl apply -f k8s/manifests/argocd/image-updater-rbac.yaml
+#
+# Verification:
+#   kubectl auth can-i get applications --as=system:serviceaccount:argocd:argocd-image-updater -n argocd
+#   kubectl auth can-i get secrets --as=system:serviceaccount:argocd:argocd-image-updater -n sveltehr-prod
+#
+# =============================================================================

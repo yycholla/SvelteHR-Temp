@@ -146,7 +146,7 @@ backend:
   # Image configuration
   image:
     repository: ghcr.io/mountain-care-rx/sveltehr/backend-server
-    tag: "latest"  # Use latest for production deployments
+    tag: "v1.0.0"  # Semantic versioning (ArgoCD Image Updater will update this)
     pullPolicy: Always
     target: production
 
@@ -233,7 +233,7 @@ frontend:
   # Image configuration
   image:
     repository: ghcr.io/mountain-care-rx/sveltehr/frontend
-    tag: "latest"  # Use latest for production deployments
+    tag: "v1.0.0"  # Semantic versioning (ArgoCD Image Updater will update this)
     pullPolicy: Always
     target: production
 

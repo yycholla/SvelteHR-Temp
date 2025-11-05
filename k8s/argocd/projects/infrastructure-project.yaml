@@ -22,6 +22,7 @@ spec:
     - https://charts.bitnami.com/bitnami
     - https://charts.min.io/
     - https://vmware-tanzu.github.io/helm-charts
+    - https://argoproj.github.io/argo-helm  # ArgoCD Image Updater
 
   # Destination clusters and namespaces
   destinations:

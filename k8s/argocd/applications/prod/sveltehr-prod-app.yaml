@@ -8,6 +8,32 @@ metadata:
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "3"  # After infrastructure (wave 0-2)
+
+    # ===== ArgoCD Image Updater Configuration =====
+    # Enable automated GHCR image updates with semantic versioning
+    argocd-image-updater.argoproj.io/image-list: backend=ghcr.io/mountain-care-rx/sveltehr/backend-server,frontend=ghcr.io/mountain-care-rx/sveltehr/frontend
+
+    # Update strategies (semver for semantic versioning)
+    argocd-image-updater.argoproj.io/backend.update-strategy: semver
+    argocd-image-updater.argoproj.io/frontend.update-strategy: semver
+
+    # Semantic version constraints (allow v1.x.x updates, not major version changes)
+    argocd-image-updater.argoproj.io/backend.allow-tags: regexp:^v1\.[0-9]+\.[0-9]+$
+    argocd-image-updater.argoproj.io/frontend.allow-tags: regexp:^v1\.[0-9]+\.[0-9]+$
+
+    # Git write-back configuration
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
+
+    # Helm values file to update
+    argocd-image-updater.argoproj.io/write-back-target: helmvalues:k8s/helm-charts/sveltehr/values-prod.yaml
+
+    # Helm parameter paths for image tags
+    argocd-image-updater.argoproj.io/backend.helm.image-name: backend.image.repository
+    argocd-image-updater.argoproj.io/backend.helm.image-tag: backend.image.tag
+    argocd-image-updater.argoproj.io/frontend.helm.image-name: frontend.image.repository
+    argocd-image-updater.argoproj.io/frontend.helm.image-tag: frontend.image.tag
+
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -41,20 +67,19 @@ spec:
     server: https://kubernetes.default.svc
     namespace: sveltehr-prod
 
-  # Sync policy: AUTOMATED with selfHeal but NO prune (as requested)
+  # Sync policy: MANUAL for production deployments (Image Updater commits to Git)
   syncPolicy:
-    # Auto-create namespace if it doesn't exist
+    # Sync options
     syncOptions:
       - CreateNamespace=true
       - PrunePropagationPolicy=foreground
       - PruneLast=true
       - RespectIgnoreDifferences=true
 
-    # Automated sync: selfHeal enabled, prune DISABLED for safety
-    automated:
-      prune: false       # Don't auto-delete resources (manual approval required)
-      selfHeal: true     # Revert manual kubectl changes to match Git
-      allowEmpty: false  # Don't sync if no resources found
+    # DISABLED: Automated sync requires manual approval for production
+    # Image Updater will commit new tags to Git, but ArgoCD won't auto-sync
+    # Operator must manually approve and sync: argocd app sync sveltehr-prod
+    automated: null
 
     # Retry strategy for failed syncs
     retry:
