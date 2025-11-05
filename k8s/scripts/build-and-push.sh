@@ -43,9 +43,9 @@ if [[ "$VERSION" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)(-[a-zA-Z0-9.]+)?$ ]]; then
         SEMVER_TAGS+=("v${MAJOR}")
     fi
 
-    info "Detected semantic version: ${VERSION}"
+    log_info "Detected semantic version: ${VERSION}"
     if [ ${#SEMVER_TAGS[@]} -gt 0 ]; then
-        info "Additional semver tags: ${SEMVER_TAGS[*]}"
+        log_info "Additional semver tags: ${SEMVER_TAGS[*]}"
     fi
 fi
 
@@ -56,7 +56,7 @@ if [ -z "$GITHUB_REPOSITORY" ]; then
         GITHUB_REPOSITORY="${BASH_REMATCH[1]%.git}"
     else
         GITHUB_REPOSITORY="mountain-care-rx/sveltehr"
-        warn "Could not detect GitHub repository. Using default: $GITHUB_REPOSITORY"
+        log_warn "Could not detect GitHub repository. Using default: $GITHUB_REPOSITORY"
     fi
 fi
 
@@ -82,90 +82,90 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-log() {
+log_msg() {
     echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
 }
 
-info() {
+log_info() {
     echo -e "${BLUE}[INFO] $1${NC}"
 }
 
-warn() {
+log_warn() {
     echo -e "${YELLOW}[WARN] $1${NC}"
 }
 
-error() {
+log_error() {
     echo -e "${RED}[ERROR] $1${NC}" >&2
 }
 
 # Check prerequisites
 check_prerequisites() {
-    log "Checking prerequisites..."
+    log_msg "Checking prerequisites..."
 
     # Check Docker
     if ! command -v docker &> /dev/null; then
-        error "Docker is not installed. Please install Docker first."
+        log_error "Docker is not installed. Please install Docker first."
         exit 1
     fi
 
     # Test Docker access
     if ! docker ps &> /dev/null; then
-        error "Cannot access Docker. Please check Docker is running and you have permissions."
+        log_error "Cannot access Docker. Please check Docker is running and you have permissions."
         exit 1
     fi
 
     # Verify BuildKit is available
     if ! docker buildx version &> /dev/null; then
-        warn "Docker Buildx not available. Using legacy builder."
+        log_warn "Docker Buildx not available. Using legacy builder."
     else
-        info "BuildKit/Buildx available - using for optimized builds"
+        log_info "BuildKit/Buildx available - using for optimized builds"
     fi
 
     # Check git for SHA tagging
     if ! command -v git &> /dev/null; then
-        warn "Git not installed. SHA tagging will be skipped."
+        log_warn "Git not installed. SHA tagging will be skipped."
     fi
 
-    log "Prerequisites check passed."
+    log_msg "Prerequisites check passed."
 }
 
 # Authenticate with GitHub Container Registry
 ghcr_login() {
-    log "Authenticating with GitHub Container Registry..."
+    log_msg "Authenticating with GitHub Container Registry..."
 
     if [ -z "$GITHUB_TOKEN" ]; then
-        warn "GITHUB_TOKEN not set. Attempting to use existing Docker credentials."
-        warn "For CI/CD, set GITHUB_TOKEN environment variable."
+        log_warn "GITHUB_TOKEN not set. Attempting to use existing Docker credentials."
+        log_warn "For CI/CD, set GITHUB_TOKEN environment variable."
         return
     fi
 
     echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
 
     if [ $? -eq 0 ]; then
-        log "Successfully authenticated with ghcr.io"
+        log_msg "Successfully authenticated with ghcr.io"
     else
-        error "Failed to authenticate with GitHub Container Registry"
-        error "Please ensure GITHUB_TOKEN has write:packages permission"
+        log_error "Failed to authenticate with GitHub Container Registry"
+        log_error "Please ensure GITHUB_TOKEN has write:packages permission"
         exit 1
     fi
 }
 
 # Build unified backend image with all binaries
 build_backend() {
-    log "Building unified backend image (includes server, migration, seed binaries)..."
+    log_msg "Building unified backend image (includes server, migration, seed binaries)..."
 
     BACKEND_DIR="${PROJECT_ROOT}/graphql-rust-server"
 
     if [ ! -d "$BACKEND_DIR" ]; then
-        error "Backend directory not found at: $BACKEND_DIR"
+        log_error "Backend directory not found at: $BACKEND_DIR"
         exit 1
     fi
 
     cd "$BACKEND_DIR"
-    info "Backend directory: $(pwd)"
+    log_info "Backend directory: $(pwd)"
 
     # Build single server image with all binaries included
-    log "Building backend-server image (target: server) with all binaries..."
+    log_msg "Building backend-server image (target: server) with all binaries..."
     BUILD_ARGS=(
         --target server
         --cache-from ${REGISTRY_PATH}/backend-server:latest
@@ -181,23 +181,23 @@ build_backend() {
 
     docker build "${BUILD_ARGS[@]}" -f Dockerfile.prod .
 
-    info "Backend server image built: ${REGISTRY_PATH}/backend-server:${VERSION}"
-    info "  Includes binaries: hr-graphql-server, hr-migration, hr-seed"
+    log_info "Backend server image built: ${REGISTRY_PATH}/backend-server:${VERSION}"
+    log_info "  Includes binaries: hr-graphql-server, hr-migration, hr-seed"
     for tag in "${SEMVER_TAGS[@]}"; do
-        info "  Additional tag: ${REGISTRY_PATH}/backend-server:${tag}"
+        log_info "  Additional tag: ${REGISTRY_PATH}/backend-server:${tag}"
     done
 
-    log "Backend image built successfully!"
+    log_msg "Backend image built successfully!"
 }
 
 # Build frontend image with BuildKit
 build_frontend() {
-    log "Building frontend image with BuildKit cache..."
+    log_msg "Building frontend image with BuildKit cache..."
 
     cd "$PROJECT_ROOT"
 
-    info "Frontend directory: $(pwd)"
-    info "Building ${REGISTRY_PATH}/frontend:${VERSION}"
+    log_info "Frontend directory: $(pwd)"
+    log_info "Building ${REGISTRY_PATH}/frontend:${VERSION}"
 
     BUILD_ARGS=(
         --target production
@@ -214,18 +214,18 @@ build_frontend() {
 
     docker build "${BUILD_ARGS[@]}" -f Dockerfile .
 
-    log "Frontend image built successfully!"
+    log_msg "Frontend image built successfully!"
     for tag in "${SEMVER_TAGS[@]}"; do
-        info "  Additional tag: ${REGISTRY_PATH}/frontend:${tag}"
+        log_info "  Additional tag: ${REGISTRY_PATH}/frontend:${tag}"
     done
 }
 
 # Push images to registry
 push_images() {
-    log "Pushing images to registry ${REGISTRY_PATH}..."
+    log_msg "Pushing images to registry ${REGISTRY_PATH}..."
 
     # Push unified backend server image (all tags)
-    info "Pushing backend server image (includes all binaries)..."
+    log_info "Pushing backend server image (includes all binaries)..."
     docker push ${REGISTRY_PATH}/backend-server:${VERSION}
     docker push ${REGISTRY_PATH}/backend-server:${GIT_SHA}
     docker push ${REGISTRY_PATH}/backend-server:latest
@@ -234,7 +234,7 @@ push_images() {
     done
 
     # Push frontend image (all tags)
-    info "Pushing frontend image..."
+    log_info "Pushing frontend image..."
     docker push ${REGISTRY_PATH}/frontend:${VERSION}
     docker push ${REGISTRY_PATH}/frontend:${GIT_SHA}
     docker push ${REGISTRY_PATH}/frontend:latest
@@ -242,12 +242,12 @@ push_images() {
         docker push ${REGISTRY_PATH}/frontend:${tag}
     done
 
-    log "All images pushed successfully!"
+    log_msg "All images pushed successfully!"
 }
 
 # Show build statistics
 show_build_stats() {
-    log "Build Statistics:"
+    log_msg "Build Statistics:"
     echo ""
     echo "Image sizes:"
     docker images --format "table {{.Repository}}:{{.Tag}}\t{{.Size}}" | \
@@ -258,7 +258,7 @@ show_build_stats() {
 
 # Show next steps
 show_next_steps() {
-    log "Build and push complete!"
+    log_msg "Build and push complete!"
 
     echo ""
     echo "Images built and pushed to GHCR:"
