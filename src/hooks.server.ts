@@ -1,3 +1,5 @@
+import { sequence } from '@sveltejs/kit/hooks';
+import * as Sentry from '@sentry/sveltekit';
 import type { Handle } from '@sveltejs/kit';
 import { serverPerformanceMonitor } from '$lib/performance/server-monitor.js';
 import { createStandardError } from '$lib/utils/error-handling.js';
@@ -273,7 +275,7 @@ async function authenticateUser(
 	}
 }
 
-export const handle: Handle = async ({ event, resolve }) => {
+export const handle: Handle = sequence(Sentry.sentryHandle(), async ({ event, resolve }) => {
 	// Generate request correlation ID
 	const requestId = crypto.randomUUID();
 	event.locals.requestId = requestId;
@@ -440,54 +442,56 @@ export const handle: Handle = async ({ event, resolve }) => {
 			headers: { 'Content-Type': 'application/json' }
 		});
 	}
-};
+});
 
 // Error handling hook with standardized error responses
-export const handleError = ({ error, event }: { error: any; event: any }) => {
-	// Create standardized error response
-	const standardError = createStandardError(error, {
-		requestId: crypto.randomUUID(),
-		userId: event?.locals?.user?.id,
-		path: event?.url?.pathname,
-		operation: `${event?.request?.method || 'GET'} ${event?.url?.pathname || 'unknown'}`
-	});
+export const handleError = Sentry.handleErrorWithSentry(
+	({ error, event }: { error: any; event: any }) => {
+		// Create standardized error response
+		const standardError = createStandardError(error, {
+			requestId: crypto.randomUUID(),
+			userId: event?.locals?.user?.id,
+			path: event?.url?.pathname,
+			operation: `${event?.request?.method || 'GET'} ${event?.url?.pathname || 'unknown'}`
+		});
 
-	// Log structured error for monitoring
-	logger.error(`Server Error: ${standardError.message}`, error, {
-		requestId: standardError.requestId,
-		type: standardError.type,
-		userMessage: standardError.userMessage,
-		statusCode: standardError.statusCode,
-		url: event?.url?.pathname,
-		method: event?.request?.method,
-		userId: event?.locals?.user?.id,
-		userAgent: event?.request?.headers?.get('user-agent')?.slice(0, 100),
-		timestamp: standardError.timestamp
-	});
+		// Log structured error for monitoring
+		logger.error(`Server Error: ${standardError.message}`, error, {
+			requestId: standardError.requestId,
+			type: standardError.type,
+			userMessage: standardError.userMessage,
+			statusCode: standardError.statusCode,
+			url: event?.url?.pathname,
+			method: event?.request?.method,
+			userId: event?.locals?.user?.id,
+			userAgent: event?.request?.headers?.get('user-agent')?.slice(0, 100),
+			timestamp: standardError.timestamp
+		});
 
-	// In production, send to error tracking service
-	// Example: Sentry, Rollbar, DataDog, etc.
-	if (process.env.NODE_ENV === 'production') {
-		// TODO: Integrate with error tracking service
-		// Sentry.captureException(error, {
-		//   contexts: {
-		//     request: {
-		//       url: event?.url?.pathname,
-		//       method: event?.request?.method,
-		//       user_id: event?.locals?.user?.id
-		//     }
-		//   }
-		// });
+		// In production, send to error tracking service
+		// Example: Sentry, Rollbar, DataDog, etc.
+		if (process.env.NODE_ENV === 'production') {
+			// TODO: Integrate with error tracking service
+			// Sentry.captureException(error, {
+			//   contexts: {
+			//     request: {
+			//       url: event?.url?.pathname,
+			//       method: event?.request?.method,
+			//       user_id: event?.locals?.user?.id
+			//     }
+			//   }
+			// });
+		}
+
+		// Return user-friendly error message
+		return {
+			message: standardError.userMessage,
+			type: standardError.type,
+			requestId: standardError.requestId,
+			timestamp: standardError.timestamp
+		};
 	}
-
-	// Return user-friendly error message
-	return {
-		message: standardError.userMessage,
-		type: standardError.type,
-		requestId: standardError.requestId,
-		timestamp: standardError.timestamp
-	};
-};
+);
 
 console.log('🛡️  Server performance optimization and monitoring initialized');
 console.log(`⚡ Session caching enabled (TTL: ${SESSION_CACHE_TTL}ms, cleanup: 5min intervals)`);

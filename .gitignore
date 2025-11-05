@@ -110,3 +110,6 @@ pnpm-lock.yaml
 yarn.lock
 graphql-rust-server/target
 graphql-rust-server/target
+
+# Sentry Config File
+.env.sentry-build-plugin

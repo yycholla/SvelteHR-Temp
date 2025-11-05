@@ -1,3 +1,4 @@
+import { sentrySvelteKit } from '@sentry/sveltekit';
 import devtoolsJson from 'vite-plugin-devtools-json';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
@@ -36,9 +37,14 @@ const disableCompression = () => ({
 
 export default defineConfig({
 	plugins: [
+		sentrySvelteKit({
+			sourceMapsUploadOptions: {
+				org: 'mountain-care-rx',
+				project: 'javascript-sveltekit'
+			}
+		}),
 		tailwindcss(),
-		sveltekit(),
-		// devtoolsJson(), // Disabled to remove debugging UI overlay
+		sveltekit(), // devtoolsJson(), // Disabled to remove debugging UI overlay
 		disableCompression(),
 		devtoolsJson()
 	],
@@ -118,9 +124,10 @@ export default defineConfig({
 		host: '0.0.0.0', // Bind to all interfaces for K8s access
 
 		// Explicitly set origin to stabilize Vite 7.x module runner in K8s
-		origin: process.env.VITE_K8S_MODE === 'true'
-			? `http://${process.env.VITE_HMR_HOST || 'localhost'}:${process.env.VITE_HMR_PORT || '5173'}`
-			: undefined,
+		origin:
+			process.env.VITE_K8S_MODE === 'true'
+				? `http://${process.env.VITE_HMR_HOST || 'localhost'}:${process.env.VITE_HMR_PORT || '5173'}`
+				: undefined,
 
 		// Allow Tailscale MagicDNS hostnames for remote development access
 		allowedHosts: [
