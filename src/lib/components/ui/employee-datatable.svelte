@@ -540,12 +540,10 @@
 								{#if !header.isPlaceholder}
 									<div class="flex items-center gap-2">
 										{#if header.column.id === 'select'}
-											{@const allSelected = table?.getIsAllPageRowsSelected() ?? false}
-											{@const someSelected = table?.getIsSomePageRowsSelected() && !allSelected}
 											<div class="flex items-center justify-center">
 												<Checkbox
-													checked={allSelected}
-													indeterminate={someSelected}
+													checked={table?.getIsAllPageRowsSelected() ?? false}
+													indeterminate={(table?.getIsSomePageRowsSelected() ?? false) && !(table?.getIsAllPageRowsSelected() ?? false)}
 													disabled={!hasActiveFilters}
 													onCheckedChange={(value) => {
 														table?.toggleAllPageRowsSelected(!!value);
