@@ -17,16 +17,16 @@ export const load: PageServerLoad = async (event) => {
 
 	// RBAC: Only system_admin can access bulk rollback
 	if (!locals.user) {
-		throw redirect(303, `/login?redirectTo=${encodeURIComponent(url.pathname)}`);
+		redirect(303, `/login?redirectTo=${encodeURIComponent(url.pathname)}`);
 	}
 
 	const userRole = locals.user.role || 'Employee';
 	const isSystemAdmin = userRole === 'system_admin';
 
 	if (!isSystemAdmin) {
-		throw error(403, {
-			message: 'Access denied. Only system administrators can perform bulk rollback operations.'
-		});
+		error(403, {
+        			message: 'Access denied. Only system administrators can perform bulk rollback operations.'
+        		});
 	}
 
 	try {
@@ -169,9 +169,9 @@ export const load: PageServerLoad = async (event) => {
 			throw err; // Re-throw SvelteKit errors
 		}
 
-		throw error(500, {
-			message: 'Failed to load bulk rollback page'
-		});
+		error(500, {
+        			message: 'Failed to load bulk rollback page'
+        		});
 	}
 };
 

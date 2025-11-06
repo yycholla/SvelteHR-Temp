@@ -8,7 +8,7 @@ import { transaction } from '$lib/server/db';
 export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
-		throw redirect(303, '/login?redirectTo=/dashboard/documents/audit');
+		redirect(303, '/login?redirectTo=/dashboard/documents/audit');
 	}
 
 	const userId = locals.user.id;
@@ -32,9 +32,9 @@ export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 			timestamp: new Date().toISOString()
 		});
 
-		throw error(403, {
-			message: 'Insufficient permissions. Document audit logs require system administrator access.'
-		});
+		error(403, {
+        			message: 'Insufficient permissions. Document audit logs require system administrator access.'
+        		});
 	}
 
 	// Log successful access
@@ -159,8 +159,8 @@ export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 		}
 
 		// Generic error fallback
-		throw error(500, {
-			message: 'Failed to load audit logs. Please try again later.'
-		});
+		error(500, {
+        			message: 'Failed to load audit logs. Please try again later.'
+        		});
 	}
 };

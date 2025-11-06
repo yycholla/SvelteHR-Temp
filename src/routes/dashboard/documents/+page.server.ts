@@ -9,7 +9,7 @@ import { GET_DOCUMENTS } from '$lib/graphql/document-operations';
 export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
-		throw redirect(303, '/login?redirectTo=/dashboard/documents');
+		redirect(303, '/login?redirectTo=/dashboard/documents');
 	}
 
 	const userId = locals.user.id;
@@ -38,9 +38,9 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 
 		if (response.errors && response.errors.length > 0) {
 			console.error('[Documents] GraphQL errors:', response.errors);
-			throw error(500, {
-				message: response.errors[0].message || 'Failed to load documents'
-			});
+			error(500, {
+            				message: response.errors[0].message || 'Failed to load documents'
+            			});
 		}
 
 		// Step 5: Load database utilities
@@ -149,8 +149,8 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 		}
 
 		// Generic error fallback
-		throw error(500, {
-			message: 'Failed to load documents. Please try again later.'
-		});
+		error(500, {
+        			message: 'Failed to load documents. Please try again later.'
+        		});
 	}
 };

@@ -10,7 +10,7 @@ import { EventsOperations } from '$lib/graphql/events-operations';
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	// Check authentication
 	if (!locals.user) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
+		redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
 	// T036: Session-based authentication - no token checks needed
@@ -19,9 +19,9 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	const roleLevel = getRoleLevel(locals.user.role);
 
 	if (!hasWildcardPermission && roleLevel < 60) {
-		throw error(403, {
-			message: 'Access denied. Manager privileges or higher required to create events.'
-		});
+		error(403, {
+        			message: 'Access denied. Manager privileges or higher required to create events.'
+        		});
 	}
 
 	try {
@@ -77,7 +77,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 		// Handle specific error cases
 		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {
-			throw redirect(303, `/login?redirectTo=${url.pathname}`);
+			redirect(303, `/login?redirectTo=${url.pathname}`);
 		}
 
 		// If it's already a SvelteKit error, rethrow it
@@ -85,9 +85,9 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			throw err;
 		}
 
-		throw error(500, {
-			message: 'Failed to load event creation form. Please try again later.'
-		});
+		error(500, {
+        			message: 'Failed to load event creation form. Please try again later.'
+        		});
 	}
 };
 
@@ -188,7 +188,7 @@ export const actions: Actions = {
 	default: async ({ request, locals, cookies, fetch: eventFetch }) => {
 		// Check authentication
 		if (!locals.user) {
-			throw redirect(303, '/login');
+			redirect(303, '/login');
 		}
 
 		// T036: Session-based authentication - no token checks needed
@@ -292,7 +292,7 @@ export const actions: Actions = {
 			});
 
 			// Redirect to events list on success
-			throw redirect(303, '/dashboard/events');
+			redirect(303, '/dashboard/events');
 		} catch (err: any) {
 			console.error('Error creating event:', err);
 

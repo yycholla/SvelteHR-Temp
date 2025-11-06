@@ -133,10 +133,10 @@ export const GET: RequestHandler = async ({ url, request }) => {
 	} catch (err) {
 		console.error('Performance API error:', err);
 
-		throw error(500, {
-			message: 'Failed to retrieve performance data',
-			error: err instanceof Error ? err.message : 'Unknown error'
-		});
+		error(500, {
+        			message: 'Failed to retrieve performance data',
+        			error: err instanceof Error ? err.message : 'Unknown error'
+        		});
 	}
 };
 
@@ -212,7 +212,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 				} = metricBody;
 
 				if (!metricDuration || typeof metricDuration !== 'number') {
-					throw error(400, 'Duration is required and must be a number');
+					error(400, 'Duration is required and must be a number');
 				}
 
 				serverPerformanceMonitor.recordAPIEndpoint(path, method, metricDuration, status);
@@ -231,19 +231,19 @@ export const POST: RequestHandler = async ({ request, url }) => {
 				});
 
 			default:
-				throw error(400, 'Invalid action specified');
+				error(400, 'Invalid action specified');
 		}
 	} catch (err) {
 		console.error('Performance API POST error:', err);
 
 		if (err instanceof Error && err.message.includes('JSON')) {
-			throw error(400, 'Invalid JSON in request body');
+			error(400, 'Invalid JSON in request body');
 		}
 
-		throw error(500, {
-			message: 'Failed to process performance action',
-			error: err instanceof Error ? err.message : 'Unknown error'
-		});
+		error(500, {
+        			message: 'Failed to process performance action',
+        			error: err instanceof Error ? err.message : 'Unknown error'
+        		});
 	}
 };
 
@@ -273,10 +273,10 @@ export const PUT: RequestHandler = async ({ request }) => {
 	} catch (err) {
 		console.error('Performance config update error:', err);
 
-		throw error(500, {
-			message: 'Failed to update performance configuration',
-			error: err instanceof Error ? err.message : 'Unknown error'
-		});
+		error(500, {
+        			message: 'Failed to update performance configuration',
+        			error: err instanceof Error ? err.message : 'Unknown error'
+        		});
 	}
 };
 
@@ -303,10 +303,10 @@ export const DELETE: RequestHandler = async ({ url }) => {
 	} catch (err) {
 		console.error('Performance metrics deletion error:', err);
 
-		throw error(500, {
-			message: 'Failed to delete performance metrics',
-			error: err instanceof Error ? err.message : 'Unknown error'
-		});
+		error(500, {
+        			message: 'Failed to delete performance metrics',
+        			error: err instanceof Error ? err.message : 'Unknown error'
+        		});
 	}
 };
 

@@ -7,7 +7,7 @@ import type { RequestHandler } from './$types';
 export const GET: RequestHandler = async ({ locals }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
-		throw error(401, { message: 'Authentication required' });
+		error(401, { message: 'Authentication required' });
 	}
 
 	try {
@@ -34,6 +34,6 @@ export const GET: RequestHandler = async ({ locals }) => {
 			throw err;
 		}
 
-		throw error(500, { message: 'Internal server error getting storage stats' });
+		error(500, { message: 'Internal server error getting storage stats' });
 	}
 };

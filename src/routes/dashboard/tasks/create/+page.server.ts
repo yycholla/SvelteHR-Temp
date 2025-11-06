@@ -9,22 +9,22 @@ import { createUrqlClient } from '$lib/graphql/client';
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	// Check authentication
 	if (!locals.user) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
+		redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
 	// Get user credentials for GraphQL operations
 	// Token retrieval removed - session auth handled by server hooks
 	if (!token) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
+		redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
 	// Check if user has manager or admin privileges to create tasks
 	const roleLevel = getRoleLevel(locals.user.role);
 	if (roleLevel < 60) {
 		// Only managers and above can create tasks
-		throw error(403, {
-			message: 'Access denied. Manager privileges required to create tasks.'
-		});
+		error(403, {
+        			message: 'Access denied. Manager privileges required to create tasks.'
+        		});
 	}
 
 	try {
@@ -48,7 +48,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 		// Handle specific error cases
 		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {
-			throw redirect(303, `/login?redirectTo=${url.pathname}`);
+			redirect(303, `/login?redirectTo=${url.pathname}`);
 		}
 
 		// If it's already a SvelteKit error, rethrow it
@@ -56,9 +56,9 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			throw err;
 		}
 
-		throw error(500, {
-			message: 'Failed to load task creation form. Please try again later.'
-		});
+		error(500, {
+        			message: 'Failed to load task creation form. Please try again later.'
+        		});
 	}
 };
 

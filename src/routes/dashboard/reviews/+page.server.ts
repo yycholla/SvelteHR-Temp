@@ -15,7 +15,7 @@ import { canCreateReview } from '$lib/utils/rbac';
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	// Check if user is authenticated
 	if (!locals.user) {
-		throw error(401, 'Authentication required');
+		error(401, 'Authentication required');
 	}
 
 	const userId = locals.user.id;

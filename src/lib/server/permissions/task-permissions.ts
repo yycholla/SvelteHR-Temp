@@ -328,7 +328,7 @@ export async function requireTaskPermission(
 	const { locals } = event;
 
 	if (!locals.user) {
-		throw error(401, 'Authentication required');
+		error(401, 'Authentication required');
 	}
 
 	const userId = locals.user.id;
@@ -341,7 +341,7 @@ export async function requireTaskPermission(
 		const task = await getTaskById(config.taskId);
 
 		if (!task) {
-			throw error(404, 'Task not found');
+			error(404, 'Task not found');
 		}
 
 		// Check if user has permission to access this task
@@ -354,7 +354,7 @@ export async function requireTaskPermission(
 		);
 
 		if (!canAccess) {
-			throw error(403, 'You do not have permission to access this task');
+			error(403, 'You do not have permission to access this task');
 		}
 	}
 
@@ -363,7 +363,7 @@ export async function requireTaskPermission(
 		if (userId !== config.creatorId) {
 			const effectiveRole = getRolePrecedence(userRoles);
 			if (effectiveRole !== 'admin' && effectiveRole !== 'super_admin') {
-				throw error(403, 'Only the task creator can perform this action');
+				error(403, 'Only the task creator can perform this action');
 			}
 		}
 	}
@@ -373,7 +373,7 @@ export async function requireTaskPermission(
 		if (userId !== config.assigneeId) {
 			const effectiveRole = getRolePrecedence(userRoles);
 			if (effectiveRole !== 'admin' && effectiveRole !== 'super_admin') {
-				throw error(403, 'Only the task assignee can perform this action');
+				error(403, 'Only the task assignee can perform this action');
 			}
 		}
 	}
@@ -383,7 +383,7 @@ export async function requireTaskPermission(
 		if (userId !== config.creatorId && userId !== config.assigneeId) {
 			const effectiveRole = getRolePrecedence(userRoles);
 			if (effectiveRole !== 'admin' && effectiveRole !== 'super_admin') {
-				throw error(403, 'Only the task creator or assignee can perform this action');
+				error(403, 'Only the task creator or assignee can perform this action');
 			}
 		}
 	}
@@ -440,10 +440,10 @@ export const TaskPermissionChecks = {
 	// Create new task
 	createTask: (event: RequestEvent) => {
 		if (!event.locals.user) {
-			throw error(401, 'Authentication required');
+			error(401, 'Authentication required');
 		}
 		if (!canCreateTask(event.locals.roles || [], event.locals.permissions || [])) {
-			throw error(403, 'You do not have permission to create tasks');
+			error(403, 'You do not have permission to create tasks');
 		}
 	},
 

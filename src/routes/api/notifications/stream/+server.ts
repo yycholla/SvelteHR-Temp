@@ -17,7 +17,7 @@ export const GET: RequestHandler = async ({ locals, cookies, request }) => {
 			'auth-token': cookies.get('auth-token')
 		});
 		console.error('❌ SSE: locals.user:', locals.user);
-		throw error(401, 'Authentication required');
+		error(401, 'Authentication required');
 	}
 
 	const userId = locals.user.id;

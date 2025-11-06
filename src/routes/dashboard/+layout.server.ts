@@ -9,7 +9,7 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url }) => {
 	// Require authentication for all dashboard routes
 	if (!locals.user?.id) {
 		const redirectTo = url.pathname + url.search;
-		throw redirect(303, `/login?redirectTo=${encodeURIComponent(redirectTo)}`);
+		redirect(303, `/login?redirectTo=${encodeURIComponent(redirectTo)}`);
 	}
 
 	try {

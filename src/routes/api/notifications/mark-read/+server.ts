@@ -7,7 +7,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	// Session-based authentication - user must be authenticated via hooks.server.ts
 	if (!locals.user?.id) {
 		console.error('Mark-read: No authenticated user found in session');
-		throw error(401, 'Authentication required');
+		error(401, 'Authentication required');
 	}
 
 	const userId = locals.user.id;
@@ -16,14 +16,14 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	const authToken = cookies.get('hr_token') || cookies.get('auth-token');
 	if (!authToken) {
 		console.error('Mark-read: No session cookie found');
-		throw error(401, 'Session cookie required');
+		error(401, 'Session cookie required');
 	}
 
 	try {
 		const { notificationIds } = await request.json();
 
 		if (!notificationIds || !Array.isArray(notificationIds) || notificationIds.length === 0) {
-			throw error(400, 'Invalid notification IDs');
+			error(400, 'Invalid notification IDs');
 		}
 
 		const graphqlClient = new GraphQLClient();
@@ -66,6 +66,6 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 		});
 	} catch (err) {
 		console.error('Error marking notifications as read:', err);
-		throw error(500, 'Failed to mark notifications as read');
+		error(500, 'Failed to mark notifications as read');
 	}
 };

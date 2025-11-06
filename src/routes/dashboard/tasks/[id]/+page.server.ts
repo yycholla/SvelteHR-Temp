@@ -13,11 +13,11 @@ export const load: PageServerLoad = async (event) => {
 	// RBAC: Check task read permissions
 	try {
 		if (!locals.user) {
-			throw error(401, { message: 'Authentication required' });
+			error(401, { message: 'Authentication required' });
 		}
 	} catch (err) {
 		console.error('[Task Details] Permission check failed:', err);
-		throw error(403, { message: 'Insufficient permissions to view task details' });
+		error(403, { message: 'Insufficient permissions to view task details' });
 	}
 
 	// Import required models
@@ -146,7 +146,7 @@ export const load: PageServerLoad = async (event) => {
 		const task = taskData?.data?.task || null;
 
 		if (!task) {
-			throw error(404, { message: 'Task not found' });
+			error(404, { message: 'Task not found' });
 		}
 
 		// Note: Audit trail functionality not available in current schema
@@ -278,9 +278,9 @@ export const load: PageServerLoad = async (event) => {
 			error: errorResponse
 		});
 
-		throw error(500, {
-			message: 'Task details temporarily unavailable',
-			details: errorResponse.userMessage
-		});
+		error(500, {
+        			message: 'Task details temporarily unavailable',
+        			details: errorResponse.userMessage
+        		});
 	}
 };

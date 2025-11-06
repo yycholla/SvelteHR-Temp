@@ -12,11 +12,11 @@ export const load: PageServerLoad = async (event) => {
 	// RBAC: Check task creation permissions
 	try {
 		if (!locals.user) {
-			throw error(401, { message: 'Authentication required' });
+			error(401, { message: 'Authentication required' });
 		}
 	} catch (err) {
 		console.error('[Task Create] Permission check failed:', err);
-		throw error(403, { message: 'Insufficient permissions to create tasks' });
+		error(403, { message: 'Insufficient permissions to create tasks' });
 	}
 
 	// Import required models
@@ -223,10 +223,10 @@ export const load: PageServerLoad = async (event) => {
 			error: errorResponse
 		});
 
-		throw error(500, {
-			message: 'Task creation temporarily unavailable',
-			details: errorResponse.userMessage
-		});
+		error(500, {
+        			message: 'Task creation temporarily unavailable',
+        			details: errorResponse.userMessage
+        		});
 	}
 };
 
@@ -237,7 +237,7 @@ export const actions: Actions = {
 
 		// Check authentication
 		if (!locals.user) {
-			throw error(401, { message: 'Authentication required' });
+			error(401, { message: 'Authentication required' });
 		}
 
 		try {
@@ -349,7 +349,7 @@ export const actions: Actions = {
 			console.log('[Task Create] Task created successfully:', newTask.id);
 
 			// Redirect to new task details page
-			throw redirect(303, `/dashboard/tasks/${newTask.id}`);
+			redirect(303, `/dashboard/tasks/${newTask.id}`);
 		} catch (err) {
 			// If it's a redirect, re-throw it
 			if (err instanceof Response) {

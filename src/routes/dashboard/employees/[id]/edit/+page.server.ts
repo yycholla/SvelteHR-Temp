@@ -14,7 +14,7 @@ export const load: PageServerLoad = async (event) => {
 
 	// Ensure user is authenticated
 	if (!locals.user) {
-		throw error(401, 'Authentication required');
+		error(401, 'Authentication required');
 	}
 
 	// Create simple user session object (session-based auth doesn't use JWT)
@@ -131,7 +131,7 @@ export const load: PageServerLoad = async (event) => {
 		// Check if employee exists
 		const employee = employeeData?.data?.user;
 		if (!employee) {
-			throw error(404, 'Employee not found');
+			error(404, 'Employee not found');
 		}
 
 		// Load related data separately (emergency contacts and vehicles) - migrated to Rust GraphQL
@@ -303,7 +303,7 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Throw SvelteKit error with user-friendly message
-		throw error(500, 'Unable to load employee data');
+		error(500, 'Unable to load employee data');
 	}
 };
 
@@ -651,7 +651,7 @@ export const actions: Actions = {
 			}
 
 			// Redirect to employee detail page on success
-			throw redirect(303, `/dashboard/employees/${employeeId}`);
+			redirect(303, `/dashboard/employees/${employeeId}`);
 		} catch (err) {
 			// If it's a redirect, rethrow it
 			if (err && typeof err === 'object' && 'status' in err && (err as any).status === 303) {

@@ -8,7 +8,7 @@ import { GraphQLClient } from '$lib/server/graphql-client';
 export const load: PageServerLoad = async ({ locals, cookies }) => {
 	// Verify user is authenticated
 	if (!locals.user?.id) {
-		throw error(401, 'Authentication required');
+		error(401, 'Authentication required');
 	}
 
 	const userId = locals.user.id;
@@ -73,7 +73,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		const user = userResult.data?.user;
 
 		if (!user) {
-			throw error(404, 'User profile not found');
+			error(404, 'User profile not found');
 		}
 
 		// Load notification preferences (if table exists)
@@ -134,7 +134,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		};
 	} catch (err) {
 		console.error('[Settings Load Error]', err);
-		throw error(500, 'Failed to load profile settings');
+		error(500, 'Failed to load profile settings');
 	}
 };
 

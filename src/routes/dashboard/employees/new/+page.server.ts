@@ -10,7 +10,7 @@ export const load: PageServerLoad = async (event) => {
 
 	// Ensure user is authenticated
 	if (!locals.user) {
-		throw error(401, 'Authentication required');
+		error(401, 'Authentication required');
 	}
 
 	// RBAC: Use proper permission checking
@@ -20,7 +20,7 @@ export const load: PageServerLoad = async (event) => {
 	// This checks for both 'employees:write' permission AND admin/system_admin role
 	if (!userPermissions.canManageEmployees) {
 		console.log('[Employee New] Access denied. User role:', locals.user.role, 'Permissions:', locals.permissions, 'Roles:', locals.roles);
-		throw error(403, 'Access denied. Admin privileges required to create employees.');
+		error(403, 'Access denied. Admin privileges required to create employees.');
 	}
 
 	try {
@@ -59,14 +59,14 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		if (!departmentsResponse.ok) {
-			throw error(500, `Failed to load departments: ${departmentsResponse.statusText}`);
+			error(500, `Failed to load departments: ${departmentsResponse.statusText}`);
 		}
 
 		const departmentsData = await departmentsResponse.json();
 
 		if (departmentsData.errors && departmentsData.errors.length > 0) {
 			console.error('[Employee New] GraphQL errors:', departmentsData.errors);
-			throw error(500, 'Failed to load departments');
+			error(500, 'Failed to load departments');
 		}
 
 		const userPermissions = getUserPermissions(locals);
@@ -96,9 +96,9 @@ export const load: PageServerLoad = async (event) => {
 			throw err;
 		}
 
-		throw error(500, {
-			message: 'Failed to load form data. Please try again later.'
-		});
+		error(500, {
+        			message: 'Failed to load form data. Please try again later.'
+        		});
 	}
 };
 
@@ -218,7 +218,7 @@ export const actions: Actions = {
 			console.log(`[Employee New] Successfully created employee with ID: ${newEmployeeId}`);
 
 			// Redirect to the employees list page with success message
-			throw redirect(303, `/dashboard/employees?success=created`);
+			redirect(303, `/dashboard/employees?success=created`);
 		} catch (err: any) {
 			console.error('[Employee New] Error creating employee:', err);
 

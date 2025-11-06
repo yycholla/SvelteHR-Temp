@@ -11,7 +11,7 @@ export const load: PageServerLoad = async (event) => {
 
 	// Verify user is authenticated
 	if (!locals.user?.id) {
-		throw error(401, 'Authentication required');
+		error(401, 'Authentication required');
 	}
 
 	// Fetch weather data from wttr.in as a promise (non-blocking)

@@ -9,7 +9,7 @@ export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 	// Get auth token
 	const authToken = cookies.get('hr_token') || cookies.get('auth-token');
 	if (!authToken || !locals.user?.id) {
-		throw error(401, 'Authentication required');
+		error(401, 'Authentication required');
 	}
 
 	// Optional: support filtering via query params
@@ -94,7 +94,7 @@ export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 		});
 	} catch (err) {
 		console.error('Error generating iCal feed:', err);
-		throw error(500, 'Failed to generate calendar feed');
+		error(500, 'Failed to generate calendar feed');
 	}
 };
 

@@ -11,7 +11,7 @@ import { ensureBackendReady } from '$lib/server/backend-init';
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	// Check authentication
 	if (!locals.user) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
+		redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
 	// Check if user has admin privileges
@@ -23,9 +23,9 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 	if (!hasAdminAccess) {
 		// Only admins can access audit logs
-		throw error(403, {
-			message: 'Access denied. Administrator privileges required to view audit logs.'
-		});
+		error(403, {
+        			message: 'Access denied. Administrator privileges required to view audit logs.'
+        		});
 	}
 
 	try {
@@ -172,7 +172,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 		// Handle specific error cases
 		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {
-			throw redirect(303, `/login?redirectTo=${url.pathname}`);
+			redirect(303, `/login?redirectTo=${url.pathname}`);
 		}
 
 		// If it's already a SvelteKit error, rethrow it
@@ -180,9 +180,9 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			throw err;
 		}
 
-		throw error(500, {
-			message: 'Failed to load audit logs. Please try again later.'
-		});
+		error(500, {
+        			message: 'Failed to load audit logs. Please try again later.'
+        		});
 	}
 };
 

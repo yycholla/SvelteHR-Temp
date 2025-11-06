@@ -31,7 +31,7 @@ const GET_USER_QUERY = gql`
 export const POST: RequestHandler = async ({ params, locals, request, cookies, fetch }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
-		throw error(401, { message: 'Authentication required' });
+		error(401, { message: 'Authentication required' });
 	}
 
 	const employeeId = params.id;
@@ -40,9 +40,9 @@ export const POST: RequestHandler = async ({ params, locals, request, cookies, f
 
 	// Step 2: Check if user has assign permissions (admin only)
 	if (userRole !== 'super_admin' && userRole !== 'admin') {
-		throw error(403, {
-			message: 'Insufficient permissions. Only administrators can assign documents to employees.'
-		});
+		error(403, {
+        			message: 'Insufficient permissions. Only administrators can assign documents to employees.'
+        		});
 	}
 
 	try {
@@ -51,7 +51,7 @@ export const POST: RequestHandler = async ({ params, locals, request, cookies, f
 		const { documentIds } = body;
 
 		if (!Array.isArray(documentIds) || documentIds.length === 0) {
-			throw error(400, { message: 'Invalid request: documentIds must be a non-empty array' });
+			error(400, { message: 'Invalid request: documentIds must be a non-empty array' });
 		}
 
 		console.log(`[ASSIGN DOCS] User ${userId} assigning ${documentIds.length} documents to employee ${employeeId}`);
@@ -65,7 +65,7 @@ export const POST: RequestHandler = async ({ params, locals, request, cookies, f
 			.toPromise();
 
 		if (employeeResult.error || !employeeResult.data?.user) {
-			throw error(404, { message: 'Employee not found' });
+			error(404, { message: 'Employee not found' });
 		}
 
 		const employee = employeeResult.data.user;
@@ -109,9 +109,9 @@ export const POST: RequestHandler = async ({ params, locals, request, cookies, f
 
 		// Step 6: Return results
 		if (errors.length > 0 && assignedCount === 0) {
-			throw error(400, {
-				message: `Failed to assign any documents. Errors: ${errors.join('; ')}`
-			});
+			error(400, {
+            				message: `Failed to assign any documents. Errors: ${errors.join('; ')}`
+            			});
 		}
 
 		const message = errors.length > 0
@@ -137,8 +137,8 @@ export const POST: RequestHandler = async ({ params, locals, request, cookies, f
 		}
 
 		// Generic error fallback
-		throw error(500, {
-			message: 'Failed to assign documents. Please try again later.'
-		});
+		error(500, {
+        			message: 'Failed to assign documents. Please try again later.'
+        		});
 	}
 };

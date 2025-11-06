@@ -79,7 +79,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch: fet
 		const review = reviewData?.data?.performanceReview;
 
 		if (!review) {
-			throw error(404, 'Review not found');
+			error(404, 'Review not found');
 		}
 
 		// RBAC: Check if user can view this review
@@ -93,7 +93,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch: fet
 		);
 
 		if (!hasViewPermission) {
-			throw error(403, 'You do not have permission to view this review');
+			error(403, 'You do not have permission to view this review');
 		}
 
 		// Check if user can edit
@@ -172,6 +172,6 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch: fet
 		}
 
 		console.error('Error loading review detail:', err);
-		throw error(500, 'Failed to load review details');
+		error(500, 'Failed to load review details');
 	}
 };

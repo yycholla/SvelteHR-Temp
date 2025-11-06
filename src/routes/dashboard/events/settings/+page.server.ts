@@ -15,7 +15,7 @@ import { error, redirect, fail } from '@sveltejs/kit';
 export const load: PageServerLoad = async ({ locals, url }) => {
 	// Check authentication
 	if (!locals.user) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
+		redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
 	// TODO: Implement notification preferences loading
@@ -43,7 +43,7 @@ export const actions = {
 	 */
 	updatePreferences: async ({ locals }) => {
 		if (!locals.user) {
-			throw error(401, 'Unauthorized');
+			error(401, 'Unauthorized');
 		}
 
 		// TODO: Implement notification preferences update

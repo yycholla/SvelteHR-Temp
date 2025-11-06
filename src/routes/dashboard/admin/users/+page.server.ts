@@ -10,7 +10,7 @@ export const load: PageServerLoad = async ({ locals, url, parent, cookies, fetch
 	const { isAdmin } = await parent();
 
 	if (!isAdmin) {
-		throw error(403, 'Admin access required');
+		error(403, 'Admin access required');
 	}
 
 	// Get pagination parameters - reduced to 20 for better performance

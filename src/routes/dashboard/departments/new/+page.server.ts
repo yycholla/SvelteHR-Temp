@@ -10,7 +10,7 @@ export const load: PageServerLoad = async (event) => {
 
 	// Ensure user is authenticated
 	if (!locals.user) {
-		throw error(401, 'Authentication required');
+		error(401, 'Authentication required');
 	}
 
 	// RBAC: Check department write permissions
@@ -103,9 +103,9 @@ export const load: PageServerLoad = async (event) => {
 			throw err;
 		}
 
-		throw error(500, {
-			message: 'Failed to load form data. Please try again later.'
-		});
+		error(500, {
+        			message: 'Failed to load form data. Please try again later.'
+        		});
 	}
 };
 
@@ -189,7 +189,7 @@ export const actions: Actions = {
 			console.log(`[Department New] Successfully created department with ID: ${newDepartmentId}`);
 
 			// Redirect to the new department detail page with success message
-			throw redirect(303, `/dashboard/departments/${newDepartmentId}?success=created`);
+			redirect(303, `/dashboard/departments/${newDepartmentId}?success=created`);
 		} catch (err: any) {
 			console.error('[Department New] Error creating department:', err);
 

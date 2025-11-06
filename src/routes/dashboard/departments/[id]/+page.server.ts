@@ -15,7 +15,7 @@ export const load: PageServerLoad = async (event) => {
 		PermissionChecks.departmentWrite(event);
 
 		if (!locals.user) {
-			throw error(401, 'Authentication required');
+			error(401, 'Authentication required');
 		}
 
 		// Get standardized user permissions
@@ -50,7 +50,7 @@ export const load: PageServerLoad = async (event) => {
 
 	// Ensure user is authenticated
 	if (!locals.user) {
-		throw error(401, 'Authentication required');
+		error(401, 'Authentication required');
 	}
 
 	// Create simple user session object (session-based auth doesn't use JWT)
@@ -126,7 +126,7 @@ export const load: PageServerLoad = async (event) => {
 		// Check if department exists
 		const department = departmentData?.data?.department;
 		if (!department) {
-			throw error(404, 'Department not found');
+			error(404, 'Department not found');
 		}
 
 		// Get manager data separately if managerId exists
@@ -228,9 +228,9 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		// Throw SvelteKit error with user-friendly message
-		throw error(500, {
-			message: 'Department details temporarily unavailable',
-			details: errorResponse.userMessage
-		});
+		error(500, {
+        			message: 'Department details temporarily unavailable',
+        			details: errorResponse.userMessage
+        		});
 	}
 };

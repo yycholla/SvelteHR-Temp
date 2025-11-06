@@ -7,7 +7,7 @@ import type { RequestHandler } from './$types';
 export const DELETE: RequestHandler = async ({ request, locals }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
-		throw error(401, { message: 'Authentication required' });
+		error(401, { message: 'Authentication required' });
 	}
 
 	try {
@@ -16,12 +16,12 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 		const { storagePath } = body;
 
 		if (!storagePath) {
-			throw error(400, { message: 'Missing required field: storagePath' });
+			error(400, { message: 'Missing required field: storagePath' });
 		}
 
 		// Step 3: Validate user owns this file
 		if (!storagePath.startsWith(locals.user.id)) {
-			throw error(403, { message: 'Access denied to delete this file' });
+			error(403, { message: 'Access denied to delete this file' });
 		}
 
 		// Step 4: TODO: Delete from PostgreSQL
@@ -39,6 +39,6 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 			throw err;
 		}
 
-		throw error(500, { message: 'Internal server error during file deletion' });
+		error(500, { message: 'Internal server error during file deletion' });
 	}
 };

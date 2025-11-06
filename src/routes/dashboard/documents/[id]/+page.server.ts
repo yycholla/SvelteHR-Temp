@@ -8,7 +8,7 @@ import { transaction, setJWTClaims } from '$lib/server/db';
 export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
-		throw redirect(303, `/login?redirectTo=/dashboard/documents/${params.id}`);
+		redirect(303, `/login?redirectTo=/dashboard/documents/${params.id}`);
 	}
 
 	const documentId = params.id;
@@ -78,13 +78,13 @@ export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 		});
 
 		if (!document) {
-			throw error(404, { message: 'Document not found' });
+			error(404, { message: 'Document not found' });
 		}
 
 		if (!canAccess) {
-			throw error(403, {
-				message: 'Access denied. You do not have permission to view this document.'
-			});
+			error(403, {
+            				message: 'Access denied. You do not have permission to view this document.'
+            			});
 		}
 
 		// Step 3: Fetch document assignments
@@ -231,8 +231,8 @@ export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 		}
 
 		// Generic error fallback
-		throw error(500, {
-			message: 'Failed to load document details. Please try again later.'
-		});
+		error(500, {
+        			message: 'Failed to load document details. Please try again later.'
+        		});
 	}
 };

@@ -11,7 +11,7 @@ export const load: PageServerLoad = async (event) => {
 
 	// Step 1: Validate authentication
 	if (!locals.user) {
-		throw redirect(303, `/login?redirectTo=${encodeURIComponent(url.pathname)}`);
+		redirect(303, `/login?redirectTo=${encodeURIComponent(url.pathname)}`);
 	}
 
 	// Step 2: Check RBAC permissions - only admins and HR managers can access audit logs
@@ -19,9 +19,9 @@ export const load: PageServerLoad = async (event) => {
 	const allowedRoles = ['super_admin', 'system_admin', 'admin', 'hr_admin'];
 
 	if (!allowedRoles.includes(userRole)) {
-		throw error(403, {
-			message: 'Access denied. Only administrators can view audit logs.'
-		});
+		error(403, {
+        			message: 'Access denied. Only administrators can view audit logs.'
+        		});
 	}
 
 	try {
@@ -234,8 +234,8 @@ export const load: PageServerLoad = async (event) => {
 			throw err;
 		}
 
-		throw error(500, {
-			message: 'Failed to load audit logs. Please try again later.'
-		});
+		error(500, {
+        			message: 'Failed to load audit logs. Please try again later.'
+        		});
 	}
 };

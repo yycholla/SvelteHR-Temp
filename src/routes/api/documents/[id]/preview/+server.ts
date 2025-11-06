@@ -9,7 +9,7 @@ import { retrieveAndDecryptFile } from '$lib/server/encryption';
 export const GET: RequestHandler = async ({ params, locals, url }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
-		throw error(401, { message: 'Authentication required' });
+		error(401, { message: 'Authentication required' });
 	}
 
 	const documentId = params.id;
@@ -62,13 +62,13 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 		});
 
 		if (!document) {
-			throw error(404, { message: 'Document not found' });
+			error(404, { message: 'Document not found' });
 		}
 
 		if (!canAccess) {
 			// Log denied access
 			console.log(`Access denied for user ${userId} to document ${documentId}`);
-			throw error(403, { message: 'Access denied. You do not have permission to preview this document.' });
+			error(403, { message: 'Access denied. You do not have permission to preview this document.' });
 		}
 
 		// Step 4: Determine preview format
@@ -122,6 +122,6 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 			throw err;
 		}
 
-		throw error(500, { message: 'Internal server error during preview generation' });
+		error(500, { message: 'Internal server error during preview generation' });
 	}
 };

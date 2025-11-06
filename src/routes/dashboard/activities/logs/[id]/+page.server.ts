@@ -15,16 +15,16 @@ export const load: PageServerLoad = async (event) => {
 
 	// RBAC: Only system_admin, super_admin, hr_admin, and admin can access audit logs
 	if (!locals.user) {
-		throw redirect(303, `/login?redirectTo=${encodeURIComponent(url.pathname)}`);
+		redirect(303, `/login?redirectTo=${encodeURIComponent(url.pathname)}`);
 	}
 
 	const userRole = locals.user.role || 'employee';
 	const allowedRoles = ['system_admin', 'super_admin', 'hr_admin', 'admin'];
 
 	if (!allowedRoles.includes(userRole)) {
-		throw error(403, {
-			message: 'Access denied. Only administrators can view audit logs.'
-		});
+		error(403, {
+        			message: 'Access denied. Only administrators can view audit logs.'
+        		});
 	}
 
 	const logId = params.id;
@@ -66,9 +66,9 @@ export const load: PageServerLoad = async (event) => {
 		const log = logResult.data?.activityLog;
 
 		if (!log) {
-			throw error(404, {
-				message: 'Activity log not found or you do not have permission to view it.'
-			});
+			error(404, {
+            				message: 'Activity log not found or you do not have permission to view it.'
+            			});
 		}
 
 		// Transform log to match expected format
@@ -187,7 +187,7 @@ export const load: PageServerLoad = async (event) => {
 		if (err && typeof err === 'object' && 'message' in err) {
 			const error_msg = err.message as string;
 			if (error_msg?.includes('unauthorized') || error_msg?.includes('authentication')) {
-				throw redirect(303, `/login?redirectTo=${url.pathname}`);
+				redirect(303, `/login?redirectTo=${url.pathname}`);
 			}
 		}
 
@@ -195,9 +195,9 @@ export const load: PageServerLoad = async (event) => {
 			throw err; // Re-throw SvelteKit errors
 		}
 
-		throw error(500, {
-			message: 'Failed to load activity log'
-		});
+		error(500, {
+        			message: 'Failed to load activity log'
+        		});
 	}
 };
 

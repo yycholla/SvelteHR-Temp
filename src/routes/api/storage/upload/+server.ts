@@ -8,7 +8,7 @@ import { transaction, setJWTClaims } from '$lib/server/db';
 export const POST: RequestHandler = async ({ request, locals }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
-		throw error(401, { message: 'Authentication required' });
+		error(401, { message: 'Authentication required' });
 	}
 
 	try {
@@ -17,7 +17,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const { encryptedData, metadata, iv } = body;
 
 		if (!encryptedData || !metadata) {
-			throw error(400, { message: 'Missing required fields: encryptedData, metadata' });
+			error(400, { message: 'Missing required fields: encryptedData, metadata' });
 		}
 
 		// Step 3: Generate storage path
@@ -87,6 +87,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			throw err; // Re-throw SvelteKit errors
 		}
 
-		throw error(500, { message: 'Internal server error during file storage' });
+		error(500, { message: 'Internal server error during file storage' });
 	}
 };

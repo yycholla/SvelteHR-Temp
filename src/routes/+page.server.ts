@@ -16,9 +16,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 		const userRole = locals.user.role;
 		const isAdmin = userRole === 'Admin' || userRole === 'admin' || userRole === 'super_admin';
 
-		throw redirect(303, isAdmin ? '/dashboard/admin' : '/dashboard');
+		redirect(303, isAdmin ? '/dashboard/admin' : '/dashboard');
 	} else {
 		// Redirect unauthenticated users to login
-		throw redirect(303, '/login');
+		redirect(303, '/login');
 	}
 };

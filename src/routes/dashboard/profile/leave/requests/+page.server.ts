@@ -36,7 +36,7 @@ export const load: PageServerLoad = async (event) => {
 
 	// Verify user is authenticated
 	if (!locals.user?.id) {
-		throw error(401, 'Authentication required');
+		error(401, 'Authentication required');
 	}
 
 	// Use authenticated user's ID
@@ -93,7 +93,7 @@ export const load: PageServerLoad = async (event) => {
 		const user = userData.data?.user;
 
 		if (!user) {
-			throw error(404, 'User not found');
+			error(404, 'User not found');
 		}
 
 		// Load leave requests from database

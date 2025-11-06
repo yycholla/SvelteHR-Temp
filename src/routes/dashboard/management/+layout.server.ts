@@ -7,7 +7,7 @@ import { error } from '@sveltejs/kit';
 export const load: LayoutServerLoad = async ({ locals }) => {
 	// Check if user is authenticated
 	if (!locals.user?.id) {
-		throw error(401, 'Authentication required');
+		error(401, 'Authentication required');
 	}
 
 	// Check if user has management access permissions
@@ -42,7 +42,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 			timestamp: new Date().toISOString()
 		});
 
-		throw error(403, 'Management access required - Manager role or above required');
+		error(403, 'Management access required - Manager role or above required');
 	}
 
 	// Log successful management access

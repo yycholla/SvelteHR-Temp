@@ -28,21 +28,21 @@ const CREATE_ROLLBACK_REQUEST = gql`
 export const POST: RequestHandler = async ({ locals, cookies, request }) => {
 	// RBAC: Only hr_admin and admin can submit rollback requests
 	if (!locals.user) {
-		throw error(401, { message: 'Unauthorized' });
+		error(401, { message: 'Unauthorized' });
 	}
 
 	const userRole = locals.user.role || 'employee';
 	const allowedRoles = ['hr_admin', 'admin'];
 
 	if (!allowedRoles.includes(userRole)) {
-		throw error(403, {
-			message: 'Access denied. Only HR admins and admins can submit rollback requests.'
-		});
+		error(403, {
+        			message: 'Access denied. Only HR admins and admins can submit rollback requests.'
+        		});
 	}
 
 	const token = cookies.get('hr_token') || cookies.get('auth-token');
 	if (!token) {
-		throw error(401, { message: 'No authentication token found' });
+		error(401, { message: 'No authentication token found' });
 	}
 
 	try {
@@ -50,11 +50,11 @@ export const POST: RequestHandler = async ({ locals, cookies, request }) => {
 		const { logId, reason } = body;
 
 		if (!logId || !reason) {
-			throw error(400, { message: 'Log ID and reason are required' });
+			error(400, { message: 'Log ID and reason are required' });
 		}
 
 		if (reason.length < 10) {
-			throw error(400, { message: 'Reason must be at least 10 characters' });
+			error(400, { message: 'Reason must be at least 10 characters' });
 		}
 
 		// Create rollback request via GraphQL
@@ -73,13 +73,13 @@ export const POST: RequestHandler = async ({ locals, cookies, request }) => {
 
 		if (result.error) {
 			console.error('[RollbackRequest] GraphQL error:', result.error);
-			throw error(500, {
-				message: result.error.message || 'Failed to create rollback request'
-			});
+			error(500, {
+            				message: result.error.message || 'Failed to create rollback request'
+            			});
 		}
 
 		if (!result.data?.createRollbackRequest?.rollbackRequest) {
-			throw error(500, { message: 'Failed to create rollback request' });
+			error(500, { message: 'Failed to create rollback request' });
 		}
 
 		const rollbackRequest = result.data.createRollbackRequest.rollbackRequest;
@@ -96,8 +96,8 @@ export const POST: RequestHandler = async ({ locals, cookies, request }) => {
 			throw err; // Re-throw SvelteKit errors
 		}
 
-		throw error(500, {
-			message: 'Failed to submit rollback request'
-		});
+		error(500, {
+        			message: 'Failed to submit rollback request'
+        		});
 	}
 };

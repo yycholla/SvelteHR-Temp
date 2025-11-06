@@ -17,7 +17,7 @@ export const load: PageServerLoad = async (event) => {
 
 	// RBAC: Authentication required
 	if (!locals.user) {
-		throw redirect(303, `/login?redirectTo=${encodeURIComponent(url.pathname)}`);
+		redirect(303, `/login?redirectTo=${encodeURIComponent(url.pathname)}`);
 	}
 
 	try {
@@ -179,8 +179,8 @@ export const load: PageServerLoad = async (event) => {
 			throw err; // Re-throw SvelteKit errors
 		}
 
-		throw error(500, {
-			message: 'Failed to load rollback requests'
-		});
+		error(500, {
+        			message: 'Failed to load rollback requests'
+        		});
 	}
 };

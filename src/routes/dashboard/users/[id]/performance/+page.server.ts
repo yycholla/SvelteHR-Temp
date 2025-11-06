@@ -10,7 +10,7 @@ export const load: PageServerLoad = async (event) => {
 
 	// Verify user is authenticated
 	if (!locals.user?.id) {
-		throw error(401, 'Authentication required');
+		error(401, 'Authentication required');
 	}
 
 	// Verify user can access this performance data (own data or has management permissions)
@@ -18,7 +18,7 @@ export const load: PageServerLoad = async (event) => {
 	const canViewOthers = locals.roles?.includes('admin') || locals.roles?.includes('manager');
 
 	if (!canViewOthers && locals.user?.id !== userId) {
-		throw error(403, 'Access denied: You can only view your own performance data');
+		error(403, 'Access denied: You can only view your own performance data');
 	}
 
 	try {
@@ -51,7 +51,7 @@ export const load: PageServerLoad = async (event) => {
 		const user = userData.data?.user || null;
 
 		if (!user) {
-			throw error(404, 'User not found');
+			error(404, 'User not found');
 		}
 
 		// Load actual goals for this specific user

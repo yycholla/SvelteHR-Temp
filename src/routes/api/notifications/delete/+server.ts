@@ -7,7 +7,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	// Session-based authentication - user must be authenticated via hooks.server.ts
 	if (!locals.user?.id) {
 		console.error('Delete notification: No authenticated user found in session');
-		throw error(401, 'Authentication required');
+		error(401, 'Authentication required');
 	}
 
 	const userId = locals.user.id;
@@ -16,14 +16,14 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	const authToken = cookies.get('hr_token') || cookies.get('auth-token');
 	if (!authToken) {
 		console.error('Delete notification: No session cookie found');
-		throw error(401, 'Session cookie required');
+		error(401, 'Session cookie required');
 	}
 
 	try {
 		const { notificationId } = await request.json();
 
 		if (!notificationId) {
-			throw error(400, 'Notification ID is required');
+			error(400, 'Notification ID is required');
 		}
 
 		const graphqlClient = new GraphQLClient();
@@ -47,8 +47,8 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 		return json({ success: true });
 	} catch (err: any) {
 		console.error('Error deleting notification:', err);
-		throw error(500, {
-			message: err.message || 'Failed to delete notification'
-		});
+		error(500, {
+        			message: err.message || 'Failed to delete notification'
+        		});
 	}
 };

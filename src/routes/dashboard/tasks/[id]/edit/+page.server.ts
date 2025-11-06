@@ -13,7 +13,7 @@ export const load: PageServerLoad = async (event) => {
 	// RBAC: Check task edit permissions and user session validity
 	try {
 		if (!locals.user) {
-			throw error(401, { message: 'Authentication required' });
+			error(401, { message: 'Authentication required' });
 		}
 
 		// Validate user ID exists - required for UserSession creation
@@ -23,11 +23,11 @@ export const load: PageServerLoad = async (event) => {
 				hasUser: !!locals.user,
 				userId: locals.user.id
 			});
-			throw error(401, { message: 'Invalid user session - please login again' });
+			error(401, { message: 'Invalid user session - please login again' });
 		}
 	} catch (err) {
 		console.error('[Task Edit] Permission check failed:', err);
-		throw error(403, { message: 'Insufficient permissions to edit tasks' });
+		error(403, { message: 'Insufficient permissions to edit tasks' });
 	}
 
 	// Import required models
@@ -112,7 +112,7 @@ export const load: PageServerLoad = async (event) => {
 		const task = taskData?.data?.task || null;
 
 		if (!task) {
-			throw error(404, { message: 'Task not found' });
+			error(404, { message: 'Task not found' });
 		}
 
 		console.log('[Task Edit] Raw task data from GraphQL:', {
@@ -262,10 +262,10 @@ export const load: PageServerLoad = async (event) => {
 			error: errorResponse
 		});
 
-		throw error(500, {
-			message: 'Task edit temporarily unavailable',
-			details: errorResponse.userMessage
-		});
+		error(500, {
+        			message: 'Task edit temporarily unavailable',
+        			details: errorResponse.userMessage
+        		});
 	}
 };
 
@@ -277,7 +277,7 @@ export const actions: Actions = {
 
 		// Check authentication
 		if (!locals.user) {
-			throw error(401, { message: 'Authentication required' });
+			error(401, { message: 'Authentication required' });
 		}
 
 		// Declare formDataEntries outside try block for catch block access
@@ -419,7 +419,7 @@ export const actions: Actions = {
 			});
 
 			// Redirect to task details page
-			throw redirect(303, `/dashboard/tasks/${updatedTask.id}`);
+			redirect(303, `/dashboard/tasks/${updatedTask.id}`);
 		} catch (err) {
 			// SvelteKit redirect() throws an error with status 300-399
 			// Check if this is a redirect by looking for status and location properties

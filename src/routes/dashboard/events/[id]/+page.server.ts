@@ -10,7 +10,7 @@ import { createUrqlClient } from '$lib/graphql/client';
 export const load: PageServerLoad = async ({ params, locals, url, cookies }) => {
 	// Check authentication
 	if (!locals.user) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
+		redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
 	// T036: Session-based authentication - jwtToken not needed
@@ -43,9 +43,9 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 		}, null, 2));
 
 		if (!event) {
-			throw error(404, {
-				message: 'Event not found or you do not have permission to view it.'
-			});
+			error(404, {
+            				message: 'Event not found or you do not have permission to view it.'
+            			});
 		}
 
 		// Determine user's RSVP status
@@ -89,7 +89,7 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 
 		// Handle specific error cases
 		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {
-			throw redirect(303, `/login?redirectTo=${url.pathname}`);
+			redirect(303, `/login?redirectTo=${url.pathname}`);
 		}
 
 		// If it's already a SvelteKit error, rethrow it
@@ -97,9 +97,9 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 			throw err;
 		}
 
-		throw error(500, {
-			message: 'Failed to load event details. Please try again later.'
-		});
+		error(500, {
+        			message: 'Failed to load event details. Please try again later.'
+        		});
 	}
 };
 
@@ -120,7 +120,7 @@ export const actions: Actions = {
 	delete: async ({ params, locals, cookies }) => {
 		// Check authentication
 		if (!locals.user) {
-			throw redirect(303, '/login');
+			redirect(303, '/login');
 		}
 
 		// T036: Session-based authentication - jwtToken not needed
@@ -168,7 +168,7 @@ export const actions: Actions = {
 			});
 
 			// Redirect to events list
-			throw redirect(303, '/dashboard/events');
+			redirect(303, '/dashboard/events');
 		} catch (err: any) {
 			console.error('Error deleting event:', err);
 

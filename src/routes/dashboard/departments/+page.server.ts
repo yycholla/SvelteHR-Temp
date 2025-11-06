@@ -154,9 +154,9 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		// Throw SvelteKit error with user-friendly message
-		throw error(500, {
-			message: 'Departments temporarily unavailable',
-			details: errorResponse.userMessage
-		});
+		error(500, {
+        			message: 'Departments temporarily unavailable',
+        			details: errorResponse.userMessage
+        		});
 	}
 };

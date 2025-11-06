@@ -42,7 +42,7 @@ const CREATE_ACCESS_LOG_MUTATION = gql`
 export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
-		throw error(401, { message: 'Authentication required' });
+		error(401, { message: 'Authentication required' });
 	}
 
 	const documentId = params.id;
@@ -65,13 +65,13 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 
 		if (docResult.error) {
 			console.error('GraphQL error fetching document:', docResult.error);
-			throw error(500, { message: 'Failed to fetch document metadata' });
+			error(500, { message: 'Failed to fetch document metadata' });
 		}
 
 		const document = docResult.data?.document;
 
 		if (!document) {
-			throw error(404, { message: 'Document not found' });
+			error(404, { message: 'Document not found' });
 		}
 
 		// Step 3: Check access permissions (RBAC)
@@ -85,9 +85,9 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 
 		if (!canAccess) {
 			console.log(`Preview access denied for user ${userId} to document ${documentId}`);
-			throw error(403, {
-				message: 'Access denied. You do not have permission to preview this document.'
-			});
+			error(403, {
+            				message: 'Access denied. You do not have permission to preview this document.'
+            			});
 		}
 
 		// Step 4: Retrieve and decrypt file via GraphQL
@@ -97,7 +97,7 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 			// Check if encrypted file storage is available
 			const storage = document.encryptedFileStorage;
 			if (!storage) {
-				throw error(404, { message: 'Encrypted file storage not found' });
+				error(404, { message: 'Encrypted file storage not found' });
 			}
 
 			// Get decryption key from database (key is stored encrypted in DB)
@@ -119,7 +119,7 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 		} else {
 			// For non-encrypted files, read from file system
 			// TODO: Implement file system or S3 retrieval
-			throw error(501, { message: 'Non-encrypted file preview not yet implemented' });
+			error(501, { message: 'Non-encrypted file preview not yet implemented' });
 		}
 
 		// Step 5: Log preview access via GraphQL
@@ -163,6 +163,6 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 			throw err;
 		}
 
-		throw error(500, { message: 'Internal server error during preview' });
+		error(500, { message: 'Internal server error during preview' });
 	}
 };

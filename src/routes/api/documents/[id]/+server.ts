@@ -51,7 +51,7 @@ const CREATE_ACCESS_LOG_MUTATION = gql`
 export const GET: RequestHandler = async ({ params, locals, cookies, fetch }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
-		throw error(401, { message: 'Authentication required' });
+		error(401, { message: 'Authentication required' });
 	}
 
 	const documentId = params.id;
@@ -69,13 +69,13 @@ export const GET: RequestHandler = async ({ params, locals, cookies, fetch }) =>
 
 		if (result.error) {
 			console.error('GraphQL error:', result.error);
-			throw error(500, { message: 'Failed to fetch document from GraphQL backend' });
+			error(500, { message: 'Failed to fetch document from GraphQL backend' });
 		}
 
 		const document = result.data?.document;
 
 		if (!document) {
-			throw error(404, { message: 'Document not found' });
+			error(404, { message: 'Document not found' });
 		}
 
 		// Step 4: Apply RBAC filtering
@@ -85,9 +85,9 @@ export const GET: RequestHandler = async ({ params, locals, cookies, fetch }) =>
 		if (userRole !== 'super_admin' && userRole !== 'admin') {
 			// Employee/Manager can only view documents uploaded by them
 			if (document.uploaderId !== userId) {
-				throw error(403, {
-					message: 'Insufficient permissions to view this document'
-				});
+				error(403, {
+                					message: 'Insufficient permissions to view this document'
+                				});
 			}
 		}
 
@@ -100,14 +100,14 @@ export const GET: RequestHandler = async ({ params, locals, cookies, fetch }) =>
 			throw err;
 		}
 
-		throw error(500, { message: 'Internal server error during document fetch' });
+		error(500, { message: 'Internal server error during document fetch' });
 	}
 };
 
 export const DELETE: RequestHandler = async ({ params, locals, request, cookies, fetch }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
-		throw error(401, { message: 'Authentication required' });
+		error(401, { message: 'Authentication required' });
 	}
 
 	const documentId = params.id;
@@ -116,9 +116,9 @@ export const DELETE: RequestHandler = async ({ params, locals, request, cookies,
 
 	// Step 2: Check if user has delete permissions
 	if (userRole !== 'super_admin' && userRole !== 'admin') {
-		throw error(403, {
-			message: 'Insufficient permissions. Only administrators can delete documents.'
-		});
+		error(403, {
+        			message: 'Insufficient permissions. Only administrators can delete documents.'
+        		});
 	}
 
 	try {
@@ -138,11 +138,11 @@ export const DELETE: RequestHandler = async ({ params, locals, request, cookies,
 
 		if (deleteResult.error) {
 			console.error('GraphQL delete error:', deleteResult.error);
-			throw error(500, { message: 'Failed to delete document via GraphQL backend' });
+			error(500, { message: 'Failed to delete document via GraphQL backend' });
 		}
 
 		if (!deleteResult.data?.deleteDocument) {
-			throw error(404, { message: 'Document not found or already deleted' });
+			error(404, { message: 'Document not found or already deleted' });
 		}
 
 		// Step 5: Log the deletion in access logs
@@ -182,8 +182,8 @@ export const DELETE: RequestHandler = async ({ params, locals, request, cookies,
 		}
 
 		// Generic error fallback
-		throw error(500, {
-			message: 'Failed to delete document. Please try again later.'
-		});
+		error(500, {
+        			message: 'Failed to delete document. Please try again later.'
+        		});
 	}
 };

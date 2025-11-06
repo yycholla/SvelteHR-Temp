@@ -13,7 +13,7 @@ import type { UploadResult } from '$lib/types/document';
 export const load: PageServerLoad = async ({ locals, cookies, fetch }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
-		throw redirect(303, '/login?redirectTo=/dashboard/documents/upload');
+		redirect(303, '/login?redirectTo=/dashboard/documents/upload');
 	}
 
 	const userId = locals.user.id;
@@ -37,9 +37,9 @@ export const load: PageServerLoad = async ({ locals, cookies, fetch }) => {
 			timestamp: new Date().toISOString()
 		});
 
-		throw error(403, {
-			message: 'Insufficient permissions. Document upload requires system administrator access.'
-		});
+		error(403, {
+        			message: 'Insufficient permissions. Document upload requires system administrator access.'
+        		});
 	}
 
 	// Log successful access
@@ -128,9 +128,9 @@ export const load: PageServerLoad = async ({ locals, cookies, fetch }) => {
 		}
 
 		// Generic error fallback
-		throw error(500, {
-			message: 'Failed to load upload page. Please try again later.'
-		});
+		error(500, {
+        			message: 'Failed to load upload page. Please try again later.'
+        		});
 	}
 };
 
@@ -139,7 +139,7 @@ export const actions: Actions = {
 	upload: async ({ request, locals, cookies, fetch }) => {
 		// Step 1: Validate authentication
 		if (!locals.user) {
-			throw redirect(303, '/login?redirectTo=/dashboard/documents/upload');
+			redirect(303, '/login?redirectTo=/dashboard/documents/upload');
 		}
 
 		const userId = locals.user.id;

@@ -12,7 +12,7 @@ import { GraphQLClient } from '$lib/server/graphql-client';
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	// Check authentication
 	if (!locals.user) {
-		throw redirect(303, '/login');
+		redirect(303, '/login');
 	}
 
 	const userId = locals.user.id;
@@ -26,7 +26,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		userRole === 'manager';
 
 	if (!canCreate) {
-		throw error(403, 'You do not have permission to create reviews');
+		error(403, 'You do not have permission to create reviews');
 	}
 
 	// Get employee ID from URL parameter (optional)
@@ -371,7 +371,7 @@ export const actions: Actions = {
 			}
 
 			// Redirect to the review detail page
-			throw redirect(303, `/dashboard/reviews/${reviewId}`);
+			redirect(303, `/dashboard/reviews/${reviewId}`);
 		} catch (err) {
 			// If it's a redirect, re-throw it
 			if (err && typeof err === 'object' && 'status' in err && err.status === 303) {

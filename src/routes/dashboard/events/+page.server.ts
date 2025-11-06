@@ -20,7 +20,7 @@ import {
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	// Check authentication
 	if (!locals.user) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
+		redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
 	// T036: Session-based authentication - jwtToken not needed
@@ -188,7 +188,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 		// Handle specific error cases
 		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {
-			throw redirect(303, `/login?redirectTo=${url.pathname}`);
+			redirect(303, `/login?redirectTo=${url.pathname}`);
 		}
 
 		// If it's already a SvelteKit error, rethrow it
@@ -196,9 +196,9 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			throw err;
 		}
 
-		throw error(500, {
-			message: err.userMessage || err.message || 'Failed to load events. Please try again later.'
-		});
+		error(500, {
+        			message: err.userMessage || err.message || 'Failed to load events. Please try again later.'
+        		});
 	}
 };
 

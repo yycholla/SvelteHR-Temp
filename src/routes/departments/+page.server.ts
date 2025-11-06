@@ -12,5 +12,5 @@ export const load: PageServerLoad = async (event) => {
 		? `/dashboard/departments?${searchParams}`
 		: '/dashboard/departments';
 
-	throw redirect(301, redirectUrl);
+	redirect(301, redirectUrl);
 };

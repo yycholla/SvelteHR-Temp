@@ -13,7 +13,7 @@ export const load: PageServerLoad = async (event) => {
 	// All Tasks page is restricted to hr_admin and system_admin only
 	// Managers and employees should use My Tasks and Team Tasks instead
 	if (!locals.user) {
-		throw error(401, { message: 'Authentication required' });
+		error(401, { message: 'Authentication required' });
 	}
 
 	// Check if user has hr_admin or system_admin role
@@ -24,9 +24,9 @@ export const load: PageServerLoad = async (event) => {
 		userRoles.includes('super_admin');
 
 	if (!canAccessAllTasks) {
-		throw error(403, {
-			message: 'Access denied. All Tasks is restricted to administrators. Please use My Tasks or Team Tasks instead.'
-		});
+		error(403, {
+        			message: 'Access denied. All Tasks is restricted to administrators. Please use My Tasks or Team Tasks instead.'
+        		});
 	}
 
 	// Import required models for standardized error handling
@@ -334,10 +334,10 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		// Throw SvelteKit error with user-friendly message
-		throw error(500, {
-			message: 'Tasks dashboard temporarily unavailable',
-			details: errorResponse.userMessage
-		});
+		error(500, {
+        			message: 'Tasks dashboard temporarily unavailable',
+        			details: errorResponse.userMessage
+        		});
 	}
 };
 
@@ -347,7 +347,7 @@ export const actions: Actions = {
 
 		// Check authentication
 		if (!locals.user) {
-			throw error(401, { message: 'Authentication required' });
+			error(401, { message: 'Authentication required' });
 		}
 
 		try {

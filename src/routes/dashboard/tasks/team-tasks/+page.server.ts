@@ -11,7 +11,7 @@ export const load: PageServerLoad = async (event) => {
 
 	// Check authentication
 	if (!locals.user) {
-		throw error(401, { message: 'Authentication required' });
+		error(401, { message: 'Authentication required' });
 	}
 
 	// Import required models
@@ -256,10 +256,10 @@ export const load: PageServerLoad = async (event) => {
 			error: errorResponse
 		});
 
-		throw error(500, {
-			message: 'Team tasks temporarily unavailable',
-			details: errorResponse.userMessage
-		});
+		error(500, {
+        			message: 'Team tasks temporarily unavailable',
+        			details: errorResponse.userMessage
+        		});
 	}
 };
 
@@ -269,7 +269,7 @@ export const actions: Actions = {
 
 		// Check authentication
 		if (!locals.user) {
-			throw error(401, { message: 'Authentication required' });
+			error(401, { message: 'Authentication required' });
 		}
 
 		try {

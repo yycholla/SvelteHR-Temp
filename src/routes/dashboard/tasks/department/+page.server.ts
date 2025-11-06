@@ -11,7 +11,7 @@ import type { TaskStatus, TaskPriority } from '$lib/graphql/types';
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	// Check authentication
 	if (!locals.user) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
+		redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
 	// Check if user has manager or higher privileges
@@ -22,9 +22,9 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		userPermissions.includes('management:read');
 
 	if (!hasManagerAccess) {
-		throw error(403, {
-			message: 'Access denied. Manager privileges required to view department tasks.'
-		});
+		error(403, {
+        			message: 'Access denied. Manager privileges required to view department tasks.'
+        		});
 	}
 
 	try {
@@ -59,10 +59,10 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			locals.user.role === 'admin';
 
 		if (!selectedDepartmentId && !isAdmin) {
-			throw error(400, {
-				message:
-					'No department selected. Please select a department from the dropdown or ensure your profile has a department assigned.'
-			});
+			error(400, {
+            				message:
+            					'No department selected. Please select a department from the dropdown or ensure your profile has a department assigned.'
+            			});
 		}
 
 		// NOTE: Using Rust GraphQL schema - fetch all and filter client-side
@@ -223,7 +223,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 		// Handle specific error cases
 		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {
-			throw redirect(303, `/login?redirectTo=${url.pathname}`);
+			redirect(303, `/login?redirectTo=${url.pathname}`);
 		}
 
 		// If it's already a SvelteKit error, rethrow it
@@ -231,9 +231,9 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			throw err;
 		}
 
-		throw error(500, {
-			message: 'Failed to load department tasks. Please try again later.'
-		});
+		error(500, {
+        			message: 'Failed to load department tasks. Please try again later.'
+        		});
 	}
 };
 

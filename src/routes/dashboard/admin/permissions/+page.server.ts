@@ -43,7 +43,7 @@ export const load: PageServerLoad = async ({ locals, parent, fetch: fetchFn }) =
 	const { isAdmin } = await parent();
 
 	if (!isAdmin) {
-		throw error(403, 'Admin access required');
+		error(403, 'Admin access required');
 	}
 
 	try {

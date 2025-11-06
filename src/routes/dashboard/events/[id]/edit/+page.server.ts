@@ -10,7 +10,7 @@ import { createUrqlClient } from '$lib/graphql/client';
 export const load: PageServerLoad = async ({ params, locals, url, cookies }) => {
 	// Check authentication
 	if (!locals.user) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
+		redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
 	// T036: Session-based authentication - jwtToken not needed
@@ -35,9 +35,9 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 		});
 
 		if (!event) {
-			throw error(404, {
-				message: 'Event not found or you do not have permission to view it.'
-			});
+			error(404, {
+            				message: 'Event not found or you do not have permission to view it.'
+            			});
 		}
 
 		// Check if user is the organizer or admin
@@ -46,9 +46,9 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 		const canEditEvent = isOrganizer || roleLevel >= 100; // Organizer or Admin
 
 		if (!canEditEvent) {
-			throw error(403, {
-				message: 'Access denied. Only the event organizer or administrators can edit this event.'
-			});
+			error(403, {
+            				message: 'Access denied. Only the event organizer or administrators can edit this event.'
+            			});
 		}
 
 		// Format dates for datetime-local input
@@ -78,7 +78,7 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 
 		// Handle specific error cases
 		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {
-			throw redirect(303, `/login?redirectTo=${url.pathname}`);
+			redirect(303, `/login?redirectTo=${url.pathname}`);
 		}
 
 		// If it's already a SvelteKit error, rethrow it
@@ -86,9 +86,9 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 			throw err;
 		}
 
-		throw error(500, {
-			message: 'Failed to load event edit form. Please try again later.'
-		});
+		error(500, {
+        			message: 'Failed to load event edit form. Please try again later.'
+        		});
 	}
 };
 

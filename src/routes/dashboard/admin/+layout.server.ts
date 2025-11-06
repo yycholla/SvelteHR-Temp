@@ -7,7 +7,7 @@ import { error } from '@sveltejs/kit';
 export const load: LayoutServerLoad = async ({ locals }) => {
 	// Check if user is authenticated
 	if (!locals.user) {
-		throw error(401, 'Authentication required');
+		error(401, 'Authentication required');
 	}
 
 	// Check if user has admin access permissions
@@ -36,7 +36,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 			timestamp: new Date().toISOString()
 		});
 
-		throw error(403, 'Insufficient permissions - Admin access required');
+		error(403, 'Insufficient permissions - Admin access required');
 	}
 
 	// Log successful admin access

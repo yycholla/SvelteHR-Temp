@@ -338,7 +338,7 @@ export const handle: Handle = sequence(Sentry.sentryHandle(), async ({ event, re
 
 				console.error(`✗ ${pathname} | Unauthorized → /login`);
 				const redirectTo = encodeURIComponent(pathname + event.url.search);
-				throw redirect(303, `/login?redirectTo=${redirectTo}`);
+				redirect(303, `/login?redirectTo=${redirectTo}`);
 			}
 		}
 

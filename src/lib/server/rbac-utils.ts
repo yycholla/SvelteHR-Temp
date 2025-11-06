@@ -66,7 +66,7 @@ export function requireAuth(event: RequestEvent, config: RBACConfig = {}): void 
 	if (!locals.user) {
 		const redirectTo =
 			event.url.pathname === '/' ? '' : `?redirectTo=${encodeURIComponent(event.url.pathname)}`;
-		throw redirect(303, `/login${redirectTo}`);
+		redirect(303, `/login${redirectTo}`);
 	}
 
 	const {
@@ -85,10 +85,10 @@ export function requireAuth(event: RequestEvent, config: RBACConfig = {}): void 
 		);
 
 		if (!hasRequiredPermissions) {
-			throw error(
-				403,
-				'Access forbidden: You do not have the required permissions to access this resource'
-			);
+			error(
+            				403,
+            				'Access forbidden: You do not have the required permissions to access this resource'
+            			);
 		}
 	}
 
@@ -97,10 +97,10 @@ export function requireAuth(event: RequestEvent, config: RBACConfig = {}): void 
 		const hasRequiredRoles = hasRole(locals.roles || [], requiredRoles, requireAll);
 
 		if (!hasRequiredRoles) {
-			throw error(
-				403,
-				'Access forbidden: You do not have the required role to access this resource'
-			);
+			error(
+            				403,
+            				'Access forbidden: You do not have the required role to access this resource'
+            			);
 		}
 	}
 
@@ -113,7 +113,7 @@ export function requireAuth(event: RequestEvent, config: RBACConfig = {}): void 
 		);
 
 		if (!hasAllowedRole) {
-			throw error(403, 'Access forbidden: Your role does not have access to this resource');
+			error(403, 'Access forbidden: Your role does not have access to this resource');
 		}
 	}
 }

@@ -14,7 +14,7 @@ export const load: PageServerLoad = async (event) => {
 
 	// Ensure user is authenticated
 	if (!locals.user) {
-		throw error(401, 'Authentication required');
+		error(401, 'Authentication required');
 	}
 
 	// Create simple user session object (session-based auth doesn't use JWT)
@@ -85,7 +85,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// Check if department exists
 		if (!departmentData?.data?.department) {
-			throw error(404, 'Department not found');
+			error(404, 'Department not found');
 		}
 
 		const department = departmentData.data.department;
@@ -163,7 +163,7 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Throw SvelteKit error with user-friendly message
-		throw error(500, 'Unable to load department data');
+		error(500, 'Unable to load department data');
 	}
 };
 
@@ -234,7 +234,7 @@ export const actions: Actions = {
 			}
 
 			// Redirect to department detail page on success
-			throw redirect(303, `/dashboard/departments/${departmentId}`);
+			redirect(303, `/dashboard/departments/${departmentId}`);
 		} catch (err) {
 			// If it's a redirect, rethrow it
 			if (err && typeof err === 'object' && 'status' in err && (err as any).status === 303) {

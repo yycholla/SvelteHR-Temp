@@ -44,13 +44,13 @@ const CREATE_ACCESS_LOG_MUTATION = gql`
 export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
-		throw error(401, { message: 'Authentication required' });
+		error(401, { message: 'Authentication required' });
 	}
 
 	// Step 2: Check authorization (Admin or Super Admin only can upload)
 	const userRole = locals.user.role || 'employee';
 	if (!['admin', 'super_admin'].includes(userRole)) {
-		throw error(403, { message: 'Insufficient permissions. Admin role required.' });
+		error(403, { message: 'Insufficient permissions. Admin role required.' });
 	}
 
 	try {
@@ -60,18 +60,18 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 
 		// Step 4: Validate upload data
 		if (!body.filename || !body.fileSizeBytes || !body.encryptedData || !body.encryptionKeyId) {
-			throw error(400, { message: 'Missing required fields (filename, fileSizeBytes, encryptedData, encryptionKeyId)' });
+			error(400, { message: 'Missing required fields (filename, fileSizeBytes, encryptedData, encryptionKeyId)' });
 		}
 
 		// Validate file size (50MB max)
 		if (body.fileSizeBytes > 52428800) {
-			throw error(413, { message: 'File size exceeds 50MB limit' });
+			error(413, { message: 'File size exceeds 50MB limit' });
 		}
 
 		// Validate file type
 		const allowedTypes = ['PDF', 'JPEG', 'PNG', 'GIF', 'DOCX', 'XLSX', 'TXT', 'CSV'];
 		if (!allowedTypes.includes(body.fileType.toUpperCase())) {
-			throw error(400, { message: `Invalid file type. Allowed: ${allowedTypes.join(', ')}` });
+			error(400, { message: `Invalid file type. Allowed: ${allowedTypes.join(', ')}` });
 		}
 
 		// Step 5: Create GraphQL client with session cookies
@@ -98,15 +98,15 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 
 		if (uploadResult.error) {
 			console.error('[Upload API] GraphQL upload error:', uploadResult.error);
-			throw error(500, {
-				message: 'Failed to upload document to GraphQL backend',
-				details: uploadResult.error.message
-			});
+			error(500, {
+            				message: 'Failed to upload document to GraphQL backend',
+            				details: uploadResult.error.message
+            			});
 		}
 
 		const document = uploadResult.data?.uploadDocument;
 		if (!document) {
-			throw error(500, { message: 'Upload succeeded but no document returned' });
+			error(500, { message: 'Upload succeeded but no document returned' });
 		}
 
 		console.log('[Upload API] Document uploaded successfully:', document.id);
@@ -158,7 +158,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 		console.error('Error details:', JSON.stringify(err, null, 2));
 
 		if (err instanceof z.ZodError) {
-			throw error(400, { message: 'Invalid upload data', errors: err.errors });
+			error(400, { message: 'Invalid upload data', errors: err.errors });
 		}
 
 		if (err && typeof err === 'object' && 'status' in err) {
@@ -168,6 +168,6 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 		// Return more detailed error message
 		const errorMessage = err instanceof Error ? err.message : 'Internal server error during upload';
 		console.error('Throwing error with message:', errorMessage);
-		throw error(500, { message: errorMessage });
+		error(500, { message: errorMessage });
 	}
 };

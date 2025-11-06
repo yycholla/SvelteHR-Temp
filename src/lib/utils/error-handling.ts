@@ -223,7 +223,7 @@ export function throwStandardError(
 
 	// SvelteKit error() expects (status, message) or (status, Error object)
 	// We'll pass the user message as a string
-	throw error(standardError.statusCode, standardError.userMessage);
+	error(standardError.statusCode, standardError.userMessage);
 }
 
 // Async error wrapper for load functions
