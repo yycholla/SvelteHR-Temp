@@ -13,7 +13,7 @@
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
-	import Checkbox from '$lib/components/ui/checkbox/ssr-safe-checkbox.svelte';
+	import HtmlCheckbox from '$lib/components/ui/checkbox/html-checkbox.svelte';
 	import {
 		FileText,
 		Eye,
@@ -343,7 +343,7 @@
 											{@const allSelected = table?.getIsAllPageRowsSelected() ?? false}
 											{@const someSelected = table?.getIsSomePageRowsSelected() && !allSelected}
 											<div class="flex items-center justify-center">
-												<Checkbox
+												<HtmlCheckbox
 													checked={allSelected}
 													indeterminate={someSelected}
 													onCheckedChange={(value) => {
@@ -393,13 +393,13 @@
 								>
 									{#if cell.column.id === 'select'}
 										{@const isRowSelected = row?.getIsSelected() ?? false}
-										<Checkbox
+										<HtmlCheckbox
 											checked={isRowSelected}
 											disabled={!row?.getCanSelect()}
 											onCheckedChange={(value) => {
 												row?.toggleSelected(!!value);
 											}}
-											onclick={(e) => e.stopPropagation()}
+											onclick={(e: MouseEvent) => e.stopPropagation()}
 										/>
 									{:else if cell.column.id === 'filename'}
 										<div class="flex items-center gap-2">

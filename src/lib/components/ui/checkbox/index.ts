@@ -1,6 +1,7 @@
-import Root from "./checkbox.svelte";
+import HtmlCheckbox from './html-checkbox.svelte';
 export {
-	Root,
+	HtmlCheckbox,
 	//
-	Root as Checkbox,
+	HtmlCheckbox as Checkbox,
+	HtmlCheckbox as Root
 };

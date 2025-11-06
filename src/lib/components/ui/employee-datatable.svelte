@@ -13,7 +13,7 @@
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
-	import Checkbox from '$lib/components/ui/checkbox/ssr-safe-checkbox.svelte';
+	import HtmlCheckbox from '$lib/components/ui/checkbox/html-checkbox.svelte';
 	import {
 		Users,
 		Eye,
@@ -382,7 +382,8 @@
 			// Execute mutations for each employee using nested mutation structure
 			const results = await Promise.allSettled(
 				employeeIds.map(async (employeeId) => {
-					const result = await urqlClient.mutation(`
+					const result = await urqlClient.mutation(
+						`
 						mutation UpdateEmployeeStatus($id: UUID!, $input: UpdateUserInput!) {
 							users {
 								updateUser(id: $id, input: $input) {
@@ -391,10 +392,12 @@
 								}
 							}
 						}
-					`, {
-						id: employeeId,
-						input: { isActive: newStatus }
-					});
+					`,
+						{
+							id: employeeId,
+							input: { isActive: newStatus }
+						}
+					);
 
 					if (result.error) {
 						throw new Error(result.error.message);
@@ -541,9 +544,10 @@
 									<div class="flex items-center gap-2">
 										{#if header.column.id === 'select'}
 											<div class="flex items-center justify-center">
-												<Checkbox
+												<HtmlCheckbox
 													checked={table?.getIsAllPageRowsSelected() ?? false}
-													indeterminate={(table?.getIsSomePageRowsSelected() ?? false) && !(table?.getIsAllPageRowsSelected() ?? false)}
+													indeterminate={(table?.getIsSomePageRowsSelected() ?? false) &&
+														!(table?.getIsAllPageRowsSelected() ?? false)}
 													disabled={!hasActiveFilters}
 													onCheckedChange={(value) => {
 														table?.toggleAllPageRowsSelected(!!value);
@@ -592,13 +596,13 @@
 								>
 									{#if cell.column.id === 'select'}
 										{@const isRowSelected = row?.getIsSelected() ?? false}
-										<Checkbox
+										<HtmlCheckbox
 											checked={isRowSelected}
 											disabled={!row?.getCanSelect()}
 											onCheckedChange={(value) => {
 												row?.toggleSelected(!!value);
 											}}
-											onclick={(e) => e.stopPropagation()}
+											onclick={(e: MouseEvent) => e.stopPropagation()}
 										/>
 									{:else if cell.column.id === 'displayName'}
 										<div class="flex items-center gap-1.5">
@@ -614,7 +618,7 @@
 											<a
 												href="mailto:{row.original.email}"
 												class="text-sm hover:text-primary"
-												onclick={(e) => e.stopPropagation()}
+												onclick={(e: Event) => e.stopPropagation()}
 											>
 												{row.original.email}
 											</a>

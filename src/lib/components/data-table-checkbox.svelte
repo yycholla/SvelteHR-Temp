@@ -1,13 +1,8 @@
 <script lang="ts">
-	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+	import HtmlCheckbox from '$lib/components/ui/checkbox/html-checkbox.svelte';
 	import type { ComponentProps } from 'svelte';
 
-	let {
-		checked = $bindable(false),
-		...restProps
-	}: ComponentProps<typeof Checkbox> = $props();
+	let { checked = $bindable(false), ...restProps }: ComponentProps<typeof HtmlCheckbox> = $props();
 </script>
 
-<div class="flex items-center justify-center">
-	<Checkbox bind:checked {...restProps} />
-</div>
+<HtmlCheckbox bind:checked {...restProps} />
