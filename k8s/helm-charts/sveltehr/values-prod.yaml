@@ -211,11 +211,11 @@ frontend:
   service:
     port: 3000
     targetPort: 3000
-  # Production resources
+  # Production resources (optimized for actual usage: frontend uses ~8m CPU)
   resources:
     requests:
       memory: 256Mi
-      cpu: 100m
+      cpu: 25m
     limits:
       memory: 512Mi
       cpu: 200m
