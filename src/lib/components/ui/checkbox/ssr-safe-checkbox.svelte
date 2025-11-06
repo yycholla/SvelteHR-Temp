@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 
 	let {
 		checked = $bindable(false),
@@ -18,7 +18,10 @@
 
 	let mounted = $state(false);
 
-	onMount(() => {
+	onMount(async () => {
+		// Wait for the next microtask to ensure hydration completes
+		// before switching from native checkbox to bits-ui Checkbox
+		await tick();
 		mounted = true;
 	});
 
