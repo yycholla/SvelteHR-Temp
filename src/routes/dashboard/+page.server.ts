@@ -262,7 +262,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 		`;
 
-		console.log('🔍 Dashboard: Starting database GraphQL queries for user:', locals.user.id);
+		logger.debug('Dashboard starting database GraphQL queries', { userId: locals.user.id });
 
 		// Determine user role for conditional queries
 		const userRole = locals.user.role || 'employee';

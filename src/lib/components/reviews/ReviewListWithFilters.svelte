@@ -31,11 +31,10 @@
 		getReviewTypeInfo,
 		getReviewStatusInfo,
 		formatReviewPeriod,
-		reviewTypes,
-		reviewStatuses,
-		type ReviewType,
-		type ReviewStatus
-	} from '$lib/graphql/graphql/reviews-operations';
+		reviewTypesForFilter as reviewTypes,
+		reviewStatuses
+	} from '$lib/graphql/reviews-operations';
+	import type { ReviewType, ReviewStatus } from '$lib/schemas/reviews';
 	import DraftReviewIndicator from './DraftReviewIndicator.svelte';
 
 	const dispatch = createEventDispatcher();
@@ -173,8 +172,8 @@
 			<Card.Content class="pt-6">
 				<div class="flex items-center gap-4">
 					<!-- Search -->
-					<div class="flex-1 relative">
-						<Search class="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+					<div class="relative flex-1">
+						<Search class="absolute top-3 left-3 h-4 w-4 text-muted-foreground" />
 						<Input
 							bind:value={searchQuery}
 							placeholder="Search reviews by employee, reviewer, or notes..."
@@ -189,7 +188,7 @@
 						size="default"
 						onclick={() => (showFiltersPanel = !showFiltersPanel)}
 					>
-						<Filter class="w-4 h-4 mr-2" />
+						<Filter class="mr-2 h-4 w-4" />
 						Filters
 						{#if activeFiltersCount > 0}
 							<Badge variant="default" class="ml-2 h-5 min-w-5 px-1.5">
@@ -197,18 +196,18 @@
 							</Badge>
 						{/if}
 						{#if showFiltersPanel}
-							<ChevronUp class="w-4 h-4 ml-2" />
+							<ChevronUp class="ml-2 h-4 w-4" />
 						{:else}
-							<ChevronDown class="w-4 h-4 ml-2" />
+							<ChevronDown class="ml-2 h-4 w-4" />
 						{/if}
 					</Button>
 
 					<!-- Sort Order -->
 					<Button variant="outline" size="default" onclick={toggleSortOrder}>
 						{#if sortOrder === 'asc'}
-							<SortAsc class="w-4 h-4 mr-2" />
+							<SortAsc class="mr-2 h-4 w-4" />
 						{:else}
-							<SortDesc class="w-4 h-4 mr-2" />
+							<SortDesc class="mr-2 h-4 w-4" />
 						{/if}
 						Sort
 					</Button>
@@ -217,11 +216,11 @@
 				{#if showFiltersPanel}
 					<Separator class="my-4" />
 
-					<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+					<div class="grid grid-cols-1 gap-6 md:grid-cols-3">
 						<!-- Review Type Filters -->
 						<div>
-							<h4 class="text-sm font-medium mb-3">Review Type</h4>
-							<div class="space-y-2 max-h-48 overflow-y-auto">
+							<h4 class="mb-3 text-sm font-medium">Review Type</h4>
+							<div class="max-h-48 space-y-2 overflow-y-auto">
 								{#each reviewTypes as type (type.value)}
 									<div class="flex items-center gap-2">
 										<Checkbox
@@ -229,7 +228,7 @@
 											onCheckedChange={() => toggleTypeFilter(type.value as ReviewType)}
 											disabled={loading}
 										/>
-										<span class="text-sm cursor-pointer">
+										<span class="cursor-pointer text-sm">
 											<span class="mr-1">{type.icon}</span>
 											{type.label}
 										</span>
@@ -240,7 +239,7 @@
 
 						<!-- Status Filters -->
 						<div>
-							<h4 class="text-sm font-medium mb-3">Status</h4>
+							<h4 class="mb-3 text-sm font-medium">Status</h4>
 							<div class="space-y-2">
 								{#each reviewStatuses as status (status.value)}
 									<div class="flex items-center gap-2">
@@ -249,7 +248,7 @@
 											onCheckedChange={() => toggleStatusFilter(status.value as ReviewStatus)}
 											disabled={loading}
 										/>
-										<span class="text-sm cursor-pointer">
+										<span class="cursor-pointer text-sm">
 											<span class="mr-1">{status.icon}</span>
 											{status.label}
 										</span>
@@ -260,20 +259,16 @@
 
 						<!-- Sort By -->
 						<div>
-							<h4 class="text-sm font-medium mb-3">Sort By</h4>
+							<h4 class="mb-3 text-sm font-medium">Sort By</h4>
 							<div class="space-y-2">
-								{#each [
-									{ value: 'created', label: 'Created Date' },
-									{ value: 'updated', label: 'Last Updated' },
-									{ value: 'period', label: 'Review Period' }
-								] as option}
+								{#each [{ value: 'created', label: 'Created Date' }, { value: 'updated', label: 'Last Updated' }, { value: 'period', label: 'Review Period' }] as option}
 									<div class="flex items-center gap-2">
 										<Checkbox
 											checked={sortBy === option.value}
 											onCheckedChange={() => (sortBy = option.value as typeof sortBy)}
 											disabled={loading}
 										/>
-										<span class="text-sm cursor-pointer">{option.label}</span>
+										<span class="cursor-pointer text-sm">{option.label}</span>
 									</div>
 								{/each}
 							</div>
@@ -308,8 +303,8 @@
 				<Card.Root>
 					<Card.Content class="pt-6">
 						<div class="animate-pulse space-y-3">
-							<div class="h-4 bg-accent rounded w-3/4"></div>
-							<div class="h-4 bg-accent rounded w-1/2"></div>
+							<div class="h-4 w-3/4 rounded bg-accent"></div>
+							<div class="h-4 w-1/2 rounded bg-accent"></div>
 						</div>
 					</Card.Content>
 				</Card.Root>
@@ -318,7 +313,7 @@
 	{:else if filteredReviews().length === 0}
 		<Card.Root>
 			<Card.Content class="pt-12 pb-12 text-center">
-				<FileText class="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-20" />
+				<FileText class="mx-auto mb-4 h-12 w-12 text-muted-foreground opacity-20" />
 				<p class="text-muted-foreground">{emptyMessage}</p>
 				{#if activeFiltersCount > 0}
 					<Button variant="link" onclick={clearFilters} class="mt-2">
@@ -338,7 +333,7 @@
 						on:delete={handleDeleteDraft}
 					/>
 				{:else}
-					<Card.Root class="hover:bg-accent/50 transition-colors">
+					<Card.Root class="transition-colors hover:bg-accent/50">
 						<Card.Content class="pt-6">
 							<div class="flex items-start justify-between">
 								<div class="flex-1 space-y-3">
@@ -360,17 +355,17 @@
 									</div>
 
 									<!-- Employee and Reviewer Info -->
-									<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+									<div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
 										{#if showEmployeeColumn && review.employee}
 											<div class="flex items-center gap-2 text-muted-foreground">
-												<User class="w-4 h-4" />
+												<User class="h-4 w-4" />
 												<span>Employee: {review.employee.displayName}</span>
 											</div>
 										{/if}
 
 										{#if showReviewerColumn && review.reviewer}
 											<div class="flex items-center gap-2 text-muted-foreground">
-												<User class="w-4 h-4" />
+												<User class="h-4 w-4" />
 												<span>Reviewer: {review.reviewer.displayName}</span>
 											</div>
 										{/if}
@@ -380,9 +375,12 @@
 									<div class="flex items-center gap-4 text-sm text-muted-foreground">
 										{#if review.reviewPeriodStart || review.reviewPeriodEnd}
 											<div class="flex items-center gap-2">
-												<Calendar class="w-4 h-4" />
+												<Calendar class="h-4 w-4" />
 												<span>
-													Period: {formatReviewPeriod(review.reviewPeriodStart, review.reviewPeriodEnd)}
+													Period: {formatReviewPeriod(
+														review.reviewPeriodStart,
+														review.reviewPeriodEnd
+													)}
 												</span>
 											</div>
 										{/if}
@@ -395,21 +393,21 @@
 
 									<!-- Notes Preview -->
 									{#if review.notes}
-										<p class="text-sm text-muted-foreground line-clamp-2">
+										<p class="line-clamp-2 text-sm text-muted-foreground">
 											{review.notes}
 										</p>
 									{/if}
 								</div>
 
 								<!-- Actions -->
-								<div class="flex items-center gap-2 ml-4">
+								<div class="ml-4 flex items-center gap-2">
 									<Button variant="outline" size="sm" onclick={() => handleView(review)}>
-										<Eye class="w-4 h-4 mr-2" />
+										<Eye class="mr-2 h-4 w-4" />
 										View
 									</Button>
 									{#if review.status === 'DRAFT'}
 										<Button variant="default" size="sm" onclick={() => handleEdit(review)}>
-											<Edit class="w-4 h-4 mr-2" />
+											<Edit class="mr-2 h-4 w-4" />
 											Edit
 										</Button>
 									{/if}

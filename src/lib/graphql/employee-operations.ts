@@ -27,7 +27,7 @@ export const GET_EMPLOYEES_QUERY = gql`
 			lastName
 			fullName
 			role
-			phoneNumber
+			phone
 			jobTitle
 			departmentId
 			managerId
@@ -66,7 +66,7 @@ export const GET_EMPLOYEE_BY_ID_QUERY = gql`
 			lastName
 			fullName
 			role
-			phoneNumber
+			phone
 			jobTitle
 			departmentId
 			managerId
@@ -106,7 +106,7 @@ export const GET_CURRENT_USER_QUERY = gql`
 			lastName
 			fullName
 			role
-			phoneNumber
+			phone
 			jobTitle
 			departmentId
 			managerId
@@ -200,7 +200,7 @@ export const CREATE_EMPLOYEE_MUTATION = gql`
 			firstName
 			lastName
 			fullName
-			phoneNumber
+			phone
 			jobTitle
 			departmentId
 			managerId
@@ -234,7 +234,7 @@ export const UPDATE_EMPLOYEE_MUTATION = gql`
 			firstName
 			lastName
 			fullName
-			phoneNumber
+			phone
 			jobTitle
 			departmentId
 			managerId
@@ -277,7 +277,7 @@ export interface Employee {
 	lastName: string;
 	fullName: string;
 	role?: string;
-	phoneNumber?: string;
+	phone?: string;
 	jobTitle?: string;
 	departmentId?: string;
 	managerId?: string;
@@ -519,7 +519,8 @@ export class EmployeeOperations {
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
 					type: 'graphql',
-					userMessage: 'Unable to load employee details. Please check the employee ID and try again.'
+					userMessage:
+						'Unable to load employee details. Please check the employee ID and try again.'
 				});
 				throw errorResponse;
 			}
@@ -692,10 +693,7 @@ export class EmployeeOperations {
 	 * Delete employee (user) - soft delete
 	 * Returns: Boolean indicating success
 	 */
-	async deleteEmployee(params: {
-		id: string;
-		userCredentials: UserCredentials;
-	}): Promise<boolean> {
+	async deleteEmployee(params: { id: string; userCredentials: UserCredentials }): Promise<boolean> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 

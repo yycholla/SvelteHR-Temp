@@ -11,7 +11,7 @@
 	import * as Card from '$lib/components/ui/card';
 	import { FileText, Edit, Trash2, Clock } from '@lucide/svelte';
 	import { createEventDispatcher } from 'svelte';
-	import { getReviewTypeInfo, formatReviewPeriod } from '$lib/graphql/graphql/reviews-operations';
+	import { getReviewTypeInfo, formatReviewPeriod } from '$lib/graphql/reviews-operations';
 	import type { ReviewType } from '$lib/schemas/reviews';
 
 	const dispatch = createEventDispatcher();
@@ -67,20 +67,20 @@
 
 {#if variant === 'banner'}
 	<!-- Banner variant - prominent notification -->
-	<div class="draft-banner bg-accent/50 border border-accent rounded-lg p-4">
+	<div class="draft-banner rounded-lg border border-accent bg-accent/50 p-4">
 		<div class="flex items-center justify-between">
 			<div class="flex items-center gap-3">
-				<div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-					<FileText class="w-5 h-5 text-primary" />
+				<div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+					<FileText class="h-5 w-5 text-primary" />
 				</div>
 				<div>
 					<div class="flex items-center gap-2">
-						<Badge variant="outline" class="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200">
+						<Badge variant="outline" class="border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20">
 							DRAFT
 						</Badge>
 						<span class="font-medium">{reviewTypeInfo.label}</span>
 					</div>
-					<p class="text-sm text-muted-foreground mt-1">
+					<p class="mt-1 text-sm text-muted-foreground">
 						Last updated {timeSinceUpdate()}
 						{#if draft.reviewPeriodStart || draft.reviewPeriodEnd}
 							• Period: {formatReviewPeriod(draft.reviewPeriodStart, draft.reviewPeriodEnd)}
@@ -91,11 +91,11 @@
 			{#if showActions}
 				<div class="flex items-center gap-2">
 					<Button size="sm" onclick={handleResume} disabled={loading}>
-						<Edit class="w-4 h-4 mr-2" />
+						<Edit class="mr-2 h-4 w-4" />
 						Resume
 					</Button>
 					<Button variant="ghost" size="sm" onclick={handleDelete} disabled={loading}>
-						<Trash2 class="w-4 h-4" />
+						<Trash2 class="h-4 w-4" />
 					</Button>
 				</div>
 			{/if}
@@ -103,21 +103,33 @@
 	</div>
 {:else if variant === 'compact'}
 	<!-- Compact variant - minimal info -->
-	<div class="draft-compact flex items-center justify-between py-2 px-3 bg-accent/30 rounded">
+	<div class="draft-compact flex items-center justify-between rounded bg-accent/30 px-3 py-2">
 		<div class="flex items-center gap-2">
-			<Clock class="w-4 h-4 text-muted-foreground" />
+			<Clock class="h-4 w-4 text-muted-foreground" />
 			<Badge variant="outline" class="text-xs">DRAFT</Badge>
 			<span class="text-sm">{reviewTypeInfo.label}</span>
 			<span class="text-xs text-muted-foreground">{timeSinceUpdate()}</span>
 		</div>
 		{#if showActions}
 			<div class="flex items-center gap-1">
-				<Button variant="ghost" size="sm" onclick={handleResume} disabled={loading} class="h-7 px-2">
-					<Edit class="w-3 h-3 mr-1" />
+				<Button
+					variant="ghost"
+					size="sm"
+					onclick={handleResume}
+					disabled={loading}
+					class="h-7 px-2"
+				>
+					<Edit class="mr-1 h-3 w-3" />
 					Resume
 				</Button>
-				<Button variant="ghost" size="sm" onclick={handleDelete} disabled={loading} class="h-7 px-2">
-					<Trash2 class="w-3 h-3" />
+				<Button
+					variant="ghost"
+					size="sm"
+					onclick={handleDelete}
+					disabled={loading}
+					class="h-7 px-2"
+				>
+					<Trash2 class="h-3 w-3" />
 				</Button>
 			</div>
 		{/if}
@@ -128,12 +140,12 @@
 		<Card.Header>
 			<div class="flex items-start justify-between">
 				<div class="flex items-start gap-3">
-					<div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-2xl">
+					<div class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-2xl">
 						{reviewTypeInfo.icon}
 					</div>
 					<div>
-						<div class="flex items-center gap-2 mb-1">
-							<Badge variant="outline" class="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200">
+						<div class="mb-1 flex items-center gap-2">
+							<Badge variant="outline" class="border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20">
 								DRAFT
 							</Badge>
 							<Card.Title class="text-lg">{reviewTypeInfo.label}</Card.Title>
@@ -144,11 +156,11 @@
 				{#if showActions}
 					<div class="flex items-center gap-2">
 						<Button size="sm" onclick={handleResume} disabled={loading}>
-							<Edit class="w-4 h-4 mr-2" />
+							<Edit class="mr-2 h-4 w-4" />
 							Resume
 						</Button>
 						<Button variant="ghost" size="sm" onclick={handleDelete} disabled={loading}>
-							<Trash2 class="w-4 h-4" />
+							<Trash2 class="h-4 w-4" />
 						</Button>
 					</div>
 				{/if}
@@ -159,20 +171,21 @@
 			<div class="space-y-2 text-sm">
 				{#if draft.reviewPeriodStart || draft.reviewPeriodEnd}
 					<div class="flex items-center gap-2 text-muted-foreground">
-						<Clock class="w-4 h-4" />
-						<span>Period: {formatReviewPeriod(draft.reviewPeriodStart, draft.reviewPeriodEnd)}</span>
+						<Clock class="h-4 w-4" />
+						<span>Period: {formatReviewPeriod(draft.reviewPeriodStart, draft.reviewPeriodEnd)}</span
+						>
 					</div>
 				{/if}
 
 				{#if draft.notes}
 					<div class="flex items-start gap-2 text-muted-foreground">
-						<FileText class="w-4 h-4 mt-0.5" />
+						<FileText class="mt-0.5 h-4 w-4" />
 						<span class="line-clamp-2">{draft.notes}</span>
 					</div>
 				{/if}
 
 				<div class="flex items-center gap-2 text-muted-foreground">
-					<Clock class="w-4 h-4" />
+					<Clock class="h-4 w-4" />
 					<span>Last updated {timeSinceUpdate()}</span>
 				</div>
 

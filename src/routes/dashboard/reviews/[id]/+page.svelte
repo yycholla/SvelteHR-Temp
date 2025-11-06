@@ -26,7 +26,7 @@
 		getReviewTypeInfo,
 		getReviewStatusInfo,
 		formatReviewPeriod
-	} from '$lib/graphql/graphql/reviews-operations';
+	} from '$lib/graphql/reviews-operations';
 	import type { ReviewType, ReviewStatus } from '$lib/schemas/reviews';
 
 	let { data }: { data: PageData } = $props();
@@ -75,36 +75,27 @@
 	}
 
 	// Count active vs deleted goals
-	const activeGoalsCount = $derived(
-		review.associatedGoals.filter((g: any) => !g.deleted).length
-	);
-	const deletedGoalsCount = $derived(
-		review.associatedGoals.filter((g: any) => g.deleted).length
-	);
+	const activeGoalsCount = $derived(review.associatedGoals.filter((g: any) => !g.deleted).length);
+	const deletedGoalsCount = $derived(review.associatedGoals.filter((g: any) => g.deleted).length);
 </script>
 
 <div class="review-detail-page space-y-6">
 	<!-- Back Button -->
 	<Button variant="ghost" size="sm" onclick={handleBackToList}>
-		<ArrowLeft class="w-4 h-4 mr-2" />
+		<ArrowLeft class="mr-2 h-4 w-4" />
 		Back to Reviews
 	</Button>
 
 	<!-- Page Header -->
 	<div class="flex items-start justify-between">
 		<div class="flex items-start gap-4">
-			<div
-				class="w-16 h-16 rounded-lg bg-primary/10 flex items-center justify-center text-3xl"
-			>
+			<div class="flex h-16 w-16 items-center justify-center rounded-lg bg-primary/10 text-3xl">
 				{reviewTypeInfo.icon}
 			</div>
 			<div>
-				<div class="flex items-center gap-3 mb-2">
+				<div class="mb-2 flex items-center gap-3">
 					<h1 class="text-3xl font-bold">{reviewTypeInfo.label}</h1>
-					<Badge
-						variant={review.status === 'COMPLETED' ? 'default' : 'secondary'}
-						class="text-sm"
-					>
+					<Badge variant={review.status === 'COMPLETED' ? 'default' : 'secondary'} class="text-sm">
 						{reviewStatusInfo.icon}
 						{reviewStatusInfo.label}
 					</Badge>
@@ -116,45 +107,43 @@
 		<div class="flex items-center gap-2">
 			{#if data.permissions.canEdit}
 				<Button variant="outline" size="sm" onclick={handleEdit}>
-					<Edit class="w-4 h-4 mr-2" />
+					<Edit class="mr-2 h-4 w-4" />
 					Edit
 				</Button>
 			{/if}
 			{#if review.status === 'IN_PROGRESS' && data.permissions.canEdit}
-				<Button size="sm" onclick={handleCompleteReview}>
-					Complete Review
-				</Button>
+				<Button size="sm" onclick={handleCompleteReview}>Complete Review</Button>
 			{/if}
 			{#if data.permissions.canDelete}
 				<Button variant="ghost" size="sm" onclick={handleDelete}>
-					<Trash2 class="w-4 h-4" />
+					<Trash2 class="h-4 w-4" />
 				</Button>
 			{/if}
 		</div>
 	</div>
 
-	<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+	<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 		<!-- Main Content Column -->
-		<div class="lg:col-span-2 space-y-6">
+		<div class="space-y-6 lg:col-span-2">
 			<!-- Employee Information -->
 			<Card.Root>
 				<Card.Header>
 					<Card.Title class="flex items-center gap-2">
-						<User class="w-5 h-5" />
+						<User class="h-5 w-5" />
 						Employee Information
 					</Card.Title>
 				</Card.Header>
 				<Card.Content class="space-y-4">
 					<div class="flex items-start gap-4">
 						<div
-							class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-lg font-semibold"
+							class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-lg font-semibold"
 						>
 							{review.employee.displayName[0]}
 						</div>
 						<div>
-							<h3 class="font-medium text-lg">{review.employee.displayName}</h3>
+							<h3 class="text-lg font-medium">{review.employee.displayName}</h3>
 							<p class="text-sm text-muted-foreground">{review.employee.email}</p>
-							<p class="text-sm text-muted-foreground mt-1">
+							<p class="mt-1 text-sm text-muted-foreground">
 								{review.employee.jobTitle}
 							</p>
 						</div>
@@ -163,7 +152,7 @@
 					<Separator />
 
 					<div>
-						<h4 class="text-sm font-medium mb-2">Reviewer</h4>
+						<h4 class="mb-2 text-sm font-medium">Reviewer</h4>
 						<p class="text-sm">{review.reviewer.displayName}</p>
 						<p class="text-sm text-muted-foreground">{review.reviewer.email}</p>
 					</div>
@@ -174,14 +163,14 @@
 			<Card.Root>
 				<Card.Header>
 					<Card.Title class="flex items-center gap-2">
-						<Calendar class="w-5 h-5" />
+						<Calendar class="h-5 w-5" />
 						Review Period & Notes
 					</Card.Title>
 				</Card.Header>
 				<Card.Content class="space-y-4">
 					{#if review.reviewPeriodStart || review.reviewPeriodEnd}
 						<div>
-							<h4 class="text-sm font-medium mb-2">Review Period</h4>
+							<h4 class="mb-2 text-sm font-medium">Review Period</h4>
 							<p class="text-sm">
 								{formatReviewPeriod(review.reviewPeriodStart, review.reviewPeriodEnd)}
 							</p>
@@ -190,7 +179,7 @@
 
 					{#if review.notes}
 						<div>
-							<h4 class="text-sm font-medium mb-2">Notes</h4>
+							<h4 class="mb-2 text-sm font-medium">Notes</h4>
 							<p class="text-sm whitespace-pre-wrap">{review.notes}</p>
 						</div>
 					{:else}
@@ -204,7 +193,7 @@
 				<Card.Header>
 					<div class="flex items-center justify-between">
 						<Card.Title class="flex items-center gap-2">
-							<Target class="w-5 h-5" />
+							<Target class="h-5 w-5" />
 							Associated Goals ({activeGoalsCount})
 							{#if deletedGoalsCount > 0}
 								<span class="text-sm font-normal text-muted-foreground">
@@ -214,7 +203,7 @@
 						</Card.Title>
 						{#if data.permissions.canEdit}
 							<Button variant="outline" size="sm">
-								<Target class="w-4 h-4 mr-2" />
+								<Target class="mr-2 h-4 w-4" />
 								Manage Goals
 							</Button>
 						{/if}
@@ -227,17 +216,17 @@
 						<div class="space-y-3">
 							{#each review.associatedGoals as goal (goal.id)}
 								<div
-									class="p-4 rounded-lg border {goal.deleted
-										? 'bg-muted/50 border-muted'
+									class="rounded-lg border p-4 {goal.deleted
+										? 'border-muted bg-muted/50'
 										: 'bg-background'}"
 								>
 									<div class="flex items-start justify-between">
 										<div class="flex-1">
-											<div class="flex items-center gap-2 mb-1">
-												<h4 class="font-medium text-sm">{goal.title}</h4>
+											<div class="mb-1 flex items-center gap-2">
+												<h4 class="text-sm font-medium">{goal.title}</h4>
 												{#if goal.deleted}
 													<Badge variant="outline" class="text-xs">
-														<AlertTriangle class="w-3 h-3 mr-1" />
+														<AlertTriangle class="mr-1 h-3 w-3" />
 														Deleted
 													</Badge>
 												{:else}
@@ -246,7 +235,7 @@
 													</Badge>
 												{/if}
 											</div>
-											<p class="text-sm text-muted-foreground mb-2">
+											<p class="mb-2 text-sm text-muted-foreground">
 												{goal.description}
 											</p>
 											<div class="flex items-center gap-4 text-xs text-muted-foreground">
@@ -256,7 +245,7 @@
 												{/if}
 											</div>
 											{#if goal.deleted && goal.deletedAt}
-												<p class="text-xs text-muted-foreground mt-1">
+												<p class="mt-1 text-xs text-muted-foreground">
 													Deleted on {formatDate(goal.deletedAt)}
 												</p>
 											{/if}
@@ -308,11 +297,11 @@
 					</Card.Header>
 					<Card.Content class="space-y-2">
 						<Button variant="outline" size="sm" class="w-full justify-start">
-							<FileText class="w-4 h-4 mr-2" />
+							<FileText class="mr-2 h-4 w-4" />
 							Export as PDF
 						</Button>
 						<Button variant="outline" size="sm" class="w-full justify-start">
-							<Calendar class="w-4 h-4 mr-2" />
+							<Calendar class="mr-2 h-4 w-4" />
 							Schedule Follow-up
 						</Button>
 					</Card.Content>
