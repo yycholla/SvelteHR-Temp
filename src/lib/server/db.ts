@@ -32,7 +32,7 @@ function getPool(): pkg.Pool {
 }
 
 // Query helper with automatic connection management
-export async function query<T = any>(
+export async function query<T extends pkg.QueryResultRow = any>(
 	text: string,
 	params: any[] = []
 ): Promise<pkg.QueryResult<T>> {

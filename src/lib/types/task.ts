@@ -28,7 +28,8 @@ export interface Task {
 	id: string;
 	title: string;
 	description: string | null;
-	assigneeId: string;
+	assigneeId: string | null;
+	assignedToDepartmentId?: string | null;
 	creatorId: string;
 	taskTypeId: string;
 	status: TaskStatus;

@@ -120,7 +120,7 @@ export function createStandardError(
 
 	// Handle validation errors specially
 	if (originalError instanceof ZodError) {
-		details.validationErrors = originalError.errors.map((err) => ({
+		details.validationErrors = originalError.issues.map((err) => ({
 			field: err.path.join('.'),
 			message: err.message,
 			code: err.code
@@ -165,7 +165,7 @@ function getUserFriendlyMessage(type: StandardErrorResponse['type'], originalErr
 
 	// Handle specific validation errors
 	if (type === ERROR_TYPES.VALIDATION && originalError instanceof ZodError) {
-		const firstError = originalError.errors[0];
+		const firstError = originalError.issues[0];
 		if (firstError) {
 			return `${firstError.path.join(' -> ')}: ${firstError.message}`;
 		}

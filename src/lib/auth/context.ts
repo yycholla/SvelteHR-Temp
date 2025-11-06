@@ -56,9 +56,9 @@ export function extractUserContext(event: RequestEvent): UserContext | null {
 		user_id: user.id,
 		email: user.email,
 		role: user.role || 'employee',
-		display_name: user.display_name || user.displayName,
-		full_name: user.full_name || user.fullName,
-		department_id: user.department_id,
+		display_name: user.display_name,
+		full_name: (user as any).full_name,
+		department_id: (user as any).department_id,
 		permissions: event.locals.permissions || [],
 		authenticated_at: new Date()
 	};
@@ -109,7 +109,7 @@ export function hasMinimumRole(event: RequestEvent, minimumRole: string): boolea
 	const user = event.locals.user;
 	if (!user) return false;
 
-	const userLevel = roleHierarchy[user.role] || 0;
+	const userLevel = roleHierarchy[user.role || 'employee'] || 0;
 	const requiredLevel = roleHierarchy[minimumRole] || 0;
 
 	return userLevel >= requiredLevel;
@@ -132,7 +132,7 @@ export function hasMinimumRole(event: RequestEvent, minimumRole: string): boolea
  * };
  * ```
  */
-export function requireAuth(event: RequestEvent, redirectPath: string = '/login'): void {
+export async function requireAuth(event: RequestEvent, redirectPath: string = '/login'): Promise<void> {
 	if (!event.locals.user) {
 		const { redirect } = await import('@sveltejs/kit');
 		const returnUrl = encodeURIComponent(event.url.pathname + event.url.search);
@@ -148,8 +148,8 @@ export function requireAuth(event: RequestEvent, redirectPath: string = '/login'
  * @param permission - Required permission
  * @throws {error} 403 Forbidden if user lacks permission
  */
-export function requirePermission(event: RequestEvent, permission: string): void {
-	requireAuth(event);
+export async function requirePermission(event: RequestEvent, permission: string): Promise<void> {
+	await requireAuth(event);
 
 	if (!hasPermission(event, permission)) {
 		const { error } = await import('@sveltejs/kit');
@@ -168,8 +168,8 @@ export function requirePermission(event: RequestEvent, permission: string): void
  * @param requiredRole - Required role
  * @throws {error} 403 Forbidden if user lacks role
  */
-export function requireRole(event: RequestEvent, requiredRole: string): void {
-	requireAuth(event);
+export async function requireRole(event: RequestEvent, requiredRole: string): Promise<void> {
+	await requireAuth(event);
 
 	if (!hasRole(event, requiredRole)) {
 		const { error } = await import('@sveltejs/kit');

@@ -90,9 +90,10 @@ export async function waitForGraphQLQuery(
 	timeout: number = 10000
 ): Promise<any> {
 	return page.waitForResponse(
-		(response) => {
+		(response): boolean => {
 			const url = response.url();
-			return url.includes('/graphql') && response.request().postData()?.includes(operationName);
+			const postData = response.request().postData();
+			return url.includes('/graphql') && (postData?.includes(operationName) ?? false);
 		},
 		{ timeout }
 	);

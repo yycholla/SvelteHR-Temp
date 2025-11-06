@@ -7,7 +7,7 @@
  * that need to be sent and creates notifications for users.
  */
 
-import cron from 'node-cron';
+import cron, { type ScheduledTask } from 'node-cron';
 import { withExponentialBackoff } from './backend-health';
 
 export interface PendingReminder {
@@ -26,7 +26,7 @@ export interface PendingReminder {
  * Runs every minute to check for pending event reminders
  */
 export class ReminderScheduler {
-	private static cronTask: cron.ScheduledTask | null = null;
+	private static cronTask: ScheduledTask | null = null;
 	private static isRunning = false;
 	private static processedReminders = new Set<string>(); // Track sent reminders
 

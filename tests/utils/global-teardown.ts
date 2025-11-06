@@ -2,7 +2,7 @@
 // Database cleanup and test environment restoration
 // Created: 2025-09-24
 
-import { FullConfig } from '@playwright/test';
+import type { FullConfig } from '@playwright/test';
 import { DatabaseTestUtils } from './test-helpers';
 import { performanceMonitor } from './performance-monitor';
 import { promises as fs } from 'fs';
