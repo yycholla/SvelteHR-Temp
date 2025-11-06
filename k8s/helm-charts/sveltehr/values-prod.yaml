@@ -133,11 +133,11 @@ backend:
   # Apply secret first: kubectl apply -f k8s/secrets/ghcr-pull-secret.yaml
   imagePullSecrets:
   - name: ghcr-pull-secret
-  # Production resources
+  # Production resources (optimized for actual usage: backend uses ~1m CPU)
   resources:
     requests:
       memory: 512Mi
-      cpu: 250m
+      cpu: 50m
     limits:
       memory: 1Gi
       cpu: 500m
