@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { browser } from '$app/environment';
+	import { onMount } from 'svelte';
 
 	let {
 		checked = $bindable(false),
@@ -15,10 +15,24 @@
 		onCheckedChange?: (value: boolean | 'indeterminate') => void;
 		[key: string]: any;
 	} = $props();
+
+	let mounted = $state(false);
+
+	onMount(() => {
+		mounted = true;
+	});
+
+	function handleChange(e: Event) {
+		const target = e.target as HTMLInputElement;
+		checked = target.checked;
+		if (onCheckedChange) {
+			onCheckedChange(target.checked);
+		}
+	}
 </script>
 
-{#if browser}
-	<!-- Client-side only: bits-ui Checkbox -->
+{#if mounted}
+	<!-- Client-side only: bits-ui Checkbox (after mount) -->
 	<Checkbox
 		bind:checked
 		bind:indeterminate
@@ -27,11 +41,12 @@
 		{...restProps}
 	/>
 {:else}
-	<!-- SSR: Native HTML checkbox -->
+	<!-- SSR and initial render: Native HTML checkbox -->
 	<input
 		type="checkbox"
 		checked={checked}
 		{disabled}
+		on:change={handleChange}
 		class="peer h-4 w-4 shrink-0 rounded border border-input shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
 		{...restProps}
 	/>
