@@ -41,22 +41,44 @@ pub fn init_logging() -> Result<(), Box<dyn std::error::Error>> {
             // Spawn background task to send logs
             tokio::spawn(task);
 
-            // Register subscriber with Loki layer
-            tracing_subscriber::registry()
-                .with(env_filter)
-                .with(loki_layer)
-                .with(tracing_subscriber::fmt::layer().json())
-                .init();
+            // Register subscriber with Loki layer (and optionally Sentry)
+            let sentry_enabled = !std::env::var("SENTRY_DSN").unwrap_or_default().is_empty();
+
+            if sentry_enabled {
+                tracing_subscriber::registry()
+                    .with(env_filter)
+                    .with(loki_layer)
+                    .with(sentry_tracing::layer())
+                    .with(tracing_subscriber::fmt::layer().json())
+                    .init();
+            } else {
+                tracing_subscriber::registry()
+                    .with(env_filter)
+                    .with(loki_layer)
+                    .with(tracing_subscriber::fmt::layer().json())
+                    .init();
+            }
 
             return Ok(());
         }
     }
 
     // Fallback: Standard logging without Loki
-    tracing_subscriber::fmt()
-        .with_env_filter(env_filter)
-        .json()
-        .init();
+    // Add Sentry layer if DSN is configured
+    let sentry_enabled = !std::env::var("SENTRY_DSN").unwrap_or_default().is_empty();
+
+    if sentry_enabled {
+        tracing_subscriber::registry()
+            .with(env_filter)
+            .with(sentry_tracing::layer())
+            .with(tracing_subscriber::fmt::layer().json())
+            .init();
+    } else {
+        tracing_subscriber::fmt()
+            .with_env_filter(env_filter)
+            .json()
+            .init();
+    }
 
     Ok(())
 }

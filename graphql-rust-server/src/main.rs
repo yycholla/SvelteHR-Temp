@@ -48,6 +48,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging with optional Loki integration
     logging::init_logging()?;
 
+    // Initialize Sentry for error tracking and performance monitoring
+    let _sentry_guard = sentry::init((
+        std::env::var("SENTRY_DSN").unwrap_or_default(),
+        sentry::ClientOptions {
+            release: sentry::release_name!(),
+            environment: Some(
+                std::env::var("RUST_SENTRY_ENVIRONMENT")
+                    .or_else(|_| std::env::var("ENVIRONMENT"))
+                    .unwrap_or_else(|_| "development".to_string())
+                    .into()
+            ),
+            traces_sample_rate: std::env::var("RUST_SENTRY_TRACES_SAMPLE_RATE")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(0.2), // Default 20% sampling
+            attach_stacktrace: true,
+            ..Default::default()
+        }
+    ));
+
+    if !std::env::var("SENTRY_DSN").unwrap_or_default().is_empty() {
+        tracing::info!("Sentry error tracking enabled");
+    }
+
     // Load configuration
     dotenv::dotenv().ok();
     let config = Config::from_env()?;
@@ -133,6 +157,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .layer(TraceLayer::new_for_http())
                 .layer(cors)
                 .layer(axum_middleware::from_fn(security_headers_middleware))
+                // Sentry layers for error tracking and distributed tracing
+                .layer(sentry_tower::NewSentryLayer::new_from_top())
+                .layer(sentry_tower::SentryHttpLayer::with_transaction())
                 .layer(session_layer)
                 .layer(auth_layer)
         )

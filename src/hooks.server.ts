@@ -347,6 +347,22 @@ export const handle: Handle = sequence(Sentry.sentryHandle(), async ({ event, re
 			event.locals.user = authResult.user;
 			event.locals.roles = authResult.roles;
 			event.locals.permissions = authResult.permissions;
+
+			// Add Sentry user context for better error debugging
+			Sentry.setUser({
+				id: authResult.user.id,
+				email: authResult.user.email,
+				username: authResult.user.full_name
+			});
+
+			// Add custom tags for filtering in Sentry
+			Sentry.setTag('user_role', authResult.roles[0] || 'unknown');
+			if (authResult.user.department_id) {
+				Sentry.setTag('department_id', authResult.user.department_id);
+			}
+		} else {
+			// Clear Sentry user context if not authenticated
+			Sentry.setUser(null);
 		}
 
 		// Resolve the request

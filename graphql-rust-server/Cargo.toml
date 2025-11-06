@@ -92,7 +92,16 @@ features = ["runtime-tokio-rustls", "sqlx-postgres"]
 version = "1.0"
 features = ["derive"]
 
+[dependencies.sentry]
+version = "0.45"
+features = ["tracing", "tower", "tower-http", "tower-http-cors", "tower-http-request-id", "tower-http-trace"]
+default-features = false
 
+[dependencies.sentry-tower]
+version = "0.45"
+
+[dependencies.sentry-tracing]
+version = "0.45"
 
 [dependencies.tokio]
 version = "1"
