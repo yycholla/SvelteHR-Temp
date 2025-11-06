@@ -94,7 +94,7 @@ features = ["derive"]
 
 [dependencies.sentry]
 version = "0.45"
-features = ["tracing", "tower", "tower-http", "tower-http-cors", "tower-http-request-id", "tower-http-trace"]
+features = ["tracing", "tower", "tower-http"]
 default-features = false
 
 [dependencies.sentry-tower]
