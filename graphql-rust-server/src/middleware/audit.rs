@@ -52,8 +52,8 @@ impl Extension for AuditExtensionImpl {
         // Execute the operation first
         let response = next.run(ctx, operation_name).await;
 
-        // Debug: Log that we're checking for mutations
-        tracing::debug!("AuditExtension: Checking operation {:?}", operation_name);
+        // Trace: Log that we're checking for mutations (only shown at trace level)
+        tracing::trace!("AuditExtension: Checking operation {:?}", operation_name);
 
         // Only log mutations (not queries or subscriptions)
         // Detect mutations by operation name since ExecutableDocument is not available in execute phase
@@ -91,7 +91,7 @@ impl Extension for AuditExtensionImpl {
                     }
                 });
             } else {
-                tracing::debug!("AuditExtension: Not a mutation operation (query or subscription)");
+                tracing::trace!("AuditExtension: Not a mutation operation (query or subscription)");
             }
         }
 

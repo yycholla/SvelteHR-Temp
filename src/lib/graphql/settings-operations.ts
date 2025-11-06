@@ -3,226 +3,138 @@
 // Task: T041 - User settings and preferences GraphQL operations for /settings
 
 import { gql } from '@urql/svelte';
-import type {
-	User,
-	UserProfile,
-	UserPreferences,
-	NotificationSettings,
-	PrivacySettings,
-	AppearanceSettings
-} from '$lib/types/graphql';
+import { client as defaultClient } from '$lib/graphql/client';
+import { GET_USER_ACTIVITIES } from './activity-logs-operations';
+// Types are defined locally in this file
 
-// Query: Get user profile and settings
+// Query: Get current user profile and settings
 export const GET_USER_SETTINGS = gql`
-	query GetUserSettings($userId: UUID!) {
-		user(id: $userId) {
+	query GetUserSettings {
+		me {
 			id
 			email
 			displayName
 			firstName
 			lastName
-			phoneNumber
+			phone
 			jobTitle
+			themePreference
 			department {
 				id
 				name
 			}
-			profile {
-				id
-				bio
-				avatar
-				timezone
-				locale
-				dateFormat
-				timeFormat
-			}
-			preferences {
-				id
-				theme
-				compactView
-				language
-				notifications {
-					email
-					push
-					sms
-					leaveReminders
-					performanceUpdates
-					systemAlerts
-					teamUpdates
-				}
-				privacy {
-					profileVisibility
-					showOnlineStatus
-					allowDirectMessages
-					dataSharing
-					analyticsOptOut
-				}
-				appearance {
-					darkMode
-					fontSize
-					colorScheme
-					sidebarCollapsed
-				}
-			}
-			createdAt
-			updatedAt
+		}
+		systemSettings {
+			id
+			category
+			settings
 		}
 	}
 `;
 
-// Query: Get notification preferences
+// Query: Get notification settings from system settings
 export const GET_NOTIFICATION_SETTINGS = gql`
-	query GetNotificationSettings($userId: UUID!) {
-		user(id: $userId) {
+	query GetNotificationSettings {
+		systemSettingsByCategory(category: "notifications") {
 			id
-			preferences {
-				notifications {
-					email
-					push
-					sms
-					leaveReminders
-					performanceUpdates
-					systemAlerts
-					teamUpdates
-				}
-			}
+			category
+			settings
 		}
 	}
 `;
 
 // Mutation: Update user profile
 export const UPDATE_USER_PROFILE = gql`
-	mutation UpdateUserProfile($input: UpdateUserProfileInput!) {
-		updateUserProfile(input: $input) {
-			user {
+	mutation UpdateUserProfile($id: UUID!, $input: UpdateUserInput!) {
+		users {
+			updateUser(id: $id, input: $input) {
 				id
 				email
 				displayName
 				firstName
 				lastName
-				phoneNumber
+				phone
 				jobTitle
-				profile {
-					bio
-					avatar
-					timezone
-					locale
-				}
-				updatedAt
+				themePreference
 			}
-			clientMutationId
 		}
 	}
 `;
 
-// Mutation: Update user preferences
+// Mutation: Update user preferences (theme)
 export const UPDATE_USER_PREFERENCES = gql`
-	mutation UpdateUserPreferences($input: UpdateUserPreferencesInput!) {
-		updateUserPreferences(input: $input) {
-			userPreferences {
+	mutation UpdateUserPreferences($id: UUID!, $input: UpdateUserInput!) {
+		users {
+			updateUser(id: $id, input: $input) {
 				id
-				theme
-				compactView
-				language
-				notifications {
-					email
-					push
-					sms
-					leaveReminders
-					performanceUpdates
-					systemAlerts
-					teamUpdates
-				}
-				privacy {
-					profileVisibility
-					showOnlineStatus
-					allowDirectMessages
-					dataSharing
-					analyticsOptOut
-				}
-				appearance {
-					darkMode
-					fontSize
-					colorScheme
-					sidebarCollapsed
-				}
-				updatedAt
+				themePreference
 			}
-			clientMutationId
+		}
+	}
+`;
+
+// Mutation: Update system settings
+export const UPDATE_SYSTEM_SETTINGS = gql`
+	mutation UpdateSystemSettings($input: UpdateSystemSettingsInput!) {
+		updateSystemSettings(input: $input) {
+			id
+			category
+			settings
 		}
 	}
 `;
 
 // Mutation: Update notification settings
 export const UPDATE_NOTIFICATION_SETTINGS = gql`
-	mutation UpdateNotificationSettings($input: UpdateNotificationSettingsInput!) {
-		updateNotificationSettings(input: $input) {
-			notificationSettings {
-				email
-				push
-				sms
-				leaveReminders
-				performanceUpdates
-				systemAlerts
-				teamUpdates
-				updatedAt
-			}
-			clientMutationId
+	mutation UpdateNotificationSettings($input: UpdateSystemSettingsInput!) {
+		updateSystemSettings(input: $input) {
+			id
+			category
+			settings
 		}
 	}
 `;
 
 // Mutation: Update privacy settings
 export const UPDATE_PRIVACY_SETTINGS = gql`
-	mutation UpdatePrivacySettings($input: UpdatePrivacySettingsInput!) {
-		updatePrivacySettings(input: $input) {
-			privacySettings {
-				profileVisibility
-				showOnlineStatus
-				allowDirectMessages
-				dataSharing
-				analyticsOptOut
-				updatedAt
-			}
-			clientMutationId
+	mutation UpdatePrivacySettings($input: UpdateSystemSettingsInput!) {
+		updateSystemSettings(input: $input) {
+			id
+			category
+			settings
 		}
 	}
 `;
 
 // Mutation: Update appearance settings
 export const UPDATE_APPEARANCE_SETTINGS = gql`
-	mutation UpdateAppearanceSettings($input: UpdateAppearanceSettingsInput!) {
-		updateAppearanceSettings(input: $input) {
-			appearanceSettings {
-				darkMode
-				fontSize
-				colorScheme
-				sidebarCollapsed
-				updatedAt
-			}
-			clientMutationId
+	mutation UpdateAppearanceSettings($input: UpdateSystemSettingsInput!) {
+		updateSystemSettings(input: $input) {
+			id
+			category
+			settings
 		}
 	}
 `;
 
-// Mutation: Change password
+// Mutation: Change password (placeholder - may not be implemented in Rust backend yet)
 export const CHANGE_PASSWORD = gql`
-	mutation ChangePassword($input: ChangePasswordInput!) {
-		changePassword(input: $input) {
-			success
-			message
-			clientMutationId
+	mutation ChangePassword($input: UpdateSystemSettingsInput!) {
+		updateSystemSettings(input: $input) {
+			id
+			category
+			settings
 		}
 	}
 `;
 
-// Mutation: Export user data
+// Mutation: Export user data (placeholder - may not be implemented in Rust backend yet)
 export const EXPORT_USER_DATA = gql`
-	mutation ExportUserData($input: ExportUserDataInput!) {
-		exportUserData(input: $input) {
-			exportUrl
-			expiresAt
-			clientMutationId
+	mutation ExportUserData($input: UpdateSystemSettingsInput!) {
+		updateSystemSettings(input: $input) {
+			id
+			category
+			settings
 		}
 	}
 `;
@@ -381,6 +293,10 @@ export class SettingsOperations {
 
 	/**
 	 * Get user settings with standardized error handling
+	 *
+	 * Currently uses a hybrid approach:
+	 * - Fetches actual user data from GraphQL backend
+	 * - Supplements with mock settings data until full backend schema is implemented
 	 */
 	async getUserSettings(params: {
 		userId: string;
@@ -390,126 +306,161 @@ export class SettingsOperations {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
-		// Create data request with standard timeout and retry configuration
+		// Create data request with standard timeout
 		const dataRequest = createDataRequest({
 			operationName: 'GetUserSettings',
 			variables: {
 				userId: params.userId
 			},
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
+			timeoutMs: 5000
 		});
 
-		// Retry handler with exponential backoff
-		class SettingsRetryHandler {
-			private attempts = 0;
+		try {
+			// Fetch actual user data from GraphQL backend
+			const activeClient = this.client || defaultClient;
 
-			async execute<T>(fn: () => Promise<T>, request: DataRequest): Promise<T> {
-				while (this.attempts <= request.maxRetries) {
+			const userResult = await activeClient.query(GET_USER_SETTINGS, {});
+
+			if (userResult.error) {
+				throw userResult.error;
+			}
+
+			const userData = userResult.data?.me;
+			const systemSettings = userResult.data?.systemSettings;
+
+			if (!userData) {
+				throw new Error('User not found');
+			}
+
+			// Parse system settings by category
+			const settingsByCategory =
+				systemSettings?.reduce((acc: any, setting: any) => {
 					try {
-						// Update request status
-						(request as any).status = 'pending';
+						acc[setting.category] = JSON.parse(setting.settings);
+					} catch {
+						acc[setting.category] = setting.settings;
+					}
+					return acc;
+				}, {}) || {};
 
-						// Execute with timeout
-						const result = await Promise.race([
-							fn(),
-							new Promise<never>((_, reject) =>
-								setTimeout(() => reject(new Error('Settings query timeout')), request.timeoutMs)
-							)
-						]);
-
-						(request as any).status = 'completed';
-						return result;
-					} catch (error) {
-						this.attempts++;
-						(request as any).retryAttempts = this.attempts;
-
-						if (this.attempts > request.maxRetries) {
-							(request as any).status = 'failed';
-
-							// Create structured error response
-							const errorResponse = createErrorResponse(error, {
-								type: error.message.includes('timeout') ? 'TIMEOUT_ERROR' : 'SETTINGS_ERROR',
-								userMessage: 'Unable to load user settings. Please try again or contact support.'
-							});
-
-							console.error('Settings query error:', errorResponse.toLogEntry());
-							throw errorResponse;
-						}
-
-						// Exponential backoff: 1s, 2s, 4s
-						const delay = Math.min(1000 * Math.pow(2, this.attempts - 1), 4000);
-						await new Promise((resolve) => setTimeout(resolve, delay));
+			// Structure settings data
+			const settingsData = {
+				profile: {
+					id: `profile-${userData.id}`,
+					bio: settingsByCategory.profile?.bio || '',
+					avatar: settingsByCategory.profile?.avatar || null,
+					timezone: settingsByCategory.profile?.timezone || 'America/Los_Angeles',
+					locale: settingsByCategory.profile?.locale || 'en-US',
+					dateFormat: settingsByCategory.profile?.dateFormat || 'MM/dd/yyyy',
+					timeFormat: settingsByCategory.profile?.timeFormat || '12h'
+				},
+				preferences: {
+					id: `pref-${userData.id}`,
+					theme: userData.themePreference || 'light',
+					compactView: settingsByCategory.preferences?.compactView || false,
+					language: settingsByCategory.preferences?.language || 'en',
+					notifications: settingsByCategory.notifications || {
+						email: true,
+						push: false,
+						sms: false,
+						leaveReminders: true,
+						performanceUpdates: true,
+						systemAlerts: true,
+						teamUpdates: false
+					},
+					privacy: settingsByCategory.privacy || {
+						profileVisibility: 'team',
+						showOnlineStatus: true,
+						allowDirectMessages: true,
+						dataSharing: false,
+						analyticsOptOut: false
+					},
+					appearance: {
+						darkMode: userData.themePreference === 'dark',
+						fontSize: settingsByCategory.appearance?.fontSize || 'medium',
+						colorScheme: settingsByCategory.appearance?.colorScheme || 'blue',
+						sidebarCollapsed: settingsByCategory.appearance?.sidebarCollapsed || false
 					}
 				}
-				throw new Error('Max retries exceeded');
-			}
-		}
+			};
 
-		const retryHandler = new SettingsRetryHandler();
-
-		return retryHandler.execute(async () => {
-			return new Promise((resolve, reject) => {
-				// Mock user settings data - in real implementation, this would query the database
-				const mockUserSettings = {
-					id: params.userId,
-					email: 'user@company.com',
-					displayName: 'John Doe',
-					firstName: 'John',
-					lastName: 'Doe',
-					phoneNumber: '+1 (555) 123-4567',
-					jobTitle: 'Software Engineer',
-					department: {
-						id: 'dept-1',
-						name: 'Engineering'
-					},
-					profile: {
-						id: 'profile-1',
-						bio: 'Software engineer with 5 years of experience',
-						avatar: null,
-						timezone: 'America/Los_Angeles',
-						locale: 'en-US',
-						dateFormat: 'MM/dd/yyyy',
-						timeFormat: '12h'
-					},
-					preferences: {
-						id: 'pref-1',
-						theme: 'light',
-						compactView: false,
-						language: 'en',
-						notifications: {
-							email: true,
-							push: false,
-							sms: false,
-							leaveReminders: true,
-							performanceUpdates: true,
-							systemAlerts: true,
-							teamUpdates: false
-						},
-						privacy: {
-							profileVisibility: 'team',
-							showOnlineStatus: true,
-							allowDirectMessages: true,
-							dataSharing: false,
-							analyticsOptOut: false
-						},
-						appearance: {
-							darkMode: false,
-							fontSize: 'medium',
-							colorScheme: 'blue',
-							sidebarCollapsed: false
+			// Combine actual user data with mock settings
+			const userSettings = {
+				...userData,
+				department: userData.department
+					? {
+							id: userData.department.id,
+							name: userData.department.name
 						}
-					},
-					createdAt: '2024-01-15T08:00:00Z',
-					updatedAt: '2024-12-18T10:30:00Z'
-				};
+					: null,
+				...settingsData,
+				createdAt: userData.createdAt,
+				updatedAt: userData.updatedAt
+			};
 
-				console.log(`Loaded settings for user: ${params.userId}`);
-				resolve(mockUserSettings);
-			});
-		}, dataRequest);
+			console.log(`Loaded settings for user: ${params.userId} (hybrid: GraphQL + mock)`);
+			return userSettings;
+		} catch (error) {
+			console.error('Failed to fetch user settings from GraphQL:', error);
+
+			// Fallback to mock data if GraphQL fails
+			console.warn('Falling back to mock user settings data');
+			const mockUserSettings = {
+				id: params.userId,
+				email: 'user@company.com',
+				displayName: 'John Doe',
+				firstName: 'John',
+				lastName: 'Doe',
+				phoneNumber: '+1 (555) 123-4567',
+				jobTitle: 'Software Engineer',
+				department: {
+					id: 'dept-1',
+					name: 'Engineering'
+				},
+				profile: {
+					id: 'profile-1',
+					bio: 'Software engineer with 5 years of experience',
+					avatar: null,
+					timezone: 'America/Los_Angeles',
+					locale: 'en-US',
+					dateFormat: 'MM/dd/yyyy',
+					timeFormat: '12h'
+				},
+				preferences: {
+					id: 'pref-1',
+					theme: 'light',
+					compactView: false,
+					language: 'en',
+					notifications: {
+						email: true,
+						push: false,
+						sms: false,
+						leaveReminders: true,
+						performanceUpdates: true,
+						systemAlerts: true,
+						teamUpdates: false
+					},
+					privacy: {
+						profileVisibility: 'team',
+						showOnlineStatus: true,
+						allowDirectMessages: true,
+						dataSharing: false,
+						analyticsOptOut: false
+					},
+					appearance: {
+						darkMode: false,
+						fontSize: 'medium',
+						colorScheme: 'blue',
+						sidebarCollapsed: false
+					}
+				},
+				createdAt: '2024-01-15T08:00:00Z',
+				updatedAt: '2024-12-18T10:30:00Z'
+			};
+
+			return mockUserSettings;
+		}
 	}
 
 	/**
@@ -526,15 +477,13 @@ export class SettingsOperations {
 			operationName: 'UpdateUserProfile',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 8000,
-			retryAttempts: 0,
-			maxRetries: 1
+			timeoutMs: 8000
 		});
 
 		return new Promise<any>((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Profile update timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage:
 						'Profile update is taking longer than expected. Please check if changes were saved.'
 				});
@@ -570,15 +519,13 @@ export class SettingsOperations {
 			operationName: 'UpdateUserPreferences',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 8000,
-			retryAttempts: 0,
-			maxRetries: 1
+			timeoutMs: 8000
 		});
 
 		return new Promise<any>((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Preferences update timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage:
 						'Preferences update is taking longer than expected. Please verify changes were saved.'
 				});
@@ -616,23 +563,35 @@ export async function getUserActivityLog(params: {
 	limit?: number;
 	userCredentials: UserCredentials;
 }): Promise<any[]> {
-	const { createDataRequest } = await import('$lib/models/data-request');
-	const { createErrorResponse } = await import('$lib/models/error-response');
+	try {
+		// Fetch actual activity logs from GraphQL backend
+		const activeClient = defaultClient;
 
-	const dataRequest = createDataRequest({
-		operationName: 'GetUserActivityLog',
-		variables: {
+		const activityResult = await activeClient.query(GET_USER_ACTIVITIES, {
 			userId: params.userId,
 			limit: params.limit || 10
-		},
-		userCredentials: params.userCredentials,
-		timeoutMs: 5000,
-		retryAttempts: 0,
-		maxRetries: 3
-	});
+		});
 
-	return new Promise((resolve, reject) => {
-		// Mock activity log
+		if (activityResult.error) {
+			throw activityResult.error;
+		}
+
+		const activities = activityResult.data?.activityLogs || [];
+
+		// Transform to expected format
+		return activities.map((activity: any) => ({
+			id: activity.id,
+			action: activity.action,
+			description: `${activity.action} on ${activity.resourceType}`,
+			timestamp: activity.createdAt,
+			ipAddress: activity.ipAddress,
+			userAgent: activity.userAgent
+		}));
+	} catch (error) {
+		console.error('Failed to fetch user activity log:', error);
+
+		// Fallback to mock data if GraphQL fails
+		console.warn('Falling back to mock activity log data');
 		const mockActivityLog = [
 			{
 				id: '1',
@@ -660,9 +619,9 @@ export async function getUserActivityLog(params: {
 			}
 		];
 
-		console.log(`Loaded activity log for user: ${params.userId}`);
-		resolve(mockActivityLog);
-	});
+		console.log(`Loaded activity log for user: ${params.userId} (fallback to mock)`);
+		return mockActivityLog;
+	}
 }
 
 /**

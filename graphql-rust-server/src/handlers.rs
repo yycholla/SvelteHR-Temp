@@ -381,6 +381,9 @@ pub async fn graphql_handler(
     headers: axum::http::HeaderMap,
     req: async_graphql_axum::GraphQLRequest,
 ) -> async_graphql_axum::GraphQLResponse {
+    // Extract operation name before moving req
+    let operation_name = req.0.operation_name.clone();
+
     // Create request context with database and auth session
     let mut request = req.into_inner();
 
@@ -409,7 +412,7 @@ pub async fn graphql_handler(
     // Add database connection to request context
     request = request.data(app_state.db.clone());
     request = request.data(auth_session.clone());
-    request = request.data(request_metadata);
+    request = request.data(request_metadata.clone());
 
     // Add DataLoaders to request context
     request = request.data(app_state.dataloaders.clone());
@@ -424,5 +427,34 @@ pub async fn graphql_handler(
         request = request.data(user_context);
     }
 
-    app_state.schema.execute(request).await.into()
+    // Execute the GraphQL request
+    let response = app_state.schema.execute(request).await;
+
+    // Log GraphQL errors with structured JSON logging
+    if !response.errors.is_empty() {
+        let user_id = auth_session.user.as_ref().map(|u| u.id.to_string());
+        let user_email = auth_session.user.as_ref().map(|u| u.email.clone());
+
+        for error in &response.errors {
+            // Log error with structured context
+        tracing::error!(
+            user_id = %user_id.as_deref().unwrap_or("anonymous"),
+            error_count = response.errors.len(),
+            operation_name = %operation_name.as_deref().unwrap_or("unknown"),
+            "GraphQL request completed with errors"
+        );
+        }
+
+
+    } else {
+        // Log successful requests at debug level for monitoring
+        let user_id = auth_session.user.as_ref().map(|u| u.id.to_string());
+        tracing::debug!(
+            user_id = %user_id.as_deref().unwrap_or("anonymous"),
+            operation_name = %operation_name.as_deref().unwrap_or("unknown"),
+            "GraphQL request completed successfully"
+        );
+    }
+
+    response.into()
 }

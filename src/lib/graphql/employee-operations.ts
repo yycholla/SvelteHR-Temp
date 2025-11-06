@@ -129,7 +129,7 @@ export const GET_CURRENT_USER_QUERY = gql`
  * Backend: Rust idiomatic - departments(limit, offset) returns direct array
  */
 export const GET_DEPARTMENTS_QUERY = gql`
-	query GetDepartments($limit: Int = 100, $offset: Int = 0) {
+	query GetEmployeeDepartments($limit: Int = 100, $offset: Int = 0) {
 		departments(limit: $limit, offset: $offset) {
 			id
 			name
@@ -192,7 +192,7 @@ export const GET_LATEST_EMPLOYEE_STATISTICS_QUERY = gql`
  * Backend: Rust idiomatic - createUser(input) returns User directly (no wrapper)
  */
 export const CREATE_EMPLOYEE_MUTATION = gql`
-	mutation CreateUser($input: CreateUserInput!) {
+	mutation CreateEmployee($input: CreateUserInput!) {
 		createUser(input: $input) {
 			id
 			email
@@ -226,7 +226,7 @@ export const CREATE_EMPLOYEE_MUTATION = gql`
  * Backend: Rust idiomatic - updateUser(id, input) returns User directly
  */
 export const UPDATE_EMPLOYEE_MUTATION = gql`
-	mutation UpdateUser($id: UUID!, $input: UpdateUserInput!) {
+	mutation UpdateEmployee($id: UUID!, $input: UpdateUserInput!) {
 		updateUser(id: $id, input: $input) {
 			id
 			email
@@ -260,7 +260,7 @@ export const UPDATE_EMPLOYEE_MUTATION = gql`
  * Backend: Rust idiomatic - deleteUser(id) returns Boolean
  */
 export const DELETE_EMPLOYEE_MUTATION = gql`
-	mutation DeleteUser($id: UUID!) {
+	mutation DeleteEmployee($id: UUID!) {
 		deleteUser(id: $id)
 	}
 `;

@@ -15,7 +15,7 @@
 
 // All migration functions have been deprecated
 // If you need to clear old JWT tokens, simply remove them from localStorage:
-// localStorage.removeItem('postgraphile-jwt-token');
+// localStorage.removeItem('hr-jwt-token');
 // localStorage.removeItem('jwt-refresh-token');
 // localStorage.removeItem('jwt-expiry');
 
@@ -24,7 +24,8 @@ export function cleanupLegacyJWTTokens(): void {
 
 	try {
 		// Remove any legacy JWT tokens
-		localStorage.removeItem('postgraphile-jwt-token');
+		localStorage.removeItem('hr-jwt-token');
+		localStorage.removeItem('postgraphile-jwt-token'); // Legacy cleanup
 		localStorage.removeItem('jwt-refresh-token');
 		localStorage.removeItem('jwt-expiry');
 		sessionStorage.removeItem('jwt-temp-token');

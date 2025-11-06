@@ -80,7 +80,7 @@ export const GET_RECENT_ACTIVITIES = gql`
  * Get upcoming events and deadlines
  */
 export const GET_UPCOMING_EVENTS = gql`
-	query GetUpcomingEvents($days: Int = 30) {
+	query GetDashboardUpcomingEvents($days: Int = 30) {
 		upcomingEvents(daysAhead: $days) {
 			nodes {
 				id
@@ -333,7 +333,7 @@ export const UPDATE_DASHBOARD_PREFERENCES = gql`
  * Mark notification as read
  */
 export const MARK_NOTIFICATION_READ = gql`
-	mutation MarkNotificationRead($input: MarkNotificationReadInput!) {
+	mutation MarkDashboardNotificationRead($input: MarkNotificationReadInput!) {
 		markNotificationRead(input: $input) {
 			notification {
 				id

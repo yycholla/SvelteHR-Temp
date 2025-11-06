@@ -1,6 +1,7 @@
 // Real-time notification store using Server-Sent Events
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
+import { logger } from '$lib/utils/logger';
 
 export interface Notification {
 	id: string;
@@ -40,10 +41,7 @@ function createNotificationStore() {
 	 * Calculate exponential backoff delay
 	 */
 	function getRetryDelay(): number {
-		const delay = Math.min(
-			INITIAL_DELAY * Math.pow(BACKOFF_MULTIPLIER, retryCount),
-			MAX_DELAY
-		);
+		const delay = Math.min(INITIAL_DELAY * Math.pow(BACKOFF_MULTIPLIER, retryCount), MAX_DELAY);
 		return delay;
 	}
 
@@ -53,15 +51,13 @@ function createNotificationStore() {
 	function scheduleReconnect() {
 		// Prevent multiple reconnect loops
 		if (isReconnecting) {
-			console.log('[NotificationStore] Reconnect already scheduled, skipping...');
+			logger.debug('NotificationStore reconnect already scheduled, skipping');
 			return;
 		}
 
 		// Check if we've exceeded max retries
 		if (retryCount >= MAX_RETRIES) {
-			console.error(
-				`[NotificationStore] Max retries (${MAX_RETRIES}) exceeded. Giving up.`
-			);
+			console.error(`[NotificationStore] Max retries (${MAX_RETRIES}) exceeded. Giving up.`);
 			update((state) => ({
 				...state,
 				error: 'Failed to connect after multiple attempts. Please refresh the page.'

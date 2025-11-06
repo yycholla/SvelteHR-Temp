@@ -4,6 +4,8 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { PermissionChecks, getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { createSettingsOperations } from '$lib/graphql/settings-operations';
+import { createUrqlClient } from '$lib/graphql/client';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, cookies, url } = event;
@@ -53,58 +55,45 @@ export const load: PageServerLoad = async (event) => {
 	});
 
 	try {
-		// For now, return simplified user settings based on user data
-		// This avoids complex GraphQL operations while keeping the page functional
+		// Create GraphQL client for server-side operations
+		const graphqlClient = createUrqlClient(fetch, undefined, undefined, cookies.getAll());
+
+		// Create settings operations instance
+		const settingsOps = createSettingsOperations(graphqlClient);
+
+		// Fetch user settings from GraphQL backend
+		const userSettings = await settingsOps.getUserSettings({
+			userId: userSession.userId,
+			userCredentials: {
+				userId: userSession.userId,
+				userEmail: userSession.metadata.userEmail as string,
+				roles: userSession.roles,
+				permissions: userSession.permissions,
+				isAuthenticated: Boolean(userSession.isAuthenticated)
+			}
+		});
+
+		// Fetch activity log
+		const activityLog = await settingsOps.getUserActivityLog({
+			userId: userSession.userId,
+			userCredentials: {
+				userId: userSession.userId,
+				userEmail: userSession.metadata.userEmail as string,
+				roles: userSession.roles,
+				permissions: userSession.permissions,
+				isAuthenticated: Boolean(userSession.isAuthenticated)
+			}
+		});
 
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
 
-		// Return server-side loaded data with simplified user settings
+		// Return server-side loaded data with GraphQL-fetched settings
 		return {
 			user: userPermissions.user,
 			userSession: userSession.toJSON(), // Convert UserSession to serializable object
-			userSettings: {
-				profile: {
-					id: locals.user.id,
-					email: locals.user.email,
-					displayName: locals.user.display_name || locals.user.email,
-					firstName: locals.user.first_name || '',
-					lastName: locals.user.last_name || '',
-					phoneNumber: locals.user.phone_number || '',
-					jobTitle: locals.user.job_title || '',
-					department: locals.user.department_name || '',
-					bio: '',
-					avatar: null,
-					timezone: 'America/Los_Angeles',
-					locale: 'en-US'
-				},
-				preferences: {
-					theme: 'light',
-					compactView: false,
-					language: 'en',
-					darkMode: false,
-					fontSize: 'medium',
-					colorScheme: 'blue',
-					sidebarCollapsed: false
-				},
-				notifications: {
-					email: true,
-					push: false,
-					sms: false,
-					leaveReminders: true,
-					performanceUpdates: true,
-					systemAlerts: true,
-					teamUpdates: false
-				},
-				privacy: {
-					profileVisibility: 'team',
-					showOnlineStatus: true,
-					allowDirectMessages: true,
-					dataSharing: false,
-					analyticsOptOut: false
-				}
-			},
-			activityLog: [], // Empty for now
+			userSettings,
+			activityLog,
 			activeTab,
 			// RBAC: Standardized permission checks with profile-specific permissions
 			...userPermissions,
@@ -138,8 +127,8 @@ export const load: PageServerLoad = async (event) => {
 
 		// Throw SvelteKit error with user-friendly message
 		error(500, {
-        			message: 'Settings temporarily unavailable',
-        			details: errorResponse.userMessage
-        		});
+			message: 'Settings temporarily unavailable',
+			details: errorResponse.userMessage
+		});
 	}
 };

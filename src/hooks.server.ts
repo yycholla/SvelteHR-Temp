@@ -145,9 +145,12 @@ export function recordFailedLogin(ip: string): void {
 	// Block if max attempts reached
 	if (entry.attempts >= MAX_LOGIN_ATTEMPTS) {
 		entry.blockedUntil = now + BLOCK_DURATION;
-		console.warn(
-			`🚨 IP ${ip} blocked for ${BLOCK_DURATION / 1000}s after ${MAX_LOGIN_ATTEMPTS} failed login attempts`
-		);
+		logger.warn(`IP blocked due to rate limiting`, {
+			ip,
+			blockDuration: BLOCK_DURATION / 1000,
+			maxAttempts: MAX_LOGIN_ATTEMPTS,
+			currentAttempts: entry.attempts
+		});
 	}
 }
 
@@ -194,18 +197,18 @@ async function authenticateUser(
 	roles: string[];
 	permissions: string[];
 } | null> {
-	try {
-		// Extract session cookie from the incoming request
-		const cookieHeader = event.request.headers.get('cookie') || '';
-		const sessionId = extractSessionId(cookieHeader);
+	// Extract session cookie from the incoming request
+	const cookieHeader = event.request.headers.get('cookie') || '';
+	const sessionId = extractSessionId(cookieHeader);
 
+	try {
 		// Check cache first (if we have a session ID)
 		if (sessionId) {
 			const cached = SESSION_CACHE.get(sessionId);
 			if (cached && cached.expiresAt > Date.now()) {
 				// Concise: only log for non-verify endpoints to avoid spam
 				if (!pathname.includes('/api/auth/verify') && !pathname.includes('/api/notifications')) {
-					console.log(`✓ ${pathname} | Cache hit`);
+					logger.debug(`Cache hit for ${pathname}`, { userId: sessionId });
 				}
 				return {
 					user: cached.user,
@@ -232,12 +235,15 @@ async function authenticateUser(
 
 		if (!response.ok) {
 			if (response.status === 401) {
-				console.error(`✗ ${pathname} | Session invalid`);
+				logger.warn(`Session invalid for ${pathname}`, { sessionId, statusCode: response.status });
 				// Clear cache for this session if it exists
 				if (sessionId) SESSION_CACHE.delete(sessionId);
 				return null;
 			}
-			console.error(`✗ ${pathname} | Validation failed (${response.status})`);
+			logger.error(`Authentication validation failed for ${pathname}`, undefined, {
+				sessionId,
+				statusCode: response.status
+			});
 			return null;
 		}
 
@@ -265,12 +271,16 @@ async function authenticateUser(
 
 		// Concise: only log for non-verify endpoints to avoid spam
 		if (!pathname.includes('/api/auth/verify') && !pathname.includes('/api/notifications')) {
-			console.log(`✓ ${pathname} | Cache miss | ${userData.email}`);
+			logger.debug(`Cache miss for ${pathname}`, { userId: sessionId, email: userData.email });
 		}
 
 		return authResult;
 	} catch (error) {
-		console.error(`✗ ${pathname} | Error:`, error instanceof Error ? error.message : error);
+		logger.error(
+			`Authentication error for ${pathname}`,
+			error instanceof Error ? error : new Error(String(error)),
+			{ sessionId }
+		);
 		return null;
 	}
 }
@@ -292,8 +302,7 @@ export const handle: Handle = sequence(Sentry.sentryHandle(), async ({ event, re
 
 		// Log request start (skip kube-probe requests)
 		if (!isHealthProbe) {
-			console.log(`[DEBUG] Logger info call: ${event.request.method} ${pathname}`);
-			logger.info(`Request started: ${event.request.method} ${pathname}`, {
+			logger.debug(`Request started: ${event.request.method} ${pathname}`, {
 				requestId,
 				method: event.request.method,
 				url: pathname,
@@ -326,7 +335,9 @@ export const handle: Handle = sequence(Sentry.sentryHandle(), async ({ event, re
 					pathname.includes('/stream') ||
 					event.request.headers.get('accept') === 'text/event-stream'
 				) {
-					console.error(`✗ ${pathname} | SSE auth failed`);
+					logger.warn(`SSE authentication failed for ${pathname}`, {
+						userAgent: event.request.headers.get('user-agent')
+					});
 					return new Response(
 						JSON.stringify({ error: 'Authentication required', code: 'AUTH_REQUIRED' }),
 						{
@@ -336,7 +347,9 @@ export const handle: Handle = sequence(Sentry.sentryHandle(), async ({ event, re
 					);
 				}
 
-				console.error(`✗ ${pathname} | Unauthorized → /login`);
+				logger.warn(`Unauthorized access to ${pathname}, redirecting to login`, {
+					userAgent: event.request.headers.get('user-agent')
+				});
 				const redirectTo = encodeURIComponent(pathname + event.url.search);
 				redirect(303, `/login?redirectTo=${redirectTo}`);
 			}
@@ -451,7 +464,9 @@ export const handle: Handle = sequence(Sentry.sentryHandle(), async ({ event, re
 			throw error; // Re-throw redirects
 		}
 
-		console.error('Handle error:', error);
+		logger.error('Handle error', error instanceof Error ? error : new Error(String(error)), {
+			requestId
+		});
 
 		// Return error response
 		return new Response(JSON.stringify({ error: 'Internal server error', code: 'SERVER_ERROR' }), {
@@ -510,16 +525,16 @@ export const handleError = Sentry.handleErrorWithSentry(
 	}
 );
 
-console.log('🛡️  Server performance optimization and monitoring initialized');
-console.log(`⚡ Session caching enabled (TTL: ${SESSION_CACHE_TTL}ms, cleanup: 5min intervals)`);
-console.log(`📁 Static file optimization: ${STATIC_EXTENSIONS.size} extensions`);
-console.log(`🔒 Security hardening enabled:`);
-console.log(
-	`   - Rate limiting: ${MAX_LOGIN_ATTEMPTS} attempts per ${RATE_LIMIT_WINDOW / 1000 / 60}min`
-);
-console.log(`   - Block duration: ${BLOCK_DURATION / 1000 / 60}min after max attempts`);
-console.log(`   - Security headers: CSP, HSTS, X-Frame-Options, etc.`);
-console.log(`   - CSRF protection: ${authConfig.security.enableCSRF ? 'enabled' : 'disabled'}`);
+logger.info('Server performance optimization and monitoring initialized');
+logger.info('Session caching enabled', { ttl: SESSION_CACHE_TTL, cleanupInterval: '5min' });
+logger.info('Static file optimization enabled', { extensionCount: STATIC_EXTENSIONS.size });
+logger.info('Security hardening enabled', {
+	rateLimitMaxAttempts: MAX_LOGIN_ATTEMPTS,
+	rateLimitWindow: `${RATE_LIMIT_WINDOW / 1000 / 60}min`,
+	blockDuration: `${BLOCK_DURATION / 1000 / 60}min`,
+	securityHeaders: 'CSP, HSTS, X-Frame-Options, etc.',
+	csrfProtection: authConfig.security.enableCSRF ? 'enabled' : 'disabled'
+});
 
 // Initialize event reminder scheduler with backend health check
 import { ReminderScheduler } from '$lib/server/reminder-scheduler';
@@ -536,17 +551,19 @@ if (process.env.ENABLE_REMINDER_SCHEDULER !== 'false') {
 		.then((result) => {
 			if (result.healthy) {
 				ReminderScheduler.start();
-				console.log('⏰ Event reminder scheduler started');
+				logger.info('Event reminder scheduler started');
 			} else {
-				console.error(
-					'⏰ Event reminder scheduler disabled - backend not healthy:',
-					result.message
-				);
+				logger.error('Event reminder scheduler disabled - backend not healthy', undefined, {
+					message: result.message
+				});
 			}
 		})
 		.catch((error) => {
-			console.error('⏰ Event reminder scheduler startup error:', error);
+			logger.error(
+				'Event reminder scheduler startup error',
+				error instanceof Error ? error : new Error(String(error))
+			);
 		});
 } else {
-	console.log('⏰ Event reminder scheduler disabled (ENABLE_REMINDER_SCHEDULER=false)');
+	logger.info('Event reminder scheduler disabled', { reason: 'ENABLE_REMINDER_SCHEDULER=false' });
 }

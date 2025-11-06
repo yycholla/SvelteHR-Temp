@@ -74,7 +74,7 @@ export interface AuthConfig {
 // Default configuration - Session-based auth is PRIMARY
 const defaultConfig: AuthConfig = {
 	api: {
-		baseUrl: process.env.PUBLIC_API_URL || 'http://localhost:4000',
+		baseUrl: import.meta.env.PUBLIC_API_URL || 'http://localhost:4000',
 		authEndpoint: '/auth/login',
 		logoutEndpoint: '/auth/logout',
 		verifyEndpoint: '/auth/verify'
@@ -110,12 +110,10 @@ const environmentConfig: Partial<AuthConfig> = {
 	// Development overrides
 	...(process.env.NODE_ENV === 'development' && {
 		api: {
-			...defaultConfig.api,
-			baseUrl: process.env.PUBLIC_API_URL || 'http://localhost:4000'
-		},
-		security: {
-			...defaultConfig.security,
-			requireHttps: false
+			baseUrl: import.meta.env.PUBLIC_API_URL || 'http://localhost:4000',
+			authEndpoint: '/auth/login',
+			logoutEndpoint: '/auth/logout',
+			verifyEndpoint: '/auth/verify'
 		}
 	}),
 

@@ -1,6 +1,7 @@
 pub mod audit;
 pub mod auth;
 pub mod csrf;
+pub mod error_logging;
 pub mod guards;
 pub mod optional_auth;
 pub mod rate_limiting;
@@ -9,6 +10,7 @@ pub mod security_headers;
 pub mod session_auth;
 
 pub use audit::AuditExtension;
+pub use error_logging::ErrorLoggingExtension;
 pub use auth::jwt_auth_middleware;
 pub use csrf::{csrf_protection_middleware, CsrfTokenStore, CsrfConfig};
 pub use optional_auth::optional_jwt_auth_middleware;

@@ -12,7 +12,7 @@ class Logger {
 		// Default values based on environment
 		const isProduction = typeof process !== 'undefined' && process.env?.NODE_ENV === 'production';
 		this.level = isProduction ? 'warn' : 'info';
-		this.format = isProduction ? 'json' : 'console';
+		this.format = 'json'; // Always use JSON format for structured logging
 
 		console.log(
 			`🔧 Logger initialized: level=${this.level}, format=${this.format}, isProduction=${isProduction}`

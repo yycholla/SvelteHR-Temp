@@ -252,7 +252,10 @@ export const authActions = {
 				userId,
 				userCredentials: {
 					userId,
-					sessionId: 'current-session' // Session-based auth
+					roles: [], // Will be populated after login
+					permissions: [], // Will be populated after login
+					isAuthenticated: true, // User is authenticated during login
+					expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours from now
 				}
 			});
 

@@ -1,5 +1,6 @@
 import { dev } from '$app/environment';
 import { getGraphQLEndpoint } from './api-url';
+import { logger } from '$lib/utils/logger';
 
 interface BackendStatus {
 	isReady: boolean;
@@ -114,7 +115,7 @@ class BackendInitializer {
 	}
 
 	private sleep(ms: number): Promise<void> {
-		return new Promise(resolve => setTimeout(resolve, ms));
+		return new Promise((resolve) => setTimeout(resolve, ms));
 	}
 
 	/**
@@ -163,12 +164,20 @@ export async function ensureBackendReady(): Promise<boolean> {
 		});
 
 		const isReady = response.ok;
-		console.log(`🔍 Backend check: ${isReady ? 'READY' : 'NOT READY'} (endpoint: ${graphqlEndpoint}, status: ${response.status})`);
+		logger.info('Backend health check completed', {
+			isReady,
+			endpoint: graphqlEndpoint,
+			statusCode: response.status
+		});
 		return isReady;
 	} catch (error) {
 		const graphqlEndpoint = getGraphQLEndpoint();
 		const errorMessage = error instanceof Error ? error.message : String(error);
-		console.error('Backend connection failed:', error);
+		logger.error(
+			'Backend connection failed',
+			error instanceof Error ? error : new Error(errorMessage),
+			{ endpoint: graphqlEndpoint }
+		);
 		throw new Error(`GraphQL backend unavailable at ${graphqlEndpoint}: ${errorMessage}`);
 	}
 }

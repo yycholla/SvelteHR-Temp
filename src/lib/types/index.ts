@@ -16,12 +16,34 @@ export * from '../generated/graphql';
 export interface User {
 	id: string;
 	email: string;
+	password_hash: string;
+	first_name: string;
+	last_name: string;
 	display_name: string;
-	onboarding_status: 'PreHire' | 'Onboarding' | 'Active' | 'Terminated';
+	full_name: string;
+	role: string;
+	phone_number?: string;
+	alternate_phone?: string;
 	job_title?: string;
+	status?: string;
+	department_id?: string;
+	manager_id?: string;
+	hire_date?: string;
+	termination_date?: string;
 	is_active: boolean;
+	failed_login_attempts: number;
+	locked_until?: string;
+	last_login?: string;
 	created_at: string;
 	updated_at: string;
+	deleted_at?: string;
+	// Nested objects from related tables
+	job_info?: JobInfo;
+	contact_info?: ContactInfo;
+	personal_info?: PersonalInfo;
+	emergency_contact?: EmergencyContact;
+	addresses?: UserAddress[];
+	// Relations
 	role_assignments?: Array<{
 		role: {
 			id: string;
@@ -339,6 +361,24 @@ export interface EmergencyContact {
 	phone: string;
 	relationship: string;
 	isPrimary: boolean;
+}
+
+export interface UserAddress {
+	id: string;
+	user_id: string;
+	address_type: string;
+	is_primary: boolean;
+	address_line_1: string;
+	address_line_2?: string;
+	city: string;
+	state_province: string;
+	postal_code: string;
+	country: string;
+	latitude?: number;
+	longitude?: number;
+	created_at: string;
+	updated_at: string;
+	deleted_at?: string;
 }
 
 // =============================================================================

@@ -27,21 +27,9 @@
 		manager?: string;
 	}
 
-	interface Employee {
-		id: string;
-		email: string;
-		displayName: string;
-		jobTitle?: string;
-		onboardingStatus: string;
-		createdAt: string;
-		lastLoginAt?: string;
-		departmentId?: string;
-		managerId?: string;
-		roles: Array<{ role: string }>;
-		department?: { id: string; name: string };
-		manager?: { id: string; displayName: string; email: string };
-		directReports: { aggregate: { count: number } };
-	}
+	import type { User } from '$lib/types';
+
+	type Employee = User;
 
 	let {
 		initialFilters = {},
@@ -104,7 +92,11 @@
 	});
 
 	// Store query state in reactive variables to avoid direct store access in derived
-	let queryState = $state({ fetching: true, error: null, data: null });
+	let queryState = $state({
+		fetching: true,
+		error: null as any,
+		data: null as { users: User[] } | null
+	});
 
 	// Update query state when usersQuery changes
 	$effect(() => {
@@ -142,8 +134,8 @@
 	});
 
 	// Derived values for display
-	const employees = $derived(filteredEmployees);
-	const totalCount = $derived(employees.length);
+	const employees = filteredEmployees;
+	const totalCount = $derived(employees?.length || 0);
 	const totalPages = $derived(Math.ceil(totalCount / itemsPerPage));
 	const loading = $derived(!clientReady || queryState.fetching);
 	const error = $derived(queryState.error);
@@ -169,7 +161,7 @@
 	};
 
 	const selectAll = () => {
-		selectedEmployees = employees.map((emp: Employee) => emp.id);
+		selectedEmployees = employees().map((emp: Employee) => emp.id);
 	};
 
 	const clearSelection = () => {
@@ -350,23 +342,23 @@
 			class:grid-view={viewMode === 'grid'}
 			class:list-view={viewMode === 'list'}
 		>
-			{#each employees as employee (employee.id)}
+			{#each employees() as employee (employee.id)}
 				<div class="employee-card">
 					<div class="employee-info">
 						<div class="employee-avatar">
-							{employee.displayName?.charAt(0) || '?'}
+							{employee.display_name?.charAt(0) || '?'}
 						</div>
 						<div class="employee-details">
-							<h4 class="employee-name">{employee.displayName}</h4>
+							<h4 class="employee-name">{employee.display_name}</h4>
 							<p class="employee-email">{employee.email}</p>
-							{#if employee.jobTitle}
-								<p class="employee-title">{employee.jobTitle}</p>
+							{#if employee.job_title}
+								<p class="employee-title">{employee.job_title}</p>
 							{/if}
-							{#if employee.department}
-								<p class="employee-department">{employee.department.name}</p>
+							{#if employee.department_id}
+								<p class="employee-department">Department ID: {employee.department_id}</p>
 							{/if}
-							<div class="employee-status status-{employee.onboardingStatus}">
-								{employee.onboardingStatus}
+							<div class="employee-status status-{employee.is_active ? 'active' : 'inactive'}">
+								{employee.is_active ? 'Active' : 'Inactive'}
 							</div>
 						</div>
 					</div>

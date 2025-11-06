@@ -4,6 +4,7 @@ mod mutations;
 
 pub use query::QueryRoot;
 pub use mutation::MutationRoot;
+use crate::middleware::ErrorLoggingExtension;
 
 /// Type alias for the GraphQL schema
 pub type GraphQLSchema = async_graphql::Schema<QueryRoot, MutationRoot, async_graphql::EmptySubscription>;
@@ -14,10 +15,12 @@ pub type GraphQLSchema = async_graphql::Schema<QueryRoot, MutationRoot, async_gr
 /// The schema is configured with empty data that gets populated per-request
 /// through the request context.
 ///
-/// Includes AuditExtension for automatic mutation logging to activity_logs table.
+/// Includes AuditExtension for automatic mutation logging to activity_logs table
+/// and ErrorLoggingExtension for comprehensive error tracking.
 pub fn create_schema() -> GraphQLSchema {
     async_graphql::Schema::build(QueryRoot, MutationRoot, async_graphql::EmptySubscription)
         .extension(crate::middleware::AuditExtension)
+        .extension(ErrorLoggingExtension)
         .finish()
 }
 

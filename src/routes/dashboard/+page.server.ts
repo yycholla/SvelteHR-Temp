@@ -5,6 +5,7 @@ import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { ensureBackendReady } from '$lib/server/backend-init';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, url, cookies } = event;
@@ -283,11 +284,9 @@ export const load: PageServerLoad = async (event) => {
 		console.log(`✅ Dashboard: Critical queries completed in ${criticalDuration}ms`);
 
 		// Extract critical data immediately (needed for page structure)
-		const users =
-			(usersResult.status === 'fulfilled' && usersResult.value.data?.users) || [];
+		const users = (usersResult.status === 'fulfilled' && usersResult.value.data?.users) || [];
 		const departments =
-			(departmentsResult.status === 'fulfilled' && departmentsResult.value.data?.departments) ||
-			[];
+			(departmentsResult.status === 'fulfilled' && departmentsResult.value.data?.departments) || [];
 
 		// Stream slow queries as promises (won't block page render)
 		const dashboardDataPromise = Promise.allSettled([
@@ -327,10 +326,8 @@ export const load: PageServerLoad = async (event) => {
 				(leaveResult.status === 'fulfilled' && leaveResult.value.data?.leaveRequests) || [];
 			const goals =
 				(goalsResult.status === 'fulfilled' && goalsResult.value.data?.employeeGoals) || [];
-			const tasks =
-				(tasksResult.status === 'fulfilled' && tasksResult.value.data?.tasks) || [];
-			const events =
-				(eventsResult.status === 'fulfilled' && eventsResult.value.data?.events) || [];
+			const tasks = (tasksResult.status === 'fulfilled' && tasksResult.value.data?.tasks) || [];
+			const events = (eventsResult.status === 'fulfilled' && eventsResult.value.data?.events) || [];
 			const activityLogs =
 				(activityLogsResult.status === 'fulfilled' &&
 					activityLogsResult.value.data?.activityLogs) ||
@@ -521,9 +518,7 @@ export const load: PageServerLoad = async (event) => {
 						timestamp: activity.timestamp,
 						type: activity.type === 'leave_request' ? 'warning' : 'success'
 					})),
-					tasks: tasks
-						.filter((t) => t.status === 'TODO' || t.status === 'IN_PROGRESS')
-						.slice(0, 5), // Return full task objects
+					tasks: tasks.filter((t) => t.status === 'TODO' || t.status === 'IN_PROGRESS').slice(0, 5), // Return full task objects
 					events: (() => {
 						const eventData = upcomingEvents.slice(0, 4).map((event) => ({
 							id: event.id,
@@ -533,7 +528,11 @@ export const load: PageServerLoad = async (event) => {
 							type: event.type,
 							rsvpStatus: event.rsvpStatus
 						}));
-						console.log(`📅 Dashboard: Final events data for frontend:`, eventData.length, eventData);
+						console.log(
+							`📅 Dashboard: Final events data for frontend:`,
+							eventData.length,
+							eventData
+						);
 						return eventData;
 					})()
 				},
@@ -1012,57 +1011,56 @@ function generateUpcomingEventsFromDatabase(events: any[], userId: string, limit
 	console.log(`📅 After limiting to ${limit}: ${limited.length} events`);
 
 	return limited.map((event) => {
-			const startTime = new Date(event.startTime);
-			const endTime = new Date(event.endTime);
+		const startTime = new Date(event.startTime);
+		const endTime = new Date(event.endTime);
 
-			// Format date for display
-			const dateStr = startTime.toLocaleDateString('en-US', {
-				weekday: 'short',
-				month: 'short',
-				day: 'numeric'
-			});
-
-			// Format time for display
-			const timeStr = event.allDay
-				? 'All Day'
-				: startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-
-			// Get user's RSVP status
-			const userAttendee = event.attendees?.find((a: any) => a.employeeId === userId);
-			const rsvpStatus = userAttendee?.responseStatus || 'no_response';
-
-			// Map event type to icon
-			const iconMap = {
-				meeting: 'Users',
-				training: 'BookOpen',
-				social: 'Coffee',
-				company_event: 'Calendar',
-				holiday: 'Sun',
-				interview: 'UserCheck',
-				review: 'Award',
-				team_building: 'Users',
-				other: 'Calendar'
-			};
-
-			return {
-				id: event.id.toString(),
-				title: event.title,
-				description: event.description || '',
-				type: event.eventType,
-				date: dateStr,
-				time: timeStr,
-				location: event.location || 'TBD',
-				icon: iconMap[event.eventType as keyof typeof iconMap] || 'Calendar',
-				color: event.color || '#3B82F6',
-				priority:
-					event.eventType === 'review' || event.eventType === 'interview' ? 'high' : 'medium',
-				organizer: event.userByOrganizerId
-					? `${event.userByOrganizerId.firstName} ${event.userByOrganizerId.lastName}`
-					: 'Unknown',
-				isPublic: event.isPublic,
-				rsvpStatus: rsvpStatus
-			};
+		// Format date for display
+		const dateStr = startTime.toLocaleDateString('en-US', {
+			weekday: 'short',
+			month: 'short',
+			day: 'numeric'
 		});
+
+		// Format time for display
+		const timeStr = event.allDay
+			? 'All Day'
+			: startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+		// Get user's RSVP status
+		const userAttendee = event.attendees?.find((a: any) => a.employeeId === userId);
+		const rsvpStatus = userAttendee?.responseStatus || 'no_response';
+
+		// Map event type to icon
+		const iconMap = {
+			meeting: 'Users',
+			training: 'BookOpen',
+			social: 'Coffee',
+			company_event: 'Calendar',
+			holiday: 'Sun',
+			interview: 'UserCheck',
+			review: 'Award',
+			team_building: 'Users',
+			other: 'Calendar'
+		};
+
+		return {
+			id: event.id.toString(),
+			title: event.title,
+			description: event.description || '',
+			type: event.eventType,
+			date: dateStr,
+			time: timeStr,
+			location: event.location || 'TBD',
+			icon: iconMap[event.eventType as keyof typeof iconMap] || 'Calendar',
+			color: event.color || '#3B82F6',
+			priority: event.eventType === 'review' || event.eventType === 'interview' ? 'high' : 'medium',
+			organizer: event.userByOrganizerId
+				? `${event.userByOrganizerId.firstName} ${event.userByOrganizerId.lastName}`
+				: 'Unknown',
+			isPublic: event.isPublic,
+			rsvpStatus: rsvpStatus
+		};
+	});
 }
 
 // Helper function to generate quick actions based on role

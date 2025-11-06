@@ -47,7 +47,7 @@ const AUTH_CONFIG = {
 		refresh: '/api/auth/refresh'
 	},
 	tokenStorage: {
-		key: 'postgraphile-jwt-token',
+		key: 'hr-jwt-token',
 		cookieName: 'hr_token'
 	}
 };

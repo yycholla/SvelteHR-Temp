@@ -13,8 +13,8 @@ import { env as publicEnv } from '$env/dynamic/public';
  * On host: Uses localhost:4000
  */
 export function getGraphQLEndpoint(): string {
-	// Check if we're running in a container (VITE_API_URL is set in docker-compose)
-	const containerApiUrl = env.VITE_API_URL;
+	// Check if we're running in a container (PUBLIC_API_URL is set in docker-compose)
+	const containerApiUrl = publicEnv.PUBLIC_API_URL;
 
 	if (containerApiUrl) {
 		// Running in container - use container network
@@ -22,8 +22,7 @@ export function getGraphQLEndpoint(): string {
 	}
 
 	// Running on host - use localhost (Rust GraphQL API on port 4000)
-	const hostApiUrl = publicEnv.PUBLIC_API_URL || 'http://localhost:4000';
-	return `${hostApiUrl}/graphql`;
+	return 'http://localhost:4000/graphql';
 }
 
 /**

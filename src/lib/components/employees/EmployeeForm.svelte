@@ -142,29 +142,28 @@
 		if (!employee) return;
 
 		formData = {
-			firstName: employee.firstName || '',
-			lastName: employee.lastName || '',
+			firstName: employee.first_name || '',
+			lastName: employee.last_name || '',
 			email: employee.email || '',
-			phoneNumber: employee.phoneNumber || '',
-			jobTitle: employee.jobTitle || '',
-			departmentId: employee.department?.id || '',
-			employmentType: employee.jobInfo?.employmentType || 'FULL_TIME',
-			hireDate: employee.jobInfo?.hireDate || '',
-			managerId: employee.manager?.id || '',
-			salary: employee.jobInfo?.salary?.toString() || '',
-			payType: employee.jobInfo?.payType || 'SALARY',
-			isRemote: employee.jobInfo?.isRemote || false,
-			addressStreet: employee.address?.street || '',
-			addressCity: employee.address?.city || '',
-			addressState: employee.address?.state || '',
-			addressZipCode: employee.address?.zipCode || '',
-			emergencyContactName: employee.emergencyContact?.name || '',
-			emergencyContactPhone: employee.emergencyContact?.phone || '',
-			emergencyContactRelationship: employee.emergencyContact?.relationship || '',
-			username: employee.username || '',
+			phoneNumber: employee.phone_number || '',
+			jobTitle: employee.job_title || '',
+			departmentId: employee.department_id || '',
+			employmentType: employee.job_info?.employmentType || 'FULL_TIME',
+			hireDate: employee.job_info?.hireDate || '',
+			managerId: employee.manager_id || '',
+			salary: employee.job_info?.annualSalary?.toString() || '',
+			payType: employee.job_info?.payType || 'SALARY',
+			isRemote: employee.job_info?.isRemote || false,
+			addressStreet: employee.addresses?.[0]?.address_line_1 || '',
+			addressCity: employee.addresses?.[0]?.city || '',
+			addressState: employee.addresses?.[0]?.state_province || '',
+			addressZipCode: employee.addresses?.[0]?.postal_code || '',
+			emergencyContactName: employee.emergency_contact?.name || '',
+			emergencyContactPhone: employee.emergency_contact?.phone || '',
+			emergencyContactRelationship: employee.emergency_contact?.relationship || '',
 			password: '',
 			confirmPassword: '',
-			roleIds: employee.roles?.map((role) => role.id) || []
+			roleIds: employee.role_assignments?.map((assignment) => assignment.role.id) || []
 		};
 	}
 
@@ -524,5 +523,3 @@
 		</div>
 	</div>
 </form>
-
-

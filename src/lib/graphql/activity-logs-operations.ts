@@ -16,35 +16,18 @@ import type { UserCredentials } from '$lib/models/data-request';
  * PostGraphile: Uses allActivityLogs and ActivityLogCondition
  */
 export const GET_USER_ACTIVITIES = gql`
-	query GetUserActivities(
-		$first: Int = 50
-		$offset: Int = 0
-		$orderBy: [ActivityLogsOrderBy!] = [CREATED_AT_DESC]
-		$condition: ActivityLogCondition
-	) {
-		allActivityLogs(
-			first: $first
-			offset: $offset
-			orderBy: $orderBy
-			condition: $condition
-		) {
-			nodes {
-				id
-				employeeId
-				userId
-				action
-				resourceType
-				resourceId
-				details
-				ipAddress
-				userAgent
-				createdAt
-			}
-			totalCount
-			pageInfo {
-				hasNextPage
-				hasPreviousPage
-			}
+	query GetUserActivities($userId: UUID, $limit: Int = 50, $offset: Int = 0) {
+		activityLogs(userId: $userId, limit: $limit, offset: $offset) {
+			id
+			employeeId
+			userId
+			action
+			resourceType
+			resourceId
+			details
+			ipAddress
+			userAgent
+			createdAt
 		}
 	}
 `;
@@ -102,11 +85,7 @@ export const GET_AUDIT_LOGS = gql`
  * PostGraphile: Uses allActivityLogs and condition parameter
  */
 export const GET_RESOURCE_ACTIVITY_HISTORY = gql`
-	query GetResourceActivityHistory(
-		$resourceType: String!
-		$resourceId: UUID!
-		$first: Int = 20
-	) {
+	query GetResourceActivityHistory($resourceType: String!, $resourceId: UUID!, $first: Int = 20) {
 		allActivityLogs(
 			first: $first
 			condition: { resourceType: $resourceType, resourceId: $resourceId }
@@ -137,10 +116,7 @@ export const GET_RESOURCE_ACTIVITY_HISTORY = gql`
  * PostGraphile: Uses allActivityLogs, date filtering done server-side
  */
 export const GET_ACTIVITIES_BY_DATE_RANGE = gql`
-	query GetActivitiesByDateRange(
-		$employeeId: UUID
-		$first: Int = 1000
-	) {
+	query GetActivitiesByDateRange($employeeId: UUID, $first: Int = 1000) {
 		allActivityLogs(
 			first: $first
 			condition: { employeeId: $employeeId }
@@ -318,9 +294,7 @@ export function buildActivityFilter({
 /**
  * Helper: Group activities by date
  */
-export function groupActivitiesByDate(
-	activities: ActivityLog[]
-): Map<string, ActivityLog[]> {
+export function groupActivitiesByDate(activities: ActivityLog[]): Map<string, ActivityLog[]> {
 	const grouped = new Map<string, ActivityLog[]>();
 
 	activities.forEach((activity) => {
@@ -496,7 +470,9 @@ export class ActivityLogsOperations {
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(GET_USER_ACTIVITIES, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(GET_USER_ACTIVITIES, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -618,7 +594,9 @@ export class ActivityLogsOperations {
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(GET_RESOURCE_ACTIVITY_HISTORY, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(GET_RESOURCE_ACTIVITY_HISTORY, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -674,7 +652,9 @@ export class ActivityLogsOperations {
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(GET_ACTIVITIES_BY_DATE_RANGE, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(GET_ACTIVITIES_BY_DATE_RANGE, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -724,7 +704,9 @@ export class ActivityLogsOperations {
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(GET_ACTIVITY_LOG_BY_ID, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(GET_ACTIVITY_LOG_BY_ID, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -734,7 +716,12 @@ export class ActivityLogsOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.allActivityLogs || !result.data.allActivityLogs.nodes || result.data.allActivityLogs.nodes.length === 0) {
+			if (
+				!result.data ||
+				!result.data.allActivityLogs ||
+				!result.data.allActivityLogs.nodes ||
+				result.data.allActivityLogs.nodes.length === 0
+			) {
 				return null;
 			}
 
@@ -744,16 +731,20 @@ export class ActivityLogsOperations {
 			return {
 				id: log.id,
 				employeeId: log.employeeId,
-				employee: log.userByEmployeeId ? {
-					id: log.userByEmployeeId.id,
-					displayName: log.userByEmployeeId.displayName,
-					email: log.userByEmployeeId.email,
-					departmentId: log.userByEmployeeId.departmentId,
-					department: log.userByEmployeeId.departmentByDepartmentId ? {
-						id: log.userByEmployeeId.departmentByDepartmentId.id,
-						name: log.userByEmployeeId.departmentByDepartmentId.name
-					} : undefined
-				} : undefined,
+				employee: log.userByEmployeeId
+					? {
+							id: log.userByEmployeeId.id,
+							displayName: log.userByEmployeeId.displayName,
+							email: log.userByEmployeeId.email,
+							departmentId: log.userByEmployeeId.departmentId,
+							department: log.userByEmployeeId.departmentByDepartmentId
+								? {
+										id: log.userByEmployeeId.departmentByDepartmentId.id,
+										name: log.userByEmployeeId.departmentByDepartmentId.name
+									}
+								: undefined
+						}
+					: undefined,
 				action: log.action,
 				resourceType: log.resourceType,
 				resourceId: log.resourceId,

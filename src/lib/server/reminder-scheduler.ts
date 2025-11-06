@@ -9,6 +9,7 @@
 
 import cron, { type ScheduledTask } from 'node-cron';
 import { withExponentialBackoff } from './backend-health';
+import { logger } from '$lib/utils/logger';
 
 export interface PendingReminder {
 	attendeeId: string;
@@ -36,11 +37,11 @@ export class ReminderScheduler {
 	 */
 	static start(): void {
 		if (this.cronTask) {
-			console.log('[ReminderScheduler] Already running');
+			logger.debug('ReminderScheduler already running');
 			return;
 		}
 
-		console.log('[ReminderScheduler] Starting event reminder scheduler');
+		logger.info('Starting event reminder scheduler');
 
 		// Run every minute
 		this.cronTask = cron.schedule('* * * * *', async () => {
@@ -58,7 +59,7 @@ export class ReminderScheduler {
 		if (this.cronTask) {
 			this.cronTask.stop();
 			this.cronTask = null;
-			console.log('[ReminderScheduler] Stopped');
+			logger.info('ReminderScheduler stopped');
 		}
 	}
 
@@ -67,7 +68,7 @@ export class ReminderScheduler {
 	 */
 	private static async checkAndSendReminders(): Promise<void> {
 		if (this.isRunning) {
-			console.log('[ReminderScheduler] Previous check still running, skipping...');
+			logger.debug('ReminderScheduler previous check still running, skipping');
 			return;
 		}
 
@@ -77,11 +78,11 @@ export class ReminderScheduler {
 			const pendingReminders = await this.getPendingReminders();
 
 			if (pendingReminders.length === 0) {
-				console.log('[ReminderScheduler] No pending reminders');
+				logger.debug('No pending reminders found');
 				return;
 			}
 
-			console.log(`[ReminderScheduler] Found ${pendingReminders.length} pending reminders`);
+			logger.info('Found pending reminders', { count: pendingReminders.length });
 
 			for (const reminder of pendingReminders) {
 				await this.sendReminder(reminder);
@@ -118,7 +119,7 @@ export class ReminderScheduler {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json',
-							'Authorization': `Bearer ${serviceKey}`
+							Authorization: `Bearer ${serviceKey}`
 						},
 						body: JSON.stringify({
 							query: `
@@ -300,7 +301,7 @@ export class ReminderScheduler {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json',
-							'Authorization': `Bearer ${serviceKey}`
+							Authorization: `Bearer ${serviceKey}`
 						},
 						body: JSON.stringify({
 							query: `

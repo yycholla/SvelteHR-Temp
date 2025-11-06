@@ -1,0 +1,172 @@
+// Department service for managing department operations
+// Provides CRUD operations and department management functionality
+
+import type { Department, CreateDepartmentInput, UpdateDepartmentInput } from '$lib/types';
+import { createUrqlClient } from '$lib/graphql/client';
+import {
+	GET_DEPARTMENTS_QUERY,
+	GET_DEPARTMENT_BY_ID_QUERY,
+	CREATE_DEPARTMENT_MUTATION,
+	UPDATE_DEPARTMENT_MUTATION,
+	DELETE_DEPARTMENT_MUTATION
+} from '$lib/graphql/department-operations';
+
+/**
+ * Get all departments with optional filtering
+ */
+export async function getDepartments(filters?: {
+	limit?: number;
+	offset?: number;
+	search?: string;
+	parentId?: string;
+	managerId?: string;
+}): Promise<{ departments: Department[]; totalCount: number }> {
+	const client = createUrqlClient();
+
+	try {
+		const result = await client.query(GET_DEPARTMENTS_QUERY, {
+			limit: filters?.limit || 50,
+			offset: filters?.offset || 0,
+			where: filters
+				? {
+						...(filters.search && {
+							name: { _ilike: `%${filters.search}%` }
+						}),
+						...(filters.parentId && { parent_department_id: { _eq: filters.parentId } }),
+						...(filters.managerId && { manager_id: { _eq: filters.managerId } })
+					}
+				: undefined
+		});
+
+		if (result.error) {
+			throw new Error(`Failed to fetch departments: ${result.error.message}`);
+		}
+
+		return {
+			departments: result.data?.departments || [],
+			totalCount: result.data?.departments_aggregate?.aggregate?.count || 0
+		};
+	} catch (error) {
+		console.error('Error fetching departments:', error);
+		throw error;
+	}
+}
+
+/**
+ * Get a single department by ID
+ */
+export async function getDepartment(id: string): Promise<Department | null> {
+	const client = createUrqlClient();
+
+	try {
+		const result = await client.query(GET_DEPARTMENT_BY_ID_QUERY, { id });
+
+		if (result.error) {
+			throw new Error(`Failed to fetch department: ${result.error.message}`);
+		}
+
+		return result.data?.department || null;
+	} catch (error) {
+		console.error('Error fetching department:', error);
+		throw error;
+	}
+}
+
+/**
+ * Create a new department
+ */
+export async function createDepartment(input: CreateDepartmentInput): Promise<Department> {
+	const client = createUrqlClient();
+
+	try {
+		const result = await client.mutation(CREATE_DEPARTMENT_MUTATION, { input });
+
+		if (result.error) {
+			throw new Error(`Failed to create department: ${result.error.message}`);
+		}
+
+		if (!result.data?.createDepartment?.department) {
+			throw new Error('Department creation failed - no data returned');
+		}
+
+		return result.data.createDepartment.department;
+	} catch (error) {
+		console.error('Error creating department:', error);
+		throw error;
+	}
+}
+
+/**
+ * Update an existing department
+ */
+export async function updateDepartment(
+	id: string,
+	input: UpdateDepartmentInput
+): Promise<Department> {
+	const client = createUrqlClient();
+
+	try {
+		const result = await client.mutation(UPDATE_DEPARTMENT_MUTATION, {
+			id,
+			input
+		});
+
+		if (result.error) {
+			throw new Error(`Failed to update department: ${result.error.message}`);
+		}
+
+		if (!result.data?.updateDepartment?.department) {
+			throw new Error('Department update failed - no data returned');
+		}
+
+		return result.data.updateDepartment.department;
+	} catch (error) {
+		console.error('Error updating department:', error);
+		throw error;
+	}
+}
+
+/**
+ * Delete a department
+ */
+export async function deleteDepartment(id: string): Promise<boolean> {
+	const client = createUrqlClient();
+
+	try {
+		const result = await client.mutation(DELETE_DEPARTMENT_MUTATION, { id });
+
+		if (result.error) {
+			throw new Error(`Failed to delete department: ${result.error.message}`);
+		}
+
+		return result.data?.deleteDepartment?.deletedDepartmentId !== null;
+	} catch (error) {
+		console.error('Error deleting department:', error);
+		throw error;
+	}
+}
+
+/**
+ * Get departments by manager
+ */
+export async function getDepartmentsByManager(managerId: string): Promise<Department[]> {
+	return (await getDepartments({ managerId })).departments;
+}
+
+/**
+ * Search departments by name
+ */
+export async function searchDepartments(query: string, limit: number = 10): Promise<Department[]> {
+	return (await getDepartments({ search: query, limit })).departments;
+}
+
+// Export the service object for consistency with other services
+export const departmentService = {
+	getDepartments,
+	getDepartment,
+	createDepartment,
+	updateDepartment,
+	deleteDepartment,
+	getDepartmentsByManager,
+	searchDepartments
+};

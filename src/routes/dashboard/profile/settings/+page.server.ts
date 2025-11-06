@@ -195,6 +195,8 @@ export const actions: Actions = {
 				}
 			`;
 
+			console.log('[Update Theme] Calling GraphQL with userId:', locals.user.id, 'theme:', theme);
+
 			const result = await graphqlClient.query(updateMutation, {
 				userId: locals.user.id,
 				input: {
@@ -202,7 +204,13 @@ export const actions: Actions = {
 				}
 			});
 
-			console.log('[Update Theme] GraphQL result:', result);
+			console.log('[Update Theme] GraphQL result:', JSON.stringify(result, null, 2));
+
+			// Check for GraphQL errors
+			if (result.errors && result.errors.length > 0) {
+				console.error('[Update Theme] GraphQL errors found:', result.errors);
+				// Don't fail here - still set the cookie for client-side consistency
+			}
 
 			// Also save to cookie for server-side rendering
 			cookies.set('theme-preference', theme, {

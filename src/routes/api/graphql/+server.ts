@@ -4,19 +4,17 @@ import type { RequestHandler } from './$types';
 /**
  * GraphQL Proxy for SvelteHR
  *
- * Secure proxy that forwards GraphQL requests to Rust GraphQL backend with session authentication
+ * Secure proxy that forwards GraphQL requests to Rust GraphQL backend (Sea-ORM + async-graphql) with session authentication
  * - Forwards session cookies from browser to backend
  * - Implements security headers and validation
  * - Enables client-side GraphQL mutations with proper authentication
  */
 
-import { env } from '$env/dynamic/private';
-
-const POSTGRAPHILE_URL =
-	env.POSTGRAPHILE_URL ||
-	env.GRAPHQL_URL ||
-	(env.PUBLIC_API_URL ? `${env.PUBLIC_API_URL}/graphql` : null) ||
-	'http://sveltehr-backend:4000/graphql';
+const GRAPHQL_BACKEND_URL =
+	process.env.POSTGRAPHILE_URL || // Legacy support
+	process.env.GRAPHQL_URL ||
+	(process.env.PUBLIC_API_URL ? `${process.env.PUBLIC_API_URL}/graphql` : null) ||
+	'http://hr-graphql-rust:4000/graphql';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	try {
@@ -46,7 +44,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		}
 
 		// Forward GraphQL request to Rust GraphQL backend
-		const postgraphileResponse = await fetch(POSTGRAPHILE_URL, {
+		const backendResponse = await fetch(GRAPHQL_BACKEND_URL, {
 			method: 'POST',
 			headers,
 			credentials: 'include',
@@ -57,11 +55,11 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			})
 		});
 
-		const result = await postgraphileResponse.json();
+		const result = await backendResponse.json();
 
-		// Return the result from PostGraphile
+		// Return the result from Rust GraphQL backend
 		return json(result, {
-			status: postgraphileResponse.status,
+			status: backendResponse.status,
 			headers: {
 				'Content-Type': 'application/json'
 			}
@@ -84,10 +82,11 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 export const GET: RequestHandler = async () => {
 	return json({
-		message: 'SvelteHR GraphQL API - PostGraphile Proxy',
+		message: 'SvelteHR GraphQL API - Rust GraphQL Backend Proxy',
 		endpoint: '/api/graphql',
-		postgraphileEndpoint: POSTGRAPHILE_URL,
-		description: 'This endpoint proxies GraphQL requests to PostGraphile with JWT authentication',
+		backendEndpoint: GRAPHQL_BACKEND_URL,
+		description:
+			'This endpoint proxies GraphQL requests to Rust GraphQL backend with session authentication',
 		examples: {
 			getAllUsers: 'query { allUsers { nodes { id email displayName } } }',
 			getUserById: 'query($id: UUID!) { userById(id: $id) { id email displayName } }',
