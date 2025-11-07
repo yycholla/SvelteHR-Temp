@@ -55,7 +55,7 @@ spec:
       # Main container: Create Velero service account
       containers:
         - name: minio-client
-          image: minio/mc:RELEASE.2024-12-13T19-45-30Z
+          image: minio/mc:latest
           command:
             - sh
             - -c
@@ -189,6 +189,10 @@ spec:
               cpu: 200m
               memory: 128Mi
 
+          volumeMounts:
+            - name: mc-config
+              mountPath: /.mc
+
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
@@ -196,6 +200,10 @@ spec:
             capabilities:
               drop:
                 - ALL
+
+      volumes:
+        - name: mc-config
+          emptyDir: {}
 
 ---
 apiVersion: v1
