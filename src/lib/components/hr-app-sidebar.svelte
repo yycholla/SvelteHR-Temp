@@ -778,7 +778,7 @@
 						class="flex items-center justify-center rounded-md p-2 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
 						title="Toggle theme"
 					>
-						{#if $mode.current === 'dark'}
+						{#if mode.current === 'dark'}
 							<Sun class="h-4 w-4" />
 						{:else}
 							<Moon class="h-4 w-4" />

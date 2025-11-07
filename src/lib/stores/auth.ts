@@ -271,7 +271,7 @@ export const authActions = {
 		try {
 			// Dynamically import to avoid circular dependencies
 			const { createSettingsOperations } = await import('$lib/graphql/settings-operations');
-			const { themeStore } = await import('$lib/stores/theme');
+			const { userPrefersMode } = await import('mode-watcher');
 
 			// Create settings operations instance
 			const urqlClient = createUrqlClient();
@@ -291,12 +291,12 @@ export const authActions = {
 
 			// Apply theme from user preferences IMMEDIATELY
 			if (userSettings?.preferences?.appearance?.darkMode !== undefined) {
-				const theme = userSettings.preferences.appearance.darkMode ? 'dark' : 'light';
-				themeStore.setTheme(theme);
-				console.log(`✓ Applied user theme on login: ${theme}`);
+				const mode = userSettings.preferences.appearance.darkMode ? 'dark' : 'light';
+				userPrefersMode.set(mode);
+				console.log(`✓ Applied user theme on login: ${mode}`);
 			} else if (userSettings?.preferences?.theme) {
 				// Fallback to legacy theme field
-				themeStore.setTheme(userSettings.preferences.theme);
+				userPrefersMode.set(userSettings.preferences.theme as 'light' | 'dark' | 'system');
 				console.log(`✓ Applied user theme on login: ${userSettings.preferences.theme}`);
 			} else {
 				console.log('ℹ No theme preference found, using system default');
