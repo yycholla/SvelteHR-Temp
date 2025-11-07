@@ -1,0 +1,197 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-postgres-init
+  namespace: backup-system
+  labels:
+    app: minio
+    component: postgres-init
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"  # Run after MinIO init job (wave 1)
+spec:
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 3
+
+  template:
+    metadata:
+      labels:
+        app: minio
+        component: postgres-init
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: minio-init
+
+      # Init container: Wait for MinIO API
+      initContainers:
+        - name: wait-for-minio
+          image: curlimages/curl:8.5.0
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for MinIO API..."
+              until curl -sf http://minio.backup-system.svc.cluster.local:9000/minio/health/live; do
+                sleep 5
+              done
+              echo "MinIO is ready!"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities:
+              drop:
+                - ALL
+
+      # Main container: Create PostgreSQL backup service account
+      containers:
+        - name: minio-client
+          image: minio/mc:latest
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+
+              echo "================================================================"
+              echo "  MinIO PostgreSQL Backup Service Account Setup"
+              echo "================================================================"
+              echo "MinIO Host: ${MINIO_HOST}"
+              echo "Service Account: ${POSTGRES_ACCESS_KEY}"
+              echo "================================================================"
+              echo ""
+
+              # Configure mc
+              echo "Configuring MinIO client..."
+              mc alias set myminio "${MINIO_HOST}" "${MINIO_ROOT_USER}" "${MINIO_ROOT_PASSWORD}"
+
+              # Check if service account exists
+              echo "Checking if PostgreSQL backup service account exists..."
+              if mc admin user svcacct info myminio "${POSTGRES_ACCESS_KEY}" 2>/dev/null; then
+                echo "✓ Service account '${POSTGRES_ACCESS_KEY}' already exists"
+              else
+                echo "Creating PostgreSQL backup service account..."
+                mc admin user svcacct add \
+                  --access-key "${POSTGRES_ACCESS_KEY}" \
+                  --secret-key "${POSTGRES_SECRET_KEY}" \
+                  myminio \
+                  "${MINIO_ROOT_USER}"
+                echo "✓ Service account created"
+              fi
+
+              # Create policy for postgres-backups bucket
+              echo ""
+              echo "Configuring bucket policy..."
+              if mc admin policy info myminio postgres-backup-policy 2>/dev/null; then
+                echo "✓ Policy 'postgres-backup-policy' already exists"
+              else
+                echo "Creating custom policy for postgres-backups bucket..."
+                cat > /tmp/postgres-policy.json <<'EOF'
+              {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "s3:GetBucketLocation",
+                      "s3:ListBucket",
+                      "s3:ListBucketMultipartUploads"
+                    ],
+                    "Resource": [
+                      "arn:aws:s3:::postgres-backups"
+                    ]
+                  },
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "s3:AbortMultipartUpload",
+                      "s3:DeleteObject",
+                      "s3:GetObject",
+                      "s3:ListMultipartUploadParts",
+                      "s3:PutObject"
+                    ],
+                    "Resource": [
+                      "arn:aws:s3:::postgres-backups/*"
+                    ]
+                  }
+                ]
+              }
+              EOF
+
+                mc admin policy create myminio postgres-backup-policy /tmp/postgres-policy.json
+                echo "✓ Policy created"
+              fi
+
+              # Attach policy
+              echo "Attaching policy to service account..."
+              mc admin policy attach myminio postgres-backup-policy --user="${POSTGRES_ACCESS_KEY}"
+
+              echo ""
+              echo "================================================================"
+              echo "  ✓ PostgreSQL backup initialization completed!"
+              echo "================================================================"
+              echo ""
+              echo "PostgreSQL backup service account ready."
+              echo "Access Key: ${POSTGRES_ACCESS_KEY}"
+              echo "Bucket: postgres-backups"
+              echo "Policy: postgres-backup-policy"
+              echo "================================================================"
+
+          env:
+            - name: MINIO_HOST
+              value: "http://minio.backup-system.svc.cluster.local:9000"
+
+            # MinIO root credentials
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: rootUser
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: rootPassword
+
+            # PostgreSQL backup credentials (from Doppler)
+            - name: POSTGRES_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-minio-init-secret
+                  key: POSTGRES_BACKUP_ACCESS_KEY
+            - name: POSTGRES_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-minio-init-secret
+                  key: POSTGRES_BACKUP_SECRET_KEY
+
+          volumeMounts:
+            - name: mc-config
+              mountPath: /.mc
+
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+
+      volumes:
+        - name: mc-config
+          emptyDir: {}

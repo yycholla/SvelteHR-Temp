@@ -54,17 +54,25 @@ postgresql:
       wal_buffers: "4MB"
       default_statistics_target: "100"
       effective_io_concurrency: "200"
-  # Backup configuration (S3/MinIO)
+  # Backup configuration (MinIO)
   backup:
-    enabled: false # Disable for initial setup
-    destinationPath: "s3://sveltehr-backups/postgresql"
-    endpointURL: "https://s3.amazonaws.com" # Or MinIO endpoint
+    enabled: true # Enable CNPG native backups to MinIO
+    destinationPath: "s3://postgres-backups/"
+    endpointURL: "http://minio.backup-system.svc.cluster.local:9000"
     retentionPolicy: "30d"
-    schedule: "0 2 * * *" # Daily at 2 AM
+    schedule: "0 3 * * *" # Daily at 3 AM (after Velero at 2 AM)
     s3Credentials:
-      secretName: sveltehr-s3-backup-secret
+      secretName: postgres-backup-secret
       accessKeyIdKey: ACCESS_KEY_ID
       secretAccessKeyKey: SECRET_ACCESS_KEY
+    # WAL archiving for point-in-time recovery
+    wal:
+      compression: gzip
+      maxParallel: 2
+    # Base backup configuration
+    data:
+      compression: gzip
+      jobs: 2
   # Production resources (scaled for 8GB node)
   resources:
     requests:

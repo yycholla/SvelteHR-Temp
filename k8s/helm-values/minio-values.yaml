@@ -56,6 +56,9 @@ buckets:
   - name: loki
     policy: none
     purge: false
+  - name: postgres-backups
+    policy: none
+    purge: false
 
 # Metrics
 metrics:
