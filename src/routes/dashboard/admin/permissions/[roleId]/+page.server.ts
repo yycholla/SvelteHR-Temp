@@ -8,6 +8,7 @@ import {
 	executeMutation,
 	serializeCookies
 } from '$lib/graphql/client';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 import {
 	GET_ROLES_WITH_PERMISSIONS,
 	GET_ALL_PERMISSIONS,
@@ -17,7 +18,7 @@ import {
 import { error, fail, redirect } from '@sveltejs/kit';
 
 /**
- * Check if user has admin access permissions
+ * Check if user has admin access permissions (deprecated - use PermissionChecks)
  */
 function checkAdminAccess(locals: App.Locals): boolean {
 	const userPermissions = locals.permissions || [];
@@ -30,13 +31,11 @@ function checkAdminAccess(locals: App.Locals): boolean {
 	);
 }
 
-export const load: PageServerLoad = async ({ params, locals, parent, fetch: fetchFn, cookies }) => {
-	// Get isAdmin flag from parent layout
-	const { isAdmin } = await parent();
+export const load: PageServerLoad = async (event) => {
+	const { params, locals, fetch: fetchFn, cookies } = event;
 
-	if (!isAdmin) {
-		error(403, 'Admin access required');
-	}
+	// Check authentication and permissions
+	PermissionChecks.adminRead(event);
 
 	const roleId = params.roleId;
 

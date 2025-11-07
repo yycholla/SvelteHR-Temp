@@ -29,6 +29,8 @@ mod m20251024_002_add_employee_statistics;
 mod m20251106_003_remove_sidebar_management;
 mod m20251106_004_add_sidebar_view_permissions;
 mod m20251106_005_assign_sidebar_permissions_to_roles;
+mod m20251106_006_add_scoped_permissions;
+mod m20251106_007_assign_scoped_permissions_to_roles;
 
 pub struct Migrator;
 
@@ -60,6 +62,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20251106_003_remove_sidebar_management::Migration),
             Box::new(m20251106_004_add_sidebar_view_permissions::Migration),
             Box::new(m20251106_005_assign_sidebar_permissions_to_roles::Migration),
+            Box::new(m20251106_006_add_scoped_permissions::Migration),
+            Box::new(m20251106_007_assign_scoped_permissions_to_roles::Migration),
         ]
     }
 }

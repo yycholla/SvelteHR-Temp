@@ -4,6 +4,8 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
+import { PermissionChecks } from '$lib/server/rbac-utils';
+
 // Performance Review types for Rust GraphQL server
 interface PerformanceReview {
 	id: string;
@@ -21,9 +23,8 @@ interface PerformanceReview {
 export const load: PageServerLoad = async (event) => {
 	const { locals, url, cookies, fetch: fetchFn } = event;
 
-	// Authorization is handled by parent layout (+layout.server.ts)
-	const parentData = await event.parent();
-	const { hasManagerAccess, isAdmin } = parentData;
+	// Check authentication and permissions
+	PermissionChecks.performanceRead(event);
 
 	console.log('🔍 Load function - User:', {
 		userId: locals.user?.id,

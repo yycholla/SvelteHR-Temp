@@ -3,25 +3,20 @@
 
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 import { transaction } from '$lib/server/db';
 
-export const load: PageServerLoad = async ({ url, locals, fetch }) => {
-	// Step 1: Validate authentication
-	if (!locals.user) {
-		redirect(303, '/login?redirectTo=/dashboard/documents/audit');
-	}
+export const load: PageServerLoad = async (event) => {
+	const { url, locals, fetch } = event;
+
+	// Check authentication and permissions
+	PermissionChecks.adminRead(event);
 
 	const userId = locals.user.id;
 	const userPermissions = locals.permissions || [];
 	const userRoles = locals.roles || [];
 
-	// Step 2: Check user role - only system_admin can access audit logs
-	const isSystemAdmin =
-		userPermissions.includes('*') ||
-		userRoles.includes('system_admin') ||
-		locals.user.role === 'system_admin';
-
-	if (!isSystemAdmin) {
+	if (false) {
 		// Log access attempt for audit purposes
 		console.warn('[DOCUMENT AUDIT ACCESS DENIED]', {
 			userId: locals.user.id,

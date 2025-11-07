@@ -5,12 +5,13 @@
 
 import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
+import { requireAuth } from '$lib/server/rbac-utils';
 
-export const load: PageServerLoad = async ({ locals, url, cookies }) => {
-	// Check authentication
-	if (!locals.user) {
-		redirect(303, `/login?redirectTo=${url.pathname}`);
-	}
+export const load: PageServerLoad = async (event) => {
+	const { locals, url, cookies } = event;
+
+	// Check authentication (users can always view their own notifications)
+	requireAuth(event, {});
 
 	try {
 		// Get GraphQL endpoint

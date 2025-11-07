@@ -3,16 +3,15 @@
 
 import type { PageServerLoad } from './$types';
 import { createUrqlClient, executeQuery, serializeCookies } from '$lib/graphql/client';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 import { GET_TASK_TYPES } from '$lib/graphql/tasks-operations';
 import { error } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async ({ locals, parent, cookies, fetch: fetchFn }) => {
-	// Get isAdmin flag from parent layout
-	const { isAdmin } = await parent();
+export const load: PageServerLoad = async (event) => {
+	const { locals, cookies, fetch: fetchFn } = event;
 
-	if (!isAdmin) {
-		error(403, 'Admin access required');
-	}
+	// Check authentication and permissions
+	PermissionChecks.adminRead(event);
 
 	try {
 		// Create GraphQL client with server-side fetch and forward session cookies

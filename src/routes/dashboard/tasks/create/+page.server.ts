@@ -4,28 +4,16 @@
 
 import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 import { createUrqlClient } from '$lib/graphql/client';
 
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
-	// Check authentication
+	// Check authentication and permissions
 	if (!locals.user) {
 		redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
-	// Get user credentials for GraphQL operations
-	// Token retrieval removed - session auth handled by server hooks
-	if (!token) {
-		redirect(303, `/login?redirectTo=${url.pathname}`);
-	}
-
-	// Check if user has manager or admin privileges to create tasks
-	const roleLevel = getRoleLevel(locals.user.role);
-	if (roleLevel < 60) {
-		// Only managers and above can create tasks
-		error(403, {
-        			message: 'Access denied. Manager privileges required to create tasks.'
-        		});
-	}
+	PermissionChecks.tasksWrite({ locals, url, cookies } as any);
 
 	try {
 		// TODO: Fetch list of employees for assignee selection

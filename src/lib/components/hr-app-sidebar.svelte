@@ -39,13 +39,21 @@
 	import NotificationDropdown from '$lib/components/notifications/NotificationDropdown.svelte';
 	import DebugInfo from '$lib/components/DebugInfo.svelte';
 
+	// Accept permissions as a prop (passed from dashboard layout with test mode support)
+	interface Props {
+		permissions: string[];
+	}
+
+	let { permissions }: Props = $props();
+
 	// Subscribe to notification store
 	const notifications = $derived($notificationStore.notifications);
 
-	// Get permissions from page data
-	const userPermissions = $derived($page.data.permissions || []);
+	// Use permissions from props (already in string format from layout)
+	// Fallback to page data if prop is not provided (for backwards compatibility)
+	const userPermissions = $derived(permissions || $page.data.permissions || []);
 
-	// Convert permission objects to "resource:action" strings
+	// Convert permission objects to "resource:action" strings if needed
 	const permissionStrings = $derived(
 		userPermissions.map((p: any) => {
 			if (typeof p === 'string') return p;
@@ -61,33 +69,97 @@
 		console.log('[Sidebar] Page data:', $page.data);
 	});
 
-	// Permission helper functions
+	// Permission helper functions - updated for scoped permissions
 	const hasPermission = (permission: string): boolean => {
 		// Check for wildcard permission
 		const hasWildcard = permissionStrings.includes('*') || permissionStrings.includes('*:*');
 		if (hasWildcard) return true;
 
-		const has = permissionStrings.includes(permission);
-		console.log(`[Sidebar] Checking permission "${permission}":`, has);
-		return has;
+		// Direct permission check
+		if (permissionStrings.includes(permission)) {
+			return true;
+		}
+
+		// For old-style permissions (e.g., "employees:read"), also check scoped variants
+		if (!permission.includes(':read:')) {
+			const parts = permission.split(':');
+			if (parts.length === 2 && parts[1] === 'read') {
+				// Check if user has any scoped read permission
+				const resource = parts[0];
+				const hasScoped =
+					permissionStrings.includes(`${resource}:read:self`) ||
+					permissionStrings.includes(`${resource}:read:team`) ||
+					permissionStrings.includes(`${resource}:read:all`);
+				if (hasScoped) {
+					return true;
+				}
+			}
+		}
+
+		console.log(`[Sidebar] Checking permission "${permission}": false`);
+		return false;
 	};
 
 	const hasAnyPermission = (...permissions: string[]): boolean => {
 		// Check for wildcard permission
 		if (permissionStrings.includes('*') || permissionStrings.includes('*:*')) return true;
 
-		const has = permissions.some(p => permissionStrings.includes(p));
+		const has = permissions.some(p => hasPermission(p));
 		console.log(`[Sidebar] Checking any of [${permissions.join(', ')}]:`, has);
 		return has;
+	};
+
+	// New: Check if user has a specific read scope for a resource
+	const hasReadScope = (resource: string, scope: 'self' | 'team' | 'all'): boolean => {
+		// Check for wildcard permission
+		if (permissionStrings.includes('*') || permissionStrings.includes('*:*')) return true;
+
+		// Check for specific scoped permission
+		const scopedPermission = `${resource}:read:${scope}`;
+		if (permissionStrings.includes(scopedPermission)) {
+			return true;
+		}
+
+		// If checking for self or team, also accept higher scopes
+		if (scope === 'self') {
+			return permissionStrings.includes(`${resource}:read:team`) ||
+			       permissionStrings.includes(`${resource}:read:all`) ||
+			       permissionStrings.includes(`${resource}:read`); // Legacy
+		}
+		if (scope === 'team') {
+			return permissionStrings.includes(`${resource}:read:all`);
+		}
+
+		return false;
+	};
+
+	// New: Check if user has ANY permissions at a specific scope level
+	const hasAnyReadScope = (scope: 'self' | 'team' | 'all'): boolean => {
+		// Check for wildcard permission
+		if (permissionStrings.includes('*') || permissionStrings.includes('*:*')) return true;
+
+		// Check if any permission has the specified scope
+		return permissionStrings.some(p => {
+			if (scope === 'team') {
+				return p.includes(':read:team') || p.includes(':read:all');
+			}
+			if (scope === 'all') {
+				return p.includes(':read:all');
+			}
+			// For 'self', any read permission qualifies
+			return p.includes(':read:self') || p.includes(':read:team') || p.includes(':read:all') || p.endsWith(':read');
+		});
 	};
 
 	// Check user roles (keep for super admin checks)
 	const isSuperAdmin = hasRole('super_admin');
 	const isSystemAdmin = hasRole('system_admin');
 
-	// Permission-based access checks
-	const canAccessManagement = $derived(hasPermission('management:read'));
-	const canAccessAdministration = $derived(hasPermission('admin:read'));
+	// Permission-based access checks - updated for scoped permissions
+	// Show Management section if user has ANY team-level or all-level permissions
+	const canAccessManagement = $derived(hasAnyReadScope('team') || hasAnyReadScope('all'));
+	// Show Administration section if user has ANY all-level permissions
+	const canAccessAdministration = $derived(hasAnyReadScope('all'));
 
 	// Load debug settings on mount
 	onMount(async () => {
@@ -243,71 +315,157 @@
 	];
 
 	// Management submenu (for managers/supervisors)
-	// Managers have full edit access to their own department, view-only for others
+	// Requires read:team or read:all permissions
 	const managementItems = [
 		{
 			title: 'Overview',
 			url: '/dashboard/management',
 			icon: LayoutDashboard,
-			description: 'Management dashboard'
+			description: 'Management dashboard',
+			permission: 'management:read:team'
 		},
 		{
-			title: 'Teams',
-			url: '/dashboard/teams',
+			title: 'Team Employees',
+			url: '/dashboard/management/employees',
 			icon: Users,
-			description: 'Team overview'
+			description: 'Manage team members',
+			permission: 'employees:read:team'
 		},
 		{
-			title: 'Department Tasks',
-			url: '/dashboard/tasks/department',
+			title: 'Team Tasks',
+			url: '/dashboard/management/tasks',
 			icon: CheckSquare,
-			description: 'Department task management',
-			managersOnly: 'Manage tasks for your department'
+			description: 'Team task management',
+			permission: 'tasks:read:team'
+		},
+		{
+			title: 'Team Attendance',
+			url: '/dashboard/management/attendance',
+			icon: Clock,
+			description: 'Team attendance tracking',
+			permission: 'attendance:read:team'
 		},
 		{
 			title: 'Leave Approvals',
-			url: '/dashboard/management/leave-approvals',
+			url: '/dashboard/management/leave',
 			icon: Clock,
 			description: 'Approve team leave requests',
-			managersOnly: 'Approve leave for your team'
+			permissionAny: ['leave:read:team', 'leave:approve']
 		},
 		{
-			title: 'Reviews',
+			title: 'Team Performance',
+			url: '/dashboard/management/performance',
+			icon: TrendingUp,
+			description: 'Team performance tracking',
+			permission: 'performance:read:team'
+		},
+		{
+			title: 'Team Reviews',
 			url: '/dashboard/management/reviews',
 			icon: Award,
 			description: 'Performance reviews',
-			managersOnly: 'Conduct reviews for your team'
+			permission: 'reviews:read:team'
 		},
 		{
-			title: 'Goals & OKRs',
+			title: 'Team Goals',
 			url: '/dashboard/management/goals',
 			icon: Target,
 			description: 'Team goals and objectives',
-			managersOnly: 'Manage goals for your team'
+			permission: 'goals:read:team'
 		},
 		{
-			title: 'Reports',
+			title: 'Team Reports',
 			url: '/dashboard/management/reports',
 			icon: BarChart3,
-			description: 'Analytics and reports',
-			managersOnly: 'Generate reports for your team'
+			description: 'Team analytics and reports',
+			permission: 'reports:read:team'
+		},
+		{
+			title: 'Team Documents',
+			url: '/dashboard/management/documents',
+			icon: FolderOpen,
+			description: 'Team document management',
+			permission: 'documents:read:team'
 		}
 	];
 
 	// Admin submenu (only when expanded)
-	// T024: Updated admin navigation per specifications
-	// T044-T046: Added Feature 020 audit logging pages
+	// Requires read:all permissions for system-wide access
 	const adminItems = [
-		{ title: 'All Tasks', url: '/dashboard/tasks', icon: ListTodo },
-		{ title: 'All Documents', url: '/dashboard/admin/documents', icon: FolderOpen },
-		{ title: 'User Management', url: '/dashboard/admin/users', icon: Users },
-		{ title: 'Task Types', url: '/dashboard/admin/task-types', icon: Tags },
-		{ title: 'System Settings', url: '/dashboard/admin/settings', icon: Settings },
-		{ title: 'Audit Logs', url: '/dashboard/activities/logs', icon: FileText },
-		{ title: 'Rollback Requests', url: '/dashboard/activities/rollback-requests', icon: Clock, superAdminOnly: true },
-		{ title: 'Bulk Rollback', url: '/dashboard/activities/bulk-rollback', icon: Activity, superAdminOnly: true },
-		{ title: 'Analytics Dashboard', url: '/dashboard/admin/analytics', icon: BarChart3 },
-		{ title: 'Compliance Reports', url: '/dashboard/admin/compliance', icon: Shield }
+		{
+			title: 'All Employees',
+			url: '/dashboard/admin/employees',
+			icon: Users,
+			permission: 'employees:read:all'
+		},
+		{
+			title: 'All Departments',
+			url: '/dashboard/admin/departments',
+			icon: Building2,
+			permission: 'departments:read:all'
+		},
+		{
+			title: 'All Tasks',
+			url: '/dashboard/admin/tasks',
+			icon: ListTodo,
+			permission: 'tasks:read:all'
+		},
+		{
+			title: 'All Documents',
+			url: '/dashboard/admin/documents',
+			icon: FolderOpen,
+			permission: 'documents:read:all'
+		},
+		{
+			title: 'All Reports',
+			url: '/dashboard/admin/reports',
+			icon: BarChart3,
+			permission: 'reports:read:all'
+		},
+		{
+			title: 'User Management',
+			url: '/dashboard/admin/users',
+			icon: User,
+			permission: 'users:read:all'
+		},
+		{
+			title: 'Roles & Permissions',
+			url: '/dashboard/admin/permissions',
+			icon: Shield,
+			permissionAny: ['roles:read:all', 'permissions:read:all']
+		},
+		{
+			title: 'System Settings',
+			url: '/dashboard/admin/settings',
+			icon: Settings,
+			permission: 'admin:read:all'
+		},
+		{
+			title: 'Audit Logs',
+			url: '/dashboard/admin/audit',
+			icon: FileText,
+			permission: 'activities:read:all'
+		},
+		{
+			title: 'Analytics Dashboard',
+			url: '/dashboard/admin/analytics',
+			icon: BarChart3,
+			permissionAny: ['reports:read:all', 'reports:analytics']
+		},
+		{
+			title: 'Rollback Requests',
+			url: '/dashboard/activities/rollback-requests',
+			icon: Clock,
+			superAdminOnly: true,
+			permission: 'admin:read:all'
+		},
+		{
+			title: 'Bulk Rollback',
+			url: '/dashboard/activities/bulk-rollback',
+			icon: Activity,
+			superAdminOnly: true,
+			permission: 'admin:read:all'
+		}
 	];
 
 	// Filter menu items based on permissions
@@ -323,6 +481,40 @@
 		});
 		console.log('[Sidebar] Filtered nav items:', filtered.length, 'of', navMain.length);
 		console.log('[Sidebar] Filtered items:', filtered.map(i => i.title));
+		return filtered;
+	});
+
+	// Filter management items based on read:team or read:all permissions
+	const filteredManagementItems = $derived.by(() => {
+		const filtered = managementItems.filter(item => {
+			// Check permission or permissionAny
+			if ((item as any).permission) {
+				return hasPermission((item as any).permission);
+			} else if ((item as any).permissionAny) {
+				return hasAnyPermission(...(item as any).permissionAny);
+			}
+			return true;
+		});
+		console.log('[Sidebar] Filtered management items:', filtered.length, 'of', managementItems.length);
+		return filtered;
+	});
+
+	// Filter admin items based on read:all permissions and role
+	const filteredAdminItems = $derived.by(() => {
+		const filtered = adminItems.filter(item => {
+			// Check super admin only items
+			if ((item as any).superAdminOnly && !isSuperAdmin) {
+				return false;
+			}
+			// Check permission or permissionAny
+			if ((item as any).permission) {
+				return hasPermission((item as any).permission);
+			} else if ((item as any).permissionAny) {
+				return hasAnyPermission(...(item as any).permissionAny);
+			}
+			return true;
+		});
+		console.log('[Sidebar] Filtered admin items:', filtered.length, 'of', adminItems.length);
 		return filtered;
 	});
 
@@ -443,7 +635,7 @@
 
 			{#if expandedSections.management}
 				<div class="ml-4 mt-1 space-y-1 border-l border-sidebar-border pl-3">
-					{#each managementItems as item}
+					{#each filteredManagementItems as item}
 						{@const ItemIcon = item.icon}
 						<a
 							href={item.url}
@@ -451,26 +643,16 @@
 							class:bg-primary={$page.url.pathname === item.url}
 							class:text-primary-foreground={$page.url.pathname === item.url}
 							class:font-medium={$page.url.pathname === item.url}
-							title={isAdmin ? item.description : (item.managersOnly || item.description)}
+							title={item.description}
 						>
 							<ItemIcon class="h-3.5 w-3.5" />
 							<span class="flex-1">{item.title}</span>
-							{#if !isAdmin && item.managersOnly}
-								<span
-									class="rounded bg-blue-100 px-1.5 py-0.5 text-[9px] font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-									title={item.managersOnly}
-								>
-									My Team
-								</span>
-							{/if}
-							{#if isAdmin && item.url.includes('/management/')}
-								<span
-									class="rounded bg-purple-100 px-1.5 py-0.5 text-[9px] font-medium text-purple-700 dark:bg-purple-900 dark:text-purple-300"
-									title="Full access to all departments"
-								>
-									All
-								</span>
-							{/if}
+							<span
+								class="rounded bg-blue-100 px-1.5 py-0.5 text-[9px] font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+								title="Team-level access"
+							>
+								Team
+							</span>
 						</a>
 					{/each}
 				</div>
@@ -498,30 +680,28 @@
 
 			{#if expandedSections.administration}
 				<div class="ml-4 mt-1 space-y-0.5 pl-3">
-					{#each adminItems as item}
-						{#if !item.superAdminOnly || isSuperAdmin}
-							{@const ItemIcon = item.icon}
-							<a
-								href={item.url}
-								class="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-70"
-								class:bg-primary={$page.url.pathname === item.url}
-								class:text-primary-foreground={$page.url.pathname === item.url}
-								class:font-medium={$page.url.pathname === item.url}
-							>
-								<ItemIcon class="h-3.5 w-3.5" />
-								<span class="flex-1">{item.title}</span>
-								<!-- T024: "All" badge for admin items -->
-								{#if item.superAdminOnly}
-									<span class="rounded-sm bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:bg-red-500/20 dark:text-red-400">
-										Super
-									</span>
-								{:else}
-									<span class="rounded-sm bg-green-500/10 px-1.5 py-0.5 text-[10px] font-medium text-green-600 dark:bg-green-500/20 dark:text-green-400">
-										All
-									</span>
-								{/if}
-							</a>
-						{/if}
+					{#each filteredAdminItems as item}
+						{@const ItemIcon = item.icon}
+						<a
+							href={item.url}
+							class="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-70"
+							class:bg-primary={$page.url.pathname === item.url}
+							class:text-primary-foreground={$page.url.pathname === item.url}
+							class:font-medium={$page.url.pathname === item.url}
+						>
+							<ItemIcon class="h-3.5 w-3.5" />
+							<span class="flex-1">{item.title}</span>
+							<!-- Badge indicating access level -->
+							{#if item.superAdminOnly}
+								<span class="rounded-sm bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:bg-red-500/20 dark:text-red-400">
+									Super
+								</span>
+							{:else}
+								<span class="rounded-sm bg-green-500/10 px-1.5 py-0.5 text-[10px] font-medium text-green-600 dark:bg-green-500/20 dark:text-green-400">
+									All
+								</span>
+							{/if}
+						</a>
 					{/each}
 				</div>
 			{/if}

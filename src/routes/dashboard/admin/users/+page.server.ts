@@ -3,15 +3,14 @@
 
 import type { PageServerLoad } from './$types';
 import { createUrqlClient, executeQuery, serializeCookies } from '$lib/graphql/client';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 import { error } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async ({ locals, url, parent, cookies, fetch: fetchFn }) => {
-	// Get isAdmin flag from parent layout
-	const { isAdmin } = await parent();
+export const load: PageServerLoad = async (event) => {
+	const { locals, url, cookies, fetch: fetchFn } = event;
 
-	if (!isAdmin) {
-		error(403, 'Admin access required');
-	}
+	// Check authentication and permissions
+	PermissionChecks.adminRead(event);
 
 	// Get pagination parameters - reduced to 20 for better performance
 	const page = parseInt(url.searchParams.get('page') || '1');

@@ -4,25 +4,15 @@
 
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { getUserPermissions } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, url, cookies } = event;
 
-	// Step 1: Validate authentication
-	if (!locals.user) {
-		redirect(303, `/login?redirectTo=${encodeURIComponent(url.pathname)}`);
-	}
-
-	// Step 2: Check RBAC permissions - only admins and HR managers can access audit logs
-	const userRole = locals.user.role || 'employee';
-	const allowedRoles = ['super_admin', 'system_admin', 'admin', 'hr_admin'];
-
-	if (!allowedRoles.includes(userRole)) {
-		error(403, {
-        			message: 'Access denied. Only administrators can view audit logs.'
-        		});
-	}
+	// Check authentication and permissions
+	requireAuth(event, {
+		requiredPermissions: ['audit:read']
+	});
 
 	try {
 		// Step 3: Parse URL query parameters for filtering and pagination

@@ -3,15 +3,14 @@
 
 import type { PageServerLoad } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 
-export const load: PageServerLoad = async ({ locals, parent, cookies }) => {
-	// Auth check already done by admin +layout.server.ts
-	const { isAdmin } = await parent();
+export const load: PageServerLoad = async (event) => {
+	const { locals, cookies } = event;
 
-	if (!isAdmin) {
-		throw new Error('Admin access required');
-	}
+	// Check authentication and permissions
+	PermissionChecks.adminRead(event);
 
 	try {
 		// Ensure backend is ready before proceeding

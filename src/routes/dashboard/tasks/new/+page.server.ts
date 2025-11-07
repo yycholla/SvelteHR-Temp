@@ -9,15 +9,8 @@ import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
 export const load: PageServerLoad = async (event) => {
 	const { locals, cookies, url } = event;
 
-	// RBAC: Check task creation permissions
-	try {
-		if (!locals.user) {
-			error(401, { message: 'Authentication required' });
-		}
-	} catch (err) {
-		console.error('[Task Create] Permission check failed:', err);
-		error(403, { message: 'Insufficient permissions to create tasks' });
-	}
+	// Check authentication and permissions
+	PermissionChecks.tasksWrite(event);
 
 	// Import required models
 	const { createDataRequest } = await import('$lib/models/data-request');
@@ -235,10 +228,8 @@ export const actions: Actions = {
 	default: async (event) => {
 		const { request, locals } = event;
 
-		// Check authentication
-		if (!locals.user) {
-			error(401, { message: 'Authentication required' });
-		}
+		// Check authentication and permissions
+		PermissionChecks.tasksWrite(event);
 
 		try {
 			const formData = await request.formData();

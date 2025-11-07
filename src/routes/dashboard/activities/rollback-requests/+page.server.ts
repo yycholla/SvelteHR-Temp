@@ -11,14 +11,15 @@ import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { ensureBackendReady } from '$lib/server/backend-init';
+import { requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, url, cookies } = event;
 
-	// RBAC: Authentication required
-	if (!locals.user) {
-		redirect(303, `/login?redirectTo=${encodeURIComponent(url.pathname)}`);
-	}
+	// Check authentication and permissions
+	requireAuth(event, {
+		requiredPermissions: ['activities:write']
+	});
 
 	try {
 		// Check backend services are ready before proceeding

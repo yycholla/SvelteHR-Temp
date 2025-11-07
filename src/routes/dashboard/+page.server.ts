@@ -4,16 +4,15 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
+import { requireAuth } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, url, cookies } = event;
 
-	// Verify user is authenticated
-	if (!locals.user?.id) {
-		error(401, 'Authentication required');
-	}
+	// Check authentication (all authenticated users can access dashboard)
+	requireAuth(event, {});
 
 	// Fetch weather data from wttr.in as a promise (non-blocking)
 	const weatherPromise = fetch('https://wttr.in/Boise?format=3', {

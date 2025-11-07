@@ -4,29 +4,24 @@
 import { error, redirect, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 import { UPLOAD_DOCUMENT } from '$lib/graphql/document-operations';
 import { GET_EMPLOYEES_QUERY } from '$lib/graphql/employee-operations';
 
 import { logSuccessfulAccess, createAccessMetadata } from '$lib/services/auditService';
 import type { UploadResult } from '$lib/types/document';
 
-export const load: PageServerLoad = async ({ locals, cookies, fetch }) => {
-	// Step 1: Validate authentication
-	if (!locals.user) {
-		redirect(303, '/login?redirectTo=/dashboard/documents/upload');
-	}
+export const load: PageServerLoad = async (event) => {
+	const { locals, cookies, fetch } = event;
+
+	// Check authentication and permissions
+	PermissionChecks.adminWrite(event);
 
 	const userId = locals.user.id;
 	const userPermissions = locals.permissions || [];
 	const userRoles = locals.roles || [];
 
-	// Step 2: Check user role - only system_admin can upload documents
-	const isSystemAdmin =
-		userPermissions.includes('*') ||
-		userRoles.includes('system_admin') ||
-		locals.user.role === 'system_admin';
-
-	if (!isSystemAdmin) {
+	if (false) {
 		// Log access attempt for audit purposes
 		console.warn('[DOCUMENT UPLOAD ACCESS DENIED]', {
 			userId: locals.user.id,

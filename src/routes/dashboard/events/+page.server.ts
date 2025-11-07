@@ -6,6 +6,7 @@ import type { PageServerLoad, Actions } from './$types';
 import { error, redirect, fail } from '@sveltejs/kit';
 import { EventsOperations } from '$lib/graphql/events-operations';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 import type { EventVisibilityType, EventStatus, EventType } from '$lib/graphql/types';
 import { gql } from '@urql/svelte';
 // Feature 026: Import GraphQL operations for comments, history, waitlist
@@ -18,10 +19,12 @@ import {
 } from '$lib/graphql/events-operations';
 
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
-	// Check authentication
+	// Check authentication and permissions
 	if (!locals.user) {
 		redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
+
+	PermissionChecks.eventsRead({ locals, url, cookies } as any);
 
 	// T036: Session-based authentication - jwtToken not needed
 	const userCredentials = {
@@ -114,13 +117,11 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			).length
 		};
 
-		// Check permissions - manager role and above can create events
-		const hasWildcardPermission = locals.permissions?.includes('*');
-		const roleLevel = getRoleLevel(locals.user.role);
+		// Check if user has event write permissions
+		const userPermissions = locals.permissions || [];
 		const canCreateEvents =
-			hasWildcardPermission ||
-			locals.permissions?.includes('manage_events') ||
-			roleLevel >= 60; // Manager and above
+			userPermissions.includes('*') ||
+			userPermissions.includes('events:write');
 
 		// Feature 027: Fetch all employees for attendee picker in event creation
 		const FETCH_ALL_EMPLOYEES = gql`
@@ -326,19 +327,11 @@ async function fetchUserWaitlistStatus(
 
 // Form actions
 export const actions: Actions = {
-	updateEventTime: async ({ request, locals, cookies }) => {
-		// Check authentication
-		if (!locals.user) {
-			return fail(401, { error: 'Authentication required' });
-		}
+	updateEventTime: async (event) => {
+		const { request, locals, cookies } = event;
 
-		// Check permissions (manager or admin)
-		const hasWildcardPermission = locals.permissions?.includes('*');
-		const roleLevel = getRoleLevel(locals.user.role);
-
-		if (!hasWildcardPermission && roleLevel < 60) {
-			return fail(403, { error: 'Access denied. Manager privileges required.' });
-		}
+		// Check authentication and permissions
+		PermissionChecks.eventsWrite(event);
 
 		// Parse form data
 		const formData = await request.formData();
@@ -400,19 +393,11 @@ export const actions: Actions = {
 		}
 	},
 
-	createEvent: async ({ request, locals, cookies, fetch: eventFetch }) => {
-		// Check authentication
-		if (!locals.user) {
-			return fail(401, { error: 'Authentication required' });
-		}
+	createEvent: async (event) => {
+		const { request, locals, cookies, fetch: eventFetch } = event;
 
-		// Check permissions
-		const hasWildcardPermission = locals.permissions?.includes('*');
-		const roleLevel = getRoleLevel(locals.user.role);
-
-		if (!hasWildcardPermission && roleLevel < 60) {
-			return fail(403, { error: 'Access denied. Manager privileges required.' });
-		}
+		// Check authentication and permissions
+		PermissionChecks.eventsWrite(event);
 
 		// Parse form data
 		const formData = await request.formData();
@@ -503,11 +488,11 @@ export const actions: Actions = {
 		}
 	},
 
-	updateEvent: async ({ request, locals, cookies }) => {
-		// Check authentication
-		if (!locals.user) {
-			return fail(401, { error: 'Authentication required' });
-		}
+	updateEvent: async (event) => {
+		const { request, locals, cookies } = event;
+
+		// Check authentication and permissions
+		PermissionChecks.eventsWrite(event);
 
 		// Parse form data
 		const formData = await request.formData();
@@ -594,19 +579,11 @@ export const actions: Actions = {
 		}
 	},
 
-	deleteEvent: async ({ request, locals, cookies }) => {
-		// Check authentication
-		if (!locals.user) {
-			return fail(401, { error: 'Authentication required' });
-		}
+	deleteEvent: async (event) => {
+		const { request, locals, cookies } = event;
 
-		// Check permissions
-		const hasWildcardPermission = locals.permissions?.includes('*');
-		const roleLevel = getRoleLevel(locals.user.role);
-
-		if (!hasWildcardPermission && roleLevel < 60) {
-			return fail(403, { error: 'Access denied. Manager privileges required.' });
-		}
+		// Check authentication and permissions
+		PermissionChecks.eventsWrite(event);
 
 		// Parse form data
 		const formData = await request.formData();
@@ -645,14 +622,13 @@ export const actions: Actions = {
 		}
 	},
 
-	updateRsvpStatus: async ({ request, locals, cookies }) => {
+	updateRsvpStatus: async (event) => {
+		const { request, locals, cookies } = event;
+
 		console.log('[SERVER] updateRsvpStatus action called');
 
-		// Check authentication
-		if (!locals.user) {
-			console.error('[SERVER] No user in locals');
-			return fail(401, { error: 'Authentication required' });
-		}
+		// Check authentication and permissions
+		PermissionChecks.eventsRead(event);
 
 		console.log('[SERVER] User authenticated:', locals.user.id);
 
@@ -786,11 +762,11 @@ export const actions: Actions = {
 		}
 	},
 
-	setEventReminder: async ({ request, locals, cookies }) => {
-		// Check authentication
-		if (!locals.user) {
-			return fail(401, { error: 'Authentication required' });
-		}
+	setEventReminder: async (event) => {
+		const { request, locals, cookies } = event;
+
+		// Check authentication and permissions
+		PermissionChecks.eventsRead(event);
 
 		// Parse form data
 		const formData = await request.formData();

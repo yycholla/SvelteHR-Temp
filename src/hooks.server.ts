@@ -459,9 +459,19 @@ export const handle: Handle = sequence(Sentry.sentryHandle(), async ({ event, re
 
 		return response;
 	} catch (error) {
-		// Handle authentication errors
-		if (error instanceof Response && error.status === 303) {
-			throw error; // Re-throw redirects
+		// Handle SvelteKit redirects and errors - these are special error objects, not Response instances
+		// Check for redirect by status property (3xx status codes)
+		if (error && typeof error === 'object' && 'status' in error) {
+			const statusCode = (error as any).status;
+			// Re-throw all redirects (3xx) and SvelteKit errors (4xx, 5xx with body property)
+			if ((statusCode >= 300 && statusCode < 400) || ('body' in error)) {
+				throw error;
+			}
+		}
+
+		// Also check for Response instances (belt and suspenders approach)
+		if (error instanceof Response && error.status >= 300 && error.status < 400) {
+			throw error;
 		}
 
 		logger.error('Handle error', error instanceof Error ? error : new Error(String(error)), {

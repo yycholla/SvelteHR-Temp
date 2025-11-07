@@ -4,30 +4,17 @@
 
 import type { PageServerLoad, Actions } from './$types';
 import { error, fail } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, cookies, url } = event;
 
 	// RBAC: Check task read permissions
-	// All Tasks page is restricted to hr_admin and system_admin only
+	// All Tasks page requires admin-level access (tasks:read:all)
 	// Managers and employees should use My Tasks and Team Tasks instead
-	if (!locals.user) {
-		error(401, { message: 'Authentication required' });
-	}
-
-	// Check if user has hr_admin or system_admin role
-	const userRoles = locals.roles || [];
-	const canAccessAllTasks =
-		userRoles.includes('hr_admin') ||
-		userRoles.includes('system_admin') ||
-		userRoles.includes('super_admin');
-
-	if (!canAccessAllTasks) {
-		error(403, {
-        			message: 'Access denied. All Tasks is restricted to administrators. Please use My Tasks or Team Tasks instead.'
-        		});
-	}
+	requireAuth(event, {
+		requiredPermissions: ['tasks:read:all', 'admin:read']
+	});
 
 	// Import required models for standardized error handling
 	const { createDataRequest } = await import('$lib/models/data-request');

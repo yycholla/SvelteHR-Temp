@@ -4,14 +4,14 @@
 import type { PageServerLoad, Actions } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, url, cookies, fetch: fetchFn } = event;
 
-	// Authorization is handled by parent layout (+layout.server.ts)
-	const parentData = await event.parent();
-	const { hasManagerAccess, isAdmin } = parentData;
+	// Check authentication and permissions
+	PermissionChecks.leaveApproval(event);
 
 	try {
 		// Check backend services are ready before proceeding

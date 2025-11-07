@@ -3,13 +3,16 @@
 
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 import { transaction, setJWTClaims } from '$lib/server/db';
 
 export const load: PageServerLoad = async ({ params, locals, fetch }) => {
-	// Step 1: Validate authentication
+	// Check authentication and permissions
 	if (!locals.user) {
 		redirect(303, `/login?redirectTo=/dashboard/documents/${params.id}`);
 	}
+
+	PermissionChecks.documentsRead({ params, locals, fetch } as any);
 
 	const documentId = params.id;
 	const userId = locals.user.id;

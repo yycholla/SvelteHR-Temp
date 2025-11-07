@@ -4,29 +4,27 @@
  * Task: T035
  *
  * Server-side data loading for reviews management page
- * Implements RBAC filtering based on user role
+ * Implements permission-based access control
  */
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { canCreateReview } from '$lib/utils/rbac';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 
-export const load: PageServerLoad = async ({ locals, url, cookies }) => {
-	// Check if user is authenticated
-	if (!locals.user) {
-		error(401, 'Authentication required');
-	}
+export const load: PageServerLoad = async (event) => {
+	const { locals, url, cookies } = event;
+
+	// Check authentication and permissions
+	PermissionChecks.performanceRead(event);
 
 	const userId = locals.user.id;
-	const userRole = locals.user.role || 'employee';
+	const userPermissions = locals.permissions || [];
 
-	// Check if user can create reviews (used later for employee loading)
+	// Check if user can create reviews (write permission)
 	const canCreate =
-		userRole === 'admin' ||
-		userRole === 'super_admin' ||
-		userRole === 'hr_manager' ||
-		userRole === 'manager';
+		userPermissions.includes('*') ||
+		userPermissions.includes('performance:write');
 
 	// Extract search parameters
 	const page = parseInt(url.searchParams.get('page') || '1', 10);

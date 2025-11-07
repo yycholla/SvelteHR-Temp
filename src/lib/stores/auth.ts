@@ -222,6 +222,10 @@ export const authActions = {
 				credentials: 'include' // Include session cookies for server-side session clearing
 			}).catch((err) => console.warn('Logout endpoint failed:', err));
 
+			// Clear permission test mode on logout
+			const { clearTestModeOnLogout } = await import('$lib/stores/permission-test');
+			clearTestModeOnLogout();
+
 			// No client-side token storage to clear - session-based auth only
 		} catch (error) {
 			console.warn('Logout error:', error);

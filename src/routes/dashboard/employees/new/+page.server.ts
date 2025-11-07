@@ -3,25 +3,13 @@
 
 import type { PageServerLoad, Actions } from './$types';
 import { error, redirect, fail } from '@sveltejs/kit';
-import { getUserPermissions } from '$lib/server/rbac-utils';
+import { getUserPermissions, PermissionChecks } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, cookies } = event;
 
-	// Ensure user is authenticated
-	if (!locals.user) {
-		error(401, 'Authentication required');
-	}
-
-	// RBAC: Use proper permission checking
-	const userPermissions = getUserPermissions(locals);
-
-	// Check if user has employee management permissions
-	// This checks for both 'employees:write' permission AND admin/system_admin role
-	if (!userPermissions.canManageEmployees) {
-		console.log('[Employee New] Access denied. User role:', locals.user.role, 'Permissions:', locals.permissions, 'Roles:', locals.roles);
-		error(403, 'Access denied. Admin privileges required to create employees.');
-	}
+	// Check authentication and permissions
+	PermissionChecks.employeeWrite(event);
 
 	try {
 		// Make direct GraphQL calls to Rust GraphQL backend with session-based authentication
@@ -106,15 +94,8 @@ export const actions: Actions = {
 	default: async (event) => {
 		const { request, cookies, locals } = event;
 
-		// RBAC: Use proper permission checking
-		const userPermissions = getUserPermissions(locals);
-
-		if (!userPermissions.canManageEmployees) {
-			console.log('[Employee New] Create denied. User role:', locals.user?.role, 'Permissions:', locals.permissions);
-			return fail(403, {
-				error: 'Access denied. Admin privileges required to create employees.'
-			});
-		}
+		// Check authentication and permissions
+		PermissionChecks.employeeWrite(event);
 
 		try {
 			const formData = await request.formData();

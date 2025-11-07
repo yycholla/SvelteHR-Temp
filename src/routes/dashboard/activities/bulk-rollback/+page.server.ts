@@ -11,23 +11,16 @@ import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { ensureBackendReady } from '$lib/server/backend-init';
+import { requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, url, cookies } = event;
 
-	// RBAC: Only system_admin can access bulk rollback
-	if (!locals.user) {
-		redirect(303, `/login?redirectTo=${encodeURIComponent(url.pathname)}`);
-	}
-
-	const userRole = locals.user.role || 'Employee';
-	const isSystemAdmin = userRole === 'system_admin';
-
-	if (!isSystemAdmin) {
-		error(403, {
-        			message: 'Access denied. Only system administrators can perform bulk rollback operations.'
-        		});
-	}
+	// Check authentication and permissions (bulk rollback requires write and delete)
+	requireAuth(event, {
+		requiredPermissions: ['activities:write', 'activities:delete'],
+		requireAll: true
+	});
 
 	try {
 		// Check backend services are ready before proceeding
@@ -176,15 +169,14 @@ export const load: PageServerLoad = async (event) => {
 };
 
 export const actions: Actions = {
-	createBatch: async ({ request, locals, cookies }) => {
-		if (!locals.user) {
-			return { success: false, error: 'Not authenticated' };
-		}
+	createBatch: async (event) => {
+		const { request, locals, cookies } = event;
 
-		const userRole = locals.user.role || 'Employee';
-		if (userRole !== 'system_admin') {
-			return { success: false, error: 'Access denied. Only system administrators can create bulk rollback batches.' };
-		}
+		// Check authentication and permissions
+		requireAuth(event, {
+			requiredPermissions: ['activities:write', 'activities:delete'],
+			requireAll: true
+		});
 
 		try {
 			const formData = await request.formData();

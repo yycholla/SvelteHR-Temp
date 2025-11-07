@@ -10,25 +10,8 @@ export const load: PageServerLoad = async (event) => {
 	const { locals, cookies, params } = event;
 	const { id: taskId } = params;
 
-	// RBAC: Check task edit permissions and user session validity
-	try {
-		if (!locals.user) {
-			error(401, { message: 'Authentication required' });
-		}
-
-		// Validate user ID exists - required for UserSession creation
-		if (!locals.user.id) {
-			console.error('[Task Edit] User ID missing from locals.user:', {
-				user: locals.user,
-				hasUser: !!locals.user,
-				userId: locals.user.id
-			});
-			error(401, { message: 'Invalid user session - please login again' });
-		}
-	} catch (err) {
-		console.error('[Task Edit] Permission check failed:', err);
-		error(403, { message: 'Insufficient permissions to edit tasks' });
-	}
+	// Check authentication and permissions
+	PermissionChecks.tasksRead(event);
 
 	// Import required models
 	const { createDataRequest } = await import('$lib/models/data-request');
@@ -275,10 +258,8 @@ export const actions: Actions = {
 		const { request, locals, params } = event;
 		const { id: taskId } = params;
 
-		// Check authentication
-		if (!locals.user) {
-			error(401, { message: 'Authentication required' });
-		}
+		// Check authentication and permissions
+		PermissionChecks.tasksWrite(event);
 
 		// Declare formDataEntries outside try block for catch block access
 		let formDataEntries: Record<string, any> = {};

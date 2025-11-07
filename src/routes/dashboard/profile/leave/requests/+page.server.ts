@@ -3,6 +3,7 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 import { getLeaveTypeColor } from '$lib/graphql/queries/leave-requests';
 
@@ -34,10 +35,8 @@ function getLeaveTypeCodeFromPolicy(policyName: string): string {
 export const load: PageServerLoad = async (event) => {
 	const { locals, url, cookies } = event;
 
-	// Verify user is authenticated
-	if (!locals.user?.id) {
-		error(401, 'Authentication required');
-	}
+	// Check authentication and permissions
+	PermissionChecks.leaveRead(event);
 
 	// Use authenticated user's ID
 	const userId = locals.user.id;

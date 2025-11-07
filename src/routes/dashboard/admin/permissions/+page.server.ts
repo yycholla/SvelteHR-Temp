@@ -8,6 +8,7 @@ import {
 	executeMutation,
 	serializeCookies
 } from '$lib/graphql/client';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 import {
 	GET_ROLES_WITH_PERMISSIONS,
 	GET_ALL_PERMISSIONS,
@@ -38,13 +39,11 @@ function checkAdminAccess(locals: App.Locals): boolean {
 	);
 }
 
-export const load: PageServerLoad = async ({ locals, parent, fetch: fetchFn, cookies }) => {
-	// Get isAdmin flag from parent layout
-	const { isAdmin } = await parent();
+export const load: PageServerLoad = async (event) => {
+	const { locals, fetch: fetchFn, cookies } = event;
 
-	if (!isAdmin) {
-		error(403, 'Admin access required');
-	}
+	// Check authentication and permissions
+	PermissionChecks.adminRead(event);
 
 	try {
 		// Create GraphQL client with server-side fetch (session-based auth)

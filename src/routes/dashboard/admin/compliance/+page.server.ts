@@ -3,14 +3,13 @@
 
 import type { PageServerLoad } from './$types';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 
-export const load: PageServerLoad = async ({ locals, parent, cookies }) => {
-	// Auth check already done by admin +layout.server.ts
-	const { isAdmin } = await parent();
+export const load: PageServerLoad = async (event) => {
+	const { locals, cookies } = event;
 
-	if (!isAdmin) {
-		throw new Error('Admin access required');
-	}
+	// Check authentication and permissions
+	PermissionChecks.adminRead(event);
 
 	try {
 		const cookieHeader = serializeCookies(cookies);

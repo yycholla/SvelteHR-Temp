@@ -18,8 +18,16 @@
 	import * as Table from '$lib/components/ui/table';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
+	import { permissionTestActions, isTestModeActive } from '$lib/stores/permission-test';
+	import { Beaker } from '@lucide/svelte';
 
 	let { data } = $props();
+
+	// Debug logging
+	console.log('[PERMISSIONS PAGE] Data:', data);
+	console.log('[PERMISSIONS PAGE] Roles:', data.roles);
+	console.log('[PERMISSIONS PAGE] Permissions:', data.permissions);
+	console.log('[PERMISSIONS PAGE] Users:', data.users);
 
 	// State management using Svelte 5 runes
 	let activeTab = $state<'roles' | 'users'>('roles');
@@ -43,6 +51,26 @@
 	let permissionsSelection = $state<Set<string>>(new Set());
 	let loading = $state(false);
 	let actionResult = $state<{ success?: boolean; message?: string; error?: string } | null>(null);
+
+	// Test mode state
+	let selectedTestRoleId = $state<string>('');
+
+	// Handle test mode
+	function startTestMode() {
+		const role = data.roles.find((r: any) => r.id === selectedTestRoleId);
+		if (!role) return;
+
+		// Get all permission strings for this role
+		const rolePermissions = role.permissions?.map((p: any) => `${p.resource}:${p.action}`) || [];
+		const currentPermissions = data.permissions?.map((p: any) => `${p.resource}:${p.action}`) || [];
+
+		permissionTestActions.startTestMode(
+			role.id,
+			role.name,
+			rolePermissions,
+			currentPermissions
+		);
+	}
 
 	// Derived states
 	let filteredRoles = $derived(
@@ -179,10 +207,34 @@
 				Manage roles, permissions, and user access control
 			</p>
 		</div>
-		<Button onclick={openCreateRoleDialog}>
-			<Plus class="mr-2 h-4 w-4" />
-			Create Role
-		</Button>
+		<div class="flex items-center gap-3">
+			<!-- Test Permissions UI (only show when NOT already testing) -->
+			{#if !$isTestModeActive}
+				<div class="flex items-center gap-2">
+					<select
+						bind:value={selectedTestRoleId}
+						class="rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+					>
+						<option value="">Select role to test...</option>
+						{#each data.roles as role}
+							<option value={role.id}>{role.name}</option>
+						{/each}
+					</select>
+					<Button
+						variant="outline"
+						onclick={startTestMode}
+						disabled={!selectedTestRoleId}
+					>
+						<Beaker class="mr-2 h-4 w-4" />
+						Test Permissions
+					</Button>
+				</div>
+			{/if}
+			<Button onclick={openCreateRoleDialog}>
+				<Plus class="mr-2 h-4 w-4" />
+				Create Role
+			</Button>
+		</div>
 	</div>
 
 	<!-- Error/Success Messages -->

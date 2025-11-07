@@ -1,24 +1,31 @@
 // User Attendance - Server-Side Data Loading
 // Implements proper PostGraphile GraphQL queries with backend initialization
-import type { PageServerLoad } from './$types';
+import type { PageServerLoad} from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, params, url, cookies } = event;
 
-	// Verify user is authenticated
-	if (!locals.user?.id) {
-		error(401, 'Authentication required');
-	}
+	// Check authentication and permissions (with scope validation)
+	PermissionChecks.attendanceRead(event);
 
-	// Verify user can access this attendance data (own data or has management permissions)
-	let userId = params.id;
-	const canViewOthers = locals.roles?.includes('admin') || locals.roles?.includes('manager');
+	// Scope validation: Check if user can view THIS specific employee's data
+	const userId = params.id;
+	const userPermissions = locals.permissions || [];
+	const isViewingSelf = locals.user?.id === userId;
 
-	if (!canViewOthers && locals.user?.id !== userId) {
-		error(403, 'Access denied: You can only view your own attendance records');
+	// If not viewing self, check for team or all scope
+	if (!isViewingSelf) {
+		const hasTeamScope = userPermissions.includes('attendance:read:team') || userPermissions.includes('attendance:read:all');
+		if (!hasTeamScope && !userPermissions.includes('*')) {
+			error(403, 'Access denied: You can only view your own attendance records');
+		}
+
+		// TODO: Add team validation if user only has team scope
+		// Should verify that the target user is in the same team/department
 	}
 
 	try {

@@ -4,17 +4,19 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 import { GET_DOCUMENTS } from '$lib/graphql/document-operations';
 
 export const load: PageServerLoad = async ({ url, locals, cookies }) => {
-	// Step 1: Validate authentication
+	// Check authentication and permissions
 	if (!locals.user) {
 		redirect(303, '/login?redirectTo=/dashboard/documents');
 	}
 
+	PermissionChecks.documentsRead({ url, locals, cookies } as any);
+
 	const userId = locals.user.id;
 	const userPermissions = locals.permissions || [];
-	const isAdmin = userPermissions.includes('*') || userPermissions.includes('documents:*');
 
 	try {
 		// Step 2: Parse query parameters

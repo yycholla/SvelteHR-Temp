@@ -4,19 +4,22 @@
  * Task: T037
  *
  * Server-side data loading for individual review detail page
- * Implements RBAC permission checking
+ * Implements permission-based access control
  */
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { canViewReview, canEditReview } from '$lib/utils/rbac';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 
-export const load: PageServerLoad = async ({ params, locals, cookies, fetch: fetchFn }) => {
+export const load: PageServerLoad = async (event) => {
+	const { params, locals, cookies, fetch: fetchFn } = event;
 	const reviewId = params.id;
 
-	// Authentication handled by server hooks
+	// Check authentication and permissions
+	PermissionChecks.performanceRead(event);
+
 	const userId = locals.user.id;
-	const userRole = locals.user.role || 'employee';
+	const userPermissions = locals.permissions || [];
 
 	try {
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');

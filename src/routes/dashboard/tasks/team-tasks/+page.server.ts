@@ -4,15 +4,13 @@
 
 import type { PageServerLoad, Actions } from './$types';
 import { error, fail } from '@sveltejs/kit';
-import { getUserPermissions } from '$lib/server/rbac-utils';
+import { getUserPermissions, PermissionChecks } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, cookies, url } = event;
 
-	// Check authentication
-	if (!locals.user) {
-		error(401, { message: 'Authentication required' });
-	}
+	// Check authentication and permissions
+	PermissionChecks.tasksRead(event);
 
 	// Import required models
 	const { createUserSession } = await import('$lib/models/user-session');
@@ -269,10 +267,8 @@ export const actions: Actions = {
 	default: async (event) => {
 		const { request, locals } = event;
 
-		// Check authentication
-		if (!locals.user) {
-			error(401, { message: 'Authentication required' });
-		}
+		// Check authentication and permissions
+		PermissionChecks.tasksWrite(event);
 
 		try {
 			const formData = await request.formData();

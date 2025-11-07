@@ -8,26 +8,15 @@
 import type { PageServerLoad, Actions } from './$types';
 import { error, redirect, fail } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 
-export const load: PageServerLoad = async ({ locals, url, cookies }) => {
-	// Check authentication
-	if (!locals.user) {
-		redirect(303, '/login');
-	}
+export const load: PageServerLoad = async (event) => {
+	const { locals, url, cookies } = event;
+
+	// Check authentication and permissions (write required to create reviews)
+	PermissionChecks.performanceWrite(event);
 
 	const userId = locals.user.id;
-	const userRole = locals.user.role || 'employee';
-
-	// Check if user can create reviews
-	const canCreate =
-		userRole === 'admin' ||
-		userRole === 'super_admin' ||
-		userRole === 'hr_manager' ||
-		userRole === 'manager';
-
-	if (!canCreate) {
-		error(403, 'You do not have permission to create reviews');
-	}
 
 	// Get employee ID from URL parameter (optional)
 	const employeeId = url.searchParams.get('employee');

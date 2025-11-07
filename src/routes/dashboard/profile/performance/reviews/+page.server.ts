@@ -3,6 +3,7 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 
 // Helper functions for review type mapping
@@ -55,10 +56,8 @@ function mapReviewStatus(status: string): string {
 export const load: PageServerLoad = async (event) => {
 	const { locals, url, cookies } = event;
 
-	// Verify user is authenticated
-	if (!locals.user?.id) {
-		error(401, 'Authentication required');
-	}
+	// Check authentication and permissions
+	PermissionChecks.performanceRead(event);
 
 	// Use authenticated user's ID
 	const userId = locals.user.id;

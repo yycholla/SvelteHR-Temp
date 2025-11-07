@@ -6,6 +6,7 @@
 
 import type { PageServerLoad, Actions } from './$types';
 import { error, redirect, fail } from '@sveltejs/kit';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 
 // TODO: Implement once GraphQL operations are defined and token handling is fixed
 // import { createUrqlClient } from '$lib/graphql/client';
@@ -13,10 +14,12 @@ import { error, redirect, fail } from '@sveltejs/kit';
 // import type { EventNotificationPreferences } from '$lib/graphql/events-operations';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-	// Check authentication
+	// Check authentication and permissions
 	if (!locals.user) {
 		redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
+
+	PermissionChecks.eventsRead({ locals, url } as any);
 
 	// TODO: Implement notification preferences loading
 	console.warn('[EventSettings] Notification preferences temporarily disabled - returning defaults');
@@ -41,10 +44,11 @@ export const actions = {
 	/**
 	 * Update notification preferences
 	 */
-	updatePreferences: async ({ locals }) => {
-		if (!locals.user) {
-			error(401, 'Unauthorized');
-		}
+	updatePreferences: async (event) => {
+		const { locals } = event;
+
+		// Check authentication and permissions
+		PermissionChecks.eventsWrite(event);
 
 		// TODO: Implement notification preferences update
 		console.warn('[EventSettings] Notification preferences update temporarily disabled');

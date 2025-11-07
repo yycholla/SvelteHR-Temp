@@ -3,46 +3,22 @@
 
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { requireAuth } from '$lib/server/rbac-utils';
 import { transaction } from '$lib/server/db';
 
 export const load: PageServerLoad = async ({ url, locals, fetch }) => {
-	// Step 1: Validate authentication
+	// Check authentication and permissions
 	if (!locals.user) {
 		redirect(303, '/login?redirectTo=/dashboard/documents/audit');
 	}
 
+	requireAuth({ url, locals, fetch } as any, {
+		requiredPermissions: ['documents:audit', 'audit:read']
+	});
+
 	const userId = locals.user.id;
 	const userPermissions = locals.permissions || [];
 	const userRoles = locals.roles || [];
-
-	// Step 2: Check user role - only system_admin can access audit logs
-	const isSystemAdmin =
-		userPermissions.includes('*') ||
-		userRoles.includes('system_admin') ||
-		locals.user.role === 'system_admin';
-
-	if (!isSystemAdmin) {
-		// Log access attempt for audit purposes
-		console.warn('[DOCUMENT AUDIT ACCESS DENIED]', {
-			userId: locals.user.id,
-			userEmail: locals.user.email,
-			userRole: locals.user.role,
-			roles: userRoles,
-			permissions: userPermissions,
-			timestamp: new Date().toISOString()
-		});
-
-		error(403, {
-        			message: 'Insufficient permissions. Document audit logs require system administrator access.'
-        		});
-	}
-
-	// Log successful access
-	console.info('[DOCUMENT AUDIT ACCESS GRANTED]', {
-		userId: locals.user.id,
-		userEmail: locals.user.email,
-		timestamp: new Date().toISOString()
-	});
 
 	try {
 		// Step 3: Parse query parameters
@@ -147,8 +123,7 @@ export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 			},
 			user: locals.user,
 			userPermissions,
-			userRoles,
-			isSystemAdmin
+			userRoles
 		};
 	} catch (err) {
 		console.error('Audit log load error:', err);

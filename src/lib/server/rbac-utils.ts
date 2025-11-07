@@ -120,127 +120,165 @@ export function requireAuth(event: RequestEvent, config: RBACConfig = {}): void 
 
 /**
  * Specific permission checks for common scenarios
+ * Updated to use scoped read permissions (read:self, read:team, read:all)
  */
 export const PermissionChecks = {
-	// Dashboard access
+	// Dashboard access - requires at least self-level access
 	dashboard: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['dashboard:read']
+			requiredPermissions: ['dashboard:read:self', 'dashboard:read:team', 'dashboard:read:all', 'dashboard:read']
 		}),
 
-	// Employee management
+	// Employee management - accepts any level of read access
 	employeeRead: (event: RequestEvent) =>
 		requireAuth(event, {
-			allowedRoles: ['system_admin', 'admin', 'manager', 'hr_manager', 'employee'] // All authenticated users can view employee directory
+			requiredPermissions: ['employees:read:self', 'employees:read:team', 'employees:read:all', 'employees:read']
 		}),
 	employeeWrite: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['employees:write'],
-			allowedRoles: ['system_admin', 'admin'] // Admin+ only for create/edit
+			requiredPermissions: ['employees:write']
 		}),
 	employeeManagement: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['employees:read'],
-			allowedRoles: ['admin', 'manager']
+			requiredPermissions: ['employees:read:team', 'employees:read:all', 'employees:read'],
+			allowedRoles: ['admin', 'manager', 'hr_admin']
 		}),
 
-	// Department management
+	// Department management - accepts any level of read access
 	departmentRead: (event: RequestEvent) =>
 		requireAuth(event, {
-			allowedRoles: ['system_admin', 'admin', 'manager', 'hr_manager', 'employee'] // All authenticated users can view departments
+			requiredPermissions: ['departments:read:self', 'departments:read:team', 'departments:read:all', 'departments:read']
 		}),
 	departmentWrite: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['departments:write'],
-			allowedRoles: ['system_admin', 'admin'] // Admin+ only for create/edit
+			requiredPermissions: ['departments:write']
 		}),
 
-	// Team management
+	// Team management - requires at least team-level access
 	teamRead: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['teams:read']
+			requiredPermissions: ['teams:read:team', 'teams:read:all', 'teams:read']
 		}),
 	teamWrite: (event: RequestEvent) =>
 		requireAuth(event, {
 			requiredPermissions: ['teams:write']
 		}),
 
-	// Management pages (requires manager level or above)
+	// Management pages - requires team or all-level access
 	management: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['management:read'],
-			allowedRoles: ['system_admin', 'admin', 'manager']
+			requiredPermissions: ['management:read:team', 'management:read:all', 'management:read']
 		}),
 	managementWrite: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['management:write'],
-			allowedRoles: ['system_admin', 'admin', 'manager']
+			requiredPermissions: ['management:write']
 		}),
 
-	// Leave management
+	// Leave management - accepts any level of read access
 	leaveRead: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['leave:read']
+			requiredPermissions: ['leave:read:self', 'leave:read:team', 'leave:read:all', 'leave:read']
 		}),
 	leaveApproval: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['leave:approve'],
-			allowedRoles: ['system_admin', 'admin', 'manager']
+			requiredPermissions: ['leave:approve']
 		}),
 
-	// Performance management
+	// Performance management - accepts any level of read access
 	performanceRead: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['performance:read']
+			requiredPermissions: ['performance:read:self', 'performance:read:team', 'performance:read:all', 'performance:read']
 		}),
 	performanceWrite: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['performance:write'],
-			allowedRoles: ['system_admin', 'admin', 'manager']
+			requiredPermissions: ['performance:write']
 		}),
 
-	// Goals and OKRs
+	// Goals and OKRs - accepts any level of read access
 	goalsRead: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['goals:read']
+			requiredPermissions: ['goals:read:self', 'goals:read:team', 'goals:read:all', 'goals:read']
 		}),
 	goalsWrite: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['goals:write'],
-			allowedRoles: ['system_admin', 'admin', 'manager']
+			requiredPermissions: ['goals:write']
 		}),
 
-	// Reports
+	// Reports - accepts any level of read access
 	reportsRead: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['reports:read']
+			requiredPermissions: ['reports:read:self', 'reports:read:team', 'reports:read:all', 'reports:read']
 		}),
 	reportsWrite: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['reports:write'],
-			allowedRoles: ['system_admin', 'admin', 'manager']
+			requiredPermissions: ['reports:write']
 		}),
 	reportsExecute: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['reports:execute'],
-			allowedRoles: ['system_admin', 'admin', 'manager']
+			requiredPermissions: ['reports:execute']
 		}),
 	reportsAnalytics: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['reports:analytics'],
-			allowedRoles: ['system_admin', 'admin', 'manager']
+			requiredPermissions: ['reports:analytics']
 		}),
 
-	// Admin pages
+	// Admin pages - requires all-level access
 	adminRead: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['admin:read'],
-			allowedRoles: ['system_admin', 'admin']
+			requiredPermissions: ['admin:read:all', 'admin:read']
 		}),
 	adminWrite: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['admin:write'],
-			allowedRoles: ['system_admin', 'admin']
+			requiredPermissions: ['admin:write']
+		}),
+
+	// Additional scoped permission checks
+	// Tasks
+	tasksRead: (event: RequestEvent) =>
+		requireAuth(event, {
+			requiredPermissions: ['tasks:read:self', 'tasks:read:team', 'tasks:read:all', 'tasks:read']
+		}),
+	tasksWrite: (event: RequestEvent) =>
+		requireAuth(event, {
+			requiredPermissions: ['tasks:write']
+		}),
+	tasksDelete: (event: RequestEvent) =>
+		requireAuth(event, {
+			requiredPermissions: ['tasks:delete']
+		}),
+
+	// Documents
+	documentsRead: (event: RequestEvent) =>
+		requireAuth(event, {
+			requiredPermissions: ['documents:read:self', 'documents:read:team', 'documents:read:all', 'documents:read']
+		}),
+	documentsWrite: (event: RequestEvent) =>
+		requireAuth(event, {
+			requiredPermissions: ['documents:write']
+		}),
+	documentsDelete: (event: RequestEvent) =>
+		requireAuth(event, {
+			requiredPermissions: ['documents:delete']
+		}),
+
+	// Events
+	eventsRead: (event: RequestEvent) =>
+		requireAuth(event, {
+			requiredPermissions: ['events:read:self', 'events:read:team', 'events:read:all', 'events:read']
+		}),
+	eventsWrite: (event: RequestEvent) =>
+		requireAuth(event, {
+			requiredPermissions: ['events:write']
+		}),
+
+	// Attendance
+	attendanceRead: (event: RequestEvent) =>
+		requireAuth(event, {
+			requiredPermissions: ['attendance:read:self', 'attendance:read:team', 'attendance:read:all', 'attendance:read']
+		}),
+	attendanceWrite: (event: RequestEvent) =>
+		requireAuth(event, {
+			requiredPermissions: ['attendance:write']
 		})
 };
 
@@ -364,62 +402,152 @@ export async function canEditEmployee(
 
 /**
  * Get user permissions for client-side components
+ * Updated to support scoped read permissions (read:self, read:team, read:all)
  */
 export function getUserPermissions(locals: App.Locals) {
+	const userPerms = locals.permissions || [];
+	const userRoles = locals.roles || [];
+
 	return {
 		user: locals.user,
-		permissions: locals.permissions || [],
-		roles: locals.roles || [],
+		permissions: userPerms,
+		roles: userRoles,
 
-		// Computed permission checks
-		// Employee permissions - purely permission-based (no role checks)
-		canViewEmployees: hasPermission(locals.permissions || [], ['employees:read']),
-		canEditEmployees: hasPermission(locals.permissions || [], ['employees:write']),
-		canDeleteEmployees: hasPermission(locals.permissions || [], ['employees:delete']),
-		canCreateEmployees: hasPermission(locals.permissions || [], ['employees:write']),
-		// Legacy permission for backward compatibility
-		canManageEmployees: hasPermission(locals.permissions || [], ['employees:write']),
-		// Managers and above can view inactive employees
-		canViewInactiveEmployees: hasRole(locals.roles || [], ['system_admin', 'admin', 'manager', 'hr_manager']),
-		canViewDepartments: hasPermission(locals.permissions || [], ['departments:read']),
-		canManageDepartments:
-			hasPermission(locals.permissions || [], ['departments:write']) &&
-			hasRole(locals.roles || [], ['system_admin', 'admin']), // Restrict to admin+ only
-		canViewTeams: hasPermission(locals.permissions || [], ['teams:read']),
-		canManageTeams: hasPermission(locals.permissions || [], ['teams:write']),
-		canViewManagement:
-			hasPermission(locals.permissions || [], ['management:read']) ||
-			hasRole(locals.roles || [], ['system_admin', 'admin', 'manager']),
-		canManageLeave:
-			hasPermission(locals.permissions || [], ['leave:approve']) ||
-			hasRole(locals.roles || [], ['system_admin', 'admin', 'manager']),
-		canManagePerformance:
-			hasPermission(locals.permissions || [], ['performance:write']) ||
-			hasRole(locals.roles || [], ['system_admin', 'admin', 'manager']),
-		canManageGoals:
-			hasPermission(locals.permissions || [], ['goals:write']) ||
-			hasRole(locals.roles || [], ['system_admin', 'admin', 'manager']),
-		canViewReports: hasPermission(locals.permissions || [], ['reports:read']),
-		canCreateReports:
-			hasPermission(locals.permissions || [], ['reports:write']) ||
-			hasRole(locals.roles || [], ['system_admin', 'admin', 'manager']),
-		canExecuteReports:
-			hasPermission(locals.permissions || [], ['reports:execute']) ||
-			hasRole(locals.roles || [], ['system_admin', 'admin', 'manager']),
-		canViewAnalytics:
-			hasPermission(locals.permissions || [], ['reports:analytics']) ||
-			hasRole(locals.roles || [], ['system_admin', 'admin', 'manager']),
-		canViewAdmin:
-			hasPermission(locals.permissions || [], ['admin:read']) ||
-			hasRole(locals.roles || [], ['system_admin', 'admin']),
-		canManageAdmin:
-			hasPermission(locals.permissions || [], ['admin:write']) ||
-			hasRole(locals.roles || [], ['system_admin', 'admin']),
+		// Computed permission checks with scoped read support
+		// Employee permissions
+		canViewEmployees: hasPermission(userPerms, [
+			'employees:read:self',
+			'employees:read:team',
+			'employees:read:all',
+			'employees:read'
+		]),
+		canEditEmployees: hasPermission(userPerms, ['employees:write']),
+		canDeleteEmployees: hasPermission(userPerms, ['employees:delete']),
+		canCreateEmployees: hasPermission(userPerms, ['employees:write']),
+		canManageEmployees: hasPermission(userPerms, ['employees:write']),
+		canViewInactiveEmployees: hasRole(userRoles, ['system_admin', 'admin', 'hr_admin', 'manager']),
+
+		// Department permissions
+		canViewDepartments: hasPermission(userPerms, [
+			'departments:read:self',
+			'departments:read:team',
+			'departments:read:all',
+			'departments:read'
+		]),
+		canManageDepartments: hasPermission(userPerms, ['departments:write']),
+		canDeleteDepartments: hasPermission(userPerms, ['departments:delete']),
+
+		// Team permissions
+		canViewTeams: hasPermission(userPerms, [
+			'teams:read:self',
+			'teams:read:team',
+			'teams:read:all',
+			'teams:read'
+		]),
+		canManageTeams: hasPermission(userPerms, ['teams:write']),
+		canDeleteTeams: hasPermission(userPerms, ['teams:delete']),
+
+		// Management permissions
+		canViewManagement: hasPermission(userPerms, [
+			'management:read:team',
+			'management:read:all',
+			'management:read'
+		]),
+		canManageManagement: hasPermission(userPerms, ['management:write']),
+
+		// Leave permissions
+		canViewLeave: hasPermission(userPerms, [
+			'leave:read:self',
+			'leave:read:team',
+			'leave:read:all',
+			'leave:read'
+		]),
+		canManageLeave: hasPermission(userPerms, ['leave:approve', 'leave:write']),
+		canDeleteLeave: hasPermission(userPerms, ['leave:delete']),
+
+		// Performance permissions
+		canViewPerformance: hasPermission(userPerms, [
+			'performance:read:self',
+			'performance:read:team',
+			'performance:read:all',
+			'performance:read'
+		]),
+		canManagePerformance: hasPermission(userPerms, ['performance:write']),
+		canDeletePerformance: hasPermission(userPerms, ['performance:delete']),
+
+		// Goals permissions
+		canViewGoals: hasPermission(userPerms, [
+			'goals:read:self',
+			'goals:read:team',
+			'goals:read:all',
+			'goals:read'
+		]),
+		canManageGoals: hasPermission(userPerms, ['goals:write']),
+		canDeleteGoals: hasPermission(userPerms, ['goals:delete']),
+
+		// Reports permissions
+		canViewReports: hasPermission(userPerms, [
+			'reports:read:self',
+			'reports:read:team',
+			'reports:read:all',
+			'reports:read'
+		]),
+		canCreateReports: hasPermission(userPerms, ['reports:write']),
+		canExecuteReports: hasPermission(userPerms, ['reports:execute']),
+		canViewAnalytics: hasPermission(userPerms, ['reports:analytics']),
+		canDeleteReports: hasPermission(userPerms, ['reports:delete']),
+
+		// Tasks permissions
+		canViewTasks: hasPermission(userPerms, [
+			'tasks:read:self',
+			'tasks:read:team',
+			'tasks:read:all',
+			'tasks:read'
+		]),
+		canManageTasks: hasPermission(userPerms, ['tasks:write']),
+		canDeleteTasks: hasPermission(userPerms, ['tasks:delete']),
+		canReassignTasks: hasPermission(userPerms, ['tasks:reassign']),
+
+		// Documents permissions
+		canViewDocuments: hasPermission(userPerms, [
+			'documents:read:self',
+			'documents:read:team',
+			'documents:read:all',
+			'documents:read'
+		]),
+		canManageDocuments: hasPermission(userPerms, ['documents:write']),
+		canDeleteDocuments: hasPermission(userPerms, ['documents:delete']),
+		canAuditDocuments: hasPermission(userPerms, ['documents:audit']),
+
+		// Events permissions
+		canViewEvents: hasPermission(userPerms, [
+			'events:read:self',
+			'events:read:team',
+			'events:read:all',
+			'events:read'
+		]),
+		canManageEvents: hasPermission(userPerms, ['events:write']),
+		canDeleteEvents: hasPermission(userPerms, ['events:delete']),
+
+		// Attendance permissions
+		canViewAttendance: hasPermission(userPerms, [
+			'attendance:read:self',
+			'attendance:read:team',
+			'attendance:read:all',
+			'attendance:read'
+		]),
+		canManageAttendance: hasPermission(userPerms, ['attendance:write']),
+		canDeleteAttendance: hasPermission(userPerms, ['attendance:delete']),
+
+		// Admin permissions
+		canViewAdmin: hasPermission(userPerms, ['admin:read:all', 'admin:read']),
+		canManageAdmin: hasPermission(userPerms, ['admin:write']),
+		canDeleteAdmin: hasPermission(userPerms, ['admin:delete']),
 
 		// Role checks
-		isAdmin: hasRole(locals.roles || [], ['system_admin', 'admin']),
-		isManager: hasRole(locals.roles || [], ['system_admin', 'admin', 'manager']),
-		isEmployee: hasRole(locals.roles || [], ['employee'])
+		isAdmin: hasRole(userRoles, ['system_admin', 'admin', 'hr_admin']),
+		isManager: hasRole(userRoles, ['system_admin', 'admin', 'hr_admin', 'manager']),
+		isEmployee: hasRole(userRoles, ['employee'])
 	};
 }
 

@@ -5,13 +5,16 @@
 import type { PageServerLoad, Actions } from './$types';
 import { error, redirect, fail } from '@sveltejs/kit';
 import { EventsOperations } from '$lib/graphql/events-operations';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 import { createUrqlClient } from '$lib/graphql/client';
 
 export const load: PageServerLoad = async ({ params, locals, url, cookies }) => {
-	// Check authentication
+	// Check authentication and permissions
 	if (!locals.user) {
 		redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
+
+	PermissionChecks.eventsRead({ params, locals, url, cookies } as any);
 
 	// T036: Session-based authentication - jwtToken not needed
 	const userCredentials = {
@@ -117,11 +120,11 @@ function getRoleLevel(role: string | undefined): number {
 }
 
 export const actions: Actions = {
-	delete: async ({ params, locals, cookies }) => {
-		// Check authentication
-		if (!locals.user) {
-			redirect(303, '/login');
-		}
+	delete: async (event) => {
+		const { params, locals, cookies } = event;
+
+		// Check authentication and permissions
+		PermissionChecks.eventsWrite(event);
 
 		// T036: Session-based authentication - jwtToken not needed
 		const userCredentials = {

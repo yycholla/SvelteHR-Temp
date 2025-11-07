@@ -10,15 +10,8 @@ export const load: PageServerLoad = async (event) => {
 	const { locals, cookies, params } = event;
 	const { id: taskId } = params;
 
-	// RBAC: Check task read permissions
-	try {
-		if (!locals.user) {
-			error(401, { message: 'Authentication required' });
-		}
-	} catch (err) {
-		console.error('[Task Details] Permission check failed:', err);
-		error(403, { message: 'Insufficient permissions to view task details' });
-	}
+	// Check authentication and permissions
+	PermissionChecks.tasksRead(event);
 
 	// Import required models
 	const { createDataRequest } = await import('$lib/models/data-request');

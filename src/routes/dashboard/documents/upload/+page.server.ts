@@ -4,6 +4,7 @@
 import { error, redirect, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 import { UPLOAD_DOCUMENT } from '$lib/graphql/document-operations';
 import { GET_EMPLOYEES_QUERY } from '$lib/graphql/employee-operations';
 
@@ -11,43 +12,16 @@ import { logSuccessfulAccess, createAccessMetadata } from '$lib/services/auditSe
 import type { UploadResult } from '$lib/types/document';
 
 export const load: PageServerLoad = async ({ locals, cookies, fetch }) => {
-	// Step 1: Validate authentication
+	// Check authentication and permissions
 	if (!locals.user) {
 		redirect(303, '/login?redirectTo=/dashboard/documents/upload');
 	}
 
+	PermissionChecks.documentsWrite({ locals, cookies, fetch } as any);
+
 	const userId = locals.user.id;
 	const userPermissions = locals.permissions || [];
 	const userRoles = locals.roles || [];
-
-	// Step 2: Check user role - only system_admin can upload documents
-	const isSystemAdmin =
-		userPermissions.includes('*') ||
-		userRoles.includes('system_admin') ||
-		locals.user.role === 'system_admin';
-
-	if (!isSystemAdmin) {
-		// Log access attempt for audit purposes
-		console.warn('[DOCUMENT UPLOAD ACCESS DENIED]', {
-			userId: locals.user.id,
-			userEmail: locals.user.email,
-			userRole: locals.user.role,
-			roles: userRoles,
-			permissions: userPermissions,
-			timestamp: new Date().toISOString()
-		});
-
-		error(403, {
-        			message: 'Insufficient permissions. Document upload requires system administrator access.'
-        		});
-	}
-
-	// Log successful access
-	console.info('[DOCUMENT UPLOAD ACCESS GRANTED]', {
-		userId: locals.user.id,
-		userEmail: locals.user.email,
-		timestamp: new Date().toISOString()
-	});
 
 	try {
 		// Step 3: Load document categories (would come from database)
@@ -113,7 +87,6 @@ export const load: PageServerLoad = async ({ locals, cookies, fetch }) => {
 			user: locals.user,
 			userPermissions,
 			userRoles,
-			isSystemAdmin,
 			categories,
 			employeeOptions,
 			departments,
@@ -137,35 +110,14 @@ export const load: PageServerLoad = async ({ locals, cookies, fetch }) => {
 // Server-side actions for document upload
 export const actions: Actions = {
 	upload: async ({ request, locals, cookies, fetch }) => {
-		// Step 1: Validate authentication
+		// Check authentication and permissions
 		if (!locals.user) {
 			redirect(303, '/login?redirectTo=/dashboard/documents/upload');
 		}
 
+		PermissionChecks.documentsWrite({ request, locals, cookies, fetch } as any);
+
 		const userId = locals.user.id;
-		const userPermissions = locals.permissions || [];
-		const userRoles = locals.roles || [];
-
-		// Step 2: Check user role - only system_admin can upload documents
-		const isSystemAdmin =
-			userPermissions.includes('*') ||
-			userRoles.includes('system_admin') ||
-			locals.user.role === 'system_admin';
-
-		if (!isSystemAdmin) {
-			console.warn('[DOCUMENT UPLOAD ACTION DENIED]', {
-				userId: locals.user.id,
-				userEmail: locals.user.email,
-				userRole: locals.user.role,
-				roles: userRoles,
-				permissions: userPermissions,
-				timestamp: new Date().toISOString()
-			});
-
-			return fail(403, {
-				error: 'Insufficient permissions. Document upload requires system administrator access.'
-			});
-		}
 
 		try {
 			// Step 3: Parse form data (now expecting raw file, not encrypted)

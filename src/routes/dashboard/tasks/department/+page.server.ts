@@ -6,26 +6,16 @@ import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { ensureBackendReady } from '$lib/server/backend-init';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 import type { TaskStatus, TaskPriority } from '$lib/graphql/types';
 
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
-	// Check authentication
+	// Check authentication and permissions
 	if (!locals.user) {
 		redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
-	// Check if user has manager or higher privileges
-	const userPermissions = locals.permissions || [];
-	const hasManagerAccess =
-		userPermissions.includes('*') ||
-		userPermissions.includes('tasks:department') ||
-		userPermissions.includes('management:read');
-
-	if (!hasManagerAccess) {
-		error(403, {
-        			message: 'Access denied. Manager privileges required to view department tasks.'
-        		});
-	}
+	PermissionChecks.tasksRead({ locals, url, cookies } as any);
 
 	try {
 		// Ensure backend is ready before proceeding
@@ -48,15 +38,11 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			selectedDepartmentId = locals.user.department_id;
 		}
 
-		// Check if user is admin (can view all departments)
-		const userRoles = locals.roles || [];
+		// Check if user has broad scope permissions (can view all departments)
+		const userPermissions = locals.permissions || [];
 		const isAdmin =
 			userPermissions.includes('*') ||
-			userPermissions.includes('admin:read') ||
-			userRoles.includes('system_admin') ||
-			userRoles.includes('admin') ||
-			locals.user.role === 'system_admin' ||
-			locals.user.role === 'admin';
+			userPermissions.includes('tasks:read:all');
 
 		if (!selectedDepartmentId && !isAdmin) {
 			error(400, {

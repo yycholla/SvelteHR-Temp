@@ -5,24 +5,16 @@
 import type { PageServerLoad, Actions } from './$types';
 import { error, redirect, fail } from '@sveltejs/kit';
 import { createUrqlClient } from '$lib/graphql/client';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 import { EventsOperations } from '$lib/graphql/events-operations';
 
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
-	// Check authentication
+	// Check authentication and permissions
 	if (!locals.user) {
 		redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
-	// T036: Session-based authentication - no token checks needed
-	// Check permissions - manager role and above can create events
-	const hasWildcardPermission = locals.permissions?.includes('*');
-	const roleLevel = getRoleLevel(locals.user.role);
-
-	if (!hasWildcardPermission && roleLevel < 60) {
-		error(403, {
-        			message: 'Access denied. Manager privileges or higher required to create events.'
-        		});
-	}
+	PermissionChecks.eventsWrite({ locals, url, cookies } as any);
 
 	try {
 		// Get date/time parameters from URL (from calendar click or selection)
@@ -185,29 +177,11 @@ function getDefaultEndTime(): string {
 
 // Form actions
 export const actions: Actions = {
-	default: async ({ request, locals, cookies, fetch: eventFetch }) => {
-		// Check authentication
-		if (!locals.user) {
-			redirect(303, '/login');
-		}
+	default: async (event) => {
+		const { request, locals, cookies, fetch: eventFetch } = event;
 
-		// T036: Session-based authentication - no token checks needed
-		// Check permissions - manager role and above can create events
-		const hasWildcardPermission = locals.permissions?.includes('*');
-		const roleLevel = getRoleLevel(locals.user.role);
-
-		// Debug logging
-		console.log('[Event Create] User:', {
-			userId: locals.user.id,
-			role: locals.user.role,
-			roleLevel,
-			permissions: locals.permissions,
-			hasWildcard: hasWildcardPermission
-		});
-
-		if (!hasWildcardPermission && roleLevel < 60) {
-			return fail(403, { error: 'Access denied. Manager privileges or higher required.' });
-		}
+		// Check authentication and permissions
+		PermissionChecks.eventsWrite(event);
 
 		// Parse form data
 		const formData = await request.formData();

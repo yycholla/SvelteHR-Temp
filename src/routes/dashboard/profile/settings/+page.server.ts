@@ -4,12 +4,13 @@
 import type { PageServerLoad, Actions } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 
-export const load: PageServerLoad = async ({ locals, cookies }) => {
-	// Verify user is authenticated
-	if (!locals.user?.id) {
-		error(401, 'Authentication required');
-	}
+export const load: PageServerLoad = async (event) => {
+	const { locals, cookies } = event;
+
+	// Check authentication and permissions
+	PermissionChecks.employeeRead(event);
 
 	const userId = locals.user.id;
 

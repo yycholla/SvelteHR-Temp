@@ -1,13 +1,18 @@
 <script lang="ts">
 	import HrAppSidebar from '$lib/components/hr-app-sidebar.svelte';
 	import PageLoading from '$lib/components/ui/page-loading.svelte';
+	import TestModeBanner from '$lib/components/test-mode-banner.svelte';
 	import { isAuthenticated } from '$lib/stores/auth';
 	import { notificationStore } from '$lib/stores/notifications';
 	import { goto } from '$app/navigation';
 	import { onMount, onDestroy } from 'svelte';
+	import { getEffectivePermissions, effectivePermissions } from '$lib/stores/permission-test';
 	import type { LayoutData } from './$types';
 
 	let { children, data }: { children: any; data: LayoutData } = $props();
+
+	// Compute effective permissions (test mode or real)
+	let permissions = $derived(getEffectivePermissions(data.permissions || []));
 
 	// Redirect to login if not authenticated - runs only on client
 	onMount(() => {
@@ -31,11 +36,14 @@
 </script>
 
 {#if $isAuthenticated}
+	<!-- Test Mode Banner (appears above everything when active) -->
+	<TestModeBanner />
+
 	<!-- Dashboard Layout: Fixed sidebar with content area -->
 	<div class="min-h-screen bg-sidebar">
 		<!-- Fixed Sidebar - stays constant across all dashboard routes -->
 		<aside class="fixed left-0 top-0 z-10 h-full w-64 bg-sidebar" aria-label="Main navigation">
-			<HrAppSidebar />
+			<HrAppSidebar {permissions} />
 		</aside>
 
 		<!-- Main Content Area - only this content changes between routes -->
