@@ -15,12 +15,13 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	const userRoles = locals.roles || [];
 
 	// Admin access granted if:
-	// 1. User has wildcard (*) permission
+	// 1. User has wildcard (*) or (*:*) permission
 	// 2. User has admin:read permission
 	// 3. User has system_admin role
 	// 4. User has admin role
 	const isAdmin =
 		userPermissions.includes('*') ||
+		userPermissions.includes('*:*') ||
 		userPermissions.includes('admin:read') ||
 		userRoles.includes('system_admin') ||
 		userRoles.includes('admin');

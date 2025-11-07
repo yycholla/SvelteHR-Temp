@@ -470,7 +470,7 @@ export function canManageDepartment(
 ): boolean {
 	// Admin can manage all departments
 	if (
-		userCredentials.permissions.includes('*') ||
+		userCredentials.permissions.includes('*') || userCredentials.permissions.includes('*:*') ||
 		userCredentials.permissions.includes('departments:write')
 	) {
 		return true;

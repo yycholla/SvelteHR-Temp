@@ -24,8 +24,8 @@ export function hasPermission(
 	if (!requiredPermissions || requiredPermissions.length === 0) return true;
 	if (!userPermissions || userPermissions.length === 0) return false;
 
-	// Admin users with '*' permission have access to everything
-	if (userPermissions.includes('*')) return true;
+	// Admin users with '*' or '*:*' permission have access to everything
+	if (userPermissions.includes('*') || userPermissions.includes('*:*')) return true;
 
 	if (requireAll) {
 		// User must have ALL required permissions

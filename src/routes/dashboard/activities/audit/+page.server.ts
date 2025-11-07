@@ -17,7 +17,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	// Check if user has admin privileges
 	const userPermissions = locals.permissions || [];
 	const hasAdminAccess =
-		userPermissions.includes('*') ||
+		userPermissions.includes('*') || userPermissions.includes('*:*') ||
 		userPermissions.includes('admin:read') ||
 		userPermissions.includes('audit:read');
 

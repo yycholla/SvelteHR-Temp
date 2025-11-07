@@ -143,7 +143,7 @@ export const actions: Actions = {
 
 		// Step 2: Check user role - only system_admin can upload documents
 		const isSystemAdmin =
-			userPermissions.includes('*') ||
+			userPermissions.includes('*') || userPermissions.includes('*:*') ||
 			userRoles.includes('system_admin') ||
 			locals.user.role === 'system_admin';
 

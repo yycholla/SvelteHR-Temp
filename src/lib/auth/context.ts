@@ -73,7 +73,7 @@ export function extractUserContext(event: RequestEvent): UserContext | null {
  */
 export function hasPermission(event: RequestEvent, permission: string): boolean {
 	const permissions = event.locals.permissions || [];
-	return permissions.includes('*') || permissions.includes(permission);
+	return permissions.includes('*') || permissions.includes('*:*') || permissions.includes(permission);
 }
 
 /**

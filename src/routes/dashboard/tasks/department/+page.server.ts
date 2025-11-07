@@ -41,7 +41,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		// Check if user has broad scope permissions (can view all departments)
 		const userPermissions = locals.permissions || [];
 		const isAdmin =
-			userPermissions.includes('*') ||
+			userPermissions.includes('*') || userPermissions.includes('*:*') ||
 			userPermissions.includes('tasks:read:all');
 
 		if (!selectedDepartmentId && !isAdmin) {

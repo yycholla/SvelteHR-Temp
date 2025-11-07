@@ -221,7 +221,7 @@ export class UserSession {
 	 * Whether user has specific permission
 	 */
 	hasPermission(permission: string): boolean {
-		return this.permissions.includes(permission) || this.permissions.includes('*');
+		return this.permissions.includes(permission) || this.permissions.includes('*') || this.permissions.includes('*:*');
 	}
 
 	/**

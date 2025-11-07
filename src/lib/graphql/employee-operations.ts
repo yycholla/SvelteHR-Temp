@@ -808,7 +808,7 @@ export function formatEmployeeName(employee: Employee): string {
 export function canViewEmployee(employee: Employee, userCredentials: UserCredentials): boolean {
 	// Admin can view all employees
 	if (
-		userCredentials.permissions.includes('*') ||
+		userCredentials.permissions.includes('*') || userCredentials.permissions.includes('*:*') ||
 		userCredentials.permissions.includes('employees:read')
 	) {
 		return true;

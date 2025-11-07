@@ -120,7 +120,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		// Check if user has event write permissions
 		const userPermissions = locals.permissions || [];
 		const canCreateEvents =
-			userPermissions.includes('*') ||
+			userPermissions.includes('*') || userPermissions.includes('*:*') ||
 			userPermissions.includes('events:write');
 
 		// Feature 027: Fetch all employees for attendee picker in event creation

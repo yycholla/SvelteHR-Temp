@@ -20,7 +20,7 @@ export const load: PageServerLoad = async (event) => {
 	// If not viewing self, check for team or all scope
 	if (!isViewingSelf) {
 		const hasTeamScope = userPermissions.includes('performance:read:team') || userPermissions.includes('performance:read:all');
-		if (!hasTeamScope && !userPermissions.includes('*')) {
+		if (!hasTeamScope && !userPermissions.includes('*') || userPermissions.includes('*:*')) {
 			error(403, 'Access denied: You can only view your own performance reviews');
 		}
 

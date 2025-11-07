@@ -208,7 +208,7 @@ class SecureAuthService {
 	 */
 	hasPermission(permission: string): boolean {
 		return (
-			this.authState.permissions.includes('*') || this.authState.permissions.includes(permission)
+			this.authState.permissions.includes('*') || this.authState.permissions.includes('*:*') || this.authState.permissions.includes(permission)
 		);
 	}
 
@@ -216,7 +216,7 @@ class SecureAuthService {
 	 * Check if user has any of the specified permissions
 	 */
 	hasAnyPermission(permissions: string[]): boolean {
-		if (this.authState.permissions.includes('*')) return true;
+		if (this.authState.permissions.includes('*') || this.authState.permissions.includes('*:*')) return true;
 		return permissions.some((permission) => this.authState.permissions.includes(permission));
 	}
 

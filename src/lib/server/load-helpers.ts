@@ -32,7 +32,7 @@ export async function createServerLoad<T>(
 			const permissions = event.locals.permissions || [];
 			const hasPermission = requiredPermissions.some(
 				(permission) =>
-					permissions.includes(permission) || permissions.includes('*')
+					permissions.includes(permission) || permissions.includes('*') || permissions.includes('*:*')
 			);
 
 			if (!hasPermission) {
@@ -156,7 +156,7 @@ export function checkPermissions(
 	if (!userPermissions) return false;
 
 	// Admin permission grants access to everything
-	if (userPermissions.includes('*')) return true;
+	if (userPermissions.includes('*') || userPermissions.includes('*:*')) return true;
 
 	// Check if user has any of the required permissions
 	return requiredPermissions.some((permission) => userPermissions.includes(permission));

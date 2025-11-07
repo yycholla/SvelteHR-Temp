@@ -18,10 +18,11 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	// 1. system_admin role
 	// 2. manager role
 	// 3. hr_manager role
-	// 4. Users with wildcard (*) permission
+	// 4. Users with wildcard (*) or (*:*) permission
 	// 5. Users with management:read permission
 	const hasManagerAccess =
 		userPermissions.includes('*') ||
+		userPermissions.includes('*:*') ||
 		userPermissions.includes('management:read') ||
 		userRoles.includes('system_admin') ||
 		userRoles.includes('manager') ||

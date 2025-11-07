@@ -33,6 +33,7 @@ function checkAdminAccess(locals: App.Locals): boolean {
 	const userRoles = locals.roles || [];
 	return (
 		userPermissions.includes('*') ||
+		userPermissions.includes('*:*') ||
 		userPermissions.includes('admin:read') ||
 		userRoles.includes('system_admin') ||
 		userRoles.includes('admin')

@@ -47,7 +47,7 @@ export async function canViewTask(
 	userPermissions: string[]
 ): Promise<boolean> {
 	// Admin has full access
-	if (userPermissions.includes('*') || userPermissions.includes('tasks:read')) {
+	if (userPermissions.includes('*') || userPermissions.includes('*:*') || userPermissions.includes('tasks:read')) {
 		const effectiveRole = getRolePrecedence(userRoles);
 		if (effectiveRole === 'admin' || effectiveRole === 'super_admin') {
 			return true;
@@ -93,7 +93,7 @@ export async function canEditTask(
 	userPermissions: string[]
 ): Promise<boolean> {
 	// Admin has full access
-	if (userPermissions.includes('*') || userPermissions.includes('tasks:write')) {
+	if (userPermissions.includes('*') || userPermissions.includes('*:*') || userPermissions.includes('tasks:write')) {
 		const effectiveRole = getRolePrecedence(userRoles);
 		if (effectiveRole === 'admin' || effectiveRole === 'super_admin') {
 			return true;
@@ -137,7 +137,7 @@ export async function canDeleteTask(
 	userPermissions: string[]
 ): Promise<boolean> {
 	// Admin has full access
-	if (userPermissions.includes('*') || userPermissions.includes('tasks:delete')) {
+	if (userPermissions.includes('*') || userPermissions.includes('*:*') || userPermissions.includes('tasks:delete')) {
 		const effectiveRole = getRolePrecedence(userRoles);
 		if (effectiveRole === 'admin' || effectiveRole === 'super_admin') {
 			return true;
@@ -169,7 +169,7 @@ export async function canReassignTask(
 	userPermissions: string[]
 ): Promise<boolean> {
 	// Admin has full access
-	if (userPermissions.includes('*') || userPermissions.includes('tasks:reassign')) {
+	if (userPermissions.includes('*') || userPermissions.includes('*:*') || userPermissions.includes('tasks:reassign')) {
 		const effectiveRole = getRolePrecedence(userRoles);
 		if (effectiveRole === 'admin' || effectiveRole === 'super_admin') {
 			return true;
@@ -206,7 +206,7 @@ export async function canReassignTask(
  */
 export function canCreateTask(userRoles: string[], userPermissions: string[]): boolean {
 	// Admin has full access
-	if (userPermissions.includes('*') || userPermissions.includes('tasks:create')) {
+	if (userPermissions.includes('*') || userPermissions.includes('*:*') || userPermissions.includes('tasks:create')) {
 		return true;
 	}
 

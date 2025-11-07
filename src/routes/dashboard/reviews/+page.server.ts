@@ -23,7 +23,7 @@ export const load: PageServerLoad = async (event) => {
 
 	// Check if user can create reviews (write permission)
 	const canCreate =
-		userPermissions.includes('*') ||
+		userPermissions.includes('*') || userPermissions.includes('*:*') ||
 		userPermissions.includes('performance:write');
 
 	// Extract search parameters

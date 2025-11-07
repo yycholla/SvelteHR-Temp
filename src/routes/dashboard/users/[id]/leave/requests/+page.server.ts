@@ -20,7 +20,7 @@ export const load: PageServerLoad = async (event) => {
 	// If not viewing self, check for team or all scope
 	if (!isViewingSelf) {
 		const hasTeamScope = userPermissions.includes('leave:read:team') || userPermissions.includes('leave:read:all');
-		if (!hasTeamScope && !userPermissions.includes('*')) {
+		if (!hasTeamScope && !userPermissions.includes('*') || userPermissions.includes('*:*')) {
 			error(403, 'Access denied: You can only view your own leave requests');
 		}
 
