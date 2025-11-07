@@ -209,7 +209,7 @@
 		</div>
 		<div class="flex items-center gap-3">
 			<!-- Test Permissions UI (only show when NOT already testing) -->
-			{#if !$isTestModeActive}
+			{#if !isTestModeActive()}
 				<div class="flex items-center gap-2">
 					<select
 						bind:value={selectedTestRoleId}
