@@ -80,13 +80,6 @@ function saveToStorage(state: PermissionTestState): void {
 	}
 }
 
-// Reactive persistence effect (only runs in browser)
-$effect(() => {
-	if (browser && isHydrated) {
-		saveToStorage(permissionTestState);
-	}
-});
-
 // Initialize from localStorage on client side (call this from onMount in components)
 export function hydrateFromStorage(): void {
 	if (!browser || isHydrated) return;
@@ -120,6 +113,11 @@ export const permissionTestActions = {
 			testPermissions: rolePermissions.length,
 			originalPermissions: currentPermissions.length
 		});
+
+		// Persist to localStorage
+		if (browser && isHydrated) {
+			saveToStorage(permissionTestState);
+		}
 	},
 
 	/**
@@ -131,6 +129,11 @@ export const permissionTestActions = {
 		console.log(`✓ Ended test mode for "${permissionTestState.testRoleName}"`);
 
 		permissionTestState = { ...initialState };
+
+		// Persist to localStorage (clears test mode)
+		if (browser && isHydrated) {
+			saveToStorage(permissionTestState);
+		}
 	},
 
 	/**
