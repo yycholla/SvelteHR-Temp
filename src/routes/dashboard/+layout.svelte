@@ -7,6 +7,7 @@
 	import { goto } from '$app/navigation';
 	import { onMount, onDestroy } from 'svelte';
 	import { getEffectivePermissions, effectivePermissions } from '$lib/stores/permission-test';
+	import { browser } from '$app/environment';
 	import type { LayoutData } from './$types';
 
 	let { children, data }: { children: any; data: LayoutData } = $props();
@@ -36,8 +37,10 @@
 </script>
 
 {#if $isAuthenticated}
-	<!-- Test Mode Banner (appears above everything when active) -->
-	<TestModeBanner />
+	<!-- Test Mode Banner (appears above everything when active) - client-only to prevent hydration issues -->
+	{#if browser}
+		<TestModeBanner />
+	{/if}
 
 	<!-- Dashboard Layout: Fixed sidebar with content area -->
 	<div class="min-h-screen bg-sidebar">

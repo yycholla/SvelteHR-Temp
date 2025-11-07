@@ -1,4 +1,4 @@
-FROM node:22-bullseye
+FROM node:25-bullseye
 
 # Install system dependencies including SSH server and Neovim
 RUN apt-get update && apt-get install -y \
@@ -68,12 +68,8 @@ WORKDIR /home/dev/frontend
 # Install Node.js dependencies
 RUN npm install
 
-# Install global development tools
-USER root
-RUN npm install -g @sveltejs/kit @sveltejs/adapter-auto vite
-
-# Switch back to dev user
-USER dev
+# Switch back to dev user (removed unnecessary global package installations)
+# Note: @sveltejs/kit, @sveltejs/adapter-auto, and vite are already in package.json
 
 # Configure npm cache for dev user during build
 RUN npm config set cache /home/dev/.npm \
