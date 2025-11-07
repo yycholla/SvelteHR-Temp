@@ -1,0 +1,208 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-init-velero
+  namespace: backup-system
+  labels:
+    app: minio
+    component: init
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"  # Run after MinIO deployment (wave 0)
+spec:
+  # Cleanup completed job after 1 hour
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 3
+
+  template:
+    metadata:
+      labels:
+        app: minio
+        component: init
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: minio-init
+
+      # Init container: Wait for MinIO API availability
+      initContainers:
+        - name: wait-for-minio
+          image: curlimages/curl:8.5.0
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for MinIO API to be ready..."
+              until curl -sf http://minio.backup-system.svc.cluster.local:9000/minio/health/live; do
+                echo "  MinIO is unavailable - sleeping 5s"
+                sleep 5
+              done
+              echo "MinIO is ready!"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities:
+              drop:
+                - ALL
+
+      # Main container: Create Velero service account
+      containers:
+        - name: minio-client
+          image: minio/mc:RELEASE.2024-12-13T19-45-30Z
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+
+              echo "================================================================"
+              echo "  MinIO Velero Service Account Initialization"
+              echo "================================================================"
+              echo "MinIO Host: ${MINIO_HOST}"
+              echo "Service Account: ${VELERO_ACCESS_KEY}"
+              echo "================================================================"
+              echo ""
+
+              # Configure mc alias for MinIO
+              echo "Configuring MinIO client..."
+              mc alias set myminio "${MINIO_HOST}" "${MINIO_ROOT_USER}" "${MINIO_ROOT_PASSWORD}"
+
+              # Check if service account already exists (idempotent)
+              echo "Checking if service account exists..."
+              if mc admin user svcacct info myminio "${VELERO_ACCESS_KEY}" 2>/dev/null; then
+                echo "✓ Service account '${VELERO_ACCESS_KEY}' already exists"
+                echo "  Skipping creation (idempotent)"
+              else
+                echo "Creating service account for Velero..."
+
+                # Create service account with pre-defined credentials
+                # Note: MinIO generates access key as a service account tied to root user
+                mc admin user svcacct add \
+                  --access-key "${VELERO_ACCESS_KEY}" \
+                  --secret-key "${VELERO_SECRET_KEY}" \
+                  myminio \
+                  "${MINIO_ROOT_USER}"
+
+                echo "✓ Service account created successfully"
+              fi
+
+              # Create readwrite policy for velero bucket if it doesn't exist
+              echo ""
+              echo "Configuring bucket policy..."
+
+              # Check if custom policy exists
+              if mc admin policy info myminio velero-readwrite 2>/dev/null; then
+                echo "✓ Policy 'velero-readwrite' already exists"
+              else
+                echo "Creating custom readwrite policy for velero bucket..."
+                cat > /tmp/velero-policy.json <<'EOF'
+              {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "s3:GetBucketLocation",
+                      "s3:ListBucket",
+                      "s3:ListBucketMultipartUploads"
+                    ],
+                    "Resource": [
+                      "arn:aws:s3:::velero"
+                    ]
+                  },
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "s3:AbortMultipartUpload",
+                      "s3:DeleteObject",
+                      "s3:GetObject",
+                      "s3:ListMultipartUploadParts",
+                      "s3:PutObject"
+                    ],
+                    "Resource": [
+                      "arn:aws:s3:::velero/*"
+                    ]
+                  }
+                ]
+              }
+              EOF
+
+                mc admin policy create myminio velero-readwrite /tmp/velero-policy.json
+                echo "✓ Custom policy created"
+              fi
+
+              # Attach policy to service account
+              echo "Attaching policy to service account..."
+              mc admin policy attach myminio velero-readwrite --user="${VELERO_ACCESS_KEY}"
+
+              echo ""
+              echo "================================================================"
+              echo "  ✓ MinIO initialization completed successfully!"
+              echo "================================================================"
+              echo ""
+              echo "Velero service account is ready to use."
+              echo "Access Key: ${VELERO_ACCESS_KEY}"
+              echo "Bucket: velero"
+              echo "Policy: velero-readwrite"
+              echo "================================================================"
+
+          env:
+            - name: MINIO_HOST
+              value: "http://minio.backup-system.svc.cluster.local:9000"
+
+            # MinIO root credentials for admin operations
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: minio-init-secret
+                  key: MINIO_ROOT_USER
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: minio-init-secret
+                  key: MINIO_ROOT_PASSWORD
+
+            # Velero credentials to create service account with
+            - name: VELERO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-init-secret
+                  key: VELERO_MINIO_ACCESS_KEY
+            - name: VELERO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-init-secret
+                  key: VELERO_MINIO_SECRET_KEY
+
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: minio-init
+  namespace: backup-system
+  labels:
+    app: minio
+    component: init

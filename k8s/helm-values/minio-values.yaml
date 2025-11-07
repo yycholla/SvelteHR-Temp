@@ -69,24 +69,38 @@ ingress:
   enabled: false
 
 # =============================================================================
-# Post-Installation: Velero User Configuration
+# Velero Service Account Configuration (AUTOMATED)
 # =============================================================================
 #
-# After MinIO is deployed, create Velero service account via MinIO Console:
+# Velero service account is automatically created via Kubernetes Job:
+#   - Job: k8s/manifests/backup-system/minio-init-job.yaml
+#   - Runs after MinIO deployment (ArgoCD sync wave 1)
+#   - Creates service account with credentials from Doppler
 #
-# 1. Port-forward to MinIO Console:
-#    kubectl port-forward svc/minio-console -n backup-system 9001:9001
+# Prerequisites (one-time setup):
+#   1. Generate secure credentials:
+#      VELERO_ACCESS_KEY="velero-$(openssl rand -hex 8)"
+#      VELERO_SECRET_KEY="$(openssl rand -base64 32)"
 #
-# 2. Login at http://localhost:9001
-#    Credentials synced from Doppler (MINIO_ROOT_USER / MINIO_ROOT_PASSWORD)
+#   2. Add to Doppler:
+#      VELERO_MINIO_ACCESS_KEY=<access-key>
+#      VELERO_MINIO_SECRET_KEY=<secret-key>
 #
-# 3. Create Service Account for Velero:
-#    - Navigate to: Identity > Service Accounts
-#    - Create service account with readwrite policy on velero bucket
-#    - Save Access Key and Secret Key
+#   3. ArgoCD will automatically:
+#      - Sync ExternalSecrets (minio-init-external-secret.yaml)
+#      - Run init job to create service account
+#      - Velero will use credentials from velero-credentials secret
 #
-# 4. Update Doppler with Velero credentials:
-#    VELERO_MINIO_ACCESS_KEY=<access-key>
-#    VELERO_MINIO_SECRET_KEY=<secret-key>
+# Troubleshooting:
+#   - Check job status: kubectl get jobs -n backup-system
+#   - View job logs: kubectl logs -n backup-system job/minio-init-velero
+#   - Manual creation: Access MinIO Console at http://localhost:9001
+#     (Port-forward: kubectl port-forward svc/minio-console -n backup-system 9001:9001)
+#
+# Credential Rotation:
+#   1. Generate new credentials and update Doppler
+#   2. Delete existing service account in MinIO Console
+#   3. Re-run job: kubectl delete job minio-init-velero -n backup-system
+#   4. ArgoCD will recreate the job with new credentials
 #
 # =============================================================================
