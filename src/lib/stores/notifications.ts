@@ -19,7 +19,16 @@ interface NotificationStore {
 	error: string | null;
 }
 
+// Singleton pattern: Ensure only one notification store instance exists
+let notificationStoreInstance: ReturnType<typeof createNotificationStore> | null = null;
+
 function createNotificationStore() {
+	// Return existing instance if already created (singleton pattern)
+	if (notificationStoreInstance) {
+		logger.debug('NotificationStore singleton already exists, returning existing instance');
+		return notificationStoreInstance;
+	}
+
 	const { subscribe, set, update } = writable<NotificationStore>({
 		notifications: [],
 		connected: false,
@@ -30,6 +39,7 @@ function createNotificationStore() {
 	let retryCount = 0;
 	let retryTimeoutId: ReturnType<typeof setTimeout> | null = null;
 	let isReconnecting = false;
+	let isConnecting = false; // Prevent duplicate connection attempts
 
 	// Exponential backoff configuration
 	const MAX_RETRIES = 10;
@@ -81,7 +91,7 @@ function createNotificationStore() {
 		retryTimeoutId = setTimeout(() => {
 			isReconnecting = false;
 			retryTimeoutId = null;
-			notificationStore.connect();
+			store.connect(); // Use the store instance being created
 		}, delay);
 	}
 
@@ -97,10 +107,25 @@ function createNotificationStore() {
 		}
 	}
 
-	return {
+	// Create store methods
+	const store = {
 		subscribe,
 		connect: () => {
 			if (!browser) return;
+
+			// Prevent duplicate connections (singleton guard)
+			if (isConnecting) {
+				logger.debug('NotificationStore connection already in progress, skipping');
+				return;
+			}
+
+			// Prevent connecting to already connected stream
+			if (eventSource && eventSource.readyState === EventSource.OPEN) {
+				logger.debug('NotificationStore already connected, skipping');
+				return;
+			}
+
+			isConnecting = true;
 
 			// Close existing connection
 			if (eventSource) {
@@ -121,6 +146,7 @@ function createNotificationStore() {
 
 			eventSource.onopen = () => {
 				console.log('[NotificationStore] ✅ Connected to notification stream');
+				isConnecting = false; // Reset connection guard
 				resetRetryState();
 				update((state) => ({ ...state, connected: true, error: null }));
 			};
@@ -149,6 +175,7 @@ function createNotificationStore() {
 
 			eventSource.onerror = (err) => {
 				console.error('[NotificationStore] SSE error:', err);
+				isConnecting = false; // Reset connection guard on error
 
 				// Check if it's an auth error (readyState 2 = CLOSED)
 				if (eventSource?.readyState === 2) {
@@ -179,6 +206,7 @@ function createNotificationStore() {
 		},
 		disconnect: () => {
 			console.log('[NotificationStore] Disconnecting from notification stream');
+			isConnecting = false; // Reset connection guard
 			resetRetryState();
 			if (eventSource) {
 				eventSource.close();
@@ -190,6 +218,10 @@ function createNotificationStore() {
 			update((state) => ({ ...state, notifications }));
 		}
 	};
+
+	// Cache singleton instance
+	notificationStoreInstance = store;
+	return store;
 }
 
 export const notificationStore = createNotificationStore();

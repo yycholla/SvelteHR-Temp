@@ -169,7 +169,5 @@ export const sessionAuthActions = {
 	}
 };
 
-// Auto-check auth on store initialization
-if (browser) {
-	sessionAuthActions.checkAuth();
-}
+// NOTE: Components should explicitly call sessionAuthActions.checkAuth() in onMount when needed
+// Auto-execution has been removed to prevent blocking module initialization

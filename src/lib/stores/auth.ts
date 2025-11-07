@@ -66,85 +66,111 @@ export const authStore = {
 	}
 };
 
-// Derived stores for convenience
-export const user = derived(authStore, ($auth) => $auth.user);
-export const currentUser = derived(authStore, ($auth) => $auth.user);
-export const isAuthenticated = derived(authStore, ($auth) => $auth.isAuthenticated);
-export const isLoading = derived(authStore, ($auth) => $auth.isLoading);
-export const authError = derived(authStore, ($auth) => $auth.error);
+// Consolidated derived store - Single reactive chain for optimal performance
+// This replaces 15 separate derived stores with one unified store
+export const authState = derived(authStoreInternal, ($auth) => {
+	const rbacManager = createRBACManager($auth.roles, $auth.user?.id || null);
 
-// RBAC manager derived store
-export const rbac = derived(authStore, ($auth): RBACManager => {
-	return createRBACManager($auth.roles, $auth.user?.id || null);
+	return {
+		// Basic auth state
+		user: $auth.user,
+		isAuthenticated: $auth.isAuthenticated,
+		isLoading: $auth.isLoading,
+		error: $auth.error,
+
+		// RBAC manager
+		rbac: rbacManager,
+
+		// Permission checks (computed inline for efficiency)
+		canViewUsers: (() => {
+			try {
+				return rbacManager.hasPermission('view_users');
+			} catch {
+				return false;
+			}
+		})(),
+		canManageUsers: (() => {
+			try {
+				return rbacManager.hasPermission('update_users');
+			} catch {
+				return false;
+			}
+		})(),
+		canViewSensitiveData: (() => {
+			try {
+				return rbacManager.hasPermission('view_sensitive_data');
+			} catch {
+				return false;
+			}
+		})(),
+		canManageRoles: (() => {
+			try {
+				return rbacManager.hasPermission('assign_roles');
+			} catch {
+				return false;
+			}
+		})(),
+		canApproveLeave: (() => {
+			try {
+				return rbacManager.hasPermission('approve_leave_requests');
+			} catch {
+				return false;
+			}
+		})(),
+		canManageWorkflows: (() => {
+			try {
+				return rbacManager.hasPermission('manage_workflows');
+			} catch {
+				return false;
+			}
+		})(),
+		canManageCompliance: (() => {
+			try {
+				return rbacManager.hasPermission('manage_compliance');
+			} catch {
+				return false;
+			}
+		})(),
+
+		// User role information
+		userHighestRole: (() => {
+			try {
+				const roleNames = rbacManager.getRoleNames();
+				const highestLevel = rbacManager.getHighestRoleLevel();
+				return {
+					name: roleNames.length > 0 ? roleNames[0] : 'hr_guest',
+					level: highestLevel
+				};
+			} catch {
+				return {
+					name: 'hr_guest',
+					level: 0
+				};
+			}
+		})(),
+
+		// User roles array
+		roles: $auth.roles || []
+	};
 });
 
-// Permission check derived stores for common use cases - using lazy evaluation
-export const canViewUsers = derived(rbac, ($rbac) => {
-	try {
-		return $rbac.hasPermission('view_users');
-	} catch {
-		return false;
-	}
-});
-export const canManageUsers = derived(rbac, ($rbac) => {
-	try {
-		return $rbac.hasPermission('update_users');
-	} catch {
-		return false;
-	}
-});
-export const canViewSensitiveData = derived(rbac, ($rbac) => {
-	try {
-		return $rbac.hasPermission('view_sensitive_data');
-	} catch {
-		return false;
-	}
-});
-export const canManageRoles = derived(rbac, ($rbac) => {
-	try {
-		return $rbac.hasPermission('assign_roles');
-	} catch {
-		return false;
-	}
-});
-export const canApproveLeave = derived(rbac, ($rbac) => {
-	try {
-		return $rbac.hasPermission('approve_leave_requests');
-	} catch {
-		return false;
-	}
-});
-export const canManageWorkflows = derived(rbac, ($rbac) => {
-	try {
-		return $rbac.hasPermission('manage_workflows');
-	} catch {
-		return false;
-	}
-});
-export const canManageCompliance = derived(rbac, ($rbac) => {
-	try {
-		return $rbac.hasPermission('manage_compliance');
-	} catch {
-		return false;
-	}
-});
-
-// User role information
-export const userHighestRole = derived(rbac, ($rbac) => {
-	try {
-		const roleNames = $rbac.getRoleNames();
-		const highestLevel = $rbac.getHighestRoleLevel();
-		return {
-			name: roleNames.length > 0 ? roleNames[0] : 'hr_guest',
-			level: highestLevel
-		};
-	} catch {
-		return {
-			name: 'hr_guest',
-			level: 0
-		};
-	}
-});
+// Re-export individual stores for backward compatibility
+// Components can continue using these, but they now derive from the consolidated store
+// This prevents breaking existing code while providing the performance benefits
+export const user = derived(authState, ($state) => $state.user);
+export const currentUser = derived(authState, ($state) => $state.user);
+export const isAuthenticated = derived(authState, ($state) => $state.isAuthenticated);
+export const isLoading = derived(authState, ($state) => $state.isLoading);
+export const authError = derived(authState, ($state) => $state.error);
+export const rbac = derived(authState, ($state) => $state.rbac);
+export const canViewUsers = derived(authState, ($state) => $state.canViewUsers);
+export const canManageUsers = derived(authState, ($state) => $state.canManageUsers);
+export const canViewSensitiveData = derived(authState, ($state) => $state.canViewSensitiveData);
+export const canManageRoles = derived(authState, ($state) => $state.canManageRoles);
+export const canApproveLeave = derived(authState, ($state) => $state.canApproveLeave);
+export const canManageWorkflows = derived(authState, ($state) => $state.canManageWorkflows);
+export const canManageCompliance = derived(authState, ($state) => $state.canManageCompliance);
+export const userHighestRole = derived(authState, ($state) => $state.userHighestRole);
 
 // Auth actions
 export const authActions = {
@@ -223,7 +249,7 @@ export const authActions = {
 			}).catch((err) => console.warn('Logout endpoint failed:', err));
 
 			// Clear permission test mode on logout
-			const { clearTestModeOnLogout } = await import('$lib/stores/permission-test');
+			const { clearTestModeOnLogout } = await import('$lib/stores/permission-test.svelte');
 			clearTestModeOnLogout();
 
 			// No client-side token storage to clear - session-based auth only
@@ -474,10 +500,10 @@ export const hasRole = (roleName: string): boolean => {
 	}
 };
 
-// Derived store for user roles (from session data stored in authStore.roles)
-export const userRoles = derived(authStore, ($authStore) => {
-	if (!$authStore.user) return [];
+// Derived store for user roles (from consolidated authState)
+export const userRoles = derived(authState, ($state) => {
+	if (!$state.user) return [];
 
-	// Return roles from authStore - these come from session validation
-	return $authStore.roles || [];
+	// Return roles from authState - these come from session validation
+	return $state.roles || [];
 });

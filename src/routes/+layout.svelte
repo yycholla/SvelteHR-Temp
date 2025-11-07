@@ -26,18 +26,6 @@
 	let timeoutToastId: string | number | undefined;
 	let countdownInterval: ReturnType<typeof setInterval> | null = null;
 
-	// Sync server-validated user to client store immediately
-	// This runs BEFORE any rendering happens
-	if (data?.user?.id) {
-		authActions.setUser({
-			id: data.user.id,
-			email: data.user.email,
-			displayName: data.user.display_name || data.user.email?.split('@')[0] || 'User',
-			onboardingStatus: 'Active',
-			isActive: true
-		});
-	}
-
 	// Simplify layout logic to prevent reactive re-mounting issues
 	const isAuthPage = $derived($page?.url?.pathname === '/login');
 	const isPublicPage = $derived(isAuthPage || $page?.url?.pathname === '/');
@@ -103,7 +91,18 @@
 
 	// Initialize session timeout on mount (only for authenticated pages)
 	onMount(() => {
-		// Only initialize if user is logged in
+		// Sync server-validated user to client store (non-blocking)
+		if (data?.user?.id) {
+			authActions.setUser({
+				id: data.user.id,
+				email: data.user.email,
+				displayName: data.user.display_name || data.user.email?.split('@')[0] || 'User',
+				onboardingStatus: 'Active',
+				isActive: true
+			});
+		}
+
+		// Only initialize session timeout if user is logged in
 		if (data?.user?.id && !isPublicPage) {
 			sessionTimeoutManager = initSessionTimeout(
 				{

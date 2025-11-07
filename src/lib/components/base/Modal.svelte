@@ -139,13 +139,13 @@
 		onclick={handleBackdropClick}
 		onkeydown={trapFocus}
 		role="presentation"
-		transition:fade={{ duration: 200 }}
+		transition:fade={{ duration: 150 }}
 	>
 		<div
 			bind:this={modalElement}
 			class={modalClasses}
 			style:max-height={maxHeight}
-			transition:fly={{ y: -50, duration: 300 }}
+			transition:fly={{ y: -50, duration: 150 }}
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby={title ? 'modal-title' : undefined}

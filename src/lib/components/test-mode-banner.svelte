@@ -1,25 +1,36 @@
 <script lang="ts">
 	import { AlertTriangle, X } from '@lucide/svelte';
-	import { permissionTestActions, testRoleName, isTestModeActive } from '$lib/stores/permission-test';
-	import { fade, slide } from 'svelte/transition';
+	import {
+		permissionTestActions,
+		isTestModeActive,
+		testRoleName,
+		hydrateFromStorage
+	} from '$lib/stores/permission-test.svelte';
+	import { onMount } from 'svelte';
+
+	// Hydrate state from localStorage on mount
+	onMount(() => {
+		hydrateFromStorage();
+	});
+
+	// Derived reactive values using runes
+	let isActive = $derived(isTestModeActive());
+	let roleName = $derived(testRoleName());
 
 	function handleReset() {
 		permissionTestActions.endTestMode();
 	}
 </script>
 
-{#if $isTestModeActive}
-	<div
-		class="fixed top-0 left-0 right-0 z-50 bg-amber-500 text-amber-950 shadow-lg"
-		transition:slide={{ duration: 200 }}
-	>
+{#if isActive}
+	<div class="test-mode-banner fixed top-0 left-0 right-0 z-50 bg-amber-500 text-amber-950 shadow-lg">
 		<div class="mx-auto flex items-center justify-between px-6 py-3">
 			<div class="flex items-center gap-3">
 				<AlertTriangle class="h-5 w-5 flex-shrink-0" />
 				<div class="flex flex-col sm:flex-row sm:items-center sm:gap-2">
 					<span class="font-semibold">Testing Permissions</span>
 					<span class="text-sm">
-						Viewing system as <strong class="font-bold">{$testRoleName}</strong> role
+						Viewing system as <strong class="font-bold">{roleName}</strong> role
 					</span>
 				</div>
 			</div>

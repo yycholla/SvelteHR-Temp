@@ -18,7 +18,7 @@
 	import * as Table from '$lib/components/ui/table';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
-	import { permissionTestActions, isTestModeActive } from '$lib/stores/permission-test';
+	import { permissionTestActions, isTestModeActive } from '$lib/stores/permission-test.svelte';
 	import { Beaker } from '@lucide/svelte';
 
 	let { data } = $props();

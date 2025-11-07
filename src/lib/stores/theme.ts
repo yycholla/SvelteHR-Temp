@@ -20,33 +20,45 @@ interface ThemeState {
 function createThemeStore() {
 	// Initialize state from localStorage or default to system
 	// NOTE: Theme is applied by blocking script in app.html BEFORE this runs
-	let initialState: ThemeState;
 
-	if (browser) {
-		const savedTheme = (localStorage.getItem('theme') as Theme) || 'system';
-		const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-		const isSystemDark = mediaQuery.matches;
-		const resolvedTheme = savedTheme === 'system'
-			? (isSystemDark ? 'dark' : 'light')
-			: savedTheme;
+	// SSR-safe initialization with single browser check
+	const initialState: ThemeState = browser
+		? (() => {
+				const savedTheme = (localStorage.getItem('theme') as Theme) || 'system';
+				const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+				const isSystemDark = mediaQuery.matches;
+				const resolvedTheme =
+					savedTheme === 'system' ? (isSystemDark ? 'dark' : 'light') : savedTheme;
 
-		initialState = {
-			current: savedTheme,
-			resolved: resolvedTheme,
-			isSystemDark
-		};
-	} else {
-		// Server-side default
-		initialState = {
-			current: 'system',
-			resolved: 'light',
-			isSystemDark: false
-		};
-	}
+				return {
+					current: savedTheme,
+					resolved: resolvedTheme,
+					isSystemDark
+				};
+			})()
+		: {
+				// Server-side default
+				current: 'system' as Theme,
+				resolved: 'light' as 'light' | 'dark',
+				isSystemDark: false
+			};
 
 	const { subscribe, set, update } = writable<ThemeState>(initialState);
 
-	// Initialize is now only for setting up event listeners
+	// Apply theme to document (browser-only, no guard needed when called from browser context)
+	function applyTheme(theme: 'light' | 'dark') {
+		const root = document.documentElement;
+
+		if (theme === 'dark') {
+			root.classList.add('dark');
+			root.setAttribute('data-theme', 'dark');
+		} else {
+			root.classList.remove('dark');
+			root.setAttribute('data-theme', 'light');
+		}
+	}
+
+	// Initialize event listeners (browser-only function)
 	function initialize() {
 		if (!browser) return;
 
@@ -72,22 +84,7 @@ function createThemeStore() {
 		});
 	}
 
-	// Apply theme to document
-	function applyTheme(theme: 'light' | 'dark') {
-		if (!browser) return;
-
-		const root = document.documentElement;
-
-		if (theme === 'dark') {
-			root.classList.add('dark');
-			root.setAttribute('data-theme', 'dark');
-		} else {
-			root.classList.remove('dark');
-			root.setAttribute('data-theme', 'light');
-		}
-	}
-
-	// Set theme and persist to localStorage
+	// Set theme and persist to localStorage (browser-only function)
 	function setTheme(theme: Theme) {
 		if (!browser) return;
 

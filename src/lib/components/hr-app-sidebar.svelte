@@ -34,6 +34,7 @@
 	import { toggleMode, mode } from 'mode-watcher';
 	import { notificationStore } from '$lib/stores/notifications';
 	import { goto } from '$app/navigation';
+	import { browser } from '$app/environment';
 	import { onMount } from 'svelte';
 	import { debugSettings } from '$lib/stores/debug-settings';
 	import NotificationDropdown from '$lib/components/notifications/NotificationDropdown.svelte';
@@ -178,6 +179,27 @@
 		tasks: false,
 		management: false,
 		administration: false
+	});
+
+	// Restore expanded sections from localStorage on mount
+	onMount(() => {
+		if (browser) {
+			const saved = localStorage.getItem('sidebar-expanded');
+			if (saved) {
+				try {
+					expandedSections = JSON.parse(saved);
+				} catch (error) {
+					console.error('Failed to parse saved sidebar state:', error);
+				}
+			}
+		}
+	});
+
+	// Persist expanded sections to localStorage whenever they change
+	$effect(() => {
+		if (browser) {
+			localStorage.setItem('sidebar-expanded', JSON.stringify(expandedSections));
+		}
 	});
 
 	// Toggle section expansion
@@ -756,7 +778,7 @@
 						class="flex items-center justify-center rounded-md p-2 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
 						title="Toggle theme"
 					>
-						{#if mode.current === 'dark'}
+						{#if $mode.current === 'dark'}
 							<Sun class="h-4 w-4" />
 						{:else}
 							<Moon class="h-4 w-4" />

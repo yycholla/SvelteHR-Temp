@@ -1,9 +1,8 @@
 /**
- * Permission Test Mode Store
+ * Permission Test Mode State (Svelte 5 Runes)
  * Allows administrators to temporarily test permissions by viewing the system as if they had a specific role
  */
 
-import { writable, derived, get } from 'svelte/store';
 import { browser } from '$app/environment';
 
 const STORAGE_KEY = 'hr_permission_test_mode';
@@ -29,7 +28,12 @@ const initialState: PermissionTestState = {
 	version: STORAGE_VERSION
 };
 
-// Load from localStorage if available
+// Create reactive state using $state
+// Initialize with default state to avoid localStorage read during SSR
+let permissionTestState = $state<PermissionTestState>(initialState);
+let isHydrated = $state(false);
+
+// Load from localStorage (only called on client-side after mount)
 function loadFromStorage(): PermissionTestState {
 	if (!browser) return initialState;
 
@@ -76,14 +80,19 @@ function saveToStorage(state: PermissionTestState): void {
 	}
 }
 
-// Create the store
-const permissionTestStore = writable<PermissionTestState>(loadFromStorage());
+// Reactive persistence effect (only runs in browser)
+$effect(() => {
+	if (browser && isHydrated) {
+		saveToStorage(permissionTestState);
+	}
+});
 
-// Subscribe to store changes to persist to localStorage
-if (browser) {
-	permissionTestStore.subscribe((state) => {
-		saveToStorage(state);
-	});
+// Initialize from localStorage on client side (call this from onMount in components)
+export function hydrateFromStorage(): void {
+	if (!browser || isHydrated) return;
+
+	permissionTestState = loadFromStorage();
+	isHydrated = true;
 }
 
 // Actions
@@ -97,7 +106,7 @@ export const permissionTestActions = {
 		rolePermissions: string[],
 		currentPermissions: string[]
 	): void {
-		permissionTestStore.set({
+		permissionTestState = {
 			isActive: true,
 			testRoleId: roleId,
 			testRoleName: roleName,
@@ -105,7 +114,7 @@ export const permissionTestActions = {
 			originalPermissions: currentPermissions,
 			timestamp: Date.now(),
 			version: STORAGE_VERSION
-		});
+		};
 
 		console.log(`🧪 Started testing permissions as "${roleName}"`, {
 			testPermissions: rolePermissions.length,
@@ -117,70 +126,66 @@ export const permissionTestActions = {
 	 * End test mode and restore original permissions
 	 */
 	endTestMode(): void {
-		const current = get(permissionTestStore);
-		if (!current.isActive) return;
+		if (!permissionTestState.isActive) return;
 
-		console.log(`✓ Ended test mode for "${current.testRoleName}"`);
+		console.log(`✓ Ended test mode for "${permissionTestState.testRoleName}"`);
 
-		permissionTestStore.set(initialState);
+		permissionTestState = { ...initialState };
 	},
 
 	/**
 	 * Check if test mode is currently active
 	 */
 	isTestModeActive(): boolean {
-		return get(permissionTestStore).isActive;
+		return permissionTestState.isActive;
 	},
 
 	/**
 	 * Get the current test role name (or null if not testing)
 	 */
 	getTestRoleName(): string | null {
-		return get(permissionTestStore).testRoleName;
+		return permissionTestState.testRoleName;
 	},
 
 	/**
 	 * Get test permissions (or empty array if not testing)
 	 */
 	getTestPermissions(): string[] {
-		const state = get(permissionTestStore);
-		return state.isActive ? state.testPermissions : [];
+		return permissionTestState.isActive ? permissionTestState.testPermissions : [];
 	}
 };
 
-// Derived stores for convenience
-export const isTestModeActive = derived(
-	permissionTestStore,
-	($testMode) => $testMode.isActive
-);
+// Derived values for convenience (reactive getters)
+export function isTestModeActive() {
+	return permissionTestState.isActive;
+}
 
-export const testRoleName = derived(
-	permissionTestStore,
-	($testMode) => $testMode.testRoleName
-);
+export function testRoleName() {
+	return permissionTestState.testRoleName;
+}
 
-export const effectivePermissions = derived(
-	permissionTestStore,
-	($testMode) => {
-		if ($testMode.isActive) {
-			return $testMode.testPermissions;
-		}
-		return null; // Return null to indicate "use original permissions"
+export function effectivePermissions() {
+	if (permissionTestState.isActive) {
+		return permissionTestState.testPermissions;
 	}
-);
+	return null; // Return null to indicate "use original permissions"
+}
 
-// Export the store
-export { permissionTestStore };
+// Export the state (for direct access in components)
+export function getPermissionTestState() {
+	return permissionTestState;
+}
 
 // Export utility functions
 export function getEffectivePermissions(originalPermissions: string[]): string[] {
-	const state = get(permissionTestStore);
-	return state.isActive ? state.testPermissions : originalPermissions;
+	return permissionTestState.isActive
+		? permissionTestState.testPermissions
+		: originalPermissions;
 }
 
 export function clearTestModeOnLogout(): void {
 	if (browser) {
 		localStorage.removeItem(STORAGE_KEY);
-		permissionTestStore.set(initialState);
+		permissionTestState = { ...initialState };
 	}
 }

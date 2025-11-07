@@ -1,4 +1,5 @@
 import { writable, derived } from 'svelte/store';
+import { nanoid } from 'nanoid';
 
 export interface AppError {
 	id: string;
@@ -30,7 +31,7 @@ function createErrorStore() {
 			add: (error: Omit<AppError, 'id' | 'timestamp'>) => {
 				const newError: AppError = {
 					...error,
-					id: crypto.randomUUID(),
+					id: nanoid(),
 					timestamp: new Date()
 				};
 
