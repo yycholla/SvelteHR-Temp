@@ -57,10 +57,10 @@ postgresql:
   # Backup configuration (MinIO)
   backup:
     enabled: true # Enable CNPG native backups to MinIO
-    destinationPath: "s3://postgres-backups/"
+    destinationPath: "s3://postgres-backups/sveltehr-prod/" # Use subfolder for cluster isolation
     endpointURL: "http://minio.backup-system.svc.cluster.local:9000"
-    retentionPolicy: "30d"
-    schedule: "0 3 * * *" # Daily at 3 AM (after Velero at 2 AM)
+    # NOTE: retentionPolicy and schedule are deprecated in Cluster spec
+    # Use ScheduledBackup CRD instead (see postgres-scheduled-backup.yaml)
     s3Credentials:
       secretName: postgres-backup-secret
       accessKeyIdKey: ACCESS_KEY_ID

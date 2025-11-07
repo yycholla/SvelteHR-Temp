@@ -1,0 +1,31 @@
+{{- if and .Values.postgresql.enabled .Values.postgresql.backup.enabled }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: {{ include "sveltehr.fullname" . }}-postgres-daily-backup
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "sveltehr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres-backup
+spec:
+  # Six-field cron schedule: second minute hour day month weekday
+  # Daily at 3:00 AM UTC (after Velero at 2 AM)
+  schedule: "0 0 3 * * *"
+
+  # Don't suspend backups
+  suspend: false
+
+  # Backup owner reference (for garbage collection)
+  backupOwnerReference: self
+
+  # Target cluster
+  cluster:
+    name: {{ include "sveltehr.fullname" . }}-postgres
+
+  # Use barman object store method
+  method: barmanObjectStore
+
+  # Prefer standby for backups (less impact on primary)
+  target: prefer-standby
+{{- end }}
