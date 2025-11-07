@@ -66,7 +66,8 @@
 	let canUpload = $derived(
 		data.userPermissions?.includes('documents:upload') ||
 			data.user?.role === 'admin' ||
-			data.user?.role === 'super_admin'
+			data.user?.role === 'super_admin' ||
+			data.user?.role === 'system_admin'
 	);
 
 	let previewDocument = $derived(
@@ -220,7 +221,7 @@
 	// Check if user can preview a document
 	function canPreview(doc: typeof data.documents[0]): boolean {
 		const role = data.user?.role;
-		if (role === 'super_admin' || role === 'admin') return true;
+		if (role === 'super_admin' || role === 'admin' || role === 'system_admin') return true;
 
 		// Check if document is assigned to user
 		return doc.uploaded_by === data.user?.id;
@@ -229,7 +230,7 @@
 	// Check if user can download a document
 	function canDownload(doc: typeof data.documents[0]): boolean {
 		const role = data.user?.role;
-		if (role === 'super_admin' || role === 'admin') return true;
+		if (role === 'super_admin' || role === 'admin' || role === 'system_admin') return true;
 
 		// Check if document is assigned to user
 		return doc.uploaded_by === data.user?.id;

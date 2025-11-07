@@ -38,7 +38,7 @@ function checkAdminAccess(locals: App.Locals): boolean {
 	);
 }
 
-export const load: PageServerLoad = async ({ locals, parent, fetch: fetchFn }) => {
+export const load: PageServerLoad = async ({ locals, parent, fetch: fetchFn, cookies }) => {
 	// Get isAdmin flag from parent layout
 	const { isAdmin } = await parent();
 
@@ -78,7 +78,7 @@ export const actions: Actions = {
 	/**
 	 * Create new role
 	 */
-	createRole: async ({ request, fetch: fetchFn, locals }) => {
+	createRole: async ({ request, fetch: fetchFn, locals, cookies }) => {
 		if (!checkAdminAccess(locals)) {
 			return fail(403, { error: 'Admin access required' });
 		}
@@ -108,7 +108,7 @@ export const actions: Actions = {
 	/**
 	 * Update existing role
 	 */
-	updateRole: async ({ request, fetch: fetchFn, locals }) => {
+	updateRole: async ({ request, fetch: fetchFn, locals, cookies }) => {
 		if (!checkAdminAccess(locals)) {
 			return fail(403, { error: 'Admin access required' });
 		}
@@ -139,7 +139,7 @@ export const actions: Actions = {
 	/**
 	 * Delete role
 	 */
-	deleteRole: async ({ request, fetch: fetchFn, locals }) => {
+	deleteRole: async ({ request, fetch: fetchFn, locals, cookies }) => {
 		if (!checkAdminAccess(locals)) {
 			return fail(403, { error: 'Admin access required' });
 		}
@@ -166,7 +166,7 @@ export const actions: Actions = {
 	/**
 	 * Assign permission to role
 	 */
-	assignPermission: async ({ request, fetch: fetchFn, locals }) => {
+	assignPermission: async ({ request, fetch: fetchFn, locals, cookies }) => {
 		if (!checkAdminAccess(locals)) {
 			return fail(403, { error: 'Admin access required' });
 		}
@@ -196,7 +196,7 @@ export const actions: Actions = {
 	/**
 	 * Remove permission from role
 	 */
-	removePermission: async ({ request, fetch: fetchFn, locals }) => {
+	removePermission: async ({ request, fetch: fetchFn, locals, cookies }) => {
 		if (!checkAdminAccess(locals)) {
 			return fail(403, { error: 'Admin access required' });
 		}
@@ -227,7 +227,7 @@ export const actions: Actions = {
 	 * Bulk assign permissions to role
 	 * This action handles both adding AND removing permissions by comparing current vs desired state
 	 */
-	bulkAssignPermissions: async ({ request, fetch: fetchFn, locals }) => {
+	bulkAssignPermissions: async ({ request, fetch: fetchFn, locals, cookies }) => {
 		if (!checkAdminAccess(locals)) {
 			return fail(403, { error: 'Admin access required' });
 		}
@@ -313,7 +313,7 @@ export const actions: Actions = {
 	/**
 	 * Bulk remove permissions from role
 	 */
-	bulkRemovePermissions: async ({ request, fetch: fetchFn, locals }) => {
+	bulkRemovePermissions: async ({ request, fetch: fetchFn, locals, cookies }) => {
 		if (!checkAdminAccess(locals)) {
 			return fail(403, { error: 'Admin access required' });
 		}
@@ -345,7 +345,7 @@ export const actions: Actions = {
 	/**
 	 * Assign role to user
 	 */
-	assignRoleToUser: async ({ request, fetch: fetchFn, locals }) => {
+	assignRoleToUser: async ({ request, fetch: fetchFn, locals, cookies }) => {
 		if (!checkAdminAccess(locals)) {
 			return fail(403, { error: 'Admin access required' });
 		}
@@ -375,7 +375,7 @@ export const actions: Actions = {
 	/**
 	 * Remove role from user
 	 */
-	removeRoleFromUser: async ({ request, fetch: fetchFn, locals }) => {
+	removeRoleFromUser: async ({ request, fetch: fetchFn, locals, cookies }) => {
 		if (!checkAdminAccess(locals)) {
 			return fail(403, { error: 'Admin access required' });
 		}

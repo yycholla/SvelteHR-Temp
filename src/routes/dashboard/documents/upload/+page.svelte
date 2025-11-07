@@ -143,8 +143,7 @@
 	<div class="space-y-1">
 		<h1 class="text-3xl font-bold tracking-tight">Upload Document</h1>
 		<p class="text-muted-foreground">
-			Upload a new document with server-side encryption. Files are encrypted securely before
-			storage using AES-256-GCM.
+			Upload a new document with server-side encryption. The document will be automatically assigned to you.
 		</p>
 	</div>
 
@@ -201,8 +200,8 @@
 				}
 				// Send metadata tags as JSON string
 				formData.set('metadataTags', JSON.stringify(metadata.metadataTags || {}));
-				// Send employee assignments as JSON string
-				formData.set('assignToEmployees', JSON.stringify(assignedEmployeeIds || []));
+				// Send employee assignments as JSON string - automatically assign to current user
+				formData.set('assignToEmployees', JSON.stringify([data.user?.id].filter(Boolean)));
 
 				console.log('[Upload] Starting upload...', {
 					filename: file.name,
@@ -265,6 +264,7 @@
 									bind:metadata
 									bind:assignedEmployeeIds
 									employeeOptions={data.employeeOptions || []}
+									showEmployeeAssignment={false}
 								/>
 							</div>
 						</div>

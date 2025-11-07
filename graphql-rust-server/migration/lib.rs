@@ -25,6 +25,10 @@ mod m20251020_005_add_user_theme_preference;
 mod m20251023_003_fix_encryption_keys;
 mod m20251023_004_add_accessed_at_to_document_access_logs;
 mod m20251024_001_fix_document_assignments_schema;
+mod m20251024_002_add_employee_statistics;
+mod m20251106_003_remove_sidebar_management;
+mod m20251106_004_add_sidebar_view_permissions;
+mod m20251106_005_assign_sidebar_permissions_to_roles;
 
 pub struct Migrator;
 
@@ -52,6 +56,10 @@ impl MigratorTrait for Migrator {
             Box::new(m20251023_003_fix_encryption_keys::Migration),
             Box::new(m20251023_004_add_accessed_at_to_document_access_logs::Migration),
             Box::new(m20251024_001_fix_document_assignments_schema::Migration),
+            Box::new(m20251024_002_add_employee_statistics::Migration),
+            Box::new(m20251106_003_remove_sidebar_management::Migration),
+            Box::new(m20251106_004_add_sidebar_view_permissions::Migration),
+            Box::new(m20251106_005_assign_sidebar_permissions_to_roles::Migration),
         ]
     }
 }

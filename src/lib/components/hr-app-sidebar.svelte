@@ -42,17 +42,55 @@
 	// Subscribe to notification store
 	const notifications = $derived($notificationStore.notifications);
 
-	// Check user roles
+	// Get permissions from page data
+	const userPermissions = $derived($page.data.permissions || []);
+
+	// Convert permission objects to "resource:action" strings
+	const permissionStrings = $derived(
+		userPermissions.map((p: any) => {
+			if (typeof p === 'string') return p;
+			// Handle object format {resource: "dashboard", action: "read"}
+			return `${p.resource}:${p.action}`;
+		})
+	);
+
+	// Debug: Log permissions when they change
+	$effect(() => {
+		console.log('[Sidebar] User permissions (raw):', userPermissions);
+		console.log('[Sidebar] Permission strings:', permissionStrings);
+		console.log('[Sidebar] Page data:', $page.data);
+	});
+
+	// Permission helper functions
+	const hasPermission = (permission: string): boolean => {
+		// Check for wildcard permission
+		const hasWildcard = permissionStrings.includes('*') || permissionStrings.includes('*:*');
+		if (hasWildcard) return true;
+
+		const has = permissionStrings.includes(permission);
+		console.log(`[Sidebar] Checking permission "${permission}":`, has);
+		return has;
+	};
+
+	const hasAnyPermission = (...permissions: string[]): boolean => {
+		// Check for wildcard permission
+		if (permissionStrings.includes('*') || permissionStrings.includes('*:*')) return true;
+
+		const has = permissions.some(p => permissionStrings.includes(p));
+		console.log(`[Sidebar] Checking any of [${permissions.join(', ')}]:`, has);
+		return has;
+	};
+
+	// Check user roles (keep for super admin checks)
 	const isSuperAdmin = hasRole('super_admin');
 	const isSystemAdmin = hasRole('system_admin');
-	const isAdmin = hasRole('admin') || isSuperAdmin || isSystemAdmin;
-	const isHR = hasRole('hr_admin') || isAdmin;
-	const isManager = hasRole('manager') || isHR;
-	// Administration section access - restricted to hr_admin and system_admin only
-	const canAccessAdministration = hasRole('hr_admin') || isSystemAdmin || isSuperAdmin;
 
-	// Load debug settings on mount (system_admin only)
-	onMount(() => {
+	// Permission-based access checks
+	const canAccessManagement = $derived(hasPermission('management:read'));
+	const canAccessAdministration = $derived(hasPermission('admin:read'));
+
+	// Load debug settings on mount
+	onMount(async () => {
 		if (isSystemAdmin) {
 			debugSettings.load();
 		}
@@ -65,7 +103,6 @@
 	let expandedSections = $state({
 		leave: false,
 		performance: false,
-		documents: false,
 		tasks: false,
 		management: false,
 		administration: false
@@ -97,8 +134,6 @@
 			expandedSections.leave = true;
 		if (currentPath.includes('/performance') && currentPath.includes('/users/'))
 			expandedSections.performance = true;
-		if (currentPath.includes('/documents'))
-			expandedSections.documents = true;
 		if (currentPath.includes('/tasks') && !currentPath.includes('/tasks/department'))
 			expandedSections.tasks = true;
 		if (
@@ -120,38 +155,43 @@
 		}
 	});
 
-	// Main navigation items - employee-focused
+	// Main navigation items - employee-focused with permission requirements
 	const navMain = [
 		{
 			title: 'Dashboard',
 			url: '/dashboard',
 			icon: Home,
-			standalone: true // No submenu
+			standalone: true,
+			permission: 'dashboard:read'
 		},
 		{
 			title: 'Employees',
 			url: '/dashboard/employees',
 			icon: Users,
-			standalone: true // Now a simple link to tabbed page
+			standalone: true,
+			permission: 'employees:read'
 		},
 		{
 			title: 'Departments',
 			url: '/dashboard/departments',
 			icon: Building2,
-			standalone: true // Now a simple link
+			standalone: true,
+			permission: 'departments:read'
 		},
 		{
 			title: 'Events',
 			url: '/dashboard/events',
 			icon: Calendar,
-			standalone: true // Events list page
+			standalone: true,
+			permission: 'events:read'
 		},
 		{
 			title: 'Tasks',
 			url: '/dashboard/tasks/my-tasks',
 			icon: ListTodo,
-			standalone: false, // Has submenu
+			standalone: false,
 			section: 'tasks',
+			permission: 'tasks:read',
 			items: [
 				{ title: 'My Tasks', url: '/dashboard/tasks/my-tasks' },
 				{ title: 'Team Tasks', url: '/dashboard/tasks/team-tasks' }
@@ -161,19 +201,22 @@
 			title: 'Activities',
 			url: '/dashboard/activities',
 			icon: Activity,
-			standalone: true // My activities page
+			standalone: true,
+			permission: 'activities:read'
 		},
 		{
 			title: 'Notifications',
 			url: '/dashboard/notifications',
 			icon: Bell,
-			standalone: true // Notifications center
+			standalone: true,
+			permission: 'notifications:read'
 		},
 		{
 			title: 'Leave & Attendance',
 			url: `/dashboard/profile/attendance`,
 			icon: Clock,
 			section: 'leave',
+			permissionAny: ['leave:read', 'attendance:read'], // Show if has either
 			items: [
 				{ title: 'My Attendance', url: `/dashboard/profile/attendance` },
 				{ title: 'Leave Requests', url: `/dashboard/profile/leave/requests` }
@@ -184,6 +227,7 @@
 			url: `/dashboard/profile/performance`,
 			icon: Target,
 			section: 'performance',
+			permissionAny: ['performance:read', 'reviews:read'], // Show if has either
 			items: [
 				{ title: 'My Goals', url: `/dashboard/profile/performance` },
 				{ title: 'Reviews', url: `/dashboard/profile/performance/reviews` }
@@ -193,11 +237,8 @@
 			title: 'Documents',
 			url: '/dashboard/documents',
 			icon: FolderOpen,
-			section: 'documents',
-			items: [
-				{ title: 'My Documents', url: '/dashboard/documents' },
-				...(isManager ? [{ title: 'Upload Document', url: '/dashboard/documents/upload' }] : [])
-			]
+			standalone: true,
+			permission: 'documents:read'
 		}
 	];
 
@@ -268,6 +309,23 @@
 		{ title: 'Analytics Dashboard', url: '/dashboard/admin/analytics', icon: BarChart3 },
 		{ title: 'Compliance Reports', url: '/dashboard/admin/compliance', icon: Shield }
 	];
+
+	// Filter menu items based on permissions
+	const filteredNavMain = $derived.by(() => {
+		const filtered = navMain.filter(item => {
+			// Check permission or permissionAny
+			if ((item as any).permission) {
+				return hasPermission((item as any).permission);
+			} else if ((item as any).permissionAny) {
+				return hasAnyPermission(...(item as any).permissionAny);
+			}
+			return true; // Show if no permission requirement
+		});
+		console.log('[Sidebar] Filtered nav items:', filtered.length, 'of', navMain.length);
+		console.log('[Sidebar] Filtered items:', filtered.map(i => i.title));
+		return filtered;
+	});
+
 </script>
 
 <div class="flex h-full flex-col bg-sidebar text-sidebar-foreground">
@@ -283,7 +341,7 @@
 	<!-- Main Navigation - Collapsible -->
 	<div class="flex-1 overflow-auto px-3 py-3">
 		<nav class="space-y-1">
-			{#each navMain as item}
+			{#each filteredNavMain as item}
 				{#if item.standalone}
 					<!-- Simple link without submenu -->
 					{@const Icon = item.icon}
@@ -316,9 +374,6 @@
 								if (item.section === 'performance') {
 									return currentPath.includes('/performance');
 								}
-								if (item.section === 'documents') {
-									return currentPath.includes('/documents');
-								}
 								if (item.section === 'tasks') {
 									return currentPath.includes('/tasks') && !currentPath.includes('/tasks/department');
 								}
@@ -331,9 +386,6 @@
 								}
 								if (item.section === 'performance') {
 									return currentPath.includes('/performance');
-								}
-								if (item.section === 'documents') {
-									return currentPath.includes('/documents');
 								}
 								if (item.section === 'tasks') {
 									return currentPath.includes('/tasks') && !currentPath.includes('/tasks/department');
@@ -372,8 +424,8 @@
 		</nav>
 	</div>
 
-	<!-- Management Section - Only for managers/supervisors -->
-	{#if isManager}
+	<!-- Management Section - Permission-based access -->
+	{#if canAccessManagement}
 		{@const ManagementChevron = expandedSections.management ? ChevronDown : ChevronRight}
 		<div class="px-3 pb-3">
 			<button

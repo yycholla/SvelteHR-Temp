@@ -38,118 +38,124 @@ export const load: PageServerLoad = async (event) => {
 	const searchTerm = url.searchParams.get('search') || '';
 
 	try {
-		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
-		const graphqlEndpoint = getGraphQLEndpoint();
+		const { GraphQLClient } = await import('$lib/server/graphql-client');
 
-		// Get JWT token from cookies for authentication
-
-		// Headers for session-based authentication (cookies sent automatically)
-		const headers: Record<string, string> = {
-			'Content-Type': 'application/json',
-		};
+		// Create authenticated GraphQL client with session cookies
+		const client = GraphQLClient.fromCookies(cookies);
 
 		console.log('[Team Tasks] Loading team tasks for user:', locals.user.id);
 
 		// Load departments for team task assignment
-		const departmentsResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetDepartments($limit: Int) {
-						departments(limit: $limit) {
-							id
-							name
-							description
-						}
+		const departmentsResponse = await client.query(
+			`
+				query GetDepartments($limit: Int) {
+					departments(limit: $limit) {
+						id
+						name
+						description
 					}
-				`,
-				variables: {
-					limit: 100
 				}
-			})
-		});
+			`,
+			{
+				limit: 100
+			}
+		);
 
-		const departmentsData = await departmentsResponse.json();
-		console.log('[Team Tasks] Departments response:', departmentsData);
+		console.log('[Team Tasks] Departments response:', departmentsResponse);
 
-		if (departmentsData.errors) {
-			console.error('[Team Tasks] Departments GraphQL errors:', departmentsData.errors);
-			throw new Error(departmentsData.errors[0]?.message || 'Failed to load departments');
+		if (departmentsResponse.errors) {
+			console.error('[Team Tasks] Departments GraphQL errors:', departmentsResponse.errors);
+			throw new Error(departmentsResponse.errors[0]?.message || 'Failed to load departments');
 		}
 
-		const departments = departmentsData?.data?.departments || [];
+		const departments = departmentsResponse?.data?.departments || [];
 		console.log('[Team Tasks] Found departments:', departments.length);
 
 		// Load team tasks
 		// NOTE: Rust GraphQL schema doesn't support complex filters
 		// We'll do all filtering client-side
-		const tasksResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetTeamTasks($limit: Int!, $offset: Int!) {
-						tasks(limit: $limit, offset: $offset) {
+		const tasksResponse = await client.query(
+			`
+				query GetTeamTasks($limit: Int!, $offset: Int!) {
+					tasks(limit: $limit, offset: $offset) {
+						id
+						title
+						description
+						status
+						priority
+						dueDate
+						requiresManualReassignment
+						archived
+						createdAt
+						updatedAt
+						assignee {
+							id
+							displayName
+							email
+							departmentId
+						}
+						department {
+							id
+							name
+							description
+						}
+						creator {
+							id
+							displayName
+							email
+							departmentId
+						}
+						taskType {
+							id
+							name
+						}
+						parentTask {
 							id
 							title
-							description
 							status
-							priority
-							dueDate
-							requiresManualReassignment
-							archived
-							createdAt
-							updatedAt
-							assignee {
-								id
-								displayName
-								email
-								departmentId
-							}
-							department {
-								id
-								name
-								description
-							}
-							creator {
-								id
-								displayName
-								email
-								departmentId
-							}
-							taskType {
-								id
-								name
-							}
-							parentTask {
-								id
-								title
-								status
-							}
 						}
 					}
-				`,
-				variables: {
-					limit: 200,
-					offset: 0
 				}
-			})
-		});
+			`,
+			{
+				limit: 200,
+				offset: 0
+			}
+		);
 
-		const tasksData = await tasksResponse.json();
-		console.log('[Team Tasks] Tasks response:', tasksData);
+		console.log('[Team Tasks] Tasks response:', tasksResponse);
 
-		if (tasksData.errors) {
-			console.error('[Team Tasks] GraphQL errors:', tasksData.errors);
-			throw new Error(tasksData.errors[0]?.message || 'Failed to load team tasks');
+		if (tasksResponse.errors) {
+			console.error('[Team Tasks] GraphQL errors:', tasksResponse.errors);
+			throw new Error(tasksResponse.errors[0]?.message || 'Failed to load team tasks');
 		}
 
-		let tasks = tasksData?.data?.tasks || [];
+		let tasks = tasksResponse?.data?.tasks || [];
 
-		// For team tasks, we'll show all tasks
-		// Filtering by department will be done client-side via the department filter
-		// NOTE: In a production system, you might want to filter server-side by department
+		// Filter to only show tasks assigned to the user's department/team
+		// Check various possible field names for department ID
+		const userDepartmentId = locals.user.department_id || locals.user.departmentId || locals.user.department?.id;
+
+		console.log('[Team Tasks] User department ID:', userDepartmentId);
+		console.log('[Team Tasks] Total tasks before filter:', tasks.length);
+
+		if (userDepartmentId) {
+			// User has a department - filter to show only tasks assigned to that department
+			tasks = tasks.filter((task: any) => {
+				// Only include tasks that are assigned to the user's department
+				// AND don't have an individual assignee (department-level tasks only)
+				const isUserDepartment = task.department?.id === userDepartmentId;
+				const hasNoIndividualAssignee = !task.assignee?.id;
+
+				return isUserDepartment && hasNoIndividualAssignee;
+			});
+
+			console.log(`[Team Tasks] Filtered to ${tasks.length} tasks assigned to department:`, userDepartmentId);
+		} else {
+			// User is not assigned to a department - show no tasks
+			console.warn('[Team Tasks] User is not assigned to a department - showing no team tasks');
+			tasks = [];
+		}
 
 		// Client-side filtering for status
 		if (statusFilter) {
@@ -199,29 +205,25 @@ export const load: PageServerLoad = async (event) => {
 		const userPermissions = getUserPermissions(locals);
 
 		// Load task types for the form
-		const taskTypesResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetTaskTypesForFilter($isActive: Boolean) {
-						taskTypes(isActive: $isActive) {
-							id
-							name
-							description
-							defaultPriority
-							colorCode
-							isActive
-						}
+		const taskTypesResponse = await client.query(
+			`
+				query GetTaskTypesForFilter($isActive: Boolean) {
+					taskTypes(isActive: $isActive) {
+						id
+						name
+						description
+						defaultPriority
+						colorCode
+						isActive
 					}
-				`,
-				variables: {
-					isActive: true
 				}
-			})
-		});
+			`,
+			{
+				isActive: true
+			}
+		);
 
-		const taskTypesData = await taskTypesResponse.json();
+		const taskTypesData = taskTypesResponse;
 
 		return {
 			user: userPermissions.user,

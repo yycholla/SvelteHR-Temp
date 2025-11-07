@@ -85,8 +85,50 @@ export const load: PageServerLoad = async ({ locals, parent, cookies }) => {
 		};
 	} catch (error) {
 		console.error('[ADMIN SETTINGS] Load error:', error);
+		// Return default settings structure even on error to prevent undefined errors
 		return {
-			settings: null,
+			settings: {
+				general: {
+					systemName: 'SvelteHR',
+					systemEmail: 'admin@example.com',
+					timezone: 'UTC',
+					dateFormat: 'YYYY-MM-DD',
+					language: 'en'
+				},
+				authentication: {
+					sessionTimeout: 3600,
+					passwordMinLength: 8,
+					maxLoginAttempts: 5,
+					requireUppercase: true,
+					requireNumbers: true,
+					requireSpecialChars: false
+				},
+				notifications: {
+					emailEnabled: false,
+					slackEnabled: false,
+					webhooksEnabled: false,
+					notifyOnUserCreate: false,
+					notifyOnRoleChange: false
+				},
+				security: {
+					enforceHttps: true,
+					allowApiAccess: true,
+					rateLimitEnabled: true,
+					maxRequestsPerMinute: 100,
+					ipWhitelist: '',
+					corsOrigins: ''
+				},
+				developer: {
+					show_debug_info: false,
+					show_performance_metrics: false,
+					log_level: 'info'
+				},
+				stats: {
+					totalDepartments: 0,
+					totalUsers: 0,
+					totalRoles: 0
+				}
+			},
 			error: 'Failed to load system settings'
 		};
 	}

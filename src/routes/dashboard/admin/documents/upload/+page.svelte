@@ -82,7 +82,7 @@
 
 		// Show success message and redirect after 2 seconds
 		setTimeout(() => {
-			goto('/dashboard/documents');
+			goto('/dashboard/admin/documents');
 		}, 2000);
 	}
 
@@ -95,7 +95,7 @@
 
 	// Handle cancel
 	function handleCancel() {
-		goto('/dashboard/documents');
+		goto('/dashboard/admin/documents');
 	}
 
 	// Handle form submit - now much simpler with server-side encryption

@@ -5,7 +5,14 @@
 
 	let { data } = $props();
 
-	let settings = $state({ ...data.settings });
+	let settings = $state(data.settings || {
+		general: {},
+		authentication: {},
+		notifications: {},
+		security: {},
+		developer: {},
+		stats: {}
+	});
 	let loading = $state(false);
 	let errorMessage = $state('');
 	let successMessage = $state('');

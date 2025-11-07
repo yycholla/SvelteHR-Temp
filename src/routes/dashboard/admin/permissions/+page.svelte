@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidateAll, goto } from '$app/navigation';
 	import {
 		Shield,
 		Users,
@@ -274,7 +274,11 @@
 								<Badge variant="secondary">
 									{role.permissions?.length || 0} permissions
 								</Badge>
-								<Button variant="outline" size="sm" onclick={() => openPermissionDialog(role)}>
+								<Button
+									variant="outline"
+									size="sm"
+									onclick={() => goto(`/dashboard/admin/permissions/${role.id}`)}
+								>
 									<Shield class="mr-2 h-3 w-3" />
 									Manage Permissions
 								</Button>

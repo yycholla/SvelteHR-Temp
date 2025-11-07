@@ -17,6 +17,7 @@
 		isSubmitting?: boolean;
 		hasRequiredFields?: boolean;
 		metadataValid?: boolean;
+		showEmployeeAssignment?: boolean;
 	}
 
 	let {
@@ -34,7 +35,8 @@
 		onCancel = () => {},
 		isSubmitting = false,
 		hasRequiredFields = $bindable(false),
-		metadataValid = $bindable(false)
+		metadataValid = $bindable(false),
+		showEmployeeAssignment = true
 	}: Props = $props();
 
 	// Svelte 5 state
@@ -298,22 +300,24 @@
 	</div>
 
 	<!-- Assign to Employees (optional) -->
-	<div class="form-field">
-		<label for="assignEmployees" class="field-label">
-			Assign to Employees <span class="optional">(optional)</span>
-		</label>
-		{#if employeeOptions.length > 0}
-			<MultiSearchInput
-				bind:searchTerms={assignedEmployeeIds}
-				options={employeeOptions}
-				placeholder="Search and select employees..."
-				allowCustomTerms={false}
-			/>
-			<p class="field-hint">Document will be assigned to selected employees with read access</p>
-		{:else}
-			<p class="field-hint text-muted-foreground">Employee list is loading...</p>
-		{/if}
-	</div>
+	{#if showEmployeeAssignment}
+		<div class="form-field">
+			<label for="assignEmployees" class="field-label">
+				Assign to Employees <span class="optional">(optional)</span>
+			</label>
+			{#if employeeOptions.length > 0}
+				<MultiSearchInput
+					bind:searchTerms={assignedEmployeeIds}
+					options={employeeOptions}
+					placeholder="Search and select employees..."
+					allowCustomTerms={false}
+				/>
+				<p class="field-hint">Document will be assigned to selected employees with read access</p>
+			{:else}
+				<p class="field-hint text-muted-foreground">Employee list is loading...</p>
+			{/if}
+		</div>
+	{/if}
 
 	<!-- Description (optional) -->
 	<div class="form-field">

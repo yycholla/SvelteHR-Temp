@@ -5,12 +5,15 @@ import type { LayoutServerLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 
-export const load: LayoutServerLoad = async ({ locals, cookies, url }) => {
+export const load: LayoutServerLoad = async ({ locals, cookies, url, parent }) => {
 	// Require authentication for all dashboard routes
 	if (!locals.user?.id) {
 		const redirectTo = url.pathname + url.search;
 		redirect(303, `/login?redirectTo=${encodeURIComponent(redirectTo)}`);
 	}
+
+	// Get data from parent layout (includes permissions, roles, user)
+	const parentData = await parent();
 
 	try {
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
@@ -47,6 +50,9 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url }) => {
 		const notifications = result.data?.notifications || [];
 
 		return {
+			// Pass through parent data (permissions, roles, user)
+			...parentData,
+			// Add notifications
 			notifications: notifications.map((n: any) => ({
 				id: n.id,
 				title: n.title,
@@ -61,8 +67,9 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url }) => {
 		};
 	} catch (err) {
 		console.error('Error loading notifications:', err);
-		// Return empty notifications on error to prevent layout crash
+		// Return parent data with empty notifications on error
 		return {
+			...parentData,
 			notifications: []
 		};
 	}
