@@ -148,11 +148,11 @@ nodeAgent:
     readOnlyRootFilesystem: false  # Allow writes for Kopia cache
 
   # Additional volumes for node-agent
+  # Use emptyDir for temporary cache (clears on pod restart)
+  # Kopia/UDM repo is in MinIO, this is just for local cache
   extraVolumes:
     - name: udmrepo-cache
-      hostPath:
-        path: /var/lib/velero/udmrepo
-        type: DirectoryOrCreate
+      emptyDir: {}
 
   extraVolumeMounts:
     - name: udmrepo-cache
