@@ -38,6 +38,7 @@ mod m20251106_004_add_sidebar_view_permissions;
 mod m20251106_005_assign_sidebar_permissions_to_roles;
 mod m20251106_006_add_scoped_permissions;
 mod m20251106_007_assign_scoped_permissions_to_roles;
+mod m20251107_001_add_wildcard_permission;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -70,6 +71,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20251106_005_assign_sidebar_permissions_to_roles::Migration),
             Box::new(m20251106_006_add_scoped_permissions::Migration),
             Box::new(m20251106_007_assign_scoped_permissions_to_roles::Migration),
+            Box::new(m20251107_001_add_wildcard_permission::Migration),
         ]
     }
 }

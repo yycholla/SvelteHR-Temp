@@ -101,8 +101,8 @@ export function createRBACManager(
 
 		// Permission checking methods
 		hasPermission(permission: string): boolean {
-			// Check for wildcard admin permission
-			if (allPermissions.some((p) => p.name === '*' || p.name === 'admin:*')) {
+			// Check for wildcard admin permission (full system access)
+			if (allPermissions.some((p) => p.name === '*' || p.name === '*:*' || p.name === 'admin:*')) {
 				return true;
 			}
 
@@ -176,7 +176,8 @@ export function createRBACManager(
 			if (
 				this.hasPermission(`${resource}:read:all`) ||
 				this.hasPermission(`${resource}:*`) ||
-				this.hasPermission('*')
+				this.hasPermission('*') ||
+				this.hasPermission('*:*')
 			) {
 				return 'all';
 			}
@@ -193,6 +194,7 @@ export function createRBACManager(
 			return (
 				this.hasPermission(`${resource}:*`) ||
 				this.hasPermission('*') ||
+				this.hasPermission('*:*') ||
 				this.hasPermission('admin:*')
 			);
 		},
@@ -203,6 +205,7 @@ export function createRBACManager(
 				this.hasRole('Admin') ||
 				this.hasRole('Administrator') ||
 				this.hasPermission('*') ||
+				this.hasPermission('*:*') ||
 				this.hasPermission('admin:*')
 			);
 		},

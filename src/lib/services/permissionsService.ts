@@ -251,8 +251,8 @@ export class PermissionsService {
 	 * Validate permission string format
 	 */
 	static validatePermissionFormat(permission: string): boolean {
-		// Permission should be in format "resource:action" or "*" for wildcard
-		if (permission === '*') return true;
+		// Permission should be in format "resource:action" or "*" / "*:*" for wildcard
+		if (permission === '*' || permission === '*:*') return true;
 
 		const parts = permission.split(':');
 		return parts.length === 2 && parts[0].length > 0 && parts[1].length > 0;
@@ -367,7 +367,7 @@ export const PermissionUtils = {
 	 * Format permission for display
 	 */
 	formatPermission(permission: string): string {
-		if (permission === '*') return 'All Permissions';
+		if (permission === '*' || permission === '*:*') return 'All Permissions';
 
 		const [resource, action] = permission.split(':');
 		if (!resource || !action) return permission;
@@ -385,7 +385,7 @@ export const PermissionUtils = {
 		if (permission.includes('read')) return '👀';
 		if (permission.includes('write') || permission.includes('create')) return '✏️';
 		if (permission.includes('delete')) return '🗑️';
-		if (permission.includes('manage') || permission === '*') return '⚙️';
+		if (permission.includes('manage') || permission === '*' || permission === '*:*') return '⚙️';
 		return '🔒';
 	},
 
@@ -393,7 +393,7 @@ export const PermissionUtils = {
 	 * Get permission color based on sensitivity
 	 */
 	getPermissionColor(permission: string): string {
-		if (permission === '*' || permission.includes('admin')) return 'red';
+		if (permission === '*' || permission === '*:*' || permission.includes('admin')) return 'red';
 		if (permission.includes('delete')) return 'orange';
 		if (permission.includes('write') || permission.includes('create')) return 'yellow';
 		if (permission.includes('manage')) return 'blue';

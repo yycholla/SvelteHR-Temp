@@ -1,6 +1,7 @@
 <script lang="ts">
 	import HrAppSidebar from '$lib/components/hr-app-sidebar.svelte';
 	import PageLoading from '$lib/components/ui/page-loading.svelte';
+	import ClientOnly from '$lib/components/client-only.svelte';
 	import TestModeBanner from '$lib/components/test-mode-banner.svelte';
 	import { isAuthenticated } from '$lib/stores/auth';
 	import { notificationStore } from '$lib/stores/notifications';
@@ -38,9 +39,9 @@
 
 {#if $isAuthenticated}
 	<!-- Test Mode Banner (appears above everything when active) - client-only to prevent hydration issues -->
-	{#if browser}
+	<ClientOnly>
 		<TestModeBanner />
-	{/if}
+	</ClientOnly>
 
 	<!-- Dashboard Layout: Fixed sidebar with content area -->
 	<div class="min-h-screen bg-sidebar">
