@@ -109,7 +109,7 @@ podSecurityContext:
 
 containerSecurityContext:
   allowPrivilegeEscalation: false
-  readOnlyRootFilesystem: true
+  readOnlyRootFilesystem: false  # Allow temporary file writes
   runAsNonRoot: true
   capabilities:
     drop:
@@ -145,6 +145,18 @@ nodeAgent:
     runAsUser: 0  # Root required for volume access
   containerSecurityContext:
     privileged: false  # Don't use privileged mode
+    readOnlyRootFilesystem: false  # Allow writes for Kopia cache
+
+  # Additional volumes for node-agent
+  extraVolumes:
+    - name: udmrepo-cache
+      hostPath:
+        path: /var/lib/velero/udmrepo
+        type: DirectoryOrCreate
+
+  extraVolumeMounts:
+    - name: udmrepo-cache
+      mountPath: /udmrepo
 
 # Cleanup CRDs on uninstall
 cleanUpCRDs: false  # Keep CRDs for safety
