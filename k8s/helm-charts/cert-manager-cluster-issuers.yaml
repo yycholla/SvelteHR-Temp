@@ -14,7 +14,7 @@ spec:
     server: https://acme-staging-v02.api.letsencrypt.org/directory
 
     # Email for certificate expiration notifications
-    email: admin@sveltehr.dev
+    email: chanway@mtncarerx.net
 
     # Secret to store ACME account private key
     privateKeySecretRef:
@@ -38,7 +38,7 @@ spec:
     server: https://acme-v02.api.letsencrypt.org/directory
 
     # Email for certificate expiration notifications
-    email: admin@sveltehr.dev
+    email: chanway@mtncarerx.net
 
     # Secret to store ACME account private key
     privateKeySecretRef:

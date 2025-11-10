@@ -335,11 +335,14 @@ ingress:
   enabled: true
   className: traefik
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: web
-    # Cloudflare provides HTTPS at edge, sends HTTP to cluster
-  host: hr.yycholla.com
+    # Let's Encrypt certificate automation (staging for testing)
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+    # Allow both HTTP and HTTPS (HTTP redirects to HTTPS via middleware)
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+  host: hr.mtncarerx.com  # GoDaddy domain with direct DNS (no proxy)
   tls:
-    enabled: false # TLS terminated at Cloudflare edge
+    enabled: true  # cert-manager will issue Let's Encrypt certificate
+    secretName: sveltehr-tls-cert  # Certificate stored here
 # -----------------------------------------------------------------------------
 # Pod Disruption Budgets (High Availability)
 # -----------------------------------------------------------------------------
