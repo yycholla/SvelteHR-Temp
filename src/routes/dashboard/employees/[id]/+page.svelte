@@ -5,7 +5,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Table from '$lib/components/ui/table';
-	import * as Tabs from '$lib/components/ui/tabs';
+	import * as Accordion from '$lib/components/ui/accordion';
 	import AssignDocumentsModal from '$lib/components/employees/AssignDocumentsModal.svelte';
 	import AddEmergencyContactModal, {
 		type EmergencyContactInput
@@ -208,531 +208,522 @@
 	<meta name="description" content="Employee profile for {employee.displayName}" />
 </svelte:head>
 
-<div class="container mx-auto max-w-7xl px-4 py-8">
+<div class="container mx-auto max-w-7xl px-4 py-6">
 	<!-- Back Button and Header -->
-	<div class="mb-6 flex items-center justify-between">
+	<div class="mb-4 flex items-center justify-between">
 		<div class="flex items-center gap-4">
 			<Button variant="outline" size="sm" onclick={() => goto('/dashboard/employees')}>
 				<ArrowLeft class="mr-2 h-4 w-4" />
-				Back to Employees
+				Back
 			</Button>
 			<div>
-				<h1 class="text-3xl font-bold text-foreground">{employee.displayName}</h1>
-				<p class="text-muted-foreground">{formatRole(employee.role)}</p>
+				<h1 class="text-2xl font-bold text-foreground">{employee.displayName}</h1>
+				<p class="text-sm text-muted-foreground">{formatRole(employee.role)}</p>
 			</div>
 		</div>
 		<div class="flex gap-2">
 			{#if permissions.canManageEmployees}
-				<Button href="/dashboard/employees/{employee.id}/edit">
+				<Button href="/dashboard/employees/{employee.id}/edit" size="sm">
 					<Edit class="mr-2 h-4 w-4" />
-					Edit Employee
+					Edit
 				</Button>
 			{/if}
 			{#if permissions.canCreateReviews}
-				<Button href="/dashboard/reviews?employee={employee.id}">
+				<Button href="/dashboard/reviews?employee={employee.id}" size="sm" variant="outline">
 					<FileBarChart class="mr-2 h-4 w-4" />
-					Start Review
+					Review
 				</Button>
 			{/if}
 		</div>
 	</div>
 
-	<!-- Status Badge -->
-	<div class="mb-6">
-		<Badge variant={getStatusBadgeVariant(employee.isActive)}>
-			{employee.isActive ? 'Active' : 'Inactive'}
-		</Badge>
-	</div>
-
-	<!-- Tabs for Different Sections -->
-	<Tabs.Root value="overview" class="w-full">
-		<Tabs.List class="grid w-full grid-cols-3 lg:grid-cols-8">
-			<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
-			{#if permissions.canViewContactInfo}
-				<Tabs.Trigger value="contact">Contact</Tabs.Trigger>
-			{/if}
-			{#if permissions.canViewEmergencyContacts}
-				<Tabs.Trigger value="emergency">Emergency</Tabs.Trigger>
-			{/if}
-			{#if permissions.canViewVehicles}
-				<Tabs.Trigger value="vehicles">Vehicles</Tabs.Trigger>
-			{/if}
-			<Tabs.Trigger value="leave">Leave</Tabs.Trigger>
-			<Tabs.Trigger value="reviews">Reviews</Tabs.Trigger>
-			<Tabs.Trigger value="timeoff">Time Off</Tabs.Trigger>
-			{#if permissions.canViewDocuments}
-				<Tabs.Trigger value="documents">Documents</Tabs.Trigger>
-			{/if}
-		</Tabs.List>
-
-		<!-- Overview Tab -->
-		<Tabs.Content value="overview" class="mt-6">
-			<div class="grid gap-6 md:grid-cols-2">
-				<!-- Basic Information Card -->
-				<Card.Root>
-					<Card.Header>
-						<Card.Title class="flex items-center gap-2">
-							<User class="h-5 w-5" />
-							Basic Information
-						</Card.Title>
-					</Card.Header>
-					<Card.Content class="space-y-4">
-						<div class="flex items-start gap-3">
-							<Mail class="mt-1 h-4 w-4 text-muted-foreground" />
-							<div>
-								<p class="text-sm font-medium text-foreground">Email</p>
-								<p class="text-sm text-muted-foreground">{employee.email}</p>
-							</div>
-						</div>
-						<div class="flex items-start gap-3">
-							<Briefcase class="mt-1 h-4 w-4 text-muted-foreground" />
-							<div>
-								<p class="text-sm font-medium text-foreground">Role</p>
-								<p class="text-sm text-muted-foreground">{formatRole(employee.role)}</p>
-							</div>
-						</div>
-						<div class="flex items-start gap-3">
-							<Calendar class="mt-1 h-4 w-4 text-muted-foreground" />
-							<div>
-								<p class="text-sm font-medium text-foreground">Hire Date</p>
-								<p class="text-sm text-muted-foreground">{formatDate(employee.hireDate)}</p>
-							</div>
-						</div>
-						{#if employee.lastLogin}
-							<div class="flex items-start gap-3">
-								<Clock class="mt-1 h-4 w-4 text-muted-foreground" />
-								<div>
-									<p class="text-sm font-medium text-foreground">Last Login</p>
-									<p class="text-sm text-muted-foreground">{formatDate(employee.lastLogin)}</p>
-								</div>
-							</div>
+	<!-- Compact Single Card Dashboard -->
+	<Card.Root class="w-full">
+		<!-- Header with Status and Quick Stats -->
+		<Card.Header class="pb-3">
+			<div class="flex flex-col gap-3">
+				<div class="flex items-center justify-between">
+					<div class="flex items-center gap-3">
+						<Badge variant={getStatusBadgeVariant(employee.isActive)} class="text-xs px-2 py-0.5">
+							{employee.isActive ? 'Active' : 'Inactive'}
+						</Badge>
+						{#if employee.department}
+							<span class="text-xs text-muted-foreground flex items-center gap-1">
+								<Building2 class="h-3 w-3" />
+								{employee.department.name}
+							</span>
 						{/if}
-					</Card.Content>
-				</Card.Root>
+					</div>
+					<div class="flex gap-4 text-xs text-muted-foreground">
+						<span class="flex items-center gap-1">
+							<Plane class="h-3 w-3" />
+							{employee.leaveRequestCount}
+						</span>
+						<span class="flex items-center gap-1">
+							<Award class="h-3 w-3" />
+							{employee.performanceReviewCount}
+						</span>
+						{#if permissions.canViewDocuments}
+							<span class="flex items-center gap-1">
+								<FileText class="h-3 w-3" />
+								{employee.documentsCount}
+							</span>
+						{/if}
+					</div>
+				</div>
 
-				<!-- Department Information Card -->
-				{#if employee.department}
-					<Card.Root>
-						<Card.Header>
-							<Card.Title class="flex items-center gap-2">
-								<Building2 class="h-5 w-5" />
-								Department
-							</Card.Title>
-						</Card.Header>
-						<Card.Content class="space-y-4">
-							<div>
-								<p class="text-sm font-medium text-foreground">Department Name</p>
-								<p class="text-sm text-muted-foreground">{employee.department.name}</p>
+				<!-- Quick Overview - 4 Column Dense Grid -->
+				<div class="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 pt-2 pb-1 border-t text-xs">
+					<div class="flex items-center gap-1.5 min-w-0">
+						<Mail class="h-3 w-3 text-muted-foreground shrink-0" />
+						<div class="min-w-0 flex-1">
+							<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Email</p>
+							<p class="font-medium truncate">{employee.email}</p>
+						</div>
+					</div>
+					<div class="flex items-center gap-1.5 min-w-0">
+						<Briefcase class="h-3 w-3 text-muted-foreground shrink-0" />
+						<div class="min-w-0 flex-1">
+							<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Role</p>
+							<p class="font-medium truncate">{formatRole(employee.role)}</p>
+						</div>
+					</div>
+					<div class="flex items-center gap-1.5 min-w-0">
+						<Calendar class="h-3 w-3 text-muted-foreground shrink-0" />
+						<div class="min-w-0 flex-1">
+							<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Hired</p>
+							<p class="font-medium truncate">{formatDate(employee.hireDate)}</p>
+						</div>
+					</div>
+					{#if employee.department?.userByManagerId}
+						<div class="flex items-center gap-1.5 min-w-0">
+							<User class="h-3 w-3 text-muted-foreground shrink-0" />
+							<div class="min-w-0 flex-1">
+								<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Manager</p>
+								<p class="font-medium truncate">{employee.department.userByManagerId.displayName}</p>
 							</div>
-							{#if employee.department.description}
-								<div>
-									<p class="text-sm font-medium text-foreground">Description</p>
-									<p class="text-sm text-muted-foreground">{employee.department.description}</p>
-								</div>
-							{/if}
-							{#if employee.department.userByManagerId}
-								<div>
-									<p class="text-sm font-medium text-foreground">Manager</p>
-									<p class="text-sm text-muted-foreground">
-										{employee.department.userByManagerId.displayName}
-									</p>
-								</div>
-							{/if}
-						</Card.Content>
-					</Card.Root>
-				{/if}
+						</div>
+					{:else if employee.lastLogin}
+						<div class="flex items-center gap-1.5 min-w-0">
+							<Clock class="h-3 w-3 text-muted-foreground shrink-0" />
+							<div class="min-w-0 flex-1">
+								<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Last Login</p>
+								<p class="font-medium truncate">{formatDate(employee.lastLogin)}</p>
+							</div>
+						</div>
+					{/if}
+				</div>
 			</div>
-		</Tabs.Content>
+		</Card.Header>
 
-		<!-- Contact Information Tab -->
-		{#if permissions.canViewContactInfo}
-			<Tabs.Content value="contact" class="mt-6">
-				<Card.Root>
-					<Card.Header>
-						<Card.Title class="flex items-center gap-2">
-							<Phone class="h-5 w-5" />
-							Contact Information
-						</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="grid gap-6 md:grid-cols-2">
-							<!-- Phone Numbers -->
-							<div class="space-y-4">
-								<h3 class="text-sm font-semibold text-foreground">Phone Numbers</h3>
-								{#if employee.phoneNumber}
-									<div>
-										<p class="text-sm font-medium text-foreground">Primary Phone</p>
-										<p class="text-sm text-muted-foreground">{employee.phoneNumber}</p>
-									</div>
-								{/if}
-								{#if employee.mobileNumber}
-									<div>
-										<p class="text-sm font-medium text-foreground">Mobile</p>
-										<p class="text-sm text-muted-foreground">{employee.mobileNumber}</p>
-									</div>
-								{/if}
-								{#if !employee.phoneNumber && !employee.mobileNumber}
-									<p class="text-sm text-muted-foreground">No phone numbers on file</p>
-								{/if}
+		<Separator />
+
+		<!-- Compact Accordions -->
+		<Card.Content class="p-0">
+			<Accordion.Root type="multiple" class="w-full">
+				<!-- Contact Information -->
+				{#if permissions.canViewContactInfo}
+					<Accordion.Item value="contact" class="border-b last:border-b-0">
+						<Accordion.Trigger class="px-4 py-3 hover:bg-muted/50 text-sm font-medium">
+							<div class="flex items-center gap-2">
+								<Phone class="h-4 w-4" />
+								<span>Contact</span>
 							</div>
+						</Accordion.Trigger>
+						<Accordion.Content class="px-4 pb-4">
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+								<!-- Phone Numbers -->
+								<div class="space-y-2">
+									<h4 class="font-semibold text-foreground flex items-center gap-1.5">
+										<Phone class="h-3 w-3" />
+										Phone Numbers
+									</h4>
+									{#if employee.phoneNumber || employee.mobileNumber}
+										<div class="grid gap-1.5">
+											{#if employee.phoneNumber}
+												<div class="flex justify-between">
+													<span class="text-muted-foreground">Primary</span>
+													<span class="font-medium">{employee.phoneNumber}</span>
+												</div>
+											{/if}
+											{#if employee.mobileNumber}
+												<div class="flex justify-between">
+													<span class="text-muted-foreground">Mobile</span>
+													<span class="font-medium">{employee.mobileNumber}</span>
+												</div>
+											{/if}
+										</div>
+									{:else}
+										<p class="text-muted-foreground">No phone numbers</p>
+									{/if}
+								</div>
 
-							<!-- Address -->
-							<div class="space-y-4">
-								<h3 class="text-sm font-semibold text-foreground">Address</h3>
-								{#if employee.addressLine1}
-									<div class="flex items-start gap-2">
-										<MapPin class="mt-1 h-4 w-4 text-muted-foreground" />
-										<div class="text-sm text-muted-foreground">
+								<!-- Address -->
+								<div class="space-y-2">
+									<h4 class="font-semibold text-foreground flex items-center gap-1.5">
+										<MapPin class="h-3 w-3" />
+										Address
+									</h4>
+									{#if employee.addressLine1}
+										<div class="text-muted-foreground leading-relaxed">
 											<p>{employee.addressLine1}</p>
 											{#if employee.addressLine2}
 												<p>{employee.addressLine2}</p>
 											{/if}
-											<p>
-												{employee.city}, {employee.stateProvince} {employee.postalCode}
-											</p>
+											<p>{employee.city}, {employee.stateProvince} {employee.postalCode}</p>
 											<p>{employee.country || 'United States'}</p>
 										</div>
-									</div>
-								{:else}
-									<p class="text-sm text-muted-foreground">No address on file</p>
+									{:else}
+										<p class="text-muted-foreground">No address</p>
+									{/if}
+								</div>
+							</div>
+						</Accordion.Content>
+					</Accordion.Item>
+				{/if}
+
+				<!-- Emergency Contacts -->
+				{#if permissions.canViewEmergencyContacts}
+					<Accordion.Item value="emergency" class="border-b last:border-b-0">
+						<Accordion.Trigger class="px-4 py-3 hover:bg-muted/50 text-sm font-medium">
+							<div class="flex items-center gap-2">
+								<Shield class="h-4 w-4" />
+								<span>Emergency Contacts</span>
+								{#if employee.emergencyContacts?.length}
+									<Badge variant="secondary" class="ml-1 text-[10px] px-1.5 py-0">
+										{employee.emergencyContacts.length}
+									</Badge>
 								{/if}
 							</div>
-						</div>
-					</Card.Content>
-				</Card.Root>
-			</Tabs.Content>
-		{/if}
-
-		<!-- Emergency Contacts Tab -->
-		{#if permissions.canViewEmergencyContacts}
-			<Tabs.Content value="emergency" class="mt-6">
-				<Card.Root>
-					<Card.Header>
-						<div class="flex items-center justify-between">
-							<Card.Title class="flex items-center gap-2">
-								<Shield class="h-5 w-5" />
-								Emergency Contacts
-							</Card.Title>
+						</Accordion.Trigger>
+						<Accordion.Content class="px-4 pb-4">
 							{#if permissions.canManageEmployees || permissions.isViewingSelf}
-								<Button onclick={() => (isAddEmergencyContactModalOpen = true)} size="sm">
-									<Plus class="mr-2 h-4 w-4" />
+								<Button onclick={() => (isAddEmergencyContactModalOpen = true)} size="sm" variant="outline" class="mb-3 h-7 text-xs">
+									<Plus class="mr-1 h-3 w-3" />
 									Add Contact
 								</Button>
 							{/if}
-						</div>
-					</Card.Header>
-					<Card.Content>
-						{#if employee.emergencyContacts && employee.emergencyContacts.length > 0}
-							<div class="space-y-6">
-								{#each employee.emergencyContacts as contact}
-									<div class="rounded-lg border border-border p-4">
-										<div class="mb-3 flex items-center justify-between">
-											<h3 class="text-lg font-semibold text-foreground">{contact.name}</h3>
-											{#if contact.isPrimary}
-												<Badge variant="default">Primary</Badge>
-											{/if}
-										</div>
-										<div class="grid gap-3 md:grid-cols-2">
-											{#if contact.relationship}
-												<div>
-													<p class="text-sm font-medium text-foreground">Relationship</p>
-													<p class="text-sm text-muted-foreground">{contact.relationship}</p>
-												</div>
-											{/if}
-											<div>
-												<p class="text-sm font-medium text-foreground">Phone</p>
-												<p class="text-sm text-muted-foreground">{contact.phoneNumber}</p>
+							{#if employee.emergencyContacts && employee.emergencyContacts.length > 0}
+								<div class="grid gap-2">
+									{#each employee.emergencyContacts as contact}
+										<div class="rounded border p-2.5 text-xs">
+											<div class="flex items-center justify-between mb-2">
+												<h4 class="font-semibold">{contact.name}</h4>
+												{#if contact.isPrimary}
+													<Badge variant="default" class="text-[10px] px-1.5 py-0">Primary</Badge>
+												{/if}
 											</div>
-											{#if contact.email}
-												<div>
-													<p class="text-sm font-medium text-foreground">Email</p>
-													<p class="text-sm text-muted-foreground">{contact.email}</p>
+											<div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+												{#if contact.relationship}
+													<div class="flex justify-between col-span-2 md:col-span-1">
+														<span class="text-muted-foreground">Relationship</span>
+														<span class="font-medium">{contact.relationship}</span>
+													</div>
+												{/if}
+												<div class="flex justify-between col-span-2 md:col-span-1">
+													<span class="text-muted-foreground">Phone</span>
+													<span class="font-medium">{contact.phoneNumber}</span>
 												</div>
-											{/if}
+												{#if contact.email}
+													<div class="flex justify-between col-span-2">
+														<span class="text-muted-foreground">Email</span>
+														<span class="font-medium truncate ml-2">{contact.email}</span>
+													</div>
+												{/if}
+											</div>
 										</div>
-									</div>
-								{/each}
-							</div>
-						{:else}
-							<p class="text-center text-sm text-muted-foreground">No emergency contacts on file</p>
-						{/if}
-					</Card.Content>
-				</Card.Root>
-			</Tabs.Content>
-		{/if}
+									{/each}
+								</div>
+							{:else}
+								<p class="text-xs text-muted-foreground text-center py-4">No emergency contacts</p>
+							{/if}
+						</Accordion.Content>
+					</Accordion.Item>
+				{/if}
 
-		<!-- Vehicles Tab -->
-		{#if permissions.canViewVehicles}
-			<Tabs.Content value="vehicles" class="mt-6">
-				<Card.Root>
-					<Card.Header>
-						<div class="flex items-center justify-between">
-							<Card.Title class="flex items-center gap-2">
-								<Car class="h-5 w-5" />
-								Vehicles
-							</Card.Title>
+				<!-- Vehicles -->
+				{#if permissions.canViewVehicles}
+					<Accordion.Item value="vehicles" class="border-b last:border-b-0">
+						<Accordion.Trigger class="px-4 py-3 hover:bg-muted/50 text-sm font-medium">
+							<div class="flex items-center gap-2">
+								<Car class="h-4 w-4" />
+								<span>Vehicles</span>
+								{#if employee.vehicles?.length}
+									<Badge variant="secondary" class="ml-1 text-[10px] px-1.5 py-0">
+										{employee.vehicles.length}
+									</Badge>
+								{/if}
+							</div>
+						</Accordion.Trigger>
+						<Accordion.Content class="px-4 pb-4">
 							{#if permissions.canManageEmployees || permissions.isViewingSelf}
-								<Button onclick={() => (isAddVehicleModalOpen = true)} size="sm">
-									<Plus class="mr-2 h-4 w-4" />
+								<Button onclick={() => (isAddVehicleModalOpen = true)} size="sm" variant="outline" class="mb-3 h-7 text-xs">
+									<Plus class="mr-1 h-3 w-3" />
 									Add Vehicle
 								</Button>
 							{/if}
-						</div>
-					</Card.Header>
-					<Card.Content>
-						{#if employee.vehicles && employee.vehicles.length > 0}
-							<div class="space-y-6">
-								{#each employee.vehicles as vehicle}
-									<div class="rounded-lg border border-border p-4">
-										<h3 class="mb-3 text-lg font-semibold text-foreground">
-											{vehicle.year} {vehicle.make} {vehicle.model}
-										</h3>
-										<div class="grid gap-3 md:grid-cols-2">
-											{#if vehicle.color}
-												<div>
-													<p class="text-sm font-medium text-foreground">Color</p>
-													<p class="text-sm text-muted-foreground">{vehicle.color}</p>
+							{#if employee.vehicles && employee.vehicles.length > 0}
+								<div class="grid md:grid-cols-2 gap-2">
+									{#each employee.vehicles as vehicle}
+										<div class="rounded border p-2.5 text-xs">
+											<h4 class="font-semibold mb-1.5">
+												{vehicle.year} {vehicle.make} {vehicle.model}
+											</h4>
+											<div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+												{#if vehicle.color}
+													<div class="flex justify-between">
+														<span class="text-muted-foreground">Color</span>
+														<span class="font-medium">{vehicle.color}</span>
+													</div>
+												{/if}
+												<div class="flex justify-between">
+													<span class="text-muted-foreground">Plate</span>
+													<span class="font-medium">{vehicle.licensePlate}</span>
 												</div>
-											{/if}
-											<div>
-												<p class="text-sm font-medium text-foreground">License Plate</p>
-												<p class="text-sm text-muted-foreground">{vehicle.licensePlate}</p>
+											</div>
+										</div>
+									{/each}
+								</div>
+							{:else}
+								<p class="text-xs text-muted-foreground text-center py-4">No vehicles</p>
+							{/if}
+						</Accordion.Content>
+					</Accordion.Item>
+				{/if}
+
+				<!-- Leave Requests -->
+				<Accordion.Item value="leave" class="border-b last:border-b-0">
+					<Accordion.Trigger class="px-4 py-3 hover:bg-muted/50 text-sm font-medium">
+						<div class="flex items-center gap-2">
+							<Plane class="h-4 w-4" />
+							<span>Leave Requests</span>
+							<Badge variant="secondary" class="ml-1 text-[10px] px-1.5 py-0">
+								{employee.leaveRequestCount}
+							</Badge>
+						</div>
+					</Accordion.Trigger>
+					<Accordion.Content class="px-4 pb-4">
+						{#if employee.leaveRequests && employee.leaveRequests.length > 0}
+							<div class="rounded border overflow-hidden">
+								<div class="overflow-x-auto">
+									<table class="w-full text-xs">
+										<thead class="bg-muted/50">
+											<tr class="border-b">
+												<th class="px-2 py-1.5 text-left font-medium">Type</th>
+												<th class="px-2 py-1.5 text-left font-medium">Start</th>
+												<th class="px-2 py-1.5 text-left font-medium">End</th>
+												<th class="px-2 py-1.5 text-left font-medium">Status</th>
+												<th class="px-2 py-1.5 text-left font-medium">Reason</th>
+											</tr>
+										</thead>
+										<tbody>
+											{#each employee.leaveRequests as request}
+												<tr class="border-b last:border-b-0">
+													<td class="px-2 py-1.5 font-medium">{request.leaveType}</td>
+													<td class="px-2 py-1.5 text-muted-foreground">{formatDate(request.startDate)}</td>
+													<td class="px-2 py-1.5 text-muted-foreground">{formatDate(request.endDate)}</td>
+													<td class="px-2 py-1.5">
+														<Badge class="text-[10px] px-1.5 py-0">{request.status}</Badge>
+													</td>
+													<td class="px-2 py-1.5 text-muted-foreground truncate max-w-xs">
+														{request.reason || 'N/A'}
+													</td>
+												</tr>
+											{/each}
+										</tbody>
+									</table>
+								</div>
+							</div>
+						{:else}
+							<p class="text-xs text-muted-foreground text-center py-4">No leave requests</p>
+						{/if}
+					</Accordion.Content>
+				</Accordion.Item>
+
+				<!-- Performance Reviews -->
+				<Accordion.Item value="reviews" class="border-b last:border-b-0">
+					<Accordion.Trigger class="px-4 py-3 hover:bg-muted/50 text-sm font-medium">
+						<div class="flex items-center gap-2">
+							<Award class="h-4 w-4" />
+							<span>Performance Reviews</span>
+							<Badge variant="secondary" class="ml-1 text-[10px] px-1.5 py-0">
+								{employee.performanceReviewCount}
+							</Badge>
+						</div>
+					</Accordion.Trigger>
+					<Accordion.Content class="px-4 pb-4">
+						{#if employee.performanceReviews && employee.performanceReviews.length > 0}
+							<div class="rounded border overflow-hidden">
+								<div class="overflow-x-auto">
+									<table class="w-full text-xs">
+										<thead class="bg-muted/50">
+											<tr class="border-b">
+												<th class="px-2 py-1.5 text-left font-medium">Period</th>
+												<th class="px-2 py-1.5 text-left font-medium">Rating</th>
+												<th class="px-2 py-1.5 text-left font-medium">Status</th>
+												<th class="px-2 py-1.5 text-left font-medium">Reviewer</th>
+												<th class="px-2 py-1.5 text-left font-medium">Date</th>
+											</tr>
+										</thead>
+										<tbody>
+											{#each employee.performanceReviews as review}
+												<tr class="border-b last:border-b-0">
+													<td class="px-2 py-1.5 font-medium">{review.reviewPeriod}</td>
+													<td class="px-2 py-1.5">
+														{review.overallRating ? `${review.overallRating}/5.0` : 'N/A'}
+													</td>
+													<td class="px-2 py-1.5">
+														<Badge class="text-[10px] px-1.5 py-0">{review.status}</Badge>
+													</td>
+													<td class="px-2 py-1.5 text-muted-foreground">
+														{review.reviewer?.displayName || 'N/A'}
+													</td>
+													<td class="px-2 py-1.5 text-muted-foreground">{formatDate(review.createdAt)}</td>
+												</tr>
+											{/each}
+										</tbody>
+									</table>
+								</div>
+							</div>
+						{:else}
+							<p class="text-xs text-muted-foreground text-center py-4">No performance reviews</p>
+						{/if}
+					</Accordion.Content>
+				</Accordion.Item>
+
+				<!-- Leave Balances -->
+				<Accordion.Item value="timeoff" class="border-b last:border-b-0">
+					<Accordion.Trigger class="px-4 py-3 hover:bg-muted/50 text-sm font-medium">
+						<div class="flex items-center gap-2">
+							<Calendar class="h-4 w-4" />
+							<span>Leave Balances</span>
+						</div>
+					</Accordion.Trigger>
+					<Accordion.Content class="px-4 pb-4">
+						{#if employee.leaveBalances && employee.leaveBalances.length > 0}
+							<div class="grid md:grid-cols-3 gap-2">
+								{#each employee.leaveBalances as balance}
+									<div class="rounded border p-2.5 text-xs">
+										<h4 class="font-semibold mb-1.5 text-foreground">{balance.leaveTypeName}</h4>
+										<div class="space-y-1 text-[11px]">
+											<div class="flex justify-between">
+												<span class="text-muted-foreground">Year</span>
+												<span class="font-medium">{balance.year}</span>
+											</div>
+											<div class="flex justify-between">
+												<span class="text-muted-foreground">Total</span>
+												<span class="font-medium">{balance.totalDays}</span>
+											</div>
+											<div class="flex justify-between">
+												<span class="text-muted-foreground">Used</span>
+												<span class="font-medium">{balance.usedDays}</span>
+											</div>
+											<Separator class="my-1" />
+											<div class="flex justify-between">
+												<span class="font-medium text-foreground">Remaining</span>
+												<span class="font-bold text-primary">{balance.remainingDays}</span>
 											</div>
 										</div>
 									</div>
 								{/each}
 							</div>
 						{:else}
-							<p class="text-center text-sm text-muted-foreground">No vehicles on file</p>
+							<p class="text-xs text-muted-foreground text-center py-4">No leave balances</p>
 						{/if}
-					</Card.Content>
-				</Card.Root>
-			</Tabs.Content>
-		{/if}
+					</Accordion.Content>
+				</Accordion.Item>
 
-		<!-- Leave Requests Tab -->
-		<Tabs.Content value="leave" class="mt-6">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title class="flex items-center gap-2">
-						<Plane class="h-5 w-5" />
-						Leave Requests ({employee.leaveRequestCount})
-					</Card.Title>
-				</Card.Header>
-				<Card.Content>
-					{#if employee.leaveRequests && employee.leaveRequests.length > 0}
-						<Table.Root>
-							<Table.Header>
-								<Table.Row>
-									<Table.Head>Type</Table.Head>
-									<Table.Head>Start Date</Table.Head>
-									<Table.Head>End Date</Table.Head>
-									<Table.Head>Status</Table.Head>
-									<Table.Head>Reason</Table.Head>
-								</Table.Row>
-							</Table.Header>
-							<Table.Body>
-								{#each employee.leaveRequests as request}
-									<Table.Row>
-										<Table.Cell class="font-medium">{request.leaveType}</Table.Cell>
-										<Table.Cell>{formatDate(request.startDate)}</Table.Cell>
-										<Table.Cell>{formatDate(request.endDate)}</Table.Cell>
-										<Table.Cell>
-											<Badge>{request.status}</Badge>
-										</Table.Cell>
-										<Table.Cell class="max-w-xs truncate">
-											{request.reason || 'N/A'}
-										</Table.Cell>
-									</Table.Row>
-								{/each}
-							</Table.Body>
-						</Table.Root>
-					{:else}
-						<p class="text-center text-sm text-muted-foreground">No leave requests</p>
-					{/if}
-				</Card.Content>
-			</Card.Root>
-		</Tabs.Content>
-
-		<!-- Performance Reviews Tab -->
-		<Tabs.Content value="reviews" class="mt-6">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title class="flex items-center gap-2">
-						<Award class="h-5 w-5" />
-						Performance Reviews ({employee.performanceReviewCount})
-					</Card.Title>
-				</Card.Header>
-				<Card.Content>
-					{#if employee.performanceReviews && employee.performanceReviews.length > 0}
-						<Table.Root>
-							<Table.Header>
-								<Table.Row>
-									<Table.Head>Period</Table.Head>
-									<Table.Head>Rating</Table.Head>
-									<Table.Head>Status</Table.Head>
-									<Table.Head>Reviewer</Table.Head>
-									<Table.Head>Date</Table.Head>
-								</Table.Row>
-							</Table.Header>
-							<Table.Body>
-								{#each employee.performanceReviews as review}
-									<Table.Row>
-										<Table.Cell class="font-medium">{review.reviewPeriod}</Table.Cell>
-										<Table.Cell>
-											{review.overallRating ? `${review.overallRating}/5.0` : 'N/A'}
-										</Table.Cell>
-										<Table.Cell>
-											<Badge>{review.status}</Badge>
-										</Table.Cell>
-										<Table.Cell>
-											{review.reviewer?.displayName || 'N/A'}
-										</Table.Cell>
-										<Table.Cell>{formatDate(review.createdAt)}</Table.Cell>
-									</Table.Row>
-								{/each}
-							</Table.Body>
-						</Table.Root>
-					{:else}
-						<p class="text-center text-sm text-muted-foreground">No performance reviews</p>
-					{/if}
-				</Card.Content>
-			</Card.Root>
-		</Tabs.Content>
-
-		<!-- Leave Balances Tab -->
-		<Tabs.Content value="timeoff" class="mt-6">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title class="flex items-center gap-2">
-						<Calendar class="h-5 w-5" />
-						Leave Balances
-					</Card.Title>
-				</Card.Header>
-				<Card.Content>
-					{#if employee.leaveBalances && employee.leaveBalances.length > 0}
-						<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-							{#each employee.leaveBalances as balance}
-								<div class="rounded-lg border border-border p-4">
-									<h3 class="mb-2 text-sm font-semibold text-foreground">{balance.leaveTypeName}</h3>
-									<div class="space-y-2">
-										<div class="flex justify-between">
-											<span class="text-sm text-muted-foreground">Year</span>
-											<span class="text-sm font-medium text-foreground">{balance.year}</span>
-										</div>
-										<div class="flex justify-between">
-											<span class="text-sm text-muted-foreground">Total Days</span>
-											<span class="text-sm font-medium text-foreground">{balance.totalDays}</span>
-										</div>
-										<div class="flex justify-between">
-											<span class="text-sm text-muted-foreground">Used Days</span>
-											<span class="text-sm font-medium text-foreground">{balance.usedDays}</span>
-										</div>
-										<Separator />
-										<div class="flex justify-between">
-											<span class="text-sm font-medium text-foreground">Remaining</span>
-											<span class="text-sm font-bold text-primary">
-												{balance.remainingDays} days
-											</span>
-										</div>
-									</div>
-								</div>
-							{/each}
-						</div>
-					{:else}
-						<p class="text-center text-sm text-muted-foreground">No leave balances</p>
-					{/if}
-				</Card.Content>
-			</Card.Root>
-		</Tabs.Content>
-
-		<!-- Documents Tab -->
-		{#if permissions.canViewDocuments}
-			<Tabs.Content value="documents" class="mt-6">
-				<Card.Root>
-					<Card.Header>
-						<div class="flex items-center justify-between">
-							<Card.Title class="flex items-center gap-2">
-								<FileText class="h-5 w-5" />
-								Assigned Documents ({employee.documentsCount})
-							</Card.Title>
+				<!-- Documents -->
+				{#if permissions.canViewDocuments}
+					<Accordion.Item value="documents" class="border-b-0">
+						<Accordion.Trigger class="px-4 py-3 hover:bg-muted/50 text-sm font-medium">
+							<div class="flex items-center gap-2">
+								<FileText class="h-4 w-4" />
+								<span>Documents</span>
+								<Badge variant="secondary" class="ml-1 text-[10px] px-1.5 py-0">
+									{employee.documentsCount}
+								</Badge>
+							</div>
+						</Accordion.Trigger>
+						<Accordion.Content class="px-4 pb-4">
 							{#if permissions.canAssignDocuments}
-								<Button onclick={() => isAssignDocsModalOpen = true} size="sm">
-									Assign Documents
+								<Button onclick={() => isAssignDocsModalOpen = true} size="sm" variant="outline" class="mb-3 h-7 text-xs">
+									<Plus class="mr-1 h-3 w-3" />
+									Assign
 								</Button>
 							{/if}
-						</div>
-					</Card.Header>
-					<Card.Content>
-						{#if employee.assignedDocuments && employee.assignedDocuments.length > 0}
-							<div class="border rounded-lg overflow-hidden">
-								<Table.Root>
-									<Table.Header>
-										<Table.Row>
-											<Table.Head>Filename</Table.Head>
-											<Table.Head>Category</Table.Head>
-											<Table.Head>Sensitivity</Table.Head>
-											<Table.Head>Assigned Date</Table.Head>
-											<Table.Head class="text-right">Actions</Table.Head>
-										</Table.Row>
-									</Table.Header>
-									<Table.Body>
-										{#each employee.assignedDocuments as document}
-											<Table.Row class="cursor-pointer hover:bg-muted/50" onclick={() => goto(`/dashboard/documents/${document.id}`)}>
-												<Table.Cell class="font-medium">
-													<div class="flex items-center gap-2">
-														<FileText class="h-4 w-4 text-muted-foreground" />
-														{document.filename}
-													</div>
-												</Table.Cell>
-												<Table.Cell>
-													<span class="text-sm text-muted-foreground">{document.category}</span>
-												</Table.Cell>
-												<Table.Cell>
-													<Badge variant={document.sensitivityLevel === 'Public' ? 'secondary' : 'default'}>
-														{document.sensitivityLevel}
-													</Badge>
-												</Table.Cell>
-												<Table.Cell class="text-sm text-muted-foreground">
-													{new Date(document.assignedAt).toLocaleDateString()}
-												</Table.Cell>
-												<Table.Cell class="text-right">
-													<Button
-														href="/dashboard/documents/{document.id}"
-														size="sm"
-														variant="outline"
-														onclick={(e) => {
-															e.stopPropagation();
-															goto(`/dashboard/documents/${document.id}`);
-														}}
-													>
-														View
-													</Button>
-												</Table.Cell>
-											</Table.Row>
-										{/each}
-									</Table.Body>
-								</Table.Root>
-							</div>
-						{:else}
-							<div class="text-center py-12">
-								<FileText class="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-								<h3 class="text-lg font-semibold mb-2">No documents assigned</h3>
-								<p class="text-sm text-muted-foreground mb-4">
-									This employee hasn't been assigned any documents yet.
-								</p>
-								{#if permissions.canAssignDocuments}
-									<Button onclick={() => isAssignDocsModalOpen = true} size="sm">
-										Assign Documents
-									</Button>
-								{/if}
-							</div>
-						{/if}
-					</Card.Content>
-				</Card.Root>
-			</Tabs.Content>
-		{/if}
-	</Tabs.Root>
+							{#if employee.assignedDocuments && employee.assignedDocuments.length > 0}
+								<div class="rounded border overflow-hidden">
+									<div class="overflow-x-auto">
+										<table class="w-full text-xs">
+											<thead class="bg-muted/50">
+												<tr class="border-b">
+													<th class="px-2 py-1.5 text-left font-medium">Filename</th>
+													<th class="px-2 py-1.5 text-left font-medium">Category</th>
+													<th class="px-2 py-1.5 text-left font-medium">Sensitivity</th>
+													<th class="px-2 py-1.5 text-left font-medium">Assigned</th>
+													<th class="px-2 py-1.5 text-right font-medium">Actions</th>
+												</tr>
+											</thead>
+											<tbody>
+												{#each employee.assignedDocuments as document}
+													<tr class="border-b last:border-b-0 hover:bg-muted/30 cursor-pointer" onclick={() => goto(`/dashboard/documents/${document.id}`)}>
+														<td class="px-2 py-1.5 font-medium">
+															<div class="flex items-center gap-1.5">
+																<FileText class="h-3 w-3 text-muted-foreground" />
+																<span class="truncate">{document.filename}</span>
+															</div>
+														</td>
+														<td class="px-2 py-1.5 text-muted-foreground">{document.category}</td>
+														<td class="px-2 py-1.5">
+															<Badge variant={document.sensitivityLevel === 'Public' ? 'secondary' : 'default'} class="text-[10px] px-1.5 py-0">
+																{document.sensitivityLevel}
+															</Badge>
+														</td>
+														<td class="px-2 py-1.5 text-muted-foreground">
+															{new Date(document.assignedAt).toLocaleDateString()}
+														</td>
+														<td class="px-2 py-1.5 text-right">
+															<Button
+																href="/dashboard/documents/{document.id}"
+																size="sm"
+																variant="ghost"
+																class="h-6 px-2 text-[11px]"
+																onclick={(e) => {
+																	e.stopPropagation();
+																	goto(`/dashboard/documents/${document.id}`);
+																}}
+															>
+																View
+															</Button>
+														</td>
+													</tr>
+												{/each}
+											</tbody>
+										</table>
+									</div>
+								</div>
+							{:else}
+								<div class="text-center py-6">
+									<FileText class="mx-auto h-8 w-8 text-muted-foreground/30 mb-2" />
+									<p class="text-xs font-medium mb-1">No documents assigned</p>
+									<p class="text-[11px] text-muted-foreground mb-3">
+										This employee hasn't been assigned any documents.
+									</p>
+									{#if permissions.canAssignDocuments}
+										<Button onclick={() => isAssignDocsModalOpen = true} size="sm" class="h-7 text-xs">
+											<Plus class="mr-1 h-3 w-3" />
+											Assign Documents
+										</Button>
+									{/if}
+								</div>
+							{/if}
+						</Accordion.Content>
+					</Accordion.Item>
+				{/if}
+			</Accordion.Root>
+		</Card.Content>
+	</Card.Root>
 </div>
 
 <!-- Assign Documents Modal -->
