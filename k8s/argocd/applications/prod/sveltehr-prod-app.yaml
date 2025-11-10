@@ -73,19 +73,18 @@ spec:
     server: https://kubernetes.default.svc
     namespace: sveltehr-prod
 
-  # Sync policy: MANUAL for production deployments (Image Updater commits to Git)
+  # Sync policy: AUTOMATED GitOps workflow
   syncPolicy:
+    automated:
+      prune: true  # Remove resources deleted from Git
+      selfHeal: true  # Auto-correct cluster drift
+
     # Sync options
     syncOptions:
       - CreateNamespace=true
       - PrunePropagationPolicy=foreground
       - PruneLast=true
       - RespectIgnoreDifferences=true
-
-    # DISABLED: Automated sync requires manual approval for production
-    # Image Updater will commit new tags to Git, but ArgoCD won't auto-sync
-    # Operator must manually approve and sync: argocd app sync sveltehr-prod
-    automated: null
 
     # Retry strategy for failed syncs
     retry:

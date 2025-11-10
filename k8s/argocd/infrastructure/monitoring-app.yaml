@@ -37,8 +37,10 @@ spec:
     namespace: monitoring
 
   syncPolicy:
-    # MANUAL SYNC during migration (as requested)
-    automated: null
+    # Automated GitOps sync enabled (as requested)
+    automated:
+      prune: true  # Remove resources deleted from Git
+      selfHeal: true  # Auto-correct cluster drift
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true  # Better for CRDs and large manifests

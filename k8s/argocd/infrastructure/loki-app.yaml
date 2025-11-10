@@ -31,8 +31,10 @@ spec:
     namespace: monitoring  # Deploy to monitoring namespace with Prometheus/Grafana
 
   syncPolicy:
-    # MANUAL SYNC during migration
-    automated: null
+    # Automated GitOps sync enabled
+    automated:
+      prune: true  # Remove resources deleted from Git
+      selfHeal: true  # Auto-correct cluster drift
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
