@@ -272,47 +272,119 @@
 					</div>
 				</div>
 
-				<!-- Quick Overview - 4 Column Dense Grid -->
-				<div class="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 pt-2 pb-1 border-t text-xs">
-					<div class="flex items-center gap-1.5 min-w-0">
-						<Mail class="h-3 w-3 text-muted-foreground shrink-0" />
-						<div class="min-w-0 flex-1">
-							<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Email</p>
-							<p class="font-medium truncate">{employee.email}</p>
-						</div>
-					</div>
-					<div class="flex items-center gap-1.5 min-w-0">
-						<Briefcase class="h-3 w-3 text-muted-foreground shrink-0" />
-						<div class="min-w-0 flex-1">
-							<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Role</p>
-							<p class="font-medium truncate">{formatRole(employee.role)}</p>
-						</div>
-					</div>
-					<div class="flex items-center gap-1.5 min-w-0">
-						<Calendar class="h-3 w-3 text-muted-foreground shrink-0" />
-						<div class="min-w-0 flex-1">
-							<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Hired</p>
-							<p class="font-medium truncate">{formatDate(employee.hireDate)}</p>
-						</div>
-					</div>
-					{#if employee.department?.userByManagerId}
+				<!-- Quick Overview - Expanded Grid with Contact Info -->
+				{#if permissions.canViewContactInfo}
+					<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-2 pt-2 pb-1 border-t text-xs">
 						<div class="flex items-center gap-1.5 min-w-0">
-							<User class="h-3 w-3 text-muted-foreground shrink-0" />
+							<Mail class="h-3 w-3 text-muted-foreground shrink-0" />
 							<div class="min-w-0 flex-1">
-								<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Manager</p>
-								<p class="font-medium truncate">{employee.department.userByManagerId.displayName}</p>
+								<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Email</p>
+								<p class="font-medium truncate">{employee.email}</p>
 							</div>
 						</div>
-					{:else if employee.lastLogin}
 						<div class="flex items-center gap-1.5 min-w-0">
-							<Clock class="h-3 w-3 text-muted-foreground shrink-0" />
+							<Briefcase class="h-3 w-3 text-muted-foreground shrink-0" />
 							<div class="min-w-0 flex-1">
-								<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Last Login</p>
-								<p class="font-medium truncate">{formatDate(employee.lastLogin)}</p>
+								<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Role</p>
+								<p class="font-medium truncate">{formatRole(employee.role)}</p>
 							</div>
 						</div>
-					{/if}
-				</div>
+						<div class="flex items-center gap-1.5 min-w-0">
+							<Calendar class="h-3 w-3 text-muted-foreground shrink-0" />
+							<div class="min-w-0 flex-1">
+								<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Hired</p>
+								<p class="font-medium truncate">{formatDate(employee.hireDate)}</p>
+							</div>
+						</div>
+						{#if employee.phoneNumber}
+							<div class="flex items-center gap-1.5 min-w-0">
+								<Phone class="h-3 w-3 text-muted-foreground shrink-0" />
+								<div class="min-w-0 flex-1">
+									<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Phone</p>
+									<p class="font-medium truncate">{employee.phoneNumber}</p>
+								</div>
+							</div>
+						{/if}
+						{#if employee.mobileNumber}
+							<div class="flex items-center gap-1.5 min-w-0">
+								<Phone class="h-3 w-3 text-muted-foreground shrink-0" />
+								<div class="min-w-0 flex-1">
+									<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Mobile</p>
+									<p class="font-medium truncate">{employee.mobileNumber}</p>
+								</div>
+							</div>
+						{/if}
+						{#if employee.addressLine1}
+							<div class="flex items-center gap-1.5 min-w-0 col-span-2 md:col-span-1">
+								<MapPin class="h-3 w-3 text-muted-foreground shrink-0" />
+								<div class="min-w-0 flex-1">
+									<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Location</p>
+									<p class="font-medium truncate">{employee.city}, {employee.stateProvince}</p>
+								</div>
+							</div>
+						{/if}
+						{#if employee.department?.userByManagerId}
+							<div class="flex items-center gap-1.5 min-w-0">
+								<User class="h-3 w-3 text-muted-foreground shrink-0" />
+								<div class="min-w-0 flex-1">
+									<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Manager</p>
+									<p class="font-medium truncate">{employee.department.userByManagerId.displayName}</p>
+								</div>
+							</div>
+						{/if}
+						{#if employee.lastLogin}
+							<div class="flex items-center gap-1.5 min-w-0">
+								<Clock class="h-3 w-3 text-muted-foreground shrink-0" />
+								<div class="min-w-0 flex-1">
+									<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Last Login</p>
+									<p class="font-medium truncate">{formatDate(employee.lastLogin)}</p>
+								</div>
+							</div>
+						{/if}
+					</div>
+				{:else}
+					<!-- Fallback for when contact info is not viewable -->
+					<div class="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 pt-2 pb-1 border-t text-xs">
+						<div class="flex items-center gap-1.5 min-w-0">
+							<Mail class="h-3 w-3 text-muted-foreground shrink-0" />
+							<div class="min-w-0 flex-1">
+								<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Email</p>
+								<p class="font-medium truncate">{employee.email}</p>
+							</div>
+						</div>
+						<div class="flex items-center gap-1.5 min-w-0">
+							<Briefcase class="h-3 w-3 text-muted-foreground shrink-0" />
+							<div class="min-w-0 flex-1">
+								<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Role</p>
+								<p class="font-medium truncate">{formatRole(employee.role)}</p>
+							</div>
+						</div>
+						<div class="flex items-center gap-1.5 min-w-0">
+							<Calendar class="h-3 w-3 text-muted-foreground shrink-0" />
+							<div class="min-w-0 flex-1">
+								<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Hired</p>
+								<p class="font-medium truncate">{formatDate(employee.hireDate)}</p>
+							</div>
+						</div>
+						{#if employee.department?.userByManagerId}
+							<div class="flex items-center gap-1.5 min-w-0">
+								<User class="h-3 w-3 text-muted-foreground shrink-0" />
+								<div class="min-w-0 flex-1">
+									<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Manager</p>
+									<p class="font-medium truncate">{employee.department.userByManagerId.displayName}</p>
+								</div>
+							</div>
+						{:else if employee.lastLogin}
+							<div class="flex items-center gap-1.5 min-w-0">
+								<Clock class="h-3 w-3 text-muted-foreground shrink-0" />
+								<div class="min-w-0 flex-1">
+									<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Last Login</p>
+									<p class="font-medium truncate">{formatDate(employee.lastLogin)}</p>
+								</div>
+							</div>
+						{/if}
+					</div>
+				{/if}
 			</div>
 		</Card.Header>
 
@@ -321,67 +393,6 @@
 		<!-- Compact Accordions -->
 		<Card.Content class="p-0">
 			<Accordion.Root type="multiple" class="w-full">
-				<!-- Contact Information -->
-				{#if permissions.canViewContactInfo}
-					<Accordion.Item value="contact" class="border-b last:border-b-0">
-						<Accordion.Trigger class="px-4 py-3 hover:bg-muted/50 text-sm font-medium">
-							<div class="flex items-center gap-2">
-								<Phone class="h-4 w-4" />
-								<span>Contact</span>
-							</div>
-						</Accordion.Trigger>
-						<Accordion.Content class="px-4 pb-4">
-							<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-								<!-- Phone Numbers -->
-								<div class="space-y-2">
-									<h4 class="font-semibold text-foreground flex items-center gap-1.5">
-										<Phone class="h-3 w-3" />
-										Phone Numbers
-									</h4>
-									{#if employee.phoneNumber || employee.mobileNumber}
-										<div class="grid gap-1.5">
-											{#if employee.phoneNumber}
-												<div class="flex justify-between">
-													<span class="text-muted-foreground">Primary</span>
-													<span class="font-medium">{employee.phoneNumber}</span>
-												</div>
-											{/if}
-											{#if employee.mobileNumber}
-												<div class="flex justify-between">
-													<span class="text-muted-foreground">Mobile</span>
-													<span class="font-medium">{employee.mobileNumber}</span>
-												</div>
-											{/if}
-										</div>
-									{:else}
-										<p class="text-muted-foreground">No phone numbers</p>
-									{/if}
-								</div>
-
-								<!-- Address -->
-								<div class="space-y-2">
-									<h4 class="font-semibold text-foreground flex items-center gap-1.5">
-										<MapPin class="h-3 w-3" />
-										Address
-									</h4>
-									{#if employee.addressLine1}
-										<div class="text-muted-foreground leading-relaxed">
-											<p>{employee.addressLine1}</p>
-											{#if employee.addressLine2}
-												<p>{employee.addressLine2}</p>
-											{/if}
-											<p>{employee.city}, {employee.stateProvince} {employee.postalCode}</p>
-											<p>{employee.country || 'United States'}</p>
-										</div>
-									{:else}
-										<p class="text-muted-foreground">No address</p>
-									{/if}
-								</div>
-							</div>
-						</Accordion.Content>
-					</Accordion.Item>
-				{/if}
-
 				<!-- Emergency Contacts -->
 				{#if permissions.canViewEmergencyContacts}
 					<Accordion.Item value="emergency" class="border-b last:border-b-0">
@@ -601,31 +612,33 @@
 					</Accordion.Trigger>
 					<Accordion.Content class="px-4 pb-4">
 						{#if employee.leaveBalances && employee.leaveBalances.length > 0}
-							<div class="grid md:grid-cols-3 gap-2">
-								{#each employee.leaveBalances as balance}
-									<div class="rounded border p-2.5 text-xs">
-										<h4 class="font-semibold mb-1.5 text-foreground">{balance.leaveTypeName}</h4>
-										<div class="space-y-1 text-[11px]">
-											<div class="flex justify-between">
-												<span class="text-muted-foreground">Year</span>
-												<span class="font-medium">{balance.year}</span>
-											</div>
-											<div class="flex justify-between">
-												<span class="text-muted-foreground">Total</span>
-												<span class="font-medium">{balance.totalDays}</span>
-											</div>
-											<div class="flex justify-between">
-												<span class="text-muted-foreground">Used</span>
-												<span class="font-medium">{balance.usedDays}</span>
-											</div>
-											<Separator class="my-1" />
-											<div class="flex justify-between">
-												<span class="font-medium text-foreground">Remaining</span>
-												<span class="font-bold text-primary">{balance.remainingDays}</span>
-											</div>
-										</div>
-									</div>
-								{/each}
+							<div class="rounded border overflow-hidden">
+								<div class="overflow-x-auto">
+									<table class="w-full text-xs">
+										<thead class="bg-muted/50">
+											<tr class="border-b">
+												<th class="px-2 py-1.5 text-left font-medium">Leave Type</th>
+												<th class="px-2 py-1.5 text-left font-medium">Year</th>
+												<th class="px-2 py-1.5 text-right font-medium">Total</th>
+												<th class="px-2 py-1.5 text-right font-medium">Used</th>
+												<th class="px-2 py-1.5 text-right font-medium">Remaining</th>
+											</tr>
+										</thead>
+										<tbody>
+											{#each employee.leaveBalances as balance}
+												<tr class="border-b last:border-b-0">
+													<td class="px-2 py-1.5 font-medium">{balance.leaveTypeName}</td>
+													<td class="px-2 py-1.5 text-muted-foreground">{balance.year}</td>
+													<td class="px-2 py-1.5 text-right">{balance.totalDays}</td>
+													<td class="px-2 py-1.5 text-right text-muted-foreground">{balance.usedDays}</td>
+													<td class="px-2 py-1.5 text-right">
+														<span class="font-bold text-primary">{balance.remainingDays}</span>
+													</td>
+												</tr>
+											{/each}
+										</tbody>
+									</table>
+								</div>
 							</div>
 						{:else}
 							<p class="text-xs text-muted-foreground text-center py-4">No leave balances</p>
