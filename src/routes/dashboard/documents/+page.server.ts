@@ -127,7 +127,25 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 			email: user.email
 		}));
 
-		// Step 10: Return data for the page
+		// Step 10: Load user with roles
+		const userQuery = `
+			query GetUser($id: UUID!) {
+				user(id: $id) {
+					id
+					email
+					displayName
+					roles {
+						id
+						name
+					}
+				}
+			}
+		`;
+
+		const userResponse = await client.query(userQuery, { id: userId });
+		const currentUser = userResponse.data?.user || locals.user;
+
+		// Step 11: Return data for the page
 		return {
 			documents,
 			totalCount,
@@ -138,7 +156,7 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 			filterCategory,
 			searchQuery,
 			assigneeOptions,
-			user: locals.user,
+			user: currentUser,
 			userPermissions,
 			totalPages: Math.ceil(totalCount / limit) || 0
 		};

@@ -8,12 +8,12 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 /// Initialize logging with optional Loki integration
 ///
 /// # Environment Variables
-/// - `RUST_LOG`: Log level filter (default: "info")
+/// - `RUST_LOG`: Log level filter (default: "error")
 /// - `LOKI_URL`: Loki endpoint URL (e.g., "http://loki-stack.monitoring.svc.cluster.local:3100")
 /// - `LOKI_ENABLED`: Enable Loki logging ("true" or "false", default: "false")
 pub fn init_logging() -> Result<(), Box<dyn std::error::Error>> {
     let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("info"));
+        .unwrap_or_else(|_| EnvFilter::new("error"));
 
     #[cfg(feature = "loki")]
     {

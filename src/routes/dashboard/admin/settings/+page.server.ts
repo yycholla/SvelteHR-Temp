@@ -36,7 +36,7 @@ export const load: PageServerLoad = async (event) => {
 				}
 				users(limit: $limit) {
 					id
-					role
+					roles
 				}
 			}
 		`;
@@ -50,8 +50,8 @@ export const load: PageServerLoad = async (event) => {
 		const departments = result.data?.departments || [];
 		const users = result.data?.users || [];
 
-		// Calculate unique roles from users
-		const uniqueRoles = [...new Set(users.map((u: any) => u.role).filter(Boolean))];
+		// Calculate unique roles from users (flatten roles arrays)
+		const uniqueRoles = [...new Set(users.flatMap((u: any) => u.roles || []).filter(Boolean))];
 
 		const settings: any = {
 			general: {},

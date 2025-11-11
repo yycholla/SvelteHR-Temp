@@ -62,7 +62,7 @@
 			password: '',
 			roleId: user.userRolesByUserId?.nodes?.[0]?.roleByRoleId?.id || '',
 			departmentId: user.departmentByDepartmentId?.id || '',
-			isActive: user.isActive
+			isActive: user.is_active
 		};
 		showEditModal = true;
 		errorMessage = '';
@@ -160,7 +160,7 @@
 							id
 							email
 							displayName
-							isActive
+							is_active
 						}
 					}
 				}
@@ -228,7 +228,7 @@
 					updateUser(input: $input) {
 						user {
 							id
-							isActive
+							is_active
 						}
 					}
 				}
@@ -238,7 +238,7 @@
 				input: {
 					id: user.id,
 					patch: {
-						isActive: !user.isActive
+						isActive: !user.is_active
 					}
 				}
 			});
@@ -384,12 +384,12 @@
 								onclick={() => toggleUserStatus(user)}
 								disabled={loading}
 								class="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium"
-								class:bg-green-100={user.isActive}
-								class:text-green-700={user.isActive}
-								class:bg-red-100={!user.isActive}
-								class:text-red-700={!user.isActive}
+								class:bg-green-100={user.is_active}
+								class:text-green-700={user.is_active}
+								class:bg-red-100={!user.is_active}
+								class:text-red-700={!user.is_active}
 							>
-								{#if user.isActive}
+								{#if user.is_active}
 									<UserCheck class="h-3 w-3" />
 									Active
 								{:else}

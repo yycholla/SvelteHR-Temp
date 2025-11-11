@@ -5,17 +5,17 @@
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use uuid::Uuid;
 
-use crate::models::role;
+use crate::models::{role, permission, role_permission};
 use crate::seed_data::audit::log_seed_creation;
 use crate::seed_data::context::{EntitySeedResult, SeedContext};
 use crate::seed_data::Result;
 
-/// Fixed roles for the system
-const ROLES: &[(&str, &str)] = &[
-    ("Admin", "Full system administrator with unrestricted access"),
-    ("HR Manager", "HR management with employee, payroll, and compliance access"),
-    ("Manager", "Department manager with team management capabilities"),
-    ("Employee", "Standard employee with basic self-service access"),
+/// Fixed roles for the system (name, description, level)
+const ROLES: &[(&str, &str, i32)] = &[
+    ("Admin", "Full system administrator with unrestricted access", 100),
+    ("HR Manager", "HR management with employee, payroll, and compliance access", 75),
+    ("Manager", "Department manager with team management capabilities", 50),
+    ("Employee", "Standard employee with basic self-service access", 25),
 ];
 
 /// Seed the 4 fixed roles into the database
@@ -28,7 +28,7 @@ pub async fn seed_roles(
 ) -> Result<EntitySeedResult> {
     let mut result = EntitySeedResult::new("roles");
 
-    for (name, description) in ROLES {
+    for (name, description, level) in ROLES {
         // Check if role already exists (idempotency)
         let existing = role::Entity::find()
             .filter(role::Column::Name.eq(*name))
@@ -47,6 +47,7 @@ pub async fn seed_roles(
             id: Set(role_id),
             name: Set(name.to_string()),
             description: Set(Some(description.to_string())),
+            level: Set(*level),
             ..Default::default()
         };
 
@@ -69,6 +70,110 @@ pub async fn seed_roles(
     }
 
     Ok(result)
+}
+
+/// Assign permissions to roles
+///
+/// Admin: All permissions
+/// HR Manager: Employee, department, leave, document, review permissions
+/// Manager: Employee read, leave approve, task, time permissions
+/// Employee: Basic self-service permissions
+pub async fn seed_role_permissions(
+    db: &DatabaseConnection,
+    context: &SeedContext,
+) -> Result<EntitySeedResult> {
+    let mut result = EntitySeedResult::new("role_permissions");
+
+    // Get all roles
+    let roles = role::Entity::find().all(db).await?;
+    let admin_role = roles.iter().find(|r| r.name == "Admin");
+    let hr_manager_role = roles.iter().find(|r| r.name == "HR Manager");
+    let manager_role = roles.iter().find(|r| r.name == "Manager");
+    let employee_role = roles.iter().find(|r| r.name == "Employee");
+
+    // Get all permissions
+    let all_permissions = permission::Entity::find().all(db).await?;
+
+    // Admin gets ALL permissions
+    if let Some(admin) = admin_role {
+        for perm in &all_permissions {
+            if let Err(e) = assign_permission_to_role(db, admin.id, perm.id, &mut result).await {
+                tracing::warn!("Failed to assign permission {} to Admin: {}", perm.resource, e);
+            }
+        }
+    }
+
+    // HR Manager gets employee, department, leave, document, review permissions
+    if let Some(hr_manager) = hr_manager_role {
+        let hr_resources = ["employees", "departments", "leave", "documents", "reviews"];
+        for perm in all_permissions.iter().filter(|p| hr_resources.contains(&p.resource.as_str())) {
+            if let Err(e) = assign_permission_to_role(db, hr_manager.id, perm.id, &mut result).await {
+                tracing::warn!("Failed to assign permission {} to HR Manager: {}", perm.resource, e);
+            }
+        }
+    }
+
+    // Manager gets employee:read, leave:approve, task, time permissions
+    if let Some(manager) = manager_role {
+        for perm in all_permissions.iter().filter(|p| {
+            (p.resource == "employees" && p.action == "read") ||
+            (p.resource == "leave" && p.action == "approve") ||
+            p.resource == "tasks" ||
+            p.resource == "time"
+        }) {
+            if let Err(e) = assign_permission_to_role(db, manager.id, perm.id, &mut result).await {
+                tracing::warn!("Failed to assign permission {} to Manager: {}", perm.resource, e);
+            }
+        }
+    }
+
+    // Employee gets basic self-service: leave:read, leave:write, time:read, time:write, tasks:read
+    if let Some(employee) = employee_role {
+        for perm in all_permissions.iter().filter(|p| {
+            (p.resource == "leave" && (p.action == "read" || p.action == "write")) ||
+            (p.resource == "time" && (p.action == "read" || p.action == "write")) ||
+            (p.resource == "tasks" && p.action == "read")
+        }) {
+            if let Err(e) = assign_permission_to_role(db, employee.id, perm.id, &mut result).await {
+                tracing::warn!("Failed to assign permission {} to Employee: {}", perm.resource, e);
+            }
+        }
+    }
+
+    Ok(result)
+}
+
+/// Helper to assign a permission to a role (idempotent)
+async fn assign_permission_to_role(
+    db: &DatabaseConnection,
+    role_id: Uuid,
+    permission_id: Uuid,
+    result: &mut EntitySeedResult,
+) -> Result<()> {
+    // Check if already exists
+    let existing = role_permission::Entity::find()
+        .filter(role_permission::Column::RoleId.eq(role_id))
+        .filter(role_permission::Column::PermissionId.eq(permission_id))
+        .one(db)
+        .await?;
+
+    if existing.is_some() {
+        result.skipped_count += 1;
+        return Ok(());
+    }
+
+    // Create role-permission assignment
+    let assignment = role_permission::ActiveModel {
+        id: Set(Uuid::new_v4()),
+        role_id: Set(role_id),
+        permission_id: Set(permission_id),
+        ..Default::default()
+    };
+
+    assignment.insert(db).await?;
+    result.created_count += 1;
+
+    Ok(())
 }
 
 #[cfg(test)]

@@ -14,7 +14,7 @@ impl MigrationTrait for Migration {
             SELECT r.id, p.id
             FROM hr_public.roles r
             CROSS JOIN hr_public.permissions p
-            WHERE r.name = 'employee'
+            WHERE r.name = 'Employee'
             AND (p.resource, p.action) IN (
                 -- Self-access for most resources
                 ('dashboard', 'read:self'),
@@ -47,7 +47,7 @@ impl MigrationTrait for Migration {
             SELECT r.id, p.id
             FROM hr_public.roles r
             CROSS JOIN hr_public.permissions p
-            WHERE r.name = 'manager'
+            WHERE r.name = 'Manager'
             AND (p.resource, p.action) IN (
                 -- Team-level read access
                 ('dashboard', 'read:team'),
@@ -83,13 +83,13 @@ impl MigrationTrait for Migration {
             ON CONFLICT DO NOTHING"
         ).await?;
 
-        // HR Admin role: read:all + write + delete for HR resources
+        // HR Manager role: read:all + write + delete for HR resources
         manager.get_connection().execute_unprepared(
             "INSERT INTO hr_public.role_permissions (role_id, permission_id)
             SELECT r.id, p.id
             FROM hr_public.roles r
             CROSS JOIN hr_public.permissions p
-            WHERE r.name = 'hr_admin'
+            WHERE r.name = 'HR Manager'
             AND (p.resource, p.action) IN (
                 -- Full read access to all resources
                 ('dashboard', 'read:all'),
@@ -167,7 +167,7 @@ impl MigrationTrait for Migration {
             "DELETE FROM hr_public.role_permissions
             WHERE role_id IN (
                 SELECT id FROM hr_public.roles
-                WHERE name IN ('employee', 'manager', 'hr_admin')
+                WHERE name IN ('Employee', 'Manager', 'HR Manager')
             )
             AND permission_id IN (
                 SELECT id FROM hr_public.permissions

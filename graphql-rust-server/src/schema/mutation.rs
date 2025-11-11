@@ -3435,8 +3435,8 @@ impl MutationRoot {
         Ok(key)
     }
 
-    /// Update system settings by category (requires system_admin role with system_settings:write permission)
-    #[graphql(guard = "crate::middleware::guards::RequireRole::new(\"system_admin\")")]
+    /// Update system settings by category (requires system_settings:write permission)
+    #[graphql(guard = "crate::middleware::guards::RequirePermission::new(\"system_settings:write\")")]
     async fn update_system_settings(
         &self,
         ctx: &Context<'_>,

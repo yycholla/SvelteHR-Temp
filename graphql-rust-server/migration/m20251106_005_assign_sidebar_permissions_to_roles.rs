@@ -15,7 +15,7 @@ impl MigrationTrait for Migration {
             SELECT r.id, p.id
             FROM hr_public.roles r
             CROSS JOIN hr_public.permissions p
-            WHERE r.name = 'employee'
+            WHERE r.name = 'Employee'
             AND (p.resource, p.action) IN (
                 ('dashboard', 'read'),
                 ('employees', 'read'),
@@ -40,7 +40,7 @@ impl MigrationTrait for Migration {
             SELECT r.id, p.id
             FROM hr_public.roles r
             CROSS JOIN hr_public.permissions p
-            WHERE r.name = 'manager'
+            WHERE r.name = 'Manager'
             AND (p.resource, p.action) IN (
                 -- All employee permissions
                 ('dashboard', 'read'),
@@ -73,13 +73,13 @@ impl MigrationTrait for Migration {
             ON CONFLICT DO NOTHING"
         ).await?;
 
-        // Assign permissions to hr_admin role (manager permissions + admin)
+        // Assign permissions to HR Manager role (manager permissions + admin)
         manager.get_connection().execute_unprepared(
             "INSERT INTO hr_public.role_permissions (role_id, permission_id)
             SELECT r.id, p.id
             FROM hr_public.roles r
             CROSS JOIN hr_public.permissions p
-            WHERE r.name = 'hr_admin'
+            WHERE r.name = 'HR Manager'
             AND (p.resource, p.action) IN (
                 -- All manager permissions
                 ('dashboard', 'read'),
@@ -132,13 +132,13 @@ impl MigrationTrait for Migration {
             ON CONFLICT DO NOTHING"
         ).await?;
 
-        // Assign wildcard permission to system_admin role
+        // Assign wildcard permission to Admin role
         manager.get_connection().execute_unprepared(
             "INSERT INTO hr_public.role_permissions (role_id, permission_id)
             SELECT r.id, p.id
             FROM hr_public.roles r
             CROSS JOIN hr_public.permissions p
-            WHERE r.name = 'system_admin'
+            WHERE r.name = 'Admin'
             AND p.resource = '*'
             AND p.action = '*'
             ON CONFLICT DO NOTHING"
@@ -153,7 +153,7 @@ impl MigrationTrait for Migration {
             "DELETE FROM hr_public.role_permissions
             WHERE role_id IN (
                 SELECT id FROM hr_public.roles
-                WHERE name IN ('employee', 'manager', 'hr_admin', 'system_admin')
+                WHERE name IN ('Employee', 'Manager', 'HR Manager', 'Admin')
             )
             AND permission_id IN (
                 SELECT id FROM hr_public.permissions

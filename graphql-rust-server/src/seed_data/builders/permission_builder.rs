@@ -62,6 +62,10 @@ const PERMISSIONS: &[(&str, &str, &str)] = &[
     ("time:read", "time", "View time entries"),
     ("time:write", "time", "Create and update time entries"),
     ("time:delete", "time", "Delete time entries"),
+
+    // System settings permissions
+    ("system_settings:read", "system_settings", "View system settings"),
+    ("system_settings:write", "system_settings", "Update system settings"),
 ];
 
 /// Seed permissions into the database

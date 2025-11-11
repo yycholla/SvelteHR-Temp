@@ -223,7 +223,10 @@ export const load: PageServerLoad = async (event) => {
 							id
 							displayName
 							email
-							role
+							roles {
+								id
+								name
+							}
 						}
 					}
 				`,

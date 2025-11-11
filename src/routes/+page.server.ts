@@ -13,8 +13,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// If user exists in locals, they are authenticated
 	if (locals.user) {
 		// Redirect authenticated users based on role
-		const userRole = locals.user.role;
-		const isAdmin = userRole === 'Admin' || userRole === 'admin' || userRole === 'super_admin';
+		const userRoles = locals.roles || [];
+		const isAdmin = userRoles.includes('Admin');
 
 		redirect(303, isAdmin ? '/dashboard/admin' : '/dashboard');
 	} else {

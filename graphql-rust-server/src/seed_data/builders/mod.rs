@@ -20,6 +20,6 @@ pub use employee_builder::{
 pub use leave_builder::{seed_leave_balances, seed_leave_requests, seed_leave_types};
 pub use operational_builder::{seed_documents, seed_events, seed_tasks, seed_time_entries};
 pub use permission_builder::seed_permissions;
-pub use role_builder::seed_roles;
+pub use role_builder::{seed_roles, seed_role_permissions};
 pub use task_type_builder::seed_task_types;
 pub use user_builder::{assign_user_managers, seed_user_role_assignments, seed_users};

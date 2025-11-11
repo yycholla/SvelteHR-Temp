@@ -93,7 +93,7 @@ export const load: PageServerLoad = async (event) => {
 					displayName
 					departmentId
 					managerId
-					isActive
+					is_active
 					hireDate
 					createdAt
 					updatedAt
@@ -188,7 +188,7 @@ export const load: PageServerLoad = async (event) => {
 			},
 			teamStats: {
 				totalEmployees: filteredUsers.length,
-				activeEmployees: filteredUsers.filter((u) => u.isActive).length,
+				activeEmployees: filteredUsers.filter((u) => u.is_active).length,
 				departmentCount: isAdmin ? departments.length : 1,
 				avgTenure: '2.5 years'
 			}

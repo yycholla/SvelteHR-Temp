@@ -36,14 +36,14 @@ export const load: PageServerLoad = async (event) => {
 					id: locals.user.id,
 					email: locals.user.email || '',
 					displayName: locals.user.display_name || 'User',
-					role: locals.user.role || 'employee',
+					roles: locals.roles || [],
 					firstName: locals.user.first_name,
 					lastName: locals.user.last_name
 				},
 				userSession: {
 					userId: locals.user.id,
 					userEmail: locals.user.email || '',
-					role: locals.user.role || 'employee',
+					roles: locals.roles || [],
 					accessToken: '' // Session-based auth doesn't use access tokens
 				},
 				dashboardData: {
@@ -263,11 +263,10 @@ export const load: PageServerLoad = async (event) => {
 
 		logger.debug('Dashboard starting database GraphQL queries', { userId: locals.user.id });
 
-		// Determine user role for conditional queries
-		const userRole = locals.user.role || 'employee';
-		const isAdmin =
-			locals.roles?.includes('super_admin') || locals.roles?.includes('admin') || false;
-		const isSuperAdmin = locals.roles?.includes('super_admin') || false;
+		// Determine user roles for conditional queries
+		const userRoles = locals.roles || [];
+		const isAdmin = userRoles.includes('Admin') || false;
+		const isSuperAdmin = userRoles.includes('Admin') || false;
 
 		// **STREAMING PATTERN**: Await critical data immediately, stream slow data as promises
 		// Critical: users, departments (needed for UI structure)
@@ -428,7 +427,7 @@ export const load: PageServerLoad = async (event) => {
 			const remainingVacationDays = Math.max(0, totalVacationDays - usedVacationDays);
 
 			// Generate role-specific dashboard data
-			const dashboardMetrics = generateDashboardMetrics(userRole, users, departments, {
+			const dashboardMetrics = generateDashboardMetrics(userRoles, users, departments, {
 				attendanceRate,
 				pendingRequests: pendingLeaveRequests,
 				taskCount: tasks.filter((t) => t.status === 'TODO' || t.status === 'IN_PROGRESS').length,
@@ -448,7 +447,7 @@ export const load: PageServerLoad = async (event) => {
 			if (upcomingEvents.length > 0) {
 				console.log(`📅 First upcoming event:`, upcomingEvents[0]);
 			}
-			const quickActions = generateQuickActions(userRole, users);
+			const quickActions = generateQuickActions(userRoles, users);
 			const dataGenDuration = Date.now() - startDataGeneration;
 			console.log(`📊 Dashboard: Data generation completed in ${dataGenDuration}ms`);
 
@@ -586,14 +585,14 @@ export const load: PageServerLoad = async (event) => {
 					locals.user.display_name ||
 					`${locals.user.first_name || ''} ${locals.user.last_name || ''}`.trim() ||
 					'User',
-				role: userRole,
+				roles: userRoles,
 				firstName: locals.user.first_name,
 				lastName: locals.user.last_name
 			},
 			userSession: {
 				userId: locals.user.id,
 				userEmail: locals.user.email || '',
-				role: userRole,
+				roles: userRoles,
 				accessToken: '' // Session-based auth doesn't use access tokens
 			},
 			preferences: {
@@ -627,14 +626,14 @@ export const load: PageServerLoad = async (event) => {
 				id: locals.user.id,
 				email: locals.user.email || '',
 				displayName: locals.user.display_name || 'User',
-				role: locals.user.role || 'employee',
+				roles: locals.roles || [],
 				firstName: locals.user.first_name,
 				lastName: locals.user.last_name
 			},
 			userSession: {
 				userId: locals.user.id,
 				userEmail: locals.user.email || '',
-				role: locals.user.role || 'employee',
+				roles: locals.roles || [],
 				accessToken: '' // Session-based auth doesn't use access tokens
 			},
 			dashboardData: {
@@ -675,7 +674,7 @@ export const load: PageServerLoad = async (event) => {
 
 // Helper function to generate dashboard metrics based on role and real data
 function generateDashboardMetrics(
-	role: string,
+	roles: string[],
 	users: any[],
 	departments: any[],
 	realMetrics: {
@@ -714,7 +713,7 @@ function generateDashboardMetrics(
 		}
 	];
 
-	if (role === 'super_admin' || role === 'admin' || role === 'hr_manager') {
+	if (roles.includes('Admin') || roles.includes('HR Manager')) {
 		return [
 			...baseMetrics,
 			{
@@ -728,7 +727,7 @@ function generateDashboardMetrics(
 		];
 	}
 
-	if (role === 'manager') {
+	if (roles.includes('Manager') || roles.includes('HR Manager')) {
 		return [
 			{
 				id: 'team_size',
@@ -1063,7 +1062,7 @@ function generateUpcomingEventsFromDatabase(events: any[], userId: string, limit
 }
 
 // Helper function to generate quick actions based on role
-function generateQuickActions(role: string, users: any[]) {
+function generateQuickActions(roles: string[], users: any[]) {
 	const baseActions = [
 		{
 			id: 'view_profile',
@@ -1083,7 +1082,7 @@ function generateQuickActions(role: string, users: any[]) {
 		}
 	];
 
-	if (role === 'admin' || role === 'hr_manager') {
+	if (roles.includes('Admin') || roles.includes('HR Manager')) {
 		return [
 			...baseActions,
 			{
@@ -1106,7 +1105,7 @@ function generateQuickActions(role: string, users: any[]) {
 		];
 	}
 
-	if (role === 'manager') {
+	if (roles.includes('Manager') || roles.includes('HR Manager')) {
 		return [
 			...baseActions,
 			{

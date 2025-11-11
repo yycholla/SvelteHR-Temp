@@ -15,29 +15,24 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	const userRoles = locals.roles || [];
 
 	// Management access granted to:
-	// 1. system_admin role
-	// 2. manager role
-	// 3. hr_manager role
+	// 1. Admin role
+	// 2. Manager role
+	// 3. HR Manager role
 	// 4. Users with wildcard (*) or (*:*) permission
 	// 5. Users with management:read permission
 	const hasManagerAccess =
 		userPermissions.includes('*') ||
 		userPermissions.includes('*:*') ||
 		userPermissions.includes('management:read') ||
-		userRoles.includes('system_admin') ||
-		userRoles.includes('manager') ||
-		userRoles.includes('hr_manager') ||
-		userRoles.includes('admin') ||
-		locals.user.role === 'system_admin' ||
-		locals.user.role === 'manager' ||
-		locals.user.role === 'hr_manager';
+		userRoles.includes('Admin') ||
+		userRoles.includes('Manager') ||
+		userRoles.includes('HR Manager');
 
 	if (!hasManagerAccess) {
 		// Log access denial for audit purposes
 		console.warn('[MANAGEMENT ACCESS DENIED]', {
 			userId: locals.user.id,
 			userEmail: locals.user.email,
-			userRole: locals.user.role,
 			roles: userRoles,
 			permissions: userPermissions,
 			timestamp: new Date().toISOString()
@@ -57,15 +52,11 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	// Return common data for all management child pages
 	return {
 		hasManagerAccess: true,
-		isAdmin:
-			userRoles.includes('system_admin') ||
-			userRoles.includes('admin') ||
-			userRoles.includes('super_admin'),
+		isAdmin: userRoles.includes('Admin'),
 		isManager:
-			userRoles.includes('manager') ||
-			userRoles.includes('hr_manager') ||
-			userRoles.includes('system_admin') ||
-			userRoles.includes('admin'),
+			userRoles.includes('Manager') ||
+			userRoles.includes('HR Manager') ||
+			userRoles.includes('Admin'),
 		user: locals.user,
 		roles: userRoles,
 		permissions: userPermissions

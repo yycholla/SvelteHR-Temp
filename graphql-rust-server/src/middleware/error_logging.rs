@@ -75,14 +75,15 @@ impl Extension for ErrorLoggingExtensionImpl {
                 "GraphQL operation completed with errors"
             );
         } else {
-            // Log successful operations at debug level with performance metrics
-            tracing::debug!(
-                user_id = %user_id.as_deref().unwrap_or("anonymous"),
-                operation_name = %operation_name.unwrap_or("anonymous"),
-                operation_type = %operation_type,
-                execution_duration_ms = execution_duration.as_millis(),
-                "GraphQL operation completed successfully"
-            );
+            // Successful operations - logging disabled to reduce verbosity
+            // Uncomment for debugging:
+            // tracing::debug!(
+            //     user_id = %user_id.as_deref().unwrap_or("anonymous"),
+            //     operation_name = %operation_name.unwrap_or("anonymous"),
+            //     operation_type = %operation_type,
+            //     execution_duration_ms = execution_duration.as_millis(),
+            //     "GraphQL operation completed successfully"
+            // );
         }
 
         response

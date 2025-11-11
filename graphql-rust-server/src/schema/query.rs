@@ -1261,19 +1261,19 @@ impl QueryRoot {
     }
 
     // =========================================================================
-    // System Settings Queries (system_admin role only)
+    // System Settings Queries (Permission-based access)
     // =========================================================================
 
-    /// Get all system settings (requires system_admin role with system_settings:read permission)
-    #[graphql(guard = "crate::middleware::guards::RequireRole::new(\"system_admin\")")]
+    /// Get all system settings (requires system_settings:read permission)
+    #[graphql(guard = "crate::middleware::guards::RequirePermission::new(\"system_settings:read\")")]
     async fn system_settings(&self, ctx: &Context<'_>) -> Result<Vec<SystemSettingsModel>> {
         let db = get_db_from_context(ctx)?;
         let settings = SystemSettingsModel::find_all(&db).await?;
         Ok(settings)
     }
 
-    /// Get system settings by category (requires system_admin role with system_settings:read permission)
-    #[graphql(guard = "crate::middleware::guards::RequireRole::new(\"system_admin\")")]
+    /// Get system settings by category (requires system_settings:read permission)
+    #[graphql(guard = "crate::middleware::guards::RequirePermission::new(\"system_settings:read\")")]
     async fn system_settings_by_category(
         &self,
         ctx: &Context<'_>,

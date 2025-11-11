@@ -257,7 +257,7 @@ async function authenticateUser(
 				...userData,
 				id: userData.id || userData.user_id || userData.userId
 			},
-			roles: [userData.role],
+			roles: userData.roles || [], // RBAC roles array from backend session
 			permissions: userData.permissions || [] // Permissions from backend session
 		};
 

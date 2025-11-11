@@ -75,7 +75,10 @@ export const load: PageServerLoad = async (event) => {
 							id
 							displayName
 							email
-							role
+							roles {
+								id
+								name
+							}
 						}
 						department {
 							id
@@ -86,7 +89,10 @@ export const load: PageServerLoad = async (event) => {
 							id
 							displayName
 							email
-							role
+							roles {
+								id
+								name
+							}
 						}
 						taskType {
 							id
@@ -157,7 +163,10 @@ export const load: PageServerLoad = async (event) => {
 						id
 						displayName
 						email
-						role
+						roles {
+							id
+							name
+						}
 					}
 				}
 			`,

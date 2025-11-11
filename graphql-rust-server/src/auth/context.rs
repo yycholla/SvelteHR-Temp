@@ -93,14 +93,13 @@ impl UserContext {
     }
 
     /// Check if user has Admin role (full system access)
-    /// Recognizes both "Admin" and "system_admin" roles
     pub fn is_admin(&self) -> bool {
-        self.has_role("Admin") || self.has_role("system_admin")
+        self.has_role("Admin")
     }
 
     /// Check if user has HR Manager role
     pub fn is_hr_manager(&self) -> bool {
-        self.has_role("HR_Manager") || self.is_admin()
+        self.has_role("HR Manager") || self.is_admin()
     }
 
     /// Check if user has Manager role

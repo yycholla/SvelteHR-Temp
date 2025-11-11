@@ -942,9 +942,10 @@
 							class="flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base shadow-xs ring-offset-background transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/80"
 						>
 							<option value="">All Roles</option>
-							<option value="admin">Admin</option>
+							<option value="system_admin">System Admin</option>
+							<option value="hr_manager">HR Manager</option>
 							<option value="manager">Manager</option>
-							<option value="employee">Employee</option>
+							<option value="hr_employee">Employee</option>
 						</select>
 					</div>
 

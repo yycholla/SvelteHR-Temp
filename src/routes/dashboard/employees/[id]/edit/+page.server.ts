@@ -20,7 +20,7 @@ export const load: PageServerLoad = async (event) => {
 	// Create simple user session object (session-based auth doesn't use JWT)
 	const userSession = {
 		userId: locals.user.id,
-		roles: [locals.user.role || 'employee'],
+		roles: locals.roles || [],
 		permissions: locals.permissions || [],
 		isAuthenticated: true,
 		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
@@ -30,7 +30,7 @@ export const load: PageServerLoad = async (event) => {
 		},
 		toJSON: () => ({
 			userId: locals.user.id,
-			roles: [locals.user.role || 'employee'],
+			roles: locals.roles || [],
 			permissions: locals.permissions || [],
 			isAuthenticated: true,
 			expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
@@ -55,13 +55,13 @@ export const load: PageServerLoad = async (event) => {
 		};
 
 		console.log(
-			'[Employee Edit] Using Rust GraphQL backend with session-based auth, user role:',
-			locals.user?.role
+			'[Employee Edit] Using Rust GraphQL backend with session-based auth, user roles:',
+			locals.roles
 		);
 
 		// Determine if user can edit detailed employee information
-		const userRole = locals.user.role?.toLowerCase().replace('-', '_') || 'employee';
-		const isAdmin = userRole === 'system_admin' || userRole === 'Admin' || userRole === 'HR Manager';
+		const userRoles = locals.roles || [];
+		const isAdmin = userRoles.includes('Admin') || userRoles.includes('HR Manager');
 		const isViewingSelf = locals.user.id === employeeId;
 
 		// Load employee data and departments in parallel
@@ -80,7 +80,10 @@ export const load: PageServerLoad = async (event) => {
 								displayName
 								fullName
 								email
-								role
+								roles {
+									id
+									name
+								}
 								phone
 								alternatePhone
 								jobTitle
@@ -198,52 +201,8 @@ export const load: PageServerLoad = async (event) => {
 		const canEditCompensation = isAdmin; // Only admins can edit compensation
 
 		// Load compensation data if admin
+		// TODO: Compensation queries not yet implemented in GraphQL schema
 		let currentCompensation = null;
-		if (canEditCompensation) {
-			try {
-				const compensationResponse = await fetch(graphqlEndpoint, {
-					method: 'POST',
-					headers,
-					body: JSON.stringify({
-						query: `
-							query GetCurrentCompensation($employeeId: UUID!, $limit: Int!) {
-								compensationRecords(
-									limit: $limit,
-									filter: { employeeId: { equalTo: $employeeId } }
-								) {
-									id
-									salaryAmount
-									salaryCurrency
-									payFrequency
-									payType
-									hourlyRate
-									effectiveDate
-									endDate
-									bankName
-									bankAccountType
-									bankAccountNumberLast4
-									bankRoutingNumber
-									paymentMethod
-									taxIdLast4
-									notes
-								}
-							}
-						`,
-						variables: { employeeId, limit: 1 }
-					})
-				});
-				const compensationData = await compensationResponse.json();
-				const compensationRecords = compensationData?.data?.compensationRecords || [];
-				if (compensationRecords.length > 0) {
-					// Get most recent by effectiveDate
-					currentCompensation = compensationRecords.sort((a: any, b: any) =>
-						new Date(b.effectiveDate).getTime() - new Date(a.effectiveDate).getTime()
-					)[0];
-				}
-			} catch (error) {
-				console.warn('[Employee Edit] Failed to load compensation data:', error);
-			}
-		}
 
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
@@ -258,7 +217,8 @@ export const load: PageServerLoad = async (event) => {
 				displayName: employee.displayName,
 				fullName: employee.fullName,
 				email: employee.email,
-				role: employee.role,
+				role: employee.roles && employee.roles.length > 0 ? employee.roles[0].name : 'Employee',
+				roles: employee.roles || [],
 				jobTitle: employee.jobTitle,
 				status: employee.status,
 				hireDate: employee.hireDate,
@@ -366,30 +326,33 @@ export const actions: Actions = {
 			if (departmentId) updateInput.departmentId = departmentId;
 			if (hireDate) updateInput.hireDate = new Date(hireDate).toISOString();
 
-			// Note: Address fields are NOT on User model - they need to be updated via user_addresses table
-			// For now, we'll skip address updates and focus on User fields only
-
+			// Update user via GraphQL mutation (namespaced under 'users')
 			const updateResponse = await fetch(graphqlEndpoint, {
 				method: 'POST',
 				headers,
 				body: JSON.stringify({
 					query: `
 						mutation UpdateEmployee($id: UUID!, $input: UpdateUserInput!) {
-							updateUser(id: $id, input: $input) {
-								id
-								firstName
-								lastName
-								displayName
-								fullName
-								email
-								role
-								phone
-								alternatePhone
-								jobTitle
-								status
-								hireDate
-								isActive
-								departmentId
+							users {
+								updateUser(id: $id, input: $input) {
+									id
+									firstName
+									lastName
+									displayName
+									fullName
+									email
+									roles {
+										id
+										name
+									}
+									phone
+									alternatePhone
+									jobTitle
+									status
+									hireDate
+									isActive
+									departmentId
+								}
 							}
 						}
 					`,
@@ -408,6 +371,8 @@ export const actions: Actions = {
 					error: 'Failed to update employee'
 				});
 			}
+
+			console.log('[Employee Update] User profile updated successfully');
 
 			// Handle emergency contacts - parse array data from form
 			const emergencyContacts: any[] = [];
@@ -558,97 +523,8 @@ export const actions: Actions = {
 			}
 
 			// Handle compensation (admin only)
-			const userRole = event.locals.user.role?.toLowerCase().replace('-', '_') || 'employee';
-			const isAdminUser = userRole === 'system_admin' || userRole === 'Admin' || userRole === 'HR Manager';
-
-			if (isAdminUser) {
-				const compensationId = formData.get('compensationId')?.toString();
-				const salaryAmount = formData.get('salaryAmount')?.toString();
-				const salaryCurrency = formData.get('salaryCurrency')?.toString() || 'USD';
-				const payFrequency = formData.get('payFrequency')?.toString() || 'monthly';
-				const payType = formData.get('payType')?.toString() || 'salary';
-				const hourlyRate = formData.get('hourlyRate')?.toString();
-				const effectiveDate = formData.get('effectiveDate')?.toString();
-				const bankName = formData.get('bankName')?.toString();
-				const bankAccountType = formData.get('bankAccountType')?.toString();
-				const bankAccountNumberLast4 = formData.get('bankAccountNumberLast4')?.toString();
-				const bankRoutingNumber = formData.get('bankRoutingNumber')?.toString();
-				const paymentMethod = formData.get('paymentMethod')?.toString() || 'direct_deposit';
-				const taxIdLast4 = formData.get('taxIdLast4')?.toString();
-
-				if (salaryAmount && parseFloat(salaryAmount) > 0) {
-					if (compensationId) {
-						// Update existing compensation
-						const updateCompensationMutation = `
-							mutation UpdateCompensation($id: UUID!, $patch: CompensationRecordPatch!) {
-								updateCompensationRecordById(input: { id: $id, compensationRecordPatch: $patch }) {
-									compensationRecord { id }
-								}
-							}
-						`;
-						await fetch(graphqlEndpoint, {
-							method: 'POST',
-							headers,
-							body: JSON.stringify({
-								query: updateCompensationMutation,
-								variables: {
-									id: compensationId,
-									patch: {
-										salaryAmount: parseFloat(salaryAmount),
-										salaryCurrency,
-										payFrequency,
-										payType,
-										hourlyRate: hourlyRate ? parseFloat(hourlyRate) : null,
-										effectiveDate: effectiveDate || new Date().toISOString().split('T')[0],
-										bankName: bankName || null,
-										bankAccountType: bankAccountType || null,
-										bankAccountNumberLast4: bankAccountNumberLast4 || null,
-										bankRoutingNumber: bankRoutingNumber || null,
-										paymentMethod,
-										taxIdLast4: taxIdLast4 || null
-									}
-								}
-							})
-						});
-					} else {
-						// Create new compensation record
-						const createCompensationMutation = `
-							mutation CreateCompensation($input: CreateCompensationRecordInput!) {
-								createCompensationRecord(input: $input) {
-									compensationRecord { id }
-								}
-							}
-						`;
-						await fetch(graphqlEndpoint, {
-							method: 'POST',
-							headers,
-							body: JSON.stringify({
-								query: createCompensationMutation,
-								variables: {
-									input: {
-										compensationRecord: {
-											employeeId: employeeId,
-											salaryAmount: parseFloat(salaryAmount),
-											salaryCurrency,
-											payFrequency,
-											payType,
-											hourlyRate: hourlyRate ? parseFloat(hourlyRate) : null,
-											effectiveDate: effectiveDate || new Date().toISOString().split('T')[0],
-											bankName: bankName || null,
-											bankAccountType: bankAccountType || null,
-											bankAccountNumberLast4: bankAccountNumberLast4 || null,
-											bankRoutingNumber: bankRoutingNumber || null,
-											paymentMethod,
-											taxIdLast4: taxIdLast4 || null,
-											createdBy: event.locals.user.id
-										}
-									}
-								}
-							})
-						});
-					}
-				}
-			}
+			// TODO: Compensation mutations not yet implemented in GraphQL schema
+			console.warn('[Employee Update] Compensation mutations not yet implemented - skipping compensation update');
 
 			// Redirect to employee detail page on success
 			redirect(303, `/dashboard/employees/${employeeId}`);

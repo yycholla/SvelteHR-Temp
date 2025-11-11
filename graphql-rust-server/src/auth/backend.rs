@@ -134,11 +134,12 @@ impl axum_login::AuthUser for AuthUser {
 
 impl AuthUser {
     /// Create AuthUser from database user model
+    /// NOTE: The role field is deprecated - use RBAC roles from user_role_assignments instead
     pub fn from_db_user(db_user: &user::Model) -> Self {
         Self {
             id: db_user.id,
             email: db_user.email.clone(),
-            role: db_user.role.clone(),
+            role: "Employee".to_string(), // Default role - actual roles come from RBAC
             is_active: db_user.is_active,
             department_id: db_user.department_id,
             organization_id: None, // TODO: Extract from department when organization support is added

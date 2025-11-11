@@ -253,7 +253,7 @@ export const actions: Actions = {
 							keyName
 							algorithm
 							createdAt
-							isActive
+							is_active
 						}
 					}
 				`,

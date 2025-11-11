@@ -20,7 +20,7 @@ export const load: PageServerLoad = async (event) => {
 	// Create simple user session object (session-based auth doesn't use JWT)
 	const userSession = {
 		userId: locals.user.id,
-		roles: [locals.user.role || 'employee'],
+		roles: locals.roles || [],
 		permissions: locals.permissions || [],
 		isAuthenticated: true,
 		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
@@ -30,7 +30,7 @@ export const load: PageServerLoad = async (event) => {
 		},
 		toJSON: () => ({
 			userId: locals.user.id,
-			roles: [locals.user.role || 'employee'],
+			roles: locals.roles || [],
 			permissions: locals.permissions || [],
 			isAuthenticated: true,
 			expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
@@ -55,17 +55,14 @@ export const load: PageServerLoad = async (event) => {
 		};
 
 		console.log(
-			'[Employee Detail] Using Rust GraphQL backend with session-based auth, user role:',
-			locals.user?.role
+			'[Employee Detail] Using Rust GraphQL backend with session-based auth, user roles:',
+			locals.roles
 		);
 
 		// Determine if user can view detailed employee information
-		// Note: Role names from database: "system_admin", "Admin", "HR Manager", "Manager", "Employee"
-		const userRole = locals.user.role || '';
-		const isAdmin =
-			userRole === 'system_admin' ||
-			userRole === 'Admin' ||
-			userRole === 'HR Manager';
+		// Note: Role names from RBAC: "Admin", "HR Manager", "Manager", "Employee"
+		const userRoles = locals.roles || [];
+		const isAdmin = userRoles.includes('Admin') || userRoles.includes('HR Manager');
 		const isViewingSelf = locals.user.id === employeeId;
 
 		// Load employee data with all related information
@@ -83,7 +80,10 @@ export const load: PageServerLoad = async (event) => {
 							displayName
 							fullName
 							email
-							role
+							roles {
+								id
+								name
+							}
 							phone
 							alternatePhone
 							jobTitle
@@ -184,7 +184,11 @@ export const load: PageServerLoad = async (event) => {
 					query GetLeaveRequests($employeeId: UUID!, $limit: Int!) {
 						leaveRequests(employeeId: $employeeId, limit: $limit) {
 							id
-							leaveType
+							leaveType {
+								id
+								name
+								color
+							}
 							startDate
 							endDate
 							status
@@ -208,7 +212,6 @@ export const load: PageServerLoad = async (event) => {
 					query GetPerformanceReviews($employeeId: UUID!, $limit: Int!) {
 						performanceReviews(employeeId: $employeeId, limit: $limit) {
 							id
-							reviewPeriod
 							overallRating
 							status
 							createdAt
@@ -375,7 +378,8 @@ export const load: PageServerLoad = async (event) => {
 				displayName: employee.displayName,
 				fullName: employee.fullName,
 				email: employee.email,
-				role: employee.role,
+				role: employee.roles && employee.roles.length > 0 ? employee.roles[0].name : 'Employee',
+				roles: employee.roles || [],
 				jobTitle: employee.jobTitle,
 				status: employee.status,
 				hireDate: employee.hireDate,

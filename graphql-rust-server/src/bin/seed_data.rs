@@ -64,6 +64,8 @@ async fn main() {
         hr_graphql_server::seed_data::builders::seed_roles(&db, &context).await);
     execute_and_aggregate(&mut overall_result, "permissions",
         hr_graphql_server::seed_data::builders::seed_permissions(&db, &context).await);
+    execute_and_aggregate(&mut overall_result, "role_permissions",
+        hr_graphql_server::seed_data::builders::seed_role_permissions(&db, &context).await);
     execute_and_aggregate(&mut overall_result, "leave_types",
         hr_graphql_server::seed_data::builders::seed_leave_types(&db, &context).await);
 

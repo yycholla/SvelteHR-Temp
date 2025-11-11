@@ -34,8 +34,8 @@ export const load: PageServerLoad = async (event) => {
 					hireDate
 					departmentId
 					managerId
-					role
-					isActive
+					roles
+					is_active
 					themePreference
 					createdAt
 					updatedAt
@@ -125,7 +125,7 @@ export const load: PageServerLoad = async (event) => {
 				department: user.department,
 				managerId: user.managerId || null,
 				role: user.role,
-				isActive: user.isActive,
+				is_active: user.is_active,
 				createdAt: user.createdAt,
 				updatedAt: user.updatedAt
 			},

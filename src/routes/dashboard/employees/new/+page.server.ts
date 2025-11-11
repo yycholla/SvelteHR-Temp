@@ -25,8 +25,8 @@ export const load: PageServerLoad = async (event) => {
 		};
 
 		console.log(
-			'[Employee New] Using Rust GraphQL with session-based auth, user role:',
-			locals.user?.role
+			'[Employee New] Using Rust GraphQL with session-based auth, user roles:',
+			locals.roles
 		);
 
 		// Load departments for dropdown
@@ -65,7 +65,7 @@ export const load: PageServerLoad = async (event) => {
 				id: locals.user.id,
 				email: locals.user.email || '',
 				displayName: locals.user.display_name || '',
-				role: locals.user.role || 'employee'
+				roles: locals.roles || []
 			},
 			permissions: {
 				canViewEmployees: userPermissions.canViewEmployees,
@@ -160,7 +160,7 @@ export const actions: Actions = {
 									firstName
 									lastName
 									email
-									role
+									roles
 									hireDate
 									departmentId
 								}

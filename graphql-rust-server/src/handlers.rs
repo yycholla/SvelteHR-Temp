@@ -1,7 +1,7 @@
 //! HTTP request handlers
 
 use axum::{
-    extract::{ConnectInfo, State},
+    extract::{ConnectInfo, Extension, State},
     response::{Html, Json, Redirect},
     http::StatusCode,
 };
@@ -51,7 +51,8 @@ pub struct LoginResponse {
 pub struct UserInfo {
     pub id: String,
     pub email: String,
-    pub role: String,
+    pub role: String,       // Legacy single role field for backward compatibility
+    pub roles: Vec<String>, // RBAC roles array
     pub permissions: Vec<String>,
 }
 
@@ -85,41 +86,21 @@ pub async fn login_handler(
             // Login successful - create session
             auth_session.login(&user).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-            // Load user permissions from database using raw SQL
-            use sea_orm::{FromQueryResult, Statement, DatabaseBackend};
-
-            #[derive(Debug, FromQueryResult)]
-            struct PermissionName {
-                name: String,
-            }
-
-            let permissions: Vec<String> = PermissionName::find_by_statement(
-                Statement::from_sql_and_values(
-                    DatabaseBackend::Postgres,
-                    r#"
-                        SELECT DISTINCT p.resource || ':' || p.action as name
-                        FROM hr_public.permissions p
-                        INNER JOIN hr_public.role_permissions rp ON p.id = rp.permission_id
-                        INNER JOIN hr_public.user_role_assignments ura ON rp.role_id = ura.role_id
-                        WHERE ura.user_id = $1
-                        ORDER BY name
-                    "#,
-                    vec![user.id.into()]
-                )
-            )
-            .all(&app_state.db)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-            .into_iter()
-            .map(|p| p.name)
-            .collect();
+            // Load roles and permissions from database via RBAC tables
+            let (roles, permissions) = crate::auth::get_user_roles_and_permissions(&app_state.db, user.id)
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to load user roles/permissions in login: {}", e);
+                    StatusCode::INTERNAL_SERVER_ERROR
+                })?;
 
             let response = LoginResponse {
                 user: UserInfo {
                     id: user.id.to_string(),
                     email: user.email.clone(),
-                    role: user.role,
-                    permissions,
+                    role: roles.first().cloned().unwrap_or_else(|| "Employee".to_string()), // Legacy field
+                    roles,        // RBAC roles array
+                    permissions,  // RBAC permissions array
                 },
                 session_expires: (chrono::Utc::now() + chrono::Duration::minutes(30)).to_rfc3339(),
             };
@@ -202,40 +183,20 @@ pub async fn me_handler(
 ) -> Result<Json<UserInfo>, StatusCode> {
     match &auth_session.user {
         Some(user) => {
-            // Load user permissions from database using raw SQL
-            use sea_orm::{FromQueryResult, Statement, DatabaseBackend};
-
-            #[derive(Debug, FromQueryResult)]
-            struct PermissionName {
-                name: String,
-            }
-
-            let permissions: Vec<String> = PermissionName::find_by_statement(
-                Statement::from_sql_and_values(
-                    DatabaseBackend::Postgres,
-                    r#"
-                        SELECT DISTINCT p.resource || ':' || p.action as name
-                        FROM hr_public.permissions p
-                        INNER JOIN hr_public.role_permissions rp ON p.id = rp.permission_id
-                        INNER JOIN hr_public.user_role_assignments ura ON rp.role_id = ura.role_id
-                        WHERE ura.user_id = $1
-                        ORDER BY name
-                    "#,
-                    vec![user.id.into()]
-                )
-            )
-            .all(&app_state.db)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-            .into_iter()
-            .map(|p| p.name)
-            .collect();
+            // Load roles and permissions from database via RBAC tables
+            let (roles, permissions) = crate::auth::get_user_roles_and_permissions(&app_state.db, user.id)
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to load user roles/permissions in /auth/me: {}", e);
+                    StatusCode::INTERNAL_SERVER_ERROR
+                })?;
 
             let user_info = UserInfo {
                 id: user.id.to_string(),
                 email: user.email.clone(),
-                role: user.role.clone(),
-                permissions,
+                role: roles.first().cloned().unwrap_or_else(|| "Employee".to_string()), // Legacy field: use first role
+                roles,        // RBAC roles array
+                permissions,  // RBAC permissions array
             };
             Ok(Json(user_info))
         }
@@ -379,6 +340,7 @@ pub async fn graphql_handler(
     State(app_state): State<AppState>,
     auth_session: AuthSession<AuthBackend>,
     headers: axum::http::HeaderMap,
+    user_context_ext: Option<axum::extract::Extension<crate::auth::UserContext>>,
     req: async_graphql_axum::GraphQLRequest,
 ) -> async_graphql_axum::GraphQLResponse {
     // Extract operation name before moving req
@@ -417,13 +379,8 @@ pub async fn graphql_handler(
     // Add DataLoaders to request context
     request = request.data(app_state.dataloaders.clone());
 
-    // If user is authenticated, create UserContext for guards
-    if let Some(user) = &auth_session.user {
-        let user_context = crate::auth::UserContext::new(
-            user.id,
-            vec![user.role.clone()],
-            vec![] // TODO: Fetch permissions from database if needed
-        );
+    // Use UserContext from middleware (which has correct roles/permissions from database)
+    if let Some(Extension(user_context)) = user_context_ext {
         request = request.data(user_context);
     }
 
@@ -436,24 +393,35 @@ pub async fn graphql_handler(
         let user_email = auth_session.user.as_ref().map(|u| u.email.clone());
 
         for error in &response.errors {
-            // Log error with structured context
+            // Log error with structured context including actual error message
+            tracing::error!(
+                user_id = %user_id.as_deref().unwrap_or("anonymous"),
+                user_email = %user_email.as_deref().unwrap_or("anonymous"),
+                operation_name = %operation_name.as_deref().unwrap_or("unknown"),
+                error_message = %error.message,
+                error_path = ?error.path,
+                "GraphQL request error"
+            );
+        }
+
+        // Log summary
         tracing::error!(
             user_id = %user_id.as_deref().unwrap_or("anonymous"),
             error_count = response.errors.len(),
             operation_name = %operation_name.as_deref().unwrap_or("unknown"),
             "GraphQL request completed with errors"
         );
-        }
 
 
     } else {
-        // Log successful requests at debug level for monitoring
-        let user_id = auth_session.user.as_ref().map(|u| u.id.to_string());
-        tracing::debug!(
-            user_id = %user_id.as_deref().unwrap_or("anonymous"),
-            operation_name = %operation_name.as_deref().unwrap_or("unknown"),
-            "GraphQL request completed successfully"
-        );
+        // Successful requests - logging disabled to reduce verbosity
+        // Uncomment for debugging:
+        // let user_id = auth_session.user.as_ref().map(|u| u.id.to_string());
+        // tracing::debug!(
+        //     user_id = %user_id.as_deref().unwrap_or("anonymous"),
+        //     operation_name = %operation_name.as_deref().unwrap_or("unknown"),
+        //     "GraphQL request completed successfully"
+        // );
     }
 
     response.into()

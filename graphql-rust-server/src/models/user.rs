@@ -116,7 +116,6 @@ pub struct Model {
     pub last_name: String,
     pub display_name: String,  // Computed column
     pub full_name: String,    // Computed column
-    pub role: String,
     pub phone_number: Option<String>,
     pub alternate_phone: Option<String>,
     pub job_title: Option<String>,
@@ -210,9 +209,31 @@ impl Model {
         &self.full_name
     }
 
-    /// User role (hr_employee, hr_manager, admin, system_admin, etc.)
-    async fn role(&self) -> &str {
-        &self.role
+    /// User roles (from RBAC user_role_assignments table)
+    async fn roles(&self, ctx: &Context<'_>) -> GqlResult<Vec<super::role::Model>> {
+        let db = get_db_from_context(ctx)?;
+
+        // Query roles via user_role_assignments join table
+        let role_assignments = super::user_role_assignment::Entity::find()
+            .filter(super::user_role_assignment::Column::UserId.eq(self.id))
+            .filter(super::user_role_assignment::Column::DeletedAt.is_null())
+            .all(&db)
+            .await?;
+
+        // Load the actual role records
+        let role_ids: Vec<Uuid> = role_assignments
+            .iter()
+            .map(|ra| ra.role_id)
+            .collect();
+
+        let roles = super::role::Entity::find()
+            .filter(super::role::Column::Id.is_in(role_ids))
+            .filter(super::role::Column::DeletedAt.is_null())
+            .order_by_desc(super::role::Column::Level) // Order by hierarchy level
+            .all(&db)
+            .await?;
+
+        Ok(roles)
     }
 
     /// Phone number (optional)
@@ -331,36 +352,6 @@ impl Model {
         Ok(address)
     }
 
-    /// RBAC roles assigned to this user (many-to-many via user_role_assignments)
-    async fn roles(&self, ctx: &Context<'_>) -> GqlResult<Vec<super::role::Model>> {
-        use super::user_role_assignment::{Entity as UserRoleEntity, Column as UserRoleColumn};
-        use super::role::{Entity as RoleEntity, Column as RoleColumn};
-
-        let db = get_db_from_context(ctx)?;
-
-        // Get role IDs from user_role_assignments
-        let assignments = UserRoleEntity::find()
-            .filter(UserRoleColumn::UserId.eq(self.id))
-            .filter(UserRoleColumn::DeletedAt.is_null())
-            .all(&db)
-            .await?;
-
-        let role_ids: Vec<Uuid> = assignments.iter().map(|a| a.role_id).collect();
-
-        if role_ids.is_empty() {
-            return Ok(vec![]);
-        }
-
-        // Load roles by IDs
-        let roles = RoleEntity::find()
-            .filter(RoleColumn::Id.is_in(role_ids))
-            .filter(RoleColumn::DeletedAt.is_null())
-            .order_by_asc(RoleColumn::Level)
-            .all(&db)
-            .await?;
-
-        Ok(roles)
-    }
 }
 
 /// User condition for filtering queries (PostGraphile-style)
@@ -414,9 +405,6 @@ pub struct CreateUserInput {
     /// Optional password for the user. If not provided, a temporary password will be generated.
     #[graphql(validator(min_length = 8, max_length = 128))]
     pub password: Option<String>,
-    /// Optional role for the user. If not provided, defaults to "hr_employee".
-    #[graphql(validator(max_length = 50))]
-    pub role: Option<String>,
 }
 
 /// User update input

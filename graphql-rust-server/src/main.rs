@@ -147,7 +147,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/graphql",
             get(graphql_playground)
             .post(graphql_handler)
-            .layer(axum_middleware::from_fn(optional_session_auth_middleware))
+            .layer(axum_middleware::from_fn_with_state(app_state.clone(), optional_session_auth_middleware))
         )
         // Health check
         .route("/health", get(health_check))
