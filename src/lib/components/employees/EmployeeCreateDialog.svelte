@@ -127,16 +127,37 @@
 				body: formDataObj
 			});
 
+			// Parse response body
 			const result = await response.json();
+			console.log('[EmployeeCreateDialog] Response status:', response.status);
+			console.log('[EmployeeCreateDialog] Response body:', result);
 
-			if (result.type === 'success') {
-				toast.success('Employee created successfully');
-				resetForm();
-				open = false;
-				onSuccess?.();
+			// Check if request was successful based on HTTP status
+			if (response.ok) {
+				// Handle different success response types
+				if (result.type === 'success' || result.employeeId) {
+					// Direct success response
+					toast.success('Employee created successfully');
+					resetForm();
+					open = false;
+					onSuccess?.();
+				} else if (result.type === 'redirect') {
+					// SvelteKit serialized redirect - treat as success
+					toast.success('Employee created successfully');
+					resetForm();
+					open = false;
+					onSuccess?.();
+					// Note: We don't navigate to the redirect location since we're in a dialog
+				} else {
+					// Unexpected success format
+					toast.error('Employee created but response format unexpected');
+					console.error('[EmployeeCreateDialog] Unexpected success format:', result);
+				}
 			} else {
-				// Extract error message
-				const errorMessage = result.data?.error || 'Failed to create employee';
+				// Error case - extract error message from result
+				// SvelteKit fail() returns: { error: 'message' } for fetch requests
+				const errorMessage = result.error || result.data?.error || 'Failed to create employee';
+				console.log('[EmployeeCreateDialog] Error message:', errorMessage);
 
 				// Parse error to see if it's field-specific
 				const { field, message } = parseErrorMessage(errorMessage);

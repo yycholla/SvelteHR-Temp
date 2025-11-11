@@ -26,6 +26,7 @@
 		UserCheck
 	} from '@lucide/svelte';
 	import { buildTeamHierarchy, categorizeTeamSize } from '$lib/graphql/team-management-operations';
+	import DepartmentCreateDialog from '$lib/components/departments/DepartmentCreateDialog.svelte';
 
 	// Subscribe to page store at top level
 	const currentUrl = $derived($page.url);
@@ -72,6 +73,9 @@
 	let selectedHasHead = $state(data.filters.hasHeadFilter);
 	let currentPage = $state(data.filters.page);
 	let pageSize = $state(data.filters.limit);
+
+	// Dialog state
+	let showCreateDialog = $state(false);
 
 	// Hierarchy display state
 	let expandedNodes = $state<Set<string>>(new Set());
@@ -163,7 +167,7 @@
 					<TreePine class="mr-2 h-4 w-4" />
 					View Hierarchy
 				</Button>
-				<Button size="sm" href="/dashboard/departments/new">
+				<Button size="sm" onclick={() => (showCreateDialog = true)}>
 					<Plus class="mr-2 h-4 w-4" />
 					Create Department
 				</Button>
@@ -506,3 +510,6 @@
 		</Card.Root>
 	{/if}
 </div>
+
+<!-- Department Create Dialog -->
+<DepartmentCreateDialog bind:open={showCreateDialog} users={data.users || []} departments={departments} />

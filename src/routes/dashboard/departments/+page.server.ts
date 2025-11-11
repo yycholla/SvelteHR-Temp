@@ -1,8 +1,8 @@
 // Server-side data loading for departments page
 // T036: Fix department management pages with standardized error handling
 
-import type { PageServerLoad } from './$types';
-import { error } from '@sveltejs/kit';
+import type { PageServerLoad, Actions } from './$types';
+import { error, redirect, fail } from '@sveltejs/kit';
 import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
@@ -96,6 +96,34 @@ export const load: PageServerLoad = async (event) => {
 		const departmentsData = await departmentsResponse.json();
 		console.log('[Departments] Departments data:', departmentsData);
 
+		// Load users for department manager dropdown
+		const usersResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: `
+					query GetUsers {
+						users(limit: 1000) {
+							id
+							displayName
+							email
+							role
+							isActive
+						}
+					}
+				`
+			})
+		});
+
+		const usersData = await usersResponse.json();
+
+		if (usersData.errors) {
+			console.error('[Departments] Users GraphQL errors:', usersData.errors);
+		}
+
+		// Filter to active users only
+		const users = (usersData?.data?.users || []).filter((user: any) => user.isActive);
+
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
 
@@ -118,6 +146,7 @@ export const load: PageServerLoad = async (event) => {
 			user: userPermissions.user,
 			userSession: userSession.toJSON(), // Convert UserSession to serializable object
 			departments,
+			users,
 			totalDepartments: departments.length, // Use actual count from results
 			hierarchy: [], // For now, return empty hierarchy
 			filters: {
@@ -158,5 +187,96 @@ export const load: PageServerLoad = async (event) => {
         			message: 'Departments temporarily unavailable',
         			details: errorResponse.userMessage
         		});
+	}
+};
+
+export const actions: Actions = {
+	create: async (event) => {
+		const { request, locals } = event;
+
+		// RBAC: Check department write permissions
+		PermissionChecks.departmentWrite(event);
+
+		try {
+			const formData = await request.formData();
+			const name = formData.get('name')?.toString();
+			const description = formData.get('description')?.toString();
+			const managerId = formData.get('managerId')?.toString();
+
+			// Validate required fields
+			if (!name) {
+				return fail(400, {
+					error: 'Department name is required'
+				});
+			}
+
+			// Make GraphQL mutation to create department with session-based authentication
+			const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+			const graphqlEndpoint = getGraphQLEndpoint();
+
+			// Headers for session-based authentication
+			const cookieHeader = request.headers.get('cookie') || '';
+			const headers: Record<string, string> = {
+				'Content-Type': 'application/json',
+				'Cookie': cookieHeader
+			};
+
+			// Build input object
+			const input: any = {
+				name,
+				description: description || null,
+				managerId: managerId || null
+			};
+
+			const createResponse = await fetch(graphqlEndpoint, {
+				method: 'POST',
+				headers,
+				body: JSON.stringify({
+					query: `
+						mutation CreateDepartment($input: CreateDepartmentInput!) {
+							departments {
+								createDepartment(input: $input) {
+									id
+									name
+									description
+									managerId
+								}
+							}
+						}
+					`,
+					variables: { input }
+				})
+			});
+
+			console.log('[Departments] Department creation request sent');
+
+			const createData = await createResponse.json();
+
+			if (createData.errors) {
+				console.error('[Departments] GraphQL errors:', createData.errors);
+				return fail(500, {
+					error: createData.errors[0]?.message || 'Failed to create department'
+				});
+			}
+
+			const newDepartmentId = createData.data?.departments?.createDepartment?.id;
+
+			if (!newDepartmentId) {
+				return fail(500, {
+					error: 'Department created but ID not returned'
+				});
+			}
+
+			console.log(`[Departments] Successfully created department with ID: ${newDepartmentId}`);
+
+			// Return success (dialog will close and refresh the page)
+			return { success: true, departmentId: newDepartmentId };
+		} catch (err: any) {
+			console.error('[Departments] Error creating department:', err);
+
+			return fail(500, {
+				error: 'Failed to create department. Please try again.'
+			});
+		}
 	}
 };

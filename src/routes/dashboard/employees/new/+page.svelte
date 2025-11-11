@@ -9,6 +9,7 @@
 	let firstName = $state('');
 	let lastName = $state('');
 	let email = $state('');
+	let password = $state('');
 	let role = $state('employee');
 	let departmentId = $state('');
 	let hireDate = $state(new Date().toISOString().split('T')[0]);
@@ -33,6 +34,11 @@
 			errors.email = 'Email is required';
 		} else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
 			errors.email = 'Please enter a valid email address';
+		}
+
+		// Password is optional, but if provided must be at least 8 characters
+		if (password && password.length < 8) {
+			errors.password = 'Password must be at least 8 characters when provided';
 		}
 
 		return Object.keys(errors).length === 0;
@@ -80,9 +86,28 @@
 			}
 
 			isSubmitting = true;
-			return async ({ update }) => {
-				await update();
+			return async ({ result, update }) => {
+				console.log('[Employee Form] Result type:', result.type);
+				console.log('[Employee Form] Full result:', result);
 				isSubmitting = false;
+
+				// Handle different result types
+				if (result.type === 'redirect') {
+					console.log('[Employee Form] Redirecting to:', result.location);
+					// Let the redirect happen naturally
+					await update();
+				} else if (result.type === 'failure') {
+					console.log('[Employee Form] Failure:', result.data);
+					// Show error message
+					await update();
+				} else if (result.type === 'error') {
+					console.log('[Employee Form] Error:', result.error);
+					await update();
+				} else {
+					console.log('[Employee Form] Other result type:', result.type);
+					// For any other result type, update normally
+					await update();
+				}
 			};
 		}}
 		class="rounded-lg border border-border bg-card p-6 shadow-sm"
@@ -148,6 +173,27 @@
 					{#if errors.email}
 						<p class="mt-1 text-sm text-destructive">{errors.email}</p>
 					{/if}
+				</div>
+
+				<!-- Password (Optional) -->
+				<div class="mt-4">
+					<label for="password" class="mb-2 block text-sm font-medium text-foreground">
+						Initial Password (Optional)
+					</label>
+					<input
+						type="password"
+						id="password"
+						name="password"
+						bind:value={password}
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+						placeholder="Minimum 8 characters"
+					/>
+					{#if errors.password}
+						<p class="mt-1 text-sm text-destructive">{errors.password}</p>
+					{/if}
+					<p class="mt-1 text-sm text-muted-foreground">
+						Leave blank to send the employee a password reset email
+					</p>
 				</div>
 			</div>
 

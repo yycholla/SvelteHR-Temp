@@ -15,7 +15,7 @@
 		bulkActionsStore: Writable<BulkActionsState>;
 		onClear: () => void;
 		onMoveDepartment: (departmentId: string) => void;
-		onChangeStatus: (isActive: boolean) => void;
+		onChangeStatus: (status: 'active' | 'inactive' | 'terminated') => void;
 	}
 
 	let { bulkActionsStore, onClear, onMoveDepartment, onChangeStatus }: Props = $props();
@@ -89,11 +89,23 @@
 			>
 				<DropdownMenu.Label>Set Status</DropdownMenu.Label>
 				<DropdownMenu.Separator />
-				<DropdownMenu.Item onclick={() => onChangeStatus(true)}>
-					Set as Active
+				<DropdownMenu.Item onclick={() => onChangeStatus('active')}>
+					<span class="flex items-center gap-2">
+						<span class="h-2 w-2 rounded-full bg-green-500"></span>
+						Set as Active
+					</span>
 				</DropdownMenu.Item>
-				<DropdownMenu.Item onclick={() => onChangeStatus(false)}>
-					Set as Inactive
+				<DropdownMenu.Item onclick={() => onChangeStatus('inactive')}>
+					<span class="flex items-center gap-2">
+						<span class="h-2 w-2 rounded-full bg-gray-400"></span>
+						Set as Inactive
+					</span>
+				</DropdownMenu.Item>
+				<DropdownMenu.Item onclick={() => onChangeStatus('terminated')}>
+					<span class="flex items-center gap-2">
+						<span class="h-2 w-2 rounded-full bg-red-500"></span>
+						Set as Terminated
+					</span>
 				</DropdownMenu.Item>
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>

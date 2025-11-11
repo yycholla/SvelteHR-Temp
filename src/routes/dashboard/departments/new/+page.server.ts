@@ -155,11 +155,13 @@ export const actions: Actions = {
 				body: JSON.stringify({
 					query: `
 						mutation CreateDepartment($input: CreateDepartmentInput!) {
-							createDepartment(input: $input) {
-								id
-								name
-								description
-								managerId
+							departments {
+								createDepartment(input: $input) {
+									id
+									name
+									description
+									managerId
+								}
 							}
 						}
 					`,
@@ -178,7 +180,7 @@ export const actions: Actions = {
 				});
 			}
 
-			const newDepartmentId = createData.data?.createDepartment?.id;
+			const newDepartmentId = createData.data?.departments?.createDepartment?.id;
 
 			if (!newDepartmentId) {
 				return fail(500, {

@@ -363,12 +363,12 @@
 		}
 	}
 
-	async function handleBulkStatusChange(newStatus: boolean) {
+	async function handleBulkStatusChange(newStatus: 'active' | 'inactive' | 'terminated') {
 		const count = selectedCount; // Capture before clearing
 		const employeeIds = [...selectedEmployeeIds]; // Capture employee IDs
 		console.log(
 			'Changing employee status to:',
-			newStatus ? 'Active' : 'Inactive',
+			newStatus,
 			'Employee IDs:',
 			employeeIds
 		);
@@ -388,18 +388,25 @@
 							users {
 								updateUser(id: $id, input: $input) {
 									id
-									isActive
+									status
 								}
 							}
 						}
 					`,
 						{
 							id: employeeId,
-							input: { isActive: newStatus }
+							input: { status: newStatus }
 						}
 					);
 
+					// Debug logging to see actual response
+					console.log('[Status Change] Full result:', result);
+					console.log('[Status Change] Has error?', !!result.error);
+					console.log('[Status Change] Error details:', result.error);
+					console.log('[Status Change] Data:', result.data);
+
 					if (result.error) {
+						console.error('[Status Change] GraphQL Error:', result.error.message);
 						throw new Error(result.error.message);
 					}
 
@@ -411,20 +418,30 @@
 			const successCount = results.filter((r) => r.status === 'fulfilled').length;
 			const failureCount = results.filter((r) => r.status === 'rejected').length;
 
+			console.log('[Status Change] Results summary:');
+			console.log('[Status Change] Success count:', successCount);
+			console.log('[Status Change] Failure count:', failureCount);
+			console.log('[Status Change] All results:', results);
+
 			// Dismiss loading toast
 			toast.dismiss(loadingToastId);
 
+			// Format status for display (capitalize first letter)
+			const statusDisplay = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+
 			// Show result message
 			if (failureCount === 0) {
-				toast.success(
-					`Set ${successCount} ${successCount === 1 ? 'employee' : 'employees'} as ${newStatus ? 'Active' : 'Inactive'}`
-				);
+				const message = `Set ${successCount} ${successCount === 1 ? 'employee' : 'employees'} as ${statusDisplay}`;
+				console.log('[Status Change] Success toast:', message);
+				toast.success(message);
 			} else if (successCount > 0) {
-				toast.warning(
-					`Updated ${successCount} ${successCount === 1 ? 'employee' : 'employees'}, but ${failureCount} failed`
-				);
+				const message = `Updated ${successCount} ${successCount === 1 ? 'employee' : 'employees'}, but ${failureCount} failed`;
+				console.log('[Status Change] Warning toast:', message);
+				toast.warning(message);
 			} else {
-				toast.error(`Failed to update employees. Please try again.`);
+				const message = `Failed to update employees. Please try again.`;
+				console.log('[Status Change] Error toast:', message);
+				toast.error(message);
 			}
 
 			// Reset selection - effect will handle dismissing bulk actions toast

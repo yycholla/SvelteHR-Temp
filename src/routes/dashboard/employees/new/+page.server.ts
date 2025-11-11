@@ -129,6 +129,7 @@ export const actions: Actions = {
 
 			// Create user via GraphQL mutation
 			// Build input object, only including fields that have values
+			// NOTE: GraphQL schema uses camelCase
 			const input: any = {
 				email,
 				firstName,
@@ -172,39 +173,81 @@ export const actions: Actions = {
 
 			console.log('[Employee New] User creation request sent');
 
-			if (!createResponse.ok) {
-				console.error('[Employee New] Create failed:', createResponse.statusText);
-				return fail(500, {
-					error: 'Failed to create employee'
-				});
-			}
-
+			// Always parse JSON response to check for GraphQL errors
+			// GraphQL can return errors even with HTTP 200, or have detailed errors with HTTP 400/500
 			const createData = await createResponse.json();
+			console.log('[Employee New] Full response:', JSON.stringify(createData, null, 2));
 
 			if (createData.errors && createData.errors.length > 0) {
 				console.error('[Employee New] GraphQL errors:', createData.errors);
-				return fail(500, {
-					error: createData.errors[0].message || 'Failed to create employee'
+				console.error('[Employee New] Full error object:', JSON.stringify(createData.errors, null, 2));
+
+				// Parse GraphQL error to provide user-friendly message
+				const errorMessage = createData.errors[0].message || 'Failed to create employee';
+				console.error('[Employee New] Error message to parse:', errorMessage);
+				let userFriendlyError = errorMessage;
+
+				// Handle common validation errors
+				if (errorMessage.toLowerCase().includes('string length') && errorMessage.includes('greater than or equal to')) {
+					// Password length validation error - extract the minimum length if possible
+					const match = errorMessage.match(/greater than or equal to (\d+)/);
+					const minLength = match ? match[1] : '8';
+					userFriendlyError = `Password must be at least ${minLength} characters long when provided. Please use a stronger password or leave the field blank.`;
+				} else if (errorMessage.toLowerCase().includes('failed to parse')) {
+					// Generic parsing error - try to extract useful info
+					if (errorMessage.includes('String') && errorMessage.includes('length')) {
+						userFriendlyError = 'Password must be at least 8 characters long when provided. Please use a stronger password or leave the field blank.';
+					} else {
+						userFriendlyError = `Invalid input format: ${errorMessage}`;
+					}
+				} else if (errorMessage.toLowerCase().includes('duplicate') || errorMessage.toLowerCase().includes('unique') || errorMessage.toLowerCase().includes('already exists')) {
+					// Duplicate email or other unique constraint violation
+					userFriendlyError = 'An employee with this email address already exists. Please use a different email address.';
+				} else if (errorMessage.toLowerCase().includes('invalid') && errorMessage.toLowerCase().includes('email')) {
+					// Email validation error
+					userFriendlyError = 'The email address format is invalid. Please enter a valid email address.';
+				} else if (errorMessage.toLowerCase().includes('required') || errorMessage.toLowerCase().includes('cannot be null')) {
+					// Missing required fields
+					userFriendlyError = 'Please fill in all required fields (first name, last name, and email address).';
+				} else if (errorMessage.toLowerCase().includes('unauthorized') || errorMessage.toLowerCase().includes('permission')) {
+					// Permission errors
+					userFriendlyError = 'You do not have permission to create employees. Please contact your administrator.';
+				} else {
+					// If we don't recognize the error, show the backend message directly
+					// This is better than showing a generic "Failed to create employee" message
+					console.error('[Employee New] Unhandled error pattern, showing raw message');
+				}
+
+				return fail(400, {
+					error: userFriendlyError
 				});
 			}
 
+			// Check if we got valid data back
 			const newEmployeeId = createData.data?.users?.createUser?.id;
 
 			if (!newEmployeeId) {
+				// No errors array but also no data - check HTTP response status
+				if (!createResponse.ok) {
+					return fail(400, {
+						error: `Failed to create employee: ${createResponse.statusText || 'Unknown server error'}`
+					});
+				}
 				return fail(500, {
-					error: 'Employee created but ID not returned'
+					error: 'Employee created but ID not returned from server'
 				});
 			}
 
 			console.log(`[Employee New] Successfully created employee with ID: ${newEmployeeId}`);
 
-			// Redirect to the employees list page with success message
-			redirect(303, `/dashboard/employees?success=created`);
+			// SvelteKit automatically serializes redirects to JSON for fetch requests
+			// and performs actual redirects for traditional form submissions
+			throw redirect(303, `/dashboard/employees?success=created`);
 		} catch (err: any) {
 			console.error('[Employee New] Error creating employee:', err);
 
-			// If it's a redirect, rethrow it
-			if (err.status === 303) {
+			// If it's a redirect, rethrow it (this is the successful case)
+			if (err.status === 303 || err.status === 302 || err.status === 301) {
 				throw err;
 			}
 
