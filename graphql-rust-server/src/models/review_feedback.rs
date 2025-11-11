@@ -40,7 +40,7 @@ impl FeedbackType {
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    pub performance_review_id: Uuid,
+    pub review_id: Uuid,
     pub provider_id: Uuid,
     pub feedback_type: String, // Using string to match database enum
     pub content: String,
@@ -54,7 +54,7 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(
         belongs_to = "super::performance_review::Entity",
-        from = "Column::PerformanceReviewId",
+        from = "Column::ReviewId",
         to = "super::performance_review::Column::Id"
     )]
     PerformanceReview,
@@ -90,7 +90,7 @@ impl Model {
 
     /// Performance review ID (foreign key)
     async fn performance_review_id(&self) -> Uuid {
-        self.performance_review_id
+        self.review_id
     }
 
     /// User ID who provided the feedback
@@ -142,7 +142,7 @@ impl Model {
         ctx: &Context<'_>,
     ) -> GqlResult<Option<super::performance_review::Model>> {
         let db = get_db_from_context(ctx)?;
-        let review = super::performance_review::Entity::find_by_id(self.performance_review_id).one(&db).await?;
+        let review = super::performance_review::Entity::find_by_id(self.review_id).one(&db).await?;
         Ok(review)
     }
 
@@ -211,7 +211,7 @@ mod tests {
     fn test_review_feedback_model_compiles() {
         let feedback = Model {
             id: Uuid::new_v4(),
-            performance_review_id: Uuid::new_v4(),
+            review_id: Uuid::new_v4(),
             provider_id: Uuid::new_v4(),
             feedback_type: "manager".to_string(),
             content: "Excellent work on the project delivery".to_string(),

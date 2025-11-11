@@ -37,7 +37,7 @@
 		return (
 			user.email?.toLowerCase().includes(query) ||
 			user.displayName?.toLowerCase().includes(query) ||
-			user.departmentByDepartmentId?.name?.toLowerCase().includes(query)
+			user.department?.name?.toLowerCase().includes(query)
 		);
 	}));
 
@@ -60,9 +60,9 @@
 			email: user.email,
 			displayName: user.displayName || '',
 			password: '',
-			roleId: user.userRolesByUserId?.nodes?.[0]?.roleByRoleId?.id || '',
-			departmentId: user.departmentByDepartmentId?.id || '',
-			isActive: user.is_active
+			roleId: user.roles?.[0]?.name || '',
+			departmentId: user.department?.id || '',
+			isActive: user.isActive
 		};
 		showEditModal = true;
 		errorMessage = '';
@@ -160,7 +160,7 @@
 							id
 							email
 							displayName
-							is_active
+							isActive
 						}
 					}
 				}
@@ -228,7 +228,7 @@
 					updateUser(input: $input) {
 						user {
 							id
-							is_active
+							isActive
 						}
 					}
 				}
@@ -238,7 +238,7 @@
 				input: {
 					id: user.id,
 					patch: {
-						isActive: !user.is_active
+						isActive: !user.isActive
 					}
 				}
 			});
@@ -376,20 +376,20 @@
 						<td class="px-4 py-3">{user.email}</td>
 						<td class="px-4 py-3">{user.displayName || '—'}</td>
 						<td class="px-4 py-3">
-							{user.userRolesByUserId?.nodes?.[0]?.roleByRoleId?.name || 'employee'}
+							{user.roles?.[0]?.name || 'employee'}
 						</td>
-						<td class="px-4 py-3">{user.departmentByDepartmentId?.name || '—'}</td>
+						<td class="px-4 py-3">{user.department?.name || '—'}</td>
 						<td class="px-4 py-3">
 							<button
 								onclick={() => toggleUserStatus(user)}
 								disabled={loading}
 								class="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium"
-								class:bg-green-100={user.is_active}
-								class:text-green-700={user.is_active}
-								class:bg-red-100={!user.is_active}
-								class:text-red-700={!user.is_active}
+								class:bg-green-100={user.isActive}
+								class:text-green-700={user.isActive}
+								class:bg-red-100={!user.isActive}
+								class:text-red-700={!user.isActive}
 							>
-								{#if user.is_active}
+								{#if user.isActive}
 									<UserCheck class="h-3 w-3" />
 									Active
 								{:else}

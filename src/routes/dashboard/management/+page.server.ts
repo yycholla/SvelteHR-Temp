@@ -3,16 +3,14 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { requireAuth } from '$lib/server/rbac-utils';
+import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, url, cookies } = event;
 
 	// Check authentication and permissions (managers and above)
-	requireAuth(event, {
-		requiredPermissions: ['*', 'management:read']
-	});
+	PermissionChecks.management(event);
 
 	try {
 		// Check backend services are ready before proceeding
@@ -93,7 +91,7 @@ export const load: PageServerLoad = async (event) => {
 					displayName
 					departmentId
 					managerId
-					is_active
+					isActive
 					hireDate
 					createdAt
 					updatedAt
@@ -144,15 +142,20 @@ export const load: PageServerLoad = async (event) => {
 		const users = usersData?.users || [];
 		const departments = departmentsData?.departments || [];
 
+		// Get user permissions using the centralized helper
+		const userPerms = getUserPermissions(locals);
+		const isAdmin = userPerms.isAdmin;
+		const isManager = userPerms.isManager;
+
 		// Determine user's managed department
 		let managedDepartmentId: number | null = null;
-		const isAdmin =
-			locals.roles?.includes('super_admin') || locals.roles?.includes('admin') || false;
-
-		if (!isAdmin && locals.roles?.includes('manager')) {
+		if (!isAdmin && isManager) {
 			const userDept = departments.find((d) => d.managerId === locals.user.id);
 			managedDepartmentId = userDept?.id || null;
 		}
+
+		// Determine if user has manager access (admin or manager with department)
+		const hasManagerAccess = userPerms.canViewManagement;
 
 		// Filter employees for managers (admins see all)
 		const filteredUsers = isAdmin
@@ -188,7 +191,7 @@ export const load: PageServerLoad = async (event) => {
 			},
 			teamStats: {
 				totalEmployees: filteredUsers.length,
-				activeEmployees: filteredUsers.filter((u) => u.is_active).length,
+				activeEmployees: filteredUsers.filter((u) => u.isActive).length,
 				departmentCount: isAdmin ? departments.length : 1,
 				avgTenure: '2.5 years'
 			}
@@ -383,10 +386,9 @@ export const load: PageServerLoad = async (event) => {
 			managedDepartmentId,
 			isAdmin,
 			canEditAllTeams: isAdmin, // Only admins can edit all teams
-			permissions: locals.permissions || [],
+			permissions: userPerms,
 			canManageTeam: hasManagerAccess,
-			canViewAllTeams:
-				locals.roles?.includes('super_admin') || locals.roles?.includes('admin') || false,
+			canViewAllTeams: isAdmin,
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {

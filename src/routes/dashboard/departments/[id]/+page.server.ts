@@ -143,9 +143,12 @@ export const load: PageServerLoad = async (event) => {
 								id
 								email
 								displayName
-								roles
+								roles {
+									id
+									name
+								}
 								hireDate
-								is_active
+								isActive
 							}
 						}
 					`,
@@ -173,9 +176,12 @@ export const load: PageServerLoad = async (event) => {
 							firstName
 							lastName
 							displayName
-							roles
+							roles {
+								id
+								name
+							}
 							hireDate
-							is_active
+							isActive
 							departmentId
 						}
 					}

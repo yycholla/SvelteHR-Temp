@@ -38,7 +38,7 @@ impl GoalCompletionStatus {
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    pub performance_review_id: Uuid,
+    pub review_id: Uuid,
     pub title: String,
     pub description: Option<String>,
     pub target_date: Option<DateTime<Utc>>,
@@ -53,7 +53,7 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(
         belongs_to = "super::performance_review::Entity",
-        from = "Column::PerformanceReviewId",
+        from = "Column::ReviewId",
         to = "super::performance_review::Column::Id"
     )]
     PerformanceReview,
@@ -77,7 +77,7 @@ impl Model {
 
     /// Performance review ID (foreign key)
     async fn performance_review_id(&self) -> Uuid {
-        self.performance_review_id
+        self.review_id
     }
 
     /// Goal title
@@ -133,7 +133,7 @@ impl Model {
         ctx: &Context<'_>,
     ) -> GqlResult<Option<super::performance_review::Model>> {
         let db = get_db_from_context(ctx)?;
-        let review = super::performance_review::Entity::find_by_id(self.performance_review_id).one(&db).await?;
+        let review = super::performance_review::Entity::find_by_id(self.review_id).one(&db).await?;
         Ok(review)
     }
 
@@ -209,7 +209,7 @@ mod tests {
     fn test_review_goal_model_compiles() {
         let goal = Model {
             id: Uuid::new_v4(),
-            performance_review_id: Uuid::new_v4(),
+            review_id: Uuid::new_v4(),
             title: "Improve code quality".to_string(),
             description: Some("Reduce technical debt by 30%".to_string()),
             target_date: Some(Utc::now()),

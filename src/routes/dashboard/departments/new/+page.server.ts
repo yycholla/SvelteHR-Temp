@@ -68,8 +68,11 @@ export const load: PageServerLoad = async (event) => {
 							id
 							displayName
 							email
-							roles
-							is_active
+							roles {
+								id
+								name
+							}
+							isActive
 						}
 					}
 				`
@@ -83,7 +86,7 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Filter to active users only
-		const users = (usersData?.data?.users || []).filter((user: any) => user.is_active);
+		const users = (usersData?.data?.users || []).filter((user: any) => user.isActive);
 
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);

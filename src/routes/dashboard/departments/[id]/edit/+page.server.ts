@@ -124,8 +124,11 @@ export const load: PageServerLoad = async (event) => {
 						users(limit: 1000) {
 							id
 							displayName
-							roles
-							is_active
+							roles {
+								id
+								name
+							}
+							isActive
 						}
 					}
 				`
@@ -133,7 +136,7 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		const usersData = await usersResponse.json();
-		const users = (usersData?.data?.users || []).filter((user: any) => user.is_active);
+		const users = (usersData?.data?.users || []).filter((user: any) => user.isActive);
 
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);

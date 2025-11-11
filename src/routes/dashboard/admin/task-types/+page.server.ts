@@ -19,7 +19,7 @@ export const load: PageServerLoad = async (event) => {
 		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 
 		// Fetch all task types (both active and inactive for admin management)
-		const taskTypesData = await executeQuery(client, GET_TASK_TYPES, { is_active: null });
+		const taskTypesData = await executeQuery(client, GET_TASK_TYPES, { isActive: null });
 
 		const taskTypes = taskTypesData?.taskTypes || [];
 

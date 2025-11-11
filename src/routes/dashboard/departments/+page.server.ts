@@ -107,8 +107,12 @@ export const load: PageServerLoad = async (event) => {
 							id
 							displayName
 							email
-							roles
-							is_active
+							departmentId
+							roles {
+								id
+								name
+							}
+							isActive
 						}
 					}
 				`
@@ -121,23 +125,57 @@ export const load: PageServerLoad = async (event) => {
 			console.error('[Departments] Users GraphQL errors:', usersData.errors);
 		}
 
-		// Filter to active users only
-		const users = (usersData?.data?.users || []).filter((user: any) => user.is_active);
+		// Keep all users for department counting (both active and inactive)
+		const users = usersData?.data?.users || [];
 
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
 
-		// Extract departments from Rust GraphQL response (direct array, no nodes wrapper)
+		// Extract departments from Rust GraphQL response and enrich with related data
 		const departments = (departmentsData?.data?.departments || []).map((dept: any) => {
+			// Find manager/department head from users list
+			const departmentHead = dept.managerId
+				? users.find((u: any) => u.id === dept.managerId)
+				: null;
+
+			// Count employees in this department
+			const employeesInDept = users.filter((u: any) => u.departmentId === dept.id);
+			const employeeCount = employeesInDept.length;
+
+			// Find parent department
+			const parentDepartment = dept.parentDepartmentId
+				? departmentsData?.data?.departments.find((d: any) => d.id === dept.parentDepartmentId)
+				: null;
+
+			// Count sub-departments
+			const subDepartments = (departmentsData?.data?.departments || []).filter(
+				(d: any) => d.parentDepartmentId === dept.id
+			);
+
 			return {
 				...dept,
-				// Employee data not available in current Rust GraphQL schema
 				employees: {
-					nodes: [], // TODO: Implement separate query for employees
-					totalCount: 0
+					nodes: employeesInDept,
+					totalCount: employeeCount
 				},
-				// Department head not available in current Rust GraphQL schema
-				departmentHead: null
+				departmentHead: departmentHead
+					? {
+							id: departmentHead.id,
+							displayName: departmentHead.displayName,
+							email: departmentHead.email,
+							jobTitle: departmentHead.roles?.[0]?.name || 'Manager'
+						}
+					: null,
+				parentDepartment: parentDepartment
+					? {
+							id: parentDepartment.id,
+							name: parentDepartment.name
+						}
+					: null,
+				subDepartments: {
+					nodes: subDepartments,
+					totalCount: subDepartments.length
+				}
 			};
 		});
 
@@ -146,7 +184,7 @@ export const load: PageServerLoad = async (event) => {
 			user: userPermissions.user,
 			userSession: userSession.toJSON(), // Convert UserSession to serializable object
 			departments,
-			users,
+			users: users.filter((u: any) => u.isActive), // Return only active users for dropdowns
 			totalDepartments: departments.length, // Use actual count from results
 			hierarchy: [], // For now, return empty hierarchy
 			filters: {

@@ -32,8 +32,8 @@
 	let { data }: { data: PageData } = $props();
 
 	const review = data.review;
-	const reviewTypeInfo = getReviewTypeInfo(review.reviewType as ReviewType);
-	const reviewStatusInfo = getReviewStatusInfo(review.status as ReviewStatus);
+	const reviewTypeInfo = getReviewTypeInfo((review.reviewType || 'ANNUAL_REVIEW') as ReviewType);
+	const reviewStatusInfo = getReviewStatusInfo((review.status || 'DRAFT') as ReviewStatus);
 
 	// Format dates
 	function formatDate(dateString: string): string {
@@ -75,8 +75,8 @@
 	}
 
 	// Count active vs deleted goals
-	const activeGoalsCount = $derived(review.associatedGoals.filter((g: any) => !g.deleted).length);
-	const deletedGoalsCount = $derived(review.associatedGoals.filter((g: any) => g.deleted).length);
+	const activeGoalsCount = $derived(review.associatedGoals?.filter((g: any) => !g.deleted).length || 0);
+	const deletedGoalsCount = $derived(review.associatedGoals?.filter((g: any) => g.deleted).length || 0);
 </script>
 
 <div class="review-detail-page space-y-6">
@@ -210,7 +210,7 @@
 					</div>
 				</Card.Header>
 				<Card.Content>
-					{#if review.associatedGoals.length === 0}
+					{#if !review.associatedGoals || review.associatedGoals.length === 0}
 						<p class="text-sm text-muted-foreground italic">No goals associated with this review</p>
 					{:else}
 						<div class="space-y-3">

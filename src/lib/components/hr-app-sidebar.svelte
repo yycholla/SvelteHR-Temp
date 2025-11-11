@@ -354,41 +354,6 @@
 			permission: 'management:read:team'
 		},
 		{
-			title: 'Team Employees',
-			url: '/dashboard/management/employees',
-			icon: Users,
-			description: 'Manage team members',
-			permission: 'employees:read:team'
-		},
-		{
-			title: 'Team Tasks',
-			url: '/dashboard/management/tasks',
-			icon: CheckSquare,
-			description: 'Team task management',
-			permission: 'tasks:read:team'
-		},
-		{
-			title: 'Team Attendance',
-			url: '/dashboard/management/attendance',
-			icon: Clock,
-			description: 'Team attendance tracking',
-			permission: 'attendance:read:team'
-		},
-		{
-			title: 'Leave Approvals',
-			url: '/dashboard/management/leave',
-			icon: Clock,
-			description: 'Approve team leave requests',
-			permissionAny: ['leave:read:team', 'leave:approve']
-		},
-		{
-			title: 'Team Performance',
-			url: '/dashboard/management/performance',
-			icon: TrendingUp,
-			description: 'Team performance tracking',
-			permission: 'performance:read:team'
-		},
-		{
 			title: 'Team Reviews',
 			url: '/dashboard/management/reviews',
 			icon: Award,
@@ -408,13 +373,6 @@
 			icon: BarChart3,
 			description: 'Team analytics and reports',
 			permission: 'reports:read:team'
-		},
-		{
-			title: 'Team Documents',
-			url: '/dashboard/management/documents',
-			icon: FolderOpen,
-			description: 'Team document management',
-			permission: 'documents:read:team'
 		}
 	];
 
@@ -422,34 +380,10 @@
 	// Requires read:all permissions for system-wide access
 	const adminItems = [
 		{
-			title: 'All Employees',
-			url: '/dashboard/admin/employees',
-			icon: Users,
-			permission: 'employees:read:all'
-		},
-		{
-			title: 'All Departments',
-			url: '/dashboard/admin/departments',
-			icon: Building2,
-			permission: 'departments:read:all'
-		},
-		{
-			title: 'All Tasks',
-			url: '/dashboard/admin/tasks',
-			icon: ListTodo,
-			permission: 'tasks:read:all'
-		},
-		{
 			title: 'All Documents',
 			url: '/dashboard/admin/documents',
 			icon: FolderOpen,
 			permission: 'documents:read:all'
-		},
-		{
-			title: 'All Reports',
-			url: '/dashboard/admin/reports',
-			icon: BarChart3,
-			permission: 'reports:read:all'
 		},
 		{
 			title: 'User Management',
