@@ -79,10 +79,21 @@
 	const canEditReviews = $derived(data.canEditReviews);
 	const canViewAllReviews = $derived(data.canViewAllReviews);
 
+	// Debug logging
+	$effect(() => {
+		console.log('🔍 [Management Reviews Component] Data received:', {
+			performanceReviewsCount: performanceReviews?.length || 0,
+			firstReview: performanceReviews?.[0] || null,
+			selectedView,
+			searchQuery
+		});
+	});
+
 	// Local state for UI
 	let selectedView = $state('all');
 	const showCreateModal = $state(false);
 	let showDetailsModal = $state(false);
+	let showEditModal = $state(false);
 	let currentReview = $state<any>(null);
 	const isSubmitting = $state(false);
 	let searchQuery = $state(data.filters.searchTerm || '');
@@ -182,10 +193,12 @@
 	]);
 
 	// Filter and display logic
-	const filteredReviews = $derived(() => {
+	const filteredReviews = $derived.by(() => {
 		let filtered = performanceReviews;
+		console.log('🔍 [Filter] Starting with reviews:', filtered?.length || 0);
 
 		if (selectedView !== 'all') {
+			console.log('🔍 [Filter] Applying view filter:', selectedView);
 			filtered = filtered.filter((review) => {
 				switch (selectedView) {
 					case 'pending':
@@ -198,9 +211,11 @@
 						return true;
 				}
 			});
+			console.log('🔍 [Filter] After view filter:', filtered.length);
 		}
 
 		if (searchQuery) {
+			console.log('🔍 [Filter] Applying search filter:', searchQuery);
 			const query = searchQuery.toLowerCase();
 			filtered = filtered.filter(
 				(review) =>
@@ -208,8 +223,10 @@
 					review.reviewer?.displayName.toLowerCase().includes(query) ||
 					review.employee?.department?.name.toLowerCase().includes(query)
 			);
+			console.log('🔍 [Filter] After search filter:', filtered.length);
 		}
 
+		console.log('🔍 [Filter] Final filtered reviews:', filtered.length);
 		return filtered;
 	});
 
@@ -217,6 +234,11 @@
 	function handleViewReview(review: any) {
 		currentReview = review;
 		showDetailsModal = true;
+	}
+
+	function handleEditReview(review: any) {
+		currentReview = review;
+		showEditModal = true;
 	}
 
 	async function handleDeleteReview(review: any) {
@@ -615,7 +637,7 @@
 												<Button
 													size="sm"
 													variant="outline"
-													href={`/dashboard/management/reviews/${review.id}/edit`}
+													onclick={() => handleEditReview(review)}
 												>
 													Edit
 												</Button>
@@ -767,9 +789,10 @@
 					}}>Close</Button
 				>
 				{#if canEditReviews && currentReview && currentReview.status !== 'completed'}
-					<Button href={`/dashboard/management/reviews/${currentReview.id}/edit`}
-						>Edit Review</Button
-					>
+					<Button onclick={() => {
+						showDetailsModal = false;
+						handleEditReview(currentReview);
+					}}>Edit Review</Button>
 				{/if}
 			</Dialog.Footer>
 		</Dialog.Content>
@@ -851,5 +874,20 @@
 		on:createReview={handleCreateReview}
 		on:saveAsDraft={handleSaveAsDraft}
 		on:cancel={() => (createDialogOpen = false)}
+	/>
+{/if}
+
+<!-- Edit Review Dialog -->
+{#if currentReview && showEditModal}
+	<ReviewCreationDialog
+		bind:open={showEditModal}
+		employee={currentReview.employee}
+		availableGoals={currentReview.goalsArray || []}
+		reviewTypesMetadata={[]}
+		existingDraft={currentReview}
+		loading={false}
+		on:createReview={handleCreateReview}
+		on:saveAsDraft={handleSaveAsDraft}
+		on:cancel={() => (showEditModal = false)}
 	/>
 {/if}

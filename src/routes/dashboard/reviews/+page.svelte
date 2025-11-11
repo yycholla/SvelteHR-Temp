@@ -22,6 +22,15 @@
 
 	let { data }: { data: PageData } = $props();
 
+	// Debug logging
+	$effect(() => {
+		console.log('📊 Client-side data:', {
+			reviewsCount: data.reviews?.length || 0,
+			firstReview: data.reviews?.[0] || null,
+			stats: data.stats
+		});
+	});
+
 	// Dialog state
 	let createDialogOpen = $state(false);
 	let selectedEmployee = $state<any>(data.selectedEmployee || null);

@@ -35,8 +35,11 @@ export const load: PageServerLoad = async (event) => {
 					id
 					email
 					displayName
-					roles
-					is_active
+					roles {
+						id
+						name
+					}
+					isActive
 					createdAt
 					updatedAt
 					department {
@@ -69,7 +72,7 @@ export const load: PageServerLoad = async (event) => {
 		const departments = departmentsData?.departments || [];
 
 		// Build roles list from user data (flatten and get unique role values)
-		const uniqueRoles = [...new Set(users.flatMap((u: any) => u.roles || []))];
+		const uniqueRoles = [...new Set(users.flatMap((u: any) => (u.roles || []).map((r: any) => r.name)))];
 		const roles = uniqueRoles.filter(Boolean).map((name) => ({ id: name, name }));
 
 		// Client-side filtering for all criteria (Rust backend doesn't support complex filters)
@@ -77,7 +80,9 @@ export const load: PageServerLoad = async (event) => {
 
 		// Filter by role
 		if (roleFilter) {
-			filteredUsers = filteredUsers.filter((u: any) => u.roles && u.roles.includes(roleFilter));
+			filteredUsers = filteredUsers.filter((u: any) =>
+				u.roles && u.roles.some((r: any) => r.name === roleFilter)
+			);
 		}
 
 		// Filter by department
@@ -87,9 +92,9 @@ export const load: PageServerLoad = async (event) => {
 
 		// Filter by status
 		if (statusFilter === 'active') {
-			filteredUsers = filteredUsers.filter((u: any) => u.is_active === true);
+			filteredUsers = filteredUsers.filter((u: any) => u.isActive === true);
 		} else if (statusFilter === 'inactive') {
-			filteredUsers = filteredUsers.filter((u: any) => u.is_active === false);
+			filteredUsers = filteredUsers.filter((u: any) => u.isActive === false);
 		}
 
 		// Client-side pagination

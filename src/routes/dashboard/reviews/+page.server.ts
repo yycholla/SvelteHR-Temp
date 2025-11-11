@@ -19,6 +19,7 @@ export const load: PageServerLoad = async (event) => {
 	PermissionChecks.performanceRead(event);
 
 	const userId = locals.user.id;
+	const userRole = locals.user.role || 'employee';
 	const userPermissions = locals.permissions || [];
 
 	// Check if user can create reviews (write permission)
@@ -115,9 +116,9 @@ export const load: PageServerLoad = async (event) => {
 				cycle: {
 					id: string;
 					name: string;
-					review_type: string;
-					start_date: string;
-					end_date: string;
+					reviewType: string;
+					startDate: string;
+					endDate: string;
 				} | null;
 			}>;
 		}>(reviewsQuery, { limit: 1000, offset: 0 });
@@ -136,17 +137,43 @@ export const load: PageServerLoad = async (event) => {
 
 		const reviewsData = reviewsResponse.data;
 
+		// Debug logging
+		console.log('📊 Reviews query response:', {
+			hasData: !!reviewsData,
+			reviewsCount: reviewsData?.performanceReviews?.length || 0,
+			firstReview: reviewsData?.performanceReviews?.[0] || null
+		});
+
 		// Extract reviews directly (no .nodes wrapper)
-		let mappedReviews = reviewsData?.performanceReviews || [];
+		let mappedReviews = (reviewsData?.performanceReviews || []).map((review) => ({
+			...review,
+			// Keep status lowercase for component compatibility
+			status: review.status.toLowerCase(),
+			// Transform cycle fields for component compatibility (uppercase enum values)
+			reviewType: review.cycle?.reviewType?.toUpperCase() || null,
+			reviewPeriodStart: review.cycle?.startDate || null,
+			reviewPeriodEnd: review.cycle?.endDate || null
+		}));
+
+		// Debug logging after transformation
+		console.log('📊 After transformation:', {
+			mappedReviewsCount: mappedReviews.length,
+			firstMappedReview: mappedReviews[0] || null,
+			statusValues: [...new Set(mappedReviews.map(r => r.status))]
+		});
 
 		// Client-side filtering for status (Rust backend doesn't support filter parameter)
 		if (statusFilter && ['DRAFT', 'IN_PROGRESS', 'COMPLETED'].includes(statusFilter.toUpperCase())) {
 			mappedReviews = mappedReviews.filter(r => r.status === statusFilter.toUpperCase());
+			console.log('📊 After status filter:', {
+				statusFilter,
+				remainingCount: mappedReviews.length
+			});
 		}
 
 		// Client-side filtering for type (using cycle.reviewType)
 		if (typeFilter) {
-			mappedReviews = mappedReviews.filter(r => r.cycle?.reviewType === typeFilter.toLowerCase());
+			mappedReviews = mappedReviews.filter(r => r.cycle?.reviewType === typeFilter.toUpperCase());
 		}
 
 		// Query 2: Get review types metadata
@@ -181,10 +208,14 @@ export const load: PageServerLoad = async (event) => {
 				const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 				const graphqlEndpoint = getGraphQLEndpoint();
 
+				// Forward session cookies for authentication
+				const cookieHeader = event.request.headers.get('cookie') || '';
+
 				const employeesResponse = await fetch(graphqlEndpoint, {
 					method: 'POST',
 					headers: {
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'Cookie': cookieHeader
 					},
 					body: JSON.stringify({
 						query: `
@@ -193,7 +224,10 @@ export const load: PageServerLoad = async (event) => {
 									id
 									email
 									displayName
-									roles
+									roles {
+										id
+										name
+									}
 									departmentId
 								}
 							}
@@ -244,7 +278,10 @@ export const load: PageServerLoad = async (event) => {
 							id
 							displayName
 							email
-							roles
+							roles {
+								id
+								name
+							}
 							departmentId
 						}
 					}
@@ -286,9 +323,19 @@ export const load: PageServerLoad = async (event) => {
 
 		// Calculate statistics
 		const totalReviews = mappedReviews.length;
-		const draftCount = reviews.filter((r) => r.status === 'DRAFT').length;
-		const inProgressCount = reviews.filter((r) => r.status === 'IN_PROGRESS').length;
-		const completedCount = reviews.filter((r) => r.status === 'COMPLETED').length;
+		const draftCount = reviews.filter((r) => r.status === 'draft').length;
+		const inProgressCount = reviews.filter((r) => r.status === 'in_progress').length;
+		const completedCount = reviews.filter((r) => r.status === 'completed').length;
+
+		// Debug logging final results
+		console.log('📊 Final results:', {
+			totalReviews,
+			reviewsCount: reviews.length,
+			draftCount,
+			inProgressCount,
+			completedCount,
+			firstReview: reviews[0] || null
+		});
 
 		// Pagination info
 		const totalPages = Math.ceil(totalReviews / limit);

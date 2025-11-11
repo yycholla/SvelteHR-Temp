@@ -157,7 +157,7 @@ impl Model {
     async fn goals(&self, ctx: &Context<'_>) -> GqlResult<Vec<super::review_goal::Model>> {
         let db = get_db_from_context(ctx)?;
         let goals = super::review_goal::Entity::find()
-            .filter(super::review_goal::Column::PerformanceReviewId.eq(self.id))
+            .filter(super::review_goal::Column::ReviewId.eq(self.id))
             .filter(super::review_goal::Column::DeletedAt.is_null())
             .all(&db)
             .await?;
@@ -168,7 +168,7 @@ impl Model {
     async fn feedback(&self, ctx: &Context<'_>) -> GqlResult<Vec<super::review_feedback::Model>> {
         let db = get_db_from_context(ctx)?;
         let feedback = super::review_feedback::Entity::find()
-            .filter(super::review_feedback::Column::PerformanceReviewId.eq(self.id))
+            .filter(super::review_feedback::Column::ReviewId.eq(self.id))
             .filter(super::review_feedback::Column::DeletedAt.is_null())
             .all(&db)
             .await?;
@@ -180,7 +180,7 @@ impl Model {
     async fn manager_feedback(&self, ctx: &Context<'_>) -> GqlResult<Option<String>> {
         let db = get_db_from_context(ctx)?;
         let feedback = super::review_feedback::Entity::find()
-            .filter(super::review_feedback::Column::PerformanceReviewId.eq(self.id))
+            .filter(super::review_feedback::Column::ReviewId.eq(self.id))
             .filter(super::review_feedback::Column::FeedbackType.eq("manager"))
             .filter(super::review_feedback::Column::DeletedAt.is_null())
             .one(&db)

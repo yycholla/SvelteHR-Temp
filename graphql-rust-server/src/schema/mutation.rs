@@ -2038,7 +2038,7 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         let goal = crate::models::review_goal::ActiveModel {
-            performance_review_id: Set(input.performance_review_id),
+            review_id: Set(input.performance_review_id),
             title: Set(input.title.clone()),
             description: Set(input.description.clone()),
             target_date: Set(input.target_date),
@@ -2139,7 +2139,7 @@ impl MutationRoot {
             .ok_or("User context not found - authentication required")?;
 
         let feedback = crate::models::review_feedback::ActiveModel {
-            performance_review_id: Set(input.performance_review_id),
+            review_id: Set(input.performance_review_id),
             provider_id: Set(provider_id),
             feedback_type: Set(input.feedback_type.as_str().to_string()),
             content: Set(input.content.clone()),

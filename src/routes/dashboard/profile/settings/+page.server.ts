@@ -34,8 +34,11 @@ export const load: PageServerLoad = async (event) => {
 					hireDate
 					departmentId
 					managerId
-					roles
-					is_active
+					roles {
+						id
+						name
+					}
+					isActive
 					themePreference
 					createdAt
 					updatedAt
@@ -125,7 +128,7 @@ export const load: PageServerLoad = async (event) => {
 				department: user.department,
 				managerId: user.managerId || null,
 				role: user.role,
-				is_active: user.is_active,
+				isActive: user.isActive,
 				createdAt: user.createdAt,
 				updatedAt: user.updatedAt
 			},
@@ -189,9 +192,11 @@ export const actions: Actions = {
 			// Update theme in database via GraphQL
 			const updateMutation = `
 				mutation UpdateUserTheme($userId: UUID!, $input: UpdateUserInput!) {
-					updateUser(id: $userId, input: $input) {
-						id
-						themePreference
+					users {
+						updateUser(id: $userId, input: $input) {
+							id
+							themePreference
+						}
 					}
 				}
 			`;

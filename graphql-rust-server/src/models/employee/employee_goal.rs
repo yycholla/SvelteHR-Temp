@@ -45,7 +45,7 @@ pub struct Model {
     pub title: String,
     #[sea_orm(column_name = "description")]
     pub description: Option<String>,
-    pub target_date: Option<NaiveDate>,
+    pub target_date: Option<DateTime<Utc>>,
     pub status: String, // Will be converted to enum in GraphQL
     #[sea_orm(column_name = "progress")]
     pub progress_percentage: i32,
@@ -74,7 +74,7 @@ pub struct CreateEmployeeGoalInput {
     pub title: String,
     pub description: Option<String>,
     #[graphql(name = "targetDate")]
-    pub target_date: Option<NaiveDate>,
+    pub target_date: Option<DateTime<Utc>>,
     pub status: Option<GoalStatus>,
     #[graphql(name = "progressPercentage")]
     pub progress_percentage: Option<i32>,
@@ -86,7 +86,7 @@ pub struct UpdateEmployeeGoalInput {
     pub title: Option<String>,
     pub description: Option<String>,
     #[graphql(name = "targetDate")]
-    pub target_date: Option<NaiveDate>,
+    pub target_date: Option<DateTime<Utc>>,
     pub status: Option<GoalStatus>,
     #[graphql(name = "progressPercentage")]
     pub progress_percentage: Option<i32>,
@@ -115,7 +115,7 @@ impl Model {
     }
 
     #[graphql(name = "targetDate")]
-    async fn target_date(&self) -> Option<NaiveDate> {
+    async fn target_date(&self) -> Option<DateTime<Utc>> {
         self.target_date
     }
 

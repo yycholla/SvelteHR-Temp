@@ -3,16 +3,14 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { requireAuth } from '$lib/server/rbac-utils';
+import { PermissionChecks } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, url, cookies } = event;
 
 	// Check authentication and permissions (managers and above)
-	requireAuth(event, {
-		requiredPermissions: ['*', 'management:read', 'performance:read:team', 'performance:read:all']
-	});
+	PermissionChecks.goalsRead(event);
 
 	// Extract search parameters for filtering
 	const searchTerm = url.searchParams.get('search') || '';

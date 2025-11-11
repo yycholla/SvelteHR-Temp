@@ -44,7 +44,7 @@ export const load: PageServerLoad = async (event) => {
 					email
 					displayName
 					departmentId
-					is_active
+					isActive
 					department {
 						id
 						name

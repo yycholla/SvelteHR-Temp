@@ -160,7 +160,10 @@ export const actions: Actions = {
 									firstName
 									lastName
 									email
-									roles
+									roles {
+										id
+										name
+									}
 									hireDate
 									departmentId
 								}

@@ -183,6 +183,19 @@
 		departmentCount: departments.length
 	});
 
+	// Extract unique roles from loaded employees for role filter dropdown
+	const uniqueRoles = $derived.by(() => {
+		const roleSet = new Set<string>();
+		employees.forEach((emp) => {
+			if (emp.roles && Array.isArray(emp.roles)) {
+				emp.roles.forEach((role: any) => {
+					if (role.name) roleSet.add(role.name);
+				});
+			}
+		});
+		return Array.from(roleSet).sort();
+	});
+
 	// Historical employee statistics query with range slider
 	// Slider positions 0-365 represent chronological time:
 	// Position 0 = 1 year ago (365 days back)
@@ -690,7 +703,11 @@
 								type="checkbox"
 								id="showInactive"
 								bind:checked={showInactive}
-								onchange={handleSearch}
+								onchange={() => {
+									// Sync selectedStatus with checkbox state for server-side filtering
+									selectedStatus = showInactive ? 'inactive' : 'active';
+									handleSearch();
+								}}
 								class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
 								data-testid="employee-status-filter"
 							/>
@@ -942,10 +959,9 @@
 							class="flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base shadow-xs ring-offset-background transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/80"
 						>
 							<option value="">All Roles</option>
-							<option value="system_admin">System Admin</option>
-							<option value="hr_manager">HR Manager</option>
-							<option value="manager">Manager</option>
-							<option value="hr_employee">Employee</option>
+							{#each uniqueRoles as roleName}
+								<option value={roleName}>{roleName}</option>
+							{/each}
 						</select>
 					</div>
 

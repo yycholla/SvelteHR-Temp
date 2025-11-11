@@ -397,19 +397,34 @@ export function getStatusInfo(status: string): {
 /**
  * Format review period for display
  */
-export function formatReviewPeriod(period: string): string {
-	return period.replace(/-/g, ' ');
+export function formatReviewPeriod(startDate?: string | null, endDate?: string | null): string {
+	if (!startDate && !endDate) return 'No period specified';
+	if (!startDate) return `Ends ${new Date(endDate!).toLocaleDateString()}`;
+	if (!endDate) return `Starts ${new Date(startDate).toLocaleDateString()}`;
+
+	const start = new Date(startDate).toLocaleDateString();
+	const end = new Date(endDate).toLocaleDateString();
+	return `${start} - ${end}`;
 }
 
 /**
  * Check if review is overdue based on period
  */
-export function isReviewOverdue(period: string, status: string): boolean {
-	if (status.toLowerCase().replace(/_/g, '-') === 'completed') return false;
+export function isReviewOverdue(review: any): boolean {
+	// If no review or already completed, not overdue
+	if (!review || review.status?.toLowerCase() === 'completed') return false;
+
+	// If no period, check if created date is older than 30 days
+	if (!review.reviewPeriod && review.createdAt) {
+		const createdDate = new Date(review.createdAt);
+		const now = new Date();
+		const daysDiff = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+		return daysDiff > 30;
+	}
 
 	// Simple logic: if period contains a past year or quarter, it's overdue
 	const currentYear = new Date().getFullYear();
-	const periodYear = parseInt(period.match(/\d{4}/)?.[0] || '0');
+	const periodYear = parseInt(review.reviewPeriod?.match(/\d{4}/)?.[0] || '0');
 
 	return periodYear < currentYear;
 }

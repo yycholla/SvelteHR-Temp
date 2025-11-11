@@ -10,6 +10,7 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { PermissionChecks } from '$lib/server/rbac-utils';
+import { canViewReview, canEditReview } from '$lib/utils/rbac';
 
 export const load: PageServerLoad = async (event) => {
 	const { params, locals, cookies, fetch: fetchFn } = event;
@@ -19,14 +20,19 @@ export const load: PageServerLoad = async (event) => {
 	PermissionChecks.performanceRead(event);
 
 	const userId = locals.user.id;
+	const userRole = locals.user.role || 'employee';
 	const userPermissions = locals.permissions || [];
 
 	try {
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
+		// Forward session cookies for authentication
+		const cookieHeader = event.request.headers.get('cookie') || '';
+
 		const headers: Record<string, string> = {
-			'Content-Type': 'application/json'
+			'Content-Type': 'application/json',
+			'Cookie': cookieHeader
 		};
 
 		// Query: Get performance review by ID
@@ -149,6 +155,17 @@ export const load: PageServerLoad = async (event) => {
 		// Get available goals (all goals for the employee)
 		const availableGoals = employeeGoals;
 
+		// Transform review data to flatten cycle properties for page compatibility
+		const transformedReview = {
+			...review,
+			// Flatten cycle properties to match page expectations
+			reviewType: review.cycle?.reviewType || 'ANNUAL_REVIEW',
+			reviewPeriodStart: review.cycle?.startDate || null,
+			reviewPeriodEnd: review.cycle?.endDate || null,
+			notes: null, // Notes field doesn't exist in current schema
+			associatedGoals
+		};
+
 		return {
 			user: {
 				id: userId,
@@ -156,10 +173,7 @@ export const load: PageServerLoad = async (event) => {
 				displayName: locals.user.display_name || 'User',
 				role: userRole
 			},
-			review: {
-				...review,
-				associatedGoals
-			},
+			review: transformedReview,
 			availableGoals,
 			permissions: {
 				canEdit: hasEditPermission,

@@ -228,9 +228,8 @@ impl QueryRoot {
         let user_context = ctx.data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
 
-        // Build query with RLS filter
+        // Build query with RLS filter (removed hardcoded isActive filter - let client filter)
         let mut query = UserEntity::find()
-            .filter(UserColumn::IsActive.eq(true))
             .filter(UserColumn::DeletedAt.is_null());
 
         // Apply RLS filter based on user context
