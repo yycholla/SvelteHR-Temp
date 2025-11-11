@@ -9,7 +9,7 @@
 	import type { RsvpStatus } from '$lib/graphql/types';
 	import { formatEventTimeRange } from '$lib/utils/events';
 
-	let { data }: { data: PageData } = $props();
+	const { data }: { data: PageData } = $props();
 
 	let currentRsvpStatus = $state<RsvpStatus>(data.userRsvpStatus);
 	let isRsvpUpdating = $state(false);
@@ -19,12 +19,12 @@
 	let activeAttendeeTab = $state<AttendeeTab>('all');
 
 	// Filter attendees based on active tab
-	let filteredAttendees = $derived(
+	const filteredAttendees = $derived(
 		activeAttendeeTab === 'all'
 			? data.event.eventAttendeesByEventId?.nodes || []
 			: (data.event.eventAttendeesByEventId?.nodes || []).filter(
-				(a: any) => a.responseStatus === activeAttendeeTab
-			)
+					(a: any) => a.responseStatus === activeAttendeeTab
+				)
 	);
 
 	// Handle RSVP status change
@@ -46,9 +46,7 @@
 
 	// Handle event deletion
 	function handleDelete() {
-		if (
-			!confirm('Are you sure you want to delete this event? This action cannot be undone.')
-		) {
+		if (!confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
 			return;
 		}
 
@@ -95,7 +93,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.event.title} - SvelteHR</title>
+	<title>{data.event.title} - MountainHR</title>
 	<meta name="description" content="Event details for {data.event.title}" />
 </svelte:head>
 
@@ -104,7 +102,7 @@
 	<div class="mb-6">
 		<a
 			href="/dashboard/events"
-			class="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+			class="inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
 		>
 			<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path
@@ -124,13 +122,17 @@
 			<div class="flex-1">
 				<h1 class="text-3xl font-bold text-foreground">{data.event.title}</h1>
 				<div class="mt-3 flex flex-wrap items-center gap-2">
-					<span class="rounded-md px-2 py-1 text-xs font-medium {getStatusBadgeColor(data.event.status)}">
+					<span
+						class="rounded-md px-2 py-1 text-xs font-medium {getStatusBadgeColor(
+							data.event.status
+						)}"
+					>
 						{data.event.status.charAt(0).toUpperCase() + data.event.status.slice(1)}
 					</span>
-					<span class="rounded-md px-2 py-1 text-xs font-medium bg-accent text-accent-foreground">
+					<span class="rounded-md bg-accent px-2 py-1 text-xs font-medium text-accent-foreground">
 						{data.event.eventType.charAt(0).toUpperCase() + data.event.eventType.slice(1)}
 					</span>
-					<span class="rounded-md px-2 py-1 text-xs font-medium bg-primary/10 text-primary">
+					<span class="rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
 						{getVisibilityLabel(data.event.visibilityType)}
 					</span>
 				</div>
@@ -141,7 +143,7 @@
 				{#if data.canManageEvent}
 					<a
 						href="/dashboard/events/{data.event.id}/edit"
-						class="inline-flex items-center rounded-md border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+						class="inline-flex items-center rounded-md border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-accent focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none"
 					>
 						<svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
@@ -156,7 +158,7 @@
 					<button
 						type="button"
 						onclick={handleDelete}
-						class="inline-flex items-center rounded-md border border-destructive bg-card px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive hover:text-destructive-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+						class="inline-flex items-center rounded-md border border-destructive bg-card px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive hover:text-destructive-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none"
 					>
 						<svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
@@ -173,14 +175,18 @@
 		</div>
 
 		<!-- Hidden delete form -->
-		<form id="delete-event-form" method="POST" action="?/delete" style="display: none;">
-		</form>
+		<form id="delete-event-form" method="POST" action="?/delete" style="display: none;"></form>
 
 		<!-- Event Details Grid -->
 		<div class="grid gap-4 sm:grid-cols-2">
 			<!-- Date and Time -->
 			<div class="flex items-start">
-				<svg class="mr-3 h-5 w-5 text-muted-foreground mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<svg
+					class="mt-0.5 mr-3 h-5 w-5 text-muted-foreground"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
 					<path
 						stroke-linecap="round"
 						stroke-linejoin="round"
@@ -190,9 +196,13 @@
 				</svg>
 				<div>
 					<div class="text-sm font-medium text-foreground">Date & Time</div>
-					<div class="text-sm text-muted-foreground">{formatEventTimeRange(data.event.startTime, data.event.endTime, data.event.allDay)}</div>
+					<div class="text-sm text-muted-foreground">
+						{formatEventTimeRange(data.event.startTime, data.event.endTime, data.event.allDay)}
+					</div>
 					{#if data.event.allDay}
-						<span class="mt-1 inline-block rounded-md bg-primary/10 px-2 py-0.5 text-xs text-primary">
+						<span
+							class="mt-1 inline-block rounded-md bg-primary/10 px-2 py-0.5 text-xs text-primary"
+						>
 							All Day
 						</span>
 					{/if}
@@ -202,7 +212,12 @@
 			<!-- Location -->
 			{#if data.event.location}
 				<div class="flex items-start">
-					<svg class="mr-3 h-5 w-5 text-muted-foreground mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<svg
+						class="mt-0.5 mr-3 h-5 w-5 text-muted-foreground"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+					>
 						<path
 							stroke-linecap="round"
 							stroke-linejoin="round"
@@ -225,7 +240,12 @@
 
 			<!-- Organizer -->
 			<div class="flex items-start">
-				<svg class="mr-3 h-5 w-5 text-muted-foreground mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<svg
+					class="mt-0.5 mr-3 h-5 w-5 text-muted-foreground"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
 					<path
 						stroke-linecap="round"
 						stroke-linejoin="round"
@@ -235,13 +255,20 @@
 				</svg>
 				<div>
 					<div class="text-sm font-medium text-foreground">Organizer</div>
-					<div class="text-sm text-muted-foreground">{data.event.userByOrganizerId?.displayName || 'Unknown'}</div>
+					<div class="text-sm text-muted-foreground">
+						{data.event.userByOrganizerId?.displayName || 'Unknown'}
+					</div>
 				</div>
 			</div>
 
 			<!-- Attendees Count -->
 			<div class="flex items-start">
-				<svg class="mr-3 h-5 w-5 text-muted-foreground mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<svg
+					class="mt-0.5 mr-3 h-5 w-5 text-muted-foreground"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
 					<path
 						stroke-linecap="round"
 						stroke-linejoin="round"
@@ -259,8 +286,8 @@
 		<!-- Description -->
 		{#if data.event.description}
 			<div class="mt-6 border-t pt-6">
-				<h3 class="text-sm font-medium text-foreground mb-2">Description</h3>
-				<p class="text-sm text-muted-foreground whitespace-pre-wrap">{data.event.description}</p>
+				<h3 class="mb-2 text-sm font-medium text-foreground">Description</h3>
+				<p class="text-sm whitespace-pre-wrap text-muted-foreground">{data.event.description}</p>
 			</div>
 		{/if}
 
@@ -282,23 +309,27 @@
 
 	<!-- RSVP Statistics -->
 	<div class="mb-8 grid grid-cols-3 gap-4 sm:grid-cols-5">
-		<div class="rounded-lg border bg-card p-4 shadow-sm text-center">
-			<div class="text-2xl font-bold" style="color: hsl(var(--chart-2))">{data.rsvpStats.accepted}</div>
+		<div class="rounded-lg border bg-card p-4 text-center shadow-sm">
+			<div class="text-2xl font-bold" style="color: hsl(var(--chart-2))">
+				{data.rsvpStats.accepted}
+			</div>
 			<div class="text-sm text-muted-foreground">Accepted</div>
 		</div>
-		<div class="rounded-lg border bg-card p-4 shadow-sm text-center">
-			<div class="text-2xl font-bold" style="color: hsl(var(--chart-4))">{data.rsvpStats.tentative}</div>
+		<div class="rounded-lg border bg-card p-4 text-center shadow-sm">
+			<div class="text-2xl font-bold" style="color: hsl(var(--chart-4))">
+				{data.rsvpStats.tentative}
+			</div>
 			<div class="text-sm text-muted-foreground">Tentative</div>
 		</div>
-		<div class="rounded-lg border bg-card p-4 shadow-sm text-center">
+		<div class="rounded-lg border bg-card p-4 text-center shadow-sm">
 			<div class="text-2xl font-bold text-destructive">{data.rsvpStats.declined}</div>
 			<div class="text-sm text-muted-foreground">Declined</div>
 		</div>
-		<div class="rounded-lg border bg-card p-4 shadow-sm text-center">
+		<div class="rounded-lg border bg-card p-4 text-center shadow-sm">
 			<div class="text-2xl font-bold text-primary">{data.rsvpStats.pending}</div>
 			<div class="text-sm text-muted-foreground">Pending</div>
 		</div>
-		<div class="rounded-lg border bg-card p-4 shadow-sm text-center">
+		<div class="rounded-lg border bg-card p-4 text-center shadow-sm">
 			<div class="text-2xl font-bold text-muted-foreground">{data.rsvpStats.noResponse}</div>
 			<div class="text-sm text-muted-foreground">No Response</div>
 		</div>
@@ -308,43 +339,61 @@
 	<div class="rounded-lg border bg-card shadow-sm">
 		<!-- Tab Header -->
 		<div class="border-b px-6 py-4">
-			<h2 class="text-lg font-semibold text-foreground mb-4">Attendees ({data.rsvpStats.total})</h2>
+			<h2 class="mb-4 text-lg font-semibold text-foreground">Attendees ({data.rsvpStats.total})</h2>
 
 			<!-- Tab Navigation -->
 			<div class="flex flex-wrap gap-2">
 				<button
-					class="px-4 py-2 text-sm font-medium rounded-md transition-colors {activeAttendeeTab === 'all' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-					onclick={() => activeAttendeeTab = 'all'}
+					class="rounded-md px-4 py-2 text-sm font-medium transition-colors {activeAttendeeTab ===
+					'all'
+						? 'bg-primary text-primary-foreground'
+						: 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+					onclick={() => (activeAttendeeTab = 'all')}
 				>
 					All ({data.rsvpStats.total})
 				</button>
 				<button
-					class="px-4 py-2 text-sm font-medium rounded-md transition-colors {activeAttendeeTab === 'accepted' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-					onclick={() => activeAttendeeTab = 'accepted'}
+					class="rounded-md px-4 py-2 text-sm font-medium transition-colors {activeAttendeeTab ===
+					'accepted'
+						? 'bg-primary text-primary-foreground'
+						: 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+					onclick={() => (activeAttendeeTab = 'accepted')}
 				>
 					Accepted ({data.rsvpStats.accepted})
 				</button>
 				<button
-					class="px-4 py-2 text-sm font-medium rounded-md transition-colors {activeAttendeeTab === 'tentative' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-					onclick={() => activeAttendeeTab = 'tentative'}
+					class="rounded-md px-4 py-2 text-sm font-medium transition-colors {activeAttendeeTab ===
+					'tentative'
+						? 'bg-primary text-primary-foreground'
+						: 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+					onclick={() => (activeAttendeeTab = 'tentative')}
 				>
 					Tentative ({data.rsvpStats.tentative})
 				</button>
 				<button
-					class="px-4 py-2 text-sm font-medium rounded-md transition-colors {activeAttendeeTab === 'declined' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-					onclick={() => activeAttendeeTab = 'declined'}
+					class="rounded-md px-4 py-2 text-sm font-medium transition-colors {activeAttendeeTab ===
+					'declined'
+						? 'bg-primary text-primary-foreground'
+						: 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+					onclick={() => (activeAttendeeTab = 'declined')}
 				>
 					Declined ({data.rsvpStats.declined})
 				</button>
 				<button
-					class="px-4 py-2 text-sm font-medium rounded-md transition-colors {activeAttendeeTab === 'pending' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-					onclick={() => activeAttendeeTab = 'pending'}
+					class="rounded-md px-4 py-2 text-sm font-medium transition-colors {activeAttendeeTab ===
+					'pending'
+						? 'bg-primary text-primary-foreground'
+						: 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+					onclick={() => (activeAttendeeTab = 'pending')}
 				>
 					Pending ({data.rsvpStats.pending})
 				</button>
 				<button
-					class="px-4 py-2 text-sm font-medium rounded-md transition-colors {activeAttendeeTab === 'no_response' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-					onclick={() => activeAttendeeTab = 'no_response'}
+					class="rounded-md px-4 py-2 text-sm font-medium transition-colors {activeAttendeeTab ===
+					'no_response'
+						? 'bg-primary text-primary-foreground'
+						: 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+					onclick={() => (activeAttendeeTab = 'no_response')}
 				>
 					No Response ({data.rsvpStats.noResponse})
 				</button>
@@ -356,9 +405,9 @@
 			{#if filteredAttendees.length > 0}
 				<div class="space-y-3">
 					{#each filteredAttendees as attendee}
-						<div class="flex items-center justify-between py-2 border-b last:border-0">
+						<div class="flex items-center justify-between border-b py-2 last:border-0">
 							<div class="flex items-center">
-								<div class="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+								<div class="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
 									<span class="text-sm font-medium text-muted-foreground">
 										{attendee.userByEmployeeId?.displayName?.charAt(0)?.toUpperCase() || '?'}
 									</span>
@@ -370,20 +419,29 @@
 											<span class="ml-2 text-xs text-primary">(You)</span>
 										{/if}
 										{#if attendee.employeeId === data.event.organizerId}
-											<span class="ml-2 text-xs" style="color: hsl(var(--chart-5))">(Organizer)</span>
+											<span class="ml-2 text-xs" style="color: hsl(var(--chart-5))"
+												>(Organizer)</span
+											>
 										{/if}
 									</div>
 								</div>
 							</div>
-							<span class="rounded-md px-2 py-1 text-xs font-medium {getRsvpStatusColor(attendee.responseStatus)}">
-								{attendee.responseStatus.replace('_', ' ').charAt(0).toUpperCase() + attendee.responseStatus.slice(1).replace('_', ' ')}
+							<span
+								class="rounded-md px-2 py-1 text-xs font-medium {getRsvpStatusColor(
+									attendee.responseStatus
+								)}"
+							>
+								{attendee.responseStatus.replace('_', ' ').charAt(0).toUpperCase() +
+									attendee.responseStatus.slice(1).replace('_', ' ')}
 							</span>
 						</div>
 					{/each}
 				</div>
 			{:else}
 				<p class="text-sm text-muted-foreground">
-					{activeAttendeeTab === 'all' ? 'No attendees yet.' : `No attendees with ${activeAttendeeTab.replace('_', ' ')} status.`}
+					{activeAttendeeTab === 'all'
+						? 'No attendees yet.'
+						: `No attendees with ${activeAttendeeTab.replace('_', ' ')} status.`}
 				</p>
 			{/if}
 		</div>

@@ -16,16 +16,16 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import { setMode, userPrefersMode } from 'mode-watcher';
 	import {
-		User,
+		AlertCircle,
 		Bell,
-		Palette,
-		Save,
+		Briefcase,
 		Loader2,
 		Mail,
-		Phone,
 		MapPin,
-		Briefcase,
-		AlertCircle
+		Palette,
+		Phone,
+		Save,
+		User
 	} from '@lucide/svelte';
 
 	interface Props {
@@ -38,13 +38,13 @@
 		form?: any;
 	}
 
-	let { data, form }: Props = $props();
+	const { data, form }: Props = $props();
 
 	let activeTab = $state('general');
-	let isSubmitting = $state(false);
+	const isSubmitting = $state(false);
 
 	// Form states for profile edit
-	let profileChanges = $state({
+	const profileChanges = $state({
 		firstName: data.profile.firstName || '',
 		lastName: data.profile.lastName || '',
 		displayName: data.profile.displayName || '',
@@ -61,7 +61,7 @@
 	});
 
 	// Notification preferences state
-	let notificationPrefs = $state({ ...data.notificationPreferences });
+	const notificationPrefs = $state({ ...data.notificationPreferences });
 	let selectedTheme = $state(data.themePreference);
 
 	// Initialize theme with database value on mount
@@ -103,7 +103,7 @@
 				method: 'POST',
 				body: formData,
 				headers: {
-					'Accept': 'application/json'
+					Accept: 'application/json'
 				}
 			});
 
@@ -131,7 +131,7 @@
 </script>
 
 <svelte:head>
-	<title>Profile Settings - SvelteHR</title>
+	<title>Profile Settings - MountainHR</title>
 	<meta name="description" content="Manage your profile settings, notifications, and preferences" />
 </svelte:head>
 
@@ -168,8 +168,8 @@
 						<AlertCircle class="h-5 w-5 text-blue-600" />
 						<div class="flex-1">
 							<p class="text-sm text-blue-900">
-								To update your profile information, make the desired changes below and provide a reason.
-								Your request will be reviewed by an administrator.
+								To update your profile information, make the desired changes below and provide a
+								reason. Your request will be reviewed by an administrator.
 							</p>
 						</div>
 					</Card.Content>
@@ -188,7 +188,7 @@
 							<div class="space-y-6">
 								<!-- Personal Information Section -->
 								<div class="space-y-4">
-									<h4 class="text-sm font-semibold flex items-center gap-2">
+									<h4 class="flex items-center gap-2 text-sm font-semibold">
 										<User class="h-4 w-4" />
 										Personal Information
 									</h4>
@@ -213,7 +213,12 @@
 										<!-- Last Name -->
 										<div class="grid gap-2">
 											<Label for="lastName">Last Name *</Label>
-											<Input id="lastName" name="lastName" bind:value={profileChanges.lastName} required />
+											<Input
+												id="lastName"
+												name="lastName"
+												bind:value={profileChanges.lastName}
+												required
+											/>
 											<input
 												type="hidden"
 												name="current_lastName"
@@ -241,7 +246,7 @@
 
 								<!-- Contact Information Section -->
 								<div class="space-y-4 border-t pt-4">
-									<h4 class="text-sm font-semibold flex items-center gap-2">
+									<h4 class="flex items-center gap-2 text-sm font-semibold">
 										<Mail class="h-4 w-4" />
 										Contact Information
 									</h4>
@@ -299,7 +304,7 @@
 
 								<!-- Address Section -->
 								<div class="space-y-4 border-t pt-4">
-									<h4 class="text-sm font-semibold flex items-center gap-2">
+									<h4 class="flex items-center gap-2 text-sm font-semibold">
 										<MapPin class="h-4 w-4" />
 										Address
 									</h4>
@@ -378,14 +383,18 @@
 										<div class="grid gap-2">
 											<Label for="country">Country</Label>
 											<Input id="country" name="country" bind:value={profileChanges.country} />
-											<input type="hidden" name="current_country" value={data.profile.country || ''} />
+											<input
+												type="hidden"
+												name="current_country"
+												value={data.profile.country || ''}
+											/>
 										</div>
 									</div>
 								</div>
 
 								<!-- HR-Managed Fields (Read-Only) -->
 								<div class="space-y-4 border-t pt-4">
-									<h4 class="text-sm font-semibold flex items-center gap-2">
+									<h4 class="flex items-center gap-2 text-sm font-semibold">
 										<Briefcase class="h-4 w-4" />
 										Company Information (Managed by HR)
 									</h4>
@@ -486,7 +495,10 @@
 									<Label>Email Notifications</Label>
 									<p class="text-sm text-muted-foreground">Receive notifications via email</p>
 								</div>
-								<Switch name="emailNotifications" bind:checked={notificationPrefs.emailNotifications} />
+								<Switch
+									name="emailNotifications"
+									bind:checked={notificationPrefs.emailNotifications}
+								/>
 							</div>
 
 							<div class="border-t pt-6">
@@ -508,9 +520,14 @@
 									<div class="flex items-center justify-between">
 										<div class="space-y-0.5">
 											<Label>Task Assignments</Label>
-											<p class="text-sm text-muted-foreground">When you're assigned to a new task</p>
+											<p class="text-sm text-muted-foreground">
+												When you're assigned to a new task
+											</p>
 										</div>
-										<Switch name="taskAssignments" bind:checked={notificationPrefs.taskAssignments} />
+										<Switch
+											name="taskAssignments"
+											bind:checked={notificationPrefs.taskAssignments}
+										/>
 									</div>
 
 									<div class="flex items-center justify-between">
@@ -589,14 +606,15 @@
 									id="theme"
 									name="theme"
 									bind:value={selectedTheme}
-									class="shadow-xs flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+									class="flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base shadow-xs ring-offset-background transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/80"
 								>
 									<option value="light">Light</option>
 									<option value="dark">Dark</option>
 									<option value="system">System</option>
 								</select>
 								<p class="text-sm text-muted-foreground">
-									Choose your preferred color theme. System will match your operating system's theme.
+									Choose your preferred color theme. System will match your operating system's
+									theme.
 								</p>
 							</div>
 

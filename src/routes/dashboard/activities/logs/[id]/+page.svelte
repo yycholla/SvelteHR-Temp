@@ -127,7 +127,7 @@
 </script>
 
 <svelte:head>
-	<title>Audit Log Detail - SvelteHR</title>
+	<title>Audit Log Detail - MountainHR</title>
 	<meta name="description" content="Detailed view of audit log entry with rollback capabilities" />
 </svelte:head>
 
@@ -182,7 +182,7 @@
 		<Card.Root class="border-blue-600">
 			<Card.Content class="py-4">
 				<div class="flex items-start gap-3">
-					<GitBranch class="h-5 w-5 text-blue-600 mt-0.5" />
+					<GitBranch class="mt-0.5 h-5 w-5 text-blue-600" />
 					<div class="flex-1">
 						<h3 class="font-semibold text-blue-900 dark:text-blue-100">
 							This is a Rollback Operation
@@ -208,7 +208,7 @@
 		<Card.Root class="border-green-600">
 			<Card.Content class="py-4">
 				<div class="flex items-start gap-3">
-					<CheckCircle class="h-5 w-5 text-green-600 mt-0.5" />
+					<CheckCircle class="mt-0.5 h-5 w-5 text-green-600" />
 					<div class="flex-1">
 						<h3 class="font-semibold text-green-900 dark:text-green-100">
 							Change Has Been Rolled Back
@@ -232,7 +232,7 @@
 		<Card.Root class="border-yellow-600">
 			<Card.Content class="py-4">
 				<div class="flex items-start gap-3">
-					<AlertCircle class="h-5 w-5 text-yellow-600 mt-0.5" />
+					<AlertCircle class="mt-0.5 h-5 w-5 text-yellow-600" />
 					<div class="flex-1">
 						<h3 class="font-semibold text-yellow-900 dark:text-yellow-100">
 							Rollback Request Pending
@@ -261,7 +261,7 @@
 			</Card.Header>
 			<Card.Content class="space-y-4">
 				<div class="flex items-start gap-3">
-					<User class="h-5 w-5 text-muted-foreground mt-0.5" />
+					<User class="mt-0.5 h-5 w-5 text-muted-foreground" />
 					<div class="flex-1">
 						<p class="text-sm font-medium">Employee</p>
 						<p class="text-sm text-muted-foreground">
@@ -274,7 +274,7 @@
 				</div>
 
 				<div class="flex items-start gap-3">
-					<Calendar class="h-5 w-5 text-muted-foreground mt-0.5" />
+					<Calendar class="mt-0.5 h-5 w-5 text-muted-foreground" />
 					<div class="flex-1">
 						<p class="text-sm font-medium">Timestamp</p>
 						<p class="text-sm text-muted-foreground">{formatDate(data.log.created_at)}</p>
@@ -293,7 +293,7 @@
 				<div class="flex items-start gap-3">
 					<div class="flex-1">
 						<p class="text-sm font-medium">Resource ID</p>
-						<p class="text-sm text-muted-foreground font-mono">{data.log.resource_id}</p>
+						<p class="font-mono text-sm text-muted-foreground">{data.log.resource_id}</p>
 					</div>
 				</div>
 			</Card.Content>
@@ -306,23 +306,23 @@
 			</Card.Header>
 			<Card.Content class="space-y-4">
 				<div class="flex items-start gap-3">
-					<Globe class="h-5 w-5 text-muted-foreground mt-0.5" />
+					<Globe class="mt-0.5 h-5 w-5 text-muted-foreground" />
 					<div class="flex-1">
 						<p class="text-sm font-medium">IP Address</p>
-						<p class="text-sm text-muted-foreground font-mono">{data.log.ip_address}</p>
+						<p class="font-mono text-sm text-muted-foreground">{data.log.ip_address}</p>
 					</div>
 				</div>
 
 				<div class="flex items-start gap-3">
-					<Monitor class="h-5 w-5 text-muted-foreground mt-0.5" />
+					<Monitor class="mt-0.5 h-5 w-5 text-muted-foreground" />
 					<div class="flex-1">
 						<p class="text-sm font-medium">User Agent</p>
-						<p class="text-sm text-muted-foreground break-all">{data.log.user_agent}</p>
+						<p class="text-sm break-all text-muted-foreground">{data.log.user_agent}</p>
 					</div>
 				</div>
 
 				<div class="flex items-start gap-3">
-					<GitBranch class="h-5 w-5 text-muted-foreground mt-0.5" />
+					<GitBranch class="mt-0.5 h-5 w-5 text-muted-foreground" />
 					<div class="flex-1">
 						<p class="text-sm font-medium">Log Type</p>
 						<p class="text-sm text-muted-foreground">
@@ -346,8 +346,8 @@
 					<div class="space-y-3">
 						{#each data.timelineLogs as timelineLog}
 							<div
-								class="flex items-start gap-3 p-3 rounded-lg border transition-colors {timelineLog.is_current
-									? 'bg-primary/5 border-primary'
+								class="flex items-start gap-3 rounded-lg border p-3 transition-colors {timelineLog.is_current
+									? 'border-primary bg-primary/5'
 									: 'hover:bg-muted/50'}"
 							>
 								<div class="flex flex-col items-center gap-1">
@@ -360,10 +360,10 @@
 										<div class="h-full w-px bg-border"></div>
 									{/if}
 								</div>
-								<div class="flex-1 min-w-0">
+								<div class="min-w-0 flex-1">
 									<div class="flex items-start justify-between gap-2">
-										<div class="flex-1 min-w-0">
-											<div class="flex items-center gap-2 mb-1">
+										<div class="min-w-0 flex-1">
+											<div class="mb-1 flex items-center gap-2">
 												<Badge
 													variant={timelineLog.is_current ? 'default' : 'secondary'}
 													class="text-xs"
@@ -377,9 +377,7 @@
 													</Badge>
 												{/if}
 												{#if timelineLog.is_current}
-													<Badge variant="outline" class="text-xs bg-primary/10">
-														Current
-													</Badge>
+													<Badge variant="outline" class="bg-primary/10 text-xs">Current</Badge>
 												{/if}
 											</div>
 											<p class="text-sm font-medium">{timelineLog.employee_name}</p>
@@ -387,7 +385,7 @@
 												{formatDate(timelineLog.created_at)}
 											</p>
 											{#if timelineLog.ip_address}
-												<p class="text-xs text-muted-foreground font-mono">
+												<p class="font-mono text-xs text-muted-foreground">
 													{timelineLog.ip_address}
 												</p>
 											{/if}
@@ -427,9 +425,9 @@
 							<tr class="text-left">
 								<th class="pb-2 font-medium">Field</th>
 								<th class="pb-2 font-medium">Before</th>
-								<th class="pb-2 font-medium px-2 text-center">→</th>
+								<th class="px-2 pb-2 text-center font-medium">→</th>
 								<th class="pb-2 font-medium">After</th>
-								<th class="pb-2 font-medium text-right">Type</th>
+								<th class="pb-2 text-right font-medium">Type</th>
 							</tr>
 						</thead>
 						<tbody class="divide-y">
@@ -437,20 +435,20 @@
 								{@const ChangeIcon = getChangeIcon(change.changeType)}
 								<tr class="hover:bg-muted/50">
 									<td class="py-2 font-medium">{change.field}</td>
-									<td class="py-2 max-w-xs">
+									<td class="max-w-xs py-2">
 										<code
-											class="text-xs text-red-600 dark:text-red-400 truncate block"
+											class="block truncate text-xs text-red-600 dark:text-red-400"
 											title={formatValue(change.beforeValue)}
 										>
 											{formatValue(change.beforeValue)}
 										</code>
 									</td>
-									<td class="py-2 px-2 text-center">
-										<ChangeIcon class={`h-4 w-4 inline ${getChangeColor(change.changeType)}`} />
+									<td class="px-2 py-2 text-center">
+										<ChangeIcon class={`inline h-4 w-4 ${getChangeColor(change.changeType)}`} />
 									</td>
-									<td class="py-2 max-w-xs">
+									<td class="max-w-xs py-2">
 										<code
-											class="text-xs text-green-600 dark:text-green-400 truncate block"
+											class="block truncate text-xs text-green-600 dark:text-green-400"
 											title={formatValue(change.afterValue)}
 										>
 											{formatValue(change.afterValue)}
@@ -491,8 +489,7 @@
 				<Card.Description>State before the operation</Card.Description>
 			</Card.Header>
 			<Card.Content>
-				<pre
-					class="rounded-lg bg-muted p-4 text-xs overflow-x-auto">{JSON.stringify(
+				<pre class="overflow-x-auto rounded-lg bg-muted p-4 text-xs">{JSON.stringify(
 						data.log.before_snapshot,
 						null,
 						2
@@ -507,8 +504,7 @@
 				<Card.Description>State after the operation</Card.Description>
 			</Card.Header>
 			<Card.Content>
-				<pre
-					class="rounded-lg bg-muted p-4 text-xs overflow-x-auto">{JSON.stringify(
+				<pre class="overflow-x-auto rounded-lg bg-muted p-4 text-xs">{JSON.stringify(
 						data.log.after_snapshot,
 						null,
 						2

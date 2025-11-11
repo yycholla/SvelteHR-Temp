@@ -9,7 +9,7 @@
 -->
 
 <script lang="ts">
-	import type { PageData, ActionData } from './$types';
+	import type { ActionData, PageData } from './$types';
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
@@ -17,7 +17,7 @@
 	import { ArrowLeft, Save } from '@lucide/svelte';
 
 	// Page data and action result
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	const { data, form }: { data: PageData; form: ActionData } = $props();
 
 	// Handle cancel
 	function handleCancel() {
@@ -26,7 +26,7 @@
 </script>
 
 <svelte:head>
-	<title>Edit {data.task.title} - SvelteHR</title>
+	<title>Edit {data.task.title} - MountainHR</title>
 	<meta name="description" content="Edit task details" />
 </svelte:head>
 
@@ -42,7 +42,7 @@
 	<!-- Page Title -->
 	<div class="mb-6">
 		<h1 class="text-3xl font-bold tracking-tight">Edit Task</h1>
-		<p class="text-muted-foreground mt-2">Update task details and settings</p>
+		<p class="mt-2 text-muted-foreground">Update task details and settings</p>
 	</div>
 
 	<!-- Error Display -->
@@ -83,5 +83,3 @@
 		</Card.Content>
 	</Card.Root>
 </div>
-
-

@@ -9,7 +9,7 @@
 	import { page } from '$app/stores';
 	import type { ActivityAction, ResourceType } from '$lib/graphql/types';
 
-	let { data }: { data: PageData } = $props();
+	const { data }: { data: PageData } = $props();
 
 	// Filter state
 	let selectedEmployee = $state(data.filters.employeeId || '');
@@ -117,7 +117,7 @@
 </script>
 
 <svelte:head>
-	<title>Audit Logs - SvelteHR</title>
+	<title>Audit Logs - MountainHR</title>
 	<meta name="description" content="System-wide activity audit logs" />
 </svelte:head>
 
@@ -132,7 +132,7 @@
 		<button
 			type="button"
 			onclick={exportToCsv}
-			class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+			class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
 		>
 			<svg
 				class="mr-2 h-5 w-5"
@@ -159,11 +159,11 @@
 				type="text"
 				bind:value={searchQuery}
 				placeholder="Search by resource ID or description..."
-				class="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+				class="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 			/>
 			<button
 				type="submit"
-				class="rounded-md bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+				class="rounded-md bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
 			>
 				Search
 			</button>
@@ -174,15 +174,15 @@
 	<div class="mb-6 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
 		<div class="flex flex-wrap items-end gap-4">
 			<!-- Employee Filter -->
-			<div class="flex-1 min-w-[200px]">
-				<label for="employee-filter" class="block text-sm font-medium text-gray-700 mb-1">
+			<div class="min-w-[200px] flex-1">
+				<label for="employee-filter" class="mb-1 block text-sm font-medium text-gray-700">
 					Employee
 				</label>
 				<select
 					id="employee-filter"
 					bind:value={selectedEmployee}
 					onchange={applyFilters}
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 				>
 					<option value="">All Employees</option>
 					{#each data.employees as employee}
@@ -192,15 +192,15 @@
 			</div>
 
 			<!-- Action Filter -->
-			<div class="flex-1 min-w-[200px]">
-				<label for="action-filter" class="block text-sm font-medium text-gray-700 mb-1">
+			<div class="min-w-[200px] flex-1">
+				<label for="action-filter" class="mb-1 block text-sm font-medium text-gray-700">
 					Action
 				</label>
 				<select
 					id="action-filter"
 					bind:value={selectedAction}
 					onchange={applyFilters}
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 				>
 					<option value="all">All Actions</option>
 					<option value="create">Create</option>
@@ -213,15 +213,15 @@
 			</div>
 
 			<!-- Resource Type Filter -->
-			<div class="flex-1 min-w-[200px]">
-				<label for="resource-filter" class="block text-sm font-medium text-gray-700 mb-1">
+			<div class="min-w-[200px] flex-1">
+				<label for="resource-filter" class="mb-1 block text-sm font-medium text-gray-700">
 					Resource Type
 				</label>
 				<select
 					id="resource-filter"
 					bind:value={selectedResourceType}
 					onchange={applyFilters}
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 				>
 					<option value="all">All Resources</option>
 					<option value="event">Event</option>
@@ -238,15 +238,15 @@
 			</div>
 
 			<!-- Time Range Filter -->
-			<div class="flex-1 min-w-[200px]">
-				<label for="days-filter" class="block text-sm font-medium text-gray-700 mb-1">
+			<div class="min-w-[200px] flex-1">
+				<label for="days-filter" class="mb-1 block text-sm font-medium text-gray-700">
 					Time Range
 				</label>
 				<select
 					id="days-filter"
 					bind:value={selectedDaysBack}
 					onchange={applyFilters}
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 				>
 					<option value="1">Last 24 hours</option>
 					<option value="7">Last 7 days</option>
@@ -261,7 +261,7 @@
 				<button
 					type="button"
 					onclick={() => goto('/dashboard/activities/audit')}
-					class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+					class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
 				>
 					Reset
 				</button>
@@ -325,7 +325,7 @@
 					type="button"
 					disabled={data.currentPage === 1}
 					onclick={() => goToPage(data.currentPage - 1)}
-					class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+					class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					Previous
 				</button>
@@ -333,7 +333,7 @@
 					type="button"
 					disabled={!data.hasNextPage}
 					onclick={() => goToPage(data.currentPage + 1)}
-					class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+					class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					Next
 				</button>
@@ -355,15 +355,12 @@
 				</div>
 
 				<div>
-					<nav
-						class="isolate inline-flex -space-x-px rounded-md shadow-sm"
-						aria-label="Pagination"
-					>
+					<nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
 						<button
 							type="button"
 							disabled={data.currentPage === 1}
 							onclick={() => goToPage(data.currentPage - 1)}
-							class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+							class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-gray-300 ring-inset hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
 						>
 							<span class="sr-only">Previous</span>
 							<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -376,7 +373,7 @@
 						</button>
 
 						<span
-							class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300"
+							class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-gray-300 ring-inset"
 						>
 							Page {data.currentPage}
 						</span>
@@ -385,7 +382,7 @@
 							type="button"
 							disabled={!data.hasNextPage}
 							onclick={() => goToPage(data.currentPage + 1)}
-							class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+							class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-gray-300 ring-inset hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
 						>
 							<span class="sr-only">Next</span>
 							<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

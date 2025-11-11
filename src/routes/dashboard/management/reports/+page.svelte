@@ -1,38 +1,26 @@
-<!--
-T042: Fix reports management pages with standardized error handling
-Modern Svelte 5 implementation with server-side data loading, comprehensive analytics, and RBAC integration
--->
-
-<svelte:head>
-	<title>Reports Management - SvelteHR</title>
-	<meta name="description" content="Generate, schedule, and manage HR reports. Access analytics dashboards, export data, and monitor report performance across your organization." />
-	<meta property="og:title" content="Reports Management - SvelteHR" />
-	<meta property="og:description" content="Comprehensive report management system for HR analytics, data export, and automated reporting" />
-</svelte:head>
-
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import {
-		FileText,
 		BarChart3,
 		Calendar,
 		Clock,
-		Plus,
 		Download,
 		Eye,
-		RotateCcw,
-		Trash2,
-		Search,
+		FileText,
 		Filter,
+		Plus,
+		RotateCcw,
+		Search,
+		Trash2,
 		X
 	} from '@lucide/svelte';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import type { HRReport, ReportAnalytics } from '$lib/graphql/reports-operations';
 	import {
-		REPORT_TYPES,
 		REPORT_CATEGORIES,
-		REPORT_STATUSES
+		REPORT_STATUSES,
+		REPORT_TYPES
 	} from '$lib/graphql/reports-operations';
 
 	// Define props interface
@@ -62,7 +50,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 	}
 
 	// Destructure props using Svelte 5 runes
-	let { data }: Props = $props();
+	const { data }: Props = $props();
 
 	// Derived state from server-side data
 	const reports = $derived(data.reports);
@@ -107,7 +95,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 	});
 
 	// Run report form state
-	let runForm = $state({
+	const runForm = $state({
 		reportId: '',
 		parameters: {}
 	});
@@ -291,6 +279,24 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 	}
 </script>
 
+<!--
+T042: Fix reports management pages with standardized error handling
+Modern Svelte 5 implementation with server-side data loading, comprehensive analytics, and RBAC integration
+-->
+
+<svelte:head>
+	<title>Reports Management - MountainHR</title>
+	<meta
+		name="description"
+		content="Generate, schedule, and manage HR reports. Access analytics dashboards, export data, and monitor report performance across your organization."
+	/>
+	<meta property="og:title" content="Reports Management - MountainHR" />
+	<meta
+		property="og:description"
+		content="Comprehensive report management system for HR analytics, data export, and automated reporting"
+	/>
+</svelte:head>
+
 <!-- Page Header -->
 <div class="mb-8">
 	<div class="flex items-center justify-between">
@@ -326,321 +332,335 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 	</Tabs.List>
 
 	<Tabs.Content value="reports">
-	<!-- Statistics Cards -->
-	<div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-		{#each statsCards as card}
-			{@const CardIcon = card.icon}
-			<div class="rounded-lg border border bg-card p-6 shadow-sm">
-				<div class="flex items-center justify-between">
-					<div>
-						<p class="text-sm font-medium text-muted-foreground">{card.title}</p>
-						<p class="text-2xl font-bold text-foreground">{card.value}</p>
-						<p class="mt-1 text-xs text-muted-foreground">{card.description}</p>
-					</div>
-					<div class="p-3 bg-{card.color}-100 rounded-lg">
-						<CardIcon class="h-6 w-6 text-{card.color}-600" />
+		<!-- Statistics Cards -->
+		<div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+			{#each statsCards as card}
+				{@const CardIcon = card.icon}
+				<div class="rounded-lg border bg-card p-6 shadow-sm">
+					<div class="flex items-center justify-between">
+						<div>
+							<p class="text-sm font-medium text-muted-foreground">{card.title}</p>
+							<p class="text-2xl font-bold text-foreground">{card.value}</p>
+							<p class="mt-1 text-xs text-muted-foreground">{card.description}</p>
+						</div>
+						<div class="p-3 bg-{card.color}-100 rounded-lg">
+							<CardIcon class="h-6 w-6 text-{card.color}-600" />
+						</div>
 					</div>
 				</div>
-			</div>
-		{/each}
-	</div>
-
-	<!-- Filters -->
-	<div class="mb-8 rounded-lg border border bg-card p-6 shadow-sm">
-		<div class="mb-4 flex items-center gap-4">
-			<div class="flex-1">
-				<label for="search" class="sr-only">Search reports</label>
-				<div class="relative">
-					<Search
-						class="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-muted-foreground"
-					/>
-					<input
-						id="search"
-						type="text"
-						bind:value={searchQuery}
-						placeholder="Search reports..."
-						class="w-full rounded-md border border-input bg-background py-2 pl-10 pr-4 text-sm focus:border-primary focus:outline-none"
-					/>
-				</div>
-			</div>
-			<select
-				bind:value={typeFilter}
-				class="rounded-md border border-input bg-background px-4 py-2 text-sm focus:border-primary focus:outline-none"
-			>
-				<option value="">All Types</option>
-				{#each REPORT_TYPES as type}
-					<option value={type.value}>{type.label}</option>
-				{/each}
-			</select>
-			<select
-				bind:value={categoryFilter}
-				class="rounded-md border border-input bg-background px-4 py-2 text-sm focus:border-primary focus:outline-none"
-			>
-				<option value="">All Categories</option>
-				{#each REPORT_CATEGORIES as category}
-					<option value={category.value}>{category.label}</option>
-				{/each}
-			</select>
-			<select
-				bind:value={statusFilter}
-				class="rounded-md border border-input bg-background px-4 py-2 text-sm focus:border-primary focus:outline-none"
-			>
-				<option value="">All Statuses</option>
-				{#each REPORT_STATUSES as status}
-					<option value={status.value}>{status.label}</option>
-				{/each}
-			</select>
+			{/each}
 		</div>
 
-		<div class="flex items-center justify-between">
-			<div class="flex gap-2">
-				<button
-					onclick={applyFilters}
-					class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90"
-				>
-					<Filter class="h-4 w-4" />
-					Apply Filters
-				</button>
-				<button
-					onclick={clearFilters}
-					class="inline-flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-foreground hover:bg-gray-200"
-				>
-					<X class="h-4 w-4" />
-					Clear
-				</button>
-			</div>
-
-			{#if selectedReports.length > 0}
-				<div class="flex items-center gap-4">
-					<span class="text-sm text-muted-foreground">{selectedReports.length} selected</span>
-					<div class="flex gap-2">
-						{#if data.canRunReports}
-							<button class="rounded bg-primary px-3 py-1 text-sm text-primary-foreground hover:bg-primary/90">
-								Run Selected
-							</button>
-						{/if}
-						<button class="rounded bg-destructive px-3 py-1 text-sm text-destructive-foreground hover:bg-destructive/90">
-							Delete Selected
-						</button>
+		<!-- Filters -->
+		<div class="mb-8 rounded-lg border bg-card p-6 shadow-sm">
+			<div class="mb-4 flex items-center gap-4">
+				<div class="flex-1">
+					<label for="search" class="sr-only">Search reports</label>
+					<div class="relative">
+						<Search
+							class="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 transform text-muted-foreground"
+						/>
+						<input
+							id="search"
+							type="text"
+							bind:value={searchQuery}
+							placeholder="Search reports..."
+							class="w-full rounded-md border border-input bg-background py-2 pr-4 pl-10 text-sm focus:border-primary focus:outline-none"
+						/>
 					</div>
 				</div>
-			{/if}
-		</div>
-	</div>
+				<select
+					bind:value={typeFilter}
+					class="rounded-md border border-input bg-background px-4 py-2 text-sm focus:border-primary focus:outline-none"
+				>
+					<option value="">All Types</option>
+					{#each REPORT_TYPES as type}
+						<option value={type.value}>{type.label}</option>
+					{/each}
+				</select>
+				<select
+					bind:value={categoryFilter}
+					class="rounded-md border border-input bg-background px-4 py-2 text-sm focus:border-primary focus:outline-none"
+				>
+					<option value="">All Categories</option>
+					{#each REPORT_CATEGORIES as category}
+						<option value={category.value}>{category.label}</option>
+					{/each}
+				</select>
+				<select
+					bind:value={statusFilter}
+					class="rounded-md border border-input bg-background px-4 py-2 text-sm focus:border-primary focus:outline-none"
+				>
+					<option value="">All Statuses</option>
+					{#each REPORT_STATUSES as status}
+						<option value={status.value}>{status.label}</option>
+					{/each}
+				</select>
+			</div>
 
-	<!-- Reports Table -->
-	<div class="overflow-hidden rounded-lg border border bg-card shadow-sm">
-		<div class="overflow-x-auto">
-			<table class="w-full text-sm">
-				<thead class="bg-muted/50">
-					<tr>
-						<th class="px-6 py-3 text-left">
-							<input
-								type="checkbox"
-								class="rounded border-input text-primary focus:outline-none"
-								checked={selectedReports.length === reports.length && reports.length > 0}
-								indeterminate={selectedReports.length > 0 &&
-									selectedReports.length < reports.length}
-								onchange={selectAllReports}
-							/>
-						</th>
-						{#each tableColumns as column}
-							<th
-								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
+			<div class="flex items-center justify-between">
+				<div class="flex gap-2">
+					<button
+						onclick={applyFilters}
+						class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90"
+					>
+						<Filter class="h-4 w-4" />
+						Apply Filters
+					</button>
+					<button
+						onclick={clearFilters}
+						class="inline-flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-foreground hover:bg-gray-200"
+					>
+						<X class="h-4 w-4" />
+						Clear
+					</button>
+				</div>
+
+				{#if selectedReports.length > 0}
+					<div class="flex items-center gap-4">
+						<span class="text-sm text-muted-foreground">{selectedReports.length} selected</span>
+						<div class="flex gap-2">
+							{#if data.canRunReports}
+								<button
+									class="rounded bg-primary px-3 py-1 text-sm text-primary-foreground hover:bg-primary/90"
+								>
+									Run Selected
+								</button>
+							{/if}
+							<button
+								class="rounded bg-destructive px-3 py-1 text-sm text-destructive-foreground hover:bg-destructive/90"
 							>
-								{column.label}
-							</th>
-						{/each}
-					</tr>
-				</thead>
-				<tbody class="">
-					{#each reports as report}
-						{@const typeBadge = getTypeBadge(report.reportType)}
-						{@const statusBadge = getStatusBadge(report.status)}
-						<tr class="border-b hover:bg-muted/50">
-							<td class="px-6 py-4">
+								Delete Selected
+							</button>
+						</div>
+					</div>
+				{/if}
+			</div>
+		</div>
+
+		<!-- Reports Table -->
+		<div class="overflow-hidden rounded-lg border bg-card shadow-sm">
+			<div class="overflow-x-auto">
+				<table class="w-full text-sm">
+					<thead class="bg-muted/50">
+						<tr>
+							<th class="px-6 py-3 text-left">
 								<input
 									type="checkbox"
 									class="rounded border-input text-primary focus:outline-none"
-									checked={selectedReports.includes(report.id)}
-									onchange={() => toggleReportSelection(report.id)}
+									checked={selectedReports.length === reports.length && reports.length > 0}
+									indeterminate={selectedReports.length > 0 &&
+										selectedReports.length < reports.length}
+									onchange={selectAllReports}
 								/>
-							</td>
-							<td class="px-6 py-4">
-								<div class="flex items-center">
-									<div class="ml-4">
-										<div class="text-sm font-medium text-foreground">{report.title}</div>
-										{#if report.description}
-											<div class="text-sm text-muted-foreground">{report.description}</div>
+							</th>
+							{#each tableColumns as column}
+								<th
+									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
+								>
+									{column.label}
+								</th>
+							{/each}
+						</tr>
+					</thead>
+					<tbody class="">
+						{#each reports as report}
+							{@const typeBadge = getTypeBadge(report.reportType)}
+							{@const statusBadge = getStatusBadge(report.status)}
+							<tr class="border-b hover:bg-muted/50">
+								<td class="px-6 py-4">
+									<input
+										type="checkbox"
+										class="rounded border-input text-primary focus:outline-none"
+										checked={selectedReports.includes(report.id)}
+										onchange={() => toggleReportSelection(report.id)}
+									/>
+								</td>
+								<td class="px-6 py-4">
+									<div class="flex items-center">
+										<div class="ml-4">
+											<div class="text-sm font-medium text-foreground">{report.title}</div>
+											{#if report.description}
+												<div class="text-sm text-muted-foreground">{report.description}</div>
+											{/if}
+										</div>
+									</div>
+								</td>
+								<td class="px-6 py-4">
+									<span
+										class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {typeBadge.color}"
+									>
+										{typeBadge.label}
+									</span>
+								</td>
+								<td class="px-6 py-4">
+									<span class="text-sm text-foreground capitalize">{report.category}</span>
+								</td>
+								<td class="px-6 py-4">
+									<span
+										class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {statusBadge.color}"
+									>
+										{statusBadge.label}
+									</span>
+								</td>
+								<td class="px-6 py-4 text-sm text-foreground">
+									{report.department || 'All'}
+								</td>
+								<td class="px-6 py-4 text-sm text-foreground">
+									{report.generatedCount}
+								</td>
+								<td class="px-6 py-4 text-sm text-foreground">
+									{formatDate(report.lastRunAt)}
+								</td>
+								<td class="px-6 py-4">
+									<div class="flex items-center gap-2">
+										<button
+											onclick={() => handleViewReport(report)}
+											class="rounded p-1 text-blue-600 hover:bg-blue-100"
+											title="View Report"
+										>
+											<Eye class="h-4 w-4" />
+										</button>
+										{#if data.canRunReports}
+											<button
+												onclick={() => handleRunReport(report)}
+												class="rounded p-1 text-green-600 hover:bg-green-100"
+												title="Run Report"
+											>
+												<RotateCcw class="h-4 w-4" />
+											</button>
+										{/if}
+										<button
+											onclick={() => handleDownloadReport(report)}
+											class="rounded p-1 text-purple-600 hover:bg-purple-100"
+											title="Download Report"
+										>
+											<Download class="h-4 w-4" />
+										</button>
+										{#if data.canEditReports}
+											<button
+												class="rounded p-1 text-red-600 hover:bg-red-100"
+												title="Delete Report"
+											>
+												<Trash2 class="h-4 w-4" />
+											</button>
 										{/if}
 									</div>
-								</div>
-							</td>
-							<td class="px-6 py-4">
-								<span
-									class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {typeBadge.color}"
-								>
-									{typeBadge.label}
-								</span>
-							</td>
-							<td class="px-6 py-4">
-								<span class="text-sm capitalize text-foreground">{report.category}</span>
-							</td>
-							<td class="px-6 py-4">
-								<span
-									class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {statusBadge.color}"
-								>
-									{statusBadge.label}
-								</span>
-							</td>
-							<td class="px-6 py-4 text-sm text-foreground">
-								{report.department || 'All'}
-							</td>
-							<td class="px-6 py-4 text-sm text-foreground">
-								{report.generatedCount}
-							</td>
-							<td class="px-6 py-4 text-sm text-foreground">
-								{formatDate(report.lastRunAt)}
-							</td>
-							<td class="px-6 py-4">
-								<div class="flex items-center gap-2">
-									<button
-										onclick={() => handleViewReport(report)}
-										class="rounded p-1 text-blue-600 hover:bg-blue-100"
-										title="View Report"
-									>
-										<Eye class="h-4 w-4" />
-									</button>
-									{#if data.canRunReports}
-										<button
-											onclick={() => handleRunReport(report)}
-											class="rounded p-1 text-green-600 hover:bg-green-100"
-											title="Run Report"
-										>
-											<RotateCcw class="h-4 w-4" />
-										</button>
-									{/if}
-									<button
-										onclick={() => handleDownloadReport(report)}
-										class="rounded p-1 text-purple-600 hover:bg-purple-100"
-										title="Download Report"
-									>
-										<Download class="h-4 w-4" />
-									</button>
-									{#if data.canEditReports}
-										<button class="rounded p-1 text-red-600 hover:bg-red-100" title="Delete Report">
-											<Trash2 class="h-4 w-4" />
-										</button>
-									{/if}
-								</div>
-							</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</div>
-
-		{#if reports.length === 0}
-			<div class="py-12 text-center">
-				<FileText class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-				<h3 class="mb-2 text-lg font-medium text-foreground">No reports found</h3>
-				<p class="mb-4 text-muted-foreground">Get started by creating your first report.</p>
-				{#if data.canCreateReports}
-					<button
-						onclick={handleCreateReport}
-						class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90"
-					>
-						<Plus class="h-5 w-5" />
-						Create Report
-					</button>
-				{/if}
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
 			</div>
-		{/if}
-	</div>
+
+			{#if reports.length === 0}
+				<div class="py-12 text-center">
+					<FileText class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+					<h3 class="mb-2 text-lg font-medium text-foreground">No reports found</h3>
+					<p class="mb-4 text-muted-foreground">Get started by creating your first report.</p>
+					{#if data.canCreateReports}
+						<button
+							onclick={handleCreateReport}
+							class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90"
+						>
+							<Plus class="h-5 w-5" />
+							Create Report
+						</button>
+					{/if}
+				</div>
+			{/if}
+		</div>
 	</Tabs.Content>
 
 	{#if data.canViewAnalytics}
 		<Tabs.Content value="analytics">
-	<!-- Analytics Dashboard -->
-	<div class="space-y-8">
-		<!-- Performance Metrics -->
-		<div class="rounded-lg border border bg-card p-6 shadow-sm">
-			<h3 class="mb-6 text-lg font-semibold text-foreground">Performance Metrics</h3>
-			<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-				<div class="text-center">
-					<div class="text-2xl font-bold text-green-600">
-						{reportAnalytics.performanceMetrics.successRate}%
-					</div>
-					<div class="text-sm text-muted-foreground">Success Rate</div>
-				</div>
-				<div class="text-center">
-					<div class="text-2xl font-bold text-blue-600">
-						{reportAnalytics.performanceMetrics.avgExecutionTime}s
-					</div>
-					<div class="text-sm text-muted-foreground">Avg Execution Time</div>
-				</div>
-				<div class="text-center">
-					<div class="text-2xl font-bold text-purple-600">
-						{reportAnalytics.performanceMetrics.totalExecutionTime}s
-					</div>
-					<div class="text-sm text-muted-foreground">Total Execution Time</div>
-				</div>
-			</div>
-		</div>
-
-		<!-- Type Breakdown -->
-		<div class="rounded-lg border border bg-card p-6 shadow-sm">
-			<h3 class="mb-6 text-lg font-semibold text-foreground">Report Type Distribution</h3>
-			<div class="space-y-4">
-				{#each reportAnalytics.typeBreakdown as type}
-					<div class="flex items-center justify-between">
-						<span class="text-sm font-medium capitalize text-foreground">{type.type}</span>
-						<div class="flex items-center gap-4">
-							<div class="h-2 w-32 rounded-full bg-gray-200">
-								<div class="h-2 rounded-full bg-primary" style="width: {type.percentage}%"></div>
+			<!-- Analytics Dashboard -->
+			<div class="space-y-8">
+				<!-- Performance Metrics -->
+				<div class="rounded-lg border bg-card p-6 shadow-sm">
+					<h3 class="mb-6 text-lg font-semibold text-foreground">Performance Metrics</h3>
+					<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+						<div class="text-center">
+							<div class="text-2xl font-bold text-green-600">
+								{reportAnalytics.performanceMetrics.successRate}%
 							</div>
-							<span class="w-12 text-right text-sm text-muted-foreground">{type.count}</span>
+							<div class="text-sm text-muted-foreground">Success Rate</div>
+						</div>
+						<div class="text-center">
+							<div class="text-2xl font-bold text-blue-600">
+								{reportAnalytics.performanceMetrics.avgExecutionTime}s
+							</div>
+							<div class="text-sm text-muted-foreground">Avg Execution Time</div>
+						</div>
+						<div class="text-center">
+							<div class="text-2xl font-bold text-purple-600">
+								{reportAnalytics.performanceMetrics.totalExecutionTime}s
+							</div>
+							<div class="text-sm text-muted-foreground">Total Execution Time</div>
 						</div>
 					</div>
-				{/each}
-			</div>
-		</div>
+				</div>
 
-		<!-- Popular Reports -->
-		<div class="rounded-lg border border bg-card p-6 shadow-sm">
-			<h3 class="mb-6 text-lg font-semibold text-foreground">Most Popular Reports</h3>
-			<div class="space-y-4">
-				{#each reportAnalytics.popularReports as report}
-					<div class="flex items-center justify-between rounded-lg bg-muted dark:bg-muted p-4">
-						<div>
-							<div class="font-medium text-foreground">{report.title}</div>
-							<div class="text-sm text-muted-foreground">Last run: {formatDate(report.lastRun)}</div>
-						</div>
-						<div class="text-right">
-							<div class="text-lg font-semibold text-blue-600">{report.runCount}</div>
-							<div class="text-sm text-muted-foreground">runs</div>
-						</div>
+				<!-- Type Breakdown -->
+				<div class="rounded-lg border bg-card p-6 shadow-sm">
+					<h3 class="mb-6 text-lg font-semibold text-foreground">Report Type Distribution</h3>
+					<div class="space-y-4">
+						{#each reportAnalytics.typeBreakdown as type}
+							<div class="flex items-center justify-between">
+								<span class="text-sm font-medium text-foreground capitalize">{type.type}</span>
+								<div class="flex items-center gap-4">
+									<div class="h-2 w-32 rounded-full bg-gray-200">
+										<div
+											class="h-2 rounded-full bg-primary"
+											style="width: {type.percentage}%"
+										></div>
+									</div>
+									<span class="w-12 text-right text-sm text-muted-foreground">{type.count}</span>
+								</div>
+							</div>
+						{/each}
 					</div>
-				{/each}
-			</div>
-		</div>
+				</div>
 
-		<!-- Department Usage -->
-		<div class="rounded-lg border border bg-card p-6 shadow-sm">
-			<h3 class="mb-6 text-lg font-semibold text-foreground">Department Usage</h3>
-			<div class="space-y-4">
-				{#each reportAnalytics.departmentUsage as dept}
-					<div class="flex items-center justify-between">
-						<span class="text-sm font-medium text-foreground">{dept.department}</span>
-						<div class="flex items-center gap-4">
-							<span class="text-sm text-muted-foreground">{dept.reportCount} reports</span>
-							<span class="text-xs text-muted-foreground">Last: {formatDate(dept.lastActivity)}</span>
-						</div>
+				<!-- Popular Reports -->
+				<div class="rounded-lg border bg-card p-6 shadow-sm">
+					<h3 class="mb-6 text-lg font-semibold text-foreground">Most Popular Reports</h3>
+					<div class="space-y-4">
+						{#each reportAnalytics.popularReports as report}
+							<div class="flex items-center justify-between rounded-lg bg-muted p-4 dark:bg-muted">
+								<div>
+									<div class="font-medium text-foreground">{report.title}</div>
+									<div class="text-sm text-muted-foreground">
+										Last run: {formatDate(report.lastRun)}
+									</div>
+								</div>
+								<div class="text-right">
+									<div class="text-lg font-semibold text-blue-600">{report.runCount}</div>
+									<div class="text-sm text-muted-foreground">runs</div>
+								</div>
+							</div>
+						{/each}
 					</div>
-				{/each}
+				</div>
+
+				<!-- Department Usage -->
+				<div class="rounded-lg border bg-card p-6 shadow-sm">
+					<h3 class="mb-6 text-lg font-semibold text-foreground">Department Usage</h3>
+					<div class="space-y-4">
+						{#each reportAnalytics.departmentUsage as dept}
+							<div class="flex items-center justify-between">
+								<span class="text-sm font-medium text-foreground">{dept.department}</span>
+								<div class="flex items-center gap-4">
+									<span class="text-sm text-muted-foreground">{dept.reportCount} reports</span>
+									<span class="text-xs text-muted-foreground"
+										>Last: {formatDate(dept.lastActivity)}</span
+									>
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
 			</div>
-		</div>
-	</div>
 		</Tabs.Content>
 	{/if}
 </Tabs.Root>
@@ -649,10 +669,10 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 {#if showCreateModal}
 	<div class="fixed inset-0 z-50 overflow-y-auto">
 		<div
-			class="flex min-h-screen items-center justify-center px-4 pb-20 pt-4 text-center sm:block sm:p-0"
+			class="flex min-h-screen items-center justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0"
 		>
 			<div
-				class="fixed inset-0 bg-muted dark:bg-muted0 bg-opacity-75 transition-opacity"
+				class="dark:bg-muted0 bg-opacity-75 fixed inset-0 bg-muted transition-opacity"
 				role="button"
 				tabindex="0"
 				onclick={closeModals}
@@ -666,7 +686,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 			<div
 				class="inline-block transform overflow-hidden rounded-lg bg-card text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:align-middle"
 			>
-				<div class="bg-card px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+				<div class="bg-card px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
 					<h3 class="mb-4 text-lg font-medium text-foreground">Create New Report</h3>
 
 					<div class="space-y-4">
@@ -696,7 +716,9 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 
 						<div class="grid grid-cols-2 gap-4">
 							<div>
-								<label for="reportType" class="block text-sm font-medium text-foreground">Type</label>
+								<label for="reportType" class="block text-sm font-medium text-foreground"
+									>Type</label
+								>
 								<select
 									id="reportType"
 									bind:value={createForm.reportType}
@@ -726,7 +748,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 					</div>
 				</div>
 
-				<div class="bg-muted dark:bg-muted px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+				<div class="bg-muted px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 dark:bg-muted">
 					<button
 						type="button"
 						class="inline-flex w-full justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none sm:ml-3 sm:w-auto"
@@ -736,7 +758,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 					<button
 						type="button"
 						onclick={closeModals}
-						class="mt-3 inline-flex w-full justify-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent focus:outline-none sm:ml-3 sm:mt-0 sm:w-auto"
+						class="mt-3 inline-flex w-full justify-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto"
 					>
 						Cancel
 					</button>
@@ -751,10 +773,10 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 	{@const viewStatusBadge = getStatusBadge(selectedReport.status)}
 	<div class="fixed inset-0 z-50 overflow-y-auto">
 		<div
-			class="flex min-h-screen items-center justify-center px-4 pb-20 pt-4 text-center sm:block sm:p-0"
+			class="flex min-h-screen items-center justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0"
 		>
 			<div
-				class="fixed inset-0 bg-muted dark:bg-muted0 bg-opacity-75 transition-opacity"
+				class="dark:bg-muted0 bg-opacity-75 fixed inset-0 bg-muted transition-opacity"
 				role="button"
 				tabindex="0"
 				onclick={closeModals}
@@ -768,7 +790,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 			<div
 				class="inline-block transform overflow-hidden rounded-lg bg-card text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:align-middle"
 			>
-				<div class="bg-card px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+				<div class="bg-card px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
 					<div class="mb-4 flex items-center justify-between">
 						<h3 class="text-lg font-medium text-foreground">{selectedReport.title}</h3>
 						<button onclick={closeModals} class="text-muted-foreground hover:text-muted-foreground">
@@ -780,11 +802,11 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 						<div class="grid grid-cols-2 gap-4">
 							<div>
 								<dt class="text-sm font-medium text-muted-foreground">Type</dt>
-								<dd class="mt-1 text-sm capitalize text-foreground">{selectedReport.reportType}</dd>
+								<dd class="mt-1 text-sm text-foreground capitalize">{selectedReport.reportType}</dd>
 							</div>
 							<div>
 								<dt class="text-sm font-medium text-muted-foreground">Category</dt>
-								<dd class="mt-1 text-sm capitalize text-foreground">{selectedReport.category}</dd>
+								<dd class="mt-1 text-sm text-foreground capitalize">{selectedReport.category}</dd>
 							</div>
 							<div>
 								<dt class="text-sm font-medium text-muted-foreground">Status</dt>
@@ -827,7 +849,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 					</div>
 				</div>
 
-				<div class="bg-muted dark:bg-muted px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+				<div class="bg-muted px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 dark:bg-muted">
 					<button
 						onclick={() => handleDownloadReport(selectedReport)}
 						class="inline-flex w-full justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none sm:ml-3 sm:w-auto"
@@ -838,7 +860,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 					{#if data.canRunReports}
 						<button
 							onclick={() => handleRunReport(selectedReport)}
-							class="mt-3 inline-flex w-full justify-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent focus:outline-none sm:ml-3 sm:mt-0 sm:w-auto"
+							class="mt-3 inline-flex w-full justify-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto"
 						>
 							<RotateCcw class="mr-2 h-4 w-4" />
 							Run Report

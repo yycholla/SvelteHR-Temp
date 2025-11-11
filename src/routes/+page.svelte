@@ -10,7 +10,7 @@
 </script>
 
 <svelte:head>
-	<title>SvelteHR - HR Management System</title>
+	<title>MountainHR - HR Management System</title>
 	<meta name="description" content="Comprehensive HR management system for modern organizations" />
 </svelte:head>
 
@@ -19,7 +19,7 @@
 	<div class="loading-spinner">
 		<Loader2 size={48} strokeWidth={2} class="animate-spin text-primary" />
 	</div>
-	<p class="loading-text">Loading SvelteHR...</p>
+	<p class="loading-text">Loading MountainHR...</p>
 </div>
 
 <style>

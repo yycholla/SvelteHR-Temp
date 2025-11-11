@@ -10,10 +10,10 @@
 	import type { ActivityAction, ResourceType } from '$lib/graphql/types';
 	import { getActivityStatistics } from '$lib/utils/activities';
 
-	let { data }: { data: PageData } = $props();
+	const { data }: { data: PageData } = $props();
 
 	// Derived statistics
-	let statistics = $derived(getActivityStatistics(data.activities));
+	const statistics = $derived(getActivityStatistics(data.activities));
 
 	// Filter state
 	let selectedAction = $state<ActivityAction | 'all'>(data.filters.action || 'all');
@@ -70,7 +70,7 @@
 </script>
 
 <svelte:head>
-	<title>My Activities - SvelteHR</title>
+	<title>My Activities - MountainHR</title>
 	<meta name="description" content="View your activity history" />
 </svelte:head>
 
@@ -85,15 +85,15 @@
 	<div class="mb-6 rounded-lg border border-border bg-card p-4 shadow-sm">
 		<div class="flex flex-wrap items-end gap-4">
 			<!-- Action Filter -->
-			<div class="flex-1 min-w-[200px]">
-				<label for="action-filter" class="block text-sm font-medium text-foreground mb-1">
+			<div class="min-w-[200px] flex-1">
+				<label for="action-filter" class="mb-1 block text-sm font-medium text-foreground">
 					Action
 				</label>
 				<select
 					id="action-filter"
 					bind:value={selectedAction}
 					onchange={applyFilters}
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:ring-1 focus:ring-ring focus:outline-none"
 				>
 					<option value="all">All Actions</option>
 					<option value="create">Create</option>
@@ -106,15 +106,15 @@
 			</div>
 
 			<!-- Resource Type Filter -->
-			<div class="flex-1 min-w-[200px]">
-				<label for="resource-filter" class="block text-sm font-medium text-foreground mb-1">
+			<div class="min-w-[200px] flex-1">
+				<label for="resource-filter" class="mb-1 block text-sm font-medium text-foreground">
 					Resource Type
 				</label>
 				<select
 					id="resource-filter"
 					bind:value={selectedResourceType}
 					onchange={applyFilters}
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:ring-1 focus:ring-ring focus:outline-none"
 				>
 					<option value="all">All Resources</option>
 					<option value="event">Event</option>
@@ -131,15 +131,15 @@
 			</div>
 
 			<!-- Time Range Filter -->
-			<div class="flex-1 min-w-[200px]">
-				<label for="days-filter" class="block text-sm font-medium text-foreground mb-1">
+			<div class="min-w-[200px] flex-1">
+				<label for="days-filter" class="mb-1 block text-sm font-medium text-foreground">
 					Time Range
 				</label>
 				<select
 					id="days-filter"
 					bind:value={selectedDaysBack}
 					onchange={applyFilters}
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:ring-1 focus:ring-ring focus:outline-none"
 				>
 					<option value="1">Last 24 hours</option>
 					<option value="7">Last 7 days</option>
@@ -153,7 +153,7 @@
 				<button
 					type="button"
 					onclick={() => goto('/dashboard/activities')}
-					class="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+					class="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none"
 				>
 					Reset
 				</button>
@@ -205,7 +205,7 @@
 					type="button"
 					disabled={data.currentPage === 1}
 					onclick={() => goToPage(data.currentPage - 1)}
-					class="relative inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+					class="relative inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					Previous
 				</button>
@@ -213,7 +213,7 @@
 					type="button"
 					disabled={!data.hasNextPage}
 					onclick={() => goToPage(data.currentPage + 1)}
-					class="relative ml-3 inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+					class="relative ml-3 inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					Next
 				</button>
@@ -225,7 +225,9 @@
 						Showing
 						<span class="font-medium">{(data.currentPage - 1) * data.limit + 1}</span>
 						to
-						<span class="font-medium">{Math.min(data.currentPage * data.limit, data.totalCount)}</span>
+						<span class="font-medium"
+							>{Math.min(data.currentPage * data.limit, data.totalCount)}</span
+						>
 						of
 						<span class="font-medium">{data.totalCount}</span>
 						activities
@@ -238,15 +240,21 @@
 							type="button"
 							disabled={data.currentPage === 1}
 							onclick={() => goToPage(data.currentPage - 1)}
-							class="relative inline-flex items-center rounded-l-md px-2 py-2 text-muted-foreground ring-1 ring-inset ring-border hover:bg-accent hover:text-accent-foreground focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+							class="relative inline-flex items-center rounded-l-md px-2 py-2 text-muted-foreground ring-1 ring-border ring-inset hover:bg-accent hover:text-accent-foreground focus:z-20 focus:outline-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
 						>
 							<span class="sr-only">Previous</span>
 							<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-								<path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
+								<path
+									fill-rule="evenodd"
+									d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z"
+									clip-rule="evenodd"
+								/>
 							</svg>
 						</button>
 
-						<span class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-foreground ring-1 ring-inset ring-border bg-card">
+						<span
+							class="relative inline-flex items-center bg-card px-4 py-2 text-sm font-semibold text-foreground ring-1 ring-border ring-inset"
+						>
 							Page {data.currentPage}
 						</span>
 
@@ -254,11 +262,15 @@
 							type="button"
 							disabled={!data.hasNextPage}
 							onclick={() => goToPage(data.currentPage + 1)}
-							class="relative inline-flex items-center rounded-r-md px-2 py-2 text-muted-foreground ring-1 ring-inset ring-border hover:bg-accent hover:text-accent-foreground focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+							class="relative inline-flex items-center rounded-r-md px-2 py-2 text-muted-foreground ring-1 ring-border ring-inset hover:bg-accent hover:text-accent-foreground focus:z-20 focus:outline-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
 						>
 							<span class="sr-only">Next</span>
 							<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-								<path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+								<path
+									fill-rule="evenodd"
+									d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+									clip-rule="evenodd"
+								/>
 							</svg>
 						</button>
 					</nav>

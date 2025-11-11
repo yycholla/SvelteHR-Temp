@@ -16,7 +16,7 @@
 	}
 
 	// Get initial page data non-reactively to avoid circular dependencies
-	let initialPageData = untrack(() => {
+	const initialPageData = untrack(() => {
 		try {
 			return $page;
 		} catch {
@@ -26,7 +26,7 @@
 
 	// SvelteKit provides error details in the page store
 	// Access page store values reactively with safe fallbacks
-	let pageData = $derived.by(() => {
+	const pageData = $derived.by(() => {
 		try {
 			return $page;
 		} catch {
@@ -34,12 +34,12 @@
 		}
 	});
 
-	let error = $derived.by(() => safeGet(() => pageData?.error, null));
-	let status = $derived.by(() => safeGet(() => pageData?.status, 500));
-	let userData = $derived.by(() => safeGet(() => pageData?.data?.user, null));
+	const error = $derived.by(() => safeGet(() => pageData?.error, null));
+	const status = $derived.by(() => safeGet(() => pageData?.status, 500));
+	const userData = $derived.by(() => safeGet(() => pageData?.data?.user, null));
 
 	// Create a proper Error object from SvelteKit error
-	let errorObject = $derived.by(() => {
+	const errorObject = $derived.by(() => {
 		try {
 			if (!error) return null;
 			if (error instanceof Error) return error;
@@ -51,25 +51,33 @@
 	});
 
 	// Customize title and description based on error status
-	let title = $derived.by(() => {
+	const title = $derived.by(() => {
 		try {
-			return status === 404 ? 'Page Not Found' :
-				status === 403 ? 'Access Forbidden' :
-				status === 401 ? 'Unauthorized' :
-				status === 500 ? 'Internal Server Error' :
-				'Something Went Wrong';
+			return status === 404
+				? 'Page Not Found'
+				: status === 403
+					? 'Access Forbidden'
+					: status === 401
+						? 'Unauthorized'
+						: status === 500
+							? 'Internal Server Error'
+							: 'Something Went Wrong';
 		} catch {
 			return 'Error';
 		}
 	});
 
-	let description = $derived.by(() => {
+	const description = $derived.by(() => {
 		try {
-			return status === 404 ? "The page you're looking for doesn't exist or has been moved." :
-				status === 403 ? "You don't have permission to access this resource." :
-				status === 401 ? 'Please log in to access this page.' :
-				status === 500 ? 'We encountered a server error. Our team has been notified.' :
-				'An unexpected error occurred. Please try again or contact support if the problem persists.';
+			return status === 404
+				? "The page you're looking for doesn't exist or has been moved."
+				: status === 403
+					? "You don't have permission to access this resource."
+					: status === 401
+						? 'Please log in to access this page.'
+						: status === 500
+							? 'We encountered a server error. Our team has been notified.'
+							: 'An unexpected error occurred. Please try again or contact support if the problem persists.';
 		} catch {
 			return 'An error occurred.';
 		}
@@ -110,7 +118,7 @@
 </script>
 
 <svelte:head>
-	<title>{title} - SvelteHR</title>
+	<title>{title} - MountainHR</title>
 	<meta name="description" content={description} />
 	<meta name="robots" content="noindex, nofollow" />
 </svelte:head>
@@ -133,8 +141,8 @@
 
 		<!-- Show user role on access denied errors -->
 		{#if status === 403 && userData}
-			<div class="rounded-lg border border-warning bg-warning/5 p-4 text-sm">
-				<p class="font-medium text-warning-foreground">Current User Information:</p>
+			<div class="border-warning bg-warning/5 rounded-lg border p-4 text-sm">
+				<p class="text-warning-foreground font-medium">Current User Information:</p>
 				<div class="mt-2 space-y-1 text-muted-foreground">
 					<p>
 						<span class="font-medium">Email:</span>
@@ -158,7 +166,7 @@
 
 <!-- Additional context for specific error types -->
 {#if status === 404 && pageData?.url?.pathname}
-	<div class="fixed bottom-4 right-4 text-xs text-muted-foreground">
+	<div class="fixed right-4 bottom-4 text-xs text-muted-foreground">
 		URL: {pageData.url.pathname}
 	</div>
 {/if}

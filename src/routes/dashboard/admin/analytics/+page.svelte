@@ -1,26 +1,32 @@
-<svelte:head>
-	<title>Analytics Dashboard - SvelteHR Admin</title>
-	<meta name="description" content="System-wide analytics and insights for administrators. Monitor user activity, department metrics, and organizational performance." />
-	<meta property="og:title" content="Analytics Dashboard - SvelteHR Admin" />
-	<meta property="og:description" content="Comprehensive administrative analytics dashboard for system monitoring and insights" />
-</svelte:head>
-
 <script lang="ts">
 	import {
-		Users,
-		UserCheck,
+		Activity,
+		BarChart3,
 		Building2,
 		Shield,
-		TrendingUp,
 		TrendingDown,
-		Activity,
-		BarChart3
+		TrendingUp,
+		UserCheck,
+		Users
 	} from '@lucide/svelte';
 
-	let { data } = $props();
+	const { data } = $props();
 
 	const { analytics, chartData } = data;
 </script>
+
+<svelte:head>
+	<title>Analytics Dashboard - MountainHR Admin</title>
+	<meta
+		name="description"
+		content="System-wide analytics and insights for administrators. Monitor user activity, department metrics, and organizational performance."
+	/>
+	<meta property="og:title" content="Analytics Dashboard - MountainHR Admin" />
+	<meta
+		property="og:description"
+		content="Comprehensive administrative analytics dashboard for system monitoring and insights"
+	/>
+</svelte:head>
 
 <div class="space-y-6 p-6">
 	<!-- Header -->
@@ -79,8 +85,8 @@
 				</div>
 			</div>
 			<div class="mt-4 text-sm text-muted-foreground">
-				{Math.round((analytics.overview.activeUsers / analytics.overview.totalUsers) * 100)}% of total
-				users
+				{Math.round((analytics.overview.activeUsers / analytics.overview.totalUsers) * 100)}% of
+				total users
 			</div>
 		</div>
 
@@ -138,8 +144,9 @@
 				</div>
 				<p class="mt-2 text-2xl font-bold">{analytics.activity.weeklyActiveUsers}</p>
 				<p class="text-sm text-muted-foreground">
-					{Math.round((analytics.activity.weeklyActiveUsers / analytics.overview.totalUsers) * 100)}%
-					of total
+					{Math.round(
+						(analytics.activity.weeklyActiveUsers / analytics.overview.totalUsers) * 100
+					)}% of total
 				</p>
 			</div>
 
@@ -150,8 +157,9 @@
 				</div>
 				<p class="mt-2 text-2xl font-bold">{analytics.activity.monthlyActiveUsers}</p>
 				<p class="text-sm text-muted-foreground">
-					{Math.round((analytics.activity.monthlyActiveUsers / analytics.overview.totalUsers) * 100)}%
-					of total
+					{Math.round(
+						(analytics.activity.monthlyActiveUsers / analytics.overview.totalUsers) * 100
+					)}% of total
 				</p>
 			</div>
 		</div>
@@ -175,10 +183,7 @@
 							<span class="text-muted-foreground">{dataPoint.users} users</span>
 						</div>
 						<div class="h-2 w-full overflow-hidden rounded-full bg-muted">
-							<div
-								class="h-full bg-primary transition-all"
-								style="width: {percentage}%"
-							></div>
+							<div class="h-full bg-primary transition-all" style="width: {percentage}%"></div>
 						</div>
 					</div>
 				{/each}
@@ -197,9 +202,7 @@
 					<div>
 						<div class="mb-1 flex items-center justify-between text-sm">
 							<span class="font-medium">{role.role}</span>
-							<span class="text-muted-foreground"
-								>{role.count} ({Math.round(percentage)}%)</span
-							>
+							<span class="text-muted-foreground">{role.count} ({Math.round(percentage)}%)</span>
 						</div>
 						<div class="h-2 w-full overflow-hidden rounded-full bg-muted">
 							<div
@@ -233,8 +236,7 @@
 				<div>
 					<div class="mb-1 flex items-center justify-between text-sm">
 						<span class="font-medium">{dept.department}</span>
-						<span class="text-muted-foreground"
-							>{dept.count} users ({Math.round(percentage)}%)</span
+						<span class="text-muted-foreground">{dept.count} users ({Math.round(percentage)}%)</span
 						>
 					</div>
 					<div class="h-2 w-full overflow-hidden rounded-full bg-muted">

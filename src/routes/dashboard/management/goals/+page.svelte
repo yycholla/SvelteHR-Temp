@@ -1,27 +1,14 @@
-<!--
-	Goals & OKRs Management Page - T040 Implementation
-	Converted from client-side URQL queries to server-side data loading with modern Svelte 5 patterns
-	Features: Server-side loading, analytics dashboard, goal management, progress tracking
--->
-
-<svelte:head>
-	<title>Goals & OKRs Management - SvelteHR</title>
-	<meta name="description" content="Manage team goals, objectives, and key results. Track progress, set priorities, and monitor performance metrics across your organization." />
-	<meta property="og:title" content="Goals & OKRs Management - SvelteHR" />
-	<meta property="og:description" content="Comprehensive goal management dashboard for tracking team objectives and key results" />
-</svelte:head>
-
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import {
-		Target,
-		Plus,
-		TrendingUp,
-		Calendar,
-		BarChart3,
-		Users,
 		AlertCircle,
-		CheckCircle
+		BarChart3,
+		Calendar,
+		CheckCircle,
+		Plus,
+		Target,
+		TrendingUp,
+		Users
 	} from '@lucide/svelte';
 
 	// Modern Svelte 5 props interface
@@ -42,7 +29,7 @@
 	}
 
 	// Destructure props using Svelte 5 runes
-	let { data }: Props = $props();
+	const { data }: Props = $props();
 
 	// Derived values from server-side data
 	const user = $derived(data.user);
@@ -320,6 +307,25 @@
 	}
 </script>
 
+<!--
+	Goals & OKRs Management Page - T040 Implementation
+	Converted from client-side URQL queries to server-side data loading with modern Svelte 5 patterns
+	Features: Server-side loading, analytics dashboard, goal management, progress tracking
+-->
+
+<svelte:head>
+	<title>Goals & OKRs Management - MountainHR</title>
+	<meta
+		name="description"
+		content="Manage team goals, objectives, and key results. Track progress, set priorities, and monitor performance metrics across your organization."
+	/>
+	<meta property="og:title" content="Goals & OKRs Management - MountainHR" />
+	<meta
+		property="og:description"
+		content="Comprehensive goal management dashboard for tracking team objectives and key results"
+	/>
+</svelte:head>
+
 <div class="mb-8" data-testid="goals-management-page">
 	<!-- Page Header -->
 	<div class="mb-4 flex items-center justify-between">
@@ -342,7 +348,7 @@
 	<!-- Statistics Cards -->
 	<div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 		<!-- Total Goals -->
-		<div class="rounded-lg border border bg-card p-6 shadow-sm" data-testid="total-goals-stat">
+		<div class="rounded-lg border bg-card p-6 shadow-sm" data-testid="total-goals-stat">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-muted-foreground">Total Goals</p>
@@ -358,7 +364,7 @@
 		</div>
 
 		<!-- Active Goals -->
-		<div class="rounded-lg border border bg-card p-6 shadow-sm" data-testid="active-goals-stat">
+		<div class="rounded-lg border bg-card p-6 shadow-sm" data-testid="active-goals-stat">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-muted-foreground">Active Goals</p>
@@ -374,7 +380,7 @@
 		</div>
 
 		<!-- Avg Completion -->
-		<div class="rounded-lg border border bg-card p-6 shadow-sm" data-testid="completion-stat">
+		<div class="rounded-lg border bg-card p-6 shadow-sm" data-testid="completion-stat">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-muted-foreground">Avg Completion</p>
@@ -388,7 +394,7 @@
 		</div>
 
 		<!-- Health Score -->
-		<div class="rounded-lg border border bg-card p-6 shadow-sm" data-testid="health-score-stat">
+		<div class="rounded-lg border bg-card p-6 shadow-sm" data-testid="health-score-stat">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-muted-foreground">Health Score</p>
@@ -430,7 +436,7 @@
 	<!-- Tabbed Interface -->
 	<div class="rounded-lg bg-card shadow">
 		<!-- Tab Navigation -->
-		<div class="border-b border">
+		<div class="border border-b">
 			<nav class="-mb-px flex" data-testid="goals-tabs">
 				<button
 					class="border-b-2 px-4 py-2 text-sm font-medium {selectedTab === 'goals'
@@ -536,7 +542,7 @@
 					<div class="space-y-4" data-testid="goals-list">
 						{#each teamGoals as goal}
 							<div
-								class="rounded-lg border border p-4 transition-shadow hover:shadow-md"
+								class="rounded-lg border p-4 transition-shadow hover:shadow-md"
 								data-testid="goal-card"
 							>
 								<div class="flex items-start justify-between">
@@ -546,19 +552,19 @@
 												{goal.title}
 											</h3>
 											<span
-												class="rounded-full px-2 py-1 text-xs bg-muted text-foreground border border-input"
+												class="rounded-full border border-input bg-muted px-2 py-1 text-xs text-foreground"
 												data-testid="goal-type"
 											>
 												{goal.goalType?.toUpperCase()}
 											</span>
 											<span
-												class="rounded-full px-2 py-1 text-xs bg-muted text-foreground border border-input"
+												class="rounded-full border border-input bg-muted px-2 py-1 text-xs text-foreground"
 												data-testid="goal-priority"
 											>
 												{goal.priority?.toUpperCase()}
 											</span>
 											<span
-												class="rounded-full px-2 py-1 text-xs bg-muted text-foreground border border-input"
+												class="rounded-full border border-input bg-muted px-2 py-1 text-xs text-foreground"
 												data-testid="goal-status"
 											>
 												{goal.status?.toUpperCase()}
@@ -571,7 +577,9 @@
 
 										<!-- Progress Bar -->
 										<div class="mb-3">
-											<div class="mb-1 flex items-center justify-between text-sm text-muted-foreground">
+											<div
+												class="mb-1 flex items-center justify-between text-sm text-muted-foreground"
+											>
 												<span>Progress</span>
 												<span>{calculateProgress(goal)}%</span>
 											</div>
@@ -635,7 +643,9 @@
 					<div class="py-12 text-center" data-testid="empty-state">
 						<Target class="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
 						<h3 class="mb-2 text-lg font-medium text-foreground">No goals found</h3>
-						<p class="mb-4 text-muted-foreground">Get started by creating your first goal or objective.</p>
+						<p class="mb-4 text-muted-foreground">
+							Get started by creating your first goal or objective.
+						</p>
 						{#if canCreateGoals}
 							<button
 								onclick={openCreateModal}
@@ -657,14 +667,11 @@
 							<h4 class="text-md mb-3 font-medium text-foreground">Goals by Priority</h4>
 							<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
 								{#each goalsAnalytics.breakdowns.priority as priority}
-									<div class="border border-input bg-card rounded-lg p-4">
+									<div class="rounded-lg border border-input bg-card p-4">
 										<div class="flex items-center justify-between">
-											<span class="text-sm font-medium text-muted-foreground"
-												>{priority.label}</span
+											<span class="text-sm font-medium text-muted-foreground">{priority.label}</span
 											>
-											<span class="text-2xl font-bold text-foreground"
-												>{priority.count}</span
-											>
+											<span class="text-2xl font-bold text-foreground">{priority.count}</span>
 										</div>
 									</div>
 								{/each}
@@ -678,7 +685,7 @@
 							<h4 class="text-md mb-3 font-medium text-foreground">Goals by Type</h4>
 							<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
 								{#each goalsAnalytics.breakdowns.type as type}
-									<div class="border border-input bg-card rounded-lg p-4">
+									<div class="rounded-lg border border-input bg-card p-4">
 										<div class="flex items-center justify-between">
 											<span class="text-sm font-medium text-muted-foreground">{type.label}</span>
 											<span class="text-2xl font-bold text-foreground">{type.count}</span>
@@ -690,7 +697,7 @@
 					{/if}
 
 					<!-- Health Score -->
-					<div class="rounded-lg border border bg-card p-6">
+					<div class="rounded-lg border bg-card p-6">
 						<h4 class="text-md mb-4 font-medium text-foreground">Overall Health Score</h4>
 						<div class="flex items-center gap-4">
 							<div class="flex-1">
@@ -716,14 +723,18 @@
 <!-- Create Goal Modal -->
 {#if showCreateModal}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+		class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black"
 		data-testid="create-goal-modal"
 	>
-		<div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-background p-6 shadow-lg">
+		<div
+			class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-background p-6 shadow-lg"
+		>
 			<h2 class="mb-4 text-xl font-bold">Create New Goal</h2>
 			<form class="space-y-4">
 				<div>
-					<label for="goal-title" class="mb-1 block text-sm font-medium text-foreground">Goal Title *</label>
+					<label for="goal-title" class="mb-1 block text-sm font-medium text-foreground"
+						>Goal Title *</label
+					>
 					<input
 						id="goal-title"
 						type="text"
@@ -736,7 +747,9 @@
 				</div>
 
 				<div>
-					<label for="goal-description" class="mb-1 block text-sm font-medium text-foreground">Description</label>
+					<label for="goal-description" class="mb-1 block text-sm font-medium text-foreground"
+						>Description</label
+					>
 					<textarea
 						id="goal-description"
 						bind:value={goalForm.description}
@@ -749,7 +762,9 @@
 
 				<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
 					<div>
-						<label for="goal-type" class="mb-1 block text-sm font-medium text-foreground">Type</label>
+						<label for="goal-type" class="mb-1 block text-sm font-medium text-foreground"
+							>Type</label
+						>
 						<select
 							id="goal-type"
 							bind:value={goalForm.goalType}
@@ -762,7 +777,9 @@
 						</select>
 					</div>
 					<div>
-						<label for="goal-priority" class="mb-1 block text-sm font-medium text-foreground">Priority</label>
+						<label for="goal-priority" class="mb-1 block text-sm font-medium text-foreground"
+							>Priority</label
+						>
 						<select
 							id="goal-priority"
 							bind:value={goalForm.priority}
@@ -775,7 +792,9 @@
 						</select>
 					</div>
 					<div>
-						<label for="goal-unit" class="mb-1 block text-sm font-medium text-foreground">Unit</label>
+						<label for="goal-unit" class="mb-1 block text-sm font-medium text-foreground"
+							>Unit</label
+						>
 						<select
 							id="goal-unit"
 							bind:value={goalForm.unit}
@@ -792,7 +811,9 @@
 
 				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 					<div>
-						<label for="goal-target-value" class="mb-1 block text-sm font-medium text-foreground">Target Value</label>
+						<label for="goal-target-value" class="mb-1 block text-sm font-medium text-foreground"
+							>Target Value</label
+						>
 						<input
 							id="goal-target-value"
 							type="number"
@@ -803,7 +824,9 @@
 						/>
 					</div>
 					<div>
-						<label for="goal-current-value" class="mb-1 block text-sm font-medium text-foreground">Current Value</label>
+						<label for="goal-current-value" class="mb-1 block text-sm font-medium text-foreground"
+							>Current Value</label
+						>
 						<input
 							id="goal-current-value"
 							type="number"
@@ -817,7 +840,9 @@
 
 				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 					<div>
-						<label for="goal-start-date" class="mb-1 block text-sm font-medium text-foreground">Start Date *</label>
+						<label for="goal-start-date" class="mb-1 block text-sm font-medium text-foreground"
+							>Start Date *</label
+						>
 						<input
 							id="goal-start-date"
 							type="date"
@@ -828,7 +853,9 @@
 						/>
 					</div>
 					<div>
-						<label for="goal-target-date" class="mb-1 block text-sm font-medium text-foreground">Target Date *</label>
+						<label for="goal-target-date" class="mb-1 block text-sm font-medium text-foreground"
+							>Target Date *</label
+						>
 						<input
 							id="goal-target-date"
 							type="date"
@@ -864,16 +891,21 @@
 <!-- View Goal Modal -->
 {#if showViewModal && currentGoal}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+		class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black"
 		data-testid="view-goal-modal"
 	>
-		<div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-background p-6 shadow-lg">
+		<div
+			class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-background p-6 shadow-lg"
+		>
 			<div class="mb-6 flex items-center justify-between">
 				<div>
 					<h2 class="text-xl font-bold">{currentGoal.title}</h2>
 					<p class="text-muted-foreground">{currentGoal.team?.name || 'Individual Goal'}</p>
 				</div>
-				<button onclick={closeModals} class="text-muted-foreground transition-colors hover:text-muted-foreground">
+				<button
+					onclick={closeModals}
+					class="text-muted-foreground transition-colors hover:text-muted-foreground"
+				>
 					✕
 				</button>
 			</div>
@@ -944,10 +976,7 @@
 				>
 					Update Progress
 				</button>
-				<button
-					onclick={closeModals}
-					class="rounded-md border px-4 py-2 text-sm hover:bg-accent"
-				>
+				<button onclick={closeModals} class="rounded-md border px-4 py-2 text-sm hover:bg-accent">
 					Close
 				</button>
 			</div>
@@ -958,7 +987,7 @@
 <!-- Progress Update Modal -->
 {#if showProgressModal && currentGoal}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+		class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black"
 		data-testid="progress-modal"
 	>
 		<div class="w-full max-w-md rounded-lg bg-background p-6 shadow-lg">
@@ -966,12 +995,17 @@
 
 			<div class="mb-4">
 				<h3 class="mb-2 font-medium text-foreground">{currentGoal.title}</h3>
-				<p class="text-sm text-muted-foreground">Target: {currentGoal.targetValue} {currentGoal.unit}</p>
+				<p class="text-sm text-muted-foreground">
+					Target: {currentGoal.targetValue}
+					{currentGoal.unit}
+				</p>
 			</div>
 
 			<form class="space-y-4">
 				<div>
-					<label for="progress-current-value" class="mb-1 block text-sm font-medium text-foreground">Current Value</label>
+					<label for="progress-current-value" class="mb-1 block text-sm font-medium text-foreground"
+						>Current Value</label
+					>
 					<input
 						id="progress-current-value"
 						type="number"

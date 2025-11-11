@@ -25,15 +25,15 @@
 	import LinkedResources from '$lib/components/tasks/LinkedResources.svelte';
 	import SubtaskProgress from '$lib/components/tasks/SubtaskProgress.svelte';
 	import {
-		Edit,
+		AlertCircle,
+		Bell,
+		Building,
+		Calendar,
 		CheckCircle,
 		Clock,
-		AlertCircle,
-		Calendar,
-		User,
+		Edit,
 		Target,
-		Building,
-		Bell
+		User
 	} from '@lucide/svelte';
 	import { format } from 'date-fns';
 	import { CHANGE_TASK_STATUS } from '$lib/graphql/tasks-operations';
@@ -41,10 +41,10 @@
 	import { toast } from 'svelte-sonner';
 
 	// Page data from server
-	let { data }: { data: PageData } = $props();
+	const { data }: { data: PageData } = $props();
 
 	// Get task data
-	let task = $derived(data.task);
+	const task = $derived(data.task);
 
 	// Status configuration
 	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
@@ -93,12 +93,14 @@
 	// Handle status change
 	async function handleStatusChange(taskId: string, newStatus: TaskStatus) {
 		try {
-			const result = await client.mutation(CHANGE_TASK_STATUS, {
-				input: {
-					taskId,
-					status: newStatus
-				}
-			}).toPromise();
+			const result = await client
+				.mutation(CHANGE_TASK_STATUS, {
+					input: {
+						taskId,
+						status: newStatus
+					}
+				})
+				.toPromise();
 
 			if (result.error) {
 				throw result.error;
@@ -162,7 +164,7 @@
 
 	// Get status config
 	// Transform GraphQL status format to config key format
-	let statusConfigForTask = $derived(() => {
+	const statusConfigForTask = $derived(() => {
 		// Map GraphQL status values to config keys
 		const statusMap: Record<string, keyof typeof statusConfig> = {
 			TODO: 'TO_DO',
@@ -179,7 +181,7 @@
 </script>
 
 <svelte:head>
-	<title>{task.title} - Task Details - SvelteHR</title>
+	<title>{task.title} - Task Details - MountainHR</title>
 	<meta name="description" content={task.description || 'Task details'} />
 </svelte:head>
 
@@ -223,7 +225,7 @@
 			{#if task.description}
 				<div>
 					<h3 class="mb-2 text-sm font-medium">Description</h3>
-					<p class="whitespace-pre-wrap text-sm text-muted-foreground">{task.description}</p>
+					<p class="text-sm whitespace-pre-wrap text-muted-foreground">{task.description}</p>
 				</div>
 			{/if}
 
@@ -341,12 +343,8 @@
 			<Tabs.Trigger value="subtasks">
 				Subtasks ({task.subtasks?.length || 0})
 			</Tabs.Trigger>
-			<Tabs.Trigger value="dependencies">
-				Dependencies (0)
-			</Tabs.Trigger>
-			<Tabs.Trigger value="resources">
-				Resources (0)
-			</Tabs.Trigger>
+			<Tabs.Trigger value="dependencies">Dependencies (0)</Tabs.Trigger>
+			<Tabs.Trigger value="resources">Resources (0)</Tabs.Trigger>
 			<Tabs.Trigger value="activity">Activity ({data.auditTotalCount})</Tabs.Trigger>
 		</Tabs.List>
 
@@ -411,5 +409,3 @@
 		</Tabs.Content>
 	</Tabs.Root>
 </div>
-
-

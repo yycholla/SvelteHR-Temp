@@ -81,7 +81,7 @@
 </script>
 
 <svelte:head>
-	<title>{isOwnReviews ? 'My Reviews' : `${user?.displayName} - Reviews`} | SvelteHR</title>
+	<title>{isOwnReviews ? 'My Reviews' : `${user?.displayName} - Reviews`} | MountainHR</title>
 </svelte:head>
 
 <div class="container mx-auto space-y-6 p-6">

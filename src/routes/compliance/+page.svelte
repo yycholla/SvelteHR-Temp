@@ -5,16 +5,16 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Progress from '$lib/components/ui/progress';
 	import {
-		UserCheck,
-		Shield,
-		FileText,
 		AlertTriangle,
+		ArrowLeft,
 		CheckCircle,
 		Clock,
 		Download,
-		ArrowLeft,
 		Eye,
-		RefreshCw
+		FileText,
+		RefreshCw,
+		Shield,
+		UserCheck
 	} from '@lucide/svelte';
 
 	// Mock compliance data
@@ -156,7 +156,7 @@
 </script>
 
 <svelte:head>
-	<title>Compliance Center - SvelteHR</title>
+	<title>Compliance Center - MountainHR</title>
 	<meta name="description" content="Monitor compliance status and regulatory requirements" />
 </svelte:head>
 

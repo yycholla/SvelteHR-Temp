@@ -11,8 +11,8 @@
 	 */
 
 	// Svelte 5 props syntax
-	let {
-		title = 'SvelteHR',
+	const {
+		title = 'MountainHR',
 		subtitle = 'Human Resources Management System',
 		showBranding = true,
 		showFooter = true,
@@ -101,7 +101,7 @@
 		{#if showFooter}
 			<div class="mt-8 text-center">
 				<p class="text-xs text-muted-foreground">
-					© {new Date().getFullYear()} SvelteHR. All rights reserved.
+					© {new Date().getFullYear()} MountainHR. All rights reserved.
 				</p>
 				<div class="mt-2 flex justify-center space-x-4 text-xs text-muted-foreground">
 					<a href="/privacy" class="transition-colors hover:text-foreground">Privacy Policy</a>

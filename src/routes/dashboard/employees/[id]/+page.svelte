@@ -14,34 +14,34 @@
 		type VehicleInput
 	} from '$lib/components/employees/AddVehicleModal.svelte';
 	import {
-		User,
+		AlertCircle,
 		ArrowLeft,
-		Edit,
-		Mail,
-		Phone,
-		MapPin,
-		Calendar,
+		Award,
 		Briefcase,
 		Building2,
-		Clock,
-		CheckCircle,
-		XCircle,
-		AlertCircle,
-		Award,
-		Plane,
+		Calendar,
 		Car,
-		Shield,
+		CheckCircle,
+		Clock,
 		DollarSign,
+		Edit,
 		FileBarChart,
 		FileText,
-		Plus
+		Mail,
+		MapPin,
+		Phone,
+		Plane,
+		Plus,
+		Shield,
+		User,
+		XCircle
 	} from '@lucide/svelte';
 
 	interface Props {
 		data: any;
 	}
 
-	let { data }: Props = $props();
+	const { data }: Props = $props();
 
 	// Extract data
 	const employee = $derived(data.employee);
@@ -51,7 +51,10 @@
 	$effect(() => {
 		console.log('[Employee Detail Page] Permissions:', permissions);
 		console.log('[Employee Detail Page] canViewContactInfo:', permissions?.canViewContactInfo);
-		console.log('[Employee Detail Page] canViewEmergencyContacts:', permissions?.canViewEmergencyContacts);
+		console.log(
+			'[Employee Detail Page] canViewEmergencyContacts:',
+			permissions?.canViewEmergencyContacts
+		);
 		console.log('[Employee Detail Page] canViewVehicles:', permissions?.canViewVehicles);
 		console.log('[Employee Detail Page] canViewDocuments:', permissions?.canViewDocuments);
 	});
@@ -79,7 +82,9 @@
 			}
 
 			const result = await response.json();
-			alert(`${result.message}\n\nAssigned: ${result.assignedCount}\nSkipped (already assigned): ${result.skippedCount}`);
+			alert(
+				`${result.message}\n\nAssigned: ${result.assignedCount}\nSkipped (already assigned): ${result.skippedCount}`
+			);
 
 			// Close modal and reload page
 			isAssignDocsModalOpen = false;
@@ -204,7 +209,7 @@
 </script>
 
 <svelte:head>
-	<title>{employee.displayName} - Employee Profile - SvelteHR</title>
+	<title>{employee.displayName} - Employee Profile - MountainHR</title>
 	<meta name="description" content="Employee profile for {employee.displayName}" />
 </svelte:head>
 
@@ -244,11 +249,11 @@
 			<div class="flex flex-col gap-3">
 				<div class="flex items-center justify-between">
 					<div class="flex items-center gap-3">
-						<Badge variant={getStatusBadgeVariant(employee.isActive)} class="text-xs px-2 py-0.5">
+						<Badge variant={getStatusBadgeVariant(employee.isActive)} class="px-2 py-0.5 text-xs">
 							{employee.isActive ? 'Active' : 'Inactive'}
 						</Badge>
 						{#if employee.department}
-							<span class="text-xs text-muted-foreground flex items-center gap-1">
+							<span class="flex items-center gap-1 text-xs text-muted-foreground">
 								<Building2 class="h-3 w-3" />
 								{employee.department.name}
 							</span>
@@ -274,112 +279,122 @@
 
 				<!-- Quick Overview - Expanded Grid with Contact Info -->
 				{#if permissions.canViewContactInfo}
-					<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-2 pt-2 pb-1 border-t text-xs">
-						<div class="flex items-center gap-1.5 min-w-0">
-							<Mail class="h-3 w-3 text-muted-foreground shrink-0" />
+					<div
+						class="grid grid-cols-2 gap-x-4 gap-y-2 border-t pt-2 pb-1 text-xs md:grid-cols-3 lg:grid-cols-6"
+					>
+						<div class="flex min-w-0 items-center gap-1.5">
+							<Mail class="h-3 w-3 shrink-0 text-muted-foreground" />
 							<div class="min-w-0 flex-1">
-								<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Email</p>
-								<p class="font-medium truncate">{employee.email}</p>
+								<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Email</p>
+								<p class="truncate font-medium">{employee.email}</p>
 							</div>
 						</div>
-						<div class="flex items-center gap-1.5 min-w-0">
-							<Briefcase class="h-3 w-3 text-muted-foreground shrink-0" />
+						<div class="flex min-w-0 items-center gap-1.5">
+							<Briefcase class="h-3 w-3 shrink-0 text-muted-foreground" />
 							<div class="min-w-0 flex-1">
-								<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Role</p>
-								<p class="font-medium truncate">{formatRole(employee.role)}</p>
+								<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Role</p>
+								<p class="truncate font-medium">{formatRole(employee.role)}</p>
 							</div>
 						</div>
-						<div class="flex items-center gap-1.5 min-w-0">
-							<Calendar class="h-3 w-3 text-muted-foreground shrink-0" />
+						<div class="flex min-w-0 items-center gap-1.5">
+							<Calendar class="h-3 w-3 shrink-0 text-muted-foreground" />
 							<div class="min-w-0 flex-1">
-								<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Hired</p>
-								<p class="font-medium truncate">{formatDate(employee.hireDate)}</p>
+								<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Hired</p>
+								<p class="truncate font-medium">{formatDate(employee.hireDate)}</p>
 							</div>
 						</div>
 						{#if employee.phoneNumber}
-							<div class="flex items-center gap-1.5 min-w-0">
-								<Phone class="h-3 w-3 text-muted-foreground shrink-0" />
+							<div class="flex min-w-0 items-center gap-1.5">
+								<Phone class="h-3 w-3 shrink-0 text-muted-foreground" />
 								<div class="min-w-0 flex-1">
-									<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Phone</p>
-									<p class="font-medium truncate">{employee.phoneNumber}</p>
+									<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Phone</p>
+									<p class="truncate font-medium">{employee.phoneNumber}</p>
 								</div>
 							</div>
 						{/if}
 						{#if employee.mobileNumber}
-							<div class="flex items-center gap-1.5 min-w-0">
-								<Phone class="h-3 w-3 text-muted-foreground shrink-0" />
+							<div class="flex min-w-0 items-center gap-1.5">
+								<Phone class="h-3 w-3 shrink-0 text-muted-foreground" />
 								<div class="min-w-0 flex-1">
-									<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Mobile</p>
-									<p class="font-medium truncate">{employee.mobileNumber}</p>
+									<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Mobile</p>
+									<p class="truncate font-medium">{employee.mobileNumber}</p>
 								</div>
 							</div>
 						{/if}
 						{#if employee.addressLine1}
-							<div class="flex items-center gap-1.5 min-w-0 col-span-2 md:col-span-1">
-								<MapPin class="h-3 w-3 text-muted-foreground shrink-0" />
+							<div class="col-span-2 flex min-w-0 items-center gap-1.5 md:col-span-1">
+								<MapPin class="h-3 w-3 shrink-0 text-muted-foreground" />
 								<div class="min-w-0 flex-1">
-									<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Location</p>
-									<p class="font-medium truncate">{employee.city}, {employee.stateProvince}</p>
+									<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Location</p>
+									<p class="truncate font-medium">{employee.city}, {employee.stateProvince}</p>
 								</div>
 							</div>
 						{/if}
 						{#if employee.department?.userByManagerId}
-							<div class="flex items-center gap-1.5 min-w-0">
-								<User class="h-3 w-3 text-muted-foreground shrink-0" />
+							<div class="flex min-w-0 items-center gap-1.5">
+								<User class="h-3 w-3 shrink-0 text-muted-foreground" />
 								<div class="min-w-0 flex-1">
-									<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Manager</p>
-									<p class="font-medium truncate">{employee.department.userByManagerId.displayName}</p>
+									<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Manager</p>
+									<p class="truncate font-medium">
+										{employee.department.userByManagerId.displayName}
+									</p>
 								</div>
 							</div>
 						{/if}
 						{#if employee.lastLogin}
-							<div class="flex items-center gap-1.5 min-w-0">
-								<Clock class="h-3 w-3 text-muted-foreground shrink-0" />
+							<div class="flex min-w-0 items-center gap-1.5">
+								<Clock class="h-3 w-3 shrink-0 text-muted-foreground" />
 								<div class="min-w-0 flex-1">
-									<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Last Login</p>
-									<p class="font-medium truncate">{formatDate(employee.lastLogin)}</p>
+									<p class="text-[10px] tracking-wide text-muted-foreground uppercase">
+										Last Login
+									</p>
+									<p class="truncate font-medium">{formatDate(employee.lastLogin)}</p>
 								</div>
 							</div>
 						{/if}
 					</div>
 				{:else}
 					<!-- Fallback for when contact info is not viewable -->
-					<div class="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 pt-2 pb-1 border-t text-xs">
-						<div class="flex items-center gap-1.5 min-w-0">
-							<Mail class="h-3 w-3 text-muted-foreground shrink-0" />
+					<div class="grid grid-cols-2 gap-x-4 gap-y-2 border-t pt-2 pb-1 text-xs md:grid-cols-4">
+						<div class="flex min-w-0 items-center gap-1.5">
+							<Mail class="h-3 w-3 shrink-0 text-muted-foreground" />
 							<div class="min-w-0 flex-1">
-								<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Email</p>
-								<p class="font-medium truncate">{employee.email}</p>
+								<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Email</p>
+								<p class="truncate font-medium">{employee.email}</p>
 							</div>
 						</div>
-						<div class="flex items-center gap-1.5 min-w-0">
-							<Briefcase class="h-3 w-3 text-muted-foreground shrink-0" />
+						<div class="flex min-w-0 items-center gap-1.5">
+							<Briefcase class="h-3 w-3 shrink-0 text-muted-foreground" />
 							<div class="min-w-0 flex-1">
-								<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Role</p>
-								<p class="font-medium truncate">{formatRole(employee.role)}</p>
+								<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Role</p>
+								<p class="truncate font-medium">{formatRole(employee.role)}</p>
 							</div>
 						</div>
-						<div class="flex items-center gap-1.5 min-w-0">
-							<Calendar class="h-3 w-3 text-muted-foreground shrink-0" />
+						<div class="flex min-w-0 items-center gap-1.5">
+							<Calendar class="h-3 w-3 shrink-0 text-muted-foreground" />
 							<div class="min-w-0 flex-1">
-								<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Hired</p>
-								<p class="font-medium truncate">{formatDate(employee.hireDate)}</p>
+								<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Hired</p>
+								<p class="truncate font-medium">{formatDate(employee.hireDate)}</p>
 							</div>
 						</div>
 						{#if employee.department?.userByManagerId}
-							<div class="flex items-center gap-1.5 min-w-0">
-								<User class="h-3 w-3 text-muted-foreground shrink-0" />
+							<div class="flex min-w-0 items-center gap-1.5">
+								<User class="h-3 w-3 shrink-0 text-muted-foreground" />
 								<div class="min-w-0 flex-1">
-									<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Manager</p>
-									<p class="font-medium truncate">{employee.department.userByManagerId.displayName}</p>
+									<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Manager</p>
+									<p class="truncate font-medium">
+										{employee.department.userByManagerId.displayName}
+									</p>
 								</div>
 							</div>
 						{:else if employee.lastLogin}
-							<div class="flex items-center gap-1.5 min-w-0">
-								<Clock class="h-3 w-3 text-muted-foreground shrink-0" />
+							<div class="flex min-w-0 items-center gap-1.5">
+								<Clock class="h-3 w-3 shrink-0 text-muted-foreground" />
 								<div class="min-w-0 flex-1">
-									<p class="text-[10px] text-muted-foreground uppercase tracking-wide">Last Login</p>
-									<p class="font-medium truncate">{formatDate(employee.lastLogin)}</p>
+									<p class="text-[10px] tracking-wide text-muted-foreground uppercase">
+										Last Login
+									</p>
+									<p class="truncate font-medium">{formatDate(employee.lastLogin)}</p>
 								</div>
 							</div>
 						{/if}
@@ -396,12 +411,12 @@
 				<!-- Emergency Contacts -->
 				{#if permissions.canViewEmergencyContacts}
 					<Accordion.Item value="emergency" class="border-b last:border-b-0">
-						<Accordion.Trigger class="px-4 py-3 hover:bg-muted/50 text-sm font-medium">
+						<Accordion.Trigger class="px-4 py-3 text-sm font-medium hover:bg-muted/50">
 							<div class="flex items-center gap-2">
 								<Shield class="h-4 w-4" />
 								<span>Emergency Contacts</span>
 								{#if employee.emergencyContacts?.length}
-									<Badge variant="secondary" class="ml-1 text-[10px] px-1.5 py-0">
+									<Badge variant="secondary" class="ml-1 px-1.5 py-0 text-[10px]">
 										{employee.emergencyContacts.length}
 									</Badge>
 								{/if}
@@ -409,7 +424,12 @@
 						</Accordion.Trigger>
 						<Accordion.Content class="px-4 pb-4">
 							{#if permissions.canManageEmployees || permissions.isViewingSelf}
-								<Button onclick={() => (isAddEmergencyContactModalOpen = true)} size="sm" variant="outline" class="mb-3 h-7 text-xs">
+								<Button
+									onclick={() => (isAddEmergencyContactModalOpen = true)}
+									size="sm"
+									variant="outline"
+									class="mb-3 h-7 text-xs"
+								>
 									<Plus class="mr-1 h-3 w-3" />
 									Add Contact
 								</Button>
@@ -418,27 +438,27 @@
 								<div class="grid gap-2">
 									{#each employee.emergencyContacts as contact}
 										<div class="rounded border p-2.5 text-xs">
-											<div class="flex items-center justify-between mb-2">
+											<div class="mb-2 flex items-center justify-between">
 												<h4 class="font-semibold">{contact.name}</h4>
 												{#if contact.isPrimary}
-													<Badge variant="default" class="text-[10px] px-1.5 py-0">Primary</Badge>
+													<Badge variant="default" class="px-1.5 py-0 text-[10px]">Primary</Badge>
 												{/if}
 											</div>
 											<div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
 												{#if contact.relationship}
-													<div class="flex justify-between col-span-2 md:col-span-1">
+													<div class="col-span-2 flex justify-between md:col-span-1">
 														<span class="text-muted-foreground">Relationship</span>
 														<span class="font-medium">{contact.relationship}</span>
 													</div>
 												{/if}
-												<div class="flex justify-between col-span-2 md:col-span-1">
+												<div class="col-span-2 flex justify-between md:col-span-1">
 													<span class="text-muted-foreground">Phone</span>
 													<span class="font-medium">{contact.phoneNumber}</span>
 												</div>
 												{#if contact.email}
-													<div class="flex justify-between col-span-2">
+													<div class="col-span-2 flex justify-between">
 														<span class="text-muted-foreground">Email</span>
-														<span class="font-medium truncate ml-2">{contact.email}</span>
+														<span class="ml-2 truncate font-medium">{contact.email}</span>
 													</div>
 												{/if}
 											</div>
@@ -446,7 +466,7 @@
 									{/each}
 								</div>
 							{:else}
-								<p class="text-xs text-muted-foreground text-center py-4">No emergency contacts</p>
+								<p class="py-4 text-center text-xs text-muted-foreground">No emergency contacts</p>
 							{/if}
 						</Accordion.Content>
 					</Accordion.Item>
@@ -455,12 +475,12 @@
 				<!-- Vehicles -->
 				{#if permissions.canViewVehicles}
 					<Accordion.Item value="vehicles" class="border-b last:border-b-0">
-						<Accordion.Trigger class="px-4 py-3 hover:bg-muted/50 text-sm font-medium">
+						<Accordion.Trigger class="px-4 py-3 text-sm font-medium hover:bg-muted/50">
 							<div class="flex items-center gap-2">
 								<Car class="h-4 w-4" />
 								<span>Vehicles</span>
 								{#if employee.vehicles?.length}
-									<Badge variant="secondary" class="ml-1 text-[10px] px-1.5 py-0">
+									<Badge variant="secondary" class="ml-1 px-1.5 py-0 text-[10px]">
 										{employee.vehicles.length}
 									</Badge>
 								{/if}
@@ -468,17 +488,24 @@
 						</Accordion.Trigger>
 						<Accordion.Content class="px-4 pb-4">
 							{#if permissions.canManageEmployees || permissions.isViewingSelf}
-								<Button onclick={() => (isAddVehicleModalOpen = true)} size="sm" variant="outline" class="mb-3 h-7 text-xs">
+								<Button
+									onclick={() => (isAddVehicleModalOpen = true)}
+									size="sm"
+									variant="outline"
+									class="mb-3 h-7 text-xs"
+								>
 									<Plus class="mr-1 h-3 w-3" />
 									Add Vehicle
 								</Button>
 							{/if}
 							{#if employee.vehicles && employee.vehicles.length > 0}
-								<div class="grid md:grid-cols-2 gap-2">
+								<div class="grid gap-2 md:grid-cols-2">
 									{#each employee.vehicles as vehicle}
 										<div class="rounded border p-2.5 text-xs">
-											<h4 class="font-semibold mb-1.5">
-												{vehicle.year} {vehicle.make} {vehicle.model}
+											<h4 class="mb-1.5 font-semibold">
+												{vehicle.year}
+												{vehicle.make}
+												{vehicle.model}
 											</h4>
 											<div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
 												{#if vehicle.color}
@@ -496,7 +523,7 @@
 									{/each}
 								</div>
 							{:else}
-								<p class="text-xs text-muted-foreground text-center py-4">No vehicles</p>
+								<p class="py-4 text-center text-xs text-muted-foreground">No vehicles</p>
 							{/if}
 						</Accordion.Content>
 					</Accordion.Item>
@@ -504,18 +531,18 @@
 
 				<!-- Leave Requests -->
 				<Accordion.Item value="leave" class="border-b last:border-b-0">
-					<Accordion.Trigger class="px-4 py-3 hover:bg-muted/50 text-sm font-medium">
+					<Accordion.Trigger class="px-4 py-3 text-sm font-medium hover:bg-muted/50">
 						<div class="flex items-center gap-2">
 							<Plane class="h-4 w-4" />
 							<span>Leave Requests</span>
-							<Badge variant="secondary" class="ml-1 text-[10px] px-1.5 py-0">
+							<Badge variant="secondary" class="ml-1 px-1.5 py-0 text-[10px]">
 								{employee.leaveRequestCount}
 							</Badge>
 						</div>
 					</Accordion.Trigger>
 					<Accordion.Content class="px-4 pb-4">
 						{#if employee.leaveRequests && employee.leaveRequests.length > 0}
-							<div class="rounded border overflow-hidden">
+							<div class="overflow-hidden rounded border">
 								<div class="overflow-x-auto">
 									<table class="w-full text-xs">
 										<thead class="bg-muted/50">
@@ -531,12 +558,16 @@
 											{#each employee.leaveRequests as request}
 												<tr class="border-b last:border-b-0">
 													<td class="px-2 py-1.5 font-medium">{request.leaveType}</td>
-													<td class="px-2 py-1.5 text-muted-foreground">{formatDate(request.startDate)}</td>
-													<td class="px-2 py-1.5 text-muted-foreground">{formatDate(request.endDate)}</td>
+													<td class="px-2 py-1.5 text-muted-foreground"
+														>{formatDate(request.startDate)}</td
+													>
+													<td class="px-2 py-1.5 text-muted-foreground"
+														>{formatDate(request.endDate)}</td
+													>
 													<td class="px-2 py-1.5">
-														<Badge class="text-[10px] px-1.5 py-0">{request.status}</Badge>
+														<Badge class="px-1.5 py-0 text-[10px]">{request.status}</Badge>
 													</td>
-													<td class="px-2 py-1.5 text-muted-foreground truncate max-w-xs">
+													<td class="max-w-xs truncate px-2 py-1.5 text-muted-foreground">
 														{request.reason || 'N/A'}
 													</td>
 												</tr>
@@ -546,25 +577,25 @@
 								</div>
 							</div>
 						{:else}
-							<p class="text-xs text-muted-foreground text-center py-4">No leave requests</p>
+							<p class="py-4 text-center text-xs text-muted-foreground">No leave requests</p>
 						{/if}
 					</Accordion.Content>
 				</Accordion.Item>
 
 				<!-- Performance Reviews -->
 				<Accordion.Item value="reviews" class="border-b last:border-b-0">
-					<Accordion.Trigger class="px-4 py-3 hover:bg-muted/50 text-sm font-medium">
+					<Accordion.Trigger class="px-4 py-3 text-sm font-medium hover:bg-muted/50">
 						<div class="flex items-center gap-2">
 							<Award class="h-4 w-4" />
 							<span>Performance Reviews</span>
-							<Badge variant="secondary" class="ml-1 text-[10px] px-1.5 py-0">
+							<Badge variant="secondary" class="ml-1 px-1.5 py-0 text-[10px]">
 								{employee.performanceReviewCount}
 							</Badge>
 						</div>
 					</Accordion.Trigger>
 					<Accordion.Content class="px-4 pb-4">
 						{#if employee.performanceReviews && employee.performanceReviews.length > 0}
-							<div class="rounded border overflow-hidden">
+							<div class="overflow-hidden rounded border">
 								<div class="overflow-x-auto">
 									<table class="w-full text-xs">
 										<thead class="bg-muted/50">
@@ -584,12 +615,14 @@
 														{review.overallRating ? `${review.overallRating}/5.0` : 'N/A'}
 													</td>
 													<td class="px-2 py-1.5">
-														<Badge class="text-[10px] px-1.5 py-0">{review.status}</Badge>
+														<Badge class="px-1.5 py-0 text-[10px]">{review.status}</Badge>
 													</td>
 													<td class="px-2 py-1.5 text-muted-foreground">
 														{review.reviewer?.displayName || 'N/A'}
 													</td>
-													<td class="px-2 py-1.5 text-muted-foreground">{formatDate(review.createdAt)}</td>
+													<td class="px-2 py-1.5 text-muted-foreground"
+														>{formatDate(review.createdAt)}</td
+													>
 												</tr>
 											{/each}
 										</tbody>
@@ -597,14 +630,14 @@
 								</div>
 							</div>
 						{:else}
-							<p class="text-xs text-muted-foreground text-center py-4">No performance reviews</p>
+							<p class="py-4 text-center text-xs text-muted-foreground">No performance reviews</p>
 						{/if}
 					</Accordion.Content>
 				</Accordion.Item>
 
 				<!-- Leave Balances -->
 				<Accordion.Item value="timeoff" class="border-b last:border-b-0">
-					<Accordion.Trigger class="px-4 py-3 hover:bg-muted/50 text-sm font-medium">
+					<Accordion.Trigger class="px-4 py-3 text-sm font-medium hover:bg-muted/50">
 						<div class="flex items-center gap-2">
 							<Calendar class="h-4 w-4" />
 							<span>Leave Balances</span>
@@ -612,7 +645,7 @@
 					</Accordion.Trigger>
 					<Accordion.Content class="px-4 pb-4">
 						{#if employee.leaveBalances && employee.leaveBalances.length > 0}
-							<div class="rounded border overflow-hidden">
+							<div class="overflow-hidden rounded border">
 								<div class="overflow-x-auto">
 									<table class="w-full text-xs">
 										<thead class="bg-muted/50">
@@ -630,7 +663,9 @@
 													<td class="px-2 py-1.5 font-medium">{balance.leaveTypeName}</td>
 													<td class="px-2 py-1.5 text-muted-foreground">{balance.year}</td>
 													<td class="px-2 py-1.5 text-right">{balance.totalDays}</td>
-													<td class="px-2 py-1.5 text-right text-muted-foreground">{balance.usedDays}</td>
+													<td class="px-2 py-1.5 text-right text-muted-foreground"
+														>{balance.usedDays}</td
+													>
 													<td class="px-2 py-1.5 text-right">
 														<span class="font-bold text-primary">{balance.remainingDays}</span>
 													</td>
@@ -641,7 +676,7 @@
 								</div>
 							</div>
 						{:else}
-							<p class="text-xs text-muted-foreground text-center py-4">No leave balances</p>
+							<p class="py-4 text-center text-xs text-muted-foreground">No leave balances</p>
 						{/if}
 					</Accordion.Content>
 				</Accordion.Item>
@@ -649,24 +684,29 @@
 				<!-- Documents -->
 				{#if permissions.canViewDocuments}
 					<Accordion.Item value="documents" class="border-b-0">
-						<Accordion.Trigger class="px-4 py-3 hover:bg-muted/50 text-sm font-medium">
+						<Accordion.Trigger class="px-4 py-3 text-sm font-medium hover:bg-muted/50">
 							<div class="flex items-center gap-2">
 								<FileText class="h-4 w-4" />
 								<span>Documents</span>
-								<Badge variant="secondary" class="ml-1 text-[10px] px-1.5 py-0">
+								<Badge variant="secondary" class="ml-1 px-1.5 py-0 text-[10px]">
 									{employee.documentsCount}
 								</Badge>
 							</div>
 						</Accordion.Trigger>
 						<Accordion.Content class="px-4 pb-4">
 							{#if permissions.canAssignDocuments}
-								<Button onclick={() => isAssignDocsModalOpen = true} size="sm" variant="outline" class="mb-3 h-7 text-xs">
+								<Button
+									onclick={() => (isAssignDocsModalOpen = true)}
+									size="sm"
+									variant="outline"
+									class="mb-3 h-7 text-xs"
+								>
 									<Plus class="mr-1 h-3 w-3" />
 									Assign
 								</Button>
 							{/if}
 							{#if employee.assignedDocuments && employee.assignedDocuments.length > 0}
-								<div class="rounded border overflow-hidden">
+								<div class="overflow-hidden rounded border">
 									<div class="overflow-x-auto">
 										<table class="w-full text-xs">
 											<thead class="bg-muted/50">
@@ -680,7 +720,10 @@
 											</thead>
 											<tbody>
 												{#each employee.assignedDocuments as document}
-													<tr class="border-b last:border-b-0 hover:bg-muted/30 cursor-pointer" onclick={() => goto(`/dashboard/documents/${document.id}`)}>
+													<tr
+														class="cursor-pointer border-b last:border-b-0 hover:bg-muted/30"
+														onclick={() => goto(`/dashboard/documents/${document.id}`)}
+													>
 														<td class="px-2 py-1.5 font-medium">
 															<div class="flex items-center gap-1.5">
 																<FileText class="h-3 w-3 text-muted-foreground" />
@@ -689,7 +732,12 @@
 														</td>
 														<td class="px-2 py-1.5 text-muted-foreground">{document.category}</td>
 														<td class="px-2 py-1.5">
-															<Badge variant={document.sensitivityLevel === 'Public' ? 'secondary' : 'default'} class="text-[10px] px-1.5 py-0">
+															<Badge
+																variant={document.sensitivityLevel === 'Public'
+																	? 'secondary'
+																	: 'default'}
+																class="px-1.5 py-0 text-[10px]"
+															>
 																{document.sensitivityLevel}
 															</Badge>
 														</td>
@@ -717,14 +765,18 @@
 									</div>
 								</div>
 							{:else}
-								<div class="text-center py-6">
-									<FileText class="mx-auto h-8 w-8 text-muted-foreground/30 mb-2" />
-									<p class="text-xs font-medium mb-1">No documents assigned</p>
-									<p class="text-[11px] text-muted-foreground mb-3">
+								<div class="py-6 text-center">
+									<FileText class="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
+									<p class="mb-1 text-xs font-medium">No documents assigned</p>
+									<p class="mb-3 text-[11px] text-muted-foreground">
 										This employee hasn't been assigned any documents.
 									</p>
 									{#if permissions.canAssignDocuments}
-										<Button onclick={() => isAssignDocsModalOpen = true} size="sm" class="h-7 text-xs">
+										<Button
+											onclick={() => (isAssignDocsModalOpen = true)}
+											size="sm"
+											class="h-7 text-xs"
+										>
 											<Plus class="mr-1 h-3 w-3" />
 											Assign Documents
 										</Button>

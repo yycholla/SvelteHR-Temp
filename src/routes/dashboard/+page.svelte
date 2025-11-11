@@ -1,8 +1,8 @@
 <script lang="ts">
 	// Server-loaded data imports
 	import type {
-		DashboardMetric,
 		ActivityItem,
+		DashboardMetric,
 		UpcomingEvent
 	} from '$lib/graphql/dashboard-operations';
 	import * as Card from '$lib/components/ui/card';
@@ -11,18 +11,18 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { Separator } from '$lib/components/ui/separator';
 	import {
-		Calendar,
-		TrendingUp,
-		CheckCircle,
-		Clock,
 		AlertTriangle,
-		MapPin,
-		Target,
 		Award,
-		User,
+		Calendar,
+		CheckCircle,
 		ChevronRight,
+		Clock,
 		FileText,
+		MapPin,
 		Settings,
+		Target,
+		TrendingUp,
+		User,
 		UserCheck
 	} from '@lucide/svelte';
 	// Feature 020: Audit logging widgets
@@ -39,19 +39,27 @@
 	import { createUrqlClient } from '$lib/graphql/client';
 	import { browser } from '$app/environment';
 	import { toast } from 'svelte-sonner';
-	import type { EventComment, EventHistoryEntry, UserWaitlistStatus } from '$lib/graphql/events-operations';
+	import type {
+		EventComment,
+		EventHistoryEntry,
+		UserWaitlistStatus
+	} from '$lib/graphql/events-operations';
 	import {
+		CREATE_EVENT_COMMENT,
+		DELETE_EVENT_COMMENT,
 		GET_EVENT_COMMENTS,
 		GET_EVENT_HISTORY,
 		GET_USER_WAITLIST_STATUS,
-		CREATE_EVENT_COMMENT,
-		UPDATE_EVENT_COMMENT,
-		DELETE_EVENT_COMMENT,
 		JOIN_EVENT_WAITLIST,
-		LEAVE_EVENT_WAITLIST
+		LEAVE_EVENT_WAITLIST,
+		UPDATE_EVENT_COMMENT
 	} from '$lib/graphql/events-operations';
 	import { sanitizeCommentContent } from '$lib/utils/sanitize';
-	import { CHANGE_TASK_STATUS, getTaskStatusColor, getTaskPriorityColor } from '$lib/graphql/tasks-operations';
+	import {
+		CHANGE_TASK_STATUS,
+		getTaskPriorityColor,
+		getTaskStatusColor
+	} from '$lib/graphql/tasks-operations';
 	import { formatDistance } from 'date-fns';
 
 	// Props from server-side load function
@@ -70,7 +78,7 @@
 		};
 	}
 
-	let { data }: Props = $props();
+	const { data }: Props = $props();
 
 	// Extract server-loaded data
 	const user = $derived(data.user);
@@ -80,7 +88,7 @@
 	if (browser) {
 		const token = document.cookie
 			.split('; ')
-			.find(row => row.startsWith('hr_token='))
+			.find((row) => row.startsWith('hr_token='))
 			?.split('=')[1];
 
 		if (token) {
@@ -131,7 +139,7 @@
 	});
 
 	// Derived task completion data based on total metrics
-	let taskCompletion = $derived.by(() => {
+	const taskCompletion = $derived.by(() => {
 		const taskCompletionPercentage =
 			totalTasksCount === 0 ? 0 : Math.round((totalCompletedTasks / totalTasksCount) * 100);
 
@@ -148,7 +156,12 @@
 			}
 		];
 
-		return { completedTaskCount: totalCompletedTasks, totalTaskCount: totalTasksCount, taskCompletionPercentage, taskChartData };
+		return {
+			completedTaskCount: totalCompletedTasks,
+			totalTaskCount: totalTasksCount,
+			taskCompletionPercentage,
+			taskChartData
+		};
 	});
 
 	// Event comments, history, waitlist state
@@ -166,53 +179,53 @@
 	// Helper function to build employee metrics from dashboard data
 	function buildEmployeeMetrics(dashboardData: any): DashboardMetric[] {
 		return [
-		{
-			title: 'My Attendance Rate',
-			value: `${dashboardData?.metrics?.attendanceRate ?? 0}%`,
-			change: {
-				value: (dashboardData?.metrics?.attendanceRate ?? 0) >= 95 ? '+2%' : '-1%',
-				type: (dashboardData?.metrics?.attendanceRate ?? 0) >= 95 ? 'increase' : 'warning',
-				period: 'this month'
+			{
+				title: 'My Attendance Rate',
+				value: `${dashboardData?.metrics?.attendanceRate ?? 0}%`,
+				change: {
+					value: (dashboardData?.metrics?.attendanceRate ?? 0) >= 95 ? '+2%' : '-1%',
+					type: (dashboardData?.metrics?.attendanceRate ?? 0) >= 95 ? 'increase' : 'warning',
+					period: 'this month'
+				},
+				icon: TrendingUp,
+				href: `/dashboard/profile/attendance`
 			},
-			icon: TrendingUp,
-			href: `/dashboard/profile/attendance`
-		},
-		{
-			title: 'Pending Requests',
-			value: `${dashboardData?.metrics?.pendingRequests ?? 0}`,
-			change: {
-				value:
-					(dashboardData?.metrics?.pendingRequests ?? 0) > 0
-						? `${dashboardData?.metrics?.pendingRequests ?? 0} pending`
-						: 'None pending',
-				type: (dashboardData?.metrics?.pendingRequests ?? 0) > 0 ? 'warning' : 'neutral',
-				period: (dashboardData?.metrics?.pendingRequests ?? 0) > 0 ? 'requests' : ''
+			{
+				title: 'Pending Requests',
+				value: `${dashboardData?.metrics?.pendingRequests ?? 0}`,
+				change: {
+					value:
+						(dashboardData?.metrics?.pendingRequests ?? 0) > 0
+							? `${dashboardData?.metrics?.pendingRequests ?? 0} pending`
+							: 'None pending',
+					type: (dashboardData?.metrics?.pendingRequests ?? 0) > 0 ? 'warning' : 'neutral',
+					period: (dashboardData?.metrics?.pendingRequests ?? 0) > 0 ? 'requests' : ''
+				},
+				icon: Clock,
+				href: `/dashboard/users/${user.id}/leave/requests`
 			},
-			icon: Clock,
-			href: `/dashboard/users/${user.id}/leave/requests`
-		},
-		{
-			title: 'My Tasks',
-			value: `${dashboardData?.metrics?.taskCount ?? 0}`,
-			change: {
-				value: `${Math.floor((dashboardData?.metrics?.taskCount ?? 0) / 2)} due soon`,
-				type: 'warning',
-				period: 'this week'
+			{
+				title: 'My Tasks',
+				value: `${dashboardData?.metrics?.taskCount ?? 0}`,
+				change: {
+					value: `${Math.floor((dashboardData?.metrics?.taskCount ?? 0) / 2)} due soon`,
+					type: 'warning',
+					period: 'this week'
+				},
+				icon: CheckCircle,
+				href: `/dashboard/users/${user.id}/tasks`
 			},
-			icon: CheckCircle,
-			href: `/dashboard/users/${user.id}/tasks`
-		},
-		{
-			title: 'Days Off Remaining',
-			value: `${dashboardData?.metrics?.remainingVacationDays ?? 0}`,
-			change: {
-				value: `${(dashboardData?.metrics?.remainingVacationDays ?? 0) + 6} total`,
-				type: 'neutral',
-				period: 'this year'
-			},
-			icon: Calendar,
-			href: `/dashboard/users/${user.id}/leave/new`
-		}
+			{
+				title: 'Days Off Remaining',
+				value: `${dashboardData?.metrics?.remainingVacationDays ?? 0}`,
+				change: {
+					value: `${(dashboardData?.metrics?.remainingVacationDays ?? 0) + 6} total`,
+					type: 'neutral',
+					period: 'this year'
+				},
+				icon: Calendar,
+				href: `/dashboard/users/${user.id}/leave/new`
+			}
 		];
 	}
 
@@ -305,7 +318,9 @@
 
 		try {
 			// Fetch full event details from GraphQL
-			const result = await urqlClient.query(`
+			const result = await urqlClient
+				.query(
+					`
 				query GetEventDetails($eventId: UUID!) {
 					event(id: $eventId) {
 						id
@@ -328,7 +343,10 @@
 						}
 					}
 				}
-			`, { eventId }).toPromise();
+			`,
+					{ eventId }
+				)
+				.toPromise();
 
 			if (result.error || !result.data?.event) {
 				console.error('Error fetching event details:', result.error);
@@ -369,7 +387,9 @@
 
 		try {
 			const offset = reset ? 0 : commentOffset;
-			const result = await urqlClient.query(GET_EVENT_COMMENTS, { eventId, limit: 20, offset }).toPromise();
+			const result = await urqlClient
+				.query(GET_EVENT_COMMENTS, { eventId, limit: 20, offset })
+				.toPromise();
 
 			if (result.error || !result.data) {
 				console.error('Error fetching event comments:', result.error);
@@ -411,7 +431,9 @@
 
 		try {
 			const offset = reset ? 0 : historyOffset;
-			const result = await urqlClient.query(GET_EVENT_HISTORY, { eventId, limit: 25, offset }).toPromise();
+			const result = await urqlClient
+				.query(GET_EVENT_HISTORY, { eventId, limit: 25, offset })
+				.toPromise();
 
 			if (result.error || !result.data) {
 				console.error('Error fetching event history:', result.error);
@@ -451,10 +473,12 @@
 		if (!urqlClient) return;
 
 		try {
-			const result = await urqlClient.query(GET_USER_WAITLIST_STATUS, {
-				eventId,
-				userId: data.user.id
-			}).toPromise();
+			const result = await urqlClient
+				.query(GET_USER_WAITLIST_STATUS, {
+					eventId,
+					userId: data.user.id
+				})
+				.toPromise();
 
 			if (result.error || !result.data) {
 				console.error('Error fetching waitlist status:', result.error);
@@ -484,31 +508,36 @@
 		const sanitized = sanitizeCommentContent(content);
 
 		try {
-			const result = await urqlClient.mutation(CREATE_EVENT_COMMENT, {
-				input: {
-					eventId: selectedEvent.id,
-					userId: data.user.id,
-					commentText: sanitized
-				}
-			}).toPromise();
+			const result = await urqlClient
+				.mutation(CREATE_EVENT_COMMENT, {
+					input: {
+						eventId: selectedEvent.id,
+						userId: data.user.id,
+						commentText: sanitized
+					}
+				})
+				.toPromise();
 
 			if (result.error || !result.data) {
 				throw new Error(result.error?.message || 'Failed to create comment');
 			}
 
 			const newComment = result.data.createEventComment;
-			eventComments = [{
-				id: newComment.id,
-				content: newComment.commentText,
-				author: {
-					id: newComment.user?.id || data.user.id,
-					name: newComment.user?.displayName || data.user.display_name || 'Unknown User',
-					avatarUrl: undefined
+			eventComments = [
+				{
+					id: newComment.id,
+					content: newComment.commentText,
+					author: {
+						id: newComment.user?.id || data.user.id,
+						name: newComment.user?.displayName || data.user.display_name || 'Unknown User',
+						avatarUrl: undefined
+					},
+					mentions: [],
+					createdAt: newComment.createdAt,
+					updatedAt: newComment.updatedAt
 				},
-				mentions: [],
-				createdAt: newComment.createdAt,
-				updatedAt: newComment.updatedAt
-			}, ...eventComments];
+				...eventComments
+			];
 			commentCount += 1;
 		} catch (err: any) {
 			console.error('Failed to add comment:', err);
@@ -522,17 +551,19 @@
 		const sanitized = sanitizeCommentContent(content);
 
 		try {
-			const result = await urqlClient.mutation(UPDATE_EVENT_COMMENT, {
-				id: commentId,
-				input: { commentText: sanitized }
-			}).toPromise();
+			const result = await urqlClient
+				.mutation(UPDATE_EVENT_COMMENT, {
+					id: commentId,
+					input: { commentText: sanitized }
+				})
+				.toPromise();
 
 			if (result.error || !result.data) {
 				throw new Error(result.error?.message || 'Failed to update comment');
 			}
 
 			const updatedComment = result.data.updateEventComment;
-			eventComments = eventComments.map(comment =>
+			eventComments = eventComments.map((comment) =>
 				comment.id === commentId
 					? { ...comment, content: updatedComment.commentText, updatedAt: updatedComment.updatedAt }
 					: comment
@@ -553,7 +584,7 @@
 				throw new Error(result.error?.message || 'Failed to delete comment');
 			}
 
-			eventComments = eventComments.filter(comment => comment.id !== commentId);
+			eventComments = eventComments.filter((comment) => comment.id !== commentId);
 			commentCount -= 1;
 		} catch (err: any) {
 			console.error('Failed to delete comment:', err);
@@ -566,10 +597,12 @@
 		if (!urqlClient) return;
 
 		try {
-			const result = await urqlClient.mutation(JOIN_EVENT_WAITLIST, {
-				eventId,
-				employeeId: data.user.id
-			}).toPromise();
+			const result = await urqlClient
+				.mutation(JOIN_EVENT_WAITLIST, {
+					eventId,
+					employeeId: data.user.id
+				})
+				.toPromise();
 
 			if (result.error || !result.data) {
 				throw new Error(result.error?.message || 'Failed to join waitlist');
@@ -587,10 +620,12 @@
 		if (!urqlClient) return;
 
 		try {
-			const result = await urqlClient.mutation(LEAVE_EVENT_WAITLIST, {
-				eventId,
-				employeeId: data.user.id
-			}).toPromise();
+			const result = await urqlClient
+				.mutation(LEAVE_EVENT_WAITLIST, {
+					eventId,
+					employeeId: data.user.id
+				})
+				.toPromise();
 
 			if (result.error || !result.data) {
 				throw new Error(result.error?.message || 'Failed to leave waitlist');
@@ -627,7 +662,7 @@
 		if (!urqlClient) return;
 
 		// Optimistically update local state
-		const taskIndex = localTasks.findIndex(t => t.id === taskId);
+		const taskIndex = localTasks.findIndex((t) => t.id === taskId);
 		if (taskIndex === -1) return;
 
 		const oldStatus = localTasks[taskIndex].status;
@@ -646,12 +681,14 @@
 		}
 
 		try {
-			const result = await urqlClient.mutation(CHANGE_TASK_STATUS, {
-				input: {
-					taskId,
-					status: newStatus
-				}
-			}).toPromise();
+			const result = await urqlClient
+				.mutation(CHANGE_TASK_STATUS, {
+					input: {
+						taskId,
+						status: newStatus
+					}
+				})
+				.toPromise();
 
 			if (result.error) {
 				throw result.error;
@@ -674,21 +711,21 @@
 
 	// Handler for optimistic RSVP updates
 	function handleRsvpUpdate(eventId: string, newRsvpStatus: string) {
-		const eventIndex = localEvents.findIndex(e => e.id === eventId);
+		const eventIndex = localEvents.findIndex((e) => e.id === eventId);
 		if (eventIndex !== -1) {
 			// Update local event state optimistically
 			localEvents[eventIndex].rsvpStatus = newRsvpStatus;
 		}
 
 		// Also update selected event if it's currently open
-		if (selectedEvent && selectedEvent.id === eventId) {
+		if (selectedEvent?.id === eventId) {
 			selectedEvent = { ...selectedEvent, rsvpStatus: newRsvpStatus };
 		}
 	}
 </script>
 
 <svelte:head>
-	<title>Dashboard - SvelteHR</title>
+	<title>Dashboard - MountainHR</title>
 	<meta name="description" content="HR management dashboard overview" />
 </svelte:head>
 
@@ -794,7 +831,7 @@
 					<!-- Loading skeleton -->
 					<div class="space-y-4">
 						{#each Array(3) as _}
-							<div class="flex items-start space-x-3 animate-pulse">
+							<div class="flex animate-pulse items-start space-x-3">
 								<div class="h-6 w-6 rounded-full bg-muted"></div>
 								<div class="flex-1 space-y-2">
 									<div class="h-4 w-3/4 rounded bg-muted"></div>
@@ -868,7 +905,7 @@
 					<!-- Loading skeleton -->
 					<div class="space-y-3">
 						{#each Array(3) as _}
-							<div class="flex items-start space-x-3 rounded-lg p-2 animate-pulse">
+							<div class="flex animate-pulse items-start space-x-3 rounded-lg p-2">
 								<div class="h-5 w-5 rounded-full bg-muted"></div>
 								<div class="flex-1 space-y-2">
 									<div class="h-4 w-3/4 rounded bg-muted"></div>
@@ -882,7 +919,7 @@
 						<div class="space-y-3">
 							{#each localTasks as task}
 								<div
-									class="task-card group relative rounded-lg border border-border bg-card p-4 shadow-sm transition-all hover:shadow-md cursor-pointer hover:border-primary"
+									class="task-card group relative cursor-pointer rounded-lg border border-border bg-card p-4 shadow-sm transition-all hover:border-primary hover:shadow-md"
 									onclick={() => handleTaskClick(task.id)}
 									role="button"
 									tabindex="0"
@@ -903,25 +940,58 @@
 												aria-label="Change task status"
 											>
 												{#if task.status === 'DONE'}
-													<svg class="h-5 w-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
-														<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+													<svg
+														class="h-5 w-5 text-green-600 dark:text-green-400"
+														fill="currentColor"
+														viewBox="0 0 20 20"
+													>
+														<path
+															fill-rule="evenodd"
+															d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+															clip-rule="evenodd"
+														/>
 													</svg>
 												{:else if task.status === 'IN_PROGRESS'}
 													<svg class="h-5 w-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
-														<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" />
+														<path
+															fill-rule="evenodd"
+															d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z"
+															clip-rule="evenodd"
+														/>
 														<circle cx="10" cy="10" r="3" fill="currentColor" />
 													</svg>
 												{:else if task.status === 'REVIEW'}
-													<svg class="h-5 w-5 text-yellow-600 dark:text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-														<path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
-														<path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+													<svg
+														class="h-5 w-5 text-yellow-600 dark:text-yellow-400"
+														fill="currentColor"
+														viewBox="0 0 20 20"
+													>
+														<path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+														<path
+															fill-rule="evenodd"
+															d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+															clip-rule="evenodd"
+														/>
 													</svg>
 												{:else if task.status === 'BLOCKED'}
-													<svg class="h-5 w-5 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20">
-														<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+													<svg
+														class="h-5 w-5 text-red-600 dark:text-red-400"
+														fill="currentColor"
+														viewBox="0 0 20 20"
+													>
+														<path
+															fill-rule="evenodd"
+															d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+															clip-rule="evenodd"
+														/>
 													</svg>
 												{:else}
-													<svg class="h-5 w-5 text-muted-foreground hover:text-foreground" fill="none" stroke="currentColor" viewBox="0 0 20 20">
+													<svg
+														class="h-5 w-5 text-muted-foreground hover:text-foreground"
+														fill="none"
+														stroke="currentColor"
+														viewBox="0 0 20 20"
+													>
 														<circle cx="10" cy="10" r="8" stroke-width="2" />
 													</svg>
 												{/if}
@@ -936,7 +1006,12 @@
 													}}
 													disabled={task.status === 'TODO'}
 												>
-													<svg class="h-4 w-4 text-muted-foreground mr-2" fill="none" stroke="currentColor" viewBox="0 0 20 20">
+													<svg
+														class="mr-2 h-4 w-4 text-muted-foreground"
+														fill="none"
+														stroke="currentColor"
+														viewBox="0 0 20 20"
+													>
 														<circle cx="10" cy="10" r="8" stroke-width="2" />
 													</svg>
 													To Do
@@ -948,8 +1023,16 @@
 													}}
 													disabled={task.status === 'IN_PROGRESS'}
 												>
-													<svg class="h-4 w-4 text-primary mr-2" fill="currentColor" viewBox="0 0 20 20">
-														<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" />
+													<svg
+														class="mr-2 h-4 w-4 text-primary"
+														fill="currentColor"
+														viewBox="0 0 20 20"
+													>
+														<path
+															fill-rule="evenodd"
+															d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z"
+															clip-rule="evenodd"
+														/>
 														<circle cx="10" cy="10" r="3" fill="currentColor" />
 													</svg>
 													In Progress
@@ -961,9 +1044,17 @@
 													}}
 													disabled={task.status === 'REVIEW'}
 												>
-													<svg class="h-4 w-4 text-yellow-600 dark:text-yellow-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-														<path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
-														<path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+													<svg
+														class="mr-2 h-4 w-4 text-yellow-600 dark:text-yellow-400"
+														fill="currentColor"
+														viewBox="0 0 20 20"
+													>
+														<path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+														<path
+															fill-rule="evenodd"
+															d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+															clip-rule="evenodd"
+														/>
 													</svg>
 													Review
 												</DropdownMenu.Item>
@@ -974,8 +1065,16 @@
 													}}
 													disabled={task.status === 'BLOCKED'}
 												>
-													<svg class="h-4 w-4 text-red-600 dark:text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-														<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+													<svg
+														class="mr-2 h-4 w-4 text-red-600 dark:text-red-400"
+														fill="currentColor"
+														viewBox="0 0 20 20"
+													>
+														<path
+															fill-rule="evenodd"
+															d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+															clip-rule="evenodd"
+														/>
 													</svg>
 													Blocked
 												</DropdownMenu.Item>
@@ -986,33 +1085,53 @@
 													}}
 													disabled={task.status === 'DONE'}
 												>
-													<svg class="h-4 w-4 text-green-600 dark:text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-														<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+													<svg
+														class="mr-2 h-4 w-4 text-green-600 dark:text-green-400"
+														fill="currentColor"
+														viewBox="0 0 20 20"
+													>
+														<path
+															fill-rule="evenodd"
+															d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+															clip-rule="evenodd"
+														/>
 													</svg>
 													Done
 												</DropdownMenu.Item>
 											</DropdownMenu.Content>
 										</DropdownMenu.Root>
-										
+
 										<!-- Task Title -->
-										<h3 class="text-base font-semibold text-foreground group-hover:text-primary flex-1">
+										<h3
+											class="flex-1 text-base font-semibold text-foreground group-hover:text-primary"
+										>
 											{task.title}
 										</h3>
 									</div>
-									
+
 									<!-- Badges and Due Date inline -->
-									<div class="mt-2 flex flex-wrap items-center gap-2 text-xs ml-8">
+									<div class="mt-2 ml-8 flex flex-wrap items-center gap-2 text-xs">
 										<!-- Status Badge -->
-										<span class="inline-flex items-center rounded-full px-2 py-0.5 {getTaskStatusColor(task.status)}">
+										<span
+											class="inline-flex items-center rounded-full px-2 py-0.5 {getTaskStatusColor(
+												task.status
+											)}"
+										>
 											{task.status}
 										</span>
 										<!-- Priority Badge -->
-										<span class="inline-flex items-center rounded-full px-2 py-0.5 {getTaskPriorityColor(task.priority)}">
+										<span
+											class="inline-flex items-center rounded-full px-2 py-0.5 {getTaskPriorityColor(
+												task.priority
+											)}"
+										>
 											{task.priority}
 										</span>
 										<!-- Task Type Badge -->
 										{#if task.taskType}
-											<span class="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
+											<span
+												class="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-muted-foreground"
+											>
 												{task.taskType.name}
 											</span>
 										{/if}
@@ -1028,14 +1147,14 @@
 						</div>
 					{:else}
 						<div class="flex flex-col items-center justify-center py-8 text-center">
-						<CheckCircle class="mb-2 h-12 w-12 text-muted-foreground opacity-50" />
-						<p class="text-sm font-medium">All caught up!</p>
-						<p class="text-xs text-muted-foreground">No pending tasks</p>
-					</div>
+							<CheckCircle class="mb-2 h-12 w-12 text-muted-foreground opacity-50" />
+							<p class="text-sm font-medium">All caught up!</p>
+							<p class="text-xs text-muted-foreground">No pending tasks</p>
+						</div>
 					{/if}
 					{#if taskCompletion.totalTaskCount > 0}
-						<div class="mt-4 pt-4 border-t">
-							<div class="flex items-center justify-between w-full">
+						<div class="mt-4 border-t pt-4">
+							<div class="flex w-full items-center justify-between">
 								<div class="flex flex-col gap-1">
 									<div class="text-sm font-medium">Task Completion</div>
 									<div class="text-xs text-muted-foreground">
@@ -1067,9 +1186,7 @@
 											{/snippet}
 										</ArcChart>
 									</Chart.Container>
-									<div
-										class="absolute inset-0 flex items-center justify-center text-lg font-bold"
-									>
+									<div class="absolute inset-0 flex items-center justify-center text-lg font-bold">
 										{taskCompletion.taskCompletionPercentage}%
 									</div>
 								</div>
@@ -1098,7 +1215,7 @@
 					<!-- Loading skeleton -->
 					<div class="space-y-4">
 						{#each Array(3) as _}
-							<div class="flex items-center space-x-3 animate-pulse">
+							<div class="flex animate-pulse items-center space-x-3">
 								<div class="h-8 w-8 rounded-full bg-muted"></div>
 								<div class="flex-1 space-y-2">
 									<div class="h-4 w-3/4 rounded bg-muted"></div>
@@ -1110,7 +1227,7 @@
 				{:then resolvedData}
 					{#if localEvents.length === 0}
 						<div class="flex flex-col items-center justify-center py-8 text-center">
-							<Calendar class="h-12 w-12 text-muted-foreground mb-2" />
+							<Calendar class="mb-2 h-12 w-12 text-muted-foreground" />
 							<p class="text-sm text-muted-foreground">No upcoming events in the next month</p>
 						</div>
 					{:else}
@@ -1139,9 +1256,9 @@
 											<Award class="h-4 w-4 text-green-600" />
 										{/if}
 									</div>
-									<div class="flex-1 min-w-0">
-										<p class="text-sm font-medium truncate">{event.title}</p>
-										<div class="flex items-center gap-2 mt-1 flex-wrap">
+									<div class="min-w-0 flex-1">
+										<p class="truncate text-sm font-medium">{event.title}</p>
+										<div class="mt-1 flex flex-wrap items-center gap-2">
 											<p class="text-xs text-muted-foreground">{event.date}</p>
 											<span class="text-xs text-muted-foreground">•</span>
 											<p class="text-xs text-muted-foreground">{event.time}</p>
@@ -1258,7 +1375,7 @@
 		onLoadMoreComments={handleLoadMoreComments}
 		onLoadMoreHistory={handleLoadMoreHistory}
 		onRsvpUpdate={handleRsvpUpdate}
-		hasMoreComments={hasMoreComments}
-		hasMoreHistory={hasMoreHistory}
+		{hasMoreComments}
+		{hasMoreHistory}
 	/>
 {/if}

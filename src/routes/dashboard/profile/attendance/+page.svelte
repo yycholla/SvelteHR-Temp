@@ -1,17 +1,26 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { Calendar, Clock, MapPin, TrendingUp, User, CheckCircle, AlertCircle, Circle } from '@lucide/svelte';
-	import { formatDistanceToNow, format, parseISO } from 'date-fns';
+	import {
+		AlertCircle,
+		Calendar,
+		CheckCircle,
+		Circle,
+		Clock,
+		MapPin,
+		TrendingUp,
+		User
+	} from '@lucide/svelte';
+	import { format, formatDistanceToNow, parseISO } from 'date-fns';
 
-	let { data } = $props();
+	const { data } = $props();
 
 	// Extract data properties directly to avoid circular dependencies
-	let user = $derived(data.user);
-	let userId = $derived(data.userId);
-	let attendanceRecords = $derived(data.attendanceRecords);
-	let attendanceStats = $derived(data.attendanceStats);
-	let canManageAttendance = $derived(data.canManageAttendance);
-	let isOwnAttendance = $derived(data.isOwnAttendance);
+	const user = $derived(data.user);
+	const userId = $derived(data.userId);
+	const attendanceRecords = $derived(data.attendanceRecords);
+	const attendanceStats = $derived(data.attendanceStats);
+	const canManageAttendance = $derived(data.canManageAttendance);
+	const isOwnAttendance = $derived(data.isOwnAttendance);
 
 	// Current date for clock in/out functionality
 	let currentTime = $state(new Date());
@@ -36,26 +45,34 @@
 		if (!records) return;
 
 		const today = new Date().toISOString().split('T')[0];
-		const record = records.find(r => r.date === today);
+		const record = records.find((r) => r.date === today);
 		todayRecord = record || null;
-		isClockedIn = Boolean(record && record.clockIn && !record.clockOut);
+		isClockedIn = Boolean(record?.clockIn && !record.clockOut);
 	});
 
 	function getStatusIcon(status: string) {
 		switch (status) {
-			case 'present': return CheckCircle;
-			case 'partial': return AlertCircle;
-			case 'absent': return Circle;
-			default: return Circle;
+			case 'present':
+				return CheckCircle;
+			case 'partial':
+				return AlertCircle;
+			case 'absent':
+				return Circle;
+			default:
+				return Circle;
 		}
 	}
 
 	function getStatusColor(status: string) {
 		switch (status) {
-			case 'present': return 'text-green-600';
-			case 'partial': return 'text-yellow-600';
-			case 'absent': return 'text-red-600';
-			default: return 'text-muted-foreground';
+			case 'present':
+				return 'text-green-600';
+			case 'partial':
+				return 'text-yellow-600';
+			case 'absent':
+				return 'text-red-600';
+			default:
+				return 'text-muted-foreground';
 		}
 	}
 
@@ -74,7 +91,9 @@
 </script>
 
 <svelte:head>
-	<title>{isOwnAttendance ? 'My Attendance' : `${user?.displayName} - Attendance`} | SvelteHR</title>
+	<title
+		>{isOwnAttendance ? 'My Attendance' : `${user?.displayName} - Attendance`} | MountainHR</title
+	>
 </svelte:head>
 
 <div class="container mx-auto space-y-6 p-6">
@@ -107,8 +126,8 @@
 					onclick={handleClockAction}
 					class="mt-2 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors
 						{isClockedIn
-							? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
-							: 'bg-primary text-primary-foreground hover:bg-primary/90'}"
+						? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+						: 'bg-primary text-primary-foreground hover:bg-primary/90'}"
 				>
 					<Clock class="h-4 w-4" />
 					{isClockedIn ? 'Clock Out' : 'Clock In'}
@@ -118,8 +137,11 @@
 	</div>
 
 	<!-- Attendance Statistics -->
-	<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4" data-testid="hr-attendance-stats">
-		<div class="rounded-lg bg-card p-6 shadow-sm border">
+	<div
+		class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4"
+		data-testid="hr-attendance-stats"
+	>
+		<div class="rounded-lg border bg-card p-6 shadow-sm">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-muted-foreground">Attendance Rate</p>
@@ -131,7 +153,7 @@
 			</div>
 		</div>
 
-		<div class="rounded-lg bg-card p-6 shadow-sm border">
+		<div class="rounded-lg border bg-card p-6 shadow-sm">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-muted-foreground">Total Days</p>
@@ -143,7 +165,7 @@
 			</div>
 		</div>
 
-		<div class="rounded-lg bg-card p-6 shadow-sm border">
+		<div class="rounded-lg border bg-card p-6 shadow-sm">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-muted-foreground">Total Hours</p>
@@ -155,7 +177,7 @@
 			</div>
 		</div>
 
-		<div class="rounded-lg bg-card p-6 shadow-sm border">
+		<div class="rounded-lg border bg-card p-6 shadow-sm">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-muted-foreground">Avg. Hours/Day</p>
@@ -170,8 +192,8 @@
 
 	<!-- Today's Status (if viewing own attendance) -->
 	{#if isOwnAttendance && todayRecord}
-		<div class="rounded-lg bg-card p-6 shadow-sm border">
-			<h2 class="text-lg font-semibold text-foreground mb-4">Today's Status</h2>
+		<div class="rounded-lg border bg-card p-6 shadow-sm">
+			<h2 class="mb-4 text-lg font-semibold text-foreground">Today's Status</h2>
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
 				<div>
 					<p class="text-sm font-medium text-muted-foreground">Clock In</p>
@@ -196,8 +218,8 @@
 	{/if}
 
 	<!-- Attendance Records -->
-	<div class="rounded-lg bg-card shadow-sm border">
-		<div class="border-b border px-6 py-4">
+	<div class="rounded-lg border bg-card shadow-sm">
+		<div class="border border-b px-6 py-4">
 			<h2 class="text-lg font-semibold text-foreground">Attendance History</h2>
 		</div>
 		<div class="overflow-hidden">
@@ -205,25 +227,39 @@
 				<table class="w-full text-sm" data-testid="hr-attendance-tab">
 					<thead class="bg-muted/50">
 						<tr>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
+							>
 								Date
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
+							>
 								Clock In
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
+							>
 								Clock Out
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
+							>
 								Hours
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
+							>
 								Status
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
+							>
 								Location
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+							<th
+								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
+							>
 								Notes
 							</th>
 						</tr>
@@ -231,19 +267,19 @@
 					<tbody class="">
 						{#each attendanceRecords as record}
 							<tr class="border-b hover:bg-muted/50">
-								<td class="whitespace-nowrap px-6 py-4 text-sm text-foreground">
+								<td class="px-6 py-4 text-sm whitespace-nowrap text-foreground">
 									{formatDate(record.date)}
 								</td>
-								<td class="whitespace-nowrap px-6 py-4 text-sm text-foreground">
+								<td class="px-6 py-4 text-sm whitespace-nowrap text-foreground">
 									{record.clockIn ? formatTime(record.clockIn) : '-'}
 								</td>
-								<td class="whitespace-nowrap px-6 py-4 text-sm text-foreground">
+								<td class="px-6 py-4 text-sm whitespace-nowrap text-foreground">
 									{record.clockOut ? formatTime(record.clockOut) : '-'}
 								</td>
-								<td class="whitespace-nowrap px-6 py-4 text-sm text-foreground">
+								<td class="px-6 py-4 text-sm whitespace-nowrap text-foreground">
 									{record.hoursWorked}h
 								</td>
-								<td class="whitespace-nowrap px-6 py-4 text-sm">
+								<td class="px-6 py-4 text-sm whitespace-nowrap">
 									<div class="flex items-center gap-2">
 										{#if record.status === 'present'}
 											<CheckCircle class="h-4 w-4 {getStatusColor(record.status)}" />
@@ -257,7 +293,7 @@
 										</span>
 									</div>
 								</td>
-								<td class="whitespace-nowrap px-6 py-4 text-sm text-foreground">
+								<td class="px-6 py-4 text-sm whitespace-nowrap text-foreground">
 									<div class="flex items-center gap-2">
 										<MapPin class="h-4 w-4 text-muted-foreground" />
 										{record.location}
@@ -280,3 +316,4 @@
 		</div>
 	</div>
 </div>
+

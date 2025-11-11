@@ -8,18 +8,18 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import {
-		User,
-		Mail,
-		Phone,
-		MapPin,
-		Calendar,
-		Building2,
-		Edit,
-		Camera,
 		ArrowLeft,
-		Trophy,
+		Building2,
+		Calendar,
+		Camera,
+		Clock,
+		Edit,
+		Mail,
+		MapPin,
+		Phone,
 		Target,
-		Clock
+		Trophy,
+		User
 	} from '@lucide/svelte';
 
 	// Mock profile data - in real app this would come from GraphQL
@@ -61,11 +61,11 @@
 	};
 
 	let isEditing = $state(false);
-	let editableData = $state({ ...profileData.personalInfo });
+	const editableData = $state({ ...profileData.personalInfo });
 </script>
 
 <svelte:head>
-	<title>My Profile - SvelteHR</title>
+	<title>My Profile - MountainHR</title>
 	<meta name="description" content="View and manage your employee profile" />
 </svelte:head>
 

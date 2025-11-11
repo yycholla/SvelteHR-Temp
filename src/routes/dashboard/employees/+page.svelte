@@ -13,33 +13,33 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { Area, AreaChart } from 'layerchart';
 	import { scaleUtc } from 'd3-scale';
-	import { queryStore, getContextClient } from '@urql/svelte';
+	import { getContextClient, queryStore } from '@urql/svelte';
 	import { GET_EMPLOYEE_STATISTICS_QUERY } from '$lib/graphql/employee-operations';
 	import type { EmployeeStatistic } from '$lib/graphql/employee-operations';
 	import EmployeeDataTable from '$lib/components/ui/employee-datatable.svelte';
 	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
 	import EmployeeCreateDialog from '$lib/components/employees/EmployeeCreateDialog.svelte';
 	import {
-		Users,
-		Search,
-		Filter,
-		UserPlus,
-		Mail,
-		Phone,
-		MapPin,
 		Building,
 		Calendar,
-		Eye,
-		Edit,
-		MoreHorizontal,
+		ChevronDown,
 		Download,
-		Upload,
+		Edit,
+		Eye,
 		FileBarChart,
+		Filter,
 		Grid,
 		List,
+		Mail,
+		MapPin,
+		MoreHorizontal,
+		Phone,
+		Search,
+		Settings2,
 		TrendingUp,
-		ChevronDown,
-		Settings2
+		Upload,
+		UserPlus,
+		Users
 	} from '@lucide/svelte';
 	import * as Table from '$lib/components/ui/table';
 
@@ -81,7 +81,7 @@
 		};
 	}
 
-	let { data }: Props = $props();
+	const { data }: Props = $props();
 
 	// Extract server-loaded data
 	const user = $derived(data.user);
@@ -135,16 +135,21 @@
 	// Check if any filters are active (for select-all checkbox enablement)
 	const hasActiveFilters = $derived(
 		searchTerms.length > 0 ||
-		selectedDepartment !== '' ||
-		selectedRole !== '' ||
-		selectedStatus !== 'active' // Default is 'active', so any change means filter is active
+			selectedDepartment !== '' ||
+			selectedRole !== '' ||
+			selectedStatus !== 'active' // Default is 'active', so any change means filter is active
 	);
 
 	// Sync with filters data using effects
 	$effect(() => {
 		// Parse comma-separated search terms from URL
 		const searchParam = data.filters.searchTerm || '';
-		searchTerms = searchParam ? searchParam.split(',').map((t) => t.trim()).filter(Boolean) : [];
+		searchTerms = searchParam
+			? searchParam
+					.split(',')
+					.map((t) => t.trim())
+					.filter(Boolean)
+			: [];
 	});
 	$effect(() => {
 		selectedDepartment = data.filters.departmentFilter || '';
@@ -209,11 +214,13 @@
 
 	// Create reactive query - urql queryStore is reactive and will update when variables change
 	// Wrap in $derived to signal to Svelte that this tracks startDate/endDate reactively
-	const employeeStatisticsQuery = $derived(queryStore({
-		client,
-		query: GET_EMPLOYEE_STATISTICS_QUERY,
-		variables: { startDate, endDate }
-	}));
+	const employeeStatisticsQuery = $derived(
+		queryStore({
+			client,
+			query: GET_EMPLOYEE_STATISTICS_QUERY,
+			variables: { startDate, endDate }
+		})
+	);
 
 	// Transform employee statistics for area chart
 	const historicalChartData = $derived.by(() => {
@@ -249,7 +256,9 @@
 	// Position 0 = 365 days ago, Position 365 = today
 	const sliderMin = $derived.by(() => {
 		if (!earliestDataDate) return 0;
-		const daysAgo = Math.floor((today.getTime() - earliestDataDate.getTime()) / (1000 * 60 * 60 * 24));
+		const daysAgo = Math.floor(
+			(today.getTime() - earliestDataDate.getTime()) / (1000 * 60 * 60 * 24)
+		);
 		// Convert days ago to slider position: position = 365 - daysAgo
 		return Math.max(0, 365 - daysAgo);
 	});
@@ -390,7 +399,7 @@
 </script>
 
 <svelte:head>
-	<title>Employee Directory - SvelteHR</title>
+	<title>Employee Directory - MountainHR</title>
 	<meta name="description" content="Browse and manage employees in the organization" />
 </svelte:head>
 
@@ -412,7 +421,11 @@
 
 		<div class="flex gap-2">
 			{#if canManageEmployees}
-				<Button size="sm" onclick={() => (createDialogOpen = true)} data-testid="employee-add-button">
+				<Button
+					size="sm"
+					onclick={() => (createDialogOpen = true)}
+					data-testid="employee-add-button"
+				>
 					<UserPlus class="mr-2 h-4 w-4" />
 					Add Employee
 				</Button>
@@ -440,235 +453,259 @@
 
 	<!-- Search and Filters (Grid View Only) -->
 	{#if viewMode === 'grid'}
-	<Card.Root>
-		<Card.Header>
-			<Card.Title>Employee Overview & Filters</Card.Title>
-			<Card.Description>View statistics and search employees</Card.Description>
-		</Card.Header>
-		<Card.Content>
-			<!-- Employee Statistics Summary with Historical Trend -->
-			<div class="mb-6 pb-6 border-b">
-				<!-- Historical Employee Trend Chart -->
-				{#if !isHistoricalDataLoading && hasHistoricalData}
-					<Accordion.Root type="single" collapsible>
-						<Accordion.Item value="trend-chart">
-							<Accordion.Trigger class="hover:no-underline">
-								<div class="flex items-center gap-2">
-									<TrendingUp class="h-5 w-5" />
-									<span class="text-lg font-semibold">
-										Employee Trend ({dateRangeSlider[1] - dateRangeSlider[0]} days)
-									</span>
-								</div>
-							</Accordion.Trigger>
-							<Accordion.Content>
-								<p class="text-sm text-muted-foreground mb-4">Historical employee count over time</p>
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Employee Overview & Filters</Card.Title>
+				<Card.Description>View statistics and search employees</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<!-- Employee Statistics Summary with Historical Trend -->
+				<div class="mb-6 border-b pb-6">
+					<!-- Historical Employee Trend Chart -->
+					{#if !isHistoricalDataLoading && hasHistoricalData}
+						<Accordion.Root type="single" collapsible>
+							<Accordion.Item value="trend-chart">
+								<Accordion.Trigger class="hover:no-underline">
+									<div class="flex items-center gap-2">
+										<TrendingUp class="h-5 w-5" />
+										<span class="text-lg font-semibold">
+											Employee Trend ({dateRangeSlider[1] - dateRangeSlider[0]} days)
+										</span>
+									</div>
+								</Accordion.Trigger>
+								<Accordion.Content>
+									<p class="mb-4 text-sm text-muted-foreground">
+										Historical employee count over time
+									</p>
 
-								<div class="h-[300px]">
-									<Chart.Container config={historicalChartConfig} class="h-full w-full">
-										<AreaChart
-											data={filteredChartData}
-											x="date"
-											xScale={scaleUtc()}
-											series={[
-												{
-													key: 'active',
-													label: 'Active Employees',
-													color: historicalChartConfig.active.color
-												},
-												{
-													key: 'inactive',
-													label: 'Inactive Employees',
-													color: historicalChartConfig.inactive.color
-												}
-											]}
-											props={{
-												area: {
-													'fill-opacity': 0.4,
-													line: { class: 'stroke-1' },
-													motion: 'tween'
-												},
-												xAxis: {
-													format: (v) => {
-														return v.toLocaleDateString('en-US', {
-															month: 'short',
-															day: 'numeric'
-														});
+									<div class="h-[300px]">
+										<Chart.Container config={historicalChartConfig} class="h-full w-full">
+											<AreaChart
+												data={filteredChartData}
+												x="date"
+												xScale={scaleUtc()}
+												series={[
+													{
+														key: 'active',
+														label: 'Active Employees',
+														color: historicalChartConfig.active.color
+													},
+													{
+														key: 'inactive',
+														label: 'Inactive Employees',
+														color: historicalChartConfig.inactive.color
 													}
-												},
-												yAxis: {
-													format: (v) => v.toString()
-												}
-											}}
-										>
-											{#snippet marks({ series, getAreaProps })}
-												<defs>
-													<linearGradient id="fillActive" x1="0" y1="0" x2="0" y2="1">
-														<stop offset="5%" stop-color="var(--color-active)" stop-opacity={1.0} />
-														<stop offset="95%" stop-color="var(--color-active)" stop-opacity={0.1} />
-													</linearGradient>
-													<linearGradient id="fillInactive" x1="0" y1="0" x2="0" y2="1">
-														<stop offset="5%" stop-color="var(--color-inactive)" stop-opacity={0.8} />
-														<stop offset="95%" stop-color="var(--color-inactive)" stop-opacity={0.1} />
-													</linearGradient>
-												</defs>
-												{#each series as s, i (s.key)}
-													<Area
-														{...getAreaProps(s, i)}
-														fill={s.key === 'active' ? 'url(#fillActive)' : 'url(#fillInactive)'}
+												]}
+												props={{
+													area: {
+														'fill-opacity': 0.4,
+														line: { class: 'stroke-1' },
+														motion: 'tween'
+													},
+													xAxis: {
+														format: (v) => {
+															return v.toLocaleDateString('en-US', {
+																month: 'short',
+																day: 'numeric'
+															});
+														}
+													},
+													yAxis: {
+														format: (v) => v.toString()
+													}
+												}}
+											>
+												{#snippet marks({ series, getAreaProps })}
+													<defs>
+														<linearGradient id="fillActive" x1="0" y1="0" x2="0" y2="1">
+															<stop
+																offset="5%"
+																stop-color="var(--color-active)"
+																stop-opacity={1.0}
+															/>
+															<stop
+																offset="95%"
+																stop-color="var(--color-active)"
+																stop-opacity={0.1}
+															/>
+														</linearGradient>
+														<linearGradient id="fillInactive" x1="0" y1="0" x2="0" y2="1">
+															<stop
+																offset="5%"
+																stop-color="var(--color-inactive)"
+																stop-opacity={0.8}
+															/>
+															<stop
+																offset="95%"
+																stop-color="var(--color-inactive)"
+																stop-opacity={0.1}
+															/>
+														</linearGradient>
+													</defs>
+													{#each series as s, i (s.key)}
+														<Area
+															{...getAreaProps(s, i)}
+															fill={s.key === 'active' ? 'url(#fillActive)' : 'url(#fillInactive)'}
+														/>
+													{/each}
+												{/snippet}
+												{#snippet tooltip()}
+													<Chart.Tooltip
+														labelFormatter={(v) => {
+															return v.toLocaleDateString('en-US', {
+																month: 'short',
+																day: 'numeric'
+															});
+														}}
+														indicator="line"
 													/>
-												{/each}
-											{/snippet}
-											{#snippet tooltip()}
-												<Chart.Tooltip
-													labelFormatter={(v) => {
-														return v.toLocaleDateString('en-US', {
-															month: 'short',
-															day: 'numeric'
-														});
-													}}
-													indicator="line"
-												/>
-											{/snippet}
-										</AreaChart>
-									</Chart.Container>
-								</div>
-
-								<!-- Date Range Slider -->
-								<div class="mt-6 px-3">
-									<div class="flex items-center justify-between mb-3">
-										<span class="text-sm font-medium">Date Range</span>
-										<span class="text-sm text-muted-foreground">
-											{new Date(startDate).toLocaleDateString('en-US', {
-												month: 'short',
-												day: 'numeric',
-												year: 'numeric'
-											})}
-											-
-											{new Date(endDate).toLocaleDateString('en-US', {
-												month: 'short',
-												day: 'numeric',
-												year: 'numeric'
-											})}
-										</span>
+												{/snippet}
+											</AreaChart>
+										</Chart.Container>
 									</div>
-									<Slider
-										bind:value={dateRangeSlider}
-										min={sliderMin}
-										max={365}
-										step={1}
-										class="w-full"
-									/>
-									<div class="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-										<span>
-											{#if earliestDataDate}
-												{earliestDataDate.toLocaleDateString('en-US', {
+
+									<!-- Date Range Slider -->
+									<div class="mt-6 px-3">
+										<div class="mb-3 flex items-center justify-between">
+											<span class="text-sm font-medium">Date Range</span>
+											<span class="text-sm text-muted-foreground">
+												{new Date(startDate).toLocaleDateString('en-US', {
 													month: 'short',
-													day: 'numeric'
+													day: 'numeric',
+													year: 'numeric'
 												})}
-											{:else}
-												Earliest
-											{/if}
-										</span>
-										<span>Today</span>
-									</div>
-								</div>
-
-								<!-- Stats Summary -->
-								<div class="grid grid-cols-3 gap-4 mt-6">
-									<div>
-										<div class="text-3xl font-bold">{employeeStats.totalEmployees}</div>
-										<p class="text-sm text-muted-foreground">Total Employees</p>
-									</div>
-									<div>
-										<div class="text-2xl font-bold text-green-600">{employeeStats.activeEmployees}</div>
-										<p class="text-xs text-muted-foreground">Active</p>
-									</div>
-									{#if canViewInactiveEmployees}
-										<div>
-											<div class="text-2xl font-bold text-orange-600">{employeeStats.inactiveEmployees}</div>
-											<p class="text-xs text-muted-foreground">Inactive</p>
+												-
+												{new Date(endDate).toLocaleDateString('en-US', {
+													month: 'short',
+													day: 'numeric',
+													year: 'numeric'
+												})}
+											</span>
 										</div>
-									{/if}
-								</div>
-								<p class="text-xs text-muted-foreground mt-4">
-									Across {employeeStats.departmentCount} departments
-								</p>
-							</Accordion.Content>
-						</Accordion.Item>
-					</Accordion.Root>
-				{/if}
-			</div>
+										<Slider
+											bind:value={dateRangeSlider}
+											min={sliderMin}
+											max={365}
+											step={1}
+											class="w-full"
+										/>
+										<div
+											class="mt-2 flex items-center justify-between text-xs text-muted-foreground"
+										>
+											<span>
+												{#if earliestDataDate}
+													{earliestDataDate.toLocaleDateString('en-US', {
+														month: 'short',
+														day: 'numeric'
+													})}
+												{:else}
+													Earliest
+												{/if}
+											</span>
+											<span>Today</span>
+										</div>
+									</div>
 
-			<!-- Search and Filter Form -->
-			<div class="space-y-4">
-				<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-					<!-- Search Input -->
-					<div class="space-y-2">
-						<label for="search" class="text-sm font-medium">Search</label>
-						<MultiSearchInput
-							bind:searchTerms={searchTerms}
-							options={employeeSearchOptions}
-							onSearchChange={handleSearch}
-							debounceMs={500}
-							allowCustomTerms={true}
-						/>
-					</div>
-
-					<!-- Department Filter -->
-					<div class="space-y-2">
-						<label for="department" class="text-sm font-medium">Department</label>
-						<select
-							id="department"
-							bind:value={selectedDepartment}
-							class="shadow-xs flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-							data-testid="employee-department-filter"
-						>
-							<option value="">All Departments</option>
-							{#each departments as dept}
-								<option value={dept.id}>{dept.name}</option>
-							{/each}
-						</select>
-					</div>
-
-					<!-- Page Size -->
-					<div class="space-y-2">
-						<label for="pagesize" class="text-sm font-medium">Per Page</label>
-						<select
-							id="pagesize"
-							bind:value={pageSize}
-							class="shadow-xs flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-						>
-							<option value={10}>10</option>
-							<option value={20}>20</option>
-							<option value={50}>50</option>
-							<option value={100}>100</option>
-						</select>
-					</div>
+									<!-- Stats Summary -->
+									<div class="mt-6 grid grid-cols-3 gap-4">
+										<div>
+											<div class="text-3xl font-bold">{employeeStats.totalEmployees}</div>
+											<p class="text-sm text-muted-foreground">Total Employees</p>
+										</div>
+										<div>
+											<div class="text-2xl font-bold text-green-600">
+												{employeeStats.activeEmployees}
+											</div>
+											<p class="text-xs text-muted-foreground">Active</p>
+										</div>
+										{#if canViewInactiveEmployees}
+											<div>
+												<div class="text-2xl font-bold text-orange-600">
+													{employeeStats.inactiveEmployees}
+												</div>
+												<p class="text-xs text-muted-foreground">Inactive</p>
+											</div>
+										{/if}
+									</div>
+									<p class="mt-4 text-xs text-muted-foreground">
+										Across {employeeStats.departmentCount} departments
+									</p>
+								</Accordion.Content>
+							</Accordion.Item>
+						</Accordion.Root>
+					{/if}
 				</div>
 
-				<!-- Show Inactive Checkbox (managers and above only) -->
-				{#if canViewInactiveEmployees}
-					<div class="flex items-center space-x-2 pt-2">
-						<input
-							type="checkbox"
-							id="showInactive"
-							bind:checked={showInactive}
-							onchange={handleSearch}
-							class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-							data-testid="employee-status-filter"
-						/>
-						<label for="showInactive" class="text-sm font-medium cursor-pointer">
-							Show Inactive Employees
-						</label>
-					</div>
-				{/if}
+				<!-- Search and Filter Form -->
+				<div class="space-y-4">
+					<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+						<!-- Search Input -->
+						<div class="space-y-2">
+							<label for="search" class="text-sm font-medium">Search</label>
+							<MultiSearchInput
+								bind:searchTerms
+								options={employeeSearchOptions}
+								onSearchChange={handleSearch}
+								debounceMs={500}
+								allowCustomTerms={true}
+							/>
+						</div>
 
-				<div class="flex gap-2">
-					<Button type="button" variant="outline" onclick={clearFilters}>Clear Filters</Button>
+						<!-- Department Filter -->
+						<div class="space-y-2">
+							<label for="department" class="text-sm font-medium">Department</label>
+							<select
+								id="department"
+								bind:value={selectedDepartment}
+								class="flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base shadow-xs ring-offset-background transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/80"
+								data-testid="employee-department-filter"
+							>
+								<option value="">All Departments</option>
+								{#each departments as dept}
+									<option value={dept.id}>{dept.name}</option>
+								{/each}
+							</select>
+						</div>
+
+						<!-- Page Size -->
+						<div class="space-y-2">
+							<label for="pagesize" class="text-sm font-medium">Per Page</label>
+							<select
+								id="pagesize"
+								bind:value={pageSize}
+								class="flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base shadow-xs ring-offset-background transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/80"
+							>
+								<option value={10}>10</option>
+								<option value={20}>20</option>
+								<option value={50}>50</option>
+								<option value={100}>100</option>
+							</select>
+						</div>
+					</div>
+
+					<!-- Show Inactive Checkbox (managers and above only) -->
+					{#if canViewInactiveEmployees}
+						<div class="flex items-center space-x-2 pt-2">
+							<input
+								type="checkbox"
+								id="showInactive"
+								bind:checked={showInactive}
+								onchange={handleSearch}
+								class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+								data-testid="employee-status-filter"
+							/>
+							<label for="showInactive" class="cursor-pointer text-sm font-medium">
+								Show Inactive Employees
+							</label>
+						</div>
+					{/if}
+
+					<div class="flex gap-2">
+						<Button type="button" variant="outline" onclick={clearFilters}>Clear Filters</Button>
+					</div>
 				</div>
-			</div>
-		</Card.Content>
-	</Card.Root>
+			</Card.Content>
+		</Card.Root>
 	{/if}
 
 	<!-- Employee List/Grid -->
@@ -678,85 +715,98 @@
 			<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
 				{#each employees as employee}
 					<Card.Root class="transition-shadow hover:shadow-md" data-testid="employee-card">
-					<Card.Header class="pb-3">
-						<div class="flex items-start justify-between">
-							<div class="flex items-center space-x-3">
-								<div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-									<Users class="h-6 w-6 text-primary" />
+						<Card.Header class="pb-3">
+							<div class="flex items-start justify-between">
+								<div class="flex items-center space-x-3">
+									<div
+										class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10"
+									>
+										<Users class="h-6 w-6 text-primary" />
+									</div>
+									<div>
+										<Card.Title class="text-lg">{employee.displayName}</Card.Title>
+										<Card.Description
+											>{employee.role ? formatRole(employee.role) : 'No role'}</Card.Description
+										>
+									</div>
 								</div>
-								<div>
-									<Card.Title class="text-lg">{employee.displayName}</Card.Title>
-									<Card.Description>{employee.role ? formatRole(employee.role) : 'No role'}</Card.Description>
-								</div>
+								<Badge variant={getStatusBadgeVariant(employee.isActive)}>
+									{employee.isActive ? 'Active' : 'Inactive'}
+								</Badge>
 							</div>
-							<Badge variant={getStatusBadgeVariant(employee.isActive)}>
-								{employee.isActive ? 'Active' : 'Inactive'}
-							</Badge>
-						</div>
-					</Card.Header>
-					<Card.Content class="space-y-3">
-						<!-- Contact Information -->
-						<div class="space-y-2">
-							{#if employee.email}
-								<div class="flex items-center text-sm text-muted-foreground">
-									<Mail class="mr-2 h-4 w-4" />
-									<a href="mailto:{employee.email}" class="hover:text-primary">{employee.email}</a>
-								</div>
-							{/if}
+						</Card.Header>
+						<Card.Content class="space-y-3">
+							<!-- Contact Information -->
+							<div class="space-y-2">
+								{#if employee.email}
+									<div class="flex items-center text-sm text-muted-foreground">
+										<Mail class="mr-2 h-4 w-4" />
+										<a href="mailto:{employee.email}" class="hover:text-primary">{employee.email}</a
+										>
+									</div>
+								{/if}
 
-							{#if employee.phone}
-								<div class="flex items-center text-sm text-muted-foreground">
-									<Phone class="mr-2 h-4 w-4" />
-									<a href="tel:{employee.phone}" class="hover:text-primary">{employee.phone}</a>
-								</div>
-							{/if}
+								{#if employee.phone}
+									<div class="flex items-center text-sm text-muted-foreground">
+										<Phone class="mr-2 h-4 w-4" />
+										<a href="tel:{employee.phone}" class="hover:text-primary">{employee.phone}</a>
+									</div>
+								{/if}
 
-							{#if employee.departmentId}
-								{@const deptName = departments.find(d => d.id === employee.departmentId)?.name}
-								<div class="flex items-center text-sm text-muted-foreground">
-									<Building class="mr-2 h-4 w-4" />
-									<span>{deptName || 'Unknown Department'}</span>
-								</div>
-							{/if}
+								{#if employee.departmentId}
+									{@const deptName = departments.find((d) => d.id === employee.departmentId)?.name}
+									<div class="flex items-center text-sm text-muted-foreground">
+										<Building class="mr-2 h-4 w-4" />
+										<span>{deptName || 'Unknown Department'}</span>
+									</div>
+								{/if}
 
-							{#if employee.role}
-								<div class="flex items-center text-sm">
-									<Badge variant="outline">{formatRole(employee.role)}</Badge>
-								</div>
-							{/if}
+								{#if employee.role}
+									<div class="flex items-center text-sm">
+										<Badge variant="outline">{formatRole(employee.role)}</Badge>
+									</div>
+								{/if}
 
-							{#if employee.hireDate}
-								<div class="flex items-center text-sm text-muted-foreground">
-									<Calendar class="mr-2 h-4 w-4" />
-									<span>Hired {formatHireDate(employee.hireDate)}</span>
-								</div>
-							{/if}
-						</div>
+								{#if employee.hireDate}
+									<div class="flex items-center text-sm text-muted-foreground">
+										<Calendar class="mr-2 h-4 w-4" />
+										<span>Hired {formatHireDate(employee.hireDate)}</span>
+									</div>
+								{/if}
+							</div>
 
-						<Separator />
+							<Separator />
 
-						<!-- Actions -->
-						<div class="flex gap-2">
-							{#if canViewEmployees}
-								<Button variant="outline" size="sm" href="/dashboard/employees/{employee.id}">
-									<Eye class="mr-2 h-4 w-4" />
-									View Profile
-								</Button>
-							{/if}
-							{#if canEditEmployees}
-								<Button variant="outline" size="sm" href="/dashboard/employees/{employee.id}/edit">
-									<Edit class="mr-2 h-4 w-4" />
-									Edit
-								</Button>
-							{/if}
-							{#if canCreateReviews}
-								<Button variant="outline" size="sm" href="/dashboard/reviews?employee={employee.id}">
-									<FileBarChart class="mr-2 h-4 w-4" />
-									Start Review
-								</Button>
-							{/if}
-						</div>
-					</Card.Content>
+							<!-- Actions -->
+							<div class="flex gap-2">
+								{#if canViewEmployees}
+									<Button variant="outline" size="sm" href="/dashboard/employees/{employee.id}">
+										<Eye class="mr-2 h-4 w-4" />
+										View Profile
+									</Button>
+								{/if}
+								{#if canEditEmployees}
+									<Button
+										variant="outline"
+										size="sm"
+										href="/dashboard/employees/{employee.id}/edit"
+									>
+										<Edit class="mr-2 h-4 w-4" />
+										Edit
+									</Button>
+								{/if}
+								{#if canCreateReviews}
+									<Button
+										variant="outline"
+										size="sm"
+										href="/dashboard/reviews?employee={employee.id}"
+									>
+										<FileBarChart class="mr-2 h-4 w-4" />
+										Start Review
+									</Button>
+								{/if}
+							</div>
+						</Card.Content>
 					</Card.Root>
 				{/each}
 			</div>
@@ -850,14 +900,14 @@
 		<!-- DataTable View -->
 		<div data-testid="employee-list-container" class="space-y-4">
 			<!-- Filters and Controls Row -->
-			<div class="flex items-end gap-3 justify-between">
+			<div class="flex items-end justify-between gap-3">
 				<!-- Left: Filters -->
 				<div class="flex items-end gap-3">
 					<!-- Search Input -->
-					<div class="space-y-2 w-96">
+					<div class="w-96 space-y-2">
 						<label for="search-inline" class="text-sm font-medium">Search</label>
 						<MultiSearchInput
-							bind:searchTerms={searchTerms}
+							bind:searchTerms
 							options={employeeSearchOptions}
 							onSearchChange={handleSearch}
 							debounceMs={500}
@@ -866,13 +916,13 @@
 					</div>
 
 					<!-- Department Filter -->
-					<div class="space-y-2 w-40">
+					<div class="w-40 space-y-2">
 						<label for="department-inline" class="text-sm font-medium">Department</label>
 						<select
 							id="department-inline"
 							bind:value={selectedDepartment}
 							onchange={handleSearch}
-							class="shadow-xs flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+							class="flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base shadow-xs ring-offset-background transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/80"
 							data-testid="employee-department-filter"
 						>
 							<option value="">All Departments</option>
@@ -883,13 +933,13 @@
 					</div>
 
 					<!-- Role Filter -->
-					<div class="space-y-2 w-36">
+					<div class="w-36 space-y-2">
 						<label for="role-inline" class="text-sm font-medium">Role</label>
 						<select
 							id="role-inline"
 							bind:value={selectedRole}
 							onchange={handleSearch}
-							class="shadow-xs flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+							class="flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base shadow-xs ring-offset-background transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/80"
 						>
 							<option value="">All Roles</option>
 							<option value="admin">Admin</option>
@@ -900,13 +950,13 @@
 
 					<!-- Status Filter (Managers and above only) -->
 					{#if canViewInactiveEmployees}
-						<div class="space-y-2 w-36">
+						<div class="w-36 space-y-2">
 							<label for="status-inline" class="text-sm font-medium">Status</label>
 							<select
 								id="status-inline"
 								bind:value={selectedStatus}
 								onchange={handleSearch}
-								class="shadow-xs flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+								class="flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base shadow-xs ring-offset-background transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/80"
 								data-testid="employee-status-filter"
 							>
 								<option value="active">Active Only</option>
@@ -918,10 +968,8 @@
 
 					<!-- Clear Button -->
 					<div class="space-y-2">
-						<div class="text-sm font-medium invisible">Clear</div>
-						<Button type="button" variant="outline" size="sm" onclick={clearFilters}>
-							Clear
-						</Button>
+						<div class="invisible text-sm font-medium">Clear</div>
+						<Button type="button" variant="outline" size="sm" onclick={clearFilters}>Clear</Button>
 					</div>
 				</div>
 
@@ -929,7 +977,7 @@
 				<div class="flex items-end gap-2">
 					<!-- Per Page Dropdown -->
 					<div class="space-y-2">
-						<div class="text-sm font-medium invisible">Per Page</div>
+						<div class="invisible text-sm font-medium">Per Page</div>
 						<DropdownMenu.Root>
 							<DropdownMenu.Trigger>
 								{#snippet child({ props })}
@@ -959,7 +1007,7 @@
 
 					<!-- Column Visibility Dropdown -->
 					<div class="space-y-2">
-						<div class="text-sm font-medium invisible">Columns</div>
+						<div class="invisible text-sm font-medium">Columns</div>
 						<DropdownMenu.Root>
 							<DropdownMenu.Trigger>
 								{#snippet child({ props })}
@@ -1085,6 +1133,6 @@
 <EmployeeCreateDialog
 	bind:open={createDialogOpen}
 	onOpenChange={(open) => (createDialogOpen = open)}
-	departments={departments.map(d => ({ id: d.id, name: d.name }))}
+	departments={departments.map((d) => ({ id: d.id, name: d.name }))}
 	onSuccess={handleEmployeeCreated}
 />

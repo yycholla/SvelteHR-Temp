@@ -13,7 +13,7 @@
 	import type { PageData } from './$types';
 	import type { TaskFilterState } from '$lib/components/tasks/TaskFilters.svelte';
 	import { page } from '$app/stores';
-	import { goto, replaceState, invalidateAll } from '$app/navigation';
+	import { goto, invalidateAll, replaceState } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
@@ -23,27 +23,27 @@
 	import TaskFilters from '$lib/components/tasks/TaskFilters.svelte';
 	import QuickAddTask from '$lib/components/tasks/QuickAddTask.svelte';
 	import {
-		Plus,
+		AlertCircle,
 		CheckCircle,
 		Clock,
-		AlertCircle,
-		XCircle,
+		ListTodo,
+		Plus,
 		Target,
 		TrendingUp,
-		ListTodo
+		XCircle
 	} from '@lucide/svelte';
 
 	// Page data from server
-	let { data }: { data: PageData } = $props();
+	const { data }: { data: PageData } = $props();
 
 	// Determine user permissions for assignee selection
-	let canAssignToAnyone = $derived(
+	const canAssignToAnyone = $derived(
 		data.user.role === 'hr_admin' ||
-		data.user.role === 'system_admin' ||
-		data.user.role === 'super_admin'
+			data.user.role === 'system_admin' ||
+			data.user.role === 'super_admin'
 	);
-	let canAssignToTeam = $derived(data.user.role === 'manager');
-	let canAssign = $derived(canAssignToAnyone || canAssignToTeam);
+	const canAssignToTeam = $derived(data.user.role === 'manager');
+	const canAssign = $derived(canAssignToAnyone || canAssignToTeam);
 
 	// Filter state from URL params
 	let filters = $state<TaskFilterState>({
@@ -107,7 +107,7 @@
 	];
 
 	// Client-side filtered tasks based on filter state
-	let filteredTasks = $derived.by(() => {
+	const filteredTasks = $derived.by(() => {
 		let result = data.tasks;
 
 		// Search filter
@@ -195,7 +195,7 @@
 </script>
 
 <svelte:head>
-	<title>Tasks Dashboard - SvelteHR</title>
+	<title>Tasks Dashboard - MountainHR</title>
 	<meta name="description" content="View and manage all tasks in your organization" />
 </svelte:head>
 
@@ -206,7 +206,7 @@
 			currentUser={data.user}
 			assignees={data.assignees}
 			taskTypes={data.taskTypes}
-			canAssign={canAssign}
+			{canAssign}
 			onSuccess={async () => {
 				// Refresh the page data after task creation
 				await invalidateAll();
@@ -248,9 +248,9 @@
 		{#if filteredTasks.length === 0}
 			<Card.Root>
 				<Card.Content class="flex flex-col items-center justify-center py-12">
-					<Target class="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-					<h3 class="text-lg font-medium mb-2">No tasks found</h3>
-					<p class="text-sm text-muted-foreground mb-4">
+					<Target class="mb-4 h-12 w-12 text-muted-foreground opacity-50" />
+					<h3 class="mb-2 text-lg font-medium">No tasks found</h3>
+					<p class="mb-4 text-sm text-muted-foreground">
 						{#if filters.search || filters.statuses.length > 0}
 							Try adjusting your filters or search terms
 						{:else}
@@ -274,5 +274,3 @@
 		{/if}
 	</div>
 </div>
-
-

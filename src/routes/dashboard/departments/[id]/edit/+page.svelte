@@ -6,7 +6,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import * as Card from '$lib/components/ui/card';
-	import { ArrowLeft, Save, X, AlertCircle, Search, ChevronDown, Check } from '@lucide/svelte';
+	import { AlertCircle, ArrowLeft, Check, ChevronDown, Save, Search, X } from '@lucide/svelte';
 
 	interface Props {
 		data: {
@@ -32,7 +32,7 @@
 		};
 	}
 
-	let { data, form }: Props = $props();
+	const { data, form }: Props = $props();
 
 	// Extract server-loaded data
 	const department = $derived(data.department);
@@ -107,7 +107,7 @@
 </script>
 
 <svelte:head>
-	<title>Edit {department.name} - SvelteHR</title>
+	<title>Edit {department.name} - MountainHR</title>
 	<meta name="description" content="Edit department information for {department.name}" />
 </svelte:head>
 
@@ -136,13 +136,16 @@
 	{/if}
 
 	<!-- Edit Form -->
-	<form method="POST" use:enhance={() => {
-		isSubmitting = true;
-		return async ({ update }) => {
-			await update();
-			isSubmitting = false;
-		};
-	}}>
+	<form
+		method="POST"
+		use:enhance={() => {
+			isSubmitting = true;
+			return async ({ update }) => {
+				await update();
+				isSubmitting = false;
+			};
+		}}
+	>
 		<div class="grid gap-6 lg:grid-cols-3">
 			<!-- Left Column: Department Information -->
 			<div class="lg:col-span-2">
@@ -207,7 +210,7 @@
 								<button
 									type="button"
 									onclick={() => (showManagerDropdown = !showManagerDropdown)}
-									class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+									class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
 								>
 									<span class:text-muted-foreground={!managerId}>
 										{selectedManagerName}
@@ -224,7 +227,7 @@
 										<div class="border-b p-2">
 											<div class="relative">
 												<Search
-													class="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+													class="absolute top-1/2 left-2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
 												/>
 												<Input
 													type="text"
@@ -242,7 +245,7 @@
 											<button
 												type="button"
 												onclick={clearManager}
-												class="relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+												class="relative flex w-full cursor-pointer items-center rounded-sm px-2 py-1.5 text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground"
 											>
 												{#if !managerId}
 													<Check class="mr-2 h-4 w-4" />
@@ -257,7 +260,7 @@
 												<button
 													type="button"
 													onclick={() => selectManager(user.id)}
-													class="relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+													class="relative flex w-full cursor-pointer items-center rounded-sm px-2 py-1.5 text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground"
 												>
 													{#if managerId === user.id}
 														<Check class="mr-2 h-4 w-4" />

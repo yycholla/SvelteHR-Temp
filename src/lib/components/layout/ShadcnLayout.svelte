@@ -4,20 +4,20 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
 	import {
-		Home,
-		Users,
+		Bell,
 		Building2,
 		Calendar,
+		Home,
+		Menu,
+		Search,
 		Settings,
 		User,
-		Bell,
-		Search,
-		Menu
+		Users
 	} from '@lucide/svelte';
 	import { page } from '$app/stores';
-	import { isAuthenticated, currentUser } from '$lib/stores/auth';
+	import { currentUser, isAuthenticated } from '$lib/stores/auth';
 
-	let { children } = $props();
+	const { children } = $props();
 
 	// Navigation items based on user role and permissions
 	const navigationItems = [
@@ -93,10 +93,10 @@
 	];
 
 	// Calculate unread notifications
-	let unreadNotifications = $derived(() => notifications.filter((n) => !n.read).length);
+	const unreadNotifications = $derived(() => notifications.filter((n) => !n.read).length);
 
 	// Add admin navigation if user has admin role
-	let visibleNavigation = $derived(() => {
+	const visibleNavigation = $derived(() => {
 		const nav = [...navigationItems];
 		if ($currentUser?.role === 'admin' || $currentUser?.role === 'hr_admin') {
 			nav.push(...adminNavigation);
@@ -105,7 +105,7 @@
 	});
 
 	// Update navigation active states based on current path
-	let currentPath = $derived($page.url.pathname);
+	const currentPath = $derived($page.url.pathname);
 
 	// Update active states
 	$effect(() => {
@@ -120,7 +120,7 @@
 	});
 
 	// Generate breadcrumbs based on current path
-	let breadcrumbs = $derived(() => {
+	const breadcrumbs = $derived(() => {
 		const parts = currentPath.split('/').filter((part) => part);
 		const breadcrumbs = [];
 
@@ -164,7 +164,7 @@
 							<Building2 class="h-4 w-4" />
 						</div>
 						<div class="flex flex-col">
-							<span class="text-sm font-semibold">SvelteHR</span>
+							<span class="text-sm font-semibold">MountainHR</span>
 							<span class="text-xs text-muted-foreground">HR Management</span>
 						</div>
 					</div>
@@ -271,7 +271,7 @@
 									<span class="sr-only">Notifications</span>
 								</Button>
 								{#if unreadNotifications > 0}
-									<Badge variant="destructive" class="absolute -right-1 -top-1 h-5 w-5 p-0 text-xs">
+									<Badge variant="destructive" class="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs">
 										{unreadNotifications}
 									</Badge>
 								{/if}
@@ -309,5 +309,3 @@
 		</div>
 	</div>
 {/if}
-
-

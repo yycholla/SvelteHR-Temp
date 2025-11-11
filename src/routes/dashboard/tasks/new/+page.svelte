@@ -9,7 +9,7 @@
 -->
 
 <script lang="ts">
-	import type { PageData, ActionData } from './$types';
+	import type { ActionData, PageData } from './$types';
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
@@ -17,7 +17,7 @@
 	import { ArrowLeft, Plus } from '@lucide/svelte';
 
 	// Page data and action result
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	const { data, form }: { data: PageData; form: ActionData } = $props();
 
 	// Debug logging
 	$effect(() => {
@@ -45,7 +45,7 @@
 	}
 
 	// Prepare initial values if creating a subtask
-	let initialValues = $derived(() => {
+	const initialValues = $derived(() => {
 		if (data.parentTask && data.parentTaskId) {
 			return {
 				parentTaskId: data.parentTaskId,
@@ -60,7 +60,7 @@
 </script>
 
 <svelte:head>
-	<title>Create New Task - SvelteHR</title>
+	<title>Create New Task - MountainHR</title>
 	<meta name="description" content="Create a new task" />
 </svelte:head>
 
@@ -76,7 +76,7 @@
 	<!-- Page Title -->
 	<div class="mb-6">
 		<h1 class="text-3xl font-bold tracking-tight">Create New Task</h1>
-		<p class="text-muted-foreground mt-2">
+		<p class="mt-2 text-muted-foreground">
 			{data.parentTask
 				? `Create a subtask under "${data.parentTask.title}"`
 				: 'Create a new task for your organization'}
@@ -139,5 +139,3 @@
 		</Card.Content>
 	</Card.Root>
 </div>
-
-

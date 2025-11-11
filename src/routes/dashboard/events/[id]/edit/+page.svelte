@@ -7,7 +7,7 @@
 	import { goto } from '$app/navigation';
 	import type { EventType, EventVisibilityType } from '$lib/graphql/types';
 
-	let { data }: { data: PageData } = $props();
+	const { data }: { data: PageData } = $props();
 
 	// Form state - pre-populate from existing event
 	let title = $state(data.event.title);
@@ -99,7 +99,7 @@
 </script>
 
 <svelte:head>
-	<title>Edit {data.event.title} - SvelteHR</title>
+	<title>Edit {data.event.title} - MountainHR</title>
 	<meta name="description" content="Edit event details" />
 </svelte:head>
 
@@ -132,7 +132,7 @@
 	<form onsubmit={handleSubmit} class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
 		<!-- Title -->
 		<div class="mb-6">
-			<label for="title" class="block text-sm font-medium text-gray-700 mb-2">
+			<label for="title" class="mb-2 block text-sm font-medium text-gray-700">
 				Event Title <span class="text-red-600">*</span>
 			</label>
 			<input
@@ -140,7 +140,7 @@
 				id="title"
 				bind:value={title}
 				required
-				class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 {errors.title
+				class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none {errors.title
 					? 'border-red-500'
 					: ''}"
 				placeholder="Enter event title"
@@ -152,14 +152,14 @@
 
 		<!-- Description -->
 		<div class="mb-6">
-			<label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+			<label for="description" class="mb-2 block text-sm font-medium text-gray-700">
 				Description
 			</label>
 			<textarea
 				id="description"
 				bind:value={description}
 				rows="4"
-				class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+				class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 				placeholder="Enter event description"
 			></textarea>
 		</div>
@@ -168,7 +168,7 @@
 		<div class="mb-6 grid gap-4 sm:grid-cols-2">
 			<!-- Start Time -->
 			<div>
-				<label for="startTime" class="block text-sm font-medium text-gray-700 mb-2">
+				<label for="startTime" class="mb-2 block text-sm font-medium text-gray-700">
 					Start Time <span class="text-red-600">*</span>
 				</label>
 				<input
@@ -176,7 +176,7 @@
 					id="startTime"
 					bind:value={startTime}
 					required
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 {errors.startTime
+					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none {errors.startTime
 						? 'border-red-500'
 						: ''}"
 				/>
@@ -187,7 +187,7 @@
 
 			<!-- End Time -->
 			<div>
-				<label for="endTime" class="block text-sm font-medium text-gray-700 mb-2">
+				<label for="endTime" class="mb-2 block text-sm font-medium text-gray-700">
 					End Time <span class="text-red-600">*</span>
 				</label>
 				<input
@@ -196,7 +196,7 @@
 					bind:value={endTime}
 					required
 					min={startTime}
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 {errors.endTime
+					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none {errors.endTime
 						? 'border-red-500'
 						: ''}"
 				/>
@@ -221,14 +221,12 @@
 
 		<!-- Location -->
 		<div class="mb-6">
-			<label for="location" class="block text-sm font-medium text-gray-700 mb-2">
-				Location
-			</label>
+			<label for="location" class="mb-2 block text-sm font-medium text-gray-700"> Location </label>
 			<input
 				type="text"
 				id="location"
 				bind:value={location}
-				class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+				class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 				placeholder="Enter event location"
 			/>
 		</div>
@@ -237,14 +235,14 @@
 		<div class="mb-6 grid gap-4 sm:grid-cols-2">
 			<!-- Event Type -->
 			<div>
-				<label for="eventType" class="block text-sm font-medium text-gray-700 mb-2">
+				<label for="eventType" class="mb-2 block text-sm font-medium text-gray-700">
 					Event Type <span class="text-red-600">*</span>
 				</label>
 				<select
 					id="eventType"
 					bind:value={eventType}
 					required
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 				>
 					<option value="meeting">Meeting</option>
 					<option value="training">Training</option>
@@ -256,14 +254,14 @@
 
 			<!-- Visibility Type -->
 			<div>
-				<label for="visibilityType" class="block text-sm font-medium text-gray-700 mb-2">
+				<label for="visibilityType" class="mb-2 block text-sm font-medium text-gray-700">
 					Visibility <span class="text-red-600">*</span>
 				</label>
 				<select
 					id="visibilityType"
 					bind:value={visibilityType}
 					required
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 				>
 					<option value="company">Company-Wide</option>
 					<option value="department">Department Only</option>
@@ -274,14 +272,12 @@
 
 		<!-- Attendees Information -->
 		<div class="mb-6">
-			<div class="block text-sm font-medium text-gray-700 mb-2">Attendees</div>
-			<div
-				class="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800"
-			>
+			<div class="mb-2 block text-sm font-medium text-gray-700">Attendees</div>
+			<div class="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
 				<p class="font-medium">Current attendees: {data.event.attendees?.length || 0}</p>
 				<p class="mt-1 text-xs">
-					Note: Changing visibility type will affect who can see this event. Existing RSVP
-					statuses will be preserved.
+					Note: Changing visibility type will affect who can see this event. Existing RSVP statuses
+					will be preserved.
 				</p>
 			</div>
 		</div>
@@ -296,8 +292,8 @@
 						⚠️ This event is marked as {data.event.status}
 					</p>
 					<p class="mt-1 text-xs">
-						You can still edit the event details, but consider if changes are necessary for
-						past events.
+						You can still edit the event details, but consider if changes are necessary for past
+						events.
 					</p>
 				</div>
 			</div>
@@ -307,19 +303,19 @@
 		<div class="flex items-center justify-end gap-4 border-t border-gray-200 pt-6">
 			<a
 				href="/dashboard/events/{data.event.id}"
-				class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+				class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
 			>
 				Cancel
 			</a>
 			<button
 				type="submit"
 				disabled={isSubmitting}
-				class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+				class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 			>
 				{#if isSubmitting}
 					<span class="flex items-center">
 						<svg
-							class="animate-spin mr-2 h-4 w-4 text-white"
+							class="mr-2 h-4 w-4 animate-spin text-white"
 							xmlns="http://www.w3.org/2000/svg"
 							fill="none"
 							viewBox="0 0 24 24"

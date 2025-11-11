@@ -5,16 +5,16 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import {
+		AlertCircle,
 		Calendar,
 		Check,
-		X,
 		Clock,
-		AlertCircle,
-		Users,
-		TrendingUp,
 		FileText,
+		Filter,
 		Search,
-		Filter
+		TrendingUp,
+		Users,
+		X
 	} from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
@@ -47,8 +47,8 @@
 	import {
 		formatDateRange,
 		getLeaveTypeColor,
-		leaveTypeOptions,
-		leaveStatusOptions
+		leaveStatusOptions,
+		leaveTypeOptions
 	} from '$lib/graphql/queries/leave-requests';
 
 	// Page data from server
@@ -72,7 +72,7 @@
 		};
 	}
 
-	let { data }: Props = $props();
+	const { data }: Props = $props();
 
 	// Derived state using Svelte 5 runes
 	const user = $derived(data.user);
@@ -83,7 +83,7 @@
 
 	// Local state for UI
 	let selectedView = $state(data.filters.statusFilter || 'pending');
-	let selectedRequests = $state<string[]>([]);
+	const selectedRequests = $state<string[]>([]);
 	let showApprovalModal = $state(false);
 	let showDenialModal = $state(false);
 	let showRevertModal = $state(false);
@@ -91,8 +91,8 @@
 	let managerComments = $state('');
 	let isSubmitting = $state(false);
 	let searchQuery = $state(data.filters.searchTerm || '');
-	let statusFilter = $state(data.filters.statusFilter || 'pending');
-	let leaveTypeFilter = $state(data.filters.leaveTypeFilter || '');
+	const statusFilter = $state(data.filters.statusFilter || 'pending');
+	const leaveTypeFilter = $state(data.filters.leaveTypeFilter || '');
 	let timePeriod = $state<'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'all'>('all');
 
 	// Get metrics for selected time period
@@ -107,14 +107,16 @@
 				totalDaysRequested: data.leaveStats.totalDaysRequested
 			};
 		}
-		return data.leaveStats[timePeriod] || {
-			total: 0,
-			pending: 0,
-			approved: 0,
-			rejected: 0,
-			approvalRate: 0,
-			totalDaysRequested: 0
-		};
+		return (
+			data.leaveStats[timePeriod] || {
+				total: 0,
+				pending: 0,
+				approved: 0,
+				rejected: 0,
+				approvalRate: 0,
+				totalDaysRequested: 0
+			}
+		);
 	});
 
 	// Get period label for descriptions
@@ -235,7 +237,7 @@
 				managerComments = '';
 
 				// Optimistically remove from UI
-				data.leaveRequests = data.leaveRequests.filter(req => req.id !== tempRequest.id);
+				data.leaveRequests = data.leaveRequests.filter((req) => req.id !== tempRequest.id);
 				data.leaveStats.pendingCount--;
 				data.leaveStats.approvedCount++;
 				data.totalRequests = data.leaveRequests.length;
@@ -284,7 +286,7 @@
 				managerComments = '';
 
 				// Optimistically remove from UI
-				data.leaveRequests = data.leaveRequests.filter(req => req.id !== tempRequest.id);
+				data.leaveRequests = data.leaveRequests.filter((req) => req.id !== tempRequest.id);
 				data.leaveStats.pendingCount--;
 				data.leaveStats.rejectedCount++;
 				data.totalRequests = data.leaveRequests.length;
@@ -333,7 +335,7 @@
 				managerComments = '';
 
 				// Optimistically remove from UI
-				data.leaveRequests = data.leaveRequests.filter(req => req.id !== tempRequest.id);
+				data.leaveRequests = data.leaveRequests.filter((req) => req.id !== tempRequest.id);
 
 				// Update counts based on previous status
 				if (tempRequest.status === 'approved') {
@@ -424,7 +426,7 @@
 </script>
 
 <svelte:head>
-	<title>Leave Approvals - SvelteHR</title>
+	<title>Leave Approvals - MountainHR</title>
 	<meta
 		name="description"
 		content="Review and manage pending leave requests from your team members"
@@ -437,7 +439,9 @@
 		<div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 			<div>
 				<h1 class="text-3xl font-bold tracking-tight text-foreground">Leave Approvals</h1>
-				<p class="text-muted-foreground">Review and manage pending leave requests from your team members</p>
+				<p class="text-muted-foreground">
+					Review and manage pending leave requests from your team members
+				</p>
 			</div>
 
 			{#if canViewAllLeave}
@@ -505,17 +509,14 @@
 									{data.error.message}
 								</h3>
 								{#if data.error.details}
-									<p class="text-sm text-muted-foreground mt-1">
+									<p class="mt-1 text-sm text-muted-foreground">
 										{data.error.details}
 									</p>
 								{/if}
 							</div>
 						</div>
 						{#if data.error.retryable}
-							<RetryButton
-								on:retry={() => window.location.reload()}
-								class="ml-4"
-							/>
+							<RetryButton on:retry={() => window.location.reload()} class="ml-4" />
 						{/if}
 					</div>
 				</CardContent>
@@ -690,7 +691,7 @@
 														variant="outline"
 														onclick={() => handleApprove(request)}
 														class="border-green-200 text-green-600 hover:border-green-300 hover:text-green-700"
-												data-testid="hr-approve-button"
+														data-testid="hr-approve-button"
 													>
 														<Check class="mr-1 h-4 w-4" />
 														Approve
@@ -700,7 +701,7 @@
 														variant="outline"
 														onclick={() => handleDeny(request)}
 														class="border-red-200 text-red-600 hover:border-red-300 hover:text-red-700"
-												data-testid="hr-reject-button"
+														data-testid="hr-reject-button"
 													>
 														<X class="mr-1 h-4 w-4" />
 														Deny
@@ -743,7 +744,7 @@
 
 		{#if currentRequest}
 			<div class="space-y-4">
-				<div class="rounded-lg bg-muted dark:bg-muted p-4">
+				<div class="rounded-lg bg-muted p-4 dark:bg-muted">
 					<h4 class="mb-2 font-semibold">Request Details</h4>
 					<div class="space-y-1 text-sm">
 						<p><strong>Employee:</strong> {currentRequest.employee?.displayName}</p>
@@ -805,7 +806,7 @@
 
 		{#if currentRequest}
 			<div class="space-y-4">
-				<div class="rounded-lg bg-muted dark:bg-muted p-4">
+				<div class="rounded-lg bg-muted p-4 dark:bg-muted">
 					<h4 class="mb-2 font-semibold">Request Details</h4>
 					<div class="space-y-1 text-sm">
 						<p><strong>Employee:</strong> {currentRequest.employee?.displayName}</p>
@@ -875,7 +876,7 @@
 
 		{#if currentRequest}
 			<div class="space-y-4">
-				<div class="rounded-lg bg-muted dark:bg-muted p-4">
+				<div class="rounded-lg bg-muted p-4 dark:bg-muted">
 					<h4 class="mb-2 font-semibold">Request Details</h4>
 					<div class="space-y-1 text-sm">
 						<p><strong>Employee:</strong> {currentRequest.employee?.displayName}</p>
@@ -888,7 +889,10 @@
 							{formatDateRange(currentRequest.startDate, currentRequest.endDate)}
 						</p>
 						<p><strong>Duration:</strong> {currentRequest.daysRequested} days</p>
-						<p><strong>Current Status:</strong> <span class="capitalize">{currentRequest.status}</span></p>
+						<p>
+							<strong>Current Status:</strong>
+							<span class="capitalize">{currentRequest.status}</span>
+						</p>
 						{#if currentRequest.reason}
 							<p><strong>Reason:</strong> {currentRequest.reason}</p>
 						{/if}

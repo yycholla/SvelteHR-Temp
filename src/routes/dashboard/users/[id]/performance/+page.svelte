@@ -1,19 +1,31 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { Target, Plus, Clock, CheckCircle, XCircle, AlertTriangle, Circle, TrendingUp, User, Star, Calendar } from '@lucide/svelte';
+	import {
+		AlertTriangle,
+		Calendar,
+		CheckCircle,
+		Circle,
+		Clock,
+		Plus,
+		Star,
+		Target,
+		TrendingUp,
+		User,
+		XCircle
+	} from '@lucide/svelte';
 	import { format, parseISO } from 'date-fns';
 
-	let { data } = $props();
+	const { data } = $props();
 
 	// Svelte 5 runes - use $derived for reactive data
-	let user = $derived(data.user);
-	let userId = $derived(data.userId);
-	let goals = $derived(data.goals);
-	let goalCategories = $derived(data.goalCategories);
-	let goalStats = $derived(data.goalStats);
-	let currentQuarter = $derived(data.currentQuarter);
-	let canManageGoals = $derived(data.canManageGoals);
-	let isOwnGoals = $derived(data.isOwnGoals);
+	const user = $derived(data.user);
+	const userId = $derived(data.userId);
+	const goals = $derived(data.goals);
+	const goalCategories = $derived(data.goalCategories);
+	const goalStats = $derived(data.goalStats);
+	const currentQuarter = $derived(data.currentQuarter);
+	const canManageGoals = $derived(data.canManageGoals);
+	const isOwnGoals = $derived(data.isOwnGoals);
 
 	let showNewGoalForm = $state(false);
 	let selectedCategory = $state('all');
@@ -27,51 +39,75 @@
 	});
 
 	// Filter goals based on selected filters
-	let filteredGoals = $derived(goals.filter(goal => {
-		const categoryMatch = selectedCategory === 'all' || goal.category.id === selectedCategory;
-		const statusMatch = selectedStatus === 'all' || goal.status === selectedStatus;
-		return categoryMatch && statusMatch;
-	}));
+	const filteredGoals = $derived(
+		goals.filter((goal) => {
+			const categoryMatch = selectedCategory === 'all' || goal.category.id === selectedCategory;
+			const statusMatch = selectedStatus === 'all' || goal.status === selectedStatus;
+			return categoryMatch && statusMatch;
+		})
+	);
 
 	function getStatusIcon(status: string) {
 		switch (status) {
-			case 'completed': return CheckCircle;
-			case 'in_progress': return Clock;
-			case 'at_risk': return AlertTriangle;
-			case 'blocked': return XCircle;
-			case 'not_started': return Circle;
-			default: return Circle;
+			case 'completed':
+				return CheckCircle;
+			case 'in_progress':
+				return Clock;
+			case 'at_risk':
+				return AlertTriangle;
+			case 'blocked':
+				return XCircle;
+			case 'not_started':
+				return Circle;
+			default:
+				return Circle;
 		}
 	}
 
 	function getStatusColor(status: string) {
 		switch (status) {
-			case 'completed': return 'text-green-600 bg-green-50 border-green-200';
-			case 'in_progress': return 'text-blue-600 bg-blue-50 border-blue-200';
-			case 'at_risk': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-			case 'blocked': return 'text-red-600 bg-red-50 border-red-200';
-			case 'not_started': return 'text-muted-foreground bg-muted dark:bg-muted border';
-			default: return 'text-muted-foreground bg-muted dark:bg-muted border';
+			case 'completed':
+				return 'text-green-600 bg-green-50 border-green-200';
+			case 'in_progress':
+				return 'text-blue-600 bg-blue-50 border-blue-200';
+			case 'at_risk':
+				return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+			case 'blocked':
+				return 'text-red-600 bg-red-50 border-red-200';
+			case 'not_started':
+				return 'text-muted-foreground bg-muted dark:bg-muted border';
+			default:
+				return 'text-muted-foreground bg-muted dark:bg-muted border';
 		}
 	}
 
 	function getPriorityColor(priority: string) {
 		switch (priority) {
-			case 'high': return 'bg-red-100 text-red-800';
-			case 'medium': return 'bg-yellow-100 text-yellow-800';
-			case 'low': return 'bg-green-100 text-green-800';
-			default: return 'bg-gray-100 text-foreground';
+			case 'high':
+				return 'bg-red-100 text-red-800';
+			case 'medium':
+				return 'bg-yellow-100 text-yellow-800';
+			case 'low':
+				return 'bg-green-100 text-green-800';
+			default:
+				return 'bg-gray-100 text-foreground';
 		}
 	}
 
 	function getCategoryColor(color: string) {
 		switch (color) {
-			case 'blue': return 'bg-blue-100 text-blue-800';
-			case 'green': return 'bg-green-100 text-green-800';
-			case 'purple': return 'bg-purple-100 text-purple-800';
-			case 'orange': return 'bg-orange-100 text-orange-800';
-			case 'pink': return 'bg-pink-100 text-pink-800';
-			default: return 'bg-gray-100 text-foreground';
+			case 'blue':
+				return 'bg-blue-100 text-blue-800';
+			case 'green':
+				return 'bg-green-100 text-green-800';
+			case 'purple':
+				return 'bg-purple-100 text-purple-800';
+			case 'orange':
+				return 'bg-orange-100 text-orange-800';
+			case 'pink':
+				return 'bg-pink-100 text-pink-800';
+			default:
+				return 'bg-gray-100 text-foreground';
 		}
 	}
 
@@ -107,7 +143,7 @@
 </script>
 
 <svelte:head>
-	<title>{isOwnGoals ? 'My Goals' : `${user?.displayName} - Goals`} | SvelteHR</title>
+	<title>{isOwnGoals ? 'My Goals' : `${user?.displayName} - Goals`} | MountainHR</title>
 </svelte:head>
 
 <div class="container mx-auto space-y-6 p-6">
@@ -129,7 +165,7 @@
 
 		{#if isOwnGoals}
 			<button
-				onclick={() => showNewGoalForm = true}
+				onclick={() => (showNewGoalForm = true)}
 				class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
 			>
 				<Plus class="h-4 w-4" />
@@ -140,7 +176,7 @@
 
 	<!-- Goal Statistics -->
 	<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-		<div class="rounded-lg bg-card p-6 shadow-sm border">
+		<div class="rounded-lg border bg-card p-6 shadow-sm">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-muted-foreground">Total Goals</p>
@@ -152,7 +188,7 @@
 			</div>
 		</div>
 
-		<div class="rounded-lg bg-card p-6 shadow-sm border">
+		<div class="rounded-lg border bg-card p-6 shadow-sm">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-muted-foreground">Completed</p>
@@ -164,7 +200,7 @@
 			</div>
 		</div>
 
-		<div class="rounded-lg bg-card p-6 shadow-sm border">
+		<div class="rounded-lg border bg-card p-6 shadow-sm">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-muted-foreground">In Progress</p>
@@ -176,7 +212,7 @@
 			</div>
 		</div>
 
-		<div class="rounded-lg bg-card p-6 shadow-sm border">
+		<div class="rounded-lg border bg-card p-6 shadow-sm">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-muted-foreground">Avg. Progress</p>
@@ -190,10 +226,10 @@
 	</div>
 
 	<!-- Filters -->
-	<div class="rounded-lg bg-card p-4 shadow-sm border">
+	<div class="rounded-lg border bg-card p-4 shadow-sm">
 		<div class="flex flex-wrap gap-4">
 			<div>
-				<label for="category-filter" class="block text-sm font-medium text-foreground mb-1">
+				<label for="category-filter" class="mb-1 block text-sm font-medium text-foreground">
 					Category
 				</label>
 				<select
@@ -209,7 +245,7 @@
 			</div>
 
 			<div>
-				<label for="status-filter" class="block text-sm font-medium text-foreground mb-1">
+				<label for="status-filter" class="mb-1 block text-sm font-medium text-foreground">
 					Status
 				</label>
 				<select
@@ -230,12 +266,12 @@
 
 	<!-- New Goal Form Modal -->
 	{#if showNewGoalForm}
-		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+		<div class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
 			<div class="w-full max-w-lg rounded-lg bg-card p-6 shadow-xl">
-				<h2 class="text-lg font-semibold text-foreground mb-4">Create New Goal</h2>
+				<h2 class="mb-4 text-lg font-semibold text-foreground">Create New Goal</h2>
 				<form onsubmit={handleSubmitGoal} class="space-y-4">
 					<div>
-						<label for="goalTitle" class="block text-sm font-medium text-foreground mb-1">
+						<label for="goalTitle" class="mb-1 block text-sm font-medium text-foreground">
 							Goal Title
 						</label>
 						<input
@@ -249,7 +285,7 @@
 					</div>
 
 					<div>
-						<label for="goalDescription" class="block text-sm font-medium text-foreground mb-1">
+						<label for="goalDescription" class="mb-1 block text-sm font-medium text-foreground">
 							Description
 						</label>
 						<textarea
@@ -264,7 +300,7 @@
 
 					<div class="grid grid-cols-2 gap-4">
 						<div>
-							<label for="goalCategory" class="block text-sm font-medium text-foreground mb-1">
+							<label for="goalCategory" class="mb-1 block text-sm font-medium text-foreground">
 								Category
 							</label>
 							<select
@@ -281,7 +317,7 @@
 						</div>
 
 						<div>
-							<label for="goalPriority" class="block text-sm font-medium text-foreground mb-1">
+							<label for="goalPriority" class="mb-1 block text-sm font-medium text-foreground">
 								Priority
 							</label>
 							<select
@@ -297,7 +333,7 @@
 					</div>
 
 					<div>
-						<label for="goalTargetDate" class="block text-sm font-medium text-foreground mb-1">
+						<label for="goalTargetDate" class="mb-1 block text-sm font-medium text-foreground">
 							Target Date
 						</label>
 						<input
@@ -312,7 +348,7 @@
 					<div class="flex justify-end gap-3 pt-4">
 						<button
 							type="button"
-							onclick={() => showNewGoalForm = false}
+							onclick={() => (showNewGoalForm = false)}
 							class="px-4 py-2 text-sm font-medium text-foreground hover:text-foreground"
 						>
 							Cancel
@@ -333,38 +369,50 @@
 	<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 		{#each filteredGoals as goal}
 			{@const StatusIcon = getStatusIcon(goal.status)}
-			<div class="rounded-lg bg-card p-6 shadow-sm border">
+			<div class="rounded-lg border bg-card p-6 shadow-sm">
 				<!-- Goal Header -->
-				<div class="flex items-start justify-between mb-4">
+				<div class="mb-4 flex items-start justify-between">
 					<div class="flex-1">
-						<div class="flex items-center gap-2 mb-2">
+						<div class="mb-2 flex items-center gap-2">
 							<h3 class="text-lg font-semibold text-foreground">{goal.title}</h3>
-							<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getPriorityColor(goal.priority)}">
+							<span
+								class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getPriorityColor(
+									goal.priority
+								)}"
+							>
 								{goal.priority}
 							</span>
 						</div>
-						<p class="text-sm text-muted-foreground mb-3">{goal.description}</p>
+						<p class="mb-3 text-sm text-muted-foreground">{goal.description}</p>
 					</div>
 				</div>
 
 				<!-- Goal Metadata -->
-				<div class="flex items-center gap-4 mb-4">
-					<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getCategoryColor(goal.category.color)}">
+				<div class="mb-4 flex items-center gap-4">
+					<span
+						class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getCategoryColor(
+							goal.category.color
+						)}"
+					>
 						{goal.category.name}
 					</span>
-					<span class="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium {getStatusColor(goal.status)}">
+					<span
+						class="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium {getStatusColor(
+							goal.status
+						)}"
+					>
 						<StatusIcon class="h-3 w-3" />
-						{goal.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+						{goal.status.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
 					</span>
 				</div>
 
 				<!-- Progress Bar -->
 				<div class="mb-4">
-					<div class="flex items-center justify-between text-sm text-muted-foreground mb-1">
+					<div class="mb-1 flex items-center justify-between text-sm text-muted-foreground">
 						<span>Progress</span>
 						<span>{goal.progress}%</span>
 					</div>
-					<div class="w-full bg-gray-200 rounded-full h-2">
+					<div class="h-2 w-full rounded-full bg-gray-200">
 						<div
 							class="h-2 rounded-full transition-all duration-300 {getProgressColor(goal.progress)}"
 							style="width: {goal.progress}%"
@@ -375,7 +423,7 @@
 				<!-- Key Results -->
 				{#if goal.keyResults && goal.keyResults.length > 0}
 					<div class="mb-4">
-						<h4 class="text-sm font-medium text-foreground mb-2">Key Results</h4>
+						<h4 class="mb-2 text-sm font-medium text-foreground">Key Results</h4>
 						<div class="space-y-2">
 							{#each goal.keyResults as kr}
 								<div class="text-xs text-muted-foreground">
@@ -383,7 +431,7 @@
 										<span>{kr.description}</span>
 										<span>{kr.current}/{kr.target} {kr.unit}</span>
 									</div>
-									<div class="w-full bg-gray-200 rounded-full h-1 mt-1">
+									<div class="mt-1 h-1 w-full rounded-full bg-gray-200">
 										<div
 											class="h-1 rounded-full bg-purple-500"
 											style="width: {Math.min((kr.current / kr.target) * 100, 100)}%"
@@ -422,12 +470,12 @@
 						{selectedCategory !== 'all' || selectedStatus !== 'all'
 							? 'No goals match your current filters.'
 							: isOwnGoals
-							? 'Create your first goal to get started!'
-							: 'This user has no goals set yet.'}
+								? 'Create your first goal to get started!'
+								: 'This user has no goals set yet.'}
 					</p>
 					{#if isOwnGoals && selectedCategory === 'all' && selectedStatus === 'all'}
 						<button
-							onclick={() => showNewGoalForm = true}
+							onclick={() => (showNewGoalForm = true)}
 							class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
 						>
 							<Plus class="h-4 w-4" />
@@ -439,3 +487,4 @@
 		{/each}
 	</div>
 </div>
+

@@ -19,13 +19,13 @@
 	import TaskList from '$lib/components/tasks/TaskList.svelte';
 	import QuickAddTask from '$lib/components/tasks/QuickAddTask.svelte';
 	import {
+		AlertCircle,
+		AlertTriangle,
 		CheckCircle,
 		Clock,
-		AlertCircle,
-		TrendingUp,
-		User,
 		Search,
-		AlertTriangle
+		TrendingUp,
+		User
 	} from '@lucide/svelte';
 	import { CHANGE_TASK_STATUS } from '$lib/graphql/tasks-operations';
 	import { client } from '$lib/graphql/client';
@@ -34,7 +34,7 @@
 	import { toast } from 'svelte-sonner';
 
 	// Page data from server
-	let { data }: { data: PageData } = $props();
+	const { data }: { data: PageData } = $props();
 
 	// Local filter state
 	let searchQuery = $state(data.filters.searchTerm);
@@ -45,7 +45,7 @@
 	const priorityOrder = { URGENT: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
 
 	// Client-side filtered and sorted tasks
-	let filteredTasks = $derived.by(() => {
+	const filteredTasks = $derived.by(() => {
 		let result = data.tasks;
 
 		// Search filter
@@ -89,7 +89,7 @@
 	});
 
 	// Statistics cards configuration - derived to update reactively
-	let statsCards = $derived([
+	const statsCards = $derived([
 		{
 			label: 'Total Tasks',
 			value: data.taskStats.total,
@@ -193,12 +193,14 @@
 	// Handle status change
 	async function handleStatusChange(taskId: string, newStatus: TaskStatus) {
 		try {
-			const result = await client.mutation(CHANGE_TASK_STATUS, {
-				input: {
-					taskId,
-					status: newStatus
-				}
-			}).toPromise();
+			const result = await client
+				.mutation(CHANGE_TASK_STATUS, {
+					input: {
+						taskId,
+						status: newStatus
+					}
+				})
+				.toPromise();
 
 			if (result.error) {
 				throw result.error;
@@ -217,7 +219,7 @@
 </script>
 
 <svelte:head>
-	<title>My Tasks - SvelteHR</title>
+	<title>My Tasks - MountainHR</title>
 	<meta name="description" content="View and manage your assigned tasks" />
 </svelte:head>
 
@@ -238,7 +240,10 @@
 	</div>
 
 	<!-- Statistics Cards -->
-	<div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6" data-testid="my-tasks-stats-grid">
+	<div
+		class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6"
+		data-testid="my-tasks-stats-grid"
+	>
 		{#each statsCards as stat}
 			{@const Icon = stat.icon}
 			<Card.Root>
@@ -261,13 +266,13 @@
 	<Card.Root>
 		<Card.Content class="pt-6">
 			<Field.Group>
-				<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+				<div class="grid grid-cols-1 gap-6 md:grid-cols-3">
 					<!-- Search -->
 					<Field.Field>
 						<Field.Label>Search</Field.Label>
 						<div class="relative">
 							<Search
-								class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+								class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
 							/>
 							<Input
 								type="text"
@@ -282,7 +287,13 @@
 					<!-- Status Filter -->
 					<Field.Field>
 						<Field.Label>Status</Field.Label>
-						<NativeSelect.Root value={selectedStatus} onchange={(e) => { selectedStatus = e.currentTarget.value; updateFilters(); }}>
+						<NativeSelect.Root
+							value={selectedStatus}
+							onchange={(e) => {
+								selectedStatus = e.currentTarget.value;
+								updateFilters();
+							}}
+						>
 							{#each statusOptions as option}
 								<NativeSelect.Option value={option.value}>{option.label}</NativeSelect.Option>
 							{/each}
@@ -292,7 +303,13 @@
 					<!-- Priority Filter -->
 					<Field.Field>
 						<Field.Label>Priority</Field.Label>
-						<NativeSelect.Root value={selectedPriority} onchange={(e) => { selectedPriority = e.currentTarget.value; updateFilters(); }}>
+						<NativeSelect.Root
+							value={selectedPriority}
+							onchange={(e) => {
+								selectedPriority = e.currentTarget.value;
+								updateFilters();
+							}}
+						>
 							{#each priorityOptions as option}
 								<NativeSelect.Option value={option.value}>{option.label}</NativeSelect.Option>
 							{/each}
@@ -308,9 +325,9 @@
 		{#if filteredTasks.length === 0}
 			<Card.Root>
 				<Card.Content class="flex flex-col items-center justify-center py-12">
-					<CheckCircle class="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-					<h3 class="text-lg font-medium mb-2">No tasks found</h3>
-					<p class="text-sm text-muted-foreground mb-4">
+					<CheckCircle class="mb-4 h-12 w-12 text-muted-foreground opacity-50" />
+					<h3 class="mb-2 text-lg font-medium">No tasks found</h3>
+					<p class="mb-4 text-sm text-muted-foreground">
 						{#if searchQuery || selectedStatus || selectedPriority}
 							Try adjusting your filters
 						{:else}
@@ -331,5 +348,3 @@
 		{/if}
 	</div>
 </div>
-
-

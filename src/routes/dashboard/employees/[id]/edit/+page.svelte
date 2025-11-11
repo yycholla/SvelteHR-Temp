@@ -7,7 +7,19 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { ArrowLeft, Save, X, AlertCircle, User, Phone, Shield, Car, DollarSign, Plus, Trash2 } from '@lucide/svelte';
+	import {
+		AlertCircle,
+		ArrowLeft,
+		Car,
+		DollarSign,
+		Phone,
+		Plus,
+		Save,
+		Shield,
+		Trash2,
+		User,
+		X
+	} from '@lucide/svelte';
 
 	interface EmergencyContact {
 		id?: string;
@@ -105,7 +117,7 @@
 		};
 	}
 
-	let { data, form }: Props = $props();
+	const { data, form }: Props = $props();
 
 	// Extract server-loaded data
 	const employee = $derived(data.employee);
@@ -139,13 +151,15 @@
 	let vehicles = $state<Vehicle[]>(data.employee.vehicles || []);
 
 	// Compensation state (admin only)
-	let compensationId = $state(data.employee.compensation?.id || '');
+	const compensationId = $state(data.employee.compensation?.id || '');
 	let salaryAmount = $state(data.employee.compensation?.salaryAmount?.toString() || '');
 	let salaryCurrency = $state(data.employee.compensation?.salaryCurrency || 'USD');
 	let payFrequency = $state(data.employee.compensation?.payFrequency || 'monthly');
 	let payType = $state(data.employee.compensation?.payType || 'salary');
 	let hourlyRate = $state(data.employee.compensation?.hourlyRate?.toString() || '');
-	let effectiveDate = $state(data.employee.compensation?.effectiveDate || new Date().toISOString().split('T')[0]);
+	let effectiveDate = $state(
+		data.employee.compensation?.effectiveDate || new Date().toISOString().split('T')[0]
+	);
 	let bankName = $state(data.employee.compensation?.bankName || '');
 	let bankAccountType = $state(data.employee.compensation?.bankAccountType || '');
 	let bankAccountNumberLast4 = $state(data.employee.compensation?.bankAccountNumberLast4 || '');
@@ -155,12 +169,15 @@
 
 	// Functions to manage emergency contacts
 	function addEmergencyContact() {
-		emergencyContacts = [...emergencyContacts, {
-			fullName: '',
-			relationship: '',
-			phoneNumber: '',
-			isPrimary: false
-		}];
+		emergencyContacts = [
+			...emergencyContacts,
+			{
+				fullName: '',
+				relationship: '',
+				phoneNumber: '',
+				isPrimary: false
+			}
+		];
 	}
 
 	function removeEmergencyContact(index: number) {
@@ -169,12 +186,15 @@
 
 	// Functions to manage vehicles
 	function addVehicle() {
-		vehicles = [...vehicles, {
-			make: '',
-			model: '',
-			licensePlate: '',
-			isPrimary: false
-		}];
+		vehicles = [
+			...vehicles,
+			{
+				make: '',
+				model: '',
+				licensePlate: '',
+				isPrimary: false
+			}
+		];
 	}
 
 	function removeVehicle(index: number) {
@@ -209,7 +229,7 @@
 </script>
 
 <svelte:head>
-	<title>Edit {employee.displayName} - SvelteHR</title>
+	<title>Edit {employee.displayName} - MountainHR</title>
 	<meta name="description" content="Edit employee information for {employee.displayName}" />
 </svelte:head>
 
@@ -238,13 +258,16 @@
 	{/if}
 
 	<!-- Edit Form -->
-	<form method="POST" use:enhance={() => {
-		isSubmitting = true;
-		return async ({ update }) => {
-			await update();
-			isSubmitting = false;
-		};
-	}}>
+	<form
+		method="POST"
+		use:enhance={() => {
+			isSubmitting = true;
+			return async ({ update }) => {
+				await update();
+				isSubmitting = false;
+			};
+		}}
+	>
 		<Tabs.Root value="basic" class="w-full">
 			<Tabs.List class="grid w-full grid-cols-2 lg:grid-cols-5">
 				<Tabs.Trigger value="basic">
@@ -351,7 +374,7 @@
 										id="role"
 										name="role"
 										bind:value={role}
-										class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+										class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
 									>
 										{#each roleOptions as roleOption}
 											<option value={roleOption.value}>{roleOption.label}</option>
@@ -383,7 +406,7 @@
 										id="departmentId"
 										name="departmentId"
 										bind:value={departmentId}
-										class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+										class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
 									>
 										<option value="">No Department</option>
 										{#each departments as dept}
@@ -404,7 +427,7 @@
 									/>
 									<Label
 										for="isActive"
-										class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+										class="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
 									>
 										Active Employee
 									</Label>
@@ -593,12 +616,12 @@
 						</Card.Header>
 						<Card.Content class="space-y-6">
 							{#if emergencyContacts.length === 0}
-								<p class="text-center text-sm text-muted-foreground py-8">
+								<p class="py-8 text-center text-sm text-muted-foreground">
 									No emergency contacts added yet. Click "Add Contact" to get started.
 								</p>
 							{:else}
 								{#each emergencyContacts as contact, index}
-									<div class="rounded-lg border border-border p-4 space-y-4">
+									<div class="space-y-4 rounded-lg border border-border p-4">
 										<div class="flex items-center justify-between">
 											<h3 class="font-semibold text-foreground">Contact {index + 1}</h3>
 											<Button
@@ -611,7 +634,11 @@
 											</Button>
 										</div>
 
-										<input type="hidden" name="emergencyContacts[{index}].id" value={contact.id || ''} />
+										<input
+											type="hidden"
+											name="emergencyContacts[{index}].id"
+											value={contact.id || ''}
+										/>
 
 										<div class="grid gap-4 md:grid-cols-2">
 											<div class="space-y-2">
@@ -651,7 +678,9 @@
 												/>
 											</div>
 											<div class="space-y-2">
-												<Label for="emergencyContacts[{index}].alternatePhone">Alternate Phone</Label>
+												<Label for="emergencyContacts[{index}].alternatePhone"
+													>Alternate Phone</Label
+												>
 												<Input
 													id="emergencyContacts[{index}].alternatePhone"
 													name="emergencyContacts[{index}].alternatePhone"
@@ -683,7 +712,11 @@
 												}}
 											/>
 											<Label for="emergencyContacts[{index}].isPrimary">Primary Contact</Label>
-											<input type="hidden" name="emergencyContacts[{index}].isPrimary" value={contact.isPrimary.toString()} />
+											<input
+												type="hidden"
+												name="emergencyContacts[{index}].isPrimary"
+												value={contact.isPrimary.toString()}
+											/>
 										</div>
 									</div>
 								{/each}
@@ -725,12 +758,12 @@
 						</Card.Header>
 						<Card.Content class="space-y-6">
 							{#if vehicles.length === 0}
-								<p class="text-center text-sm text-muted-foreground py-8">
+								<p class="py-8 text-center text-sm text-muted-foreground">
 									No vehicles added yet. Click "Add Vehicle" to get started.
 								</p>
 							{:else}
 								{#each vehicles as vehicle, index}
-									<div class="rounded-lg border border-border p-4 space-y-4">
+									<div class="space-y-4 rounded-lg border border-border p-4">
 										<div class="flex items-center justify-between">
 											<h3 class="font-semibold text-foreground">Vehicle {index + 1}</h3>
 											<Button
@@ -872,7 +905,11 @@
 												}}
 											/>
 											<Label for="vehicles[{index}].isPrimary">Primary Vehicle</Label>
-											<input type="hidden" name="vehicles[{index}].isPrimary" value={vehicle.isPrimary.toString()} />
+											<input
+												type="hidden"
+												name="vehicles[{index}].isPrimary"
+												value={vehicle.isPrimary.toString()}
+											/>
 										</div>
 									</div>
 								{/each}
@@ -903,7 +940,8 @@
 								<div>
 									<Card.Title class="text-amber-900">Sensitive Information - Admin Only</Card.Title>
 									<Card.Description class="text-amber-700">
-										This section contains confidential compensation and banking information. Only store last 4 digits of sensitive numbers.
+										This section contains confidential compensation and banking information. Only
+										store last 4 digits of sensitive numbers.
 									</Card.Description>
 								</div>
 							</div>
@@ -912,7 +950,7 @@
 							<input type="hidden" name="compensationId" value={compensationId} />
 
 							<!-- Salary Information -->
-							<div class="rounded-lg border border-border bg-card p-4 space-y-4">
+							<div class="space-y-4 rounded-lg border border-border bg-card p-4">
 								<h3 class="font-semibold text-foreground">Salary Information</h3>
 
 								<div class="grid gap-4 md:grid-cols-2">
@@ -998,7 +1036,7 @@
 							</div>
 
 							<!-- Banking Information -->
-							<div class="rounded-lg border border-border bg-card p-4 space-y-4">
+							<div class="space-y-4 rounded-lg border border-border bg-card p-4">
 								<h3 class="font-semibold text-foreground">Banking & Payment Information</h3>
 
 								<div class="grid gap-4 md:grid-cols-2">
@@ -1066,7 +1104,9 @@
 											maxlength="4"
 											pattern="[0-9]{4}"
 										/>
-										<p class="text-xs text-muted-foreground">Only store last 4 digits for security</p>
+										<p class="text-xs text-muted-foreground">
+											Only store last 4 digits for security
+										</p>
 									</div>
 									<div class="space-y-2">
 										<Label for="taxIdLast4">Tax ID Last 4 Digits</Label>

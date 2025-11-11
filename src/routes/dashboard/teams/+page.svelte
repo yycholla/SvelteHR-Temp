@@ -9,20 +9,20 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
 	import {
+		BarChart3,
 		Building,
-		Users,
+		Building2,
+		Crown,
+		Edit,
+		Eye,
+		Filter,
 		Plus,
 		Search,
-		Filter,
-		Eye,
-		Edit,
-		Crown,
-		UserCheck,
-		TreePine,
-		BarChart3,
 		Target,
+		TreePine,
 		TrendingUp,
-		Building2
+		UserCheck,
+		Users
 	} from '@lucide/svelte';
 
 	// Helper function to categorize team size
@@ -69,7 +69,7 @@
 		};
 	}
 
-	let { data }: Props = $props();
+	const { data }: Props = $props();
 
 	// Extract server-loaded data
 	const user = $derived(data.user);
@@ -88,7 +88,7 @@
 	let selectedHead = $state(data.filters.headFilter);
 	let selectedParent = $state(data.filters.parentFilter);
 	let viewMode = $state<'table' | 'hierarchy'>(data.filters.viewMode as 'table' | 'hierarchy');
-	let currentPage = $state(data.filters.page);
+	const currentPage = $state(data.filters.page);
 	let pageSize = $state(data.filters.limit);
 
 	// Pagination state
@@ -166,7 +166,7 @@
 </script>
 
 <svelte:head>
-	<title>Teams Management - SvelteHR</title>
+	<title>Teams Management - MountainHR</title>
 	<meta name="description" content="Manage teams and organizational structure" />
 </svelte:head>
 
@@ -265,14 +265,20 @@
 					<Card.Description>Find teams by name, size, or leadership status</Card.Description>
 				</Card.Header>
 				<Card.Content>
-					<form onsubmit={(e) => { e.preventDefault(); handleSearch(); }} class="space-y-4">
+					<form
+						onsubmit={(e) => {
+							e.preventDefault();
+							handleSearch();
+						}}
+						class="space-y-4"
+					>
 						<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
 							<!-- Search Input -->
 							<div class="space-y-2">
 								<label for="search" class="text-sm font-medium">Search</label>
 								<div class="relative">
 									<Search
-										class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+										class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
 									/>
 									<Input
 										id="search"

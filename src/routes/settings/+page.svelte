@@ -12,28 +12,28 @@
 	import * as Tabs from '$lib/components/ui/tabs';
 	import * as Switch from '$lib/components/ui/switch';
 	import {
-		Settings,
-		Bell,
-		Shield,
-		Palette,
-		Globe,
-		ArrowLeft,
-		User,
-		Lock,
 		Activity,
-		Save,
+		AlertCircle,
+		ArrowLeft,
+		Bell,
+		CheckCircle,
+		Download,
 		Eye,
 		EyeOff,
-		Download,
-		AlertCircle,
-		CheckCircle
+		Globe,
+		Lock,
+		Palette,
+		Save,
+		Settings,
+		Shield,
+		User
 	} from '@lucide/svelte';
 	import {
-		profileVisibilityOptions,
-		languageOptions,
-		timezoneOptions,
 		colorSchemeOptions,
 		fontSizeOptions,
+		languageOptions,
+		profileVisibilityOptions,
+		timezoneOptions,
 		validatePasswordStrength
 	} from '$lib/graphql/settings-operations';
 
@@ -59,7 +59,7 @@
 	}
 
 	// Destructure props using Svelte 5 runes
-	let { data }: Props = $props();
+	const { data }: Props = $props();
 
 	// Derived values from server-side data
 	const user = $derived(data.user);
@@ -79,7 +79,7 @@
 	let updateError = $state<string | null>(null);
 
 	// Form state for profile - initialized from data (not derived userSettings)
-	let profileForm = $state({
+	const profileForm = $state({
 		firstName: data.userSettings.profile.firstName || '',
 		lastName: data.userSettings.profile.lastName || '',
 		displayName: data.userSettings.profile.displayName || '',
@@ -99,7 +99,7 @@
 	});
 
 	// Form state for notifications - initialized from data (not derived userSettings)
-	let notificationSettings = $state({
+	const notificationSettings = $state({
 		email: data.userSettings.notifications.email,
 		push: data.userSettings.notifications.push,
 		sms: data.userSettings.notifications.sms,
@@ -110,7 +110,7 @@
 	});
 
 	// Form state for appearance
-	let appearanceSettings = $state({
+	const appearanceSettings = $state({
 		darkMode: false,
 		compactView: false,
 		language: 'en',
@@ -130,7 +130,7 @@
 	});
 
 	// Form state for privacy
-	let privacySettings = $state({
+	const privacySettings = $state({
 		profileVisibility: 'public',
 		showOnlineStatus: true,
 		allowDirectMessages: true,
@@ -330,7 +330,7 @@
 </script>
 
 <svelte:head>
-	<title>Settings - SvelteHR</title>
+	<title>Settings - MountainHR</title>
 	<meta name="description" content="Manage your account settings and preferences" />
 </svelte:head>
 
@@ -592,7 +592,7 @@
 												<button
 													type="button"
 													onclick={() => (showCurrentPassword = !showCurrentPassword)}
-													class="absolute right-3 top-1/2 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
+													class="absolute top-1/2 right-3 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
 												>
 													{#if showCurrentPassword}
 														<EyeOff class="h-4 w-4" />
@@ -615,7 +615,7 @@
 												<button
 													type="button"
 													onclick={() => (showNewPassword = !showNewPassword)}
-													class="absolute right-3 top-1/2 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
+													class="absolute top-1/2 right-3 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
 												>
 													{#if showNewPassword}
 														<EyeOff class="h-4 w-4" />
@@ -668,7 +668,7 @@
 												<button
 													type="button"
 													onclick={() => (showConfirmPassword = !showConfirmPassword)}
-													class="absolute right-3 top-1/2 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
+													class="absolute top-1/2 right-3 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
 												>
 													{#if showConfirmPassword}
 														<EyeOff class="h-4 w-4" />
@@ -837,7 +837,7 @@
 									<Palette class="h-5 w-5" />
 									Appearance & Language
 								</Card.Title>
-								<Card.Description>Customize how SvelteHR looks and feels</Card.Description>
+								<Card.Description>Customize how MountainHR looks and feels</Card.Description>
 							</Card.Header>
 							<Card.Content class="space-y-4">
 								<div class="flex items-center justify-between">

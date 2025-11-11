@@ -5,19 +5,19 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import {
-		BarChart3,
-		TrendingUp,
-		Users,
+		AlertTriangle,
 		Award,
+		BarChart3,
+		Calendar,
+		CheckCircle,
+		Clock,
+		Filter,
 		Plus,
 		Search,
-		Filter,
-		Calendar,
 		Star,
-		Clock,
-		CheckCircle,
-		AlertTriangle,
-		User
+		TrendingUp,
+		User,
+		Users
 	} from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
@@ -40,14 +40,14 @@
 	import { ReviewCreationDialog } from '$lib/components/reviews';
 
 	import {
-		performanceRatings,
-		reviewStatusOptions,
-		reviewPeriods,
+		createPerformanceOperations,
+		formatReviewPeriod,
 		getRatingInfo,
 		getStatusInfo,
-		formatReviewPeriod,
 		isReviewOverdue,
-		createPerformanceOperations
+		performanceRatings,
+		reviewPeriods,
+		reviewStatusOptions
 	} from '$lib/graphql/queries/performance-reviews';
 
 	// Page data from server
@@ -68,7 +68,7 @@
 		};
 	}
 
-	let { data }: Props = $props();
+	const { data }: Props = $props();
 
 	// Derived state using Svelte 5 runes
 	const user = $derived(data.user);
@@ -81,14 +81,14 @@
 
 	// Local state for UI
 	let selectedView = $state('all');
-	let showCreateModal = $state(false);
+	const showCreateModal = $state(false);
 	let showDetailsModal = $state(false);
 	let currentReview = $state<any>(null);
-	let isSubmitting = $state(false);
+	const isSubmitting = $state(false);
 	let searchQuery = $state(data.filters.searchTerm || '');
-	let statusFilter = $state(data.filters.statusFilter || '');
-	let periodFilter = $state(data.filters.periodFilter || '');
-	let departmentFilter = $state(data.filters.departmentFilter || '');
+	const statusFilter = $state(data.filters.statusFilter || '');
+	const periodFilter = $state(data.filters.periodFilter || '');
+	const departmentFilter = $state(data.filters.departmentFilter || '');
 
 	// Employee selector state
 	let showEmployeeSelector = $state(false);
@@ -352,7 +352,7 @@
 </script>
 
 <svelte:head>
-	<title>Performance Reviews - SvelteHR</title>
+	<title>Performance Reviews - MountainHR</title>
 	<meta
 		name="description"
 		content="Manage and track team performance reviews, ratings, and analytics"
@@ -659,103 +659,105 @@
 				</Dialog.Description>
 			</Dialog.Header>
 
-		{#if currentReview}
-			<div class="max-h-96 space-y-6 overflow-y-auto">
-				<!-- Employee Info -->
-				<div class="rounded-lg bg-muted dark:bg-muted p-4">
-					<h4 class="mb-2 font-semibold">Employee Information</h4>
-					<div class="grid grid-cols-2 gap-4 text-sm">
-						<p><strong>Name:</strong> {currentReview.employee?.displayName}</p>
-						<p><strong>Department:</strong> {currentReview.employee?.department?.name}</p>
-						<p><strong>Job Title:</strong> {currentReview.employee?.jobTitle || 'N/A'}</p>
-						<p><strong>Reviewer:</strong> {currentReview.reviewer?.displayName}</p>
-					</div>
-				</div>
-
-				<!-- Ratings -->
-				{#if currentReview.overallRating}
-					<div>
-						<h4 class="mb-3 font-semibold">Performance Ratings</h4>
-						<div class="grid grid-cols-2 gap-4">
-							<div class="text-sm">
-								<p class="font-medium">Overall Performance</p>
-								<p class="text-yellow-600">
-									{renderRatingStars(currentReview.overallRating)} ({currentReview.overallRating}/5)
-								</p>
-							</div>
-							{#if currentReview.goalsAchievement}
-								<div class="text-sm">
-									<p class="font-medium">Goals Achievement</p>
-									<p class="text-yellow-600">
-										{renderRatingStars(currentReview.goalsAchievement)} ({currentReview.goalsAchievement}/5)
-									</p>
-								</div>
-							{/if}
-							{#if currentReview.collaboration}
-								<div class="text-sm">
-									<p class="font-medium">Collaboration</p>
-									<p class="text-yellow-600">
-										{renderRatingStars(currentReview.collaboration)} ({currentReview.collaboration}/5)
-									</p>
-								</div>
-							{/if}
-							{#if currentReview.communication}
-								<div class="text-sm">
-									<p class="font-medium">Communication</p>
-									<p class="text-yellow-600">
-										{renderRatingStars(currentReview.communication)} ({currentReview.communication}/5)
-									</p>
-								</div>
-							{/if}
+			{#if currentReview}
+				<div class="max-h-96 space-y-6 overflow-y-auto">
+					<!-- Employee Info -->
+					<div class="rounded-lg bg-muted p-4 dark:bg-muted">
+						<h4 class="mb-2 font-semibold">Employee Information</h4>
+						<div class="grid grid-cols-2 gap-4 text-sm">
+							<p><strong>Name:</strong> {currentReview.employee?.displayName}</p>
+							<p><strong>Department:</strong> {currentReview.employee?.department?.name}</p>
+							<p><strong>Job Title:</strong> {currentReview.employee?.jobTitle || 'N/A'}</p>
+							<p><strong>Reviewer:</strong> {currentReview.reviewer?.displayName}</p>
 						</div>
 					</div>
-				{/if}
 
-				<!-- Review Content -->
-				{#if currentReview.strengths}
-					<div>
-						<h4 class="mb-2 font-semibold">Strengths</h4>
-						<p class="rounded bg-green-50 p-3 text-sm text-foreground">{currentReview.strengths}</p>
-					</div>
-				{/if}
+					<!-- Ratings -->
+					{#if currentReview.overallRating}
+						<div>
+							<h4 class="mb-3 font-semibold">Performance Ratings</h4>
+							<div class="grid grid-cols-2 gap-4">
+								<div class="text-sm">
+									<p class="font-medium">Overall Performance</p>
+									<p class="text-yellow-600">
+										{renderRatingStars(currentReview.overallRating)} ({currentReview.overallRating}/5)
+									</p>
+								</div>
+								{#if currentReview.goalsAchievement}
+									<div class="text-sm">
+										<p class="font-medium">Goals Achievement</p>
+										<p class="text-yellow-600">
+											{renderRatingStars(currentReview.goalsAchievement)} ({currentReview.goalsAchievement}/5)
+										</p>
+									</div>
+								{/if}
+								{#if currentReview.collaboration}
+									<div class="text-sm">
+										<p class="font-medium">Collaboration</p>
+										<p class="text-yellow-600">
+											{renderRatingStars(currentReview.collaboration)} ({currentReview.collaboration}/5)
+										</p>
+									</div>
+								{/if}
+								{#if currentReview.communication}
+									<div class="text-sm">
+										<p class="font-medium">Communication</p>
+										<p class="text-yellow-600">
+											{renderRatingStars(currentReview.communication)} ({currentReview.communication}/5)
+										</p>
+									</div>
+								{/if}
+							</div>
+						</div>
+					{/if}
 
-				{#if currentReview.areasForImprovement}
-					<div>
-						<h4 class="mb-2 font-semibold">Areas for Improvement</h4>
-						<p class="rounded bg-orange-50 p-3 text-sm text-foreground">
-							{currentReview.areasForImprovement}
-						</p>
-					</div>
-				{/if}
+					<!-- Review Content -->
+					{#if currentReview.strengths}
+						<div>
+							<h4 class="mb-2 font-semibold">Strengths</h4>
+							<p class="rounded bg-green-50 p-3 text-sm text-foreground">
+								{currentReview.strengths}
+							</p>
+						</div>
+					{/if}
 
-				{#if currentReview.goalsForNextPeriod}
-					<div>
-						<h4 class="mb-2 font-semibold">Goals for Next Period</h4>
-						<p class="rounded bg-blue-50 p-3 text-sm text-foreground">
-							{currentReview.goalsForNextPeriod}
-						</p>
-					</div>
-				{/if}
+					{#if currentReview.areasForImprovement}
+						<div>
+							<h4 class="mb-2 font-semibold">Areas for Improvement</h4>
+							<p class="rounded bg-orange-50 p-3 text-sm text-foreground">
+								{currentReview.areasForImprovement}
+							</p>
+						</div>
+					{/if}
 
-				{#if currentReview.developmentPlan}
-					<div>
-						<h4 class="mb-2 font-semibold">Development Plan</h4>
-						<p class="rounded bg-purple-50 p-3 text-sm text-foreground">
-							{currentReview.developmentPlan}
-						</p>
-					</div>
-				{/if}
+					{#if currentReview.goalsForNextPeriod}
+						<div>
+							<h4 class="mb-2 font-semibold">Goals for Next Period</h4>
+							<p class="rounded bg-blue-50 p-3 text-sm text-foreground">
+								{currentReview.goalsForNextPeriod}
+							</p>
+						</div>
+					{/if}
 
-				{#if currentReview.employeeSelfAssessment}
-					<div>
-						<h4 class="mb-2 font-semibold">Employee Self-Assessment</h4>
-						<p class="rounded bg-muted dark:bg-muted p-3 text-sm text-foreground">
-							{currentReview.employeeSelfAssessment}
-						</p>
-					</div>
-				{/if}
-			</div>
-		{/if}
+					{#if currentReview.developmentPlan}
+						<div>
+							<h4 class="mb-2 font-semibold">Development Plan</h4>
+							<p class="rounded bg-purple-50 p-3 text-sm text-foreground">
+								{currentReview.developmentPlan}
+							</p>
+						</div>
+					{/if}
+
+					{#if currentReview.employeeSelfAssessment}
+						<div>
+							<h4 class="mb-2 font-semibold">Employee Self-Assessment</h4>
+							<p class="rounded bg-muted p-3 text-sm text-foreground dark:bg-muted">
+								{currentReview.employeeSelfAssessment}
+							</p>
+						</div>
+					{/if}
+				</div>
+			{/if}
 
 			<Dialog.Footer>
 				<Button
@@ -765,7 +767,9 @@
 					}}>Close</Button
 				>
 				{#if canEditReviews && currentReview && currentReview.status !== 'completed'}
-					<Button href={`/dashboard/management/reviews/${currentReview.id}/edit`}>Edit Review</Button>
+					<Button href={`/dashboard/management/reviews/${currentReview.id}/edit`}
+						>Edit Review</Button
+					>
 				{/if}
 			</Dialog.Footer>
 		</Dialog.Content>
@@ -776,7 +780,7 @@
 <Dialog.Root bind:open={showEmployeeSelector}>
 	<Dialog.Portal>
 		<Dialog.Overlay />
-		<Dialog.Content class="max-w-2xl max-h-[80vh]">
+		<Dialog.Content class="max-h-[80vh] max-w-2xl">
 			<Dialog.Header>
 				<Dialog.Title>Select Employee for Review</Dialog.Title>
 				<Dialog.Description>
@@ -787,7 +791,7 @@
 			<div class="space-y-4 py-4">
 				<!-- Search Input -->
 				<div class="relative">
-					<Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+					<Search class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 					<Input
 						type="text"
 						placeholder="Search employees by name or email..."
@@ -797,13 +801,13 @@
 				</div>
 
 				<!-- Employee List -->
-				<div class="border rounded-md max-h-96 overflow-y-auto">
+				<div class="max-h-96 overflow-y-auto rounded-md border">
 					{#if filteredEmployees.length === 0}
 						<div class="p-8 text-center text-muted-foreground">
-							<User class="h-12 w-12 mx-auto mb-2 opacity-50" />
+							<User class="mx-auto mb-2 h-12 w-12 opacity-50" />
 							<p>No employees found</p>
 							{#if employeeSearchQuery}
-								<p class="text-sm mt-1">Try adjusting your search</p>
+								<p class="mt-1 text-sm">Try adjusting your search</p>
 							{/if}
 						</div>
 					{:else}
@@ -811,7 +815,7 @@
 							{#each filteredEmployees as employee (employee.id)}
 								<button
 									type="button"
-									class="w-full p-4 text-left hover:bg-accent transition-colors flex items-center gap-3"
+									class="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-accent"
 									onclick={() => handleEmployeeSelected(employee)}
 								>
 									<div class="flex-1">
@@ -819,7 +823,8 @@
 										<div class="text-sm text-muted-foreground">{employee.email}</div>
 									</div>
 									<Badge variant="outline">
-										{employee.firstName} {employee.lastName}
+										{employee.firstName}
+										{employee.lastName}
 									</Badge>
 								</button>
 							{/each}
@@ -829,9 +834,7 @@
 			</div>
 
 			<Dialog.Footer>
-				<Button variant="outline" onclick={() => (showEmployeeSelector = false)}>
-					Cancel
-				</Button>
+				<Button variant="outline" onclick={() => (showEmployeeSelector = false)}>Cancel</Button>
 			</Dialog.Footer>
 		</Dialog.Content>
 	</Dialog.Portal>

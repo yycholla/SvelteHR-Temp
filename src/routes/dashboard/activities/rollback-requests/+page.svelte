@@ -15,7 +15,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import RollbackRequestCard from '$lib/components/activities/RollbackRequestCard.svelte';
 	import Pagination from '$lib/components/activities/Pagination.svelte';
-	import { RefreshCw, Filter, CheckSquare, XSquare, Clock } from '@lucide/svelte';
+	import { CheckSquare, Clock, Filter, RefreshCw, XSquare } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
 	interface Props {
@@ -32,7 +32,7 @@
 		};
 	}
 
-	let { data }: Props = $props();
+	const { data }: Props = $props();
 
 	let isRefreshing = $state(false);
 	let selectedRequests = $state<Set<string>>(new Set());
@@ -170,11 +170,8 @@
 </script>
 
 <svelte:head>
-	<title>Rollback Requests - SvelteHR</title>
-	<meta
-		name="description"
-		content="Manage rollback requests with approval workflow"
-	/>
+	<title>Rollback Requests - MountainHR</title>
+	<meta name="description" content="Manage rollback requests with approval workflow" />
 </svelte:head>
 
 <!-- Page Header -->
@@ -342,7 +339,7 @@
 	{:else}
 		<div class="space-y-4">
 			{#each data.requests as request (request.id)}
-				<div class="flex gap-4 items-start">
+				<div class="flex items-start gap-4">
 					{#if data.canReview}
 						<input
 							type="checkbox"

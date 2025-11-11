@@ -8,22 +8,22 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
 	import {
-		Building,
-		Search,
-		Filter,
-		Plus,
-		Users,
-		User,
-		Crown,
 		BarChart3,
-		Eye,
-		Edit,
-		Trash2,
+		Building,
+		Building2,
 		ChevronDown,
 		ChevronRight,
+		Crown,
+		Edit,
+		Eye,
+		Filter,
+		Plus,
+		Search,
+		Trash2,
 		TreePine,
-		Building2,
-		UserCheck
+		User,
+		UserCheck,
+		Users
 	} from '@lucide/svelte';
 	import { buildTeamHierarchy, categorizeTeamSize } from '$lib/graphql/team-management-operations';
 	import DepartmentCreateDialog from '$lib/components/departments/DepartmentCreateDialog.svelte';
@@ -55,7 +55,7 @@
 		};
 	}
 
-	let { data }: Props = $props();
+	const { data }: Props = $props();
 
 	// Extract server-loaded data
 	const user = $derived(data.user);
@@ -71,7 +71,7 @@
 	let searchTerm = $state(data.filters.searchTerm);
 	let selectedParent = $state(data.filters.parentFilter);
 	let selectedHasHead = $state(data.filters.hasHeadFilter);
-	let currentPage = $state(data.filters.page);
+	const currentPage = $state(data.filters.page);
 	let pageSize = $state(data.filters.limit);
 
 	// Dialog state
@@ -149,7 +149,7 @@
 </script>
 
 <svelte:head>
-	<title>Departments - SvelteHR</title>
+	<title>Departments - MountainHR</title>
 	<meta name="description" content="View and manage all departments in your organization" />
 </svelte:head>
 
@@ -232,14 +232,20 @@
 			<Card.Description>Find departments by name, parent, or leadership status</Card.Description>
 		</Card.Header>
 		<Card.Content>
-			<form onsubmit={(e) => { e.preventDefault(); handleSearch(); }} class="space-y-4">
+			<form
+				onsubmit={(e) => {
+					e.preventDefault();
+					handleSearch();
+				}}
+				class="space-y-4"
+			>
 				<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
 					<!-- Search Input -->
 					<div class="space-y-2">
 						<label for="search" class="text-sm font-medium">Search</label>
 						<div class="relative">
 							<Search
-								class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+								class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
 							/>
 							<Input
 								id="search"
@@ -389,7 +395,11 @@
 							</Button>
 						{/if}
 						{#if canManageDepartments}
-							<Button variant="outline" size="sm" href="/dashboard/departments/{department.id}/edit">
+							<Button
+								variant="outline"
+								size="sm"
+								href="/dashboard/departments/{department.id}/edit"
+							>
 								<Edit class="mr-2 h-4 w-4" />
 								Edit
 							</Button>

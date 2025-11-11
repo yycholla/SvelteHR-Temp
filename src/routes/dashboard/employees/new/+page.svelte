@@ -51,7 +51,7 @@
 </script>
 
 <svelte:head>
-	<title>Add New Employee - SvelteHR</title>
+	<title>Add New Employee - MountainHR</title>
 	<meta name="description" content="Add a new employee to the system" />
 </svelte:head>
 
@@ -128,7 +128,7 @@
 							name="firstName"
 							bind:value={firstName}
 							required
-							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring focus:outline-none"
 							placeholder="John"
 						/>
 						{#if errors.firstName}
@@ -147,7 +147,7 @@
 							name="lastName"
 							bind:value={lastName}
 							required
-							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring focus:outline-none"
 							placeholder="Doe"
 						/>
 						{#if errors.lastName}
@@ -167,7 +167,7 @@
 						name="email"
 						bind:value={email}
 						required
-						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring focus:outline-none"
 						placeholder="john.doe@company.com"
 					/>
 					{#if errors.email}
@@ -203,14 +203,12 @@
 				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<!-- Role -->
 					<div>
-						<label for="role" class="mb-2 block text-sm font-medium text-foreground">
-							Role
-						</label>
+						<label for="role" class="mb-2 block text-sm font-medium text-foreground"> Role </label>
 						<select
 							id="role"
 							name="role"
 							bind:value={role}
-							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:ring-2 focus:ring-ring focus:outline-none"
 						>
 							<option value="employee">Employee</option>
 							<option value="manager">Manager</option>
@@ -229,7 +227,7 @@
 							id="hireDate"
 							name="hireDate"
 							bind:value={hireDate}
-							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:ring-2 focus:ring-ring focus:outline-none"
 						/>
 					</div>
 				</div>
@@ -243,7 +241,7 @@
 						id="departmentId"
 						name="departmentId"
 						bind:value={departmentId}
-						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:ring-2 focus:ring-ring focus:outline-none"
 					>
 						<option value="">No Department</option>
 						{#each data.departments as dept}
@@ -262,14 +260,14 @@
 					type="button"
 					onclick={handleCancel}
 					disabled={isSubmitting}
-					class="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+					class="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					Cancel
 				</button>
 				<button
 					type="submit"
 					disabled={isSubmitting}
-					class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+					class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					{isSubmitting ? 'Creating Employee...' : 'Create Employee'}
 				</button>

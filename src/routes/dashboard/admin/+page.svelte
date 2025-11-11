@@ -5,20 +5,20 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import {
-		Shield,
-		Users,
-		Building2,
-		Settings,
-		TrendingUp,
-		AlertTriangle,
 		Activity,
+		AlertTriangle,
+		BarChart3,
+		Building2,
 		Database,
 		Lock,
-		BarChart3
+		Settings,
+		Shield,
+		TrendingUp,
+		Users
 	} from '@lucide/svelte';
 
 	// Admin dashboard metrics
-	let adminMetrics = [
+	const adminMetrics = [
 		{
 			title: 'Total Users',
 			value: '142',
@@ -50,7 +50,7 @@
 	];
 
 	// Quick admin actions
-	let adminActions = [
+	const adminActions = [
 		{
 			title: 'User Management',
 			description: 'Manage user accounts and permissions',
@@ -91,8 +91,8 @@
 </script>
 
 <svelte:head>
-	<title>Admin Dashboard - SvelteHR</title>
-	<meta name="description" content="System administration dashboard for SvelteHR" />
+	<title>Admin Dashboard - MountainHR</title>
+	<meta name="description" content="System administration dashboard for MountainHR" />
 </svelte:head>
 
 <div class="space-y-6" data-testid="admin-page">

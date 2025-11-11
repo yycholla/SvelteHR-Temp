@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { authActions } from '$lib/stores/auth';
 	import ToastContainer from '$lib/components/ui/toast-container.svelte';
@@ -8,17 +8,14 @@
 	import { createUrqlClient } from '$lib/graphql/client';
 	import { ModeWatcher } from 'mode-watcher';
 	import { toast } from 'svelte-sonner';
-	import {
-		initSessionTimeout,
-		type SessionTimeoutManager
-	} from '$lib/services/session-timeout';
+	import { type SessionTimeoutManager, initSessionTimeout } from '$lib/services/session-timeout';
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 
 	// Initialize PostGraphile GraphQL client for the entire app
 	setContextClient(createUrqlClient());
 
-	let { children, data } = $props();
+	const { children, data } = $props();
 
 	// Session timeout state
 	let sessionTimeoutManager: SessionTimeoutManager | null = null;
@@ -67,25 +64,22 @@
 
 			const min = Math.floor(remaining / 60);
 			const sec = remaining % 60;
-			toast.warning(
-				`Session expiring in ${min}:${sec.toString().padStart(2, '0')}`,
-				{
-					id: timeoutToastId,
-					description: 'Click anywhere or press Continue to stay logged in',
-					duration: Infinity,
-					action: {
-						label: 'Continue',
-						onClick: () => {
-							showTimeoutBlur = false;
-							if (countdownInterval) {
-								clearInterval(countdownInterval);
-								countdownInterval = null;
-							}
-							sessionTimeoutManager?.refreshSession();
+			toast.warning(`Session expiring in ${min}:${sec.toString().padStart(2, '0')}`, {
+				id: timeoutToastId,
+				description: 'Click anywhere or press Continue to stay logged in',
+				duration: Infinity,
+				action: {
+					label: 'Continue',
+					onClick: () => {
+						showTimeoutBlur = false;
+						if (countdownInterval) {
+							clearInterval(countdownInterval);
+							countdownInterval = null;
 						}
+						sessionTimeoutManager?.refreshSession();
 					}
 				}
-			);
+			});
 		}, 1000);
 	}
 
@@ -157,7 +151,7 @@
 </script>
 
 <svelte:head>
-	<title>SvelteHR - HR Management System</title>
+	<title>MountainHR - HR Management System</title>
 	<meta name="description" content="Comprehensive HR management system for modern organizations" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<link rel="icon" href={favicon} />
@@ -208,5 +202,4 @@
 	:global(#app) {
 		height: 100%;
 	}
-
 </style>

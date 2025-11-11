@@ -9,7 +9,7 @@
 	import { ArrowLeft, Building2 } from '@lucide/svelte';
 
 	// Get page data
-	let { data } = $props();
+	const { data } = $props();
 
 	// Form state using Svelte 5 runes
 	let name = $state('');
@@ -70,11 +70,11 @@
 </script>
 
 <svelte:head>
-	<title>Create New Department - SvelteHR</title>
+	<title>Create New Department - MountainHR</title>
 	<meta name="description" content="Create a new department in the organization" />
 </svelte:head>
 
-<div class="container mx-auto px-4 py-8 max-w-3xl">
+<div class="container mx-auto max-w-3xl px-4 py-8">
 	<!-- Header -->
 	<div class="mb-6">
 		<Button variant="ghost" onclick={handleCancel} class="mb-4">
@@ -82,7 +82,7 @@
 			Back to Departments
 		</Button>
 
-		<div class="flex items-center gap-3 mb-2">
+		<div class="mb-2 flex items-center gap-3">
 			<div class="rounded-lg bg-primary/10 p-2">
 				<Building2 class="h-6 w-6 text-primary" />
 			</div>
@@ -149,7 +149,7 @@
 								<Select.Item value={user.id}>
 									{user.displayName || user.email}
 									{#if user.role}
-										<span class="text-muted-foreground ml-2 text-xs">
+										<span class="ml-2 text-xs text-muted-foreground">
 											({user.role})
 										</span>
 									{/if}

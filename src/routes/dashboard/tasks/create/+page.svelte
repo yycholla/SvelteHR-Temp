@@ -7,7 +7,7 @@
 	import { goto } from '$app/navigation';
 	import type { TaskPriority, TaskStatus } from '$lib/graphql/types';
 
-	let { data }: { data: PageData } = $props();
+	const { data }: { data: PageData } = $props();
 
 	// Form state
 	let title = $state('');
@@ -79,7 +79,7 @@
 </script>
 
 <svelte:head>
-	<title>Create Task - SvelteHR</title>
+	<title>Create Task - MountainHR</title>
 	<meta name="description" content="Create a new task" />
 </svelte:head>
 
@@ -112,7 +112,7 @@
 	<form onsubmit={handleSubmit} class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
 		<!-- Title -->
 		<div class="mb-6">
-			<label for="title" class="block text-sm font-medium text-gray-700 mb-2">
+			<label for="title" class="mb-2 block text-sm font-medium text-gray-700">
 				Task Title <span class="text-red-600">*</span>
 			</label>
 			<input
@@ -120,7 +120,7 @@
 				id="title"
 				bind:value={title}
 				required
-				class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 {errors.title
+				class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none {errors.title
 					? 'border-red-500'
 					: ''}"
 				placeholder="Enter task title"
@@ -132,14 +132,14 @@
 
 		<!-- Description -->
 		<div class="mb-6">
-			<label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+			<label for="description" class="mb-2 block text-sm font-medium text-gray-700">
 				Description
 			</label>
 			<textarea
 				id="description"
 				bind:value={description}
 				rows="4"
-				class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+				class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 				placeholder="Enter task description"
 			></textarea>
 		</div>
@@ -148,14 +148,14 @@
 		<div class="mb-6 grid gap-4 sm:grid-cols-2">
 			<!-- Priority -->
 			<div>
-				<label for="priority" class="block text-sm font-medium text-gray-700 mb-2">
+				<label for="priority" class="mb-2 block text-sm font-medium text-gray-700">
 					Priority <span class="text-red-600">*</span>
 				</label>
 				<select
 					id="priority"
 					bind:value={priority}
 					required
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 				>
 					<option value="low">Low</option>
 					<option value="medium">Medium</option>
@@ -166,14 +166,14 @@
 
 			<!-- Status -->
 			<div>
-				<label for="status" class="block text-sm font-medium text-gray-700 mb-2">
+				<label for="status" class="mb-2 block text-sm font-medium text-gray-700">
 					Initial Status <span class="text-red-600">*</span>
 				</label>
 				<select
 					id="status"
 					bind:value={status}
 					required
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 				>
 					<option value="pending">Pending</option>
 					<option value="in_progress">In Progress</option>
@@ -183,21 +183,19 @@
 
 		<!-- Due Date -->
 		<div class="mb-6">
-			<label for="dueDate" class="block text-sm font-medium text-gray-700 mb-2">
-				Due Date
-			</label>
+			<label for="dueDate" class="mb-2 block text-sm font-medium text-gray-700"> Due Date </label>
 			<input
 				type="date"
 				id="dueDate"
 				bind:value={dueDate}
 				min={data.minDate}
-				class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+				class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 			/>
 		</div>
 
 		<!-- Assignment Type -->
 		<div class="mb-6">
-			<div class="block text-sm font-medium text-gray-700 mb-2">
+			<div class="mb-2 block text-sm font-medium text-gray-700">
 				Assignment Type <span class="text-red-600">*</span>
 			</div>
 			<div class="flex gap-4">
@@ -226,12 +224,10 @@
 		{#if assignmentType === 'employee'}
 			<!-- Employee Selection -->
 			<div class="mb-6">
-				<label for="assigneeId" class="block text-sm font-medium text-gray-700 mb-2">
+				<label for="assigneeId" class="mb-2 block text-sm font-medium text-gray-700">
 					Assign to Employee <span class="text-red-600">*</span>
 				</label>
-				<div
-					class="rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600"
-				>
+				<div class="rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
 					<p>Employee selection will be available here.</p>
 					<p class="mt-1 text-xs">(Feature coming soon - will show dropdown of employees)</p>
 				</div>
@@ -240,7 +236,7 @@
 					id="assigneeId"
 					bind:value={assigneeId}
 					placeholder="Enter employee ID (temporary)"
-					class="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 {errors.assigneeId
+					class="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none {errors.assigneeId
 						? 'border-red-500'
 						: ''}"
 				/>
@@ -251,12 +247,10 @@
 		{:else}
 			<!-- Department Selection -->
 			<div class="mb-6">
-				<label for="departmentId" class="block text-sm font-medium text-gray-700 mb-2">
+				<label for="departmentId" class="mb-2 block text-sm font-medium text-gray-700">
 					Assign to Department <span class="text-red-600">*</span>
 				</label>
-				<div
-					class="rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600"
-				>
+				<div class="rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
 					<p>Department selection will be available here.</p>
 					<p class="mt-1 text-xs">(Feature coming soon - will show dropdown of departments)</p>
 				</div>
@@ -265,7 +259,7 @@
 					id="departmentId"
 					bind:value={departmentId}
 					placeholder="Enter department ID (temporary)"
-					class="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 {errors.departmentId
+					class="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none {errors.departmentId
 						? 'border-red-500'
 						: ''}"
 				/>
@@ -277,9 +271,7 @@
 
 		<!-- Assignment Info -->
 		<div class="mb-6">
-			<div
-				class="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800"
-			>
+			<div class="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
 				<p class="font-medium">
 					{#if assignmentType === 'employee'}
 						📋 Task will be assigned to a specific employee
@@ -301,19 +293,19 @@
 		<div class="flex items-center justify-end gap-4 border-t border-gray-200 pt-6">
 			<a
 				href="/dashboard/tasks/my-tasks"
-				class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+				class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
 			>
 				Cancel
 			</a>
 			<button
 				type="submit"
 				disabled={isSubmitting}
-				class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+				class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 			>
 				{#if isSubmitting}
 					<span class="flex items-center">
 						<svg
-							class="animate-spin mr-2 h-4 w-4 text-white"
+							class="mr-2 h-4 w-4 animate-spin text-white"
 							xmlns="http://www.w3.org/2000/svg"
 							fill="none"
 							viewBox="0 0 24 24"

@@ -133,15 +133,15 @@
 </script>
 
 <svelte:head>
-	<title>Sign In - SvelteHR</title>
+	<title>Sign In - MountainHR</title>
 	<meta
 		name="description"
-		content="Sign in to your SvelteHR account to access your HR dashboard."
+		content="Sign in to your MountainHR account to access your HR dashboard."
 	/>
 </svelte:head>
 
 <!-- Use AuthLayout for consistent branding -->
-<AuthLayout title="SvelteHR" subtitle="Human Resources Management System">
+<AuthLayout title="MountainHR" subtitle="Human Resources Management System">
 	<!-- Use shadcn-style LoginForm -->
 	<LoginForm on:success={handleLoginSuccess} on:error={handleLoginError} />
 </AuthLayout>

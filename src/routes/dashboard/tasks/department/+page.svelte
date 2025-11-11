@@ -7,13 +7,13 @@
 	import TaskList from '$lib/components/tasks/TaskList.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import type { TaskStatus, TaskPriority } from '$lib/graphql/types';
+	import type { TaskPriority, TaskStatus } from '$lib/graphql/types';
 	import { getTaskStatistics } from '$lib/utils/tasks';
 
-	let { data }: { data: PageData } = $props();
+	const { data }: { data: PageData } = $props();
 
 	// Derived statistics
-	let statistics = $derived(getTaskStatistics(data.allTasks));
+	const statistics = $derived(getTaskStatistics(data.allTasks));
 
 	// Filter state
 	let selectedStatus = $state<TaskStatus | 'all'>(data.filters.status || 'all');
@@ -70,7 +70,7 @@
 </script>
 
 <svelte:head>
-	<title>Department Tasks - SvelteHR</title>
+	<title>Department Tasks - MountainHR</title>
 	<meta name="description" content="Manage department-wide tasks" />
 </svelte:head>
 
@@ -86,15 +86,15 @@
 		<div class="flex flex-wrap items-end gap-4">
 			<!-- Department Selector (if managing multiple departments) -->
 			{#if data.managedDepartments.length > 1}
-				<div class="flex-1 min-w-[200px]">
-					<label for="department-filter" class="block text-sm font-medium text-foreground mb-1">
+				<div class="min-w-[200px] flex-1">
+					<label for="department-filter" class="mb-1 block text-sm font-medium text-foreground">
 						Department
 					</label>
 					<select
 						id="department-filter"
 						bind:value={selectedDepartment}
 						onchange={applyFilters}
-						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:ring-1 focus:ring-ring focus:outline-none"
 					>
 						{#each data.managedDepartments as dept}
 							<option value={dept.id}>{dept.name}</option>
@@ -103,8 +103,8 @@
 				</div>
 			{:else if data.selectedDepartment}
 				<!-- Show current department if only one -->
-				<div class="flex-1 min-w-[200px]">
-					<div class="block text-sm font-medium text-foreground mb-1">Department</div>
+				<div class="min-w-[200px] flex-1">
+					<div class="mb-1 block text-sm font-medium text-foreground">Department</div>
 					<div
 						class="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground"
 					>
@@ -114,15 +114,15 @@
 			{/if}
 
 			<!-- Status Filter -->
-			<div class="flex-1 min-w-[200px]">
-				<label for="status-filter" class="block text-sm font-medium text-foreground mb-1">
+			<div class="min-w-[200px] flex-1">
+				<label for="status-filter" class="mb-1 block text-sm font-medium text-foreground">
 					Status
 				</label>
 				<select
 					id="status-filter"
 					bind:value={selectedStatus}
 					onchange={applyFilters}
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:ring-1 focus:ring-ring focus:outline-none"
 				>
 					<option value="all">All Statuses</option>
 					<option value="pending">Pending</option>
@@ -133,15 +133,15 @@
 			</div>
 
 			<!-- Priority Filter -->
-			<div class="flex-1 min-w-[200px]">
-				<label for="priority-filter" class="block text-sm font-medium text-foreground mb-1">
+			<div class="min-w-[200px] flex-1">
+				<label for="priority-filter" class="mb-1 block text-sm font-medium text-foreground">
 					Priority
 				</label>
 				<select
 					id="priority-filter"
 					bind:value={selectedPriority}
 					onchange={applyFilters}
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:ring-1 focus:ring-ring focus:outline-none"
 				>
 					<option value="all">All Priorities</option>
 					<option value="low">Low</option>
@@ -152,15 +152,15 @@
 			</div>
 
 			<!-- Sort Order -->
-			<div class="flex-1 min-w-[200px]">
-				<label for="sort-filter" class="block text-sm font-medium text-foreground mb-1">
+			<div class="min-w-[200px] flex-1">
+				<label for="sort-filter" class="mb-1 block text-sm font-medium text-foreground">
 					Sort By
 				</label>
 				<select
 					id="sort-filter"
 					bind:value={selectedSort}
 					onchange={applyFilters}
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:ring-1 focus:ring-ring focus:outline-none"
 				>
 					<option value="priority">Priority</option>
 					<option value="dueDate">Due Date</option>
@@ -174,7 +174,7 @@
 				<button
 					type="button"
 					onclick={() => goto('/dashboard/tasks/department')}
-					class="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+					class="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none"
 				>
 					Reset
 				</button>
@@ -190,7 +190,9 @@
 		</div>
 
 		<div class="rounded-lg border border-border bg-card p-4 shadow-sm">
-			<div class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{statistics.pending}</div>
+			<div class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+				{statistics.pending}
+			</div>
 			<div class="text-sm text-muted-foreground">Pending</div>
 		</div>
 
@@ -200,7 +202,9 @@
 		</div>
 
 		<div class="rounded-lg border border-border bg-card p-4 shadow-sm">
-			<div class="text-2xl font-bold text-green-600 dark:text-green-400">{statistics.completed}</div>
+			<div class="text-2xl font-bold text-green-600 dark:text-green-400">
+				{statistics.completed}
+			</div>
 			<div class="text-sm text-muted-foreground">Completed</div>
 		</div>
 
@@ -237,15 +241,13 @@
 
 	<!-- Pagination -->
 	{#if data.totalCount > data.limit}
-		<div
-			class="flex items-center justify-between border-t border-border bg-card px-4 py-3 sm:px-6"
-		>
+		<div class="flex items-center justify-between border-t border-border bg-card px-4 py-3 sm:px-6">
 			<div class="flex flex-1 justify-between sm:hidden">
 				<button
 					type="button"
 					disabled={data.currentPage === 1}
 					onclick={() => goToPage(data.currentPage - 1)}
-					class="relative inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+					class="relative inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					Previous
 				</button>
@@ -253,7 +255,7 @@
 					type="button"
 					disabled={!data.hasNextPage}
 					onclick={() => goToPage(data.currentPage + 1)}
-					class="relative ml-3 inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+					class="relative ml-3 inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					Next
 				</button>
@@ -275,15 +277,12 @@
 				</div>
 
 				<div>
-					<nav
-						class="isolate inline-flex -space-x-px rounded-md shadow-sm"
-						aria-label="Pagination"
-					>
+					<nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
 						<button
 							type="button"
 							disabled={data.currentPage === 1}
 							onclick={() => goToPage(data.currentPage - 1)}
-							class="relative inline-flex items-center rounded-l-md px-2 py-2 text-muted-foreground ring-1 ring-inset ring-border hover:bg-accent hover:text-accent-foreground focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+							class="relative inline-flex items-center rounded-l-md px-2 py-2 text-muted-foreground ring-1 ring-border ring-inset hover:bg-accent hover:text-accent-foreground focus:z-20 focus:outline-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
 						>
 							<span class="sr-only">Previous</span>
 							<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -296,7 +295,7 @@
 						</button>
 
 						<span
-							class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-foreground ring-1 ring-inset ring-border bg-card"
+							class="relative inline-flex items-center bg-card px-4 py-2 text-sm font-semibold text-foreground ring-1 ring-border ring-inset"
 						>
 							Page {data.currentPage}
 						</span>
@@ -305,7 +304,7 @@
 							type="button"
 							disabled={!data.hasNextPage}
 							onclick={() => goToPage(data.currentPage + 1)}
-							class="relative inline-flex items-center rounded-r-md px-2 py-2 text-muted-foreground ring-1 ring-inset ring-border hover:bg-accent hover:text-accent-foreground focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+							class="relative inline-flex items-center rounded-r-md px-2 py-2 text-muted-foreground ring-1 ring-border ring-inset hover:bg-accent hover:text-accent-foreground focus:z-20 focus:outline-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
 						>
 							<span class="sr-only">Next</span>
 							<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

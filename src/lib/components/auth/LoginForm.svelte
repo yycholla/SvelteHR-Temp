@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import { authStore, authActions, isLoading, authError } from '$lib/stores/auth';
+	import { authActions, authError, authStore, isLoading } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
-	import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2 } from '@lucide/svelte';
+	import { AlertCircle, Eye, EyeOff, Loader2, Lock, Mail } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -114,7 +114,7 @@
 	<form onsubmit={handleSubmit} class="space-y-6" novalidate data-testid="login-form">
 		<!-- Header -->
 		<div class="text-center">
-			<h1 class="text-2xl font-semibold text-foreground">Sign in to SvelteHR</h1>
+			<h1 class="text-2xl font-semibold text-foreground">Sign in to MountainHR</h1>
 			<p class="mt-2 text-sm text-muted-foreground">
 				Welcome back! Please sign in to your account.
 			</p>
@@ -151,7 +151,7 @@
 						if (error) formErrors.email = error;
 					}}
 					disabled={isSubmitting || $isLoading}
-				data-testid="login-username-input"
+					data-testid="login-username-input"
 				/>
 			</div>
 			{#if formErrors.email}
@@ -172,7 +172,7 @@
 					type={showPassword ? 'text' : 'password'}
 					autocomplete="current-password"
 					required
-					class="pl-10 pr-10 {formErrors.password ? 'border-destructive' : ''}"
+					class="pr-10 pl-10 {formErrors.password ? 'border-destructive' : ''}"
 					placeholder="Enter your password"
 					bind:value={password}
 					oninput={handlePasswordChange}
@@ -181,7 +181,7 @@
 						if (error) formErrors.password = error;
 					}}
 					disabled={isSubmitting || $isLoading}
-				data-testid="login-password-input"
+					data-testid="login-password-input"
 				/>
 				<div class="absolute inset-y-0 right-0 flex items-center pr-3">
 					<button
@@ -214,7 +214,7 @@
 					data-testid="login-remember-me"
 					class="h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
 				/>
-				<Label for="remember-me" class="text-sm font-normal cursor-pointer">Remember me</Label>
+				<Label for="remember-me" class="cursor-pointer text-sm font-normal">Remember me</Label>
 			</div>
 
 			<div class="text-sm">

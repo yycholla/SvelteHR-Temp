@@ -7,19 +7,19 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Table from '$lib/components/ui/table';
 	import {
+		ArrowLeft,
+		Briefcase,
 		Building,
 		Building2,
-		ArrowLeft,
-		Edit,
-		Trash2,
-		Users,
-		UserCheck,
-		Crown,
-		Mail,
 		Calendar,
-		Briefcase,
+		Crown,
+		Edit,
+		Eye,
+		Mail,
 		Search,
-		Eye
+		Trash2,
+		UserCheck,
+		Users
 	} from '@lucide/svelte';
 
 	interface Props {
@@ -63,7 +63,7 @@
 		};
 	}
 
-	let { data }: Props = $props();
+	const { data }: Props = $props();
 
 	// Extract server-loaded data
 	const department = $derived(data.department);
@@ -107,7 +107,7 @@
 </script>
 
 <svelte:head>
-	<title>{department.name} - Department Details - SvelteHR</title>
+	<title>{department.name} - Department Details - MountainHR</title>
 	<meta name="description" content="View details for {department.name} department" />
 </svelte:head>
 
@@ -295,7 +295,7 @@
 					<!-- Search -->
 					<div class="relative">
 						<Search
-							class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+							class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
 						/>
 						<Input
 							type="text"

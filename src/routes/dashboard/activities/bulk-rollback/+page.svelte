@@ -15,7 +15,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Input } from '$lib/components/ui/input';
 	import BulkRollbackDialog from '$lib/components/activities/BulkRollbackDialog.svelte';
-	import { RefreshCw, Calendar, Filter, FileText, AlertCircle } from '@lucide/svelte';
+	import { AlertCircle, Calendar, FileText, Filter, RefreshCw } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import { formatActivityMessage } from '$lib/utils/activities';
 
@@ -30,7 +30,7 @@
 		form: any;
 	}
 
-	let { data, form }: Props = $props();
+	const { data, form }: Props = $props();
 
 	let showDialog = $state(false);
 	let selectedLogs = $state<Set<string>>(new Set());
@@ -146,11 +146,8 @@
 </script>
 
 <svelte:head>
-	<title>Bulk Rollback - SvelteHR</title>
-	<meta
-		name="description"
-		content="Perform bulk rollback operations (super_admin only)"
-	/>
+	<title>Bulk Rollback - MountainHR</title>
+	<meta name="description" content="Perform bulk rollback operations (super_admin only)" />
 </svelte:head>
 
 <!-- Page Header -->
@@ -183,11 +180,12 @@
 	<Card.Root class="border-yellow-600">
 		<Card.Content class="py-4">
 			<div class="flex items-start gap-3">
-				<AlertCircle class="h-5 w-5 text-yellow-600 mt-0.5" />
+				<AlertCircle class="mt-0.5 h-5 w-5 text-yellow-600" />
 				<div class="flex-1">
 					<h3 class="font-semibold text-yellow-900">Super Admin Only</h3>
 					<p class="text-sm text-yellow-800">
-						Bulk rollback operations are powerful and irreversible. Ensure you have selected the correct logs and understand the impact before proceeding.
+						Bulk rollback operations are powerful and irreversible. Ensure you have selected the
+						correct logs and understand the impact before proceeding.
 					</p>
 				</div>
 			</div>
@@ -235,7 +233,8 @@
 		<Card.Root>
 			<Card.Header>
 				<Card.Title>Filter Available Logs</Card.Title>
-				<Card.Description>Find rollbackable logs by date, resource type, or action</Card.Description>
+				<Card.Description>Find rollbackable logs by date, resource type, or action</Card.Description
+				>
 			</Card.Header>
 			<Card.Content>
 				<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -292,7 +291,9 @@
 			<div class="flex items-center justify-between">
 				<div>
 					<Card.Title>Select Logs for Batch Rollback</Card.Title>
-					<Card.Description>Choose up to 100 logs to rollback in a single operation</Card.Description>
+					<Card.Description
+						>Choose up to 100 logs to rollback in a single operation</Card.Description
+					>
 				</div>
 				{#if data.availableLogs.length > 0}
 					<Button size="sm" variant="outline" onclick={toggleSelectAll}>
@@ -315,9 +316,11 @@
 					</p>
 				</div>
 			{:else}
-				<div class="space-y-2 max-h-96 overflow-y-auto">
+				<div class="max-h-96 space-y-2 overflow-y-auto">
 					{#each data.availableLogs as log}
-						<label class="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent cursor-pointer">
+						<label
+							class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-accent"
+						>
 							<input
 								type="checkbox"
 								checked={selectedLogs.has(log.id)}
@@ -360,15 +363,19 @@
 										{batch.total_count} logs
 									</span>
 								</div>
-								<p class="text-sm text-muted-foreground mt-1">
+								<p class="mt-1 text-sm text-muted-foreground">
 									{batch.successful_count || 0} succeeded, {batch.failed_count || 0} failed
 								</p>
-								<p class="text-xs text-muted-foreground mt-1">
+								<p class="mt-1 text-xs text-muted-foreground">
 									Created: {new Date(batch.created_at).toLocaleString()}
 								</p>
 							</div>
 							{#if batch.status === 'in_progress'}
-								<Button size="sm" variant="outline" href="/dashboard/activities/bulk-rollback/{batch.id}">
+								<Button
+									size="sm"
+									variant="outline"
+									href="/dashboard/activities/bulk-rollback/{batch.id}"
+								>
 									View Progress
 								</Button>
 							{/if}

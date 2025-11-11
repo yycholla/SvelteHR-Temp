@@ -1,37 +1,37 @@
 <script lang="ts">
 	import {
-		Users,
-		Building2,
-		Calendar,
-		Settings,
-		User,
-		Home,
-		Shield,
-		FileText,
-		TrendingUp,
-		UserCheck,
-		Target,
-		ListTodo,
-		ChevronDown,
-		ChevronRight,
-		Sun,
-		Moon,
-		LogOut,
-		Clock,
+		Activity,
 		Award,
 		BarChart3,
-		LayoutDashboard,
 		Bell,
-		Activity,
+		Building2,
+		Calendar,
 		CheckSquare,
+		ChevronDown,
+		ChevronRight,
+		Clock,
+		FileText,
 		FolderOpen,
-		Upload,
+		Home,
+		LayoutDashboard,
+		ListTodo,
+		LogOut,
+		Moon,
 		ScrollText,
-		Tags
+		Settings,
+		Shield,
+		Sun,
+		Tags,
+		Target,
+		TrendingUp,
+		Upload,
+		User,
+		UserCheck,
+		Users
 	} from '@lucide/svelte';
-	import { currentUser, hasRole, authActions } from '$lib/stores/auth';
+	import { authActions, currentUser, hasRole } from '$lib/stores/auth';
 	import { page } from '$app/stores';
-	import { toggleMode, mode } from 'mode-watcher';
+	import { mode, toggleMode } from 'mode-watcher';
 	import { notificationStore } from '$lib/stores/notifications';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
@@ -45,7 +45,7 @@
 		permissions: string[];
 	}
 
-	let { permissions }: Props = $props();
+	const { permissions }: Props = $props();
 
 	// Subscribe to notification store
 	const notifications = $derived($notificationStore.notifications);
@@ -105,7 +105,7 @@
 		// Check for wildcard permission
 		if (permissionStrings.includes('*') || permissionStrings.includes('*:*')) return true;
 
-		const has = permissions.some(p => hasPermission(p));
+		const has = permissions.some((p) => hasPermission(p));
 		console.log(`[Sidebar] Checking any of [${permissions.join(', ')}]:`, has);
 		return has;
 	};
@@ -123,9 +123,11 @@
 
 		// If checking for self or team, also accept higher scopes
 		if (scope === 'self') {
-			return permissionStrings.includes(`${resource}:read:team`) ||
-			       permissionStrings.includes(`${resource}:read:all`) ||
-			       permissionStrings.includes(`${resource}:read`); // Legacy
+			return (
+				permissionStrings.includes(`${resource}:read:team`) ||
+				permissionStrings.includes(`${resource}:read:all`) ||
+				permissionStrings.includes(`${resource}:read`)
+			); // Legacy
 		}
 		if (scope === 'team') {
 			return permissionStrings.includes(`${resource}:read:all`);
@@ -140,7 +142,7 @@
 		if (permissionStrings.includes('*') || permissionStrings.includes('*:*')) return true;
 
 		// Check if any permission has the specified scope
-		return permissionStrings.some(p => {
+		return permissionStrings.some((p) => {
 			if (scope === 'team') {
 				return p.includes(':read:team') || p.includes(':read:all');
 			}
@@ -148,7 +150,12 @@
 				return p.includes(':read:all');
 			}
 			// For 'self', any read permission qualifies
-			return p.includes(':read:self') || p.includes(':read:team') || p.includes(':read:all') || p.endsWith(':read');
+			return (
+				p.includes(':read:self') ||
+				p.includes(':read:team') ||
+				p.includes(':read:all') ||
+				p.endsWith(':read')
+			);
 		});
 	};
 
@@ -492,7 +499,7 @@
 
 	// Filter menu items based on permissions
 	const filteredNavMain = $derived.by(() => {
-		const filtered = navMain.filter(item => {
+		const filtered = navMain.filter((item) => {
 			// Check permission or permissionAny
 			if ((item as any).permission) {
 				return hasPermission((item as any).permission);
@@ -502,13 +509,16 @@
 			return true; // Show if no permission requirement
 		});
 		console.log('[Sidebar] Filtered nav items:', filtered.length, 'of', navMain.length);
-		console.log('[Sidebar] Filtered items:', filtered.map(i => i.title));
+		console.log(
+			'[Sidebar] Filtered items:',
+			filtered.map((i) => i.title)
+		);
 		return filtered;
 	});
 
 	// Filter management items based on read:team or read:all permissions
 	const filteredManagementItems = $derived.by(() => {
-		const filtered = managementItems.filter(item => {
+		const filtered = managementItems.filter((item) => {
 			// Check permission or permissionAny
 			if ((item as any).permission) {
 				return hasPermission((item as any).permission);
@@ -517,13 +527,18 @@
 			}
 			return true;
 		});
-		console.log('[Sidebar] Filtered management items:', filtered.length, 'of', managementItems.length);
+		console.log(
+			'[Sidebar] Filtered management items:',
+			filtered.length,
+			'of',
+			managementItems.length
+		);
 		return filtered;
 	});
 
 	// Filter admin items based on read:all permissions and role
 	const filteredAdminItems = $derived.by(() => {
-		const filtered = adminItems.filter(item => {
+		const filtered = adminItems.filter((item) => {
 			// Check super admin only items
 			if ((item as any).superAdminOnly && !isSuperAdmin) {
 				return false;
@@ -539,7 +554,6 @@
 		console.log('[Sidebar] Filtered admin items:', filtered.length, 'of', adminItems.length);
 		return filtered;
 	});
-
 </script>
 
 <div class="flex h-full flex-col bg-sidebar text-sidebar-foreground">
@@ -547,7 +561,7 @@
 	<div class="flex items-center justify-between px-4 py-4">
 		<a href="/dashboard" class="flex items-center gap-2 font-semibold">
 			<Building2 class="h-5 w-5 text-primary" />
-			<span class="text-base">SvelteHR</span>
+			<span class="text-base">MountainHR</span>
 		</a>
 		<NotificationDropdown {notifications} />
 	</div>
@@ -564,10 +578,13 @@
 						class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-80"
 						class:bg-primary={$page.url.pathname === item.url}
 						class:text-primary-foreground={$page.url.pathname === item.url}
-						data-testid={item.title === 'Dashboard' ? 'nav-dashboard' :
-										item.title === 'Employees' ? 'nav-employees' :
-										item.title === 'Events' ? 'nav-events' :
-										null}
+						data-testid={item.title === 'Dashboard'
+							? 'nav-dashboard'
+							: item.title === 'Employees'
+								? 'nav-employees'
+								: item.title === 'Events'
+									? 'nav-events'
+									: null}
 					>
 						<Icon class="h-4 w-4" />
 						{item.title}
@@ -575,7 +592,8 @@
 				{:else}
 					<!-- Collapsible section -->
 					{@const Icon = item.icon}
-					{@const ChevronIcon = item.section && expandedSections[item.section] ? ChevronDown : ChevronRight}
+					{@const ChevronIcon =
+						item.section && expandedSections[item.section] ? ChevronDown : ChevronRight}
 					<div>
 						<button
 							onclick={() => item.section && toggleSection(item.section)}
@@ -589,7 +607,9 @@
 									return currentPath.includes('/performance');
 								}
 								if (item.section === 'tasks') {
-									return currentPath.includes('/tasks') && !currentPath.includes('/tasks/department');
+									return (
+										currentPath.includes('/tasks') && !currentPath.includes('/tasks/department')
+									);
 								}
 								return false;
 							})()}
@@ -602,11 +622,13 @@
 									return currentPath.includes('/performance');
 								}
 								if (item.section === 'tasks') {
-									return currentPath.includes('/tasks') && !currentPath.includes('/tasks/department');
+									return (
+										currentPath.includes('/tasks') && !currentPath.includes('/tasks/department')
+									);
 								}
 								return false;
 							})()}
-							data-testid={item.title === "Tasks" ? "nav-tasks" : null}
+							data-testid={item.title === 'Tasks' ? 'nav-tasks' : null}
 						>
 							<div class="flex items-center gap-3">
 								<Icon class="h-4 w-4" />
@@ -618,7 +640,7 @@
 						</button>
 
 						{#if item.items && item.section && expandedSections[item.section]}
-							<div class="ml-4 mt-1 space-y-1 border-l border-sidebar-border pl-3">
+							<div class="mt-1 ml-4 space-y-1 border-l border-sidebar-border pl-3">
 								{#each item.items as subItem}
 									<a
 										href={subItem.url}
@@ -656,7 +678,7 @@
 			</button>
 
 			{#if expandedSections.management}
-				<div class="ml-4 mt-1 space-y-1 border-l border-sidebar-border pl-3">
+				<div class="mt-1 ml-4 space-y-1 border-l border-sidebar-border pl-3">
 					{#each filteredManagementItems as item}
 						{@const ItemIcon = item.icon}
 						<a
@@ -689,8 +711,10 @@
 			<button
 				onclick={() => toggleSection('administration')}
 				class="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-80"
-				class:bg-primary={$page.url.pathname.includes('/admin') || $page.url.pathname === '/dashboard/tasks'}
-				class:text-primary-foreground={$page.url.pathname.includes('/admin') || $page.url.pathname === '/dashboard/tasks'}
+				class:bg-primary={$page.url.pathname.includes('/admin') ||
+					$page.url.pathname === '/dashboard/tasks'}
+				class:text-primary-foreground={$page.url.pathname.includes('/admin') ||
+					$page.url.pathname === '/dashboard/tasks'}
 				data-testid="nav-admin"
 			>
 				<div class="flex items-center gap-3">
@@ -701,7 +725,7 @@
 			</button>
 
 			{#if expandedSections.administration}
-				<div class="ml-4 mt-1 space-y-0.5 pl-3">
+				<div class="mt-1 ml-4 space-y-0.5 pl-3">
 					{#each filteredAdminItems as item}
 						{@const ItemIcon = item.icon}
 						<a
@@ -715,11 +739,15 @@
 							<span class="flex-1">{item.title}</span>
 							<!-- Badge indicating access level -->
 							{#if item.superAdminOnly}
-								<span class="rounded-sm bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:bg-red-500/20 dark:text-red-400">
+								<span
+									class="rounded-sm bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:bg-red-500/20 dark:text-red-400"
+								>
 									Super
 								</span>
 							{:else}
-								<span class="rounded-sm bg-green-500/10 px-1.5 py-0.5 text-[10px] font-medium text-green-600 dark:bg-green-500/20 dark:text-green-400">
+								<span
+									class="rounded-sm bg-green-500/10 px-1.5 py-0.5 text-[10px] font-medium text-green-600 dark:bg-green-500/20 dark:text-green-400"
+								>
 									All
 								</span>
 							{/if}

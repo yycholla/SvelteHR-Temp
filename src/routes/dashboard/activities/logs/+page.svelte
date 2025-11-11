@@ -198,25 +198,55 @@
 	function getActionBadge(action: string): { variant: string; class: string } {
 		switch (action) {
 			case 'CREATE':
-				return { variant: 'default', class: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' };
+				return {
+					variant: 'default',
+					class: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+				};
 			case 'UPDATE':
-				return { variant: 'default', class: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' };
+				return {
+					variant: 'default',
+					class: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+				};
 			case 'DELETE':
-				return { variant: 'default', class: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' };
+				return {
+					variant: 'default',
+					class: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+				};
 			case 'UPLOAD':
-				return { variant: 'default', class: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' };
+				return {
+					variant: 'default',
+					class: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+				};
 			case 'ASSIGN':
-				return { variant: 'default', class: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300' };
+				return {
+					variant: 'default',
+					class: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300'
+				};
 			case 'UNASSIGN':
-				return { variant: 'default', class: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' };
+				return {
+					variant: 'default',
+					class: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
+				};
 			case 'APPROVE':
-				return { variant: 'default', class: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' };
+				return {
+					variant: 'default',
+					class: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+				};
 			case 'REJECT':
-				return { variant: 'default', class: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' };
+				return {
+					variant: 'default',
+					class: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
+				};
 			case 'EXECUTE':
-				return { variant: 'default', class: 'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300' };
+				return {
+					variant: 'default',
+					class: 'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300'
+				};
 			default:
-				return { variant: 'secondary', class: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300' };
+				return {
+					variant: 'secondary',
+					class: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300'
+				};
 		}
 	}
 
@@ -242,7 +272,7 @@
 </script>
 
 <svelte:head>
-	<title>Audit Logs - SvelteHR</title>
+	<title>Audit Logs - MountainHR</title>
 	<meta name="description" content="View comprehensive system activity logs" />
 </svelte:head>
 
@@ -289,16 +319,20 @@
 	<Card.Root>
 		<Card.Header>
 			<Card.Title>Filter Audit Logs</Card.Title>
-			<Card.Description>Search and filter activity logs by action, resource, user, and more</Card.Description>
+			<Card.Description
+				>Search and filter activity logs by action, resource, user, and more</Card.Description
+			>
 		</Card.Header>
 		<Card.Content>
 			<Field.Group>
-				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+				<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
 					<!-- Search -->
 					<Field.Field>
 						<Field.Label>Search</Field.Label>
 						<div class="relative">
-							<Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+							<Search
+								class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+							/>
 							<Input
 								type="text"
 								placeholder="Search logs..."
@@ -312,7 +346,13 @@
 					<!-- Action Filter -->
 					<Field.Field>
 						<Field.Label>Action</Field.Label>
-						<NativeSelect.Root value={selectedAction} onchange={(e) => { selectedAction = e.currentTarget.value; handleFilterChange(); }}>
+						<NativeSelect.Root
+							value={selectedAction}
+							onchange={(e) => {
+								selectedAction = e.currentTarget.value;
+								handleFilterChange();
+							}}
+						>
 							<NativeSelect.Option value="">All Actions</NativeSelect.Option>
 							{#each data.uniqueActions as action}
 								<NativeSelect.Option value={action}>{action}</NativeSelect.Option>
@@ -323,7 +363,13 @@
 					<!-- Resource Type Filter -->
 					<Field.Field>
 						<Field.Label>Resource Type</Field.Label>
-						<NativeSelect.Root value={selectedResourceType} onchange={(e) => { selectedResourceType = e.currentTarget.value; handleFilterChange(); }}>
+						<NativeSelect.Root
+							value={selectedResourceType}
+							onchange={(e) => {
+								selectedResourceType = e.currentTarget.value;
+								handleFilterChange();
+							}}
+						>
 							<NativeSelect.Option value="">All Resources</NativeSelect.Option>
 							{#each data.uniqueResourceTypes as resourceType}
 								<NativeSelect.Option value={resourceType}>{resourceType}</NativeSelect.Option>
@@ -334,10 +380,18 @@
 					<!-- User Filter -->
 					<Field.Field>
 						<Field.Label>User</Field.Label>
-						<NativeSelect.Root value={selectedUser} onchange={(e) => { selectedUser = e.currentTarget.value; handleFilterChange(); }}>
+						<NativeSelect.Root
+							value={selectedUser}
+							onchange={(e) => {
+								selectedUser = e.currentTarget.value;
+								handleFilterChange();
+							}}
+						>
 							<NativeSelect.Option value="">All Users</NativeSelect.Option>
 							{#each data.uniqueUsers as user}
-								<NativeSelect.Option value={user.id}>{user.displayName || user.email}</NativeSelect.Option>
+								<NativeSelect.Option value={user.id}
+									>{user.displayName || user.email}</NativeSelect.Option
+								>
 							{/each}
 						</NativeSelect.Root>
 					</Field.Field>
@@ -346,9 +400,7 @@
 				<!-- Clear Filters Button -->
 				{#if searchQuery || selectedAction || selectedResourceType || selectedUser}
 					<div class="mt-4">
-						<Button variant="outline" size="sm" onclick={clearFilters}>
-							Clear Filters
-						</Button>
+						<Button variant="outline" size="sm" onclick={clearFilters}>Clear Filters</Button>
 					</div>
 				{/if}
 			</Field.Group>
@@ -380,13 +432,18 @@
 						</Table.Header>
 						<Table.Body>
 							{#each data.logs as log}
-								<Table.Row class="cursor-pointer hover:bg-muted/50" onclick={() => handleLogClick(log.id)}>
+								<Table.Row
+									class="cursor-pointer hover:bg-muted/50"
+									onclick={() => handleLogClick(log.id)}
+								>
 									<Table.Cell class="text-xs text-muted-foreground">
 										{new Date(log.createdAt).toLocaleString()}
 									</Table.Cell>
 									<Table.Cell>
 										<div class="flex items-center gap-2">
-											<div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+											<div
+												class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10"
+											>
 												<User class="h-4 w-4 text-primary" />
 											</div>
 											<div>
@@ -402,13 +459,19 @@
 												{log.action}
 											</Badge>
 											{#if log.isRollback}
-												<Badge variant="outline" class="bg-amber-100 text-amber-700 dark:bg-amber-900/30">
+												<Badge
+													variant="outline"
+													class="bg-amber-100 text-amber-700 dark:bg-amber-900/30"
+												>
 													<RotateCcw class="mr-1 h-3 w-3" />
 													Rollback
 												</Badge>
 											{/if}
 											{#if log.totalEdits > 1}
-												<Badge variant="outline" class="bg-blue-100 text-blue-700 dark:bg-blue-900/30 text-xs">
+												<Badge
+													variant="outline"
+													class="bg-blue-100 text-xs text-blue-700 dark:bg-blue-900/30"
+												>
 													{log.totalEdits} edits
 												</Badge>
 											{/if}
@@ -419,18 +482,21 @@
 											<Database class="h-4 w-4 text-muted-foreground" />
 											<div>
 												<p class="text-sm font-medium">{log.resourceType}</p>
-												<p class="text-xs text-muted-foreground font-mono">
+												<p class="font-mono text-xs text-muted-foreground">
 													{log.resourceId ? log.resourceId.substring(0, 8) + '...' : 'N/A'}
 												</p>
 											</div>
 										</div>
 									</Table.Cell>
 									<Table.Cell class="max-w-xs">
-										<div class="truncate text-xs text-muted-foreground" title={formatJSON(log.details)}>
+										<div
+											class="truncate text-xs text-muted-foreground"
+											title={formatJSON(log.details)}
+										>
 											{formatJSON(log.details)}
 										</div>
 									</Table.Cell>
-									<Table.Cell class="text-xs font-mono">{log.ipAddress || '—'}</Table.Cell>
+									<Table.Cell class="font-mono text-xs">{log.ipAddress || '—'}</Table.Cell>
 									<Table.Cell class="text-right">
 										<Button variant="ghost" size="sm" onclick={() => handleLogClick(log.id)}>
 											<Eye class="h-4 w-4" />
@@ -443,9 +509,9 @@
 				</div>
 			{:else}
 				<div class="flex flex-col items-center justify-center py-12">
-					<Shield class="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-					<h3 class="text-lg font-medium mb-2">No audit logs found</h3>
-					<p class="text-sm text-muted-foreground mb-4">
+					<Shield class="mb-4 h-12 w-12 text-muted-foreground opacity-50" />
+					<h3 class="mb-2 text-lg font-medium">No audit logs found</h3>
+					<p class="mb-4 text-sm text-muted-foreground">
 						{#if searchQuery || selectedAction || selectedResourceType || selectedUser}
 							Try adjusting your filters to see more results
 						{:else}
@@ -467,12 +533,20 @@
 					</p>
 					<div class="flex gap-2">
 						{#if data.pagination.hasPreviousPage}
-							<Button variant="outline" size="sm" onclick={() => changePage(data.pagination.page - 1)}>
+							<Button
+								variant="outline"
+								size="sm"
+								onclick={() => changePage(data.pagination.page - 1)}
+							>
 								Previous
 							</Button>
 						{/if}
 						{#if data.pagination.hasNextPage}
-							<Button variant="outline" size="sm" onclick={() => changePage(data.pagination.page + 1)}>
+							<Button
+								variant="outline"
+								size="sm"
+								onclick={() => changePage(data.pagination.page + 1)}
+							>
 								Next
 							</Button>
 						{/if}

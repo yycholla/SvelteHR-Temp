@@ -11,25 +11,29 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { invalidateAll } from '$app/navigation';
-	import type { EventVisibilityType, EventStatus, EventType, RsvpStatus } from '$lib/graphql/types';
-	import { Calendar, Copy, Check } from '@lucide/svelte';
+	import type { EventStatus, EventType, EventVisibilityType, RsvpStatus } from '$lib/graphql/types';
+	import { Calendar, Check, Copy } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
-	import type { EventComment, EventHistoryEntry, UserWaitlistStatus } from '$lib/graphql/events-operations';
+	import type {
+		EventComment,
+		EventHistoryEntry,
+		UserWaitlistStatus
+	} from '$lib/graphql/events-operations';
 	import {
+		CREATE_EVENT_COMMENT,
+		DELETE_EVENT_COMMENT,
 		GET_EVENT_COMMENTS,
 		GET_EVENT_HISTORY,
 		GET_USER_WAITLIST_STATUS,
-		CREATE_EVENT_COMMENT,
-		UPDATE_EVENT_COMMENT,
-		DELETE_EVENT_COMMENT,
 		JOIN_EVENT_WAITLIST,
-		LEAVE_EVENT_WAITLIST
+		LEAVE_EVENT_WAITLIST,
+		UPDATE_EVENT_COMMENT
 	} from '$lib/graphql/events-operations';
-	import { sanitizeCommentContent, extractMentions } from '$lib/utils/sanitize';
+	import { extractMentions, sanitizeCommentContent } from '$lib/utils/sanitize';
 	import { createUrqlClient } from '$lib/graphql/client';
 	import { browser } from '$app/environment';
 
-	let { data }: { data: PageData } = $props();
+	const { data }: { data: PageData } = $props();
 
 	// Create client-side urqlClient for fetching event details
 	// Get token from cookie and store in localStorage for urql to use
@@ -38,7 +42,7 @@
 		// Get token from cookie (set by server)
 		const token = document.cookie
 			.split('; ')
-			.find(row => row.startsWith('hr_token='))
+			.find((row) => row.startsWith('hr_token='))
 			?.split('=')[1];
 
 		if (token) {
@@ -72,10 +76,8 @@
 		const newStatuses: Record<string, RsvpStatus> = {};
 		const updatesToClear: string[] = [];
 
-		events.forEach(event => {
-			const userAttendee = event.attendees?.find(
-				(a: any) => a.employeeId === data.user.id
-			);
+		events.forEach((event) => {
+			const userAttendee = event.attendees?.find((a: any) => a.employeeId === data.user.id);
 			const serverStatus = userAttendee?.responseStatus || 'no_response';
 
 			// Check if there's a pending update for this event
@@ -89,7 +91,13 @@
 					newStatuses[event.id] = serverStatus;
 				} else {
 					// Server hasn't synced yet, keep using pending update
-					console.log(`[+page] Using pending update for ${event.id}:`, pendingStatus, '(server still has:', serverStatus, ')');
+					console.log(
+						`[+page] Using pending update for ${event.id}:`,
+						pendingStatus,
+						'(server still has:',
+						serverStatus,
+						')'
+					);
 					newStatuses[event.id] = pendingStatus;
 				}
 			} else {
@@ -105,7 +113,7 @@
 		if (updatesToClear.length > 0) {
 			console.log('[+page] Clearing synced pending updates:', updatesToClear);
 			const newPending = { ...pendingRsvpUpdates };
-			updatesToClear.forEach(id => delete newPending[id]);
+			updatesToClear.forEach((id) => delete newPending[id]);
 			pendingRsvpUpdates = newPending;
 		}
 	});
@@ -389,7 +397,7 @@
 
 			// Update the comment in the local state directly
 			const updatedComment = result.data.updateEventComment;
-			eventComments = eventComments.map(comment => {
+			eventComments = eventComments.map((comment) => {
 				if (comment.id === commentId) {
 					return {
 						...comment,
@@ -425,7 +433,7 @@
 			}
 
 			// Remove the comment from local state directly
-			eventComments = eventComments.filter(comment => comment.id !== commentId);
+			eventComments = eventComments.filter((comment) => comment.id !== commentId);
 			commentCount -= 1;
 
 			toast.success('Comment deleted successfully');
@@ -554,7 +562,7 @@
 </script>
 
 <svelte:head>
-	<title>Events - SvelteHR</title>
+	<title>Events - MountainHR</title>
 	<meta name="description" content="View and manage company events" />
 </svelte:head>
 
@@ -570,7 +578,7 @@
 			<!-- iCal Subscribe Button -->
 			<button
 				onclick={() => (showICalDialog = !showICalDialog)}
-				class="inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+				class="inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none"
 			>
 				<Calendar class="mr-2 h-4 w-4" />
 				Calendar Feed
@@ -582,7 +590,7 @@
 						createDialogDefaults = {};
 						showCreateDialog = true;
 					}}
-					class="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+					class="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none"
 				>
 					<svg
 						class="mr-2 h-5 w-5"
@@ -591,11 +599,7 @@
 						viewBox="0 0 24 24"
 						xmlns="http://www.w3.org/2000/svg"
 					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M12 4v16m8-8H4"
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"
 						></path>
 					</svg>
 					Create Event
@@ -652,7 +656,7 @@
 						/>
 						<button
 							onclick={copyICalLink}
-							class="inline-flex items-center rounded-md border border-input bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+							class="inline-flex items-center rounded-md border border-input bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground focus:ring-2 focus:ring-ring focus:outline-none"
 						>
 							{#if iCalLinkCopied}
 								<Check class="h-4 w-4" />
@@ -671,15 +675,13 @@
 				<div class="flex items-center gap-3 border-t pt-4">
 					<a
 						href={iCalLink}
-						download="sveltehr-events.ics"
-						class="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring"
+						download="MountainHR-events.ics"
+						class="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:ring-2 focus:ring-ring focus:outline-none"
 					>
 						<Calendar class="mr-2 h-4 w-4" />
 						Download .ics File
 					</a>
-					<div class="text-xs text-muted-foreground">
-						or copy the URL above to subscribe
-					</div>
+					<div class="text-xs text-muted-foreground">or copy the URL above to subscribe</div>
 				</div>
 
 				<!-- Instructions -->
@@ -704,15 +706,15 @@
 		<!-- Filters Row -->
 		<div class="flex flex-wrap items-end gap-4">
 			<!-- Visibility Filter -->
-			<div class="flex-1 min-w-[200px]">
-				<label for="visibility-filter" class="block text-sm font-medium text-foreground mb-1">
+			<div class="min-w-[200px] flex-1">
+				<label for="visibility-filter" class="mb-1 block text-sm font-medium text-foreground">
 					Visibility
 				</label>
 				<select
 					id="visibility-filter"
 					bind:value={selectedVisibility}
 					onchange={applyFilters}
-					class="w-full rounded-md border bg-background px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+					class="w-full rounded-md border bg-background px-3 py-2 text-sm focus:border-ring focus:ring-1 focus:ring-ring focus:outline-none"
 				>
 					<option value="all">All Visibility</option>
 					<option value="company">Company-Wide</option>
@@ -722,15 +724,15 @@
 			</div>
 
 			<!-- Status Filter -->
-			<div class="flex-1 min-w-[200px]">
-				<label for="status-filter" class="block text-sm font-medium text-foreground mb-1">
+			<div class="min-w-[200px] flex-1">
+				<label for="status-filter" class="mb-1 block text-sm font-medium text-foreground">
 					Status
 				</label>
 				<select
 					id="status-filter"
 					bind:value={selectedStatus}
 					onchange={applyFilters}
-					class="w-full rounded-md border bg-background px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+					class="w-full rounded-md border bg-background px-3 py-2 text-sm focus:border-ring focus:ring-1 focus:ring-ring focus:outline-none"
 				>
 					<option value="all">All Statuses</option>
 					<option value="draft">Draft</option>
@@ -742,15 +744,15 @@
 			</div>
 
 			<!-- Event Type Filter -->
-			<div class="flex-1 min-w-[200px]">
-				<label for="type-filter" class="block text-sm font-medium text-foreground mb-1">
+			<div class="min-w-[200px] flex-1">
+				<label for="type-filter" class="mb-1 block text-sm font-medium text-foreground">
 					Event Type
 				</label>
 				<select
 					id="type-filter"
 					bind:value={selectedType}
 					onchange={applyFilters}
-					class="w-full rounded-md border bg-background px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+					class="w-full rounded-md border bg-background px-3 py-2 text-sm focus:border-ring focus:ring-1 focus:ring-ring focus:outline-none"
 				>
 					<option value="all">All Types</option>
 					<option value="meeting">Meeting</option>
@@ -766,7 +768,7 @@
 				<button
 					type="button"
 					onclick={() => goto('/dashboard/events')}
-					class="rounded-md border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+					class="rounded-md border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none"
 				>
 					Reset
 				</button>
@@ -787,12 +789,16 @@
 		</div>
 
 		<div class="rounded-lg border bg-card p-4 shadow-sm">
-			<div class="text-2xl font-bold" style="color: hsl(var(--chart-4))">{data.statistics.myEvents}</div>
+			<div class="text-2xl font-bold" style="color: hsl(var(--chart-4))">
+				{data.statistics.myEvents}
+			</div>
 			<div class="text-sm text-muted-foreground">My Events</div>
 		</div>
 
 		<div class="rounded-lg border bg-card p-4 shadow-sm">
-			<div class="text-2xl font-bold" style="color: hsl(var(--chart-2))">{data.statistics.accepted}</div>
+			<div class="text-2xl font-bold" style="color: hsl(var(--chart-2))">
+				{data.statistics.accepted}
+			</div>
 			<div class="text-sm text-muted-foreground">Accepted</div>
 		</div>
 	</div>
@@ -801,65 +807,65 @@
 	<div class="mb-6" data-testid="events-calendar">
 		<!-- Always show calendar view, even with no events -->
 		<EventCalendar
-				events={events}
-				userId={data.user.id}
-				canManageEvents={data.canCreateEvents}
-				localRsvpStatuses={localRsvpStatuses}
-				onEventClick={handleEventClick}
-				onDateClick={(date) => {
-					// Open create dialog with pre-filled date (local time)
-					const formattedDate = formatLocalISO(date);
-					const endDate = new Date(date);
-					endDate.setMinutes(endDate.getMinutes() + 30);
-					const formattedEndDate = formatLocalISO(endDate);
+			{events}
+			userId={data.user.id}
+			canManageEvents={data.canCreateEvents}
+			{localRsvpStatuses}
+			onEventClick={handleEventClick}
+			onDateClick={(date) => {
+				// Open create dialog with pre-filled date (local time)
+				const formattedDate = formatLocalISO(date);
+				const endDate = new Date(date);
+				endDate.setMinutes(endDate.getMinutes() + 30);
+				const formattedEndDate = formatLocalISO(endDate);
 
-					createDialogDefaults = {
-						startTime: formattedDate,
-						endTime: formattedEndDate,
-						allDay: false
-					};
-					showCreateDialog = true;
-				}}
-				onDateSelect={(start, end, allDay) => {
-					// Open create dialog with pre-filled start and end times
-					createDialogDefaults = {
-						startTime: formatLocalISO(start),
-						endTime: formatLocalISO(end),
-						allDay
-					};
-					showCreateDialog = true;
-				}}
-				onEventDrop={async (eventId, newStart, newEnd) => {
-					// Handle event drag-and-drop (move or resize)
-					// Submit form data to update event time
-					// toISOString() converts the local date to UTC, which is what we want
-					const formData = new FormData();
-					formData.append('eventId', eventId);
-					formData.append('startTime', newStart.toISOString());
-					formData.append('endTime', newEnd.toISOString());
+				createDialogDefaults = {
+					startTime: formattedDate,
+					endTime: formattedEndDate,
+					allDay: false
+				};
+				showCreateDialog = true;
+			}}
+			onDateSelect={(start, end, allDay) => {
+				// Open create dialog with pre-filled start and end times
+				createDialogDefaults = {
+					startTime: formatLocalISO(start),
+					endTime: formatLocalISO(end),
+					allDay
+				};
+				showCreateDialog = true;
+			}}
+			onEventDrop={async (eventId, newStart, newEnd) => {
+				// Handle event drag-and-drop (move or resize)
+				// Submit form data to update event time
+				// toISOString() converts the local date to UTC, which is what we want
+				const formData = new FormData();
+				formData.append('eventId', eventId);
+				formData.append('startTime', newStart.toISOString());
+				formData.append('endTime', newEnd.toISOString());
 
-					const response = await fetch('?/updateEventTime', {
-						method: 'POST',
-						body: formData
-					});
+				const response = await fetch('?/updateEventTime', {
+					method: 'POST',
+					body: formData
+				});
 
-					// Parse JSON response from form action
-					const result = await response.json();
+				// Parse JSON response from form action
+				const result = await response.json();
 
-					if (result.type === 'success' || (response.ok && !result.error)) {
-						// Refresh the page data to show updated event times
-						await invalidateAll();
-						toast.success('Event time updated successfully');
-					} else {
-						// Extract error message from form action response
-						const errorMsg = result.error || result.data?.error || 'Failed to update event';
-						console.error('Failed to update event time:', errorMsg);
-						toast.error(errorMsg);
-						// Throw error to trigger FullCalendar revert
-						throw new Error(errorMsg);
-					}
-				}}
-				visibilityFilter={selectedVisibility === 'all' ? 'all' : selectedVisibility}
+				if (result.type === 'success' || (response.ok && !result.error)) {
+					// Refresh the page data to show updated event times
+					await invalidateAll();
+					toast.success('Event time updated successfully');
+				} else {
+					// Extract error message from form action response
+					const errorMsg = result.error || result.data?.error || 'Failed to update event';
+					console.error('Failed to update event time:', errorMsg);
+					toast.error(errorMsg);
+					// Throw error to trigger FullCalendar revert
+					throw new Error(errorMsg);
+				}
+			}}
+			visibilityFilter={selectedVisibility === 'all' ? 'all' : selectedVisibility}
 		/>
 	</div>
 
@@ -886,12 +892,12 @@
 		canManageEvent={data.canCreateEvents && selectedEvent?.organizerId === data.user.id}
 		mode={detailsDialogMode}
 		rsvpStats={selectedEventRsvpStats}
-		eventComments={eventComments}
-		commentCount={commentCount}
-		eventHistory={eventHistory}
-		userWaitlistStatus={userWaitlistStatus}
-		hasMoreComments={hasMoreComments}
-		hasMoreHistory={hasMoreHistory}
+		{eventComments}
+		{commentCount}
+		{eventHistory}
+		{userWaitlistStatus}
+		{hasMoreComments}
+		{hasMoreHistory}
 		allEvents={events}
 		onClose={() => {
 			// Close dialog and reset state
@@ -912,19 +918,19 @@
 			// Reload data in background to sync with server
 			await invalidateAll();
 
-		// Note: pendingRsvpUpdates will be automatically cleared when server data matches
+			// Note: pendingRsvpUpdates will be automatically cleared when server data matches
 		}}
-	onRsvpUpdate={(eventId: string, newStatus: RsvpStatus) => {
-		console.log("[Calendar Update] onRsvpUpdate called:", { eventId, newStatus });
+		onRsvpUpdate={(eventId: string, newStatus: RsvpStatus) => {
+			console.log('[Calendar Update] onRsvpUpdate called:', { eventId, newStatus });
 
-		// Track this as a pending update (prevents server data from overwriting optimistic update)
-		// The $effect watching pendingRsvpUpdates will automatically update localRsvpStatuses
-		pendingRsvpUpdates = {
-			...pendingRsvpUpdates,
-			[eventId]: newStatus
-		};
-		console.log("[Calendar Update] Pending updates set:", pendingRsvpUpdates);
-	}}
+			// Track this as a pending update (prevents server data from overwriting optimistic update)
+			// The $effect watching pendingRsvpUpdates will automatically update localRsvpStatuses
+			pendingRsvpUpdates = {
+				...pendingRsvpUpdates,
+				[eventId]: newStatus
+			};
+			console.log('[Calendar Update] Pending updates set:', pendingRsvpUpdates);
+		}}
 		onAddComment={handleAddComment}
 		onUpdateComment={handleUpdateComment}
 		onDeleteComment={handleDeleteComment}
