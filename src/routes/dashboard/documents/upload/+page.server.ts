@@ -102,8 +102,8 @@ export const load: PageServerLoad = async ({ locals, cookies, fetch }) => {
 
 		// Generic error fallback
 		error(500, {
-        			message: 'Failed to load upload page. Please try again later.'
-        		});
+			message: 'Failed to load upload page. Please try again later.'
+		});
 	}
 };
 
@@ -123,12 +123,15 @@ export const actions: Actions = {
 			// Step 3: Parse form data (now expecting raw file, not encrypted)
 			const formData = await request.formData();
 
-			console.log('[UPLOAD ACTION] FormData entries:', Array.from(formData.entries()).map(([key, value]) => ({
-				key,
-				valueType: typeof value,
-				isFile: value instanceof File,
-				fileName: value instanceof File ? value.name : 'N/A'
-			})));
+			console.log(
+				'[UPLOAD ACTION] FormData entries:',
+				Array.from(formData.entries()).map(([key, value]) => ({
+					key,
+					valueType: typeof value,
+					isFile: value instanceof File,
+					fileName: value instanceof File ? value.name : 'N/A'
+				}))
+			);
 
 			const file = formData.get('file') as File;
 			const category = formData.get('category') as string;
@@ -272,7 +275,10 @@ export const actions: Actions = {
 
 			// Log the exact GraphQL request being sent
 			const mutationVariables = { input: uploadInput };
-			console.log('[UPLOAD ACTION] GraphQL mutation variables:', JSON.stringify(mutationVariables, null, 2).substring(0, 1000));
+			console.log(
+				'[UPLOAD ACTION] GraphQL mutation variables:',
+				JSON.stringify(mutationVariables, null, 2).substring(0, 1000)
+			);
 
 			const response = await graphqlClient.mutation(UPLOAD_DOCUMENT, mutationVariables);
 
