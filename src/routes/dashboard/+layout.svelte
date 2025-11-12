@@ -40,7 +40,7 @@
 <div class="min-h-screen bg-sidebar">
 	<!-- Fixed Sidebar - stays constant across all dashboard routes -->
 	<aside class="fixed left-0 top-0 z-10 h-full w-64 bg-sidebar" aria-label="Main navigation">
-		<HrAppSidebar {permissions} />
+		<HrAppSidebar {permissions} systemName={data.systemName || 'MountainHR'} />
 	</aside>
 
 	<!-- Main Content Area - only this content changes between routes -->

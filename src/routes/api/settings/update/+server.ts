@@ -5,6 +5,15 @@ import { json, error as svelteError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 
+// Map UI categories to database categories
+const categoryMapping: Record<string, string> = {
+	general: 'application',
+	authentication: 'authentication',
+	security: 'security',
+	developer: 'logging',
+	notifications: 'notifications'
+};
+
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	try {
 		const { category, settings } = await request.json();
@@ -19,6 +28,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		if (!validCategories.includes(category)) {
 			throw svelteError(400, `Invalid category: ${category}`);
 		}
+
+		// Map UI category to database category
+		const dbCategory = categoryMapping[category] || category;
 
 		// Create GraphQL client from cookies
 		const client = GraphQLClient.fromCookies(cookies);
@@ -41,7 +53,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 		const result = await client.query(mutation, {
 			input: {
-				category,
+				category: dbCategory,
 				settings: settingsJson
 			}
 		});

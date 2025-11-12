@@ -18,10 +18,10 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, parent }) =
 	try {
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
-		// Query for user's unread notifications only (limit to most recent 20)
+		// Query for user's unread notifications and system settings (limit to most recent 20)
 		// Updated to use Rust GraphQL API idiomatic syntax (user_id, unread_only)
-		const notificationsQuery = `
-			query GetUserNotifications($userId: UUID!, $unreadOnly: Boolean) {
+		const dashboardQuery = `
+			query GetDashboardData($userId: UUID!, $unreadOnly: Boolean, $category: String!) {
 				notifications(
 					userId: $userId,
 					unreadOnly: $unreadOnly,
@@ -39,15 +39,31 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, parent }) =
 					readAt
 					createdAt
 				}
+				systemSettingsByCategory(category: $category) {
+					settings
+				}
 			}
 		`;
 
-		const result = await graphqlClient.query(notificationsQuery, {
+		const result = await graphqlClient.query(dashboardQuery, {
 			userId: locals.user.id,
-			unreadOnly: true
+			unreadOnly: true,
+			category: 'application'
 		});
 
 		const notifications = result.data?.notifications || [];
+
+		// Extract system name from settings
+		let systemName = 'MountainHR'; // Default fallback
+		try {
+			const appSettings = result.data?.systemSettingsByCategory?.settings;
+			if (appSettings) {
+				const parsed = typeof appSettings === 'string' ? JSON.parse(appSettings) : appSettings;
+				systemName = parsed.systemName || systemName;
+			}
+		} catch (err) {
+			console.error('Error parsing system settings:', err);
+		}
 
 		return {
 			// Pass through parent data (permissions, roles, user)
@@ -63,14 +79,17 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, parent }) =
 				actionUrl: n.relatedResourceId
 					? getActionUrl(n.relatedResourceType, n.relatedResourceId)
 					: undefined
-			}))
+			})),
+			// Add system name
+			systemName
 		};
 	} catch (err) {
-		console.error('Error loading notifications:', err);
-		// Return parent data with empty notifications on error
+		console.error('Error loading dashboard data:', err);
+		// Return parent data with empty notifications and default system name on error
 		return {
 			...parentData,
-			notifications: []
+			notifications: [],
+			systemName: 'MountainHR'
 		};
 	}
 };

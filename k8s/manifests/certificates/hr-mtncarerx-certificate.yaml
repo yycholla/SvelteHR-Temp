@@ -1,0 +1,60 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: hr-mtncarerx-tls
+  namespace: sveltehr-prod
+spec:
+  # Certificate details
+  secretName: hr-mtncarerx-tls-secret
+  issuerRef:
+    # IMPORTANT: Match this with the issuer in values-prod.yaml ingress annotation
+    # Current values-prod.yaml uses: letsencrypt-staging
+    # Change to letsencrypt-prod when ready for production certificates
+    name: letsencrypt-staging  # Use letsencrypt-prod for production
+    kind: ClusterIssuer
+  dnsNames:
+    - hr.mtncarerx.com
+  # Let's Encrypt requires either HTTP-01 or DNS-01 challenge
+  # HTTP-01: cert-manager will create a temporary ingress/service
+  # DNS-01: requires DNS provider credentials
+
+  # Option A: HTTP-01 challenge (requires port 80 accessible)
+  solvers:
+    - http01:
+        ingress:
+          class: traefik
+
+  # Option B: DNS-01 challenge (if you have DNS provider API access)
+  # Uncomment and configure if using DNS-01
+  # solvers:
+  #   - dns01:
+  #       cloudflare:  # or your DNS provider
+  #         email: your-email@example.com
+  #         apiTokenSecretRef:
+  #           name: cloudflare-api-token-secret
+  #           key: api-token
+
+---
+# Temporary ingress for HTTP-01 ACME challenge
+# This allows Let's Encrypt to verify domain ownership
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hr-mtncarerx-acme-challenge
+  namespace: sveltehr-prod
+  annotations:
+    # Match with Certificate issuer above (letsencrypt-staging)
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: hr.mtncarerx.com
+      http:
+        paths:
+          - path: /.well-known/acme-challenge
+            pathType: Prefix
+            backend:
+              service:
+                name: cm-acme-http-solver  # cert-manager creates this automatically
+                port:
+                  number: 8089

@@ -40,12 +40,13 @@
 	import NotificationDropdown from '$lib/components/notifications/NotificationDropdown.svelte';
 	import DebugInfo from '$lib/components/DebugInfo.svelte';
 
-	// Accept permissions as a prop (passed from dashboard layout with test mode support)
+	// Accept permissions and systemName as props (passed from dashboard layout with test mode support)
 	interface Props {
 		permissions: string[];
+		systemName?: string;
 	}
 
-	const { permissions }: Props = $props();
+	const { permissions, systemName = 'MountainHR' }: Props = $props();
 
 	// Subscribe to notification store
 	const notifications = $derived($notificationStore.notifications);
@@ -495,7 +496,7 @@
 	<div class="flex items-center justify-between px-4 py-4">
 		<a href="/dashboard" class="flex items-center gap-2 font-semibold">
 			<Building2 class="h-5 w-5 text-primary" />
-			<span class="text-base">MountainHR</span>
+			<span class="text-base">{systemName}</span>
 		</a>
 		<NotificationDropdown {notifications} />
 	</div>

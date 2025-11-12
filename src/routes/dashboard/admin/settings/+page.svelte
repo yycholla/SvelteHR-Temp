@@ -18,6 +18,15 @@
 	let successMessage = $state('');
 	let activeTab = $state('general');
 
+	// Initialize corsOriginsText from array for textarea display
+	$effect(() => {
+		if (settings.security.corsOrigins && Array.isArray(settings.security.corsOrigins)) {
+			settings.security.corsOriginsText = settings.security.corsOrigins.join('\n');
+		} else {
+			settings.security.corsOriginsText = '';
+		}
+	});
+
 	async function handleSaveSettings() {
 		loading = true;
 		errorMessage = '';
@@ -108,15 +117,15 @@
 	<div class="grid gap-4 md:grid-cols-3">
 		<div class="rounded-lg border bg-card p-4">
 			<p class="text-sm text-muted-foreground">Total Users</p>
-			<p class="text-2xl font-bold">{settings.stats.totalUsers}</p>
+			<p class="text-2xl font-bold">{settings.stats.totalUsers || 0}</p>
 		</div>
 		<div class="rounded-lg border bg-card p-4">
 			<p class="text-sm text-muted-foreground">Total Departments</p>
-			<p class="text-2xl font-bold">{settings.stats.totalDepartments}</p>
+			<p class="text-2xl font-bold">{settings.stats.totalDepartments || 0}</p>
 		</div>
 		<div class="rounded-lg border bg-card p-4">
 			<p class="text-sm text-muted-foreground">Total Roles</p>
-			<p class="text-2xl font-bold">{settings.stats.totalRoles}</p>
+			<p class="text-2xl font-bold">{settings.stats.totalRoles || 0}</p>
 		</div>
 	</div>
 
@@ -155,20 +164,10 @@
 				</div>
 
 				<div>
-					<label for="systemEmail" class="block text-sm font-medium">System Email</label>
-					<input
-						id="systemEmail"
-						type="email"
-						bind:value={settings.general.systemEmail}
-						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
-					/>
-				</div>
-
-				<div>
-					<label for="timezone" class="block text-sm font-medium">Timezone</label>
+					<label for="systemTimezone" class="block text-sm font-medium">System Timezone</label>
 					<select
-						id="timezone"
-						bind:value={settings.general.timezone}
+						id="systemTimezone"
+						bind:value={settings.general.systemTimezone}
 						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 					>
 						<option value="UTC">UTC</option>
@@ -178,58 +177,33 @@
 						<option value="America/Los_Angeles">Pacific Time</option>
 					</select>
 				</div>
-
-				<div>
-					<label for="dateFormat" class="block text-sm font-medium">Date Format</label>
-					<select
-						id="dateFormat"
-						bind:value={settings.general.dateFormat}
-						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
-					>
-						<option value="YYYY-MM-DD">YYYY-MM-DD</option>
-						<option value="MM/DD/YYYY">MM/DD/YYYY</option>
-						<option value="DD/MM/YYYY">DD/MM/YYYY</option>
-					</select>
-				</div>
-
-				<div>
-					<label for="language" class="block text-sm font-medium">Language</label>
-					<select
-						id="language"
-						bind:value={settings.general.language}
-						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
-					>
-						<option value="en">English</option>
-						<option value="es">Spanish</option>
-						<option value="fr">French</option>
-						<option value="de">German</option>
-					</select>
-				</div>
 			</div>
 		{:else if activeTab === 'authentication'}
 			<div class="space-y-4">
 				<h2 class="text-xl font-semibold">Authentication Settings</h2>
 
 				<div>
-					<label for="sessionTimeout" class="block text-sm font-medium"
-						>Session Timeout (seconds)</label
+					<label for="sessionTimeoutMinutes" class="block text-sm font-medium"
+						>Session Timeout (minutes)</label
 					>
 					<input
-						id="sessionTimeout"
+						id="sessionTimeoutMinutes"
 						type="number"
-						bind:value={settings.authentication.sessionTimeout}
+						bind:value={settings.authentication.sessionTimeoutMinutes}
+						min="5"
+						max="1440"
 						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 					/>
 				</div>
 
 				<div>
-					<label for="passwordMinLength" class="block text-sm font-medium"
+					<label for="minPasswordLength" class="block text-sm font-medium"
 						>Minimum Password Length</label
 					>
 					<input
-						id="passwordMinLength"
+						id="minPasswordLength"
 						type="number"
-						bind:value={settings.authentication.passwordMinLength}
+						bind:value={settings.authentication.minPasswordLength}
 						min="6"
 						max="32"
 						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
@@ -250,96 +224,71 @@
 					/>
 				</div>
 
-				<div class="space-y-2">
+				<div class="space-y-2 border-t pt-4">
 					<div class="flex items-center gap-2">
 						<input
-							id="requireUppercase"
+							id="requireMfa"
 							type="checkbox"
-							bind:checked={settings.authentication.requireUppercase}
+							bind:checked={settings.authentication.requireMfa}
 						/>
-						<label for="requireUppercase" class="text-sm font-medium"
-							>Require uppercase letters</label
+						<label for="requireMfa" class="text-sm font-medium"
+							>Require Multi-Factor Authentication (MFA)</label
 						>
 					</div>
 
 					<div class="flex items-center gap-2">
 						<input
-							id="requireNumbers"
+							id="passwordExpirationEnabled"
 							type="checkbox"
-							bind:checked={settings.authentication.requireNumbers}
+							bind:checked={settings.authentication.passwordExpirationEnabled}
 						/>
-						<label for="requireNumbers" class="text-sm font-medium">Require numbers</label>
-					</div>
-
-					<div class="flex items-center gap-2">
-						<input
-							id="requireSpecialChars"
-							type="checkbox"
-							bind:checked={settings.authentication.requireSpecialChars}
-						/>
-						<label for="requireSpecialChars" class="text-sm font-medium"
-							>Require special characters</label
+						<label for="passwordExpirationEnabled" class="text-sm font-medium"
+							>Enable Password Expiration</label
 						>
 					</div>
+
+					{#if settings.authentication.passwordExpirationEnabled}
+						<div class="ml-6">
+							<label for="passwordExpirationDays" class="block text-sm font-medium"
+								>Password Expiration (days)</label
+							>
+							<input
+								id="passwordExpirationDays"
+								type="number"
+								bind:value={settings.authentication.passwordExpirationDays}
+								min="30"
+								max="365"
+								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+							/>
+						</div>
+					{/if}
 				</div>
 			</div>
 		{:else if activeTab === 'notifications'}
 			<div class="space-y-4">
 				<h2 class="text-xl font-semibold">Notification Settings</h2>
+				<p class="text-sm text-muted-foreground">
+					Configure email and webhook notification channels
+				</p>
 
-				<div class="space-y-2">
-					<div class="flex items-center gap-2">
-						<input
-							id="emailEnabled"
-							type="checkbox"
-							bind:checked={settings.notifications.emailEnabled}
-						/>
-						<label for="emailEnabled" class="text-sm font-medium">Enable email notifications</label
-						>
-					</div>
-
-					<div class="flex items-center gap-2">
-						<input
-							id="slackEnabled"
-							type="checkbox"
-							bind:checked={settings.notifications.slackEnabled}
-						/>
-						<label for="slackEnabled" class="text-sm font-medium">Enable Slack notifications</label
-						>
-					</div>
-
-					<div class="flex items-center gap-2">
-						<input
-							id="webhooksEnabled"
-							type="checkbox"
-							bind:checked={settings.notifications.webhooksEnabled}
-						/>
-						<label for="webhooksEnabled" class="text-sm font-medium">Enable webhooks</label>
-					</div>
+				<div class="border-t pt-4">
+					<h3 class="mb-2 font-medium">Email Channels</h3>
+					<p class="mb-2 text-xs text-muted-foreground">
+						{settings.notifications.emailChannels?.length || 0} channel(s) configured
+					</p>
+					<p class="text-xs text-muted-foreground">
+						Email channels will be managed via API in future release
+					</p>
 				</div>
 
 				<div class="border-t pt-4">
-					<h3 class="mb-2 font-medium">Notification Triggers</h3>
-
-					<div class="space-y-2">
-						<div class="flex items-center gap-2">
-							<input
-								id="notifyOnUserCreate"
-								type="checkbox"
-								bind:checked={settings.notifications.notifyOnUserCreate}
-							/>
-							<label for="notifyOnUserCreate" class="text-sm">Notify on user creation</label>
-						</div>
-
-						<div class="flex items-center gap-2">
-							<input
-								id="notifyOnRoleChange"
-								type="checkbox"
-								bind:checked={settings.notifications.notifyOnRoleChange}
-							/>
-							<label for="notifyOnRoleChange" class="text-sm">Notify on role changes</label>
-						</div>
-					</div>
+					<h3 class="mb-2 font-medium">Webhook Channels</h3>
+					<p class="mb-2 text-xs text-muted-foreground">
+						{settings.notifications.webhookChannels?.length || 0} channel(s) configured
+					</p>
+					<p class="text-xs text-muted-foreground">
+						Webhook channels will be managed via API in future release
+					</p>
 				</div>
 			</div>
 		{:else if activeTab === 'security'}
@@ -349,125 +298,117 @@
 				<div class="space-y-2">
 					<div class="flex items-center gap-2">
 						<input
-							id="enforceHttps"
+							id="httpsEnforced"
 							type="checkbox"
-							bind:checked={settings.security.enforceHttps}
+							bind:checked={settings.security.httpsEnforced}
 						/>
-						<label for="enforceHttps" class="text-sm font-medium">Enforce HTTPS</label>
+						<label for="httpsEnforced" class="text-sm font-medium">Enforce HTTPS</label>
 					</div>
 
 					<div class="flex items-center gap-2">
 						<input
-							id="allowApiAccess"
+							id="xFrameOptions"
 							type="checkbox"
-							bind:checked={settings.security.allowApiAccess}
+							bind:checked={settings.security.xFrameOptions}
 						/>
-						<label for="allowApiAccess" class="text-sm font-medium">Allow API access</label>
+						<label for="xFrameOptions" class="text-sm font-medium"
+							>Enable X-Frame-Options Header</label
+						>
 					</div>
 
 					<div class="flex items-center gap-2">
 						<input
-							id="rateLimitEnabled"
+							id="hstEnabled"
 							type="checkbox"
-							bind:checked={settings.security.rateLimitEnabled}
+							bind:checked={settings.security.hstEnabled}
 						/>
-						<label for="rateLimitEnabled" class="text-sm font-medium">Enable rate limiting</label>
+						<label for="hstEnabled" class="text-sm font-medium"
+							>Enable HTTP Strict Transport Security (HSTS)</label
+						>
 					</div>
 				</div>
 
 				<div>
-					<label for="maxRequestsPerMinute" class="block text-sm font-medium"
-						>Max Requests Per Minute</label
-					>
-					<input
-						id="maxRequestsPerMinute"
-						type="number"
-						bind:value={settings.security.maxRequestsPerMinute}
-						min="10"
-						max="1000"
-						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
-					/>
-				</div>
-
-				<div>
-					<label for="ipWhitelist" class="block text-sm font-medium"
-						>IP Whitelist (comma-separated)</label
+					<label for="cspPolicy" class="block text-sm font-medium"
+						>Content Security Policy (CSP)</label
 					>
 					<textarea
-						id="ipWhitelist"
-						bind:value={settings.security.ipWhitelist}
+						id="cspPolicy"
+						bind:value={settings.security.cspPolicy}
 						rows="3"
-						placeholder="192.168.1.1, 10.0.0.1"
+						placeholder="default-src 'self'; script-src 'self' 'unsafe-inline'"
 						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 					></textarea>
+					<p class="mt-1 text-xs text-muted-foreground">
+						Leave empty to disable CSP headers
+					</p>
 				</div>
 
 				<div>
 					<label for="corsOrigins" class="block text-sm font-medium"
-						>CORS Allowed Origins (comma-separated)</label
+						>CORS Allowed Origins</label
 					>
 					<textarea
 						id="corsOrigins"
-						bind:value={settings.security.corsOrigins}
+						bind:value={settings.security.corsOriginsText}
 						rows="3"
-						placeholder="https://example.com, https://app.example.com"
+						placeholder="https://example.com&#10;https://app.example.com"
 						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+						onblur={() => {
+							// Convert textarea to array on blur
+							if (settings.security.corsOriginsText) {
+								settings.security.corsOrigins = settings.security.corsOriginsText
+									.split('\n')
+									.map((s: string) => s.trim())
+									.filter((s: string) => s.length > 0);
+							} else {
+								settings.security.corsOrigins = [];
+							}
+						}}
 					></textarea>
+					<p class="mt-1 text-xs text-muted-foreground">
+						One origin per line (e.g., https://example.com)
+					</p>
 				</div>
 			</div>
 		{:else if activeTab === 'developer'}
 			<div class="space-y-4">
 				<h2 class="text-xl font-semibold">Developer Settings</h2>
 				<p class="text-sm text-muted-foreground">
-					Debug tools and development options (system_admin only)
+					Configure logging levels for frontend and backend services
 				</p>
 
-				<div class="space-y-4 border-t pt-4">
-					<h3 class="font-medium">Debug Information</h3>
-
-					<div class="flex items-center gap-2">
-						<input
-							id="showDebugInfo"
-							type="checkbox"
-							bind:checked={settings.developer.show_debug_info}
-						/>
-						<label for="showDebugInfo" class="text-sm font-medium">
-							Show debug information in sidebar
-						</label>
-					</div>
-					<p class="ml-6 text-xs text-muted-foreground">
-						Displays current user, role, page load times, and auth status in the sidebar
-					</p>
-
-					<div class="flex items-center gap-2">
-						<input
-							id="showPerformanceMetrics"
-							type="checkbox"
-							bind:checked={settings.developer.show_performance_metrics}
-						/>
-						<label for="showPerformanceMetrics" class="text-sm font-medium">
-							Show performance metrics
-						</label>
-					</div>
-					<p class="ml-6 text-xs text-muted-foreground">
-						Displays element load times and performance data
+				<div class="border-t pt-4">
+					<h3 class="mb-2 font-medium">Frontend Log Level</h3>
+					<select
+						id="logLevelFrontend"
+						bind:value={settings.developer.logLevelFrontend}
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+					>
+						<option value="DEBUG">DEBUG (verbose)</option>
+						<option value="INFO">INFO (normal)</option>
+						<option value="WARN">WARN (important)</option>
+						<option value="ERROR">ERROR (critical only)</option>
+					</select>
+					<p class="mt-1 text-xs text-muted-foreground">
+						Controls browser console logging verbosity
 					</p>
 				</div>
 
 				<div class="border-t pt-4">
-					<h3 class="mb-2 font-medium">Log Level</h3>
+					<h3 class="mb-2 font-medium">Backend Log Level</h3>
 					<select
-						id="logLevel"
-						bind:value={settings.developer.log_level}
+						id="logLevelBackend"
+						bind:value={settings.developer.logLevelBackend}
 						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 					>
-						<option value="debug">Debug (verbose)</option>
-						<option value="info">Info (normal)</option>
-						<option value="warn">Warning (important)</option>
-						<option value="error">Error (critical only)</option>
+						<option value="DEBUG">DEBUG (verbose)</option>
+						<option value="INFO">INFO (normal)</option>
+						<option value="WARN">WARN (important)</option>
+						<option value="ERROR">ERROR (critical only)</option>
 					</select>
 					<p class="mt-1 text-xs text-muted-foreground">
-						Controls the verbosity of console logging
+						Controls Rust GraphQL server logging verbosity
 					</p>
 				</div>
 			</div>

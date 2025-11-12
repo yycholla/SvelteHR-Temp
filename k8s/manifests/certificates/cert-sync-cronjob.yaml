@@ -1,0 +1,98 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cert-sync-to-windows
+  namespace: sveltehr-prod
+spec:
+  # Run daily at 3 AM to check for certificate renewals
+  schedule: "0 3 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: cert-sync-sa
+          restartPolicy: OnFailure
+          containers:
+            - name: cert-sync
+              image: bitnami/kubectl:latest
+              env:
+                - name: SECRET_NAME
+                  value: "hr-mtncarerx-tls-secret"
+                - name: NAMESPACE
+                  value: "sveltehr-prod"
+                - name: WINDOWS_HOST
+                  valueFrom:
+                    configMapKeyRef:
+                      name: cert-sync-config
+                      key: windows-host
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -e
+
+                  echo "Checking certificate expiry..."
+
+                  # Extract certificate
+                  kubectl get secret $SECRET_NAME -n $NAMESPACE -o jsonpath='{.data.tls\.crt}' | base64 -d > /tmp/cert.crt
+
+                  # Check if certificate expires in less than 30 days
+                  if openssl x509 -checkend $((30*86400)) -noout -in /tmp/cert.crt; then
+                    echo "Certificate is valid for more than 30 days, skipping sync"
+                    exit 0
+                  fi
+
+                  echo "Certificate needs renewal or has been renewed, syncing to Windows VM..."
+
+                  # Extract private key
+                  kubectl get secret $SECRET_NAME -n $NAMESPACE -o jsonpath='{.data.tls\.key}' | base64 -d > /tmp/cert.key
+
+                  # Copy to Windows VM (requires SSH keys configured)
+                  # This is a placeholder - you'll need to configure SSH access
+                  echo "Would sync certificates to $WINDOWS_HOST"
+                  # scp /tmp/cert.crt /tmp/cert.key user@$WINDOWS_HOST:/path/to/nginx/ssl/
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cert-sync-sa
+  namespace: sveltehr-prod
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cert-sync-role
+  namespace: sveltehr-prod
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["hr-mtncarerx-tls-secret"]
+    verbs: ["get"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cert-sync-rolebinding
+  namespace: sveltehr-prod
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cert-sync-role
+subjects:
+  - kind: ServiceAccount
+    name: cert-sync-sa
+    namespace: sveltehr-prod
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cert-sync-config
+  namespace: sveltehr-prod
+data:
+  windows-host: "<WINDOWS_VM_IP>"  # Replace with your Windows VM IP
