@@ -22,7 +22,7 @@ export const load: PageServerLoad = async (event) => {
 	// Create simple user session object (session-based auth doesn't use JWT)
 	const userSession = {
 		userId: locals.user.id,
-		roles: [locals.user.role || 'employee'],
+		roles: locals.roles || [],
 		permissions: locals.permissions || [],
 		isAuthenticated: true,
 		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
@@ -32,7 +32,7 @@ export const load: PageServerLoad = async (event) => {
 		},
 		toJSON: () => ({
 			userId: locals.user.id,
-			roles: [locals.user.role || 'employee'],
+			roles: locals.roles || [],
 			permissions: locals.permissions || [],
 			isAuthenticated: true,
 			expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
@@ -88,7 +88,10 @@ export const load: PageServerLoad = async (event) => {
 							firstName
 							lastName
 							displayName
-							role
+							roles {
+							id
+							name
+						}
 							phone
 							departmentId
 							managerId
@@ -103,6 +106,15 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		const employeesData = await employeesResponse.json();
+
+		// Check for GraphQL errors
+		if (employeesData.errors) {
+			console.error('[Employee Directory] GraphQL errors:', JSON.stringify(employeesData.errors, null, 2));
+			for (const error of employeesData.errors) {
+				console.error('[Employee Directory] Error:', error.message, 'Path:', error.path);
+			}
+		}
+
 		console.log('[Employee Directory] Total employees fetched:', employeesData?.data?.users?.length);
 		console.log('[Employee Directory] Status filter:', statusFilter);
 
@@ -145,9 +157,11 @@ export const load: PageServerLoad = async (event) => {
 			console.log('[Employee Directory] After department filter:', allEmployees.length, 'employees');
 		}
 
-		// Filter by role
+		// Filter by role (roles is now an array of {id, name} objects)
 		if (roleFilter) {
-			allEmployees = allEmployees.filter((emp: any) => emp.role === roleFilter);
+			allEmployees = allEmployees.filter((emp: any) =>
+				emp.roles && emp.roles.some((role: any) => role.name === roleFilter)
+			);
 			console.log('[Employee Directory] After role filter:', allEmployees.length, 'employees');
 		}
 
@@ -161,7 +175,7 @@ export const load: PageServerLoad = async (event) => {
 				const firstName = emp.firstName?.toLowerCase() || '';
 				const lastName = emp.lastName?.toLowerCase() || '';
 				const email = emp.email?.toLowerCase() || '';
-				const role = emp.role?.toLowerCase() || '';
+				const role = emp.roles ? emp.roles.map((r: any) => r.name).join(' ').toLowerCase() : '';
 
 				// Employee must match ANY search term (OR logic)
 				return searchTerms.some(searchLower => {
@@ -229,6 +243,15 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		const departmentsData = await departmentsResponse.json();
+
+		// Check for GraphQL errors
+		if (departmentsData.errors) {
+			console.error('[Employee Directory] Departments GraphQL errors:', JSON.stringify(departmentsData.errors, null, 2));
+			for (const error of departmentsData.errors) {
+				console.error('[Employee Directory] Departments Error:', error.message, 'Path:', error.path);
+			}
+		}
+
 		console.log('[Employee Directory] Departments data:', departmentsData);
 
 		// Return server-side loaded data
@@ -236,8 +259,10 @@ export const load: PageServerLoad = async (event) => {
 		const userPermissions = getUserPermissions(locals);
 
 		// RBAC: Check if user can create reviews
-		const userRole = locals.user?.role || 'employee';
-		const canCreateReviews = ['admin', 'super_admin', 'hr_manager', 'manager'].includes(userRole);
+		const userRoles = locals.roles || [];
+		const canCreateReviews = userRoles.some(role =>
+			['Admin', 'HR Manager', 'Manager'].includes(role)
+		);
 
 		return {
 			user: userPermissions.user,

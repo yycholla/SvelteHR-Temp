@@ -198,7 +198,7 @@ pub async fn login_handler(
     }
 
     // 4. Get user roles and permissions
-    let (roles, permissions) = match get_user_roles_and_permissions(&db, user.id).await {
+    let (roles, permissions) = match crate::auth::get_user_roles_and_permissions(&db, user.id).await {
         Ok(result) => result,
         Err(e) => {
             tracing::error!("Failed to fetch user roles/permissions: {}", e);
@@ -261,39 +261,7 @@ struct PermissionResult {
 }
 
 /// Get user roles and permissions from database
-async fn get_user_roles_and_permissions(
-    db: &DatabaseConnection,
-    user_id: Uuid,
-) -> Result<(Vec<String>, Vec<String>), sea_orm::DbErr> {
-    // Query user role assignments with role names from roles table
-    let roles: Vec<String> = crate::models::user_role_assignment::Entity::find()
-        .filter(crate::models::user_role_assignment::Column::UserId.eq(user_id))
-        .filter(crate::models::user_role_assignment::Column::DeletedAt.is_null())
-        .find_also_related(crate::models::role::Entity)
-        .filter(crate::models::role::Column::DeletedAt.is_null())
-        .all(db)
-        .await?
-        .into_iter()
-        .filter_map(|(_, role)| role.map(|r| r.name))
-        .collect();
-
-    // For system_admin or admin roles, grant all permissions
-    // TODO: Implement granular permissions table if needed
-    if roles.iter().any(|r| r == "system_admin" || r == "admin") {
-        return Ok((roles, vec!["*".to_string()]));
-    }
-
-    // For now, return basic permissions for other roles
-    // TODO: Query from permissions table once schema is available
-    let permissions = match roles.first().map(|s| s.as_str()) {
-        Some("hr_manager") => vec!["employees:*".to_string(), "reports:read".to_string()],
-        Some("manager") => vec!["employees:read".to_string(), "reports:read".to_string()],
-        Some("employee") => vec!["profile:read".to_string()],
-        _ => vec![],
-    };
-
-    Ok((roles, permissions))
-}
+// Removed: get_user_roles_and_permissions() - now using shared function from crate::auth::permissions
 
 /// Generate JWT token for authenticated user
 fn generate_jwt_token(

@@ -46,25 +46,29 @@
 	function validate(): boolean {
 		const newErrors: Record<string, string> = {};
 
-		if (!make.trim()) {
+		const makeStr = String(make || '').trim();
+		if (!makeStr) {
 			newErrors.make = 'Make is required';
 		}
 
-		if (!model.trim()) {
+		const modelStr = String(model || '').trim();
+		if (!modelStr) {
 			newErrors.model = 'Model is required';
 		}
 
-		if (!year.trim()) {
+		const yearStr = String(year || '').trim();
+		if (!yearStr) {
 			newErrors.year = 'Year is required';
 		} else {
-			const yearNum = parseInt(year);
+			const yearNum = parseInt(yearStr);
 			const currentYear = new Date().getFullYear();
 			if (isNaN(yearNum) || yearNum < 1900 || yearNum > currentYear + 1) {
 				newErrors.year = `Year must be between 1900 and ${currentYear + 1}`;
 			}
 		}
 
-		if (!licensePlate.trim()) {
+		const licensePlateStr = String(licensePlate || '').trim();
+		if (!licensePlateStr) {
 			newErrors.licensePlate = 'License plate is required';
 		}
 

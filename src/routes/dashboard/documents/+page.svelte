@@ -65,9 +65,15 @@
 	// Derived state
 	let canUpload = $derived(
 		data.userPermissions?.includes('documents:upload') ||
-			data.user?.role === 'admin' ||
-			data.user?.role === 'super_admin' ||
-			data.user?.role === 'system_admin'
+			data.userPermissions?.includes('*') ||
+			(Array.isArray(data.user?.roles) &&
+				data.user.roles.some((r: any) =>
+					r.name === 'Admin' ||
+					r.name === 'HR Manager' ||
+					r.name === 'super_admin' ||
+					r.name === 'system_admin'
+				)
+			)
 	);
 
 	let previewDocument = $derived(
@@ -220,8 +226,21 @@
 
 	// Check if user can preview a document
 	function canPreview(doc: typeof data.documents[0]): boolean {
-		const role = data.user?.role;
-		if (role === 'super_admin' || role === 'admin' || role === 'system_admin') return true;
+		// Admin permissions
+		if (data.userPermissions?.includes('*') ||
+			data.userPermissions?.includes('documents:read')) {
+			return true;
+		}
+
+		// Check roles
+		const hasAdminRole = Array.isArray(data.user?.roles) &&
+			data.user.roles.some((r: any) =>
+				r.name === 'Admin' ||
+				r.name === 'HR Manager' ||
+				r.name === 'super_admin' ||
+				r.name === 'system_admin'
+			);
+		if (hasAdminRole) return true;
 
 		// Check if document is assigned to user
 		return doc.uploaded_by === data.user?.id;
@@ -229,8 +248,22 @@
 
 	// Check if user can download a document
 	function canDownload(doc: typeof data.documents[0]): boolean {
-		const role = data.user?.role;
-		if (role === 'super_admin' || role === 'admin' || role === 'system_admin') return true;
+		// Admin permissions
+		if (data.userPermissions?.includes('*') ||
+			data.userPermissions?.includes('documents:read') ||
+			data.userPermissions?.includes('documents:download')) {
+			return true;
+		}
+
+		// Check roles
+		const hasAdminRole = Array.isArray(data.user?.roles) &&
+			data.user.roles.some((r: any) =>
+				r.name === 'Admin' ||
+				r.name === 'HR Manager' ||
+				r.name === 'super_admin' ||
+				r.name === 'system_admin'
+			);
+		if (hasAdminRole) return true;
 
 		// Check if document is assigned to user
 		return doc.uploaded_by === data.user?.id;

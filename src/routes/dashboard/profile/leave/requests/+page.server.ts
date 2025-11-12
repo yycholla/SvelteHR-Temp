@@ -127,7 +127,10 @@ export const load: PageServerLoad = async (event) => {
 						lastName
 						displayName
 						fullName
-						role
+						roles {
+							id
+							name
+						}
 						jobTitle
 						departmentId
 						managerId
@@ -143,7 +146,10 @@ export const load: PageServerLoad = async (event) => {
 						lastName
 						displayName
 						fullName
-						role
+						roles {
+							id
+							name
+						}
 						jobTitle
 						departmentId
 						managerId

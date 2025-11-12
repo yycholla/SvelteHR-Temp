@@ -4,7 +4,7 @@
 //! authentication, replacing the JWT-based approach.
 
 use axum::{
-    extract::Request,
+    extract::{Request, State},
     http::StatusCode,
     middleware::Next,
     response::{Response, IntoResponse},
@@ -12,6 +12,7 @@ use axum::{
 use axum_login::AuthSession;
 
 use crate::auth::{AuthBackend, AuthUser};
+use crate::handlers::AppState;
 
 /// Session-based authentication middleware
 ///
@@ -23,6 +24,7 @@ use crate::auth::{AuthBackend, AuthUser};
 /// - User account is inactive
 /// - Session has expired
 pub async fn session_auth_middleware(
+    State(app_state): State<AppState>,
     auth_session: AuthSession<AuthBackend>,
     mut request: Request,
     next: Next,
@@ -39,14 +41,27 @@ pub async fn session_auth_middleware(
         return StatusCode::UNAUTHORIZED.into_response();
     }
 
+    // Load roles and permissions from database via RBAC tables
+    let (roles, permissions) = crate::auth::get_user_roles_and_permissions(&app_state.db, user.id)
+        .await
+        .unwrap_or_else(|e| {
+            tracing::error!("Failed to load user roles/permissions: {}", e);
+            (vec![], vec![])
+        });
+
+    // Roles/permissions loaded - logging disabled to reduce verbosity
+    // Uncomment for debugging:
+    // tracing::info!("Loaded user roles/permissions - user_id: {}, roles: {:?}, permissions: {:?}",
+    //     user.id, roles, permissions);
+
     // Create user context from authenticated user with RLS fields
     let user_context = crate::auth::UserContext {
         user_id: user.id,
         email: Some(user.email.clone()),
-        roles: vec![user.role.clone()], // Convert single role to vec for compatibility
-        permissions: vec![], // TODO: Implement proper permission system
+        roles,        // Roles from user_role_assignments table
+        permissions,  // Permissions from role_permissions table
         department_id: user.department_id,
-        organization_id: user.organization_id,
+        organization_id: None, // Not implemented yet
     };
 
     // Store user context in request extensions
@@ -63,6 +78,7 @@ pub async fn session_auth_middleware(
 ///
 /// Stores UserContext in extensions if user is authenticated, otherwise proceeds without it.
 pub async fn optional_session_auth_middleware(
+    State(app_state): State<AppState>,
     auth_session: AuthSession<AuthBackend>,
     mut request: Request,
     next: Next,
@@ -70,13 +86,26 @@ pub async fn optional_session_auth_middleware(
     // If user is authenticated, store context with RLS fields
     if let Some(user) = &auth_session.user {
         if user.is_active {
+            // Load roles and permissions from database via RBAC tables
+            let (roles, permissions) = crate::auth::get_user_roles_and_permissions(&app_state.db, user.id)
+                .await
+                .unwrap_or_else(|e| {
+                    tracing::error!("Failed to load user roles/permissions: {}", e);
+                    (vec![], vec![])
+                });
+
+            // Roles/permissions loaded - logging disabled to reduce verbosity
+            // Uncomment for debugging:
+            // tracing::info!("(Optional) Loaded user roles/permissions - user_id: {}, roles: {:?}, permissions: {:?}",
+            //     user.id, roles, permissions);
+
             let user_context = crate::auth::UserContext {
                 user_id: user.id,
                 email: Some(user.email.clone()),
-                roles: vec![user.role.clone()],
-                permissions: vec![], // TODO: Implement proper permission system
+                roles,        // Roles from user_role_assignments table
+                permissions,  // Permissions from role_permissions table
                 department_id: user.department_id,
-                organization_id: user.organization_id,
+                organization_id: None, // Not implemented yet
             };
             request.extensions_mut().insert(user_context);
         }
@@ -88,9 +117,10 @@ pub async fn optional_session_auth_middleware(
 
 /// Admin-only session authentication middleware
 ///
-/// Requires authentication AND admin role (system_admin or hr_admin).
+/// Requires authentication AND Admin role.
 /// Returns 403 Forbidden if user doesn't have admin privileges.
 pub async fn admin_session_auth_middleware(
+    State(app_state): State<AppState>,
     auth_session: AuthSession<AuthBackend>,
     mut request: Request,
     next: Next,
@@ -107,9 +137,22 @@ pub async fn admin_session_auth_middleware(
         return StatusCode::UNAUTHORIZED.into_response();
     }
 
-    // Check admin role
-    if !matches!(user.role.as_str(), "system_admin" | "hr_admin") {
-        tracing::warn!("Non-admin user attempted admin access: {} (role: {})", user.email, user.role);
+    // Load roles and permissions from database via RBAC tables
+    let (roles, permissions) = crate::auth::get_user_roles_and_permissions(&app_state.db, user.id)
+        .await
+        .unwrap_or_else(|e| {
+            tracing::error!("Failed to load user roles/permissions: {}", e);
+            (vec![], vec![])
+        });
+
+    // Roles/permissions loaded - logging disabled to reduce verbosity
+    // Uncomment for debugging:
+    // tracing::info!("(Admin) Loaded user roles/permissions - user_id: {}, roles: {:?}, permissions: {:?}",
+    //     user.id, roles, permissions);
+
+    // Check for Admin role
+    if !roles.iter().any(|r| r == "Admin") {
+        tracing::warn!("Non-admin user attempted admin access: {} (roles: {:?})", user.email, roles);
         return StatusCode::FORBIDDEN.into_response();
     }
 
@@ -117,10 +160,10 @@ pub async fn admin_session_auth_middleware(
     let user_context = crate::auth::UserContext {
         user_id: user.id,
         email: Some(user.email.clone()),
-        roles: vec![user.role.clone()],
-        permissions: vec![], // TODO: Implement proper permission system
+        roles,        // Roles from user_role_assignments table
+        permissions,  // Permissions from role_permissions table
         department_id: user.department_id,
-        organization_id: user.organization_id,
+        organization_id: None, // Not implemented yet
     };
 
     request.extensions_mut().insert(user_context);

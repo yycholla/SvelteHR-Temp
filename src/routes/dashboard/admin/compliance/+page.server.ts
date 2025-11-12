@@ -42,7 +42,7 @@ export const load: PageServerLoad = async (event) => {
 		const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 		const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
 
-		const activeUsers = users.filter((u) => u.isActive).length;
+		const activeUsers = users.filter((u: any) => u.isActive).length;
 		const inactiveUsers = totalUsers - activeUsers;
 		const recentlyUpdated = users.filter((u) => new Date(u.updatedAt) >= thirtyDaysAgo).length;
 		const staleUsers = users.filter((u) => new Date(u.updatedAt) < ninetyDaysAgo).length;

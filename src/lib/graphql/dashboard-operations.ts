@@ -563,21 +563,21 @@ export interface UpcomingEvent {
  */
 
 /**
- * Get complete dashboard data based on user role and permissions
+ * Get complete dashboard data based on user roles and permissions
  */
-export async function getCompleteDashboardData(userId: string, role: string = 'employee') {
+export async function getCompleteDashboardData(userId: string, roles: string[] = ['Employee']) {
 	// Validate userId parameter
 	if (!userId || userId.trim().length === 0) {
 		console.warn('Dashboard operations called with invalid userId:', userId);
 		throw new Error('Invalid user ID provided');
 	}
 
-	console.log('🔍 Dashboard operations - userId:', userId, 'role:', role);
+	console.log('🔍 Dashboard operations - userId:', userId, 'roles:', roles);
 
 	try {
 		// Create base dashboard data with mock data for now
 		const baseData = {
-			user: { id: userId, role },
+			user: { id: userId, roles },
 			metrics: {
 				attendanceRate: 95,
 				pendingRequests: 2,
@@ -590,7 +590,7 @@ export async function getCompleteDashboardData(userId: string, role: string = 'e
 		};
 
 		// Add role-specific data
-		if (role === 'admin' || role === 'hr_manager') {
+		if (roles.includes('Admin') || roles.includes('HR Manager')) {
 			const systemHealth = await getSystemHealthMetrics();
 			const pendingApprovals = await getPendingApprovalsCount(userId);
 
@@ -785,9 +785,9 @@ export async function generateUpcomingEvents(
 }
 
 /**
- * Helper function to generate dashboard metrics based on role
+ * Helper function to generate dashboard metrics based on roles
  */
-async function generateDashboardMetrics(role: string): Promise<DashboardMetric[]> {
+async function generateDashboardMetrics(roles: string[]): Promise<DashboardMetric[]> {
 	const baseMetrics: DashboardMetric[] = [
 		{
 			id: 'leave_balance',
@@ -806,7 +806,7 @@ async function generateDashboardMetrics(role: string): Promise<DashboardMetric[]
 		}
 	];
 
-	if (role === 'admin' || role === 'hr_manager') {
+	if (roles.includes('Admin') || roles.includes('HR Manager')) {
 		return [
 			...baseMetrics,
 			{
@@ -828,7 +828,7 @@ async function generateDashboardMetrics(role: string): Promise<DashboardMetric[]
 		];
 	}
 
-	if (role === 'manager') {
+	if (roles.includes('Manager') || roles.includes('HR Manager')) {
 		return [
 			...baseMetrics,
 			{

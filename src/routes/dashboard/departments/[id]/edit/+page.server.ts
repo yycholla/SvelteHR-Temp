@@ -124,7 +124,10 @@ export const load: PageServerLoad = async (event) => {
 						users(limit: 1000) {
 							id
 							displayName
-							role
+							roles {
+								id
+								name
+							}
 							isActive
 						}
 					}

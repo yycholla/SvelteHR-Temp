@@ -99,7 +99,6 @@ pub async fn seed_users(
             last_name: Set(last_name),
             display_name: sea_orm::NotSet, // GENERATED column (computed from first_name + last_name)
             full_name: sea_orm::NotSet,   // GENERATED column (computed from first_name + last_name)
-            role: Set("hr_employee".to_string()), // Will be updated by role assignments
             phone_number: Set(Some(phone)),
             alternate_phone: Set(None),
             job_title: Set(Some(generate_job_title(i))),
@@ -122,6 +121,38 @@ pub async fn seed_users(
             Ok(_) => {
                 result.created_count += 1;
                 tracing::info!("Created user: {}", email);
+
+                // Assign default "Employee" role via RBAC
+                let employee_role = role::Entity::find()
+                    .filter(role::Column::Name.eq("Employee"))
+                    .filter(role::Column::DeletedAt.is_null())
+                    .one(db)
+                    .await;
+
+                match employee_role {
+                    Ok(Some(role)) => {
+                        let role_assignment = user_role_assignment::ActiveModel {
+                            id: Set(Uuid::new_v4()),
+                            user_id: Set(user_id),
+                            role_id: Set(role.id),
+                            created_at: Set(now),
+                            updated_at: Set(now),
+                            deleted_at: Set(None),
+                        };
+
+                        if let Err(e) = role_assignment.insert(db).await {
+                            tracing::warn!("Failed to assign Employee role to {}: {}", email, e);
+                        } else {
+                            tracing::debug!("Assigned Employee role to {}", email);
+                        }
+                    }
+                    Ok(None) => {
+                        tracing::warn!("Employee role not found for user {}", email);
+                    }
+                    Err(e) => {
+                        tracing::warn!("Failed to query Employee role for {}: {}", email, e);
+                    }
+                }
 
                 // Log to audit system
                 if let Err(e) = log_seed_creation(db, context, "user", user_id).await {

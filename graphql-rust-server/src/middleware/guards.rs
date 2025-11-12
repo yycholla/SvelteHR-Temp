@@ -34,11 +34,10 @@ use crate::auth::UserContext;
 /// Guard that requires user to have a specific role
 ///
 /// Roles are case-insensitive. Common roles:
-/// - `system_admin`: Full system access
-/// - `admin`: Administrative access
-/// - `hr_manager`: HR department access
-/// - `manager`: Team management access
-/// - `employee`: Basic employee access
+/// - `Admin`: Full system access
+/// - `HR Manager`: HR department access
+/// - `Manager`: Team management access
+/// - `Employee`: Basic employee access
 #[derive(Debug, Clone)]
 pub struct RequireRole {
     role: String,
@@ -152,11 +151,10 @@ impl Guard for RequireAnyRole {
 /// Guard that requires user to have minimum role level (hierarchical)
 ///
 /// Role hierarchy (descending):
-/// - system_admin: 200
-/// - admin: 100
-/// - hr_manager: 80
-/// - manager: 60
-/// - employee: 20
+/// - Admin: 100
+/// - HR Manager: 75
+/// - Manager: 50
+/// - Employee: 25
 #[derive(Debug, Clone)]
 pub struct RequireMinRoleLevel {
     min_level: i32,
@@ -197,11 +195,10 @@ impl Guard for RequireMinRoleLevel {
 
         let role_levels = [
             ("system", 1000), // System services have highest level
-            ("system_admin", 200),
-            ("admin", 100),
-            ("hr_manager", 80),
-            ("manager", 60),
-            ("employee", 20),
+            ("Admin", 100),
+            ("HR Manager", 75),
+            ("Manager", 50),
+            ("Employee", 25),
         ];
 
         let user_level = user_ctx.roles.iter()
@@ -260,8 +257,8 @@ where
                     .extend_with(|_, e| e.set("code", "UNAUTHENTICATED"))
             })?;
 
-        // Admins and system_admins bypass ownership checks
-        if user_ctx.has_role("admin") || user_ctx.has_role("system_admin") {
+        // Admins bypass ownership checks
+        if user_ctx.has_role("Admin") {
             return Ok(());
         }
 

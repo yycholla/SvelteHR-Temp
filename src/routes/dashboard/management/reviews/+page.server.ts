@@ -4,7 +4,7 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { PermissionChecks } from '$lib/server/rbac-utils';
+import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
 
 // Performance Review types for Rust GraphQL server
 interface PerformanceReview {
@@ -25,6 +25,11 @@ export const load: PageServerLoad = async (event) => {
 
 	// Check authentication and permissions
 	PermissionChecks.performanceRead(event);
+
+	// Get user permissions using the centralized helper
+	const userPerms = getUserPermissions(locals);
+	const hasManagerAccess = userPerms.canViewManagement;
+	const isAdmin = userPerms.isAdmin;
 
 	console.log('🔍 Load function - User:', {
 		userId: locals.user?.id,
@@ -66,6 +71,11 @@ export const load: PageServerLoad = async (event) => {
 						id
 						email
 						displayName
+						departmentId
+						department {
+							id
+							name
+						}
 					}
 					reviewer {
 						id
@@ -83,9 +93,8 @@ export const load: PageServerLoad = async (event) => {
 						id
 						title
 						description
-						completionStatus
+						targetDate
 					}
-					managerFeedback
 				}
 			}
 		`;
@@ -100,6 +109,14 @@ export const load: PageServerLoad = async (event) => {
 		}>(reviewsQuery, reviewsVariables);
 
 		const reviewsData = reviewsResponse.data;
+
+		// Debug logging
+		console.log('📊 [Management Reviews] GraphQL response:', {
+			hasData: !!reviewsData,
+			reviewsCount: reviewsData?.performanceReviews?.length || 0,
+			firstReview: reviewsData?.performanceReviews?.[0] || null
+		});
+
 		if (!reviewsData) {
 			throw new Error('Failed to fetch performance reviews data');
 		}
@@ -114,10 +131,14 @@ export const load: PageServerLoad = async (event) => {
 
 				console.log('📊 Loading employees for selector...');
 
+				// Forward session cookies for authentication
+				const cookieHeader = event.request.headers.get('cookie') || '';
+
 				const employeesResponse = await fetch(graphqlEndpoint, {
 					method: 'POST',
 					headers: {
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'Cookie': cookieHeader
 					},
 					body: JSON.stringify({
 						query: `
@@ -126,7 +147,10 @@ export const load: PageServerLoad = async (event) => {
 									id
 									email
 									displayName
-									role
+									roles {
+										id
+										name
+									}
 									departmentId
 								}
 							}
@@ -175,8 +199,10 @@ export const load: PageServerLoad = async (event) => {
 
 		// Process performance reviews data (Rust GraphQL server returns status in lowercase)
 		const performanceReviews = reviewsData.performanceReviews.map((review: any) => {
-			// Extract goals text from goals array
-			const goalsText = review.goals?.map((g: any) => g.title).join('; ') || '';
+			// Goals are not available yet due to backend schema mismatch
+			// (review_goals table doesn't have performance_review_id column)
+			const goalsText = '';
+			const goalIds: string[] = [];
 
 			return {
 				id: review.id.toString(),
@@ -186,9 +212,15 @@ export const load: PageServerLoad = async (event) => {
 				cycleId: review.cycleId,
 				templateId: review.templateId,
 				reviewPeriod: review.cycleId ? `Cycle ${review.cycleId.slice(0, 8)}` : 'No cycle', // Fallback for now
-				status: review.status.toLowerCase(), // Ensure lowercase for UI
+				status: review.status.toLowerCase(), // Keep lowercase for component compatibility
+				reviewType: review.cycle?.reviewType?.toUpperCase() || null,
+				reviewPeriodStart: review.cycle?.startDate || null,
+				reviewPeriodEnd: review.cycle?.endDate || null,
 				overallRating: review.overallRating || 0,
 				goals: goalsText,
+				goalIds: goalIds, // For edit dialog
+				newGoals: [], // For edit dialog - new goals added during review creation
+				notes: '', // Notes field not available in schema yet
 				achievements: '', // Not available in normalized structure
 				areasForImprovement: '', // Not available in normalized structure
 				managerFeedback: review.managerFeedback || '',
@@ -203,7 +235,7 @@ export const load: PageServerLoad = async (event) => {
 					department: null
 				},
 				reviewer: review.reviewer || null,
-				goalsArray: review.goals || [] // Keep full goals array for detailed view
+				goalsArray: [] // Goals not available yet - backend schema issue
 			};
 		});
 
@@ -224,6 +256,7 @@ export const load: PageServerLoad = async (event) => {
 		const completedCount = performanceReviews.filter((r) => r.status === 'completed').length;
 		const inProgressCount = performanceReviews.filter((r) => r.status === 'in_progress').length;
 		const notStartedCount = performanceReviews.filter((r) => r.status === 'not_started').length;
+		const draftCount = performanceReviews.filter((r) => r.status === 'draft').length;
 
 		// Calculate average rating across all completed reviews
 		const completedReviews = performanceReviews.filter((review) => review.status === 'completed');

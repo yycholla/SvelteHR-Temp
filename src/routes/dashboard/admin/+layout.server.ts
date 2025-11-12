@@ -17,21 +17,18 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	// Admin access granted if:
 	// 1. User has wildcard (*) or (*:*) permission
 	// 2. User has admin:read permission
-	// 3. User has system_admin role
-	// 4. User has admin role
+	// 3. User has Admin role
 	const isAdmin =
 		userPermissions.includes('*') ||
 		userPermissions.includes('*:*') ||
 		userPermissions.includes('admin:read') ||
-		userRoles.includes('system_admin') ||
-		userRoles.includes('admin');
+		userRoles.includes('Admin');
 
 	if (!isAdmin) {
 		// Log admin access attempt for audit purposes
 		console.warn('[ADMIN ACCESS DENIED]', {
 			userId: locals.user.id,
 			userEmail: locals.user.email,
-			userRole: locals.user.role,
 			roles: userRoles,
 			permissions: userPermissions,
 			timestamp: new Date().toISOString()

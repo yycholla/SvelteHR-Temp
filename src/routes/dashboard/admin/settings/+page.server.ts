@@ -36,7 +36,10 @@ export const load: PageServerLoad = async (event) => {
 				}
 				users(limit: $limit) {
 					id
-					role
+					roles {
+						id
+						name
+					}
 				}
 			}
 		`;
@@ -50,8 +53,8 @@ export const load: PageServerLoad = async (event) => {
 		const departments = result.data?.departments || [];
 		const users = result.data?.users || [];
 
-		// Calculate unique roles from users
-		const uniqueRoles = [...new Set(users.map((u: any) => u.role).filter(Boolean))];
+		// Calculate unique roles from users (flatten roles arrays)
+		const uniqueRoles = [...new Set(users.flatMap((u: any) => (u.roles || []).map((r: any) => r.name)).filter(Boolean))];
 
 		const settings: any = {
 			general: {},
@@ -67,12 +70,23 @@ export const load: PageServerLoad = async (event) => {
 		};
 
 		// Parse JSON settings for each category
+		// Map database categories to UI categories
+		const categoryMapping: Record<string, string> = {
+			application: 'general',
+			authentication: 'authentication',
+			security: 'security',
+			logging: 'developer',
+			notifications: 'notifications'
+		};
+
 		for (const setting of settingsData) {
 			try {
 				const parsed = typeof setting.settings === 'string'
 					? JSON.parse(setting.settings)
 					: setting.settings;
-				settings[setting.category] = parsed;
+
+				const uiCategory = categoryMapping[setting.category] || setting.category;
+				settings[uiCategory] = parsed;
 			} catch (parseError) {
 				console.error(`[ADMIN SETTINGS] Failed to parse ${setting.category}:`, parseError);
 				// Keep empty object for this category
@@ -88,39 +102,31 @@ export const load: PageServerLoad = async (event) => {
 		return {
 			settings: {
 				general: {
-					systemName: 'SvelteHR',
-					systemEmail: 'admin@example.com',
-					timezone: 'UTC',
-					dateFormat: 'YYYY-MM-DD',
-					language: 'en'
+					systemName: 'MoncuraHR',
+					systemTimezone: 'UTC'
 				},
 				authentication: {
-					sessionTimeout: 3600,
-					passwordMinLength: 8,
+					sessionTimeoutMinutes: 60,
+					minPasswordLength: 12,
 					maxLoginAttempts: 5,
-					requireUppercase: true,
-					requireNumbers: true,
-					requireSpecialChars: false
+					requireMfa: false,
+					passwordExpirationEnabled: false,
+					passwordExpirationDays: 90
 				},
 				notifications: {
-					emailEnabled: false,
-					slackEnabled: false,
-					webhooksEnabled: false,
-					notifyOnUserCreate: false,
-					notifyOnRoleChange: false
+					emailChannels: [],
+					webhookChannels: []
 				},
 				security: {
-					enforceHttps: true,
-					allowApiAccess: true,
-					rateLimitEnabled: true,
-					maxRequestsPerMinute: 100,
-					ipWhitelist: '',
-					corsOrigins: ''
+					httpsEnforced: false,
+					cspPolicy: null,
+					xFrameOptions: true,
+					hstEnabled: false,
+					corsOrigins: []
 				},
 				developer: {
-					show_debug_info: false,
-					show_performance_metrics: false,
-					log_level: 'info'
+					logLevelFrontend: 'INFO',
+					logLevelBackend: 'INFO'
 				},
 				stats: {
 					totalDepartments: 0,

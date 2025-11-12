@@ -64,9 +64,22 @@
 	let sortOrder = $state<'asc' | 'desc'>('desc');
 	let showFiltersPanel = $state(false);
 
+	// Debug logging
+	$effect(() => {
+		console.log('🔍 ReviewListWithFilters - Input reviews:', {
+			reviewsCount: reviews.length,
+			firstReview: reviews[0] || null,
+			searchQuery,
+			selectedTypes,
+			selectedStatuses
+		});
+	});
+
 	// Filtered and sorted reviews
-	const filteredReviews = $derived(() => {
+	const filteredReviews = $derived.by(() => {
 		let filtered = reviews;
+
+		console.log('🔍 Starting filter - reviews:', filtered.length);
 
 		// Apply search
 		if (searchQuery) {
@@ -82,12 +95,16 @@
 
 		// Apply type filters
 		if (selectedTypes.length > 0) {
+			console.log('🔍 Type filter - before:', filtered.length, 'selectedTypes:', selectedTypes);
 			filtered = filtered.filter((review) => selectedTypes.includes(review.reviewType));
+			console.log('🔍 Type filter - after:', filtered.length);
 		}
 
 		// Apply status filters
 		if (selectedStatuses.length > 0) {
+			console.log('🔍 Status filter - before:', filtered.length, 'selectedStatuses:', selectedStatuses);
 			filtered = filtered.filter((review) => selectedStatuses.includes(review.status));
+			console.log('🔍 Status filter - after:', filtered.length);
 		}
 
 		// Apply sorting
@@ -105,6 +122,11 @@
 			}
 
 			return sortOrder === 'asc' ? comparison : -comparison;
+		});
+
+		console.log('🔍 Final filtered result:', {
+			filteredCount: filtered.length,
+			firstFiltered: filtered[0] || null
 		});
 
 		return filtered;

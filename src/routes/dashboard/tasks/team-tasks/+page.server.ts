@@ -43,6 +43,30 @@ export const load: PageServerLoad = async (event) => {
 
 		console.log('[Team Tasks] Loading team tasks for user:', locals.user.id);
 
+		// Load current user's information to get their department
+		const currentUserResponse = await client.query(
+			`
+				query GetCurrentUser($id: UUID!) {
+					user(id: $id) {
+						id
+						departmentId
+						department {
+							id
+							name
+						}
+					}
+				}
+			`,
+			{
+				id: locals.user.id
+			}
+		);
+
+		const currentUser = currentUserResponse?.data?.user;
+		const userDepartmentId = currentUser?.departmentId;
+
+		console.log('[Team Tasks] Current user department ID:', userDepartmentId);
+
 		// Load departments for team task assignment
 		const departmentsResponse = await client.query(
 			`
@@ -130,11 +154,6 @@ export const load: PageServerLoad = async (event) => {
 
 		let tasks = tasksResponse?.data?.tasks || [];
 
-		// Filter to only show tasks assigned to the user's department/team
-		// Check various possible field names for department ID
-		const userDepartmentId = locals.user.department_id || locals.user.departmentId || locals.user.department?.id;
-
-		console.log('[Team Tasks] User department ID:', userDepartmentId);
 		console.log('[Team Tasks] Total tasks before filter:', tasks.length);
 
 		if (userDepartmentId) {

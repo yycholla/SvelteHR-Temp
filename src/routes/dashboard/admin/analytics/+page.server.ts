@@ -28,7 +28,10 @@ export const load: PageServerLoad = async (event) => {
 					displayName
 					isActive
 					departmentId
-					role
+					roles {
+						id
+						name
+					}
 				}
 				departments(limit: $limit) {
 					id
@@ -43,15 +46,15 @@ export const load: PageServerLoad = async (event) => {
 		const users = result.data?.users || [];
 		const departments = result.data?.departments || [];
 
-		// Extract unique roles from users (role is a direct field)
+		// Extract unique roles from users (roles is now an array of objects)
 		const userRoles = users.map((u: any) => ({
 			id: u.id,
-			roleName: u.role,
+			roleName: u.roles && u.roles.length > 0 ? u.roles[0].name : 'Employee',
 			userId: u.id
 		}));
 
 		// Calculate active users from real data
-		const activeUsers = users.filter(user => user.isActive).length;
+		const activeUsers = users.filter((user: any) => user.isActive).length;
 
 		// Calculate department distribution from real data
 		const departmentCounts = new Map<string, number>();

@@ -42,13 +42,13 @@ pub enum Relation {
 
 impl Related<super::user::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::User.def().rev()
+        Relation::User.def()
     }
 }
 
 impl Related<super::role::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Role.def().rev()
+        Relation::Role.def()
     }
 }
 

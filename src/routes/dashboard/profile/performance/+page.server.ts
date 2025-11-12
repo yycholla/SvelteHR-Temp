@@ -16,11 +16,14 @@ export const load: PageServerLoad = async (event) => {
 	const userId = locals.user.id;
 
 	try {
+		console.log('[Performance Page] Loading performance data for user:', userId);
+
 		// Ensure backend is ready before proceeding
 		await ensureBackendReady();
 
 		// Create GraphQL client with authentication
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
+		console.log('[Performance Page] GraphQL client created');
 
 		// Load user details using new GraphQL client
 		// NOTE: Using Rust GraphQL schema - singular query for ID lookup
@@ -41,15 +44,19 @@ export const load: PageServerLoad = async (event) => {
 			}
 		`;
 
+		console.log('[Performance Page] Fetching user data...');
 		const userData = await graphqlClient.query(userQuery, { id: userId });
 		const user = userData.data?.user || null;
+		console.log('[Performance Page] User data:', user ? 'Found' : 'Not found');
 
 		if (!user) {
+			console.error('[Performance Page] User not found:', userId);
 			error(404, 'User not found');
 		}
 
 		// Load actual goals for this specific user
 		// NOTE: Using Rust GraphQL schema - direct parameter instead of filter
+		console.log('[Performance Page] Fetching goals...');
 		const userGoalsQuery = `
 			query GetUserGoals($employeeId: UUID!, $limit: Int!) {
 				employeeGoals(employeeId: $employeeId, limit: $limit) {
@@ -69,14 +76,17 @@ export const load: PageServerLoad = async (event) => {
 			employeeId: userId,
 			limit: 100
 		});
+		console.log('[Performance Page] Goals result:', goalsResult.data ? `Found ${goalsResult.data.employeeGoals?.length || 0} goals` : 'No data');
 
 		// Transform employeeGoals to match expected format
 		const rawGoals = goalsResult.data?.employeeGoals || [];
+		console.log('[Performance Page] Raw goals:', rawGoals.length);
 		const goals = rawGoals.map((goal: any) => ({
 			id: goal.id,
 			title: goal.goalTitle,
 			description: goal.goalDescription,
-			status: goal.status,
+			// Convert GraphQL enum (NOT_STARTED) to frontend format (not_started)
+			status: goal.status?.toLowerCase() || 'not_started',
 			progressPercentage: goal.progressPercentage,
 			targetDate: goal.targetDate,
 			createdAt: goal.createdAt,
@@ -111,7 +121,8 @@ export const load: PageServerLoad = async (event) => {
 			completionRate: goals.length > 0 ? Math.round((goals.filter(g => g.status === 'completed').length / goals.length) * 100) : 0
 		};
 
-		return {
+		console.log('[Performance Page] Preparing return data...');
+		const returnData = {
 			user,
 			userId,
 			goals: goals.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
@@ -127,6 +138,11 @@ export const load: PageServerLoad = async (event) => {
 			permissions: locals.permissions || [],
 			loadedAt: new Date().toISOString()
 		};
+		console.log('[Performance Page] Successfully loaded data:', {
+			goalsCount: returnData.goals.length,
+			user: returnData.user.displayName
+		});
+		return returnData;
 
 	} catch (err) {
 		console.error('Error loading user performance data:', err);

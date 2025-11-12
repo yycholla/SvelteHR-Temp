@@ -53,9 +53,6 @@ impl UserMutations {
             tracing::info!("Created user {} with provided password", input.email);
         }
 
-        // Use provided role or default to "hr_employee"
-        let user_role = input.role.unwrap_or_else(|| "hr_employee".to_string());
-
         // Create SeaORM active model
         // Note: display_name and full_name are GENERATED columns in the database
         // and must NOT be set explicitly - they are automatically computed from first_name + last_name
@@ -66,7 +63,6 @@ impl UserMutations {
             last_name: Set(input.last_name.clone()),
             // display_name: NotSet - generated column, don't set
             // full_name: NotSet - generated column, don't set
-            role: Set(user_role),
             phone_number: Set(input.phone.clone()),
             job_title: Set(input.job_title.clone()),
             department_id: Set(input.department_id),
@@ -78,6 +74,25 @@ impl UserMutations {
         };
 
         let user = user.insert(&db).await?;
+
+        // Assign default "Employee" role to new user via RBAC
+        let employee_role = crate::models::role::Entity::find()
+            .filter(crate::models::role::Column::Name.eq("Employee"))
+            .filter(crate::models::role::Column::DeletedAt.is_null())
+            .one(&db)
+            .await?;
+
+        if let Some(role) = employee_role {
+            let role_assignment = crate::models::user_role_assignment::ActiveModel {
+                id: Set(Uuid::new_v4()),
+                user_id: Set(user.id),
+                role_id: Set(role.id),
+                ..Default::default()
+            };
+            role_assignment.insert(&db).await?;
+            tracing::info!("Assigned Employee role to new user {}", input.email);
+        }
+
         Ok(user)
     }
 
@@ -137,6 +152,8 @@ impl UserMutations {
 
         if let Some(status) = input.status {
             user.status = Set(Some(status.as_str().to_string()));
+            // Also update is_active based on status
+            user.is_active = Set(matches!(status, UserStatus::Active));
         }
 
         if let Some(theme_preference) = input.theme_preference {

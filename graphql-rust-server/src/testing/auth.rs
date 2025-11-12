@@ -4,7 +4,7 @@
 //! Adapted for session-based authentication using axum-login.
 
 use bcrypt::{hash, DEFAULT_COST};
-use sea_orm::{ActiveModelTrait, DatabaseConnection, Set};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, Set, EntityTrait, ColumnTrait, QueryFilter};
 use uuid::Uuid;
 
 use crate::auth::backend::AuthUser;
@@ -114,12 +114,34 @@ impl TestUser {
             password_hash: Set(password_hash),
             first_name: Set(role.first_name().to_string()),
             last_name: Set(role.last_name().to_string()),
-            role: Set(role.as_str().to_string()),
             is_active: Set(true),
             ..Default::default()
         };
 
         user_model.insert(db)
+            .await
+            .map_err(|e| TestContextError::DatabaseError(e.into()))?;
+
+        // Assign RBAC role to user via user_role_assignments table
+        use crate::models::role::{Entity as RoleEntity, Column as RoleColumn};
+        use crate::models::user_role_assignment;
+
+        let role_record = RoleEntity::find()
+            .filter(RoleColumn::Name.eq(role.as_str()))
+            .filter(RoleColumn::DeletedAt.is_null())
+            .one(db)
+            .await
+            .map_err(|e| TestContextError::DatabaseError(e.into()))?
+            .ok_or_else(|| TestContextError::SessionError(format!("Role '{}' not found", role.as_str())))?;
+
+        let role_assignment = user_role_assignment::ActiveModel {
+            id: Set(Uuid::new_v4()),
+            user_id: Set(id),
+            role_id: Set(role_record.id),
+            ..Default::default()
+        };
+
+        role_assignment.insert(db)
             .await
             .map_err(|e| TestContextError::DatabaseError(e.into()))?;
 

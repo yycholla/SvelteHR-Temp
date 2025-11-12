@@ -119,7 +119,7 @@ services:
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://${DOMAIN}}
 
       # Logging Configuration
-      RUST_LOG: ${RUST_LOG:-info,hr_graphql_server=debug}
+      RUST_LOG: ${RUST_LOG:-error}
       RUST_BACKTRACE: ${RUST_BACKTRACE:-0}
 
       # Environment

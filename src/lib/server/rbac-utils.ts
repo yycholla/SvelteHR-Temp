@@ -141,7 +141,7 @@ export const PermissionChecks = {
 	employeeManagement: (event: RequestEvent) =>
 		requireAuth(event, {
 			requiredPermissions: ['employees:read:team', 'employees:read:all', 'employees:read'],
-			allowedRoles: ['admin', 'manager', 'hr_admin']
+			allowedRoles: ['Admin', 'Manager', 'HR Manager']
 		}),
 
 	// Department management - accepts any level of read access
@@ -292,13 +292,13 @@ export async function canEditDepartment(
 	departmentId: string,
 	userRole: string
 ): Promise<boolean> {
-	// Super admins and admins can edit any department
-	if (userRole === 'system_admin' || userRole === 'admin') {
+	// Admins can edit any department
+	if (userRole === 'Admin') {
 		return true;
 	}
 
 	// For managers, check if they manage this department
-	if (userRole === 'manager') {
+	if (userRole === 'Manager' || userRole === 'HR Manager') {
 		try {
 			// Import here to avoid circular dependencies
 			const { getGraphQLEndpoint } = await import('$lib/server/api-url');
@@ -346,18 +346,18 @@ export async function canEditEmployee(
 	targetEmployeeId: string,
 	userRole: string
 ): Promise<boolean> {
-	// Super admins and admins can edit anyone
-	if (userRole === 'system_admin' || userRole === 'admin') {
+	// Admins can edit anyone
+	if (userRole === 'Admin') {
 		return true;
 	}
 
 	// Employees can only edit themselves
-	if (userRole === 'employee') {
+	if (userRole === 'Employee') {
 		return userId === targetEmployeeId;
 	}
 
 	// For managers, check if target employee is in their department
-	if (userRole === 'manager') {
+	if (userRole === 'Manager' || userRole === 'HR Manager') {
 		try {
 			const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 			const graphqlEndpoint = getGraphQLEndpoint();
@@ -425,7 +425,7 @@ export function getUserPermissions(locals: App.Locals) {
 		canDeleteEmployees: hasPermission(userPerms, ['employees:delete']),
 		canCreateEmployees: hasPermission(userPerms, ['employees:write']),
 		canManageEmployees: hasPermission(userPerms, ['employees:write']),
-		canViewInactiveEmployees: hasRole(userRoles, ['system_admin', 'admin', 'hr_admin', 'manager']),
+		canViewInactiveEmployees: hasRole(userRoles, ['Admin', 'HR Manager', 'Manager']),
 
 		// Department permissions
 		canViewDepartments: hasPermission(userPerms, [
@@ -545,9 +545,10 @@ export function getUserPermissions(locals: App.Locals) {
 		canDeleteAdmin: hasPermission(userPerms, ['admin:delete']),
 
 		// Role checks
-		isAdmin: hasRole(userRoles, ['system_admin', 'admin', 'hr_admin']),
-		isManager: hasRole(userRoles, ['system_admin', 'admin', 'hr_admin', 'manager']),
-		isEmployee: hasRole(userRoles, ['employee'])
+		isAdmin: hasRole(userRoles, ['Admin']),
+		isHRManager: hasRole(userRoles, ['HR Manager']),
+		isManager: hasRole(userRoles, ['Manager', 'HR Manager', 'Admin']),
+		isEmployee: hasRole(userRoles, ['Employee'])
 	};
 }
 
@@ -556,10 +557,10 @@ export function getUserPermissions(locals: App.Locals) {
  * T036: Role precedence implementation
  */
 const ROLE_HIERARCHY = {
-	system_admin: 120,
-	admin: 100,
-	manager: 60,
-	employee: 20,
+	Admin: 100,
+	'HR Manager': 75,
+	Manager: 50,
+	Employee: 25,
 	guest: 0
 } as const;
 
@@ -578,7 +579,7 @@ const ROLE_HIERARCHY = {
 export function getRolePrecedence(roles: string[]): string {
 	if (!roles || roles.length === 0) return 'guest';
 
-	let highestRole = 'employee';
+	let highestRole = 'Employee';
 	let highestLevel = 0;
 
 	for (const role of roles) {
