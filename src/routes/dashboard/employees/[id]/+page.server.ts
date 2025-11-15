@@ -9,8 +9,8 @@ export const load: PageServerLoad = async (event) => {
 	const { params, locals, cookies } = event;
 	const employeeId = params.id;
 
-	// RBAC: Check employee read permissions
-	PermissionChecks.employeeRead(event);
+	// RBAC: Check employee write permissions (details view requires write access)
+	PermissionChecks.employeeWrite(event);
 
 	// Ensure user is authenticated
 	if (!locals.user) {

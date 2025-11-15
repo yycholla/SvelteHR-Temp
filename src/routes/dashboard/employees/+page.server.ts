@@ -206,7 +206,11 @@ export const load: PageServerLoad = async (event) => {
 		// Apply pagination to filtered results
 		const startIndex = (page - 1) * limit;
 		const endIndex = startIndex + limit;
-		const employees = allEmployees.slice(startIndex, endIndex);
+		const employees = allEmployees.slice(startIndex, endIndex).map((emp: any) => ({
+			...emp,
+			// Transform roles array to single role string for consistent display
+			role: emp.roles && emp.roles.length > 0 ? emp.roles[0].name : null
+		}));
 
 		console.log('[Employee Directory] Pagination:', {
 			totalEmployees,
