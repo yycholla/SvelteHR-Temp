@@ -90,6 +90,7 @@
 	const totalActiveEmployees = $derived(data.totalActiveEmployees);
 	const totalInactiveEmployees = $derived(data.totalInactiveEmployees);
 	const departments = $derived(data.departments);
+	const roles = $derived(data.roles);
 	const filters = $derived(data.filters);
 	const permissions = $derived(data.permissions);
 	// Granular employee permissions
@@ -1151,5 +1152,6 @@
 	bind:open={createDialogOpen}
 	onOpenChange={(open) => (createDialogOpen = open)}
 	departments={departments.map((d) => ({ id: d.id, name: d.name }))}
+	roles={roles.map((r) => ({ id: r.id, name: r.name, description: r.description }))}
 	onSuccess={handleEmployeeCreated}
 />

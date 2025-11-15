@@ -106,6 +106,7 @@
 	// Extract server-loaded data
 	const employee = $derived(data.employee);
 	const departments = $derived(data.departments);
+	const roles = $derived(data.roles);
 	const permissions = $derived(data.permissions);
 
 	// Helper function to format date for HTML5 date input (yyyy-MM-dd)
@@ -167,13 +168,13 @@
 	let paymentMethod = $state(data.employee.compensation?.paymentMethod || 'direct_deposit');
 	let taxIdLast4 = $state(data.employee.compensation?.taxIdLast4 || '');
 
-	// Role options
-	const roleOptions = [
-		{ value: 'Employee', label: 'Employee' },
-		{ value: 'Manager', label: 'Manager' },
-		{ value: 'HR Manager', label: 'HR Manager' },
-		{ value: 'Admin', label: 'Admin' }
-	];
+	// Map roles from database to dropdown options
+	const roleOptions = $derived(
+		roles.map((r) => ({
+			value: r.name,
+			label: r.name
+		}))
+	);
 
 	// Form validation
 	const formErrors = $derived({

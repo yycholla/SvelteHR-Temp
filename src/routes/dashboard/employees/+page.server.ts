@@ -258,6 +258,36 @@ export const load: PageServerLoad = async (event) => {
 
 		console.log('[Employee Directory] Departments data:', departmentsData);
 
+		// Load roles data for employee creation/editing
+		const rolesResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: `
+					query GetRoles($limit: Int, $offset: Int) {
+						roles(limit: $limit, offset: $offset) {
+							id
+							name
+							description
+							level
+						}
+					}
+				`,
+				variables: {
+					limit: 100,
+					offset: 0
+				}
+			})
+		});
+
+		const rolesData = await rolesResponse.json();
+
+		if (rolesData.errors) {
+			console.error('[Employee Directory] Roles GraphQL errors:', JSON.stringify(rolesData.errors, null, 2));
+		}
+
+		console.log('[Employee Directory] Roles data:', rolesData);
+
 		// Return server-side loaded data
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
@@ -276,6 +306,7 @@ export const load: PageServerLoad = async (event) => {
 			totalActiveEmployees: totalActiveEmployees, // Total active count from ALL employees
 			totalInactiveEmployees: totalInactiveEmployees, // Total inactive count from ALL employees
 			departments: departmentsData?.data?.departments || [],
+			roles: rolesData?.data?.roles || [],
 			employeeAutocompleteOptions: employeeAutocompleteOptions, // All employee names for search autocomplete
 			filters: {
 				searchTerm,

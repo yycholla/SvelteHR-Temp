@@ -16,10 +16,11 @@
 		open: boolean;
 		onOpenChange: (open: boolean) => void;
 		departments: Array<{ id: string; name: string }>;
+		roles: Array<{ id: string; name: string; description?: string }>;
 		onSuccess?: () => void;
 	}
 
-	let { open = $bindable(), onOpenChange, departments, onSuccess }: Props = $props();
+	let { open = $bindable(), onOpenChange, departments, roles, onSuccess }: Props = $props();
 
 	// Form state
 	let submitting = $state(false);
@@ -38,14 +39,14 @@
 	// Field errors state
 	let fieldErrors = $state<Record<string, string>>({});
 
-	// Available roles with descriptions
-	const roles = [
-		{ value: 'employee', label: 'Employee', description: 'Standard employee access' },
-		{ value: 'hr_admin', label: 'HR Admin', description: 'HR management and reporting' },
-		{ value: 'admin', label: 'Admin', description: 'Department administrator' },
-		{ value: 'system_admin', label: 'System Admin', description: 'System configuration' },
-		{ value: 'super_admin', label: 'Super Admin', description: 'Full system access' }
-	];
+	// Map roles from database to dropdown options (convert role names for form values)
+	const roleOptions = $derived(
+		roles.map((role) => ({
+			value: role.name.toLowerCase().replace(/\s+/g, '_'), // "HR Manager" -> "hr_manager"
+			label: role.name,
+			description: role.description || ''
+		}))
+	);
 
 	// Password generation
 	function generatePassword(): string {
@@ -346,12 +347,12 @@
 						disabled={submitting}
 						class="shadow-xs flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
 					>
-						{#each roles as role (role.value)}
+						{#each roleOptions as role (role.value)}
 							<option value={role.value}>{role.label}</option>
 						{/each}
 					</select>
 					<p class="text-xs text-muted-foreground mt-1">
-						{roles.find((r) => r.value === formData.role)?.description}
+						{roleOptions.find((r) => r.value === formData.role)?.description}
 					</p>
 				</div>
 			</div>

@@ -64,9 +64,9 @@ export const load: PageServerLoad = async (event) => {
 		const isAdmin = userRoles.includes('Admin') || userRoles.includes('HR Manager');
 		const isViewingSelf = locals.user.id === employeeId;
 
-		// Load employee data and departments in parallel
+		// Load employee data, departments, and roles in parallel
 		// NOTE: Using Rust GraphQL schema (filter pattern, direct arrays)
-		const [employeeResponse, departmentsResponse] = await Promise.all([
+		const [employeeResponse, departmentsResponse, rolesResponse] = await Promise.all([
 			fetch(graphqlEndpoint, {
 				method: 'POST',
 				headers,
@@ -123,12 +123,29 @@ export const load: PageServerLoad = async (event) => {
 						}
 					`
 				})
+			}),
+			fetch(graphqlEndpoint, {
+				method: 'POST',
+				headers,
+				body: JSON.stringify({
+					query: `
+						query GetRoles {
+							roles(limit: 100) {
+								id
+								name
+								description
+								level
+							}
+						}
+					`
+				})
 			})
 		]);
 
-		const [employeeData, departmentsData] = await Promise.all([
+		const [employeeData, departmentsData, rolesData] = await Promise.all([
 			employeeResponse.json(),
-			departmentsResponse.json()
+			departmentsResponse.json(),
+			rolesResponse.json()
 		]);
 
 		// Check if employee exists
@@ -210,6 +227,7 @@ export const load: PageServerLoad = async (event) => {
 		// Return server-side loaded data
 		return {
 			userSession: userSession.toJSON(),
+			roles: rolesData?.data?.roles || [],
 			employee: {
 				id: employee.id,
 				firstName: employee.firstName,
@@ -373,6 +391,93 @@ export const actions: Actions = {
 			}
 
 			console.log('[Employee Update] User profile updated successfully');
+
+			// Handle role assignment if role changed
+			if (role) {
+				console.log('[Employee Update] Updating role to:', role);
+
+				const updatedEmployee = updateData?.data?.users?.updateUser;
+				const currentRoles = updatedEmployee?.roles || [];
+				const currentRoleName = currentRoles[0]?.name;
+
+				// Only update if role actually changed
+				if (currentRoleName !== role) {
+					// Get all roles to find the new role ID
+					const allRolesResponse = await fetch(graphqlEndpoint, {
+						method: 'POST',
+						headers,
+						body: JSON.stringify({
+							query: `
+								query GetAllRoles {
+									roles(limit: 100) {
+										id
+										name
+									}
+								}
+							`
+						})
+					});
+
+					const allRolesData = await allRolesResponse.json();
+					const newRole = allRolesData?.data?.roles?.find((r: any) => r.name === role);
+
+					if (newRole) {
+						// Remove all existing role assignments
+						for (const currentRole of currentRoles) {
+							await fetch(graphqlEndpoint, {
+								method: 'POST',
+								headers,
+								body: JSON.stringify({
+									query: `
+										mutation RemoveRoleFromUser($userId: UUID!, $roleId: UUID!) {
+											removeRoleFromUser(userId: $userId, roleId: $roleId)
+										}
+									`,
+									variables: {
+										userId: employeeId,
+										roleId: currentRole.id
+									}
+								})
+							});
+							console.log(`[Employee Update] Removed role: ${currentRole.name}`);
+						}
+
+						// Assign new role
+						const assignResponse = await fetch(graphqlEndpoint, {
+							method: 'POST',
+							headers,
+							body: JSON.stringify({
+								query: `
+									mutation AssignRoleToUser($userId: UUID!, $roleId: UUID!) {
+										assignRoleToUser(userId: $userId, roleId: $roleId) {
+											id
+											userId
+											roleId
+											assignedAt
+										}
+									}
+								`,
+								variables: {
+									userId: employeeId,
+									roleId: newRole.id
+								}
+							})
+						});
+
+						const assignData = await assignResponse.json();
+
+						if (assignData.errors) {
+							console.error('[Employee Update] Role assignment errors:', assignData.errors);
+						} else {
+							console.log(`[Employee Update] Assigned new role: ${role}`);
+						}
+					} else {
+						console.warn(`[Employee Update] Role "${role}" not found in database`);
+					}
+				} else {
+					console.log('[Employee Update] Role unchanged, skipping role assignment');
+				}
+			}
 
 			// Handle emergency contacts - parse array data from form
 			const emergencyContacts: any[] = [];
