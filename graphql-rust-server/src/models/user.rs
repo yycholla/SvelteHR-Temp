@@ -405,6 +405,10 @@ pub struct CreateUserInput {
     /// Optional password for the user. If not provided, a temporary password will be generated.
     #[graphql(validator(min_length = 8, max_length = 128))]
     pub password: Option<String>,
+    /// Optional role name for the user. If not provided, defaults to "Employee".
+    /// Valid values: "Admin", "HR Manager", "Manager", "Employee"
+    #[graphql(validator(max_length = 50))]
+    pub role_name: Option<String>,
 }
 
 /// User update input

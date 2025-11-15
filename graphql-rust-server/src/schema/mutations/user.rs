@@ -75,14 +75,15 @@ impl UserMutations {
 
         let user = user.insert(&db).await?;
 
-        // Assign default "Employee" role to new user via RBAC
-        let employee_role = crate::models::role::Entity::find()
-            .filter(crate::models::role::Column::Name.eq("Employee"))
+        // Assign role to new user via RBAC (use provided role_name or default to "Employee")
+        let role_name = input.role_name.as_deref().unwrap_or("Employee");
+        let assigned_role = crate::models::role::Entity::find()
+            .filter(crate::models::role::Column::Name.eq(role_name))
             .filter(crate::models::role::Column::DeletedAt.is_null())
             .one(&db)
             .await?;
 
-        if let Some(role) = employee_role {
+        if let Some(role) = assigned_role {
             let role_assignment = crate::models::user_role_assignment::ActiveModel {
                 id: Set(Uuid::new_v4()),
                 user_id: Set(user.id),
@@ -90,7 +91,9 @@ impl UserMutations {
                 ..Default::default()
             };
             role_assignment.insert(&db).await?;
-            tracing::info!("Assigned Employee role to new user {}", input.email);
+            tracing::info!("Assigned '{}' role to new user {}", role_name, input.email);
+        } else {
+            tracing::warn!("Role '{}' not found, user {} created without role assignment", role_name, input.email);
         }
 
         Ok(user)

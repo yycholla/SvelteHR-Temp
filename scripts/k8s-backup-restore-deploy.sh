@@ -32,29 +32,29 @@ set -o pipefail  # Exit on pipe failure
 ################################################################################
 
 # Server Configuration
-export PRODUCTION_DOMAIN="hr.example.com"  # Your production domain
-export TLS_EMAIL="admin@example.com"  # Email for Let's Encrypt notifications
+export PRODUCTION_DOMAIN="hr.mtncarerx.com"  # Your production domain
+export TLS_EMAIL="chanway@hey.com"  # Email for Let's Encrypt notifications
 
 # Kubernetes Configuration
 export POD_NETWORK_CIDR="10.244.0.0/16"
 export SERVICE_CIDR="10.96.0.0/12"
 
 # Doppler Configuration (CRITICAL - manage most secrets)
-export DOPPLER_TOKEN="REPLACE_WITH_ACTUAL_DOPPLER_TOKEN"  # dp.st.prod.xxxxx
+export DOPPLER_TOKEN="dp.st.prod.mjZd22kkphrTEmaFXViwhxbRpachx0H0Zlz6NDi0kIn"  # dp.st.prod.xxxxx
 
 # Tailscale OAuth Credentials
-export TAILSCALE_CLIENT_ID="REPLACE_WITH_CLIENT_ID"  # kxxxxxxxxx
-export TAILSCALE_CLIENT_SECRET="REPLACE_WITH_CLIENT_SECRET"  # tskey-client-xxxxx
+export TAILSCALE_CLIENT_ID="kAr6h6fe5811CNTRL"  # kxxxxxxxxx
+export TAILSCALE_CLIENT_SECRET="tskey-client-kAr6h6fe5811CNTRL-S799JBkiof2gFEJ6Cs1uf28NnL55T9mVj"  # tskey-client-xxxxx
 
 # GitHub Container Registry Credentials
-export GHCR_USERNAME="REPLACE_WITH_GITHUB_USERNAME"
-export GHCR_PAT="REPLACE_WITH_GITHUB_PAT"  # ghp_xxxxx
+export GHCR_USERNAME="yycholla"
+export GHCR_PAT="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"  # ghp_xxxxx
 
 # MinIO Backup Access (for accessing existing backups)
 # Leave empty if MinIO data is on persistent storage already
-export OLD_MINIO_ENDPOINT=""  # e.g., http://old-server-ip:9000
-export OLD_MINIO_ACCESS_KEY=""
-export OLD_MINIO_SECRET_KEY=""
+export OLD_MINIO_ENDPOINT="minio-console.dropbear-elnath.ts.net"  # e.g., http://old-server-ip:9000
+export OLD_MINIO_ACCESS_KEY="velero"
+export OLD_MINIO_SECRET_KEY="HaR9HH4pD3BPeoGgQIMs6TLnhCRpio4="
 
 # GitHub Repository
 export GITHUB_REPO="https://github.com/Mountain-Care-Rx/SvelteHR.git"

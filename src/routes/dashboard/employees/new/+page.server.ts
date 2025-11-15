@@ -106,7 +106,7 @@ export const actions: Actions = {
 			const jobTitle = formData.get('jobTitle')?.toString();
 			const departmentId = formData.get('departmentId')?.toString();
 			const hireDate = formData.get('hireDate')?.toString();
-			// Note: Role assignment now handled via RBAC system on backend
+			const role = formData.get('role')?.toString();
 			const password = formData.get('password')?.toString();
 
 			// Validate required fields
@@ -137,12 +137,22 @@ export const actions: Actions = {
 				status: 'active'
 			};
 
+			// Map frontend role values to backend role names
+			const roleMapping: Record<string, string> = {
+				'employee': 'Employee',
+				'manager': 'Manager',
+				'hr_manager': 'HR Manager',
+				'admin': 'Admin'
+			};
+
 			// Only add optional fields if they have values
-			// Note: Role assignment handled via RBAC on backend (defaults to Employee role)
 			if (phone) input.phone = phone;
 			if (jobTitle) input.jobTitle = jobTitle;
 			if (departmentId) input.departmentId = departmentId;
 			if (password) input.password = password;
+			if (role && roleMapping[role]) {
+				input.roleName = roleMapping[role];
+			}
 			if (hireDate) {
 				// Ensure hire date is in ISO 8601 format
 				input.hireDate = new Date(hireDate).toISOString();
