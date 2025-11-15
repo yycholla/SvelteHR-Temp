@@ -424,13 +424,18 @@ export const actions: Actions = {
 					if (newRole) {
 						// Remove all existing role assignments
 						for (const currentRole of currentRoles) {
-							await fetch(graphqlEndpoint, {
+							const removeResponse = await fetch(graphqlEndpoint, {
 								method: 'POST',
 								headers,
 								body: JSON.stringify({
 									query: `
 										mutation RemoveRoleFromUser($userId: UUID!, $roleId: UUID!) {
-											removeRoleFromUser(userId: $userId, roleId: $roleId)
+											rbac {
+												removeRoleFromUser(userId: $userId, roleId: $roleId) {
+													success
+													message
+												}
+											}
 										}
 									`,
 									variables: {
@@ -439,6 +444,13 @@ export const actions: Actions = {
 									}
 								})
 							});
+							const removeData = await removeResponse.json();
+							if (removeData.errors) {
+								console.error(`[Employee Update] Error removing role ${currentRole.name}:`, removeData.errors);
+								return fail(500, {
+									error: `Failed to remove old role: ${removeData.errors[0]?.message || 'Unknown error'}`
+								});
+							}
 							console.log(`[Employee Update] Removed role: ${currentRole.name}`);
 						}
 
@@ -448,18 +460,22 @@ export const actions: Actions = {
 							headers,
 							body: JSON.stringify({
 								query: `
-									mutation AssignRoleToUser($userId: UUID!, $roleId: UUID!) {
-										assignRoleToUser(userId: $userId, roleId: $roleId) {
-											id
-											userId
-											roleId
-											assignedAt
+									mutation AssignRoleToUser($input: AssignRoleInput!) {
+										rbac {
+											assignRoleToUser(input: $input) {
+												id
+												userId
+												roleId
+												createdAt
+											}
 										}
 									}
 								`,
 								variables: {
-									userId: employeeId,
-									roleId: newRole.id
+									input: {
+										userId: employeeId,
+										roleId: newRole.id
+									}
 								}
 							})
 						});
@@ -468,6 +484,9 @@ export const actions: Actions = {
 
 						if (assignData.errors) {
 							console.error('[Employee Update] Role assignment errors:', assignData.errors);
+							return fail(500, {
+								error: `Failed to assign new role: ${assignData.errors[0]?.message || 'Unknown error'}`
+							});
 						} else {
 							console.log(`[Employee Update] Assigned new role: ${role}`);
 						}

@@ -168,15 +168,16 @@ export const REMOVE_PERMISSION_FROM_ROLE = gql`
 
 /**
  * GraphQL Mutation: Assign role to user
+ * IMPORTANT: Uses rbac namespace and AssignRoleInput type (matches Rust backend)
  */
 export const ASSIGN_ROLE_TO_USER = gql`
-	mutation AssignRoleToUser($input: AssignRoleToUserInput!) {
-		assignRoleToUser(input: $input) {
-			userRole {
+	mutation AssignRoleToUser($input: AssignRoleInput!) {
+		rbac {
+			assignRoleToUser(input: $input) {
 				id
 				userId
 				roleId
-				assignedAt
+				createdAt
 			}
 		}
 	}
@@ -184,12 +185,15 @@ export const ASSIGN_ROLE_TO_USER = gql`
 
 /**
  * GraphQL Mutation: Remove role from user
+ * IMPORTANT: Uses rbac namespace and direct parameters (matches Rust backend)
  */
 export const REMOVE_ROLE_FROM_USER = gql`
-	mutation RemoveRoleFromUser($input: RemoveRoleFromUserInput!) {
-		removeRoleFromUser(input: $input) {
-			success
-			message
+	mutation RemoveRoleFromUser($userId: UUID!, $roleId: UUID!) {
+		rbac {
+			removeRoleFromUser(userId: $userId, roleId: $roleId) {
+				success
+				message
+			}
 		}
 	}
 `;
@@ -285,15 +289,13 @@ export interface RemovePermissionFromRoleInput {
 	permissionId: string;
 }
 
-export interface AssignRoleToUserInput {
+export interface AssignRoleInput {
 	userId: string;
 	roleId: string;
 }
 
-export interface RemoveRoleFromUserInput {
-	userId: string;
-	roleId: string;
-}
+// Note: RemoveRoleFromUser uses direct parameters, not an input object
+// Variables format: { userId: string, roleId: string }
 
 export interface BulkAssignPermissionsInput {
 	roleId: string;
