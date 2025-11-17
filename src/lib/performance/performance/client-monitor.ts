@@ -22,6 +22,54 @@ import { beforeNavigate, afterNavigate } from '$app/navigation';
 import { writable, derived, readonly } from 'svelte/store';
 import type { Writable, Readable } from 'svelte/store';
 
+/**
+ * UUID generation with fallbacks for environments that don't support crypto.randomUUID()
+ * This ensures compatibility across all browsers and contexts.
+ */
+function generateUUID(): string {
+	// Try modern crypto.randomUUID() first
+	if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+		try {
+			return crypto.randomUUID();
+		} catch (error) {
+			// Fall through to next method if it fails
+			console.warn('crypto.randomUUID() failed, using fallback', error);
+		}
+	}
+
+	// Fallback to crypto.getRandomValues() with UUID v4 format
+	if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+		try {
+			const bytes = new Uint8Array(16);
+			crypto.getRandomValues(bytes);
+
+			// Set version (4) and variant bits according to RFC 4122
+			bytes[6] = (bytes[6] & 0x0f) | 0x40; // Version 4
+			bytes[8] = (bytes[8] & 0x3f) | 0x80; // Variant 10
+
+			// Convert to UUID string format
+			const hexValues = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0'));
+			return [
+				hexValues.slice(0, 4).join(''),
+				hexValues.slice(4, 6).join(''),
+				hexValues.slice(6, 8).join(''),
+				hexValues.slice(8, 10).join(''),
+				hexValues.slice(10, 16).join('')
+			].join('-');
+		} catch (error) {
+			// Fall through to Math.random() fallback
+			console.warn('crypto.getRandomValues() failed, using Math.random() fallback', error);
+		}
+	}
+
+	// Last resort: Math.random() based UUID (non-cryptographic)
+	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+		const r = (Math.random() * 16) | 0;
+		const v = c === 'x' ? r : (r & 0x3) | 0x8;
+		return v.toString(16);
+	});
+}
+
 // Performance metric interfaces
 export interface PerformanceMetric {
 	id: string;
@@ -148,7 +196,7 @@ class ClientPerformanceMonitor {
 	recordMetric(metric: Omit<PerformanceMetric, 'id' | 'timestamp'>): void {
 		const fullMetric: PerformanceMetric = {
 			...metric,
-			id: crypto.randomUUID(),
+			id: generateUUID(),
 			timestamp: Date.now()
 		};
 
@@ -594,7 +642,7 @@ class ClientPerformanceMonitor {
 	private createAlert(alert: Omit<PerformanceAlert, 'id' | 'timestamp'>): void {
 		const fullAlert: PerformanceAlert = {
 			...alert,
-			id: crypto.randomUUID(),
+			id: generateUUID(),
 			timestamp: Date.now()
 		};
 
