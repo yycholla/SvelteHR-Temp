@@ -335,14 +335,15 @@ ingress:
   enabled: true
   className: traefik
   annotations:
-    # Let's Encrypt certificate automation (staging for testing)
-    cert-manager.io/cluster-issuer: "letsencrypt-staging"
-    # Allow both HTTP and HTTPS (HTTP redirects to HTTPS via middleware)
+    # Self-signed certificate for internal access (cert-manager disabled)
+    # To enable Let's Encrypt later, uncomment:
+    # cert-manager.io/cluster-issuer: "letsencrypt-staging"
+    # Allow both HTTP and HTTPS
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
   host: hr.mtncarerx.com # GoDaddy domain with direct DNS (no proxy)
   tls:
-    enabled: true # cert-manager will issue Let's Encrypt certificate
-    secretName: sveltehr-tls-cert # Certificate stored here
+    enabled: true # Using self-signed certificate for internal access
+    secretName: sveltehr-tls-cert # Self-signed certificate created manually
 # -----------------------------------------------------------------------------
 # Pod Disruption Budgets (High Availability)
 # -----------------------------------------------------------------------------
