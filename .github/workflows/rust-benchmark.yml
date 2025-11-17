@@ -24,7 +24,7 @@ env:
 jobs:
   benchmark:
     name: Performance Benchmarks
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     # Skip benchmarks on Dependabot PRs
     if: github.actor != 'dependabot[bot]'
 
@@ -120,7 +120,7 @@ jobs:
 
   benchmark-comparison:
     name: Benchmark Comparison
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     if: github.event_name == 'pull_request'
 
     services:

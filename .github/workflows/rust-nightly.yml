@@ -14,7 +14,7 @@ env:
 jobs:
   comprehensive-tests:
     name: Comprehensive Test Suite
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 60
 
     services:
@@ -83,7 +83,7 @@ jobs:
 
   security-full-audit:
     name: Full Security Audit
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     steps:
       - name: Checkout code
@@ -129,7 +129,7 @@ jobs:
 
   rustdoc-check:
     name: Documentation Check
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     steps:
       - name: Checkout code
@@ -170,7 +170,7 @@ jobs:
 
   notify-on-failure:
     name: Notify on Failure
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: [comprehensive-tests, security-full-audit, rustdoc-check]
     if: failure()
 
