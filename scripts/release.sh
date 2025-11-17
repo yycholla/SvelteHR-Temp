@@ -23,6 +23,12 @@ get_latest_tag() {
     git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0"
 }
 
+# Strip 'v' prefix from version string (v1.0.0 -> 1.0.0)
+strip_v_prefix() {
+    local version=$1
+    echo "${version#v}"
+}
+
 # Validate semantic version format (supports multi-digit: 0.0.100)
 validate_semver() {
     local version=$1

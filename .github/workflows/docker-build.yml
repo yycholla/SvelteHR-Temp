@@ -12,15 +12,6 @@ on:
       - 'Dockerfile'
       - 'package*.json'
       - '.github/workflows/docker-build.yml'
-  workflow_dispatch:
-    inputs:
-      push_images:
-        description: 'Push images to registry'
-        required: false
-        default: 'true'
-      version:
-        description: 'Semantic version (e.g., 1.2.3)'
-        required: false
 
 env:
   REGISTRY: ghcr.io
@@ -117,7 +108,7 @@ jobs:
           context: ./graphql-rust-server
           file: ./graphql-rust-server/Dockerfile.prod
           target: server
-          push: ${{ (github.event_name != 'pull_request') && (github.event.inputs.push_images != 'false') }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
@@ -233,7 +224,7 @@ jobs:
           context: .
           file: ./Dockerfile
           target: production
-          push: ${{ (github.event_name != 'pull_request') && (github.event.inputs.push_images != 'false') }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
