@@ -13,7 +13,7 @@ jobs:
   # Detect which parts of the codebase changed
   detect-changes:
     name: Detect Changed Files
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       frontend: ${{ steps.filter.outputs.frontend }}
       backend: ${{ steps.filter.outputs.backend }}
@@ -46,7 +46,7 @@ jobs:
     name: Frontend Tests (Smart Selection)
     needs: detect-changes
     if: needs.detect-changes.outputs.frontend == 'true'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -121,7 +121,7 @@ jobs:
     name: Rust Tests (Smart Selection)
     needs: detect-changes
     if: needs.detect-changes.outputs.backend == 'true'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 20
     defaults:
       run:
@@ -187,7 +187,7 @@ jobs:
     name: Smart Tests Summary
     needs: [detect-changes, smart-frontend-tests, smart-backend-tests]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Generate summary
         run: |
