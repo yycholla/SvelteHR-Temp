@@ -462,6 +462,9 @@ async fn test_admin_development_shortcut_authentication() {
 
     // Create admin user if it doesn't exist
     if existing_admin.is_none() {
+        use hr_graphql_server::models::{role, user_role_assignment};
+        use sea_orm::NotSet;
+
         let admin_id = Uuid::new_v4();
         let admin_model = user::ActiveModel {
             id: Set(admin_id),
@@ -469,11 +472,30 @@ async fn test_admin_development_shortcut_authentication() {
             password_hash: Set("any_hash".to_string()), // Won't be checked
             first_name: Set("Admin".to_string()),
             last_name: Set("User".to_string()),
-            role: Set("admin".to_string()),
+            display_name: NotSet, // Generated column
+            full_name: NotSet,    // Generated column
             is_active: Set(true),
+            force_password_change: Set(false),
             ..Default::default()
         };
         admin_model.insert(db.connection()).await.expect("Failed to create admin user");
+
+        // Assign Admin role if it exists in the database
+        if let Ok(Some(admin_role)) = role::Entity::find()
+            .filter(role::Column::Name.eq("Admin"))
+            .one(db.connection())
+            .await
+        {
+            let role_assignment = user_role_assignment::ActiveModel {
+                id: Set(Uuid::new_v4()),
+                user_id: Set(admin_id),
+                role_id: Set(admin_role.id),
+                created_at: Set(chrono::Utc::now()),
+                updated_at: Set(chrono::Utc::now()),
+                deleted_at: Set(None),
+            };
+            role_assignment.insert(db.connection()).await.ok();
+        }
     }
 
     let auth_backend = AuthBackend::new(db.connection().clone());

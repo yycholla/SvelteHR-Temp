@@ -23,6 +23,8 @@ use hr_graphql_server::models::{
     user::{Entity as UserEntity, Column as UserColumn, ActiveModel as UserActiveModel},
     department::{Entity as DepartmentEntity, Column as DepartmentColumn, ActiveModel as DepartmentActiveModel},
     task::{Entity as TaskEntity, Column as TaskColumn, ActiveModel as TaskActiveModel},
+    role::{Entity as RoleEntity, Column as RoleColumn},
+    user_role_assignment::{Entity as UserRoleAssignmentEntity, ActiveModel as UserRoleAssignmentActiveModel},
 };
 
 /// Test fixture: Multi-tenant database with isolated organizations
@@ -219,7 +221,6 @@ impl MultiTenantFixture {
             last_name: Set(last_name.to_string()),
             display_name: NotSet, // Generated column - do not set
             full_name: NotSet,    // Generated column - do not set
-            role: Set(role.to_string()),
             phone_number: Set(None),
             alternate_phone: Set(None),
             job_title: Set(Some("Software Engineer".to_string())),
@@ -232,13 +233,34 @@ impl MultiTenantFixture {
             failed_login_attempts: Set(0),
             locked_until: Set(None),
             last_login: Set(None),
+            force_password_change: Set(false),
             theme_preference: Set("system".to_string()),
             created_at: Set(Utc::now()),
             updated_at: Set(Utc::now()),
             deleted_at: Set(None),
         };
 
-        user.insert(db).await
+        let created_user = user.insert(db).await?;
+
+        // Find or create the role and assign it to the user
+        let role_model = RoleEntity::find()
+            .filter(RoleColumn::Name.eq(role))
+            .one(db)
+            .await?;
+
+        if let Some(role_model) = role_model {
+            let role_assignment = UserRoleAssignmentActiveModel {
+                id: Set(Uuid::new_v4()),
+                user_id: Set(created_user.id),
+                role_id: Set(role_model.id),
+                created_at: Set(Utc::now()),
+                updated_at: Set(Utc::now()),
+                deleted_at: Set(None),
+            };
+            role_assignment.insert(db).await?;
+        }
+
+        Ok(created_user)
     }
 
     async fn create_task(

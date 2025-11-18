@@ -1,10 +1,6 @@
 [[bin]]
 path = "src/main.rs"
 name = "hr-graphql-server"
-plugin = false
-proc-macro = false
-edition = "2021"
-required-features = []
 
 [[bin]]
 name = "migration"
@@ -17,10 +13,6 @@ path = "src/bin/seed_data.rs"
 [[test]]
 path = "tests/contract_tests.rs"
 name = "contract_tests"
-plugin = false
-proc-macro = false
-edition = "2021"
-required-features = []
 
 [[test]]
 path = "tests/load/basic_queries_load.rs"
@@ -186,8 +178,4 @@ harness = false
 [lib]
 path = "src/lib.rs"
 name = "hr_graphql_server"
-plugin = false
-proc-macro = false
-edition = "2021"
-required-features = []
 crate-type = ["lib"]
