@@ -2,12 +2,9 @@ name: Docker Build and Push
 
 on:
   push:
-    # Build on semver tags (always build for releases)
+    # Build on semver tags only (e.g., 1.2.3, 2.0.1)
     tags:
       - '[0-9]*.[0-9]*.[0-9]*'
-    # Build on main branch (change detection handled by detect-changes job)
-    branches:
-      - main
 
 env:
   REGISTRY: ghcr.io
