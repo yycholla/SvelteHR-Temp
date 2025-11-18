@@ -422,7 +422,7 @@
 	<div class="flex items-center justify-between">
 		{#if canManageEmployees}
 			<ButtonGroup.Root>
-				<Button variant="outline" size="sm">
+				<Button variant="outline" size="sm" href="/dashboard/employees/import">
 					<Upload class="mr-2 h-4 w-4" />
 					Import
 				</Button>
