@@ -5,6 +5,8 @@ metadata:
   name: sveltehr-ingress
   namespace: {{ .Values.global.namespace }}
   annotations:
+    # Mark as healthy for ArgoCD (on-prem cluster, no external LoadBalancer)
+    argocd.argoproj.io/compare-options: IgnoreExtraneous
     {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
     {{- end }}

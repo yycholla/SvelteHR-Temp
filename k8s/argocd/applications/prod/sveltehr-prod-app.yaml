@@ -109,6 +109,12 @@ spec:
       jsonPointers:
         - /spec/replicas
 
+    # Ignore ingress status (on-prem cluster, no external LoadBalancer IP)
+    - group: networking.k8s.io
+      kind: Ingress
+      jsonPointers:
+        - /status
+
     # Ignore CloudNativePG cluster operator-added defaults (not user-defined fields)
     - group: postgresql.cnpg.io
       kind: Cluster
