@@ -75,6 +75,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 
 		const loginData = await loginResponse.json();
 		console.log('[Login] Login successful, user:', loginData.user.email);
+		console.log('[Login] Force password change:', loginData.user.force_password_change);
 
 		// Clear rate limit on successful login
 		clearRateLimit(clientIp);

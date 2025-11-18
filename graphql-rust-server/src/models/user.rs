@@ -128,6 +128,7 @@ pub struct Model {
     pub failed_login_attempts: i32,
     pub locked_until: Option<DateTime<Utc>>,
     pub last_login: Option<DateTime<Utc>>,
+    pub force_password_change: bool,
     pub theme_preference: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -274,6 +275,12 @@ impl Model {
     /// Is active (true if user is currently active)
     async fn is_active(&self) -> bool {
         self.is_active
+    }
+
+    /// Force password change on next login (for temporary/bulk-imported passwords)
+    #[graphql(name = "forcePasswordChange")]
+    async fn force_password_change(&self) -> bool {
+        self.force_password_change
     }
 
     /// User theme preference (light, dark, or system)

@@ -199,6 +199,38 @@ export const authActions = {
 			const result = await secureAuthService.login({ email, password });
 
 			if (result.success && result.user) {
+				// Check for force_password_change flag
+				if ((result.user as any).force_password_change === true) {
+					console.log('[Auth] User must change password on first login');
+
+					// Set minimal user state for password change flow
+					const user: User = {
+						id: result.user.id,
+						email: result.user.email,
+						displayName:
+							(result.user as any).displayName || result.user.email.split('@')[0] || 'User',
+						onboardingStatus: 'Active',
+						isActive: true,
+						role: (result.user as any).role
+					};
+
+					// Set user state but don't complete full login
+					authStore.update((state) => ({
+						...state,
+						isAuthenticated: true,
+						user,
+						isLoading: false
+					}));
+
+					// Redirect to password change page
+					if (browser) {
+						const { goto } = await import('$app/navigation');
+						await goto('/change-password?required=true', { replaceState: true });
+					}
+
+					return true;
+				}
+
 				const user: User = {
 					id: result.user.id,
 					email: result.user.email,

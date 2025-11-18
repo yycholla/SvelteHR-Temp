@@ -41,6 +41,7 @@ pub struct UserInfo {
     pub roles: Vec<String>,
     pub permissions: Vec<String>,
     pub is_active: bool,
+    pub force_password_change: bool,
 }
 
 /// Error response for failed authentication
@@ -62,6 +63,7 @@ struct DbUser {
     last_name: Option<String>,
     display_name: Option<String>,
     is_active: bool,
+    force_password_change: bool,
 }
 
 /// JWT Claims structure
@@ -124,6 +126,7 @@ pub async fn login_handler(
             last_name: Some(user.last_name),
             display_name: Some(user.display_name),
             is_active: user.is_active,
+            force_password_change: user.force_password_change,
         },
         Ok(None) => {
             tracing::warn!("Login failed: User not found - {}", login_request.email);
@@ -244,6 +247,7 @@ pub async fn login_handler(
             roles,
             permissions,
             is_active: user.is_active,
+            force_password_change: user.force_password_change,
         },
     }))
 }

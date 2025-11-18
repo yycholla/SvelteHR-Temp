@@ -112,6 +112,7 @@ pub struct AuthUser {
     pub email: String,
     pub role: String,
     pub is_active: bool,
+    pub force_password_change: bool,
     /// Department ID for Row-Level Security (RLS) filtering
     pub department_id: Option<uuid::Uuid>,
     /// Organization ID for Row-Level Security (future-proofing)
@@ -141,6 +142,7 @@ impl AuthUser {
             email: db_user.email.clone(),
             role: "Employee".to_string(), // Default role - actual roles come from RBAC
             is_active: db_user.is_active,
+            force_password_change: db_user.force_password_change,
             department_id: db_user.department_id,
             organization_id: None, // TODO: Extract from department when organization support is added
         }

@@ -17,6 +17,7 @@ pub struct UserInfo {
     pub email: String,
     pub role: String,
     pub is_active: bool,
+    pub force_password_change: bool,
 }
 
 /// Session information
@@ -108,9 +109,10 @@ impl AuthMutations {
 
                 let user_info = UserInfo {
                     id: user.id.to_string(),
-                    email: user.email,
+                    email: user.email.clone(),
                     role: user.role,
                     is_active: user.is_active,
+                    force_password_change: user.force_password_change,
                 };
 
                 Ok(AuthResponse::AuthResult(AuthResult {
