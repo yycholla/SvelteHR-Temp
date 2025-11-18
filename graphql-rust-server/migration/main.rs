@@ -44,6 +44,7 @@ mod m20251111_002_create_system_settings;
 mod m20251111_003_create_notification_channels;
 mod m20251111_004_extend_users_for_auth_policies;
 mod m20251118_001_add_force_password_change;
+mod m20251118_002_fix_email_unique_constraint_for_soft_delete;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -82,6 +83,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20251111_003_create_notification_channels::Migration),
             Box::new(m20251111_004_extend_users_for_auth_policies::Migration),
             Box::new(m20251118_001_add_force_password_change::Migration),
+            Box::new(m20251118_002_fix_email_unique_constraint_for_soft_delete::Migration),
         ]
     }
 }
