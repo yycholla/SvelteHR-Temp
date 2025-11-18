@@ -161,6 +161,7 @@ impl TestUser {
             email: self.email.clone(),
             role: self.role.clone(),
             is_active: self.is_active,
+            force_password_change: false,
             department_id: None, // TestUser doesn't store department_id
             organization_id: None,
         }

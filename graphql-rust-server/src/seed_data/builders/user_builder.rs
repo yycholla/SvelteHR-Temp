@@ -112,6 +112,7 @@ pub async fn seed_users(
             locked_until: Set(None),
             last_login: Set(None),
             theme_preference: Set("system".to_string()),
+            force_password_change: Set(false),
             created_at: Set(now),
             updated_at: Set(now),
             deleted_at: Set(None),

@@ -103,7 +103,7 @@ fn parse_csv_content(csv_content: &str) -> Result<Vec<ParsedEmployee>> {
 
         // Parse name
         let (first_name, last_name) = parse_name(&row.name).map_err(|e| {
-            AppError::Validation(format!("Row {}: {}", row_number, e))
+            AppError::Validation(format!("Row {}: {:?}", row_number, e))
         })?;
 
         // Parse hire date
@@ -380,7 +380,7 @@ impl UserMutations {
         let current_user = auth_session
             .user
             .as_ref()
-            .ok_or_else(|| AppError::Unauthorized("Not authenticated".to_string()))?;
+            .ok_or_else(|| AppError::Authentication("Not authenticated".to_string()))?;
 
         // Fetch user from database
         let user = crate::models::user::Entity::find_by_id(current_user.id)
@@ -394,7 +394,7 @@ impl UserMutations {
             .map_err(|e| AppError::Internal(format!("Password verification failed: {}", e)))?;
 
         if !password_valid {
-            return Err(AppError::Unauthorized("Current password is incorrect".to_string()).into());
+            return Err(AppError::Authentication("Current password is incorrect".to_string()).into());
         }
 
         // Validate new password (min 8 characters)
@@ -421,7 +421,6 @@ impl UserMutations {
             message: "Password changed successfully".to_string(),
         })
     }
-}
 
     /// Bulk import employees from CSV file
     /// CSV format: "Name,Hire Date,Role" where Name is "LAST, FIRST" or "LAST, FIRST M"

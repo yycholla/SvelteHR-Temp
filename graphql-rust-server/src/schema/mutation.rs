@@ -213,6 +213,7 @@ impl MutationRoot {
                     email: user.email,
                     role: user.role,
                     is_active: user.is_active,
+                    force_password_change: user.force_password_change,
                 };
 
                 Ok(AuthResponse::AuthResult(AuthResult {
