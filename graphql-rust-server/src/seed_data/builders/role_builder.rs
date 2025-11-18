@@ -30,8 +30,10 @@ pub async fn seed_roles(
 
     for (name, description, level) in ROLES {
         // Check if role already exists (idempotency)
+        // CRITICAL: Filter out soft-deleted roles to ensure active roles are created
         let existing = role::Entity::find()
             .filter(role::Column::Name.eq(*name))
+            .filter(role::Column::DeletedAt.is_null())
             .one(db)
             .await?;
 
@@ -84,15 +86,39 @@ pub async fn seed_role_permissions(
 ) -> Result<EntitySeedResult> {
     let mut result = EntitySeedResult::new("role_permissions");
 
-    // Get all roles
-    let roles = role::Entity::find().all(db).await?;
+    // Get all active roles (exclude soft-deleted)
+    // CRITICAL: Filter out soft-deleted roles to avoid assigning permissions to deleted roles
+    let roles = role::Entity::find()
+        .filter(role::Column::DeletedAt.is_null())
+        .all(db)
+        .await?;
+
+    tracing::info!("Found {} active roles for permission assignment", roles.len());
+
     let admin_role = roles.iter().find(|r| r.name == "Admin");
     let hr_manager_role = roles.iter().find(|r| r.name == "HR Manager");
     let manager_role = roles.iter().find(|r| r.name == "Manager");
     let employee_role = roles.iter().find(|r| r.name == "Employee");
 
-    // Get all permissions
-    let all_permissions = permission::Entity::find().all(db).await?;
+    // Validation: Warn if any core roles are missing
+    if admin_role.is_none() {
+        tracing::warn!("CRITICAL: Admin role not found! Permission assignment will be incomplete.");
+    }
+    if hr_manager_role.is_none() {
+        tracing::warn!("CRITICAL: HR Manager role not found! Permission assignment will be incomplete.");
+    }
+    if manager_role.is_none() {
+        tracing::warn!("CRITICAL: Manager role not found! Permission assignment will be incomplete.");
+    }
+    if employee_role.is_none() {
+        tracing::warn!("CRITICAL: Employee role not found! Permission assignment will be incomplete.");
+    }
+
+    // Get all active permissions (exclude soft-deleted)
+    let all_permissions = permission::Entity::find()
+        .filter(permission::Column::DeletedAt.is_null())
+        .all(db)
+        .await?;
 
     // Admin gets ALL permissions
     if let Some(admin) = admin_role {

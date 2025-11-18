@@ -40,12 +40,15 @@
 	let fieldErrors = $state<Record<string, string>>({});
 
 	// Map roles from database to dropdown options (convert role names for form values)
+	// Defensive: Filter out invalid roles and use optional chaining to prevent SSR crashes
 	const roleOptions = $derived(
-		roles.map((role) => ({
-			value: role.name.toLowerCase().replace(/\s+/g, '_'), // "HR Manager" -> "hr_manager"
-			label: role.name,
-			description: role.description || ''
-		}))
+		roles
+			.filter((role) => role && role.name) // Filter out roles with undefined name
+			.map((role) => ({
+				value: role.name?.toLowerCase().replace(/\s+/g, '_') ?? 'unknown', // "HR Manager" -> "hr_manager"
+				label: role.name ?? 'Unknown Role',
+				description: role.description || ''
+			}))
 	);
 
 	// Password generation

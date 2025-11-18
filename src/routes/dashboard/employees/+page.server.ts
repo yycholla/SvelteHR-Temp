@@ -4,6 +4,7 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import { validateRoles } from '$lib/schemas/role';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, cookies, url } = event;
@@ -288,6 +289,10 @@ export const load: PageServerLoad = async (event) => {
 
 		console.log('[Employee Directory] Roles data:', rolesData);
 
+		// Defensive: Validate roles with Zod schema to prevent SSR crashes from invalid data
+		const validRoles = validateRoles(rolesData?.data?.roles || []);
+		console.log('[Employee Directory] Valid roles after Zod validation:', validRoles.length);
+
 		// Return server-side loaded data
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
@@ -306,7 +311,7 @@ export const load: PageServerLoad = async (event) => {
 			totalActiveEmployees: totalActiveEmployees, // Total active count from ALL employees
 			totalInactiveEmployees: totalInactiveEmployees, // Total inactive count from ALL employees
 			departments: departmentsData?.data?.departments || [],
-			roles: rolesData?.data?.roles || [],
+			roles: validRoles, // Use filtered roles with valid names only
 			employeeAutocompleteOptions: employeeAutocompleteOptions, // All employee names for search autocomplete
 			filters: {
 				searchTerm,
