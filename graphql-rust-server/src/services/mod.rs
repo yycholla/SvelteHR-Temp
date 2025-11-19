@@ -1,6 +1,7 @@
 pub mod pagination;
 pub mod query_builder;
 pub mod relationship_loader;
+pub mod events;
 
 pub use pagination::{
     paginate, paginate_cursor, encode_cursor, decode_cursor,

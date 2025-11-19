@@ -6,7 +6,7 @@ import type { PageServerLoad, Actions } from './$types';
 import { error, redirect, fail } from '@sveltejs/kit';
 import { EventsOperations } from '$lib/graphql/events-operations';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
-import { PermissionChecks } from '$lib/server/rbac-utils';
+import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
 import type { EventVisibilityType, EventStatus, EventType } from '$lib/graphql/types';
 import { gql } from '@urql/svelte';
 // Feature 026: Import GraphQL operations for comments, history, waitlist
@@ -25,6 +25,9 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	}
 
 	PermissionChecks.eventsRead({ locals, url, cookies } as any);
+
+	// Get standardized user permissions
+	const userPerms = getUserPermissions(locals);
 
 	// T036: Session-based authentication - jwtToken not needed
 	const userCredentials = {
@@ -117,12 +120,6 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			).length
 		};
 
-		// Check if user has event write permissions
-		const userPermissions = locals.permissions || [];
-		const canCreateEvents =
-			userPermissions.includes('*') || userPermissions.includes('*:*') ||
-			userPermissions.includes('events:write');
-
 		// Feature 027: Fetch all employees for attendee picker in event creation
 		const FETCH_ALL_EMPLOYEES = gql`
 			query FetchAllEmployees($limit: Int, $offset: Int) {
@@ -177,7 +174,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 				view
 			},
 			statistics: stats,
-			canCreateEvents,
+			canCreateEvents: userPerms.canManageEvents, // Use standardized permission
+			userPerms, // Pass full permissions object to frontend
 			user: locals.user,
 			// Feature 027: Pass employees for attendee picker and all events for conflict detection
 			employees
@@ -580,7 +578,8 @@ export const actions: Actions = {
 	},
 
 	deleteEvent: async (event) => {
-		const { request, locals, cookies } = event;
+		const { request, locals, cookies, fetch } = event;
+		console.log('[SERVER] deleteEvent action called');
 
 		// Check authentication and permissions
 		PermissionChecks.eventsWrite(event);
@@ -588,6 +587,7 @@ export const actions: Actions = {
 		// Parse form data
 		const formData = await request.formData();
 		const eventId = formData.get('eventId') as string;
+		console.log('[SERVER] Deleting event with ID:', eventId);
 
 		if (!eventId) {
 			return fail(400, { error: 'Event ID is required.' });
@@ -596,28 +596,35 @@ export const actions: Actions = {
 		try {
 			// Session-based auth - forward cookies for authentication
 			const cookieHeader = serializeCookies(cookies);
-			const urqlClient = createUrqlClient(undefined, undefined, undefined, cookieHeader);
-			const eventsOps = new EventsOperations(urqlClient);
-
-			// T036: Session-based authentication - jwtToken not needed
-			const userCredentials = {
-				userId: locals.user.id,
-				roles: locals.roles || [],
-				permissions: locals.permissions || [],
-				isAuthenticated: true,
-				expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-			};
-
-			await eventsOps.deleteEvent({
-				eventId,
-				userCredentials
+			
+			// Use REST API for deletion
+			// Use environment variable for backend URL or default to localhost:4000
+			const backendUrl = process.env.PUBLIC_API_URL || 'http://localhost:4000';
+			console.log(`[SERVER] Calling REST endpoint: DELETE ${backendUrl}/api/events/${eventId}`);
+			
+			const response = await fetch(`${backendUrl}/api/events/${eventId}`, {
+				method: 'DELETE',
+				headers: {
+					'Cookie': cookieHeader
+				}
 			});
+
+			console.log('[SERVER] Delete operation response status:', response.status);
+
+			if (!response.ok) {
+				if (response.status === 404) {
+					return fail(404, {
+						error: 'Failed to delete event. It may have already been deleted or you do not have permission.'
+					});
+				}
+				throw new Error(`Failed to delete event: ${response.statusText}`);
+			}
 
 			return { success: true };
 		} catch (err: any) {
 			console.error('Error deleting event:', err);
 			return fail(500, {
-				error: err.userMessage || 'Failed to delete event. Please try again.'
+				error: err.message || 'Failed to delete event. Please try again.'
 			});
 		}
 	},

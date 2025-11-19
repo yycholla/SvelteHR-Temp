@@ -146,6 +146,8 @@ optional = true
 version = "0.8"
 optional = true
 
+
+
 [features]
 # Feature for enabling test utilities in integration tests
 test-utils = ["dep:testcontainers", "dep:testcontainers-modules", "dep:reqwest", "dep:hdrhistogram", "dep:rand"]
@@ -157,15 +159,6 @@ loki = ["dep:tracing-loki"]
 # Production builds can use --no-default-features to exclude testing dependencies
 default = ["test-utils"]
 
-[dev-dependencies]
-# Core testing
-tokio = { version = "1.35", features = ["test-util", "macros", "rt-multi-thread"] }
-
-# Benchmarking
-criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
-
-# Self-reference for testing utilities
-hr-graphql-server = { path = ".", features = ["test-utils"] }
 
 [build-dependencies]
 sea-orm-codegen = "1.1.17"

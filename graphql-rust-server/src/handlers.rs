@@ -16,6 +16,11 @@ use crate::{
     schema::GraphQLSchema,
 };
 
+pub mod events;
+pub mod roles;
+
+use crate::models::user::Entity as UserEntity; // Import UserEntity
+
 /// Application state containing shared resources
 #[derive(Clone)]
 pub struct AppState {
@@ -50,6 +55,9 @@ pub struct LoginResponse {
 pub struct UserInfo {
     pub id: String,
     pub email: String,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
+    pub display_name: Option<String>,
     pub role: String,       // Legacy single role field for backward compatibility
     pub roles: Vec<String>, // RBAC roles array
     pub permissions: Vec<String>,
@@ -85,6 +93,16 @@ pub async fn login_handler(
             // Login successful - create session
             auth_session.login(&user).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
+            // Fetch the full User entity from the database
+            let full_user = UserEntity::find_by_id(user.id)
+                .one(&app_state.db)
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to fetch full user details in login: {}", e);
+                    StatusCode::INTERNAL_SERVER_ERROR
+                })?
+                .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?; // User must exist if authenticated
+
             // Load roles and permissions from database via RBAC tables
             let (roles, permissions) = crate::auth::get_user_roles_and_permissions(&app_state.db, user.id)
                 .await
@@ -97,6 +115,9 @@ pub async fn login_handler(
                 user: UserInfo {
                     id: user.id.to_string(),
                     email: user.email.clone(),
+                    first_name: Some(full_user.first_name),
+                    last_name: Some(full_user.last_name),
+                    display_name: Some(full_user.display_name),
                     role: roles.first().cloned().unwrap_or_else(|| "Employee".to_string()), // Legacy field
                     roles,        // RBAC roles array
                     permissions,  // RBAC permissions array
@@ -182,6 +203,16 @@ pub async fn me_handler(
 ) -> Result<Json<UserInfo>, StatusCode> {
     match &auth_session.user {
         Some(user) => {
+            // Fetch the full User entity from the database
+            let full_user = UserEntity::find_by_id(user.id)
+                .one(&app_state.db)
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to fetch full user details in /auth/me: {}", e);
+                    StatusCode::INTERNAL_SERVER_ERROR
+                })?
+                .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?; // User must exist if authenticated
+
             // Load roles and permissions from database via RBAC tables
             let (roles, permissions) = crate::auth::get_user_roles_and_permissions(&app_state.db, user.id)
                 .await
@@ -193,6 +224,9 @@ pub async fn me_handler(
             let user_info = UserInfo {
                 id: user.id.to_string(),
                 email: user.email.clone(),
+                first_name: Some(full_user.first_name),
+                last_name: Some(full_user.last_name),
+                display_name: Some(full_user.display_name),
                 role: roles.first().cloned().unwrap_or_else(|| "Employee".to_string()), // Legacy field: use first role
                 roles,        // RBAC roles array
                 permissions,  // RBAC permissions array

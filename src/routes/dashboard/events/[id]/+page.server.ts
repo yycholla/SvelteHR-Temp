@@ -6,7 +6,7 @@ import type { PageServerLoad, Actions } from './$types';
 import { error, redirect, fail } from '@sveltejs/kit';
 import { EventsOperations } from '$lib/graphql/events-operations';
 import { PermissionChecks } from '$lib/server/rbac-utils';
-import { createUrqlClient } from '$lib/graphql/client';
+import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 
 export const load: PageServerLoad = async ({ params, locals, url, cookies }) => {
 	// Check authentication and permissions
@@ -121,7 +121,7 @@ function getRoleLevel(role: string | undefined): number {
 
 export const actions: Actions = {
 	delete: async (event) => {
-		const { params, locals, cookies } = event;
+		const { params, locals, cookies, fetch } = event;
 
 		// Check authentication and permissions
 		PermissionChecks.eventsWrite(event);
@@ -136,25 +136,24 @@ export const actions: Actions = {
 		};
 
 		try {
-			// Initialize GraphQL client and operations
-			// T036: Session-based authentication
+			// Initialize GraphQL client and operations for permission checking
 			const urqlClient = createUrqlClient();
 			const eventsOps = new EventsOperations(urqlClient);
 
 			// First, get the event to check permissions
-			const event = await eventsOps.getEventById({
+			const eventData = await eventsOps.getEventById({
 				eventId: params.id,
 				userCredentials
 			});
 
-			if (!event) {
+			if (!eventData) {
 				return fail(404, {
 					error: 'Event not found'
 				});
 			}
 
 			// Check if user can delete (organizer or admin)
-			const isOrganizer = event.organizerId === locals.user.id;
+			const isOrganizer = eventData.organizerId === locals.user.id;
 			const roleLevel = getRoleLevel(locals.user.role);
 			const canDelete = isOrganizer || roleLevel >= 100;
 
@@ -164,11 +163,25 @@ export const actions: Actions = {
 				});
 			}
 
-			// Migration: ✅ Use idiomatic Rust pattern (eventId, not nodeId)
-			await eventsOps.deleteEvent({
-				eventId: params.id,
-				userCredentials
+			// Use REST API for deletion
+			const cookieHeader = serializeCookies(cookies);
+			const backendUrl = process.env.PUBLIC_API_URL || 'http://localhost:4000';
+			
+			const response = await fetch(`${backendUrl}/api/events/${params.id}`, {
+				method: 'DELETE',
+				headers: {
+					'Cookie': cookieHeader
+				}
 			});
+
+			if (!response.ok) {
+				if (response.status === 404) {
+					return fail(404, {
+						error: 'Failed to delete event. It may have already been deleted.'
+					});
+				}
+				throw new Error(`Failed to delete event: ${response.statusText}`);
+			}
 
 			// Redirect to events list
 			redirect(303, '/dashboard/events');
@@ -181,7 +194,7 @@ export const actions: Actions = {
 			}
 
 			return fail(500, {
-				error: err.userMessage || 'Failed to delete event. Please try again.'
+				error: err.message || 'Failed to delete event. Please try again.'
 			});
 		}
 	}

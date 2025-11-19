@@ -48,7 +48,7 @@ COPY --from=planner /app/recipe.json recipe.json
 
 # Build dependencies (this layer will be cached unless dependencies change)
 # This uses mold linker automatically via .cargo/config.toml
-RUN cargo chef cook --release --recipe-path recipe.json
+RUN cargo chef cook --recipe-path recipe.json
 
 # Copy actual source code
 COPY . .
@@ -59,8 +59,8 @@ RUN chmod +x /app/docker-entrypoint-dev.sh
 
 # Pre-build migration and seed-data binaries for faster startup
 # These will be rebuilt by cargo-watch if migration code changes
-RUN cargo build --release --bin migration && \
-    cargo build --release --bin seed-data
+RUN cargo build --bin migration && \
+    cargo build --bin seed-data
 
 # The entrypoint script will:
 # 1. Wait for PostgreSQL to be ready

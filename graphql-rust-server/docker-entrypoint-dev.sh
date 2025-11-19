@@ -14,9 +14,9 @@ echo "✅ PostgreSQL is ready!"
 
 # Run SeaORM migrations
 echo "📦 Running SeaORM database migrations..."
-cd /app && cargo build --release --bin migration
+cd /app && cargo build --bin migration
 
-if ./target/release/migration up; then
+if ./target/debug/migration up; then
     echo "✅ Migrations completed successfully!"
 else
     echo "❌ Migration failed! Exiting..."
@@ -27,8 +27,8 @@ fi
 if [ "$ENABLE_SEED_DATA" = "true" ] || [ "$ENVIRONMENT" = "development" ]; then
     echo "🌱 Running seed data initialization..."
 
-    if cargo build --release --bin seed-data >/dev/null 2>&1; then
-        ./target/release/seed-data
+    if cargo build --bin seed-data >/dev/null 2>&1; then
+        ./target/debug/seed-data
         SEED_EXIT_CODE=$?
 
         if [ $SEED_EXIT_CODE -eq 0 ]; then
@@ -56,4 +56,4 @@ echo "   Watching: src/, migration/, Cargo.toml"
 echo "   GraphQL API will be available at http://0.0.0.0:$PORT"
 echo ""
 
-exec cargo watch -x 'run --release --bin hr-graphql-server'
+exec cargo watch -x 'run --bin hr-graphql-server'

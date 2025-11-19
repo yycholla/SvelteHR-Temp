@@ -10,7 +10,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { toast } from 'svelte-sonner';
-	import { Loader2, UserPlus } from '@lucide/svelte';
+	import { Loader2, UserPlus, Check, X } from '@lucide/svelte';
 
 	interface Props {
 		open: boolean;
@@ -24,12 +24,34 @@
 
 	// Form state
 	let submitting = $state(false);
+
+	// Fallback roles
+	const defaultRoles = [
+		{ id: 'emp', name: 'Employee', description: 'Standard employee access' },
+		{ id: 'mgr', name: 'Manager', description: 'Team management access' },
+		{ id: 'hr', name: 'HR Manager', description: 'HR administration access' },
+		{ id: 'adm', name: 'Admin', description: 'Full system access' }
+	];
+
+	// Use defaults if roles prop is empty or undefined
+	// Defensive: Filter input roles to ensure they are valid before using
+	const validPropRoles = $derived(roles?.filter(r => r && r.name) || []);
+	const finalRoles = $derived(validPropRoles.length > 0 ? validPropRoles : defaultRoles);
+
+	const roleOptions = $derived(
+		finalRoles.map((role) => ({
+			value: role.name,
+			label: role.name,
+			description: role.description || ''
+		}))
+	);
+
 	let formData = $state({
 		firstName: '',
 		lastName: '',
 		email: '',
 		password: '',
-		role: 'employee',
+		role: '',
 		departmentId: '',
 		jobTitle: '',
 		phoneNumber: '',
@@ -39,17 +61,29 @@
 	// Field errors state
 	let fieldErrors = $state<Record<string, string>>({});
 
-	// Map roles from database to dropdown options (convert role names for form values)
-	// Defensive: Filter out invalid roles and use optional chaining to prevent SSR crashes
-	const roleOptions = $derived(
-		roles
-			.filter((role) => role && role.name) // Filter out roles with undefined name
-			.map((role) => ({
-				value: role.name?.toLowerCase().replace(/\s+/g, '_') ?? 'unknown', // "HR Manager" -> "hr_manager"
-				label: role.name ?? 'Unknown Role',
-				description: role.description || ''
-			}))
+	// Password validation state
+	let passwordTouched = $state(false);
+	
+	const passwordRequirements = [
+		{ id: 'length', label: 'At least 8 characters', check: (val: string) => val.length >= 8 }
+	];
+
+	const passwordValidations = $derived(
+		passwordRequirements.map(req => ({
+			...req,
+			valid: req.check(formData.password || '')
+		}))
 	);
+
+	// Sync default selections when data is available
+	$effect(() => {
+		if (!formData.role && finalRoles.length > 0) {
+			formData.role = finalRoles[0]?.name || '';
+		}
+		if (!formData.departmentId && departments.length > 0) {
+			formData.departmentId = departments[0]?.id || '';
+		}
+	});
 
 	// Password generation
 	function generatePassword(): string {
@@ -74,13 +108,65 @@
 			lastName: '',
 			email: '',
 			password: '',
-			role: 'employee',
+			role: '',
 			departmentId: '',
 			jobTitle: '',
 			phoneNumber: '',
 			hireDate: new Date().toISOString().split('T')[0]
 		};
 		fieldErrors = {};
+	}
+
+	// Phone number formatting
+	function unformatPhoneNumber(formatted: string): string {
+		// Remove all non-digits, including any leading '+'
+		return formatted.replace(/[^\d]/g, '');
+	}
+
+	function formatPhoneNumber(input: string): string {
+		// 1. Strip non-digits except leading '+'
+		let digits = input.replace(/[^\d+]/g, '');
+
+		// 2. Strip leading '+1' country code if present
+		if (digits.startsWith('+1')) {
+			digits = digits.substring(2);
+		} else if (digits.startsWith('1') && digits.length > 10) {
+			// Potentially '1' followed by 10 digits
+			digits = digits.substring(1);
+		}
+
+		// Keep only up to 10 digits for formatting (common North American format)
+		digits = digits.substring(0, 10);
+
+		// Apply (XXX) XXX-XXXX format
+		let formatted = '';
+		if (digits.length > 6) {
+			formatted = `(${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6)}`;
+		} else if (digits.length > 3) {
+			formatted = `(${digits.substring(0, 3)}) ${digits.substring(3)}`;
+		} else if (digits.length > 0) {
+			formatted = `(${digits.substring(0, 3)}`;
+		}
+		return formatted;
+	}
+
+	function handlePhoneInput(event: Event) {
+		const inputElement = event.target as HTMLInputElement;
+		const originalSelectionStart = inputElement.selectionStart;
+
+		// Store cursor position to restore after formatting
+		const previousValue = inputElement.value;
+
+		// Apply formatting
+		const formattedValue = formatPhoneNumber(inputElement.value);
+		formData.phoneNumber = formattedValue;
+		inputElement.value = formattedValue; // Manually update input element to avoid input glitches
+
+		// Adjust cursor position after formatting
+		if (originalSelectionStart !== null) {
+			const newSelectionStart = originalSelectionStart + (formattedValue.length - previousValue.length);
+			inputElement.setSelectionRange(newSelectionStart, newSelectionStart);
+		}
 	}
 
 	// Clear error for a specific field
@@ -117,14 +203,86 @@
 		return { field: null, message };
 	}
 
+	// Field validation
+	function validateField(name: string, value: string) {
+		let error = '';
+
+		switch (name) {
+			case 'firstName':
+			case 'lastName':
+				if (!value.trim()) error = 'This field is required';
+				break;
+			case 'email':
+				if (!value.trim()) error = 'Email is required';
+				else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = 'Invalid email format';
+				break;
+			case 'role':
+				if (!value) error = 'Role is required';
+				break;
+			case 'departmentId':
+				if (!value) error = 'Department is required';
+				break;
+			case 'password':
+				if (value && value.length < 8) error = 'Password must be at least 8 characters';
+				break;
+			case 'phone':
+				if (value) {
+					const digits = unformatPhoneNumber(value);
+					if (digits.length !== 10) error = 'Phone number must be 10 digits';
+				}
+				break;
+		}
+
+		if (error) {
+			fieldErrors[name] = error;
+			return false;
+		} else {
+			// Clear error if valid
+			if (fieldErrors[name]) {
+				const { [name]: _, ...rest } = fieldErrors;
+				fieldErrors = rest;
+			}
+			return true;
+		}
+	}
+
+	// Derived state for overall form validity
+	const isFormValid = $derived.by(() => {
+		if (!formData.firstName.trim()) return false;
+		if (!formData.lastName.trim()) return false;
+		if (!formData.email.trim()) return false;
+		if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return false;
+		if (!formData.role) return false;
+		if (!formData.departmentId) return false;
+		if (formData.password && formData.password.length < 8) return false;
+		if (formData.phoneNumber) {
+			const digits = unformatPhoneNumber(formData.phoneNumber);
+			if (digits.length !== 10) return false;
+		}
+		// Also check if there are any lingering errors in fieldErrors
+		if (Object.keys(fieldErrors).length > 0) return false;
+		
+		return true;
+	});
+
 	async function handleSubmit(event: Event) {
 		event.preventDefault();
+		
+		if (!isFormValid) {
+			toast.error('Please fix the validation errors');
+			return;
+		}
+
 		submitting = true;
 		fieldErrors = {}; // Clear previous errors
 
 		try {
 			const form = event.target as HTMLFormElement;
 			const formDataObj = new FormData(form);
+
+			// Unformat phone number before submission
+			const rawPhoneNumber = unformatPhoneNumber(formData.phoneNumber);
+			formDataObj.set('phone', rawPhoneNumber); // Overwrite with unformatted number
 
 			const response = await fetch('/dashboard/employees/new', {
 				method: 'POST',
@@ -183,13 +341,13 @@
 		}
 	}
 
-	// Email generation from name
+	// Sync default selections when data is available
 	$effect(() => {
-		if (formData.firstName && formData.lastName) {
-			const emailPrefix = `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}`;
-			if (!formData.email || formData.email.endsWith('@mountainhr.dev')) {
-				formData.email = `${emailPrefix}@mountainhr.dev`;
-			}
+		if (!formData.role && finalRoles.length > 0) {
+			formData.role = finalRoles[0]?.name || '';
+		}
+		if (!formData.departmentId && departments.length > 0) {
+			formData.departmentId = departments[0]?.id || '';
 		}
 	});
 </script>
@@ -221,6 +379,7 @@
 							name="firstName"
 							bind:value={formData.firstName}
 							oninput={() => clearFieldError('firstName')}
+							onblur={() => validateField('firstName', formData.firstName)}
 							required
 							placeholder="John"
 							disabled={submitting}
@@ -240,6 +399,7 @@
 							name="lastName"
 							bind:value={formData.lastName}
 							oninput={() => clearFieldError('lastName')}
+							onblur={() => validateField('lastName', formData.lastName)}
 							required
 							placeholder="Doe"
 							disabled={submitting}
@@ -261,6 +421,7 @@
 						type="email"
 						bind:value={formData.email}
 						oninput={() => clearFieldError('email')}
+						onblur={() => validateField('email', formData.email)}
 						required
 						placeholder="john.doe@mountainhr.dev"
 						disabled={submitting}
@@ -273,14 +434,20 @@
 
 				<div class="space-y-2">
 					<Label for="phone">Phone Number</Label>
-					<Input
-						id="phone"
-						name="phone"
-						type="tel"
-						bind:value={formData.phoneNumber}
-						placeholder="+1 (555) 123-4567"
-						disabled={submitting}
-					/>
+										<Input
+											id="phone"
+											name="phone"
+											type="tel"
+											bind:value={formData.phoneNumber}
+											oninput={handlePhoneInput}
+											onblur={() => validateField('phone', formData.phoneNumber)}
+											placeholder="(555) 123-4567"
+											disabled={submitting}
+											class={fieldErrors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''}
+										/>
+										{#if fieldErrors.phone}
+											<p class="text-sm text-red-500">{fieldErrors.phone}</p>
+										{/if}
 				</div>
 			</div>
 
@@ -308,12 +475,11 @@
 							id="departmentId"
 							name="departmentId"
 							bind:value={formData.departmentId}
-							onchange={() => clearFieldError('departmentId')}
+							onchange={() => validateField('departmentId', formData.departmentId)}
 							required
 							disabled={submitting}
 							class="shadow-xs flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 {fieldErrors.departmentId ? 'border-red-500 focus-visible:ring-red-500' : ''}"
 						>
-							<option value="">Select Department</option>
 							{#each departments as dept (dept.id)}
 								<option value={dept.id}>{dept.name}</option>
 							{/each}
@@ -346,17 +512,22 @@
 						id="role"
 						name="role"
 						bind:value={formData.role}
+						onchange={() => validateField('role', formData.role)}
 						required
 						disabled={submitting}
-						class="shadow-xs flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+						class="shadow-xs w-full rounded-md border border-input bg-muted px-3 py-2 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 {fieldErrors.role ? 'border-red-500 focus-visible:ring-red-500' : ''}"
 					>
 						{#each roleOptions as role (role.value)}
 							<option value={role.value}>{role.label}</option>
 						{/each}
 					</select>
-					<p class="text-xs text-muted-foreground mt-1">
-						{roleOptions.find((r) => r.value === formData.role)?.description}
-					</p>
+					{#if fieldErrors.role}
+						<p class="text-sm text-red-500">{fieldErrors.role}</p>
+					{:else}
+						<p class="text-xs text-muted-foreground mt-1">
+							{roleOptions.find((r) => r.value === formData.role)?.description}
+						</p>
+					{/if}
 				</div>
 			</div>
 
@@ -372,17 +543,37 @@
 							name="password"
 							type="text"
 							bind:value={formData.password}
+							oninput={() => { clearFieldError('password'); passwordTouched = true; }}
+							onblur={() => validateField('password', formData.password)}
 							placeholder="Leave blank to auto-generate"
 							disabled={submitting}
-							class="flex-1"
+							class="flex-1 {fieldErrors.password ? 'border-red-500 focus-visible:ring-red-500' : ''}"
 						/>
 						<Button type="button" variant="outline" onclick={handleGeneratePassword} disabled={submitting}>
 							Generate
 						</Button>
 					</div>
-					<p class="text-xs text-muted-foreground mt-1">
-						If no password is provided, a secure temporary password will be generated automatically and logged.
-					</p>
+					
+					{#if passwordTouched && formData.password}
+						<div class="space-y-1 mt-1">
+							{#each passwordValidations as req}
+								{#if !req.valid}
+									<div class="flex items-center text-xs text-red-500 transition-all">
+										<X class="mr-1 h-3 w-3" />
+										{req.label}
+									</div>
+								{/if}
+							{/each}
+						</div>
+					{/if}
+
+					{#if fieldErrors.password}
+						<p class="text-sm text-red-500">{fieldErrors.password}</p>
+					{:else}
+						<p class="text-xs text-muted-foreground mt-1">
+							If no password is provided, a secure temporary password will be generated automatically and logged.
+						</p>
+					{/if}
 				</div>
 			</div>
 
@@ -399,7 +590,7 @@
 				>
 					Cancel
 				</Button>
-				<Button type="submit" disabled={submitting}>
+				<Button type="submit" disabled={submitting || !isFormValid}>
 					{#if submitting}
 						<Loader2 class="mr-2 h-4 w-4 animate-spin" />
 						Creating...
