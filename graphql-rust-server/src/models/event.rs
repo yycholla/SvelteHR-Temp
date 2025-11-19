@@ -2,9 +2,9 @@
 //!
 //! Represents company events with recurring event support, capacity management, and attendee tracking.
 
-use async_graphql::{Context, Enum, InputObject, Object, Result as GqlResult, SimpleObject};
+use async_graphql::{Context, Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
-use sea_orm::{entity::prelude::*, Order, QueryOrder, QuerySelect, Related};
+use sea_orm::{entity::prelude::*, QueryOrder, QuerySelect, Related};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 

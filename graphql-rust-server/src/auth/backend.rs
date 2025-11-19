@@ -3,10 +3,8 @@
 //! This module implements the AuthnBackend trait for axum-login,
 //! providing credential validation and user authentication.
 
-use async_trait::async_trait;
 use axum_login::{AuthnBackend, UserId};
 use bcrypt::verify;
-use password_hash::PasswordHash;
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
 
@@ -502,7 +500,7 @@ impl AuthBackend {
         resource_type: &str,
         resource_id: Option<Uuid>,
         details: Option<serde_json::Value>,
-        ip_address: Option<&str>,
+        _ip_address: Option<&str>,
         user_agent: Option<&str>,
     ) {
         let activity_log = crate::models::system::activity_log::ActiveModel {

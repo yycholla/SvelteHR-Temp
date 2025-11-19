@@ -8,7 +8,7 @@ use sea_orm::{entity::prelude::*, Related};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{database::get_db_from_context, models::generated::prelude::*};
+use crate::database::get_db_from_context;
 
 /// Action type for audit entries
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]

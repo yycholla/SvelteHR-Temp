@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use uuid::Uuid;
 
-use crate::{database::get_db_from_context, models::generated::prelude::*, schema::PageInfo};
+use crate::{database::get_db_from_context, schema::PageInfo};
 
 /// ActivityLog entity - maps to hr_public.activity_logs table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]

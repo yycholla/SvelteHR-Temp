@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 use sea_orm::DatabaseConnection;
 use uuid::Uuid;
 
-use super::config::{EntityType, SeedConfig};
+use super::config::SeedConfig;
 use super::Result;
 use crate::models::user;
 

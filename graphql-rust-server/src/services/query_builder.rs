@@ -3,10 +3,9 @@
 //! Provides type-safe query building utilities for complex filtering operations
 //! across all entities with consistent patterns and error handling.
 
-use async_graphql::Error;
 use sea_orm::{
     entity::prelude::*,
-    sea_query::{Expr, Func, extension::postgres::PgExpr},
+    sea_query::{Expr, extension::postgres::PgExpr},
     Condition, Order, QueryOrder, QuerySelect, Select,
 };
 use chrono::{DateTime, Utc};

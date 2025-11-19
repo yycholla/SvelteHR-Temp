@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-use super::context::UserContext;
 
 /// Login request payload
 #[derive(Debug, Deserialize)]

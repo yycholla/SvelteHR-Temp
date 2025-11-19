@@ -4,7 +4,7 @@
 //! in GraphQL resolvers, including resource ownership checks and permission validation.
 
 use async_graphql::{Error, ErrorExtensions};
-use sea_orm::{DatabaseConnection, EntityTrait, ColumnTrait, QueryFilter};
+use sea_orm::{DatabaseConnection, EntityTrait};
 use uuid::Uuid;
 
 use crate::auth::UserContext;

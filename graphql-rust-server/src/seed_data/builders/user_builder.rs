@@ -3,7 +3,6 @@
 //! Seeds users with realistic names, emails, and role assignments using fake-rs
 
 use chrono::{Duration, Utc};
-use fake::faker::internet::en::SafeEmail;
 use fake::faker::name::en::{FirstName, LastName};
 use fake::faker::phone_number::en::PhoneNumber;
 use fake::Fake;
@@ -217,7 +216,7 @@ pub async fn assign_user_managers(
 
     for dept in departments {
         // Get users in this department
-        let mut users = user::Entity::find()
+        let users = user::Entity::find()
             .filter(user::Column::DepartmentId.eq(dept.id))
             .filter(user::Column::IsActive.eq(true))
             .filter(user::Column::DeletedAt.is_null())

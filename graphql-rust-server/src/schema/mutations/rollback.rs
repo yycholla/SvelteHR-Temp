@@ -5,7 +5,7 @@
 
 use async_graphql::{Context, InputObject, Object, Result, SimpleObject};
 use chrono::Utc;
-use sea_orm::{ActiveModelTrait, ActiveValue::NotSet, DatabaseConnection, EntityTrait, Set};
+use sea_orm::{ActiveModelTrait, ActiveValue::NotSet, EntityTrait, Set};
 use serde_json::Value as JsonValue;
 use uuid::Uuid;
 
@@ -15,7 +15,7 @@ use crate::{
     error::AppError,
     models::system::{
         activity_log::{ActiveModel as ActivityLogActiveModel, Entity as ActivityLogEntity},
-        rollback_request::{Entity as RollbackRequestEntity, RollbackStatus},
+        rollback_request::Entity as RollbackRequestEntity,
     },
 };
 

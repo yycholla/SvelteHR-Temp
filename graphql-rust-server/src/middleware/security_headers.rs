@@ -4,7 +4,7 @@
 //! to protect against common web vulnerabilities.
 
 use axum::{
-    http::{header, HeaderMap, HeaderValue, Method, StatusCode},
+    http::HeaderValue,
     middleware::Next,
     response::Response,
 };

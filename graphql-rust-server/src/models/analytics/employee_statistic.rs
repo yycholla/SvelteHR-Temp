@@ -3,13 +3,12 @@
 //! Maps to hr_public.employee_statistics table
 //! Tracks daily snapshots of employee counts for historical trend analysis
 
-use async_graphql::{Object, Result as GqlResult};
+use async_graphql::Object;
 use chrono::{DateTime, NaiveDate, Utc};
 use sea_orm::{entity::prelude::*, QueryFilter, QueryOrder};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::database::get_db_from_context;
 
 /// Daily snapshot of employee statistics
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]

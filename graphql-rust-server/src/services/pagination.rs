@@ -6,7 +6,7 @@
 use async_graphql::{Error, connection::{Connection, Edge, EmptyFields}, OutputType, SimpleObject};
 use sea_orm::{
     entity::prelude::*,
-    DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Select,
+    DatabaseConnection, EntityTrait, QuerySelect, Select,
 };
 use serde::{Deserialize, Serialize};
 
@@ -224,17 +224,19 @@ impl<'a, E: EntityTrait> Paginator<'a, E> {
 
 /// Encode a cursor for pagination
 pub fn encode_cursor(value: impl ToString) -> String {
-    base64::encode(value.to_string())
+    use base64::{Engine as _, engine::general_purpose};
+    general_purpose::STANDARD.encode(value.to_string())
 }
 
 /// Decode a cursor for pagination
 pub fn decode_cursor(cursor: &str) -> Result<u64, Error> {
-    let decoded = base64::decode(cursor)
+    use base64::{Engine as _, engine::general_purpose};
+    let decoded = general_purpose::STANDARD.decode(cursor)
         .map_err(|e| Error::new(format!("Invalid cursor format: {}", e)))?;
-    
+
     let string = String::from_utf8(decoded)
         .map_err(|e| Error::new(format!("Invalid cursor encoding: {}", e)))?;
-    
+
     string.parse::<u64>()
         .map_err(|e| Error::new(format!("Invalid cursor value: {}", e)))
 }

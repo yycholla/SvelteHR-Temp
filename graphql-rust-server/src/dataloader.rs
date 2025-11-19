@@ -4,7 +4,7 @@
 //! N+1 query problems in GraphQL resolvers.
 
 use async_graphql::dataloader::*;
-use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, ColumnTrait, QuerySelect};
+use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, ColumnTrait};
 use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;

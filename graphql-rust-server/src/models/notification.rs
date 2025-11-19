@@ -2,13 +2,12 @@
 //!
 //! Represents system notifications for users with categorization and resource linking.
 
-use async_graphql::{Object, Result as GqlResult};
+use async_graphql::Object;
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::database::get_db_from_context;
 
 /// Notification type enumeration
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

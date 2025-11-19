@@ -2,14 +2,13 @@
 //!
 //! Maps to hr_public.encryption_keys table
 
-use async_graphql::{InputObject, Object, Result as GqlResult};
+use async_graphql::{InputObject, Object};
 use chrono::{DateTime, Utc};
 use sea_orm::{entity::prelude::*, QueryFilter};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-use crate::database::get_db_from_context;
 
 /// SeaORM Encryption key entity
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]

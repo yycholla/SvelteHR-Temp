@@ -4,9 +4,9 @@
 //! including query logging, performance analysis, and explain plans.
 
 use async_graphql::Error;
-use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement, QueryResult};
+use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
 use serde::{Deserialize, Serialize};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 /// Query execution statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]

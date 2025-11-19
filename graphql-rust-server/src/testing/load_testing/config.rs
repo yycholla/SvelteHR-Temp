@@ -5,7 +5,6 @@
 
 use std::time::Duration;
 use async_graphql::Variables;
-use serde_json::Value;
 
 /// Role distribution for load testing
 #[derive(Debug, Clone)]

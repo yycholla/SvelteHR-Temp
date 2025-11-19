@@ -2,13 +2,12 @@
 //!
 //! Maps to hr_public.task_types table
 
-use async_graphql::{Context, InputObject, Object, Result as GqlResult};
+use async_graphql::{InputObject, Object};
 use chrono::{DateTime, Utc};
-use sea_orm::{entity::prelude::*, Related};
+use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{database::get_db_from_context, models::generated::prelude::*};
 
 /// Task type/category for classification
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]

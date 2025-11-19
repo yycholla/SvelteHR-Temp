@@ -6,14 +6,13 @@
 
 use async_graphql::{Context, InputObject, Result, SimpleObject};
 use chrono::Utc;
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Set};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, Set};
 use uuid::Uuid;
 
 use crate::{
     database::get_db_from_context,
     error::AppError,
     models::{
-        generated::prelude::*,
         permission::{CreatePermissionInput, Model as Permission, UpdatePermissionInput},
         role::{CreateRoleInput, Model as Role, UpdateRoleInput},
         role_permission::Model as RolePermission,

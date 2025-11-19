@@ -8,13 +8,12 @@ use axum::{
 use axum_login::AuthSession;
 use sea_orm::{DatabaseConnection, EntityTrait, ColumnTrait, QueryFilter, ActiveModelTrait};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use std::net::SocketAddr;
 
 use crate::{
     auth::{AuthBackend, Credentials},
     dataloader::DataLoaderContext,
-    schema::{MutationRoot, QueryRoot, GraphQLSchema},
+    schema::GraphQLSchema,
 };
 
 /// Application state containing shared resources

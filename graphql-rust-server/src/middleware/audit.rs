@@ -15,8 +15,8 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::{
-    auth::{AuthBackend, AuthUser},
-    models::system::activity_log::{ActiveModel as ActivityLogActiveModel, Entity as ActivityLogEntity},
+    auth::AuthBackend,
+    models::system::activity_log::ActiveModel as ActivityLogActiveModel,
 };
 
 /// Audit logging extension for GraphQL mutations
@@ -120,7 +120,6 @@ fn is_mutation_by_name(operation_name: &str) -> bool {
 
 /// Check if the current operation is a mutation (legacy method using ExecutableDocument)
 /// This is kept for reference but not used since ExecutableDocument is not available in execute phase
-#[allow(dead_code)]
 fn is_mutation_operation(doc: &ExecutableDocument) -> bool {
     for (_name, definition) in doc.operations.iter() {
         if matches!(definition.node.ty, OperationType::Mutation) {

@@ -3,10 +3,9 @@
 //! This middleware protects against Cross-Site Request Forgery attacks by validating
 //! CSRF tokens for state-changing operations (mutations).
 
-use async_graphql::{Request, Response, ServerError};
 use axum::{
     extract::Request as AxumRequest,
-    http::{header, HeaderMap, Method, StatusCode},
+    http::{header, Method, StatusCode},
     middleware::Next,
     response::IntoResponse,
 };

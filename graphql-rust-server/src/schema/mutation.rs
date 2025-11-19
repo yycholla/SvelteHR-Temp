@@ -1,14 +1,13 @@
-use async_graphql::{Context, Object, Result, SimpleObject};
+use async_graphql::{Context, Object, Result};
 use axum_login::{AuthSession, AuthnBackend};
 use base64;
 use chrono::{Datelike, Utc};
 use sea_orm::{DatabaseConnection, EntityTrait, Set, ActiveModelTrait, QueryFilter, ColumnTrait, TransactionTrait};
 use sea_orm::prelude::Expr;
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
-    auth::{context::UserContext, AuthBackend, Credentials, AuthUser},
+    auth::{context::UserContext, AuthBackend, Credentials},
     database::get_db_from_context,
     error::AppError,
     schema::mutations::{
@@ -17,44 +16,37 @@ use crate::{
         auth::{LoginInput, AuthResponse, LogoutResult, RefreshSessionResponse},
     },
     models::{
-        generated::prelude::*,
-        task_audit_entry,
-        ApproveLeaveRequestInput, AssignRoleInput, AssignTaskInput, AssigneeRole, AuditAction,
-        ChangeTaskStatusInput, CreateDepartmentInput, CreateEventAttendeeInput, CreateEventInput,
+        ApproveLeaveRequestInput, AssignRoleInput, AssignTaskInput,
+        ChangeTaskStatusInput, CreateEventAttendeeInput, CreateEventInput,
         CreateLeaveBalanceInput, CreateLeaveRequestInput, CreateLeaveTypeInput,
         CreateLinkedResourceInput, CreatePerformanceReviewInput, CreatePermissionInput,
         CreateReviewCycleInput, CreateReviewFeedbackInput, CreateReviewGoalInput, CreateRoleInput,
-        CreateTaskDependencyInput, CreateTaskInput, CreateTaskTypeInput, CreateUserInput, Department, DependencyType, Event,
-        EventAttendee, FeedbackType, LeaveBalance, LeaveRequest, LeaveRequestStatus, LeaveType, LinkedResource,
-        PerformanceReview, PerformanceReviewStatus, Permission, RejectLeaveRequestInput, ResourceType, ReviewCycle, ReviewCycleStatus, ReviewFeedback,
-        ReviewGoal, GoalCompletionStatus, ReviewType, Role, RsvpStatus, Task, TaskAssignee, TaskAuditEntry, TaskDependency,
-        TaskPriority, TaskStatus, UpdateDepartmentInput, UpdateEventAttendeeInput, UpdateEventInput,
+        CreateTaskDependencyInput, CreateTaskInput, CreateTaskTypeInput, Event,
+        EventAttendee, LeaveBalance, LeaveRequest, LeaveType, LinkedResource, Permission, RejectLeaveRequestInput, ReviewCycle, ReviewFeedback,
+        ReviewGoal, Role, Task, TaskAssignee, TaskDependency, TaskStatus, UpdateEventAttendeeInput, UpdateEventInput,
         UpdateLeaveBalanceInput, UpdateLeaveRequestInput, UpdateLeaveTypeInput,
         UpdateLinkedResourceInput, UpdatePerformanceReviewInput, UpdatePermissionInput,
         UpdateReviewCycleInput, UpdateReviewFeedbackInput, UpdateReviewGoalInput, UpdateRoleInput,
-        UpdateTaskAssigneeInput, UpdateTaskDependencyInput, UpdateTaskInput, UpdateTaskTypeInput, UpdateUserInput, User,
-        UserRoleAssignment, UserStatus,
+        UpdateTaskAssigneeInput, UpdateTaskDependencyInput, UpdateTaskInput, UpdateTaskTypeInput,
+        UserRoleAssignment,
         // Employee domain new models
         CreateEmployeeCertificationInput, CreateEmployeeGoalInput, CreateEmployeeSkillInput,
         CreateEmployeeVehicleInput, CreateEmergencyContactInput, EmergencyContact,
-        EmployeeCertification, EmployeeGoal, EmployeeSkill, EmployeeVehicle, GoalStatus,
-        ProficiencyLevel, UpdateEmployeeGoalInput, UpdateEmployeeSkillInput,
+        EmployeeCertification, EmployeeGoal, EmployeeSkill, EmployeeVehicle, GoalStatus, UpdateEmployeeGoalInput, UpdateEmployeeSkillInput,
         UpdateEmployeeVehicleInput, UpdateEmergencyContactInput,
         // Documents domain
         CreateDocumentAccessLogInput, CreateDocumentAssignmentInput, CreateDocumentCategoryInput,
-        CreateDocumentInput, CreateDocumentVersionInput, CreateEncryptedFileStorageInput, Document,
-        DocumentAccessLevel, DocumentAccessLog, DocumentAccessType, DocumentAssignment,
+        CreateDocumentInput, CreateDocumentVersionInput, CreateEncryptedFileStorageInput, DocumentAccessLog, DocumentAssignment,
         DocumentCategory, DocumentVersion, EncryptedFileStorage, UpdateDocumentCategoryInput,
         UpdateDocumentInput, UploadDocumentInput,
         // Time domain
-        AttendanceRecord, AttendanceStatus, CreateAttendanceRecordInput, CreateTimeOffPolicyInput,
-        TimeOffPolicy, UpdateAttendanceRecordInput, UpdateTimeOffPolicyInput,
+        AttendanceRecord, CreateAttendanceRecordInput, UpdateAttendanceRecordInput,
         // System domain
         ActivityLog, BulkRollbackBatch, BulkRollbackItem, CompensationBand,
         CreateActivityLogInput, CreateBulkRollbackBatchInput, CreateBulkRollbackItemInput,
         CreateCompensationBandInput, CreateEncryptionKeyInput, CreateHRReportInput,
-        CreatePayrollRecordInput, CreateRollbackRequestInput, EncryptionKey, HRReport, PayrollRecord,
-        RollbackRequest, RollbackRequestCondition, RollbackRequestsConnection, RollbackRequestsOrderBy, RollbackStatus,
+        CreatePayrollRecordInput, CreateRollbackRequestInput, HRReport, PayrollRecord,
+        RollbackRequest, RollbackStatus,
         SystemSettings, UpdateBulkRollbackBatchInput, UpdateBulkRollbackItemInput, UpdateSystemSettingsInput,
         UpdateCompensationBandInput, UpdateRollbackRequestInput,
         // Events domain (new models)
@@ -187,7 +179,7 @@ impl MutationRoot {
     /// Login with email and password
     async fn login(&self, ctx: &Context<'_>, input: LoginInput) -> Result<AuthResponse> {
         // Delegate to AuthMutations module
-        use crate::schema::mutations::auth::{AuthMutations, UserInfo, AuthSessionInfo, AuthResult, AuthError};
+        use crate::schema::mutations::auth::{UserInfo, AuthSessionInfo, AuthResult, AuthError};
 
         let db = get_db_from_context(ctx)?;
 
@@ -3966,7 +3958,8 @@ impl MutationRoot {
         let storage_path = format!("{}/{}", user.id, uuid::Uuid::new_v4());
 
         // Decode base64 encrypted data
-        let encrypted_data = base64::decode(&input.encrypted_data)
+        use base64::{Engine as _, engine::general_purpose};
+        let encrypted_data = general_purpose::STANDARD.decode(&input.encrypted_data)
             .map_err(|_| AppError::Validation("Invalid base64 encrypted data".to_string()))?;
 
         // Prepend IV to encrypted data (standard AES-GCM practice)

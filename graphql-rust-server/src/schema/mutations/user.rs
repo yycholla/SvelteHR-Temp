@@ -2,16 +2,15 @@ use async_graphql::{Context, Result, SimpleObject, InputObject};
 use axum_login::AuthSession;
 use chrono::Utc;
 use csv::ReaderBuilder;
-use sea_orm::{DatabaseConnection, EntityTrait, Set, ActiveModelTrait, QueryFilter, ColumnTrait, TransactionTrait};
-use serde::{Deserialize, Serialize};
+use sea_orm::{EntityTrait, Set, ActiveModelTrait, QueryFilter, ColumnTrait};
+use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::{
-    auth::{context::UserContext, AuthBackend},
+    auth::AuthBackend,
     database::get_db_from_context,
     error::AppError,
     models::{
-        generated::prelude::*,
         CreateUserInput, UpdateUserInput, User, UserStatus,
     },
 };

@@ -6,9 +6,7 @@
 
 use async_trait::async_trait;
 use sea_orm::{
-    ActiveModelBehavior, ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection,
-    DeriveEntityModel, EntityTrait, EnumIter, DeriveRelation, QueryFilter,
-    prelude::Expr,
+    ActiveModelBehavior, ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
 };
 use tower_sessions::{session::Id, session_store, SessionStore};
 use std::sync::Arc;

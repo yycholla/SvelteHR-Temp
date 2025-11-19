@@ -6,7 +6,7 @@
 use async_graphql::Error;
 use sea_orm::{
     entity::prelude::*,
-    DatabaseConnection, EntityTrait, QueryFilter, QuerySelect, RelationTrait,
+    DatabaseConnection, EntityTrait, QueryFilter,
 };
 use std::collections::HashMap;
 use uuid::Uuid;

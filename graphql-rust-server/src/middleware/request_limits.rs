@@ -9,7 +9,6 @@ use axum::{
     middleware::Next,
     response::IntoResponse,
 };
-use bytes::Bytes;
 use regex::Regex;
 use std::sync::Arc;
 

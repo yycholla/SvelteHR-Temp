@@ -5,7 +5,7 @@
 
 use async_graphql::{Context, Object, Result};
 use axum_login::AuthSession;
-use sea_orm::{EntityTrait, QueryFilter, QueryOrder, QuerySelect, ColumnTrait, PaginatorTrait, sea_query::Expr};
+use sea_orm::{EntityTrait, QueryFilter, QueryOrder, QuerySelect, ColumnTrait, PaginatorTrait};
 use uuid::Uuid;
 
 use crate::{
@@ -13,45 +13,29 @@ use crate::{
     database::get_db_from_context,
     error::AppError,
     models::{
-        generated::prelude::*,
         task::{TaskStatus, TaskPriority, Model as Task, Entity as TaskEntity, Column as TaskColumn},
         user::{Model as User, Entity as UserEntity, Column as UserColumn},
         department::{Model as Department, Entity as DepartmentEntity, Column as DepartmentColumn},
-        tasks::{TaskType, task_type::{Model as TaskTypeModel, Entity as TaskTypeEntity, Column as TaskTypeColumn}},
+        tasks::task_type::{Model as TaskTypeModel, Entity as TaskTypeEntity, Column as TaskTypeColumn},
         event::{Model as Event, Entity as EventEntity, Column as EventColumn},
         event_attendee::{Model as EventAttendee, Entity as EventAttendeeEntity, Column as EventAttendeeColumn},
         leave_request::{Model as LeaveRequest, Entity as LeaveRequestEntity, Column as LeaveRequestColumn},
         leave_balance::{Model as LeaveBalance, Entity as LeaveBalanceEntity, Column as LeaveBalanceColumn},
         leave_type::{Model as LeaveType, Entity as LeaveTypeEntity, Column as LeaveTypeColumn},
         performance_review::{Model as PerformanceReview, Entity as PerformanceReviewEntity, Column as PerformanceReviewColumn},
-        review_cycle::Model as ReviewCycle,
-        review_feedback::Model as ReviewFeedback,
-        review_goal::Model as ReviewGoal,
         employee::{
-            EmployeeCertification,
-            EmployeeGoal,
-            EmployeeSkill,
-            EmployeeVehicle,
-            EmergencyContact,
             emergency_contact::{Model as EmergencyContactModel, Entity as EmergencyContactEntity, Column as EmergencyContactColumn},
             employee_vehicle::{Model as EmployeeVehicleModel, Entity as EmployeeVehicleEntity, Column as EmployeeVehicleColumn},
-            UserAddress,
         },
-        time::{
-            AttendanceRecord,
-            attendance_record::{Model as AttendanceRecordModel, Entity as AttendanceRecordEntity, Column as AttendanceRecordColumn},
-        },
-        documents::Document,
-        documents::DocumentCategory,
+        time::attendance_record::{Model as AttendanceRecordModel, Entity as AttendanceRecordEntity, Column as AttendanceRecordColumn},
         system::{
-            HRReport,
             hr_report::{Model as HRReportModel, Entity as HrReportEntity, Column as HrReportColumn},
             activity_log::{Model as ActivityLogModel, Entity as ActivityLogEntity, Column as ActivityLogColumn},
             rollback_request::{Model as RollbackRequestModel, Entity as RollbackRequestEntity, Column as RollbackRequestColumn, RollbackStatus},
-            system_settings::{Model as SystemSettingsModel, Entity as SystemSettingsEntity, Column as SystemSettingsColumn},
+            system_settings::Model as SystemSettingsModel,
         },
         notification::{Model as Notification, Entity as NotificationEntity, Column as NotificationColumn},
-        user_session::{Model as Session, Entity as UserSessionEntity, Column as UserSessionColumn},
+        user_session::{Entity as UserSessionEntity, Column as UserSessionColumn},
         employee::employee_goal::{Model as EmployeeGoalModel, Entity as EmployeeGoalEntity, Column as EmployeeGoalColumn},
     },
 };

@@ -4,7 +4,7 @@
 //! GraphQL resolvers, and application-level errors.
 
 use async_graphql::{Error, ErrorExtensions};
-use sea_orm::{DbErr, RuntimeErr};
+use sea_orm::DbErr;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use tracing::{error, warn, info};
@@ -47,35 +47,35 @@ impl std::error::Error for AppError {}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ErrorCode {
     /// Authentication required
-    UNAUTHENTICATED,
+    Unauthenticated,
     /// Insufficient permissions
-    FORBIDDEN,
+    Forbidden,
     /// Invalid input data
-    BAD_USER_INPUT,
+    BadUserInput,
     /// Resource not found
-    NOT_FOUND,
+    NotFound,
     /// Resource already exists
-    CONFLICT,
+    Conflict,
     /// Internal server error
-    INTERNAL_ERROR,
+    InternalError,
     /// Service temporarily unavailable
-    SERVICE_UNAVAILABLE,
+    ServiceUnavailable,
     /// Rate limit exceeded
-    RATE_LIMITED,
+    RateLimited,
 }
 
 impl ErrorCode {
     /// Get the string representation of the error code
     pub fn as_str(&self) -> &'static str {
         match self {
-            ErrorCode::UNAUTHENTICATED => "UNAUTHENTICATED",
-            ErrorCode::FORBIDDEN => "FORBIDDEN",
-            ErrorCode::BAD_USER_INPUT => "BAD_USER_INPUT",
-            ErrorCode::NOT_FOUND => "NOT_FOUND",
-            ErrorCode::CONFLICT => "CONFLICT",
-            ErrorCode::INTERNAL_ERROR => "INTERNAL_ERROR",
-            ErrorCode::SERVICE_UNAVAILABLE => "SERVICE_UNAVAILABLE",
-            ErrorCode::RATE_LIMITED => "RATE_LIMITED",
+            ErrorCode::Unauthenticated => "UNAUTHENTICATED",
+            ErrorCode::Forbidden => "FORBIDDEN",
+            ErrorCode::BadUserInput => "BAD_USER_INPUT",
+            ErrorCode::NotFound => "NOT_FOUND",
+            ErrorCode::Conflict => "CONFLICT",
+            ErrorCode::InternalError => "INTERNAL_ERROR",
+            ErrorCode::ServiceUnavailable => "SERVICE_UNAVAILABLE",
+            ErrorCode::RateLimited => "RATE_LIMITED",
         }
     }
 }
@@ -85,64 +85,64 @@ impl ErrorExtensions for AppError {
     fn extend(&self) -> Error {
         let (code, user_message, debug_message) = match self {
             AppError::Authentication(msg) => (
-                ErrorCode::UNAUTHENTICATED,
+                ErrorCode::Unauthenticated,
                 "Authentication required. Please log in to continue.".to_string(),
                 sanitize_error_message(msg),
             ),
             AppError::Authorization(msg) => (
-                ErrorCode::FORBIDDEN,
+                ErrorCode::Forbidden,
                 "You don't have permission to perform this action.".to_string(),
                 sanitize_error_message(msg),
             ),
             AppError::Validation(msg) => (
-                ErrorCode::BAD_USER_INPUT,
+                ErrorCode::BadUserInput,
                 "The provided data is invalid. Please check your input and try again.".to_string(),
                 sanitize_error_message(msg),
             ),
             AppError::NotFound(msg) => (
-                ErrorCode::NOT_FOUND,
+                ErrorCode::NotFound,
                 "The requested resource was not found.".to_string(),
                 sanitize_error_message(msg),
             ),
             AppError::Conflict(msg) => (
-                ErrorCode::CONFLICT,
+                ErrorCode::Conflict,
                 "This action would create a conflict. Please try again.".to_string(),
                 sanitize_error_message(msg),
             ),
             AppError::Database(db_err) => match db_err {
                 DbError::Connection(_) => (
-                    ErrorCode::SERVICE_UNAVAILABLE,
+                    ErrorCode::ServiceUnavailable,
                     "Service temporarily unavailable. Please try again later.".to_string(),
                     "Database connection error".to_string(), // Don't leak connection details
                 ),
                 DbError::Constraint(msg) if msg.contains("Duplicate") => (
-                    ErrorCode::CONFLICT,
+                    ErrorCode::Conflict,
                     "This item already exists.".to_string(),
                     "Duplicate constraint violation".to_string(), // Don't leak constraint details
                 ),
                 _ => (
-                    ErrorCode::INTERNAL_ERROR,
+                    ErrorCode::InternalError,
                     "An unexpected error occurred. Please try again.".to_string(),
                     "Database operation failed".to_string(), // Don't leak internal DB errors
                 ),
             },
             AppError::Internal(msg) => (
-                ErrorCode::INTERNAL_ERROR,
+                ErrorCode::InternalError,
                 "An unexpected error occurred. Please try again.".to_string(),
                 sanitize_error_message(msg),
             ),
             AppError::SessionExpired => (
-                ErrorCode::UNAUTHENTICATED,
+                ErrorCode::Unauthenticated,
                 "Your session has expired. Please log in again.".to_string(),
                 "Session expired".to_string(),
             ),
             AppError::AccountLocked => (
-                ErrorCode::FORBIDDEN,
+                ErrorCode::Forbidden,
                 "Your account has been temporarily locked. Please contact support.".to_string(),
                 "Account locked".to_string(),
             ),
             AppError::RateLimited => (
-                ErrorCode::RATE_LIMITED,
+                ErrorCode::RateLimited,
                 "Too many requests. Please wait a moment before trying again.".to_string(),
                 "Rate limit exceeded".to_string(),
             ),

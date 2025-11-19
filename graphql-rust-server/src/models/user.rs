@@ -8,7 +8,7 @@ use sea_orm::{entity::prelude::*, QueryOrder, Related};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{database::get_db_from_context, models::generated::prelude::*};
+use crate::database::get_db_from_context;
 
 /// User status enumeration
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

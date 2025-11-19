@@ -2,7 +2,7 @@
 //!
 //! Maps to hr_public.employee_skills table
 
-use async_graphql::{Enum, InputObject, Object, Result as GqlResult, SimpleObject};
+use async_graphql::{Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
 use sea_orm::{entity::prelude::*, QueryFilter};
 use serde::{Deserialize, Serialize};

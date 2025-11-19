@@ -8,7 +8,7 @@ use sea_orm::{entity::prelude::*, QueryOrder, Related};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{database::get_db_from_context, dataloader::DataLoaderContext, models::generated::prelude::*};
+use crate::{database::get_db_from_context, dataloader::DataLoaderContext};
 
 /// Custom validator for future dates
 fn validate_future_date(value: &DateTime<Utc>) -> Result<(), String> {

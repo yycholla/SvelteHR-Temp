@@ -1,13 +1,12 @@
 use async_graphql::{Context, Result};
 use chrono::Utc;
-use sea_orm::{DatabaseConnection, EntityTrait, Set, ActiveModelTrait, QueryFilter, ColumnTrait};
+use sea_orm::{EntityTrait, Set, ActiveModelTrait, QueryFilter, ColumnTrait};
 use uuid::Uuid;
 
 use crate::{
     database::get_db_from_context,
     error::AppError,
     models::{
-        generated::prelude::*,
         CreateDepartmentInput, UpdateDepartmentInput, Department,
     },
 };

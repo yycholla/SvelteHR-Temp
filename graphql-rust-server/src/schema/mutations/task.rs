@@ -1,17 +1,15 @@
 use async_graphql::{Context, Result};
 use chrono::Utc;
-use sea_orm::{DatabaseConnection, EntityTrait, Set, ActiveModelTrait, QueryFilter, ColumnTrait, TransactionTrait};
+use sea_orm::{EntityTrait, Set, ActiveModelTrait, QueryFilter, ColumnTrait, TransactionTrait};
 use uuid::Uuid;
 
 use crate::{
     database::get_db_from_context,
     error::AppError,
     models::{
-        generated::prelude::*,
-        task_audit_entry,
         AssignTaskInput, ChangeTaskStatusInput, CreateLinkedResourceInput, CreateTaskDependencyInput,
-        CreateTaskInput, CreateTaskTypeInput, DependencyType, LinkedResource, ResourceType, Task,
-        TaskAssignee, TaskDependency, TaskPriority, TaskStatus, TaskType, UpdateLinkedResourceInput,
+        CreateTaskInput, CreateTaskTypeInput, LinkedResource, Task,
+        TaskAssignee, TaskDependency, TaskStatus, TaskType, UpdateLinkedResourceInput,
         UpdateTaskAssigneeInput, UpdateTaskDependencyInput, UpdateTaskInput, UpdateTaskTypeInput,
     },
 };

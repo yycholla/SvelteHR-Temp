@@ -1,6 +1,5 @@
 //! Database connection and utilities
 
-use async_graphql::Context;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr};
 use std::time::Duration;
 

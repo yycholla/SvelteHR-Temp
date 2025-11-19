@@ -6,7 +6,6 @@
 use async_graphql::Error;
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// Column information from database schema
 #[derive(Debug, Clone, Serialize, Deserialize)]

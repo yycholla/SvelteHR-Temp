@@ -4,16 +4,14 @@
 
 use async_graphql::{Context, Object, Result};
 use chrono::Utc;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
+use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 use uuid::Uuid;
 
 use crate::{
-    auth::context::UserContext,
     database::get_db_from_context,
     error::AppError,
     models::{
-        AttendanceRecord, AttendanceStatus, CreateAttendanceRecordInput, CreateTimeOffPolicyInput,
-        TimeOffPolicy, UpdateAttendanceRecordInput, UpdateTimeOffPolicyInput,
+        AttendanceRecord, CreateAttendanceRecordInput, UpdateAttendanceRecordInput,
     },
 };
 

@@ -3,7 +3,7 @@
 //! Maps to hr_public.employee_certifications table
 
 use async_graphql::{InputObject, Object, Result as GqlResult};
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::{DateTime, Utc};
 use sea_orm::{entity::prelude::*, QueryFilter};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

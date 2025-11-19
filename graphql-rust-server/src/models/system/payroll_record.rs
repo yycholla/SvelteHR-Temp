@@ -4,7 +4,6 @@
 
 use async_graphql::{InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, NaiveDate, Utc};
-use rust_decimal::Decimal;
 use sea_orm::{entity::prelude::*, JsonValue, QueryFilter};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;

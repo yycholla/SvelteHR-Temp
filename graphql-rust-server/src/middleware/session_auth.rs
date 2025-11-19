@@ -11,7 +11,7 @@ use axum::{
 };
 use axum_login::AuthSession;
 
-use crate::auth::{AuthBackend, AuthUser};
+use crate::auth::AuthBackend;
 use crate::handlers::AppState;
 
 /// Session-based authentication middleware
