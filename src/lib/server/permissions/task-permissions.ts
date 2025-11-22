@@ -495,8 +495,8 @@ export function getTaskPermissionsSummary(
 		canCreateTasks: canCreateTask(userRoles, userPermissions),
 		canViewAllTasks: effectiveRole === 'admin' || effectiveRole === 'super_admin',
 		canViewTeamTasks: effectiveRole === 'manager' || effectiveRole === 'admin' || effectiveRole === 'super_admin',
-		canReassignTasks: hasPermission(userPermissions, ['tasks:reassign']) || effectiveRole === 'manager',
-		canDeleteTasks: hasPermission(userPermissions, ['tasks:delete']) || effectiveRole === 'admin',
+		canReassignTasks: auth.hasPermission(userPermissions, ['tasks:reassign']) || effectiveRole === 'manager',
+		canDeleteTasks: auth.hasPermission(userPermissions, ['tasks:delete']) || effectiveRole === 'admin',
 		canManageTaskTypes: effectiveRole === 'admin' || effectiveRole === 'super_admin',
 		effectiveRole
 	};

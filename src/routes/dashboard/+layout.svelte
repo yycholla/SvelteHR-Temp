@@ -3,7 +3,7 @@
 	import PageLoading from '$lib/components/ui/page-loading.svelte';
 	import ClientOnly from '$lib/components/client-only.svelte';
 	import TestModeBanner from '$lib/components/test-mode-banner.svelte';
-	import { notificationStore } from '$lib/stores/notifications';
+	import { notificationStore } from '$lib/stores/notifications.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { getEffectivePermissions } from '$lib/stores/permission-test.svelte';
 	import { sidebarState } from '$lib/stores/sidebar.svelte';
@@ -51,12 +51,14 @@
 	<div class="h-screen overflow-auto transition-all duration-300 {sidebarState.isCollapsed ? 'ml-16' : 'ml-64'}">
 		<div class="pb-6 pl-3 pr-6 pt-6">
 			<main
-				class="min-h-[calc(100vh-3rem)] rounded-xl bg-background shadow-sm border border-border border-l-0"
+				class="min-h-[calc(100vh-3rem)] rounded-2xl bg-background shadow-sm border border-sidebar-border"
 				aria-live="polite"
 			>
 				<!-- Page content with padding -->
 				<div class="p-6">
-					{@render children()}
+					<div>
+						{@render children()}
+					</div>
 				</div>
 			</main>
 		</div>

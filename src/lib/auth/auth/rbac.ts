@@ -41,10 +41,10 @@ export interface RBACManager {
 	permissions: Permission[];
 
 	// Permission checking methods
-	hasPermission(permission: string): boolean;
+	auth.hasPermission(permission: string): boolean;
 	hasAnyPermission(permissions: string[]): boolean;
 	hasAllPermissions(permissions: string[]): boolean;
-	hasRole(roleName: string): boolean;
+	auth.hasRole(roleName: string): boolean;
 	hasAnyRole(roleNames: string[]): boolean;
 
 	// Resource-specific permission checking
@@ -59,7 +59,7 @@ export interface RBACManager {
 	isManager(): boolean;
 
 	// Role level checking
-	hasMinimumRoleLevel(level: number): boolean;
+	auth.hasMinimumRoleLevel(level: number): boolean;
 	getHighestRoleLevel(): number;
 
 	// Utility methods
@@ -99,7 +99,7 @@ export function createRBACManager(
 		permissions: allPermissions,
 
 		// Permission checking methods
-		hasPermission(permission: string): boolean {
+		auth.hasPermission(permission: string): boolean {
 			// Check for wildcard admin permission (full system access)
 			if (allPermissions.some((p) => p.name === '*' || p.name === '*:*' || p.name === 'admin:*')) {
 				return true;
@@ -124,7 +124,7 @@ export function createRBACManager(
 			return permissions.every((permission) => this.hasPermission(permission));
 		},
 
-		hasRole(roleName: string): boolean {
+		auth.hasRole(roleName: string): boolean {
 			return activeRoles.some(
 				(assignment) => assignment.role?.name?.toLowerCase() === roleName.toLowerCase()
 			);
@@ -192,7 +192,7 @@ export function createRBACManager(
 		},
 
 		// Role level checking
-		hasMinimumRoleLevel(level: number): boolean {
+		auth.hasMinimumRoleLevel(level: number): boolean {
 			const highestLevel = this.getHighestRoleLevel();
 			return highestLevel >= level;
 		},

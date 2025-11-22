@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { currentUser } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 	import { onMount } from 'svelte';
 	import { Bug, Clock, User, Shield, Activity } from '@lucide/svelte';
 
@@ -40,13 +40,13 @@
 	const currentPath = $derived($page.url.pathname);
 
 	// Get auth status
-	const authStatus = $derived($currentUser ? 'Authenticated' : 'Not Authenticated');
+	const authStatus = $derived(auth.user ? 'Authenticated' : 'Not Authenticated');
 
 	// Get user role
-	const userRole = $derived($currentUser?.role || 'Unknown');
+	const userRole = $derived(auth.user?.role || 'Unknown');
 
 	// Get user email
-	const userEmail = $derived($currentUser?.email || 'Not logged in');
+	const userEmail = $derived(auth.user?.email || 'Not logged in');
 </script>
 
 <div class="rounded-lg border border-yellow-500/20 bg-yellow-500/5 p-3 text-xs">

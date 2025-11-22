@@ -31,14 +31,14 @@
 		UserCheck,
 		Users
 	} from '@lucide/svelte';
-	import { authActions, currentUser, hasRole } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 	import { page } from '$app/stores';
 	import { mode, toggleMode } from 'mode-watcher';
-	import { notificationStore } from '$lib/stores/notifications';
+	import { notificationStore } from '$lib/stores/notifications.svelte';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { onMount } from 'svelte';
-	import { debugSettings } from '$lib/stores/debug-settings';
+	import { debugSettings } from '$lib/stores/debug-settings.svelte';
 	import { sidebarState } from '$lib/stores/sidebar.svelte';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import NotificationDropdown from '$lib/components/notifications/NotificationDropdown.svelte';
@@ -52,8 +52,9 @@
 
 	const { permissions, systemName = 'MountainHR' }: Props = $props();
 
-	// Subscribe to notification store
-	const notifications = $derived($notificationStore.notifications);
+	// Use notification store with Svelte 5 runes pattern
+	// notificationStore.notifications is already reactive with $state
+	const notifications = $derived(notificationStore.notifications);
 
 	// Use permissions from props (already in string format from layout)
 	// Fallback to page data if prop is not provided (for backwards compatibility)
@@ -70,9 +71,7 @@
 
 	// Debug: Log permissions when they change
 	$effect(() => {
-		console.log('[Sidebar] User permissions (raw):', userPermissions);
-		console.log('[Sidebar] Permission strings:', permissionStrings);
-		console.log('[Sidebar] Page data:', $page.data);
+		// Logging disabled for production
 	});
 
 	// Permission helper functions - updated for scoped permissions
@@ -102,7 +101,6 @@
 			}
 		}
 
-		console.log(`[Sidebar] Checking permission "${permission}": false`);
 		return false;
 	};
 
@@ -111,7 +109,6 @@
 		if (permissionStrings.includes('*') || permissionStrings.includes('*:*')) return true;
 
 		const has = permissions.some((p) => hasPermission(p));
-		console.log(`[Sidebar] Checking any of [${permissions.join(', ')}]:`, has);
 		return has;
 	};
 
@@ -165,8 +162,8 @@
 	};
 
 	// Check user roles (keep for super admin checks)
-	const isSuperAdmin = hasRole('super_admin');
-	const isSystemAdmin = hasRole('system_admin');
+	const isSuperAdmin = auth.hasRole('super_admin');
+	const isSystemAdmin = auth.hasRole('system_admin');
 
 	// Load debug settings on mount
 	onMount(async () => {
@@ -176,7 +173,7 @@
 	});
 
 	// Derived: Check if debug info should be shown
-	const showDebugInfo = $derived(isSystemAdmin && $debugSettings.show_debug_info);
+	const showDebugInfo = $derived(isSystemAdmin && debugSettings.show_debug_info);
 
 	// Track which sections are expanded
 	let expandedSections = $state({
@@ -216,7 +213,7 @@
 	// Handle logout
 	async function handleLogout() {
 		try {
-			await authActions.logout($page.url.pathname);
+			await auth.logout($page.url.pathname);
 			goto('/login');
 		} catch (error) {
 			console.error('Logout error:', error);
@@ -441,11 +438,6 @@
 			}
 			return true; // Show if no permission requirement
 		});
-		console.log('[Sidebar] Filtered nav items:', filtered.length, 'of', navMain.length);
-		console.log(
-			'[Sidebar] Filtered items:',
-			filtered.map((i) => i.title)
-		);
 		return filtered;
 	});
 
@@ -460,12 +452,6 @@
 			}
 			return true;
 		});
-		console.log(
-			'[Sidebar] Filtered management items:',
-			filtered.length,
-			'of',
-			managementItems.length
-		);
 		return filtered;
 	});
 
@@ -484,7 +470,6 @@
 			}
 			return true;
 		});
-		console.log('[Sidebar] Filtered admin items:', filtered.length, 'of', adminItems.length);
 		return filtered;
 	});
 
@@ -608,8 +593,10 @@
 						<DropdownMenu.Content side="right" align="start" class="w-48 ml-2">
 							{#if item.items}
 								{#each item.items as subItem}
-									<DropdownMenu.Item href={subItem.url}>
-										{subItem.title}
+									<DropdownMenu.Item>
+										<a href={subItem.url} class="flex w-full items-center">
+											{subItem.title}
+										</a>
 									</DropdownMenu.Item>
 								{/each}
 							{/if}
@@ -646,14 +633,14 @@
 				<DropdownMenu.Content side="right" align="start" class="w-56 ml-2">
 					{#each filteredManagementItems as item}
 						{@const ItemIcon = item.icon}
-						<DropdownMenu.Item href={item.url}>
-							<div class="flex items-center w-full">
+						<DropdownMenu.Item>
+							<a href={item.url} class="flex items-center w-full">
 								<ItemIcon class="mr-2 h-4 w-4" />
 								<span class="flex-1">{item.title}</span>
 								<span class="rounded bg-blue-100 px-1.5 py-0.5 text-[9px] font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300">
 									Team
 								</span>
-							</div>
+							</a>
 						</DropdownMenu.Item>
 					{/each}
 				</DropdownMenu.Content>
@@ -690,8 +677,8 @@
 				<DropdownMenu.Content side="right" align="end" class="w-56 ml-2">
 					{#each filteredAdminItems as item}
 						{@const ItemIcon = item.icon}
-						<DropdownMenu.Item href={item.url}>
-							<div class="flex items-center w-full">
+						<DropdownMenu.Item>
+							<a href={item.url} class="flex items-center w-full">
 								<ItemIcon class="mr-2 h-4 w-4" />
 								<span class="flex-1">{item.title}</span>
 								<!-- Badge indicating access level -->
@@ -704,7 +691,7 @@
 										All
 									</span>
 								{/if}
-							</div>
+							</a>
 						</DropdownMenu.Item>
 					{/each}
 				</DropdownMenu.Content>
@@ -720,7 +707,7 @@
 	{/if}
 
 	<!-- User Profile & Settings Footer -->
-	{#if $currentUser}
+	{#if auth.user}
 		<div class="{sidebarState.isCollapsed ? 'px-2' : 'px-3'} py-3">
 			<div class="flex items-center {sidebarState.isCollapsed ? 'justify-center' : 'justify-between'}">
 				<!-- Profile Link (left side) -->
@@ -736,10 +723,10 @@
 					{#if !sidebarState.isCollapsed}
 						<div class="min-w-0 flex-1">
 							<p class="truncate text-xs font-medium">
-								{$currentUser.firstName || $currentUser.displayName || 'User'}
+								{auth.user.firstName || auth.user.displayName || 'User'}
 							</p>
 							<p class="truncate text-xs text-sidebar-foreground/60">
-								{$currentUser.email?.split('@')[0] || 'user'}
+								{auth.user.email?.split('@')[0] || 'user'}
 							</p>
 						</div>
 					{/if}

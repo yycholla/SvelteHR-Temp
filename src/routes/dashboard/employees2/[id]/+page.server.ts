@@ -6,7 +6,7 @@ import { error } from '@sveltejs/kit';
 import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
-	const { params, locals, cookies } = event;
+	const { params, locals } = event;
 	const employeeId = params.id;
 
 	// RBAC: Check employee write permissions (details view requires write access)
@@ -20,23 +20,23 @@ export const load: PageServerLoad = async (event) => {
 	// Create simple user session object (session-based auth doesn't use JWT)
 	const userSession = {
 		userId: locals.user.id,
-		roles: locals.roles || [],
-		permissions: locals.permissions || [],
+		roles: locals.roles ?? [],
+		permissions: locals.permissions ?? [],
 		isAuthenticated: true,
 		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
 		metadata: {
 			userEmail: locals.user.email,
-			displayName: locals.user.display_name || locals.user.email
+			displayName: locals.user.display_name ?? locals.user.email
 		},
 		toJSON: () => ({
 			userId: locals.user.id,
-			roles: locals.roles || [],
-			permissions: locals.permissions || [],
+			roles: locals.roles ?? [],
+			permissions: locals.permissions ?? [],
 			isAuthenticated: true,
 			expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
 			metadata: {
 				userEmail: locals.user.email,
-				displayName: locals.user.display_name || locals.user.email
+				displayName: locals.user.display_name ?? locals.user.email
 			}
 		})
 	};
@@ -48,7 +48,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// Headers for session-based authentication
 		// Forward session cookies to Rust GraphQL backend
-		const cookieHeader = event.request.headers.get('cookie') || '';
+		const cookieHeader = event.request.headers.get('cookie') ?? '';
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
 			'Cookie': cookieHeader
@@ -61,7 +61,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// Determine if user can view detailed employee information
 		// Note: Role names from RBAC: "Admin", "HR Manager", "Manager", "Employee"
-		const userRoles = locals.roles || [];
+		const userRoles = locals.roles ?? [];
 		const isAdmin = userRoles.includes('Admin') || userRoles.includes('HR Manager');
 		const isViewingSelf = locals.user.id === employeeId;
 
@@ -148,7 +148,7 @@ export const load: PageServerLoad = async (event) => {
 			})
 		});
 		const emergencyContactsData = await emergencyContactsResponse.json();
-		const emergencyContacts = emergencyContactsData?.data?.emergencyContacts || [];
+		const emergencyContacts = emergencyContactsData?.data?.emergencyContacts ?? [];
 
 		// Employee vehicles - migrated to Rust GraphQL backend
 		const vehiclesResponse = await fetch(graphqlEndpoint, {
@@ -173,7 +173,7 @@ export const load: PageServerLoad = async (event) => {
 			})
 		});
 		const vehiclesData = await vehiclesResponse.json();
-		const vehicles = vehiclesData?.data?.employeeVehicles || [];
+		const vehicles = vehiclesData?.data?.employeeVehicles ?? [];
 
 		// Leave requests - migrated to Rust GraphQL backend
 		const leaveRequestsResponse = await fetch(graphqlEndpoint, {
@@ -201,7 +201,7 @@ export const load: PageServerLoad = async (event) => {
 			})
 		});
 		const leaveRequestsData = await leaveRequestsResponse.json();
-		const leaveRequests = leaveRequestsData?.data?.leaveRequests || [];
+		const leaveRequests = leaveRequestsData?.data?.leaveRequests ?? [];
 
 		// Performance reviews - migrated to Rust GraphQL backend
 		const reviewsResponse = await fetch(graphqlEndpoint, {
@@ -226,7 +226,7 @@ export const load: PageServerLoad = async (event) => {
 			})
 		});
 		const reviewsData = await reviewsResponse.json();
-		const performanceReviews = reviewsData?.data?.performanceReviews || [];
+		const performanceReviews = reviewsData?.data?.performanceReviews ?? [];
 
 		// Leave balances - migrated to Rust GraphQL backend
 		const balancesResponse = await fetch(graphqlEndpoint, {
@@ -254,7 +254,7 @@ export const load: PageServerLoad = async (event) => {
 			})
 		});
 		const balancesData = await balancesResponse.json();
-		const leaveBalances = balancesData?.data?.leaveBalances || [];
+		const leaveBalances = balancesData?.data?.leaveBalances ?? [];
 
 		// Check if user is the employee's manager
 		const isEmployeeManager = employee.department?.managerId === locals.user.id;
@@ -278,14 +278,16 @@ export const load: PageServerLoad = async (event) => {
 
 		// Fetch documents assigned to this employee (only if authorized)
 		const { transaction, setJWTClaims } = await import('$lib/server/db');
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		let assignedDocuments: any[] = [];
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		let availableDocuments: any[] = [];
 
 		// Only load documents if user has permission to view them
 		if (canViewDocuments) {
 			try {
 			assignedDocuments = await transaction(async (client) => {
-				await setJWTClaims(client, locals.user.id, locals.user.role || 'employee');
+				await setJWTClaims(client, locals.user.id, locals.user.role ?? 'employee');
 
 				const result = await client.query(
 					`SELECT
@@ -322,7 +324,7 @@ export const load: PageServerLoad = async (event) => {
 			console.log(`[Employee Detail] Fetching available documents for admin, employee: ${employeeId}`);
 			try {
 				availableDocuments = await transaction(async (client) => {
-					await setJWTClaims(client, locals.user.id, locals.user.role || 'employee');
+					await setJWTClaims(client, locals.user.id, locals.user.role ?? 'employee');
 
 					// First, get total count of documents
 					const countResult = await client.query(
@@ -379,7 +381,7 @@ export const load: PageServerLoad = async (event) => {
 				fullName: employee.fullName,
 				email: employee.email,
 				role: employee.roles && employee.roles.length > 0 ? employee.roles[0].name : 'Employee',
-				roles: employee.roles || [],
+				roles: employee.roles ?? [],
 				jobTitle: employee.jobTitle,
 				status: employee.status,
 				hireDate: employee.hireDate,
@@ -402,8 +404,9 @@ export const load: PageServerLoad = async (event) => {
 				emergencyContacts: canViewEmergencyContacts ? emergencyContacts : [],
 				// Vehicles - only if authorized
 				vehicles: canViewVehicles ? vehicles : [],
-				leaveRequests: leaveRequests,
+				leaveRequests,
 				leaveRequestCount: leaveRequests.length,
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				performanceReviews: performanceReviews.map((review: any) => ({
 					id: review.id,
 					reviewPeriod: review.reviewPeriod,
@@ -413,16 +416,18 @@ export const load: PageServerLoad = async (event) => {
 					reviewer: review.reviewer
 				})),
 				performanceReviewCount: performanceReviews.length,
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				leaveBalances: leaveBalances.map((balance: any) => ({
 					id: balance.id,
 					year: balance.year,
 					totalDays: balance.totalDays,
 					usedDays: balance.usedDays,
 					remainingDays: balance.remainingDays,
-					leaveTypeName: balance.leaveType?.name || 'Unknown Leave Type',
-					leaveTypeDefaultDays: balance.leaveType?.defaultDays || balance.totalDays
+					leaveTypeName: balance.leaveType?.name ?? 'Unknown Leave Type',
+					leaveTypeDefaultDays: balance.leaveType?.defaultDays ?? balance.totalDays
 				})),
 				// Assigned documents
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				assignedDocuments: assignedDocuments.map((doc: any) => ({
 					id: doc.id,
 					filename: doc.filename,
@@ -438,6 +443,7 @@ export const load: PageServerLoad = async (event) => {
 				documentsCount: assignedDocuments.length
 			},
 			// Available documents for assignment (admins only)
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			availableDocuments: availableDocuments.map((doc: any) => ({
 				id: doc.id,
 				filename: doc.filename,

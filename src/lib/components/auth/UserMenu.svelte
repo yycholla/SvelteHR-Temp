@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher, onMount } from 'svelte';
-	import { currentUser, authStore } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import {
@@ -68,7 +68,7 @@
 	const handleLogout = async () => {
 		isOpen = false;
 		// Pass current URL to logout for redirect after login
-		await authStore.logout($page.url.pathname + $page.url.search);
+		await auth.logout($page.url.pathname + $page.url.search);
 		dispatch('logout');
 		goto('/login');
 	};
@@ -110,7 +110,7 @@
 	};
 </script>
 
-{#if $currentUser}
+{#if auth.user}
 	<div class="relative" bind:this={menuElement}>
 		<!-- Menu Trigger -->
 		<button
@@ -124,16 +124,16 @@
 			<div
 				class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 text-sm font-medium text-white shadow-sm"
 			>
-				{getUserInitials($currentUser.displayName)}
+				{getUserInitials(auth.user.displayName)}
 			</div>
 
 			<!-- User Info (hidden on mobile) -->
 			<div class="ml-3 hidden text-left md:block">
 				<p class="max-w-32 truncate text-sm font-medium text-gray-700">
-					{$currentUser.displayName}
+					{auth.user.displayName}
 				</p>
 				<p class="max-w-32 truncate text-xs text-gray-500">
-					{$currentUser.jobTitle || 'Employee'}
+					{auth.user.jobTitle || 'Employee'}
 				</p>
 			</div>
 
@@ -158,27 +158,27 @@
 						<div
 							class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 font-medium text-white shadow-sm"
 						>
-							{getUserInitials($currentUser.displayName)}
+							{getUserInitials(auth.user.displayName)}
 						</div>
 						<div class="ml-3 min-w-0 flex-1">
 							<p class="truncate text-sm font-medium text-gray-900">
-								{$currentUser.displayName}
+								{auth.user.displayName}
 							</p>
 							<p class="truncate text-sm text-gray-500">
-								{$currentUser.email}
+								{auth.user.email}
 							</p>
-							{#if $currentUser.jobTitle}
+							{#if auth.user.jobTitle}
 								<p class="truncate text-xs text-gray-400">
-									{$currentUser.jobTitle}
+									{auth.user.jobTitle}
 								</p>
 							{/if}
 						</div>
 					</div>
 
 					<!-- Role Badges -->
-					{#if $currentUser.roles && $currentUser.roles.length > 0}
+					{#if auth.user.roles && auth.user.roles.length > 0}
 						<div class="mt-2 flex flex-wrap gap-1">
-							{#each $currentUser.roles as role}
+							{#each auth.user.roles as role}
 								<span
 									class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {getRoleBadgeColor(
 										role
@@ -216,7 +216,7 @@
 					</button>
 
 					<!-- HR Section (if has access) -->
-					{#if hasHRAccess($currentUser.roles)}
+					{#if hasHRAccess(auth.user.roles)}
 						<div class="mt-1 border-t border-gray-100 pt-1">
 							<button
 								type="button"
@@ -231,7 +231,7 @@
 					{/if}
 
 					<!-- Admin Section (if has access) -->
-					{#if hasAdminAccess($currentUser.roles)}
+					{#if hasAdminAccess(auth.user.roles)}
 						<div class="mt-1 border-t border-gray-100 pt-1">
 							<button
 								type="button"

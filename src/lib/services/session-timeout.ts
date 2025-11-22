@@ -10,7 +10,7 @@
 
 import { browser } from '$app/environment';
 import { authConfig } from '$lib/auth/config';
-import { authActions } from '$lib/stores/auth';
+import { auth } from '$lib/stores/auth.svelte';
 import { goto } from '$app/navigation';
 
 export interface SessionTimeoutConfig {
@@ -260,11 +260,14 @@ export class SessionTimeoutManager {
 		this.callbacks.onTimeout?.();
 
 		// Logout and redirect to login
-		const currentUrl = window.location.pathname;
-		await authActions.logout(currentUrl);
+		// Use window.location only if in browser (which is guaranteed here but good practice)
+		const currentUrl = browser ? window.location.pathname : '/';
+		await auth.logout(currentUrl);
 
 		// Redirect with timeout message
-		await goto(`/login?timeout=true&redirectTo=${encodeURIComponent(currentUrl)}`);
+		if (browser) {
+			await goto(`/login?timeout=true&redirectTo=${encodeURIComponent(currentUrl)}`);
+		}
 	}
 
 	private startSessionRefresh(): void {

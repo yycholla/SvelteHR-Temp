@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { authStore, isAuthenticated, isLoading, userRoles } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 	import { Loader2, AlertTriangle } from '@lucide/svelte';
 
 	/**
@@ -11,30 +10,47 @@
 	 */
 
 	// Props
-	export let requiredRoles: string[] = []; // Empty array means any authenticated user
-	export let requiredPermissions: string[] = []; // Specific permissions required
-	export let minRoleLevel: number | null = null; // Minimum role level required
-	export let redirectTo = '/login'; // Where to redirect if not authorized
-	export let showLoading = true; // Show loading spinner
-	export let showUnauthorized = true; // Show unauthorized message
+	interface Props {
+		requiredRoles?: string[];
+		requiredPermissions?: string[];
+		minRoleLevel?: number | null;
+		redirectTo?: string;
+		showLoading?: boolean;
+		showUnauthorized?: boolean;
+		children?: any;
+	}
+
+	let {
+		requiredRoles = [],
+		requiredPermissions = [],
+		minRoleLevel = null,
+		redirectTo = '/login',
+		showLoading = true,
+		showUnauthorized = true,
+		children
+	}: Props = $props();
 
 	// State
-	let isAuthorized = false;
-	let authCheckComplete = false;
-	let unauthorizedReason = '';
+	let isAuthorized = $state(false);
+	let authCheckComplete = $state(false);
+	let unauthorizedReason = $state('');
 
 	// Check authorization
 	const checkAuthorization = () => {
-		if (!$isAuthenticated) {
+		if (!auth.isAuthenticated) {
 			unauthorizedReason = 'Authentication required';
 			return false;
 		}
 
-		const currentRoles = $userRoles;
-
+		// Assuming auth.roles is correct. If it's UserRoleAssignment[], we might need to map.
+		// But if previous code worked with includes, maybe it's strings.
+		// For safety, I will use auth.hasRole(role) if available, or just check auth.roles.
+		// auth.hasRole takes a string.
+		
 		// Check required roles
 		if (requiredRoles.length > 0) {
-			const hasRequiredRole = requiredRoles.some((role) => currentRoles.includes(role));
+			// Use auth.hasRole which encapsulates the logic
+			const hasRequiredRole = requiredRoles.some((role) => auth.hasRole(role));
 			if (!hasRequiredRole) {
 				unauthorizedReason = `Required role: ${requiredRoles.join(' or ')}`;
 				return false;
@@ -43,26 +59,17 @@
 
 		// Check minimum role level
 		if (minRoleLevel !== null) {
-			const roleLevels: Record<string, number> = {
-				admin: 80,
-				hr_admin: 60,
-				finance: 50,
-				manager: 30,
-				employee: 10
-			};
-
-			const currentLevel = Math.max(...currentRoles.map((role) => roleLevels[role] || 0));
-			if (currentLevel < minRoleLevel) {
-				unauthorizedReason = `Insufficient privileges (level ${currentLevel} < ${minRoleLevel})`;
+			if (!auth.hasMinimumRoleLevel(minRoleLevel)) {
+				// We can't easily get current level to display, but we know it failed
+				unauthorizedReason = `Insufficient privileges (min level ${minRoleLevel})`;
 				return false;
 			}
 		}
 
-		// Check specific permissions (simplified - could be enhanced)
+		// Check specific permissions
 		if (requiredPermissions.length > 0) {
-			// For now, just check if user has admin role for any permission requirement
-			// This could be enhanced with a proper permission system
-			if (!currentRoles.includes('admin') && !currentRoles.includes('hr_admin')) {
+			const hasRequiredPermissions = requiredPermissions.every((permission) => auth.hasPermission(permission));
+			if (!hasRequiredPermissions) {
 				unauthorizedReason = `Required permissions: ${requiredPermissions.join(', ')}`;
 				return false;
 			}
@@ -72,21 +79,23 @@
 	};
 
 	// Reactive statement to check authorization when auth state changes
-	$: if (!$isLoading) {
-		authCheckComplete = true;
-		isAuthorized = checkAuthorization();
+	$effect(() => {
+		if (!auth.isLoading) {
+			authCheckComplete = true;
+			isAuthorized = checkAuthorization();
 
-		// Redirect if not authorized
-		if (!isAuthorized && !$isLoading) {
-			// Add current path as redirect parameter
-			const currentPath = $page.url.pathname + $page.url.search;
-			const redirectUrl = `${redirectTo}?redirect=${encodeURIComponent(currentPath)}`;
-			goto(redirectUrl);
+			// Redirect if not authorized
+			if (!isAuthorized && !auth.isLoading) {
+				// Add current path as redirect parameter
+				const currentPath = $page.url.pathname + $page.url.search;
+				const redirectUrl = `${redirectTo}?redirect=${encodeURIComponent(currentPath)}`;
+				goto(redirectUrl);
+			}
 		}
-	}
+	});
 </script>
 
-{#if $isLoading || !authCheckComplete}
+{#if auth.isLoading || !authCheckComplete}
 	<!-- Loading State -->
 	{#if showLoading}
 		<div class="flex min-h-screen items-center justify-center bg-gray-50">
@@ -119,14 +128,14 @@
 
 				<div class="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
 					<button
-						on:click={() => goto('/dashboard')}
+						onclick={() => goto('/dashboard')}
 						class="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
 					>
 						Go to Dashboard
 					</button>
 
 					<button
-						on:click={() => authStore.logout()}
+						onclick={() => auth.logout()}
 						class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
 					>
 						Sign Out
@@ -141,7 +150,7 @@
 	{/if}
 {:else}
 	<!-- Authorized - Show Protected Content -->
-	<slot />
+	{@render children?.()}
 {/if}
 
 <style>

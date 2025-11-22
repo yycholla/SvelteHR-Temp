@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { currentUser } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -25,9 +25,9 @@
 	// Mock profile data - in real app this would come from GraphQL
 	const profileData = {
 		personalInfo: {
-			firstName: $currentUser?.display_name?.split(' ')[0] || 'John',
-			lastName: $currentUser?.display_name?.split(' ')[1] || 'Doe',
-			email: $currentUser?.email || 'john.doe@company.com',
+			firstName: auth.user?.display_name?.split(' ')[0] || 'John',
+			lastName: auth.user?.display_name?.split(' ')[1] || 'Doe',
+			email: auth.user?.email || 'john.doe@company.com',
 			phone: '+1 (555) 123-4567',
 			address: '123 Main St, Anytown, ST 12345',
 			dateOfBirth: '1990-01-15',

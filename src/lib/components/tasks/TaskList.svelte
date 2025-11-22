@@ -22,7 +22,12 @@
 		viewMode = $bindable('list'),
 		onTaskClick,
 		onStatusChange,
-		loading = false
+		loading = false,
+		// New props for external control
+		sortBy = $bindable('created_at'),
+		sortOrder = $bindable('desc'),
+		statusFilter = $bindable('all'),
+		priorityFilter = $bindable('all')
 	}: {
 		tasks: Task[];
 		userId?: string;
@@ -31,20 +36,26 @@
 		onTaskClick?: (taskId: string) => void;
 		onStatusChange?: (taskId: string, newStatus: TaskStatus) => void;
 		loading?: boolean;
+		sortBy?: 'created_at' | 'due_date' | 'priority' | 'title' | 'smart';
+		sortOrder?: 'asc' | 'desc';
+		statusFilter?: TaskStatus | 'all';
+		priorityFilter?: TaskPriority | 'all';
 	} = $props();
 
-	let statusFilter = $state<TaskStatus | 'all'>('all');
-	let priorityFilter = $state<TaskPriority | 'all'>('all');
-	let sortBy = $state<'created_at' | 'due_date' | 'priority' | 'title'>('created_at');
-	let sortOrder = $state<'asc' | 'desc'>('desc');
+	// Note: statusFilter, priorityFilter, sortBy, sortOrder are now props (optionally bindable)
+	// If not passed, they default to internal state initialization values above.
 
+	// Derived value for filtered tasks
 	let filteredTasks = $derived.by(() => {
 		let result = tasks;
+		// Only apply internal filters if we are using them.
+		// If parent passes already filtered tasks, these might be redundant but harmless if 'all'.
 		if (statusFilter !== 'all') result = result.filter(t => t.status === statusFilter);
 		if (priorityFilter !== 'all') result = result.filter(t => t.priority === priorityFilter);
 		return result;
 	});
 
+	// Derived value for sorted tasks
 	let sortedTasks = $derived.by(() => {
 		const sorted = [...filteredTasks];
 		sorted.sort((a, b) => {
@@ -66,13 +77,27 @@
 				case 'title':
 					comparison = a.title.localeCompare(b.title);
 					break;
+				case 'smart':
+					// Smart sort: Priority > Due Date > Title
+					// Urgent (4) > Low (1).
+					const valA = { 'URGENT': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 }[a.priority] || 0;
+					const valB = { 'URGENT': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 }[b.priority] || 0;
+					comparison = valA - valB;
+					
+					if (comparison === 0) {
+						// Secondary: Due Date (Soonest first -> Ascending)
+						const dueA = a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_VALUE;
+						const dueB = b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_VALUE;
+						return (valA - valB) || (dueB - dueA); 
+					}
+					break;
 			}
 			return sortOrder === 'asc' ? comparison : -comparison;
 		});
 		return sorted;
 	});
 
-	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
+	// Derived status counts
 	let statusCounts = $derived.by(() => ({
 		all: tasks.length,
 		'TODO': tasks.filter(t => t.status === 'TODO').length,
@@ -82,6 +107,8 @@
 		'DONE': tasks.filter(t => t.status === 'DONE').length
 	}));
 
+	// Derived tasks by status (for unused feature? or debugging?)
+	// Keeping it as it was in original code
 	let tasksByStatus = $derived.by(() => ({
 		'TODO': sortedTasks.filter(t => t.status === 'TODO'),
 		'IN_PROGRESS': sortedTasks.filter(t => t.status === 'IN_PROGRESS'),
@@ -90,6 +117,7 @@
 		'DONE': sortedTasks.filter(t => t.status === 'DONE')
 	}));
 
+	// Derived top level tasks for hierarchy view
 	let topLevelTasks = $derived.by(() => {
 		if (viewMode !== 'hierarchy') return sortedTasks;
 		return sortedTasks.filter(t => !t.parentTaskId);
@@ -111,8 +139,7 @@
 	const flipDurationMs = 200;
 	let isDragging = $state(false);
 
-	// Kanban columns state - needs to be mutable for svelte-dnd-action
-	// We use a Map to track columns by status
+	// Kanban columns state
 	type KanbanColumn = { status: TaskStatus; tasks: Task[] };
 	let columns = $state<KanbanColumn[]>([
 		{ status: 'TODO', tasks: [] },
@@ -123,6 +150,8 @@
 	]);
 
 	// Sync columns with sorted tasks when not dragging
+	// Using $effect to update mutable state 'columns' based on derived 'sortedTasks'
+	// This is necessary because svelte-dnd-action requires a mutable array binding
 	$effect(() => {
 		if (!isDragging) {
 			columns = [
@@ -135,25 +164,18 @@
 		}
 	});
 
-	// Handle drag-and-drop consider event (dragging in progress)
 	function handleDndConsider(columnIndex: number, e: CustomEvent<DndEvent<Task>>) {
 		isDragging = true;
 		columns[columnIndex].tasks = e.detail.items as Task[];
 	}
 
-	// Handle drag-and-drop finalize event (drop completed)
 	function handleDndFinalize(columnIndex: number, e: CustomEvent<DndEvent<Task>>) {
 		columns[columnIndex].tasks = e.detail.items as Task[];
-
-		// Find if any task changed status
 		const column = columns[columnIndex];
 		const droppedTask = e.detail.items.find((item) => item.status !== column.status);
-
 		if (droppedTask && onStatusChange) {
-			// Update the task status
 			onStatusChange(droppedTask.id, column.status);
 		}
-
 		isDragging = false;
 	}
 </script>

@@ -10,12 +10,12 @@
 
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { goto } from '$app/navigation';
-	import { Badge } from '$lib/components/ui/badge';
+	import { goto, replaceState, invalidateAll } from '$app/navigation';
+	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Card from '$lib/components/ui/card';
-	import * as NativeSelect from '$lib/components/ui/native-select';
-	import * as Field from '$lib/components/ui/field';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+	import * as Separator from '$lib/components/ui/separator';
 	import TaskList from '$lib/components/tasks/TaskList.svelte';
 	import QuickAddTask from '$lib/components/tasks/QuickAddTask.svelte';
 	import {
@@ -25,28 +25,44 @@
 		Clock,
 		Search,
 		TrendingUp,
-		User
+		User,
+		Filter,
+		List,
+		GitBranch,
+		Columns,
+		SortAsc,
+		ChevronDown,
+		X,
+		CalendarDays,
+		Plus,
+		LayoutGrid
 	} from '@lucide/svelte';
 	import { CHANGE_TASK_STATUS } from '$lib/graphql/tasks-operations';
 	import { client } from '$lib/graphql/client';
-	import { invalidateAll } from '$app/navigation';
-	import type { TaskStatus } from '$lib/types/task';
+	import type { TaskStatus, TaskPriority } from '$lib/types/task';
 	import { toast } from 'svelte-sonner';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Progress } from '$lib/components/ui/progress';
+	import * as Avatar from '$lib/components/ui/avatar';
 
 	// Page data from server
 	const { data }: { data: PageData } = $props();
 
 	// Local filter state
-	let searchQuery = $state(data.filters.searchTerm);
-	let selectedStatus = $state(data.filters.statusFilter);
-	let selectedPriority = $state(data.filters.priorityFilter);
+	// Use defensive access to prevent hydration errors if data is partial
+	let searchQuery = $state((data && data.filters && data.filters.searchTerm) ? data.filters.searchTerm : '');
+	let selectedStatus = $state<TaskStatus | 'all'>((data && data.filters && data.filters.statusFilter) ? data.filters.statusFilter : 'all');
+	let selectedPriority = $state<TaskPriority | 'all'>((data && data.filters && data.filters.priorityFilter) ? data.filters.priorityFilter : 'all');
+	
+	// View state
+	let viewMode = $state<'list' | 'hierarchy' | 'kanban'>('list');
+	let sortBy = $state<'created_at' | 'due_date' | 'priority' | 'title' | 'smart'>('smart');
+	let sortOrder = $state<'asc' | 'desc'>('desc');
 
-	// Priority order for sorting
-	const priorityOrder = { URGENT: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
-
-	// Client-side filtered and sorted tasks
-	const filteredTasks = $derived.by(() => {
-		let result = data.tasks;
+	// Client-side filtered tasks (only search + explicit filter)
+	// Sorting is handled by TaskList now
+	const filteredTasks = $derived((() => {
+		let result = data?.tasks || [];
 
 		// Search filter
 		if (searchQuery) {
@@ -58,98 +74,99 @@
 			});
 		}
 
-		// Status filter
-		if (selectedStatus) {
+		// Status filter (if applied locally)
+		if (selectedStatus !== 'all') {
 			result = result.filter((task: any) => task.status === selectedStatus);
 		}
 
-		// Priority filter
-		if (selectedPriority) {
+		// Priority filter (if applied locally)
+		if (selectedPriority !== 'all') {
 			result = result.filter((task: any) => task.priority === selectedPriority);
 		}
 
-		// Sort by priority > due date > rest
-		return [...result].sort((a, b) => {
-			// First, sort by priority (URGENT > HIGH > MEDIUM > LOW)
-			const priorityA = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 4;
-			const priorityB = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 4;
-			const priorityDiff = priorityA - priorityB;
-			if (priorityDiff !== 0) return priorityDiff;
-
-			// Then by due date (ascending - soonest first)
-			if (a.dueDate && b.dueDate) {
-				return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-			}
-			if (a.dueDate) return -1;
-			if (b.dueDate) return 1;
-
-			// Finally by title
-			return a.title.localeCompare(b.title);
-		});
-	});
+		return result;
+	})());
 
 	// Statistics cards configuration - derived to update reactively
 	const statsCards = $derived([
 		{
-			label: 'Total Tasks',
-			value: data.taskStats.total,
+			label: 'Total',
+			value: data?.taskStats?.total || 0,
 			icon: User,
 			color: 'text-primary',
-			bgColor: 'bg-primary/10'
+			bgColor: 'bg-primary/10',
+			trend: ''
 		},
 		{
-			label: 'Not Started',
-			value: data.taskStats.notStarted,
+			label: 'Todo',
+			value: data?.taskStats?.notStarted || 0,
 			icon: Clock,
 			color: 'text-amber-600',
-			bgColor: 'bg-amber-100 dark:bg-amber-900/30'
+			bgColor: 'bg-amber-100 dark:bg-amber-900/30',
+			trend: ''
 		},
 		{
-			label: 'In Progress',
-			value: data.taskStats.inProgress,
+			label: 'Doing',
+			value: data?.taskStats?.inProgress || 0,
 			icon: TrendingUp,
 			color: 'text-blue-600',
-			bgColor: 'bg-blue-100 dark:bg-blue-900/30'
+			bgColor: 'bg-blue-100 dark:bg-blue-900/30',
+			trend: ''
 		},
 		{
 			label: 'Blocked',
-			value: data.taskStats.blocked,
+			value: data?.taskStats?.blocked || 0,
 			icon: AlertCircle,
 			color: 'text-red-600',
-			bgColor: 'bg-red-100 dark:bg-red-900/30'
+			bgColor: 'bg-red-100 dark:bg-red-900/30',
+			trend: ''
 		},
 		{
-			label: 'Completed',
-			value: data.taskStats.completed,
+			label: 'Done',
+			value: data?.taskStats?.completed || 0,
 			icon: CheckCircle,
 			color: 'text-green-600',
-			bgColor: 'bg-green-100 dark:bg-green-900/30'
-		},
-		{
-			label: 'Overdue',
-			value: data.taskStats.overdue,
-			icon: AlertTriangle,
-			color: 'text-orange-600',
-			bgColor: 'bg-orange-100 dark:bg-orange-900/30'
+			bgColor: 'bg-green-100 dark:bg-green-900/30',
+			trend: ''
 		}
 	]);
 
-	// Status options
+	// Weekly Progress Calculation
+	const weeklyProgress = $derived((() => {
+		const total = data?.taskStats?.total || 0;
+		const completed = data?.taskStats?.completed || 0;
+		const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+		return {
+			completed,
+			total,
+			percentage
+		};
+	})());
+
+	// Options for dropdowns
 	const statusOptions = [
-		{ value: '', label: 'All Statuses' },
-		{ value: 'Not Started', label: 'Not Started' },
-		{ value: 'In Progress', label: 'In Progress' },
-		{ value: 'Blocked', label: 'Blocked' },
-		{ value: 'Completed', label: 'Completed' }
+		{ value: 'all', label: 'All Statuses' },
+		{ value: 'TO_DO', label: 'To Do' },
+		{ value: 'IN_PROGRESS', label: 'In Progress' },
+		{ value: 'BLOCKED', label: 'Blocked' },
+		{ value: 'COMPLETED', label: 'Completed' },
+		{ value: 'DEFERRED', label: 'Deferred' }
 	];
 
-	// Priority options
 	const priorityOptions = [
-		{ value: '', label: 'All Priorities' },
-		{ value: 'Low', label: 'Low' },
-		{ value: 'Medium', label: 'Medium' },
-		{ value: 'High', label: 'High' },
-		{ value: 'Urgent', label: 'Urgent' }
+		{ value: 'all', label: 'All Priorities' },
+		{ value: 'URGENT', label: 'Urgent' },
+		{ value: 'HIGH', label: 'High' },
+		{ value: 'MEDIUM', label: 'Medium' },
+		{ value: 'LOW', label: 'Low' }
+	];
+
+	const sortOptions = [
+		{ value: 'smart', label: 'Smart Sort' },
+		{ value: 'created_at', label: 'Created Date' },
+		{ value: 'due_date', label: 'Due Date' },
+		{ value: 'priority', label: 'Priority' },
+		{ value: 'title', label: 'Title' }
 	];
 
 	// Debounce timer for URL updates
@@ -159,12 +176,12 @@
 	function updateURL() {
 		const params = new URLSearchParams();
 		if (searchQuery) params.set('search', searchQuery);
-		if (selectedStatus) params.set('status', selectedStatus);
-		if (selectedPriority) params.set('priority', selectedPriority);
+		if (selectedStatus !== 'all') params.set('status', selectedStatus);
+		if (selectedPriority !== 'all') params.set('priority', selectedPriority);
 
 		const queryString = params.toString();
 		const newUrl = queryString ? `?${queryString}` : '/dashboard/tasks/my-tasks';
-		window.history.replaceState({}, '', newUrl);
+		replaceState(newUrl, {});
 	}
 
 	// Handle search input with debounced URL update
@@ -180,8 +197,15 @@
 		}, 500);
 	}
 
-	// Handle filter changes - update immediately for selects
-	function updateFilters() {
+	// Handle filter changes - update immediately
+	function handleFilterChange() {
+		updateURL();
+	}
+
+	function clearFilters() {
+		searchQuery = '';
+		selectedStatus = 'all';
+		selectedPriority = 'all';
 		updateURL();
 	}
 
@@ -216,6 +240,13 @@
 			toast.error('Failed to update task status');
 		}
 	}
+
+	// Mock upcoming events (placeholder until backend integration)
+	const upcomingEvents = [
+		{ time: '10:00 AM', title: 'Team Standup', type: 'meeting' },
+		{ time: '2:00 PM', title: 'Design Review', type: 'meeting' },
+		{ time: '4:00 PM', title: 'Project Sync', type: 'meeting' }
+	];
 </script>
 
 <svelte:head>
@@ -223,128 +254,225 @@
 	<meta name="description" content="View and manage your assigned tasks" />
 </svelte:head>
 
-<div class="space-y-6" data-testid="my-tasks-page">
-	<!-- Page Header -->
-	<div class="flex items-start justify-end gap-4">
-		<QuickAddTask
-			currentUser={data.user}
-			assignees={data.assignees}
-			taskTypes={data.taskTypes}
-			canAssign={false}
-			formAction="/dashboard/tasks/my-tasks"
-			onSuccess={async () => {
-				// Refresh the page data after task creation
-				await invalidateAll();
-			}}
-		/>
-	</div>
+<div class="min-h-screen bg-muted/20 p-6 font-sans" data-testid="my-tasks-page">
+	<div class="mx-auto max-w-7xl space-y-6">
+		
+		<!-- Header Section -->
+		<div class="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+			<div>
+				<h1 class="text-2xl font-bold tracking-tight text-foreground">My Workspace</h1>
+				<p class="text-sm text-muted-foreground">Manage your tasks and daily overview</p>
+			</div>
+			<div class="flex items-center gap-2">
+				<Button variant="outline" size="sm" class="h-9 gap-2">
+					<CalendarDays class="h-4 w-4" />
+					<span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+				</Button>
+				
+				<!-- Quick Add Task -->
+				<QuickAddTask
+					currentUser={data.user}
+					assignees={data.assignees}
+					taskTypes={data.taskTypes}
+					canAssign={false}
+					formAction="/dashboard/tasks/my-tasks"
+					onSuccess={async () => {
+						await invalidateAll();
+					}}
+				/>
+			</div>
+		</div>
 
-	<!-- Statistics Cards -->
-	<div
-		class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6"
-		data-testid="my-tasks-stats-grid"
-	>
-		{#each statsCards as stat}
-			{@const Icon = stat.icon}
-			<Card.Root>
-				<Card.Header class="flex flex-row items-center justify-between pb-2">
-					<Card.Title class="text-sm font-medium text-muted-foreground">
-						{stat.label}
-					</Card.Title>
-					<div class="flex h-8 w-8 items-center justify-between rounded-full {stat.bgColor}">
-						<Icon class="h-4 w-4 {stat.color}" />
+		<!-- Bento Grid Layout -->
+		<div class="grid grid-cols-1 gap-4 md:grid-cols-12 lg:grid-rows-[auto_auto]">
+			
+			<!-- 1. Summary Stats (Top Left - Spans 8 cols) -->
+			<div class="col-span-1 md:col-span-8 grid grid-cols-2 md:grid-cols-5 gap-4">
+				{#each statsCards as stat (stat.label)}
+					<div class="rounded-xl border bg-card px-3 py-2 shadow-sm transition-all hover:shadow-md">
+						<div class="flex items-center gap-2">
+							<div class="flex h-7 w-7 items-center justify-center rounded-full {stat.bgColor}">
+								<svelte:component this={stat.icon} class="h-3.5 w-3.5 {stat.color}" />
+							</div>
+							<div class="flex flex-col">
+								<span class="text-[10px] font-medium text-muted-foreground leading-tight">{stat.label}</span>
+								<span class="text-lg font-bold leading-none">{stat.value}</span>
+							</div>
+						</div>
 					</div>
-				</Card.Header>
-				<Card.Content>
-					<div class="text-2xl font-bold">{stat.value}</div>
-				</Card.Content>
-			</Card.Root>
-		{/each}
-	</div>
+				{/each}
+			</div>
 
-	<!-- Filters -->
-	<Card.Root>
-		<Card.Content class="pt-6">
-			<Field.Group>
-				<div class="grid grid-cols-1 gap-6 md:grid-cols-3">
-					<!-- Search -->
-					<Field.Field>
-						<Field.Label>Search</Field.Label>
-						<div class="relative">
-							<Search
-								class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-							/>
+			<!-- 2. Weekly Goal / Progress (Top Right - Spans 4 cols) -->
+			<div class="col-span-1 md:col-span-4 rounded-xl border bg-card p-5 shadow-sm">
+				<div class="mb-4 flex items-center justify-between">
+					<h3 class="font-semibold">Weekly Progress</h3>
+					<Badge variant="outline" class="text-xs font-normal">Current</Badge>
+				</div>
+				<div class="space-y-4">
+					<div class="flex items-center justify-between text-sm">
+						<span class="text-muted-foreground">Tasks Completed</span>
+						<span class="font-medium">{weeklyProgress.completed}/{weeklyProgress.total}</span>
+					</div>
+					<Progress value={weeklyProgress.percentage} class="h-2" />
+					<div class="flex gap-2 mt-2">
+						<div class="flex-1 rounded-lg bg-muted/50 p-2 text-center">
+							<div class="text-xs text-muted-foreground">Completion</div>
+							<div class="font-semibold text-green-600">{weeklyProgress.percentage}%</div>
+						</div>
+						<div class="flex-1 rounded-lg bg-muted/50 p-2 text-center">
+							<div class="text-xs text-muted-foreground">Focus</div>
+							<div class="font-semibold text-blue-600">--</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- 3. Main Task List (Bottom Left - Spans 8 cols, Tall) -->
+			<div class="col-span-1 md:col-span-8 row-span-2 rounded-xl border bg-card shadow-sm flex flex-col min-h-[600px]">
+				<!-- Toolbar -->
+				<div class="flex items-center justify-between border-b p-4 flex-wrap gap-2">
+					<div class="flex items-center gap-4">
+						<h3 class="font-semibold">Tasks</h3>
+						<div class="flex items-center rounded-lg bg-muted p-1">
+							<button 
+								class="rounded-md px-2 py-1 {viewMode === 'list' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}"
+								onclick={() => viewMode = 'list'}
+								title="List View"
+							>
+								<List class="h-4 w-4" />
+							</button>
+							<button 
+								class="rounded-md px-2 py-1 {viewMode === 'kanban' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}"
+								onclick={() => viewMode = 'kanban'}
+								title="Kanban View"
+							>
+								<LayoutGrid class="h-4 w-4" />
+							</button>
+						</div>
+					</div>
+					<div class="flex items-center gap-2">
+						<div class="relative hidden sm:block w-48">
+							<Search class="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
 							<Input
 								type="text"
-								placeholder="Search tasks..."
+								placeholder="Search..."
 								value={searchQuery}
 								oninput={handleSearchInput}
-								class="pl-9"
+								class="h-9 w-full pl-9"
 							/>
 						</div>
-					</Field.Field>
+						
+						<!-- Status Filter Dropdown -->
+						<DropdownMenu.Root>
+							<DropdownMenu.Trigger>
+								<Button variant="ghost" size="icon" class="h-9 w-9">
+									<Filter class="h-4 w-4 text-muted-foreground" />
+								</Button>
+							</DropdownMenu.Trigger>
+							<DropdownMenu.Content align="end" class="w-48">
+								<DropdownMenu.Label>Filter by Status</DropdownMenu.Label>
+								<DropdownMenu.Separator />
+								{#each statusOptions as option (option.value)}
+									<DropdownMenu.Item onclick={() => { selectedStatus = option.value as any; handleFilterChange(); }}>
+										<div class="flex items-center gap-2">
+											{#if selectedStatus === option.value}
+												<CheckCircle class="h-3.5 w-3.5 text-primary" />
+											{:else}
+												<div class="h-3.5 w-3.5"></div>
+											{/if}
+											{option.label}
+										</div>
+									</DropdownMenu.Item>
+								{/each}
+							</DropdownMenu.Content>
+						</DropdownMenu.Root>
 
-					<!-- Status Filter -->
-					<Field.Field>
-						<Field.Label>Status</Field.Label>
-						<NativeSelect.Root
-							value={selectedStatus}
-							onchange={(e) => {
-								selectedStatus = e.currentTarget.value;
-								updateFilters();
-							}}
-						>
-							{#each statusOptions as option}
-								<NativeSelect.Option value={option.value}>{option.label}</NativeSelect.Option>
-							{/each}
-						</NativeSelect.Root>
-					</Field.Field>
-
-					<!-- Priority Filter -->
-					<Field.Field>
-						<Field.Label>Priority</Field.Label>
-						<NativeSelect.Root
-							value={selectedPriority}
-							onchange={(e) => {
-								selectedPriority = e.currentTarget.value;
-								updateFilters();
-							}}
-						>
-							{#each priorityOptions as option}
-								<NativeSelect.Option value={option.value}>{option.label}</NativeSelect.Option>
-							{/each}
-						</NativeSelect.Root>
-					</Field.Field>
+						<!-- Sort Dropdown -->
+						<DropdownMenu.Root>
+							<DropdownMenu.Trigger>
+								<Button variant="ghost" size="icon" class="h-9 w-9">
+									<SortAsc class="h-4 w-4 text-muted-foreground" />
+								</Button>
+							</DropdownMenu.Trigger>
+							<DropdownMenu.Content align="end" class="w-48">
+								<DropdownMenu.Label>Sort by</DropdownMenu.Label>
+								<DropdownMenu.Separator />
+								{#each sortOptions as option (option.value)}
+									<DropdownMenu.Item onclick={() => sortBy = option.value as any}>
+										<div class="flex items-center gap-2">
+											{#if sortBy === option.value}
+												<CheckCircle class="h-3.5 w-3.5 text-primary" />
+											{:else}
+												<div class="h-3.5 w-3.5"></div>
+											{/if}
+											{option.label}
+										</div>
+									</DropdownMenu.Item>
+								{/each}
+								<DropdownMenu.Separator />
+								<DropdownMenu.Item onclick={() => sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'}>
+									<div class="flex items-center gap-2">
+										<div class="h-3.5 w-3.5"></div>
+										{sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+									</div>
+								</DropdownMenu.Item>
+							</DropdownMenu.Content>
+						</DropdownMenu.Root>
+					</div>
 				</div>
-			</Field.Group>
-		</Card.Content>
-	</Card.Root>
 
-	<!-- Tasks List -->
-	<div class="space-y-4" data-testid="my-tasks-list-section">
-		{#if filteredTasks.length === 0}
-			<Card.Root>
-				<Card.Content class="flex flex-col items-center justify-center py-12">
-					<CheckCircle class="mb-4 h-12 w-12 text-muted-foreground opacity-50" />
-					<h3 class="mb-2 text-lg font-medium">No tasks found</h3>
-					<p class="mb-4 text-sm text-muted-foreground">
-						{#if searchQuery || selectedStatus || selectedPriority}
-							Try adjusting your filters
-						{:else}
-							You have no assigned tasks at the moment
-						{/if}
-					</p>
-				</Card.Content>
-			</Card.Root>
-		{:else}
-			<TaskList
-				tasks={filteredTasks}
-				userId={data.user.id}
-				onTaskClick={handleTaskClick}
-				onStatusChange={handleStatusChange}
-				showProgress={true}
-				compact={false}
-			/>
-		{/if}
+				<!-- Compact List -->
+				<div class="flex-1 overflow-auto p-2">
+					<TaskList
+						tasks={filteredTasks}
+						userId={data.user.id}
+						showFilters={false}
+						bind:viewMode={viewMode}
+						bind:sortBy={sortBy}
+						bind:sortOrder={sortOrder}
+						onTaskClick={handleTaskClick}
+						onStatusChange={handleStatusChange}
+						loading={false}
+					/>
+				</div>
+			</div>
+
+			<!-- 4. Upcoming / Schedule (Bottom Right - Spans 4 cols) -->
+			<div class="col-span-1 md:col-span-4 rounded-xl border bg-card p-5 shadow-sm h-full min-h-[300px]">
+				<h3 class="mb-4 font-semibold">Today's Schedule</h3>
+				<div class="relative border-l border-muted pl-6 space-y-6">
+					{#each upcomingEvents as event}
+						<div class="relative">
+							<span class="absolute -left-[29px] top-1 h-3 w-3 rounded-full border-2 border-background bg-primary ring-4 ring-background"></span>
+							<div class="flex flex-col gap-1">
+								<span class="text-xs font-medium text-muted-foreground">{event.time}</span>
+								<span class="text-sm font-medium">{event.title}</span>
+							</div>
+						</div>
+					{/each}
+					
+					<!-- Empty State Slot -->
+					<div class="relative pt-4">
+						<div class="rounded-lg border border-dashed p-3 text-center">
+							<span class="text-xs text-muted-foreground">No more events</span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- 5. Quick Notes / Scratchpad (Bottom Right - Spans 4 cols) -->
+			<div class="col-span-1 md:col-span-4 rounded-xl border bg-card p-5 shadow-sm min-h-[200px]">
+				<div class="mb-2 flex items-center justify-between">
+					<h3 class="font-semibold">Quick Notes</h3>
+					<Button variant="ghost" size="icon" class="h-6 w-6"><Plus class="h-3 w-3" /></Button>
+				</div>
+				<textarea 
+					class="w-full resize-none rounded-md bg-muted/30 p-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/20 h-32"
+					placeholder="Jot down something..."
+				></textarea>
+			</div>
+
+		</div>
 	</div>
 </div>

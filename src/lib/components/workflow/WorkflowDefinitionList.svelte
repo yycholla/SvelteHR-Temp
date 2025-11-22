@@ -7,7 +7,7 @@
 		workflowError,
 		workflowStats
 	} from '$lib/stores/workflow';
-	import { canManageWorkflows } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 	import WorkflowDefinitionCard from './WorkflowDefinitionCard.svelte';
 	import CreateWorkflowDefinition from './CreateWorkflowDefinition.svelte';
 	import WorkflowStatsCards from './WorkflowStatsCards.svelte';

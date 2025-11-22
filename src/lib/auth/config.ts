@@ -71,6 +71,8 @@ export interface AuthConfig {
 	};
 }
 
+const isBrowser = typeof browser !== 'undefined' && browser;
+
 // Default configuration - Session-based auth is PRIMARY
 const defaultConfig: AuthConfig = {
 	api: {
@@ -85,7 +87,7 @@ const defaultConfig: AuthConfig = {
 		cookieName: 'hr_token', // Backend sets this cookie name
 		cookieOptions: {
 			httpOnly: true,
-			secure: !browser || window.location.protocol === 'https:',
+			secure: !isBrowser || (typeof window !== 'undefined' && window.location.protocol === 'https:'),
 			sameSite: 'lax', // Changed from 'strict' for better compatibility
 			path: '/',
 			maxAge: 24 * 60 * 60 // 24 hours (backend manages actual expiry)

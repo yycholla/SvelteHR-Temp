@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { workflowActions } from '$lib/stores/workflow';
-	import { user } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 
 	// Props
 	let {
@@ -101,7 +101,7 @@
 					maxRetries: formData.maxRetries,
 					retryDelayMinutes: formData.retryDelayMinutes,
 					status: formData.status,
-					createdBy: $user?.id,
+					createdBy: auth.user?.id,
 					departmentId: formData.departmentId,
 					version: 1
 				}

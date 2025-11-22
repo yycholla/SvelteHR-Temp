@@ -224,10 +224,33 @@ export const load: PageServerLoad = async (event) => {
 			error: errorResponse
 		});
 
-		error(500, {
-        			message: 'My tasks temporarily unavailable',
-        			details: errorResponse.userMessage
-        		});
+		// Return safe fallback data instead of crashing the page
+		// This prevents the "white screen of death" or hydration errors if data is missing
+		return {
+			user: locals.user,
+			userSession: userSession.toJSON(),
+			tasks: [],
+			totalTasks: 0,
+			taskStats: {
+				total: 0,
+				notStarted: 0,
+				inProgress: 0,
+				blocked: 0,
+				review: 0,
+				completed: 0,
+				overdue: 0
+			},
+			assignees: [],
+			taskTypes: [],
+			filters: {
+				searchTerm,
+				statusFilter,
+				priorityFilter
+			},
+			...getUserPermissions(locals),
+			loadedAt: new Date().toISOString(),
+			error: errorResponse.userMessage
+		};
 	}
 };
 

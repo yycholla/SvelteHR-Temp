@@ -353,6 +353,7 @@ export const actions: Actions = {
 			const priority = (formData.get('priority') as string) || 'MEDIUM';
 			const assigneeId = formData.get('assigneeId') as string;
 			const taskTypeId = formData.get('taskTypeId') as string | null;
+			const parentTaskId = formData.get('parentTaskId') as string | null;
 			const dueDate = formData.get('dueDate') as string | null;
 
 			console.log('[Quick Add Task] Creating task:', {
@@ -360,7 +361,8 @@ export const actions: Actions = {
 				priority,
 				assigneeId,
 				dueDate,
-				taskTypeId
+				taskTypeId,
+				parentTaskId
 			});
 
 			// Prepare create input for Rust GraphQL schema
@@ -378,6 +380,9 @@ export const actions: Actions = {
 			}
 			if (taskTypeId && taskTypeId.trim()) {
 				createInput.taskTypeId = taskTypeId;
+			}
+			if (parentTaskId && parentTaskId.trim()) {
+				createInput.parentTaskId = parentTaskId;
 			}
 			if (dueDate && dueDate.trim()) {
 				// GraphQL expects full datetime, add end of day

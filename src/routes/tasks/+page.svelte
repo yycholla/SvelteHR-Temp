@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { currentUser, hasPermission } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 	// TODO: These services need to be implemented
 	// import { taskService, tasks, isLoadingTasks, taskError } from '$lib/services/taskService';
 	// import { userService, users } from '$lib/services/userService';
@@ -223,7 +223,7 @@
 		</div>
 
 		<div class="page-header__actions">
-			{#if $currentUser && hasPermission('task:create')}
+			{#if auth.user && auth.hasPermission('task:create')}
 				<Button variant="primary" leftIcon="plus" on:click={() => goto('/tasks/new')}>
 					Create Task
 				</Button>
@@ -283,7 +283,7 @@
 				</span>
 
 				<div class="bulk-actions__buttons">
-					{#if $currentUser && hasPermission('task:update')}
+					{#if auth.user && auth.hasPermission('task:update')}
 						<Button
 							variant="secondary"
 							size="sm"
@@ -303,7 +303,7 @@
 						</Button>
 					{/if}
 
-					{#if $currentUser && hasPermission('task:delete')}
+					{#if auth.user && auth.hasPermission('task:delete')}
 						<Button
 							variant="danger"
 							size="sm"
@@ -323,7 +323,7 @@
 		<DataTable
 			data={$tasks}
 			{columns}
-			loading={$isLoadingTasks}
+			loading={auth.isLoadingTasks}
 			selectable={true}
 			hoverable={true}
 			currentSort={{ key: sortField, direction: sortDirection }}

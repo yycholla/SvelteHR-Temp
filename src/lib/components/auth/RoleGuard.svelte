@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { userRoles, hasPermission, hasRole, hasMinimumRoleLevel } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 
 	/**
 	 * Role Guard Component
@@ -31,9 +31,9 @@
 		if (roles.length === 0) return true;
 
 		if (requireAll) {
-			return roles.every((role) => hasRole(role));
+			return roles.every((role) => auth.hasRole(role));
 		} else {
-			return roles.some((role) => hasRole(role));
+			return roles.some((role) => auth.hasRole(role));
 		}
 	});
 
@@ -42,16 +42,16 @@
 		if (permissions.length === 0) return true;
 
 		if (requireAll) {
-			return permissions.every((permission) => hasPermission(permission));
+			return permissions.every((permission) => auth.hasPermission(permission));
 		} else {
-			return permissions.some((permission) => hasPermission(permission));
+			return permissions.some((permission) => auth.hasPermission(permission));
 		}
 	});
 
 	// Check minimum role level
 	const hasMinimumLevel = $derived(() => {
 		if (minimumLevel === undefined) return true;
-		return hasMinimumRoleLevel(minimumLevel);
+		return auth.hasMinimumRoleLevel(minimumLevel);
 	});
 
 	// Overall access control

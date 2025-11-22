@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { workflowActions } from '$lib/stores/workflow';
-	import { user, canManageWorkflows } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 	import type { WorkflowTask } from '$lib/stores/workflow';
 
 	// Props

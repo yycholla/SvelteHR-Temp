@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import { authActions, authError, authStore, isLoading } from '$lib/stores/auth';
-	import { goto } from '$app/navigation';
+	import { auth } from '$lib/stores/auth.svelte';
+	import { browser } from '$app/environment';
+import { goto } from '$app/navigation';
+import { type UserRoleAssignment, createRBACManager } from '$lib/auth/rbac';
 	import { AlertCircle, Eye, EyeOff, Loader2, Lock, Mail } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -61,18 +63,18 @@
 		if (isSubmitting || hasSucceeded || !validateForm()) return;
 
 		isSubmitting = true;
-		authActions.setError(null);
+		auth.setError(null);
 
 		try {
-			const success = await authActions.login(email, password, rememberMe);
+			const success = await auth.login(email, password, rememberMe);
 
 			if (success) {
 				hasSucceeded = true; // Prevent further submissions
 				dispatch('success', { user: { email } });
 				// Let the parent component handle navigation
 			} else {
-				// Error will be set in the auth store, we can read it from $authError
-				const errorMessage = $authError || 'Login failed';
+				// Error will be set in the auth store, we can read it from auth.error
+				const errorMessage = auth.error || 'Login failed';
 				dispatch('error', { message: errorMessage });
 			}
 		} catch (error) {
@@ -121,11 +123,11 @@
 		</div>
 
 		<!-- Global Error Message -->
-		{#if $authError}
+		{#if auth.error}
 			<Alert variant="destructive" data-testid="login-error-message">
 				<AlertCircle class="h-4 w-4" />
 				<AlertTitle>Authentication Error</AlertTitle>
-				<AlertDescription>{$authError}</AlertDescription>
+				<AlertDescription>{auth.error}</AlertDescription>
 			</Alert>
 		{/if}
 
@@ -150,7 +152,7 @@
 						const error = validateEmail(email);
 						if (error) formErrors.email = error;
 					}}
-					disabled={isSubmitting || $isLoading}
+					disabled={isSubmitting || auth.isLoading}
 					data-testid="login-username-input"
 				/>
 			</div>
@@ -180,7 +182,7 @@
 						const error = validatePassword(password);
 						if (error) formErrors.password = error;
 					}}
-					disabled={isSubmitting || $isLoading}
+					disabled={isSubmitting || auth.isLoading}
 					data-testid="login-password-input"
 				/>
 				<div class="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -188,7 +190,7 @@
 						type="button"
 						class="text-muted-foreground transition-colors hover:text-foreground focus:outline-none"
 						onclick={togglePasswordVisibility}
-						disabled={isSubmitting || $isLoading}
+						disabled={isSubmitting || auth.isLoading}
 					>
 						{#if showPassword}
 							<EyeOff class="h-4 w-4" />
@@ -210,7 +212,7 @@
 					type="checkbox"
 					id="remember-me"
 					bind:checked={rememberMe}
-					disabled={isSubmitting || $isLoading}
+					disabled={isSubmitting || auth.isLoading}
 					data-testid="login-remember-me"
 					class="h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
 				/>
@@ -231,11 +233,11 @@
 		<div>
 			<Button
 				type="submit"
-				disabled={isSubmitting || $isLoading || hasSucceeded || Object.keys(formErrors).length > 0}
+				disabled={isSubmitting || auth.isLoading || hasSucceeded || Object.keys(formErrors).length > 0}
 				class="w-full"
 				data-testid="login-submit-button"
 			>
-				{#if isSubmitting || $isLoading}
+				{#if isSubmitting || auth.isLoading}
 					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
 					Signing in...
 				{:else}

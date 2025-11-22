@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { authActions } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 	import ToastContainer from '$lib/components/ui/toast-container.svelte';
 	import { Toaster } from 'svelte-sonner';
 	import { setContextClient } from '@urql/svelte';
@@ -87,7 +87,7 @@
 	onMount(() => {
 		// Sync server-validated user to client store (non-blocking)
 		if (data?.user?.id) {
-			authActions.setUser({
+			auth.setUser({
 				id: data.user.id,
 				email: data.user.email,
 				displayName: data.user.display_name || data.user.email?.split('@')[0] || 'User',
@@ -161,7 +161,7 @@
 <ModeWatcher />
 
 <!-- Render app - server has already validated auth via hooks.server.ts -->
-<main class="app-main">
+<main>
 	{#if children}
 		{@render children()}
 	{/if}
@@ -179,12 +179,11 @@
 <style global>
 	:global(.app-main) {
 		min-height: 100vh;
-		background-color: hsl(var(--sidebar));
 	}
 
 	/* Ensure consistent background with sidebar */
 	:global(body) {
-		background-color: hsl(var(--sidebar));
+		background-color: hsl(var(--background));
 		color: hsl(var(--foreground));
 	}
 

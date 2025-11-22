@@ -18,9 +18,10 @@ import { createPerformanceExchange } from '$lib/performance/graphql-performance-
 // Default GraphQL endpoint
 // Browser: Use relative path (proxied by Caddy) or PUBLIC_API_URL if set
 // Server: Use PUBLIC_API_URL from environment or fallback to localhost
-const DEFAULT_GRAPHQL_URL = browser
-	? (import.meta.env.PUBLIC_API_URL ? `${import.meta.env.PUBLIC_API_URL}/graphql` : '/api/graphql')
-	: 'http://localhost:4000/graphql';
+const DEFAULT_GRAPHQL_URL =
+	typeof browser !== 'undefined' && browser
+		? '/api/graphql'
+		: 'http://localhost:4000/graphql';
 const GRAPHQL_WS_URL = 'ws://localhost:4000/graphql'; // WebSocket endpoint for subscriptions
 
 // Rust GraphQL server uses session-based authorization with HTTP-only cookies

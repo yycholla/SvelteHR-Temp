@@ -52,8 +52,8 @@
 	const timezoneOffset = new Date().getTimezoneOffset();
 
 	// State
-	let events = $state(data.events);
-	$effect(() => { events = data.events; });
+	let events = $state(data.events || []);
+	$effect(() => { events = data.events || []; });
 
 	let localRsvpStatuses = $state<Record<string, RsvpStatus>>({});
 	let pendingRsvpUpdates = $state<Record<string, RsvpStatus>>({});
@@ -62,7 +62,7 @@
 	$effect(() => {
 		const newStatuses: Record<string, RsvpStatus> = {};
 		const updatesToClear: string[] = [];
-		events.forEach((event) => {
+		(events || []).forEach((event) => {
 			const userAttendee = event.attendees?.find((a: any) => a.employeeId === data.user.id);
 			const serverStatus = userAttendee?.responseStatus || 'no_response';
 			if (pendingRsvpUpdates[event.id]) {
@@ -316,13 +316,13 @@
 			<div class="grid grid-cols-2 gap-3">
 				<Card.Root class="bg-card">
 					<Card.Content class="p-4 text-center">
-						<div class="text-2xl font-bold text-foreground">{data.statistics.upcoming}</div>
+						<div class="text-2xl font-bold text-foreground">{data.statistics?.upcoming ?? 0}</div>
 						<div class="text-xs text-muted-foreground">Upcoming</div>
 					</Card.Content>
 				</Card.Root>
 				<Card.Root class="bg-card">
 					<Card.Content class="p-4 text-center">
-						<div class="text-2xl font-bold text-emerald-600">{data.statistics.accepted}</div>
+						<div class="text-2xl font-bold text-emerald-600">{data.statistics?.accepted ?? 0}</div>
 						<div class="text-xs text-muted-foreground">Accepted</div>
 					</Card.Content>
 				</Card.Root>

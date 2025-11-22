@@ -30,9 +30,9 @@
 	let deactivating = $state(false);
 
 	// Computed values
-	let isOwnProfile = $derived(employee?.id === $currentUser?.id);
-	let canEdit = $derived($currentUser && (isOwnProfile || hasPermission('user:update')));
-	let canDeactivate = $derived($currentUser && hasPermission('user:delete') && !isOwnProfile);
+	let isOwnProfile = $derived(employee?.id === auth.user?.id);
+	let canEdit = $derived(auth.user && (isOwnProfile || auth.hasPermission('user:update')));
+	let canDeactivate = $derived(auth.user && auth.hasPermission('user:delete') && !isOwnProfile);
 	let statusVariant = $derived(employee?.isActive ? 'success' : 'secondary');
 	let statusText = $derived(employee?.isActive ? 'Active' : 'Inactive');
 
@@ -252,7 +252,7 @@
 							</span>
 						</div>
 
-						{#if employee.jobInfo?.salary && (isOwnProfile || hasPermission('user:view_salary'))}
+						{#if employee.jobInfo?.salary && (isOwnProfile || auth.hasPermission('user:view_salary'))}
 							<div class="detail-item">
 								<span class="detail-label">Salary</span>
 								<span class="detail-value">

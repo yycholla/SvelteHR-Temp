@@ -1,5 +1,5 @@
 /**
- * Task Cache Store
+ * Task Cache Store (Svelte 5 Runes)
  * Feature: 028-task-system-expansion - T064
  *
  * Intelligent caching strategy for task data:
@@ -9,9 +9,6 @@
  * - Optimistic updates for mutations
  * - Cache warming for predictable data access
  */
-
-import { writable, derived, get } from 'svelte/store';
-import type { Writable, Readable } from 'svelte/store';
 
 // ============================================================================
 // CACHE CONFIGURATION
@@ -106,7 +103,7 @@ export interface CacheState<T> {
 class TaskCacheManager {
 	private cache = new Map<string, CacheEntry<any>>();
 	private pendingRequests = new Map<string, Promise<any>>();
-	private refreshTimers = new Map<string, NodeJS.Timeout>();
+	private refreshTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 	/**
 	 * Generate cache key from query parameters
@@ -349,58 +346,50 @@ class TaskCacheManager {
 export const taskCache = new TaskCacheManager();
 
 // ============================================================================
-// SVELTE STORE INTEGRATION
+// SVELTE STORE INTEGRATION (using Svelte 5 runes)
 // ============================================================================
 
 /**
  * Create a cached store for task data with SWR pattern
+ * Returns a reactive store class instance
  */
 export function createCachedTaskStore<T>(
 	operation: string,
 	fetchFn: () => Promise<T>,
 	variables?: Record<string, any>,
 	config: CacheConfig = DEFAULT_CACHE_CONFIG
-): Readable<CacheState<T>> {
-	const state = writable<CacheState<T>>({
-		data: null,
-		isLoading: true,
-		isStale: false,
-		isRefreshing: false,
-		error: null,
-		lastFetch: null
-	});
+) {
+	class CachedTaskStore {
+		data = $state<T | null>(null);
+		isLoading = $state(true);
+		isStale = $state(false);
+		isRefreshing = $state(false);
+		error = $state<Error | null>(null);
+		lastFetch = $state<number | null>(null);
 
-	// Initial fetch
-	taskCache
-		.get(operation, fetchFn, variables, config)
-		.then((data) => {
-			state.update((s) => ({
-				...s,
-				data,
-				isLoading: false,
-				lastFetch: Date.now()
-			}));
-		})
-		.catch((error) => {
-			state.update((s) => ({
-				...s,
-				error: error instanceof Error ? error : new Error(String(error)),
-				isLoading: false
-			}));
-		});
+		constructor() {
+			// Initial fetch
+			taskCache
+				.get(operation, fetchFn, variables, config)
+				.then((data) => {
+					this.data = data;
+					this.isLoading = false;
+					this.lastFetch = Date.now();
+				})
+				.catch((error) => {
+					this.error = error instanceof Error ? error : new Error(String(error));
+					this.isLoading = false;
+				});
+		}
+	}
 
-	return {
-		subscribe: state.subscribe
-	};
+	return new CachedTaskStore();
 }
 
 /**
  * Optimistic update helper for task mutations
  */
-export function optimisticUpdate<T>(
-	cacheKey: string,
-	updateFn: (current: T) => T
-): void {
+export function optimisticUpdate<T>(cacheKey: string, updateFn: (current: T) => T): void {
 	const entry = (taskCache as any).cache.get(cacheKey);
 	if (entry) {
 		entry.data = updateFn(entry.data);
