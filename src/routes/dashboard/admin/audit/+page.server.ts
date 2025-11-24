@@ -26,64 +26,84 @@ export const load: PageServerLoad = async (event) => {
 		const cookieHeader = serializeCookies(cookies);
 		const client = createUrqlClient(undefined, undefined, undefined, cookieHeader);
 
-		// Query audit logs
-		// Note: Audit logging not implemented - audit_logs table missing from schema
-		// const auditLogsQuery = `
-		// 	query GetAuditLogs($first: Int!, $offset: Int!) {
-		// 		allAuditLogs(first: $first, offset: $offset, orderBy: CREATED_AT_DESC) {
-		// 			nodes {
-		// 				id
-		// 				userId
-		// 				action
-		// 				resourceType
-		// 				resourceId
-		// 				changes
-		// 				ipAddress
-		// 				userAgent
-		// 				createdAt
-		// 				userByUserId {
-		// 					email
-		// 					displayName
-		// 				}
-		// 			}
-		// 			totalCount
-		// 		}
-		// 	}
-		// `;
+		// Check if userFilter is a valid UUID to pass to backend
+		const userId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userFilter) 
+			? userFilter 
+			: null;
 
-		// Audit logging functionality is not implemented yet
-		// The audit_logs table doesn't exist in the current database schema
+		// Query activity logs
+		const query = `
+			query GetActivityLogs($userId: UUID, $limit: Int, $offset: Int) {
+				activityLogs(userId: $userId, limit: $limit, offset: $offset) {
+					id
+					userId
+					action
+					resourceType
+					resourceId
+					details
+					changes: afterSnapshot
+					ipAddress
+					userAgent
+					createdAt
+					user {
+						email
+						displayName
+					}
+				}
+				activityLogsCount(userId: $userId)
+			}
+		`;
 
-		// Audit logging table doesn't exist in current schema
-		// Return empty data until audit_logs table is implemented
-		let auditLogs = [];
-		let totalCount = 0;
+		const response = await client.query(query, {
+			userId,
+			limit,
+			offset
+		}).toPromise();
 
-		console.log('[AUDIT LOGS] Audit logging not implemented - audit_logs table missing from schema');
+		if (response.error) {
+			console.error('[AUDIT LOGS] GraphQL Error:', response.error);
+			throw new Error(response.error.message);
+		}
 
-		// Apply filters
-		let filteredLogs = auditLogs;
+		const logs = response.data?.activityLogs || [];
+		const totalCount = response.data?.activityLogsCount || 0;
+
+		// Map logs to the format expected by the UI
+		const mappedLogs = logs.map((log: any) => ({
+			...log,
+			userByUserId: log.user,
+			// changes is already an object or null from GraphQL JSON scalar
+		}));
+
+		// Filter results locally if needed (for search queries that backend doesn't support yet)
+		// e.g. text search for action or resource type
+		let filteredLogs = mappedLogs;
+		
+		// Note: Backend handles pagination, so we only filter the current page's results
+		// Ideally, backend should support all these filters
+		
 		if (actionFilter) {
-			filteredLogs = filteredLogs.filter((log) => log.action === actionFilter);
+			filteredLogs = filteredLogs.filter((log: any) => log.action === actionFilter);
 		}
-		if (userFilter) {
-			filteredLogs = filteredLogs.filter(
-				(log) =>
-					log.userByUserId?.email?.includes(userFilter) ||
-					log.userByUserId?.displayName?.includes(userFilter)
-			);
-		}
+		
+		// We don't filter by user name here because that would empty the page if the user 
+		// isn't on the current page. We rely on the UUID filter for precise user filtering.
+		
 		if (dateFrom) {
 			const fromDate = new Date(dateFrom);
-			filteredLogs = filteredLogs.filter((log) => new Date(log.createdAt) >= fromDate);
+			filteredLogs = filteredLogs.filter((log: any) => new Date(log.createdAt) >= fromDate);
 		}
+		
 		if (dateTo) {
 			const toDate = new Date(dateTo);
-			filteredLogs = filteredLogs.filter((log) => new Date(log.createdAt) <= toDate);
+			// Add one day to include the end date fully
+			const toDateObj = new Date(dateTo);
+			toDateObj.setDate(toDateObj.getDate() + 1);
+			filteredLogs = filteredLogs.filter((log: any) => new Date(log.createdAt) < toDateObj);
 		}
 
-		// Get unique actions for filter dropdown
-		const uniqueActions = [...new Set(auditLogs.map((log) => log.action))];
+		// Get unique actions for filter dropdown (from current page)
+		const uniqueActions = [...new Set(mappedLogs.map((log: any) => log.action))];
 
 		return {
 			auditLogs: filteredLogs,
@@ -100,9 +120,8 @@ export const load: PageServerLoad = async (event) => {
 				dateFrom,
 				dateTo
 			},
-			message: 'Audit logging is not implemented yet. The audit_logs table needs to be added to the database schema.'
 		};
-	} catch (error) {
+	} catch (error: any) {
 		console.error('[AUDIT LOGS] Load error:', error);
 		return {
 			auditLogs: [],
@@ -110,7 +129,7 @@ export const load: PageServerLoad = async (event) => {
 			uniqueActions: [],
 			pagination: { page: 1, limit: 50, totalPages: 0 },
 			filters: { action: '', user: '', dateFrom: '', dateTo: '' },
-			error: 'Failed to load audit logs'
+			error: `Failed to load audit logs: ${error.message || 'Unknown error'}`
 		};
 	}
 };

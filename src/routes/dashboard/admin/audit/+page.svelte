@@ -189,7 +189,10 @@
 			</thead>
 			<tbody>
 				{#each filteredLogs as log (log.id)}
-					<tr class="border-b hover:bg-muted/50">
+					<tr 
+						class="border-b hover:bg-muted/50 cursor-pointer transition-colors"
+						onclick={() => goto(`/dashboard/admin/audit/${log.id}`)}
+					>
 						<td class="px-4 py-3 text-xs text-muted-foreground">
 							{new Date(log.createdAt).toLocaleString()}
 						</td>

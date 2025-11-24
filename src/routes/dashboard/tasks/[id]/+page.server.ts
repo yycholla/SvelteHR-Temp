@@ -280,10 +280,21 @@ export const load: PageServerLoad = async (event) => {
 			error: errorResponse
 		});
 
-		error(500, {
-        			message: 'Task details temporarily unavailable',
-        			details: errorResponse.userMessage
-        		});
+		return {
+			user: locals.user || { id: '', role: 'guest' },
+			userSession: userSession.toJSON(),
+			task: null,
+			auditTrail: [],
+			auditTotalCount: 0,
+			auditHasMore: false,
+			assignees: [],
+			taskTypes: [],
+			availableTasks: [],
+			availableResources: [],
+			...getUserPermissions(locals),
+			loadedAt: new Date().toISOString(),
+			error: errorResponse.userMessage
+		};
 	}
 };
 

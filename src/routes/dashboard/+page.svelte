@@ -28,6 +28,15 @@
 
 	// Derived state from server data
 	const user = $derived(data.user);
+
+	// Determine appropriate tasks URL based on user role
+	const tasksUrl = $derived(
+		user.role === 'hr_admin' || user.role === 'system_admin' || user.role === 'super_admin'
+			? '/dashboard/tasks' // Admins see all tasks
+			: user.role === 'manager'
+				? '/dashboard/tasks/team-tasks' // Managers see team tasks
+				: '/dashboard/tasks/my-tasks' // Employees see their own tasks
+	);
     // NOTE: dashboardData is streamed via dashboardDataPromise, so we cannot access it directly here.
     // We will handle it in the template with #await.
 
@@ -103,11 +112,11 @@
             </div>
         </div>
     {:then resolvedData}
-        {@const dashboardData = resolvedData.dashboardData}
+        {@const dashboardData = resolvedData?.dashboardData || { metrics: { taskCount: 0, remainingVacationDays: 0, pendingRequests: 0, attendanceRate: 0 }, tasks: [], events: [] }}
         {@const metrics = dashboardData.metrics}
-        {@const tasks = dashboardData.tasks}
-        {@const events = dashboardData.events}
-        {@const recentActivities = resolvedData.recentActivities || []}
+        {@const tasks = dashboardData.tasks || []}
+        {@const events = dashboardData.events || []}
+        {@const recentActivities = resolvedData?.recentActivities || []}
         
         {@const metricsCards = [
             {
@@ -164,7 +173,7 @@
                             <Card.Title>Priority Tasks</Card.Title>
                             <Card.Description>Tasks requiring your attention.</Card.Description>
                         </div>
-                        <Button variant="ghost" size="sm" href="/dashboard/tasks" class="text-primary">View All</Button>
+                        <Button variant="ghost" size="sm" href={tasksUrl} class="text-primary">View All</Button>
                     </Card.Header>
                     <Card.Content class="pt-0 space-y-4">
                         {#if tasks.length === 0}
@@ -173,7 +182,7 @@
                             </div>
                         {:else}
                             {#each tasks.slice(0, 5) as task}
-                                <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors cursor-pointer group">
+                                <a href="/dashboard/tasks/{task.id}" class="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors cursor-pointer group">
                                     <div class="flex items-center gap-4">
                                         <div class="h-2 w-2 rounded-full {task.priority === 'URGENT' || task.priority === 'HIGH' ? 'bg-red-500' : 'bg-blue-500'}"></div>
                                         <div>
@@ -190,7 +199,7 @@
                                     <Badge variant={getStatusVariant(task.status)}>
                                         {task.status.replace('_', ' ')}
                                     </Badge>
-                                </div>
+                                </a>
                             {/each}
                         {/if}
                     </Card.Content>

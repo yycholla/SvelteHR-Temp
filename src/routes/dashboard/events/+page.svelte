@@ -22,6 +22,7 @@
 		Download
 	} from '@lucide/svelte';
 	import type { EventStatus, EventType, EventVisibilityType, RsvpStatus } from '$lib/graphql/types';
+	import { normalizeRsvpStatus } from '$lib/graphql/types';
 	import type { EventComment, EventHistoryEntry, UserWaitlistStatus } from '$lib/graphql/events-operations';
 	import {
 		CREATE_EVENT_COMMENT,
@@ -51,9 +52,8 @@
 
 	const timezoneOffset = new Date().getTimezoneOffset();
 
-	// State
-	let events = $state(data.events || []);
-	$effect(() => { events = data.events || []; });
+	// State - use $derived for automatic reactive tracking
+	let events = $derived(data.events || []);
 
 	let localRsvpStatuses = $state<Record<string, RsvpStatus>>({});
 	let pendingRsvpUpdates = $state<Record<string, RsvpStatus>>({});
@@ -64,7 +64,7 @@
 		const updatesToClear: string[] = [];
 		(events || []).forEach((event) => {
 			const userAttendee = event.attendees?.find((a: any) => a.employeeId === data.user.id);
-			const serverStatus = userAttendee?.responseStatus || 'no_response';
+			const serverStatus = normalizeRsvpStatus(userAttendee?.responseStatus);
 			if (pendingRsvpUpdates[event.id]) {
 				const pendingStatus = pendingRsvpUpdates[event.id];
 				if (serverStatus === pendingStatus) {
@@ -435,6 +435,7 @@
 		comments={eventComments}
 		history={eventHistory}
 		waitlistStatus={userWaitlistStatus}
+		allEvents={events}
 		onClose={() => { showDetailsDialog = false; selectedEvent = null; }}
 		onAddComment={handleAddComment}
 		onUpdateComment={handleUpdateComment}

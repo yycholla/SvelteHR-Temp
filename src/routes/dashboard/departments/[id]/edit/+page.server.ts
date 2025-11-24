@@ -136,7 +136,13 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		const usersData = await usersResponse.json();
-		const users = (usersData?.data?.users || []).filter((user: any) => user.isActive);
+		const users = (usersData?.data?.users || [])
+			.filter((user: any) => user.isActive)
+			.map((user: any) => ({
+				id: user.id,
+				displayName: user.displayName || 'Unknown',
+				role: user.roles?.[0]?.name || 'Employee' // Get first role or default to Employee
+			}));
 
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
@@ -202,27 +208,29 @@ export const actions: Actions = {
 				'Cookie': cookieHeader
 			};
 
-			// Note: Rust GraphQL backend doesn't have updateDepartmentById mutation yet
-			// For now, this will return an error. TODO: Implement department update mutation
+			// Update department using correct mutation signature with input object
 			const updateResponse = await fetch(graphqlEndpoint, {
 				method: 'POST',
 				headers,
 				body: JSON.stringify({
 					query: `
-						mutation UpdateDepartment($id: UUID!, $name: String!, $description: String, $managerId: UUID) {
-							updateDepartment(id: $id, name: $name, description: $description, managerId: $managerId) {
+						mutation UpdateDepartment($id: UUID!, $input: UpdateDepartmentInput!) {
+							updateDepartment(id: $id, input: $input) {
 								id
 								name
 								description
 								managerId
+								updatedAt
 							}
 						}
 					`,
 					variables: {
 						id: departmentId,
-						name,
-						description: description || null,
-						managerId: managerId || null
+						input: {
+							name,
+							description: description || null,
+							managerId: managerId || null
+						}
 					}
 				})
 			});

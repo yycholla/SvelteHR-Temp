@@ -46,60 +46,62 @@
 	const canAssign = $derived(canAssignToAnyone || canAssignToTeam);
 
 	// Filter state from URL params
+	// Use defensive access to prevent errors if data.filters is undefined
 	let filters = $state<TaskFilterState>({
-		search: data.filters.searchTerm,
-		statuses: data.filters.statusFilter ? [data.filters.statusFilter as any] : [],
-		priorities: data.filters.priorityFilter ? [data.filters.priorityFilter as any] : [],
-		assigneeId: data.filters.assigneeFilter || null,
-		taskTypeId: data.filters.taskTypeFilter || null,
-		dueDateStart: data.filters.dueDateStart || null,
-		dueDateEnd: data.filters.dueDateEnd || null,
+		search: data.filters?.searchTerm || '',
+		statuses: data.filters?.statusFilter ? [data.filters.statusFilter as any] : [],
+		priorities: data.filters?.priorityFilter ? [data.filters.priorityFilter as any] : [],
+		assigneeId: data.filters?.assigneeFilter || null,
+		taskTypeId: data.filters?.taskTypeFilter || null,
+		dueDateStart: data.filters?.dueDateStart || null,
+		dueDateEnd: data.filters?.dueDateEnd || null,
 		hasParent:
-			data.filters.hasParent === 'true' ? true : data.filters.hasParent === 'false' ? false : null,
+			data.filters?.hasParent === 'true' ? true : data.filters?.hasParent === 'false' ? false : null,
 		hasDependencies: null
 	});
 
 	// Statistics cards configuration
 	// NOTE: Updated to match actual task_status_enum values (Feature 028)
+	// Use defensive access in case data.taskStats is undefined
 	const statsCards = [
 		{
 			label: 'Total Tasks',
-			value: data.taskStats.total,
+			value: data.taskStats?.total || 0,
 			icon: ListTodo,
 			color: 'text-primary',
 			bgColor: 'bg-primary/10'
 		},
 		{
 			label: 'To Do',
-			value: data.taskStats.notStarted,
+			value: data.taskStats?.notStarted || 0,
 			icon: Clock,
 			color: 'text-amber-600',
 			bgColor: 'bg-amber-100 dark:bg-amber-900/30'
 		},
 		{
 			label: 'In Progress',
-			value: data.taskStats.inProgress,
+			value: data.taskStats?.inProgress || 0,
 			icon: TrendingUp,
 			color: 'text-blue-600',
 			bgColor: 'bg-blue-100 dark:bg-blue-900/30'
 		},
 		{
 			label: 'Blocked',
-			value: data.taskStats.blocked,
+			value: data.taskStats?.blocked || 0,
 			icon: AlertCircle,
 			color: 'text-red-600',
 			bgColor: 'bg-red-100 dark:bg-red-900/30'
 		},
 		{
 			label: 'Deferred',
-			value: data.taskStats.deferred,
+			value: data.taskStats?.deferred || 0,
 			icon: XCircle,
 			color: 'text-gray-600',
 			bgColor: 'bg-gray-100 dark:bg-gray-900/30'
 		},
 		{
 			label: 'Completed',
-			value: data.taskStats.completed,
+			value: data.taskStats?.completed || 0,
 			icon: CheckCircle,
 			color: 'text-green-600',
 			bgColor: 'bg-green-100 dark:bg-green-900/30'
@@ -108,7 +110,7 @@
 
 	// Client-side filtered tasks based on filter state
 	const filteredTasks = $derived.by(() => {
-		let result = data.tasks;
+		let result = data.tasks || [];
 
 		// Search filter
 		if (filters.search) {

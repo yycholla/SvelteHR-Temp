@@ -80,15 +80,14 @@
 	// Derived: Convert events to FullCalendar format
 	let calendarEvents = $derived(
 		filteredEvents.map((event: any) => {
-			const rsvpStatus = localRsvpStatuses[event.id] || 'no_response';
+			const rsvpStatus = localRsvpStatuses[event.id] || 'pending';
 
-			// Theme-aware colors using CSS variables
+			// RSVP status-based colors (4 distinct colors)
 			const colorMap: Record<string, string> = {
-				accepted: 'hsl(var(--primary))',
-				declined: 'hsl(var(--destructive))',
-				tentative: 'hsl(48 96% 53%)', // Amber
-				pending: 'hsl(217 91% 60%)', // Blue
-				no_response: 'hsl(var(--muted-foreground))'
+				accepted: '#22c55e',   // Green
+				declined: '#ef4444',   // Red
+				tentative: '#f59e0b',  // Amber/Orange
+				pending: '#3b82f6'     // Blue
 			};
 
 			const userAttendee = event.eventAttendeesByEventId?.nodes?.find(
@@ -157,6 +156,7 @@
 				dayMaxEvents: true,
 				weekends: true,
 				height: 'auto',
+				eventDisplay: 'block', // Force block display to show colors on single-day events
 				events: [],
 				eventDidMount: (info) => {
 					const currentEvent = info.event.extendedProps;
@@ -291,18 +291,15 @@
 		}
 	});
 
-	let previousCalendarEvents: any[] = [];
-
+	// Update calendar when events or RSVP statuses change
 	$effect(() => {
 		if (calendar && calendarEvents.length > 0) {
-			const eventsChanged = JSON.stringify(calendarEvents.map(e => ({ id: e.id, backgroundColor: e.backgroundColor }))) !==
-			                      JSON.stringify(previousCalendarEvents.map(e => ({ id: e.id, backgroundColor: e.backgroundColor })));
-
-			if (eventsChanged) {
-				previousCalendarEvents = [...calendarEvents];
-				calendar.getEventSources().forEach(source => source.remove());
-				calendar.addEventSource(calendarEvents);
-			}
+			// Remove all existing event sources
+			calendar.getEventSources().forEach(source => source.remove());
+			// Add updated events
+			calendar.addEventSource(calendarEvents);
+			// Refetch to ensure calendar is updated
+			calendar.refetchEvents();
 		}
 	});
 

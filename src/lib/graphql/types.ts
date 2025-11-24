@@ -10,7 +10,7 @@ export type EventVisibilityType = 'company' | 'department' | 'specific';
 
 export type EventStatus = 'scheduled' | 'ongoing' | 'completed' | 'cancelled' | 'postponed';
 
-export type RsvpStatus = 'pending' | 'accepted' | 'declined' | 'tentative' | 'no_response';
+export type RsvpStatus = 'pending' | 'accepted' | 'declined' | 'tentative';
 
 export type EventType =
 	| 'meeting'
@@ -467,6 +467,25 @@ export function isInAppNotification(notification: Notification): boolean {
 }
 
 // ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Normalize RSVP status to ensure it's a valid backend enum value
+ * Maps invalid values (like 'no_response', null, undefined) to 'pending'
+ */
+export function normalizeRsvpStatus(status: any): RsvpStatus {
+	const validStatuses: RsvpStatus[] = ['pending', 'accepted', 'declined', 'tentative'];
+
+	if (typeof status === 'string' && validStatuses.includes(status as RsvpStatus)) {
+		return status as RsvpStatus;
+	}
+
+	// Default to 'pending' for invalid values
+	return 'pending';
+}
+
+// ============================================================================
 // CONSTANTS
 // ============================================================================
 
@@ -494,8 +513,7 @@ export const RSVP_STATUS_LABELS: Record<RsvpStatus, string> = {
 	pending: 'Pending',
 	accepted: 'Accepted',
 	declined: 'Declined',
-	tentative: 'Tentative',
-	no_response: 'No Response'
+	tentative: 'Tentative'
 };
 
 export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {

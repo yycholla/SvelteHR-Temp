@@ -8,6 +8,7 @@ import { EventsOperations } from '$lib/graphql/events-operations';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
 import type { EventVisibilityType, EventStatus, EventType } from '$lib/graphql/types';
+import { normalizeRsvpStatus } from '$lib/graphql/types';
 import { gql } from '@urql/svelte';
 // Feature 026: Import GraphQL operations for comments, history, waitlist
 import {
@@ -646,10 +647,11 @@ export const actions: Actions = {
 		const status = formData.get('status') as string;
 		const scope = formData.get('scope') as string;
 
-		console.log('[SERVER] FormData received:', {
+		console.log('[SERVER UPDATE] FormData received:', {
 			attendeeId,
 			eventId,
 			status,
+			statusType: typeof status,
 			scope
 		});
 
@@ -657,6 +659,14 @@ export const actions: Actions = {
 			console.error('[SERVER] Missing eventId or status');
 			return fail(400, { error: 'Event ID and status are required' });
 		}
+
+		// Normalize and validate the RSVP status
+		const normalizedStatus = normalizeRsvpStatus(status);
+		console.log('[SERVER UPDATE] Normalized status:', {
+			original: status,
+			normalized: normalizedStatus,
+			wasChanged: status !== normalizedStatus
+		});
 
 		try {
 			console.log('[SERVER] Creating URQL client and EventsOperations');
@@ -679,13 +689,13 @@ export const actions: Actions = {
 				console.log('[SERVER] Updating existing attendee:', attendeeId);
 				const result = await eventsOps.updateRsvpStatus({
 					attendeeId,
-					status: status as any,
+					status: normalizedStatus,
 					userCredentials
 				});
 				console.log('[SERVER] Update result:', result);
 			} else {
 				// Create new attendee record with RSVP status directly
-				console.log('[SERVER] Creating new attendee with RSVP status:', status);
+				console.log('[SERVER] Creating new attendee with RSVP status:', normalizedStatus);
 
 				// Migration: ✅ Use idiomatic Rust pattern (direct input, no nested wrapper)
 				const CREATE_ATTENDEE_WITH_STATUS = gql`
@@ -702,7 +712,7 @@ export const actions: Actions = {
 				const input = {
 					eventId,
 					employeeId: locals.user.id,
-					responseStatus: status,
+					responseStatus: normalizedStatus,
 					isOrganizer: false,
 					isRequired: false
 				};

@@ -323,11 +323,39 @@ export const load: PageServerLoad = async (event) => {
 			error: errorResponse
 		});
 
-		// Throw SvelteKit error with user-friendly message
-		error(500, {
-        			message: 'Tasks dashboard temporarily unavailable',
-        			details: errorResponse.userMessage
-        		});
+		// Return safe fallback data instead of crashing
+		return {
+			user: locals.user || { id: '', role: 'guest' },
+			userSession: userSession.toJSON(),
+			tasks: [],
+			totalTasks: 0,
+			assignees: [],
+			taskTypes: [],
+			taskStats: {
+				total: 0,
+				notStarted: 0,
+				inProgress: 0,
+				blocked: 0,
+				review: 0,
+				completed: 0
+			},
+			filters: {
+				searchTerm,
+				statusFilter,
+				priorityFilter,
+				assigneeFilter,
+				taskTypeFilter,
+				dueDateStart,
+				dueDateEnd,
+				hasParent,
+				page,
+				limit
+			},
+			// Default permissions if loading failed
+			...getUserPermissions(locals),
+			loadedAt: new Date().toISOString(),
+			error: errorResponse.userMessage
+		};
 	}
 };
 

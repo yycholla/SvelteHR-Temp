@@ -156,11 +156,10 @@
 
 	// Handle RSVP with recurring event scope and conflicts
     // This is passed as the onRsvpUpdate prop to EventDetailsView (via an adapter if needed)
-	async function handleRsvpChange(eventId: string, newStatus: RsvpStatus) {
-        // Note: eventId arg is passed by RSVPButton but we use local `event` derived from props for context
-        // We ignore eventId param and use closure `event` to ensure consistency? 
-        // Actually, using `event` from props is safer.
-        
+	async function handleRsvpChange(newStatus: RsvpStatus) {
+        // Note: RSVPButton only passes newStatus, not eventId
+        // We use local `event` from props/closure for event context
+
 		if (!event) return;
 
 		// If recurring event, show scope dialog
@@ -204,6 +203,13 @@
 	}
 
 	async function updateRsvpStatus(newStatus: RsvpStatus, scope: 'this_event' | 'this_and_future' | 'all_events') {
+		console.log('[EventDetailsDialog] updateRsvpStatus called with:', {
+			newStatus,
+			statusType: typeof newStatus,
+			scope,
+			eventId: event?.id
+		});
+
 		if (!event) return;
 
 		const userAttendee = event.attendees?.find(
@@ -214,6 +220,13 @@
 		formData.append('eventId', event.id);
 		formData.append('status', newStatus);
 		formData.append('scope', scope);
+
+		console.log('[EventDetailsDialog] FormData created:', {
+			eventId: formData.get('eventId'),
+			status: formData.get('status'),
+			scope: formData.get('scope'),
+			attendeeId: formData.get('attendeeId')
+		});
 
 		if (userAttendee) {
 			formData.append('attendeeId', userAttendee.id);

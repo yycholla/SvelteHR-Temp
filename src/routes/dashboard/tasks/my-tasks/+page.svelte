@@ -63,11 +63,14 @@
 	// Sorting is handled by TaskList now
 	const filteredTasks = $derived((() => {
 		let result = data?.tasks || [];
+        
+        if (!Array.isArray(result)) return [];
 
 		// Search filter
 		if (searchQuery) {
 			const searchLower = searchQuery.toLowerCase();
 			result = result.filter((task: any) => {
+                if (!task) return false;
 				const title = task.title?.toLowerCase() || '';
 				const description = task.description?.toLowerCase() || '';
 				return title.includes(searchLower) || description.includes(searchLower);
@@ -76,12 +79,12 @@
 
 		// Status filter (if applied locally)
 		if (selectedStatus !== 'all') {
-			result = result.filter((task: any) => task.status === selectedStatus);
+			result = result.filter((task: any) => task && task.status === selectedStatus);
 		}
 
 		// Priority filter (if applied locally)
 		if (selectedPriority !== 'all') {
-			result = result.filter((task: any) => task.priority === selectedPriority);
+			result = result.filter((task: any) => task && task.priority === selectedPriority);
 		}
 
 		return result;
@@ -241,12 +244,8 @@
 		}
 	}
 
-	// Mock upcoming events (placeholder until backend integration)
-	const upcomingEvents = [
-		{ time: '10:00 AM', title: 'Team Standup', type: 'meeting' },
-		{ time: '2:00 PM', title: 'Design Review', type: 'meeting' },
-		{ time: '4:00 PM', title: 'Project Sync', type: 'meeting' }
-	];
+	// Today's events from server (filtered by RSVP status: accepted, tentative, pending)
+	const upcomingEvents = $derived(data?.todayEvents || []);
 </script>
 
 <svelte:head>
@@ -441,24 +440,31 @@
 			<!-- 4. Upcoming / Schedule (Bottom Right - Spans 4 cols) -->
 			<div class="col-span-1 md:col-span-4 rounded-xl border bg-card p-5 shadow-sm h-full min-h-[300px]">
 				<h3 class="mb-4 font-semibold">Today's Schedule</h3>
-				<div class="relative border-l border-muted pl-6 space-y-6">
-					{#each upcomingEvents as event}
-						<div class="relative">
-							<span class="absolute -left-[29px] top-1 h-3 w-3 rounded-full border-2 border-background bg-primary ring-4 ring-background"></span>
-							<div class="flex flex-col gap-1">
-								<span class="text-xs font-medium text-muted-foreground">{event.time}</span>
-								<span class="text-sm font-medium">{event.title}</span>
+				{#if upcomingEvents.length > 0}
+					<div class="relative border-l border-muted pl-6 space-y-6">
+						{#each upcomingEvents as event}
+							<div class="relative">
+								<span class="absolute -left-[29px] top-1 h-3 w-3 rounded-full border-2 border-background bg-primary ring-4 ring-background"></span>
+								<div class="flex flex-col gap-1">
+									<span class="text-xs font-medium text-muted-foreground">
+										{event.isAllDay ? 'All Day' : event.time}
+									</span>
+									<span class="text-sm font-medium">{event.title}</span>
+									{#if event.location}
+										<span class="text-xs text-muted-foreground">{event.location}</span>
+									{/if}
+								</div>
 							</div>
-						</div>
-					{/each}
-					
-					<!-- Empty State Slot -->
-					<div class="relative pt-4">
-						<div class="rounded-lg border border-dashed p-3 text-center">
-							<span class="text-xs text-muted-foreground">No more events</span>
+						{/each}
+					</div>
+				{:else}
+					<div class="flex h-full items-center justify-center pb-12">
+						<div class="text-center">
+							<CalendarDays class="mx-auto h-12 w-12 text-muted-foreground/50" />
+							<p class="mt-3 text-sm text-muted-foreground">No events scheduled</p>
 						</div>
 					</div>
-				</div>
+				{/if}
 			</div>
 
 			<!-- 5. Quick Notes / Scratchpad (Bottom Right - Spans 4 cols) -->

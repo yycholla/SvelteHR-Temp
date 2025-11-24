@@ -19,7 +19,8 @@
 		Target,
 		Calendar,
 		Clock,
-		Plus
+		Plus,
+		AlertCircle
 	} from '@lucide/svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { goto } from '$app/navigation';
@@ -32,8 +33,8 @@
 	// Page data from server
 	let { data } = $props();
 
-	// Get task data
-	const task = $derived(data.task);
+	// Get task data - safe access with fallback
+	const task = $derived(data?.task);
 
 	// Type definition for metadata
 	type Metadata = {
@@ -60,7 +61,7 @@
 	let hasFile = $state(false);
 
 	// Tags state
-	let tags = $state<string[]>(task.tags || []);
+	let tags = $state<string[]>(task?.tags || []);
 	let newTag = $state('');
 	let isAddingTag = $state(false);
 	let isUpdatingTags = $state(false);
@@ -71,22 +72,22 @@
 
 	// Determine user permissions for assignee selection
 	const canAssignToAnyone = $derived(
-		data.user.role === 'hr_admin' ||
-			data.user.role === 'system_admin' ||
-			data.user.role === 'super_admin'
+		data?.user?.role === 'hr_admin' ||
+			data?.user?.role === 'system_admin' ||
+			data?.user?.role === 'super_admin'
 	);
-	const canAssignToTeam = $derived(data.user.role === 'manager');
+	const canAssignToTeam = $derived(data?.user?.role === 'manager');
 	const canAssign = $derived(canAssignToAnyone || canAssignToTeam);
 
 	// Derived state for progress
 	const subtaskProgress = $derived.by(() => {
-		if (!task.subtasks || task.subtasks.length === 0) return 0;
+		if (!task?.subtasks || task.subtasks.length === 0) return 0;
 		const completed = task.subtasks.filter((st: Task) => st.status === 'DONE' || st.status === 'COMPLETED').length;
 		return Math.round((completed / task.subtasks.length) * 100);
 	});
 
 	const completedSubtasksCount = $derived.by(() => {
-		if (!task.subtasks) return 0;
+		if (!task?.subtasks) return 0;
 		return task.subtasks.filter((st: Task) => st.status === 'DONE' || st.status === 'COMPLETED').length;
 	});
 
@@ -261,20 +262,38 @@
 
 	// Navigation
 	function handleEditClick() {
-		goto(`/dashboard/tasks/${task.id}/edit`);
+		if (task) {
+			goto(`/dashboard/tasks/${task.id}/edit`);
+		}
 	}
 
 	// Derived configs
-	const currentStatus = $derived(statusConfig[task.status as keyof typeof statusConfig] || statusConfig.TODO);
-	const currentPriority = $derived(priorityConfig[task.priority as keyof typeof priorityConfig] || priorityConfig.MEDIUM);
+	const currentStatus = $derived(task ? (statusConfig[task.status as keyof typeof statusConfig] || statusConfig.TODO) : statusConfig.TODO);
+	const currentPriority = $derived(task ? (priorityConfig[task.priority as keyof typeof priorityConfig] || priorityConfig.MEDIUM) : priorityConfig.MEDIUM);
 </script>
 
 <svelte:head>
-	<title>{task.title} - Task Details - MountainHR</title>
-	<meta name="description" content={task.description || 'Task details'} />
+	<title>{task?.title || 'Task Not Found'} - Task Details - MountainHR</title>
+	<meta name="description" content={task?.description || 'Task details'} />
 </svelte:head>
 
 <div class="min-h-screen bg-background p-4 md:p-8">
+	{#if !task}
+		<div class="mx-auto max-w-md text-center py-12 space-y-4">
+			<div class="bg-muted rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4">
+				<AlertCircle class="h-8 w-8 text-muted-foreground" />
+			</div>
+			<h1 class="text-2xl font-bold">Task Not Found</h1>
+			<p class="text-muted-foreground">
+				The task you are looking for does not exist or you do not have permission to view it.
+			</p>
+			<div class="pt-4">
+				<Button href="/dashboard/tasks/my-tasks" variant="outline">
+					Back to My Tasks
+				</Button>
+			</div>
+		</div>
+	{:else}
 	<div class="mx-auto max-w-7xl space-y-8">
 		<!-- Breadcrumb / Header Area -->
 		<div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -718,4 +737,5 @@
 			</div>
 		</div>
 	</div>
+	{/if}
 </div>

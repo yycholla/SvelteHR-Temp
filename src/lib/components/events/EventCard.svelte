@@ -32,6 +32,20 @@
 	let eventTypeLabel = $derived(EVENT_TYPE_LABELS[event.eventType] || event.eventType);
 	let timeRange = $derived(formatEventTimeRange(event.startTime, event.endTime, event.allDay));
 
+	// Get hex color based on RSVP status (4 distinct colors)
+	function getRsvpStatusHexColor(status: RsvpStatus | null): string {
+		const colorMap: Record<RsvpStatus, string> = {
+			accepted: '#22c55e',   // Green
+			declined: '#ef4444',   // Red
+			tentative: '#f59e0b',  // Amber/Orange
+			pending: '#3b82f6'     // Blue
+		};
+		return status ? colorMap[status] : '#94a3b8'; // Default gray for no status
+	}
+
+	// Border color based on RSVP status
+	let borderColor = $derived(getRsvpStatusHexColor(userRsvpStatus));
+
 	function handleClick() {
 		if (onClick) {
 			onClick();
@@ -57,8 +71,8 @@
 	onkeypress={handleKeyPress}
 	data-testid="event-card"
 >
-	<!-- Event Color Indicator -->
-	<div class="absolute left-0 top-0 h-full w-1 rounded-l-lg" style="background-color: {event.color}"></div>
+	<!-- Event Color Indicator (RSVP Status) -->
+	<div class="absolute left-0 top-0 h-full w-1 rounded-l-lg" style="background-color: {borderColor}"></div>
 
 	<!-- Event Header -->
 	<div class="mb-2 flex items-start justify-between pl-3">

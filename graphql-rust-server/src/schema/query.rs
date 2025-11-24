@@ -727,7 +727,8 @@ impl QueryRoot {
 
         // Add user filter if provided
         if let Some(uid) = user_id {
-            query = query.filter(ActivityLogColumn::EmployeeId.eq(uid));
+            // Filter by UserId (actor)
+            query = query.filter(ActivityLogColumn::UserId.eq(uid));
         }
 
         let logs = query
@@ -738,6 +739,23 @@ impl QueryRoot {
             .await?;
 
         Ok(logs)
+    }
+
+    /// Get total count of activity logs with optional user filtering
+    async fn activity_logs_count(
+        &self,
+        ctx: &Context<'_>,
+        user_id: Option<Uuid>,
+    ) -> Result<i64> {
+        let db = get_db_from_context(ctx)?;
+        let mut query = ActivityLogEntity::find();
+
+        if let Some(uid) = user_id {
+             query = query.filter(ActivityLogColumn::UserId.eq(uid));
+        }
+        
+        let count = query.count(&db).await?;
+        Ok(count as i64)
     }
 
     /// Get a single activity log by ID

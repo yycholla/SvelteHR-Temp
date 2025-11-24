@@ -7,6 +7,7 @@ import { error, redirect, fail } from '@sveltejs/kit';
 import { EventsOperations } from '$lib/graphql/events-operations';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
+import { normalizeRsvpStatus } from '$lib/graphql/types';
 
 export const load: PageServerLoad = async ({ params, locals, url, cookies }) => {
 	// Check authentication and permissions
@@ -55,7 +56,15 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 		// NOTE: Using Rust GraphQL schema - direct array access (no .nodes wrapper)
 		const attendees = event.eventAttendees || event.attendees || [];
 		const userAttendee = attendees.find((a: any) => a.employeeId === locals.user.id);
-		const userRsvpStatus = userAttendee?.responseStatus || 'no_response';
+		// Debug: Log the raw response status before normalization
+		console.log('[SERVER LOAD] Raw responseStatus from GraphQL:', {
+			userAttendeeExists: !!userAttendee,
+			rawStatus: userAttendee?.responseStatus,
+			statusType: typeof userAttendee?.responseStatus
+		});
+		// Normalize RSVP status to ensure it's a valid backend enum value
+		const userRsvpStatus = normalizeRsvpStatus(userAttendee?.responseStatus);
+		console.log('[SERVER LOAD] Normalized status:', userRsvpStatus);
 
 		// Check if user is the organizer
 		const isOrganizer = event.organizerId === locals.user.id;
@@ -70,8 +79,6 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 			declined: attendees.filter((a: any) => a.responseStatus === 'declined').length || 0,
 			tentative: attendees.filter((a: any) => a.responseStatus === 'tentative').length || 0,
 			pending: attendees.filter((a: any) => a.responseStatus === 'pending').length || 0,
-			noResponse:
-				attendees.filter((a: any) => a.responseStatus === 'no_response').length || 0,
 			total: attendees.length || 0
 		};
 
