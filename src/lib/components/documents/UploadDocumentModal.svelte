@@ -101,7 +101,8 @@
 		}
 	}
 
-	async function handleSubmit() {
+	async function handleSubmit(event: Event) {
+		event.preventDefault(); // Prevent default form submission
 		if (!file || !fileContentBase64 || !iv) {
 			toast.error('Please select a file and ensure it is processed.');
 			return;
@@ -174,7 +175,7 @@
 			</Dialog.Description>
 		</Dialog.Header>
 
-		<form onsubmit|preventDefault={handleSubmit} class="space-y-4">
+		<form on:submit={handleSubmit} class="space-y-4">
 			<!-- File Drop Zone -->
 			<div
 				class="relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition-colors {dragActive
