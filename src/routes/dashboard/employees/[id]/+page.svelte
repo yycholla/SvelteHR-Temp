@@ -5,6 +5,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
 	import AssignDocumentsModal from '$lib/components/employees/AssignDocumentsModal.svelte';
+	import UploadDocumentModal from '$lib/components/documents/UploadDocumentModal.svelte';
 	import AddEmergencyContactModal, {
 		type EmergencyContactInput
 	} from '$lib/components/employees/AddEmergencyContactModal.svelte';
@@ -40,6 +41,7 @@
 		User,
 		UserPlus,
 		Users,
+		Upload, // Added Upload icon
 		XCircle
 	} from '@lucide/svelte';
 	import { confirmService } from '$lib/stores/confirm.svelte';
@@ -70,6 +72,7 @@
 	let isSavingVehicle = $state(false);
 	let editingVehicle = $state<any>(null);
 	let isUnassigningDocument = $state(false);
+	let isUploadDocumentModalOpen = $state(false);
 
 	// Handle document assignment
 	async function handleAssignDocuments(documentIds: string[]) {
@@ -151,6 +154,12 @@
 		} finally {
 			isUnassigningDocument = false;
 		}
+	}
+
+	// Handle upload document success
+	function handleUploadDocumentSuccess() {
+		isUploadDocumentModalOpen = false;
+		window.location.reload();
 	}
 
 	// Handle emergency contact save (create or update)
@@ -759,12 +768,22 @@
 						>
 					{/if}
 					{#if permissions.canAssignDocuments}
-						<button
-							onclick={() => (isAssignDocsModalOpen = true)}
-							class="rounded-md bg-secondary p-1.5 text-xs transition-colors hover:bg-secondary/80"
-						>
-							<Plus class="h-3 w-3" />
-						</button>
+						<div class="flex gap-1">
+							<button
+								onclick={() => (isUploadDocumentModalOpen = true)}
+								class="rounded-md bg-secondary p-1.5 text-xs transition-colors hover:bg-secondary/80"
+								title="Upload new document for this employee"
+							>
+								<Upload class="h-3 w-3" />
+							</button>
+							<button
+								onclick={() => (isAssignDocsModalOpen = true)}
+								class="rounded-md bg-secondary p-1.5 text-xs transition-colors hover:bg-secondary/80"
+								title="Assign existing document to this employee"
+							>
+								<Plus class="h-3 w-3" />
+							</button>
+						</div>
 					{/if}
 				</div>
 
@@ -1057,5 +1076,15 @@
 		onSave={handleSaveVehicle}
 		onClose={() => (isVehicleModalOpen = false)}
 		isSubmitting={isSavingVehicle}
+	/>
+{/if}
+
+<!-- Upload Document Modal -->
+{#if permissions.canAssignDocuments}
+	<UploadDocumentModal
+		isOpen={isUploadDocumentModalOpen}
+		onClose={() => (isUploadDocumentModalOpen = false)}
+		onSuccess={handleUploadDocumentSuccess}
+		assignToEmployees={[employee.id]}
 	/>
 {/if}
