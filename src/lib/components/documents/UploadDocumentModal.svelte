@@ -175,7 +175,7 @@
 			</Dialog.Description>
 		</Dialog.Header>
 
-		<form on:submit={handleSubmit} class="space-y-4">
+		<form onsubmit={handleSubmit} class="space-y-4">
 			<!-- File Drop Zone -->
 			<div
 				class="relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition-colors {dragActive
