@@ -11,7 +11,7 @@ use crate::{
     database::get_db_from_context,
     error::AppError,
     schema::mutations::{
-        AuthMutations, UserMutations, DepartmentMutations, TaskMutations, RbacMutations, TimeMutations, EmployeeMutations,
+        AuthMutations, UserMutations, DepartmentMutations, TaskMutations, RbacMutations, TimeMutations, EmployeeMutations, EmployeeImportMutations,
         // Import auth types to avoid naming conflicts
         auth::{LoginInput, AuthResponse, LogoutResult, RefreshSessionResponse},
     },
@@ -4170,5 +4170,10 @@ impl MutationRoot {
     /// Rollback execution and snapshot operations
     async fn rollback(&self) -> crate::schema::mutations::RollbackMutations {
         crate::schema::mutations::RollbackMutations
+    }
+
+    /// Employee import operations (CSV upload, mapping, commit)
+    async fn employee_import(&self) -> EmployeeImportMutations {
+        EmployeeImportMutations
     }
 }

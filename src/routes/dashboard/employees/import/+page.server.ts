@@ -1,15 +1,17 @@
-// Server-side CSV employee import handling
-// Follows RBAC patterns with server-side GraphQL mutation calls
-
 import type { PageServerLoad, Actions } from './$types';
-import { error, fail } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals } = event;
 
 	// Check authentication and permissions (requires employees:write)
 	PermissionChecks.employeeWrite(event);
+
+	if (!locals.user) {
+		return fail(401, { error: 'Unauthorized' });
+	}
 
 	const userPermissions = getUserPermissions(locals);
 
@@ -30,120 +32,165 @@ export const load: PageServerLoad = async (event) => {
 };
 
 export const actions: Actions = {
-	importEmployees: async (event) => {
-		const { request } = event;
-
-		// Check authentication and permissions
-		PermissionChecks.employeeWrite(event);
-
+	upload: async (event) => {
+		const { request, locals } = event;
+		const userId = locals.user?.id || 'unknown';
+		
 		try {
+			PermissionChecks.employeeWrite(event);
+
 			const formData = await request.formData();
 			const csvContent = formData.get('csvContent') as string;
-			const temporaryPassword = formData.get('temporaryPassword') as string;
 
 			if (!csvContent) {
-				return fail(400, {
-					error: 'CSV content is required',
-					success: false
-				});
+				logger.warn('CSV import failed: No content provided', { userId });
+				return fail(400, { error: 'CSV content is required' });
 			}
 
-			if (!temporaryPassword || temporaryPassword.length < 8) {
-				return fail(400, {
-					error: 'Temporary password must be at least 8 characters',
-					success: false
-				});
-			}
+			logger.info('Starting CSV upload', { userId, size: csvContent.length });
 
-			// Make GraphQL mutation to Rust backend
 			const { getGraphQLEndpoint } = await import('$lib/server/api-url');
-			const graphqlEndpoint = getGraphQLEndpoint();
-
-			const cookieHeader = event.request.headers.get('cookie') || '';
-			const headers: Record<string, string> = {
-				'Content-Type': 'application/json',
-				'Cookie': cookieHeader
-			};
-
-			console.log('[Employee Import] Starting bulk import via GraphQL mutation');
-
-			const response = await fetch(graphqlEndpoint, {
+			const response = await fetch(getGraphQLEndpoint(), {
 				method: 'POST',
-				headers,
+				headers: { 'Content-Type': 'application/json', 'Cookie': event.request.headers.get('cookie') || '' },
 				body: JSON.stringify({
-					query: `
-						mutation ImportEmployees($input: ImportEmployeesInput!) {
-							users {
-								importEmployees(input: $input) {
-									totalRows
-									successful
-									failed
-									results {
-										rowNumber
-										success
-										employeeId
-										name
-										email
-										error
-									}
+					query: `mutation Upload($input: UploadEmployeeImportInput!) {
+						employeeImport {
+							uploadEmployeeImport(input: $input) {
+								id
+								totalRows
+								importRows {
+									id
+									rowNumber
+									rawData
 								}
 							}
 						}
-					`,
-					variables: {
-						input: {
-							csvContent,
-							temporaryPassword
-						}
-					}
+					}`,
+					variables: { input: { csvContent } }
 				})
 			});
 
 			if (!response.ok) {
-				console.error('[Employee Import] GraphQL request failed:', response.statusText);
-				return fail(500, {
-					error: `Import failed: ${response.statusText}`,
-					success: false
-				});
+				logger.error('GraphQL request failed for CSV upload', undefined, { userId, status: response.status });
+				return fail(500, { error: 'Failed to communicate with backend' });
 			}
 
 			const result = await response.json();
+			if (result.errors) {
+				logger.warn('CSV upload GraphQL errors', { userId, errors: result.errors });
+				return fail(400, { error: result.errors[0].message });
+			}
+			
+			logger.info('CSV uploaded successfully', { userId, jobId: result.data.employeeImport.uploadEmployeeImport.id });
+			return { success: true, step: 'mapping', job: result.data.employeeImport.uploadEmployeeImport };
 
-			if (result.errors && result.errors.length > 0) {
-				console.error('[Employee Import] GraphQL errors:', result.errors);
-				const errorMessage = result.errors[0]?.message || 'Import failed';
-				return fail(400, {
-					error: errorMessage,
-					success: false
-				});
+		} catch (err) {
+			logger.error('Unexpected error during CSV upload', err as Error, { userId });
+			return fail(500, { error: 'An internal error occurred during upload' });
+		}
+	},
+
+	validate: async (event) => {
+		const { request, locals } = event;
+		const userId = locals.user?.id || 'unknown';
+
+		try {
+			PermissionChecks.employeeWrite(event);
+
+			const formData = await request.formData();
+			const mappingRaw = formData.get('mapping') as string;
+			
+			if (!mappingRaw) {
+				return fail(400, { error: 'Mapping data missing' });
 			}
 
-			const importResult = result.data?.users?.importEmployees;
+			const mappingInput = JSON.parse(mappingRaw);
+			logger.info('Validating CSV mapping', { userId, jobId: mappingInput.job_id });
 
-			if (!importResult) {
-				return fail(500, {
-					error: 'Unexpected response from server',
-					success: false
-				});
-			}
-
-			console.log(
-				`[Employee Import] Completed: ${importResult.successful} successful, ${importResult.failed} failed`
-			);
-
-			return {
-				success: true,
-				totalRows: importResult.totalRows,
-				successful: importResult.successful,
-				failed: importResult.failed,
-				results: importResult.results
-			};
-		} catch (err: any) {
-			console.error('[Employee Import] Error during import:', err);
-			return fail(500, {
-				error: err.message || 'An unexpected error occurred during import',
-				success: false
+			const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+			const response = await fetch(getGraphQLEndpoint(), {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', 'Cookie': event.request.headers.get('cookie') || '' },
+				body: JSON.stringify({
+					query: `mutation Validate($input: ImportMappingInput!) {
+						employeeImport {
+							validateEmployeeImport(input: $input) {
+								id
+								validRows
+								errorRows
+								importRows {
+									id
+									rowNumber
+									status
+									parsedData
+									validationErrors
+									rawData
+								}
+							}
+						}
+					}`,
+					variables: { input: mappingInput }
+				})
 			});
+
+			const result = await response.json();
+			if (result.errors) {
+				logger.warn('CSV validation errors', { userId, errors: result.errors });
+				return fail(400, { error: result.errors[0].message });
+			}
+
+			return { success: true, step: 'preview', job: result.data.employeeImport.validateEmployeeImport };
+
+		} catch (err) {
+			logger.error('Unexpected error during CSV validation', err as Error, { userId });
+			return fail(500, { error: 'Validation failed unexpectedly' });
+		}
+	},
+
+	commit: async (event) => {
+		const { request, locals } = event;
+		const userId = locals.user?.id || 'unknown';
+
+		try {
+			PermissionChecks.employeeWrite(event);
+
+			const formData = await request.formData();
+			const jobId = formData.get('jobId') as string;
+			const temporaryPassword = formData.get('temporaryPassword') as string;
+
+			logger.info('Committing CSV import', { userId, jobId });
+
+			const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+			const response = await fetch(getGraphQLEndpoint(), {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', 'Cookie': event.request.headers.get('cookie') || '' },
+				body: JSON.stringify({
+					query: `mutation Commit($input: CommitEmployeeImportInput!) {
+						employeeImport {
+							commitEmployeeImport(input: $input) {
+								id
+								status
+								completedAt
+							}
+						}
+					}`,
+					variables: { input: { jobId, temporaryPassword } }
+				})
+			});
+
+			const result = await response.json();
+			if (result.errors) {
+				logger.warn('CSV commit errors', { userId, errors: result.errors });
+				return fail(400, { error: result.errors[0].message });
+			}
+
+			logger.info('CSV import committed successfully', { userId, jobId });
+			return { success: true, step: 'complete', job: result.data.employeeImport.commitEmployeeImport };
+
+		} catch (err) {
+			logger.error('Unexpected error during CSV commit', err as Error, { userId });
+			return fail(500, { error: 'Failed to commit import' });
 		}
 	}
 };

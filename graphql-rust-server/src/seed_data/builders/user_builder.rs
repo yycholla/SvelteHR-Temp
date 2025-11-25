@@ -100,6 +100,9 @@ pub async fn seed_users(
             full_name: sea_orm::NotSet,   // GENERATED column (computed from first_name + last_name)
             phone_number: Set(Some(phone)),
             alternate_phone: Set(None),
+            mobile_number: Set(None),
+            nickname: Set(None),
+            social_media_release: Set(false),
             job_title: Set(Some(generate_job_title(i))),
             status: Set(Some("active".to_string())),
             department_id: Set(Some(department_id)),
@@ -112,6 +115,7 @@ pub async fn seed_users(
             last_login: Set(None),
             theme_preference: Set("system".to_string()),
             force_password_change: Set(false),
+            birth_date: Set(None),
             created_at: Set(now),
             updated_at: Set(now),
             deleted_at: Set(None),

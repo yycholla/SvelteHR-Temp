@@ -1,22 +1,36 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
+	import { toast } from 'svelte-sonner';
+	import * as Dialog from '$lib/components/ui/dialog';
+	import { Label } from '$lib/components/ui/label';
+	import { Button } from '$lib/components/ui/button';
+	import { FileText, Upload, Calendar as CalendarIcon } from '@lucide/svelte';
+	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
 
 	interface Props {
 		isOpen: boolean;
 		onClose: () => void;
 		onSuccess?: () => void;
-		assignToEmployees?: string[]; // New prop for auto-assignment
+		assignToEmployees?: string[]; // Pre-assigned employees (e.g. from profile)
+		employees?: { id: string; displayName: string }[]; // List of all employees for selection
 	}
 
-	let { isOpen, onClose, onSuccess, assignToEmployees = [] }: Props = $props();
+	const { 
+		isOpen, 
+		onClose, 
+		onSuccess, 
+		assignToEmployees = [], 
+		employees = [] 
+	}: Props = $props();
 
 	let isUploading = $state(false);
 	let file = $state<File | null>(null);
 	let category = $state('Other');
 	let sensitivityLevel = $state('Internal');
+	let expirationDate = $state('');
+	let selectedEmployeeIds = $state<string[]>([]);
 	let dragActive = $state(false);
 	let fileContentBase64 = $state<string | null>(null); // To store base64 content
-	let iv = $state<number[] | null>(null); // To store IV, will be generated or mocked for now
+	let iv = $state<number[] | null>(null); // To store IV
 
 	// Reset form when modal opens/closes
 	$effect(() => {
@@ -24,35 +38,32 @@
 			file = null;
 			category = 'Other';
 			sensitivityLevel = 'Internal';
+			expirationDate = '';
+			selectedEmployeeIds = [];
 			isUploading = false;
 			fileContentBase64 = null;
 			iv = null;
+		} else {
+			// If pre-assigned, sync them (optional, but good for consistency if we wanted to show them)
+			// But here we only show the selector if assignToEmployees is empty.
 		}
 	});
+
+	// Prepare options for MultiSearchInput
+	const employeeOptions = $derived(
+		employees.map(e => ({ value: e.id, label: e.displayName }))
+	);
 
 	// Handle file selection and base64 encoding
 	async function handleFileSelected(selectedFile: File) {
 		file = selectedFile;
-		isUploading = true; // Temporarily show uploading state while processing file
+		isUploading = true; 
 		try {
 			// Read file as ArrayBuffer for encryption/base64
 			const arrayBuffer = await file.arrayBuffer();
-
-			// For simplicity and demonstration, we'll base64 encode directly.
-			// Real encryption would happen here on client or server.
-			// Given the backend expects `encryptedData` and `iv`,
-			// and `encryptionKeyId`, it implies client-side encryption.
-			// For this task, I will mock `encryptedData` and `iv` and assume the backend handles actual encryption logic
-			// if it's merely a placeholder for client-side encryption.
-			// If it's *not* a placeholder and client-side encryption is truly expected, this is a large feature.
-			// Let's make an executive decision: for *adding the button*, the actual encryption logic is out of scope.
-			// I'll base64 encode the file content and pass it as `encryptedData`, and mock IV.
-			// A real system would perform AES-GCM encryption here.
-
 			const base64String = await new Promise<string>((resolve, reject) => {
 				const reader = new FileReader();
 				reader.onload = () => {
-					// The result contains "data:mime/type;base64,..."
 					const result = reader.result as string;
 					resolve(result.split(',')[1]); // Extract only the base64 part
 				};
@@ -60,28 +71,21 @@
 				reader.readAsDataURL(file as Blob);
 			});
 			fileContentBase64 = base64String;
-
-			// Mock IV for now. In a real scenario, this would be generated during encryption.
-			// The backend mutation `UploadDocumentInput` expects `iv: Vec<u8>`.
-			// So, I'll send a dummy array of numbers.
-			iv = Array.from({ length: 12 }, () => Math.floor(Math.random() * 256)); // 12-byte IV for AES-GCM
-
+			iv = Array.from({ length: 12 }, () => Math.floor(Math.random() * 256)); // Mock IV
 		} catch (error) {
 			console.error('Error processing file:', error);
-			toast.error('File processing failed', {
-				description: 'Could not read or prepare the file for upload.'
-			});
+			toast.error('File processing failed');
 			file = null;
 			fileContentBase64 = null;
 		} finally {
-			isUploading = false; // Reset uploading state after processing file
+			isUploading = false; 
 		}
 	}
 
 	function handleDrop(e: DragEvent) {
 		e.preventDefault();
 		dragActive = false;
-		if (e.dataTransfer?.files && e.dataTransfer.files[0]) {
+		if (e.dataTransfer?.files?.[0]) {
 			handleFileSelected(e.dataTransfer.files[0]);
 		}
 	}
@@ -104,7 +108,7 @@
 	}
 
 	async function handleSubmit(event: Event) {
-		event.preventDefault(); // Prevent default form submission
+		event.preventDefault();
 		if (!file || !fileContentBase64 || !iv) {
 			toast.error('Please select a file and ensure it is processed.');
 			return;
@@ -112,9 +116,10 @@
 
 		isUploading = true;
 		try {
-			// Find a suitable encryption key ID. For now, use a placeholder or assume a default.
-			// In a real application, this would involve fetching available keys.
-			const encryptionKeyId = '00000000-0000-0000-0000-000000000001'; // Placeholder/default
+			const encryptionKeyId = '00000000-0000-0000-0000-000000000001'; // Placeholder
+
+			// Combine pre-assigned and selected employees
+			const finalAssignees = [...assignToEmployees, ...selectedEmployeeIds];
 
 			const response = await fetch('/api/documents/upload', {
 				method: 'POST',
@@ -123,14 +128,15 @@
 				},
 				body: JSON.stringify({
 					filename: file.name,
-					fileType: file.type || 'application/octet-stream', // Fallback for unknown types
+					fileType: file.type || 'application/octet-stream',
 					fileSizeBytes: file.size,
 					encryptedData: fileContentBase64,
-					encryptionKeyId: encryptionKeyId,
-					iv: iv,
-					category: category,
-					sensitivityLevel: sensitivityLevel,
-					assignToEmployees: assignToEmployees // Pass the new prop here
+					encryptionKeyId,
+					iv,
+					category,
+					sensitivityLevel,
+					expirationDate: expirationDate ? new Date(expirationDate).toISOString() : null,
+					assignToEmployees: finalAssignees
 				})
 			});
 
@@ -143,7 +149,6 @@
 			toast.success('Document uploaded successfully');
 			onSuccess?.();
 			onClose();
-
 		} catch (error) {
 			console.error('Upload error:', error);
 			toast.error('Upload failed', {
@@ -168,74 +173,82 @@
 	const sensitivities = ['Public', 'Internal', 'Confidential', 'Sensitive-PII'];
 </script>
 
-{#if browser}
-	<Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
-		<Dialog.Content class="sm:max-w-[500px]">
-			<Dialog.Header>
-				<Dialog.Title>Upload Document</Dialog.Title>
-				<Dialog.Description>
-					Securely upload and encrypt a new document.
-				</Dialog.Description>
-			</Dialog.Header>
+<Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+	<Dialog.Content class="sm:max-w-[600px]">
+		<Dialog.Header>
+			<Dialog.Title>Upload Document</Dialog.Title>
+			<Dialog.Description>Securely upload and assign a new document.</Dialog.Description>
+		</Dialog.Header>
 
-			<form onsubmit={handleSubmit} class="space-y-4">
-				<!-- File Drop Zone -->
-				<div
-					class="relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition-colors {dragActive
-						? 'border-primary bg-primary/5'
-						: 'border-muted-foreground/25'}"
-					ondrop={handleDrop}
-					ondragover={handleDragOver}
-					ondragleave={handleDragLeave}
-					role="button"
-					tabindex="0"
-				>
-					{#if file}
-						<div class="flex flex-col items-center gap-2 text-center">
-							<FileText class="h-8 w-8 text-primary" />
-							<div>
-								<p class="text-sm font-medium text-foreground">{file.name}</p>
-								<p class="text-xs text-muted-foreground">
-									{(file.size / 1024 / 1024).toFixed(2)} MB
-								</p>
-							</div>
-							<Button
-								type="button"
-								variant="ghost"
-								size="sm"
-								onclick={(e) => {
-									e.stopPropagation();
-									file = null;
-									fileContentBase64 = null;
-									iv = null;
-								}}
-								class="mt-2 text-destructive hover:text-destructive"
-							>
-								Remove
-							</Button>
+		<form onsubmit={handleSubmit} class="space-y-5">
+			<!-- File Drop Zone -->
+			<div
+				class="relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition-colors {dragActive
+					? 'border-primary bg-primary/5'
+					: 'border-muted-foreground/25'}"
+				ondrop={handleDrop}
+				ondragover={handleDragOver}
+				ondragleave={handleDragLeave}
+				role="button"
+				tabindex="0"
+			>
+				{#if file}
+					<div class="flex flex-col items-center gap-2 text-center">
+						<FileText class="h-8 w-8 text-primary" />
+						<div>
+							<p class="text-sm font-medium text-foreground">{file.name}</p>
+							<p class="text-xs text-muted-foreground">
+								{(file.size / 1024 / 1024).toFixed(2)} MB
+							</p>
 						</div>
-					{:else}
-						<div class="flex flex-col items-center gap-2 text-center">
-							<Upload class="h-8 w-8 text-muted-foreground" />
-							<div>
-								<p class="text-sm font-medium text-foreground">
-									Drag & drop or click to browse
-								</p>
-								<p class="text-xs text-muted-foreground">
-									PDF, DOCX, XLSX, PNG up to 50MB
-								</p>
-							</div>
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							onclick={(e) => {
+								e.stopPropagation();
+								file = null;
+								fileContentBase64 = null;
+								iv = null;
+							}}
+							class="mt-2 text-destructive hover:text-destructive"
+						>
+							Remove
+						</Button>
+					</div>
+				{:else}
+					<div class="flex flex-col items-center gap-2 text-center">
+						<Upload class="h-8 w-8 text-muted-foreground" />
+						<div>
+							<p class="text-sm font-medium text-foreground">Drag & drop or click to browse</p>
+							<p class="text-xs text-muted-foreground">PDF, DOCX, XLSX, PNG up to 50MB</p>
 						</div>
-					{/if}
-					<input
-						type="file"
-						name="file"
-						class="absolute inset-0 cursor-pointer opacity-0"
-						onchange={handleFileSelect}
-						accept=".pdf,.docx,.xlsx,.png,.jpeg,.jpg,.txt,.csv"
-						disabled={isUploading}
-					/>
-				</div>
+					</div>
+				{/if}
+				<input
+					type="file"
+					name="file"
+					class="absolute inset-0 cursor-pointer opacity-0"
+					onchange={handleFileSelect}
+					accept=".pdf,.docx,.xlsx,.png,.jpeg,.jpg,.txt,.csv"
+					disabled={isUploading}
+				/>
+			</div>
+
+			<div class="grid gap-4">
+				<!-- Employee Assignment (Only if not pre-assigned) -->
+				{#if assignToEmployees.length === 0}
+					<div class="space-y-2">
+						<Label>Assign to Employees</Label>
+						<MultiSearchInput
+							bind:searchTerms={selectedEmployeeIds}
+							options={employeeOptions}
+							placeholder="Search and select employees..."
+							allowCustomTerms={false}
+						/>
+						<p class="text-xs text-muted-foreground">Leave empty to upload without assignment.</p>
+					</div>
+				{/if}
 
 				<!-- Metadata Fields -->
 				<div class="grid grid-cols-2 gap-4">
@@ -246,9 +259,9 @@
 								name="category"
 								id="category"
 								bind:value={category}
-								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
 							>
-								{#each categories as cat}
+								{#each categories as cat (cat)}
 									<option value={cat}>{cat}</option>
 								{/each}
 							</select>
@@ -262,9 +275,9 @@
 								name="sensitivityLevel"
 								id="sensitivityLevel"
 								bind:value={sensitivityLevel}
-								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
 							>
-								{#each sensitivities as level}
+								{#each sensitivities as level (level)}
 									<option value={level}>{level}</option>
 								{/each}
 							</select>
@@ -272,15 +285,29 @@
 					</div>
 				</div>
 
-				<Dialog.Footer class="pt-2">
-					<Button type="button" variant="outline" onclick={onClose} disabled={isUploading}>
-						Cancel
-					</Button>
-					<Button type="submit" disabled={!file || isUploading || !fileContentBase64}>
-						{isUploading ? 'Encrypting & Uploading...' : 'Upload'}
-					</Button>
-				</Dialog.Footer>
-			</form>
-		</Dialog.Content>
-	</Dialog.Root>
-{/if}
+				<!-- Expiration Date -->
+				<div class="space-y-2">
+					<Label for="expirationDate">Expiration Date (Optional)</Label>
+					<div class="relative">
+						<input
+							type="date"
+							id="expirationDate"
+							bind:value={expirationDate}
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+						/>
+						<CalendarIcon class="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+					</div>
+				</div>
+			</div>
+
+			<Dialog.Footer class="pt-2">
+				<Button type="button" variant="outline" onclick={onClose} disabled={isUploading}>
+					Cancel
+				</Button>
+				<Button type="submit" disabled={!file || isUploading || !fileContentBase64}>
+					{isUploading ? 'Uploading...' : 'Upload Document'}
+				</Button>
+			</Dialog.Footer>
+		</form>
+	</Dialog.Content>
+</Dialog.Root>

@@ -505,6 +505,11 @@
 </svelte:head>
 
 <div class="container mx-auto max-w-7xl p-6 md:p-10">
+	{#if !employee}
+		<div class="flex h-[50vh] items-center justify-center">
+			<div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+		</div>
+	{:else}
 	<!-- Top Navigation / Breadcrumbs -->
 	<div class="mb-8 flex items-center justify-between">
 		<div class="flex items-center gap-2 text-sm text-muted-foreground">
@@ -1038,6 +1043,7 @@
 			{/if}
 		</div>
 	</div>
+	{/if}
 </div>
 
 <!-- Assign Documents Modal -->

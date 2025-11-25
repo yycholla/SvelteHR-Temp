@@ -9,6 +9,8 @@ pub mod employee_vehicle;
 pub mod emergency_contact;
 pub mod employee_goal;
 pub mod user_address;
+pub mod import_job;
+pub mod import_row;
 
 // Re-exports for convenient access
 pub use employee_skill::{

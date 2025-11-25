@@ -54,7 +54,7 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 		const allAssignments = response.data?.documents?.flatMap((doc: any) => doc.assignments || []) || [];
 		const uniqueUserIds = [...new Set(allAssignments.map((a: any) => a.userId))];
 
-		const [totalCount, assigneeMap] = await dbTransaction(async (dbClient) => {
+		const transactionResult = await dbTransaction(async (dbClient) => {
 			await setDbClaims(dbClient, userId, userPermissions);
 
 			// Get document count
@@ -86,8 +86,23 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 				});
 			}
 
-			return [count, userMap];
+			// Load ALL active employees for the assignment dropdown
+			const allEmployeesResult = await dbClient.query(
+				`SELECT id, display_name
+				 FROM hr_public.users
+				 WHERE is_active = true
+				 ORDER BY display_name ASC`
+			);
+			
+			const allEmployees = allEmployeesResult.rows.map(row => ({
+				id: row.id,
+				displayName: row.display_name
+			}));
+
+			return [count, userMap, allEmployees];
 		});
+		
+		const [totalCount, assigneeMap, allEmployees] = transactionResult;
 
 		// Step 7: Transform GraphQL response to match page format
 		const documents = (response.data?.documents || []).map((doc: any) => ({
@@ -132,6 +147,7 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 			filterCategory,
 			searchQuery,
 			assigneeOptions,
+			allEmployees, // New field
 			user: locals.user,
 			userPermissions,
 			totalPages: Math.ceil(totalCount / limit) || 0
