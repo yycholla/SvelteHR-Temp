@@ -118,9 +118,9 @@
 				class="relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition-colors {dragActive
 					? 'border-primary bg-primary/5'
 					: 'border-muted-foreground/25'}"
-				on:drop={handleDrop}
-				on:dragover={handleDragOver}
-				on:dragleave={handleDragLeave}
+				ondrop={handleDrop}
+				ondragover={handleDragOver}
+				ondragleave={handleDragLeave}
 				role="button"
 				tabindex="0"
 			>

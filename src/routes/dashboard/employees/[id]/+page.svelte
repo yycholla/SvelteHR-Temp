@@ -64,10 +64,12 @@
 	let isAssignDocsModalOpen = $state(false);
 	let isAssigningDocs = $state(false);
 	let isAddEmergencyContactModalOpen = $state(false);
-	let isAddingEmergencyContact = $state(false);
+	let isSavingEmergencyContact = $state(false);
+	let editingContact = $state<EmergencyContactInput | null>(null);
 	let isVehicleModalOpen = $state(false);
 	let isSavingVehicle = $state(false);
 	let editingVehicle = $state<any>(null);
+	let isUnassigningDocument = $state(false);
 
 	// Handle document assignment
 	async function handleAssignDocuments(documentIds: string[]) {
@@ -101,30 +103,32 @@
 		}
 	}
 
-	// Handle emergency contact creation
-	async function handleAddEmergencyContact(contact: EmergencyContactInput) {
-		isAddingEmergencyContact = true;
+	// Handle document unassignment
+	async function handleUnassignDocument(assignmentId: string) {
+		const confirmed = await confirmService.ask({
+			title: 'Unassign Document',
+			message:
+				'Are you sure you want to unassign this document from the employee? The document itself will not be deleted.',
+			variant: 'destructive',
+			confirmText: 'Unassign'
+		});
+
+		if (!confirmed) return;
+
+		isUnassigningDocument = true;
 		try {
+			// Use the deleteDocumentAssignment mutation
 			const response = await fetch(`/api/graphql`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					query: `
-						mutation CreateEmergencyContact($input: CreateEmergencyContactInput!) {
-							createEmergencyContact(input: $input) {
-								id
-								name
-								relationship
-								phoneNumber
-								email
-								isPrimary
-								createdAt
-								updatedAt
-							}
+						mutation DeleteDocumentAssignment($id: UUID!) {
+							deleteDocumentAssignment(id: $id)
 						}
 					`,
 					variables: {
-						input: contact
+						id: assignmentId
 					}
 				})
 			});
@@ -135,19 +139,168 @@
 				throw new Error(result.errors[0].message);
 			}
 
-			toast.success('Contact Added', {
-				description: 'Emergency contact added successfully!'
+			toast.success('Document Unassigned', {
+				description: 'Document successfully unassigned from employee.'
 			});
-			isAddEmergencyContactModalOpen = false;
 			window.location.reload();
 		} catch (error) {
-			console.error('Failed to add emergency contact:', error);
+			console.error('Failed to unassign document:', error);
 			toast.error('Action Failed', {
-				description: 'Failed to add emergency contact. Please try again.'
+				description: 'Failed to unassign document. Please try again.'
 			});
 		} finally {
-			isAddingEmergencyContact = false;
+			isUnassigningDocument = false;
 		}
+	}
+
+	// Handle emergency contact save (create or update)
+	async function handleSaveEmergencyContact(contact: EmergencyContactInput) {
+		isSavingEmergencyContact = true;
+		try {
+			const isUpdate = !!contact.id;
+			const mutation = isUpdate
+				? `
+					mutation UpdateEmergencyContact($id: UUID!, $input: UpdateEmergencyContactInput!) {
+						updateEmergencyContact(id: $id, input: $input) {
+							id
+							name
+							relationship
+							phoneNumber
+							email
+							isPrimary
+							updatedAt
+						}
+					}
+				`
+				: `
+					mutation CreateEmergencyContact($input: CreateEmergencyContactInput!) {
+						createEmergencyContact(input: $input) {
+							id
+							name
+							relationship
+							phoneNumber
+							email
+							isPrimary
+							createdAt
+							updatedAt
+						}
+					}
+				`;
+
+			const variables = isUpdate
+				? {
+						id: contact.id,
+						input: {
+							name: contact.name,
+							relationship: contact.relationship,
+							phoneNumber: contact.phoneNumber,
+							email: contact.email,
+							isPrimary: contact.isPrimary
+						}
+					}
+				: {
+						input: {
+							employeeId: contact.employeeId,
+							name: contact.name,
+							relationship: contact.relationship,
+							phoneNumber: contact.phoneNumber,
+							email: contact.email,
+							isPrimary: contact.isPrimary
+						}
+					};
+
+			const response = await fetch(`/api/graphql`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					query: mutation,
+					variables
+				})
+			});
+
+			const result = await response.json();
+
+			if (result.errors) {
+				throw new Error(result.errors[0].message);
+			}
+
+			toast.success(isUpdate ? 'Contact Updated' : 'Contact Added', {
+				description: `Emergency contact ${isUpdate ? 'updated' : 'added'} successfully!`
+			});
+			isAddEmergencyContactModalOpen = false;
+			editingContact = null;
+			window.location.reload();
+		} catch (error) {
+			console.error('Failed to save emergency contact:', error);
+			toast.error('Action Failed', {
+				description: `Failed to ${editingContact ? 'update' : 'add'} emergency contact. Please try again.`
+			});
+		} finally {
+			isSavingEmergencyContact = false;
+		}
+	}
+
+	// Handle emergency contact delete
+	async function handleDeleteEmergencyContact(contactId: string) {
+		const confirmed = await confirmService.ask({
+			title: 'Remove Emergency Contact',
+			message: 'Are you sure you want to remove this emergency contact? This action cannot be undone.',
+			variant: 'destructive',
+			confirmText: 'Remove'
+		});
+
+		if (!confirmed) return;
+
+		try {
+			const response = await fetch(`/api/graphql`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					query: `
+						mutation DeleteEmergencyContact($id: UUID!) {
+							deleteEmergencyContact(id: $id)
+						}
+					`,
+					variables: {
+						id: contactId
+					}
+				})
+			});
+
+			const result = await response.json();
+
+			if (result.errors) {
+				throw new Error(result.errors[0].message);
+			}
+
+			toast.success('Contact Removed', {
+				description: 'Emergency contact removed successfully.'
+			});
+			window.location.reload();
+		} catch (error) {
+			console.error('Failed to delete emergency contact:', error);
+			toast.error('Action Failed', {
+				description: 'Failed to delete emergency contact. Please try again.'
+			});
+		}
+	}
+
+	function openAddEmergencyContactModal() {
+		editingContact = null;
+		isAddEmergencyContactModalOpen = true;
+	}
+
+	function openEditEmergencyContactModal(contact: any) {
+		editingContact = {
+			id: contact.id,
+			employeeId: employee.id,
+			name: contact.name,
+			relationship: contact.relationship,
+			phoneNumber: contact.phoneNumber,
+			email: contact.email,
+			isPrimary: contact.isPrimary
+		};
+		isAddEmergencyContactModalOpen = true;
 	}
 
 	// Handle vehicle save (create or update)
@@ -533,7 +686,7 @@
 				</div>
 				{#if permissions.canManageEmployees || permissions.isViewingSelf}
 					<button
-						onclick={() => (isAddEmergencyContactModalOpen = true)}
+						onclick={openAddEmergencyContactModal}
 						class="rounded-md bg-secondary p-1.5 text-xs transition-colors hover:bg-secondary/80"
 					>
 						<Plus class="h-3 w-3" />
@@ -545,7 +698,7 @@
 				{#if employee.emergencyContacts && employee.emergencyContacts.length > 0}
 					{#each employee.emergencyContacts as contact}
 						<div
-							class="group cursor-pointer rounded-lg border border-border/60 bg-muted/20 p-3 transition-colors hover:bg-muted/40"
+							class="group relative rounded-lg border border-border/60 bg-muted/20 p-3 transition-colors hover:bg-muted/40 min-h-[70px]"
 						>
 							<div class="mb-1 flex items-start justify-between">
 								<p class="text-sm font-medium">{contact.name}</p>
@@ -561,6 +714,27 @@
 								<Phone class="h-3 w-3" />
 								<span>{contact.phoneNumber}</span>
 							</div>
+
+							{#if permissions.canManageEmployees || permissions.isViewingSelf}
+								<div class="absolute bottom-2 right-2 hidden gap-1 group-hover:flex">
+									<Button
+										variant="ghost"
+										size="icon"
+										class="h-6 w-6 hover:text-primary"
+										onclick={() => openEditEmergencyContactModal(contact)}
+									>
+										<Pencil class="h-3.5 w-3.5" />
+									</Button>
+									<Button
+										variant="ghost"
+										size="icon"
+										class="h-6 w-6 hover:text-destructive"
+										onclick={() => handleDeleteEmergencyContact(contact.id)}
+									>
+										<Trash2 class="h-3.5 w-3.5" />
+									</Button>
+								</div>
+							{/if}
 						</div>
 					{/each}
 				{:else}
@@ -570,6 +744,85 @@
 				{/if}
 			</div>
 		</div>
+
+		<!-- Documents (Wide, 2 cols) -->
+		{#if permissions.canViewDocuments}
+			<div class="flex flex-col rounded-xl border bg-card p-5 md:col-span-2">
+				<div class="mb-4 flex items-center justify-between">
+					<div class="flex items-center gap-2 text-muted-foreground">
+						<FileText class="h-4 w-4" />
+						<span class="text-xs font-semibold uppercase tracking-wider">Documents</span>
+					</div>
+					{#if employee.assignedDocuments?.length}
+						<span class="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+							>{employee.assignedDocuments.length} Files</span
+						>
+					{/if}
+					{#if permissions.canAssignDocuments}
+						<button
+							onclick={() => (isAssignDocsModalOpen = true)}
+							class="rounded-md bg-secondary p-1.5 text-xs transition-colors hover:bg-secondary/80"
+						>
+							<Plus class="h-3 w-3" />
+						</button>
+					{/if}
+				</div>
+
+				{#if employee.assignedDocuments && employee.assignedDocuments.length > 0}
+					<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+						{#each employee.assignedDocuments as doc}
+							<div
+								class="group relative flex items-start gap-3 rounded-lg border border-border/50 bg-muted/20 p-3 transition-all hover:bg-muted/40"
+							>
+								<div
+									class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded bg-background text-muted-foreground shadow-sm"
+								>
+									<FileText class="h-4 w-4" />
+								</div>
+								<div class="flex-1 overflow-hidden">
+									<p class="truncate text-sm font-medium" title={doc.filename}>{doc.filename}</p>
+									<div class="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
+										<span class="uppercase">{doc.category || 'General'}</span>
+										<span>•</span>
+										<span>{formatRelativeTime(doc.uploadedAt)}</span>
+									</div>
+								</div>
+
+								<div
+									class="absolute top-2 right-2 hidden items-center gap-1 rounded-md bg-background/80 p-0.5 shadow-sm backdrop-blur-sm group-hover:flex"
+								>
+									<a
+										href="/api/documents/{doc.id}/download"
+										target="_blank"
+										class="flex h-7 w-7 items-center justify-center rounded hover:bg-muted hover:text-primary"
+										title="Download"
+									>
+										<Download class="h-3.5 w-3.5" />
+									</a>
+									{#if permissions.canAssignDocuments}
+										<button
+											onclick={() => handleUnassignDocument(doc.assignmentId)}
+											class="flex h-7 w-7 items-center justify-center rounded hover:bg-muted hover:text-destructive"
+											title="Unassign"
+											disabled={isUnassigningDocument}
+										>
+											<Trash2 class="h-3.5 w-3.5" />
+										</button>
+									{/if}
+								</div>
+							</div>
+						{/each}
+					</div>
+				{:else}
+					<div
+						class="flex h-32 flex-col items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/5"
+					>
+						<FileText class="mb-2 h-6 w-6 text-muted-foreground/40" />
+						<p class="text-xs text-muted-foreground">No documents assigned</p>
+					</div>
+				{/if}
+			</div>
+		{/if}
 
 		<!-- 5. Employment History / Timeline (Wide, 2 cols) -->
 		<div class="rounded-xl border bg-card p-5 md:col-span-2">
@@ -787,9 +1040,10 @@
 		isOpen={isAddEmergencyContactModalOpen}
 		employeeId={employee.id}
 		employeeName={employee.displayName}
-		onSave={handleAddEmergencyContact}
+		initialData={editingContact}
+		onSave={handleSaveEmergencyContact}
 		onClose={() => (isAddEmergencyContactModalOpen = false)}
-		isSubmitting={isAddingEmergencyContact}
+		isSubmitting={isSavingEmergencyContact}
 	/>
 {/if}
 

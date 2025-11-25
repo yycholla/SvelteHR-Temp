@@ -312,6 +312,7 @@ export const load: PageServerLoad = async (event) => {
 				const result = await client.query(
 					`SELECT
 						d.id,
+						da.id as assignment_id,
 						d.title as filename,
 						d.mime_type as file_type,
 						d.file_size as file_size_bytes,
@@ -449,6 +450,7 @@ export const load: PageServerLoad = async (event) => {
 				// Assigned documents
 				assignedDocuments: assignedDocuments.map((doc: any) => ({
 					id: doc.id,
+					assignmentId: doc.assignment_id,
 					filename: doc.filename,
 					fileType: doc.file_type,
 					fileSizeBytes: doc.file_size_bytes,
