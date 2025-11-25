@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
+
 	interface Props {
 		isOpen: boolean;
 		onClose: () => void;
@@ -166,117 +168,119 @@
 	const sensitivities = ['Public', 'Internal', 'Confidential', 'Sensitive-PII'];
 </script>
 
-<Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
-	<Dialog.Content class="sm:max-w-[500px]">
-		<Dialog.Header>
-			<Dialog.Title>Upload Document</Dialog.Title>
-			<Dialog.Description>
-				Securely upload and encrypt a new document.
-			</Dialog.Description>
-		</Dialog.Header>
+{#if browser}
+	<Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+		<Dialog.Content class="sm:max-w-[500px]">
+			<Dialog.Header>
+				<Dialog.Title>Upload Document</Dialog.Title>
+				<Dialog.Description>
+					Securely upload and encrypt a new document.
+				</Dialog.Description>
+			</Dialog.Header>
 
-		<form onsubmit={handleSubmit} class="space-y-4">
-			<!-- File Drop Zone -->
-			<div
-				class="relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition-colors {dragActive
-					? 'border-primary bg-primary/5'
-					: 'border-muted-foreground/25'}"
-				ondrop={handleDrop}
-				ondragover={handleDragOver}
-				ondragleave={handleDragLeave}
-				role="button"
-				tabindex="0"
-			>
-				{#if file}
-					<div class="flex flex-col items-center gap-2 text-center">
-						<FileText class="h-8 w-8 text-primary" />
-						<div>
-							<p class="text-sm font-medium text-foreground">{file.name}</p>
-							<p class="text-xs text-muted-foreground">
-								{(file.size / 1024 / 1024).toFixed(2)} MB
-							</p>
+			<form onsubmit={handleSubmit} class="space-y-4">
+				<!-- File Drop Zone -->
+				<div
+					class="relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition-colors {dragActive
+						? 'border-primary bg-primary/5'
+						: 'border-muted-foreground/25'}"
+					ondrop={handleDrop}
+					ondragover={handleDragOver}
+					ondragleave={handleDragLeave}
+					role="button"
+					tabindex="0"
+				>
+					{#if file}
+						<div class="flex flex-col items-center gap-2 text-center">
+							<FileText class="h-8 w-8 text-primary" />
+							<div>
+								<p class="text-sm font-medium text-foreground">{file.name}</p>
+								<p class="text-xs text-muted-foreground">
+									{(file.size / 1024 / 1024).toFixed(2)} MB
+								</p>
+							</div>
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								onclick={(e) => {
+									e.stopPropagation();
+									file = null;
+									fileContentBase64 = null;
+									iv = null;
+								}}
+								class="mt-2 text-destructive hover:text-destructive"
+							>
+								Remove
+							</Button>
 						</div>
-						<Button
-							type="button"
-							variant="ghost"
-							size="sm"
-							onclick={(e) => {
-								e.stopPropagation();
-								file = null;
-								fileContentBase64 = null;
-								iv = null;
-							}}
-							class="mt-2 text-destructive hover:text-destructive"
-						>
-							Remove
-						</Button>
-					</div>
-				{:else}
-					<div class="flex flex-col items-center gap-2 text-center">
-						<Upload class="h-8 w-8 text-muted-foreground" />
-						<div>
-							<p class="text-sm font-medium text-foreground">
-								Drag & drop or click to browse
-							</p>
-							<p class="text-xs text-muted-foreground">
-								PDF, DOCX, XLSX, PNG up to 50MB
-							</p>
+					{:else}
+						<div class="flex flex-col items-center gap-2 text-center">
+							<Upload class="h-8 w-8 text-muted-foreground" />
+							<div>
+								<p class="text-sm font-medium text-foreground">
+									Drag & drop or click to browse
+								</p>
+								<p class="text-xs text-muted-foreground">
+									PDF, DOCX, XLSX, PNG up to 50MB
+								</p>
+							</div>
 						</div>
-					</div>
-				{/if}
-				<input
-					type="file"
-					name="file"
-					class="absolute inset-0 cursor-pointer opacity-0"
-					onchange={handleFileSelect}
-					accept=".pdf,.docx,.xlsx,.png,.jpeg,.jpg,.txt,.csv"
-					disabled={isUploading}
-				/>
-			</div>
+					{/if}
+					<input
+						type="file"
+						name="file"
+						class="absolute inset-0 cursor-pointer opacity-0"
+						onchange={handleFileSelect}
+						accept=".pdf,.docx,.xlsx,.png,.jpeg,.jpg,.txt,.csv"
+						disabled={isUploading}
+					/>
+				</div>
 
-			<!-- Metadata Fields -->
-			<div class="grid grid-cols-2 gap-4">
-				<div class="space-y-2">
-					<Label for="category">Category</Label>
-					<div class="relative">
-						<select
-							name="category"
-							id="category"
-							bind:value={category}
-							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-						>
-							{#each categories as cat}
-								<option value={cat}>{cat}</option>
-							{/each}
-						</select>
+				<!-- Metadata Fields -->
+				<div class="grid grid-cols-2 gap-4">
+					<div class="space-y-2">
+						<Label for="category">Category</Label>
+						<div class="relative">
+							<select
+								name="category"
+								id="category"
+								bind:value={category}
+								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+							>
+								{#each categories as cat}
+									<option value={cat}>{cat}</option>
+								{/each}
+							</select>
+						</div>
+					</div>
+
+					<div class="space-y-2">
+						<Label for="sensitivityLevel">Sensitivity</Label>
+						<div class="relative">
+							<select
+								name="sensitivityLevel"
+								id="sensitivityLevel"
+								bind:value={sensitivityLevel}
+								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+							>
+								{#each sensitivities as level}
+									<option value={level}>{level}</option>
+								{/each}
+							</select>
+						</div>
 					</div>
 				</div>
 
-				<div class="space-y-2">
-					<Label for="sensitivityLevel">Sensitivity</Label>
-					<div class="relative">
-						<select
-							name="sensitivityLevel"
-							id="sensitivityLevel"
-							bind:value={sensitivityLevel}
-							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-						>
-							{#each sensitivities as level}
-								<option value={level}>{level}</option>
-							{/each}
-						</select>
-					</div>
-				</div>
-			</div>
-
-			<Dialog.Footer class="pt-2">
-				<Button type="button" variant="outline" onclick={onClose} disabled={isUploading}>
-					Cancel
-				</Button>
-				<Button type="submit" disabled={!file || isUploading || !fileContentBase64}>
-					{isUploading ? 'Encrypting & Uploading...' : 'Upload'}
-				</Button>
-			</Dialog.Footer>
-		</form>
-	</Dialog.Content>
-</Dialog.Root>
+				<Dialog.Footer class="pt-2">
+					<Button type="button" variant="outline" onclick={onClose} disabled={isUploading}>
+						Cancel
+					</Button>
+					<Button type="submit" disabled={!file || isUploading || !fileContentBase64}>
+						{isUploading ? 'Encrypting & Uploading...' : 'Upload'}
+					</Button>
+				</Dialog.Footer>
+			</form>
+		</Dialog.Content>
+	</Dialog.Root>
+{/if}
