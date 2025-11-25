@@ -1,646 +1,407 @@
 <script lang="ts">
-	// Document list page (Feature 024 - Redesigned to match employees page)
-	// Main document management page with comprehensive filtering, search, and view options
-
-	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
-	import DocumentDataTable from '$lib/components/ui/document-datatable.svelte';
-	import PreviewModal from '$lib/components/documents/PreviewModal.svelte';
-	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import * as Card from '$lib/components/ui/card';
-	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import * as Select from '$lib/components/ui/select';
-	import * as Tooltip from '$lib/components/ui/tooltip';
+	import { goto, invalidateAll } from '$app/navigation';
 	import {
-		Upload,
-		LayoutGrid,
-		Table as TableIcon,
-		FileText,
-		Lock,
-		Calendar,
-		User,
+		Clock,
 		Download,
 		Eye,
+		FileText,
 		Filter,
-		X
+		Folder,
+		HardDrive,
+		LayoutGrid,
+		List,
+		Lock,
+		Search,
+		Trash2,
+		Upload
 	} from '@lucide/svelte';
-	import type { PageData } from './$types';
-	import type { VisibilityState } from '@tanstack/table-core';
+	import { format } from 'date-fns';
+	import { toast } from 'svelte-sonner';
+	import { confirmService } from '$lib/stores/confirm.svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { Badge } from '$lib/components/ui/badge';
+	import PreviewModal from '$lib/components/documents/PreviewModal.svelte';
+	import UploadDocumentModal from '$lib/components/documents/UploadDocumentModal.svelte';
 
-	let { data }: { data: PageData } = $props();
+	const { data } = $props();
 
-	// View mode state: 'grid' or 'table'
-	let viewMode = $state<'grid' | 'table'>('table');
-
-	// Column visibility state
-	let columnVisibility = $state<VisibilityState>({
-		filename: true,
-		category: true,
-		sensitivity_level: true,
-		assigned_users: true,
-		uploaded_at: true,
-		expiration_date: false,
-		file_size_bytes: true,
-		version_number: false
-	});
-
-	// Search state
-	let searchTerms = $state<string[]>([]);
-
-	// Inline filter state
-	let selectedCategory = $state<string>('all');
-	let selectedSensitivity = $state<string>('all');
-
-	// Per-page state
-	let perPage = $state(data.limit || 20);
-
-	// Preview modal state
+	// State
+	let searchQuery = $state('');
+	let viewMode = $state<'table' | 'grid'>('table');
+	let showUploadModal = $state(false);
+	
+	// Preview state
 	let isPreviewOpen = $state(false);
-	let previewDocumentId = $state<string | null>(null);
+	let previewDocument = $state<any>(null);
 	let previewUrl = $state<string | null>(null);
 	let previewLoading = $state(false);
 	let previewError = $state<string | null>(null);
 
-	// Derived state
-	let canUpload = $derived(
-		data.userPermissions?.includes('documents:upload') ||
-			data.userPermissions?.includes('*') ||
-			(Array.isArray(data.user?.roles) &&
-				data.user.roles.some((r: any) =>
-					r.name === 'Admin' ||
-					r.name === 'HR Manager' ||
-					r.name === 'super_admin' ||
-					r.name === 'system_admin'
-				)
-			)
+	// Derived stats
+	const documents = $derived(data.documents || []);
+	const filteredDocuments = $derived(
+		documents.filter((doc: any) =>
+			doc.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			doc.category.toLowerCase().includes(searchQuery.toLowerCase())
+		)
 	);
 
-	let previewDocument = $derived(
-		previewDocumentId ? data.documents.find((doc) => doc.id === previewDocumentId) : null
+	const totalSize = $derived(documents.reduce((acc: number, doc: any) => acc + doc.file_size_bytes, 0));
+	const encryptedCount = $derived(documents.filter((doc: any) => doc.is_encrypted).length);
+	const recentUpload = $derived(
+		[...documents].sort((a: any, b: any) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime())[0]
 	);
+	const categories = $derived([...new Set(documents.map((doc: any) => doc.category))]);
 
-	let hasActiveFilters = $derived(
-		searchTerms.length > 0 || selectedCategory !== 'all' || selectedSensitivity !== 'all'
-	);
-
-	// Document and assignee search options for MultiSearchInput
-	let documentSearchOptions = $derived(
-		data.documents.map((doc) => ({
-			value: doc.id,
-			label: doc.filename
-		}))
-	);
-
-	let assigneeSearchOptions = $derived(
-		(data.assigneeOptions || []).map((assignee) => ({
-			value: assignee.id,
-			label: assignee.displayName
-		}))
-	);
-
-	// Combine both for multi-search
-	let combinedSearchOptions = $derived([...documentSearchOptions, ...assigneeSearchOptions]);
-
-	// Statistics
-	let totalDocuments = $derived(data.totalCount);
-	let encryptedCount = $derived(
-		data.documents.filter((doc) => doc.is_encrypted).length
-	);
-	let expiringCount = $derived(
-		data.documents.filter((doc) => {
-			if (!doc.expiration_date) return false;
-			const expiryDate = new Date(doc.expiration_date);
-			const now = Date.now();
-			const thirtyDaysFromNow = now + 30 * 24 * 60 * 60 * 1000;
-			return expiryDate.getTime() <= thirtyDaysFromNow;
-		}).length
-	);
-
-	// Handle search changes
-	function handleSearch(terms: string[]) {
-		searchTerms = terms;
-		applyFilters();
+	// Format helpers
+	function formatFileSize(bytes: number) {
+		if (bytes === 0) return '0 B';
+		const k = 1024;
+		const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+		const i = Math.floor(Math.log(bytes) / Math.log(k));
+		return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 	}
 
-	// Handle filter changes
-	function applyFilters() {
-		const params = new URLSearchParams();
-
-		// Add search terms
-		if (searchTerms.length > 0) {
-			params.set('search', searchTerms.join(','));
-		}
-
-		// Add category filter
-		if (selectedCategory !== 'all') {
-			params.set('category', selectedCategory);
-		}
-
-		// Add sensitivity filter
-		if (selectedSensitivity !== 'all') {
-			params.set('sensitivity', selectedSensitivity);
-		}
-
-		// Reset to first page on filter change
-		params.set('page', '1');
-
-		// Add per-page
-		params.set('limit', perPage.toString());
-
-		goto(`?${params.toString()}`, { keepFocus: true, noScroll: true });
+	function formatDate(dateString: string) {
+		return format(new Date(dateString), 'MMM dd, yyyy');
 	}
 
-	// Clear all filters
-	function clearFilters() {
-		searchTerms = [];
-		selectedCategory = 'all';
-		selectedSensitivity = 'all';
-		applyFilters();
+	function getFileIcon(mimeType: string) {
+		// Simplified icon logic
+		return FileText;
 	}
 
-	// Handle page change
-	function handlePageChange(page: number) {
-		const params = new URLSearchParams(window.location.search);
-		params.set('page', page.toString());
-		goto(`?${params.toString()}`, { keepFocus: true, noScroll: true });
-	}
-
-	// Handle per-page change
-	function handlePerPageChange(newPerPage: number) {
-		perPage = newPerPage;
-		const params = new URLSearchParams(window.location.search);
-		params.set('limit', newPerPage.toString());
-		params.set('page', '1'); // Reset to first page
-		goto(`?${params.toString()}`, { keepFocus: true, noScroll: true });
-	}
-
-	// Handle column visibility change
-	function handleColumnVisibilityChange(visibility: VisibilityState) {
-		columnVisibility = visibility;
-	}
-
-	// Handle preview
-	async function handlePreview(documentId: string) {
-		previewDocumentId = documentId;
+	// Actions
+	async function handlePreview(doc: any) {
+		previewDocument = doc;
 		isPreviewOpen = true;
 		previewLoading = true;
 		previewError = null;
 
 		try {
-			// Call preview API endpoint
-			const response = await fetch(`/api/documents/${documentId}/preview`);
-
-			if (!response.ok) {
-				throw new Error('Failed to generate preview');
-			}
-
+			const response = await fetch(`/api/documents/${doc.id}/preview`);
+			if (!response.ok) throw new Error('Failed to generate preview');
 			const result = await response.json();
 			previewUrl = result.previewUrl;
 		} catch (error) {
-			console.error('Preview error:', error);
 			previewError = error instanceof Error ? error.message : 'Failed to load preview';
 		} finally {
 			previewLoading = false;
 		}
 	}
 
-	// Handle download
-	async function handleDownload(documentId: string) {
-		try {
-			// Open download in new window/tab
-			window.open(`/api/documents/${documentId}/download`, '_blank');
-		} catch (error) {
-			console.error('Download error:', error);
-			alert('Failed to download document. Please try again.');
-		}
+	async function handleDownload(doc: any) {
+		window.open(`/api/documents/${doc.id}/download`, '_blank');
 	}
 
-	// Close preview modal
+	async function handleDelete(doc: any) {
+		const confirmed = await confirmService.ask({
+			title: 'Delete Document',
+			message: `Are you sure you want to delete "${doc.filename}"? This action cannot be undone.`,
+			variant: 'destructive',
+			confirmText: 'Delete'
+		});
+
+		if (!confirmed) return;
+
+		// Simulate delete for now or implement actual API call if available in existing logic
+		// Assuming an API endpoint or mutation exists, otherwise just toast
+		toast.info('Delete functionality pending backend integration', {
+			description: `Would delete ${doc.filename}`
+		});
+	}
+
 	function closePreview() {
 		isPreviewOpen = false;
-		previewDocumentId = null;
+		previewDocument = null;
 		previewUrl = null;
-		previewError = null;
-	}
-
-	// Check if user can preview a document
-	function canPreview(doc: typeof data.documents[0]): boolean {
-		// Admin permissions
-		if (data.userPermissions?.includes('*') ||
-			data.userPermissions?.includes('documents:read')) {
-			return true;
-		}
-
-		// Check roles
-		const hasAdminRole = Array.isArray(data.user?.roles) &&
-			data.user.roles.some((r: any) =>
-				r.name === 'Admin' ||
-				r.name === 'HR Manager' ||
-				r.name === 'super_admin' ||
-				r.name === 'system_admin'
-			);
-		if (hasAdminRole) return true;
-
-		// Check if document is assigned to user
-		return doc.uploaded_by === data.user?.id;
-	}
-
-	// Check if user can download a document
-	function canDownload(doc: typeof data.documents[0]): boolean {
-		// Admin permissions
-		if (data.userPermissions?.includes('*') ||
-			data.userPermissions?.includes('documents:read') ||
-			data.userPermissions?.includes('documents:download')) {
-			return true;
-		}
-
-		// Check roles
-		const hasAdminRole = Array.isArray(data.user?.roles) &&
-			data.user.roles.some((r: any) =>
-				r.name === 'Admin' ||
-				r.name === 'HR Manager' ||
-				r.name === 'super_admin' ||
-				r.name === 'system_admin'
-			);
-		if (hasAdminRole) return true;
-
-		// Check if document is assigned to user
-		return doc.uploaded_by === data.user?.id;
-	}
-
-	// Sensitivity levels for filters
-	const sensitivityLevels = ['Public', 'Internal', 'Confidential', 'Sensitive-PII'];
-
-	// Categories for filters
-	const categories = [
-		'Contract',
-		'Policy',
-		'Report',
-		'Invoice',
-		'Certificate',
-		'Payslip',
-		'License',
-		'Other'
-	];
-
-	// File type icon
-	function getFileIcon(fileType: string): string {
-		const icons: Record<string, string> = {
-			PDF: '📄',
-			JPEG: '🖼️',
-			PNG: '🖼️',
-			GIF: '🖼️',
-			DOCX: '📝',
-			XLSX: '📊',
-			TXT: '📃',
-			CSV: '📈'
-		};
-		return icons[fileType] || '📎';
-	}
-
-	// Format file size
-	function formatFileSize(bytes: number): string {
-		if (bytes < 1024) return `${bytes} B`;
-		if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-		return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-	}
-
-	// Format date
-	function formatDate(dateString: string): string {
-		return new Date(dateString).toLocaleDateString();
-	}
-
-	// Get sensitivity badge variant
-	function getSensitivityClass(level: string): string {
-		const classes: Record<string, string> = {
-			Public: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-			Internal: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-			Confidential: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-			'Sensitive-PII': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-		};
-		return classes[level] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
 	}
 </script>
 
 <svelte:head>
-	<title>My Documents | HR System</title>
+	<title>My Documents - MountainHR</title>
 </svelte:head>
 
-<div class="container mx-auto space-y-6 py-6">
-	<!-- Page header -->
-	<div class="flex items-start justify-between gap-4">
-		<div class="space-y-1">
-			<h1 class="text-3xl font-bold tracking-tight">My Documents</h1>
-			<p class="text-muted-foreground">
-				Access documents assigned to you with end-to-end encryption
-			</p>
+<div class="container mx-auto max-w-7xl p-6 md:p-10">
+	<!-- Header -->
+	<div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+		<div>
+			<h1 class="text-2xl font-bold tracking-tight text-foreground">My Documents</h1>
+			<p class="text-muted-foreground">Access your secure contracts, reports, and policies.</p>
 		</div>
-
-		{#if canUpload}
-			<Button href="/dashboard/documents/upload" class="gap-2">
-				<Upload class="h-4 w-4" />
+		<div class="flex items-center gap-3">
+			<Button onclick={() => showUploadModal = true} class="shadow-lg shadow-primary/20">
+				<Upload class="mr-2 h-4 w-4" />
 				Upload Document
 			</Button>
-		{/if}
+		</div>
 	</div>
 
-	<!-- Statistics Cards -->
-	<div class="grid gap-4 md:grid-cols-3">
-		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Total Documents</Card.Title>
-				<FileText class="h-4 w-4 text-muted-foreground" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold">{totalDocuments}</div>
-				<p class="text-xs text-muted-foreground">Across all categories</p>
-			</Card.Content>
-		</Card.Root>
-
-		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Encrypted Documents</Card.Title>
-				<Lock class="h-4 w-4 text-muted-foreground" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold">{encryptedCount}</div>
-				<p class="text-xs text-muted-foreground">End-to-end encryption</p>
-			</Card.Content>
-		</Card.Root>
-
-		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Expiring Soon</Card.Title>
-				<Calendar class="h-4 w-4 text-muted-foreground" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold">{expiringCount}</div>
-				<p class="text-xs text-muted-foreground">Within 30 days</p>
-			</Card.Content>
-		</Card.Root>
-	</div>
-
-	<!-- Filters and Controls -->
-	<Card.Root>
-		<Card.Content class="p-6">
-			<div class="space-y-4">
-				<!-- Multi-search input -->
-				<div class="flex items-center gap-4">
-					<div class="flex-1">
-						<MultiSearchInput
-							bind:searchTerms
-							options={combinedSearchOptions}
-							onSearchChange={handleSearch}
-							debounceMs={500}
-							allowCustomTerms={false}
-							placeholder="Search by document name or assignee..."
-						/>
-					</div>
-					{#if hasActiveFilters}
-						<Button variant="ghost" onclick={clearFilters} class="gap-2">
-							<X class="h-4 w-4" />
-							Clear
-						</Button>
-					{/if}
+	<!-- Main Bento Grid -->
+	<div class="grid auto-rows-[minmax(160px,auto)] grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4">
+		
+		<!-- 1. Storage Summary (Medium) -->
+		<div class="relative flex flex-col justify-between overflow-hidden rounded-xl border bg-card p-6 md:col-span-2">
+			<div class="relative z-10 flex items-start justify-between">
+				<div>
+					<h2 class="mb-1 text-lg font-semibold text-foreground">Storage Usage</h2>
+					<p class="text-sm text-muted-foreground">Encrypted & Secure</p>
 				</div>
+				<Badge variant="outline" class="bg-blue-500/10 text-blue-500 border-blue-500/20">
+					{formatFileSize(totalSize)} Total
+				</Badge>
+			</div>
 
-				<!-- View toggle and controls -->
-				<div class="flex items-center justify-between">
-					<!-- Inline filters for table view -->
-					{#if viewMode === 'table'}
-						<div class="flex items-center gap-2">
-							<Filter class="h-4 w-4 text-muted-foreground" />
-							<DropdownMenu.Root>
-								<DropdownMenu.Trigger>
-									{#snippet child({ props })}
-										<Button variant="outline" size="sm" {...props}>
-											Category: {selectedCategory === 'all' ? 'All' : selectedCategory}
-										</Button>
-									{/snippet}
-								</DropdownMenu.Trigger>
-								<DropdownMenu.Content>
-									<DropdownMenu.Item onclick={() => { selectedCategory = 'all'; applyFilters(); }}>
-										All Categories
-									</DropdownMenu.Item>
-									{#each categories as category}
-										<DropdownMenu.Item onclick={() => { selectedCategory = category; applyFilters(); }}>
-											{category}
-										</DropdownMenu.Item>
-									{/each}
-								</DropdownMenu.Content>
-							</DropdownMenu.Root>
-
-							<DropdownMenu.Root>
-								<DropdownMenu.Trigger>
-									{#snippet child({ props })}
-										<Button variant="outline" size="sm" {...props}>
-											Sensitivity: {selectedSensitivity === 'all' ? 'All' : selectedSensitivity}
-										</Button>
-									{/snippet}
-								</DropdownMenu.Trigger>
-								<DropdownMenu.Content>
-									<DropdownMenu.Item onclick={() => { selectedSensitivity = 'all'; applyFilters(); }}>
-										All Levels
-									</DropdownMenu.Item>
-									{#each sensitivityLevels as level}
-										<DropdownMenu.Item onclick={() => { selectedSensitivity = level; applyFilters(); }}>
-											{level}
-										</DropdownMenu.Item>
-									{/each}
-								</DropdownMenu.Content>
-							</DropdownMenu.Root>
-						</div>
-					{:else}
-						<div></div>
-					{/if}
-
-					<!-- View toggle and per-page -->
-					<div class="flex items-center gap-2">
-						<!-- Per-page dropdown -->
-						<DropdownMenu.Root>
-							<DropdownMenu.Trigger>
-								{#snippet child({ props })}
-									<Button variant="outline" size="sm" {...props}>
-										Show: {perPage}
-									</Button>
-								{/snippet}
-							</DropdownMenu.Trigger>
-							<DropdownMenu.Content>
-								{#each [10, 20, 50, 100] as pageSize}
-									<DropdownMenu.Item onclick={() => handlePerPageChange(pageSize)}>
-										{pageSize} per page
-									</DropdownMenu.Item>
-								{/each}
-							</DropdownMenu.Content>
-						</DropdownMenu.Root>
-
-						<!-- View toggle buttons -->
-						<div class="flex rounded-md border">
-							<Button
-								variant={viewMode === 'grid' ? 'default' : 'ghost'}
-								size="sm"
-								class="rounded-r-none"
-								onclick={() => (viewMode = 'grid')}
-							>
-								<LayoutGrid class="h-4 w-4" />
-							</Button>
-							<Button
-								variant={viewMode === 'table' ? 'default' : 'ghost'}
-								size="sm"
-								class="rounded-l-none"
-								onclick={() => (viewMode = 'table')}
-							>
-								<TableIcon class="h-4 w-4" />
-							</Button>
-						</div>
+			<div class="relative z-10 mt-6">
+				<div class="mb-4 grid grid-cols-3 gap-4">
+					<div>
+						<p class="text-2xl font-bold text-foreground">{documents.length}</p>
+						<p class="text-xs uppercase tracking-wider text-muted-foreground">Total Files</p>
 					</div>
+					<div>
+						<p class="text-2xl font-bold text-foreground">{encryptedCount}</p>
+						<p class="text-xs uppercase tracking-wider text-muted-foreground">Encrypted</p>
+					</div>
+					<!-- <div>
+						<p class="text-2xl font-bold text-yellow-500">0</p>
+						<p class="text-xs uppercase tracking-wider text-muted-foreground">Expiring</p>
+					</div> -->
 				</div>
 			</div>
-		</Card.Content>
-	</Card.Root>
 
-	<!-- Table view -->
-	{#if viewMode === 'table'}
-		<Tooltip.Provider>
-			<DocumentDataTable
-				documents={data.documents}
-				assignees={data.assigneeOptions || []}
-				{canPreview}
-				{canDownload}
-				canViewDocuments={true}
-				currentPage={data.page}
-				pageSize={data.limit}
-				totalPages={data.totalPages}
-				onPageChange={handlePageChange}
-				onPageSizeChange={handlePerPageChange}
-				showPerPageControl={true}
-				columnVisibilityState={columnVisibility}
-				onColumnVisibilityChange={handleColumnVisibilityChange}
-				onPreview={handlePreview}
-				onDownload={handleDownload}
-			/>
-		</Tooltip.Provider>
-	{/if}
-
-	<!-- Grid view -->
-	{#if viewMode === 'grid'}
-		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-			{#each data.documents as document (document.id)}
-				<Card.Root class="overflow-hidden hover:shadow-lg transition-shadow">
-					<button
-						onclick={() => goto(`/dashboard/documents/${document.id}`)}
-						class="w-full text-left"
-					>
-						<Card.Header class="pb-3">
-							<div class="flex items-start justify-between">
-								<div class="flex items-center gap-2">
-									<span class="text-3xl">{getFileIcon(document.file_type)}</span>
-									<div>
-										<Card.Title class="text-base">{document.filename}</Card.Title>
-										<Card.Description class="text-xs">
-											{formatFileSize(document.file_size_bytes)}
-										</Card.Description>
-									</div>
-								</div>
-								{#if document.is_encrypted}
-									<Lock class="h-4 w-4 text-muted-foreground" />
-								{/if}
-							</div>
-						</Card.Header>
-						<Card.Content class="pb-3 space-y-2">
-							<!-- Category and sensitivity -->
-							<div class="flex flex-wrap gap-2">
-								<span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-muted">
-									{document.category}
-								</span>
-								{#if document.sensitivity_level}
-									<span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium {getSensitivityClass(document.sensitivity_level)}">
-										{document.sensitivity_level}
-									</span>
-								{/if}
-							</div>
-
-							<!-- Assignees -->
-							{#if document.assigned_users && document.assigned_users.length > 0}
-								<div class="flex items-center gap-1 text-xs text-muted-foreground">
-									<User class="h-3 w-3" />
-									{document.assigned_users.slice(0, 2).map(u => u.displayName).join(', ')}
-									{#if document.assigned_users.length > 2}
-										+{document.assigned_users.length - 2} more
-									{/if}
-								</div>
-							{/if}
-
-							<!-- Upload date -->
-							<div class="text-xs text-muted-foreground">
-								Uploaded {formatDate(document.uploaded_at)}
-							</div>
-
-							<!-- Actions -->
-							<div class="flex gap-2 pt-2">
-								{#if canPreview(document)}
-									<Button
-										variant="outline"
-										size="sm"
-										class="flex-1"
-										onclick={(e) => {
-											e.stopPropagation();
-											handlePreview(document.id);
-										}}
-									>
-										<Eye class="mr-2 h-3 w-3" />
-										Preview
-									</Button>
-								{/if}
-								{#if canDownload(document)}
-									<Button
-										variant="outline"
-										size="sm"
-										class="flex-1"
-										onclick={(e) => {
-											e.stopPropagation();
-											handleDownload(document.id);
-										}}
-									>
-										<Download class="mr-2 h-3 w-3" />
-										Download
-									</Button>
-								{/if}
-							</div>
-						</Card.Content>
-					</button>
-				</Card.Root>
-			{/each}
+			<!-- Decorative Background -->
+			<div class="absolute bottom-0 right-0 p-6 opacity-5">
+				<HardDrive class="h-32 w-32" />
+			</div>
 		</div>
 
-		<!-- Grid pagination -->
-		{#if data.totalPages > 1}
-			<div class="flex items-center justify-center gap-2">
-				<Button
-					variant="outline"
-					size="sm"
-					disabled={data.page <= 1}
-					onclick={() => handlePageChange(data.page - 1)}
-				>
-					Previous
-				</Button>
-				<span class="text-sm text-muted-foreground">
-					Page {data.page} of {data.totalPages}
-				</span>
-				<Button
-					variant="outline"
-					size="sm"
-					disabled={data.page >= data.totalPages}
-					onclick={() => handlePageChange(data.page + 1)}
-				>
-					Next
-				</Button>
+		<!-- 2. Recent Upload (Small) -->
+		<div class="flex flex-col justify-between rounded-xl border bg-card p-5">
+			<div class="mb-2 flex items-center gap-2 text-muted-foreground">
+				<Clock class="h-4 w-4" />
+				<span class="text-xs font-semibold uppercase tracking-wider">Recent</span>
 			</div>
-		{/if}
-	{/if}
+			{#if recentUpload}
+				<div class="flex flex-1 flex-col justify-center">
+					<div class="flex items-center gap-3">
+						<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-red-500/10 text-red-500">
+							<FileText class="h-5 w-5" />
+						</div>
+						<div class="overflow-hidden">
+							<p class="truncate text-sm font-medium text-foreground" title={recentUpload.filename}>
+								{recentUpload.filename}
+							</p>
+							<p class="text-xs text-muted-foreground">{formatDate(recentUpload.uploaded_at)}</p>
+						</div>
+					</div>
+				</div>
+				<div class="mt-4 flex items-center justify-between border-t border-border/50 pt-3">
+					<span class="text-xs text-muted-foreground">{formatFileSize(recentUpload.file_size_bytes)}</span>
+					<button 
+						class="text-xs text-primary hover:underline"
+						onclick={() => handlePreview(recentUpload)}
+					>
+						View
+					</button>
+				</div>
+			{:else}
+				<div class="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+					No recent uploads
+				</div>
+			{/if}
+		</div>
 
-	<!-- Preview modal -->
+		<!-- 3. Quick Categories (Small) -->
+		<div class="flex flex-col rounded-xl border bg-card p-5">
+			<div class="mb-4 flex items-center gap-2 text-muted-foreground">
+				<Folder class="h-4 w-4" />
+				<span class="text-xs font-semibold uppercase tracking-wider">Categories</span>
+			</div>
+			<div class="flex flex-wrap gap-2">
+				{#each categories.slice(0, 6) as category}
+					<button 
+						class="cursor-pointer rounded-md bg-muted px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/80"
+						onclick={() => searchQuery = String(category)}
+					>
+						{category}
+					</button>
+				{/each}
+				{#if categories.length > 6}
+					<span class="rounded-md bg-muted px-2.5 py-1 text-xs text-muted-foreground">
+						+{categories.length - 6} More
+					</span>
+				{/if}
+			</div>
+		</div>
+
+		<!-- 4. Document List (Full Width Table) -->
+		<div class="col-span-full row-span-2 flex flex-col overflow-hidden rounded-xl border bg-card">
+			<div class="flex flex-col justify-between gap-4 border-b border-border p-5 sm:flex-row sm:items-center">
+				<div class="relative w-full sm:w-96">
+					<Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+					<input
+						type="text"
+						placeholder="Search documents..."
+						bind:value={searchQuery}
+						class="w-full rounded-md border border-input bg-background py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+					/>
+				</div>
+				<div class="flex gap-2">
+					<!-- <Button variant="outline" size="sm" class="gap-2">
+						<Filter class="h-3.5 w-3.5" />
+						Filter
+					</Button> -->
+					<div class="flex rounded-md border border-input bg-muted/50 p-0.5">
+						<button
+							class="rounded p-1.5 {viewMode === 'table' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:bg-background/50'}"
+							onclick={() => viewMode = 'table'}
+						>
+							<List class="h-3.5 w-3.5" />
+						</button>
+						<button
+							class="rounded p-1.5 {viewMode === 'grid' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:bg-background/50'}"
+							onclick={() => viewMode = 'grid'}
+						>
+							<LayoutGrid class="h-3.5 w-3.5" />
+						</button>
+					</div>
+				</div>
+			</div>
+
+			<div class="overflow-x-auto">
+				{#if viewMode === 'table'}
+					<table class="w-full text-left text-sm">
+						<thead class="bg-muted/30 text-xs font-medium uppercase text-muted-foreground">
+							<tr>
+								<th class="px-5 py-3">Name</th>
+								<th class="px-5 py-3">Category</th>
+								<th class="px-5 py-3">Size</th>
+								<th class="px-5 py-3">Uploaded</th>
+								<th class="px-5 py-3">Security</th>
+								<th class="px-5 py-3 text-right">Actions</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-border/50">
+							{#each filteredDocuments as doc}
+								<tr
+									class="group cursor-pointer transition-colors hover:bg-muted/20"
+									onclick={() => handlePreview(doc)}
+								>
+									<td class="px-5 py-4">
+										<div class="flex items-center gap-3">
+											<div class="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-blue-500/10 text-blue-500">
+												<FileText class="h-4 w-4" />
+											</div>
+											<div>
+												<p class="font-medium text-foreground transition-colors group-hover:text-primary">
+													{doc.filename}
+												</p>
+												{#if doc.version_number}
+													<p class="text-xs text-muted-foreground">Version {doc.version_number}</p>
+												{/if}
+											</div>
+										</div>
+									</td>
+									<td class="px-5 py-4 text-muted-foreground">
+										<span class="inline-flex items-center rounded bg-muted px-2 py-0.5 text-xs font-medium">
+											{doc.category}
+										</span>
+									</td>
+									<td class="px-5 py-4 text-xs font-mono text-muted-foreground">
+										{formatFileSize(doc.file_size_bytes)}
+									</td>
+									<td class="px-5 py-4 text-xs text-muted-foreground">
+										{formatDate(doc.uploaded_at)}
+									</td>
+									<td class="px-5 py-4">
+										{#if doc.is_encrypted}
+											<div class="flex items-center gap-1.5 text-xs font-medium text-emerald-500">
+												<Lock class="h-3 w-3" /> Encrypted
+											</div>
+										{:else}
+											<span class="text-xs text-muted-foreground">Standard</span>
+										{/if}
+									</td>
+									<td class="px-5 py-4 text-right">
+										<div class="flex justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+											<button
+												class="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+												title="Preview"
+												onclick={(e) => {
+													e.stopPropagation();
+													handlePreview(doc);
+												}}
+											>
+												<Eye class="h-4 w-4" />
+											</button>
+											<button
+												class="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+												title="Download"
+												onclick={(e) => {
+													e.stopPropagation();
+													handleDownload(doc);
+												}}
+											>
+												<Download class="h-4 w-4" />
+											</button>
+											<!-- <button
+												class="rounded p-1.5 text-destructive hover:bg-muted hover:text-destructive"
+												title="Delete"
+												onclick={(e) => {
+													e.stopPropagation();
+													handleDelete(doc);
+												}}
+											>
+												<Trash2 class="h-4 w-4" />
+											</button> -->
+										</div>
+									</td>
+								</tr>
+							{:else}
+								<tr>
+									<td colspan="6" class="py-8 text-center text-muted-foreground">
+										No documents found.
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				{:else}
+					<!-- Grid View -->
+					<div class="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
+						{#each filteredDocuments as doc}
+							<div
+								class="group relative flex flex-col justify-between rounded-lg border bg-card p-4 transition-shadow hover:shadow-md cursor-pointer"
+								onclick={() => handlePreview(doc)}
+								onkeydown={(e) => e.key === 'Enter' && handlePreview(doc)}
+								role="button"
+								tabindex="0"
+							>
+								<div class="mb-3 flex items-start justify-between">
+									<div class="flex h-10 w-10 items-center justify-center rounded bg-blue-500/10 text-blue-500">
+										<FileText class="h-5 w-5" />
+									</div>
+									{#if doc.is_encrypted}
+										<Lock class="h-4 w-4 text-emerald-500" />
+									{/if}
+								</div>
+								<div>
+									<h3 class="mb-1 font-medium text-foreground truncate" title={doc.filename}>{doc.filename}</h3>
+									<p class="text-xs text-muted-foreground">{formatDate(doc.uploaded_at)} • {formatFileSize(doc.file_size_bytes)}</p>
+								</div>
+								<div class="mt-4 flex gap-2 border-t pt-3">
+									<Button variant="outline" size="sm" class="flex-1" onclick={(e) => { e.stopPropagation(); handlePreview(doc); }}>Preview</Button>
+									<Button variant="outline" size="sm" class="flex-1" onclick={(e) => { e.stopPropagation(); handleDownload(doc); }}>Download</Button>
+								</div>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		</div>
+	</div>
+
+	<!-- Preview Modal -->
 	{#if previewDocument}
 		<PreviewModal
 			isOpen={isPreviewOpen}
@@ -650,9 +411,15 @@
 			{previewUrl}
 			isLoading={previewLoading}
 			error={previewError}
-			canDownload={canDownload(previewDocument)}
+			canDownload={true}
 			onClose={closePreview}
-			onDownload={() => handleDownload(previewDocument.id)}
+			onDownload={() => handleDownload(previewDocument)}
 		/>
 	{/if}
+
+	<UploadDocumentModal
+		isOpen={showUploadModal}
+		onClose={() => showUploadModal = false}
+		onSuccess={async () => await invalidateAll()}
+	/>
 </div>

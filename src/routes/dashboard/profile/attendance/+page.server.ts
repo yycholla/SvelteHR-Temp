@@ -113,6 +113,43 @@ export const load: PageServerLoad = async (event) => {
 			notes: record.notes
 		}));
 
+		// Load leave balances
+		const leaveBalancesQuery = `
+			query GetLeaveBalances($employeeId: UUID!) {
+				leaveBalances(employeeId: $employeeId, limit: 50) {
+					id
+					totalDays
+					usedDays
+					remainingDays
+					leaveType {
+						id
+						name
+						color
+					}
+				}
+			}
+		`;
+		const leaveBalancesData = await graphqlClient.query(leaveBalancesQuery, { employeeId: userId });
+		const leaveBalances = leaveBalancesData.data?.leaveBalances || [];
+
+		// Load recent leave requests
+		const leaveRequestsQuery = `
+			query GetLeaveRequests($employeeId: UUID!) {
+				leaveRequests(employeeId: $employeeId, limit: 5, offset: 0) {
+					id
+					startDate
+					endDate
+					status
+					leaveType {
+						name
+						color
+					}
+				}
+			}
+		`;
+		const leaveRequestsData = await graphqlClient.query(leaveRequestsQuery, { employeeId: userId });
+		const leaveRequests = leaveRequestsData.data?.leaveRequests || [];
+
 		// Calculate attendance statistics
 		const totalDays = attendanceRecords.length;
 		const presentDays = attendanceRecords.filter(r => r.status === 'present').length;
@@ -133,6 +170,8 @@ export const load: PageServerLoad = async (event) => {
 			user,
 			userId,
 			attendanceRecords,
+			leaveBalances,
+			leaveRequests,
 			attendanceStats,
 			canManageAttendance: false,
 			isOwnAttendance: true,

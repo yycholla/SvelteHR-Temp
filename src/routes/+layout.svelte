@@ -9,6 +9,7 @@
 	import { ModeWatcher } from 'mode-watcher';
 	import { toast } from 'svelte-sonner';
 	import { type SessionTimeoutManager, initSessionTimeout } from '$lib/services/session-timeout';
+	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 
@@ -171,6 +172,9 @@
 {#if showTimeoutBlur}
 	<div class="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm"></div>
 {/if}
+
+<!-- Global confirm dialog -->
+<ConfirmDialog />
 
 <!-- Global toast notifications -->
 <ToastContainer />

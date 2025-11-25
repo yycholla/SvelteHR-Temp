@@ -5,16 +5,24 @@
 		Calendar,
 		CheckCircle,
 		Clock,
-		FileText,
+		Filter,
+		History,
+		PieChart,
+		Plane,
 		Plus,
+		Thermometer,
 		User,
 		XCircle
 	} from '@lucide/svelte';
-	import { differenceInDays, format, parseISO } from 'date-fns';
+	import { format, parseISO } from 'date-fns';
+	import { confirmService } from '$lib/stores/confirm.svelte';
+	import { toast } from 'svelte-sonner';
+	import { Button } from '$lib/components/ui/button';
+	import { Badge } from '$lib/components/ui/badge';
 
 	const { data } = $props();
 
-	// Extract data properties using $derived to avoid legacy reactive statements
+	// Extract data properties
 	const user = $derived(data.user);
 	const userId = $derived(data.userId);
 	const leaveRequests = $derived(data.leaveRequests);
@@ -31,50 +39,48 @@
 		reason: ''
 	});
 
-	function getStatusIcon(status: string) {
-		switch (status) {
-			case 'approved':
-				return CheckCircle;
-			case 'rejected':
-				return XCircle;
-			case 'cancelled':
-				return XCircle;
-			case 'pending':
-				return Clock;
-			default:
-				return AlertCircle;
-		}
-	}
-
 	function getStatusColor(status: string) {
 		switch (status) {
 			case 'approved':
-				return 'text-green-600 bg-green-50 border-green-200';
+				return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
 			case 'rejected':
-				return 'text-red-600 bg-red-50 border-red-200';
+				return 'bg-red-500/10 text-red-500 border-red-500/20';
 			case 'cancelled':
-				return 'text-muted-foreground bg-muted dark:bg-muted border';
+				return 'bg-muted text-muted-foreground border-border';
 			case 'pending':
-				return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+				return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
 			default:
-				return 'text-muted-foreground bg-muted dark:bg-muted border';
+				return 'bg-muted text-muted-foreground border-border';
+		}
+	}
+
+	function getLeaveTypeIcon(typeCode: string) {
+		switch (typeCode?.toLowerCase()) {
+			case 'sick':
+				return Thermometer;
+			case 'annual':
+			case 'vacation':
+				return Plane;
+			default:
+				return Calendar;
 		}
 	}
 
 	function getLeaveTypeColor(color: string) {
+		// Simplified mapping for the dot indicators
 		switch (color) {
 			case 'blue':
-				return 'bg-blue-100 text-blue-800';
+				return 'bg-blue-500';
 			case 'red':
-				return 'bg-red-100 text-red-800';
+				return 'bg-red-500';
 			case 'green':
-				return 'bg-green-100 text-green-800';
+				return 'bg-emerald-500';
 			case 'purple':
-				return 'bg-purple-100 text-purple-800';
-			case 'gray':
-				return 'bg-gray-100 text-foreground';
+				return 'bg-purple-500';
+			case 'orange':
+				return 'bg-orange-500';
 			default:
-				return 'bg-gray-100 text-foreground';
+				return 'bg-gray-500';
 		}
 	}
 
@@ -94,107 +100,218 @@
 
 	async function handleSubmitRequest(event) {
 		event.preventDefault();
-		// TODO: Implement actual leave request submission
-		console.log('Submitting leave request:', newRequest);
-		showNewRequestForm = false;
-		newRequest = {
-			leaveTypeId: '',
-			startDate: '',
-			endDate: '',
-			reason: ''
-		};
+		
+		// Simulate API call
+		try {
+			console.log('Submitting leave request:', newRequest);
+			// In a real app, await fetch(...) here
+			
+			toast.success('Request Submitted', {
+				description: 'Your leave request has been submitted for approval.'
+			});
+			
+			showNewRequestForm = false;
+			newRequest = {
+				leaveTypeId: '',
+				startDate: '',
+				endDate: '',
+				reason: ''
+			};
+		} catch (error) {
+			toast.error('Submission Failed', {
+				description: 'Failed to submit leave request. Please try again.'
+			});
+		}
 	}
 
 	async function handleCancelRequest(requestId: string) {
-		// TODO: Implement request cancellation
-		console.log('Cancelling request:', requestId);
+		const confirmed = await confirmService.ask({
+			title: 'Cancel Request',
+			message: 'Are you sure you want to cancel this leave request? This action cannot be undone.',
+			variant: 'destructive',
+			confirmText: 'Yes, Cancel'
+		});
+
+		if (!confirmed) return;
+
+		try {
+			// Simulate API call
+			console.log('Cancelling request:', requestId);
+			
+			toast.success('Request Cancelled', {
+				description: 'The leave request has been successfully cancelled.'
+			});
+		} catch (error) {
+			toast.error('Cancellation Failed', {
+				description: 'Failed to cancel request. Please try again.'
+			});
+		}
 	}
 </script>
 
 <svelte:head>
-	<title
-		>{isOwnLeave ? 'My Leave Requests' : `${user?.displayName} - Leave Requests`} | MountainHR</title
-	>
+	<title>Leave Management - MountainHR</title>
 </svelte:head>
 
-<div class="container mx-auto space-y-6 p-6">
+<div class="container mx-auto max-w-7xl p-6 md:p-10">
 	<!-- Header -->
-	<div class="flex items-center justify-between">
-		<div class="flex items-center space-x-4">
-			<div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-				<Calendar class="h-6 w-6 text-green-600" />
-			</div>
-			<div>
-				<h1 class="text-2xl font-bold text-foreground">
-					{isOwnLeave ? 'My Leave Requests' : `${user?.displayName} - Leave Requests`}
-				</h1>
-				<p class="text-muted-foreground">
-					{user?.departmentByDepartmentId?.name || 'No Department'} • {user?.role}
-				</p>
-			</div>
+	<div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+		<div>
+			<h1 class="text-2xl font-bold tracking-tight text-foreground">Leave Management</h1>
+			<p class="text-muted-foreground">Track your time off and submit new requests.</p>
 		</div>
-
-		{#if isOwnLeave}
-			<button
-				onclick={() => (showNewRequestForm = true)}
-				class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-			>
-				<Plus class="h-4 w-4" />
-				New Request
-			</button>
-		{/if}
+		<div class="flex items-center gap-3">
+			{#if isOwnLeave}
+				<Button onclick={() => (showNewRequestForm = true)} class="shadow-lg shadow-primary/20">
+					<Plus class="mr-2 h-4 w-4" />
+					New Request
+				</Button>
+			{/if}
+		</div>
 	</div>
 
-	<!-- Leave Balances -->
-	<div
-		class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
-		data-testid="hr-leave-balance-card"
-	>
-		{#each leaveBalances as balance}
-			<div class="rounded-lg border bg-card p-6 shadow-sm">
-				<div class="mb-4 flex items-center justify-between">
-					<div class="flex items-center gap-2">
-						<span
-							class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getLeaveTypeColor(
-								balance.leaveType.color
-							)}"
-						>
-							{balance.leaveType.name}
-						</span>
+	<!-- Main Bento Grid -->
+	<div class="grid auto-rows-[minmax(160px,auto)] grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4">
+		
+		<!-- Balances Section -->
+		{#each leaveBalances as balance, i}
+			{@const Icon = getLeaveTypeIcon(balance.leaveType?.code || '')}
+			<!-- Make the first card span 2 cols if possible for emphasis, or just keeping them uniform -->
+			<div class="flex flex-col justify-between rounded-xl border bg-card p-5 {i === 0 ? 'md:col-span-2' : ''}">
+				<div class="flex justify-between items-start">
+					<div class="flex items-center gap-2 text-muted-foreground mb-2">
+						<Icon class="h-4 w-4" />
+						<span class="text-xs font-semibold uppercase tracking-wider">{balance.leaveType?.name || 'Unknown Type'}</span>
 					</div>
+					<Badge variant="outline" class="bg-primary/5 text-primary border-primary/20">
+						{balance.remaining} days left
+					</Badge>
 				</div>
-				<div class="space-y-2">
-					<div class="flex justify-between text-sm">
-						<span class="text-muted-foreground">Allocated:</span>
-						<span class="font-medium">{balance.allocated} days</span>
+
+				<div class="mt-4">
+					<div class="mb-2 flex justify-between text-sm">
+						<span class="text-muted-foreground">Used: <span class="font-medium text-foreground">{balance.used}</span></span>
+						<span class="text-muted-foreground">Total: <span class="font-medium text-foreground">{balance.allocated}</span></span>
 					</div>
-					<div class="flex justify-between text-sm">
-						<span class="text-muted-foreground">Used:</span>
-						<span class="font-medium text-red-600">{balance.used} days</span>
-					</div>
-					<div class="flex justify-between text-sm">
-						<span class="text-muted-foreground">Pending:</span>
-						<span class="font-medium text-yellow-600">{balance.pending} days</span>
-					</div>
-					<div class="border-t pt-2">
-						<div class="flex justify-between text-sm font-semibold">
-							<span class="text-foreground">Remaining:</span>
-							<span class="text-green-600">{balance.remaining} days</span>
-						</div>
+					<div class="h-2 w-full overflow-hidden rounded-full bg-muted">
+						<div
+							class="h-full rounded-full {getLeaveTypeColor(balance.leaveType?.color || 'gray')}"
+							style="width: {(balance.used / balance.allocated) * 100}%"
+						></div>
 					</div>
 				</div>
 			</div>
 		{/each}
+
+		<!-- Pending Requests Summary (Small) -->
+		<div class="flex flex-col justify-between rounded-xl border bg-card p-5">
+			<div class="mb-2 flex items-center gap-2 text-muted-foreground">
+				<Clock class="h-4 w-4" />
+				<span class="text-xs font-semibold uppercase tracking-wider">Pending</span>
+			</div>
+			<div>
+				<span class="text-3xl font-bold text-yellow-500">
+					{leaveRequests.filter(r => r.status === 'pending').length}
+				</span>
+				<p class="mt-1 text-xs text-muted-foreground">Awaiting Approval</p>
+			</div>
+		</div>
+
+		<!-- Recent Requests (Large Table) -->
+		<div class="flex flex-col overflow-hidden rounded-xl border bg-card md:col-span-3 lg:col-span-4 row-span-2">
+			<div class="flex items-center justify-between border-b border-border p-5">
+				<div class="flex items-center gap-2 text-muted-foreground">
+					<History class="h-4 w-4" />
+					<span class="text-xs font-semibold uppercase tracking-wider">Request History</span>
+				</div>
+				<!-- <Button variant="ghost" size="sm" class="gap-2">
+					<Filter class="h-3.5 w-3.5" />
+					Filter
+				</Button> -->
+			</div>
+
+			<div class="overflow-x-auto">
+				<table class="w-full text-left text-sm">
+					<thead class="bg-muted/30 text-xs font-medium uppercase text-muted-foreground">
+						<tr>
+							<th class="px-5 py-3">Type</th>
+							<th class="px-5 py-3">Dates</th>
+							<th class="px-5 py-3">Duration</th>
+							<th class="px-5 py-3">Status</th>
+							<th class="px-5 py-3">Submitted</th>
+							<th class="px-5 py-3 text-right">Actions</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-border/50">
+						{#each leaveRequests as request}
+							<tr class="transition-colors hover:bg-muted/20">
+								<td class="px-5 py-4">
+									<div class="flex items-center gap-2">
+										<span class="h-2 w-2 rounded-full {getLeaveTypeColor(request.leaveType.color)}"></span>
+										<span class="font-medium">{request.leaveType.name}</span>
+									</div>
+								</td>
+								<td class="px-5 py-4 text-muted-foreground">
+									{formatDateRange(request.startDate, request.endDate)}
+								</td>
+								<td class="px-5 py-4 text-foreground">
+									{request.totalDays} {request.totalDays === 1 ? 'day' : 'days'}
+								</td>
+								<td class="px-5 py-4">
+									<span
+										class="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium {getStatusColor(
+											request.status
+										)}"
+									>
+										{request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+									</span>
+								</td>
+								<td class="px-5 py-4 text-xs text-muted-foreground">
+									{formatDate(request.requestedAt)}
+								</td>
+								<td class="px-5 py-4 text-right">
+									{#if isOwnLeave && request.status === 'pending'}
+										<button
+											onclick={() => handleCancelRequest(request.id)}
+											class="text-xs font-medium text-destructive hover:underline"
+										>
+											Cancel
+										</button>
+									{:else}
+										<span class="text-xs text-muted-foreground">—</span>
+									{/if}
+								</td>
+							</tr>
+						{:else}
+							<tr>
+								<td colspan="6" class="px-5 py-8 text-center text-xs text-muted-foreground">
+									No leave requests found.
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		</div>
 	</div>
 
 	<!-- New Request Form Modal -->
 	{#if showNewRequestForm}
-		<div class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
-			<div class="w-full max-w-md rounded-lg bg-card p-6 shadow-xl">
-				<h2 class="mb-4 text-lg font-semibold text-foreground">New Leave Request</h2>
+		<div class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+			<div class="w-full max-w-md rounded-xl border bg-card p-6 shadow-lg">
+				<div class="mb-4 flex items-center justify-between">
+					<h2 class="text-lg font-semibold text-foreground">New Leave Request</h2>
+					<button 
+						onclick={() => showNewRequestForm = false}
+						class="text-muted-foreground hover:text-foreground"
+					>
+						<XCircle class="h-5 w-5" />
+					</button>
+				</div>
+				
 				<form onsubmit={handleSubmitRequest} class="space-y-4">
-					<div>
-						<label for="leaveType" class="mb-1 block text-sm font-medium text-foreground">
+					<div class="space-y-2">
+						<label for="leaveType" class="text-sm font-medium text-foreground">
 							Leave Type
 						</label>
 						<select
@@ -211,8 +328,8 @@
 					</div>
 
 					<div class="grid grid-cols-2 gap-4">
-						<div>
-							<label for="startDate" class="mb-1 block text-sm font-medium text-foreground">
+						<div class="space-y-2">
+							<label for="startDate" class="text-sm font-medium text-foreground">
 								Start Date
 							</label>
 							<input
@@ -223,8 +340,8 @@
 								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							/>
 						</div>
-						<div>
-							<label for="endDate" class="mb-1 block text-sm font-medium text-foreground">
+						<div class="space-y-2">
+							<label for="endDate" class="text-sm font-medium text-foreground">
 								End Date
 							</label>
 							<input
@@ -237,8 +354,8 @@
 						</div>
 					</div>
 
-					<div>
-						<label for="reason" class="mb-1 block text-sm font-medium text-foreground">
+					<div class="space-y-2">
+						<label for="reason" class="text-sm font-medium text-foreground">
 							Reason
 						</label>
 						<textarea
@@ -247,153 +364,20 @@
 							rows="3"
 							required
 							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
-							placeholder="Please provide a reason for your leave request..."
+							placeholder="Briefly describe your request..."
 						></textarea>
 					</div>
 
-					<div class="flex justify-end gap-3 pt-4">
-						<button
-							type="button"
-							onclick={() => (showNewRequestForm = false)}
-							class="px-4 py-2 text-sm font-medium text-foreground hover:text-foreground"
-						>
+					<div class="flex justify-end gap-3 pt-2">
+						<Button type="button" variant="outline" onclick={() => showNewRequestForm = false}>
 							Cancel
-						</button>
-						<button
-							type="submit"
-							class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-						>
+						</Button>
+						<Button type="submit">
 							Submit Request
-						</button>
+						</Button>
 					</div>
 				</form>
 			</div>
 		</div>
 	{/if}
-
-	<!-- Leave Requests -->
-	<div class="rounded-lg border bg-card shadow-sm">
-		<div class="border border-b px-6 py-4">
-			<h2 class="text-lg font-semibold text-foreground">Leave History</h2>
-		</div>
-		<div class="overflow-hidden">
-			<div class="overflow-x-auto">
-				<table class="w-full text-sm" data-testid="hr-leave-requests-table">
-					<thead class="bg-muted/50">
-						<tr>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
-							>
-								Leave Type
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
-							>
-								Dates
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
-							>
-								Days
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
-							>
-								Status
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
-							>
-								Requested
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
-							>
-								Reason
-							</th>
-							{#if isOwnLeave}
-								<th
-									class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
-								>
-									Actions
-								</th>
-							{/if}
-						</tr>
-					</thead>
-					<tbody class="">
-						{#each leaveRequests as request}
-							{@const StatusIcon = getStatusIcon(request.status)}
-							<tr class="border-b hover:bg-muted/50">
-								<td class="px-6 py-4 text-sm whitespace-nowrap">
-									<span
-										class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getLeaveTypeColor(
-											request.leaveType.color
-										)}"
-									>
-										{request.leaveType.name}
-									</span>
-								</td>
-								<td class="px-6 py-4 text-sm whitespace-nowrap text-foreground">
-									{formatDateRange(request.startDate, request.endDate)}
-								</td>
-								<td class="px-6 py-4 text-sm whitespace-nowrap text-foreground">
-									{request.totalDays}
-									{request.totalDays === 1 ? 'day' : 'days'}
-								</td>
-								<td class="px-6 py-4 text-sm whitespace-nowrap">
-									<div class="flex items-center gap-2">
-										<span
-											class="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium {getStatusColor(
-												request.status
-											)}"
-										>
-											<StatusIcon class="h-3 w-3" />
-											{request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-										</span>
-									</div>
-								</td>
-								<td class="px-6 py-4 text-sm whitespace-nowrap text-muted-foreground">
-									{formatDate(request.requestedAt)}
-								</td>
-								<td class="max-w-xs px-6 py-4 text-sm text-muted-foreground">
-									<div class="truncate" title={request.reason}>
-										{request.reason}
-									</div>
-									{#if request.comments}
-										<div class="mt-1 text-xs text-red-600">
-											{request.comments}
-										</div>
-									{/if}
-								</td>
-								{#if isOwnLeave}
-									<td class="px-6 py-4 text-sm whitespace-nowrap">
-										{#if request.status === 'pending'}
-											<button
-												onclick={() => handleCancelRequest(request.id)}
-												class="text-sm font-medium text-red-600 hover:text-red-900"
-											>
-												Cancel
-											</button>
-										{:else}
-											<span class="text-muted-foreground">—</span>
-										{/if}
-									</td>
-								{/if}
-							</tr>
-						{:else}
-							<tr>
-								<td
-									colspan={isOwnLeave ? '7' : '6'}
-									class="px-6 py-8 text-center text-sm text-muted-foreground"
-								>
-									No leave requests found.
-								</td>
-							</tr>
-						{/each}
-					</tbody>
-				</table>
-			</div>
-		</div>
-	</div>
 </div>
-

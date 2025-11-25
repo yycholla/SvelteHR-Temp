@@ -3,85 +3,107 @@
 	import {
 		AlertCircle,
 		Calendar,
+		CalendarPlus,
 		CheckCircle,
 		Circle,
 		Clock,
+		Hourglass,
+		List,
 		MapPin,
+		PieChart,
+		Play,
 		TrendingUp,
 		User
 	} from '@lucide/svelte';
-	import { format, formatDistanceToNow, parseISO } from 'date-fns';
+	import { format, parseISO } from 'date-fns';
+	import { Button } from '$lib/components/ui/button';
+	import { Badge } from '$lib/components/ui/badge';
 
 	const { data } = $props();
 
-	// Extract data properties directly to avoid circular dependencies
+	// Extract data properties
 	const user = $derived(data.user);
 	const userId = $derived(data.userId);
 	const attendanceRecords = $derived(data.attendanceRecords);
 	const attendanceStats = $derived(data.attendanceStats);
+	const leaveBalances = $derived(data.leaveBalances || []);
+	const leaveRequests = $derived(data.leaveRequests || []);
 	const canManageAttendance = $derived(data.canManageAttendance);
 	const isOwnAttendance = $derived(data.isOwnAttendance);
 
 	// Current date for clock in/out functionality
 	let currentTime = $state(new Date());
 	let isClockedIn = $state(false);
-	let todayRecord = $state(null);
+	let todayRecord = $state<any>(null);
 
-	// Update current time every minute with proper cleanup
+	// Update current time every second
 	$effect(() => {
 		const interval = setInterval(() => {
 			currentTime = new Date();
-		}, 60000);
+		}, 1000);
 
-		// Cleanup interval on component unmount
 		return () => {
 			clearInterval(interval);
 		};
 	});
 
-	// Check if user is clocked in today - using separate effect to avoid circular dependency
+	// Check if user is clocked in today
 	$effect(() => {
-		const records = attendanceRecords;
-		if (!records) return;
-
+		if (!attendanceRecords) return;
 		const today = new Date().toISOString().split('T')[0];
-		const record = records.find((r) => r.date === today);
+		const record = attendanceRecords.find((r: any) => r.date === today);
 		todayRecord = record || null;
 		isClockedIn = Boolean(record?.clockIn && !record.clockOut);
 	});
 
-	function getStatusIcon(status: string) {
-		switch (status) {
-			case 'present':
-				return CheckCircle;
-			case 'partial':
-				return AlertCircle;
-			case 'absent':
-				return Circle;
-			default:
-				return Circle;
-		}
-	}
-
 	function getStatusColor(status: string) {
 		switch (status) {
 			case 'present':
-				return 'text-green-600';
+				return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
 			case 'partial':
-				return 'text-yellow-600';
+				return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
 			case 'absent':
-				return 'text-red-600';
+				return 'bg-red-500/10 text-red-500 border-red-500/20';
+			case 'leave':
+				return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
 			default:
-				return 'text-muted-foreground';
+				return 'bg-muted text-muted-foreground border-border';
+		}
+	}
+
+	function getStatusDotColor(status: string) {
+		switch (status) {
+			case 'present':
+				return 'bg-emerald-500';
+			case 'partial':
+				return 'bg-yellow-500';
+			case 'absent':
+				return 'bg-red-500';
+			case 'leave':
+				return 'bg-blue-500';
+			default:
+				return 'bg-muted-foreground';
 		}
 	}
 
 	function formatTime(dateString: string) {
-		return format(parseISO(dateString), 'HH:mm');
+		if (!dateString) return '--:--';
+		return format(parseISO(dateString), 'hh:mm a');
 	}
 
 	function formatDate(dateString: string) {
 		return format(parseISO(dateString), 'MMM dd, yyyy');
+	}
+
+	// Calculate duration for today if clocked in
+	function getDuration(start: string, end?: string) {
+		if (!start) return '0h 0m';
+		const startTime = parseISO(start).getTime();
+		const endTime = end ? parseISO(end).getTime() : currentTime.getTime();
+		const diffMs = endTime - startTime;
+		const hours = Math.floor(diffMs / (1000 * 60 * 60));
+		const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+		return `${hours}h ${minutes}m`;
 	}
 
 	async function handleClockAction() {
@@ -91,222 +113,234 @@
 </script>
 
 <svelte:head>
-	<title
-		>{isOwnAttendance ? 'My Attendance' : `${user?.displayName} - Attendance`} | MountainHR</title
-	>
+	<title>Time & Attendance - MountainHR</title>
 </svelte:head>
 
-<div class="container mx-auto space-y-6 p-6">
+<div class="container mx-auto max-w-7xl p-6 md:p-10">
 	<!-- Header -->
-	<div class="flex items-center justify-between">
-		<div class="flex items-center space-x-4">
-			<div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-				<Calendar class="h-6 w-6 text-blue-600" />
+	<div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+		<div>
+			<h1 class="text-2xl font-bold tracking-tight text-foreground">Time & Attendance</h1>
+			<p class="text-muted-foreground">
+				Manage your schedule, track time, and request leave.
+			</p>
+		</div>
+		<div class="flex items-center gap-3">
+			<div class="mr-4 hidden text-right md:block">
+				<p class="text-sm font-medium text-foreground">{format(currentTime, 'HH:mm:ss')}</p>
+				<p class="text-xs text-muted-foreground">{format(currentTime, 'MMM dd, yyyy')}</p>
+			</div>
+			{#if isOwnAttendance}
+				<Button
+					variant={isClockedIn ? 'destructive' : 'default'}
+					class={isClockedIn ? '' : 'bg-emerald-600 hover:bg-emerald-700'}
+					onclick={handleClockAction}
+				>
+					<Play class="mr-2 h-4 w-4" />
+					{isClockedIn ? 'Clock Out' : 'Clock In'}
+				</Button>
+			{/if}
+			<Button
+				variant="secondary"
+				href="/dashboard/profile/leave/requests"
+			>
+				<CalendarPlus class="mr-2 h-4 w-4" />
+				Request Leave
+			</Button>
+		</div>
+	</div>
+
+	<!-- Main Bento Grid -->
+	<div class="grid auto-rows-[minmax(160px,auto)] grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4">
+		<!-- 1. Today's Status (Medium) -->
+		<div
+			class="relative flex flex-col overflow-hidden rounded-xl border bg-card p-6 md:col-span-2"
+		>
+			<div class="relative z-10 flex justify-between items-start">
+				<div>
+					<h2 class="mb-1 text-lg font-semibold text-foreground">Today's Status</h2>
+					<div class="flex items-center gap-2">
+						<span
+							class="h-2.5 w-2.5 rounded-full {isClockedIn
+								? 'animate-pulse bg-emerald-500'
+								: 'bg-yellow-500'}"
+						></span>
+						<span class="text-sm text-muted-foreground"
+							>{isClockedIn ? 'Clocked In' : 'Not Clocked In'}</span
+						>
+					</div>
+				</div>
+				<div class="rounded bg-muted/30 px-3 py-1 text-xs font-mono text-muted-foreground">
+					Shift: 9:00 - 17:00
+				</div>
+			</div>
+
+			<div class="relative z-10 mt-8 grid grid-cols-3 gap-4">
+				<div>
+					<p class="mb-1 text-xs uppercase tracking-wider text-muted-foreground">Clock In</p>
+					<p class="text-xl font-mono font-medium text-foreground">
+						{todayRecord?.clockIn ? formatTime(todayRecord.clockIn) : '--:--'}
+					</p>
+				</div>
+				<div>
+					<p class="mb-1 text-xs uppercase tracking-wider text-muted-foreground">Clock Out</p>
+					<p class="text-xl font-mono font-medium text-foreground">
+						{todayRecord?.clockOut ? formatTime(todayRecord.clockOut) : '--:--'}
+					</p>
+				</div>
+				<div>
+					<p class="mb-1 text-xs uppercase tracking-wider text-muted-foreground">Duration</p>
+					<p class="text-xl font-mono font-medium text-foreground">
+						{todayRecord?.clockIn ? getDuration(todayRecord.clockIn, todayRecord.clockOut) : '0h 0m'}
+					</p>
+				</div>
+			</div>
+
+			<!-- Decorative Background -->
+			<div class="absolute bottom-0 right-0 p-6 opacity-5">
+				<Clock class="h-32 w-32" />
+			</div>
+		</div>
+
+		<!-- 2. Attendance Stats (Small) -->
+		<div class="flex flex-col justify-between rounded-xl border bg-card p-5">
+			<div class="mb-2 flex items-center gap-2 text-muted-foreground">
+				<TrendingUp class="h-4 w-4" />
+				<span class="text-xs font-semibold uppercase tracking-wider">Attendance Rate</span>
 			</div>
 			<div>
-				<h1 class="text-2xl font-bold text-foreground">
-					{isOwnAttendance ? 'My Attendance' : `${user?.displayName} - Attendance`}
-				</h1>
-				<p class="text-muted-foreground">
-					{user?.departmentByDepartmentId?.name || 'No Department'} • {user?.role}
-				</p>
+				<div class="mb-1 flex items-end gap-2">
+					<span class="text-3xl font-bold text-emerald-500"
+						>{attendanceStats.attendanceRate}%</span
+					>
+					<!-- <span class="mb-1.5 text-xs text-emerald-500/80">+2.4%</span> -->
+				</div>
+				<p class="text-xs text-muted-foreground">Total Days: {attendanceStats.totalDays}</p>
+			</div>
+			<div class="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+				<div
+					class="h-full rounded-full bg-emerald-500"
+					style="width: {attendanceStats.attendanceRate}%"
+				></div>
 			</div>
 		</div>
 
-		{#if isOwnAttendance}
-			<!-- Current Time & Clock Action -->
-			<div class="text-right">
-				<div class="text-lg font-semibold text-foreground">
-					{format(currentTime, 'HH:mm:ss')}
-				</div>
-				<div class="text-sm text-muted-foreground">
-					{format(currentTime, 'EEEE, MMM dd')}
-				</div>
-				<button
-					onclick={handleClockAction}
-					class="mt-2 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors
-						{isClockedIn
-						? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
-						: 'bg-primary text-primary-foreground hover:bg-primary/90'}"
-				>
-					<Clock class="h-4 w-4" />
-					{isClockedIn ? 'Clock Out' : 'Clock In'}
-				</button>
+		<!-- 3. Work Hours (Small) -->
+		<div class="flex flex-col justify-between rounded-xl border bg-card p-5">
+			<div class="mb-2 flex items-center gap-2 text-muted-foreground">
+				<Hourglass class="h-4 w-4" />
+				<span class="text-xs font-semibold uppercase tracking-wider">Total Hours</span>
 			</div>
-		{/if}
-	</div>
-
-	<!-- Attendance Statistics -->
-	<div
-		class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4"
-		data-testid="hr-attendance-stats"
-	>
-		<div class="rounded-lg border bg-card p-6 shadow-sm">
-			<div class="flex items-center justify-between">
-				<div>
-					<p class="text-sm font-medium text-muted-foreground">Attendance Rate</p>
-					<p class="text-2xl font-bold text-foreground">{attendanceStats.attendanceRate}%</p>
-				</div>
-				<div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-					<TrendingUp class="h-6 w-6 text-green-600" />
-				</div>
+			<div>
+				<span class="text-3xl font-bold text-primary">{attendanceStats.totalHours}</span>
+				<p class="mt-1 text-xs text-muted-foreground">Avg: {attendanceStats.averageHours}h/day</p>
+			</div>
+			<div class="mt-4 flex gap-1 h-8 items-end">
+				<div class="w-1 rounded-sm bg-primary/20 h-[40%]"></div>
+				<div class="w-1 rounded-sm bg-primary/40 h-[60%]"></div>
+				<div class="w-1 rounded-sm bg-primary/60 h-[50%]"></div>
+				<div class="w-1 rounded-sm bg-primary/80 h-[80%]"></div>
+				<div class="w-1 rounded-sm bg-primary h-[70%]"></div>
 			</div>
 		</div>
 
-		<div class="rounded-lg border bg-card p-6 shadow-sm">
-			<div class="flex items-center justify-between">
-				<div>
-					<p class="text-sm font-medium text-muted-foreground">Total Days</p>
-					<p class="text-2xl font-bold text-foreground">{attendanceStats.totalDays}</p>
+		<!-- 4. Leave Balances (Vertical List) -->
+		<div class="row-span-2 flex flex-col rounded-xl border bg-card p-5">
+			<div class="mb-6 flex items-center justify-between">
+				<div class="flex items-center gap-2 text-muted-foreground">
+					<PieChart class="h-4 w-4" />
+					<span class="text-xs font-semibold uppercase tracking-wider">Balances</span>
 				</div>
-				<div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-					<Calendar class="h-6 w-6 text-blue-600" />
-				</div>
+			</div>
+
+			<div class="flex-1 space-y-5 overflow-y-auto">
+				{#if leaveBalances.length > 0}
+					{#each leaveBalances as balance}
+						<div>
+							<div class="mb-1.5 flex justify-between text-sm">
+								<span class="font-medium">{balance.leaveType.name}</span>
+								<span class="font-bold text-primary"
+									>{parseFloat(balance.usedDays)} / {parseFloat(balance.totalDays)}</span
+								>
+							</div>
+							<div class="h-2 w-full overflow-hidden rounded-full bg-muted">
+								<div
+									class="h-full rounded-full"
+									style="background-color: {balance.leaveType.color ||
+										'var(--primary)'}; width: {(parseFloat(balance.usedDays) /
+										parseFloat(balance.totalDays)) *
+										100}%"
+								></div>
+							</div>
+							<p class="mt-1 text-right text-[10px] text-muted-foreground">
+								{parseFloat(balance.remainingDays)} days remaining
+							</p>
+						</div>
+					{/each}
+				{:else}
+					<p class="text-center text-xs text-muted-foreground">No leave balances found.</p>
+				{/if}
 			</div>
 		</div>
 
-		<div class="rounded-lg border bg-card p-6 shadow-sm">
-			<div class="flex items-center justify-between">
-				<div>
-					<p class="text-sm font-medium text-muted-foreground">Total Hours</p>
-					<p class="text-2xl font-bold text-foreground">{attendanceStats.totalHours}h</p>
+		<!-- 5. Recent Attendance Log (Large Table) -->
+		<div
+			class="row-span-2 flex flex-col overflow-hidden rounded-xl border bg-card md:col-span-2 lg:col-span-3"
+		>
+			<div class="flex items-center justify-between border-b border-border p-5">
+				<div class="flex items-center gap-2 text-muted-foreground">
+					<List class="h-4 w-4" />
+					<span class="text-xs font-semibold uppercase tracking-wider">Recent History</span>
 				</div>
-				<div class="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
-					<Clock class="h-6 w-6 text-purple-600" />
-				</div>
+				<!-- <div class="flex gap-2">
+					<button
+						class="rounded bg-muted px-2 py-1 text-xs transition-colors hover:bg-muted/80"
+						>Export</button
+					>
+					<button class="text-xs text-primary hover:underline">View All</button>
+				</div> -->
 			</div>
-		</div>
 
-		<div class="rounded-lg border bg-card p-6 shadow-sm">
-			<div class="flex items-center justify-between">
-				<div>
-					<p class="text-sm font-medium text-muted-foreground">Avg. Hours/Day</p>
-					<p class="text-2xl font-bold text-foreground">{attendanceStats.averageHours}h</p>
-				</div>
-				<div class="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
-					<Clock class="h-6 w-6 text-orange-600" />
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<!-- Today's Status (if viewing own attendance) -->
-	{#if isOwnAttendance && todayRecord}
-		<div class="rounded-lg border bg-card p-6 shadow-sm">
-			<h2 class="mb-4 text-lg font-semibold text-foreground">Today's Status</h2>
-			<div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-				<div>
-					<p class="text-sm font-medium text-muted-foreground">Clock In</p>
-					<p class="text-lg font-semibold text-foreground">
-						{todayRecord.clockIn ? formatTime(todayRecord.clockIn) : 'Not clocked in'}
-					</p>
-				</div>
-				<div>
-					<p class="text-sm font-medium text-muted-foreground">Clock Out</p>
-					<p class="text-lg font-semibold text-foreground">
-						{todayRecord.clockOut ? formatTime(todayRecord.clockOut) : 'Not clocked out'}
-					</p>
-				</div>
-				<div>
-					<p class="text-sm font-medium text-muted-foreground">Hours Worked</p>
-					<p class="text-lg font-semibold text-foreground">
-						{todayRecord.hoursWorked ? `${todayRecord.hoursWorked}h` : '0h'}
-					</p>
-				</div>
-			</div>
-		</div>
-	{/if}
-
-	<!-- Attendance Records -->
-	<div class="rounded-lg border bg-card shadow-sm">
-		<div class="border border-b px-6 py-4">
-			<h2 class="text-lg font-semibold text-foreground">Attendance History</h2>
-		</div>
-		<div class="overflow-hidden">
 			<div class="overflow-x-auto">
-				<table class="w-full text-sm" data-testid="hr-attendance-tab">
-					<thead class="bg-muted/50">
+				<table class="w-full text-left text-sm">
+					<thead class="bg-muted/30 text-xs font-medium uppercase text-muted-foreground">
 						<tr>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
-							>
-								Date
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
-							>
-								Clock In
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
-							>
-								Clock Out
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
-							>
-								Hours
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
-							>
-								Status
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
-							>
-								Location
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium tracking-wider text-muted-foreground uppercase"
-							>
-								Notes
-							</th>
+							<th class="px-5 py-3">Date</th>
+							<th class="px-5 py-3">Clock In</th>
+							<th class="px-5 py-3">Clock Out</th>
+							<th class="px-5 py-3">Total</th>
+							<th class="px-5 py-3">Status</th>
+							<th class="px-5 py-3">Note</th>
 						</tr>
 					</thead>
-					<tbody class="">
+					<tbody class="divide-y divide-border/50">
 						{#each attendanceRecords as record}
-							<tr class="border-b hover:bg-muted/50">
-								<td class="px-6 py-4 text-sm whitespace-nowrap text-foreground">
-									{formatDate(record.date)}
-								</td>
-								<td class="px-6 py-4 text-sm whitespace-nowrap text-foreground">
+							<tr class="transition-colors hover:bg-muted/20">
+								<td class="px-5 py-3 font-medium">{formatDate(record.date)}</td>
+								<td class="px-5 py-3 text-muted-foreground">
 									{record.clockIn ? formatTime(record.clockIn) : '-'}
 								</td>
-								<td class="px-6 py-4 text-sm whitespace-nowrap text-foreground">
+								<td class="px-5 py-3 text-muted-foreground">
 									{record.clockOut ? formatTime(record.clockOut) : '-'}
 								</td>
-								<td class="px-6 py-4 text-sm whitespace-nowrap text-foreground">
-									{record.hoursWorked}h
+								<td class="px-5 py-3 font-mono">{record.hoursWorked}h</td>
+								<td class="px-5 py-3">
+									<span
+										class="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium {getStatusColor(
+											record.status
+										)}"
+									>
+										<span class="h-1.5 w-1.5 rounded-full {getStatusDotColor(record.status)}"
+										></span>
+										{record.status ? record.status.charAt(0).toUpperCase() + record.status.slice(1) : 'Unknown'}
+									</span>
 								</td>
-								<td class="px-6 py-4 text-sm whitespace-nowrap">
-									<div class="flex items-center gap-2">
-										{#if record.status === 'present'}
-											<CheckCircle class="h-4 w-4 {getStatusColor(record.status)}" />
-										{:else if record.status === 'partial'}
-											<AlertCircle class="h-4 w-4 {getStatusColor(record.status)}" />
-										{:else}
-											<Circle class="h-4 w-4 {getStatusColor(record.status)}" />
-										{/if}
-										<span class="capitalize {getStatusColor(record.status)}">
-											{record.status}
-										</span>
-									</div>
-								</td>
-								<td class="px-6 py-4 text-sm whitespace-nowrap text-foreground">
-									<div class="flex items-center gap-2">
-										<MapPin class="h-4 w-4 text-muted-foreground" />
-										{record.location}
-									</div>
-								</td>
-								<td class="px-6 py-4 text-sm text-muted-foreground">
-									{record.notes || '-'}
-								</td>
+								<td class="px-5 py-3 text-xs text-muted-foreground">{record.notes || '-'}</td>
 							</tr>
 						{:else}
 							<tr>
-								<td colspan="7" class="px-6 py-8 text-center text-sm text-muted-foreground">
-									No attendance records found.
+								<td colspan="6" class="px-5 py-8 text-center text-xs text-muted-foreground">
+									No recent attendance records.
 								</td>
 							</tr>
 						{/each}
