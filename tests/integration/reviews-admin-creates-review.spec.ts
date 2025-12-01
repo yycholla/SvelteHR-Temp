@@ -19,6 +19,14 @@ interface TestContext {
 	testEmployee: any;
 	authTokens: Record<string, string>;
 	cleanup?: () => Promise<void>;
+	users: any;
+	departments: any;
+	createdEmployees: string[];
+	createdUsers: string[];
+	createdDepartments: string[];
+	createdReviews: string[];
+	createdGoals: string[];
+	createdLeaveRequests: string[];
 }
 
 describe('T012: Admin creates annual review with new goal', () => {
@@ -34,7 +42,15 @@ describe('T012: Admin creates annual review with new goal', () => {
 			testEmployee: employee,
 			authTokens: {
 				admin: admin.token
-			}
+			},
+			users: { admin: admin, hrManager: null, manager: null, employee: employee },
+			departments: { engineering: null, marketing: null, hr: null },
+			createdEmployees: [],
+			createdUsers: [],
+			createdDepartments: [],
+			createdReviews: [],
+			createdGoals: [],
+			createdLeaveRequests: []
 		};
 	});
 
@@ -140,7 +156,7 @@ describe('T012: Admin creates annual review with new goal', () => {
 
 		expect(activityResponse.data.activityLogs.length).toBeGreaterThan(0);
 		const logEntry = activityResponse.data.activityLogs.find(
-			(log) => log.entityId === review.id
+			(log: { entityId: string }) => log.entityId === review.id
 		);
 		expect(logEntry).toBeDefined();
 		expect(logEntry.userId).toBe(testContext.adminUser.id);
