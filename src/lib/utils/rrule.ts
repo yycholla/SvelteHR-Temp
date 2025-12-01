@@ -43,7 +43,7 @@ export function generateRRule(pattern: RecurrencePattern, startDate: Date): stri
 
 	// Add BYDAY for weekly recurrence
 	if (pattern.frequency === 'weekly' && pattern.daysOfWeek && pattern.daysOfWeek.length > 0) {
-		parts.byday = pattern.daysOfWeek.map((day) => DAY_MAP[day]).join(',');
+		parts.byday = pattern.daysOfWeek.map((day: DayOfWeek) => DAY_MAP[day]).join(',');
 	}
 
 	return formatRRuleString(parts);
@@ -59,7 +59,7 @@ export function parseRecurrencePattern(
 	formData: {
 		frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
 		interval: number;
-		daysOfWeek: number[] | null;
+		daysOfWeek: DayOfWeek[] | undefined;
 		endDate: Date;
 	},
 	startDate: Date

@@ -43,9 +43,9 @@ function createMockActivity(overrides: Partial<ActivityLog> = {}): ActivityLog {
 		employeeId: 'user-1',
 		employee: { displayName: 'John Doe' } as any,
 		createdAt: new Date().toISOString(),
-		beforeSnapshot: null,
-		afterSnapshot: null,
-		details: null,
+		beforeSnapshot: undefined, // Changed from null to undefined
+		afterSnapshot: undefined,  // Changed from null to undefined
+		details: undefined, // Changed from null to undefined
 		...overrides
 	} as ActivityLog;
 }
@@ -198,7 +198,7 @@ describe('Message Formatting Functions', () => {
 				action: 'delete',
 				resourceType: 'task',
 				beforeSnapshot: { title: 'Deleted Task' },
-				afterSnapshot: null
+				afterSnapshot: undefined // Changed from null
 			});
 			expect(formatActivityMessage(activity)).toBe('deleted task "Deleted Task"');
 		});
@@ -239,7 +239,7 @@ describe('Message Formatting Functions', () => {
 			const activity = createMockActivity({
 				action: 'update',
 				resourceType: 'task',
-				afterSnapshot: null,
+				afterSnapshot: undefined, // Changed from null
 				details: { title: 'Task from details' }
 			});
 			expect(formatActivityMessage(activity)).toContain('Task from details');

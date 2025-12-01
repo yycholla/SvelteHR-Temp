@@ -80,7 +80,7 @@ describeOrSkip('GraphQL Backend Performance Tests (requires Rust server on port 
 		const results = await timeFunction(
 			'SimpleGraphQLQuery',
 			'graphql',
-			mockGraphQLOperations.simpleQuery,
+			() => mockGraphQLOperations.simpleQuery(),
 			['graphql', 'simple']
 		);
 
@@ -102,7 +102,7 @@ describeOrSkip('GraphQL Backend Performance Tests (requires Rust server on port 
 		const results = await timeFunction(
 			'ComplexGraphQLQuery',
 			'graphql',
-			mockGraphQLOperations.complexQuery,
+			() => mockGraphQLOperations.complexQuery(),
 			['graphql', 'complex']
 		);
 
@@ -164,7 +164,7 @@ describeOrSkip('GraphQL Backend Performance Tests (requires Rust server on port 
 		const slowOperation = await timeFunction(
 			'SlowGraphQLQuery',
 			'graphql',
-			mockGraphQLOperations.slowQuery,
+			() => mockGraphQLOperations.slowQuery(),
 			['graphql', 'slow']
 		);
 
@@ -319,7 +319,7 @@ describeOrSkip('GraphQL Backend Performance Tests (requires Rust server on port 
 
 		// Create 10 concurrent operations
 		const concurrentOps = Array.from({ length: 10 }, (_, i) =>
-			timeFunction(`ConcurrentQuery${i}`, 'graphql', mockGraphQLOperations.simpleQuery, [
+			timeFunction(`ConcurrentQuery${i}`, 'graphql', () => mockGraphQLOperations.simpleQuery(), [
 				'concurrent'
 			])
 		);

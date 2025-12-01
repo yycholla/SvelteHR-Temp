@@ -7,7 +7,7 @@ export type RsvpStatus = 'accepted' | 'declined' | 'pending' | 'waitlisted';
 export type EventType = 'meeting' | 'training' | 'company_event' | 'holiday' | 'other';
 export type EventVisibility = 'public' | 'private' | 'department';
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
-export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 for Sunday, 1 for Monday, etc.
 
 export interface CalendarEvent {
 	id: string;
@@ -55,6 +55,7 @@ export interface RecurrencePattern {
 	daysOfWeek?: DayOfWeek[];
 	dayOfMonth?: number;
 	monthOfYear?: number;
+	rruleString?: string; // Added to match rrule.ts logic
 }
 
 export interface EventConflict {

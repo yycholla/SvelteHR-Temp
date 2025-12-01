@@ -16,7 +16,7 @@ beforeAll(async () => {
 			const puppeteerPage = page as unknown as PuppeteerPage;
 
 			// Set consistent viewport
-			await puppeteerPage.setViewportSize({ width: 1280, height: 720 });
+			await puppeteerPage.setViewport({ width: 1280, height: 720 });
 
 			// Set timezone
 			await puppeteerPage.emulateTimezone('UTC');
@@ -50,7 +50,7 @@ afterEach(async () => {
 		});
 
 		// Clear cookies
-		const context = puppeteerPage.context();
+		const context = puppeteerPage.browserContext();
 		await context.clearCookies();
 
 		// Navigate to blank page
