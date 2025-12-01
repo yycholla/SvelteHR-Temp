@@ -19,6 +19,14 @@ interface TestContext {
 	testEmployee: any;
 	authTokens: Record<string, string>;
 	cleanup?: () => Promise<void>;
+	users: any;
+	departments: any;
+	createdEmployees: string[];
+	createdUsers: string[];
+	createdDepartments: string[];
+	createdReviews: string[];
+	createdGoals: string[];
+	createdLeaveRequests: string[];
 }
 
 describe('T015: Draft persistence across sessions', () => {
@@ -33,7 +41,15 @@ describe('T015: Draft persistence across sessions', () => {
 			testEmployee: employee,
 			authTokens: {
 				admin: admin.token
-			}
+			},
+			users: { admin: admin, hrManager: null, manager: null, employee: employee }, // Placeholder, adjust as needed
+			departments: { engineering: null, marketing: null, hr: null }, // Placeholder, adjust as needed
+			createdEmployees: [],
+			createdUsers: [],
+			createdDepartments: [],
+			createdReviews: [],
+			createdGoals: [],
+			createdLeaveRequests: []
 		};
 	});
 
