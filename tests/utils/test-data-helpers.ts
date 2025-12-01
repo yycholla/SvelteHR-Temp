@@ -249,7 +249,7 @@ export async function takeTimestampedScreenshot(
 	const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 	const filename = `test-results/screenshots/${testName}-${status}-${timestamp}.png`;
 
-	await page.screenshot({ path: filename, fullPage: true });
+	await page.screenshot({ path: filename as any, fullPage: true });
 }
 
 /**

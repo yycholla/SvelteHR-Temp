@@ -27,9 +27,9 @@ describe('RBAC Validation - Security Tests', () => {
 	let managerToken: string;
 	let employeeToken: string;
 
-	let testDocumentId: string;
-	let assignedDocumentId: string;
-	let unassignedDocumentId: string;
+	let testDocumentId: string = 'doc-test-123'; // Initialize with dummy values
+	let assignedDocumentId: string = 'doc-assigned-456';
+	let unassignedDocumentId: string = 'doc-unassigned-789';
 
 	beforeAll(async () => {
 		// TODO: Set up test users with proper roles
