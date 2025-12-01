@@ -1,4 +1,4 @@
-import { mount } from 'svelte';
+import { writable } from 'svelte/store';
 
 interface ConfirmOptions {
 	title?: string;
@@ -8,44 +8,60 @@ interface ConfirmOptions {
 	variant?: 'default' | 'destructive';
 }
 
-class ConfirmStore {
-	isOpen = $state(false);
-	title = $state('Confirm Action');
-	message = $state('');
-	confirmText = $state('Confirm');
-	cancelText = $state('Cancel');
-	variant = $state<'default' | 'destructive'>('default');
-	
-	private resolvePromise: ((value: boolean) => void) | null = null;
-
-	ask(options: ConfirmOptions): Promise<boolean> {
-		this.title = options.title || 'Confirm Action';
-		this.message = options.message;
-		this.confirmText = options.confirmText || 'Confirm';
-		this.cancelText = options.cancelText || 'Cancel';
-		this.variant = options.variant || 'default';
-		this.isOpen = true;
-
-		return new Promise((resolve) => {
-			this.resolvePromise = resolve;
-		});
-	}
-
-	confirm() {
-		this.isOpen = false;
-		if (this.resolvePromise) {
-			this.resolvePromise(true);
-			this.resolvePromise = null;
-		}
-	}
-
-	cancel() {
-		this.isOpen = false;
-		if (this.resolvePromise) {
-			this.resolvePromise(false);
-			this.resolvePromise = null;
-		}
-	}
+interface ConfirmState {
+	isOpen: boolean;
+	title: string;
+	message: string;
+	confirmText: string;
+	cancelText: string;
+	variant: 'default' | 'destructive';
 }
 
-export const confirmService = new ConfirmStore();
+function createConfirmStore() {
+	const defaultState: ConfirmState = {
+		isOpen: false,
+		title: 'Confirm Action',
+		message: '',
+		confirmText: 'Confirm',
+		cancelText: 'Cancel',
+		variant: 'default'
+	};
+
+	const { subscribe, set, update } = writable<ConfirmState>(defaultState);
+	let resolvePromise: ((value: boolean) => void) | null = null;
+
+	return {
+		subscribe,
+		ask(options: ConfirmOptions): Promise<boolean> {
+			update(state => ({
+				...state,
+				title: options.title || 'Confirm Action',
+				message: options.message,
+				confirmText: options.confirmText || 'Confirm',
+				cancelText: options.cancelText || 'Cancel',
+				variant: options.variant || 'default',
+				isOpen: true
+			}));
+
+			return new Promise((resolve) => {
+				resolvePromise = resolve;
+			});
+		},
+		confirm() {
+			update(state => ({ ...state, isOpen: false }));
+			if (resolvePromise) {
+				resolvePromise(true);
+				resolvePromise = null;
+			}
+		},
+		cancel() {
+			update(state => ({ ...state, isOpen: false }));
+			if (resolvePromise) {
+				resolvePromise(false);
+				resolvePromise = null;
+			}
+		}
+	};
+}
+
+export const confirmService = createConfirmStore();
