@@ -18,6 +18,8 @@
 
 	const { children, data } = $props();
 
+	let mounted = $state(false);
+
 	// Session timeout state
 	let sessionTimeoutManager: SessionTimeoutManager | null = null;
 	let showTimeoutBlur = $state(false);
@@ -86,6 +88,8 @@
 
 	// Initialize session timeout on mount (only for authenticated pages)
 	onMount(() => {
+		mounted = true;
+
 		// Sync server-validated user to client store (non-blocking)
 		if (data?.user?.id) {
 			auth.setUser({
@@ -174,7 +178,9 @@
 {/if}
 
 <!-- Global confirm dialog -->
-<ConfirmDialog />
+{#if mounted}
+	<ConfirmDialog />
+{/if}
 
 <!-- Global toast notifications -->
 <ToastContainer />
