@@ -373,7 +373,7 @@ impl Model {
 
     /// Tasks that this task blocks (dependencies where this is the blocking task)
     async fn blocks_tasks(&self, ctx: &Context<'_>) -> GqlResult<Vec<Model>> {
-        let db = get_db_from_context(ctx)?;
+        let _db = get_db_from_context(ctx)?;
         // This requires joining with task_dependencies table
         // For now, return empty vec - this would need proper relation setup
         Ok(vec![])
@@ -381,7 +381,7 @@ impl Model {
 
     /// Tasks that block this task (dependencies where this task depends on another)
     async fn blocked_by_tasks(&self, ctx: &Context<'_>) -> GqlResult<Vec<Model>> {
-        let db = get_db_from_context(ctx)?;
+        let _db = get_db_from_context(ctx)?;
         // This requires joining with task_dependencies table
         // For now, return empty vec - this would need proper relation setup
         Ok(vec![])
@@ -414,7 +414,7 @@ impl Model {
 
     /// Count of assignees for this task
     async fn assignee_count(&self, ctx: &Context<'_>) -> GqlResult<i64> {
-        let db = get_db_from_context(ctx)?;
+        let _db = get_db_from_context(ctx)?;
         // This requires counting from task_assignees table
         // For now, return 0 - this would need proper implementation
         Ok(0)
@@ -422,7 +422,7 @@ impl Model {
 
     /// Count of dependencies for this task
     async fn dependency_count(&self, ctx: &Context<'_>) -> GqlResult<i64> {
-        let db = get_db_from_context(ctx)?;
+        let _db = get_db_from_context(ctx)?;
         // This requires counting from task_dependencies table
         // For now, return 0 - this would need proper implementation
         Ok(0)
@@ -430,7 +430,7 @@ impl Model {
 
     /// Count of linked resources (attachments)
     async fn resource_count(&self, ctx: &Context<'_>) -> GqlResult<i64> {
-        let db = get_db_from_context(ctx)?;
+        let _db = get_db_from_context(ctx)?;
         // This requires counting from linked_resources table
         // For now, return 0 - this would need proper implementation
         Ok(0)

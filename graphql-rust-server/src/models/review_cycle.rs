@@ -199,13 +199,13 @@ impl Model {
     }
 
     /// Count of reviews in this cycle
-    async fn review_count(&self, ctx: &Context<'_>) -> GqlResult<i64> {
+    async fn review_count(&self, _ctx: &Context<'_>) -> GqlResult<i64> {
         // TODO: Implement with proper relation to performance_reviews
         Ok(0)
     }
 
     /// Count of completed reviews in this cycle
-    async fn completed_review_count(&self, ctx: &Context<'_>) -> GqlResult<i64> {
+    async fn completed_review_count(&self, _ctx: &Context<'_>) -> GqlResult<i64> {
         // TODO: Implement with proper relation to performance_reviews
         Ok(0)
     }

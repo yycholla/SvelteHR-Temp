@@ -277,6 +277,9 @@ impl AuthnBackend for AuthBackend {
             self.reset_failed_attempts(db_user.id).await?;
         }
 
+        // Update last login timestamp
+        self.update_last_login(&db_user).await?;
+
         // Note: Multiple concurrent sessions are allowed with tower-sessions
         // Session management is handled by the session store
 
@@ -311,103 +314,6 @@ impl AuthnBackend for AuthBackend {
 }
 
 impl AuthBackend {
-    /// Record a failed login attempt
-    async fn record_failed_login(&self, db_user: &user::Model) -> Result<(), AppError> {
-        // Increment failed login attempts counter
-        let new_attempts = db_user.failed_login_attempts + 1;
-
-        // Update the user record
-        let mut user: user::ActiveModel = db_user.clone().into();
-        user.failed_login_attempts = sea_orm::Set(new_attempts);
-        user.updated_at = sea_orm::Set(chrono::Utc::now());
-
-        user.update(&self.db).await
-            .map_err(|e| {
-                tracing::error!("Failed to update failed login attempts: {}", e);
-                AppError::Database(DbError::Query(e.to_string()))
-            })?;
-
-        tracing::warn!("Failed login attempt #{} for user: {}", new_attempts, db_user.email);
-        Ok(())
-    }
-
-    /// Check if account is locked due to failed attempts
-    async fn is_account_locked(&self, db_user: &user::Model) -> Result<bool, AppError> {
-        let failed_attempts = db_user.failed_login_attempts;
-        let locked_until = db_user.locked_until;
-
-        // Check if account is currently locked
-        if let Some(lock_time) = locked_until {
-            if lock_time > chrono::Utc::now() {
-                tracing::warn!("Account locked until {} for user: {}", lock_time, db_user.email);
-                return Ok(true);
-            }
-        }
-
-        // Implement progressive delays and locking
-        match failed_attempts {
-            0..=2 => Ok(false), // No delay for first 3 attempts
-            3 => {
-                // 3rd failed attempt: 5 second delay
-                tracing::warn!("Progressive delay: 5 seconds for user: {}", db_user.email);
-                tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-                Ok(false)
-            }
-            4 => {
-                // 4th failed attempt: 15 second delay
-                tracing::warn!("Progressive delay: 15 seconds for user: {}", db_user.email);
-                tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
-                Ok(false)
-            }
-            5 => {
-                // 5th failed attempt: 30 second delay
-                tracing::warn!("Progressive delay: 30 seconds for user: {}", db_user.email);
-                tokio::time::sleep(tokio::time::Duration::from_secs(30)).await;
-                Ok(false)
-            }
-            6..=9 => {
-                // 6th-9th attempts: 1 minute delay
-                tracing::warn!("Progressive delay: 1 minute for user: {}", db_user.email);
-                tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
-                Ok(false)
-            }
-            _ => {
-                // 10th+ attempts: Lock account for 30 minutes
-                let lock_until = chrono::Utc::now() + chrono::Duration::minutes(30);
-                let mut user: user::ActiveModel = db_user.clone().into();
-                user.locked_until = sea_orm::Set(Some(lock_until));
-                user.updated_at = sea_orm::Set(chrono::Utc::now());
-
-                user.update(&self.db).await
-                    .map_err(|e| {
-                        tracing::error!("Failed to lock account: {}", e);
-                        AppError::Database(DbError::Query(e.to_string()))
-                    })?;
-
-                tracing::warn!("Account locked for 30 minutes due to {} failed attempts for user: {}", failed_attempts, db_user.email);
-                Ok(true)
-            }
-        }
-    }
-
-    /// Reset failed login attempts counter
-    async fn reset_failed_login_attempts(&self, db_user: &user::Model) -> Result<(), AppError> {
-        // Reset counter and clear lock on successful login
-        let mut user: user::ActiveModel = db_user.clone().into();
-        user.failed_login_attempts = sea_orm::Set(0);
-        user.locked_until = sea_orm::Set(None);
-        user.updated_at = sea_orm::Set(chrono::Utc::now());
-
-        user.update(&self.db).await
-            .map_err(|e| {
-                tracing::error!("Failed to reset failed login attempts: {}", e);
-                AppError::Database(DbError::Query(e.to_string()))
-            })?;
-
-        tracing::info!("Reset failed login attempts and cleared lock for user: {}", db_user.email);
-        Ok(())
-    }
-
     /// Update user's last login timestamp
     async fn update_last_login(&self, db_user: &user::Model) -> Result<(), AppError> {
         // Update last_login timestamp

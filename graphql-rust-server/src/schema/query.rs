@@ -136,7 +136,7 @@ fn apply_leave_request_rls_filter(
     // HR managers can see all leave requests in their department
     // Regular users can only see their own leave requests
     if user_context.is_hr_manager() {
-        if let Some(dept_id) = user_context.department_id {
+        if let Some(_dept_id) = user_context.department_id {
             // Join with users table to filter by department
             // For now, filter by employee_id matching users in the same department
             // This requires a more complex query - leaving as employee_id filter for now
@@ -787,7 +787,7 @@ impl QueryRoot {
         let auth_session = ctx.data::<AuthSession<crate::auth::AuthBackend>>()?;
 
         match &auth_session.user {
-            Some(user) => {
+            Some(_user) => {
                 // For now, return a basic session info since we don't have access to the actual session details
                 // This would need to be enhanced when we implement proper session store integration
                 Ok(Some(SessionInfo {

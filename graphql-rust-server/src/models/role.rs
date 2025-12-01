@@ -122,7 +122,7 @@ impl Model {
 
     /// Users assigned to this role
     async fn users(&self, ctx: &Context<'_>) -> GqlResult<Vec<super::user::Model>> {
-        let db = get_db_from_context(ctx)?;
+        let _db = get_db_from_context(ctx)?;
 
         // TODO: Implement proper user loading with DataLoader
         // For now, return empty vec

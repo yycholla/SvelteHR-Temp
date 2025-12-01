@@ -82,7 +82,7 @@ pub async fn seed_roles(
 /// Employee: Basic self-service permissions
 pub async fn seed_role_permissions(
     db: &DatabaseConnection,
-    context: &SeedContext,
+    _context: &SeedContext,
 ) -> Result<EntitySeedResult> {
     let mut result = EntitySeedResult::new("role_permissions");
 

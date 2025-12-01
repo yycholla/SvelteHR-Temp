@@ -6,7 +6,6 @@
 use std::net::SocketAddr;
 
 use axum::{
-    extract::{connect_info::IntoMakeServiceWithConnectInfo, Request},
     http::{header, HeaderValue, Method},
     middleware as axum_middleware,
     response::IntoResponse,
@@ -14,7 +13,6 @@ use axum::{
     Router,
 };
 use axum_login::AuthManagerLayerBuilder;
-use sea_orm::DatabaseConnection;
 use tower::ServiceBuilder;
 use tower_http::{
     cors::CorsLayer,
@@ -22,27 +20,18 @@ use tower_http::{
 };
 use tower_sessions::{cookie::SameSite, Expiry, SessionManagerLayer};
 
-use crate::{
+use hr_graphql_server::{
     auth::AuthBackend,
     database::create_db_connection,
     dataloader::DataLoaderContext,
-    handlers::{graphql_handler, graphql_playground, login_handler, logout_handler, me_handler, refresh_handler, sessions_handler, events::delete_event_handler, AppState},
-    middleware::{optional_session_auth_middleware, security_headers_middleware, session_auth_middleware, admin_session_auth_middleware},
+    handlers::{graphql_handler, graphql_playground, login_handler, logout_handler, me_handler, refresh_handler, sessions_handler, events::delete_event_handler, roles::get_roles_handler, AppState},
+    middleware::{optional_session_auth_middleware, security_headers_middleware, session_auth_middleware},
     schema::create_schema,
+    logging,
+    scheduler,
+    auth,
+    config::Config,
 };
-use hr_graphql_server::config::Config;
-
-mod auth;
-mod database;
-mod dataloader;
-mod error;
-mod handlers;
-mod logging;
-mod middleware;
-mod models;
-mod scheduler;
-mod schema;
-mod services;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -102,7 +91,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Create SeaORM session store for persistent sessions
-    let session_store = crate::auth::SeaOrmSessionStore::new(db.clone());
+    let session_store = auth::SeaOrmSessionStore::new(db.clone());
 
     // Configure session layer with secure cookie settings
     // Use secure cookies only in production (requires HTTPS)
@@ -139,15 +128,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Build the application
     let app = Router::new()
         // Authentication endpoints
-        .route("/auth/login", axum::routing::post(login_handler))
-        .route("/auth/logout", axum::routing::post(logout_handler))
-        .route("/auth/me", axum::routing::get(me_handler))
-        .route("/auth/refresh", axum::routing::post(refresh_handler))
-        .route("/auth/sessions", axum::routing::get(sessions_handler))
+        .route("/auth/login", post(login_handler))
+        .route("/auth/logout", post(logout_handler))
+        .route("/auth/me", get(me_handler))
+        .route("/auth/refresh", post(refresh_handler))
+        .route("/auth/sessions", get(sessions_handler))
         // REST API endpoints
         .route("/api/events/{id}", axum::routing::delete(delete_event_handler)
             .layer(axum_middleware::from_fn_with_state(app_state.clone(), session_auth_middleware)))
-        .route("/api/roles", axum::routing::get(handlers::roles::get_roles_handler)
+        .route("/api/roles", axum::routing::get(get_roles_handler)
             .layer(axum_middleware::from_fn_with_state(app_state.clone(), session_auth_middleware)))
         // GraphQL endpoints with optional session auth
         .route("/graphql",
@@ -165,7 +154,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .layer(axum_middleware::from_fn(security_headers_middleware))
                 // Sentry layers for error tracking and distributed tracing
                 .layer(sentry_tower::NewSentryLayer::new_from_top())
-                .layer(sentry_tower::SentryHttpLayer::with_transaction())
+                .layer(
+                    #[allow(deprecated)]
+                    sentry_tower::SentryHttpLayer::with_transaction()
+                )
                 .layer(session_layer)
                 .layer(auth_layer)
         )
@@ -182,7 +174,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(3600)); // Run every hour
         loop {
             interval.tick().await;
-            match crate::auth::session_store::cleanup_expired_sessions(&cleanup_db).await {
+            match auth::session_store::cleanup_expired_sessions(&cleanup_db).await {
                 Ok(count) => {
                     if count > 0 {
                         tracing::info!("Cleaned up {} expired sessions", count);

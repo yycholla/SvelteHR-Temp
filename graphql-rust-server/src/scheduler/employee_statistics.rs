@@ -3,7 +3,7 @@
 //! Background task that captures daily snapshots of employee statistics
 //! Runs once per day at midnight UTC
 
-use chrono::{Duration, NaiveDate, Utc};
+use chrono::{Duration, Utc};
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Set};
 use tracing::{error, info, warn};
 use uuid::Uuid;
@@ -66,7 +66,7 @@ pub async fn capture_employee_statistics_snapshot(db: &DatabaseConnection) -> Re
 
 /// Clean up old statistics (older than 2 years)
 pub async fn cleanup_old_statistics(db: &DatabaseConnection) -> Result<u64, sea_orm::DbErr> {
-    use sea_orm::{QueryFilter, DeleteMany};
+    use sea_orm::QueryFilter;
 
     let cutoff_date = Utc::now().date_naive() - Duration::days(730); // 2 years
 

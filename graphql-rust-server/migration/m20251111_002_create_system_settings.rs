@@ -173,8 +173,4 @@ enum ApplicationSettings {
     UpdatedBy,
 }
 
-#[derive(Iden)]
-enum Users {
-    Table,
-    Id,
-}
+

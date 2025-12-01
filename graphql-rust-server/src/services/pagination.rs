@@ -5,7 +5,6 @@
 
 use async_graphql::{Error, connection::{Connection, Edge, EmptyFields}, OutputType, SimpleObject};
 use sea_orm::{
-    entity::prelude::*,
     DatabaseConnection, EntityTrait, QuerySelect, Select,
 };
 use serde::{Deserialize, Serialize};

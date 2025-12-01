@@ -39,39 +39,9 @@ impl Default for RequestLimitsConfig {
     }
 }
 
-/// Input sanitization patterns
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SanitizationRules {
-    /// SQL injection patterns to block
-    sql_injection_patterns: Vec<Regex>,
-    /// XSS patterns to block
-    xss_patterns: Vec<Regex>,
-    /// Path traversal patterns to block
-    path_traversal_patterns: Vec<Regex>,
-}
-
-impl Default for SanitizationRules {
-    fn default() -> Self {
-        Self {
-            sql_injection_patterns: vec![
-                Regex::new(r"(?i)(union\s+select|select\s+.*\s+from|insert\s+into|delete\s+from|update\s+.*\s+set|drop\s+table|alter\s+table|--|#|/\*|\*/|;|')").unwrap(),
-            ],
-            xss_patterns: vec![
-                Regex::new(r"<script[^>]*>.*?</script>").unwrap(),
-                Regex::new(r"javascript:").unwrap(),
-                Regex::new(r"on\w+\s*=").unwrap(),
-                Regex::new(r"<iframe[^>]*>").unwrap(),
-                Regex::new(r"<object[^>]*>").unwrap(),
-                Regex::new(r"<embed[^>]*>").unwrap(),
-            ],
-            path_traversal_patterns: vec![
-                Regex::new(r"\.\./").unwrap(),
-                Regex::new(r"\.\.\\").unwrap(),
-                Regex::new(r"%2e%2e%2f").unwrap(),
-                Regex::new(r"%2e%2e%5c").unwrap(),
-            ],
-        }
-    }
+    // Fields removed as they were unused
 }
 
 /// Request limits middleware
@@ -114,63 +84,7 @@ pub async fn request_limits_middleware(
     Ok(next.run(req).await)
 }
 
-/// Sanitize GraphQL input to prevent injection attacks
-fn sanitize_graphql_input(input: &str) -> Result<(), String> {
-    let rules = SanitizationRules::default();
 
-    // Check for SQL injection patterns
-    for pattern in &rules.sql_injection_patterns {
-        if pattern.is_match(input) {
-            return Err("Potential SQL injection detected in GraphQL query".to_string());
-        }
-    }
-
-    // Check for XSS patterns
-    for pattern in &rules.xss_patterns {
-        if pattern.is_match(input) {
-            return Err("Potential XSS attack detected in GraphQL query".to_string());
-        }
-    }
-
-    // Check for path traversal patterns
-    for pattern in &rules.path_traversal_patterns {
-        if pattern.is_match(input) {
-            return Err("Potential path traversal attack detected in GraphQL query".to_string());
-        }
-    }
-
-    // Check for extremely long strings that might indicate an attack
-    if input.len() > 100000 { // 100KB limit for GraphQL queries
-        return Err("GraphQL query too large".to_string());
-    }
-
-    // Check for too many nested operations (basic depth check)
-    let depth = count_graphql_depth(input);
-    if depth > 10 { // Maximum depth of 10
-        return Err("GraphQL query too deeply nested".to_string());
-    }
-
-    Ok(())
-}
-
-/// Count the maximum depth of a GraphQL query (simplified implementation)
-fn count_graphql_depth(query: &str) -> usize {
-    let mut max_depth = 0;
-    let mut current_depth: i32 = 0;
-
-    for line in query.lines() {
-        let trimmed = line.trim();
-        if trimmed.contains('{') {
-            current_depth += 1;
-            max_depth = max_depth.max(current_depth as usize);
-        }
-        if trimmed.contains('}') {
-            current_depth = current_depth.saturating_sub(1);
-        }
-    }
-
-    max_depth
-}
 
 /// Sanitize string input by removing potentially dangerous characters
 pub fn sanitize_string_input(input: &str) -> String {
