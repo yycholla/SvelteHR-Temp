@@ -49,9 +49,10 @@ export interface GraphQLConfig {
 
 // Environment-based endpoint resolution
 function getGraphQLEndpoints() {
-	const baseUrl = browser
-		? window.location.origin
-		: process.env.PUBLIC_API_URL || 'http://localhost:4000';
+	const baseUrl =
+		browser && typeof window !== 'undefined'
+			? window.location.origin
+			: process.env.PUBLIC_API_URL || 'http://localhost:4000';
 
 	// Remove any trailing slash
 	const cleanBaseUrl = baseUrl.replace(/\/$/, '');
@@ -257,7 +258,7 @@ export function createGraphQLHeaders(
 	};
 
 	// Add CSRF protection if enabled
-	if (graphqlConfig.security.enableCSRF && browser) {
+	if (graphqlConfig.security.enableCSRF && browser && typeof document !== 'undefined') {
 		// Get CSRF token from meta tag or cookie
 		const csrfToken =
 			document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||

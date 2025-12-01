@@ -10,12 +10,14 @@
 		isOpen: boolean;
 		employeeId: string;
 		employeeName: string;
+		initialData?: EmergencyContactInput | null;
 		onSave: (contact: EmergencyContactInput) => Promise<void>;
 		onClose: () => void;
 		isSubmitting?: boolean;
 	}
 
 	export interface EmergencyContactInput {
+		id?: string;
 		employeeId: string;
 		name: string;
 		relationship?: string;
@@ -24,8 +26,15 @@
 		isPrimary: boolean;
 	}
 
-	let { isOpen, employeeId, employeeName, onSave, onClose, isSubmitting = false }: Props =
-		$props();
+	let {
+		isOpen,
+		employeeId,
+		employeeName,
+		initialData = null,
+		onSave,
+		onClose,
+		isSubmitting = false
+	}: Props = $props();
 
 	// Form state
 	let name = $state('');
@@ -34,6 +43,18 @@
 	let email = $state('');
 	let isPrimary = $state(false);
 	let errors = $state<Record<string, string>>({});
+
+	$effect(() => {
+		if (isOpen && initialData) {
+			name = initialData.name;
+			relationship = initialData.relationship || '';
+			phoneNumber = initialData.phoneNumber;
+			email = initialData.email || '';
+			isPrimary = initialData.isPrimary;
+		} else if (isOpen && !initialData) {
+			resetForm();
+		}
+	});
 
 	function resetForm() {
 		name = '';
@@ -69,6 +90,7 @@
 		if (!validate()) return;
 
 		const contactInput: EmergencyContactInput = {
+			id: initialData?.id,
 			employeeId,
 			name: name.trim(),
 			relationship: relationship.trim() || undefined,
@@ -97,10 +119,10 @@
 		<Dialog.Header>
 			<Dialog.Title class="flex items-center gap-2">
 				<Shield class="h-5 w-5" />
-				Add Emergency Contact
+				{initialData ? 'Edit' : 'Add'} Emergency Contact
 			</Dialog.Title>
 			<Dialog.Description>
-				Add a new emergency contact for {employeeName}
+				{initialData ? 'Edit' : 'Add a new'} emergency contact for {employeeName}
 			</Dialog.Description>
 		</Dialog.Header>
 

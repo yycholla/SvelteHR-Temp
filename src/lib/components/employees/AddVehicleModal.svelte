@@ -23,8 +23,31 @@
 		color?: string;
 	}
 
-	let { isOpen, employeeId, employeeName, onSave, onClose, isSubmitting = false }: Props =
-		$props();
+	interface Props {
+		isOpen: boolean;
+		employeeId: string;
+		employeeName: string;
+		initialData?: {
+			make: string;
+			model: string;
+			year: number;
+			licensePlate: string;
+			color?: string | null;
+		} | null;
+		onSave: (vehicle: VehicleInput) => Promise<void>;
+		onClose: () => void;
+		isSubmitting?: boolean;
+	}
+
+	let {
+		isOpen,
+		employeeId,
+		employeeName,
+		initialData = null,
+		onSave,
+		onClose,
+		isSubmitting = false
+	}: Props = $props();
 
 	// Form state
 	let make = $state('');
@@ -33,6 +56,22 @@
 	let licensePlate = $state('');
 	let color = $state('');
 	let errors = $state<Record<string, string>>({});
+
+	// Initialize form with initialData when it changes or modal opens
+	$effect(() => {
+		if (isOpen && initialData) {
+			make = initialData.make;
+			model = initialData.model;
+			year = String(initialData.year);
+			licensePlate = initialData.licensePlate;
+			color = initialData.color || '';
+		} else if (isOpen && !initialData) {
+			// Reset if opening in add mode (though usually handled by close)
+			// We don't auto-reset here to avoid clearing if user is just toggling visibility quickly,
+			// but for "Add" mode ensure we start clean if intended.
+			// For now, relying on manual resetForm() called on close/success.
+		}
+	});
 
 	function resetForm() {
 		make = '';
@@ -90,7 +129,7 @@
 
 		try {
 			await onSave(vehicleInput);
-			resetForm();
+			if (!initialData) resetForm(); // Only full reset on success if it was add mode, or let parent handle closing
 			onClose();
 		} catch (error) {
 			console.error('Failed to save vehicle:', error);
@@ -108,10 +147,10 @@
 		<Dialog.Header>
 			<Dialog.Title class="flex items-center gap-2">
 				<Car class="h-5 w-5" />
-				Add Vehicle
+				{initialData ? 'Edit Vehicle' : 'Add Vehicle'}
 			</Dialog.Title>
 			<Dialog.Description>
-				Add a new vehicle for {employeeName}
+				{initialData ? 'Edit vehicle details' : `Add a new vehicle for ${employeeName}`}
 			</Dialog.Description>
 		</Dialog.Header>
 

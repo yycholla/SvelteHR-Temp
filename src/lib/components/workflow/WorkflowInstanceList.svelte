@@ -6,7 +6,7 @@
 		isWorkflowLoading,
 		workflowError
 	} from '$lib/stores/workflow';
-	import { canManageWorkflows } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 	import WorkflowInstanceCard from './WorkflowInstanceCard.svelte';
 	import WorkflowInstanceDetails from './WorkflowInstanceDetails.svelte';
 

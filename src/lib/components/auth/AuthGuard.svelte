@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { authActions } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 	import { page } from '$app/stores';
+	import { get } from 'svelte/store';
 
 	/**
 	 * Authentication Guard Component
@@ -14,14 +15,10 @@
 	 * This component just syncs the validated user to the client store
 	 */
 
-	import { get } from 'svelte/store';
-	import { authStore } from '$lib/stores/auth';
-
 	// Sync server-validated user to client store (non-blocking)
 	onMount(() => {
 		// Check if auth is already initialized
-		const currentState = get(authStore);
-		if (currentState.isAuthenticated && currentState.user) {
+		if (auth.isAuthenticated && auth.user) {
 			return;
 		}
 
@@ -31,7 +28,7 @@
 
 		if (serverUser?.id) {
 			// No await needed - this is just syncing to client store
-			authActions.setUser({
+			auth.setUser({
 				id: serverUser.id,
 				email: serverUser.email,
 				displayName: serverUser.displayName || serverUser.email.split('@')[0] || 'User',

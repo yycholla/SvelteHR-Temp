@@ -103,11 +103,10 @@ export function calculateEventDuration(startDate: string, endDate: string): stri
  */
 export function getRsvpStatusColor(status: RsvpStatus): string {
 	const colorMap: Record<RsvpStatus, string> = {
-		accepted: 'bg-primary/10 text-primary',
-		declined: 'bg-destructive/10 text-destructive',
-		tentative: 'bg-accent text-accent-foreground',
-		pending: 'bg-primary/10 text-primary',
-		no_response: 'bg-muted text-muted-foreground'
+		accepted: 'bg-green-500/10 text-green-600 dark:text-green-400',
+		declined: 'bg-red-500/10 text-red-600 dark:text-red-400',
+		tentative: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+		pending: 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
 	};
 	return colorMap[status] || 'bg-muted text-muted-foreground';
 }

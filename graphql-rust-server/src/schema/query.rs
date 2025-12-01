@@ -79,20 +79,14 @@ pub struct SessionInfo {
 /// This function MUST be applied to ALL user queries to prevent cross-tenant data leaks.
 fn apply_user_rls_filter(
     query: sea_orm::Select<UserEntity>,
-    user_context: &UserContext,
+    _user_context: &UserContext,
 ) -> sea_orm::Select<UserEntity> {
-    // System admins and Admin role bypass RLS - see all users
-    if user_context.is_system() || user_context.is_admin() {
-        return query;
-    }
-
-    // Regular users: filter by department_id
-    if let Some(dept_id) = user_context.department_id {
-        query.filter(UserColumn::DepartmentId.eq(dept_id))
-    } else {
-        // No department = no access to users
-        query.filter(UserColumn::Id.is_null())
-    }
+    // Policy Update: Allow all authenticated users to view the employee directory.
+    // Previously restricted to department-only for non-admins.
+    // System admins and Admin role bypass RLS - see all users (implicit in returning query)
+    
+    // Return query without additional filters
+    query
 }
 
 /// Apply Row-Level Security filtering to task queries based on UserContext
@@ -123,21 +117,11 @@ fn apply_task_rls_filter(
 /// Departments can serve as organization boundaries. This prevents cross-tenant access.
 fn apply_department_rls_filter(
     query: sea_orm::Select<DepartmentEntity>,
-    user_context: &UserContext,
+    _user_context: &UserContext,
 ) -> sea_orm::Select<DepartmentEntity> {
-    // System admins and Admin role bypass RLS - see all departments
-    if user_context.is_system() || user_context.is_admin() {
-        return query;
-    }
-
-    // Regular users: filter by their department (they can only see their own department)
-    // This can be expanded in the future to allow viewing sub-departments
-    if let Some(dept_id) = user_context.department_id {
-        query.filter(DepartmentColumn::Id.eq(dept_id))
-    } else {
-        // No department = no access
-        query.filter(DepartmentColumn::Id.is_null())
-    }
+    // Policy Update: Allow all authenticated users to view all departments.
+    // Departments serve as organization boundaries but structure is generally public.
+    query
 }
 
 /// Apply Row-Level Security filtering to leave request queries
@@ -743,7 +727,8 @@ impl QueryRoot {
 
         // Add user filter if provided
         if let Some(uid) = user_id {
-            query = query.filter(ActivityLogColumn::EmployeeId.eq(uid));
+            // Filter by UserId (actor)
+            query = query.filter(ActivityLogColumn::UserId.eq(uid));
         }
 
         let logs = query
@@ -754,6 +739,23 @@ impl QueryRoot {
             .await?;
 
         Ok(logs)
+    }
+
+    /// Get total count of activity logs with optional user filtering
+    async fn activity_logs_count(
+        &self,
+        ctx: &Context<'_>,
+        user_id: Option<Uuid>,
+    ) -> Result<i64> {
+        let db = get_db_from_context(ctx)?;
+        let mut query = ActivityLogEntity::find();
+
+        if let Some(uid) = user_id {
+             query = query.filter(ActivityLogColumn::UserId.eq(uid));
+        }
+        
+        let count = query.count(&db).await?;
+        Ok(count as i64)
     }
 
     /// Get a single activity log by ID

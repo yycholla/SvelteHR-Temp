@@ -4,7 +4,7 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { requireAuth } from '$lib/server/rbac-utils';
+import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 import { logger } from '$lib/utils/logger';
 
@@ -13,6 +13,9 @@ export const load: PageServerLoad = async (event) => {
 
 	// Check authentication (all authenticated users can access dashboard)
 	requireAuth(event, {});
+
+    // Get standardized user permissions
+    const userPerms = getUserPermissions(locals);
 
 	// Fetch weather data from wttr.in as a promise (non-blocking)
 	const weatherPromise = fetch('https://wttr.in/Boise?format=3', {
@@ -68,6 +71,7 @@ export const load: PageServerLoad = async (event) => {
 					showWelcome: true
 				},
 				permissions: locals.permissions || [],
+                userPerms, // Standardized permissions
 				canManageUsers: false,
 				canViewReports: false,
 				canApproveLeave: false,
@@ -175,11 +179,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 		`;
 
-		// Query for upcoming events (user is attending or public events)
-		// Note: We fetch events for the next month and filter server-side to handle complex logic:
-		// - Show public events
-		// - Show events where user is invited
-		// - Exclude events where user declined
+		// Query for upcoming events
 		const now = new Date();
 		const oneMonthLater = new Date(now);
 		oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
@@ -269,8 +269,6 @@ export const load: PageServerLoad = async (event) => {
 		const isSuperAdmin = userRoles.includes('Admin') || false;
 
 		// **STREAMING PATTERN**: Await critical data immediately, stream slow data as promises
-		// Critical: users, departments (needed for UI structure)
-		// Streamable: tasks, events, activities (can load progressively)
 		const startQueryTime = Date.now();
 
 		const [usersResult, departmentsResult] = await Promise.allSettled([
@@ -281,12 +279,12 @@ export const load: PageServerLoad = async (event) => {
 		const criticalDuration = Date.now() - startQueryTime;
 		console.log(`✅ Dashboard: Critical queries completed in ${criticalDuration}ms`);
 
-		// Extract critical data immediately (needed for page structure)
+		// Extract critical data immediately
 		const users = (usersResult.status === 'fulfilled' && usersResult.value.data?.users) || [];
 		const departments =
 			(departmentsResult.status === 'fulfilled' && departmentsResult.value.data?.departments) || [];
 
-		// Stream slow queries as promises (won't block page render)
+		// Stream slow queries as promises
 		const dashboardDataPromise = Promise.allSettled([
 			graphqlClient.query(attendanceQuery, { userId: locals.user.id }),
 			graphqlClient.query(leaveRequestsQuery),
@@ -331,18 +329,6 @@ export const load: PageServerLoad = async (event) => {
 					activityLogsResult.value.data?.activityLogs) ||
 				[];
 
-			console.log('📅 Dashboard: Raw events from GraphQL:', events.length);
-			if (events.length > 0) {
-				console.log('📅 First event sample:', {
-					id: events[0].id,
-					title: events[0].title,
-					startTime: events[0].startTime,
-					isPublic: events[0].isPublic,
-					status: events[0].status,
-					attendeesCount: events[0].attendees?.length || 0
-				});
-			}
-
 			// Extract admin-only data
 			let systemAuditLogs: any[] = [];
 			if (isAdmin && results[6]) {
@@ -370,7 +356,7 @@ export const load: PageServerLoad = async (event) => {
 					if (rollbackStatsResult.status === 'fulfilled') {
 						const totalCount = rollbackStatsResult.value.data?.rollbackRequestsCount || 0;
 						rollbackStats = {
-							pendingCount: totalCount, // Simplified - all requests shown as pending
+							pendingCount: totalCount,
 							approvedCount: 0,
 							rejectedCount: 0
 						};
@@ -378,52 +364,31 @@ export const load: PageServerLoad = async (event) => {
 				}
 			}
 
-			// Filter attendance records to last 30 days (client-side filtering)
+			// Filter attendance records to last 30 days
 			const attendanceRecords = allAttendanceRecords.filter((record) => {
 				const recordDate = new Date(record.date);
 				return recordDate >= thirtyDaysAgo;
 			});
 
-			console.log('📊 Dashboard: Extracted data:', {
-				users: users.length,
-				departments: departments.length,
-				attendance: attendanceRecords.length,
-				leaves: leaveRequests.length,
-				goals: goals.length,
-				tasks: tasks.length,
-				events: events.length,
-				activityLogs: activityLogs.length
-			});
-
-			// User role already determined above, no need to redeclare
-			const isManager = locals.roles?.includes('manager') || false;
-			const isHR = locals.roles?.includes('hr_manager') || false;
-
 			// Calculate real metrics from database
-			const startDataGeneration = Date.now();
-
-			// Calculate attendance rate from real data
 			const totalAttendanceDays = attendanceRecords.length;
 			const presentDays = attendanceRecords.filter((r) => r.status === 'present').length;
 			const attendanceRate =
 				totalAttendanceDays > 0 ? Math.round((presentDays / totalAttendanceDays) * 100) : 0;
 
-			// Count pending leave requests
 			const pendingLeaveRequests = leaveRequests.filter((r) => r.status === 'pending').length;
 
-			// Count pending/in-progress goals as tasks
 			const pendingTasks = goals.filter(
 				(g) => g.status === 'in_progress' || g.status === 'pending'
 			).length;
 
-			// Calculate remaining vacation days (sum approved + pending leave days)
 			const usedVacationDays = leaveRequests
 				.filter(
 					(r) =>
 						r.leaveType?.name === 'vacation' && (r.status === 'approved' || r.status === 'pending')
 				)
 				.reduce((sum, r) => sum + (r.daysRequested || 0), 0);
-			const totalVacationDays = 20; // TODO: Get from user's time_off_balances table
+			const totalVacationDays = 20; 
 			const remainingVacationDays = Math.max(0, totalVacationDays - usedVacationDays);
 
 			// Generate role-specific dashboard data
@@ -443,13 +408,7 @@ export const load: PageServerLoad = async (event) => {
 				10
 			);
 			const upcomingEvents = generateUpcomingEventsFromDatabase(events, locals.user.id, 5);
-			console.log(`📅 Dashboard: upcomingEvents after generation:`, upcomingEvents.length);
-			if (upcomingEvents.length > 0) {
-				console.log(`📅 First upcoming event:`, upcomingEvents[0]);
-			}
 			const quickActions = generateQuickActions(userRoles, users);
-			const dataGenDuration = Date.now() - startDataGeneration;
-			console.log(`📊 Dashboard: Data generation completed in ${dataGenDuration}ms`);
 
 			// Role-specific content
 			let roleSpecificData = {};
@@ -497,49 +456,37 @@ export const load: PageServerLoad = async (event) => {
 				};
 			}
 
-			console.log('🎉 Dashboard: Successfully processed streaming data');
-
-			// Return all processed dashboard data
 			return {
 				dashboardData: {
 					metrics: {
-						attendanceRate, // Real attendance rate from database
-						pendingRequests: pendingLeaveRequests, // Real pending leave requests
+						attendanceRate,
+						pendingRequests: pendingLeaveRequests,
 						taskCount: tasks.filter((t) => t.status === 'TODO' || t.status === 'IN_PROGRESS')
-							.length, // Real pending tasks
-						completedTaskCount: tasks.filter((t) => t.status === 'DONE').length, // Completed tasks
-						totalTaskCount: tasks.length, // Total tasks (for completion percentage)
-						remainingVacationDays // Real calculated vacation days
+							.length,
+						completedTaskCount: tasks.filter((t) => t.status === 'DONE').length,
+						totalTaskCount: tasks.length,
+						remainingVacationDays
 					},
 					activities: recentActivities.slice(0, 5).map((activity) => ({
 						message: activity.title,
 						timestamp: activity.timestamp,
 						type: activity.type === 'leave_request' ? 'warning' : 'success'
 					})),
-					tasks: tasks.filter((t) => t.status === 'TODO' || t.status === 'IN_PROGRESS').slice(0, 5), // Return full task objects
-					events: (() => {
-						const eventData = upcomingEvents.slice(0, 4).map((event) => ({
-							id: event.id,
-							title: event.title,
-							date: event.date,
-							time: event.time,
-							type: event.type,
-							rsvpStatus: event.rsvpStatus
-						}));
-						console.log(
-							`📅 Dashboard: Final events data for frontend:`,
-							eventData.length,
-							eventData
-						);
-						return eventData;
-					})()
+					tasks: tasks.filter((t) => t.status === 'TODO' || t.status === 'IN_PROGRESS').slice(0, 5),
+					events: upcomingEvents.slice(0, 4).map((event) => ({
+						id: event.id,
+						title: event.title,
+						date: event.date,
+						time: event.time,
+						type: event.type,
+						rsvpStatus: event.rsvpStatus
+					}))
 				},
 				dashboardMetrics,
 				recentActivities,
 				upcomingEvents,
 				quickActions,
 				...roleSpecificData,
-				// Feature 020: Audit logging widgets (admin/super_admin only)
 				systemAuditLogs: isAdmin
 					? systemAuditLogs.map((log) => ({
 							id: log.id,
@@ -569,14 +516,9 @@ export const load: PageServerLoad = async (event) => {
 			};
 		});
 
-		console.log('🎉 Dashboard: Returning immediate data + streaming promise');
-
-		// User role already determined above
 		const isManager = locals.roles?.includes('manager') || false;
 		const isHR = locals.roles?.includes('hr_manager') || false;
 
-		// Return immediate data + streaming promise
-		// SvelteKit will automatically stream the promise to the browser
 		return {
 			user: {
 				id: locals.user.id,
@@ -593,7 +535,7 @@ export const load: PageServerLoad = async (event) => {
 				userId: locals.user.id,
 				userEmail: locals.user.email || '',
 				roles: userRoles,
-				accessToken: '' // Session-based auth doesn't use access tokens
+				accessToken: ''
 			},
 			preferences: {
 				selectedPeriod,
@@ -602,6 +544,7 @@ export const load: PageServerLoad = async (event) => {
 				showWelcome: true
 			},
 			permissions: locals.permissions || [],
+            userPerms, // Standardized permissions
 			canManageUsers: isAdmin || isHR,
 			canViewReports: isAdmin || isHR || isManager,
 			canApproveLeave: isAdmin || isHR || isManager,
@@ -609,18 +552,12 @@ export const load: PageServerLoad = async (event) => {
 			isSuperAdmin,
 			weatherPromise,
 			loadedAt: new Date().toISOString(),
-			// STREAMING DATA: This promise will be streamed to the browser and resolved progressively
-			// The dashboard component can use {#await} blocks to show loading states for individual widgets
 			dashboardDataPromise
 		};
 	} catch (err) {
 		console.error('Error loading dashboard:', err);
+        const userPerms = getUserPermissions(locals);
 
-		// Extract URL parameters for error response
-		const selectedPeriod = url.searchParams.get('period') || 'week';
-		const viewMode = url.searchParams.get('view') || 'overview';
-
-		// Return error state instead of throwing to prevent page crash
 		return {
 			user: {
 				id: locals.user.id,
@@ -634,7 +571,7 @@ export const load: PageServerLoad = async (event) => {
 				userId: locals.user.id,
 				userEmail: locals.user.email || '',
 				roles: locals.roles || [],
-				accessToken: '' // Session-based auth doesn't use access tokens
+				accessToken: ''
 			},
 			dashboardData: {
 				metrics: {
@@ -652,12 +589,13 @@ export const load: PageServerLoad = async (event) => {
 			upcomingEvents: [],
 			quickActions: [],
 			preferences: {
-				selectedPeriod,
-				viewMode,
+				selectedPeriod: 'week',
+				viewMode: 'overview',
 				theme: 'light',
 				showWelcome: true
 			},
 			permissions: locals.permissions || [],
+            userPerms,
 			canManageUsers: false,
 			canViewReports: false,
 			canApproveLeave: false,
@@ -672,7 +610,7 @@ export const load: PageServerLoad = async (event) => {
 	}
 };
 
-// Helper function to generate dashboard metrics based on role and real data
+// Helper functions (copied from original)
 function generateDashboardMetrics(
 	roles: string[],
 	users: any[],
@@ -785,65 +723,6 @@ function generateDashboardMetrics(
 	];
 }
 
-// Helper function to generate recent activities from real data
-function generateRecentActivities(
-	role: string,
-	leaveRequests: any[],
-	attendanceRecords: any[],
-	goals: any[],
-	limit: number
-) {
-	const activities: any[] = [];
-
-	// Convert leave requests to activities
-	leaveRequests.slice(0, limit).forEach((leave) => {
-		activities.push({
-			id: `leave-${leave.id}`,
-			title: `Leave request ${leave.status}`,
-			description: `${leave.leaveType?.name || 'Unknown'} leave from ${leave.startDate} to ${leave.endDate}`,
-			icon: 'Calendar',
-			color: leave.status === 'approved' ? 'green' : leave.status === 'pending' ? 'orange' : 'red',
-			type: 'leave_request',
-			timestamp: leave.createdAt,
-			user: { id: 'user', name: 'You' }
-		});
-	});
-
-	// Convert attendance records to activities
-	attendanceRecords.slice(0, Math.min(3, limit)).forEach((attendance) => {
-		activities.push({
-			id: `attendance-${attendance.id}`,
-			title: `Clocked ${attendance.status}`,
-			description: `Worked ${attendance.hoursWorked || 0} hours on ${attendance.date}`,
-			icon: 'Clock',
-			color: attendance.status === 'present' ? 'green' : 'orange',
-			type: 'attendance',
-			timestamp: attendance.clockIn || attendance.date,
-			user: { id: 'user', name: 'You' }
-		});
-	});
-
-	// Convert goals to activities
-	goals.slice(0, Math.min(2, limit)).forEach((goal) => {
-		activities.push({
-			id: `goal-${goal.id}`,
-			title: `Goal: ${goal.title}`,
-			description: goal.description || 'No description',
-			icon: 'Target',
-			color: goal.status === 'completed' ? 'green' : 'blue',
-			type: 'goal',
-			timestamp: goal.createdAt,
-			user: { id: 'user', name: 'You' }
-		});
-	});
-
-	// Sort by timestamp (most recent first) and limit
-	return activities
-		.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-		.slice(0, limit);
-}
-
-// Helper function to generate recent activities from activity_logs table
 function generateRecentActivitiesFromLogs(
 	activityLogs: any[],
 	leaveRequests: any[],
@@ -855,7 +734,6 @@ function generateRecentActivitiesFromLogs(
 ) {
 	const activities: any[] = [];
 
-	// Process activity logs (most authoritative source)
 	activityLogs.forEach((log) => {
 		const actionMap: Record<string, { title: string; icon: string; color: string }> = {
 			create: { title: 'created', icon: 'Plus', color: 'green' },
@@ -889,7 +767,7 @@ function generateRecentActivitiesFromLogs(
 		});
 	});
 
-	// Supplement with recent leave requests if activity logs are sparse
+	// Supplement with other data
 	if (activities.length < limit) {
 		leaveRequests.slice(0, Math.min(3, limit - activities.length)).forEach((leave) => {
 			activities.push({
@@ -906,129 +784,43 @@ function generateRecentActivitiesFromLogs(
 		});
 	}
 
-	// Supplement with recent tasks if still sparse
-	if (activities.length < limit && tasks.length > 0) {
-		tasks.slice(0, Math.min(2, limit - activities.length)).forEach((task) => {
-			activities.push({
-				id: `task-${task.id}`,
-				title: `Task: ${task.title}`,
-				description: task.description || 'No description',
-				icon: 'CheckSquare',
-				color: task.status === 'completed' ? 'green' : task.priority === 'high' ? 'red' : 'blue',
-				type: 'task',
-				timestamp: task.createdAt,
-				user: { id: 'user', name: 'You' }
-			});
-		});
-	}
-
-	// Supplement with upcoming events if still sparse
-	if (activities.length < limit && events.length > 0) {
-		events.slice(0, Math.min(2, limit - activities.length)).forEach((event) => {
-			activities.push({
-				id: `event-${event.id}`,
-				title: `Event: ${event.title}`,
-				description: event.description || event.location || 'No description',
-				icon: 'Calendar',
-				color: 'purple',
-				type: 'event',
-				timestamp: event.createdAt,
-				user: { id: 'user', name: 'You' }
-			});
-		});
-	}
-
-	// Sort by timestamp (most recent first) and limit
 	return activities
 		.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 		.slice(0, limit);
 }
 
-// Helper function to generate upcoming events from real database data
 function generateUpcomingEventsFromDatabase(events: any[], userId: string, limit: number) {
 	const now = new Date();
-
-	console.log('📅 generateUpcomingEventsFromDatabase called with:', {
-		totalEvents: events.length,
-		userId,
-		limit,
-		now: now.toISOString()
-	});
-
-	// Filter and transform events
 	const filtered = events.filter((event) => {
 		const startTime = new Date(event.startTime);
-
-		console.log(`📅 Filtering event "${event.title}":`, {
-			startTime: event.startTime,
-			isFuture: startTime >= now,
-			status: event.status,
-			isPublic: event.isPublic,
-			attendeesCount: event.attendees?.length || 0
-		});
-
-		// Event must be scheduled and in the future (case-insensitive check)
-		if (!(startTime >= now && event.status?.toUpperCase() === 'SCHEDULED')) {
-			console.log(`  ❌ Filtered out - not scheduled or not future (status: ${event.status})`);
-			return false;
-		}
-
-		// Show public events
-		if (event.isPublic) {
-			console.log(`  ✅ Included - public event`);
-			return true;
-		}
-
-		// Show events where user is invited (has attendee record)
+		if (!(startTime >= now && event.status?.toUpperCase() === 'SCHEDULED')) return false;
+		if (event.isPublic) return true;
 		const userAttendee = event.attendees?.find((a: any) => a.employeeId === userId);
-		if (!userAttendee) {
-			console.log(`  ❌ Filtered out - user not invited`);
-			return false; // User not invited
-		}
-
-		// Exclude events where user has declined
-		if (userAttendee.responseStatus === 'declined') {
-			console.log(`  ❌ Filtered out - user declined (status: ${userAttendee.responseStatus})`);
-			return false;
-		}
-
-		console.log(`  ✅ Included - user invited with status: ${userAttendee.responseStatus}`);
+		if (!userAttendee || userAttendee.responseStatus === 'declined') return false;
 		return true;
 	});
 
-	console.log(`📅 After filtering: ${filtered.length} events`);
-
 	const sorted = filtered.sort((a, b) => {
-		// Sort by proximity (soonest first)
 		const startTimeA = new Date(a.startTime).getTime();
 		const startTimeB = new Date(b.startTime).getTime();
 		return startTimeA - startTimeB;
 	});
 
 	const limited = sorted.slice(0, limit);
-	console.log(`📅 After limiting to ${limit}: ${limited.length} events`);
 
 	return limited.map((event) => {
 		const startTime = new Date(event.startTime);
-		const endTime = new Date(event.endTime);
-
-		// Format date for display
 		const dateStr = startTime.toLocaleDateString('en-US', {
 			weekday: 'short',
 			month: 'short',
 			day: 'numeric'
 		});
-
-		// Format time for display
 		const timeStr = event.allDay
 			? 'All Day'
 			: startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-
-		// Get user's RSVP status
 		const userAttendee = event.attendees?.find((a: any) => a.employeeId === userId);
 		const rsvpStatus = userAttendee?.responseStatus || 'no_response';
 
-		// Map event type to icon
 		const iconMap = {
 			meeting: 'Users',
 			training: 'BookOpen',
@@ -1061,7 +853,6 @@ function generateUpcomingEventsFromDatabase(events: any[], userId: string, limit
 	});
 }
 
-// Helper function to generate quick actions based on role
 function generateQuickActions(roles: string[], users: any[]) {
 	const baseActions = [
 		{
@@ -1101,29 +892,6 @@ function generateQuickActions(roles: string[], users: any[]) {
 				icon: 'BarChart',
 				href: '/dashboard/admin/analytics',
 				color: 'orange'
-			}
-		];
-	}
-
-	if (roles.includes('Manager') || roles.includes('HR Manager')) {
-		return [
-			...baseActions,
-			{
-				id: 'approve_leave',
-				title: 'Approve Leave',
-				description: 'Review pending leave requests',
-				icon: 'CheckCircle',
-				href: '/dashboard/management/leave-approvals',
-				color: 'orange',
-				count: Math.floor(users.length * 0.1)
-			},
-			{
-				id: 'team_goals',
-				title: 'Team Goals',
-				description: 'Track team goals and performance',
-				icon: 'Target',
-				href: '/dashboard/management/goals',
-				color: 'purple'
 			}
 		];
 	}

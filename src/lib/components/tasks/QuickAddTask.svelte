@@ -34,6 +34,11 @@
 		taskTypes = [],
 		canAssign = false,
 		formAction = '/dashboard/tasks',
+		parentTaskId,
+		triggerLabel = 'New Task',
+		triggerIcon = Plus,
+		triggerVariant = 'default',
+		triggerSize = 'default',
 		onSuccess
 	}: {
 		currentUser: { id: string; displayName: string; role: string };
@@ -41,6 +46,11 @@
 		taskTypes: Array<{ id: string; name: string; colorCode: string }>;
 		canAssign?: boolean;
 		formAction?: string;
+		parentTaskId?: string;
+		triggerLabel?: string;
+		triggerIcon?: any;
+		triggerVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+		triggerSize?: 'default' | 'sm' | 'lg' | 'icon';
 		onSuccess?: () => void;
 	} = $props();
 
@@ -60,6 +70,9 @@
 	let taskTypeComboboxTriggerRef = $state<HTMLButtonElement>(null!);
 	let priorityComboboxTriggerRef = $state<HTMLButtonElement>(null!);
 	let isSubmitting = $state(false);
+
+	// Component for the trigger icon
+	const TriggerIcon = triggerIcon;
 
 	// Selected assignee display name
 	let selectedAssigneeName = $derived(
@@ -146,9 +159,9 @@
 
 <Popover.Root bind:open={isQuickAddOpen}>
 	<Popover.Trigger>
-		<Button class="flex-shrink-0" data-testid="tasks-create-button">
-			<Plus class="mr-2 h-4 w-4" />
-			New Task
+		<Button class="flex-shrink-0" data-testid="tasks-create-button" variant={triggerVariant} size={triggerSize}>
+			<TriggerIcon class="mr-2 h-4 w-4" />
+			{triggerLabel}
 		</Button>
 	</Popover.Trigger>
 	<Popover.Content class="w-[550px] p-4" align="end">
@@ -184,14 +197,17 @@
 			<input type="hidden" name="priority" value={quickAddPriority} />
 			<input type="hidden" name="assigneeId" value={quickAddAssigneeId} />
 			<input type="hidden" name="taskTypeId" value={quickAddTaskTypeId} />
+			{#if parentTaskId}
+				<input type="hidden" name="parentTaskId" value={parentTaskId} />
+			{/if}
 			{#if quickAddDueDate}
 				<input type="hidden" name="dueDate" value={getDateString()} />
 			{/if}
 
 			<div class="space-y-3">
 				<div>
-					<h3 class="font-semibold text-base">Quick Add Task</h3>
-					<p class="text-xs text-muted-foreground">Create a new task with inline controls</p>
+					<h3 class="font-semibold text-base">{parentTaskId ? 'Add Subtask' : 'Quick Add Task'}</h3>
+					<p class="text-xs text-muted-foreground">{parentTaskId ? 'Break down this task into smaller steps' : 'Create a new task with inline controls'}</p>
 				</div>
 
 				<!-- Title Input -->

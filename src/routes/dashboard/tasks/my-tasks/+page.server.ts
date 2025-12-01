@@ -189,6 +189,72 @@ export const load: PageServerLoad = async (event) => {
 
 		const taskTypesData = await taskTypesResponse.json();
 
+		// Load today's events with RSVP status filtering
+		const today = new Date();
+		const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+		const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).toISOString();
+
+		const eventsResponse = await authenticatedGraphQLRequest(
+			graphqlEndpoint,
+			`
+				query GetTodayEvents($limit: Int!) {
+					events(limit: $limit) {
+						id
+						title
+						startTime
+						endTime
+						isAllDay
+						location
+						status
+						attendees(limit: 100) {
+							id
+							employeeId
+							responseStatus
+						}
+					}
+				}
+			`,
+			{
+				limit: 100
+			},
+			event.request
+		);
+
+		const eventsData = await eventsResponse.json();
+
+		// Filter events for today and user's RSVP status (accepted, tentative, pending)
+		const allEvents = eventsData?.data?.events || [];
+		const todayEvents = allEvents
+			.filter((evt: any) => {
+				// Check if user is an attendee
+				const userAttendee = evt.attendees?.find((a: any) => a.employeeId === locals.user.id);
+				if (!userAttendee) return false;
+
+				// Check RSVP status (accepted, tentative, or pending)
+				const validStatuses = ['accepted', 'tentative', 'pending'];
+				if (!validStatuses.includes(userAttendee.responseStatus)) return false;
+
+				// Check if event is today
+				const eventStart = new Date(evt.startTime);
+				const eventDay = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate());
+				const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+				return eventDay.getTime() === todayDay.getTime();
+			})
+			.map((evt: any) => ({
+				id: evt.id,
+				title: evt.title,
+				time: new Date(evt.startTime).toLocaleTimeString('en-US', {
+					hour: 'numeric',
+					minute: '2-digit',
+					hour12: true
+				}),
+				location: evt.location,
+				startTime: evt.startTime,
+				endTime: evt.endTime,
+				isAllDay: evt.isAllDay
+			}))
+			.sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
 
@@ -200,6 +266,7 @@ export const load: PageServerLoad = async (event) => {
 			taskStats,
 			assignees: assigneesData?.data?.users || [],
 			taskTypes: taskTypesData?.data?.taskTypes || [],
+			todayEvents,
 			filters: {
 				searchTerm,
 				statusFilter,
@@ -224,10 +291,34 @@ export const load: PageServerLoad = async (event) => {
 			error: errorResponse
 		});
 
-		error(500, {
-        			message: 'My tasks temporarily unavailable',
-        			details: errorResponse.userMessage
-        		});
+		// Return safe fallback data instead of crashing the page
+		// This prevents the "white screen of death" or hydration errors if data is missing
+		return {
+			user: locals.user,
+			userSession: userSession.toJSON(),
+			tasks: [],
+			totalTasks: 0,
+			taskStats: {
+				total: 0,
+				notStarted: 0,
+				inProgress: 0,
+				blocked: 0,
+				review: 0,
+				completed: 0,
+				overdue: 0
+			},
+			assignees: [],
+			taskTypes: [],
+			todayEvents: [],
+			filters: {
+				searchTerm,
+				statusFilter,
+				priorityFilter
+			},
+			...getUserPermissions(locals),
+			loadedAt: new Date().toISOString(),
+			error: errorResponse.userMessage
+		};
 	}
 };
 

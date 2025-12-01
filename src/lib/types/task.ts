@@ -42,6 +42,7 @@ export interface Task {
 	requiresManualReassignment: boolean;
 	createdAt: Date;
 	updatedAt: Date;
+	tags?: string[];
 
 	// Populated relationships (optional)
 	assignee?: User;
@@ -135,6 +136,8 @@ export interface CreateTaskInput {
 	priority?: TaskPriority;
 	dueDate?: Date;
 	parentTaskId?: string;
+	estimatedHours?: number;
+	tags?: string[];
 	linkedResources?: {
 		resourceType: ResourceType;
 		resourceId: string;
@@ -151,6 +154,7 @@ export interface UpdateTaskInput {
 	priority?: TaskPriority;
 	dueDate?: Date | null;
 	parentTaskId?: string | null;
+	tags?: string[];
 }
 
 export interface CreateTaskDependencyInput {

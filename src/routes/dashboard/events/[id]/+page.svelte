@@ -15,7 +15,7 @@
 	let isRsvpUpdating = $state(false);
 
 	// Tab state for attendees section
-	type AttendeeTab = 'all' | 'accepted' | 'declined' | 'tentative' | 'pending' | 'no_response';
+	type AttendeeTab = 'all' | 'accepted' | 'declined' | 'tentative' | 'pending';
 	let activeAttendeeTab = $state<AttendeeTab>('all');
 
 	// Filter attendees based on active tab
@@ -29,11 +29,43 @@
 
 	// Handle RSVP status change
 	async function handleRsvpChange(newStatus: RsvpStatus) {
+		console.log('[CLIENT] handleRsvpChange called with:', {
+			newStatus,
+			statusType: typeof newStatus,
+			statusValue: newStatus
+		});
+
 		isRsvpUpdating = true;
 		try {
-			// TODO: Implement RSVP update mutation
-			// For now, just reload the page
-			await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate API call
+			// Find user's attendee record if exists
+			const attendees = data.event.eventAttendees || data.event.attendees || [];
+			const userAttendee = attendees.find((a: any) => a.employeeId === data.user.id);
+
+			// Create form data for submission
+			const formData = new FormData();
+			formData.append('eventId', data.event.id);
+			formData.append('status', newStatus);
+
+			console.log('[CLIENT] FormData created:', {
+				eventId: formData.get('eventId'),
+				status: formData.get('status'),
+				attendeeId: formData.get('attendeeId')
+			});
+			if (userAttendee?.id) {
+				formData.append('attendeeId', userAttendee.id);
+			}
+
+			// Submit to server action
+			const response = await fetch(`/dashboard/events?/updateRsvpStatus`, {
+				method: 'POST',
+				body: formData
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to update RSVP status');
+			}
+
+			// Update local state and reload to get fresh data
 			currentRsvpStatus = newStatus;
 			window.location.reload();
 		} catch (error) {
@@ -63,8 +95,7 @@
 			accepted: 'bg-primary/10 text-primary',
 			declined: 'bg-destructive/10 text-destructive',
 			tentative: 'bg-accent text-accent-foreground',
-			pending: 'bg-primary/10 text-primary',
-			no_response: 'bg-muted text-muted-foreground'
+			pending: 'bg-primary/10 text-primary'
 		};
 		return colors[status] || 'bg-muted text-muted-foreground';
 	}
@@ -387,15 +418,6 @@
 					onclick={() => (activeAttendeeTab = 'pending')}
 				>
 					Pending ({data.rsvpStats.pending})
-				</button>
-				<button
-					class="rounded-md px-4 py-2 text-sm font-medium transition-colors {activeAttendeeTab ===
-					'no_response'
-						? 'bg-primary text-primary-foreground'
-						: 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-					onclick={() => (activeAttendeeTab = 'no_response')}
-				>
-					No Response ({data.rsvpStats.noResponse})
 				</button>
 			</div>
 		</div>

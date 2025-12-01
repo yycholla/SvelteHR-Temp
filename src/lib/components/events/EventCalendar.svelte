@@ -70,35 +70,31 @@
 	let calendarEl: HTMLElement;
 	let calendar: any = null;
 
-	// Derived: Filter events by visibility (Fix: removed arrow function)
+	// Derived: Filter events by visibility
 	let filteredEvents = $derived(
 		visibilityFilter === 'all'
 			? events
 			: events.filter((e: any) => e.visibilityType === visibilityFilter)
 	);
 
-	// Derived: Convert events to FullCalendar format (Fix: removed arrow function, use local RSVP status)
+	// Derived: Convert events to FullCalendar format
 	let calendarEvents = $derived(
 		filteredEvents.map((event: any) => {
-			// Use local RSVP status for instant updates
-			const rsvpStatus = localRsvpStatuses[event.id] || 'no_response';
+			const rsvpStatus = localRsvpStatuses[event.id] || 'pending';
 
-			// Color based on RSVP status
+			// RSVP status-based colors (4 distinct colors)
 			const colorMap: Record<string, string> = {
-				accepted: '#10b981', // green
-				declined: '#ef4444', // red
-				tentative: '#f59e0b', // amber
-				pending: '#3b82f6', // blue
-				no_response: '#6b7280' // gray
+				accepted: '#22c55e',   // Green
+				declined: '#ef4444',   // Red
+				tentative: '#f59e0b',  // Amber/Orange
+				pending: '#3b82f6'     // Blue
 			};
 
-			// Check if user has actually set a reminder (check reminderTime value)
 			const userAttendee = event.eventAttendeesByEventId?.nodes?.find(
 				(a: any) => a.employeeId === userId
 			);
 			const hasReminder = userAttendee?.reminderTime != null && userAttendee.reminderTime > 0;
 
-			// Feature 027: Handle recurring events with RRULE
 			const calendarEvent: any = {
 				id: event.id,
 				title: event.title,
@@ -112,16 +108,13 @@
 				}
 			};
 
-			// If event has RRULE, use it instead of start/end dates
 			if (event.rrule) {
 				calendarEvent.rrule = event.rrule;
-				// For RRULE events, duration is calculated from start/end of first occurrence
 				const duration = event.endTime && event.startTime
 					? new Date(event.endTime).getTime() - new Date(event.startTime).getTime()
-					: 3600000; // Default 1 hour
+					: 3600000;
 				calendarEvent.duration = duration;
 			} else {
-				// Non-recurring event uses start/end dates
 				calendarEvent.start = event.startTime;
 				calendarEvent.end = event.endTime;
 			}
@@ -135,7 +128,6 @@
 		if (!browser) return;
 
 		try {
-			// Feature 027: Import RRULE plugin for recurring events support
 			const [
 				{ Calendar },
 				{ default: dayGridPlugin },
@@ -159,19 +151,19 @@
 					right: 'dayGridMonth,timeGridWeek,timeGridDay'
 				},
 				editable: canManageEvents,
-				selectable: true, // Always allow date selection - permission checks on submit
+				selectable: true,
 				selectMirror: true,
 				dayMaxEvents: true,
 				weekends: true,
+				height: 'auto',
+				eventDisplay: 'block', // Force block display to show colors on single-day events
 				events: [],
 				eventDidMount: (info) => {
 					const currentEvent = info.event.extendedProps;
 					const hasReminder = currentEvent.hasReminder;
 
-					// Feature 027: Detect conflicts with other accepted events
 					let hasConflict = false;
 					if (localRsvpStatuses[info.event.id] === 'accepted') {
-						// Check if this event conflicts with other accepted events
 						for (const otherEvent of events) {
 							if (otherEvent.id === info.event.id) continue;
 							if (localRsvpStatuses[otherEvent.id] !== 'accepted') continue;
@@ -196,11 +188,9 @@
 						}
 					}
 
-					// Find the event title element
 					const titleEl = info.el.querySelector('.fc-event-title, .fc-event-title-container');
 
 					if (titleEl) {
-						// Add reminder icon if reminder is set
 						if (hasReminder) {
 							const bellIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 							bellIcon.setAttribute('width', '12');
@@ -226,14 +216,13 @@
 							titleEl.appendChild(bellIcon);
 						}
 
-						// Feature 027: Add conflict warning icon if conflicts detected
 						if (hasConflict) {
 							const conflictIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 							conflictIcon.setAttribute('width', '12');
 							conflictIcon.setAttribute('height', '12');
 							conflictIcon.setAttribute('viewBox', '0 0 24 24');
 							conflictIcon.setAttribute('fill', 'none');
-							conflictIcon.setAttribute('stroke', '#ef4444'); // red color
+							conflictIcon.setAttribute('stroke', 'hsl(var(--destructive))');
 							conflictIcon.setAttribute('stroke-width', '2');
 							conflictIcon.setAttribute('stroke-linecap', 'round');
 							conflictIcon.setAttribute('stroke-linejoin', 'round');
@@ -262,38 +251,24 @@
 
 							titleEl.appendChild(conflictIcon);
 
-							// Add striped pattern to conflicting events
 							info.el.style.backgroundImage = 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(239, 68, 68, 0.1) 10px, rgba(239, 68, 68, 0.1) 20px)';
 						}
 					}
 				},
 				eventClick: (info) => {
-					if (onEventClick) {
-						onEventClick(info.event.extendedProps);
-					}
+					if (onEventClick) onEventClick(info.event.extendedProps);
 				},
 				dateClick: (info) => {
-					// Allow all users to click dates - permission checks happen server-side on submit
-					if (onDateClick) {
-						onDateClick(info.date);
-					}
+					if (onDateClick) onDateClick(info.date);
 				},
 				select: (info) => {
-					// Allow all users to select date ranges - permission checks happen server-side on submit
-					if (onDateSelect) {
-						onDateSelect(info.start, info.end, info.allDay);
-					}
+					if (onDateSelect) onDateSelect(info.start, info.end, info.allDay);
 				},
 				eventDrop: async (info) => {
 					if (canManageEvents && onEventDrop) {
 						try {
-							await onEventDrop(
-								info.event.id,
-								info.event.start || new Date(),
-								info.event.end || new Date()
-							);
+							await onEventDrop(info.event.id, info.event.start || new Date(), info.event.end || new Date());
 						} catch (error) {
-							// Revert the event if the update fails
 							info.revert();
 						}
 					}
@@ -301,100 +276,41 @@
 				eventResize: async (info) => {
 					if (canManageEvents && onEventDrop) {
 						try {
-							await onEventDrop(
-								info.event.id,
-								info.event.start || new Date(),
-								info.event.end || new Date()
-							);
+							await onEventDrop(info.event.id, info.event.start || new Date(), info.event.end || new Date());
 						} catch (error) {
-							// Revert the event if the update fails
 							info.revert();
 						}
 					}
-				},
-				height: 'auto',
-				contentHeight: 'auto',
-				aspectRatio: 1.8
+				}
 			});
 
 			calendar.render();
-
-			// Add initial events after render
-			console.log('[EventCalendar] Adding initial events:', calendarEvents.length);
 			calendar.addEventSource(calendarEvents);
 		} catch (error) {
 			console.error('[EventCalendar] Error initializing calendar:', error);
 		}
 	});
 
-	// Track previous calendar events to avoid redundant updates
-	let previousCalendarEvents: any[] = [];
-
-	// Update calendar events when they change
+	// Update calendar when events or RSVP statuses change
 	$effect(() => {
-		console.log('[EventCalendar] $effect triggered - calendarEvents updated:', calendarEvents.length);
 		if (calendar && calendarEvents.length > 0) {
-			// Check if events actually changed (deep comparison of relevant properties)
-			const eventsChanged = JSON.stringify(calendarEvents.map(e => ({ id: e.id, backgroundColor: e.backgroundColor }))) !==
-			                      JSON.stringify(previousCalendarEvents.map(e => ({ id: e.id, backgroundColor: e.backgroundColor })));
-
-			if (eventsChanged) {
-				console.log('[EventCalendar] Events actually changed, updating calendar');
-				previousCalendarEvents = [...calendarEvents];
-
-				// Use FullCalendar's setOption to update events
-				calendar.getEventSources().forEach(source => source.remove());
-				calendar.addEventSource(calendarEvents);
-			} else {
-				console.log('[EventCalendar] Events unchanged, skipping update');
-			}
+			// Remove all existing event sources
+			calendar.getEventSources().forEach(source => source.remove());
+			// Add updated events
+			calendar.addEventSource(calendarEvents);
+			// Refetch to ensure calendar is updated
+			calendar.refetchEvents();
 		}
 	});
 
-	// Cleanup on destroy
 	onDestroy(() => {
-		if (calendar) {
-			calendar.destroy();
-		}
+		if (calendar) calendar.destroy();
 	});
-
-	// Public methods
-	export function changeView(view: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay') {
-		if (calendar) {
-			calendar.changeView(view);
-		}
-	}
-
-	export function goToDate(date: Date) {
-		if (calendar) {
-			calendar.gotoDate(date);
-		}
-	}
-
-	export function today() {
-		if (calendar) {
-			calendar.today();
-		}
-	}
-
-	export function next() {
-		if (calendar) {
-			calendar.next();
-		}
-	}
-
-	export function prev() {
-		if (calendar) {
-			calendar.prev();
-		}
-	}
 </script>
 
 <div class="event-calendar-wrapper">
-	<!-- Calendar container -->
 	<div bind:this={calendarEl} class="event-calendar">
 		{#if !browser}
-			<!-- SSR placeholder -->
 			<div class="calendar-loading">
 				<div class="animate-pulse">
 					<div class="h-8 bg-muted rounded mb-4"></div>
@@ -412,294 +328,164 @@
 			</div>
 		{/if}
 	</div>
-
-	<!-- Legend -->
-	<div class="calendar-legend">
-		<h4 class="text-sm font-semibold mb-2 text-foreground">Legend</h4>
-		<div class="space-y-2">
-			<!-- RSVP Colors -->
-			<div class="flex flex-wrap gap-3">
-				<div class="flex items-center gap-1.5">
-					<div class="w-3 h-3 rounded-sm" style="background-color: #10b981"></div>
-					<span class="text-xs text-muted-foreground">Accepted</span>
-				</div>
-				<div class="flex items-center gap-1.5">
-					<div class="w-3 h-3 rounded-sm" style="background-color: #ef4444"></div>
-					<span class="text-xs text-muted-foreground">Declined</span>
-				</div>
-				<div class="flex items-center gap-1.5">
-					<div class="w-3 h-3 rounded-sm" style="background-color: #f59e0b"></div>
-					<span class="text-xs text-muted-foreground">Tentative</span>
-				</div>
-				<div class="flex items-center gap-1.5">
-					<div class="w-3 h-3 rounded-sm" style="background-color: #3b82f6"></div>
-					<span class="text-xs text-muted-foreground">Pending</span>
-				</div>
-				<div class="flex items-center gap-1.5">
-					<div class="w-3 h-3 rounded-sm" style="background-color: #6b7280"></div>
-					<span class="text-xs text-muted-foreground">No Response</span>
-				</div>
-			</div>
-			<!-- Icons -->
-			<div class="flex flex-col gap-1">
-				<div class="flex items-center gap-1.5 text-xs text-muted-foreground">
-					<Bell class="h-3 w-3" />
-					<span>Reminder set</span>
-				</div>
-				<!-- Feature 027: Conflict indicator -->
-				<div class="flex items-center gap-1.5 text-xs text-muted-foreground">
-					<svg
-						width="12"
-						height="12"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="#ef4444"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					>
-						<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-						<line x1="12" y1="9" x2="12" y2="13"></line>
-						<line x1="12" y1="17" x2="12.01" y2="17"></line>
-					</svg>
-					<span>Schedule conflict</span>
-				</div>
-			</div>
-		</div>
-	</div>
 </div>
 
 <style>
 	.event-calendar-wrapper {
 		width: 100%;
-		padding: 1rem;
-		background: hsl(var(--card));
-		border-radius: 0.5rem;
-		border: 1px solid hsl(var(--border));
-		box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		background: transparent;
 	}
 
 	.event-calendar {
+		flex: 1;
 		width: 100%;
-		min-height: 600px;
+		min-height: 0;
 	}
 
 	.calendar-loading {
 		width: 100%;
-		min-height: 600px;
+		height: 100%;
 		padding: 1rem;
 	}
 
-	.calendar-legend {
-		margin-top: 1.5rem;
-		padding-top: 1rem;
-		border-top: 1px solid hsl(var(--border));
-	}
-
-	/* FullCalendar custom styles with rounded theme */
+	/* FullCalendar Theming */
 	:global(.fc) {
 		font-family: inherit;
 		color: hsl(var(--foreground));
+		height: 100%;
+		--fc-border-color: hsl(var(--border));
+		--fc-page-bg-color: hsl(var(--card));
+		--fc-neutral-bg-color: hsl(var(--muted));
+		--fc-list-event-hover-bg-color: hsl(var(--accent));
+		--fc-today-bg-color: hsl(var(--accent) / 0.3);
 	}
 
-	/* Buttons with rounded corners */
+	:global(.fc-theme-standard .fc-scrollgrid) {
+		border: none !important;
+	}
+
+	:global(.fc-theme-standard td), 
+	:global(.fc-theme-standard th) {
+		border-color: hsl(var(--border));
+	}
+
+	/* Header */
+	:global(.fc-col-header-cell) {
+		background-color: transparent !important;
+		border-bottom: 1px solid hsl(var(--border)) !important;
+		border-left: none !important;
+		border-right: none !important;
+		padding: 0.75rem 0;
+	}
+	
+	:global(.fc-col-header-cell-cushion) {
+		color: hsl(var(--muted-foreground));
+		font-weight: 600;
+		text-transform: uppercase;
+		font-size: 0.75rem;
+		letter-spacing: 0.05em;
+	}
+
+	/* Toolbar */
+	:global(.fc-toolbar-title) {
+		font-size: 1.5rem;
+		font-weight: 700;
+		color: hsl(var(--foreground));
+		letter-spacing: -0.025em;
+	}
+
 	:global(.fc-button) {
-		background-color: hsl(var(--primary)) !important;
-		border-color: hsl(var(--primary)) !important;
-		color: hsl(var(--primary-foreground)) !important;
+		background-color: hsl(var(--background)) !important;
+		border: 1px solid hsl(var(--input)) !important;
+		color: hsl(var(--foreground)) !important;
 		text-transform: capitalize;
-		padding: 0.375rem 0.75rem;
-		font-size: 0.875rem;
+		font-weight: 500;
+		box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important; /* shadow-sm */
+		height: 2.25rem; /* h-9 */
+		padding: 0 1rem !important;
 		border-radius: var(--radius) !important;
-		transition: all 0.2s ease;
+		font-size: 0.875rem;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.2s;
 	}
 
 	:global(.fc-button:hover) {
-		background-color: hsl(var(--primary) / 0.9) !important;
-		border-color: hsl(var(--primary) / 0.9) !important;
-		transform: translateY(-1px);
-		box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-	}
-
-	:global(.fc-button:active) {
-		transform: translateY(0);
+		background-color: hsl(var(--accent)) !important;
+		color: hsl(var(--accent-foreground)) !important;
 	}
 
 	:global(.fc-button-active) {
-		background-color: hsl(var(--primary) / 0.8) !important;
-		border-color: hsl(var(--primary) / 0.8) !important;
+		background-color: hsl(var(--secondary)) !important;
+		border-color: hsl(var(--secondary)) !important;
+		color: hsl(var(--secondary-foreground)) !important;
+		box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05) !important;
 	}
 
-	/* Button groups with rounded ends */
-	:global(.fc-button-group) {
-		border-radius: var(--radius) !important;
-		overflow: hidden;
-	}
-
-	:global(.fc-button-group > .fc-button) {
+	/* Button Groups */
+	:global(.fc-button-group .fc-button) {
 		border-radius: 0 !important;
+		margin: 0 !important;
+		border-right-width: 0 !important;
+	}
+	:global(.fc-button-group .fc-button:last-child) {
+		border-right-width: 1px !important;
+	}
+	:global(.fc-button-group .fc-button:first-child) {
+		border-top-left-radius: var(--radius) !important;
+		border-bottom-left-radius: var(--radius) !important;
+	}
+	:global(.fc-button-group .fc-button:last-child) {
+		border-top-right-radius: var(--radius) !important;
+		border-bottom-right-radius: var(--radius) !important;
 	}
 
-	:global(.fc-button-group > .fc-button:first-child) {
-		border-radius: var(--radius) 0 0 var(--radius) !important;
-	}
-
-	:global(.fc-button-group > .fc-button:last-child) {
-		border-radius: 0 var(--radius) var(--radius) 0 !important;
-	}
-
-	/* Day numbers */
-	:global(.fc-daygrid-day-number) {
-		padding: 0.5rem;
-		color: hsl(var(--foreground));
-		font-weight: 500;
-	}
-
-	/* Header cells with rounded top */
-	:global(.fc-col-header-cell) {
-		background-color: hsl(var(--muted));
-		color: hsl(var(--muted-foreground));
-		font-weight: 600;
-		padding: 0.75rem 0.5rem;
-	}
-
-	:global(.fc-col-header-cell:first-child) {
-		border-top-left-radius: var(--radius);
-	}
-
-	:global(.fc-col-header-cell:last-child) {
-		border-top-right-radius: var(--radius);
-	}
-
-	/* Day cells */
-	:global(.fc-daygrid-day) {
-		background-color: hsl(var(--background));
-		transition: background-color 0.2s ease;
-	}
-
-	/* Day hover - light mode uses accent, dark mode uses darker shade */
-	:global(.fc-daygrid-day:hover) {
-		background-color: hsl(var(--accent));
-	}
-
-	:global(.dark .fc-daygrid-day:hover) {
-		background-color: hsl(225 15% 8%);
-	}
-
-	/* Events with rounded corners */
-	:global(.fc-event) {
-		cursor: pointer;
-		border-radius: calc(var(--radius) * 0.6);
-		padding: 0.25rem 0.5rem;
-		font-size: 0.875rem;
-		border: none !important;
-		transition: all 0.2s ease;
-		box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-	}
-
-	:global(.fc-event:hover),
-	:global(.fc-daygrid-event:hover),
-	:global(.fc-timegrid-event:hover) {
-		transform: translateY(-1px) !important;
-		box-shadow: 0 6px 12px -2px rgb(0 0 0 / 0.4) !important;
-		filter: brightness(1.35) !important;
-	}
-
-	/* Today highlight */
+	/* Today Highlight (Darker) */
 	:global(.fc-day-today) {
-		background-color: hsl(var(--accent)) !important;
+		background-color: hsl(var(--muted) / 0.5) !important;
 	}
 
-	:global(.fc-day-today .fc-daygrid-day-number) {
-		background-color: hsl(var(--primary));
-		color: hsl(var(--primary-foreground));
-		border-radius: 50%;
-		width: 2rem;
-		height: 2rem;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		margin: 0.25rem;
-	}
-
-	/* Toolbar title */
-	:global(.fc-toolbar-title) {
-		font-size: 1.25rem;
-		font-weight: 600;
+	/* Day Numbers */
+	:global(.fc-daygrid-day-number) {
 		color: hsl(var(--foreground));
-	}
-
-	/* Grid borders with rounded corners */
-	:global(.fc-scrollgrid) {
-		border-color: hsl(var(--border)) !important;
-		border-radius: var(--radius) !important;
-		overflow: hidden;
-	}
-
-	:global(.fc-scrollgrid td),
-	:global(.fc-scrollgrid th) {
-		border-color: hsl(var(--border)) !important;
-	}
-
-	/* More events link */
-	:global(.fc-daygrid-more-link) {
-		color: hsl(var(--primary));
+		padding: 0.5rem;
+		font-size: 0.875rem;
 		font-weight: 500;
-		border-radius: calc(var(--radius) * 0.5);
-		padding: 0.125rem 0.375rem;
-		transition: all 0.2s ease;
 	}
 
-	:global(.fc-daygrid-more-link:hover) {
-		background-color: hsl(var(--primary) / 0.1);
+	/* Events */
+	:global(.fc-event) {
+		border: none;
+		border-radius: calc(var(--radius) - 2px);
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+		padding: 2px 6px;
+		margin: 1px 2px;
+		font-size: 0.75rem;
+		font-weight: 600;
 	}
 
-	/* Mobile responsive styles */
-	@media (max-width: 640px) {
-		.event-calendar-wrapper {
-			padding: 0.5rem;
-		}
-
-		.event-calendar {
-			min-height: 400px;
-		}
-
-		:global(.fc-toolbar) {
-			flex-direction: column;
-			gap: 0.5rem;
-		}
-
-		:global(.fc-toolbar-chunk) {
-			display: flex;
-			justify-content: center;
-		}
-
-		:global(.fc-button) {
-			padding: 0.25rem 0.5rem;
-			font-size: 0.75rem;
-		}
-
-		:global(.fc-toolbar-title) {
-			font-size: 1rem;
-		}
-
-		:global(.fc-event) {
-			font-size: 0.75rem;
-			padding: 0.125rem 0.25rem;
-		}
-
-		.calendar-legend {
-			font-size: 0.75rem;
-		}
+	:global(.fc-daygrid-event-dot) {
+		border-color: currentColor !important;
 	}
 
-	@media (max-width: 768px) {
-		:global(.fc) {
-			font-size: 0.875rem;
-		}
+	/* Day Grid */
+	:global(.fc-daygrid-day-frame) {
+		min-height: 100%;
+	}
 
-		:global(.fc-daygrid-day-number) {
-			padding: 0.25rem;
-		}
+    /* Time Grid Alternating Rows (Zebra Stripe) */
+    /* Target the ROW (tr), then the LANE (td) inside it */
+    :global(.fc-timegrid-slots tr:nth-child(odd) .fc-timegrid-slot-lane) {
+        background-color: hsl(var(--muted) / 0.5); 
+    }
+
+    /* Today Highlight (Darker/Distinct) */
+    /* Use secondary color which usually contrasts well with card background */
+	:global(.fc-day-today) {
+		background-color: hsl(var(--secondary) / 0.5) !important;
 	}
 </style>

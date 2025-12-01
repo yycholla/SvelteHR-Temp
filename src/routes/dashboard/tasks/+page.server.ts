@@ -323,11 +323,39 @@ export const load: PageServerLoad = async (event) => {
 			error: errorResponse
 		});
 
-		// Throw SvelteKit error with user-friendly message
-		error(500, {
-        			message: 'Tasks dashboard temporarily unavailable',
-        			details: errorResponse.userMessage
-        		});
+		// Return safe fallback data instead of crashing
+		return {
+			user: locals.user || { id: '', role: 'guest' },
+			userSession: userSession.toJSON(),
+			tasks: [],
+			totalTasks: 0,
+			assignees: [],
+			taskTypes: [],
+			taskStats: {
+				total: 0,
+				notStarted: 0,
+				inProgress: 0,
+				blocked: 0,
+				review: 0,
+				completed: 0
+			},
+			filters: {
+				searchTerm,
+				statusFilter,
+				priorityFilter,
+				assigneeFilter,
+				taskTypeFilter,
+				dueDateStart,
+				dueDateEnd,
+				hasParent,
+				page,
+				limit
+			},
+			// Default permissions if loading failed
+			...getUserPermissions(locals),
+			loadedAt: new Date().toISOString(),
+			error: errorResponse.userMessage
+		};
 	}
 };
 
@@ -353,6 +381,7 @@ export const actions: Actions = {
 			const priority = (formData.get('priority') as string) || 'MEDIUM';
 			const assigneeId = formData.get('assigneeId') as string;
 			const taskTypeId = formData.get('taskTypeId') as string | null;
+			const parentTaskId = formData.get('parentTaskId') as string | null;
 			const dueDate = formData.get('dueDate') as string | null;
 
 			console.log('[Quick Add Task] Creating task:', {
@@ -360,7 +389,8 @@ export const actions: Actions = {
 				priority,
 				assigneeId,
 				dueDate,
-				taskTypeId
+				taskTypeId,
+				parentTaskId
 			});
 
 			// Prepare create input for Rust GraphQL schema
@@ -378,6 +408,9 @@ export const actions: Actions = {
 			}
 			if (taskTypeId && taskTypeId.trim()) {
 				createInput.taskTypeId = taskTypeId;
+			}
+			if (parentTaskId && parentTaskId.trim()) {
+				createInput.parentTaskId = parentTaskId;
 			}
 			if (dueDate && dueDate.trim()) {
 				// GraphQL expects full datetime, add end of day

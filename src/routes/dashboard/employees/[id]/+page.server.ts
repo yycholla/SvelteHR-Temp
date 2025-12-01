@@ -256,6 +256,28 @@ export const load: PageServerLoad = async (event) => {
 		const balancesData = await balancesResponse.json();
 		const leaveBalances = balancesData?.data?.leaveBalances || [];
 
+		// Activity Logs - Recent activity by this employee
+		const activityLogsResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: `
+					query GetEmployeeActivityLogs($userId: UUID!, $limit: Int!) {
+						activityLogs(userId: $userId, limit: $limit) {
+							id
+							action
+							resourceType
+							details
+							createdAt
+						}
+					}
+				`,
+				variables: { userId: employeeId, limit: 10 }
+			})
+		});
+		const activityLogsData = await activityLogsResponse.json();
+		const activityLogs = activityLogsData?.data?.activityLogs || [];
+
 		// Check if user is the employee's manager
 		const isEmployeeManager = employee.department?.managerId === locals.user.id;
 
@@ -290,6 +312,7 @@ export const load: PageServerLoad = async (event) => {
 				const result = await client.query(
 					`SELECT
 						d.id,
+						da.id as assignment_id,
 						d.title as filename,
 						d.mime_type as file_type,
 						d.file_size as file_size_bytes,
@@ -402,6 +425,8 @@ export const load: PageServerLoad = async (event) => {
 				emergencyContacts: canViewEmergencyContacts ? emergencyContacts : [],
 				// Vehicles - only if authorized
 				vehicles: canViewVehicles ? vehicles : [],
+				// Activity Logs
+				activityLogs: activityLogs,
 				leaveRequests: leaveRequests,
 				leaveRequestCount: leaveRequests.length,
 				performanceReviews: performanceReviews.map((review: any) => ({
@@ -425,6 +450,7 @@ export const load: PageServerLoad = async (event) => {
 				// Assigned documents
 				assignedDocuments: assignedDocuments.map((doc: any) => ({
 					id: doc.id,
+					assignmentId: doc.assignment_id,
 					filename: doc.filename,
 					fileType: doc.file_type,
 					fileSizeBytes: doc.file_size_bytes,

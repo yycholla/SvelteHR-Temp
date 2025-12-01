@@ -118,6 +118,9 @@ pub struct Model {
     pub full_name: String,    // Computed column
     pub phone_number: Option<String>,
     pub alternate_phone: Option<String>,
+    pub mobile_number: Option<String>,
+    pub nickname: Option<String>,
+    pub social_media_release: bool,
     pub job_title: Option<String>,
     pub status: Option<String>,
     pub department_id: Option<Uuid>,
@@ -130,6 +133,7 @@ pub struct Model {
     pub last_login: Option<DateTime<Utc>>,
     pub force_password_change: bool,
     pub theme_preference: String,
+    pub birth_date: Option<chrono::NaiveDate>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
@@ -242,9 +246,35 @@ impl Model {
         self.phone_number.as_deref()
     }
 
+    /// Home phone (alias for phone_number)
+    async fn home_phone(&self) -> Option<&str> {
+        self.phone_number.as_deref()
+    }
+
     /// Alternate phone number (optional)
     async fn alternate_phone(&self) -> Option<&str> {
         self.alternate_phone.as_deref()
+    }
+
+    /// Work phone (alias for alternate_phone)
+    async fn work_phone(&self) -> Option<&str> {
+        self.alternate_phone.as_deref()
+    }
+
+    /// Mobile phone number
+    async fn mobile_phone(&self) -> Option<&str> {
+        self.mobile_number.as_deref()
+    }
+
+    /// Nickname
+    async fn nickname(&self) -> Option<&str> {
+        self.nickname.as_deref()
+    }
+
+    /// Social Media Release signed/agreed
+    #[graphql(name = "socialMediaRelease")]
+    async fn social_media_release(&self) -> bool {
+        self.social_media_release
     }
 
     /// Job title (optional)
@@ -275,6 +305,11 @@ impl Model {
     /// Is active (true if user is currently active)
     async fn is_active(&self) -> bool {
         self.is_active
+    }
+
+    /// Birth date
+    async fn birth_date(&self) -> Option<chrono::NaiveDate> {
+        self.birth_date
     }
 
     /// Force password change on next login (for temporary/bulk-imported passwords)

@@ -6,7 +6,7 @@
 		isWorkflowLoading,
 		workflowError
 	} from '$lib/stores/workflow';
-	import { user, canManageWorkflows } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 	import WorkflowTaskCard from './WorkflowTaskCard.svelte';
 
 	// Props

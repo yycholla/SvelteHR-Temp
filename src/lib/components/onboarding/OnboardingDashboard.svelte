@@ -80,7 +80,7 @@
 		</div>
 
 		<div class="header-actions">
-			{#if $currentUser && hasPermission('onboarding:create')}
+			{#if auth.user && auth.hasPermission('onboarding:create')}
 				<Button variant="primary" leftIcon="user-plus" on:click={() => goto('/onboarding/new')}>
 					Start Onboarding
 				</Button>
@@ -173,7 +173,7 @@
 
 	<!-- Content -->
 	<div class="dashboard-content">
-		{#if $isLoadingOnboarding}
+		{#if auth.isLoadingOnboarding}
 			<div class="loading-state">
 				<div class="loading-spinner"></div>
 				<span class="text-sm text-gray-600">Loading onboarding data...</span>
@@ -215,7 +215,7 @@
 								? 'No employees have completed onboarding recently.'
 								: 'Get started by creating your first onboarding process.'}
 					</p>
-					{#if $currentUser && hasPermission('onboarding:create')}
+					{#if auth.user && auth.hasPermission('onboarding:create')}
 						<Button
 							variant="primary"
 							size="md"
@@ -296,7 +296,7 @@
 								View Details
 							</Button>
 
-							{#if $currentUser && hasPermission('onboarding:update') && instance.status === 'Onboarding'}
+							{#if auth.user && auth.hasPermission('onboarding:update') && instance.status === 'Onboarding'}
 								<Button
 									variant="primary"
 									size="sm"

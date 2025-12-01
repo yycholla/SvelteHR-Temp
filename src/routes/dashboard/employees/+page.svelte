@@ -675,7 +675,7 @@
 								data-testid="employee-department-filter"
 							>
 								<option value="">All Departments</option>
-								{#each departments as dept}
+								{#each departments as dept (dept.id)}
 									<option value={dept.id}>{dept.name}</option>
 								{/each}
 							</select>
@@ -851,7 +851,7 @@
 								</Button>
 
 								{#if totalPages <= 7}
-									{#each Array(totalPages) as _, i}
+									{#each Array(totalPages) as _, i (i)}
 										<Button
 											variant={currentPage === i + 1 ? 'default' : 'outline'}
 											size="sm"
@@ -960,7 +960,7 @@
 							class="flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base shadow-xs ring-offset-background transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/80"
 						>
 							<option value="">All Roles</option>
-							{#each uniqueRoles as roleName}
+							{#each uniqueRoles as roleName (roleName)}
 								<option value={roleName}>{roleName}</option>
 							{/each}
 						</select>
@@ -1008,7 +1008,7 @@
 							<DropdownMenu.Content align="end" class="w-32">
 								<DropdownMenu.Label>Rows per page</DropdownMenu.Label>
 								<DropdownMenu.Separator />
-								{#each [10, 20, 50, 100] as size}
+								{#each [10, 20, 50, 100] as size (size)}
 									<DropdownMenu.Item
 										onclick={() => {
 											pageSize = size;
@@ -1152,6 +1152,6 @@
 	bind:open={createDialogOpen}
 	onOpenChange={(open) => (createDialogOpen = open)}
 	departments={departments.map((d) => ({ id: d.id, name: d.name }))}
-	roles={roles.map((r) => ({ id: r.id, name: r.name, description: r.description }))}
+	roles={data.roles || []}
 	onSuccess={handleEmployeeCreated}
 />

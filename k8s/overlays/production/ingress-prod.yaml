@@ -8,7 +8,9 @@ metadata:
     nginx.ingress.kubernetes.io/rate-limit: '100'
     nginx.ingress.kubernetes.io/rate-limit-window: '1m'
     nginx.ingress.kubernetes.io/ssl-redirect: 'true'
-    cert-manager.io/cluster-issuer: 'letsencrypt-prod'
+    # cert-manager disabled - Gateway handles SSL
+    # cert-manager.io/cluster-issuer: 'letsencrypt-prod'
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
 spec:
   ingressClassName: nginx
   tls:

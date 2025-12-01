@@ -95,7 +95,7 @@
 		}
 
 		// Single permission
-		return hasPermission(permissionArray, requires);
+		return auth.hasPermission(permissionArray, requires);
 	});
 
 	// Determine if content should be shown based on inverse flag

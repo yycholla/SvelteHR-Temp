@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { canManageWorkflows } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 	import { workflowActions } from '$lib/stores/workflow';
 	import type { WorkflowDefinitionWithStats } from '$lib/stores/workflow';
 

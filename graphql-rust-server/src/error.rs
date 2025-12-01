@@ -9,6 +9,12 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use tracing::{error, warn, info};
 
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
+
 /// Application error types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AppError {
@@ -22,6 +28,33 @@ pub enum AppError {
     SessionExpired,
     AccountLocked,
     RateLimited,
+}
+
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
+        let (status, error_message) = match self {
+            AppError::Database(db_err) => match db_err {
+                DbError::Connection(_) => (StatusCode::SERVICE_UNAVAILABLE, "Database connection error".to_string()),
+                DbError::Constraint(msg) => (StatusCode::CONFLICT, msg),
+                _ => (StatusCode::INTERNAL_SERVER_ERROR, "Database error".to_string()),
+            },
+            AppError::Authentication(msg) => (StatusCode::UNAUTHORIZED, msg),
+            AppError::Authorization(msg) => (StatusCode::FORBIDDEN, msg),
+            AppError::Validation(msg) => (StatusCode::BAD_REQUEST, msg),
+            AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
+            AppError::Conflict(msg) => (StatusCode::CONFLICT, msg),
+            AppError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
+            AppError::SessionExpired => (StatusCode::UNAUTHORIZED, "Session expired".to_string()),
+            AppError::AccountLocked => (StatusCode::FORBIDDEN, "Account locked".to_string()),
+            AppError::RateLimited => (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded".to_string()),
+        };
+
+        let body = Json(serde_json::json!({
+            "error": error_message,
+        }));
+
+        (status, body).into_response()
+    }
 }
 
 impl fmt::Display for AppError {

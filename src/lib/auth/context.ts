@@ -151,7 +151,7 @@ export async function requireAuth(event: RequestEvent, redirectPath: string = '/
 export async function requirePermission(event: RequestEvent, permission: string): Promise<void> {
 	await requireAuth(event);
 
-	if (!hasPermission(event, permission)) {
+	if (!auth.hasPermission(event, permission)) {
 		const { error } = await import('@sveltejs/kit');
 		throw error(403, {
 			message: 'Insufficient permissions',
@@ -171,7 +171,7 @@ export async function requirePermission(event: RequestEvent, permission: string)
 export async function requireRole(event: RequestEvent, requiredRole: string): Promise<void> {
 	await requireAuth(event);
 
-	if (!hasRole(event, requiredRole)) {
+	if (!auth.hasRole(event, requiredRole)) {
 		const { error } = await import('@sveltejs/kit');
 		throw error(403, {
 			message: 'Insufficient role level',

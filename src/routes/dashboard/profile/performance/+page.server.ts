@@ -78,6 +78,41 @@ export const load: PageServerLoad = async (event) => {
 		});
 		console.log('[Performance Page] Goals result:', goalsResult.data ? `Found ${goalsResult.data.employeeGoals?.length || 0} goals` : 'No data');
 
+		// Fetch performance reviews for history and rating
+		const reviewsQuery = `
+			query GetPerformanceReviews($employeeId: UUID!, $limit: Int!) {
+				performanceReviews(employeeId: $employeeId, limit: $limit) {
+					id
+					cycle {
+						name
+					}
+					overallRating
+					status
+					createdAt
+					reviewer {
+						id
+						displayName
+					}
+				}
+			}
+		`;
+		const reviewsResult = await graphqlClient.query(reviewsQuery, {
+			employeeId: userId,
+			limit: 20
+		});
+		
+		const rawReviews = reviewsResult.data?.performanceReviews || [];
+		const reviews = rawReviews.map((r: any) => ({
+			...r,
+			reviewPeriod: r.cycle?.name || 'Performance Review'
+		}));
+
+		// Calculate overall rating (average of completed reviews)
+		const completedReviews = reviews.filter((r: any) => r.status === 'COMPLETED' && r.overallRating);
+		const averageRating = completedReviews.length > 0
+			? (completedReviews.reduce((sum: number, r: any) => sum + r.overallRating, 0) / completedReviews.length).toFixed(1)
+			: 'N/A';
+
 		// Transform employeeGoals to match expected format
 		const rawGoals = goalsResult.data?.employeeGoals || [];
 		console.log('[Performance Page] Raw goals:', rawGoals.length);
@@ -126,6 +161,8 @@ export const load: PageServerLoad = async (event) => {
 			user,
 			userId,
 			goals: goals.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+			reviews,
+			averageRating,
 			goalCategories,
 			goalStats,
 			currentQuarter: {

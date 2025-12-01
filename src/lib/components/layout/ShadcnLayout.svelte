@@ -15,7 +15,7 @@
 		Users
 	} from '@lucide/svelte';
 	import { page } from '$app/stores';
-	import { currentUser, isAuthenticated } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 
 	const { children } = $props();
 
@@ -98,7 +98,7 @@
 	// Add admin navigation if user has admin role
 	const visibleNavigation = $derived(() => {
 		const nav = [...navigationItems];
-		if ($currentUser?.role === 'admin' || $currentUser?.role === 'hr_admin') {
+		if (auth.user?.role === 'admin' || auth.user?.role === 'hr_admin') {
 			nav.push(...adminNavigation);
 		}
 		return nav;
@@ -151,7 +151,7 @@
 </script>
 
 <!-- Only show layout if authenticated -->
-{#if $isAuthenticated && $currentUser}
+{#if auth.isAuthenticated && auth.user}
 	<Sidebar.Provider>
 		<div class="flex h-screen bg-background">
 			<!-- Sidebar -->
@@ -221,8 +221,8 @@
 							<User class="h-4 w-4" />
 						</div>
 						<div class="flex flex-col">
-							<span class="text-sm font-medium">{$currentUser.name || 'User'}</span>
-							<span class="text-xs text-muted-foreground">{$currentUser.role || 'Employee'}</span>
+							<span class="text-sm font-medium">{auth.user.name || 'User'}</span>
+							<span class="text-xs text-muted-foreground">{auth.user.role || 'Employee'}</span>
 						</div>
 					</div>
 				</Sidebar.Footer>
@@ -285,8 +285,8 @@
 									<User class="h-4 w-4" />
 								</div>
 								<div class="flex flex-col">
-									<span class="text-sm font-medium">{$currentUser.name || 'User'}</span>
-									<span class="text-xs text-muted-foreground">{$currentUser.email || ''}</span>
+									<span class="text-sm font-medium">{auth.user.name || 'User'}</span>
+									<span class="text-xs text-muted-foreground">{auth.user.email || ''}</span>
 								</div>
 							</div>
 						</div>

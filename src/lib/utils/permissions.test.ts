@@ -19,44 +19,44 @@ import type { PermissionString, RoleName } from '$lib/types/permissions';
 describe('hasPermission', () => {
 	it('should return true for exact permission match', () => {
 		const userPermissions: PermissionString[] = ['employees:read', 'departments:write'];
-		expect(hasPermission(userPermissions, 'employees:read')).toBe(true);
-		expect(hasPermission(userPermissions, 'departments:write')).toBe(true);
+		expect(auth.hasPermission(userPermissions, 'employees:read')).toBe(true);
+		expect(auth.hasPermission(userPermissions, 'departments:write')).toBe(true);
 	});
 
 	it('should return false when permission is missing', () => {
 		const userPermissions: PermissionString[] = ['employees:read'];
-		expect(hasPermission(userPermissions, 'employees:write')).toBe(false);
-		expect(hasPermission(userPermissions, 'departments:read')).toBe(false);
+		expect(auth.hasPermission(userPermissions, 'employees:write')).toBe(false);
+		expect(auth.hasPermission(userPermissions, 'departments:read')).toBe(false);
 	});
 
 	it('should return true for admin wildcard "*"', () => {
 		const userPermissions: PermissionString[] = ['*'];
-		expect(hasPermission(userPermissions, 'employees:read')).toBe(true);
-		expect(hasPermission(userPermissions, 'employees:write')).toBe(true);
-		expect(hasPermission(userPermissions, 'departments:delete')).toBe(true);
+		expect(auth.hasPermission(userPermissions, 'employees:read')).toBe(true);
+		expect(auth.hasPermission(userPermissions, 'employees:write')).toBe(true);
+		expect(auth.hasPermission(userPermissions, 'departments:delete')).toBe(true);
 	});
 
 	it('should return true for admin wildcard "*:*"', () => {
 		const userPermissions: PermissionString[] = ['*:*'];
-		expect(hasPermission(userPermissions, 'employees:read')).toBe(true);
-		expect(hasPermission(userPermissions, 'admin:write')).toBe(true);
+		expect(auth.hasPermission(userPermissions, 'employees:read')).toBe(true);
+		expect(auth.hasPermission(userPermissions, 'admin:write')).toBe(true);
 	});
 
 	it('should match scoped permissions to unscoped checks', () => {
 		const userPermissions: PermissionString[] = ['employees:read:team', 'departments:write:all'];
-		expect(hasPermission(userPermissions, 'employees:read')).toBe(true);
-		expect(hasPermission(userPermissions, 'departments:write')).toBe(true);
+		expect(auth.hasPermission(userPermissions, 'employees:read')).toBe(true);
+		expect(auth.hasPermission(userPermissions, 'departments:write')).toBe(true);
 	});
 
 	it('should NOT match different actions even with same resource', () => {
 		const userPermissions: PermissionString[] = ['employees:read:team'];
-		expect(hasPermission(userPermissions, 'employees:write')).toBe(false);
-		expect(hasPermission(userPermissions, 'employees:delete')).toBe(false);
+		expect(auth.hasPermission(userPermissions, 'employees:write')).toBe(false);
+		expect(auth.hasPermission(userPermissions, 'employees:delete')).toBe(false);
 	});
 
 	it('should handle empty permission arrays', () => {
 		const userPermissions: PermissionString[] = [];
-		expect(hasPermission(userPermissions, 'employees:read')).toBe(false);
+		expect(auth.hasPermission(userPermissions, 'employees:read')).toBe(false);
 	});
 });
 
@@ -124,20 +124,20 @@ describe('hasRole', () => {
 			{ id: '1', name: 'Manager' as RoleName, level: RoleHierarchy.Manager },
 			{ id: '2', name: 'Employee' as RoleName, level: RoleHierarchy.Employee }
 		];
-		expect(hasRole(userRoles, 'Manager')).toBe(true);
-		expect(hasRole(userRoles, 'Employee')).toBe(true);
+		expect(auth.hasRole(userRoles, 'Manager')).toBe(true);
+		expect(auth.hasRole(userRoles, 'Employee')).toBe(true);
 	});
 
 	it('should return false if user does not have the specified role', () => {
 		const userRoles = [
 			{ id: '1', name: 'Employee' as RoleName, level: RoleHierarchy.Employee }
 		];
-		expect(hasRole(userRoles, 'Admin')).toBe(false);
-		expect(hasRole(userRoles, 'HR Manager')).toBe(false);
+		expect(auth.hasRole(userRoles, 'Admin')).toBe(false);
+		expect(auth.hasRole(userRoles, 'HR Manager')).toBe(false);
 	});
 
 	it('should handle empty role arrays', () => {
-		expect(hasRole([], 'Admin')).toBe(false);
+		expect(auth.hasRole([], 'Admin')).toBe(false);
 	});
 });
 

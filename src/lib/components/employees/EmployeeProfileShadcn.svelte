@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, createEventDispatcher } from 'svelte';
 	import { userService, currentUser as userServiceCurrentUser } from '$lib/services/userService';
-	import { currentUser, hasPermission } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Card from '$lib/components/ui/card';
@@ -42,9 +42,9 @@
 	let deactivating = $state(false);
 
 	// Computed values
-	const isOwnProfile = $derived(employee?.id === $currentUser?.id);
-	const canEdit = $derived($currentUser && (isOwnProfile || hasPermission('user:update')));
-	const canDeactivate = $derived($currentUser && hasPermission('user:delete') && !isOwnProfile);
+	const isOwnProfile = $derived(employee?.id === auth.user?.id);
+	const canEdit = $derived(auth.user && (isOwnProfile || auth.hasPermission('user:update')));
+	const canDeactivate = $derived(auth.user && auth.hasPermission('user:delete') && !isOwnProfile);
 	const statusVariant = $derived(employee?.isActive ? 'default' : 'secondary');
 	const statusText = $derived(employee?.isActive ? 'Active' : 'Inactive');
 
@@ -277,7 +277,7 @@
 							</div>
 						</div>
 
-						{#if employee.jobInfo?.salary && (isOwnProfile || hasPermission('user:view_salary'))}
+						{#if employee.jobInfo?.salary && (isOwnProfile || auth.hasPermission('user:view_salary'))}
 							<div class="space-y-2">
 								<Label class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
 									Salary

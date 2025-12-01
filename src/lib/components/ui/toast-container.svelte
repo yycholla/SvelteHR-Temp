@@ -1,14 +1,13 @@
 <script lang="ts">
-	import { errorStore } from '$lib/stores/error';
+	import { errorStore } from '$lib/stores/error.svelte';
 	import { X, AlertCircle, AlertTriangle, Info, CheckCircle } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { cn } from '$lib/utils/styles';
 	import { fly } from 'svelte/transition';
 
-	// Subscribe to error store - Svelte 5 compatible
-	// Access the subscribable store directly, not through the parent object
-	const { errors } = errorStore;
-	const errorsArray = $derived($errors);
+	// Use error store with Svelte 5 runes pattern
+	// errorStore.errors is already reactive with $state
+	const errorsArray = $derived(errorStore.errors);
 
 	function getToastClasses(type: string) {
 		const baseClasses = 'border-l-4 bg-background shadow-lg';
@@ -39,7 +38,7 @@
 	}
 
 	function dismissError(id: string) {
-		errorStore.errors.remove(id);
+		errorStore.remove(id);
 	}
 
 	function handleAction(action: any) {

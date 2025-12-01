@@ -23,9 +23,9 @@ import { RoleHierarchy } from '$lib/types/permissions';
  *
  * @example
  * ```ts
- * hasPermission(user.permissions, 'employees:read') // true/false
- * hasPermission(['*'], 'employees:write') // true (wildcard)
- * hasPermission(['employees:read:team'], 'employees:read') // true (scope matches)
+ * auth.hasPermission(user.permissions, 'employees:read') // true/false
+ * auth.hasPermission(['*'], 'employees:write') // true (wildcard)
+ * auth.hasPermission(['employees:read:team'], 'employees:read') // true (scope matches)
  * ```
  */
 export function hasPermission(
@@ -70,7 +70,7 @@ export function hasAnyPermission(
 	userPermissions: PermissionString[],
 	requiredPermissions: PermissionString[]
 ): boolean {
-	return requiredPermissions.some((perm) => hasPermission(userPermissions, perm));
+	return requiredPermissions.some((perm) => auth.hasPermission(userPermissions, perm));
 }
 
 /**
@@ -90,7 +90,7 @@ export function hasAllPermissions(
 	userPermissions: PermissionString[],
 	requiredPermissions: PermissionString[]
 ): boolean {
-	return requiredPermissions.every((perm) => hasPermission(userPermissions, perm));
+	return requiredPermissions.every((perm) => auth.hasPermission(userPermissions, perm));
 }
 
 /**
@@ -102,8 +102,8 @@ export function hasAllPermissions(
  *
  * @example
  * ```ts
- * hasRole(user.roles, 'Admin') // true/false
- * hasRole(user.roles, 'HR Manager') // true/false
+ * auth.hasRole(user.roles, 'Admin') // true/false
+ * auth.hasRole(user.roles, 'HR Manager') // true/false
  * ```
  */
 export function hasRole(
@@ -236,16 +236,16 @@ export function buildPermissionContext(
 		roles: rolesWithLevel,
 		userId,
 		flags: {
-			isAdmin: hasRole(rolesWithLevel, 'Admin'),
-			isHRManager: hasRole(rolesWithLevel, 'HR Manager'),
-			isManager: hasRole(rolesWithLevel, 'Manager'),
-			canReadEmployees: hasPermission(permissions, 'employees:read'),
-			canWriteEmployees: hasPermission(permissions, 'employees:write'),
-			canDeleteEmployees: hasPermission(permissions, 'employees:delete'),
-			canReadDepartments: hasPermission(permissions, 'departments:read'),
-			canWriteDepartments: hasPermission(permissions, 'departments:write'),
-			canDeleteDepartments: hasPermission(permissions, 'departments:delete'),
-			canAccessAdmin: hasPermission(permissions, 'admin:read'),
+			isAdmin: auth.hasRole(rolesWithLevel, 'Admin'),
+			isHRManager: auth.hasRole(rolesWithLevel, 'HR Manager'),
+			isManager: auth.hasRole(rolesWithLevel, 'Manager'),
+			canReadEmployees: auth.hasPermission(permissions, 'employees:read'),
+			canWriteEmployees: auth.hasPermission(permissions, 'employees:write'),
+			canDeleteEmployees: auth.hasPermission(permissions, 'employees:delete'),
+			canReadDepartments: auth.hasPermission(permissions, 'departments:read'),
+			canWriteDepartments: auth.hasPermission(permissions, 'departments:write'),
+			canDeleteDepartments: auth.hasPermission(permissions, 'departments:delete'),
+			canAccessAdmin: auth.hasPermission(permissions, 'admin:read'),
 			canAccessHR: hasAnyPermission(permissions, [
 				'employees:read',
 				'employees:write',
@@ -337,6 +337,6 @@ export function filterByPermission<T>(
 		if (Array.isArray(required)) {
 			return hasAnyPermission(userPermissions, required);
 		}
-		return hasPermission(userPermissions, required);
+		return auth.hasPermission(userPermissions, required);
 	});
 }

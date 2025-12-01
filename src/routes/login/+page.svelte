@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { goto, replaceState } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
 	import { get } from 'svelte/store';
-	import { isAuthenticated, currentUser, authActions, isLoading, hasRole } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 	import { toast } from 'svelte-sonner';
 	import AuthLayout from '$lib/components/auth/AuthLayout.svelte';
 	import LoginForm from '$lib/components/auth/LoginForm.svelte';
@@ -29,7 +29,7 @@
 			// Clear the timeout parameter from URL
 			const url = new URL(window.location.href);
 			url.searchParams.delete('timeout');
-			window.history.replaceState({}, '', url);
+			replaceState(url.toString(), {});
 		}
 
 		// Check if we've already redirected in this session
@@ -39,7 +39,7 @@
 		await new Promise((resolve) => setTimeout(resolve, 100));
 
 		// Check current auth state (already validated by AuthGuard)
-		if ($isAuthenticated && $currentUser) {
+		if (auth.isAuthenticated && auth.user) {
 			// Mark that we're redirecting to prevent loops
 			if (browser) sessionStorage.setItem(LOGIN_REDIRECT_KEY, 'true');
 
@@ -79,9 +79,9 @@
 
 			while (attempts < maxAttempts) {
 				// Get current values from stores using get()
-				const loading = get(isLoading);
-				const user = get(currentUser);
-				const authenticated = get(isAuthenticated);
+				const loading = auth.isLoading;
+				const user = auth.user;
+				const authenticated = auth.isAuthenticated;
 
 				if (!loading && user && authenticated) {
 					console.log('Auth state loaded, user:', user);
@@ -96,7 +96,7 @@
 			}
 
 			// Check if user is admin
-			const user = $currentUser;
+			const user = auth.user;
 			let redirectTo = $page?.url?.searchParams.get('redirect');
 
 			// Check for saved return URL from logout (highest priority)

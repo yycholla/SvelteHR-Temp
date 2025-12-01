@@ -3,86 +3,50 @@
 	import {
 		Award,
 		BookOpen,
-		Calendar,
-		CheckCircle,
+		CalendarClock,
+		CheckCircle2,
+		CheckSquare,
 		Clock,
 		FileText,
+		History,
+		Medal,
 		MessageSquare,
 		Star,
 		Target,
-		TrendingUp,
 		User
 	} from '@lucide/svelte';
 	import { format, parseISO } from 'date-fns';
+	import * as Dialog from '$lib/components/ui/dialog';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Button } from '$lib/components/ui/button';
 
 	const { data } = $props();
 
 	const user = $derived(data.user);
-	const userId = $derived(data.userId);
-	const reviews = $derived(data.reviews);
-	const reviewTypes = $derived(data.reviewTypes);
-	const competencyAreas = $derived(data.competencyAreas);
+	const reviews = $derived(data.reviews || []);
 	const reviewStats = $derived(data.reviewStats);
-	const canManageReviews = $derived(data.canManageReviews);
 	const isOwnReviews = $derived(data.isOwnReviews);
 
-	let selectedStatus = $state('all');
-	let selectedType = $state('all');
-	let expandedReview = $state(null);
+	let selectedReview = $state<any>(null);
+	let showReviewDetails = $state(false);
 
-	// Filter reviews based on selected filters
-	const filteredReviews = $derived(
-		reviews.filter((review) => {
-			const statusMatch = selectedStatus === 'all' || review.status === selectedStatus;
-			const typeMatch = selectedType === 'all' || review.type.id === selectedType;
-			return statusMatch && typeMatch;
-		})
+	// Get latest completed review for the score card
+	const latestCompletedReview = $derived(
+		reviews.find((r: any) => r.status === 'completed' && r.overallRating)
 	);
-
-	function getStatusIcon(status: string) {
-		switch (status) {
-			case 'completed':
-				return CheckCircle;
-			case 'in_progress':
-				return Clock;
-			case 'scheduled':
-				return Calendar;
-			case 'overdue':
-				return Clock;
-			default:
-				return Clock;
-		}
-	}
 
 	function getStatusColor(status: string) {
 		switch (status) {
 			case 'completed':
-				return 'text-green-600 bg-green-50 border-green-200';
+				return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
 			case 'in_progress':
-				return 'text-blue-600 bg-blue-50 border-blue-200';
+				return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
 			case 'scheduled':
-				return 'text-muted-foreground bg-muted dark:bg-muted border';
+				return 'bg-muted text-muted-foreground border-border';
 			case 'overdue':
-				return 'text-red-600 bg-red-50 border-red-200';
+				return 'bg-red-500/10 text-red-500 border-red-500/20';
 			default:
-				return 'text-muted-foreground bg-muted dark:bg-muted border';
-		}
-	}
-
-	function getTypeColor(color: string) {
-		switch (color) {
-			case 'blue':
-				return 'bg-blue-100 text-blue-800';
-			case 'green':
-				return 'bg-green-100 text-green-800';
-			case 'purple':
-				return 'bg-purple-100 text-purple-800';
-			case 'orange':
-				return 'bg-orange-100 text-orange-800';
-			case 'red':
-				return 'bg-red-100 text-red-800';
-			default:
-				return 'bg-gray-100 text-foreground';
+				return 'bg-muted text-muted-foreground border-border';
 		}
 	}
 
@@ -92,25 +56,18 @@
 		return { fullStars, hasHalfStar };
 	}
 
-	function formatDate(dateString: string) {
-		return format(parseISO(dateString), 'MMM dd, yyyy');
-	}
-
-	function toggleReviewExpansion(reviewId: string) {
-		expandedReview = expandedReview === reviewId ? null : reviewId;
-	}
-
-	function getGoalStatusColor(status: string) {
-		switch (status) {
-			case 'achieved':
-				return 'text-green-600';
-			case 'partially_achieved':
-				return 'text-yellow-600';
-			case 'not_achieved':
-				return 'text-red-600';
-			default:
-				return 'text-muted-foreground';
+	function formatDate(dateString: string | null | undefined) {
+		if (!dateString) return 'N/A';
+		try {
+			return format(parseISO(dateString), 'MMM dd, yyyy');
+		} catch {
+			return 'Invalid Date';
 		}
+	}
+
+	function openReviewDetails(review: any) {
+		selectedReview = review;
+		showReviewDetails = true;
 	}
 </script>
 
@@ -118,364 +75,291 @@
 	<title>{isOwnReviews ? 'My Reviews' : `${user?.displayName} - Reviews`} | MountainHR</title>
 </svelte:head>
 
-<div class="container mx-auto space-y-6 p-6">
+<div class="container mx-auto max-w-7xl p-6 md:p-10">
 	<!-- Header -->
-	<div class="flex items-center justify-between">
-		<div class="flex items-center space-x-4">
-			<div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-				<FileText class="h-6 w-6 text-blue-600" />
+	<div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+		<div>
+			<h1 class="text-2xl font-bold tracking-tight text-foreground">Performance Reviews</h1>
+			<p class="text-muted-foreground">Past reviews and upcoming cycles.</p>
+		</div>
+	</div>
+
+	<!-- Main Bento Grid -->
+	<div class="grid auto-rows-[minmax(160px,auto)] grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4">
+		<!-- 1. Last Review Score (Small) -->
+		<div
+			class="relative flex flex-col justify-between overflow-hidden rounded-xl border bg-card p-5"
+		>
+			<div class="z-10 mb-2 flex items-center gap-2 text-muted-foreground">
+				<Award class="h-4 w-4" />
+				<span class="text-xs font-semibold uppercase tracking-wider">Last Score</span>
 			</div>
-			<div>
-				<h1 class="text-2xl font-bold text-foreground">
-					{isOwnReviews ? 'My Performance Reviews' : `${user?.displayName} - Performance Reviews`}
-				</h1>
-				<p class="text-muted-foreground">
-					{user?.departmentByDepartmentId?.name || 'No Department'} • {user?.role}
+			<div class="z-10">
+				<span class="text-4xl font-bold text-emerald-500">
+					{latestCompletedReview?.overallRating?.toFixed(1) || '-'}
+				</span>
+				<span class="text-sm text-muted-foreground">/ 5.0</span>
+				<p class="mt-1 text-xs text-muted-foreground">
+					{latestCompletedReview ? latestCompletedReview.type.name : 'No reviews yet'}
 				</p>
 			</div>
-		</div>
-	</div>
-
-	<!-- Review Statistics -->
-	<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-		<div class="rounded-lg border bg-card p-6 shadow-sm">
-			<div class="flex items-center justify-between">
-				<div>
-					<p class="text-sm font-medium text-muted-foreground">Total Reviews</p>
-					<p class="text-2xl font-bold text-foreground">{reviewStats.total}</p>
-				</div>
-				<div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-					<FileText class="h-6 w-6 text-blue-600" />
-				</div>
+			<!-- Decorative -->
+			<div class="absolute -bottom-4 -right-4 text-emerald-500/5">
+				<Medal class="h-32 w-32" />
 			</div>
 		</div>
 
-		<div class="rounded-lg border bg-card p-6 shadow-sm">
-			<div class="flex items-center justify-between">
-				<div>
-					<p class="text-sm font-medium text-muted-foreground">Completed</p>
-					<p class="text-2xl font-bold text-green-600">{reviewStats.completed}</p>
-				</div>
-				<div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-					<CheckCircle class="h-6 w-6 text-green-600" />
-				</div>
+		<!-- 2. Next Review (Small) -->
+		<div class="flex flex-col justify-between rounded-xl border bg-card p-5">
+			<div class="mb-2 flex items-center gap-2 text-muted-foreground">
+				<CalendarClock class="h-4 w-4" />
+				<span class="text-xs font-semibold uppercase tracking-wider">Next Review</span>
 			</div>
-		</div>
-
-		<div class="rounded-lg border bg-card p-6 shadow-sm">
-			<div class="flex items-center justify-between">
-				<div>
-					<p class="text-sm font-medium text-muted-foreground">Average Rating</p>
-					<p class="text-2xl font-bold text-yellow-600">
-						{reviewStats.averageRating ? reviewStats.averageRating.toFixed(1) : 'N/A'}
-					</p>
-				</div>
-				<div class="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
-					<Star class="h-6 w-6 text-yellow-600" />
-				</div>
-			</div>
-		</div>
-
-		<div class="rounded-lg border bg-card p-6 shadow-sm">
-			<div class="flex items-center justify-between">
-				<div>
-					<p class="text-sm font-medium text-muted-foreground">Next Review</p>
-					<p class="text-sm font-bold text-foreground">
-						{reviewStats.nextReviewDate ? formatDate(reviewStats.nextReviewDate) : 'Not scheduled'}
-					</p>
-				</div>
-				<div class="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
-					<Calendar class="h-6 w-6 text-purple-600" />
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<!-- Filters -->
-	<div class="rounded-lg border bg-card p-4 shadow-sm">
-		<div class="flex flex-wrap gap-4">
 			<div>
-				<label for="status-filter" class="mb-1 block text-sm font-medium text-foreground">
-					Status
-				</label>
-				<select
-					id="status-filter"
-					bind:value={selectedStatus}
-					class="rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
-				>
-					<option value="all">All Statuses</option>
-					<option value="completed">Completed</option>
-					<option value="in_progress">In Progress</option>
-					<option value="scheduled">Scheduled</option>
-					<option value="overdue">Overdue</option>
-				</select>
+				<span class="text-xl font-bold text-foreground">
+					{reviewStats.nextReviewDate ? format(parseISO(reviewStats.nextReviewDate), 'MMM yyyy') : 'TBD'}
+				</span>
+				<p class="mt-1 text-sm text-muted-foreground">
+					{reviewStats.nextReviewDate
+						? `Scheduled for ${formatDate(reviewStats.nextReviewDate)}`
+						: 'No upcoming reviews'}
+				</p>
 			</div>
-
-			<div>
-				<label for="type-filter" class="mb-1 block text-sm font-medium text-foreground">
-					Review Type
-				</label>
-				<select
-					id="type-filter"
-					bind:value={selectedType}
-					class="rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
-				>
-					<option value="all">All Types</option>
-					{#each reviewTypes as type}
-						<option value={type.id}>{type.name}</option>
-					{/each}
-				</select>
+			<div class="mt-4">
+				<!-- Placeholder for next review type if available, or generic status -->
+				<Badge variant="outline" class="bg-blue-500/10 text-blue-500 border-blue-500/20">
+					{reviewStats.nextReviewDate ? 'Upcoming' : 'Not Scheduled'}
+				</Badge>
 			</div>
 		</div>
-	</div>
 
-	<!-- Reviews List -->
-	<div class="space-y-6">
-		{#each filteredReviews as review}
-			{@const StatusIcon = getStatusIcon(review.status)}
-			<div class="rounded-lg border bg-card shadow-sm">
-				<!-- Review Header -->
-				<div class="border border-b p-6">
-					<div class="flex items-center justify-between">
-						<div class="flex items-center gap-4">
-							<div>
-								<div class="mb-1 flex items-center gap-2">
-									<h3 class="text-lg font-semibold text-foreground">{review.type.name}</h3>
-									<span
-										class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getTypeColor(
-											review.type.color
-										)}"
-									>
+		<!-- 3. Pending Actions (Wide List) -->
+		<div class="row-span-1 flex flex-col rounded-xl border bg-card p-5 md:col-span-2 lg:col-span-2">
+			<div class="mb-4 flex items-center justify-between">
+				<div class="flex items-center gap-2 text-muted-foreground">
+					<CheckSquare class="h-4 w-4" />
+					<span class="text-xs font-semibold uppercase tracking-wider">Pending Actions</span>
+				</div>
+			</div>
+
+			<div class="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/5 p-4 text-center">
+				{#if reviewStats.inProgress > 0}
+					<div class="flex items-center gap-3">
+						<div class="rounded-full bg-blue-100 p-2 text-blue-600">
+							<Clock class="h-5 w-5" />
+						</div>
+						<div class="text-left">
+							<p class="font-medium text-foreground">{reviewStats.inProgress} Review(s) In Progress</p>
+							<p class="text-xs text-muted-foreground">Please complete your self-assessment.</p>
+						</div>
+						<Button variant="secondary" size="sm" class="ml-4">Start</Button>
+					</div>
+				{:else}
+					<CheckCircle2 class="mb-2 h-8 w-8 text-muted-foreground/30" />
+					<p class="text-sm text-muted-foreground">No pending actions required.</p>
+				{/if}
+			</div>
+		</div>
+
+		<!-- 4. Review History (Full Width Table) -->
+		<div
+			class="col-span-full row-span-2 flex flex-col overflow-hidden rounded-xl border bg-card"
+		>
+			<div class="flex items-center justify-between border-b border-border p-5">
+				<div class="flex items-center gap-2 text-muted-foreground">
+					<History class="h-4 w-4" />
+					<span class="text-xs font-semibold uppercase tracking-wider">Review History</span>
+				</div>
+			</div>
+
+			<div class="overflow-x-auto">
+				<table class="w-full text-left text-sm">
+					<thead class="bg-muted/30 text-xs font-medium uppercase text-muted-foreground">
+						<tr>
+							<th class="px-5 py-3">Review Cycle</th>
+							<th class="px-5 py-3">Type</th>
+							<th class="px-5 py-3">Date</th>
+							<th class="px-5 py-3">Reviewer</th>
+							<th class="px-5 py-3">Rating</th>
+							<th class="px-5 py-3">Status</th>
+							<th class="px-5 py-3 text-right">Actions</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-border/50">
+						{#if reviews.length > 0}
+							{#each reviews as review}
+								<tr class="transition-colors hover:bg-muted/20">
+									<td class="px-5 py-4 font-medium">
+										{review.type.name} {new Date(review.scheduledDate).getFullYear()}
+									</td>
+									<td class="px-5 py-4 text-muted-foreground">
 										{review.type.frequency}
-									</span>
-								</div>
-								<p class="text-sm text-muted-foreground">
-									Review Period: {formatDate(review.reviewPeriod.start)} - {formatDate(
-										review.reviewPeriod.end
-									)}
-								</p>
-							</div>
-						</div>
+									</td>
+									<td class="px-5 py-4 text-foreground">
+										{formatDate(review.completedDate || review.scheduledDate)}
+									</td>
+									<td class="px-5 py-4">
+										{review.reviewer?.displayName || 'N/A'}
+									</td>
+									<td class="px-5 py-4 font-bold text-emerald-500">
+										{review.overallRating || '-'}
+									</td>
+									<td class="px-5 py-4">
+										<span
+											class="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium {getStatusColor(
+												review.status
+											)}"
+										>
+											{review.status.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+										</span>
+									</td>
+									<td class="px-5 py-4 text-right">
+										<button
+											onclick={() => openReviewDetails(review)}
+											class="text-xs font-medium text-primary hover:underline"
+										>
+											View
+										</button>
+									</td>
+								</tr>
+							{/each}
+						{:else}
+							<tr>
+								<td colspan="7" class="px-5 py-8 text-center text-sm text-muted-foreground">
+									No reviews found.
+								</td>
+							</tr>
+						{/if}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+</div>
 
-						<div class="flex items-center gap-4">
-							<span
-								class="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium {getStatusColor(
-									review.status
-								)}"
-							>
-								<StatusIcon class="h-3 w-3" />
-								{review.status.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
-							</span>
+<!-- Review Details Modal -->
+{#if selectedReview}
+	<Dialog.Root bind:open={showReviewDetails}>
+		<Dialog.Portal>
+			<Dialog.Overlay />
+			<Dialog.Content class="max-h-[90vh] max-w-3xl overflow-y-auto">
+				<Dialog.Header>
+					<Dialog.Title>Review Details</Dialog.Title>
+					<Dialog.Description>
+						{selectedReview.type.name} - {formatDate(selectedReview.completedDate || selectedReview.scheduledDate)}
+					</Dialog.Description>
+				</Dialog.Header>
 
-							{#if review.status === 'completed' && review.overallRating}
-								{@const { fullStars, hasHalfStar } = getRatingStars(review.overallRating)}
-								<div class="flex items-center gap-1">
-									{#each Array(fullStars) as _}
-										<Star class="h-4 w-4 fill-yellow-400 text-yellow-400" />
-									{/each}
-									{#if hasHalfStar}
-										<Star class="h-4 w-4 fill-yellow-200 text-yellow-400" />
-									{/if}
-									{#each Array(5 - fullStars - (hasHalfStar ? 1 : 0)) as _}
-										<Star class="h-4 w-4 text-muted-foreground" />
-									{/each}
-									<span class="ml-1 text-sm font-medium text-foreground"
-										>{review.overallRating}</span
-									>
-								</div>
-							{/if}
-
-							<button
-								onclick={() => toggleReviewExpansion(review.id)}
-								class="text-sm font-medium text-blue-600 hover:text-blue-800"
-							>
-								{expandedReview === review.id ? 'Show Less' : 'View Details'}
-							</button>
-						</div>
-					</div>
-
-					<div class="mt-4 flex items-center gap-6 text-sm text-muted-foreground">
-						<div class="flex items-center gap-1">
-							<User class="h-4 w-4" />
-							<span>Reviewer: {review.reviewer.displayName}</span>
-						</div>
-						<div class="flex items-center gap-1">
-							<Calendar class="h-4 w-4" />
-							<span>
-								{review.status === 'completed' ? 'Completed' : 'Scheduled'}:
-								{formatDate(review.completedDate || review.scheduledDate)}
-							</span>
-						</div>
-					</div>
-				</div>
-
-				<!-- Expanded Review Details -->
-				{#if expandedReview === review.id && review.status === 'completed'}
-					<div class="space-y-6 p-6">
-						<!-- Competency Ratings -->
+				<div class="space-y-6 py-4">
+					<!-- Header Info -->
+					<div class="grid grid-cols-2 gap-4 rounded-lg bg-muted/30 p-4 text-sm">
 						<div>
-							<h4 class="mb-4 flex items-center gap-2 text-lg font-medium text-foreground">
-								<Award class="h-5 w-5" />
-								Competency Ratings
+							<span class="text-muted-foreground">Reviewer:</span>
+							<span class="ml-2 font-medium text-foreground">{selectedReview.reviewer?.displayName || 'N/A'}</span>
+						</div>
+						<div>
+							<span class="text-muted-foreground">Status:</span>
+							<Badge
+								variant="outline"
+								class="ml-2 {getStatusColor(selectedReview.status)}"
+							>
+								{selectedReview.status.replace('_', ' ')}
+							</Badge>
+						</div>
+						<div>
+							<span class="text-muted-foreground">Overall Rating:</span>
+							<span class="ml-2 font-bold text-emerald-600">{selectedReview.overallRating || 'N/A'}</span>
+						</div>
+					</div>
+
+					<!-- Competency Ratings (Placeholder / Mock if empty) -->
+					{#if selectedReview.competencies && selectedReview.competencies.length > 0}
+						<div>
+							<h4 class="mb-3 flex items-center gap-2 text-base font-medium text-foreground">
+								<Award class="h-4 w-4" />
+								Competencies
 							</h4>
-							<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-								{#each review.competencies as competency}
-									{@const { fullStars, hasHalfStar } = getRatingStars(competency.rating)}
-									<div class="rounded-lg bg-muted p-4 dark:bg-muted">
-										<div class="mb-2 flex items-center justify-between">
-											<span class="font-medium text-foreground">{competency.name}</span>
-											<div class="flex items-center gap-1">
-												{#each Array(fullStars) as _}
-													<Star class="h-3 w-3 fill-yellow-400 text-yellow-400" />
-												{/each}
-												{#if hasHalfStar}
-													<Star class="h-3 w-3 fill-yellow-200 text-yellow-400" />
-												{/if}
-												{#each Array(5 - fullStars - (hasHalfStar ? 1 : 0)) as _}
-													<Star class="h-3 w-3 text-muted-foreground" />
-												{/each}
-												<span class="ml-1 text-xs text-muted-foreground">{competency.rating}</span>
-											</div>
+							<div class="grid gap-3 sm:grid-cols-2">
+								{#each selectedReview.competencies as comp}
+									<div class="rounded border bg-card p-3">
+										<div class="mb-1 flex justify-between">
+											<span class="font-medium">{comp.name}</span>
+											<span class="text-sm font-bold text-emerald-600">{comp.rating}</span>
 										</div>
-										<p class="text-xs text-muted-foreground">{competency.feedback}</p>
+										<p class="text-xs text-muted-foreground">{comp.feedback}</p>
 									</div>
 								{/each}
 							</div>
 						</div>
+					{/if}
 
-						<!-- Goals Assessment -->
-						{#if review.goals && review.goals.length > 0}
-							<div>
-								<h4 class="mb-4 flex items-center gap-2 text-lg font-medium text-foreground">
-									<Target class="h-5 w-5" />
-									Goal Achievement
-								</h4>
-								<div class="space-y-3">
-									{#each review.goals as goal}
-										<div class="rounded-lg bg-muted p-4 dark:bg-muted">
-											<div class="mb-2 flex items-center justify-between">
-												<span class="font-medium text-foreground">{goal.title}</span>
-												<span class="text-sm font-medium {getGoalStatusColor(goal.status)}">
-													{goal.status.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
-												</span>
-											</div>
-											<p class="mb-2 text-sm text-muted-foreground">{goal.description}</p>
-											<div class="h-2 w-full rounded-full bg-gray-200">
-												<div
-													class="h-2 rounded-full bg-blue-500"
-													style="width: {goal.progress}%"
-												></div>
-											</div>
-											<span class="text-xs text-muted-foreground">{goal.progress}% complete</span>
-										</div>
-									{/each}
-								</div>
+					<!-- Feedback Section -->
+					<div>
+						<h4 class="mb-3 flex items-center gap-2 text-base font-medium text-foreground">
+							<MessageSquare class="h-4 w-4" />
+							Feedback
+						</h4>
+						<div class="rounded-lg border bg-card p-4">
+							<div class="mb-4">
+								<h5 class="mb-1 text-sm font-medium text-foreground">Manager Comments</h5>
+								<p class="text-sm text-muted-foreground">
+									{selectedReview.feedback?.managerComments || 'No comments provided.'}
+								</p>
 							</div>
-						{/if}
+							
+							{#if selectedReview.feedback?.strengths?.length > 0}
+								<div class="mb-4">
+									<h5 class="mb-1 text-sm font-medium text-green-700">Strengths</h5>
+									<ul class="list-inside list-disc text-sm text-muted-foreground">
+										{#each selectedReview.feedback.strengths as strength}
+											<li>{strength}</li>
+										{/each}
+									</ul>
+								</div>
+							{/if}
 
-						<!-- Feedback -->
+							{#if selectedReview.feedback?.improvements?.length > 0}
+								<div>
+									<h5 class="mb-1 text-sm font-medium text-orange-700">Areas for Improvement</h5>
+									<ul class="list-inside list-disc text-sm text-muted-foreground">
+										{#each selectedReview.feedback.improvements as item}
+											<li>{item}</li>
+										{/each}
+									</ul>
+								</div>
+							{/if}
+						</div>
+					</div>
+
+					<!-- Goals (if linked) -->
+					{#if selectedReview.goals && selectedReview.goals.length > 0}
 						<div>
-							<h4 class="mb-4 flex items-center gap-2 text-lg font-medium text-foreground">
-								<MessageSquare class="h-5 w-5" />
-								Feedback
+							<h4 class="mb-3 flex items-center gap-2 text-base font-medium text-foreground">
+								<Target class="h-4 w-4" />
+								Goals Assessment
 							</h4>
-							<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-								<div>
-									<h5 class="mb-2 font-medium text-green-700">Strengths</h5>
-									<ul class="space-y-1">
-										{#each review.feedback.strengths as strength}
-											<li class="text-sm text-muted-foreground">• {strength}</li>
-										{/each}
-									</ul>
-								</div>
-								<div>
-									<h5 class="mb-2 font-medium text-blue-700">Areas for Improvement</h5>
-									<ul class="space-y-1">
-										{#each review.feedback.improvements as improvement}
-											<li class="text-sm text-muted-foreground">• {improvement}</li>
-										{/each}
-									</ul>
-								</div>
-							</div>
-
-							<div class="mt-4 space-y-4">
-								<div>
-									<h5 class="mb-2 font-medium text-foreground">Manager's Comments</h5>
-									<p class="rounded bg-muted p-3 text-sm text-muted-foreground dark:bg-muted">
-										{review.feedback.managerComments}
-									</p>
-								</div>
-								{#if review.feedback.employeeComments}
-									<div>
-										<h5 class="mb-2 font-medium text-foreground">Employee's Response</h5>
-										<p class="rounded bg-blue-50 p-3 text-sm text-muted-foreground">
-											{review.feedback.employeeComments}
-										</p>
+							<div class="space-y-3">
+								{#each selectedReview.goals as goal}
+									<div class="flex items-center justify-between rounded border bg-card p-3">
+										<div>
+											<p class="text-sm font-medium">{goal.title}</p>
+											<p class="text-xs text-muted-foreground">{goal.description}</p>
+										</div>
+										<Badge variant="secondary">{goal.status}</Badge>
 									</div>
-								{/if}
+								{/each}
 							</div>
 						</div>
+					{/if}
+				</div>
 
-						<!-- Development Plan -->
-						{#if review.developmentPlan && review.developmentPlan.length > 0}
-							<div>
-								<h4 class="mb-4 flex items-center gap-2 text-lg font-medium text-foreground">
-									<BookOpen class="h-5 w-5" />
-									Development Plan
-								</h4>
-								<ul class="space-y-2">
-									{#each review.developmentPlan as item}
-										<li class="flex items-center gap-2 text-sm text-muted-foreground">
-											<div class="h-2 w-2 rounded-full bg-blue-500"></div>
-											{item}
-										</li>
-									{/each}
-								</ul>
-							</div>
-						{/if}
-					</div>
-				{/if}
-
-				<!-- In-Progress Review Status -->
-				{#if expandedReview === review.id && review.status === 'in_progress'}
-					<div class="border-t border-blue-200 bg-blue-50 p-6">
-						<div class="mb-2 flex items-center gap-2">
-							<Clock class="h-5 w-5 text-blue-600" />
-							<h4 class="font-medium text-blue-900">Review in Progress</h4>
-						</div>
-						<p class="text-sm text-blue-700">
-							This review is currently being conducted. Details will be available once completed.
-						</p>
-					</div>
-				{/if}
-
-				<!-- Scheduled Review Status -->
-				{#if expandedReview === review.id && review.status === 'scheduled'}
-					<div class="border border-t bg-muted p-6 dark:bg-muted">
-						<div class="mb-2 flex items-center gap-2">
-							<Calendar class="h-5 w-5 text-muted-foreground" />
-							<h4 class="font-medium text-foreground">Scheduled Review</h4>
-						</div>
-						<p class="text-sm text-foreground">
-							This review is scheduled for {formatDate(review.scheduledDate)}. You will receive a
-							notification when it's time to begin.
-						</p>
-					</div>
-				{/if}
-			</div>
-		{:else}
-			<div class="rounded-lg bg-card p-8 shadow-sm border text-center">
-				<FileText class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-				<h3 class="text-lg font-medium text-foreground mb-2">No reviews found</h3>
-				<p class="text-muted-foreground">
-					{selectedStatus !== 'all' || selectedType !== 'all'
-						? 'No reviews match your current filters.'
-						: isOwnReviews
-							? 'You have no performance reviews yet.'
-							: 'This user has no performance reviews yet.'}
-				</p>
-			</div>
-		{/each}
-	</div>
-</div>
+				<Dialog.Footer>
+					<Dialog.Close>
+						<Button variant="outline">Close</Button>
+					</Dialog.Close>
+				</Dialog.Footer>
+			</Dialog.Content>
+		</Dialog.Portal>
+	</Dialog.Root>
+{/if}
 

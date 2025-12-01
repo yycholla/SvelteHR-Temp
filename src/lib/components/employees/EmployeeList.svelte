@@ -3,7 +3,7 @@
 	import { queryStore } from '@urql/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
 	import { GET_EMPLOYEES_QUERY } from '$lib/graphql/employee-operations';
-	import { currentUser, hasPermission } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 	import RoleGuard from '$lib/components/auth/RoleGuard.svelte';
 
 	/**

@@ -137,22 +137,17 @@ export const actions: Actions = {
 				status: 'active'
 			};
 
-			// Map frontend role values to backend role names
-			const roleMapping: Record<string, string> = {
-				'employee': 'Employee',
-				'manager': 'Manager',
-				'hr_manager': 'HR Manager',
-				'admin': 'Admin'
-			};
-
 			// Only add optional fields if they have values
 			if (phone) input.phone = phone;
 			if (jobTitle) input.jobTitle = jobTitle;
 			if (departmentId) input.departmentId = departmentId;
 			if (password) input.password = password;
-			if (role && roleMapping[role]) {
-				input.roleName = roleMapping[role];
+			
+			// Pass role name directly (frontend sends exact name like "HR Manager")
+			if (role) {
+				input.roleName = role;
 			}
+			
 			if (hireDate) {
 				// Ensure hire date is in ISO 8601 format
 				input.hireDate = new Date(hireDate).toISOString();

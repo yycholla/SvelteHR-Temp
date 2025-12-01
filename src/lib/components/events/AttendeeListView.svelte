@@ -62,8 +62,7 @@
 		accepted: attendees.filter(a => a.responseStatus === 'accepted').length,
 		declined: attendees.filter(a => a.responseStatus === 'declined').length,
 		tentative: attendees.filter(a => a.responseStatus === 'tentative').length,
-		pending: attendees.filter(a => a.responseStatus === 'pending').length,
-		no_response: attendees.filter(a => a.responseStatus === 'no_response').length
+		pending: attendees.filter(a => a.responseStatus === 'pending').length
 	});
 
 	// Get RSVP badge variant and color
@@ -75,8 +74,7 @@
 			accepted: { label: 'Accepted', variant: 'default' as const },
 			declined: { label: 'Declined', variant: 'destructive' as const },
 			tentative: { label: 'Tentative', variant: 'secondary' as const },
-			pending: { label: 'Pending', variant: 'outline' as const },
-			no_response: { label: 'No Response', variant: 'outline' as const }
+			pending: { label: 'Pending', variant: 'outline' as const }
 		};
 		return badges[status];
 	}
@@ -122,9 +120,6 @@
 					</Select.Item>
 					<Select.Item value="pending">
 						Pending ({statusCounts.pending})
-					</Select.Item>
-					<Select.Item value="no_response">
-						No Response ({statusCounts.no_response})
 					</Select.Item>
 				</Select.Content>
 			</Select.Root>

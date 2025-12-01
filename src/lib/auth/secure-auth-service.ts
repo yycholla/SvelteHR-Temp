@@ -6,7 +6,7 @@ import { goto } from '$app/navigation';
 import {
 	authConfig,
 	getAuthEndpoints
-} from './config.js';
+} from './config';
 
 export interface AuthState {
 	isAuthenticated: boolean;

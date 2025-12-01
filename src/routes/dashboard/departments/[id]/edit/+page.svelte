@@ -52,8 +52,8 @@
 	const filteredUsers = $derived(
 		users.filter(
 			(user) =>
-				user.displayName.toLowerCase().includes(managerSearchTerm.toLowerCase()) ||
-				user.role.toLowerCase().includes(managerSearchTerm.toLowerCase())
+				user.displayName?.toLowerCase().includes(managerSearchTerm.toLowerCase()) ||
+				user.role?.toLowerCase().includes(managerSearchTerm.toLowerCase())
 		)
 	);
 

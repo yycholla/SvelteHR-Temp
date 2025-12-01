@@ -184,6 +184,11 @@ export const load: PageServerLoad = async (event) => {
 					remainingDays
 					createdAt
 					updatedAt
+					leaveType {
+						id
+						name
+						color
+					}
 				}
 			}
 		`;
@@ -212,17 +217,17 @@ export const load: PageServerLoad = async (event) => {
 			const usedDays = parseFloat(balance.usedDays || '0');
 			const remainingDays = parseFloat(balance.remainingDays || '0');
 
-			// For now, assume all balances are for annual leave
-			// TODO: Load actual leave type from balance.leaveType relationship
-			const leaveTypeCode = 'annual';
-			const policyName = 'Annual Leave';
+			// Use actual leave type data from the query
+			const policyName = balance.leaveType?.name || 'Unknown Leave Type';
+			// Derive a simple code from the name for icon/color mapping if needed
+			const leaveTypeCode = getLeaveTypeCodeFromPolicy(policyName);
 
 			return {
 				leaveType: {
 					id: balance.leaveTypeId, // Migration: policyId → leaveTypeId
 					name: policyName,
 					code: leaveTypeCode,
-					color: getLeaveTypeColor(leaveTypeCode)
+					color: balance.leaveType?.color || getLeaveTypeColor(leaveTypeCode)
 				},
 				allocated: totalDays,
 				used: usedDays,

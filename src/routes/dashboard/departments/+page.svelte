@@ -7,6 +7,9 @@
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
+	import * as ButtonGroup from '$lib/components/ui/button-group';
+	import * as Table from '$lib/components/ui/table';
+	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
 	import {
 		BarChart3,
 		Building,
@@ -17,6 +20,8 @@
 		Edit,
 		Eye,
 		Filter,
+		Grid,
+		List,
 		Plus,
 		Search,
 		Trash2,
@@ -67,12 +72,32 @@
 	const canManageDepartments = $derived(data.canManageDepartments);
 	const canViewEmployees = $derived(data.canViewEmployees);
 
+	// Prepare search options from departments list
+	const departmentSearchOptions = $derived(
+		departments.map((d) => ({
+			value: d.name,
+			label: d.name
+		}))
+	);
+
 	// Local state for filters and search
-	let searchTerm = $state(data.filters.searchTerm);
+	let searchTerms = $state<string[]>([]);
 	let selectedParent = $state(data.filters.parentFilter);
 	let selectedHasHead = $state(data.filters.hasHeadFilter);
 	const currentPage = $state(data.filters.page);
 	let pageSize = $state(data.filters.limit);
+	let viewMode = $state<'grid' | 'list'>('list');
+
+	// Sync search terms from URL
+	$effect(() => {
+		const searchParam = data.filters.searchTerm || '';
+		searchTerms = searchParam
+			? searchParam
+					.split(',')
+					.map((t) => t.trim())
+					.filter(Boolean)
+			: [];
+	});
 
 	// Dialog state
 	let showCreateDialog = $state(false);
@@ -103,7 +128,7 @@
 	// Handle search form submission
 	function handleSearch() {
 		const searchParams = new URLSearchParams();
-		if (searchTerm) searchParams.set('search', searchTerm);
+		if (searchTerms.length > 0) searchParams.set('search', searchTerms.join(','));
 		if (selectedParent) searchParams.set('parent', selectedParent);
 		if (selectedHasHead) searchParams.set('hasHead', selectedHasHead);
 		searchParams.set('page', '1'); // Reset to first page on new search
@@ -123,7 +148,7 @@
 
 	// Handle clear filters
 	function clearFilters() {
-		searchTerm = '';
+		searchTerms = [];
 		selectedParent = '';
 		selectedHasHead = '';
 		pageSize = 20;
@@ -161,254 +186,350 @@
 			<p class="text-muted-foreground">Organize and manage departments in your organization</p>
 		</div>
 
-		{#if canManageDepartments}
-			<div class="flex gap-2">
+		<div class="flex gap-2">
+			{#if canManageDepartments}
 				<Button variant="outline" size="sm">
 					<TreePine class="mr-2 h-4 w-4" />
-					View Hierarchy
+					Hierarchy
 				</Button>
 				<Button size="sm" onclick={() => (showCreateDialog = true)}>
 					<Plus class="mr-2 h-4 w-4" />
-					Create Department
+					Add Department
 				</Button>
-			</div>
-		{/if}
+			{/if}
+			<ButtonGroup.Root>
+				<Button
+					variant={viewMode === 'grid' ? 'default' : 'outline'}
+					size="icon"
+					onclick={() => (viewMode = 'grid')}
+					title="Grid view"
+				>
+					<Grid class="h-4 w-4" />
+				</Button>
+				<Button
+					variant={viewMode === 'list' ? 'default' : 'outline'}
+					size="icon"
+					onclick={() => (viewMode = 'list')}
+					title="Table view"
+				>
+					<List class="h-4 w-4" />
+				</Button>
+			</ButtonGroup.Root>
+		</div>
 	</div>
 
-	<!-- Statistics Cards -->
-	<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+	<!-- Filters (Inline for List View, Card for Grid View) -->
+	{#if viewMode === 'grid'}
 		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Total Departments</Card.Title>
-				<Building class="h-4 w-4 text-muted-foreground" />
+			<Card.Header>
+				<Card.Title>Search & Filter Departments</Card.Title>
+				<Card.Description>Find departments by name, parent, or leadership status</Card.Description>
 			</Card.Header>
 			<Card.Content>
-				<div class="text-2xl font-bold">{departmentStats.totalDepartments}</div>
-				<p class="text-xs text-muted-foreground">across organization</p>
-			</Card.Content>
-		</Card.Root>
-
-		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">With Department Heads</Card.Title>
-				<Crown class="h-4 w-4 text-yellow-600" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold text-yellow-600">{departmentStats.withHeads}</div>
-				<p class="text-xs text-muted-foreground">
-					{Math.round((departmentStats.withHeads / departmentStats.totalDepartments) * 100)}% have
-					leadership
-				</p>
-			</Card.Content>
-		</Card.Root>
-
-		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Need Leadership</Card.Title>
-				<User class="h-4 w-4 text-orange-600" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold text-orange-600">{departmentStats.withoutHeads}</div>
-				<p class="text-xs text-muted-foreground">departments without heads</p>
-			</Card.Content>
-		</Card.Root>
-
-		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Total Employees</Card.Title>
-				<Users class="h-4 w-4 text-green-600" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold text-green-600">{departmentStats.totalEmployees}</div>
-				<p class="text-xs text-muted-foreground">across all departments</p>
-			</Card.Content>
-		</Card.Root>
-	</div>
-
-	<!-- Search and Filters -->
-	<Card.Root>
-		<Card.Header>
-			<Card.Title>Search & Filter Departments</Card.Title>
-			<Card.Description>Find departments by name, parent, or leadership status</Card.Description>
-		</Card.Header>
-		<Card.Content>
-			<form
-				onsubmit={(e) => {
-					e.preventDefault();
-					handleSearch();
-				}}
-				class="space-y-4"
-			>
-				<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
-					<!-- Search Input -->
-					<div class="space-y-2">
-						<label for="search" class="text-sm font-medium">Search</label>
-						<div class="relative">
-							<Search
-								class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-							/>
-							<Input
-								id="search"
-								type="text"
-								placeholder="Search department names..."
-								bind:value={searchTerm}
-								class="pl-9"
+				<form
+					onsubmit={(e) => {
+						e.preventDefault();
+						handleSearch();
+					}}
+					class="space-y-4"
+				>
+					<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+						<div class="space-y-2">
+							<label for="search" class="text-sm font-medium">Search</label>
+							<MultiSearchInput
+								bind:searchTerms
+								onSearchChange={handleSearch}
+								debounceMs={500}
+								allowCustomTerms={true}
+								placeholder="Search departments..."
+								options={departmentSearchOptions}
 							/>
 						</div>
-					</div>
-
-					<!-- Parent Department Filter -->
-					<div class="space-y-2">
-						<label for="parent" class="text-sm font-medium">Parent Department</label>
-						<Select bind:value={selectedParent}>
-							<SelectTrigger placeholder="All Parents" />
-							<SelectContent>
-								<SelectItem value="">All Parents</SelectItem>
-								<SelectItem value="null">Top-level Only</SelectItem>
-								{#each departments.filter((dept) => !dept.parentDepartmentId) as parent}
-									<SelectItem value={parent.id}>{parent.name}</SelectItem>
-								{/each}
-							</SelectContent>
-						</Select>
-					</div>
-
-					<!-- Has Head Filter -->
-					<div class="space-y-2">
-						<label for="hasHead" class="text-sm font-medium">Leadership Status</label>
-						<Select bind:value={selectedHasHead}>
-							<SelectTrigger placeholder="All Departments" />
-							<SelectContent>
-								{#each hasHeadOptions as option}
-									<SelectItem value={option.value}>{option.label}</SelectItem>
-								{/each}
-							</SelectContent>
-						</Select>
-					</div>
-
-					<!-- Page Size -->
-					<div class="space-y-2">
-						<label for="pagesize" class="text-sm font-medium">Per Page</label>
-						<Select bind:value={pageSize}>
-							<SelectTrigger placeholder="20" />
-							<SelectContent>
-								<SelectItem value={10}>10</SelectItem>
-								<SelectItem value={20}>20</SelectItem>
-								<SelectItem value={50}>50</SelectItem>
-								<SelectItem value={100}>100</SelectItem>
-							</SelectContent>
-						</Select>
-					</div>
-				</div>
-
-				<div class="flex gap-2">
-					<Button type="submit">
-						<Search class="mr-2 h-4 w-4" />
-						Search
-					</Button>
-					<Button type="button" variant="outline" on:click={clearFilters}>Clear Filters</Button>
-				</div>
-			</form>
-		</Card.Content>
-	</Card.Root>
-
-	<!-- Department Grid -->
-	<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-		{#each departments as department}
-			{@const sizeInfo = categorizeTeamSize(department.employees?.totalCount || 0)}
-			<Card.Root class="transition-shadow hover:shadow-md">
-				<Card.Header class="pb-3">
-					<div class="flex items-start justify-between">
-						<div class="flex items-center space-x-3">
-							<div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-								<Building2 class="h-6 w-6 text-primary" />
-							</div>
-							<div>
-								<Card.Title class="text-lg">{department.name}</Card.Title>
-								<Card.Description>{department.description || 'No description'}</Card.Description>
-							</div>
+						<div class="space-y-2">
+							<label for="parent" class="text-sm font-medium">Parent Department</label>
+							<Select bind:value={selectedParent}>
+								<SelectTrigger placeholder="All Parents" />
+								<SelectContent>
+									<SelectItem value="">All Parents</SelectItem>
+									<SelectItem value="null">Top-level Only</SelectItem>
+									{#each departments.filter((dept) => !dept.parentDepartmentId) as parent}
+										<SelectItem value={parent.id}>{parent.name}</SelectItem>
+									{/each}
+								</SelectContent>
+							</Select>
 						</div>
-						{#if department.departmentHead}
-							<Badge variant="default">
-								<Crown class="mr-1 h-3 w-3" />
-								Has Head
-							</Badge>
-						{:else}
-							<Badge variant="outline">
-								<User class="mr-1 h-3 w-3" />
-								No Head
-							</Badge>
-						{/if}
-					</div>
-				</Card.Header>
-				<Card.Content class="space-y-3">
-					<!-- Department Information -->
-					<div class="space-y-2">
-						{#if department.departmentHead}
-							<div class="flex items-center text-sm">
-								<UserCheck class="mr-2 h-4 w-4 text-green-600" />
-								<span class="font-medium">{department.departmentHead.displayName}</span>
-								<span class="ml-1 text-muted-foreground"
-									>({department.departmentHead.jobTitle || 'Head'})</span
-								>
-							</div>
-						{/if}
-
-						{#if department.parentDepartment}
-							<div class="flex items-center text-sm text-muted-foreground">
-								<Building class="mr-2 h-4 w-4" />
-								<span>Parent: {department.parentDepartment.name}</span>
-							</div>
-						{/if}
-
-						<div class="flex items-center text-sm text-muted-foreground">
-							<Users class="mr-2 h-4 w-4" />
-							<span>{formatEmployeeCount(department.employees?.totalCount || 0)}</span>
+						<div class="space-y-2">
+							<label for="hasHead" class="text-sm font-medium">Leadership Status</label>
+							<Select bind:value={selectedHasHead}>
+								<SelectTrigger placeholder="All Departments" />
+								<SelectContent>
+									{#each hasHeadOptions as option}
+										<SelectItem value={option.value}>{option.label}</SelectItem>
+									{/each}
+								</SelectContent>
+							</Select>
 						</div>
-
-						{#if department.subDepartments?.totalCount > 0}
-							<div class="flex items-center text-sm text-muted-foreground">
-								<TreePine class="mr-2 h-4 w-4" />
-								<span>{department.subDepartments.totalCount} sub-departments</span>
-							</div>
-						{/if}
-
-						<!-- Department Size Badge -->
-						<div class="flex items-center text-sm">
-							<Badge
-								variant="outline"
-								class="bg-{sizeInfo.color}-50 border-{sizeInfo.color}-200 text-{sizeInfo.color}-800"
-							>
-								<BarChart3 class="mr-1 h-3 w-3" />
-								{sizeInfo.label}
-							</Badge>
+						<div class="space-y-2">
+							<label for="pagesize" class="text-sm font-medium">Per Page</label>
+							<Select bind:value={pageSize}>
+								<SelectTrigger placeholder="20" />
+								<SelectContent>
+									<SelectItem value={10}>10</SelectItem>
+									<SelectItem value={20}>20</SelectItem>
+									<SelectItem value={50}>50</SelectItem>
+									<SelectItem value={100}>100</SelectItem>
+								</SelectContent>
+							</Select>
 						</div>
 					</div>
-
-					<Separator />
-
-					<!-- Actions -->
 					<div class="flex gap-2">
-						{#if canViewEmployees}
-							<Button variant="outline" size="sm" href="/dashboard/departments/{department.id}">
-								<Eye class="mr-2 h-4 w-4" />
-								View Details
-							</Button>
-						{/if}
-						{#if canManageDepartments}
-							<Button
-								variant="outline"
-								size="sm"
-								href="/dashboard/departments/{department.id}/edit"
-							>
-								<Edit class="mr-2 h-4 w-4" />
-								Edit
-							</Button>
-						{/if}
+						<Button type="button" variant="outline" onclick={clearFilters}>Clear Filters</Button>
 					</div>
-				</Card.Content>
-			</Card.Root>
-		{/each}
-	</div>
+				</form>
+			</Card.Content>
+		</Card.Root>
+	{:else}
+		<!-- List View Filters (Inline) -->
+		<div class="flex items-end justify-between gap-3">
+			<div class="flex items-end gap-3 flex-1">
+				<!-- Search Input -->
+				<div class="w-96 space-y-2">
+					<label for="search-inline" class="text-sm font-medium">Search</label>
+					<MultiSearchInput
+						bind:searchTerms
+						onSearchChange={handleSearch}
+						debounceMs={500}
+						allowCustomTerms={true}
+						placeholder="Search..."
+						options={departmentSearchOptions}
+					/>
+				</div>
+
+				<!-- Parent Filter -->
+				<div class="w-48 space-y-2">
+					<label for="parent-inline" class="text-sm font-medium">Parent</label>
+					<select
+						id="parent-inline"
+						bind:value={selectedParent}
+						onchange={handleSearch}
+						class="flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base shadow-xs ring-offset-background transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/80"
+					>
+						<option value="">All Parents</option>
+						<option value="null">Top-level Only</option>
+						{#each departments.filter((dept) => !dept.parentDepartmentId) as parent}
+							<option value={parent.id}>{parent.name}</option>
+						{/each}
+					</select>
+				</div>
+
+				<!-- Status Filter -->
+				<div class="w-48 space-y-2">
+					<label for="head-inline" class="text-sm font-medium">Leadership</label>
+					<select
+						id="head-inline"
+						bind:value={selectedHasHead}
+						onchange={handleSearch}
+						class="flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base shadow-xs ring-offset-background transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/80"
+					>
+						{#each hasHeadOptions as option}
+							<option value={option.value}>{option.label}</option>
+						{/each}
+					</select>
+				</div>
+
+				<div class="space-y-2">
+					<div class="invisible text-sm font-medium">Clear</div>
+					<Button type="button" variant="outline" size="sm" onclick={clearFilters}>Clear</Button>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Content -->
+	{#if viewMode === 'grid'}
+		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+			{#each departments as department}
+				{@const sizeInfo = categorizeTeamSize(department.employees?.totalCount || 0)}
+				<Card.Root class="transition-shadow hover:shadow-md">
+					<Card.Header class="pb-3">
+						<div class="flex items-start justify-between">
+							<div class="flex items-center space-x-3">
+								<div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+									<Building2 class="h-6 w-6 text-primary" />
+								</div>
+								<div>
+									<Card.Title class="text-lg">{department.name}</Card.Title>
+									<Card.Description>{department.description || 'No description'}</Card.Description>
+								</div>
+							</div>
+							{#if department.departmentHead}
+								<Badge variant="default">
+									<Crown class="mr-1 h-3 w-3" />
+									Has Head
+								</Badge>
+							{:else}
+								<Badge variant="outline">
+									<User class="mr-1 h-3 w-3" />
+									No Head
+								</Badge>
+							{/if}
+						</div>
+					</Card.Header>
+					<Card.Content class="space-y-3">
+						<!-- Department Information -->
+						<div class="space-y-2">
+							{#if department.departmentHead}
+								<div class="flex items-center text-sm">
+									<UserCheck class="mr-2 h-4 w-4 text-green-600" />
+									<span class="font-medium">{department.departmentHead.displayName}</span>
+									<span class="ml-1 text-muted-foreground"
+										>({department.departmentHead.jobTitle || 'Head'})</span
+									>
+								</div>
+							{/if}
+
+							{#if department.parentDepartment}
+								<div class="flex items-center text-sm text-muted-foreground">
+									<Building class="mr-2 h-4 w-4" />
+									<span>Parent: {department.parentDepartment.name}</span>
+								</div>
+							{/if}
+
+							<div class="flex items-center text-sm text-muted-foreground">
+								<Users class="mr-2 h-4 w-4" />
+								<span>{formatEmployeeCount(department.employees?.totalCount || 0)}</span>
+							</div>
+
+							{#if department.subDepartments?.totalCount > 0}
+								<div class="flex items-center text-sm text-muted-foreground">
+									<TreePine class="mr-2 h-4 w-4" />
+									<span>{department.subDepartments.totalCount} sub-departments</span>
+								</div>
+							{/if}
+
+							<!-- Department Size Badge -->
+							<div class="flex items-center text-sm">
+								<Badge
+									variant="outline"
+									class="bg-{sizeInfo.color}-50 border-{sizeInfo.color}-200 text-{sizeInfo.color}-800"
+								>
+									<BarChart3 class="mr-1 h-3 w-3" />
+									{sizeInfo.label}
+								</Badge>
+							</div>
+						</div>
+
+						<Separator />
+
+						<!-- Actions -->
+						<div class="flex gap-2">
+							{#if canViewEmployees}
+								<Button variant="outline" size="sm" href="/dashboard/departments/{department.id}">
+									<Eye class="mr-2 h-4 w-4" />
+									View Details
+								</Button>
+							{/if}
+							{#if canManageDepartments}
+								<Button
+									variant="outline"
+									size="sm"
+									href="/dashboard/departments/{department.id}/edit"
+								>
+									<Edit class="mr-2 h-4 w-4" />
+									Edit
+								</Button>
+							{/if}
+						</div>
+					</Card.Content>
+				</Card.Root>
+			{/each}
+		</div>
+	{:else}
+		<!-- List View (Table) -->
+		<div class="rounded-md border">
+			<Table.Root>
+				<Table.Header>
+					<Table.Row>
+						<Table.Head>Name</Table.Head>
+						<Table.Head>Parent</Table.Head>
+						<Table.Head>Head</Table.Head>
+						<Table.Head>Employees</Table.Head>
+						<Table.Head class="text-right">Actions</Table.Head>
+					</Table.Row>
+				</Table.Header>
+				<Table.Body>
+					{#each departments as department}
+						<Table.Row>
+							<Table.Cell class="font-medium">
+								<div class="flex items-center gap-2">
+									<div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+										<Building2 class="h-4 w-4 text-primary" />
+									</div>
+									<div>
+										<div>{department.name}</div>
+										<div class="text-xs text-muted-foreground line-clamp-1">{department.description || ''}</div>
+									</div>
+								</div>
+							</Table.Cell>
+							<Table.Cell>
+								{#if department.parentDepartment}
+									<div class="flex items-center gap-1 text-muted-foreground">
+										<Building class="h-3 w-3" />
+										{department.parentDepartment.name}
+									</div>
+								{:else}
+									<span class="text-muted-foreground text-xs">Top Level</span>
+								{/if}
+							</Table.Cell>
+							<Table.Cell>
+								{#if department.departmentHead}
+									<div class="flex items-center gap-2">
+										<div class="flex h-6 w-6 items-center justify-center rounded-full bg-muted">
+											<span class="text-xs font-medium">{department.departmentHead.firstName?.[0]}{department.departmentHead.lastName?.[0]}</span>
+										</div>
+										<div class="flex flex-col">
+											<span class="text-sm font-medium">{department.departmentHead.displayName}</span>
+											<span class="text-xs text-muted-foreground">{department.departmentHead.jobTitle || 'Head'}</span>
+										</div>
+									</div>
+								{:else}
+									<Badge variant="outline" class="text-xs font-normal">Vacant</Badge>
+								{/if}
+							</Table.Cell>
+							<Table.Cell>
+								<div class="flex flex-col gap-1">
+									<div class="flex items-center gap-1">
+										<Users class="h-3 w-3 text-muted-foreground" />
+										<span>{department.employees?.totalCount || 0}</span>
+									</div>
+									{#if department.subDepartments?.totalCount > 0}
+										<div class="flex items-center gap-1 text-xs text-muted-foreground">
+											<TreePine class="h-3 w-3" />
+											<span>{department.subDepartments.totalCount} sub</span>
+										</div>
+									{/if}
+								</div>
+							</Table.Cell>
+							<Table.Cell class="text-right">
+								<div class="flex justify-end gap-2">
+									{#if canViewEmployees}
+										<Button variant="ghost" size="icon" href="/dashboard/departments/{department.id}">
+											<Eye class="h-4 w-4" />
+										</Button>
+									{/if}
+									{#if canManageDepartments}
+										<Button variant="ghost" size="icon" href="/dashboard/departments/{department.id}/edit">
+											<Edit class="h-4 w-4" />
+										</Button>
+									{/if}
+								</div>
+							</Table.Cell>
+						</Table.Row>
+					{/each}
+				</Table.Body>
+			</Table.Root>
+		</div>
+	{/if}
 
 	<!-- Empty State -->
 	{#if departments.length === 0}

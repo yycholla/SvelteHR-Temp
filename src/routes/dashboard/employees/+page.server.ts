@@ -259,38 +259,29 @@ export const load: PageServerLoad = async (event) => {
 
 		console.log('[Employee Directory] Departments data:', departmentsData);
 
-		// Load roles data for employee creation/editing
-		const rolesResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetRoles($limit: Int, $offset: Int) {
-						roles(limit: $limit, offset: $offset) {
-							id
-							name
-							description
-							level
-						}
-					}
-				`,
-				variables: {
-					limit: 100,
-					offset: 0
-				}
-			})
+		// Load roles data via REST API
+		const { getApiBaseUrl } = await import('$lib/server/api-url');
+		const apiBaseUrl = getApiBaseUrl();
+		
+		const rolesResponse = await fetch(`${apiBaseUrl}/api/roles`, {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				'Cookie': cookieHeader
+			}
 		});
 
-		const rolesData = await rolesResponse.json();
-
-		if (rolesData.errors) {
-			console.error('[Employee Directory] Roles GraphQL errors:', JSON.stringify(rolesData.errors, null, 2));
+		let rolesData: any[] = [];
+		if (rolesResponse.ok) {
+			rolesData = await rolesResponse.json();
+		} else {
+			console.error('[Employee Directory] Failed to load roles via REST:', rolesResponse.statusText);
 		}
 
-		console.log('[Employee Directory] Roles data:', rolesData);
+		console.log('[Employee Directory] Roles data (REST):', rolesData);
 
 		// Defensive: Validate roles with Zod schema to prevent SSR crashes from invalid data
-		const validRoles = validateRoles(rolesData?.data?.roles || []);
+		const validRoles = validateRoles(rolesData || []);
 		console.log('[Employee Directory] Valid roles after Zod validation:', validRoles.length);
 
 		// Return server-side loaded data

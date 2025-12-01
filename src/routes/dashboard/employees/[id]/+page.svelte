@@ -4,9 +4,8 @@
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
-	import * as Table from '$lib/components/ui/table';
-	import * as Accordion from '$lib/components/ui/accordion';
 	import AssignDocumentsModal from '$lib/components/employees/AssignDocumentsModal.svelte';
+	import UploadDocumentModal from '$lib/components/documents/UploadDocumentModal.svelte';
 	import AddEmergencyContactModal, {
 		type EmergencyContactInput
 	} from '$lib/components/employees/AddEmergencyContactModal.svelte';
@@ -14,28 +13,39 @@
 		type VehicleInput
 	} from '$lib/components/employees/AddVehicleModal.svelte';
 	import {
+		Activity,
 		AlertCircle,
 		ArrowLeft,
 		Award,
+		BarChart2,
 		Briefcase,
 		Building2,
 		Calendar,
 		Car,
 		CheckCircle,
+		ChevronRight,
 		Clock,
-		DollarSign,
+		Download,
 		Edit,
 		FileBarChart,
 		FileText,
 		Mail,
 		MapPin,
+		Pencil,
 		Phone,
 		Plane,
 		Plus,
 		Shield,
+		ShieldAlert,
+		Trash2,
 		User,
+		UserPlus,
+		Users,
+		Upload, // Added Upload icon
 		XCircle
 	} from '@lucide/svelte';
+	import { confirmService } from '$lib/stores/confirm.svelte';
+	import { toast } from 'svelte-sonner';
 
 	interface Props {
 		data: any;
@@ -50,22 +60,19 @@
 	// Debug: Log permissions to console
 	$effect(() => {
 		console.log('[Employee Detail Page] Permissions:', permissions);
-		console.log('[Employee Detail Page] canViewContactInfo:', permissions?.canViewContactInfo);
-		console.log(
-			'[Employee Detail Page] canViewEmergencyContacts:',
-			permissions?.canViewEmergencyContacts
-		);
-		console.log('[Employee Detail Page] canViewVehicles:', permissions?.canViewVehicles);
-		console.log('[Employee Detail Page] canViewDocuments:', permissions?.canViewDocuments);
 	});
 
 	// Modal state
 	let isAssignDocsModalOpen = $state(false);
 	let isAssigningDocs = $state(false);
 	let isAddEmergencyContactModalOpen = $state(false);
-	let isAddingEmergencyContact = $state(false);
-	let isAddVehicleModalOpen = $state(false);
-	let isAddingVehicle = $state(false);
+	let isSavingEmergencyContact = $state(false);
+	let editingContact = $state<EmergencyContactInput | null>(null);
+	let isVehicleModalOpen = $state(false);
+	let isSavingVehicle = $state(false);
+	let editingVehicle = $state<any>(null);
+	let isUnassigningDocument = $state(false);
+	let isUploadDocumentModalOpen = $state(false);
 
 	// Handle document assignment
 	async function handleAssignDocuments(documentIds: string[]) {
@@ -82,45 +89,49 @@
 			}
 
 			const result = await response.json();
-			alert(
-				`${result.message}\n\nAssigned: ${result.assignedCount}\nSkipped (already assigned): ${result.skippedCount}`
-			);
+			toast.success('Documents Assigned', {
+				description: `${result.message}\nAssigned: ${result.assignedCount}, Skipped: ${result.skippedCount}`
+			});
 
 			// Close modal and reload page
 			isAssignDocsModalOpen = false;
 			window.location.reload();
 		} catch (error) {
 			console.error('Assignment error:', error);
-			alert('Failed to assign documents. Please try again.');
+			toast.error('Assignment Failed', {
+				description: 'Failed to assign documents. Please try again.'
+			});
 		} finally {
 			isAssigningDocs = false;
 		}
 	}
 
-	// Handle emergency contact creation
-	async function handleAddEmergencyContact(contact: EmergencyContactInput) {
-		isAddingEmergencyContact = true;
+	// Handle document unassignment
+	async function handleUnassignDocument(assignmentId: string) {
+		const confirmed = await confirmService.ask({
+			title: 'Unassign Document',
+			message:
+				'Are you sure you want to unassign this document from the employee? The document itself will not be deleted.',
+			variant: 'destructive',
+			confirmText: 'Unassign'
+		});
+
+		if (!confirmed) return;
+
+		isUnassigningDocument = true;
 		try {
+			// Use the deleteDocumentAssignment mutation
 			const response = await fetch(`/api/graphql`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					query: `
-						mutation CreateEmergencyContact($input: CreateEmergencyContactInput!) {
-							createEmergencyContact(input: $input) {
-								id
-								name
-								relationship
-								phoneNumber
-								email
-								isPrimary
-								createdAt
-								updatedAt
-							}
+						mutation DeleteDocumentAssignment($id: UUID!) {
+							deleteDocumentAssignment(id: $id)
 						}
 					`,
 					variables: {
-						input: contact
+						id: assignmentId
 					}
 				})
 			});
@@ -131,41 +142,136 @@
 				throw new Error(result.errors[0].message);
 			}
 
-			alert('Emergency contact added successfully!');
-			isAddEmergencyContactModalOpen = false;
+			toast.success('Document Unassigned', {
+				description: 'Document successfully unassigned from employee.'
+			});
 			window.location.reload();
 		} catch (error) {
-			console.error('Failed to add emergency contact:', error);
-			alert('Failed to add emergency contact. Please try again.');
+			console.error('Failed to unassign document:', error);
+			toast.error('Action Failed', {
+				description: 'Failed to unassign document. Please try again.'
+			});
 		} finally {
-			isAddingEmergencyContact = false;
+			isUnassigningDocument = false;
 		}
 	}
 
-	// Handle vehicle creation
-	async function handleAddVehicle(vehicle: VehicleInput) {
-		isAddingVehicle = true;
+	// Handle upload document success
+	function handleUploadDocumentSuccess() {
+		isUploadDocumentModalOpen = false;
+		window.location.reload();
+	}
+
+	// Handle emergency contact save (create or update)
+	async function handleSaveEmergencyContact(contact: EmergencyContactInput) {
+		isSavingEmergencyContact = true;
+		try {
+			const isUpdate = !!contact.id;
+			const mutation = isUpdate
+				? `
+					mutation UpdateEmergencyContact($id: UUID!, $input: UpdateEmergencyContactInput!) {
+						updateEmergencyContact(id: $id, input: $input) {
+							id
+							name
+							relationship
+							phoneNumber
+							email
+							isPrimary
+							updatedAt
+						}
+					}
+				`
+				: `
+					mutation CreateEmergencyContact($input: CreateEmergencyContactInput!) {
+						createEmergencyContact(input: $input) {
+							id
+							name
+							relationship
+							phoneNumber
+							email
+							isPrimary
+							createdAt
+							updatedAt
+						}
+					}
+				`;
+
+			const variables = isUpdate
+				? {
+						id: contact.id,
+						input: {
+							name: contact.name,
+							relationship: contact.relationship,
+							phoneNumber: contact.phoneNumber,
+							email: contact.email,
+							isPrimary: contact.isPrimary
+						}
+					}
+				: {
+						input: {
+							employeeId: contact.employeeId,
+							name: contact.name,
+							relationship: contact.relationship,
+							phoneNumber: contact.phoneNumber,
+							email: contact.email,
+							isPrimary: contact.isPrimary
+						}
+					};
+
+			const response = await fetch(`/api/graphql`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					query: mutation,
+					variables
+				})
+			});
+
+			const result = await response.json();
+
+			if (result.errors) {
+				throw new Error(result.errors[0].message);
+			}
+
+			toast.success(isUpdate ? 'Contact Updated' : 'Contact Added', {
+				description: `Emergency contact ${isUpdate ? 'updated' : 'added'} successfully!`
+			});
+			isAddEmergencyContactModalOpen = false;
+			editingContact = null;
+			window.location.reload();
+		} catch (error) {
+			console.error('Failed to save emergency contact:', error);
+			toast.error('Action Failed', {
+				description: `Failed to ${editingContact ? 'update' : 'add'} emergency contact. Please try again.`
+			});
+		} finally {
+			isSavingEmergencyContact = false;
+		}
+	}
+
+	// Handle emergency contact delete
+	async function handleDeleteEmergencyContact(contactId: string) {
+		const confirmed = await confirmService.ask({
+			title: 'Remove Emergency Contact',
+			message: 'Are you sure you want to remove this emergency contact? This action cannot be undone.',
+			variant: 'destructive',
+			confirmText: 'Remove'
+		});
+
+		if (!confirmed) return;
+
 		try {
 			const response = await fetch(`/api/graphql`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					query: `
-						mutation CreateEmployeeVehicle($input: CreateEmployeeVehicleInput!) {
-							createEmployeeVehicle(input: $input) {
-								id
-								make
-								model
-								year
-								licensePlate
-								color
-								createdAt
-								updatedAt
-							}
+						mutation DeleteEmergencyContact($id: UUID!) {
+							deleteEmergencyContact(id: $id)
 						}
 					`,
 					variables: {
-						input: vehicle
+						id: contactId
 					}
 				})
 			});
@@ -176,15 +282,169 @@
 				throw new Error(result.errors[0].message);
 			}
 
-			alert('Vehicle added successfully!');
-			isAddVehicleModalOpen = false;
+			toast.success('Contact Removed', {
+				description: 'Emergency contact removed successfully.'
+			});
 			window.location.reload();
 		} catch (error) {
-			console.error('Failed to add vehicle:', error);
-			alert('Failed to add vehicle. Please try again.');
-		} finally {
-			isAddingVehicle = false;
+			console.error('Failed to delete emergency contact:', error);
+			toast.error('Action Failed', {
+				description: 'Failed to delete emergency contact. Please try again.'
+			});
 		}
+	}
+
+	function openAddEmergencyContactModal() {
+		editingContact = null;
+		isAddEmergencyContactModalOpen = true;
+	}
+
+	function openEditEmergencyContactModal(contact: any) {
+		editingContact = {
+			id: contact.id,
+			employeeId: employee.id,
+			name: contact.name,
+			relationship: contact.relationship,
+			phoneNumber: contact.phoneNumber,
+			email: contact.email,
+			isPrimary: contact.isPrimary
+		};
+		isAddEmergencyContactModalOpen = true;
+	}
+
+	// Handle vehicle save (create or update)
+	async function handleSaveVehicle(vehicleData: VehicleInput) {
+		isSavingVehicle = true;
+		try {
+			const isUpdate = !!editingVehicle;
+			const mutation = isUpdate
+				? `
+					mutation UpdateEmployeeVehicle($id: UUID!, $input: UpdateEmployeeVehicleInput!) {
+						updateEmployeeVehicle(id: $id, input: $input) {
+							id
+							make
+							model
+							year
+							licensePlate
+							color
+							updatedAt
+						}
+					}
+				`
+				: `
+					mutation CreateEmployeeVehicle($input: CreateEmployeeVehicleInput!) {
+						createEmployeeVehicle(input: $input) {
+							id
+							make
+							model
+							year
+							licensePlate
+							color
+							createdAt
+							updatedAt
+						}
+					}
+				`;
+
+			const variables = isUpdate
+				? {
+						id: editingVehicle.id,
+						input: {
+							make: vehicleData.make,
+							model: vehicleData.model,
+							year: vehicleData.year,
+							licensePlate: vehicleData.licensePlate,
+							color: vehicleData.color
+						}
+					}
+				: {
+						input: vehicleData
+					};
+
+			const response = await fetch(`/api/graphql`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					query: mutation,
+					variables
+				})
+			});
+
+			const result = await response.json();
+
+			if (result.errors) {
+				throw new Error(result.errors[0].message);
+			}
+
+			toast.success(isUpdate ? 'Vehicle Updated' : 'Vehicle Added', {
+				description: `Vehicle ${isUpdate ? 'updated' : 'added'} successfully!`
+			});
+			isVehicleModalOpen = false;
+			editingVehicle = null;
+			window.location.reload();
+		} catch (error) {
+			console.error('Failed to save vehicle:', error);
+			toast.error('Action Failed', {
+				description: `Failed to ${editingVehicle ? 'update' : 'add'} vehicle. Please try again.`
+			});
+		} finally {
+			isSavingVehicle = false;
+		}
+	}
+
+	// Handle vehicle delete
+	async function handleDeleteVehicle(vehicleId: string) {
+		const confirmed = await confirmService.ask({
+			title: 'Remove Vehicle',
+			message: 'Are you sure you want to remove this vehicle? This action cannot be undone.',
+			variant: 'destructive',
+			confirmText: 'Remove'
+		});
+
+		if (!confirmed) return;
+
+		try {
+			const response = await fetch(`/api/graphql`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					query: `
+						mutation DeleteEmployeeVehicle($id: UUID!) {
+							deleteEmployeeVehicle(id: $id)
+						}
+					`,
+					variables: {
+						id: vehicleId
+					}
+				})
+			});
+
+			const result = await response.json();
+
+			if (result.errors) {
+				throw new Error(result.errors[0].message);
+			}
+
+			toast.success('Vehicle Removed', {
+				description: 'Vehicle removed successfully.'
+			});
+			window.location.reload();
+		} catch (error) {
+			console.error('Failed to delete vehicle:', error);
+			toast.error('Action Failed', {
+				description: 'Failed to delete vehicle. Please try again.'
+			});
+		}
+	}
+
+	function openAddVehicleModal() {
+		editingVehicle = null;
+		isVehicleModalOpen = true;
+	}
+
+	function openEditVehicleModal(vehicle: any) {
+		editingVehicle = vehicle;
+		isVehicleModalOpen = true;
 	}
 
 	// Format date helper
@@ -197,14 +457,45 @@
 		});
 	}
 
+	// Format relative time
+	function formatRelativeTime(dateString: string): string {
+		const date = new Date(dateString);
+		const now = new Date();
+		const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+		if (diffInSeconds < 60) return 'Just now';
+		if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} mins ago`;
+		if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+		if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+		return formatDate(dateString);
+	}
+
 	// Format role for display
 	function formatRole(role: string): string {
 		return role.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 	}
 
-	// Get status badge variant
-	function getStatusBadgeVariant(isActive: boolean): 'default' | 'secondary' {
-		return isActive ? 'default' : 'secondary';
+	// Calculate tenure
+	function calculateTenure(hireDateString: string): string {
+		if (!hireDateString) return 'N/A';
+		const hireDate = new Date(hireDateString);
+		const now = new Date();
+		const diffTime = Math.abs(now.getTime() - hireDate.getTime());
+		const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+		const years = Math.floor(diffDays / 365);
+		const months = Math.floor((diffDays % 365) / 30);
+
+		if (years > 0) return `${years} Yr${years > 1 ? 's' : ''}, ${months} Mo${months > 1 ? 's' : ''}`;
+		return `${months} Month${months !== 1 ? 's' : ''}`;
+	}
+
+	function getInitials(name: string): string {
+		return name
+			.split(' ')
+			.map((n) => n[0])
+			.join('')
+			.toUpperCase()
+			.slice(0, 2);
 	}
 </script>
 
@@ -213,582 +504,546 @@
 	<meta name="description" content="Employee profile for {employee.displayName}" />
 </svelte:head>
 
-<div class="container mx-auto max-w-7xl px-4 py-6">
-	<!-- Back Button and Header -->
-	<div class="mb-4 flex items-center justify-between">
-		<div class="flex items-center gap-4">
-			<Button variant="outline" size="sm" onclick={() => goto('/dashboard/employees')}>
-				<ArrowLeft class="mr-2 h-4 w-4" />
-				Back
-			</Button>
-			<div>
-				<h1 class="text-2xl font-bold text-foreground">{employee.displayName}</h1>
-				<p class="text-sm text-muted-foreground">{formatRole(employee.role)}</p>
-			</div>
+<div class="container mx-auto max-w-7xl p-6 md:p-10">
+	{#if !employee}
+		<div class="flex h-[50vh] items-center justify-center">
+			<div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
 		</div>
-		<div class="flex gap-2">
+	{:else}
+	<!-- Top Navigation / Breadcrumbs -->
+	<div class="mb-8 flex items-center justify-between">
+		<div class="flex items-center gap-2 text-sm text-muted-foreground">
+			<a href="/dashboard" class="hover:text-foreground">Dashboard</a>
+			<ChevronRight class="h-4 w-4" />
+			<a href="/dashboard/employees" class="hover:text-foreground">Employees</a>
+			<ChevronRight class="h-4 w-4" />
+			<span class="font-medium text-foreground">{employee.displayName}</span>
+		</div>
+		<div class="flex gap-3">
+			<!-- <Button variant="secondary" size="sm" class="gap-2">
+				<Download class="h-4 w-4" />
+				Export
+			</Button> -->
 			{#if permissions.canManageEmployees}
-				<Button href="/dashboard/employees/{employee.id}/edit" size="sm">
-					<Edit class="mr-2 h-4 w-4" />
-					Edit
-				</Button>
-			{/if}
-			{#if permissions.canCreateReviews}
-				<Button href="/dashboard/reviews?employee={employee.id}" size="sm" variant="outline">
-					<FileBarChart class="mr-2 h-4 w-4" />
-					Review
+				<Button href="/dashboard/employees/{employee.id}/edit" size="sm" class="gap-2">
+					<Pencil class="h-4 w-4" />
+					Edit Profile
 				</Button>
 			{/if}
 		</div>
 	</div>
 
-	<!-- Compact Single Card Dashboard -->
-	<Card.Root class="w-full">
-		<!-- Header with Status and Quick Stats -->
-		<Card.Header class="pb-3">
-			<div class="flex flex-col gap-3">
-				<div class="flex items-center justify-between">
-					<div class="flex items-center gap-3">
-						<Badge variant={getStatusBadgeVariant(employee.isActive)} class="px-2 py-0.5 text-xs">
+	<!-- Main Bento Grid Layout -->
+	<div class="grid auto-rows-[minmax(180px,auto)] grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4">
+		<!-- 1. Personal Info Card (Large, Spans 2 columns on large screens) -->
+		<div
+			class="group relative row-span-2 flex flex-col justify-between overflow-hidden rounded-xl border bg-card p-6 md:col-span-2 lg:col-span-2"
+		>
+			<div
+				class="absolute top-0 right-0 p-6 opacity-5 transition-opacity group-hover:opacity-10"
+			>
+				<User class="h-48 w-48" />
+			</div>
+
+			<div class="z-10 flex items-start gap-6">
+				<div
+					class="flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-4 border-background bg-muted text-3xl font-bold shadow-lg"
+				>
+					{getInitials(employee.displayName)}
+				</div>
+				<div>
+					<div class="mb-1 flex items-center gap-3">
+						<h1 class="text-3xl font-bold tracking-tight">{employee.displayName}</h1>
+						<Badge
+							variant={employee.isActive ? 'default' : 'secondary'}
+							class="pointer-events-none"
+						>
 							{employee.isActive ? 'Active' : 'Inactive'}
 						</Badge>
-						{#if employee.department}
-							<span class="flex items-center gap-1 text-xs text-muted-foreground">
-								<Building2 class="h-3 w-3" />
-								{employee.department.name}
-							</span>
-						{/if}
 					</div>
-					<div class="flex gap-4 text-xs text-muted-foreground">
-						<span class="flex items-center gap-1">
-							<Plane class="h-3 w-3" />
-							{employee.leaveRequestCount}
-						</span>
-						<span class="flex items-center gap-1">
-							<Award class="h-3 w-3" />
-							{employee.performanceReviewCount}
-						</span>
-						{#if permissions.canViewDocuments}
-							<span class="flex items-center gap-1">
-								<FileText class="h-3 w-3" />
-								{employee.documentsCount}
-							</span>
+					<p class="mb-4 text-lg text-muted-foreground">{employee.jobTitle || 'No Job Title'}</p>
+
+					<div class="flex flex-wrap gap-3 text-sm">
+						{#if employee.department}
+							<div
+								class="flex items-center gap-1.5 rounded-md bg-muted/50 px-3 py-1.5 text-muted-foreground"
+							>
+								<Building2 class="h-4 w-4" />
+								{employee.department.name}
+							</div>
 						{/if}
+						{#if employee.city && employee.stateProvince}
+							<div
+								class="flex items-center gap-1.5 rounded-md bg-muted/50 px-3 py-1.5 text-muted-foreground"
+							>
+								<MapPin class="h-4 w-4" />
+								{employee.city}, {employee.stateProvince}
+							</div>
+						{/if}
+						<div
+							class="flex items-center gap-1.5 rounded-md bg-muted/50 px-3 py-1.5 text-muted-foreground"
+						>
+							<Clock class="h-4 w-4" />
+							{formatRole(employee.role)}
+						</div>
 					</div>
 				</div>
+			</div>
 
-				<!-- Quick Overview - Expanded Grid with Contact Info -->
+			<div class="z-10 mt-8 grid grid-cols-2 gap-4 border-t border-border/50 pt-6 sm:grid-cols-4">
+				<div>
+					<p class="mb-1 text-xs uppercase tracking-wider text-muted-foreground">Employee ID</p>
+					<p class="font-mono font-medium text-sm truncate" title={employee.id}>{employee.id.split('-')[0]}...</p>
+				</div>
+				<div>
+					<p class="mb-1 text-xs uppercase tracking-wider text-muted-foreground">Join Date</p>
+					<p class="font-medium">{formatDate(employee.hireDate)}</p>
+				</div>
+				<div>
+					<p class="mb-1 text-xs uppercase tracking-wider text-muted-foreground">Manager</p>
+					{#if employee.department?.userByManagerId}
+						<div class="flex items-center gap-2">
+							<div
+								class="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary"
+							>
+								{getInitials(employee.department.userByManagerId.displayName)}
+							</div>
+							<p class="truncate font-medium text-sm">{employee.department.userByManagerId.displayName}</p>
+						</div>
+					{:else}
+						<p class="text-muted-foreground text-sm">None</p>
+					{/if}
+				</div>
+				<div>
+					<p class="mb-1 text-xs uppercase tracking-wider text-muted-foreground">Tenure</p>
+					<p class="font-medium">{calculateTenure(employee.hireDate)}</p>
+				</div>
+			</div>
+		</div>
+
+		<!-- 2. Contact Details (Small, 1 col) -->
+		<div class="flex flex-col justify-center rounded-xl border bg-card p-5">
+			<div class="mb-4 flex items-center gap-2 text-muted-foreground">
+				<Mail class="h-4 w-4" />
+				<span class="text-xs font-semibold uppercase tracking-wider">Contact</span>
+			</div>
+			<div class="space-y-4">
 				{#if permissions.canViewContactInfo}
-					<div
-						class="grid grid-cols-2 gap-x-4 gap-y-2 border-t pt-2 pb-1 text-xs md:grid-cols-3 lg:grid-cols-6"
-					>
-						<div class="flex min-w-0 items-center gap-1.5">
-							<Mail class="h-3 w-3 shrink-0 text-muted-foreground" />
-							<div class="min-w-0 flex-1">
-								<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Email</p>
-								<p class="truncate font-medium">{employee.email}</p>
-							</div>
-						</div>
-						<div class="flex min-w-0 items-center gap-1.5">
-							<Briefcase class="h-3 w-3 shrink-0 text-muted-foreground" />
-							<div class="min-w-0 flex-1">
-								<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Role</p>
-								<p class="truncate font-medium">{formatRole(employee.role)}</p>
-							</div>
-						</div>
-						<div class="flex min-w-0 items-center gap-1.5">
-							<Calendar class="h-3 w-3 shrink-0 text-muted-foreground" />
-							<div class="min-w-0 flex-1">
-								<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Hired</p>
-								<p class="truncate font-medium">{formatDate(employee.hireDate)}</p>
-							</div>
-						</div>
-						{#if employee.phoneNumber}
-							<div class="flex min-w-0 items-center gap-1.5">
-								<Phone class="h-3 w-3 shrink-0 text-muted-foreground" />
-								<div class="min-w-0 flex-1">
-									<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Phone</p>
-									<p class="truncate font-medium">{employee.phoneNumber}</p>
-								</div>
-							</div>
-						{/if}
-						{#if employee.mobileNumber}
-							<div class="flex min-w-0 items-center gap-1.5">
-								<Phone class="h-3 w-3 shrink-0 text-muted-foreground" />
-								<div class="min-w-0 flex-1">
-									<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Mobile</p>
-									<p class="truncate font-medium">{employee.mobileNumber}</p>
-								</div>
-							</div>
-						{/if}
-						{#if employee.addressLine1}
-							<div class="col-span-2 flex min-w-0 items-center gap-1.5 md:col-span-1">
-								<MapPin class="h-3 w-3 shrink-0 text-muted-foreground" />
-								<div class="min-w-0 flex-1">
-									<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Location</p>
-									<p class="truncate font-medium">{employee.city}, {employee.stateProvince}</p>
-								</div>
-							</div>
-						{/if}
-						{#if employee.department?.userByManagerId}
-							<div class="flex min-w-0 items-center gap-1.5">
-								<User class="h-3 w-3 shrink-0 text-muted-foreground" />
-								<div class="min-w-0 flex-1">
-									<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Manager</p>
-									<p class="truncate font-medium">
-										{employee.department.userByManagerId.displayName}
-									</p>
-								</div>
-							</div>
-						{/if}
-						{#if employee.lastLogin}
-							<div class="flex min-w-0 items-center gap-1.5">
-								<Clock class="h-3 w-3 shrink-0 text-muted-foreground" />
-								<div class="min-w-0 flex-1">
-									<p class="text-[10px] tracking-wide text-muted-foreground uppercase">
-										Last Login
-									</p>
-									<p class="truncate font-medium">{formatDate(employee.lastLogin)}</p>
-								</div>
-							</div>
-						{/if}
+					<div>
+						<p class="mb-0.5 text-xs text-muted-foreground">Work Email</p>
+						<a
+							href="mailto:{employee.email}"
+							class="block truncate text-sm font-medium hover:text-primary hover:underline"
+							>{employee.email}</a
+						>
 					</div>
+					{#if employee.phoneNumber}
+						<div>
+							<p class="mb-0.5 text-xs text-muted-foreground">Phone</p>
+							<p class="text-sm font-medium">{employee.phoneNumber}</p>
+						</div>
+					{/if}
+					{#if employee.mobileNumber}
+						<div>
+							<p class="mb-0.5 text-xs text-muted-foreground">Mobile</p>
+							<p class="text-sm font-medium">{employee.mobileNumber}</p>
+						</div>
+					{/if}
 				{:else}
-					<!-- Fallback for when contact info is not viewable -->
-					<div class="grid grid-cols-2 gap-x-4 gap-y-2 border-t pt-2 pb-1 text-xs md:grid-cols-4">
-						<div class="flex min-w-0 items-center gap-1.5">
-							<Mail class="h-3 w-3 shrink-0 text-muted-foreground" />
-							<div class="min-w-0 flex-1">
-								<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Email</p>
-								<p class="truncate font-medium">{employee.email}</p>
-							</div>
-						</div>
-						<div class="flex min-w-0 items-center gap-1.5">
-							<Briefcase class="h-3 w-3 shrink-0 text-muted-foreground" />
-							<div class="min-w-0 flex-1">
-								<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Role</p>
-								<p class="truncate font-medium">{formatRole(employee.role)}</p>
-							</div>
-						</div>
-						<div class="flex min-w-0 items-center gap-1.5">
-							<Calendar class="h-3 w-3 shrink-0 text-muted-foreground" />
-							<div class="min-w-0 flex-1">
-								<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Hired</p>
-								<p class="truncate font-medium">{formatDate(employee.hireDate)}</p>
-							</div>
-						</div>
-						{#if employee.department?.userByManagerId}
-							<div class="flex min-w-0 items-center gap-1.5">
-								<User class="h-3 w-3 shrink-0 text-muted-foreground" />
-								<div class="min-w-0 flex-1">
-									<p class="text-[10px] tracking-wide text-muted-foreground uppercase">Manager</p>
-									<p class="truncate font-medium">
-										{employee.department.userByManagerId.displayName}
-									</p>
-								</div>
-							</div>
-						{:else if employee.lastLogin}
-							<div class="flex min-w-0 items-center gap-1.5">
-								<Clock class="h-3 w-3 shrink-0 text-muted-foreground" />
-								<div class="min-w-0 flex-1">
-									<p class="text-[10px] tracking-wide text-muted-foreground uppercase">
-										Last Login
-									</p>
-									<p class="truncate font-medium">{formatDate(employee.lastLogin)}</p>
-								</div>
-							</div>
+					<p class="text-sm text-muted-foreground">Contact info hidden</p>
+				{/if}
+			</div>
+		</div>
+
+		<!-- 3. Stats / KPI (Small, 1 col) -->
+		<div class="flex flex-col rounded-xl border bg-card p-5">
+			<div class="mb-4 flex items-center gap-2 text-muted-foreground">
+				<BarChart2 class="h-4 w-4" />
+				<span class="text-xs font-semibold uppercase tracking-wider">Performance</span>
+			</div>
+			<div class="grid flex-1 grid-cols-2 items-center gap-4">
+				<div class="rounded-lg bg-muted/30 p-3 text-center">
+					<p class="text-2xl font-bold text-primary">
+						{#if employee.performanceReviews && employee.performanceReviews.length > 0}
+							{employee.performanceReviews[0].overallRating || '-'}
+						{:else}
+							-
 						{/if}
+					</p>
+					<p class="mt-1 text-[10px] uppercase text-muted-foreground">Rating</p>
+				</div>
+				<div class="rounded-lg bg-muted/30 p-3 text-center">
+					<p class="text-2xl font-bold text-primary">{employee.leaveRequestCount}</p>
+					<p class="mt-1 text-[10px] uppercase text-muted-foreground">Leaves</p>
+				</div>
+			</div>
+			<div class="mt-4 border-t border-border/50 pt-3">
+				<div class="flex items-center justify-between text-xs">
+					<span class="text-muted-foreground">Last Review</span>
+					<span class="font-medium">
+						{#if employee.performanceReviews && employee.performanceReviews.length > 0}
+							{formatDate(employee.performanceReviews[0].createdAt)}
+						{:else}
+							N/A
+						{/if}
+					</span>
+				</div>
+			</div>
+		</div>
+
+		<!-- 4. Emergency Contacts (Medium, 1 col, taller) -->
+		<div class="flex flex-col rounded-xl border bg-card p-5 md:row-span-2">
+			<div class="mb-4 flex items-center justify-between">
+				<div class="flex items-center gap-2 text-muted-foreground">
+					<ShieldAlert class="h-4 w-4" />
+					<span class="text-xs font-semibold uppercase tracking-wider">Emergency</span>
+				</div>
+				{#if permissions.canManageEmployees || permissions.isViewingSelf}
+					<button
+						onclick={openAddEmergencyContactModal}
+						class="rounded-md bg-secondary p-1.5 text-xs transition-colors hover:bg-secondary/80"
+					>
+						<Plus class="h-3 w-3" />
+					</button>
+				{/if}
+			</div>
+
+			<div class="custom-scrollbar flex-1 space-y-3 overflow-y-auto pr-1">
+				{#if employee.emergencyContacts && employee.emergencyContacts.length > 0}
+					{#each employee.emergencyContacts as contact}
+						<div
+							class="group relative rounded-lg border border-border/60 bg-muted/20 p-3 transition-colors hover:bg-muted/40 min-h-[70px]"
+						>
+							<div class="mb-1 flex items-start justify-between">
+								<p class="text-sm font-medium">{contact.name}</p>
+								{#if contact.relationship}
+									<span
+										class="rounded border border-primary/20 bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary"
+									>
+										{contact.relationship}
+									</span>
+								{/if}
+							</div>
+							<div class="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+								<Phone class="h-3 w-3" />
+								<span>{contact.phoneNumber}</span>
+							</div>
+
+							{#if permissions.canManageEmployees || permissions.isViewingSelf}
+								<div class="absolute bottom-2 right-2 hidden gap-1 group-hover:flex">
+									<Button
+										variant="ghost"
+										size="icon"
+										class="h-6 w-6 hover:text-primary"
+										onclick={() => openEditEmergencyContactModal(contact)}
+									>
+										<Pencil class="h-3.5 w-3.5" />
+									</Button>
+									<Button
+										variant="ghost"
+										size="icon"
+										class="h-6 w-6 hover:text-destructive"
+										onclick={() => handleDeleteEmergencyContact(contact.id)}
+									>
+										<Trash2 class="h-3.5 w-3.5" />
+									</Button>
+								</div>
+							{/if}
+						</div>
+					{/each}
+				{:else}
+					<div class="flex h-full items-center justify-center text-center">
+						<p class="text-xs text-muted-foreground">No emergency contacts</p>
 					</div>
 				{/if}
 			</div>
-		</Card.Header>
+		</div>
 
-		<Separator />
-
-		<!-- Compact Accordions -->
-		<Card.Content class="p-0">
-			<Accordion.Root type="multiple" class="w-full">
-				<!-- Emergency Contacts -->
-				{#if permissions.canViewEmergencyContacts}
-					<Accordion.Item value="emergency" class="border-b last:border-b-0">
-						<Accordion.Trigger class="px-4 py-3 text-sm font-medium hover:bg-muted/50">
-							<div class="flex items-center gap-2">
-								<Shield class="h-4 w-4" />
-								<span>Emergency Contacts</span>
-								{#if employee.emergencyContacts?.length}
-									<Badge variant="secondary" class="ml-1 px-1.5 py-0 text-[10px]">
-										{employee.emergencyContacts.length}
-									</Badge>
-								{/if}
-							</div>
-						</Accordion.Trigger>
-						<Accordion.Content class="px-4 pb-4">
-							{#if permissions.canManageEmployees || permissions.isViewingSelf}
-								<Button
-									onclick={() => (isAddEmergencyContactModalOpen = true)}
-									size="sm"
-									variant="outline"
-									class="mb-3 h-7 text-xs"
-								>
-									<Plus class="mr-1 h-3 w-3" />
-									Add Contact
-								</Button>
-							{/if}
-							{#if employee.emergencyContacts && employee.emergencyContacts.length > 0}
-								<div class="grid gap-2">
-									{#each employee.emergencyContacts as contact}
-										<div class="rounded border p-2.5 text-xs">
-											<div class="mb-2 flex items-center justify-between">
-												<h4 class="font-semibold">{contact.name}</h4>
-												{#if contact.isPrimary}
-													<Badge variant="default" class="px-1.5 py-0 text-[10px]">Primary</Badge>
-												{/if}
-											</div>
-											<div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
-												{#if contact.relationship}
-													<div class="col-span-2 flex justify-between md:col-span-1">
-														<span class="text-muted-foreground">Relationship</span>
-														<span class="font-medium">{contact.relationship}</span>
-													</div>
-												{/if}
-												<div class="col-span-2 flex justify-between md:col-span-1">
-													<span class="text-muted-foreground">Phone</span>
-													<span class="font-medium">{contact.phoneNumber}</span>
-												</div>
-												{#if contact.email}
-													<div class="col-span-2 flex justify-between">
-														<span class="text-muted-foreground">Email</span>
-														<span class="ml-2 truncate font-medium">{contact.email}</span>
-													</div>
-												{/if}
-											</div>
-										</div>
-									{/each}
-								</div>
-							{:else}
-								<p class="py-4 text-center text-xs text-muted-foreground">No emergency contacts</p>
-							{/if}
-						</Accordion.Content>
-					</Accordion.Item>
-				{/if}
-
-				<!-- Vehicles -->
-				{#if permissions.canViewVehicles}
-					<Accordion.Item value="vehicles" class="border-b last:border-b-0">
-						<Accordion.Trigger class="px-4 py-3 text-sm font-medium hover:bg-muted/50">
-							<div class="flex items-center gap-2">
-								<Car class="h-4 w-4" />
-								<span>Vehicles</span>
-								{#if employee.vehicles?.length}
-									<Badge variant="secondary" class="ml-1 px-1.5 py-0 text-[10px]">
-										{employee.vehicles.length}
-									</Badge>
-								{/if}
-							</div>
-						</Accordion.Trigger>
-						<Accordion.Content class="px-4 pb-4">
-							{#if permissions.canManageEmployees || permissions.isViewingSelf}
-								<Button
-									onclick={() => (isAddVehicleModalOpen = true)}
-									size="sm"
-									variant="outline"
-									class="mb-3 h-7 text-xs"
-								>
-									<Plus class="mr-1 h-3 w-3" />
-									Add Vehicle
-								</Button>
-							{/if}
-							{#if employee.vehicles && employee.vehicles.length > 0}
-								<div class="grid gap-2 md:grid-cols-2">
-									{#each employee.vehicles as vehicle}
-										<div class="rounded border p-2.5 text-xs">
-											<h4 class="mb-1.5 font-semibold">
-												{vehicle.year}
-												{vehicle.make}
-												{vehicle.model}
-											</h4>
-											<div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
-												{#if vehicle.color}
-													<div class="flex justify-between">
-														<span class="text-muted-foreground">Color</span>
-														<span class="font-medium">{vehicle.color}</span>
-													</div>
-												{/if}
-												<div class="flex justify-between">
-													<span class="text-muted-foreground">Plate</span>
-													<span class="font-medium">{vehicle.licensePlate}</span>
-												</div>
-											</div>
-										</div>
-									{/each}
-								</div>
-							{:else}
-								<p class="py-4 text-center text-xs text-muted-foreground">No vehicles</p>
-							{/if}
-						</Accordion.Content>
-					</Accordion.Item>
-				{/if}
-
-				<!-- Leave Requests -->
-				<Accordion.Item value="leave" class="border-b last:border-b-0">
-					<Accordion.Trigger class="px-4 py-3 text-sm font-medium hover:bg-muted/50">
-						<div class="flex items-center gap-2">
-							<Plane class="h-4 w-4" />
-							<span>Leave Requests</span>
-							<Badge variant="secondary" class="ml-1 px-1.5 py-0 text-[10px]">
-								{employee.leaveRequestCount}
-							</Badge>
+		<!-- Documents (Wide, 2 cols) -->
+		{#if permissions.canViewDocuments}
+			<div class="flex flex-col rounded-xl border bg-card p-5 md:col-span-2">
+				<div class="mb-4 flex items-center justify-between">
+					<div class="flex items-center gap-2 text-muted-foreground">
+						<FileText class="h-4 w-4" />
+						<span class="text-xs font-semibold uppercase tracking-wider">Documents</span>
+					</div>
+					{#if employee.assignedDocuments?.length}
+						<span class="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+							>{employee.assignedDocuments.length} Files</span
+						>
+					{/if}
+					{#if permissions.canAssignDocuments}
+						<div class="flex gap-1">
+							<button
+								onclick={() => (isUploadDocumentModalOpen = true)}
+								class="rounded-md bg-secondary p-1.5 text-xs transition-colors hover:bg-secondary/80"
+								title="Upload new document for this employee"
+							>
+								<Upload class="h-3 w-3" />
+							</button>
+							<button
+								onclick={() => (isAssignDocsModalOpen = true)}
+								class="rounded-md bg-secondary p-1.5 text-xs transition-colors hover:bg-secondary/80"
+								title="Assign existing document to this employee"
+							>
+								<Plus class="h-3 w-3" />
+							</button>
 						</div>
-					</Accordion.Trigger>
-					<Accordion.Content class="px-4 pb-4">
-						{#if employee.leaveRequests && employee.leaveRequests.length > 0}
-							<div class="overflow-hidden rounded border">
-								<div class="overflow-x-auto">
-									<table class="w-full text-xs">
-										<thead class="bg-muted/50">
-											<tr class="border-b">
-												<th class="px-2 py-1.5 text-left font-medium">Type</th>
-												<th class="px-2 py-1.5 text-left font-medium">Start</th>
-												<th class="px-2 py-1.5 text-left font-medium">End</th>
-												<th class="px-2 py-1.5 text-left font-medium">Status</th>
-												<th class="px-2 py-1.5 text-left font-medium">Reason</th>
-											</tr>
-										</thead>
-										<tbody>
-											{#each employee.leaveRequests as request}
-												<tr class="border-b last:border-b-0">
-													<td class="px-2 py-1.5 font-medium">{request.leaveType}</td>
-													<td class="px-2 py-1.5 text-muted-foreground"
-														>{formatDate(request.startDate)}</td
-													>
-													<td class="px-2 py-1.5 text-muted-foreground"
-														>{formatDate(request.endDate)}</td
-													>
-													<td class="px-2 py-1.5">
-														<Badge class="px-1.5 py-0 text-[10px]">{request.status}</Badge>
-													</td>
-													<td class="max-w-xs truncate px-2 py-1.5 text-muted-foreground">
-														{request.reason || 'N/A'}
-													</td>
-												</tr>
-											{/each}
-										</tbody>
-									</table>
-								</div>
-							</div>
-						{:else}
-							<p class="py-4 text-center text-xs text-muted-foreground">No leave requests</p>
-						{/if}
-					</Accordion.Content>
-				</Accordion.Item>
+					{/if}
+				</div>
 
-				<!-- Performance Reviews -->
-				<Accordion.Item value="reviews" class="border-b last:border-b-0">
-					<Accordion.Trigger class="px-4 py-3 text-sm font-medium hover:bg-muted/50">
-						<div class="flex items-center gap-2">
-							<Award class="h-4 w-4" />
-							<span>Performance Reviews</span>
-							<Badge variant="secondary" class="ml-1 px-1.5 py-0 text-[10px]">
-								{employee.performanceReviewCount}
-							</Badge>
-						</div>
-					</Accordion.Trigger>
-					<Accordion.Content class="px-4 pb-4">
-						{#if employee.performanceReviews && employee.performanceReviews.length > 0}
-							<div class="overflow-hidden rounded border">
-								<div class="overflow-x-auto">
-									<table class="w-full text-xs">
-										<thead class="bg-muted/50">
-											<tr class="border-b">
-												<th class="px-2 py-1.5 text-left font-medium">Period</th>
-												<th class="px-2 py-1.5 text-left font-medium">Rating</th>
-												<th class="px-2 py-1.5 text-left font-medium">Status</th>
-												<th class="px-2 py-1.5 text-left font-medium">Reviewer</th>
-												<th class="px-2 py-1.5 text-left font-medium">Date</th>
-											</tr>
-										</thead>
-										<tbody>
-											{#each employee.performanceReviews as review}
-												<tr class="border-b last:border-b-0">
-													<td class="px-2 py-1.5 font-medium">{review.reviewPeriod}</td>
-													<td class="px-2 py-1.5">
-														{review.overallRating ? `${review.overallRating}/5.0` : 'N/A'}
-													</td>
-													<td class="px-2 py-1.5">
-														<Badge class="px-1.5 py-0 text-[10px]">{review.status}</Badge>
-													</td>
-													<td class="px-2 py-1.5 text-muted-foreground">
-														{review.reviewer?.displayName || 'N/A'}
-													</td>
-													<td class="px-2 py-1.5 text-muted-foreground"
-														>{formatDate(review.createdAt)}</td
-													>
-												</tr>
-											{/each}
-										</tbody>
-									</table>
-								</div>
-							</div>
-						{:else}
-							<p class="py-4 text-center text-xs text-muted-foreground">No performance reviews</p>
-						{/if}
-					</Accordion.Content>
-				</Accordion.Item>
-
-				<!-- Leave Balances -->
-				<Accordion.Item value="timeoff" class="border-b last:border-b-0">
-					<Accordion.Trigger class="px-4 py-3 text-sm font-medium hover:bg-muted/50">
-						<div class="flex items-center gap-2">
-							<Calendar class="h-4 w-4" />
-							<span>Leave Balances</span>
-						</div>
-					</Accordion.Trigger>
-					<Accordion.Content class="px-4 pb-4">
-						{#if employee.leaveBalances && employee.leaveBalances.length > 0}
-							<div class="overflow-hidden rounded border">
-								<div class="overflow-x-auto">
-									<table class="w-full text-xs">
-										<thead class="bg-muted/50">
-											<tr class="border-b">
-												<th class="px-2 py-1.5 text-left font-medium">Leave Type</th>
-												<th class="px-2 py-1.5 text-left font-medium">Year</th>
-												<th class="px-2 py-1.5 text-right font-medium">Total</th>
-												<th class="px-2 py-1.5 text-right font-medium">Used</th>
-												<th class="px-2 py-1.5 text-right font-medium">Remaining</th>
-											</tr>
-										</thead>
-										<tbody>
-											{#each employee.leaveBalances as balance}
-												<tr class="border-b last:border-b-0">
-													<td class="px-2 py-1.5 font-medium">{balance.leaveTypeName}</td>
-													<td class="px-2 py-1.5 text-muted-foreground">{balance.year}</td>
-													<td class="px-2 py-1.5 text-right">{balance.totalDays}</td>
-													<td class="px-2 py-1.5 text-right text-muted-foreground"
-														>{balance.usedDays}</td
-													>
-													<td class="px-2 py-1.5 text-right">
-														<span class="font-bold text-primary">{balance.remainingDays}</span>
-													</td>
-												</tr>
-											{/each}
-										</tbody>
-									</table>
-								</div>
-							</div>
-						{:else}
-							<p class="py-4 text-center text-xs text-muted-foreground">No leave balances</p>
-						{/if}
-					</Accordion.Content>
-				</Accordion.Item>
-
-				<!-- Documents -->
-				{#if permissions.canViewDocuments}
-					<Accordion.Item value="documents" class="border-b-0">
-						<Accordion.Trigger class="px-4 py-3 text-sm font-medium hover:bg-muted/50">
-							<div class="flex items-center gap-2">
-								<FileText class="h-4 w-4" />
-								<span>Documents</span>
-								<Badge variant="secondary" class="ml-1 px-1.5 py-0 text-[10px]">
-									{employee.documentsCount}
-								</Badge>
-							</div>
-						</Accordion.Trigger>
-						<Accordion.Content class="px-4 pb-4">
-							{#if permissions.canAssignDocuments}
-								<Button
-									onclick={() => (isAssignDocsModalOpen = true)}
-									size="sm"
-									variant="outline"
-									class="mb-3 h-7 text-xs"
+				{#if employee.assignedDocuments && employee.assignedDocuments.length > 0}
+					<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+						{#each employee.assignedDocuments as doc}
+							<div
+								class="group relative flex items-start gap-3 rounded-lg border border-border/50 bg-muted/20 p-3 transition-all hover:bg-muted/40"
+							>
+								<div
+									class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded bg-background text-muted-foreground shadow-sm"
 								>
-									<Plus class="mr-1 h-3 w-3" />
-									Assign
-								</Button>
-							{/if}
-							{#if employee.assignedDocuments && employee.assignedDocuments.length > 0}
-								<div class="overflow-hidden rounded border">
-									<div class="overflow-x-auto">
-										<table class="w-full text-xs">
-											<thead class="bg-muted/50">
-												<tr class="border-b">
-													<th class="px-2 py-1.5 text-left font-medium">Filename</th>
-													<th class="px-2 py-1.5 text-left font-medium">Category</th>
-													<th class="px-2 py-1.5 text-left font-medium">Sensitivity</th>
-													<th class="px-2 py-1.5 text-left font-medium">Assigned</th>
-													<th class="px-2 py-1.5 text-right font-medium">Actions</th>
-												</tr>
-											</thead>
-											<tbody>
-												{#each employee.assignedDocuments as document}
-													<tr
-														class="cursor-pointer border-b last:border-b-0 hover:bg-muted/30"
-														onclick={() => goto(`/dashboard/documents/${document.id}`)}
-													>
-														<td class="px-2 py-1.5 font-medium">
-															<div class="flex items-center gap-1.5">
-																<FileText class="h-3 w-3 text-muted-foreground" />
-																<span class="truncate">{document.filename}</span>
-															</div>
-														</td>
-														<td class="px-2 py-1.5 text-muted-foreground">{document.category}</td>
-														<td class="px-2 py-1.5">
-															<Badge
-																variant={document.sensitivityLevel === 'Public'
-																	? 'secondary'
-																	: 'default'}
-																class="px-1.5 py-0 text-[10px]"
-															>
-																{document.sensitivityLevel}
-															</Badge>
-														</td>
-														<td class="px-2 py-1.5 text-muted-foreground">
-															{new Date(document.assignedAt).toLocaleDateString()}
-														</td>
-														<td class="px-2 py-1.5 text-right">
-															<Button
-																href="/dashboard/documents/{document.id}"
-																size="sm"
-																variant="ghost"
-																class="h-6 px-2 text-[11px]"
-																onclick={(e) => {
-																	e.stopPropagation();
-																	goto(`/dashboard/documents/${document.id}`);
-																}}
-															>
-																View
-															</Button>
-														</td>
-													</tr>
-												{/each}
-											</tbody>
-										</table>
+									<FileText class="h-4 w-4" />
+								</div>
+								<div class="flex-1 overflow-hidden">
+									<p class="truncate text-sm font-medium" title={doc.filename}>{doc.filename}</p>
+									<div class="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
+										<span class="uppercase">{doc.category || 'General'}</span>
+										<span>•</span>
+										<span>{formatRelativeTime(doc.uploadedAt)}</span>
 									</div>
 								</div>
-							{:else}
-								<div class="py-6 text-center">
-									<FileText class="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
-									<p class="mb-1 text-xs font-medium">No documents assigned</p>
-									<p class="mb-3 text-[11px] text-muted-foreground">
-										This employee hasn't been assigned any documents.
-									</p>
+
+								<div
+									class="absolute top-2 right-2 hidden items-center gap-1 rounded-md bg-background/80 p-0.5 shadow-sm backdrop-blur-sm group-hover:flex"
+								>
+									<a
+										href="/api/documents/{doc.id}/download"
+										target="_blank"
+										class="flex h-7 w-7 items-center justify-center rounded hover:bg-muted hover:text-primary"
+										title="Download"
+									>
+										<Download class="h-3.5 w-3.5" />
+									</a>
 									{#if permissions.canAssignDocuments}
-										<Button
-											onclick={() => (isAssignDocsModalOpen = true)}
-											size="sm"
-											class="h-7 text-xs"
+										<button
+											onclick={() => handleUnassignDocument(doc.assignmentId)}
+											class="flex h-7 w-7 items-center justify-center rounded hover:bg-muted hover:text-destructive"
+											title="Unassign"
+											disabled={isUnassigningDocument}
 										>
-											<Plus class="mr-1 h-3 w-3" />
-											Assign Documents
-										</Button>
+											<Trash2 class="h-3.5 w-3.5" />
+										</button>
 									{/if}
 								</div>
-							{/if}
-						</Accordion.Content>
-					</Accordion.Item>
+							</div>
+						{/each}
+					</div>
+				{:else}
+					<div
+						class="flex h-32 flex-col items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/5"
+					>
+						<FileText class="mb-2 h-6 w-6 text-muted-foreground/40" />
+						<p class="text-xs text-muted-foreground">No documents assigned</p>
+					</div>
 				{/if}
-			</Accordion.Root>
-		</Card.Content>
-	</Card.Root>
+			</div>
+		{/if}
+
+		<!-- 5. Employment History / Timeline (Wide, 2 cols) -->
+		<div class="rounded-xl border bg-card p-5 md:col-span-2">
+			<div class="mb-5 flex items-center gap-2 text-muted-foreground">
+				<Briefcase class="h-4 w-4" />
+				<span class="text-xs font-semibold uppercase tracking-wider">Role</span>
+			</div>
+
+			<div class="relative pl-2">
+				<!-- Timeline Line -->
+				<div class="absolute top-2 bottom-2 left-[7px] w-[2px] bg-border"></div>
+
+				<!-- Current Role -->
+				<div class="relative pb-6 pl-6">
+					<div
+						class="absolute top-1.5 left-0 z-10 h-4 w-4 rounded-full border-2 border-primary bg-background"
+					></div>
+					<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between">
+						<div>
+							<h4 class="text-sm font-semibold">{employee.jobTitle || 'No Title'}</h4>
+							<p class="text-xs text-muted-foreground">
+								{employee.department?.name || 'No Department'} • {employee.role}
+							</p>
+						</div>
+						<span class="mt-1 text-xs font-mono text-muted-foreground sm:mt-0">
+							{new Date(employee.hireDate).getFullYear()} - Present
+						</span>
+					</div>
+				</div>
+
+				<!-- Placeholder for previous roles (could be fetched if history table exists) -->
+				<div class="relative pl-6">
+					<div
+						class="absolute top-1.5 left-0 z-10 h-4 w-4 rounded-full border-2 border-muted-foreground/30 bg-background"
+					></div>
+					<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between">
+						<div>
+							<h4 class="text-sm font-semibold text-muted-foreground">Joined Company</h4>
+							<p class="text-xs text-muted-foreground">Onboarding</p>
+						</div>
+						<span class="mt-1 text-xs font-mono text-muted-foreground sm:mt-0">
+							{formatDate(employee.hireDate)}
+						</span>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- 6. Vehicle Assignments (1 col) -->
+		<div class="flex flex-col rounded-xl border bg-card p-5">
+			<div class="mb-4 flex items-center justify-between">
+				<div class="flex items-center gap-2 text-muted-foreground">
+					<Car class="h-4 w-4" />
+					<span class="text-xs font-semibold uppercase tracking-wider">Vehicle</span>
+				</div>
+				{#if employee.vehicles?.length}
+					<span class="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+						>{employee.vehicles.length} Active</span
+					>
+				{/if}
+				{#if permissions.canManageEmployees || permissions.isViewingSelf}
+					<button
+						onclick={openAddVehicleModal}
+						class="rounded-md bg-secondary p-1.5 text-xs transition-colors hover:bg-secondary/80"
+					>
+						<Plus class="h-3 w-3" />
+					</button>
+				{/if}
+			</div>
+
+			{#if employee.vehicles && employee.vehicles.length > 0}
+				{#each employee.vehicles as vehicle}
+					<div
+						class="relative mt-auto overflow-hidden rounded-lg border bg-muted/30 p-4 transition-all hover:bg-muted/50"
+					>
+						<!-- Decorative Icon -->
+						<Car class="absolute -right-4 -bottom-4 h-24 w-24 text-foreground/5" />
+
+						<div class="relative z-10">
+							<div class="mb-2 flex items-start justify-between">
+								<div>
+									<h4 class="text-lg font-bold text-foreground">{vehicle.make} {vehicle.model}</h4>
+									<p class="text-xs text-muted-foreground">
+										{vehicle.year} • {vehicle.color || 'No Color'}
+									</p>
+								</div>
+								{#if permissions.canManageEmployees || permissions.isViewingSelf}
+									<div class="flex gap-1">
+										<Button
+											variant="ghost"
+											size="icon"
+											class="h-6 w-6 hover:text-primary"
+											onclick={() => openEditVehicleModal(vehicle)}
+										>
+											<Pencil class="h-3.5 w-3.5" />
+										</Button>
+										<Button
+											variant="ghost"
+											size="icon"
+											class="h-6 w-6 hover:text-destructive"
+											onclick={() => handleDeleteVehicle(vehicle.id)}
+										>
+											<Trash2 class="h-3.5 w-3.5" />
+										</Button>
+									</div>
+								{/if}
+							</div>
+
+							<div class="flex items-center justify-between">
+								<Badge variant="outline" class="font-mono text-xs tracking-widest">
+									{vehicle.licensePlate}
+								</Badge>
+							</div>
+						</div>
+					</div>
+				{/each}
+			{:else}
+				<div
+					class="flex h-32 flex-col items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/5"
+				>
+					<Car class="mb-2 h-6 w-6 text-muted-foreground/40" />
+					<p class="text-xs text-muted-foreground">No vehicle assigned</p>
+				</div>
+			{/if}
+		</div>
+
+		<!-- 7. Dependents (Placeholder, 1 col) -->
+		<div class="rounded-xl border bg-card p-5">
+			<div class="mb-4 flex items-center justify-between">
+				<div class="flex items-center gap-2 text-muted-foreground">
+					<Users class="h-4 w-4" />
+					<span class="text-xs font-semibold uppercase tracking-wider">Dependents</span>
+				</div>
+				<!-- Placeholder button -->
+				<button
+					class="rounded-md bg-secondary p-1.5 text-xs opacity-50 transition-colors hover:bg-secondary/80"
+					title="Feature coming soon"
+				>
+					<Plus class="h-3 w-3" />
+				</button>
+			</div>
+
+			<div
+				class="flex h-32 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/5"
+			>
+				<div class="text-center">
+					<UserPlus class="mx-auto mb-2 h-6 w-6 text-muted-foreground/40" />
+					<p class="text-xs text-muted-foreground">No dependents listed</p>
+				</div>
+			</div>
+		</div>
+
+		<!-- 8. Activity Log (Wide, 3 cols on lg) -->
+		<div class="rounded-xl border bg-card p-5 md:col-span-2 lg:col-span-3">
+			<div class="mb-5 flex items-center justify-between">
+				<div class="flex items-center gap-2 text-muted-foreground">
+					<Activity class="h-4 w-4" />
+					<span class="text-xs font-semibold uppercase tracking-wider">Recent Activity</span>
+				</div>
+				<!-- <button class="text-xs text-primary hover:underline">View All</button> -->
+			</div>
+
+			{#if employee.activityLogs && employee.activityLogs.length > 0}
+				<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+					{#each employee.activityLogs.slice(0, 3) as log}
+						<div class="flex items-start gap-3 rounded-lg border border-border/50 bg-muted/20 p-3">
+							<div
+								class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-blue-500/20 bg-blue-500/10 text-blue-500"
+							>
+								{#if log.action === 'CREATE'}
+									<Plus class="h-4 w-4" />
+								{:else if log.action === 'UPDATE'}
+									<Edit class="h-4 w-4" />
+								{:else if log.action === 'DELETE'}
+									<XCircle class="h-4 w-4" />
+								{:else}
+									<Activity class="h-4 w-4" />
+								{/if}
+							</div>
+							<div>
+								<p class="mb-1.5 text-sm font-medium leading-none">{log.action} {log.resourceType}</p>
+								<p class="mb-2 text-xs text-muted-foreground line-clamp-2">
+									{log.details ? JSON.stringify(log.details) : 'No details'}
+								</p>
+								<p class="text-[10px] text-muted-foreground/70">
+									{formatRelativeTime(log.createdAt)}
+								</p>
+							</div>
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<div class="py-4 text-center text-xs text-muted-foreground">No recent activity</div>
+			{/if}
+		</div>
+	</div>
+	{/if}
 </div>
 
 <!-- Assign Documents Modal -->
@@ -810,20 +1065,32 @@
 		isOpen={isAddEmergencyContactModalOpen}
 		employeeId={employee.id}
 		employeeName={employee.displayName}
-		onSave={handleAddEmergencyContact}
+		initialData={editingContact}
+		onSave={handleSaveEmergencyContact}
 		onClose={() => (isAddEmergencyContactModalOpen = false)}
-		isSubmitting={isAddingEmergencyContact}
+		isSubmitting={isSavingEmergencyContact}
 	/>
 {/if}
 
 <!-- Add Vehicle Modal -->
 {#if permissions.canViewVehicles && (permissions.canManageEmployees || permissions.isViewingSelf)}
 	<AddVehicleModal
-		isOpen={isAddVehicleModalOpen}
+		isOpen={isVehicleModalOpen}
 		employeeId={employee.id}
 		employeeName={employee.displayName}
-		onSave={handleAddVehicle}
-		onClose={() => (isAddVehicleModalOpen = false)}
-		isSubmitting={isAddingVehicle}
+		initialData={editingVehicle}
+		onSave={handleSaveVehicle}
+		onClose={() => (isVehicleModalOpen = false)}
+		isSubmitting={isSavingVehicle}
+	/>
+{/if}
+
+<!-- Upload Document Modal -->
+{#if permissions.canAssignDocuments}
+	<UploadDocumentModal
+		isOpen={isUploadDocumentModalOpen}
+		onClose={() => (isUploadDocumentModalOpen = false)}
+		onSuccess={handleUploadDocumentSuccess}
+		assignToEmployees={[employee.id]}
 	/>
 {/if}

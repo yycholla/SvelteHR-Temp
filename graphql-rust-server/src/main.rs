@@ -26,7 +26,7 @@ use crate::{
     auth::AuthBackend,
     database::create_db_connection,
     dataloader::DataLoaderContext,
-    handlers::{graphql_handler, graphql_playground, login_handler, logout_handler, me_handler, refresh_handler, sessions_handler, AppState},
+    handlers::{graphql_handler, graphql_playground, login_handler, logout_handler, me_handler, refresh_handler, sessions_handler, events::delete_event_handler, AppState},
     middleware::{optional_session_auth_middleware, security_headers_middleware, session_auth_middleware, admin_session_auth_middleware},
     schema::create_schema,
 };
@@ -42,6 +42,7 @@ mod middleware;
 mod models;
 mod scheduler;
 mod schema;
+mod services;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -127,7 +128,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Build CORS layer - allow specific origins for credentials
     let cors = CorsLayer::new()
-        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS, Method::DELETE])
         .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION])
         .allow_credentials(true)
         .allow_origin([
@@ -143,6 +144,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/auth/me", axum::routing::get(me_handler))
         .route("/auth/refresh", axum::routing::post(refresh_handler))
         .route("/auth/sessions", axum::routing::get(sessions_handler))
+        // REST API endpoints
+        .route("/api/events/{id}", axum::routing::delete(delete_event_handler)
+            .layer(axum_middleware::from_fn_with_state(app_state.clone(), session_auth_middleware)))
+        .route("/api/roles", axum::routing::get(handlers::roles::get_roles_handler)
+            .layer(axum_middleware::from_fn_with_state(app_state.clone(), session_auth_middleware)))
         // GraphQL endpoints with optional session auth
         .route("/graphql",
             get(graphql_playground)
