@@ -379,7 +379,7 @@ class PerformanceReporter implements Reporter {
 			{ count: number; totalDuration: number; averageDuration: number }
 		> = {};
 
-		this.performanceMetrics.forEach((metric) => {
+		this.performanceMetrics.forEach((metric: PerformanceMetrics) => {
 			metric.steps.forEach((step) => {
 				if (!breakdown[step.category]) {
 					breakdown[step.category] = { count: 0, totalDuration: 0, averageDuration: 0 };
@@ -404,7 +404,7 @@ class PerformanceReporter implements Reporter {
 			{ count: number; totalDuration: number; averageDuration: number }
 		> = {};
 
-		this.performanceMetrics.forEach((metric) => {
+		this.performanceMetrics.forEach((metric: PerformanceMetrics) => {
 			if (!breakdown[metric.browser]) {
 				breakdown[metric.browser] = { count: 0, totalDuration: 0, averageDuration: 0 };
 			}
@@ -423,13 +423,13 @@ class PerformanceReporter implements Reporter {
 
 	private logPerformanceSummary() {
 		const totalTests = this.performanceMetrics.length;
-		const passedTests = this.performanceMetrics.filter((m) => m.status === 'passed').length;
-		const budgetViolations = this.performanceMetrics.filter((m) =>
+		const passedTests = this.performanceMetrics.filter((m: PerformanceMetrics) => m.status === 'passed').length;
+		const budgetViolations = this.performanceMetrics.filter((m: PerformanceMetrics) =>
 			m.annotations.some((a) => a.includes('Performance Budget Violations'))
 		).length;
 
 		const avgDuration = Math.round(
-			this.performanceMetrics.reduce((sum, m) => sum + m.duration, 0) / totalTests
+			this.performanceMetrics.reduce((sum, m: PerformanceMetrics) => sum + m.duration, 0) / totalTests
 		);
 
 		console.log('\n📊 Performance Summary:');
@@ -441,9 +441,9 @@ class PerformanceReporter implements Reporter {
 		if (budgetViolations > 0) {
 			console.log('\n⚠️  Performance Issues Detected:');
 			this.performanceMetrics
-				.filter((m) => m.annotations.some((a) => a.includes('Performance Budget Violations')))
+				.filter((m: PerformanceMetrics) => m.annotations.some((a) => a.includes('Performance Budget Violations')))
 				.slice(0, 5)
-				.forEach((metric) => {
+				.forEach((metric: PerformanceMetrics) => {
 					console.log(`   • ${metric.testName}: ${metric.duration}ms`);
 				});
 		} else {
