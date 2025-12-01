@@ -20,6 +20,14 @@ interface TestContext {
 	nonDirectReport: any;
 	authTokens: Record<string, string>;
 	cleanup?: () => Promise<void>;
+	users: any;
+	departments: any;
+	createdEmployees: string[];
+	createdUsers: string[];
+	createdDepartments: string[];
+	createdReviews: string[];
+	createdGoals: string[];
+	createdLeaveRequests: string[];
 }
 
 describe('T014: Manager RBAC - blocked from non-direct report', () => {
@@ -39,7 +47,15 @@ describe('T014: Manager RBAC - blocked from non-direct report', () => {
 			nonDirectReport,
 			authTokens: {
 				manager: manager.token
-			}
+			},
+			users: { admin: null, hrManager: null, manager: manager, employee: null }, // Placeholder
+			departments: { engineering: null, marketing: null, hr: null }, // Placeholder
+			createdEmployees: [],
+			createdUsers: [],
+			createdDepartments: [],
+			createdReviews: [],
+			createdGoals: [],
+			createdLeaveRequests: []
 		};
 	});
 
