@@ -43,8 +43,8 @@ function createMockTask(overrides: Partial<Task> = {}): Task {
 		id: '1',
 		title: 'Test Task',
 		description: 'Test description',
-		status: 'TODO' as TaskStatus,
-		priority: 'MEDIUM' as TaskPriority,
+		status: 'todo' as TaskStatus,
+		priority: 'medium' as TaskPriority,
 		assigneeId: 'user-1',
 		assignerId: 'manager-1',
 		departmentId: 'dept-1',
@@ -119,19 +119,19 @@ describe('isTaskOverdue', () => {
 
 	it('should return false for completed task', () => {
 		const pastDate = new Date(Date.now() - 86400000).toISOString(); // Yesterday
-		const task = createMockTask({ dueDate: pastDate, status: 'COMPLETED' });
+		const task = createMockTask({ dueDate: pastDate, status: 'completed' });
 		expect(isTaskOverdue(task)).toBe(false);
 	});
 
 	it('should return false for cancelled task', () => {
 		const pastDate = new Date(Date.now() - 86400000).toISOString(); // Yesterday
-		const task = createMockTask({ dueDate: pastDate, status: 'CANCELLED' });
+		const task = createMockTask({ dueDate: pastDate, status: 'cancelled' });
 		expect(isTaskOverdue(task)).toBe(false);
 	});
 
 	it('should return true for overdue task', () => {
 		const pastDate = new Date(Date.now() - 86400000).toISOString(); // Yesterday
-		const task = createMockTask({ dueDate: pastDate, status: 'IN_PROGRESS' });
+		const task = createMockTask({ dueDate: pastDate, status: 'in_progress' });
 		expect(isTaskOverdue(task)).toBe(true);
 	});
 
@@ -150,7 +150,7 @@ describe('isTaskDueSoon', () => {
 
 	it('should return false for completed task', () => {
 		const soonDate = new Date(Date.now() + 86400000).toISOString(); // Tomorrow
-		const task = createMockTask({ dueDate: soonDate, status: 'COMPLETED' });
+		const task = createMockTask({ dueDate: soonDate, status: 'completed' });
 		expect(isTaskDueSoon(task)).toBe(false);
 	});
 
@@ -308,10 +308,10 @@ describe('Task Assignment Functions', () => {
 
 describe('Filter Functions', () => {
 	const tasks: Task[] = [
-		createMockTask({ id: '1', assigneeId: 'user-1', status: 'TODO', priority: 'HIGH', assignedToDepartmentId: undefined }),
-		createMockTask({ id: '2', assigneeId: 'user-2', status: 'IN_PROGRESS', priority: 'MEDIUM', assignedToDepartmentId: 'dept-1' }),
-		createMockTask({ id: '3', assigneeId: 'user-1', status: 'COMPLETED', priority: 'LOW', assignedToDepartmentId: undefined }),
-		createMockTask({ id: '4', assigneeId: 'user-3', status: 'TODO', priority: 'URGENT', assignedToDepartmentId: 'dept-2' })
+		createMockTask({ id: '1', assigneeId: 'user-1', status: 'todo', priority: 'high', assignedToDepartmentId: undefined }),
+		createMockTask({ id: '2', assigneeId: 'user-2', status: 'in_progress', priority: 'medium', assignedToDepartmentId: 'dept-1' }),
+		createMockTask({ id: '3', assigneeId: 'user-1', status: 'completed', priority: 'low', assignedToDepartmentId: undefined }),
+		createMockTask({ id: '4', assigneeId: 'user-3', status: 'todo', priority: 'urgent', assignedToDepartmentId: 'dept-2' })
 	];
 
 	describe('filterTasksByDepartment', () => {
@@ -337,16 +337,16 @@ describe('Filter Functions', () => {
 
 	describe('filterTasksByStatus', () => {
 		it('should filter tasks by status', () => {
-			const result = filterTasksByStatus(tasks, 'TODO');
+			const result = filterTasksByStatus(tasks, 'todo');
 			expect(result).toHaveLength(2);
 		});
 	});
 
 	describe('filterTasksByPriority', () => {
 		it('should filter tasks by priority', () => {
-			const result = filterTasksByPriority(tasks, 'HIGH');
+			const result = filterTasksByPriority(tasks, 'high');
 			expect(result).toHaveLength(1);
-			expect(result[0].priority).toBe('HIGH');
+			expect(result[0].priority).toBe('high');
 		});
 	});
 });
@@ -354,10 +354,10 @@ describe('Filter Functions', () => {
 describe('Sorting Functions', () => {
 	describe('sortTasksByPriority', () => {
 		const tasks: Task[] = [
-			createMockTask({ id: '1', priority: 'LOW' }),
-			createMockTask({ id: '2', priority: 'URGENT' }),
-			createMockTask({ id: '3', priority: 'MEDIUM' }),
-			createMockTask({ id: '4', priority: 'HIGH' })
+			createMockTask({ id: '1', priority: 'low' }),
+			createMockTask({ id: '2', priority: 'urgent' }),
+			createMockTask({ id: '3', priority: 'medium' }),
+			createMockTask({ id: '4', priority: 'high' })
 		];
 
 		it('should sort by priority descending (urgent first)', () => {
@@ -423,27 +423,27 @@ describe('Sorting Functions', () => {
 
 describe('Grouping Functions', () => {
 	const tasks: Task[] = [
-		createMockTask({ id: '1', status: 'TODO', priority: 'HIGH', assigneeId: 'user-1', assignee: { displayName: 'John' } as any }),
-		createMockTask({ id: '2', status: 'TODO', priority: 'MEDIUM', assigneeId: 'user-2', assignee: { displayName: 'Jane' } as any }),
-		createMockTask({ id: '3', status: 'IN_PROGRESS', priority: 'HIGH', assigneeId: 'user-1', assignee: { displayName: 'John' } as any }),
-		createMockTask({ id: '4', status: 'COMPLETED', priority: 'LOW', assigneeId: 'user-2', assignee: { displayName: 'Jane' } as any })
+		createMockTask({ id: '1', status: 'todo', priority: 'high', assigneeId: 'user-1', assignee: { displayName: 'John' } as any }),
+		createMockTask({ id: '2', status: 'todo', priority: 'medium', assigneeId: 'user-2', assignee: { displayName: 'Jane' } as any }),
+		createMockTask({ id: '3', status: 'in_progress', priority: 'high', assigneeId: 'user-1', assignee: { displayName: 'John' } as any }),
+		createMockTask({ id: '4', status: 'completed', priority: 'low', assigneeId: 'user-2', assignee: { displayName: 'Jane' } as any })
 	];
 
 	describe('groupTasksByStatus', () => {
 		it('should group tasks by status', () => {
 			const grouped = groupTasksByStatus(tasks);
-			expect(grouped.get('TODO')).toHaveLength(2);
-			expect(grouped.get('IN_PROGRESS')).toHaveLength(1);
-			expect(grouped.get('COMPLETED')).toHaveLength(1);
+			expect(grouped.get('todo')).toHaveLength(2);
+			expect(grouped.get('in_progress')).toHaveLength(1);
+			expect(grouped.get('completed')).toHaveLength(1);
 		});
 	});
 
 	describe('groupTasksByPriority', () => {
 		it('should group tasks by priority', () => {
 			const grouped = groupTasksByPriority(tasks);
-			expect(grouped.get('HIGH')).toHaveLength(2);
-			expect(grouped.get('MEDIUM')).toHaveLength(1);
-			expect(grouped.get('LOW')).toHaveLength(1);
+			expect(grouped.get('high')).toHaveLength(2);
+			expect(grouped.get('medium')).toHaveLength(1);
+			expect(grouped.get('low')).toHaveLength(1);
 		});
 	});
 
@@ -464,16 +464,16 @@ describe('Statistics Functions', () => {
 
 		it('should return 100 when all tasks completed', () => {
 			const tasks = [
-				createMockTask({ status: 'COMPLETED' }),
-				createMockTask({ status: 'COMPLETED' })
+				createMockTask({ status: 'completed' }),
+				createMockTask({ status: 'completed' })
 			];
 			expect(calculateTaskCompletionRate(tasks)).toBe(100);
 		});
 
 		it('should return 50 when half completed', () => {
 			const tasks = [
-				createMockTask({ status: 'COMPLETED' }),
-				createMockTask({ status: 'TODO' })
+				createMockTask({ status: 'completed' }),
+				createMockTask({ status: 'todo' })
 			];
 			expect(calculateTaskCompletionRate(tasks)).toBe(50);
 		});
@@ -481,10 +481,10 @@ describe('Statistics Functions', () => {
 
 	describe('getTaskStatistics', () => {
 		const tasks: Task[] = [
-			createMockTask({ id: '1', status: 'TODO', dueDate: new Date(Date.now() - 86400000).toISOString() }), // Overdue
-			createMockTask({ id: '2', status: 'IN_PROGRESS', dueDate: new Date(Date.now() + 86400000).toISOString() }), // Due soon
-			createMockTask({ id: '3', status: 'COMPLETED' }),
-			createMockTask({ id: '4', status: 'CANCELLED' })
+			createMockTask({ id: '1', status: 'todo', dueDate: new Date(Date.now() - 86400000).toISOString() }), // Overdue
+			createMockTask({ id: '2', status: 'in_progress', dueDate: new Date(Date.now() + 86400000).toISOString() }), // Due soon
+			createMockTask({ id: '3', status: 'completed' }),
+			createMockTask({ id: '4', status: 'cancelled' })
 		];
 
 		it('should return correct statistics', () => {
@@ -576,10 +576,10 @@ describe('Formatting Functions', () => {
 describe('Integration Scenarios', () => {
 	it('should correctly identify and count overdue tasks', () => {
 		const tasks: Task[] = [
-			createMockTask({ id: '1', dueDate: new Date(Date.now() - 86400000).toISOString(), status: 'TODO' }),
-			createMockTask({ id: '2', dueDate: new Date(Date.now() + 86400000).toISOString(), status: 'TODO' }),
-			createMockTask({ id: '3', dueDate: new Date(Date.now() - 172800000).toISOString(), status: 'IN_PROGRESS' }),
-			createMockTask({ id: '4', dueDate: new Date(Date.now() - 86400000).toISOString(), status: 'COMPLETED' })
+			createMockTask({ id: '1', dueDate: new Date(Date.now() - 86400000).toISOString(), status: 'todo' }),
+			createMockTask({ id: '2', dueDate: new Date(Date.now() + 86400000).toISOString(), status: 'todo' }),
+			createMockTask({ id: '3', dueDate: new Date(Date.now() - 172800000).toISOString(), status: 'in_progress' }),
+			createMockTask({ id: '4', dueDate: new Date(Date.now() - 86400000).toISOString(), status: 'completed' })
 		];
 
 		const overdue = getOverdueTasks(tasks);
@@ -589,14 +589,14 @@ describe('Integration Scenarios', () => {
 
 	it('should correctly filter and sort tasks by priority and due date', () => {
 		const tasks: Task[] = [
-			createMockTask({ id: '1', priority: 'MEDIUM', dueDate: '2024-03-15' }),
-			createMockTask({ id: '2', priority: 'URGENT', dueDate: '2024-01-10' }),
-			createMockTask({ id: '3', priority: 'URGENT', dueDate: '2024-02-20' }),
-			createMockTask({ id: '4', priority: 'LOW', dueDate: '2024-01-05' })
+			createMockTask({ id: '1', priority: 'medium', dueDate: '2024-03-15' }),
+			createMockTask({ id: '2', priority: 'urgent', dueDate: '2024-01-10' }),
+			createMockTask({ id: '3', priority: 'urgent', dueDate: '2024-02-20' }),
+			createMockTask({ id: '4', priority: 'low', dueDate: '2024-01-05' })
 		];
 
 		// Filter urgent tasks
-		const urgentTasks = filterTasksByPriority(tasks, 'URGENT');
+		const urgentTasks = filterTasksByPriority(tasks, 'urgent');
 		// Sort by due date
 		const sorted = sortTasksByDueDate(urgentTasks);
 
@@ -609,11 +609,11 @@ describe('Integration Scenarios', () => {
 		const tomorrow = new Date(Date.now() + 86400000).toISOString();
 
 		const tasks: Task[] = [
-			createMockTask({ status: 'TODO', dueDate: yesterday }),
-			createMockTask({ status: 'TODO', dueDate: tomorrow }),
-			createMockTask({ status: 'IN_PROGRESS', dueDate: tomorrow }),
-			createMockTask({ status: 'COMPLETED' }),
-			createMockTask({ status: 'CANCELLED' })
+			createMockTask({ status: 'todo', dueDate: yesterday }),
+			createMockTask({ status: 'todo', dueDate: tomorrow }),
+			createMockTask({ status: 'in_progress', dueDate: tomorrow }),
+			createMockTask({ status: 'completed' }),
+			createMockTask({ status: 'cancelled' })
 		];
 
 		const stats = getTaskStatistics(tasks);
