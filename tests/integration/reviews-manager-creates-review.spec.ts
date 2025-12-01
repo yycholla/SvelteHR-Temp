@@ -20,6 +20,14 @@ interface TestContext {
 	existingGoal: any;
 	authTokens: Record<string, string>;
 	cleanup?: () => Promise<void>;
+	users: any;
+	departments: any;
+	createdEmployees: string[];
+	createdUsers: string[];
+	createdDepartments: string[];
+	createdReviews: string[];
+	createdGoals: string[];
+	createdLeaveRequests: string[];
 }
 
 describe('T013: Manager creates review for direct report', () => {
@@ -74,7 +82,15 @@ describe('T013: Manager creates review for direct report', () => {
 			existingGoal: goalResponse.data.createGoal.goal,
 			authTokens: {
 				manager: manager.token
-			}
+			},
+			users: { admin: null, hrManager: null, manager: manager, employee: employee }, // Placeholder, adjust as needed
+			departments: { engineering: null, marketing: null, hr: null }, // Placeholder, adjust as needed
+			createdEmployees: [],
+			createdUsers: [],
+			createdDepartments: [],
+			createdReviews: [],
+			createdGoals: [],
+			createdLeaveRequests: []
 		};
 	});
 
@@ -159,7 +175,7 @@ describe('T013: Manager creates review for direct report', () => {
 		);
 
 		expect(response.data.directReports).toBeDefined();
-		const directReportIds = response.data.directReports.map((emp) => emp.id);
+		const directReportIds = response.data.directReports.map((emp: { id: string }) => emp.id);
 		expect(directReportIds).toContain(testContext.testEmployee.id);
 	});
 
