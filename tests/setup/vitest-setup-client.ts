@@ -139,7 +139,7 @@ beforeAll(() => {
 			OPEN: 1,
 			CLOSING: 2,
 			CLOSED: 3
-		}));
+		})) as any; // Cast to any
 
 		// Mock URL constructor
 		global.URL = class URL {
@@ -158,13 +158,30 @@ beforeAll(() => {
 			port = '5174';
 			search = '';
 			hash = '';
-		};
+
+			// Add missing properties that TypeScript complains about
+			static createObjectURL = vi.fn();
+			static revokeObjectURL = vi.fn();
+			static canParse = vi.fn();
+			static parse = vi.fn();
+		} as any; // Cast to any
 
 		global.URLSearchParams = class URLSearchParams {
 			private params = new Map<string, string>();
 
 			constructor(init?: string | string[][] | Record<string, string>) {
 				// Basic implementation for testing
+				if (typeof init === 'string') {
+					new URLSearchParams(init.substring(1)).forEach((value, name) =>
+						this.params.set(name, value)
+					);
+				} else if (Array.isArray(init)) {
+					init.forEach(([name, value]) => this.params.set(name, value));
+				} else if (init) {
+					for (const key in init) {
+						this.params.set(key, init[key]);
+					}
+				}
 			}
 
 			append(name: string, value: string) {
@@ -186,7 +203,17 @@ beforeAll(() => {
 			has(name: string) {
 				return this.params.has(name);
 			}
-		};
+
+			// Add missing properties
+			forEach = vi.fn();
+			entries = vi.fn();
+			keys = vi.fn();
+			values = vi.fn();
+			sort = vi.fn();
+			toString = vi.fn(() => Array.from(this.params.entries()).map(([k, v]) => `${k}=${v}`).join('&'));
+			get size() { return this.params.size; }
+			getAll = vi.fn();
+		} as any; // Cast to any
 
 		// Mock clipboard API
 		Object.defineProperty(navigator, 'clipboard', {

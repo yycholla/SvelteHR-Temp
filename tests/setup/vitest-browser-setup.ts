@@ -4,6 +4,7 @@
 
 import { beforeAll, afterEach } from 'vitest';
 import { page } from '@vitest/browser/context';
+import type { Page as PuppeteerPage } from 'puppeteer'; // Import Puppeteer's Page type
 
 beforeAll(async () => {
 	console.log('Setting up browser test environment...');
@@ -11,19 +12,22 @@ beforeAll(async () => {
 	// Configure browser for component testing
 	if (page) {
 		try {
+			// Cast page to PuppeteerPage to access its methods
+			const puppeteerPage = page as unknown as PuppeteerPage;
+
 			// Set consistent viewport
-			await page.setViewportSize({ width: 1280, height: 720 });
+			await puppeteerPage.setViewportSize({ width: 1280, height: 720 });
 
 			// Set timezone
-			await page.emulateTimezone('UTC');
+			await puppeteerPage.emulateTimezone('UTC');
 
 			// Set locale
-			await page.setExtraHTTPHeaders({
+			await puppeteerPage.setExtraHTTPHeaders({
 				'Accept-Language': 'en-US,en;q=0.9'
 			});
 
 			// Navigate to test page
-			await page.goto('about:blank');
+			await puppeteerPage.goto('about:blank');
 		} catch (error) {
 			console.error('Failed to setup browser test environment:', error);
 			console.error('Failed operation:', (error as Error).message);
@@ -36,17 +40,20 @@ beforeAll(async () => {
 afterEach(async () => {
 	// Clean up browser state after each test
 	if (page) {
+		// Cast page to PuppeteerPage to access its methods
+		const puppeteerPage = page as unknown as PuppeteerPage;
+
 		// Clear local storage
-		await page.evaluate(() => {
+		await puppeteerPage.evaluate(() => {
 			localStorage.clear();
 			sessionStorage.clear();
 		});
 
 		// Clear cookies
-		const context = page.context();
+		const context = puppeteerPage.context();
 		await context.clearCookies();
 
 		// Navigate to blank page
-		await page.goto('about:blank');
+		await puppeteerPage.goto('about:blank');
 	}
 });

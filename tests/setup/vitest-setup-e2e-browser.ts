@@ -4,11 +4,31 @@
 
 import { beforeAll, afterEach, afterAll } from 'vitest';
 import { page } from '@vitest/browser/context';
+import type { Page as PuppeteerPage } from 'puppeteer'; // Import Puppeteer's Page type
 
 let isSetupComplete = false;
 
 beforeAll(async () => {
 	console.log('Setting up E2E browser test environment with WebDriverIO...');
+
+	// Configure browser for component testing
+	if (page) {
+		try {
+			// Cast page to PuppeteerPage to access its methods
+			const puppeteerPage = page as unknown as PuppeteerPage;
+
+			// Example WebDriverIO usage (adjust as needed for actual WebDriverIO APIs)
+			// These lines would typically involve WebDriverIO specific commands like:
+			// await puppeteerPage.setWindowSize(1280, 720);
+			// await puppeteerPage.setTimezone('UTC');
+			// await puppeteerPage.navigateTo('about:blank');
+		} catch (error) {
+			console.error('Failed to setup E2E browser test environment:', error);
+			// Rethrow to fail the test suite fast
+			throw new Error(`E2E browser setup failed: ${(error as Error).message}`);
+		}
+	}
+
 
 	// Mark setup as complete
 	isSetupComplete = true;
@@ -19,8 +39,11 @@ afterEach(async () => {
 	// Clean up browser state after each test
 	if (page && isSetupComplete) {
 		try {
+			// Cast page to PuppeteerPage to access its methods for evaluation
+			const puppeteerPage = page as unknown as PuppeteerPage;
+
 			// Clear local storage and session storage
-			await page.evaluate(() => {
+			await puppeteerPage.evaluate(() => {
 				localStorage.clear();
 				sessionStorage.clear();
 			});

@@ -4,6 +4,24 @@
 
 import { beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 
+// Declare global types for testUtils
+declare global {
+	namespace NodeJS {
+		interface Global {
+			testUtils: {
+				waitForNextTick(): Promise<void>;
+				sleep(ms: number): Promise<void>;
+			};
+		}
+	}
+	namespace Vi {
+		interface TestUtils {
+			waitForNextTick(): Promise<void>;
+			sleep(ms: number): Promise<void>;
+		}
+	}
+}
+
 // Global test environment setup
 beforeAll(() => {
 	// Set consistent timezone for tests
@@ -56,16 +74,6 @@ afterEach(() => {
 	// Reset any fake timers
 	vi.useRealTimers();
 });
-
-// Global test utilities
-declare global {
-	namespace Vi {
-		interface TestUtils {
-			waitForNextTick(): Promise<void>;
-			sleep(ms: number): Promise<void>;
-		}
-	}
-}
 
 // Add global test utilities
 globalThis.testUtils = {

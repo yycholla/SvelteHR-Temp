@@ -2,14 +2,14 @@
 // Enhanced performance monitoring and reporting
 // Created: 2025-09-24
 
-import { Reporter, TestCase, TestResult, FullResult } from '@playwright/test/reporter';
+import type { Reporter, TestCase, TestResult, FullResult } from '@playwright/test/reporter'; // Added type-only import
 import { promises as fs } from 'fs';
 import { resolve } from 'path';
 
 interface PerformanceMetrics {
 	testName: string;
 	duration: number;
-	status: 'passed' | 'failed' | 'skipped' | 'timedOut';
+	status: 'passed' | 'failed' | 'skipped' | 'timedOut' | 'interrupted'; // Added 'interrupted'
 	browser: string;
 	project: string;
 	annotations: string[];
@@ -57,7 +57,7 @@ class PerformanceReporter implements Reporter {
 		const testMetrics: PerformanceMetrics = {
 			testName: test.title,
 			duration: result.duration,
-			status: result.status,
+			status: result.status as 'passed' | 'failed' | 'skipped' | 'timedOut' | 'interrupted', // Cast status
 			browser: test.parent.project()?.name || 'unknown',
 			project: test.parent.project()?.name || 'unknown',
 			annotations: result.annotations.map((a) => `${a.type}: ${a.description}`),
@@ -80,7 +80,7 @@ class PerformanceReporter implements Reporter {
 		}
 	}
 
-	async onEnd(result: FullResult) {
+	await onEnd(result: FullResult) {
 		const endTime = Date.now();
 		const totalDuration = endTime - this.startTime;
 
@@ -197,7 +197,7 @@ class PerformanceReporter implements Reporter {
 		if (result.stdout) {
 			const errorMatches = result.stdout.filter(
 				(output) =>
-					output.toLowerCase().includes('error') || output.toLowerCase().includes('failed')
+					typeof output === 'string' && (output.toLowerCase().includes('error') || output.toLowerCase().includes('failed'))
 			);
 			metrics.consoleErrors = errorMatches.length;
 		}
@@ -217,7 +217,7 @@ class PerformanceReporter implements Reporter {
 					this.performanceMetrics.length,
 				passedTests: this.performanceMetrics.filter((m) => m.status === 'passed').length,
 				failedTests: this.performanceMetrics.filter((m) => m.status === 'failed').length,
-				skippedTests: this.performanceMetrics.filter((m) => m.status === 'skipped').length
+			skippedTests: this.performanceMetrics.filter((m) => m.status === 'skipped').length
 			},
 			performance: {
 				budgetViolations: this.performanceMetrics.filter((m) =>
@@ -252,7 +252,7 @@ class PerformanceReporter implements Reporter {
 		];
 
 		const csvRows = this.performanceMetrics.map((metric) => [
-			`"${metric.testName}"`,
+			`"${metric.testName}"`, // Added quotes around testName to handle commas
 			metric.duration.toString(),
 			metric.status,
 			metric.browser,
@@ -326,8 +326,8 @@ class PerformanceReporter implements Reporter {
         <table>
             <tr><th>Test Name</th><th>Duration</th><th>Browser</th><th>Status</th></tr>
             ${slowestTests
-							.map(
-								(test) => `
+								.map(
+									(test) => `
                 <tr>
                     <td>${test.testName}</td>
                     <td>${test.duration}ms</td>
@@ -345,8 +345,8 @@ class PerformanceReporter implements Reporter {
         <table>
             <tr><th>Category</th><th>Count</th><th>Avg Duration</th></tr>
             ${Object.entries(categoryBreakdown)
-							.map(
-								([category, data]) => `
+								.map(
+									([category, data]) => `
                 <tr>
                     <td>${category}</td>
                     <td>${data.count}</td>
