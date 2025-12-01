@@ -5,7 +5,6 @@
 import { describe, it, expect } from 'vitest';
 
 // These imports WILL FAIL because the module doesn't exist yet (TDD RED phase)
-// @ts-expect-error - Module doesn't exist yet (TDD RED)
 import { generateKeyPair, signAuditLog, verifySignature } from '$lib/server/audit/crypto-signer';
 
 describe('Cryptographic Signing for Audit Logs (FR-006, FR-022)', () => {
