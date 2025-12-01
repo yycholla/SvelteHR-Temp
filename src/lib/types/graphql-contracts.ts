@@ -51,7 +51,11 @@ export type ErrorType =
 	| 'authentication'
 	| 'permission'
 	| 'timeout'
-	| 'validation';
+	| 'validation'
+	| 'PERMISSION_ERROR'
+	| 'VALIDATION_ERROR'
+	| 'NETWORK_ERROR'
+	| 'AUTHENTICATION_ERROR';
 
 export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';
 
