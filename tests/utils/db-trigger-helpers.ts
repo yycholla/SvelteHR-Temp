@@ -3,7 +3,7 @@
 // Feature: 021-i-have-setup (Comprehensive Audit Logging)
 // Created: 2025-10-02
 
-import { Pool, PoolClient, QueryResult } from 'pg';
+import { Pool, type PoolClient, type QueryResult } from 'pg';
 import { nanoid } from 'nanoid';
 
 // Test database configuration
@@ -23,7 +23,7 @@ let testPool: Pool | null = null;
  */
 export interface TestDatabase {
 	client: PoolClient;
-	query: <T = any>(sql: string, params?: any[]) => Promise<QueryResult<T>>;
+	query: <T = any>(sql: string, params?: any[]) => Promise<QueryResult<any>>;
 	setUserContext: (userId: string, ipAddress?: string, userAgent?: string) => Promise<void>;
 	setBatchContext: (batchId: string) => Promise<void>;
 	clearContext: () => Promise<void>;
@@ -96,7 +96,7 @@ export async function createTestDatabase(): Promise<TestDatabase> {
 	const testDb: TestDatabase = {
 		client,
 
-		query: async <T = any>(sql: string, params: any[] = []): Promise<QueryResult<T>> => {
+		query: async <T = any>(sql: string, params: any[] = []): Promise<QueryResult<any>> => {
 			return client.query<T>(sql, params);
 		},
 
