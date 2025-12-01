@@ -30,9 +30,8 @@ describe('Document Validation - Unit Tests', () => {
 				file: createMockFile('document.pdf', 1024 * 1024, 'application/pdf'), // 1MB
 				metadata: {
 					filename: 'contract.pdf',
-					category: 'Contract',
-					sensitivity_level: 'Internal',
-					description: 'Employment contract'
+					                    category: 'Contract',
+					                    sensitivityLevel: 'Internal',					description: 'Employment contract'
 				}
 			};
 
@@ -122,7 +121,7 @@ describe('Document Validation - Unit Tests', () => {
 			expect(result.success).toBe(false);
 			if (!result.success) {
 				const hasSensitivityError = result.error.issues.some(
-					issue => issue.path.includes('sensitivity_level')
+					issue => issue.path.includes('sensitivityLevel')
 				);
 				expect(hasSensitivityError).toBe(true);
 			}
@@ -237,7 +236,7 @@ describe('Document Validation - Unit Tests', () => {
 				const data = {
 					filename: 'test.pdf',
 					category: 'Contract',
-					sensitivity_level: level
+					sensitivityLevel: level
 				};
 
 				const result = documentMetadataSchema.safeParse(data);
@@ -259,9 +258,8 @@ describe('Document Validation - Unit Tests', () => {
 			categories.forEach(category => {
 				const data = {
 					filename: 'test.pdf',
-					category,
-					sensitivity_level: 'Internal'
-				};
+					                    category,
+					                    sensitivityLevel: 'Internal'				};
 
 				const result = documentMetadataSchema.safeParse(data);
 				expect(result.success).toBe(true);
