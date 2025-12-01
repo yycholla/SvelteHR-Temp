@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { createClient, type Client } from '@urql/core';
+import { createClient, type Client, cacheExchange, fetchExchange } from '@urql/core';
 import { gql } from '@urql/core';
 
 // Test configuration
@@ -29,7 +29,8 @@ describeOrSkip('Migration Smoke Tests - Idiomatic Rust Patterns', () => {
 		client = createClient({
 			url: GRAPHQL_ENDPOINT,
 			fetch: fetch as any,
-			requestPolicy: 'network-only'
+			requestPolicy: 'network-only',
+			exchanges: [cacheExchange, fetchExchange]
 		});
 	});
 
@@ -572,7 +573,8 @@ export const createTestClient = () => {
 	return createClient({
 		url: GRAPHQL_ENDPOINT,
 		fetch: fetch as any,
-		requestPolicy: 'network-only'
+		requestPolicy: 'network-only',
+		exchanges: [cacheExchange, fetchExchange]
 	});
 };
 
