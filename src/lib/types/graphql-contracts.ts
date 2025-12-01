@@ -140,6 +140,7 @@ export interface UpcomingEvent {
 // =============================================================================
 
 export interface VerifyUserAuthenticationResponse {
+	success: boolean;
 	currentUser: AuthenticatedUser;
 	authStatus: AuthStatus;
 }
