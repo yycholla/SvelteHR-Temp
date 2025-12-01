@@ -4,7 +4,7 @@
 
 import { beforeAll, afterEach } from 'vitest';
 import { page } from '@vitest/browser/context';
-import type { Page as PuppeteerPage } from 'puppeteer'; // Import Puppeteer's Page type
+import type { Page as PuppeteerPage, BrowserContext } from 'puppeteer'; // Import Puppeteer's Page and BrowserContext types
 
 beforeAll(async () => {
 	console.log('Setting up browser test environment...');
@@ -50,7 +50,7 @@ afterEach(async () => {
 		});
 
 		// Clear cookies
-		const context = puppeteerPage.browserContext();
+		const context = puppeteerPage.browserContext() as BrowserContext; // Explicitly cast to BrowserContext
 		await context.clearCookies();
 
 		// Navigate to blank page
