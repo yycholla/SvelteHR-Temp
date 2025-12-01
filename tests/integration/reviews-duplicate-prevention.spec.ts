@@ -19,6 +19,14 @@ interface TestContext {
 	testEmployee: any;
 	authTokens: Record<string, string>;
 	cleanup?: () => Promise<void>;
+	users: any; // Placeholder for users object
+	departments: any; // Placeholder for departments object
+	createdEmployees: string[];
+	createdUsers: string[];
+	createdDepartments: string[];
+	createdReviews: string[];
+	createdGoals: string[];
+	createdLeaveRequests: string[];
 }
 
 describe('T016: Duplicate active review prevention', () => {
@@ -33,7 +41,15 @@ describe('T016: Duplicate active review prevention', () => {
 			testEmployee: employee,
 			authTokens: {
 				admin: admin.token
-			}
+			},
+			users: { admin: admin, hrManager: null, manager: null, employee: employee },
+			departments: { engineering: null, marketing: null, hr: null },
+			createdEmployees: [],
+			createdUsers: [],
+			createdDepartments: [],
+			createdReviews: [],
+			createdGoals: [],
+			createdLeaveRequests: []
 		};
 	});
 
