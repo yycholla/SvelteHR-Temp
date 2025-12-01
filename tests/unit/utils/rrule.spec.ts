@@ -22,8 +22,7 @@ describe('RRULE Generation', () => {
 				frequency: 'daily',
 				interval: 1,
 				daysOfWeek: undefined,
-				endDate: new Date('2025-12-31'),
-				rruleString: ''
+				endDate: new Date('2025-12-31')
 			};
 
 			const rrule = generateRRule(pattern, new Date('2025-10-10'));
@@ -38,8 +37,7 @@ describe('RRULE Generation', () => {
 				frequency: 'weekly',
 				interval: 1,
 				daysOfWeek: [1, 3, 5], // Monday, Wednesday, Friday
-				endDate: new Date('2025-12-31'),
-				rruleString: ''
+				endDate: new Date('2025-12-31')
 			};
 
 			const rrule = generateRRule(pattern, new Date('2025-10-10'));
@@ -53,8 +51,7 @@ describe('RRULE Generation', () => {
 				frequency: 'weekly',
 				interval: 2,
 				daysOfWeek: [1], // Monday
-				endDate: new Date('2025-12-31'),
-				rruleString: ''
+				endDate: new Date('2025-12-31')
 			};
 
 			const rrule = generateRRule(pattern, new Date('2025-10-10'));
@@ -68,8 +65,7 @@ describe('RRULE Generation', () => {
 				frequency: 'monthly',
 				interval: 1,
 				daysOfWeek: undefined,
-				endDate: new Date('2025-12-31'),
-				rruleString: ''
+				endDate: new Date('2025-12-31')
 			};
 
 			const rrule = generateRRule(pattern, new Date('2025-10-10'));
@@ -82,8 +78,7 @@ describe('RRULE Generation', () => {
 				frequency: 'yearly',
 				interval: 1,
 				daysOfWeek: undefined,
-				endDate: new Date('2030-10-10'),
-				rruleString: ''
+				endDate: new Date('2030-10-10')
 			};
 
 			const rrule = generateRRule(pattern, new Date('2025-10-10'));
@@ -96,8 +91,7 @@ describe('RRULE Generation', () => {
 				frequency: 'daily',
 				interval: 1,
 				daysOfWeek: undefined,
-				endDate: new Date('2025-12-31'),
-				rruleString: ''
+				endDate: new Date('2025-12-31')
 			};
 
 			const rrule = generateRRule(pattern, new Date('2025-10-10'));
