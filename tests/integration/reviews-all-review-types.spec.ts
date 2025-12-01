@@ -35,7 +35,22 @@ const EXPECTED_REVIEW_TYPES = [
 ];
 
 describe('T018: All 10 review types available', () => {
-	let testContext: TestContext;
+	let testContext: {
+		adminUser: any;
+		testEmployee: any;
+		authTokens: Record<string, string>;
+		cleanup?: () => Promise<void>;
+		// Add other properties that are expected by cleanupTestData
+		// For now, let's add the basic ones that appear in the error message
+		users: any; // Assuming users is an object with admin, hrManager, etc.
+		departments: any; // Assuming departments is an object with engineering, marketing, etc.
+		createdEmployees: string[];
+		createdUsers: string[];
+		createdDepartments: string[];
+		createdReviews: string[];
+		createdGoals: string[];
+		createdLeaveRequests: string[];
+	};
 
 	beforeAll(async () => {
 		const admin = await TestUser.createAdmin();
@@ -46,7 +61,15 @@ describe('T018: All 10 review types available', () => {
 			testEmployee: employee,
 			authTokens: {
 				admin: admin.token
-			}
+			},
+			users: { admin, hrManager: null, manager: null, employee: employee }, // Placeholder
+			departments: { engineering: null, marketing: null, hr: null }, // Placeholder
+			createdEmployees: [],
+			createdUsers: [],
+			createdDepartments: [],
+			createdReviews: [],
+			createdGoals: [],
+			createdLeaveRequests: []
 		};
 	});
 
@@ -76,13 +99,13 @@ describe('T018: All 10 review types available', () => {
 		expect(response.data.reviewTypes).toHaveLength(10);
 
 		// Assert: Each expected type is present
-		const returnedValues = response.data.reviewTypes.map((rt) => rt.value);
+		const returnedValues = response.data.reviewTypes.map((rt: { value: string }) => rt.value);
 		EXPECTED_REVIEW_TYPES.forEach((expectedType) => {
 			expect(returnedValues).toContain(expectedType);
 		});
 
 		// Assert: Each type has required metadata fields
-		response.data.reviewTypes.forEach((reviewType) => {
+		response.data.reviewTypes.forEach((reviewType: { value: string; label: string; description: string; displayOrder: number }) => {
 			expect(reviewType.value).toBeDefined();
 			expect(reviewType.label).toBeDefined();
 			expect(reviewType.description).toBeDefined();
@@ -91,7 +114,7 @@ describe('T018: All 10 review types available', () => {
 		});
 
 		// Assert: Display orders are unique and properly ordered
-		const displayOrders = response.data.reviewTypes.map((rt) => rt.displayOrder);
+		const displayOrders = response.data.reviewTypes.map((rt: { displayOrder: number }) => rt.displayOrder);
 		const uniqueOrders = new Set(displayOrders);
 		expect(uniqueOrders.size).toBe(10);
 	});
@@ -180,7 +203,7 @@ describe('T018: All 10 review types available', () => {
 			SELF_REVIEW: 'Self Review'
 		};
 
-		response.data.reviewTypes.forEach((reviewType) => {
+		response.data.reviewTypes.forEach((reviewType: { value: keyof typeof expectedLabels; label: string }) => {
 			const expectedLabel = expectedLabels[reviewType.value];
 			expect(reviewType.label).toBe(expectedLabel);
 		});
@@ -203,17 +226,17 @@ describe('T018: All 10 review types available', () => {
 		);
 
 		// Each review type should have a non-empty description
-		response.data.reviewTypes.forEach((reviewType) => {
+		response.data.reviewTypes.forEach((reviewType: { description: string }) => {
 			expect(reviewType.description).toBeDefined();
 			expect(reviewType.description.length).toBeGreaterThan(10);
 		});
 
 		// Verify specific descriptions contain key terms
-		const annualReview = response.data.reviewTypes.find((rt) => rt.value === 'ANNUAL_REVIEW');
+		const annualReview = response.data.reviewTypes.find((rt: { value: string }) => rt.value === 'ANNUAL_REVIEW');
 		expect(annualReview?.description.toLowerCase()).toMatch(/annual|yearly|year/);
 
 		const pip = response.data.reviewTypes.find(
-			(rt) => rt.value === 'PERFORMANCE_IMPROVEMENT_PLAN'
+			(rt: { value: string }) => rt.value === 'PERFORMANCE_IMPROVEMENT_PLAN'
 		);
 		expect(pip?.description.toLowerCase()).toMatch(/improvement|performance|plan/);
 	});
