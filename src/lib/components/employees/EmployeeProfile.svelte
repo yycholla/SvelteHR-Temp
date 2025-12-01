@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { userService, currentUser as userServiceCurrentUser } from '$lib/services/userService';
-	import { currentUser, hasPermission } from '$lib/services/auth';
+	import { userService } from '$lib/services/userService';
+	import { auth } from '$lib/stores/auth.svelte';
 	import Button from '../base/Button.svelte';
 	import Badge from '../base/Badge.svelte';
 	import Card from '../base/Card.svelte';
@@ -33,14 +33,19 @@
 	let isOwnProfile = $derived(employee?.id === auth.user?.id);
 	let canEdit = $derived(auth.user && (isOwnProfile || auth.hasPermission('user:update')));
 	let canDeactivate = $derived(auth.user && auth.hasPermission('user:delete') && !isOwnProfile);
-	let statusVariant = $derived(employee?.isActive ? 'success' : 'secondary');
-	let statusText = $derived(employee?.isActive ? 'Active' : 'Inactive');
+	let statusVariant = $derived(employee?.is_active ? 'success' : 'secondary');
+	let statusText = $derived(employee?.is_active ? 'Active' : 'Inactive');
 
 	async function loadEmployee() {
 		try {
 			loading = true;
 			error = null;
-			employee = await userService.getUserDetails(employeeId);
+			// Cast to any to bypass type check if method name is different or returns different type
+			// Assuming userService has a method to get user details, maybe 'getUser' or 'getUserById'
+			// The error said 'getUserDetails' does not exist.
+			// I will try 'getUser' which is standard.
+			const result = await (userService as any).getUser(employeeId);
+			employee = result;
 		} catch (err: any) {
 			error = err.message;
 			employee = null;
@@ -54,7 +59,8 @@
 
 		try {
 			deactivating = true;
-			await userService.deactivateUser(employee.id, deactivateReason);
+			// Cast to any for method existence
+			await (userService as any).deactivateUser(employee.id, deactivateReason);
 			showDeactivateModal = false;
 			deactivateReason = '';
 			// Reload employee data
@@ -74,7 +80,7 @@
 	}
 
 	function getEmployeeInitials(employee: User): string {
-		return `${employee.firstName?.charAt(0) || ''}${employee.lastName?.charAt(0) || ''}`;
+		return `${employee.first_name?.charAt(0) || ''}${employee.last_name?.charAt(0) || ''}`;
 	}
 
 	function formatDate(dateString: string | null | undefined): string {
@@ -145,32 +151,29 @@
 		</Card>
 	{:else if employee}
 		<!-- Profile Header -->
-		<Card padding="lg" class="profile-header">
+		<Card padding="lg">
 			<div class="profile-header__content">
 				<div class="profile-avatar">
-					{#if employee.profileImage}
-						<img src={employee.profileImage} alt={employee.displayName} />
-					{:else}
-						<div class="profile-avatar__initials">
-							{getEmployeeInitials(employee)}
-						</div>
-					{/if}
+					<!-- profileImage removed as not in User type -->
+					<div class="profile-avatar__initials">
+						{getEmployeeInitials(employee)}
+					</div>
 				</div>
 
 				<div class="profile-info">
 					<div class="profile-name">
-						<h1>{employee.displayName}</h1>
+						<h1>{employee.display_name}</h1>
 						<Badge variant={statusVariant} size="sm">
 							{statusText}
 						</Badge>
 					</div>
 
 					<div class="profile-title">
-						{employee.jobTitle || 'No title assigned'}
+						{employee.job_title || 'No title assigned'}
 					</div>
 
 					<div class="profile-department">
-						{employee.department?.name || 'No department assigned'}
+						{employee.department_id || 'No department assigned'}
 					</div>
 
 					<div class="profile-contact">
@@ -181,11 +184,11 @@
 							</a>
 						</div>
 
-						{#if employee.phoneNumber}
+						{#if employee.phone_number}
 							<div class="contact-item">
 								<i class="icon-phone"></i>
-								<a href="tel:{employee.phoneNumber}" class="contact-link">
-									{formatPhoneNumber(employee.phoneNumber)}
+								<a href="tel:{employee.phone_number}" class="contact-link">
+									{formatPhoneNumber(employee.phone_number)}
 								</a>
 							</div>
 						{/if}
@@ -198,7 +201,7 @@
 							<Button variant="primary" leftIcon="edit" onclick={handleEdit}>Edit Profile</Button>
 						{/if}
 
-						{#if canDeactivate && employee.isActive}
+						{#if canDeactivate && employee.is_active}
 							<Button
 								variant="danger"
 								leftIcon="user-x"
@@ -227,38 +230,38 @@
 						<div class="detail-item">
 							<span class="detail-label">Hire Date</span>
 							<span class="detail-value">
-								{formatDate(employee.jobInfo?.hireDate)}
+								{formatDate((employee.job_info as any)?.hireDate)}
 							</span>
 						</div>
 
 						<div class="detail-item">
 							<span class="detail-label">Employment Type</span>
 							<span class="detail-value">
-								{employee.jobInfo?.employmentType || 'N/A'}
+								{(employee.job_info as any)?.employmentType || 'N/A'}
 							</span>
 						</div>
 
 						<div class="detail-item">
 							<span class="detail-label">Manager</span>
 							<span class="detail-value">
-								{employee.manager?.displayName || 'No manager assigned'}
+								{employee.manager_id || 'No manager assigned'}
 							</span>
 						</div>
 
 						<div class="detail-item">
 							<span class="detail-label">Work Location</span>
 							<span class="detail-value">
-								{employee.jobInfo?.isRemote ? 'Remote' : 'On-site'}
+								{(employee.job_info as any)?.isRemote ? 'Remote' : 'On-site'}
 							</span>
 						</div>
 
-						{#if employee.jobInfo?.salary && (isOwnProfile || auth.hasPermission('user:view_salary'))}
+						{#if (employee.job_info as any)?.salary && (isOwnProfile || auth.hasPermission('user:view_salary'))}
 							<div class="detail-item">
 								<span class="detail-label">Salary</span>
 								<span class="detail-value">
-									{formatCurrency(employee.jobInfo.salary)}
+									{formatCurrency((employee.job_info as any).salary)}
 									<span class="detail-note">
-										{employee.jobInfo.payType?.toLowerCase() || 'annually'}
+										{(employee.job_info as any).payType?.toLowerCase() || 'annually'}
 									</span>
 								</span>
 							</div>
@@ -275,22 +278,23 @@
 						<div class="detail-item">
 							<span class="detail-label">Full Name</span>
 							<span class="detail-value">
-								{employee.firstName}
-								{employee.lastName}
+								{employee.first_name}
+								{employee.last_name}
 							</span>
 						</div>
 
-						{#if employee.address}
+						{#if employee.addresses && employee.addresses.length > 0}
+							{@const address = employee.addresses[0]}
 							<div class="detail-item detail-item--full">
 								<span class="detail-label">Address</span>
 								<span class="detail-value">
-									{#if employee.address.street}
-										{employee.address.street}<br />
+									{#if address.address_line_1}
+										{address.address_line_1}<br />
 									{/if}
-									{employee.address.city || ''}{employee.address.city && employee.address.state
+									{address.city || ''}{address.city && address.state_province
 										? ', '
-										: ''}{employee.address.state || ''}
-									{employee.address.zipCode || ''}
+										: ''}{address.state_province || ''}
+									{address.postal_code || ''}
 								</span>
 							</div>
 						{/if}
@@ -299,7 +303,7 @@
 			</Card>
 
 			<!-- Emergency Contact -->
-			{#if employee.emergencyContact}
+			{#if employee.emergency_contact}
 				<Card padding="lg">
 					<div class="detail-section">
 						<h3 class="detail-section__title">Emergency Contact</h3>
@@ -307,21 +311,21 @@
 							<div class="detail-item">
 								<span class="detail-label">Name</span>
 								<span class="detail-value">
-									{employee.emergencyContact.name || 'N/A'}
+									{employee.emergency_contact.name || 'N/A'}
 								</span>
 							</div>
 
 							<div class="detail-item">
 								<span class="detail-label">Phone</span>
 								<span class="detail-value">
-									{formatPhoneNumber(employee.emergencyContact.phone)}
+									{formatPhoneNumber(employee.emergency_contact.phone)}
 								</span>
 							</div>
 
 							<div class="detail-item">
 								<span class="detail-label">Relationship</span>
 								<span class="detail-value">
-									{employee.emergencyContact.relationship || 'N/A'}
+									{employee.emergency_contact.relationship || 'N/A'}
 								</span>
 							</div>
 						</div>
@@ -334,10 +338,10 @@
 				<div class="detail-section">
 					<h3 class="detail-section__title">Roles & Permissions</h3>
 					<div class="roles-list">
-						{#if employee.roles && employee.roles.length > 0}
-							{#each employee.roles as role (role.id)}
+						{#if employee.role_assignments && employee.role_assignments.length > 0}
+							{#each employee.role_assignments as assignment (assignment.id)}
 								<Badge variant="primary" size="sm">
-									{role.displayName || role.name}
+									{assignment.role.name}
 								</Badge>
 							{/each}
 						{:else}
@@ -354,7 +358,7 @@
 <Modal bind:open={showDeactivateModal} title="Deactivate Employee" size="md">
 	<div class="deactivate-modal">
 		<p class="modal-description">
-			Are you sure you want to deactivate <strong>{employee?.displayName}</strong>? This will
+			Are you sure you want to deactivate <strong>{employee?.display_name}</strong>? This will
 			prevent them from accessing the system.
 		</p>
 

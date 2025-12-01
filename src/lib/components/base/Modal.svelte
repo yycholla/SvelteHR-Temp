@@ -72,9 +72,11 @@
 	function trapFocus(event: KeyboardEvent) {
 		if (event.key !== 'Tab') return;
 
-		const focusableElements = modalElement.querySelectorAll(
+		const focusableElements = modalElement?.querySelectorAll(
 			'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
 		);
+
+		if (!focusableElements || focusableElements.length === 0) return;
 
 		const firstFocusable = focusableElements[0] as HTMLElement;
 		const lastFocusable = focusableElements[focusableElements.length - 1] as HTMLElement;

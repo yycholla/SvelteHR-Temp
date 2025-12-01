@@ -190,7 +190,7 @@
 
 	<div class="select-wrapper">
 		<button
-			bind:this={selectElement}
+			bind:this={selectElement as any}
 			type="button"
 			{id}
 			{disabled}

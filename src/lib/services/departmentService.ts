@@ -160,6 +160,25 @@ export async function searchDepartments(query: string, limit: number = 10): Prom
 	return (await getDepartments({ search: query, limit })).departments;
 }
 
+import { writable } from 'svelte/store';
+
+/**
+ * Store for departments list
+ */
+export const departments = writable<Department[]>([]);
+
+/**
+ * Load departments into the store
+ */
+export async function loadDepartments(): Promise<void> {
+	try {
+		const result = await getDepartments();
+		departments.set(result.departments);
+	} catch (error) {
+		console.error('Error loading departments:', error);
+	}
+}
+
 // Export the service object for consistency with other services
 export const departmentService = {
 	getDepartments,
@@ -168,5 +187,7 @@ export const departmentService = {
 	updateDepartment,
 	deleteDepartment,
 	getDepartmentsByManager,
-	searchDepartments
+	searchDepartments,
+	departments,
+	loadDepartments
 };

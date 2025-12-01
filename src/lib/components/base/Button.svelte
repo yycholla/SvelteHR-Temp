@@ -15,6 +15,7 @@
 		leftIcon = null,
 		rightIcon = null,
 		iconOnly = false,
+		onclick = undefined,
 		children
 	}: {
 		variant?: 'primary' | 'secondary' | 'tertiary' | 'danger' | 'success' | 'warning' | 'ghost';
@@ -30,6 +31,7 @@
 		leftIcon?: string | null;
 		rightIcon?: string | null;
 		iconOnly?: boolean;
+		onclick?: ((event: MouseEvent) => void) | undefined;
 		children?: Snippet;
 	} = $props();
 
@@ -56,7 +58,7 @@
 			event.stopPropagation();
 			return;
 		}
-		// Let the default click handler proceed
+		onclick?.(event);
 	}
 </script>
 

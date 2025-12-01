@@ -186,10 +186,10 @@ class AuthStore {
 
 			if (userSettings?.preferences?.appearance?.darkMode !== undefined) {
 				const mode = userSettings.preferences.appearance.darkMode ? 'dark' : 'light';
-				userPrefersMode.set(mode);
+				(userPrefersMode as any).set(mode);
 				console.log(`✓ Applied user theme on login: ${mode}`);
 			} else if (userSettings?.preferences?.theme) {
-				userPrefersMode.set(userSettings.preferences.theme as 'light' | 'dark' | 'system');
+				(userPrefersMode as any).set(userSettings.preferences.theme as 'light' | 'dark' | 'system');
 				console.log(`✓ Applied user theme on login: ${userSettings.preferences.theme}`);
 			} else {
 				console.log('ℹ No theme preference found, using system default');

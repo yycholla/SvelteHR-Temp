@@ -126,16 +126,15 @@
 	});
 
 	// Filter results client-side for search
-	const filteredEmployees = $derived(() => {
+	const filteredEmployees = $derived.by(() => {
 		if (!queryState.data) return [];
-		const employees = queryState.data?.users || [];
-		if (!searchFilter) return employees;
-		return employees.filter(searchFilter);
+		const emp = queryState.data?.users || [];
+		if (!searchFilter) return emp;
+		return emp.filter(searchFilter);
 	});
 
 	// Derived values for display
-	const employees = filteredEmployees;
-	const totalCount = $derived(employees?.length || 0);
+	const totalCount = $derived(filteredEmployees?.length || 0);
 	const totalPages = $derived(Math.ceil(totalCount / itemsPerPage));
 	const loading = $derived(!clientReady || queryState.fetching);
 	const error = $derived(queryState.error);
@@ -161,7 +160,7 @@
 	};
 
 	const selectAll = () => {
-		selectedEmployees = employees().map((emp: Employee) => emp.id);
+		selectedEmployees = filteredEmployees.map((emp: Employee) => emp.id);
 	};
 
 	const clearSelection = () => {
@@ -315,7 +314,7 @@
 	{/if}
 
 	<!-- Employee grid/list -->
-	{#if !loading && !error && employees.length === 0}
+	{#if !loading && !error && filteredEmployees.length === 0}
 		<div class="empty-state">
 			<div class="empty-icon">
 				<svg width="48" height="48" viewBox="0 0 16 16" fill="currentColor">
@@ -335,14 +334,14 @@
 				{/if}
 			</p>
 		</div>
-	{:else if employees.length > 0}
+	{:else if filteredEmployees.length > 0}
 		<!-- Employee cards/rows -->
 		<div
 			class="employee-container"
 			class:grid-view={viewMode === 'grid'}
 			class:list-view={viewMode === 'list'}
 		>
-			{#each employees() as employee (employee.id)}
+			{#each filteredEmployees as employee (employee.id)}
 				<div class="employee-card">
 					<div class="employee-info">
 						<div class="employee-avatar">

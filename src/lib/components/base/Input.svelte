@@ -163,7 +163,7 @@
 			{disabled}
 			{readonly}
 			{required}
-			{autocomplete}
+			autocomplete={autocomplete as any}
 			{min}
 			{max}
 			{step}
