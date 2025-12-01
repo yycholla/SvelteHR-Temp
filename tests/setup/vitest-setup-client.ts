@@ -172,7 +172,7 @@ beforeAll(() => {
 			constructor(init?: string | string[][] | Record<string, string>) {
 				// Basic implementation for testing
 				if (typeof init === 'string') {
-					new URLSearchParams(init.substring(1)).forEach((value, name) =>
+					new URLSearchParams(init.substring(1)).forEach((value: string, name: string) =>
 						this.params.set(name, value)
 					);
 				} else if (Array.isArray(init)) {
