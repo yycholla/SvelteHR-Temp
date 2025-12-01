@@ -80,16 +80,16 @@ class PerformanceReporter implements Reporter {
 		}
 	}
 
-	await onEnd(result: FullResult) {
+	async onEnd(result: FullResult): Promise<void> { // Changed to async and returns Promise<void>
 		const endTime = Date.now();
 		const totalDuration = endTime - this.startTime;
 
 		console.log(`📊 Performance analysis completed in ${totalDuration}ms`);
 
 		// Generate comprehensive performance reports
-		await this.generatePerformanceReport(result, totalDuration);
-		await this.generateCSVReport();
-		await this.generateHTMLReport();
+		void this.generatePerformanceReport(result, totalDuration); // Use void for fire-and-forget promise
+		void this.generateCSVReport();
+		void this.generateHTMLReport();
 
 		// Log performance summary
 		this.logPerformanceSummary();
@@ -374,13 +374,12 @@ class PerformanceReporter implements Reporter {
 	}
 
 	private generateCategoryBreakdown(): Record<string, { count: number; averageDuration: number }> {
-		const breakdown: Record<
-			string,
-			{ count: number; totalDuration: number; averageDuration: number }
-		> = {};
+		const breakdown: {
+			[key: string]: { count: number; totalDuration: number; averageDuration: number };
+		} = {};
 
 		this.performanceMetrics.forEach((metric: PerformanceMetrics) => {
-			metric.steps.forEach((step) => {
+			metric.steps.forEach((step: { category: string; duration: number }) => {
 				if (!breakdown[step.category]) {
 					breakdown[step.category] = { count: 0, totalDuration: 0, averageDuration: 0 };
 				}
@@ -390,7 +389,7 @@ class PerformanceReporter implements Reporter {
 		});
 
 		// Calculate averages
-		Object.keys(breakdown).forEach((category) => {
+		Object.keys(breakdown).forEach((category: string) => {
 			breakdown[category].averageDuration =
 				breakdown[category].totalDuration / breakdown[category].count;
 		});
@@ -399,10 +398,9 @@ class PerformanceReporter implements Reporter {
 	}
 
 	private generateBrowserBreakdown(): Record<string, { count: number; averageDuration: number }> {
-		const breakdown: Record<
-			string,
-			{ count: number; totalDuration: number; averageDuration: number }
-		> = {};
+		const breakdown: {
+			[key: string]: { count: number; totalDuration: number; averageDuration: number };
+		} = {};
 
 		this.performanceMetrics.forEach((metric: PerformanceMetrics) => {
 			if (!breakdown[metric.browser]) {
@@ -413,7 +411,7 @@ class PerformanceReporter implements Reporter {
 		});
 
 		// Calculate averages
-		Object.keys(breakdown).forEach((browser) => {
+		Object.keys(breakdown).forEach((browser: string) => {
 			breakdown[browser].averageDuration =
 				breakdown[browser].totalDuration / breakdown[browser].count;
 		});
