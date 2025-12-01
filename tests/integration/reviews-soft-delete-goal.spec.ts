@@ -19,6 +19,14 @@ interface TestContext {
 	testEmployee: any;
 	authTokens: Record<string, string>;
 	cleanup?: () => Promise<void>;
+	users: any;
+	departments: any;
+	createdEmployees: string[];
+	createdUsers: string[];
+	createdDepartments: string[];
+	createdReviews: string[];
+	createdGoals: string[];
+	createdLeaveRequests: string[];
 }
 
 describe('T017: Soft delete goal preservation in reviews', () => {
@@ -33,7 +41,15 @@ describe('T017: Soft delete goal preservation in reviews', () => {
 			testEmployee: employee,
 			authTokens: {
 				admin: admin.token
-			}
+			},
+			users: { admin: admin, hrManager: null, manager: null, employee: employee },
+			departments: { engineering: null, marketing: null, hr: null },
+			createdEmployees: [],
+			createdUsers: [],
+			createdDepartments: [],
+			createdReviews: [],
+			createdGoals: [],
+			createdLeaveRequests: []
 		};
 	});
 
@@ -175,7 +191,7 @@ describe('T017: Soft delete goal preservation in reviews', () => {
 		);
 
 		// Goal should not be in active goals list
-		const deletedGoalInList = activeGoalsResponse.data.employeeGoals.find((g) => g.id === goalId);
+		const deletedGoalInList = activeGoalsResponse.data.employeeGoals.find((g: { id: string }) => g.id === goalId);
 		expect(deletedGoalInList).toBeUndefined();
 
 		// Step 6: Query with includeDeleted=true - goal should appear
@@ -185,7 +201,7 @@ describe('T017: Soft delete goal preservation in reviews', () => {
 			testContext.authTokens.admin
 		);
 
-		const deletedGoalIncluded = allGoalsResponse.data.employeeGoals.find((g) => g.id === goalId);
+		const deletedGoalIncluded = allGoalsResponse.data.employeeGoals.find((g: { id: string }) => g.id === goalId);
 		expect(deletedGoalIncluded).toBeDefined();
 		expect(deletedGoalIncluded.deleted).toBe(true);
 	});
