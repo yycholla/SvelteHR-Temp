@@ -217,8 +217,8 @@ describeOrSkip('GraphQL Backend Performance Tests (requires Rust server on port 
 
 		// Perform multiple operations
 		const operations = [
-			() => timeFunction('Query1', 'graphql', mockGraphQLOperations.simpleQuery, ['batch']),
-			() => timeFunction('Query2', 'graphql', mockGraphQLOperations.complexQuery, ['batch']),
+			() => timeFunction('Query1', 'graphql', () => mockGraphQLOperations.simpleQuery(), ['batch']),
+			() => timeFunction('Query2', 'graphql', () => mockGraphQLOperations.complexQuery(), ['batch']),
 			() =>
 				timeFunction('Mutation1', 'graphql', () => mockGraphQLOperations.mutationOperation({}), [
 					'batch'
