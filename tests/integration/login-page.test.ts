@@ -12,7 +12,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import type { LoadEvent } from '@sveltejs/kit';
 import type {
-	VerifyUserAuthenticationRequest,
 	VerifyUserAuthenticationResponse,
 	DataRequest,
 	ErrorResponse
@@ -88,7 +87,7 @@ describe('Login Page Integration (T018)', () => {
 				url: new URL('http://localhost:5173/login'),
 				cookies: {
 					get: vi.fn().mockReturnValue(null) // No auth token
-				} as any,
+				},
 				locals: {} // No user context
 			};
 
@@ -108,7 +107,7 @@ describe('Login Page Integration (T018)', () => {
 				url: new URL('http://localhost:5173/login'),
 				cookies: {
 					get: vi.fn().mockReturnValue('valid-auth-token')
-				} as any,
+				},
 				locals: {
 					user: { id: 'user-123', role: 'HR_Manager' },
 					permissions: ['employees:read', 'departments:read']
@@ -132,7 +131,7 @@ describe('Login Page Integration (T018)', () => {
 				url: new URL(`http://localhost:5173/login?redirectTo=${encodeURIComponent(redirectUrl)}`),
 				cookies: {
 					get: vi.fn().mockReturnValue(null)
-				} as any,
+				},
 				locals: {}
 			};
 
@@ -361,8 +360,6 @@ describe('Login Page Integration (T018)', () => {
 			expect(mockSessionManager.refreshSession).not.toHaveBeenCalled();
 		});
 
-		it('should handle token storage with proper security flags', async () => {
-			// Arrange
 			const authResponse: VerifyUserAuthenticationResponse = {
 				success: true,
 				data: {
@@ -455,7 +452,7 @@ describe('Login Page Integration (T018)', () => {
 			}).toThrow('Login page component not implemented - TDD compliance');
 
 			// Verify CSRF token integration
-			expect(screen.queryByName('csrf-token')).toBeNull();
+			expect(screen.queryByTestId('csrf-token')).toBeNull();
 		});
 
 		it('should implement secure password validation feedback', async () => {
@@ -489,7 +486,7 @@ describe('Login Page Integration (T018)', () => {
 			const mockLoadEvent: Partial<LoadEvent> = {
 				params: {},
 				url: new URL('http://localhost:5173/login'),
-				cookies: { get: vi.fn().mockReturnValue(null) } as any,
+				cookies: { get: vi.fn().mockReturnValue(null) },
 				locals: {}
 			};
 
