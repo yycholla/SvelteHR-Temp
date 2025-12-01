@@ -4,7 +4,7 @@
  * Setup configuration for GraphQL performance and load testing.
  */
 
-import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import { beforeAll, afterAll, beforeEach, afterEach, expect } from 'vitest';
 import { createUrqlClient } from '$lib/graphql/client';
 import { GraphQLPerformanceMonitor } from '$lib/graphql/performance-monitor';
 import { NPlusOneDetector } from '$lib/graphql/n-plus-one-detector';

@@ -170,7 +170,7 @@ export function isTaskDepartmentAssigned(task: Task): boolean {
  */
 export function filterTasksByDepartment(
 	tasks: Task[],
-	departmentId: string | null
+	departmentId: string | undefined
 ): Task[] {
 	if (!departmentId) {
 		// Return tasks with no department assignment

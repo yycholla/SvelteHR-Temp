@@ -128,6 +128,7 @@ export interface TestContext {
 		marketing: TestDepartmentData;
 		hr: TestDepartmentData;
 	};
+	testEmployee?: TestEmployeeData; // Add this line
 	createdEmployees: string[];
 	createdUsers: string[];
 	createdDepartments: string[];
