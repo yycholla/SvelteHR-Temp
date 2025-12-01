@@ -47,11 +47,26 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 		error(401, { message: 'Authentication required' });
 	}
 
-	// Step 2: Check authorization (Admin or Super Admin only can upload)
-	const userRole = locals.user.role || 'employee';
-	if (!['admin', 'super_admin'].includes(userRole)) {
-		error(403, { message: 'Insufficient permissions. Admin role required.' });
+	// Step 2: Check authorization using permission-based RBAC
+	const userPermissions = locals.permissions || [];
+	const canUploadDocuments = userPermissions.some(
+		(perm: string) => perm === 'documents:write' || perm === '*' || perm === '*:*'
+	);
+
+	if (!canUploadDocuments) {
+		console.error('[Upload API] Permission denied:', {
+			userId: locals.user?.id,
+			permissions: userPermissions
+		});
+		error(403, {
+			message: 'Insufficient permissions. documents:write permission required.'
+		});
 	}
+
+	console.log('[Upload API] Authorization passed:', {
+		userId: locals.user.id,
+		permissions: userPermissions
+	});
 
 	try {
 		// Step 3: Parse request body

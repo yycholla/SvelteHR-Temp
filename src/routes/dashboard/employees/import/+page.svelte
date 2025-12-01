@@ -471,16 +471,18 @@
 				<input type="hidden" name="jobId" value={jobId} />
 
 				<div class="mb-4 max-w-md">
-					<label class="mb-2 block text-sm font-medium">Temporary Password for New Users</label>
-					<input
-						type="text"
-						name="temporaryPassword"
-						bind:value={temporaryPassword}
-						class="input w-full rounded border p-2"
-						minlength="8"
-						required
-						placeholder="At least 8 chars"
-					/>
+					<label class="mb-2 block text-sm font-medium">
+						Temporary Password for New Users
+						<input
+							type="text"
+							name="temporaryPassword"
+							bind:value={temporaryPassword}
+							class="input mt-1 w-full rounded border p-2"
+							minlength="8"
+							required
+							placeholder="At least 8 chars"
+						/>
+					</label>
 				</div>
 
 				<div class="flex gap-4">

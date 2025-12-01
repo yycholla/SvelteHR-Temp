@@ -41,7 +41,7 @@ export function validateRoles(roles: unknown[]): Role[] {
 		} else {
 			console.warn('[Role Validation] Invalid role data:', {
 				role,
-				errors: result.error.errors
+				errors: (result.error as any).errors
 			});
 		}
 	}

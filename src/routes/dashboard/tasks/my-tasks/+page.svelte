@@ -288,10 +288,11 @@
 			<!-- 1. Summary Stats (Top Left - Spans 8 cols) -->
 			<div class="col-span-1 md:col-span-8 grid grid-cols-2 md:grid-cols-5 gap-4">
 				{#each statsCards as stat (stat.label)}
+					{@const Icon = stat.icon}
 					<div class="rounded-xl border bg-card px-3 py-2 shadow-sm transition-all hover:shadow-md">
 						<div class="flex items-center gap-2">
 							<div class="flex h-7 w-7 items-center justify-center rounded-full {stat.bgColor}">
-								<svelte:component this={stat.icon} class="h-3.5 w-3.5 {stat.color}" />
+								<Icon class="h-3.5 w-3.5 {stat.color}" />
 							</div>
 							<div class="flex flex-col">
 								<span class="text-[10px] font-medium text-muted-foreground leading-tight">{stat.label}</span>

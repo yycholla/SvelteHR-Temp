@@ -60,6 +60,10 @@ export async function verifyJWTToken(token: string): Promise<TokenValidationResu
 		// Dynamic import for server-side only
 		const jwt = (await import('jsonwebtoken')).default;
 
+		if (!authConfig.jwt) {
+			throw new Error('JWT configuration is missing');
+		}
+
 		// Verify token with signature validation
 		const payload = jwt.verify(token, JWT_SECRET, {
 			issuer: authConfig.jwt.issuer,
@@ -166,6 +170,10 @@ export async function generateJWTToken(payload: Partial<JWTPayload>): Promise<st
 		throw new Error('JWT generation must be performed server-side only');
 	}
 
+	if (!authConfig.jwt) {
+		throw new Error('JWT configuration is missing');
+	}
+
 	const jwt = (await import('jsonwebtoken')).default;
 	const now = Math.floor(Date.now() / 1000);
 	const expirationTime = authConfig.jwt.expirationTime;
@@ -230,6 +238,9 @@ export function isTokenExpired(payload: JWTPayload): boolean {
  * Check if a token needs refresh based on the refresh threshold
  */
 export function tokenNeedsRefresh(payload: JWTPayload): boolean {
+	if (!authConfig.jwt) {
+		return false;
+	}
 	const now = Math.floor(Date.now() / 1000);
 	const refreshThresholdSeconds = authConfig.jwt.refreshThreshold * 60;
 	return payload.exp - now <= refreshThresholdSeconds;
@@ -256,6 +267,10 @@ export function getTokenTimeRemaining(payload: JWTPayload): number {
 export function createMockJWTPayload(overrides: Partial<JWTPayload> = {}): JWTPayload {
 	if (process.env.NODE_ENV === 'production') {
 		throw new Error('Mock JWT payload creation is not allowed in production');
+	}
+
+	if (!authConfig.jwt) {
+		throw new Error('JWT configuration is missing');
 	}
 
 	const now = Math.floor(Date.now() / 1000);

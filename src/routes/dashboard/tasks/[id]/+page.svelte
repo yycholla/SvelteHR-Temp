@@ -29,6 +29,7 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Progress } from '$lib/components/ui/progress';
 	import type { Task, TaskStatus } from '$lib/types/task';
+	import { untrack } from 'svelte';
 
 	// Page data from server
 	let { data } = $props();
@@ -61,7 +62,14 @@
 	let hasFile = $state(false);
 
 	// Tags state
-	let tags = $state<string[]>(task?.tags || []);
+	let tags = $state<string[]>(untrack(() => task?.tags || []));
+	
+	$effect(() => {
+		if (task?.tags) {
+			tags = task.tags;
+		}
+	});
+
 	let newTag = $state('');
 	let isAddingTag = $state(false);
 	let isUpdatingTags = $state(false);
@@ -616,7 +624,7 @@
 					<div class="space-y-4 p-6">
 						<!-- Assignee -->
 						<div class="space-y-1">
-							<label class="text-xs font-medium text-muted-foreground">Assignee</label>
+							<p class="text-xs font-medium text-muted-foreground">Assignee</p>
 							<div class="flex items-center gap-2">
 								<Avatar class="h-6 w-6">
 									<AvatarFallback class="bg-indigo-100 text-[10px] font-bold text-indigo-700">
@@ -629,7 +637,7 @@
 
 						<!-- Reporter -->
 						<div class="space-y-1">
-							<label class="text-xs font-medium text-muted-foreground">Reporter</label>
+							<p class="text-xs font-medium text-muted-foreground">Reporter</p>
 							<div class="flex items-center gap-2">
 								<Avatar class="h-6 w-6">
 									<AvatarFallback class="bg-emerald-100 text-[10px] font-bold text-emerald-700">
@@ -645,7 +653,7 @@
 						<!-- Dates -->
 						<div class="grid grid-cols-1 gap-4">
 							<div class="space-y-1">
-								<label class="text-xs font-medium text-muted-foreground">Due Date</label>
+								<p class="text-xs font-medium text-muted-foreground">Due Date</p>
 								<div class="flex items-center gap-2 text-sm">
 									<Calendar class="h-3.5 w-3.5 text-muted-foreground" />
 									<span>{formatDate(task.dueDate)}</span>
@@ -653,7 +661,7 @@
 							</div>
 							{#if task.createdAt}
 								<div class="space-y-1">
-									<label class="text-xs font-medium text-muted-foreground">Created</label>
+									<p class="text-xs font-medium text-muted-foreground">Created</p>
 									<div class="flex items-center gap-2 text-sm">
 										<Clock class="h-3.5 w-3.5 text-muted-foreground" />
 										<span>{formatDate(task.createdAt)}</span>
@@ -666,7 +674,7 @@
 						{#if task.parentTask}
 							<div class="my-2 h-px bg-border"></div>
 							<div class="space-y-1">
-								<label class="text-xs font-medium text-muted-foreground">Parent Task</label>
+								<p class="text-xs font-medium text-muted-foreground">Parent Task</p>
 								<a href="/dashboard/tasks/{task.parentTask.id}" class="flex items-center gap-2 text-sm font-medium text-primary hover:underline">
 									<Target class="h-3.5 w-3.5" />
 									{task.parentTask.title}
