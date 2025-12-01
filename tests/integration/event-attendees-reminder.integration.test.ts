@@ -311,7 +311,7 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 
 			// All results should have reminderTime between 10 and 30
 			result.data.allEventAttendees.nodes.forEach((attendee: any) => {
-				expect(attendee.reminderTime).toBeGreaterThanOrEqualTo(10);
+				expect(attendee.reminderTime).toBeGreaterThanOrEqual(10);
 				expect(attendee.reminderTime).toBeLessThanOrEqual(30);
 			});
 		});
