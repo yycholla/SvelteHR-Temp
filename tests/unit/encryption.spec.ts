@@ -137,7 +137,7 @@ describe('Encryption Service - Unit Tests', () => {
 			);
 
 			// Assert: Decrypted content matches original
-			const decryptedText = await decryptedBlob.text();
+			const decryptedText = await decryptedBlob.decryptedData.text();
 			expect(decryptedText).toBe(originalContent);
 		});
 
@@ -196,7 +196,7 @@ describe('Encryption Service - Unit Tests', () => {
 			);
 
 			// Assert: Binary content matches
-			const decryptedData = new Uint8Array(await decryptedBlob.arrayBuffer());
+			const decryptedData = new Uint8Array(await decryptedBlob.decryptedData.arrayBuffer());
 			expect(decryptedData).toEqual(binaryData);
 		});
 	});
@@ -284,7 +284,7 @@ describe('Encryption Service - Unit Tests', () => {
 			);
 
 			// Assert: Content matches
-			const decryptedData = new Uint8Array(await decryptedBlob.arrayBuffer());
+			const decryptedData = new Uint8Array(await decryptedBlob.decryptedData.arrayBuffer());
 			expect(decryptedData.length).toBe(originalData.length);
 
 			// Verify pattern (sample check to avoid full comparison)
