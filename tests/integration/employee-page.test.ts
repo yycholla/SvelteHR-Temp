@@ -103,7 +103,7 @@ describe('Employee Page Integration (T019)', () => {
 				),
 				cookies: {
 					get: vi.fn().mockReturnValue('hr-manager-token')
-				} as any,
+				},
 				locals: {
 					user: { id: 'user-123', role: 'HR_Manager', departmentId: null },
 					permissions: ['employees:read', 'employees:write', 'employees:delete', 'salary:read']
@@ -141,7 +141,7 @@ describe('Employee Page Integration (T019)', () => {
 			// Verify integration contract requirements
 			expect(mockGetEmployeesWithFiltering).not.toHaveBeenCalled();
 			expect(mockEmployeeRetryHandler.execute).not.toHaveBeenCalled();
-			expect(mockEmployeeCacheInvalidator.invalidate).not.toHaveBeenCalled();
+			expect(mockEmployeeCacheInvalidator.invalidate!).not.toHaveBeenCalled();
 		});
 
 		it('should handle department-restricted access for managers', async () => {
@@ -151,7 +151,7 @@ describe('Employee Page Integration (T019)', () => {
 				url: new URL('http://localhost:5173/employees'),
 				cookies: {
 					get: vi.fn().mockReturnValue('dept-manager-token')
-				} as any,
+				},
 				locals: {
 					user: { id: 'user-456', role: 'Manager', departmentId: 'dept-engineering' },
 					permissions: ['employees:read', 'department_employees:read', 'department_employees:write']
@@ -189,7 +189,7 @@ describe('Employee Page Integration (T019)', () => {
 				url: new URL('http://localhost:5173/employees'),
 				cookies: {
 					get: vi.fn().mockReturnValue('employee-token')
-				} as any,
+				},
 				locals: {
 					user: { id: 'user-789', role: 'Employee', departmentId: 'dept-marketing' },
 					permissions: ['profile:read', 'colleagues:read'] // Limited permissions
@@ -534,7 +534,7 @@ describe('Employee Page Integration (T019)', () => {
 			}).toThrow('Employee page component not implemented - TDD compliance');
 
 			// Verify real-time update integration
-			expect(mockEmployeeCacheInvalidator.invalidate).not.toHaveBeenCalledWith('employees-list');
+			expect(mockEmployeeCacheInvalidator.invalidate!).not.toHaveBeenCalledWith('employees-list');
 		});
 
 		it('should handle concurrent edit conflicts with user-friendly resolution', async () => {
