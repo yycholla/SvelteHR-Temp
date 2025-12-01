@@ -23,7 +23,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 describe('Retention Policy Compliance Tests', () => {
 	let testEmployeeId: string;
-	let testDocumentId: string;
+	let testDocumentId: string = 'doc-retention-test-123'; // Initialize with dummy value
 	let adminToken: string;
 	let superAdminToken: string;
 
