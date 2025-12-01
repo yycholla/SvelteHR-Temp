@@ -24,9 +24,9 @@ describe('calculateSubtaskProgress', () => {
 
 	it('should calculate 100% when all subtasks are completed', () => {
 		const subtasks = [
-			{ id: '1', status: 'Completed' as TaskStatus },
-			{ id: '2', status: 'Completed' as TaskStatus },
-			{ id: '3', status: 'Completed' as TaskStatus }
+			{ id: '1', status: 'DONE' as TaskStatus },
+			{ id: '2', status: 'DONE' as TaskStatus },
+			{ id: '3', status: 'DONE' as TaskStatus }
 		] as Task[];
 
 		const result = calculateSubtaskProgress(subtasks);
@@ -35,10 +35,10 @@ describe('calculateSubtaskProgress', () => {
 
 	it('should calculate 50% when half of subtasks are completed', () => {
 		const subtasks = [
-			{ id: '1', status: 'Completed' as TaskStatus },
-			{ id: '2', status: 'In Progress' as TaskStatus },
-			{ id: '3', status: 'Not Started' as TaskStatus },
-			{ id: '4', status: 'Completed' as TaskStatus }
+			{ id: '1', status: 'DONE' as TaskStatus },
+			{ id: '2', status: 'IN_PROGRESS' as TaskStatus },
+			{ id: '3', status: 'TODO' as TaskStatus },
+			{ id: '4', status: 'DONE' as TaskStatus }
 		] as Task[];
 
 		const result = calculateSubtaskProgress(subtasks);
@@ -47,9 +47,9 @@ describe('calculateSubtaskProgress', () => {
 
 	it('should calculate 0% when no subtasks are completed', () => {
 		const subtasks = [
-			{ id: '1', status: 'In Progress' as TaskStatus },
-			{ id: '2', status: 'Not Started' as TaskStatus },
-			{ id: '3', status: 'Blocked' as TaskStatus }
+			{ id: '1', status: 'IN_PROGRESS' as TaskStatus },
+			{ id: '2', status: 'TODO' as TaskStatus },
+			{ id: '3', status: 'BLOCKED' as TaskStatus }
 		] as Task[];
 
 		const result = calculateSubtaskProgress(subtasks);
@@ -58,9 +58,9 @@ describe('calculateSubtaskProgress', () => {
 
 	it('should round to 2 decimal places', () => {
 		const subtasks = [
-			{ id: '1', status: 'Completed' as TaskStatus },
-			{ id: '2', status: 'Not Started' as TaskStatus },
-			{ id: '3', status: 'Not Started' as TaskStatus }
+			{ id: '1', status: 'DONE' as TaskStatus },
+			{ id: '2', status: 'TODO' as TaskStatus },
+			{ id: '3', status: 'TODO' as TaskStatus }
 		] as Task[];
 
 		const result = calculateSubtaskProgress(subtasks);
@@ -70,9 +70,9 @@ describe('calculateSubtaskProgress', () => {
 
 	it('should calculate 33.33% for 1 out of 3 subtasks completed', () => {
 		const subtasks = [
-			{ id: '1', status: 'Completed' as TaskStatus },
-			{ id: '2', status: 'Not Started' as TaskStatus },
-			{ id: '3', status: 'Not Started' as TaskStatus }
+			{ id: '1', status: 'DONE' as TaskStatus },
+			{ id: '2', status: 'TODO' as TaskStatus },
+			{ id: '3', status: 'TODO' as TaskStatus }
 		] as Task[];
 
 		const result = calculateSubtaskProgress(subtasks);
@@ -81,10 +81,10 @@ describe('calculateSubtaskProgress', () => {
 
 	it('should calculate 75% for 3 out of 4 subtasks completed', () => {
 		const subtasks = [
-			{ id: '1', status: 'Completed' as TaskStatus },
-			{ id: '2', status: 'Completed' as TaskStatus },
-			{ id: '3', status: 'Completed' as TaskStatus },
-			{ id: '4', status: 'In Progress' as TaskStatus }
+			{ id: '1', status: 'DONE' as TaskStatus },
+			{ id: '2', status: 'DONE' as TaskStatus },
+			{ id: '3', status: 'DONE' as TaskStatus },
+			{ id: '4', status: 'IN_PROGRESS' as TaskStatus }
 		] as Task[];
 
 		const result = calculateSubtaskProgress(subtasks);
@@ -93,10 +93,10 @@ describe('calculateSubtaskProgress', () => {
 
 	it('should only count Completed status, ignoring other statuses', () => {
 		const subtasks = [
-			{ id: '1', status: 'Completed' as TaskStatus },
-			{ id: '2', status: 'Cancelled' as TaskStatus },
-			{ id: '3', status: 'Blocked' as TaskStatus },
-			{ id: '4', status: 'Not Started' as TaskStatus }
+			{ id: '1', status: 'DONE' as TaskStatus },
+			{ id: '2', status: 'CANCELLED' as TaskStatus },
+			{ id: '3', status: 'BLOCKED' as TaskStatus },
+			{ id: '4', status: 'TODO' as TaskStatus }
 		] as Task[];
 
 		const result = calculateSubtaskProgress(subtasks);
@@ -172,14 +172,14 @@ describe('getProgressColor', () => {
 describe('isTaskOnTrack', () => {
 	describe('Completed status', () => {
 		it('should always return on track for completed tasks', () => {
-			const result = isTaskOnTrack(new Date(), 100, 'Completed');
+			const result = isTaskOnTrack(new Date(), 100, 'DONE');
 			expect(result.onTrack).toBe(true);
 			expect(result.reason).toBe('Task completed');
 		});
 
 		it('should return on track for completed tasks even with past due date', () => {
 			const pastDate = new Date('2020-01-01');
-			const result = isTaskOnTrack(pastDate, 100, 'Completed');
+			const result = isTaskOnTrack(pastDate, 100, 'DONE');
 			expect(result.onTrack).toBe(true);
 			expect(result.reason).toBe('Task completed');
 		});
@@ -187,7 +187,7 @@ describe('isTaskOnTrack', () => {
 
 	describe('Cancelled status', () => {
 		it('should always return not on track for cancelled tasks', () => {
-			const result = isTaskOnTrack(new Date(), 50, 'Cancelled');
+			const result = isTaskOnTrack(new Date(), 50, 'CANCELLED');
 			expect(result.onTrack).toBe(false);
 			expect(result.reason).toBe('Task cancelled');
 		});
@@ -195,7 +195,7 @@ describe('isTaskOnTrack', () => {
 
 	describe('No due date', () => {
 		it('should return on track when no due date is set', () => {
-			const result = isTaskOnTrack(null, 25, 'In Progress');
+			const result = isTaskOnTrack(null, 25, 'IN_PROGRESS');
 			expect(result.onTrack).toBe(true);
 			expect(result.reason).toBe('No due date set');
 		});
@@ -204,7 +204,7 @@ describe('isTaskOnTrack', () => {
 	describe('Overdue tasks', () => {
 		it('should return not on track for overdue tasks', () => {
 			const pastDate = new Date('2020-01-01');
-			const result = isTaskOnTrack(pastDate, 50, 'In Progress');
+			const result = isTaskOnTrack(pastDate, 50, 'IN_PROGRESS');
 			expect(result.onTrack).toBe(false);
 			expect(result.reason).toBe('Task overdue');
 		});
@@ -212,7 +212,7 @@ describe('isTaskOnTrack', () => {
 		it('should return not on track for yesterday\'s due date', () => {
 			const yesterday = new Date();
 			yesterday.setDate(yesterday.getDate() - 1);
-			const result = isTaskOnTrack(yesterday, 80, 'In Progress');
+			const result = isTaskOnTrack(yesterday, 80, 'IN_PROGRESS');
 			expect(result.onTrack).toBe(false);
 			expect(result.reason).toBe('Task overdue');
 		});
@@ -222,7 +222,7 @@ describe('isTaskOnTrack', () => {
 		it('should return on track for task due in 7 days with reasonable progress', () => {
 			const futureDate = new Date();
 			futureDate.setDate(futureDate.getDate() + 7);
-			const result = isTaskOnTrack(futureDate, 50, 'In Progress');
+			const result = isTaskOnTrack(futureDate, 50, 'IN_PROGRESS');
 
 			// With 7 days remaining, expected progress is ~90, so 50% should be behind
 			// But the tolerance is -20, so 50% should still be on track if expected is 70 or less
@@ -232,7 +232,7 @@ describe('isTaskOnTrack', () => {
 		it('should return not on track for task due soon with very low progress', () => {
 			const futureDate = new Date();
 			futureDate.setDate(futureDate.getDate() + 1);
-			const result = isTaskOnTrack(futureDate, 10, 'Not Started');
+			const result = isTaskOnTrack(futureDate, 10, 'TODO');
 
 			// With 1 day remaining, expected progress should be very high
 			// 10% progress is definitely behind
@@ -243,7 +243,7 @@ describe('isTaskOnTrack', () => {
 		it('should return on track for task due far in future', () => {
 			const futureDate = new Date();
 			futureDate.setDate(futureDate.getDate() + 30);
-			const result = isTaskOnTrack(futureDate, 20, 'In Progress');
+			const result = isTaskOnTrack(futureDate, 20, 'IN_PROGRESS');
 
 			// With 30 days remaining, expected progress is low, so 20% is fine
 			expect(result.onTrack).toBe(true);
@@ -254,7 +254,7 @@ describe('isTaskOnTrack', () => {
 		it('should handle task due today', () => {
 			const today = new Date();
 			today.setHours(23, 59, 59); // End of today
-			const result = isTaskOnTrack(today, 90, 'In Progress');
+			const result = isTaskOnTrack(today, 90, 'IN_PROGRESS');
 
 			// Task should be on track if nearly complete
 			expect(result.onTrack).toBe(true);
@@ -263,7 +263,7 @@ describe('isTaskOnTrack', () => {
 		it('should handle 0% progress with far future due date', () => {
 			const futureDate = new Date();
 			futureDate.setDate(futureDate.getDate() + 60);
-			const result = isTaskOnTrack(futureDate, 0, 'Not Started');
+			const result = isTaskOnTrack(futureDate, 0, 'TODO');
 
 			// With plenty of time, 0% is acceptable
 			expect(result.onTrack).toBe(true);
@@ -272,7 +272,7 @@ describe('isTaskOnTrack', () => {
 		it('should handle blocked tasks with progress tracking', () => {
 			const futureDate = new Date();
 			futureDate.setDate(futureDate.getDate() + 5);
-			const result = isTaskOnTrack(futureDate, 30, 'Blocked');
+			const result = isTaskOnTrack(futureDate, 30, 'BLOCKED');
 
 			// Blocked status doesn't automatically fail - it's based on progress
 			expect(result.onTrack).toBeDefined();
@@ -283,10 +283,10 @@ describe('isTaskOnTrack', () => {
 describe('Task Progress Integration Scenarios', () => {
 	it('should correctly assess a typical in-progress task', () => {
 		const subtasks = [
-			{ id: '1', status: 'Completed' as TaskStatus },
-			{ id: '2', status: 'In Progress' as TaskStatus },
-			{ id: '3', status: 'Not Started' as TaskStatus },
-			{ id: '4', status: 'Not Started' as TaskStatus }
+			{ id: '1', status: 'DONE' as TaskStatus },
+			{ id: '2', status: 'IN_PROGRESS' as TaskStatus },
+			{ id: '3', status: 'TODO' as TaskStatus },
+			{ id: '4', status: 'TODO' as TaskStatus }
 		] as Task[];
 
 		const progress = calculateSubtaskProgress(subtasks);
@@ -295,7 +295,7 @@ describe('Task Progress Integration Scenarios', () => {
 
 		const dueDate = new Date();
 		dueDate.setDate(dueDate.getDate() + 14); // 2 weeks out
-		const tracking = isTaskOnTrack(dueDate, progress, 'In Progress');
+		const tracking = isTaskOnTrack(dueDate, progress, 'IN_PROGRESS');
 
 		expect(progress).toBe(25);
 		expect(color).toBe('orange');
@@ -305,10 +305,10 @@ describe('Task Progress Integration Scenarios', () => {
 
 	it('should correctly assess a nearly complete task', () => {
 		const subtasks = [
-			{ id: '1', status: 'Completed' as TaskStatus },
-			{ id: '2', status: 'Completed' as TaskStatus },
-			{ id: '3', status: 'Completed' as TaskStatus },
-			{ id: '4', status: 'In Progress' as TaskStatus }
+			{ id: '1', status: 'DONE' as TaskStatus },
+			{ id: '2', status: 'DONE' as TaskStatus },
+			{ id: '3', status: 'DONE' as TaskStatus },
+			{ id: '4', status: 'IN_PROGRESS' as TaskStatus }
 		] as Task[];
 
 		const progress = calculateSubtaskProgress(subtasks);
@@ -320,11 +320,11 @@ describe('Task Progress Integration Scenarios', () => {
 
 	it('should correctly assess an at-risk task', () => {
 		const subtasks = [
-			{ id: '1', status: 'Completed' as TaskStatus },
-			{ id: '2', status: 'Blocked' as TaskStatus },
-			{ id: '3', status: 'Not Started' as TaskStatus },
-			{ id: '4', status: 'Not Started' as TaskStatus },
-			{ id: '5', status: 'Not Started' as TaskStatus }
+			{ id: '1', status: 'DONE' as TaskStatus },
+			{ id: '2', status: 'BLOCKED' as TaskStatus },
+			{ id: '3', status: 'TODO' as TaskStatus },
+			{ id: '4', status: 'TODO' as TaskStatus },
+			{ id: '5', status: 'TODO' as TaskStatus }
 		] as Task[];
 
 		const progress = calculateSubtaskProgress(subtasks);
@@ -332,7 +332,7 @@ describe('Task Progress Integration Scenarios', () => {
 
 		const dueDate = new Date();
 		dueDate.setDate(dueDate.getDate() + 2); // Due soon
-		const tracking = isTaskOnTrack(dueDate, progress, 'In Progress');
+		const tracking = isTaskOnTrack(dueDate, progress, 'IN_PROGRESS');
 
 		expect(progress).toBe(20); // Only 1/5 complete
 		expect(color).toBe('red');

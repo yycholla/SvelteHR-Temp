@@ -120,9 +120,9 @@
 		}
 	}
 
-	function getBadgeVariant(column: Column, value: any, row: TableData): string {
+	function getBadgeVariant(column: Column, value: any, row: TableData): 'info' | 'success' | 'warning' | 'light' | 'dark' | 'primary' | 'secondary' | 'danger' {
 		if (column.badgeVariant) {
-			return column.badgeVariant(value, row);
+			return column.badgeVariant(value, row) as any;
 		}
 		return 'secondary';
 	}

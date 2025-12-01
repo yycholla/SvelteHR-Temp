@@ -33,7 +33,7 @@
 	let isOwnProfile = $derived(employee?.id === auth.user?.id);
 	let canEdit = $derived(auth.user && (isOwnProfile || auth.hasPermission('user:update')));
 	let canDeactivate = $derived(auth.user && auth.hasPermission('user:delete') && !isOwnProfile);
-	let statusVariant = $derived(employee?.is_active ? 'success' : 'secondary');
+	let statusVariant = $derived(employee?.is_active ? 'success' : 'secondary') as 'success' | 'secondary';
 	let statusText = $derived(employee?.is_active ? 'Active' : 'Inactive');
 
 	async function loadEmployee() {
@@ -339,7 +339,7 @@
 					<h3 class="detail-section__title">Roles & Permissions</h3>
 					<div class="roles-list">
 						{#if employee.role_assignments && employee.role_assignments.length > 0}
-							{#each employee.role_assignments as assignment (assignment.id)}
+							{#each employee.role_assignments as assignment}
 								<Badge variant="primary" size="sm">
 									{assignment.role.name}
 								</Badge>

@@ -1,485 +1,175 @@
 /**
- * Unit Test: EventDetailsDialog Tab Management
- * Feature: 027-we-need-to
- *
- * Tests tab switching, data loading, and RSVP actions in event details dialog.
- * MUST FAIL until EventDetailsDialog component is implemented.
+ * Unit Test: EventDetailsDialog
+ * 
+ * Tests the unified EventDetailsDialog component which now uses
+ * EventDetailsView and EventEditForm sub-components.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import EventDetailsDialog from '$lib/components/events/EventDetailsDialog.svelte';
+import type { EventData } from '$lib/components/events/types';
 
-describe('EventDetailsDialog Tab Management', () => {
-	const mockEventId = 'event-123';
+// Mock sub-components to isolate Dialog logic
+vi.mock('$lib/components/events/EventDetailsView.svelte', () => ({
+	default: {
+		$$render: () => '<div data-testid="event-details-view">Details View</div>'
+	}
+}));
+
+vi.mock('$lib/components/events/EventEditForm.svelte', () => ({
+	default: {
+		$$render: () => '<div data-testid="event-edit-form">Edit Form</div>'
+	}
+}));
+
+// Mock dependencies
+vi.mock('$app/navigation', () => ({
+	invalidateAll: vi.fn()
+}));
+
+vi.mock('svelte-sonner', () => ({
+	toast: {
+		success: vi.fn(),
+		error: vi.fn()
+	}
+}));
+
+describe('EventDetailsDialog', () => {
+	const mockUser = {
+		id: 'user-123',
+		firstName: 'Test',
+		lastName: 'User',
+		email: 'test@example.com'
+	};
+
+	const mockEvent: EventData = {
+		id: 'event-123',
+		title: 'Team Meeting',
+		description: 'Weekly sync',
+		startTime: '2025-01-01T10:00:00Z',
+		endTime: '2025-01-01T11:00:00Z',
+		location: 'Conference Room A',
+		isAllDay: false,
+		status: 'scheduled',
+		type: {
+			id: 'type-1',
+			name: 'Meeting',
+			color: 'blue'
+		},
+		organizer: {
+			id: 'user-123',
+			firstName: 'Test',
+			lastName: 'User',
+			email: 'test@example.com'
+		},
+		attendees: []
+	};
+
+	const defaultProps = {
+		isOpen: true,
+		event: mockEvent,
+		userId: mockUser.id,
+		onClose: vi.fn(),
+		onEdit: vi.fn(),
+		onDelete: vi.fn()
+	};
 
 	beforeEach(() => {
-		// Reset mocks
 		vi.clearAllMocks();
 	});
 
-	describe('Tab switching', () => {
-		it('should render with Details tab active by default', () => {
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose: vi.fn()
-				}
+	describe('Rendering', () => {
+		it('should not render when isOpen is false', () => {
+			const { queryByRole } = render(EventDetailsDialog, {
+				props: { ...defaultProps, isOpen: false }
 			});
-
-			const detailsTab = container.querySelector('[role="tab"]:has-text("Details")');
-			expect(detailsTab?.getAttribute('aria-selected')).toBe('true');
+			expect(queryByRole('dialog')).toBeNull();
 		});
 
-		it('should switch to Comments tab when clicked', async () => {
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose: vi.fn()
-				}
+		it('should render when isOpen is true and event is provided', () => {
+			const { getByRole } = render(EventDetailsDialog, {
+				props: defaultProps
 			});
-
-			const commentsTab = container.querySelector('[role="tab"]:has-text("Comments")');
-			await fireEvent.click(commentsTab!);
-
-			// Verify Comments tab is now active
-			expect(commentsTab?.getAttribute('aria-selected')).toBe('true');
-
-			// Verify Details tab is inactive
-			const detailsTab = container.querySelector('[role="tab"]:has-text("Details")');
-			expect(detailsTab?.getAttribute('aria-selected')).toBe('false');
+			expect(getByRole('dialog')).toBeTruthy();
 		});
 
-		it('should switch to History tab when clicked', async () => {
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose: vi.fn()
-				}
+		it('should render EventDetailsView in view mode', () => {
+			const { getByTestId } = render(EventDetailsDialog, {
+				props: { ...defaultProps, mode: 'view' }
 			});
-
-			const historyTab = container.querySelector('[role="tab"]:has-text("History")');
-			await fireEvent.click(historyTab!);
-
-			expect(historyTab?.getAttribute('aria-selected')).toBe('true');
+			expect(getByTestId('event-details-view')).toBeTruthy();
 		});
 
-		it('should show correct tab panel content when switching tabs', async () => {
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose: vi.fn()
-				}
+		it('should render EventEditForm in edit mode', () => {
+			const { getByTestId } = render(EventDetailsDialog, {
+				props: { ...defaultProps, mode: 'edit' }
 			});
-
-			// Click Comments tab
-			const commentsTab = container.querySelector('[role="tab"]:has-text("Comments")');
-			await fireEvent.click(commentsTab!);
-
-			// Verify Comments panel is visible
-			const commentsPanel = container.querySelector('[role="tabpanel"]');
-			const commentTextarea = commentsPanel?.querySelector('textarea[name="comment"]');
-			expect(commentTextarea).toBeTruthy();
+			expect(getByTestId('event-edit-form')).toBeTruthy();
 		});
 
-		it('should maintain tab state when dialog is reopened', async () => {
-			const { container, component } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose: vi.fn()
-				}
+		it('should display the correct title in view mode', () => {
+			const { getByText } = render(EventDetailsDialog, {
+				props: { ...defaultProps, mode: 'view' }
 			});
+			expect(getByText('Event Details')).toBeTruthy();
+		});
 
-			// Switch to Comments tab
-			const commentsTab = container.querySelector('[role="tab"]:has-text("Comments")');
-			await fireEvent.click(commentsTab!);
-
-			// Close dialog
-			const closeButton = container.querySelector('button[aria-label="Close"]');
-			await fireEvent.click(closeButton!);
-
-			// Reopen dialog
-			await component.$set({ open: true });
-
-			// Verify still on Comments tab (or reset to Details based on UX decision)
-			// In many cases, resetting to Details on reopen is better UX
-			const detailsTab = container.querySelector('[role="tab"]:has-text("Details")');
-			expect(detailsTab?.getAttribute('aria-selected')).toBe('true');
+		it('should display the correct title in edit mode', () => {
+			const { getByText } = render(EventDetailsDialog, {
+				props: { ...defaultProps, mode: 'edit' }
+			});
+			expect(getByText('Edit Event')).toBeTruthy();
 		});
 	});
 
-	describe('Data loading', () => {
-		it('should load event details on mount', async () => {
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose: vi.fn()
-				}
-			});
-
-			// Wait for GraphQL query to complete
-			await waitFor(() => {
-				const eventTitle = container.querySelector('h2, [data-event-title]');
-				expect(eventTitle).toBeTruthy();
-			});
-		});
-
-		it('should show loading state while fetching event details', () => {
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose: vi.fn()
-				}
-			});
-
-			// Initially should show loading
-			const loadingIndicator = container.querySelector('[data-loading], .loading');
-			// expect(loadingIndicator).toBeTruthy();
-		});
-
-		it('should load comments when switching to Comments tab', async () => {
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose: vi.fn()
-				}
-			});
-
-			const commentsTab = container.querySelector('[role="tab"]:has-text("Comments")');
-			await fireEvent.click(commentsTab!);
-
-			// Wait for comments to load
-			await waitFor(() => {
-				const commentsPanel = container.querySelector('[role="tabpanel"]');
-				const commentList = commentsPanel?.querySelector('.comment-list, [data-comment-list]');
-				expect(commentList).toBeTruthy();
-			});
-		});
-
-		it('should load history when switching to History tab', async () => {
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose: vi.fn()
-				}
-			});
-
-			const historyTab = container.querySelector('[role="tab"]:has-text("History")');
-			await fireEvent.click(historyTab!);
-
-			// Wait for history to load
-			await waitFor(() => {
-				const historyPanel = container.querySelector('[role="tabpanel"]');
-				const historyTimeline = historyPanel?.querySelector('.history-timeline, [data-history-timeline]');
-				expect(historyTimeline).toBeTruthy();
-			});
-		});
-
-		it('should handle error when event details fail to load', async () => {
-			// Mock GraphQL error
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: 'invalid-id',
-					open: true,
-					onClose: vi.fn()
-				}
-			});
-
-			await waitFor(() => {
-				const errorMessage = container.querySelector('text=/Error loading event|Failed to load/');
-				// expect(errorMessage).toBeTruthy();
-			});
-		});
-
-		it('should refetch event details when eventId prop changes', async () => {
-			const { container, component } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose: vi.fn()
-				}
-			});
-
-			// Wait for initial load
-			await waitFor(() => {
-				const eventTitle = container.querySelector('h2');
-				expect(eventTitle).toBeTruthy();
-			});
-
-			// Change eventId
-			await component.$set({ eventId: 'event-456' });
-
-			// Verify new query is made
-			// Would check GraphQL query variables in real test
-		});
-	});
-
-	describe('RSVP actions', () => {
-		it('should show RSVP buttons for pending events', () => {
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose: vi.fn()
-				}
-			});
-
-			const acceptButton = container.querySelector('button:has-text("Accept")');
-			const declineButton = container.querySelector('button:has-text("Decline")');
-
-			expect(acceptButton).toBeTruthy();
-			expect(declineButton).toBeTruthy();
-		});
-
-		it('should call RSVP mutation when Accept button is clicked', async () => {
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose: vi.fn()
-				}
-			});
-
-			const acceptButton = container.querySelector('button:has-text("Accept")');
-			await fireEvent.click(acceptButton!);
-
-			// Verify GraphQL mutation called
-			// Would check mutation variables in real test
-		});
-
-		it('should show scope selection modal for recurring events', async () => {
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: 'recurring-event-123',
-					open: true,
-					onClose: vi.fn()
-				}
-			});
-
-			const acceptButton = container.querySelector('button:has-text("Accept")');
-			await fireEvent.click(acceptButton!);
-
-			// Verify scope modal appears
-			const scopeModal = container.querySelector('[role="dialog"]:has-text("RSVP Scope")');
-			expect(scopeModal).toBeTruthy();
-		});
-
-		it('should update RSVP status optimistically', async () => {
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose: vi.fn()
-				}
-			});
-
-			const acceptButton = container.querySelector('button:has-text("Accept")');
-			await fireEvent.click(acceptButton!);
-
-			// Verify UI updates immediately (optimistic update)
-			await waitFor(() => {
-				const rsvpStatus = container.querySelector('text=/Your RSVP.*Accepted/');
-				// expect(rsvpStatus).toBeTruthy();
-			});
-		});
-
-		it('should show error toast if RSVP fails', async () => {
-			// Mock failed mutation
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose: vi.fn()
-				}
-			});
-
-			const acceptButton = container.querySelector('button:has-text("Accept")');
-			await fireEvent.click(acceptButton!);
-
-			// Wait for error
-			await waitFor(() => {
-				const errorToast = container.querySelector('.toast:has-text("Failed to RSVP")');
-				// expect(errorToast).toBeTruthy();
-			});
-		});
-
-		it('should revert optimistic update if RSVP mutation fails', async () => {
-			// Mock failed mutation
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose: vi.fn()
-				}
-			});
-
-			// Note initial status
-			const initialStatus = container.querySelector('[data-rsvp-status]')?.textContent;
-
-			const acceptButton = container.querySelector('button:has-text("Accept")');
-			await fireEvent.click(acceptButton!);
-
-			// Status updates optimistically
-			// Then reverts when mutation fails
-			await waitFor(() => {
-				const currentStatus = container.querySelector('[data-rsvp-status]')?.textContent;
-				expect(currentStatus).toBe(initialStatus);
-			});
-		});
-
-		it('should disable RSVP buttons for past events', () => {
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: 'past-event-123',
-					open: true,
-					onClose: vi.fn()
-				}
-			});
-
-			const acceptButton = container.querySelector('button:has-text("Accept")');
-
-			if (acceptButton) {
-				expect((acceptButton as HTMLButtonElement).disabled).toBe(true);
-			} else {
-				// Or button is not rendered at all
-				const pastEventMessage = container.querySelector('text=/This event has already occurred/');
-				expect(pastEventMessage).toBeTruthy();
-			}
-		});
-	});
-
-	describe('Dialog controls', () => {
+	describe('Controls', () => {
 		it('should call onClose when close button is clicked', async () => {
-			const onClose = vi.fn();
-
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose
-				}
+			const { getByLabelText } = render(EventDetailsDialog, {
+				props: defaultProps
 			});
-
-			const closeButton = container.querySelector('button[aria-label="Close"]');
-			await fireEvent.click(closeButton!);
-
-			expect(onClose).toHaveBeenCalled();
+			
+			await fireEvent.click(getByLabelText('Close dialog'));
+			expect(defaultProps.onClose).toHaveBeenCalled();
 		});
 
-		it('should close dialog when pressing Escape key', async () => {
-			const onClose = vi.fn();
-
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose
-				}
+		it('should call onEdit when edit button is clicked', async () => {
+			const { getByLabelText } = render(EventDetailsDialog, {
+				props: { ...defaultProps, canManageEvent: true }
 			});
-
-			// Press Escape
-			await fireEvent.keyDown(container, { key: 'Escape', code: 'Escape' });
-
-			expect(onClose).toHaveBeenCalled();
+			
+			await fireEvent.click(getByLabelText('Edit event'));
+			expect(defaultProps.onEdit).toHaveBeenCalled();
 		});
 
-		it('should close dialog when clicking backdrop', async () => {
-			const onClose = vi.fn();
-
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose
-				}
+		it('should call delete handler when delete button is clicked', async () => {
+			const { getByLabelText, getByText } = render(EventDetailsDialog, {
+				props: { ...defaultProps, canManageEvent: true }
 			});
-
-			// Click outside dialog
-			const backdrop = container.querySelector('[data-backdrop], .backdrop');
-			if (backdrop) {
-				await fireEvent.click(backdrop);
-				expect(onClose).toHaveBeenCalled();
-			}
-		});
-
-		it('should not render when open prop is false', () => {
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: false,
-					onClose: vi.fn()
-				}
-			});
-
-			const dialog = container.querySelector('[role="dialog"]');
-			expect(dialog).toBeFalsy();
+			
+			await fireEvent.click(getByLabelText('Delete event'));
+			// Should show confirmation dialog
+			expect(getByText(/Are you sure you want to delete/)).toBeTruthy();
 		});
 	});
 
-	describe('Accessibility', () => {
-		it('should have proper ARIA attributes for tabs', () => {
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose: vi.fn()
-				}
+	describe('Permissions', () => {
+		it('should show management buttons if canManageEvent is true', () => {
+			const { queryByLabelText } = render(EventDetailsDialog, {
+				props: { ...defaultProps, canManageEvent: true }
 			});
-
-			const tabs = container.querySelectorAll('[role="tab"]');
-			tabs.forEach((tab) => {
-				expect(tab.getAttribute('aria-selected')).toBeTruthy();
-				expect(tab.getAttribute('aria-controls')).toBeTruthy();
-			});
+			
+			expect(queryByLabelText('Edit event')).toBeTruthy();
+			expect(queryByLabelText('Delete event')).toBeTruthy();
 		});
 
-		it('should have proper ARIA attributes for tab panels', () => {
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose: vi.fn()
-				}
+		it('should hide management buttons if canManageEvent is false', () => {
+			const { queryByLabelText } = render(EventDetailsDialog, {
+				props: { ...defaultProps, canManageEvent: false }
 			});
-
-			const tabPanel = container.querySelector('[role="tabpanel"]');
-			expect(tabPanel?.getAttribute('aria-labelledby')).toBeTruthy();
-		});
-
-		it('should trap focus within dialog', async () => {
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose: vi.fn()
-				}
-			});
-
-			// Tab through elements
-			// Focus should loop back to first focusable element
-		});
-
-		it('should focus first focusable element when dialog opens', () => {
-			const { container } = render(EventDetailsDialog, {
-				props: {
-					eventId: mockEventId,
-					open: true,
-					onClose: vi.fn()
-				}
-			});
-
-			// Verify focus is on close button or first tab
-			const activeElement = document.activeElement;
-			expect(container.contains(activeElement)).toBe(true);
+			
+			expect(queryByLabelText('Edit event')).toBeNull();
+			expect(queryByLabelText('Delete event')).toBeNull();
 		});
 	});
 });

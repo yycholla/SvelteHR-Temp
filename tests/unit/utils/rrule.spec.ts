@@ -21,7 +21,7 @@ describe('RRULE Generation', () => {
 			const pattern: RecurrencePattern = {
 				frequency: 'daily',
 				interval: 1,
-				daysOfWeek: null,
+				daysOfWeek: undefined,
 				endDate: new Date('2025-12-31'),
 				rruleString: ''
 			};
@@ -67,7 +67,7 @@ describe('RRULE Generation', () => {
 			const pattern: RecurrencePattern = {
 				frequency: 'monthly',
 				interval: 1,
-				daysOfWeek: null,
+				daysOfWeek: undefined,
 				endDate: new Date('2025-12-31'),
 				rruleString: ''
 			};
@@ -81,7 +81,7 @@ describe('RRULE Generation', () => {
 			const pattern: RecurrencePattern = {
 				frequency: 'yearly',
 				interval: 1,
-				daysOfWeek: null,
+				daysOfWeek: undefined,
 				endDate: new Date('2030-10-10'),
 				rruleString: ''
 			};
@@ -95,7 +95,7 @@ describe('RRULE Generation', () => {
 			const pattern: RecurrencePattern = {
 				frequency: 'daily',
 				interval: 1,
-				daysOfWeek: null,
+				daysOfWeek: undefined,
 				endDate: new Date('2025-12-31'),
 				rruleString: ''
 			};
@@ -111,7 +111,7 @@ describe('RRULE Generation', () => {
 			const formData = {
 				frequency: 'daily' as const,
 				interval: 1,
-				daysOfWeek: null,
+				daysOfWeek: undefined,
 				endDate: new Date('2025-12-31')
 			};
 
