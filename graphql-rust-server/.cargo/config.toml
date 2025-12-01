@@ -4,8 +4,9 @@
 # Set linker to clang and explicitly use mold to override default lld
 linker = "clang"
 rustflags = [
-    "-C", "link-arg=-fuse-ld=mold",
-    "-A", "warnings"
+  "-C",
+  "link-arg=-fuse-ld=mold",
+  # "-A", "warnings"
 ]
 
 [build]

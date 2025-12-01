@@ -5,11 +5,10 @@
 
 use async_graphql::{
     extensions::{Extension, ExtensionContext, ExtensionFactory, NextExecute},
-    parser::types::{ExecutableDocument, OperationType},
     Response, Value, Variables,
 };
 use axum_login::AuthSession;
-use sea_orm::{ActiveModelTrait, ActiveValue::NotSet, DatabaseConnection, EntityTrait, Set};
+use sea_orm::{ActiveModelTrait, ActiveValue::NotSet, DatabaseConnection, Set};
 use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -118,16 +117,7 @@ fn is_mutation_by_name(operation_name: &str) -> bool {
     mutation_prefixes.iter().any(|prefix| name_lower.starts_with(prefix))
 }
 
-/// Check if the current operation is a mutation (legacy method using ExecutableDocument)
-/// This is kept for reference but not used since ExecutableDocument is not available in execute phase
-fn is_mutation_operation(doc: &ExecutableDocument) -> bool {
-    for (_name, definition) in doc.operations.iter() {
-        if matches!(definition.node.ty, OperationType::Mutation) {
-            return true;
-        }
-    }
-    false
-}
+
 
 /// Extract action type from mutation name (e.g., "createDocument" -> "CREATE")
 fn extract_action_from_mutation(mutation_name: &str) -> String {

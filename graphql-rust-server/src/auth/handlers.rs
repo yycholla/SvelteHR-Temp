@@ -251,17 +251,9 @@ pub async fn login_handler(
     }))
 }
 
-/// Database role assignment result
-#[derive(Debug, FromRow)]
-struct RoleAssignment {
-    role_name: Option<String>,
-}
 
-/// Database permission result
-#[derive(Debug, FromRow)]
-struct PermissionResult {
-    permission: Option<String>,
-}
+
+
 
 /// Get user roles and permissions from database
 // Removed: get_user_roles_and_permissions() - now using shared function from crate::auth::permissions

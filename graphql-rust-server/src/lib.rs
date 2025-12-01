@@ -15,6 +15,8 @@ pub mod seed_data;
 pub mod services;
 pub mod schema;
 pub mod utils;
+pub mod logging;
+pub mod scheduler;
 
 // Migration module (from ../migration/lib.rs)
 #[path = "../migration/lib.rs"]

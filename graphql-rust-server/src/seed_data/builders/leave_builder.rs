@@ -208,7 +208,6 @@ pub async fn seed_leave_requests(
         return Ok(result);
     }
 
-    let statuses = vec!["pending", "approved", "rejected", "cancelled"];
     let now = chrono::Utc::now();
 
     for i in 0..target_count {

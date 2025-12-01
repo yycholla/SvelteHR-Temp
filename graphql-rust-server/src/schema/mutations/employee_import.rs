@@ -1,13 +1,12 @@
-use async_graphql::{Context, InputObject, Object, Result, SimpleObject};
+use async_graphql::{Context, InputObject, Object, Result};
 use chrono::{DateTime, Utc, NaiveDate};
 use csv::ReaderBuilder;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set, TransactionTrait,
-    ActiveValue::NotSet, QuerySelect,
+    ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set, QuerySelect,
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::json;
-use std::collections::HashMap;
+
 use uuid::Uuid;
 
 use crate::{
@@ -18,7 +17,7 @@ use crate::{
             import_job::{self, ImportJobStatus},
             import_row::{self, ImportRowStatus},
         },
-        user::{self, UserStatus},
+        user,
     },
 };
 
@@ -364,7 +363,7 @@ impl EmployeeImportMutations {
             let birth_date = parsed.get("birth_date").and_then(|s| s.as_str())
                 .map(|s| NaiveDate::parse_from_str(s, "%Y-%m-%d").unwrap());
                 
-            let role_name = parsed.get("role").and_then(|s| s.as_str()).unwrap_or("Employee");
+            let _role_name = parsed.get("role").and_then(|s| s.as_str()).unwrap_or("Employee");
 
             let home_phone = parsed.get("home_phone").and_then(|s| s.as_str());
             let work_phone = parsed.get("work_phone").and_then(|s| s.as_str());

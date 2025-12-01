@@ -6,7 +6,7 @@
 
 use async_trait::async_trait;
 use sea_orm::{
-    ActiveModelBehavior, ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
 };
 use tower_sessions::{session::Id, session_store, SessionStore};
 use std::sync::Arc;
@@ -27,10 +27,7 @@ impl SeaOrmSessionStore {
         Self { db: Arc::new(db) }
     }
 
-    /// Get the database connection
-    pub fn db(&self) -> &DatabaseConnection {
-        &self.db
-    }
+
 }
 
 

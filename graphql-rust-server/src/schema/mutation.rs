@@ -524,7 +524,7 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         // Get the assigner's user ID from context if available
-        let assigner_id = ctx.data_opt::<UserContext>().map(|uc| uc.user_id);
+        let _assigner_id = ctx.data_opt::<UserContext>().map(|uc| uc.user_id);
 
         let assignment = crate::models::user_role_assignment::ActiveModel {
             user_id: Set(input.user_id),

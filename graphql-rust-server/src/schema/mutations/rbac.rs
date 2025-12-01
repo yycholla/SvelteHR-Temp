@@ -30,13 +30,7 @@ pub struct SuccessResponse {
     pub message: String,
 }
 
-/// Bulk operation response
-#[derive(SimpleObject)]
-pub struct BulkOperationResponse {
-    pub success: bool,
-    pub count: i64,
-    pub message: String,
-}
+
 
 /// Bulk assign permissions input
 #[derive(Debug, Clone, InputObject)]
@@ -377,14 +371,14 @@ impl RbacMutations {
         let db = get_db_from_context(ctx)?;
 
         // Verify role exists
-        let role = crate::models::role::Entity::find_by_id(role_id)
+        let _role = crate::models::role::Entity::find_by_id(role_id)
             .filter(crate::models::role::Column::DeletedAt.is_null())
             .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Role not found".to_string()))?;
 
         // Verify permission exists
-        let permission = crate::models::permission::Entity::find_by_id(permission_id)
+        let _permission = crate::models::permission::Entity::find_by_id(permission_id)
             .filter(crate::models::permission::Column::DeletedAt.is_null())
             .one(&db)
             .await?

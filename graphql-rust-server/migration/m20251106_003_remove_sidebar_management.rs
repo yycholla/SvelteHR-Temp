@@ -29,7 +29,7 @@ impl MigrationTrait for Migration {
         Ok(())
     }
 
-    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+    async fn down(&self, _manager: &SchemaManager) -> Result<(), DbErr> {
         // This migration is not reversible - sidebar management is being removed permanently
         // If you need to restore it, use the original migrations
         Ok(())
