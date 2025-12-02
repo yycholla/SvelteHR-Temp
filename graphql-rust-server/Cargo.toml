@@ -75,7 +75,7 @@ features = ["serde"]
 
 [dependencies.sea-orm]
 version = "0.12"
-features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-uuid", "with-chrono"]
+features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-uuid", "with-chrono", "postgres-array"]
 
 [dependencies.sea-orm-migration]
 version = "0.12"

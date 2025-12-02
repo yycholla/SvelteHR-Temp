@@ -38,6 +38,7 @@ pub mod system;        // System administration
 pub mod events;        // Event management extensions
 pub mod tasks;         // Task management extensions
 pub mod reviews;       // Performance review extensions
+pub mod training;      // Training module
 
 pub use department::{CreateDepartmentInput, Model as Department, DepartmentsOrderBy, UpdateDepartmentInput};
 pub use event::{CreateEventInput, Model as Event, EventCondition, EventsOrderBy, EventStatus, UpdateEventInput};
@@ -117,3 +118,9 @@ pub use events::{
 };
 pub use tasks::{CreateTaskTypeInput, TaskType, UpdateTaskTypeInput};
 pub use reviews::{CreateReviewTemplateInput, ReviewTemplate, UpdateReviewTemplateInput};
+pub use training::{
+    Training, CreateTrainingInput, UpdateTrainingInput,
+    TrainingContent, CreateTrainingContentInput, UpdateTrainingContentInput, ContentType,
+    TrainingAssignment, CreateAssignmentInput,
+    TrainingProgress, UpdateProgressInput, ProgressStatus,
+};

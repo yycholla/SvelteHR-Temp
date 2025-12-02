@@ -102,6 +102,9 @@ export default defineConfig({
 			{
 				name: 'unit-client',
 				extends: './vitest.config.ts',
+				resolve: {
+					conditions: ['browser']
+				},
 				test: {
 					name: 'unit-client',
 					environment: 'jsdom',

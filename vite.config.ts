@@ -129,14 +129,8 @@ export default defineConfig({
         ? `http://${process.env.VITE_HMR_HOST || 'localhost'}:${process.env.VITE_HMR_PORT || '5173'}`
         : undefined,
 
-    // Allow Tailscale MagicDNS hostnames for remote development access
-    allowedHosts: [
-      '.ts.net', // Allow all Tailscale MagicDNS domains
-      '.svc.cluster.local', // Allow all Kubernetes service DNS names
-      'localhost',
-      '127.0.0.1',
-      '192.168.1.129' // Local network IP (Traefik)
-    ],
+    // Allow all hostnames (including Tailscale MagicDNS) for remote development access
+    allowedHosts: true,
 
     proxy: {
       // Note: GraphQL requests now handled by SvelteKit API route at /api/graphql

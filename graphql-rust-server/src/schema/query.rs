@@ -1246,6 +1246,176 @@ impl QueryRoot {
     }
 
     // =========================================================================
+    // Training Queries
+    // =========================================================================
+
+    /// Get all trainings
+    async fn trainings(&self, ctx: &Context<'_>) -> Result<Vec<crate::models::Training>> {
+        let db = get_db_from_context(ctx)?;
+        // TODO: RLS filtering?
+        let trainings = crate::models::training::training::Entity::find().all(&db).await?;
+        Ok(trainings)
+    }
+
+    /// Get single training
+    async fn training(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<crate::models::Training>> {
+        let db = get_db_from_context(ctx)?;
+        let training = crate::models::training::training::Entity::find_by_id(id).one(&db).await?;
+        Ok(training)
+    }
+
+    /// Get trainings assigned to current user
+    async fn my_trainings(&self, ctx: &Context<'_>) -> Result<Vec<crate::models::Training>> {
+        let db = get_db_from_context(ctx)?;
+        let user_context = ctx.data::<UserContext>()?;
+
+        let assignments = crate::models::training::assignment::Entity::find()
+            .filter(crate::models::training::assignment::Column::UserId.eq(user_context.user_id))
+            .all(&db)
+            .await?;
+        
+        let training_ids: Vec<Uuid> = assignments.iter().map(|a| a.training_id).collect();
+        
+        let trainings = crate::models::training::training::Entity::find()
+            .filter(crate::models::training::training::Column::Id.is_in(training_ids))
+            .all(&db)
+            .await?;
+
+        Ok(trainings)
+    }
+
+    /// Get content for a training
+    async fn training_contents(&self, ctx: &Context<'_>, training_id: Uuid) -> Result<Vec<crate::models::TrainingContent>> {
+        let db = get_db_from_context(ctx)?;
+        let contents = crate::models::training::content::Entity::find()
+            .filter(crate::models::training::content::Column::TrainingId.eq(training_id))
+            .order_by_asc(crate::models::training::content::Column::SequenceOrder)
+            .all(&db)
+            .await?;
+        Ok(contents)
+    }
+
+    /// Get assignments for a training with user information
+    async fn training_assignments(&self, ctx: &Context<'_>, training_id: Uuid) -> Result<Vec<crate::models::training::TrainingAssignmentWithUser>> {
+        let db = get_db_from_context(ctx)?;
+
+        // Find all assignments for this training and load related users
+        let assignments = crate::models::training::assignment::Entity::find()
+            .filter(crate::models::training::assignment::Column::TrainingId.eq(training_id))
+            .find_also_related(crate::models::user::Entity)
+            .all(&db)
+            .await?;
+
+        // Map to TrainingAssignmentWithUser
+        let result = assignments.into_iter().map(|(assignment, user)| {
+            crate::models::training::TrainingAssignmentWithUser {
+                id: assignment.id,
+                user_id: assignment.user_id,
+                training_id: assignment.training_id,
+                assigned_at: assignment.assigned_at,
+                due_date: assignment.due_date,
+                user,
+            }
+        }).collect();
+
+        Ok(result)
+    }
+
+    /// Get all training assignments across all trainings with user information
+    async fn all_training_assignments(&self, ctx: &Context<'_>) -> Result<Vec<crate::models::training::TrainingAssignmentWithUser>> {
+        let db = get_db_from_context(ctx)?;
+
+        // Find all assignments and load related users
+        let assignments = crate::models::training::assignment::Entity::find()
+            .find_also_related(crate::models::user::Entity)
+            .all(&db)
+            .await?;
+
+        // Map to TrainingAssignmentWithUser
+        let result = assignments.into_iter().map(|(assignment, user)| {
+            crate::models::training::TrainingAssignmentWithUser {
+                id: assignment.id,
+                user_id: assignment.user_id,
+                training_id: assignment.training_id,
+                assigned_at: assignment.assigned_at,
+                due_date: assignment.due_date,
+                user,
+            }
+        }).collect();
+
+        Ok(result)
+    }
+
+    /// Get progress for a specific training for the current user
+    async fn my_training_progress(
+        &self,
+        ctx: &Context<'_>,
+        training_id: Uuid,
+    ) -> Result<Vec<crate::models::training::progress::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let user_context = ctx.data::<UserContext>()?;
+
+        // Get all contents for this training
+        let contents = crate::models::training::content::Entity::find()
+            .filter(crate::models::training::content::Column::TrainingId.eq(training_id))
+            .all(&db)
+            .await?;
+
+        let content_ids: Vec<Uuid> = contents.iter().map(|c| c.id).collect();
+
+        if content_ids.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // Find progress for these contents and this user
+        let progress = crate::models::training::progress::Entity::find()
+            .filter(crate::models::training::progress::Column::UserId.eq(user_context.user_id))
+            .filter(crate::models::training::progress::Column::TrainingContentId.is_in(content_ids))
+            .all(&db)
+            .await?;
+
+        Ok(progress)
+    }
+
+    /// Get training progress for a specific user (Admin/HR Manager access)
+    /// Returns progress for all content items in a training for a given user
+    async fn training_progress(
+        &self,
+        ctx: &Context<'_>,
+        training_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<Vec<crate::models::training::progress::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let user_context = ctx.data::<UserContext>()?;
+
+        // Only admins and HR managers can view other users' progress
+        if !user_context.is_admin() && !user_context.is_hr_manager() {
+            return Err(async_graphql::Error::new("Unauthorized: Only admins and HR managers can view training progress for other users"));
+        }
+
+        // Get all contents for this training
+        let contents = crate::models::training::content::Entity::find()
+            .filter(crate::models::training::content::Column::TrainingId.eq(training_id))
+            .all(&db)
+            .await?;
+
+        let content_ids: Vec<Uuid> = contents.iter().map(|c| c.id).collect();
+
+        if content_ids.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // Find progress for these contents and the specified user
+        let progress = crate::models::training::progress::Entity::find()
+            .filter(crate::models::training::progress::Column::UserId.eq(user_id))
+            .filter(crate::models::training::progress::Column::TrainingContentId.is_in(content_ids))
+            .all(&db)
+            .await?;
+
+        Ok(progress)
+    }
+
+    // =========================================================================
     // System Settings Queries (Permission-based access)
     // =========================================================================
 

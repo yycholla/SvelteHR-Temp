@@ -41,6 +41,10 @@ mod m20251118_002_fix_email_unique_constraint_for_soft_delete;
 mod m20251125_001_employee_import_improvements;
 mod m20251125_002_add_phone_fields;
 mod m20251125_003_add_nickname_social;
+mod m20251201_001_create_training_module;
+mod m20251201_002_add_training_permissions;
+mod m20251202_001_enhance_training_schema;
+mod m20251202_003_add_training_recurrence;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -83,6 +87,10 @@ impl MigratorTrait for Migrator {
             Box::new(m20251125_001_employee_import_improvements::Migration),
             Box::new(m20251125_002_add_phone_fields::Migration),
             Box::new(m20251125_003_add_nickname_social::Migration),
+            Box::new(m20251201_001_create_training_module::Migration),
+            Box::new(m20251201_002_add_training_permissions::Migration),
+            Box::new(m20251202_001_enhance_training_schema::Migration),
+            Box::new(m20251202_003_add_training_recurrence::Migration),
         ]
     }
 }

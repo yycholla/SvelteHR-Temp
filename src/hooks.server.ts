@@ -58,7 +58,8 @@ interface CachedSession {
 }
 
 const SESSION_CACHE = new Map<string, CachedSession>();
-const SESSION_CACHE_TTL = 60 * 1000; // 60 seconds cache TTL
+const SESSION_CACHE_TTL = 60 * 1000; // 60 seconds for most routes
+const DASHBOARD_CACHE_TTL = 5 * 1000; // 5 seconds for dashboard routes
 
 /**
  * Clean expired sessions from cache periodically
@@ -188,6 +189,18 @@ function extractSessionId(cookieHeader: string): string | null {
 	return match ? match[1] : null;
 }
 
+/**
+ * Generate cache key based on session ID and pathname
+ * For dashboard routes, include pathname to prevent cross-page cache leakage
+ */
+function getCacheKey(sessionId: string, pathname: string): string {
+	// For dashboard routes, include pathname in cache key to prevent cross-page leakage
+	if (pathname.startsWith('/dashboard')) {
+		return `${sessionId}:${pathname}`;
+	}
+	return sessionId;
+}
+
 // Helper function to authenticate user via session validation with caching
 async function authenticateUser(
 	event: any,
@@ -204,11 +217,13 @@ async function authenticateUser(
 	try {
 		// Check cache first (if we have a session ID)
 		if (sessionId) {
-			const cached = SESSION_CACHE.get(sessionId);
+			const cacheKey = getCacheKey(sessionId, pathname);
+			const cached = SESSION_CACHE.get(cacheKey);
+
 			if (cached && cached.expiresAt > Date.now()) {
 				// Concise: only log for non-verify endpoints to avoid spam
 				if (!pathname.includes('/api/auth/verify') && !pathname.includes('/api/notifications')) {
-					logger.debug(`Cache hit for ${pathname}`, { userId: sessionId });
+					logger.debug(`✓ Session cache hit for ${pathname}`, { userId: sessionId });
 				}
 				return {
 					user: cached.user,
@@ -237,7 +252,10 @@ async function authenticateUser(
 			if (response.status === 401) {
 				logger.warn(`Session invalid for ${pathname}`, { sessionId, statusCode: response.status });
 				// Clear cache for this session if it exists
-				if (sessionId) SESSION_CACHE.delete(sessionId);
+				if (sessionId) {
+					const cacheKey = getCacheKey(sessionId, pathname);
+					SESSION_CACHE.delete(cacheKey);
+				}
 				return null;
 			}
 			logger.error(`Authentication validation failed for ${pathname}`, undefined, {
@@ -261,17 +279,25 @@ async function authenticateUser(
 			permissions: userData.permissions || [] // Permissions from backend session
 		};
 
-		// Cache the validated session
+		// Cache the validated session with pathname-specific key and TTL
 		if (sessionId) {
-			SESSION_CACHE.set(sessionId, {
-				...authResult,
-				expiresAt: Date.now() + SESSION_CACHE_TTL
-			});
-		}
+			const cacheKey = getCacheKey(sessionId, pathname);
+			const ttl = pathname.startsWith('/dashboard')
+				? DASHBOARD_CACHE_TTL
+				: SESSION_CACHE_TTL;
 
-		// Concise: only log for non-verify endpoints to avoid spam
-		if (!pathname.includes('/api/auth/verify') && !pathname.includes('/api/notifications')) {
-			logger.debug(`Cache miss for ${pathname}`, { userId: sessionId, email: userData.email });
+			SESSION_CACHE.set(cacheKey, {
+				...authResult,
+				expiresAt: Date.now() + ttl
+			});
+
+			// Concise: only log for non-verify endpoints to avoid spam
+			if (!pathname.includes('/api/auth/verify') && !pathname.includes('/api/notifications')) {
+				logger.debug(`✓ Session cached for ${pathname} (TTL: ${ttl}ms)`, {
+					userId: sessionId,
+					pathname
+				});
+			}
 		}
 
 		return authResult;
@@ -440,6 +466,7 @@ export const handle: Handle = sequence(Sentry.sentryHandle(), async ({ event, re
 			"font-src 'self' data:",
 			"connect-src 'self' https://cloudflareinsights.com https://*.ingest.us.sentry.io", // Allow Cloudflare and Sentry
 			"worker-src 'self' blob:", // Allow Sentry session replay workers
+			"frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com", // Allow YouTube embeds
 			isPreviewEndpoint ? "frame-ancestors 'self'" : "frame-ancestors 'none'",
 			"base-uri 'self'",
 			"form-action 'self'"

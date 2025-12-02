@@ -14,6 +14,13 @@ export const load: PageServerLoad = async (event) => {
 	// Check authentication (all authenticated users can access dashboard)
 	requireAuth(event, {});
 
+	// CRITICAL: Prevent browser-level caching of dashboard data
+	event.setHeaders({
+		'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+		'Pragma': 'no-cache',
+		'Expires': '0'
+	});
+
     // Get standardized user permissions
     const userPerms = getUserPermissions(locals);
 

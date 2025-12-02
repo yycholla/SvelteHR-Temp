@@ -12,6 +12,7 @@
 		Clock,
 		FileText,
 		FolderOpen,
+		GraduationCap,
 		Home,
 		LayoutDashboard,
 		ListTodo,
@@ -331,6 +332,13 @@
 			]
 		},
 		{
+			title: 'Training',
+			url: '/dashboard/training',
+			icon: GraduationCap,
+			standalone: true,
+			permission: 'training:read'
+		},
+		{
 			title: 'Documents',
 			url: '/dashboard/documents',
 			icon: FolderOpen,
@@ -380,6 +388,12 @@
 			url: '/dashboard/admin/documents',
 			icon: FolderOpen,
 			permission: 'documents:read:all'
+		},
+		{
+			title: 'Training Modules',
+			url: '/dashboard/admin/trainings',
+			icon: GraduationCap,
+			permissionAny: ['training:write', 'training:assign']
 		},
 		{
 			title: 'User Management',
@@ -521,6 +535,7 @@
 					{@const Icon = item.icon}
 					<a
 						href={item.url}
+						data-sveltekit-reload
 						class="flex items-center {sidebarState.isCollapsed ? 'justify-center' : 'gap-3'} rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-80"
 						class:bg-primary={$page.url.pathname === item.url}
 						class:text-primary-foreground={$page.url.pathname === item.url}
@@ -594,7 +609,7 @@
 							{#if item.items}
 								{#each item.items as subItem}
 									<DropdownMenu.Item>
-										<a href={subItem.url} class="flex w-full items-center">
+										<a href={subItem.url} data-sveltekit-reload class="flex w-full items-center">
 											{subItem.title}
 										</a>
 									</DropdownMenu.Item>
@@ -634,7 +649,7 @@
 					{#each filteredManagementItems as item}
 						{@const ItemIcon = item.icon}
 						<DropdownMenu.Item>
-							<a href={item.url} class="flex items-center w-full">
+							<a href={item.url} data-sveltekit-reload class="flex items-center w-full">
 								<ItemIcon class="mr-2 h-4 w-4" />
 								<span class="flex-1">{item.title}</span>
 								<span class="rounded bg-blue-100 px-1.5 py-0.5 text-[9px] font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300">
@@ -678,7 +693,7 @@
 					{#each filteredAdminItems as item}
 						{@const ItemIcon = item.icon}
 						<DropdownMenu.Item>
-							<a href={item.url} class="flex items-center w-full">
+							<a href={item.url} data-sveltekit-reload class="flex items-center w-full">
 								<ItemIcon class="mr-2 h-4 w-4" />
 								<span class="flex-1">{item.title}</span>
 								<!-- Badge indicating access level -->

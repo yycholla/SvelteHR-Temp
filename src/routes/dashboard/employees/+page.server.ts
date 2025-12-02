@@ -77,13 +77,14 @@ export const load: PageServerLoad = async (event) => {
 
 		// Load ALL employees first (no pagination) to get accurate total count
 		// We'll apply pagination after filtering
+		// Pass limit=10000 to override backend's default 100 limit
 		const employeesResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetAllEmployees {
-						users {
+					query GetAllEmployees($limit: Int, $offset: Int) {
+						users(limit: $limit, offset: $offset) {
 							id
 							email
 							firstName
@@ -102,7 +103,11 @@ export const load: PageServerLoad = async (event) => {
 							updatedAt
 						}
 					}
-				`
+				`,
+				variables: {
+					limit: 10000,
+					offset: 0
+				}
 			})
 		});
 

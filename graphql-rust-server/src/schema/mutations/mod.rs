@@ -7,6 +7,7 @@ pub mod rollback;
 pub mod task;
 pub mod time;
 pub mod user;
+pub mod training;
 
 pub use auth::AuthMutations;
 pub use department::DepartmentMutations;
@@ -17,3 +18,4 @@ pub use rollback::{RollbackMutations, RollbackQueries};
 pub use task::TaskMutations;
 pub use time::TimeMutations;
 pub use user::UserMutations;
+pub use training::TrainingMutations;
