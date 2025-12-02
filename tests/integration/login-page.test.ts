@@ -180,11 +180,18 @@ describe('Login Page Integration (T018)', () => {
 		it('should handle authentication timeout errors with user-friendly messages', async () => {
 			// Arrange
 			const timeoutError: ErrorResponse = {
+				id: 'error-timeout',
+				operationId: 'op-timeout',
+				originalError: null,
+				technicalDetails: 'Network timeout',
+				timestamp: new Date(),
+				isRetryable: true,
+				suggestedActions: [],
 				type: 'NETWORK_ERROR',
-				message: 'Authentication request timed out after 5000ms',
+				userMessage: 'Authentication request timed out after 5000ms', // Changed message to userMessage
 				severity: 'high',
-				suggestedAction: 'retry_operation',
-				retryable: true
+				// suggestedAction: 'retry_operation', // Not in ErrorResponse
+				// retryable: true // Not in ErrorResponse
 			};
 
 			mockLoginUser.mockRejectedValueOnce(timeoutError);
@@ -208,11 +215,18 @@ describe('Login Page Integration (T018)', () => {
 		it('should handle invalid credentials with security-conscious error messages', async () => {
 			// Arrange
 			const credentialsError: ErrorResponse = {
+				id: 'error-credentials',
+				operationId: 'op-credentials',
+				originalError: null,
+				technicalDetails: 'Invalid credentials',
+				timestamp: new Date(),
+				isRetryable: false,
+				suggestedActions: [],
 				type: 'AUTHENTICATION_ERROR',
-				message: 'Invalid login credentials',
+				userMessage: 'Invalid login credentials', // Changed message to userMessage
 				severity: 'medium',
-				suggestedAction: 'verify_credentials',
-				retryable: false
+				// suggestedAction: 'verify_credentials', // Not in ErrorResponse
+				// retryable: false // Not in ErrorResponse
 			};
 
 			mockLoginUser.mockRejectedValueOnce(credentialsError);
@@ -236,11 +250,18 @@ describe('Login Page Integration (T018)', () => {
 		it('should handle account lockout scenarios with appropriate messaging', async () => {
 			// Arrange
 			const lockoutError: ErrorResponse = {
+				id: 'error-lockout',
+				operationId: 'op-lockout',
+				originalError: null,
+				technicalDetails: 'Account locked',
+				timestamp: new Date(),
+				isRetryable: false,
+				suggestedActions: [],
 				type: 'AUTHENTICATION_ERROR',
-				message: 'Account temporarily locked due to multiple failed login attempts',
+				userMessage: 'Account temporarily locked due to multiple failed login attempts', // Changed message to userMessage
 				severity: 'high',
-				suggestedAction: 'contact_admin',
-				retryable: false
+				// suggestedAction: 'contact_admin', // Not in ErrorResponse
+				// retryable: false // Not in ErrorResponse
 			};
 
 			mockLoginUser.mockRejectedValueOnce(lockoutError);
@@ -316,11 +337,18 @@ describe('Login Page Integration (T018)', () => {
 		it('should handle token refresh during login flow', async () => {
 			// Arrange
 			const expiredTokenError: ErrorResponse = {
+				id: 'error-expired',
+				operationId: 'op-expired',
+				originalError: null,
+				technicalDetails: 'Token expired',
+				timestamp: new Date(),
+				isRetryable: true,
+				suggestedActions: [],
 				type: 'AUTHENTICATION_ERROR',
-				message: 'Token expired, attempting refresh',
+				userMessage: 'Token expired, attempting refresh', // Changed message to userMessage
 				severity: 'low',
-				suggestedAction: 'refresh_token',
-				retryable: true
+				// suggestedAction: 'refresh_token', // Not in ErrorResponse
+				// retryable: true // Not in ErrorResponse
 			};
 
 			const refreshResponse: VerifyUserAuthenticationResponse = {
@@ -583,5 +611,4 @@ describe('Login Page Integration (T018)', () => {
 			expect(screen.queryByRole('status')).toBeNull();
 			expect(screen.queryByTestId('login-status-announcement')).toBeNull();
 		});
-	});
-});
+
