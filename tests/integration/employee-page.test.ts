@@ -13,7 +13,6 @@ import { tick } from 'svelte';
 import type { LoadEvent } from '@sveltejs/kit';
 import type {
 	GetEmployeesWithFilteringRequest,
-	GetEmployeesWithFilteringResponse,
 	DataRequest,
 	ErrorResponse
 } from '$lib/types/graphql-contracts';
@@ -540,11 +539,18 @@ describe('Employee Page Integration (T019)', () => {
 		it('should handle concurrent edit conflicts with user-friendly resolution', async () => {
 			// Arrange
 			const conflictError: ErrorResponse = {
+				id: 'error-456',
+				operationId: 'op-456',
+				originalError: null,
+				technicalDetails: 'Concurrent modification',
+				timestamp: new Date(),
+				isRetryable: true,
+				suggestedActions: [],
 				type: 'VALIDATION_ERROR',
-				message: 'Employee data has been modified by another user',
+				userMessage: 'Employee data has been modified by another user', // Changed message to userMessage
 				severity: 'medium',
-				suggestedAction: 'merge_changes',
-				retryable: true
+				// suggestedAction: 'merge_changes', // This property doesn't exist in ErrorResponse
+				// retryable: true // This property doesn't exist in ErrorResponse, use isRetryable
 			};
 
 			const conflictData = {
