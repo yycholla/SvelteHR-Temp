@@ -3,7 +3,7 @@
 // Task: T008 - E2E test Team analytics and reporting management page
 // CRITICAL: This test MUST FAIL initially as per TDD approach
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Management Team Analytics and Reporting Page', () => {
 	test.beforeEach(async ({ page }) => {

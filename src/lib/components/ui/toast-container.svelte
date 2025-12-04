@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { errorStore } from '$lib/stores/error.svelte';
-	import { X, AlertCircle, AlertTriangle, Info, CheckCircle } from '@lucide/svelte';
+	import { AlertCircle, AlertTriangle, CheckCircle, Info, X } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { cn } from '$lib/utils/styles';
 	import { fly } from 'svelte/transition';

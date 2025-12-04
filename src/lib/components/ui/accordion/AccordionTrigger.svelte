@@ -11,7 +11,7 @@
 		children?: import('svelte').Snippet;
 	}
 
-	let { class: className = '', children }: Props = $props();
+	const { class: className = '', children }: Props = $props();
 
 	const item = getContext<{
 		isOpen: () => boolean;

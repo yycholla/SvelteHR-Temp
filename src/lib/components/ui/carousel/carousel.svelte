@@ -5,7 +5,7 @@
 		type EmblaContext,
 		setEmblaContext
 	} from './context.js';
-	import { cn, type WithElementRef } from '$lib/utils.js';
+	import { type WithElementRef, cn } from '$lib/utils.js';
 
 	let {
 		ref = $bindable(null),
@@ -18,7 +18,7 @@
 		...restProps
 	}: WithElementRef<CarouselProps> = $props();
 
-	let carouselState = $state<EmblaContext>({
+	const carouselState = $state<EmblaContext>({
 		api: undefined,
 		scrollPrev,
 		scrollNext,

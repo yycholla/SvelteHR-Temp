@@ -13,7 +13,7 @@
 -->
 
 <script lang="ts">
-	import type { TaskStatus, TaskPriority, Task } from '$lib/types/task';
+	import type { Task, TaskPriority, TaskStatus } from '$lib/types/task';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -22,18 +22,18 @@
 	import * as Popover from '$lib/components/ui/popover';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import {
-		Filter,
-		Search,
-		X,
-		ChevronDown,
-		CheckCircle,
 		AlertCircle,
-		Clock,
-		XCircle,
 		Calendar,
-		User,
+		CheckCircle,
+		ChevronDown,
+		Clock,
+		Filter,
+		GitBranch,
+		Search,
 		Target,
-		GitBranch
+		User,
+		X,
+		XCircle
 	} from '@lucide/svelte';
 	import { format } from 'date-fns';
 
@@ -59,7 +59,7 @@
 		showAdvanced?: boolean;
 	}
 
-	let {
+	const {
 		filters,
 		onFiltersChange,
 		availableAssignees = [],
@@ -115,7 +115,7 @@
 	];
 
 	// Calculate active filter count
-	let activeFilterCount = $derived(() => {
+	const activeFilterCount = $derived(() => {
 		let count = 0;
 		if (filters.search) count++;
 		if (filters.statuses.length > 0) count++;
@@ -129,7 +129,7 @@
 	});
 
 	// Check if any filters are active
-	let hasActiveFilters = $derived(activeFilterCount() > 0);
+	const hasActiveFilters = $derived(activeFilterCount() > 0);
 
 	// Toggle expanded state
 	function toggleExpanded() {

@@ -6,7 +6,7 @@
  * Tests the updateTask GraphQL mutation with audit trail creation.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('UpdateTask Mutation Contract', () => {
 	test.beforeEach(async ({ page }) => {

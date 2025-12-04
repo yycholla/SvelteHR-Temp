@@ -13,10 +13,10 @@
  * This validates the complete drift detection and remediation cycle.
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { Client } from 'pg';
 import { spawn } from 'child_process';
-import { existsSync, readFileSync, mkdirSync, rmSync, readdirSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from 'fs';
 import { join } from 'path';
 
 const TEST_DB_NAME = `hr_test_drift_${Date.now()}`;

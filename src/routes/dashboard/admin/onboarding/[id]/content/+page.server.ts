@@ -1,11 +1,11 @@
-import { fail, error } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
 import {
 	CREATE_CONTENT_BLOCK_MUTATION,
-	UPDATE_CONTENT_BLOCK_MUTATION,
-	DELETE_CONTENT_BLOCK_MUTATION
+	DELETE_CONTENT_BLOCK_MUTATION,
+	UPDATE_CONTENT_BLOCK_MUTATION
 } from '$lib/graphql/onboarding-operations';
 
 export const load: PageServerLoad = async (event) => {

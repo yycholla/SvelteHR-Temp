@@ -6,7 +6,7 @@
  * MUST FAIL until ImageUploadWidget component is implemented.
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 // import type { ImageUploadWidgetProps } from '$lib/components/events/ImageUploadWidget.svelte'; // This import is no longer valid
 
 // Define the expected props interface directly in the test

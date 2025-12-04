@@ -7,7 +7,7 @@
  * MUST FAIL until notification preferences are implemented.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Configure Notification Preferences', () => {
 	test.beforeEach(async ({ page }) => {

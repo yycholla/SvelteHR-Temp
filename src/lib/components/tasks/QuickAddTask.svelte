@@ -14,21 +14,21 @@
 	import { Calendar as CalendarComponent } from '$lib/components/ui/calendar';
 	import LoadingSpinner from '$lib/components/ui/loading-spinner.svelte';
 	import {
-		Plus,
-		Calendar,
-		Flag,
-		User,
-		Send,
 		Briefcase,
+		Calendar,
 		Check,
 		ChevronsUpDown,
+		Flag,
+		Plus,
+		Send,
+		User,
 		X
 	} from '@lucide/svelte';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
 	import { format } from 'date-fns';
 
 	// Props
-	let {
+	const {
 		currentUser,
 		assignees = [],
 		taskTypes = [],
@@ -75,7 +75,7 @@
 	const TriggerIcon = triggerIcon;
 
 	// Selected assignee display name
-	let selectedAssigneeName = $derived(
+	const selectedAssigneeName = $derived(
 		assignees.find((a) => a.id === quickAddAssigneeId)?.displayName ||
 			currentUser.displayName ||
 			currentUser.email ||
@@ -83,14 +83,14 @@
 	);
 
 	// Get first name from display name
-	let selectedAssigneeFirstName = $derived(
+	const selectedAssigneeFirstName = $derived(
 		selectedAssigneeName ? selectedAssigneeName.split(' ')[0] : 'User'
 	);
 
 	// Selected task type name and color
-	let selectedTaskType = $derived(taskTypes.find((t) => t.id === quickAddTaskTypeId));
-	let selectedTaskTypeName = $derived(selectedTaskType?.name || 'Type');
-	let selectedTaskTypeColor = $derived(selectedTaskType?.colorCode || '#6b7280'); // Default to gray
+	const selectedTaskType = $derived(taskTypes.find((t) => t.id === quickAddTaskTypeId));
+	const selectedTaskTypeName = $derived(selectedTaskType?.name || 'Type');
+	const selectedTaskTypeColor = $derived(selectedTaskType?.colorCode || '#6b7280'); // Default to gray
 
 	// Priority options with colors
 	const priorityOptions = [
@@ -101,14 +101,14 @@
 	];
 
 	// Selected priority label and color
-	let selectedPriority = $derived(
+	const selectedPriority = $derived(
 		priorityOptions.find((p) => p.value === quickAddPriority) || priorityOptions[1]
 	);
-	let selectedPriorityLabel = $derived(selectedPriority.label);
-	let selectedPriorityColor = $derived(selectedPriority.color);
+	const selectedPriorityLabel = $derived(selectedPriority.label);
+	const selectedPriorityColor = $derived(selectedPriority.color);
 
 	// Format date for badge display
-	let formattedDateBadge = $derived(
+	const formattedDateBadge = $derived(
 		quickAddDueDate
 			? format(
 					new Date(quickAddDueDate.year, quickAddDueDate.month - 1, quickAddDueDate.day),

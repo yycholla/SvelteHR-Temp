@@ -7,7 +7,7 @@
  * Migration: 20251010_008_add_users_profile_fields.sql
  */
 
-import { test, expect, describe, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 const mockGraphQLClient = {
 	query: vi.fn(),

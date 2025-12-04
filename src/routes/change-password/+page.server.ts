@@ -1,8 +1,8 @@
 // Server-side password change handling
 // Requires authentication and handles force_password_change flag
 
-import type { PageServerLoad, Actions } from './$types';
-import { error, redirect, fail } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
+import { error, fail, redirect } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	// Check if user is authenticated
@@ -117,7 +117,7 @@ export const actions: Actions = {
 
 			const changePasswordResult = result.data?.users?.changePassword;
 
-			if (!changePasswordResult || !changePasswordResult.success) {
+			if (!changePasswordResult?.success) {
 				return fail(400, {
 					error: changePasswordResult?.message || 'Password change failed',
 					success: false

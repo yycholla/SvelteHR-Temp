@@ -1,5 +1,5 @@
 import { render } from '@testing-library/svelte';
-import { describe, test, expect, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import DashboardPage from '../../src/routes/dashboard/+page.svelte';
 
 describe('Dashboard Component Syntax Compatibility - RED Phase', () => {

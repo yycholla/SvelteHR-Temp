@@ -10,7 +10,7 @@
 	 */
 
 	import { createEventDispatcher } from 'svelte';
-	import { Check, X, Loader2, ChevronDown, ChevronUp } from '@lucide/svelte';
+	import { Check, ChevronDown, ChevronUp, Loader2, X } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import { formatDistanceToNow } from 'date-fns';
 
@@ -48,7 +48,7 @@
 		onReject?: (requestId: string, reason: string) => Promise<void>;
 	}
 
-	let { request, userRole, onApprove, onReject }: Props = $props();
+	const { request, userRole, onApprove, onReject }: Props = $props();
 
 	let isLoading = $state(false);
 	let showApproveDialog = $state(false);

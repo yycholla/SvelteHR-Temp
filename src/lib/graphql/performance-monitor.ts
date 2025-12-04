@@ -552,7 +552,7 @@ export class GraphQLPerformanceMonitor {
 	}
 
 	private isIntrospectionQuery(document?: DocumentNode, operationName?: string): boolean {
-		if (operationName && operationName.toLowerCase().includes('introspection')) {
+		if (operationName?.toLowerCase().includes('introspection')) {
 			return true;
 		}
 

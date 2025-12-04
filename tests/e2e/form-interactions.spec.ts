@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Form Interactions - RED Phase', () => {
 	test('employee directory search form submission works without deprecated event handlers', async ({

@@ -1,7 +1,7 @@
 // Performance test: Document search and filtering (T049)
 // Tests search performance with large dataset
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 /**
  * Performance Test: Document Search and Filtering
@@ -26,7 +26,7 @@ describe('Document Search Performance Tests', () => {
 	let employeeToken: string;
 
 	const DATASET_SIZE = 10000;
-	let testDocumentIds: string[] = [];
+	const testDocumentIds: string[] = [];
 
 	beforeAll(async () => {
 		adminToken = 'test-admin-token';

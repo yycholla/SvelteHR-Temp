@@ -54,11 +54,11 @@
 	} = $props();
 
 	// Computed selection states
-	let allSelected = $derived(data.length > 0 && selectedRows.length === data.length);
-	let someSelected = $derived(selectedRows.length > 0 && selectedRows.length < data.length);
+	const allSelected = $derived(data.length > 0 && selectedRows.length === data.length);
+	const someSelected = $derived(selectedRows.length > 0 && selectedRows.length < data.length);
 
 	// Computed classes
-	let tableClasses = $derived(
+	const tableClasses = $derived(
 		[
 			'data-table',
 			hoverable && 'data-table--hoverable',

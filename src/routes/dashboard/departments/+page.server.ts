@@ -1,8 +1,8 @@
 // Server-side data loading for departments page
 // T036: Fix department management pages with standardized error handling
 
-import type { PageServerLoad, Actions } from './$types';
-import { error, redirect, fail } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
@@ -87,8 +87,8 @@ export const load: PageServerLoad = async (event) => {
 					}
 				`,
 				variables: {
-					limit: limit,
-					offset: offset
+					limit,
+					offset
 				}
 			})
 		});

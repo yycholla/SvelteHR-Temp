@@ -2,7 +2,7 @@
 // Feature: 019-we-need-to - Phase 6
 // Purpose: Test complete RSVP workflow for events
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Event RSVP Workflow', () => {
 	// Setup: Login before each test

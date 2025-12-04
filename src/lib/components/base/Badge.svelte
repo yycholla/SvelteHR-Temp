@@ -1,5 +1,5 @@
 <script lang="ts">
-	let {
+	const {
 		variant = 'primary',
 		size = 'sm',
 		rounded = true,
@@ -28,7 +28,7 @@
 	} = $props();
 
 	// Computed classes
-	let badgeClasses = $derived(
+	const badgeClasses = $derived(
 		[
 			'badge',
 			`badge--${variant}`,

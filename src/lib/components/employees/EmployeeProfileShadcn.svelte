@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, onMount } from 'svelte';
 	import { userService, currentUser as userServiceCurrentUser } from '$lib/services/userService';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -11,27 +11,28 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
 	import {
-		Mail,
-		Phone,
-		MapPin,
+		AlertCircle,
+		Building,
 		Calendar,
 		DollarSign,
-		Building,
-		UserCheck,
-		UserX,
 		Edit,
-		AlertCircle,
+		Mail,
+		MapPin,
+		Phone,
 		RefreshCw,
+		Shield,
+		UserCheck,
 		User as UserIcon,
-		Users,
-		Shield
+		UserX,
+		Users
 	} from '@lucide/svelte';
 	import type { User as UserType } from '$lib/types';
 
 	const dispatch = createEventDispatcher();
 
 	// Props
-	let { employeeId, showActions = true }: { employeeId: string; showActions?: boolean } = $props();
+	const { employeeId, showActions = true }: { employeeId: string; showActions?: boolean } =
+		$props();
 
 	// State
 	let employee: UserType | null = $state(null);

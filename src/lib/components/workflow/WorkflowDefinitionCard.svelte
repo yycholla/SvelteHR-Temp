@@ -4,7 +4,7 @@
 	import type { WorkflowDefinitionWithStats } from '$lib/stores/workflow';
 
 	// Props
-	let {
+	const {
 		definition,
 		onview = undefined,
 		onedit = undefined,

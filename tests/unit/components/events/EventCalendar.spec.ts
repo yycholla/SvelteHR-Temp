@@ -6,7 +6,7 @@
  * MUST FAIL until EventCalendar component is implemented.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/svelte';
 import EventCalendar from '$lib/components/events/EventCalendar.svelte';
 import type { CalendarEvent } from '$lib/types/events';

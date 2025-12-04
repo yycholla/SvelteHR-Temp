@@ -5,7 +5,7 @@
 	 * Purpose: UI for configuring event notification preferences
 	 */
 
-	import type { PageData, ActionData } from './$types';
+	import type { ActionData, PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { toast } from 'svelte-sonner';
 	import * as Card from '$lib/components/ui/card';
@@ -15,9 +15,9 @@
 	import { Input } from '$lib/components/ui/input';
 	import * as Select from '$lib/components/ui/select';
 	import { Separator } from '$lib/components/ui/separator';
-	import { Bell, Mail, MessageSquare, Users, Calendar, Save } from '@lucide/svelte';
+	import { Bell, Calendar, Mail, MessageSquare, Save, Users } from '@lucide/svelte';
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	const { data, form }: { data: PageData; form: ActionData } = $props();
 
 	// Local state for form (Svelte 5 runes)
 	let emailNotifications = $state(data.preferences.emailNotifications);

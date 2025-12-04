@@ -5,7 +5,7 @@
 	import { ChartContainer } from '$lib/components/ui/chart';
 	import { formatUserRole, getUserDepartment } from '$lib/graphql/user-operations';
 	import { scaleUtc } from 'd3-scale';
-	import { AreaChart, Area, ChartClipPath } from 'layerchart';
+	import { Area, AreaChart, ChartClipPath } from 'layerchart';
 	import { curveNatural } from 'd3-shape';
 	import { cubicInOut } from 'svelte/easing';
 	import TrendingUpIcon from '@lucide/svelte/icons/trending-up';
@@ -35,7 +35,7 @@
 		users: User[];
 	}
 
-	let { users }: Props = $props();
+	const { users }: Props = $props();
 
 	// Chart ready state to prevent rendering before container is ready
 	let chartsReady = $state(false);

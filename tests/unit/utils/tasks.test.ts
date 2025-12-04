@@ -5,37 +5,37 @@
  * Tests all task utility functions including filtering, sorting, grouping, and formatting.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
+	calculateTaskCompletionRate,
 	canUserViewTask,
-	isTaskOverdue,
-	isTaskDueSoon,
-	getTaskPriorityLabel,
+	filterTasksByAssignee,
+	filterTasksByDepartment,
+	filterTasksByPriority,
+	filterTasksByStatus,
+	formatTaskDueDate,
+	getOverdueTasks,
+	getTaskAssigneeDisplay,
+	getTaskCreatedRelativeTime,
 	getTaskPriorityColor,
+	getTaskPriorityIcon,
+	getTaskPriorityLabel,
+	getTaskStatistics,
 	getTaskStatusColor,
 	getTaskStatusIcon,
-	getTaskPriorityIcon,
-	getTaskAssigneeDisplay,
-	isTaskEmployeeAssigned,
-	isTaskDepartmentAssigned,
-	filterTasksByDepartment,
-	filterTasksByAssignee,
-	filterTasksByStatus,
-	filterTasksByPriority,
-	getOverdueTasks,
 	getTasksDueSoon,
-	sortTasksByPriority,
-	sortTasksByDueDate,
-	sortTasksByCreatedDate,
-	groupTasksByStatus,
-	groupTasksByPriority,
 	groupTasksByAssignee,
-	calculateTaskCompletionRate,
-	getTaskStatistics,
-	formatTaskDueDate,
-	getTaskCreatedRelativeTime
+	groupTasksByPriority,
+	groupTasksByStatus,
+	isTaskDepartmentAssigned,
+	isTaskDueSoon,
+	isTaskEmployeeAssigned,
+	isTaskOverdue,
+	sortTasksByCreatedDate,
+	sortTasksByDueDate,
+	sortTasksByPriority
 } from '$lib/utils/tasks';
-import type { Task, TaskStatus, TaskPriority } from '$lib/graphql/types';
+import type { Task, TaskPriority, TaskStatus } from '$lib/graphql/types';
 
 // Mock task factory
 function createMockTask(overrides: Partial<Task> = {}): Task {

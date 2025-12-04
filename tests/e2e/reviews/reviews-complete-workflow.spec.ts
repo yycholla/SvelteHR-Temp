@@ -12,7 +12,7 @@
  * - RBAC filtering (admin/hr_manager/manager/employee)
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Performance Reviews Complete Workflow', () => {
 	test.beforeEach(async ({ page }) => {

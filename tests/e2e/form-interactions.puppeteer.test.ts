@@ -1,17 +1,17 @@
-import { test, expect, describe } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import {
-	gotoPage,
-	waitForElement,
-	fillInput,
-	selectOption,
-	pressKey,
-	isElementVisible,
-	countElements,
 	captureConsole,
-	clickElement,
 	clearInput,
+	clickElement,
+	countElements,
+	fillInput,
+	getPage,
+	gotoPage,
+	isElementVisible,
+	pressKey,
+	selectOption,
 	waitFor,
-	getPage
+	waitForElement
 } from '../utils/puppeteer-helpers';
 
 /**

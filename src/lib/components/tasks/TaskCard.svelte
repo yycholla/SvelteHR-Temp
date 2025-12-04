@@ -5,7 +5,7 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import * as Avatar from '$lib/components/ui/avatar';
 	import { Button } from '$lib/components/ui/button';
-	import { MoreHorizontal, Clock, AlertCircle } from '@lucide/svelte';
+	import { AlertCircle, Clock, MoreHorizontal } from '@lucide/svelte';
 
 	interface Props {
 		task: Task;
@@ -19,19 +19,19 @@
 		level?: number;
 	}
 
-	let { task, userId, onClick, onStatusChange, level = 0 }: Props = $props();
+	const { task, userId, onClick, onStatusChange, level = 0 }: Props = $props();
 
 	// Simple derived values
-	let isOverdue = $derived(
+	const isOverdue = $derived(
 		task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'DONE'
 	);
-	let isDueSoon = $derived(
+	const isDueSoon = $derived(
 		task.dueDate &&
 			!isOverdue &&
 			new Date(task.dueDate).getTime() - new Date().getTime() < 3 * 24 * 60 * 60 * 1000
 	);
 
-	let dueDateDisplay = $derived(
+	const dueDateDisplay = $derived(
 		task.dueDate
 			? isOverdue
 				? `Overdue ${formatDistance(new Date(task.dueDate), new Date())}`

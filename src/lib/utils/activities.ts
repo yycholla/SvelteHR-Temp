@@ -2,7 +2,7 @@
 // Feature: 019-we-need-to - Task T018
 // Purpose: Business logic helpers for activity log operations
 
-import type { ActivityLog, ActivityAction, ResourceType } from '$lib/graphql/types';
+import type { ActivityAction, ActivityLog, ResourceType } from '$lib/graphql/types';
 
 /**
  * Group activities by date for chronological display

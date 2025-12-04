@@ -2,10 +2,10 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { goto } from '$app/navigation';
-	import { Save, ArrowLeft, Search, ChevronRight, Zap } from '@lucide/svelte';
+	import { ArrowLeft, ChevronRight, Save, Search, Zap } from '@lucide/svelte';
 	import PermissionsMatrix from '$lib/components/permissions/PermissionsMatrix.svelte';
 
-	let { data, form } = $props();
+	const { data, form } = $props();
 
 	// Debug logging
 	console.log('[ROLE PERMISSIONS PAGE] Data:', data);
@@ -87,7 +87,7 @@
 	);
 
 	// Convert state to permission IDs for form submission
-	let selectedPermissionIds = $derived.by(() => {
+	const selectedPermissionIds = $derived.by(() => {
 		const permIds: string[] = [];
 
 		permissionsState.forEach((state, resource) => {
@@ -130,7 +130,7 @@
 	});
 
 	// Calculate statistics
-	let stats = $derived({
+	const stats = $derived({
 		total: data.permissions.length,
 		assigned: selectedPermissionIds.length,
 		percentage: Math.round((selectedPermissionIds.length / data.permissions.length) * 100)

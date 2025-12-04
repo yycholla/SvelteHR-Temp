@@ -42,7 +42,7 @@ export const load: PageServerLoad = async (event) => {
 		const client = GraphQLClient.fromCookies(cookies);
 
 		// Build filter condition based on user role
-		let condition: any = {};
+		const condition: any = {};
 
 		// RBAC: Filter reviews based on role
 		if (userRole === 'admin' || userRole === 'super_admin' || userRole === 'hr_manager') {

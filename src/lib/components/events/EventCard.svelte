@@ -7,11 +7,11 @@
 	import type { Event } from '$lib/graphql/events-operations';
 	import {
 		formatEventTimeRange,
-		getRsvpStatusColor,
 		getEventStatusColor,
-		isEventUpcoming,
+		getRsvpStatusColor,
+		getUserRsvpStatus,
 		isEventOngoing,
-		getUserRsvpStatus
+		isEventUpcoming
 	} from '$lib/utils/events';
 	import { EVENT_TYPE_LABELS, RSVP_STATUS_LABELS } from '$lib/graphql/types';
 
@@ -23,14 +23,14 @@
 		compact?: boolean;
 	}
 
-	let { event, userId, onClick, showRsvp = true, compact = false }: Props = $props();
+	const { event, userId, onClick, showRsvp = true, compact = false }: Props = $props();
 
 	// Derived state
-	let userRsvpStatus = $derived(userId ? getUserRsvpStatus(event, userId) : null);
-	let isUpcoming = $derived(isEventUpcoming(event));
-	let isOngoing = $derived(isEventOngoing(event));
-	let eventTypeLabel = $derived(EVENT_TYPE_LABELS[event.eventType] || event.eventType);
-	let timeRange = $derived(formatEventTimeRange(event.startTime, event.endTime, event.allDay));
+	const userRsvpStatus = $derived(userId ? getUserRsvpStatus(event, userId) : null);
+	const isUpcoming = $derived(isEventUpcoming(event));
+	const isOngoing = $derived(isEventOngoing(event));
+	const eventTypeLabel = $derived(EVENT_TYPE_LABELS[event.eventType] || event.eventType);
+	const timeRange = $derived(formatEventTimeRange(event.startTime, event.endTime, event.allDay));
 
 	// Get hex color based on RSVP status (4 distinct colors)
 	function getRsvpStatusHexColor(status: RsvpStatus | null): string {
@@ -44,7 +44,7 @@
 	}
 
 	// Border color based on RSVP status
-	let borderColor = $derived(getRsvpStatusHexColor(userRsvpStatus));
+	const borderColor = $derived(getRsvpStatusHexColor(userRsvpStatus));
 
 	function handleClick() {
 		if (onClick) {

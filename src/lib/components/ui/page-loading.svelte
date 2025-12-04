@@ -10,7 +10,7 @@
 		class?: string;
 	}
 
-	let {
+	const {
 		title = 'Loading',
 		description = 'Please wait while we load your data...',
 		fullScreen = false,

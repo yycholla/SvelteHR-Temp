@@ -1,7 +1,7 @@
 // Leave Approvals Management Page - Server-Side Data Loading
 // Implements proper PostGraphile GraphQL queries for leave request management
 
-import type { PageServerLoad, Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { PermissionChecks } from '$lib/server/rbac-utils';

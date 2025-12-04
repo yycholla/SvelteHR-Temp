@@ -1,9 +1,9 @@
 <script lang="ts">
 	// Test wrapper component for PermissionGuard testing
 	import PermissionGuard from './PermissionGuard.svelte';
-	import type { PermissionString, PermissionContext } from '$lib/types/permissions';
+	import type { PermissionContext, PermissionString } from '$lib/types/permissions';
 
-	let {
+	const {
 		permissions,
 		requires,
 		requireAll = false,

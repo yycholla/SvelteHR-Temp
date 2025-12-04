@@ -6,7 +6,7 @@
  * MUST FAIL until EventDetailsDialog component is implemented.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { EventDetailsDialogProps } from '$lib/components/events/EventDetailsDialog.svelte';
 
 describe('EventDetailsDialog Contract', () => {

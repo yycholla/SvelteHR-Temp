@@ -4,7 +4,7 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 import { logger } from '$lib/utils/logger';
 
@@ -855,7 +855,7 @@ function generateUpcomingEventsFromDatabase(events: any[], userId: string, limit
 				? `${event.userByOrganizerId.firstName} ${event.userByOrganizerId.lastName}`
 				: 'Unknown',
 			isPublic: event.isPublic,
-			rsvpStatus: rsvpStatus
+			rsvpStatus
 		};
 	});
 }

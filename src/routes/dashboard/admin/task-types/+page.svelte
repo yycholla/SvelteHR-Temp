@@ -1,16 +1,16 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { Plus, Search, Edit, Trash2, Check, X } from '@lucide/svelte';
+	import { Check, Edit, Plus, Search, Trash2, X } from '@lucide/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
 	import {
 		CREATE_TASK_TYPE,
-		UPDATE_TASK_TYPE,
-		DELETE_TASK_TYPE
+		DELETE_TASK_TYPE,
+		UPDATE_TASK_TYPE
 	} from '$lib/graphql/tasks-operations';
-	import type { TaskType, CreateTaskTypeInput, UpdateTaskTypeInput } from '$lib/types/task';
+	import type { CreateTaskTypeInput, TaskType, UpdateTaskTypeInput } from '$lib/types/task';
 
-	let { data } = $props();
+	const { data } = $props();
 
 	let showCreateModal = $state(false);
 	let showEditModal = $state(false);
@@ -28,7 +28,7 @@
 	});
 
 	// Filtered task types based on search query
-	let filteredTaskTypes = $derived(
+	const filteredTaskTypes = $derived(
 		data.taskTypes.filter((taskType) => {
 			if (!searchQuery) return true;
 			const query = searchQuery.toLowerCase();

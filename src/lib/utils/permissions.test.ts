@@ -1,17 +1,17 @@
 // T003: Unit tests for client-side permission utilities
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-	hasPermission,
-	hasAnyPermission,
+	buildPermissionContext,
+	buildPermissionString,
+	checkPermissionDetailed,
+	filterByPermission,
+	getHighestRoleLevel,
 	hasAllPermissions,
+	hasAnyPermission,
+	hasPermission,
 	hasRole,
 	hasRoleLevel,
-	getHighestRoleLevel,
-	checkPermissionDetailed,
-	buildPermissionContext,
-	parsePermission,
-	buildPermissionString,
-	filterByPermission
+	parsePermission
 } from './permissions';
 import { RoleHierarchy } from '$lib/types/permissions';
 import type { PermissionString, RoleName } from '$lib/types/permissions';

@@ -2,15 +2,15 @@
 // Feature: 021-i-have-setup (Comprehensive Audit Logging)
 // Tests that DELETE operations on employees table create audit log entries with before_snapshot only
 
-import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
-	createTestDatabase,
+	type TestDatabase,
 	cleanupTestDatabase,
-	queryActivityLogs,
+	closeTestPool,
+	createTestDatabase,
 	generateTestEmployee,
 	initializeTestPool,
-	closeTestPool,
-	type TestDatabase
+	queryActivityLogs
 } from '../../utils/db-trigger-helpers';
 import { nanoid } from 'nanoid';
 

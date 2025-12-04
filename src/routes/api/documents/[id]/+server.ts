@@ -157,11 +157,11 @@ export const DELETE: RequestHandler = async ({ params, locals, request, cookies,
 		await urqlClient
 			.mutation(CREATE_ACCESS_LOG_MUTATION, {
 				input: {
-					documentId: documentId,
-					userId: userId,
+					documentId,
+					userId,
 					accessType: 'view', // Using 'view' since 'delete' is not a valid type
 					ipAddress: clientIp,
-					userAgent: userAgent
+					userAgent
 				}
 			})
 			.toPromise();

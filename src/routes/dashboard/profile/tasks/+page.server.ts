@@ -1,6 +1,6 @@
 // Profile tasks page - redirects to user tasks page with current user's ID
 import type { PageServerLoad } from './$types';
-import { redirect, error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {

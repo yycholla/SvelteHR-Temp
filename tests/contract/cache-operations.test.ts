@@ -13,10 +13,10 @@
  * - Stale-while-revalidate behavior
  */
 
-import { test, expect, describe, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type {
-	CacheOperationVariables,
 	CacheOperationResponse,
+	CacheOperationVariables,
 	ErrorResponse
 } from '$lib/types/graphql-contracts';
 import { GRAPHQL_OPERATION_CONSTANTS } from '$lib/types/graphql-contracts';
@@ -516,8 +516,7 @@ export const cacheTestHelpers = {
 
 	validateCacheResponse: (response: any): boolean => {
 		return (
-			response?.cacheResult &&
-			response.cacheResult.operationName &&
+			response?.cacheResult?.operationName &&
 			response.cacheResult.cacheKey &&
 			['hit', 'miss', 'stale', 'error'].includes(response.cacheResult.hitStatus) &&
 			response.cacheResult.metadata &&

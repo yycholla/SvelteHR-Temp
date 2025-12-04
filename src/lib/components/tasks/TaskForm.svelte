@@ -13,7 +13,7 @@
 -->
 
 <script lang="ts">
-	import type { Task, TaskStatus, TaskPriority, TaskType } from '$lib/types/task';
+	import type { Task, TaskPriority, TaskStatus, TaskType } from '$lib/types/task';
 	import type { User } from '$lib/types/user';
 	import type { CreateTaskInput, UpdateTaskInput } from '$lib/graphql/tasks-operations';
 	import { validateTaskInput } from '$lib/graphql/tasks-operations';
@@ -25,12 +25,12 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import { TagInput, TaskTypeTagInput } from '$lib/components/ui/tag-input';
 	import {
+		AlertCircle,
+		Building2,
 		Calendar,
 		CheckSquare,
-		AlertCircle,
-		User as UserIcon,
 		Clock,
-		Building2
+		User as UserIcon
 	} from '@lucide/svelte';
 	import { format } from 'date-fns';
 
@@ -52,7 +52,7 @@
 		loading?: boolean;
 	}
 
-	let {
+	const {
 		task = null,
 		taskTypes = [],
 		users = [],
@@ -65,11 +65,11 @@
 	}: Props = $props();
 
 	// Use assignees if provided, otherwise use users
-	let availableUsers = $derived(assignees.length > 0 ? assignees : users);
+	const availableUsers = $derived(assignees.length > 0 ? assignees : users);
 
 	// Form mode
-	let isEditing = $derived(task !== null);
-	let formTitle = $derived(isEditing ? 'Edit Task' : 'Create New Task');
+	const isEditing = $derived(task !== null);
+	const formTitle = $derived(isEditing ? 'Edit Task' : 'Create New Task');
 
 	// Form state
 	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
@@ -95,7 +95,7 @@
 	let fieldErrors = $state<Record<string, string>>({});
 
 	// Combined assignee options for TagInput (both users and departments)
-	let combinedAssigneeOptions = $derived(() => {
+	const combinedAssigneeOptions = $derived(() => {
 		const combined = [
 			...userOptions.map((opt) => ({
 				value: opt.value,
@@ -115,7 +115,7 @@
 	});
 
 	// Derived state
-	let isValid = $derived(() => {
+	const isValid = $derived(() => {
 		// Required fields
 		if (!formData.title.trim()) return false;
 		if (!formData.assignees || formData.assignees.length === 0) return false;
@@ -160,14 +160,14 @@
 	];
 
 	// Computed options for select fields
-	let taskTypeOptions = $derived(
+	const taskTypeOptions = $derived(
 		taskTypes.map((type) => ({
 			value: type.id,
 			label: type.name
 		}))
 	);
 
-	let userOptions = $derived(
+	const userOptions = $derived(
 		availableUsers.map((user) => ({
 			value: `user:${user.id}`,
 			label: user.displayName || user.email,
@@ -175,7 +175,7 @@
 		}))
 	);
 
-	let departmentOptions = $derived(
+	const departmentOptions = $derived(
 		departments.map((dept) => ({
 			value: `dept:${dept.id}`,
 			label: dept.name,
@@ -185,7 +185,7 @@
 
 	// Filter parent tasks based on selected assignees (multi-assignee support)
 	// Only show tasks that are assigned to any of the selected users/departments or are unassigned
-	let filteredParentTasks = $derived(() => {
+	const filteredParentTasks = $derived(() => {
 		if (!formData.assignees || formData.assignees.length === 0) {
 			// No assignees selected, show all tasks
 			return parentTasks;
@@ -205,7 +205,7 @@
 		});
 	});
 
-	let parentTaskOptions = $derived([
+	const parentTaskOptions = $derived([
 		{ value: '', label: 'None (Top-level task)' },
 		...filteredParentTasks().map((parentTask) => ({
 			value: parentTask.id,
@@ -214,7 +214,7 @@
 	]);
 
 	// Filtered parent task options based on search
-	let filteredParentTaskOptions = $derived(() => {
+	const filteredParentTaskOptions = $derived(() => {
 		if (!parentTaskSearchTerm.trim()) return parentTaskOptions;
 		const searchLower = parentTaskSearchTerm.toLowerCase();
 		return parentTaskOptions.filter((task) => task.label.toLowerCase().includes(searchLower));
@@ -222,17 +222,19 @@
 
 	// Selected values for Select components (Svelte 5 runes format)
 	// Note: $derived creates a reactive value, not a function
-	let selectedTaskType = $derived(taskTypeOptions.find((opt) => opt.value === formData.taskTypeId));
+	const selectedTaskType = $derived(
+		taskTypeOptions.find((opt) => opt.value === formData.taskTypeId)
+	);
 
-	let selectedParentTask = $derived(
+	const selectedParentTask = $derived(
 		parentTaskOptions.find((opt) => opt.value === formData.parentTaskId)
 	);
 
-	let selectedStatus = $derived(statusOptions.find((opt) => opt.value === formData.status));
+	const selectedStatus = $derived(statusOptions.find((opt) => opt.value === formData.status));
 
-	let selectedPriority = $derived(priorityOptions.find((opt) => opt.value === formData.priority));
+	const selectedPriority = $derived(priorityOptions.find((opt) => opt.value === formData.priority));
 
-	let selectedReminderTime = $derived(
+	const selectedReminderTime = $derived(
 		reminderTimeOptions.find((opt) => opt.value === formData.reminderTime)
 	);
 
@@ -332,7 +334,7 @@
 					taskPatch: {
 						title: formData.title,
 						description: formData.description || null,
-						assigneeId: assigneeId,
+						assigneeId,
 						taskTypeId: formData.taskTypeId,
 						status: formData.status,
 						priority: formData.priority,
@@ -350,7 +352,7 @@
 					task: {
 						title: formData.title,
 						description: formData.description || undefined,
-						assigneeId: assigneeId,
+						assigneeId,
 						taskTypeId: formData.taskTypeId,
 						status: formData.status,
 						priority: formData.priority,

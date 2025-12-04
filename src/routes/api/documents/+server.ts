@@ -2,7 +2,7 @@
 // GET /api/documents - List documents with RBAC filtering and pagination
 // Migrated to GraphQL backend (Phase 2 - Document API Migration)
 
-import { json, error } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { documentFilterSchema } from '$lib/schemas/documentSchemas';
 import { createUrqlClient } from '$lib/graphql/client';

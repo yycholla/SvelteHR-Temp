@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/svelte';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import Page from '$routes/dashboard/admin/trainings/create/+page.svelte';
 
 // Mock logic for standard SvelteKit imports if needed,

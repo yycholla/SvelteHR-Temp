@@ -2,7 +2,7 @@
 	import * as Card from '$lib/components/ui/card';
 	import { Skeleton } from '$lib/components/ui/skeleton';
 
-	let { fields = 6 }: { fields?: number } = $props();
+	const { fields = 6 }: { fields?: number } = $props();
 </script>
 
 <Card.Root>

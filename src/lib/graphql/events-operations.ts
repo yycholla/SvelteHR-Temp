@@ -720,7 +720,7 @@ export class EventsOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.event) {
+			if (!result.data?.event) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'Event not found. Please try again.'
@@ -900,7 +900,7 @@ export class EventsOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.createEvent) {
+			if (!result.data?.createEvent) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No data returned. Please try again.'
@@ -949,7 +949,7 @@ export class EventsOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.updateEvent) {
+			if (!result.data?.updateEvent) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No data returned. Please try again.'
@@ -1043,7 +1043,7 @@ export class EventsOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.updateEventAttendee) {
+			if (!result.data?.updateEventAttendee) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'Failed to set reminder. Please try again.'
@@ -1099,7 +1099,7 @@ export class EventsOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.updateEventAttendee) {
+			if (!result.data?.updateEventAttendee) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'Failed to update RSVP. Please try again.'
@@ -1136,7 +1136,7 @@ export class EventsOperations {
 		for (const employeeId of params.employeeIds) {
 			const input: CreateEventAttendeeInput = {
 				eventId: params.eventId,
-				employeeId: employeeId,
+				employeeId,
 				responseStatus: 'pending',
 				isOrganizer: false,
 				isRequired: params.isRequired || false
@@ -1162,7 +1162,7 @@ export class EventsOperations {
 					throw errorResponse;
 				}
 
-				if (!result.data || !result.data.createEventAttendee) {
+				if (!result.data?.createEventAttendee) {
 					throw createErrorResponse(new Error('No data returned'), {
 						type: 'graphql',
 						userMessage: 'No attendee data returned. Please try again.'

@@ -1,8 +1,8 @@
 // Server-side data loading and form handling for employee edit page
 // Follows RBAC patterns with server-side API calls only
 
-import type { PageServerLoad, Actions } from './$types';
-import { error, redirect, fail } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
@@ -219,7 +219,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// Load compensation data if admin
 		// TODO: Compensation queries not yet implemented in GraphQL schema
-		let currentCompensation = null;
+		const currentCompensation = null;
 
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
@@ -561,7 +561,7 @@ export const actions: Actions = {
 							query: createContactMutation,
 							variables: {
 								input: {
-									employeeId: employeeId,
+									employeeId,
 									name: contact.name || contact.fullName,
 									relationship: contact.relationship || null,
 									phoneNumber: contact.phoneNumber,
@@ -636,7 +636,7 @@ export const actions: Actions = {
 							query: createVehicleMutation,
 							variables: {
 								input: {
-									employeeId: employeeId,
+									employeeId,
 									make: vehicle.make,
 									model: vehicle.model,
 									year: vehicle.year ? parseInt(vehicle.year) : 0,

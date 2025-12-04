@@ -6,23 +6,23 @@
 	import { Input } from '$lib/components/ui/input';
 	import * as Select from '$lib/components/ui/select';
 	import {
-		Crown,
-		User,
 		Building2,
+		Crown,
+		Eye,
+		Filter,
+		Grid,
 		Mail,
-		ZoomIn,
-		ZoomOut,
+		Maximize,
 		RotateCcw,
 		Search,
-		Filter,
+		User,
 		Users,
-		Maximize,
-		Grid,
-		Eye
+		ZoomIn,
+		ZoomOut
 	} from '@lucide/svelte';
 
 	// Props
-	let {
+	const {
 		allEmployees
 	}: {
 		allEmployees: any[];
@@ -372,7 +372,7 @@
 	</div>
 
 	<!-- Statistics -->
-	{#if showStats && stats && stats.byLevel}
+	{#if showStats && stats?.byLevel}
 		<div class="grid grid-cols-2 gap-4 md:grid-cols-5">
 			<Card.Root>
 				<Card.Content class="p-4">

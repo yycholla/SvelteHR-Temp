@@ -1,8 +1,8 @@
 // Integration test: E2E document lifecycle (T046)
 // Tests complete document workflow from upload to audit
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { generateEncryptionKey, encryptFile, decryptFile } from '$lib/services/encryption';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { decryptFile, encryptFile, generateEncryptionKey } from '$lib/services/encryption';
 
 /**
  * End-to-End Integration Test: Complete Document Lifecycle
@@ -131,7 +131,7 @@ describe('Document Lifecycle - E2E Integration Tests', () => {
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					employeeId: employeeId,
+					employeeId,
 					assignmentType: 'individual'
 				})
 			});
@@ -509,7 +509,7 @@ describe('Document Lifecycle - E2E Integration Tests', () => {
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					employeeId: employeeId,
+					employeeId,
 					assignmentType: 'individual'
 				})
 			});

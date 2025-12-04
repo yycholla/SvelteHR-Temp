@@ -8,7 +8,7 @@
 
 import sharp from 'sharp';
 import { nanoid } from 'nanoid';
-import { writeFile, mkdir } from 'fs/promises';
+import { mkdir, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 

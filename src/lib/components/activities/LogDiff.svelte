@@ -1,8 +1,8 @@
 <script lang="ts">
-	let { before = null, after = null } = $props();
+	const { before = null, after = null } = $props();
 
 	// Compute diffs
-	let diffs = $derived.by(() => {
+	const diffs = $derived.by(() => {
 		// Handle nulls gracefully
 		const beforeObj = before || {};
 		const afterObj = after || {};

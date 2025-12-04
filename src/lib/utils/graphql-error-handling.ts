@@ -14,10 +14,10 @@
  */
 
 import type {
-	ErrorResponse,
-	ErrorType,
-	ErrorSeverity,
 	ActionOption,
+	ErrorResponse,
+	ErrorSeverity,
+	ErrorType,
 	GraphQLErrorCode
 } from '$lib/types/graphql-contracts';
 import { GRAPHQL_ERROR_CODES, GRAPHQL_OPERATION_CONSTANTS } from '$lib/types/graphql-contracts';

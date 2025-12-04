@@ -1,16 +1,16 @@
 import { error, redirect } from '@sveltejs/kit';
-import type { PageServerLoad, Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 import { urqlClient } from '$lib/api/urql-client';
 import {
 	GET_ONBOARDING_MODULE_QUERY,
 	type OnboardingModule
 } from '$lib/graphql/onboarding-operations';
 import {
-	GET_FORMS_BY_MODULE,
 	CREATE_ONBOARDING_FORM,
-	UPDATE_ONBOARDING_FORM,
 	DELETE_ONBOARDING_FORM,
-	REORDER_ONBOARDING_FORMS
+	GET_FORMS_BY_MODULE,
+	REORDER_ONBOARDING_FORMS,
+	UPDATE_ONBOARDING_FORM
 } from '$lib/graphql/form-operations';
 
 export const load: PageServerLoad = async ({ params, locals }) => {

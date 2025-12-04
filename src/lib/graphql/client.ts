@@ -1,4 +1,4 @@
-import { Client, cacheExchange, fetchExchange, errorExchange } from '@urql/core';
+import { Client, cacheExchange, errorExchange, fetchExchange } from '@urql/core';
 import { authExchange } from '@urql/exchange-auth';
 import { retryExchange } from '@urql/exchange-retry';
 import { goto } from '$app/navigation';

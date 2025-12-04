@@ -9,15 +9,15 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
-	import { FileText, Edit, Trash2, Clock } from '@lucide/svelte';
+	import { Clock, Edit, FileText, Trash2 } from '@lucide/svelte';
 	import { createEventDispatcher } from 'svelte';
-	import { getReviewTypeInfo, formatReviewPeriod } from '$lib/graphql/reviews-operations';
+	import { formatReviewPeriod, getReviewTypeInfo } from '$lib/graphql/reviews-operations';
 	import type { ReviewType } from '$lib/schemas/reviews';
 
 	const dispatch = createEventDispatcher();
 
 	// Props
-	let {
+	const {
 		draft,
 		variant = 'card',
 		showActions = true,

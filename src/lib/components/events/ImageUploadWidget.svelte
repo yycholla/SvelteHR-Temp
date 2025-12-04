@@ -20,10 +20,10 @@
 -->
 
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { validateImageFile } from '$lib/utils/image-validation';
-	import { Upload, X, Image as ImageIcon } from '@lucide/svelte';
+	import { Image as ImageIcon, Upload, X } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 
@@ -52,8 +52,8 @@
 	let showCropper = $state(false);
 
 	// Derived
-	let hasImage = $derived(!!currentImageUrl || !!previewUrl);
-	let displayUrl = $derived(previewUrl || currentImageUrl);
+	const hasImage = $derived(!!currentImageUrl || !!previewUrl);
+	const displayUrl = $derived(previewUrl || currentImageUrl);
 
 	// Handle file selection
 	async function handleFileSelect(file: File) {

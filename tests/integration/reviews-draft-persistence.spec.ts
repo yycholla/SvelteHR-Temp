@@ -6,8 +6,8 @@
  * This test MUST FAIL initially because draft save functionality is not implemented.
  */
 
-import { test, expect, describe, beforeAll, afterAll } from 'vitest';
-import { createTestContext, cleanupTestData, TestUser } from '../utils/test-helpers';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { TestUser, cleanupTestData, createTestContext } from '../utils/test-helpers';
 import { performGraphQLMutation, performGraphQLQuery } from '../utils/graphql-test-client';
 
 interface TestContext {
@@ -38,7 +38,7 @@ describe('T015: Draft persistence across sessions', () => {
 			authTokens: {
 				admin: admin.token
 			},
-			users: { admin: admin, hrManager: null, manager: null, employee: employee }, // Placeholder, adjust as needed
+			users: { admin, hrManager: null, manager: null, employee }, // Placeholder, adjust as needed
 			departments: { engineering: null, marketing: null, hr: null }, // Placeholder, adjust as needed
 			createdEmployees: [],
 			createdUsers: [],

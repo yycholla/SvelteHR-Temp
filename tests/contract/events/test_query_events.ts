@@ -12,7 +12,7 @@
  * - RLS enforcement (public + invited private events)
  */
 
-import { test, expect, describe, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 type EventVisibility = 'public' | 'private';
 type EventType = 'meeting' | 'training' | 'social' | 'conference' | 'other';

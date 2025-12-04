@@ -1,5 +1,5 @@
 // API Route: Mark notification(s) as read
-import { json, error } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 

@@ -1,16 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { departments, departmentService } from '$lib/services/departmentService';
+	import { departmentService, departments } from '$lib/services/departmentService';
 	import { userService, users } from '$lib/services/userService';
 	import Button from '../base/Button.svelte';
 	import Input from '../base/Input.svelte';
 	import Textarea from '../base/Textarea.svelte';
 	import Select from '../base/Select.svelte';
 	import Card from '../base/Card.svelte';
-	import type { Department, CreateDepartmentInput, UpdateDepartmentInput } from '$lib/types';
+	import type { CreateDepartmentInput, Department, UpdateDepartmentInput } from '$lib/types';
 
 	// Props
-	let {
+	const {
 		department = null,
 		mode = 'create',
 		showCancel = true,
@@ -25,7 +25,7 @@
 	} = $props();
 
 	// Form data
-	let formData = $state({
+	const formData = $state({
 		name: department?.name || '',
 		code: department?.code || '',
 		description: department?.description || '',
@@ -41,14 +41,14 @@
 	let errors = $state<Record<string, string>>({});
 
 	// Options for dropdowns
-	let parentOptions = $derived([
+	const parentOptions = $derived([
 		{ value: '', label: 'No Parent (Root Department)' },
 		...$departments
 			.filter((dept) => dept.id !== department?.id) // Don't include self as parent
 			.map((dept) => ({ value: dept.id, label: dept.name }))
 	]);
 
-	let managerOptions = $derived([
+	const managerOptions = $derived([
 		{ value: '', label: 'No Manager Assigned' },
 		...$users.map((user) => ({
 			value: user.id,

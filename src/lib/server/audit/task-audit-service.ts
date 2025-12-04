@@ -9,7 +9,7 @@
 
 import type { RequestEvent } from '@sveltejs/kit';
 import { getGraphQLEndpoint } from '$lib/server/api-url';
-import type { Task, TaskStatus, TaskPriority, AuditActionType } from '$lib/types/task';
+import type { AuditActionType, Task, TaskPriority, TaskStatus } from '$lib/types/task';
 
 /**
  * Task audit entry input

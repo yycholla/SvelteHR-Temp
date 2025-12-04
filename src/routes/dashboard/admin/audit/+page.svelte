@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { Search, Filter, FileText, Download, Calendar } from '@lucide/svelte';
+	import { Calendar, Download, FileText, Filter, Search } from '@lucide/svelte';
 
-	let { data } = $props();
+	const { data } = $props();
 
 	let searchQuery = $state('');
 	let filters = $state({
@@ -14,7 +14,7 @@
 	});
 
 	// Filtered logs based on search query
-	let filteredLogs = $derived(
+	const filteredLogs = $derived(
 		data.auditLogs.filter((log) => {
 			if (!searchQuery) return true;
 			const query = searchQuery.toLowerCase();

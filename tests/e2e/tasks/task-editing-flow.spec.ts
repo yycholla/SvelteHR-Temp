@@ -2,7 +2,7 @@
 // Feature: 028-task-system-expansion - T048
 // Purpose: Test task editing workflow and updates
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Task Editing Flow', () => {
 	let testTaskId: string;

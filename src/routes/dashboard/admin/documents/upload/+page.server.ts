@@ -1,14 +1,14 @@
 // Document upload page server-side loader (Feature 024)
 // Server-side data loading for upload page with permission checks
 
-import { error, redirect, fail } from '@sveltejs/kit';
-import type { PageServerLoad, Actions } from './$types';
+import { error, fail, redirect } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import { UPLOAD_DOCUMENT } from '$lib/graphql/document-operations';
 import { GET_EMPLOYEES_QUERY } from '$lib/graphql/employee-operations';
 
-import { logSuccessfulAccess, createAccessMetadata } from '$lib/services/auditService';
+import { createAccessMetadata, logSuccessfulAccess } from '$lib/services/auditService';
 import type { UploadResult } from '$lib/types/document';
 
 export const load: PageServerLoad = async (event) => {

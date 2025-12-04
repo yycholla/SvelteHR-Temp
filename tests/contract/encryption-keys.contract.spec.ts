@@ -1,7 +1,7 @@
 // Contract test: Encryption keys API (T015)
 // Tests encryption key management endpoints
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
  * Contract Test: Encryption Keys API

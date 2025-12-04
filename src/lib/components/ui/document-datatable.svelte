@@ -1,11 +1,11 @@
 <script lang="ts">
 	import {
-		getCoreRowModel,
-		getSortedRowModel,
-		getPaginationRowModel,
 		type ColumnDef,
 		type SortingState,
-		type VisibilityState
+		type VisibilityState,
+		getCoreRowModel,
+		getPaginationRowModel,
+		getSortedRowModel
 	} from '@tanstack/table-core';
 	import { createSvelteTable } from '$lib/components/ui/data-table/data-table.svelte.js';
 	import * as Table from '$lib/components/ui/table';
@@ -15,14 +15,14 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import HtmlCheckbox from '$lib/components/ui/checkbox/html-checkbox.svelte';
 	import {
-		FileText,
-		Eye,
-		Download,
 		ChevronDown,
 		ChevronUp,
 		ChevronsUpDown,
-		Settings2,
-		Lock
+		Download,
+		Eye,
+		FileText,
+		Lock,
+		Settings2
 	} from '@lucide/svelte';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
@@ -62,7 +62,7 @@
 		onDownload: (documentId: string) => void;
 	}
 
-	let {
+	const {
 		documents,
 		assignees = [],
 		canPreview,

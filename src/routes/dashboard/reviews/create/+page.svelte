@@ -7,7 +7,7 @@
 	 */
 	import { goto } from '$app/navigation';
 	import { enhance } from '$app/forms';
-	import type { PageData, ActionData } from './$types';
+	import type { ActionData, PageData } from './$types';
 	import * as Card from '$lib/components/ui/card';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { Button } from '$lib/components/ui/button';
@@ -18,19 +18,19 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import {
 		ArrowLeft,
-		Send,
-		User,
 		Calendar,
+		Check,
+		ChevronDown,
 		FileText,
 		Search,
-		ChevronDown,
-		Check,
-		Target
+		Send,
+		Target,
+		User
 	} from '@lucide/svelte';
 	import GoalAssociationTabs from '$lib/components/reviews/GoalAssociationTabs.svelte';
 	import type { CreateGoalInput } from '$lib/schemas/reviews';
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	const { data, form }: { data: PageData; form: ActionData } = $props();
 
 	// Form state
 	let selectedEmployeeId = $state(data.selectedEmployee?.id || '');
@@ -103,7 +103,7 @@
 	$effect(() => {
 		if (reviewPeriodPreset !== 'custom' && reviewPeriodStart) {
 			const preset = periodPresets.find((p) => p.value === reviewPeriodPreset);
-			if (preset && preset.months) {
+			if (preset?.months) {
 				const start = new Date(reviewPeriodStart);
 				const end = new Date(start);
 				end.setMonth(end.getMonth() + preset.months);

@@ -4,9 +4,9 @@
  */
 
 import { gqlPluckFromCodeString } from '@graphql-tools/graphql-tag-pluck';
-import { parse, DocumentNode, OperationDefinitionNode, SelectionSetNode, FieldNode } from 'graphql';
+import { DocumentNode, FieldNode, OperationDefinitionNode, SelectionSetNode, parse } from 'graphql';
 import { readFile } from 'fs/promises';
-import type { GraphQLOperation, FieldReference, VariableDefinition } from '../types/models.js';
+import type { FieldReference, GraphQLOperation, VariableDefinition } from '../types/models.js';
 import { GraphQLOperationSchema } from '../types/schemas.js';
 
 /**

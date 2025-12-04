@@ -15,32 +15,32 @@
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Separator } from '$lib/components/ui/separator';
 	import {
-		Search,
-		Filter,
-		Eye,
-		Edit,
 		Calendar,
-		User,
-		FileText,
 		ChevronDown,
 		ChevronUp,
+		Edit,
+		Eye,
+		FileText,
+		Filter,
+		Search,
 		SortAsc,
-		SortDesc
+		SortDesc,
+		User
 	} from '@lucide/svelte';
 	import {
-		getReviewTypeInfo,
-		getReviewStatusInfo,
 		formatReviewPeriod,
-		reviewTypesForFilter as reviewTypes,
-		reviewStatuses
+		getReviewStatusInfo,
+		getReviewTypeInfo,
+		reviewStatuses,
+		reviewTypesForFilter as reviewTypes
 	} from '$lib/graphql/reviews-operations';
-	import type { ReviewType, ReviewStatus } from '$lib/schemas/reviews';
+	import type { ReviewStatus, ReviewType } from '$lib/schemas/reviews';
 	import DraftReviewIndicator from './DraftReviewIndicator.svelte';
 
 	const dispatch = createEventDispatcher();
 
 	// Props
-	let {
+	const {
 		reviews = [],
 		loading = false,
 		showFilters = true,

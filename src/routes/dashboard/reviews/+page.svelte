@@ -14,10 +14,10 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Input } from '$lib/components/ui/input';
-	import { Plus, FileText, TrendingUp, Clock, CheckCircle, Search, User } from '@lucide/svelte';
-	import { ReviewListWithFilters, ReviewCreationDialog } from '$lib/components/reviews';
+	import { CheckCircle, Clock, FileText, Plus, Search, TrendingUp, User } from '@lucide/svelte';
+	import { ReviewCreationDialog, ReviewListWithFilters } from '$lib/components/reviews';
 
-	let { data }: { data: PageData } = $props();
+	const { data }: { data: PageData } = $props();
 
 	// Debug logging
 	$effect(() => {

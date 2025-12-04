@@ -194,7 +194,7 @@ export async function requireRole(event: RequestEvent, requiredRole: string): Pr
  */
 export function getSessionDuration(event: RequestEvent): number | null {
 	const userContext = extractUserContext(event);
-	if (!userContext || !userContext.authenticated_at) {
+	if (!userContext?.authenticated_at) {
 		return null;
 	}
 

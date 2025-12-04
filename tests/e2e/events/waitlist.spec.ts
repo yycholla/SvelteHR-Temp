@@ -6,7 +6,7 @@
  * joining waitlist, and automatic promotion when spots open.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Event Capacity and Waitlist Management', () => {
 	test.beforeEach(async ({ page }) => {

@@ -56,7 +56,7 @@
 	let localSelectedIds = $state<string[]>([...selectedIds]);
 
 	// Derived - unique departments
-	let departments = $derived(
+	const departments = $derived(
 		Array.from(new Set(employees.map((e) => e.department?.id).filter(Boolean)))
 			.map((id) => {
 				const emp = employees.find((e) => e.department?.id === id);
@@ -66,7 +66,7 @@
 	);
 
 	// Derived - filtered employees
-	let filteredEmployees = $derived(
+	const filteredEmployees = $derived(
 		employees.filter((emp) => {
 			// Search filter
 			const searchLower = searchTerm.toLowerCase();
@@ -87,8 +87,8 @@
 	);
 
 	// Derived - selection state
-	let selectedCount = $derived(localSelectedIds.length);
-	let allFilteredSelected = $derived(
+	const selectedCount = $derived(localSelectedIds.length);
+	const allFilteredSelected = $derived(
 		filteredEmployees.length > 0 &&
 			filteredEmployees.every((emp) => localSelectedIds.includes(emp.id))
 	);

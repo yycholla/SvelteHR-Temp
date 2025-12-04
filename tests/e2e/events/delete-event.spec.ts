@@ -5,7 +5,7 @@
  * Tests event deletion functionality.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Delete Event', () => {
 	test.beforeEach(async ({ page }) => {

@@ -1,7 +1,7 @@
 // Standardized error handling utilities for consistent error responses
 // T055: Error Handling Standardization - CRITICAL
 
-import { error, type HttpError } from '@sveltejs/kit';
+import { type HttpError, error } from '@sveltejs/kit';
 import { ZodError } from 'zod';
 
 // Standardized error response interface

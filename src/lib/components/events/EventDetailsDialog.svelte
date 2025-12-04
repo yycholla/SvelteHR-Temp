@@ -10,12 +10,12 @@
 
 	import { invalidateAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
-	import { X, Edit, Trash2 } from '@lucide/svelte';
+	import { Edit, Trash2, X } from '@lucide/svelte';
 	import RecurrenceScopeDialog from './RecurrenceScopeDialog.svelte';
 	import ConflictWarningDialog from './ConflictWarningDialog.svelte';
 	import EventEditForm from './EventEditForm.svelte';
 	import EventDetailsView from './EventDetailsView.svelte';
-	import { findConflictingEvents, type ConflictingEvent } from '$lib/utils/calendar';
+	import { type ConflictingEvent, findConflictingEvents } from '$lib/utils/calendar';
 	import type { RsvpStatus } from '$lib/graphql/types';
 	import type {
 		EventComment,
@@ -59,7 +59,7 @@
 		onLeaveWaitlist?: (eventId: string) => Promise<void>;
 	}
 
-	let {
+	const {
 		isOpen = false,
 		event = null,
 		userId,

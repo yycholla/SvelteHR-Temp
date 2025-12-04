@@ -15,7 +15,7 @@
  * - Connection resilience testing
  */
 
-import { DocumentNode, print, parse } from 'graphql';
+import { DocumentNode, parse, print } from 'graphql';
 import type { Client } from '@urql/core';
 import type { OperationResult } from '../types/urql.js';
 
@@ -706,10 +706,10 @@ class SubscriptionResilienceTestRunner {
 
 	async testReconnection(subscription: DocumentNode, variables?: Record<string, any>) {
 		const startTime = Date.now();
-		let reconnectionSuccess = false;
-		let reconnectionTime = 0;
-		let messagesLost = 0;
-		let finalConnectionState: 'connected' | 'failed' = 'failed';
+		const reconnectionSuccess = false;
+		const reconnectionTime = 0;
+		const messagesLost = 0;
+		const finalConnectionState: 'connected' | 'failed' = 'failed';
 
 		// Implementation would involve:
 		// 1. Setting up subscription

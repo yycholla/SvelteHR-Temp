@@ -7,14 +7,14 @@
  * Following TDD methodology - these tests MUST FAIL until implementation exists.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi, type MockedFunction } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
+import { type MockedFunction, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import type { LoadEvent } from '@sveltejs/kit';
 import type {
-	VerifyUserAuthenticationResponse,
 	DataRequest,
-	ErrorResponse
+	ErrorResponse,
+	VerifyUserAuthenticationResponse
 } from '$lib/types/graphql-contracts';
 import type { RetryHandler } from '$lib/utils/retry-handler';
 

@@ -1,13 +1,13 @@
-import type { PageServerLoad, Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
 import { urqlClient } from '$lib/api/urql-client';
 import { GET_ONBOARDING_MODULE_QUERY } from '$lib/graphql/onboarding-operations';
 import {
+	COMPLETE_FORM,
 	GET_FORMS_BY_MODULE,
-	SAVE_FORM_PROGRESS,
-	COMPLETE_FORM
+	SAVE_FORM_PROGRESS
 } from '$lib/graphql/form-operations';
 
 export const load: PageServerLoad = async (event) => {

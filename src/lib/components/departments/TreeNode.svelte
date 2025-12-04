@@ -10,7 +10,7 @@
 		level: number;
 	}
 
-	let {
+	const {
 		node,
 		isExpanded = false,
 		isSelected = false,
@@ -74,7 +74,7 @@
 	}
 
 	// Check if this node should be expanded (either explicitly or via expandAll)
-	let shouldExpand = $derived(isExpanded || expandAll);
+	const shouldExpand = $derived(isExpanded || expandAll);
 </script>
 
 <div class="tree-node" class:selected={isSelected}>

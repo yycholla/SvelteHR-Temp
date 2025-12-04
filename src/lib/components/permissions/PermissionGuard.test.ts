@@ -1,8 +1,8 @@
 // T005: Unit tests for PermissionGuard Svelte 5 component
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { render } from '@testing-library/svelte';
 import PermissionGuardTest from './PermissionGuard.test.svelte';
-import type { PermissionString, PermissionContext } from '$lib/types/permissions';
+import type { PermissionContext, PermissionString } from '$lib/types/permissions';
 import { RoleHierarchy } from '$lib/types/permissions';
 
 describe('PermissionGuard Component', () => {

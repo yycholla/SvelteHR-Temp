@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { invalidateAll, goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Card } from '$lib/components/ui/card';
 	import { Input } from '$lib/components/ui/input';
@@ -26,20 +26,20 @@
 	} from '$lib/components/ui/alert-dialog';
 	import { Badge } from '$lib/components/ui/badge';
 	import {
-		Plus,
-		Edit,
-		Trash2,
-		GripVertical,
-		ChevronUp,
-		ChevronDown,
-		FileText,
 		ArrowLeft,
-		ExternalLink
+		ChevronDown,
+		ChevronUp,
+		Edit,
+		ExternalLink,
+		FileText,
+		GripVertical,
+		Plus,
+		Trash2
 	} from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import type { OnboardingForm } from '$lib/graphql/form-operations';
 
-	let { data } = $props();
+	const { data } = $props();
 
 	// State
 	let forms = $state<OnboardingForm[]>(

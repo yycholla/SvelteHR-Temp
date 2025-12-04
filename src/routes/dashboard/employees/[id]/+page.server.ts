@@ -438,8 +438,8 @@ export const load: PageServerLoad = async (event) => {
 				// Vehicles - only if authorized
 				vehicles: canViewVehicles ? vehicles : [],
 				// Activity Logs
-				activityLogs: activityLogs,
-				leaveRequests: leaveRequests,
+				activityLogs,
+				leaveRequests,
 				leaveRequestCount: leaveRequests.length,
 				performanceReviews: performanceReviews.map((review: any) => ({
 					id: review.id,

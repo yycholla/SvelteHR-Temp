@@ -4,7 +4,7 @@
 	 * Displays unread notifications with badge counter and dropdown list
 	 */
 
-	import { Bell, Check, Clock, AlertCircle } from '@lucide/svelte';
+	import { AlertCircle, Bell, Check, Clock } from '@lucide/svelte';
 	import { formatDistanceToNow } from 'date-fns';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { Badge } from '$lib/components/ui/badge';
@@ -24,7 +24,7 @@
 		notifications?: Notification[];
 	}
 
-	let { notifications = [] }: Props = $props();
+	const { notifications = [] }: Props = $props();
 
 	// Calculate unread count
 	const unreadCount = $derived(notifications.filter((n) => !n.isRead).length);

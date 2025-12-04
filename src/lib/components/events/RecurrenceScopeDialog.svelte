@@ -12,9 +12,9 @@
 	import {
 		Dialog,
 		DialogContent,
+		DialogFooter,
 		DialogHeader,
-		DialogTitle,
-		DialogFooter
+		DialogTitle
 	} from '$lib/components/ui/dialog';
 	import { Button } from '$lib/components/ui/button';
 	import { RadioGroup, RadioGroupItem } from '$lib/components/ui/radio-group';

@@ -1,19 +1,19 @@
 // Role Permissions Management - Server-side data loading
 // Admin-only page for managing permissions for a specific role
 
-import type { PageServerLoad, Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 import {
 	createUrqlClient,
-	executeQuery,
 	executeMutation,
+	executeQuery,
 	serializeCookies
 } from '$lib/graphql/client';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import {
-	GET_ROLES_WITH_PERMISSIONS,
-	GET_ALL_PERMISSIONS,
 	BULK_ASSIGN_PERMISSIONS,
-	BULK_REMOVE_PERMISSIONS
+	BULK_REMOVE_PERMISSIONS,
+	GET_ALL_PERMISSIONS,
+	GET_ROLES_WITH_PERMISSIONS
 } from '$lib/graphql/permissions-operations';
 import { error, fail, redirect } from '@sveltejs/kit';
 

@@ -13,8 +13,8 @@
  */
 
 import type { Exchange, Operation, OperationResult } from '@urql/core';
-import { pipe, tap, map } from 'wonka';
-import { trackGraphQL, performanceMonitor } from './client-monitor.js';
+import { map, pipe, tap } from 'wonka';
+import { performanceMonitor, trackGraphQL } from './client-monitor.js';
 import type { PerformanceMetric } from './client-monitor.js';
 
 export interface GraphQLOperationContext {

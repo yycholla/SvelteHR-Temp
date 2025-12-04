@@ -15,15 +15,15 @@
 	import type { Task, TaskStatus } from '$lib/types/task';
 	import { Badge } from '$lib/components/ui/badge';
 	import {
+		AlertCircle,
 		CheckCircle,
 		Circle,
 		Clock,
-		AlertCircle,
-		XCircle,
-		TrendingUp,
-		TrendingDown,
 		Minus,
-		Target
+		Target,
+		TrendingDown,
+		TrendingUp,
+		XCircle
 	} from '@lucide/svelte';
 	import { differenceInDays, isAfter } from 'date-fns';
 
@@ -34,7 +34,7 @@
 		showOnTrack?: boolean; // Show on-track indicator
 	}
 
-	let { task, showDetails = true, compact = false, showOnTrack = true }: Props = $props();
+	const { task, showDetails = true, compact = false, showOnTrack = true }: Props = $props();
 
 	// Calculate subtask statistics
 	interface SubtaskStats {
@@ -47,7 +47,7 @@
 		completionPercentage: number;
 	}
 
-	let subtaskStats = $derived<SubtaskStats>(() => {
+	const subtaskStats = $derived<SubtaskStats>(() => {
 		const subtasks = task.subtasks || [];
 		const total = subtasks.length;
 
@@ -91,7 +91,7 @@
 		actualProgress: number;
 	}
 
-	let onTrackStatus = $derived<OnTrackStatus | null>(() => {
+	const onTrackStatus = $derived<OnTrackStatus | null>(() => {
 		if (!showOnTrack || !task.dueDate) return null;
 
 		const now = new Date();
@@ -172,7 +172,7 @@
 	}
 
 	// Check if task has subtasks
-	let hasSubtasks = $derived(subtaskStats().total > 0);
+	const hasSubtasks = $derived(subtaskStats().total > 0);
 </script>
 
 <div class="subtask-progress" class:compact>

@@ -2,21 +2,21 @@
 // Feature: 019-we-need-to - Task T028
 // Purpose: Load events with filtering and visibility controls
 
-import type { PageServerLoad, Actions } from './$types';
-import { error, redirect, fail } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { EventsOperations } from '$lib/graphql/events-operations';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
-import type { EventVisibilityType, EventStatus, EventType } from '$lib/graphql/types';
+import type { EventStatus, EventType, EventVisibilityType } from '$lib/graphql/types';
 import { normalizeRsvpStatus } from '$lib/graphql/types';
 import { gql } from '@urql/svelte';
 // Feature 026: Import GraphQL operations for comments, history, waitlist
 import {
+	type EventComment,
+	type EventHistoryEntry,
 	GET_EVENT_COMMENTS,
 	GET_EVENT_HISTORY,
-	GET_USER_WAITLIST_STATUS,
-	type EventComment,
-	type EventHistoryEntry
+	GET_USER_WAITLIST_STATUS
 } from '$lib/graphql/events-operations';
 
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
@@ -361,7 +361,7 @@ export const actions: Actions = {
 
 			// Verify the event exists
 			const event = await eventsOps.getEventById({
-				eventId: eventId,
+				eventId,
 				userCredentials
 			});
 
@@ -471,7 +471,7 @@ export const actions: Actions = {
 					eventType,
 					startTime: startTimeUTC,
 					endTime: endTimeUTC,
-					isAllDay: isAllDay,
+					isAllDay,
 					location,
 					status: 'scheduled',
 					isPublic
@@ -564,7 +564,7 @@ export const actions: Actions = {
 					eventType,
 					startTime: startTimeUTC,
 					endTime: endTimeUTC,
-					isAllDay: isAllDay,
+					isAllDay,
 					location,
 					isPublic
 				},

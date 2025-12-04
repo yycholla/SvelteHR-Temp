@@ -2,7 +2,7 @@
 	// DocumentAssignmentModal component (Feature 024)
 	// Modal for assigning documents to employees, departments, or teams
 
-	import type { DocumentAssignment, AssignmentType } from '$lib/types/document';
+	import type { AssignmentType, DocumentAssignment } from '$lib/types/document';
 
 	interface Employee {
 		id: string;
@@ -33,7 +33,7 @@
 		isSubmitting?: boolean;
 	}
 
-	let {
+	const {
 		isOpen = false,
 		documentId,
 		documentName,
@@ -54,23 +54,23 @@
 	let searchQuery = $state('');
 
 	// Derived state
-	let filteredEmployees = $derived(
+	const filteredEmployees = $derived(
 		employees.filter((emp) => emp.email.toLowerCase().includes(searchQuery.toLowerCase()))
 	);
 
-	let filteredDepartments = $derived(
+	const filteredDepartments = $derived(
 		departments.filter((dept) => dept.name.toLowerCase().includes(searchQuery.toLowerCase()))
 	);
 
-	let filteredTeams = $derived(
+	const filteredTeams = $derived(
 		teams.filter((team) => team.name.toLowerCase().includes(searchQuery.toLowerCase()))
 	);
 
-	let hasSelections = $derived(
+	const hasSelections = $derived(
 		selectedEmployees.length > 0 || selectedDepartments.length > 0 || selectedTeams.length > 0
 	);
 
-	let canSubmit = $derived(hasSelections && !isSubmitting);
+	const canSubmit = $derived(hasSelections && !isSubmitting);
 
 	// Check if entity is already assigned
 	function isAlreadyAssigned(entityId: string, type: AssignmentType): boolean {

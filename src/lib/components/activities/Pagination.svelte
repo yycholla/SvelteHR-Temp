@@ -23,7 +23,7 @@
 		maxVisiblePages?: number;
 	}
 
-	let {
+	const {
 		currentPage,
 		pageSize,
 		totalCount,

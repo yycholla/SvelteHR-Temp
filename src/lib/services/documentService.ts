@@ -2,18 +2,18 @@
 // High-level service coordinating encryption, storage, and metadata management
 
 import type {
-	DocumentMetadata,
-	UploadResult,
-	Document,
 	AssignmentPayload,
+	Document,
 	DocumentFilter,
+	DocumentMetadata,
 	PaginatedDocuments,
-	UploadProgress
+	UploadProgress,
+	UploadResult
 } from '$lib/types/document';
-import { encryptFileChunked, generateEncryptionKey, exportKey } from './encryption';
+import { encryptFileChunked, exportKey, generateEncryptionKey } from './encryption';
 import { registerKey } from './keyManagement';
 import { storeFile } from './storageService';
-import { logSuccessfulAccess, createAccessMetadata } from './auditService';
+import { createAccessMetadata, logSuccessfulAccess } from './auditService';
 
 // Prepare document for upload with client-side encryption
 // Returns encrypted data and metadata ready for server-side GraphQL upload

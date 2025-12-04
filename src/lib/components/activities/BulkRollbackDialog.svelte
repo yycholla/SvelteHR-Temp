@@ -10,7 +10,7 @@
 	 */
 
 	import { createEventDispatcher } from 'svelte';
-	import { Loader2, CheckCircle, XCircle, AlertCircle } from '@lucide/svelte';
+	import { AlertCircle, CheckCircle, Loader2, XCircle } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
 	interface ActivityLogSummary {
@@ -41,7 +41,7 @@
 		onComplete?: (batchId: string) => void;
 	}
 
-	let { logs, isOpen, userRole, onClose, onComplete }: Props = $props();
+	const { logs, isOpen, userRole, onClose, onComplete }: Props = $props();
 
 	let selectedLogs = $state(new Set<string>());
 	let isProcessing = $state(false);

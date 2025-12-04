@@ -2,7 +2,7 @@
 // Feature: 019-we-need-to - Task T018
 // Purpose: Business logic helpers for task operations
 
-import type { Task, TaskStatus, TaskPriority } from '$lib/graphql/types';
+import type { Task, TaskPriority, TaskStatus } from '$lib/graphql/types';
 
 /**
  * Check if a user can view a task based on assignment rules

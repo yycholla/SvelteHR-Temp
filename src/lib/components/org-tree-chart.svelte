@@ -4,18 +4,18 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import {
-		Users,
-		Mail,
-		Phone,
+		Building2,
 		ChevronDown,
 		ChevronRight,
 		Crown,
+		Mail,
+		Phone,
 		User,
-		Building2
+		Users
 	} from '@lucide/svelte';
 
 	// Props
-	let {
+	const {
 		departmentData
 	}: {
 		departmentData: {
@@ -48,7 +48,7 @@
 		// Create root node (department)
 		const rootNode: TreeNode = {
 			id: `dept-${name}`,
-			name: name,
+			name,
 			role: 'Department',
 			email: '',
 			level: 0,

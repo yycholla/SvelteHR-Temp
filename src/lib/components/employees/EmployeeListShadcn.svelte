@@ -10,7 +10,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Search, Plus, RefreshCw, Grid, List, Users } from '@lucide/svelte';
+	import { Grid, List, Plus, RefreshCw, Search, Users } from '@lucide/svelte';
 
 	/**
 	 * Employee List Component (shadcn-svelte version)
@@ -49,7 +49,7 @@
 		directReports: { aggregate: { count: number } };
 	}
 
-	let {
+	const {
 		initialFilters = {},
 		compactView = false,
 		showFilters = true,
@@ -60,7 +60,7 @@
 	// State
 	let filters: EmployeeFilters = $state({ ...initialFilters });
 	let currentPage = $state(1);
-	let itemsPerPage = 20;
+	const itemsPerPage = 20;
 	let viewMode: 'grid' | 'table' = $state('table');
 	let selectedEmployees: string[] = $state([]);
 
@@ -76,7 +76,7 @@
 		try {
 			console.log('URQL client:', client);
 
-			if (!client || !client.createRequestOperation) {
+			if (!client?.createRequestOperation) {
 				throw new Error('URQL client is not properly initialized');
 			}
 

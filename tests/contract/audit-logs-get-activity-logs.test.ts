@@ -15,7 +15,7 @@
  * - RLS policies enforce correct access control
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Types based on GraphQL schema from contracts/graphql-operations.graphql
 interface GetActivityLogsVariables {

@@ -7,7 +7,7 @@
  * MUST FAIL until event history functionality is implemented.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('View Event History', () => {
 	test.beforeEach(async ({ page }) => {

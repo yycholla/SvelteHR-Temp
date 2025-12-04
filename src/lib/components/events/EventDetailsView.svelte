@@ -1,16 +1,16 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
-	import { Calendar as CalendarIcon, MapPin, User, Users, Bell } from '@lucide/svelte';
+	import { Bell, Calendar as CalendarIcon, MapPin, User, Users } from '@lucide/svelte';
 	import RSVPButton from './RSVPButton.svelte';
 	import EventCapacityIndicator from './EventCapacityIndicator.svelte';
 	import WaitlistButton from './WaitlistButton.svelte';
 	import EventCommentThread from './EventCommentThread.svelte';
 	import EventHistoryView from './EventHistoryView.svelte';
-	import { Tabs, TabsList, TabsTrigger, TabsContent } from '$lib/components/ui/tabs';
+	import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
 	import { Badge } from '$lib/components/ui/badge';
 	import { formatEventTimeRange } from '$lib/utils/events';
-	import { sanitizeCommentContent, extractMentions } from '$lib/utils/sanitize';
+	import { extractMentions, sanitizeCommentContent } from '$lib/utils/sanitize';
 	import type { RsvpStatus } from '$lib/graphql/types';
 	import type {
 		EventComment,
@@ -46,7 +46,7 @@
 		onLeaveWaitlist?: (eventId: string) => Promise<void>;
 	}
 
-	let {
+	const {
 		event,
 		userId,
 		userRole,
@@ -101,7 +101,7 @@
 	}
 
 	// Derived values
-	let displayRsvpStats = $derived.by(() => {
+	const displayRsvpStats = $derived.by(() => {
 		if (!event?.attendees) {
 			return rsvpStats || { total: 0, accepted: 0, declined: 0, tentative: 0, pending: 0 };
 		}
@@ -115,14 +115,14 @@
 		};
 	});
 
-	let filteredAttendees = $derived(
+	const filteredAttendees = $derived(
 		activeAttendeeTab === 'all'
 			? event?.attendees || []
 			: (event?.attendees || []).filter((a: any) => a.responseStatus === activeAttendeeTab)
 	);
 
 	const userRsvpStatus: RsvpStatus = $derived(
-		!event || !event.attendees
+		!event?.attendees
 			? 'no_response'
 			: event.attendees.find((a) => a.employeeId === userId)?.responseStatus || 'no_response'
 	);

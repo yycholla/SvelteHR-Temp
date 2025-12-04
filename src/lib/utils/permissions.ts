@@ -3,13 +3,13 @@
 // NEVER rely on client-side permission checks for security - always validate server-side.
 
 import type {
-	PermissionString,
-	PermissionContext,
-	PermissionCheckResult,
-	ResourceType,
 	ActionType,
-	ScopeType,
-	RoleName
+	PermissionCheckResult,
+	PermissionContext,
+	PermissionString,
+	ResourceType,
+	RoleName,
+	ScopeType
 } from '$lib/types/permissions';
 import { RoleHierarchy } from '$lib/types/permissions';
 

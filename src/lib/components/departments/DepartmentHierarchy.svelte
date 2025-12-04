@@ -2,10 +2,10 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import {
-		departmentService,
+		departmentError,
 		departmentHierarchy,
-		isLoadingDepartments,
-		departmentError
+		departmentService,
+		isLoadingDepartments
 	} from '$lib/services/departmentService';
 	import { currentUser, hasPermission } from '$lib/services/auth';
 	import Button from '../base/Button.svelte';
@@ -15,7 +15,7 @@
 	import type { Department } from '$lib/types';
 
 	// Props
-	let {
+	const {
 		showControls = true,
 		expandAll: initialExpandAll = false
 	}: {
@@ -36,7 +36,7 @@
 	}
 
 	// Reactive computation for tree structure
-	let rootNodes = $derived(buildHierarchyTree($departmentHierarchy));
+	const rootNodes = $derived(buildHierarchyTree($departmentHierarchy));
 
 	function buildHierarchyTree(departments: Department[]): TreeNodeData[] {
 		if (!departments.length) return [];

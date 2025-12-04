@@ -1,15 +1,15 @@
 <script lang="ts">
 	import {
 		ArrowLeft,
-		Edit,
-		Users,
-		FileText,
-		Calendar,
-		Tag,
-		UserPlus,
-		UserMinus,
 		Building,
-		Search
+		Calendar,
+		Edit,
+		FileText,
+		Search,
+		Tag,
+		UserMinus,
+		UserPlus,
+		Users
 	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
@@ -20,13 +20,13 @@
 	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
 	import { formatDistanceToNow } from 'date-fns';
 	import { DateFormatter, getLocalTimeZone } from '@internationalized/date';
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { cn } from '$lib/utils';
 
-	let { data } = $props();
+	const { data } = $props();
 
 	const completedAssignments = data.assignments.filter((a: any) => a.completedAt).length;
 	const totalAssignments = data.assignments.length;
@@ -68,7 +68,7 @@
 
 		return {
 			value: user.id,
-			label: label
+			label
 		};
 	});
 

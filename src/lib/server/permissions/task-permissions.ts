@@ -12,8 +12,8 @@
 
 import { error } from '@sveltejs/kit';
 import type { RequestEvent } from '@sveltejs/kit';
-import { hasPermission, hasRole, getRolePrecedence } from '$lib/server/rbac-utils';
-import type { TaskStatus, TaskPriority } from '$lib/types/task';
+import { getRolePrecedence, hasPermission, hasRole } from '$lib/server/rbac-utils';
+import type { TaskPriority, TaskStatus } from '$lib/types/task';
 
 /**
  * Task permission configuration

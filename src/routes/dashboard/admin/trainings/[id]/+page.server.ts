@@ -3,12 +3,12 @@ import type { Actions, PageServerLoad } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
 import {
-	GET_ALL_DEPARTMENTS_QUERY,
-	GET_TRAINING_ASSIGNMENTS_QUERY,
+	ASSIGN_TO_ALL_EMPLOYEES_MUTATION,
+	ASSIGN_TO_DEPARTMENT_MUTATION,
 	CREATE_ASSIGNMENT_MUTATION,
 	DELETE_ASSIGNMENT_MUTATION,
-	ASSIGN_TO_DEPARTMENT_MUTATION,
-	ASSIGN_TO_ALL_EMPLOYEES_MUTATION
+	GET_ALL_DEPARTMENTS_QUERY,
+	GET_TRAINING_ASSIGNMENTS_QUERY
 } from '$lib/graphql/training-operations';
 
 export const load: PageServerLoad = async (event) => {
@@ -154,8 +154,8 @@ export const actions: Actions = {
 				metaDescription: metaDescription || null,
 				tags: tags && tags.length > 0 ? tags : null,
 				authorId: authorId || null,
-				rrule: rrule,
-				recurrenceEndDate: recurrenceEndDate
+				rrule,
+				recurrenceEndDate
 			}
 		};
 

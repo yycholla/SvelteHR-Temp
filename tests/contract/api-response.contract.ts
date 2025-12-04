@@ -2,7 +2,7 @@
 // Tests API response structure and data integrity
 // Created: 2025-09-24
 
-import { test, expect, describe } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { z } from 'zod';
 
 // Response Schema Definitions

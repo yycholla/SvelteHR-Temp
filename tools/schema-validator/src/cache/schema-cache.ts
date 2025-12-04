@@ -3,11 +3,11 @@
  * Improves validation performance by caching introspection results
  */
 
-import { readFile, writeFile, unlink, mkdir } from 'fs/promises';
+import { mkdir, readFile, unlink, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { createHash } from 'crypto';
-import type { DatabaseColumn, ApiField, GraphQLOperation } from '../types/models.js';
+import type { ApiField, DatabaseColumn, GraphQLOperation } from '../types/models.js';
 
 /**
  * Cache entry metadata

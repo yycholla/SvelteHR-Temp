@@ -2,16 +2,16 @@
 	import { goto } from '$app/navigation';
 	import { enhance } from '$app/forms';
 	import {
+		Calendar,
+		CheckCircle2,
+		Edit,
+		GraduationCap,
+		MoreHorizontal,
 		Plus,
 		Search,
-		MoreHorizontal,
-		GraduationCap,
-		Calendar,
+		Trash2,
 		Users,
-		CheckCircle2,
-		XCircle,
-		Edit,
-		Trash2
+		XCircle
 	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -21,25 +21,25 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 
-	let { data } = $props();
+	const { data } = $props();
 
 	let searchQuery = $state('');
 	let trainingToDelete = $state<{ id: string; title: string } | null>(null);
 	let isDeleting = $state(false);
 
 	// Derived state for filtering
-	let filteredTrainings = $derived(
+	const filteredTrainings = $derived(
 		(data.trainings || []).filter(
 			(t: any) =>
 				t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				(t.description && t.description.toLowerCase().includes(searchQuery.toLowerCase()))
+				t.description?.toLowerCase().includes(searchQuery.toLowerCase())
 		)
 	);
 
 	// Statistics
-	let totalTrainings = $derived(data.trainings?.length || 0);
-	let activeTrainings = $derived(data.trainings?.filter((t: any) => t.isActive).length || 0);
-	let upcomingTrainings = $derived(
+	const totalTrainings = $derived(data.trainings?.length || 0);
+	const activeTrainings = $derived(data.trainings?.filter((t: any) => t.isActive).length || 0);
+	const upcomingTrainings = $derived(
 		data.trainings?.filter((t: any) => t.startDate && new Date(t.startDate) > new Date()).length ||
 			0
 	);

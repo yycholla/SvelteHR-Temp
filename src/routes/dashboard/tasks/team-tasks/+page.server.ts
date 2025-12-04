@@ -2,9 +2,9 @@
 // Feature: 028-task-system-expansion - Task T045
 // Load tasks assigned to team members in the same department/organization
 
-import type { PageServerLoad, Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
-import { getUserPermissions, PermissionChecks } from '$lib/server/rbac-utils';
+import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, cookies, url } = event;

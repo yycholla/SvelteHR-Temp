@@ -16,7 +16,7 @@
 		onDownload?: () => void;
 	}
 
-	let {
+	const {
 		isOpen = false,
 		documentId,
 		filename,
@@ -31,7 +31,7 @@
 	}: Props = $props();
 
 	// Determine actual MIME type from either mimeType or legacy fileType
-	let actualMimeType = $derived(mimeType || convertFileTypeToMimeType(fileType));
+	const actualMimeType = $derived(mimeType || convertFileTypeToMimeType(fileType));
 
 	// Helper to convert legacy FileType to MIME type
 	function convertFileTypeToMimeType(type: string): string {
@@ -49,16 +49,16 @@
 	}
 
 	// Derived state based on MIME type
-	let isPDF = $derived(actualMimeType === 'application/pdf');
-	let isImage = $derived(actualMimeType.startsWith('image/'));
-	let isText = $derived(actualMimeType === 'text/plain' || actualMimeType === 'text/csv');
-	let isOfficeDoc = $derived(
+	const isPDF = $derived(actualMimeType === 'application/pdf');
+	const isImage = $derived(actualMimeType.startsWith('image/'));
+	const isText = $derived(actualMimeType === 'text/plain' || actualMimeType === 'text/csv');
+	const isOfficeDoc = $derived(
 		actualMimeType.includes('wordprocessingml') || actualMimeType.includes('spreadsheetml')
 	);
-	let canPreview = $derived(isPDF || isImage || isText);
+	const canPreview = $derived(isPDF || isImage || isText);
 
 	// Get display file type
-	let displayFileType = $derived(
+	const displayFileType = $derived(
 		fileType || actualMimeType.split('/').pop()?.toUpperCase() || 'FILE'
 	);
 

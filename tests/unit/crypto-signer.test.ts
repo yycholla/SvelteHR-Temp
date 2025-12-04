@@ -2,7 +2,7 @@
 // Feature: 021-i-have-setup (Comprehensive Audit Logging)
 // Tests ECDSA (ES256) key generation, signing, and verification for audit logs
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 // These imports WILL FAIL because the module doesn't exist yet (TDD RED phase)
 import { generateKeyPair, signAuditLog, verifySignature } from '$lib/server/audit/crypto-signer';

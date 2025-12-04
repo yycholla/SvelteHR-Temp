@@ -1,17 +1,17 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import {
-		ChevronLeft,
-		Loader2,
 		AlertCircle,
-		CheckCircle2,
-		GraduationCap,
-		UserPlus,
-		UserMinus,
-		CalendarIcon,
 		Building,
-		Users,
-		Search
+		CalendarIcon,
+		CheckCircle2,
+		ChevronLeft,
+		GraduationCap,
+		Loader2,
+		Search,
+		UserMinus,
+		UserPlus,
+		Users
 	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -31,7 +31,7 @@
 	import { cn } from '$lib/utils';
 	import RecurrencePatternInput from '$lib/components/ui/recurrence-pattern-input.svelte';
 
-	let { data, form } = $props();
+	const { data, form } = $props();
 	const { training, allUsers, departments, assignments } = data;
 
 	let submitting = $state(false);
@@ -90,7 +90,7 @@
 
 		return {
 			value: user.id,
-			label: label
+			label
 		};
 	});
 

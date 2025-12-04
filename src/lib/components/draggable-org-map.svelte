@@ -4,20 +4,20 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import {
-		Crown,
-		User,
 		Building2,
+		Crown,
 		Mail,
-		Phone,
+		Maximize,
 		Move,
-		ZoomIn,
-		ZoomOut,
+		Phone,
 		RotateCcw,
-		Maximize
+		User,
+		ZoomIn,
+		ZoomOut
 	} from '@lucide/svelte';
 
 	// Props
-	let {
+	const {
 		departmentData
 	}: {
 		departmentData: {
@@ -54,7 +54,7 @@
 	let panY = $state(0);
 	let isDragging = $state(false);
 	let draggedNode: OrgNode | null = $state(null);
-	let dragOffset = $state({ x: 0, y: 0 });
+	const dragOffset = $state({ x: 0, y: 0 });
 
 	// Constants for layout
 	const LEVEL_HEIGHT = 150;
@@ -91,7 +91,7 @@
 		sortedLevels.forEach((roleLevel, levelIndex) => {
 			const levelEmployees = employeesByLevel.get(roleLevel)!;
 			const levelWidth = levelEmployees.length * (NODE_WIDTH + HORIZONTAL_SPACING);
-			let startX = Math.max(50, (800 - levelWidth) / 2); // Center horizontally
+			const startX = Math.max(50, (800 - levelWidth) / 2); // Center horizontally
 
 			levelEmployees.forEach((emp, empIndex) => {
 				const node: OrgNode = {
@@ -100,7 +100,7 @@
 					role: getHighestRole(emp),
 					email: emp.email,
 					level: levelIndex,
-					roleLevel: roleLevel,
+					roleLevel,
 					isManager: roleLevel >= 60,
 					user: emp,
 					children: [],

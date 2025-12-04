@@ -6,10 +6,10 @@
  * MUST FAIL until AttendeeListView component is implemented.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type {
-	AttendeeListViewProps,
-	Attendee
+	Attendee,
+	AttendeeListViewProps
 } from '$lib/components/events/AttendeeListView.svelte';
 
 describe('AttendeeListView Contract', () => {

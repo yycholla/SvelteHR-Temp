@@ -6,7 +6,7 @@
  * MUST FAIL until EventCreateDialog component is implemented.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { EventCreateDialogProps } from '$lib/components/events/EventCreateDialog.svelte';
 
 describe('EventCreateDialog Contract', () => {

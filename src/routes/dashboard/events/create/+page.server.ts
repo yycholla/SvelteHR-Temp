@@ -2,8 +2,8 @@
 // Feature: 019-we-need-to - Task T033
 // Purpose: Load initial data for event creation form
 
-import type { PageServerLoad, Actions } from './$types';
-import { error, redirect, fail } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { createUrqlClient } from '$lib/graphql/client';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import { EventsOperations } from '$lib/graphql/events-operations';
@@ -258,7 +258,7 @@ export const actions: Actions = {
 					eventType,
 					startTime: startTimeUTC,
 					endTime: endTimeUTC,
-					isAllDay: isAllDay,
+					isAllDay,
 					location,
 					status: 'scheduled',
 					isPublic

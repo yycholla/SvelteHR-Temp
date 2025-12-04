@@ -12,8 +12,8 @@
  * Phase: 0 - Foundation
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
-import { createClient, type Client, cacheExchange, fetchExchange } from '@urql/core';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { type Client, cacheExchange, createClient, fetchExchange } from '@urql/core';
 import { gql } from '@urql/core';
 
 // Test configuration

@@ -6,7 +6,7 @@
  * MUST FAIL until AttendeePickerModal component is implemented.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { AttendeePickerModalProps } from '$lib/components/events/AttendeePickerModal.svelte';
 
 describe('AttendeePickerModal Contract', () => {

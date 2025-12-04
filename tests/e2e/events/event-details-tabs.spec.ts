@@ -10,7 +10,7 @@
  * - Tab switching performance (<100ms target)
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Event Details Dialog - Tab Navigation', () => {
 	test.beforeEach(async ({ page }) => {

@@ -4,7 +4,7 @@
 // Created: 2025-01-01
 // ============================================================================
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('TasksOperations Enhanced (Department Privacy - TDD RED)', () => {
 	let mockClient: any;

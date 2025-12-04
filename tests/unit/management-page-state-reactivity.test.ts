@@ -1,5 +1,5 @@
 import { render } from '@testing-library/svelte';
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import ManagementPage from '../../src/routes/dashboard/management/+page.svelte';
 
 describe('Management Page State Reactivity - RED Phase', () => {

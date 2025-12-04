@@ -36,7 +36,7 @@
 
 	const isMobile = new IsMobile();
 
-	let { item }: { item: Schema } = $props();
+	const { item }: { item: Schema } = $props();
 
 	let type = $state(item.type);
 	let status = $state(item.status);

@@ -60,11 +60,11 @@
 	let textareaElement: HTMLTextAreaElement;
 
 	// Character count
-	let characterCount = $derived(value.length);
-	let isOverLimit = $derived(maxlength ? characterCount > maxlength : false);
+	const characterCount = $derived(value.length);
+	const isOverLimit = $derived(maxlength ? characterCount > maxlength : false);
 
 	// Computed classes
-	let containerClasses = $derived(
+	const containerClasses = $derived(
 		[
 			'textarea-container',
 			`textarea-container--${size}`,
@@ -79,7 +79,7 @@
 			.join(' ')
 	);
 
-	let textareaClasses = $derived(
+	const textareaClasses = $derived(
 		[
 			'textarea',
 			`textarea--${size}`,

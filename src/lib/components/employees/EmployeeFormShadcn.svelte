@@ -13,23 +13,23 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { validateForm } from '$lib/utils/validation';
 	import {
-		Save,
-		X,
-		RotateCcw,
 		Building,
-		UserIcon,
+		DollarSign,
 		MapPin,
 		Phone,
+		RotateCcw,
+		Save,
 		Shield,
-		DollarSign
+		UserIcon,
+		X
 	} from '@lucide/svelte';
 	import type { ValidationResult } from '$lib/utils/validation';
-	import type { User, CreateUserInput, UpdateUserInput } from '$lib/types';
+	import type { CreateUserInput, UpdateUserInput, User } from '$lib/types';
 
 	const dispatch = createEventDispatcher();
 
 	// Props
-	let {
+	const {
 		employee = null,
 		isEditing = false,
 		loading = false

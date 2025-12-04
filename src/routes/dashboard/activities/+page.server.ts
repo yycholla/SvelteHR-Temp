@@ -58,7 +58,7 @@ export const load: PageServerLoad = async (event) => {
 				`,
 				variables: {
 					userId: locals.user.id,
-					limit: limit,
+					limit,
 					offset: (page - 1) * limit
 				}
 			})

@@ -5,8 +5,8 @@
  * Server-side data loading and mutation handling for review creation page
  */
 
-import type { PageServerLoad, Actions } from './$types';
-import { error, redirect, fail } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 
@@ -427,7 +427,7 @@ export const actions: Actions = {
 							input: {
 								name: cycleName,
 								description: notes || null,
-								reviewType: reviewType,
+								reviewType,
 								startDate: new Date(reviewPeriodStart).toISOString(),
 								endDate: new Date(reviewPeriodEnd).toISOString()
 							}

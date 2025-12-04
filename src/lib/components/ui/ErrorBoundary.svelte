@@ -2,9 +2,9 @@
 <!-- T055: Error Handling Standardization - CRITICAL -->
 
 <script lang="ts">
-	import { createErrorBoundary, type StandardErrorResponse } from '$lib/utils/error-handling.js';
+	import { type StandardErrorResponse, createErrorBoundary } from '$lib/utils/error-handling.js';
 	import { onMount } from 'svelte';
-	import { AlertCircle, RefreshCw, Home, ChevronDown, ChevronUp } from '@lucide/svelte';
+	import { AlertCircle, ChevronDown, ChevronUp, Home, RefreshCw } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import {
 		Card,
@@ -30,7 +30,7 @@
 		children: import('svelte').Snippet;
 	}
 
-	let {
+	const {
 		fallback,
 		showDetails = false,
 		onError,

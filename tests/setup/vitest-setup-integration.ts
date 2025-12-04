@@ -2,8 +2,8 @@
 // Database connection and test environment for integration tests
 // Created: 2025-09-24
 
-import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
-import { DatabaseTestUtils, createTestContext, cleanupTestData } from '../utils/test-helpers';
+import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
+import { DatabaseTestUtils, cleanupTestData, createTestContext } from '../utils/test-helpers';
 import './vitest-setup'; // Import base setup
 
 let testContext: any;

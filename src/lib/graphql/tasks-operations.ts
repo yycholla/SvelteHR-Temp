@@ -5,12 +5,12 @@ import type { Client } from '@urql/core';
 import { gql } from '@urql/svelte';
 import type { UserCredentials } from '$lib/models/data-request';
 import type {
+	CreateTaskTypeInput,
 	Task,
 	TaskDependency,
-	TaskStatus,
 	TaskPriority,
+	TaskStatus,
 	TaskType,
-	CreateTaskTypeInput,
 	UpdateTaskTypeInput
 } from '$lib/types/task';
 
@@ -509,7 +509,7 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.tasks) {
+			if (!result.data?.tasks) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No tasks data returned. Please try again.'
@@ -558,7 +558,7 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.task) {
+			if (!result.data?.task) {
 				throw createErrorResponse(new Error('Task not found'), {
 					type: 'graphql',
 					userMessage: 'Task not found. Please try again.'
@@ -611,7 +611,7 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.tasks) {
+			if (!result.data?.tasks) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No tasks data returned. Please try again.'
@@ -671,7 +671,7 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.createTask) {
+			if (!result.data?.createTask) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'Task creation failed. Please try again.'
@@ -719,7 +719,7 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.updateTask) {
+			if (!result.data?.updateTask) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'Task update failed. Please try again.'
@@ -814,7 +814,7 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.changeTaskStatus) {
+			if (!result.data?.changeTaskStatus) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'Status change failed. Please try again.'
@@ -869,7 +869,7 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.assignTaskToUser) {
+			if (!result.data?.assignTaskToUser) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'Task assignment failed. Please try again.'
@@ -926,7 +926,7 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.createTaskDependency) {
+			if (!result.data?.createTaskDependency) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'Dependency creation failed. Please try again.'

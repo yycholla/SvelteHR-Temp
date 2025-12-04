@@ -4,8 +4,8 @@
  * Purpose: Load user's event notification preferences from backend
  */
 
-import type { PageServerLoad, Actions } from './$types';
-import { error, redirect, fail } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 
 // TODO: Implement once GraphQL operations are defined and token handling is fixed

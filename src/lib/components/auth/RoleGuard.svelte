@@ -16,7 +16,7 @@
 		hideOnDenied?: boolean; // Hide content instead of showing fallback (default: true)
 	}
 
-	let {
+	const {
 		children,
 		roles = [],
 		permissions = [],

@@ -12,10 +12,10 @@
  * - GET /api/performance/budgets - Performance budget validation
  */
 
-import { json, error } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
 import { serverPerformanceMonitor } from '$lib/performance/server-monitor.js';
-import { budgetValidator, PERFORMANCE_BUDGETS } from '$lib/performance/performance-budgets.js';
+import { PERFORMANCE_BUDGETS, budgetValidator } from '$lib/performance/performance-budgets.js';
 
 // GET /api/performance/stats
 export const GET: RequestHandler = async ({ url, request }) => {

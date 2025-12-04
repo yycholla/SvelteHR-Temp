@@ -1,20 +1,20 @@
 <script lang="ts">
-	import { Search, BookOpen, Calendar, CheckCircle2, Clock, ChevronRight } from '@lucide/svelte';
+	import { BookOpen, Calendar, CheckCircle2, ChevronRight, Clock, Search } from '@lucide/svelte';
 	import { Input } from '$lib/components/ui/input';
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import { Progress } from '$lib/components/ui/progress';
 
-	let { data } = $props();
+	const { data } = $props();
 
 	let searchQuery = $state('');
 
-	let filteredTrainings = $derived(
+	const filteredTrainings = $derived(
 		(data.trainings || []).filter(
 			(t: any) =>
 				t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				(t.description && t.description.toLowerCase().includes(searchQuery.toLowerCase()))
+				t.description?.toLowerCase().includes(searchQuery.toLowerCase())
 		)
 	);
 

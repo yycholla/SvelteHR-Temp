@@ -1,14 +1,14 @@
 <script lang="ts">
 	import {
-		ChevronLeft,
-		Users,
-		CheckCircle2,
-		Clock,
-		XCircle,
 		Calendar,
-		User,
+		CheckCircle2,
+		ChevronLeft,
+		Clock,
 		Mail,
-		TrendingUp
+		TrendingUp,
+		User,
+		Users,
+		XCircle
 	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
@@ -16,7 +16,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Progress } from '$lib/components/ui/progress';
 
-	let { data } = $props();
+	const { data } = $props();
 	const { training, assignments, stats, totalContents } = data;
 
 	function formatDate(dateStr: string | null) {

@@ -4,7 +4,7 @@
  * Setup configuration for GraphQL schema validation and contract testing.
  */
 
-import { beforeAll, afterAll, expect } from 'vitest';
+import { afterAll, beforeAll, expect } from 'vitest';
 import { getIntrospectionQuery } from 'graphql';
 import { createUrqlClient } from '$lib/graphql/client';
 

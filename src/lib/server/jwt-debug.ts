@@ -33,8 +33,8 @@ export function debugJWTToken(cookies: Cookies): JWTDebugInfo {
 	const postgraphileToken = cookies.get('postgraphile-jwt-token');
 	const authToken = cookies.get('auth-token');
 
-	let token = hrToken || postgraphileToken || authToken;
-	let tokenSource = hrToken
+	const token = hrToken || postgraphileToken || authToken;
+	const tokenSource = hrToken
 		? 'hr_token'
 		: postgraphileToken
 			? 'postgraphile-jwt-token'

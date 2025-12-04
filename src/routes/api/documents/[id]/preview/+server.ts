@@ -1,7 +1,7 @@
 // Document preview API endpoint (Feature 024)
 // GET /api/documents/[id]/preview - Generate document preview (with decryption if encrypted)
 
-import { json, error } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { SERVICE_AUTH_KEY } from '$env/static/private';
 import { retrieveAndDecryptFile } from '$lib/server/encryption';

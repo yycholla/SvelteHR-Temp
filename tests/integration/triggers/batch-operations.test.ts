@@ -2,16 +2,16 @@
 // Feature: 021-i-have-setup (Comprehensive Audit Logging)
 // Tests that multiple operations with same batch_id are properly tracked
 
-import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
-	createTestDatabase,
+	type TestDatabase,
 	cleanupTestDatabase,
-	queryActivityLogsByBatch,
-	generateTestEmployee,
 	cleanupTestRecords,
-	initializeTestPool,
 	closeTestPool,
-	type TestDatabase
+	createTestDatabase,
+	generateTestEmployee,
+	initializeTestPool,
+	queryActivityLogsByBatch
 } from '../../utils/db-trigger-helpers';
 import { nanoid } from 'nanoid';
 

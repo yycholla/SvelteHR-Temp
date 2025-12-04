@@ -1,5 +1,5 @@
 import { render } from '@testing-library/svelte';
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import SettingsPage from '../../src/routes/settings/+page.svelte';
 
 describe('Settings Page State Reactivity - RED Phase', () => {

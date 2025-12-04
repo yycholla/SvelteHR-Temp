@@ -8,9 +8,9 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Alert from '$lib/components/ui/alert';
 	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
-	import { ChevronLeft, Loader2, AlertCircle } from '@lucide/svelte';
+	import { AlertCircle, ChevronLeft, Loader2 } from '@lucide/svelte';
 
-	let { form, data } = $props();
+	const { form, data } = $props();
 
 	let submitting = $state(false);
 	let isActive = $state(true);

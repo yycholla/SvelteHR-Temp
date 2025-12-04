@@ -3,7 +3,7 @@
  * Provides consistent permission checking across all pages
  */
 
-import { redirect, error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import type { RequestEvent } from '@sveltejs/kit';
 
 export interface RBACConfig {

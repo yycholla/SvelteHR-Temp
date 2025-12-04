@@ -7,7 +7,7 @@
  * MUST FAIL until waitlist features are implemented.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Join Waitlist for Full Event', () => {
 	test.beforeEach(async ({ page }) => {

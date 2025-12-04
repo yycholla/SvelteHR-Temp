@@ -2,7 +2,7 @@
 // Uses Node.js crypto module for AES-256-GCM encryption
 // This runs only on the server - never exposed to the client
 
-import { randomBytes, createCipheriv, createDecipheriv } from 'crypto';
+import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 
 // Encryption configuration
 const ALGORITHM = 'aes-256-gcm';

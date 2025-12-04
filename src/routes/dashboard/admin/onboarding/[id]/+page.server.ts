@@ -4,8 +4,8 @@ import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
 import {
 	ASSIGN_ONBOARDING_MUTATION,
-	DELETE_ONBOARDING_ASSIGNMENT_MUTATION,
-	ASSIGN_ONBOARDING_TO_DEPARTMENT_MUTATION
+	ASSIGN_ONBOARDING_TO_DEPARTMENT_MUTATION,
+	DELETE_ONBOARDING_ASSIGNMENT_MUTATION
 } from '$lib/graphql/onboarding-operations';
 import { GET_ALL_DEPARTMENTS_QUERY } from '$lib/graphql/training-operations';
 

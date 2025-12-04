@@ -6,7 +6,7 @@
  * Tests the reassignTask GraphQL mutation with notifications and audit trail.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('ReassignTask Mutation Contract', () => {
 	test.beforeEach(async ({ page }) => {

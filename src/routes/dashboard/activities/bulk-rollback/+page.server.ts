@@ -8,7 +8,7 @@
  */
 
 import { error, redirect } from '@sveltejs/kit';
-import type { PageServerLoad, Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { ensureBackendReady } from '$lib/server/backend-init';
 import { requireAuth } from '$lib/server/rbac-utils';
@@ -112,7 +112,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// NOTE: bulkRollbackBatches query doesn't exist yet in Rust GraphQL schema
 		// Temporarily use empty array until query is implemented
-		let recentBatches: any[] = [];
+		const recentBatches: any[] = [];
 
 		// TODO: Implement bulkRollbackBatches query in Rust GraphQL server
 		// Expected fields: id, requestedBy, totalItems, processedItems, status, completedAt, createdAt

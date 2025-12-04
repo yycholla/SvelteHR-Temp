@@ -2,8 +2,8 @@
 	// T004: PermissionGuard Svelte 5 component for permission-based conditional rendering
 	// UX-only component - server-side enforcement is MANDATORY for security
 
-	import type { PermissionString, PermissionContext } from '$lib/types/permissions';
-	import { hasPermission, hasAnyPermission, hasAllPermissions } from '$lib/utils/permissions';
+	import type { PermissionContext, PermissionString } from '$lib/types/permissions';
+	import { hasAllPermissions, hasAnyPermission, hasPermission } from '$lib/utils/permissions';
 	import type { Snippet } from 'svelte';
 
 	interface Props {
@@ -63,7 +63,7 @@
 		[key: string]: unknown;
 	}
 
-	let {
+	const {
 		permissions,
 		requires,
 		requireAll = false,

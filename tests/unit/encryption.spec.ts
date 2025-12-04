@@ -1,12 +1,12 @@
 // Unit test: Encryption service (T052)
 // Tests Web Crypto API wrapper functions
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-	generateEncryptionKey,
-	encryptFile,
 	decryptFile,
-	encryptFileChunked
+	encryptFile,
+	encryptFileChunked,
+	generateEncryptionKey
 } from '$lib/services/encryption';
 
 /**

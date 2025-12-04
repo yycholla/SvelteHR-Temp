@@ -8,7 +8,7 @@
 		class?: string;
 	}
 
-	let {
+	const {
 		size = 'md',
 		variant = 'default',
 		label = 'Loading...',

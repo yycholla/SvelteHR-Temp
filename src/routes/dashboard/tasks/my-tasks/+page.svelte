@@ -10,7 +10,7 @@
 
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { goto, replaceState, invalidateAll } from '$app/navigation';
+	import { goto, invalidateAll, replaceState } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Card from '$lib/components/ui/card';
@@ -21,25 +21,25 @@
 	import {
 		AlertCircle,
 		AlertTriangle,
+		CalendarDays,
 		CheckCircle,
+		ChevronDown,
 		Clock,
+		Columns,
+		Filter,
+		GitBranch,
+		LayoutGrid,
+		List,
+		Plus,
 		Search,
+		SortAsc,
 		TrendingUp,
 		User,
-		Filter,
-		List,
-		GitBranch,
-		Columns,
-		SortAsc,
-		ChevronDown,
-		X,
-		CalendarDays,
-		Plus,
-		LayoutGrid
+		X
 	} from '@lucide/svelte';
 	import { CHANGE_TASK_STATUS } from '$lib/graphql/tasks-operations';
 	import { client } from '$lib/graphql/client';
-	import type { TaskStatus, TaskPriority } from '$lib/types/task';
+	import type { TaskPriority, TaskStatus } from '$lib/types/task';
 	import { toast } from 'svelte-sonner';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Progress } from '$lib/components/ui/progress';
@@ -86,12 +86,12 @@
 
 			// Status filter (if applied locally)
 			if (selectedStatus !== 'all') {
-				result = result.filter((task: any) => task && task.status === selectedStatus);
+				result = result.filter((task: any) => task?.status === selectedStatus);
 			}
 
 			// Priority filter (if applied locally)
 			if (selectedPriority !== 'all') {
-				result = result.filter((task: any) => task && task.priority === selectedPriority);
+				result = result.filter((task: any) => task?.priority === selectedPriority);
 			}
 
 			return result;

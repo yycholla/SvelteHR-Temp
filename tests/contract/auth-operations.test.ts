@@ -13,11 +13,11 @@
  * - RBAC integration with role/permission loading
  */
 
-import { test, expect, describe, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type {
-	VerifyUserAuthenticationVariables,
+	ErrorResponse,
 	VerifyUserAuthenticationResponse,
-	ErrorResponse
+	VerifyUserAuthenticationVariables
 } from '$lib/types/graphql-contracts';
 import { GRAPHQL_OPERATION_CONSTANTS } from '$lib/types/graphql-contracts';
 

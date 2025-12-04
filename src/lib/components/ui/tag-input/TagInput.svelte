@@ -47,7 +47,7 @@
 	let dropdownElement = $state<HTMLDivElement>();
 
 	// Filtered options based on search and already selected items
-	let filteredOptions = $derived(() => {
+	const filteredOptions = $derived(() => {
 		const searchLower = searchTerm.toLowerCase();
 		return options.filter((opt) => {
 			// Exclude already selected items
@@ -60,12 +60,12 @@
 	});
 
 	// Selected option objects for display
-	let selectedOptions = $derived(
+	const selectedOptions = $derived(
 		selected.map((val) => options.find((opt) => opt.value === val)).filter(Boolean)
 	);
 
 	// Check if max selections reached
-	let maxReached = $derived(maxSelections && selected.length >= maxSelections);
+	const maxReached = $derived(maxSelections && selected.length >= maxSelections);
 
 	// Handle option selection
 	function selectOption(option: Option) {

@@ -6,8 +6,8 @@
  * This test MUST FAIL initially because soft delete functionality is not implemented.
  */
 
-import { test, expect, describe, beforeAll, afterAll } from 'vitest';
-import { createTestContext, cleanupTestData, TestUser } from '../utils/test-helpers';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { TestUser, cleanupTestData, createTestContext } from '../utils/test-helpers';
 import { performGraphQLMutation, performGraphQLQuery } from '../utils/graphql-test-client';
 
 interface TestContext {
@@ -38,7 +38,7 @@ describe('T017: Soft delete goal preservation in reviews', () => {
 			authTokens: {
 				admin: admin.token
 			},
-			users: { admin: admin, hrManager: null, manager: null, employee: employee },
+			users: { admin, hrManager: null, manager: null, employee },
 			departments: { engineering: null, marketing: null, hr: null },
 			createdEmployees: [],
 			createdUsers: [],

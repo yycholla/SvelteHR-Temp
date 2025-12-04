@@ -7,7 +7,7 @@
  * MUST FAIL until mobile responsive design is implemented.
  */
 
-import { test, expect, devices } from '@playwright/test';
+import { devices, expect, test } from '@playwright/test';
 
 test.describe('Mobile Responsive Calendar', () => {
 	test.use({ ...devices['iPhone 12'] });

@@ -6,7 +6,7 @@
  * Tests the createTask GraphQL mutation with RBAC enforcement.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('CreateTask Mutation Contract', () => {
 	test.beforeEach(async ({ page }) => {

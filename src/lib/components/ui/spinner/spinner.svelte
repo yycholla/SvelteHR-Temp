@@ -3,7 +3,7 @@
 	import Loader2Icon from '@lucide/svelte/icons/loader-2';
 	import type { ComponentProps } from 'svelte';
 
-	let { class: className, ...restProps }: ComponentProps<typeof Loader2Icon> = $props();
+	const { class: className, ...restProps }: ComponentProps<typeof Loader2Icon> = $props();
 </script>
 
 <Loader2Icon

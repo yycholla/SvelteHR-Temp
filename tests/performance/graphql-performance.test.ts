@@ -5,15 +5,15 @@
  * These tests validate that GraphQL queries and mutations meet the <200ms target.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import {
-	performanceMonitor,
 	markPerformance,
 	measurePerformance,
+	performanceMonitor,
 	timeFunction
 } from '../../tests/utils/performance-monitor.js';
 import { graphqlPerformanceTester } from '$lib/performance/graphql-performance-exchange';
-import { budgetValidator, PERFORMANCE_BUDGETS } from '$lib/performance/performance-budgets.js';
+import { PERFORMANCE_BUDGETS, budgetValidator } from '$lib/performance/performance-budgets.js';
 
 // Mock GraphQL operations for testing
 const mockGraphQLOperations = {

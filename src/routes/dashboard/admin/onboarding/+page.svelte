@@ -2,17 +2,17 @@
 	import { goto } from '$app/navigation';
 	import { enhance } from '$app/forms';
 	import {
+		BookOpen,
+		CheckCircle2,
+		Edit,
+		FileText,
+		MoreHorizontal,
 		Plus,
 		Search,
-		MoreHorizontal,
-		BookOpen,
-		Users,
-		CheckCircle2,
-		XCircle,
-		Edit,
+		Settings,
 		Trash2,
-		FileText,
-		Settings
+		Users,
+		XCircle
 	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -22,26 +22,26 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 
-	let { data } = $props();
+	const { data } = $props();
 
 	let searchQuery = $state('');
 	let moduleToDelete = $state<{ id: string; title: string } | null>(null);
 	let isDeleting = $state(false);
 
 	// Derived state for filtering
-	let filteredModules = $derived(
+	const filteredModules = $derived(
 		(data.modules || []).filter(
 			(m: any) =>
 				m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				(m.description && m.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-				(m.category && m.category.toLowerCase().includes(searchQuery.toLowerCase()))
+				m.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				m.category?.toLowerCase().includes(searchQuery.toLowerCase())
 		)
 	);
 
 	// Statistics
-	let totalModules = $derived(data.modules?.length || 0);
-	let activeModules = $derived(data.modules?.filter((m: any) => m.isActive).length || 0);
-	let totalAssignments = $derived(
+	const totalModules = $derived(data.modules?.length || 0);
+	const activeModules = $derived(data.modules?.filter((m: any) => m.isActive).length || 0);
+	const totalAssignments = $derived(
 		data.modules?.reduce((sum: number, m: any) => sum + (m.assignmentCount || 0), 0) || 0
 	);
 

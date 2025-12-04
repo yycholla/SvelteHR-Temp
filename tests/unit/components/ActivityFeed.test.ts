@@ -16,7 +16,7 @@
  * - Rollback button integration
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface ActivityLogEntry {
 	id: string;

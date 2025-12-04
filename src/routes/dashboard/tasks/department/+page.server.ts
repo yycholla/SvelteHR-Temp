@@ -7,7 +7,7 @@ import { error, redirect } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { ensureBackendReady } from '$lib/server/backend-init';
 import { PermissionChecks } from '$lib/server/rbac-utils';
-import type { TaskStatus, TaskPriority } from '$lib/graphql/types';
+import type { TaskPriority, TaskStatus } from '$lib/graphql/types';
 
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	// Check authentication and permissions

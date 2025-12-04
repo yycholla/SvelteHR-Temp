@@ -9,7 +9,7 @@
 	 * date range selection, and multiple filter criteria.
 	 */
 
-	import { Search, X, Calendar, Filter, RotateCcw } from '@lucide/svelte';
+	import { Calendar, Filter, RotateCcw, Search, X } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
@@ -34,7 +34,7 @@
 		onClear?: () => void;
 	}
 
-	let {
+	const {
 		initialFilters = {},
 		resourceTypes = [
 			'users',

@@ -6,7 +6,7 @@
  * Tests the deleteTask GraphQL mutation with soft deletion and audit trail.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('DeleteTask Mutation Contract', () => {
 	test.beforeEach(async ({ page }) => {

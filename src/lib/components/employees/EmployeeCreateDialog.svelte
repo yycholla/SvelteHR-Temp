@@ -10,7 +10,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { toast } from 'svelte-sonner';
-	import { Loader2, UserPlus, Check, X } from '@lucide/svelte';
+	import { Check, Loader2, UserPlus, X } from '@lucide/svelte';
 
 	interface Props {
 		open: boolean;

@@ -13,7 +13,7 @@
  */
 
 import { getGraphQLEndpoint } from '$lib/server/api-url';
-import type { ResourceType, AvailabilityStatus } from '$lib/types/task';
+import type { AvailabilityStatus, ResourceType } from '$lib/types/task';
 
 /**
  * Resource validation result

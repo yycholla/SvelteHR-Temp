@@ -10,7 +10,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
-	import { MessageSquare, Edit2, Trash2, Send } from '@lucide/svelte';
+	import { Edit2, MessageSquare, Send, Trash2 } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import { formatDistanceToNow } from 'date-fns';
 
@@ -41,7 +41,7 @@
 		onLoadMore?: () => Promise<void>;
 	}
 
-	let {
+	const {
 		eventId,
 		comments = [],
 		currentUserId,

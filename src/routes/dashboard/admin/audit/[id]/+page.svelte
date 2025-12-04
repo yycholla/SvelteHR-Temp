@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { ArrowLeft, User, Server, FileText } from '@lucide/svelte';
+	import { ArrowLeft, FileText, Server, User } from '@lucide/svelte';
 	import LogDiff from '$lib/components/activities/LogDiff.svelte';
 
-	let { data } = $props();
-	let log = $derived(data.activityLog);
+	const { data } = $props();
+	const log = $derived(data.activityLog);
 
 	function getActionBadgeColor(action: string): string {
 		if (action.includes('CREATE'))

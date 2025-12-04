@@ -4,13 +4,13 @@
  */
 
 import type {
+  ArgumentNode,
   DocumentNode,
+  FieldNode,
   FragmentDefinitionNode,
   SelectionSetNode,
-  FieldNode,
-  ArgumentNode,
 } from 'graphql';
-import type { GraphQLOperation, FieldReference } from '../types/models.js';
+import type { FieldReference, GraphQLOperation } from '../types/models.js';
 
 /**
  * Fragment registry for resolving fragment spreads

@@ -10,7 +10,7 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { PermissionChecks } from '$lib/server/rbac-utils';
-import { canViewReview, canEditReview } from '$lib/utils/rbac';
+import { canEditReview, canViewReview } from '$lib/utils/rbac';
 
 export const load: PageServerLoad = async (event) => {
 	const { params, locals, cookies, fetch: fetchFn } = event;

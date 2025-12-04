@@ -18,6 +18,7 @@ export default ts.config(
 			'build/**/*',
 			'.svelte-kit/**/*',
 			'scripts/**/*', // Exclude all scripts from linting (utility files)
+			'tools/**/*', // Exclude tools directory (schema-validator, etc.)
 			'*.config.{js,cjs,mjs,ts}', // Exclude all config files
 			'*.{cjs,mjs}',
 			'**/*.js', // Exclude all .js files from TypeScript type-aware linting

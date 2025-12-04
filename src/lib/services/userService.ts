@@ -1,14 +1,14 @@
 // User service for managing user operations
 // Provides CRUD operations and user management functionality
 
-import type { User, CreateUserInput, UpdateUserInput } from '$lib/types';
+import type { CreateUserInput, UpdateUserInput, User } from '$lib/types';
 import { createUrqlClient } from '$lib/graphql/client';
 import {
+	CREATE_USER_MUTATION,
+	DELETE_USER_MUTATION,
 	GET_USERS_QUERY,
 	GET_USER_QUERY,
-	CREATE_USER_MUTATION,
-	UPDATE_USER_MUTATION,
-	DELETE_USER_MUTATION
+	UPDATE_USER_MUTATION
 } from '$lib/graphql/user-operations';
 
 /**

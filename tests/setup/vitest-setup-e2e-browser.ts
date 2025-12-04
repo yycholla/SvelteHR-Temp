@@ -2,7 +2,7 @@
 // E2E browser testing configuration (avoiding Playwright issues on Arch Linux)
 // Created: 2025-10-27
 
-import { beforeAll, afterEach, afterAll } from 'vitest';
+import { afterAll, afterEach, beforeAll } from 'vitest';
 import { page } from '@vitest/browser/context';
 import type { Page as PuppeteerPage } from 'puppeteer'; // Import Puppeteer's Page type
 

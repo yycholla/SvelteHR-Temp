@@ -7,15 +7,15 @@
  * Following TDD methodology - these tests MUST FAIL until implementation exists.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi, type MockedFunction } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
+import { type MockedFunction, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import type { LoadEvent } from '@sveltejs/kit';
 import type {
-	GetDepartmentsWithStatsRequest,
-	GetDepartmentsWithStatsResponse,
 	DataRequest,
-	ErrorResponse
+	ErrorResponse,
+	GetDepartmentsWithStatsRequest,
+	GetDepartmentsWithStatsResponse
 } from '$lib/types/graphql-contracts';
 import type { RetryHandler } from '$lib/utils/retry-handler';
 import type { CacheInvalidator } from '$lib/utils/cache-management';
@@ -450,7 +450,7 @@ describe('Departments Page Integration (T020)', () => {
 						{
 							id: 'dept-engineering',
 							name: 'Engineering',
-							budgetAnalysis: budgetAnalysis
+							budgetAnalysis
 						}
 					],
 					userPermissions: ['departments:read', 'budget:read', 'budget:forecast'],

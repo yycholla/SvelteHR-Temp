@@ -8,7 +8,7 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 
-	let { items }: { items: { name: string; url: string; icon: Icon }[] } = $props();
+	const { items }: { items: { name: string; url: string; icon: Icon }[] } = $props();
 
 	const sidebar = Sidebar.useSidebar();
 </script>

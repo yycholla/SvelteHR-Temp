@@ -1,5 +1,5 @@
 <script lang="ts">
-	let {
+	const {
 		padding = 'md',
 		shadow = 'sm',
 		rounded = 'md',
@@ -20,7 +20,7 @@
 	} = $props();
 
 	// Computed classes
-	let cardClasses = $derived(
+	const cardClasses = $derived(
 		[
 			'card',
 			`card--padding-${padding}`,

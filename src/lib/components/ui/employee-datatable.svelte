@@ -1,11 +1,11 @@
 <script lang="ts">
 	import {
-		getCoreRowModel,
-		getSortedRowModel,
-		getPaginationRowModel,
 		type ColumnDef,
 		type SortingState,
-		type VisibilityState
+		type VisibilityState,
+		getCoreRowModel,
+		getPaginationRowModel,
+		getSortedRowModel
 	} from '@tanstack/table-core';
 	import { createSvelteTable } from '$lib/components/ui/data-table/data-table.svelte.js';
 	import * as Table from '$lib/components/ui/table';
@@ -15,17 +15,17 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import HtmlCheckbox from '$lib/components/ui/checkbox/html-checkbox.svelte';
 	import {
-		Users,
-		Eye,
-		Edit,
 		ChevronDown,
 		ChevronUp,
 		ChevronsUpDown,
+		Edit,
+		Eye,
 		Settings2,
-		X,
-		UserCog,
 		ToggleLeft,
-		ToggleRight
+		ToggleRight,
+		UserCog,
+		Users,
+		X
 	} from '@lucide/svelte';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
@@ -63,7 +63,7 @@
 		onColumnVisibilityChange?: (visibility: VisibilityState) => void;
 	}
 
-	let {
+	const {
 		employees,
 		departments = [],
 		canViewEmployees,
@@ -104,7 +104,7 @@
 	// Bulk action state - use a store so toast component can reactively update
 	const bulkActionsStore = writable({
 		selectedCount: 0,
-		departments: departments
+		departments
 	});
 	let bulkActionsToastId: string | number | undefined = undefined;
 	let isToastShowing = $state(false);

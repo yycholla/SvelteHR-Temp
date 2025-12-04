@@ -4,7 +4,7 @@
 	import type { WorkflowTask } from '$lib/stores/workflow';
 
 	// Props
-	let {
+	const {
 		task,
 		onupdate = undefined
 	}: {

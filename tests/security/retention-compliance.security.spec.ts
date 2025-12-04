@@ -1,7 +1,7 @@
 // Security test: Retention policy compliance validation (T051)
 // Tests 3-year retention policy enforcement
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 /**
  * Security Test: Retention Policy Compliance (FR-044)
@@ -23,7 +23,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 describe('Retention Policy Compliance Tests', () => {
 	let testEmployeeId: string;
-	let testDocumentId: string = 'doc-retention-test-123'; // Initialize with dummy value
+	const testDocumentId: string = 'doc-retention-test-123'; // Initialize with dummy value
 	let adminToken: string;
 	let superAdminToken: string;
 

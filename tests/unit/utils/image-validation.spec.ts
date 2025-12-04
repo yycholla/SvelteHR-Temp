@@ -6,14 +6,14 @@
  * MUST FAIL until implementation in src/lib/utils/image-validation.ts
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+	calculateAspectRatio,
+	isValidAspectRatio,
+	validateAspectRatio,
 	validateImageFile,
 	validateImageSize,
-	validateImageType,
-	validateAspectRatio,
-	calculateAspectRatio,
-	isValidAspectRatio
+	validateImageType
 } from '$lib/utils/image-validation';
 
 describe('Image Validation', () => {

@@ -3,7 +3,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 
 	// Props
-	let {
+	const {
 		onsuccess = undefined,
 		oncancel = undefined
 	}: {
@@ -15,7 +15,7 @@
 	let error = $state('');
 
 	// Form data
-	let formData = $state({
+	const formData = $state({
 		name: '',
 		description: '',
 		category: '',
@@ -48,7 +48,7 @@
 		{ value: 'webhook', label: 'Webhook' }
 	];
 
-	let isValidJson = $state({
+	const isValidJson = $state({
 		triggerConditions: true,
 		definition: true
 	});

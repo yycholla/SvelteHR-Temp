@@ -26,7 +26,7 @@
 		isPrimary: boolean;
 	}
 
-	let {
+	const {
 		isOpen,
 		employeeId,
 		employeeName,

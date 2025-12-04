@@ -2,9 +2,9 @@
 // Feature: 028-task-system-expansion - Task T035
 // Server-side route with RBAC, GraphQL data loading, and filter handling
 
-import type { PageServerLoad, Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
-import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, cookies, url } = event;

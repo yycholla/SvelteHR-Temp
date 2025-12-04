@@ -8,7 +8,7 @@
 	 */
 	import * as Select from '$lib/components/ui/select';
 	import { Label } from '$lib/components/ui/label';
-	import { reviewTypes, type ReviewType } from '$lib/schemas/reviews';
+	import { type ReviewType, reviewTypes } from '$lib/schemas/reviews';
 	import type { ReviewTypeMetadata } from '$lib/schemas/reviews';
 
 	// Props

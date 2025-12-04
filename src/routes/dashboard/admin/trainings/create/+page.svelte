@@ -11,11 +11,11 @@
 	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
 	import RecurrencePatternInput from '$lib/components/ui/recurrence-pattern-input.svelte';
 	import {
-		ChevronLeft,
-		Loader2,
 		AlertCircle,
+		ChevronLeft,
 		FileText,
 		Image,
+		Loader2,
 		Video as VideoIcon
 	} from '@lucide/svelte';
 
@@ -27,12 +27,12 @@
 		rruleString?: string;
 	}
 
-	let { form, data } = $props();
+	const { form, data } = $props();
 
 	let submitting = $state(false);
 	let isActive = $state(true);
 	let tags = $state<string[]>([]);
-	let selectedAuthor = $state<string>(''); // Default to current user in logic if empty
+	const selectedAuthor = $state<string>(''); // Default to current user in logic if empty
 	let recurrencePattern = $state<RecurrencePattern | null>(null);
 	let startDate = $state<string>('');
 

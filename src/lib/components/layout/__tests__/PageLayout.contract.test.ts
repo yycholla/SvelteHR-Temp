@@ -3,12 +3,12 @@
  * Validates the PageLayout component implementation against its interface contract
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import type {
-	PageLayoutProps,
 	BreadcrumbItem,
 	HeaderAction,
 	NotificationItem,
+	PageLayoutProps,
 	UserInfo
 } from '../../../../contracts/component-interface';
 

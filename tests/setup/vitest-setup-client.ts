@@ -2,7 +2,7 @@
 // Browser environment and DOM testing configuration
 // Created: 2025-09-24
 
-import { beforeAll, afterEach, beforeEach, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/svelte';
 import { tick } from 'svelte';

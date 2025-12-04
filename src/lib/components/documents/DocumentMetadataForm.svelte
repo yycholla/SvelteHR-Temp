@@ -3,8 +3,8 @@
 	// Form for editing document metadata with validation
 
 	import type {
-		DocumentMetadata,
 		DocumentCategoryType,
+		DocumentMetadata,
 		SensitivityLevel
 	} from '$lib/types/document';
 	import { documentMetadataSchema } from '$lib/schemas/documentSchemas';
@@ -122,7 +122,7 @@
 	];
 
 	// Derived validation state
-	let isValid = $derived(Object.keys(errors).length === 0 && metadata.category !== '');
+	const isValid = $derived(Object.keys(errors).length === 0 && metadata.category !== '');
 
 	// Validate field
 	function validateField(field: keyof DocumentMetadata) {

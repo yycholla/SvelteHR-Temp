@@ -6,7 +6,7 @@
  * This test MUST FAIL initially because the schema is not yet defined.
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { z } from 'zod';
 
 // Import the schema (will fail initially - schema not created yet)

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { Plus, Search, Filter, Edit, Trash2, UserCheck, UserX } from '@lucide/svelte';
+	import { Edit, Filter, Plus, Search, Trash2, UserCheck, UserX } from '@lucide/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
 
-	let { data } = $props();
+	const { data } = $props();
 
 	let showCreateModal = $state(false);
 	let showEditModal = $state(false);
@@ -31,7 +31,7 @@
 	});
 
 	// Filtered users based on search query
-	let filteredUsers = $derived(
+	const filteredUsers = $derived(
 		data.users.filter((user) => {
 			if (!searchQuery) return true;
 			const query = searchQuery.toLowerCase();

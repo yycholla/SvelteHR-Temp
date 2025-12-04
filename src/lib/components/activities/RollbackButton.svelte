@@ -11,7 +11,7 @@
 	 */
 
 	import { createEventDispatcher } from 'svelte';
-	import { Undo2, Loader2 } from '@lucide/svelte';
+	import { Loader2, Undo2 } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
 	interface Props {
@@ -25,7 +25,7 @@
 		onError?: (error: string) => void;
 	}
 
-	let {
+	const {
 		logId,
 		resourceType,
 		action,
@@ -165,7 +165,7 @@
 
 		const data = result.data.executeRollback.results[0];
 
-		if (!data || !data.success) {
+		if (!data?.success) {
 			throw new Error(data?.error || 'Rollback failed');
 		}
 

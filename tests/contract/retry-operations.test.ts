@@ -13,11 +13,11 @@
  * - Performance impact and timeout behavior
  */
 
-import { test, expect, describe, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type {
-	RetryOperationVariables,
+	ErrorResponse,
 	RetryOperationResponse,
-	ErrorResponse
+	RetryOperationVariables
 } from '$lib/types/graphql-contracts';
 import { GRAPHQL_OPERATION_CONSTANTS } from '$lib/types/graphql-contracts';
 

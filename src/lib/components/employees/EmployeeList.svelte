@@ -31,7 +31,7 @@
 
 	type Employee = User;
 
-	let {
+	const {
 		initialFilters = {},
 		compactView = false,
 		showFilters = true,
@@ -42,7 +42,7 @@
 	// State
 	let filters: EmployeeFilters = $state({ ...initialFilters });
 	let currentPage = $state(1);
-	let itemsPerPage = 20;
+	const itemsPerPage = 20;
 	let viewMode: 'grid' | 'list' = $state('grid');
 	let selectedEmployees: string[] = $state([]);
 
@@ -58,7 +58,7 @@
 		try {
 			console.log('URQL client:', client);
 
-			if (!client || !client.createRequestOperation) {
+			if (!client?.createRequestOperation) {
 				throw new Error('URQL client is not properly initialized');
 			}
 

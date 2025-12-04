@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 
-	let {
+	const {
 		variant = 'primary',
 		size = 'md',
 		type = 'button',
@@ -36,7 +36,7 @@
 	} = $props();
 
 	// Class computation
-	let buttonClasses = $derived(
+	const buttonClasses = $derived(
 		[
 			'btn',
 			`btn--${variant}`,

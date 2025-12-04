@@ -9,18 +9,18 @@
 	import FileUploader from '$lib/components/documents/FileUploader.svelte';
 	import { Input } from '$lib/components/ui/input';
 	import {
-		X,
-		Share2,
-		Pencil,
-		CheckCircle2,
-		FileText,
-		Link2,
-		History,
-		Target,
+		AlertCircle,
 		Calendar,
+		CheckCircle2,
 		Clock,
+		FileText,
+		History,
+		Link2,
+		Pencil,
 		Plus,
-		AlertCircle
+		Share2,
+		Target,
+		X
 	} from '@lucide/svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { goto } from '$app/navigation';
@@ -32,7 +32,7 @@
 	import { untrack } from 'svelte';
 
 	// Page data from server
-	let { data } = $props();
+	const { data } = $props();
 
 	// Get task data - safe access with fallback
 	const task = $derived(data?.task);

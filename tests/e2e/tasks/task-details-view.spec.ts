@@ -2,7 +2,7 @@
 // Feature: 028-task-system-expansion - T049
 // Purpose: Test task details page with all components
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Task Details View', () => {
 	let testTaskId: string;

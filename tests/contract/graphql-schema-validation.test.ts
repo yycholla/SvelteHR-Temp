@@ -5,7 +5,7 @@
  * Uses introspection data to ensure schema changes don't break existing clients.
  */
 
-import { describe, test, expect, beforeAll, afterAll } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import {
 	buildSchema,
 	getIntrospectionQuery,
@@ -18,7 +18,7 @@ import type { Client } from '@urql/core';
 
 // Import generated types for validation
 import introspectionResult from '$lib/generated/introspection.json';
-import type { SchemaContract, DeprecatedField } from '../generated/test-types';
+import type { DeprecatedField, SchemaContract } from '../generated/test-types';
 
 interface SchemaValidationConfig {
 	endpoint: string;

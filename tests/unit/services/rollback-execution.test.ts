@@ -16,7 +16,7 @@
  * - New activity log creation with is_rollback=TRUE
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface RollbackExecutionResult {
 	success: boolean;

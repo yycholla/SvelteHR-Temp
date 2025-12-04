@@ -21,11 +21,11 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Select from '$lib/components/ui/select';
 	import { Avatar } from '$lib/components/ui/avatar';
-	import { Users, Crown } from '@lucide/svelte';
+	import { Crown, Users } from '@lucide/svelte';
 	import type { RsvpStatus } from '$lib/graphql/events-operations';
 
 	// Props with Svelte 5 runes
-	let {
+	const {
 		attendees,
 		currentUserId,
 		showFilters = true
@@ -51,12 +51,12 @@
 	let statusFilter = $state<RsvpStatus | 'all'>('all');
 
 	// Derived - filtered attendees
-	let filteredAttendees = $derived(
+	const filteredAttendees = $derived(
 		statusFilter === 'all' ? attendees : attendees.filter((a) => a.responseStatus === statusFilter)
 	);
 
 	// Derived - counts by status
-	let statusCounts = $derived({
+	const statusCounts = $derived({
 		accepted: attendees.filter((a) => a.responseStatus === 'accepted').length,
 		declined: attendees.filter((a) => a.responseStatus === 'declined').length,
 		tentative: attendees.filter((a) => a.responseStatus === 'tentative').length,

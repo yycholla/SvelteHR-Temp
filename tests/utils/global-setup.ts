@@ -2,7 +2,7 @@
 // Database initialization and test environment preparation
 // Created: 2025-09-24
 
-import { chromium, type FullConfig } from '@playwright/test';
+import { type FullConfig, chromium } from '@playwright/test';
 import { DatabaseTestUtils, createTestContext } from './test-helpers';
 
 async function globalSetup(config: FullConfig) {

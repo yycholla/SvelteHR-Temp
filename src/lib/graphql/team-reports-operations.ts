@@ -4,13 +4,13 @@
 
 import { gql } from '@urql/svelte';
 import type {
-	TeamReport,
-	ReportType,
-	ReportStatus,
-	User,
 	Department,
 	PaginationInput,
-	SortInput
+	ReportStatus,
+	ReportType,
+	SortInput,
+	TeamReport,
+	User
 } from '$lib/types/graphql';
 
 // Query: Get all team reports with filtering

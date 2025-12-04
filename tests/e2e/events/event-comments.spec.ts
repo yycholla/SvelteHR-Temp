@@ -11,7 +11,7 @@
  * - Pagination with "Load More" button
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Event Comments - CRUD Operations', () => {
 	test.beforeEach(async ({ page }) => {

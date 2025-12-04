@@ -6,8 +6,8 @@
  * This test MUST FAIL initially because createReviewWithGoals mutation is not implemented.
  */
 
-import { test, expect, describe, beforeAll, afterAll } from 'vitest';
-import { createTestContext, cleanupTestData, TestUser } from '../utils/test-helpers';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { TestUser, cleanupTestData, createTestContext } from '../utils/test-helpers';
 import { performGraphQLMutation, performGraphQLQuery } from '../utils/graphql-test-client';
 
 interface TestContext {
@@ -79,7 +79,7 @@ describe('T013: Manager creates review for direct report', () => {
 			authTokens: {
 				manager: manager.token
 			},
-			users: { admin: null, hrManager: null, manager: manager, employee: employee }, // Placeholder, adjust as needed
+			users: { admin: null, hrManager: null, manager, employee }, // Placeholder, adjust as needed
 			departments: { engineering: null, marketing: null, hr: null }, // Placeholder, adjust as needed
 			createdEmployees: [],
 			createdUsers: [],

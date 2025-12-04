@@ -33,20 +33,20 @@
 	} from '$lib/components/ui/alert-dialog';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import {
-		Plus,
-		Trash2,
+		CheckSquare,
+		ChevronDown,
+		ChevronUp,
 		Edit,
-		GripVertical,
 		Eye,
-		Save,
+		FileIcon,
 		FileText,
 		FormInput,
-		FileIcon,
-		Upload,
+		GripVertical,
 		PenTool,
-		CheckSquare,
-		ChevronUp,
-		ChevronDown
+		Plus,
+		Save,
+		Trash2,
+		Upload
 	} from '@lucide/svelte';
 	import type {
 		OnboardingForm,
@@ -55,10 +55,10 @@
 	} from '$lib/graphql/form-operations';
 	import { toast } from 'svelte-sonner';
 
-	let { data } = $props();
+	const { data } = $props();
 
 	// State
-	let form = $state<OnboardingForm>(data.form);
+	const form = $state<OnboardingForm>(data.form);
 	let blocks = $state<OnboardingFormBlock[]>(
 		[...(data.form.blocks || [])].sort((a, b) => a.sequenceOrder - b.sequenceOrder)
 	);

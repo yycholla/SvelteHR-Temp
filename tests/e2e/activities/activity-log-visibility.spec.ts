@@ -2,7 +2,7 @@
 // Feature: 019-we-need-to - Phase 6
 // Purpose: Test activity log visibility and access control
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Activity Log Visibility', () => {
 	// Setup: Login before each test

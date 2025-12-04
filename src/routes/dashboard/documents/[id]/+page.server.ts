@@ -4,7 +4,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { PermissionChecks } from '$lib/server/rbac-utils';
-import { transaction, setJWTClaims } from '$lib/server/db';
+import { setJWTClaims, transaction } from '$lib/server/db';
 
 export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 	// Check authentication and permissions

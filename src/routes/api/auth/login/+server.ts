@@ -3,7 +3,7 @@ import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
 import { getAccessTokenName, getCookieOptions } from '$lib/auth/config.js';
 import { getApiBaseUrl } from '$lib/server/api-url.js';
-import { isRateLimited, recordFailedLogin, clearRateLimit } from '$lib/../hooks.server.js';
+import { clearRateLimit, isRateLimited, recordFailedLogin } from '$lib/../hooks.server.js';
 
 export const POST: RequestHandler = async ({ request, cookies, getClientAddress }) => {
 	try {

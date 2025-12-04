@@ -7,12 +7,12 @@
 
 <script lang="ts">
 	import TaskCard from './TaskCard.svelte';
-	import type { Task, TaskStatus, TaskPriority } from '$lib/types/task';
+	import type { Task, TaskPriority, TaskStatus } from '$lib/types/task';
 	import * as NativeSelect from '$lib/components/ui/native-select';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
-	import { CheckSquare, List, GitBranch, Columns, Filter, SortAsc } from '@lucide/svelte';
-	import { dndzone, type DndEvent } from 'svelte-dnd-action';
+	import { CheckSquare, Columns, Filter, GitBranch, List, SortAsc } from '@lucide/svelte';
+	import { type DndEvent, dndzone } from 'svelte-dnd-action';
 	import { flip } from 'svelte/animate';
 
 	let {
@@ -46,7 +46,7 @@
 	// If not passed, they default to internal state initialization values above.
 
 	// Derived value for filtered tasks
-	let filteredTasks = $derived.by(() => {
+	const filteredTasks = $derived.by(() => {
 		let result = tasks;
 		// Only apply internal filters if we are using them.
 		// If parent passes already filtered tasks, these might be redundant but harmless if 'all'.
@@ -56,7 +56,7 @@
 	});
 
 	// Derived value for sorted tasks
-	let sortedTasks = $derived.by(() => {
+	const sortedTasks = $derived.by(() => {
 		const sorted = [...filteredTasks];
 		sorted.sort((a, b) => {
 			let comparison = 0;
@@ -98,7 +98,7 @@
 	});
 
 	// Derived status counts
-	let statusCounts = $derived.by(() => ({
+	const statusCounts = $derived.by(() => ({
 		all: tasks.length,
 		TODO: tasks.filter((t) => t.status === 'TODO').length,
 		IN_PROGRESS: tasks.filter((t) => t.status === 'IN_PROGRESS').length,
@@ -109,7 +109,7 @@
 
 	// Derived tasks by status (for unused feature? or debugging?)
 	// Keeping it as it was in original code
-	let tasksByStatus = $derived.by(() => ({
+	const tasksByStatus = $derived.by(() => ({
 		TODO: sortedTasks.filter((t) => t.status === 'TODO'),
 		IN_PROGRESS: sortedTasks.filter((t) => t.status === 'IN_PROGRESS'),
 		BLOCKED: sortedTasks.filter((t) => t.status === 'BLOCKED'),
@@ -118,7 +118,7 @@
 	}));
 
 	// Derived top level tasks for hierarchy view
-	let topLevelTasks = $derived.by(() => {
+	const topLevelTasks = $derived.by(() => {
 		if (viewMode !== 'hierarchy') return sortedTasks;
 		return sortedTasks.filter((t) => !t.parentTaskId);
 	});

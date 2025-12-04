@@ -2,7 +2,7 @@
 	import type { WorkflowInstance } from '$lib/stores/workflow';
 
 	// Props
-	let {
+	const {
 		instance,
 		onclose = undefined
 	}: {

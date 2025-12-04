@@ -6,7 +6,7 @@
  * This test MUST FAIL initially because the schema is not yet defined.
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { z } from 'zod';
 
 // Temporary local schema for testing structure (remove when actual schema is implemented)

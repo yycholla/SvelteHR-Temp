@@ -1,12 +1,12 @@
 <script lang="ts">
 	import {
-		Search,
-		ClipboardCheck,
+		AlertCircle,
 		Calendar,
 		CheckCircle2,
-		Clock,
 		ChevronRight,
-		AlertCircle
+		ClipboardCheck,
+		Clock,
+		Search
 	} from '@lucide/svelte';
 	import { Input } from '$lib/components/ui/input';
 	import * as Card from '$lib/components/ui/card';
@@ -14,11 +14,11 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Progress } from '$lib/components/ui/progress';
 
-	let { data } = $props();
+	const { data } = $props();
 
 	let searchQuery = $state('');
 
-	let filteredAssignments = $derived(
+	const filteredAssignments = $derived(
 		(data.assignments || []).filter((a: any) => {
 			const title = a.onboardingModule?.title || '';
 			const description = a.onboardingModule?.description || '';
@@ -30,12 +30,14 @@
 	);
 
 	// Statistics
-	let totalAssignments = $derived(data.assignments?.length || 0);
-	let completedAssignments = $derived(
+	const totalAssignments = $derived(data.assignments?.length || 0);
+	const completedAssignments = $derived(
 		data.assignments?.filter((a: any) => a.isCompleted).length || 0
 	);
-	let overdueAssignments = $derived(data.assignments?.filter((a: any) => a.isOverdue).length || 0);
-	let completionPercentage = $derived(
+	const overdueAssignments = $derived(
+		data.assignments?.filter((a: any) => a.isOverdue).length || 0
+	);
+	const completionPercentage = $derived(
 		totalAssignments > 0 ? Math.round((completedAssignments / totalAssignments) * 100) : 0
 	);
 

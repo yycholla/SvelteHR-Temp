@@ -1,7 +1,7 @@
 // Contract test: Document list API (T014)
 // Tests GET /api/documents endpoint
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
  * Contract Test: Document List API

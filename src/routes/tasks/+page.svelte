@@ -29,7 +29,7 @@
 	import Badge from '$lib/components/base/Badge.svelte';
 	import Card from '$lib/components/base/Card.svelte';
 	import type { Column } from '$lib/components/tables/DataTable.svelte';
-	import type { Task, TaskFilter, TaskStatus, TaskPriority } from '$lib/types';
+	import type { Task, TaskFilter, TaskPriority, TaskStatus } from '$lib/types';
 
 	// Filter state
 	let searchQuery = '';

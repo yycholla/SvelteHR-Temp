@@ -97,7 +97,7 @@ export const load: PageServerLoad = async (event) => {
 		const analytics = {
 			overview: {
 				totalUsers: users.length,
-				activeUsers: activeUsers,
+				activeUsers,
 				totalDepartments: departments.length,
 				totalRoles: userRoles.length
 			},

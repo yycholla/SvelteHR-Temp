@@ -6,10 +6,10 @@
 
 import { Pool, type PoolClient } from 'pg';
 import {
-	signAuditLog,
-	generateKeyPair,
 	exportPublicKey,
-	generatePublicKeyId
+	generateKeyPair,
+	generatePublicKeyId,
+	signAuditLog
 } from './crypto-signer.js';
 
 /**

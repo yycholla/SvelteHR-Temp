@@ -1,16 +1,16 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
 	import {
-		ChevronLeft,
+		AlertCircle,
 		CheckCircle2,
+		CheckSquare,
+		ChevronLeft,
+		ChevronRight,
 		Circle,
 		FileText,
-		Upload,
 		PenTool,
-		CheckSquare,
-		ChevronRight,
-		AlertCircle,
-		Save
+		Save,
+		Upload
 	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
@@ -23,20 +23,20 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { toast } from 'svelte-sonner';
 
-	let { data } = $props();
+	const { data } = $props();
 
 	// State
 	let currentFormIndex = $state(0);
 	let formData = $state<Record<string, any>>({});
-	let checkboxStates = $state<Record<string, boolean>>({});
-	let signatureData = $state<Record<string, string | null>>({});
+	const checkboxStates = $state<Record<string, boolean>>({});
+	const signatureData = $state<Record<string, string | null>>({});
 	let isSaving = $state(false);
 
 	// Derived values
-	let currentForm = $derived(data.forms[currentFormIndex]);
-	let isLastForm = $derived(currentFormIndex === data.forms.length - 1);
-	let isFirstForm = $derived(currentFormIndex === 0);
-	let completionPercentage = $derived(
+	const currentForm = $derived(data.forms[currentFormIndex]);
+	const isLastForm = $derived(currentFormIndex === data.forms.length - 1);
+	const isFirstForm = $derived(currentFormIndex === 0);
+	const completionPercentage = $derived(
 		data.totalForms > 0 ? Math.round((data.completedForms / data.totalForms) * 100) : 0
 	);
 

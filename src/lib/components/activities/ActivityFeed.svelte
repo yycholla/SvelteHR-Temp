@@ -8,13 +8,13 @@
 
 	import type { ActivityLog } from '$lib/graphql/types';
 	import {
-		groupActivitiesByDate,
 		formatActivityMessage,
-		getActivityIcon,
 		getActivityActionColor,
-		getRelativeTime
+		getActivityIcon,
+		getRelativeTime,
+		groupActivitiesByDate
 	} from '$lib/utils/activities';
-	import { Undo2, ExternalLink } from '@lucide/svelte';
+	import { ExternalLink, Undo2 } from '@lucide/svelte';
 
 	interface Props {
 		activities: ActivityLog[];
@@ -29,7 +29,7 @@
 		showRollbackIndicators?: boolean; // Feature 020 enhancement
 	}
 
-	let {
+	const {
 		activities,
 		onActivityClick,
 		groupByDate = true,
@@ -43,12 +43,12 @@
 	}: Props = $props();
 
 	// Limit activities if maxItems is specified
-	let displayActivities = $derived(
+	const displayActivities = $derived(
 		maxItems ? (activities || []).slice(0, maxItems) : activities || []
 	);
 
 	// Group activities by date if enabled
-	let groupedActivities = $derived(groupByDate ? groupActivitiesByDate(displayActivities) : null);
+	const groupedActivities = $derived(groupByDate ? groupActivitiesByDate(displayActivities) : null);
 
 	function handleActivityClick(activity: ActivityLog) {
 		if (onActivityClick) {

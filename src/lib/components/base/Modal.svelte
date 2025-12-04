@@ -42,7 +42,7 @@
 		full: 'modal--full'
 	};
 
-	let modalClasses = $derived(
+	const modalClasses = $derived(
 		['modal', sizeClasses[size], loading && 'modal--loading'].filter(Boolean).join(' ')
 	);
 

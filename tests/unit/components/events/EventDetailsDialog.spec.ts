@@ -5,8 +5,8 @@
  * EventDetailsView and EventEditForm sub-components.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, fireEvent, waitFor } from '@testing-library/svelte';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import EventDetailsDialog from '$lib/components/events/EventDetailsDialog.svelte';
 import type { EventData } from '$lib/components/events/types';
 

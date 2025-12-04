@@ -2,7 +2,7 @@
 // Feature: 028-task-system-expansion - T052/T053
 // Purpose: Test personal and team task views
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('My Tasks View', () => {
 	test.beforeEach(async ({ page }) => {

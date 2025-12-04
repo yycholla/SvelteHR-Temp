@@ -11,7 +11,7 @@
 		children?: import('svelte').Snippet;
 	}
 
-	let { value, class: className = '', children }: Props = $props();
+	const { value, class: className = '', children }: Props = $props();
 
 	const accordion = getContext<{
 		type: 'single' | 'multiple';

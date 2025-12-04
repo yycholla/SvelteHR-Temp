@@ -7,7 +7,7 @@
  * MUST FAIL until drag-drop functionality is implemented.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Drag-and-Drop Reschedule', () => {
 	test.beforeEach(async ({ page }) => {

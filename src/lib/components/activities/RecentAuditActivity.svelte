@@ -12,13 +12,13 @@
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import {
-		FileText,
-		User,
-		Clock,
-		GitBranch,
-		ChevronRight,
 		Activity,
-		AlertCircle
+		AlertCircle,
+		ChevronRight,
+		Clock,
+		FileText,
+		GitBranch,
+		User
 	} from '@lucide/svelte';
 
 	interface ActivityLog {
@@ -38,7 +38,7 @@
 		compactMode?: boolean;
 	}
 
-	let {
+	const {
 		logs = [],
 		maxItems = 5,
 		showRollbackIndicators = true,

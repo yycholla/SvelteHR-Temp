@@ -6,12 +6,12 @@
  * MUST FAIL until implementation in src/lib/utils/rrule.ts
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
+	formatRRuleString,
 	generateRRule,
 	parseRecurrencePattern,
-	validate5YearLimit,
-	formatRRuleString
+	validate5YearLimit
 } from '$lib/utils/rrule';
 import type { RecurrencePattern } from '$lib/types/events';
 

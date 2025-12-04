@@ -9,7 +9,7 @@
  * Covers: FR-001, FR-002, FR-008, FR-009
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Manager Leave Approvals Journey', () => {
 	test.beforeEach(async ({ page }) => {

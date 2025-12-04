@@ -2,7 +2,7 @@
 // Feature: 028-task-system-expansion - T050
 // Purpose: Test advanced task filtering functionality
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Task Filtering', () => {
 	test.beforeEach(async ({ page }) => {

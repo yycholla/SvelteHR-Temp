@@ -12,7 +12,7 @@
 -->
 
 <script lang="ts">
-	import type { LinkedResource, ResourceType, AvailabilityStatus } from '$lib/types/task';
+	import type { AvailabilityStatus, LinkedResource, ResourceType } from '$lib/types/task';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Select from '$lib/components/ui/select';
@@ -20,19 +20,19 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import {
+		AlertCircle,
+		CheckCircle,
+		ClipboardCheck,
+		Clock,
+		FileText,
 		Link as LinkIcon,
-		Unlink,
 		Plus,
 		Search,
-		Trash2,
-		Users,
-		FileText,
 		Target,
-		ClipboardCheck,
-		CheckCircle,
-		XCircle,
-		AlertCircle,
-		Clock
+		Trash2,
+		Unlink,
+		Users,
+		XCircle
 	} from '@lucide/svelte';
 	import { formatDistance } from 'date-fns';
 
@@ -52,7 +52,7 @@
 		loading?: boolean;
 	}
 
-	let {
+	const {
 		resources,
 		availableResources,
 		onAddResource,
@@ -76,8 +76,8 @@
 	];
 
 	// Filter available resources by type and search query
-	let filteredResources = $derived(() => {
-		let filtered = availableResources.filter((r) => {
+	const filteredResources = $derived(() => {
+		const filtered = availableResources.filter((r) => {
 			// Filter by type
 			if (r.type !== selectedResourceType) return false;
 
@@ -97,7 +97,7 @@
 	});
 
 	// Resource options for select dropdown
-	let resourceOptions = $derived(
+	const resourceOptions = $derived(
 		filteredResources().map((r) => ({
 			value: r.id,
 			label: r.title

@@ -13,8 +13,8 @@
 import type { Client } from '@urql/core';
 import type {
 	CachePolicy,
-	InvalidateCacheVariables,
-	InvalidateCacheResponse
+	InvalidateCacheResponse,
+	InvalidateCacheVariables
 } from '$lib/types/graphql-contracts';
 import { GRAPHQL_OPERATION_CONSTANTS } from '$lib/types/graphql-contracts';
 

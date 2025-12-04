@@ -175,8 +175,8 @@ export const load: PageServerLoad = async (event) => {
 
 		// Filter by role (roles is now an array of {id, name} objects)
 		if (roleFilter) {
-			allEmployees = allEmployees.filter(
-				(emp: any) => emp.roles && emp.roles.some((role: any) => role.name === roleFilter)
+			allEmployees = allEmployees.filter((emp: any) =>
+				emp.roles?.some((role: any) => role.name === roleFilter)
 			);
 			console.log('[Employee Directory] After role filter:', allEmployees.length, 'employees');
 		}
@@ -331,13 +331,13 @@ export const load: PageServerLoad = async (event) => {
 		return {
 			user: userPermissions.user,
 			userSession: userSession.toJSON(), // Convert UserSession to serializable object
-			employees: employees,
-			totalEmployees: totalEmployees, // Total count after all filters, before pagination
-			totalActiveEmployees: totalActiveEmployees, // Total active count from ALL employees
-			totalInactiveEmployees: totalInactiveEmployees, // Total inactive count from ALL employees
+			employees,
+			totalEmployees, // Total count after all filters, before pagination
+			totalActiveEmployees, // Total active count from ALL employees
+			totalInactiveEmployees, // Total inactive count from ALL employees
 			departments: departmentsData?.data?.departments || [],
 			roles: validRoles, // Use filtered roles with valid names only
-			employeeAutocompleteOptions: employeeAutocompleteOptions, // All employee names for search autocomplete
+			employeeAutocompleteOptions, // All employee names for search autocomplete
 			filters: {
 				searchTerm,
 				departmentFilter,

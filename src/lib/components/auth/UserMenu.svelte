@@ -4,14 +4,14 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import {
-		User,
-		Settings,
-		LogOut,
-		ChevronDown,
 		Bell,
+		Building,
+		ChevronDown,
+		LogOut,
+		Settings,
 		Shield,
-		UserCog,
-		Building
+		User,
+		UserCog
 	} from '@lucide/svelte';
 
 	/**

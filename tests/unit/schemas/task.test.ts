@@ -5,20 +5,20 @@
  * Tests all Zod validation schemas for task system including create, update, and dependency schemas.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-	taskStatusSchema,
-	taskPrioritySchema,
-	resourceTypeSchema,
 	auditActionTypeSchema,
-	createTaskSchema,
-	updateTaskSchema,
-	createTaskDependencySchema,
 	createLinkedResourceSchema,
+	createTaskDependencySchema,
+	createTaskSchema,
 	createTaskTypeSchema,
+	parseDateInput,
+	resourceTypeSchema,
 	taskFilterSchema,
+	taskPrioritySchema,
 	taskSortOptionsSchema,
-	parseDateInput
+	taskStatusSchema,
+	updateTaskSchema
 } from '$lib/schemas/task';
 
 describe('Enum Schemas', () => {

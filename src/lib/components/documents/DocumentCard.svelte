@@ -13,7 +13,7 @@
 		onDownload?: (documentId: string) => void;
 	}
 
-	let {
+	const {
 		document,
 		canPreview = false,
 		canDownload = false,
@@ -47,12 +47,12 @@
 	};
 
 	// Derived state
-	let fileIcon = $derived(fileIcons[document.file_type] || '📎');
-	let sensitivityClass = $derived(
+	const fileIcon = $derived(fileIcons[document.file_type] || '📎');
+	const sensitivityClass = $derived(
 		sensitivityColors[document.sensitivity_level] || 'bg-gray-100 text-gray-800'
 	);
-	let uploadDate = $derived(new Date(document.uploaded_at).toLocaleDateString());
-	let fileSize = $derived(formatFileSize(document.file_size_bytes));
+	const uploadDate = $derived(new Date(document.uploaded_at).toLocaleDateString());
+	const fileSize = $derived(formatFileSize(document.file_size_bytes));
 
 	// Format file size
 	function formatFileSize(bytes: number): string {

@@ -13,26 +13,26 @@
  * Created: 2025-09-24
  */
 
-import { describe, test, expect, beforeAll, afterAll } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import {
+	GraphQLEnumType,
+	GraphQLField,
+	GraphQLInputField,
+	GraphQLInputObjectType,
+	GraphQLObjectType,
+	GraphQLSchema,
+	IntrospectionQuery,
 	buildClientSchema,
 	getIntrospectionQuery,
-	IntrospectionQuery,
-	GraphQLSchema,
-	GraphQLObjectType,
-	GraphQLEnumType,
-	GraphQLInputObjectType,
-	isObjectType,
 	isEnumType,
 	isInputObjectType,
-	isScalarType,
-	GraphQLField,
-	GraphQLInputField
+	isObjectType,
+	isScalarType
 } from 'graphql';
 import {
-	GraphQLTestClient,
 	GraphQLAssertions,
-	GraphQLPerformanceMonitor
+	GraphQLPerformanceMonitor,
+	GraphQLTestClient
 } from '../utils/graphql-test-client';
 
 // Test configuration

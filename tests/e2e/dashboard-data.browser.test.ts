@@ -1,15 +1,15 @@
-import { test, expect, describe } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import {
-	gotoPage,
-	waitForElement,
-	getElementText,
-	pageContainsText,
-	countElements,
-	extractNumber,
-	reloadPage,
 	clickElement,
-	waitForNetworkIdle,
-	expectURLMatch
+	countElements,
+	expectURLMatch,
+	extractNumber,
+	getElementText,
+	gotoPage,
+	pageContainsText,
+	reloadPage,
+	waitForElement,
+	waitForNetworkIdle
 } from '../utils/vitest-browser-helpers';
 
 /**

@@ -9,11 +9,11 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import * as Alert from '$lib/components/ui/alert';
-	import { X, CheckCircle2, Lock, Upload } from '@lucide/svelte';
-	import type { PageData, ActionData } from './$types';
+	import { CheckCircle2, Lock, Upload, X } from '@lucide/svelte';
+	import type { ActionData, PageData } from './$types';
 	import type { DocumentMetadata, UploadResult } from '$lib/types/document';
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	const { data, form }: { data: PageData; form: ActionData } = $props();
 
 	// Component references and reactive state
 	let fileUploader = $state<FileUploader>();
@@ -40,10 +40,12 @@
 
 	// Derive metadata validation directly from metadata object
 	// Note: filename is set automatically when file is selected, so we only check the user-entered fields
-	let hasRequiredMetadata = $derived(metadata.category !== '' && metadata.sensitivityLevel !== '');
+	const hasRequiredMetadata = $derived(
+		metadata.category !== '' && metadata.sensitivityLevel !== ''
+	);
 
 	// Derived state for upload button
-	let canUpload = $derived(hasFile && hasRequiredMetadata && !isUploading && !uploadComplete);
+	const canUpload = $derived(hasFile && hasRequiredMetadata && !isUploading && !uploadComplete);
 
 	// Handle form action results
 	$effect(() => {

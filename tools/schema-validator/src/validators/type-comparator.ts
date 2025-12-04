@@ -4,15 +4,15 @@
 
 import type { TypeComparisonResult } from '../types/results.js';
 import {
+  TYPE_MAPPINGS,
   areTypesCompatible as checkCompatibility,
-  suggestGraphQLType,
+  extractBaseType,
   getCompatibilityNotes,
-  normalizeGraphQLType,
-  normalizePgType,
   isListType,
   isNullableType,
-  extractBaseType,
-  TYPE_MAPPINGS,
+  normalizeGraphQLType,
+  normalizePgType,
+  suggestGraphQLType,
 } from '../types/type-mappings.js';
 
 /**
@@ -93,7 +93,7 @@ export class TypeComparator {
     const nullabilityMatches = graphqlNullable === apiNullable;
 
     // Determine compatibility and reason
-    let compatible = typesCompatible && listTypesMatch && nullabilityMatches;
+    const compatible = typesCompatible && listTypesMatch && nullabilityMatches;
     let reason: string | undefined;
 
     // Check list type mismatch FIRST (most specific error)

@@ -7,7 +7,7 @@
  * MUST FAIL until real-time subscription functionality is implemented.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Real-Time Event Updates', () => {
 	test.beforeEach(async ({ page }) => {

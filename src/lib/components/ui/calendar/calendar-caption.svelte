@@ -3,7 +3,7 @@
 	import type Calendar from './calendar.svelte';
 	import CalendarMonthSelect from './calendar-month-select.svelte';
 	import CalendarYearSelect from './calendar-year-select.svelte';
-	import { DateFormatter, getLocalTimeZone, type DateValue } from '@internationalized/date';
+	import { DateFormatter, type DateValue, getLocalTimeZone } from '@internationalized/date';
 
 	let {
 		captionLayout,

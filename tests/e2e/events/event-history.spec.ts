@@ -10,7 +10,7 @@
  * - Pagination with "Load More" button
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Event History - Display and Pagination', () => {
 	test.beforeEach(async ({ page }) => {
@@ -210,7 +210,7 @@ test.describe('Event History - Display and Pagination', () => {
 
 	test('should hide "Load More" button when all entries loaded', async ({ page }) => {
 		// If Load More exists, click it until it disappears
-		let loadMoreButton = page.locator('button:has-text("Load More")').first();
+		const loadMoreButton = page.locator('button:has-text("Load More")').first();
 		let loadMoreCount = await loadMoreButton.count();
 		let clickCount = 0;
 		const maxClicks = 10; // Prevent infinite loop

@@ -1,14 +1,14 @@
 // Department service for managing department operations
 // Provides CRUD operations and department management functionality
 
-import type { Department, CreateDepartmentInput, UpdateDepartmentInput } from '$lib/types';
+import type { CreateDepartmentInput, Department, UpdateDepartmentInput } from '$lib/types';
 import { createUrqlClient } from '$lib/graphql/client';
 import {
+	CREATE_DEPARTMENT_MUTATION,
+	DELETE_DEPARTMENT_MUTATION,
 	GET_DEPARTMENTS_QUERY,
 	GET_DEPARTMENT_BY_ID_QUERY,
-	CREATE_DEPARTMENT_MUTATION,
-	UPDATE_DEPARTMENT_MUTATION,
-	DELETE_DEPARTMENT_MUTATION
+	UPDATE_DEPARTMENT_MUTATION
 } from '$lib/graphql/department-operations';
 
 /**

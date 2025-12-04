@@ -22,7 +22,7 @@
 		size?: 'default' | 'sm' | 'lg' | 'icon';
 	}
 
-	let {
+	const {
 		eventId,
 		isOnWaitlist = false,
 		waitlistPosition = null,

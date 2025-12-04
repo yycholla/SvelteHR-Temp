@@ -1,4 +1,4 @@
-import type { RsvpStatus, EventType, EventVisibilityType } from '$lib/graphql/types';
+import type { EventType, EventVisibilityType, RsvpStatus } from '$lib/graphql/types';
 
 export interface EventData {
 	id: string;

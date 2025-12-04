@@ -208,8 +208,8 @@ export const load: PageServerLoad = async (event) => {
 				parentDepartmentId: department.parentDepartmentId,
 				createdAt: department.createdAt,
 				updatedAt: department.updatedAt,
-				manager: manager,
-				employees: employees,
+				manager,
+				employees,
 				employeeCount: employees.length
 			},
 			// RBAC: Standardized permission checks

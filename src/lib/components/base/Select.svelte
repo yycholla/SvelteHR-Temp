@@ -49,20 +49,20 @@
 	let isOpen = $state(false);
 	let focused = $state(false);
 	let searchTerm = $state('');
-	let selectElement = $state<HTMLSelectElement>();
+	const selectElement = $state<HTMLSelectElement>();
 	let dropdownElement = $state<HTMLDivElement>();
 	let searchInputElement = $state<HTMLInputElement>();
 
 	// Computed values
-	let filteredOptions = $derived(
+	const filteredOptions = $derived(
 		searchable && searchTerm
 			? options.filter((option) => option.label.toLowerCase().includes(searchTerm.toLowerCase()))
 			: options
 	);
 
-	let selectedOption = $derived(options.find((option) => option.value === value) || null);
+	const selectedOption = $derived(options.find((option) => option.value === value) || null);
 
-	let containerClasses = $derived(
+	const containerClasses = $derived(
 		[
 			'select-container',
 			`select-container--${size}`,
@@ -76,7 +76,7 @@
 			.join(' ')
 	);
 
-	let selectClasses = $derived(
+	const selectClasses = $derived(
 		['select', `select--${size}`, `select--${variant}`, isOpen && 'select--open']
 			.filter(Boolean)
 			.join(' ')

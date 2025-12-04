@@ -12,9 +12,9 @@
  * 5. Exit codes and error handling
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { spawn } from 'child_process';
-import { existsSync, readFileSync, mkdirSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
 const CLI_PATH = join(process.cwd(), 'scripts/db/rebuild-init-script.ts');

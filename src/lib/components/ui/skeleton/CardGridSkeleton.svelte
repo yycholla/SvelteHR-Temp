@@ -2,7 +2,7 @@
 	import * as Card from '$lib/components/ui/card';
 	import { Skeleton } from '$lib/components/ui/skeleton';
 
-	let { cards = 6, columns = 3 }: { cards?: number; columns?: number } = $props();
+	const { cards = 6, columns = 3 }: { cards?: number; columns?: number } = $props();
 
 	// Grid class based on columns
 	const gridClass =

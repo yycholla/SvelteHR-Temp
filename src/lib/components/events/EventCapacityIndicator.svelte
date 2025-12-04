@@ -20,7 +20,7 @@
 		variant?: 'default' | 'compact';
 	}
 
-	let {
+	const {
 		acceptedCount,
 		maxCapacity = null,
 		waitlistCount = 0,

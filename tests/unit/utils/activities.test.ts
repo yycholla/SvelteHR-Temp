@@ -5,33 +5,33 @@
  * Tests all activity log formatting, grouping, and display utility functions.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
-	groupActivitiesByDate,
-	groupActivitiesByResourceType,
-	groupActivitiesByAction,
-	getActivityIcon,
-	getActivityActionColor,
-	getResourceTypeColor,
-	formatActivityMessage,
-	formatResourceTypeName,
-	filterActivitiesByResourceType,
 	filterActivitiesByAction,
 	filterActivitiesByDateRange,
 	filterActivitiesByEmployee,
-	getRelativeTime,
-	sortActivitiesByTimestamp,
-	getRecentActivities,
-	getTodayActivities,
-	getWeekActivities,
-	getActivityStatistics,
+	filterActivitiesByResourceType,
 	formatActivityDetails,
-	isCriticalActivity,
+	formatActivityMessage,
+	formatResourceTypeName,
+	getActivityActionColor,
+	getActivityIcon,
+	getActivityStatistics,
 	getMostActiveUsers,
 	getMostCommonActions,
-	getMostCommonResourceTypes
+	getMostCommonResourceTypes,
+	getRecentActivities,
+	getRelativeTime,
+	getResourceTypeColor,
+	getTodayActivities,
+	getWeekActivities,
+	groupActivitiesByAction,
+	groupActivitiesByDate,
+	groupActivitiesByResourceType,
+	isCriticalActivity,
+	sortActivitiesByTimestamp
 } from '$lib/utils/activities';
-import type { ActivityLog, ActivityAction, ResourceType } from '$lib/graphql/types';
+import type { ActivityAction, ActivityLog, ResourceType } from '$lib/graphql/types';
 
 // Mock activity factory
 function createMockActivity(overrides: Partial<ActivityLog> = {}): ActivityLog {

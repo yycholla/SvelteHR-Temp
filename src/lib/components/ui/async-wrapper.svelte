@@ -18,7 +18,7 @@
 		children?: any;
 	}
 
-	let {
+	const {
 		loading = false,
 		error = null,
 		loadingTitle = 'Loading',

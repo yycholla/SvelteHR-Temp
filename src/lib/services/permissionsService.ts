@@ -5,7 +5,7 @@
  * functionality for the HR system with PostGraphile backend integration.
  */
 
-import type { RBACManager, Permission, Role, UserRoleAssignment } from '$lib/auth/rbac';
+import type { Permission, RBACManager, Role, UserRoleAssignment } from '$lib/auth/rbac';
 import { PERMISSIONS, ROLE_LEVELS } from '$lib/auth/rbac';
 
 // Permission management interfaces

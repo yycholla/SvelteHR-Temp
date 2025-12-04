@@ -73,35 +73,35 @@
 
 <script lang="ts">
 	import {
-		getCoreRowModel,
-		getFacetedRowModel,
-		getFacetedUniqueValues,
-		getFilteredRowModel,
-		getPaginationRowModel,
-		getSortedRowModel,
 		type ColumnDef,
 		type ColumnFiltersState,
 		type PaginationState,
 		type Row,
 		type RowSelectionState,
 		type SortingState,
-		type VisibilityState
+		type VisibilityState,
+		getCoreRowModel,
+		getFacetedRowModel,
+		getFacetedUniqueValues,
+		getFilteredRowModel,
+		getPaginationRowModel,
+		getSortedRowModel
 	} from '@tanstack/table-core';
 	import type { Schema } from './schemas.js';
 	import {
-		useSensors,
+		DndContext,
+		type DragEndEvent,
+		KeyboardSensor,
 		MouseSensor,
 		TouchSensor,
-		KeyboardSensor,
-		useSensor,
-		type DragEndEvent,
 		type UniqueIdentifier,
-		DndContext,
-		closestCenter
+		closestCenter,
+		useSensor,
+		useSensors
 	} from '@dnd-kit-svelte/core';
 	import {
-		arrayMove,
 		SortableContext,
+		arrayMove,
 		useSortable,
 		verticalListSortingStrategy
 	} from '@dnd-kit-svelte/sortable';
@@ -231,7 +231,7 @@
 		}
 	}
 
-	let views = [
+	const views = [
 		{
 			id: 'outline',
 			label: 'Outline',
@@ -255,7 +255,7 @@
 	];
 
 	let view = $state('outline');
-	let viewLabel = $derived(views.find((v) => view === v.id)?.label ?? 'Select a view');
+	const viewLabel = $derived(views.find((v) => view === v.id)?.label ?? 'Select a view');
 </script>
 
 <Tabs.Root value="outline" class="w-full flex-col justify-start gap-6">

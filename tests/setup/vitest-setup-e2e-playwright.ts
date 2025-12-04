@@ -3,8 +3,8 @@
  * Configures Playwright for end-to-end testing
  */
 
-import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
-import { chromium, type Browser, type BrowserContext, type Page } from '@playwright/test';
+import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
+import { type Browser, type BrowserContext, type Page, chromium } from '@playwright/test';
 
 // Global test state
 let browser: Browser | null = null;

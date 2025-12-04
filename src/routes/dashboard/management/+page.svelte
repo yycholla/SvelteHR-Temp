@@ -7,20 +7,20 @@ Modern Svelte 5 implementation with server-side data loading and comprehensive m
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import {
-		Users,
-		Calendar,
-		Award,
-		Target,
-		FileText,
-		TrendingUp,
-		AlertCircle,
-		CheckCircle,
-		BarChart,
 		Activity,
-		Clock,
-		MapPin,
+		AlertCircle,
 		ArrowRight,
-		Plus
+		Award,
+		BarChart,
+		Calendar,
+		CheckCircle,
+		Clock,
+		FileText,
+		MapPin,
+		Plus,
+		Target,
+		TrendingUp,
+		Users
 	} from '@lucide/svelte';
 
 	// Define props interface
@@ -106,7 +106,7 @@ Modern Svelte 5 implementation with server-side data loading and comprehensive m
 	}
 
 	// Destructure props using Svelte 5 runes
-	let { data }: Props = $props();
+	const { data }: Props = $props();
 
 	// Derived state from server-side data
 	const dashboardAnalytics = $derived(data.dashboardAnalytics);

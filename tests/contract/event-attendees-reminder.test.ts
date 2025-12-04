@@ -10,7 +10,7 @@
  * These tests MUST PASS after migration 20251010_006 is applied
  */
 
-import { test, expect, describe, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 // Mock GraphQL client
 const mockGraphQLClient = {

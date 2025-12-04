@@ -2,7 +2,7 @@
 // Enhanced performance monitoring and reporting
 // Created: 2025-09-24
 
-import type { Reporter, TestCase, TestResult, FullResult } from '@playwright/test/reporter'; // Added type-only import
+import type { FullResult, Reporter, TestCase, TestResult } from '@playwright/test/reporter'; // Added type-only import
 import { promises as fs } from 'fs';
 import { resolve } from 'path';
 

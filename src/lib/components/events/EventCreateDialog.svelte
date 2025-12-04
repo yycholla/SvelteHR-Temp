@@ -13,7 +13,7 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
-	import { X, Repeat, Users as UsersIcon, Image as ImageIcon } from '@lucide/svelte';
+	import { Image as ImageIcon, Repeat, Users as UsersIcon, X } from '@lucide/svelte';
 	import ImageUploadWidget from './ImageUploadWidget.svelte';
 	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
 	import { generateRRule, validate5YearLimit } from '$lib/utils/rrule';
@@ -36,7 +36,7 @@
 		onSuccess?: () => void;
 	}
 
-	let {
+	const {
 		isOpen = false,
 		defaultStartTime,
 		defaultEndTime,
@@ -74,10 +74,10 @@
 	let selectedAttendeeIds = $state<string[]>([]);
 
 	// Derived
-	let showAttendeeButton = $derived(visibilityType === 'specific');
+	const showAttendeeButton = $derived(visibilityType === 'specific');
 
 	// Convert employees to SearchOption format for MultiSearchInput
-	let attendeeOptions = $derived(
+	const attendeeOptions = $derived(
 		employees.map((e) => ({
 			value: e.id,
 			label: e.displayName

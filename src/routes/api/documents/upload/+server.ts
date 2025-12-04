@@ -3,7 +3,7 @@
 // Handles encrypted document upload with metadata and assignments
 // Migrated to GraphQL backend (Phase 2 - Document API Migration)
 
-import { json, error } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { z } from 'zod';
 import { createUrqlClient } from '$lib/graphql/client';
@@ -136,7 +136,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 					.mutation(CREATE_DOCUMENT_ASSIGNMENT_MUTATION, {
 						input: {
 							documentId: document.id,
-							employeeId: employeeId,
+							employeeId,
 							assignedBy: locals.user.id,
 							accessLevel: 'read' // Default access level
 						}

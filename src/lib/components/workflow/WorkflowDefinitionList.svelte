@@ -2,8 +2,8 @@
 	import { onMount } from 'svelte';
 	import {
 		filteredDefinitions,
-		workflowActions,
 		isWorkflowLoading,
+		workflowActions,
 		workflowError,
 		workflowStats
 	} from '$lib/stores/workflow';
@@ -13,7 +13,7 @@
 	import WorkflowStatsCards from './WorkflowStatsCards.svelte';
 
 	// Props
-	let {
+	const {
 		showCreateButton = true,
 		showStats = true,
 		limit = 50

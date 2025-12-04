@@ -12,7 +12,7 @@
  * performance data for server-rendered pages and API endpoints.
  */
 
-import type { RequestEvent, Handle } from '@sveltejs/kit';
+import type { Handle, RequestEvent } from '@sveltejs/kit';
 import { performance } from 'perf_hooks';
 
 export interface ServerPerformanceMetric {

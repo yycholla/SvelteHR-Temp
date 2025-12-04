@@ -6,7 +6,7 @@
  * Tests the taskHierarchy GraphQL query with nested subtasks and progress calculation.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('TaskHierarchy Query Contract', () => {
 	let parentTaskId: string;

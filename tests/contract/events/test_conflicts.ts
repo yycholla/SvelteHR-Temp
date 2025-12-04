@@ -12,7 +12,7 @@
  * - Does not return declined events
  */
 
-import { test, expect, describe, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 interface ConflictingEventsQueryVariables {
 	checkStartTime: string; // DateTime

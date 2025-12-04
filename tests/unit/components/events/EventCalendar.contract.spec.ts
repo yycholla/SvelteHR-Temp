@@ -6,7 +6,7 @@
  * MUST FAIL until EventCalendar component is implemented.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { EventCalendarProps } from '$lib/components/events/EventCalendar.svelte';
 
 describe('EventCalendar Contract', () => {

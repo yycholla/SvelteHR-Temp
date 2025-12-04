@@ -69,7 +69,7 @@ export const load: PageServerLoad = async (event) => {
 		const graphqlEndpoint = getGraphQLEndpoint();
 
 		let managedDepartmentId: string | null = null;
-		let isAdmin = userSession.roles.includes('admin');
+		const isAdmin = userSession.roles.includes('admin');
 
 		// For managers, get their managed department
 		if (!isAdmin && userSession.roles.includes('manager')) {

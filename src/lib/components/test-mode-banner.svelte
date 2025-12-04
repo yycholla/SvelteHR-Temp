@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { AlertTriangle, X } from '@lucide/svelte';
 	import {
-		permissionTestActions,
+		hydrateFromStorage,
 		isTestModeActive,
-		testRoleName,
-		hydrateFromStorage
+		permissionTestActions,
+		testRoleName
 	} from '$lib/stores/permission-test.svelte';
 	import { onMount } from 'svelte';
 
@@ -14,8 +14,8 @@
 	});
 
 	// Derived reactive values using runes
-	let isActive = $derived(isTestModeActive());
-	let roleName = $derived(testRoleName());
+	const isActive = $derived(isTestModeActive());
+	const roleName = $derived(testRoleName());
 
 	function handleReset() {
 		permissionTestActions.endTestMode();

@@ -1,16 +1,16 @@
-import { test, expect, describe } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import {
-	gotoPage,
-	waitForElement,
-	fillInput,
-	selectOption,
-	pressKey,
-	isElementVisible,
-	countElements,
 	captureConsole,
-	clickElement,
 	clearInput,
-	waitFor
+	clickElement,
+	countElements,
+	fillInput,
+	gotoPage,
+	isElementVisible,
+	pressKey,
+	selectOption,
+	waitFor,
+	waitForElement
 } from '../utils/vitest-browser-helpers';
 
 /**

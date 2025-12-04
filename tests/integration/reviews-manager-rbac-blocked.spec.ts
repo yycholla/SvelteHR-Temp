@@ -6,8 +6,8 @@
  * This test MUST FAIL initially because RBAC validation is not implemented.
  */
 
-import { test, expect, describe, beforeAll, afterAll } from 'vitest';
-import { createTestContext, cleanupTestData, TestUser } from '../utils/test-helpers';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { TestUser, cleanupTestData, createTestContext } from '../utils/test-helpers';
 import { performGraphQLMutation } from '../utils/graphql-test-client';
 
 interface TestContext {
@@ -44,7 +44,7 @@ describe('T014: Manager RBAC - blocked from non-direct report', () => {
 			authTokens: {
 				manager: manager.token
 			},
-			users: { admin: null, hrManager: null, manager: manager, employee: null }, // Placeholder
+			users: { admin: null, hrManager: null, manager, employee: null }, // Placeholder
 			departments: { engineering: null, marketing: null, hr: null }, // Placeholder
 			createdEmployees: [],
 			createdUsers: [],

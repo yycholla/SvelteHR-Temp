@@ -7,14 +7,14 @@
  * Following TDD methodology - these tests MUST FAIL until implementation exists.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi, type MockedFunction } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
+import { type MockedFunction, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import type { LoadEvent } from '@sveltejs/kit';
 import type {
-	GetEmployeesWithFilteringRequest,
 	DataRequest,
-	ErrorResponse
+	ErrorResponse,
+	GetEmployeesWithFilteringRequest
 } from '$lib/types/graphql-contracts';
 import type { RetryHandler } from '$lib/utils/retry-handler';
 import type { CacheInvalidator } from '$lib/utils/cache-management';
@@ -399,7 +399,7 @@ describe('Employee Page Integration (T019)', () => {
 				data: {
 					employees: [],
 					filters: complexFilters,
-					sorting: sorting,
+					sorting,
 					userPermissions: ['employees:read', 'salary:read'],
 					user: { id: 'user-123', role: 'HR_Manager' }
 				}
@@ -415,7 +415,7 @@ describe('Employee Page Integration (T019)', () => {
 				expect.objectContaining({
 					variables: {
 						filters: complexFilters,
-						sorting: sorting
+						sorting
 					}
 				})
 			);
@@ -477,7 +477,7 @@ describe('Employee Page Integration (T019)', () => {
 			const mockProps = {
 				data: {
 					employees: [],
-					columnPreferences: columnPreferences,
+					columnPreferences,
 					userPermissions: ['employees:read'], // No salary permission
 					user: { id: 'user-456', role: 'Manager' }
 				}
@@ -591,7 +591,7 @@ describe('Employee Page Integration (T019)', () => {
 			expect(mockEmployeeErrorHandler.handleEmployeeError).not.toHaveBeenCalledWith(
 				expect.objectContaining({
 					type: 'VALIDATION_ERROR',
-					conflictData: conflictData
+					conflictData
 				})
 			);
 		});

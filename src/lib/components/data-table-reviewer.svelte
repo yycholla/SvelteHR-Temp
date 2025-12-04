@@ -4,7 +4,7 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import * as Select from '$lib/components/ui/select/index.js';
 
-	let { row }: { row: Row<Schema> } = $props();
+	const { row }: { row: Row<Schema> } = $props();
 
 	const isAssigned = $derived(row.original.reviewer !== 'Assign reviewer');
 	let reviewer = $state('');

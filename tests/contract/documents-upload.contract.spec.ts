@@ -1,7 +1,7 @@
 // Contract test: Document upload API (T011)
 // Tests POST /api/documents/upload endpoint
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
  * Contract Test: Document Upload API

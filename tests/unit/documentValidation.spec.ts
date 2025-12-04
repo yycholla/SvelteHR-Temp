@@ -1,13 +1,13 @@
 // Unit test: Document validation schemas (T053)
 // Tests Zod schemas for document management
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-	documentUploadSchema,
-	documentMetadataSchema,
 	documentFilterSchema,
-	validateFileType,
-	validateFileSize
+	documentMetadataSchema,
+	documentUploadSchema,
+	validateFileSize,
+	validateFileType
 } from '$lib/schemas/documentSchemas';
 import { encryptionKeySchema } from '$lib/schemas/encryptionSchemas';
 

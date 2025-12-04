@@ -9,7 +9,7 @@
  * Migration: 20251010_009_add_departments_manager_ids.sql
  */
 
-import { test, expect, describe, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 const mockGraphQLClient = {
 	query: vi.fn(),

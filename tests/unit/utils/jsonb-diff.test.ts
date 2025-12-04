@@ -14,7 +14,7 @@
  * - Nested object comparison
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 interface ConflictDetail {
 	field: string;

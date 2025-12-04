@@ -3,21 +3,21 @@
 	import { invalidateAll } from '$app/navigation';
 	import { flip } from 'svelte/animate';
 	import { dndzone } from 'svelte-dnd-action';
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import {
-		Plus,
-		Type,
-		FileText,
-		Upload,
-		PenTool,
-		GripVertical,
-		Trash2,
-		Edit2,
-		Save,
-		X,
 		ArrowLeft,
-		ClipboardCheck
+		ClipboardCheck,
+		Edit2,
+		FileText,
+		GripVertical,
+		PenTool,
+		Plus,
+		Save,
+		Trash2,
+		Type,
+		Upload,
+		X
 	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -28,7 +28,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 
-	let { data, form } = $props();
+	const { data, form } = $props();
 
 	// State - with defensive checks for undefined data
 	let items = $state(
@@ -46,7 +46,7 @@
 	let formTemplateId = $state('');
 
 	// Derived
-	let isEditing = $derived(!!editingId);
+	const isEditing = $derived(!!editingId);
 
 	onMount(() => {
 		console.log('[ONBOARDING CONTENT EDITOR] Component mounted', {

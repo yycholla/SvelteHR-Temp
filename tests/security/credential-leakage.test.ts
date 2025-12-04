@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { login, getPage, gotoPage } from '../utils/puppeteer-helpers';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { getPage, gotoPage, login } from '../utils/puppeteer-helpers';
 
 /**
  * Security Test Suite: Credential Leakage Prevention

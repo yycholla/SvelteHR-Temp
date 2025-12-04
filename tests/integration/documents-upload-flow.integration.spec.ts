@@ -1,8 +1,8 @@
 // Integration test: Full document upload flow (T043)
 // Tests complete upload workflow from encryption to database storage
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { generateEncryptionKey, encryptFile } from '$lib/services/encryption';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { encryptFile, generateEncryptionKey } from '$lib/services/encryption';
 import type { FileType } from '$lib/types/document';
 
 /**

@@ -11,7 +11,7 @@
 -->
 
 <script lang="ts">
-	import { X, Plus } from '@lucide/svelte';
+	import { Plus, X } from '@lucide/svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import { createUrqlClient } from '$lib/graphql/client';
 	import { CREATE_TASK_TYPE } from '$lib/graphql/tasks-operations';
@@ -45,7 +45,7 @@
 	let createError = $state('');
 
 	// Filtered task types based on search
-	let filteredTaskTypes = $derived.by(() => {
+	const filteredTaskTypes = $derived.by(() => {
 		const searchLower = searchTerm.toLowerCase();
 		const filtered = taskTypes.filter((tt) => {
 			// Exclude already selected
@@ -72,10 +72,10 @@
 	});
 
 	// Selected task type for display
-	let selectedTaskType = $derived(taskTypes.find((tt) => tt.id === selected));
+	const selectedTaskType = $derived(taskTypes.find((tt) => tt.id === selected));
 
 	// Check if search term could be a new task type name
-	let canCreateNew = $derived.by(() => {
+	const canCreateNew = $derived.by(() => {
 		if (!searchTerm || searchTerm.trim().length < 2) return false;
 
 		// Check if exact match exists
@@ -259,8 +259,8 @@
 	$effect(() => {
 		console.log('[TaskTypeTagInput] taskTypes prop changed:', {
 			count: taskTypes.length,
-			taskTypes: taskTypes,
-			selected: selected
+			taskTypes,
+			selected
 		});
 	});
 

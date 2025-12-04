@@ -7,8 +7,8 @@
 
 import type {
 	ErrorResponse as ErrorResponseContract,
-	ErrorType,
-	ErrorSeverity
+	ErrorSeverity,
+	ErrorType
 } from '$lib/types/graphql-contracts';
 
 /**
@@ -163,7 +163,7 @@ export class ErrorResponse {
 			technicalDetails: JSON.stringify(this.technicalDetails),
 			suggestedActions: this.suggestedActions.map((action) => ({
 				label: action,
-				action: action,
+				action,
 				isPrimary: action === this.primaryAction
 			})),
 			timestamp: new Date(this.timestamp),
@@ -263,12 +263,12 @@ export class ErrorResponse {
 		suggestedActions?: SuggestedAction[];
 	}): void {
 		// Validation Rule: userMessage (non-empty, user-friendly)
-		if (config.userMessage && config.userMessage.trim().length === 0) {
+		if (config.userMessage?.trim().length === 0) {
 			throw new Error('userMessage must be non-empty when provided');
 		}
 
 		// Validation Rule: suggestedActions (≥1 action)
-		if (config.suggestedActions && config.suggestedActions.length === 0) {
+		if (config.suggestedActions?.length === 0) {
 			throw new Error('suggestedActions must contain at least one action when provided');
 		}
 

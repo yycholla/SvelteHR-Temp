@@ -15,7 +15,7 @@
  * - Status indicators (pending/approved/rejected)
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface RollbackRequest {
 	id: string;

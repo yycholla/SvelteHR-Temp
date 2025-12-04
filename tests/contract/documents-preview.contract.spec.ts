@@ -1,7 +1,7 @@
 // Contract test: Document preview API (T012)
 // Tests GET /api/documents/{id}/preview endpoint
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
  * Contract Test: Document Preview API

@@ -70,7 +70,7 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 			const count = parseInt(countResult.rows[0].count, 10);
 
 			// Load user data for assignees
-			let userMap = new Map();
+			const userMap = new Map();
 
 			if (uniqueUserIds.length > 0) {
 				const userResult = await dbClient.query(

@@ -2,14 +2,14 @@
 	import { enhance } from '$app/forms';
 	import {
 		CheckCircle2,
-		Circle,
 		ChevronLeft,
 		ChevronRight,
-		PlayCircle,
+		Circle,
 		FileText,
 		Image as ImageIcon,
 		Link as LinkIcon,
 		Menu,
+		PlayCircle,
 		X
 	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -20,7 +20,7 @@
 	import { cn } from '$lib/utils';
 	import DOMPurify from 'isomorphic-dompurify';
 
-	let { data } = $props();
+	const { data } = $props();
 	const { training, contents } = data;
 
 	// State
@@ -29,9 +29,9 @@
 	let mobileMenuOpen = $state(false);
 
 	// Derived
-	let activeContent = $derived(contents && contents[activeIndex]);
-	let activeIcon = $derived(activeContent ? getIcon(activeContent.type) : FileText);
-	let completionPercentage = $derived(
+	const activeContent = $derived(contents?.[activeIndex]);
+	const activeIcon = $derived(activeContent ? getIcon(activeContent.type) : FileText);
+	const completionPercentage = $derived(
 		contents && contents.length > 0
 			? Math.round(
 					(progressData.filter((p: any) => p.status === 'COMPLETED').length / contents.length) * 100

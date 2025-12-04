@@ -3,8 +3,8 @@
  * Configures environment for security-focused test suites
  */
 
-import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
-import { chromium, type Browser, type BrowserContext, type Page } from 'puppeteer';
+import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
+import { type Browser, type BrowserContext, type Page, chromium } from 'puppeteer';
 
 // Global test state
 let browser: Browser | null = null;

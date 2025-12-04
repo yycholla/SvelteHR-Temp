@@ -60,7 +60,7 @@ export async function authenticatedGraphQLRequest(
 
 	// Forward session cookies for authentication
 	// Defensive check: ensure request has headers property with get method
-	if (request && request.headers && typeof request.headers.get === 'function') {
+	if (request?.headers && typeof request.headers.get === 'function') {
 		const cookieHeader = request.headers.get('cookie');
 		if (cookieHeader) {
 			headers['Cookie'] = cookieHeader;

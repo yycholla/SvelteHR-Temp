@@ -2,8 +2,8 @@
 // Feature: 019-we-need-to - Task T029
 // Purpose: Load single event details with attendees and RSVP status
 
-import type { PageServerLoad, Actions } from './$types';
-import { error, redirect, fail } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { EventsOperations } from '$lib/graphql/events-operations';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';

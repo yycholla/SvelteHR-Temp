@@ -2,15 +2,15 @@
 // Tests complete workflows for employee CRUD operations
 // Created: 2025-09-24
 
-import { test, expect, describe } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import {
-	createTestContext,
-	cleanupTestData,
-	TestUser,
 	TestEmployee,
-	TestEmployeeData
+	TestEmployeeData,
+	TestUser,
+	cleanupTestData,
+	createTestContext
 } from '../utils/test-helpers';
-import { performGraphQLQuery, performGraphQLMutation } from '../utils/graphql-test-client';
+import { performGraphQLMutation, performGraphQLQuery } from '../utils/graphql-test-client';
 
 interface TestContext {
 	departments: any[];

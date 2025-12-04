@@ -1,7 +1,7 @@
 // Access logging and audit service (Feature 024)
 // Comprehensive audit trail for compliance and security
 
-import type { AccessType, AccessOutcome, AccessMetadata } from '$lib/types/document';
+import type { AccessMetadata, AccessOutcome, AccessType } from '$lib/types/document';
 
 export interface AccessLogEntry {
 	documentId: string;

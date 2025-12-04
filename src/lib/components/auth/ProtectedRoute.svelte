@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { Loader2, AlertTriangle } from '@lucide/svelte';
+	import { AlertTriangle, Loader2 } from '@lucide/svelte';
 
 	/**
 	 * Protected Route Component
@@ -20,7 +20,7 @@
 		children?: any;
 	}
 
-	let {
+	const {
 		requiredRoles = [],
 		requiredPermissions = [],
 		minRoleLevel = null,

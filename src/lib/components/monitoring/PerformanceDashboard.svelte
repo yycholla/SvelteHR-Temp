@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { metricsService } from '$lib/services/metricsService';
 	import Card from '../base/Card.svelte';
 	import Button from '../base/Button.svelte';

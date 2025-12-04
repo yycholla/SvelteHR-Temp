@@ -6,7 +6,7 @@
  * and responding to them with scope selection.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Recurring Events Management', () => {
 	test.beforeEach(async ({ page }) => {

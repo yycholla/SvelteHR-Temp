@@ -3,7 +3,7 @@
 // Purpose: Business logic helpers for event operations
 
 import type { Event } from '$lib/graphql/events-operations';
-import type { EventVisibilityType, RsvpStatus, EventStatus } from '$lib/graphql/types';
+import type { EventStatus, EventVisibilityType, RsvpStatus } from '$lib/graphql/types';
 
 /**
  * Check if a user can view an event based on visibility rules

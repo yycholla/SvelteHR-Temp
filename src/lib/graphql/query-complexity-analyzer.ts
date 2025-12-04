@@ -14,22 +14,22 @@
 
 import {
 	DocumentNode,
-	visit,
-	TypeInfo,
-	visitWithTypeInfo,
+	GraphQLError,
 	GraphQLSchema,
+	Kind,
+	TypeInfo,
+	getNamedType,
+	isInterfaceType,
 	isListType,
 	isNonNullType,
-	getNamedType,
 	isObjectType,
-	isInterfaceType,
-	GraphQLError,
-	Kind
+	visit,
+	visitWithTypeInfo
 } from 'graphql';
 import type {
-	QueryComplexityConfig,
 	GraphQLPerformanceMetrics,
 	QueryAnalysis,
+	QueryComplexityConfig,
 	ResolverCall
 } from '../../tests/generated/test-types';
 
@@ -476,7 +476,7 @@ export class QueryComplexityAnalyzer {
  */
 export function createComplexityMiddleware(analyzer: QueryComplexityAnalyzer) {
 	return (req: any, res: any, next: any) => {
-		if (req.body && req.body.query) {
+		if (req.body?.query) {
 			try {
 				const document = req.body.query; // Would need proper parsing in real implementation
 				const errors = analyzer.validateComplexity(document, req.body.variables);

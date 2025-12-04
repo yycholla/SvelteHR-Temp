@@ -1,18 +1,18 @@
 <script lang="ts">
 	import {
+		AlertCircle,
+		ArrowUpRight,
+		CalendarDays,
 		CheckCircle2,
+		CheckSquare,
 		Circle,
 		Clock,
+		Filter,
+		LayoutGrid,
+		List,
 		MoreHorizontal,
 		Plus,
 		Search,
-		Filter,
-		ArrowUpRight,
-		CalendarDays,
-		LayoutGrid,
-		List,
-		CheckSquare,
-		AlertCircle,
 		TrendingUp
 	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';

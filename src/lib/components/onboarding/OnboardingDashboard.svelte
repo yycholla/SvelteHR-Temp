@@ -2,12 +2,12 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import {
-		onboardingService,
-		onboardingInstances,
 		activeOnboardingInstances,
 		completedOnboardingInstances,
 		isLoadingOnboarding,
-		onboardingError
+		onboardingError,
+		onboardingInstances,
+		onboardingService
 	} from '$lib/services/onboardingService';
 	import { currentUser, hasPermission } from '$lib/services/auth';
 	import Button from '../base/Button.svelte';

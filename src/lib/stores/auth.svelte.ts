@@ -98,7 +98,7 @@ class AuthStore {
 					const user: User = {
 						id: result.user.id,
 						email: result.user.email,
-						// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 						displayName:
 							(result.user as any).displayName ?? result.user.email.split('@')[0] ?? 'User',
 						onboardingStatus: 'Active',
@@ -121,7 +121,7 @@ class AuthStore {
 				const user: User = {
 					id: result.user.id,
 					email: result.user.email,
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 					displayName:
 						(result.user as any).displayName ?? result.user.email.split('@')[0] ?? 'User',
 					onboardingStatus: 'Active',
@@ -260,7 +260,7 @@ class AuthStore {
 					this.roles = [
 						{
 							id: `assignment-${userId}`,
-							userId: userId,
+							userId,
 							roleId: matchingRole.id,
 							role: roleWithPermissionNames,
 							assignedAt: new Date().toISOString(),
@@ -293,7 +293,7 @@ class AuthStore {
 				this.roles = [
 					{
 						id: 'admin-fallback',
-						userId: userId,
+						userId,
 						roleId: 'admin',
 						role: {
 							id: 'admin',

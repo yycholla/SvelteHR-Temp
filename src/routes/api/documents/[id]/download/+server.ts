@@ -8,7 +8,7 @@ import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { createUrqlClient } from '$lib/graphql/client';
 import { gql } from '@urql/core';
-import { transaction, setJWTClaims } from '$lib/server/db';
+import { setJWTClaims, transaction } from '$lib/server/db';
 import { decryptFileFromGraphQL, getDecryptionKey } from '$lib/server/encryption';
 
 const GET_DOCUMENT_FOR_DOWNLOAD_QUERY = gql`
@@ -118,8 +118,8 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 		await urqlClient
 			.mutation(CREATE_ACCESS_LOG_MUTATION, {
 				input: {
-					documentId: documentId,
-					userId: userId,
+					documentId,
+					userId,
 					accessType: 'download',
 					ipAddress: url.searchParams.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown',
 					userAgent: url.searchParams.get('user-agent') || 'unknown'

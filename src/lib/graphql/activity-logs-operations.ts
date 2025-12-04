@@ -716,12 +716,7 @@ export class ActivityLogsOperations {
 				throw errorResponse;
 			}
 
-			if (
-				!result.data ||
-				!result.data.allActivityLogs ||
-				!result.data.allActivityLogs.nodes ||
-				result.data.allActivityLogs.nodes.length === 0
-			) {
+			if (!result.data?.allActivityLogs?.nodes || result.data.allActivityLogs.nodes.length === 0) {
 				return null;
 			}
 

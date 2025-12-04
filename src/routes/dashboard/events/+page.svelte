@@ -16,10 +16,10 @@
 		Calendar as CalendarIcon,
 		Check,
 		Copy,
+		Download,
 		Filter,
 		Plus,
-		RefreshCw,
-		Download
+		RefreshCw
 	} from '@lucide/svelte';
 	import type { EventStatus, EventType, EventVisibilityType, RsvpStatus } from '$lib/graphql/types';
 	import { normalizeRsvpStatus } from '$lib/graphql/types';
@@ -57,7 +57,7 @@
 	const timezoneOffset = new Date().getTimezoneOffset();
 
 	// State - use $derived for automatic reactive tracking
-	let events = $derived(data.events || []);
+	const events = $derived(data.events || []);
 
 	let localRsvpStatuses = $state<Record<string, RsvpStatus>>({});
 	let pendingRsvpUpdates = $state<Record<string, RsvpStatus>>({});

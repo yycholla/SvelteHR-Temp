@@ -1,8 +1,8 @@
 // Integration test: Preview generation with DOCX conversion (T044)
 // Tests preview URL generation and Office document conversion
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { generateEncryptionKey, encryptFile } from '$lib/services/encryption';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { encryptFile, generateEncryptionKey } from '$lib/services/encryption';
 
 /**
  * Integration Test: Preview Generation and Conversion

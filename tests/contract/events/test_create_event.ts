@@ -13,7 +13,7 @@
  * - Error handling for invalid inputs
  */
 
-import { test, expect, describe, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 // Type definitions from GraphQL contract
 interface EventInput {

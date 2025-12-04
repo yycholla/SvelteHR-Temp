@@ -3,10 +3,10 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
-	import { Crown, User, Building2, Mail, ZoomIn, ZoomOut, RotateCcw } from '@lucide/svelte';
+	import { Building2, Crown, Mail, RotateCcw, User, ZoomIn, ZoomOut } from '@lucide/svelte';
 
 	// Props
-	let {
+	const {
 		departmentData
 	}: {
 		departmentData: {
@@ -70,7 +70,7 @@
 		sortedLevels.forEach((roleLevel) => {
 			const levelEmployees = employeesByLevel.get(roleLevel)!;
 			const levelWidth = levelEmployees.length * (NODE_WIDTH + HORIZONTAL_SPACING);
-			let startX = Math.max(50, (800 - levelWidth) / 2);
+			const startX = Math.max(50, (800 - levelWidth) / 2);
 
 			levelEmployees.forEach((emp, empIndex) => {
 				const node: OrgNode = {
@@ -78,7 +78,7 @@
 					name: emp.displayName || emp.email,
 					role: getHighestRole(emp),
 					email: emp.email,
-					roleLevel: roleLevel,
+					roleLevel,
 					isManager: roleLevel >= 60,
 					user: emp,
 					x: startX + empIndex * (NODE_WIDTH + HORIZONTAL_SPACING),

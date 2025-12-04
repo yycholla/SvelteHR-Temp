@@ -81,8 +81,8 @@ export const actions: Actions = {
 				metaDescription: metaDescription || null,
 				tags: tags.length > 0 ? tags : null,
 				// authorId: authorId || null // TODO: Enable when backend supports User ID resolution or passed from frontend
-				rrule: rrule,
-				recurrenceEndDate: recurrenceEndDate
+				rrule,
+				recurrenceEndDate
 			}
 		};
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import type { EventInput } from '@fullcalendar/core';
 	import { Bell } from '@lucide/svelte';
@@ -8,7 +8,7 @@
 	import { detectConflict } from '$lib/utils/calendar';
 
 	// Props with Svelte 5 runes syntax
-	let {
+	const {
 		events = [],
 		userId,
 		canManageEvents = false,
@@ -35,14 +35,14 @@
 	let calendar: any = null;
 
 	// Derived: Filter events by visibility
-	let filteredEvents = $derived(
+	const filteredEvents = $derived(
 		visibilityFilter === 'all'
 			? events
 			: events.filter((e: any) => e.visibilityType === visibilityFilter)
 	);
 
 	// Derived: Convert events to FullCalendar format
-	let calendarEvents = $derived(
+	const calendarEvents = $derived(
 		filteredEvents.map((event: any) => {
 			const rsvpStatus = localRsvpStatuses[event.id] || 'pending';
 

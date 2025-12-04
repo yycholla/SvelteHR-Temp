@@ -96,7 +96,7 @@ export const GET: RequestHandler = async ({ locals, cookies, request }) => {
 						body: JSON.stringify({
 							query: notificationsQuery,
 							variables: {
-								userId: userId,
+								userId,
 								unreadOnly: true
 							}
 						})

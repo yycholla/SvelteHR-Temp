@@ -21,7 +21,7 @@
 		isSubmitting?: boolean;
 	}
 
-	let {
+	const {
 		isOpen = false,
 		employeeId,
 		employeeName,
@@ -36,7 +36,7 @@
 	let searchQuery = $state('');
 
 	// Derived state
-	let filteredDocuments = $derived(
+	const filteredDocuments = $derived(
 		availableDocuments.filter(
 			(doc) =>
 				doc.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -44,8 +44,8 @@
 		)
 	);
 
-	let hasSelections = $derived(selectedDocuments.length > 0);
-	let canSubmit = $derived(hasSelections && !isSubmitting);
+	const hasSelections = $derived(selectedDocuments.length > 0);
+	const canSubmit = $derived(hasSelections && !isSubmitting);
 
 	// Handle selection toggle
 	function toggleSelection(documentId: string) {

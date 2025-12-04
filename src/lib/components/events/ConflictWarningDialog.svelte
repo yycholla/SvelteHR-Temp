@@ -59,10 +59,10 @@
 	} = $props();
 
 	// Derived
-	let hasConflicts = $derived(conflicts.length > 0);
-	let hasMajorConflicts = $derived(conflicts.some((c) => c.severity === 'major'));
-	let minorConflicts = $derived(conflicts.filter((c) => c.severity === 'minor'));
-	let majorConflicts = $derived(conflicts.filter((c) => c.severity === 'major'));
+	const hasConflicts = $derived(conflicts.length > 0);
+	const hasMajorConflicts = $derived(conflicts.some((c) => c.severity === 'major'));
+	const minorConflicts = $derived(conflicts.filter((c) => c.severity === 'minor'));
+	const majorConflicts = $derived(conflicts.filter((c) => c.severity === 'major'));
 
 	// Format overlap duration
 	function formatOverlap(minutes: number): string {

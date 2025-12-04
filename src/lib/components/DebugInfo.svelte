@@ -2,7 +2,7 @@
 	import { page } from '$app/stores';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { onMount } from 'svelte';
-	import { Bug, Clock, User, Shield, Activity } from '@lucide/svelte';
+	import { Activity, Bug, Clock, Shield, User } from '@lucide/svelte';
 
 	// Performance tracking
 	let pageLoadTime = $state(0);

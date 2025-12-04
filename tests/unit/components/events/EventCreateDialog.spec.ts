@@ -6,8 +6,8 @@
  * MUST FAIL until EventCreateDialog component is implemented.
  */
 
-import { describe, it, expect, vi } from 'vitest';
-import { render, fireEvent } from '@testing-library/svelte';
+import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render } from '@testing-library/svelte';
 import EventCreateDialog from '$lib/components/events/EventCreateDialog.svelte';
 
 describe.skip('EventCreateDialog Form Validation', () => {

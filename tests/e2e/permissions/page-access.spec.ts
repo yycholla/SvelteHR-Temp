@@ -2,7 +2,7 @@
 // These tests should FAIL initially - routes don't have permission checks yet
 // SECURITY CRITICAL: Ensures unauthorized users cannot access protected pages
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 // Test helper to create a session with specific permissions
 async function loginWithPermissions(

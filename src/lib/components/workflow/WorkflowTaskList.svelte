@@ -2,15 +2,15 @@
 	import { onMount } from 'svelte';
 	import {
 		filteredTasks,
-		workflowActions,
 		isWorkflowLoading,
+		workflowActions,
 		workflowError
 	} from '$lib/stores/workflow';
 	import { auth } from '$lib/stores/auth.svelte';
 	import WorkflowTaskCard from './WorkflowTaskCard.svelte';
 
 	// Props
-	let {
+	const {
 		showFilters = true,
 		limit = 50,
 		instanceId = null,

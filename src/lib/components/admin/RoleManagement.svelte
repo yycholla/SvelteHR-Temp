@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { permissionsService, userPermissions, isAdmin } from '$lib/services/permissionsService';
+	import { isAdmin, permissionsService, userPermissions } from '$lib/services/permissionsService';
 	import { currentUser } from '$lib/services/auth';
 	import { userService, users } from '$lib/services/userService';
 	import Button from '../base/Button.svelte';
@@ -10,12 +10,12 @@
 	import Select from '../base/Select.svelte';
 	import DataTable from '../tables/DataTable.svelte';
 	import type { Column } from '../tables/DataTable.svelte';
-	import type { User, Permission } from '$lib/types';
+	import type { Permission, User } from '$lib/types';
 
 	// Component state
 	let selectedTab: 'users' | 'roles' | 'permissions' = 'users';
-	let selectedUser: User | null = null;
-	let selectedRole: string | null = null;
+	const selectedUser: User | null = null;
+	const selectedRole: string | null = null;
 	let showUserRoleModal = false;
 	let searchQuery = '';
 	let filterRole = '';

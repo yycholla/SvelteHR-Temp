@@ -16,16 +16,16 @@
 
 import {
 	DocumentNode,
-	visit,
 	FieldNode,
-	TypeInfo,
-	visitWithTypeInfo,
-	GraphQLSchema,
-	getNamedType,
-	isObjectType,
-	isInterfaceType,
+	GraphQLInterfaceType,
 	GraphQLObjectType,
-	GraphQLInterfaceType
+	GraphQLSchema,
+	TypeInfo,
+	getNamedType,
+	isInterfaceType,
+	isObjectType,
+	visit,
+	visitWithTypeInfo
 } from 'graphql';
 import type { GraphQLSecurityValidation } from '../../tests/generated/test-types';
 

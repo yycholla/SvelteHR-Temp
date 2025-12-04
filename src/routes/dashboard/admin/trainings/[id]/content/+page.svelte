@@ -3,18 +3,18 @@
 	import { flip } from 'svelte/animate';
 	import { dndzone } from 'svelte-dnd-action';
 	import {
+		ArrowLeft,
+		Edit2,
+		FileText,
+		GripVertical,
+		Image as ImageIcon,
+		Link,
 		Plus,
+		Save,
+		Trash2,
 		Type,
 		Video,
-		Image as ImageIcon,
-		FileText,
-		Link,
-		GripVertical,
-		Trash2,
-		Edit2,
-		Save,
-		X,
-		ArrowLeft
+		X
 	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -25,7 +25,7 @@
 	import * as Alert from '$lib/components/ui/alert';
 	import { Badge } from '$lib/components/ui/badge';
 
-	let { data, form } = $props();
+	const { data, form } = $props();
 
 	// State
 	let items = $state(data.contents.sort((a: any, b: any) => a.sequenceOrder - b.sequenceOrder));
@@ -38,7 +38,7 @@
 	let type = $state('TEXT');
 
 	// Derived
-	let isEditing = $derived(!!editingId);
+	const isEditing = $derived(!!editingId);
 
 	// Keep items in sync with server data - watch data.contents directly for reactivity
 	$effect(() => {

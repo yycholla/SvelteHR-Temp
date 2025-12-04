@@ -14,7 +14,7 @@
  * - RLS enforces user can only see own requests
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface GetMyRollbackRequestsVariables {
 	userId: string; // UUID

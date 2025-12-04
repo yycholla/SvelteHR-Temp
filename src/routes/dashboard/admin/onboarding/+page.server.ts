@@ -3,9 +3,9 @@ import type { Actions, PageServerLoad } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
 import {
-	GET_ONBOARDING_MODULES_QUERY,
+	DELETE_ONBOARDING_MODULE_MUTATION,
 	GET_ALL_ONBOARDING_ASSIGNMENTS_QUERY,
-	DELETE_ONBOARDING_MODULE_MUTATION
+	GET_ONBOARDING_MODULES_QUERY
 } from '$lib/graphql/onboarding-operations';
 
 export const load: PageServerLoad = async (event) => {

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Card } from '$lib/components/ui/card';
 	import { cn } from '$lib/utils';
@@ -16,7 +16,7 @@
 	 */
 
 	// Props
-	let {
+	const {
 		width = 400,
 		height = 150,
 		penColor = '#000000',
@@ -49,7 +49,7 @@
 	let lastY = $state(0);
 
 	// Derived
-	let isEmpty = $derived(!hasSignature);
+	const isEmpty = $derived(!hasSignature);
 
 	// Initialize canvas on mount
 	onMount(() => {

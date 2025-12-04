@@ -192,7 +192,7 @@ export const load: PageServerLoad = async (event) => {
 					: null,
 				overallRating: review.overallRating || 0,
 				competencies: [], // Would need to query review_feedback or review_template
-				goals: goals,
+				goals,
 				feedback: {
 					strengths: [], // Would need to query review_feedback with feedback_type='strengths'
 					improvements: [], // Would need to query review_feedback with feedback_type='improvements'

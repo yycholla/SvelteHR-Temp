@@ -7,7 +7,7 @@
  * MUST FAIL until EventDetailsDialog RSVP functionality is implemented.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('RSVP to Recurring Event', () => {
 	test.beforeEach(async ({ page }) => {

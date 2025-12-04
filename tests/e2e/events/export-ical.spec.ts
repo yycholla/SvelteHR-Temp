@@ -7,7 +7,7 @@
  * MUST FAIL until iCal export is implemented.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Export Calendar to iCal', () => {
 	test.beforeEach(async ({ page }) => {

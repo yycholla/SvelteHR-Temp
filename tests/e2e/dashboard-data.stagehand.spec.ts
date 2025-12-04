@@ -1,12 +1,12 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { z } from 'zod';
 import {
-	initStagehand,
-	gotoPage,
-	extractData,
-	cleanupStagehand,
 	CommonSchemas,
-	createStagehandHelpers
+	cleanupStagehand,
+	createStagehandHelpers,
+	extractData,
+	gotoPage,
+	initStagehand
 } from '../utils/stagehand-helpers';
 
 /**

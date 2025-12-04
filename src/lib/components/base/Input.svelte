@@ -74,7 +74,7 @@
 	let inputElement: HTMLInputElement;
 
 	// Computed classes
-	let containerClasses = $derived(
+	const containerClasses = $derived(
 		[
 			'input-container',
 			`input-container--${size}`,
@@ -88,7 +88,7 @@
 			.join(' ')
 	);
 
-	let inputClasses = $derived(
+	const inputClasses = $derived(
 		[
 			'input',
 			`input--${size}`,

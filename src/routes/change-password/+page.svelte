@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import type { PageData, ActionData } from './$types';
+	import type { ActionData, PageData } from './$types';
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	const { data, form }: { data: PageData; form: ActionData } = $props();
 
 	// Form state
 	let currentPassword = $state('');
@@ -46,7 +46,7 @@
 	}
 
 	// Password strength indicator
-	let passwordStrength = $derived(() => {
+	const passwordStrength = $derived(() => {
 		if (newPassword.length === 0) return { level: 0, text: '', color: '' };
 		if (newPassword.length < 8) return { level: 1, text: 'Too short', color: 'bg-destructive' };
 

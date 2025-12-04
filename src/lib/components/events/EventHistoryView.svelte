@@ -9,13 +9,13 @@
 
 	import {
 		Accordion,
+		AccordionContent,
 		AccordionItem,
-		AccordionTrigger,
-		AccordionContent
+		AccordionTrigger
 	} from '$lib/components/ui/accordion';
 	import { Badge } from '$lib/components/ui/badge';
-	import { History, User, Calendar, MapPin, Users } from '@lucide/svelte';
-	import { formatDistanceToNow, format } from 'date-fns';
+	import { Calendar, History, MapPin, User, Users } from '@lucide/svelte';
+	import { format, formatDistanceToNow } from 'date-fns';
 
 	type ChangeType =
 		| 'created'
@@ -43,7 +43,7 @@
 		variant?: 'default' | 'compact';
 	}
 
-	let { history = [], variant = 'default' }: Props = $props();
+	const { history = [], variant = 'default' }: Props = $props();
 
 	function getChangeIcon(changeType: ChangeType) {
 		switch (changeType) {

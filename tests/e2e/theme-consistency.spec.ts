@@ -9,7 +9,7 @@
  * Covers: FR-025, FR-042, FR-043, FR-044, FR-045, FR-046, FR-047, FR-048
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Theme Consistency', () => {
 	test.beforeEach(async ({ page }) => {

@@ -4,19 +4,19 @@
 //
 // Puppeteer provides better Arch Linux support than Playwright
 
-import { test, expect, describe, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test } from 'vitest';
 import {
-	gotoPage,
-	login,
 	clickElement,
-	fillInput,
-	isElementVisible,
 	countElements,
+	fillInput,
 	getElementText,
-	waitForElement,
+	getPage,
+	gotoPage,
+	isElementVisible,
+	login,
 	pageContainsText,
 	waitFor,
-	getPage
+	waitForElement
 } from '../../utils/puppeteer-helpers';
 
 describe('Tasks - Dashboard & Overview (Puppeteer)', () => {

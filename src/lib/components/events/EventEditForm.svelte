@@ -11,7 +11,7 @@
 		onSuccess?: () => void;
 	}
 
-	let { event, onClose, onSuccess }: Props = $props();
+	const { event, onClose, onSuccess }: Props = $props();
 
 	// Form state initialized from props
 	let title = $state(event.title);

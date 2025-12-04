@@ -3,7 +3,7 @@
 // Task: T011 - Team management GraphQL operations for /dashboard/teams
 
 import { gql } from '@urql/svelte';
-import type { Department, User, PaginationInput, SortInput } from '$lib/types/graphql';
+import type { Department, PaginationInput, SortInput, User } from '$lib/types/graphql';
 
 // Query: Get all teams/departments with statistics
 export const GET_ALL_TEAMS = gql`

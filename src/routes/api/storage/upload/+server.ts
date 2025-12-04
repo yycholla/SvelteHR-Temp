@@ -1,9 +1,9 @@
 // Storage upload API endpoint (Feature 024)
 // POST /api/storage/upload - Upload encrypted file data
 
-import { json, error } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { transaction, setJWTClaims } from '$lib/server/db';
+import { setJWTClaims, transaction } from '$lib/server/db';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	// Step 1: Validate authentication

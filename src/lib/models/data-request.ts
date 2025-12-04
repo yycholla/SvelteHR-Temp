@@ -297,10 +297,7 @@ export class DataRequest<TVariables = Record<string, unknown>, TData = unknown> 
 
 		// T036: JWT token is optional for session-based authentication
 		// Only validate if jwtToken is provided
-		if (
-			config.userCredentials.jwtToken !== undefined &&
-			config.userCredentials.jwtToken.trim().length === 0
-		) {
+		if (config.userCredentials.jwtToken?.trim().length === 0) {
 			throw new Error('userCredentials.jwtToken must be non-empty if provided');
 		}
 

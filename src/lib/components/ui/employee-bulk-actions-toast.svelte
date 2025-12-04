@@ -3,7 +3,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import * as ButtonGroup from '$lib/components/ui/button-group';
-	import { X, UserCog, ToggleLeft, ChevronDown } from '@lucide/svelte';
+	import { ChevronDown, ToggleLeft, UserCog, X } from '@lucide/svelte';
 	import type { Writable } from 'svelte/store';
 
 	interface BulkActionsState {
@@ -18,7 +18,7 @@
 		onChangeStatus: (status: 'active' | 'inactive' | 'terminated') => void;
 	}
 
-	let { bulkActionsStore, onClear, onMoveDepartment, onChangeStatus }: Props = $props();
+	const { bulkActionsStore, onClear, onMoveDepartment, onChangeStatus }: Props = $props();
 
 	// Subscribe to store for reactive updates
 	const bulkActionsState = $derived($bulkActionsStore);

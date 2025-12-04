@@ -2,7 +2,7 @@
 // Base configuration for all test environments
 // Created: 2025-09-24
 
-import { beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 
 // Declare global types for testUtils
 declare global {

@@ -2,10 +2,10 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import {
+		departmentError,
 		departmentService,
 		departments,
-		isLoadingDepartments,
-		departmentError
+		isLoadingDepartments
 	} from '$lib/services/departmentService';
 	import { currentUser, hasPermission } from '$lib/services/auth';
 	import DataTable from '../tables/DataTable.svelte';
@@ -18,7 +18,7 @@
 	import type { Department, DepartmentFilter } from '$lib/types';
 
 	// Props
-	let {
+	const {
 		showHeader = true,
 		showFilters = true,
 		showActions = true,
@@ -54,7 +54,7 @@
 	];
 
 	// Table columns configuration
-	let columns = $derived<Column[]>([
+	const columns = $derived<Column[]>([
 		{
 			key: 'name',
 			label: 'Department Name',
@@ -105,8 +105,8 @@
 	]);
 
 	// Reactive filters
-	let filters = $derived(buildFilters());
-	let hasFiltersApplied = $derived(searchQuery || statusFilter || parentFilter);
+	const filters = $derived(buildFilters());
+	const hasFiltersApplied = $derived(searchQuery || statusFilter || parentFilter);
 
 	// Load data when filters change
 	$effect(() => {

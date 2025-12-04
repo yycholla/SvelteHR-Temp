@@ -138,7 +138,7 @@
 		]
 	};
 
-	let { ...restProps }: ComponentProps<typeof Sidebar.Root> = $props();
+	const { ...restProps }: ComponentProps<typeof Sidebar.Root> = $props();
 </script>
 
 <Sidebar.Root collapsible="offcanvas" {...restProps}>

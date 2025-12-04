@@ -13,23 +13,23 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
 	import {
+		AlertTriangle,
 		ArrowLeft,
-		Edit,
-		Trash2,
 		Calendar,
-		User,
-		Target,
+		Edit,
 		FileText,
-		AlertTriangle
+		Target,
+		Trash2,
+		User
 	} from '@lucide/svelte';
 	import {
-		getReviewTypeInfo,
+		formatReviewPeriod,
 		getReviewStatusInfo,
-		formatReviewPeriod
+		getReviewTypeInfo
 	} from '$lib/graphql/reviews-operations';
-	import type { ReviewType, ReviewStatus } from '$lib/schemas/reviews';
+	import type { ReviewStatus, ReviewType } from '$lib/schemas/reviews';
 
-	let { data }: { data: PageData } = $props();
+	const { data }: { data: PageData } = $props();
 
 	const review = data.review;
 	const reviewTypeInfo = getReviewTypeInfo((review.reviewType || 'ANNUAL_REVIEW') as ReviewType);

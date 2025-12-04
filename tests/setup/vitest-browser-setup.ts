@@ -2,9 +2,9 @@
 // Browser-based component testing configuration
 // Created: 2025-09-24
 
-import { beforeAll, afterEach } from 'vitest';
+import { afterEach, beforeAll } from 'vitest';
 import { page } from '@vitest/browser/context';
-import type { Page as PuppeteerPage, BrowserContext } from 'puppeteer'; // Import Puppeteer's Page and BrowserContext types
+import type { BrowserContext, Page as PuppeteerPage } from 'puppeteer'; // Import Puppeteer's Page and BrowserContext types
 
 beforeAll(async () => {
 	console.log('Setting up browser test environment...');

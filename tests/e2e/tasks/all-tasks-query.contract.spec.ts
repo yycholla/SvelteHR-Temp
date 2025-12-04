@@ -6,7 +6,7 @@
  * Tests the allTasks GraphQL query with filters, sorting, and pagination.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('AllTasks Query Contract', () => {
 	test.beforeEach(async ({ page }) => {

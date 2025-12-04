@@ -28,7 +28,7 @@
 		compact?: boolean;
 	}
 
-	let {
+	const {
 		task,
 		userId,
 		onTaskClick,
@@ -43,14 +43,14 @@
 	let isExpanded = $state(currentDepth < 2); // Auto-expand first 2 levels
 
 	// Derived state
-	let hasSubtasks = $derived(task.subtasks && task.subtasks.length > 0);
-	let canExpand = $derived(hasSubtasks && currentDepth < maxDepth);
-	let subtasks = $derived(task.subtasks || []);
-	let subtaskCount = $derived(task.subtasks?.length || 0);
-	let completedSubtasks = $derived(subtasks.filter((t: Task) => t.status === 'Done').length);
+	const hasSubtasks = $derived(task.subtasks && task.subtasks.length > 0);
+	const canExpand = $derived(hasSubtasks && currentDepth < maxDepth);
+	const subtasks = $derived(task.subtasks || []);
+	const subtaskCount = $derived(task.subtasks?.length || 0);
+	const completedSubtasks = $derived(subtasks.filter((t: Task) => t.status === 'Done').length);
 
 	// Calculate completion percentage for subtasks
-	let completionPercentage = $derived(() => {
+	const completionPercentage = $derived(() => {
 		if (subtaskCount === 0) return 0;
 		return Math.round((completedSubtasks / subtaskCount) * 100);
 	});

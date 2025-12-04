@@ -2,7 +2,7 @@
 // Feature: 028-task-system-expansion - T047
 // Purpose: Test complete task creation workflow with form validation
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Task Creation Flow', () => {
 	// Setup: Login before each test

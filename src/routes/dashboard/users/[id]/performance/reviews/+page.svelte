@@ -1,37 +1,37 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import {
-		FileText,
-		Star,
-		Clock,
-		CheckCircle,
-		Calendar,
-		User,
-		TrendingUp,
-		MessageSquare,
-		Target,
 		Award,
-		BookOpen
+		BookOpen,
+		Calendar,
+		CheckCircle,
+		Clock,
+		FileText,
+		MessageSquare,
+		Star,
+		Target,
+		TrendingUp,
+		User
 	} from '@lucide/svelte';
 	import { format, parseISO } from 'date-fns';
 
-	let { data } = $props();
+	const { data } = $props();
 
-	let user = $derived(data.user);
-	let userId = $derived(data.userId);
-	let reviews = $derived(data.reviews);
-	let reviewTypes = $derived(data.reviewTypes);
-	let competencyAreas = $derived(data.competencyAreas);
-	let reviewStats = $derived(data.reviewStats);
-	let canManageReviews = $derived(data.canManageReviews);
-	let isOwnReviews = $derived(data.isOwnReviews);
+	const user = $derived(data.user);
+	const userId = $derived(data.userId);
+	const reviews = $derived(data.reviews);
+	const reviewTypes = $derived(data.reviewTypes);
+	const competencyAreas = $derived(data.competencyAreas);
+	const reviewStats = $derived(data.reviewStats);
+	const canManageReviews = $derived(data.canManageReviews);
+	const isOwnReviews = $derived(data.isOwnReviews);
 
 	let selectedStatus = $state('all');
 	let selectedType = $state('all');
 	let expandedReview = $state(null);
 
 	// Filter reviews based on selected filters
-	let filteredReviews = $derived(
+	const filteredReviews = $derived(
 		reviews.filter((review) => {
 			const statusMatch = selectedStatus === 'all' || review.status === selectedStatus;
 			const typeMatch = selectedType === 'all' || review.type.id === selectedType;

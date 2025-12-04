@@ -6,7 +6,7 @@
  * This test MUST FAIL initially with "enum not defined" error.
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { buildSchema } from 'graphql';
 
 const schemaSDL = `

@@ -3,7 +3,7 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Label } from '$lib/components/ui/label';
 	import { Button } from '$lib/components/ui/button';
-	import { FileText, Upload, Calendar as CalendarIcon } from '@lucide/svelte';
+	import { Calendar as CalendarIcon, FileText, Upload } from '@lucide/svelte';
 	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
 
 	interface Props {

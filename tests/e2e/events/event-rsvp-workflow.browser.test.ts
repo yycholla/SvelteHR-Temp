@@ -8,22 +8,22 @@
 // - Uses WebDriverIO provider
 // - Easier to debug with standard browser APIs
 
-import { test, expect, describe, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test } from 'vitest';
 import {
-	gotoPage,
-	login,
 	clickElement,
-	fillInput,
-	selectOption,
-	isElementVisible,
 	countElements,
-	getElementText,
-	waitForElement,
-	reloadPage,
 	elementHasClass,
 	expectURLMatch,
+	fillInput,
+	getElementText,
+	gotoPage,
+	isElementVisible,
+	login,
+	pageContainsText,
+	reloadPage,
+	selectOption,
 	waitFor,
-	pageContainsText
+	waitForElement
 } from '../../utils/vitest-browser-helpers';
 
 describe('Event RSVP Workflow (Vitest Browser)', () => {

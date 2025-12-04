@@ -1,12 +1,12 @@
-import { test, expect, describe, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test } from 'vitest';
 import {
+	clickElement,
+	fillInput,
+	getPage,
 	gotoPage,
 	login,
-	fillInput,
 	pageContainsText,
-	waitFor,
-	getPage,
-	clickElement
+	waitFor
 } from '../../utils/puppeteer-helpers';
 
 describe('Admin - Training Creation (Puppeteer)', () => {

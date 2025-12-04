@@ -15,7 +15,7 @@
  * - Stream auto-close after completion
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface SSEProgressEvent {
 	batchId: string;

@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { Save, AlertCircle } from '@lucide/svelte';
+	import { AlertCircle, Save } from '@lucide/svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 
-	let { data } = $props();
+	const { data } = $props();
 
-	let settings = $state(
+	const settings = $state(
 		data.settings || {
 			general: {},
 			authentication: {},

@@ -12,7 +12,7 @@
 		class?: string;
 	}
 
-	let { value, id, disabled = false, class: className = '' }: Props = $props();
+	const { value, id, disabled = false, class: className = '' }: Props = $props();
 
 	// Get context from parent RadioGroup
 	const radioGroup = getContext<{

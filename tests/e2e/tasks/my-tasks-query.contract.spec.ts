@@ -6,7 +6,7 @@
  * Tests the myTasks GraphQL query with role-based access control.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('MyTasks Query Contract', () => {
 	test('Employee sees only own tasks', async ({ page }) => {
@@ -182,8 +182,7 @@ test.describe('MyTasks Query Contract', () => {
 		// Verify all tasks match search query (title or description contains "onboarding")
 		for (const task of tasks) {
 			const matchesTitle = task.title.toLowerCase().includes('onboarding');
-			const matchesDescription =
-				task.description && task.description.toLowerCase().includes('onboarding');
+			const matchesDescription = task.description?.toLowerCase().includes('onboarding');
 			expect(matchesTitle || matchesDescription).toBe(true);
 		}
 	});

@@ -22,10 +22,10 @@
 		onPermissionChange: (resource: string, changes: Partial<ResourcePermissions>) => void;
 	}
 
-	let { permissions, permissionsState, onPermissionChange }: Props = $props();
+	const { permissions, permissionsState, onPermissionChange }: Props = $props();
 
 	// Group permissions by resource with state
-	let permissionsByResource = $derived.by(() => {
+	const permissionsByResource = $derived.by(() => {
 		const grouped: Record<string, ResourcePermissions & { allPermissions: Permission[] }> = {};
 
 		// First, organize all permissions by resource
@@ -160,7 +160,7 @@
 	}
 
 	// Sort resources alphabetically
-	let sortedResources = $derived(Object.keys(permissionsByResource).sort());
+	const sortedResources = $derived(Object.keys(permissionsByResource).sort());
 </script>
 
 <div class="overflow-x-auto">

@@ -15,7 +15,13 @@
 		size?: 'sm' | 'md' | 'lg';
 	}
 
-	let { currentStatus, onChange, disabled = false, loading = false, size = 'md' }: Props = $props();
+	const {
+		currentStatus,
+		onChange,
+		disabled = false,
+		loading = false,
+		size = 'md'
+	}: Props = $props();
 
 	// Local state
 	let isOpen = $state(false);
@@ -32,7 +38,7 @@
 	};
 
 	// Derived values
-	let buttonClasses = $derived(`
+	const buttonClasses = $derived(`
 		inline-flex items-center gap-2 rounded-lg font-medium transition-all
 		${sizeClasses[size]}
 		${getRsvpStatusColor(currentStatus)}
@@ -40,8 +46,8 @@
 		border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
 	`);
 
-	let currentLabel = $derived(RSVP_STATUS_LABELS[currentStatus]);
-	let currentIcon = $derived(getRsvpStatusIcon(currentStatus));
+	const currentLabel = $derived(RSVP_STATUS_LABELS[currentStatus]);
+	const currentIcon = $derived(getRsvpStatusIcon(currentStatus));
 
 	function toggleDropdown() {
 		if (!disabled && !loading) {

@@ -7,11 +7,11 @@
  * MUST FAIL until implementation in src/lib/utils/calendar.ts
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-	detectConflict,
 	calculateOverlap,
 	classifySeverity,
+	detectConflict,
 	findConflictingEvents
 } from '$lib/utils/calendar';
 import type { CalendarEvent } from '$lib/types/events';

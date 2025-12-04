@@ -4,15 +4,15 @@
 	import ClientOnly from '$lib/components/client-only.svelte';
 	import TestModeBanner from '$lib/components/test-mode-banner.svelte';
 	import { notificationStore } from '$lib/stores/notifications.svelte';
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { getEffectivePermissions } from '$lib/stores/permission-test.svelte';
 	import { sidebarState } from '$lib/stores/sidebar.svelte';
 	import type { LayoutData } from './$types';
 
-	let { children, data }: { children: any; data: LayoutData } = $props();
+	const { children, data }: { children: any; data: LayoutData } = $props();
 
 	// Compute effective permissions (test mode or real)
-	let permissions = $derived(getEffectivePermissions(data.permissions || []));
+	const permissions = $derived(getEffectivePermissions(data.permissions || []));
 
 	// Initialize notifications - auth already validated server-side in hooks.server.ts
 	onMount(() => {

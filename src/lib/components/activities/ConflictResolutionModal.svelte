@@ -34,7 +34,7 @@
 		isOpen: boolean;
 	}
 
-	let { logId, conflictDetails, reason, onResolve, onCancel, isOpen }: Props = $props();
+	const { logId, conflictDetails, reason, onResolve, onCancel, isOpen }: Props = $props();
 
 	let selectedStrategy = $state<'force' | 'cancel' | 'merge'>('cancel');
 	let selectedFields = $state<Set<string>>(new Set());

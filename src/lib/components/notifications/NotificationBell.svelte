@@ -17,7 +17,7 @@
 		maxDisplayed?: number;
 	}
 
-	let {
+	const {
 		notifications,
 		unreadCount,
 		onMarkAsRead,
@@ -33,7 +33,7 @@
 	let buttonRef: HTMLButtonElement | undefined = $state();
 
 	// Displayed notifications (limited)
-	let displayedNotifications = $derived(notifications.slice(0, maxDisplayed));
+	const displayedNotifications = $derived(notifications.slice(0, maxDisplayed));
 
 	// Category icons
 	function getCategoryIcon(category: Notification['category']): string {

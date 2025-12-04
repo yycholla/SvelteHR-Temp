@@ -14,15 +14,15 @@
 
 import {
 	DocumentNode,
-	visit,
 	FieldNode,
-	SelectionSetNode,
-	Kind,
 	GraphQLSchema,
-	isListType,
-	getNamedType,
-	isObjectType,
+	Kind,
+	SelectionSetNode,
 	TypeInfo,
+	getNamedType,
+	isListType,
+	isObjectType,
+	visit,
 	visitWithTypeInfo
 } from 'graphql';
 import type { QueryAnalysis, ResolverCall } from '../../tests/generated/test-types';
@@ -265,8 +265,7 @@ export class NPlusOneDetector {
 				(selection) =>
 					selection.kind === Kind.FIELD &&
 					selection.name.value === 'edges' &&
-					selection.selectionSet &&
-					selection.selectionSet.selections.some(
+					selection.selectionSet?.selections.some(
 						(edgeSelection) =>
 							edgeSelection.kind === Kind.FIELD &&
 							edgeSelection.name.value === 'node' &&

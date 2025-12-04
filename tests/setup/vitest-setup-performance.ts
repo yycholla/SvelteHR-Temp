@@ -2,7 +2,7 @@
 // Performance monitoring and benchmarking setup
 // Created: 2025-09-24
 
-import { beforeAll, afterAll } from 'vitest';
+import { afterAll, beforeAll } from 'vitest';
 import {
 	startPerformanceMonitoring,
 	stopPerformanceMonitoring

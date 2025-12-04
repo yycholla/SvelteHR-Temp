@@ -68,7 +68,7 @@ export const load: PageServerLoad = async (event) => {
 			executeQuery(client, departmentsQuery, { limit: 100, offset: 0 })
 		]);
 
-		let users = usersData?.users || [];
+		const users = usersData?.users || [];
 		const departments = departmentsData?.departments || [];
 
 		// Build roles list from user data (flatten and get unique role values)
@@ -82,8 +82,8 @@ export const load: PageServerLoad = async (event) => {
 
 		// Filter by role
 		if (roleFilter) {
-			filteredUsers = filteredUsers.filter(
-				(u: any) => u.roles && u.roles.some((r: any) => r.name === roleFilter)
+			filteredUsers = filteredUsers.filter((u: any) =>
+				u.roles?.some((r: any) => r.name === roleFilter)
 			);
 		}
 

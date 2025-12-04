@@ -1,7 +1,7 @@
 // Storage exists check API endpoint (Feature 024)
 // GET /api/storage/exists?path=... - Check if storage path exists
 
-import { json, error } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url, locals }) => {

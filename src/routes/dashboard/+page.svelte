@@ -4,19 +4,19 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
 	import {
+		AlertTriangle,
+		ArrowRight,
 		Calendar,
 		CheckCircle,
-		Clock,
-		MapPin,
-		TrendingUp,
-		User,
-		FileText,
-		Target,
-		AlertTriangle,
 		CheckSquare,
+		Clock,
+		FileText,
+		MapPin,
 		Plus,
-		ArrowRight,
-		Settings
+		Settings,
+		Target,
+		TrendingUp,
+		User
 	} from '@lucide/svelte';
 	import type { PageData } from './$types';
 

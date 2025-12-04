@@ -3,7 +3,7 @@
 // Task: T009 - E2E test Management overview dashboard page
 // CRITICAL: This test MUST FAIL initially as per TDD approach
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Management Overview Dashboard Page', () => {
 	test.beforeEach(async ({ page }) => {

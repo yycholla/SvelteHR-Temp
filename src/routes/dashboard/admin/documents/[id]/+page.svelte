@@ -7,11 +7,11 @@
 	import * as Card from '$lib/components/ui/card';
 	import PreviewModal from '$lib/components/documents/PreviewModal.svelte';
 	import DocumentAssignmentModal from '$lib/components/documents/DocumentAssignmentModal.svelte';
-	import { ArrowLeft, Eye, Download, Users, Trash2 } from '@lucide/svelte';
+	import { ArrowLeft, Download, Eye, Trash2, Users } from '@lucide/svelte';
 	import type { PageData } from './$types';
 	import type { DocumentAssignment } from '$lib/types/document';
 
-	let { data }: { data: PageData } = $props();
+	const { data }: { data: PageData } = $props();
 
 	// Svelte 5 state
 	let isPreviewOpen = $state(false);
@@ -29,11 +29,11 @@
 	};
 
 	// Derived state
-	let sensitivityClass = $derived(
+	const sensitivityClass = $derived(
 		sensitivityColors[data.document.sensitivity_level] || 'bg-muted text-muted-foreground'
 	);
 
-	let uploadDate = $derived(new Date(data.document.uploaded_at).toLocaleString());
+	const uploadDate = $derived(new Date(data.document.uploaded_at).toLocaleString());
 
 	// Handle preview
 	async function handlePreview() {

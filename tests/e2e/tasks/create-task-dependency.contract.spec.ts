@@ -6,7 +6,7 @@
  * Tests the createTaskDependency GraphQL mutation with circular dependency prevention.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('CreateTaskDependency Mutation Contract', () => {
 	let taskAId: string;

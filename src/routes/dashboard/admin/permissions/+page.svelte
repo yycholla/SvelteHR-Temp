@@ -1,27 +1,27 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { invalidateAll, goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import {
-		Shield,
-		Users,
-		Plus,
-		Edit,
-		Trash2,
 		Check,
-		X,
-		Search,
 		ChevronDown,
-		ChevronRight
+		ChevronRight,
+		Edit,
+		Plus,
+		Search,
+		Shield,
+		Trash2,
+		Users,
+		X
 	} from '@lucide/svelte';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
-	import { permissionTestActions, isTestModeActive } from '$lib/stores/permission-test.svelte';
+	import { isTestModeActive, permissionTestActions } from '$lib/stores/permission-test.svelte';
 	import { Beaker } from '@lucide/svelte';
 
-	let { data } = $props();
+	const { data } = $props();
 
 	// Debug logging
 	console.log('[PERMISSIONS PAGE] Data:', data);
@@ -68,7 +68,7 @@
 	}
 
 	// Derived states
-	let filteredRoles = $derived(
+	const filteredRoles = $derived(
 		data.roles.filter((role: any) => {
 			if (!searchQuery) return true;
 			const query = searchQuery.toLowerCase();
@@ -78,7 +78,7 @@
 		})
 	);
 
-	let filteredUsers = $derived(
+	const filteredUsers = $derived(
 		data.users.filter((user: any) => {
 			if (!searchQuery) return true;
 			const query = searchQuery.toLowerCase();
@@ -89,7 +89,7 @@
 	);
 
 	// Group permissions by resource for better organization
-	let permissionsByResource = $derived(
+	const permissionsByResource = $derived(
 		data.permissions.reduce((acc: Record<string, any[]>, permission: any) => {
 			const resource = permission.resource || 'general';
 			if (!acc[resource]) {

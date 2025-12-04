@@ -2,7 +2,7 @@
 // These tests should FAIL initially - admin routes may not have proper permission checks
 // SECURITY CRITICAL: Ensures only authorized admins can access admin routes
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 // Test helper to create a session with specific permissions
 async function loginWithPermissions(

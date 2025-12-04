@@ -6,8 +6,8 @@
  * This test MUST FAIL initially because reviewTypes query is not implemented.
  */
 
-import { test, expect, describe, beforeAll, afterAll } from 'vitest';
-import { createTestContext, cleanupTestData, TestUser } from '../utils/test-helpers';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { TestUser, cleanupTestData, createTestContext } from '../utils/test-helpers';
 import { performGraphQLMutation, performGraphQLQuery } from '../utils/graphql-test-client';
 
 interface TestContext {
@@ -58,7 +58,7 @@ describe('T018: All 10 review types available', () => {
 			authTokens: {
 				admin: admin.token
 			},
-			users: { admin, hrManager: null, manager: null, employee: employee }, // Placeholder
+			users: { admin, hrManager: null, manager: null, employee }, // Placeholder
 			departments: { engineering: null, marketing: null, hr: null }, // Placeholder
 			createdEmployees: [],
 			createdUsers: [],

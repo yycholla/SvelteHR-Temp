@@ -1,8 +1,8 @@
 // Performance test: Bulk upload with parallel requests (T048)
 // Tests system performance under concurrent upload load
 
-import { describe, it, expect, beforeAll } from 'vitest';
-import { generateEncryptionKey, encryptFile } from '$lib/services/encryption';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { encryptFile, generateEncryptionKey } from '$lib/services/encryption';
 
 /**
  * Performance Test: Bulk Upload with Parallel Requests

@@ -11,7 +11,7 @@
 	import { Download, Search } from '@lucide/svelte';
 	import type { PageData } from './$types';
 
-	let { data }: { data: PageData } = $props();
+	const { data }: { data: PageData } = $props();
 
 	// Svelte 5 state
 	let filterDocumentId = $state('');
@@ -69,8 +69,8 @@
 	}
 
 	// Derived state
-	let totalPages = $derived(Math.ceil(data.totalCount / data.limit));
-	let hasLogs = $derived(data.accessLogs.length > 0);
+	const totalPages = $derived(Math.ceil(data.totalCount / data.limit));
+	const hasLogs = $derived(data.accessLogs.length > 0);
 </script>
 
 <svelte:head>

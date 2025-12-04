@@ -2,7 +2,7 @@
 <script lang="ts">
 	import DataTable from '../data-table.svelte';
 
-	let { ...props } = $props();
+	const { ...props } = $props();
 </script>
 
 <DataTable {...props}>

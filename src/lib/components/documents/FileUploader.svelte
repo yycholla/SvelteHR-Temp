@@ -3,7 +3,7 @@
 	// Simple drag-and-drop file selection for server-side encryption
 	// Encryption happens on SvelteKit server, not in browser
 
-	import { validateFileType, validateFileSize, MIME_TYPE_MAP } from '$lib/schemas/documentSchemas';
+	import { MIME_TYPE_MAP, validateFileSize, validateFileType } from '$lib/schemas/documentSchemas';
 	import type { DocumentMetadata } from '$lib/types/document';
 
 	interface Props {

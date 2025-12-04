@@ -9,9 +9,9 @@
 	import Card from '../base/Card.svelte';
 	import { validateForm } from '$lib/utils/validation';
 	import type { ValidationResult } from '$lib/utils/validation';
-	import type { User, CreateUserInput, UpdateUserInput } from '$lib/types';
+	import type { CreateUserInput, UpdateUserInput, User } from '$lib/types';
 
-	let {
+	const {
 		employee = null,
 		isEditing = false,
 		loading = false,
@@ -122,14 +122,14 @@
 	];
 
 	// Computed values
-	let departmentOptions = $derived(
+	const departmentOptions = $derived(
 		$departments.map((dept: any) => ({
 			value: dept.id,
 			label: dept.name
 		}))
 	);
 
-	let managerOptions = $derived([
+	const managerOptions = $derived([
 		{ value: '', label: 'No Manager' }
 		// TODO: Load actual managers from API
 	]);

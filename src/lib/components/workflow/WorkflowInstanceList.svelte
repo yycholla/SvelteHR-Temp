@@ -2,8 +2,8 @@
 	import { onMount } from 'svelte';
 	import {
 		filteredInstances,
-		workflowActions,
 		isWorkflowLoading,
+		workflowActions,
 		workflowError
 	} from '$lib/stores/workflow';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -11,7 +11,7 @@
 	import WorkflowInstanceDetails from './WorkflowInstanceDetails.svelte';
 
 	// Props
-	let {
+	const {
 		showFilters = true,
 		limit = 50,
 		definitionId = null

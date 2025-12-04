@@ -7,7 +7,7 @@
  * MUST FAIL until EventCreateDialog component is implemented.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import path from 'path';
 
 test.describe('Create New Event', () => {

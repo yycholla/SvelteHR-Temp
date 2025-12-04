@@ -2,7 +2,7 @@
 // Feature: 028-task-system-expansion - T051
 // Purpose: Test parent-child task relationships and hierarchy
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Task Hierarchy and Subtasks', () => {
 	let parentTaskId: string;

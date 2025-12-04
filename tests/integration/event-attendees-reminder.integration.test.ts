@@ -12,8 +12,8 @@
  * - event_attendees table with reminder_time column
  */
 
-import { test, expect, describe, beforeAll, afterAll } from 'vitest';
-import { createClient, type Client, cacheExchange, fetchExchange } from '@urql/core';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { type Client, cacheExchange, createClient, fetchExchange } from '@urql/core';
 import fetch from 'node-fetch';
 
 // GraphQL client configuration

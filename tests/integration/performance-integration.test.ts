@@ -9,7 +9,7 @@
  * - API endpoints
  */
 
-import { describe, test, expect, beforeAll, afterAll } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { createUrqlClient } from '$lib/graphql/client.js';
 import { performanceMonitor } from '$lib/performance/client-monitor.js';
 import { serverPerformanceMonitor } from '$lib/performance/server-monitor.js';

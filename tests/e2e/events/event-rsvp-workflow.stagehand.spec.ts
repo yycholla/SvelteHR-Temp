@@ -9,16 +9,16 @@
 // - Automatic adaptation to UI changes
 // - Better handling of dynamic content
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { z } from 'zod';
 import {
-	initStagehand,
-	gotoPage,
-	performAction,
-	extractData,
+	CommonSchemas,
 	cleanupStagehand,
+	extractData,
+	gotoPage,
+	initStagehand,
 	loginWithStagehand,
-	CommonSchemas
+	performAction
 } from '../../utils/stagehand-helpers';
 
 test.describe('Event RSVP Workflow (Stagehand)', () => {

@@ -5,7 +5,7 @@
 
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { createSignatureWorker, type SignatureWorker } from './signature-worker.js';
+import { type SignatureWorker, createSignatureWorker } from './signature-worker.js';
 
 /**
  * Main function to start the signature worker
@@ -47,8 +47,8 @@ async function main(): Promise<void> {
 			process.exit(0);
 		};
 
-		process.on('SIGINT', () => shutdown('SIGINT'));
-		process.on('SIGTERM', () => shutdown('SIGTERM'));
+		process.on('SIGINT', async () => shutdown('SIGINT'));
+		process.on('SIGTERM', async () => shutdown('SIGTERM'));
 
 		// Keep process alive
 		process.on('uncaughtException', (error) => {

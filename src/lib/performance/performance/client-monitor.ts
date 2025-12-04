@@ -18,9 +18,9 @@
  */
 
 import { browser } from '$app/environment';
-import { beforeNavigate, afterNavigate } from '$app/navigation';
-import { writable, derived, readonly } from 'svelte/store';
-import type { Writable, Readable } from 'svelte/store';
+import { afterNavigate, beforeNavigate } from '$app/navigation';
+import { derived, readonly, writable } from 'svelte/store';
+import type { Readable, Writable } from 'svelte/store';
 
 /**
  * UUID generation with fallbacks for environments that don't support crypto.randomUUID()

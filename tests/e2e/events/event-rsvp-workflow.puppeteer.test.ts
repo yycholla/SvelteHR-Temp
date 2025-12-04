@@ -4,23 +4,23 @@
 //
 // Puppeteer provides better Arch Linux support than Playwright
 
-import { test, expect, describe, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test } from 'vitest';
 import {
-	gotoPage,
-	login,
 	clickElement,
-	fillInput,
-	selectOption,
-	isElementVisible,
 	countElements,
-	getElementText,
-	waitForElement,
-	reloadPage,
 	elementHasClass,
 	expectURLMatch,
-	waitFor,
+	fillInput,
+	getElementText,
+	getPage,
+	gotoPage,
+	isElementVisible,
+	login,
 	pageContainsText,
-	getPage
+	reloadPage,
+	selectOption,
+	waitFor,
+	waitForElement
 } from '../../utils/puppeteer-helpers';
 
 describe('Event RSVP Workflow (Puppeteer)', () => {

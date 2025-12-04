@@ -7,12 +7,12 @@
 	import { Input } from '$lib/components/ui/input';
 	import NativeSelect from '$lib/components/ui/native-select/native-select.svelte';
 	import * as Table from '$lib/components/ui/table';
-	import { Search, ArrowUpDown } from '@lucide/svelte';
+	import { ArrowUpDown, Search } from '@lucide/svelte';
 	import type { Document } from '$lib/types/document';
 	import type {
 		DocumentCategory,
-		SensitivityLevel,
 		FileType,
+		SensitivityLevel,
 		SortField,
 		SortOrder
 	} from '$lib/types/document';
@@ -40,7 +40,7 @@
 		onDownload?: (documentId: string) => void;
 	}
 
-	let {
+	const {
 		documents = [],
 		totalCount = 0,
 		currentPage = 1,
@@ -65,10 +65,10 @@
 	let search = $state(searchQuery);
 
 	// Derived state
-	let totalPages = $derived(Math.ceil(totalCount / pageSize));
-	let hasDocuments = $derived(documents.length > 0);
-	let startIndex = $derived((currentPage - 1) * pageSize + 1);
-	let endIndex = $derived(Math.min(currentPage * pageSize, totalCount));
+	const totalPages = $derived(Math.ceil(totalCount / pageSize));
+	const hasDocuments = $derived(documents.length > 0);
+	const startIndex = $derived((currentPage - 1) * pageSize + 1);
+	const endIndex = $derived(Math.min(currentPage * pageSize, totalCount));
 
 	// Categories and sensitivity levels for filters
 	const categories: DocumentCategory[] = [

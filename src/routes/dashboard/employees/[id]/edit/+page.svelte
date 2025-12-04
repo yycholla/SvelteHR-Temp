@@ -154,17 +154,17 @@
 
 	// Compensation
 	let salaryAmount = $state(data.employee.compensation?.salaryAmount || 0);
-	let salaryCurrency = $state(data.employee.compensation?.salaryCurrency || 'USD');
+	const salaryCurrency = $state(data.employee.compensation?.salaryCurrency || 'USD');
 	let payFrequency = $state(data.employee.compensation?.payFrequency || 'monthly');
 	let payType = $state(data.employee.compensation?.payType || 'salary');
-	let hourlyRate = $state(data.employee.compensation?.hourlyRate || 0);
-	let effectiveDate = $state(formatDateForInput(data.employee.compensation?.effectiveDate || ''));
+	const hourlyRate = $state(data.employee.compensation?.hourlyRate || 0);
+	const effectiveDate = $state(formatDateForInput(data.employee.compensation?.effectiveDate || ''));
 	let bankName = $state(data.employee.compensation?.bankName || '');
 	let bankAccountType = $state(data.employee.compensation?.bankAccountType || 'checking');
 	let bankAccountNumberLast4 = $state(data.employee.compensation?.bankAccountNumberLast4 || '');
 	let bankRoutingNumber = $state(data.employee.compensation?.bankRoutingNumber || '');
-	let paymentMethod = $state(data.employee.compensation?.paymentMethod || 'direct_deposit');
-	let taxIdLast4 = $state(data.employee.compensation?.taxIdLast4 || '');
+	const paymentMethod = $state(data.employee.compensation?.paymentMethod || 'direct_deposit');
+	const taxIdLast4 = $state(data.employee.compensation?.taxIdLast4 || '');
 
 	// Map roles from database to dropdown options
 	const roleOptions = $derived(

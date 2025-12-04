@@ -331,7 +331,7 @@ export class UserSession {
 			type: 'token_refresh',
 			details: {
 				previousExpiresAt: this.expiresAt,
-				newExpiresAt: newExpiresAt
+				newExpiresAt
 			}
 		});
 

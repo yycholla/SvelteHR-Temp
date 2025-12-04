@@ -1,7 +1,7 @@
 // Storage delete API endpoint (Feature 024)
 // DELETE /api/storage/delete - Delete encrypted file data
 
-import { json, error } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
 export const DELETE: RequestHandler = async ({ request, locals }) => {

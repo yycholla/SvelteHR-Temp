@@ -11,9 +11,9 @@
  * 4. VerificationReport schema validation
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { spawn } from 'child_process';
-import { existsSync, readFileSync, mkdirSync, rmSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'fs';
 import { join } from 'path';
 
 const CLI_PATH = join(process.cwd(), 'scripts/db/verify-schema.ts');

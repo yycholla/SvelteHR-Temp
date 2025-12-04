@@ -100,8 +100,8 @@ export const load: PageServerLoad = async (event) => {
 		`;
 
 		const reviewsVariables = {
-			limit: limit,
-			offset: offset
+			limit,
+			offset
 		};
 
 		const reviewsResponse = await client.query<{
@@ -218,7 +218,7 @@ export const load: PageServerLoad = async (event) => {
 				reviewPeriodEnd: review.cycle?.endDate || null,
 				overallRating: review.overallRating || 0,
 				goals: goalsText,
-				goalIds: goalIds, // For edit dialog
+				goalIds, // For edit dialog
 				newGoals: [], // For edit dialog - new goals added during review creation
 				notes: '', // Notes field not available in schema yet
 				achievements: '', // Not available in normalized structure
@@ -301,7 +301,7 @@ export const load: PageServerLoad = async (event) => {
 			reviewAnalytics: {
 				totalReviews: totalCount,
 				completedReviews: completedCount,
-				overdueReviews: overdueReviews,
+				overdueReviews,
 				completionRate,
 				averageRatings: {
 					overall: Math.round(averageRating * 10) / 10, // Round to 1 decimal

@@ -19,15 +19,15 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import {
-		Link2,
-		Link2Off,
 		AlertTriangle,
 		CheckCircle,
 		Circle,
-		XCircle,
+		Link2,
+		Link2Off,
 		Plus,
 		Search,
-		Trash2
+		Trash2,
+		XCircle
 	} from '@lucide/svelte';
 
 	interface Props {
@@ -38,7 +38,7 @@
 		loading?: boolean;
 	}
 
-	let {
+	const {
 		task,
 		availableTasks,
 		onAddDependency,
@@ -54,14 +54,14 @@
 	let isSubmitting = $state(false);
 
 	// Derived state - blocking tasks (tasks that this task blocks)
-	let blockingDependencies = $derived(task.taskDependenciesByBlockingTaskId?.nodes || []);
+	const blockingDependencies = $derived(task.taskDependenciesByBlockingTaskId?.nodes || []);
 
 	// Derived state - blocked tasks (tasks that block this task)
-	let blockedByDependencies = $derived(task.taskDependenciesByBlockedTaskId?.nodes || []);
+	const blockedByDependencies = $derived(task.taskDependenciesByBlockedTaskId?.nodes || []);
 
 	// Filter available tasks for dependency creation
-	let filteredTasks = $derived(() => {
-		let filtered = availableTasks.filter((t) => {
+	const filteredTasks = $derived(() => {
+		const filtered = availableTasks.filter((t) => {
 			// Exclude current task
 			if (t.id === task.id) return false;
 
@@ -85,7 +85,7 @@
 	});
 
 	// Task options for select dropdown
-	let taskOptions = $derived(
+	const taskOptions = $derived(
 		filteredTasks().map((t) => ({
 			value: t.id,
 			label: `${t.title} (${t.status})`

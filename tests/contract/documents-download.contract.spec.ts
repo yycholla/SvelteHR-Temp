@@ -1,7 +1,7 @@
 // Contract test: Document download API (T013)
 // Tests GET /api/documents/{id}/download endpoint
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
  * Contract Test: Document Download API
