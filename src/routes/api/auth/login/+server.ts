@@ -25,8 +25,38 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 			);
 		}
 
-		const { email, password } = await request.json();
-		console.log('[Login] Credentials received:', { email, hasPassword: !!password });
+		// Support both JSON and form-encoded requests for graceful degradation
+		const contentType = request.headers.get('content-type') || '';
+		let email: string;
+		let password: string;
+		let rememberMe = false;
+
+		if (contentType.includes('application/json')) {
+			// Current JSON-based submission (JavaScript enabled)
+			const body = await request.json();
+			email = body.email;
+			password = body.password;
+			rememberMe = body.rememberMe || false;
+			console.log('[Login] JSON credentials received:', { email, hasPassword: !!password });
+		} else if (contentType.includes('application/x-www-form-urlencoded') || contentType.includes('multipart/form-data')) {
+			// Fallback form submission (JavaScript disabled or failed to load)
+			const formData = await request.formData();
+			email = formData.get('email') as string;
+			password = formData.get('password') as string;
+			rememberMe = formData.get('rememberMe') === 'on' || formData.get('rememberMe') === 'true';
+			console.log('[Login] Form-data credentials received (JS fallback):', { email, hasPassword: !!password });
+		} else {
+			console.warn('[Login] Invalid content type:', contentType);
+			recordFailedLogin(clientIp);
+			return json(
+				{
+					success: false,
+					error: 'Invalid content type',
+					message: 'Request must be JSON or form-encoded'
+				},
+				{ status: 400 }
+			);
+		}
 
 		if (!email || !password) {
 			console.log('[Login] Missing credentials');

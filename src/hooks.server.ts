@@ -336,6 +336,32 @@ export const handle: Handle = sequence(Sentry.sentryHandle(), async ({ event, re
 			});
 		}
 
+		// SECURITY: Detect potential credential leakage in URLs
+		const suspiciousParams = ['password', 'pass', 'pwd', 'token', 'secret', 'key'];
+		for (const param of suspiciousParams) {
+			if (event.url.searchParams.has(param)) {
+				// Log security alert
+				console.error('[SECURITY ALERT] Sensitive parameter detected in URL', {
+					pathname,
+					parameter: param,
+					timestamp: new Date().toISOString(),
+					ip: event.getClientAddress(),
+					requestId,
+					userAgent: userAgent?.slice(0, 100)
+				});
+
+				logger.warn(`[SECURITY] Credential parameter '${param}' detected in URL: ${pathname}`, {
+					requestId,
+					ip: event.getClientAddress()
+				});
+
+				// Redirect to clean URL to prevent exposure in logs and history
+				const cleanUrl = new URL(event.url);
+				cleanUrl.searchParams.delete(param);
+				throw redirect(302, cleanUrl.toString());
+			}
+		}
+
 		// Performance optimization: Skip authentication for static files
 		const isStaticFile = STATIC_EXTENSIONS.has(pathname.substring(pathname.lastIndexOf('.')));
 		if (isStaticFile) {
@@ -446,8 +472,9 @@ export const handle: Handle = sequence(Sentry.sentryHandle(), async ({ event, re
 		// XSS protection (legacy browsers)
 		response.headers.set('X-XSS-Protection', '1; mode=block');
 
-		// Referrer policy - only send origin for cross-origin requests
-		response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+		// Referrer policy - prevent credential disclosure in referrer headers
+		// Using 'no-referrer' for maximum security (was 'strict-origin-when-cross-origin')
+		response.headers.set('Referrer-Policy', 'no-referrer');
 
 		// Permissions policy - restrict dangerous features
 		response.headers.set(

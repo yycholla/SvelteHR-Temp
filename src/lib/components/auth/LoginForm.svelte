@@ -55,9 +55,35 @@ import { type UserRoleAssignment, createRBACManager } from '$lib/auth/rbac';
 		return Object.keys(formErrors).length === 0;
 	};
 
+	// SECURITY: Verify credentials are never in URL before submission
+	const ensureNoCredentialsInURL = (): boolean => {
+		if (typeof window === 'undefined') return true;
+
+		const url = new URL(window.location.href);
+		const suspiciousParams = ['password', 'pass', 'email', 'username', 'pwd', 'token', 'secret'];
+
+		for (const param of suspiciousParams) {
+			if (url.searchParams.has(param)) {
+				console.error('[SECURITY] Credentials detected in URL, clearing...');
+				// Clear the URL without reloading
+				window.history.replaceState({}, '', url.pathname);
+				return false;
+			}
+		}
+
+		return true;
+	};
+
 	// Handle form submission
 	const handleSubmit = async (event: Event) => {
 		event.preventDefault();
+		event.stopPropagation(); // Prevent any parent handlers
+
+		// SECURITY: Ensure no credentials in URL
+		if (!ensureNoCredentialsInURL()) {
+			auth.setError('Security check failed. Please try again.');
+			return;
+		}
 
 		// Prevent multiple submissions
 		if (isSubmitting || hasSucceeded || !validateForm()) return;
@@ -113,7 +139,14 @@ import { type UserRoleAssignment, createRBACManager } from '$lib/auth/rbac';
 </script>
 
 <div class="mx-auto w-full max-w-md">
-	<form onsubmit={handleSubmit} class="space-y-6" novalidate data-testid="login-form">
+	<form
+		method="post"
+		action="/api/auth/login"
+		onsubmit={handleSubmit}
+		class="space-y-6"
+		novalidate
+		data-testid="login-form"
+	>
 		<!-- Header -->
 		<div class="text-center">
 			<h1 class="text-2xl font-semibold text-foreground">Sign in to MountainHR</h1>
