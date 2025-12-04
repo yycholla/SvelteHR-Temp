@@ -109,9 +109,9 @@ export default defineConfig({
 					name: 'unit-client',
 					environment: 'jsdom',
 					include: [
-				'tests/unit/components/**/*.{test,spec}.{js,ts}',
-				'src/lib/components/**/*.{test,spec}.{js,ts}'
-			],
+						'tests/unit/components/**/*.{test,spec}.{js,ts}',
+						'src/lib/components/**/*.{test,spec}.{js,ts}'
+					],
 					exclude: [
 						'src/lib/server/**',
 						'tests/integration/**',
@@ -247,8 +247,8 @@ export default defineConfig({
 					environment: 'node',
 					include: [
 						'tests/contract/graphql-schema-validation.test.ts',
-						'tests/contract/test_graphql_schema.spec.ts',
-				],
+						'tests/contract/test_graphql_schema.spec.ts'
+					],
 					exclude: [
 						'tests/unit/**',
 						'tests/integration/**',
@@ -281,8 +281,7 @@ export default defineConfig({
 					name: 'graphql-performance',
 					environment: 'node',
 					include: [
-						'tests/performance/**/*graphql*.{test,spec}.{js,ts}',
-						'tests/unit/graphql/**/*performance*.{test,spec}.{js,ts}'
+						'tests/performance/**/*graphql*.{test,spec}.{js,ts}'
 					],
 					exclude: ['tests/unit/components/**', 'tests/contract/**', 'tests/e2e/**'],
 					setupFiles: ['./tests/setup/vitest-setup-graphql-performance.ts'],
@@ -412,7 +411,6 @@ export default defineConfig({
 					setupFiles: ['./tests/setup/vitest-setup-e2e-playwright.ts'],
 					testTimeout: 60000,
 					hookTimeout: 30000,
-					// Disable coverage for E2E tests
 					coverage: {
 						enabled: false
 					},
@@ -437,7 +435,6 @@ export default defineConfig({
 					setupFiles: ['./tests/setup/vitest-setup-security.ts'],
 					testTimeout: 30000,
 					hookTimeout: 15000,
-					// Disable coverage for security tests
 					coverage: {
 						enabled: false
 					},
