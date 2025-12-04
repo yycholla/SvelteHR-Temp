@@ -3,7 +3,7 @@ import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
 import { urqlClient } from '$lib/api/urql-client';
-import { GET_ONBOARDING_MODULE } from '$lib/graphql/onboarding-operations';
+import { GET_ONBOARDING_MODULE_QUERY } from '$lib/graphql/onboarding-operations';
 import {
 	GET_FORMS_BY_MODULE,
 	SAVE_FORM_PROGRESS,
@@ -22,7 +22,7 @@ export const load: PageServerLoad = async (event) => {
 
 	try {
 		// Fetch onboarding module
-		const moduleResult = await urqlClient.query(GET_ONBOARDING_MODULE, { id });
+		const moduleResult = await urqlClient.query(GET_ONBOARDING_MODULE_QUERY, { id });
 
 		if (moduleResult.error) {
 			console.error('Error fetching module:', moduleResult.error);
