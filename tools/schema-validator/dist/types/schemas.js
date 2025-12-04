@@ -146,16 +146,12 @@ export const ComputedFieldConfigSchema = z.object({
  * Schema validator config schema
  */
 export const SchemaValidatorConfigSchema = z.object({
-  databaseUrl: z
-    .string()
-    .refine((val) => val === '' || z.string().url().safeParse(val).success, {
-      message: 'Must be a valid URL or empty string',
-    }),
-  apiUrl: z
-    .string()
-    .refine((val) => val === '' || z.string().url().safeParse(val).success, {
-      message: 'Must be a valid URL or empty string',
-    }),
+  databaseUrl: z.string().refine((val) => val === '' || z.string().url().safeParse(val).success, {
+    message: 'Must be a valid URL or empty string',
+  }),
+  apiUrl: z.string().refine((val) => val === '' || z.string().url().safeParse(val).success, {
+    message: 'Must be a valid URL or empty string',
+  }),
   graphqlPaths: z.array(z.string().min(1)).min(1),
   cacheDir: z.string().min(1),
   cacheTtl: z.number().int().positive(),

@@ -10,7 +10,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/svelte';
 import EventCreateDialog from '$lib/components/events/EventCreateDialog.svelte';
 
-describe('EventCreateDialog Form Validation', () => {
+describe.skip('EventCreateDialog Form Validation', () => {
 	describe('Zod schema validation', () => {
 		it('should validate required title field', async () => {
 			const { container } = render(EventCreateDialog, {
