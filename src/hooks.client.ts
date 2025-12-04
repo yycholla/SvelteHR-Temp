@@ -1,8 +1,8 @@
 import {
-	handleErrorWithSentry,
-	replayIntegration,
+	breadcrumbsIntegration,
 	feedbackIntegration,
-	breadcrumbsIntegration
+	handleErrorWithSentry,
+	replayIntegration
 } from '@sentry/sveltekit';
 import * as Sentry from '@sentry/sveltekit';
 
