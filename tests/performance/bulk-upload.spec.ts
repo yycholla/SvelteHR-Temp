@@ -135,7 +135,8 @@ describe('Bulk Upload Performance Tests', () => {
 			const p50 = uploadLatencies[Math.floor(uploadLatencies.length * 0.5)];
 			const p95 = uploadLatencies[Math.floor(uploadLatencies.length * 0.95)];
 			const p99 = uploadLatencies[Math.floor(uploadLatencies.length * 0.99)];
-			const avgLatency = uploadLatencies.reduce((sum, val) => sum + val, 0) / uploadLatencies.length;
+			const avgLatency =
+				uploadLatencies.reduce((sum, val) => sum + val, 0) / uploadLatencies.length;
 
 			// Calculate throughput
 			const totalDataMB = TOTAL_FILES * FILE_SIZE_MB;
@@ -144,7 +145,9 @@ describe('Bulk Upload Performance Tests', () => {
 			// Print results
 			console.log(`\n📈 Performance Results:`);
 			console.log(`   Overall Duration: ${overallDuration.toFixed(2)}s`);
-			console.log(`   Successful Uploads: ${successfulUploads}/${TOTAL_FILES} (${successRate.toFixed(1)}%)`);
+			console.log(
+				`   Successful Uploads: ${successfulUploads}/${TOTAL_FILES} (${successRate.toFixed(1)}%)`
+			);
 			console.log(`   Failed Uploads: ${failedUploads}`);
 			console.log(`\n⏱️  Upload Latency:`);
 			console.log(`   p50: ${p50?.toFixed(2)}s`);

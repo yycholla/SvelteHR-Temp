@@ -11,7 +11,7 @@
 		ChevronRight,
 		AlertCircle,
 		Save
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Progress } from '$lib/components/ui/progress';
@@ -303,6 +303,7 @@
 									{#if template?.fields}
 										<div class="space-y-4" data-testid="block-FORM_FIELDS-{block.id}">
 											{#each template.fields as field}
+												{@const fieldInfo = renderFormField(field, block.id)}
 												<div>
 													<Label for={`${block.id}-${field.name}`}>
 														{field.label}
@@ -310,7 +311,6 @@
 															<span class="text-red-500">*</span>
 														{/if}
 													</Label>
-													{@const fieldInfo = renderFormField(field, block.id)}
 													<svelte:component
 														this={fieldInfo.component}
 														id={`${block.id}-${field.name}`}

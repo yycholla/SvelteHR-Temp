@@ -58,7 +58,10 @@ export const load: PageServerLoad = async (event) => {
 		const role = rolesData?.roles?.find((r: any) => r.id === roleId);
 
 		console.log('[ROLE PERMISSIONS] Loading role:', roleId);
-		console.log('[ROLE PERMISSIONS] Found roles:', rolesData?.roles?.map((r: any) => ({ id: r.id, name: r.name })));
+		console.log(
+			'[ROLE PERMISSIONS] Found roles:',
+			rolesData?.roles?.map((r: any) => ({ id: r.id, name: r.name }))
+		);
 		console.log('[ROLE PERMISSIONS] Found role:', role);
 
 		if (!role) {

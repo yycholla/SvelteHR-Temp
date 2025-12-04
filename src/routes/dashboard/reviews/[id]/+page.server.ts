@@ -32,7 +32,7 @@ export const load: PageServerLoad = async (event) => {
 
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
-			'Cookie': cookieHeader
+			Cookie: cookieHeader
 		};
 
 		// Query: Get performance review by ID

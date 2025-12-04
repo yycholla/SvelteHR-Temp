@@ -38,7 +38,9 @@ test.describe('Event Details Dialog - Tab Navigation', () => {
 		await page.locator('[role="dialog"]').waitFor({ state: 'visible' });
 
 		// Verify Details tab is active by default
-		const detailsTab = page.locator('[role="tab"][data-value="details"], button:has-text("Details")').first();
+		const detailsTab = page
+			.locator('[role="tab"][data-value="details"], button:has-text("Details")')
+			.first();
 		await expect(detailsTab).toHaveAttribute('aria-selected', 'true');
 
 		// Verify Details content is visible
@@ -117,7 +119,9 @@ test.describe('Event Details Dialog - Tab Navigation', () => {
 		await expect(historyTab).toHaveAttribute('aria-selected', 'true');
 
 		// Verify History content is visible (may be empty state)
-		const historyContent = page.locator('text=History, text=Event History, text=No changes recorded').first();
+		const historyContent = page
+			.locator('text=History, text=Event History, text=No changes recorded')
+			.first();
 		await expect(historyContent).toBeVisible();
 
 		// Performance check
@@ -164,7 +168,11 @@ test.describe('Event Details Dialog - Tab Navigation', () => {
 		await commentsTab.click();
 
 		// Close dialog
-		const closeButton = page.locator('[role="dialog"] button[aria-label*="Close"], [role="dialog"] button:has-text("Close")').first();
+		const closeButton = page
+			.locator(
+				'[role="dialog"] button[aria-label*="Close"], [role="dialog"] button:has-text("Close")'
+			)
+			.first();
 		await closeButton.click();
 		await page.locator('[role="dialog"]').waitFor({ state: 'hidden' });
 

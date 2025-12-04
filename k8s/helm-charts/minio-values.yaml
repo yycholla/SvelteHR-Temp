@@ -10,8 +10,8 @@ existingSecret: minio-secret
 # Persistence for backup data
 persistence:
   enabled: true
-  size: 50Gi  # Adjust based on backup needs
-  storageClass: ""  # Use default storage class
+  size: 50Gi # Adjust based on backup needs
+  storageClass: '' # Use default storage class
 
 # Resource limits
 resources:

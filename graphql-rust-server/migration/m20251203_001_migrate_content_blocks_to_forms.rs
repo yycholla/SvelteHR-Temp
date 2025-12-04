@@ -1,5 +1,6 @@
 use sea_orm_migration::prelude::*;
 use sea_orm::Statement;
+use uuid::Uuid as UuidType;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -30,7 +31,7 @@ impl MigrationTrait for Migration {
             .await?;
 
         for module_row in modules_with_blocks {
-            let module_id: String = module_row.try_get("", "onboarding_module_id")?;
+            let module_id: UuidType = module_row.try_get("", "onboarding_module_id")?;
 
             // Step 2: Get all content blocks for this module
             let content_blocks = db
@@ -98,18 +99,18 @@ impl MigrationTrait for Migration {
                     ))
                     .await?;
 
-                let form_id: String = form_result
+                let form_id: UuidType = form_result
                     .ok_or_else(|| DbErr::Custom("Failed to create form".to_string()))?
                     .try_get("", "id")?;
 
                 // Step 4: Convert content blocks to form blocks
                 for (block_index, block_row) in form_blocks.iter().enumerate() {
-                    let block_id: String = block_row.try_get("", "id")?;
+                    let block_id: UuidType = block_row.try_get("", "id")?;
                     let block_title: String = block_row.try_get("", "title")?;
                     let block_type: String = block_row.try_get("", "type")?;
                     let text_content: Option<String> = block_row.try_get("", "text_content").ok();
                     let document_url: Option<String> = block_row.try_get("", "document_url").ok();
-                    let form_template_id: Option<String> =
+                    let form_template_id: Option<UuidType> =
                         block_row.try_get("", "form_template_id").ok();
 
                     // Map old ContentBlock type to new FormBlock type
@@ -196,7 +197,7 @@ impl MigrationTrait for Migration {
 
                     // For each user's progress, create or update form progress
                     for progress_row in progress_records {
-                        let user_id: String = progress_row.try_get("", "user_id")?;
+                        let user_id: UuidType = progress_row.try_get("", "user_id")?;
                         let status: String = progress_row.try_get("", "status")?;
                         let started_at: Option<chrono::DateTime<chrono::Utc>> =
                             progress_row.try_get("", "started_at").ok();

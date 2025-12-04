@@ -28,11 +28,7 @@ export class AlignmentReporter {
   /**
    * Generate report in specified format
    */
-  generate(
-    result: ValidationResult,
-    format: ReportFormat,
-    options: ReportOptions = {}
-  ): string {
+  generate(result: ValidationResult, format: ReportFormat, options: ReportOptions = {}): string {
     switch (format) {
       case 'markdown':
         return this.generateMarkdown(result, options);
@@ -95,7 +91,9 @@ export class AlignmentReporter {
         lines.push(`### ${alignment.fieldPath}`);
         lines.push('');
         lines.push(`**Status:** \`${alignment.status}\``);
-        lines.push(`**Location:** ${alignment.sourceLocation.file}:${alignment.sourceLocation.line}`);
+        lines.push(
+          `**Location:** ${alignment.sourceLocation.file}:${alignment.sourceLocation.line}`
+        );
         lines.push('');
 
         if (alignment.error) {
@@ -308,7 +306,9 @@ export class AlignmentReporter {
     lines.push('');
     lines.push(`${chalk.gray('Generated:')} ${result.timestamp.toISOString()}`);
     lines.push(`${chalk.gray('Duration:')} ${result.durationMs}ms`);
-    lines.push(`${chalk.gray('Status:')} ${result.passed ? chalk.green.bold('✅ PASSED') : chalk.red.bold('❌ FAILED')}`);
+    lines.push(
+      `${chalk.gray('Status:')} ${result.passed ? chalk.green.bold('✅ PASSED') : chalk.red.bold('❌ FAILED')}`
+    );
     lines.push('');
 
     // Summary
@@ -321,7 +321,9 @@ export class AlignmentReporter {
     lines.push(`  ${chalk.yellow('Missing DB:')} ${result.summary.byStatus.missing_db}`);
     lines.push(`  ${chalk.yellow('Missing API:')} ${result.summary.byStatus.missing_api}`);
     lines.push(`  ${chalk.yellow('Type Mismatch:')} ${result.summary.byStatus.type_mismatch}`);
-    lines.push(`  ${chalk.yellow('Nullability Mismatch:')} ${result.summary.byStatus.nullability_mismatch}`);
+    lines.push(
+      `  ${chalk.yellow('Nullability Mismatch:')} ${result.summary.byStatus.nullability_mismatch}`
+    );
     lines.push('');
 
     // Filter alignments
@@ -341,7 +343,9 @@ export class AlignmentReporter {
     for (const alignment of misaligned) {
       lines.push(chalk.bold(`  ${alignment.fieldPath}`));
       lines.push(`    ${chalk.gray('Status:')} ${this.colorizeStatus(alignment.status)}`);
-      lines.push(`    ${chalk.gray('Location:')} ${alignment.sourceLocation.file}:${alignment.sourceLocation.line}`);
+      lines.push(
+        `    ${chalk.gray('Location:')} ${alignment.sourceLocation.file}:${alignment.sourceLocation.line}`
+      );
 
       if (alignment.error) {
         lines.push(`    ${chalk.red('Error:')} ${alignment.error}`);

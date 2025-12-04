@@ -6,11 +6,13 @@
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
 ## Format: `[ID] [P?] [Story] Description`
+
 - **[P]**: Can run in parallel (different files, no dependencies)
 - **[Story]**: Which user story this task belongs to (US1-US6)
 - Include exact file paths in descriptions
 
 ## Path Conventions
+
 - **Backend**: `../MountainHR-Backend/` (Rust GraphQL API)
 - **Frontend**: `./` (SvelteKit app in current repository)
 

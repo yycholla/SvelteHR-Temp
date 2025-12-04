@@ -134,7 +134,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// Headers for session-based authentication (cookies sent automatically)
 		const headers: Record<string, string> = {
-			'Content-Type': 'application/json',
+			'Content-Type': 'application/json'
 		};
 
 		// Fetch departments (teams) data
@@ -203,7 +203,7 @@ export const load: PageServerLoad = async (event) => {
 
 		if (managerIds.length > 0) {
 			// Fetch all managers in parallel
-			const managerPromises = managerIds.map(managerId =>
+			const managerPromises = managerIds.map((managerId) =>
 				fetch(graphqlEndpoint, {
 					method: 'POST',
 					headers,
@@ -219,11 +219,11 @@ export const load: PageServerLoad = async (event) => {
 						`,
 						variables: { id: managerId }
 					})
-				}).then(r => r.json())
+				}).then((r) => r.json())
 			);
 
 			const managerResponses = await Promise.all(managerPromises);
-			managerResponses.forEach(response => {
+			managerResponses.forEach((response) => {
 				const manager = response?.data?.user;
 				if (manager) {
 					managersMap.set(manager.id, manager);
@@ -328,8 +328,8 @@ export const load: PageServerLoad = async (event) => {
 
 		// Throw SvelteKit error with user-friendly message
 		error(500, {
-        			message: 'Teams management temporarily unavailable',
-        			details: errorResponse.userMessage
-        		});
+			message: 'Teams management temporarily unavailable',
+			details: errorResponse.userMessage
+		});
 	}
 };

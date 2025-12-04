@@ -355,7 +355,9 @@ export function categorizeTeamSize(employeeCount: number): (typeof teamSizeCateg
 	}
 
 	// Find matching category or return enterprise for very large teams
-	const match = teamSizeCategories.find((cat) => employeeCount >= cat.min && employeeCount <= cat.max);
+	const match = teamSizeCategories.find(
+		(cat) => employeeCount >= cat.min && employeeCount <= cat.max
+	);
 	return match || teamSizeCategories[teamSizeCategories.length - 1]; // Default to enterprise for 1000+
 }
 
@@ -543,7 +545,9 @@ export class TeamManagementOperations {
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(GET_TEAM_DETAILS, { id: params.departmentId }).toPromise();
+			const result = await this.client
+				.query(GET_TEAM_DETAILS, { id: params.departmentId })
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {

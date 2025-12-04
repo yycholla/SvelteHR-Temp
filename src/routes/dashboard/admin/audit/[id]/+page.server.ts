@@ -4,17 +4,17 @@ import { PermissionChecks } from '$lib/server/rbac-utils';
 import { error } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async (event) => {
-    const { locals, params, cookies } = event;
-    const { id } = params;
+	const { locals, params, cookies } = event;
+	const { id } = params;
 
-    // Check authentication and permissions
-    PermissionChecks.adminRead(event);
+	// Check authentication and permissions
+	PermissionChecks.adminRead(event);
 
-    try {
-        const cookieHeader = serializeCookies(cookies);
-        const client = createUrqlClient(undefined, undefined, undefined, cookieHeader);
+	try {
+		const cookieHeader = serializeCookies(cookies);
+		const client = createUrqlClient(undefined, undefined, undefined, cookieHeader);
 
-        const query = `
+		const query = `
             query GetActivityLog($id: UUID!) {
                 activityLog(id: $id) {
                     id
@@ -39,23 +39,23 @@ export const load: PageServerLoad = async (event) => {
             }
         `;
 
-        const response = await client.query(query, { id }).toPromise();
+		const response = await client.query(query, { id }).toPromise();
 
-        if (response.error) {
-            console.error('[AUDIT LOG DETAIL] GraphQL Error:', response.error);
-            throw error(500, 'Failed to load audit log details');
-        }
+		if (response.error) {
+			console.error('[AUDIT LOG DETAIL] GraphQL Error:', response.error);
+			throw error(500, 'Failed to load audit log details');
+		}
 
-        if (!response.data?.activityLog) {
-            throw error(404, 'Audit log not found');
-        }
+		if (!response.data?.activityLog) {
+			throw error(404, 'Audit log not found');
+		}
 
-        return {
-            activityLog: response.data.activityLog
-        };
-    } catch (err: any) {
-        console.error('[AUDIT LOG DETAIL] Load error:', err);
-        if (err.status) throw err;
-        throw error(500, 'Failed to load audit log details');
-    }
+		return {
+			activityLog: response.data.activityLog
+		};
+	} catch (err: any) {
+		console.error('[AUDIT LOG DETAIL] Load error:', err);
+		if (err.status) throw err;
+		throw error(500, 'Failed to load audit log details');
+	}
 };

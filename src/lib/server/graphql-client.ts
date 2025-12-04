@@ -87,7 +87,7 @@ export class GraphQLClient {
 			try {
 				const headers: HeadersInit = {
 					'Content-Type': 'application/json',
-					'Accept': 'application/json'
+					Accept: 'application/json'
 				};
 
 				// Forward session cookies for tower-sessions authentication
@@ -165,7 +165,7 @@ export class GraphQLClient {
 				// Check for GraphQL errors that shouldn't be retried
 				if (this.isGraphQLResponse(result)) {
 					const errors = result.errors;
-					if (errors?.some(e => this.isNonRetriableError(e))) {
+					if (errors?.some((e) => this.isNonRetriableError(e))) {
 						return result;
 					}
 					if (errors?.length && attempt < retries) {
@@ -198,7 +198,7 @@ export class GraphQLClient {
 	 * Check if a value is a GraphQL response
 	 */
 	private isGraphQLResponse(value: any): value is GraphQLResponse {
-		return value && (typeof value === 'object') && ('data' in value || 'errors' in value);
+		return value && typeof value === 'object' && ('data' in value || 'errors' in value);
 	}
 
 	/**
@@ -207,10 +207,12 @@ export class GraphQLClient {
 	private isNonRetriableError(error: GraphQLError): boolean {
 		const code = error.extensions?.code;
 		// Don't retry client errors
-		return code === 'BAD_REQUEST' ||
-			   code === 'GRAPHQL_VALIDATION_FAILED' ||
-			   code === 'FORBIDDEN' ||
-			   code === 'UNAUTHENTICATED';
+		return (
+			code === 'BAD_REQUEST' ||
+			code === 'GRAPHQL_VALIDATION_FAILED' ||
+			code === 'FORBIDDEN' ||
+			code === 'UNAUTHENTICATED'
+		);
 	}
 
 	/**
@@ -247,7 +249,7 @@ export class GraphQLClient {
 	 * Sleep helper for retry logic
 	 */
 	private sleep(ms: number): Promise<void> {
-		return new Promise(resolve => setTimeout(resolve, ms));
+		return new Promise((resolve) => setTimeout(resolve, ms));
 	}
 
 	/**

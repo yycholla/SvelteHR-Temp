@@ -13,6 +13,7 @@ This guide provides step-by-step rollback procedures to quickly revert productio
 ### Critical Issues Requiring Immediate Rollback
 
 **Trigger rollback if**:
+
 - ✅ Application is completely down or inaccessible
 - ✅ Critical features are broken (e.g., authentication, payroll)
 - ✅ Data corruption or loss is occurring
@@ -23,6 +24,7 @@ This guide provides step-by-step rollback procedures to quickly revert productio
 ### Non-Critical Issues (Don't Rollback)
 
 **Fix forward instead of rollback if**:
+
 - ❌ Minor UI bugs or styling issues
 - ❌ Non-critical feature not working as expected
 - ❌ Performance degradation <2x slower
@@ -30,6 +32,7 @@ This guide provides step-by-step rollback procedures to quickly revert productio
 - ❌ Issues with easy hotfix available
 
 **Why fix forward?**:
+
 - Faster resolution (no full redeployment)
 - Avoids rollback risk
 - Better for team learning
@@ -47,6 +50,7 @@ This guide provides step-by-step rollback procedures to quickly revert productio
 6. ✅ **Database backup exists** from before bad deployment
 
 **If unsure, consult**:
+
 - Technical lead or senior engineer
 - On-call engineer (if off-hours)
 - Product manager (for business impact assessment)
@@ -56,6 +60,7 @@ This guide provides step-by-step rollback procedures to quickly revert productio
 ### Type 1: Application-Only Rollback (No Database Changes)
 
 **Use when**:
+
 - No database migrations in bad deployment
 - Database schema unchanged
 - Issue is code-only (bugs, performance, etc.)
@@ -66,6 +71,7 @@ This guide provides step-by-step rollback procedures to quickly revert productio
 ### Type 2: Database Rollback Required (Migration Rollback)
 
 **Use when**:
+
 - Bad deployment included database migrations
 - Migration altered or corrupted data
 - Schema change is incompatible
@@ -76,6 +82,7 @@ This guide provides step-by-step rollback procedures to quickly revert productio
 ### Type 3: Full System Restore (Disaster Recovery)
 
 **Use when**:
+
 - Complete system failure
 - Multiple components broken
 - Database severely corrupted
@@ -228,6 +235,7 @@ echo "Rollback complete! Verify application at https://hr.example.com"
 ```
 
 **Usage**:
+
 ```bash
 chmod +x /opt/sveltehr/scripts/quick-rollback.sh
 ./scripts/quick-rollback.sh abc1234567
@@ -247,6 +255,7 @@ chmod +x /opt/sveltehr/scripts/quick-rollback.sh
 ⚠️ **DATABASE ROLLBACK CAN CAUSE DATA LOSS**
 
 Restoring a database backup will **permanently delete** all data changes since the backup:
+
 - User registrations
 - Updated employee records
 - New transactions
@@ -254,6 +263,7 @@ Restoring a database backup will **permanently delete** all data changes since t
 - Uploaded documents
 
 **Only proceed if**:
+
 - Data loss is acceptable (e.g., broken deployment was minutes ago)
 - OR bad deployment corrupted data (restore is better than corrupt data)
 - OR you have confirmed with business stakeholders
@@ -437,6 +447,7 @@ echo "✅ Rollback complete! Verify application at https://hr.example.com"
 ### 1. Document the Incident
 
 **Create incident report** including:
+
 - Timestamp of bad deployment
 - Timestamp of rollback completion
 - Root cause of issue
@@ -451,11 +462,13 @@ echo "✅ Rollback complete! Verify application at https://hr.example.com"
 ### 2. Notify Stakeholders
 
 **Notify**:
+
 - Team via Slack/email
 - Management (if significant downtime)
 - Users (if data loss or extended outage)
 
 **Message template**:
+
 ```
 Subject: Production Rollback Completed - Service Restored
 
@@ -493,6 +506,7 @@ preventive measures within 24 hours.
 ### 4. Investigate and Fix Root Cause
 
 **Investigation checklist**:
+
 - [ ] Review GitHub commit diff for bad deployment
 - [ ] Check CI/CD logs for warnings
 - [ ] Review test results (did tests pass?)
@@ -500,6 +514,7 @@ preventive measures within 24 hours.
 - [ ] Determine if rollback was necessary (could we have fixed forward?)
 
 **Fix and prevent**:
+
 1. Fix the bug in development environment
 2. Add tests to prevent regression
 3. Test production build locally (see `local-testing.md`)
@@ -509,6 +524,7 @@ preventive measures within 24 hours.
 ### 5. Re-enable CI/CD
 
 **Once issue is fixed**:
+
 1. Merge fix to `main` branch
 2. Re-enable GitHub Actions workflow
 3. Monitor deployment closely
@@ -542,6 +558,7 @@ ROLLBACK    ROLLBACK
 ### Scenario 1: Bad Deployment Breaks Authentication
 
 **Symptoms**:
+
 - Users cannot log in
 - "Authentication failed" errors
 - JWT token validation errors
@@ -550,6 +567,7 @@ ROLLBACK    ROLLBACK
 **Time**: 3 minutes
 
 **Procedure**:
+
 ```bash
 # Quick rollback to previous version
 ./scripts/quick-rollback.sh abc1234567
@@ -558,6 +576,7 @@ ROLLBACK    ROLLBACK
 ### Scenario 2: Database Migration Corrupts Data
 
 **Symptoms**:
+
 - Application crashes on startup
 - Database connection errors
 - Data integrity violations
@@ -566,6 +585,7 @@ ROLLBACK    ROLLBACK
 **Time**: 7 minutes
 
 **Procedure**:
+
 ```bash
 # Rollback database and code
 ./scripts/database-rollback.sh /var/backups/postgresql/backup_20251028_143000.sql abc1234567
@@ -574,6 +594,7 @@ ROLLBACK    ROLLBACK
 ### Scenario 3: Performance Regression (5x Slower)
 
 **Symptoms**:
+
 - Page load times >5 seconds (was <1 second)
 - API response times >2 seconds (was <200ms)
 - Database query timeouts
@@ -586,6 +607,7 @@ ROLLBACK    ROLLBACK
 ### Scenario 4: Security Vulnerability Introduced
 
 **Symptoms**:
+
 - Security scan detects critical CVE
 - Sensitive data exposed
 - Authentication bypass possible
@@ -594,6 +616,7 @@ ROLLBACK    ROLLBACK
 **Time**: 3 minutes (no delay, security critical)
 
 **Additional actions**:
+
 1. Rollback immediately (don't wait for approval)
 2. Notify security team
 3. Check logs for exploitation attempts
@@ -611,11 +634,13 @@ ROLLBACK    ROLLBACK
 ### 2. Gradual Rollout
 
 **Feature flags**:
+
 - Deploy code with new features disabled
 - Enable features gradually for subset of users
 - Monitor metrics before full rollout
 
 **Blue-green deployment** (future enhancement):
+
 - Deploy to secondary environment
 - Test before switching traffic
 - Instant rollback by switching back
@@ -630,12 +655,14 @@ ROLLBACK    ROLLBACK
 ### 4. Deployment Windows
 
 **Avoid deployments during**:
+
 - Peak business hours
 - Friday afternoons / weekends
 - Holidays
 - When key personnel are unavailable
 
 **Best deployment times**:
+
 - Tuesday-Thursday mornings
 - Low-traffic periods
 - When full team is available for monitoring
@@ -647,6 +674,7 @@ ROLLBACK    ROLLBACK
 **DevOps/SRE**: [PHONE NUMBER]
 
 **Escalation Path**:
+
 1. On-call engineer (immediate)
 2. Technical lead (if on-call unavailable)
 3. CTO/VP Engineering (if critical business impact)

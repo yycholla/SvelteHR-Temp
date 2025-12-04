@@ -2,16 +2,7 @@
 import { z } from 'zod';
 
 // Enum schemas
-export const fileTypeSchema = z.enum([
-	'PDF',
-	'JPEG',
-	'PNG',
-	'GIF',
-	'DOCX',
-	'XLSX',
-	'TXT',
-	'CSV'
-]);
+export const fileTypeSchema = z.enum(['PDF', 'JPEG', 'PNG', 'GIF', 'DOCX', 'XLSX', 'TXT', 'CSV']);
 
 export const sensitivityLevelSchema = z.enum([
 	'Public',
@@ -64,22 +55,24 @@ export const documentFilterSchema = z.object({
 });
 
 // Assignment payload schema
-export const assignmentPayloadSchema = z.object({
-	employeeIds: z.array(z.string().uuid()).optional(),
-	departmentIds: z.array(z.string().uuid()).optional(),
-	reason: z.string().max(500).optional()
-}).refine(
-	(data) => {
-		// At least one of employeeIds or departmentIds must be provided
-		return (
-			(data.employeeIds && data.employeeIds.length > 0) ||
-			(data.departmentIds && data.departmentIds.length > 0)
-		);
-	},
-	{
-		message: 'Must provide at least one employee or department for assignment'
-	}
-);
+export const assignmentPayloadSchema = z
+	.object({
+		employeeIds: z.array(z.string().uuid()).optional(),
+		departmentIds: z.array(z.string().uuid()).optional(),
+		reason: z.string().max(500).optional()
+	})
+	.refine(
+		(data) => {
+			// At least one of employeeIds or departmentIds must be provided
+			return (
+				(data.employeeIds && data.employeeIds.length > 0) ||
+				(data.departmentIds && data.departmentIds.length > 0)
+			);
+		},
+		{
+			message: 'Must provide at least one employee or department for assignment'
+		}
+	);
 
 // Document version schema
 export const documentVersionSchema = z.object({
@@ -147,10 +140,7 @@ export function validateFileSize(sizeBytes: number): boolean {
 // Sensitivity level escalation validation (can only increase, not decrease)
 const sensitivityOrder = ['Public', 'Internal', 'Confidential', 'Sensitive-PII'];
 
-export function canEscalateSensitivity(
-	current: string,
-	proposed: string
-): boolean {
+export function canEscalateSensitivity(current: string, proposed: string): boolean {
 	const currentIndex = sensitivityOrder.indexOf(current);
 	const proposedIndex = sensitivityOrder.indexOf(proposed);
 

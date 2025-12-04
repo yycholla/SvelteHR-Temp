@@ -1,6 +1,6 @@
 // User Attendance - Server-Side Data Loading
 // Implements proper PostGraphile GraphQL queries with backend initialization
-import type { PageServerLoad} from './$types';
+import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { PermissionChecks } from '$lib/server/rbac-utils';
@@ -19,8 +19,10 @@ export const load: PageServerLoad = async (event) => {
 
 	// If not viewing self, check for team or all scope
 	if (!isViewingSelf) {
-		const hasTeamScope = userPermissions.includes('attendance:read:team') || userPermissions.includes('attendance:read:all');
-		if (!hasTeamScope && !userPermissions.includes('*') || userPermissions.includes('*:*')) {
+		const hasTeamScope =
+			userPermissions.includes('attendance:read:team') ||
+			userPermissions.includes('attendance:read:all');
+		if ((!hasTeamScope && !userPermissions.includes('*')) || userPermissions.includes('*:*')) {
 			error(403, 'Access denied: You can only view your own attendance records');
 		}
 
@@ -128,8 +130,10 @@ export const load: PageServerLoad = async (event) => {
 
 		// Calculate attendance statistics
 		const totalDays = attendanceRecords.length;
-		const presentDays = attendanceRecords.filter(r => r.status === 'present').length;
-		const partialDays = attendanceRecords.filter(r => r.status === 'partial' || r.status === 'half_day').length;
+		const presentDays = attendanceRecords.filter((r) => r.status === 'present').length;
+		const partialDays = attendanceRecords.filter(
+			(r) => r.status === 'partial' || r.status === 'half_day'
+		).length;
 		const totalHours = attendanceRecords.reduce((sum, r) => sum + r.hoursWorked, 0);
 		const averageHours = totalDays > 0 ? totalHours / totalDays : 0;
 
@@ -152,7 +156,6 @@ export const load: PageServerLoad = async (event) => {
 			permissions: locals.permissions || [],
 			loadedAt: new Date().toISOString()
 		};
-
 	} catch (err) {
 		console.error('Error loading user attendance data:', err);
 

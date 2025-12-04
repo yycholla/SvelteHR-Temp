@@ -40,9 +40,11 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 			const row = queryResult.rows[0];
 
 			// Verify ownership or admin access
-			if (row.uploaded_by !== locals.user.id &&
-			    locals.user.role !== 'super_admin' &&
-			    locals.user.role !== 'admin') {
+			if (
+				row.uploaded_by !== locals.user.id &&
+				locals.user.role !== 'super_admin' &&
+				locals.user.role !== 'admin'
+			) {
 				error(403, { message: 'Access denied to this file' });
 			}
 
@@ -64,7 +66,6 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 				fileSize: result.file_size
 			}
 		});
-
 	} catch (err) {
 		console.error('File retrieval error:', err);
 

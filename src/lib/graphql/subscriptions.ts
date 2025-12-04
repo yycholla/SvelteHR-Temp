@@ -106,7 +106,10 @@ export class SubscriptionManager {
 			return () => {};
 		}
 
-		console.info('[SUBSCRIPTIONS] Setting up department change subscription for user:', this.userId);
+		console.info(
+			'[SUBSCRIPTIONS] Setting up department change subscription for user:',
+			this.userId
+		);
 
 		// Try WebSocket subscription first
 		try {
@@ -124,9 +127,13 @@ export class SubscriptionManager {
 		}
 
 		// Set up polling fallback (every 60 seconds)
-		this.startPolling('department-change', async () => {
-			await this.pollDepartmentChange();
-		}, 60000);
+		this.startPolling(
+			'department-change',
+			async () => {
+				await this.pollDepartmentChange();
+			},
+			60000
+		);
 
 		// Return cleanup function
 		return () => {
@@ -367,9 +374,7 @@ export function createSubscriptionManager(
  * Set up department change listener in a component
  * Returns cleanup function
  */
-export function onDepartmentChange(
-	callback: (event: DepartmentChangeEvent) => void
-): () => void {
+export function onDepartmentChange(callback: (event: DepartmentChangeEvent) => void): () => void {
 	if (!browser) return () => {};
 
 	const handler = (event: Event) => callback(event as DepartmentChangeEvent);

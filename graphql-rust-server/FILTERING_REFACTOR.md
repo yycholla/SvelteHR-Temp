@@ -26,6 +26,7 @@ let attendees = sqlx::query_as::<_, EventAttendee>(&query)
 ```
 
 **Consequences:**
+
 - 🔴 **Query would fail** - Placeholder `$1`, `$2` etc. in WHERE clause with no bound values
 - 🔴 **Potential SQL injection** - If user input made it into string formatting
 - 🔴 **Wrong results** - Filter conditions silently ignored
@@ -67,18 +68,21 @@ let attendees = query_builder
 ### 1. **Type-Safe Parameter Binding**
 
 **Before (String Formatting):**
+
 ```rust
 conditions.push(format!("reminder_time > ${}", param_count));
 params.push(Box::new(gt));  // Type erasure with Box<dyn Encode>
 ```
 
 **After (QueryBuilder):**
+
 ```rust
 separator.push("reminder_time > ");
 separator.push_bind_unseparated(gt);  // Type-safe, compile-time checked
 ```
 
 **Benefits:**
+
 - ✅ Compile-time type checking
 - ✅ Automatic parameter indexing (no manual `$1`, `$2` counting)
 - ✅ SQL injection impossible
@@ -87,6 +91,7 @@ separator.push_bind_unseparated(gt);  // Type-safe, compile-time checked
 ### 2. **Cleaner API**
 
 **Before:**
+
 ```rust
 impl EventAttendeeFilter {
     pub fn to_sql(&self) -> (String, Vec<Box<dyn Encode>>) {
@@ -97,6 +102,7 @@ impl EventAttendeeFilter {
 ```
 
 **After:**
+
 ```rust
 impl EventAttendeeFilter {
     /// Apply filter conditions directly to QueryBuilder
@@ -118,12 +124,14 @@ impl EventAttendeeFilter {
 ### 3. **Proper Separator Handling**
 
 **Before:**
+
 ```rust
 // Manual AND joining with string formatting
 conditions.join(" AND ")
 ```
 
 **After:**
+
 ```rust
 // QueryBuilder's separated() handles AND automatically
 let mut separator = builder.separated(" AND ");
@@ -135,6 +143,7 @@ separator.push_bind_unseparated(id);
 ### 4. **Null Check Handling**
 
 **Before (String Interpolation):**
+
 ```rust
 if let Some(true) = self.reminder_time_is_null {
     conditions.push("reminder_time IS NULL".to_string());
@@ -142,6 +151,7 @@ if let Some(true) = self.reminder_time_is_null {
 ```
 
 **After (Type-Safe Push):**
+
 ```rust
 if let Some(true) = self.reminder_time_is_null {
     separator.push_unseparated("reminder_time IS NULL");
@@ -155,23 +165,21 @@ if let Some(true) = self.reminder_time_is_null {
 ### Query 1: Range Filter with Null Check
 
 **GraphQL Input:**
+
 ```graphql
 query {
-  eventAttendees(
-    filter: {
-      reminderTimeGte: 10
-      reminderTimeLte: 60
-      isOrganizer: false
-    }
-    limit: 20
-  ) {
-    id
-    reminderTime
-  }
+	eventAttendees(
+		filter: { reminderTimeGte: 10, reminderTimeLte: 60, isOrganizer: false }
+		limit: 20
+	) {
+		id
+		reminderTime
+	}
 }
 ```
 
 **Generated SQL (Type-Safe):**
+
 ```sql
 SELECT id, event_id, employee_id, response_status, is_required,
        created_at, reminder_time, scope, is_organizer
@@ -194,20 +202,18 @@ OFFSET $5
 ### Query 2: Null Check Filter
 
 **GraphQL Input:**
+
 ```graphql
 query {
-  eventAttendees(
-    filter: {
-      reminderTimeIsNull: true
-    }
-  ) {
-    id
-    reminderTime
-  }
+	eventAttendees(filter: { reminderTimeIsNull: true }) {
+		id
+		reminderTime
+	}
 }
 ```
 
 **Generated SQL:**
+
 ```sql
 SELECT id, event_id, employee_id, response_status, is_required,
        created_at, reminder_time, scope, is_organizer
@@ -234,13 +240,13 @@ OFFSET $2
 
 ### Before vs After
 
-| Aspect | Before (String Format) | After (QueryBuilder) |
-|--------|------------------------|----------------------|
-| Parameter binding | ❌ Manual, error-prone | ✅ Automatic, safe |
-| SQL injection risk | ⚠️ Possible if misused | ✅ Impossible |
-| Type safety | ⚠️ Type erasure with Box | ✅ Compile-time checked |
-| Performance | Same | Same |
-| Correctness | ❌ Parameters not bound | ✅ All params bound |
+| Aspect             | Before (String Format)   | After (QueryBuilder)    |
+| ------------------ | ------------------------ | ----------------------- |
+| Parameter binding  | ❌ Manual, error-prone   | ✅ Automatic, safe      |
+| SQL injection risk | ⚠️ Possible if misused   | ✅ Impossible           |
+| Type safety        | ⚠️ Type erasure with Box | ✅ Compile-time checked |
+| Performance        | Same                     | Same                    |
+| Correctness        | ❌ Parameters not bound  | ✅ All params bound     |
 
 ---
 
@@ -328,6 +334,7 @@ async fn test_range_filter() {
 ### SQL Injection Prevention
 
 **Before (Vulnerable Pattern):**
+
 ```rust
 // If user input somehow made it into string formatting:
 let query = format!("SELECT * FROM table WHERE field = {}", user_input);
@@ -335,6 +342,7 @@ let query = format!("SELECT * FROM table WHERE field = {}", user_input);
 ```
 
 **After (Safe by Design):**
+
 ```rust
 query_builder.push("SELECT * FROM table WHERE field = ");
 query_builder.push_bind(user_input);

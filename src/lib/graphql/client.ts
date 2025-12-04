@@ -19,9 +19,7 @@ import { createPerformanceExchange } from '$lib/performance/graphql-performance-
 // Browser: Use relative path (proxied by Caddy) or PUBLIC_API_URL if set
 // Server: Use PUBLIC_API_URL from environment or fallback to localhost
 const DEFAULT_GRAPHQL_URL =
-	typeof browser !== 'undefined' && browser
-		? '/api/graphql'
-		: 'http://localhost:4000/graphql';
+	typeof browser !== 'undefined' && browser ? '/api/graphql' : 'http://localhost:4000/graphql';
 const GRAPHQL_WS_URL = 'ws://localhost:4000/graphql'; // WebSocket endpoint for subscriptions
 
 // Rust GraphQL server uses session-based authorization with HTTP-only cookies
@@ -183,7 +181,12 @@ const retryConfig = retryExchange({
 });
 
 // Create the main GraphQL client
-export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string, url?: string, cookies?: string) => {
+export const createUrqlClient = (
+	fetchFn?: typeof fetch,
+	authToken?: string,
+	url?: string,
+	cookies?: string
+) => {
 	// Override auth token if provided (for browser)
 	if (authToken && browser) {
 		setAuthState({ token: authToken });
@@ -249,7 +252,10 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string, url
 			// For server-side requests, explicitly forward cookies
 			if (!browser && cookies) {
 				headers['Cookie'] = cookies;
-				console.log('[GraphQL Client] Forwarding session cookies to backend:', cookies.substring(0, 50) + '...');
+				console.log(
+					'[GraphQL Client] Forwarding session cookies to backend:',
+					cookies.substring(0, 50) + '...'
+				);
 			} else if (!browser) {
 				console.warn('[GraphQL Client] WARNING: No cookies to forward! Authentication may fail.');
 			}

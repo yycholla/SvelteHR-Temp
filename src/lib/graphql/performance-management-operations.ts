@@ -505,11 +505,20 @@ export function calculatePerformanceStatistics(data: {
 				leadership: acc.leadership + review.leadership,
 				technicalSkills: acc.technicalSkills + (review.technicalSkills || 0)
 			}),
-			{ overall: 0, goalsAchievement: 0, collaboration: 0, communication: 0, leadership: 0, technicalSkills: 0 }
+			{
+				overall: 0,
+				goalsAchievement: 0,
+				collaboration: 0,
+				communication: 0,
+				leadership: 0,
+				technicalSkills: 0
+			}
 		);
 
 		averageRatings.overall = parseFloat((sums.overall / completedCount).toFixed(2));
-		averageRatings.goalsAchievement = parseFloat((sums.goalsAchievement / completedCount).toFixed(2));
+		averageRatings.goalsAchievement = parseFloat(
+			(sums.goalsAchievement / completedCount).toFixed(2)
+		);
 		averageRatings.collaboration = parseFloat((sums.collaboration / completedCount).toFixed(2));
 		averageRatings.communication = parseFloat((sums.communication / completedCount).toFixed(2));
 		averageRatings.leadership = parseFloat((sums.leadership / completedCount).toFixed(2));
@@ -518,7 +527,7 @@ export function calculatePerformanceStatistics(data: {
 
 	// Calculate rating distribution (1.0-5.0 in 0.5 increments)
 	const ratingCounts = new Map<number, number>();
-	completedNodes.forEach(review => {
+	completedNodes.forEach((review) => {
 		const rating = Math.round(review.overallRating * 2) / 2; // Round to nearest 0.5
 		ratingCounts.set(rating, (ratingCounts.get(rating) || 0) + 1);
 	});
@@ -734,7 +743,9 @@ export class PerformanceManagementOperations {
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(GET_PERFORMANCE_REVIEWS, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(GET_PERFORMANCE_REVIEWS, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -786,7 +797,9 @@ export class PerformanceManagementOperations {
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(GET_PERFORMANCE_STATISTICS, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(GET_PERFORMANCE_STATISTICS, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -845,7 +858,9 @@ export class PerformanceManagementOperations {
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(CREATE_PERFORMANCE_REVIEW, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(CREATE_PERFORMANCE_REVIEW, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -935,7 +950,9 @@ export class PerformanceManagementOperations {
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(UPDATE_PERFORMANCE_REVIEW, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(UPDATE_PERFORMANCE_REVIEW, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -988,7 +1005,9 @@ export class PerformanceManagementOperations {
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(DELETE_PERFORMANCE_REVIEW, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(DELETE_PERFORMANCE_REVIEW, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -1021,8 +1040,6 @@ export class PerformanceManagementOperations {
 /**
  * Factory function to create PerformanceManagementOperations instance
  */
-export function createPerformanceOperations(
-	client: Client
-): PerformanceManagementOperations {
+export function createPerformanceOperations(client: Client): PerformanceManagementOperations {
 	return new PerformanceManagementOperations(client);
 }

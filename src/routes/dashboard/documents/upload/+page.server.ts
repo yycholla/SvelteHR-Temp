@@ -189,9 +189,8 @@ export const actions: Actions = {
 			const fileBuffer = Buffer.from(await file.arrayBuffer());
 
 			// Import encryption utilities (dynamic to ensure server-side only)
-			const { encryptFileWithNewKey, packageEncryptedData, encodeKey } = await import(
-				'$lib/server/encryption'
-			);
+			const { encryptFileWithNewKey, packageEncryptedData, encodeKey } =
+				await import('$lib/server/encryption');
 
 			const encryptionResult = encryptFileWithNewKey(fileBuffer);
 

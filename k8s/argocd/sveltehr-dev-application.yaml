@@ -24,7 +24,7 @@ spec:
   # Source: Git repository containing Helm chart
   source:
     repoURL: https://github.com/Mountain-Care-Rx/SvelteHR.git
-    targetRevision: develop  # Track develop branch for dev environment
+    targetRevision: develop # Track develop branch for dev environment
     path: k8s/helm-charts/sveltehr
     helm:
       # Use development values
@@ -75,7 +75,7 @@ spec:
   # Ignore differences (prevents constant out-of-sync status)
   ignoreDifferences:
     # Ignore Helm release secrets (managed by Helm)
-    - group: ""
+    - group: ''
       kind: Secret
       name: sh.helm.release.*
       jsonPointers:

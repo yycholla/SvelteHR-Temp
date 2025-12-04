@@ -62,7 +62,8 @@ describe('Event RSVP Workflow (Puppeteer)', () => {
 			await waitForElement('[data-testid="event-details-dialog"]');
 
 			// Check if this is a past event
-			const isPastEvent = await pageContainsText('Past Event') || await pageContainsText('This event has ended');
+			const isPastEvent =
+				(await pageContainsText('Past Event')) || (await pageContainsText('This event has ended'));
 
 			if (!isPastEvent) {
 				// Click RSVP button using data-testid
@@ -158,8 +159,9 @@ describe('Event RSVP Workflow (Puppeteer)', () => {
 		}
 
 		// Verify filtered results displayed
-		const hasResults = await countElements('[data-testid="event-card"]') > 0 ||
-			await pageContainsText('No events found');
+		const hasResults =
+			(await countElements('[data-testid="event-card"]')) > 0 ||
+			(await pageContainsText('No events found'));
 		expect(hasResults).toBe(true);
 	});
 
@@ -170,14 +172,18 @@ describe('Event RSVP Workflow (Puppeteer)', () => {
 		// Look for "Create Event" button (check if user has permission)
 		const page = getPage();
 		const hasCreateButton = await page.$$eval('a, button', (elements: any[]) =>
-			elements.some(el => el.textContent?.includes('Create Event') || el.textContent?.includes('New Event'))
+			elements.some(
+				(el) => el.textContent?.includes('Create Event') || el.textContent?.includes('New Event')
+			)
 		);
 
 		if (hasCreateButton) {
 			// Click create button
 			await page.evaluate(() => {
 				const elements = Array.from(document.querySelectorAll('a, button'));
-				const createBtn = elements.find(el => el.textContent?.includes('Create Event') || el.textContent?.includes('New Event'));
+				const createBtn = elements.find(
+					(el) => el.textContent?.includes('Create Event') || el.textContent?.includes('New Event')
+				);
 				(createBtn as HTMLElement)?.click();
 			});
 
@@ -212,7 +218,7 @@ describe('Event RSVP Workflow (Puppeteer)', () => {
 
 			// Verify submit button is enabled (soft check)
 			const hasSubmitButton = await page.$$eval('button[type="submit"]', (buttons: any[]) =>
-				buttons.some(btn => btn.textContent?.includes('Create'))
+				buttons.some((btn) => btn.textContent?.includes('Create'))
 			);
 			expect(hasSubmitButton).toBe(true);
 		} else {
@@ -225,11 +231,12 @@ describe('Event RSVP Workflow (Puppeteer)', () => {
 		await gotoPage('/dashboard/events');
 
 		// Check for statistics section
-		const hasStats = await pageContainsText('Statistics') || await pageContainsText('Overview');
+		const hasStats = (await pageContainsText('Statistics')) || (await pageContainsText('Overview'));
 
 		if (hasStats) {
 			// Verify key metrics are visible
-			const hasMetrics = await pageContainsText('Total Events') || await pageContainsText('Upcoming');
+			const hasMetrics =
+				(await pageContainsText('Total Events')) || (await pageContainsText('Upcoming'));
 			expect(hasMetrics).toBe(true);
 		}
 
@@ -240,13 +247,15 @@ describe('Event RSVP Workflow (Puppeteer)', () => {
 			await waitFor(500);
 
 			// Check for RSVP statistics on detail page
-			const hasRsvpStats = await pageContainsText('RSVP Statistics') || await pageContainsText('Responses');
+			const hasRsvpStats =
+				(await pageContainsText('RSVP Statistics')) || (await pageContainsText('Responses'));
 
 			if (hasRsvpStats) {
 				// Check for RSVP breakdown
-				const hasBreakdown = await pageContainsText('Accepted') ||
-					await pageContainsText('Going') ||
-					await pageContainsText('Declined');
+				const hasBreakdown =
+					(await pageContainsText('Accepted')) ||
+					(await pageContainsText('Going')) ||
+					(await pageContainsText('Declined'));
 				expect(hasBreakdown).toBe(true);
 			}
 		}
@@ -269,8 +278,8 @@ describe('Event RSVP Workflow (Puppeteer)', () => {
 			expect(hasDialog).toBe(true);
 
 			// Check for event details content
-			const hasDescription = await pageContainsText('Description') ||
-				await countElements('p') > 0;
+			const hasDescription =
+				(await pageContainsText('Description')) || (await countElements('p')) > 0;
 			expect(hasDescription).toBe(true);
 		}
 	});

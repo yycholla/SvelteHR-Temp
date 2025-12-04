@@ -75,9 +75,7 @@ describe('hasAnyPermission', () => {
 
 	it('should return true with admin wildcard', () => {
 		const userPermissions: PermissionString[] = ['*'];
-		expect(hasAnyPermission(userPermissions, ['employees:write', 'departments:delete'])).toBe(
-			true
-		);
+		expect(hasAnyPermission(userPermissions, ['employees:write', 'departments:delete'])).toBe(true);
 	});
 
 	it('should handle empty arrays', () => {
@@ -129,9 +127,7 @@ describe('hasRole', () => {
 	});
 
 	it('should return false if user does not have the specified role', () => {
-		const userRoles = [
-			{ id: '1', name: 'Employee' as RoleName, level: RoleHierarchy.Employee }
-		];
+		const userRoles = [{ id: '1', name: 'Employee' as RoleName, level: RoleHierarchy.Employee }];
 		expect(auth.hasRole(userRoles, 'Admin')).toBe(false);
 		expect(auth.hasRole(userRoles, 'HR Manager')).toBe(false);
 	});
@@ -143,17 +139,13 @@ describe('hasRole', () => {
 
 describe('hasRoleLevel', () => {
 	it('should return true if user has role level >= required', () => {
-		const userRoles = [
-			{ id: '1', name: 'Manager' as RoleName, level: RoleHierarchy.Manager }
-		];
+		const userRoles = [{ id: '1', name: 'Manager' as RoleName, level: RoleHierarchy.Manager }];
 		expect(hasRoleLevel(userRoles, RoleHierarchy.Employee)).toBe(true); // 50 >= 25
 		expect(hasRoleLevel(userRoles, RoleHierarchy.Manager)).toBe(true); // 50 >= 50
 	});
 
 	it('should return false if user has role level < required', () => {
-		const userRoles = [
-			{ id: '1', name: 'Employee' as RoleName, level: RoleHierarchy.Employee }
-		];
+		const userRoles = [{ id: '1', name: 'Employee' as RoleName, level: RoleHierarchy.Employee }];
 		expect(hasRoleLevel(userRoles, RoleHierarchy.Manager)).toBe(false); // 25 < 50
 		expect(hasRoleLevel(userRoles, RoleHierarchy.Admin)).toBe(false); // 25 < 100
 	});
@@ -186,9 +178,7 @@ describe('getHighestRoleLevel', () => {
 	});
 
 	it('should return single role level', () => {
-		const userRoles = [
-			{ id: '1', name: 'Manager' as RoleName, level: RoleHierarchy.Manager }
-		];
+		const userRoles = [{ id: '1', name: 'Manager' as RoleName, level: RoleHierarchy.Manager }];
 		expect(getHighestRoleLevel(userRoles)).toBe(RoleHierarchy.Manager);
 	});
 });

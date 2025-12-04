@@ -342,11 +342,13 @@ export const actions: Actions = {
 
 			// Server-side encryption logic (reused from document upload)
 			const fileBuffer = Buffer.from(await file.arrayBuffer());
-			const { encryptFileWithNewKey, packageEncryptedData } = await import('$lib/server/encryption');
+			const { encryptFileWithNewKey, packageEncryptedData } =
+				await import('$lib/server/encryption');
 			const encryptionResult = encryptFileWithNewKey(fileBuffer);
 
 			// Register encryption key
-			const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import('$lib/server/api-url');
+			const { getGraphQLEndpoint, authenticatedGraphQLRequest } =
+				await import('$lib/server/api-url');
 			const graphqlEndpoint = getGraphQLEndpoint();
 
 			const keyInput = {
@@ -385,7 +387,7 @@ export const actions: Actions = {
 
 			// Upload document
 			const { UPLOAD_DOCUMENT } = await import('$lib/graphql/document-operations');
-			
+
 			const uploadInput = {
 				filename: file.name,
 				fileType: file.name.split('.').pop()?.toUpperCase() || 'UNKNOWN',
@@ -459,7 +461,8 @@ export const actions: Actions = {
 				return fail(400, { error: 'Invalid tags format' });
 			}
 
-			const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import('$lib/server/api-url');
+			const { getGraphQLEndpoint, authenticatedGraphQLRequest } =
+				await import('$lib/server/api-url');
 			const graphqlEndpoint = getGraphQLEndpoint();
 
 			const { UPDATE_TASK } = await import('$lib/graphql/tasks-operations');

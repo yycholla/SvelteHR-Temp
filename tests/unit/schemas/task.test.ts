@@ -331,7 +331,9 @@ describe('createTaskDependencySchema', () => {
 				blockingTaskId: sameId,
 				blockedTaskId: sameId
 			};
-			expect(() => createTaskDependencySchema.parse(data)).toThrow('A task cannot depend on itself');
+			expect(() => createTaskDependencySchema.parse(data)).toThrow(
+				'A task cannot depend on itself'
+			);
 		});
 	});
 
@@ -435,7 +437,9 @@ describe('createTaskTypeSchema', () => {
 
 		it('should reject name exceeding 100 characters', () => {
 			const data = { name: 'a'.repeat(101) };
-			expect(() => createTaskTypeSchema.parse(data)).toThrow('Task type name must be 100 characters or less');
+			expect(() => createTaskTypeSchema.parse(data)).toThrow(
+				'Task type name must be 100 characters or less'
+			);
 		});
 
 		it('should accept name at 100 character limit', () => {
@@ -540,12 +544,7 @@ describe('parseDateInput', () => {
 	});
 
 	it('should parse various date string formats', () => {
-		const formats = [
-			'2024-12-31',
-			'December 31, 2024',
-			'12/31/2024',
-			'2024-12-31T23:59:59Z'
-		];
+		const formats = ['2024-12-31', 'December 31, 2024', '12/31/2024', '2024-12-31T23:59:59Z'];
 		formats.forEach((format) => {
 			const result = parseDateInput(format);
 			expect(result).toBeInstanceOf(Date);

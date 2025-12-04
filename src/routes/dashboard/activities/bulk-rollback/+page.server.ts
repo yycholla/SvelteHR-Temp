@@ -83,8 +83,8 @@ export const load: PageServerLoad = async (event) => {
 		let availableLogs = logsData.data?.activityLogs || [];
 
 		// Sort by createdAt DESC (client-side since Rust schema doesn't support orderBy)
-		availableLogs = availableLogs.sort((a: any, b: any) =>
-			new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+		availableLogs = availableLogs.sort(
+			(a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
 		);
 
 		// Filter out rollback logs (client-side filtering)
@@ -163,8 +163,8 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		error(500, {
-        			message: 'Failed to load bulk rollback page'
-        		});
+			message: 'Failed to load bulk rollback page'
+		});
 	}
 };
 

@@ -1,4 +1,5 @@
 # Test Suite Fix Implementation Guide
+
 **Date**: 2025-12-04
 **Status**: Ready to implement
 
@@ -13,6 +14,7 @@ This document provides exact code changes needed to fix the test suite configura
 ### Fix 1: Update `unit-client` Project (Line 111-115)
 
 **Current Code**:
+
 ```typescript
 include: [
 	'src/**/*.svelte.{test,spec}.{js,ts}',
@@ -22,6 +24,7 @@ include: [
 ```
 
 **Updated Code**:
+
 ```typescript
 include: [
 	'tests/unit/components/**/*.{test,spec}.{js,ts}',
@@ -36,6 +39,7 @@ include: [
 ### Fix 2: Update `component-browser` Project (Line 143-146)
 
 **Current Code**:
+
 ```typescript
 include: [
 	'tests/unit/components/**/*.browser.{test,spec}.{js,ts}',
@@ -44,6 +48,7 @@ include: [
 ```
 
 **Updated Code**:
+
 ```typescript
 include: [
 	'tests/e2e/**/*.browser.{test,spec}.{js,ts}',
@@ -58,6 +63,7 @@ include: [
 ### Fix 3: Update `graphql-performance` Project (Line 285-288)
 
 **Current Code**:
+
 ```typescript
 include: [
 	'tests/performance/graphql/**/*.{test,spec}.{js,ts}',
@@ -66,6 +72,7 @@ include: [
 ```
 
 **Updated Code**:
+
 ```typescript
 include: [
 	'tests/performance/**/*graphql*.{test,spec}.{js,ts}',
@@ -80,6 +87,7 @@ include: [
 ### Fix 4: Update `graphql-schema` Project (Line 249-253)
 
 **Current Code**:
+
 ```typescript
 include: [
 	'tests/contract/graphql-schema-validation.test.ts',
@@ -89,6 +97,7 @@ include: [
 ```
 
 **Updated Code**:
+
 ```typescript
 include: [
 	'tests/contract/graphql-schema-validation.test.ts',
@@ -103,6 +112,7 @@ include: [
 ### Fix 5: Add `e2e-playwright` Project (After line 396, before closing bracket)
 
 **Add New Project**:
+
 ```typescript
 			// E2E Playwright Tests (main E2E test suite)
 			{
@@ -144,6 +154,7 @@ include: [
 ### Fix 6: Add `security` Project (After line 396, before closing bracket)
 
 **Add New Project**:
+
 ```typescript
 			// Security Tests
 			{
@@ -177,6 +188,7 @@ include: [
 ### Fix 7: Optional - Remove or Comment Out `graphql-subscriptions` Project
 
 **Current Project** (Lines 326-365):
+
 ```typescript
 // GraphQL subscription testing
 {
@@ -196,6 +208,7 @@ include: [
 ### Current Scripts to Update:
 
 **Line in package.json**:
+
 ```json
 "test:unit": "vitest --project=unit-server,unit-client",
 ```
@@ -243,6 +256,7 @@ Add these to package.json `scripts` section:
 ### Step 3: Verify Setup Files Exist
 
 All required setup files have been created:
+
 - ✅ `tests/setup/vitest-setup-security.ts` (created)
 - ✅ `tests/setup/vitest-setup-e2e-playwright.ts` (created)
 - ✅ All other setup files already exist
@@ -290,6 +304,7 @@ npm run test:all
 ## Expected Results After Implementation
 
 ### Test Coverage:
+
 - ✅ ~40 unit test files (unit-server, unit-client)
 - ✅ ~30 integration test files (integration)
 - ✅ ~50 contract test files (contract)
@@ -302,6 +317,7 @@ npm run test:all
 **Total**: ~200 test files covered (up from ~140)
 
 ### CI/CD Impact:
+
 - ❌ Current CI fails with "No projects matched the filter"
 - ✅ After fixes, CI will run all configured test projects
 - ✅ Security tests will run automatically
@@ -314,11 +330,13 @@ npm run test:all
 If issues occur after implementation:
 
 1. **Git Revert**:
+
    ```bash
    git checkout HEAD~1 -- vitest.config.ts package.json
    ```
 
 2. **Backup Files**: Before implementing, backup current config:
+
    ```bash
    cp vitest.config.ts vitest.config.ts.backup
    cp package.json package.json.backup
@@ -377,6 +395,7 @@ If issues occur after implementation:
 ## Questions?
 
 If any issues arise during implementation:
+
 1. Check TEST_SUITE_AUDIT.md for detailed analysis
 2. Verify setup files exist in tests/setup/
 3. Ensure BASE_URL environment variable is set correctly

@@ -24,9 +24,9 @@ metadata:
   name: sveltehr-dev-frontend-ts
   namespace: sveltehr-dev
   annotations:
-    tailscale.com/expose: "true"
-    tailscale.com/hostname: "sveltehr-dev-frontend"
-    tailscale.com/tags: "tag:k8s"
+    tailscale.com/expose: 'true'
+    tailscale.com/hostname: 'sveltehr-dev-frontend'
+    tailscale.com/tags: 'tag:k8s'
 spec:
   type: LoadBalancer
   loadBalancerClass: tailscale
@@ -47,9 +47,9 @@ metadata:
   name: sveltehr-dev-backend-ts
   namespace: sveltehr-dev
   annotations:
-    tailscale.com/expose: "true"
-    tailscale.com/hostname: "sveltehr-dev-backend"
-    tailscale.com/tags: "tag:k8s"
+    tailscale.com/expose: 'true'
+    tailscale.com/hostname: 'sveltehr-dev-backend'
+    tailscale.com/tags: 'tag:k8s'
 spec:
   type: LoadBalancer
   loadBalancerClass: tailscale

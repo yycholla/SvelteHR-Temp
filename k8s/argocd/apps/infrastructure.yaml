@@ -24,7 +24,7 @@ spec:
 
   # Sync policy: MANUAL (as requested for infrastructure)
   syncPolicy:
-    automated: null  # Manual sync - carefully control infrastructure changes
+    automated: null # Manual sync - carefully control infrastructure changes
 
     syncOptions:
       # Don't create namespace (argocd namespace already exists)

@@ -87,7 +87,7 @@ export const load: PageServerLoad = async (event) => {
 		const cookieHeader = event.request.headers.get('cookie') || '';
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
-			'Cookie': cookieHeader // Forward all cookies for session authentication
+			Cookie: cookieHeader // Forward all cookies for session authentication
 		};
 
 		console.log(
@@ -229,14 +229,15 @@ export const load: PageServerLoad = async (event) => {
 			err instanceof Error ? err : new Error('Department detail load failed'),
 			{
 				type: 'DATA_LOAD_ERROR',
-				userMessage: 'Unable to load department details. Please refresh the page or try again later.'
+				userMessage:
+					'Unable to load department details. Please refresh the page or try again later.'
 			}
 		);
 
 		// Throw SvelteKit error with user-friendly message
 		error(500, {
-        			message: 'Department details temporarily unavailable',
-        			details: errorResponse.userMessage
-        		});
+			message: 'Department details temporarily unavailable',
+			details: errorResponse.userMessage
+		});
 	}
 };

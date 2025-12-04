@@ -59,6 +59,7 @@ This document outlines the security requirements and best practices for the Svel
 ### Why Non-Root Users Matter
 
 Running containers as root poses security risks:
+
 - If container is compromised, attacker has root access
 - Can potentially escape container and access host
 - Violates principle of least privilege
@@ -114,10 +115,11 @@ CMD ["./hr_graphql_server"]
 ```
 
 **docker-compose.prod.yml**:
+
 ```yaml
 hr-graphql-rust:
   image: registry.gitlab.com/${GITLAB_PROJECT}/backend:${IMAGE_TAG}
-  user: rust  # Explicit user specification
+  user: rust # Explicit user specification
 ```
 
 ### SvelteKit Frontend
@@ -152,10 +154,11 @@ CMD ["node", "build"]
 ```
 
 **docker-compose.prod.yml**:
+
 ```yaml
 frontend:
   image: registry.gitlab.com/${GITLAB_PROJECT}/frontend:${IMAGE_TAG}
-  user: svelte  # Explicit user specification
+  user: svelte # Explicit user specification
 ```
 
 ### Caddy (Official Image)
@@ -167,11 +170,13 @@ Caddy official image runs as non-root user by default (no override needed).
 ### Required Secrets
 
 **Database Secrets**:
+
 ```bash
 POSTGRES_PASSWORD=<SECURE_RANDOM_32+>  # Min 16 chars, recommended 32+
 ```
 
 **Authentication Secrets**:
+
 ```bash
 JWT_SECRET=<SECURE_RANDOM_256BIT>           # Min 32 chars for HMAC-SHA256
 JWT_REFRESH_SECRET=<SECURE_RANDOM_256BIT>   # Min 32 chars
@@ -181,6 +186,7 @@ SERVICE_AUTH_KEY=<SECURE_RANDOM_256BIT>     # Min 32 chars
 ### Generating Secure Random Secrets
 
 **Using OpenSSL**:
+
 ```bash
 # 32-character alphanumeric secret
 openssl rand -base64 32 | tr -d "=+/" | cut -c1-32
@@ -190,11 +196,13 @@ openssl rand -base64 48 | tr -d "=+/" | cut -c1-64
 ```
 
 **Using Node.js**:
+
 ```javascript
-require('crypto').randomBytes(32).toString('base64url')
+require('crypto').randomBytes(32).toString('base64url');
 ```
 
 **Using Python**:
+
 ```python
 import secrets
 secrets.token_urlsafe(32)
@@ -215,6 +223,7 @@ secrets.token_urlsafe(32)
 **CI/CD**: Use GitHub Secrets (encrypted at rest)
 
 **GitHub Secrets Setup**:
+
 ```bash
 # Required for CI/CD
 GITLAB_USERNAME=<gitlab_username>
@@ -231,18 +240,22 @@ PRODUCTION_DOMAIN=<production_domain>
 ### Caddy Automatic HTTPS
 
 **Localhost Mode** (testing):
+
 ```bash
 DOMAIN=localhost
 ```
+
 - Caddy automatically generates self-signed certificates
 - No Let's Encrypt interaction
 - Certificates valid for 7 days, auto-renewed
 
 **Production Mode**:
+
 ```bash
 DOMAIN=hr.example.com
 TLS_EMAIL=admin@example.com
 ```
+
 - Caddy automatically provisions Let's Encrypt certificates
 - Certificates valid for 90 days, auto-renewed at 30 days
 - DNS must point to server (required for ACME challenge)
@@ -250,6 +263,7 @@ TLS_EMAIL=admin@example.com
 ### HTTP to HTTPS Redirect
 
 **Automatic in Caddyfile**:
+
 ```caddyfile
 http://{$DOMAIN} {
     redir https://{$DOMAIN}{uri} permanent
@@ -259,6 +273,7 @@ http://{$DOMAIN} {
 ### Security Headers
 
 **Enforced by Caddy**:
+
 ```caddyfile
 header {
     Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
@@ -271,6 +286,7 @@ header {
 ```
 
 **Content Security Policy**:
+
 ```caddyfile
 Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss://{$DOMAIN};"
 ```
@@ -280,27 +296,32 @@ Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' '
 ### SSH Key Generation
 
 **Generate Deploy Key**:
+
 ```bash
 ssh-keygen -t ed25519 -C "github-actions-deploy" -f deploy_key
 ```
 
 **Add Public Key to Server**:
+
 ```bash
 ssh-copy-id -i deploy_key.pub deploy@hr.example.com
 ```
 
 **Base64 Encode Private Key for GitHub Secrets**:
+
 ```bash
 cat deploy_key | base64 -w 0 > deploy_key.b64
 ```
 
 **Add to GitHub Secrets**:
+
 - Secret name: `SSH_PRIVATE_KEY`
 - Value: Contents of `deploy_key.b64`
 
 ### SSH Configuration
 
 **Restrict Deploy User Permissions**:
+
 ```bash
 # On production server
 sudo useradd -m -s /bin/bash deploy
@@ -310,6 +331,7 @@ sudo visudo
 ```
 
 **SSH Config** (`~/.ssh/config`):
+
 ```
 Host hr-production
     HostName hr.example.com
@@ -322,6 +344,7 @@ Host hr-production
 ### Known Hosts Verification
 
 **CI/CD Workflow**:
+
 ```yaml
 - name: Setup SSH
   run: |
@@ -336,16 +359,19 @@ Host hr-production
 ### Backend CORS Policy
 
 **Production Configuration**:
+
 ```bash
 CORS_ALLOWED_ORIGINS=https://hr.example.com
 ```
 
 **Localhost Testing**:
+
 ```bash
 CORS_ALLOWED_ORIGINS=http://localhost:3000,https://localhost
 ```
 
 **Multiple Origins** (staging + production):
+
 ```bash
 CORS_ALLOWED_ORIGINS=https://hr.example.com,https://staging.hr.example.com
 ```
@@ -383,6 +409,7 @@ let cors = Cors::default()
 ### Caddy Rate Limiting
 
 **Caddyfile Configuration** (commented by default):
+
 ```caddyfile
 rate_limit {
     zone dynamic {
@@ -394,6 +421,7 @@ rate_limit {
 ```
 
 **Activation**:
+
 ```bash
 docker exec sveltehr-caddy-prod caddy reload --config /etc/caddy/Caddyfile
 ```
@@ -403,6 +431,7 @@ docker exec sveltehr-caddy-prod caddy reload --config /etc/caddy/Caddyfile
 ### Image Scanning with Trivy (Optional)
 
 **GitHub Actions Workflow**:
+
 ```yaml
 - name: Run Trivy vulnerability scanner
   uses: aquasecurity/trivy-action@master
@@ -416,6 +445,7 @@ docker exec sveltehr-caddy-prod caddy reload --config /etc/caddy/Caddyfile
 ### Regular Security Audits
 
 **Schedule**:
+
 - Weekly dependency updates (`npm audit`, `cargo audit`)
 - Monthly security reviews of configuration
 - Quarterly penetration testing (recommended)
@@ -457,17 +487,17 @@ docker exec sveltehr-caddy-prod caddy reload --config /etc/caddy/Caddyfile
 
 ## Security Hardening Summary
 
-| Requirement | Implementation | Status |
-|-------------|----------------|--------|
-| Non-root containers | All services use non-root users | ✅ Required |
-| Secret management | Environment variables, no hardcoding | ✅ Required |
-| HTTPS enforcement | Caddy automatic HTTPS + redirect | ✅ Required |
-| SSH key-based auth | Deploy keys, no passwords | ✅ Required |
-| CORS restrictions | Backend validates allowed origins | ✅ Required |
-| Security headers | HSTS, CSP, XSS protection | ✅ Required |
-| Network isolation | Only Caddy exposes ports | ✅ Required |
-| Vulnerability scanning | Trivy image scanning | ⚠️ Recommended |
-| Rate limiting | Caddy rate limiting | ⚠️ Recommended |
+| Requirement            | Implementation                       | Status         |
+| ---------------------- | ------------------------------------ | -------------- |
+| Non-root containers    | All services use non-root users      | ✅ Required    |
+| Secret management      | Environment variables, no hardcoding | ✅ Required    |
+| HTTPS enforcement      | Caddy automatic HTTPS + redirect     | ✅ Required    |
+| SSH key-based auth     | Deploy keys, no passwords            | ✅ Required    |
+| CORS restrictions      | Backend validates allowed origins    | ✅ Required    |
+| Security headers       | HSTS, CSP, XSS protection            | ✅ Required    |
+| Network isolation      | Only Caddy exposes ports             | ✅ Required    |
+| Vulnerability scanning | Trivy image scanning                 | ⚠️ Recommended |
+| Rate limiting          | Caddy rate limiting                  | ⚠️ Recommended |
 
 ## References
 

@@ -27,8 +27,10 @@ export const load: PageServerLoad = async (event) => {
 		const client = createUrqlClient(undefined, undefined, undefined, cookieHeader);
 
 		// Check if userFilter is a valid UUID to pass to backend
-		const userId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userFilter) 
-			? userFilter 
+		const userId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+			userFilter
+		)
+			? userFilter
 			: null;
 
 		// Query activity logs
@@ -54,11 +56,13 @@ export const load: PageServerLoad = async (event) => {
 			}
 		`;
 
-		const response = await client.query(query, {
-			userId,
-			limit,
-			offset
-		}).toPromise();
+		const response = await client
+			.query(query, {
+				userId,
+				limit,
+				offset
+			})
+			.toPromise();
 
 		if (response.error) {
 			console.error('[AUDIT LOGS] GraphQL Error:', response.error);
@@ -71,29 +75,29 @@ export const load: PageServerLoad = async (event) => {
 		// Map logs to the format expected by the UI
 		const mappedLogs = logs.map((log: any) => ({
 			...log,
-			userByUserId: log.user,
+			userByUserId: log.user
 			// changes is already an object or null from GraphQL JSON scalar
 		}));
 
 		// Filter results locally if needed (for search queries that backend doesn't support yet)
 		// e.g. text search for action or resource type
 		let filteredLogs = mappedLogs;
-		
+
 		// Note: Backend handles pagination, so we only filter the current page's results
 		// Ideally, backend should support all these filters
-		
+
 		if (actionFilter) {
 			filteredLogs = filteredLogs.filter((log: any) => log.action === actionFilter);
 		}
-		
-		// We don't filter by user name here because that would empty the page if the user 
+
+		// We don't filter by user name here because that would empty the page if the user
 		// isn't on the current page. We rely on the UUID filter for precise user filtering.
-		
+
 		if (dateFrom) {
 			const fromDate = new Date(dateFrom);
 			filteredLogs = filteredLogs.filter((log: any) => new Date(log.createdAt) >= fromDate);
 		}
-		
+
 		if (dateTo) {
 			const toDate = new Date(dateTo);
 			// Add one day to include the end date fully
@@ -119,7 +123,7 @@ export const load: PageServerLoad = async (event) => {
 				user: userFilter,
 				dateFrom,
 				dateTo
-			},
+			}
 		};
 	} catch (error: any) {
 		console.error('[AUDIT LOGS] Load error:', error);

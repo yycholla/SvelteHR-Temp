@@ -63,8 +63,7 @@ export function validateVerificationReport(report: VerificationReport): string[]
 	}
 
 	// verificationId should be a valid UUID
-	const uuidPattern =
-		/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+	const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 	if (!uuidPattern.test(report.verificationId)) {
 		errors.push('verificationId must be a valid UUID');
 	}

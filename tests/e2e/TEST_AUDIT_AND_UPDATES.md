@@ -18,40 +18,40 @@ This document tracks the status of E2E tests and the updates needed to align tes
 
 **Added data-testid Attributes**:
 
-| Element | data-testid | Line | Purpose |
-|---------|-------------|------|---------|
-| Forms Navigation Container | `forms-navigation` | 219 | Navigation sidebar container |
-| Form Navigation Item | `nav-form-{index}` | 222 | Individual form in sidebar |
-| Form Step Number | `form-step-number` | 237 | "Step X" label |
-| Form Title (nav) | `form-title` | 238 | Form title in navigation |
-| Form Status Icon Container | `form-status-icon` | 240 | Container for status icon |
-| Status: Completed | `status-completed` | 230 | Completed form icon |
-| Status: In Progress | `status-in-progress` | 232 | In-progress form icon |
-| Status: Not Started | `status-not-started` | 234 | Not started icon |
-| Form Content Container | `form-content` | 251 | Main form content area |
-| Current Form Step Badge | `current-form-step-badge` | 255 | "Step X of Y" badge |
-| Current Form Title | `current-form-title` | 256 | Main form title |
-| Current Form Description | `current-form-description` | 258 | Form description text |
-| Required Field Badge | `required-field` | 262 | "Required" badge |
-| Block Container | `block-container-{block.id}` | 270 | Individual block container |
-| Block Title | `block-title-{block.id}` | 274 | Block title |
-| TEXT Block | `block-TEXT-{block.id}` | 280 | TEXT type block |
-| Text Content | `text-content` | 281 | Actual text content |
-| DOCUMENT Block | `block-DOCUMENT-{block.id}` | 287 | DOCUMENT type block |
-| FORM_FIELDS Block | `block-FORM_FIELDS-{block.id}` | 304 | FORM_FIELDS type block |
-| CHECKBOX Block | `block-CHECKBOX-{block.id}` | 330 | CHECKBOX type block |
-| SIGNATURE Block | `block-SIGNATURE-{block.id}` | 350 | SIGNATURE type block |
-| Signature Field | `signature-field` | 351 | Signature canvas wrapper |
-| FILE_UPLOAD Block | `block-FILE_UPLOAD-{block.id}` | 361 | FILE_UPLOAD type block |
-| File Size Limit | `file-size-limit` | 368 | File size limit text |
-| Accepted File Types | `accepted-file-types` | 373 | Accepted types text |
-| Progress Bar | `progress-bar` | 205 | Onboarding progress bar |
-| Completed Forms Count | `completed-forms-count` | 207 | Number of completed forms |
-| Total Forms Count | `total-forms-count` | 207 | Total forms in module |
-| Previous Button | `previous-form-button` | 388 | Navigate to previous form |
-| Save Progress Button | `save-progress-button` | 399 | Save current progress |
-| Complete Form Button | `complete-form-button` | 406 | Complete & continue button |
-| Complete Onboarding Button | `complete-onboarding-button` | 411 | Final completion button |
+| Element                    | data-testid                    | Line | Purpose                      |
+| -------------------------- | ------------------------------ | ---- | ---------------------------- |
+| Forms Navigation Container | `forms-navigation`             | 219  | Navigation sidebar container |
+| Form Navigation Item       | `nav-form-{index}`             | 222  | Individual form in sidebar   |
+| Form Step Number           | `form-step-number`             | 237  | "Step X" label               |
+| Form Title (nav)           | `form-title`                   | 238  | Form title in navigation     |
+| Form Status Icon Container | `form-status-icon`             | 240  | Container for status icon    |
+| Status: Completed          | `status-completed`             | 230  | Completed form icon          |
+| Status: In Progress        | `status-in-progress`           | 232  | In-progress form icon        |
+| Status: Not Started        | `status-not-started`           | 234  | Not started icon             |
+| Form Content Container     | `form-content`                 | 251  | Main form content area       |
+| Current Form Step Badge    | `current-form-step-badge`      | 255  | "Step X of Y" badge          |
+| Current Form Title         | `current-form-title`           | 256  | Main form title              |
+| Current Form Description   | `current-form-description`     | 258  | Form description text        |
+| Required Field Badge       | `required-field`               | 262  | "Required" badge             |
+| Block Container            | `block-container-{block.id}`   | 270  | Individual block container   |
+| Block Title                | `block-title-{block.id}`       | 274  | Block title                  |
+| TEXT Block                 | `block-TEXT-{block.id}`        | 280  | TEXT type block              |
+| Text Content               | `text-content`                 | 281  | Actual text content          |
+| DOCUMENT Block             | `block-DOCUMENT-{block.id}`    | 287  | DOCUMENT type block          |
+| FORM_FIELDS Block          | `block-FORM_FIELDS-{block.id}` | 304  | FORM_FIELDS type block       |
+| CHECKBOX Block             | `block-CHECKBOX-{block.id}`    | 330  | CHECKBOX type block          |
+| SIGNATURE Block            | `block-SIGNATURE-{block.id}`   | 350  | SIGNATURE type block         |
+| Signature Field            | `signature-field`              | 351  | Signature canvas wrapper     |
+| FILE_UPLOAD Block          | `block-FILE_UPLOAD-{block.id}` | 361  | FILE_UPLOAD type block       |
+| File Size Limit            | `file-size-limit`              | 368  | File size limit text         |
+| Accepted File Types        | `accepted-file-types`          | 373  | Accepted types text          |
+| Progress Bar               | `progress-bar`                 | 205  | Onboarding progress bar      |
+| Completed Forms Count      | `completed-forms-count`        | 207  | Number of completed forms    |
+| Total Forms Count          | `total-forms-count`            | 207  | Total forms in module        |
+| Previous Button            | `previous-form-button`         | 388  | Navigate to previous form    |
+| Save Progress Button       | `save-progress-button`         | 399  | Save current progress        |
+| Complete Form Button       | `complete-form-button`         | 406  | Complete & continue button   |
+| Complete Onboarding Button | `complete-onboarding-button`   | 411  | Final completion button      |
 
 ---
 
@@ -60,9 +60,11 @@ This document tracks the status of E2E tests and the updates needed to align tes
 ### 2. Admin Forms Management Page
 
 **Files to Update**:
+
 - `src/routes/dashboard/admin/onboarding/[id]/forms/+page.svelte`
 
 **Required data-testid Attributes**:
+
 - `forms-list` - Forms list container
 - `form-card-{id}` - Individual form cards
 - `form-title-{id}` - Form titles
@@ -85,9 +87,11 @@ This document tracks the status of E2E tests and the updates needed to align tes
 ### 3. Admin Form Builder Page
 
 **Files to Update**:
+
 - `src/routes/dashboard/admin/forms/[id]/+page.svelte`
 
 **Required data-testid Attributes**:
+
 - `blocks-list` - Blocks list container
 - `block-card-{id}` - Individual block cards
 - `block-title-{id}` - Block titles
@@ -112,9 +116,11 @@ This document tracks the status of E2E tests and the updates needed to align tes
 ### 4. Login Page
 
 **Files to Update**:
+
 - `src/routes/login/+page.svelte`
 
 **Required data-testid Attributes**:
+
 - `email-input` - Email input field
 - `password-input` - Password input field
 - `login-button` - Login submit button
@@ -126,9 +132,11 @@ This document tracks the status of E2E tests and the updates needed to align tes
 ### 5. Onboarding Module List Page
 
 **Files to Update**:
+
 - `src/routes/dashboard/onboarding/+page.svelte`
 
 **Required data-testid Attributes**:
+
 - `onboarding-module-{id}` - Module cards
 
 **Status**: ⏳ Needs verification
@@ -179,6 +187,7 @@ This document tracks the status of E2E tests and the updates needed to align tes
 For the onboarding forms E2E tests to work, the following database setup is required:
 
 #### 1. Onboarding Modules
+
 ```sql
 -- Table: hr_public.onboarding_modules
 -- Required fields: id, title, description, status
@@ -186,6 +195,7 @@ For the onboarding forms E2E tests to work, the following database setup is requ
 ```
 
 #### 2. Onboarding Forms
+
 ```sql
 -- Table: hr_public.onboarding_forms
 -- Required fields: id, onboarding_module_id, title, description, is_required, sequence_order
@@ -193,6 +203,7 @@ For the onboarding forms E2E tests to work, the following database setup is requ
 ```
 
 #### 3. Onboarding Blocks
+
 ```sql
 -- Table: hr_public.onboarding_blocks
 -- Required fields: id, onboarding_form_id, type, title, sequence_order, text_content, document_url, etc.
@@ -200,6 +211,7 @@ For the onboarding forms E2E tests to work, the following database setup is requ
 ```
 
 #### 4. Form Templates
+
 ```sql
 -- Table: hr_public.form_templates
 -- Required fields: id, template_name, fields (JSONB)
@@ -207,12 +219,14 @@ For the onboarding forms E2E tests to work, the following database setup is requ
 ```
 
 #### 5. User Onboarding Progress
+
 ```sql
 -- Table: hr_public.user_onboarding_progress
 -- Required fields: user_id, onboarding_form_id, status, form_data, started_at, completed_at
 ```
 
 #### 6. Test Users
+
 ```sql
 -- Admin user: admin@example.com / admin
 -- Employee user: employee@example.com / password
@@ -263,6 +277,7 @@ The following GraphQL operations or API endpoints must exist:
 **File**: `src/routes/dashboard/onboarding/[id]/+page.server.ts`
 
 **Required Load Function**:
+
 ```typescript
 export const load: PageServerLoad = async ({ params, locals }) => {
   const moduleId = params.id;
@@ -278,18 +293,19 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 ```
 
 **Required Actions**:
+
 ```typescript
 export const actions = {
-  saveProgress: async ({ request }) => {
-    // Save formData to user_onboarding_progress
-    // Update status to IN_PROGRESS
-  },
+	saveProgress: async ({ request }) => {
+		// Save formData to user_onboarding_progress
+		// Update status to IN_PROGRESS
+	},
 
-  completeForm: async ({ request }) => {
-    // Save formData
-    // Update status to COMPLETED
-    // Set completed_at timestamp
-  }
+	completeForm: async ({ request }) => {
+		// Save formData
+		// Update status to COMPLETED
+		// Set completed_at timestamp
+	}
 };
 ```
 
@@ -304,6 +320,7 @@ export const actions = {
 **Issue Found**: The onboarding page was using `bind:signatureData` but `SignatureField` expects `bind:value`.
 
 **Fix Applied**: Updated to use correct props:
+
 ```svelte
 <SignatureField
   name="signature-{block.id}"
@@ -349,6 +366,7 @@ Create a script to seed test data for E2E tests:
 **File**: `scripts/test-db/seed-onboarding-test-data.sh`
 
 **Requirements**:
+
 1. Create admin user (admin@example.com)
 2. Create employee user (employee@example.com)
 3. Create 1 onboarding module ("New Employee Onboarding")
@@ -397,6 +415,7 @@ npx playwright test --debug
 **Workflow**: `.github/workflows/ci.yml`
 
 **E2E Test Job**: ✅ Configured with:
+
 - PostgreSQL service container
 - Backend server lifecycle management
 - Frontend dev server
@@ -443,13 +462,13 @@ npx playwright test --debug
 
 ## Test Coverage Matrix
 
-| Feature | Unit Tests | Integration Tests | E2E Tests | Status |
-|---------|-----------|------------------|-----------|--------|
-| Employee Onboarding Flow | ❌ | ❌ | ✅ | ⏳ Needs component updates |
-| Forms Management (Admin) | ❌ | ❌ | ✅ | ⏳ Needs component updates |
-| Form Builder (Admin) | ❌ | ❌ | ✅ | ⏳ Needs component updates |
-| Progress Persistence | ❌ | ❌ | ✅ | ⏳ Needs backend verification |
-| Form Validation | ❌ | ❌ | ✅ | ⏳ Needs backend verification |
+| Feature                  | Unit Tests | Integration Tests | E2E Tests | Status                        |
+| ------------------------ | ---------- | ----------------- | --------- | ----------------------------- |
+| Employee Onboarding Flow | ❌         | ❌                | ✅        | ⏳ Needs component updates    |
+| Forms Management (Admin) | ❌         | ❌                | ✅        | ⏳ Needs component updates    |
+| Form Builder (Admin)     | ❌         | ❌                | ✅        | ⏳ Needs component updates    |
+| Progress Persistence     | ❌         | ❌                | ✅        | ⏳ Needs backend verification |
+| Form Validation          | ❌         | ❌                | ✅        | ⏳ Needs backend verification |
 
 ---
 
@@ -467,12 +486,14 @@ npx playwright test --debug
 ## Changelog
 
 ### 2025-12-03
+
 - ✅ Added all required data-testid attributes to employee onboarding page
 - ✅ Fixed SignatureField component prop usage
 - ✅ Created this test audit document
 - ✅ Updated CI workflow to support full-stack testing
 
 ### 2025-12-02
+
 - ✅ Created 5 new E2E test files (94 test cases)
 - ✅ Created comprehensive test documentation
 - ✅ Completed data migration implementation

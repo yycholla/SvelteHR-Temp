@@ -7,11 +7,7 @@
  */
 
 import { test, expect, describe, beforeAll, afterAll } from 'vitest';
-import {
-	createTestContext,
-	cleanupTestData,
-	TestUser
-} from '../utils/test-helpers';
+import { createTestContext, cleanupTestData, TestUser } from '../utils/test-helpers';
 import { performGraphQLMutation, performGraphQLQuery } from '../utils/graphql-test-client';
 
 interface TestContext {
@@ -89,11 +85,7 @@ describe('T018: All 10 review types available', () => {
 			}
 		`;
 
-		const response = await performGraphQLQuery(
-			reviewTypesQuery,
-			{},
-			testContext.authTokens.admin
-		);
+		const response = await performGraphQLQuery(reviewTypesQuery, {}, testContext.authTokens.admin);
 
 		// Assert: All 10 types returned
 		expect(response.data.reviewTypes).toHaveLength(10);
@@ -105,16 +97,20 @@ describe('T018: All 10 review types available', () => {
 		});
 
 		// Assert: Each type has required metadata fields
-		response.data.reviewTypes.forEach((reviewType: { value: string; label: string; description: string; displayOrder: number }) => {
-			expect(reviewType.value).toBeDefined();
-			expect(reviewType.label).toBeDefined();
-			expect(reviewType.description).toBeDefined();
-			expect(reviewType.displayOrder).toBeDefined();
-			expect(typeof reviewType.displayOrder).toBe('number');
-		});
+		response.data.reviewTypes.forEach(
+			(reviewType: { value: string; label: string; description: string; displayOrder: number }) => {
+				expect(reviewType.value).toBeDefined();
+				expect(reviewType.label).toBeDefined();
+				expect(reviewType.description).toBeDefined();
+				expect(reviewType.displayOrder).toBeDefined();
+				expect(typeof reviewType.displayOrder).toBe('number');
+			}
+		);
 
 		// Assert: Display orders are unique and properly ordered
-		const displayOrders = response.data.reviewTypes.map((rt: { displayOrder: number }) => rt.displayOrder);
+		const displayOrders = response.data.reviewTypes.map(
+			(rt: { displayOrder: number }) => rt.displayOrder
+		);
 		const uniqueOrders = new Set(displayOrders);
 		expect(uniqueOrders.size).toBe(10);
 	});
@@ -183,11 +179,7 @@ describe('T018: All 10 review types available', () => {
 			}
 		`;
 
-		const response = await performGraphQLQuery(
-			reviewTypesQuery,
-			{},
-			testContext.authTokens.admin
-		);
+		const response = await performGraphQLQuery(reviewTypesQuery, {}, testContext.authTokens.admin);
 
 		// Define expected labels (these should match data-model.md)
 		const expectedLabels = {
@@ -203,10 +195,12 @@ describe('T018: All 10 review types available', () => {
 			SELF_REVIEW: 'Self Review'
 		};
 
-		response.data.reviewTypes.forEach((reviewType: { value: keyof typeof expectedLabels; label: string }) => {
-			const expectedLabel = expectedLabels[reviewType.value];
-			expect(reviewType.label).toBe(expectedLabel);
-		});
+		response.data.reviewTypes.forEach(
+			(reviewType: { value: keyof typeof expectedLabels; label: string }) => {
+				const expectedLabel = expectedLabels[reviewType.value];
+				expect(reviewType.label).toBe(expectedLabel);
+			}
+		);
 	});
 
 	test('should have meaningful descriptions for each review type', async () => {
@@ -219,11 +213,7 @@ describe('T018: All 10 review types available', () => {
 			}
 		`;
 
-		const response = await performGraphQLQuery(
-			reviewTypesQuery,
-			{},
-			testContext.authTokens.admin
-		);
+		const response = await performGraphQLQuery(reviewTypesQuery, {}, testContext.authTokens.admin);
 
 		// Each review type should have a non-empty description
 		response.data.reviewTypes.forEach((reviewType: { description: string }) => {
@@ -232,7 +222,9 @@ describe('T018: All 10 review types available', () => {
 		});
 
 		// Verify specific descriptions contain key terms
-		const annualReview = response.data.reviewTypes.find((rt: { value: string }) => rt.value === 'ANNUAL_REVIEW');
+		const annualReview = response.data.reviewTypes.find(
+			(rt: { value: string }) => rt.value === 'ANNUAL_REVIEW'
+		);
 		expect(annualReview?.description.toLowerCase()).toMatch(/annual|yearly|year/);
 
 		const pip = response.data.reviewTypes.find(
@@ -251,11 +243,7 @@ describe('T018: All 10 review types available', () => {
 			}
 		`;
 
-		const response = await performGraphQLQuery(
-			reviewTypesQuery,
-			{},
-			testContext.authTokens.admin
-		);
+		const response = await performGraphQLQuery(reviewTypesQuery, {}, testContext.authTokens.admin);
 
 		// Sort by display order
 		const sortedTypes = [...response.data.reviewTypes].sort(

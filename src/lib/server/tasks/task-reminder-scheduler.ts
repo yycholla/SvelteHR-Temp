@@ -116,7 +116,7 @@ export class TaskReminderScheduler {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${serviceKey}`
+					Authorization: `Bearer ${serviceKey}`
 				},
 				body: JSON.stringify({
 					query: `
@@ -279,7 +279,7 @@ export class TaskReminderScheduler {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${serviceKey}`
+					Authorization: `Bearer ${serviceKey}`
 				},
 				body: JSON.stringify({
 					query: `
@@ -323,7 +323,10 @@ export class TaskReminderScheduler {
 				throw new Error(result.errors[0]?.message || 'GraphQL error');
 			}
 
-			console.log('[TaskReminderScheduler] Created notification:', result.data?.createNotification?.notification?.id);
+			console.log(
+				'[TaskReminderScheduler] Created notification:',
+				result.data?.createNotification?.notification?.id
+			);
 		} catch (error) {
 			console.error('[TaskReminderScheduler] Error creating notification:', error);
 			// Don't throw - we don't want to stop the scheduler
@@ -411,7 +414,7 @@ export async function checkOverdueTasks(): Promise<number> {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${serviceKey}`
+				Authorization: `Bearer ${serviceKey}`
 			},
 			body: JSON.stringify({
 				query: `

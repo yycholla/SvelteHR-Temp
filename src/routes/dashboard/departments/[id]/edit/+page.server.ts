@@ -51,7 +51,7 @@ export const load: PageServerLoad = async (event) => {
 		const cookieHeader = event.request.headers.get('cookie') || '';
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
-			'Cookie': cookieHeader // Forward all cookies for session authentication
+			Cookie: cookieHeader // Forward all cookies for session authentication
 		};
 
 		console.log(
@@ -205,7 +205,7 @@ export const actions: Actions = {
 			const cookieHeader = request.headers.get('cookie') || '';
 			const headers: Record<string, string> = {
 				'Content-Type': 'application/json',
-				'Cookie': cookieHeader
+				Cookie: cookieHeader
 			};
 
 			// Update department using correct mutation signature with input object

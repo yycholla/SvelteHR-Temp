@@ -86,8 +86,8 @@ export const GET: RequestHandler = async ({ params, locals, cookies, fetch }) =>
 			// Employee/Manager can only view documents uploaded by them
 			if (document.uploaderId !== userId) {
 				error(403, {
-                					message: 'Insufficient permissions to view this document'
-                				});
+					message: 'Insufficient permissions to view this document'
+				});
 			}
 		}
 
@@ -117,8 +117,8 @@ export const DELETE: RequestHandler = async ({ params, locals, request, cookies,
 	// Step 2: Check if user has delete permissions
 	if (userRole !== 'super_admin' && userRole !== 'admin') {
 		error(403, {
-        			message: 'Insufficient permissions. Only administrators can delete documents.'
-        		});
+			message: 'Insufficient permissions. Only administrators can delete documents.'
+		});
 	}
 
 	try {
@@ -183,7 +183,7 @@ export const DELETE: RequestHandler = async ({ params, locals, request, cookies,
 
 		// Generic error fallback
 		error(500, {
-        			message: 'Failed to delete document. Please try again later.'
-        		});
+			message: 'Failed to delete document. Please try again later.'
+		});
 	}
 };

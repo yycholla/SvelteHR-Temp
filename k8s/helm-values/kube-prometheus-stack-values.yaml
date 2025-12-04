@@ -10,7 +10,7 @@
 # - Kube State Metrics
 
 # Global settings
-namespaceOverride: "monitoring"
+namespaceOverride: 'monitoring'
 
 # Prometheus Operator
 prometheusOperator:
@@ -38,17 +38,17 @@ prometheus:
   prometheusSpec:
     # Retention
     retention: 7d
-    retentionSize: "10GB"
+    retentionSize: '10GB'
 
     # Storage
     storageSpec:
       volumeClaimTemplate:
         spec:
-          accessModes: ["ReadWriteOnce"]
+          accessModes: ['ReadWriteOnce']
           resources:
             requests:
               storage: 10Gi
-          storageClassName: local-path  # k3s default storage class
+          storageClassName: local-path # k3s default storage class
 
     # Resources
     resources:
@@ -81,11 +81,11 @@ alertmanager:
     storage:
       volumeClaimTemplate:
         spec:
-          accessModes: ["ReadWriteOnce"]
+          accessModes: ['ReadWriteOnce']
           resources:
             requests:
               storage: 2Gi
-          storageClassName: local-path  # k3s default storage class
+          storageClassName: local-path # k3s default storage class
 
     # Resources
     resources:
@@ -106,13 +106,13 @@ grafana:
   enabled: true
 
   # Admin credentials
-  adminPassword: admin  # Change in production!
+  adminPassword: admin # Change in production!
 
   # Persistence
   persistence:
     enabled: true
     size: 5Gi
-    storageClassName: local-path  # k3s default storage class
+    storageClassName: local-path # k3s default storage class
 
   # Resources
   resources:
@@ -465,11 +465,11 @@ defaultRules:
   create: true
   rules:
     alertmanager: true
-    etcd: false  # Not needed for k3s/minikube
+    etcd: false # Not needed for k3s/minikube
     configReloaders: true
     general: true
     k8s: true
-    kubeApiserver: false  # Can be noisy in dev
+    kubeApiserver: false # Can be noisy in dev
     kubeApiserverAvailability: false
     kubeApiserverSlos: false
     kubelet: true

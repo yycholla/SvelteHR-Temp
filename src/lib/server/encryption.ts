@@ -40,7 +40,10 @@ export function generateIV(): Buffer {
  * const { encrypted, iv, authTag } = encryptFile(fileBuffer, key);
  * ```
  */
-export function encryptFile(data: Buffer, key: Buffer): {
+export function encryptFile(
+	data: Buffer,
+	key: Buffer
+): {
 	encrypted: Buffer;
 	iv: Buffer;
 	authTag: Buffer;
@@ -86,12 +89,7 @@ export function encryptFile(data: Buffer, key: Buffer): {
  * const decrypted = decryptFile(encryptedData, key, iv, authTag);
  * ```
  */
-export function decryptFile(
-	encrypted: Buffer,
-	key: Buffer,
-	iv: Buffer,
-	authTag: Buffer
-): Buffer {
+export function decryptFile(encrypted: Buffer, key: Buffer, iv: Buffer, authTag: Buffer): Buffer {
 	// Validate inputs
 	if (!Buffer.isBuffer(encrypted)) {
 		throw new Error('Encrypted data must be a Buffer');
@@ -253,10 +251,7 @@ export function unpackageEncryptedData(packagedData: Buffer): {
  * const decryptedFile = await retrieveAndDecryptFile(client, documentId);
  * ```
  */
-export async function retrieveAndDecryptFile(
-	client: any,
-	documentId: string
-): Promise<Buffer> {
+export async function retrieveAndDecryptFile(client: any, documentId: string): Promise<Buffer> {
 	// Step 1: Get encrypted file data and encryption key ID
 	const fileResult = await client.query(
 		`SELECT encrypted_data, iv, encryption_key_id
@@ -301,7 +296,11 @@ export async function retrieveAndDecryptFile(
 	const packagedData = encryptedDataBuffer.subarray(IV_LENGTH);
 
 	// Unpackage: [IV_original (12)][Auth Tag (16)][Encrypted Data]
-	const { iv: packagedIv, authTag, encrypted: actualEncrypted } = unpackageEncryptedData(packagedData);
+	const {
+		iv: packagedIv,
+		authTag,
+		encrypted: actualEncrypted
+	} = unpackageEncryptedData(packagedData);
 
 	// Step 4: Decrypt the file using AES-256-GCM
 	// Use IV from database column (not from package, though they should match)

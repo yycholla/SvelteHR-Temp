@@ -24,10 +24,10 @@ spec:
 
   # Sync policy: MANUAL (as requested)
   syncPolicy:
-    automated: null  # Manual sync for production safety
+    automated: null # Manual sync for production safety
 
     syncOptions:
-      - CreateNamespace=false  # argocd namespace already exists
+      - CreateNamespace=false # argocd namespace already exists
 
     retry:
       limit: 3

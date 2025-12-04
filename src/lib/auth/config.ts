@@ -87,7 +87,8 @@ const defaultConfig: AuthConfig = {
 		cookieName: 'hr_token', // Backend sets this cookie name
 		cookieOptions: {
 			httpOnly: true,
-			secure: !isBrowser || (typeof window !== 'undefined' && window.location.protocol === 'https:'),
+			secure:
+				!isBrowser || (typeof window !== 'undefined' && window.location.protocol === 'https:'),
 			sameSite: 'lax', // Changed from 'strict' for better compatibility
 			path: '/',
 			maxAge: 24 * 60 * 60 // 24 hours (backend manages actual expiry)

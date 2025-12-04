@@ -30,6 +30,7 @@ helm list --all-namespaces | grep sveltehr
 ```
 
 **Expected Output:**
+
 ```
 release "sveltehr" uninstalled
 ```
@@ -176,6 +177,7 @@ helm repo list
 ```
 
 **Expected Output:**
+
 ```
 NAME                    URL
 cloudnative-pg          https://cloudnative-pg.github.io/charts
@@ -277,6 +279,7 @@ kubectl wait --for=condition=available --timeout=120s \
 ```
 
 **Expected Output:**
+
 ```
 NAME                             READY   STATUS    RESTARTS   AGE
 cloudnative-pg-xxxxx-xxxxx       1/1     Running   0          30s
@@ -361,6 +364,7 @@ kubectl logs -f deployment/sveltehr-frontend -n sveltehr-dev
 ```
 
 **Expected Pods:**
+
 ```
 NAME                                 READY   STATUS      RESTARTS   AGE
 sveltehr-backend-xxxxx-xxxxx         1/1     Running     0          2m
@@ -625,6 +629,7 @@ kubectl delete secrets -n sveltehr-dev -l owner=helm
 ## 📋 Checklist
 
 ### Teardown Checklist
+
 - [ ] Backup data if needed
 - [ ] Uninstall Helm releases
 - [ ] Delete application namespaces
@@ -634,6 +639,7 @@ kubectl delete secrets -n sveltehr-dev -l owner=helm
 - [ ] Verify all resources gone
 
 ### Initialization Checklist
+
 - [ ] Cluster is accessible
 - [ ] Helm repos added
 - [ ] Infrastructure installed (optional)
@@ -649,6 +655,7 @@ kubectl delete secrets -n sveltehr-dev -l owner=helm
 ## 🎉 Summary
 
 **Teardown Order:**
+
 1. Applications (Helm uninstall)
 2. Namespaces (kubectl delete)
 3. Operators (Helm uninstall)
@@ -656,6 +663,7 @@ kubectl delete secrets -n sveltehr-dev -l owner=helm
 5. PVs (kubectl delete)
 
 **Initialization Order:**
+
 1. Helm repos (helm repo add)
 2. Infrastructure (Helm install - optional)
 3. Operators (Helm install)
@@ -663,6 +671,7 @@ kubectl delete secrets -n sveltehr-dev -l owner=helm
 5. Verify (kubectl get pods)
 
 **Time Estimates:**
+
 - Teardown: 5-10 minutes
 - Initialization: 10-15 minutes
 - Total cycle: 15-25 minutes

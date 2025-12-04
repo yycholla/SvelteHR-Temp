@@ -3,6 +3,7 @@
 ## Setup Overview
 
 **Architecture**:
+
 - Host machine runs `cloudflared`
 - VM at `192.168.1.129` runs K3s with Traefik
 - Tunnel routes: `hr.yycholla.com` → Host cloudflared → VM Traefik (192.168.1.129:80)
@@ -17,6 +18,7 @@
 4. Under **Public Hostnames** tab, click **Add a public hostname**
 
 **Add this configuration**:
+
 - **Subdomain**: `hr`
 - **Domain**: `yycholla.com` (should auto-select)
 - **Type**: `HTTP`
@@ -48,6 +50,7 @@ ingress:
 ```
 
 Then restart cloudflared on the host:
+
 ```bash
 sudo systemctl restart cloudflared
 ```
@@ -69,13 +72,14 @@ ingress:
   enabled: true
   className: traefik
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: web  # HTTP only
-  host: hr.yycholla.com  # Change from hr.local
+    traefik.ingress.kubernetes.io/router.entrypoints: web # HTTP only
+  host: hr.yycholla.com # Change from hr.local
   tls:
-    enabled: false  # Cloudflare provides TLS at edge
+    enabled: false # Cloudflare provides TLS at edge
 ```
 
 Deploy the updated configuration:
+
 ```bash
 helm upgrade sveltehr k8s/helm-charts/sveltehr \
   -n sveltehr-prod \
@@ -85,6 +89,7 @@ helm upgrade sveltehr k8s/helm-charts/sveltehr \
 ## Verification Steps
 
 ### 1. Check Tunnel Status (on host)
+
 ```bash
 # Check tunnel is connected
 sudo systemctl status cloudflared
@@ -94,6 +99,7 @@ cloudflared tunnel route dns list
 ```
 
 ### 2. Test from VM
+
 ```bash
 # Test Traefik is responding
 curl -H "Host: hr.yycholla.com" http://192.168.1.129
@@ -102,6 +108,7 @@ curl -H "Host: hr.yycholla.com" http://192.168.1.129
 ```
 
 ### 3. Test from Internet
+
 ```bash
 # Check DNS (should show Cloudflare IPs)
 dig hr.yycholla.com
@@ -113,9 +120,11 @@ curl -I https://hr.yycholla.com
 ```
 
 ### 4. Browser Test
+
 Open in browser: **https://hr.yycholla.com**
 
 You should see:
+
 - ✅ Valid SSL certificate (Cloudflare)
 - ✅ No browser warnings
 - ✅ SvelteHR login page
@@ -123,9 +132,11 @@ You should see:
 ## Troubleshooting
 
 ### 502 Bad Gateway
+
 **Cause**: Tunnel can't reach VM
 
 **Check on host**:
+
 ```bash
 # Can host reach VM?
 ping 192.168.1.129
@@ -137,9 +148,11 @@ curl -I http://192.168.1.129:80
 **Fix**: Verify VM's IP is correct and Traefik is listening
 
 ### 404 Not Found
+
 **Cause**: Reached Traefik, but ingress not configured
 
 **Check in VM**:
+
 ```bash
 kubectl get ingress -n sveltehr-prod
 
@@ -149,9 +162,11 @@ kubectl get ingress -n sveltehr-prod -o yaml | grep host
 ```
 
 ### Connection Timeout
+
 **Cause**: Tunnel not configured or disconnected
 
 **Check on host**:
+
 ```bash
 sudo journalctl -u cloudflared -n 50
 
@@ -161,26 +176,29 @@ sudo journalctl -u cloudflared -n 50
 ```
 
 ### Certificate Warnings in Browser
+
 **Cause**: Cloudflare SSL mode incorrect
 
 **Fix**: Set to **Flexible** mode in Cloudflare Dashboard
 
 ## Testing Matrix
 
-| Test | Command | Expected Result |
-|------|---------|----------------|
-| VM Traefik | `curl http://192.168.1.129` | HTTP 200 or 404 |
-| DNS Resolution | `dig hr.yycholla.com` | Cloudflare IPs |
-| HTTPS Access | `curl -I https://hr.yycholla.com` | HTTP 200 |
-| Browser | Open https://hr.yycholla.com | Login page |
+| Test           | Command                           | Expected Result |
+| -------------- | --------------------------------- | --------------- |
+| VM Traefik     | `curl http://192.168.1.129`       | HTTP 200 or 404 |
+| DNS Resolution | `dig hr.yycholla.com`             | Cloudflare IPs  |
+| HTTPS Access   | `curl -I https://hr.yycholla.com` | HTTP 200        |
+| Browser        | Open https://hr.yycholla.com      | Login page      |
 
 ## Summary
 
 **What to do on host machine**:
+
 1. Add public hostname in Cloudflare Dashboard: `hr.yycholla.com` → `http://192.168.1.129:80`
 2. Set Cloudflare SSL/TLS to **Flexible** mode
 
 **What to do in VM**:
+
 1. Update values-prod.yaml: `host: hr.yycholla.com`, `tls.enabled: false`
 2. Deploy: `helm upgrade sveltehr ...`
 

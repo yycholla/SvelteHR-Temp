@@ -42,8 +42,8 @@ describe('Form Interactions (Vitest Browser)', () => {
 		await waitFor(1000);
 
 		// Check for deprecation warnings
-		const deprecationWarnings = console.warnings.filter((w) =>
-			w.text.includes('on:submit') || w.text.includes('deprecated')
+		const deprecationWarnings = console.warnings.filter(
+			(w) => w.text.includes('on:submit') || w.text.includes('deprecated')
 		);
 
 		expect(deprecationWarnings).toHaveLength(0);
@@ -97,7 +97,9 @@ describe('Form Interactions (Vitest Browser)', () => {
 
 		// Should have no deprecation warnings
 		const deprecationWarnings = console.warnings.filter(
-			(w) => w.text.includes('deprecated') && (w.text.includes('on:') || w.text.includes('event attribute'))
+			(w) =>
+				w.text.includes('deprecated') &&
+				(w.text.includes('on:') || w.text.includes('event attribute'))
 		);
 		expect(deprecationWarnings).toHaveLength(0);
 	});

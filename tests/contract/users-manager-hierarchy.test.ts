@@ -43,9 +43,9 @@ describe('Users Manager Hierarchy Contract (P1 Core)', () => {
 				new Error('Field "managerId" not found in type "User"')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { userId: 'user_123' })
-			).rejects.toThrow('Field "managerId" not found');
+			await expect(mockGraphQLClient.query(query, { userId: 'user_123' })).rejects.toThrow(
+				'Field "managerId" not found'
+			);
 		});
 
 		test('should expose directReports relationship', async () => {
@@ -69,9 +69,9 @@ describe('Users Manager Hierarchy Contract (P1 Core)', () => {
 				new Error('Relationship "directReports" not implemented')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { userId: 'user_123' })
-			).rejects.toThrow('Relationship "directReports" not implemented');
+			await expect(mockGraphQLClient.query(query, { userId: 'user_123' })).rejects.toThrow(
+				'Relationship "directReports" not implemented'
+			);
 		});
 
 		test('should allow null managerId for top-level employees', async () => {
@@ -95,13 +95,11 @@ describe('Users Manager Hierarchy Contract (P1 Core)', () => {
 				}
 			};
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('Schema regeneration required')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('Schema regeneration required'));
 
-			await expect(
-				mockGraphQLClient.query(query, { userId: 'user_ceo' })
-			).rejects.toThrow('Schema regeneration required');
+			await expect(mockGraphQLClient.query(query, { userId: 'user_ceo' })).rejects.toThrow(
+				'Schema regeneration required'
+			);
 		});
 	});
 
@@ -132,9 +130,9 @@ describe('Users Manager Hierarchy Contract (P1 Core)', () => {
 				new Error('Nested manager relationships not implemented')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { userId: 'user_employee' })
-			).rejects.toThrow('Nested manager relationships not implemented');
+			await expect(mockGraphQLClient.query(query, { userId: 'user_employee' })).rejects.toThrow(
+				'Nested manager relationships not implemented'
+			);
 		});
 
 		test('should query all direct reports for a manager', async () => {
@@ -159,13 +157,11 @@ describe('Users Manager Hierarchy Contract (P1 Core)', () => {
 				}
 			`;
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('directReports query not implemented')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('directReports query not implemented'));
 
-			await expect(
-				mockGraphQLClient.query(query, { managerId: 'user_manager' })
-			).rejects.toThrow('directReports query not implemented');
+			await expect(mockGraphQLClient.query(query, { managerId: 'user_manager' })).rejects.toThrow(
+				'directReports query not implemented'
+			);
 		});
 
 		test('should query recursive organizational chart', async () => {
@@ -247,9 +243,7 @@ describe('Users Manager Hierarchy Contract (P1 Core)', () => {
 				}
 			`;
 
-			mockGraphQLClient.mutation.mockRejectedValue(
-				new Error('Remove manager not implemented')
-			);
+			mockGraphQLClient.mutation.mockRejectedValue(new Error('Remove manager not implemented'));
 
 			await expect(
 				mockGraphQLClient.mutation(mutation, { userId: 'user_employee' })
@@ -285,9 +279,9 @@ describe('Users Manager Hierarchy Contract (P1 Core)', () => {
 				new Error('Circular reference prevention not tested')
 			);
 
-			await expect(
-				mockGraphQLClient.mutation(mutation, { userId: 'user_123' })
-			).rejects.toThrow('Circular reference prevention not tested');
+			await expect(mockGraphQLClient.mutation(mutation, { userId: 'user_123' })).rejects.toThrow(
+				'Circular reference prevention not tested'
+			);
 		});
 
 		test('should prevent circular chain (A->B->C->A)', async () => {
@@ -310,9 +304,9 @@ describe('Users Manager Hierarchy Contract (P1 Core)', () => {
 				new Error('Circular chain prevention not tested')
 			);
 
-			await expect(
-				mockGraphQLClient.mutation(`mutation { }`, circularAttempt)
-			).rejects.toThrow('Circular chain prevention not tested');
+			await expect(mockGraphQLClient.mutation(`mutation { }`, circularAttempt)).rejects.toThrow(
+				'Circular chain prevention not tested'
+			);
 		});
 	});
 
@@ -335,9 +329,9 @@ describe('Users Manager Hierarchy Contract (P1 Core)', () => {
 				is_nullable: 'YES'
 			};
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Database verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Database verification requires live connection'));
 
 			await expect(mockDbQuery(dbQuery)).rejects.toThrow(
 				'Database verification requires live connection'
@@ -355,9 +349,9 @@ describe('Users Manager Hierarchy Contract (P1 Core)', () => {
 				AND trigger_name = 'check_circular_manager';
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Trigger verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Trigger verification requires live connection'));
 
 			await expect(mockDbQuery(triggerQuery)).rejects.toThrow(
 				'Trigger verification requires live connection'
@@ -377,9 +371,9 @@ describe('Users Manager Hierarchy Contract (P1 Core)', () => {
 				AND rc.delete_rule = 'SET NULL';
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('FK cascade verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('FK cascade verification requires live connection'));
 
 			await expect(mockDbQuery(fkQuery)).rejects.toThrow(
 				'FK cascade verification requires live connection'
@@ -405,9 +399,9 @@ describe('Users Manager Hierarchy Contract (P1 Core)', () => {
 				new Error('Index usage validation not implemented')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { managerId: 'user_manager' })
-			).rejects.toThrow('Index usage validation not implemented');
+			await expect(mockGraphQLClient.query(query, { managerId: 'user_manager' })).rejects.toThrow(
+				'Index usage validation not implemented'
+			);
 		});
 
 		test('should handle large org charts efficiently', async () => {
@@ -426,13 +420,11 @@ describe('Users Manager Hierarchy Contract (P1 Core)', () => {
 				}
 			`;
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('Performance testing not implemented')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('Performance testing not implemented'));
 
-			await expect(
-				mockGraphQLClient.query(query)
-			).rejects.toThrow('Performance testing not implemented');
+			await expect(mockGraphQLClient.query(query)).rejects.toThrow(
+				'Performance testing not implemented'
+			);
 		});
 	});
 
@@ -485,9 +477,7 @@ export const managerHierarchyTestHelpers = {
 	}),
 
 	validateReportingChain: (chain: any[]): boolean => {
-		return chain.every(
-			(user, idx) => idx === 0 || user.managerId === chain[idx - 1].id
-		);
+		return chain.every((user, idx) => idx === 0 || user.managerId === chain[idx - 1].id);
 	},
 
 	detectCircularReference: (userId: string, managerId: string, allUsers: any[]): boolean => {

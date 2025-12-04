@@ -178,7 +178,8 @@ export const load: PageServerLoad = async (event) => {
 		// Note: Using placeholder data for fields that exist in separate tables (review_feedback, review_goal, review_cycle)
 		const reviews = (reviewsData.data?.performanceReviews || []).map((review) => {
 			// Map status enum to string
-			const statusStr = typeof review.status === 'string' ? review.status : review.status?.toLowerCase() || 'draft';
+			const statusStr =
+				typeof review.status === 'string' ? review.status : review.status?.toLowerCase() || 'draft';
 			const mappedStatus = mapReviewStatus(statusStr);
 
 			// Infer review type from cycleId existence (would need to query review_cycle for actual type)
@@ -203,7 +204,11 @@ export const load: PageServerLoad = async (event) => {
 					end: yearEnd.toISOString().split('T')[0]
 				},
 				scheduledDate: review.createdAt.split('T')[0],
-				completedDate: review.submittedAt ? review.submittedAt.split('T')[0] : (mappedStatus === 'completed' ? review.updatedAt.split('T')[0] : null),
+				completedDate: review.submittedAt
+					? review.submittedAt.split('T')[0]
+					: mappedStatus === 'completed'
+						? review.updatedAt.split('T')[0]
+						: null,
 				reviewer: review.reviewer
 					? {
 							id: review.reviewer.id,

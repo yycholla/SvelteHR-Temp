@@ -39,8 +39,8 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 
 		if (!event) {
 			error(404, {
-            				message: 'Event not found or you do not have permission to view it.'
-            			});
+				message: 'Event not found or you do not have permission to view it.'
+			});
 		}
 
 		// Check if user is the organizer or admin
@@ -50,8 +50,8 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 
 		if (!canEditEvent) {
 			error(403, {
-            				message: 'Access denied. Only the event organizer or administrators can edit this event.'
-            			});
+				message: 'Access denied. Only the event organizer or administrators can edit this event.'
+			});
 		}
 
 		// Format dates for datetime-local input
@@ -90,8 +90,8 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 		}
 
 		error(500, {
-        			message: 'Failed to load event edit form. Please try again later.'
-        		});
+			message: 'Failed to load event edit form. Please try again later.'
+		});
 	}
 };
 

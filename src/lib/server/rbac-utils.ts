@@ -86,9 +86,9 @@ export function requireAuth(event: RequestEvent, config: RBACConfig = {}): void 
 
 		if (!hasRequiredPermissions) {
 			error(
-            				403,
-            				'Access forbidden: You do not have the required permissions to access this resource'
-            			);
+				403,
+				'Access forbidden: You do not have the required permissions to access this resource'
+			);
 		}
 	}
 
@@ -97,10 +97,7 @@ export function requireAuth(event: RequestEvent, config: RBACConfig = {}): void 
 		const hasRequiredRoles = hasRole(locals.roles || [], requiredRoles, requireAll);
 
 		if (!hasRequiredRoles) {
-			error(
-            				403,
-            				'Access forbidden: You do not have the required role to access this resource'
-            			);
+			error(403, 'Access forbidden: You do not have the required role to access this resource');
 		}
 	}
 
@@ -126,13 +123,23 @@ export const PermissionChecks = {
 	// Dashboard access - requires at least self-level access
 	dashboard: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['dashboard:read:self', 'dashboard:read:team', 'dashboard:read:all', 'dashboard:read']
+			requiredPermissions: [
+				'dashboard:read:self',
+				'dashboard:read:team',
+				'dashboard:read:all',
+				'dashboard:read'
+			]
 		}),
 
 	// Employee management - accepts any level of read access
 	employeeRead: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['employees:read:self', 'employees:read:team', 'employees:read:all', 'employees:read']
+			requiredPermissions: [
+				'employees:read:self',
+				'employees:read:team',
+				'employees:read:all',
+				'employees:read'
+			]
 		}),
 	employeeWrite: (event: RequestEvent) =>
 		requireAuth(event, {
@@ -147,7 +154,12 @@ export const PermissionChecks = {
 	// Department management - accepts any level of read access
 	departmentRead: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['departments:read:self', 'departments:read:team', 'departments:read:all', 'departments:read']
+			requiredPermissions: [
+				'departments:read:self',
+				'departments:read:team',
+				'departments:read:all',
+				'departments:read'
+			]
 		}),
 	departmentWrite: (event: RequestEvent) =>
 		requireAuth(event, {
@@ -187,7 +199,12 @@ export const PermissionChecks = {
 	// Performance management - accepts any level of read access
 	performanceRead: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['performance:read:self', 'performance:read:team', 'performance:read:all', 'performance:read']
+			requiredPermissions: [
+				'performance:read:self',
+				'performance:read:team',
+				'performance:read:all',
+				'performance:read'
+			]
 		}),
 	performanceWrite: (event: RequestEvent) =>
 		requireAuth(event, {
@@ -207,7 +224,12 @@ export const PermissionChecks = {
 	// Reports - accepts any level of read access
 	reportsRead: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['reports:read:self', 'reports:read:team', 'reports:read:all', 'reports:read']
+			requiredPermissions: [
+				'reports:read:self',
+				'reports:read:team',
+				'reports:read:all',
+				'reports:read'
+			]
 		}),
 	reportsWrite: (event: RequestEvent) =>
 		requireAuth(event, {
@@ -250,7 +272,12 @@ export const PermissionChecks = {
 	// Documents
 	documentsRead: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['documents:read:self', 'documents:read:team', 'documents:read:all', 'documents:read']
+			requiredPermissions: [
+				'documents:read:self',
+				'documents:read:team',
+				'documents:read:all',
+				'documents:read'
+			]
 		}),
 	documentsWrite: (event: RequestEvent) =>
 		requireAuth(event, {
@@ -264,7 +291,12 @@ export const PermissionChecks = {
 	// Events
 	eventsRead: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['events:read:self', 'events:read:team', 'events:read:all', 'events:read']
+			requiredPermissions: [
+				'events:read:self',
+				'events:read:team',
+				'events:read:all',
+				'events:read'
+			]
 		}),
 	eventsWrite: (event: RequestEvent) =>
 		requireAuth(event, {
@@ -274,7 +306,12 @@ export const PermissionChecks = {
 	// Attendance
 	attendanceRead: (event: RequestEvent) =>
 		requireAuth(event, {
-			requiredPermissions: ['attendance:read:self', 'attendance:read:team', 'attendance:read:all', 'attendance:read']
+			requiredPermissions: [
+				'attendance:read:self',
+				'attendance:read:team',
+				'attendance:read:all',
+				'attendance:read'
+			]
 		}),
 	attendanceWrite: (event: RequestEvent) =>
 		requireAuth(event, {

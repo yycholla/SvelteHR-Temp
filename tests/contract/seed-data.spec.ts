@@ -166,7 +166,7 @@ test.describe('Seed Data GraphQL Contract', () => {
 		// If errors exist, should be array of strings
 		if (result.errors) {
 			expect(Array.isArray(result.errors)).toBe(true);
-			result.errors.forEach(error => {
+			result.errors.forEach((error) => {
 				expect(typeof error).toBe('string');
 			});
 		}

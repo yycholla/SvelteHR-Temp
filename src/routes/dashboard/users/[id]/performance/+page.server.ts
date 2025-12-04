@@ -19,8 +19,10 @@ export const load: PageServerLoad = async (event) => {
 
 	// If not viewing self, check for team or all scope
 	if (!isViewingSelf) {
-		const hasTeamScope = userPermissions.includes('performance:read:team') || userPermissions.includes('performance:read:all');
-		if (!hasTeamScope && !userPermissions.includes('*') || userPermissions.includes('*:*')) {
+		const hasTeamScope =
+			userPermissions.includes('performance:read:team') ||
+			userPermissions.includes('performance:read:all');
+		if ((!hasTeamScope && !userPermissions.includes('*')) || userPermissions.includes('*:*')) {
 			error(403, 'Access denied: You can only view your own performance data');
 		}
 
@@ -89,7 +91,11 @@ export const load: PageServerLoad = async (event) => {
 
 		// Calculate date ranges for current quarter
 		const currentDate = new Date();
-		const quarterStart = new Date(currentDate.getFullYear(), Math.floor(currentDate.getMonth() / 3) * 3, 1);
+		const quarterStart = new Date(
+			currentDate.getFullYear(),
+			Math.floor(currentDate.getMonth() / 3) * 3,
+			1
+		);
 		const quarterEnd = new Date(quarterStart);
 		quarterEnd.setMonth(quarterEnd.getMonth() + 3);
 		quarterEnd.setDate(0); // Last day of quarter
@@ -106,19 +112,29 @@ export const load: PageServerLoad = async (event) => {
 		// Calculate goal statistics from real data
 		const goalStats = {
 			total: goals.length,
-			completed: goals.filter(g => g.status === 'completed').length,
-			inProgress: goals.filter(g => g.status === 'in_progress').length,
-			atRisk: goals.filter(g => g.status === 'at_risk').length,
-			notStarted: goals.filter(g => g.status === 'not_started').length,
-			blocked: goals.filter(g => g.status === 'blocked').length,
-			averageProgress: goals.length > 0 ? Math.round(goals.reduce((sum, g) => sum + (g.progressPercentage || 0), 0) / goals.length) : 0,
-			completionRate: goals.length > 0 ? Math.round((goals.filter(g => g.status === 'completed').length / goals.length) * 100) : 0
+			completed: goals.filter((g) => g.status === 'completed').length,
+			inProgress: goals.filter((g) => g.status === 'in_progress').length,
+			atRisk: goals.filter((g) => g.status === 'at_risk').length,
+			notStarted: goals.filter((g) => g.status === 'not_started').length,
+			blocked: goals.filter((g) => g.status === 'blocked').length,
+			averageProgress:
+				goals.length > 0
+					? Math.round(
+							goals.reduce((sum, g) => sum + (g.progressPercentage || 0), 0) / goals.length
+						)
+					: 0,
+			completionRate:
+				goals.length > 0
+					? Math.round((goals.filter((g) => g.status === 'completed').length / goals.length) * 100)
+					: 0
 		};
 
 		return {
 			user,
 			userId,
-			goals: goals.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+			goals: goals.sort(
+				(a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+			),
 			goalCategories,
 			goalStats,
 			currentQuarter: {
@@ -131,7 +147,6 @@ export const load: PageServerLoad = async (event) => {
 			permissions: locals.permissions || [],
 			loadedAt: new Date().toISOString()
 		};
-
 	} catch (err) {
 		console.error('Error loading user performance data:', err);
 

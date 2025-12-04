@@ -11,6 +11,7 @@ SvelteHR has fully migrated from JWT token-based authentication to session-based
 ## 🔒 Security Benefits
 
 ### Before (JWT-based)
+
 - ❌ JWT tokens stored in localStorage (XSS vulnerable)
 - ❌ Client-side token parsing and validation
 - ❌ Complex token refresh logic
@@ -18,6 +19,7 @@ SvelteHR has fully migrated from JWT token-based authentication to session-based
 - ❌ Token exposure in client JavaScript
 
 ### After (Session-based)
+
 - ✅ HTTP-only session cookies (XSS immune)
 - ✅ Server-side session validation only
 - ✅ Automatic cookie management by browser
@@ -63,6 +65,7 @@ SvelteHR has fully migrated from JWT token-based authentication to session-based
 ## 🚀 Authentication Endpoints
 
 ### Login
+
 ```typescript
 POST /api/auth/login
 Content-Type: application/json
@@ -89,6 +92,7 @@ Cookies Set:
 ```
 
 ### Logout
+
 ```typescript
 POST /api/auth/logout
 Cookie: hr_token=[session_id]
@@ -104,6 +108,7 @@ Cookies Cleared:
 ```
 
 ### Session Verification
+
 ```typescript
 GET /api/auth/verify
 Cookie: hr_token=[session_id]
@@ -130,42 +135,42 @@ Response:
 ```typescript
 // src/hooks.server.ts
 export const handle: Handle = async ({ event, resolve }) => {
-  // Skip auth for public routes
-  if (isPublicRoute(event.url.pathname)) {
-    return resolve(event);
-  }
+	// Skip auth for public routes
+	if (isPublicRoute(event.url.pathname)) {
+		return resolve(event);
+	}
 
-  // Get session cookie
-  const sessionCookie = event.cookies.get('hr_token') || event.cookies.get('auth-token');
+	// Get session cookie
+	const sessionCookie = event.cookies.get('hr_token') || event.cookies.get('auth-token');
 
-  if (sessionCookie) {
-    try {
-      // Validate session with Rust backend
-      const response = await fetch(`${backendUrl}/auth/me`, {
-        headers: {
-          'Cookie': `hr_token=${sessionCookie}`
-        }
-      });
+	if (sessionCookie) {
+		try {
+			// Validate session with Rust backend
+			const response = await fetch(`${backendUrl}/auth/me`, {
+				headers: {
+					Cookie: `hr_token=${sessionCookie}`
+				}
+			});
 
-      if (response.ok) {
-        const userData = await response.json();
+			if (response.ok) {
+				const userData = await response.json();
 
-        // Populate locals with user data
-        event.locals.user = userData.user;
-        event.locals.permissions = userData.permissions || [];
-        event.locals.roles = userData.roles || [];
-      }
-    } catch (error) {
-      console.error('Session validation failed:', error);
-    }
-  }
+				// Populate locals with user data
+				event.locals.user = userData.user;
+				event.locals.permissions = userData.permissions || [];
+				event.locals.roles = userData.roles || [];
+			}
+		} catch (error) {
+			console.error('Session validation failed:', error);
+		}
+	}
 
-  // Redirect to login if not authenticated
-  if (!event.locals.user) {
-    throw redirect(303, `/login?redirectTo=${encodeURIComponent(event.url.pathname)}`);
-  }
+	// Redirect to login if not authenticated
+	if (!event.locals.user) {
+		throw redirect(303, `/login?redirectTo=${encodeURIComponent(event.url.pathname)}`);
+	}
 
-  return resolve(event);
+	return resolve(event);
 };
 ```
 
@@ -179,21 +184,21 @@ import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ locals }) => {
-  // Verify user is authenticated via session
-  if (!locals.user?.id) {
-    throw error(401, 'Authentication required');
-  }
+	// Verify user is authenticated via session
+	if (!locals.user?.id) {
+		throw error(401, 'Authentication required');
+	}
 
-  // User is authenticated - locals.user populated by hooks.server.ts
-  return {
-    user: {
-      id: locals.user.id,
-      email: locals.user.email,
-      role: locals.user.role,
-      displayName: locals.user.display_name
-    },
-    permissions: locals.permissions || []
-  };
+	// User is authenticated - locals.user populated by hooks.server.ts
+	return {
+		user: {
+			id: locals.user.id,
+			email: locals.user.email,
+			role: locals.user.role,
+			displayName: locals.user.display_name
+		},
+		permissions: locals.permissions || []
+	};
 };
 ```
 
@@ -205,32 +210,32 @@ export const load: PageServerLoad = async ({ locals }) => {
 import type { RequestEvent } from '@sveltejs/kit';
 
 export function extractUserContext(event: RequestEvent) {
-  const user = event.locals.user;
+	const user = event.locals.user;
 
-  if (!user) {
-    return null;
-  }
+	if (!user) {
+		return null;
+	}
 
-  return {
-    user_id: user.id,
-    email: user.email,
-    role: user.role || 'employee',
-    display_name: user.display_name,
-    permissions: event.locals.permissions || []
-  };
+	return {
+		user_id: user.id,
+		email: user.email,
+		role: user.role || 'employee',
+		display_name: user.display_name,
+		permissions: event.locals.permissions || []
+	};
 }
 
 export function requireAuth(event: RequestEvent, redirectPath = '/login') {
-  if (!event.locals.user) {
-    const { redirect } = await import('@sveltejs/kit');
-    const returnUrl = encodeURIComponent(event.url.pathname + event.url.search);
-    throw redirect(303, `${redirectPath}?redirectTo=${returnUrl}`);
-  }
+	if (!event.locals.user) {
+		const { redirect } = await import('@sveltejs/kit');
+		const returnUrl = encodeURIComponent(event.url.pathname + event.url.search);
+		throw redirect(303, `${redirectPath}?redirectTo=${returnUrl}`);
+	}
 }
 
 export function hasPermission(event: RequestEvent, permission: string): boolean {
-  const permissions = event.locals.permissions || [];
-  return permissions.includes('*') || permissions.includes(permission);
+	const permissions = event.locals.permissions || [];
+	return permissions.includes('*') || permissions.includes(permission);
 }
 ```
 
@@ -243,34 +248,34 @@ export function hasPermission(event: RequestEvent, permission: string): boolean 
 import { writable } from 'svelte/store';
 
 export const authStore = {
-  ...writable({ isAuthenticated: false, user: null }),
+	...writable({ isAuthenticated: false, user: null }),
 
-  login: async (email: string, password: string) => {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-      credentials: 'include' // Include session cookies
-    });
+	login: async (email: string, password: string) => {
+		const response = await fetch('/api/auth/login', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ email, password }),
+			credentials: 'include' // Include session cookies
+		});
 
-    if (response.ok) {
-      const data = await response.json();
-      // Session cookie set automatically by browser
-      return { success: true, user: data.user };
-    }
+		if (response.ok) {
+			const data = await response.json();
+			// Session cookie set automatically by browser
+			return { success: true, user: data.user };
+		}
 
-    return { success: false, error: 'Login failed' };
-  },
+		return { success: false, error: 'Login failed' };
+	},
 
-  logout: async () => {
-    await fetch('/api/auth/logout', {
-      method: 'POST',
-      credentials: 'include'
-    });
+	logout: async () => {
+		await fetch('/api/auth/logout', {
+			method: 'POST',
+			credentials: 'include'
+		});
 
-    // Session cookie cleared automatically
-    authStore.set({ isAuthenticated: false, user: null });
-  }
+		// Session cookie cleared automatically
+		authStore.set({ isAuthenticated: false, user: null });
+	}
 };
 ```
 
@@ -402,30 +407,30 @@ curl -X POST http://localhost:5173/api/auth/logout \
 import { expect, test } from '@playwright/test';
 
 test('session authentication flow', async ({ page, context }) => {
-  // Login
-  await page.goto('/login');
-  await page.fill('input[name="email"]', 'test@example.com');
-  await page.fill('input[name="password"]', 'password123');
-  await page.click('button[type="submit"]');
+	// Login
+	await page.goto('/login');
+	await page.fill('input[name="email"]', 'test@example.com');
+	await page.fill('input[name="password"]', 'password123');
+	await page.click('button[type="submit"]');
 
-  // Verify session cookie set
-  const cookies = await context.cookies();
-  const sessionCookie = cookies.find(c => c.name === 'hr_token');
-  expect(sessionCookie).toBeDefined();
-  expect(sessionCookie.httpOnly).toBe(true);
+	// Verify session cookie set
+	const cookies = await context.cookies();
+	const sessionCookie = cookies.find((c) => c.name === 'hr_token');
+	expect(sessionCookie).toBeDefined();
+	expect(sessionCookie.httpOnly).toBe(true);
 
-  // Access protected page
-  await page.goto('/dashboard');
-  await expect(page).toHaveURL('/dashboard');
+	// Access protected page
+	await page.goto('/dashboard');
+	await expect(page).toHaveURL('/dashboard');
 
-  // Logout
-  await page.click('button:has-text("Logout")');
-  await expect(page).toHaveURL('/login');
+	// Logout
+	await page.click('button:has-text("Logout")');
+	await expect(page).toHaveURL('/login');
 
-  // Session cookie cleared
-  const cookiesAfterLogout = await context.cookies();
-  const sessionCookieAfter = cookiesAfterLogout.find(c => c.name === 'hr_token');
-  expect(sessionCookieAfter).toBeUndefined();
+	// Session cookie cleared
+	const cookiesAfterLogout = await context.cookies();
+	const sessionCookieAfter = cookiesAfterLogout.find((c) => c.name === 'hr_token');
+	expect(sessionCookieAfter).toBeUndefined();
 });
 ```
 
@@ -436,6 +441,7 @@ test('session authentication flow', async ({ page, context }) => {
 **Problem**: User logged out on page refresh
 
 **Solutions**:
+
 1. Check cookie domain matches current domain
 2. Verify `credentials: 'include'` in fetch calls
 3. Check browser allows third-party cookies

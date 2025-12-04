@@ -5,7 +5,7 @@ metadata:
   name: traefik
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "1"  # Deploy with other core infrastructure
+    argocd.argoproj.io/sync-wave: '1' # Deploy with other core infrastructure
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -20,7 +20,7 @@ spec:
     # Source 2: Helm chart from Traefik
     - repoURL: https://traefik.github.io/charts
       chart: traefik
-      targetRevision: 37.2.0  # Traefik v3.5.3
+      targetRevision: 37.2.0 # Traefik v3.5.3
       helm:
         releaseName: traefik
         valueFiles:
@@ -33,14 +33,14 @@ spec:
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: ingress-traefik  # Dedicated namespace for Traefik
+    namespace: ingress-traefik # Dedicated namespace for Traefik
 
   syncPolicy:
     automated:
-      prune: true  # Remove resources deleted from Git
-      selfHeal: true  # Auto-correct cluster drift
+      prune: true # Remove resources deleted from Git
+      selfHeal: true # Auto-correct cluster drift
     syncOptions:
-      - CreateNamespace=true  # Create ingress-traefik namespace
+      - CreateNamespace=true # Create ingress-traefik namespace
       - ServerSideApply=true
     retry:
       limit: 3

@@ -23,7 +23,7 @@ spec:
         - name: sveltekit-app
           image: registry.gitlab.com/your-project/sveltehr/frontend:latest # Will be patched
           ports:
-            - containerPort: 3000  # Production default (SvelteKit build), patched to 5173 for dev
+            - containerPort: 3000 # Production default (SvelteKit build), patched to 5173 for dev
               name: http
           env:
             - name: PUBLIC_API_URL
@@ -76,7 +76,7 @@ spec:
             periodSeconds: 5
           securityContext:
             allowPrivilegeEscalation: false
-            runAsNonRoot: true  # Production runs as non-root
+            runAsNonRoot: true # Production runs as non-root
             runAsUser: 1000
             # readOnlyRootFilesystem removed - Node.js apps need write access to /tmp
           volumeMounts:

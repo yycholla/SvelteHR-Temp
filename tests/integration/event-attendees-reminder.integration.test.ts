@@ -196,7 +196,10 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 			const result = await graphqlClient.mutation(mutation, variables).toPromise();
 
 			if (result.error) {
-				console.log('⚠️  Mutation error (may be due to duplicate or constraint):', result.error.message);
+				console.log(
+					'⚠️  Mutation error (may be due to duplicate or constraint):',
+					result.error.message
+				);
 				// This might fail due to unique constraints, which is acceptable in integration tests
 				return;
 			}
@@ -239,7 +242,10 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 			const result = await graphqlClient.mutation(mutation, variables).toPromise();
 
 			if (result.error) {
-				console.log('⚠️  Mutation error (may be due to duplicate or constraint):', result.error.message);
+				console.log(
+					'⚠️  Mutation error (may be due to duplicate or constraint):',
+					result.error.message
+				);
 				return;
 			}
 
@@ -302,9 +308,7 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 				}
 			`;
 
-			const result = await graphqlClient
-				.query(query, { min: 10, max: 30 })
-				.toPromise();
+			const result = await graphqlClient.query(query, { min: 10, max: 30 }).toPromise();
 
 			expect(result.error).toBeUndefined();
 			expect(result.data).toBeDefined();
@@ -389,9 +393,7 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 
 			const testEventId = eventsResult.data.events.nodes[0].id;
 
-			const result = await graphqlClient
-				.query(query, { eventId: testEventId })
-				.toPromise();
+			const result = await graphqlClient.query(query, { eventId: testEventId }).toPromise();
 
 			expect(result.error).toBeUndefined();
 			expect(result.data).toBeDefined();
@@ -461,25 +463,24 @@ export const eventReminderTestUtils = {
 			}
 		`;
 
-		return client.mutation(mutation, {
-			input: {
-				eventAttendee: {
-					eventId,
-					employeeId,
-					responseStatus: 'PENDING',
-					reminderTime
+		return client
+			.mutation(mutation, {
+				input: {
+					eventAttendee: {
+						eventId,
+						employeeId,
+						responseStatus: 'PENDING',
+						reminderTime
+					}
 				}
-			}
-		}).toPromise();
+			})
+			.toPromise();
 	},
 
 	/**
 	 * Query attendees by reminder time
 	 */
-	queryAttendeesByReminderTime: async (
-		client: Client,
-		reminderTime: number
-	) => {
+	queryAttendeesByReminderTime: async (client: Client, reminderTime: number) => {
 		const query = `
 			query QueryByReminderTime($reminderTime: Int!) {
 				allEventAttendees(

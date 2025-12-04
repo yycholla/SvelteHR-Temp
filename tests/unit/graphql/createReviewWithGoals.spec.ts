@@ -92,18 +92,18 @@ const schemaSDL = `
 `;
 
 describe('T007: createReviewWithGoals mutation schema contract', () => {
-  const schema = buildSchema(schemaSDL);
+	const schema = buildSchema(schemaSDL);
 
-  test('mutation should be defined in schema', () => {
-    const mutationType = schema.getMutationType();
-    expect(mutationType).toBeDefined();
+	test('mutation should be defined in schema', () => {
+		const mutationType = schema.getMutationType();
+		expect(mutationType).toBeDefined();
 
-    const fields = mutationType?.getFields();
-    expect(fields).toHaveProperty('createReviewWithGoals');
-  });
+		const fields = mutationType?.getFields();
+		expect(fields).toHaveProperty('createReviewWithGoals');
+	});
 
-  test('CreateReviewInput should accept required fields', () => {
-    const query = parse(`
+	test('CreateReviewInput should accept required fields', () => {
+		const query = parse(`
       mutation CreateReview($input: CreateReviewInput!) {
         createReviewWithGoals(input: $input) {
           success
@@ -118,79 +118,79 @@ describe('T007: createReviewWithGoals mutation schema contract', () => {
       }
     `);
 
-    const errors = validate(schema, query);
-    expect(errors).toHaveLength(0);
-  });
+		const errors = validate(schema, query);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('CreateReviewInput should require employeeId', () => {
-    const inputType = schema.getType('CreateReviewInput');
-    expect(inputType).toBeDefined();
+	test('CreateReviewInput should require employeeId', () => {
+		const inputType = schema.getType('CreateReviewInput');
+		expect(inputType).toBeDefined();
 
-    if (inputType && 'getFields' in inputType) {
-      const fields = inputType.getFields();
-      const employeeIdField = fields['employeeId'];
+		if (inputType && 'getFields' in inputType) {
+			const fields = inputType.getFields();
+			const employeeIdField = fields['employeeId'];
 
-      expect(employeeIdField).toBeDefined();
-      expect(employeeIdField.type.toString()).toContain('ID!');
-    }
-  });
+			expect(employeeIdField).toBeDefined();
+			expect(employeeIdField.type.toString()).toContain('ID!');
+		}
+	});
 
-  test('CreateReviewInput should require reviewType', () => {
-    const inputType = schema.getType('CreateReviewInput');
+	test('CreateReviewInput should require reviewType', () => {
+		const inputType = schema.getType('CreateReviewInput');
 
-    if (inputType && 'getFields' in inputType) {
-      const fields = inputType.getFields();
-      const reviewTypeField = fields['reviewType'];
+		if (inputType && 'getFields' in inputType) {
+			const fields = inputType.getFields();
+			const reviewTypeField = fields['reviewType'];
 
-      expect(reviewTypeField).toBeDefined();
-      expect(reviewTypeField.type.toString()).toContain('ReviewType!');
-    }
-  });
+			expect(reviewTypeField).toBeDefined();
+			expect(reviewTypeField.type.toString()).toContain('ReviewType!');
+		}
+	});
 
-  test('CreateReviewInput should accept goalIds array', () => {
-    const inputType = schema.getType('CreateReviewInput');
+	test('CreateReviewInput should accept goalIds array', () => {
+		const inputType = schema.getType('CreateReviewInput');
 
-    if (inputType && 'getFields' in inputType) {
-      const fields = inputType.getFields();
-      const goalIdsField = fields['goalIds'];
+		if (inputType && 'getFields' in inputType) {
+			const fields = inputType.getFields();
+			const goalIdsField = fields['goalIds'];
 
-      expect(goalIdsField).toBeDefined();
-      expect(goalIdsField.type.toString()).toContain('[ID!]!');
-    }
-  });
+			expect(goalIdsField).toBeDefined();
+			expect(goalIdsField.type.toString()).toContain('[ID!]!');
+		}
+	});
 
-  test('CreateReviewInput should accept newGoals array', () => {
-    const inputType = schema.getType('CreateReviewInput');
+	test('CreateReviewInput should accept newGoals array', () => {
+		const inputType = schema.getType('CreateReviewInput');
 
-    if (inputType && 'getFields' in inputType) {
-      const fields = inputType.getFields();
-      const newGoalsField = fields['newGoals'];
+		if (inputType && 'getFields' in inputType) {
+			const fields = inputType.getFields();
+			const newGoalsField = fields['newGoals'];
 
-      expect(newGoalsField).toBeDefined();
-      expect(newGoalsField.type.toString()).toContain('[NewGoalInput!]!');
-    }
-  });
+			expect(newGoalsField).toBeDefined();
+			expect(newGoalsField.type.toString()).toContain('[NewGoalInput!]!');
+		}
+	});
 
-  test('ReviewMutationResponse should match expected type', () => {
-    const responseType = schema.getType('ReviewMutationResponse');
-    expect(responseType).toBeDefined();
+	test('ReviewMutationResponse should match expected type', () => {
+		const responseType = schema.getType('ReviewMutationResponse');
+		expect(responseType).toBeDefined();
 
-    if (responseType && 'getFields' in responseType) {
-      const fields = responseType.getFields();
+		if (responseType && 'getFields' in responseType) {
+			const fields = responseType.getFields();
 
-      expect(fields['success']).toBeDefined();
-      expect(fields['success'].type.toString()).toBe('Boolean!');
+			expect(fields['success']).toBeDefined();
+			expect(fields['success'].type.toString()).toBe('Boolean!');
 
-      expect(fields['message']).toBeDefined();
-      expect(fields['message'].type.toString()).toBe('String');
+			expect(fields['message']).toBeDefined();
+			expect(fields['message'].type.toString()).toBe('String');
 
-      expect(fields['review']).toBeDefined();
-      expect(fields['review'].type.toString()).toBe('PerformanceReview');
-    }
-  });
+			expect(fields['review']).toBeDefined();
+			expect(fields['review'].type.toString()).toBe('PerformanceReview');
+		}
+	});
 
-  test('mutation should accept valid input variables', () => {
-    const mutation = parse(`
+	test('mutation should accept valid input variables', () => {
+		const mutation = parse(`
       mutation CreateAnnualReview($input: CreateReviewInput!) {
         createReviewWithGoals(input: $input) {
           success
@@ -209,28 +209,28 @@ describe('T007: createReviewWithGoals mutation schema contract', () => {
       }
     `);
 
-    const errors = validate(schema, mutation);
-    expect(errors).toHaveLength(0);
-  });
+		const errors = validate(schema, mutation);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('NewGoalInput should have required fields', () => {
-    const inputType = schema.getType('NewGoalInput');
-    expect(inputType).toBeDefined();
+	test('NewGoalInput should have required fields', () => {
+		const inputType = schema.getType('NewGoalInput');
+		expect(inputType).toBeDefined();
 
-    if (inputType && 'getFields' in inputType) {
-      const fields = inputType.getFields();
+		if (inputType && 'getFields' in inputType) {
+			const fields = inputType.getFields();
 
-      expect(fields['title']).toBeDefined();
-      expect(fields['title'].type.toString()).toBe('String!');
+			expect(fields['title']).toBeDefined();
+			expect(fields['title'].type.toString()).toBe('String!');
 
-      expect(fields['description']).toBeDefined();
-      expect(fields['description'].type.toString()).toBe('String!');
+			expect(fields['description']).toBeDefined();
+			expect(fields['description'].type.toString()).toBe('String!');
 
-      expect(fields['targetCompletionDate']).toBeDefined();
-      expect(fields['targetCompletionDate'].type.toString()).toBe('Date!');
+			expect(fields['targetCompletionDate']).toBeDefined();
+			expect(fields['targetCompletionDate'].type.toString()).toBe('Date!');
 
-      expect(fields['successMetrics']).toBeDefined();
-      expect(fields['successMetrics'].type.toString()).toBe('String!');
-    }
-  });
+			expect(fields['successMetrics']).toBeDefined();
+			expect(fields['successMetrics'].type.toString()).toBe('String!');
+		}
+	});
 });

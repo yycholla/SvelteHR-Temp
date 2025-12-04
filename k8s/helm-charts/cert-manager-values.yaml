@@ -6,7 +6,7 @@ installCRDs: true
 
 global:
   # Use higher priority class for critical cert-manager pods
-  priorityClassName: "system-cluster-critical"
+  priorityClassName: 'system-cluster-critical'
 
 # Resource limits for production stability
 resources:

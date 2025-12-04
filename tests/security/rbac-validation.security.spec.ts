@@ -638,7 +638,9 @@ describe('RBAC Validation - Security Tests', () => {
 			];
 
 			operations.forEach((op) => {
-				const superAdmin = testMatrix.super_admin[op as keyof typeof testMatrix.super_admin] ? '✅' : '❌';
+				const superAdmin = testMatrix.super_admin[op as keyof typeof testMatrix.super_admin]
+					? '✅'
+					: '❌';
 				const admin = testMatrix.admin[op as keyof typeof testMatrix.admin] ? '✅' : '❌';
 				const manager = testMatrix.manager[op as keyof typeof testMatrix.manager] ? '✅' : '❌';
 				const employee = testMatrix.employee[op as keyof typeof testMatrix.employee] ? '✅' : '❌';

@@ -21,11 +21,11 @@ test.describe('Task Hierarchy and Subtasks', () => {
 		await page.goto('/dashboard/tasks/new');
 		await page.waitForLoadState('networkidle');
 		await page.fill('input[name="title"]', 'Parent Task for Hierarchy Test');
-		
+
 		const submitButton = page.locator('button[type="submit"]:has-text("Create Task")');
 		await submitButton.click();
 		await page.waitForURL('**/tasks/*', { timeout: 10000 });
-		
+
 		parentTaskId = page.url().split('/').pop()!;
 	});
 
@@ -44,7 +44,7 @@ test.describe('Task Hierarchy and Subtasks', () => {
 
 		// Create subtask
 		await page.fill('input[name="title"]', 'First Subtask');
-		
+
 		const submitButton = page.locator('button[type="submit"]:has-text("Create Task")');
 		await submitButton.click();
 		await page.waitForURL('**/tasks/*', { timeout: 10000 });
@@ -58,7 +58,7 @@ test.describe('Task Hierarchy and Subtasks', () => {
 		await page.goto(`/dashboard/tasks/new?parent=${parentTaskId}`);
 		await page.waitForLoadState('networkidle');
 		await page.fill('input[name="title"]', 'Subtask with Parent Link');
-		
+
 		const submitButton = page.locator('button[type="submit"]:has-text("Create Task")');
 		await submitButton.click();
 		await page.waitForURL('**/tasks/*', { timeout: 10000 });
@@ -82,7 +82,7 @@ test.describe('Task Hierarchy and Subtasks', () => {
 			await page.goto(`/dashboard/tasks/new?parent=${parentTaskId}`);
 			await page.waitForLoadState('networkidle');
 			await page.fill('input[name="title"]', `Subtask ${i}`);
-			
+
 			const submitButton = page.locator('button[type="submit"]:has-text("Create Task")');
 			await submitButton.click();
 			await page.waitForURL('**/tasks/*', { timeout: 10000 });
@@ -101,7 +101,7 @@ test.describe('Task Hierarchy and Subtasks', () => {
 		await page.goto(`/dashboard/tasks/new?parent=${parentTaskId}`);
 		await page.waitForLoadState('networkidle');
 		await page.fill('input[name="title"]', 'Subtask for Progress Test');
-		
+
 		const submitButton = page.locator('button[type="submit"]:has-text("Create Task")');
 		await submitButton.click();
 		await page.waitForURL('**/tasks/*', { timeout: 10000 });
@@ -120,7 +120,7 @@ test.describe('Task Hierarchy and Subtasks', () => {
 		await page.goto(`/dashboard/tasks/new?parent=${parentTaskId}`);
 		await page.waitForLoadState('networkidle');
 		await page.fill('input[name="title"]', 'Subtask in Hierarchy View');
-		
+
 		const submitButton = page.locator('button[type="submit"]:has-text("Create Task")');
 		await submitButton.click();
 		await page.waitForURL('**/tasks/*', { timeout: 10000 });
@@ -143,7 +143,7 @@ test.describe('Task Hierarchy and Subtasks', () => {
 		await page.goto(`/dashboard/tasks/new?parent=${parentTaskId}`);
 		await page.waitForLoadState('networkidle');
 		await page.fill('input[name="title"]', 'Navigable Subtask');
-		
+
 		const submitButton = page.locator('button[type="submit"]:has-text("Create Task")');
 		await submitButton.click();
 		await page.waitForURL('**/tasks/*', { timeout: 10000 });
@@ -167,7 +167,7 @@ test.describe('Task Hierarchy and Subtasks', () => {
 		await page.goto(`/dashboard/tasks/new?parent=${parentTaskId}`);
 		await page.waitForLoadState('networkidle');
 		await page.fill('input[name="title"]', 'Completable Subtask');
-		
+
 		const submitButton = page.locator('button[type="submit"]:has-text("Create Task")');
 		await submitButton.click();
 		await page.waitForURL('**/tasks/*', { timeout: 10000 });
@@ -181,12 +181,12 @@ test.describe('Task Hierarchy and Subtasks', () => {
 		// Complete the subtask
 		await page.goto(`/dashboard/tasks/${subtaskId}/edit`);
 		await page.waitForLoadState('networkidle');
-		
+
 		const statusTrigger = page.locator('[id="status"]');
 		if (await statusTrigger.isVisible()) {
 			await statusTrigger.click();
 			await page.locator('text=Completed').click();
-			
+
 			const updateButton = page.locator('button[type="submit"]:has-text("Update Task")');
 			await updateButton.click();
 			await page.waitForURL(`**/tasks/${subtaskId}`);
@@ -203,7 +203,7 @@ test.describe('Task Hierarchy and Subtasks', () => {
 		await page.goto(`/dashboard/tasks/new?parent=${parentTaskId}`);
 		await page.waitForLoadState('networkidle');
 		await page.fill('input[name="title"]', 'Collapsible Subtask');
-		
+
 		const submitButton = page.locator('button[type="submit"]:has-text("Create Task")');
 		await submitButton.click();
 		await page.waitForURL('**/tasks/*', { timeout: 10000 });
@@ -213,15 +213,15 @@ test.describe('Task Hierarchy and Subtasks', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Look for expand/collapse button
-		const expandButton = page.locator('button[aria-label="Expand"]').or(
-			page.locator('button:has([class*="chevron"])')
-		);
+		const expandButton = page
+			.locator('button[aria-label="Expand"]')
+			.or(page.locator('button:has([class*="chevron"])'));
 
 		if (await expandButton.isVisible()) {
 			// Test expand/collapse functionality
 			await expandButton.click();
 			await page.waitForTimeout(300);
-			
+
 			// Subtasks should be hidden or collapsed state
 			// Then click again to expand
 			await expandButton.click();
@@ -234,7 +234,7 @@ test.describe('Task Hierarchy and Subtasks', () => {
 		await page.goto(`/dashboard/tasks/new?parent=${parentTaskId}`);
 		await page.waitForLoadState('networkidle');
 		await page.fill('input[name="title"]', 'Child Task');
-		
+
 		const submitButton = page.locator('button[type="submit"]:has-text("Create Task")');
 		await submitButton.click();
 		await page.waitForURL('**/tasks/*', { timeout: 10000 });
@@ -264,7 +264,7 @@ test.describe('Task Hierarchy and Subtasks', () => {
 		await page.goto(`/dashboard/tasks/new?parent=${parentTaskId}`);
 		await page.waitForLoadState('networkidle');
 		await page.fill('input[name="title"]', 'Level 1 Subtask');
-		
+
 		const submitButton = page.locator('button[type="submit"]:has-text("Create Task")');
 		await submitButton.click();
 		await page.waitForURL('**/tasks/*', { timeout: 10000 });

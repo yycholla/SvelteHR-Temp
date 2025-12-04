@@ -19,7 +19,8 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 				{
 					success: false,
 					error: 'Too many login attempts',
-					message: 'Your account has been temporarily locked due to too many failed login attempts. Please try again in 1 hour.'
+					message:
+						'Your account has been temporarily locked due to too many failed login attempts. Please try again in 1 hour.'
 				},
 				{ status: 429 } // Too Many Requests
 			);
@@ -38,13 +39,19 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 			password = body.password;
 			rememberMe = body.rememberMe || false;
 			console.log('[Login] JSON credentials received:', { email, hasPassword: !!password });
-		} else if (contentType.includes('application/x-www-form-urlencoded') || contentType.includes('multipart/form-data')) {
+		} else if (
+			contentType.includes('application/x-www-form-urlencoded') ||
+			contentType.includes('multipart/form-data')
+		) {
 			// Fallback form submission (JavaScript disabled or failed to load)
 			const formData = await request.formData();
 			email = formData.get('email') as string;
 			password = formData.get('password') as string;
 			rememberMe = formData.get('rememberMe') === 'on' || formData.get('rememberMe') === 'true';
-			console.log('[Login] Form-data credentials received (JS fallback):', { email, hasPassword: !!password });
+			console.log('[Login] Form-data credentials received (JS fallback):', {
+				email,
+				hasPassword: !!password
+			});
 		} else {
 			console.warn('[Login] Invalid content type:', contentType);
 			recordFailedLogin(clientIp);
@@ -126,10 +133,13 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 					path: '/',
 					httpOnly: cookieHeader.includes('HttpOnly'),
 					secure: cookieHeader.includes('Secure'),
-					sameSite: cookieHeader.includes('SameSite=Strict') ? 'strict'
-						: cookieHeader.includes('SameSite=Lax') ? 'lax'
-						: cookieHeader.includes('SameSite=None') ? 'none'
-						: 'lax'
+					sameSite: cookieHeader.includes('SameSite=Strict')
+						? 'strict'
+						: cookieHeader.includes('SameSite=Lax')
+							? 'lax'
+							: cookieHeader.includes('SameSite=None')
+								? 'none'
+								: 'lax'
 				};
 
 				// Extract Max-Age or Expires
@@ -138,7 +148,9 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 					options.maxAge = parseInt(maxAgeMatch[1]);
 				}
 
-				console.log(`[Login] Setting cookie: ${name} (HttpOnly: ${options.httpOnly}, Secure: ${options.secure})`);
+				console.log(
+					`[Login] Setting cookie: ${name} (HttpOnly: ${options.httpOnly}, Secure: ${options.secure})`
+				);
 				cookies.set(name, value, options);
 			}
 		}
@@ -163,13 +175,17 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 			{
 				success: false,
 				error: 'Authentication failed',
-				message: isProduction ? 'An unexpected error occurred. Please try again later.' : (error instanceof Error ? error.message : 'Unknown error'),
+				message: isProduction
+					? 'An unexpected error occurred. Please try again later.'
+					: error instanceof Error
+						? error.message
+						: 'Unknown error',
 				debug: !isProduction
-						? {
-								error: String(error),
-								stack: error instanceof Error ? error.stack : undefined
-							}
-						: undefined
+					? {
+							error: String(error),
+							stack: error instanceof Error ? error.stack : undefined
+						}
+					: undefined
 			},
 			{ status: 500 }
 		);

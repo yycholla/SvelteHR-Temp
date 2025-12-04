@@ -71,7 +71,9 @@ describe('Dashboard Data Display (Vitest Browser)', () => {
 		if (activityCount > 0) {
 			// Check first 3 activities for realistic data
 			for (let i = 0; i < Math.min(activityCount, 3); i++) {
-				const activityText = await getElementText(`[data-testid="activity-item"]:nth-child(${i + 1})`);
+				const activityText = await getElementText(
+					`[data-testid="activity-item"]:nth-child(${i + 1})`
+				);
 
 				// Should not contain obvious placeholders
 				expect(activityText).not.toContain('Sample');

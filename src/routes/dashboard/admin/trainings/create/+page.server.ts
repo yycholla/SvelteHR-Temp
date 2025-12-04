@@ -93,7 +93,10 @@ export const actions: Actions = {
 			console.log('Full response:', JSON.stringify(response, null, 2));
 			console.log('response.data:', response.data);
 			console.log('response.data?.training:', response.data?.training);
-			console.log('response.data?.training?.createTraining:', response.data?.training?.createTraining);
+			console.log(
+				'response.data?.training?.createTraining:',
+				response.data?.training?.createTraining
+			);
 			console.log('=========================');
 
 			if (response.errors) {

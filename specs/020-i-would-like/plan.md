@@ -8,6 +8,7 @@
 This feature implements comprehensive frontend permission-based access control across the SvelteKit application, ensuring all UI elements respect backend RBAC permissions. The system will enforce server-side permission checks in all load functions, conditionally render UI elements based on user permissions, and provide a consistent permission checking utility framework across the entire frontend.
 
 **Core Requirements**:
+
 - Server-side permission enforcement in all `+page.server.ts` and `+layout.server.ts` load functions
 - Permission-aware UI component rendering (buttons, forms, navigation)
 - Centralized permission utility functions with casing alignment to backend
@@ -19,6 +20,7 @@ This feature implements comprehensive frontend permission-based access control a
 
 **Language/Version**: TypeScript 5.0 with SvelteKit 2.22.0 and Svelte 5.0 (runes syntax)
 **Primary Dependencies**:
+
 - SvelteKit 2.22.0 (server-side routing and load functions)
 - Svelte 5.0 with runes (`$state`, `$derived`, `$props`)
 - Existing RBAC backend via MountainHR Go API (`/auth/me` endpoint)
@@ -27,6 +29,7 @@ This feature implements comprehensive frontend permission-based access control a
 **Storage**: No new database storage required - reads from `event.locals.permissions` populated by `hooks.server.ts` via `/auth/me` API call
 
 **Testing**:
+
 - Vitest for permission utility unit tests
 - Playwright E2E for permission-gated UI scenarios
 - Browser-based component testing with `@vitest/browser`
@@ -36,23 +39,27 @@ This feature implements comprehensive frontend permission-based access control a
 **Project Type**: Web application with frontend-only changes (no backend modifications)
 
 **Performance Goals**:
+
 - Permission checks under 10ms overhead in server load functions
 - Navigation menu filtering under 50ms latency
 - Page load with permission checks under 200ms
 
 **Constraints**:
+
 - Zero direct API calls from client components to MountainHR backend (server-side only)
 - Permission enforcement must be server-side first, client-side second (UI only)
 - Must maintain backward compatibility with existing `PermissionChecks` utilities
 - Permission string format must match backend exactly (`resource:action:scope` or `resource:action`)
 
 **Scale/Scope**:
+
 - 50+ protected routes across `/hr/**` and `/admin/**` paths
 - 100+ UI components requiring permission checks
 - 25+ distinct permission strings (employees:read, employees:write, etc.)
 - 4 role hierarchy levels (Admin > HR Manager > Manager > Employee)
 
 **Backend Permission Format Alignment**:
+
 - **Backend permission format**: `resource:action:scope` (e.g., `employees:read:team`, `employees:write`)
 - **Scopes**: `:self`, `:team`, `:all` (read operations only), or no scope (write/delete operations)
 - **Admin wildcard**: `*` or `*:*` grants all permissions
@@ -62,7 +69,7 @@ This feature implements comprehensive frontend permission-based access control a
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
 **Constitution Status**: Template constitution not yet populated. This project follows standard web application patterns:
 
@@ -139,7 +146,7 @@ tests/
 
 ## Complexity Tracking
 
-*No constitution violations to track - standard web security patterns applied*
+_No constitution violations to track - standard web security patterns applied_
 
 ## Phase 0: Research
 
@@ -148,6 +155,7 @@ tests/
 **Authentication Endpoint**: `/auth/me` (Rust GraphQL backend via `PUBLIC_API_URL`)
 
 **Response Format** (from `hooks.server.ts` line 250-262):
+
 ```typescript
 {
   id: string;           // Or user_id or userId (normalized to id)
@@ -162,6 +170,7 @@ tests/
 ```
 
 **Permission String Format** (from `rbac-utils.ts`):
+
 - `resource:action:scope` (for read operations with scope)
 - `resource:action` (for write/delete operations without scope)
 - Admin wildcard: `*` or `*:*`
@@ -173,6 +182,7 @@ tests/
 **Scopes** (read-only): `:self`, `:team`, `:all`
 
 **Role Hierarchy** (from `rbac-utils.ts` lines 559-565):
+
 ```typescript
 {
   Admin: 100,
@@ -186,12 +196,14 @@ tests/
 ### Existing Implementation Audit
 
 **✅ Server-Side Infrastructure (Complete)**:
+
 - `hooks.server.ts`: Session authentication with `/auth/me`, caches permissions in `event.locals`
 - `app.d.ts`: Type definitions for `user`, `permissions`, `roles` in `App.Locals`
 - `rbac-utils.ts`: Comprehensive `PermissionChecks` utilities with scoped permission support
 - `getUserPermissions()`: Maps permissions to UI-friendly boolean flags
 
 **⚠️ Gaps Identified**:
+
 1. **Inconsistent Server-Side Enforcement**: Not all routes use `PermissionChecks` (audit required)
 2. **No Client-Side Permission Guards**: Components manually check permissions without reusable component
 3. **No Centralized Client Utils**: Permission checking logic duplicated across components
@@ -225,42 +237,43 @@ See [data-model.md](./data-model.md) for complete data structure definitions.
 ```typescript
 // Permission string format (matches backend)
 type PermissionString =
-  | `${string}:read:self`
-  | `${string}:read:team`
-  | `${string}:read:all`
-  | `${string}:read`
-  | `${string}:write`
-  | `${string}:delete`
-  | `${string}:${string}` // Catch-all for other actions
-  | '*' | '*:*'; // Admin wildcard
+	| `${string}:read:self`
+	| `${string}:read:team`
+	| `${string}:read:all`
+	| `${string}:read`
+	| `${string}:write`
+	| `${string}:delete`
+	| `${string}:${string}` // Catch-all for other actions
+	| '*'
+	| '*:*'; // Admin wildcard
 
 // Permission context passed to components
 interface PermissionContext {
-  user: {
-    id: string;
-    email: string;
-    display_name?: string;
-    department_id?: number;
-  };
-  roles: string[];
-  permissions: PermissionString[];
+	user: {
+		id: string;
+		email: string;
+		display_name?: string;
+		department_id?: number;
+	};
+	roles: string[];
+	permissions: PermissionString[];
 
-  // Computed helpers (from getUserPermissions)
-  canViewEmployees: boolean;
-  canEditEmployees: boolean;
-  canDeleteEmployees: boolean;
-  isAdmin: boolean;
-  isManager: boolean;
-  // ... (see rbac-utils.ts lines 408-553 for complete list)
+	// Computed helpers (from getUserPermissions)
+	canViewEmployees: boolean;
+	canEditEmployees: boolean;
+	canDeleteEmployees: boolean;
+	isAdmin: boolean;
+	isManager: boolean;
+	// ... (see rbac-utils.ts lines 408-553 for complete list)
 }
 
 // Permission Guard component props
 interface PermissionGuardProps {
-  permissions?: PermissionString[];  // Any of these permissions required
-  roles?: string[];                  // Any of these roles required
-  requireAll?: boolean;              // If true, all permissions required
-  fallback?: string;                 // Text to show when no permission
-  children: Snippet;                 // Svelte 5 snippet for child content
+	permissions?: PermissionString[]; // Any of these permissions required
+	roles?: string[]; // Any of these roles required
+	requireAll?: boolean; // If true, all permissions required
+	fallback?: string; // Text to show when no permission
+	children: Snippet; // Svelte 5 snippet for child content
 }
 ```
 
@@ -275,6 +288,7 @@ See [contracts/](./contracts/) directory for complete TypeScript interface defin
 ### API Endpoints
 
 **No new API endpoints required.** Uses existing:
+
 - `GET /auth/me` - Fetched in `hooks.server.ts`, cached in `event.locals`
 
 ### Implementation Architecture
@@ -328,6 +342,7 @@ See [contracts/](./contracts/) directory for complete TypeScript interface defin
 ```
 
 **Permission Check Flow**:
+
 1. User navigates to route → `hooks.server.ts` intercepts
 2. Fetch `/auth/me` (or use SESSION_CACHE) → populate `event.locals`
 3. `+page.server.ts` load function → `PermissionChecks.employeeRead(event)` → throws 403 or continues
@@ -341,6 +356,7 @@ See [quickstart.md](./quickstart.md) for step-by-step implementation guide.
 **TL;DR for developers**:
 
 1. **Server-side route protection** (`+page.server.ts`):
+
 ```typescript
 import { PermissionChecks } from '$lib/server/rbac-utils';
 export const load: PageServerLoad = async (event) => {
@@ -350,6 +366,7 @@ export const load: PageServerLoad = async (event) => {
 ```
 
 2. **Client-side button visibility** (`+page.svelte`):
+
 ```svelte
 <script lang="ts">
   import PermissionGuard from '$lib/components/permissions/PermissionGuard.svelte';
@@ -362,13 +379,14 @@ export const load: PageServerLoad = async (event) => {
 ```
 
 3. **Navigation filtering** (`+layout.svelte`):
+
 ```typescript
 let navItems = $derived(() => {
-  const items = [];
-  if (hasPermission(data.userPermissions, ['employees:read:team', 'employees:read:all'])) {
-    items.push({ href: '/hr/employees', label: 'Employees' });
-  }
-  return items;
+	const items = [];
+	if (hasPermission(data.userPermissions, ['employees:read:team', 'employees:read:all'])) {
+		items.push({ href: '/hr/employees', label: 'Employees' });
+	}
+	return items;
 });
 ```
 
@@ -379,6 +397,7 @@ Tasks generated via `/specify tasks` command (not included in this plan output).
 See [tasks.md](./tasks.md) after running task generation.
 
 **Expected Task Breakdown**:
+
 - **T001-T010**: Server-side route auditing and permission enforcement
 - **T011-T020**: Client-side permission utility development
 - **T021-T030**: PermissionGuard component implementation
@@ -395,6 +414,7 @@ See [tasks.md](./tasks.md) after running task generation.
 ## Implementation Notes
 
 **Critical Path Items**:
+
 1. Audit all `+page.server.ts` files for missing `PermissionChecks` calls
 2. Implement `PermissionGuard` component with Svelte 5 runes
 3. Create client-side permission utilities mirroring server-side API
@@ -402,6 +422,7 @@ See [tasks.md](./tasks.md) after running task generation.
 5. Write E2E tests for P1 permission scenarios
 
 **Backend Alignment Checklist**:
+
 - ✅ Permission string format matches backend (`resource:action:scope`)
 - ✅ Admin wildcard `*` handled correctly
 - ✅ Role names use PascalCase (Admin, HR Manager, Manager, Employee)
@@ -410,11 +431,13 @@ See [tasks.md](./tasks.md) after running task generation.
 - ✅ Write/delete permissions have no scope suffix
 
 **Testing Strategy**:
+
 1. **Unit Tests**: `permissions.test.ts`, `PermissionGuard.test.ts`
 2. **E2E Tests**: Playwright scenarios for each user story acceptance criteria
 3. **Manual QA**: Test with users at each role level (Admin, HR Manager, Manager, Employee)
 
 **Rollout Plan**:
+
 1. Phase 1: Implement server-side enforcement (P1 user stories)
 2. Phase 2: Implement client-side guards and navigation (P2 user stories)
 3. Phase 3: Real-time updates and advanced features (P3 user stories)
@@ -422,32 +445,38 @@ See [tasks.md](./tasks.md) after running task generation.
 ## Risk Assessment
 
 **High Risk**:
+
 - ❌ **Breaking existing functionality**: Many routes don't use `PermissionChecks` - adding them may break workflows
-  - *Mitigation*: Comprehensive E2E testing before deployment
+  - _Mitigation_: Comprehensive E2E testing before deployment
 
 **Medium Risk**:
+
 - ⚠️ **Permission string typos**: Incorrect permission strings will cause false negatives
-  - *Mitigation*: TypeScript literal types for `PermissionString`, ESLint rules
+  - _Mitigation_: TypeScript literal types for `PermissionString`, ESLint rules
 
 - ⚠️ **Cache invalidation**: `SESSION_CACHE` in `hooks.server.ts` may serve stale permissions
-  - *Mitigation*: Reduce TTL or implement real-time invalidation (P3 feature)
+  - _Mitigation_: Reduce TTL or implement real-time invalidation (P3 feature)
 
 **Low Risk**:
+
 - ✅ **Performance overhead**: Permission checks add latency
-  - *Acceptable*: 60s cache TTL keeps overhead under 10ms per request
+  - _Acceptable_: 60s cache TTL keeps overhead under 10ms per request
 
 ## Dependencies
 
 **Internal Dependencies**:
+
 - `hooks.server.ts`: Session authentication and permission caching
 - `rbac-utils.ts`: Server-side `PermissionChecks` and `getUserPermissions`
 - `app.d.ts`: Type definitions for `event.locals`
 
 **External Dependencies**:
+
 - MountainHR Backend `/auth/me` endpoint (already deployed)
 - No new npm packages required
 
 **Blockers**:
+
 - None - all infrastructure exists
 
 ## Success Metrics

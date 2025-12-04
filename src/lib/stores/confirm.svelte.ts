@@ -33,7 +33,7 @@ function createConfirmStore() {
 	return {
 		subscribe,
 		ask(options: ConfirmOptions): Promise<boolean> {
-			update(state => ({
+			update((state) => ({
 				...state,
 				title: options.title || 'Confirm Action',
 				message: options.message,
@@ -48,14 +48,14 @@ function createConfirmStore() {
 			});
 		},
 		confirm() {
-			update(state => ({ ...state, isOpen: false }));
+			update((state) => ({ ...state, isOpen: false }));
 			if (resolvePromise) {
 				resolvePromise(true);
 				resolvePromise = null;
 			}
 		},
 		cancel() {
-			update(state => ({ ...state, isOpen: false }));
+			update((state) => ({ ...state, isOpen: false }));
 			if (resolvePromise) {
 				resolvePromise(false);
 				resolvePromise = null;

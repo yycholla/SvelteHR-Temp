@@ -48,7 +48,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	} catch (err: any) {
 		console.error('Error deleting notification:', err);
 		error(500, {
-        			message: err.message || 'Failed to delete notification'
-        		});
+			message: err.message || 'Failed to delete notification'
+		});
 	}
 };

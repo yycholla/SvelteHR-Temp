@@ -135,7 +135,7 @@ export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 
 		// Generic error fallback
 		error(500, {
-        			message: 'Failed to load audit logs. Please try again later.'
-        		});
+			message: 'Failed to load audit logs. Please try again later.'
+		});
 	}
 };

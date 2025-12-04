@@ -75,7 +75,9 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 
 		// Step 4: Validate upload data
 		if (!body.filename || !body.fileSizeBytes || !body.encryptedData || !body.encryptionKeyId) {
-			error(400, { message: 'Missing required fields (filename, fileSizeBytes, encryptedData, encryptionKeyId)' });
+			error(400, {
+				message: 'Missing required fields (filename, fileSizeBytes, encryptedData, encryptionKeyId)'
+			});
 		}
 
 		// Validate file size (50MB max)
@@ -114,9 +116,9 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 		if (uploadResult.error) {
 			console.error('[Upload API] GraphQL upload error:', uploadResult.error);
 			error(500, {
-            				message: 'Failed to upload document to GraphQL backend',
-            				details: uploadResult.error.message
-            			});
+				message: 'Failed to upload document to GraphQL backend',
+				details: uploadResult.error.message
+			});
 		}
 
 		const document = uploadResult.data?.uploadDocument;
@@ -166,7 +168,6 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 			},
 			{ status: 201 }
 		);
-
 	} catch (err) {
 		console.error('Document upload error:', err);
 		console.error('Error stack:', err instanceof Error ? err.stack : 'No stack trace');

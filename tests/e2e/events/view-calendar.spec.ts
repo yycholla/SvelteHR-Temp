@@ -31,8 +31,10 @@ test.describe('View Calendar with Events', () => {
 		await page.waitForSelector('.fc-daygrid-body');
 
 		// Get GraphQL network requests
-		const eventsRequest = page.waitForResponse((response) =>
-			response.url().includes('graphql') && response.request().postDataJSON()?.operationName === 'GetEventsForCalendar'
+		const eventsRequest = page.waitForResponse(
+			(response) =>
+				response.url().includes('graphql') &&
+				response.request().postDataJSON()?.operationName === 'GetEventsForCalendar'
 		);
 
 		await page.reload();
@@ -74,8 +76,8 @@ test.describe('View Calendar with Events', () => {
 
 		// Verify event has color coding (via CSS class or inline style)
 		const eventElement = await firstEvent.elementHandle();
-		const backgroundColor = await eventElement?.evaluate((el) =>
-			window.getComputedStyle(el).backgroundColor
+		const backgroundColor = await eventElement?.evaluate(
+			(el) => window.getComputedStyle(el).backgroundColor
 		);
 
 		expect(backgroundColor).toBeTruthy();

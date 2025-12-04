@@ -209,9 +209,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 			if (managersResult.data?.users?.nodes?.[0]?.id) {
 				const managerId = managersResult.data.users.nodes[0].id;
 
-				const result = await graphqlClient
-					.query(query, { managerId })
-					.toPromise();
+				const result = await graphqlClient.query(query, { managerId }).toPromise();
 
 				expect(result.error).toBeUndefined();
 				expect(result.data).toBeDefined();
@@ -279,7 +277,10 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 
 			if (result.error) {
 				// May fail due to circular reference prevention (expected behavior)
-				console.log('⚠️  Manager assignment blocked (circular reference check):', result.error.message);
+				console.log(
+					'⚠️  Manager assignment blocked (circular reference check):',
+					result.error.message
+				);
 				return;
 			}
 
@@ -307,9 +308,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 				}
 			`;
 
-			const result = await graphqlClient
-				.mutation(mutation, { userId: testUserId })
-				.toPromise();
+			const result = await graphqlClient.mutation(mutation, { userId: testUserId }).toPromise();
 
 			expect(result.error).toBeUndefined();
 			expect(result.data).toBeDefined();
@@ -355,9 +354,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 			if (managersResult.data?.users?.nodes?.[0]?.id) {
 				const managerId = managersResult.data.users.nodes[0].id;
 
-				const result = await graphqlClient
-					.query(query, { managerId })
-					.toPromise();
+				const result = await graphqlClient.query(query, { managerId }).toPromise();
 
 				expect(result.error).toBeUndefined();
 				expect(result.data).toBeDefined();
@@ -545,11 +542,7 @@ export const managerHierarchyTestUtils = {
 	/**
 	 * Assign manager to employee
 	 */
-	assignManager: async (
-		client: Client,
-		employeeId: string,
-		managerId: string
-	) => {
+	assignManager: async (client: Client, employeeId: string, managerId: string) => {
 		const mutation = `
 			mutation AssignManager($employeeId: UUID!, $managerId: UUID!) {
 				updateUser(input: {

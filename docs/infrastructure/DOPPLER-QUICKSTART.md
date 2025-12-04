@@ -25,6 +25,7 @@ Just run this script and follow the prompts:
 ```
 
 The script will:
+
 1. Check External Secrets Operator is installed ✓
 2. Show you your current secrets
 3. Ask for Doppler project name (default: `sveltehr`)
@@ -63,13 +64,13 @@ Edit `k8s/helm-charts/sveltehr/values-prod.yaml`:
 
 ```yaml
 externalSecrets:
-  enabled: true  # ← Change from false
+  enabled: true # ← Change from false
   refreshInterval: 15m
 
   doppler:
-    serviceToken: "dp.st.prod.YOUR_TOKEN_HERE"  # ← Paste your token
-    project: "sveltehr"
-    config: "prod"
+    serviceToken: 'dp.st.prod.YOUR_TOKEN_HERE' # ← Paste your token
+    project: 'sveltehr'
+    config: 'prod'
 ```
 
 #### Step 4: Deploy
@@ -184,11 +185,13 @@ kubectl rollout restart deployment <deployment-name> -n sveltehr-prod
 ## Summary
 
 **Before Doppler**:
+
 - Secrets hardcoded in `values-prod.yaml` (plaintext in Git)
 - Manual `kubectl` commands to update secrets
 - No audit trail
 
 **After Doppler**:
+
 - Secrets in Doppler dashboard (encrypted, never in Git)
 - Auto-syncs to Kubernetes every 15 minutes
 - Complete audit trail of all secret access

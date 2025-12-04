@@ -93,12 +93,7 @@ describe('generate-migration CLI Contract', () => {
 		});
 
 		it('should accept --dry-run flag', async () => {
-			const result = await runCLI([
-				'--diff-source',
-				TEST_DIFF_PATH,
-				'--dry-run',
-				'true'
-			]);
+			const result = await runCLI(['--diff-source', TEST_DIFF_PATH, '--dry-run', 'true']);
 
 			expect([0, 1, 2]).toContain(result.exitCode);
 		});
@@ -344,12 +339,7 @@ describe('generate-migration CLI Contract', () => {
 		});
 
 		it('should output SQL preview in dry-run mode', async () => {
-			const result = await runCLI([
-				'--diff-source',
-				TEST_DIFF_PATH,
-				'--dry-run',
-				'true'
-			]);
+			const result = await runCLI(['--diff-source', TEST_DIFF_PATH, '--dry-run', 'true']);
 
 			const jsonOutput = JSON.parse(result.stdout);
 

@@ -51,7 +51,7 @@ export const load: PageServerLoad = async (event) => {
 		const cookieHeader = event.request.headers.get('cookie') || '';
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
-			'Cookie': cookieHeader
+			Cookie: cookieHeader
 		};
 
 		console.log(
@@ -328,7 +328,7 @@ export const actions: Actions = {
 			const cookieHeader = request.headers.get('cookie') || '';
 			const headers: Record<string, string> = {
 				'Content-Type': 'application/json',
-				'Cookie': cookieHeader
+				Cookie: cookieHeader
 			};
 
 			console.log('[Employee Update] Using session-based auth for mutation');
@@ -446,7 +446,10 @@ export const actions: Actions = {
 							});
 							const removeData = await removeResponse.json();
 							if (removeData.errors) {
-								console.error(`[Employee Update] Error removing role ${currentRole.name}:`, removeData.errors);
+								console.error(
+									`[Employee Update] Error removing role ${currentRole.name}:`,
+									removeData.errors
+								);
 								return fail(500, {
 									error: `Failed to remove old role: ${removeData.errors[0]?.message || 'Unknown error'}`
 								});
@@ -648,7 +651,9 @@ export const actions: Actions = {
 
 			// Handle compensation (admin only)
 			// TODO: Compensation mutations not yet implemented in GraphQL schema
-			console.warn('[Employee Update] Compensation mutations not yet implemented - skipping compensation update');
+			console.warn(
+				'[Employee Update] Compensation mutations not yet implemented - skipping compensation update'
+			);
 
 			// Redirect to employee detail page on success
 			redirect(303, `/dashboard/employees/${employeeId}`);

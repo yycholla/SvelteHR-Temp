@@ -54,7 +54,9 @@ export const load: PageServerLoad = async (event) => {
 		const users = result.data?.users || [];
 
 		// Calculate unique roles from users (flatten roles arrays)
-		const uniqueRoles = [...new Set(users.flatMap((u: any) => (u.roles || []).map((r: any) => r.name)).filter(Boolean))];
+		const uniqueRoles = [
+			...new Set(users.flatMap((u: any) => (u.roles || []).map((r: any) => r.name)).filter(Boolean))
+		];
 
 		const settings: any = {
 			general: {},
@@ -81,9 +83,8 @@ export const load: PageServerLoad = async (event) => {
 
 		for (const setting of settingsData) {
 			try {
-				const parsed = typeof setting.settings === 'string'
-					? JSON.parse(setting.settings)
-					: setting.settings;
+				const parsed =
+					typeof setting.settings === 'string' ? JSON.parse(setting.settings) : setting.settings;
 
 				const uiCategory = categoryMapping[setting.category] || setting.category;
 				settings[uiCategory] = parsed;

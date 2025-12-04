@@ -78,8 +78,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		}
 
 		error(500, {
-        			message: 'Failed to load event creation form. Please try again later.'
-        		});
+			message: 'Failed to load event creation form. Please try again later.'
+		});
 	}
 };
 
@@ -225,13 +225,15 @@ export const actions: Actions = {
 				const [, year, month, day, hours, minutes] = match;
 
 				// Create Date in UTC (server timezone)
-				const date = new Date(Date.UTC(
-					parseInt(year),
-					parseInt(month) - 1, // 0-indexed
-					parseInt(day),
-					parseInt(hours),
-					parseInt(minutes)
-				));
+				const date = new Date(
+					Date.UTC(
+						parseInt(year),
+						parseInt(month) - 1, // 0-indexed
+						parseInt(day),
+						parseInt(hours),
+						parseInt(minutes)
+					)
+				);
 
 				// Adjust for user's timezone offset
 				// getTimezoneOffset() returns positive for west of UTC (e.g., 360 for MDT)

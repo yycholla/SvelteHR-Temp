@@ -59,7 +59,7 @@ export const load: PageServerLoad = async (event) => {
 		const cookieHeader = event.request.headers.get('cookie') || '';
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
-			'Cookie': cookieHeader // Forward all cookies for session authentication
+			Cookie: cookieHeader // Forward all cookies for session authentication
 		};
 
 		console.log(
@@ -222,9 +222,9 @@ export const load: PageServerLoad = async (event) => {
 
 		// Throw SvelteKit error with user-friendly message
 		error(500, {
-        			message: 'Departments temporarily unavailable',
-        			details: errorResponse.userMessage
-        		});
+			message: 'Departments temporarily unavailable',
+			details: errorResponse.userMessage
+		});
 	}
 };
 
@@ -256,7 +256,7 @@ export const actions: Actions = {
 			const cookieHeader = request.headers.get('cookie') || '';
 			const headers: Record<string, string> = {
 				'Content-Type': 'application/json',
-				'Cookie': cookieHeader
+				Cookie: cookieHeader
 			};
 
 			// Build input object

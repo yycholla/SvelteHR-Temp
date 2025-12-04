@@ -84,7 +84,7 @@ test.describe('Backend Initialization', () => {
 
 	test('should retry failed requests automatically', async ({ page }) => {
 		// Mock network failures to test retry logic
-		await page.route('**/graphql', route => {
+		await page.route('**/graphql', (route) => {
 			// Fail first request, succeed on retry
 			const url = route.request().url();
 			const headers = route.request().headers();
@@ -189,22 +189,12 @@ test.describe('Backend Initialization', () => {
 		// Test multiple pages loading simultaneously during backend startup
 		const context = await browser.newContext();
 
-		const pages = await Promise.all([
-			context.newPage(),
-			context.newPage(),
-			context.newPage()
-		]);
+		const pages = await Promise.all([context.newPage(), context.newPage(), context.newPage()]);
 
-		const urls = [
-			'/dashboard',
-			'/dashboard/employees',
-			'/dashboard/departments'
-		];
+		const urls = ['/dashboard', '/dashboard/employees', '/dashboard/departments'];
 
 		// Load all pages simultaneously
-		const loadPromises = pages.map((page, index) =>
-			page.goto(urls[index])
-		);
+		const loadPromises = pages.map((page, index) => page.goto(urls[index]));
 
 		const responses = await Promise.all(loadPromises);
 

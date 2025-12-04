@@ -14,15 +14,15 @@ All secrets must be added to your GitHub repository before the deployment workfl
 
 ### Secret List
 
-| Secret Name | Description | Format | Example |
-|-------------|-------------|--------|---------|
-| `GITLAB_USERNAME` | GitLab username for container registry | String | `john_doe` |
-| `GITLAB_TOKEN` | GitLab personal access token | String | `glpat-xxxxxxxxxxxxx` |
-| `DEPLOY_HOST` | Production server hostname or IP | String | `hr.example.com` or `192.168.1.100` |
-| `DEPLOY_USER` | SSH username for deployment | String | `deploy` |
-| `SSH_PRIVATE_KEY` | SSH private key (base64 encoded) | Base64 | `LS0tLS1CRUdJTi...` |
-| `PRODUCTION_ENV` | Production .env contents (base64 encoded) | Base64 | `RE9NQUlOPWhy...` |
-| `PRODUCTION_DOMAIN` | Production domain for deployment URL | String | `hr.example.com` |
+| Secret Name         | Description                               | Format | Example                             |
+| ------------------- | ----------------------------------------- | ------ | ----------------------------------- |
+| `GITLAB_USERNAME`   | GitLab username for container registry    | String | `john_doe`                          |
+| `GITLAB_TOKEN`      | GitLab personal access token              | String | `glpat-xxxxxxxxxxxxx`               |
+| `DEPLOY_HOST`       | Production server hostname or IP          | String | `hr.example.com` or `192.168.1.100` |
+| `DEPLOY_USER`       | SSH username for deployment               | String | `deploy`                            |
+| `SSH_PRIVATE_KEY`   | SSH private key (base64 encoded)          | Base64 | `LS0tLS1CRUdJTi...`                 |
+| `PRODUCTION_ENV`    | Production .env contents (base64 encoded) | Base64 | `RE9NQUlOPWhy...`                   |
+| `PRODUCTION_DOMAIN` | Production domain for deployment URL      | String | `hr.example.com`                    |
 
 ## Step-by-Step Setup
 
@@ -92,6 +92,7 @@ cat deploy_key.b64
 ```
 
 **Security Notes**:
+
 - ⚠️ NEVER commit the private key to version control
 - ⚠️ Delete the local `deploy_key` file after encoding
 - ⚠️ Keep the `.b64` file secure or delete after uploading to GitHub
@@ -131,6 +132,7 @@ cat .env.production.b64
 ```
 
 **Security Notes**:
+
 - ⚠️ NEVER commit `.env.production` to version control
 - ⚠️ Delete `.env.production` and `.env.production.b64` after uploading to GitHub
 - ⚠️ Use secure random generation for all secrets
@@ -145,30 +147,37 @@ cat .env.production.b64
 4. Add each secret one by one:
 
 **Secret 1: GITLAB_USERNAME**
+
 - Name: `GITLAB_USERNAME`
 - Secret: Your GitLab username (e.g., `john_doe`)
 
 **Secret 2: GITLAB_TOKEN**
+
 - Name: `GITLAB_TOKEN`
 - Secret: GitLab personal access token from Step 1 (e.g., `glpat-xxxxxxxxxxxxx`)
 
 **Secret 3: DEPLOY_HOST**
+
 - Name: `DEPLOY_HOST`
 - Secret: Production server hostname or IP (e.g., `hr.example.com` or `192.168.1.100`)
 
 **Secret 4: DEPLOY_USER**
+
 - Name: `DEPLOY_USER`
 - Secret: SSH username (e.g., `deploy`)
 
 **Secret 5: SSH_PRIVATE_KEY**
+
 - Name: `SSH_PRIVATE_KEY`
 - Secret: Contents of `deploy_key.b64` (entire base64 string)
 
 **Secret 6: PRODUCTION_ENV**
+
 - Name: `PRODUCTION_ENV`
 - Secret: Contents of `.env.production.b64` (entire base64 string)
 
 **Secret 7: PRODUCTION_DOMAIN**
+
 - Name: `PRODUCTION_DOMAIN`
 - Secret: Production domain (e.g., `hr.example.com`)
 
@@ -315,11 +324,13 @@ Visit: https://hr.example.com
 ### Issue: GitLab Token Authentication Failed
 
 **Symptoms**:
+
 ```
 Error: failed to authorize: failed to fetch oauth token
 ```
 
 **Solution**:
+
 1. Verify `GITLAB_TOKEN` has correct scopes (`read_registry`, `write_registry`)
 2. Check token hasn't expired (GitLab tokens expire after set duration)
 3. Regenerate token with correct scopes
@@ -328,11 +339,13 @@ Error: failed to authorize: failed to fetch oauth token
 ### Issue: SSH Connection Failed
 
 **Symptoms**:
+
 ```
 Permission denied (publickey)
 ```
 
 **Solution**:
+
 1. Verify SSH public key is in `~/.ssh/authorized_keys` on server
 2. Check file permissions:
    ```bash
@@ -345,11 +358,13 @@ Permission denied (publickey)
 ### Issue: Deployment Fails - Database Backup Error
 
 **Symptoms**:
+
 ```
 pg_dump: error: connection to server failed
 ```
 
 **Solution**:
+
 1. Verify PostgreSQL container is running:
    ```bash
    docker ps | grep postgres
@@ -366,11 +381,13 @@ pg_dump: error: connection to server failed
 ### Issue: Health Checks Fail After Deployment
 
 **Symptoms**:
+
 ```
 Service frontend is not healthy: starting
 ```
 
 **Solution**:
+
 1. Check service logs:
    ```bash
    docker logs sveltehr-frontend-prod --tail 100
@@ -384,12 +401,14 @@ Service frontend is not healthy: starting
 ### Secret Rotation
 
 **Recommended Schedule**:
+
 - SSH keys: Every 90 days
 - GitLab tokens: Every 90 days
 - JWT secrets: Every 180 days
 - Database passwords: Every 180 days
 
 **Rotation Process**:
+
 1. Generate new secret
 2. Update GitHub Secret
 3. Trigger redeployment

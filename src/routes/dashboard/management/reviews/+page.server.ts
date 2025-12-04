@@ -138,7 +138,7 @@ export const load: PageServerLoad = async (event) => {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
-						'Cookie': cookieHeader
+						Cookie: cookieHeader
 					},
 					body: JSON.stringify({
 						query: `

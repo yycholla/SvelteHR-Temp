@@ -30,8 +30,9 @@ describe('Document Validation - Unit Tests', () => {
 				file: createMockFile('document.pdf', 1024 * 1024, 'application/pdf'), // 1MB
 				metadata: {
 					filename: 'contract.pdf',
-					                    category: 'Contract',
-					                    sensitivityLevel: 'Internal',					description: 'Employment contract'
+					category: 'Contract',
+					sensitivityLevel: 'Internal',
+					description: 'Employment contract'
 				}
 			};
 
@@ -96,8 +97,8 @@ describe('Document Validation - Unit Tests', () => {
 			// Assert
 			expect(result.success).toBe(false);
 			if (!result.success) {
-				const hasFileTypeError = result.error.issues.some(
-					issue => issue.message.match(/file\s*type|invalid|allowed/i)
+				const hasFileTypeError = result.error.issues.some((issue) =>
+					issue.message.match(/file\s*type|invalid|allowed/i)
 				);
 				expect(hasFileTypeError).toBe(true);
 			}
@@ -120,8 +121,8 @@ describe('Document Validation - Unit Tests', () => {
 			// Assert
 			expect(result.success).toBe(false);
 			if (!result.success) {
-				const hasSensitivityError = result.error.issues.some(
-					issue => issue.path.includes('sensitivityLevel')
+				const hasSensitivityError = result.error.issues.some((issue) =>
+					issue.path.includes('sensitivityLevel')
 				);
 				expect(hasSensitivityError).toBe(true);
 			}
@@ -144,8 +145,8 @@ describe('Document Validation - Unit Tests', () => {
 			// Assert
 			expect(result.success).toBe(false);
 			if (!result.success) {
-				const hasCategoryError = result.error.issues.some(
-					issue => issue.path.includes('category')
+				const hasCategoryError = result.error.issues.some((issue) =>
+					issue.path.includes('category')
 				);
 				expect(hasCategoryError).toBe(true);
 			}
@@ -157,8 +158,14 @@ describe('Document Validation - Unit Tests', () => {
 				{ name: 'image.jpeg', mime: 'image/jpeg' },
 				{ name: 'photo.png', mime: 'image/png' },
 				{ name: 'anim.gif', mime: 'image/gif' },
-				{ name: 'document.docx', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
-				{ name: 'sheet.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+				{
+					name: 'document.docx',
+					mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+				},
+				{
+					name: 'sheet.xlsx',
+					mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+				},
 				{ name: 'notes.txt', mime: 'text/plain' },
 				{ name: 'data.csv', mime: 'text/csv' }
 			];
@@ -221,7 +228,7 @@ describe('Document Validation - Unit Tests', () => {
 			expect(result.success).toBe(false);
 			if (!result.success) {
 				const hasLengthError = result.error.issues.some(
-					issue => issue.path.includes('description') && issue.message.match(/500|length/i)
+					(issue) => issue.path.includes('description') && issue.message.match(/500|length/i)
 				);
 				expect(hasLengthError).toBe(true);
 			}
@@ -232,7 +239,7 @@ describe('Document Validation - Unit Tests', () => {
 		it('should validate all sensitivity levels', () => {
 			const sensitivityLevels = ['Public', 'Internal', 'Confidential', 'Sensitive-PII'];
 
-			sensitivityLevels.forEach(level => {
+			sensitivityLevels.forEach((level) => {
 				const data = {
 					filename: 'test.pdf',
 					category: 'Contract',
@@ -255,11 +262,12 @@ describe('Document Validation - Unit Tests', () => {
 				'Other'
 			];
 
-			categories.forEach(category => {
+			categories.forEach((category) => {
 				const data = {
 					filename: 'test.pdf',
-					                    category,
-					                    sensitivityLevel: 'Internal'				};
+					category,
+					sensitivityLevel: 'Internal'
+				};
 
 				const result = documentMetadataSchema.safeParse(data);
 				expect(result.success).toBe(true);
@@ -394,7 +402,7 @@ describe('Document Validation - Unit Tests', () => {
 				'data.csv'
 			];
 
-			validFiles.forEach(filename => {
+			validFiles.forEach((filename) => {
 				expect(validateFileType(filename)).toBe(true);
 			});
 		});
@@ -409,7 +417,7 @@ describe('Document Validation - Unit Tests', () => {
 				'compressed.rar'
 			];
 
-			invalidFiles.forEach(filename => {
+			invalidFiles.forEach((filename) => {
 				expect(validateFileType(filename)).toBe(false);
 			});
 		});
@@ -430,7 +438,7 @@ describe('Document Validation - Unit Tests', () => {
 				50 * 1024 * 1024 // 50MB (max)
 			];
 
-			validSizes.forEach(size => {
+			validSizes.forEach((size) => {
 				expect(validateFileSize(size)).toBe(true);
 			});
 		});
@@ -442,7 +450,7 @@ describe('Document Validation - Unit Tests', () => {
 				100 * 1024 * 1024 // 100MB
 			];
 
-			invalidSizes.forEach(size => {
+			invalidSizes.forEach((size) => {
 				expect(validateFileSize(size)).toBe(false);
 			});
 		});

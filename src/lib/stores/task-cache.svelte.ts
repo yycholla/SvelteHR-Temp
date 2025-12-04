@@ -167,11 +167,7 @@ class TaskCacheManager {
 	/**
 	 * Schedule background refresh for stale data
 	 */
-	private scheduleRefresh<T>(
-		key: string,
-		fetchFn: () => Promise<T>,
-		config: CacheConfig
-	): void {
+	private scheduleRefresh<T>(key: string, fetchFn: () => Promise<T>, config: CacheConfig): void {
 		if (!config.backgroundRefresh) return;
 
 		this.clearRefreshTimer(key);

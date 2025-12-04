@@ -66,7 +66,7 @@ export const load: PageServerLoad = async (event) => {
 		const cookieHeader = event.request.headers.get('cookie') || '';
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
-			'Cookie': cookieHeader // Forward all cookies for session authentication
+			Cookie: cookieHeader // Forward all cookies for session authentication
 		};
 
 		console.log(
@@ -115,13 +115,19 @@ export const load: PageServerLoad = async (event) => {
 
 		// Check for GraphQL errors
 		if (employeesData.errors) {
-			console.error('[Employee Directory] GraphQL errors:', JSON.stringify(employeesData.errors, null, 2));
+			console.error(
+				'[Employee Directory] GraphQL errors:',
+				JSON.stringify(employeesData.errors, null, 2)
+			);
 			for (const error of employeesData.errors) {
 				console.error('[Employee Directory] Error:', error.message, 'Path:', error.path);
 			}
 		}
 
-		console.log('[Employee Directory] Total employees fetched:', employeesData?.data?.users?.length);
+		console.log(
+			'[Employee Directory] Total employees fetched:',
+			employeesData?.data?.users?.length
+		);
 		console.log('[Employee Directory] Status filter:', statusFilter);
 
 		// Extract employees from Rust GraphQL response (direct array, no nodes wrapper)
@@ -160,13 +166,17 @@ export const load: PageServerLoad = async (event) => {
 		// Filter by department
 		if (departmentFilter) {
 			allEmployees = allEmployees.filter((emp: any) => emp.departmentId === departmentFilter);
-			console.log('[Employee Directory] After department filter:', allEmployees.length, 'employees');
+			console.log(
+				'[Employee Directory] After department filter:',
+				allEmployees.length,
+				'employees'
+			);
 		}
 
 		// Filter by role (roles is now an array of {id, name} objects)
 		if (roleFilter) {
-			allEmployees = allEmployees.filter((emp: any) =>
-				emp.roles && emp.roles.some((role: any) => role.name === roleFilter)
+			allEmployees = allEmployees.filter(
+				(emp: any) => emp.roles && emp.roles.some((role: any) => role.name === roleFilter)
 			);
 			console.log('[Employee Directory] After role filter:', allEmployees.length, 'employees');
 		}
@@ -174,17 +184,25 @@ export const load: PageServerLoad = async (event) => {
 		// Client-side filtering for search term (supports multiple comma-separated terms)
 		if (searchTerm) {
 			// Split by comma and trim each term
-			const searchTerms = searchTerm.split(',').map(term => term.trim().toLowerCase()).filter(Boolean);
+			const searchTerms = searchTerm
+				.split(',')
+				.map((term) => term.trim().toLowerCase())
+				.filter(Boolean);
 
 			allEmployees = allEmployees.filter((emp: any) => {
 				const displayName = emp.displayName?.toLowerCase() || '';
 				const firstName = emp.firstName?.toLowerCase() || '';
 				const lastName = emp.lastName?.toLowerCase() || '';
 				const email = emp.email?.toLowerCase() || '';
-				const role = emp.roles ? emp.roles.map((r: any) => r.name).join(' ').toLowerCase() : '';
+				const role = emp.roles
+					? emp.roles
+							.map((r: any) => r.name)
+							.join(' ')
+							.toLowerCase()
+					: '';
 
 				// Employee must match ANY search term (OR logic)
-				return searchTerms.some(searchLower => {
+				return searchTerms.some((searchLower) => {
 					return (
 						displayName.includes(searchLower) ||
 						firstName.includes(searchLower) ||
@@ -256,9 +274,17 @@ export const load: PageServerLoad = async (event) => {
 
 		// Check for GraphQL errors
 		if (departmentsData.errors) {
-			console.error('[Employee Directory] Departments GraphQL errors:', JSON.stringify(departmentsData.errors, null, 2));
+			console.error(
+				'[Employee Directory] Departments GraphQL errors:',
+				JSON.stringify(departmentsData.errors, null, 2)
+			);
 			for (const error of departmentsData.errors) {
-				console.error('[Employee Directory] Departments Error:', error.message, 'Path:', error.path);
+				console.error(
+					'[Employee Directory] Departments Error:',
+					error.message,
+					'Path:',
+					error.path
+				);
 			}
 		}
 
@@ -267,12 +293,12 @@ export const load: PageServerLoad = async (event) => {
 		// Load roles data via REST API
 		const { getApiBaseUrl } = await import('$lib/server/api-url');
 		const apiBaseUrl = getApiBaseUrl();
-		
+
 		const rolesResponse = await fetch(`${apiBaseUrl}/api/roles`, {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
-				'Cookie': cookieHeader
+				Cookie: cookieHeader
 			}
 		});
 
@@ -280,7 +306,10 @@ export const load: PageServerLoad = async (event) => {
 		if (rolesResponse.ok) {
 			rolesData = await rolesResponse.json();
 		} else {
-			console.error('[Employee Directory] Failed to load roles via REST:', rolesResponse.statusText);
+			console.error(
+				'[Employee Directory] Failed to load roles via REST:',
+				rolesResponse.statusText
+			);
 		}
 
 		console.log('[Employee Directory] Roles data (REST):', rolesData);
@@ -295,7 +324,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// RBAC: Check if user can create reviews
 		const userRoles = locals.roles || [];
-		const canCreateReviews = userRoles.some(role =>
+		const canCreateReviews = userRoles.some((role) =>
 			['Admin', 'HR Manager', 'Manager'].includes(role)
 		);
 
@@ -347,8 +376,8 @@ export const load: PageServerLoad = async (event) => {
 
 		// Throw SvelteKit error with user-friendly message
 		error(500, {
-        			message: 'Employee directory temporarily unavailable',
-        			details: errorResponse.userMessage
-        		});
+			message: 'Employee directory temporarily unavailable',
+			details: errorResponse.userMessage
+		});
 	}
 };

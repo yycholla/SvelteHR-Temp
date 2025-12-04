@@ -41,15 +41,17 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 		if (response.errors && response.errors.length > 0) {
 			console.error('[Documents] GraphQL errors:', response.errors);
 			error(500, {
-            				message: response.errors[0].message || 'Failed to load documents'
-            			});
+				message: response.errors[0].message || 'Failed to load documents'
+			});
 		}
 
 		// Step 5: Load database utilities
-		const { transaction: dbTransaction, setJWTClaims: setDbClaims } = await import('$lib/server/db');
+		const { transaction: dbTransaction, setJWTClaims: setDbClaims } =
+			await import('$lib/server/db');
 
 		// Step 6: Get total count from database and load assignee data
-		const allAssignments = response.data?.documents?.flatMap((doc: any) => doc.assignments || []) || [];
+		const allAssignments =
+			response.data?.documents?.flatMap((doc: any) => doc.assignments || []) || [];
 		const uniqueUserIds = [...new Set(allAssignments.map((a: any) => a.userId))];
 
 		const [totalCount, assigneeMap] = await dbTransaction(async (dbClient) => {
@@ -170,7 +172,7 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 
 		// Generic error fallback
 		error(500, {
-        			message: 'Failed to load documents. Please try again later.'
-        		});
+			message: 'Failed to load documents. Please try again later.'
+		});
 	}
 };

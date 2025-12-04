@@ -41,14 +41,15 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		// Check if user has broad scope permissions (can view all departments)
 		const userPermissions = locals.permissions || [];
 		const isAdmin =
-			userPermissions.includes('*') || userPermissions.includes('*:*') ||
+			userPermissions.includes('*') ||
+			userPermissions.includes('*:*') ||
 			userPermissions.includes('tasks:read:all');
 
 		if (!selectedDepartmentId && !isAdmin) {
 			error(400, {
-            				message:
-            					'No department selected. Please select a department from the dropdown or ensure your profile has a department assigned.'
-            			});
+				message:
+					'No department selected. Please select a department from the dropdown or ensure your profile has a department assigned.'
+			});
 		}
 
 		// NOTE: Using Rust GraphQL schema - fetch all and filter client-side
@@ -218,8 +219,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		}
 
 		error(500, {
-        			message: 'Failed to load department tasks. Please try again later.'
-        		});
+			message: 'Failed to load department tasks. Please try again later.'
+		});
 	}
 };
 

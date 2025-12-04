@@ -233,7 +233,9 @@ describe('Integration: Drift Detection and Remediation', () => {
 
 		// Step 5: Apply generated migration
 		const migrationFiles = readdirSync(REMEDIATION_MIGRATIONS_DIR);
-		const migrationFile = migrationFiles.find((f) => f.endsWith('.sql') && !f.includes('.rollback'));
+		const migrationFile = migrationFiles.find(
+			(f) => f.endsWith('.sql') && !f.includes('.rollback')
+		);
 		const migrationPath = join(REMEDIATION_MIGRATIONS_DIR, migrationFile!);
 
 		const applyResult = await runCommand('psql', [TEST_DB_URL, '-f', migrationPath]);
@@ -323,10 +325,7 @@ describe('Integration: Drift Detection and Remediation', () => {
 		expect(rollbackFile).toBeDefined();
 
 		// Verify rollback content
-		const rollbackContent = readFileSync(
-			join(REMEDIATION_MIGRATIONS_DIR, rollbackFile!),
-			'utf-8'
-		);
+		const rollbackContent = readFileSync(join(REMEDIATION_MIGRATIONS_DIR, rollbackFile!), 'utf-8');
 		expect(rollbackContent).toContain('DROP COLUMN');
 		expect(rollbackContent).toContain('priority');
 
@@ -366,7 +365,9 @@ describe('Integration: Drift Detection and Remediation', () => {
 
 		// Verify migration file header
 		const migrationFiles = readdirSync(REMEDIATION_MIGRATIONS_DIR);
-		const migrationFile = migrationFiles.find((f) => f.endsWith('.sql') && !f.includes('.rollback'));
+		const migrationFile = migrationFiles.find(
+			(f) => f.endsWith('.sql') && !f.includes('.rollback')
+		);
 		const content = readFileSync(join(REMEDIATION_MIGRATIONS_DIR, migrationFile!), 'utf-8');
 		expect(content).toContain('Requires Review: YES');
 

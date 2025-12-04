@@ -283,7 +283,7 @@ export class SessionTimeoutManager {
 			const inactivityMs = this.config.inactivityTimeout * 60 * 1000;
 
 			// Don't refresh if already past warning threshold
-			if (timeSinceActivity < inactivityMs - (this.config.warningTime * 60 * 1000)) {
+			if (timeSinceActivity < inactivityMs - this.config.warningTime * 60 * 1000) {
 				this.refreshSession();
 			}
 		}, refreshMs);

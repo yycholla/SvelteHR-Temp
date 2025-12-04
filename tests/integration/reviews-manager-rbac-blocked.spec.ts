@@ -7,11 +7,7 @@
  */
 
 import { test, expect, describe, beforeAll, afterAll } from 'vitest';
-import {
-	createTestContext,
-	cleanupTestData,
-	TestUser
-} from '../utils/test-helpers';
+import { createTestContext, cleanupTestData, TestUser } from '../utils/test-helpers';
 import { performGraphQLMutation } from '../utils/graphql-test-client';
 
 interface TestContext {
@@ -132,9 +128,7 @@ describe('T014: Manager RBAC - blocked from non-direct report', () => {
 		// Assert: Should succeed
 		expect(response.data.createReviewWithGoals.success).toBe(true);
 		expect(response.data.createReviewWithGoals.review).toBeDefined();
-		expect(response.data.createReviewWithGoals.review.employeeId).toBe(
-			testContext.directReport.id
-		);
+		expect(response.data.createReviewWithGoals.review.employeeId).toBe(testContext.directReport.id);
 	});
 
 	test('should validate isDirectReport query', async () => {

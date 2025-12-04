@@ -56,7 +56,10 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
 			}
 		};
 
-		console.log('[Goal Create API] Sending mutation with variables:', JSON.stringify(variables, null, 2));
+		console.log(
+			'[Goal Create API] Sending mutation with variables:',
+			JSON.stringify(variables, null, 2)
+		);
 
 		const result = await graphqlClient.mutation(mutation, variables);
 
@@ -77,17 +80,17 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
 
 		if (!result.data?.createEmployeeGoal) {
 			console.error('[Goal Create API] No data returned from mutation');
-			return json(
-				{ message: 'No data returned from goal creation' },
-				{ status: 500 }
-			);
+			return json({ message: 'No data returned from goal creation' }, { status: 500 });
 		}
 
 		console.log('[Goal Create API] Successfully created goal:', result.data.createEmployeeGoal);
 		return json({ goal: result.data.createEmployeeGoal }, { status: 201 });
 	} catch (error) {
 		console.error('[Goal Create API] Catch block error:', error);
-		console.error('[Goal Create API] Error stack:', error instanceof Error ? error.stack : 'No stack');
+		console.error(
+			'[Goal Create API] Error stack:',
+			error instanceof Error ? error.stack : 'No stack'
+		);
 		return json(
 			{
 				message: error instanceof Error ? error.message : 'Failed to create goal',

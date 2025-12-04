@@ -140,9 +140,7 @@ export function hasRoleLevel(
  * @param userRoles - Array of role objects from backend
  * @returns Highest role level (0 if no roles)
  */
-export function getHighestRoleLevel(
-	userRoles: Array<{ name: RoleName; level: number }>
-): number {
+export function getHighestRoleLevel(userRoles: Array<{ name: RoleName; level: number }>): number {
 	return Math.max(...userRoles.map((role) => role.level), 0);
 }
 

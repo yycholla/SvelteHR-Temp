@@ -316,9 +316,7 @@ describe('TypeComparator', () => {
     });
 
     it('should accept custom mappings in constructor', () => {
-      const customMappings = new Map([
-        ['special_type', 'SpecialGraphQL']
-      ]);
+      const customMappings = new Map([['special_type', 'SpecialGraphQL']]);
 
       const customComparator = new TypeComparator({ customMappings });
 

@@ -76,10 +76,12 @@ export interface DatabaseColumn {
   /** Whether column is primary key */
   isPrimaryKey: boolean;
   /** Foreign key reference */
-  foreignKey?: {
-    table: string;
-    column: string;
-  } | undefined;
+  foreignKey?:
+    | {
+        table: string;
+        column: string;
+      }
+    | undefined;
   /** Default value if any */
   defaultValue?: string | undefined;
 }
@@ -101,10 +103,12 @@ export interface ApiField {
   /** Field arguments */
   args: ArgumentInfo[];
   /** Resolver location in Rust code */
-  resolverLocation?: {
-    file: string;
-    line: number;
-  } | undefined;
+  resolverLocation?:
+    | {
+        file: string;
+        line: number;
+      }
+    | undefined;
   /** Field alias (e.g., @name directive) */
   alias?: string | undefined;
 }

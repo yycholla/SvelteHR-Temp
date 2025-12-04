@@ -33,12 +33,10 @@ export const documentStore = {
 		if (userRole === 'super_admin') {
 			return allDocs;
 		} else if (userRole === 'admin') {
-			return allDocs.filter(doc => !doc.is_deleted);
+			return allDocs.filter((doc) => !doc.is_deleted);
 		} else {
 			// Employee sees only documents uploaded by them or assigned to them
-			return allDocs.filter(doc =>
-				!doc.is_deleted && doc.uploaded_by === userId
-			);
+			return allDocs.filter((doc) => !doc.is_deleted && doc.uploaded_by === userId);
 		}
 	},
 

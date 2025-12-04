@@ -308,10 +308,34 @@ describe('Task Assignment Functions', () => {
 
 describe('Filter Functions', () => {
 	const tasks: Task[] = [
-		createMockTask({ id: '1', assigneeId: 'user-1', status: 'todo', priority: 'high', assignedToDepartmentId: undefined }),
-		createMockTask({ id: '2', assigneeId: 'user-2', status: 'in_progress', priority: 'medium', assignedToDepartmentId: 'dept-1' }),
-		createMockTask({ id: '3', assigneeId: 'user-1', status: 'completed', priority: 'low', assignedToDepartmentId: undefined }),
-		createMockTask({ id: '4', assigneeId: 'user-3', status: 'todo', priority: 'urgent', assignedToDepartmentId: 'dept-2' })
+		createMockTask({
+			id: '1',
+			assigneeId: 'user-1',
+			status: 'todo',
+			priority: 'high',
+			assignedToDepartmentId: undefined
+		}),
+		createMockTask({
+			id: '2',
+			assigneeId: 'user-2',
+			status: 'in_progress',
+			priority: 'medium',
+			assignedToDepartmentId: 'dept-1'
+		}),
+		createMockTask({
+			id: '3',
+			assigneeId: 'user-1',
+			status: 'completed',
+			priority: 'low',
+			assignedToDepartmentId: undefined
+		}),
+		createMockTask({
+			id: '4',
+			assigneeId: 'user-3',
+			status: 'todo',
+			priority: 'urgent',
+			assignedToDepartmentId: 'dept-2'
+		})
 	];
 
 	describe('filterTasksByDepartment', () => {
@@ -423,10 +447,34 @@ describe('Sorting Functions', () => {
 
 describe('Grouping Functions', () => {
 	const tasks: Task[] = [
-		createMockTask({ id: '1', status: 'todo', priority: 'high', assigneeId: 'user-1', assignee: { displayName: 'John' } as any }),
-		createMockTask({ id: '2', status: 'todo', priority: 'medium', assigneeId: 'user-2', assignee: { displayName: 'Jane' } as any }),
-		createMockTask({ id: '3', status: 'in_progress', priority: 'high', assigneeId: 'user-1', assignee: { displayName: 'John' } as any }),
-		createMockTask({ id: '4', status: 'completed', priority: 'low', assigneeId: 'user-2', assignee: { displayName: 'Jane' } as any })
+		createMockTask({
+			id: '1',
+			status: 'todo',
+			priority: 'high',
+			assigneeId: 'user-1',
+			assignee: { displayName: 'John' } as any
+		}),
+		createMockTask({
+			id: '2',
+			status: 'todo',
+			priority: 'medium',
+			assigneeId: 'user-2',
+			assignee: { displayName: 'Jane' } as any
+		}),
+		createMockTask({
+			id: '3',
+			status: 'in_progress',
+			priority: 'high',
+			assigneeId: 'user-1',
+			assignee: { displayName: 'John' } as any
+		}),
+		createMockTask({
+			id: '4',
+			status: 'completed',
+			priority: 'low',
+			assigneeId: 'user-2',
+			assignee: { displayName: 'Jane' } as any
+		})
 	];
 
 	describe('groupTasksByStatus', () => {
@@ -471,18 +519,23 @@ describe('Statistics Functions', () => {
 		});
 
 		it('should return 50 when half completed', () => {
-			const tasks = [
-				createMockTask({ status: 'completed' }),
-				createMockTask({ status: 'todo' })
-			];
+			const tasks = [createMockTask({ status: 'completed' }), createMockTask({ status: 'todo' })];
 			expect(calculateTaskCompletionRate(tasks)).toBe(50);
 		});
 	});
 
 	describe('getTaskStatistics', () => {
 		const tasks: Task[] = [
-			createMockTask({ id: '1', status: 'todo', dueDate: new Date(Date.now() - 86400000).toISOString() }), // Overdue
-			createMockTask({ id: '2', status: 'in_progress', dueDate: new Date(Date.now() + 86400000).toISOString() }), // Due soon
+			createMockTask({
+				id: '1',
+				status: 'todo',
+				dueDate: new Date(Date.now() - 86400000).toISOString()
+			}), // Overdue
+			createMockTask({
+				id: '2',
+				status: 'in_progress',
+				dueDate: new Date(Date.now() + 86400000).toISOString()
+			}), // Due soon
 			createMockTask({ id: '3', status: 'completed' }),
 			createMockTask({ id: '4', status: 'cancelled' })
 		];
@@ -576,10 +629,26 @@ describe('Formatting Functions', () => {
 describe('Integration Scenarios', () => {
 	it('should correctly identify and count overdue tasks', () => {
 		const tasks: Task[] = [
-			createMockTask({ id: '1', dueDate: new Date(Date.now() - 86400000).toISOString(), status: 'todo' }),
-			createMockTask({ id: '2', dueDate: new Date(Date.now() + 86400000).toISOString(), status: 'todo' }),
-			createMockTask({ id: '3', dueDate: new Date(Date.now() - 172800000).toISOString(), status: 'in_progress' }),
-			createMockTask({ id: '4', dueDate: new Date(Date.now() - 86400000).toISOString(), status: 'completed' })
+			createMockTask({
+				id: '1',
+				dueDate: new Date(Date.now() - 86400000).toISOString(),
+				status: 'todo'
+			}),
+			createMockTask({
+				id: '2',
+				dueDate: new Date(Date.now() + 86400000).toISOString(),
+				status: 'todo'
+			}),
+			createMockTask({
+				id: '3',
+				dueDate: new Date(Date.now() - 172800000).toISOString(),
+				status: 'in_progress'
+			}),
+			createMockTask({
+				id: '4',
+				dueDate: new Date(Date.now() - 86400000).toISOString(),
+				status: 'completed'
+			})
 		];
 
 		const overdue = getOverdueTasks(tasks);

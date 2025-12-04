@@ -167,7 +167,10 @@ export const load: PageServerLoad = async (event) => {
 				return isUserDepartment && hasNoIndividualAssignee;
 			});
 
-			console.log(`[Team Tasks] Filtered to ${tasks.length} tasks assigned to department:`, userDepartmentId);
+			console.log(
+				`[Team Tasks] Filtered to ${tasks.length} tasks assigned to department:`,
+				userDepartmentId
+			);
 		} else {
 			// User is not assigned to a department - show no tasks
 			console.warn('[Team Tasks] User is not assigned to a department - showing no team tasks');
@@ -199,7 +202,11 @@ export const load: PageServerLoad = async (event) => {
 				const title = task.title?.toLowerCase() || '';
 				const description = task.description?.toLowerCase() || '';
 				const assigneeName = task.assignee?.displayName?.toLowerCase() || '';
-				return title.includes(searchLower) || description.includes(searchLower) || assigneeName.includes(searchLower);
+				return (
+					title.includes(searchLower) ||
+					description.includes(searchLower) ||
+					assigneeName.includes(searchLower)
+				);
 			});
 		}
 
@@ -276,9 +283,9 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		error(500, {
-        			message: 'Team tasks temporarily unavailable',
-        			details: errorResponse.userMessage
-        		});
+			message: 'Team tasks temporarily unavailable',
+			details: errorResponse.userMessage
+		});
 	}
 };
 
@@ -291,9 +298,8 @@ export const actions: Actions = {
 
 		try {
 			const formData = await request.formData();
-			const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import(
-				'$lib/server/api-url'
-			);
+			const { getGraphQLEndpoint, authenticatedGraphQLRequest } =
+				await import('$lib/server/api-url');
 			const graphqlEndpoint = getGraphQLEndpoint();
 
 			// Extract form data

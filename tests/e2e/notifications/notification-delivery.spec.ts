@@ -30,9 +30,9 @@ test.describe('Notification Delivery', () => {
 		await expect(page.locator('h1')).toContainText(/Notifications|Notification/i);
 
 		// Verify notifications list or empty state
-		const notificationList = page.locator('[data-testid="notification-list"]').or(
-			page.locator('.notification-list')
-		);
+		const notificationList = page
+			.locator('[data-testid="notification-list"]')
+			.or(page.locator('.notification-list'));
 		const emptyState = page.locator('text=/No notifications|No new notifications/i');
 
 		// Either notifications exist or empty state is shown
@@ -45,15 +45,15 @@ test.describe('Notification Delivery', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Look for notification bell icon
-		const notificationBell = page.locator('[data-testid="notification-bell"]').or(
-			page.locator('a[href*="/notifications"]')
-		);
+		const notificationBell = page
+			.locator('[data-testid="notification-bell"]')
+			.or(page.locator('a[href*="/notifications"]'));
 
 		if (await notificationBell.isVisible()) {
 			// Check if unread count badge is visible
-			const unreadBadge = page.locator('[data-testid="unread-count"]').or(
-				page.locator('text=/\\d+/')
-			);
+			const unreadBadge = page
+				.locator('[data-testid="unread-count"]')
+				.or(page.locator('text=/\\d+/'));
 
 			// Badge might be visible only if there are unread notifications
 			// Just verify bell itself is clickable
@@ -66,9 +66,9 @@ test.describe('Notification Delivery', () => {
 		await page.goto('/dashboard/notifications');
 		await page.waitForLoadState('networkidle');
 
-		const notificationItems = page.locator('[data-testid="notification-item"]').or(
-			page.locator('.notification-item')
-		);
+		const notificationItems = page
+			.locator('[data-testid="notification-item"]')
+			.or(page.locator('.notification-item'));
 
 		if ((await notificationItems.count()) > 0) {
 			// Check for various notification types
@@ -99,9 +99,9 @@ test.describe('Notification Delivery', () => {
 		await page.goto('/dashboard/notifications');
 		await page.waitForLoadState('networkidle');
 
-		const notificationItems = page.locator('[data-testid="notification-item"]').or(
-			page.locator('.notification-item')
-		);
+		const notificationItems = page
+			.locator('[data-testid="notification-item"]')
+			.or(page.locator('.notification-item'));
 
 		if ((await notificationItems.count()) > 0) {
 			// Check for visual indicators of read/unread status
@@ -121,21 +121,21 @@ test.describe('Notification Delivery', () => {
 		await page.goto('/dashboard/notifications');
 		await page.waitForLoadState('networkidle');
 
-		const notificationItems = page.locator('[data-testid="notification-item"]').or(
-			page.locator('.notification-item')
-		);
+		const notificationItems = page
+			.locator('[data-testid="notification-item"]')
+			.or(page.locator('.notification-item'));
 
 		if ((await notificationItems.count()) > 0) {
 			// Look for an unread notification
-			const unreadNotification = page.locator('[data-read="false"]').or(
-				page.locator('.notification-unread')
-			);
+			const unreadNotification = page
+				.locator('[data-read="false"]')
+				.or(page.locator('.notification-unread'));
 
 			if (await unreadNotification.isVisible()) {
 				// Click notification or mark as read button
-				const markReadButton = unreadNotification.locator('button:has-text("Mark as Read")').or(
-					unreadNotification
-				);
+				const markReadButton = unreadNotification
+					.locator('button:has-text("Mark as Read")')
+					.or(unreadNotification);
 
 				if (await markReadButton.isVisible()) {
 					await markReadButton.click();
@@ -155,9 +155,9 @@ test.describe('Notification Delivery', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Look for "Mark All as Read" button
-		const markAllReadButton = page.locator('button:has-text("Mark All as Read")').or(
-			page.locator('button:has-text("Read All")')
-		);
+		const markAllReadButton = page
+			.locator('button:has-text("Mark All as Read")')
+			.or(page.locator('button:has-text("Read All")'));
 
 		if (await markAllReadButton.isVisible()) {
 			await markAllReadButton.click();
@@ -178,9 +178,9 @@ test.describe('Notification Delivery', () => {
 		await page.goto('/dashboard/notifications');
 		await page.waitForLoadState('networkidle');
 
-		const notificationItems = page.locator('[data-testid="notification-item"]').or(
-			page.locator('.notification-item')
-		);
+		const notificationItems = page
+			.locator('[data-testid="notification-item"]')
+			.or(page.locator('.notification-item'));
 
 		const initialCount = await notificationItems.count();
 
@@ -208,9 +208,9 @@ test.describe('Notification Delivery', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Look for type filter
-		const typeFilter = page.locator('select[name="type"]').or(
-			page.locator('select:has(option:has-text("All Types"))')
-		);
+		const typeFilter = page
+			.locator('select[name="type"]')
+			.or(page.locator('select:has(option:has-text("All Types"))'));
 
 		if (await typeFilter.isVisible()) {
 			// Try filtering by different types
@@ -239,9 +239,9 @@ test.describe('Notification Delivery', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Look for read status filter
-		const statusFilter = page.locator('select[name="read"]').or(
-			page.locator('select:has(option:has-text("Unread"))')
-		);
+		const statusFilter = page
+			.locator('select[name="read"]')
+			.or(page.locator('select:has(option:has-text("Unread"))'));
 
 		if (await statusFilter.isVisible()) {
 			// Filter to show only unread
@@ -267,9 +267,9 @@ test.describe('Notification Delivery', () => {
 		await page.goto('/dashboard/notifications');
 		await page.waitForLoadState('networkidle');
 
-		const notificationItems = page.locator('[data-testid="notification-item"]').or(
-			page.locator('.notification-item')
-		);
+		const notificationItems = page
+			.locator('[data-testid="notification-item"]')
+			.or(page.locator('.notification-item'));
 
 		if ((await notificationItems.count()) > 0) {
 			// Click first notification
@@ -299,9 +299,9 @@ test.describe('Notification Delivery', () => {
 		await page.goto('/dashboard/notifications');
 		await page.waitForLoadState('networkidle');
 
-		const notificationItems = page.locator('[data-testid="notification-item"]').or(
-			page.locator('.notification-item')
-		);
+		const notificationItems = page
+			.locator('[data-testid="notification-item"]')
+			.or(page.locator('.notification-item'));
 
 		if ((await notificationItems.count()) > 0) {
 			// Verify timestamps are displayed
@@ -332,12 +332,12 @@ test.describe('Notification Delivery', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Look for pagination controls
-		const nextButton = page.locator('button:has-text("Next")').or(
-			page.locator('a:has-text("Next")')
-		);
-		const prevButton = page.locator('button:has-text("Previous")').or(
-			page.locator('a:has-text("Previous")')
-		);
+		const nextButton = page
+			.locator('button:has-text("Next")')
+			.or(page.locator('a:has-text("Next")'));
+		const prevButton = page
+			.locator('button:has-text("Previous")')
+			.or(page.locator('a:has-text("Previous")'));
 
 		// Check if pagination exists
 		if (await nextButton.isVisible()) {
@@ -415,9 +415,9 @@ test.describe('Notification Delivery', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Look for urgent/priority indicators
-		const urgentNotification = page.locator('[data-priority="high"]').or(
-			page.locator('text=/urgent|important/i')
-		);
+		const urgentNotification = page
+			.locator('[data-priority="high"]')
+			.or(page.locator('text=/urgent|important/i'));
 
 		if (await urgentNotification.isVisible()) {
 			// Verify urgent notifications have visual distinction
@@ -437,9 +437,9 @@ test.describe('Notification Delivery', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Verify notification bell exists
-		const notificationBell = page.locator('[data-testid="notification-bell"]').or(
-			page.locator('a[href*="/notifications"]')
-		);
+		const notificationBell = page
+			.locator('[data-testid="notification-bell"]')
+			.or(page.locator('a[href*="/notifications"]'));
 
 		if (await notificationBell.isVisible()) {
 			// Get initial unread count

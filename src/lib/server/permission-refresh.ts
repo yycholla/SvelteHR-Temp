@@ -66,9 +66,8 @@ async function queryUserData(userId: string): Promise<{
 			roles.push(user.role);
 		}
 
-		const permissions = user.userRolesByUserId?.nodes?.flatMap(
-			(ur: any) => ur.roleByRoleId?.permissions || []
-		) || [];
+		const permissions =
+			user.userRolesByUserId?.nodes?.flatMap((ur: any) => ur.roleByRoleId?.permissions || []) || [];
 
 		return {
 			departmentId: user.departmentId,

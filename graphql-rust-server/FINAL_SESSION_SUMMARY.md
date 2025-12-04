@@ -27,12 +27,12 @@ This comprehensive session successfully implemented **191 production-ready tests
 
 **Coverage:** 25-30% → 40-45% (+15%)
 
-| Test Suite | Tests | Status | Coverage Impact |
-|------------|-------|--------|-----------------|
-| **Auth Backend Tests** | 19 | ✅ 100% passing | +75-85% auth coverage |
-| **RLS Integration Tests** | 20 | ✅ 100% passing | +70-80% RLS coverage |
-| **RBAC Mutation Tests** | 17 | ✅ 100% passing | +60-70% RBAC coverage |
-| **TOTAL WEEK 1** | **56** | **✅ 100%** | **+15% overall** |
+| Test Suite                | Tests  | Status          | Coverage Impact       |
+| ------------------------- | ------ | --------------- | --------------------- |
+| **Auth Backend Tests**    | 19     | ✅ 100% passing | +75-85% auth coverage |
+| **RLS Integration Tests** | 20     | ✅ 100% passing | +70-80% RLS coverage  |
+| **RBAC Mutation Tests**   | 17     | ✅ 100% passing | +60-70% RBAC coverage |
+| **TOTAL WEEK 1**          | **56** | **✅ 100%**     | **+15% overall**      |
 
 ### Critical Security Achievements
 
@@ -57,13 +57,13 @@ This comprehensive session successfully implemented **191 production-ready tests
 
 **Coverage:** 40-45% → 55-60% (+15%)
 
-| Test Suite | Tests | Initial Status | Final Status | Coverage Impact |
-|------------|-------|----------------|--------------|-----------------|
-| **Leave Domain Tests** | 24 | 58% passing | ✅ **100% passing** | +60-70% Leave domain |
-| **Model Validation Tests** | 44 | ✅ 100% passing | ✅ 100% passing | +80-90% validation logic |
-| **Utility Function Tests** | 32 | ✅ 100% passing | ✅ 100% passing | +85-95% utility coverage |
-| **Query Edge Case Tests** | 35 | ✅ 100% passing | ✅ 100% passing | +50% query resolvers |
-| **TOTAL WEEK 2** | **135** | **92.6%** | **✅ 100%** | **+15% overall** |
+| Test Suite                 | Tests   | Initial Status  | Final Status        | Coverage Impact          |
+| -------------------------- | ------- | --------------- | ------------------- | ------------------------ |
+| **Leave Domain Tests**     | 24      | 58% passing     | ✅ **100% passing** | +60-70% Leave domain     |
+| **Model Validation Tests** | 44      | ✅ 100% passing | ✅ 100% passing     | +80-90% validation logic |
+| **Utility Function Tests** | 32      | ✅ 100% passing | ✅ 100% passing     | +85-95% utility coverage |
+| **Query Edge Case Tests**  | 35      | ✅ 100% passing | ✅ 100% passing     | +50% query resolvers     |
+| **TOTAL WEEK 2**           | **135** | **92.6%**       | **✅ 100%**         | **+15% overall**         |
 
 ### Quick Win Highlights
 
@@ -81,6 +81,7 @@ This comprehensive session successfully implemented **191 production-ready tests
 **Status:** ✅ All 4 validations implemented and tested
 
 #### 1. Overlapping Leave Request Validation
+
 ```rust
 async fn check_overlapping_requests(
     db: &DatabaseConnection,
@@ -90,10 +91,12 @@ async fn check_overlapping_requests(
     exclude_id: Option<Uuid>,
 ) -> Result<bool>
 ```
+
 **Prevents:** Double-booking of leave periods
 **Error:** "Cannot create leave request: overlapping dates with existing request"
 
 #### 2. Leave Balance Validation
+
 ```rust
 async fn check_sufficient_balance(
     db: &DatabaseConnection,
@@ -102,20 +105,24 @@ async fn check_sufficient_balance(
     days_requested: i32,
 ) -> Result<bool>
 ```
+
 **Prevents:** Users requesting more leave than available balance
 **Error:** "Cannot create leave request: insufficient leave balance"
 
 #### 3. Self-Approval Prevention
+
 ```rust
 // In approve_leave_request mutation
 if leave_request.user_id == user_context.user_id {
     return Err("Cannot approve own leave request".into());
 }
 ```
+
 **Prevents:** Users bypassing approval workflow
 **Error:** "Cannot approve own leave request"
 
 #### 4. Date Validation
+
 ```rust
 fn validate_leave_dates(
     start_date: Date,
@@ -123,17 +130,19 @@ fn validate_leave_dates(
     allow_past_dates: bool,
 ) -> Result<()>
 ```
+
 **Prevents:** Invalid date ranges and backdating
 **Errors:**
+
 - "End date must be after start date"
 - "Start date cannot be in the past"
 
 ### Files Modified
 
-| File | Changes | Lines Modified |
-|------|---------|----------------|
-| `src/schema/mutation.rs` | Added 3 validation functions + updated 3 mutations | ~90 lines |
-| `tests/graphql_leave_tests.rs` | Fixed enum assertions + query structure | ~13 changes |
+| File                           | Changes                                            | Lines Modified |
+| ------------------------------ | -------------------------------------------------- | -------------- |
+| `src/schema/mutation.rs`       | Added 3 validation functions + updated 3 mutations | ~90 lines      |
+| `tests/graphql_leave_tests.rs` | Fixed enum assertions + query structure            | ~13 changes    |
 
 ---
 
@@ -142,6 +151,7 @@ fn validate_leave_dates(
 ### Week 1: Security Tests (56 tests)
 
 #### Auth Backend Tests (19 tests)
+
 - Password security (4 tests)
 - User authentication (5 tests)
 - Account lockout & brute force protection (4 tests)
@@ -150,12 +160,14 @@ fn validate_leave_dates(
 - CSRF protection (1 test)
 
 #### RLS Integration Tests (20 tests)
+
 - RLS isolation (8 tests)
 - Cross-tenant attack prevention (7 tests)
 - Admin multi-tenant access (4 tests)
 - GraphQL integration (1 test) ✅
 
 #### RBAC Mutation Tests (17 tests)
+
 - Role assignment authorization (7 tests)
 - Permission checks (6 tests)
 - Security attack prevention (3 tests)
@@ -164,12 +176,14 @@ fn validate_leave_dates(
 ### Week 2: GraphQL + Quick Wins (135 tests)
 
 #### Leave Domain Tests (24 tests) ✅ **Now 100% Passing**
+
 - Leave request creation (7 tests)
 - Leave approval workflow (8 tests)
 - Leave balance calculation (5 tests)
 - Leave query filtering (4 tests)
 
 #### Model Validation Tests (44 tests)
+
 - Email validation (5 tests)
 - Password validation (7 tests)
 - Date range validation (5 tests)
@@ -179,6 +193,7 @@ fn validate_leave_dates(
 - Additional validations (12 tests): phone, URL, UUID, hex color, RRULE
 
 #### Utility Function Tests (32 tests)
+
 - String utilities (7 tests)
 - Permission helpers (8 tests)
 - Error handling (5 tests)
@@ -186,6 +201,7 @@ fn validate_leave_dates(
 - User context construction (3 tests)
 
 #### Query Edge Case Tests (35 tests)
+
 - Pagination edge cases (6 tests)
 - Filtering edge cases (7 tests)
 - Sorting edge cases (5 tests)
@@ -197,15 +213,15 @@ fn validate_leave_dates(
 
 ## Final Test Statistics
 
-| Metric | Value |
-|--------|-------|
-| **Total Tests** | 191 tests |
-| **Passing Tests** | 191 tests (100%) ✅ |
-| **Failed Tests** | 0 tests |
-| **Test Pass Rate** | 100% |
-| **Total Test Code** | 4,881 lines |
-| **Total Documentation** | 75+ KB |
-| **Execution Time** | ~595 seconds (~10 min) |
+| Metric                  | Value                  |
+| ----------------------- | ---------------------- |
+| **Total Tests**         | 191 tests              |
+| **Passing Tests**       | 191 tests (100%) ✅    |
+| **Failed Tests**        | 0 tests                |
+| **Test Pass Rate**      | 100%                   |
+| **Total Test Code**     | 4,881 lines            |
+| **Total Documentation** | 75+ KB                 |
+| **Execution Time**      | ~595 seconds (~10 min) |
 
 ---
 
@@ -223,19 +239,19 @@ Target (Week 4):           70-80%  ██████████ (Week 3 integr
 
 ### Coverage by Module (Final)
 
-| Module | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| **Auth Backend** | 0% | 75-85% | **+75-85%** 🔥 |
-| **RLS Multi-Tenant** | 0% | 70-80% | **+70-80%** 🔥 |
-| **RBAC Authorization** | 0% | 60-70% | **+60-70%** 🔥 |
-| **GraphQL Schema** | 0% | 50-60% | **+50-60%** 🔥 |
-| **Validation Logic** | 0% | 80-90% | **+80-90%** 🔥 |
-| **Utility Functions** | 0% | 85-95% | **+85-95%** 🔥 |
-| **Leave Domain** | 0% | **70-80%** | **+70-80%** 🔥 **NEW** |
-| Middleware | 40-50% | 60-70% | +20% |
-| Models | 30-40% | 50-60% | +20% |
-| Database | 20-30% | 40-50% | +20% |
-| **Overall** | **25-30%** | **55-60%** | **+30%** 🎯 |
+| Module                 | Before     | After      | Improvement            |
+| ---------------------- | ---------- | ---------- | ---------------------- |
+| **Auth Backend**       | 0%         | 75-85%     | **+75-85%** 🔥         |
+| **RLS Multi-Tenant**   | 0%         | 70-80%     | **+70-80%** 🔥         |
+| **RBAC Authorization** | 0%         | 60-70%     | **+60-70%** 🔥         |
+| **GraphQL Schema**     | 0%         | 50-60%     | **+50-60%** 🔥         |
+| **Validation Logic**   | 0%         | 80-90%     | **+80-90%** 🔥         |
+| **Utility Functions**  | 0%         | 85-95%     | **+85-95%** 🔥         |
+| **Leave Domain**       | 0%         | **70-80%** | **+70-80%** 🔥 **NEW** |
+| Middleware             | 40-50%     | 60-70%     | +20%                   |
+| Models                 | 30-40%     | 50-60%     | +20%                   |
+| Database               | 20-30%     | 40-50%     | +20%                   |
+| **Overall**            | **25-30%** | **55-60%** | **+30%** 🎯            |
 
 ---
 
@@ -243,23 +259,23 @@ Target (Week 4):           70-80%  ██████████ (Week 3 integr
 
 ### Critical Vulnerabilities Closed
 
-| Vulnerability | Status | Tests | Coverage |
-|---------------|--------|-------|----------|
-| **Cross-Tenant Data Leaks** | ✅ CLOSED | 20 | RLS at GraphQL level |
-| **Auth Backend Gaps** | ✅ CLOSED | 19 | 75-85% coverage |
-| **RBAC Bypass** | ✅ CLOSED | 17 | 60-70% coverage |
-| **Privilege Escalation** | ✅ CLOSED | 6 | Self-elevation prevented |
-| **Input Validation Gaps** | ✅ CLOSED | 44 | 80-90% validation coverage |
-| **Business Logic Gaps** | ✅ CLOSED | 24 | Leave domain validated |
+| Vulnerability               | Status    | Tests | Coverage                   |
+| --------------------------- | --------- | ----- | -------------------------- |
+| **Cross-Tenant Data Leaks** | ✅ CLOSED | 20    | RLS at GraphQL level       |
+| **Auth Backend Gaps**       | ✅ CLOSED | 19    | 75-85% coverage            |
+| **RBAC Bypass**             | ✅ CLOSED | 17    | 60-70% coverage            |
+| **Privilege Escalation**    | ✅ CLOSED | 6     | Self-elevation prevented   |
+| **Input Validation Gaps**   | ✅ CLOSED | 44    | 80-90% validation coverage |
+| **Business Logic Gaps**     | ✅ CLOSED | 24    | Leave domain validated     |
 
 ### OWASP Top 10 Coverage (Final)
 
-| OWASP Category | Tests | Status |
-|----------------|-------|--------|
-| A01: Broken Access Control | 50+ | ✅ Comprehensive |
-| A02: Cryptographic Failures | 11 | ✅ Strong |
-| A03: Injection | 13 | ✅ Comprehensive |
-| A07: Auth & Identity Failures | 22 | ✅ Comprehensive |
+| OWASP Category                | Tests | Status           |
+| ----------------------------- | ----- | ---------------- |
+| A01: Broken Access Control    | 50+   | ✅ Comprehensive |
+| A02: Cryptographic Failures   | 11    | ✅ Strong        |
+| A03: Injection                | 13    | ✅ Comprehensive |
+| A07: Auth & Identity Failures | 22    | ✅ Comprehensive |
 
 ### Attack Vectors Prevented
 
@@ -280,12 +296,12 @@ Target (Week 4):           70-80%  ██████████ (Week 3 integr
 
 ### Test Execution Times
 
-| Category | Tests | Duration | Avg Per Test |
-|----------|-------|----------|--------------|
-| **Week 1 Security** | 56 | ~248s | 4.4s |
-| **Week 2 Quick Wins** | 76 | ~0.09s | 1.2ms |
-| **Week 2 GraphQL** | 59 | ~347s | 5.9s |
-| **TOTAL** | **191** | **~595s** | **3.1s** |
+| Category              | Tests   | Duration  | Avg Per Test |
+| --------------------- | ------- | --------- | ------------ |
+| **Week 1 Security**   | 56      | ~248s     | 4.4s         |
+| **Week 2 Quick Wins** | 76      | ~0.09s    | 1.2ms        |
+| **Week 2 GraphQL**    | 59      | ~347s     | 5.9s         |
+| **TOTAL**             | **191** | **~595s** | **3.1s**     |
 
 ### Quick Win Performance Highlights
 
@@ -300,43 +316,43 @@ Target (Week 4):           70-80%  ██████████ (Week 3 integr
 
 ### Test Files Created (7 files, 4,881 lines)
 
-| File | Lines | Tests | Status |
-|------|-------|-------|--------|
-| `tests/auth_backend_tests.rs` | 502 | 19 | ✅ 100% passing |
-| `tests/rls_integration_tests.rs` | 860 | 20 | ✅ 100% passing |
-| `tests/rbac_mutation_tests.rs` | 620 | 17 | ✅ 100% passing |
-| `tests/graphql_leave_tests.rs` | 1,241 | 24 | ✅ 100% passing |
-| `tests/model_validation_tests.rs` | 654 | 44 | ✅ 100% passing |
-| `tests/utils_tests.rs` | 455 | 32 | ✅ 100% passing |
-| `tests/graphql_query_edge_cases_tests.rs` | 549 | 35 | ✅ 100% passing |
-| **TOTAL** | **4,881** | **191** | **✅ 100%** |
+| File                                      | Lines     | Tests   | Status          |
+| ----------------------------------------- | --------- | ------- | --------------- |
+| `tests/auth_backend_tests.rs`             | 502       | 19      | ✅ 100% passing |
+| `tests/rls_integration_tests.rs`          | 860       | 20      | ✅ 100% passing |
+| `tests/rbac_mutation_tests.rs`            | 620       | 17      | ✅ 100% passing |
+| `tests/graphql_leave_tests.rs`            | 1,241     | 24      | ✅ 100% passing |
+| `tests/model_validation_tests.rs`         | 654       | 44      | ✅ 100% passing |
+| `tests/utils_tests.rs`                    | 455       | 32      | ✅ 100% passing |
+| `tests/graphql_query_edge_cases_tests.rs` | 549       | 35      | ✅ 100% passing |
+| **TOTAL**                                 | **4,881** | **191** | **✅ 100%**     |
 
 ### Documentation Created (11 files, 75+ KB)
 
-| File | Size | Purpose |
-|------|------|---------|
-| `TEST_COVERAGE_WEEK1_SUMMARY.md` | 15 KB | Week 1 comprehensive summary |
-| `WEEK2_TEST_COVERAGE_SUMMARY.md` | 15 KB | Week 2 comprehensive summary |
-| `SESSION_SUMMARY.md` | 12 KB | Complete session documentation |
-| `FINAL_SESSION_SUMMARY.md` | 12 KB | Final achievements summary |
-| `tests/RLS_TEST_REPORT.md` | 5 KB | RLS test details |
-| `tests/RBAC_TEST_REPORT.md` | 11 KB | RBAC test details |
-| `MODEL_VALIDATION_TEST_REPORT.md` | 5 KB | Validation test documentation |
-| **TOTAL** | **75+ KB** | **Complete documentation** |
+| File                              | Size       | Purpose                        |
+| --------------------------------- | ---------- | ------------------------------ |
+| `TEST_COVERAGE_WEEK1_SUMMARY.md`  | 15 KB      | Week 1 comprehensive summary   |
+| `WEEK2_TEST_COVERAGE_SUMMARY.md`  | 15 KB      | Week 2 comprehensive summary   |
+| `SESSION_SUMMARY.md`              | 12 KB      | Complete session documentation |
+| `FINAL_SESSION_SUMMARY.md`        | 12 KB      | Final achievements summary     |
+| `tests/RLS_TEST_REPORT.md`        | 5 KB       | RLS test details               |
+| `tests/RBAC_TEST_REPORT.md`       | 11 KB      | RBAC test details              |
+| `MODEL_VALIDATION_TEST_REPORT.md` | 5 KB       | Validation test documentation  |
+| **TOTAL**                         | **75+ KB** | **Complete documentation**     |
 
 ### Source Code Modified (9 files, ~100 lines)
 
-| File | Modification | Purpose |
-|------|--------------|---------|
-| `src/auth/context.rs` | Added RLS fields | UserContext enhancement |
-| `src/auth/backend.rs` | Extract department_id | Database → AuthUser flow |
-| `src/middleware/session_auth.rs` | 3 functions updated | Session-based RLS |
-| `src/middleware/auth.rs` | JWT Claims + middleware | JWT-based RLS |
-| `src/schema/query.rs` | 10 resolvers + 5 helpers | RLS GraphQL integration |
-| `src/schema/mutation.rs` | 3 validators + 3 mutations | Leave business logic |
-| `src/schema/mutation.rs` | Removed 8 duplicate types | Fix schema conflict |
-| `tests/graphql_leave_tests.rs` | Fixed enum assertions | Test fixes |
-| **TOTAL** | **8 files** | **Security + validation** |
+| File                             | Modification               | Purpose                   |
+| -------------------------------- | -------------------------- | ------------------------- |
+| `src/auth/context.rs`            | Added RLS fields           | UserContext enhancement   |
+| `src/auth/backend.rs`            | Extract department_id      | Database → AuthUser flow  |
+| `src/middleware/session_auth.rs` | 3 functions updated        | Session-based RLS         |
+| `src/middleware/auth.rs`         | JWT Claims + middleware    | JWT-based RLS             |
+| `src/schema/query.rs`            | 10 resolvers + 5 helpers   | RLS GraphQL integration   |
+| `src/schema/mutation.rs`         | 3 validators + 3 mutations | Leave business logic      |
+| `src/schema/mutation.rs`         | Removed 8 duplicate types  | Fix schema conflict       |
+| `tests/graphql_leave_tests.rs`   | Fixed enum assertions      | Test fixes                |
+| **TOTAL**                        | **8 files**                | **Security + validation** |
 
 ---
 
@@ -414,6 +430,7 @@ Target (Week 4):           70-80%  ██████████ (Week 3 integr
 ### Immediate Actions
 
 1. **CI/CD Integration** (1 hour)
+
    ```yaml
    # Add to .github/workflows/rust-quality-gates.yml
    - name: Run Security Tests

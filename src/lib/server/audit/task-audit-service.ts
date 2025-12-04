@@ -490,10 +490,7 @@ export async function logCommentAdded(
 /**
  * Get audit trail for a specific task
  */
-export async function getTaskAuditTrail(
-	taskId: string,
-	limit: number = 50
-): Promise<any[]> {
+export async function getTaskAuditTrail(taskId: string, limit: number = 50): Promise<any[]> {
 	try {
 		const graphqlEndpoint = getGraphQLEndpoint();
 
@@ -544,10 +541,7 @@ export async function getTaskAuditTrail(
 /**
  * Get recent task actions by a specific user
  */
-export async function getUserTaskActions(
-	userId: string,
-	limit: number = 20
-): Promise<any[]> {
+export async function getUserTaskActions(userId: string, limit: number = 20): Promise<any[]> {
 	try {
 		const graphqlEndpoint = getGraphQLEndpoint();
 

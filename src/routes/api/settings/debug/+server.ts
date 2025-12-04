@@ -32,9 +32,10 @@ export const GET: RequestHandler = async ({ cookies }) => {
 		};
 
 		if (result.data?.systemSettingsByCategory) {
-			const parsed = typeof result.data.systemSettingsByCategory.settings === 'string'
-				? JSON.parse(result.data.systemSettingsByCategory.settings)
-				: result.data.systemSettingsByCategory.settings;
+			const parsed =
+				typeof result.data.systemSettingsByCategory.settings === 'string'
+					? JSON.parse(result.data.systemSettingsByCategory.settings)
+					: result.data.systemSettingsByCategory.settings;
 			settings = { ...settings, ...parsed };
 		}
 

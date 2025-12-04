@@ -1,166 +1,202 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" class="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendar Style Mockup</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        border: "hsl(var(--border))",
-                        input: "hsl(var(--input))",
-                        ring: "hsl(var(--ring))",
-                        background: "hsl(var(--background))",
-                        foreground: "hsl(var(--foreground))",
-                        primary: { DEFAULT: "hsl(222.2 47.4% 11.2%)", foreground: "hsl(210 40% 98%)" },
-                        secondary: { DEFAULT: "hsl(210 40% 96.1%)", foreground: "hsl(222.2 47.4% 11.2%)" },
-                        muted: { DEFAULT: "hsl(210 40% 96.1%)", foreground: "hsl(215.4 16.3% 46.9%)" },
-                        accent: { DEFAULT: "hsl(210 40% 96.1%)", foreground: "hsl(222.2 47.4% 11.2%)" },
-                        card: { DEFAULT: "hsl(0 0% 100%)", foreground: "hsl(222.2 47.4% 11.2%)" },
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        :root {
-            --background: 0 0% 100%;
-            --foreground: 222.2 84% 4.9%;
-            --card: 0 0% 100%;
-            --card-foreground: 222.2 84% 4.9%;
-            --popover: 0 0% 100%;
-            --popover-foreground: 222.2 84% 4.9%;
-            --primary: 222.2 47.4% 11.2%;
-            --primary-foreground: 210 40% 98%;
-            --secondary: 210 40% 96.1%;
-            --secondary-foreground: 222.2 47.4% 11.2%;
-            --muted: 210 40% 96.1%;
-            --muted-foreground: 215.4 16.3% 46.9%;
-            --accent: 210 40% 96.1%;
-            --accent-foreground: 222.2 47.4% 11.2%;
-            --destructive: 0 84.2% 60.2%;
-            --destructive-foreground: 210 40% 98%;
-            --border: 214.3 31.8% 91.4%;
-            --input: 214.3 31.8% 91.4%;
-            --ring: 222.2 84% 4.9%;
-            --radius: 0.5rem;
-        }
-        .dark {
-            --background: 222.2 84% 4.9%;
-            --foreground: 210 40% 98%;
-            --card: 222.2 84% 4.9%;
-            --card-foreground: 210 40% 98%;
-            --popover: 222.2 84% 4.9%;
-            --popover-foreground: 210 40% 98%;
-            --primary: 210 40% 98%;
-            --primary-foreground: 222.2 47.4% 11.2%;
-            --secondary: 217.2 32.6% 17.5%;
-            --secondary-foreground: 210 40% 98%;
-            --muted: 217.2 32.6% 17.5%;
-            --muted-foreground: 215 20.2% 65.1%;
-            --accent: 217.2 32.6% 17.5%;
-            --accent-foreground: 210 40% 98%;
-            --destructive: 0 62.8% 30.6%;
-            --destructive-foreground: 210 40% 98%;
-            --border: 217.2 32.6% 17.5%;
-            --input: 217.2 32.6% 17.5%;
-            --ring: 212.7 26.8% 83.9%;
-        }
-    </style>
-</head>
-<body class="bg-background text-foreground p-8">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Calendar Style Mockup</title>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<script>
+			tailwind.config = {
+				darkMode: 'class',
+				theme: {
+					extend: {
+						colors: {
+							border: 'hsl(var(--border))',
+							input: 'hsl(var(--input))',
+							ring: 'hsl(var(--ring))',
+							background: 'hsl(var(--background))',
+							foreground: 'hsl(var(--foreground))',
+							primary: { DEFAULT: 'hsl(222.2 47.4% 11.2%)', foreground: 'hsl(210 40% 98%)' },
+							secondary: { DEFAULT: 'hsl(210 40% 96.1%)', foreground: 'hsl(222.2 47.4% 11.2%)' },
+							muted: { DEFAULT: 'hsl(210 40% 96.1%)', foreground: 'hsl(215.4 16.3% 46.9%)' },
+							accent: { DEFAULT: 'hsl(210 40% 96.1%)', foreground: 'hsl(222.2 47.4% 11.2%)' },
+							card: { DEFAULT: 'hsl(0 0% 100%)', foreground: 'hsl(222.2 47.4% 11.2%)' }
+						}
+					}
+				}
+			};
+		</script>
+		<style>
+			:root {
+				--background: 0 0% 100%;
+				--foreground: 222.2 84% 4.9%;
+				--card: 0 0% 100%;
+				--card-foreground: 222.2 84% 4.9%;
+				--popover: 0 0% 100%;
+				--popover-foreground: 222.2 84% 4.9%;
+				--primary: 222.2 47.4% 11.2%;
+				--primary-foreground: 210 40% 98%;
+				--secondary: 210 40% 96.1%;
+				--secondary-foreground: 222.2 47.4% 11.2%;
+				--muted: 210 40% 96.1%;
+				--muted-foreground: 215.4 16.3% 46.9%;
+				--accent: 210 40% 96.1%;
+				--accent-foreground: 222.2 47.4% 11.2%;
+				--destructive: 0 84.2% 60.2%;
+				--destructive-foreground: 210 40% 98%;
+				--border: 214.3 31.8% 91.4%;
+				--input: 214.3 31.8% 91.4%;
+				--ring: 222.2 84% 4.9%;
+				--radius: 0.5rem;
+			}
+			.dark {
+				--background: 222.2 84% 4.9%;
+				--foreground: 210 40% 98%;
+				--card: 222.2 84% 4.9%;
+				--card-foreground: 210 40% 98%;
+				--popover: 222.2 84% 4.9%;
+				--popover-foreground: 210 40% 98%;
+				--primary: 210 40% 98%;
+				--primary-foreground: 222.2 47.4% 11.2%;
+				--secondary: 217.2 32.6% 17.5%;
+				--secondary-foreground: 210 40% 98%;
+				--muted: 217.2 32.6% 17.5%;
+				--muted-foreground: 215 20.2% 65.1%;
+				--accent: 217.2 32.6% 17.5%;
+				--accent-foreground: 210 40% 98%;
+				--destructive: 0 62.8% 30.6%;
+				--destructive-foreground: 210 40% 98%;
+				--border: 217.2 32.6% 17.5%;
+				--input: 217.2 32.6% 17.5%;
+				--ring: 212.7 26.8% 83.9%;
+			}
+		</style>
+	</head>
+	<body class="bg-background p-8 text-foreground">
+		<h2 class="mb-4 text-2xl font-bold">Calendar Styling Mockup</h2>
 
-    <h2 class="text-2xl font-bold mb-4">Calendar Styling Mockup</h2>
+		<!-- Calendar Container -->
+		<div class="overflow-hidden rounded-lg border bg-card" style="width: 800px; margin: 0 auto">
+			<!-- Header -->
+			<div class="flex items-center justify-between border-b p-4">
+				<h3 class="text-lg font-semibold">November 2025</h3>
+				<div class="flex gap-2">
+					<button
+						class="rounded-md border bg-background px-3 py-1 text-sm font-medium hover:bg-accent"
+					>
+						Today
+					</button>
+					<button
+						class="rounded-md border bg-background px-3 py-1 text-sm font-medium hover:bg-accent"
+					>
+						&lt;
+					</button>
+					<button
+						class="rounded-md border bg-background px-3 py-1 text-sm font-medium hover:bg-accent"
+					>
+						&gt;
+					</button>
+				</div>
+			</div>
 
-    <!-- Calendar Container -->
-    <div class="border rounded-lg overflow-hidden bg-card" style="width: 800px; margin: 0 auto;">
-        
-        <!-- Header -->
-        <div class="flex justify-between items-center p-4 border-b">
-            <h3 class="text-lg font-semibold">November 2025</h3>
-            <div class="flex gap-2">
-                <button class="px-3 py-1 text-sm font-medium rounded-md bg-background border hover:bg-accent">Today</button>
-                <button class="px-3 py-1 text-sm font-medium rounded-md bg-background border hover:bg-accent">&lt;</button>
-                <button class="px-3 py-1 text-sm font-medium rounded-md bg-background border hover:bg-accent">&gt;</button>
-            </div>
-        </div>
+			<!-- Week View (TimeGrid) Mockup -->
+			<div class="grid grid-cols-[60px_1fr_1fr_1fr_1fr_1fr_1fr_1fr] divide-x divide-border">
+				<!-- Time Labels Column -->
+				<div
+					class="space-y-8 border-r bg-background py-2 pr-2 text-right text-xs text-muted-foreground"
+				>
+					<div class="h-8">9 AM</div>
+					<div class="h-8">10 AM</div>
+					<div class="h-8">11 AM</div>
+					<div class="h-8">12 PM</div>
+				</div>
 
-        <!-- Week View (TimeGrid) Mockup -->
-        <div class="grid grid-cols-[60px_1fr_1fr_1fr_1fr_1fr_1fr_1fr] divide-x divide-border">
-            
-            <!-- Time Labels Column -->
-            <div class="bg-background text-xs text-muted-foreground text-right pr-2 py-2 space-y-8 border-r">
-                <div class="h-8">9 AM</div>
-                <div class="h-8">10 AM</div>
-                <div class="h-8">11 AM</div>
-                <div class="h-8">12 PM</div>
-            </div>
+				<!-- Day Columns -->
+				<!-- Day 1 -->
+				<div class="relative">
+					<div class="border-b bg-muted/30 py-2 text-center text-sm font-semibold">Sun 16</div>
+					<!-- Hour Slots -->
+					<div class="h-8 border-b border-border"></div>
+					<!-- 9:00 -->
+					<div class="h-8 border-b border-border bg-muted/30"></div>
+					<!-- 9:30 (Zebra) -->
+					<div class="h-8 border-b border-border"></div>
+					<!-- 10:00 -->
+					<div class="h-8 border-b border-border bg-muted/30"></div>
+					<!-- 10:30 (Zebra) -->
+					<div class="h-8 border-b border-border"></div>
+					<!-- 11:00 -->
+					<div class="h-8 border-b border-border bg-muted/30"></div>
+					<!-- 11:30 (Zebra) -->
+				</div>
 
-            <!-- Day Columns -->
-            <!-- Day 1 -->
-            <div class="relative">
-                <div class="text-center py-2 border-b bg-muted/30 text-sm font-semibold">Sun 16</div>
-                <!-- Hour Slots -->
-                <div class="h-8 border-b border-border"></div> <!-- 9:00 -->
-                <div class="h-8 border-b border-border bg-muted/30"></div> <!-- 9:30 (Zebra) -->
-                <div class="h-8 border-b border-border"></div> <!-- 10:00 -->
-                <div class="h-8 border-b border-border bg-muted/30"></div> <!-- 10:30 (Zebra) -->
-                <div class="h-8 border-b border-border"></div> <!-- 11:00 -->
-                <div class="h-8 border-b border-border bg-muted/30"></div> <!-- 11:30 (Zebra) -->
-            </div>
+				<!-- Day 2 (Today) -->
+				<div class="relative bg-secondary/20">
+					<!-- Today Highlight -->
+					<div
+						class="border-b bg-secondary py-2 text-center text-sm font-semibold text-secondary-foreground"
+					>
+						Mon 17 (Today)
+					</div>
 
-            <!-- Day 2 (Today) -->
-            <div class="relative bg-secondary/20"> <!-- Today Highlight -->
-                <div class="text-center py-2 border-b bg-secondary text-secondary-foreground text-sm font-semibold">Mon 17 (Today)</div>
-                
-                <!-- Event Chip -->
-                <div class="absolute top-10 left-1 right-1 bg-primary text-primary-foreground text-xs p-1 rounded shadow-sm z-10 border-l-4 border-blue-400">
-                    Team Standup
-                </div>
+					<!-- Event Chip -->
+					<div
+						class="absolute top-10 right-1 left-1 z-10 rounded border-l-4 border-blue-400 bg-primary p-1 text-xs text-primary-foreground shadow-sm"
+					>
+						Team Standup
+					</div>
 
-                <!-- Hour Slots -->
-                <div class="h-8 border-b border-border"></div>
-                <div class="h-8 border-b border-border bg-muted/30"></div>
-                <div class="h-8 border-b border-border"></div>
-                <div class="h-8 border-b border-border bg-muted/30"></div>
-                <div class="h-8 border-b border-border"></div>
-                <div class="h-8 border-b border-border bg-muted/30"></div>
-            </div>
+					<!-- Hour Slots -->
+					<div class="h-8 border-b border-border"></div>
+					<div class="h-8 border-b border-border bg-muted/30"></div>
+					<div class="h-8 border-b border-border"></div>
+					<div class="h-8 border-b border-border bg-muted/30"></div>
+					<div class="h-8 border-b border-border"></div>
+					<div class="h-8 border-b border-border bg-muted/30"></div>
+				</div>
 
-            <!-- Day 3 -->
-            <div class="relative">
-                <div class="text-center py-2 border-b bg-muted/30 text-sm font-semibold">Tue 18</div>
-                <!-- Hour Slots -->
-                <div class="h-8 border-b border-border"></div>
-                <div class="h-8 border-b border-border bg-muted/30"></div>
-                <div class="h-8 border-b border-border"></div>
-                <div class="h-8 border-b border-border bg-muted/30"></div>
-                <div class="h-8 border-b border-border"></div>
-                <div class="h-8 border-b border-border bg-muted/30"></div>
-            </div>
+				<!-- Day 3 -->
+				<div class="relative">
+					<div class="border-b bg-muted/30 py-2 text-center text-sm font-semibold">Tue 18</div>
+					<!-- Hour Slots -->
+					<div class="h-8 border-b border-border"></div>
+					<div class="h-8 border-b border-border bg-muted/30"></div>
+					<div class="h-8 border-b border-border"></div>
+					<div class="h-8 border-b border-border bg-muted/30"></div>
+					<div class="h-8 border-b border-border"></div>
+					<div class="h-8 border-b border-border bg-muted/30"></div>
+				</div>
 
-             <!-- Filler days... -->
-             <div class="relative"><div class="text-center py-2 border-b bg-muted/30 text-sm font-semibold">Wed 19</div></div>
-             <div class="relative"><div class="text-center py-2 border-b bg-muted/30 text-sm font-semibold">Thu 20</div></div>
-             <div class="relative"><div class="text-center py-2 border-b bg-muted/30 text-sm font-semibold">Fri 21</div></div>
-             <div class="relative"><div class="text-center py-2 border-b bg-muted/30 text-sm font-semibold">Sat 22</div></div>
+				<!-- Filler days... -->
+				<div class="relative">
+					<div class="border-b bg-muted/30 py-2 text-center text-sm font-semibold">Wed 19</div>
+				</div>
+				<div class="relative">
+					<div class="border-b bg-muted/30 py-2 text-center text-sm font-semibold">Thu 20</div>
+				</div>
+				<div class="relative">
+					<div class="border-b bg-muted/30 py-2 text-center text-sm font-semibold">Fri 21</div>
+				</div>
+				<div class="relative">
+					<div class="border-b bg-muted/30 py-2 text-center text-sm font-semibold">Sat 22</div>
+				</div>
+			</div>
+		</div>
 
-        </div>
-    </div>
-
-    <div class="mt-8 p-4 bg-card rounded border">
-        <h3 class="font-bold mb-2">Desired Styling Effects:</h3>
-        <ul class="list-disc pl-5 space-y-1">
-            <li><strong>Zebra Striping:</strong> Every second half-hour slot (e.g., 9:30, 10:30) has a subtle background (<code>bg-muted/30</code>).</li>
-            <li><strong>Today Highlight:</strong> The entire column for "Today" has a stronger background (<code>bg-secondary/20</code>).</li>
-            <li><strong>Header:</strong> Transparent/Subtle headers.</li>
-            <li><strong>Events:</strong> Rounded chips with shadows.</li>
-        </ul>
-    </div>
-
-</body>
+		<div class="mt-8 rounded border bg-card p-4">
+			<h3 class="mb-2 font-bold">Desired Styling Effects:</h3>
+			<ul class="list-disc space-y-1 pl-5">
+				<li>
+					<strong>Zebra Striping:</strong> Every second half-hour slot (e.g., 9:30, 10:30) has a
+					subtle background (<code>bg-muted/30</code>).
+				</li>
+				<li>
+					<strong>Today Highlight:</strong> The entire column for "Today" has a stronger background
+					(<code>bg-secondary/20</code>).
+				</li>
+				<li><strong>Header:</strong> Transparent/Subtle headers.</li>
+				<li><strong>Events:</strong> Rounded chips with shadows.</li>
+			</ul>
+		</div>
+	</body>
 </html>

@@ -11,6 +11,7 @@ This guide provides a step-by-step walkthrough for implementing the Functional S
 ## Prerequisites
 
 **Required Tools**:
+
 - Rust 1.75+ with `cargo`
 - Node.js 20+ with `npm`
 - PostgreSQL 14+
@@ -18,6 +19,7 @@ This guide provides a step-by-step walkthrough for implementing the Functional S
 - Kubernetes CLI `kubectl` (optional, for K8s deployment)
 
 **Required Knowledge**:
+
 - Rust async programming
 - SeaORM migrations
 - async-graphql schema design
@@ -44,18 +46,21 @@ cargo run -- migration generate extend_users_for_auth_policies
 Copy migration code from `data-model.md` into the generated migration files:
 
 **File**: `migration/src/m20251111_create_system_settings.rs`
+
 - Implement `up()` method: CREATE TABLE system_settings with all fields
 - Add CHECK constraint for singleton (id = 1)
 - Insert default row with ON CONFLICT DO NOTHING
 - Implement `down()` method: DROP TABLE system_settings
 
 **File**: `migration/src/m20251111_create_notification_channels.rs`
+
 - Enable pgcrypto extension
 - CREATE TABLE notification_channels with JSONB config
 - Create indexes on `enabled`, `channel_type`
 - Implement down() method
 
 **File**: `migration/src/m20251111_extend_users_for_auth_policies.rs`
+
 - ALTER TABLE users ADD COLUMN fields
 - Create indexes on `account_locked`, `failed_login_attempts`
 - Implement down() method
@@ -391,40 +396,40 @@ query {
 import { gql } from '@urql/svelte';
 
 export const SYSTEM_SETTINGS_QUERY = gql`
-  query GetSystemSettings {
-    systemSettings {
-      id
-      systemName
-      systemTimezone
-      sessionTimeoutMinutes
-      minPasswordLength
-      maxLoginAttempts
-      requireMfa
-      passwordExpirationEnabled
-      httpsEnforced
-      logLevelFrontend
-      logLevelBackend
-      updatedAt
-      updatedBy {
-        id
-        email
-      }
-    }
-  }
+	query GetSystemSettings {
+		systemSettings {
+			id
+			systemName
+			systemTimezone
+			sessionTimeoutMinutes
+			minPasswordLength
+			maxLoginAttempts
+			requireMfa
+			passwordExpirationEnabled
+			httpsEnforced
+			logLevelFrontend
+			logLevelBackend
+			updatedAt
+			updatedBy {
+				id
+				email
+			}
+		}
+	}
 `;
 
 export const UPDATE_SYSTEM_SETTINGS_MUTATION = gql`
-  mutation UpdateSystemSettings($input: UpdateSystemSettingsInput!) {
-    updateSystemSettings(input: $input) {
-      id
-      systemName
-      systemTimezone
-      sessionTimeoutMinutes
-      logLevelFrontend
-      logLevelBackend
-      updatedAt
-    }
-  }
+	mutation UpdateSystemSettings($input: UpdateSystemSettingsInput!) {
+		updateSystemSettings(input: $input) {
+			id
+			systemName
+			systemTimezone
+			sessionTimeoutMinutes
+			logLevelFrontend
+			logLevelBackend
+			updatedAt
+		}
+	}
 `;
 ```
 
@@ -440,30 +445,31 @@ import { urqlClient } from '$lib/graphql/client';
 
 // Query store
 export const systemSettingsQuery = query({
-  client: urqlClient,
-  query: SYSTEM_SETTINGS_QUERY
+	client: urqlClient,
+	query: SYSTEM_SETTINGS_QUERY
 });
 
 // Derived stores for specific settings
 export const systemName = derived(
-  systemSettingsQuery,
-  ($query) => $query.data?.systemSettings?.systemName ?? 'MoncuraHR'
+	systemSettingsQuery,
+	($query) => $query.data?.systemSettings?.systemName ?? 'MoncuraHR'
 );
 
 export const systemTimezone = derived(
-  systemSettingsQuery,
-  ($query) => $query.data?.systemSettings?.systemTimezone ?? 'UTC'
+	systemSettingsQuery,
+	($query) => $query.data?.systemSettings?.systemTimezone ?? 'UTC'
 );
 
 // Initialize on app load
 export function initSystemSettings() {
-  systemSettingsQuery.reexecute({ requestPolicy: 'network-only' });
+	systemSettingsQuery.reexecute({ requestPolicy: 'network-only' });
 }
 ```
 
 ### Step 3.3: Replace Hardcoded System Names
 
 **Find and Replace**:
+
 ```bash
 # Find all instances of hardcoded names
 cd src
@@ -474,6 +480,7 @@ grep -r "MountainHR\|SvelteHR" .
 ```
 
 **Before**:
+
 ```svelte
 <header>
   <h1>MountainHR</h1>
@@ -481,6 +488,7 @@ grep -r "MountainHR\|SvelteHR" .
 ```
 
 **After**:
+
 ```svelte
 <script>
   import { systemName } from '$lib/stores/system-settings';
@@ -621,24 +629,30 @@ import { urqlClient } from '$lib/graphql/client';
 import { SYSTEM_SETTINGS_QUERY } from '$lib/graphql/operations';
 
 export const load: PageServerLoad = async ({ cookies }) => {
-  const token = cookies.get('hr_token');
+	const token = cookies.get('hr_token');
 
-  // Fetch settings server-side
-  const result = await urqlClient.query(SYSTEM_SETTINGS_QUERY, {}, {
-    fetchOptions: {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    }
-  }).toPromise();
+	// Fetch settings server-side
+	const result = await urqlClient
+		.query(
+			SYSTEM_SETTINGS_QUERY,
+			{},
+			{
+				fetchOptions: {
+					headers: {
+						Authorization: `Bearer ${token}`
+					}
+				}
+			}
+		)
+		.toPromise();
 
-  if (result.error) {
-    throw error(500, 'Failed to load settings');
-  }
+	if (result.error) {
+		throw error(500, 'Failed to load settings');
+	}
 
-  return {
-    settings: result.data.systemSettings
-  };
+	return {
+		settings: result.data.systemSettings
+	};
 };
 ```
 
@@ -657,25 +671,25 @@ import { systemSettingsQuery } from '$lib/stores/system-settings';
 let inactivityTimer: number | null = null;
 
 export function initSessionTimeout() {
-  const settings = get(systemSettingsQuery);
-  const timeoutMs = settings.data?.systemSettings?.sessionTimeoutMinutes * 60 * 1000 || 3600000;
+	const settings = get(systemSettingsQuery);
+	const timeoutMs = settings.data?.systemSettings?.sessionTimeoutMinutes * 60 * 1000 || 3600000;
 
-  function resetTimer() {
-    if (inactivityTimer) clearTimeout(inactivityTimer);
+	function resetTimer() {
+		if (inactivityTimer) clearTimeout(inactivityTimer);
 
-    inactivityTimer = setTimeout(() => {
-      // Log out user
-      localStorage.removeItem('hr_token');
-      goto('/login?reason=session_expired');
-    }, timeoutMs);
-  }
+		inactivityTimer = setTimeout(() => {
+			// Log out user
+			localStorage.removeItem('hr_token');
+			goto('/login?reason=session_expired');
+		}, timeoutMs);
+	}
 
-  // Reset timer on user activity
-  window.addEventListener('mousemove', resetTimer);
-  window.addEventListener('keypress', resetTimer);
-  window.addEventListener('click', resetTimer);
+	// Reset timer on user activity
+	window.addEventListener('mousemove', resetTimer);
+	window.addEventListener('keypress', resetTimer);
+	window.addEventListener('click', resetTimer);
 
-  resetTimer();
+	resetTimer();
 }
 ```
 
@@ -688,19 +702,19 @@ import { systemSettingsQuery } from '$lib/stores/system-settings';
 import { get } from 'svelte/store';
 
 export function validatePassword(password: string): { valid: boolean; errors: string[] } {
-  const settings = get(systemSettingsQuery);
-  const minLength = settings.data?.systemSettings?.minPasswordLength || 12;
+	const settings = get(systemSettingsQuery);
+	const minLength = settings.data?.systemSettings?.minPasswordLength || 12;
 
-  const errors: string[] = [];
+	const errors: string[] = [];
 
-  if (password.length < minLength) {
-    errors.push(`Password must be at least ${minLength} characters`);
-  }
+	if (password.length < minLength) {
+		errors.push(`Password must be at least ${minLength} characters`);
+	}
 
-  return {
-    valid: errors.length === 0,
-    errors
-  };
+	return {
+		valid: errors.length === 0,
+		errors
+	};
 }
 ```
 
@@ -801,48 +815,48 @@ async fn test_singleton_constraint_enforced() {
 import { test, expect } from '@playwright/test';
 
 test.describe('System Settings', () => {
-  test('admin can update system name', async ({ page }) => {
-    await loginAsAdmin(page);
-    await page.goto('/admin/settings');
+	test('admin can update system name', async ({ page }) => {
+		await loginAsAdmin(page);
+		await page.goto('/admin/settings');
 
-    await page.fill('[name="systemName"]', 'TestCorp HR');
-    await page.click('button[type="submit"]');
+		await page.fill('[name="systemName"]', 'TestCorp HR');
+		await page.click('button[type="submit"]');
 
-    await expect(page.locator('.toast-success')).toContainText('Settings updated');
+		await expect(page.locator('.toast-success')).toContainText('Settings updated');
 
-    // Verify name appears in header
-    await page.goto('/dashboard');
-    await expect(page.locator('header h1')).toContainText('TestCorp HR');
-  });
+		// Verify name appears in header
+		await page.goto('/dashboard');
+		await expect(page.locator('header h1')).toContainText('TestCorp HR');
+	});
 
-  test('admin can change log level and trigger restart', async ({ page }) => {
-    await loginAsAdmin(page);
-    await page.goto('/admin/settings');
+	test('admin can change log level and trigger restart', async ({ page }) => {
+		await loginAsAdmin(page);
+		await page.goto('/admin/settings');
 
-    await page.selectOption('[name="logLevelFrontend"]', 'DEBUG');
-    await page.click('button[type="submit"]');
+		await page.selectOption('[name="logLevelFrontend"]', 'DEBUG');
+		await page.click('button[type="submit"]');
 
-    await expect(page.locator('.toast-success')).toContainText('Settings updated');
-    // Verify container restart triggered (check logs or status)
-  });
+		await expect(page.locator('.toast-success')).toContainText('Settings updated');
+		// Verify container restart triggered (check logs or status)
+	});
 
-  test('session timeout enforced after configured duration', async ({ page }) => {
-    await loginAsAdmin(page);
-    await page.goto('/admin/settings');
+	test('session timeout enforced after configured duration', async ({ page }) => {
+		await loginAsAdmin(page);
+		await page.goto('/admin/settings');
 
-    // Set timeout to 1 minute for testing
-    await page.fill('[name="sessionTimeoutMinutes"]', '1');
-    await page.click('button[type="submit"]');
+		// Set timeout to 1 minute for testing
+		await page.fill('[name="sessionTimeoutMinutes"]', '1');
+		await page.click('button[type="submit"]');
 
-    // Wait 61 seconds
-    await page.waitForTimeout(61000);
+		// Wait 61 seconds
+		await page.waitForTimeout(61000);
 
-    // Attempt to navigate
-    await page.goto('/dashboard');
+		// Attempt to navigate
+		await page.goto('/dashboard');
 
-    // Should be redirected to login
-    await expect(page).toHaveURL(/\/login\?reason=session_expired/);
-  });
+		// Should be redirected to login
+		await expect(page).toHaveURL(/\/login\?reason=session_expired/);
+	});
 });
 ```
 
@@ -851,6 +865,7 @@ test.describe('System Settings', () => {
 ## Verification Checklist
 
 ### Backend
+
 - [ ] Migrations run successfully
 - [ ] Singleton constraint enforced (cannot insert id != 1)
 - [ ] GraphQL queries return correct data
@@ -859,6 +874,7 @@ test.describe('System Settings', () => {
 - [ ] Unit tests pass (`cargo test`)
 
 ### Frontend
+
 - [ ] System name replaced across all UI components
 - [ ] Settings form loads current values
 - [ ] Form submission updates backend
@@ -867,6 +883,7 @@ test.describe('System Settings', () => {
 - [ ] E2E tests pass (`npm run test:e2e`)
 
 ### Integration
+
 - [ ] Backend API accessible at http://localhost:8080/graphql
 - [ ] Frontend connects to backend
 - [ ] GraphQL subscriptions work (if implemented)
@@ -880,6 +897,7 @@ test.describe('System Settings', () => {
 ### Issue: Migration fails with "relation already exists"
 
 **Solution**:
+
 ```bash
 # Drop and recreate database
 dropdb mountain_hr_dev
@@ -890,6 +908,7 @@ cargo run -- migration up
 ### Issue: GraphQL guard always returns unauthorized
 
 **Solution**: Verify JWT token contains correct role claim:
+
 ```rust
 // In auth middleware
 let claims = decode_jwt(&token)?;
@@ -902,6 +921,7 @@ ctx.insert(CurrentUser {
 ### Issue: Frontend store not reactive
 
 **Solution**: Ensure `$` prefix used for store subscriptions:
+
 ```svelte
 <!-- Wrong -->
 <h1>{systemName}</h1>
@@ -913,6 +933,7 @@ ctx.insert(CurrentUser {
 ### Issue: Container restart not working
 
 **Solution**: Verify Kubernetes/Docker API client configured:
+
 ```bash
 # Test K8s connection
 kubectl get pods
@@ -936,11 +957,13 @@ After completing this quickstart:
 ## Support
 
 **Documentation**:
+
 - Full specification: `specs/021-okay-my-hr/spec.md`
 - Data model: `specs/021-okay-my-hr/data-model.md`
 - API contract: `specs/021-okay-my-hr/contracts/graphql-api.md`
 
 **Resources**:
+
 - SeaORM Docs: https://www.sea-ql.org/SeaORM/docs/
 - async-graphql: https://async-graphql.github.io/async-graphql/en/
 - SvelteKit: https://kit.svelte.dev/docs

@@ -440,7 +440,9 @@ export function getTaskPriorityColor(priority: TaskPriority): string {
 		HIGH: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
 		URGENT: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
 	};
-	return priorityColors[priority] || 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
+	return (
+		priorityColors[priority] || 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+	);
 }
 
 // ============================================================================

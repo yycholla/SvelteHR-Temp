@@ -56,13 +56,7 @@ describe('CreateBulkRollbackBatch Mutation Contract (TDD RED - should fail)', ()
 			const variables: CreateBulkRollbackBatchVariables = {
 				input: {
 					initiatedBy: '123e4567-e89b-12d3-a456-426614174000',
-					activityLogIds: [
-						'log-id-1',
-						'log-id-2',
-						'log-id-3',
-						'log-id-4',
-						'log-id-5'
-					],
+					activityLogIds: ['log-id-1', 'log-id-2', 'log-id-3', 'log-id-4', 'log-id-5'],
 					reason: 'Batch import error - wrong department'
 				}
 			};

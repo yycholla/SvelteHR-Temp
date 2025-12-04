@@ -22,12 +22,7 @@ export const GET_USER_NOTIFICATIONS = gql`
 		$orderBy: [NotificationsOrderBy!] = [CREATED_AT_DESC]
 		$condition: NotificationCondition
 	) {
-		allNotifications(
-			first: $first
-			offset: $offset
-			orderBy: $orderBy
-			condition: $condition
-		) {
+		allNotifications(first: $first, offset: $offset, orderBy: $orderBy, condition: $condition) {
 			nodes {
 				id
 				recipientId
@@ -392,12 +387,14 @@ export class NotificationsOperations {
 				condition
 			},
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
+			timeoutMs: 5000
 		});
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(GET_USER_NOTIFICATIONS, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(GET_USER_NOTIFICATIONS, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -450,7 +447,7 @@ export class NotificationsOperations {
 			operationName: 'GetUnreadCount',
 			variables: { condition },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
+			timeoutMs: 5000
 		});
 
 		try {
@@ -499,12 +496,14 @@ export class NotificationsOperations {
 			operationName: 'GetNotificationById',
 			variables: { id: params.notificationId },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
+			timeoutMs: 5000
 		});
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(GET_NOTIFICATION_BY_ID, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(GET_NOTIFICATION_BY_ID, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -560,7 +559,9 @@ export class NotificationsOperations {
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(MARK_NOTIFICATION_READ, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(MARK_NOTIFICATION_READ, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -671,7 +672,9 @@ export class NotificationsOperations {
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(DELETE_NOTIFICATION, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(DELETE_NOTIFICATION, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {

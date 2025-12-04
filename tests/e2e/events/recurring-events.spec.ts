@@ -61,7 +61,9 @@ test.describe('Recurring Events Management', () => {
 		await expect(page.locator('.event-card .recurrence-badge')).toContainText('Weekly');
 	});
 
-	test('should RSVP to recurring event with scope selection - This Event Only', async ({ page }) => {
+	test('should RSVP to recurring event with scope selection - This Event Only', async ({
+		page
+	}) => {
 		// Find a recurring event
 		const recurringEvent = page.locator('.event-card:has(.recurrence-badge)').first();
 		await recurringEvent.click();
@@ -211,6 +213,8 @@ test.describe('Recurring Events Management', () => {
 		await page.click('button:has-text("Create Event")');
 
 		// Should show validation error
-		await expect(page.locator('.error-message')).toContainText('Please configure recurrence settings');
+		await expect(page.locator('.error-message')).toContainText(
+			'Please configure recurrence settings'
+		);
 	});
 });

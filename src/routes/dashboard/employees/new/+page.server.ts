@@ -21,7 +21,7 @@ export const load: PageServerLoad = async (event) => {
 		const cookieHeader = event.request.headers.get('cookie') || '';
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
-			'Cookie': cookieHeader // Forward all cookies for session authentication
+			Cookie: cookieHeader // Forward all cookies for session authentication
 		};
 
 		console.log(
@@ -85,8 +85,8 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		error(500, {
-        			message: 'Failed to load form data. Please try again later.'
-        		});
+			message: 'Failed to load form data. Please try again later.'
+		});
 	}
 };
 
@@ -124,7 +124,7 @@ export const actions: Actions = {
 			const cookieHeader = request.headers.get('cookie') || '';
 			const headers: Record<string, string> = {
 				'Content-Type': 'application/json',
-				'Cookie': cookieHeader
+				Cookie: cookieHeader
 			};
 
 			// Create user via GraphQL mutation
@@ -142,12 +142,12 @@ export const actions: Actions = {
 			if (jobTitle) input.jobTitle = jobTitle;
 			if (departmentId) input.departmentId = departmentId;
 			if (password) input.password = password;
-			
+
 			// Pass role name directly (frontend sends exact name like "HR Manager")
 			if (role) {
 				input.roleName = role;
 			}
-			
+
 			if (hireDate) {
 				// Ensure hire date is in ISO 8601 format
 				input.hireDate = new Date(hireDate).toISOString();
@@ -188,7 +188,10 @@ export const actions: Actions = {
 
 			if (createData.errors && createData.errors.length > 0) {
 				console.error('[Employee New] GraphQL errors:', createData.errors);
-				console.error('[Employee New] Full error object:', JSON.stringify(createData.errors, null, 2));
+				console.error(
+					'[Employee New] Full error object:',
+					JSON.stringify(createData.errors, null, 2)
+				);
 
 				// Parse GraphQL error to provide user-friendly message
 				const errorMessage = createData.errors[0].message || 'Failed to create employee';
@@ -196,7 +199,10 @@ export const actions: Actions = {
 				let userFriendlyError = errorMessage;
 
 				// Handle common validation errors
-				if (errorMessage.toLowerCase().includes('string length') && errorMessage.includes('greater than or equal to')) {
+				if (
+					errorMessage.toLowerCase().includes('string length') &&
+					errorMessage.includes('greater than or equal to')
+				) {
 					// Password length validation error - extract the minimum length if possible
 					const match = errorMessage.match(/greater than or equal to (\d+)/);
 					const minLength = match ? match[1] : '8';
@@ -204,22 +210,40 @@ export const actions: Actions = {
 				} else if (errorMessage.toLowerCase().includes('failed to parse')) {
 					// Generic parsing error - try to extract useful info
 					if (errorMessage.includes('String') && errorMessage.includes('length')) {
-						userFriendlyError = 'Password must be at least 8 characters long when provided. Please use a stronger password or leave the field blank.';
+						userFriendlyError =
+							'Password must be at least 8 characters long when provided. Please use a stronger password or leave the field blank.';
 					} else {
 						userFriendlyError = `Invalid input format: ${errorMessage}`;
 					}
-				} else if (errorMessage.toLowerCase().includes('duplicate') || errorMessage.toLowerCase().includes('unique') || errorMessage.toLowerCase().includes('already exists')) {
+				} else if (
+					errorMessage.toLowerCase().includes('duplicate') ||
+					errorMessage.toLowerCase().includes('unique') ||
+					errorMessage.toLowerCase().includes('already exists')
+				) {
 					// Duplicate email or other unique constraint violation
-					userFriendlyError = 'An employee with this email address already exists. Please use a different email address.';
-				} else if (errorMessage.toLowerCase().includes('invalid') && errorMessage.toLowerCase().includes('email')) {
+					userFriendlyError =
+						'An employee with this email address already exists. Please use a different email address.';
+				} else if (
+					errorMessage.toLowerCase().includes('invalid') &&
+					errorMessage.toLowerCase().includes('email')
+				) {
 					// Email validation error
-					userFriendlyError = 'The email address format is invalid. Please enter a valid email address.';
-				} else if (errorMessage.toLowerCase().includes('required') || errorMessage.toLowerCase().includes('cannot be null')) {
+					userFriendlyError =
+						'The email address format is invalid. Please enter a valid email address.';
+				} else if (
+					errorMessage.toLowerCase().includes('required') ||
+					errorMessage.toLowerCase().includes('cannot be null')
+				) {
 					// Missing required fields
-					userFriendlyError = 'Please fill in all required fields (first name, last name, and email address).';
-				} else if (errorMessage.toLowerCase().includes('unauthorized') || errorMessage.toLowerCase().includes('permission')) {
+					userFriendlyError =
+						'Please fill in all required fields (first name, last name, and email address).';
+				} else if (
+					errorMessage.toLowerCase().includes('unauthorized') ||
+					errorMessage.toLowerCase().includes('permission')
+				) {
 					// Permission errors
-					userFriendlyError = 'You do not have permission to create employees. Please contact your administrator.';
+					userFriendlyError =
+						'You do not have permission to create employees. Please contact your administrator.';
 				} else {
 					// If we don't recognize the error, show the backend message directly
 					// This is better than showing a generic "Failed to create employee" message

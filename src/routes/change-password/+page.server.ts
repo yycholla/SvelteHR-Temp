@@ -67,7 +67,7 @@ export const actions: Actions = {
 			const cookieHeader = event.request.headers.get('cookie') || '';
 			const headers: Record<string, string> = {
 				'Content-Type': 'application/json',
-				'Cookie': cookieHeader
+				Cookie: cookieHeader
 			};
 
 			console.log('[Change Password] Submitting password change for user:', locals.user.email);

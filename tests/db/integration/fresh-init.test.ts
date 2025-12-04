@@ -147,9 +147,7 @@ describe('Integration: Fresh Database Initialization', () => {
 		const usersQuery = await testClient.query('SELECT COUNT(*) FROM hr_public.users');
 		expect(usersQuery.rows[0].count).toBeDefined();
 
-		const departmentsQuery = await testClient.query(
-			'SELECT COUNT(*) FROM hr_public.departments'
-		);
+		const departmentsQuery = await testClient.query('SELECT COUNT(*) FROM hr_public.departments');
 		expect(departmentsQuery.rows[0].count).toBeDefined();
 
 		const eventsQuery = await testClient.query('SELECT COUNT(*) FROM hr_public.events');
@@ -243,12 +241,15 @@ describe('Integration: Fresh Database Initialization', () => {
 		];
 
 		for (const table of requiredTables) {
-			const result = await testClient.query(`
+			const result = await testClient.query(
+				`
 				SELECT table_name
 				FROM information_schema.tables
 				WHERE table_schema = 'hr_public'
 				AND table_name = $1
-			`, [table]);
+			`,
+				[table]
+			);
 
 			expect(result.rows.length).toBe(1);
 		}

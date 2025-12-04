@@ -12,10 +12,7 @@ export interface RBACContext {
 }
 
 // Check if user can access a specific document
-export async function canAccessDocument(
-	userId: string,
-	documentId: string
-): Promise<boolean> {
+export async function canAccessDocument(userId: string, documentId: string): Promise<boolean> {
 	try {
 		const response = await fetch(`/api/rbac/can-access-document`, {
 			method: 'POST',
@@ -38,10 +35,7 @@ export async function canAccessDocument(
 }
 
 // Check if user can upload documents in a specific category
-export async function canUploadDocument(
-	userId: string,
-	category: string
-): Promise<boolean> {
+export async function canUploadDocument(userId: string, category: string): Promise<boolean> {
 	try {
 		const response = await fetch(`/api/rbac/can-upload`, {
 			method: 'POST',
@@ -131,10 +125,7 @@ export function canRestoreDocuments(role: Role): boolean {
 }
 
 // Check document category restrictions
-export async function canAccessCategory(
-	userId: string,
-	category: string
-): Promise<boolean> {
+export async function canAccessCategory(userId: string, category: string): Promise<boolean> {
 	try {
 		const response = await fetch(`/api/rbac/can-access-category`, {
 			method: 'POST',
@@ -193,10 +184,7 @@ export async function getUserPermissions(userId: string): Promise<{
 }
 
 // Check if user is in the management chain for an employee
-export async function isInManagementChain(
-	managerId: string,
-	employeeId: string
-): Promise<boolean> {
+export async function isInManagementChain(managerId: string, employeeId: string): Promise<boolean> {
 	const directReports = await getDirectReports(managerId);
 	return directReports.includes(employeeId);
 }

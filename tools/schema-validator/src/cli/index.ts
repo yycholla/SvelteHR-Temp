@@ -22,10 +22,7 @@ import { historyCommand } from './commands/history.js';
  */
 async function getVersion(): Promise<string> {
   try {
-    const packageJson = await readFile(
-      join(process.cwd(), 'package.json'),
-      'utf-8'
-    );
+    const packageJson = await readFile(join(process.cwd(), 'package.json'), 'utf-8');
     const pkg = JSON.parse(packageJson);
     return pkg.version ?? '1.0.0';
   } catch {
@@ -93,9 +90,7 @@ async function main() {
     .action(reportCommand);
 
   // Compute commands (for computed fields)
-  const computeCmd = program
-    .command('compute')
-    .description('Manage computed field configurations');
+  const computeCmd = program.command('compute').description('Manage computed field configurations');
 
   computeCmd
     .command('add <fieldPath>')
@@ -113,9 +108,7 @@ async function main() {
     .action(computeCommand.list);
 
   // Cache commands
-  const cacheCmd = program
-    .command('cache')
-    .description('Manage validation cache');
+  const cacheCmd = program.command('cache').description('Manage validation cache');
 
   cacheCmd
     .command('clear')
@@ -159,7 +152,10 @@ async function main() {
 
 // Run CLI
 main().catch((error) => {
-  console.error(chalk.red('\n❌ Fatal error:'), error instanceof Error ? error.message : String(error));
+  console.error(
+    chalk.red('\n❌ Fatal error:'),
+    error instanceof Error ? error.message : String(error)
+  );
   if (process.env['DEBUG']) {
     console.error(error);
   }

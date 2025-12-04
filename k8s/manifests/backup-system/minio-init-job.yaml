@@ -8,7 +8,7 @@ metadata:
     app: minio
     component: init
   annotations:
-    argocd.argoproj.io/sync-wave: "1"  # Run after MinIO deployment (wave 0)
+    argocd.argoproj.io/sync-wave: '1' # Run after MinIO deployment (wave 0)
 spec:
   # Cleanup completed job after 1 hour
   ttlSecondsAfterFinished: 3600
@@ -155,7 +155,7 @@ spec:
 
           env:
             - name: MINIO_HOST
-              value: "http://minio.backup-system.svc.cluster.local:9000"
+              value: 'http://minio.backup-system.svc.cluster.local:9000'
 
             # MinIO root credentials for admin operations
             - name: MINIO_ROOT_USER

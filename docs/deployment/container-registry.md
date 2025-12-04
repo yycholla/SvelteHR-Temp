@@ -11,6 +11,7 @@ This guide explains the GitLab Container Registry integration for SvelteHR produ
 ## Why GitLab Container Registry?
 
 **Benefits over Docker Hub**:
+
 - ✅ **Free private container registry** with unlimited storage for private projects
 - ✅ **No rate limits** for authenticated pulls (Docker Hub limits: 200 pulls/6h for free tier)
 - ✅ **Integrated with GitLab CI/CD** (but we use GitHub Actions)
@@ -21,24 +22,26 @@ This guide explains the GitLab Container Registry integration for SvelteHR produ
 
 **Comparison**:
 
-| Feature | GitLab Container Registry | Docker Hub (Free) | Docker Hub (Pro) |
-|---------|---------------------------|-------------------|------------------|
-| Private repos | Unlimited | 1 | Unlimited |
-| Pull rate limit | None (authenticated) | 200/6h | 5,000/day |
-| Storage | Unlimited | 500MB | Unlimited |
-| Vulnerability scanning | ✅ Built-in | ❌ | ✅ |
-| Cost | Free | Free | $5/month |
+| Feature                | GitLab Container Registry | Docker Hub (Free) | Docker Hub (Pro) |
+| ---------------------- | ------------------------- | ----------------- | ---------------- |
+| Private repos          | Unlimited                 | 1                 | Unlimited        |
+| Pull rate limit        | None (authenticated)      | 200/6h            | 5,000/day        |
+| Storage                | Unlimited                 | 500MB             | Unlimited        |
+| Vulnerability scanning | ✅ Built-in               | ❌                | ✅               |
+| Cost                   | Free                      | Free              | $5/month         |
 
 ## Registry URL Format
 
 ### Image Naming Convention
 
 **Format**:
+
 ```
 registry.gitlab.com/{username}/{project}/{service}:{tag}
 ```
 
 **Components**:
+
 - `registry.gitlab.com` - GitLab Container Registry host
 - `{username}` - Your GitLab username (from `GITLAB_USERNAME` secret)
 - `{project}` - Project name (default: `sveltehr`)
@@ -48,12 +51,14 @@ registry.gitlab.com/{username}/{project}/{service}:{tag}
 ### SvelteHR Image URLs
 
 **Frontend**:
+
 ```
 registry.gitlab.com/your_username/sveltehr/frontend:latest
 registry.gitlab.com/your_username/sveltehr/frontend:sha-abc1234567
 ```
 
 **Backend**:
+
 ```
 registry.gitlab.com/your_username/sveltehr/backend:latest
 registry.gitlab.com/your_username/sveltehr/backend:sha-abc1234567
@@ -62,6 +67,7 @@ registry.gitlab.com/your_username/sveltehr/backend:sha-abc1234567
 ### Environment Variable Configuration
 
 **In `.env` file**:
+
 ```bash
 # GitLab Container Registry Configuration
 GITLAB_REGISTRY=registry.gitlab.com
@@ -70,6 +76,7 @@ IMAGE_TAG=latest  # or sha-abc1234567 for specific version
 ```
 
 **In `docker-compose.prod.yml`**:
+
 ```yaml
 services:
   frontend:
@@ -80,6 +87,7 @@ services:
 ```
 
 **Default behavior** (when variables not set):
+
 - Registry: `registry.gitlab.com`
 - Tag: `latest`
 
@@ -90,17 +98,21 @@ services:
 Every CI/CD build creates **two tags** for each image:
 
 **1. `latest` tag** - Always points to most recent build
+
 ```
 registry.gitlab.com/username/sveltehr/frontend:latest
 ```
+
 - Use in production for automatic updates
 - Overwritten on every deployment
 - Simple but no version control
 
 **2. `sha-{commit}` tag** - Immutable version tied to git commit
+
 ```
 registry.gitlab.com/username/sveltehr/frontend:sha-abc1234567
 ```
+
 - Permanent, never overwritten
 - Enables precise rollbacks
 - Traceable to source code commit
@@ -110,16 +122,19 @@ registry.gitlab.com/username/sveltehr/frontend:sha-abc1234567
 **After commit `abc1234567`**:
 
 Frontend images:
+
 - `registry.gitlab.com/username/sveltehr/frontend:latest`
 - `registry.gitlab.com/username/sveltehr/frontend:sha-abc1234567`
 
 Backend images:
+
 - `registry.gitlab.com/username/sveltehr/backend:latest`
 - `registry.gitlab.com/username/sveltehr/backend:sha-abc1234567`
 
 **After commit `def7890abc`** (later):
 
 Frontend images:
+
 - `registry.gitlab.com/username/sveltehr/frontend:latest` ← **updated**
 - `registry.gitlab.com/username/sveltehr/frontend:sha-abc1234567` ← still exists
 - `registry.gitlab.com/username/sveltehr/frontend:sha-def7890abc` ← **new**
@@ -131,6 +146,7 @@ Frontend images:
 **Workflow file**: `.github/workflows/deploy-production.yml`
 
 **Build and Push job**:
+
 ```yaml
 build-push:
   needs: [test-frontend, test-backend]
@@ -165,6 +181,7 @@ build-push:
 ### Build Process
 
 **Stages**:
+
 1. **Checkout code** from GitHub repository
 2. **Setup Docker Buildx** for advanced builds
 3. **Login to GitLab registry** using `GITLAB_TOKEN`
@@ -176,6 +193,7 @@ build-push:
 7. **Cache layers** for faster subsequent builds
 
 **Build optimization**:
+
 - **BuildKit cache** (GitHub Actions cache)
 - **Multi-stage builds** (separate build and runtime stages)
 - **Layer caching** for dependencies
@@ -184,6 +202,7 @@ build-push:
 ### Viewing Build Logs
 
 **In GitHub Actions**:
+
 1. Go to repository → **Actions**
 2. Select **Deploy to Production** workflow
 3. Click on latest run
@@ -193,6 +212,7 @@ build-push:
    - `Build and push backend`
 
 **Expected output**:
+
 ```
 #18 exporting to image
 #18 pushing layers
@@ -214,12 +234,14 @@ build-push:
 **You should see**:
 
 **Frontend Images**:
+
 - Repository: `sveltehr/frontend`
 - Tags: `latest`, `sha-abc1234`, `sha-def7890`, etc.
 - Size: ~150-200 MB per tag
 - Pushed: Timestamp of last push
 
 **Backend Images**:
+
 - Repository: `sveltehr/backend`
 - Tags: `latest`, `sha-abc1234`, `sha-def7890`, etc.
 - Size: ~80-120 MB per tag
@@ -228,6 +250,7 @@ build-push:
 ### Image Details
 
 **Click on any tag** to see:
+
 - **Digest**: SHA256 hash of image
 - **Size**: Compressed and uncompressed size
 - **Created**: Build timestamp
@@ -237,6 +260,7 @@ build-push:
 ### Delete Old Images
 
 **Manual deletion**:
+
 1. Navigate to Container Registry
 2. Select image tag (e.g., `sha-old1234`)
 3. Click trash icon → Confirm deletion
@@ -248,6 +272,7 @@ build-push:
 ### Authentication
 
 **Login to GitLab Container Registry**:
+
 ```bash
 # Using GitLab Personal Access Token
 echo "$GITLAB_TOKEN" | docker login registry.gitlab.com -u your_username --password-stdin
@@ -257,6 +282,7 @@ echo "$GITLAB_TOKEN" | docker login registry.gitlab.com -u your_username --passw
 ```
 
 **Production server authentication**:
+
 - GitHub Actions uses `GITLAB_TOKEN` secret
 - Deployment job authenticates before pulling
 - Production server pulls authenticated images
@@ -264,12 +290,14 @@ echo "$GITLAB_TOKEN" | docker login registry.gitlab.com -u your_username --passw
 ### Manual Pull
 
 **Pull latest version**:
+
 ```bash
 docker pull registry.gitlab.com/your_username/sveltehr/frontend:latest
 docker pull registry.gitlab.com/your_username/sveltehr/backend:latest
 ```
 
 **Pull specific version**:
+
 ```bash
 docker pull registry.gitlab.com/your_username/sveltehr/frontend:sha-abc1234567
 docker pull registry.gitlab.com/your_username/sveltehr/backend:sha-abc1234567
@@ -278,6 +306,7 @@ docker pull registry.gitlab.com/your_username/sveltehr/backend:sha-abc1234567
 ### Deployment Pull
 
 **In production deployment**:
+
 ```bash
 # Set IMAGE_TAG environment variable
 export IMAGE_TAG=sha-abc1234567
@@ -290,6 +319,7 @@ docker compose -f docker-compose.prod.yml up -d
 ```
 
 **What happens**:
+
 1. Docker Compose reads `IMAGE_TAG` from environment
 2. Substitutes into image names in `docker-compose.prod.yml`
 3. Pulls images from GitLab Container Registry
@@ -300,6 +330,7 @@ docker compose -f docker-compose.prod.yml up -d
 ### Current Version Tracking
 
 **Check currently deployed version**:
+
 ```bash
 # On production server
 docker inspect sveltehr-frontend-prod --format='{{.Config.Image}}'
@@ -310,6 +341,7 @@ docker inspect sveltehr-graphql-rust-prod --format='{{.Config.Image}}'
 ```
 
 **Get commit SHA from tag**:
+
 ```bash
 # Extract commit SHA from image tag
 FRONTEND_SHA=$(docker inspect sveltehr-frontend-prod --format='{{.Config.Image}}' | grep -oP 'sha-\K[a-f0-9]+')
@@ -325,6 +357,7 @@ echo $FRONTEND_SHA
 **See**: `docs/deployment/rollback.md` for detailed rollback procedures
 
 **Quick rollback**:
+
 ```bash
 # 1. Find previous working version
 docker images | grep sveltehr
@@ -345,11 +378,13 @@ docker compose -f docker-compose.prod.yml ps
 ### Automatic Image Cleanup
 
 **Configure in GitLab**:
+
 1. Go to project → **Settings** → **Packages and registries**
 2. Expand **Container Registry**
 3. Click **Set cleanup policy**
 
 **Recommended policy**:
+
 ```yaml
 Enabled: Yes
 Expiration interval: 90 days
@@ -359,12 +394,14 @@ Keep most recent: 10 tags
 ```
 
 **What this does**:
+
 - ✅ Keeps `latest` tag forever
 - ✅ Keeps 10 most recent `sha-*` tags
 - ✅ Deletes `sha-*` tags older than 90 days
 - ✅ Runs cleanup automatically every day
 
 **Benefits**:
+
 - Saves storage space
 - Keeps recent versions for rollback
 - Prevents registry clutter
@@ -373,6 +410,7 @@ Keep most recent: 10 tags
 ### Manual Cleanup
 
 **Delete specific tag**:
+
 ```bash
 # Using GitLab API
 curl --request DELETE \
@@ -381,6 +419,7 @@ curl --request DELETE \
 ```
 
 **Clean local Docker cache**:
+
 ```bash
 # Remove old local images
 docker image prune -af --filter "until=72h"
@@ -394,6 +433,7 @@ docker rmi registry.gitlab.com/username/sveltehr/frontend:sha-old1234
 ### GitLab Personal Access Token
 
 **Token requirements**:
+
 - **Scopes**: `read_registry`, `write_registry`
 - **Expiration**: 90-365 days (or no expiration)
 - **Name**: `github-actions-sveltehr` (descriptive)
@@ -403,12 +443,14 @@ docker rmi registry.gitlab.com/username/sveltehr/frontend:sha-old1234
 ### Registry Permissions
 
 **Private registry** (recommended):
+
 - Only accessible with authentication
 - Requires GitLab account with project access
 - GitHub Actions uses token for push
 - Production server uses token for pull
 
 **Public registry** (not recommended):
+
 - Anyone can pull images
 - Still requires authentication for push
 - Exposes your application images publicly
@@ -418,6 +460,7 @@ docker rmi registry.gitlab.com/username/sveltehr/frontend:sha-old1234
 **Recommended schedule**: Every 90 days
 
 **Rotation process**:
+
 1. Create new GitLab Personal Access Token
 2. Update `GITLAB_TOKEN` in GitHub Secrets
 3. Test CI/CD pipeline
@@ -430,11 +473,13 @@ docker rmi registry.gitlab.com/username/sveltehr/frontend:sha-old1234
 ### Issue: Authentication Failed
 
 **Symptoms**:
+
 ```
 Error: failed to authorize: failed to fetch oauth token
 ```
 
 **Solutions**:
+
 1. Verify `GITLAB_TOKEN` is valid and not expired
 2. Check token has `read_registry` and `write_registry` scopes
 3. Verify `GITLAB_USERNAME` matches your GitLab username
@@ -446,11 +491,13 @@ Error: failed to authorize: failed to fetch oauth token
 ### Issue: Image Not Found
 
 **Symptoms**:
+
 ```
 Error: manifest for registry.gitlab.com/username/sveltehr/frontend:latest not found
 ```
 
 **Solutions**:
+
 1. Verify image was pushed successfully in GitHub Actions logs
 2. Check GitLab Container Registry for image existence
 3. Ensure `GITLAB_PROJECT` environment variable is correct:
@@ -466,6 +513,7 @@ Error: manifest for registry.gitlab.com/username/sveltehr/frontend:latest not fo
 ### Issue: Rate Limit Exceeded
 
 **Symptoms**:
+
 ```
 Error: toomanyrequests: You have reached your pull rate limit
 ```
@@ -473,6 +521,7 @@ Error: toomanyrequests: You have reached your pull rate limit
 **This should NOT happen with GitLab** (no rate limits for authenticated users).
 
 If you see this error:
+
 1. Verify you're using `registry.gitlab.com` (not Docker Hub)
 2. Check authentication is working
 3. Ensure `docker login` succeeded
@@ -480,11 +529,13 @@ If you see this error:
 ### Issue: Build Failed in CI/CD
 
 **Symptoms**:
+
 ```
 Error: failed to solve: failed to push
 ```
 
 **Solutions**:
+
 1. Check GitHub Actions logs for specific error
 2. Verify `GITLAB_TOKEN` secret is set correctly
 3. Check GitLab project exists at correct path
@@ -498,10 +549,12 @@ Error: failed to solve: failed to push
 ### Registry Storage Usage
 
 **View in GitLab**:
+
 1. Go to project → **Settings** → **Packages and registries**
 2. View **Storage used**
 
 **Check via API**:
+
 ```bash
 curl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
   "https://gitlab.com/api/v4/projects/your_project_id/registry/repositories"
@@ -510,6 +563,7 @@ curl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
 ### Pull Statistics
 
 **Track image pulls**:
+
 - GitLab does not provide pull statistics for Container Registry
 - Monitor via deployment logs
 - Track via production server metrics
@@ -517,11 +571,13 @@ curl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
 ### Vulnerability Scanning
 
 **View security scan results**:
+
 1. Go to GitLab project → **Security & Compliance**
 2. View **Vulnerability Report**
 3. Check for detected CVEs in images
 
 **Update vulnerable dependencies**:
+
 1. Update base images in Dockerfiles
 2. Rebuild images via CI/CD
 3. Redeploy to production
@@ -531,11 +587,13 @@ curl --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
 ### 1. Always Use Specific Tags in Production
 
 **❌ Bad** (using `latest`):
+
 ```yaml
 image: registry.gitlab.com/username/sveltehr/frontend:latest
 ```
 
 **✅ Good** (using commit SHA):
+
 ```yaml
 image: registry.gitlab.com/username/sveltehr/frontend:sha-abc1234567
 ```
@@ -545,6 +603,7 @@ image: registry.gitlab.com/username/sveltehr/frontend:sha-abc1234567
 ### 2. Keep Recent Tags for Rollback
 
 Configure cleanup policy to keep 10-20 recent `sha-*` tags:
+
 - Allows rollback to recent versions
 - Prevents accidental deletion of recent images
 - Balances storage usage vs rollback capability
@@ -565,6 +624,7 @@ Configure cleanup policy to keep 10-20 recent `sha-*` tags:
 ### 5. Test Image Pulls Locally
 
 Before deploying:
+
 ```bash
 # Pull image locally to verify it exists
 docker pull registry.gitlab.com/username/sveltehr/frontend:sha-abc1234567

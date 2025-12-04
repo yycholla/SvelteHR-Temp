@@ -96,7 +96,7 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		error(500, {
-        			message: 'Failed to load activity logs. Please try again later.'
-        		});
+			message: 'Failed to load activity logs. Please try again later.'
+		});
 	}
 };

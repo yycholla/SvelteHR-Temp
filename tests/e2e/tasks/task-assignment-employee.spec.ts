@@ -43,9 +43,9 @@ test.describe('Task Assignment - Employee', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Find status filter
-		const statusFilter = page.locator('select[name="status"]').or(
-			page.locator('select:has(option:has-text("Pending"))')
-		);
+		const statusFilter = page
+			.locator('select[name="status"]')
+			.or(page.locator('select:has(option:has-text("Pending"))'));
 
 		if (await statusFilter.isVisible()) {
 			// Test filtering by "Pending"
@@ -82,9 +82,9 @@ test.describe('Task Assignment - Employee', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Find priority filter
-		const priorityFilter = page.locator('select[name="priority"]').or(
-			page.locator('select:has(option:has-text("High"))')
-		);
+		const priorityFilter = page
+			.locator('select[name="priority"]')
+			.or(page.locator('select:has(option:has-text("High"))'));
 
 		if (await priorityFilter.isVisible()) {
 			// Test filtering by "Urgent"
@@ -113,9 +113,9 @@ test.describe('Task Assignment - Employee', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Find task items
-		const taskItems = page.locator('[data-testid="task-item"]').or(
-			page.locator('a[href*="/tasks/"]')
-		);
+		const taskItems = page
+			.locator('[data-testid="task-item"]')
+			.or(page.locator('a[href*="/tasks/"]'));
 
 		if ((await taskItems.count()) > 0) {
 			// Click first task
@@ -131,7 +131,9 @@ test.describe('Task Assignment - Employee', () => {
 			// Verify key task information displayed
 			await expect(page.locator('text=/Status/i')).toBeVisible();
 			await expect(page.locator('text=/Priority/i')).toBeVisible();
-			await expect(page.locator('text=/Due Date/i').or(page.locator('text=/Deadline/i'))).toBeVisible();
+			await expect(
+				page.locator('text=/Due Date/i').or(page.locator('text=/Deadline/i'))
+			).toBeVisible();
 		}
 	});
 
@@ -141,9 +143,9 @@ test.describe('Task Assignment - Employee', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Find a task that is not completed
-		const taskItems = page.locator('[data-testid="task-item"]').or(
-			page.locator('a[href*="/tasks/"]')
-		);
+		const taskItems = page
+			.locator('[data-testid="task-item"]')
+			.or(page.locator('a[href*="/tasks/"]'));
 
 		if ((await taskItems.count()) > 0) {
 			// Navigate to first task
@@ -152,12 +154,12 @@ test.describe('Task Assignment - Employee', () => {
 			await page.waitForLoadState('networkidle');
 
 			// Look for status change buttons
-			const markInProgressButton = page.locator('button:has-text("In Progress")').or(
-				page.locator('button:has-text("Start Task")')
-			);
-			const markCompletedButton = page.locator('button:has-text("Complete")').or(
-				page.locator('button:has-text("Mark as Completed")')
-			);
+			const markInProgressButton = page
+				.locator('button:has-text("In Progress")')
+				.or(page.locator('button:has-text("Start Task")'));
+			const markCompletedButton = page
+				.locator('button:has-text("Complete")')
+				.or(page.locator('button:has-text("Mark as Completed")'));
 
 			// Try to mark as in progress if available
 			if (await markInProgressButton.isVisible()) {
@@ -200,9 +202,9 @@ test.describe('Task Assignment - Employee', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Look for "Create Task" button (manager-only)
-		const createButton = page.locator('a:has-text("Create Task")').or(
-			page.locator('button:has-text("Create Task")')
-		);
+		const createButton = page
+			.locator('a:has-text("Create Task")')
+			.or(page.locator('button:has-text("Create Task")'));
 
 		const hasCreateAccess = await createButton.isVisible();
 
@@ -219,7 +221,10 @@ test.describe('Task Assignment - Employee', () => {
 
 			// Fill out task form
 			await page.fill('input[name="title"]', 'Test Task - E2E Employee Assignment');
-			await page.fill('textarea[name="description"]', 'This is a test task for employee assignment');
+			await page.fill(
+				'textarea[name="description"]',
+				'This is a test task for employee assignment'
+			);
 
 			// Set priority
 			const prioritySelect = page.locator('select[name="priority"]');
@@ -236,9 +241,9 @@ test.describe('Task Assignment - Employee', () => {
 			await employeeRadio.check();
 
 			// Verify employee selection field is visible
-			const assigneeField = page.locator('input[name="assigneeId"]').or(
-				page.locator('text=/Employee selection/i')
-			);
+			const assigneeField = page
+				.locator('input[name="assigneeId"]')
+				.or(page.locator('text=/Employee selection/i'));
 			await expect(assigneeField).toBeVisible();
 
 			// Note: Form submission will fail until GraphQL mutation is implemented
@@ -257,12 +262,12 @@ test.describe('Task Assignment - Employee', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Look for pagination controls
-		const nextButton = page.locator('button:has-text("Next")').or(
-			page.locator('a:has-text("Next")')
-		);
-		const prevButton = page.locator('button:has-text("Previous")').or(
-			page.locator('a:has-text("Previous")')
-		);
+		const nextButton = page
+			.locator('button:has-text("Next")')
+			.or(page.locator('a:has-text("Next")'));
+		const prevButton = page
+			.locator('button:has-text("Previous")')
+			.or(page.locator('a:has-text("Previous")'));
 
 		// Check if pagination exists (indicates more than one page of tasks)
 		if (await nextButton.isVisible()) {
@@ -296,9 +301,9 @@ test.describe('Task Assignment - Employee', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Look for overdue badge or styling
-		const overdueIndicator = page.locator('text=/Overdue|Past Due/i').or(
-			page.locator('[data-status="overdue"]')
-		);
+		const overdueIndicator = page
+			.locator('text=/Overdue|Past Due/i')
+			.or(page.locator('[data-status="overdue"]'));
 
 		// If any overdue tasks exist, verify they're highlighted
 		if ((await overdueIndicator.count()) > 0) {

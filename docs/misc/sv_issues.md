@@ -9,6 +9,7 @@
 ## Category 1: TypeScript Generic Constraints
 
 ### Database Query Generic Constraints
+
 **Files affected:** `src/lib/server/db.ts`
 
 ```
@@ -24,6 +25,7 @@ Error: Type 'T' does not satisfy the constraint 'QueryResultRow'.
 ## Category 2: Implicit 'any' Type Errors
 
 ### Vite Configuration Middleware
+
 **Files affected:** `vite.config.ts`
 
 ```
@@ -51,6 +53,7 @@ Error: Parameter 'value' implicitly has an 'any' type.
 ## Category 3: Type Configuration Mismatches
 
 ### Vite HTTPS Configuration
+
 **Files affected:** `vite.config.ts`
 
 ```
@@ -65,6 +68,7 @@ Error: No overload matches this call.
 ## Category 4: Zod Error Handling Issues
 
 ### ZodError Property Access
+
 **Files affected:** `src/lib/utils/error-handling.ts`
 
 ```
@@ -83,6 +87,7 @@ Error: Property 'errors' does not exist on type 'ZodError<unknown>'.
 ## Category 5: Missing Namespace Declarations
 
 ### Cron Namespace
+
 **Files affected:** `src/lib/server/reminder-scheduler.ts`
 
 ```
@@ -95,6 +100,7 @@ Error: Cannot find namespace 'cron'.
 ## Category 6: Property Name Mismatches
 
 ### Auth Context Property Names
+
 **Files affected:** `src/lib/auth/context.ts`
 
 ```
@@ -117,6 +123,7 @@ Error: Property 'department_id' does not exist on type '{ id: string; email: str
 ## Category 7: Undefined Type Issues
 
 ### Role Hierarchy Index Access
+
 **Files affected:** `src/lib/auth/context.ts`
 
 ```
@@ -129,6 +136,7 @@ Error: Type 'undefined' cannot be used as an index type.
 ## Category 8: Async/Await Context Errors
 
 ### Top-level Await
+
 **Files affected:** `src/lib/auth/context.ts`
 
 ```
@@ -141,6 +149,7 @@ Error: 'await' expressions are only allowed within async functions and at the to
 ## Category 9: Missing Module Declarations
 
 ### Event Types Module Not Found
+
 **Files affected:** Multiple test files
 
 ```
@@ -156,6 +165,7 @@ Error: Cannot find module '$lib/types/events' or its corresponding type declarat
 ## Category 10: Null Assignability Issues
 
 ### Task Assignment Type Mismatches
+
 **Files affected:** `tests/unit/utils/tasks.test.ts`
 
 ```
@@ -195,6 +205,7 @@ Error: Type 'null' is not assignable to type 'string | undefined'.
 ## Category 11: Type-only Import Violations
 
 ### Playwright Type Imports
+
 **Files affected:** Test utility files
 
 ```
@@ -210,6 +221,7 @@ Error: 'FullConfig' is a type and must be imported using a type-only import when
 ## Category 12: Function Argument Type Mismatches
 
 ### Playwright API Type Mismatches
+
 **Files affected:** `tests/utils/test-data-helpers.ts`
 
 ```
@@ -226,16 +238,19 @@ Error: No overload matches this call.
 ## Priority Recommendations
 
 ### High Priority (Breaking Functionality)
+
 1. **Missing Module:** `$lib/types/events` - Create this module or fix import paths
 2. **ZodError Handling:** Fix property access patterns for Zod validation errors
 3. **Async/Await Context:** Ensure proper async function context in auth module
 
 ### Medium Priority (Type Safety)
+
 1. **Generic Constraints:** Add proper generic constraints to database query functions
 2. **Null Assignability:** Update type definitions to allow `null` where needed or use `undefined`
 3. **Type-only Imports:** Add `type` keyword to Playwright imports
 
 ### Low Priority (Code Quality)
+
 1. **Implicit 'any' Types:** Add explicit type annotations to Vite configuration
 2. **Property Name Mismatches:** Standardize on snake_case vs camelCase for user properties
 3. **Vite HTTPS Config:** Fix HTTPS configuration type or remove if unused

@@ -10,12 +10,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-	hasPermission,
-	hasRole,
-	canEditDepartment,
-	canEditEmployee
-} from '$lib/server/rbac-utils';
+import { hasPermission, hasRole, canEditDepartment, canEditEmployee } from '$lib/server/rbac-utils';
 
 describe('RBAC Utilities', () => {
 	describe('hasPermission', () => {

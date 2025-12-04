@@ -230,8 +230,8 @@ function formatICalDateOnly(date: Date): string {
 function escapeICalText(text: string): string {
 	return text
 		.replace(/\\/g, '\\\\') // Backslash
-		.replace(/;/g, '\\;')    // Semicolon
-		.replace(/,/g, '\\,')    // Comma
-		.replace(/\n/g, '\\n')   // Newline
-		.replace(/\r/g, '');     // Remove carriage return
+		.replace(/;/g, '\\;') // Semicolon
+		.replace(/,/g, '\\,') // Comma
+		.replace(/\n/g, '\\n') // Newline
+		.replace(/\r/g, ''); // Remove carriage return
 }

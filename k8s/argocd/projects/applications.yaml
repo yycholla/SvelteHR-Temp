@@ -12,7 +12,7 @@ spec:
   # Source repositories
   sourceRepos:
     - https://github.com/Mountain-Care-Rx/SvelteHR.git
-    - https://charts.bitnami.com/bitnami  # For Redis dependency
+    - https://charts.bitnami.com/bitnami # For Redis dependency
 
   # Allowed destinations
   destinations:

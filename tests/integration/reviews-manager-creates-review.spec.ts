@@ -7,11 +7,7 @@
  */
 
 import { test, expect, describe, beforeAll, afterAll } from 'vitest';
-import {
-	createTestContext,
-	cleanupTestData,
-	TestUser
-} from '../utils/test-helpers';
+import { createTestContext, cleanupTestData, TestUser } from '../utils/test-helpers';
 import { performGraphQLMutation, performGraphQLQuery } from '../utils/graphql-test-client';
 
 interface TestContext {

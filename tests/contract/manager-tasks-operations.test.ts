@@ -130,9 +130,7 @@ describe('Manager Tasks Operations Contract', () => {
 				}
 			};
 
-			mockGraphQLClient.mutate.mockRejectedValue(
-				new Error('CreateTask mutation not implemented')
-			);
+			mockGraphQLClient.mutate.mockRejectedValue(new Error('CreateTask mutation not implemented'));
 
 			await expect(
 				mockGraphQLClient.mutate('mutation CreateTask', variables, {
@@ -223,9 +221,7 @@ describe('Manager Tasks Operations Contract', () => {
 				}
 			};
 
-			mockGraphQLClient.mutate.mockRejectedValue(
-				new Error('UpdateTask mutation not implemented')
-			);
+			mockGraphQLClient.mutate.mockRejectedValue(new Error('UpdateTask mutation not implemented'));
 
 			await expect(
 				mockGraphQLClient.mutate('mutation UpdateTask', variables, {
@@ -254,9 +250,7 @@ describe('Manager Tasks Operations Contract', () => {
 				}
 			};
 
-			mockGraphQLClient.mutate.mockRejectedValue(
-				new Error('Auto-timestamp logic not implemented')
-			);
+			mockGraphQLClient.mutate.mockRejectedValue(new Error('Auto-timestamp logic not implemented'));
 
 			await expect(mockGraphQLClient.mutate('mutation', variables, {})).rejects.toThrow(
 				'Auto-timestamp logic not implemented'
@@ -296,9 +290,7 @@ describe('Manager Tasks Operations Contract', () => {
 		test('should allow manager to delete task from their department', async () => {
 			const variables = { id: 'task_001' };
 
-			mockGraphQLClient.mutate.mockRejectedValue(
-				new Error('DeleteTask mutation not implemented')
-			);
+			mockGraphQLClient.mutate.mockRejectedValue(new Error('DeleteTask mutation not implemented'));
 
 			await expect(
 				mockGraphQLClient.mutate('mutation DeleteTask', variables, {
@@ -344,9 +336,7 @@ describe('Manager Tasks Operations Contract', () => {
 			const statuses = ['todo', 'in_progress', 'completed', 'cancelled'];
 
 			for (const status of statuses) {
-				mockGraphQLClient.mutate.mockRejectedValue(
-					new Error('Status validation not implemented')
-				);
+				mockGraphQLClient.mutate.mockRejectedValue(new Error('Status validation not implemented'));
 
 				await expect(
 					mockGraphQLClient.mutate('mutation', { input: { status } }, {})

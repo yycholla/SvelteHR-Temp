@@ -480,8 +480,7 @@ export function calculateReportAnalytics(data: {
 		}))
 		.sort((a, b) => b.count - a.count);
 
-	const mostPopularType =
-		typeBreakdown.length > 0 ? typeBreakdown[0].type : 'employee';
+	const mostPopularType = typeBreakdown.length > 0 ? typeBreakdown[0].type : 'employee';
 
 	// Calculate category breakdown
 	const categoryCounts = new Map<string, number>();
@@ -640,7 +639,7 @@ export class ReportsOperations {
 				filter: params.filter || {}
 			},
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
+			timeoutMs: 5000
 		});
 
 		try {
@@ -692,12 +691,14 @@ export class ReportsOperations {
 			operationName: 'GetReportAnalytics',
 			variables: { departmentId: params.departmentId },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
+			timeoutMs: 5000
 		});
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(GET_REPORT_ANALYTICS, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(GET_REPORT_ANALYTICS, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -750,7 +751,7 @@ export class ReportsOperations {
 			operationName: 'CreateHRReport',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
+			timeoutMs: 5000
 		});
 
 		try {

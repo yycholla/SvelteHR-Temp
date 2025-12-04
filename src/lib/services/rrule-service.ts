@@ -99,7 +99,9 @@ export class RRuleService {
 			});
 
 			// Get occurrences within range
-			const occurrences = rruleWithDtstart.between(rangeStart, rangeEnd, true).slice(0, maxOccurrences);
+			const occurrences = rruleWithDtstart
+				.between(rangeStart, rangeEnd, true)
+				.slice(0, maxOccurrences);
 
 			// Calculate event duration
 			const eventDuration = eventData.endTime.getTime() - eventData.startTime.getTime();

@@ -551,10 +551,7 @@ export async function checkTaskLinkedResources(taskId: string): Promise<{
 
 			// Update availability status if changed
 			if (validation.availabilityStatus !== linkedResource.availabilityStatus) {
-				await updateResourceAvailabilityStatus(
-					linkedResource.id,
-					validation.availabilityStatus
-				);
+				await updateResourceAvailabilityStatus(linkedResource.id, validation.availabilityStatus);
 			}
 
 			// Update stats

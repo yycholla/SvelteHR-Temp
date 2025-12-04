@@ -116,10 +116,8 @@ test.describe('MyTasks Query Contract', () => {
 		const priorityOrder = { Urgent: 4, High: 3, Medium: 2, Low: 1 };
 
 		for (let i = 0; i < sortedTasks.length - 1; i++) {
-			const currentPriority =
-				priorityOrder[sortedTasks[i].priority as keyof typeof priorityOrder];
-			const nextPriority =
-				priorityOrder[sortedTasks[i + 1].priority as keyof typeof priorityOrder];
+			const currentPriority = priorityOrder[sortedTasks[i].priority as keyof typeof priorityOrder];
+			const nextPriority = priorityOrder[sortedTasks[i + 1].priority as keyof typeof priorityOrder];
 			expect(currentPriority).toBeGreaterThanOrEqual(nextPriority);
 		}
 	});

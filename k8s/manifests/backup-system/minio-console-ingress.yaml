@@ -6,8 +6,8 @@ metadata:
   namespace: backup-system
   annotations:
     # Tailscale ingress configuration
-    tailscale.com/funnel: "false"  # Private Tailnet access only
-    tailscale.com/hostname: "minio-console"  # Will be minio-console.your-tailnet.ts.net
+    tailscale.com/funnel: 'false' # Private Tailnet access only
+    tailscale.com/hostname: 'minio-console' # Will be minio-console.your-tailnet.ts.net
 spec:
   ingressClassName: tailscale
   defaultBackend:

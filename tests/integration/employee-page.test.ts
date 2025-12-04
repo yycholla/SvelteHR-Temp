@@ -548,7 +548,7 @@ describe('Employee Page Integration (T019)', () => {
 				suggestedActions: [],
 				type: 'VALIDATION_ERROR',
 				userMessage: 'Employee data has been modified by another user', // Changed message to userMessage
-				severity: 'medium',
+				severity: 'medium'
 				// suggestedAction: 'merge_changes', // This property doesn't exist in ErrorResponse
 				// retryable: true // This property doesn't exist in ErrorResponse, use isRetryable
 			};

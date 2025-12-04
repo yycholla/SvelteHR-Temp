@@ -249,9 +249,9 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		error(500, {
-        			message: 'Task edit temporarily unavailable',
-        			details: errorResponse.userMessage
-        		});
+			message: 'Task edit temporarily unavailable',
+			details: errorResponse.userMessage
+		});
 	}
 };
 
@@ -270,9 +270,8 @@ export const actions: Actions = {
 		try {
 			const formData = await request.formData();
 			formDataEntries = Object.fromEntries(formData);
-			const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import(
-				'$lib/server/api-url'
-			);
+			const { getGraphQLEndpoint, authenticatedGraphQLRequest } =
+				await import('$lib/server/api-url');
 			const graphqlEndpoint = getGraphQLEndpoint();
 
 			// Extract form data

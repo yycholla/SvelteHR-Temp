@@ -28,8 +28,8 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		error(403, {
-        			message: 'Insufficient permissions. Document audit logs require system administrator access.'
-        		});
+			message: 'Insufficient permissions. Document audit logs require system administrator access.'
+		});
 	}
 
 	// Log successful access
@@ -155,7 +155,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// Generic error fallback
 		error(500, {
-        			message: 'Failed to load audit logs. Please try again later.'
-        		});
+			message: 'Failed to load audit logs. Please try again later.'
+		});
 	}
 };

@@ -5,7 +5,7 @@ metadata:
   namespace: sveltehr-prod
 spec:
   # Run daily at 3 AM to check for certificate renewals
-  schedule: "0 3 * * *"
+  schedule: '0 3 * * *'
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
   jobTemplate:
@@ -19,9 +19,9 @@ spec:
               image: bitnami/kubectl:latest
               env:
                 - name: SECRET_NAME
-                  value: "hr-mtncarerx-tls-secret"
+                  value: 'hr-mtncarerx-tls-secret'
                 - name: NAMESPACE
-                  value: "sveltehr-prod"
+                  value: 'sveltehr-prod'
                 - name: WINDOWS_HOST
                   valueFrom:
                     configMapKeyRef:
@@ -68,10 +68,10 @@ metadata:
   name: cert-sync-role
   namespace: sveltehr-prod
 rules:
-  - apiGroups: [""]
-    resources: ["secrets"]
-    resourceNames: ["hr-mtncarerx-tls-secret"]
-    verbs: ["get"]
+  - apiGroups: ['']
+    resources: ['secrets']
+    resourceNames: ['hr-mtncarerx-tls-secret']
+    verbs: ['get']
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -95,4 +95,4 @@ metadata:
   name: cert-sync-config
   namespace: sveltehr-prod
 data:
-  windows-host: "<WINDOWS_VM_IP>"  # Replace with your Windows VM IP
+  windows-host: '<WINDOWS_VM_IP>' # Replace with your Windows VM IP

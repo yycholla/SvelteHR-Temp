@@ -33,8 +33,8 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		error(403, {
-        			message: 'Insufficient permissions. Document upload requires system administrator access.'
-        		});
+			message: 'Insufficient permissions. Document upload requires system administrator access.'
+		});
 	}
 
 	// Log successful access
@@ -124,8 +124,8 @@ export const load: PageServerLoad = async (event) => {
 
 		// Generic error fallback
 		error(500, {
-        			message: 'Failed to load upload page. Please try again later.'
-        		});
+			message: 'Failed to load upload page. Please try again later.'
+		});
 	}
 };
 
@@ -143,7 +143,8 @@ export const actions: Actions = {
 
 		// Step 2: Check user role - only system_admin can upload documents
 		const isSystemAdmin =
-			userPermissions.includes('*') || userPermissions.includes('*:*') ||
+			userPermissions.includes('*') ||
+			userPermissions.includes('*:*') ||
 			userRoles.includes('system_admin') ||
 			locals.user.role === 'system_admin';
 
@@ -166,12 +167,15 @@ export const actions: Actions = {
 			// Step 3: Parse form data (now expecting raw file, not encrypted)
 			const formData = await request.formData();
 
-			console.log('[UPLOAD ACTION] FormData entries:', Array.from(formData.entries()).map(([key, value]) => ({
-				key,
-				valueType: typeof value,
-				isFile: value instanceof File,
-				fileName: value instanceof File ? value.name : 'N/A'
-			})));
+			console.log(
+				'[UPLOAD ACTION] FormData entries:',
+				Array.from(formData.entries()).map(([key, value]) => ({
+					key,
+					valueType: typeof value,
+					isFile: value instanceof File,
+					fileName: value instanceof File ? value.name : 'N/A'
+				}))
+			);
 
 			const file = formData.get('file') as File;
 			const category = formData.get('category') as string;
@@ -229,9 +233,8 @@ export const actions: Actions = {
 			const fileBuffer = Buffer.from(await file.arrayBuffer());
 
 			// Import encryption utilities (dynamic to ensure server-side only)
-			const { encryptFileWithNewKey, packageEncryptedData, encodeKey } = await import(
-				'$lib/server/encryption'
-			);
+			const { encryptFileWithNewKey, packageEncryptedData, encodeKey } =
+				await import('$lib/server/encryption');
 
 			const encryptionResult = encryptFileWithNewKey(fileBuffer);
 
@@ -315,7 +318,10 @@ export const actions: Actions = {
 
 			// Log the exact GraphQL request being sent
 			const mutationVariables = { input: uploadInput };
-			console.log('[UPLOAD ACTION] GraphQL mutation variables:', JSON.stringify(mutationVariables, null, 2).substring(0, 1000));
+			console.log(
+				'[UPLOAD ACTION] GraphQL mutation variables:',
+				JSON.stringify(mutationVariables, null, 2).substring(0, 1000)
+			);
 
 			const response = await graphqlClient.mutation(UPLOAD_DOCUMENT, mutationVariables);
 

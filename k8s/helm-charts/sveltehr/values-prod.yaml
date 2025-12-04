@@ -19,7 +19,7 @@ postgresql:
   # Image configuration
   image:
     repository: ghcr.io/cloudnative-pg/postgresql
-    tag: "16"
+    tag: '16'
   # Database and user configuration
   database: hr_system
   username: hr_user
@@ -34,31 +34,31 @@ postgresql:
     size: 100Gi
     storageClass: local-path # Using local-path for now
   # Production passwords (override with External Secrets)
-  password: "" # Will be populated from Doppler
-  superuserPassword: "" # Will be populated from Doppler
+  password: '' # Will be populated from Doppler
+  superuserPassword: '' # Will be populated from Doppler
   # Monitoring
   monitoring:
     enabled: true
   # PostgreSQL parameters (scaled for 512Mi limit)
   config:
-    maxConnections: "100"
-    sharedBuffers: "128MB" # Must be less than memory request
-    workMem: "4MB"
-    maintenanceWorkMem: "32MB"
-    maxWalSenders: "5"
-    maxReplicationSlots: "5"
-    effectiveCacheSize: "256MB"
-    randomPageCost: "1.1" # For SSD storage
+    maxConnections: '100'
+    sharedBuffers: '128MB' # Must be less than memory request
+    workMem: '4MB'
+    maintenanceWorkMem: '32MB'
+    maxWalSenders: '5'
+    maxReplicationSlots: '5'
+    effectiveCacheSize: '256MB'
+    randomPageCost: '1.1' # For SSD storage
     additionalParameters:
-      checkpoint_completion_target: "0.9"
-      wal_buffers: "4MB"
-      default_statistics_target: "100"
-      effective_io_concurrency: "200"
+      checkpoint_completion_target: '0.9'
+      wal_buffers: '4MB'
+      default_statistics_target: '100'
+      effective_io_concurrency: '200'
   # Backup configuration (MinIO)
   backup:
     enabled: true # Enable CNPG native backups to MinIO
-    destinationPath: "s3://postgres-backups/sveltehr-prod/" # Use subfolder for cluster isolation
-    endpointURL: "http://minio.backup-system.svc.cluster.local:9000"
+    destinationPath: 's3://postgres-backups/sveltehr-prod/' # Use subfolder for cluster isolation
+    endpointURL: 'http://minio.backup-system.svc.cluster.local:9000'
     # NOTE: retentionPolicy and schedule are deprecated in Cluster spec
     # Use ScheduledBackup CRD instead (see postgres-scheduled-backup.yaml)
     s3Credentials:
@@ -85,15 +85,15 @@ postgresql:
   affinity:
     podAntiAffinity:
       preferredDuringSchedulingIgnoredDuringExecution:
-      - podAffinityTerm:
-          labelSelector:
-            matchExpressions:
-            - key: app.kubernetes.io/name
-              operator: In
-              values:
-              - postgresql
-          topologyKey: kubernetes.io/hostname
-        weight: 100
+        - podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                    - postgresql
+            topologyKey: kubernetes.io/hostname
+          weight: 100
 # -----------------------------------------------------------------------------
 # Redis Configuration (Bitnami Redis) - High Availability
 # -----------------------------------------------------------------------------
@@ -109,7 +109,7 @@ redis:
   # Authentication enabled for production
   auth:
     enabled: true
-    password: "" # Will be populated from Doppler
+    password: '' # Will be populated from Doppler
   # Master configuration
   master:
     persistence:
@@ -134,13 +134,13 @@ backend:
   # Image configuration
   image:
     repository: ghcr.io/mountain-care-rx/sveltehr/backend-server
-    tag: "1.0.50" # Semantic versioning without v-prefix (ArgoCD Image Updater requirement)
+    tag: '1.0.50' # Semantic versioning without v-prefix (ArgoCD Image Updater requirement)
     pullPolicy: Always
     target: production
   # Image pull secrets for private GHCR registry
   # Apply secret first: kubectl apply -f k8s/secrets/ghcr-pull-secret.yaml
   imagePullSecrets:
-  - name: ghcr-pull-secret
+    - name: ghcr-pull-secret
   # Production resources (optimized for actual usage: backend uses ~1m CPU)
   resources:
     requests:
@@ -150,7 +150,7 @@ backend:
       memory: 1Gi
       cpu: 500m
   # Logging
-  rustLog: "info,hr_graphql_server=info" # Less verbose in production
+  rustLog: 'info,hr_graphql_server=info' # Less verbose in production
   # Deployment strategy (rolling update)
   strategy:
     type: RollingUpdate
@@ -188,15 +188,15 @@ backend:
   affinity:
     podAntiAffinity:
       preferredDuringSchedulingIgnoredDuringExecution:
-      - weight: 100
-        podAffinityTerm:
-          labelSelector:
-            matchExpressions:
-            - key: app.kubernetes.io/component
-              operator: In
-              values:
-              - backend
-          topologyKey: kubernetes.io/hostname
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values:
+                    - backend
+            topologyKey: kubernetes.io/hostname
 # -----------------------------------------------------------------------------
 # Frontend Configuration (SvelteKit) - Production
 # -----------------------------------------------------------------------------
@@ -208,13 +208,13 @@ frontend:
   # Image configuration
   image:
     repository: ghcr.io/mountain-care-rx/sveltehr/frontend
-    tag: "1.0.50" # Semantic versioning without v-prefix (ArgoCD Image Updater requirement)
+    tag: '1.0.50' # Semantic versioning without v-prefix (ArgoCD Image Updater requirement)
     pullPolicy: Always
     target: production
   # Image pull secrets for private GHCR registry
   # Apply secret first: kubectl apply -f k8s/secrets/ghcr-pull-secret.yaml
   imagePullSecrets:
-  - name: ghcr-pull-secret
+    - name: ghcr-pull-secret
   # Service configuration (production build)
   service:
     port: 3000
@@ -229,9 +229,9 @@ frontend:
       cpu: 200m
   # Environment variables for GraphQL proxy
   env:
-    POSTGRAPHILE_URL: "http://sveltehr-backend:4000/graphql"
-    GRAPHQL_URL: "http://sveltehr-backend:4000/graphql"
-    PUBLIC_API_URL: "http://sveltehr-backend:4000"
+    POSTGRAPHILE_URL: 'http://sveltehr-backend:4000/graphql'
+    GRAPHQL_URL: 'http://sveltehr-backend:4000/graphql'
+    PUBLIC_API_URL: 'http://sveltehr-backend:4000'
   # Wait for backend before starting (dependency ordering)
   waitForBackend: true
   # Backend URL for init container health check
@@ -273,19 +273,19 @@ frontend:
   affinity:
     podAntiAffinity:
       preferredDuringSchedulingIgnoredDuringExecution:
-      - weight: 100
-        podAffinityTerm:
-          labelSelector:
-            matchExpressions:
-            - key: app.kubernetes.io/component
-              operator: In
-              values:
-              - frontend
-          topologyKey: kubernetes.io/hostname
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values:
+                    - frontend
+            topologyKey: kubernetes.io/hostname
   # Tailscale for remote access
   tailscale:
     enabled: true
-    hostname: "sveltehr-frontend"
+    hostname: 'sveltehr-frontend'
 # -----------------------------------------------------------------------------
 # Migration Job Configuration
 # -----------------------------------------------------------------------------
@@ -293,12 +293,12 @@ migration:
   enabled: false # Migrations run as init container in backend
   # Image configuration
   image:
-    tag: "stable"
+    tag: 'stable'
     pullPolicy: IfNotPresent
   # Production: More retries
   backoffLimit: 5
   # Less verbose logging
-  rustLog: "info,migration=info"
+  rustLog: 'info,migration=info'
   # Production resources
   resources:
     requests:
@@ -314,8 +314,8 @@ seed:
   # Disabled in production (data should already exist)
   enabled: false
   # If needed, admin credentials from Doppler
-  adminEmail: "" # From External Secrets
-  adminPassword: "" # From External Secrets
+  adminEmail: '' # From External Secrets
+  adminPassword: '' # From External Secrets
 # -----------------------------------------------------------------------------
 # External Secrets Operator (Doppler Integration) - REQUIRED IN PRODUCTION
 # -----------------------------------------------------------------------------
@@ -325,9 +325,9 @@ externalSecrets:
   doppler:
     # IMPORTANT: Set this value when deploying
     # Get from: https://dashboard.doppler.com/
-    serviceToken: "dp.st.prod.u0Lf9L1XapvzYmykQNlHuJm9nV2ez0p7ibi1umqV3Nr"
-    project: "sveltehr"
-    config: "prod"
+    serviceToken: 'dp.st.prod.u0Lf9L1XapvzYmykQNlHuJm9nV2ez0p7ibi1umqV3Nr'
+    project: 'sveltehr'
+    config: 'prod'
 # -----------------------------------------------------------------------------
 # Ingress Configuration (Cloudflare Tunnel)
 # -----------------------------------------------------------------------------
@@ -365,8 +365,8 @@ monitoring:
 # -----------------------------------------------------------------------------
 pgadmin:
   enabled: false # Disabled to save resources
-  email: "admin@sveltehr.com"
-  password: "" # From External Secrets
+  email: 'admin@sveltehr.com'
+  password: '' # From External Secrets
   resources:
     requests:
       memory: 512Mi
@@ -376,7 +376,7 @@ pgadmin:
       cpu: 500m
   tailscale:
     enabled: true
-    hostname: "pgadmin"
+    hostname: 'pgadmin'
 # -----------------------------------------------------------------------------
 # Tailscale Configuration
 # -----------------------------------------------------------------------------

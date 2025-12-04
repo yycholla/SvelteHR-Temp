@@ -191,8 +191,20 @@ export const load: PageServerLoad = async (event) => {
 
 		// Load today's events with RSVP status filtering
 		const today = new Date();
-		const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
-		const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).toISOString();
+		const startOfDay = new Date(
+			today.getFullYear(),
+			today.getMonth(),
+			today.getDate()
+		).toISOString();
+		const endOfDay = new Date(
+			today.getFullYear(),
+			today.getMonth(),
+			today.getDate(),
+			23,
+			59,
+			59,
+			999
+		).toISOString();
 
 		const eventsResponse = await authenticatedGraphQLRequest(
 			graphqlEndpoint,
@@ -236,7 +248,11 @@ export const load: PageServerLoad = async (event) => {
 
 				// Check if event is today
 				const eventStart = new Date(evt.startTime);
-				const eventDay = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate());
+				const eventDay = new Date(
+					eventStart.getFullYear(),
+					eventStart.getMonth(),
+					eventStart.getDate()
+				);
 				const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 				return eventDay.getTime() === todayDay.getTime();
 			})
@@ -331,9 +347,8 @@ export const actions: Actions = {
 
 		try {
 			const formData = await request.formData();
-			const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import(
-				'$lib/server/api-url'
-			);
+			const { getGraphQLEndpoint, authenticatedGraphQLRequest } =
+				await import('$lib/server/api-url');
 			const graphqlEndpoint = getGraphQLEndpoint();
 
 			// Extract form data

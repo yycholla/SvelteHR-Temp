@@ -152,8 +152,10 @@ export const load: PageServerLoad = async (event) => {
 
 		// Calculate attendance statistics
 		const totalDays = attendanceRecords.length;
-		const presentDays = attendanceRecords.filter(r => r.status === 'present').length;
-		const partialDays = attendanceRecords.filter(r => r.status === 'partial' || r.status === 'half_day').length;
+		const presentDays = attendanceRecords.filter((r) => r.status === 'present').length;
+		const partialDays = attendanceRecords.filter(
+			(r) => r.status === 'partial' || r.status === 'half_day'
+		).length;
 		const totalHours = attendanceRecords.reduce((sum, r) => sum + r.hoursWorked, 0);
 		const averageHours = totalDays > 0 ? totalHours / totalDays : 0;
 
@@ -178,7 +180,6 @@ export const load: PageServerLoad = async (event) => {
 			permissions: locals.permissions || [],
 			loadedAt: new Date().toISOString()
 		};
-
 	} catch (err) {
 		console.error('Error loading user attendance data:', err);
 

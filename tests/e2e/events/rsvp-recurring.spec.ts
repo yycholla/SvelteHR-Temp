@@ -80,9 +80,9 @@ test.describe('RSVP to Recurring Event', () => {
 		await thisOccurrenceButton.click();
 
 		// Verify confirmation toast
-		await expect(
-			page.locator('.toast:has-text("RSVP confirmed for this occurrence")')
-		).toBeVisible({ timeout: 3000 });
+		await expect(page.locator('.toast:has-text("RSVP confirmed for this occurrence")')).toBeVisible(
+			{ timeout: 3000 }
+		);
 
 		// Verify event now shows "Accepted" status
 		await page.waitForTimeout(500); // Allow UI to update
@@ -127,9 +127,9 @@ test.describe('RSVP to Recurring Event', () => {
 		await allOccurrencesButton.click();
 
 		// Verify confirmation
-		await expect(
-			page.locator('.toast:has-text("RSVP confirmed for all occurrences")')
-		).toBeVisible({ timeout: 3000 });
+		await expect(page.locator('.toast:has-text("RSVP confirmed for all occurrences")')).toBeVisible(
+			{ timeout: 3000 }
+		);
 	});
 
 	test('should allow declining recurring event with scope selection', async ({ page }) => {
@@ -251,7 +251,9 @@ test.describe('RSVP to Recurring Event', () => {
 	test('should not allow RSVP to past occurrences', async ({ page }) => {
 		// This test assumes there are past recurring event instances
 		// Click on a past recurring event instance
-		const pastEvent = page.locator('.fc-event[data-is-recurring="true"][data-is-past="true"]').first();
+		const pastEvent = page
+			.locator('.fc-event[data-is-recurring="true"][data-is-past="true"]')
+			.first();
 
 		if ((await pastEvent.count()) > 0) {
 			await pastEvent.click();

@@ -67,7 +67,13 @@ describe('Batch operation tracking (FR-020)', () => {
         INSERT INTO employees (id, first_name, last_name, email, department_id)
         VALUES ($1, $2, $3, $4, $5)
       `,
-				[employee.id, employee.first_name, employee.last_name, employee.email, employee.department_id]
+				[
+					employee.id,
+					employee.first_name,
+					employee.last_name,
+					employee.email,
+					employee.department_id
+				]
 			);
 		}
 
@@ -183,10 +189,9 @@ describe('Batch operation tracking (FR-020)', () => {
 			[employeeId, 'Standalone', 'User', 'standalone@test.com', departmentId]
 		);
 
-		const allLogs = await db.query(
-			`SELECT * FROM activity_logs WHERE resource_id = $1`,
-			[employeeId]
-		);
+		const allLogs = await db.query(`SELECT * FROM activity_logs WHERE resource_id = $1`, [
+			employeeId
+		]);
 
 		expect(allLogs.rows).toHaveLength(1);
 		expect(allLogs.rows[0].batch_id).toBeNull();

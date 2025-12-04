@@ -73,7 +73,9 @@ export function extractUserContext(event: RequestEvent): UserContext | null {
  */
 export function hasPermission(event: RequestEvent, permission: string): boolean {
 	const permissions = event.locals.permissions || [];
-	return permissions.includes('*') || permissions.includes('*:*') || permissions.includes(permission);
+	return (
+		permissions.includes('*') || permissions.includes('*:*') || permissions.includes(permission)
+	);
 }
 
 /**
@@ -99,11 +101,11 @@ export function hasRole(event: RequestEvent, role: string): boolean {
  */
 export function hasMinimumRole(event: RequestEvent, minimumRole: string): boolean {
 	const roleHierarchy: Record<string, number> = {
-		'super_admin': 100,
-		'admin': 75,
-		'hr_manager': 50,
-		'manager': 25,
-		'employee': 10
+		super_admin: 100,
+		admin: 75,
+		hr_manager: 50,
+		manager: 25,
+		employee: 10
 	};
 
 	const user = event.locals.user;
@@ -132,7 +134,10 @@ export function hasMinimumRole(event: RequestEvent, minimumRole: string): boolea
  * };
  * ```
  */
-export async function requireAuth(event: RequestEvent, redirectPath: string = '/login'): Promise<void> {
+export async function requireAuth(
+	event: RequestEvent,
+	redirectPath: string = '/login'
+): Promise<void> {
 	if (!event.locals.user) {
 		const { redirect } = await import('@sveltejs/kit');
 		const returnUrl = encodeURIComponent(event.url.pathname + event.url.search);

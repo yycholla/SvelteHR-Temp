@@ -175,10 +175,7 @@ export class ImageService {
 	/**
 	 * Create thumbnail from image
 	 */
-	static async createThumbnail(
-		fileBuffer: Buffer,
-		size = 200
-	): Promise<Buffer | null> {
+	static async createThumbnail(fileBuffer: Buffer, size = 200): Promise<Buffer | null> {
 		try {
 			const thumbnail = await sharp(fileBuffer)
 				.resize(size, size, {

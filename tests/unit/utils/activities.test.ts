@@ -44,7 +44,7 @@ function createMockActivity(overrides: Partial<ActivityLog> = {}): ActivityLog {
 		employee: { displayName: 'John Doe' } as any,
 		createdAt: new Date().toISOString(),
 		beforeSnapshot: undefined, // Changed from null to undefined
-		afterSnapshot: undefined,  // Changed from null to undefined
+		afterSnapshot: undefined, // Changed from null to undefined
 		details: undefined, // Changed from null to undefined
 		...overrides
 	} as ActivityLog;
@@ -456,7 +456,7 @@ describe('Time and Date Functions', () => {
 	});
 
 	describe('getTodayActivities', () => {
-		it('should return only today\'s activities', () => {
+		it("should return only today's activities", () => {
 			const now = new Date();
 			const yesterday = new Date(now);
 			yesterday.setDate(yesterday.getDate() - 1);

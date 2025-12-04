@@ -52,10 +52,7 @@ test.describe('Admin Onboarding Forms Management', () => {
 		// Fill form dialog
 		await page.waitForSelector('[data-testid="form-dialog"]', { timeout: 5000 });
 		await page.fill('[data-testid="form-title-input"]', 'Employee Information Form');
-		await page.fill(
-			'[data-testid="form-description-input"]',
-			'Collect basic employee information'
-		);
+		await page.fill('[data-testid="form-description-input"]', 'Collect basic employee information');
 		await page.check('[data-testid="form-required-checkbox"]');
 
 		// Submit form

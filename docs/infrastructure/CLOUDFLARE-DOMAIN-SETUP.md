@@ -18,26 +18,29 @@ Setting up `yycholla.com` with Cloudflare for SvelteHR with automatic Let's Encr
 
 Add an A record for the SvelteHR application:
 
-| Type | Name | Content | Proxy Status | TTL |
-|------|------|---------|--------------|-----|
-| A | hr | 217.177.210.24 | **DNS only (Gray Cloud)** | Auto |
+| Type | Name | Content        | Proxy Status              | TTL  |
+| ---- | ---- | -------------- | ------------------------- | ---- |
+| A    | hr   | 217.177.210.24 | **DNS only (Gray Cloud)** | Auto |
 
 **CRITICAL**: The proxy status MUST be "DNS only" (gray cloud icon), NOT proxied (orange cloud).
 
 #### Why DNS Only?
 
 Let's Encrypt uses HTTP-01 challenge to verify domain ownership. The challenge works like this:
+
 1. Let's Encrypt asks your server to serve a specific file at `http://hr.yycholla.com/.well-known/acme-challenge/TOKEN`
 2. Let's Encrypt fetches that URL from the public internet
 3. If it matches, certificate is issued
 
 **If Cloudflare proxy is enabled (orange cloud)**:
+
 - Requests go through Cloudflare's servers first
 - Let's Encrypt sees Cloudflare's IP, not your server's IP
 - HTTP-01 challenge may fail or have issues
 - You'd need to use DNS-01 challenge with Cloudflare API tokens (more complex)
 
 **With DNS only (gray cloud)**:
+
 - DNS resolves directly to your server IP
 - Let's Encrypt connects directly to your Traefik ingress
 - HTTP-01 challenge works perfectly
@@ -47,11 +50,11 @@ Let's Encrypt uses HTTP-01 challenge to verify domain ownership. The challenge w
 
 If you want separate subdomains:
 
-| Type | Name | Content | Proxy Status | TTL |
-|------|------|---------|--------------|-----|
-| A | pgadmin | 217.177.210.24 | DNS only | Auto |
-| A | grafana | 217.177.210.24 | DNS only | Auto |
-| A | argocd | 217.177.210.24 | DNS only | Auto |
+| Type | Name    | Content        | Proxy Status | TTL  |
+| ---- | ------- | -------------- | ------------ | ---- |
+| A    | pgadmin | 217.177.210.24 | DNS only     | Auto |
+| A    | grafana | 217.177.210.24 | DNS only     | Auto |
+| A    | argocd  | 217.177.210.24 | DNS only     | Auto |
 
 All should use **DNS only** for the same reasons.
 
@@ -65,8 +68,8 @@ ingress:
   className: traefik
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-    cert-manager.io/cluster-issuer: letsencrypt-prod  # Use production Let's Encrypt
-  host: hr.yycholla.com  # Change from hr.local
+    cert-manager.io/cluster-issuer: letsencrypt-prod # Use production Let's Encrypt
+  host: hr.yycholla.com # Change from hr.local
   tls:
     enabled: true
     secretName: sveltehr-tls
@@ -77,15 +80,18 @@ ingress:
 Since your server is at `192.168.1.129` (private IP), ensure your router forwards traffic:
 
 **Required Port Forwards**:
+
 - **Port 80 (HTTP)** → 192.168.1.129:80 - Required for Let's Encrypt HTTP-01 challenge
 - **Port 443 (HTTPS)** → 192.168.1.129:443 - Required for HTTPS traffic
 
 **How to check**:
+
 1. Log in to your router (typically http://192.168.1.1)
 2. Look for "Port Forwarding" or "Virtual Server" settings
 3. Add rules to forward ports 80 and 443 to 192.168.1.129
 
 **Test from external network**:
+
 ```bash
 # From outside your network (use phone hotspot or ask friend)
 curl http://217.177.210.24
@@ -119,6 +125,7 @@ kubectl logs -n cert-manager -l app.kubernetes.io/name=cert-manager -f
 ```
 
 **Expected Timeline**:
+
 - DNS propagation: 1-5 minutes (usually fast with Cloudflare)
 - Certificate issuance: 30-120 seconds
 - Total time: ~2-5 minutes
@@ -146,6 +153,7 @@ kubectl describe order -n sveltehr-prod
 **Common Issues**:
 
 1. **DNS not propagating**:
+
    ```bash
    # Check DNS resolution from your server
    dig hr.yycholla.com
@@ -153,6 +161,7 @@ kubectl describe order -n sveltehr-prod
    ```
 
 2. **Port 80 not accessible**:
+
    ```bash
    # Test from outside network
    curl -v http://hr.yycholla.com
@@ -178,7 +187,7 @@ If you need to test multiple times, use staging issuer first:
 # In values-prod.yaml temporarily:
 ingress:
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-staging  # For testing
+    cert-manager.io/cluster-issuer: letsencrypt-staging # For testing
 ```
 
 Staging certificates will show browser warnings but prove the setup works.
@@ -202,16 +211,19 @@ If DNS isn't resolving yet, wait a few minutes and try again.
 ## Security Notes
 
 **With Cloudflare DNS Only**:
+
 - ✅ Let's Encrypt certificates work automatically
 - ✅ Full TLS encryption
 - ❌ No Cloudflare DDoS protection
 - ❌ No Cloudflare CDN caching
 
 **If you want Cloudflare proxy later**:
+
 - You can enable it AFTER certificate is issued
 - Or switch to DNS-01 challenge with Cloudflare API token (more complex setup)
 
 For a small HR system, DNS only is perfectly fine. Enable Cloudflare proxy if you need:
+
 - DDoS protection
 - Global CDN
 - Cloudflare WAF

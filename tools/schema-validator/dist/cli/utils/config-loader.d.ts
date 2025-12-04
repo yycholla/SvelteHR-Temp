@@ -9,5 +9,8 @@ export declare function loadConfig(configPath?: string): Promise<SchemaValidator
 /**
  * Save configuration to file
  */
-export declare function saveConfig(config: SchemaValidatorConfig, configPath?: string): Promise<void>;
+export declare function saveConfig(
+  config: SchemaValidatorConfig,
+  configPath?: string
+): Promise<void>;
 //# sourceMappingURL=config-loader.d.ts.map

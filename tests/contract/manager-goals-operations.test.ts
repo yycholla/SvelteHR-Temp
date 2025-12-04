@@ -128,9 +128,7 @@ describe('Manager Goals Operations Contract', () => {
 				}
 			};
 
-			mockGraphQLClient.mutate.mockRejectedValue(
-				new Error('CreateGoal mutation not implemented')
-			);
+			mockGraphQLClient.mutate.mockRejectedValue(new Error('CreateGoal mutation not implemented'));
 
 			await expect(
 				mockGraphQLClient.mutate('mutation CreateGoal', variables, {
@@ -191,9 +189,7 @@ describe('Manager Goals Operations Contract', () => {
 				}
 			};
 
-			mockGraphQLClient.mutate.mockRejectedValue(
-				new Error('UpdateGoal mutation not implemented')
-			);
+			mockGraphQLClient.mutate.mockRejectedValue(new Error('UpdateGoal mutation not implemented'));
 
 			await expect(
 				mockGraphQLClient.mutate('mutation UpdateGoal', variables, {
@@ -238,9 +234,7 @@ describe('Manager Goals Operations Contract', () => {
 		test('should allow manager to delete goal from their department', async () => {
 			const variables = { id: 'goal_001' };
 
-			mockGraphQLClient.mutate.mockRejectedValue(
-				new Error('DeleteGoal mutation not implemented')
-			);
+			mockGraphQLClient.mutate.mockRejectedValue(new Error('DeleteGoal mutation not implemented'));
 
 			await expect(
 				mockGraphQLClient.mutate('mutation DeleteGoal', variables, {

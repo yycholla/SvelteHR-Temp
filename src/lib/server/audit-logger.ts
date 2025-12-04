@@ -436,10 +436,7 @@ export async function getAuditLogsForResource(
 /**
  * Get audit logs for a specific user's actions
  */
-export async function getAuditLogsForUser(
-	userId: string,
-	limit: number = 50
-): Promise<any[]> {
+export async function getAuditLogsForUser(userId: string, limit: number = 50): Promise<any[]> {
 	try {
 		const graphqlEndpoint = getGraphQLEndpoint();
 

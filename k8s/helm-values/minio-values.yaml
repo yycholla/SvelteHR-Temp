@@ -3,7 +3,7 @@
 # Chart: minio/minio version 5.4.0
 
 # Deployment mode
-mode: standalone  # standalone or distributed
+mode: standalone # standalone or distributed
 
 # Images use quay.io (more reliable than Docker Hub)
 image:
@@ -12,15 +12,15 @@ image:
   pullPolicy: IfNotPresent
 
 # Root credentials from External Secrets (Doppler)
-rootUser: ""  # Ignored when existingSecret is set
-rootPassword: ""  # Ignored when existingSecret is set
-existingSecret: minio-secret  # Created by ExternalSecret
+rootUser: '' # Ignored when existingSecret is set
+rootPassword: '' # Ignored when existingSecret is set
+existingSecret: minio-secret # Created by ExternalSecret
 # Secret must contain keys: rootUser, rootPassword
 
 # Persistence
 persistence:
   enabled: true
-  storageClass: ""  # Use default (local-path)
+  storageClass: '' # Use default (local-path)
   size: 100Gi
 
 # Service configuration

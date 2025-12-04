@@ -10,10 +10,7 @@ import { GraphQLClient } from '$lib/server/graphql-client';
 import type { Cookies } from '@sveltejs/kit';
 
 // Cache for direct reports (5-minute TTL)
-const directReportsCache = new Map<
-	string,
-	{ reports: string[]; timestamp: number }
->();
+const directReportsCache = new Map<string, { reports: string[]; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**

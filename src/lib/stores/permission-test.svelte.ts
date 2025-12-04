@@ -181,9 +181,7 @@ export function getPermissionTestState() {
 
 // Export utility functions
 export function getEffectivePermissions(originalPermissions: string[]): string[] {
-	return permissionTestState.isActive
-		? permissionTestState.testPermissions
-		: originalPermissions;
+	return permissionTestState.isActive ? permissionTestState.testPermissions : originalPermissions;
 }
 
 export function clearTestModeOnLogout(): void {

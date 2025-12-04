@@ -181,9 +181,7 @@ describe('Employee Skills Integration (P2 Feature)', () => {
 				}
 			`;
 
-			const result = await graphqlClient
-				.query(query, { searchTerm: 'script' })
-				.toPromise();
+			const result = await graphqlClient.query(query, { searchTerm: 'script' }).toPromise();
 
 			expect(result.error).toBeUndefined();
 			expect(result.data).toBeDefined();
@@ -414,9 +412,7 @@ describe('Employee Certifications Integration (P2 Feature)', () => {
 			ninetyDaysLater.setDate(ninetyDaysLater.getDate() + 90);
 			const dateString = ninetyDaysLater.toISOString().split('T')[0];
 
-			const result = await graphqlClient
-				.query(query, { date: dateString })
-				.toPromise();
+			const result = await graphqlClient.query(query, { date: dateString }).toPromise();
 
 			expect(result.error).toBeUndefined();
 			expect(result.data).toBeDefined();
@@ -446,9 +442,7 @@ describe('Employee Certifications Integration (P2 Feature)', () => {
 				}
 			`;
 
-			const result = await graphqlClient
-				.query(query, { searchTerm: 'AWS' })
-				.toPromise();
+			const result = await graphqlClient.query(query, { searchTerm: 'AWS' }).toPromise();
 
 			expect(result.error).toBeUndefined();
 			expect(result.data).toBeDefined();
@@ -475,9 +469,7 @@ describe('Employee Certifications Integration (P2 Feature)', () => {
 				}
 			`;
 
-			const result = await graphqlClient
-				.query(query, { searchTerm: 'Amazon' })
-				.toPromise();
+			const result = await graphqlClient.query(query, { searchTerm: 'Amazon' }).toPromise();
 
 			expect(result.error).toBeUndefined();
 			expect(result.data).toBeDefined();
@@ -724,16 +716,18 @@ export const skillsCertificationsTestUtils = {
 			}
 		`;
 
-		return client.mutation(mutation, {
-			input: {
-				employeeSkill: {
-					userId,
-					skillName,
-					proficiencyLevel,
-					endorsedBy: []
+		return client
+			.mutation(mutation, {
+				input: {
+					employeeSkill: {
+						userId,
+						skillName,
+						proficiencyLevel,
+						endorsedBy: []
+					}
 				}
-			}
-		}).toPromise();
+			})
+			.toPromise();
 	},
 
 	/**
@@ -758,16 +752,18 @@ export const skillsCertificationsTestUtils = {
 			}
 		`;
 
-		return client.mutation(mutation, {
-			input: {
-				employeeCertification: {
-					userId,
-					certificationName,
-					issuer,
-					issuedDate: new Date().toISOString().split('T')[0],
-					expiryDate
+		return client
+			.mutation(mutation, {
+				input: {
+					employeeCertification: {
+						userId,
+						certificationName,
+						issuer,
+						issuedDate: new Date().toISOString().split('T')[0],
+						expiryDate
+					}
 				}
-			}
-		}).toPromise();
+			})
+			.toPromise();
 	}
 };

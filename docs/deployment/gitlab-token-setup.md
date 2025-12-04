@@ -11,6 +11,7 @@ This guide provides detailed instructions for creating a GitLab Personal Access 
 ## Why GitLab Container Registry?
 
 **Benefits**:
+
 - ✅ Free private container registry (unlimited storage for private projects)
 - ✅ Integrated with GitLab CI/CD (but we're using GitHub Actions)
 - ✅ No Docker Hub subscription required
@@ -22,9 +23,9 @@ This guide provides detailed instructions for creating a GitLab Personal Access 
 
 Your GitLab Personal Access Token must have these scopes:
 
-| Scope | Permission | Why Required |
-|-------|------------|--------------|
-| `read_registry` | Read (pull) container images | Allows deployment server to pull images |
+| Scope            | Permission                    | Why Required                               |
+| ---------------- | ----------------------------- | ------------------------------------------ |
+| `read_registry`  | Read (pull) container images  | Allows deployment server to pull images    |
 | `write_registry` | Write (push) container images | Allows GitHub Actions to push built images |
 
 **Note**: Do NOT grant additional scopes (principle of least privilege).
@@ -47,17 +48,21 @@ Click **Add new token** button.
 **Token Settings**:
 
 **Token name**:
+
 ```
 github-actions-sveltehr
 ```
-*Clear, descriptive name indicating usage*
+
+_Clear, descriptive name indicating usage_
 
 **Expiration date**:
+
 - **Recommended**: 1 year from today
 - **Alternative**: No expiration (requires manual revocation)
 - **Trade-off**: Longer expiration = less maintenance, shorter = more secure
 
 **Select scopes**:
+
 - ✅ `read_registry` - **REQUIRED**
 - ✅ `write_registry` - **REQUIRED**
 - ❌ All other scopes - **DO NOT SELECT**
@@ -69,6 +74,7 @@ github-actions-sveltehr
 3. Token format: `glpat-xxxxxxxxxxxxxxxxxxxxx` (starts with `glpat-`)
 
 **Save the token securely**:
+
 ```bash
 # Save to encrypted file
 echo "glpat-xxxxxxxxxxxxxxxxxxxxx" > gitlab-token.txt
@@ -127,6 +133,7 @@ docker pull registry.gitlab.com/your_username/sveltehr/test:latest
 ### Test 4: GitHub Actions Workflow
 
 **Trigger the workflow**:
+
 1. Push commit to `main` branch
 2. Watch GitHub Actions → **Deploy to Production**
 3. Check **Build and Push Images** job
@@ -154,6 +161,7 @@ echo ".env*" >> .gitignore
 **Recommended**: Rotate tokens every **90 days**
 
 **Rotation Process**:
+
 1. Create new token with same scopes
 2. Update GitHub Secret `GITLAB_TOKEN`
 3. Test deployment
@@ -162,6 +170,7 @@ echo ".env*" >> .gitignore
 ### 4. Monitor Token Usage
 
 **GitLab Audit Log**:
+
 1. Go to GitLab → **Settings** → **Access Tokens**
 2. View **Active** tab
 3. Check **Last Used** timestamp
@@ -177,6 +186,7 @@ echo ".env*" >> .gitignore
 ### Issue: "Authentication Required" Error
 
 **Symptoms**:
+
 ```
 Error: failed to authorize: failed to fetch oauth token: unexpected status: 401 Unauthorized
 ```
@@ -184,6 +194,7 @@ Error: failed to authorize: failed to fetch oauth token: unexpected status: 401 
 **Solutions**:
 
 1. **Verify token is correct**:
+
    ```bash
    # Test token manually
    curl -H "PRIVATE-TOKEN: glpat-xxxxx" https://gitlab.com/api/v4/user
@@ -202,6 +213,7 @@ Error: failed to authorize: failed to fetch oauth token: unexpected status: 401 
 ### Issue: "Repository Not Found" Error
 
 **Symptoms**:
+
 ```
 Error: denied: requested access to the resource is denied
 ```
@@ -213,6 +225,7 @@ Error: denied: requested access to the resource is denied
    - Case-sensitive!
 
 2. **Check image path format**:
+
    ```
    Correct: registry.gitlab.com/username/sveltehr/frontend:latest
    Wrong: registry.gitlab.com/username/frontend:latest
@@ -227,6 +240,7 @@ Error: denied: requested access to the resource is denied
 ### Issue: "Rate Limit Exceeded" Error
 
 **Symptoms**:
+
 ```
 Error: toomanyrequests: You have reached your pull rate limit
 ```
@@ -249,6 +263,7 @@ Error: toomanyrequests: You have reached your pull rate limit
 3. **Update GitHub Secret** with new token
 
 4. **Check for commits containing token**:
+
    ```bash
    git log -S "glpat-" --all
    ```
@@ -295,6 +310,7 @@ GitLab automatically scans images for vulnerabilities:
 For production deployments, consider using **Deploy Tokens** instead of Personal Access Tokens:
 
 **Benefits**:
+
 - Not tied to user account
 - Can be scoped to single project
 - Easier to rotate without affecting other projects

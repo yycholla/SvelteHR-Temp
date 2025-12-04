@@ -27,6 +27,7 @@ This document outlines a systematic approach to decompose mutation.rs into focus
 **File Location:** `/home/chanway/SvelteHR/graphql-rust-server/src/schema/mutation.rs`
 
 **Metrics:**
+
 - **Total Lines:** 3,960
 - **Total Mutation Methods:** 120
 - **Import Statements:** 64 lines
@@ -37,20 +38,21 @@ This document outlines a systematic approach to decompose mutation.rs into focus
 
 The file currently handles mutations across **10 major business domains**:
 
-| Domain | Method Count | Estimated Lines | Complexity | Examples |
-|--------|--------------|-----------------|------------|----------|
-| **Auth** | 3 | ~150 | Low | `login`, `logout`, `refresh_session` |
-| **Users** | 8 | ~400 | Medium | `create_user_address`, `update_user_address`, `delete_user_address` |
-| **Events** | 12 | ~600 | High | `create_event`, `update_event`, `create_event_attendee`, `create_event_comment`, `create_event_waitlist` |
-| **Leave Management** | 15 | ~650 | High | `create_leave_request`, `approve_leave_request`, `cancel_leave_request`, `create_leave_type`, `create_leave_balance` |
-| **Tasks** | 10 | ~500 | Medium | `create_task`, `assign_task_to_user`, `change_task_status`, `create_task_dependency` |
-| **Reviews/Performance** | 18 | ~750 | High | `create_performance_review`, `create_review_cycle`, `create_review_feedback`, `create_review_goal`, `create_review_template` |
-| **Documents** | 12 | ~550 | Medium | `create_document`, `upload_document`, `create_document_version`, `create_document_assignment` |
-| **Employee Data** | 10 | ~400 | Medium | `create_employee_skill`, `create_employee_certification`, `create_emergency_contact`, `create_employee_vehicle` |
-| **Time/Attendance** | 8 | ~350 | Low | `create_attendance_record`, `update_attendance_record`, `create_time_off_policy` |
-| **System/Admin** | 20 | ~450 | Medium | `create_rollback_request`, `create_bulk_rollback_batch`, `create_hr_report`, `create_payroll_record`, `create_compensation_band` |
+| Domain                  | Method Count | Estimated Lines | Complexity | Examples                                                                                                                         |
+| ----------------------- | ------------ | --------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **Auth**                | 3            | ~150            | Low        | `login`, `logout`, `refresh_session`                                                                                             |
+| **Users**               | 8            | ~400            | Medium     | `create_user_address`, `update_user_address`, `delete_user_address`                                                              |
+| **Events**              | 12           | ~600            | High       | `create_event`, `update_event`, `create_event_attendee`, `create_event_comment`, `create_event_waitlist`                         |
+| **Leave Management**    | 15           | ~650            | High       | `create_leave_request`, `approve_leave_request`, `cancel_leave_request`, `create_leave_type`, `create_leave_balance`             |
+| **Tasks**               | 10           | ~500            | Medium     | `create_task`, `assign_task_to_user`, `change_task_status`, `create_task_dependency`                                             |
+| **Reviews/Performance** | 18           | ~750            | High       | `create_performance_review`, `create_review_cycle`, `create_review_feedback`, `create_review_goal`, `create_review_template`     |
+| **Documents**           | 12           | ~550            | Medium     | `create_document`, `upload_document`, `create_document_version`, `create_document_assignment`                                    |
+| **Employee Data**       | 10           | ~400            | Medium     | `create_employee_skill`, `create_employee_certification`, `create_emergency_contact`, `create_employee_vehicle`                  |
+| **Time/Attendance**     | 8            | ~350            | Low        | `create_attendance_record`, `update_attendance_record`, `create_time_off_policy`                                                 |
+| **System/Admin**        | 20           | ~450            | Medium     | `create_rollback_request`, `create_bulk_rollback_batch`, `create_hr_report`, `create_payroll_record`, `create_compensation_band` |
 
 **Already Migrated (via delegation pattern):**
+
 - ✅ **RBAC** → `src/schema/mutations/rbac.rs`
 - ✅ **Departments** → `src/schema/mutations/department.rs`
 - ✅ **Tasks** (partial) → `src/schema/mutations/task.rs`
@@ -61,6 +63,7 @@ The file currently handles mutations across **10 major business domains**:
 The file uses **two patterns simultaneously**:
 
 **Pattern 1: Direct Implementation (Legacy - 90% of file)**
+
 ```rust
 #[Object]
 impl MutationRoot {
@@ -71,6 +74,7 @@ impl MutationRoot {
 ```
 
 **Pattern 2: Delegation to Domain Modules (New - 10% of file)**
+
 ```rust
 #[Object]
 impl MutationRoot {
@@ -120,16 +124,16 @@ src/schema/mutations/
 
 ### 2.2 Module Responsibility Matrix
 
-| Module | Responsibilities | Approximate Size | Dependencies |
-|--------|------------------|------------------|--------------|
-| `auth.rs` | Login, logout, session management | 200 lines | `auth::AuthBackend`, `models::User` |
-| `events.rs` | Events, attendees, comments, waitlist | 700 lines | `models::Event`, `models::EventAttendee` |
-| `leave.rs` | Leave requests, types, balances, approvals | 750 lines | `models::LeaveRequest`, `models::LeaveType` |
-| `reviews.rs` | Review cycles, goals, feedback, templates | 850 lines | `models::PerformanceReview`, `models::ReviewCycle` |
-| `documents.rs` | Document CRUD, versions, assignments, access logs | 600 lines | `models::Document`, `models::DocumentVersion` |
-| `employee.rs` | Skills, certifications, emergency contacts, vehicles | 450 lines | `models::EmployeeSkill`, `models::EmergencyContact` |
-| `time.rs` | Attendance, time-off policies | 400 lines | `models::AttendanceRecord`, `models::TimeOffPolicy` |
-| `system.rs` | Rollback, HR reports, payroll, compensation | 500 lines | `models::RollbackRequest`, `models::PayrollRecord` |
+| Module         | Responsibilities                                     | Approximate Size | Dependencies                                        |
+| -------------- | ---------------------------------------------------- | ---------------- | --------------------------------------------------- |
+| `auth.rs`      | Login, logout, session management                    | 200 lines        | `auth::AuthBackend`, `models::User`                 |
+| `events.rs`    | Events, attendees, comments, waitlist                | 700 lines        | `models::Event`, `models::EventAttendee`            |
+| `leave.rs`     | Leave requests, types, balances, approvals           | 750 lines        | `models::LeaveRequest`, `models::LeaveType`         |
+| `reviews.rs`   | Review cycles, goals, feedback, templates            | 850 lines        | `models::PerformanceReview`, `models::ReviewCycle`  |
+| `documents.rs` | Document CRUD, versions, assignments, access logs    | 600 lines        | `models::Document`, `models::DocumentVersion`       |
+| `employee.rs`  | Skills, certifications, emergency contacts, vehicles | 450 lines        | `models::EmployeeSkill`, `models::EmergencyContact` |
+| `time.rs`      | Attendance, time-off policies                        | 400 lines        | `models::AttendanceRecord`, `models::TimeOffPolicy` |
+| `system.rs`    | Rollback, HR reports, payroll, compensation          | 500 lines        | `models::RollbackRequest`, `models::PayrollRecord`  |
 
 ### 2.3 MutationRoot Delegation Pattern
 
@@ -195,41 +199,55 @@ impl MutationRoot {
 **CRITICAL: Zero breaking changes to GraphQL schema**
 
 **Before Migration (current API):**
+
 ```graphql
 mutation {
-  login(input: { email: "user@example.com", password: "pass" }) {
-    user { id email }
-  }
-  createEvent(input: { title: "Team Meeting" }) {
-    id title
-  }
+	login(input: { email: "user@example.com", password: "pass" }) {
+		user {
+			id
+			email
+		}
+	}
+	createEvent(input: { title: "Team Meeting" }) {
+		id
+		title
+	}
 }
 ```
 
 **After Migration (namespaced API - OPTIONAL transition):**
+
 ```graphql
 mutation {
-  # Old style STILL WORKS (backward compatible)
-  login(input: { email: "user@example.com", password: "pass" }) {
-    user { id email }
-  }
+	# Old style STILL WORKS (backward compatible)
+	login(input: { email: "user@example.com", password: "pass" }) {
+		user {
+			id
+			email
+		}
+	}
 
-  # New namespaced style (cleaner organization)
-  auth {
-    login(input: { email: "user@example.com", password: "pass" }) {
-      user { id email }
-    }
-  }
+	# New namespaced style (cleaner organization)
+	auth {
+		login(input: { email: "user@example.com", password: "pass" }) {
+			user {
+				id
+				email
+			}
+		}
+	}
 
-  events {
-    create(input: { title: "Team Meeting" }) {
-      id title
-    }
-  }
+	events {
+		create(input: { title: "Team Meeting" }) {
+			id
+			title
+		}
+	}
 }
 ```
 
 **Migration Strategy:**
+
 1. **Phase 1:** Move methods to domain modules, keep delegation in MutationRoot
 2. **Phase 2 (Optional):** Add deprecated warnings to top-level methods
 3. **Phase 3 (Future):** Remove top-level methods in v2.0 API
@@ -259,20 +277,17 @@ mutation {
 ### 3.3 Domain Extraction Order (Priority)
 
 **Week 1: Low-Complexity Domains**
+
 1. ✅ **Auth** (3 methods, 150 lines) - Minimal dependencies
 2. ✅ **Time/Attendance** (8 methods, 350 lines) - Self-contained
 3. ✅ **Employee Data** (10 methods, 400 lines) - Well-defined boundaries
 
-**Week 2: Medium-Complexity Domains**
-4. ⚠️ **Documents** (12 methods, 550 lines) - Some cross-domain references
-5. ⚠️ **System/Admin** (20 methods, 500 lines) - Requires careful testing
+**Week 2: Medium-Complexity Domains** 4. ⚠️ **Documents** (12 methods, 550 lines) - Some cross-domain references 5. ⚠️ **System/Admin** (20 methods, 500 lines) - Requires careful testing
 
-**Week 3: High-Complexity Domains**
-6. 🔴 **Events** (12 methods, 600 lines) - Complex attendee logic
-7. 🔴 **Leave Management** (15 methods, 650 lines) - Approval workflows
-8. 🔴 **Reviews/Performance** (18 methods, 750 lines) - Multi-entity relationships
+**Week 3: High-Complexity Domains** 6. 🔴 **Events** (12 methods, 600 lines) - Complex attendee logic 7. 🔴 **Leave Management** (15 methods, 650 lines) - Approval workflows 8. 🔴 **Reviews/Performance** (18 methods, 750 lines) - Multi-entity relationships
 
 **Rationale:**
+
 - Start with simple domains to establish muscle memory
 - Build confidence before tackling complex event/leave logic
 - High-complexity domains benefit from lessons learned earlier
@@ -304,6 +319,7 @@ impl AuthMutations {
 #### Step 2: Move Methods One-by-One (30-60 min per method)
 
 **BEFORE: mutation.rs**
+
 ```rust
 #[Object]
 impl MutationRoot {
@@ -325,6 +341,7 @@ impl MutationRoot {
 ```
 
 **AFTER: auth.rs**
+
 ```rust
 #[Object]
 impl AuthMutations {
@@ -349,6 +366,7 @@ impl AuthMutations {
 #### Step 3: Add Delegation in MutationRoot (5 min)
 
 **mutation.rs**
+
 ```rust
 use crate::schema::mutations::AuthMutations;
 
@@ -367,6 +385,7 @@ impl MutationRoot {
 #### Step 4: Update Module Exports (2 min)
 
 **mutations/mod.rs**
+
 ```rust
 pub mod auth;       // NEW
 pub mod department;
@@ -384,6 +403,7 @@ pub use user::UserMutations;
 #### Step 5: Update Import Statements (10 min)
 
 **mutation.rs top-level imports**
+
 ```rust
 // REMOVE domain-specific imports no longer needed
 // use crate::models::{LoginInput, AuthResponse}; // Moved to auth.rs
@@ -415,6 +435,7 @@ cargo test
 #### Step 7: Update GraphQL Integration Tests (20 min)
 
 **tests/integration/auth_test.rs**
+
 ```rust
 // OLD TEST (still works - backward compatible)
 #[tokio::test]
@@ -474,6 +495,7 @@ git push origin refactor/extract-auth-mutations
 **Solutions:**
 
 **Option 1: Keep in mutation.rs (lightweight types)**
+
 ```rust
 // src/schema/mutation.rs
 #[derive(SimpleObject)]
@@ -487,6 +509,7 @@ pub struct UserInfo {
 ```
 
 **Option 2: Create shared module (complex types)**
+
 ```rust
 // src/schema/mutations/common.rs
 pub struct PaginationInput {
@@ -500,6 +523,7 @@ pub use common::PaginationInput;
 ```
 
 **Option 3: Move to models (domain types)**
+
 ```rust
 // src/models/auth.rs (already exists)
 pub struct AuthResult { ... }
@@ -514,6 +538,7 @@ pub struct AuthResult { ... }
 **Implementation:**
 
 **Phase 1: Dual Support (during migration)**
+
 ```rust
 #[Object]
 impl MutationRoot {
@@ -531,11 +556,13 @@ impl MutationRoot {
 ```
 
 **Phase 2: Deprecation Period (3-6 months)**
+
 - Keep both approaches working
 - Log warnings when old methods are used
 - Update documentation to recommend new approach
 
 **Phase 3: Removal (v2.0 breaking change)**
+
 - Remove top-level methods
 - Only namespaced API remains
 - Requires major version bump
@@ -715,6 +742,7 @@ impl MutationRoot {
 ```
 
 **Problems with this approach:**
+
 - ❌ 120 methods in one impl block (cognitive overload)
 - ❌ Event logic mixed with payroll, auth mixed with documents
 - ❌ Any change triggers full file recompile (slow builds)
@@ -1109,6 +1137,7 @@ pub use user::UserMutations;
 ```
 
 **Benefits of this approach:**
+
 - ✅ Domain boundaries clearly defined (events.rs = event logic only)
 - ✅ Parallel development (3 developers, 3 domains, zero conflicts)
 - ✅ Faster compilation (change in events.rs doesn't recompile leave.rs)
@@ -1122,29 +1151,27 @@ pub use user::UserMutations;
 
 ```graphql
 mutation CreateEventAndAttendees {
-  # Direct top-level mutation
-  createEvent(input: {
-    title: "Q4 Planning Meeting"
-    description: "Quarterly planning session"
-    startTime: "2025-11-15T14:00:00Z"
-    endTime: "2025-11-15T16:00:00Z"
-    location: "Conference Room A"
-  }) {
-    id
-    title
-    startTime
-    createdBy
-  }
+	# Direct top-level mutation
+	createEvent(
+		input: {
+			title: "Q4 Planning Meeting"
+			description: "Quarterly planning session"
+			startTime: "2025-11-15T14:00:00Z"
+			endTime: "2025-11-15T16:00:00Z"
+			location: "Conference Room A"
+		}
+	) {
+		id
+		title
+		startTime
+		createdBy
+	}
 
-  # Direct top-level mutation
-  createEventAttendee(input: {
-    eventId: "..."
-    userId: "..."
-    rsvpStatus: PENDING
-  }) {
-    id
-    rsvpStatus
-  }
+	# Direct top-level mutation
+	createEventAttendee(input: { eventId: "...", userId: "...", rsvpStatus: PENDING }) {
+		id
+		rsvpStatus
+	}
 }
 ```
 
@@ -1152,31 +1179,29 @@ mutation CreateEventAndAttendees {
 
 ```graphql
 mutation CreateEventAndAttendees {
-  events {
-    # Namespaced under events domain
-    create(input: {
-      title: "Q4 Planning Meeting"
-      description: "Quarterly planning session"
-      startTime: "2025-11-15T14:00:00Z"
-      endTime: "2025-11-15T16:00:00Z"
-      location: "Conference Room A"
-    }) {
-      id
-      title
-      startTime
-      createdBy
-    }
+	events {
+		# Namespaced under events domain
+		create(
+			input: {
+				title: "Q4 Planning Meeting"
+				description: "Quarterly planning session"
+				startTime: "2025-11-15T14:00:00Z"
+				endTime: "2025-11-15T16:00:00Z"
+				location: "Conference Room A"
+			}
+		) {
+			id
+			title
+			startTime
+			createdBy
+		}
 
-    # All event mutations grouped together
-    addAttendee(input: {
-      eventId: "..."
-      userId: "..."
-      rsvpStatus: PENDING
-    }) {
-      id
-      rsvpStatus
-    }
-  }
+		# All event mutations grouped together
+		addAttendee(input: { eventId: "...", userId: "...", rsvpStatus: PENDING }) {
+			id
+			rsvpStatus
+		}
+	}
 }
 ```
 
@@ -1184,50 +1209,53 @@ mutation CreateEventAndAttendees {
 
 ```graphql
 mutation CompleteOnboarding {
-  auth {
-    login(input: {
-      email: "newuser@example.com"
-      password: "temp123"
-    }) {
-      user { id email }
-      session { expiresAt }
-    }
-  }
+	auth {
+		login(input: { email: "newuser@example.com", password: "temp123" }) {
+			user {
+				id
+				email
+			}
+			session {
+				expiresAt
+			}
+		}
+	}
 
-  employee {
-    addSkill(input: {
-      userId: "..."
-      skillName: "Rust"
-      proficiencyLevel: INTERMEDIATE
-    }) {
-      id
-      skillName
-    }
+	employee {
+		addSkill(input: { userId: "...", skillName: "Rust", proficiencyLevel: INTERMEDIATE }) {
+			id
+			skillName
+		}
 
-    addCertification(input: {
-      userId: "..."
-      certificationName: "AWS Certified Developer"
-      issuedDate: "2025-01-15"
-    }) {
-      id
-      certificationName
-    }
-  }
+		addCertification(
+			input: {
+				userId: "..."
+				certificationName: "AWS Certified Developer"
+				issuedDate: "2025-01-15"
+			}
+		) {
+			id
+			certificationName
+		}
+	}
 
-  documents {
-    upload(input: {
-      fileName: "resume.pdf"
-      fileContent: "base64encodedcontent..."
-      documentType: "resume"
-    }) {
-      id
-      fileName
-    }
-  }
+	documents {
+		upload(
+			input: {
+				fileName: "resume.pdf"
+				fileContent: "base64encodedcontent..."
+				documentType: "resume"
+			}
+		) {
+			id
+			fileName
+		}
+	}
 }
 ```
 
 **Key Observations:**
+
 - ✅ Domain organization mirrors backend code structure
 - ✅ Related mutations grouped together (events.create, events.addAttendee)
 - ✅ Easier to discover available mutations (introspection shows namespaces)
@@ -1240,6 +1268,7 @@ mutation CompleteOnboarding {
 ### Week 1: Foundation & Low-Complexity Domains (20 hours)
 
 **Monday-Tuesday: Auth Domain (6 hours)**
+
 - [ ] Create `src/schema/mutations/auth.rs`
 - [ ] Move `login`, `logout`, `refresh_session` methods
 - [ ] Write integration tests for auth mutations
@@ -1247,12 +1276,14 @@ mutation CompleteOnboarding {
 - [ ] Commit: "refactor: Extract auth mutations to dedicated module"
 
 **Wednesday: Time/Attendance Domain (6 hours)**
+
 - [ ] Create `src/schema/mutations/time.rs`
 - [ ] Move 8 time-related methods (attendance, time-off policies)
 - [ ] Write integration tests
 - [ ] Commit: "refactor: Extract time/attendance mutations"
 
 **Thursday-Friday: Employee Data Domain (8 hours)**
+
 - [ ] Create `src/schema/mutations/employee.rs`
 - [ ] Move 10 employee-related methods (skills, certifications, emergency contacts, vehicles)
 - [ ] Write integration tests
@@ -1262,6 +1293,7 @@ mutation CompleteOnboarding {
 ### Week 2: Medium-Complexity Domains (22 hours)
 
 **Monday-Tuesday: Documents Domain (10 hours)**
+
 - [ ] Create `src/schema/mutations/documents.rs`
 - [ ] Move 12 document methods (CRUD, versions, assignments, access logs)
 - [ ] Handle encryption/file storage cross-references
@@ -1269,6 +1301,7 @@ mutation CompleteOnboarding {
 - [ ] Commit: "refactor: Extract document mutations"
 
 **Wednesday-Friday: System/Admin Domain (12 hours)**
+
 - [ ] Create `src/schema/mutations/system.rs`
 - [ ] Move 20 system methods (rollback, HR reports, payroll, compensation, activity logs)
 - [ ] Handle cross-domain dependencies (rollback affects multiple domains)
@@ -1279,6 +1312,7 @@ mutation CompleteOnboarding {
 ### Week 3: High-Complexity Domains (18 hours)
 
 **Monday-Tuesday: Events Domain (7 hours)**
+
 - [ ] Create `src/schema/mutations/events.rs`
 - [ ] Move 12 event methods (events, attendees, comments, waitlist, history)
 - [ ] Handle RRULE recurring event logic
@@ -1286,6 +1320,7 @@ mutation CompleteOnboarding {
 - [ ] Commit: "refactor: Extract event mutations"
 
 **Wednesday: Leave Management Domain (6 hours)**
+
 - [ ] Create `src/schema/mutations/leave.rs`
 - [ ] Move 15 leave methods (requests, approvals, types, balances)
 - [ ] Handle approval workflow logic
@@ -1293,6 +1328,7 @@ mutation CompleteOnboarding {
 - [ ] Commit: "refactor: Extract leave management mutations"
 
 **Thursday-Friday: Reviews/Performance Domain (5 hours + finalization)**
+
 - [ ] Create `src/schema/mutations/reviews.rs`
 - [ ] Move 18 review methods (cycles, goals, feedback, templates, performance reviews)
 - [ ] Handle multi-entity relationships (cycle → reviews → goals → feedback)
@@ -1304,16 +1340,19 @@ mutation CompleteOnboarding {
 ### Post-Migration Tasks (Week 4)
 
 **Documentation (4 hours)**
+
 - [ ] Update GraphQL API documentation with namespaced examples
 - [ ] Create migration guide for frontend developers
 - [ ] Document deprecated top-level mutations
 
 **Performance Testing (3 hours)**
+
 - [ ] Run compilation benchmarks (before vs after)
 - [ ] Run integration test suite performance comparison
 - [ ] Validate no GraphQL query performance regression
 
 **Team Handoff (2 hours)**
+
 - [ ] Team demo of new architecture
 - [ ] Update contribution guidelines
 - [ ] Code review and sign-off from tech lead
@@ -1325,21 +1364,25 @@ mutation CompleteOnboarding {
 ### 6.1 Benefits
 
 **Development Velocity:**
+
 - ✅ **Parallel Development:** 3 developers can work on different domains simultaneously (zero merge conflicts expected)
 - ✅ **Faster Compilation:** Incremental rebuilds ~70% faster (only changed domain recompiles)
 - ✅ **Easier Onboarding:** New developers navigate 600-line domain files instead of 4,000-line monolith
 
 **Code Quality:**
+
 - ✅ **Domain Boundaries:** Clear separation prevents event logic from leaking into payroll code
 - ✅ **Single Responsibility:** Each module has one job (events.rs = event mutations only)
 - ✅ **Testability:** Unit tests can import single domain module instead of entire mutation.rs
 
 **Maintainability:**
+
 - ✅ **Easier Refactoring:** Change event logic without risk of breaking leave management
 - ✅ **Code Review Quality:** Reviewers examine 100-line PR instead of 500-line change in God file
 - ✅ **Git History:** `git blame` shows domain-specific commits, not mixed changes
 
 **Operational:**
+
 - ✅ **Deployment Safety:** Domain-specific tests catch regressions before production
 - ✅ **Monitoring:** Error logs reference specific domain modules (easier debugging)
 - ✅ **API Discoverability:** GraphQL introspection shows organized namespace structure
@@ -1348,36 +1391,39 @@ mutation CompleteOnboarding {
 
 **Migration Risks:**
 
-| Risk | Severity | Probability | Mitigation |
-|------|----------|-------------|------------|
-| **Breaking GraphQL API** | High | Low | Extensive integration tests before/after each domain extraction |
-| **Import cycle deadlock** | Medium | Low | Use dependency injection, avoid circular module dependencies |
-| **Test coverage gaps** | Medium | Medium | Require 80%+ test coverage before extracting domain |
-| **Performance regression** | Low | Low | Benchmark query performance before/after migration |
-| **Team coordination failure** | Medium | Medium | Daily standups, feature branches per domain, clear ownership |
+| Risk                          | Severity | Probability | Mitigation                                                      |
+| ----------------------------- | -------- | ----------- | --------------------------------------------------------------- |
+| **Breaking GraphQL API**      | High     | Low         | Extensive integration tests before/after each domain extraction |
+| **Import cycle deadlock**     | Medium   | Low         | Use dependency injection, avoid circular module dependencies    |
+| **Test coverage gaps**        | Medium   | Medium      | Require 80%+ test coverage before extracting domain             |
+| **Performance regression**    | Low      | Low         | Benchmark query performance before/after migration              |
+| **Team coordination failure** | Medium   | Medium      | Daily standups, feature branches per domain, clear ownership    |
 
 **Operational Risks:**
 
-| Risk | Severity | Probability | Mitigation |
-|------|----------|-------------|------------|
-| **Learning curve** | Low | High | Comprehensive documentation, team training session |
-| **Inconsistent patterns** | Medium | Medium | Establish domain module template, enforce in code review |
-| **Shared code duplication** | Low | Medium | Create `mutations/common.rs` for shared utilities |
-| **Backward compatibility break** | High | Low | Maintain dual support (top-level + namespaced) for 6 months |
+| Risk                             | Severity | Probability | Mitigation                                                  |
+| -------------------------------- | -------- | ----------- | ----------------------------------------------------------- |
+| **Learning curve**               | Low      | High        | Comprehensive documentation, team training session          |
+| **Inconsistent patterns**        | Medium   | Medium      | Establish domain module template, enforce in code review    |
+| **Shared code duplication**      | Low      | Medium      | Create `mutations/common.rs` for shared utilities           |
+| **Backward compatibility break** | High     | Low         | Maintain dual support (top-level + namespaced) for 6 months |
 
 ### 6.3 Risk Mitigation Strategies
 
 **Pre-Migration:**
+
 1. **Comprehensive Test Suite:** Achieve 80%+ test coverage on mutation.rs before extraction
 2. **Dependency Mapping:** Document all cross-domain dependencies (e.g., events → users, leave → approvals)
 3. **Rollback Plan:** Keep old mutation.rs in separate branch for emergency rollback
 
 **During Migration:**
+
 1. **One Domain at a Time:** Extract, test, commit, deploy before moving to next domain
 2. **Feature Flags:** Use feature flags to toggle between old/new mutation paths (if needed)
 3. **Parallel Testing:** Run tests on both old and new implementations during transition
 
 **Post-Migration:**
+
 1. **Monitoring:** Track GraphQL error rates for 2 weeks after full migration
 2. **Performance Baselines:** Compare query latency before/after (alert if >10% regression)
 3. **Deprecation Period:** Keep top-level methods for 3-6 months with deprecation warnings
@@ -1391,28 +1437,33 @@ mutation CompleteOnboarding {
 **After extracting EACH domain, validate:**
 
 #### Compilation Checks
+
 - [ ] `cargo check` passes without warnings
 - [ ] `cargo clippy` shows no new warnings
 - [ ] `cargo build --release` succeeds
 
 #### Unit Testing
+
 - [ ] All domain-specific unit tests pass: `cargo test --lib mutations::{domain}`
 - [ ] Test coverage ≥80% for extracted module: `cargo tarpaulin --out Html`
 - [ ] No test runtime regressions (test suite completes in <10s per domain)
 
 #### Integration Testing
+
 - [ ] GraphQL queries using old top-level mutations still work
 - [ ] GraphQL queries using new namespaced mutations work identically
 - [ ] Multi-mutation transactions succeed (e.g., create event + add attendees)
 - [ ] Error handling produces same error messages as before
 
 #### API Compatibility
+
 - [ ] GraphQL schema introspection shows new namespace (e.g., `events`)
 - [ ] GraphQL schema introspection still shows old top-level mutations (backward compat)
 - [ ] Frontend queries (if applicable) execute without changes
 - [ ] Postman/curl integration tests pass
 
 #### Performance Benchmarks
+
 - [ ] Query latency ≤ baseline (no >10% regression)
 - [ ] Compilation time for incremental builds improves
 - [ ] Memory usage during GraphQL query execution unchanged
@@ -1420,24 +1471,28 @@ mutation CompleteOnboarding {
 ### 7.2 Post-Migration Validation (All Domains Complete)
 
 #### Architecture Validation
+
 - [ ] `mutation.rs` reduced to ≤200 lines (delegation only)
 - [ ] No business logic remains in `mutation.rs` (only struct delegation)
 - [ ] All 120 methods distributed across 12 domain modules
 - [ ] Module dependency graph has no circular dependencies
 
 #### Testing Validation
+
 - [ ] Full test suite passes: `cargo test`
 - [ ] Integration test suite passes: `cargo test --test integration`
 - [ ] E2E tests (if applicable) pass against running server
 - [ ] Performance tests show ≤5% variance from baseline
 
 #### Documentation Validation
+
 - [ ] GraphQL API docs updated with namespaced examples
 - [ ] Migration guide published for frontend developers
 - [ ] Architecture Decision Record (ADR) created documenting this refactoring
 - [ ] Changelog entry added to CHANGELOG.md
 
 #### Team Validation
+
 - [ ] Code review approval from 2+ senior developers
 - [ ] Team demo completed (show new architecture in action)
 - [ ] Contribution guidelines updated with domain module patterns
@@ -1448,24 +1503,28 @@ mutation CompleteOnboarding {
 **Before deploying to production:**
 
 #### Stability Checks
+
 - [ ] Staging environment tested for 48 hours with zero errors
 - [ ] Load testing shows no performance degradation under 1000 req/s
 - [ ] Memory leak testing (run server for 24h, monitor memory usage)
 - [ ] Error rate monitoring shows <0.1% error rate
 
 #### Rollback Preparedness
+
 - [ ] Git tag created for pre-migration state: `git tag v1.x.x-pre-refactor`
 - [ ] Rollback procedure documented and tested
 - [ ] Database migrations (if any) are reversible
 - [ ] Feature flag to revert to old mutation.rs (if implemented)
 
 #### Monitoring Setup
+
 - [ ] Error tracking configured for new domain modules (e.g., Sentry tags)
 - [ ] Latency dashboards updated with per-domain metrics
 - [ ] Alert rules created for GraphQL error spikes
 - [ ] On-call runbook updated with new architecture context
 
 #### Communication
+
 - [ ] Stakeholders notified of deployment (product, frontend team, DevOps)
 - [ ] Deployment announcement in team Slack/Discord
 - [ ] Post-deployment monitoring plan shared (who watches metrics for 24h)
@@ -1654,6 +1713,7 @@ async fn test_authorization_failure() {
 ### 8.3 Useful Commands
 
 **Development:**
+
 ```bash
 # Check specific domain module
 cargo check --lib mutations::events
@@ -1672,6 +1732,7 @@ cargo modules generate graph --lib | dot -Tpng > dependencies.png
 ```
 
 **Code Quality:**
+
 ```bash
 # Run clippy on domain module
 cargo clippy --lib -- -D warnings
@@ -1687,6 +1748,7 @@ cargo udeps
 ```
 
 **Benchmarking:**
+
 ```bash
 # GraphQL query performance
 wrk -t4 -c100 -d30s --latency http://localhost:8000/graphql \
@@ -1699,16 +1761,19 @@ hyperfine --warmup 1 'cargo build --release'
 ### 8.4 References
 
 **Relevant Documentation:**
+
 - [async-graphql Field Resolvers](https://async-graphql.github.io/async-graphql/en/field_resolvers.html)
 - [SeaORM Transactions](https://www.sea-ql.org/SeaORM/docs/advanced-query/transaction/)
 - [Rust Module System Best Practices](https://doc.rust-lang.org/book/ch07-00-managing-growing-projects-with-packages-crates-and-modules.html)
 
 **Internal Documentation:**
+
 - GraphQL API Specification: `/docs/api/graphql-schema.md`
 - Authentication & Authorization Guide: `/docs/auth/rbac-implementation.md`
 - Database Schema Documentation: `/docs/database/schema-overview.md`
 
 **Related ADRs (Architecture Decision Records):**
+
 - ADR-001: GraphQL API Design Principles
 - ADR-005: SeaORM as ORM Layer
 - ADR-012: Mutation Transaction Handling
@@ -1727,6 +1792,7 @@ This refactoring will transform `mutation.rs` from a 3,960-line God file into a 
 The migration follows a proven step-by-step process with comprehensive validation at each stage. By extracting domains incrementally (auth → time → employee → documents → system → events → leave → reviews), the team minimizes risk while building confidence in the new architecture.
 
 **Next Steps:**
+
 1. Review this plan with tech lead and team (1 hour meeting)
 2. Create feature branches for each domain: `refactor/extract-{domain}-mutations`
 3. Assign domain ownership (2 developers, 4 domains each)
@@ -1734,6 +1800,7 @@ The migration follows a proven step-by-step process with comprehensive validatio
 5. Track progress in project management tool (Jira/Linear/GitHub Projects)
 
 **Success Criteria:**
+
 - ✅ All 120 mutation methods migrated to domain modules
 - ✅ `mutation.rs` reduced to ≤200 lines (delegation only)
 - ✅ Zero failing tests after migration

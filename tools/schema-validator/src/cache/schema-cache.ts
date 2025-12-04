@@ -148,11 +148,7 @@ export class SchemaCache {
    * Clear all cache types
    */
   async clearAll(): Promise<void> {
-    await Promise.all([
-      this.clear('database'),
-      this.clear('api'),
-      this.clear('operations'),
-    ]);
+    await Promise.all([this.clear('database'), this.clear('api'), this.clear('operations')]);
   }
 
   /**
@@ -200,7 +196,9 @@ export class SchemaCache {
     try {
       await writeFile(filePath, json, 'utf-8');
     } catch (error) {
-      throw new Error(`Failed to write ${type} cache: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to write ${type} cache: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 

@@ -168,10 +168,7 @@ export function isTaskDepartmentAssigned(task: Task): boolean {
 /**
  * Filter tasks by department
  */
-export function filterTasksByDepartment(
-	tasks: Task[],
-	departmentId: string | undefined
-): Task[] {
+export function filterTasksByDepartment(tasks: Task[], departmentId: string | undefined): Task[] {
 	if (!departmentId) {
 		// Return tasks with no department assignment
 		return tasks.filter((task) => !task.assignedToDepartmentId);

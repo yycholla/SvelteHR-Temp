@@ -7,7 +7,7 @@ metadata:
   name: sveltehr-prod
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "3"  # After infrastructure (wave 0-2)
+    argocd.argoproj.io/sync-wave: '3' # After infrastructure (wave 0-2)
 
     # ===== ArgoCD Image Updater Configuration =====
     # Enable automated GHCR image updates with semantic versioning
@@ -49,7 +49,7 @@ spec:
   # Source: Git repository containing Helm chart
   source:
     repoURL: https://github.com/Mountain-Care-Rx/SvelteHR.git
-    targetRevision: main  # Track main branch for production
+    targetRevision: main # Track main branch for production
     path: k8s/helm-charts/sveltehr
     helm:
       # Use production values (includes new health probe fixes)
@@ -76,8 +76,8 @@ spec:
   # Sync policy: AUTOMATED GitOps workflow
   syncPolicy:
     automated:
-      prune: true  # Remove resources deleted from Git
-      selfHeal: true  # Auto-correct cluster drift
+      prune: true # Remove resources deleted from Git
+      selfHeal: true # Auto-correct cluster drift
 
     # Sync options
     syncOptions:
@@ -97,7 +97,7 @@ spec:
   # Ignore differences (prevents constant out-of-sync status)
   ignoreDifferences:
     # Ignore Helm release secrets (managed by Helm)
-    - group: ""
+    - group: ''
       kind: Secret
       name: sh.helm.release.*
       jsonPointers:

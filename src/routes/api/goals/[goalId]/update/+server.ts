@@ -56,7 +56,10 @@ export const PATCH: RequestHandler = async ({ request, params, cookies, locals }
 			}
 		};
 
-		console.log('[Goal Update API] Sending mutation with variables:', JSON.stringify(variables, null, 2));
+		console.log(
+			'[Goal Update API] Sending mutation with variables:',
+			JSON.stringify(variables, null, 2)
+		);
 
 		const result = await graphqlClient.mutation(mutation, variables);
 
@@ -77,17 +80,17 @@ export const PATCH: RequestHandler = async ({ request, params, cookies, locals }
 
 		if (!result.data?.updateEmployeeGoal) {
 			console.error('[Goal Update API] No data returned from mutation');
-			return json(
-				{ message: 'No data returned from goal update' },
-				{ status: 500 }
-			);
+			return json({ message: 'No data returned from goal update' }, { status: 500 });
 		}
 
 		console.log('[Goal Update API] Successfully updated goal:', result.data.updateEmployeeGoal);
 		return json({ goal: result.data.updateEmployeeGoal }, { status: 200 });
 	} catch (error) {
 		console.error('[Goal Update API] Catch block error:', error);
-		console.error('[Goal Update API] Error stack:', error instanceof Error ? error.stack : 'No stack');
+		console.error(
+			'[Goal Update API] Error stack:',
+			error instanceof Error ? error.stack : 'No stack'
+		);
 		return json(
 			{
 				message: error instanceof Error ? error.message : 'Failed to update goal',

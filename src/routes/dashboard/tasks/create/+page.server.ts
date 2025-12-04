@@ -45,8 +45,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		}
 
 		error(500, {
-        			message: 'Failed to load task creation form. Please try again later.'
-        		});
+			message: 'Failed to load task creation form. Please try again later.'
+		});
 	}
 };
 

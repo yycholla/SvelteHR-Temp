@@ -42,7 +42,8 @@ beforeAll(async () => {
 			console.warn('Failed to fetch schema introspection, using fallback');
 			// Load fallback introspection data if available
 			try {
-					const fallbackIntrospection = (await import('$lib/generated/introspection.json')).default as any;
+				const fallbackIntrospection = (await import('$lib/generated/introspection.json'))
+					.default as any;
 				global.__GRAPHQL_INTROSPECTION_RESULT__ =
 					fallbackIntrospection.default || fallbackIntrospection;
 				global.__GRAPHQL_SCHEMA_CACHE__.set(
@@ -58,7 +59,8 @@ beforeAll(async () => {
 
 		// Try to load from generated files
 		try {
-				const fallbackIntrospection = (await import('$lib/generated/introspection.json')).default as any;
+			const fallbackIntrospection = (await import('$lib/generated/introspection.json'))
+				.default as any;
 			global.__GRAPHQL_INTROSPECTION_RESULT__ =
 				fallbackIntrospection.default || fallbackIntrospection;
 			global.__GRAPHQL_SCHEMA_CACHE__.set('introspection', global.__GRAPHQL_INTROSPECTION_RESULT__);

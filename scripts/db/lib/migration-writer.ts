@@ -19,11 +19,7 @@ import type { MigrationMetadata } from '../types/migration';
  * @param description - Snake_case description
  * @returns Migration filename
  */
-export function generateFilename(
-	date: string,
-	sequence: number,
-	description: string
-): string {
+export function generateFilename(date: string, sequence: number, description: string): string {
 	const paddedSequence = String(sequence).padStart(3, '0');
 	const sanitizedDescription = description
 		.toLowerCase()

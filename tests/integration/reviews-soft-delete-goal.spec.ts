@@ -7,11 +7,7 @@
  */
 
 import { test, expect, describe, beforeAll, afterAll } from 'vitest';
-import {
-	createTestContext,
-	cleanupTestData,
-	TestUser
-} from '../utils/test-helpers';
+import { createTestContext, cleanupTestData, TestUser } from '../utils/test-helpers';
 import { performGraphQLMutation, performGraphQLQuery } from '../utils/graphql-test-client';
 
 interface TestContext {
@@ -191,7 +187,9 @@ describe('T017: Soft delete goal preservation in reviews', () => {
 		);
 
 		// Goal should not be in active goals list
-		const deletedGoalInList = activeGoalsResponse.data.employeeGoals.find((g: { id: string }) => g.id === goalId);
+		const deletedGoalInList = activeGoalsResponse.data.employeeGoals.find(
+			(g: { id: string }) => g.id === goalId
+		);
 		expect(deletedGoalInList).toBeUndefined();
 
 		// Step 6: Query with includeDeleted=true - goal should appear
@@ -201,7 +199,9 @@ describe('T017: Soft delete goal preservation in reviews', () => {
 			testContext.authTokens.admin
 		);
 
-		const deletedGoalIncluded = allGoalsResponse.data.employeeGoals.find((g: { id: string }) => g.id === goalId);
+		const deletedGoalIncluded = allGoalsResponse.data.employeeGoals.find(
+			(g: { id: string }) => g.id === goalId
+		);
 		expect(deletedGoalIncluded).toBeDefined();
 		expect(deletedGoalIncluded.deleted).toBe(true);
 	});

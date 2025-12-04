@@ -119,11 +119,7 @@ test.describe('Employee Page Access Control (US1)', () => {
 		await loginWithPermissions(page, ['profile:read', 'employees:read']);
 
 		// Test multiple admin routes
-		const adminRoutes = [
-			'/admin/departments',
-			'/dashboard/admin/analytics',
-			'/admin/system'
-		];
+		const adminRoutes = ['/admin/departments', '/dashboard/admin/analytics', '/admin/system'];
 
 		for (const route of adminRoutes) {
 			await page.goto(route);
@@ -152,11 +148,7 @@ test.describe('Employee Page Access Control (US1)', () => {
 		await loginWithPermissions(page, ['*'], ['Admin']);
 
 		// Test that admin can access all protected routes
-		const protectedRoutes = [
-			'/hr/employees',
-			'/admin/departments',
-			'/dashboard/admin/analytics'
-		];
+		const protectedRoutes = ['/hr/employees', '/admin/departments', '/dashboard/admin/analytics'];
 
 		for (const route of protectedRoutes) {
 			await page.goto(route);

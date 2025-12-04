@@ -26,7 +26,10 @@ test.describe('Event Capacity and Waitlist Management', () => {
 
 		// Fill in event details
 		await page.fill('input[name="title"]', 'Limited Capacity Training');
-		await page.fill('textarea[name="description"]', 'Advanced leadership workshop with limited seats');
+		await page.fill(
+			'textarea[name="description"]',
+			'Advanced leadership workshop with limited seats'
+		);
 		await page.fill('input[name="startTime"]', '2025-10-20T10:00');
 		await page.fill('input[name="endTime"]', '2025-10-20T14:00');
 		await page.selectOption('select[name="type"]', 'training');

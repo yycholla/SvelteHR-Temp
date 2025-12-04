@@ -104,9 +104,7 @@ export const actions: Actions = {
 		if (formData.has('documentUrl')) input.documentUrl = formData.get('documentUrl');
 		if (formData.has('formTemplateId')) input.formTemplateId = formData.get('formTemplateId');
 		if (formData.has('fileUploadRequirements'))
-			input.fileUploadRequirements = JSON.parse(
-				formData.get('fileUploadRequirements') as string
-			);
+			input.fileUploadRequirements = JSON.parse(formData.get('fileUploadRequirements') as string);
 		if (formData.has('signatureRequirements'))
 			input.signatureRequirements = JSON.parse(formData.get('signatureRequirements') as string);
 		if (formData.has('checkboxItems'))
@@ -179,8 +177,7 @@ export const actions: Actions = {
 
 		if (formData.has('title')) input.title = formData.get('title');
 		if (formData.has('description')) input.description = formData.get('description');
-		if (formData.has('isRequired'))
-			input.isRequired = formData.get('isRequired') === 'true';
+		if (formData.has('isRequired')) input.isRequired = formData.get('isRequired') === 'true';
 
 		const result = await urqlClient.mutation(UPDATE_ONBOARDING_FORM, { id, input });
 

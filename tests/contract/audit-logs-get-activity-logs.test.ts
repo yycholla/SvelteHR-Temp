@@ -323,9 +323,4 @@ describe('GetActivityLogs Query Contract (TDD RED - should fail)', () => {
 });
 
 // Export types for use in implementation (T044)
-export type {
-	GetActivityLogsVariables,
-	GetActivityLogsResponse,
-	ActivityLogNode,
-	PageInfo
-};
+export type { GetActivityLogsVariables, GetActivityLogsResponse, ActivityLogNode, PageInfo };

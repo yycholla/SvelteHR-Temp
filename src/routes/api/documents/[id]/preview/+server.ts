@@ -68,7 +68,9 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 		if (!canAccess) {
 			// Log denied access
 			console.log(`Access denied for user ${userId} to document ${documentId}`);
-			error(403, { message: 'Access denied. You do not have permission to preview this document.' });
+			error(403, {
+				message: 'Access denied. You do not have permission to preview this document.'
+			});
 		}
 
 		// Step 4: Determine preview format
@@ -76,7 +78,10 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 		let requiresConversion = false;
 
 		const imageTypes = ['image/jpeg', 'image/png', 'image/gif'];
-		const officeTypes = ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+		const officeTypes = [
+			'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+		];
 
 		if (document.mime_type === 'application/pdf') {
 			previewFormat = 'PDF';
@@ -114,7 +119,6 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 			conversionStatus: requiresConversion ? 'pending' : 'ready',
 			mimeType: document.mime_type
 		});
-
 	} catch (err) {
 		console.error('Document preview error:', err);
 

@@ -42,7 +42,7 @@ test.describe('Task Creation Flow', () => {
 		// Verify form elements are present
 		await expect(page.locator('input[name="title"]')).toBeVisible();
 		await expect(page.locator('textarea[name="description"]')).toBeVisible();
-		
+
 		// Verify status and priority selects
 		await expect(page.locator('text=/Status/i')).toBeVisible();
 		await expect(page.locator('text=/Priority/i')).toBeVisible();
@@ -64,9 +64,9 @@ test.describe('Task Creation Flow', () => {
 		await page.waitForTimeout(500);
 
 		// Verify validation error for title
-		const titleError = page.locator('text=/title.*required/i').or(
-			page.locator('[data-error="title"]')
-		);
+		const titleError = page
+			.locator('text=/title.*required/i')
+			.or(page.locator('[data-error="title"]'));
 		await expect(titleError).toBeVisible();
 	});
 
@@ -95,12 +95,15 @@ test.describe('Task Creation Flow', () => {
 
 		// Fill all fields
 		await page.fill('input[name="title"]', 'E2E Test Task - Complete');
-		await page.fill('textarea[name="description"]', 'This is a comprehensive test task with all fields filled out.');
+		await page.fill(
+			'textarea[name="description"]',
+			'This is a comprehensive test task with all fields filled out.'
+		);
 
 		// Set priority
-		const priorityTrigger = page.locator('[id="priority"]').or(
-			page.locator('button:has-text("Medium")')
-		);
+		const priorityTrigger = page
+			.locator('[id="priority"]')
+			.or(page.locator('button:has-text("Medium")'));
 		if (await priorityTrigger.isVisible()) {
 			await priorityTrigger.click();
 			await page.locator('text=Urgent').click();
@@ -130,11 +133,11 @@ test.describe('Task Creation Flow', () => {
 		await page.goto('/dashboard/tasks/new');
 		await page.waitForLoadState('networkidle');
 		await page.fill('input[name="title"]', 'Parent Task for Subtask Test');
-		
+
 		const submitButton = page.locator('button[type="submit"]:has-text("Create Task")');
 		await submitButton.click();
 		await page.waitForURL('**/tasks/*', { timeout: 10000 });
-		
+
 		// Get parent task ID from URL
 		const parentTaskId = page.url().split('/').pop();
 
@@ -207,7 +210,7 @@ test.describe('Task Creation Flow', () => {
 
 		// Initially reminder should not be visible
 		const reminderField = page.locator('text=/Reminder/i');
-		
+
 		// Set a due date
 		const dueDate = new Date();
 		dueDate.setDate(dueDate.getDate() + 1);

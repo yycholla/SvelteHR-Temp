@@ -87,12 +87,7 @@ describe('validate-migrations CLI Contract', () => {
 		});
 
 		it('should accept --strict flag', async () => {
-			const result = await runCLI([
-				'--migrations-path',
-				TEST_MIGRATIONS_DIR,
-				'--strict',
-				'true'
-			]);
+			const result = await runCLI(['--migrations-path', TEST_MIGRATIONS_DIR, '--strict', 'true']);
 
 			expect([0, 1, 2]).toContain(result.exitCode);
 		});
@@ -151,10 +146,7 @@ describe('validate-migrations CLI Contract', () => {
 	describe('Sequential Ordering Validation', () => {
 		it('should detect duplicate sequence numbers', async () => {
 			// Create duplicate
-			writeFileSync(
-				join(TEST_MIGRATIONS_DIR, '20251001_001_duplicate_sequence.sql'),
-				'SELECT 1;'
-			);
+			writeFileSync(join(TEST_MIGRATIONS_DIR, '20251001_001_duplicate_sequence.sql'), 'SELECT 1;');
 
 			const result = await runCLI(['--migrations-path', TEST_MIGRATIONS_DIR]);
 
@@ -345,12 +337,7 @@ DROP TABLE users;`;
 			// Create gap in sequence numbers (warning in normal mode)
 			writeFileSync(join(TEST_MIGRATIONS_DIR, '20251001_010_gap.sql'), 'SELECT 1;');
 
-			const result = await runCLI([
-				'--migrations-path',
-				TEST_MIGRATIONS_DIR,
-				'--strict',
-				'true'
-			]);
+			const result = await runCLI(['--migrations-path', TEST_MIGRATIONS_DIR, '--strict', 'true']);
 
 			expect(result.exitCode).toBe(1);
 		});

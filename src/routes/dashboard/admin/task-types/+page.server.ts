@@ -24,9 +24,7 @@ export const load: PageServerLoad = async (event) => {
 		const taskTypes = taskTypesData?.taskTypes || [];
 
 		// Sort by name for better UI
-		const sortedTaskTypes = taskTypes.sort((a: any, b: any) =>
-			a.name.localeCompare(b.name)
-		);
+		const sortedTaskTypes = taskTypes.sort((a: any, b: any) => a.name.localeCompare(b.name));
 
 		return {
 			taskTypes: sortedTaskTypes,

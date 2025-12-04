@@ -262,8 +262,7 @@ async function generateMigrationForTable(
 						break;
 
 					case 'nullability_mismatch':
-						const setOrDrop =
-							colDiff.sourceValue === 'NOT NULL' ? 'SET NOT NULL' : 'DROP NOT NULL';
+						const setOrDrop = colDiff.sourceValue === 'NOT NULL' ? 'SET NOT NULL' : 'DROP NOT NULL';
 						lines.push(
 							`ALTER TABLE hr_public.${tableDiff.tableName} ALTER COLUMN ${colDiff.columnName} ${setOrDrop};`
 						);

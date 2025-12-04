@@ -8,7 +8,7 @@ metadata:
     app: minio
     component: postgres-init
   annotations:
-    argocd.argoproj.io/sync-wave: "2"  # Run after MinIO init job (wave 1)
+    argocd.argoproj.io/sync-wave: '2' # Run after MinIO init job (wave 1)
 spec:
   ttlSecondsAfterFinished: 3600
   backoffLimit: 3
@@ -146,7 +146,7 @@ spec:
 
           env:
             - name: MINIO_HOST
-              value: "http://minio.backup-system.svc.cluster.local:9000"
+              value: 'http://minio.backup-system.svc.cluster.local:9000'
 
             # MinIO root credentials
             - name: MINIO_ROOT_USER

@@ -22,7 +22,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	PermissionChecks.eventsRead({ locals, url } as any);
 
 	// TODO: Implement notification preferences loading
-	console.warn('[EventSettings] Notification preferences temporarily disabled - returning defaults');
+	console.warn(
+		'[EventSettings] Notification preferences temporarily disabled - returning defaults'
+	);
 
 	return {
 		user: locals.user,

@@ -828,7 +828,9 @@ export class EventsOperations {
 		});
 
 		try {
-			const result = await this.client.query(GET_UPCOMING_EVENTS, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(GET_UPCOMING_EVENTS, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -970,10 +972,7 @@ export class EventsOperations {
 	 * Delete event (organizer or admin)
 	 * Migration: ✅ Updated to use id param, returns Boolean
 	 */
-	async deleteEvent(params: {
-		id: string;
-		userCredentials: UserCredentials;
-	}): Promise<boolean> {
+	async deleteEvent(params: { id: string; userCredentials: UserCredentials }): Promise<boolean> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
@@ -1017,7 +1016,7 @@ export class EventsOperations {
 		userCredentials: UserCredentials;
 	}): Promise<any> {
 		const { createDataRequest } = await import('$lib/models/data-request');
-		const { createErrorResponse} = await import('$lib/models/error-response');
+		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const dataRequest = createDataRequest({
 			operationName: 'UpdateEventReminder',
@@ -1032,7 +1031,9 @@ export class EventsOperations {
 		});
 
 		try {
-			const result = await this.client.mutation(UPDATE_EVENT_REMINDER, dataRequest.variables).toPromise();
+			const result = await this.client
+				.mutation(UPDATE_EVENT_REMINDER, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -1086,7 +1087,9 @@ export class EventsOperations {
 		});
 
 		try {
-			const result = await this.client.mutation(UPDATE_RSVP_STATUS, dataRequest.variables).toPromise();
+			const result = await this.client
+				.mutation(UPDATE_RSVP_STATUS, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -1147,7 +1150,9 @@ export class EventsOperations {
 			});
 
 			try {
-				const result = await this.client.mutation(INVITE_ATTENDEES, dataRequest.variables).toPromise();
+				const result = await this.client
+					.mutation(INVITE_ATTENDEES, dataRequest.variables)
+					.toPromise();
 
 				if (result.error) {
 					const errorResponse = createErrorResponse(result.error, {
@@ -1202,9 +1207,7 @@ export class EventsOperations {
 	 * Get pending event reminders for scheduler
 	 * Migration: ✅ Updated to filter client-side
 	 */
-	async getPendingReminders(params: {
-		userCredentials: UserCredentials;
-	}): Promise<any[]> {
+	async getPendingReminders(params: { userCredentials: UserCredentials }): Promise<any[]> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 
 		const dataRequest = createDataRequest({
@@ -1216,7 +1219,9 @@ export class EventsOperations {
 			timeoutMs: 5000
 		});
 
-		const result = await this.client.query(GET_PENDING_REMINDERS, dataRequest.variables).toPromise();
+		const result = await this.client
+			.query(GET_PENDING_REMINDERS, dataRequest.variables)
+			.toPromise();
 
 		if (result.error) {
 			console.error('[EventsOperations] Error fetching pending reminders:', result.error);

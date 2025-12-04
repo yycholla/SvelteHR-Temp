@@ -5,7 +5,7 @@
 **Status**: Draft
 **Input**: User description: "I would like to ensure that all of our permissions are being respected by elements on each of our pages in our svelte frontend. IE: not having read permissions won't give page permissions, write permissions give access to edit buttons and create buttons, etc..."
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Read Permission Controls Page Access (Priority: P1)
 
@@ -154,7 +154,7 @@ When a user's permissions change during an active session (role change, permissi
 - **What happens if a user has partial permissions on paginated data?** (e.g., read access to first 50 employees but not next 50) - Server filters results based on user's data access scope, pagination reflects only accessible records
 - **How does the system handle permission checks for real-time features like WebSocket subscriptions?** - Server validates permissions on subscription initialization and periodically during active connection
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -184,7 +184,7 @@ When a user's permissions change during an active session (role change, permissi
 - **FR-024**: System MUST implement a `hasAnyPermission(requiredPermissions: string[])` utility that returns true if user has any of the listed permissions
 - **FR-025**: System MUST implement a `hasAllPermissions(requiredPermissions: string[])` utility that returns true only if user has all listed permissions
 
-### Key Entities *(include if feature involves data)*
+### Key Entities _(include if feature involves data)_
 
 - **User Permissions**: Array of permission strings (e.g., `["employees:read", "employees:write", "departments:read"]`) associated with a user's role(s)
 - **Role Hierarchy**: Defined mapping of role inheritance (Admin > HR Manager > Manager > Employee) with permission precedence rules
@@ -193,7 +193,7 @@ When a user's permissions change during an active session (role change, permissi
 - **Protected Route**: Server-side route with load function that validates permissions before rendering page content
 - **Permission Guard Component**: Reusable Svelte component that wraps elements and conditionally renders based on permission checks
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

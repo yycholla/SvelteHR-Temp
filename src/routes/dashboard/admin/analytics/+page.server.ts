@@ -61,12 +61,12 @@ export const load: PageServerLoad = async (event) => {
 		const departmentNames = new Map<number, string>();
 
 		// Map department IDs to names
-		departments.forEach(dept => {
+		departments.forEach((dept) => {
 			departmentNames.set(dept.id, dept.name);
 		});
 
 		// Count users per department
-		users.forEach(user => {
+		users.forEach((user) => {
 			const deptName = departmentNames.get(user.departmentId) || 'Unknown';
 			departmentCounts.set(deptName, (departmentCounts.get(deptName) || 0) + 1);
 		});
@@ -88,9 +88,11 @@ export const load: PageServerLoad = async (event) => {
 			smallest = { name: 'N/A', count: 0 };
 		}
 
-		const avgSize = departmentCounts.size > 0
-			? Array.from(departmentCounts.values()).reduce((sum, count) => sum + count, 0) / departmentCounts.size
-			: 0;
+		const avgSize =
+			departmentCounts.size > 0
+				? Array.from(departmentCounts.values()).reduce((sum, count) => sum + count, 0) /
+					departmentCounts.size
+				: 0;
 
 		const analytics = {
 			overview: {
@@ -103,7 +105,10 @@ export const load: PageServerLoad = async (event) => {
 				// Calculate from real data - these would ideally come from historical data
 				usersThisMonth: Math.floor(activeUsers * 0.15),
 				usersLastMonth: Math.floor(activeUsers * 0.12),
-				userGrowthPercent: activeUsers > 0 ? ((activeUsers * 0.15 - activeUsers * 0.12) / (activeUsers * 0.12)) * 100 : 0
+				userGrowthPercent:
+					activeUsers > 0
+						? ((activeUsers * 0.15 - activeUsers * 0.12) / (activeUsers * 0.12)) * 100
+						: 0
 			},
 			activity: {
 				dailyActiveUsers: Math.floor(activeUsers * 0.6),
@@ -134,7 +139,7 @@ export const load: PageServerLoad = async (event) => {
 			roleDistribution: (() => {
 				// Calculate role distribution from real data using role assignments
 				const roleCounts = new Map<string, number>();
-				userRoles.forEach(roleAssignment => {
+				userRoles.forEach((roleAssignment) => {
 					const role = roleAssignment.roleName || 'Employee';
 					roleCounts.set(role, (roleCounts.get(role) || 0) + 1);
 				});
@@ -156,7 +161,11 @@ export const load: PageServerLoad = async (event) => {
 				overview: { totalUsers: 0, activeUsers: 0, totalDepartments: 0, totalRoles: 0 },
 				growth: { usersThisMonth: 0, usersLastMonth: 0, userGrowthPercent: 0 },
 				activity: { dailyActiveUsers: 0, weeklyActiveUsers: 0, monthlyActiveUsers: 0 },
-				departments: { largest: { name: '—', count: 0 }, smallest: { name: '—', count: 0 }, avgSize: 0 }
+				departments: {
+					largest: { name: '—', count: 0 },
+					smallest: { name: '—', count: 0 },
+					avgSize: 0
+				}
 			},
 			chartData: {
 				userGrowth: [],

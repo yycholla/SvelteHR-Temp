@@ -17,12 +17,12 @@ export const load: PageServerLoad = async (event) => {
 	// CRITICAL: Prevent browser-level caching of dashboard data
 	event.setHeaders({
 		'Cache-Control': 'private, no-cache, no-store, must-revalidate',
-		'Pragma': 'no-cache',
-		'Expires': '0'
+		Pragma: 'no-cache',
+		Expires: '0'
 	});
 
-    // Get standardized user permissions
-    const userPerms = getUserPermissions(locals);
+	// Get standardized user permissions
+	const userPerms = getUserPermissions(locals);
 
 	// Fetch weather data from wttr.in as a promise (non-blocking)
 	const weatherPromise = fetch('https://wttr.in/Boise?format=3', {
@@ -78,7 +78,7 @@ export const load: PageServerLoad = async (event) => {
 					showWelcome: true
 				},
 				permissions: locals.permissions || [],
-                userPerms, // Standardized permissions
+				userPerms, // Standardized permissions
 				canManageUsers: false,
 				canViewReports: false,
 				canApproveLeave: false,
@@ -395,7 +395,7 @@ export const load: PageServerLoad = async (event) => {
 						r.leaveType?.name === 'vacation' && (r.status === 'approved' || r.status === 'pending')
 				)
 				.reduce((sum, r) => sum + (r.daysRequested || 0), 0);
-			const totalVacationDays = 20; 
+			const totalVacationDays = 20;
 			const remainingVacationDays = Math.max(0, totalVacationDays - usedVacationDays);
 
 			// Generate role-specific dashboard data
@@ -551,7 +551,7 @@ export const load: PageServerLoad = async (event) => {
 				showWelcome: true
 			},
 			permissions: locals.permissions || [],
-            userPerms, // Standardized permissions
+			userPerms, // Standardized permissions
 			canManageUsers: isAdmin || isHR,
 			canViewReports: isAdmin || isHR || isManager,
 			canApproveLeave: isAdmin || isHR || isManager,
@@ -563,7 +563,7 @@ export const load: PageServerLoad = async (event) => {
 		};
 	} catch (err) {
 		console.error('Error loading dashboard:', err);
-        const userPerms = getUserPermissions(locals);
+		const userPerms = getUserPermissions(locals);
 
 		return {
 			user: {
@@ -602,7 +602,7 @@ export const load: PageServerLoad = async (event) => {
 				showWelcome: true
 			},
 			permissions: locals.permissions || [],
-            userPerms,
+			userPerms,
 			canManageUsers: false,
 			canViewReports: false,
 			canApproveLeave: false,

@@ -6,8 +6,8 @@ server:
     type: ClusterIP
     annotations:
       # Expose ArgoCD UI via Tailscale
-      tailscale.com/expose: "true"
-      tailscale.com/hostname: "argocd"
+      tailscale.com/expose: 'true'
+      tailscale.com/hostname: 'argocd'
 
   # Enable insecure mode for Tailscale (no TLS required)
   extraArgs:
@@ -16,53 +16,53 @@ server:
   # Resource limits for production stability
   resources:
     requests:
-      memory: "256Mi"
-      cpu: "100m"
+      memory: '256Mi'
+      cpu: '100m'
     limits:
-      memory: "512Mi"
-      cpu: "500m"
+      memory: '512Mi'
+      cpu: '500m'
 
 # Controller manages application sync
 controller:
   resources:
     requests:
-      memory: "512Mi"
-      cpu: "250m"
+      memory: '512Mi'
+      cpu: '250m'
     limits:
-      memory: "1Gi"
-      cpu: "500m"
+      memory: '1Gi'
+      cpu: '500m'
 
 # Repo server pulls Git repos and Helm charts
 repoServer:
   resources:
     requests:
-      memory: "256Mi"
-      cpu: "100m"
+      memory: '256Mi'
+      cpu: '100m'
     limits:
-      memory: "512Mi"
-      cpu: "200m"
+      memory: '512Mi'
+      cpu: '200m'
 
 # ApplicationSet controller for multi-cluster management (future)
 applicationSet:
   enabled: true
   resources:
     requests:
-      memory: "128Mi"
-      cpu: "50m"
+      memory: '128Mi'
+      cpu: '50m'
     limits:
-      memory: "256Mi"
-      cpu: "100m"
+      memory: '256Mi'
+      cpu: '100m'
 
 # Notifications controller for webhooks/alerts
 notifications:
   enabled: true
   resources:
     requests:
-      memory: "128Mi"
-      cpu: "50m"
+      memory: '128Mi'
+      cpu: '50m'
     limits:
-      memory: "256Mi"
-      cpu: "100m"
+      memory: '256Mi'
+      cpu: '100m'
 
 # Global configuration
 global:

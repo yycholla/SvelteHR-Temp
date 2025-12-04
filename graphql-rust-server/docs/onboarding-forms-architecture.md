@@ -1,11 +1,13 @@
 # Onboarding Forms Architecture
 
 ## Overview
+
 This document describes the new Forms-based architecture for the onboarding system, where each onboarding module contains multiple Forms, and each Form is composed of multiple Blocks.
 
 ## Database Schema
 
 ### Existing Tables (Keep)
+
 - `onboarding_modules` - Top-level onboarding modules
 - `form_templates` - Reusable form definitions (like W4 IRS form)
 - `onboarding_assignments` - User assignments to modules
@@ -14,6 +16,7 @@ This document describes the new Forms-based architecture for the onboarding syst
 ### New Tables
 
 #### `onboarding_forms`
+
 Represents a single form/step within an onboarding module.
 
 ```sql
@@ -33,6 +36,7 @@ CREATE INDEX idx_onboarding_forms_sequence ON hr_public.onboarding_forms(onboard
 ```
 
 #### `onboarding_form_blocks`
+
 Individual content blocks within a form (text, fields, signature, etc.)
 
 ```sql
@@ -61,6 +65,7 @@ CREATE INDEX idx_form_blocks_template ON hr_public.onboarding_form_blocks(form_t
 ```
 
 #### `onboarding_form_progress`
+
 Track user progress through forms (replaces individual block progress)
 
 ```sql
@@ -85,12 +90,14 @@ CREATE INDEX idx_form_progress_status ON hr_public.onboarding_form_progress(stat
 ```
 
 ### Tables to Deprecate (Eventually)
+
 - `onboarding_content_blocks` - Will be replaced by `onboarding_form_blocks`
 - `onboarding_progress` - Will be replaced by `onboarding_form_progress`
 
 ## Data Flow
 
 ### Admin Creates Onboarding Module
+
 1. Create `OnboardingModule` (e.g., "New Hire Onboarding")
 2. Add multiple `OnboardingForms` to the module:
    - Form 1: "Personal Information" (sequence_order: 0)
@@ -98,13 +105,16 @@ CREATE INDEX idx_form_progress_status ON hr_public.onboarding_form_progress(stat
    - Form 3: "Company Policies" (sequence_order: 2)
 
 ### Admin Builds Each Form
+
 For each form (e.g., "Personal Information"):
+
 1. Add multiple `OnboardingFormBlocks`:
    - Block 1: TEXT - Welcome message (sequence_order: 0)
    - Block 2: FORM_FIELDS - Name, address, phone (sequence_order: 1)
    - Block 3: SIGNATURE - Acknowledgment (sequence_order: 2)
 
 ### Employee Completes Onboarding
+
 1. View onboarding module with list of forms
 2. Navigate to Form 1 - sees all 3 blocks on one page
 3. Fill out all fields, sign signature
@@ -118,58 +128,58 @@ For each form (e.g., "Personal Information"):
 
 ```graphql
 type OnboardingForm {
-    id: UUID!
-    onboardingModuleId: UUID!
-    title: String!
-    description: String
-    sequenceOrder: Int!
-    isRequired: Boolean!
-    blocks: [OnboardingFormBlock!]!
-    createdAt: DateTime!
-    updatedAt: DateTime!
+	id: UUID!
+	onboardingModuleId: UUID!
+	title: String!
+	description: String
+	sequenceOrder: Int!
+	isRequired: Boolean!
+	blocks: [OnboardingFormBlock!]!
+	createdAt: DateTime!
+	updatedAt: DateTime!
 }
 
 type OnboardingFormBlock {
-    id: UUID!
-    onboardingFormId: UUID!
-    title: String
-    type: OnboardingFormBlockType!
-    sequenceOrder: Int!
-    textContent: String
-    documentUrl: String
-    formTemplateId: UUID
-    formTemplate: FormTemplate
-    fileUploadRequirements: JSON
-    signatureRequirements: JSON
-    checkboxItems: JSON
-    createdAt: DateTime!
-    updatedAt: DateTime!
+	id: UUID!
+	onboardingFormId: UUID!
+	title: String
+	type: OnboardingFormBlockType!
+	sequenceOrder: Int!
+	textContent: String
+	documentUrl: String
+	formTemplateId: UUID
+	formTemplate: FormTemplate
+	fileUploadRequirements: JSON
+	signatureRequirements: JSON
+	checkboxItems: JSON
+	createdAt: DateTime!
+	updatedAt: DateTime!
 }
 
 enum OnboardingFormBlockType {
-    TEXT
-    FORM_FIELDS
-    DOCUMENT
-    FILE_UPLOAD
-    SIGNATURE
-    CHECKBOX
+	TEXT
+	FORM_FIELDS
+	DOCUMENT
+	FILE_UPLOAD
+	SIGNATURE
+	CHECKBOX
 }
 
 type OnboardingFormProgress {
-    id: UUID!
-    userId: UUID!
-    onboardingFormId: UUID!
-    status: OnboardingFormProgressStatus!
-    formData: JSON
-    startedAt: DateTime
-    completedAt: DateTime
-    lastAccessedAt: DateTime
+	id: UUID!
+	userId: UUID!
+	onboardingFormId: UUID!
+	status: OnboardingFormProgressStatus!
+	formData: JSON
+	startedAt: DateTime
+	completedAt: DateTime
+	lastAccessedAt: DateTime
 }
 
 enum OnboardingFormProgressStatus {
-    NOT_STARTED
-    IN_PROGRESS
-    COMPLETED
+	NOT_STARTED
+	IN_PROGRESS
+	COMPLETED
 }
 ```
 
@@ -177,17 +187,17 @@ enum OnboardingFormProgressStatus {
 
 ```graphql
 type Query {
-    # Get all forms for a module
-    onboardingForms(onboardingModuleId: UUID!): [OnboardingForm!]!
+	# Get all forms for a module
+	onboardingForms(onboardingModuleId: UUID!): [OnboardingForm!]!
 
-    # Get single form with all blocks
-    onboardingForm(id: UUID!): OnboardingForm
+	# Get single form with all blocks
+	onboardingForm(id: UUID!): OnboardingForm
 
-    # Get user's progress on a form
-    myFormProgress(onboardingFormId: UUID!): OnboardingFormProgress
+	# Get user's progress on a form
+	myFormProgress(onboardingFormId: UUID!): OnboardingFormProgress
 
-    # Get all user's progress for a module
-    myModuleProgress(onboardingModuleId: UUID!): [OnboardingFormProgress!]!
+	# Get all user's progress for a module
+	myModuleProgress(onboardingModuleId: UUID!): [OnboardingFormProgress!]!
 }
 ```
 
@@ -195,21 +205,21 @@ type Query {
 
 ```graphql
 type Mutation {
-    # Form management
-    createOnboardingForm(input: CreateOnboardingFormInput!): OnboardingForm!
-    updateOnboardingForm(id: UUID!, input: UpdateOnboardingFormInput!): OnboardingForm!
-    deleteOnboardingForm(id: UUID!): Boolean!
-    reorderOnboardingForms(onboardingModuleId: UUID!, formIds: [UUID!]!): Boolean!
+	# Form management
+	createOnboardingForm(input: CreateOnboardingFormInput!): OnboardingForm!
+	updateOnboardingForm(id: UUID!, input: UpdateOnboardingFormInput!): OnboardingForm!
+	deleteOnboardingForm(id: UUID!): Boolean!
+	reorderOnboardingForms(onboardingModuleId: UUID!, formIds: [UUID!]!): Boolean!
 
-    # Block management
-    createFormBlock(input: CreateFormBlockInput!): OnboardingFormBlock!
-    updateFormBlock(id: UUID!, input: UpdateFormBlockInput!): OnboardingFormBlock!
-    deleteFormBlock(id: UUID!): Boolean!
-    reorderFormBlocks(onboardingFormId: UUID!, blockIds: [UUID!]!): Boolean!
+	# Block management
+	createFormBlock(input: CreateFormBlockInput!): OnboardingFormBlock!
+	updateFormBlock(id: UUID!, input: UpdateFormBlockInput!): OnboardingFormBlock!
+	deleteFormBlock(id: UUID!): Boolean!
+	reorderFormBlocks(onboardingFormId: UUID!, blockIds: [UUID!]!): Boolean!
 
-    # Progress tracking
-    saveFormProgress(input: SaveFormProgressInput!): OnboardingFormProgress!
-    completeForm(onboardingFormId: UUID!, formData: JSON!): OnboardingFormProgress!
+	# Progress tracking
+	saveFormProgress(input: SaveFormProgressInput!): OnboardingFormProgress!
+	completeForm(onboardingFormId: UUID!, formData: JSON!): OnboardingFormProgress!
 }
 ```
 
@@ -218,12 +228,14 @@ type Mutation {
 ### Admin Side
 
 #### 1. Form Builder (`/dashboard/admin/forms/[id]`)
+
 - Standalone form editor (not tied to onboarding module)
 - Add/edit/delete/reorder blocks
 - Preview form as employee would see it
 - Can be used independently or linked to onboarding modules
 
 #### 2. Onboarding Module Editor (`/dashboard/admin/onboarding/[id]`)
+
 - Add existing forms to module OR create new forms inline
 - Reorder forms (drag-and-drop)
 - Set form as required/optional
@@ -232,6 +244,7 @@ type Mutation {
 ### Employee Side
 
 #### Onboarding Flow (`/dashboard/onboarding/[id]`)
+
 - Progress bar showing X of Y forms complete
 - Left sidebar: List of forms (current, completed, upcoming)
 - Main area: Current form with ALL its blocks displayed
@@ -242,22 +255,26 @@ type Mutation {
 ## Migration Strategy
 
 ### Phase 1: Build New System
+
 1. Create new tables alongside existing ones
 2. Build new GraphQL schema
 3. Create Form Builder UI
 4. Update Onboarding Module editor to use forms
 
 ### Phase 2: Dual Operation
+
 - New modules use Forms
 - Existing modules continue to use ContentBlocks
 - Employee view handles both architectures
 
 ### Phase 3: Migration
+
 - Create migration script to convert ContentBlocks → FormBlocks
 - Group existing blocks into logical forms (1 block = 1 form initially)
 - Admin can then reorganize blocks into better forms
 
 ### Phase 4: Deprecation
+
 - Remove old ContentBlocks schema
 - Remove old progress tracking
 - Clean up code

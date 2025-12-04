@@ -76,6 +76,7 @@ npm run db:rebuild-init -- \
 **Purpose**: Verify that database schema matches version control (init script + migrations).
 
 **Usage**:
+
 ```bash
 tsx scripts/db/verify-schema.ts [options]
 ```
@@ -93,11 +94,13 @@ tsx scripts/db/verify-schema.ts [options]
 | `--fail-on-differences` | boolean | `true` | Exit code 1 if differences found |
 
 **Exit Codes**:
+
 - `0`: PASS - No differences detected
 - `1`: WARN/FAIL - Differences detected
 - `2`: ERROR - Process failed (connection error, etc.)
 
 **Example**:
+
 ```bash
 npm run db:verify -- \
   --environment=staging \
@@ -106,6 +109,7 @@ npm run db:verify -- \
 ```
 
 **Output Files**:
+
 - `verification-reports/YYYY-MM-DD-environment.json` - Full report
 - `verification-reports/YYYY-MM-DD-environment.md` - Human-readable summary
 
@@ -116,6 +120,7 @@ npm run db:verify -- \
 **Purpose**: Generate migration files from schema drift detected by verify-schema.
 
 **Usage**:
+
 ```bash
 tsx scripts/db/generate-migration.ts [options]
 ```
@@ -131,15 +136,18 @@ tsx scripts/db/generate-migration.ts [options]
 | `--dry-run` | boolean | `false` | Preview migration without writing files |
 
 **Exit Codes**:
+
 - `0`: Success - Migrations generated
 - `1`: Validation error - Invalid diff source
 - `2`: Generation failed - Unable to create migrations
 
 **Constitutional Requirements**:
+
 - **FR-024a**: All generated migrations are marked `requiresReview: true`
 - **FR-026**: Production environment generates but NEVER auto-applies migrations
 
 **Example**:
+
 ```bash
 npm run db:generate-migration -- \
   --diff-source=./verification-reports/2025-10-03-development.json \
@@ -148,6 +156,7 @@ npm run db:generate-migration -- \
 ```
 
 **Generated Files**:
+
 - `migrations/remediation/YYYYMMDD_NNN_description.sql` - Forward migration
 - `migrations/remediation/YYYYMMDD_NNN_description.rollback.sql` - Rollback migration
 
@@ -158,6 +167,7 @@ npm run db:generate-migration -- \
 **Purpose**: Rebuild initialization script from cumulative migrations (FR-002 compliance).
 
 **Usage**:
+
 ```bash
 tsx scripts/db/rebuild-init-script.ts [options]
 ```
@@ -172,11 +182,13 @@ tsx scripts/db/rebuild-init-script.ts [options]
 | `--database-url` | string | `$DATABASE_URL` | PostgreSQL connection URL for validation |
 
 **Exit Codes**:
+
 - `0`: Success - Init script rebuilt and validated
 - `1`: Validation failed - Init script ≠ migrations
 - `2`: Rebuild error - Process failed
 
 **How It Works**:
+
 1. Creates temporary database with unique timestamp name
 2. Applies all migration files sequentially (sorted lexicographically)
 3. Exports schema using `pg_dump --schema-only --schema=hr_public`
@@ -185,6 +197,7 @@ tsx scripts/db/rebuild-init-script.ts [options]
 6. Cleans up temporary databases
 
 **Example**:
+
 ```bash
 npm run db:rebuild-init -- \
   --validate \
@@ -198,6 +211,7 @@ npm run db:rebuild-init -- \
 **Purpose**: Validate migration files for naming conventions, sequencing, and integrity.
 
 **Usage**:
+
 ```bash
 tsx scripts/db/validate-migrations.ts [options]
 ```
@@ -212,11 +226,13 @@ tsx scripts/db/validate-migrations.ts [options]
 | `--strict` | boolean | `false` | Treat warnings as errors |
 
 **Exit Codes**:
+
 - `0`: Valid - All checks passed
 - `1`: Invalid - Errors found
 - `2`: Process failed - Unable to validate
 
 **Validation Checks**:
+
 1. ✅ **Naming pattern**: `/^\d{8}_\d{3}_[a-z0-9_]+\.sql$/`
 2. ✅ **Sequential ordering**: No duplicate sequences, warn on gaps >5
 3. ✅ **Checksum integrity**: Compare file SHA-256 with `schema_migrations` table
@@ -224,6 +240,7 @@ tsx scripts/db/validate-migrations.ts [options]
 5. ✅ **Rollback file existence**: Check for `.rollback.sql` pairs (optional)
 
 **Example**:
+
 ```bash
 npm run db:validate-migrations -- \
   --strict \
@@ -232,6 +249,7 @@ npm run db:validate-migrations -- \
 ```
 
 **Validation Errors**:
+
 - `INVALID_NAMING`: Filename doesn't match pattern
 - `DUPLICATE_SEQUENCE`: Sequence number already used
 - `CHECKSUM_MISMATCH`: File modified after application
@@ -242,13 +260,13 @@ npm run db:validate-migrations -- \
 
 ## NPM Scripts
 
-| Script | Purpose |
-|--------|---------|
-| `npm run db:init` | Initialize fresh database from init script |
-| `npm run db:verify` | Verify schema consistency |
-| `npm run db:generate-migration` | Generate remediation migration |
-| `npm run db:rebuild-init` | Rebuild init script from migrations |
-| `npm run db:validate-migrations` | Validate migration files |
+| Script                           | Purpose                                    |
+| -------------------------------- | ------------------------------------------ |
+| `npm run db:init`                | Initialize fresh database from init script |
+| `npm run db:verify`              | Verify schema consistency                  |
+| `npm run db:generate-migration`  | Generate remediation migration             |
+| `npm run db:rebuild-init`        | Rebuild init script from migrations        |
+| `npm run db:validate-migrations` | Validate migration files                   |
 
 ## Architecture
 
@@ -351,44 +369,50 @@ scripts/db/
 ### Core Types
 
 #### SchemaMetadata
+
 Complete representation of a PostgreSQL schema:
+
 ```typescript
 interface SchemaMetadata {
-  schemaName: string;
-  capturedAt: string;            // ISO-8601 timestamp
-  postgresVersion: string;
-  tables: TableDefinition[];
-  functions: FunctionDefinition[];
-  triggers: TriggerDefinition[];
+	schemaName: string;
+	capturedAt: string; // ISO-8601 timestamp
+	postgresVersion: string;
+	tables: TableDefinition[];
+	functions: FunctionDefinition[];
+	triggers: TriggerDefinition[];
 }
 ```
 
 #### SchemaDiff
+
 Result of schema comparison:
+
 ```typescript
 interface SchemaDiff {
-  sourceSchema: string;
-  targetSchema: string;
-  comparedAt: string;
-  hasDifferences: boolean;
-  tableDiffs: TableDiff[];
-  summary: DiffSummary;
+	sourceSchema: string;
+	targetSchema: string;
+	comparedAt: string;
+	hasDifferences: boolean;
+	tableDiffs: TableDiff[];
+	summary: DiffSummary;
 }
 ```
 
 #### VerificationReport
+
 Complete verification run result:
+
 ```typescript
 interface VerificationReport {
-  verificationId: string;
-  runAt: string;
-  environment: Environment;
-  schemaSource: SchemaMetadata;
-  schemaTarget: SchemaMetadata;
-  diff: SchemaDiff;
-  verdict: VerificationVerdict;     // PASS | WARN | FAIL | ERROR
-  executionTimeMs: number;
-  recommendedActions: RecommendedAction[];
+	verificationId: string;
+	runAt: string;
+	environment: Environment;
+	schemaSource: SchemaMetadata;
+	schemaTarget: SchemaMetadata;
+	diff: SchemaDiff;
+	verdict: VerificationVerdict; // PASS | WARN | FAIL | ERROR
+	executionTimeMs: number;
+	recommendedActions: RecommendedAction[];
 }
 ```
 
@@ -427,12 +451,15 @@ COMMIT;
 ## Constitutional Requirements
 
 ### FR-024a: Manual Review Required
+
 All auto-generated migrations MUST be marked `requiresReview: true` and include metadata header warning.
 
 ### FR-026: Production Safety
+
 Migrations generated for production environment are NEVER auto-applied. Production drift detection is informational only.
 
 ### FR-002: Init Script Equivalence
+
 The initialization script (`00_init_schema.sql`) MUST equal the cumulative effect of all migration files.
 
 ## Common Workflows
@@ -504,6 +531,7 @@ npm run test:integration -- --grep "schema consistency"
 **Cause**: Migration file was edited after being applied.
 
 **Solution**:
+
 ```bash
 # NEVER edit applied migrations!
 # Revert to original:
@@ -517,6 +545,7 @@ git checkout migrations/20251001_003_create_departments.sql
 **Cause**: Init script is outdated.
 
 **Solution**:
+
 ```bash
 npm run db:rebuild-init
 dropdb hr_development
@@ -529,6 +558,7 @@ psql hr_development < migrations/00_init_schema.sql
 **Cause**: Complex schema changes require manual SQL.
 
 **Solution**:
+
 1. Review generated SQL carefully
 2. Test in isolated database first
 3. Fix syntax errors manually

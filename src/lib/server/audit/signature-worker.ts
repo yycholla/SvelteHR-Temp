@@ -5,7 +5,12 @@
 // FR-013: Async signature generation to minimize performance impact
 
 import { Pool, type PoolClient } from 'pg';
-import { signAuditLog, generateKeyPair, exportPublicKey, generatePublicKeyId } from './crypto-signer.js';
+import {
+	signAuditLog,
+	generateKeyPair,
+	exportPublicKey,
+	generatePublicKeyId
+} from './crypto-signer.js';
 
 /**
  * Configuration for signature worker
@@ -114,7 +119,9 @@ export class SignatureWorker {
 			this.handleConnectionError();
 		});
 
-		console.log(`SignatureWorker started (batch size: ${this.config.batchSize}, interval: ${this.config.batchIntervalMs}ms)`);
+		console.log(
+			`SignatureWorker started (batch size: ${this.config.batchSize}, interval: ${this.config.batchIntervalMs}ms)`
+		);
 	}
 
 	/**
@@ -255,12 +262,7 @@ export class SignatureWorker {
 					)
 					.join(', ');
 
-				const params = signatures.flatMap((s) => [
-					s.logId,
-					s.signature,
-					'ES256',
-					this.publicKeyId
-				]);
+				const params = signatures.flatMap((s) => [s.logId, s.signature, 'ES256', this.publicKeyId]);
 
 				await client.query(
 					`

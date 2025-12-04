@@ -19,8 +19,10 @@ export const load: PageServerLoad = async (event) => {
 
 	// If not viewing self, check for team or all scope
 	if (!isViewingSelf) {
-		const hasTeamScope = userPermissions.includes('performance:read:team') || userPermissions.includes('performance:read:all');
-		if (!hasTeamScope && !userPermissions.includes('*') || userPermissions.includes('*:*')) {
+		const hasTeamScope =
+			userPermissions.includes('performance:read:team') ||
+			userPermissions.includes('performance:read:all');
+		if ((!hasTeamScope && !userPermissions.includes('*')) || userPermissions.includes('*:*')) {
 			error(403, 'Access denied: You can only view your own performance reviews');
 		}
 
@@ -162,7 +164,8 @@ export const load: PageServerLoad = async (event) => {
 		const reviews = rawReviews.map((review: any) => {
 			// Extract cycle information for review type and period
 			const cycleType = review.cycle?.reviewType || 'annual_review';
-			const matchingType = reviewTypes.find(t => t.id === cycleType.replace('_review', '')) || reviewTypes[0];
+			const matchingType =
+				reviewTypes.find((t) => t.id === cycleType.replace('_review', '')) || reviewTypes[0];
 
 			// Map goals from review_goal relationships
 			const goals = Array.isArray(review.goals) ? review.goals : [];
@@ -176,12 +179,17 @@ export const load: PageServerLoad = async (event) => {
 					end: review.cycle?.endDate || new Date().toISOString().split('T')[0]
 				},
 				scheduledDate: review.createdAt?.split('T')[0],
-				completedDate: review.status === 'completed' && review.submittedAt ? review.submittedAt.split('T')[0] : null,
-				reviewer: review.reviewer ? {
-					id: review.reviewer.id,
-					displayName: review.reviewer.displayName,
-					email: review.reviewer.email
-				} : null,
+				completedDate:
+					review.status === 'completed' && review.submittedAt
+						? review.submittedAt.split('T')[0]
+						: null,
+				reviewer: review.reviewer
+					? {
+							id: review.reviewer.id,
+							displayName: review.reviewer.displayName,
+							email: review.reviewer.email
+						}
+					: null,
 				overallRating: review.overallRating || 0,
 				competencies: [], // Would need to query review_feedback or review_template
 				goals: goals,
@@ -200,14 +208,17 @@ export const load: PageServerLoad = async (event) => {
 		// Calculate review statistics
 		const reviewStats = {
 			total: reviews.length,
-			completed: reviews.filter(r => r.status === 'completed').length,
-			inProgress: reviews.filter(r => r.status === 'in_progress').length,
-			scheduled: reviews.filter(r => r.status === 'scheduled').length,
-			overdue: reviews.filter(r => r.status === 'overdue').length,
-			averageRating: reviews.filter(r => r.status === 'completed' && r.overallRating > 0)
-				.reduce((sum, r, _, arr) => sum + (r.overallRating / (arr.length || 1)), 0),
-			lastReviewDate: reviews.find(r => r.status === 'completed')?.completedDate || null,
-			nextReviewDate: reviews.find(r => r.status === 'scheduled' || r.status === 'in_progress')?.scheduledDate || null
+			completed: reviews.filter((r) => r.status === 'completed').length,
+			inProgress: reviews.filter((r) => r.status === 'in_progress').length,
+			scheduled: reviews.filter((r) => r.status === 'scheduled').length,
+			overdue: reviews.filter((r) => r.status === 'overdue').length,
+			averageRating: reviews
+				.filter((r) => r.status === 'completed' && r.overallRating > 0)
+				.reduce((sum, r, _, arr) => sum + r.overallRating / (arr.length || 1), 0),
+			lastReviewDate: reviews.find((r) => r.status === 'completed')?.completedDate || null,
+			nextReviewDate:
+				reviews.find((r) => r.status === 'scheduled' || r.status === 'in_progress')
+					?.scheduledDate || null
 		};
 
 		return {
@@ -222,7 +233,6 @@ export const load: PageServerLoad = async (event) => {
 			permissions: locals.permissions || [],
 			loadedAt: new Date().toISOString()
 		};
-
 	} catch (err) {
 		console.error('Error loading user performance reviews:', err);
 

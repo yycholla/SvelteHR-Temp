@@ -10,36 +10,36 @@ This document compares the old Kustomize-based deployment with the new Helm char
 
 **Result:** ✅ **ALL resources are covered** (with improvements!)
 
-| Old Kustomize Resource | Helm Chart Equivalent | Status | Notes |
-|------------------------|----------------------|--------|-------|
-| **Application Pods** | | | |
-| backend-deployment.yaml | ✅ backend-deployment.yaml | IMPROVED | Multi-target images, better config |
-| frontend-deployment.yaml | ✅ frontend-deployment.yaml | IMPROVED | BuildKit optimizations |
-| migration-job.yaml | ✅ migration-job.yaml | IMPROVED | Pre-install/upgrade hooks |
-| **Databases** | | | |
-| postgres-cluster.yaml | ✅ postgres-cluster.yaml | IMPROVED | CloudNativePG via dependency |
-| redis-cluster.yaml | ✅ Redis Helm dependency | REPLACED | Bitnami Redis (better) |
-| **Configuration** | | | |
-| configmap.yaml | ✅ configmap.yaml | SAME | Application config |
-| secrets.yaml | ✅ secrets.yaml + postgres secrets | IMPROVED | Auto-generated PG secrets |
-| **Access Control** | | | |
-| serviceaccounts.yaml | ✅ serviceaccount.yaml + rbac.yaml | IMPROVED | Added comprehensive RBAC |
-| rbac.yaml | ✅ rbac.yaml | IMPROVED | Granular permissions |
-| **Networking** | | | |
-| services.yaml | ✅ services.yaml | SAME | Backend/Frontend services |
-| ingress.yaml | ✅ ingress.yaml | IMPROVED | Cloudflare tunnel support |
-| **Infrastructure** | | | |
-| cert-manager.yaml | ⚠️ External (optional) | MOVED | Installed separately via Helm |
-| ingress-controller.yaml | ⚠️ External (optional) | MOVED | Installed separately via Helm |
-| monitoring.yaml | ⚠️ External (optional) | MOVED | Installed separately via Helm |
-| namespaces.yaml | ✅ Via Helm namespace | AUTOMATED | Created by Helm |
-| **New in Helm** | | | |
-| N/A | ✅ external-secrets.yaml | NEW | Doppler integration |
-| N/A | ✅ seed-job.yaml | NEW | Initial data seeding |
-| N/A | ✅ pgadmin.yaml | NEW | Database admin UI |
-| N/A | ✅ pod-disruption-budgets.yaml | NEW | HA protection |
-| N/A | ✅ servicemonitor.yaml | NEW | Prometheus monitoring |
-| N/A | ✅ _helpers.tpl | NEW | 20+ template helpers |
+| Old Kustomize Resource   | Helm Chart Equivalent              | Status    | Notes                              |
+| ------------------------ | ---------------------------------- | --------- | ---------------------------------- |
+| **Application Pods**     |                                    |           |                                    |
+| backend-deployment.yaml  | ✅ backend-deployment.yaml         | IMPROVED  | Multi-target images, better config |
+| frontend-deployment.yaml | ✅ frontend-deployment.yaml        | IMPROVED  | BuildKit optimizations             |
+| migration-job.yaml       | ✅ migration-job.yaml              | IMPROVED  | Pre-install/upgrade hooks          |
+| **Databases**            |                                    |           |                                    |
+| postgres-cluster.yaml    | ✅ postgres-cluster.yaml           | IMPROVED  | CloudNativePG via dependency       |
+| redis-cluster.yaml       | ✅ Redis Helm dependency           | REPLACED  | Bitnami Redis (better)             |
+| **Configuration**        |                                    |           |                                    |
+| configmap.yaml           | ✅ configmap.yaml                  | SAME      | Application config                 |
+| secrets.yaml             | ✅ secrets.yaml + postgres secrets | IMPROVED  | Auto-generated PG secrets          |
+| **Access Control**       |                                    |           |                                    |
+| serviceaccounts.yaml     | ✅ serviceaccount.yaml + rbac.yaml | IMPROVED  | Added comprehensive RBAC           |
+| rbac.yaml                | ✅ rbac.yaml                       | IMPROVED  | Granular permissions               |
+| **Networking**           |                                    |           |                                    |
+| services.yaml            | ✅ services.yaml                   | SAME      | Backend/Frontend services          |
+| ingress.yaml             | ✅ ingress.yaml                    | IMPROVED  | Cloudflare tunnel support          |
+| **Infrastructure**       |                                    |           |                                    |
+| cert-manager.yaml        | ⚠️ External (optional)             | MOVED     | Installed separately via Helm      |
+| ingress-controller.yaml  | ⚠️ External (optional)             | MOVED     | Installed separately via Helm      |
+| monitoring.yaml          | ⚠️ External (optional)             | MOVED     | Installed separately via Helm      |
+| namespaces.yaml          | ✅ Via Helm namespace              | AUTOMATED | Created by Helm                    |
+| **New in Helm**          |                                    |           |                                    |
+| N/A                      | ✅ external-secrets.yaml           | NEW       | Doppler integration                |
+| N/A                      | ✅ seed-job.yaml                   | NEW       | Initial data seeding               |
+| N/A                      | ✅ pgadmin.yaml                    | NEW       | Database admin UI                  |
+| N/A                      | ✅ pod-disruption-budgets.yaml     | NEW       | HA protection                      |
+| N/A                      | ✅ servicemonitor.yaml             | NEW       | Prometheus monitoring              |
+| N/A                      | ✅ \_helpers.tpl                   | NEW       | 20+ template helpers               |
 
 ---
 
@@ -48,6 +48,7 @@ This document compares the old Kustomize-based deployment with the new Helm char
 ### 1. Application Deployments ✅
 
 #### Old Kustomize
+
 ```yaml
 # k8s/base/backend-deployment.yaml
 - Single monolithic image
@@ -60,6 +61,7 @@ This document compares the old Kustomize-based deployment with the new Helm char
 ```
 
 #### New Helm Chart
+
 ```yaml
 # templates/backend-deployment.yaml
 ✅ Multi-target images (server only)
@@ -87,6 +89,7 @@ This document compares the old Kustomize-based deployment with the new Helm char
 #### PostgreSQL
 
 **Old Kustomize:**
+
 ```yaml
 # k8s/base/postgres-cluster.yaml
 apiVersion: postgresql.cnpg.io/v1
@@ -96,6 +99,7 @@ kind: Cluster
 ```
 
 **New Helm Chart:**
+
 ```yaml
 # templates/postgres-cluster.yaml
 ✅ CloudNativePG via dependency (Chart.yaml)
@@ -111,6 +115,7 @@ kind: Cluster
 #### Redis
 
 **Old Kustomize:**
+
 ```yaml
 # k8s/base/redis-cluster.yaml
 apiVersion: databases.spotahome.com/v1
@@ -120,6 +125,7 @@ kind: RedisFailover
 ```
 
 **New Helm Chart:**
+
 ```yaml
 # Chart.yaml dependencies
 dependencies:
@@ -141,6 +147,7 @@ dependencies:
 ### 3. Jobs and Hooks ✅
 
 #### Old Kustomize
+
 ```yaml
 # k8s/base/migration-job.yaml
 kind: Job
@@ -149,6 +156,7 @@ kind: Job
 ```
 
 #### New Helm Chart
+
 ```yaml
 # templates/migration-job.yaml
 ✅ Helm pre-install/pre-upgrade hooks
@@ -171,6 +179,7 @@ kind: Job
 ### 4. Configuration and Secrets ✅
 
 #### Old Kustomize
+
 ```yaml
 # k8s/base/configmap.yaml
 kind: ConfigMap
@@ -182,6 +191,7 @@ kind: Secret
 ```
 
 #### New Helm Chart
+
 ```yaml
 # templates/configmap.yaml
 ✅ Template-driven configuration
@@ -205,6 +215,7 @@ kind: Secret
 ### 5. RBAC and Service Accounts ✅
 
 #### Old Kustomize
+
 ```yaml
 # k8s/base/serviceaccounts.yaml
 kind: ServiceAccount
@@ -216,6 +227,7 @@ kind: Role, RoleBinding
 ```
 
 #### New Helm Chart
+
 ```yaml
 # templates/serviceaccount.yaml
 ✅ Backend service account
@@ -237,6 +249,7 @@ kind: Role, RoleBinding
 ### 6. Networking ✅
 
 #### Old Kustomize
+
 ```yaml
 # k8s/base/services.yaml
 kind: Service
@@ -249,6 +262,7 @@ kind: Ingress
 ```
 
 #### New Helm Chart
+
 ```yaml
 # templates/services.yaml
 ✅ Backend service (4000)
@@ -271,6 +285,7 @@ kind: Ingress
 These are now **installed separately** (better practice):
 
 #### Cert-Manager
+
 **Old:** Included in `k8s/base/cert-manager.yaml`
 **New:** ⚠️ **Installed separately via Helm**
 
@@ -286,6 +301,7 @@ helm install cert-manager jetstack/cert-manager \
 **Verdict:** ⚠️ **External dependency** - Better separation of concerns
 
 #### Ingress Controller
+
 **Old:** Included in `k8s/base/ingress-controller.yaml`
 **New:** ⚠️ **Installed separately via Helm**
 
@@ -299,6 +315,7 @@ helm install ingress-nginx ingress-nginx/ingress-nginx \
 **Verdict:** ⚠️ **External dependency** - Standard practice
 
 #### Monitoring Stack
+
 **Old:** Included in `k8s/base/monitoring.yaml`
 **New:** ⚠️ **Installed separately via Helm**
 
@@ -451,6 +468,7 @@ Total with Infrastructure: ~11 pods
 **New:** Bitnami Redis Helm chart
 
 **Why the change?**
+
 - ✅ Bitnami Redis is industry standard
 - ✅ Better maintained (regular updates)
 - ✅ More features (HA, monitoring, metrics)
@@ -465,6 +483,7 @@ Total with Infrastructure: ~11 pods
 **New:** Infrastructure installed separately
 
 **Why the change?**
+
 - ✅ Better separation of concerns
 - ✅ Infrastructure can be upgraded independently
 - ✅ Cleaner application chart
@@ -505,6 +524,7 @@ Total with Infrastructure: ~11 pods
 ### ✅ ALL Resources Covered
 
 Every resource from the old Kustomize setup is represented in the Helm chart, either:
+
 1. **Directly** in chart templates (application resources)
 2. **As dependencies** (PostgreSQL, Redis)
 3. **As external installations** (infrastructure components)
@@ -522,6 +542,7 @@ Every resource from the old Kustomize setup is represented in the Helm chart, ei
 ### ⚠️ Migration Notes
 
 If migrating from Kustomize:
+
 1. Install CloudNativePG operator first
 2. Migrate Redis data (if using Spotahome operator)
 3. Install infrastructure components separately

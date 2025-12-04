@@ -75,11 +75,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		console.log(`File stored at: ${storagePath}, size: ${metadata.fileSizeBytes} bytes`);
 
 		// Step 5: Return storage result
-		return json({
-			storagePath,
-			bytesStored: metadata.fileSizeBytes
-		}, { status: 201 });
-
+		return json(
+			{
+				storagePath,
+				bytesStored: metadata.fileSizeBytes
+			},
+			{ status: 201 }
+		);
 	} catch (err) {
 		console.error('File storage error:', err);
 

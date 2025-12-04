@@ -230,9 +230,12 @@ describe('Integration: Rebuild Init Script and Validate Equivalence', () => {
 		const tempDbName = output.tempDatabaseName;
 
 		// Verify temp database was dropped
-		const dbCheckResult = await adminClient.query(`
+		const dbCheckResult = await adminClient.query(
+			`
 			SELECT datname FROM pg_database WHERE datname = $1
-		`, [tempDbName]);
+		`,
+			[tempDbName]
+		);
 
 		expect(dbCheckResult.rows.length).toBe(0);
 	});
@@ -255,9 +258,12 @@ describe('Integration: Rebuild Init Script and Validate Equivalence', () => {
 		testDbNames.push(tempDbName); // Track for cleanup
 
 		// Verify temp database still exists
-		const dbCheckResult = await adminClient.query(`
+		const dbCheckResult = await adminClient.query(
+			`
 			SELECT datname FROM pg_database WHERE datname = $1
-		`, [tempDbName]);
+		`,
+			[tempDbName]
+		);
 
 		expect(dbCheckResult.rows.length).toBe(1);
 	});
@@ -285,10 +291,7 @@ describe('Integration: Rebuild Init Script and Validate Equivalence', () => {
 
 	it('should handle migration errors gracefully', async () => {
 		// Create migration with syntax error
-		writeFileSync(
-			join(TEST_MIGRATIONS_DIR, '20251001_004_invalid.sql'),
-			'INVALID SQL SYNTAX;'
-		);
+		writeFileSync(join(TEST_MIGRATIONS_DIR, '20251001_004_invalid.sql'), 'INVALID SQL SYNTAX;');
 
 		const result = await runCommand('tsx', [
 			REBUILD_CLI_PATH,

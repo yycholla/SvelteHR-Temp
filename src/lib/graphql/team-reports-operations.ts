@@ -819,19 +819,21 @@ export class TeamReportsOperations {
 				}
 			},
 			userCredentials: params.userCredentials,
-			timeoutMs: 10000, // Longer timeout for report generation
+			timeoutMs: 10000 // Longer timeout for report generation
 		});
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(GENERATE_TEAM_REPORT, {
-				input: {
-					type: params.type,
-					departmentId: params.departmentId,
-					startDate: params.dateRange.start,
-					endDate: params.dateRange.end
-				}
-			}).toPromise();
+			const result = await this.client
+				.query(GENERATE_TEAM_REPORT, {
+					input: {
+						type: params.type,
+						departmentId: params.departmentId,
+						startDate: params.dateRange.start,
+						endDate: params.dateRange.end
+					}
+				})
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {

@@ -17,15 +17,16 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	// Check if user has admin privileges
 	const userPermissions = locals.permissions || [];
 	const hasAdminAccess =
-		userPermissions.includes('*') || userPermissions.includes('*:*') ||
+		userPermissions.includes('*') ||
+		userPermissions.includes('*:*') ||
 		userPermissions.includes('admin:read') ||
 		userPermissions.includes('audit:read');
 
 	if (!hasAdminAccess) {
 		// Only admins can access audit logs
 		error(403, {
-        			message: 'Access denied. Administrator privileges required to view audit logs.'
-        		});
+			message: 'Access denied. Administrator privileges required to view audit logs.'
+		});
 	}
 
 	try {
@@ -116,10 +117,12 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 				const action = log.action?.toLowerCase() || '';
 				const resourceId = log.resourceId?.toLowerCase() || '';
 				const detailsStr = JSON.stringify(log.details || {}).toLowerCase();
-				return resourceType.includes(searchLower) ||
-					   action.includes(searchLower) ||
-					   resourceId.includes(searchLower) ||
-					   detailsStr.includes(searchLower);
+				return (
+					resourceType.includes(searchLower) ||
+					action.includes(searchLower) ||
+					resourceId.includes(searchLower) ||
+					detailsStr.includes(searchLower)
+				);
 			});
 		}
 
@@ -181,8 +184,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		}
 
 		error(500, {
-        			message: 'Failed to load audit logs. Please try again later.'
-        		});
+			message: 'Failed to load audit logs. Please try again later.'
+		});
 	}
 };
 

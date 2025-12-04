@@ -9,6 +9,7 @@ Comprehensive end-to-end tests for the Forms-based onboarding architecture.
 **Purpose**: Test CRUD operations for onboarding forms within modules
 
 **Test Cases** (12 tests):
+
 - ✅ Display Forms management page
 - ✅ Create a new form
 - ✅ Edit an existing form
@@ -22,6 +23,7 @@ Comprehensive end-to-end tests for the Forms-based onboarding architecture.
 - ✅ Close form dialog on cancel
 
 **Key Features Tested**:
+
 - Form CRUD operations
 - Form reordering
 - Validation
@@ -35,6 +37,7 @@ Comprehensive end-to-end tests for the Forms-based onboarding architecture.
 **Purpose**: Test block management (CRUD, reordering) within forms
 
 **Test Cases** (20 tests):
+
 - ✅ Display Form Builder interface
 - ✅ Create TEXT block
 - ✅ Create FORM_FIELDS block
@@ -53,6 +56,7 @@ Comprehensive end-to-end tests for the Forms-based onboarding architecture.
 - ✅ Show block sequence numbers
 
 **Key Features Tested**:
+
 - All 6 block types (TEXT, FORM_FIELDS, DOCUMENT, FILE_UPLOAD, SIGNATURE, CHECKBOX)
 - Block CRUD operations
 - Block reordering
@@ -67,6 +71,7 @@ Comprehensive end-to-end tests for the Forms-based onboarding architecture.
 **Purpose**: Test form navigation, progress tracking, and completion flow
 
 **Test Cases** (20 tests):
+
 - ✅ Display onboarding module with forms navigation
 - ✅ Show all forms in navigation sidebar
 - ✅ Display current form with all blocks
@@ -89,6 +94,7 @@ Comprehensive end-to-end tests for the Forms-based onboarding architecture.
 - ✅ Disable "Complete & Continue" if required fields are empty
 
 **Key Features Tested**:
+
 - Form-based navigation (not block-based)
 - All block types rendering
 - Progress tracking
@@ -103,6 +109,7 @@ Comprehensive end-to-end tests for the Forms-based onboarding architecture.
 **Purpose**: Test that form data persists across sessions, page reloads, and navigation
 
 **Test Cases** (17 tests):
+
 - ✅ Persist text input data after save and reload
 - ✅ Persist checkbox states after save and reload
 - ✅ Persist textarea data after save and reload
@@ -120,6 +127,7 @@ Comprehensive end-to-end tests for the Forms-based onboarding architecture.
 - ✅ Handle network errors gracefully during save
 
 **Key Features Tested**:
+
 - Data persistence across page reloads
 - Data persistence across browser sessions
 - Data persistence during navigation
@@ -135,6 +143,7 @@ Comprehensive end-to-end tests for the Forms-based onboarding architecture.
 **Purpose**: Test input validation, error messages, and form submission rules
 
 **Test Cases** (25 tests):
+
 - ✅ Validate required text fields
 - ✅ Validate email format
 - ✅ Validate phone number format
@@ -158,6 +167,7 @@ Comprehensive end-to-end tests for the Forms-based onboarding architecture.
 - ✅ Scroll to first validation error
 
 **Key Features Tested**:
+
 - Field-level validation (required, format, range, length)
 - Block-level validation (checkboxes, signatures, file uploads)
 - Form-level validation
@@ -217,6 +227,7 @@ npx playwright show-report
 ### Test Configuration
 
 Tests are configured in `playwright.config.ts` with:
+
 - **Browsers**: Chromium, Firefox, WebKit
 - **Timeout**: 30 seconds per test
 - **Retries**: 2 retries on CI, 0 locally
@@ -262,6 +273,7 @@ Tests are configured in `playwright.config.ts` with:
 The tests rely on `data-testid` attributes in the UI components. Ensure these are present:
 
 ### Admin Forms Management
+
 - `forms-list`
 - `form-card-{id}`
 - `form-title-{id}`
@@ -278,6 +290,7 @@ The tests rely on `data-testid` attributes in the UI components. Ensure these ar
 - `cancel-form-button`
 
 ### Form Builder
+
 - `blocks-list`
 - `block-card-{id}`
 - `block-title-{id}`
@@ -296,6 +309,7 @@ The tests rely on `data-testid` attributes in the UI components. Ensure these ar
 - `preview-container`
 
 ### Employee Onboarding
+
 - `forms-navigation`
 - `nav-form-{index}`
 - `form-step-number`
@@ -350,10 +364,12 @@ jobs:
 **Total Tests**: 94 test cases
 
 **Coverage by Category**:
+
 - Admin Features: 32 tests (34%)
 - Employee Features: 62 tests (66%)
 
 **Coverage by Functionality**:
+
 - CRUD Operations: 20 tests
 - Block Management: 16 tests
 - Navigation & Flow: 18 tests

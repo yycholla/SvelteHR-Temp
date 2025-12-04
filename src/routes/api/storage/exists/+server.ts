@@ -31,7 +31,6 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 
 		// For now, return false (file doesn't exist in mock)
 		return json({ exists: false });
-
 	} catch (err) {
 		console.error('File exists check error:', err);
 

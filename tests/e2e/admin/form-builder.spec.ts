@@ -112,10 +112,7 @@ test.describe('Admin Form Builder - Block Management', () => {
 
 		// Fill block details
 		await page.fill('[data-testid="block-title-input"]', 'Employee Handbook');
-		await page.fill(
-			'[data-testid="block-document-url"]',
-			'https://example.com/handbook.pdf'
-		);
+		await page.fill('[data-testid="block-document-url"]', 'https://example.com/handbook.pdf');
 
 		// Save block
 		await page.click('[data-testid="save-block-button"]');

@@ -3,6 +3,7 @@
 ## Overview
 
 You already have `cloudflared` running - perfect! Cloudflare Tunnel is the ideal solution for:
+
 - ✅ No static public IP needed
 - ✅ No port forwarding required
 - ✅ Works behind NAT/firewalls
@@ -48,6 +49,7 @@ sudo cat /etc/cloudflared/config.yml
 ```
 
 **Find your tunnel ID**:
+
 ```bash
 cloudflared tunnel list
 ```
@@ -62,6 +64,7 @@ cloudflared tunnel list
 4. Under **Public Hostnames**, click **Add a public hostname**
 
 **Add this hostname**:
+
 - **Subdomain**: `hr`
 - **Domain**: `yycholla.com`
 - **Type**: `HTTP`
@@ -82,6 +85,7 @@ cloudflared tunnel route dns <TUNNEL-NAME-OR-ID> hr.yycholla.com
 ```
 
 Add this ingress rule:
+
 ```yaml
 tunnel: <YOUR-TUNNEL-ID>
 credentials-file: /path/to/credentials.json
@@ -95,6 +99,7 @@ ingress:
 ```
 
 Then restart cloudflared:
+
 ```bash
 sudo systemctl restart cloudflared
 # OR
@@ -116,21 +121,27 @@ kubectl get svc -n kube-system traefik
 **Common configurations**:
 
 ### A. Traefik on Host Ports (Likely)
+
 If Traefik binds to host ports 80/443:
+
 ```yaml
 # In cloudflared config:
 service: http://localhost:80
 ```
 
 ### B. Traefik via Service (Alternative)
+
 If accessing via Kubernetes service DNS:
+
 ```yaml
 # In cloudflared config:
 service: http://traefik.kube-system.svc.cluster.local:80
 ```
 
 ### C. Traefik via NodePort
+
 If Traefik uses NodePort:
+
 ```yaml
 # In cloudflared config:
 service: http://192.168.1.129:<NODEPORT>
@@ -150,11 +161,11 @@ ingress:
   enabled: true
   className: traefik
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: web  # HTTP only
+    traefik.ingress.kubernetes.io/router.entrypoints: web # HTTP only
     # Remove cert-manager annotation
   host: hr.yycholla.com
   tls:
-    enabled: false  # Cloudflare provides TLS
+    enabled: false # Cloudflare provides TLS
 ```
 
 **Pros**: Simpler, no cert-manager needed
@@ -171,7 +182,7 @@ ingress:
   className: traefik
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-    cert-manager.io/cluster-issuer: selfsigned-issuer  # Or Cloudflare origin cert
+    cert-manager.io/cluster-issuer: selfsigned-issuer # Or Cloudflare origin cert
   host: hr.yycholla.com
   tls:
     enabled: true
@@ -226,6 +237,7 @@ https://hr.yycholla.com
 ```
 
 **You should see**:
+
 - Valid Cloudflare SSL certificate (no warnings!)
 - Your SvelteHR login page
 
@@ -260,6 +272,7 @@ sudo journalctl -u cloudflared -n 50
 **Means**: Cloudflare Tunnel is working, but can't reach Traefik
 
 **Fix**:
+
 ```bash
 # Verify Traefik is accessible
 curl -I http://localhost:80
@@ -277,6 +290,7 @@ Update cloudflared service URL to correct Traefik endpoint.
 **Means**: Reached Traefik, but ingress routing not working
 
 **Fix**:
+
 ```bash
 # Check ingress host matches
 kubectl get ingress -n sveltehr-prod -o yaml | grep host
@@ -288,6 +302,7 @@ kubectl get ingress -n sveltehr-prod -o yaml | grep host
 ### DNS not resolving
 
 **Check**: Tunnel route is configured in Cloudflare Dashboard
+
 ```bash
 cloudflared tunnel route dns list <TUNNEL-ID>
 ```
@@ -327,13 +342,13 @@ This adds an extra authentication layer before reaching your app!
 
 ## Comparison: Tunnel vs Direct IP
 
-| Feature | Cloudflare Tunnel | Direct IP (A Record) |
-|---------|------------------|---------------------|
-| Static IP required | ❌ No | ✅ Yes |
-| Port forwarding | ❌ No | ✅ Yes |
-| DDoS protection | ✅ Built-in | ❌ No |
-| Works behind NAT | ✅ Yes | ❌ No |
-| TLS management | Cloudflare auto | cert-manager |
-| Setup complexity | Easy | Medium |
+| Feature            | Cloudflare Tunnel | Direct IP (A Record) |
+| ------------------ | ----------------- | -------------------- |
+| Static IP required | ❌ No             | ✅ Yes               |
+| Port forwarding    | ❌ No             | ✅ Yes               |
+| DDoS protection    | ✅ Built-in       | ❌ No                |
+| Works behind NAT   | ✅ Yes            | ❌ No                |
+| TLS management     | Cloudflare auto   | cert-manager         |
+| Setup complexity   | Easy              | Medium               |
 
 **Verdict**: Cloudflare Tunnel is perfect for your setup! 🚀

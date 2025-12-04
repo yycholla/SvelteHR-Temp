@@ -243,9 +243,15 @@ export const load: PageServerLoad = async (event) => {
 			endDate: req.endDate,
 			leaveType: {
 				id: req.leaveType?.id || req.leaveType,
-				name: req.leaveType?.name || (typeof req.leaveType === 'string' ? getLeaveTypeName(req.leaveType) : 'Unknown'),
-				code: typeof req.leaveType === 'string' ? req.leaveType.toLowerCase() : (req.leaveType?.name?.toLowerCase().replace(/\s+/g, '_') || 'annual'),
-				color: req.leaveType?.color || getLeaveTypeColor(req.leaveType?.name?.toLowerCase() || 'annual')
+				name:
+					req.leaveType?.name ||
+					(typeof req.leaveType === 'string' ? getLeaveTypeName(req.leaveType) : 'Unknown'),
+				code:
+					typeof req.leaveType === 'string'
+						? req.leaveType.toLowerCase()
+						: req.leaveType?.name?.toLowerCase().replace(/\s+/g, '_') || 'annual',
+				color:
+					req.leaveType?.color || getLeaveTypeColor(req.leaveType?.name?.toLowerCase() || 'annual')
 			},
 			reason: req.reason || '',
 			status: req.status.toString().toLowerCase(),

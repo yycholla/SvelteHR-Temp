@@ -113,13 +113,18 @@ export async function convertOfficeToPDF(
 		// }
 
 		// Extract filename and construct output path
-		const filename = filePath.split('/').pop()?.replace(/\.[^.]+$/, '.pdf');
+		const filename = filePath
+			.split('/')
+			.pop()
+			?.replace(/\.[^.]+$/, '.pdf');
 		const convertedPath = `${outputDir}/${filename}`;
 
 		const conversionTime = Date.now() - startTime;
 
 		// Log conversion metrics
-		console.log(`Office document converted in ${conversionTime}ms: ${filePath} -> ${convertedPath}`);
+		console.log(
+			`Office document converted in ${conversionTime}ms: ${filePath} -> ${convertedPath}`
+		);
 
 		return {
 			convertedPath,

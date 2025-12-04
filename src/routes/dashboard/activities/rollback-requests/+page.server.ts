@@ -94,8 +94,8 @@ export const load: PageServerLoad = async (event) => {
 		let allRequests = requestsData.data?.rollbackRequests || [];
 
 		// Sort by createdAt DESC (client-side since Rust schema doesn't support orderBy)
-		allRequests = allRequests.sort((a: any, b: any) =>
-			new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+		allRequests = allRequests.sort(
+			(a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
 		);
 
 		// Client-side filtering for status
@@ -181,7 +181,7 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		error(500, {
-        			message: 'Failed to load rollback requests'
-        		});
+			message: 'Failed to load rollback requests'
+		});
 	}
 };

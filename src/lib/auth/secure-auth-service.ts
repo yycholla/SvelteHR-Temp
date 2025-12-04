@@ -3,10 +3,7 @@
 
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
-import {
-	authConfig,
-	getAuthEndpoints
-} from './config';
+import { authConfig, getAuthEndpoints } from './config';
 
 export interface AuthState {
 	isAuthenticated: boolean;
@@ -66,7 +63,9 @@ class SecureAuthService {
 					this.authState.isAuthenticated = true;
 					this.authState.user = data.user;
 					this.authState.permissions = data.permissions || [];
-					this.authState.sessionExpires = data.sessionExpires ? new Date(data.sessionExpires) : null;
+					this.authState.sessionExpires = data.sessionExpires
+						? new Date(data.sessionExpires)
+						: null;
 				}
 			} else if (response.status === 401) {
 				// Expected for unauthenticated users - not an error
@@ -208,7 +207,9 @@ class SecureAuthService {
 	 */
 	hasPermission(permission: string): boolean {
 		return (
-			this.authState.permissions.includes('*') || this.authState.permissions.includes('*:*') || this.authState.permissions.includes(permission)
+			this.authState.permissions.includes('*') ||
+			this.authState.permissions.includes('*:*') ||
+			this.authState.permissions.includes(permission)
 		);
 	}
 
@@ -216,7 +217,8 @@ class SecureAuthService {
 	 * Check if user has any of the specified permissions
 	 */
 	hasAnyPermission(permissions: string[]): boolean {
-		if (this.authState.permissions.includes('*') || this.authState.permissions.includes('*:*')) return true;
+		if (this.authState.permissions.includes('*') || this.authState.permissions.includes('*:*'))
+			return true;
 		return permissions.some((permission) => this.authState.permissions.includes(permission));
 	}
 

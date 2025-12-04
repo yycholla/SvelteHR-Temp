@@ -73,11 +73,17 @@ test.describe('Employee Management Write Permissions (US2)', () => {
 		await expect(page).toHaveURL('/hr/employees');
 
 		// Look for "Add Employee" button - should exist and be visible
-		const addButton = page.locator('button:has-text("Add Employee"), button:has-text("Create"), button:has-text("New Employee")').first();
+		const addButton = page
+			.locator(
+				'button:has-text("Add Employee"), button:has-text("Create"), button:has-text("New Employee")'
+			)
+			.first();
 		await expect(addButton).toBeVisible({ timeout: 10000 });
 	});
 
-	test('should hide edit buttons in employee list for user without employees:write', async ({ page }) => {
+	test('should hide edit buttons in employee list for user without employees:write', async ({
+		page
+	}) => {
 		// Login with read-only permission
 		await loginWithPermissions(page, ['employees:read'], ['Employee']);
 
@@ -88,14 +94,18 @@ test.describe('Employee Management Write Permissions (US2)', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Look for edit buttons/icons in the list
-		const editButtons = page.locator('button:has-text("Edit"), button[aria-label*="Edit"], a:has-text("Edit")');
+		const editButtons = page.locator(
+			'button:has-text("Edit"), button[aria-label*="Edit"], a:has-text("Edit")'
+		);
 
 		// Edit buttons should not be visible
 		const count = await editButtons.count();
 		expect(count).toBe(0);
 	});
 
-	test('should show edit buttons in employee list for user with employees:write', async ({ page }) => {
+	test('should show edit buttons in employee list for user with employees:write', async ({
+		page
+	}) => {
 		// Login with write permission
 		await loginWithPermissions(page, ['employees:read', 'employees:write'], ['HR Manager']);
 
@@ -106,14 +116,18 @@ test.describe('Employee Management Write Permissions (US2)', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Look for edit buttons/icons in the list
-		const editButtons = page.locator('button:has-text("Edit"), button[aria-label*="Edit"], a[href*="/edit"]');
+		const editButtons = page.locator(
+			'button:has-text("Edit"), button[aria-label*="Edit"], a[href*="/edit"]'
+		);
 
 		// At least one edit button should be visible (assuming employees exist)
 		const count = await editButtons.count();
 		expect(count).toBeGreaterThan(0);
 	});
 
-	test('should block direct access to employee create form without employees:write', async ({ page }) => {
+	test('should block direct access to employee create form without employees:write', async ({
+		page
+	}) => {
 		// Login with read-only permission
 		await loginWithPermissions(page, ['employees:read'], ['Employee']);
 
@@ -124,7 +138,9 @@ test.describe('Employee Management Write Permissions (US2)', () => {
 		await expect(page).toHaveURL(/\/(unauthorized|hr\/employees)(?!\/create)/);
 	});
 
-	test('should block direct access to employee edit form without employees:write', async ({ page }) => {
+	test('should block direct access to employee edit form without employees:write', async ({
+		page
+	}) => {
 		// Login with read-only permission
 		await loginWithPermissions(page, ['employees:read'], ['Employee']);
 
@@ -137,7 +153,9 @@ test.describe('Employee Management Write Permissions (US2)', () => {
 });
 
 test.describe('Department Management Write Permissions (US2)', () => {
-	test('should hide "Add Department" button for user without departments:write', async ({ page }) => {
+	test('should hide "Add Department" button for user without departments:write', async ({
+		page
+	}) => {
 		// Login with read-only permission
 		await loginWithPermissions(page, ['departments:read'], ['Manager']);
 
@@ -148,7 +166,9 @@ test.describe('Department Management Write Permissions (US2)', () => {
 		await expect(page).toHaveURL('/admin/departments');
 
 		// Look for "Add Department" button - should NOT exist
-		const addButton = page.locator('button:has-text("Add Department"), button:has-text("Create"), button:has-text("New Department")');
+		const addButton = page.locator(
+			'button:has-text("Add Department"), button:has-text("Create"), button:has-text("New Department")'
+		);
 		await expect(addButton).toHaveCount(0);
 	});
 
@@ -163,11 +183,17 @@ test.describe('Department Management Write Permissions (US2)', () => {
 		await expect(page).toHaveURL('/admin/departments');
 
 		// Look for "Add Department" button - should exist
-		const addButton = page.locator('button:has-text("Add Department"), button:has-text("Create"), button:has-text("New Department")').first();
+		const addButton = page
+			.locator(
+				'button:has-text("Add Department"), button:has-text("Create"), button:has-text("New Department")'
+			)
+			.first();
 		await expect(addButton).toBeVisible({ timeout: 10000 });
 	});
 
-	test('should hide department edit actions for user without departments:write', async ({ page }) => {
+	test('should hide department edit actions for user without departments:write', async ({
+		page
+	}) => {
 		// Login with read-only permission
 		await loginWithPermissions(page, ['departments:read'], ['Manager']);
 
@@ -179,7 +205,9 @@ test.describe('Department Management Write Permissions (US2)', () => {
 		await expect(editButton).not.toBeVisible();
 	});
 
-	test('should block direct access to department create form without departments:write', async ({ page }) => {
+	test('should block direct access to department create form without departments:write', async ({
+		page
+	}) => {
 		// Login with read-only permission
 		await loginWithPermissions(page, ['departments:read'], ['Manager']);
 
@@ -203,7 +231,9 @@ test.describe('Admin Panel Write Permissions (US2)', () => {
 		await expect(page).toHaveURL('/dashboard/admin/analytics');
 
 		// Look for action buttons that require write permission
-		const writeButtons = page.locator('button:has-text("Export"), button:has-text("Generate"), button:has-text("Create")');
+		const writeButtons = page.locator(
+			'button:has-text("Export"), button:has-text("Generate"), button:has-text("Create")'
+		);
 
 		// These buttons should not be visible or should be disabled
 		const count = await writeButtons.count();
@@ -225,7 +255,9 @@ test.describe('Admin Panel Write Permissions (US2)', () => {
 		await expect(page).toHaveURL('/dashboard/admin/analytics');
 
 		// Action buttons should be visible and enabled
-		const writeButtons = page.locator('button:has-text("Export"), button:has-text("Generate")').first();
+		const writeButtons = page
+			.locator('button:has-text("Export"), button:has-text("Generate")')
+			.first();
 
 		// At least check that buttons are not disabled
 		const isDisabled = await writeButtons.isDisabled().catch(() => true);
@@ -288,7 +320,11 @@ test.describe('Admin Wildcard Write Permissions (US2)', () => {
 			await expect(page).toHaveURL(pageTest.url);
 
 			// Look for create/add button
-			const addButton = page.locator(`button:has-text("${pageTest.buttonText}"), button:has-text("Create"), button:has-text("New")`).first();
+			const addButton = page
+				.locator(
+					`button:has-text("${pageTest.buttonText}"), button:has-text("Create"), button:has-text("New")`
+				)
+				.first();
 
 			// Admin should see all action buttons
 			await expect(addButton).toBeVisible({ timeout: 10000 });

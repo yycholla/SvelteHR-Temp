@@ -44,7 +44,7 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 		const response = await fetch('/api/documents/upload', {
 			method: 'POST',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			},
 			body: formData
 		});
@@ -70,7 +70,7 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 		const response = await fetch('/api/documents/upload', {
 			method: 'POST',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			},
 			body: formData
 		});
@@ -95,7 +95,7 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 		const response = await fetch('/api/documents/upload', {
 			method: 'POST',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			},
 			body: formData
 		});
@@ -142,7 +142,7 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 		const response = await fetch('/api/documents/upload', {
 			method: 'POST',
 			headers: {
-				'Authorization': `Bearer ${employeeToken}`
+				Authorization: `Bearer ${employeeToken}`
 			},
 			body: formData
 		});
@@ -166,7 +166,7 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 		const response = await fetch('/api/documents/upload', {
 			method: 'POST',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			},
 			body: formData
 		});
@@ -186,8 +186,14 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 			{ name: 'image.jpeg', mime: 'image/jpeg' },
 			{ name: 'photo.png', mime: 'image/png' },
 			{ name: 'animation.gif', mime: 'image/gif' },
-			{ name: 'document.docx', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
-			{ name: 'spreadsheet.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+			{
+				name: 'document.docx',
+				mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+			},
+			{
+				name: 'spreadsheet.xlsx',
+				mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+			},
 			{ name: 'notes.txt', mime: 'text/plain' },
 			{ name: 'data.csv', mime: 'text/csv' }
 		];
@@ -202,7 +208,7 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 			const response = await fetch('/api/documents/upload', {
 				method: 'POST',
 				headers: {
-					'Authorization': `Bearer ${adminToken}`
+					Authorization: `Bearer ${adminToken}`
 				},
 				body: formData
 			});

@@ -144,11 +144,13 @@ export class ApiIntrospector {
     }
 
     try {
-      const response = await this.client.post(this.apiUrl, {
-        json: {
-          query: INTROSPECTION_QUERY,
-        },
-      }).json<IntrospectionResult>();
+      const response = await this.client
+        .post(this.apiUrl, {
+          json: {
+            query: INTROSPECTION_QUERY,
+          },
+        })
+        .json<IntrospectionResult>();
 
       const schema = response.data.__schema;
 

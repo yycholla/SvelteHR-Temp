@@ -170,28 +170,28 @@ export function formatActivityMessage(activity: ActivityLog): string {
 	let itemName: string | null = null;
 
 	// Try to get name from appropriate snapshot based on action
-	const snapshot = activity.action === 'delete'
-		? activity.beforeSnapshot
-		: (activity.afterSnapshot || activity.beforeSnapshot);
+	const snapshot =
+		activity.action === 'delete'
+			? activity.beforeSnapshot
+			: activity.afterSnapshot || activity.beforeSnapshot;
 
 	// Check snapshot for common name fields
 	if (snapshot) {
-		itemName = snapshot.title
-			|| snapshot.name
-			|| snapshot.displayName
-			|| snapshot.display_name
-			|| snapshot.full_name
-			|| snapshot.event_title
-			|| snapshot.task_name
-			|| null;
+		itemName =
+			snapshot.title ||
+			snapshot.name ||
+			snapshot.displayName ||
+			snapshot.display_name ||
+			snapshot.full_name ||
+			snapshot.event_title ||
+			snapshot.task_name ||
+			null;
 	}
 
 	// Fallback to details if no snapshot name found
 	if (!itemName && activity.details) {
-		itemName = activity.details.title
-			|| activity.details.name
-			|| activity.details.displayName
-			|| null;
+		itemName =
+			activity.details.title || activity.details.name || activity.details.displayName || null;
 	}
 
 	// Build display name

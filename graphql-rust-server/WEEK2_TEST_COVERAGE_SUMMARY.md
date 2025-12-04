@@ -12,13 +12,13 @@ Successfully implemented **135 comprehensive tests** across 4 parallel agents, a
 
 ### Overall Results
 
-| Metric | Week 1 | Week 2 | Total | Improvement |
-|--------|--------|--------|-------|-------------|
-| **Total Tests** | 56 | 135 | **191** | +141% |
-| **Test Pass Rate** | 100% | 90.4% | 93.2% | -6.8% (schema fixes needed) |
-| **Coverage** | 40-45% | 55-60% | **55-60%** | **+15%** |
-| **Quick Win Tests** | 0 | 76 | **76** | NEW |
-| **GraphQL Tests** | 20 | 59 | **79** | +195% |
+| Metric              | Week 1 | Week 2 | Total      | Improvement                 |
+| ------------------- | ------ | ------ | ---------- | --------------------------- |
+| **Total Tests**     | 56     | 135    | **191**    | +141%                       |
+| **Test Pass Rate**  | 100%   | 90.4%  | 93.2%      | -6.8% (schema fixes needed) |
+| **Coverage**        | 40-45% | 55-60% | **55-60%** | **+15%**                    |
+| **Quick Win Tests** | 0      | 76     | **76**     | NEW                         |
+| **GraphQL Tests**   | 20     | 59     | **79**     | +195%                       |
 
 ---
 
@@ -34,6 +34,7 @@ Successfully implemented **135 comprehensive tests** across 4 parallel agents, a
 ### Test Categories
 
 #### 1. Leave Request Creation Tests (7 tests)
+
 - ✅ `test_create_leave_request_exceeds_balance_rejected` - Balance validation
 - ✅ `test_create_leave_request_end_before_start_rejected` - Date validation
 - ✅ `test_create_leave_request_missing_required_fields` - Input validation
@@ -43,6 +44,7 @@ Successfully implemented **135 comprehensive tests** across 4 parallel agents, a
 - ❌ `test_create_leave_request_success` - Enum case mismatch
 
 #### 2. Leave Approval Workflow Tests (8 tests)
+
 - ✅ `test_cannot_approve_already_approved_request` - Status validation
 - ✅ `test_approved_leave_deducts_from_balance` - Balance update logic
 - ✅ `test_employee_cannot_approve_own_leave` - Self-approval prevention
@@ -53,6 +55,7 @@ Successfully implemented **135 comprehensive tests** across 4 parallel agents, a
 - ❌ `test_rejected_leave_does_not_affect_balance` - Enum case mismatch
 
 #### 3. Leave Balance Tests (5 tests)
+
 - ✅ `test_leave_balance_current_year_only` - Year filtering
 - ✅ `test_leave_balance_excludes_used_days` - Balance calculation
 - ✅ `test_negative_balance_prevention` - Constraint validation
@@ -60,6 +63,7 @@ Successfully implemented **135 comprehensive tests** across 4 parallel agents, a
 - ❌ `test_leave_balance_calculation_with_accrued_days` - Missing arguments
 
 #### 4. Leave Query Tests (4 tests)
+
 - ✅ `test_leave_request_filtering_by_status` - Status filtering
 - ❌ `test_employee_sees_own_leave_requests` - Missing nodes field
 - ❌ `test_hr_admin_sees_all_requests` - Missing nodes field
@@ -104,6 +108,7 @@ Successfully implemented **135 comprehensive tests** across 4 parallel agents, a
 ### Test Categories
 
 #### 1. Email Validation (5 tests)
+
 - ✅ Valid email formats (RFC 5322)
 - ✅ Invalid email formats rejected
 - ✅ Empty email rejected
@@ -111,6 +116,7 @@ Successfully implemented **135 comprehensive tests** across 4 parallel agents, a
 - ✅ Special characters handled
 
 #### 2. Password Validation (7 tests)
+
 - ✅ Minimum length requirement (8+ chars)
 - ✅ Uppercase letter required
 - ✅ Lowercase letter required
@@ -120,6 +126,7 @@ Successfully implemented **135 comprehensive tests** across 4 parallel agents, a
 - ✅ Empty password rejected
 
 #### 3. Date Range Validation (5 tests)
+
 - ✅ Start date before end date validation
 - ✅ Date range maximum duration check
 - ✅ Past dates rejected for future-only fields
@@ -127,12 +134,14 @@ Successfully implemented **135 comprehensive tests** across 4 parallel agents, a
 - ✅ Future date enforcement
 
 #### 4. Enum/Status Validation (4 tests)
+
 - ✅ Valid enum values accepted
 - ✅ Invalid enum values rejected
 - ✅ Case-insensitive enum matching
 - ✅ Status transition validation
 
 #### 5. String Field Validation (6 tests)
+
 - ✅ Maximum length enforcement
 - ✅ Minimum length enforcement
 - ✅ Required field validation
@@ -141,6 +150,7 @@ Successfully implemented **135 comprehensive tests** across 4 parallel agents, a
 - ✅ Whitespace-only string rejection
 
 #### 6. Numeric Field Validation (5 tests)
+
 - ✅ Minimum value enforcement
 - ✅ Maximum value enforcement
 - ✅ Decimal precision validation
@@ -148,6 +158,7 @@ Successfully implemented **135 comprehensive tests** across 4 parallel agents, a
 - ✅ Percentage range (0-100)
 
 #### 7. Additional Validations (12 tests)
+
 - Phone numbers (E.164 international format) - 3 tests
 - URL validation (HTTP/HTTPS) - 3 tests
 - UUID validation (v4 format) - 2 tests
@@ -165,6 +176,7 @@ Successfully implemented **135 comprehensive tests** across 4 parallel agents, a
 ### Bonus: Reusable Validation Functions
 
 The test file includes 16 production-ready validation functions:
+
 - `validate_email()`, `validate_password()`, `validate_phone_number()`
 - `validate_date_range()`, `validate_future_date()`
 - `validate_string_field()`, `validate_integer_range()`, `validate_percentage()`
@@ -192,6 +204,7 @@ The test file includes 16 production-ready validation functions:
 ### Test Categories
 
 #### 1. String Utility Tests (7 tests)
+
 - ✅ `sanitize_string_input()` - Security-critical input sanitization
   - Null byte removal
   - Special character handling
@@ -201,6 +214,7 @@ The test file includes 16 production-ready validation functions:
 - ✅ `validate_phone_format()` - International phone number validation
 
 #### 2. Permission Helper Tests (8 tests)
+
 - ✅ `has_permission()` - Exact match, wildcard, admin bypass
 - ✅ `has_role()` - Case-insensitive role checking
 - ✅ `is_admin()` - Admin role detection
@@ -210,11 +224,13 @@ The test file includes 16 production-ready validation functions:
 - **RBAC coverage:** Complete role hierarchy (Admin > HR_Manager > Manager > Employee)
 
 #### 3. Error Handling Tests (5 tests)
+
 - ✅ `ErrorCode::as_str()` - GraphQL error code mapping
 - ✅ `AppError::Display` - User-friendly error messages
 - **Errors covered:** Authentication, Authorization, Validation, NotFound, Conflict, Internal, SessionExpired, AccountLocked, RateLimited
 
 #### 4. Authorization Utility Tests (9 tests)
+
 - ✅ `require_admin()` - Admin-only access enforcement
 - ✅ `require_hr_manager()` - HR Manager role validation
 - ✅ `require_manager()` - Manager role hierarchy
@@ -224,6 +240,7 @@ The test file includes 16 production-ready validation functions:
 - **Coverage:** Both success and failure paths
 
 #### 5. User Context Construction Tests (3 tests)
+
 - ✅ `UserContext::new()` - Basic context creation
 - ✅ `UserContext::with_rls()` - Row-level security fields
 - ✅ `UserContext::system()` - System service authentication
@@ -233,21 +250,22 @@ The test file includes 16 production-ready validation functions:
 ✅ **Zero Database Dependencies** - Pure logic tests
 ✅ **Lightning Fast** - 40ms execution (avg 1.25ms per test)
 ✅ **High-Impact Coverage** - Tests critical path utilities:
-  - Every GraphQL resolver uses `has_permission()`
-  - All user input goes through `sanitize_string_input()`
-  - User registration uses `validate_email_format()`
-  - Admin operations use `require_admin()` guards
-✅ **Security-Critical Functions** - Input sanitization and RBAC thoroughly tested
-✅ **CI-Friendly** - No flakiness, deterministic results
+
+- Every GraphQL resolver uses `has_permission()`
+- All user input goes through `sanitize_string_input()`
+- User registration uses `validate_email_format()`
+- Admin operations use `require_admin()` guards
+  ✅ **Security-Critical Functions** - Input sanitization and RBAC thoroughly tested
+  ✅ **CI-Friendly** - No flakiness, deterministic results
 
 ### Modules Tested
 
-| Module | Functions Tested | Test Count |
-|--------|-----------------|------------|
-| `src/middleware/request_limits.rs` | 3 utilities | 7 tests |
-| `src/auth/context.rs` | 8 context methods | 11 tests |
-| `src/auth/authorization.rs` | 6 auth guards | 9 tests |
-| `src/error.rs` | Error types | 5 tests |
+| Module                             | Functions Tested  | Test Count |
+| ---------------------------------- | ----------------- | ---------- |
+| `src/middleware/request_limits.rs` | 3 utilities       | 7 tests    |
+| `src/auth/context.rs`              | 8 context methods | 11 tests   |
+| `src/auth/authorization.rs`        | 6 auth guards     | 9 tests    |
+| `src/error.rs`                     | Error types       | 5 tests    |
 
 ### Coverage Impact
 
@@ -270,6 +288,7 @@ The test file includes 16 production-ready validation functions:
 ### Test Categories
 
 #### 1. Pagination Edge Cases (6 tests)
+
 - ✅ Empty result set handling
 - ✅ Page beyond available results
 - ✅ Negative page number validation (clamped to 0)
@@ -278,6 +297,7 @@ The test file includes 16 production-ready validation functions:
 - ✅ Total count accuracy with filters
 
 #### 2. Filtering Edge Cases (7 tests)
+
 - ✅ Non-existent field rejection (schema validation)
 - ✅ Invalid filter operator rejection
 - ✅ Multiple conflicting filters (AND logic)
@@ -287,6 +307,7 @@ The test file includes 16 production-ready validation functions:
 - ✅ Invalid date format validation
 
 #### 3. Sorting Edge Cases (5 tests)
+
 - ✅ Non-existent field handling
 - ✅ Multiple sort criteria application
 - ✅ Null values in sorted fields
@@ -294,6 +315,7 @@ The test file includes 16 production-ready validation functions:
 - ✅ Default sort behavior
 
 #### 4. Query Complexity Edge Cases (6 tests)
+
 - ✅ Deeply nested query detection (depth limits)
 - ✅ Very wide queries (breadth handling)
 - ✅ Circular reference detection via fragments
@@ -302,6 +324,7 @@ The test file includes 16 production-ready validation functions:
 - ✅ Query timeout enforcement (<1s)
 
 #### 5. Data Validation Edge Cases (6 tests)
+
 - ✅ UUID format validation for ID parameters
 - ✅ Date format validation
 - ✅ Email format handling
@@ -310,6 +333,7 @@ The test file includes 16 production-ready validation functions:
 - ✅ Unknown parameter rejection
 
 #### 6. Authorization Edge Cases (5 tests)
+
 - ✅ Missing authentication context
 - ✅ Expired/invalid token handling (RLS filtering)
 - ✅ Cross-tenant resource access prevention
@@ -339,61 +363,61 @@ The test file includes 16 production-ready validation functions:
 
 ### Test Statistics
 
-| Category | Tests | Passing | Failing | Pass Rate |
-|----------|-------|---------|---------|-----------|
-| **Leave Domain Tests** | 24 | 14 | 10 | 58% |
-| **Model Validation Tests** | 44 | 44 | 0 | 100% |
-| **Utility Function Tests** | 32 | 32 | 0 | 100% |
-| **Query Edge Case Tests** | 35 | 35 | 0 | 100% |
-| **TOTAL WEEK 2** | **135** | **125** | **10** | **92.6%** |
+| Category                   | Tests   | Passing | Failing | Pass Rate |
+| -------------------------- | ------- | ------- | ------- | --------- |
+| **Leave Domain Tests**     | 24      | 14      | 10      | 58%       |
+| **Model Validation Tests** | 44      | 44      | 0       | 100%      |
+| **Utility Function Tests** | 32      | 32      | 0       | 100%      |
+| **Query Edge Case Tests**  | 35      | 35      | 0       | 100%      |
+| **TOTAL WEEK 2**           | **135** | **125** | **10**  | **92.6%** |
 
 ### Combined Statistics (Week 1 + Week 2)
 
-| Metric | Value |
-|--------|-------|
-| **Total Tests** | 191 tests |
-| **Passing Tests** | 164 tests (85.9%) |
-| **Failing Tests** | 10 tests (5.2% - schema fixes needed) |
-| **Pending Tests** | 17 tests (8.9% - compilation only) |
-| **Total Test Code** | 4,791 lines |
-| **Documentation** | 60+ KB |
+| Metric              | Value                                 |
+| ------------------- | ------------------------------------- |
+| **Total Tests**     | 191 tests                             |
+| **Passing Tests**   | 164 tests (85.9%)                     |
+| **Failing Tests**   | 10 tests (5.2% - schema fixes needed) |
+| **Pending Tests**   | 17 tests (8.9% - compilation only)    |
+| **Total Test Code** | 4,791 lines                           |
+| **Documentation**   | 60+ KB                                |
 
 ### Coverage Progression
 
-| Phase | Coverage | Improvement |
-|-------|----------|-------------|
-| **Before Week 1** | 25-30% | - |
-| **After Week 1** | 40-45% | +15% |
-| **After Week 2** | **55-60%** | **+15%** |
-| **Total Improvement** | - | **+30%** |
+| Phase                 | Coverage   | Improvement |
+| --------------------- | ---------- | ----------- |
+| **Before Week 1**     | 25-30%     | -           |
+| **After Week 1**      | 40-45%     | +15%        |
+| **After Week 2**      | **55-60%** | **+15%**    |
+| **Total Improvement** | -          | **+30%**    |
 
 ### Coverage by Module (Estimated)
 
-| Module | Before | After Week 2 | Improvement |
-|--------|--------|--------------|-------------|
-| Auth Backend | 0% | 75-85% | +75-85% |
-| RLS Multi-Tenant | 0% | 70-80% | +70-80% |
-| RBAC Authorization | 0% | 60-70% | +60-70% |
-| **GraphQL Schema** | 0% | **50-60%** | **+50-60%** |
-| **Validation Logic** | 0% | **80-90%** | **+80-90%** |
-| **Utility Functions** | 0% | **85-95%** | **+85-95%** |
-| Middleware | 40-50% | 60-70% | +20% |
-| Models | 30-40% | 50-60% | +20% |
-| Database | 20-30% | 40-50% | +20% |
+| Module                | Before | After Week 2 | Improvement |
+| --------------------- | ------ | ------------ | ----------- |
+| Auth Backend          | 0%     | 75-85%       | +75-85%     |
+| RLS Multi-Tenant      | 0%     | 70-80%       | +70-80%     |
+| RBAC Authorization    | 0%     | 60-70%       | +60-70%     |
+| **GraphQL Schema**    | 0%     | **50-60%**   | **+50-60%** |
+| **Validation Logic**  | 0%     | **80-90%**   | **+80-90%** |
+| **Utility Functions** | 0%     | **85-95%**   | **+85-95%** |
+| Middleware            | 40-50% | 60-70%       | +20%        |
+| Models                | 30-40% | 50-60%       | +20%        |
+| Database              | 20-30% | 40-50%       | +20%        |
 
 ---
 
 ## Files Created
 
-| File | Lines | Tests | Purpose |
-|------|-------|-------|---------|
-| `tests/graphql_leave_tests.rs` | 1,240 | 24 | Leave domain GraphQL tests |
-| `tests/model_validation_tests.rs` | 654 | 44 | Model validation quick wins |
-| `tests/utils_tests.rs` | 455 | 32 | Utility function quick wins |
-| `tests/graphql_query_edge_cases_tests.rs` | ~800 | 35 | Query edge case tests |
-| `MODEL_VALIDATION_TEST_REPORT.md` | ~8 KB | - | Validation test documentation |
-| `WEEK2_TEST_COVERAGE_SUMMARY.md` | ~15 KB | - | Week 2 comprehensive summary |
-| **TOTAL** | **3,149 lines** | **135 tests** | **23 KB docs** |
+| File                                      | Lines           | Tests         | Purpose                       |
+| ----------------------------------------- | --------------- | ------------- | ----------------------------- |
+| `tests/graphql_leave_tests.rs`            | 1,240           | 24            | Leave domain GraphQL tests    |
+| `tests/model_validation_tests.rs`         | 654             | 44            | Model validation quick wins   |
+| `tests/utils_tests.rs`                    | 455             | 32            | Utility function quick wins   |
+| `tests/graphql_query_edge_cases_tests.rs` | ~800            | 35            | Query edge case tests         |
+| `MODEL_VALIDATION_TEST_REPORT.md`         | ~8 KB           | -             | Validation test documentation |
+| `WEEK2_TEST_COVERAGE_SUMMARY.md`          | ~15 KB          | -             | Week 2 comprehensive summary  |
+| **TOTAL**                                 | **3,149 lines** | **135 tests** | **23 KB docs**                |
 
 ---
 
@@ -401,23 +425,23 @@ The test file includes 16 production-ready validation functions:
 
 ### Test Execution Times
 
-| Test Suite | Duration | Performance |
-|------------|----------|-------------|
-| Leave Domain Tests | 74.35s | Good (24 tests with DB) |
-| Model Validation Tests | 0.02-0.03s | Excellent (44 tests, no DB) |
-| Utility Function Tests | 0.04-0.06s | Excellent (32 tests, no DB) |
-| Query Edge Case Tests | 120.65s | Good (35 tests with DB) |
-| **Week 2 Total** | **~195 seconds** | **Efficient** |
+| Test Suite             | Duration         | Performance                 |
+| ---------------------- | ---------------- | --------------------------- |
+| Leave Domain Tests     | 74.35s           | Good (24 tests with DB)     |
+| Model Validation Tests | 0.02-0.03s       | Excellent (44 tests, no DB) |
+| Utility Function Tests | 0.04-0.06s       | Excellent (32 tests, no DB) |
+| Query Edge Case Tests  | 120.65s          | Good (35 tests with DB)     |
+| **Week 2 Total**       | **~195 seconds** | **Efficient**               |
 
 ### Quick Win Test Performance
 
-| Metric | Value |
-|--------|-------|
-| Quick Win Tests | 76 tests |
-| Execution Time | 60-90ms |
+| Metric           | Value       |
+| ---------------- | ----------- |
+| Quick Win Tests  | 76 tests    |
+| Execution Time   | 60-90ms     |
 | Average Per Test | 0.79-1.18ms |
-| Database Queries | 0 |
-| Coverage Impact | +15-20% |
+| Database Queries | 0           |
+| Coverage Impact  | +15-20%     |
 
 ---
 
@@ -428,10 +452,12 @@ The test file includes 16 production-ready validation functions:
 **Issue:** Enum values return uppercase instead of title case
 
 **Affected Tests:**
+
 - All Leave domain tests expecting `"Pending"` but get `"PENDING"`
 - All tests expecting `"Approved"` but get `"APPROVED"`
 
 **Fix:**
+
 ```rust
 // Option A: Update tests to expect uppercase
 assert_eq!(status, "PENDING");
@@ -451,11 +477,13 @@ pub enum LeaveRequestStatus {
 **Issue:** List queries return direct models instead of Connection types
 
 **Affected Tests:**
+
 - `test_employee_sees_own_leave_requests`
 - `test_hr_admin_sees_all_requests`
 - `test_manager_sees_team_member_requests`
 
 **Fix:**
+
 ```rust
 // Add Connection wrapper types
 #[derive(SimpleObject)]
@@ -473,6 +501,7 @@ async fn leave_requests(&self, ctx: &Context<'_>) -> Result<LeaveRequestConnecti
 **Issue:** `leaveRequests` and `leaveBalances` missing filter parameters
 
 **Fix:**
+
 ```rust
 async fn leave_requests(
     &self,
@@ -587,6 +616,7 @@ async fn leave_requests(
 Week 2 test coverage implementation successfully added **135 comprehensive tests** with a **92.6% pass rate**, achieving a **+15% coverage increase** (40% → 55%). The implementation exceeded targets with 135 tests (vs. 70-100 planned) and identified critical business logic gaps in the Leave management system.
 
 **Key Highlights:**
+
 - 76 quick win tests with <100ms execution time
 - 59 GraphQL schema tests (50-60% schema coverage)
 - 10 tests failing due to schema mismatches (easy fixes)

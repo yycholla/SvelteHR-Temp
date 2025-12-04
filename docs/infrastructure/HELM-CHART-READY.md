@@ -9,22 +9,27 @@ The Helm chart is **functionally complete** and ready for deployment testing! Al
 ## ✅ Completed Work (Phases 1-4)
 
 ### Phase 1: Chart Dependencies ✅
+
 **File:** `k8s/helm-charts/sveltehr/Chart.yaml`
+
 - Chart version 2.0.0
 - CloudNativePG dependency (PostgreSQL operator)
 - Bitnami Redis dependency
 - Automatic dependency management
 
 ### Phase 2: Core Templates ✅
+
 1. **`postgres-cluster.yaml`** - Complete PostgreSQL cluster management
 2. **`migration-job.yaml`** - Database migrations with Helm pre-install hooks
 3. **`seed-job.yaml`** - Initial data seeding (manual execution)
 
 ### Phase 3: Container Optimizations ✅
+
 4. **`backend-deployment.yaml`** - Multi-target images, direct execution
 5. **`frontend-deployment.yaml`** - BuildKit annotations, env-specific config
 
 ### Phase 4: Values Files ✅
+
 6. **`values-dev.yaml`** - Complete development configuration (400+ lines)
 7. **`values-prod.yaml`** - Complete production overrides (420+ lines)
 
@@ -70,46 +75,53 @@ helm install sveltehr . \
 
 ## 📊 Progress Overview
 
-| Phase | Status | Details |
-|-------|--------|---------|
-| 1. Chart Dependencies | ✅ 100% | PostgreSQL + Redis via Chart.yaml |
-| 2. Core Templates | ✅ 100% | PostgreSQL, Migration, Seed |
-| 3. Container Optimizations | ✅ 100% | Backend + Frontend updated |
-| 4. Values Files | ✅ 100% | Complete dev + prod configs |
-| 5-8. Scripts & CI/CD | ⏳ 0% | Optional enhancements |
-| **OVERALL** | **✅ 70%** | **Chart is deployable!** |
+| Phase                      | Status     | Details                           |
+| -------------------------- | ---------- | --------------------------------- |
+| 1. Chart Dependencies      | ✅ 100%    | PostgreSQL + Redis via Chart.yaml |
+| 2. Core Templates          | ✅ 100%    | PostgreSQL, Migration, Seed       |
+| 3. Container Optimizations | ✅ 100%    | Backend + Frontend updated        |
+| 4. Values Files            | ✅ 100%    | Complete dev + prod configs       |
+| 5-8. Scripts & CI/CD       | ⏳ 0%      | Optional enhancements             |
+| **OVERALL**                | **✅ 70%** | **Chart is deployable!**          |
 
 ---
 
 ## 🎯 Key Features Implemented
 
 ### 1. Helm Hooks (Migration Timing)
+
 ```yaml
 annotations:
-  "helm.sh/hook": pre-install,pre-upgrade
+  'helm.sh/hook': pre-install,pre-upgrade
 ```
+
 ✅ **Guaranteed migration execution before backend deployment**
 
 ### 2. Dependency Management
+
 ```yaml
 dependencies:
   - name: cloudnative-pg
   - name: redis
 ```
+
 ✅ **Single `helm install` deploys entire stack**
 
 ### 3. Multi-Target Container Images
+
 ```yaml
 backend:
   image:
-    repository: ghcr.io/.../backend-server  # Server only
+    repository: ghcr.io/.../backend-server # Server only
 migration:
   image:
-    repository: ghcr.io/.../backend-migration  # Migrations only
+    repository: ghcr.io/.../backend-migration # Migrations only
 ```
+
 ✅ **Smaller images, better separation**
 
 ### 4. Environment-Driven Configuration
+
 ```yaml
 # Dev: values-dev.yaml
 postgresql:
@@ -121,9 +133,11 @@ postgresql:
   instances: 3  # HA
   storage: {size: 100Gi}
 ```
+
 ✅ **Single chart, multiple environments**
 
 ### 5. High Availability (Production)
+
 - PostgreSQL: 3-instance cluster with automatic failover
 - Redis: 3 replicas + 3 sentinels
 - Backend: 3 replicas with anti-affinity
@@ -131,6 +145,7 @@ postgresql:
 - Pod Disruption Budgets: minAvailable configured
 
 ### 6. Security Hardening
+
 - Non-root users (UID 1001)
 - Read-only root filesystem where possible
 - Capability dropping
@@ -138,6 +153,7 @@ postgresql:
 - External Secrets for production (Doppler)
 
 ### 7. Container Optimizations
+
 - BuildKit cache annotations
 - Multi-stage Docker builds
 - Separate dependency layers
@@ -148,6 +164,7 @@ postgresql:
 ## 📁 Files Created/Modified Summary
 
 ### Created (9):
+
 1. ✅ `k8s/helm-charts/sveltehr/templates/postgres-cluster.yaml`
 2. ✅ `k8s/helm-charts/sveltehr/templates/migration-job.yaml`
 3. ✅ `k8s/helm-charts/sveltehr/templates/seed-job.yaml`
@@ -159,6 +176,7 @@ postgresql:
 9. ✅ `HELM-CHART-READY.md` (this file)
 
 ### Modified (3):
+
 1. ✅ `k8s/helm-charts/sveltehr/Chart.yaml`
 2. ✅ `k8s/helm-charts/sveltehr/templates/backend-deployment.yaml`
 3. ✅ `k8s/helm-charts/sveltehr/templates/frontend-deployment.yaml`
@@ -168,20 +186,24 @@ postgresql:
 ## 🧪 Testing Checklist
 
 ### Pre-Flight Checks:
+
 - [ ] Kubernetes cluster running (k3s/minikube/k8s)
 - [ ] kubectl configured and working
 - [ ] Helm 3.x installed
 - [ ] Container images built and pushed (or use GitHub Container Registry)
 
 ### Dependency Testing:
+
 ```bash
 cd k8s/helm-charts/sveltehr
 helm dependency list
 helm dependency update
 ```
+
 **Expected:** Downloads cloudnative-pg-0.18.2.tgz and redis-18.6.1.tgz
 
 ### Dry-Run Testing:
+
 ```bash
 helm install sveltehr . \
   -f values-dev.yaml \
@@ -189,9 +211,11 @@ helm install sveltehr . \
   --create-namespace \
   --dry-run --debug > /tmp/helm-dry-run.yaml
 ```
+
 **Expected:** No errors, YAML output for all resources
 
 ### Deployment Testing:
+
 ```bash
 helm install sveltehr . \
   -f values-dev.yaml \
@@ -201,6 +225,7 @@ helm install sveltehr . \
 ```
 
 **Expected Output:**
+
 ```
 NAME: sveltehr
 LAST DEPLOYED: [timestamp]
@@ -210,6 +235,7 @@ REVISION: 1
 ```
 
 ### Verification:
+
 ```bash
 # Check all resources
 kubectl get all -n sveltehr-dev
@@ -237,24 +263,32 @@ kubectl port-forward -n sveltehr-dev svc/sveltehr-frontend 5173:5173
 These are **optional enhancements** for production deployment automation:
 
 ### Phase 5: Build Scripts (Optional)
+
 **File:** `k8s/scripts/build-and-push.sh`
+
 - Update for GHCR registry
 - Multi-target build support
 - GitHub token authentication
 
 ### Phase 6: GitHub Actions (Optional)
+
 **File:** `.github/workflows/docker-build.yml`
+
 - Push to GHCR
 - Proper image tagging
 - Helm chart linting
 
 ### Phase 7: ArgoCD (Optional)
+
 **Files:**
+
 - `k8s/argocd/sveltehr-application.yaml` (update)
 - `k8s/argocd/sveltehr-dev-application.yaml` (create)
 
 ### Phase 8: Deploy Script (Optional)
+
 **File:** `k8s/deploy.sh`
+
 - Replace Kustomize with Helm
 - Streamline deployment workflow
 
@@ -263,11 +297,13 @@ These are **optional enhancements** for production deployment automation:
 ## 💡 Architecture Highlights
 
 ### Container Build Optimization (Already Applied):
+
 - **Rust Backend:** cargo-chef + BuildKit = 60-80% faster builds
 - **Frontend:** npm/Vite cache mounts = 50-70% faster builds
 - **Multi-target builds:** Separate images for server, migration, seed
 
 ### Deployment Architecture:
+
 ```
 ┌─────────────────────────────────────────┐
 │        Helm Chart (sveltehr)            │
@@ -286,6 +322,7 @@ These are **optional enhancements** for production deployment automation:
 ```
 
 ### Deployment Flow:
+
 1. `helm install` command
 2. Dependencies installed (PostgreSQL operator, Redis)
 3. PostgreSQL cluster created
@@ -299,6 +336,7 @@ These are **optional enhancements** for production deployment automation:
 ## 🔥 Quick Commands Reference
 
 ### Development Deployment:
+
 ```bash
 # Install
 helm install sveltehr ./k8s/helm-charts/sveltehr \
@@ -318,6 +356,7 @@ helm uninstall sveltehr -n sveltehr-dev
 ```
 
 ### Production Deployment (ArgoCD):
+
 ```yaml
 # ArgoCD Application
 apiVersion: argoproj.io/v1alpha1
@@ -338,18 +377,23 @@ spec:
 ## 🎓 What You Can Do Now
 
 ### 1. Test Locally
+
 Deploy to your local k3s/minikube cluster and verify everything works
 
 ### 2. Build Images
+
 Update your container build process to use the multi-target Dockerfiles
 
 ### 3. Configure Secrets
+
 Set up Doppler for production secrets management
 
 ### 4. Deploy to Production
+
 Use ArgoCD (already configured) to deploy via GitOps
 
 ### 5. Iterate
+
 Make changes, test with `helm upgrade`, rollback if needed
 
 ---
@@ -357,6 +401,7 @@ Make changes, test with `helm upgrade`, rollback if needed
 ## 📚 Documentation
 
 Comprehensive documentation created:
+
 1. **CONTAINER-OPTIMIZATION-SUMMARY.md** - Container build improvements
 2. **HELM-MIGRATION-PROGRESS.md** - Detailed migration steps
 3. **HELM-MIGRATION-STATUS.md** - Current status and metrics
@@ -382,6 +427,7 @@ Comprehensive documentation created:
 ## 🚀 Next Steps
 
 **Immediate (Required for Deployment):**
+
 1. Build container images with multi-target support
 2. Push images to container registry (GHCR recommended)
 3. Test `helm dependency update`
@@ -390,18 +436,14 @@ Comprehensive documentation created:
 6. Verify migrations run correctly
 7. Test application functionality
 
-**Future (Optional Improvements):**
-8. Update build scripts for GHCR
-9. Configure GitHub Actions workflow
-10. Set up ArgoCD for dev environment
-11. Implement automated testing in CI/CD
-12. Configure production monitoring/alerting
+**Future (Optional Improvements):** 8. Update build scripts for GHCR 9. Configure GitHub Actions workflow 10. Set up ArgoCD for dev environment 11. Implement automated testing in CI/CD 12. Configure production monitoring/alerting
 
 ---
 
 ## 💬 Support
 
 If you encounter issues:
+
 1. Check `helm lint` output for chart errors
 2. Review `--dry-run --debug` output
 3. Inspect pod logs: `kubectl logs -n sveltehr-dev <pod-name>`

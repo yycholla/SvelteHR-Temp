@@ -139,10 +139,7 @@ export async function setPostGraphileSessionVariables(
  * @param connection Database connection
  * @returns RLS context
  */
-export async function setupRLSContext(
-	token: string,
-	connection: Sql
-): Promise<RLSContext> {
+export async function setupRLSContext(token: string, connection: Sql): Promise<RLSContext> {
 	const claims = extractJWTClaims(token);
 	const context = buildRLSContext(claims);
 
@@ -290,9 +287,7 @@ export function validateRLSContext(context: RLSContext): {
  *
  * @param connection Database connection
  */
-export async function clearPostGraphileSessionVariables(
-	connection: Sql
-): Promise<void> {
+export async function clearPostGraphileSessionVariables(connection: Sql): Promise<void> {
 	try {
 		await connection`
 			RESET jwt.claims.user_id;

@@ -3,6 +3,7 @@
 ## Overview
 
 Complete backup solution for SvelteHR Kubernetes cluster using:
+
 - **Velero**: Kubernetes backup and restore tool
 - **MinIO**: S3-compatible object storage for backup data
 - **Doppler**: Secure credential management
@@ -23,14 +24,15 @@ Go to [Doppler Dashboard](https://dashboard.doppler.com/) → Project: `sveltehr
 
 Add these secrets:
 
-| Secret Name | Description | Example Value |
-|------------|-------------|---------------|
-| `MINIO_ROOT_USER` | MinIO admin username | `minioadmin` |
-| `MINIO_ROOT_PASSWORD` | MinIO admin password | Generate 32-char random |
-| `VELERO_MINIO_ACCESS_KEY` | Velero's MinIO access key | `velero` |
+| Secret Name               | Description               | Example Value           |
+| ------------------------- | ------------------------- | ----------------------- |
+| `MINIO_ROOT_USER`         | MinIO admin username      | `minioadmin`            |
+| `MINIO_ROOT_PASSWORD`     | MinIO admin password      | Generate 32-char random |
+| `VELERO_MINIO_ACCESS_KEY` | Velero's MinIO access key | `velero`                |
 | `VELERO_MINIO_SECRET_KEY` | Velero's MinIO secret key | Generate 32-char random |
 
 **Generate secure passwords**:
+
 ```bash
 # For passwords
 openssl rand -base64 32
@@ -41,12 +43,14 @@ openssl rand -base64 32
 ## Step 2: Install MinIO
 
 Add MinIO Helm repository:
+
 ```bash
 helm repo add minio https://charts.min.io/
 helm repo update
 ```
 
 Create namespace and External Secrets:
+
 ```bash
 # Apply External Secret configuration
 kubectl apply -f /home/chanway/SvelteHR/k8s/backup-infrastructure/minio-external-secrets.yaml
@@ -60,6 +64,7 @@ kubectl get secret -n backup-system
 ```
 
 Install MinIO:
+
 ```bash
 helm install minio minio/minio \
   --namespace backup-system \
@@ -67,6 +72,7 @@ helm install minio minio/minio \
 ```
 
 Verify MinIO is running:
+
 ```bash
 kubectl get pods -n backup-system
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=minio -n backup-system --timeout=120s
@@ -75,12 +81,14 @@ kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=minio -n backup
 ## Step 3: Install Velero
 
 Add Velero Helm repository:
+
 ```bash
 helm repo add vmware-tanzu https://vmware-tanzu.github.io/helm-charts
 helm repo update
 ```
 
 Create Velero credentials External Secret:
+
 ```bash
 # Apply Velero External Secret configuration
 kubectl apply -f /home/chanway/SvelteHR/k8s/backup-infrastructure/velero-external-secrets.yaml
@@ -93,6 +101,7 @@ kubectl get secret velero-credentials -n backup-system
 ```
 
 Install Velero:
+
 ```bash
 helm install velero vmware-tanzu/velero \
   --namespace backup-system \
@@ -100,6 +109,7 @@ helm install velero vmware-tanzu/velero \
 ```
 
 Verify Velero is running:
+
 ```bash
 kubectl get pods -n backup-system
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=velero -n backup-system --timeout=120s
@@ -108,12 +118,14 @@ kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=velero -n backu
 ## Step 4: Verify Backup Configuration
 
 Check backup storage location:
+
 ```bash
 velero backup-location get
 # Should show: default (Available)
 ```
 
 Check scheduled backups:
+
 ```bash
 velero schedule get
 # Should show:
@@ -124,6 +136,7 @@ velero schedule get
 ## Step 5: Test Manual Backup
 
 Create a test backup:
+
 ```bash
 # Full backup of sveltehr-prod namespace
 velero backup create test-backup \
@@ -135,6 +148,7 @@ velero backup describe test-backup --details
 ```
 
 Verify backup in MinIO:
+
 ```bash
 # Port-forward to MinIO console
 kubectl port-forward svc/minio-console -n backup-system 9001:9001
@@ -147,12 +161,14 @@ kubectl port-forward svc/minio-console -n backup-system 9001:9001
 ## Backup Schedules
 
 ### Daily Backup (2 AM)
+
 - **Namespaces**: sveltehr-prod, backup-system, cnpg-system, monitoring
 - **Retention**: 30 days
 - **Includes**: PVC snapshots
 
 ### Weekly Backup (Sunday 3 AM)
-- **Namespaces**: All (*)
+
+- **Namespaces**: All (\*)
 - **Retention**: 90 days
 - **Includes**: Full cluster state
 
@@ -197,6 +213,7 @@ velero restore create --from-backup daily-backup-20251101020000 \
 ### Export Backup Data (Source System)
 
 **Option 1: Copy MinIO Data** (Recommended)
+
 ```bash
 # On source system, backup MinIO PVC data
 kubectl get pvc -n backup-system
@@ -211,6 +228,7 @@ kubectl cp backup-system/<minio-pod-name>:/tmp/minio-backup.tar.gz ./minio-backu
 ```
 
 **Option 2: Use External S3** (For large backups)
+
 - Configure Velero to use external S3 (AWS, Cloudflare R2, etc.)
 - Backups accessible from any system
 
@@ -219,6 +237,7 @@ kubectl cp backup-system/<minio-pod-name>:/tmp/minio-backup.tar.gz ./minio-backu
 On the new Kubernetes cluster:
 
 1. **Apply same configuration files**:
+
 ```bash
 # On new system, clone the repo
 git clone <your-repo>
@@ -229,12 +248,14 @@ cd SvelteHR
    - Use same Doppler project or copy secrets to new config
 
 3. **Install backup infrastructure**:
+
 ```bash
 # Follow Steps 2-3 from this guide
 # MinIO + Velero installation
 ```
 
 4. **Restore MinIO data** (if using Option 1):
+
 ```bash
 # Copy backup to new system's MinIO pod
 kubectl cp ./minio-backup.tar.gz backup-system/<new-minio-pod>:/tmp/
@@ -244,12 +265,14 @@ kubectl exec -n backup-system <new-minio-pod> -- tar xzf /tmp/minio-backup.tar.g
 ```
 
 5. **Verify backups available**:
+
 ```bash
 velero backup get
 # Should show all backups from source system
 ```
 
 6. **Restore application**:
+
 ```bash
 # Choose most recent backup
 velero restore create --from-backup daily-backup-20251101020000
@@ -259,6 +282,7 @@ velero restore get
 ```
 
 7. **Verify application**:
+
 ```bash
 kubectl get pods -n sveltehr-prod
 kubectl get ingress -n sveltehr-prod
@@ -305,6 +329,7 @@ velero backup logs <backup-name>
 ### Prometheus Alerts (Optional)
 
 Velero exposes metrics at `/metrics`. Configure alerts for:
+
 - Backup failures
 - Old backups (> 7 days)
 - Storage space issues
@@ -353,11 +378,13 @@ kubectl logs -n external-secrets-system -l app.kubernetes.io/name=external-secre
 ## Storage Requirements
 
 **Estimate backup sizes**:
+
 - Small deployment (< 10 PVCs): ~5-10 GB per backup
 - Medium deployment (10-50 PVCs): ~50-100 GB per backup
 - Large deployment (> 50 PVCs): ~500+ GB per backup
 
 **Recommended MinIO PVC sizes**:
+
 - Development: 20 GB
 - Production (30-day retention): 50-100 GB
 - Production (90-day retention): 200-500 GB
@@ -367,11 +394,13 @@ Adjust `persistence.size` in `minio-values.yaml` based on your needs.
 ## Cost Optimization
 
 **For external S3 storage**:
+
 - Use Cloudflare R2 (no egress fees)
 - Use AWS S3 with lifecycle policies
 - Use Backblaze B2 (cost-effective)
 
 **Backup retention tuning**:
+
 ```bash
 # Shorter retention for dev environments
 velero backup create dev-backup --ttl 168h  # 7 days
@@ -389,6 +418,7 @@ velero backup create compliance-backup --ttl 8760h  # 1 year
 ✅ **S3-compatible storage with MinIO**
 
 **Next Steps**:
+
 1. Add secrets to Doppler
 2. Install MinIO and Velero
 3. Perform test backup and restore

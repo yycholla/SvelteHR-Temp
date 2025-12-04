@@ -76,7 +76,7 @@ describe('Admin - User Management (Puppeteer)', () => {
 		} else {
 			// Might use different pattern - check for generic edit buttons
 			const hasEditActions =
-				(await pageContainsText('Edit')) || (await countElements('button') > 0);
+				(await pageContainsText('Edit')) || (await countElements('button')) > 0;
 			expect(hasEditActions).toBe(true);
 		}
 	});
@@ -143,12 +143,11 @@ describe('Admin - User Management (Puppeteer)', () => {
 		await waitForElement('[data-testid="admin-users-table"]');
 
 		// Check for common user management columns
-		const hasNameColumn =
-			(await pageContainsText('Name')) || (await pageContainsText('User'));
+		const hasNameColumn = (await pageContainsText('Name')) || (await pageContainsText('User'));
 		const hasEmailColumn = await pageContainsText('Email');
 		const hasRoleColumn = await pageContainsText('Role');
 		const hasActionsColumn =
-			(await pageContainsText('Actions')) || (await countElements('button') > 0);
+			(await pageContainsText('Actions')) || (await countElements('button')) > 0;
 
 		// At least one column header should be present
 		expect(hasNameColumn || hasEmailColumn || hasRoleColumn || hasActionsColumn).toBe(true);
@@ -232,7 +231,10 @@ describe('Admin - Settings Management (Puppeteer)', () => {
 
 		// Try to find and interact with a text input
 		const page = getPage();
-		const hasTextInput = await page.$$eval('[data-testid="admin-settings-form"] input[type="text"]', (inputs) => inputs.length > 0);
+		const hasTextInput = await page.$$eval(
+			'[data-testid="admin-settings-form"] input[type="text"]',
+			(inputs) => inputs.length > 0
+		);
 
 		if (hasTextInput) {
 			// Fill input with test data
@@ -306,8 +308,7 @@ describe('Admin - Main Dashboard (Puppeteer)', () => {
 
 		// Verify page loaded successfully
 		const hasContent =
-			(await isElementVisible('[data-testid="admin-page"]')) ||
-			(await pageContainsText('Admin'));
+			(await isElementVisible('[data-testid="admin-page"]')) || (await pageContainsText('Admin'));
 		expect(hasContent).toBe(true);
 	});
 });
@@ -318,11 +319,7 @@ describe('Admin - Permission Checks (Puppeteer)', () => {
 	});
 
 	test('admin has access to all admin routes', async () => {
-		const adminRoutes = [
-			'/dashboard/admin',
-			'/dashboard/admin/users',
-			'/dashboard/admin/settings'
-		];
+		const adminRoutes = ['/dashboard/admin', '/dashboard/admin/users', '/dashboard/admin/settings'];
 
 		for (const route of adminRoutes) {
 			await gotoPage(route);
@@ -337,8 +334,7 @@ describe('Admin - Permission Checks (Puppeteer)', () => {
 
 			// Should show admin content
 			const hasAdminContent =
-				(await pageContainsText('Admin')) ||
-				(await isElementVisible('[data-testid^="admin-"]'));
+				(await pageContainsText('Admin')) || (await isElementVisible('[data-testid^="admin-"]'));
 			expect(hasAdminContent).toBe(true);
 		}
 	});
@@ -361,11 +357,7 @@ describe('Admin - Permission Checks (Puppeteer)', () => {
 	});
 
 	test('admin portal has consistent layout across pages', async () => {
-		const adminPages = [
-			'/dashboard/admin',
-			'/dashboard/admin/users',
-			'/dashboard/admin/settings'
-		];
+		const adminPages = ['/dashboard/admin', '/dashboard/admin/users', '/dashboard/admin/settings'];
 
 		for (const pagePath of adminPages) {
 			await gotoPage(pagePath);
@@ -373,8 +365,7 @@ describe('Admin - Permission Checks (Puppeteer)', () => {
 
 			// Each page should have admin-specific data-testid
 			const hasAdminIdentifier =
-				(await isElementVisible('[data-testid^="admin-"]')) ||
-				(await pageContainsText('Admin'));
+				(await isElementVisible('[data-testid^="admin-"]')) || (await pageContainsText('Admin'));
 			expect(hasAdminIdentifier).toBe(true);
 		}
 	});

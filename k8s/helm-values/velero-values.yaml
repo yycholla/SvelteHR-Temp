@@ -4,7 +4,7 @@
 # Image configuration
 image:
   repository: velero/velero
-  tag: v1.15.0  # Latest stable
+  tag: v1.15.0 # Latest stable
   pullPolicy: IfNotPresent
 
 # Init containers
@@ -41,56 +41,56 @@ configuration:
         name: velero-credentials
         key: cloud
       config:
-        region: minio  # Dummy region for MinIO
-        s3ForcePathStyle: "true"  # Required for MinIO
+        region: minio # Dummy region for MinIO
+        s3ForcePathStyle: 'true' # Required for MinIO
         s3Url: http://minio.backup-system.svc.cluster.local:9000
         publicUrl: http://minio.backup-system.svc.cluster.local:9000
 
   # Volume snapshot location - DISABLED (not needed for MinIO filesystem backups)
   # We use kopia for filesystem backups, not cloud provider volume snapshots
-  volumeSnapshotLocation: []  # Explicitly disable to prevent null values
+  volumeSnapshotLocation: [] # Explicitly disable to prevent null values
 
   # Default backup retention
-  defaultBackupTTL: 720h  # 30 days
+  defaultBackupTTL: 720h # 30 days
 
   # Upload and download concurrency
-  uploaderType: kopia  # Kopia is the new default uploader (restic was removed in v11.x)
-  defaultVolumesToFsBackup: true  # Backup PV contents by default
+  uploaderType: kopia # Kopia is the new default uploader (restic was removed in v11.x)
+  defaultVolumesToFsBackup: true # Backup PV contents by default
 
 # Credentials for MinIO (using External Secrets from Doppler)
 credentials:
-  useSecret: false  # Use existingSecret instead
-  existingSecret: velero-credentials  # Created by ExternalSecret from Doppler
+  useSecret: false # Use existingSecret instead
+  existingSecret: velero-credentials # Created by ExternalSecret from Doppler
 
 # Schedules (automated backups)
 schedules:
   # Daily full cluster backup
   daily-backup:
     disabled: false
-    schedule: "0 2 * * *"  # 2 AM daily
+    schedule: '0 2 * * *' # 2 AM daily
     useOwnerReferencesInBackup: false
     template:
-      ttl: 720h  # 30 days retention
+      ttl: 720h # 30 days retention
       includedNamespaces:
-        - "*"
+        - '*'
       excludedNamespaces:
         - kube-system
         - kube-public
         - kube-node-lease
       includedResources:
-        - "*"
+        - '*'
       storageLocation: default
 
   # Weekly cluster state backup (metadata only)
   weekly-metadata:
     disabled: false
-    schedule: "0 3 * * 0"  # 3 AM every Sunday
+    schedule: '0 3 * * 0' # 3 AM every Sunday
     useOwnerReferencesInBackup: false
     template:
-      ttl: 2160h  # 90 days retention
+      ttl: 2160h # 90 days retention
       includedNamespaces:
-        - "*"
-      snapshotVolumes: false  # Metadata only, no volumes
+        - '*'
+      snapshotVolumes: false # Metadata only, no volumes
       storageLocation: default
 
 # Metrics for Prometheus
@@ -109,7 +109,7 @@ podSecurityContext:
 
 containerSecurityContext:
   allowPrivilegeEscalation: false
-  readOnlyRootFilesystem: false  # Allow temporary file writes
+  readOnlyRootFilesystem: false # Allow temporary file writes
   runAsNonRoot: true
   capabilities:
     drop:
@@ -124,7 +124,7 @@ serviceAccount:
 # RBAC
 rbac:
   create: true
-  clusterAdministrator: true  # Required for cluster-wide backups
+  clusterAdministrator: true # Required for cluster-wide backups
 
 # Node-agent (formerly Restic) for filesystem backups
 deployNodeAgent: true
@@ -142,10 +142,10 @@ nodeAgent:
 
   # Security context for node agent
   podSecurityContext:
-    runAsUser: 0  # Root required for volume access
+    runAsUser: 0 # Root required for volume access
   containerSecurityContext:
-    privileged: false  # Don't use privileged mode
-    readOnlyRootFilesystem: false  # Allow writes for Kopia cache
+    privileged: false # Don't use privileged mode
+    readOnlyRootFilesystem: false # Allow writes for Kopia cache
 
   # Additional volumes for node-agent
   # Use emptyDir for temporary cache (clears on pod restart)
@@ -159,7 +159,8 @@ nodeAgent:
       mountPath: /udmrepo
 
 # Cleanup CRDs on uninstall
-cleanUpCRDs: false  # Keep CRDs for safety
+cleanUpCRDs: false # Keep CRDs for safety
+
 
 # =============================================================================
 # Post-Installation Configuration

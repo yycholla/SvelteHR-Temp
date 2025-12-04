@@ -12,25 +12,25 @@ deployment:
 image:
   registry: docker.io
   repository: traefik
-  tag: ""  # Use chart default (v3.5.3)
+  tag: '' # Use chart default (v3.5.3)
   pullPolicy: IfNotPresent
 
 # Ports configuration
 ports:
   web:
-    port: 8000  # Unprivileged port (container)
-    exposedPort: 80  # External port (service)
-    nodePort: 30080  # Fixed NodePort for external access
-    hostPort: 80  # Bind directly to host port 80
+    port: 8000 # Unprivileged port (container)
+    exposedPort: 80 # External port (service)
+    nodePort: 30080 # Fixed NodePort for external access
+    hostPort: 80 # Bind directly to host port 80
     expose:
       default: true
     protocol: TCP
 
   websecure:
-    port: 8443  # Unprivileged port (container)
-    exposedPort: 443  # External port (service)
-    nodePort: 30443  # Fixed NodePort for HTTPS
-    hostPort: 443  # Bind directly to host port 443
+    port: 8443 # Unprivileged port (container)
+    exposedPort: 443 # External port (service)
+    nodePort: 30443 # Fixed NodePort for HTTPS
+    hostPort: 443 # Bind directly to host port 443
     expose:
       default: true
     protocol: TCP
@@ -41,7 +41,7 @@ ports:
     port: 9000
     exposedPort: 9000
     expose:
-      default: false  # Dashboard not exposed externally
+      default: false # Dashboard not exposed externally
     protocol: TCP
 
 # Service configuration
@@ -53,12 +53,12 @@ service:
 # IngressClass
 ingressClass:
   enabled: true
-  isDefaultClass: true  # Make Traefik the default IngressClass
+  isDefaultClass: true # Make Traefik the default IngressClass
 
 # IngressRoute for Traefik dashboard (optional - disabled by default)
 ingressRoute:
   dashboard:
-    enabled: false  # Enable via Tailscale if needed
+    enabled: false # Enable via Tailscale if needed
 
 # Resources
 resources:
@@ -79,18 +79,18 @@ securityContext:
     drop:
       - ALL
     add:
-      - NET_BIND_SERVICE  # Required to bind to ports 80 and 443 via hostPort
+      - NET_BIND_SERVICE # Required to bind to ports 80 and 443 via hostPort
 
 # Pod security context (pod level)
 podSecurityContext:
-  fsGroup: 65532  # fsGroup belongs at pod level, not container level
+  fsGroup: 65532 # fsGroup belongs at pod level, not container level
   seccompProfile:
     type: RuntimeDefault
 
 # Logs
 logs:
   general:
-    level: INFO  # DEBUG, INFO, WARN, ERROR
+    level: INFO # DEBUG, INFO, WARN, ERROR
   access:
     enabled: true
     format: json
@@ -110,15 +110,15 @@ metrics:
 
 # Global arguments
 globalArguments:
-  - "--global.checknewversion=false"
-  - "--global.sendanonymoususage=false"
+  - '--global.checknewversion=false'
+  - '--global.sendanonymoususage=false'
 
 # Additional arguments
 additionalArguments:
-  - "--serversTransport.insecureSkipVerify=true"  # Allow self-signed certs for backend services
+  - '--serversTransport.insecureSkipVerify=true' # Allow self-signed certs for backend services
   # Trust the Windows Gateway IP so it accepts the X-Forwarded-For header
-  - "--entryPoints.websecure.forwardedHeaders.trustedIPs=192.168.0.64"
-  - "--entryPoints.web.forwardedHeaders.trustedIPs=192.168.0.64"
+  - '--entryPoints.websecure.forwardedHeaders.trustedIPs=192.168.0.64'
+  - '--entryPoints.web.forwardedHeaders.trustedIPs=192.168.0.64'
 
 # TLS configuration
 tlsOptions:
@@ -136,12 +136,12 @@ rbac:
 
 # Service account
 serviceAccount:
-  name: ""  # Empty string creates service account automatically with fullname template
+  name: '' # Empty string creates service account automatically with fullname template
 
 # Persistence for certificates
 persistence:
   enabled: true
-  storageClass: ""  # Use default (local-path)
+  storageClass: '' # Use default (local-path)
   size: 1Gi
   accessMode: ReadWriteOnce
   path: /data

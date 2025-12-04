@@ -3,11 +3,7 @@
 // Purpose: Business logic helpers for event operations
 
 import type { Event } from '$lib/graphql/events-operations';
-import type {
-	EventVisibilityType,
-	RsvpStatus,
-	EventStatus
-} from '$lib/graphql/types';
+import type { EventVisibilityType, RsvpStatus, EventStatus } from '$lib/graphql/types';
 
 /**
  * Check if a user can view an event based on visibility rules
@@ -142,11 +138,7 @@ export function getRsvpStatusIcon(status: RsvpStatus): string {
 /**
  * Filter events by date range
  */
-export function filterEventsByDateRange(
-	events: Event[],
-	startDate: Date,
-	endDate: Date
-): Event[] {
+export function filterEventsByDateRange(events: Event[], startDate: Date, endDate: Date): Event[] {
 	return events.filter((event) => {
 		const eventStart = new Date(event.startTime);
 		return eventStart >= startDate && eventStart <= endDate;
@@ -156,10 +148,7 @@ export function filterEventsByDateRange(
 /**
  * Filter events by visibility type
  */
-export function filterEventsByVisibility(
-	events: Event[],
-	visibilityType: string
-): Event[] {
+export function filterEventsByVisibility(events: Event[], visibilityType: string): Event[] {
 	// Handle both isPublic boolean and visibilityType string
 	if (visibilityType === 'company') {
 		return events.filter((event) => event.isPublic === true);

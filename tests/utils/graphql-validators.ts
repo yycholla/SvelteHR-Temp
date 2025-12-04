@@ -200,9 +200,7 @@ export class GraphQLResponseValidator {
 			Array.isArray(paginated.edges) &&
 			paginated.edges.every(
 				(edge: any) =>
-					typeof edge === 'object' &&
-					nodeValidator(edge.node) &&
-					typeof edge.cursor === 'string'
+					typeof edge === 'object' && nodeValidator(edge.node) && typeof edge.cursor === 'string'
 			) &&
 			typeof paginated.pageInfo === 'object' &&
 			typeof paginated.pageInfo.hasNextPage === 'boolean' &&
@@ -272,8 +270,7 @@ export class GraphQLResponseValidator {
 	 * Validate UUID format
 	 */
 	static isValidUUID(uuid: string): boolean {
-		const uuidRegex =
-			/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+		const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 		return uuidRegex.test(uuid);
 	}
 }
@@ -291,10 +288,7 @@ export function validateResponseArray<T>(
 /**
  * Helper function to assert GraphQL response structure
  */
-export function assertGraphQLResponse(
-	response: any,
-	expectedFields: string[]
-): void {
+export function assertGraphQLResponse(response: any, expectedFields: string[]): void {
 	if (!response || typeof response !== 'object') {
 		throw new Error('Invalid GraphQL response: not an object');
 	}

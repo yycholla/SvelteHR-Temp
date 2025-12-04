@@ -1,11 +1,13 @@
 # Onboarding Module Database Schema
 
 ## Overview
+
 The onboarding module provides a structured way to onboard new employees with interactive forms, document uploads, acknowledgments, and e-signatures. It extends the training module pattern with enhanced form capabilities.
 
 ## Database Tables
 
 ### 1. `onboarding_modules` (Main Module Table)
+
 Stores onboarding module metadata, similar to trainings.
 
 ```sql
@@ -23,6 +25,7 @@ CREATE TABLE hr_public.onboarding_modules (
 ```
 
 **Fields:**
+
 - `id`: Unique identifier
 - `title`: Module name (e.g., "New Hire Onboarding 2025")
 - `description`: Module overview
@@ -34,6 +37,7 @@ CREATE TABLE hr_public.onboarding_modules (
 ---
 
 ### 2. `onboarding_content_blocks` (Content Blocks Table)
+
 Stores individual content blocks within an onboarding module.
 
 ```sql
@@ -73,6 +77,7 @@ CREATE INDEX idx_onboarding_blocks_sequence ON hr_public.onboarding_content_bloc
 ```
 
 **Content Types:**
+
 - `TEXT`: Read-only information (company policies, welcome messages)
 - `VIDEO`: Embedded video content
 - `DOCUMENT`: Downloadable documents (employee handbook, benefits guide)
@@ -84,6 +89,7 @@ CREATE INDEX idx_onboarding_blocks_sequence ON hr_public.onboarding_content_bloc
 ---
 
 ### 3. `onboarding_form_templates` (Form Definitions Table)
+
 Stores reusable form templates (W-4, I-9, emergency contacts, etc.).
 
 ```sql
@@ -166,6 +172,7 @@ CREATE INDEX idx_form_templates_category ON hr_public.onboarding_form_templates(
 ```
 
 **Key Features:**
+
 - **Reusable templates**: Create once, use in multiple onboarding modules
 - **Flexible field types**: Supports all common form inputs
 - **Validation rules**: Built-in validation (min/max, required, regex patterns)
@@ -174,6 +181,7 @@ CREATE INDEX idx_form_templates_category ON hr_public.onboarding_form_templates(
 ---
 
 ### 4. `onboarding_form_submissions` (User Form Submissions Table)
+
 Stores user-submitted form data.
 
 ```sql
@@ -211,6 +219,7 @@ CREATE INDEX idx_form_submissions_block ON hr_public.onboarding_form_submissions
 ```
 
 **Security:**
+
 - Sensitive fields (SSN, DOB) should be encrypted at application level
 - IP address and user agent logged for audit compliance
 - Unique constraint ensures one submission per user per form
@@ -218,6 +227,7 @@ CREATE INDEX idx_form_submissions_block ON hr_public.onboarding_form_submissions
 ---
 
 ### 5. `onboarding_document_uploads` (Document Uploads Table)
+
 Tracks user-uploaded documents.
 
 ```sql
@@ -247,6 +257,7 @@ CREATE INDEX idx_document_uploads_block ON hr_public.onboarding_document_uploads
 ```
 
 **Features:**
+
 - **Virus scanning**: Integration point for antivirus scanning
 - **Storage abstraction**: Supports S3, local storage, or other backends
 - **File validation**: Size and type restrictions enforced
@@ -254,6 +265,7 @@ CREATE INDEX idx_document_uploads_block ON hr_public.onboarding_document_uploads
 ---
 
 ### 6. `onboarding_assignments` (User Assignments Table)
+
 Tracks which users are assigned to which onboarding modules.
 
 ```sql
@@ -277,6 +289,7 @@ CREATE INDEX idx_onboarding_assignments_due ON hr_public.onboarding_assignments(
 ---
 
 ### 7. `onboarding_progress` (Progress Tracking Table)
+
 Tracks user progress through each content block.
 
 ```sql
@@ -358,77 +371,81 @@ users (1) ---< (N) onboarding_document_uploads
 ## Example Use Cases
 
 ### 1. New Hire W-4 Form
+
 ```json
 {
-  "content_block": {
-    "title": "Federal W-4 Tax Withholding Form",
-    "type": "FORM",
-    "is_required": true,
-    "form_template_id": "uuid-of-w4-template"
-  }
+	"content_block": {
+		"title": "Federal W-4 Tax Withholding Form",
+		"type": "FORM",
+		"is_required": true,
+		"form_template_id": "uuid-of-w4-template"
+	}
 }
 ```
 
 ### 2. ID Verification Upload
+
 ```json
 {
-  "content_block": {
-    "title": "Government-Issued ID Upload",
-    "type": "FILE_UPLOAD",
-    "is_required": true,
-    "file_upload_requirements": {
-      "max_size_mb": 10,
-      "allowed_types": ["image/jpeg", "image/png", "application/pdf"],
-      "min_files": 1,
-      "max_files": 2,
-      "help_text": "Upload a clear photo of your driver's license or passport"
-    }
-  }
+	"content_block": {
+		"title": "Government-Issued ID Upload",
+		"type": "FILE_UPLOAD",
+		"is_required": true,
+		"file_upload_requirements": {
+			"max_size_mb": 10,
+			"allowed_types": ["image/jpeg", "image/png", "application/pdf"],
+			"min_files": 1,
+			"max_files": 2,
+			"help_text": "Upload a clear photo of your driver's license or passport"
+		}
+	}
 }
 ```
 
 ### 3. Policy Acknowledgment
+
 ```json
 {
-  "content_block": {
-    "title": "Company Policies Acknowledgment",
-    "type": "CHECKBOX_LIST",
-    "is_required": true,
-    "checkbox_items": [
-      {
-        "id": "handbook",
-        "label": "I have read and understood the Employee Handbook",
-        "required": true
-      },
-      {
-        "id": "code_of_conduct",
-        "label": "I agree to abide by the Code of Conduct",
-        "required": true
-      },
-      {
-        "id": "safety",
-        "label": "I have completed the Safety Training",
-        "required": true
-      }
-    ]
-  }
+	"content_block": {
+		"title": "Company Policies Acknowledgment",
+		"type": "CHECKBOX_LIST",
+		"is_required": true,
+		"checkbox_items": [
+			{
+				"id": "handbook",
+				"label": "I have read and understood the Employee Handbook",
+				"required": true
+			},
+			{
+				"id": "code_of_conduct",
+				"label": "I agree to abide by the Code of Conduct",
+				"required": true
+			},
+			{
+				"id": "safety",
+				"label": "I have completed the Safety Training",
+				"required": true
+			}
+		]
+	}
 }
 ```
 
 ### 4. Offer Letter E-Signature
+
 ```json
 {
-  "content_block": {
-    "title": "Offer Letter Acceptance",
-    "type": "SIGNATURE",
-    "is_required": true,
-    "signature_requirements": {
-      "signature_type": "typed_or_drawn",
-      "require_date": true,
-      "require_initials": false,
-      "agreement_text": "By signing below, I accept the terms of employment as outlined in this offer letter."
-    }
-  }
+	"content_block": {
+		"title": "Offer Letter Acceptance",
+		"type": "SIGNATURE",
+		"is_required": true,
+		"signature_requirements": {
+			"signature_type": "typed_or_drawn",
+			"require_date": true,
+			"require_initials": false,
+			"agreement_text": "By signing below, I accept the terms of employment as outlined in this offer letter."
+		}
+	}
 }
 ```
 

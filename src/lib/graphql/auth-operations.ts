@@ -286,7 +286,9 @@ export class AuthenticationOperations {
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(REFRESH_TOKEN_MUTATION, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(REFRESH_TOKEN_MUTATION, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				console.error('Token refresh error:', result.error);

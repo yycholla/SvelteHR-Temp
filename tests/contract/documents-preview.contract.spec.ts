@@ -43,7 +43,7 @@ describe('GET /api/documents/{id}/preview - Contract Tests', () => {
 		const response = await fetch(`/api/documents/${userADocumentId}/preview`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${userAToken}`
+				Authorization: `Bearer ${userAToken}`
 			}
 		});
 
@@ -67,12 +67,12 @@ describe('GET /api/documents/{id}/preview - Contract Tests', () => {
 		expect(expiresAt.getTime()).toBeLessThanOrEqual(fifteenMinutesFromNow.getTime());
 	});
 
-	it('should deny user from previewing another user\'s document (403)', async () => {
+	it("should deny user from previewing another user's document (403)", async () => {
 		// Act: User A attempts to preview User B's document
 		const response = await fetch(`/api/documents/${userBDocumentId}/preview`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${userAToken}`
+				Authorization: `Bearer ${userAToken}`
 			}
 		});
 
@@ -89,7 +89,7 @@ describe('GET /api/documents/{id}/preview - Contract Tests', () => {
 		const response = await fetch(`/api/documents/${departmentDocumentId}/preview`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${departmentUserToken}`
+				Authorization: `Bearer ${departmentUserToken}`
 			}
 		});
 
@@ -106,7 +106,7 @@ describe('GET /api/documents/{id}/preview - Contract Tests', () => {
 		const response = await fetch(`/api/documents/${departmentDocumentId}/preview`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${userAToken}`
+				Authorization: `Bearer ${userAToken}`
 			}
 		});
 
@@ -137,7 +137,7 @@ describe('GET /api/documents/{id}/preview - Contract Tests', () => {
 		const response = await fetch('/api/documents/non-existent-doc-id/preview', {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${userAToken}`
+				Authorization: `Bearer ${userAToken}`
 			}
 		});
 
@@ -154,7 +154,7 @@ describe('GET /api/documents/{id}/preview - Contract Tests', () => {
 		const response = await fetch(`/api/documents/${userBDocumentId}/preview`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			}
 		});
 
@@ -173,7 +173,7 @@ describe('GET /api/documents/{id}/preview - Contract Tests', () => {
 		const response = await fetch(`/api/documents/${userADocumentId}/preview`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${userAToken}`
+				Authorization: `Bearer ${userAToken}`
 			}
 		});
 
@@ -194,7 +194,7 @@ describe('GET /api/documents/{id}/preview - Contract Tests', () => {
 		const response = await fetch(`/api/documents/${userADocumentId}/preview`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${userAToken}`
+				Authorization: `Bearer ${userAToken}`
 			}
 		});
 

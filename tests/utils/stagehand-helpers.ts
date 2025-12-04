@@ -30,17 +30,22 @@ export type StagehandInstance = Awaited<ReturnType<typeof Stagehand.prototype.in
  * await page.goto('/dashboard');
  * await page.act("click on the employees tab");
  */
-export async function initStagehand(options: {
-	headless?: boolean;
-	enableCaching?: boolean;
-	debugDom?: boolean;
-} = {}): Promise<Stagehand> {
+export async function initStagehand(
+	options: {
+		headless?: boolean;
+		enableCaching?: boolean;
+		debugDom?: boolean;
+	} = {}
+): Promise<Stagehand> {
 	// Validate API key is set
-	if (!STAGEHAND_CONFIG.API_KEY || STAGEHAND_CONFIG.API_KEY === 'your-openai-or-anthropic-api-key-here') {
+	if (
+		!STAGEHAND_CONFIG.API_KEY ||
+		STAGEHAND_CONFIG.API_KEY === 'your-openai-or-anthropic-api-key-here'
+	) {
 		throw new Error(
 			'STAGEHAND_API_KEY environment variable is not set. ' +
-			'Please add your OpenAI or Anthropic API key to .env file. ' +
-			'See .env.example for instructions.'
+				'Please add your OpenAI or Anthropic API key to .env file. ' +
+				'See .env.example for instructions.'
 		);
 	}
 
@@ -315,7 +320,8 @@ export class StagehandPageHelpers {
 	async getDashboardSummary() {
 		await gotoPage(this.stagehand, '/dashboard');
 		return await extractData(this.stagehand, {
-			instruction: 'Extract the dashboard summary showing employee count, department count, and other metrics',
+			instruction:
+				'Extract the dashboard summary showing employee count, department count, and other metrics',
 			schema: CommonSchemas.dashboardSummary
 		});
 	}

@@ -29,7 +29,6 @@ beforeAll(async () => {
 		}
 	}
 
-
 	// Mark setup as complete
 	isSetupComplete = true;
 	console.log('E2E browser test environment setup complete');

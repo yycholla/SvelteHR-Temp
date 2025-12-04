@@ -51,7 +51,10 @@ async function addComputedField(fieldPath: string, options: ComputeAddOptions): 
 
     console.log(chalk.green(`✓ Added computed field: ${fieldPath}`));
   } catch (error) {
-    console.error(chalk.red('❌ Failed to add computed field:'), error instanceof Error ? error.message : String(error));
+    console.error(
+      chalk.red('❌ Failed to add computed field:'),
+      error instanceof Error ? error.message : String(error)
+    );
     process.exit(1);
   }
 }
@@ -73,14 +76,19 @@ async function listComputedFields(options: ComputeListOptions): Promise<void> {
       for (const field of config.computedFields) {
         console.log(chalk.cyan(`  ${field.fieldPath}`));
         console.log(chalk.gray(`    Source: ${field.sourceColumns.join(', ')}`));
-        console.log(chalk.gray(`    Resolver: ${field.resolverLocation.file}:${field.resolverLocation.line}`));
+        console.log(
+          chalk.gray(`    Resolver: ${field.resolverLocation.file}:${field.resolverLocation.line}`)
+        );
         console.log(chalk.gray(`    Type: ${field.returnType}`));
         console.log(chalk.gray(`    Description: ${field.description}`));
         console.log('');
       }
     }
   } catch (error) {
-    console.error(chalk.red('❌ Failed to list computed fields:'), error instanceof Error ? error.message : String(error));
+    console.error(
+      chalk.red('❌ Failed to list computed fields:'),
+      error instanceof Error ? error.message : String(error)
+    );
     process.exit(1);
   }
 }

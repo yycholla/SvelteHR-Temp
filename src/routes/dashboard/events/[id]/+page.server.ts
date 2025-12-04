@@ -38,18 +38,25 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 			userCredentials
 		});
 
-		console.log('[Event Detail] Retrieved event:', JSON.stringify({
-			id: event?.id,
-			title: event?.title,
-			startTime: event?.startTime,
-			endTime: event?.endTime,
-			startTimeType: typeof event?.startTime
-		}, null, 2));
+		console.log(
+			'[Event Detail] Retrieved event:',
+			JSON.stringify(
+				{
+					id: event?.id,
+					title: event?.title,
+					startTime: event?.startTime,
+					endTime: event?.endTime,
+					startTimeType: typeof event?.startTime
+				},
+				null,
+				2
+			)
+		);
 
 		if (!event) {
 			error(404, {
-            				message: 'Event not found or you do not have permission to view it.'
-            			});
+				message: 'Event not found or you do not have permission to view it.'
+			});
 		}
 
 		// Determine user's RSVP status
@@ -108,8 +115,8 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 		}
 
 		error(500, {
-        			message: 'Failed to load event details. Please try again later.'
-        		});
+			message: 'Failed to load event details. Please try again later.'
+		});
 	}
 };
 
@@ -173,11 +180,11 @@ export const actions: Actions = {
 			// Use REST API for deletion
 			const cookieHeader = serializeCookies(cookies);
 			const backendUrl = process.env.PUBLIC_API_URL || 'http://localhost:4000';
-			
+
 			const response = await fetch(`${backendUrl}/api/events/${params.id}`, {
 				method: 'DELETE',
 				headers: {
-					'Cookie': cookieHeader
+					Cookie: cookieHeader
 				}
 			});
 

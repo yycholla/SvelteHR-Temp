@@ -47,7 +47,7 @@
 		CheckSquare,
 		ChevronUp,
 		ChevronDown
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import type {
 		OnboardingForm,
 		OnboardingFormBlock,

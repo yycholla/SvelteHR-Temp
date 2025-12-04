@@ -76,7 +76,10 @@ export const load: PageServerLoad = async (event) => {
 			employeeId: userId,
 			limit: 100
 		});
-		console.log('[Performance Page] Goals result:', goalsResult.data ? `Found ${goalsResult.data.employeeGoals?.length || 0} goals` : 'No data');
+		console.log(
+			'[Performance Page] Goals result:',
+			goalsResult.data ? `Found ${goalsResult.data.employeeGoals?.length || 0} goals` : 'No data'
+		);
 
 		// Fetch performance reviews for history and rating
 		const reviewsQuery = `
@@ -100,7 +103,7 @@ export const load: PageServerLoad = async (event) => {
 			employeeId: userId,
 			limit: 20
 		});
-		
+
 		const rawReviews = reviewsResult.data?.performanceReviews || [];
 		const reviews = rawReviews.map((r: any) => ({
 			...r,
@@ -108,10 +111,16 @@ export const load: PageServerLoad = async (event) => {
 		}));
 
 		// Calculate overall rating (average of completed reviews)
-		const completedReviews = reviews.filter((r: any) => r.status === 'COMPLETED' && r.overallRating);
-		const averageRating = completedReviews.length > 0
-			? (completedReviews.reduce((sum: number, r: any) => sum + r.overallRating, 0) / completedReviews.length).toFixed(1)
-			: 'N/A';
+		const completedReviews = reviews.filter(
+			(r: any) => r.status === 'COMPLETED' && r.overallRating
+		);
+		const averageRating =
+			completedReviews.length > 0
+				? (
+						completedReviews.reduce((sum: number, r: any) => sum + r.overallRating, 0) /
+						completedReviews.length
+					).toFixed(1)
+				: 'N/A';
 
 		// Transform employeeGoals to match expected format
 		const rawGoals = goalsResult.data?.employeeGoals || [];
@@ -130,7 +139,11 @@ export const load: PageServerLoad = async (event) => {
 
 		// Calculate date ranges for current quarter
 		const currentDate = new Date();
-		const quarterStart = new Date(currentDate.getFullYear(), Math.floor(currentDate.getMonth() / 3) * 3, 1);
+		const quarterStart = new Date(
+			currentDate.getFullYear(),
+			Math.floor(currentDate.getMonth() / 3) * 3,
+			1
+		);
 		const quarterEnd = new Date(quarterStart);
 		quarterEnd.setMonth(quarterEnd.getMonth() + 3);
 		quarterEnd.setDate(0); // Last day of quarter
@@ -147,20 +160,30 @@ export const load: PageServerLoad = async (event) => {
 		// Calculate goal statistics from real data
 		const goalStats = {
 			total: goals.length,
-			completed: goals.filter(g => g.status === 'completed').length,
-			inProgress: goals.filter(g => g.status === 'in_progress').length,
-			atRisk: goals.filter(g => g.status === 'at_risk').length,
-			notStarted: goals.filter(g => g.status === 'not_started').length,
-			blocked: goals.filter(g => g.status === 'blocked').length,
-			averageProgress: goals.length > 0 ? Math.round(goals.reduce((sum, g) => sum + (g.progressPercentage || 0), 0) / goals.length) : 0,
-			completionRate: goals.length > 0 ? Math.round((goals.filter(g => g.status === 'completed').length / goals.length) * 100) : 0
+			completed: goals.filter((g) => g.status === 'completed').length,
+			inProgress: goals.filter((g) => g.status === 'in_progress').length,
+			atRisk: goals.filter((g) => g.status === 'at_risk').length,
+			notStarted: goals.filter((g) => g.status === 'not_started').length,
+			blocked: goals.filter((g) => g.status === 'blocked').length,
+			averageProgress:
+				goals.length > 0
+					? Math.round(
+							goals.reduce((sum, g) => sum + (g.progressPercentage || 0), 0) / goals.length
+						)
+					: 0,
+			completionRate:
+				goals.length > 0
+					? Math.round((goals.filter((g) => g.status === 'completed').length / goals.length) * 100)
+					: 0
 		};
 
 		console.log('[Performance Page] Preparing return data...');
 		const returnData = {
 			user,
 			userId,
-			goals: goals.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+			goals: goals.sort(
+				(a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+			),
 			reviews,
 			averageRating,
 			goalCategories,
@@ -180,7 +203,6 @@ export const load: PageServerLoad = async (event) => {
 			user: returnData.user.displayName
 		});
 		return returnData;
-
 	} catch (err) {
 		console.error('Error loading user performance data:', err);
 

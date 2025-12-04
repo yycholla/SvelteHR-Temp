@@ -9,17 +9,17 @@ metadata:
     app: sveltehr-backend
 rules:
   # Allow reading ConfigMaps for configuration
-  - apiGroups: [""]
-    resources: ["configmaps"]
-    verbs: ["get", "list"]
+  - apiGroups: ['']
+    resources: ['configmaps']
+    verbs: ['get', 'list']
   # Allow reading Secrets for credentials
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["get"]
+  - apiGroups: ['']
+    resources: ['secrets']
+    verbs: ['get']
   # Allow reading Services for service discovery
-  - apiGroups: [""]
-    resources: ["services"]
-    verbs: ["get", "list"]
+  - apiGroups: ['']
+    resources: ['services']
+    verbs: ['get', 'list']
 
 ---
 # Backend RoleBinding
@@ -50,17 +50,17 @@ metadata:
     app: sveltehr-frontend
 rules:
   # Allow reading ConfigMaps for configuration
-  - apiGroups: [""]
-    resources: ["configmaps"]
-    verbs: ["get", "list"]
+  - apiGroups: ['']
+    resources: ['configmaps']
+    verbs: ['get', 'list']
   # Allow reading Secrets for credentials
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["get"]
+  - apiGroups: ['']
+    resources: ['secrets']
+    verbs: ['get']
   # Allow reading Services for service discovery
-  - apiGroups: [""]
-    resources: ["services"]
-    verbs: ["get", "list"]
+  - apiGroups: ['']
+    resources: ['services']
+    verbs: ['get', 'list']
 
 ---
 # Frontend RoleBinding

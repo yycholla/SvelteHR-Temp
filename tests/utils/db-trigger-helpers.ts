@@ -266,10 +266,7 @@ export async function cleanupTestRecords(
 
 	// Clean up activity logs for test resources
 	try {
-		await db.query(
-			`DELETE FROM activity_logs WHERE resource_id = ANY($1::text[])`,
-			[ids]
-		);
+		await db.query(`DELETE FROM activity_logs WHERE resource_id = ANY($1::text[])`, [ids]);
 	} catch (error) {
 		console.warn('Failed to cleanup activity_logs:', error);
 	}

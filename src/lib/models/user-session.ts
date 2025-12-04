@@ -221,7 +221,11 @@ export class UserSession {
 	 * Whether user has specific permission
 	 */
 	hasPermission(permission: string): boolean {
-		return this.permissions.includes(permission) || this.permissions.includes('*') || this.permissions.includes('*:*');
+		return (
+			this.permissions.includes(permission) ||
+			this.permissions.includes('*') ||
+			this.permissions.includes('*:*')
+		);
 	}
 
 	/**
@@ -426,11 +430,7 @@ export class UserSession {
 	 * Determine if session should be considered authenticated
 	 */
 	private determineAuthenticationStatus(): boolean {
-		return (
-			this.userId.length > 0 &&
-			!this.isExpired &&
-			this.permissions.length > 0
-		);
+		return this.userId.length > 0 && !this.isExpired && this.permissions.length > 0;
 	}
 
 	/**

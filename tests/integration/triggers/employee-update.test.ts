@@ -126,9 +126,7 @@ describe('Employee UPDATE trigger (FR-002)', () => {
 		expect(updateLog!.after_snapshot.email).toBe('newemail@test.com');
 
 		// Other fields should remain unchanged in both snapshots
-		expect(updateLog!.before_snapshot.first_name).toBe(
-			updateLog!.after_snapshot.first_name
-		);
+		expect(updateLog!.before_snapshot.first_name).toBe(updateLog!.after_snapshot.first_name);
 		expect(updateLog!.before_snapshot.last_name).toBe(updateLog!.after_snapshot.last_name);
 	});
 

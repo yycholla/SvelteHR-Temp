@@ -5,6 +5,7 @@
 **Issue Fixed**: Tests were failing because the login helper was using incorrect selectors and invalid credentials.
 
 **Changes Made**:
+
 1. Updated `tests/utils/puppeteer-helpers.ts` login function to:
    - Use proper `data-testid` selectors (`login-form`, `login-username-input`, `login-password-input`, `login-submit-button`)
    - Wait properly for navigation after login (3 seconds + network idle)
@@ -46,6 +47,7 @@ go run main.go
 ```
 
 **Verify backend is running:**
+
 ```bash
 curl http://localhost:8080/health
 ```
@@ -60,6 +62,7 @@ npm run dev
 ```
 
 **Verify dev server is running:**
+
 ```bash
 curl http://localhost:5173
 ```
@@ -67,6 +70,7 @@ curl http://localhost:5173
 ### 4. Test User Credentials
 
 The tests use these credentials:
+
 - **Email**: `admin@mountainhr.dev`
 - **Password**: `admin123`
 - **Role**: `system_admin`
@@ -74,6 +78,7 @@ The tests use these credentials:
 **This user must exist in your backend database with system_admin role and appropriate permissions.**
 
 If the user doesn't exist, you need to either:
+
 1. Create the user in your backend database with system_admin role
 2. Update your backend seed data to include this test user
 3. Or modify the tests to use existing credentials from your backend
@@ -134,6 +139,7 @@ cat tests/coverage/e2e-feature-coverage-matrix.md
 ```
 
 Or open in your editor:
+
 ```bash
 code tests/coverage/e2e-feature-coverage-matrix.md
 ```
@@ -161,6 +167,7 @@ npm run test:coverage:ci
 **Cause**: The test credentials (`admin@mountainhr.dev` / `admin123`) don't exist or are invalid.
 
 **Solutions**:
+
 1. Check if the user exists in your backend database with system_admin role
 2. Verify the backend authentication endpoint is working:
    ```bash
@@ -176,6 +183,7 @@ npm run test:coverage:ci
 **Cause**: PostgreSQL is not running.
 
 **Solution**:
+
 ```bash
 # Start PostgreSQL
 sudo systemctl start postgresql
@@ -192,6 +200,7 @@ psql -U postgres -h localhost
 **Cause**: The page didn't load properly or the element doesn't exist.
 
 **Solutions**:
+
 1. Verify the dev server is running on http://localhost:5173
 2. Check if the component has the correct data-testid attribute
 3. Increase timeout in `PUPPETEER_CONFIG.DEFAULT_TIMEOUT` if pages load slowly
@@ -202,6 +211,7 @@ psql -U postgres -h localhost
 **Cause**: Database connection issues or permissions.
 
 **Solution**:
+
 ```bash
 # Check if test database exists
 psql -U postgres -l | grep sveltehr_test
@@ -216,6 +226,7 @@ psql -U postgres -d sveltehr_test -c "GRANT ALL PRIVILEGES ON DATABASE sveltehr_
 ### Issue: Tests fail after updating Node.js/dependencies
 
 **Solution**:
+
 ```bash
 # Clean install dependencies
 rm -rf node_modules package-lock.json
@@ -256,6 +267,7 @@ Total: 78 E2E tests
 All data-testid attributes follow the pattern: `[page]-[component]-[action]`
 
 Examples:
+
 - `login-form` - The login form container
 - `login-username-input` - Email input field (note: confusing name, but it's for email)
 - `login-password-input` - Password input field
@@ -347,9 +359,9 @@ PUPPETEER_HEADLESS=false npm run test:puppeteer:all
 import { takeScreenshot } from '../../utils/puppeteer-helpers';
 
 test('my test', async () => {
-  // ... test code
-  await takeScreenshot('test-failure-state');
-  // ... more test code
+	// ... test code
+	await takeScreenshot('test-failure-state');
+	// ... more test code
 });
 ```
 
@@ -359,9 +371,9 @@ test('my test', async () => {
 import { captureConsole } from '../../utils/puppeteer-helpers';
 
 test('my test', async () => {
-  const { logs, errors } = captureConsole();
-  // ... test code
-  console.log('Browser errors:', errors);
+	const { logs, errors } = captureConsole();
+	// ... test code
+	console.log('Browser errors:', errors);
 });
 ```
 
@@ -372,9 +384,9 @@ test('my test', async () => {
 import { waitFor } from '../../utils/puppeteer-helpers';
 
 test('my test', async () => {
-  await clickElement('[data-testid="button"]');
-  await waitFor(2000); // Wait 2 seconds to observe
-  // ... rest of test
+	await clickElement('[data-testid="button"]');
+	await waitFor(2000); // Wait 2 seconds to observe
+	// ... rest of test
 });
 ```
 

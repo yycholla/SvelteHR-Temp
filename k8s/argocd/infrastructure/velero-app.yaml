@@ -5,7 +5,7 @@ metadata:
   name: velero
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "2"  # After MinIO (depends on MinIO for S3 backend)
+    argocd.argoproj.io/sync-wave: '2' # After MinIO (depends on MinIO for S3 backend)
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -20,21 +20,21 @@ spec:
     # Source 2: Helm chart from VMware Tanzu
     - repoURL: https://vmware-tanzu.github.io/helm-charts
       chart: velero
-      targetRevision: 11.1.1  # Match existing installation
+      targetRevision: 11.1.1 # Match existing installation
       helm:
-        releaseName: velero  # Match existing Helm release
+        releaseName: velero # Match existing Helm release
         valueFiles:
           - $values/k8s/helm-values/velero-values.yaml
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: backup-system  # Correct namespace
+    namespace: backup-system # Correct namespace
 
   syncPolicy:
     # Automated GitOps sync enabled
     automated:
-      prune: true  # Remove resources deleted from Git
-      selfHeal: true  # Auto-correct cluster drift
+      prune: true # Remove resources deleted from Git
+      selfHeal: true # Auto-correct cluster drift
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true

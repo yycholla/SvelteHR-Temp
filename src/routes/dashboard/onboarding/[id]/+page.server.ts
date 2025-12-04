@@ -3,9 +3,7 @@ import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
 import { urqlClient } from '$lib/api/urql-client';
-import {
-	GET_ONBOARDING_MODULE
-} from '$lib/graphql/onboarding-operations';
+import { GET_ONBOARDING_MODULE } from '$lib/graphql/onboarding-operations';
 import {
 	GET_FORMS_BY_MODULE,
 	SAVE_FORM_PROGRESS,

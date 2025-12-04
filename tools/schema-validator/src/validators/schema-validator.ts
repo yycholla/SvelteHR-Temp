@@ -9,7 +9,12 @@ import { ApiIntrospector } from '../introspectors/api-introspector.js';
 import { TypeComparator } from './type-comparator.js';
 import type { SchemaValidatorConfig } from '../types/config.js';
 import type { ValidationResult, ValidationError, ValidationWarning } from '../types/results.js';
-import type { FieldAlignment, GraphQLOperation, DatabaseColumn, ApiField } from '../types/models.js';
+import type {
+  FieldAlignment,
+  GraphQLOperation,
+  DatabaseColumn,
+  ApiField,
+} from '../types/models.js';
 import { AlignmentStatus, ErrorCode } from '../types/enums.js';
 import { extractFieldPaths } from '../parsers/operation-utils.js';
 
@@ -31,7 +36,9 @@ export class SchemaValidator {
     this.apiIntrospector = new ApiIntrospector(config.apiUrl);
 
     // Conditionally build TypeComparator config to avoid undefined assignment
-    const customMappings = config.typeMappings ? new Map(Object.entries(config.typeMappings)) : undefined;
+    const customMappings = config.typeMappings
+      ? new Map(Object.entries(config.typeMappings))
+      : undefined;
     this.typeComparator = new TypeComparator({
       ...(customMappings ? { customMappings } : {}),
       strict: config.strict,

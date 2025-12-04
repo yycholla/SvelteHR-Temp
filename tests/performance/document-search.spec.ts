@@ -485,7 +485,10 @@ describe('Document Search Performance Tests', () => {
 		it('should baseline search performance for monitoring', async () => {
 			const testCases = [
 				{ name: 'Simple category filter', url: '/api/documents?category=Contract' },
-				{ name: 'Combined filters', url: '/api/documents?category=Contract&sensitivityLevel=Confidential' },
+				{
+					name: 'Combined filters',
+					url: '/api/documents?category=Contract&sensitivityLevel=Confidential'
+				},
 				{ name: 'Full-text search', url: '/api/documents?search=document' },
 				{ name: 'Deep pagination', url: '/api/documents?page=100' },
 				{ name: 'Sort by date', url: '/api/documents?sortBy=uploaded_at&sortOrder=desc' }

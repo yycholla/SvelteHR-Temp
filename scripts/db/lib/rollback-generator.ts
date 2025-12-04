@@ -31,10 +31,7 @@ export interface RollbackResult {
  * @param metadata - Migration metadata for context
  * @returns RollbackResult with SQL or irreversibility reason
  */
-export function generateRollback(
-	forwardSql: string,
-	metadata: MigrationMetadata
-): RollbackResult {
+export function generateRollback(forwardSql: string, metadata: MigrationMetadata): RollbackResult {
 	const result: RollbackResult = {
 		sql: null,
 		irreversible: false,
@@ -178,7 +175,10 @@ function generateRollbackForStatement(statement: string, warnings: string[]): st
 	}
 
 	// ALTER COLUMN SET/DROP NOT NULL
-	if (upper.includes('ALTER COLUMN') && (upper.includes('SET NOT NULL') || upper.includes('DROP NOT NULL'))) {
+	if (
+		upper.includes('ALTER COLUMN') &&
+		(upper.includes('SET NOT NULL') || upper.includes('DROP NOT NULL'))
+	) {
 		const tableMatch = statement.match(/ALTER TABLE ([a-z_]+\.[a-z_]+)/i);
 		const columnMatch = statement.match(/ALTER COLUMN ([a-z_]+)/i);
 		if (tableMatch && columnMatch) {

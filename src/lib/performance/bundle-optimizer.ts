@@ -26,9 +26,7 @@ export async function lazyLoadComponent<T>(
 		const duration = performance.now() - startTime;
 
 		if (duration > 500) {
-			console.warn(
-				`⚠️ Slow component load: ${componentName} took ${Math.round(duration)}ms`
-			);
+			console.warn(`⚠️ Slow component load: ${componentName} took ${Math.round(duration)}ms`);
 		}
 
 		return module.default;
@@ -82,20 +80,14 @@ export const TaskComponents = {
 	 * Size: ~45KB | Load time: ~150ms
 	 */
 	TaskForm: () =>
-		lazyLoadComponent(
-			() => import('$lib/components/tasks/TaskForm.svelte'),
-			'TaskForm'
-		),
+		lazyLoadComponent(() => import('$lib/components/tasks/TaskForm.svelte'), 'TaskForm'),
 
 	/**
 	 * Task hierarchy viewer (recursive component)
 	 * Size: ~30KB | Load time: ~100ms
 	 */
 	TaskHierarchy: () =>
-		lazyLoadComponent(
-			() => import('$lib/components/tasks/TaskHierarchy.svelte'),
-			'TaskHierarchy'
-		),
+		lazyLoadComponent(() => import('$lib/components/tasks/TaskHierarchy.svelte'), 'TaskHierarchy'),
 
 	/**
 	 * Task dependencies graph (includes visualization)
@@ -142,10 +134,7 @@ export const TaskComponents = {
 	 * Size: ~35KB | Load time: ~120ms
 	 */
 	TaskFilters: () =>
-		lazyLoadComponent(
-			() => import('$lib/components/tasks/TaskFilters.svelte'),
-			'TaskFilters'
-		)
+		lazyLoadComponent(() => import('$lib/components/tasks/TaskFilters.svelte'), 'TaskFilters')
 };
 
 /**

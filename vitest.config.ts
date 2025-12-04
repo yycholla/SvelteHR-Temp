@@ -280,9 +280,7 @@ export default defineConfig({
 				test: {
 					name: 'graphql-performance',
 					environment: 'node',
-					include: [
-						'tests/performance/**/*graphql*.{test,spec}.{js,ts}'
-					],
+					include: ['tests/performance/**/*graphql*.{test,spec}.{js,ts}'],
 					exclude: ['tests/unit/components/**', 'tests/contract/**', 'tests/e2e/**'],
 					setupFiles: ['./tests/setup/vitest-setup-graphql-performance.ts'],
 					testTimeout: 180000, // 3 minutes for performance tests

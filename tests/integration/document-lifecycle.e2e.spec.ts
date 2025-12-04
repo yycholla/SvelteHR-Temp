@@ -54,7 +54,7 @@ describe('Document Lifecycle - E2E Integration Tests', () => {
 
 			// Fill with recognizable pattern for verification
 			for (let i = 0; i < originalFileContent.length; i++) {
-				originalFileContent[i] = (i % 256);
+				originalFileContent[i] = i % 256;
 			}
 
 			const blob = new Blob([originalFileContent], { type: 'application/pdf' });

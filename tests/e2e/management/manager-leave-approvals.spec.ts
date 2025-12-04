@@ -168,9 +168,9 @@ test.describe('Manager Leave Approvals Journey', () => {
 		);
 
 		// Statistics should be department-scoped (no organization-wide data)
-		await expect(statsContainer.locator('[data-testid="department-scope-indicator"]')).toContainText(
-			'My Department'
-		);
+		await expect(
+			statsContainer.locator('[data-testid="department-scope-indicator"]')
+		).toContainText('My Department');
 	});
 
 	test('manager can filter leave requests by status', async ({ page }) => {

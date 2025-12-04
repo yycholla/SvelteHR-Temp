@@ -19,7 +19,7 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
-				'Cookie': cookieHeader
+				Cookie: cookieHeader
 			}
 		});
 

@@ -208,6 +208,7 @@ fn test_validate_email_requires_both_conditions() {
 ### 2. Prioritize Critical Code
 
 Test business logic modules first:
+
 ```bash
 cargo mutants --dir src/schema/  # GraphQL resolvers
 cargo mutants --dir src/auth/    # Authentication logic
@@ -223,6 +224,7 @@ cargo mutants --dir src/models/  # Data models
 ### 4. Skip Low-Value Mutations
 
 Configure `mutants.toml` to skip:
+
 - Logging/tracing calls
 - Formatting functions
 - Debug implementations
@@ -230,6 +232,7 @@ Configure `mutants.toml` to skip:
 ### 5. Understand Timeout Mutants
 
 If mutants timeout:
+
 - Infinite loops introduced by mutation
 - Very slow tests
 - Increase timeout in config
@@ -264,6 +267,7 @@ Mutation testing is integrated into the nightly workflow:
 **Cause**: Mutation creates infinite loop or very slow code
 
 **Solution**: Increase timeout in `mutants.toml`:
+
 ```toml
 timeout = 900  # 15 minutes
 ```
@@ -279,6 +283,7 @@ timeout = 900  # 15 minutes
 **Cause**: Testing entire codebase
 
 **Solution**: Use modular approach:
+
 ```bash
 # Test one module at a time
 cargo mutants --dir src/schema/

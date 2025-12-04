@@ -123,7 +123,7 @@ describeOrSkip('Data Loading GraphQL Contract', () => {
 			data: {
 				query,
 				variables: {
-					userId: "1",
+					userId: '1',
 					includeAnalytics: true
 				}
 			},
@@ -157,7 +157,7 @@ describeOrSkip('Data Loading GraphQL Contract', () => {
 
 			// Validate activities
 			expect(Array.isArray(dashboardData.recentActivities)).toBe(true);
-			dashboardData.recentActivities.forEach(activity => {
+			dashboardData.recentActivities.forEach((activity) => {
 				expect(typeof activity.id).toBe('string');
 				expect(typeof activity.type).toBe('string');
 				expect(typeof activity.description).toBe('string');
@@ -170,7 +170,7 @@ describeOrSkip('Data Loading GraphQL Contract', () => {
 
 			// Validate metrics
 			expect(Array.isArray(dashboardData.metrics)).toBe(true);
-			dashboardData.metrics.forEach(metric => {
+			dashboardData.metrics.forEach((metric) => {
 				expect(typeof metric.name).toBe('string');
 				expect(typeof metric.value).toBe('number');
 				expect(typeof metric.change).toBe('number');
@@ -269,7 +269,7 @@ describeOrSkip('Data Loading GraphQL Contract', () => {
 
 			// Validate employees array
 			expect(Array.isArray(employeeData.employees)).toBe(true);
-			employeeData.employees.forEach(employee => {
+			employeeData.employees.forEach((employee) => {
 				expect(typeof employee.id).toBe('string');
 				expect(typeof employee.firstName).toBe('string');
 				expect(typeof employee.lastName).toBe('string');
@@ -389,8 +389,9 @@ describeOrSkip('Data Loading GraphQL Contract', () => {
 		}
 
 		if (!result.success && result.emptyReason) {
-			expect(['NO_DATA', 'INSUFFICIENT_DATA', 'FILTER_NO_RESULTS', 'PERMISSION_DENIED'])
-				.toContain(result.emptyReason);
+			expect(['NO_DATA', 'INSUFFICIENT_DATA', 'FILTER_NO_RESULTS', 'PERMISSION_DENIED']).toContain(
+				result.emptyReason
+			);
 		}
 	});
 

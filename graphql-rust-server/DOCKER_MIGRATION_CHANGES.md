@@ -7,6 +7,7 @@
 **Location**: `/graphql-rust-server/migration/`
 
 Created 12 type-safe Rust migration modules replacing SQL files:
+
 - ✅ `m20251017_001_schemas.rs` - Schema setup
 - ✅ `m20251017_002_enums.rs` - PostgreSQL enums
 - ✅ `m20251017_003_auth.rs` - Authentication & RBAC (7 tables)
@@ -26,6 +27,7 @@ Created 12 type-safe Rust migration modules replacing SQL files:
 **File**: `Dockerfile`
 
 **Changes**:
+
 ```diff
 + # Install postgresql-client for pg_isready
 + RUN apt-get install -y postgresql-client
@@ -50,6 +52,7 @@ Created 12 type-safe Rust migration modules replacing SQL files:
 **File**: `docker-entrypoint.sh` (NEW)
 
 **Features**:
+
 - ✅ Waits for PostgreSQL to be ready
 - ✅ Runs SeaORM migrations automatically
 - ✅ Provides clear logging with emojis
@@ -57,6 +60,7 @@ Created 12 type-safe Rust migration modules replacing SQL files:
 - ✅ Starts GraphQL server after successful migrations
 
 **Startup Flow**:
+
 ```
 1. 🚀 Starting SvelteHR GraphQL Rust Server...
 2. ⏳ Waiting for PostgreSQL to be ready...
@@ -71,6 +75,7 @@ Created 12 type-safe Rust migration modules replacing SQL files:
 **File**: `docker-compose.yml`
 
 **Changes**:
+
 ```diff
 - # TODO: Update this path to point to your database init schema file
 - # - /home/chanway/Projects/SvelteHR/database/init/001-complete-schema.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
@@ -82,6 +87,7 @@ Created 12 type-safe Rust migration modules replacing SQL files:
 ### 5. Documentation Created
 
 **Files Created**:
+
 1. ✅ `migration/README.md` - Migration module documentation
 2. ✅ `MIGRATION_GUIDE.md` - Comprehensive migration guide
 3. ✅ `MIGRATION_QUICK_START.md` - Quick reference card
@@ -117,14 +123,14 @@ docker exec hr-graphql-rust /app/migration up
 
 ## 🎯 Benefits
 
-| Feature | Before (SQL) | After (Rust) |
-|---------|-------------|-------------|
-| **Type Safety** | ❌ Runtime SQL errors | ✅ Compile-time validation |
-| **Automation** | ❌ Manual script execution | ✅ Auto-runs on startup |
-| **Rollback** | ❌ No rollback support | ✅ Built-in up/down migrations |
-| **Consistency** | ⚠️ SQL files may drift | ✅ Matches SeaORM models |
-| **Version Control** | ⚠️ Separate SQL files | ✅ Part of Rust codebase |
-| **Cross-Platform** | ❌ Requires bash + psql | ✅ Pure Rust, works anywhere |
+| Feature             | Before (SQL)               | After (Rust)                   |
+| ------------------- | -------------------------- | ------------------------------ |
+| **Type Safety**     | ❌ Runtime SQL errors      | ✅ Compile-time validation     |
+| **Automation**      | ❌ Manual script execution | ✅ Auto-runs on startup        |
+| **Rollback**        | ❌ No rollback support     | ✅ Built-in up/down migrations |
+| **Consistency**     | ⚠️ SQL files may drift     | ✅ Matches SeaORM models       |
+| **Version Control** | ⚠️ Separate SQL files      | ✅ Part of Rust codebase       |
+| **Cross-Platform**  | ❌ Requires bash + psql    | ✅ Pure Rust, works anywhere   |
 
 ## 📦 Files Structure
 
@@ -181,10 +187,12 @@ docker exec hr-graphql-rust /app/migration down
 ### Deprecated Files
 
 These files are no longer used:
+
 - ❌ `/db/migrations/*.sql` - Replaced by Rust migrations
 - ❌ `/scripts/init-db.sh` - Replaced by docker-entrypoint.sh
 
 **Recommendation**: Archive these files:
+
 ```bash
 mkdir -p db/migrations/_archive scripts/_archive
 mv db/migrations/*.sql db/migrations/_archive/
@@ -217,6 +225,7 @@ docker logs -f hr-graphql-rust
 ```
 
 Expected output:
+
 ```
 🚀 Starting SvelteHR GraphQL Rust Server...
 ⏳ Waiting for PostgreSQL to be ready...
@@ -265,6 +274,7 @@ curl http://localhost:4001/health
 See `MIGRATION_GUIDE.md` for detailed troubleshooting steps.
 
 Quick fixes:
+
 ```bash
 # View container logs
 docker logs hr-graphql-rust

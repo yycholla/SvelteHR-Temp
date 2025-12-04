@@ -34,7 +34,10 @@ export const DELETE: RequestHandler = async ({ params, cookies, locals }) => {
 			id: goalId
 		};
 
-		console.log('[Goal Delete API] Sending mutation with variables:', JSON.stringify(variables, null, 2));
+		console.log(
+			'[Goal Delete API] Sending mutation with variables:',
+			JSON.stringify(variables, null, 2)
+		);
 
 		const result = await graphqlClient.mutation(mutation, variables);
 
@@ -57,10 +60,7 @@ export const DELETE: RequestHandler = async ({ params, cookies, locals }) => {
 
 		if (deleted === undefined || deleted === null) {
 			console.error('[Goal Delete API] No data returned from mutation');
-			return json(
-				{ message: 'No data returned from goal deletion' },
-				{ status: 500 }
-			);
+			return json({ message: 'No data returned from goal deletion' }, { status: 500 });
 		}
 
 		if (!deleted) {
@@ -72,7 +72,10 @@ export const DELETE: RequestHandler = async ({ params, cookies, locals }) => {
 		return json({ success: true, message: 'Goal deleted successfully' }, { status: 200 });
 	} catch (error) {
 		console.error('[Goal Delete API] Catch block error:', error);
-		console.error('[Goal Delete API] Error stack:', error instanceof Error ? error.stack : 'No stack');
+		console.error(
+			'[Goal Delete API] Error stack:',
+			error instanceof Error ? error.stack : 'No stack'
+		);
 		return json(
 			{
 				message: error instanceof Error ? error.message : 'Failed to delete goal',

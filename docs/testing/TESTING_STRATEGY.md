@@ -7,6 +7,7 @@ This project uses a pragmatic testing approach that balances comprehensive testi
 ## Testing Architecture
 
 ### 1. **Backend GraphQL Testing** → Rust Codebase
+
 ```
 graphql-rust-server/tests/
 ├── contract/           # API contract tests
@@ -21,6 +22,7 @@ graphql-rust-server/tests/
 **Run with:** `cd graphql-rust-server && cargo test`
 
 ### 2. **Frontend Unit Tests** → No Backend Required
+
 ```
 tests/unit/
 ├── components/        # Svelte component tests
@@ -32,6 +34,7 @@ tests/unit/
 **CI:** ✅ Runs in CI (no backend needed)
 
 ### 3. **E2E/Integration Tests** → Requires Full Stack
+
 ```
 tests/e2e/            # Playwright E2E tests
 tests/integration/    # Full-stack integration tests
@@ -39,6 +42,7 @@ tests/contract/       # GraphQL contract tests
 ```
 
 **Prerequisites:**
+
 - Rust GraphQL backend running on `http://localhost:4000/graphql`
 - PostgreSQL database initialized
 - Frontend dev server on `http://localhost:5173`
@@ -51,6 +55,7 @@ tests/contract/       # GraphQL contract tests
 ### Full Stack Testing (Recommended)
 
 1. **Start Backend Services:**
+
    ```bash
    # Terminal 1: Start Rust GraphQL backend
    cd graphql-rust-server
@@ -61,6 +66,7 @@ tests/contract/       # GraphQL contract tests
    ```
 
 2. **Run All Tests:**
+
    ```bash
    # Backend tests
    cd graphql-rust-server && cargo test
@@ -103,14 +109,14 @@ GitHub Actions CI runs **only frontend unit tests** that don't require the backe
 const describeOrSkip = process.env.CI ? describe.skip : describe;
 
 describeOrSkip('Backend Integration Tests', () => {
-  // These tests require Rust GraphQL backend
-  it('should query employees', async () => {
-    const response = await fetch('http://localhost:4000/graphql', {
-      method: 'POST',
-      body: JSON.stringify({ query: '{ employees { id } }' })
-    });
-    // ...
-  });
+	// These tests require Rust GraphQL backend
+	it('should query employees', async () => {
+		const response = await fetch('http://localhost:4000/graphql', {
+			method: 'POST',
+			body: JSON.stringify({ query: '{ employees { id } }' })
+		});
+		// ...
+	});
 });
 ```
 
@@ -124,6 +130,7 @@ We deliberately **don't use MSW** for API mocking because:
 4. **Local Testing is Better:** Running full stack locally catches real integration issues
 
 Instead, we:
+
 - Run full-stack tests locally with real backend
 - Skip backend tests in CI
 - Keep frontend unit tests truly isolated (no API calls)
@@ -131,18 +138,20 @@ Instead, we:
 ## Test Organization Guidelines
 
 ### ✅ **Good:** Frontend Unit Test (No Backend)
+
 ```typescript
 // tests/unit/utils/format-date.test.ts
 import { formatDate } from '$lib/utils/format-date';
 
 describe('formatDate', () => {
-  it('should format date correctly', () => {
-    expect(formatDate(new Date('2025-01-01'))).toBe('Jan 1, 2025');
-  });
+	it('should format date correctly', () => {
+		expect(formatDate(new Date('2025-01-01'))).toBe('Jan 1, 2025');
+	});
 });
 ```
 
 ### ✅ **Good:** Backend Test (In Rust Codebase)
+
 ```rust
 // graphql-rust-server/tests/contract/test_auth_login.rs
 #[tokio::test]
@@ -160,27 +169,29 @@ async fn test_login_success() {
 ```
 
 ### ✅ **Good:** E2E Test (Skipped in CI)
+
 ```typescript
 // tests/e2e/dashboard.spec.ts
 const describeOrSkip = process.env.CI ? describe.skip : describe;
 
 describeOrSkip('Dashboard E2E', () => {
-  it('should load dashboard with real data', async ({ page }) => {
-    await page.goto('http://localhost:5173/dashboard');
-    await expect(page.locator('h1')).toContainText('Dashboard');
-  });
+	it('should load dashboard with real data', async ({ page }) => {
+		await page.goto('http://localhost:5173/dashboard');
+		await expect(page.locator('h1')).toContainText('Dashboard');
+	});
 });
 ```
 
 ### ❌ **Avoid:** Mocking Backend in Frontend Tests
+
 ```typescript
 // ❌ Don't do this
 import { setupServer } from 'msw/node';
 
 const server = setupServer(
-  graphql.query('GetEmployees', (req, res, ctx) => {
-    return res(ctx.data({ employees: [] }));
-  })
+	graphql.query('GetEmployees', (req, res, ctx) => {
+		return res(ctx.data({ employees: [] }));
+	})
 );
 // This creates maintenance burden and mocks can drift
 ```

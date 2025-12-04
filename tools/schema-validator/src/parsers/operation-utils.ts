@@ -175,12 +175,20 @@ function extractArgumentValue(arg: ArgumentNode): unknown {
     case 'EnumValue':
       return value.value;
     case 'ListValue':
-      return value.values.map((v) => extractArgumentValue({ name: arg.name, value: v } as ArgumentNode));
+      return value.values.map((v) =>
+        extractArgumentValue({ name: arg.name, value: v } as ArgumentNode)
+      );
     case 'ObjectValue':
-      return value.fields.reduce((obj, field) => {
-        obj[field.name.value] = extractArgumentValue({ name: field.name, value: field.value } as ArgumentNode);
-        return obj;
-      }, {} as Record<string, unknown>);
+      return value.fields.reduce(
+        (obj, field) => {
+          obj[field.name.value] = extractArgumentValue({
+            name: field.name,
+            value: field.value,
+          } as ArgumentNode);
+          return obj;
+        },
+        {} as Record<string, unknown>
+      );
     case 'Variable':
       return `$${value.name.value}`; // Return variable reference
     default:
@@ -266,9 +274,10 @@ export function isSubscription(operation: GraphQLOperation): boolean {
  * Format operation for display
  */
 export function formatOperationSignature(operation: GraphQLOperation): string {
-  const vars = operation.variables.length > 0
-    ? `(${operation.variables.map((v) => `$${v.name}: ${v.type}`).join(', ')})`
-    : '';
+  const vars =
+    operation.variables.length > 0
+      ? `(${operation.variables.map((v) => `$${v.name}: ${v.type}`).join(', ')})`
+      : '';
 
   return `${operation.operationType} ${operation.name}${vars}`;
 }

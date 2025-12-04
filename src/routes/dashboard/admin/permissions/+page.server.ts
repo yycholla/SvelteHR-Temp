@@ -93,7 +93,7 @@ export const actions: Actions = {
 
 		try {
 			const cookieHeader = serializeCookies(cookies);
-		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
+			const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			await executeMutation(client, CREATE_ROLE, {
 				input: { name, description: description || null }
 			});
@@ -124,7 +124,7 @@ export const actions: Actions = {
 
 		try {
 			const cookieHeader = serializeCookies(cookies);
-		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
+			const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			await executeMutation(client, UPDATE_ROLE, {
 				input: { id, name, description: description || null }
 			});
@@ -153,7 +153,7 @@ export const actions: Actions = {
 
 		try {
 			const cookieHeader = serializeCookies(cookies);
-		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
+			const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			await executeMutation(client, DELETE_ROLE, { input: { id } });
 
 			return { success: true, message: 'Role deleted successfully' };
@@ -181,7 +181,7 @@ export const actions: Actions = {
 
 		try {
 			const cookieHeader = serializeCookies(cookies);
-		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
+			const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			await executeMutation(client, ASSIGN_PERMISSION_TO_ROLE, {
 				input: { roleId, permissionId }
 			});
@@ -211,7 +211,7 @@ export const actions: Actions = {
 
 		try {
 			const cookieHeader = serializeCookies(cookies);
-		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
+			const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			await executeMutation(client, REMOVE_PERMISSION_FROM_ROLE, {
 				input: { roleId, permissionId }
 			});
@@ -242,7 +242,7 @@ export const actions: Actions = {
 
 		try {
 			const cookieHeader = serializeCookies(cookies);
-		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
+			const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			const desiredPermissionIds = JSON.parse(permissionIds) as string[];
 
 			// Get current permissions for the role
@@ -300,8 +300,7 @@ export const actions: Actions = {
 			if (permissionsToRemove.length > 0) {
 				messages.push(`${permissionsToRemove.length} permission(s) removed`);
 			}
-			const message =
-				messages.length > 0 ? messages.join(', ') : 'No permissions changed';
+			const message = messages.length > 0 ? messages.join(', ') : 'No permissions changed';
 
 			return { success: true, message };
 		} catch (err) {
@@ -328,7 +327,7 @@ export const actions: Actions = {
 
 		try {
 			const cookieHeader = serializeCookies(cookies);
-		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
+			const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			const permissionIdArray = JSON.parse(permissionIds);
 
 			await executeMutation(client, BULK_REMOVE_PERMISSIONS, {
@@ -360,7 +359,7 @@ export const actions: Actions = {
 
 		try {
 			const cookieHeader = serializeCookies(cookies);
-		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
+			const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			await executeMutation(client, ASSIGN_ROLE_TO_USER, {
 				input: { userId, roleId }
 			});
@@ -390,7 +389,7 @@ export const actions: Actions = {
 
 		try {
 			const cookieHeader = serializeCookies(cookies);
-		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
+			const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			await executeMutation(client, REMOVE_ROLE_FROM_USER, {
 				input: { userId, roleId }
 			});

@@ -72,11 +72,7 @@ export class TypeComparator {
   /**
    * Compare types and return detailed result
    */
-  compareTypes(
-    graphqlType: string,
-    dbType: string,
-    apiType: string
-  ): TypeComparisonResult {
+  compareTypes(graphqlType: string, dbType: string, apiType: string): TypeComparisonResult {
     const baseGraphQL = extractBaseType(graphqlType);
     const basePg = normalizePgType(dbType);
     // @ts-expect-error - Reserved for future API type validation
@@ -140,9 +136,7 @@ export class TypeComparator {
     const basePg = normalizePgType(dbType);
 
     const mapping = TYPE_MAPPINGS.find(
-      (m) =>
-        m.graphql === baseGraphQL &&
-        m.postgresql.some((pg) => normalizePgType(pg) === basePg)
+      (m) => m.graphql === baseGraphQL && m.postgresql.some((pg) => normalizePgType(pg) === basePg)
     );
 
     if (mapping) {

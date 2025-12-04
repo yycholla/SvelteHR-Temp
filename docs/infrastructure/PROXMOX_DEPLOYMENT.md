@@ -459,6 +459,7 @@ Add to your local `/etc/hosts`:
 ```
 
 Access:
+
 - Dev: `http://dev.sveltehr.local`
 - Prod: `http://sveltehr.local`
 
@@ -615,17 +616,20 @@ kubectl run -it --rm debug --image=curlimages/curl --restart=Never -- curl http:
 ## Appendix: Resource Requirements
 
 **Minimum VM Specs:**
+
 - CPU: 2 cores
 - RAM: 4GB
 - Disk: 50GB
 
 **Recommended VM Specs for Dev + Prod:**
+
 - CPU: 4 cores
 - RAM: 8GB
 - Disk: 100GB
 - Network: 1Gbps
 
 **Per Environment Resource Usage (estimated):**
+
 - PostgreSQL: 512MB-1GB RAM
 - Redis: 256MB-512MB RAM
 - Backend: 512MB-1GB RAM

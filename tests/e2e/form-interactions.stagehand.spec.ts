@@ -52,7 +52,6 @@ test.describe('Form Interactions (Stagehand)', () => {
 				(warning) => warning.includes('on:submit') && warning.includes('deprecated')
 			);
 			expect(eventHandlerWarnings).toHaveLength(0);
-
 		} finally {
 			await cleanupStagehand(stagehand);
 		}
@@ -93,7 +92,6 @@ test.describe('Form Interactions (Stagehand)', () => {
 				(warning) => warning.includes('on:submit') && warning.includes('event attribute')
 			);
 			expect(deprecationWarnings).toHaveLength(0);
-
 		} finally {
 			await cleanupStagehand(stagehand);
 		}
@@ -119,7 +117,8 @@ test.describe('Form Interactions (Stagehand)', () => {
 
 			// Check if department filter exists and use it
 			const hasFilter = await extractData(stagehand, {
-				instruction: 'Check if there is a department dropdown or filter selector visible on the page',
+				instruction:
+					'Check if there is a department dropdown or filter selector visible on the page',
 				schema: z.object({
 					hasFilter: z.boolean().describe('True if department filter is found'),
 					filterType: z.string().optional().describe('Type of filter (dropdown, select, etc.)')
@@ -127,7 +126,10 @@ test.describe('Form Interactions (Stagehand)', () => {
 			});
 
 			if (hasFilter.hasFilter) {
-				await performAction(stagehand, 'select "engineering" from the department filter or dropdown');
+				await performAction(
+					stagehand,
+					'select "engineering" from the department filter or dropdown'
+				);
 			}
 
 			// Submit the form using AI
@@ -143,7 +145,6 @@ test.describe('Form Interactions (Stagehand)', () => {
 					(warning.includes('on:') || warning.includes('event attribute'))
 			);
 			expect(allDeprecationWarnings).toHaveLength(0);
-
 		} finally {
 			await cleanupStagehand(stagehand);
 		}
@@ -162,20 +163,25 @@ test.describe('Form Interactions (Stagehand)', () => {
 
 			// Check for validation feedback using AI
 			const validationResult = await extractData(stagehand, {
-				instruction: 'Check if there are any validation error messages, required field warnings, or error styling on form fields',
+				instruction:
+					'Check if there are any validation error messages, required field warnings, or error styling on form fields',
 				schema: z.object({
 					hasValidationErrors: z.boolean().describe('True if validation errors are shown'),
-					errors: z.array(z.object({
-						fieldName: z.string().describe('Name or label of the field with error'),
-						errorMessage: z.string().describe('Error message text')
-					})).optional().describe('List of validation errors if any')
+					errors: z
+						.array(
+							z.object({
+								fieldName: z.string().describe('Name or label of the field with error'),
+								errorMessage: z.string().describe('Error message text')
+							})
+						)
+						.optional()
+						.describe('List of validation errors if any')
 				})
 			});
 
 			// Validation errors should be shown (or form should prevent submission gracefully)
 			// The test is successful as long as the page handles it without crashes
 			expect(validationResult.hasValidationErrors).toBeDefined();
-
 		} finally {
 			await cleanupStagehand(stagehand);
 		}
@@ -202,19 +208,27 @@ test.describe('Form Interactions (Stagehand)', () => {
 			const formControls = await extractData(stagehand, {
 				instruction: 'Find all interactive form controls like dropdowns, checkboxes, or filters',
 				schema: z.object({
-					controls: z.array(z.object({
-						type: z.string().describe('Type of control (dropdown, checkbox, radio, etc.)'),
-						label: z.string().describe('Label or name of the control'),
-						isRequired: z.boolean().optional().describe('Whether the field is required')
-					})).describe('List of form controls found')
+					controls: z
+						.array(
+							z.object({
+								type: z.string().describe('Type of control (dropdown, checkbox, radio, etc.)'),
+								label: z.string().describe('Label or name of the control'),
+								isRequired: z.boolean().optional().describe('Whether the field is required')
+							})
+						)
+						.describe('List of form controls found')
 				})
 			});
 
 			// Interact with any available controls
 			if (formControls.controls.length > 0) {
-				for (const control of formControls.controls.slice(0, 2)) { // Interact with up to 2 controls
+				for (const control of formControls.controls.slice(0, 2)) {
+					// Interact with up to 2 controls
 					if (control.type.includes('dropdown') || control.type.includes('select')) {
-						await performAction(stagehand, `select the first option in the ${control.label} dropdown`);
+						await performAction(
+							stagehand,
+							`select the first option in the ${control.label} dropdown`
+						);
 					} else if (control.type.includes('checkbox')) {
 						await performAction(stagehand, `check the ${control.label} checkbox`);
 					}
@@ -241,7 +255,6 @@ test.describe('Form Interactions (Stagehand)', () => {
 			});
 
 			expect(searchResults.hasResults).toBeDefined();
-
 		} finally {
 			await cleanupStagehand(stagehand);
 		}
@@ -255,11 +268,15 @@ test.describe('Form Interactions (Stagehand)', () => {
 
 			// Check form accessibility using AI
 			const accessibilityCheck = await extractData(stagehand, {
-				instruction: 'Check if form fields have proper labels, aria-labels, or placeholder text. Also check if form has a submit button with clear text.',
+				instruction:
+					'Check if form fields have proper labels, aria-labels, or placeholder text. Also check if form has a submit button with clear text.',
 				schema: z.object({
 					hasProperLabels: z.boolean().describe('True if form fields have labels'),
 					hasAccessibleSubmit: z.boolean().describe('True if submit button is clearly labeled'),
-					accessibilityIssues: z.array(z.string()).optional().describe('List of accessibility issues if any'),
+					accessibilityIssues: z
+						.array(z.string())
+						.optional()
+						.describe('List of accessibility issues if any'),
 					formDescription: z.string().optional().describe('Overall description of the form')
 				})
 			});
@@ -271,7 +288,6 @@ test.describe('Form Interactions (Stagehand)', () => {
 			if (accessibilityCheck.accessibilityIssues) {
 				expect(accessibilityCheck.accessibilityIssues.length).toBe(0);
 			}
-
 		} finally {
 			await cleanupStagehand(stagehand);
 		}
@@ -297,7 +313,10 @@ test.describe('Form Interactions (Stagehand)', () => {
 
 			if (hasResetButton.hasReset) {
 				// Click reset button
-				await performAction(stagehand, `click the ${hasResetButton.resetButtonLabel || 'reset'} button`);
+				await performAction(
+					stagehand,
+					`click the ${hasResetButton.resetButtonLabel || 'reset'} button`
+				);
 
 				// Verify form is cleared
 				const formState = await extractData(stagehand, {
@@ -310,7 +329,6 @@ test.describe('Form Interactions (Stagehand)', () => {
 
 				expect(formState.isCleared).toBe(true);
 			}
-
 		} finally {
 			await cleanupStagehand(stagehand);
 		}

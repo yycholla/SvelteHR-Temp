@@ -24,7 +24,7 @@ spec:
   # Source: Git repository containing Helm chart
   source:
     repoURL: https://github.com/Mountain-Care-Rx/SvelteHR.git
-    targetRevision: main  # Track main branch (or use specific tag/commit)
+    targetRevision: main # Track main branch (or use specific tag/commit)
     path: k8s/helm-charts/sveltehr
     helm:
       # Use production values
@@ -59,9 +59,9 @@ spec:
     # Automated sync (optional - remove for manual sync)
     automated:
       # Automatically sync when Git changes detected
-      prune: true        # Delete resources no longer in Git
-      selfHeal: true     # Revert manual kubectl changes
-      allowEmpty: false  # Don't sync if no resources found
+      prune: true # Delete resources no longer in Git
+      selfHeal: true # Revert manual kubectl changes
+      allowEmpty: false # Don't sync if no resources found
 
     # Retry strategy for failed syncs
     retry:
@@ -74,7 +74,7 @@ spec:
   # Ignore differences (prevents constant out-of-sync status)
   ignoreDifferences:
     # Ignore Helm release secrets (managed by Helm)
-    - group: ""
+    - group: ''
       kind: Secret
       name: sh.helm.release.*
       jsonPointers:

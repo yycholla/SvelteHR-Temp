@@ -208,15 +208,9 @@ export async function getHierarchicalProgress(
 			const level2Subtasks = subtask.tasksByParentTaskId?.nodes || [];
 			const totalLevel2 = subtask.tasksByParentTaskId?.totalCount || 0;
 
-			const completedLevel2 = level2Subtasks.filter(
-				(t: any) => t.status === 'DONE'
-			).length;
-			const inProgressLevel2 = level2Subtasks.filter(
-				(t: any) => t.status === 'IN_PROGRESS'
-			).length;
-			const notStartedLevel2 = level2Subtasks.filter(
-				(t: any) => t.status === 'TODO'
-			).length;
+			const completedLevel2 = level2Subtasks.filter((t: any) => t.status === 'DONE').length;
+			const inProgressLevel2 = level2Subtasks.filter((t: any) => t.status === 'IN_PROGRESS').length;
+			const notStartedLevel2 = level2Subtasks.filter((t: any) => t.status === 'TODO').length;
 			const blockedLevel2 = level2Subtasks.filter((t: any) => t.status === 'BLOCKED').length;
 
 			const completionPercentage =
@@ -335,11 +329,11 @@ export async function getUserTaskStatistics(userId: string): Promise<ProgressSta
 
 		const data = await response.json();
 		const tasks = data?.data?.allTasks?.nodes || [];
-		        const completed = tasks.filter((t: any) => t.status === 'DONE').length;
-		        const inProgress = tasks.filter((t: any) => t.status === 'IN_PROGRESS').length;
-		        const notStarted = tasks.filter((t: any) => t.status === 'TODO').length;
-		        const blocked = tasks.filter((t: any) => t.status === 'BLOCKED').length;
-		        const cancelled = tasks.filter((t: any) => t.status === 'CANCELLED').length;
+		const completed = tasks.filter((t: any) => t.status === 'DONE').length;
+		const inProgress = tasks.filter((t: any) => t.status === 'IN_PROGRESS').length;
+		const notStarted = tasks.filter((t: any) => t.status === 'TODO').length;
+		const blocked = tasks.filter((t: any) => t.status === 'BLOCKED').length;
+		const cancelled = tasks.filter((t: any) => t.status === 'CANCELLED').length;
 		const completionRate = total > 0 ? Math.round((completed / total) * 10000) / 100 : 0;
 
 		return {

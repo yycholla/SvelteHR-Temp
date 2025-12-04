@@ -104,8 +104,7 @@ test.describe('Form Validation', () => {
 				// Should show validation error
 				await expect(
 					page.locator(
-						`text=Value must be at least ${min}` ||
-							`text=Value must be between ${min} and ${max}`
+						`text=Value must be at least ${min}` || `text=Value must be between ${min} and ${max}`
 					)
 				).toBeVisible({ timeout: 3000 });
 

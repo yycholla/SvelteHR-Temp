@@ -31,7 +31,6 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 		console.log(`File deleted: ${storagePath} by user ${locals.user.id}`);
 
 		return json({ success: true });
-
 	} catch (err) {
 		console.error('File deletion error:', err);
 

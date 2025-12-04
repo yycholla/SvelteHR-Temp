@@ -2,15 +2,15 @@
  * Validate command - Main schema alignment validation
  */
 interface ValidateCommandOptions {
-    full?: boolean;
-    staged?: boolean;
-    json?: boolean;
-    cache?: boolean;
-    filterField?: string;
-    filterType?: string;
-    filterPage?: string;
-    config?: string;
-    verbose?: boolean;
+  full?: boolean;
+  staged?: boolean;
+  json?: boolean;
+  cache?: boolean;
+  filterField?: string;
+  filterType?: string;
+  filterPage?: string;
+  config?: string;
+  verbose?: boolean;
 }
 /**
  * Validate command handler

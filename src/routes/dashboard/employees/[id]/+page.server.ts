@@ -51,7 +51,7 @@ export const load: PageServerLoad = async (event) => {
 		const cookieHeader = event.request.headers.get('cookie') || '';
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
-			'Cookie': cookieHeader
+			Cookie: cookieHeader
 		};
 
 		console.log(
@@ -306,11 +306,11 @@ export const load: PageServerLoad = async (event) => {
 		// Only load documents if user has permission to view them
 		if (canViewDocuments) {
 			try {
-			assignedDocuments = await transaction(async (client) => {
-				await setJWTClaims(client, locals.user.id, locals.user.role || 'employee');
+				assignedDocuments = await transaction(async (client) => {
+					await setJWTClaims(client, locals.user.id, locals.user.role || 'employee');
 
-				const result = await client.query(
-					`SELECT
+					const result = await client.query(
+						`SELECT
 						d.id,
 						da.id as assignment_id,
 						d.title as filename,
@@ -329,33 +329,39 @@ export const load: PageServerLoad = async (event) => {
 					 LEFT JOIN hr_public.document_categories dc ON d.category_id = dc.id
 					 WHERE da.user_id = $1 AND d.deleted_at IS NULL
 					 ORDER BY da.created_at DESC`,
-					[employeeId]
-				);
-
-				return result.rows;
-			});
-			console.log(`[Employee Detail] Loaded ${assignedDocuments.length} assigned documents for employee ${employeeId}`);
-		} catch (err) {
-			console.error('Failed to fetch employee documents:', err);
-			assignedDocuments = [];
-		}
-
-		// Fetch available documents (not assigned to this employee) for admins
-		if (isAdmin) {
-			console.log(`[Employee Detail] Fetching available documents for admin, employee: ${employeeId}`);
-			try {
-				availableDocuments = await transaction(async (client) => {
-					await setJWTClaims(client, locals.user.id, locals.user.role || 'employee');
-
-					// First, get total count of documents
-					const countResult = await client.query(
-						`SELECT COUNT(*) as total FROM hr_public.documents WHERE deleted_at IS NULL`
+						[employeeId]
 					);
-					console.log(`[Employee Detail] Total documents in system: ${countResult.rows[0].total}`);
 
-					// Then get documents not assigned to this employee
-					const result = await client.query(
-						`SELECT
+					return result.rows;
+				});
+				console.log(
+					`[Employee Detail] Loaded ${assignedDocuments.length} assigned documents for employee ${employeeId}`
+				);
+			} catch (err) {
+				console.error('Failed to fetch employee documents:', err);
+				assignedDocuments = [];
+			}
+
+			// Fetch available documents (not assigned to this employee) for admins
+			if (isAdmin) {
+				console.log(
+					`[Employee Detail] Fetching available documents for admin, employee: ${employeeId}`
+				);
+				try {
+					availableDocuments = await transaction(async (client) => {
+						await setJWTClaims(client, locals.user.id, locals.user.role || 'employee');
+
+						// First, get total count of documents
+						const countResult = await client.query(
+							`SELECT COUNT(*) as total FROM hr_public.documents WHERE deleted_at IS NULL`
+						);
+						console.log(
+							`[Employee Detail] Total documents in system: ${countResult.rows[0].total}`
+						);
+
+						// Then get documents not assigned to this employee
+						const result = await client.query(
+							`SELECT
 							d.id,
 							d.title as filename,
 							d.mime_type as file_type,
@@ -374,21 +380,27 @@ export const load: PageServerLoad = async (event) => {
 						       WHERE da.document_id = d.id AND da.user_id = $1
 						   )
 						 ORDER BY d.created_at DESC`,
-						[employeeId]
-					);
+							[employeeId]
+						);
 
-					console.log(`[Employee Detail] Available documents (not assigned to ${employeeId}): ${result.rows.length}`);
-					return result.rows;
-				});
-			} catch (err) {
-				console.error('Failed to fetch available documents:', err);
-				availableDocuments = [];
+						console.log(
+							`[Employee Detail] Available documents (not assigned to ${employeeId}): ${result.rows.length}`
+						);
+						return result.rows;
+					});
+				} catch (err) {
+					console.error('Failed to fetch available documents:', err);
+					availableDocuments = [];
+				}
+			} else {
+				console.log(
+					`[Employee Detail] User is not admin, skipping available documents for assignment (assigned documents still loaded)`
+				);
 			}
 		} else {
-			console.log(`[Employee Detail] User is not admin, skipping available documents for assignment (assigned documents still loaded)`);
-		}
-		} else {
-			console.log(`[Employee Detail] User does not have permission to view documents for employee ${employeeId}`);
+			console.log(
+				`[Employee Detail] User does not have permission to view documents for employee ${employeeId}`
+			);
 		}
 
 		// Return server-side loaded data

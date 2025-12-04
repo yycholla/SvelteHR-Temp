@@ -52,6 +52,7 @@
 ```
 
 **Distribution**:
+
 - 70% Unit tests (fast, isolated)
 - 20% Integration tests (database, full stack)
 - 10% Load tests + Benchmarks (performance, capacity)
@@ -123,6 +124,7 @@ graphql-rust-server/
 ### Philosophy
 
 Unit tests verify **individual functions and methods** in isolation. They should be:
+
 - **Fast** (<100ms each)
 - **Focused** (test one thing)
 - **Independent** (no external dependencies)
@@ -327,6 +329,7 @@ async fn test_query_with_variables() {
 ### Philosophy
 
 Integration tests verify **complete workflows** involving multiple components:
+
 - Database interactions
 - Authentication flows
 - Multi-step operations
@@ -534,6 +537,7 @@ async fn test_cascade_delete_removes_dependent_entities() {
 ### Philosophy
 
 Load tests validate **system performance under concurrent load**:
+
 - Throughput (requests/second)
 - Latency percentiles (P50, P95, P99)
 - Error rates under stress
@@ -732,6 +736,7 @@ cargo test --test mixed_workload_load -- --ignored --nocapture
 ### Philosophy
 
 Benchmarks measure **precise performance characteristics**:
+
 - Function execution time
 - Memory allocation patterns
 - Regression detection
@@ -898,6 +903,7 @@ open target/criterion/report/index.html
 ### Philosophy
 
 Mutation testing validates **test quality** by introducing code changes:
+
 - Are tests comprehensive enough to catch bugs?
 - Do tests verify actual behavior, not just implementation?
 - Are there untested edge cases?
@@ -991,6 +997,7 @@ diff old-mutants.json mutants.json
 ### Understanding Mutation Scores
 
 **Example Output**:
+
 ```
 Total mutants: 245
 Caught: 220 (89.8%)
@@ -1001,6 +1008,7 @@ Mutation score: 89.8% ✓
 ```
 
 **Interpretation**:
+
 - **Caught (220)**: Tests successfully detected these mutations ✓
 - **Missed (25)**: Tests didn't catch these mutations ⚠️ (needs better tests)
 - **Unviable (15)**: Mutations didn't compile (excluded from score)
@@ -1460,13 +1468,13 @@ jobs:
 # .github/workflows/nightly.yml
 on:
   schedule:
-    - cron: '0 2 * * *'  # 2 AM daily
+    - cron: '0 2 * * *' # 2 AM daily
 
 jobs:
   comprehensive:
     steps:
       - run: cargo test --all-features
-      - run: cargo test --ignored  # Load tests
+      - run: cargo test --ignored # Load tests
       - run: ./scripts/run-mutation-tests.sh quick
 ```
 
@@ -1534,6 +1542,7 @@ echo "✓ Pre-commit checks passed"
 **Symptom**: Tests hang indefinitely
 
 **Causes**:
+
 - Database container failed to start
 - Deadlock in test code
 - Network connectivity issues
@@ -1559,6 +1568,7 @@ RUST_LOG=debug cargo test 2>&1 | grep -i "deadlock"
 **Symptom**: Tests pass/fail randomly
 
 **Causes**:
+
 - Race conditions
 - Non-deterministic ordering
 - Time-dependent logic
@@ -1683,12 +1693,12 @@ docker exec -it <container-id> psql -U postgres -d <db-name>
 
 ### Coverage Targets
 
-| Category | Target | Current |
-|----------|--------|---------|
-| Unit Tests | 80%+ | ~85% |
-| Integration Tests | 70%+ | ~75% |
-| Business Logic | 90%+ | ~90% |
-| Mutation Score | 85-90% | TBD |
+| Category          | Target | Current |
+| ----------------- | ------ | ------- |
+| Unit Tests        | 80%+   | ~85%    |
+| Integration Tests | 70%+   | ~75%    |
+| Business Logic    | 90%+   | ~90%    |
+| Mutation Score    | 85-90% | TBD     |
 
 ### Measuring Coverage
 
@@ -1762,16 +1772,16 @@ async fn test_invalid_input_returns_error() {
 
 ### Quick Reference
 
-| Task | Command |
-|------|---------|
-| Unit tests | `cargo test --lib` |
-| Integration tests | `cargo test --test integration_tests` |
-| Load tests | `cargo test --ignored` |
-| Benchmarks | `cargo bench` |
-| Mutation tests | `./scripts/run-mutation-tests.sh quick` |
-| Coverage | `cargo tarpaulin --out Html` |
-| Format | `cargo fmt` |
-| Lint | `cargo clippy` |
+| Task              | Command                                 |
+| ----------------- | --------------------------------------- |
+| Unit tests        | `cargo test --lib`                      |
+| Integration tests | `cargo test --test integration_tests`   |
+| Load tests        | `cargo test --ignored`                  |
+| Benchmarks        | `cargo bench`                           |
+| Mutation tests    | `./scripts/run-mutation-tests.sh quick` |
+| Coverage          | `cargo tarpaulin --out Html`            |
+| Format            | `cargo fmt`                             |
+| Lint              | `cargo clippy`                          |
 
 ### Key Takeaways
 

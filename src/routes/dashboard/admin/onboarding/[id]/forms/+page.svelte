@@ -35,7 +35,7 @@
 		FileText,
 		ArrowLeft,
 		ExternalLink
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import type { OnboardingForm } from '$lib/graphql/form-operations';
 

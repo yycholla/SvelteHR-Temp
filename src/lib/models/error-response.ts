@@ -161,7 +161,7 @@ export class ErrorResponse {
 			originalError: this.originalError,
 			userMessage: this.userMessage,
 			technicalDetails: JSON.stringify(this.technicalDetails),
-			suggestedActions: this.suggestedActions.map(action => ({
+			suggestedActions: this.suggestedActions.map((action) => ({
 				label: action,
 				action: action,
 				isPrimary: action === this.primaryAction

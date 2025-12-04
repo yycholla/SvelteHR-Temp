@@ -9,7 +9,7 @@ global:
 # Install CRDs
 crds:
   enabled: true
-  keep: true  # Keep CRDs on uninstall
+  keep: true # Keep CRDs on uninstall
 
 # Replica count
 replicaCount: 1
@@ -49,4 +49,4 @@ cainjector:
 prometheus:
   enabled: true
   servicemonitor:
-    enabled: true  # Creates ServiceMonitor for Prometheus
+    enabled: true # Creates ServiceMonitor for Prometheus

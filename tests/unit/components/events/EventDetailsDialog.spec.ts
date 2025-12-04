@@ -1,6 +1,6 @@
 /**
  * Unit Test: EventDetailsDialog
- * 
+ *
  * Tests the unified EventDetailsDialog component which now uses
  * EventDetailsView and EventEditForm sub-components.
  */
@@ -128,7 +128,7 @@ describe('EventDetailsDialog', () => {
 			const { getByLabelText } = render(EventDetailsDialog, {
 				props: defaultProps
 			});
-			
+
 			await fireEvent.click(getByLabelText('Close dialog'));
 			expect(defaultProps.onClose).toHaveBeenCalled();
 		});
@@ -137,7 +137,7 @@ describe('EventDetailsDialog', () => {
 			const { getByLabelText } = render(EventDetailsDialog, {
 				props: { ...defaultProps, canManageEvent: true }
 			});
-			
+
 			await fireEvent.click(getByLabelText('Edit event'));
 			expect(defaultProps.onEdit).toHaveBeenCalled();
 		});
@@ -146,7 +146,7 @@ describe('EventDetailsDialog', () => {
 			const { getByLabelText, getByText } = render(EventDetailsDialog, {
 				props: { ...defaultProps, canManageEvent: true }
 			});
-			
+
 			await fireEvent.click(getByLabelText('Delete event'));
 			// Should show confirmation dialog
 			expect(getByText(/Are you sure you want to delete/)).toBeTruthy();
@@ -158,7 +158,7 @@ describe('EventDetailsDialog', () => {
 			const { queryByLabelText } = render(EventDetailsDialog, {
 				props: { ...defaultProps, canManageEvent: true }
 			});
-			
+
 			expect(queryByLabelText('Edit event')).toBeTruthy();
 			expect(queryByLabelText('Delete event')).toBeTruthy();
 		});
@@ -167,7 +167,7 @@ describe('EventDetailsDialog', () => {
 			const { queryByLabelText } = render(EventDetailsDialog, {
 				props: { ...defaultProps, canManageEvent: false }
 			});
-			
+
 			expect(queryByLabelText('Edit event')).toBeNull();
 			expect(queryByLabelText('Delete event')).toBeNull();
 		});

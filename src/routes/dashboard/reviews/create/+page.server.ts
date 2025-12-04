@@ -35,7 +35,7 @@ export const load: PageServerLoad = async (event) => {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
-				'Cookie': cookieHeader
+				Cookie: cookieHeader
 			},
 			body: JSON.stringify({
 				query: `
@@ -85,7 +85,7 @@ export const load: PageServerLoad = async (event) => {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					'Cookie': cookieHeader
+					Cookie: cookieHeader
 				},
 				body: JSON.stringify({
 					query: `
@@ -139,7 +139,7 @@ export const load: PageServerLoad = async (event) => {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					'Cookie': cookieHeader
+					Cookie: cookieHeader
 				},
 				body: JSON.stringify({
 					query: `
@@ -259,16 +259,66 @@ export const load: PageServerLoad = async (event) => {
 
 		// Provide review types even on error so dropdown still works
 		const reviewTypesMetadata = [
-			{ value: 'ANNUAL_REVIEW', label: 'Annual Review', description: 'Comprehensive yearly performance evaluation', displayOrder: 1 },
-			{ value: 'MID_YEAR_REVIEW', label: 'Mid-Year Review', description: 'Semi-annual performance check-in', displayOrder: 2 },
-			{ value: 'QUARTERLY_REVIEW', label: 'Quarterly Review', description: 'Quarterly performance assessment', displayOrder: 3 },
-			{ value: 'PROBATIONARY_REVIEW', label: 'Probationary Review', description: 'Review during probationary period', displayOrder: 4 },
-			{ value: 'NINETY_DAY_REVIEW', label: '90-Day Review', description: 'Initial 90-day performance evaluation', displayOrder: 5 },
-			{ value: 'PERFORMANCE_IMPROVEMENT_PLAN', label: 'Performance Improvement Plan', description: 'Structured plan for performance improvement', displayOrder: 6 },
-			{ value: 'PROJECT_BASED_REVIEW', label: 'Project-Based Review', description: 'Review focused on specific project completion', displayOrder: 7 },
-			{ value: 'PROMOTION_REVIEW', label: 'Promotion Review', description: 'Evaluation for promotion consideration', displayOrder: 8 },
-			{ value: 'SELF_REVIEW', label: 'Self Review', description: 'Employee self-assessment', displayOrder: 9 },
-			{ value: 'EXIT_REVIEW', label: 'Exit Review', description: 'Final review upon employee departure', displayOrder: 10 }
+			{
+				value: 'ANNUAL_REVIEW',
+				label: 'Annual Review',
+				description: 'Comprehensive yearly performance evaluation',
+				displayOrder: 1
+			},
+			{
+				value: 'MID_YEAR_REVIEW',
+				label: 'Mid-Year Review',
+				description: 'Semi-annual performance check-in',
+				displayOrder: 2
+			},
+			{
+				value: 'QUARTERLY_REVIEW',
+				label: 'Quarterly Review',
+				description: 'Quarterly performance assessment',
+				displayOrder: 3
+			},
+			{
+				value: 'PROBATIONARY_REVIEW',
+				label: 'Probationary Review',
+				description: 'Review during probationary period',
+				displayOrder: 4
+			},
+			{
+				value: 'NINETY_DAY_REVIEW',
+				label: '90-Day Review',
+				description: 'Initial 90-day performance evaluation',
+				displayOrder: 5
+			},
+			{
+				value: 'PERFORMANCE_IMPROVEMENT_PLAN',
+				label: 'Performance Improvement Plan',
+				description: 'Structured plan for performance improvement',
+				displayOrder: 6
+			},
+			{
+				value: 'PROJECT_BASED_REVIEW',
+				label: 'Project-Based Review',
+				description: 'Review focused on specific project completion',
+				displayOrder: 7
+			},
+			{
+				value: 'PROMOTION_REVIEW',
+				label: 'Promotion Review',
+				description: 'Evaluation for promotion consideration',
+				displayOrder: 8
+			},
+			{
+				value: 'SELF_REVIEW',
+				label: 'Self Review',
+				description: 'Employee self-assessment',
+				displayOrder: 9
+			},
+			{
+				value: 'EXIT_REVIEW',
+				label: 'Exit Review',
+				description: 'Final review upon employee departure',
+				displayOrder: 10
+			}
 		];
 
 		return {
@@ -314,7 +364,9 @@ export const actions: Actions = {
 				newGoals.push({
 					title: formData.get(`newGoals[${goalIndex}].title`) as string,
 					description: formData.get(`newGoals[${goalIndex}].description`) as string,
-					targetCompletionDate: formData.get(`newGoals[${goalIndex}].targetCompletionDate`) as string,
+					targetCompletionDate: formData.get(
+						`newGoals[${goalIndex}].targetCompletionDate`
+					) as string,
 					successMetrics: formData.get(`newGoals[${goalIndex}].successMetrics`) as string
 				});
 				goalIndex++;
@@ -359,7 +411,7 @@ export const actions: Actions = {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
-						'Cookie': cookieHeader
+						Cookie: cookieHeader
 					},
 					body: JSON.stringify({
 						query: `
@@ -399,7 +451,7 @@ export const actions: Actions = {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					'Cookie': cookieHeader
+					Cookie: cookieHeader
 				},
 				body: JSON.stringify({
 					query: `

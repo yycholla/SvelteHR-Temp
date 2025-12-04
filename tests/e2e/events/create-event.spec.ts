@@ -260,9 +260,7 @@ test.describe('Create New Event', () => {
 		await page.click('button:has-text("Create Event")');
 
 		// Verify validation error
-		await expect(
-			page.locator('text=/Recurring events cannot exceed.*5 years/')
-		).toBeVisible();
+		await expect(page.locator('text=/Recurring events cannot exceed.*5 years/')).toBeVisible();
 	});
 
 	test('should close dialog without creating event when clicking cancel', async ({ page }) => {

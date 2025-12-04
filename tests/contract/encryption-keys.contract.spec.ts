@@ -46,7 +46,7 @@ describe('Encryption Keys API - Contract Tests', () => {
 			const response = await fetch('/api/encryption/keys', {
 				method: 'POST',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`,
+					Authorization: `Bearer ${userAToken}`,
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify(keyData)
@@ -104,7 +104,7 @@ describe('Encryption Keys API - Contract Tests', () => {
 			const response = await fetch('/api/encryption/keys', {
 				method: 'POST',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`,
+					Authorization: `Bearer ${userAToken}`,
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify(invalidData)
@@ -130,7 +130,7 @@ describe('Encryption Keys API - Contract Tests', () => {
 			const response = await fetch('/api/encryption/keys', {
 				method: 'POST',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`,
+					Authorization: `Bearer ${userAToken}`,
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify(invalidData)
@@ -162,7 +162,7 @@ describe('Encryption Keys API - Contract Tests', () => {
 			const response1 = await fetch('/api/encryption/keys', {
 				method: 'POST',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`,
+					Authorization: `Bearer ${userAToken}`,
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify(keyData1)
@@ -174,7 +174,7 @@ describe('Encryption Keys API - Contract Tests', () => {
 			const response2 = await fetch('/api/encryption/keys', {
 				method: 'POST',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`,
+					Authorization: `Bearer ${userAToken}`,
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify(keyData2)
@@ -195,7 +195,7 @@ describe('Encryption Keys API - Contract Tests', () => {
 			const response = await fetch(`/api/encryption/keys/${userAKeyId}`, {
 				method: 'GET',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`
+					Authorization: `Bearer ${userAToken}`
 				}
 			});
 
@@ -213,12 +213,12 @@ describe('Encryption Keys API - Contract Tests', () => {
 			expect(data.encryptedKeyData).toMatch(/^[A-Za-z0-9+/]+=*$/);
 		});
 
-		it('should deny access to another user\'s key (403)', async () => {
+		it("should deny access to another user's key (403)", async () => {
 			// Act: User A attempts to retrieve User B's key
 			const response = await fetch(`/api/encryption/keys/${userBKeyId}`, {
 				method: 'GET',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`
+					Authorization: `Bearer ${userAToken}`
 				}
 			});
 
@@ -249,7 +249,7 @@ describe('Encryption Keys API - Contract Tests', () => {
 			const response = await fetch('/api/encryption/keys/non-existent-key-id', {
 				method: 'GET',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`
+					Authorization: `Bearer ${userAToken}`
 				}
 			});
 
@@ -266,7 +266,7 @@ describe('Encryption Keys API - Contract Tests', () => {
 			const response = await fetch(`/api/encryption/keys/${userAKeyId}`, {
 				method: 'GET',
 				headers: {
-					'Authorization': `Bearer ${adminToken}`
+					Authorization: `Bearer ${adminToken}`
 				}
 			});
 
@@ -286,7 +286,7 @@ describe('Encryption Keys API - Contract Tests', () => {
 			const response = await fetch(`/api/encryption/keys/${userAKeyId}`, {
 				method: 'DELETE',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`
+					Authorization: `Bearer ${userAToken}`
 				}
 			});
 
@@ -294,12 +294,12 @@ describe('Encryption Keys API - Contract Tests', () => {
 			expect(response.status).toBe(204); // No content
 		});
 
-		it('should prevent deletion of another user\'s key', async () => {
+		it("should prevent deletion of another user's key", async () => {
 			// Act: User A attempts to delete User B's key
 			const response = await fetch(`/api/encryption/keys/${userBKeyId}`, {
 				method: 'DELETE',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`
+					Authorization: `Bearer ${userAToken}`
 				}
 			});
 
@@ -323,7 +323,7 @@ describe('Encryption Keys API - Contract Tests', () => {
 			const response = await fetch('/api/encryption/keys', {
 				method: 'POST',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`,
+					Authorization: `Bearer ${userAToken}`,
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify(keyData)

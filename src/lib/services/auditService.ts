@@ -69,10 +69,17 @@ export async function logDeniedAccess(
 	metadata?: AccessMetadata,
 	fetchFn: typeof fetch = fetch
 ): Promise<void> {
-	return logAccess(documentId, userId, accessType, 'denied', {
-		...metadata,
-		denialReason
-	}, fetchFn);
+	return logAccess(
+		documentId,
+		userId,
+		accessType,
+		'denied',
+		{
+			...metadata,
+			denialReason
+		},
+		fetchFn
+	);
 }
 
 // Get access logs for a document
@@ -87,12 +94,9 @@ export async function getDocumentAccessLogs(
 	page: number;
 	limit: number;
 }> {
-	const response = await fetchFn(
-		`/api/audit/logs/${documentId}?page=${page}&limit=${limit}`,
-		{
-			method: 'GET'
-		}
-	);
+	const response = await fetchFn(`/api/audit/logs/${documentId}?page=${page}&limit=${limit}`, {
+		method: 'GET'
+	});
 
 	if (!response.ok) {
 		const error = await response.json();
@@ -114,12 +118,9 @@ export async function getUserAccessLogs(
 	page: number;
 	limit: number;
 }> {
-	const response = await fetchFn(
-		`/api/audit/user/${userId}?page=${page}&limit=${limit}`,
-		{
-			method: 'GET'
-		}
-	);
+	const response = await fetchFn(`/api/audit/user/${userId}?page=${page}&limit=${limit}`, {
+		method: 'GET'
+	});
 
 	if (!response.ok) {
 		const error = await response.json();

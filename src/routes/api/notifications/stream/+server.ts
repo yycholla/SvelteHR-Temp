@@ -12,8 +12,8 @@ export const GET: RequestHandler = async ({ locals, cookies, request }) => {
 		console.error('❌ SSE: Cookie header:', cookieHeader || 'NO COOKIES SENT');
 		console.error('❌ SSE: Cookies parsed by SvelteKit:', {
 			'id.session': cookies.get('id.session'),
-			'session': cookies.get('session'),
-			'hr_token': cookies.get('hr_token'),
+			session: cookies.get('session'),
+			hr_token: cookies.get('hr_token'),
 			'auth-token': cookies.get('auth-token')
 		});
 		console.error('❌ SSE: locals.user:', locals.user);
@@ -91,7 +91,7 @@ export const GET: RequestHandler = async ({ locals, cookies, request }) => {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json',
-							'Cookie': cookieHeader || '' // Forward all cookies from the original request
+							Cookie: cookieHeader || '' // Forward all cookies from the original request
 						},
 						body: JSON.stringify({
 							query: notificationsQuery,

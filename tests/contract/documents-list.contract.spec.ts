@@ -37,7 +37,7 @@ describe('GET /api/documents - Contract Tests', () => {
 		const response = await fetch(`/api/documents?employeeId=${employeeId}`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			}
 		});
 
@@ -64,7 +64,7 @@ describe('GET /api/documents - Contract Tests', () => {
 		const response = await fetch('/api/documents?category=Contract', {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			}
 		});
 
@@ -85,7 +85,7 @@ describe('GET /api/documents - Contract Tests', () => {
 		const response = await fetch('/api/documents?sensitivityLevel=Confidential', {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			}
 		});
 
@@ -106,7 +106,7 @@ describe('GET /api/documents - Contract Tests', () => {
 		const response = await fetch('/api/documents?page=2&limit=20', {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			}
 		});
 
@@ -128,7 +128,7 @@ describe('GET /api/documents - Contract Tests', () => {
 		const response = await fetch('/api/documents', {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${employeeToken}`
+				Authorization: `Bearer ${employeeToken}`
 			}
 		});
 
@@ -158,7 +158,7 @@ describe('GET /api/documents - Contract Tests', () => {
 		const response = await fetch('/api/documents', {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${managerToken}`
+				Authorization: `Bearer ${managerToken}`
 			}
 		});
 
@@ -179,7 +179,7 @@ describe('GET /api/documents - Contract Tests', () => {
 		const response = await fetch('/api/documents', {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			}
 		});
 
@@ -212,7 +212,7 @@ describe('GET /api/documents - Contract Tests', () => {
 		const response1 = await fetch('/api/documents?page=0&limit=20', {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			}
 		});
 
@@ -225,7 +225,7 @@ describe('GET /api/documents - Contract Tests', () => {
 		const response2 = await fetch('/api/documents?page=1&limit=-1', {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			}
 		});
 
@@ -240,7 +240,7 @@ describe('GET /api/documents - Contract Tests', () => {
 		const response = await fetch('/api/documents?search=contract', {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			}
 		});
 
@@ -258,12 +258,15 @@ describe('GET /api/documents - Contract Tests', () => {
 
 	it('should support multiple filters combined', async () => {
 		// Act: Apply category + sensitivity + search filters
-		const response = await fetch('/api/documents?category=Contract&sensitivityLevel=Confidential&search=employee', {
-			method: 'GET',
-			headers: {
-				'Authorization': `Bearer ${adminToken}`
+		const response = await fetch(
+			'/api/documents?category=Contract&sensitivityLevel=Confidential&search=employee',
+			{
+				method: 'GET',
+				headers: {
+					Authorization: `Bearer ${adminToken}`
+				}
 			}
-		});
+		);
 
 		// Assert: Success with multi-filtered results
 		expect(response.status).toBe(200);
@@ -284,7 +287,7 @@ describe('GET /api/documents - Contract Tests', () => {
 		const response = await fetch('/api/documents?category=NonExistent&search=xyzabc123', {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			}
 		});
 

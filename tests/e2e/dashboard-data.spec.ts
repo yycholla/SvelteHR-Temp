@@ -123,7 +123,7 @@ test.describe('Dashboard Data Display', () => {
 				const sectionText = await section.textContent();
 
 				// If section has no data items, should show proper empty state
-				const hasDataItems = await section.locator('[data-testid*="item"]').count() > 0;
+				const hasDataItems = (await section.locator('[data-testid*="item"]').count()) > 0;
 
 				if (!hasDataItems && sectionText) {
 					// Should show "No data available" message as per requirements
@@ -140,7 +140,7 @@ test.describe('Dashboard Data Display', () => {
 
 	test('should handle data loading errors gracefully', async ({ page }) => {
 		// Mock GraphQL failure to test error handling
-		await page.route('**/graphql', route => {
+		await page.route('**/graphql', (route) => {
 			if (route.request().postData()?.includes('getDashboardData')) {
 				route.fulfill({
 					status: 500,
@@ -209,7 +209,9 @@ test.describe('Dashboard Data Display', () => {
 
 		// Wait for data to load again
 		await page.waitForSelector('[data-testid="employee-count"]', { timeout: 10000 });
-		const refreshedEmployeeCount = await page.locator('[data-testid="employee-count"]').textContent();
+		const refreshedEmployeeCount = await page
+			.locator('[data-testid="employee-count"]')
+			.textContent();
 
 		// Data should be consistent (from database, not random)
 		expect(refreshedEmployeeCount).toBe(initialEmployeeCount);

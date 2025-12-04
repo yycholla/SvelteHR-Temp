@@ -20,6 +20,7 @@ Comprehensive troubleshooting guide for common issues with the Schema Validator 
 ### Node.js Version Error
 
 **Problem:**
+
 ```
 error schema-validator@1.0.0: The engine "node" is incompatible with this module
 ```
@@ -49,6 +50,7 @@ sudo apt-get install -y nodejs
 ### TypeScript Compilation Errors
 
 **Problem:**
+
 ```
 error TS2307: Cannot find module 'schema-validator'
 ```
@@ -77,6 +79,7 @@ npm run build
 ### ESM Module Errors
 
 **Problem:**
+
 ```
 Error [ERR_REQUIRE_ESM]: require() of ES Module not supported
 ```
@@ -106,6 +109,7 @@ mv schema-validator.config.js schema-validator.config.mjs
 ### Database Connection Failed
 
 **Problem:**
+
 ```
 ❌ Error: Failed to connect to database
 ECONNREFUSED 127.0.0.1:5432
@@ -143,6 +147,7 @@ const connectionString = 'postgresql://user:password@localhost:5432/mydb';
 **Common Fixes:**
 
 **Wrong host/port:**
+
 ```json
 {
   "database": {
@@ -153,6 +158,7 @@ const connectionString = 'postgresql://user:password@localhost:5432/mydb';
 ```
 
 **Authentication failure:**
+
 ```bash
 # Update pg_hba.conf to allow password authentication
 sudo nano /etc/postgresql/14/main/pg_hba.conf
@@ -167,12 +173,13 @@ sudo systemctl restart postgresql
 ```
 
 **SSL/TLS issues:**
+
 ```json
 {
   "database": {
     "connectionString": "postgresql://...",
-    "ssl": true,  // Add if your database requires SSL
-    "sslMode": "require"  // Or "prefer" / "allow" / "disable"
+    "ssl": true, // Add if your database requires SSL
+    "sslMode": "require" // Or "prefer" / "allow" / "disable"
   }
 }
 ```
@@ -180,6 +187,7 @@ sudo systemctl restart postgresql
 ### API Connection Failed
 
 **Problem:**
+
 ```
 ❌ GraphQL introspection failed: ECONNREFUSED
 ```
@@ -203,6 +211,7 @@ curl -X POST http://localhost:8080/graphql \
 Some GraphQL servers disable introspection in production. Check your API configuration:
 
 **For async-graphql (Rust):**
+
 ```rust
 // Ensure introspection is enabled
 let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
@@ -212,10 +221,11 @@ let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
 ```
 
 **For Apollo Server (Node.js):**
+
 ```javascript
 const server = new ApolloServer({
   schema,
-  introspection: true,  // Enable introspection
+  introspection: true, // Enable introspection
   playground: true,
 });
 ```
@@ -234,6 +244,7 @@ const server = new ApolloServer({
 ```
 
 **Test authentication:**
+
 ```bash
 # With Bearer token
 curl -X POST http://localhost:8080/graphql \
@@ -245,6 +256,7 @@ curl -X POST http://localhost:8080/graphql \
 ### CORS Errors
 
 **Problem:**
+
 ```
 Access to fetch at 'http://localhost:8080/graphql' has been blocked by CORS policy
 ```
@@ -260,6 +272,7 @@ Access to fetch at 'http://localhost:8080/graphql' has been blocked by CORS poli
 ### Invalid Configuration File
 
 **Problem:**
+
 ```
 ❌ Error: Invalid configuration file
 Validation error: "databaseUrl" is required
@@ -293,6 +306,7 @@ Ensure your `schema-validator.config.json` has all required fields:
 ### Environment Variables Not Working
 
 **Problem:**
+
 ```
 Error: Invalid connection string
 ```
@@ -335,6 +349,7 @@ import 'dotenv/config';
 ### Path Resolution Issues
 
 **Problem:**
+
 ```
 ❌ No GraphQL operations found in ./src/**/*.ts
 ```
@@ -356,7 +371,7 @@ Use absolute paths or ensure pattern is relative to config file location:
 ```json
 {
   "sources": {
-    "directory": "./src/routes",  // Relative to config file
+    "directory": "./src/routes", // Relative to config file
     // OR
     "directory": "/absolute/path/to/src/routes"
   }
@@ -370,6 +385,7 @@ Use absolute paths or ensure pattern is relative to config file location:
 ### Type Mismatch: Custom PostgreSQL Types
 
 **Problem:**
+
 ```
 ❌ Type mismatch: GraphQL String vs DB citext
 Unknown PostgreSQL type: citext
@@ -393,6 +409,7 @@ Add custom type mapping for PostgreSQL extensions:
 ### Type Mismatch: Custom GraphQL Scalars
 
 **Problem:**
+
 ```
 ❌ Type mismatch: GraphQL DateTime vs DB timestamptz
 Unknown GraphQL scalar: DateTime
@@ -425,6 +442,7 @@ scalar JSON
 ### BigInt Overflow Warning
 
 **Problem:**
+
 ```
 ⚠️  Warning: PostgreSQL int8 may overflow GraphQL Int
 ```
@@ -434,6 +452,7 @@ scalar JSON
 **Solutions:**
 
 **Option 1:** Use String type for large integers
+
 ```json
 {
   "typeMappings": {
@@ -444,11 +463,12 @@ scalar JSON
 ```
 
 **Option 2:** Use custom BigInt scalar
+
 ```graphql
 scalar BigInt
 
 type User {
-  id: BigInt!  # Instead of Int!
+  id: BigInt! # Instead of Int!
 }
 ```
 
@@ -462,6 +482,7 @@ type User {
 ```
 
 **Option 3:** Change database column type
+
 ```sql
 -- If values fit in 32-bit range
 ALTER TABLE users ALTER COLUMN id TYPE int4;
@@ -470,6 +491,7 @@ ALTER TABLE users ALTER COLUMN id TYPE int4;
 ### Array Type Mismatch
 
 **Problem:**
+
 ```
 ❌ Type mismatch: GraphQL String vs DB text[]
 Array type mismatch
@@ -482,7 +504,7 @@ Ensure both GraphQL and database use array types:
 ```graphql
 # GraphQL schema
 type User {
-  tags: [String!]!  # Array of non-null strings
+  tags: [String!]! # Array of non-null strings
 }
 ```
 
@@ -512,6 +534,7 @@ Or add proper mapping:
 ### False Positive: Computed Fields
 
 **Problem:**
+
 ```
 ❌ Field missing in database: User.fullName
 ```
@@ -536,12 +559,7 @@ schema-validator compute add User.fullName \
 {
   "validation": {
     "allowComputedFields": true,
-    "computedFields": [
-      "User.fullName",
-      "User.displayName",
-      "Order.total",
-      "Product.averageRating"
-    ]
+    "computedFields": ["User.fullName", "User.displayName", "Order.total", "Product.averageRating"]
   }
 }
 ```
@@ -549,6 +567,7 @@ schema-validator compute add User.fullName \
 ### Nullability Mismatch
 
 **Problem:**
+
 ```
 ❌ Nullability mismatch: GraphQL requires non-null but DB allows null
 Field: User.email
@@ -563,6 +582,7 @@ This is a **critical error** that can cause runtime exceptions. If GraphQL promi
 **Solutions:**
 
 **Option 1:** Make database column NOT NULL (recommended)
+
 ```sql
 -- Add NOT NULL constraint
 ALTER TABLE users
@@ -574,13 +594,15 @@ ALTER TABLE users ALTER COLUMN email SET NOT NULL;
 ```
 
 **Option 2:** Make GraphQL field nullable
+
 ```graphql
 type User {
-  email: String  # Remove ! to allow null
+  email: String # Remove ! to allow null
 }
 ```
 
 **Option 3:** Add default value in database
+
 ```sql
 ALTER TABLE users
 ALTER COLUMN email SET DEFAULT 'noemail@example.com';
@@ -592,6 +614,7 @@ ALTER COLUMN email SET NOT NULL;
 ### Missing Database Column
 
 **Problem:**
+
 ```
 ❌ Field missing in database: User.phoneNumber
 GraphQL queries this field but no corresponding column exists
@@ -600,12 +623,14 @@ GraphQL queries this field but no corresponding column exists
 **Solution:**
 
 **Option 1:** Add database column (if field should be persisted)
+
 ```sql
 ALTER TABLE users
 ADD COLUMN phone_number varchar(20);
 ```
 
 **Option 2:** Remove from GraphQL query (if not needed)
+
 ```graphql
 # Remove phoneNumber from query
 query GetUser($id: ID!) {
@@ -618,6 +643,7 @@ query GetUser($id: ID!) {
 ```
 
 **Option 3:** Mark as computed field (if derived from other columns)
+
 ```json
 {
   "validation": {
@@ -629,6 +655,7 @@ query GetUser($id: ID!) {
 ### Missing API Resolver
 
 **Problem:**
+
 ```
 ❌ Field missing in API: User.address
 Database column exists but not exposed by the API
@@ -639,6 +666,7 @@ Database column exists but not exposed by the API
 Add resolver to your GraphQL API:
 
 **For Rust (async-graphql):**
+
 ```rust
 #[Object]
 impl User {
@@ -649,6 +677,7 @@ impl User {
 ```
 
 **For TypeScript (TypeGraphQL):**
+
 ```typescript
 @ObjectType()
 class User {
@@ -658,6 +687,7 @@ class User {
 ```
 
 **For Node.js (Apollo Server):**
+
 ```javascript
 const resolvers = {
   User: {
@@ -673,6 +703,7 @@ const resolvers = {
 ### Slow Validation
 
 **Problem:**
+
 ```
 Validation took 45 seconds to complete
 ```
@@ -692,12 +723,13 @@ schema-validator validate --verbose
 **Solutions:**
 
 **Enable caching:**
+
 ```json
 {
   "cache": {
     "enabled": true,
     "directory": ".schema-cache",
-    "ttl": 3600  // Cache for 1 hour
+    "ttl": 3600 // Cache for 1 hour
   },
   "database": {
     "introspectionCache": true,
@@ -710,6 +742,7 @@ schema-validator validate --verbose
 ```
 
 **Reduce scope with filters:**
+
 ```bash
 # Validate only specific type
 schema-validator validate --filter-type User
@@ -719,6 +752,7 @@ schema-validator validate --filter-page "src/routes/users/**"
 ```
 
 **Use incremental validation:**
+
 ```bash
 # Instead of full validation, check cache first
 schema-validator check
@@ -728,11 +762,12 @@ schema-validator validate --full
 ```
 
 **Optimize database queries:**
+
 ```json
 {
   "database": {
-    "schema": "public",  // Specify schema to avoid scanning all schemas
-    "excludeTables": ["migrations", "pg_*"]  // Exclude irrelevant tables
+    "schema": "public", // Specify schema to avoid scanning all schemas
+    "excludeTables": ["migrations", "pg_*"] // Exclude irrelevant tables
   }
 }
 ```
@@ -740,6 +775,7 @@ schema-validator validate --full
 ### Memory Issues
 
 **Problem:**
+
 ```
 FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory
 ```
@@ -747,6 +783,7 @@ FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memor
 **Solutions:**
 
 **Increase Node.js heap size:**
+
 ```bash
 # Temporary
 NODE_OPTIONS="--max-old-space-size=4096" schema-validator validate
@@ -760,6 +797,7 @@ NODE_OPTIONS="--max-old-space-size=4096" schema-validator validate
 ```
 
 **Process files in batches:**
+
 ```typescript
 import { SchemaValidator } from 'schema-validator';
 import { glob } from 'glob';
@@ -782,6 +820,7 @@ for (let i = 0; i < files.length; i += batchSize) {
 ### Cache Not Working
 
 **Problem:**
+
 ```
 Cache hit: false
 Running full validation even though nothing changed
@@ -800,6 +839,7 @@ schema-validator cache stats
 **Solutions:**
 
 **Ensure cache directory is writable:**
+
 ```bash
 # Check permissions
 ls -ld .schema-cache/
@@ -809,6 +849,7 @@ chmod 755 .schema-cache/
 ```
 
 **Clear stale cache:**
+
 ```bash
 # Clear all cache
 schema-validator cache clear --all
@@ -819,11 +860,12 @@ mkdir .schema-cache/
 ```
 
 **Verify cache TTL is appropriate:**
+
 ```json
 {
   "cache": {
     "enabled": true,
-    "ttl": 3600  // 1 hour (not too short)
+    "ttl": 3600 // 1 hour (not too short)
   }
 }
 ```
@@ -872,10 +914,9 @@ await introspector.disconnect();
 ```typescript
 import { ApiIntrospector } from 'schema-validator';
 
-const introspector = new ApiIntrospector(
-  process.env.API_URL!,
-  { Authorization: `Bearer ${process.env.API_TOKEN}` }
-);
+const introspector = new ApiIntrospector(process.env.API_URL!, {
+  Authorization: `Bearer ${process.env.API_TOKEN}`,
+});
 
 const schema = await introspector.introspectSchema();
 console.log('API schema:', JSON.stringify(schema, null, 2));
@@ -930,7 +971,7 @@ jq '.alignments[] | select(.fieldPath == "User.email")' debug-report.json
 ```json
 {
   "validation": {
-    "strict": false  // Warnings don't fail validation
+    "strict": false // Warnings don't fail validation
   }
 }
 ```
@@ -969,7 +1010,7 @@ fragment UserFields on User {
 
 query GetUser($id: ID!) {
   user(id: $id) {
-    ...UserFields  # Validated as if fields were inline
+    ...UserFields # Validated as if fields were inline
   }
 }
 ```
@@ -981,7 +1022,7 @@ query GetUser($id: ID!) {
 ```json
 {
   "database": {
-    "schema": "my_schema"  // Or "public", "internal", etc.
+    "schema": "my_schema" // Or "public", "internal", etc.
   }
 }
 ```
@@ -1085,7 +1126,7 @@ result.alignments.forEach((alignment) => {
   if (alignment.fieldPath.includes('password')) {
     alignment.warnings = [
       ...alignment.warnings,
-      { message: 'Sensitive field detected', category: 'security' }
+      { message: 'Sensitive field detected', category: 'security' },
     ];
   }
 });

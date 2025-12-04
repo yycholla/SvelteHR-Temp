@@ -211,9 +211,7 @@ test.describe('Employee Onboarding Forms - Navigation and Completion', () => {
 
 		if ((await prevButton.isVisible()) && !(await prevButton.isDisabled())) {
 			// Get current form title
-			const currentTitle = await page
-				.locator('[data-testid="current-form-title"]')
-				.textContent();
+			const currentTitle = await page.locator('[data-testid="current-form-title"]').textContent();
 
 			// Click Previous
 			await prevButton.click();

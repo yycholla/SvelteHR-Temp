@@ -29,7 +29,9 @@ test.describe('Comment on Event', () => {
 		await expect(commentsTab).toHaveAttribute('aria-selected', 'true');
 
 		// Verify comment section is visible
-		const commentSection = dialog.locator('[role="tabpanel"]').filter({ hasText: /Comments|No comments/ });
+		const commentSection = dialog
+			.locator('[role="tabpanel"]')
+			.filter({ hasText: /Comments|No comments/ });
 		await expect(commentSection).toBeVisible();
 	});
 
@@ -77,7 +79,9 @@ test.describe('Comment on Event', () => {
 		await page.click('[role="tab"]:has-text("Comments")');
 
 		// Find comment input
-		const commentInput = dialog.locator('textarea[name="comment"], textarea[placeholder*="comment" i]');
+		const commentInput = dialog.locator(
+			'textarea[name="comment"], textarea[placeholder*="comment" i]'
+		);
 		await commentInput.fill('This is a test comment');
 
 		// Submit comment
@@ -85,9 +89,7 @@ test.describe('Comment on Event', () => {
 		await submitButton.click();
 
 		// Verify success toast
-		await expect(
-			page.locator('.toast:has-text("Comment posted")')
-		).toBeVisible({ timeout: 3000 });
+		await expect(page.locator('.toast:has-text("Comment posted")')).toBeVisible({ timeout: 3000 });
 
 		// Verify comment appears in list
 		await page.waitForTimeout(500);
@@ -179,7 +181,9 @@ test.describe('Comment on Event', () => {
 
 		// Find own comment (should have edit button)
 		const ownComment = page.locator('.comment-item').last();
-		const editButton = ownComment.locator('button:has-text("Edit"), button[aria-label="Edit comment"]');
+		const editButton = ownComment.locator(
+			'button:has-text("Edit"), button[aria-label="Edit comment"]'
+		);
 
 		if ((await editButton.count()) > 0) {
 			await editButton.click();
@@ -216,7 +220,9 @@ test.describe('Comment on Event', () => {
 
 		// Find own comment
 		const ownComment = page.locator('.comment-item:has-text("Comment to delete")');
-		const deleteButton = ownComment.locator('button:has-text("Delete"), button[aria-label="Delete comment"]');
+		const deleteButton = ownComment.locator(
+			'button:has-text("Delete"), button[aria-label="Delete comment"]'
+		);
 
 		if ((await deleteButton.count()) > 0) {
 			await deleteButton.click();
@@ -225,7 +231,9 @@ test.describe('Comment on Event', () => {
 			const confirmModal = page.locator('[role="dialog"]:has-text("Delete comment")');
 
 			if ((await confirmModal.count()) > 0) {
-				const confirmButton = confirmModal.locator('button:has-text("Delete"), button:has-text("Confirm")');
+				const confirmButton = confirmModal.locator(
+					'button:has-text("Delete"), button:has-text("Confirm")'
+				);
 				await confirmButton.click();
 
 				// Verify comment is removed
@@ -277,7 +285,9 @@ test.describe('Comment on Event', () => {
 		await page.click('[role="tab"]:has-text("Comments")');
 
 		// If there's a "Load More" button
-		const loadMoreButton = dialog.locator('button:has-text("Load More"), button:has-text("Show More")');
+		const loadMoreButton = dialog.locator(
+			'button:has-text("Load More"), button:has-text("Show More")'
+		);
 
 		if ((await loadMoreButton.count()) > 0) {
 			// Count initial comments

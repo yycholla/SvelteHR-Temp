@@ -86,8 +86,8 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 		if (!canAccess) {
 			console.log(`Preview access denied for user ${userId} to document ${documentId}`);
 			error(403, {
-            				message: 'Access denied. You do not have permission to preview this document.'
-            			});
+				message: 'Access denied. You do not have permission to preview this document.'
+			});
 		}
 
 		// Step 4: Retrieve and decrypt file via GraphQL
@@ -107,11 +107,7 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 			});
 
 			// Decrypt file using GraphQL data
-			decryptedData = decryptFileFromGraphQL(
-				storage.encryptedData,
-				storage.iv,
-				encryptionKey
-			);
+			decryptedData = decryptFileFromGraphQL(storage.encryptedData, storage.iv, encryptionKey);
 
 			console.log(
 				`Encrypted document ${documentId} decrypted for preview - ${decryptedData.length} bytes`
@@ -129,8 +125,7 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 					documentId: documentId,
 					userId: userId,
 					accessType: 'preview',
-					ipAddress:
-						url.searchParams.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown',
+					ipAddress: url.searchParams.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown',
 					userAgent: url.searchParams.get('user-agent') || 'unknown'
 				}
 			})
@@ -155,7 +150,6 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 				'Content-Security-Policy': "frame-ancestors 'self'"
 			}
 		});
-
 	} catch (err) {
 		console.error('Document preview view error:', err);
 

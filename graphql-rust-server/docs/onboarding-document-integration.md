@@ -13,11 +13,13 @@ Onboarding document uploads now create records in BOTH the `onboarding_document_
 ### Migration: `m20251202_006_integrate_onboarding_documents`
 
 **Changes**:
+
 1. Creates "Onboarding Documents" category in `document_categories` table
 2. Adds `document_id` column to `onboarding_document_uploads` with foreign key to `documents(id)`
 3. Creates index `idx_onboarding_document_uploads_document_id` for performance
 
 **Schema**:
+
 ```sql
 -- New column in onboarding_document_uploads
 ALTER TABLE hr_public.onboarding_document_uploads
@@ -49,6 +51,7 @@ ON CONFLICT (name) DO NOTHING;
 ### `document_upload.rs` Model
 
 **New Field**:
+
 ```rust
 pub struct Model {
     // ... existing fields ...
@@ -57,6 +60,7 @@ pub struct Model {
 ```
 
 **New Relation**:
+
 ```rust
 #[sea_orm(
     belongs_to = "crate::models::documents::document::Entity",
@@ -69,6 +73,7 @@ Document,
 ### `CreateDocumentUploadInput`
 
 **New Optional Fields**:
+
 ```rust
 pub struct CreateDocumentUploadInput {
     // ... existing fields ...
@@ -87,12 +92,14 @@ pub struct CreateDocumentUploadInput {
 ### `create_document_upload` Mutation
 
 **New Behavior**:
+
 - When `create_document` is `true`, automatically creates a document record
 - Links onboarding upload to document via `document_id` foreign key
 - Document is categorized under "Onboarding Documents"
 - Document appears in standard document management interface
 
 **Implementation**:
+
 ```rust
 async fn create_document_upload(&self, ctx: &Context<'_>, input: CreateDocumentUploadInput) -> Result<DocumentUpload> {
     let db = get_db_from_context(ctx)?;
@@ -148,31 +155,32 @@ async fn create_document_upload(&self, ctx: &Context<'_>, input: CreateDocumentU
 
 ```graphql
 mutation UploadOnboardingDocument($input: CreateDocumentUploadInput!) {
-  createDocumentUpload(input: $input) {
-    id
-    fileName
-    fileSize
-    uploadedAt
-    documentId  # Will be populated if create_document was true
-  }
+	createDocumentUpload(input: $input) {
+		id
+		fileName
+		fileSize
+		uploadedAt
+		documentId # Will be populated if create_document was true
+	}
 }
 ```
 
 **Variables**:
+
 ```json
 {
-  "input": {
-    "contentBlockId": "uuid-of-content-block",
-    "fileName": "john-doe-w4.pdf",
-    "fileSizeBytes": 245678,
-    "mimeType": "application/pdf",
-    "storagePath": "/uploads/onboarding/john-doe-w4.pdf",
-    "storageUrl": "https://storage.example.com/onboarding/john-doe-w4.pdf",
-    "createDocument": true,
-    "documentTitle": "John Doe - W-4 Form",
-    "documentDescription": "W-4 Employee's Withholding Certificate submitted during onboarding",
-    "documentAccessLevel": "private"
-  }
+	"input": {
+		"contentBlockId": "uuid-of-content-block",
+		"fileName": "john-doe-w4.pdf",
+		"fileSizeBytes": 245678,
+		"mimeType": "application/pdf",
+		"storagePath": "/uploads/onboarding/john-doe-w4.pdf",
+		"storageUrl": "https://storage.example.com/onboarding/john-doe-w4.pdf",
+		"createDocument": true,
+		"documentTitle": "John Doe - W-4 Form",
+		"documentDescription": "W-4 Employee's Withholding Certificate submitted during onboarding",
+		"documentAccessLevel": "private"
+	}
 }
 ```
 
@@ -206,18 +214,18 @@ mutation UploadOnboardingDocument($input: CreateDocumentUploadInput!) {
 
 ```graphql
 query OnboardingDocuments {
-  documents(filter: { category: "Onboarding Documents" }) {
-    id
-    title
-    description
-    filePath
-    fileSize
-    uploadedBy {
-      id
-      fullName
-    }
-    createdAt
-  }
+	documents(filter: { category: "Onboarding Documents" }) {
+		id
+		title
+		description
+		filePath
+		fileSize
+		uploadedBy {
+			id
+			fullName
+		}
+		createdAt
+	}
 }
 ```
 
@@ -225,19 +233,19 @@ query OnboardingDocuments {
 
 ```graphql
 query OnboardingUploadWithDocument($uploadId: UUID!) {
-  onboardingDocumentUpload(id: $uploadId) {
-    id
-    fileName
-    uploadedAt
-    document {
-      id
-      title
-      category {
-        name
-      }
-      accessLevel
-    }
-  }
+	onboardingDocumentUpload(id: $uploadId) {
+		id
+		fileName
+		uploadedAt
+		document {
+			id
+			title
+			category {
+				name
+			}
+			accessLevel
+		}
+	}
 }
 ```
 

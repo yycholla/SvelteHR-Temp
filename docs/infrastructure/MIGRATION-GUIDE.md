@@ -7,6 +7,7 @@ Quick reference for handling migration from manual Helm to ArgoCD-managed infras
 ### What Are Orphaned Resources?
 
 When migrating existing Helm releases to ArgoCD, you'll see warnings like:
+
 ```
 OrphanedResourceWarning
 Application has 133 orphaned resources
@@ -67,12 +68,14 @@ argocd app sync monitoring
 ## Comparison Error Fix
 
 ### Error Message
+
 ```
 ComparisonError
 Failed to load target state: failed to generate manifest for source 1 of 2
 ```
 
 ### Root Cause
+
 Multi-source Applications require ArgoCD 2.6+
 
 ### Verify ArgoCD Version
@@ -86,9 +89,11 @@ argocd version
 ```
 
 ### Fix
+
 The monitoring-app.yaml has been updated with correct multi-source syntax.
 
 After committing the fix:
+
 ```bash
 # Commit the updated manifests
 git add k8s/argocd/infrastructure/
@@ -163,6 +168,7 @@ argocd app resources monitoring | grep -i orphan
 ### ❌ "Resource already exists"
 
 **Solution**: Use `--force` flag to replace existing resources:
+
 ```bash
 argocd app sync monitoring --force --replace
 ```
@@ -170,12 +176,14 @@ argocd app sync monitoring --force --replace
 ### ❌ "Helm release already exists"
 
 **Solution**: Either:
+
 1. Let ArgoCD adopt the existing release (use `--replace`)
 2. Delete the Helm release first: `helm uninstall <release> -n <namespace>`
 
 ### ❌ Multi-source not supported
 
 **Solution**: Upgrade ArgoCD to 2.6+:
+
 ```bash
 helm upgrade argocd argo/argo-cd \
   -n argocd \

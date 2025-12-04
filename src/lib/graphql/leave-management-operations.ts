@@ -716,12 +716,10 @@ export class LeaveManagementOperations {
 			0
 		);
 
-		const averageRequestDays =
-			totalCount > 0 ? Math.round(totalDaysRequested / totalCount) : 0;
+		const averageRequestDays = totalCount > 0 ? Math.round(totalDaysRequested / totalCount) : 0;
 
 		const totalReviewed = approvedCount + rejectedCount;
-		const approvalRate =
-			totalReviewed > 0 ? Math.round((approvedCount / totalReviewed) * 100) : 0;
+		const approvalRate = totalReviewed > 0 ? Math.round((approvedCount / totalReviewed) * 100) : 0;
 
 		return {
 			pendingCount,
@@ -737,10 +735,7 @@ export class LeaveManagementOperations {
 	/**
 	 * Apply client-side filtering (temporary until backend supports filters)
 	 */
-	private applyClientFilter(
-		requests: LeaveRequest[],
-		filter: LeaveRequestFilter
-	): LeaveRequest[] {
+	private applyClientFilter(requests: LeaveRequest[], filter: LeaveRequestFilter): LeaveRequest[] {
 		return requests.filter((req) => {
 			// Filter by status
 			if (filter.status && req.status !== filter.status) {

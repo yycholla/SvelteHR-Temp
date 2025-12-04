@@ -209,7 +209,7 @@ describe('isTaskOnTrack', () => {
 			expect(result.reason).toBe('Task overdue');
 		});
 
-		it('should return not on track for yesterday\'s due date', () => {
+		it("should return not on track for yesterday's due date", () => {
 			const yesterday = new Date();
 			yesterday.setDate(yesterday.getDate() - 1);
 			const result = isTaskOnTrack(yesterday, 80, 'IN_PROGRESS');

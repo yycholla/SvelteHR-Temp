@@ -138,10 +138,12 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			}
 		`;
 
-		const employeesResult = await urqlClient.query(FETCH_ALL_EMPLOYEES, {
-			limit: 1000,
-			offset: 0
-		}).toPromise();
+		const employeesResult = await urqlClient
+			.query(FETCH_ALL_EMPLOYEES, {
+				limit: 1000,
+				offset: 0
+			})
+			.toPromise();
 
 		// Transform employees to match expected interface
 		const employees = (employeesResult.data?.users || []).map((user: any) => ({
@@ -197,8 +199,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		}
 
 		error(500, {
-        			message: err.userMessage || err.message || 'Failed to load events. Please try again later.'
-        		});
+			message: err.userMessage || err.message || 'Failed to load events. Please try again later.'
+		});
 	}
 };
 
@@ -597,16 +599,16 @@ export const actions: Actions = {
 		try {
 			// Session-based auth - forward cookies for authentication
 			const cookieHeader = serializeCookies(cookies);
-			
+
 			// Use REST API for deletion
 			// Use environment variable for backend URL or default to localhost:4000
 			const backendUrl = process.env.PUBLIC_API_URL || 'http://localhost:4000';
 			console.log(`[SERVER] Calling REST endpoint: DELETE ${backendUrl}/api/events/${eventId}`);
-			
+
 			const response = await fetch(`${backendUrl}/api/events/${eventId}`, {
 				method: 'DELETE',
 				headers: {
-					'Cookie': cookieHeader
+					Cookie: cookieHeader
 				}
 			});
 
@@ -615,7 +617,8 @@ export const actions: Actions = {
 			if (!response.ok) {
 				if (response.status === 404) {
 					return fail(404, {
-						error: 'Failed to delete event. It may have already been deleted or you do not have permission.'
+						error:
+							'Failed to delete event. It may have already been deleted or you do not have permission.'
 					});
 				}
 				throw new Error(`Failed to delete event: ${response.statusText}`);
@@ -761,10 +764,7 @@ export const actions: Actions = {
 					}
 				} else {
 					// Migration: ✅ Direct return value (no nested wrapper)
-					console.log(
-						'[SERVER] Created attendee:',
-						result.data?.createEventAttendee
-					);
+					console.log('[SERVER] Created attendee:', result.data?.createEventAttendee);
 				}
 			}
 

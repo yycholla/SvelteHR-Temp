@@ -61,20 +61,27 @@ export async function loadConfig(configPath?: string): Promise<SchemaValidatorCo
 
     // Handle computedFields - convert string array to object array if needed
     let computedFields = [];
-    if (rawConfig.validation?.computedFields && Array.isArray(rawConfig.validation.computedFields)) {
+    if (
+      rawConfig.validation?.computedFields &&
+      Array.isArray(rawConfig.validation.computedFields)
+    ) {
       computedFields = rawConfig.validation.computedFields.map((fieldPath: string) => ({
         fieldPath,
         sourceColumns: [],
         resolverLocation: { file: '', line: 0 },
         description: `Computed field: ${fieldPath}`,
-        returnType: 'String'
+        returnType: 'String',
       }));
     } else if (rawConfig.computedFields && Array.isArray(rawConfig.computedFields)) {
       computedFields = rawConfig.computedFields;
     }
 
     const flatConfig: any = {
-      databaseUrl: rawConfig.database?.connectionString || rawConfig.databaseUrl || process.env['DATABASE_URL'] || '',
+      databaseUrl:
+        rawConfig.database?.connectionString ||
+        rawConfig.databaseUrl ||
+        process.env['DATABASE_URL'] ||
+        '',
       apiUrl: rawConfig.api?.endpoint || rawConfig.apiUrl || process.env['API_URL'] || '',
       graphqlPaths,
       cacheDir: rawConfig.cache?.directory || rawConfig.cacheDir || '.schema-cache',

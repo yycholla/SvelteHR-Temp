@@ -1,8 +1,8 @@
 {
-  "general": {
-    "sessionRetention": {
-      "enabled": true
-    }
-  },
-  "mcpServers": {}
+	"general": {
+		"sessionRetention": {
+			"enabled": true
+		}
+	},
+	"mcpServers": {}
 }

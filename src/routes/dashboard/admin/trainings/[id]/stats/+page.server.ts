@@ -82,8 +82,7 @@ export const load: PageServerLoad = async (event) => {
 
 			const daysUntilDue = assignment.dueDate
 				? Math.floor(
-						(new Date(assignment.dueDate).getTime() - new Date().getTime()) /
-							(1000 * 60 * 60 * 24)
+						(new Date(assignment.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
 					)
 				: null;
 
@@ -111,9 +110,8 @@ export const load: PageServerLoad = async (event) => {
 				if (!progressResponse.errors && progressResponse.data?.trainingProgress) {
 					const progress = progressResponse.data.trainingProgress;
 					completedCount = progress.filter((p: any) => p.status === 'COMPLETED').length;
-					completionPercentage = totalContents > 0
-						? Math.round((completedCount / totalContents) * 100)
-						: 0;
+					completionPercentage =
+						totalContents > 0 ? Math.round((completedCount / totalContents) * 100) : 0;
 				}
 			} catch (err) {
 				console.error(`Error fetching progress for user ${assignment.userId}:`, err);
@@ -126,15 +124,26 @@ export const load: PageServerLoad = async (event) => {
 				totalContents,
 				completedCount,
 				completionPercentage,
-				status: completionPercentage === 100 ? 'Completed' : completionPercentage > 0 ? 'In Progress' : 'Not Started'
+				status:
+					completionPercentage === 100
+						? 'Completed'
+						: completionPercentage > 0
+							? 'In Progress'
+							: 'Not Started'
 			};
 		})
 	);
 
 	// Calculate statistics with completion data
-	const completedAssignments = assignmentsWithProgress.filter((a) => a.status === 'Completed').length;
-	const inProgressAssignments = assignmentsWithProgress.filter((a) => a.status === 'In Progress').length;
-	const notStartedAssignments = assignmentsWithProgress.filter((a) => a.status === 'Not Started').length;
+	const completedAssignments = assignmentsWithProgress.filter(
+		(a) => a.status === 'Completed'
+	).length;
+	const inProgressAssignments = assignmentsWithProgress.filter(
+		(a) => a.status === 'In Progress'
+	).length;
+	const notStartedAssignments = assignmentsWithProgress.filter(
+		(a) => a.status === 'Not Started'
+	).length;
 
 	const stats = {
 		totalAssigned: assignmentsWithProgress.length,
@@ -147,9 +156,13 @@ export const load: PageServerLoad = async (event) => {
 		dueSoon: assignmentsWithProgress.filter(
 			(a) => a.daysUntilDue !== null && a.daysUntilDue >= 0 && a.daysUntilDue <= 7
 		).length,
-		averageCompletion: assignmentsWithProgress.length > 0
-			? Math.round(assignmentsWithProgress.reduce((sum, a) => sum + a.completionPercentage, 0) / assignmentsWithProgress.length)
-			: 0
+		averageCompletion:
+			assignmentsWithProgress.length > 0
+				? Math.round(
+						assignmentsWithProgress.reduce((sum, a) => sum + a.completionPercentage, 0) /
+							assignmentsWithProgress.length
+					)
+				: 0
 	};
 
 	return {

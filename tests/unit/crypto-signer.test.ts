@@ -313,7 +313,10 @@ describe('Cryptographic Signing for Audit Logs (FR-006, FR-022)', () => {
 			expect(isValid).toBe(true);
 
 			// Verify tampering detection
-			const tamperedLog = { ...auditLog, after_snapshot: { ...auditLog.after_snapshot, salary: 999999 } };
+			const tamperedLog = {
+				...auditLog,
+				after_snapshot: { ...auditLog.after_snapshot, salary: 999999 }
+			};
 			const isTamperedValid = verifySignature(tamperedLog, signature, publicKey);
 			expect(isTamperedValid).toBe(false);
 		});

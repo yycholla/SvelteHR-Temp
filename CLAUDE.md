@@ -201,32 +201,32 @@ GET    /api/v2/auth/verify              // Verify Bearer token and get user cont
 ```typescript
 // ✅ CORRECT: Server-side RBAC API call in +page.server.ts
 export const load: PageServerLoad = async ({ cookies }) => {
- const apiClient = new MountainHRApiClient();
- const token = cookies.get('hr_token') || '';
+	const apiClient = new MountainHRApiClient();
+	const token = cookies.get('hr_token') || '';
 
- // Set Bearer token for RBAC authentication
- apiClient.setToken(token);
+	// Set Bearer token for RBAC authentication
+	apiClient.setToken(token);
 
- try {
-  // Verify token and get user context with roles/permissions
-  const { data: userContext } = await apiClient.get('/api/v2/auth/verify');
+	try {
+		// Verify token and get user context with roles/permissions
+		const { data: userContext } = await apiClient.get('/api/v2/auth/verify');
 
-  // Make role-based data requests
-  const employees = await apiClient.get('/api/v2/employees', {
-   page: 1,
-   limit: 20
-   // RBAC filtering happens server-side based on user's permissions
-  });
+		// Make role-based data requests
+		const employees = await apiClient.get('/api/v2/employees', {
+			page: 1,
+			limit: 20
+			// RBAC filtering happens server-side based on user's permissions
+		});
 
-  return {
-   user: userContext.user,
-   employees: employees.data,
-   permissions: userContext.permissions
-  };
- } catch (error) {
-  // Handle unauthorized access
-  throw redirect(303, '/login');
- }
+		return {
+			user: userContext.user,
+			employees: employees.data,
+			permissions: userContext.permissions
+		};
+	} catch (error) {
+		// Handle unauthorized access
+		throw redirect(303, '/login');
+	}
 };
 
 // ❌ WRONG: Client-side API call in component
@@ -484,36 +484,36 @@ export const load: PageServerLoad = async ({ cookies }) => {
 ```typescript
 // src/lib/utils/calendar-buffer.ts
 export function calculate3MonthBuffer(currentDate: Date): {
- bufferStart: Date;
- bufferEnd: Date;
+	bufferStart: Date;
+	bufferEnd: Date;
 } {
- const year = currentDate.getFullYear();
- const month = currentDate.getMonth();
+	const year = currentDate.getFullYear();
+	const month = currentDate.getMonth();
 
- // Previous month start (00:00:00)
- const bufferStart = new Date(year, month - 1, 1, 0, 0, 0, 0);
+	// Previous month start (00:00:00)
+	const bufferStart = new Date(year, month - 1, 1, 0, 0, 0, 0);
 
- // Next month end (23:59:59.999)
- const bufferEnd = new Date(year, month + 2, 0, 23, 59, 59, 999);
+	// Next month end (23:59:59.999)
+	const bufferEnd = new Date(year, month + 2, 0, 23, 59, 59, 999);
 
- return { bufferStart, bufferEnd };
+	return { bufferStart, bufferEnd };
 }
 
 export function shouldPrefetch(
- targetDate: Date,
- currentBuffer: { bufferStart: Date; bufferEnd: Date }
+	targetDate: Date,
+	currentBuffer: { bufferStart: Date; bufferEnd: Date }
 ): boolean {
- // Use UTC methods to avoid timezone issues
- const targetYear = targetDate.getUTCFullYear();
- const targetMonth = targetDate.getUTCMonth();
- const bufferStartMonth = currentBuffer.bufferStart.getUTCMonth();
- const bufferEndMonth = currentBuffer.bufferEnd.getUTCMonth();
+	// Use UTC methods to avoid timezone issues
+	const targetYear = targetDate.getUTCFullYear();
+	const targetMonth = targetDate.getUTCMonth();
+	const bufferStartMonth = currentBuffer.bufferStart.getUTCMonth();
+	const bufferEndMonth = currentBuffer.bufferEnd.getUTCMonth();
 
- // Check if target month is outside buffer range
- if (targetMonth < bufferStartMonth || targetMonth > bufferEndMonth) {
-  return true;
- }
- return false;
+	// Check if target month is outside buffer range
+	if (targetMonth < bufferStartMonth || targetMonth > bufferEndMonth) {
+		return true;
+	}
+	return false;
 }
 ```
 
@@ -523,9 +523,9 @@ export function shouldPrefetch(
 const { bufferStart, bufferEnd } = calculate3MonthBuffer(new Date());
 
 const result = await urqlClient.query(GET_EVENTS_FOR_CALENDAR, {
- bufferStart: bufferStart.toISOString(),
- bufferEnd: bufferEnd.toISOString(),
- userId: user.id
+	bufferStart: bufferStart.toISOString(),
+	bufferEnd: bufferEnd.toISOString(),
+	userId: user.id
 });
 ```
 
@@ -536,18 +536,18 @@ const result = await urqlClient.query(GET_EVENTS_FOR_CALENDAR, {
 ```typescript
 // src/lib/utils/rrule.ts
 export function generateRRule(pattern: RecurrencePattern, startDate: Date): string {
- const parts = {
-  freq: pattern.frequency.toUpperCase(), // DAILY, WEEKLY, MONTHLY, YEARLY
-  interval: pattern.interval,
-  until: formatDateForRRule(pattern.endDate)
- };
+	const parts = {
+		freq: pattern.frequency.toUpperCase(), // DAILY, WEEKLY, MONTHLY, YEARLY
+		interval: pattern.interval,
+		until: formatDateForRRule(pattern.endDate)
+	};
 
- // Add BYDAY for weekly recurrence
- if (pattern.frequency === 'weekly' && pattern.daysOfWeek) {
-  parts.byday = pattern.daysOfWeek.map((day) => DAY_MAP[day]).join(',');
- }
+	// Add BYDAY for weekly recurrence
+	if (pattern.frequency === 'weekly' && pattern.daysOfWeek) {
+		parts.byday = pattern.daysOfWeek.map((day) => DAY_MAP[day]).join(',');
+	}
 
- return formatRRuleString(parts);
+	return formatRRuleString(parts);
 }
 
 // Example: "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE,FR;UNTIL=20251231"
@@ -557,9 +557,9 @@ export function generateRRule(pattern: RecurrencePattern, startDate: Date): stri
 
 ```typescript
 export function validate5YearLimit(startDate: Date, endDate: Date): boolean {
- const fiveYearsLater = new Date(startDate);
- fiveYearsLater.setFullYear(fiveYearsLater.getFullYear() + 5);
- return endDate <= fiveYearsLater;
+	const fiveYearsLater = new Date(startDate);
+	fiveYearsLater.setFullYear(fiveYearsLater.getFullYear() + 5);
+	return endDate <= fiveYearsLater;
 }
 ```
 
@@ -612,30 +612,30 @@ export function validate5YearLimit(startDate: Date, endDate: Date): boolean {
 ```typescript
 // src/lib/utils/image-validation.ts
 export async function validateImageFile(
- file: File,
- expectedAspectRatio: '16:9' | '9:16'
+	file: File,
+	expectedAspectRatio: '16:9' | '9:16'
 ): Promise<{ valid: boolean; errors: string[] }> {
- const errors: string[] = [];
+	const errors: string[] = [];
 
- // Size validation (10MB)
- if (file.size > 10 * 1024 * 1024) {
-  errors.push('File size exceeds 10MB limit');
- }
+	// Size validation (10MB)
+	if (file.size > 10 * 1024 * 1024) {
+		errors.push('File size exceeds 10MB limit');
+	}
 
- // Type validation
- const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
- if (!ALLOWED_TYPES.includes(file.type)) {
-  errors.push('Invalid file type. Only JPEG, PNG, and WebP are allowed.');
- }
+	// Type validation
+	const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+	if (!ALLOWED_TYPES.includes(file.type)) {
+		errors.push('Invalid file type. Only JPEG, PNG, and WebP are allowed.');
+	}
 
- // Aspect ratio validation
- const img = await loadImage(file);
- const actualRatio = calculateAspectRatio(img.width, img.height);
- if (actualRatio !== expectedAspectRatio) {
-  errors.push(`Image aspect ratio is ${actualRatio}, but ${expectedAspectRatio} was expected.`);
- }
+	// Aspect ratio validation
+	const img = await loadImage(file);
+	const actualRatio = calculateAspectRatio(img.width, img.height);
+	if (actualRatio !== expectedAspectRatio) {
+		errors.push(`Image aspect ratio is ${actualRatio}, but ${expectedAspectRatio} was expected.`);
+	}
 
- return { valid: errors.length === 0, errors };
+	return { valid: errors.length === 0, errors };
 }
 ```
 
@@ -646,31 +646,31 @@ export async function validateImageFile(
 ```typescript
 // src/lib/utils/calendar.ts
 export function detectConflict(event1: CalendarEvent, event2: CalendarEvent): boolean {
- const start1 = new Date(event1.startDate).getTime();
- const end1 = new Date(event1.endDate).getTime();
- const start2 = new Date(event2.startDate).getTime();
- const end2 = new Date(event2.endDate).getTime();
+	const start1 = new Date(event1.startDate).getTime();
+	const end1 = new Date(event1.endDate).getTime();
+	const start2 = new Date(event2.startDate).getTime();
+	const end2 = new Date(event2.endDate).getTime();
 
- // Events overlap if start1 < end2 AND end1 > start2
- return start1 < end2 && end1 > start2;
+	// Events overlap if start1 < end2 AND end1 > start2
+	return start1 < end2 && end1 > start2;
 }
 
 export function calculateOverlap(
- event1: CalendarEvent,
- event2: CalendarEvent
+	event1: CalendarEvent,
+	event2: CalendarEvent
 ): { duration: number; percentage: number } {
- const overlapStart = Math.max(start1, start2);
- const overlapEnd = Math.min(end1, end2);
- const overlapMs = overlapEnd - overlapStart;
+	const overlapStart = Math.max(start1, start2);
+	const overlapEnd = Math.min(end1, end2);
+	const overlapMs = overlapEnd - overlapStart;
 
- const duration = Math.round(overlapMs / (1000 * 60)); // minutes
- const percentage = Math.round((overlapMs / event1Duration) * 100);
+	const duration = Math.round(overlapMs / (1000 * 60)); // minutes
+	const percentage = Math.round((overlapMs / event1Duration) * 100);
 
- return { duration, percentage };
+	return { duration, percentage };
 }
 
 export function classifySeverity(overlapPercentage: number): 'minor' | 'major' {
- return overlapPercentage >= 30 ? 'major' : 'minor';
+	return overlapPercentage >= 30 ? 'major' : 'minor';
 }
 ```
 
@@ -679,9 +679,9 @@ export function classifySeverity(overlapPercentage: number): 'minor' | 'major' {
 ```typescript
 const conflicts = findConflictingEvents(targetEvent, allEvents);
 if (conflicts.length > 0) {
- // Show ConflictWarningDialog
- showConflictDialog = true;
- conflictData = conflicts;
+	// Show ConflictWarningDialog
+	showConflictDialog = true;
+	conflictData = conflicts;
 }
 ```
 
@@ -694,16 +694,16 @@ import { subscription } from '@urql/svelte';
 import { ON_EVENT_UPDATE } from '$lib/graphql/events-operations';
 
 const eventUpdates = subscription({
- query: ON_EVENT_UPDATE,
- variables: { eventId: event.id }
+	query: ON_EVENT_UPDATE,
+	variables: { eventId: event.id }
 });
 
 $effect(() => {
- if ($eventUpdates.data) {
-  // Update calendar state
-  const updatedEvent = $eventUpdates.data.eventUpdated.event;
-  events = events.map((e) => (e.id === updatedEvent.id ? updatedEvent : e));
- }
+	if ($eventUpdates.data) {
+		// Update calendar state
+		const updatedEvent = $eventUpdates.data.eventUpdated.event;
+		events = events.map((e) => (e.id === updatedEvent.id ? updatedEvent : e));
+	}
 });
 ```
 
@@ -711,14 +711,14 @@ $effect(() => {
 
 ```typescript
 const waitlistPromotions = subscription({
- query: ON_WAITLIST_PROMOTION,
- variables: { userId: user.id }
+	query: ON_WAITLIST_PROMOTION,
+	variables: { userId: user.id }
 });
 
 $effect(() => {
- if ($waitlistPromotions.data?.waitlistPromoted?.promoted) {
-  toast.success(`You've been promoted from the waitlist for ${eventTitle}!`);
- }
+	if ($waitlistPromotions.data?.waitlistPromoted?.promoted) {
+		toast.success(`You've been promoted from the waitlist for ${eventTitle}!`);
+	}
 });
 ```
 
@@ -764,48 +764,48 @@ eventNotificationPrefs.updateReminderDefaults(true, 15);
 ```typescript
 // RBAC Role Hierarchy (descending privilege)
 interface RoleHierarchy {
- Admin: {
-  level: 100;
-  inherits: ['HR_Manager', 'Manager', 'Employee'];
-  permissions: ['*']; // Full system access
- };
- HR_Manager: {
-  level: 75;
-  inherits: ['Manager', 'Employee'];
-  permissions: [
-   'employees:*',
-   'departments:*',
-   'roles:read',
-   'reports:hr',
-   'compliance:*',
-   'performance:*',
-   'payroll:*'
-  ];
- };
- Manager: {
-  level: 50;
-  inherits: ['Employee'];
-  permissions: [
-   'employees:read',
-   'employees:update',
-   'department_employees:*',
-   'reports:team',
-   'performance:read',
-   'leave:approve'
-  ];
- };
- Employee: {
-  level: 25;
-  inherits: [];
-  permissions: [
-   'profile:read',
-   'profile:update',
-   'leave:create',
-   'timesheet:*',
-   'documents:own',
-   'calendar:read'
-  ];
- };
+	Admin: {
+		level: 100;
+		inherits: ['HR_Manager', 'Manager', 'Employee'];
+		permissions: ['*']; // Full system access
+	};
+	HR_Manager: {
+		level: 75;
+		inherits: ['Manager', 'Employee'];
+		permissions: [
+			'employees:*',
+			'departments:*',
+			'roles:read',
+			'reports:hr',
+			'compliance:*',
+			'performance:*',
+			'payroll:*'
+		];
+	};
+	Manager: {
+		level: 50;
+		inherits: ['Employee'];
+		permissions: [
+			'employees:read',
+			'employees:update',
+			'department_employees:*',
+			'reports:team',
+			'performance:read',
+			'leave:approve'
+		];
+	};
+	Employee: {
+		level: 25;
+		inherits: [];
+		permissions: [
+			'profile:read',
+			'profile:update',
+			'leave:create',
+			'timesheet:*',
+			'documents:own',
+			'calendar:read'
+		];
+	};
 }
 ```
 
@@ -814,28 +814,28 @@ interface RoleHierarchy {
 ```typescript
 // hooks.server.ts - RBAC middleware
 export const handle: Handle = async ({ event, resolve }) => {
- const token = event.cookies.get('hr_token');
+	const token = event.cookies.get('hr_token');
 
- if (token) {
-  try {
-   // Verify token and get user permissions
-   const response = await fetch(`${API_URL}/api/v2/auth/verify`, {
-    headers: { Authorization: `Bearer ${token}` }
-   });
+	if (token) {
+		try {
+			// Verify token and get user permissions
+			const response = await fetch(`${API_URL}/api/v2/auth/verify`, {
+				headers: { Authorization: `Bearer ${token}` }
+			});
 
-   if (response.ok) {
-    const userData = await response.json();
-    event.locals.user = userData.user;
-    event.locals.permissions = userData.permissions;
-    event.locals.roles = userData.roles;
-   }
-  } catch (error) {
-   // Invalid token - clear cookies
-   event.cookies.delete('hr_token', { path: '/' });
-  }
- }
+			if (response.ok) {
+				const userData = await response.json();
+				event.locals.user = userData.user;
+				event.locals.permissions = userData.permissions;
+				event.locals.roles = userData.roles;
+			}
+		} catch (error) {
+			// Invalid token - clear cookies
+			event.cookies.delete('hr_token', { path: '/' });
+		}
+	}
 
- return resolve(event);
+	return resolve(event);
 };
 ```
 
@@ -844,33 +844,33 @@ export const handle: Handle = async ({ event, resolve }) => {
 ```typescript
 // +page.server.ts - RBAC route guard example
 export const load: PageServerLoad = async ({ locals, url }) => {
- const { user, permissions } = locals;
+	const { user, permissions } = locals;
 
- if (!user) {
-  throw redirect(303, '/login');
- }
+	if (!user) {
+		throw redirect(303, '/login');
+	}
 
- // Check specific permissions for HR routes
- if (url.pathname.startsWith('/hr/')) {
-  const hasHRAccess = permissions.some((p) => p.startsWith('employees:') || p === '*');
+	// Check specific permissions for HR routes
+	if (url.pathname.startsWith('/hr/')) {
+		const hasHRAccess = permissions.some((p) => p.startsWith('employees:') || p === '*');
 
-  if (!hasHRAccess) {
-   throw error(403, { message: 'Insufficient permissions' });
-  }
- }
+		if (!hasHRAccess) {
+			throw error(403, { message: 'Insufficient permissions' });
+		}
+	}
 
- // Role-based data filtering
- const apiClient = new MountainHRApiClient();
- apiClient.setToken(cookies.get('hr_token'));
+	// Role-based data filtering
+	const apiClient = new MountainHRApiClient();
+	apiClient.setToken(cookies.get('hr_token'));
 
- // Data returned is already filtered by user's permissions on server
- const employees = await apiClient.get('/api/v2/employees');
+	// Data returned is already filtered by user's permissions on server
+	const employees = await apiClient.get('/api/v2/employees');
 
- return {
-  user,
-  employees: employees.data,
-  userPermissions: permissions
- };
+	return {
+		user,
+		employees: employees.data,
+		userPermissions: permissions
+	};
 };
 ```
 

@@ -199,7 +199,8 @@ export class DepartmentOperations {
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
 					type: 'graphql',
-					userMessage: 'Unable to load department list. Please check your permissions and try again.'
+					userMessage:
+						'Unable to load department list. Please check your permissions and try again.'
 				});
 				throw errorResponse;
 			}
@@ -260,7 +261,8 @@ export class DepartmentOperations {
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
 					type: 'graphql',
-					userMessage: 'Unable to load department details. Please check the department ID and try again.'
+					userMessage:
+						'Unable to load department details. Please check the department ID and try again.'
 				});
 				throw errorResponse;
 			}
@@ -470,7 +472,8 @@ export function canManageDepartment(
 ): boolean {
 	// Admin can manage all departments
 	if (
-		userCredentials.permissions.includes('*') || userCredentials.permissions.includes('*:*') ||
+		userCredentials.permissions.includes('*') ||
+		userCredentials.permissions.includes('*:*') ||
 		userCredentials.permissions.includes('departments:write')
 	) {
 		return true;

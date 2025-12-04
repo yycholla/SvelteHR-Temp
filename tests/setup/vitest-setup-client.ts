@@ -210,8 +210,14 @@ beforeAll(() => {
 			keys = vi.fn();
 			values = vi.fn();
 			sort = vi.fn();
-			toString = vi.fn(() => Array.from(this.params.entries()).map(([k, v]) => `${k}=${v}`).join('&'));
-			get size() { return this.params.size; }
+			toString = vi.fn(() =>
+				Array.from(this.params.entries())
+					.map(([k, v]) => `${k}=${v}`)
+					.join('&')
+			);
+			get size() {
+				return this.params.size;
+			}
 			getAll = vi.fn();
 		} as any; // Cast to any
 

@@ -142,7 +142,10 @@ export const GET_GOAL_STATISTICS = gql`
 			totalCount
 		}
 		highPriorityGoals: employeeGoals(
-			filter: { priority: { equalTo: "high" }, employee: { departmentId: { equalTo: $departmentId } } }
+			filter: {
+				priority: { equalTo: "high" }
+				employee: { departmentId: { equalTo: $departmentId } }
+			}
 		) {
 			totalCount
 		}
@@ -661,7 +664,9 @@ export class GoalsOKROperations {
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(GET_GOAL_STATISTICS, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(GET_GOAL_STATISTICS, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -720,7 +725,9 @@ export class GoalsOKROperations {
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(CREATE_EMPLOYEE_GOAL, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(CREATE_EMPLOYEE_GOAL, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -786,7 +793,9 @@ export class GoalsOKROperations {
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(UPDATE_EMPLOYEE_GOAL, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(UPDATE_EMPLOYEE_GOAL, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -839,7 +848,9 @@ export class GoalsOKROperations {
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(DELETE_EMPLOYEE_GOAL, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(DELETE_EMPLOYEE_GOAL, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {

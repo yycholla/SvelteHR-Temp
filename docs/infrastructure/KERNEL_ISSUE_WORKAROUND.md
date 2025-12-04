@@ -11,17 +11,20 @@ You can still deploy and use SvelteHR locally by skipping the ingress controller
 ### Modified Deployment Steps
 
 #### 1. Keep Current Minikube Cluster
+
 ```bash
 # Your cluster is already running, just skip ingress
 kubectl get nodes  # Should show minikube ready
 ```
 
 #### 2. Build Images
+
 ```bash
 ./k8s/scripts/build-images.sh
 ```
 
 #### 3. Install Operators (Skip Ingress Install)
+
 ```bash
 # Manually install just the operators we need
 kubectl apply -f k8s/base/namespaces.yaml
@@ -40,11 +43,13 @@ kubectl wait --for condition=established --timeout=120s crd/redisclusters.databa
 ```
 
 #### 4. Create Secrets
+
 ```bash
 ./k8s/scripts/create-secrets.sh dev
 ```
 
 #### 5. Deploy Application (Without Ingress)
+
 ```bash
 # Apply everything except ingress
 kubectl apply -k k8s/overlays/development
@@ -60,18 +65,23 @@ kubectl wait --for=condition=available --timeout=300s deployment/sveltehr-fronte
 #### 6. Access Application via Port-Forward
 
 **Option A: Frontend Access**
+
 ```bash
 kubectl port-forward -n sveltehr-dev svc/sveltehr-frontend 3000:3000
 ```
+
 Then open: http://localhost:3000
 
 **Option B: Backend GraphQL API**
+
 ```bash
 kubectl port-forward -n sveltehr-dev svc/sveltehr-backend 4000:4000
 ```
+
 Then access GraphQL at: http://localhost:4000/graphql
 
 **Option C: Both (in separate terminals)**
+
 ```bash
 # Terminal 1
 kubectl port-forward -n sveltehr-dev svc/sveltehr-frontend 3000:3000
@@ -100,7 +110,9 @@ kubectl logs -f deployment/sveltehr-backend -n sveltehr-dev
 ## Long-Term Solutions
 
 ### Option 1: Update Kernel
+
 Install a kernel that includes the `xt_comment` module:
+
 ```bash
 # Install linux kernel with more modules
 sudo pacman -S linux linux-headers
@@ -110,7 +122,9 @@ sudo reboot
 ```
 
 ### Option 2: Use K3s Instead
+
 K3s has fewer kernel requirements and works on more systems:
+
 ```bash
 # Install K3s (lightweight Kubernetes)
 curl -sfL https://get.k3s.io | sh -
@@ -120,7 +134,9 @@ curl -sfL https://get.k3s.io | sh -
 ```
 
 ### Option 3: Use Docker Compose
+
 For local development, Docker Compose might be simpler:
+
 ```bash
 # Use the existing docker-compose.yml
 docker-compose -f dev-containers/docker-compose.dev.yml up
@@ -131,6 +147,7 @@ docker-compose -f dev-containers/docker-compose.dev.yml up
 The `xt_comment` module is part of the netfilter iptables extensions. Some minimal or custom kernels don't include it. Kubernetes CNI (Container Network Interface) uses iptables with comment rules to track which pods own which network rules.
 
 Your kernel configuration doesn't have:
+
 ```
 CONFIG_NETFILTER_XT_MATCH_COMMENT=m
 ```

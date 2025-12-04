@@ -282,9 +282,7 @@ async function authenticateUser(
 		// Cache the validated session with pathname-specific key and TTL
 		if (sessionId) {
 			const cacheKey = getCacheKey(sessionId, pathname);
-			const ttl = pathname.startsWith('/dashboard')
-				? DASHBOARD_CACHE_TTL
-				: SESSION_CACHE_TTL;
+			const ttl = pathname.startsWith('/dashboard') ? DASHBOARD_CACHE_TTL : SESSION_CACHE_TTL;
 
 			SESSION_CACHE.set(cacheKey, {
 				...authResult,
@@ -518,7 +516,7 @@ export const handle: Handle = sequence(Sentry.sentryHandle(), async ({ event, re
 		if (error && typeof error === 'object' && 'status' in error) {
 			const statusCode = (error as any).status;
 			// Re-throw all redirects (3xx) and SvelteKit errors (4xx, 5xx with body property)
-			if ((statusCode >= 300 && statusCode < 400) || ('body' in error)) {
+			if ((statusCode >= 300 && statusCode < 400) || 'body' in error) {
 				throw error;
 			}
 		}

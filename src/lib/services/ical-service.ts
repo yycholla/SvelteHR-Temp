@@ -43,10 +43,7 @@ export class ICalService {
 	/**
 	 * Generate iCal file for a single event
 	 */
-	static generateEventICS(
-		event: ICalEvent,
-		options: ICalExportOptions = {}
-	): string {
+	static generateEventICS(event: ICalEvent, options: ICalExportOptions = {}): string {
 		try {
 			const comp = new ICAL.Component(['vcalendar', [], []]);
 
@@ -74,10 +71,7 @@ export class ICalService {
 	/**
 	 * Generate iCal file for multiple events (full calendar)
 	 */
-	static generateCalendarICS(
-		events: ICalEvent[],
-		options: ICalExportOptions = {}
-	): string {
+	static generateCalendarICS(events: ICalEvent[], options: ICalExportOptions = {}): string {
 		try {
 			const comp = new ICAL.Component(['vcalendar', [], []]);
 
@@ -106,10 +100,7 @@ export class ICalService {
 	/**
 	 * Create VEVENT component from event data
 	 */
-	private static createVEvent(
-		event: ICalEvent,
-		options: ICalExportOptions
-	): ICAL.Component {
+	private static createVEvent(event: ICalEvent, options: ICalExportOptions): ICAL.Component {
 		const vevent = new ICAL.Component('vevent');
 
 		// Required properties
@@ -149,10 +140,7 @@ export class ICalService {
 		// Attendees
 		if (event.attendees && event.attendees.length > 0) {
 			for (const attendee of event.attendees) {
-				const attendeeProp = vevent.addPropertyWithValue(
-					'attendee',
-					`mailto:${attendee.email}`
-				);
+				const attendeeProp = vevent.addPropertyWithValue('attendee', `mailto:${attendee.email}`);
 				attendeeProp.setParameter('cn', attendee.name);
 				attendeeProp.setParameter('role', 'REQ-PARTICIPANT');
 
@@ -297,11 +285,7 @@ export class ICalService {
 	/**
 	 * Export multiple events as downloadable .ics file
 	 */
-	static exportCalendar(
-		events: ICalEvent[],
-		filename?: string,
-		calendarName?: string
-	): void {
+	static exportCalendar(events: ICalEvent[], filename?: string, calendarName?: string): void {
 		const icsContent = this.generateCalendarICS(events, { calendarName });
 		const downloadFilename = filename || 'calendar.ics';
 		this.downloadICS(icsContent, downloadFilename);

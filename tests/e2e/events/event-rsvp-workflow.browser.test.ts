@@ -69,7 +69,8 @@ describe('Event RSVP Workflow (Vitest Browser)', () => {
 			await expectURLMatch('**/events/*');
 
 			// Check if this is a past event
-			const isPastEvent = await pageContainsText('Past Event') || await pageContainsText('This event has ended');
+			const isPastEvent =
+				(await pageContainsText('Past Event')) || (await pageContainsText('This event has ended'));
 
 			if (!isPastEvent) {
 				// Try to click Accept button
@@ -88,8 +89,9 @@ describe('Event RSVP Workflow (Vitest Browser)', () => {
 				await waitFor(1000);
 
 				// Verify button state changed
-				const hasActiveButton = await elementHasClass('button:has-text("Accept")', 'active') ||
-					await elementHasClass('button:has-text("Going")', 'active');
+				const hasActiveButton =
+					(await elementHasClass('button:has-text("Accept")', 'active')) ||
+					(await elementHasClass('button:has-text("Going")', 'active'));
 
 				// Button should show active state (soft assertion)
 				// Some implementations may not add 'active' class
@@ -121,8 +123,9 @@ describe('Event RSVP Workflow (Vitest Browser)', () => {
 					await reloadPage();
 
 					// Verify RSVP status persisted
-					const stillActive = await elementHasClass('button:has-text("Accept")', 'active') ||
-						await elementHasClass('button:has-text("Accept")', 'selected');
+					const stillActive =
+						(await elementHasClass('button:has-text("Accept")', 'active')) ||
+						(await elementHasClass('button:has-text("Accept")', 'selected'));
 
 					// Status should persist (soft check)
 					// Implementation may vary
@@ -168,8 +171,9 @@ describe('Event RSVP Workflow (Vitest Browser)', () => {
 		}
 
 		// Verify filtered results displayed
-		const hasResults = await countElements('[data-testid="event-card"]') > 0 ||
-			await pageContainsText('No events found');
+		const hasResults =
+			(await countElements('[data-testid="event-card"]')) > 0 ||
+			(await pageContainsText('No events found'));
 		expect(hasResults).toBe(true);
 	});
 
@@ -177,8 +181,9 @@ describe('Event RSVP Workflow (Vitest Browser)', () => {
 		await gotoPage('/dashboard/events');
 
 		// Look for "Create Event" button
-		const hasCreateButton = await isElementVisible('a:has-text("Create Event")') ||
-			await isElementVisible('button:has-text("Create Event")');
+		const hasCreateButton =
+			(await isElementVisible('a:has-text("Create Event")')) ||
+			(await isElementVisible('button:has-text("Create Event")'));
 
 		if (hasCreateButton) {
 			// Click create button
@@ -214,7 +219,9 @@ describe('Event RSVP Workflow (Vitest Browser)', () => {
 			await selectOption('select[name="visibilityType"]', 'company');
 
 			// Verify submit button is enabled
-			const hasSubmitButton = await isElementVisible('button[type="submit"]:has-text("Create Event")');
+			const hasSubmitButton = await isElementVisible(
+				'button[type="submit"]:has-text("Create Event")'
+			);
 			expect(hasSubmitButton).toBe(true);
 		} else {
 			// User doesn't have manager access
@@ -226,11 +233,12 @@ describe('Event RSVP Workflow (Vitest Browser)', () => {
 		await gotoPage('/dashboard/events');
 
 		// Check for statistics section
-		const hasStats = await pageContainsText('Statistics') || await pageContainsText('Overview');
+		const hasStats = (await pageContainsText('Statistics')) || (await pageContainsText('Overview'));
 
 		if (hasStats) {
 			// Verify key metrics are visible
-			const hasMetrics = await pageContainsText('Total Events') || await pageContainsText('Upcoming');
+			const hasMetrics =
+				(await pageContainsText('Total Events')) || (await pageContainsText('Upcoming'));
 			expect(hasMetrics).toBe(true);
 		}
 
@@ -241,13 +249,15 @@ describe('Event RSVP Workflow (Vitest Browser)', () => {
 			await waitFor(500);
 
 			// Check for RSVP statistics on detail page
-			const hasRsvpStats = await pageContainsText('RSVP Statistics') || await pageContainsText('Responses');
+			const hasRsvpStats =
+				(await pageContainsText('RSVP Statistics')) || (await pageContainsText('Responses'));
 
 			if (hasRsvpStats) {
 				// Check for RSVP breakdown
-				const hasBreakdown = await pageContainsText('Accepted') ||
-					await pageContainsText('Going') ||
-					await pageContainsText('Declined');
+				const hasBreakdown =
+					(await pageContainsText('Accepted')) ||
+					(await pageContainsText('Going')) ||
+					(await pageContainsText('Declined'));
 				expect(hasBreakdown).toBe(true);
 			}
 		}
@@ -267,8 +277,8 @@ describe('Event RSVP Workflow (Vitest Browser)', () => {
 			await waitForElement('h1'); // Event title
 
 			// Check for event details
-			const hasDescription = await pageContainsText('Description') ||
-				await countElements('p') > 0;
+			const hasDescription =
+				(await pageContainsText('Description')) || (await countElements('p')) > 0;
 			expect(hasDescription).toBe(true);
 		}
 	});

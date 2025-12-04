@@ -50,6 +50,7 @@
 ```
 
 **Key Principles:**
+
 - **Client-side encryption**: Files are encrypted in the browser before upload
 - **Server never sees plaintext**: Only encrypted data reaches the server
 - **Double encryption**: Encryption keys are re-encrypted server-side with `pg_crypto`
@@ -73,6 +74,7 @@ await uploadDocument(encryptedData, metadata);
 ```
 
 **Security Features:**
+
 - 96-bit random IV per encryption (prevents pattern analysis)
 - 128-bit authentication tag (AEAD)
 - Cryptographically secure random number generation
@@ -117,12 +119,12 @@ All document access is logged:
 ```typescript
 // Automatic audit logging (auditService.ts)
 await logAccess({
-  documentId,
-  userId,
-  accessType: 'download',
-  outcome: 'success',
-  ipAddress: request.headers.get('x-forwarded-for'),
-  userAgent: request.headers.get('user-agent')
+	documentId,
+	userId,
+	accessType: 'download',
+	outcome: 'success',
+	ipAddress: request.headers.get('x-forwarded-for'),
+	userAgent: request.headers.get('user-agent')
 });
 ```
 
@@ -130,19 +132,19 @@ await logAccess({
 
 ## RBAC Permission Matrix
 
-| Operation | Super Admin | Admin | Manager | Employee |
-|-----------|-------------|-------|---------|----------|
-| **Upload Documents** | ✅ | ✅ | ✅ | ❌ |
-| **View Own Documents** | ✅ | ✅ | ✅ | ✅ |
-| **View All Documents** | ✅ | ✅ | ❌ | ❌ |
-| **View Direct Reports Docs** | ✅ | ✅ | ✅ | ❌ |
-| **Download Own Documents** | ✅ | ✅ | ✅ | ✅ |
-| **Download Any Document** | ✅ | ✅ | ❌ | ❌ |
-| **Preview Documents** | ✅ | ✅ | ✅* | ✅* |
-| **Assign Documents** | ✅ | ✅ | ❌ | ❌ |
-| **Delete Documents** | ✅ | ✅ | ❌ | ❌ |
-| **View Audit Logs** | ✅ | ✅ | ❌ | ❌ |
-| **Access Deleted Docs** | ✅ | ❌ | ❌ | ❌ |
+| Operation                    | Super Admin | Admin | Manager | Employee |
+| ---------------------------- | ----------- | ----- | ------- | -------- |
+| **Upload Documents**         | ✅          | ✅    | ✅      | ❌       |
+| **View Own Documents**       | ✅          | ✅    | ✅      | ✅       |
+| **View All Documents**       | ✅          | ✅    | ❌      | ❌       |
+| **View Direct Reports Docs** | ✅          | ✅    | ✅      | ❌       |
+| **Download Own Documents**   | ✅          | ✅    | ✅      | ✅       |
+| **Download Any Document**    | ✅          | ✅    | ❌      | ❌       |
+| **Preview Documents**        | ✅          | ✅    | ✅\*    | ✅\*     |
+| **Assign Documents**         | ✅          | ✅    | ❌      | ❌       |
+| **Delete Documents**         | ✅          | ✅    | ❌      | ❌       |
+| **View Audit Logs**          | ✅          | ✅    | ❌      | ❌       |
+| **Access Deleted Docs**      | ✅          | ❌    | ❌      | ❌       |
 
 \* Only for assigned/owned documents
 
@@ -156,6 +158,7 @@ Super Admin (100)
 ```
 
 **Permission Inheritance:**
+
 - Higher roles inherit all permissions from lower roles
 - RBAC enforced at both application and database levels
 - Denial events logged in audit trail
@@ -180,14 +183,16 @@ Content-Type: multipart/form-data
 ```
 
 **Response (201 Created):**
+
 ```json
 {
-  "documentId": "550e8400-e29b-41d4-a716-446655440000",
-  "uploadedAt": "2025-10-07T12:00:00Z"
+	"documentId": "550e8400-e29b-41d4-a716-446655440000",
+	"uploadedAt": "2025-10-07T12:00:00Z"
 }
 ```
 
 **Validation:**
+
 - Max file size: 50MB
 - Allowed types: PDF, JPEG, PNG, GIF, DOCX, XLSX, TXT, CSV
 - Required: Admin or Manager role
@@ -200,17 +205,19 @@ Authorization: Bearer <token>
 ```
 
 **Response (200 OK):**
+
 ```json
 {
-  "previewUrl": "https://api.example.com/api/documents/{id}/preview/view?token=...",
-  "expiresAt": "2025-10-07T12:15:00Z",
-  "previewFormat": "PDF",
-  "requiresConversion": false,
-  "conversionStatus": "ready"
+	"previewUrl": "https://api.example.com/api/documents/{id}/preview/view?token=...",
+	"expiresAt": "2025-10-07T12:15:00Z",
+	"previewFormat": "PDF",
+	"requiresConversion": false,
+	"conversionStatus": "ready"
 }
 ```
 
 **Features:**
+
 - Signed URLs with 15-minute expiration
 - Office document → PDF conversion
 - Automatic watermarking (planned)
@@ -223,6 +230,7 @@ Authorization: Bearer <token>
 ```
 
 **Response (200 OK):**
+
 ```
 Content-Type: application/octet-stream
 Content-Disposition: attachment; filename="document.pdf.encrypted"
@@ -241,6 +249,7 @@ Authorization: Bearer <token>
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "documents": [...],
@@ -252,6 +261,7 @@ Authorization: Bearer <token>
 ```
 
 **Query Parameters:**
+
 - `employeeId`: Filter by employee
 - `category`: Filter by category
 - `sensitivityLevel`: Filter by sensitivity
@@ -278,6 +288,7 @@ Authorization: Bearer <token>
 ```
 
 **Security:**
+
 - Keys are user-specific (ownership enforced)
 - Server-side encryption with `pg_crypto`
 - Even admins cannot access user keys
@@ -313,6 +324,7 @@ Authorization: Bearer <token>
 ```
 
 **Features:**
+
 - Drag-and-drop support
 - Client-side encryption progress
 - File type and size validation
@@ -339,6 +351,7 @@ Authorization: Bearer <token>
 ```
 
 **Features:**
+
 - Grid/list view toggle
 - Filtering and sorting
 - Pagination
@@ -365,6 +378,7 @@ Authorization: Bearer <token>
 ```
 
 **Supported Formats:**
+
 - PDF: Direct iframe preview
 - Images: Inline display
 - Office docs: Converted to PDF (async)
@@ -446,31 +460,31 @@ CREATE INDEX idx_access_logs_timestamp ON hr_public.document_access_logs(documen
 ### Upload Performance
 
 | File Size | Encryption Time | Upload Time | Total Time | Status |
-|-----------|----------------|-------------|------------|--------|
-| 1MB | ~100ms | ~200ms | ~300ms | ✅ |
-| 10MB | ~500ms | ~1.5s | ~2s | ✅ |
-| 50MB | ~2.5s | ~8s | ~10.5s | ✅ |
+| --------- | --------------- | ----------- | ---------- | ------ |
+| 1MB       | ~100ms          | ~200ms      | ~300ms     | ✅     |
+| 10MB      | ~500ms          | ~1.5s       | ~2s        | ✅     |
+| 50MB      | ~2.5s           | ~8s         | ~10.5s     | ✅     |
 
 **Target**: <30s for 50MB uploads (✅ Met)
 
 ### Preview Generation
 
-| File Type | Conversion Time | Status |
-|-----------|----------------|--------|
-| PDF | Instant | ✅ |
-| Images | Instant | ✅ |
-| DOCX (5MB) | ~3-4s | ✅ |
-| XLSX (5MB) | ~4-5s | ✅ |
+| File Type  | Conversion Time | Status |
+| ---------- | --------------- | ------ |
+| PDF        | Instant         | ✅     |
+| Images     | Instant         | ✅     |
+| DOCX (5MB) | ~3-4s           | ✅     |
+| XLSX (5MB) | ~4-5s           | ✅     |
 
 **Target**: <5s for Office conversions (✅ Met)
 
 ### Database Query Performance
 
-| Operation | Record Count | Query Time | Status |
-|-----------|-------------|------------|--------|
-| List with filters | 10,000 docs | <500ms | ✅ |
-| RBAC check | Any | <100ms | ✅ |
-| Audit log insert | N/A | <50ms | ✅ |
+| Operation         | Record Count | Query Time | Status |
+| ----------------- | ------------ | ---------- | ------ |
+| List with filters | 10,000 docs  | <500ms     | ✅     |
+| RBAC check        | Any          | <100ms     | ✅     |
+| Audit log insert  | N/A          | <50ms      | ✅     |
 
 ---
 
@@ -479,6 +493,7 @@ CREATE INDEX idx_access_logs_timestamp ON hr_public.document_access_logs(documen
 ### Prerequisites
 
 1. **Database Setup**
+
 ```bash
 # Apply migrations
 psql -h localhost -p 5432 -U postgres -d hr_system \
@@ -487,6 +502,7 @@ psql -h localhost -p 5432 -U postgres -d hr_system \
 ```
 
 2. **Environment Variables**
+
 ```bash
 PUBLIC_API_URL=https://your-api.com
 DATABASE_URL=postgresql://user:pass@localhost:5432/hr_system
@@ -518,14 +534,14 @@ console.log('Uploaded:', result.documentId);
 ```typescript
 // +page.server.ts
 export const load: PageServerLoad = async ({ locals, fetch }) => {
-  if (!locals.user) {
-    throw redirect(303, '/login');
-  }
+	if (!locals.user) {
+		throw redirect(303, '/login');
+	}
 
-  const response = await fetch('/api/documents');
-  const documents = await response.json();
+	const response = await fetch('/api/documents');
+	const documents = await response.json();
 
-  return { documents };
+	return { documents };
 };
 ```
 

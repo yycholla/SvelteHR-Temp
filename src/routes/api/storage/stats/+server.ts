@@ -26,7 +26,6 @@ export const GET: RequestHandler = async ({ locals }) => {
 			userFiles: 0,
 			userBytes: 0
 		});
-
 	} catch (err) {
 		console.error('Storage stats error:', err);
 

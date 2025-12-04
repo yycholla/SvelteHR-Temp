@@ -48,7 +48,8 @@ test.describe('Dashboard Data Display (Stagehand)', () => {
 
 			// Check for placeholder text using AI
 			const placeholderCheck = await extractData(stagehand, {
-				instruction: 'Check if the dashboard contains any placeholder text like "Lorem ipsum", "Placeholder", "Sample data", or "Mock data"',
+				instruction:
+					'Check if the dashboard contains any placeholder text like "Lorem ipsum", "Placeholder", "Sample data", or "Mock data"',
 				schema: z.object({
 					hasPlaceholders: z.boolean().describe('True if placeholder text is found'),
 					placeholderCount: z.number().describe('Number of placeholder instances found')
@@ -57,7 +58,6 @@ test.describe('Dashboard Data Display (Stagehand)', () => {
 
 			expect(placeholderCheck.hasPlaceholders).toBe(false);
 			expect(placeholderCheck.placeholderCount).toBe(0);
-
 		} finally {
 			await cleanupStagehand(stagehand);
 		}
@@ -71,14 +71,19 @@ test.describe('Dashboard Data Display (Stagehand)', () => {
 
 			// Extract recent activities using AI
 			const activitiesData = await extractData(stagehand, {
-				instruction: 'Extract recent activities from the dashboard, including the activity description and any user names',
+				instruction:
+					'Extract recent activities from the dashboard, including the activity description and any user names',
 				schema: z.object({
 					hasActivities: z.boolean().describe('True if activities section is visible'),
-					activities: z.array(z.object({
-						description: z.string().describe('Activity description'),
-						userName: z.string().optional().describe('User name associated with activity'),
-						timestamp: z.string().optional().describe('Activity timestamp')
-					})).describe('List of recent activities')
+					activities: z
+						.array(
+							z.object({
+								description: z.string().describe('Activity description'),
+								userName: z.string().optional().describe('User name associated with activity'),
+								timestamp: z.string().optional().describe('Activity timestamp')
+							})
+						)
+						.describe('List of recent activities')
 				})
 			});
 
@@ -99,7 +104,6 @@ test.describe('Dashboard Data Display (Stagehand)', () => {
 					}
 				}
 			}
-
 		} finally {
 			await cleanupStagehand(stagehand);
 		}
@@ -113,14 +117,19 @@ test.describe('Dashboard Data Display (Stagehand)', () => {
 
 			// Extract metrics using AI
 			const metricsData = await extractData(stagehand, {
-				instruction: 'Extract all metrics from the dashboard including growth, retention, satisfaction percentages or rates',
+				instruction:
+					'Extract all metrics from the dashboard including growth, retention, satisfaction percentages or rates',
 				schema: z.object({
 					hasMetrics: z.boolean().describe('True if metrics section is visible'),
-					metrics: z.array(z.object({
-						name: z.string().describe('Metric name (e.g., "Growth Rate", "Retention")'),
-						value: z.string().describe('Metric value (percentage or number)'),
-						isPercentage: z.boolean().describe('True if value is a percentage')
-					})).describe('List of metrics displayed')
+					metrics: z
+						.array(
+							z.object({
+								name: z.string().describe('Metric name (e.g., "Growth Rate", "Retention")'),
+								value: z.string().describe('Metric value (percentage or number)'),
+								isPercentage: z.boolean().describe('True if value is a percentage')
+							})
+						)
+						.describe('List of metrics displayed')
 				})
 			});
 
@@ -136,7 +145,6 @@ test.describe('Dashboard Data Display (Stagehand)', () => {
 					expect(hasNumber).toBe(true);
 				}
 			}
-
 		} finally {
 			await cleanupStagehand(stagehand);
 		}
@@ -150,13 +158,18 @@ test.describe('Dashboard Data Display (Stagehand)', () => {
 
 			// Check for empty state messages using AI
 			const emptyStatesData = await extractData(stagehand, {
-				instruction: 'Find any sections that show "No data available", "No items", or "Nothing to show" messages. Check for upcoming events, pending approvals, and team announcements sections.',
+				instruction:
+					'Find any sections that show "No data available", "No items", or "Nothing to show" messages. Check for upcoming events, pending approvals, and team announcements sections.',
 				schema: z.object({
-					emptySections: z.array(z.object({
-						sectionName: z.string().describe('Name of the empty section'),
-						emptyMessage: z.string().describe('The "no data" message displayed'),
-						hasDataItems: z.boolean().describe('True if section has data items despite message')
-					})).describe('List of sections with empty state messages')
+					emptySections: z
+						.array(
+							z.object({
+								sectionName: z.string().describe('Name of the empty section'),
+								emptyMessage: z.string().describe('The "no data" message displayed'),
+								hasDataItems: z.boolean().describe('True if section has data items despite message')
+							})
+						)
+						.describe('List of sections with empty state messages')
 				})
 			});
 
@@ -172,7 +185,6 @@ test.describe('Dashboard Data Display (Stagehand)', () => {
 					expect(hasValidEmptyMessage).toBe(true);
 				}
 			}
-
 		} finally {
 			await cleanupStagehand(stagehand);
 		}
@@ -189,11 +201,17 @@ test.describe('Dashboard Data Display (Stagehand)', () => {
 				instruction: 'Find any "last updated" or timestamp information on the dashboard',
 				schema: z.object({
 					hasTimestamp: z.boolean().describe('True if timestamp is found'),
-					timestamps: z.array(z.object({
-						label: z.string().describe('Label for the timestamp (e.g., "Last Updated")'),
-						value: z.string().describe('The timestamp value'),
-						isRecent: z.boolean().describe('True if timestamp appears to be recent (current year)')
-					})).optional()
+					timestamps: z
+						.array(
+							z.object({
+								label: z.string().describe('Label for the timestamp (e.g., "Last Updated")'),
+								value: z.string().describe('The timestamp value'),
+								isRecent: z
+									.boolean()
+									.describe('True if timestamp appears to be recent (current year)')
+							})
+						)
+						.optional()
 				})
 			});
 
@@ -210,7 +228,6 @@ test.describe('Dashboard Data Display (Stagehand)', () => {
 					expect(timestamp.value).toContain(currentYear);
 				}
 			}
-
 		} finally {
 			await cleanupStagehand(stagehand);
 		}
@@ -243,7 +260,6 @@ test.describe('Dashboard Data Display (Stagehand)', () => {
 
 			// Data should be consistent (from database, not random)
 			expect(refreshedData.employeeCount).toBe(initialData.employeeCount);
-
 		} finally {
 			await cleanupStagehand(stagehand);
 		}
@@ -263,7 +279,8 @@ test.describe('Dashboard Data Display (Stagehand)', () => {
 
 			// Check for errors
 			const errorCheck = await extractData(stagehand, {
-				instruction: 'Check if there are any error messages like "500" or "Internal Server Error" on the page',
+				instruction:
+					'Check if there are any error messages like "500" or "Internal Server Error" on the page',
 				schema: z.object({
 					hasErrors: z.boolean().describe('True if error messages are found'),
 					errorMessage: z.string().optional().describe('The error message if found')
@@ -290,7 +307,6 @@ test.describe('Dashboard Data Display (Stagehand)', () => {
 			});
 
 			expect(secondErrorCheck.hasErrors).toBe(false);
-
 		} finally {
 			await cleanupStagehand(stagehand);
 		}
@@ -312,7 +328,6 @@ test.describe('Dashboard Data Display (Stagehand)', () => {
 			if (dataVerification.dataCount !== undefined) {
 				expect(dataVerification.dataCount).toBeGreaterThan(0);
 			}
-
 		} finally {
 			await cleanupStagehand(stagehand);
 		}

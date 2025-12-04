@@ -6,16 +6,16 @@
  * Type mapping entry
  */
 export interface TypeMapping {
-    /** GraphQL type */
-    graphql: string;
-    /** PostgreSQL type(s) */
-    postgresql: string[];
-    /** Rust type (async-graphql) */
-    rust: string;
-    /** Whether types are strictly compatible */
-    strictCompatibility: boolean;
-    /** Notes about compatibility */
-    notes?: string;
+  /** GraphQL type */
+  graphql: string;
+  /** PostgreSQL type(s) */
+  postgresql: string[];
+  /** Rust type (async-graphql) */
+  rust: string;
+  /** Whether types are strictly compatible */
+  strictCompatibility: boolean;
+  /** Notes about compatibility */
+  notes?: string;
 }
 /**
  * Complete type mapping table

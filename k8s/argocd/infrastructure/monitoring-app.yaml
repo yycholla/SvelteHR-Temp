@@ -5,11 +5,11 @@ metadata:
   name: monitoring
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "0"  # First - provides CRDs (PodMonitor, ServiceMonitor, etc.)
+    argocd.argoproj.io/sync-wave: '0' # First - provides CRDs (PodMonitor, ServiceMonitor, etc.)
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: default  # Temporarily use default until repo is added to infrastructure project
+  project: default # Temporarily use default until repo is added to infrastructure project
 
   # Multi-source configuration (ArgoCD 2.6+)
   sources:
@@ -23,7 +23,7 @@ spec:
       chart: kube-prometheus-stack
       targetRevision: 65.x
       helm:
-        releaseName: kube-prometheus-stack  # CRITICAL: Match existing Helm release name
+        releaseName: kube-prometheus-stack # CRITICAL: Match existing Helm release name
         valueFiles:
           - $values/k8s/helm-values/kube-prometheus-stack-values.yaml
 
@@ -39,11 +39,11 @@ spec:
   syncPolicy:
     # Automated GitOps sync enabled (as requested)
     automated:
-      prune: true  # Remove resources deleted from Git
-      selfHeal: true  # Auto-correct cluster drift
+      prune: true # Remove resources deleted from Git
+      selfHeal: true # Auto-correct cluster drift
     syncOptions:
       - CreateNamespace=true
-      - ServerSideApply=true  # Better for CRDs and large manifests
+      - ServerSideApply=true # Better for CRDs and large manifests
       - Replace=false
       - RespectIgnoreDifferences=true
     retry:

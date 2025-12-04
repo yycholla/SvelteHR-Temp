@@ -9,7 +9,7 @@ resources:
   - configmap.yaml
   - postgres-cluster.yaml
   # redis-cluster.yaml - Redis now deployed via Bitnami Helm chart (not custom resource)
-  - migration-job.yaml  # Database migration Job (pre-install/pre-upgrade)
+  - migration-job.yaml # Database migration Job (pre-install/pre-upgrade)
   - backend-deployment.yaml
   - frontend-deployment.yaml
   - services.yaml

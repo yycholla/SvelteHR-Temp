@@ -30,18 +30,24 @@ class AuthStore {
 
 	// Derived State
 	isAuthenticated = $derived(!!this.user);
-	
+
 	// RBAC Manager
 	rbac = $derived(createRBACManager(this.roles, this.user?.id ?? null));
 
 	// Permission Checks
 	canViewUsers = $derived(this.safeCheck(() => this.rbac.hasPermission('view_users')));
 	canManageUsers = $derived(this.safeCheck(() => this.rbac.hasPermission('update_users')));
-	canViewSensitiveData = $derived(this.safeCheck(() => this.rbac.hasPermission('view_sensitive_data')));
+	canViewSensitiveData = $derived(
+		this.safeCheck(() => this.rbac.hasPermission('view_sensitive_data'))
+	);
 	canManageRoles = $derived(this.safeCheck(() => this.rbac.hasPermission('assign_roles')));
-	canApproveLeave = $derived(this.safeCheck(() => this.rbac.hasPermission('approve_leave_requests')));
+	canApproveLeave = $derived(
+		this.safeCheck(() => this.rbac.hasPermission('approve_leave_requests'))
+	);
 	canManageWorkflows = $derived(this.safeCheck(() => this.rbac.hasPermission('manage_workflows')));
-	canManageCompliance = $derived(this.safeCheck(() => this.rbac.hasPermission('manage_compliance')));
+	canManageCompliance = $derived(
+		this.safeCheck(() => this.rbac.hasPermission('manage_compliance'))
+	);
 
 	userHighestRole = $derived.by(() => {
 		try {
@@ -93,7 +99,8 @@ class AuthStore {
 						id: result.user.id,
 						email: result.user.email,
 						// eslint-disable-next-line @typescript-eslint/no-explicit-any
-						displayName: (result.user as any).displayName ?? result.user.email.split('@')[0] ?? 'User',
+						displayName:
+							(result.user as any).displayName ?? result.user.email.split('@')[0] ?? 'User',
 						onboardingStatus: 'Active',
 						isActive: true,
 						// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -115,7 +122,8 @@ class AuthStore {
 					id: result.user.id,
 					email: result.user.email,
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					displayName: (result.user as any).displayName ?? result.user.email.split('@')[0] ?? 'User',
+					displayName:
+						(result.user as any).displayName ?? result.user.email.split('@')[0] ?? 'User',
 					onboardingStatus: 'Active',
 					isActive: true,
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -155,7 +163,6 @@ class AuthStore {
 			// (Assuming permission-test is already runes-based or compatible)
 			const { clearTestModeOnLogout } = await import('$lib/stores/permission-test.svelte');
 			clearTestModeOnLogout();
-
 		} catch (error) {
 			console.warn('Logout error:', error);
 		} finally {
@@ -210,7 +217,7 @@ class AuthStore {
 		this.isLoading = true;
 		try {
 			const client = createUrqlClient();
-			
+
 			// Strategy: Fetch all roles with permissions and find the one matching user's role name
 			// This is robust because we have user.role string from login/session
 			const query = `
@@ -229,35 +236,40 @@ class AuthStore {
 			`;
 
 			const result = await client.query(query, {}).toPromise();
-			
+
 			if (result.data?.roles && this.user?.role) {
 				const userRoleName = this.user.role;
 				// Case-insensitive match
-				const matchingRole = result.data.roles.find((r: any) => 
-					r.name.toLowerCase() === userRoleName.toLowerCase()
+				const matchingRole = result.data.roles.find(
+					(r: any) => r.name.toLowerCase() === userRoleName.toLowerCase()
 				);
-				
+
 				if (matchingRole) {
 					// Construct a UserRoleAssignment structure for RBAC manager
 					// Note: Backend permissions don't have 'name' field, so we construct it from resource:action
 					const roleWithPermissionNames = {
 						...matchingRole,
-						permissions: matchingRole.permissions?.map((p: any) => ({
-							...p,
-							name: `${p.resource}:${p.action}`,
-							isActive: true
-						})) || []
+						permissions:
+							matchingRole.permissions?.map((p: any) => ({
+								...p,
+								name: `${p.resource}:${p.action}`,
+								isActive: true
+							})) || []
 					};
 
-					this.roles = [{
-						id: `assignment-${userId}`,
-						userId: userId,
-						roleId: matchingRole.id,
-						role: roleWithPermissionNames,
-						assignedAt: new Date().toISOString(),
-						isActive: true
-					}];
-					console.log(`[Auth] Loaded ${roleWithPermissionNames.permissions.length} permissions for role: ${matchingRole.name}`);
+					this.roles = [
+						{
+							id: `assignment-${userId}`,
+							userId: userId,
+							roleId: matchingRole.id,
+							role: roleWithPermissionNames,
+							assignedAt: new Date().toISOString(),
+							isActive: true
+						}
+					];
+					console.log(
+						`[Auth] Loaded ${roleWithPermissionNames.permissions.length} permissions for role: ${matchingRole.name}`
+					);
 				} else {
 					console.warn(`[Auth] Role definition not found for user role: ${userRoleName}`);
 					this.roles = [];
@@ -271,25 +283,30 @@ class AuthStore {
 			}
 		} catch (error) {
 			console.error('[Auth] Error loading user roles:', error);
-			
+
 			// Emergency fallback for Admin users if API fails completely
-			if (this.user?.role && ['admin', 'super admin', 'system admin'].includes(this.user.role.toLowerCase())) {
+			if (
+				this.user?.role &&
+				['admin', 'super admin', 'system admin'].includes(this.user.role.toLowerCase())
+			) {
 				console.log('[Auth] Applying emergency Admin permissions (API failed)');
-				this.roles = [{
-					id: 'admin-fallback',
-					userId: userId,
-					roleId: 'admin',
-					role: {
-						id: 'admin',
-						name: 'Admin',
-						level: 100,
-						description: 'Fallback Admin',
-						isActive: true,
-						permissions: [{ id: 'all', name: '*', resource: '*', action: '*', isActive: true }]
-					},
-					assignedAt: new Date().toISOString(),
-					isActive: true
-				}];
+				this.roles = [
+					{
+						id: 'admin-fallback',
+						userId: userId,
+						roleId: 'admin',
+						role: {
+							id: 'admin',
+							name: 'Admin',
+							level: 100,
+							description: 'Fallback Admin',
+							isActive: true,
+							permissions: [{ id: 'all', name: '*', resource: '*', action: '*', isActive: true }]
+						},
+						assignedAt: new Date().toISOString(),
+						isActive: true
+					}
+				];
 			} else {
 				this.roles = [];
 				this.error = 'Failed to load user permissions';

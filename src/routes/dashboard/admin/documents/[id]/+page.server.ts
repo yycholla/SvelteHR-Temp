@@ -84,8 +84,8 @@ export const load: PageServerLoad = async (event) => {
 
 		if (!canAccess) {
 			error(403, {
-            				message: 'Access denied. You do not have permission to view this document.'
-            			});
+				message: 'Access denied. You do not have permission to view this document.'
+			});
 		}
 
 		// Step 3: Fetch document assignments
@@ -222,7 +222,6 @@ export const load: PageServerLoad = async (event) => {
 			canDownload,
 			user: locals.user
 		};
-
 	} catch (err) {
 		console.error('Document detail load error:', err);
 
@@ -233,7 +232,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// Generic error fallback
 		error(500, {
-        			message: 'Failed to load document details. Please try again later.'
-        		});
+			message: 'Failed to load document details. Please try again later.'
+		});
 	}
 };

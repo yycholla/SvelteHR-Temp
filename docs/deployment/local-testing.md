@@ -11,6 +11,7 @@ This guide explains how to run the production Docker Compose stack locally for p
 ## Why Test Production Builds Locally?
 
 **Benefits**:
+
 - ✅ Validate production Docker builds work correctly
 - ✅ Test production environment variables and configuration
 - ✅ Verify health checks and service dependencies
@@ -211,19 +212,20 @@ Before starting, validate your `.env.local` file:
 
 ### Environment Variables
 
-| Variable | Development | Production (Local) | Production (Server) |
-|----------|-------------|-------------------|---------------------|
-| `DOMAIN` | localhost (dev server) | localhost (self-signed) | hr.example.com (Let's Encrypt) |
-| `NODE_ENV` | development | production | production |
-| `RUST_LOG` | debug | info,debug | info,warn |
-| `RUST_BACKTRACE` | 1 | 1 (local), 0 (server) | 0 |
-| `PUBLIC_API_URL` | http://localhost:8080 | http://hr-graphql-rust:4000 | http://hr-graphql-rust:4000 |
-| `DATABASE_URL` | External host | Docker network | Docker network |
-| Secrets | Development values | Test values | Strong random values |
+| Variable         | Development            | Production (Local)          | Production (Server)            |
+| ---------------- | ---------------------- | --------------------------- | ------------------------------ |
+| `DOMAIN`         | localhost (dev server) | localhost (self-signed)     | hr.example.com (Let's Encrypt) |
+| `NODE_ENV`       | development            | production                  | production                     |
+| `RUST_LOG`       | debug                  | info,debug                  | info,warn                      |
+| `RUST_BACKTRACE` | 1                      | 1 (local), 0 (server)       | 0                              |
+| `PUBLIC_API_URL` | http://localhost:8080  | http://hr-graphql-rust:4000 | http://hr-graphql-rust:4000    |
+| `DATABASE_URL`   | External host          | Docker network              | Docker network                 |
+| Secrets          | Development values     | Test values                 | Strong random values           |
 
 ### Docker Build Targets
 
 **Development** (`docker-compose.dev.yml`):
+
 - Uses `doppler` stage with hot-reloading
 - Mounts source code as volumes
 - Instant code changes without rebuild
@@ -231,6 +233,7 @@ Before starting, validate your `.env.local` file:
 - Development dependencies included
 
 **Production** (`docker-compose.prod.yml`):
+
 - Uses `production` stage (optimized builds)
 - No source code volumes (baked into image)
 - Requires rebuild for code changes
@@ -240,6 +243,7 @@ Before starting, validate your `.env.local` file:
 ### Build Process
 
 **Development**:
+
 ```bash
 # No build needed - uses volumes
 docker compose up -d
@@ -247,6 +251,7 @@ docker compose up -d
 ```
 
 **Production (Local)**:
+
 ```bash
 # Must rebuild after code changes
 docker compose -f docker-compose.prod.yml build
@@ -257,12 +262,14 @@ docker compose -f docker-compose.prod.yml up -d
 ### Service Startup
 
 **Development**:
+
 - Services start with hot-reload enabled
 - Frontend: Vite dev server on port 5173
 - Backend: Cargo watch with auto-restart
 - Doppler secrets fetched on startup
 
 **Production**:
+
 - Services start from compiled/built artifacts
 - Frontend: Node.js serving built output on port 3000
 - Backend: Rust release binary
@@ -271,17 +278,20 @@ docker compose -f docker-compose.prod.yml up -d
 ### HTTPS and TLS
 
 **Development**:
+
 - HTTP only (no TLS)
 - Accessed via `http://localhost:5173`
 - No certificate required
 
 **Production (Local)**:
+
 - HTTPS with self-signed certificate
 - Accessed via `https://localhost`
 - Browser warning (expected for self-signed)
 - Caddy automatically generates certificate
 
 **Production (Server)**:
+
 - HTTPS with Let's Encrypt certificate
 - Accessed via `https://hr.example.com`
 - Valid, trusted certificate
@@ -290,12 +300,14 @@ docker compose -f docker-compose.prod.yml up -d
 ### Port Exposure
 
 **Development**:
+
 - Frontend: 5173 (Vite)
 - Backend: 8080 (direct access)
 - PostgreSQL: 5432 (exposed for local tools)
 - Redis: 6379 (exposed for redis-cli)
 
 **Production**:
+
 - Caddy: 80, 443 (HTTP/HTTPS)
 - Admin API: 2019 (Caddy admin)
 - All other services internal (no port exposure)
@@ -418,6 +430,7 @@ docker volume ls | grep sveltehr
 ### Issue: Services Fail to Start
 
 **Symptoms**:
+
 ```
 Error: failed to start container
 ```
@@ -425,12 +438,14 @@ Error: failed to start container
 **Solutions**:
 
 1. **Check Docker resources**:
+
    ```bash
    docker system df
    docker system prune  # Cleanup if needed
    ```
 
 2. **Check logs for specific service**:
+
    ```bash
    docker compose -f docker-compose.prod.yml logs <service_name>
    ```
@@ -443,6 +458,7 @@ Error: failed to start container
 ### Issue: Health Checks Fail
 
 **Symptoms**:
+
 ```
 sveltehr-frontend-prod   Up (health: starting)
 ```
@@ -450,11 +466,13 @@ sveltehr-frontend-prod   Up (health: starting)
 **Solutions**:
 
 1. **Check service logs**:
+
    ```bash
    docker compose -f docker-compose.prod.yml logs frontend
    ```
 
 2. **Inspect health check command**:
+
    ```bash
    docker inspect sveltehr-frontend-prod | jq '.[0].State.Health'
    ```
@@ -474,10 +492,12 @@ Browser shows "Your connection is not private" for https://localhost
 This is **expected behavior** for self-signed certificates in local testing.
 
 **Accept the warning**:
+
 - Chrome/Edge: Click "Advanced" → "Proceed to localhost (unsafe)"
 - Firefox: Click "Advanced" → "Accept the Risk and Continue"
 
 **Or trust the certificate** (optional):
+
 ```bash
 # Export Caddy's self-signed certificate
 docker exec sveltehr-caddy-prod cat /data/caddy/certificates/local/localhost/localhost.crt > caddy-local.crt
@@ -494,6 +514,7 @@ sudo update-ca-certificates
 ### Issue: Port Already in Use
 
 **Symptoms**:
+
 ```
 Error: bind: address already in use
 ```
@@ -501,12 +522,14 @@ Error: bind: address already in use
 **Solutions**:
 
 1. **Check what's using ports 80/443**:
+
    ```bash
    sudo lsof -i :80
    sudo lsof -i :443
    ```
 
 2. **Stop conflicting services**:
+
    ```bash
    # Stop development docker-compose if running
    docker compose down
@@ -520,13 +543,14 @@ Error: bind: address already in use
    Edit `docker-compose.prod.yml`:
    ```yaml
    ports:
-     - "8080:80"   # Use 8080 instead
-     - "8443:443"  # Use 8443 instead
+     - '8080:80' # Use 8080 instead
+     - '8443:443' # Use 8443 instead
    ```
 
 ### Issue: Database Connection Fails
 
 **Symptoms**:
+
 ```
 Error: could not connect to database
 ```
@@ -534,12 +558,14 @@ Error: could not connect to database
 **Solutions**:
 
 1. **Verify PostgreSQL is healthy**:
+
    ```bash
    docker compose -f docker-compose.prod.yml ps postgres
    # Should show "Up (healthy)"
    ```
 
 2. **Check DATABASE_URL format**:
+
    ```bash
    # Should be: postgresql://user:password@postgres:5432/dbname
    echo $DATABASE_URL
@@ -558,11 +584,13 @@ Frontend shows "API connection failed"
 **Solutions**:
 
 1. **Verify backend is healthy**:
+
    ```bash
    docker compose -f docker-compose.prod.yml ps hr-graphql-rust
    ```
 
 2. **Check PUBLIC_API_URL is correct**:
+
    ```bash
    # For production, should use internal Docker network
    # .env.local should have:
@@ -581,6 +609,7 @@ Frontend shows "API connection failed"
 **Cause**: Production builds bake code into images (no hot-reload)
 
 **Solution**: Rebuild images after code changes
+
 ```bash
 docker compose -f docker-compose.prod.yml build
 docker compose -f docker-compose.prod.yml up -d
@@ -591,6 +620,7 @@ docker compose -f docker-compose.prod.yml up -d
 ### Measure Production Build Performance
 
 **Build time measurement**:
+
 ```bash
 time docker compose -f docker-compose.prod.yml build --no-cache
 
@@ -600,6 +630,7 @@ time docker compose -f docker-compose.prod.yml build --no-cache
 ```
 
 **Image size analysis**:
+
 ```bash
 docker images | grep sveltehr
 
@@ -609,6 +640,7 @@ docker images | grep sveltehr
 ```
 
 **Startup time measurement**:
+
 ```bash
 # Clean start
 docker compose -f docker-compose.prod.yml down -v
@@ -622,6 +654,7 @@ time docker compose -f docker-compose.prod.yml --env-file .env.local up -d
 ### Load Testing
 
 **Simple load test** with `hey`:
+
 ```bash
 # Install hey (if not installed)
 go install github.com/rakyll/hey@latest
@@ -676,23 +709,27 @@ docker compose -f docker-compose.prod.yml --env-file .env.local up -d
 ### Before Every Production Deployment
 
 1. ✅ **Test production builds locally first**
+
    ```bash
    docker compose -f docker-compose.prod.yml build
    docker compose -f docker-compose.prod.yml up -d
    ```
 
 2. ✅ **Run all tests in production mode**
+
    ```bash
    npm run test:unit -- --run
    npm run test:e2e
    ```
 
 3. ✅ **Validate environment configuration**
+
    ```bash
    ./scripts/validate-env.sh .env.local
    ```
 
 4. ✅ **Check health of all services**
+
    ```bash
    docker compose -f docker-compose.prod.yml ps
    # All should show "Up (healthy)"
@@ -734,6 +771,7 @@ docker compose -f docker-compose.prod.yml --env-file .env.local up -d
 ## Summary
 
 Local production testing allows you to validate:
+
 - ✅ Production Docker builds work correctly
 - ✅ Environment variables are configured properly
 - ✅ Health checks pass for all services

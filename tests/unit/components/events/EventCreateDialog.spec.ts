@@ -21,7 +21,9 @@ describe('EventCreateDialog Form Validation', () => {
 			});
 
 			const titleInput = container.querySelector('input[name="title"]') as HTMLInputElement;
-			const submitButton = container.querySelector('button:has-text("Create")') as HTMLButtonElement;
+			const submitButton = container.querySelector(
+				'button:has-text("Create")'
+			) as HTMLButtonElement;
 
 			// Leave title empty
 			await fireEvent.input(titleInput, { target: { value: '' } });
@@ -46,7 +48,9 @@ describe('EventCreateDialog Form Validation', () => {
 			const longTitle = 'A'.repeat(201);
 			await fireEvent.input(titleInput, { target: { value: longTitle } });
 
-			const submitButton = container.querySelector('button:has-text("Create")') as HTMLButtonElement;
+			const submitButton = container.querySelector(
+				'button:has-text("Create")'
+			) as HTMLButtonElement;
 			await fireEvent.click(submitButton);
 
 			// Verify validation error
@@ -62,13 +66,17 @@ describe('EventCreateDialog Form Validation', () => {
 				}
 			});
 
-			const descInput = container.querySelector('textarea[name="description"]') as HTMLTextAreaElement;
+			const descInput = container.querySelector(
+				'textarea[name="description"]'
+			) as HTMLTextAreaElement;
 
 			// Enter 5001 characters
 			const longDesc = 'A'.repeat(5001);
 			await fireEvent.input(descInput, { target: { value: longDesc } });
 
-			const submitButton = container.querySelector('button:has-text("Create")') as HTMLButtonElement;
+			const submitButton = container.querySelector(
+				'button:has-text("Create")'
+			) as HTMLButtonElement;
 			await fireEvent.click(submitButton);
 
 			// Verify validation error
@@ -94,7 +102,9 @@ describe('EventCreateDialog Form Validation', () => {
 				target: { value: pastDate.toISOString().split('T')[0] }
 			});
 
-			const submitButton = container.querySelector('button:has-text("Create")') as HTMLButtonElement;
+			const submitButton = container.querySelector(
+				'button:has-text("Create")'
+			) as HTMLButtonElement;
 			await fireEvent.click(submitButton);
 
 			// Verify error
@@ -117,12 +127,16 @@ describe('EventCreateDialog Form Validation', () => {
 			const yesterday = new Date(today);
 			yesterday.setDate(yesterday.getDate() - 1);
 
-			await fireEvent.input(startDateInput, { target: { value: today.toISOString().split('T')[0] } });
+			await fireEvent.input(startDateInput, {
+				target: { value: today.toISOString().split('T')[0] }
+			});
 			await fireEvent.input(endDateInput, {
 				target: { value: yesterday.toISOString().split('T')[0] }
 			});
 
-			const submitButton = container.querySelector('button:has-text("Create")') as HTMLButtonElement;
+			const submitButton = container.querySelector(
+				'button:has-text("Create")'
+			) as HTMLButtonElement;
 			await fireEvent.click(submitButton);
 
 			// Verify error
@@ -143,7 +157,9 @@ describe('EventCreateDialog Form Validation', () => {
 			// Set to empty/invalid value
 			await fireEvent.change(typeSelect, { target: { value: '' } });
 
-			const submitButton = container.querySelector('button:has-text("Create")') as HTMLButtonElement;
+			const submitButton = container.querySelector(
+				'button:has-text("Create")'
+			) as HTMLButtonElement;
 			await fireEvent.click(submitButton);
 
 			// Verify error
@@ -159,12 +175,16 @@ describe('EventCreateDialog Form Validation', () => {
 				}
 			});
 
-			const visibilitySelect = container.querySelector('select[name="visibility"]') as HTMLSelectElement;
+			const visibilitySelect = container.querySelector(
+				'select[name="visibility"]'
+			) as HTMLSelectElement;
 
 			// Set to empty value
 			await fireEvent.change(visibilitySelect, { target: { value: '' } });
 
-			const submitButton = container.querySelector('button:has-text("Create")') as HTMLButtonElement;
+			const submitButton = container.querySelector(
+				'button:has-text("Create")'
+			) as HTMLButtonElement;
 			await fireEvent.click(submitButton);
 
 			// Verify error
@@ -182,11 +202,15 @@ describe('EventCreateDialog Form Validation', () => {
 				}
 			});
 
-			const recurringToggle = container.querySelector('input[name="isRecurring"]') as HTMLInputElement;
+			const recurringToggle = container.querySelector(
+				'input[name="isRecurring"]'
+			) as HTMLInputElement;
 			await fireEvent.click(recurringToggle);
 
 			// Don't select frequency
-			const submitButton = container.querySelector('button:has-text("Create")') as HTMLButtonElement;
+			const submitButton = container.querySelector(
+				'button:has-text("Create")'
+			) as HTMLButtonElement;
 			await fireEvent.click(submitButton);
 
 			// Verify error
@@ -202,14 +226,20 @@ describe('EventCreateDialog Form Validation', () => {
 				}
 			});
 
-			const recurringToggle = container.querySelector('input[name="isRecurring"]') as HTMLInputElement;
+			const recurringToggle = container.querySelector(
+				'input[name="isRecurring"]'
+			) as HTMLInputElement;
 			await fireEvent.click(recurringToggle);
 
-			const frequencySelect = container.querySelector('select[name="frequency"]') as HTMLSelectElement;
+			const frequencySelect = container.querySelector(
+				'select[name="frequency"]'
+			) as HTMLSelectElement;
 			await fireEvent.change(frequencySelect, { target: { value: 'weekly' } });
 
 			// Don't select any days
-			const submitButton = container.querySelector('button:has-text("Create")') as HTMLButtonElement;
+			const submitButton = container.querySelector(
+				'button:has-text("Create")'
+			) as HTMLButtonElement;
 			await fireEvent.click(submitButton);
 
 			// Verify error
@@ -225,7 +255,9 @@ describe('EventCreateDialog Form Validation', () => {
 				}
 			});
 
-			const recurringToggle = container.querySelector('input[name="isRecurring"]') as HTMLInputElement;
+			const recurringToggle = container.querySelector(
+				'input[name="isRecurring"]'
+			) as HTMLInputElement;
 			await fireEvent.click(recurringToggle);
 
 			const endDateInput = container.querySelector(
@@ -240,7 +272,9 @@ describe('EventCreateDialog Form Validation', () => {
 				target: { value: farFuture.toISOString().split('T')[0] }
 			});
 
-			const submitButton = container.querySelector('button:has-text("Create")') as HTMLButtonElement;
+			const submitButton = container.querySelector(
+				'button:has-text("Create")'
+			) as HTMLButtonElement;
 			await fireEvent.click(submitButton);
 
 			// Verify error
@@ -256,7 +290,9 @@ describe('EventCreateDialog Form Validation', () => {
 				}
 			});
 
-			const recurringToggle = container.querySelector('input[name="isRecurring"]') as HTMLInputElement;
+			const recurringToggle = container.querySelector(
+				'input[name="isRecurring"]'
+			) as HTMLInputElement;
 			await fireEvent.click(recurringToggle);
 
 			const endDateInput = container.querySelector(
@@ -271,7 +307,9 @@ describe('EventCreateDialog Form Validation', () => {
 				target: { value: fiveYears.toISOString().split('T')[0] }
 			});
 
-			const submitButton = container.querySelector('button:has-text("Create")') as HTMLButtonElement;
+			const submitButton = container.querySelector(
+				'button:has-text("Create")'
+			) as HTMLButtonElement;
 			await fireEvent.click(submitButton);
 
 			// Should NOT have error for exactly 5 years
@@ -287,7 +325,9 @@ describe('EventCreateDialog Form Validation', () => {
 				}
 			});
 
-			const recurringToggle = container.querySelector('input[name="isRecurring"]') as HTMLInputElement;
+			const recurringToggle = container.querySelector(
+				'input[name="isRecurring"]'
+			) as HTMLInputElement;
 			await fireEvent.click(recurringToggle);
 
 			const intervalInput = container.querySelector('input[name="interval"]') as HTMLInputElement;
@@ -295,7 +335,9 @@ describe('EventCreateDialog Form Validation', () => {
 			// Set negative interval
 			await fireEvent.input(intervalInput, { target: { value: '-1' } });
 
-			const submitButton = container.querySelector('button:has-text("Create")') as HTMLButtonElement;
+			const submitButton = container.querySelector(
+				'button:has-text("Create")'
+			) as HTMLButtonElement;
 			await fireEvent.click(submitButton);
 
 			// Verify error
@@ -313,11 +355,15 @@ describe('EventCreateDialog Form Validation', () => {
 				}
 			});
 
-			const capacityToggle = container.querySelector('input[name="hasCapacity"]') as HTMLInputElement;
+			const capacityToggle = container.querySelector(
+				'input[name="hasCapacity"]'
+			) as HTMLInputElement;
 			await fireEvent.click(capacityToggle);
 
 			// Don't enter capacity value
-			const submitButton = container.querySelector('button:has-text("Create")') as HTMLButtonElement;
+			const submitButton = container.querySelector(
+				'button:has-text("Create")'
+			) as HTMLButtonElement;
 			await fireEvent.click(submitButton);
 
 			// Verify error
@@ -333,13 +379,17 @@ describe('EventCreateDialog Form Validation', () => {
 				}
 			});
 
-			const capacityToggle = container.querySelector('input[name="hasCapacity"]') as HTMLInputElement;
+			const capacityToggle = container.querySelector(
+				'input[name="hasCapacity"]'
+			) as HTMLInputElement;
 			await fireEvent.click(capacityToggle);
 
 			const capacityInput = container.querySelector('input[name="capacity"]') as HTMLInputElement;
 			await fireEvent.input(capacityInput, { target: { value: '0' } });
 
-			const submitButton = container.querySelector('button:has-text("Create")') as HTMLButtonElement;
+			const submitButton = container.querySelector(
+				'button:has-text("Create")'
+			) as HTMLButtonElement;
 			await fireEvent.click(submitButton);
 
 			// Verify error
@@ -355,13 +405,17 @@ describe('EventCreateDialog Form Validation', () => {
 				}
 			});
 
-			const capacityToggle = container.querySelector('input[name="hasCapacity"]') as HTMLInputElement;
+			const capacityToggle = container.querySelector(
+				'input[name="hasCapacity"]'
+			) as HTMLInputElement;
 			await fireEvent.click(capacityToggle);
 
 			const capacityInput = container.querySelector('input[name="capacity"]') as HTMLInputElement;
 			await fireEvent.input(capacityInput, { target: { value: '10000' } });
 
-			const submitButton = container.querySelector('button:has-text("Create")') as HTMLButtonElement;
+			const submitButton = container.querySelector(
+				'button:has-text("Create")'
+			) as HTMLButtonElement;
 			await fireEvent.click(submitButton);
 
 			// Verify error for unreasonably large capacity
@@ -447,7 +501,9 @@ describe('EventCreateDialog Form Validation', () => {
 			});
 
 			// Leave required fields empty
-			const submitButton = container.querySelector('button:has-text("Create")') as HTMLButtonElement;
+			const submitButton = container.querySelector(
+				'button:has-text("Create")'
+			) as HTMLButtonElement;
 			await fireEvent.click(submitButton);
 
 			// Verify onEventCreated was NOT called
@@ -476,13 +532,17 @@ describe('EventCreateDialog Form Validation', () => {
 			const startDateInput = container.querySelector('input[name="startDate"]') as HTMLInputElement;
 			const endDateInput = container.querySelector('input[name="endDate"]') as HTMLInputElement;
 
-			await fireEvent.input(startDateInput, { target: { value: today.toISOString().split('T')[0] } });
+			await fireEvent.input(startDateInput, {
+				target: { value: today.toISOString().split('T')[0] }
+			});
 			await fireEvent.input(endDateInput, {
 				target: { value: tomorrow.toISOString().split('T')[0] }
 			});
 
 			// Submit
-			const submitButton = container.querySelector('button:has-text("Create")') as HTMLButtonElement;
+			const submitButton = container.querySelector(
+				'button:has-text("Create")'
+			) as HTMLButtonElement;
 			await fireEvent.click(submitButton);
 
 			// Verify onEventCreated was called

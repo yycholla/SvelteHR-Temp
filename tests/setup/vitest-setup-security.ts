@@ -14,12 +14,7 @@ let page: Page | null = null;
 // Browser configuration for security tests
 const BROWSER_OPTIONS = {
 	headless: process.env.HEADED !== 'true',
-	args: [
-		'--no-sandbox',
-		'--disable-setuid-sandbox',
-		'--disable-dev-shm-usage',
-		'--disable-gpu'
-	]
+	args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
 };
 
 // Setup browser before all security tests

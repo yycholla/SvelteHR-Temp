@@ -56,9 +56,7 @@ export async function query<T extends pkg.QueryResultRow = any>(
 }
 
 // Transaction helper
-export async function transaction<T>(
-	callback: (client: pkg.PoolClient) => Promise<T>
-): Promise<T> {
+export async function transaction<T>(callback: (client: pkg.PoolClient) => Promise<T>): Promise<T> {
 	const client = await getPool().connect();
 	try {
 		await client.query('BEGIN');

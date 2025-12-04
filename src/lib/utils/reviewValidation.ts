@@ -105,10 +105,7 @@ export async function getActiveReviews(
  * @param endDate - Review period end date (ISO string)
  * @returns Error message if invalid, null otherwise
  */
-export function validateReviewPeriod(
-	startDate?: string,
-	endDate?: string
-): string | null {
+export function validateReviewPeriod(startDate?: string, endDate?: string): string | null {
 	if (!startDate && !endDate) {
 		return null; // Both optional is valid
 	}
@@ -142,10 +139,7 @@ export function validateReviewPeriod(
  * @param newGoals - Array of new goals to create
  * @returns Error message if no goals, null otherwise
  */
-export function validateGoalAssociation(
-	goalIds: string[],
-	newGoals: Array<any>
-): string | null {
+export function validateGoalAssociation(goalIds: string[], newGoals: Array<any>): string | null {
 	const totalGoals = (goalIds?.length || 0) + (newGoals?.length || 0);
 
 	if (totalGoals === 0) {
@@ -177,10 +171,7 @@ export function canEditReviewStatus(status: string): boolean {
  * @param newStatus - Desired new status
  * @returns Error message if transition invalid, null otherwise
  */
-export function validateStatusTransition(
-	currentStatus: string,
-	newStatus: string
-): string | null {
+export function validateStatusTransition(currentStatus: string, newStatus: string): string | null {
 	const validTransitions: Record<string, string[]> = {
 		DRAFT: ['IN_PROGRESS', 'draft'],
 		draft: ['IN_PROGRESS', 'in_progress'],

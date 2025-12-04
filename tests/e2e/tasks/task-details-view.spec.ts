@@ -22,11 +22,11 @@ test.describe('Task Details View', () => {
 		await page.waitForLoadState('networkidle');
 		await page.fill('input[name="title"]', 'Task Details View Test');
 		await page.fill('textarea[name="description"]', 'Testing the comprehensive task details view.');
-		
+
 		const submitButton = page.locator('button[type="submit"]:has-text("Create Task")');
 		await submitButton.click();
 		await page.waitForURL('**/tasks/*', { timeout: 10000 });
-		
+
 		testTaskId = page.url().split('/').pop()!;
 	});
 
@@ -122,7 +122,7 @@ test.describe('Task Details View', () => {
 		await page.goto(`/dashboard/tasks/new?parent=${testTaskId}`);
 		await page.waitForLoadState('networkidle');
 		await page.fill('input[name="title"]', 'Test Subtask');
-		
+
 		const submitButton = page.locator('button[type="submit"]:has-text("Create Task")');
 		await submitButton.click();
 		await page.waitForURL('**/tasks/*', { timeout: 10000 });
@@ -140,7 +140,7 @@ test.describe('Task Details View', () => {
 		await page.goto(`/dashboard/tasks/new?parent=${testTaskId}`);
 		await page.waitForLoadState('networkidle');
 		await page.fill('input[name="title"]', 'Subtask for Tab Test');
-		
+
 		const submitButton = page.locator('button[type="submit"]:has-text("Create Task")');
 		await submitButton.click();
 		await page.waitForURL('**/tasks/*', { timeout: 10000 });

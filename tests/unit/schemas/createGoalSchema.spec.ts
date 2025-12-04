@@ -160,9 +160,7 @@ describe('T021: CreateGoalSchema validation', () => {
 		expect(result.success).toBe(false);
 
 		if (!result.success) {
-			const metricsError = result.error.issues.find(
-				(issue) => issue.path[0] === 'successMetrics'
-			);
+			const metricsError = result.error.issues.find((issue) => issue.path[0] === 'successMetrics');
 			expect(metricsError).toBeDefined();
 		}
 	});
@@ -179,9 +177,7 @@ describe('T021: CreateGoalSchema validation', () => {
 		expect(result.success).toBe(false);
 
 		if (!result.success) {
-			const metricsError = result.error.issues.find(
-				(issue) => issue.path[0] === 'successMetrics'
-			);
+			const metricsError = result.error.issues.find((issue) => issue.path[0] === 'successMetrics');
 			expect(metricsError).toBeDefined();
 		}
 	});

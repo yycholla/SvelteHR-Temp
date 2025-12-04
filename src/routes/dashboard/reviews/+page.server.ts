@@ -24,7 +24,8 @@ export const load: PageServerLoad = async (event) => {
 
 	// Check if user can create reviews (write permission)
 	const canCreate =
-		userPermissions.includes('*') || userPermissions.includes('*:*') ||
+		userPermissions.includes('*') ||
+		userPermissions.includes('*:*') ||
 		userPermissions.includes('performance:write');
 
 	// Extract search parameters
@@ -56,7 +57,10 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Apply status filter
-		if (statusFilter && ['DRAFT', 'IN_PROGRESS', 'COMPLETED'].includes(statusFilter.toUpperCase())) {
+		if (
+			statusFilter &&
+			['DRAFT', 'IN_PROGRESS', 'COMPLETED'].includes(statusFilter.toUpperCase())
+		) {
 			condition.status = statusFilter.toUpperCase();
 		}
 
@@ -159,12 +163,15 @@ export const load: PageServerLoad = async (event) => {
 		console.log('📊 After transformation:', {
 			mappedReviewsCount: mappedReviews.length,
 			firstMappedReview: mappedReviews[0] || null,
-			statusValues: [...new Set(mappedReviews.map(r => r.status))]
+			statusValues: [...new Set(mappedReviews.map((r) => r.status))]
 		});
 
 		// Client-side filtering for status (Rust backend doesn't support filter parameter)
-		if (statusFilter && ['DRAFT', 'IN_PROGRESS', 'COMPLETED'].includes(statusFilter.toUpperCase())) {
-			mappedReviews = mappedReviews.filter(r => r.status === statusFilter.toUpperCase());
+		if (
+			statusFilter &&
+			['DRAFT', 'IN_PROGRESS', 'COMPLETED'].includes(statusFilter.toUpperCase())
+		) {
+			mappedReviews = mappedReviews.filter((r) => r.status === statusFilter.toUpperCase());
 			console.log('📊 After status filter:', {
 				statusFilter,
 				remainingCount: mappedReviews.length
@@ -173,7 +180,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// Client-side filtering for type (using cycle.reviewType)
 		if (typeFilter) {
-			mappedReviews = mappedReviews.filter(r => r.cycle?.reviewType === typeFilter.toUpperCase());
+			mappedReviews = mappedReviews.filter((r) => r.cycle?.reviewType === typeFilter.toUpperCase());
 		}
 
 		// Query 2: Get review types metadata
@@ -215,7 +222,7 @@ export const load: PageServerLoad = async (event) => {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
-						'Cookie': cookieHeader
+						Cookie: cookieHeader
 					},
 					body: JSON.stringify({
 						query: `

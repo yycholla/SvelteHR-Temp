@@ -43,6 +43,7 @@ const BLOCKS_PER_FORM: usize = 4; // Adjust this value to change grouping
 ```
 
 **Recommended values:**
+
 - `3-4 blocks`: Best for focused, digestible forms
 - `5-6 blocks`: Good for comprehensive onboarding modules with related content
 - `1 block`: Creates one form per block (1:1 mapping) - use only for very simple modules
@@ -63,6 +64,7 @@ cargo run --bin migration up
 ```
 
 This will:
+
 1. Apply migration m20251203_001 if not already applied
 2. Convert all existing ContentBlocks to Forms
 3. Migrate all progress data
@@ -75,6 +77,7 @@ cargo run --bin migration status
 ```
 
 Expected output:
+
 ```
 Applied at           Migration
 2025-12-03 ...       m20251203_001_migrate_content_blocks_to_forms
@@ -89,6 +92,7 @@ cargo run --bin migration down
 ```
 
 This will:
+
 1. Delete all `onboarding_form_progress` records created during migration
 2. Delete all `onboarding_form_blocks` from migrated forms
 3. Delete all `onboarding_forms` where `description = 'Migrated from content blocks'`
@@ -189,6 +193,7 @@ WHERE id = 'your-form-id';
 If the automated 4-block grouping doesn't work well for your content, you can:
 
 1. Manually regroup blocks by updating `onboarding_form_id`:
+
 ```sql
 -- Move block to different form
 UPDATE hr_public.onboarding_form_blocks
@@ -230,6 +235,7 @@ The new Forms-based system provides several advantages:
 ### Why 4 Blocks Per Form?
 
 Research shows that:
+
 - 3-5 items per page is ideal for user comprehension
 - Too few blocks = excessive clicking
 - Too many blocks = overwhelming content
@@ -249,6 +255,7 @@ This ensures users don't lose progress while migrating to the new system.
 ### Timestamp Preservation
 
 The migration preserves:
+
 - `started_at`: Uses the earliest `started_at` from any block in the form
 - `completed_at`: Uses the latest `completed_at` from completed blocks
 

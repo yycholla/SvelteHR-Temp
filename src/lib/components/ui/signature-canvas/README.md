@@ -16,9 +16,11 @@ A production-ready HTML5 Canvas-based signature capture component for Svelte 5.
 ## Components
 
 ### `SignatureCanvas.svelte`
+
 The core signature capture component.
 
 ### `SignatureField.svelte`
+
 Form field wrapper with label, description, and validation.
 
 ## Basic Usage
@@ -82,30 +84,30 @@ Form field wrapper with label, description, and validation.
 
 ### SignatureCanvas Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `width` | `number` | `400` | Canvas width in pixels |
-| `height` | `number` | `150` | Canvas height in pixels |
-| `penColor` | `string` | `'#000000'` | Pen stroke color |
-| `penWidth` | `number` | `2` | Pen stroke width |
-| `backgroundColor` | `string` | `'#ffffff'` | Canvas background color |
-| `placeholder` | `string` | `'Sign here'` | Placeholder text when empty |
-| `required` | `boolean` | `false` | Show required indicator |
-| `disabled` | `boolean` | `false` | Disable signature capture |
-| `class` | `string` | `''` | Additional CSS classes |
-| `onSignatureChange` | `(signature: string \| null) => void` | `undefined` | Callback when signature changes |
+| Prop                | Type                                  | Default       | Description                     |
+| ------------------- | ------------------------------------- | ------------- | ------------------------------- |
+| `width`             | `number`                              | `400`         | Canvas width in pixels          |
+| `height`            | `number`                              | `150`         | Canvas height in pixels         |
+| `penColor`          | `string`                              | `'#000000'`   | Pen stroke color                |
+| `penWidth`          | `number`                              | `2`           | Pen stroke width                |
+| `backgroundColor`   | `string`                              | `'#ffffff'`   | Canvas background color         |
+| `placeholder`       | `string`                              | `'Sign here'` | Placeholder text when empty     |
+| `required`          | `boolean`                             | `false`       | Show required indicator         |
+| `disabled`          | `boolean`                             | `false`       | Disable signature capture       |
+| `class`             | `string`                              | `''`          | Additional CSS classes          |
+| `onSignatureChange` | `(signature: string \| null) => void` | `undefined`   | Callback when signature changes |
 
 ### SignatureField Props
 
 All `SignatureCanvas` props, plus:
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `name` | `string` | **required** | Form field name |
-| `label` | `string` | **required** | Field label |
-| `description` | `string` | `undefined` | Help text |
-| `error` | `string` | `undefined` | Validation error message |
-| `value` | `string \| null` (bindable) | `null` | Signature data URL |
+| Prop          | Type                        | Default      | Description              |
+| ------------- | --------------------------- | ------------ | ------------------------ |
+| `name`        | `string`                    | **required** | Form field name          |
+| `label`       | `string`                    | **required** | Field label              |
+| `description` | `string`                    | `undefined`  | Help text                |
+| `error`       | `string`                    | `undefined`  | Validation error message |
+| `value`       | `string \| null` (bindable) | `null`       | Signature data URL       |
 
 ## Public API
 

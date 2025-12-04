@@ -62,9 +62,9 @@ describe('Event Attendees Reminder Time Contract (P0 Hotfix)', () => {
 			);
 
 			// Act & Assert
-			await expect(
-				mockGraphQLClient.query(query, { eventId: 'event_456' })
-			).rejects.toThrow('Field "reminderTime" not found');
+			await expect(mockGraphQLClient.query(query, { eventId: 'event_456' })).rejects.toThrow(
+				'Field "reminderTime" not found'
+			);
 		});
 
 		test('should allow null values for reminderTime (optional field)', async () => {
@@ -96,13 +96,11 @@ describe('Event Attendees Reminder Time Contract (P0 Hotfix)', () => {
 				}
 			};
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('Schema regeneration required')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('Schema regeneration required'));
 
-			await expect(
-				mockGraphQLClient.query(query, { eventId: 'event_456' })
-			).rejects.toThrow('Schema regeneration required');
+			await expect(mockGraphQLClient.query(query, { eventId: 'event_456' })).rejects.toThrow(
+				'Schema regeneration required'
+			);
 		});
 
 		test('should validate reminderTime as Integer type', async () => {
@@ -116,13 +114,11 @@ describe('Event Attendees Reminder Time Contract (P0 Hotfix)', () => {
 				}
 			`;
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('Type validation pending')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('Type validation pending'));
 
-			await expect(
-				mockGraphQLClient.query(query, { eventId: 'test' })
-			).rejects.toThrow('Type validation pending');
+			await expect(mockGraphQLClient.query(query, { eventId: 'test' })).rejects.toThrow(
+				'Type validation pending'
+			);
 		});
 	});
 
@@ -150,9 +146,9 @@ describe('Event Attendees Reminder Time Contract (P0 Hotfix)', () => {
 				new Error('updateEventRsvp mutation not implemented')
 			);
 
-			await expect(
-				mockGraphQLClient.mutation(mutation, variables)
-			).rejects.toThrow('updateEventRsvp mutation not implemented');
+			await expect(mockGraphQLClient.mutation(mutation, variables)).rejects.toThrow(
+				'updateEventRsvp mutation not implemented'
+			);
 		});
 
 		test('should handle reminderTime value updates', async () => {
@@ -209,9 +205,9 @@ describe('Event Attendees Reminder Time Contract (P0 Hotfix)', () => {
 				new Error('getAttendeesWithReminders query not implemented')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { eventId: 'event_456' })
-			).rejects.toThrow('getAttendeesWithReminders query not implemented');
+			await expect(mockGraphQLClient.query(query, { eventId: 'event_456' })).rejects.toThrow(
+				'getAttendeesWithReminders query not implemented'
+			);
 		});
 
 		test('should query user upcoming events with reminders', async () => {
@@ -233,9 +229,9 @@ describe('Event Attendees Reminder Time Contract (P0 Hotfix)', () => {
 				new Error('getUserUpcomingEventsWithReminders query not implemented')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { userId: 'user_789' })
-			).rejects.toThrow('getUserUpcomingEventsWithReminders query not implemented');
+			await expect(mockGraphQLClient.query(query, { userId: 'user_789' })).rejects.toThrow(
+				'getUserUpcomingEventsWithReminders query not implemented'
+			);
 		});
 	});
 
@@ -257,9 +253,9 @@ describe('Event Attendees Reminder Time Contract (P0 Hotfix)', () => {
 			};
 
 			// Mock database query
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Database verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Database verification requires live connection'));
 
 			await expect(mockDbQuery(dbQuery)).rejects.toThrow(
 				'Database verification requires live connection'
@@ -274,9 +270,9 @@ describe('Event Attendees Reminder Time Contract (P0 Hotfix)', () => {
 				AND column_name = 'reminder_time';
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Database verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Database verification requires live connection'));
 
 			await expect(mockDbQuery(nullCheckQuery)).rejects.toThrow(
 				'Database verification requires live connection'

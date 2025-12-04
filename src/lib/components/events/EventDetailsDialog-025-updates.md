@@ -83,19 +83,19 @@ The existing EventDetailsDialog.svelte needs the following enhancements for the 
 
 ```typescript
 interface Props {
-  // ... existing props
-  eventComments?: Comment[];
-  eventHistory?: HistoryEntry[];
-  commentCount?: number;
-  userWaitlistStatus?: {
-    isOnWaitlist: boolean;
-    position: number | null;
-  };
-  onJoinWaitlist?: (eventId: string) => Promise<void>;
-  onLeaveWaitlist?: (eventId: string) => Promise<void>;
-  onAddComment?: (content: string, mentions: string[]) => Promise<void>;
-  onUpdateComment?: (commentId: string, content: string) => Promise<void>;
-  onDeleteComment?: (commentId: string) => Promise<void>;
+	// ... existing props
+	eventComments?: Comment[];
+	eventHistory?: HistoryEntry[];
+	commentCount?: number;
+	userWaitlistStatus?: {
+		isOnWaitlist: boolean;
+		position: number | null;
+	};
+	onJoinWaitlist?: (eventId: string) => Promise<void>;
+	onLeaveWaitlist?: (eventId: string) => Promise<void>;
+	onAddComment?: (content: string, mentions: string[]) => Promise<void>;
+	onUpdateComment?: (commentId: string, content: string) => Promise<void>;
+	onDeleteComment?: (commentId: string) => Promise<void>;
 }
 ```
 

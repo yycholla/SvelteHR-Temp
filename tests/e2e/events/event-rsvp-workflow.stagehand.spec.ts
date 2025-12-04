@@ -34,7 +34,8 @@ test.describe('Event RSVP Workflow (Stagehand)', () => {
 
 			// Extract page information using AI
 			const eventsPageData = await extractData(stagehand, {
-				instruction: 'Extract information about the events page including title and whether there are any event cards displayed',
+				instruction:
+					'Extract information about the events page including title and whether there are any event cards displayed',
 				schema: z.object({
 					pageTitle: z.string().describe('Page title or heading'),
 					hasEvents: z.boolean().describe('True if event cards are visible'),
@@ -53,16 +54,18 @@ test.describe('Event RSVP Workflow (Stagehand)', () => {
 
 				// Verify event detail page loaded
 				const eventDetailData = await extractData(stagehand, {
-					instruction: 'Extract the event details page information including title and whether event information is displayed',
+					instruction:
+						'Extract the event details page information including title and whether event information is displayed',
 					schema: z.object({
 						eventTitle: z.string().describe('Event title'),
-						hasEventInfo: z.boolean().describe('True if event details/information section is visible')
+						hasEventInfo: z
+							.boolean()
+							.describe('True if event details/information section is visible')
 					})
 				});
 
 				expect(eventDetailData.hasEventInfo).toBe(true);
 				expect(eventDetailData.eventTitle).toBeTruthy();
-
 			} else {
 				// Verify empty state
 				const emptyState = await extractData(stagehand, {
@@ -75,7 +78,6 @@ test.describe('Event RSVP Workflow (Stagehand)', () => {
 
 				expect(emptyState.hasEmptyMessage).toBe(true);
 			}
-
 		} finally {
 			await cleanupStagehand(stagehand);
 		}
@@ -104,7 +106,8 @@ test.describe('Event RSVP Workflow (Stagehand)', () => {
 
 				// Check if this is a past event
 				const eventStatus = await extractData(stagehand, {
-					instruction: 'Check if this is a past event or if there is a message saying the event has ended',
+					instruction:
+						'Check if this is a past event or if there is a message saying the event has ended',
 					schema: z.object({
 						isPastEvent: z.boolean().describe('True if event is in the past or has ended'),
 						hasRsvpButtons: z.boolean().describe('True if RSVP buttons are visible')
@@ -120,9 +123,12 @@ test.describe('Event RSVP Workflow (Stagehand)', () => {
 
 					// Verify RSVP was updated
 					const rsvpStatusAfterAccept = await extractData(stagehand, {
-						instruction: 'Check which RSVP button is currently selected or active (Accept, Decline, or Tentative/Maybe)',
+						instruction:
+							'Check which RSVP button is currently selected or active (Accept, Decline, or Tentative/Maybe)',
 						schema: z.object({
-							selectedStatus: z.enum(['accept', 'decline', 'tentative', 'maybe', 'going', 'not_going']).describe('Currently selected RSVP status'),
+							selectedStatus: z
+								.enum(['accept', 'decline', 'tentative', 'maybe', 'going', 'not_going'])
+								.describe('Currently selected RSVP status'),
 							isAccepted: z.boolean().describe('True if Accept or Going is selected')
 						})
 					});
@@ -164,7 +170,6 @@ test.describe('Event RSVP Workflow (Stagehand)', () => {
 					expect(statsVisible.hasStats).toBe(true);
 				}
 			}
-
 		} finally {
 			await cleanupStagehand(stagehand);
 		}
@@ -222,10 +227,14 @@ test.describe('Event RSVP Workflow (Stagehand)', () => {
 
 					// Check if user appears in attendee list
 					const attendeeInfo = await extractData(stagehand, {
-						instruction: 'Check if there is an attendee list or guest list showing who has accepted, and if the current user is in that list',
+						instruction:
+							'Check if there is an attendee list or guest list showing who has accepted, and if the current user is in that list',
 						schema: z.object({
 							hasAttendeeList: z.boolean().describe('True if attendee list is visible'),
-							currentUserIsAttendee: z.boolean().optional().describe('True if current user is shown as accepted in the list')
+							currentUserIsAttendee: z
+								.boolean()
+								.optional()
+								.describe('True if current user is shown as accepted in the list')
 						})
 					});
 
@@ -234,7 +243,6 @@ test.describe('Event RSVP Workflow (Stagehand)', () => {
 					}
 				}
 			}
-
 		} finally {
 			await cleanupStagehand(stagehand);
 		}
@@ -250,19 +258,24 @@ test.describe('Event RSVP Workflow (Stagehand)', () => {
 
 			// Check for available filters
 			const filtersData = await extractData(stagehand, {
-				instruction: 'Find all available filters including visibility filter, status filter, and event type filter. List their names and options.',
+				instruction:
+					'Find all available filters including visibility filter, status filter, and event type filter. List their names and options.',
 				schema: z.object({
 					hasFilters: z.boolean().describe('True if filters are available'),
-					filters: z.array(z.object({
-						name: z.string().describe('Filter name (e.g., visibility, status, event type)'),
-						options: z.array(z.string()).describe('Available options for this filter')
-					})).optional()
+					filters: z
+						.array(
+							z.object({
+								name: z.string().describe('Filter name (e.g., visibility, status, event type)'),
+								options: z.array(z.string()).describe('Available options for this filter')
+							})
+						)
+						.optional()
 				})
 			});
 
 			if (filtersData.hasFilters && filtersData.filters && filtersData.filters.length > 0) {
 				// Test visibility filter if available
-				const visibilityFilter = filtersData.filters.find(f =>
+				const visibilityFilter = filtersData.filters.find((f) =>
 					f.name.toLowerCase().includes('visibility')
 				);
 
@@ -276,7 +289,7 @@ test.describe('Event RSVP Workflow (Stagehand)', () => {
 				}
 
 				// Test status filter if available
-				const statusFilter = filtersData.filters.find(f =>
+				const statusFilter = filtersData.filters.find((f) =>
 					f.name.toLowerCase().includes('status')
 				);
 
@@ -289,12 +302,14 @@ test.describe('Event RSVP Workflow (Stagehand)', () => {
 				}
 
 				// Test event type filter if available
-				const typeFilter = filtersData.filters.find(f =>
-					f.name.toLowerCase().includes('type') || f.name.toLowerCase().includes('event')
+				const typeFilter = filtersData.filters.find(
+					(f) => f.name.toLowerCase().includes('type') || f.name.toLowerCase().includes('event')
 				);
 
 				if (typeFilter && typeFilter.options.length > 0) {
-					const typeOption = typeFilter.options.find(opt => opt.toLowerCase().includes('meeting')) || typeFilter.options[0];
+					const typeOption =
+						typeFilter.options.find((opt) => opt.toLowerCase().includes('meeting')) ||
+						typeFilter.options[0];
 					await performAction(stagehand, `select "${typeOption}" from the event type filter`);
 					await stagehand.page.waitForTimeout(500);
 
@@ -304,7 +319,8 @@ test.describe('Event RSVP Workflow (Stagehand)', () => {
 
 				// Verify filtered results displayed
 				const resultsData = await extractData(stagehand, {
-					instruction: 'Check if event cards are displayed or if there is a "no events found" message',
+					instruction:
+						'Check if event cards are displayed or if there is a "no events found" message',
 					schema: z.object({
 						hasResults: z.boolean().describe('True if results are shown'),
 						hasNoResultsMessage: z.boolean().describe('True if "no events found" message is shown')
@@ -313,7 +329,6 @@ test.describe('Event RSVP Workflow (Stagehand)', () => {
 
 				expect(resultsData.hasResults || resultsData.hasNoResultsMessage).toBe(true);
 			}
-
 		} finally {
 			await cleanupStagehand(stagehand);
 		}
@@ -345,7 +360,8 @@ test.describe('Event RSVP Workflow (Stagehand)', () => {
 
 				// Verify create form loaded
 				const formData = await extractData(stagehand, {
-					instruction: 'Check if the event creation form is displayed with fields for title, description, dates, and other details',
+					instruction:
+						'Check if the event creation form is displayed with fields for title, description, dates, and other details',
 					schema: z.object({
 						hasForm: z.boolean().describe('True if create form is visible'),
 						pageTitle: z.string().describe('Page title'),
@@ -358,7 +374,10 @@ test.describe('Event RSVP Workflow (Stagehand)', () => {
 
 				// Fill out event form using AI
 				await performAction(stagehand, 'enter "Test Event - E2E" in the title field');
-				await performAction(stagehand, 'enter "This is a test event created via E2E test" in the description field');
+				await performAction(
+					stagehand,
+					'enter "This is a test event created via E2E test" in the description field'
+				);
 
 				// Set dates and times
 				const tomorrow = new Date();
@@ -373,7 +392,10 @@ test.describe('Event RSVP Workflow (Stagehand)', () => {
 				await performAction(stagehand, `enter "${endTimeStr}" in the end time field`);
 				await performAction(stagehand, 'enter "Conference Room A" in the location field');
 				await performAction(stagehand, 'select "Meeting" from the event type dropdown');
-				await performAction(stagehand, 'select "Company" or "Company-Wide" from the visibility dropdown');
+				await performAction(
+					stagehand,
+					'select "Company" or "Company-Wide" from the visibility dropdown'
+				);
 
 				// Verify submit button is present and enabled
 				const submitButtonData = await extractData(stagehand, {
@@ -386,12 +408,10 @@ test.describe('Event RSVP Workflow (Stagehand)', () => {
 
 				expect(submitButtonData.hasSubmitButton).toBe(true);
 				expect(submitButtonData.isEnabled).toBe(true);
-
 			} else {
 				// User doesn't have manager access - verify no create button
 				expect(createAccessData.hasCreateButton).toBe(false);
 			}
-
 		} finally {
 			await cleanupStagehand(stagehand);
 		}
@@ -407,21 +427,26 @@ test.describe('Event RSVP Workflow (Stagehand)', () => {
 
 			// Check for statistics section
 			const statsData = await extractData(stagehand, {
-				instruction: 'Find statistics or overview section showing metrics like total events, upcoming events, or other event-related numbers',
+				instruction:
+					'Find statistics or overview section showing metrics like total events, upcoming events, or other event-related numbers',
 				schema: z.object({
 					hasStatistics: z.boolean().describe('True if statistics section is visible'),
-					metrics: z.array(z.object({
-						name: z.string().describe('Metric name'),
-						value: z.string().describe('Metric value')
-					})).optional().describe('List of metrics shown')
+					metrics: z
+						.array(
+							z.object({
+								name: z.string().describe('Metric name'),
+								value: z.string().describe('Metric value')
+							})
+						)
+						.optional()
+						.describe('List of metrics shown')
 				})
 			});
 
 			if (statsData.hasStatistics && statsData.metrics) {
 				// Verify key metrics are present
-				const hasImportantMetrics = statsData.metrics.some(m =>
-					m.name.toLowerCase().includes('total') ||
-					m.name.toLowerCase().includes('upcoming')
+				const hasImportantMetrics = statsData.metrics.some(
+					(m) => m.name.toLowerCase().includes('total') || m.name.toLowerCase().includes('upcoming')
 				);
 				expect(hasImportantMetrics).toBe(true);
 			}
@@ -440,31 +465,36 @@ test.describe('Event RSVP Workflow (Stagehand)', () => {
 
 				// Check for RSVP statistics on detail page
 				const detailStatsData = await extractData(stagehand, {
-					instruction: 'Find RSVP statistics or response breakdown showing counts for Accepted, Declined, Tentative responses',
+					instruction:
+						'Find RSVP statistics or response breakdown showing counts for Accepted, Declined, Tentative responses',
 					schema: z.object({
 						hasRsvpStats: z.boolean().describe('True if RSVP statistics are visible'),
-						responseBreakdown: z.array(z.object({
-							status: z.string().describe('RSVP status (Accepted, Declined, etc.)'),
-							count: z.number().optional().describe('Number of responses with this status')
-						})).optional()
+						responseBreakdown: z
+							.array(
+								z.object({
+									status: z.string().describe('RSVP status (Accepted, Declined, etc.)'),
+									count: z.number().optional().describe('Number of responses with this status')
+								})
+							)
+							.optional()
 					})
 				});
 
 				if (detailStatsData.hasRsvpStats && detailStatsData.responseBreakdown) {
 					// Verify we have breakdown of responses
-					const hasAcceptedOrGoing = detailStatsData.responseBreakdown.some(r =>
-						r.status.toLowerCase().includes('accept') ||
-						r.status.toLowerCase().includes('going')
+					const hasAcceptedOrGoing = detailStatsData.responseBreakdown.some(
+						(r) =>
+							r.status.toLowerCase().includes('accept') || r.status.toLowerCase().includes('going')
 					);
-					const hasDeclinedOrNotGoing = detailStatsData.responseBreakdown.some(r =>
-						r.status.toLowerCase().includes('decline') ||
-						r.status.toLowerCase().includes('not going')
+					const hasDeclinedOrNotGoing = detailStatsData.responseBreakdown.some(
+						(r) =>
+							r.status.toLowerCase().includes('decline') ||
+							r.status.toLowerCase().includes('not going')
 					);
 
 					expect(hasAcceptedOrGoing || hasDeclinedOrNotGoing).toBe(true);
 				}
 			}
-
 		} finally {
 			await cleanupStagehand(stagehand);
 		}

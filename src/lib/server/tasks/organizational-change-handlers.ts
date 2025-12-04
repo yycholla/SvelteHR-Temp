@@ -103,16 +103,13 @@ export async function handleManagerChange(
 			}
 		}
 
-		console.info(
-			`[ORG CHANGE] Handled manager change: ${results.length} tasks processed`,
-			{
-				departmentId,
-				oldManagerId,
-				newManagerId,
-				automaticReassignments: results.filter((r) => r.reassignedAutomatically).length,
-				manualReassignments: results.filter((r) => r.requiresManualReassignment).length
-			}
-		);
+		console.info(`[ORG CHANGE] Handled manager change: ${results.length} tasks processed`, {
+			departmentId,
+			oldManagerId,
+			newManagerId,
+			automaticReassignments: results.filter((r) => r.reassignedAutomatically).length,
+			manualReassignments: results.filter((r) => r.requiresManualReassignment).length
+		});
 	} catch (error) {
 		console.error('[ORG CHANGE] Error handling manager change:', error);
 	}
@@ -254,13 +251,10 @@ export async function handleEmployeeTermination(
 			}
 		}
 
-		console.info(
-			`[ORG CHANGE] Handled employee termination: ${results.length} tasks processed`,
-			{
-				employeeId,
-				departmentId
-			}
-		);
+		console.info(`[ORG CHANGE] Handled employee termination: ${results.length} tasks processed`, {
+			employeeId,
+			departmentId
+		});
 	} catch (error) {
 		console.error('[ORG CHANGE] Error handling employee termination:', error);
 	}
@@ -301,13 +295,10 @@ export async function handleDepartmentDissolution(
 			}
 		}
 
-		console.info(
-			`[ORG CHANGE] Handled department dissolution: ${results.length} tasks flagged`,
-			{
-				departmentId,
-				employeeCount: departmentEmployees.length
-			}
-		);
+		console.info(`[ORG CHANGE] Handled department dissolution: ${results.length} tasks flagged`, {
+			departmentId,
+			employeeCount: departmentEmployees.length
+		});
 	} catch (error) {
 		console.error('[ORG CHANGE] Error handling department dissolution:', error);
 	}
@@ -560,9 +551,7 @@ async function flagTaskForManualReassignment(
 /**
  * Get tasks requiring manual reassignment
  */
-export async function getTasksRequiringManualReassignment(
-	departmentId?: string
-): Promise<Task[]> {
+export async function getTasksRequiringManualReassignment(departmentId?: string): Promise<Task[]> {
 	try {
 		const graphqlEndpoint = getGraphQLEndpoint();
 
@@ -622,9 +611,7 @@ export async function getTasksRequiringManualReassignment(
 
 		// Filter by department if specified
 		if (departmentId) {
-			tasks = tasks.filter(
-				(task: any) => task.userByAssigneeId?.departmentId === departmentId
-			);
+			tasks = tasks.filter((task: any) => task.userByAssigneeId?.departmentId === departmentId);
 		}
 
 		return tasks;
@@ -685,10 +672,7 @@ export async function processOrganizationalChange(
 
 		case 'department_dissolved':
 			if (event.affectedDepartmentId) {
-				results = await handleDepartmentDissolution(
-					event.affectedDepartmentId,
-					event.performedBy
-				);
+				results = await handleDepartmentDissolution(event.affectedDepartmentId, event.performedBy);
 			}
 			break;
 

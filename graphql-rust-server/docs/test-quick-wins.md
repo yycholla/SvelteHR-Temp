@@ -7,6 +7,7 @@
 ## Quick Win Strategy
 
 These are tests that are:
+
 - **Easy to write** (1-2 hours each)
 - **No complex setup** (minimal database, auth, or infrastructure requirements)
 - **High value** (test critical paths or pure logic)
@@ -17,9 +18,11 @@ These are tests that are:
 ## Category 1: Pure Function Tests (No Database)
 
 ### 1. Filter Logic (`src/db/filters.rs`)
+
 **Current:** 5 tests | **Target:** 12 tests | **Effort:** 1-2 hours
 
 **Missing Test Cases:**
+
 ```rust
 #[test]
 fn test_filter_with_null_values() {
@@ -58,6 +61,7 @@ fn test_filter_case_insensitive_search() {
 ```
 
 **Why Quick Win:**
+
 - Pure logic, no database required
 - Clear input/output expectations
 - Critical for security (SQL injection prevention)
@@ -65,9 +69,11 @@ fn test_filter_case_insensitive_search() {
 ---
 
 ### 2. Pagination Logic (`src/services/pagination.rs`)
+
 **Current:** 6 tests | **Target:** 12 tests | **Effort:** 1-2 hours
 
 **Missing Test Cases:**
+
 ```rust
 #[test]
 fn test_pagination_with_zero_items() {
@@ -101,6 +107,7 @@ fn test_pagination_maximum_page_size_enforced() {
 ```
 
 **Why Quick Win:**
+
 - Cursor logic is pure (base64 encoding/decoding)
 - No database needed for cursor generation tests
 - Critical for API correctness
@@ -108,9 +115,11 @@ fn test_pagination_maximum_page_size_enforced() {
 ---
 
 ### 3. Query Builder (`src/services/query_builder.rs`)
+
 **Current:** 3 tests | **Target:** 10 tests | **Effort:** 2-3 hours
 
 **Missing Test Cases:**
+
 ```rust
 #[test]
 fn test_query_builder_with_single_field() {
@@ -149,6 +158,7 @@ fn test_query_builder_joins() {
 ```
 
 **Why Quick Win:**
+
 - Query building logic can be tested without executing queries
 - Verify SQL generation is correct
 - High value for security (SQL injection)
@@ -156,9 +166,11 @@ fn test_query_builder_joins() {
 ---
 
 ### 4. Error Formatting (`src/error.rs`)
+
 **Current:** 2 tests | **Target:** 8 tests | **Effort:** 1 hour
 
 **Missing Test Cases:**
+
 ```rust
 #[test]
 fn test_database_error_to_graphql_error() {
@@ -192,6 +204,7 @@ fn test_error_stack_trace_in_debug_mode() {
 ```
 
 **Why Quick Win:**
+
 - Pure logic (enum conversions)
 - No database or auth setup
 - Important for API consistency
@@ -201,9 +214,11 @@ fn test_error_stack_trace_in_debug_mode() {
 ## Category 2: Model Validation Tests (Minimal Database)
 
 ### 5. User Model (`src/models/user.rs`)
+
 **Current:** 2 tests | **Target:** 10 tests | **Effort:** 2-3 hours
 
 **Template:**
+
 ```rust
 #[cfg(test)]
 mod tests {
@@ -261,6 +276,7 @@ mod tests {
 ```
 
 **Why Quick Win:**
+
 - Most validation logic is pure (email validation, name formatting)
 - Password hashing is library-based (bcrypt)
 - No database queries needed for validation tests
@@ -268,9 +284,11 @@ mod tests {
 ---
 
 ### 6. Role Model (`src/models/role.rs`)
+
 **Current:** 1 test | **Target:** 8 tests | **Effort:** 2 hours
 
 **Test Cases:**
+
 ```rust
 #[test]
 fn test_role_hierarchy_admin_highest() {
@@ -304,6 +322,7 @@ fn test_role_serialization() {
 ```
 
 **Why Quick Win:**
+
 - Role hierarchy logic is pure (comparison functions)
 - Enum-based, easy to test all variants
 - Critical for RBAC correctness
@@ -311,9 +330,11 @@ fn test_role_serialization() {
 ---
 
 ### 7. Permission Model (`src/models/permission.rs`)
+
 **Current:** 1 test | **Target:** 8 tests | **Effort:** 1-2 hours
 
 **Test Cases:**
+
 ```rust
 #[test]
 fn test_permission_parsing_from_string() {
@@ -348,6 +369,7 @@ fn test_permission_comparison() {
 ```
 
 **Why Quick Win:**
+
 - String parsing logic is pure
 - Pattern matching can be tested without database
 - Essential for permission checks
@@ -357,9 +379,11 @@ fn test_permission_comparison() {
 ## Category 3: Middleware Tests (Moderate Setup)
 
 ### 8. JWT Middleware (`src/middleware/auth.rs`)
+
 **Current:** 6 tests | **Target:** 12 tests | **Effort:** 2-3 hours
 
 **Existing tests are good! Add edge cases:**
+
 ```rust
 #[tokio::test]
 async fn test_token_with_missing_claims() {
@@ -393,6 +417,7 @@ async fn test_case_insensitive_bearer_prefix() {
 ```
 
 **Why Quick Win:**
+
 - Test infrastructure already exists
 - Add edge cases to existing test suite
 - High value for security
@@ -400,9 +425,11 @@ async fn test_case_insensitive_bearer_prefix() {
 ---
 
 ### 9. Request Limits Middleware (`src/middleware/request_limits.rs`)
+
 **Current:** 6 tests | **Target:** 10 tests | **Effort:** 1 hour
 
 **Add edge cases:**
+
 ```rust
 #[tokio::test]
 async fn test_body_size_exactly_at_limit() {
@@ -430,9 +457,11 @@ async fn test_limits_reset_after_time_window() {
 ## Category 4: Utility Function Tests (Super Easy)
 
 ### 10. Query Debugger (`src/utils/query_debugger.rs`)
+
 **Current:** 2 tests | **Target:** 8 tests | **Effort:** 1 hour
 
 **Test Cases:**
+
 ```rust
 #[test]
 fn test_query_parsing_simple_query() {}
@@ -454,6 +483,7 @@ fn test_query_variable_extraction() {}
 ```
 
 **Why Quick Win:**
+
 - Pure string parsing logic
 - No external dependencies
 - Fast to write and run
@@ -461,9 +491,11 @@ fn test_query_variable_extraction() {}
 ---
 
 ### 11. Schema Validator (`src/utils/schema_validator.rs`)
+
 **Current:** 1 test | **Target:** 8 tests | **Effort:** 1 hour
 
 **Test Cases:**
+
 ```rust
 #[test]
 fn test_valid_schema_passes() {}
@@ -485,19 +517,19 @@ fn test_schema_argument_validation() {}
 
 ## Quick Win Summary Table
 
-| Module | Current | Target | Effort | Value | Priority |
-|--------|---------|--------|--------|-------|----------|
-| Filter Logic | 5 | 12 | 1-2h | High | 1 |
-| Pagination | 6 | 12 | 1-2h | High | 2 |
-| Error Formatting | 2 | 8 | 1h | Medium | 3 |
-| User Model | 2 | 10 | 2-3h | High | 4 |
-| Role Model | 1 | 8 | 2h | High | 5 |
-| Permission Model | 1 | 8 | 1-2h | High | 6 |
-| Query Builder | 3 | 10 | 2-3h | High | 7 |
-| JWT Middleware | 6 | 12 | 2-3h | Medium | 8 |
-| Request Limits | 6 | 10 | 1h | Low | 9 |
-| Query Debugger | 2 | 8 | 1h | Low | 10 |
-| Schema Validator | 1 | 8 | 1h | Low | 11 |
+| Module           | Current | Target | Effort | Value  | Priority |
+| ---------------- | ------- | ------ | ------ | ------ | -------- |
+| Filter Logic     | 5       | 12     | 1-2h   | High   | 1        |
+| Pagination       | 6       | 12     | 1-2h   | High   | 2        |
+| Error Formatting | 2       | 8      | 1h     | Medium | 3        |
+| User Model       | 2       | 10     | 2-3h   | High   | 4        |
+| Role Model       | 1       | 8      | 2h     | High   | 5        |
+| Permission Model | 1       | 8      | 1-2h   | High   | 6        |
+| Query Builder    | 3       | 10     | 2-3h   | High   | 7        |
+| JWT Middleware   | 6       | 12     | 2-3h   | Medium | 8        |
+| Request Limits   | 6       | 10     | 1h     | Low    | 9        |
+| Query Debugger   | 2       | 8      | 1h     | Low    | 10       |
+| Schema Validator | 1       | 8      | 1h     | Low    | 11       |
 
 **Total Effort:** 16-23 hours
 **Coverage Increase:** +10-15% overall coverage
@@ -508,7 +540,9 @@ fn test_schema_argument_validation() {}
 ## Implementation Strategy
 
 ### Week 1: Pure Logic Tests (8-10 hours)
+
 **Days 1-2:**
+
 - Filter Logic (7 tests)
 - Pagination (6 tests)
 - Error Formatting (6 tests)
@@ -518,7 +552,9 @@ fn test_schema_argument_validation() {}
 ---
 
 ### Week 2: Model Validation Tests (8-10 hours)
+
 **Days 3-4:**
+
 - User Model (8 tests)
 - Role Model (7 tests)
 - Permission Model (7 tests)
@@ -528,7 +564,9 @@ fn test_schema_argument_validation() {}
 ---
 
 ### Week 3: Middleware & Utilities (6-8 hours)
+
 **Days 5-6:**
+
 - Query Builder (7 tests)
 - JWT Middleware (6 tests)
 - Request Limits (4 tests)
@@ -542,6 +580,7 @@ fn test_schema_argument_validation() {}
 ## Success Criteria
 
 After completing quick wins:
+
 - ✅ Coverage increases from 25% to 40%
 - ✅ All pure logic functions have 80%+ coverage
 - ✅ Critical models (User, Role, Permission) have validation tests
@@ -555,6 +594,7 @@ After completing quick wins:
 ## Test Writing Tips
 
 ### 1. Follow the AAA Pattern
+
 ```rust
 #[test]
 fn test_example() {
@@ -570,6 +610,7 @@ fn test_example() {
 ```
 
 ### 2. Use Descriptive Test Names
+
 ```rust
 // ❌ Bad
 #[test]
@@ -581,6 +622,7 @@ fn test_email_validation_rejects_missing_at_symbol() {}
 ```
 
 ### 3. Test One Thing Per Test
+
 ```rust
 // ❌ Bad - Tests multiple things
 #[test]
@@ -603,6 +645,7 @@ fn test_user_is_active_by_default() {
 ```
 
 ### 4. Use Test Data Builders
+
 ```rust
 // Instead of:
 let user = User {
@@ -619,6 +662,7 @@ let user = UserBuilder::new()
 ```
 
 ### 5. Test Edge Cases
+
 ```rust
 #[test]
 fn test_empty_string() {}
@@ -661,6 +705,7 @@ cargo tarpaulin --lib --out Html --output-dir coverage/
 ## Conclusion
 
 These quick wins provide:
+
 1. **Immediate value** - Test critical logic paths
 2. **Low barrier to entry** - Easy for new contributors
 3. **Momentum** - Build confidence in testing

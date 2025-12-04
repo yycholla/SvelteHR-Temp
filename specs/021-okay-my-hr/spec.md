@@ -15,7 +15,7 @@
 - Q: How should the SystemSettings table be structured? → A: Singleton table with one row; settings are updated in place
 - Q: How should the system handle webhook delivery failures when sending notifications? → A: Best-effort delivery; log failure and continue without retry
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - System Branding Configuration (Priority: P1)
 
@@ -134,7 +134,7 @@ As a developer or system administrator, I want to configure log levels for front
 - What happens when timezone is changed while users are viewing timestamped data?
 - How does the system handle HTTPS enforcement when SSL certificates are invalid or expired?
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -230,7 +230,7 @@ As a developer or system administrator, I want to configure log levels for front
   - `locked_at`: Timestamp of when account was locked
   - `password_last_changed`: Timestamp of last password change (for expiration)
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

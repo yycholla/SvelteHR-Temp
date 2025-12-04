@@ -36,8 +36,8 @@ export const POST: RequestHandler = async ({ locals, cookies, request }) => {
 
 	if (!allowedRoles.includes(userRole)) {
 		error(403, {
-        			message: 'Access denied. Only HR admins and admins can submit rollback requests.'
-        		});
+			message: 'Access denied. Only HR admins and admins can submit rollback requests.'
+		});
 	}
 
 	const token = cookies.get('hr_token') || cookies.get('auth-token');
@@ -74,8 +74,8 @@ export const POST: RequestHandler = async ({ locals, cookies, request }) => {
 		if (result.error) {
 			console.error('[RollbackRequest] GraphQL error:', result.error);
 			error(500, {
-            				message: result.error.message || 'Failed to create rollback request'
-            			});
+				message: result.error.message || 'Failed to create rollback request'
+			});
 		}
 
 		if (!result.data?.createRollbackRequest?.rollbackRequest) {
@@ -97,7 +97,7 @@ export const POST: RequestHandler = async ({ locals, cookies, request }) => {
 		}
 
 		error(500, {
-        			message: 'Failed to submit rollback request'
-        		});
+			message: 'Failed to submit rollback request'
+		});
 	}
 };

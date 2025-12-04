@@ -35,7 +35,8 @@ export interface AuthUser {
 
 // Auth service configuration for session-based authentication
 const AUTH_CONFIG = {
-	apiBaseUrl: browser && typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4000',
+	apiBaseUrl:
+		browser && typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4000',
 	endpoints: {
 		login: '/api/auth/login',
 		logout: '/api/auth/logout',

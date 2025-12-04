@@ -47,16 +47,19 @@ Apply Missing Migrations Only
 ## Benefits
 
 ### ✅ Multi-PC Development
+
 - **No manual migration commands** needed
 - **Automatic synchronization** across development machines
 - **Consistent database state** everywhere
 
 ### ✅ Idempotent & Safe
+
 - Only applies migrations that haven't run
 - Tracks migration history with checksums
 - Stops on first error with detailed reporting
 
 ### ✅ Docker-Native
+
 - Leverages Docker healthchecks
 - No external tools required
 - Works with Docker Compose out of the box
@@ -85,12 +88,14 @@ npm run db:check
 ### Adding a New Migration
 
 1. Create migration file:
+
    ```bash
    npm run db:new-migration
    # Or manually: touch db/migrations/20251016_001_description.sql
    ```
 
 2. Write SQL (use transactions):
+
    ```sql
    BEGIN;
 
@@ -115,6 +120,7 @@ npm run db:migrate:status
 ```
 
 Output:
+
 ```
 📊 Migration Status Report
 ==================================
@@ -219,16 +225,19 @@ WHERE success = false;
 ### Problem: Migrations Not Auto-Applying
 
 **Check healthcheck status:**
+
 ```bash
 docker inspect sveltehr-postgres-dev --format='{{json .State.Health}}' | jq
 ```
 
 **View healthcheck logs:**
+
 ```bash
 docker logs sveltehr-postgres-dev 2>&1 | grep -A20 "Checking for pending migrations"
 ```
 
 **Manually trigger migration check:**
+
 ```bash
 npm run db:migrate
 ```
@@ -236,6 +245,7 @@ npm run db:migrate
 ### Problem: Migration Failed
 
 **View error details:**
+
 ```bash
 npm run db:migrate:status
 ```
@@ -257,11 +267,13 @@ docker exec -it sveltehr-postgres-dev psql -U postgres -d hr_system
 ### Problem: Inconsistent State Between PCs
 
 **Root causes:**
+
 - Different migration files (Git not synced)
 - Failed migrations on one PC but not the other
 - Manual database changes
 
 **Resolution:**
+
 ```bash
 # On problematic PC:
 npm run db:rebuild
@@ -296,14 +308,14 @@ db/
 postgres-dev:
   build:
     context: ../
-    dockerfile: dev-containers/postgres/Dockerfile  # Custom Dockerfile
+    dockerfile: dev-containers/postgres/Dockerfile # Custom Dockerfile
   volumes:
     - postgres_dev_data:/var/lib/postgresql/data
-    - ../db/init:/docker-entrypoint-initdb.d:ro    # Init scripts
-    - ../db/migrations:/migrations:ro               # Migration files
-    - ../db/scripts:/usr/local/bin/db-scripts:ro   # Runtime scripts
+    - ../db/init:/docker-entrypoint-initdb.d:ro # Init scripts
+    - ../db/migrations:/migrations:ro # Migration files
+    - ../db/scripts:/usr/local/bin/db-scripts:ro # Runtime scripts
   healthcheck:
-    test: ['/usr/local/bin/healthcheck.sh']        # Custom healthcheck
+    test: ['/usr/local/bin/healthcheck.sh'] # Custom healthcheck
     interval: 10s
     timeout: 15s
     retries: 6
@@ -374,6 +386,7 @@ Typical migration execution times:
 - **Data migrations**: Varies by data size
 
 Total initialization time (fresh database):
+
 - **40+ migrations**: ~10-15 seconds
 - Includes PostgreSQL startup + all migrations
 

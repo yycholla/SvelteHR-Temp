@@ -158,7 +158,9 @@ describeOrSkip('Migration Smoke Tests - Idiomatic Rust Patterns', () => {
 				}
 			`;
 
-			const result = await client.query(query, { id: '550e8400-e29b-41d4-a716-446655440000' }).toPromise();
+			const result = await client
+				.query(query, { id: '550e8400-e29b-41d4-a716-446655440000' })
+				.toPromise();
 
 			// This query should fail
 			expect(result.error).toBeDefined();

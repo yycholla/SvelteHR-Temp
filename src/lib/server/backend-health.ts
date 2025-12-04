@@ -93,10 +93,7 @@ export async function checkBackendHealth(
 		// Don't wait after the last retry attempt
 		if (retries < maxRetries) {
 			// Calculate delay with exponential backoff
-			const delay = Math.min(
-				initialDelay * Math.pow(backoffMultiplier, retries - 1),
-				maxDelay
-			);
+			const delay = Math.min(initialDelay * Math.pow(backoffMultiplier, retries - 1), maxDelay);
 
 			await new Promise((resolve) => setTimeout(resolve, delay));
 		}
@@ -146,12 +143,7 @@ export async function withExponentialBackoff<T>(
 	fn: () => Promise<T>,
 	options: HealthCheckOptions = {}
 ): Promise<T> {
-	const {
-		maxRetries = 10,
-		initialDelay = 1000,
-		maxDelay = 60000,
-		backoffMultiplier = 2
-	} = options;
+	const { maxRetries = 10, initialDelay = 1000, maxDelay = 60000, backoffMultiplier = 2 } = options;
 
 	let retries = 0;
 	let lastError: Error | null = null;
@@ -166,21 +158,14 @@ export async function withExponentialBackoff<T>(
 			// Don't wait after the last retry attempt
 			if (retries < maxRetries) {
 				// Calculate delay with exponential backoff
-				const delay = Math.min(
-					initialDelay * Math.pow(backoffMultiplier, retries - 1),
-					maxDelay
-				);
+				const delay = Math.min(initialDelay * Math.pow(backoffMultiplier, retries - 1), maxDelay);
 
-				console.log(
-					`[BackendHealth] Retry ${retries}/${maxRetries} after ${delay}ms delay...`
-				);
+				console.log(`[BackendHealth] Retry ${retries}/${maxRetries} after ${delay}ms delay...`);
 
 				await new Promise((resolve) => setTimeout(resolve, delay));
 			}
 		}
 	}
 
-	throw new Error(
-		`Failed after ${maxRetries} retries: ${lastError?.message || 'Unknown error'}`
-	);
+	throw new Error(`Failed after ${maxRetries} retries: ${lastError?.message || 'Unknown error'}`);
 }

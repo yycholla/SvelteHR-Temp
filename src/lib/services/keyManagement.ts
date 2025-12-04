@@ -8,10 +8,7 @@ import type { CreateEncryptionKeyInput } from '$lib/graphql/encryption-operation
 
 // Register a new encryption key via GraphQL (server-side pgcrypto encrypted storage)
 // Note: userId is determined server-side from authenticated session
-export async function registerKey(
-	keyData: ArrayBuffer,
-	keyIdentifier: string
-): Promise<string> {
+export async function registerKey(keyData: ArrayBuffer, keyIdentifier: string): Promise<string> {
 	// Convert ArrayBuffer to base64 for transmission
 	const keyBytes = new Uint8Array(keyData);
 	const base64Key = btoa(String.fromCharCode(...keyBytes));
@@ -66,13 +63,16 @@ export async function retrieveKey(keyId: string): Promise<ArrayBuffer> {
 
 // Retrieve key by identifier
 export async function retrieveKeyByIdentifier(keyIdentifier: string): Promise<ArrayBuffer> {
-	const response = await fetch(`/api/encryption/keys?identifier=${encodeURIComponent(keyIdentifier)}`, {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		credentials: 'include' // Include cookies for authentication
-	});
+	const response = await fetch(
+		`/api/encryption/keys?identifier=${encodeURIComponent(keyIdentifier)}`,
+		{
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			credentials: 'include' // Include cookies for authentication
+		}
+	);
 
 	if (!response.ok) {
 		const error = await response.json();
