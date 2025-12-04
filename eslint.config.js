@@ -17,10 +17,13 @@ export default ts.config(
 			'dist/**/*',
 			'build/**/*',
 			'.svelte-kit/**/*',
-			'scripts/**/*.js',
-			'*.config.{js,cjs,mjs}',
+			'scripts/**/*', // Exclude all scripts from linting (utility files)
+			'*.config.{js,cjs,mjs,ts}', // Exclude all config files
 			'*.{cjs,mjs}',
-			'**/*.js' // Exclude all .js files from TypeScript type-aware linting
+			'**/*.js', // Exclude all .js files from TypeScript type-aware linting
+			'codegen.ts', // GraphQL codegen config
+			'playwright.config.ts', // Playwright config
+			'vitest*.ts' // Vitest config files
 		]
 	},
 	js.configs.recommended,
