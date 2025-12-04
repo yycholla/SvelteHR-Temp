@@ -29,10 +29,12 @@
 	let mobileMenuOpen = $state(false);
 
 	// Derived
-	let activeContent = $derived(contents[activeIndex]);
+	let activeContent = $derived(contents && contents[activeIndex]);
 	let activeIcon = $derived(activeContent ? getIcon(activeContent.type) : FileText);
 	let completionPercentage = $derived(
-		Math.round((progressData.filter((p: any) => p.status === 'COMPLETED').length / contents.length) * 100) || 0
+		contents && contents.length > 0
+			? Math.round((progressData.filter((p: any) => p.status === 'COMPLETED').length / contents.length) * 100)
+			: 0
 	);
 
 	function isCompleted(contentId: string) {
@@ -40,13 +42,13 @@
 	}
 
 	function handleNext() {
-		if (activeIndex < contents.length - 1) {
+		if (contents && activeIndex < contents.length - 1) {
 			activeIndex++;
 		}
 	}
 
 	function handlePrevious() {
-		if (activeIndex > 0) {
+		if (contents && activeIndex > 0) {
 			activeIndex--;
 		}
 	}
@@ -281,7 +283,7 @@
 							<Button variant="outline" disabled={activeIndex === 0} onclick={handlePrevious} class="w-full sm:w-auto">
 								<ChevronLeft class="mr-2 h-4 w-4" /> Previous
 							</Button>
-							<Button variant="outline" disabled={activeIndex === contents.length - 1} onclick={handleNext} class="w-full sm:w-auto">
+							<Button variant="outline" disabled={!contents || activeIndex === contents.length - 1} onclick={handleNext} class="w-full sm:w-auto">
 								Next <ChevronRight class="ml-2 h-4 w-4" />
 							</Button>
 						</div>
@@ -294,7 +296,7 @@
 									if (result.type === 'success') {
 										// Optimistically update progress
 										progressData = [...progressData, { trainingContentId: activeContent.id, status: 'COMPLETED' }];
-										if (activeIndex < contents.length - 1) {
+										if (contents && activeIndex < contents.length - 1) {
 											handleNext();
 										}
 									}

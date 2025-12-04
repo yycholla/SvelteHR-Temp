@@ -24,66 +24,32 @@
 	let sessionTimeoutManager: SessionTimeoutManager | null = null;
 	let showTimeoutBlur = $state(false);
 	let timeoutToastId: string | number | undefined;
-	let countdownInterval: ReturnType<typeof setInterval> | null = null;
 
 	// Simplify layout logic to prevent reactive re-mounting issues
 	const isAuthPage = $derived($page?.url?.pathname === '/login');
 	const isPublicPage = $derived(isAuthPage || $page?.url?.pathname === '/');
 
-	// Show timeout warning with Sonner
+	// Show/update timeout warning with Sonner
 	function showTimeoutSonner(remainingSeconds: number) {
 		const minutes = Math.floor(remainingSeconds / 60);
 		const seconds = remainingSeconds % 60;
 
+		// Create or update the toast with the same ID
 		timeoutToastId = toast.warning(
 			`Session expiring in ${minutes}:${seconds.toString().padStart(2, '0')}`,
 			{
+				id: timeoutToastId, // Reuse the same toast ID to update instead of creating new
 				description: 'Click anywhere or press Continue to stay logged in',
 				duration: Infinity,
 				action: {
 					label: 'Continue',
 					onClick: () => {
 						showTimeoutBlur = false;
-						if (countdownInterval) {
-							clearInterval(countdownInterval);
-							countdownInterval = null;
-						}
 						sessionTimeoutManager?.refreshSession();
 					}
 				}
 			}
 		);
-
-		// Update countdown every second
-		countdownInterval = setInterval(() => {
-			const remaining = sessionTimeoutManager?.getRemainingTime() || 0;
-			if (remaining <= 0) {
-				if (countdownInterval) {
-					clearInterval(countdownInterval);
-					countdownInterval = null;
-				}
-				return;
-			}
-
-			const min = Math.floor(remaining / 60);
-			const sec = remaining % 60;
-			toast.warning(`Session expiring in ${min}:${sec.toString().padStart(2, '0')}`, {
-				id: timeoutToastId,
-				description: 'Click anywhere or press Continue to stay logged in',
-				duration: Infinity,
-				action: {
-					label: 'Continue',
-					onClick: () => {
-						showTimeoutBlur = false;
-						if (countdownInterval) {
-							clearInterval(countdownInterval);
-							countdownInterval = null;
-						}
-						sessionTimeoutManager?.refreshSession();
-					}
-				}
-			});
-		}, 1000);
 	}
 
 	// Initialize session timeout on mount (only for authenticated pages)
@@ -126,10 +92,6 @@
 								toast.dismiss(timeoutToastId);
 								timeoutToastId = undefined;
 							}
-							if (countdownInterval) {
-								clearInterval(countdownInterval);
-								countdownInterval = null;
-							}
 						}
 					},
 					onSessionRefreshed: () => {
@@ -148,9 +110,6 @@
 		}
 		if (timeoutToastId) {
 			toast.dismiss(timeoutToastId);
-		}
-		if (countdownInterval) {
-			clearInterval(countdownInterval);
 		}
 	});
 </script>

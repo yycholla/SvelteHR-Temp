@@ -52,6 +52,11 @@ mod m20251201_001_create_training_module;
 mod m20251201_002_add_training_permissions;
 mod m20251202_001_enhance_training_schema;
 mod m20251202_003_add_training_recurrence;
+mod m20251202_004_create_onboarding_module;
+mod m20251202_005_seed_w4_form_template;
+mod m20251202_006_integrate_onboarding_documents;
+mod m20251202_007_create_onboarding_forms;
+mod m20251203_001_migrate_content_blocks_to_forms;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -98,6 +103,11 @@ impl MigratorTrait for Migrator {
             Box::new(m20251201_002_add_training_permissions::Migration),
             Box::new(m20251202_001_enhance_training_schema::Migration),
             Box::new(m20251202_003_add_training_recurrence::Migration),
+            Box::new(m20251202_004_create_onboarding_module::Migration),
+            Box::new(m20251202_005_seed_w4_form_template::Migration),
+            Box::new(m20251202_006_integrate_onboarding_documents::Migration),
+            Box::new(m20251202_007_create_onboarding_forms::Migration),
+            Box::new(m20251203_001_migrate_content_blocks_to_forms::Migration),
         ]
     }
 }

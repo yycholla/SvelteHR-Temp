@@ -8,6 +8,7 @@ pub mod task;
 pub mod time;
 pub mod user;
 pub mod training;
+pub mod onboarding;
 
 pub use auth::AuthMutations;
 pub use department::DepartmentMutations;
@@ -19,3 +20,4 @@ pub use task::TaskMutations;
 pub use time::TimeMutations;
 pub use user::UserMutations;
 pub use training::TrainingMutations;
+pub use onboarding::OnboardingMutations;

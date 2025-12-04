@@ -18,6 +18,7 @@ use crate::{
 
 pub mod events;
 pub mod roles;
+pub mod users;
 
 use crate::models::user::Entity as UserEntity; // Import UserEntity
 

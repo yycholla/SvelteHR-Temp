@@ -2,7 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
-import { GET_ALL_USERS_QUERY, GET_ALL_DEPARTMENTS_QUERY, GET_TRAINING_ASSIGNMENTS_QUERY, CREATE_ASSIGNMENT_MUTATION, DELETE_ASSIGNMENT_MUTATION, ASSIGN_TO_DEPARTMENT_MUTATION, ASSIGN_TO_ALL_EMPLOYEES_MUTATION } from '$lib/graphql/training-operations';
+import { GET_ALL_DEPARTMENTS_QUERY, GET_TRAINING_ASSIGNMENTS_QUERY, CREATE_ASSIGNMENT_MUTATION, DELETE_ASSIGNMENT_MUTATION, ASSIGN_TO_DEPARTMENT_MUTATION, ASSIGN_TO_ALL_EMPLOYEES_MUTATION } from '$lib/graphql/training-operations';
 
 export const load: PageServerLoad = async (event) => {
     requireAuth(event, { requiredRoles: ['Admin', 'HR Manager'] });
@@ -29,13 +29,26 @@ export const load: PageServerLoad = async (event) => {
 
     // Fetch training details
     const trainingResponse = await client.query(trainingQuery, { id });
-    
+
     if (!trainingResponse.data?.training) {
         throw redirect(303, '/dashboard/admin/trainings');
     }
 
-    // Fetch all users for assignment dropdown
-    const usersResponse = await client.query(GET_ALL_USERS_QUERY);
+    // Fetch all users via REST endpoint (defaults to 1000 limit)
+    const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://hr-graphql-rust:4000';
+    const usersResponse = await fetch(`${apiUrl}/api/users?limit=1000`, {
+        credentials: 'include',
+        headers: {
+            Cookie: event.request.headers.get('cookie') || ''
+        }
+    });
+
+    if (!usersResponse.ok) {
+        console.error('Failed to fetch users from REST endpoint:', usersResponse.statusText);
+        throw fail(500, { error: 'Failed to load users' });
+    }
+
+    const allUsers = await usersResponse.json();
 
     // Fetch all departments for bulk assignment
     const departmentsResponse = await client.query(GET_ALL_DEPARTMENTS_QUERY);
@@ -52,7 +65,7 @@ export const load: PageServerLoad = async (event) => {
 
     return {
         training: trainingResponse.data.training,
-        allUsers: usersResponse.data?.users || [],
+        allUsers,
         departments: departmentsResponse.data?.departments || [],
         assignments
     };

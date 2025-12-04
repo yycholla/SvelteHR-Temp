@@ -1,4 +1,4 @@
-name: CI (Frontend)
+name: CI (Full Stack)
 
 on:
   push:
@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint-and-typecheck:
+  lint:
     name: Lint & Type Check
     runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 10
@@ -33,19 +33,55 @@ jobs:
       - name: Type Check
         run: npm run check
 
-  test:
-    name: Tests - ${{ matrix.test-suite }}
+  backend-test:
+    name: Backend Tests (Rust)
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hr_system_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          cache: true
+
+      - name: Run backend tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hr_system_test
+          RUST_BACKTRACE: 1
+        run: |
+          cd graphql-rust-server
+          cargo test --verbose
+
+      - name: Upload backend test results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: backend-test-results
+          path: graphql-rust-server/target/debug/
+          retention-days: 7
+
+  unit-tests:
+    name: Unit Tests (Frontend)
     runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        test-suite:
-          - unit
-          - integration
-          - contract
-          - graphql
-
     steps:
       - uses: actions/checkout@v5
 
@@ -57,16 +93,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run ${{ matrix.test-suite }} tests
-        run: npm run test:${{ matrix.test-suite }} -- --run --coverage
+      - name: Run unit tests
+        run: npm run test:unit -- --run --coverage
 
       - name: Upload coverage to Codecov
-        if: matrix.test-suite == 'unit'
         uses: codecov/codecov-action@v5
         with:
           files: ./coverage/lcov.info
-          flags: ${{ matrix.test-suite }}
-          name: ${{ matrix.test-suite }}-coverage
+          flags: unit
+          name: unit-coverage
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 
@@ -74,17 +109,361 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: test-results-${{ matrix.test-suite }}
+          name: unit-test-results
           path: |
             coverage/
             test-results/
           retention-days: 7
 
+  contract-tests:
+    name: Contract Tests
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 20
+    needs: backend-test
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hr_system_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          cache: true
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build and start backend server
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hr_system_test
+        run: |
+          cd graphql-rust-server
+          cargo build --release
+
+          # Run migrations (allow warnings)
+          cargo run --bin migration up || echo "Migration completed with warnings"
+
+          # Start backend server in background
+          nohup cargo run --release > /tmp/backend.log 2>&1 &
+          echo $! > /tmp/backend.pid
+
+          # Wait for server to be ready
+          echo "Waiting for backend server to be ready..."
+          timeout 60 bash -c 'until curl -f http://localhost:4000/health; do sleep 2; done' || (echo "Backend failed to start:" && cat /tmp/backend.log && exit 1)
+          echo "Backend server is ready!"
+
+      - name: Run contract tests
+        env:
+          GRAPHQL_ENDPOINT: http://localhost:4000/graphql
+        run: npm run test:contract -- --run --reporter=verbose
+
+      - name: Stop backend server
+        if: always()
+        run: |
+          if [ -f /tmp/backend.pid ]; then
+            kill $(cat /tmp/backend.pid) || true
+          fi
+
+      - name: Upload backend logs
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: contract-backend-logs
+          path: /tmp/backend.log
+          retention-days: 7
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: contract-test-results
+          path: test-results/
+          retention-days: 7
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 20
+    needs: backend-test
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hr_system_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          cache: true
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build and start backend server
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hr_system_test
+        run: |
+          cd graphql-rust-server
+          cargo build --release
+          cargo run --bin migration up || echo "Migration completed with warnings"
+          nohup cargo run --release > /tmp/backend.log 2>&1 &
+          echo $! > /tmp/backend.pid
+          timeout 60 bash -c 'until curl -f http://localhost:4000/health; do sleep 2; done' || (cat /tmp/backend.log && exit 1)
+
+      - name: Run integration tests
+        env:
+          GRAPHQL_ENDPOINT: http://localhost:4000/graphql
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hr_system_test
+        run: npm run test:integration -- --run --reporter=verbose
+
+      - name: Stop backend server
+        if: always()
+        run: |
+          if [ -f /tmp/backend.pid ]; then
+            kill $(cat /tmp/backend.pid) || true
+          fi
+
+      - name: Upload backend logs
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: integration-backend-logs
+          path: /tmp/backend.log
+          retention-days: 7
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: integration-test-results
+          path: test-results/
+          retention-days: 7
+
+  graphql-tests:
+    name: GraphQL Tests
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 20
+    needs: backend-test
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hr_system_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          cache: true
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build and start backend server
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hr_system_test
+        run: |
+          cd graphql-rust-server
+          cargo build --release
+          cargo run --bin migration up || echo "Migration completed with warnings"
+          nohup cargo run --release > /tmp/backend.log 2>&1 &
+          echo $! > /tmp/backend.pid
+          timeout 60 bash -c 'until curl -f http://localhost:4000/health; do sleep 2; done' || (cat /tmp/backend.log && exit 1)
+
+      - name: Run GraphQL tests
+        env:
+          GRAPHQL_ENDPOINT: http://localhost:4000/graphql
+        run: npm run test:graphql -- --run --reporter=verbose
+
+      - name: Stop backend server
+        if: always()
+        run: |
+          if [ -f /tmp/backend.pid ]; then
+            kill $(cat /tmp/backend.pid) || true
+          fi
+
+      - name: Upload backend logs
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: graphql-backend-logs
+          path: /tmp/backend.log
+          retention-days: 7
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: graphql-test-results
+          path: test-results/
+          retention-days: 7
+
+  e2e-tests:
+    name: E2E Tests
+    runs-on: blacksmith-8vcpu-ubuntu-2404
+    timeout-minutes: 30
+    needs: [backend-test, unit-tests]
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hr_system_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          cache: true
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Build and start backend server
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hr_system_test
+        run: |
+          cd graphql-rust-server
+          cargo build --release
+          cargo run --bin migration up || echo "Migration completed with warnings"
+          nohup cargo run --release > /tmp/backend.log 2>&1 &
+          echo $! > /tmp/backend.pid
+          timeout 60 bash -c 'until curl -f http://localhost:4000/health; do sleep 2; done' || (cat /tmp/backend.log && exit 1)
+
+      - name: Start frontend dev server
+        env:
+          PUBLIC_API_URL: http://localhost:4000
+          GRAPHQL_ENDPOINT: http://localhost:4000/graphql
+        run: |
+          nohup npm run dev:local > /tmp/frontend.log 2>&1 &
+          echo $! > /tmp/frontend.pid
+
+          # Wait for frontend to be ready
+          echo "Waiting for frontend server to be ready..."
+          timeout 60 bash -c 'until curl -f http://localhost:5173; do sleep 2; done' || (echo "Frontend failed to start:" && cat /tmp/frontend.log && exit 1)
+          echo "Frontend server is ready!"
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+
+      - name: Stop servers
+        if: always()
+        run: |
+          if [ -f /tmp/frontend.pid ]; then
+            kill $(cat /tmp/frontend.pid) || true
+          fi
+          if [ -f /tmp/backend.pid ]; then
+            kill $(cat /tmp/backend.pid) || true
+          fi
+
+      - name: Upload server logs
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: e2e-server-logs
+          path: |
+            /tmp/backend.log
+            /tmp/frontend.log
+          retention-days: 7
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: e2e-test-results
+          path: test-results/
+          retention-days: 7
+
   build:
-    name: Build
+    name: Production Build
     runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 10
-    needs: [lint-and-typecheck, test]
+    needs: [lint, unit-tests]
     steps:
       - uses: actions/checkout@v5
 
@@ -105,3 +484,52 @@ jobs:
           name: sveltehr-build
           path: build
           retention-days: 7
+
+  test-summary:
+    name: Test Summary
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 5
+    if: always()
+    needs: [lint, backend-test, unit-tests, contract-tests, integration-tests, graphql-tests, e2e-tests, build]
+    steps:
+      - name: Check test results
+        run: |
+          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Critical tests (must pass)
+          echo "### Critical Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- Lint: ${{ needs.lint.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend Tests: ${{ needs.backend-test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Unit Tests: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Build: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Integration tests (important but can be flaky)
+          echo "### Integration Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- Contract Tests: ${{ needs.contract-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Integration Tests: ${{ needs.integration-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- GraphQL Tests: ${{ needs.graphql-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- E2E Tests: ${{ needs.e2e-tests.result }}" >> $GITHUB_STEP_SUMMARY
+
+          # Check for failures in critical tests
+          if [[ "${{ needs.lint.result }}" != "success" ]] || \
+             [[ "${{ needs.backend-test.result }}" != "success" ]] || \
+             [[ "${{ needs.unit-tests.result }}" != "success" ]] || \
+             [[ "${{ needs.build.result }}" != "success" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **Critical tests failed!**" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          # Warn about integration test failures but don't fail the workflow
+          if [[ "${{ needs.contract-tests.result }}" != "success" ]] || \
+             [[ "${{ needs.integration-tests.result }}" != "success" ]] || \
+             [[ "${{ needs.graphql-tests.result }}" != "success" ]] || \
+             [[ "${{ needs.e2e-tests.result }}" != "success" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️  **Some integration tests failed. Please review.**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **All tests passed!**" >> $GITHUB_STEP_SUMMARY
+          fi

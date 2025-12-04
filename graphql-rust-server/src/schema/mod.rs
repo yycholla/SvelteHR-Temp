@@ -2,7 +2,7 @@ mod query;
 mod mutation;
 mod mutations;
 
-pub use query::QueryRoot;
+pub use query::{QueryRoot, apply_user_rls_filter};
 pub use mutation::MutationRoot;
 use crate::middleware::ErrorLoggingExtension;
 

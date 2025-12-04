@@ -4,6 +4,7 @@
 		Award,
 		BarChart3,
 		Bell,
+		BookOpen,
 		Building2,
 		Calendar,
 		CheckSquare,
@@ -339,6 +340,13 @@
 			permission: 'training:read'
 		},
 		{
+			title: 'Onboarding',
+			url: '/dashboard/onboarding',
+			icon: BookOpen,
+			standalone: true,
+			permission: 'onboarding:read'
+		},
+		{
 			title: 'Documents',
 			url: '/dashboard/documents',
 			icon: FolderOpen,
@@ -394,6 +402,12 @@
 			url: '/dashboard/admin/trainings',
 			icon: GraduationCap,
 			permissionAny: ['training:write', 'training:assign']
+		},
+		{
+			title: 'Onboarding Modules',
+			url: '/dashboard/admin/onboarding',
+			icon: BookOpen,
+			permissionAny: ['onboarding:write', 'onboarding:assign']
 		},
 		{
 			title: 'User Management',

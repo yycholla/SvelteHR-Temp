@@ -11,7 +11,7 @@ use crate::{
     database::get_db_from_context,
     error::AppError,
     schema::mutations::{
-        AuthMutations, UserMutations, DepartmentMutations, TaskMutations, RbacMutations, TimeMutations, EmployeeMutations, EmployeeImportMutations, TrainingMutations,
+        AuthMutations, UserMutations, DepartmentMutations, TaskMutations, RbacMutations, TimeMutations, EmployeeMutations, EmployeeImportMutations, TrainingMutations, OnboardingMutations,
         // Import auth types to avoid naming conflicts
         auth::{LoginInput, AuthResponse, LogoutResult, RefreshSessionResponse},
     },
@@ -4140,6 +4140,11 @@ impl MutationRoot {
     /// Training mutations
     async fn training(&self) -> TrainingMutations {
         TrainingMutations
+    }
+
+    /// Onboarding mutations
+    async fn onboarding(&self) -> OnboardingMutations {
+        OnboardingMutations
     }
 
     /// User mutations (existing)

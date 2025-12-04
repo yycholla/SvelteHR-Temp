@@ -39,6 +39,7 @@ pub mod events;        // Event management extensions
 pub mod tasks;         // Task management extensions
 pub mod reviews;       // Performance review extensions
 pub mod training;      // Training module
+pub mod onboarding;    // Onboarding module
 
 pub use department::{CreateDepartmentInput, Model as Department, DepartmentsOrderBy, UpdateDepartmentInput};
 pub use event::{CreateEventInput, Model as Event, EventCondition, EventsOrderBy, EventStatus, UpdateEventInput};
@@ -123,4 +124,17 @@ pub use training::{
     TrainingContent, CreateTrainingContentInput, UpdateTrainingContentInput, ContentType,
     TrainingAssignment, CreateAssignmentInput,
     TrainingProgress, UpdateProgressInput, ProgressStatus,
+};
+pub use onboarding::{
+    OnboardingModule, CreateOnboardingModuleInput, UpdateOnboardingModuleInput,
+    FormTemplate, CreateFormTemplateInput, UpdateFormTemplateInput,
+    ContentBlock, ContentBlockGraphQL, CreateContentBlockInput, UpdateContentBlockInput, OnboardingContentType,
+    OnboardingForm, OnboardingFormGraphQL, CreateOnboardingFormInput, UpdateOnboardingFormInput,
+    FormBlock, FormBlockGraphQL, CreateFormBlockInput, UpdateFormBlockInput, OnboardingFormBlockType,
+    FormProgress, FormProgressGraphQL, SaveFormProgressInput, CompleteFormInput, OnboardingFormProgressStatus,
+    Assignment, CreateAssignmentInput as CreateOnboardingAssignmentInput, UpdateAssignmentInput as UpdateOnboardingAssignmentInput,
+    AssignmentWithModule, AssignmentWithUser,
+    Progress, ProgressGraphQL, UpdateProgressInput as UpdateOnboardingProgressInput, OnboardingProgressStatus,
+    FormSubmission, CreateFormSubmissionInput,
+    DocumentUpload, CreateDocumentUploadInput, UpdateDocumentUploadInput,
 };

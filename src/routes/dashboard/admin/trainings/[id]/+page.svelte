@@ -70,10 +70,26 @@
 	}
 
 	// Transform allUsers for MultiSearchInput options
-	const userOptions = allUsers.map((user: any) => ({
-		value: user.id,
-		label: user.displayName || user.email
-	}));
+	const userOptions = allUsers.map((user: any) => {
+		const displayName = user.displayName || '';
+		const firstName = user.firstName || '';
+		const lastName = user.lastName || '';
+		const email = user.email || '';
+
+		// Primary display name
+		const primaryName = displayName || `${firstName} ${lastName}`.trim() || email;
+
+		// Include email in label for searchability (MultiSearchInput only searches label field)
+		// Format: "Display Name (email@example.com)" or just "email@example.com" if no name
+		const label = displayName || `${firstName} ${lastName}`.trim()
+			? `${primaryName} (${email})`
+			: email;
+
+		return {
+			value: user.id,
+			label: label
+		};
+	});
 
 	// Transform departments for Select options
 	const departmentOptions = departments.map((dept: any) => ({
@@ -89,8 +105,19 @@
 
 		const lowerSearchTerms = searchTerms.map(term => term.toLowerCase());
 		return assignments.filter((assignment: any) => {
-			const userName = (assignment.user?.displayName || assignment.user?.email || '').toLowerCase();
-			return lowerSearchTerms.some(term => userName.includes(term));
+			const displayName = (assignment.user?.displayName || '').toLowerCase();
+			const email = (assignment.user?.email || '').toLowerCase();
+			const firstName = (assignment.user?.firstName || '').toLowerCase();
+			const lastName = (assignment.user?.lastName || '').toLowerCase();
+			const fullName = `${firstName} ${lastName}`.trim().toLowerCase();
+
+			return lowerSearchTerms.some(term =>
+				displayName.includes(term) ||
+				email.includes(term) ||
+				firstName.includes(term) ||
+				lastName.includes(term) ||
+				fullName.includes(term)
+			);
 		});
 	});
 	

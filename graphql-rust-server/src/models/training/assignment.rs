@@ -58,6 +58,7 @@ impl Related<super::training::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(InputObject)]
+#[graphql(name = "CreateTrainingAssignmentInput")]
 pub struct CreateAssignmentInput {
     pub user_id: Uuid,
     pub training_id: Uuid,
