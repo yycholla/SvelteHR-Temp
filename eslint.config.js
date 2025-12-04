@@ -11,6 +11,18 @@ const gitignorePath = fileURLToPath(new URL('./.gitignore', import.meta.url));
 
 export default ts.config(
 	includeIgnoreFile(gitignorePath),
+	{
+		ignores: [
+			'.claude/**/*',
+			'dist/**/*',
+			'build/**/*',
+			'.svelte-kit/**/*',
+			'scripts/**/*.js',
+			'*.config.{js,cjs,mjs}',
+			'*.{cjs,mjs}',
+			'**/*.js' // Exclude all .js files from TypeScript type-aware linting
+		]
+	},
 	js.configs.recommended,
 	...ts.configs.recommended,
 	...svelte.configs.recommended,
