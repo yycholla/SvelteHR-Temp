@@ -1,7 +1,10 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { urqlClient } from '$lib/api/urql-client';
-import { GET_ONBOARDING_MODULE, type OnboardingModule } from '$lib/graphql/onboarding-operations';
+import {
+	GET_ONBOARDING_MODULE_QUERY,
+	type OnboardingModule
+} from '$lib/graphql/onboarding-operations';
 import {
 	GET_FORMS_BY_MODULE,
 	CREATE_ONBOARDING_FORM,
@@ -27,7 +30,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	// Fetch the module and its forms
 	const [moduleResult, formsResult] = await Promise.all([
-		urqlClient.query(GET_ONBOARDING_MODULE, { id: moduleId }),
+		urqlClient.query(GET_ONBOARDING_MODULE_QUERY, { id: moduleId }),
 		urqlClient.query(GET_FORMS_BY_MODULE, { onboardingModuleId: moduleId })
 	]);
 
