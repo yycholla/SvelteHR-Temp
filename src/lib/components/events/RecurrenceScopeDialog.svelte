@@ -9,7 +9,13 @@
 	 * - All events in the series
 	 */
 
-	import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '$lib/components/ui/dialog';
+	import {
+		Dialog,
+		DialogContent,
+		DialogHeader,
+		DialogTitle,
+		DialogFooter
+	} from '$lib/components/ui/dialog';
 	import { Button } from '$lib/components/ui/button';
 	import { RadioGroup, RadioGroupItem } from '$lib/components/ui/radio-group';
 	import { Label } from '$lib/components/ui/label';
@@ -54,7 +60,8 @@
 	<DialogContent class="sm:max-w-md">
 		<DialogHeader>
 			<DialogTitle>
-				{action === 'update' ? 'Update' : action === 'delete' ? 'Delete' : 'Change RSVP for'} Recurring Event
+				{action === 'update' ? 'Update' : action === 'delete' ? 'Delete' : 'Change RSVP for'} Recurring
+				Event
 			</DialogTitle>
 		</DialogHeader>
 
@@ -67,9 +74,7 @@
 				<div class="flex items-start space-x-2">
 					<RadioGroupItem value="this_event" id="this_event" />
 					<div class="flex-1">
-						<Label for="this_event" class="cursor-pointer font-medium">
-							This event only
-						</Label>
+						<Label for="this_event" class="cursor-pointer font-medium">This event only</Label>
 						<p class="text-sm text-muted-foreground mt-1">
 							Only {actionText()} this specific occurrence
 						</p>
@@ -83,7 +88,8 @@
 							This and future events
 						</Label>
 						<p class="text-sm text-muted-foreground mt-1">
-							{actionText().charAt(0).toUpperCase() + actionText().slice(1)} this occurrence and all future occurrences
+							{actionText().charAt(0).toUpperCase() + actionText().slice(1)} this occurrence and all future
+							occurrences
 						</p>
 					</div>
 				</div>
@@ -95,7 +101,8 @@
 							All events in the series
 						</Label>
 						<p class="text-sm text-muted-foreground mt-1">
-							{actionText().charAt(0).toUpperCase() + actionText().slice(1)} all occurrences, including past events
+							{actionText().charAt(0).toUpperCase() + actionText().slice(1)} all occurrences, including
+							past events
 						</p>
 					</div>
 				</div>
@@ -103,12 +110,8 @@
 		</div>
 
 		<DialogFooter>
-			<Button variant="outline" onclick={handleCancel}>
-				Cancel
-			</Button>
-			<Button onclick={handleConfirm}>
-				Confirm
-			</Button>
+			<Button variant="outline" onclick={handleCancel}>Cancel</Button>
+			<Button onclick={handleConfirm}>Confirm</Button>
 		</DialogFooter>
 	</DialogContent>
 </Dialog>

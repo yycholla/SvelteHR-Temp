@@ -61,9 +61,11 @@
 
 	// Extract error details reactively with safe access
 	let errorMessage = $derived(
-		!error ? 'Unknown error occurred' :
-		typeof error === 'string' ? error :
-		error?.message ?? 'Unknown error occurred'
+		!error
+			? 'Unknown error occurred'
+			: typeof error === 'string'
+				? error
+				: (error?.message ?? 'Unknown error occurred')
 	);
 	let errorStack = $derived(error ? (error?.stack ?? '') : '');
 	let errorName = $derived(error ? (error?.name ?? 'Error') : 'Error');

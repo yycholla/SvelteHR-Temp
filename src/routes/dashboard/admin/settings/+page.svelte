@@ -5,14 +5,16 @@
 
 	let { data } = $props();
 
-	let settings = $state(data.settings || {
-		general: {},
-		authentication: {},
-		notifications: {},
-		security: {},
-		developer: {},
-		stats: {}
-	});
+	let settings = $state(
+		data.settings || {
+			general: {},
+			authentication: {},
+			notifications: {},
+			security: {},
+			developer: {},
+			stats: {}
+		}
+	);
 	let loading = $state(false);
 	let errorMessage = $state('');
 	let successMessage = $state('');
@@ -211,9 +213,7 @@
 				</div>
 
 				<div>
-					<label for="maxLoginAttempts" class="block text-sm font-medium"
-						>Max Login Attempts</label
-					>
+					<label for="maxLoginAttempts" class="block text-sm font-medium">Max Login Attempts</label>
 					<input
 						id="maxLoginAttempts"
 						type="number"
@@ -317,11 +317,7 @@
 					</div>
 
 					<div class="flex items-center gap-2">
-						<input
-							id="hstEnabled"
-							type="checkbox"
-							bind:checked={settings.security.hstEnabled}
-						/>
+						<input id="hstEnabled" type="checkbox" bind:checked={settings.security.hstEnabled} />
 						<label for="hstEnabled" class="text-sm font-medium"
 							>Enable HTTP Strict Transport Security (HSTS)</label
 						>
@@ -339,15 +335,11 @@
 						placeholder="default-src 'self'; script-src 'self' 'unsafe-inline'"
 						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 					></textarea>
-					<p class="mt-1 text-xs text-muted-foreground">
-						Leave empty to disable CSP headers
-					</p>
+					<p class="mt-1 text-xs text-muted-foreground">Leave empty to disable CSP headers</p>
 				</div>
 
 				<div>
-					<label for="corsOrigins" class="block text-sm font-medium"
-						>CORS Allowed Origins</label
-					>
+					<label for="corsOrigins" class="block text-sm font-medium">CORS Allowed Origins</label>
 					<textarea
 						id="corsOrigins"
 						bind:value={settings.security.corsOriginsText}

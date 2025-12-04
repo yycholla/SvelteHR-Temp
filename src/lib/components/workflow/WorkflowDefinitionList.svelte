@@ -30,16 +30,20 @@
 	let searchTerm = $state('');
 
 	// Derived values
-	const categories = $derived([...new Set($filteredDefinitions.map((def) => def.category).filter(Boolean))]);
+	const categories = $derived([
+		...new Set($filteredDefinitions.map((def) => def.category).filter(Boolean))
+	]);
 
-	const filteredBySearch = $derived($filteredDefinitions.filter((definition) => {
-		const matchesSearch =
-			!searchTerm ||
-			definition.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			definition.description?.toLowerCase().includes(searchTerm.toLowerCase());
+	const filteredBySearch = $derived(
+		$filteredDefinitions.filter((definition) => {
+			const matchesSearch =
+				!searchTerm ||
+				definition.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+				definition.description?.toLowerCase().includes(searchTerm.toLowerCase());
 
-		return matchesSearch;
-	}));
+			return matchesSearch;
+		})
+	);
 
 	onMount(() => {
 		workflowActions.loadDefinitions(limit);

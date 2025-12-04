@@ -2,13 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { goto } from '$app/navigation';
-	import {
-		Save,
-		ArrowLeft,
-		Search,
-		ChevronRight,
-		Zap
-	} from '@lucide/svelte';
+	import { Save, ArrowLeft, Search, ChevronRight, Zap } from '@lucide/svelte';
 	import PermissionsMatrix from '$lib/components/permissions/PermissionsMatrix.svelte';
 
 	let { data, form } = $props();
@@ -59,11 +53,26 @@
 					resourceState.readScope = 'all';
 				} else if (perm.action === 'read' && resourceState.readScope === 'none') {
 					resourceState.readScope = 'all';
-				} else if (perm.action === 'write' || perm.action === 'create' || perm.action === 'update') {
+				} else if (
+					perm.action === 'write' ||
+					perm.action === 'create' ||
+					perm.action === 'update'
+				) {
 					resourceState.write = true;
 				} else if (perm.action === 'delete') {
 					resourceState.delete = true;
-				} else if (!['read', 'read:self', 'read:team', 'read:all', 'write', 'create', 'update', 'delete'].includes(perm.action)) {
+				} else if (
+					![
+						'read',
+						'read:self',
+						'read:team',
+						'read:all',
+						'write',
+						'create',
+						'update',
+						'delete'
+					].includes(perm.action)
+				) {
 					resourceState.special.push({ action: perm.action, enabled: true });
 				}
 			}
@@ -109,7 +118,7 @@
 			}
 
 			// Add special permissions
-			state.special.forEach(spec => {
+			state.special.forEach((spec) => {
 				if (spec.enabled) {
 					const specialPerm = resourcePerms.find((p: any) => p.action === spec.action);
 					if (specialPerm) permIds.push(specialPerm.id);
@@ -224,7 +233,9 @@
 					<Zap class="mr-2 h-4 w-4" />
 					Quick Actions
 				</button>
-				<div class="absolute right-0 mt-1 w-56 rounded-md shadow-lg bg-background border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+				<div
+					class="absolute right-0 mt-1 w-56 rounded-md shadow-lg bg-background border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50"
+				>
 					<div class="py-1">
 						<button
 							type="button"
@@ -271,11 +282,7 @@
 					};
 				}}
 			>
-				<input
-					type="hidden"
-					name="permissionIds"
-					value={JSON.stringify(selectedPermissionIds)}
-				/>
+				<input type="hidden" name="permissionIds" value={JSON.stringify(selectedPermissionIds)} />
 				<button
 					type="submit"
 					disabled={loading || !hasChanges}
@@ -302,7 +309,9 @@
 	{/if}
 
 	{#if form?.success}
-		<div class="rounded-md bg-green-100 p-3 text-sm text-green-800 dark:bg-green-900/20 dark:text-green-400">
+		<div
+			class="rounded-md bg-green-100 p-3 text-sm text-green-800 dark:bg-green-900/20 dark:text-green-400"
+		>
 			{form.message || 'Permissions updated successfully'}
 		</div>
 	{/if}
@@ -322,7 +331,7 @@
 	<div class="border rounded-lg bg-card">
 		<PermissionsMatrix
 			permissions={data.permissions}
-			permissionsState={permissionsState}
+			{permissionsState}
 			onPermissionChange={handlePermissionChange}
 		/>
 	</div>
@@ -341,11 +350,7 @@
 					};
 				}}
 			>
-				<input
-					type="hidden"
-					name="permissionIds"
-					value={JSON.stringify(selectedPermissionIds)}
-				/>
+				<input type="hidden" name="permissionIds" value={JSON.stringify(selectedPermissionIds)} />
 				<button
 					type="submit"
 					disabled={loading}

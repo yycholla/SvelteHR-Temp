@@ -102,7 +102,12 @@
 
 		// Apply status filters
 		if (selectedStatuses.length > 0) {
-			console.log('🔍 Status filter - before:', filtered.length, 'selectedStatuses:', selectedStatuses);
+			console.log(
+				'🔍 Status filter - before:',
+				filtered.length,
+				'selectedStatuses:',
+				selectedStatuses
+			);
 			filtered = filtered.filter((review) => selectedStatuses.includes(review.status));
 			console.log('🔍 Status filter - after:', filtered.length);
 		}

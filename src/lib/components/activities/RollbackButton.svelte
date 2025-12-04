@@ -45,9 +45,7 @@
 	// Computed properties with $derived
 	const isVisible = $derived(canDirectRollback || canRequestRollback);
 	const isRequestMode = $derived(!canDirectRollback && canRequestRollback);
-	const isDisabled = $derived(
-		isRollback || action.toUpperCase() === 'VIEW' || isLoading
-	);
+	const isDisabled = $derived(isRollback || action.toUpperCase() === 'VIEW' || isLoading);
 
 	const disabledReason = $derived(() => {
 		if (isRollback) return 'Cannot rollback a rollback operation';
@@ -181,7 +179,6 @@
 
 		dispatch('success', { newLogId: data.newLogId });
 	}
-
 </script>
 
 {#if isVisible}
@@ -217,7 +214,7 @@
 			<div
 				class="modal-dialog"
 				role="dialog"
-			tabindex="-1"
+				tabindex="-1"
 				aria-modal="true"
 				onclick={(e) => e.stopPropagation()}
 				onkeydown={(e) => e.stopPropagation()}
@@ -229,11 +226,11 @@
 				<div class="modal-body">
 					<p class="warning-text">
 						{#if isRequestMode}
-							You are requesting a rollback for a <strong>{action.toUpperCase()}</strong> operation.
-							A super admin will need to approve this request.
+							You are requesting a rollback for a <strong>{action.toUpperCase()}</strong> operation. A
+							super admin will need to approve this request.
 						{:else}
-							You are about to rollback a <strong>{action.toUpperCase()}</strong> operation.
-							This will restore the resource to its previous state.
+							You are about to rollback a <strong>{action.toUpperCase()}</strong> operation. This will
+							restore the resource to its previous state.
 						{/if}
 					</p>
 
@@ -251,12 +248,7 @@
 				</div>
 
 				<div class="modal-footer">
-					<button
-						type="button"
-						class="btn-secondary"
-						onclick={handleCancel}
-						disabled={isLoading}
-					>
+					<button type="button" class="btn-secondary" onclick={handleCancel} disabled={isLoading}>
 						Cancel
 					</button>
 					<button

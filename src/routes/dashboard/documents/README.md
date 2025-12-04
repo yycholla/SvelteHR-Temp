@@ -301,25 +301,25 @@ Authorization: Bearer <token>
 
 ```svelte
 <script>
-  import FileUploader from '$lib/components/documents/FileUploader.svelte';
+	import FileUploader from '$lib/components/documents/FileUploader.svelte';
 
-  let metadata = $state({
-    filename: '',
-    category: 'Contract',
-    sensitivity_level: 'Internal',
-    description: ''
-  });
+	let metadata = $state({
+		filename: '',
+		category: 'Contract',
+		sensitivity_level: 'Internal',
+		description: ''
+	});
 
-  function handleUpload(result) {
-    console.log('Uploaded:', result.documentId);
-  }
+	function handleUpload(result) {
+		console.log('Uploaded:', result.documentId);
+	}
 </script>
 
 <FileUploader
-  bind:metadata
-  onUpload={handleUpload}
-  maxSizeMB={50}
-  allowedTypes={['PDF', 'DOCX', 'XLSX']}
+	bind:metadata
+	onUpload={handleUpload}
+	maxSizeMB={50}
+	allowedTypes={['PDF', 'DOCX', 'XLSX']}
 />
 ```
 
@@ -334,19 +334,19 @@ Authorization: Bearer <token>
 
 ```svelte
 <script>
-  import DocumentTable from '$lib/components/documents/DocumentTable.svelte';
+	import DocumentTable from '$lib/components/documents/DocumentTable.svelte';
 
-  export let data;
+	export let data;
 </script>
 
 <DocumentTable
-  documents={data.documents}
-  totalCount={data.totalCount}
-  currentPage={data.page}
-  canPreview={(doc) => doc.uploaded_by === data.user.id}
-  canDownload={(doc) => doc.uploaded_by === data.user.id}
-  onPreview={(id) => openPreview(id)}
-  onDownload={(id) => downloadDocument(id)}
+	documents={data.documents}
+	totalCount={data.totalCount}
+	currentPage={data.page}
+	canPreview={(doc) => doc.uploaded_by === data.user.id}
+	canDownload={(doc) => doc.uploaded_by === data.user.id}
+	onPreview={(id) => openPreview(id)}
+	onDownload={(id) => downloadDocument(id)}
 />
 ```
 
@@ -361,19 +361,19 @@ Authorization: Bearer <token>
 
 ```svelte
 <script>
-  import PreviewModal from '$lib/components/documents/PreviewModal.svelte';
+	import PreviewModal from '$lib/components/documents/PreviewModal.svelte';
 
-  let isOpen = $state(false);
-  let previewUrl = $state(null);
+	let isOpen = $state(false);
+	let previewUrl = $state(null);
 </script>
 
 <PreviewModal
-  {isOpen}
-  documentId="doc-id"
-  filename="contract.pdf"
-  fileType="PDF"
-  {previewUrl}
-  onClose={() => isOpen = false}
+	{isOpen}
+	documentId="doc-id"
+	filename="contract.pdf"
+	fileType="PDF"
+	{previewUrl}
+	onClose={() => (isOpen = false)}
 />
 ```
 

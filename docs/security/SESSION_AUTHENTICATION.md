@@ -283,27 +283,27 @@ export const authStore = {
 
 ```svelte
 <script lang="ts">
-  import { authStore } from '$lib/stores/auth';
+	import { authStore } from '$lib/stores/auth';
 
-  let email = '';
-  let password = '';
+	let email = '';
+	let password = '';
 
-  async function handleLogin() {
-    const result = await authStore.login(email, password);
+	async function handleLogin() {
+		const result = await authStore.login(email, password);
 
-    if (result.success) {
-      // Session established - redirect to dashboard
-      window.location.href = '/dashboard';
-    } else {
-      alert('Login failed');
-    }
-  }
+		if (result.success) {
+			// Session established - redirect to dashboard
+			window.location.href = '/dashboard';
+		} else {
+			alert('Login failed');
+		}
+	}
 </script>
 
 <form on:submit|preventDefault={handleLogin}>
-  <input type="email" bind:value={email} required />
-  <input type="password" bind:value={password} required />
-  <button type="submit">Login</button>
+	<input type="email" bind:value={email} required />
+	<input type="password" bind:value={password} required />
+	<button type="submit">Login</button>
 </form>
 ```
 

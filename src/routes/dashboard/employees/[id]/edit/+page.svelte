@@ -149,9 +149,7 @@
 
 	// Vehicles
 	let vehicles = $state<Vehicle[]>(
-		data.employee.vehicles?.length > 0
-			? data.employee.vehicles
-			: []
+		data.employee.vehicles?.length > 0 ? data.employee.vehicles : []
 	);
 
 	// Compensation
@@ -233,7 +231,9 @@
 
 	<!-- Error Alert -->
 	{#if form?.error}
-		<div class="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-destructive">
+		<div
+			class="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-destructive"
+		>
 			<AlertCircle class="h-4 w-4" />
 			<p class="text-sm font-medium">{form.error}</p>
 		</div>
@@ -263,7 +263,9 @@
 				<Card.Content class="space-y-3">
 					<div class="grid gap-3 sm:grid-cols-2">
 						<div class="space-y-1.5">
-							<Label for="firstName" class="text-sm">First Name <span class="text-destructive">*</span></Label>
+							<Label for="firstName" class="text-sm"
+								>First Name <span class="text-destructive">*</span></Label
+							>
 							<Input
 								id="firstName"
 								name="firstName"
@@ -279,7 +281,9 @@
 						</div>
 
 						<div class="space-y-1.5">
-							<Label for="lastName" class="text-sm">Last Name <span class="text-destructive">*</span></Label>
+							<Label for="lastName" class="text-sm"
+								>Last Name <span class="text-destructive">*</span></Label
+							>
 							<Input
 								id="lastName"
 								name="lastName"
@@ -519,7 +523,9 @@
 								</div>
 
 								<div class="space-y-1.5">
-									<Label for="emergencyContacts[{index}].relationship" class="text-sm">Relationship</Label>
+									<Label for="emergencyContacts[{index}].relationship" class="text-sm"
+										>Relationship</Label
+									>
 									<Input
 										id="emergencyContacts[{index}].relationship"
 										name="emergencyContacts[{index}].relationship"
@@ -533,7 +539,9 @@
 
 							<div class="grid gap-3 sm:grid-cols-2">
 								<div class="space-y-1.5">
-									<Label for="emergencyContacts[{index}].phoneNumber" class="text-sm">Phone Number</Label>
+									<Label for="emergencyContacts[{index}].phoneNumber" class="text-sm"
+										>Phone Number</Label
+									>
 									<Input
 										id="emergencyContacts[{index}].phoneNumber"
 										name="emergencyContacts[{index}].phoneNumber"
@@ -563,8 +571,13 @@
 									name="emergencyContacts[{index}].isPrimary"
 									value={contact.isPrimary ? 'true' : 'false'}
 								/>
-								<Checkbox id="emergencyContacts[{index}].isPrimary" bind:checked={contact.isPrimary} />
-								<Label for="emergencyContacts[{index}].isPrimary" class="text-sm font-normal">Primary Contact</Label>
+								<Checkbox
+									id="emergencyContacts[{index}].isPrimary"
+									bind:checked={contact.isPrimary}
+								/>
+								<Label for="emergencyContacts[{index}].isPrimary" class="text-sm font-normal"
+									>Primary Contact</Label
+								>
 							</div>
 						</div>
 					{/each}

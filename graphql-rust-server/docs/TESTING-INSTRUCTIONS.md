@@ -33,6 +33,7 @@
    - 12-week improvement roadmap
 
 3. **Quick Wins Guide**
+
    ```bash
    cat /home/chanway/SvelteHR/graphql-rust-server/docs/test-quick-wins.md
    ```

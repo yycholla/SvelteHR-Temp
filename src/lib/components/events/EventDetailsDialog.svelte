@@ -2,7 +2,7 @@
 	/**
 	 * EventDetailsDialog Component
 	 * Unified dialog for viewing and editing event details.
-	 * 
+	 *
 	 * Refactored to use idiomatic Svelte 5 runes by extracting sub-components:
 	 * - EventDetailsView: For the tabbed view mode
 	 * - EventEditForm: For the edit mode form
@@ -17,7 +17,11 @@
 	import EventDetailsView from './EventDetailsView.svelte';
 	import { findConflictingEvents, type ConflictingEvent } from '$lib/utils/calendar';
 	import type { RsvpStatus } from '$lib/graphql/types';
-	import type { EventComment, EventHistoryEntry, UserWaitlistStatus } from '$lib/graphql/events-operations';
+	import type {
+		EventComment,
+		EventHistoryEntry,
+		UserWaitlistStatus
+	} from '$lib/graphql/events-operations';
 	import type { EventData } from './types';
 
 	interface Props {
@@ -95,7 +99,10 @@
 	// Conflict detection dialog state
 	let showConflictDialog = $state(false);
 	let detectedConflicts = $state<ConflictingEvent[]>([]);
-	let pendingConflictRsvp = $state<{status: RsvpStatus, scope: 'this_event' | 'this_and_future' | 'all_events'} | null>(null);
+	let pendingConflictRsvp = $state<{
+		status: RsvpStatus;
+		scope: 'this_event' | 'this_and_future' | 'all_events';
+	} | null>(null);
 
 	const isRecurringEvent = $derived(
 		event?.rrule !== null && event?.rrule !== undefined && event.rrule !== ''
@@ -103,14 +110,27 @@
 
 	// Handle escape key
 	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape' && isOpen && !isDeleting && !showScopeDialog && !showConflictDialog && !showDeleteConfirm) {
+		if (
+			event.key === 'Escape' &&
+			isOpen &&
+			!isDeleting &&
+			!showScopeDialog &&
+			!showConflictDialog &&
+			!showDeleteConfirm
+		) {
 			onClose();
 		}
 	}
 
 	// Handle backdrop click
 	function handleBackdropClick(event: MouseEvent) {
-		if (event.target === event.currentTarget && !isDeleting && !showScopeDialog && !showConflictDialog && !showDeleteConfirm) {
+		if (
+			event.target === event.currentTarget &&
+			!isDeleting &&
+			!showScopeDialog &&
+			!showConflictDialog &&
+			!showDeleteConfirm
+		) {
 			onClose();
 		}
 	}
@@ -155,10 +175,10 @@
 	}
 
 	// Handle RSVP with recurring event scope and conflicts
-    // This is passed as the onRsvpUpdate prop to EventDetailsView (via an adapter if needed)
+	// This is passed as the onRsvpUpdate prop to EventDetailsView (via an adapter if needed)
 	async function handleRsvpChange(newStatus: RsvpStatus) {
-        // Note: RSVPButton only passes newStatus, not eventId
-        // We use local `event` from props/closure for event context
+		// Note: RSVPButton only passes newStatus, not eventId
+		// We use local `event` from props/closure for event context
 
 		if (!event) return;
 
@@ -177,7 +197,11 @@
 		if (!pendingRsvpStatus) return;
 
 		// Check for conflicts before updating RSVP (only for accepted/tentative)
-		if ((pendingRsvpStatus === 'accepted' || pendingRsvpStatus === 'tentative') && event && allEvents.length > 0) {
+		if (
+			(pendingRsvpStatus === 'accepted' || pendingRsvpStatus === 'tentative') &&
+			event &&
+			allEvents.length > 0
+		) {
 			const targetEvent = {
 				id: event.id,
 				startDate: new Date(event.startTime),
@@ -202,7 +226,10 @@
 		pendingRsvpStatus = null;
 	}
 
-	async function updateRsvpStatus(newStatus: RsvpStatus, scope: 'this_event' | 'this_and_future' | 'all_events') {
+	async function updateRsvpStatus(
+		newStatus: RsvpStatus,
+		scope: 'this_event' | 'this_and_future' | 'all_events'
+	) {
 		console.log('[EventDetailsDialog] updateRsvpStatus called with:', {
 			newStatus,
 			statusType: typeof newStatus,
@@ -212,9 +239,7 @@
 
 		if (!event) return;
 
-		const userAttendee = event.attendees?.find(
-			(a) => a.employeeId === userId
-		);
+		const userAttendee = event.attendees?.find((a) => a.employeeId === userId);
 
 		const formData = new FormData();
 		formData.append('eventId', event.id);
@@ -242,19 +267,20 @@
 
 			if (result.type === 'failure' || result.status >= 400) {
 				const errorData = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
-				const errorMsg = errorData?.[1] || errorData?.error || result.error || 'Failed to update RSVP';
+				const errorMsg =
+					errorData?.[1] || errorData?.error || result.error || 'Failed to update RSVP';
 				toast.error(errorMsg);
 			} else if (result.type === 'success' || response.ok) {
-                // Optimistic update logic - we mutate the prop object for immediate feedback
-                // In Svelte 5 with proxied state, this might trigger updates if `event` is a state proxy.
-                // But `event` here is a prop. We can't mutate props directly if they are primitives, but objects we can?
-                // Svelte 5 props are read-only. We shouldn't mutate `event`.
-                // However, the original code did mutate it.
-                // "event.attendees[existingAttendeeIndex].responseStatus = newStatus;"
-                
-                // We should rely on onRsvpUpdate callback to inform parent, or invalidateAll to reload.
-                // The original code did both.
-                
+				// Optimistic update logic - we mutate the prop object for immediate feedback
+				// In Svelte 5 with proxied state, this might trigger updates if `event` is a state proxy.
+				// But `event` here is a prop. We can't mutate props directly if they are primitives, but objects we can?
+				// Svelte 5 props are read-only. We shouldn't mutate `event`.
+				// However, the original code did mutate it.
+				// "event.attendees[existingAttendeeIndex].responseStatus = newStatus;"
+
+				// We should rely on onRsvpUpdate callback to inform parent, or invalidateAll to reload.
+				// The original code did both.
+
 				if (onRsvpUpdate) {
 					onRsvpUpdate(event.id, newStatus);
 				}
@@ -343,37 +369,33 @@
 				</div>
 
 				<!-- Content -->
-                <!-- We key the content on event.id to ensure fresh state when event changes -->
-                {#key event.id}
-                    {#if mode === 'view'}
-                        <EventDetailsView
-                            {event}
-                            {userId}
-                            {userRole}
-                            {rsvpStats}
-                            {eventComments}
-                            {commentCount}
-                            {eventHistory}
-                            {userWaitlistStatus}
-                            {hasMoreComments}
-                            {hasMoreHistory}
-                            onRsvpUpdate={handleRsvpChange}
-                            {onAddComment}
-                            {onUpdateComment}
-                            {onDeleteComment}
-                            {onLoadMoreComments}
-                            {onLoadMoreHistory}
-                            {onJoinWaitlist}
-                            {onLeaveWaitlist}
-                        />
-                    {:else}
-                        <EventEditForm
-                            {event}
-                            {onClose}
-                            {onSuccess}
-                        />
-                    {/if}
-                {/key}
+				<!-- We key the content on event.id to ensure fresh state when event changes -->
+				{#key event.id}
+					{#if mode === 'view'}
+						<EventDetailsView
+							{event}
+							{userId}
+							{userRole}
+							{rsvpStats}
+							{eventComments}
+							{commentCount}
+							{eventHistory}
+							{userWaitlistStatus}
+							{hasMoreComments}
+							{hasMoreHistory}
+							onRsvpUpdate={handleRsvpChange}
+							{onAddComment}
+							{onUpdateComment}
+							{onDeleteComment}
+							{onLoadMoreComments}
+							{onLoadMoreHistory}
+							{onJoinWaitlist}
+							{onLeaveWaitlist}
+						/>
+					{:else}
+						<EventEditForm {event} {onClose} {onSuccess} />
+					{/if}
+				{/key}
 			</div>
 		</div>
 	</div>

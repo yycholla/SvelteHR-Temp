@@ -189,7 +189,7 @@ describe('Login Page Integration (T018)', () => {
 				suggestedActions: [],
 				type: 'NETWORK_ERROR',
 				userMessage: 'Authentication request timed out after 5000ms', // Changed message to userMessage
-				severity: 'high',
+				severity: 'high'
 				// suggestedAction: 'retry_operation', // Not in ErrorResponse
 				// retryable: true // Not in ErrorResponse
 			};
@@ -224,7 +224,7 @@ describe('Login Page Integration (T018)', () => {
 				suggestedActions: [],
 				type: 'AUTHENTICATION_ERROR',
 				userMessage: 'Invalid login credentials', // Changed message to userMessage
-				severity: 'medium',
+				severity: 'medium'
 				// suggestedAction: 'verify_credentials', // Not in ErrorResponse
 				// retryable: false // Not in ErrorResponse
 			};
@@ -259,7 +259,7 @@ describe('Login Page Integration (T018)', () => {
 				suggestedActions: [],
 				type: 'AUTHENTICATION_ERROR',
 				userMessage: 'Account temporarily locked due to multiple failed login attempts', // Changed message to userMessage
-				severity: 'high',
+				severity: 'high'
 				// suggestedAction: 'contact_admin', // Not in ErrorResponse
 				// retryable: false // Not in ErrorResponse
 			};
@@ -346,7 +346,7 @@ describe('Login Page Integration (T018)', () => {
 				suggestedActions: [],
 				type: 'AUTHENTICATION_ERROR',
 				userMessage: 'Token expired, attempting refresh', // Changed message to userMessage
-				severity: 'low',
+				severity: 'low'
 				// suggestedAction: 'refresh_token', // Not in ErrorResponse
 				// retryable: true // Not in ErrorResponse
 			};
@@ -388,227 +388,227 @@ describe('Login Page Integration (T018)', () => {
 			expect(mockSessionManager.refreshSession).not.toHaveBeenCalled();
 		});
 
-			const authResponse: VerifyUserAuthenticationResponse = {
-				success: true,
-				data: {
-					user: {
-						id: 'user-123',
-						email: 'admin@example.com',
-						displayName: 'Admin User',
-						role: 'HR_Manager',
-						permissions: ['employees:read', 'departments:read', 'reports:hr']
-					},
-					token: 'secure-jwt-token',
-					refreshToken: 'secure-refresh-token',
-					expiresAt: '2024-01-15T18:00:00Z'
+		const authResponse: VerifyUserAuthenticationResponse = {
+			success: true,
+			data: {
+				user: {
+					id: 'user-123',
+					email: 'admin@example.com',
+					displayName: 'Admin User',
+					role: 'HR_Manager',
+					permissions: ['employees:read', 'departments:read', 'reports:hr']
 				},
-				pagination: null,
-				errors: []
-			};
+				token: 'secure-jwt-token',
+				refreshToken: 'secure-refresh-token',
+				expiresAt: '2024-01-15T18:00:00Z'
+			},
+			pagination: null,
+			errors: []
+		};
 
-			mockLoginUser.mockResolvedValueOnce(authResponse);
+		mockLoginUser.mockResolvedValueOnce(authResponse);
 
-			// Act & Assert - Should throw until implementation exists
+		// Act & Assert - Should throw until implementation exists
+		await expect(async () => {
+			await mockLoginUser({
+				operation: 'LoginUser',
+				variables: { email: 'admin@example.com', password: 'admin123' },
+				timeoutMs: 5000,
+				maxRetries: 3,
+				cachePolicy: 'no-cache',
+				cacheTtlMinutes: 0
+			});
+		}).rejects.toThrow('LoginUser operation not implemented - TDD compliance');
+
+		// Verify secure cookie settings would be applied
+		const expectedCookieOptions = {
+			httpOnly: true,
+			secure: true,
+			sameSite: 'strict',
+			path: '/',
+			maxAge: 3600 // 1 hour
+		};
+
+		expect(mockSessionManager.createSession).not.toHaveBeenCalledWith(
+			expect.objectContaining({
+				cookieOptions: expectedCookieOptions
+			})
+		);
+	});
+});
+
+describe('Security Features Integration', () => {
+	it('should implement rate limiting for login attempts', async () => {
+		// Arrange - Multiple rapid login attempts
+		const loginAttempts = Array.from({ length: 5 }, (_, i) => ({
+			email: 'admin@example.com',
+			password: `attempt${i + 1}`,
+			timestamp: Date.now() + i * 100
+		}));
+
+		// Act & Assert - Should throw until implementation exists
+		for (const attempt of loginAttempts) {
 			await expect(async () => {
 				await mockLoginUser({
 					operation: 'LoginUser',
-					variables: { email: 'admin@example.com', password: 'admin123' },
+					variables: attempt,
 					timeoutMs: 5000,
-					maxRetries: 3,
+					maxRetries: 1, // Limited retries for security
 					cachePolicy: 'no-cache',
 					cacheTtlMinutes: 0
 				});
 			}).rejects.toThrow('LoginUser operation not implemented - TDD compliance');
+		}
 
-			// Verify secure cookie settings would be applied
-			const expectedCookieOptions = {
-				httpOnly: true,
-				secure: true,
-				sameSite: 'strict',
-				path: '/',
-				maxAge: 3600 // 1 hour
-			};
-
-			expect(mockSessionManager.createSession).not.toHaveBeenCalledWith(
-				expect.objectContaining({
-					cookieOptions: expectedCookieOptions
-				})
-			);
-		});
+		// Verify rate limiting would be enforced
+		expect(mockLoginUser).toHaveBeenCalledTimes(5);
 	});
 
-	describe('Security Features Integration', () => {
-		it('should implement rate limiting for login attempts', async () => {
-			// Arrange - Multiple rapid login attempts
-			const loginAttempts = Array.from({ length: 5 }, (_, i) => ({
-				email: 'admin@example.com',
-				password: `attempt${i + 1}`,
-				timestamp: Date.now() + i * 100
-			}));
-
-			// Act & Assert - Should throw until implementation exists
-			for (const attempt of loginAttempts) {
-				await expect(async () => {
-					await mockLoginUser({
-						operation: 'LoginUser',
-						variables: attempt,
-						timeoutMs: 5000,
-						maxRetries: 1, // Limited retries for security
-						cachePolicy: 'no-cache',
-						cacheTtlMinutes: 0
-					});
-				}).rejects.toThrow('LoginUser operation not implemented - TDD compliance');
+	it('should handle CSRF protection in login form', async () => {
+		// Arrange
+		const mockCsrfToken = 'csrf-token-12345';
+		const mockProps = {
+			data: {
+				csrfToken: mockCsrfToken,
+				redirectTo: '/dashboard'
 			}
+		};
 
-			// Verify rate limiting would be enforced
-			expect(mockLoginUser).toHaveBeenCalledTimes(5);
-		});
+		// Act & Assert - Should throw until implementation exists
+		expect(() => {
+			mockLoginPageComponent(mockProps);
+		}).toThrow('Login page component not implemented - TDD compliance');
 
-		it('should handle CSRF protection in login form', async () => {
-			// Arrange
-			const mockCsrfToken = 'csrf-token-12345';
-			const mockProps = {
-				data: {
-					csrfToken: mockCsrfToken,
-					redirectTo: '/dashboard'
-				}
-			};
-
-			// Act & Assert - Should throw until implementation exists
-			expect(() => {
-				mockLoginPageComponent(mockProps);
-			}).toThrow('Login page component not implemented - TDD compliance');
-
-			// Verify CSRF token integration
-			expect(screen.queryByTestId('csrf-token')).toBeNull();
-		});
-
-		it('should implement secure password validation feedback', async () => {
-			// Arrange
-			const mockProps = {
-				data: {
-					passwordRequirements: {
-						minLength: 8,
-						requireUppercase: true,
-						requireLowercase: true,
-						requireNumbers: true,
-						requireSpecialChars: true
-					}
-				}
-			};
-
-			// Act & Assert - Should throw until implementation exists
-			expect(() => {
-				mockLoginPageComponent(mockProps);
-			}).rejects.toThrow('Login page component not implemented - TDD compliance');
-
-			// Verify password validation integration
-			expect(screen.queryByTestId('password-requirements')).toBeNull();
-		});
+		// Verify CSRF token integration
+		expect(screen.queryByTestId('csrf-token')).toBeNull();
 	});
 
-	describe('Performance Integration', () => {
-		it('should meet login page load performance requirements', async () => {
-			// Arrange
-			const startTime = performance.now();
-			const mockLoadEvent: Partial<LoadEvent> = {
-				params: {},
-				url: new URL('http://localhost:5173/login'),
-				cookies: { get: vi.fn().mockReturnValue(null) },
-				locals: {}
-			};
+	it('should implement secure password validation feedback', async () => {
+		// Arrange
+		const mockProps = {
+			data: {
+				passwordRequirements: {
+					minLength: 8,
+					requireUppercase: true,
+					requireLowercase: true,
+					requireNumbers: true,
+					requireSpecialChars: true
+				}
+			}
+		};
 
-			// Act & Assert - Should throw until implementation exists
-			await expect(async () => {
-				await mockLoginPageLoad(mockLoadEvent);
-				const loadTime = performance.now() - startTime;
+		// Act & Assert - Should throw until implementation exists
+		expect(() => {
+			mockLoginPageComponent(mockProps);
+		}).rejects.toThrow('Login page component not implemented - TDD compliance');
 
-				// Performance requirement: <5 second page load
-				expect(loadTime).toBeLessThan(5000);
-			}).rejects.toThrow('Login page load function not implemented - TDD compliance');
+		// Verify password validation integration
+		expect(screen.queryByTestId('password-requirements')).toBeNull();
+	});
+});
 
-			// Verify performance tracking
+describe('Performance Integration', () => {
+	it('should meet login page load performance requirements', async () => {
+		// Arrange
+		const startTime = performance.now();
+		const mockLoadEvent: Partial<LoadEvent> = {
+			params: {},
+			url: new URL('http://localhost:5173/login'),
+			cookies: { get: vi.fn().mockReturnValue(null) },
+			locals: {}
+		};
+
+		// Act & Assert - Should throw until implementation exists
+		await expect(async () => {
+			await mockLoginPageLoad(mockLoadEvent);
 			const loadTime = performance.now() - startTime;
-			expect(loadTime).toBeLessThan(100); // Test execution should be fast
-		});
 
-		it('should handle authentication request timeout within 5 seconds', async () => {
-			// Arrange
-			const loginRequest: VerifyUserAuthenticationRequest = {
-				operation: 'VerifyUserAuthentication',
-				variables: {
-					email: 'admin@example.com',
-					password: 'admin123'
-				},
-				timeoutMs: 5000, // Must respect timeout
-				maxRetries: 3,
-				cachePolicy: 'no-cache',
-				cacheTtlMinutes: 0 // No caching for auth
-			};
+			// Performance requirement: <5 second page load
+			expect(loadTime).toBeLessThan(5000);
+		}).rejects.toThrow('Login page load function not implemented - TDD compliance');
 
-			// Act & Assert - Should throw until implementation exists
-			await expect(async () => {
-				await mockVerifyUserAuthentication(loginRequest);
-			}).rejects.toThrow('VerifyUserAuthentication operation not implemented - TDD compliance');
-
-			// Verify timeout enforcement
-			expect(loginRequest.timeoutMs).toBeLessThanOrEqual(5000);
-		});
+		// Verify performance tracking
+		const loadTime = performance.now() - startTime;
+		expect(loadTime).toBeLessThan(100); // Test execution should be fast
 	});
 
-	describe('Accessibility Integration', () => {
-		it('should provide proper ARIA labels and screen reader support', async () => {
-			// Arrange
-			const mockProps = {
-				data: {
-					redirectTo: '/dashboard'
-				}
-			};
+	it('should handle authentication request timeout within 5 seconds', async () => {
+		// Arrange
+		const loginRequest: VerifyUserAuthenticationRequest = {
+			operation: 'VerifyUserAuthentication',
+			variables: {
+				email: 'admin@example.com',
+				password: 'admin123'
+			},
+			timeoutMs: 5000, // Must respect timeout
+			maxRetries: 3,
+			cachePolicy: 'no-cache',
+			cacheTtlMinutes: 0 // No caching for auth
+		};
 
-			// Act & Assert - Should throw until implementation exists
-			expect(() => {
-				mockLoginPageComponent(mockProps);
-			}).toThrow('Login page component not implemented - TDD compliance');
+		// Act & Assert - Should throw until implementation exists
+		await expect(async () => {
+			await mockVerifyUserAuthentication(loginRequest);
+		}).rejects.toThrow('VerifyUserAuthentication operation not implemented - TDD compliance');
 
-			// Verify accessibility features
-			expect(screen.queryByLabelText('Email address')).toBeNull();
-			expect(screen.queryByLabelText('Password')).toBeNull();
-			expect(screen.queryByRole('button', { name: 'Sign in' })).toBeNull();
-		});
+		// Verify timeout enforcement
+		expect(loginRequest.timeoutMs).toBeLessThanOrEqual(5000);
+	});
+});
 
-		it('should handle keyboard navigation for login form', async () => {
-			// Arrange
-			const mockProps = {
-				data: {
-					redirectTo: '/dashboard'
-				}
-			};
+describe('Accessibility Integration', () => {
+	it('should provide proper ARIA labels and screen reader support', async () => {
+		// Arrange
+		const mockProps = {
+			data: {
+				redirectTo: '/dashboard'
+			}
+		};
 
-			// Act & Assert - Should throw until implementation exists
-			expect(() => {
-				mockLoginPageComponent(mockProps);
-			}).toThrow('Login page component not implemented - TDD compliance');
+		// Act & Assert - Should throw until implementation exists
+		expect(() => {
+			mockLoginPageComponent(mockProps);
+		}).toThrow('Login page component not implemented - TDD compliance');
 
-			// Verify keyboard navigation support
-			expect(screen.queryByTestId('login-form')).toBeNull();
-		});
+		// Verify accessibility features
+		expect(screen.queryByLabelText('Email address')).toBeNull();
+		expect(screen.queryByLabelText('Password')).toBeNull();
+		expect(screen.queryByRole('button', { name: 'Sign in' })).toBeNull();
+	});
 
-		it('should announce login status changes to screen readers', async () => {
-			// Arrange
-			const mockProps = {
-				data: {
-					redirectTo: '/dashboard',
-					statusMessage: 'Login successful, redirecting...'
-				}
-			};
+	it('should handle keyboard navigation for login form', async () => {
+		// Arrange
+		const mockProps = {
+			data: {
+				redirectTo: '/dashboard'
+			}
+		};
 
-			// Act & Assert - Should throw until implementation exists
-			expect(() => {
-				mockLoginPageComponent(mockProps);
-			}).toThrow('Login page component not implemented - TDD compliance');
+		// Act & Assert - Should throw until implementation exists
+		expect(() => {
+			mockLoginPageComponent(mockProps);
+		}).toThrow('Login page component not implemented - TDD compliance');
 
-			// Verify screen reader announcements
-			expect(screen.queryByRole('status')).toBeNull();
-			expect(screen.queryByTestId('login-status-announcement')).toBeNull();
-		});
+		// Verify keyboard navigation support
+		expect(screen.queryByTestId('login-form')).toBeNull();
+	});
 
+	it('should announce login status changes to screen readers', async () => {
+		// Arrange
+		const mockProps = {
+			data: {
+				redirectTo: '/dashboard',
+				statusMessage: 'Login successful, redirecting...'
+			}
+		};
+
+		// Act & Assert - Should throw until implementation exists
+		expect(() => {
+			mockLoginPageComponent(mockProps);
+		}).toThrow('Login page component not implemented - TDD compliance');
+
+		// Verify screen reader announcements
+		expect(screen.queryByRole('status')).toBeNull();
+		expect(screen.queryByTestId('login-status-announcement')).toBeNull();
+	});
+});

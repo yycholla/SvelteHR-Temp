@@ -2,15 +2,15 @@
 	import { enhance } from '$app/forms';
 	import { flip } from 'svelte/animate';
 	import { dndzone } from 'svelte-dnd-action';
-	import { 
-		Plus, 
-		Type, 
-		Video, 
-		Image as ImageIcon, 
-		FileText, 
-		Link, 
-		GripVertical, 
-		Trash2, 
+	import {
+		Plus,
+		Type,
+		Video,
+		Image as ImageIcon,
+		FileText,
+		Link,
+		GripVertical,
+		Trash2,
 		Edit2,
 		Save,
 		X,
@@ -61,7 +61,7 @@
 			id: item.id,
 			sequenceOrder: index
 		}));
-		
+
 		// await fetch('/api/trainings/content/reorder', { ... })
 		console.log('Reordering:', updates);
 	}
@@ -91,12 +91,18 @@
 
 	function getIcon(contentType: string) {
 		switch (contentType) {
-			case 'TEXT': return Type;
-			case 'VIDEO': return Video;
-			case 'IMAGE': return ImageIcon;
-			case 'DOCUMENT': return FileText;
-			case 'URL': return Link;
-			default: return FileText;
+			case 'TEXT':
+				return Type;
+			case 'VIDEO':
+				return Video;
+			case 'IMAGE':
+				return ImageIcon;
+			case 'DOCUMENT':
+				return FileText;
+			case 'URL':
+				return Link;
+			default:
+				return FileText;
 		}
 	}
 </script>
@@ -124,27 +130,35 @@
 	{/if}
 
 	<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 h-[calc(100vh-200px)]">
-		
 		<!-- Left Panel: Content List -->
 		<div class="lg:col-span-1 flex flex-col gap-4 overflow-hidden">
 			<div class="font-semibold text-lg flex items-center gap-2">
 				Course Structure
 				<Badge variant="secondary">{items.length} Items</Badge>
 			</div>
-			
-			<div class="flex-1 overflow-y-auto pr-2 space-y-2"
-				use:dndzone={{items, flipDurationMs: 300}}
+
+			<div
+				class="flex-1 overflow-y-auto pr-2 space-y-2"
+				use:dndzone={{ items, flipDurationMs: 300 }}
 				onconsider={handleDndConsider}
 				onfinalize={handleDndFinalize}
 			>
 				{#each items as item (item.id)}
-					<div class="group relative" animate:flip={{duration: 300}}>
-						<Card.Root class="transition-all hover:shadow-md cursor-move border-l-4 {editingId === item.id ? 'border-l-primary bg-accent/50' : 'border-l-transparent hover:border-l-muted-foreground'}">
+					<div class="group relative" animate:flip={{ duration: 300 }}>
+						<Card.Root
+							class="transition-all hover:shadow-md cursor-move border-l-4 {editingId === item.id
+								? 'border-l-primary bg-accent/50'
+								: 'border-l-transparent hover:border-l-muted-foreground'}"
+						>
 							<Card.Content class="p-3 flex items-center gap-3">
-								<GripVertical class="h-4 w-4 text-muted-foreground opacity-50 group-hover:opacity-100" />
-								
+								<GripVertical
+									class="h-4 w-4 text-muted-foreground opacity-50 group-hover:opacity-100"
+								/>
+
 								{@const Icon = getIcon(item.type)}
-								<div class="h-8 w-8 rounded bg-background border flex items-center justify-center shrink-0 text-muted-foreground">
+								<div
+									class="h-8 w-8 rounded bg-background border flex items-center justify-center shrink-0 text-muted-foreground"
+								>
 									<Icon class="h-4 w-4" />
 								</div>
 
@@ -154,7 +168,12 @@
 								</div>
 
 								<div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-									<Button variant="ghost" size="icon" class="h-7 w-7" onclick={() => editItem(item)}>
+									<Button
+										variant="ghost"
+										size="icon"
+										class="h-7 w-7"
+										onclick={() => editItem(item)}
+									>
 										<Edit2 class="h-3.5 w-3.5" />
 									</Button>
 									<form
@@ -167,7 +186,12 @@
 										}}
 									>
 										<input type="hidden" name="id" value={item.id} />
-										<Button variant="ghost" size="icon" class="h-7 w-7 text-destructive hover:text-destructive" type="submit">
+										<Button
+											variant="ghost"
+											size="icon"
+											class="h-7 w-7 text-destructive hover:text-destructive"
+											type="submit"
+										>
 											<Trash2 class="h-3.5 w-3.5" />
 										</Button>
 									</form>
@@ -176,10 +200,12 @@
 						</Card.Root>
 					</div>
 				{/each}
-				
+
 				{#if items.length === 0}
-					<div class="text-center py-10 border-2 border-dashed rounded-lg text-muted-foreground text-sm">
-						No content yet. <br/> Add items from the right panel.
+					<div
+						class="text-center py-10 border-2 border-dashed rounded-lg text-muted-foreground text-sm"
+					>
+						No content yet. <br /> Add items from the right panel.
 					</div>
 				{/if}
 			</div>
@@ -195,19 +221,44 @@
 				<Card.Header class="border-b pb-0">
 					{#if !isEditing}
 						<div class="flex gap-2 mb-4 overflow-x-auto pb-2">
-							<Button variant={activeTab === 'TEXT' ? 'default' : 'outline'} size="sm" onclick={() => selectType('TEXT')} class="gap-2">
+							<Button
+								variant={activeTab === 'TEXT' ? 'default' : 'outline'}
+								size="sm"
+								onclick={() => selectType('TEXT')}
+								class="gap-2"
+							>
 								<Type class="h-4 w-4" /> Text
 							</Button>
-							<Button variant={activeTab === 'VIDEO' ? 'default' : 'outline'} size="sm" onclick={() => selectType('VIDEO')} class="gap-2">
+							<Button
+								variant={activeTab === 'VIDEO' ? 'default' : 'outline'}
+								size="sm"
+								onclick={() => selectType('VIDEO')}
+								class="gap-2"
+							>
 								<Video class="h-4 w-4" /> Video
 							</Button>
-							<Button variant={activeTab === 'IMAGE' ? 'default' : 'outline'} size="sm" onclick={() => selectType('IMAGE')} class="gap-2">
+							<Button
+								variant={activeTab === 'IMAGE' ? 'default' : 'outline'}
+								size="sm"
+								onclick={() => selectType('IMAGE')}
+								class="gap-2"
+							>
 								<ImageIcon class="h-4 w-4" /> Image
 							</Button>
-							<Button variant={activeTab === 'DOCUMENT' ? 'default' : 'outline'} size="sm" onclick={() => selectType('DOCUMENT')} class="gap-2">
+							<Button
+								variant={activeTab === 'DOCUMENT' ? 'default' : 'outline'}
+								size="sm"
+								onclick={() => selectType('DOCUMENT')}
+								class="gap-2"
+							>
 								<FileText class="h-4 w-4" /> Doc
 							</Button>
-							<Button variant={activeTab === 'URL' ? 'default' : 'outline'} size="sm" onclick={() => selectType('URL')} class="gap-2">
+							<Button
+								variant={activeTab === 'URL' ? 'default' : 'outline'}
+								size="sm"
+								onclick={() => selectType('URL')}
+								class="gap-2"
+							>
 								<Link class="h-4 w-4" /> Link
 							</Button>
 						</div>
@@ -240,7 +291,13 @@
 
 						<div class="space-y-2">
 							<Label for="title">Title</Label>
-							<Input id="title" name="title" bind:value={title} placeholder="e.g. Introduction to Safety" required />
+							<Input
+								id="title"
+								name="title"
+								bind:value={title}
+								placeholder="e.g. Introduction to Safety"
+								required
+							/>
 						</div>
 
 						<div class="space-y-2">
@@ -255,18 +312,37 @@
 									File URL
 								{/if}
 							</Label>
-							
+
 							{#if type === 'TEXT'}
-								<Textarea id="data" name="data" bind:value={contentData} rows={10} placeholder="Enter your content here..." required />
+								<Textarea
+									id="data"
+									name="data"
+									bind:value={contentData}
+									rows={10}
+									placeholder="Enter your content here..."
+									required
+								/>
 							{:else}
-								<Input id="data" name="data" bind:value={contentData} placeholder="https://..." required />
+								<Input
+									id="data"
+									name="data"
+									bind:value={contentData}
+									placeholder="https://..."
+									required
+								/>
 								{#if type === 'VIDEO' && contentData}
-									<div class="aspect-video w-full bg-black/5 rounded-lg mt-2 flex items-center justify-center border">
+									<div
+										class="aspect-video w-full bg-black/5 rounded-lg mt-2 flex items-center justify-center border"
+									>
 										<p class="text-muted-foreground text-xs">Video Preview Placeholder</p>
 									</div>
 								{:else if type === 'IMAGE' && contentData}
 									<div class="w-full bg-black/5 rounded-lg mt-2 border p-2">
-										<img src={contentData} alt="Preview" class="max-h-[200px] mx-auto object-contain" />
+										<img
+											src={contentData}
+											alt="Preview"
+											class="max-h-[200px] mx-auto object-contain"
+										/>
 									</div>
 								{/if}
 							{/if}
@@ -280,9 +356,10 @@
 							<X class="mr-2 h-4 w-4" /> Cancel
 						</Button>
 					{:else}
-						<div></div> <!-- Spacer -->
+						<div></div>
+						<!-- Spacer -->
 					{/if}
-					
+
 					<Button type="submit" form="contentForm">
 						{#if isEditing}
 							<Save class="mr-2 h-4 w-4" /> Update Content

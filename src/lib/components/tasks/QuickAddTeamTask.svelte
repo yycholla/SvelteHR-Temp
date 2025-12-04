@@ -266,9 +266,7 @@
 													}}
 												>
 													<Check
-														class={quickAddPriority !== priority.value
-															? 'text-transparent'
-															: ''}
+														class={quickAddPriority !== priority.value ? 'text-transparent' : ''}
 													/>
 													<span
 														class="mr-2 h-2 w-2 rounded-full"
@@ -326,9 +324,7 @@
 													}}
 												>
 													<Check
-														class={quickAddTaskTypeId !== taskType.id
-															? 'text-transparent'
-															: ''}
+														class={quickAddTaskTypeId !== taskType.id ? 'text-transparent' : ''}
 													/>
 													<span
 														class="mr-2 h-2 w-2 rounded-full"
@@ -375,9 +371,7 @@
 													}}
 												>
 													<Check
-														class={quickAddDepartmentId !== department.id
-															? 'text-transparent'
-															: ''}
+														class={quickAddDepartmentId !== department.id ? 'text-transparent' : ''}
 													/>
 													{department.name}
 												</Command.Item>

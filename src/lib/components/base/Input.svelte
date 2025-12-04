@@ -29,7 +29,17 @@
 		onkeydown = undefined,
 		onkeyup = undefined
 	}: {
-		type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date' | 'datetime-local' | 'time';
+		type?:
+			| 'text'
+			| 'email'
+			| 'password'
+			| 'number'
+			| 'tel'
+			| 'url'
+			| 'search'
+			| 'date'
+			| 'datetime-local'
+			| 'time';
 		value?: string | number;
 		placeholder?: string;
 		disabled?: boolean;
@@ -198,5 +208,3 @@
 		</div>
 	{/if}
 </div>
-
-

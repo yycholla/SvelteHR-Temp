@@ -21,15 +21,15 @@
 
 	const isOpen = $derived(() => {
 		const currentValue = accordion.getValue();
-		return Array.isArray(currentValue)
-			? currentValue.includes(value)
-			: currentValue === value;
+		return Array.isArray(currentValue) ? currentValue.includes(value) : currentValue === value;
 	});
 
 	// Provide context for trigger and content with getter to maintain reactivity
 	setContext('accordion-item', {
 		value,
-		get isOpen() { return isOpen; },
+		get isOpen() {
+			return isOpen;
+		},
 		toggle: () => accordion.toggle(value)
 	});
 </script>

@@ -11,9 +11,10 @@
 	let searchQuery = $state('');
 
 	let filteredTrainings = $derived(
-		(data.trainings || []).filter((t: any) => 
-			t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			(t.description && t.description.toLowerCase().includes(searchQuery.toLowerCase()))
+		(data.trainings || []).filter(
+			(t: any) =>
+				t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				(t.description && t.description.toLowerCase().includes(searchQuery.toLowerCase()))
 		)
 	);
 
@@ -43,7 +44,7 @@
 			<h1 class="text-3xl font-bold tracking-tight">My Training</h1>
 			<p class="text-muted-foreground">View and complete your assigned training modules.</p>
 		</div>
-		
+
 		<div class="relative w-full md:w-64">
 			<Search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
 			<Input placeholder="Search training..." class="pl-8" bind:value={searchQuery} />
@@ -52,7 +53,9 @@
 
 	<!-- Training Grid -->
 	{#if filteredTrainings.length === 0}
-		<div class="flex flex-col items-center justify-center h-64 text-muted-foreground border-2 border-dashed rounded-xl bg-muted/5">
+		<div
+			class="flex flex-col items-center justify-center h-64 text-muted-foreground border-2 border-dashed rounded-xl bg-muted/5"
+		>
 			<BookOpen class="h-12 w-12 mb-4 opacity-20" />
 			<p class="text-lg font-medium">No training found</p>
 			<p class="text-sm">You don't have any assigned training modules matching your search.</p>
@@ -73,7 +76,7 @@
 							</Card.Description>
 						{/if}
 					</Card.Header>
-					
+
 					<Card.Content class="flex-1">
 						<div class="space-y-4">
 							{#if training.tags && training.tags.length > 0}
@@ -92,7 +95,11 @@
 									</div>
 								{/if}
 								{#if training.endDate}
-									<div class="flex items-center gap-2 {isOverdue(training.endDate) ? 'text-destructive font-medium' : ''}">
+									<div
+										class="flex items-center gap-2 {isOverdue(training.endDate)
+											? 'text-destructive font-medium'
+											: ''}"
+									>
 										<Calendar class="h-4 w-4" />
 										<span>Due: {formatDate(training.endDate)}</span>
 										{#if isOverdue(training.endDate)}

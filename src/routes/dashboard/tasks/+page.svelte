@@ -56,7 +56,11 @@
 		dueDateStart: data.filters?.dueDateStart || null,
 		dueDateEnd: data.filters?.dueDateEnd || null,
 		hasParent:
-			data.filters?.hasParent === 'true' ? true : data.filters?.hasParent === 'false' ? false : null,
+			data.filters?.hasParent === 'true'
+				? true
+				: data.filters?.hasParent === 'false'
+					? false
+					: null,
 		hasDependencies: null
 	});
 

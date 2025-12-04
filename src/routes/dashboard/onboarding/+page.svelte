@@ -34,9 +34,7 @@
 	let completedAssignments = $derived(
 		data.assignments?.filter((a: any) => a.isCompleted).length || 0
 	);
-	let overdueAssignments = $derived(
-		data.assignments?.filter((a: any) => a.isOverdue).length || 0
-	);
+	let overdueAssignments = $derived(data.assignments?.filter((a: any) => a.isOverdue).length || 0);
 	let completionPercentage = $derived(
 		totalAssignments > 0 ? Math.round((completedAssignments / totalAssignments) * 100) : 0
 	);
@@ -200,9 +198,7 @@
 						>
 							{assignment.isCompleted ? 'Completed' : 'Start Module'}
 							{#if !assignment.isCompleted}
-								<ChevronRight
-									class="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1"
-								/>
+								<ChevronRight class="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
 							{/if}
 						</Button>
 					</Card.Footer>

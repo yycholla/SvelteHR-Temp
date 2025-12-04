@@ -43,12 +43,16 @@
 	let assignmentDueDate = $state<string | undefined>(undefined);
 	let isAssigning = $state(false);
 	let searchTerms = $state<string[]>([]);
-	let recurrencePattern = $state(training.rrule ? {
-		frequency: 'weekly',
-		interval: 1,
-		endDate: training.recurrenceEndDate ? new Date(training.recurrenceEndDate) : null,
-		rruleString: training.rrule
-	} : null);
+	let recurrencePattern = $state(
+		training.rrule
+			? {
+					frequency: 'weekly',
+					interval: 1,
+					endDate: training.recurrenceEndDate ? new Date(training.recurrenceEndDate) : null,
+					rruleString: training.rrule
+				}
+			: null
+	);
 
 	const df = new DateFormatter('en-US', {
 		dateStyle: 'long'
@@ -81,9 +85,8 @@
 
 		// Include email in label for searchability (MultiSearchInput only searches label field)
 		// Format: "Display Name (email@example.com)" or just "email@example.com" if no name
-		const label = displayName || `${firstName} ${lastName}`.trim()
-			? `${primaryName} (${email})`
-			: email;
+		const label =
+			displayName || `${firstName} ${lastName}`.trim() ? `${primaryName} (${email})` : email;
 
 		return {
 			value: user.id,
@@ -103,7 +106,7 @@
 			return assignments;
 		}
 
-		const lowerSearchTerms = searchTerms.map(term => term.toLowerCase());
+		const lowerSearchTerms = searchTerms.map((term) => term.toLowerCase());
 		return assignments.filter((assignment: any) => {
 			const displayName = (assignment.user?.displayName || '').toLowerCase();
 			const email = (assignment.user?.email || '').toLowerCase();
@@ -111,16 +114,17 @@
 			const lastName = (assignment.user?.lastName || '').toLowerCase();
 			const fullName = `${firstName} ${lastName}`.trim().toLowerCase();
 
-			return lowerSearchTerms.some(term =>
-				displayName.includes(term) ||
-				email.includes(term) ||
-				firstName.includes(term) ||
-				lastName.includes(term) ||
-				fullName.includes(term)
+			return lowerSearchTerms.some(
+				(term) =>
+					displayName.includes(term) ||
+					email.includes(term) ||
+					firstName.includes(term) ||
+					lastName.includes(term) ||
+					fullName.includes(term)
 			);
 		});
 	});
-	
+
 	async function handleAssign() {
 		if (isAssigning) return;
 		isAssigning = true;
@@ -201,10 +205,14 @@
 
 			if (assignmentType !== 'all') {
 				if (successCount > 0) {
-					alert(`Successfully assigned to ${successCount} ${assignmentType === 'user' ? 'user(s)' : 'department(s)'}`);
+					alert(
+						`Successfully assigned to ${successCount} ${assignmentType === 'user' ? 'user(s)' : 'department(s)'}`
+					);
 				}
 				if (failCount > 0) {
-					alert(`Failed to assign ${failCount} ${assignmentType === 'user' ? 'user(s)' : 'department(s)'}`);
+					alert(
+						`Failed to assign ${failCount} ${assignmentType === 'user' ? 'user(s)' : 'department(s)'}`
+					);
 				}
 			}
 
@@ -273,9 +281,12 @@
 			<Alert.Description>{form.error}</Alert.Description>
 		</Alert.Root>
 	{/if}
-	
+
 	{#if form?.success}
-		<Alert.Root variant="default" class="mb-6 border-green-500 text-green-700 bg-green-50 dark:bg-green-900/20 dark:text-green-400">
+		<Alert.Root
+			variant="default"
+			class="mb-6 border-green-500 text-green-700 bg-green-50 dark:bg-green-900/20 dark:text-green-400"
+		>
 			<CheckCircle2 class="h-4 w-4" />
 			<Alert.Title>Success</Alert.Title>
 			<Alert.Description>Training updated successfully!</Alert.Description>
@@ -300,28 +311,21 @@
 		<!-- <input type="hidden" name="authorId" value={selectedAuthor} /> -->
 
 		<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-			
 			<!-- Left Column: Main Info -->
 			<div class="lg:col-span-2 space-y-6">
-				
 				<!-- Basic Details Card -->
 				<Card.Root>
 					<Card.Content class="p-6 space-y-6">
 						<div class="space-y-2">
 							<Label for="title">Title <span class="text-destructive">*</span></Label>
-							<Input 
-								id="title" 
-								name="title" 
-								value={training.title}
-								required 
-							/>
+							<Input id="title" name="title" value={training.title} required />
 						</div>
 
 						<div class="space-y-2">
 							<Label for="description">Description</Label>
-							<Textarea 
-								id="description" 
-								name="description" 
+							<Textarea
+								id="description"
+								name="description"
 								rows={4}
 								value={training.description || ''}
 							/>
@@ -337,39 +341,36 @@
 					<Card.Content class="p-6 space-y-6">
 						<div class="space-y-2">
 							<Label for="metaTitle">Meta Title</Label>
-							<Input 
-								id="metaTitle" 
-								name="metaTitle" 
-								value={training.metaTitle || ''}
-							/>
-							<p class="text-[0.8rem] text-muted-foreground">Recommended length: 50-60 characters.</p>
+							<Input id="metaTitle" name="metaTitle" value={training.metaTitle || ''} />
+							<p class="text-[0.8rem] text-muted-foreground">
+								Recommended length: 50-60 characters.
+							</p>
 						</div>
 
 						<div class="space-y-2">
 							<Label for="metaDescription">Meta Description</Label>
-							<Textarea 
-								id="metaDescription" 
-								name="metaDescription" 
+							<Textarea
+								id="metaDescription"
+								name="metaDescription"
 								rows={3}
 								value={training.metaDescription || ''}
 							/>
-							<p class="text-[0.8rem] text-muted-foreground">Recommended length: 150-160 characters.</p>
+							<p class="text-[0.8rem] text-muted-foreground">
+								Recommended length: 150-160 characters.
+							</p>
 						</div>
 					</Card.Content>
 				</Card.Root>
-
 			</div>
 
 			<!-- Right Column: Settings & Organization -->
 			<div class="space-y-6">
-				
 				<!-- Organization Card -->
 				<Card.Root>
 					<Card.Header class="border-b p-6">
 						<Card.Title>Organization</Card.Title>
 					</Card.Header>
 					<Card.Content class="p-6 space-y-6">
-						
 						<!-- Status -->
 						<div class="flex items-center justify-between">
 							<div class="space-y-0.5">
@@ -384,13 +385,12 @@
 						<!-- Tags -->
 						<div class="space-y-2">
 							<Label>Tags</Label>
-							<MultiSearchInput 
+							<MultiSearchInput
 								bind:searchTerms={tags}
 								placeholder="Add tag..."
 								allowCustomTerms={true}
 							/>
 						</div>
-
 					</Card.Content>
 				</Card.Root>
 
@@ -402,32 +402,31 @@
 					<Card.Content class="p-6 space-y-4">
 						<div class="space-y-2">
 							<Label for="startDate">Start Date</Label>
-							<Input 
-								id="startDate" 
-								name="startDate" 
+							<Input
+								id="startDate"
+								name="startDate"
 								type="datetime-local"
 								value={toDatetimeLocal(training.startDate)}
 							/>
 						</div>
 						<div class="space-y-2">
 							<Label for="endDate">End Date</Label>
-							<Input 
-								id="endDate" 
-								name="endDate" 
+							<Input
+								id="endDate"
+								name="endDate"
 								type="datetime-local"
 								value={toDatetimeLocal(training.endDate)}
 							/>
 						</div>
-						
+
 						<div class="h-px bg-border my-2" />
-						
-						<RecurrencePatternInput 
-							bind:pattern={recurrencePattern} 
-							startDate={training.startDate ? new Date(training.startDate) : new Date()} 
+
+						<RecurrencePatternInput
+							bind:pattern={recurrencePattern}
+							startDate={training.startDate ? new Date(training.startDate) : new Date()}
 						/>
 					</Card.Content>
 				</Card.Root>
-
 			</div>
 		</div>
 
@@ -445,39 +444,44 @@
 				</Card.Header>
 				<Card.Content class="p-6">
 					<div class="flex flex-col lg:flex-row gap-8">
-						
 						<!-- Assignment Form (Left Side) -->
 						<div class="w-full lg:w-1/3 space-y-6 lg:border-r lg:border-border lg:pr-8">
 							<div class="space-y-4">
 								<h4 class="font-semibold text-sm flex items-center gap-2">
 									<UserPlus class="h-4 w-4" /> Assign Training
 								</h4>
-								
+
 								<!-- Assignment Type Tabs -->
 								<div class="grid grid-cols-3 gap-1 p-1 bg-muted rounded-lg text-xs font-medium">
-									<button 
+									<button
 										type="button"
-										class="px-2 py-1.5 rounded-md transition-all {assignmentType === 'user' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}"
-										onclick={() => assignmentType = 'user'}
+										class="px-2 py-1.5 rounded-md transition-all {assignmentType === 'user'
+											? 'bg-background shadow-sm text-foreground'
+											: 'text-muted-foreground hover:text-foreground'}"
+										onclick={() => (assignmentType = 'user')}
 									>
 										Individual
 									</button>
-									<button 
+									<button
 										type="button"
-										class="px-2 py-1.5 rounded-md transition-all {assignmentType === 'department' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}"
-										onclick={() => assignmentType = 'department'}
+										class="px-2 py-1.5 rounded-md transition-all {assignmentType === 'department'
+											? 'bg-background shadow-sm text-foreground'
+											: 'text-muted-foreground hover:text-foreground'}"
+										onclick={() => (assignmentType = 'department')}
 									>
 										Department
 									</button>
-									<button 
+									<button
 										type="button"
-										class="px-2 py-1.5 rounded-md transition-all {assignmentType === 'all' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}"
-										onclick={() => assignmentType = 'all'}
+										class="px-2 py-1.5 rounded-md transition-all {assignmentType === 'all'
+											? 'bg-background shadow-sm text-foreground'
+											: 'text-muted-foreground hover:text-foreground'}"
+										onclick={() => (assignmentType = 'all')}
 									>
 										Everyone
 									</button>
 								</div>
-								
+
 								{#if assignmentType === 'user'}
 									<div class="space-y-2">
 										<Label for="userToAssign">Select Users</Label>
@@ -509,7 +513,9 @@
 										{/if}
 									</div>
 								{:else}
-									<div class="p-3 bg-accent/20 rounded-md border border-accent/50 text-sm text-muted-foreground">
+									<div
+										class="p-3 bg-accent/20 rounded-md border border-accent/50 text-sm text-muted-foreground"
+									>
 										This will assign the training to <strong>all active employees</strong> in the organization.
 									</div>
 								{/if}
@@ -522,13 +528,15 @@
 												<Button
 													variant="outline"
 													class={cn(
-														"w-full justify-start text-left font-normal",
-														!assignmentDueDate && "text-muted-foreground"
+														'w-full justify-start text-left font-normal',
+														!assignmentDueDate && 'text-muted-foreground'
 													)}
 													{...props}
 												>
 													<CalendarIcon class="mr-2 h-4 w-4" />
-													{assignmentDueDate ? df.format(new Date(assignmentDueDate)) : "Pick a date"}
+													{assignmentDueDate
+														? df.format(new Date(assignmentDueDate))
+														: 'Pick a date'}
 												</Button>
 											{/snippet}
 										</PopoverTrigger>
@@ -555,25 +563,25 @@
 									type="button"
 									class="w-full mt-2"
 									onclick={handleAssign}
-									disabled={
-										isAssigning ||
+									disabled={isAssigning ||
 										(assignmentType === 'user' && selectedUsersToAssign.length === 0) ||
-										(assignmentType === 'department' && selectedDepartmentsToAssign.length === 0)
-									}
+										(assignmentType === 'department' && selectedDepartmentsToAssign.length === 0)}
 								>
 									{#if isAssigning}
 										<Loader2 class="mr-2 h-4 w-4 animate-spin" />
 										Assigning...
+									{:else if assignmentType === 'user'}
+										<UserPlus class="mr-2 h-4 w-4" />
+										Assign {selectedUsersToAssign.length > 0
+											? `(${selectedUsersToAssign.length})`
+											: 'Users'}
+									{:else if assignmentType === 'department'}
+										<Building class="mr-2 h-4 w-4" />
+										Assign {selectedDepartmentsToAssign.length > 0
+											? `(${selectedDepartmentsToAssign.length})`
+											: 'Departments'}
 									{:else}
-										{#if assignmentType === 'user'}
-											<UserPlus class="mr-2 h-4 w-4" />
-											Assign {selectedUsersToAssign.length > 0 ? `(${selectedUsersToAssign.length})` : 'Users'}
-										{:else if assignmentType === 'department'}
-											<Building class="mr-2 h-4 w-4" />
-											Assign {selectedDepartmentsToAssign.length > 0 ? `(${selectedDepartmentsToAssign.length})` : 'Departments'}
-										{:else}
-											<Users class="mr-2 h-4 w-4" /> Assign All
-										{/if}
+										<Users class="mr-2 h-4 w-4" /> Assign All
 									{/if}
 								</Button>
 							</div>
@@ -585,21 +593,25 @@
 								<h4 class="font-semibold text-sm">Currently Assigned</h4>
 								<div class="w-full max-w-md">
 									<MultiSearchInput
-										bind:searchTerms={searchTerms}
+										bind:searchTerms
 										placeholder="Search by name or email..."
 										allowCustomTerms={true}
 									/>
 								</div>
 							</div>
-							
+
 							{#if assignments.length === 0}
-								<div class="flex flex-col items-center justify-center h-48 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/5">
+								<div
+									class="flex flex-col items-center justify-center h-48 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/5"
+								>
 									<UserPlus class="h-8 w-8 mb-2 opacity-20" />
 									<p class="text-sm font-medium">No users assigned yet.</p>
 									<p class="text-xs">Use the form on the left to assign users.</p>
 								</div>
 							{:else if filteredAssignments().length === 0}
-								<div class="flex flex-col items-center justify-center h-48 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/5">
+								<div
+									class="flex flex-col items-center justify-center h-48 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/5"
+								>
 									<Search class="h-8 w-8 mb-2 opacity-20" />
 									<p class="text-sm font-medium">No users found matching your search.</p>
 									<p class="text-xs">Try different search terms.</p>
@@ -609,31 +621,48 @@
 									<p class="text-xs text-muted-foreground">
 										Showing {filteredAssignments().length} of {assignments.length} assigned users
 									</p>
-									<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-2">
+									<div
+										class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-2"
+									>
 										{#each filteredAssignments() as assignment (assignment.id)}
-										<div class="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group">
-											<div class="flex flex-col min-w-0 gap-1">
-												<div class="font-medium text-sm truncate flex items-center gap-2">
-													<div class="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs text-primary font-bold">
-														{(assignment.user?.displayName || assignment.user?.email || 'U').charAt(0).toUpperCase()}
+											<div
+												class="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
+											>
+												<div class="flex flex-col min-w-0 gap-1">
+													<div class="font-medium text-sm truncate flex items-center gap-2">
+														<div
+															class="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs text-primary font-bold"
+														>
+															{(assignment.user?.displayName || assignment.user?.email || 'U')
+																.charAt(0)
+																.toUpperCase()}
+														</div>
+														{assignment.user?.displayName ||
+															assignment.user?.email ||
+															'Unknown User'}
 													</div>
-													{assignment.user?.displayName || assignment.user?.email || 'Unknown User'}
+													<div class="text-xs text-muted-foreground pl-8">
+														{#if assignment.dueDate}
+															<span class="flex items-center gap-1 text-orange-600/80">
+																<CalendarIcon class="h-3 w-3" />
+																Due {formatDueDate(assignment.dueDate)}
+															</span>
+														{:else}
+															<span>No due date</span>
+														{/if}
+													</div>
 												</div>
-												<div class="text-xs text-muted-foreground pl-8">
-													{#if assignment.dueDate}
-														<span class="flex items-center gap-1 text-orange-600/80">
-															<CalendarIcon class="h-3 w-3" />
-															Due {formatDueDate(assignment.dueDate)}
-														</span>
-													{:else}
-														<span>No due date</span>
-													{/if}
-												</div>
+												<Button
+													variant="ghost"
+													size="icon"
+													class="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+													onclick={() => handleUnassignUser(assignment.id)}
+													disabled={isAssigning}
+													title="Remove assignment"
+												>
+													<UserMinus class="h-4 w-4" />
+												</Button>
 											</div>
-											<Button variant="ghost" size="icon" class="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity" onclick={() => handleUnassignUser(assignment.id)} disabled={isAssigning} title="Remove assignment">
-												<UserMinus class="h-4 w-4" />
-											</Button>
-										</div>
 										{/each}
 									</div>
 								</div>
@@ -645,9 +674,7 @@
 		</div>
 
 		<div class="flex justify-end gap-2 pb-10">
-			<Button variant="ghost" href="/dashboard/admin/trainings" disabled={submitting}>
-				Back
-			</Button>
+			<Button variant="ghost" href="/dashboard/admin/trainings" disabled={submitting}>Back</Button>
 			<Button type="submit" disabled={submitting}>
 				{#if submitting}
 					<Loader2 class="mr-2 h-4 w-4 animate-spin" />

@@ -80,8 +80,8 @@ ${report.actions.length > 0 ? `Required Actions:\n${report.actions.map((a) => `-
 
 	function exportAllReports() {
 		const content = complianceReports
-			.map(
-				(report) => `
+			.map((report) =>
+				`
 Compliance Report: ${report.title}
 Type: ${report.type}
 Status: ${report.status}
@@ -206,7 +206,11 @@ ${report.actions.length > 0 ? `Actions: ${report.actions.join(', ')}` : 'No acti
 							<td class="px-4 py-3 font-medium">{report.title}</td>
 							<td class="px-4 py-3">{report.type}</td>
 							<td class="px-4 py-3">
-								<span class="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium {getStatusColor(report.status)}">
+								<span
+									class="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium {getStatusColor(
+										report.status
+									)}"
+								>
 									<StatusIcon class="h-3 w-3" />
 									{report.status}
 								</span>
@@ -284,7 +288,8 @@ ${report.actions.length > 0 ? `Actions: ${report.actions.join(', ')}` : 'No acti
 			<div class="rounded-lg border bg-muted/50 p-4">
 				<p class="text-sm text-muted-foreground">Compliant Reports</p>
 				<p class="text-3xl font-bold">
-					{complianceReports.filter((r) => r.status === 'Compliant').length}/{complianceReports.length}
+					{complianceReports.filter((r) => r.status === 'Compliant')
+						.length}/{complianceReports.length}
 				</p>
 				<p class="mt-1 text-sm text-muted-foreground">
 					{Math.round(

@@ -1,39 +1,3 @@
-<!--
-  EventCalendar Component
-  Feature: 019-we-need-to - Phase 4
-  Feature: 027-we-need-to - RRULE Support
-
-  Full-featured calendar view for events with FullCalendar integration
-
-  Features:
-  - Month, week, and day views
-  - Event creation via date click (manager/admin only)
-  - Event editing via drag-and-drop
-  - RSVP status color-coding
-  - Event filtering by visibility type
-  - Responsive design for mobile
-  - Interactive event details
-  - Recurring events with RRULE (RFC 5545) support
-  - Reminder indicators
-
-  Props:
-  - events: Array of event objects (supports RRULE for recurring events)
-  - userId: Current user ID for RSVP status
-  - canManageEvents: Whether user can create/edit events
-  - localRsvpStatuses: Local RSVP status map for optimistic UI updates
-  - onEventClick: Callback when event is clicked
-  - onDateClick: Callback when date is clicked (for event creation)
-  - onDateSelect: Callback when date range is selected
-  - onEventDrop: Callback when event is dragged to new date
-  - visibilityFilter?: Filter events by visibility type
--->
-
-<svelte:head>
-	<link href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.19/index.global.min.css" rel="stylesheet" />
-	<link href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.19/index.global.min.css" rel="stylesheet" />
-	<link href="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.19/index.global.min.css" rel="stylesheet" />
-</svelte:head>
-
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
@@ -84,10 +48,10 @@
 
 			// RSVP status-based colors (4 distinct colors)
 			const colorMap: Record<string, string> = {
-				accepted: '#22c55e',   // Green
-				declined: '#ef4444',   // Red
-				tentative: '#f59e0b',  // Amber/Orange
-				pending: '#3b82f6'     // Blue
+				accepted: '#22c55e', // Green
+				declined: '#ef4444', // Red
+				tentative: '#f59e0b', // Amber/Orange
+				pending: '#3b82f6' // Blue
 			};
 
 			const userAttendee = event.eventAttendeesByEventId?.nodes?.find(
@@ -110,9 +74,10 @@
 
 			if (event.rrule) {
 				calendarEvent.rrule = event.rrule;
-				const duration = event.endTime && event.startTime
-					? new Date(event.endTime).getTime() - new Date(event.startTime).getTime()
-					: 3600000;
+				const duration =
+					event.endTime && event.startTime
+						? new Date(event.endTime).getTime() - new Date(event.startTime).getTime()
+						: 3600000;
 				calendarEvent.duration = duration;
 			} else {
 				calendarEvent.start = event.startTime;
@@ -232,7 +197,10 @@
 							conflictIcon.setAttribute('title', 'Schedule conflict detected');
 
 							const triangle = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-							triangle.setAttribute('d', 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z');
+							triangle.setAttribute(
+								'd',
+								'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'
+							);
 							conflictIcon.appendChild(triangle);
 
 							const exclamation = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -251,7 +219,8 @@
 
 							titleEl.appendChild(conflictIcon);
 
-							info.el.style.backgroundImage = 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(239, 68, 68, 0.1) 10px, rgba(239, 68, 68, 0.1) 20px)';
+							info.el.style.backgroundImage =
+								'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(239, 68, 68, 0.1) 10px, rgba(239, 68, 68, 0.1) 20px)';
 						}
 					}
 				},
@@ -267,7 +236,11 @@
 				eventDrop: async (info) => {
 					if (canManageEvents && onEventDrop) {
 						try {
-							await onEventDrop(info.event.id, info.event.start || new Date(), info.event.end || new Date());
+							await onEventDrop(
+								info.event.id,
+								info.event.start || new Date(),
+								info.event.end || new Date()
+							);
 						} catch (error) {
 							info.revert();
 						}
@@ -276,7 +249,11 @@
 				eventResize: async (info) => {
 					if (canManageEvents && onEventDrop) {
 						try {
-							await onEventDrop(info.event.id, info.event.start || new Date(), info.event.end || new Date());
+							await onEventDrop(
+								info.event.id,
+								info.event.start || new Date(),
+								info.event.end || new Date()
+							);
 						} catch (error) {
 							info.revert();
 						}
@@ -295,7 +272,7 @@
 	$effect(() => {
 		if (calendar && calendarEvents.length > 0) {
 			// Remove all existing event sources
-			calendar.getEventSources().forEach(source => source.remove());
+			calendar.getEventSources().forEach((source) => source.remove());
 			// Add updated events
 			calendar.addEventSource(calendarEvents);
 			// Refetch to ensure calendar is updated
@@ -307,6 +284,51 @@
 		if (calendar) calendar.destroy();
 	});
 </script>
+
+<!--
+  EventCalendar Component
+  Feature: 019-we-need-to - Phase 4
+  Feature: 027-we-need-to - RRULE Support
+
+  Full-featured calendar view for events with FullCalendar integration
+
+  Features:
+  - Month, week, and day views
+  - Event creation via date click (manager/admin only)
+  - Event editing via drag-and-drop
+  - RSVP status color-coding
+  - Event filtering by visibility type
+  - Responsive design for mobile
+  - Interactive event details
+  - Recurring events with RRULE (RFC 5545) support
+  - Reminder indicators
+
+  Props:
+  - events: Array of event objects (supports RRULE for recurring events)
+  - userId: Current user ID for RSVP status
+  - canManageEvents: Whether user can create/edit events
+  - localRsvpStatuses: Local RSVP status map for optimistic UI updates
+  - onEventClick: Callback when event is clicked
+  - onDateClick: Callback when date is clicked (for event creation)
+  - onDateSelect: Callback when date range is selected
+  - onEventDrop: Callback when event is dragged to new date
+  - visibilityFilter?: Filter events by visibility type
+-->
+
+<svelte:head>
+	<link
+		href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.19/index.global.min.css"
+		rel="stylesheet"
+	/>
+	<link
+		href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.19/index.global.min.css"
+		rel="stylesheet"
+	/>
+	<link
+		href="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.19/index.global.min.css"
+		rel="stylesheet"
+	/>
+</svelte:head>
 
 <div class="event-calendar-wrapper">
 	<div bind:this={calendarEl} class="event-calendar">
@@ -367,7 +389,7 @@
 		border: none !important;
 	}
 
-	:global(.fc-theme-standard td), 
+	:global(.fc-theme-standard td),
 	:global(.fc-theme-standard th) {
 		border-color: hsl(var(--border));
 	}
@@ -380,7 +402,7 @@
 		border-right: none !important;
 		padding: 0.75rem 0;
 	}
-	
+
 	:global(.fc-col-header-cell-cushion) {
 		color: hsl(var(--muted-foreground));
 		font-weight: 600;
@@ -477,14 +499,14 @@
 		min-height: 100%;
 	}
 
-    /* Time Grid Alternating Rows (Zebra Stripe) */
-    /* Target the ROW (tr), then the LANE (td) inside it */
-    :global(.fc-timegrid-slots tr:nth-child(odd) .fc-timegrid-slot-lane) {
-        background-color: hsl(var(--muted) / 0.5); 
-    }
+	/* Time Grid Alternating Rows (Zebra Stripe) */
+	/* Target the ROW (tr), then the LANE (td) inside it */
+	:global(.fc-timegrid-slots tr:nth-child(odd) .fc-timegrid-slot-lane) {
+		background-color: hsl(var(--muted) / 0.5);
+	}
 
-    /* Today Highlight (Darker/Distinct) */
-    /* Use secondary color which usually contrasts well with card background */
+	/* Today Highlight (Darker/Distinct) */
+	/* Use secondary color which usually contrasts well with card background */
 	:global(.fc-day-today) {
 		background-color: hsl(var(--secondary) / 0.5) !important;
 	}

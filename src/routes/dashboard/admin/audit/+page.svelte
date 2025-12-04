@@ -14,16 +14,18 @@
 	});
 
 	// Filtered logs based on search query
-	let filteredLogs = $derived(data.auditLogs.filter((log) => {
-		if (!searchQuery) return true;
-		const query = searchQuery.toLowerCase();
-		return (
-			log.action?.toLowerCase().includes(query) ||
-			log.resourceType?.toLowerCase().includes(query) ||
-			log.userByUserId?.email?.toLowerCase().includes(query) ||
-			log.ipAddress?.includes(query)
-		);
-	}));
+	let filteredLogs = $derived(
+		data.auditLogs.filter((log) => {
+			if (!searchQuery) return true;
+			const query = searchQuery.toLowerCase();
+			return (
+				log.action?.toLowerCase().includes(query) ||
+				log.resourceType?.toLowerCase().includes(query) ||
+				log.userByUserId?.email?.toLowerCase().includes(query) ||
+				log.ipAddress?.includes(query)
+			);
+		})
+	);
 
 	function applyFilters() {
 		const params = new URLSearchParams($page.url.searchParams);
@@ -189,7 +191,7 @@
 			</thead>
 			<tbody>
 				{#each filteredLogs as log (log.id)}
-					<tr 
+					<tr
 						class="border-b hover:bg-muted/50 cursor-pointer transition-colors"
 						onclick={() => goto(`/dashboard/admin/audit/${log.id}`)}
 					>
@@ -203,7 +205,9 @@
 							</div>
 						</td>
 						<td class="px-4 py-3">
-							<span class="rounded-full px-2 py-1 text-xs font-medium {getActionBadgeColor(log.action)}">
+							<span
+								class="rounded-full px-2 py-1 text-xs font-medium {getActionBadgeColor(log.action)}"
+							>
 								{log.action}
 							</span>
 						</td>

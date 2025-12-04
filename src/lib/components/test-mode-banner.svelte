@@ -23,7 +23,9 @@
 </script>
 
 {#if isActive}
-	<div class="test-mode-banner fixed top-0 left-0 right-0 z-50 bg-amber-500 text-amber-950 shadow-lg">
+	<div
+		class="test-mode-banner fixed top-0 left-0 right-0 z-50 bg-amber-500 text-amber-950 shadow-lg"
+	>
 		<div class="mx-auto flex items-center justify-between px-6 py-3">
 			<div class="flex items-center gap-3">
 				<AlertTriangle class="h-5 w-5 flex-shrink-0" />

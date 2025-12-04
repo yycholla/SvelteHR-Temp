@@ -37,9 +37,10 @@
 
 	// Derived state
 	let filteredDocuments = $derived(
-		availableDocuments.filter((doc) =>
-			doc.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			doc.category.toLowerCase().includes(searchQuery.toLowerCase())
+		availableDocuments.filter(
+			(doc) =>
+				doc.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				doc.category.toLowerCase().includes(searchQuery.toLowerCase())
 		)
 	);
 
@@ -97,9 +98,7 @@
 					<h2 class="modal-title">Assign Documents to Employee</h2>
 					<p class="employee-name">{employeeName}</p>
 				</div>
-				<button class="close-button" onclick={handleClose} title="Close">
-					✕
-				</button>
+				<button class="close-button" onclick={handleClose} title="Close"> ✕ </button>
 			</div>
 
 			<!-- Search -->
@@ -132,7 +131,9 @@
 							<div class="item-details">
 								<span class="item-detail">Category: {document.category}</span>
 								<span class="item-separator">•</span>
-								<span class="item-detail">Uploaded: {new Date(document.uploadedAt).toLocaleDateString()}</span>
+								<span class="item-detail"
+									>Uploaded: {new Date(document.uploadedAt).toLocaleDateString()}</span
+								>
 								{#if document.uploadedByEmail}
 									<span class="item-separator">•</span>
 									<span class="item-detail">By: {document.uploadedByEmail}</span>

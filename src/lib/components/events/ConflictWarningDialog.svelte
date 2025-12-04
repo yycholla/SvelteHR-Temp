@@ -60,9 +60,9 @@
 
 	// Derived
 	let hasConflicts = $derived(conflicts.length > 0);
-	let hasMajorConflicts = $derived(conflicts.some(c => c.severity === 'major'));
-	let minorConflicts = $derived(conflicts.filter(c => c.severity === 'minor'));
-	let majorConflicts = $derived(conflicts.filter(c => c.severity === 'major'));
+	let hasMajorConflicts = $derived(conflicts.some((c) => c.severity === 'major'));
+	let minorConflicts = $derived(conflicts.filter((c) => c.severity === 'minor'));
+	let majorConflicts = $derived(conflicts.filter((c) => c.severity === 'major'));
 
 	// Format overlap duration
 	function formatOverlap(minutes: number): string {
@@ -125,7 +125,9 @@
 											</span>
 											<span class="flex items-center gap-1">
 												<Clock class="h-3 w-3" />
-												{formatTime(conflict.event.startDate)} - {formatTime(conflict.event.endDate)}
+												{formatTime(conflict.event.startDate)} - {formatTime(
+													conflict.event.endDate
+												)}
 											</span>
 										</div>
 										{#if conflict.event.location}
@@ -171,7 +173,9 @@
 											</span>
 											<span class="flex items-center gap-1">
 												<Clock class="h-3 w-3" />
-												{formatTime(conflict.event.startDate)} - {formatTime(conflict.event.endDate)}
+												{formatTime(conflict.event.startDate)} - {formatTime(
+													conflict.event.endDate
+												)}
 											</span>
 										</div>
 										{#if conflict.event.location}
@@ -204,17 +208,15 @@
 					<AlertTriangle class="h-4 w-4" />
 					<Alert.Title>Warning</Alert.Title>
 					<Alert.Description>
-						You have major scheduling conflicts. Accepting this event may cause significant
-						overlaps with your existing commitments.
+						You have major scheduling conflicts. Accepting this event may cause significant overlaps
+						with your existing commitments.
 					</Alert.Description>
 				</Alert.Root>
 			{/if}
 		</div>
 
 		<Dialog.Footer>
-			<Button variant="outline" onclick={onCancel}>
-				Cancel
-			</Button>
+			<Button variant="outline" onclick={onCancel}>Cancel</Button>
 			<Button
 				variant={hasMajorConflicts ? 'destructive' : 'default'}
 				onclick={() => {

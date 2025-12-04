@@ -14,13 +14,7 @@
 		employees?: { id: string; displayName: string }[]; // List of all employees for selection
 	}
 
-	const { 
-		isOpen, 
-		onClose, 
-		onSuccess, 
-		assignToEmployees = [], 
-		employees = [] 
-	}: Props = $props();
+	const { isOpen, onClose, onSuccess, assignToEmployees = [], employees = [] }: Props = $props();
 
 	let isUploading = $state(false);
 	let file = $state<File | null>(null);
@@ -50,14 +44,12 @@
 	});
 
 	// Prepare options for MultiSearchInput
-	const employeeOptions = $derived(
-		employees.map(e => ({ value: e.id, label: e.displayName }))
-	);
+	const employeeOptions = $derived(employees.map((e) => ({ value: e.id, label: e.displayName })));
 
 	// Handle file selection and base64 encoding
 	async function handleFileSelected(selectedFile: File) {
 		file = selectedFile;
-		isUploading = true; 
+		isUploading = true;
 		try {
 			// Read file as ArrayBuffer for encryption/base64
 			const arrayBuffer = await file.arrayBuffer();
@@ -78,7 +70,7 @@
 			file = null;
 			fileContentBase64 = null;
 		} finally {
-			isUploading = false; 
+			isUploading = false;
 		}
 	}
 
@@ -295,7 +287,9 @@
 							bind:value={expirationDate}
 							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
 						/>
-						<CalendarIcon class="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+						<CalendarIcon
+							class="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none"
+						/>
 					</div>
 				</div>
 			</div>

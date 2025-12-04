@@ -48,12 +48,7 @@
 		onReject?: (requestId: string, reason: string) => Promise<void>;
 	}
 
-	let {
-		request,
-		userRole,
-		onApprove,
-		onReject
-	}: Props = $props();
+	let { request, userRole, onApprove, onReject }: Props = $props();
 
 	let isLoading = $state(false);
 	let showApproveDialog = $state(false);
@@ -65,25 +60,31 @@
 	const dispatch = createEventDispatcher();
 
 	// Computed properties
-	const canTakeAction = $derived(
-		userRole === 'super_admin' && request.status === 'pending'
-	);
+	const canTakeAction = $derived(userRole === 'super_admin' && request.status === 'pending');
 
 	const statusColor = $derived(() => {
 		switch (request.status) {
-			case 'approved': return 'green';
-			case 'rejected': return 'red';
-			case 'pending': return 'yellow';
-			default: return 'gray';
+			case 'approved':
+				return 'green';
+			case 'rejected':
+				return 'red';
+			case 'pending':
+				return 'yellow';
+			default:
+				return 'gray';
 		}
 	});
 
 	const actionBadgeColor = $derived(() => {
 		switch (request.activityLog.action) {
-			case 'CREATE': return 'blue';
-			case 'UPDATE': return 'yellow';
-			case 'DELETE': return 'red';
-			default: return 'gray';
+			case 'CREATE':
+				return 'blue';
+			case 'UPDATE':
+				return 'yellow';
+			case 'DELETE':
+				return 'red';
+			default:
+				return 'gray';
 		}
 	});
 
@@ -215,7 +216,10 @@
 				<div class="snapshot-grid">
 					<div class="snapshot-column">
 						<h5>Before</h5>
-						<pre>{JSON.stringify(request.activityLog.beforeSnapshot, null, 2).slice(0, 200)}...</pre>
+						<pre>{JSON.stringify(request.activityLog.beforeSnapshot, null, 2).slice(
+								0,
+								200
+							)}...</pre>
 					</div>
 					<div class="snapshot-column">
 						<h5>After</h5>
@@ -243,21 +247,11 @@
 
 	{#if canTakeAction}
 		<div class="card-footer">
-			<button
-				type="button"
-				class="btn-reject"
-				onclick={handleRejectClick}
-				disabled={isLoading}
-			>
+			<button type="button" class="btn-reject" onclick={handleRejectClick} disabled={isLoading}>
 				<X size={16} />
 				Reject
 			</button>
-			<button
-				type="button"
-				class="btn-approve"
-				onclick={handleApproveClick}
-				disabled={isLoading}
-			>
+			<button type="button" class="btn-approve" onclick={handleApproveClick} disabled={isLoading}>
 				<Check size={16} />
 				Approve
 			</button>
@@ -431,17 +425,17 @@
 		font-weight: 600;
 	}
 
-	.status-badge[data-color="green"] {
+	.status-badge[data-color='green'] {
 		background-color: #d1fae5;
 		color: #065f46;
 	}
 
-	.status-badge[data-color="red"] {
+	.status-badge[data-color='red'] {
 		background-color: #fee2e2;
 		color: #991b1b;
 	}
 
-	.status-badge[data-color="yellow"] {
+	.status-badge[data-color='yellow'] {
 		background-color: #fef3c7;
 		color: #92400e;
 	}
@@ -528,17 +522,17 @@
 		font-weight: 600;
 	}
 
-	.action-badge[data-color="blue"] {
+	.action-badge[data-color='blue'] {
 		background-color: #dbeafe;
 		color: #1e40af;
 	}
 
-	.action-badge[data-color="yellow"] {
+	.action-badge[data-color='yellow'] {
 		background-color: #fef3c7;
 		color: #92400e;
 	}
 
-	.action-badge[data-color="red"] {
+	.action-badge[data-color='red'] {
 		background-color: #fee2e2;
 		color: #991b1b;
 	}

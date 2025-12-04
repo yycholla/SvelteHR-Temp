@@ -55,9 +55,7 @@
 		<h1 class="heading">Access Denied</h1>
 
 		<!-- Message -->
-		<p class="message">
-			You don't have permission to access this resource.
-		</p>
+		<p class="message">You don't have permission to access this resource.</p>
 
 		<!-- Details -->
 		<div class="details">

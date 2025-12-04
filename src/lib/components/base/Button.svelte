@@ -63,13 +63,7 @@
 </script>
 
 {#if href && !disabled && !loading}
-	<a
-		{href}
-		{target}
-		{rel}
-		class={buttonClasses}
-		role="button"
-	>
+	<a {href} {target} {rel} class={buttonClasses} role="button">
 		{#if leftIcon && !iconOnly}
 			<span class="btn__icon btn__icon--left">
 				<i class="icon-{leftIcon}"></i>
@@ -114,12 +108,7 @@
 		{/if}
 	</a>
 {:else}
-	<button
-		{type}
-		{disabled}
-		class={buttonClasses}
-		onclick={handleClick}
-	>
+	<button {type} {disabled} class={buttonClasses} onclick={handleClick}>
 		{#if leftIcon && !iconOnly}
 			<span class="btn__icon btn__icon--left">
 				<i class="icon-{leftIcon}"></i>
@@ -164,5 +153,3 @@
 		{/if}
 	</button>
 {/if}
-
-

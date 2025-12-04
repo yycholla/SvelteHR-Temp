@@ -89,7 +89,7 @@
 			const Cropper = (await import('cropperjs')).default;
 
 			// Wait for image to load
-			await new Promise(resolve => setTimeout(resolve, 100));
+			await new Promise((resolve) => setTimeout(resolve, 100));
 
 			const img = cropperContainer?.querySelector('img');
 			if (!img) return;
@@ -128,29 +128,33 @@
 			});
 
 			// Convert canvas to blob
-			canvas.toBlob((blob: Blob | null) => {
-				if (!blob) {
-					errors = ['Failed to process image'];
-					return;
-				}
+			canvas.toBlob(
+				(blob: Blob | null) => {
+					if (!blob) {
+						errors = ['Failed to process image'];
+						return;
+					}
 
-				// Create File from blob
-				const file = new File([blob], 'cropped-image.jpg', {
-					type: 'image/jpeg',
-					lastModified: Date.now()
-				});
+					// Create File from blob
+					const file = new File([blob], 'cropped-image.jpg', {
+						type: 'image/jpeg',
+						lastModified: Date.now()
+					});
 
-				// Update preview URL
-				previewUrl = canvas.toDataURL('image/jpeg', 0.9);
-				showCropper = false;
+					// Update preview URL
+					previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+					showCropper = false;
 
-				// Destroy cropper
-				cropper.destroy();
-				cropper = null;
+					// Destroy cropper
+					cropper.destroy();
+					cropper = null;
 
-				// Notify parent
-				onImageSelected(file);
-			}, 'image/jpeg', 0.9);
+					// Notify parent
+					onImageSelected(file);
+				},
+				'image/jpeg',
+				0.9
+			);
 		} catch (error) {
 			console.error('Failed to crop image:', error);
 			errors = ['Failed to crop image'];
@@ -240,12 +244,8 @@
 					</div>
 				</Card.Content>
 				<Card.Footer class="flex justify-end gap-2">
-					<Button variant="outline" onclick={handleCropCancel}>
-						Cancel
-					</Button>
-					<Button onclick={handleCropConfirm}>
-						Confirm Crop
-					</Button>
+					<Button variant="outline" onclick={handleCropCancel}>Cancel</Button>
+					<Button onclick={handleCropConfirm}>Confirm Crop</Button>
 				</Card.Footer>
 			</Card.Root>
 		</div>
@@ -295,9 +295,7 @@
 				{:else}
 					<Upload class="h-12 w-12 text-muted-foreground" />
 					<div class="text-center">
-						<p class="text-sm font-medium">
-							Drag and drop an image, or click to browse
-						</p>
+						<p class="text-sm font-medium">Drag and drop an image, or click to browse</p>
 						<p class="text-xs text-muted-foreground mt-1">
 							JPEG, PNG, or WebP • Max 10MB • {aspectRatio} aspect ratio
 						</p>

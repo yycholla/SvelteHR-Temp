@@ -295,13 +295,7 @@
 			<label for="date-to" class="text-sm font-medium">To Date</label>
 			<div class="relative">
 				<Calendar class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-				<Input
-					type="date"
-					id="date-to"
-					bind:value={dateTo}
-					onchange={emitFilters}
-					class="pl-10"
-				/>
+				<Input type="date" id="date-to" bind:value={dateTo} onchange={emitFilters} class="pl-10" />
 			</div>
 		</div>
 
@@ -345,7 +339,9 @@
 					<label for="resource-type" class="text-sm font-medium">Resource Type</label>
 					<div class="autocomplete-container relative">
 						<div class="relative">
-							<Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+							<Search
+								class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+							/>
 							<Input
 								type="text"
 								id="resource-type"
@@ -367,7 +363,9 @@
 						</div>
 
 						{#if showResourceDropdown && filteredResourceTypes().length > 0}
-							<div class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md">
+							<div
+								class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md"
+							>
 								{#each filteredResourceTypes() as type}
 									<button
 										type="button"
@@ -387,7 +385,9 @@
 					<label for="employee" class="text-sm font-medium">Employee</label>
 					<div class="autocomplete-container relative">
 						<div class="relative">
-							<Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+							<Search
+								class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+							/>
 							<Input
 								type="text"
 								id="employee"
@@ -409,7 +409,9 @@
 						</div>
 
 						{#if showEmployeeDropdown && filteredEmployees().length > 0}
-							<div class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md">
+							<div
+								class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md"
+							>
 								{#each filteredEmployees() as employee}
 									<button
 										type="button"

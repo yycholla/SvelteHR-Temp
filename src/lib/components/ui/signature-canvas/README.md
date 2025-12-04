@@ -39,11 +39,7 @@ Form field wrapper with label, description, and validation.
 	}
 </script>
 
-<SignatureCanvas
-	width={400}
-	height={150}
-	onSignatureChange={handleSignatureChange}
-/>
+<SignatureCanvas width={400} height={150} onSignatureChange={handleSignatureChange} />
 ```
 
 ### Form Field Integration
@@ -216,17 +212,11 @@ isSignatureEmpty(): boolean
 	<div class="flex gap-2">
 		<label>
 			Date:
-			<input
-				type="date"
-				bind:value={formData.signature_date}
-				required
-			/>
+			<input type="date" bind:value={formData.signature_date} required />
 		</label>
 	</div>
 
-	<button onclick={validateAndSubmit}>
-		Submit W-4 Form
-	</button>
+	<button onclick={validateAndSubmit}> Submit W-4 Form </button>
 </div>
 ```
 

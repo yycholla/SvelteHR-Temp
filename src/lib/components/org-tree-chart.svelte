@@ -196,7 +196,7 @@
 				onclick={() => {
 					// Expand all
 					if (treeData) {
-						const allIds = new Set<string>();
+						const allIds = new Set();
 						function collectIds(node: TreeNode) {
 							allIds.add(node.id);
 							node.children.forEach(collectIds);

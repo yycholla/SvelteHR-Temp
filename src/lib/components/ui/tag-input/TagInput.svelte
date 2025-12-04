@@ -220,7 +220,7 @@
 						e.stopPropagation();
 						removeSelected(option.value);
 					}}
-					disabled={disabled}
+					{disabled}
 				>
 					<X class="h-3 w-3" />
 				</button>

@@ -23,7 +23,13 @@
 	import * as Popover from '$lib/components/ui/popover';
 	import { Calendar } from '$lib/components/ui/calendar';
 	import { cn } from '$lib/utils';
-	import { DateFormatter, type DateValue, getLocalTimeZone, parseDate, today } from '@internationalized/date';
+	import {
+		DateFormatter,
+		type DateValue,
+		getLocalTimeZone,
+		parseDate,
+		today
+	} from '@internationalized/date';
 
 	// Page data and action result
 	const { data, form }: { data: PageData; form: ActionData } = $props();
@@ -39,7 +45,7 @@
 	let dateValue = $state<DateValue | undefined>(
 		data.task.dueDate ? parseDate(data.task.dueDate.split('T')[0]) : undefined
 	);
-	
+
 	// Convert selected date to string format for hidden input
 	const dateInputValue = $derived(dateValue ? dateValue.toString() : '');
 
@@ -57,24 +63,25 @@
 		assigneeId: form?.values?.assigneeId || data.task.assigneeId,
 		taskTypeId: form?.values?.taskTypeId || data.task.taskTypeId,
 		parentTaskId: form?.values?.parentTaskId || data.task.parentTaskId,
-		requiresManualReassignment: form?.values?.requiresManualReassignment === 'true' || data.task.requiresManualReassignment
+		requiresManualReassignment:
+			form?.values?.requiresManualReassignment === 'true' || data.task.requiresManualReassignment
 	});
 
 	// Select options mapping
 	// Assignees
 	const assigneeOptions = $derived([
 		{ value: '', label: 'Unassigned' },
-		...data.assignees.map(u => ({ value: `user:${u.id}`, label: u.displayName })),
-		...data.departments.map(d => ({ value: `dept:${d.id}`, label: `${d.name} (Department)` }))
+		...data.assignees.map((u) => ({ value: `user:${u.id}`, label: u.displayName })),
+		...data.departments.map((d) => ({ value: `dept:${d.id}`, label: `${d.name} (Department)` }))
 	]);
 
 	// Task Types
-	const taskTypeOptions = $derived(data.taskTypes.map(t => ({ value: t.id, label: t.name })));
+	const taskTypeOptions = $derived(data.taskTypes.map((t) => ({ value: t.id, label: t.name })));
 
 	// Parent Tasks
 	const parentTaskOptions = $derived([
 		{ value: '', label: 'None' },
-		...data.parentTasks.map(t => ({ value: t.id, label: t.title }))
+		...data.parentTasks.map((t) => ({ value: t.id, label: t.title }))
 	]);
 
 	// Status options
@@ -97,10 +104,13 @@
 	];
 
 	// Helper for Select default value
-	function getSelectValue(options: { value: string; label: string }[], value: string | null | undefined) {
+	function getSelectValue(
+		options: { value: string; label: string }[],
+		value: string | null | undefined
+	) {
 		if (!value) return undefined;
 		// Handle potential prefixes for assignees if value doesn't have one but options do
-		const match = options.find(o => o.value === value || o.value === `user:${value}`);
+		const match = options.find((o) => o.value === value || o.value === `user:${value}`);
 		return match ? match.value : undefined;
 	}
 
@@ -117,7 +127,12 @@
 		<!-- Page Header -->
 		<div class="flex items-center justify-between">
 			<div class="space-y-1">
-				<Button variant="ghost" size="sm" class="-ml-3 text-muted-foreground hover:text-foreground" onclick={handleCancel}>
+				<Button
+					variant="ghost"
+					size="sm"
+					class="-ml-3 text-muted-foreground hover:text-foreground"
+					onclick={handleCancel}
+				>
 					<ArrowLeft class="mr-2 h-4 w-4" />
 					Back to Task
 				</Button>
@@ -156,12 +171,9 @@
 			<Card.Root>
 				<Card.Header>
 					<Card.Title>Task Information</Card.Title>
-					<Card.Description>
-						Core details about the task.
-					</Card.Description>
+					<Card.Description>Core details about the task.</Card.Description>
 				</Card.Header>
 				<Card.Content class="space-y-6">
-					
 					<!-- Title -->
 					<div class="space-y-2">
 						<Label for="title">Title <span class="text-destructive">*</span></Label>
@@ -192,7 +204,8 @@
 							<Label for="status">Status</Label>
 							<Select.Root type="single" name="status" value={initialValues.status}>
 								<Select.Trigger>
-									{statusOptions.find(o => o.value === initialValues.status)?.label || 'Select status'}
+									{statusOptions.find((o) => o.value === initialValues.status)?.label ||
+										'Select status'}
 								</Select.Trigger>
 								<Select.Content>
 									{#each statusOptions as option}
@@ -207,7 +220,8 @@
 							<Label for="priority">Priority</Label>
 							<Select.Root type="single" name="priority" value={initialValues.priority}>
 								<Select.Trigger>
-									{priorityOptions.find(o => o.value === initialValues.priority)?.label || 'Select priority'}
+									{priorityOptions.find((o) => o.value === initialValues.priority)?.label ||
+										'Select priority'}
 								</Select.Trigger>
 								<Select.Content>
 									{#each priorityOptions as option}
@@ -223,12 +237,9 @@
 			<Card.Root>
 				<Card.Header>
 					<Card.Title>Assignment & Scheduling</Card.Title>
-					<Card.Description>
-						Who is responsible and when is it due?
-					</Card.Description>
+					<Card.Description>Who is responsible and when is it due?</Card.Description>
 				</Card.Header>
 				<Card.Content class="space-y-6">
-					
 					<div class="grid gap-6 md:grid-cols-2">
 						<!-- Assignee -->
 						<div class="space-y-2">
@@ -236,7 +247,8 @@
 							<!-- Handle complex value matching for assignee (user: vs plain id) -->
 							<Select.Root type="single" name="assigneeId" value={currentAssigneeVal}>
 								<Select.Trigger>
-									{assigneeOptions.find(o => o.value === currentAssigneeVal)?.label || 'Unassigned'}
+									{assigneeOptions.find((o) => o.value === currentAssigneeVal)?.label ||
+										'Unassigned'}
 								</Select.Trigger>
 								<Select.Content class="max-h-[300px]">
 									{#each assigneeOptions as option}
@@ -251,7 +263,8 @@
 							<Label for="taskTypeId">Task Type</Label>
 							<Select.Root type="single" name="taskTypeId" value={initialValues.taskTypeId}>
 								<Select.Trigger>
-									{taskTypeOptions.find(o => o.value === initialValues.taskTypeId)?.label || 'Select type'}
+									{taskTypeOptions.find((o) => o.value === initialValues.taskTypeId)?.label ||
+										'Select type'}
 								</Select.Trigger>
 								<Select.Content>
 									{#each taskTypeOptions as option}
@@ -271,13 +284,13 @@
 									<Button
 										variant="outline"
 										class={cn(
-											"w-full justify-start text-left font-normal",
-											!dateValue && "text-muted-foreground"
+											'w-full justify-start text-left font-normal',
+											!dateValue && 'text-muted-foreground'
 										)}
 										{...props}
 									>
 										<CalendarIcon class="mr-2 h-4 w-4" />
-										{dateValue ? df.format(dateValue.toDate(getLocalTimeZone())) : "Pick a date"}
+										{dateValue ? df.format(dateValue.toDate(getLocalTimeZone())) : 'Pick a date'}
 									</Button>
 								{/snippet}
 							</Popover.Trigger>
@@ -287,7 +300,7 @@
 						</Popover.Root>
 						<input type="hidden" name="dueDate" value={dateInputValue} />
 					</div>
-					
+
 					<!-- Manual Reassignment -->
 					<div class="flex items-center space-x-2">
 						<Checkbox
@@ -303,7 +316,6 @@
 							Requires manual reassignment approval
 						</Label>
 					</div>
-
 				</Card.Content>
 			</Card.Root>
 

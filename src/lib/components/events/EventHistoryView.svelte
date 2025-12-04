@@ -7,12 +7,23 @@
 	 * Shows who made changes, what changed, and when.
 	 */
 
-	import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '$lib/components/ui/accordion';
+	import {
+		Accordion,
+		AccordionItem,
+		AccordionTrigger,
+		AccordionContent
+	} from '$lib/components/ui/accordion';
 	import { Badge } from '$lib/components/ui/badge';
 	import { History, User, Calendar, MapPin, Users } from '@lucide/svelte';
 	import { formatDistanceToNow, format } from 'date-fns';
 
-	type ChangeType = 'created' | 'updated' | 'deleted' | 'ownership_transfer' | 'attendee_added' | 'attendee_removed';
+	type ChangeType =
+		| 'created'
+		| 'updated'
+		| 'deleted'
+		| 'ownership_transfer'
+		| 'attendee_added'
+		| 'attendee_removed';
 
 	interface HistoryEntry {
 		id: string;
@@ -139,9 +150,7 @@
 	}
 
 	const sortedHistory = $derived(
-		[...history].sort((a, b) =>
-			new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime()
-		)
+		[...history].sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime())
 	);
 </script>
 
@@ -154,9 +163,7 @@
 	</div>
 
 	{#if sortedHistory.length === 0}
-		<p class="text-center text-muted-foreground py-8">
-			No change history available
-		</p>
+		<p class="text-center text-muted-foreground py-8">No change history available</p>
 	{:else if variant === 'compact'}
 		<div class="space-y-2">
 			{#each sortedHistory as entry (entry.id)}

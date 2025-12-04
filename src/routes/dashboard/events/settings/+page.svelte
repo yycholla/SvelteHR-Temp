@@ -56,9 +56,7 @@
 	<!-- Header -->
 	<div class="mb-8">
 		<h1 class="text-3xl font-bold tracking-tight">Notification Settings</h1>
-		<p class="mt-2 text-muted-foreground">
-			Configure how you want to be notified about events
-		</p>
+		<p class="mt-2 text-muted-foreground">Configure how you want to be notified about events</p>
 	</div>
 
 	<!-- Settings Form -->
@@ -92,9 +90,7 @@
 								<Mail class="h-4 w-4" />
 								Email Notifications
 							</Label>
-							<p class="text-sm text-muted-foreground">
-								Receive event notifications via email
-							</p>
+							<p class="text-sm text-muted-foreground">Receive event notifications via email</p>
 						</div>
 						<Switch
 							bind:checked={emailNotifications}
@@ -132,9 +128,7 @@
 						<Calendar class="h-5 w-5" />
 						Event Reminders
 					</Card.Title>
-					<Card.Description>
-						Configure automatic reminders for accepted events
-					</Card.Description>
+					<Card.Description>Configure automatic reminders for accepted events</Card.Description>
 				</Card.Header>
 				<Card.Content class="space-y-4">
 					<!-- Enable Reminders -->

@@ -24,7 +24,14 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Switch } from '$lib/components/ui/switch';
 	import { TagInput, TaskTypeTagInput } from '$lib/components/ui/tag-input';
-	import { Calendar, CheckSquare, AlertCircle, User as UserIcon, Clock, Building2 } from '@lucide/svelte';
+	import {
+		Calendar,
+		CheckSquare,
+		AlertCircle,
+		User as UserIcon,
+		Clock,
+		Building2
+	} from '@lucide/svelte';
 	import { format } from 'date-fns';
 
 	interface Department {
@@ -334,7 +341,7 @@
 						requiresManualReassignment: formData.requiresManualReassignment
 					}
 				};
-				onSubmit(updateData).catch(error => {
+				onSubmit(updateData).catch((error) => {
 					console.error('[TaskForm] Submit error:', error);
 				});
 			} else {
@@ -352,7 +359,7 @@
 						requiresManualReassignment: formData.requiresManualReassignment
 					}
 				};
-				onSubmit(createData).catch(error => {
+				onSubmit(createData).catch((error) => {
 					console.error('[TaskForm] Submit error:', error);
 				});
 			}
@@ -496,7 +503,8 @@
 						<p class="text-sm text-destructive">{fieldErrors.assignees}</p>
 					{/if}
 					<p class="text-xs text-muted-foreground">
-						{combinedAssigneeOptions().length} available ({availableUsers.length} users, {departments.length} departments)
+						{combinedAssigneeOptions().length} available ({availableUsers.length} users, {departments.length}
+						departments)
 					</p>
 				</div>
 
@@ -505,21 +513,21 @@
 					<Label for="taskType">
 						Task Type <span class="text-destructive">*</span>
 					</Label>
-				<TaskTypeTagInput
-					taskTypes={taskTypes}
-					bind:selected={formData.taskTypeId}
-					placeholder="Select or create task type..."
-					disabled={loading}
-					onSelectedChange={(selected) => {
-						formData.taskTypeId = selected;
-						if (fieldErrors.taskTypeId) {
-							delete fieldErrors.taskTypeId;
-						}
-					}}
-					onCreate={(newTaskType) => {
-						console.log('Created new task type:', newTaskType);
-					}}
-				/>
+					<TaskTypeTagInput
+						{taskTypes}
+						bind:selected={formData.taskTypeId}
+						placeholder="Select or create task type..."
+						disabled={loading}
+						onSelectedChange={(selected) => {
+							formData.taskTypeId = selected;
+							if (fieldErrors.taskTypeId) {
+								delete fieldErrors.taskTypeId;
+							}
+						}}
+						onCreate={(newTaskType) => {
+							console.log('Created new task type:', newTaskType);
+						}}
+					/>
 					{#if fieldErrors.taskTypeId}
 						<p class="text-sm text-destructive">{fieldErrors.taskTypeId}</p>
 					{/if}
@@ -578,9 +586,9 @@
 				<p class="text-xs text-muted-foreground">
 					{#if parentTaskOptions.length > 1}
 						{filteredParentTaskOptions().length} of {parentTaskOptions.length} tasks available
-					{#if formData.assignees && formData.assignees.length > 0 && filteredParentTasks().length < parentTasks.length}
-						<span class="text-primary">(filtered by assignees)</span>
-					{/if}
+						{#if formData.assignees && formData.assignees.length > 0 && filteredParentTasks().length < parentTasks.length}
+							<span class="text-primary">(filtered by assignees)</span>
+						{/if}
 					{:else}
 						Select a parent task to create a subtask
 					{/if}
@@ -719,12 +727,14 @@
 		<input type="hidden" name="parentTaskId" bind:value={formData.parentTaskId} />
 		<input type="hidden" name="dueDate" bind:value={formData.dueDate} />
 		<input type="hidden" name="reminderTime" bind:value={formData.reminderTime} />
-		<input type="hidden" name="requiresManualReassignment" bind:value={formData.requiresManualReassignment} />
+		<input
+			type="hidden"
+			name="requiresManualReassignment"
+			bind:value={formData.requiresManualReassignment}
+		/>
 		<!-- assigneeId derived from first assignee in array -->
 		{#if formData.assignees.length > 0}
 			<input type="hidden" name="assigneeId" value={formData.assignees[0]} />
 		{/if}
 	</form>
 </div>
-
-

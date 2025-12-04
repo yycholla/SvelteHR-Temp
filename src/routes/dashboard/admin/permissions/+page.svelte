@@ -64,12 +64,7 @@
 		const rolePermissions = role.permissions?.map((p: any) => `${p.resource}:${p.action}`) || [];
 		const currentPermissions = data.permissions?.map((p: any) => `${p.resource}:${p.action}`) || [];
 
-		permissionTestActions.startTestMode(
-			role.id,
-			role.name,
-			rolePermissions,
-			currentPermissions
-		);
+		permissionTestActions.startTestMode(role.id, role.name, rolePermissions, currentPermissions);
 	}
 
 	// Derived states
@@ -78,8 +73,7 @@
 			if (!searchQuery) return true;
 			const query = searchQuery.toLowerCase();
 			return (
-				role.name?.toLowerCase().includes(query) ||
-				role.description?.toLowerCase().includes(query)
+				role.name?.toLowerCase().includes(query) || role.description?.toLowerCase().includes(query)
 			);
 		})
 	);
@@ -89,8 +83,7 @@
 			if (!searchQuery) return true;
 			const query = searchQuery.toLowerCase();
 			return (
-				user.email?.toLowerCase().includes(query) ||
-				user.displayName?.toLowerCase().includes(query)
+				user.email?.toLowerCase().includes(query) || user.displayName?.toLowerCase().includes(query)
 			);
 		})
 	);
@@ -203,9 +196,7 @@
 	<div class="flex items-center justify-between">
 		<div>
 			<h1 class="text-3xl font-bold text-foreground">Permissions Management</h1>
-			<p class="text-muted-foreground">
-				Manage roles, permissions, and user access control
-			</p>
+			<p class="text-muted-foreground">Manage roles, permissions, and user access control</p>
 		</div>
 		<div class="flex items-center gap-3">
 			<!-- Test Permissions UI (only show when NOT already testing) -->
@@ -220,11 +211,7 @@
 							<option value={role.id}>{role.name}</option>
 						{/each}
 					</select>
-					<Button
-						variant="outline"
-						onclick={startTestMode}
-						disabled={!selectedTestRoleId}
-					>
+					<Button variant="outline" onclick={startTestMode} disabled={!selectedTestRoleId}>
 						<Beaker class="mr-2 h-4 w-4" />
 						Test Permissions
 					</Button>
@@ -251,7 +238,9 @@
 	{/if}
 
 	{#if actionResult?.success}
-		<div class="rounded-md bg-green-100 p-4 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+		<div
+			class="rounded-md bg-green-100 p-4 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+		>
 			{actionResult.message || 'Operation completed successfully'}
 		</div>
 	{/if}
@@ -418,7 +407,10 @@
 							</Table.TableCell>
 							<Table.TableCell>
 								{#if user.isActive}
-									<Badge variant="default" class="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+									<Badge
+										variant="default"
+										class="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+									>
 										Active
 									</Badge>
 								{:else}
@@ -485,7 +477,9 @@
 			</div>
 
 			<div>
-				<label for="role-description" class="block text-sm font-medium text-foreground">Description</label>
+				<label for="role-description" class="block text-sm font-medium text-foreground"
+					>Description</label
+				>
 				<textarea
 					id="role-description"
 					name="description"
@@ -498,18 +492,8 @@
 		</form>
 
 		<Dialog.Footer>
-			<Button
-				type="button"
-				variant="outline"
-				onclick={closeDialogs}
-			>
-				Cancel
-			</Button>
-			<Button
-				type="submit"
-				form="create-role-form"
-				disabled={loading}
-			>
+			<Button type="button" variant="outline" onclick={closeDialogs}>Cancel</Button>
+			<Button type="submit" form="create-role-form" disabled={loading}>
 				{loading ? 'Creating...' : 'Create Role'}
 			</Button>
 		</Dialog.Footer>
@@ -543,7 +527,9 @@
 			<input type="hidden" name="id" value={selectedRole?.id} />
 
 			<div>
-				<label for="edit-role-name" class="block text-sm font-medium text-foreground">Role Name *</label>
+				<label for="edit-role-name" class="block text-sm font-medium text-foreground"
+					>Role Name *</label
+				>
 				<input
 					id="edit-role-name"
 					name="name"
@@ -555,7 +541,9 @@
 			</div>
 
 			<div>
-				<label for="edit-role-description" class="block text-sm font-medium text-foreground">Description</label>
+				<label for="edit-role-description" class="block text-sm font-medium text-foreground"
+					>Description</label
+				>
 				<textarea
 					id="edit-role-description"
 					name="description"
@@ -567,18 +555,8 @@
 		</form>
 
 		<Dialog.Footer>
-			<Button
-				type="button"
-				variant="outline"
-				onclick={closeDialogs}
-			>
-				Cancel
-			</Button>
-			<Button
-				type="submit"
-				form="edit-role-form"
-				disabled={loading}
-			>
+			<Button type="button" variant="outline" onclick={closeDialogs}>Cancel</Button>
+			<Button type="submit" form="edit-role-form" disabled={loading}>
 				{loading ? 'Updating...' : 'Update Role'}
 			</Button>
 		</Dialog.Footer>
@@ -742,13 +720,7 @@
 		</div>
 
 		<Dialog.Footer>
-			<Button
-				type="button"
-				variant="outline"
-				onclick={closeDialogs}
-			>
-				Close
-			</Button>
+			<Button type="button" variant="outline" onclick={closeDialogs}>Close</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>

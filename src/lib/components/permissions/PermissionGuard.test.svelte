@@ -26,7 +26,15 @@
 	} = $props();
 </script>
 
-<PermissionGuard {permissions} {requires} {requireAll} {inverse} {as} class={className} {...restProps}>
+<PermissionGuard
+	{permissions}
+	{requires}
+	{requireAll}
+	{inverse}
+	{as}
+	class={className}
+	{...restProps}
+>
 	{#snippet children()}
 		<span data-testid="children">{childrenText}</span>
 	{/snippet}

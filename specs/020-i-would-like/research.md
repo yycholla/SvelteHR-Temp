@@ -424,37 +424,36 @@ export const load: PageServerLoad = async (event) => {
 ```svelte
 <!-- src/lib/components/permissions/PermissionGuard.svelte -->
 <script lang="ts">
-  import type { Snippet } from 'svelte';
-  import { hasPermission } from '$lib/utils/permissions';
+	import type { Snippet } from 'svelte';
+	import { hasPermission } from '$lib/utils/permissions';
 
-  let {
-    permissions = [],
-    roles = [],
-    requireAll = false,
-    fallback = '',
-    userPermissions,
-    userRoles,
-    children
-  }: {
-    permissions?: string[];
-    roles?: string[];
-    requireAll?: boolean;
-    fallback?: string;
-    userPermissions: string[];
-    userRoles: string[];
-    children: Snippet;
-  } = $props();
+	let {
+		permissions = [],
+		roles = [],
+		requireAll = false,
+		fallback = '',
+		userPermissions,
+		userRoles,
+		children
+	}: {
+		permissions?: string[];
+		roles?: string[];
+		requireAll?: boolean;
+		fallback?: string;
+		userPermissions: string[];
+		userRoles: string[];
+		children: Snippet;
+	} = $props();
 
-  let hasAccess = $derived(
-    hasPermission(userPermissions, permissions, requireAll) ||
-    hasRole(userRoles, roles)
-  );
+	let hasAccess = $derived(
+		hasPermission(userPermissions, permissions, requireAll) || hasRole(userRoles, roles)
+	);
 </script>
 
 {#if hasAccess}
-  {@render children()}
+	{@render children()}
 {:else if fallback}
-  <p class="text-muted">{fallback}</p>
+	<p class="text-muted">{fallback}</p>
 {/if}
 ```
 
@@ -463,26 +462,26 @@ export const load: PageServerLoad = async (event) => {
 ```svelte
 <!-- src/routes/hr/employees/+page.svelte -->
 <script lang="ts">
-  import PermissionGuard from '$lib/components/permissions/PermissionGuard.svelte';
-  const { data } = $props();
+	import PermissionGuard from '$lib/components/permissions/PermissionGuard.svelte';
+	const { data } = $props();
 </script>
 
 <h1>Employees</h1>
 
 <PermissionGuard
-  permissions={['employees:write']}
-  userPermissions={data.userPermissions.permissions}
-  userRoles={data.userPermissions.roles}
+	permissions={['employees:write']}
+	userPermissions={data.userPermissions.permissions}
+	userRoles={data.userPermissions.roles}
 >
-  <button on:click={handleAddEmployee}>Add Employee</button>
+	<button on:click={handleAddEmployee}>Add Employee</button>
 </PermissionGuard>
 
 <PermissionGuard
-  permissions={['employees:delete']}
-  userPermissions={data.userPermissions.permissions}
-  userRoles={data.userPermissions.roles}
+	permissions={['employees:delete']}
+	userPermissions={data.userPermissions.permissions}
+	userRoles={data.userPermissions.roles}
 >
-  <button on:click={handleDelete}>Delete Selected</button>
+	<button on:click={handleDelete}>Delete Selected</button>
 </PermissionGuard>
 ```
 
@@ -491,54 +490,51 @@ export const load: PageServerLoad = async (event) => {
 ```svelte
 <!-- src/routes/+layout.svelte -->
 <script lang="ts">
-  import { hasPermission } from '$lib/utils/permissions';
-  const { data } = $props();
+	import { hasPermission } from '$lib/utils/permissions';
+	const { data } = $props();
 
-  let navItems = $derived(() => {
-    const items = [];
+	let navItems = $derived(() => {
+		const items = [];
 
-    // Dashboard (all authenticated users)
-    items.push({ href: '/dashboard', label: 'Dashboard', icon: 'home' });
+		// Dashboard (all authenticated users)
+		items.push({ href: '/dashboard', label: 'Dashboard', icon: 'home' });
 
-    // HR section (requires HR permissions)
-    if (hasPermission(data.userPermissions.permissions, [
-      'employees:read:team',
-      'employees:read:all'
-    ])) {
-      items.push({
-        href: '/hr',
-        label: 'HR',
-        icon: 'users',
-        children: [
-          { href: '/hr/employees', label: 'Employees' },
-          { href: '/hr/departments', label: 'Departments' }
-        ]
-      });
-    }
+		// HR section (requires HR permissions)
+		if (
+			hasPermission(data.userPermissions.permissions, ['employees:read:team', 'employees:read:all'])
+		) {
+			items.push({
+				href: '/hr',
+				label: 'HR',
+				icon: 'users',
+				children: [
+					{ href: '/hr/employees', label: 'Employees' },
+					{ href: '/hr/departments', label: 'Departments' }
+				]
+			});
+		}
 
-    // Admin section (requires admin permissions)
-    if (hasPermission(data.userPermissions.permissions, [
-      'admin:read:all'
-    ])) {
-      items.push({
-        href: '/admin',
-        label: 'Admin',
-        icon: 'settings',
-        children: [
-          { href: '/admin/analytics', label: 'Analytics' },
-          { href: '/admin/system', label: 'System Settings' }
-        ]
-      });
-    }
+		// Admin section (requires admin permissions)
+		if (hasPermission(data.userPermissions.permissions, ['admin:read:all'])) {
+			items.push({
+				href: '/admin',
+				label: 'Admin',
+				icon: 'settings',
+				children: [
+					{ href: '/admin/analytics', label: 'Analytics' },
+					{ href: '/admin/system', label: 'System Settings' }
+				]
+			});
+		}
 
-    return items;
-  });
+		return items;
+	});
 </script>
 
 <nav>
-  {#each navItems as item}
-    <a href={item.href}>{item.label}</a>
-  {/each}
+	{#each navItems as item}
+		<a href={item.href}>{item.label}</a>
+	{/each}
 </nav>
 ```
 

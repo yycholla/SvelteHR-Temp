@@ -100,16 +100,16 @@
 
 	async function handleSubmitRequest(event) {
 		event.preventDefault();
-		
+
 		// Simulate API call
 		try {
 			console.log('Submitting leave request:', newRequest);
 			// In a real app, await fetch(...) here
-			
+
 			toast.success('Request Submitted', {
 				description: 'Your leave request has been submitted for approval.'
 			});
-			
+
 			showNewRequestForm = false;
 			newRequest = {
 				leaveTypeId: '',
@@ -137,7 +137,7 @@
 		try {
 			// Simulate API call
 			console.log('Cancelling request:', requestId);
-			
+
 			toast.success('Request Cancelled', {
 				description: 'The leave request has been successfully cancelled.'
 			});
@@ -172,16 +172,21 @@
 
 	<!-- Main Bento Grid -->
 	<div class="grid auto-rows-[minmax(160px,auto)] grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4">
-		
 		<!-- Balances Section -->
 		{#each leaveBalances as balance, i}
 			{@const Icon = getLeaveTypeIcon(balance.leaveType?.code || '')}
 			<!-- Make the first card span 2 cols if possible for emphasis, or just keeping them uniform -->
-			<div class="flex flex-col justify-between rounded-xl border bg-card p-5 {i === 0 ? 'md:col-span-2' : ''}">
+			<div
+				class="flex flex-col justify-between rounded-xl border bg-card p-5 {i === 0
+					? 'md:col-span-2'
+					: ''}"
+			>
 				<div class="flex justify-between items-start">
 					<div class="flex items-center gap-2 text-muted-foreground mb-2">
 						<Icon class="h-4 w-4" />
-						<span class="text-xs font-semibold uppercase tracking-wider">{balance.leaveType?.name || 'Unknown Type'}</span>
+						<span class="text-xs font-semibold uppercase tracking-wider"
+							>{balance.leaveType?.name || 'Unknown Type'}</span
+						>
 					</div>
 					<Badge variant="outline" class="bg-primary/5 text-primary border-primary/20">
 						{balance.remaining} days left
@@ -190,8 +195,12 @@
 
 				<div class="mt-4">
 					<div class="mb-2 flex justify-between text-sm">
-						<span class="text-muted-foreground">Used: <span class="font-medium text-foreground">{balance.used}</span></span>
-						<span class="text-muted-foreground">Total: <span class="font-medium text-foreground">{balance.allocated}</span></span>
+						<span class="text-muted-foreground"
+							>Used: <span class="font-medium text-foreground">{balance.used}</span></span
+						>
+						<span class="text-muted-foreground"
+							>Total: <span class="font-medium text-foreground">{balance.allocated}</span></span
+						>
 					</div>
 					<div class="h-2 w-full overflow-hidden rounded-full bg-muted">
 						<div
@@ -211,14 +220,16 @@
 			</div>
 			<div>
 				<span class="text-3xl font-bold text-yellow-500">
-					{leaveRequests.filter(r => r.status === 'pending').length}
+					{leaveRequests.filter((r) => r.status === 'pending').length}
 				</span>
 				<p class="mt-1 text-xs text-muted-foreground">Awaiting Approval</p>
 			</div>
 		</div>
 
 		<!-- Recent Requests (Large Table) -->
-		<div class="flex flex-col overflow-hidden rounded-xl border bg-card md:col-span-3 lg:col-span-4 row-span-2">
+		<div
+			class="flex flex-col overflow-hidden rounded-xl border bg-card md:col-span-3 lg:col-span-4 row-span-2"
+		>
 			<div class="flex items-center justify-between border-b border-border p-5">
 				<div class="flex items-center gap-2 text-muted-foreground">
 					<History class="h-4 w-4" />
@@ -247,7 +258,8 @@
 							<tr class="transition-colors hover:bg-muted/20">
 								<td class="px-5 py-4">
 									<div class="flex items-center gap-2">
-										<span class="h-2 w-2 rounded-full {getLeaveTypeColor(request.leaveType.color)}"></span>
+										<span class="h-2 w-2 rounded-full {getLeaveTypeColor(request.leaveType.color)}"
+										></span>
 										<span class="font-medium">{request.leaveType.name}</span>
 									</div>
 								</td>
@@ -255,7 +267,8 @@
 									{formatDateRange(request.startDate, request.endDate)}
 								</td>
 								<td class="px-5 py-4 text-foreground">
-									{request.totalDays} {request.totalDays === 1 ? 'day' : 'days'}
+									{request.totalDays}
+									{request.totalDays === 1 ? 'day' : 'days'}
 								</td>
 								<td class="px-5 py-4">
 									<span
@@ -297,23 +310,23 @@
 
 	<!-- New Request Form Modal -->
 	{#if showNewRequestForm}
-		<div class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+		<div
+			class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+		>
 			<div class="w-full max-w-md rounded-xl border bg-card p-6 shadow-lg">
 				<div class="mb-4 flex items-center justify-between">
 					<h2 class="text-lg font-semibold text-foreground">New Leave Request</h2>
-					<button 
-						onclick={() => showNewRequestForm = false}
+					<button
+						onclick={() => (showNewRequestForm = false)}
 						class="text-muted-foreground hover:text-foreground"
 					>
 						<XCircle class="h-5 w-5" />
 					</button>
 				</div>
-				
+
 				<form onsubmit={handleSubmitRequest} class="space-y-4">
 					<div class="space-y-2">
-						<label for="leaveType" class="text-sm font-medium text-foreground">
-							Leave Type
-						</label>
+						<label for="leaveType" class="text-sm font-medium text-foreground"> Leave Type </label>
 						<select
 							id="leaveType"
 							bind:value={newRequest.leaveTypeId}
@@ -341,9 +354,7 @@
 							/>
 						</div>
 						<div class="space-y-2">
-							<label for="endDate" class="text-sm font-medium text-foreground">
-								End Date
-							</label>
+							<label for="endDate" class="text-sm font-medium text-foreground"> End Date </label>
 							<input
 								id="endDate"
 								type="date"
@@ -355,9 +366,7 @@
 					</div>
 
 					<div class="space-y-2">
-						<label for="reason" class="text-sm font-medium text-foreground">
-							Reason
-						</label>
+						<label for="reason" class="text-sm font-medium text-foreground"> Reason </label>
 						<textarea
 							id="reason"
 							bind:value={newRequest.reason}
@@ -369,12 +378,10 @@
 					</div>
 
 					<div class="flex justify-end gap-3 pt-2">
-						<Button type="button" variant="outline" onclick={() => showNewRequestForm = false}>
+						<Button type="button" variant="outline" onclick={() => (showNewRequestForm = false)}>
 							Cancel
 						</Button>
-						<Button type="submit">
-							Submit Request
-						</Button>
+						<Button type="submit">Submit Request</Button>
 					</div>
 				</form>
 			</div>

@@ -143,7 +143,8 @@
 	<div class="space-y-1">
 		<h1 class="text-3xl font-bold tracking-tight">Upload Document</h1>
 		<p class="text-muted-foreground">
-			Upload a new document with server-side encryption. The document will be automatically assigned to you.
+			Upload a new document with server-side encryption. The document will be automatically assigned
+			to you.
 		</p>
 	</div>
 
@@ -176,7 +177,10 @@
 				}
 
 				console.log('[Upload] About to validate metadata, metadataForm:', metadataForm);
-				console.log('[Upload] metadataForm.validateMetadata exists?', typeof metadataForm?.validateMetadata);
+				console.log(
+					'[Upload] metadataForm.validateMetadata exists?',
+					typeof metadataForm?.validateMetadata
+				);
 				console.log('[Upload] Current metadata:', metadata);
 
 				// Validate metadata before submission

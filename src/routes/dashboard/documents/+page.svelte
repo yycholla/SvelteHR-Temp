@@ -29,7 +29,7 @@
 	let searchQuery = $state('');
 	let viewMode = $state<'table' | 'grid'>('table');
 	let showUploadModal = $state(false);
-	
+
 	// Preview state
 	let isPreviewOpen = $state(false);
 	let previewDocument = $state<any>(null);
@@ -40,16 +40,21 @@
 	// Derived stats
 	const documents = $derived(data.documents || []);
 	const filteredDocuments = $derived(
-		documents.filter((doc: any) =>
-			doc.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			doc.category.toLowerCase().includes(searchQuery.toLowerCase())
+		documents.filter(
+			(doc: any) =>
+				doc.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				doc.category.toLowerCase().includes(searchQuery.toLowerCase())
 		)
 	);
 
-	const totalSize = $derived(documents.reduce((acc: number, doc: any) => acc + doc.file_size_bytes, 0));
+	const totalSize = $derived(
+		documents.reduce((acc: number, doc: any) => acc + doc.file_size_bytes, 0)
+	);
 	const encryptedCount = $derived(documents.filter((doc: any) => doc.is_encrypted).length);
 	const recentUpload = $derived(
-		[...documents].sort((a: any, b: any) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime())[0]
+		[...documents].sort(
+			(a: any, b: any) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()
+		)[0]
 	);
 	const categories = $derived([...new Set(documents.map((doc: any) => doc.category))]);
 
@@ -130,7 +135,7 @@
 			<p class="text-muted-foreground">Access your secure contracts, reports, and policies.</p>
 		</div>
 		<div class="flex items-center gap-3">
-			<Button onclick={() => showUploadModal = true} class="shadow-lg shadow-primary/20">
+			<Button onclick={() => (showUploadModal = true)} class="shadow-lg shadow-primary/20">
 				<Upload class="mr-2 h-4 w-4" />
 				Upload Document
 			</Button>
@@ -139,9 +144,10 @@
 
 	<!-- Main Bento Grid -->
 	<div class="grid auto-rows-[minmax(160px,auto)] grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4">
-		
 		<!-- 1. Storage Summary (Medium) -->
-		<div class="relative flex flex-col justify-between overflow-hidden rounded-xl border bg-card p-6 md:col-span-2">
+		<div
+			class="relative flex flex-col justify-between overflow-hidden rounded-xl border bg-card p-6 md:col-span-2"
+		>
 			<div class="relative z-10 flex items-start justify-between">
 				<div>
 					<h2 class="mb-1 text-lg font-semibold text-foreground">Storage Usage</h2>
@@ -184,7 +190,9 @@
 			{#if recentUpload}
 				<div class="flex flex-1 flex-col justify-center">
 					<div class="flex items-center gap-3">
-						<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-red-500/10 text-red-500">
+						<div
+							class="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-red-500/10 text-red-500"
+						>
 							<FileText class="h-5 w-5" />
 						</div>
 						<div class="overflow-hidden">
@@ -196,8 +204,10 @@
 					</div>
 				</div>
 				<div class="mt-4 flex items-center justify-between border-t border-border/50 pt-3">
-					<span class="text-xs text-muted-foreground">{formatFileSize(recentUpload.file_size_bytes)}</span>
-					<button 
+					<span class="text-xs text-muted-foreground"
+						>{formatFileSize(recentUpload.file_size_bytes)}</span
+					>
+					<button
 						class="text-xs text-primary hover:underline"
 						onclick={() => handlePreview(recentUpload)}
 					>
@@ -219,9 +229,9 @@
 			</div>
 			<div class="flex flex-wrap gap-2">
 				{#each categories.slice(0, 6) as category}
-					<button 
+					<button
 						class="cursor-pointer rounded-md bg-muted px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/80"
-						onclick={() => searchQuery = String(category)}
+						onclick={() => (searchQuery = String(category))}
 					>
 						{category}
 					</button>
@@ -236,7 +246,9 @@
 
 		<!-- 4. Document List (Full Width Table) -->
 		<div class="col-span-full row-span-2 flex flex-col overflow-hidden rounded-xl border bg-card">
-			<div class="flex flex-col justify-between gap-4 border-b border-border p-5 sm:flex-row sm:items-center">
+			<div
+				class="flex flex-col justify-between gap-4 border-b border-border p-5 sm:flex-row sm:items-center"
+			>
 				<div class="relative w-full sm:w-96">
 					<Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 					<input
@@ -253,14 +265,18 @@
 					</Button> -->
 					<div class="flex rounded-md border border-input bg-muted/50 p-0.5">
 						<button
-							class="rounded p-1.5 {viewMode === 'table' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:bg-background/50'}"
-							onclick={() => viewMode = 'table'}
+							class="rounded p-1.5 {viewMode === 'table'
+								? 'bg-background text-foreground shadow-sm'
+								: 'text-muted-foreground hover:bg-background/50'}"
+							onclick={() => (viewMode = 'table')}
 						>
 							<List class="h-3.5 w-3.5" />
 						</button>
 						<button
-							class="rounded p-1.5 {viewMode === 'grid' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:bg-background/50'}"
-							onclick={() => viewMode = 'grid'}
+							class="rounded p-1.5 {viewMode === 'grid'
+								? 'bg-background text-foreground shadow-sm'
+								: 'text-muted-foreground hover:bg-background/50'}"
+							onclick={() => (viewMode = 'grid')}
 						>
 							<LayoutGrid class="h-3.5 w-3.5" />
 						</button>
@@ -289,11 +305,15 @@
 								>
 									<td class="px-5 py-4">
 										<div class="flex items-center gap-3">
-											<div class="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-blue-500/10 text-blue-500">
+											<div
+												class="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-blue-500/10 text-blue-500"
+											>
 												<FileText class="h-4 w-4" />
 											</div>
 											<div>
-												<p class="font-medium text-foreground transition-colors group-hover:text-primary">
+												<p
+													class="font-medium text-foreground transition-colors group-hover:text-primary"
+												>
 													{doc.filename}
 												</p>
 												{#if doc.version_number}
@@ -303,7 +323,9 @@
 										</div>
 									</td>
 									<td class="px-5 py-4 text-muted-foreground">
-										<span class="inline-flex items-center rounded bg-muted px-2 py-0.5 text-xs font-medium">
+										<span
+											class="inline-flex items-center rounded bg-muted px-2 py-0.5 text-xs font-medium"
+										>
 											{doc.category}
 										</span>
 									</td>
@@ -323,7 +345,9 @@
 										{/if}
 									</td>
 									<td class="px-5 py-4 text-right">
-										<div class="flex justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+										<div
+											class="flex justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100"
+										>
 											<button
 												class="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
 												title="Preview"
@@ -378,7 +402,9 @@
 								tabindex="0"
 							>
 								<div class="mb-3 flex items-start justify-between">
-									<div class="flex h-10 w-10 items-center justify-center rounded bg-blue-500/10 text-blue-500">
+									<div
+										class="flex h-10 w-10 items-center justify-center rounded bg-blue-500/10 text-blue-500"
+									>
 										<FileText class="h-5 w-5" />
 									</div>
 									{#if doc.is_encrypted}
@@ -386,12 +412,32 @@
 									{/if}
 								</div>
 								<div>
-									<h3 class="mb-1 font-medium text-foreground truncate" title={doc.filename}>{doc.filename}</h3>
-									<p class="text-xs text-muted-foreground">{formatDate(doc.uploaded_at)} • {formatFileSize(doc.file_size_bytes)}</p>
+									<h3 class="mb-1 font-medium text-foreground truncate" title={doc.filename}>
+										{doc.filename}
+									</h3>
+									<p class="text-xs text-muted-foreground">
+										{formatDate(doc.uploaded_at)} • {formatFileSize(doc.file_size_bytes)}
+									</p>
 								</div>
 								<div class="mt-4 flex gap-2 border-t pt-3">
-									<Button variant="outline" size="sm" class="flex-1" onclick={(e) => { e.stopPropagation(); handlePreview(doc); }}>Preview</Button>
-									<Button variant="outline" size="sm" class="flex-1" onclick={(e) => { e.stopPropagation(); handleDownload(doc); }}>Download</Button>
+									<Button
+										variant="outline"
+										size="sm"
+										class="flex-1"
+										onclick={(e) => {
+											e.stopPropagation();
+											handlePreview(doc);
+										}}>Preview</Button
+									>
+									<Button
+										variant="outline"
+										size="sm"
+										class="flex-1"
+										onclick={(e) => {
+											e.stopPropagation();
+											handleDownload(doc);
+										}}>Download</Button
+									>
 								</div>
 							</div>
 						{/each}
@@ -419,7 +465,7 @@
 
 	<UploadDocumentModal
 		isOpen={showUploadModal}
-		onClose={() => showUploadModal = false}
+		onClose={() => (showUploadModal = false)}
 		onSuccess={async () => await invalidateAll()}
 	/>
 </div>

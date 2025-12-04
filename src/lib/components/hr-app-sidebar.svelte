@@ -510,7 +510,11 @@
 
 <div class="flex h-full flex-col bg-sidebar text-sidebar-foreground">
 	<!-- Header - Compact with Notifications -->
-	<div class="flex items-center {sidebarState.isCollapsed ? 'justify-center flex-col gap-4' : 'justify-between'} px-4 py-4 transition-all">
+	<div
+		class="flex items-center {sidebarState.isCollapsed
+			? 'justify-center flex-col gap-4'
+			: 'justify-between'} px-4 py-4 transition-all"
+	>
 		{#if !sidebarState.isCollapsed}
 			<a href="/dashboard" class="flex items-center gap-2 font-semibold">
 				<Building2 class="h-5 w-5 text-primary" />
@@ -550,7 +554,9 @@
 					<a
 						href={item.url}
 						data-sveltekit-reload
-						class="flex items-center {sidebarState.isCollapsed ? 'justify-center' : 'gap-3'} rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-80"
+						class="flex items-center {sidebarState.isCollapsed
+							? 'justify-center'
+							: 'gap-3'} rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-80"
 						class:bg-primary={$page.url.pathname === item.url}
 						class:text-primary-foreground={$page.url.pathname === item.url}
 						title={sidebarState.isCollapsed ? item.title : ''}
@@ -573,7 +579,9 @@
 					<DropdownMenu.Root>
 						<DropdownMenu.Trigger class="w-full focus:outline-none">
 							<div
-								class="flex w-full items-center {sidebarState.isCollapsed ? 'justify-center' : 'justify-between'} rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-80"
+								class="flex w-full items-center {sidebarState.isCollapsed
+									? 'justify-center'
+									: 'justify-between'} rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-80"
 								class:bg-primary={(() => {
 									const currentPath = $page.url.pathname;
 									if (item.section === 'leave') {
@@ -642,7 +650,9 @@
 			<DropdownMenu.Root>
 				<DropdownMenu.Trigger class="w-full focus:outline-none">
 					<div
-						class="flex w-full items-center {sidebarState.isCollapsed ? 'justify-center' : 'justify-between'} rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-80"
+						class="flex w-full items-center {sidebarState.isCollapsed
+							? 'justify-center'
+							: 'justify-between'} rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-80"
 						class:bg-primary={$page.url.pathname.includes('/management')}
 						class:text-primary-foreground={$page.url.pathname.includes('/management')}
 						title={sidebarState.isCollapsed ? 'Management' : ''}
@@ -658,7 +668,7 @@
 						{/if}
 					</div>
 				</DropdownMenu.Trigger>
-				
+
 				<DropdownMenu.Content side="right" align="start" class="w-56 ml-2">
 					{#each filteredManagementItems as item}
 						{@const ItemIcon = item.icon}
@@ -666,7 +676,9 @@
 							<a href={item.url} data-sveltekit-reload class="flex items-center w-full">
 								<ItemIcon class="mr-2 h-4 w-4" />
 								<span class="flex-1">{item.title}</span>
-								<span class="rounded bg-blue-100 px-1.5 py-0.5 text-[9px] font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+								<span
+									class="rounded bg-blue-100 px-1.5 py-0.5 text-[9px] font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+								>
 									Team
 								</span>
 							</a>
@@ -683,7 +695,9 @@
 			<DropdownMenu.Root>
 				<DropdownMenu.Trigger class="w-full focus:outline-none">
 					<div
-						class="flex w-full items-center {sidebarState.isCollapsed ? 'justify-center' : 'justify-between'} rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-80"
+						class="flex w-full items-center {sidebarState.isCollapsed
+							? 'justify-center'
+							: 'justify-between'} rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-80"
 						class:bg-primary={$page.url.pathname.includes('/admin') ||
 							$page.url.pathname === '/dashboard/tasks'}
 						class:text-primary-foreground={$page.url.pathname.includes('/admin') ||
@@ -712,11 +726,15 @@
 								<span class="flex-1">{item.title}</span>
 								<!-- Badge indicating access level -->
 								{#if item.superAdminOnly}
-									<span class="rounded-sm bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:bg-red-500/20 dark:text-red-400">
+									<span
+										class="rounded-sm bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:bg-red-500/20 dark:text-red-400"
+									>
 										Super
 									</span>
 								{:else}
-									<span class="rounded-sm bg-green-500/10 px-1.5 py-0.5 text-[10px] font-medium text-green-600 dark:bg-green-500/20 dark:text-green-400">
+									<span
+										class="rounded-sm bg-green-500/10 px-1.5 py-0.5 text-[10px] font-medium text-green-600 dark:bg-green-500/20 dark:text-green-400"
+									>
 										All
 									</span>
 								{/if}
@@ -738,11 +756,17 @@
 	<!-- User Profile & Settings Footer -->
 	{#if auth.user}
 		<div class="{sidebarState.isCollapsed ? 'px-2' : 'px-3'} py-3">
-			<div class="flex items-center {sidebarState.isCollapsed ? 'justify-center' : 'justify-between'}">
+			<div
+				class="flex items-center {sidebarState.isCollapsed ? 'justify-center' : 'justify-between'}"
+			>
 				<!-- Profile Link (left side) -->
 				<a
 					href="/dashboard/profile"
-					class="flex items-center gap-2 rounded-md {sidebarState.isCollapsed ? 'p-2' : 'pr-2'} transition-colors hover:bg-sidebar-accent/50 flex-1 min-w-0 {sidebarState.isCollapsed ? 'justify-center' : ''}"
+					class="flex items-center gap-2 rounded-md {sidebarState.isCollapsed
+						? 'p-2'
+						: 'pr-2'} transition-colors hover:bg-sidebar-accent/50 flex-1 min-w-0 {sidebarState.isCollapsed
+						? 'justify-center'
+						: ''}"
 					title={sidebarState.isCollapsed ? 'My Profile' : ''}
 					data-testid="nav-profile"
 				>

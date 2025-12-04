@@ -57,9 +57,9 @@
 
 	// Derived - unique departments
 	let departments = $derived(
-		Array.from(new Set(employees.map(e => e.department?.id).filter(Boolean)))
-			.map(id => {
-				const emp = employees.find(e => e.department?.id === id);
+		Array.from(new Set(employees.map((e) => e.department?.id).filter(Boolean)))
+			.map((id) => {
+				const emp = employees.find((e) => e.department?.id === id);
 				return { id: id!, name: emp?.department?.name || 'Unknown' };
 			})
 			.sort((a, b) => a.name.localeCompare(b.name))
@@ -67,7 +67,7 @@
 
 	// Derived - filtered employees
 	let filteredEmployees = $derived(
-		employees.filter(emp => {
+		employees.filter((emp) => {
 			// Search filter
 			const searchLower = searchTerm.toLowerCase();
 			const matchesSearch =
@@ -90,13 +90,13 @@
 	let selectedCount = $derived(localSelectedIds.length);
 	let allFilteredSelected = $derived(
 		filteredEmployees.length > 0 &&
-		filteredEmployees.every(emp => localSelectedIds.includes(emp.id))
+			filteredEmployees.every((emp) => localSelectedIds.includes(emp.id))
 	);
 
 	// Toggle employee selection
 	function toggleEmployee(employeeId: string) {
 		if (localSelectedIds.includes(employeeId)) {
-			localSelectedIds = localSelectedIds.filter(id => id !== employeeId);
+			localSelectedIds = localSelectedIds.filter((id) => id !== employeeId);
 		} else {
 			localSelectedIds = [...localSelectedIds, employeeId];
 		}
@@ -106,11 +106,11 @@
 	function toggleAllFiltered() {
 		if (allFilteredSelected) {
 			// Deselect all filtered
-			const filteredIds = new Set(filteredEmployees.map(e => e.id));
-			localSelectedIds = localSelectedIds.filter(id => !filteredIds.has(id));
+			const filteredIds = new Set(filteredEmployees.map((e) => e.id));
+			localSelectedIds = localSelectedIds.filter((id) => !filteredIds.has(id));
 		} else {
 			// Select all filtered
-			const filteredIds = filteredEmployees.map(e => e.id);
+			const filteredIds = filteredEmployees.map((e) => e.id);
 			const uniqueIds = new Set([...localSelectedIds, ...filteredIds]);
 			localSelectedIds = Array.from(uniqueIds);
 		}
@@ -152,9 +152,7 @@
 				<Users class="h-5 w-5" />
 				Select Attendees
 			</Dialog.Title>
-			<Dialog.Description>
-				Choose employees to invite to this event
-			</Dialog.Description>
+			<Dialog.Description>Choose employees to invite to this event</Dialog.Description>
 		</Dialog.Header>
 
 		<div class="space-y-4">
@@ -213,9 +211,7 @@
 					{#if filteredEmployees.length === 0}
 						<div class="flex flex-col items-center justify-center py-12 text-center">
 							<Users class="mb-2 h-12 w-12 text-muted-foreground" />
-							<p class="text-sm text-muted-foreground">
-								No employees found matching your criteria
-							</p>
+							<p class="text-sm text-muted-foreground">No employees found matching your criteria</p>
 						</div>
 					{:else}
 						{#each filteredEmployees as employee}
@@ -251,11 +247,10 @@
 		</div>
 
 		<Dialog.Footer>
-			<Button variant="outline" onclick={handleCancel}>
-				Cancel
-			</Button>
+			<Button variant="outline" onclick={handleCancel}>Cancel</Button>
 			<Button onclick={handleConfirm}>
-				Add {selectedCount} {selectedCount === 1 ? 'Attendee' : 'Attendees'}
+				Add {selectedCount}
+				{selectedCount === 1 ? 'Attendee' : 'Attendees'}
 			</Button>
 		</Dialog.Footer>
 	</Dialog.Content>

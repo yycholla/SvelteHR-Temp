@@ -309,9 +309,7 @@
 					</div>
 				</Card.Content>
 				<Card.Footer>
-					<Button variant="outline" href="/dashboard/profile/performance"
-						>View Performance</Button
-					>
+					<Button variant="outline" href="/dashboard/profile/performance">View Performance</Button>
 				</Card.Footer>
 			</Card.Root>
 		</Tabs.Content>

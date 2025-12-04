@@ -31,15 +31,17 @@
 	});
 
 	// Filtered users based on search query
-	let filteredUsers = $derived(data.users.filter((user) => {
-		if (!searchQuery) return true;
-		const query = searchQuery.toLowerCase();
-		return (
-			user.email?.toLowerCase().includes(query) ||
-			user.displayName?.toLowerCase().includes(query) ||
-			user.department?.name?.toLowerCase().includes(query)
-		);
-	}));
+	let filteredUsers = $derived(
+		data.users.filter((user) => {
+			if (!searchQuery) return true;
+			const query = searchQuery.toLowerCase();
+			return (
+				user.email?.toLowerCase().includes(query) ||
+				user.displayName?.toLowerCase().includes(query) ||
+				user.department?.name?.toLowerCase().includes(query)
+			);
+		})
+	);
 
 	function openCreateModal() {
 		formData = {

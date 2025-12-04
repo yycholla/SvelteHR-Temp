@@ -184,8 +184,7 @@
 									</Table.Cell>
 									<Table.Cell>
 										{#if module.isActive}
-											<Badge variant="default" class="bg-green-500 hover:bg-green-600"
-												>Active</Badge
+											<Badge variant="default" class="bg-green-500 hover:bg-green-600">Active</Badge
 											>
 										{:else}
 											<Badge variant="secondary">Inactive</Badge>
@@ -203,8 +202,7 @@
 										</div>
 									</Table.Cell>
 									<Table.Cell>
-										<span class="text-sm text-muted-foreground"
-											>{formatDate(module.createdAt)}</span
+										<span class="text-sm text-muted-foreground">{formatDate(module.createdAt)}</span
 										>
 									</Table.Cell>
 									<Table.Cell class="text-right">
@@ -223,8 +221,7 @@
 													Edit Module
 												</DropdownMenu.Item>
 												<DropdownMenu.Item
-													onclick={() =>
-														goto(`/dashboard/admin/onboarding/${module.id}/content`)}
+													onclick={() => goto(`/dashboard/admin/onboarding/${module.id}/content`)}
 												>
 													<FileText class="mr-2 h-4 w-4" />
 													Manage Content
@@ -264,22 +261,30 @@
 			<AlertDialog.Header>
 				<AlertDialog.Title>Delete Onboarding Module</AlertDialog.Title>
 				<AlertDialog.Description>
-					Are you sure you want to delete "{moduleToDelete.title}"? This action cannot be undone
-					and will remove all associated content blocks, assignments, and progress data.
+					Are you sure you want to delete "{moduleToDelete.title}"? This action cannot be undone and
+					will remove all associated content blocks, assignments, and progress data.
 				</AlertDialog.Description>
 			</AlertDialog.Header>
 			<AlertDialog.Footer>
 				<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-				<form method="POST" action="?/delete" use:enhance={() => {
-					isDeleting = true;
-					return async ({ result, update }) => {
-						await update();
-						isDeleting = false;
-						moduleToDelete = null;
-					};
-				}}>
+				<form
+					method="POST"
+					action="?/delete"
+					use:enhance={() => {
+						isDeleting = true;
+						return async ({ result, update }) => {
+							await update();
+							isDeleting = false;
+							moduleToDelete = null;
+						};
+					}}
+				>
 					<input type="hidden" name="id" value={moduleToDelete.id} />
-					<AlertDialog.Action type="submit" disabled={isDeleting} class="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+					<AlertDialog.Action
+						type="submit"
+						disabled={isDeleting}
+						class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+					>
 						{isDeleting ? 'Deleting...' : 'Delete Module'}
 					</AlertDialog.Action>
 				</form>

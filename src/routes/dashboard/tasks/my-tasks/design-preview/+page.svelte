@@ -102,7 +102,6 @@
 
 <div class="min-h-screen bg-muted/20 p-6 font-sans">
 	<div class="mx-auto max-w-7xl space-y-6">
-		
 		<!-- Header Section -->
 		<div class="flex flex-col justify-between gap-4 md:flex-row md:items-center">
 			<div>
@@ -123,7 +122,6 @@
 
 		<!-- Bento Grid Layout -->
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-12 lg:grid-rows-[auto_auto]">
-			
 			<!-- 1. Summary Stats (Top Left - Spans 8 cols) -->
 			<div class="col-span-1 md:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-4">
 				{#each stats as stat}
@@ -168,7 +166,9 @@
 			</div>
 
 			<!-- 3. Main Task List (Bottom Left - Spans 8 cols, Tall) -->
-			<div class="col-span-1 md:col-span-8 row-span-2 rounded-xl border bg-card shadow-sm flex flex-col">
+			<div
+				class="col-span-1 md:col-span-8 row-span-2 rounded-xl border bg-card shadow-sm flex flex-col"
+			>
 				<!-- Toolbar -->
 				<div class="flex items-center justify-between border-b p-4">
 					<div class="flex items-center gap-4">
@@ -185,11 +185,7 @@
 					<div class="flex items-center gap-2">
 						<div class="relative hidden sm:block w-48">
 							<Search class="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-							<Input
-								type="text"
-								placeholder="Search..."
-								class="h-9 w-full pl-8"
-							/>
+							<Input type="text" placeholder="Search..." class="h-9 w-full pl-8" />
 						</div>
 						<Button variant="ghost" size="icon" class="h-9 w-9">
 							<Filter class="h-4 w-4 text-muted-foreground" />
@@ -201,9 +197,13 @@
 				<div class="flex-1 overflow-auto p-2">
 					<div class="space-y-1">
 						{#each tasks as task}
-							<div class="group flex items-center gap-3 rounded-lg border border-transparent bg-background p-2.5 transition-all hover:border-border hover:shadow-sm">
+							<div
+								class="group flex items-center gap-3 rounded-lg border border-transparent bg-background p-2.5 transition-all hover:border-border hover:shadow-sm"
+							>
 								<!-- Checkbox -->
-								<button class="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-muted-foreground/30 hover:border-primary hover:bg-primary/5 focus:outline-none">
+								<button
+									class="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-muted-foreground/30 hover:border-primary hover:bg-primary/5 focus:outline-none"
+								>
 									{#if task.status === 'Done'}
 										<CheckCircle2 class="h-4 w-4 text-green-600" />
 									{:else}
@@ -212,20 +212,30 @@
 								</button>
 
 								<!-- Content -->
-								<div class="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-4">
-									<span class="truncate text-sm font-medium text-foreground {task.status === 'Done' ? 'line-through text-muted-foreground' : ''}">
+								<div
+									class="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-4"
+								>
+									<span
+										class="truncate text-sm font-medium text-foreground {task.status === 'Done'
+											? 'line-through text-muted-foreground'
+											: ''}"
+									>
 										{task.title}
 									</span>
-									
+
 									<div class="flex items-center gap-2 sm:ml-auto">
 										<!-- Tags -->
-										<span class="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+										<span
+											class="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+										>
 											{task.project}
 										</span>
-										
+
 										<!-- Priority Dot -->
 										{#if task.priority === 'Urgent'}
-											<span class="flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-600 dark:bg-red-900/20">
+											<span
+												class="flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-600 dark:bg-red-900/20"
+											>
 												<AlertCircle class="h-3 w-3" /> Urgent
 											</span>
 										{:else if task.priority === 'High'}
@@ -235,18 +245,30 @@
 								</div>
 
 								<!-- Meta -->
-								<div class="hidden items-center gap-4 sm:flex text-xs text-muted-foreground w-32 justify-end">
-									<div class="flex items-center gap-1 {task.due === 'Today' ? 'text-orange-600 font-medium' : ''}">
+								<div
+									class="hidden items-center gap-4 sm:flex text-xs text-muted-foreground w-32 justify-end"
+								>
+									<div
+										class="flex items-center gap-1 {task.due === 'Today'
+											? 'text-orange-600 font-medium'
+											: ''}"
+									>
 										<Clock class="h-3.5 w-3.5" />
 										{task.due}
 									</div>
 									<Avatar.Root class="h-6 w-6 border">
-										<Avatar.Fallback class="text-[10px] bg-primary/10 text-primary">JD</Avatar.Fallback>
+										<Avatar.Fallback class="text-[10px] bg-primary/10 text-primary"
+											>JD</Avatar.Fallback
+										>
 									</Avatar.Root>
 								</div>
 
 								<!-- Actions -->
-								<Button variant="ghost" size="icon" class="h-7 w-7 opacity-0 group-hover:opacity-100">
+								<Button
+									variant="ghost"
+									size="icon"
+									class="h-7 w-7 opacity-0 group-hover:opacity-100"
+								>
 									<MoreHorizontal class="h-4 w-4 text-muted-foreground" />
 								</Button>
 							</div>
@@ -261,14 +283,16 @@
 				<div class="relative border-l border-muted pl-6 space-y-6">
 					{#each upcomingEvents as event}
 						<div class="relative">
-							<span class="absolute -left-[29px] top-1 h-3 w-3 rounded-full border-2 border-background bg-primary ring-4 ring-background"></span>
+							<span
+								class="absolute -left-[29px] top-1 h-3 w-3 rounded-full border-2 border-background bg-primary ring-4 ring-background"
+							></span>
 							<div class="flex flex-col gap-1">
 								<span class="text-xs font-medium text-muted-foreground">{event.time}</span>
 								<span class="text-sm font-medium">{event.title}</span>
 							</div>
 						</div>
 					{/each}
-					
+
 					<!-- Empty State Slot -->
 					<div class="relative pt-4">
 						<div class="rounded-lg border border-dashed p-3 text-center">
@@ -284,12 +308,11 @@
 					<h3 class="font-semibold">Quick Notes</h3>
 					<Button variant="ghost" size="icon" class="h-6 w-6"><Plus class="h-3 w-3" /></Button>
 				</div>
-				<textarea 
+				<textarea
 					class="w-full resize-none rounded-md bg-muted/30 p-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/20 h-32"
 					placeholder="Jot down something..."
 				></textarea>
 			</div>
-
 		</div>
 	</div>
 </div>

@@ -138,7 +138,12 @@
 					</div>
 					<div class="rounded-full bg-gray-50 p-2">
 						{#if status === 'pending'}
-							<svg class="h-5 w-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg
+								class="h-5 w-5 text-yellow-500"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
 								<path
 									stroke-linecap="round"
 									stroke-linejoin="round"
@@ -161,7 +166,12 @@
 								/>
 							</svg>
 						{:else if status === 'completed'}
-							<svg class="h-5 w-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg
+								class="h-5 w-5 text-green-500"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
 								<path
 									stroke-linecap="round"
 									stroke-linejoin="round"
@@ -170,7 +180,12 @@
 								/>
 							</svg>
 						{:else if status === 'failed'}
-							<svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg
+								class="h-5 w-5 text-red-500"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
 								<path
 									stroke-linecap="round"
 									stroke-linejoin="round"
@@ -179,7 +194,12 @@
 								/>
 							</svg>
 						{:else if status === 'cancelled'}
-							<svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg
+								class="h-5 w-5 text-gray-500"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
 								<path
 									stroke-linecap="round"
 									stroke-linejoin="round"
@@ -188,7 +208,12 @@
 								/>
 							</svg>
 						{:else}
-							<svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg
+								class="h-5 w-5 text-gray-400"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
 								<path
 									stroke-linecap="round"
 									stroke-linejoin="round"
@@ -347,5 +372,3 @@
 		{/if}
 	{/if}
 </div>
-
-

@@ -104,9 +104,10 @@
 							handleClose();
 						}, 1000);
 					} else if (result.type === 'failure') {
-						const errorMsg = typeof result.data?.error === 'string'
-							? result.data.error
-							: 'Failed to create department';
+						const errorMsg =
+							typeof result.data?.error === 'string'
+								? result.data.error
+								: 'Failed to create department';
 						formErrors = { submit: errorMsg };
 					} else if (result.type === 'error') {
 						formErrors = { submit: 'An unexpected error occurred' };
@@ -180,9 +181,7 @@
 					</Select.Content>
 				</Select.Root>
 				<input type="hidden" name="managerId" value={selectedManagerId} />
-				<p class="text-sm text-muted-foreground">
-					Select the user who will manage this department
-				</p>
+				<p class="text-sm text-muted-foreground">Select the user who will manage this department</p>
 			</div>
 
 			<!-- Form Error Message -->

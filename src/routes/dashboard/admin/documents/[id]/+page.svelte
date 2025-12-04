@@ -88,7 +88,11 @@
 
 	// Handle delete
 	async function handleDelete() {
-		if (!confirm('Are you sure you want to delete this document? This action can be undone by administrators.')) {
+		if (
+			!confirm(
+				'Are you sure you want to delete this document? This action can be undone by administrators.'
+			)
+		) {
 			return;
 		}
 
@@ -174,7 +178,9 @@
 					<span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
 						Sensitivity
 					</span>
-					<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide w-fit {sensitivityClass}">
+					<span
+						class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide w-fit {sensitivityClass}"
+					>
 						{data.document.sensitivity_level}
 					</span>
 				</div>
@@ -184,7 +190,8 @@
 						Uploaded By
 					</span>
 					<span class="text-base font-medium text-foreground">
-						{data.document.uploaded_by_email || `User ${data.document.uploaded_by.substring(0, 8)}...`}
+						{data.document.uploaded_by_email ||
+							`User ${data.document.uploaded_by.substring(0, 8)}...`}
 					</span>
 				</div>
 
@@ -211,7 +218,7 @@
 					Download
 				</Button>
 				{#if data.canAssign}
-					<Button variant="outline" onclick={() => isAssignmentModalOpen = true} class="gap-2">
+					<Button variant="outline" onclick={() => (isAssignmentModalOpen = true)} class="gap-2">
 						<Users class="h-4 w-4" />
 						Assign
 					</Button>
@@ -246,7 +253,8 @@
 							<div class="flex-1 flex flex-col gap-1">
 								<span class="text-sm font-medium text-foreground">
 									{#if assignment.employee_id}
-										{assignment.employee_email || `User ${assignment.employee_id.substring(0, 8)}...`}
+										{assignment.employee_email ||
+											`User ${assignment.employee_id.substring(0, 8)}...`}
 									{:else if assignment.department_id}
 										Department #{assignment.department_id.substring(0, 8)}
 									{/if}
@@ -278,17 +286,25 @@
 			</Card.Header>
 			<Card.Content>
 				<div class="space-y-2">
-					<div class="grid grid-cols-4 gap-4 p-3 bg-muted rounded-lg font-semibold text-xs uppercase tracking-wide text-muted-foreground">
+					<div
+						class="grid grid-cols-4 gap-4 p-3 bg-muted rounded-lg font-semibold text-xs uppercase tracking-wide text-muted-foreground"
+					>
 						<span>User</span>
 						<span>Action</span>
 						<span>Outcome</span>
 						<span>Timestamp</span>
 					</div>
 					{#each data.accessLogs as log}
-						<div class="grid grid-cols-4 gap-4 p-3 text-sm text-foreground border-b last:border-b-0">
+						<div
+							class="grid grid-cols-4 gap-4 p-3 text-sm text-foreground border-b last:border-b-0"
+						>
 							<span>{log.user_email || `User ${log.user_id.substring(0, 8)}...`}</span>
 							<span>{log.access_type}</span>
-							<span class="font-semibold {log.access_outcome === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
+							<span
+								class="font-semibold {log.access_outcome === 'success'
+									? 'text-green-600 dark:text-green-400'
+									: 'text-red-600 dark:text-red-400'}"
+							>
 								{log.access_outcome}
 							</span>
 							<span>{new Date(log.access_timestamp).toLocaleString()}</span>
@@ -324,6 +340,6 @@
 		teams={data.teams || []}
 		existingAssignments={data.assignments || []}
 		onAssign={handleAssignment}
-		onClose={() => isAssignmentModalOpen = false}
+		onClose={() => (isAssignmentModalOpen = false)}
 	/>
 </div>

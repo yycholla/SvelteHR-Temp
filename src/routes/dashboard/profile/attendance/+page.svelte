@@ -121,9 +121,7 @@
 	<div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 		<div>
 			<h1 class="text-2xl font-bold tracking-tight text-foreground">Time & Attendance</h1>
-			<p class="text-muted-foreground">
-				Manage your schedule, track time, and request leave.
-			</p>
+			<p class="text-muted-foreground">Manage your schedule, track time, and request leave.</p>
 		</div>
 		<div class="flex items-center gap-3">
 			<div class="mr-4 hidden text-right md:block">
@@ -140,10 +138,7 @@
 					{isClockedIn ? 'Clock Out' : 'Clock In'}
 				</Button>
 			{/if}
-			<Button
-				variant="secondary"
-				href="/dashboard/profile/leave/requests"
-			>
+			<Button variant="secondary" href="/dashboard/profile/leave/requests">
 				<CalendarPlus class="mr-2 h-4 w-4" />
 				Request Leave
 			</Button>
@@ -153,9 +148,7 @@
 	<!-- Main Bento Grid -->
 	<div class="grid auto-rows-[minmax(160px,auto)] grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4">
 		<!-- 1. Today's Status (Medium) -->
-		<div
-			class="relative flex flex-col overflow-hidden rounded-xl border bg-card p-6 md:col-span-2"
-		>
+		<div class="relative flex flex-col overflow-hidden rounded-xl border bg-card p-6 md:col-span-2">
 			<div class="relative z-10 flex justify-between items-start">
 				<div>
 					<h2 class="mb-1 text-lg font-semibold text-foreground">Today's Status</h2>
@@ -191,7 +184,9 @@
 				<div>
 					<p class="mb-1 text-xs uppercase tracking-wider text-muted-foreground">Duration</p>
 					<p class="text-xl font-mono font-medium text-foreground">
-						{todayRecord?.clockIn ? getDuration(todayRecord.clockIn, todayRecord.clockOut) : '0h 0m'}
+						{todayRecord?.clockIn
+							? getDuration(todayRecord.clockIn, todayRecord.clockOut)
+							: '0h 0m'}
 					</p>
 				</div>
 			</div>
@@ -210,9 +205,7 @@
 			</div>
 			<div>
 				<div class="mb-1 flex items-end gap-2">
-					<span class="text-3xl font-bold text-emerald-500"
-						>{attendanceStats.attendanceRate}%</span
-					>
+					<span class="text-3xl font-bold text-emerald-500">{attendanceStats.attendanceRate}%</span>
 					<!-- <span class="mb-1.5 text-xs text-emerald-500/80">+2.4%</span> -->
 				</div>
 				<p class="text-xs text-muted-foreground">Total Days: {attendanceStats.totalDays}</p>
@@ -332,7 +325,9 @@
 									>
 										<span class="h-1.5 w-1.5 rounded-full {getStatusDotColor(record.status)}"
 										></span>
-										{record.status ? record.status.charAt(0).toUpperCase() + record.status.slice(1) : 'Unknown'}
+										{record.status
+											? record.status.charAt(0).toUpperCase() + record.status.slice(1)
+											: 'Unknown'}
 									</span>
 								</td>
 								<td class="px-5 py-3 text-xs text-muted-foreground">{record.notes || '-'}</td>
@@ -350,4 +345,3 @@
 		</div>
 	</div>
 </div>
-

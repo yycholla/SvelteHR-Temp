@@ -59,7 +59,12 @@
 
 	// Computed classes
 	let tableClasses = $derived(
-		['data-table', hoverable && 'data-table--hoverable', striped && 'data-table--striped', compact && 'data-table--compact']
+		[
+			'data-table',
+			hoverable && 'data-table--hoverable',
+			striped && 'data-table--striped',
+			compact && 'data-table--compact'
+		]
 			.filter(Boolean)
 			.join(' ')
 	);
@@ -120,7 +125,11 @@
 		}
 	}
 
-	function getBadgeVariant(column: Column, value: any, row: TableData): 'info' | 'success' | 'warning' | 'light' | 'dark' | 'primary' | 'secondary' | 'danger' {
+	function getBadgeVariant(
+		column: Column,
+		value: any,
+		row: TableData
+	): 'info' | 'success' | 'warning' | 'light' | 'dark' | 'primary' | 'secondary' | 'danger' {
 		if (column.badgeVariant) {
 			return column.badgeVariant(value, row) as any;
 		}
@@ -262,5 +271,3 @@
 		</table>
 	</div>
 </div>
-
-

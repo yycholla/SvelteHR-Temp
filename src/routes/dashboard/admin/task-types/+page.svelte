@@ -370,9 +370,7 @@
 				</div>
 
 				<div>
-					<label class="mb-1 block text-sm font-medium" for="create-color">
-						Color Code
-					</label>
+					<label class="mb-1 block text-sm font-medium" for="create-color"> Color Code </label>
 					<div class="flex gap-2">
 						<input
 							id="create-color"
@@ -437,9 +435,7 @@
 				</div>
 
 				<div>
-					<label class="mb-1 block text-sm font-medium" for="edit-description">
-						Description
-					</label>
+					<label class="mb-1 block text-sm font-medium" for="edit-description"> Description </label>
 					<textarea
 						id="edit-description"
 						bind:value={formData.description}
@@ -465,9 +461,7 @@
 				</div>
 
 				<div>
-					<label class="mb-1 block text-sm font-medium" for="edit-color">
-						Color Code
-					</label>
+					<label class="mb-1 block text-sm font-medium" for="edit-color"> Color Code </label>
 					<div class="flex gap-2">
 						<input
 							id="edit-color"

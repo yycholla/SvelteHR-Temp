@@ -77,9 +77,9 @@
 	// Selected assignee display name
 	let selectedAssigneeName = $derived(
 		assignees.find((a) => a.id === quickAddAssigneeId)?.displayName ||
-		currentUser.displayName ||
-		currentUser.email ||
-		'User'
+			currentUser.displayName ||
+			currentUser.email ||
+			'User'
 	);
 
 	// Get first name from display name
@@ -159,7 +159,12 @@
 
 <Popover.Root bind:open={isQuickAddOpen}>
 	<Popover.Trigger>
-		<Button class="flex-shrink-0" data-testid="tasks-create-button" variant={triggerVariant} size={triggerSize}>
+		<Button
+			class="flex-shrink-0"
+			data-testid="tasks-create-button"
+			variant={triggerVariant}
+			size={triggerSize}
+		>
 			<TriggerIcon class="mr-2 h-4 w-4" />
 			{triggerLabel}
 		</Button>
@@ -207,7 +212,11 @@
 			<div class="space-y-3">
 				<div>
 					<h3 class="font-semibold text-base">{parentTaskId ? 'Add Subtask' : 'Quick Add Task'}</h3>
-					<p class="text-xs text-muted-foreground">{parentTaskId ? 'Break down this task into smaller steps' : 'Create a new task with inline controls'}</p>
+					<p class="text-xs text-muted-foreground">
+						{parentTaskId
+							? 'Break down this task into smaller steps'
+							: 'Create a new task with inline controls'}
+					</p>
 				</div>
 
 				<!-- Title Input -->
@@ -296,9 +305,7 @@
 													}}
 												>
 													<Check
-														class={quickAddPriority !== priority.value
-															? 'text-transparent'
-															: ''}
+														class={quickAddPriority !== priority.value ? 'text-transparent' : ''}
 													/>
 													<span
 														class="mr-2 h-2 w-2 rounded-full"
@@ -356,9 +363,7 @@
 													}}
 												>
 													<Check
-														class={quickAddTaskTypeId !== taskType.id
-															? 'text-transparent'
-															: ''}
+														class={quickAddTaskTypeId !== taskType.id ? 'text-transparent' : ''}
 													/>
 													<span
 														class="mr-2 h-2 w-2 rounded-full"
@@ -406,9 +411,7 @@
 														}}
 													>
 														<Check
-															class={quickAddAssigneeId !== assignee.id
-																? 'text-transparent'
-																: ''}
+															class={quickAddAssigneeId !== assignee.id ? 'text-transparent' : ''}
 														/>
 														{assignee.displayName}
 													</Command.Item>

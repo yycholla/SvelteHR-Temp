@@ -54,14 +54,10 @@
 	let isSubmitting = $state(false);
 
 	// Derived state - blocking tasks (tasks that this task blocks)
-	let blockingDependencies = $derived(
-		task.taskDependenciesByBlockingTaskId?.nodes || []
-	);
+	let blockingDependencies = $derived(task.taskDependenciesByBlockingTaskId?.nodes || []);
 
 	// Derived state - blocked tasks (tasks that block this task)
-	let blockedByDependencies = $derived(
-		task.taskDependenciesByBlockedTaskId?.nodes || []
-	);
+	let blockedByDependencies = $derived(task.taskDependenciesByBlockedTaskId?.nodes || []);
 
 	// Filter available tasks for dependency creation
 	let filteredTasks = $derived(() => {
@@ -78,8 +74,7 @@
 			if (searchQuery) {
 				const query = searchQuery.toLowerCase();
 				return (
-					t.title.toLowerCase().includes(query) ||
-					t.description?.toLowerCase().includes(query)
+					t.title.toLowerCase().includes(query) || t.description?.toLowerCase().includes(query)
 				);
 			}
 
@@ -186,7 +181,12 @@
 				<h4 class="font-medium">Blocked By</h4>
 				<Badge variant="secondary">{blockedByDependencies.length}</Badge>
 			</div>
-			<Button size="sm" variant="outline" onclick={() => openAddDialog('blocked')} disabled={loading}>
+			<Button
+				size="sm"
+				variant="outline"
+				onclick={() => openAddDialog('blocked')}
+				disabled={loading}
+			>
 				<Plus class="mr-2 h-4 w-4" />
 				Add Blocker
 			</Button>
@@ -242,7 +242,12 @@
 				<h4 class="font-medium">This Task Blocks</h4>
 				<Badge variant="secondary">{blockingDependencies.length}</Badge>
 			</div>
-			<Button size="sm" variant="outline" onclick={() => openAddDialog('blocking')} disabled={loading}>
+			<Button
+				size="sm"
+				variant="outline"
+				onclick={() => openAddDialog('blocking')}
+				disabled={loading}
+			>
 				<Plus class="mr-2 h-4 w-4" />
 				Add Dependency
 			</Button>
@@ -251,9 +256,7 @@
 		{#if blockingDependencies.length === 0}
 			<div class="rounded-lg border border-dashed bg-muted/30 p-6 text-center">
 				<Link2Off class="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
-				<p class="text-sm text-muted-foreground">
-					This task is not blocking any other tasks.
-				</p>
+				<p class="text-sm text-muted-foreground">This task is not blocking any other tasks.</p>
 			</div>
 		{:else}
 			<div class="space-y-2">
@@ -269,9 +272,7 @@
 									<p class="text-xs text-muted-foreground">Status: {blockedTask.status}</p>
 								</div>
 								{#if task.status !== 'DONE'}
-									<Badge variant="outline" class="flex-shrink-0">
-										Waiting on this task
-									</Badge>
+									<Badge variant="outline" class="flex-shrink-0">Waiting on this task</Badge>
 								{/if}
 							</div>
 							<Button
@@ -324,7 +325,9 @@
 				<div class="space-y-2">
 					<Label for="search">Search Tasks</Label>
 					<div class="relative">
-						<Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+						<Search
+							class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+						/>
 						<Input
 							id="search"
 							bind:value={searchQuery}
@@ -378,5 +381,3 @@
 		</Dialog.Content>
 	</Dialog.Root>
 </div>
-
-

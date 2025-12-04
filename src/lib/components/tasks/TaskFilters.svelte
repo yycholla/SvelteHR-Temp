@@ -272,9 +272,7 @@
 			<div class="space-y-2">
 				<Label for="search">Search</Label>
 				<div class="relative">
-					<Search
-						class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
-					/>
+					<Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 					<Input
 						id="search"
 						type="text"
@@ -294,7 +292,10 @@
 					<div class="grid grid-cols-2 gap-2">
 						{#each statusOptions as option}
 							{@const StatusIcon = option.icon}
-							<label class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors" class:bg-accent={filters.statuses.includes(option.value)}>
+							<label
+								class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors"
+								class:bg-accent={filters.statuses.includes(option.value)}
+							>
 								<Checkbox
 									checked={filters.statuses.includes(option.value)}
 									onCheckedChange={() => toggleStatus(option.value)}
@@ -313,7 +314,10 @@
 					<Label>Priority</Label>
 					<div class="grid grid-cols-2 gap-2">
 						{#each priorityOptions as option}
-							<label class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors" class:bg-accent={filters.priorities.includes(option.value)}>
+							<label
+								class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors"
+								class:bg-accent={filters.priorities.includes(option.value)}
+							>
 								<Checkbox
 									checked={filters.priorities.includes(option.value)}
 									onCheckedChange={() => togglePriority(option.value)}
@@ -402,21 +406,30 @@
 							<div class="space-y-2">
 								<Label>Task Hierarchy</Label>
 								<div class="space-y-2">
-									<label class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors" class:bg-accent={filters.hasParent === null}>
+									<label
+										class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors"
+										class:bg-accent={filters.hasParent === null}
+									>
 										<Checkbox
 											checked={filters.hasParent === null}
 											onCheckedChange={() => updateHasParent(null)}
 										/>
 										<span class="text-sm">All tasks</span>
 									</label>
-									<label class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors" class:bg-accent={filters.hasParent === false}>
+									<label
+										class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors"
+										class:bg-accent={filters.hasParent === false}
+									>
 										<Checkbox
 											checked={filters.hasParent === false}
 											onCheckedChange={() => updateHasParent(false)}
 										/>
 										<span class="text-sm">Top-level tasks only</span>
 									</label>
-									<label class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors" class:bg-accent={filters.hasParent === true}>
+									<label
+										class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors"
+										class:bg-accent={filters.hasParent === true}
+									>
 										<Checkbox
 											checked={filters.hasParent === true}
 											onCheckedChange={() => updateHasParent(true)}
@@ -430,14 +443,20 @@
 							<div class="space-y-2">
 								<Label>Dependencies</Label>
 								<div class="space-y-2">
-									<label class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors" class:bg-accent={filters.hasDependencies === null}>
+									<label
+										class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors"
+										class:bg-accent={filters.hasDependencies === null}
+									>
 										<Checkbox
 											checked={filters.hasDependencies === null}
 											onCheckedChange={() => updateHasDependencies(null)}
 										/>
 										<span class="text-sm">All tasks</span>
 									</label>
-									<label class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors" class:bg-accent={filters.hasDependencies === true}>
+									<label
+										class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors"
+										class:bg-accent={filters.hasDependencies === true}
+									>
 										<Checkbox
 											checked={filters.hasDependencies === true}
 											onCheckedChange={() => updateHasDependencies(true)}
@@ -447,7 +466,10 @@
 											<span class="text-sm">With dependencies</span>
 										</div>
 									</label>
-									<label class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors" class:bg-accent={filters.hasDependencies === false}>
+									<label
+										class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors"
+										class:bg-accent={filters.hasDependencies === false}
+									>
 										<Checkbox
 											checked={filters.hasDependencies === false}
 											onCheckedChange={() => updateHasDependencies(false)}
@@ -469,7 +491,10 @@
 					<Badge variant="secondary" class="flex items-center gap-1">
 						<Search class="h-3 w-3" />
 						Search: {filters.search}
-						<button onclick={() => clearFilter('search')} class="ml-1 hover:text-destructive transition-colors">
+						<button
+							onclick={() => clearFilter('search')}
+							class="ml-1 hover:text-destructive transition-colors"
+						>
 							<X class="h-3 w-3" />
 						</button>
 					</Badge>
@@ -478,7 +503,10 @@
 				{#if filters.statuses.length > 0}
 					<Badge variant="secondary" class="flex items-center gap-1">
 						Status: {filters.statuses.join(', ')}
-						<button onclick={() => clearFilter('statuses')} class="ml-1 hover:text-destructive transition-colors">
+						<button
+							onclick={() => clearFilter('statuses')}
+							class="ml-1 hover:text-destructive transition-colors"
+						>
 							<X class="h-3 w-3" />
 						</button>
 					</Badge>
@@ -487,7 +515,10 @@
 				{#if filters.priorities.length > 0}
 					<Badge variant="secondary" class="flex items-center gap-1">
 						Priority: {filters.priorities.join(', ')}
-						<button onclick={() => clearFilter('priorities')} class="ml-1 hover:text-destructive transition-colors">
+						<button
+							onclick={() => clearFilter('priorities')}
+							class="ml-1 hover:text-destructive transition-colors"
+						>
 							<X class="h-3 w-3" />
 						</button>
 					</Badge>
@@ -497,7 +528,10 @@
 					<Badge variant="secondary" class="flex items-center gap-1">
 						<User class="h-3 w-3" />
 						{getAssigneeName(filters.assigneeId)}
-						<button onclick={() => clearFilter('assigneeId')} class="ml-1 hover:text-destructive transition-colors">
+						<button
+							onclick={() => clearFilter('assigneeId')}
+							class="ml-1 hover:text-destructive transition-colors"
+						>
 							<X class="h-3 w-3" />
 						</button>
 					</Badge>
@@ -507,7 +541,10 @@
 					<Badge variant="secondary" class="flex items-center gap-1">
 						<Target class="h-3 w-3" />
 						{getTaskTypeName(filters.taskTypeId)}
-						<button onclick={() => clearFilter('taskTypeId')} class="ml-1 hover:text-destructive transition-colors">
+						<button
+							onclick={() => clearFilter('taskTypeId')}
+							class="ml-1 hover:text-destructive transition-colors"
+						>
 							<X class="h-3 w-3" />
 						</button>
 					</Badge>
@@ -519,7 +556,10 @@
 						{filters.dueDateStart ? format(new Date(filters.dueDateStart), 'MMM d') : 'Start'}
 						-
 						{filters.dueDateEnd ? format(new Date(filters.dueDateEnd), 'MMM d') : 'End'}
-						<button onclick={() => clearFilter('dueDateStart')} class="ml-1 hover:text-destructive transition-colors">
+						<button
+							onclick={() => clearFilter('dueDateStart')}
+							class="ml-1 hover:text-destructive transition-colors"
+						>
 							<X class="h-3 w-3" />
 						</button>
 					</Badge>
@@ -528,7 +568,10 @@
 				{#if filters.hasParent !== null}
 					<Badge variant="secondary" class="flex items-center gap-1">
 						{filters.hasParent ? 'Subtasks only' : 'Top-level only'}
-						<button onclick={() => clearFilter('hasParent')} class="ml-1 hover:text-destructive transition-colors">
+						<button
+							onclick={() => clearFilter('hasParent')}
+							class="ml-1 hover:text-destructive transition-colors"
+						>
 							<X class="h-3 w-3" />
 						</button>
 					</Badge>
@@ -550,5 +593,3 @@
 		{/if}
 	{/if}
 </div>
-
-

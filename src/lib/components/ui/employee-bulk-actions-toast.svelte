@@ -26,11 +26,14 @@
 	const departments = $derived(bulkActionsState.departments);
 </script>
 
-<div class="flex items-center justify-between gap-4 w-full min-w-[600px] bg-card border rounded-lg p-4 shadow-lg">
+<div
+	class="flex items-center justify-between gap-4 w-full min-w-[600px] bg-card border rounded-lg p-4 shadow-lg"
+>
 	<!-- Left: Selection count with integrated clear button -->
 	<div class="flex items-center gap-4">
 		<Badge variant="secondary" class="text-base px-3 py-1.5 flex items-center gap-2">
-			{selectedCount} {selectedCount === 1 ? 'employee' : 'employees'} selected
+			{selectedCount}
+			{selectedCount === 1 ? 'employee' : 'employees'} selected
 			<button
 				onclick={onClear}
 				class="ml-1 rounded-sm hover:bg-secondary-foreground/20 p-0.5"
@@ -54,12 +57,7 @@
 					</Button>
 				{/snippet}
 			</DropdownMenu.Trigger>
-			<DropdownMenu.Content
-				align="end"
-				side="top"
-				sideOffset={20}
-				class="w-56"
-			>
+			<DropdownMenu.Content align="end" side="top" sideOffset={20} class="w-56">
 				<DropdownMenu.Label>Select Department</DropdownMenu.Label>
 				<DropdownMenu.Separator />
 				{#each departments as dept (dept.id)}
@@ -81,12 +79,7 @@
 					</Button>
 				{/snippet}
 			</DropdownMenu.Trigger>
-			<DropdownMenu.Content
-				align="end"
-				side="top"
-				sideOffset={20}
-				class="w-48"
-			>
+			<DropdownMenu.Content align="end" side="top" sideOffset={20} class="w-48">
 				<DropdownMenu.Label>Set Status</DropdownMenu.Label>
 				<DropdownMenu.Separator />
 				<DropdownMenu.Item onclick={() => onChangeStatus('active')}>

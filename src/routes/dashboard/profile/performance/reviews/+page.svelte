@@ -117,7 +117,9 @@
 			</div>
 			<div>
 				<span class="text-xl font-bold text-foreground">
-					{reviewStats.nextReviewDate ? format(parseISO(reviewStats.nextReviewDate), 'MMM yyyy') : 'TBD'}
+					{reviewStats.nextReviewDate
+						? format(parseISO(reviewStats.nextReviewDate), 'MMM yyyy')
+						: 'TBD'}
 				</span>
 				<p class="mt-1 text-sm text-muted-foreground">
 					{reviewStats.nextReviewDate
@@ -142,14 +144,18 @@
 				</div>
 			</div>
 
-			<div class="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/5 p-4 text-center">
+			<div
+				class="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/5 p-4 text-center"
+			>
 				{#if reviewStats.inProgress > 0}
 					<div class="flex items-center gap-3">
 						<div class="rounded-full bg-blue-100 p-2 text-blue-600">
 							<Clock class="h-5 w-5" />
 						</div>
 						<div class="text-left">
-							<p class="font-medium text-foreground">{reviewStats.inProgress} Review(s) In Progress</p>
+							<p class="font-medium text-foreground">
+								{reviewStats.inProgress} Review(s) In Progress
+							</p>
 							<p class="text-xs text-muted-foreground">Please complete your self-assessment.</p>
 						</div>
 						<Button variant="secondary" size="sm" class="ml-4">Start</Button>
@@ -162,9 +168,7 @@
 		</div>
 
 		<!-- 4. Review History (Full Width Table) -->
-		<div
-			class="col-span-full row-span-2 flex flex-col overflow-hidden rounded-xl border bg-card"
-		>
+		<div class="col-span-full row-span-2 flex flex-col overflow-hidden rounded-xl border bg-card">
 			<div class="flex items-center justify-between border-b border-border p-5">
 				<div class="flex items-center gap-2 text-muted-foreground">
 					<History class="h-4 w-4" />
@@ -190,7 +194,8 @@
 							{#each reviews as review}
 								<tr class="transition-colors hover:bg-muted/20">
 									<td class="px-5 py-4 font-medium">
-										{review.type.name} {new Date(review.scheduledDate).getFullYear()}
+										{review.type.name}
+										{new Date(review.scheduledDate).getFullYear()}
 									</td>
 									<td class="px-5 py-4 text-muted-foreground">
 										{review.type.frequency}
@@ -246,7 +251,9 @@
 				<Dialog.Header>
 					<Dialog.Title>Review Details</Dialog.Title>
 					<Dialog.Description>
-						{selectedReview.type.name} - {formatDate(selectedReview.completedDate || selectedReview.scheduledDate)}
+						{selectedReview.type.name} - {formatDate(
+							selectedReview.completedDate || selectedReview.scheduledDate
+						)}
 					</Dialog.Description>
 				</Dialog.Header>
 
@@ -255,20 +262,21 @@
 					<div class="grid grid-cols-2 gap-4 rounded-lg bg-muted/30 p-4 text-sm">
 						<div>
 							<span class="text-muted-foreground">Reviewer:</span>
-							<span class="ml-2 font-medium text-foreground">{selectedReview.reviewer?.displayName || 'N/A'}</span>
+							<span class="ml-2 font-medium text-foreground"
+								>{selectedReview.reviewer?.displayName || 'N/A'}</span
+							>
 						</div>
 						<div>
 							<span class="text-muted-foreground">Status:</span>
-							<Badge
-								variant="outline"
-								class="ml-2 {getStatusColor(selectedReview.status)}"
-							>
+							<Badge variant="outline" class="ml-2 {getStatusColor(selectedReview.status)}">
 								{selectedReview.status.replace('_', ' ')}
 							</Badge>
 						</div>
 						<div>
 							<span class="text-muted-foreground">Overall Rating:</span>
-							<span class="ml-2 font-bold text-emerald-600">{selectedReview.overallRating || 'N/A'}</span>
+							<span class="ml-2 font-bold text-emerald-600"
+								>{selectedReview.overallRating || 'N/A'}</span
+							>
 						</div>
 					</div>
 
@@ -306,7 +314,7 @@
 									{selectedReview.feedback?.managerComments || 'No comments provided.'}
 								</p>
 							</div>
-							
+
 							{#if selectedReview.feedback?.strengths?.length > 0}
 								<div class="mb-4">
 									<h5 class="mb-1 text-sm font-medium text-green-700">Strengths</h5>
@@ -362,4 +370,3 @@
 		</Dialog.Portal>
 	</Dialog.Root>
 {/if}
-

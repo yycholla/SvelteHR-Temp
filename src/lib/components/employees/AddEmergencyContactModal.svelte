@@ -196,14 +196,8 @@
 
 			<!-- Is Primary -->
 			<div class="flex items-center space-x-2">
-				<Checkbox.Root
-					id="contact-primary"
-					bind:checked={isPrimary}
-					disabled={isSubmitting}
-				/>
-				<Label for="contact-primary" class="font-normal">
-					Set as primary emergency contact
-				</Label>
+				<Checkbox.Root id="contact-primary" bind:checked={isPrimary} disabled={isSubmitting} />
+				<Label for="contact-primary" class="font-normal">Set as primary emergency contact</Label>
 			</div>
 
 			<!-- Actions -->

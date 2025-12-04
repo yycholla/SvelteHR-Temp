@@ -2,8 +2,8 @@
 	import { createEventDispatcher } from 'svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { browser } from '$app/environment';
-import { goto } from '$app/navigation';
-import { type UserRoleAssignment, createRBACManager } from '$lib/auth/rbac';
+	import { goto } from '$app/navigation';
+	import { type UserRoleAssignment, createRBACManager } from '$lib/auth/rbac';
 	import { AlertCircle, Eye, EyeOff, Loader2, Lock, Mail } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -266,7 +266,10 @@ import { type UserRoleAssignment, createRBACManager } from '$lib/auth/rbac';
 		<div>
 			<Button
 				type="submit"
-				disabled={isSubmitting || auth.isLoading || hasSucceeded || Object.keys(formErrors).length > 0}
+				disabled={isSubmitting ||
+					auth.isLoading ||
+					hasSucceeded ||
+					Object.keys(formErrors).length > 0}
 				class="w-full"
 				data-testid="login-submit-button"
 			>

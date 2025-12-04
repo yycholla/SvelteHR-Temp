@@ -170,9 +170,7 @@
 					<h2 class="modal-title">Assign Document</h2>
 					<p class="document-name">{documentName}</p>
 				</div>
-				<button class="close-button" onclick={handleClose} title="Close">
-					✕
-				</button>
+				<button class="close-button" onclick={handleClose} title="Close"> ✕ </button>
 			</div>
 
 			<!-- Assignment type tabs -->
@@ -211,12 +209,7 @@
 
 			<!-- Search -->
 			<div class="search-bar">
-				<input
-					type="text"
-					placeholder="Search..."
-					bind:value={searchQuery}
-					class="search-input"
-				/>
+				<input type="text" placeholder="Search..." bind:value={searchQuery} class="search-input" />
 			</div>
 
 			<!-- Selection list -->

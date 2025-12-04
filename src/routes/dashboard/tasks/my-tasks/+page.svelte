@@ -50,10 +50,16 @@
 
 	// Local filter state
 	// Use defensive access to prevent hydration errors if data is partial
-	let searchQuery = $state((data && data.filters && data.filters.searchTerm) ? data.filters.searchTerm : '');
-	let selectedStatus = $state<TaskStatus | 'all'>((data && data.filters && data.filters.statusFilter) ? data.filters.statusFilter : 'all');
-	let selectedPriority = $state<TaskPriority | 'all'>((data && data.filters && data.filters.priorityFilter) ? data.filters.priorityFilter : 'all');
-	
+	let searchQuery = $state(
+		data && data.filters && data.filters.searchTerm ? data.filters.searchTerm : ''
+	);
+	let selectedStatus = $state<TaskStatus | 'all'>(
+		data && data.filters && data.filters.statusFilter ? data.filters.statusFilter : 'all'
+	);
+	let selectedPriority = $state<TaskPriority | 'all'>(
+		data && data.filters && data.filters.priorityFilter ? data.filters.priorityFilter : 'all'
+	);
+
 	// View state
 	let viewMode = $state<'list' | 'hierarchy' | 'kanban'>('list');
 	let sortBy = $state<'created_at' | 'due_date' | 'priority' | 'title' | 'smart'>('smart');
@@ -61,34 +67,36 @@
 
 	// Client-side filtered tasks (only search + explicit filter)
 	// Sorting is handled by TaskList now
-	const filteredTasks = $derived((() => {
-		let result = data?.tasks || [];
-        
-        if (!Array.isArray(result)) return [];
+	const filteredTasks = $derived(
+		(() => {
+			let result = data?.tasks || [];
 
-		// Search filter
-		if (searchQuery) {
-			const searchLower = searchQuery.toLowerCase();
-			result = result.filter((task: any) => {
-                if (!task) return false;
-				const title = task.title?.toLowerCase() || '';
-				const description = task.description?.toLowerCase() || '';
-				return title.includes(searchLower) || description.includes(searchLower);
-			});
-		}
+			if (!Array.isArray(result)) return [];
 
-		// Status filter (if applied locally)
-		if (selectedStatus !== 'all') {
-			result = result.filter((task: any) => task && task.status === selectedStatus);
-		}
+			// Search filter
+			if (searchQuery) {
+				const searchLower = searchQuery.toLowerCase();
+				result = result.filter((task: any) => {
+					if (!task) return false;
+					const title = task.title?.toLowerCase() || '';
+					const description = task.description?.toLowerCase() || '';
+					return title.includes(searchLower) || description.includes(searchLower);
+				});
+			}
 
-		// Priority filter (if applied locally)
-		if (selectedPriority !== 'all') {
-			result = result.filter((task: any) => task && task.priority === selectedPriority);
-		}
+			// Status filter (if applied locally)
+			if (selectedStatus !== 'all') {
+				result = result.filter((task: any) => task && task.status === selectedStatus);
+			}
 
-		return result;
-	})());
+			// Priority filter (if applied locally)
+			if (selectedPriority !== 'all') {
+				result = result.filter((task: any) => task && task.priority === selectedPriority);
+			}
+
+			return result;
+		})()
+	);
 
 	// Statistics cards configuration - derived to update reactively
 	const statsCards = $derived([
@@ -135,16 +143,18 @@
 	]);
 
 	// Weekly Progress Calculation
-	const weeklyProgress = $derived((() => {
-		const total = data?.taskStats?.total || 0;
-		const completed = data?.taskStats?.completed || 0;
-		const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-		return {
-			completed,
-			total,
-			percentage
-		};
-	})());
+	const weeklyProgress = $derived(
+		(() => {
+			const total = data?.taskStats?.total || 0;
+			const completed = data?.taskStats?.completed || 0;
+			const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+			return {
+				completed,
+				total,
+				percentage
+			};
+		})()
+	);
 
 	// Options for dropdowns
 	const statusOptions = [
@@ -255,7 +265,6 @@
 
 <div class="min-h-screen bg-muted/20 p-6 font-sans" data-testid="my-tasks-page">
 	<div class="mx-auto max-w-7xl space-y-6">
-		
 		<!-- Header Section -->
 		<div class="flex flex-col justify-between gap-4 md:flex-row md:items-center">
 			<div>
@@ -265,9 +274,15 @@
 			<div class="flex items-center gap-2">
 				<Button variant="outline" size="sm" class="h-9 gap-2">
 					<CalendarDays class="h-4 w-4" />
-					<span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+					<span
+						>{new Date().toLocaleDateString('en-US', {
+							month: 'short',
+							day: 'numeric',
+							year: 'numeric'
+						})}</span
+					>
 				</Button>
-				
+
 				<!-- Quick Add Task -->
 				<QuickAddTask
 					currentUser={data.user}
@@ -284,7 +299,6 @@
 
 		<!-- Bento Grid Layout -->
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-12 lg:grid-rows-[auto_auto]">
-			
 			<!-- 1. Summary Stats (Top Left - Spans 8 cols) -->
 			<div class="col-span-1 md:col-span-8 grid grid-cols-2 md:grid-cols-5 gap-4">
 				{#each statsCards as stat (stat.label)}
@@ -295,7 +309,9 @@
 								<Icon class="h-3.5 w-3.5 {stat.color}" />
 							</div>
 							<div class="flex flex-col">
-								<span class="text-[10px] font-medium text-muted-foreground leading-tight">{stat.label}</span>
+								<span class="text-[10px] font-medium text-muted-foreground leading-tight"
+									>{stat.label}</span
+								>
 								<span class="text-lg font-bold leading-none">{stat.value}</span>
 							</div>
 						</div>
@@ -329,22 +345,28 @@
 			</div>
 
 			<!-- 3. Main Task List (Bottom Left - Spans 8 cols, Tall) -->
-			<div class="col-span-1 md:col-span-8 row-span-2 rounded-xl border bg-card shadow-sm flex flex-col min-h-[600px]">
+			<div
+				class="col-span-1 md:col-span-8 row-span-2 rounded-xl border bg-card shadow-sm flex flex-col min-h-[600px]"
+			>
 				<!-- Toolbar -->
 				<div class="flex items-center justify-between border-b p-4 flex-wrap gap-2">
 					<div class="flex items-center gap-4">
 						<h3 class="font-semibold">Tasks</h3>
 						<div class="flex items-center rounded-lg bg-muted p-1">
-							<button 
-								class="rounded-md px-2 py-1 {viewMode === 'list' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}"
-								onclick={() => viewMode = 'list'}
+							<button
+								class="rounded-md px-2 py-1 {viewMode === 'list'
+									? 'bg-background shadow-sm text-foreground'
+									: 'text-muted-foreground hover:text-foreground'}"
+								onclick={() => (viewMode = 'list')}
 								title="List View"
 							>
 								<List class="h-4 w-4" />
 							</button>
-							<button 
-								class="rounded-md px-2 py-1 {viewMode === 'kanban' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}"
-								onclick={() => viewMode = 'kanban'}
+							<button
+								class="rounded-md px-2 py-1 {viewMode === 'kanban'
+									? 'bg-background shadow-sm text-foreground'
+									: 'text-muted-foreground hover:text-foreground'}"
+								onclick={() => (viewMode = 'kanban')}
 								title="Kanban View"
 							>
 								<LayoutGrid class="h-4 w-4" />
@@ -362,7 +384,7 @@
 								class="h-9 w-full pl-9"
 							/>
 						</div>
-						
+
 						<!-- Status Filter Dropdown -->
 						<DropdownMenu.Root>
 							<DropdownMenu.Trigger>
@@ -374,7 +396,12 @@
 								<DropdownMenu.Label>Filter by Status</DropdownMenu.Label>
 								<DropdownMenu.Separator />
 								{#each statusOptions as option (option.value)}
-									<DropdownMenu.Item onclick={() => { selectedStatus = option.value as any; handleFilterChange(); }}>
+									<DropdownMenu.Item
+										onclick={() => {
+											selectedStatus = option.value as any;
+											handleFilterChange();
+										}}
+									>
 										<div class="flex items-center gap-2">
 											{#if selectedStatus === option.value}
 												<CheckCircle class="h-3.5 w-3.5 text-primary" />
@@ -399,7 +426,7 @@
 								<DropdownMenu.Label>Sort by</DropdownMenu.Label>
 								<DropdownMenu.Separator />
 								{#each sortOptions as option (option.value)}
-									<DropdownMenu.Item onclick={() => sortBy = option.value as any}>
+									<DropdownMenu.Item onclick={() => (sortBy = option.value as any)}>
 										<div class="flex items-center gap-2">
 											{#if sortBy === option.value}
 												<CheckCircle class="h-3.5 w-3.5 text-primary" />
@@ -411,7 +438,9 @@
 									</DropdownMenu.Item>
 								{/each}
 								<DropdownMenu.Separator />
-								<DropdownMenu.Item onclick={() => sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'}>
+								<DropdownMenu.Item
+									onclick={() => (sortOrder = sortOrder === 'asc' ? 'desc' : 'asc')}
+								>
 									<div class="flex items-center gap-2">
 										<div class="h-3.5 w-3.5"></div>
 										{sortOrder === 'asc' ? 'Ascending' : 'Descending'}
@@ -428,9 +457,9 @@
 						tasks={filteredTasks}
 						userId={data.user.id}
 						showFilters={false}
-						bind:viewMode={viewMode}
-						bind:sortBy={sortBy}
-						bind:sortOrder={sortOrder}
+						bind:viewMode
+						bind:sortBy
+						bind:sortOrder
 						onTaskClick={handleTaskClick}
 						onStatusChange={handleStatusChange}
 						loading={false}
@@ -439,13 +468,17 @@
 			</div>
 
 			<!-- 4. Upcoming / Schedule (Bottom Right - Spans 4 cols) -->
-			<div class="col-span-1 md:col-span-4 rounded-xl border bg-card p-5 shadow-sm h-full min-h-[300px]">
+			<div
+				class="col-span-1 md:col-span-4 rounded-xl border bg-card p-5 shadow-sm h-full min-h-[300px]"
+			>
 				<h3 class="mb-4 font-semibold">Today's Schedule</h3>
 				{#if upcomingEvents.length > 0}
 					<div class="relative border-l border-muted pl-6 space-y-6">
 						{#each upcomingEvents as event}
 							<div class="relative">
-								<span class="absolute -left-[29px] top-1 h-3 w-3 rounded-full border-2 border-background bg-primary ring-4 ring-background"></span>
+								<span
+									class="absolute -left-[29px] top-1 h-3 w-3 rounded-full border-2 border-background bg-primary ring-4 ring-background"
+								></span>
 								<div class="flex flex-col gap-1">
 									<span class="text-xs font-medium text-muted-foreground">
 										{event.isAllDay ? 'All Day' : event.time}
@@ -474,12 +507,11 @@
 					<h3 class="font-semibold">Quick Notes</h3>
 					<Button variant="ghost" size="icon" class="h-6 w-6"><Plus class="h-3 w-3" /></Button>
 				</div>
-				<textarea 
+				<textarea
 					class="w-full resize-none rounded-md bg-muted/30 p-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/20 h-32"
 					placeholder="Jot down something..."
 				></textarea>
 			</div>
-
 		</div>
 	</div>
 </div>

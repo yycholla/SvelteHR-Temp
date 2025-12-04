@@ -258,12 +258,7 @@
 									>
 										Save
 									</Button>
-									<Button
-										variant="outline"
-										size="sm"
-										onclick={cancelEditing}
-										disabled={loading}
-									>
+									<Button variant="outline" size="sm" onclick={cancelEditing} disabled={loading}>
 										Cancel
 									</Button>
 								</div>
@@ -305,9 +300,7 @@
 					disabled={loading}
 				/>
 				<div class="flex justify-between items-center">
-					<p class="text-xs text-muted-foreground">
-						Tip: Use @username to mention someone
-					</p>
+					<p class="text-xs text-muted-foreground">Tip: Use @username to mention someone</p>
 					<Button
 						onclick={handleAddComment}
 						disabled={loading || !newCommentContent.trim()}
@@ -321,5 +314,3 @@
 		</div>
 	{/if}
 </div>
-
-

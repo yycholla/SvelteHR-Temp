@@ -32,7 +32,9 @@
 	let isRecurring = $state(!!pattern);
 	let frequency = $state<'daily' | 'weekly' | 'monthly' | 'yearly'>(pattern?.frequency || 'weekly');
 	let interval = $state(pattern?.interval || 1);
-	let endDate = $state<string | undefined>(pattern?.endDate ? pattern.endDate.toISOString() : undefined);
+	let endDate = $state<string | undefined>(
+		pattern?.endDate ? pattern.endDate.toISOString() : undefined
+	);
 	let selectedDays = $state<number[]>(pattern?.daysOfWeek || []);
 	let endDateError = $state<string | null>(null);
 
@@ -130,7 +132,7 @@
 			<Label class="text-base">Recurring Training</Label>
 			<p class="text-xs text-muted-foreground">Schedule this training to repeat automatically</p>
 		</div>
-		<Switch bind:checked={isRecurring} disabled={disabled} />
+		<Switch bind:checked={isRecurring} {disabled} />
 	</div>
 
 	{#if isRecurring}
@@ -139,19 +141,12 @@
 			<div class="grid grid-cols-2 gap-3">
 				<div class="space-y-2">
 					<Label>Repeat Every</Label>
-					<Input
-						type="number"
-						min="1"
-						max="365"
-						bind:value={interval}
-						disabled={disabled}
-						class="w-full"
-					/>
+					<Input type="number" min="1" max="365" bind:value={interval} {disabled} class="w-full" />
 				</div>
 
 				<div class="space-y-2">
 					<Label>Frequency</Label>
-					<Select.Root bind:selected={frequency} disabled={disabled}>
+					<Select.Root bind:selected={frequency} {disabled}>
 						<Select.Trigger class="w-full">
 							<Select.Value />
 						</Select.Trigger>
@@ -176,7 +171,7 @@
 								size="sm"
 								class="w-12"
 								onclick={() => toggleDay(day.value)}
-								disabled={disabled}
+								{disabled}
 							>
 								{day.label}
 							</Button>
@@ -201,7 +196,7 @@
 									!endDate && 'text-muted-foreground'
 								)}
 								{...props}
-								disabled={disabled}
+								{disabled}
 							>
 								<CalendarIcon class="mr-2 h-4 w-4" />
 								{endDate ? df.format(new Date(endDate)) : 'Pick an end date'}

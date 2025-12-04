@@ -43,15 +43,11 @@
 	let isExpanded = $state(currentDepth < 2); // Auto-expand first 2 levels
 
 	// Derived state
-	let hasSubtasks = $derived(
-		task.subtasks && task.subtasks.length > 0
-	);
+	let hasSubtasks = $derived(task.subtasks && task.subtasks.length > 0);
 	let canExpand = $derived(hasSubtasks && currentDepth < maxDepth);
 	let subtasks = $derived(task.subtasks || []);
 	let subtaskCount = $derived(task.subtasks?.length || 0);
-	let completedSubtasks = $derived(
-		subtasks.filter((t: Task) => t.status === 'Done').length
-	);
+	let completedSubtasks = $derived(subtasks.filter((t: Task) => t.status === 'Done').length);
 
 	// Calculate completion percentage for subtasks
 	let completionPercentage = $derived(() => {
@@ -159,11 +155,11 @@
 			<div class="flex items-center gap-2">
 				<GitBranch class="h-4 w-4 flex-shrink-0" />
 				<span>
-					Maximum nesting depth reached. This task has {subtaskCount} more subtask{subtaskCount > 1 ? 's' : ''}.
+					Maximum nesting depth reached. This task has {subtaskCount} more subtask{subtaskCount > 1
+						? 's'
+						: ''}.
 				</span>
 			</div>
 		</div>
 	{/if}
 </div>
-
-

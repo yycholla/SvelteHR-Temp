@@ -162,7 +162,12 @@
 		<!-- Quick Actions (for pending requests) -->
 		{#if statistics.pendingCount > 0}
 			<div class="mt-4 flex gap-2">
-				<Button size="sm" variant="default" href="/dashboard/activities/rollback-requests" class="flex-1">
+				<Button
+					size="sm"
+					variant="default"
+					href="/dashboard/activities/rollback-requests"
+					class="flex-1"
+				>
 					<CheckSquare class="mr-2 h-4 w-4" />
 					Review Pending
 				</Button>

@@ -244,10 +244,7 @@
 			const submissionData = prepareSubmissionData();
 
 			if (isEditing && employee) {
-				const updatedEmployee = await userService.updateUser(
-					employee.id,
-					submissionData as any
-				);
+				const updatedEmployee = await userService.updateUser(employee.id, submissionData as any);
 				onsuccess?.({ employee: updatedEmployee, action: 'update' });
 			} else {
 				const newEmployee = await userService.createUser(submissionData as any);

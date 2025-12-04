@@ -35,7 +35,7 @@
 
 	// Use defaults if roles prop is empty or undefined
 	// Defensive: Filter input roles to ensure they are valid before using
-	const validPropRoles = $derived(roles?.filter(r => r && r.name) || []);
+	const validPropRoles = $derived(roles?.filter((r) => r && r.name) || []);
 	const finalRoles = $derived(validPropRoles.length > 0 ? validPropRoles : defaultRoles);
 
 	const roleOptions = $derived(
@@ -63,13 +63,13 @@
 
 	// Password validation state
 	let passwordTouched = $state(false);
-	
+
 	const passwordRequirements = [
 		{ id: 'length', label: 'At least 8 characters', check: (val: string) => val.length >= 8 }
 	];
 
 	const passwordValidations = $derived(
-		passwordRequirements.map(req => ({
+		passwordRequirements.map((req) => ({
 			...req,
 			valid: req.check(formData.password || '')
 		}))
@@ -164,7 +164,8 @@
 
 		// Adjust cursor position after formatting
 		if (originalSelectionStart !== null) {
-			const newSelectionStart = originalSelectionStart + (formattedValue.length - previousValue.length);
+			const newSelectionStart =
+				originalSelectionStart + (formattedValue.length - previousValue.length);
 			inputElement.setSelectionRange(newSelectionStart, newSelectionStart);
 		}
 	}
@@ -261,13 +262,13 @@
 		}
 		// Also check if there are any lingering errors in fieldErrors
 		if (Object.keys(fieldErrors).length > 0) return false;
-		
+
 		return true;
 	});
 
 	async function handleSubmit(event: Event) {
 		event.preventDefault();
-		
+
 		if (!isFormValid) {
 			toast.error('Please fix the validation errors');
 			return;
@@ -434,20 +435,20 @@
 
 				<div class="space-y-2">
 					<Label for="phone">Phone Number</Label>
-										<Input
-											id="phone"
-											name="phone"
-											type="tel"
-											bind:value={formData.phoneNumber}
-											oninput={handlePhoneInput}
-											onblur={() => validateField('phone', formData.phoneNumber)}
-											placeholder="(555) 123-4567"
-											disabled={submitting}
-											class={fieldErrors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''}
-										/>
-										{#if fieldErrors.phone}
-											<p class="text-sm text-red-500">{fieldErrors.phone}</p>
-										{/if}
+					<Input
+						id="phone"
+						name="phone"
+						type="tel"
+						bind:value={formData.phoneNumber}
+						oninput={handlePhoneInput}
+						onblur={() => validateField('phone', formData.phoneNumber)}
+						placeholder="(555) 123-4567"
+						disabled={submitting}
+						class={fieldErrors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''}
+					/>
+					{#if fieldErrors.phone}
+						<p class="text-sm text-red-500">{fieldErrors.phone}</p>
+					{/if}
 				</div>
 			</div>
 
@@ -478,7 +479,9 @@
 							onchange={() => validateField('departmentId', formData.departmentId)}
 							required
 							disabled={submitting}
-							class="shadow-xs flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 {fieldErrors.departmentId ? 'border-red-500 focus-visible:ring-red-500' : ''}"
+							class="shadow-xs flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 {fieldErrors.departmentId
+								? 'border-red-500 focus-visible:ring-red-500'
+								: ''}"
 						>
 							{#each departments as dept (dept.id)}
 								<option value={dept.id}>{dept.name}</option>
@@ -515,7 +518,9 @@
 						onchange={() => validateField('role', formData.role)}
 						required
 						disabled={submitting}
-						class="shadow-xs w-full rounded-md border border-input bg-muted px-3 py-2 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 {fieldErrors.role ? 'border-red-500 focus-visible:ring-red-500' : ''}"
+						class="shadow-xs w-full rounded-md border border-input bg-muted px-3 py-2 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 {fieldErrors.role
+							? 'border-red-500 focus-visible:ring-red-500'
+							: ''}"
 					>
 						{#each roleOptions as role (role.value)}
 							<option value={role.value}>{role.label}</option>
@@ -543,17 +548,27 @@
 							name="password"
 							type="text"
 							bind:value={formData.password}
-							oninput={() => { clearFieldError('password'); passwordTouched = true; }}
+							oninput={() => {
+								clearFieldError('password');
+								passwordTouched = true;
+							}}
 							onblur={() => validateField('password', formData.password)}
 							placeholder="Leave blank to auto-generate"
 							disabled={submitting}
-							class="flex-1 {fieldErrors.password ? 'border-red-500 focus-visible:ring-red-500' : ''}"
+							class="flex-1 {fieldErrors.password
+								? 'border-red-500 focus-visible:ring-red-500'
+								: ''}"
 						/>
-						<Button type="button" variant="outline" onclick={handleGeneratePassword} disabled={submitting}>
+						<Button
+							type="button"
+							variant="outline"
+							onclick={handleGeneratePassword}
+							disabled={submitting}
+						>
 							Generate
 						</Button>
 					</div>
-					
+
 					{#if passwordTouched && formData.password}
 						<div class="space-y-1 mt-1">
 							{#each passwordValidations as req}
@@ -571,7 +586,8 @@
 						<p class="text-sm text-red-500">{fieldErrors.password}</p>
 					{:else}
 						<p class="text-xs text-muted-foreground mt-1">
-							If no password is provided, a secure temporary password will be generated automatically and logged.
+							If no password is provided, a secure temporary password will be generated
+							automatically and logged.
 						</p>
 					{/if}
 				</div>

@@ -78,7 +78,13 @@
 	}
 </script>
 
-<div class="document-card" onclick={handleCardClick} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && handleCardClick()}>
+<div
+	class="document-card"
+	onclick={handleCardClick}
+	role="button"
+	tabindex="0"
+	onkeydown={(e) => e.key === 'Enter' && handleCardClick()}
+>
 	<!-- File icon and metadata -->
 	<div class="card-header">
 		<div class="file-icon">{fileIcon}</div>

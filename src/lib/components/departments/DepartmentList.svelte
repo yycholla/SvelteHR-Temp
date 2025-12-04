@@ -239,11 +239,7 @@
 
 			<div class="department-list__actions">
 				{#if auth.user && auth.hasPermission('department:create')}
-					<Button
-						variant="secondary"
-						leftIcon="eye"
-						onclick={() => goto('/departments/hierarchy')}
-					>
+					<Button variant="secondary" leftIcon="eye" onclick={() => goto('/departments/hierarchy')}>
 						View Hierarchy
 					</Button>
 
@@ -427,5 +423,3 @@
 		</Card>
 	{/if}
 </div>
-
-

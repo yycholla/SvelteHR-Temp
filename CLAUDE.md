@@ -382,96 +382,96 @@ export const load: PageServerLoad = async ({ cookies }) => {
 
 ```svelte
 <script lang="ts">
- import { onMount, onDestroy } from 'svelte';
- import { browser } from '$app/environment';
- import type { EventInput } from '@fullcalendar/core';
+	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
+	import type { EventInput } from '@fullcalendar/core';
 
- // Props with Svelte 5 runes
- let {
-  events = [],
-  userId,
-  canManageEvents = false,
-  onEventClick,
-  onDateClick
- }: {
-  events: any[];
-  userId: string;
-  canManageEvents?: boolean;
-  onEventClick?: (event: any) => void;
-  onDateClick?: (date: Date) => void;
- } = $props();
+	// Props with Svelte 5 runes
+	let {
+		events = [],
+		userId,
+		canManageEvents = false,
+		onEventClick,
+		onDateClick
+	}: {
+		events: any[];
+		userId: string;
+		canManageEvents?: boolean;
+		onEventClick?: (event: any) => void;
+		onDateClick?: (date: Date) => void;
+	} = $props();
 
- let calendarEl: HTMLElement;
- let calendar: any = null;
+	let calendarEl: HTMLElement;
+	let calendar: any = null;
 
- // Derived: Convert events to FullCalendar format
- let calendarEvents = $derived(
-  events.map(
-   (event) =>
-    ({
-     id: event.id,
-     title: event.title,
-     start: event.startTime,
-     end: event.endTime,
-     allDay: event.allDay,
-     backgroundColor: getColorByRsvp(event.userRsvpStatus),
-     extendedProps: event
-    }) as EventInput
-  )
- );
+	// Derived: Convert events to FullCalendar format
+	let calendarEvents = $derived(
+		events.map(
+			(event) =>
+				({
+					id: event.id,
+					title: event.title,
+					start: event.startTime,
+					end: event.endTime,
+					allDay: event.allDay,
+					backgroundColor: getColorByRsvp(event.userRsvpStatus),
+					extendedProps: event
+				}) as EventInput
+		)
+	);
 
- // Initialize calendar on mount (client-side only)
- onMount(async () => {
-  if (!browser) return;
+	// Initialize calendar on mount (client-side only)
+	onMount(async () => {
+		if (!browser) return;
 
-  // Dynamically import FullCalendar modules
-  const [
-   { Calendar },
-   { default: dayGridPlugin },
-   { default: timeGridPlugin },
-   { default: interactionPlugin },
-   { default: rrulePlugin }
-  ] = await Promise.all([
-   import('@fullcalendar/core'),
-   import('@fullcalendar/daygrid'),
-   import('@fullcalendar/timegrid'),
-   import('@fullcalendar/interaction'),
-   import('@fullcalendar/rrule')
-  ]);
+		// Dynamically import FullCalendar modules
+		const [
+			{ Calendar },
+			{ default: dayGridPlugin },
+			{ default: timeGridPlugin },
+			{ default: interactionPlugin },
+			{ default: rrulePlugin }
+		] = await Promise.all([
+			import('@fullcalendar/core'),
+			import('@fullcalendar/daygrid'),
+			import('@fullcalendar/timegrid'),
+			import('@fullcalendar/interaction'),
+			import('@fullcalendar/rrule')
+		]);
 
-  calendar = new Calendar(calendarEl, {
-   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, rrulePlugin],
-   initialView: 'dayGridMonth',
-   headerToolbar: {
-    left: 'prev,next today',
-    center: 'title',
-    right: 'dayGridMonth,timeGridWeek,timeGridDay'
-   },
-   editable: canManageEvents,
-   selectable: canManageEvents,
-   events: [],
-   eventClick: (info) => {
-    onEventClick?.(info.event.extendedProps);
-   },
-   dateClick: (info) => {
-    onDateClick?.(info.date);
-   }
-  });
+		calendar = new Calendar(calendarEl, {
+			plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, rrulePlugin],
+			initialView: 'dayGridMonth',
+			headerToolbar: {
+				left: 'prev,next today',
+				center: 'title',
+				right: 'dayGridMonth,timeGridWeek,timeGridDay'
+			},
+			editable: canManageEvents,
+			selectable: canManageEvents,
+			events: [],
+			eventClick: (info) => {
+				onEventClick?.(info.event.extendedProps);
+			},
+			dateClick: (info) => {
+				onDateClick?.(info.date);
+			}
+		});
 
-  calendar.render();
- });
+		calendar.render();
+	});
 
- // Update events when data changes
- $effect(() => {
-  if (calendar && calendarEvents) {
-   calendar.removeAllEvents();
-   calendar.addEventSource(calendarEvents);
-  }
- });
+	// Update events when data changes
+	$effect(() => {
+		if (calendar && calendarEvents) {
+			calendar.removeAllEvents();
+			calendar.addEventSource(calendarEvents);
+		}
+	});
 
- onDestroy(() => {
-  calendar?.destroy();
- });
+	onDestroy(() => {
+		calendar?.destroy();
+	});
 </script>
 
 <div bind:this={calendarEl}></div>
@@ -569,41 +569,41 @@ export function validate5YearLimit(startDate: Date, endDate: Date): boolean {
 
 ```svelte
 <script lang="ts">
- import { validateImageFile } from '$lib/utils/image-validation';
+	import { validateImageFile } from '$lib/utils/image-validation';
 
- let cropper: any = null;
+	let cropper: any = null;
 
- async function initCropper(imageUrl: string, aspectRatio: '16:9' | '9:16') {
-  const Cropper = (await import('cropperjs')).default;
-  const ratio = aspectRatio === '16:9' ? 16 / 9 : 9 / 16;
+	async function initCropper(imageUrl: string, aspectRatio: '16:9' | '9:16') {
+		const Cropper = (await import('cropperjs')).default;
+		const ratio = aspectRatio === '16:9' ? 16 / 9 : 9 / 16;
 
-  cropper = new Cropper(imgElement, {
-   aspectRatio: ratio,
-   viewMode: 1,
-   autoCropArea: 1,
-   cropBoxMovable: true,
-   cropBoxResizable: true
-  });
- }
+		cropper = new Cropper(imgElement, {
+			aspectRatio: ratio,
+			viewMode: 1,
+			autoCropArea: 1,
+			cropBoxMovable: true,
+			cropBoxResizable: true
+		});
+	}
 
- async function handleCropConfirm() {
-  const canvas = cropper.getCroppedCanvas({
-   maxWidth: 4096,
-   maxHeight: 4096,
-   imageSmoothingQuality: 'high'
-  });
+	async function handleCropConfirm() {
+		const canvas = cropper.getCroppedCanvas({
+			maxWidth: 4096,
+			maxHeight: 4096,
+			imageSmoothingQuality: 'high'
+		});
 
-  canvas.toBlob(
-   (blob) => {
-    const file = new File([blob], 'cropped-image.jpg', {
-     type: 'image/jpeg'
-    });
-    onImageSelected(file);
-   },
-   'image/jpeg',
-   0.9
-  );
- }
+		canvas.toBlob(
+			(blob) => {
+				const file = new File([blob], 'cropped-image.jpg', {
+					type: 'image/jpeg'
+				});
+				onImageSelected(file);
+			},
+			'image/jpeg',
+			0.9
+		);
+	}
 </script>
 ```
 
@@ -879,35 +879,35 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 ```svelte
 <!-- Employee management component with RBAC -->
 <script lang="ts">
- export let data;
+	export let data;
 
- $: canCreateEmployees =
-  data.userPermissions.includes('employees:write') || data.userPermissions.includes('*');
- $: canDeleteEmployees =
-  data.userPermissions.includes('employees:delete') || data.userPermissions.includes('*');
- $: isHRManager = data.user.roles.some((r) => r.name === 'HR_Manager');
+	$: canCreateEmployees =
+		data.userPermissions.includes('employees:write') || data.userPermissions.includes('*');
+	$: canDeleteEmployees =
+		data.userPermissions.includes('employees:delete') || data.userPermissions.includes('*');
+	$: isHRManager = data.user.roles.some((r) => r.name === 'HR_Manager');
 </script>
 
 <div class="employee-management">
- <h1>Employees</h1>
+	<h1>Employees</h1>
 
- {#if canCreateEmployees}
-  <button>Add New Employee</button>
- {/if}
+	{#if canCreateEmployees}
+		<button>Add New Employee</button>
+	{/if}
 
- {#each data.employees as employee}
-  <div class="employee-card">
-   <h3>{employee.full_name}</h3>
+	{#each data.employees as employee}
+		<div class="employee-card">
+			<h3>{employee.full_name}</h3>
 
-   {#if canDeleteEmployees}
-    <button class="danger">Delete</button>
-   {/if}
+			{#if canDeleteEmployees}
+				<button class="danger">Delete</button>
+			{/if}
 
-   {#if isHRManager || employee.id === data.user.id}
-    <a href="/employees/{employee.id}/edit">Edit Profile</a>
-   {/if}
-  </div>
- {/each}
+			{#if isHRManager || employee.id === data.user.id}
+				<a href="/employees/{employee.id}/edit">Edit Profile</a>
+			{/if}
+		</div>
+	{/each}
 </div>
 ```
 

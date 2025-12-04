@@ -217,7 +217,8 @@
 							<span>On track</span>
 							{#if onTrackStatus.daysRemaining !== null && onTrackStatus.daysRemaining > 0}
 								<span class="text-muted-foreground">
-									({onTrackStatus.daysRemaining} {onTrackStatus.daysRemaining === 1 ? 'day' : 'days'} remaining)
+									({onTrackStatus.daysRemaining}
+									{onTrackStatus.daysRemaining === 1 ? 'day' : 'days'} remaining)
 								</span>
 							{/if}
 						</div>
@@ -229,7 +230,8 @@
 								<span class="text-muted-foreground">(Overdue)</span>
 							{:else if onTrackStatus.daysRemaining !== null}
 								<span class="text-muted-foreground">
-									({Math.abs(onTrackStatus.expectedProgress - onTrackStatus.actualProgress)}% behind)
+									({Math.abs(onTrackStatus.expectedProgress - onTrackStatus.actualProgress)}%
+									behind)
 								</span>
 							{/if}
 						</div>
@@ -241,7 +243,8 @@
 			{#if showDetails && !compact}
 				<div class="status-breakdown">
 					{#each Object.entries(statusConfig) as [status, config]}
-						{@const count = subtaskStats()[status.toLowerCase().replace(' ', '') as keyof SubtaskStats]}
+						{@const count =
+							subtaskStats()[status.toLowerCase().replace(' ', '') as keyof SubtaskStats]}
 						{#if typeof count === 'number' && count > 0}
 							{@const StatusIcon = config.icon}
 							<div class="status-item">
@@ -272,5 +275,3 @@
 		</div>
 	{/if}
 </div>
-
-

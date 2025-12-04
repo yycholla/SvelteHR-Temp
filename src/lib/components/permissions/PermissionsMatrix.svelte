@@ -53,7 +53,19 @@
 		// Ensure special permissions are properly populated
 		Object.entries(grouped).forEach(([resource, data]) => {
 			const allSpecialActions = data.allPermissions
-				.filter((p) => !['read', 'read:self', 'read:team', 'read:all', 'write', 'create', 'update', 'delete'].includes(p.action))
+				.filter(
+					(p) =>
+						![
+							'read',
+							'read:self',
+							'read:team',
+							'read:all',
+							'write',
+							'create',
+							'update',
+							'delete'
+						].includes(p.action)
+				)
 				.map((p) => {
 					const existingSpecial = data.special.find((s) => s.action === p.action);
 					return {
@@ -135,7 +147,11 @@
 	}
 
 	// Handle special permission change
-	function handleSpecialPermissionChange(resource: string, specialAction: string, enabled: boolean) {
+	function handleSpecialPermissionChange(
+		resource: string,
+		specialAction: string,
+		enabled: boolean
+	) {
 		onPermissionChange(resource, {
 			special: permissionsByResource[resource].special.map((s) =>
 				s.action === specialAction ? { ...s, enabled } : s

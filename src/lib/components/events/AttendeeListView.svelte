@@ -52,17 +52,15 @@
 
 	// Derived - filtered attendees
 	let filteredAttendees = $derived(
-		statusFilter === 'all'
-			? attendees
-			: attendees.filter(a => a.responseStatus === statusFilter)
+		statusFilter === 'all' ? attendees : attendees.filter((a) => a.responseStatus === statusFilter)
 	);
 
 	// Derived - counts by status
 	let statusCounts = $derived({
-		accepted: attendees.filter(a => a.responseStatus === 'accepted').length,
-		declined: attendees.filter(a => a.responseStatus === 'declined').length,
-		tentative: attendees.filter(a => a.responseStatus === 'tentative').length,
-		pending: attendees.filter(a => a.responseStatus === 'pending').length
+		accepted: attendees.filter((a) => a.responseStatus === 'accepted').length,
+		declined: attendees.filter((a) => a.responseStatus === 'declined').length,
+		tentative: attendees.filter((a) => a.responseStatus === 'tentative').length,
+		pending: attendees.filter((a) => a.responseStatus === 'pending').length
 	});
 
 	// Get RSVP badge variant and color
@@ -83,7 +81,7 @@
 	function getInitials(name: string): string {
 		return name
 			.split(' ')
-			.map(n => n[0])
+			.map((n) => n[0])
 			.join('')
 			.toUpperCase()
 			.slice(0, 2);
@@ -131,9 +129,7 @@
 		{#if filteredAttendees.length === 0}
 			<div class="flex flex-col items-center justify-center py-12 text-center">
 				<Users class="mb-2 h-12 w-12 text-muted-foreground" />
-				<p class="text-sm text-muted-foreground">
-					No attendees found
-				</p>
+				<p class="text-sm text-muted-foreground">No attendees found</p>
 			</div>
 		{:else}
 			{#each filteredAttendees as attendee}
@@ -147,7 +143,9 @@
 				>
 					<!-- Avatar -->
 					<Avatar class="h-10 w-10">
-						<div class="flex h-full w-full items-center justify-center bg-primary/10 text-sm font-medium">
+						<div
+							class="flex h-full w-full items-center justify-center bg-primary/10 text-sm font-medium"
+						>
 							{getInitials(attendee.employee.displayName)}
 						</div>
 					</Avatar>

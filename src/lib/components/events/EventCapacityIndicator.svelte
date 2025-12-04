@@ -50,9 +50,7 @@
 		}
 
 		if (isFull) {
-			return waitlistCount > 0
-				? `Full (${waitlistCount} on waitlist)`
-				: 'Event is full';
+			return waitlistCount > 0 ? `Full (${waitlistCount} on waitlist)` : 'Event is full';
 		}
 
 		return `${acceptedCount}/${maxCapacity} spots filled`;
@@ -95,7 +93,8 @@
 
 		{#if waitlistCount > 0}
 			<p class="text-sm text-muted-foreground">
-				{waitlistCount} {waitlistCount === 1 ? 'person' : 'people'} on waitlist
+				{waitlistCount}
+				{waitlistCount === 1 ? 'person' : 'people'} on waitlist
 			</p>
 		{/if}
 	</div>

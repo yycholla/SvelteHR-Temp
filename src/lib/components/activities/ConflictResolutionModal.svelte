@@ -230,8 +230,7 @@
 									<span class="badge badge-warning">Partial</span>
 								</div>
 								<p class="strategy-description">
-									Select specific fields to rollback. Other fields will retain their current
-									values.
+									Select specific fields to rollback. Other fields will retain their current values.
 								</p>
 							</div>
 						</label>

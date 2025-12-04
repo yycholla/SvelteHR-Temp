@@ -194,11 +194,7 @@
 	<!-- Header -->
 	<div class="mb-6 flex items-center justify-between">
 		<div class="flex items-center gap-4">
-			<Button
-				variant="outline"
-				size="icon"
-				href={`/dashboard/admin/onboarding/${data.module.id}`}
-			>
+			<Button variant="outline" size="icon" href={`/dashboard/admin/onboarding/${data.module.id}`}>
 				<ArrowLeft class="h-4 w-4" />
 			</Button>
 			<div>
@@ -304,7 +300,9 @@
 		<DialogHeader>
 			<DialogTitle>{editingForm ? 'Edit Form' : 'Create New Form'}</DialogTitle>
 			<DialogDescription>
-				{editingForm ? 'Update the form details below' : 'Create a new form for the onboarding module'}
+				{editingForm
+					? 'Update the form details below'
+					: 'Create a new form for the onboarding module'}
 			</DialogDescription>
 		</DialogHeader>
 

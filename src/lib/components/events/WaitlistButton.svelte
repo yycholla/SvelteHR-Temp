@@ -73,9 +73,7 @@
 		if (loading) return 'Loading...';
 
 		if (isOnWaitlist) {
-			return waitlistPosition
-				? `On waitlist (#${waitlistPosition})`
-				: 'On waitlist';
+			return waitlistPosition ? `On waitlist (#${waitlistPosition})` : 'On waitlist';
 		}
 
 		return 'Join waitlist';

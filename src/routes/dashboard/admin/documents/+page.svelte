@@ -79,9 +79,9 @@
 		// Check roles (singular and plural, case-insensitive)
 		const role = data.user?.role?.toLowerCase();
 		const roles = (data.user?.roles || []).map((r: string) => r.toLowerCase());
-		
+
 		const adminRoles = ['admin', 'super_admin', 'system_admin'];
-		
+
 		if (adminRoles.includes(role)) return true;
 		if (roles.some((r: string) => adminRoles.includes(r))) return true;
 
@@ -219,7 +219,7 @@
 			<ChevronRight class="h-4 w-4" />
 			<span class="font-medium text-foreground">Documents</span>
 		</div>
-		
+
 		{#if canUpload}
 			<Button onclick={() => (isUploadModalOpen = true)} class="gap-2 shadow-sm">
 				<Upload class="h-4 w-4" />
@@ -230,7 +230,6 @@
 
 	<!-- Bento Grid -->
 	<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-		
 		<!-- 1. Total Documents -->
 		<div class="flex flex-col justify-between rounded-xl border bg-card p-5 shadow-sm">
 			<div class="mb-3 flex items-center justify-between text-muted-foreground">

@@ -204,36 +204,32 @@ npm run dev:local
 ```svelte
 <!-- src/lib/components/tasks/MyNewComponent.svelte -->
 <script lang="ts">
-  import type { Task } from '$lib/types/task';
+	import type { Task } from '$lib/types/task';
 
-  interface Props {
-    task: Task;
-    onUpdate?: (task: Task) => void;
-  }
+	interface Props {
+		task: Task;
+		onUpdate?: (task: Task) => void;
+	}
 
-  let { task, onUpdate }: Props = $props();
+	let { task, onUpdate }: Props = $props();
 
-  // Reactive computations
-  let isOverdue = $derived(
-    task.dueDate && new Date(task.dueDate) < new Date()
-  );
+	// Reactive computations
+	let isOverdue = $derived(task.dueDate && new Date(task.dueDate) < new Date());
 </script>
 
 <div class="task-component">
-  <h3>{task.title}</h3>
-  {#if isOverdue}
-    <span class="badge badge-error">Overdue</span>
-  {/if}
+	<h3>{task.title}</h3>
+	{#if isOverdue}
+		<span class="badge badge-error">Overdue</span>
+	{/if}
 
-  <button onclick={() => onUpdate?.(task)}>
-    Update
-  </button>
+	<button onclick={() => onUpdate?.(task)}> Update </button>
 </div>
 
 <style>
-  .task-component {
-    @apply p-4 rounded-lg border;
-  }
+	.task-component {
+		@apply rounded-lg border p-4;
+	}
 </style>
 ```
 
@@ -242,9 +238,7 @@ npm run dev:local
 1. **Use Svelte 5 Runes**:
 
    ```svelte
-   let count = $state(0);
-   let doubled = $derived(count * 2);
-   let { prop1, prop2 } = $props();
+   let count = $state(0); let doubled = $derived(count * 2); let {(prop1, prop2)} = $props();
    ```
 
 2. **TypeScript Interfaces**:
@@ -264,12 +258,7 @@ npm run dev:local
 
 4. **Accessibility**:
    ```svelte
-   <button
-     aria-label="Mark task as complete"
-     role="button"
-   >
-     Complete
-   </button>
+   <button aria-label="Mark task as complete" role="button"> Complete </button>
    ```
 
 ---
@@ -511,19 +500,19 @@ npm run test:unit -- tests/unit/utils/tasks.test.ts
 
 ```svelte
 <script lang="ts">
-  import { TaskComponents } from '$lib/performance/bundle-optimizer';
+	import { TaskComponents } from '$lib/performance/bundle-optimizer';
 
-  let TaskForm;
-  let showForm = $state(false);
+	let TaskForm;
+	let showForm = $state(false);
 
-  async function openForm() {
-    TaskForm = await TaskComponents.TaskForm();
-    showForm = true;
-  }
+	async function openForm() {
+		TaskForm = await TaskComponents.TaskForm();
+		showForm = true;
+	}
 </script>
 
 {#if showForm && TaskForm}
-  <svelte:component this={TaskForm} />
+	<svelte:component this={TaskForm} />
 {/if}
 ```
 

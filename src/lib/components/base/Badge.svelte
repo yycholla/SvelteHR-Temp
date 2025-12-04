@@ -9,7 +9,15 @@
 		onremove = undefined,
 		children
 	}: {
-		variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info' | 'light' | 'dark';
+		variant?:
+			| 'primary'
+			| 'secondary'
+			| 'success'
+			| 'warning'
+			| 'danger'
+			| 'info'
+			| 'light'
+			| 'dark';
 		size?: 'xs' | 'sm' | 'md' | 'lg';
 		rounded?: boolean;
 		outline?: boolean;
@@ -64,5 +72,3 @@
 		</button>
 	{/if}
 </span>
-
-

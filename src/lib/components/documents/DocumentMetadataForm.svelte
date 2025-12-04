@@ -2,7 +2,11 @@
 	// DocumentMetadataForm component (Feature 024)
 	// Form for editing document metadata with validation
 
-	import type { DocumentMetadata, DocumentCategoryType, SensitivityLevel } from '$lib/types/document';
+	import type {
+		DocumentMetadata,
+		DocumentCategoryType,
+		SensitivityLevel
+	} from '$lib/types/document';
 	import { documentMetadataSchema } from '$lib/schemas/documentSchemas';
 	import NativeSelect from '$lib/components/ui/native-select/native-select.svelte';
 	import NativeSelectOption from '$lib/components/ui/native-select/native-select-option.svelte';
@@ -72,8 +76,14 @@
 	$effect(() => {
 		hasRequiredFields = metadata.category !== '' && metadata.sensitivityLevel !== '';
 		metadataValid = Object.keys(errors).length === 0 && hasRequiredFields;
-		console.log('[DocumentMetadataForm] hasRequiredFields updated:', hasRequiredFields,
-			'category:', metadata.category, 'sensitivityLevel:', metadata.sensitivityLevel);
+		console.log(
+			'[DocumentMetadataForm] hasRequiredFields updated:',
+			hasRequiredFields,
+			'category:',
+			metadata.category,
+			'sensitivityLevel:',
+			metadata.sensitivityLevel
+		);
 	});
 
 	// Categories and sensitivity levels
@@ -165,7 +175,10 @@
 				documentMetadataSchema.parse(testData);
 				console.log('[DocumentMetadataForm] ✅ Schema test with hardcoded data PASSED');
 			} catch (testError: any) {
-				console.error('[DocumentMetadataForm] ❌ Schema test with hardcoded data FAILED:', testError);
+				console.error(
+					'[DocumentMetadataForm] ❌ Schema test with hardcoded data FAILED:',
+					testError
+				);
 				console.error('[DocumentMetadataForm] Test error stack:', testError.stack);
 			}
 
@@ -203,13 +216,10 @@
 			console.error('[DocumentMetadataForm] Error stack:', error.stack);
 			if (error.errors) {
 				console.error('[DocumentMetadataForm] Zod errors:', JSON.stringify(error.errors, null, 2));
-				errors = error.errors.reduce(
-					(acc: Record<string, string>, err: any) => {
-						acc[err.path[0]] = err.message;
-						return acc;
-					},
-					{}
-				);
+				errors = error.errors.reduce((acc: Record<string, string>, err: any) => {
+					acc[err.path[0]] = err.message;
+					return acc;
+				}, {});
 			}
 			return false;
 		}

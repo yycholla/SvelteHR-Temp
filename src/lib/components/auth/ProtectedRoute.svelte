@@ -46,7 +46,7 @@
 		// But if previous code worked with includes, maybe it's strings.
 		// For safety, I will use auth.hasRole(role) if available, or just check auth.roles.
 		// auth.hasRole takes a string.
-		
+
 		// Check required roles
 		if (requiredRoles.length > 0) {
 			// Use auth.hasRole which encapsulates the logic
@@ -68,7 +68,9 @@
 
 		// Check specific permissions
 		if (requiredPermissions.length > 0) {
-			const hasRequiredPermissions = requiredPermissions.every((permission) => auth.hasPermission(permission));
+			const hasRequiredPermissions = requiredPermissions.every((permission) =>
+				auth.hasPermission(permission)
+			);
 			if (!hasRequiredPermissions) {
 				unauthorizedReason = `Required permissions: ${requiredPermissions.join(', ')}`;
 				return false;

@@ -43,7 +43,11 @@
 			type: ResourceType;
 			title: string;
 		}>;
-		onAddResource: (resourceType: ResourceType, resourceId: string, resourceTitle: string) => Promise<void>;
+		onAddResource: (
+			resourceType: ResourceType,
+			resourceId: string,
+			resourceTitle: string
+		) => Promise<void>;
 		onRemoveResource: (resourceId: string) => Promise<void>;
 		loading?: boolean;
 	}
@@ -249,7 +253,11 @@
 					<div class="flex items-start justify-between gap-3">
 						<div class="flex items-start gap-3 flex-1">
 							<!-- Type Icon -->
-							<div class="flex h-10 w-10 items-center justify-center rounded-full flex-shrink-0 {getResourceTypeColor(resource.resourceType)}">
+							<div
+								class="flex h-10 w-10 items-center justify-center rounded-full flex-shrink-0 {getResourceTypeColor(
+									resource.resourceType
+								)}"
+							>
 								<TypeIcon class="h-5 w-5" />
 							</div>
 
@@ -259,7 +267,11 @@
 									<Badge variant="outline" class="text-xs">
 										{formatResourceType(resource.resourceType)}
 									</Badge>
-									<StatusIcon class="h-4 w-4 flex-shrink-0 {getAvailabilityColor(resource.availabilityStatus)}" />
+									<StatusIcon
+										class="h-4 w-4 flex-shrink-0 {getAvailabilityColor(
+											resource.availabilityStatus
+										)}"
+									/>
 								</div>
 								<p class="font-medium text-foreground truncate">{resource.resourceTitle}</p>
 								<div class="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
@@ -283,11 +295,19 @@
 
 					<!-- Availability Warning -->
 					{#if resource.availabilityStatus !== 'Available'}
-						<div class="rounded-lg border {resource.availabilityStatus === 'Deleted' ? 'border-destructive bg-destructive/10' : 'border-warning bg-warning/10'} p-2">
-							<div class="flex items-center gap-2 text-xs {resource.availabilityStatus === 'Deleted' ? 'text-destructive' : 'text-warning'}">
+						<div
+							class="rounded-lg border {resource.availabilityStatus === 'Deleted'
+								? 'border-destructive bg-destructive/10'
+								: 'border-warning bg-warning/10'} p-2"
+						>
+							<div
+								class="flex items-center gap-2 text-xs {resource.availabilityStatus === 'Deleted'
+									? 'text-destructive'
+									: 'text-warning'}"
+							>
 								<AlertCircle class="h-3 w-3 flex-shrink-0" />
 								<span>
-									{resource.availabilityStatus === 'Deleted' 
+									{resource.availabilityStatus === 'Deleted'
 										? 'This resource has been deleted'
 										: 'This resource is currently unavailable'}
 								</span>
@@ -306,7 +326,7 @@
 					<div>
 						<h4 class="font-semibold text-warning mb-1">Some Resources Are Unavailable</h4>
 						<p class="text-sm text-warning/90">
-							{resources.filter((r) => r.availabilityStatus === 'Deleted').length > 0 
+							{resources.filter((r) => r.availabilityStatus === 'Deleted').length > 0
 								? 'Deleted resources should be removed or replaced.'
 								: 'Unavailable resources may have been archived or restricted.'}
 						</p>
@@ -322,7 +342,8 @@
 			<Dialog.Header>
 				<Dialog.Title>Link Resource to Task</Dialog.Title>
 				<Dialog.Description>
-					Select a resource to link to this task. Linked resources provide context and documentation.
+					Select a resource to link to this task. Linked resources provide context and
+					documentation.
 				</Dialog.Description>
 			</Dialog.Header>
 
@@ -352,7 +373,9 @@
 				<div class="space-y-2">
 					<Label for="search">Search {formatResourceType(selectedResourceType)}s</Label>
 					<div class="relative">
-						<Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+						<Search
+							class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+						/>
 						<Input
 							id="search"
 							bind:value={searchQuery}
@@ -398,5 +421,3 @@
 		</Dialog.Content>
 	</Dialog.Root>
 </div>
-
-

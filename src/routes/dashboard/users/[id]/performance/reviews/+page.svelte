@@ -1,6 +1,18 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { FileText, Star, Clock, CheckCircle, Calendar, User, TrendingUp, MessageSquare, Target, Award, BookOpen } from '@lucide/svelte';
+	import {
+		FileText,
+		Star,
+		Clock,
+		CheckCircle,
+		Calendar,
+		User,
+		TrendingUp,
+		MessageSquare,
+		Target,
+		Award,
+		BookOpen
+	} from '@lucide/svelte';
 	import { format, parseISO } from 'date-fns';
 
 	let { data } = $props();
@@ -19,40 +31,58 @@
 	let expandedReview = $state(null);
 
 	// Filter reviews based on selected filters
-	let filteredReviews = $derived(reviews.filter(review => {
-		const statusMatch = selectedStatus === 'all' || review.status === selectedStatus;
-		const typeMatch = selectedType === 'all' || review.type.id === selectedType;
-		return statusMatch && typeMatch;
-	}));
+	let filteredReviews = $derived(
+		reviews.filter((review) => {
+			const statusMatch = selectedStatus === 'all' || review.status === selectedStatus;
+			const typeMatch = selectedType === 'all' || review.type.id === selectedType;
+			return statusMatch && typeMatch;
+		})
+	);
 
 	function getStatusIcon(status: string) {
 		switch (status) {
-			case 'completed': return CheckCircle;
-			case 'in_progress': return Clock;
-			case 'scheduled': return Calendar;
-			case 'overdue': return Clock;
-			default: return Clock;
+			case 'completed':
+				return CheckCircle;
+			case 'in_progress':
+				return Clock;
+			case 'scheduled':
+				return Calendar;
+			case 'overdue':
+				return Clock;
+			default:
+				return Clock;
 		}
 	}
 
 	function getStatusColor(status: string) {
 		switch (status) {
-			case 'completed': return 'text-green-600 bg-green-50 border-green-200';
-			case 'in_progress': return 'text-blue-600 bg-blue-50 border-blue-200';
-			case 'scheduled': return 'text-muted-foreground bg-muted dark:bg-muted border';
-			case 'overdue': return 'text-red-600 bg-red-50 border-red-200';
-			default: return 'text-muted-foreground bg-muted dark:bg-muted border';
+			case 'completed':
+				return 'text-green-600 bg-green-50 border-green-200';
+			case 'in_progress':
+				return 'text-blue-600 bg-blue-50 border-blue-200';
+			case 'scheduled':
+				return 'text-muted-foreground bg-muted dark:bg-muted border';
+			case 'overdue':
+				return 'text-red-600 bg-red-50 border-red-200';
+			default:
+				return 'text-muted-foreground bg-muted dark:bg-muted border';
 		}
 	}
 
 	function getTypeColor(color: string) {
 		switch (color) {
-			case 'blue': return 'bg-blue-100 text-blue-800';
-			case 'green': return 'bg-green-100 text-green-800';
-			case 'purple': return 'bg-purple-100 text-purple-800';
-			case 'orange': return 'bg-orange-100 text-orange-800';
-			case 'red': return 'bg-red-100 text-red-800';
-			default: return 'bg-gray-100 text-foreground';
+			case 'blue':
+				return 'bg-blue-100 text-blue-800';
+			case 'green':
+				return 'bg-green-100 text-green-800';
+			case 'purple':
+				return 'bg-purple-100 text-purple-800';
+			case 'orange':
+				return 'bg-orange-100 text-orange-800';
+			case 'red':
+				return 'bg-red-100 text-red-800';
+			default:
+				return 'bg-gray-100 text-foreground';
 		}
 	}
 
@@ -72,10 +102,14 @@
 
 	function getGoalStatusColor(status: string) {
 		switch (status) {
-			case 'achieved': return 'text-green-600';
-			case 'partially_achieved': return 'text-yellow-600';
-			case 'not_achieved': return 'text-red-600';
-			default: return 'text-muted-foreground';
+			case 'achieved':
+				return 'text-green-600';
+			case 'partially_achieved':
+				return 'text-yellow-600';
+			case 'not_achieved':
+				return 'text-red-600';
+			default:
+				return 'text-muted-foreground';
 		}
 	}
 </script>
@@ -207,20 +241,30 @@
 							<div>
 								<div class="flex items-center gap-2 mb-1">
 									<h3 class="text-lg font-semibold text-foreground">{review.type.name}</h3>
-									<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getTypeColor(review.type.color)}">
+									<span
+										class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getTypeColor(
+											review.type.color
+										)}"
+									>
 										{review.type.frequency}
 									</span>
 								</div>
 								<p class="text-sm text-muted-foreground">
-									Review Period: {formatDate(review.reviewPeriod.start)} - {formatDate(review.reviewPeriod.end)}
+									Review Period: {formatDate(review.reviewPeriod.start)} - {formatDate(
+										review.reviewPeriod.end
+									)}
 								</p>
 							</div>
 						</div>
 
 						<div class="flex items-center gap-4">
-							<span class="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium {getStatusColor(review.status)}">
+							<span
+								class="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium {getStatusColor(
+									review.status
+								)}"
+							>
 								<StatusIcon class="h-3 w-3" />
-								{review.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+								{review.status.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
 							</span>
 
 							{#if review.status === 'completed' && review.overallRating}
@@ -235,7 +279,9 @@
 									{#each Array(5 - fullStars - (hasHalfStar ? 1 : 0)) as _}
 										<Star class="h-4 w-4 text-muted-foreground" />
 									{/each}
-									<span class="ml-1 text-sm font-medium text-foreground">{review.overallRating}</span>
+									<span class="ml-1 text-sm font-medium text-foreground"
+										>{review.overallRating}</span
+									>
 								</div>
 							{/if}
 
@@ -310,7 +356,7 @@
 											<div class="flex items-center justify-between mb-2">
 												<span class="font-medium text-foreground">{goal.title}</span>
 												<span class="text-sm font-medium {getGoalStatusColor(goal.status)}">
-													{goal.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+													{goal.status.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
 												</span>
 											</div>
 											<p class="text-sm text-muted-foreground mb-2">{goal.description}</p>
@@ -355,12 +401,16 @@
 							<div class="mt-4 space-y-4">
 								<div>
 									<h5 class="font-medium text-foreground mb-2">Manager's Comments</h5>
-									<p class="text-sm text-muted-foreground bg-muted dark:bg-muted p-3 rounded">{review.feedback.managerComments}</p>
+									<p class="text-sm text-muted-foreground bg-muted dark:bg-muted p-3 rounded">
+										{review.feedback.managerComments}
+									</p>
 								</div>
 								{#if review.feedback.employeeComments}
 									<div>
 										<h5 class="font-medium text-foreground mb-2">Employee's Response</h5>
-										<p class="text-sm text-muted-foreground bg-blue-50 p-3 rounded">{review.feedback.employeeComments}</p>
+										<p class="text-sm text-muted-foreground bg-blue-50 p-3 rounded">
+											{review.feedback.employeeComments}
+										</p>
 									</div>
 								{/if}
 							</div>
@@ -407,8 +457,8 @@
 							<h4 class="font-medium text-foreground">Scheduled Review</h4>
 						</div>
 						<p class="text-sm text-foreground">
-							This review is scheduled for {formatDate(review.scheduledDate)}.
-							You will receive a notification when it's time to begin.
+							This review is scheduled for {formatDate(review.scheduledDate)}. You will receive a
+							notification when it's time to begin.
 						</p>
 					</div>
 				{/if}
@@ -421,8 +471,8 @@
 					{selectedStatus !== 'all' || selectedType !== 'all'
 						? 'No reviews match your current filters.'
 						: isOwnReviews
-						? 'You have no performance reviews yet.'
-						: 'This user has no performance reviews yet.'}
+							? 'You have no performance reviews yet.'
+							: 'This user has no performance reviews yet.'}
 				</p>
 			</div>
 		{/each}

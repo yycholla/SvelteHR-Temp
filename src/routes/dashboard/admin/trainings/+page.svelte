@@ -29,9 +29,10 @@
 
 	// Derived state for filtering
 	let filteredTrainings = $derived(
-		(data.trainings || []).filter((t: any) => 
-			t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			(t.description && t.description.toLowerCase().includes(searchQuery.toLowerCase()))
+		(data.trainings || []).filter(
+			(t: any) =>
+				t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				(t.description && t.description.toLowerCase().includes(searchQuery.toLowerCase()))
 		)
 	);
 
@@ -39,7 +40,8 @@
 	let totalTrainings = $derived(data.trainings?.length || 0);
 	let activeTrainings = $derived(data.trainings?.filter((t: any) => t.isActive).length || 0);
 	let upcomingTrainings = $derived(
-		data.trainings?.filter((t: any) => t.startDate && new Date(t.startDate) > new Date()).length || 0
+		data.trainings?.filter((t: any) => t.startDate && new Date(t.startDate) > new Date()).length ||
+			0
 	);
 
 	function formatDate(dateStr: string | null) {
@@ -61,7 +63,9 @@
 	<div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 		<div>
 			<h1 class="text-3xl font-bold tracking-tight">Training Modules</h1>
-			<p class="text-muted-foreground">Manage employee training programs, courses, and compliance modules.</p>
+			<p class="text-muted-foreground">
+				Manage employee training programs, courses, and compliance modules.
+			</p>
 		</div>
 		<Button href="/dashboard/admin/trainings/create">
 			<Plus class="mr-2 h-4 w-4" />
@@ -131,7 +135,10 @@
 							<Table.Row>
 								<Table.Cell class="font-medium">
 									<div class="flex flex-col">
-										<a href="/dashboard/admin/trainings/{training.id}/stats" class="hover:underline text-base font-semibold">
+										<a
+											href="/dashboard/admin/trainings/{training.id}/stats"
+											class="hover:underline text-base font-semibold"
+										>
 											{training.title}
 										</a>
 										{#if training.description}
@@ -157,7 +164,10 @@
 											</Badge>
 											{#if training.assignments && training.assignments.length > 0}
 												<div class="text-xs text-muted-foreground">
-													{training.assignments.map((a: any) => a.user?.displayName || a.user?.email).slice(0, 2).join(', ')}
+													{training.assignments
+														.map((a: any) => a.user?.displayName || a.user?.email)
+														.slice(0, 2)
+														.join(', ')}
 													{#if training.assignmentCount > 2}
 														<span class="font-medium">+{training.assignmentCount - 2} more</span>
 													{/if}
@@ -210,9 +220,7 @@
 							</Table.Row>
 						{:else}
 							<Table.Row>
-								<Table.Cell colspan={5} class="h-24 text-center">
-									No trainings found.
-								</Table.Cell>
+								<Table.Cell colspan={5} class="h-24 text-center">No trainings found.</Table.Cell>
 							</Table.Row>
 						{/each}
 					</Table.Body>
@@ -228,24 +236,32 @@
 		<AlertDialog.Header>
 			<AlertDialog.Title>Delete Training Module</AlertDialog.Title>
 			<AlertDialog.Description>
-				Are you sure you want to delete <strong>"{trainingToDelete?.title}"</strong>?
-				This action cannot be undone. All associated content and assignments will be permanently removed.
+				Are you sure you want to delete <strong>"{trainingToDelete?.title}"</strong>? This action
+				cannot be undone. All associated content and assignments will be permanently removed.
 			</AlertDialog.Description>
 		</AlertDialog.Header>
 		<AlertDialog.Footer>
 			<AlertDialog.Cancel onclick={() => (trainingToDelete = null)}>Cancel</AlertDialog.Cancel>
-			<form method="POST" action="?/delete" use:enhance={() => {
-				isDeleting = true;
-				return async ({ result, update }) => {
-					isDeleting = false;
-					if (result.type === 'success') {
-						trainingToDelete = null;
-						await update();
-					}
-				};
-			}}>
+			<form
+				method="POST"
+				action="?/delete"
+				use:enhance={() => {
+					isDeleting = true;
+					return async ({ result, update }) => {
+						isDeleting = false;
+						if (result.type === 'success') {
+							trainingToDelete = null;
+							await update();
+						}
+					};
+				}}
+			>
 				<input type="hidden" name="id" value={trainingToDelete?.id || ''} />
-				<AlertDialog.Action type="submit" disabled={isDeleting} class="bg-destructive hover:bg-destructive/90">
+				<AlertDialog.Action
+					type="submit"
+					disabled={isDeleting}
+					class="bg-destructive hover:bg-destructive/90"
+				>
 					{isDeleting ? 'Deleting...' : 'Delete'}
 				</AlertDialog.Action>
 			</form>

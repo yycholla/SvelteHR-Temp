@@ -15,7 +15,9 @@
 		onview?: ((detail: WorkflowDefinitionWithStats) => void) | undefined;
 		onedit?: ((detail: WorkflowDefinitionWithStats) => void) | undefined;
 		onstart?: ((detail: WorkflowDefinitionWithStats) => void) | undefined;
-		onstatusChanged?: ((detail: { definition: WorkflowDefinitionWithStats; newStatus: string }) => void) | undefined;
+		onstatusChanged?:
+			| ((detail: { definition: WorkflowDefinitionWithStats; newStatus: string }) => void)
+			| undefined;
 	} = $props();
 
 	// Derived values

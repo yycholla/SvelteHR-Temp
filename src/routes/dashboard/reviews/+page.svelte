@@ -15,10 +15,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Input } from '$lib/components/ui/input';
 	import { Plus, FileText, TrendingUp, Clock, CheckCircle, Search, User } from '@lucide/svelte';
-	import {
-		ReviewListWithFilters,
-		ReviewCreationDialog
-	} from '$lib/components/reviews';
+	import { ReviewListWithFilters, ReviewCreationDialog } from '$lib/components/reviews';
 
 	let { data }: { data: PageData } = $props();
 
@@ -118,9 +115,7 @@
 	<div class="flex items-center justify-between">
 		<div>
 			<h1 class="text-3xl font-bold tracking-tight">Performance Reviews</h1>
-			<p class="text-muted-foreground mt-1">
-				Manage and track employee performance reviews
-			</p>
+			<p class="text-muted-foreground mt-1">Manage and track employee performance reviews</p>
 		</div>
 
 		{#if data.permissions.canCreate}
@@ -174,9 +169,8 @@
 			<Card.Content>
 				<div class="text-2xl font-bold">{data.stats.completed}</div>
 				<p class="text-xs text-muted-foreground mt-1">
-					{data.stats.total > 0
-						? Math.round((data.stats.completed / data.stats.total) * 100)
-						: 0}% completion rate
+					{data.stats.total > 0 ? Math.round((data.stats.completed / data.stats.total) * 100) : 0}%
+					completion rate
 				</p>
 			</Card.Content>
 		</Card.Root>
@@ -300,7 +294,8 @@
 										<div class="text-sm text-muted-foreground">{employee.email}</div>
 									</div>
 									<Badge variant="outline">
-										{employee.firstName} {employee.lastName}
+										{employee.firstName}
+										{employee.lastName}
 									</Badge>
 								</button>
 							{/each}
@@ -310,9 +305,7 @@
 			</div>
 
 			<Dialog.Footer>
-				<Button variant="outline" onclick={() => (showEmployeeSelector = false)}>
-					Cancel
-				</Button>
+				<Button variant="outline" onclick={() => (showEmployeeSelector = false)}>Cancel</Button>
 			</Dialog.Footer>
 		</Dialog.Content>
 	</Dialog.Portal>

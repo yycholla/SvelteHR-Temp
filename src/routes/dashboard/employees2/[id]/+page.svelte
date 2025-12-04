@@ -26,15 +26,13 @@
 	}
 
 	const { data }: Props = $props();
-	
+
 	// Use derived state for reactivity
 	const employee = $derived(data.employee ?? {});
 	const permissions = $derived(data.permissions ?? {});
 
 	// Helpers
-	const initials = $derived(
-		(employee.firstName?.[0] ?? '') + (employee.lastName?.[0] ?? '')
-	);
+	const initials = $derived((employee.firstName?.[0] ?? '') + (employee.lastName?.[0] ?? ''));
 
 	function formatDate(dateStr: string | null) {
 		if (!dateStr) return 'N/A';
@@ -48,7 +46,9 @@
 
 {#snippet profileHeader()}
 	<Card.Root class="overflow-hidden border-none shadow-md bg-card">
-		<div class="h-32 bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-900/20 dark:to-purple-900/20 relative"></div>
+		<div
+			class="h-32 bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-900/20 dark:to-purple-900/20 relative"
+		></div>
 		<div class="px-8 pb-8">
 			<div class="flex flex-col md:flex-row items-start md:items-end -mt-12 gap-6">
 				<Avatar.Root class="h-32 w-32 border-4 border-background shadow-xl">
@@ -59,7 +59,9 @@
 				</Avatar.Root>
 
 				<div class="flex-1 min-w-0 pt-2 md:pt-0">
-					<h1 class="text-3xl font-bold tracking-tight truncate">{employee.displayName ?? 'Unknown'}</h1>
+					<h1 class="text-3xl font-bold tracking-tight truncate">
+						{employee.displayName ?? 'Unknown'}
+					</h1>
 					<div class="flex flex-wrap gap-3 mt-2 items-center text-muted-foreground">
 						<div class="flex items-center gap-1.5 text-sm">
 							<Briefcase class="h-4 w-4" />
@@ -120,7 +122,8 @@
 						<span class="text-muted-foreground text-xs">Phone Number</span>
 						<div class="flex items-center gap-2 font-medium">
 							<Phone class="h-3.5 w-3.5 text-muted-foreground" />
-							<a href="tel:{employee.phoneNumber}" class="hover:underline">{employee.phoneNumber}</a>
+							<a href="tel:{employee.phoneNumber}" class="hover:underline">{employee.phoneNumber}</a
+							>
 						</div>
 					</div>
 				{/if}
@@ -129,9 +132,10 @@
 					<div class="grid gap-1">
 						<span class="text-muted-foreground text-xs">Address</span>
 						<div class="font-medium leading-snug">
-							{employee.addressLine1}<br/>
-							{#if employee.addressLine2}{employee.addressLine2}<br/>{/if}
-							{employee.city}, {employee.stateProvince} {employee.postalCode}<br/>
+							{employee.addressLine1}<br />
+							{#if employee.addressLine2}{employee.addressLine2}<br />{/if}
+							{employee.city}, {employee.stateProvince}
+							{employee.postalCode}<br />
 							{employee.country}
 						</div>
 					</div>
@@ -179,11 +183,23 @@
 {#snippet mainContent()}
 	<Tabs.Root value="overview" class="w-full">
 		<Tabs.List class="w-full justify-start border-b rounded-none bg-transparent p-0 h-auto">
-			<Tabs.Trigger value="overview" class="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 text-sm">Overview</Tabs.Trigger>
-			<Tabs.Trigger value="leave" class="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 text-sm">Time Off</Tabs.Trigger>
-			<Tabs.Trigger value="documents" class="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 text-sm">Documents</Tabs.Trigger>
+			<Tabs.Trigger
+				value="overview"
+				class="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 text-sm"
+				>Overview</Tabs.Trigger
+			>
+			<Tabs.Trigger
+				value="leave"
+				class="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 text-sm"
+				>Time Off</Tabs.Trigger
+			>
+			<Tabs.Trigger
+				value="documents"
+				class="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 text-sm"
+				>Documents</Tabs.Trigger
+			>
 		</Tabs.List>
-		
+
 		<div class="mt-6">
 			<Tabs.Content value="overview" class="space-y-6">
 				<!-- Leave Balance Cards -->
@@ -192,10 +208,21 @@
 						{#each employee.leaveBalances as balance (balance.id)}
 							<Card.Root>
 								<Card.Content class="p-4">
-									<div class="text-xs text-muted-foreground uppercase tracking-wider">{balance.leaveTypeName}</div>
-									<div class="text-2xl font-bold mt-1">{balance.remainingDays} <span class="text-sm font-normal text-muted-foreground">/ {balance.totalDays}</span></div>
+									<div class="text-xs text-muted-foreground uppercase tracking-wider">
+										{balance.leaveTypeName}
+									</div>
+									<div class="text-2xl font-bold mt-1">
+										{balance.remainingDays}
+										<span class="text-sm font-normal text-muted-foreground"
+											>/ {balance.totalDays}</span
+										>
+									</div>
 									<div class="h-1 w-full bg-secondary mt-3 rounded-full overflow-hidden">
-										<div class="h-full bg-green-500" style="width: {(Number(balance.remainingDays) / Number(balance.totalDays) || 0) * 100}%"></div>
+										<div
+											class="h-full bg-green-500"
+											style="width: {(Number(balance.remainingDays) / Number(balance.totalDays) ||
+												0) * 100}%"
+										></div>
 									</div>
 								</Card.Content>
 							</Card.Root>
@@ -213,7 +240,9 @@
 								{#each employee.leaveRequests as request (request.id)}
 									<div class="flex items-center justify-between p-3 border rounded-lg">
 										<div class="flex items-center gap-3">
-											<div class="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600">
+											<div
+												class="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600"
+											>
 												<Calendar class="h-5 w-5" />
 											</div>
 											<div>
@@ -241,7 +270,9 @@
 						{#if (employee.assignedDocuments?.length ?? 0) > 0}
 							<div class="space-y-2">
 								{#each employee.assignedDocuments as doc (doc.id)}
-									<div class="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+									<div
+										class="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+									>
 										<div class="flex items-center gap-3">
 											<FileText class="h-5 w-5 text-blue-600" />
 											<div>
@@ -266,7 +297,7 @@
 <div>
 	<div class="space-y-6 animate-in fade-in duration-500">
 		{@render profileHeader()}
-		
+
 		<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 			<div class="lg:col-span-1">
 				{@render sidebar()}

@@ -353,19 +353,19 @@ Lazy loading defers loading of heavy components until needed, reducing initial b
 
 ```svelte
 <script lang="ts">
-import { TaskComponents } from '$lib/performance/bundle-optimizer';
+	import { TaskComponents } from '$lib/performance/bundle-optimizer';
 
-let showForm = false;
-let TaskForm;
+	let showForm = false;
+	let TaskForm;
 
-async function openTaskForm() {
-  showForm = true;
-  TaskForm = await TaskComponents.TaskForm(); // Dynamic import
-}
+	async function openTaskForm() {
+		showForm = true;
+		TaskForm = await TaskComponents.TaskForm(); // Dynamic import
+	}
 </script>
 
 {#if showForm}
-  <svelte:component this={TaskForm} />
+	<svelte:component this={TaskForm} />
 {/if}
 ```
 

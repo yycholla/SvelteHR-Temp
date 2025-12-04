@@ -23,7 +23,11 @@
 	} from '@lucide/svelte';
 	import type { EventStatus, EventType, EventVisibilityType, RsvpStatus } from '$lib/graphql/types';
 	import { normalizeRsvpStatus } from '$lib/graphql/types';
-	import type { EventComment, EventHistoryEntry, UserWaitlistStatus } from '$lib/graphql/events-operations';
+	import type {
+		EventComment,
+		EventHistoryEntry,
+		UserWaitlistStatus
+	} from '$lib/graphql/events-operations';
 	import {
 		CREATE_EVENT_COMMENT,
 		DELETE_EVENT_COMMENT,
@@ -135,74 +139,128 @@
 
 	// ... [Keep existing fetch/mutation handlers for comments/history/waitlist] ...
 	// For brevity in rewriting, I assume the imports handle the logic, but I need to redefine them here as they access component state.
-    // I will copy the helper functions from the previous file content.
+	// I will copy the helper functions from the previous file content.
 
 	async function fetchEventComments(eventId: string, reset: boolean = false) {
 		if (!urqlClient) return;
 		try {
 			const offset = reset ? 0 : commentOffset;
-			const result = await urqlClient.query(GET_EVENT_COMMENTS, { eventId, limit: 20, offset }).toPromise();
+			const result = await urqlClient
+				.query(GET_EVENT_COMMENTS, { eventId, limit: 20, offset })
+				.toPromise();
 			if (result.error || !result.data) return;
 			const rawComments = result.data.eventComments || [];
 			const comments = rawComments.map((c: any) => ({
-				id: c.id, content: c.commentText, author: { id: c.user?.id || c.userId, name: c.user?.displayName || 'Unknown', avatarUrl: undefined },
-				mentions: [], createdAt: c.createdAt, updatedAt: c.updatedAt
+				id: c.id,
+				content: c.commentText,
+				author: {
+					id: c.user?.id || c.userId,
+					name: c.user?.displayName || 'Unknown',
+					avatarUrl: undefined
+				},
+				mentions: [],
+				createdAt: c.createdAt,
+				updatedAt: c.updatedAt
 			}));
-			if (reset) { eventComments = comments; commentOffset = comments.length; }
-			else { eventComments = [...eventComments, ...comments]; commentOffset += comments.length; }
+			if (reset) {
+				eventComments = comments;
+				commentOffset = comments.length;
+			} else {
+				eventComments = [...eventComments, ...comments];
+				commentOffset += comments.length;
+			}
 			commentCount = result.data.eventCommentsCount || rawComments.length; // Adjust if count available
 			hasMoreComments = rawComments.length >= 20;
-		} catch (err) { console.error(err); }
+		} catch (err) {
+			console.error(err);
+		}
 	}
 
 	async function fetchEventHistory(eventId: string, reset: boolean = false) {
 		if (!urqlClient) return;
 		try {
 			const offset = reset ? 0 : historyOffset;
-			const result = await urqlClient.query(GET_EVENT_HISTORY, { eventId, limit: 25, offset }).toPromise();
+			const result = await urqlClient
+				.query(GET_EVENT_HISTORY, { eventId, limit: 25, offset })
+				.toPromise();
 			if (result.error || !result.data) return;
 			const rawHistory = result.data.eventHistories || [];
 			const history = rawHistory.map((h: any) => ({
-				id: h.id, changedBy: { id: h.changedBy?.id, name: h.changedBy?.displayName || 'Unknown' },
-				changeType: h.changeType, fieldName: h.fieldName, oldValue: h.oldValues, newValue: h.newValues, changedAt: h.createdAt
+				id: h.id,
+				changedBy: { id: h.changedBy?.id, name: h.changedBy?.displayName || 'Unknown' },
+				changeType: h.changeType,
+				fieldName: h.fieldName,
+				oldValue: h.oldValues,
+				newValue: h.newValues,
+				changedAt: h.createdAt
 			}));
-			if (reset) { eventHistory = history; historyOffset = history.length; }
-			else { eventHistory = [...eventHistory, ...history]; historyOffset += history.length; }
+			if (reset) {
+				eventHistory = history;
+				historyOffset = history.length;
+			} else {
+				eventHistory = [...eventHistory, ...history];
+				historyOffset += history.length;
+			}
 			hasMoreHistory = rawHistory.length >= 25;
-		} catch (err) { console.error(err); }
+		} catch (err) {
+			console.error(err);
+		}
 	}
 
 	async function fetchUserWaitlistStatus(eventId: string) {
 		if (!urqlClient) return;
 		try {
-			const result = await urqlClient.query(GET_USER_WAITLIST_STATUS, { eventId, userId: data.user.id }).toPromise();
+			const result = await urqlClient
+				.query(GET_USER_WAITLIST_STATUS, { eventId, userId: data.user.id })
+				.toPromise();
 			if (result.data?.eventWaitlists?.length > 0) {
 				const w = result.data.eventWaitlists[0];
 				userWaitlistStatus = { isOnWaitlist: true, position: w.position, joinedAt: w.joinedAt };
-			} else { userWaitlistStatus = { isOnWaitlist: false, position: null }; }
-		} catch (err) { console.error(err); }
+			} else {
+				userWaitlistStatus = { isOnWaitlist: false, position: null };
+			}
+		} catch (err) {
+			console.error(err);
+		}
 	}
 
 	async function handleAddComment(content: string, mentions: string[]) {
 		if (!selectedEvent || !urqlClient) return;
 		try {
-			const result = await urqlClient.mutation(CREATE_EVENT_COMMENT, { input: { eventId: selectedEvent.id, userId: data.user.id, commentText: sanitizeCommentContent(content) } }).toPromise();
+			const result = await urqlClient
+				.mutation(CREATE_EVENT_COMMENT, {
+					input: {
+						eventId: selectedEvent.id,
+						userId: data.user.id,
+						commentText: sanitizeCommentContent(content)
+					}
+				})
+				.toPromise();
 			if (result.data) {
 				fetchEventComments(selectedEvent.id, true);
 				toast.success('Comment added');
 			}
-		} catch (e) { toast.error('Failed to add comment'); }
+		} catch (e) {
+			toast.error('Failed to add comment');
+		}
 	}
 
 	async function handleUpdateComment(commentId: string, content: string) {
 		if (!urqlClient) return;
 		try {
-			const result = await urqlClient.mutation(UPDATE_EVENT_COMMENT, { id: commentId, input: { commentText: sanitizeCommentContent(content) } }).toPromise();
+			const result = await urqlClient
+				.mutation(UPDATE_EVENT_COMMENT, {
+					id: commentId,
+					input: { commentText: sanitizeCommentContent(content) }
+				})
+				.toPromise();
 			if (result.data) {
 				fetchEventComments(selectedEvent.id, true);
 				toast.success('Comment updated');
 			}
-		} catch (e) { toast.error('Failed to update comment'); }
+		} catch (e) {
+			toast.error('Failed to update comment');
+		}
 	}
 
 	async function handleDeleteComment(commentId: string) {
@@ -210,28 +268,38 @@
 		try {
 			const result = await urqlClient.mutation(DELETE_EVENT_COMMENT, { id: commentId }).toPromise();
 			if (result.data) {
-				eventComments = eventComments.filter(c => c.id !== commentId);
+				eventComments = eventComments.filter((c) => c.id !== commentId);
 				toast.success('Comment deleted');
 			}
-		} catch (e) { toast.error('Failed to delete comment'); }
+		} catch (e) {
+			toast.error('Failed to delete comment');
+		}
 	}
 
 	async function handleJoinWaitlist(eventId: string) {
 		if (!urqlClient) return;
 		try {
-			await urqlClient.mutation(JOIN_EVENT_WAITLIST, { eventId, employeeId: data.user.id }).toPromise();
+			await urqlClient
+				.mutation(JOIN_EVENT_WAITLIST, { eventId, employeeId: data.user.id })
+				.toPromise();
 			fetchUserWaitlistStatus(eventId);
 			toast.success('Joined waitlist');
-		} catch (e) { toast.error('Failed to join waitlist'); }
+		} catch (e) {
+			toast.error('Failed to join waitlist');
+		}
 	}
 
 	async function handleLeaveWaitlist(eventId: string) {
 		if (!urqlClient) return;
 		try {
-			await urqlClient.mutation(LEAVE_EVENT_WAITLIST, { eventId, employeeId: data.user.id }).toPromise();
+			await urqlClient
+				.mutation(LEAVE_EVENT_WAITLIST, { eventId, employeeId: data.user.id })
+				.toPromise();
 			fetchUserWaitlistStatus(eventId);
 			toast.success('Left waitlist');
-		} catch (e) { toast.error('Failed to leave waitlist'); }
+		} catch (e) {
+			toast.error('Failed to leave waitlist');
+		}
 	}
 
 	function formatLocalISO(date: Date): string {
@@ -241,25 +309,27 @@
 
 	function applyFilters() {
 		const params = new URLSearchParams($page.url.searchParams);
-		if (selectedVisibility !== 'all') params.set('visibility', selectedVisibility); else params.delete('visibility');
-		if (selectedStatus !== 'all') params.set('status', selectedStatus); else params.delete('status');
-		if (selectedType !== 'all') params.set('type', selectedType); else params.delete('type');
+		if (selectedVisibility !== 'all') params.set('visibility', selectedVisibility);
+		else params.delete('visibility');
+		if (selectedStatus !== 'all') params.set('status', selectedStatus);
+		else params.delete('status');
+		if (selectedType !== 'all') params.set('type', selectedType);
+		else params.delete('type');
 		goto(`?${params.toString()}`, { replaceState: true });
 	}
 
 	async function copyICalLink() {
 		await navigator.clipboard.writeText(iCalLink);
 		iCalLinkCopied = true;
-		setTimeout(() => iCalLinkCopied = false, 2000);
+		setTimeout(() => (iCalLinkCopied = false), 2000);
 	}
 
-    // Handlers for dialog state management
-    const handleLoadMoreComments = () => selectedEvent && fetchEventComments(selectedEvent.id, false);
-    const handleLoadMoreHistory = () => selectedEvent && fetchEventHistory(selectedEvent.id, false);
-    const handleRsvpUpdate = (eventId: string, status: RsvpStatus) => {
-        pendingRsvpUpdates = { ...pendingRsvpUpdates, [eventId]: status };
-    };
-
+	// Handlers for dialog state management
+	const handleLoadMoreComments = () => selectedEvent && fetchEventComments(selectedEvent.id, false);
+	const handleLoadMoreHistory = () => selectedEvent && fetchEventHistory(selectedEvent.id, false);
+	const handleRsvpUpdate = (eventId: string, status: RsvpStatus) => {
+		pendingRsvpUpdates = { ...pendingRsvpUpdates, [eventId]: status };
+	};
 </script>
 
 <svelte:head>
@@ -268,10 +338,8 @@
 
 <div class="p-8 max-w-[1600px] mx-auto">
 	<div class="flex flex-col xl:flex-row gap-8">
-		
 		<!-- Sidebar: Controls & Metrics -->
 		<div class="w-full xl:w-80 flex flex-col gap-6">
-			
 			<!-- Main Actions Card -->
 			<Card.Root>
 				<Card.Header class="pb-3">
@@ -280,12 +348,22 @@
 				</Card.Header>
 				<Card.Content class="space-y-3">
 					{#if data.canCreateEvents}
-						<Button class="w-full justify-start" onclick={() => { createDialogDefaults = {}; showCreateDialog = true; }}>
+						<Button
+							class="w-full justify-start"
+							onclick={() => {
+								createDialogDefaults = {};
+								showCreateDialog = true;
+							}}
+						>
 							<Plus class="mr-2 h-4 w-4" />
 							New Event
 						</Button>
 					{/if}
-					<Button variant="outline" class="w-full justify-start" onclick={() => showICalDialog = !showICalDialog}>
+					<Button
+						variant="outline"
+						class="w-full justify-start"
+						onclick={() => (showICalDialog = !showICalDialog)}
+					>
 						<Download class="mr-2 h-4 w-4" />
 						Export Calendar
 					</Button>
@@ -300,12 +378,20 @@
 					</Card.Header>
 					<Card.Content class="space-y-3">
 						<div class="flex gap-2">
-							<div class="flex-1 bg-background border rounded px-2 py-1 text-xs truncate font-mono text-muted-foreground">{iCalLink}</div>
+							<div
+								class="flex-1 bg-background border rounded px-2 py-1 text-xs truncate font-mono text-muted-foreground"
+							>
+								{iCalLink}
+							</div>
 							<Button size="icon" variant="ghost" class="h-7 w-7" onclick={copyICalLink}>
 								{#if iCalLinkCopied}<Check class="h-3 w-3" />{:else}<Copy class="h-3 w-3" />{/if}
 							</Button>
 						</div>
-						<a href={iCalLink} download class="text-xs text-primary hover:underline flex items-center">
+						<a
+							href={iCalLink}
+							download
+							class="text-xs text-primary hover:underline flex items-center"
+						>
 							Download .ics file <CalendarIcon class="ml-1 h-3 w-3" />
 						</a>
 					</Card.Content>
@@ -333,7 +419,12 @@
 				<Card.Header class="pb-3">
 					<div class="flex items-center justify-between">
 						<Card.Title class="text-base">Filters</Card.Title>
-						<Button variant="ghost" size="icon" class="h-6 w-6" onclick={() => goto('/dashboard/events')}>
+						<Button
+							variant="ghost"
+							size="icon"
+							class="h-6 w-6"
+							onclick={() => goto('/dashboard/events')}
+						>
 							<RefreshCw class="h-3 w-3" />
 						</Button>
 					</div>
@@ -341,7 +432,11 @@
 				<Card.Content class="space-y-4">
 					<div class="space-y-2">
 						<Label class="text-xs font-medium text-muted-foreground">Visibility</Label>
-						<select class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" bind:value={selectedVisibility} onchange={applyFilters}>
+						<select
+							class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+							bind:value={selectedVisibility}
+							onchange={applyFilters}
+						>
 							<option value="all">All</option>
 							<option value="company">Company</option>
 							<option value="department">Department</option>
@@ -350,18 +445,26 @@
 					</div>
 					<div class="space-y-2">
 						<Label class="text-xs font-medium text-muted-foreground">Type</Label>
-						<select class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" bind:value={selectedType} onchange={applyFilters}>
+						<select
+							class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+							bind:value={selectedType}
+							onchange={applyFilters}
+						>
 							<option value="all">All Types</option>
 							<option value="meeting">Meeting</option>
 							<option value="training">Training</option>
 							<option value="social">Social</option>
 							<option value="conference">Conference</option>
-                            <option value="review">Review</option>
+							<option value="review">Review</option>
 						</select>
 					</div>
-                    <div class="space-y-2">
+					<div class="space-y-2">
 						<Label class="text-xs font-medium text-muted-foreground">Status</Label>
-						<select class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" bind:value={selectedStatus} onchange={applyFilters}>
+						<select
+							class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+							bind:value={selectedStatus}
+							onchange={applyFilters}
+						>
 							<option value="all">All Statuses</option>
 							<option value="scheduled">Scheduled</option>
 							<option value="completed">Completed</option>
@@ -370,7 +473,6 @@
 					</div>
 				</Card.Content>
 			</Card.Root>
-
 		</div>
 
 		<!-- Main Content: Calendar -->
@@ -385,13 +487,21 @@
 						onEventClick={handleEventClick}
 						onDateClick={(date) => {
 							const start = formatLocalISO(date);
-                            const endObj = new Date(date);
-                            endObj.setMinutes(endObj.getMinutes() + 30);
-							createDialogDefaults = { startTime: start, endTime: formatLocalISO(endObj), allDay: false };
+							const endObj = new Date(date);
+							endObj.setMinutes(endObj.getMinutes() + 30);
+							createDialogDefaults = {
+								startTime: start,
+								endTime: formatLocalISO(endObj),
+								allDay: false
+							};
 							showCreateDialog = true;
 						}}
 						onDateSelect={(start, end, allDay) => {
-							createDialogDefaults = { startTime: formatLocalISO(start), endTime: formatLocalISO(end), allDay };
+							createDialogDefaults = {
+								startTime: formatLocalISO(start),
+								endTime: formatLocalISO(end),
+								allDay
+							};
 							showCreateDialog = true;
 						}}
 						onEventDrop={async (eventId, newStart, newEnd) => {
@@ -400,15 +510,19 @@
 							formData.append('startTime', newStart.toISOString());
 							formData.append('endTime', newEnd.toISOString());
 							const res = await fetch('?/updateEventTime', { method: 'POST', body: formData });
-                            if(res.ok) { await invalidateAll(); toast.success('Event updated'); }
-                            else { toast.error('Failed to update'); throw new Error('Failed'); }
+							if (res.ok) {
+								await invalidateAll();
+								toast.success('Event updated');
+							} else {
+								toast.error('Failed to update');
+								throw new Error('Failed');
+							}
 						}}
 						visibilityFilter={selectedVisibility === 'all' ? 'all' : selectedVisibility}
 					/>
 				</Card.Content>
 			</Card.Root>
 		</div>
-
 	</div>
 </div>
 
@@ -420,7 +534,7 @@
 	minDate={new Date().toISOString().split('T')[0]}
 	employees={data.employees}
 	onClose={() => (showCreateDialog = false)}
-	onSuccess={() => showCreateDialog = false}
+	onSuccess={() => (showCreateDialog = false)}
 />
 
 {#if showDetailsDialog && selectedEvent}
@@ -430,13 +544,17 @@
 		event={selectedEvent}
 		userId={data.user.id}
 		userRole={data.user.role}
-		canManageEvent={(data.canCreateEvents && selectedEvent?.organizerId === data.user.id) || data.userPerms?.canDeleteEvents}
+		canManageEvent={(data.canCreateEvents && selectedEvent?.organizerId === data.user.id) ||
+			data.userPerms?.canDeleteEvents}
 		rsvpStats={selectedEventRsvpStats}
 		comments={eventComments}
 		history={eventHistory}
 		waitlistStatus={userWaitlistStatus}
 		allEvents={events}
-		onClose={() => { showDetailsDialog = false; selectedEvent = null; }}
+		onClose={() => {
+			showDetailsDialog = false;
+			selectedEvent = null;
+		}}
 		onAddComment={handleAddComment}
 		onUpdateComment={handleUpdateComment}
 		onDeleteComment={handleDeleteComment}

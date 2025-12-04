@@ -41,13 +41,7 @@
 		onComplete?: (batchId: string) => void;
 	}
 
-	let {
-		logs,
-		isOpen,
-		userRole,
-		onClose,
-		onComplete
-	}: Props = $props();
+	let { logs, isOpen, userRole, onClose, onComplete }: Props = $props();
 
 	let selectedLogs = $state(new Set<string>());
 	let isProcessing = $state(false);
@@ -68,7 +62,7 @@
 			selectedLogs.clear();
 		} else {
 			const logsToSelect = logs.slice(0, 100); // Max 100
-			selectedLogs = new Set(logsToSelect.map(log => log.id));
+			selectedLogs = new Set(logsToSelect.map((log) => log.id));
 		}
 	}
 
@@ -155,7 +149,7 @@
 		// Get auth token from cookie
 		const token = document.cookie
 			.split('; ')
-			.find(row => row.startsWith('hr_token='))
+			.find((row) => row.startsWith('hr_token='))
 			?.split('=')[1];
 
 		if (!token) {
@@ -180,7 +174,9 @@
 			progress = data;
 
 			if (data.status === 'COMPLETED') {
-				toast.success(`Batch completed: ${data.successfulCount} successful, ${data.failedCount} failed`);
+				toast.success(
+					`Batch completed: ${data.successfulCount} successful, ${data.failedCount} failed`
+				);
 
 				if (onComplete) {
 					onComplete(batchId);
@@ -235,10 +231,14 @@
 
 	function getActionColor(action: string) {
 		switch (action) {
-			case 'CREATE': return 'blue';
-			case 'UPDATE': return 'yellow';
-			case 'DELETE': return 'red';
-			default: return 'gray';
+			case 'CREATE':
+				return 'blue';
+			case 'UPDATE':
+				return 'yellow';
+			case 'DELETE':
+				return 'red';
+			default:
+				return 'gray';
 		}
 	}
 </script>
@@ -286,11 +286,7 @@
 								<span class="max-warning">Maximum reached</span>
 							{/if}
 						</div>
-						<button
-							type="button"
-							class="btn-select-all"
-							onclick={handleSelectAll}
-						>
+						<button type="button" class="btn-select-all" onclick={handleSelectAll}>
 							{selectedLogs.size === logs.length ? 'Deselect All' : 'Select All'}
 						</button>
 					</div>
@@ -393,15 +389,12 @@
 					onclick={handleClose}
 					disabled={isProcessing && progress?.status === 'IN_PROGRESS'}
 				>
-					{progress && (progress.status === 'COMPLETED' || progress.status === 'FAILED') ? 'Close' : 'Cancel'}
+					{progress && (progress.status === 'COMPLETED' || progress.status === 'FAILED')
+						? 'Close'
+						: 'Cancel'}
 				</button>
 				{#if !progress}
-					<button
-						type="button"
-						class="btn-danger"
-						onclick={handleExecute}
-						disabled={!canProceed}
-					>
+					<button type="button" class="btn-danger" onclick={handleExecute} disabled={!canProceed}>
 						Execute Rollback ({selectedLogs.size})
 					</button>
 				{/if}
@@ -526,7 +519,7 @@
 		background-color: #f9fafb;
 	}
 
-	.log-item input[type="checkbox"] {
+	.log-item input[type='checkbox'] {
 		margin-top: 0.25rem;
 		cursor: pointer;
 	}
@@ -549,17 +542,17 @@
 		font-weight: 600;
 	}
 
-	.action-badge[data-color="blue"] {
+	.action-badge[data-color='blue'] {
 		background-color: #dbeafe;
 		color: #1e40af;
 	}
 
-	.action-badge[data-color="yellow"] {
+	.action-badge[data-color='yellow'] {
 		background-color: #fef3c7;
 		color: #92400e;
 	}
 
-	.action-badge[data-color="red"] {
+	.action-badge[data-color='red'] {
 		background-color: #fee2e2;
 		color: #991b1b;
 	}
@@ -598,18 +591,18 @@
 		font-weight: 600;
 	}
 
-	.status-indicator[data-status="QUEUED"],
-	.status-indicator[data-status="IN_PROGRESS"] {
+	.status-indicator[data-status='QUEUED'],
+	.status-indicator[data-status='IN_PROGRESS'] {
 		background-color: #dbeafe;
 		color: #1e40af;
 	}
 
-	.status-indicator[data-status="COMPLETED"] {
+	.status-indicator[data-status='COMPLETED'] {
 		background-color: #d1fae5;
 		color: #065f46;
 	}
 
-	.status-indicator[data-status="FAILED"] {
+	.status-indicator[data-status='FAILED'] {
 		background-color: #fee2e2;
 		color: #991b1b;
 	}

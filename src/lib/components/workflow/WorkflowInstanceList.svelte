@@ -264,5 +264,3 @@
 {#if showDetails && selectedInstance}
 	<WorkflowInstanceDetails instance={selectedInstance} onclose={handleCloseDetails} />
 {/if}
-
-

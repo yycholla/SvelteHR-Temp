@@ -72,18 +72,14 @@
 	});
 
 	// Selected task type for display
-	let selectedTaskType = $derived(
-		taskTypes.find((tt) => tt.id === selected)
-	);
+	let selectedTaskType = $derived(taskTypes.find((tt) => tt.id === selected));
 
 	// Check if search term could be a new task type name
 	let canCreateNew = $derived.by(() => {
 		if (!searchTerm || searchTerm.trim().length < 2) return false;
 
 		// Check if exact match exists
-		const exactMatch = taskTypes.some(
-			(tt) => tt.name.toLowerCase() === searchTerm.toLowerCase()
-		);
+		const exactMatch = taskTypes.some((tt) => tt.name.toLowerCase() === searchTerm.toLowerCase());
 
 		return !exactMatch;
 	});
@@ -311,7 +307,7 @@
 						e.stopPropagation();
 						removeSelected();
 					}}
-					disabled={disabled}
+					{disabled}
 				>
 					<X class="h-3 w-3" />
 				</button>
@@ -325,7 +321,7 @@
 			type="text"
 			class="flex-1 bg-transparent outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed min-w-[120px]"
 			placeholder={!selected ? placeholder : ''}
-			disabled={disabled}
+			{disabled}
 			onfocus={handleFocus}
 			onblur={handleBlur}
 			oninput={handleInput}
@@ -383,8 +379,7 @@
 				<button
 					type="button"
 					data-option
-					class="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground border-t {filteredTaskTypes
-						.length +
+					class="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground border-t {filteredTaskTypes.length +
 						0 ===
 					highlightedIndex
 						? 'bg-accent text-accent-foreground'

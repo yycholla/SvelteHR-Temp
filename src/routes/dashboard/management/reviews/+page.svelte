@@ -789,10 +789,12 @@
 					}}>Close</Button
 				>
 				{#if canEditReviews && currentReview && currentReview.status !== 'completed'}
-					<Button onclick={() => {
-						showDetailsModal = false;
-						handleEditReview(currentReview);
-					}}>Edit Review</Button>
+					<Button
+						onclick={() => {
+							showDetailsModal = false;
+							handleEditReview(currentReview);
+						}}>Edit Review</Button
+					>
 				{/if}
 			</Dialog.Footer>
 		</Dialog.Content>

@@ -10,7 +10,14 @@
 	import * as Select from '$lib/components/ui/select';
 	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
 	import RecurrencePatternInput from '$lib/components/ui/recurrence-pattern-input.svelte';
-	import { ChevronLeft, Loader2, AlertCircle, FileText, Image, Video as VideoIcon } from '@lucide/svelte';
+	import {
+		ChevronLeft,
+		Loader2,
+		AlertCircle,
+		FileText,
+		Image,
+		Video as VideoIcon
+	} from '@lucide/svelte';
 
 	interface RecurrencePattern {
 		frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -63,8 +70,8 @@
 		</Alert.Root>
 	{/if}
 
-	<form 
-		method="POST" 
+	<form
+		method="POST"
 		use:enhance={() => {
 			submitting = true;
 			return async ({ update }) => {
@@ -80,30 +87,28 @@
 		<input type="hidden" name="recurrencePattern" value={JSON.stringify(recurrencePattern)} />
 
 		<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-			
 			<!-- Left Column: Main Info -->
 			<div class="lg:col-span-2 space-y-6">
-				
 				<!-- Basic Details Card -->
 				<Card.Root>
 					<Card.Content class="p-6 space-y-6">
 						<div class="space-y-2">
 							<Label for="title">Title <span class="text-destructive">*</span></Label>
-							<Input 
-								id="title" 
-								name="title" 
-								placeholder="e.g., Cybersecurity Awareness 2025" 
-								required 
+							<Input
+								id="title"
+								name="title"
+								placeholder="e.g., Cybersecurity Awareness 2025"
+								required
 								value={form?.values?.title ?? ''}
 							/>
 						</div>
 
 						<div class="space-y-2">
 							<Label for="description">Description</Label>
-							<Textarea 
-								id="description" 
-								name="description" 
-								placeholder="Short summary of this training module..." 
+							<Textarea
+								id="description"
+								name="description"
+								placeholder="Short summary of this training module..."
 								rows={4}
 								value={form?.values?.description ?? ''}
 							/>
@@ -119,41 +124,42 @@
 					<Card.Content class="p-6 space-y-6">
 						<div class="space-y-2">
 							<Label for="metaTitle">Meta Title</Label>
-							<Input 
-								id="metaTitle" 
-								name="metaTitle" 
-								placeholder="Browser tab title" 
+							<Input
+								id="metaTitle"
+								name="metaTitle"
+								placeholder="Browser tab title"
 								value={form?.values?.metaTitle ?? ''}
 							/>
-							<p class="text-[0.8rem] text-muted-foreground">Recommended length: 50-60 characters.</p>
+							<p class="text-[0.8rem] text-muted-foreground">
+								Recommended length: 50-60 characters.
+							</p>
 						</div>
 
 						<div class="space-y-2">
 							<Label for="metaDescription">Meta Description</Label>
-							<Textarea 
-								id="metaDescription" 
-								name="metaDescription" 
-								placeholder="Search engine description..." 
+							<Textarea
+								id="metaDescription"
+								name="metaDescription"
+								placeholder="Search engine description..."
 								rows={3}
 								value={form?.values?.metaDescription ?? ''}
 							/>
-							<p class="text-[0.8rem] text-muted-foreground">Recommended length: 150-160 characters.</p>
+							<p class="text-[0.8rem] text-muted-foreground">
+								Recommended length: 150-160 characters.
+							</p>
 						</div>
 					</Card.Content>
 				</Card.Root>
-
 			</div>
 
 			<!-- Right Column: Settings & Organization -->
 			<div class="space-y-6">
-				
 				<!-- Organization Card -->
 				<Card.Root>
 					<Card.Header class="border-b p-6">
 						<Card.Title>Organization</Card.Title>
 					</Card.Header>
 					<Card.Content class="p-6 space-y-6">
-						
 						<!-- Status -->
 						<div class="flex items-center justify-between">
 							<div class="space-y-0.5">
@@ -168,7 +174,7 @@
 						<!-- Tags -->
 						<div class="space-y-2">
 							<Label>Tags</Label>
-							<MultiSearchInput 
+							<MultiSearchInput
 								bind:searchTerms={tags}
 								placeholder="Add tag..."
 								allowCustomTerms={true}
@@ -189,7 +195,6 @@
 								</Select.Content>
 							</Select.Root>
 						</div> -->
-
 					</Card.Content>
 				</Card.Root>
 
@@ -201,12 +206,7 @@
 					<Card.Content class="p-6 space-y-4">
 						<div class="space-y-2">
 							<Label for="startDate">Start Date</Label>
-							<Input
-								id="startDate"
-								name="startDate"
-								type="datetime-local"
-								bind:value={startDate}
-							/>
+							<Input id="startDate" name="startDate" type="datetime-local" bind:value={startDate} />
 						</div>
 						<div class="space-y-2">
 							<Label for="endDate">End Date</Label>
@@ -238,7 +238,6 @@
 						</Card.Content>
 					</Card.Root>
 				{/if}
-
 			</div>
 		</div>
 
@@ -260,22 +259,35 @@
 	<!-- Content Builder Preview (Conceptual) -->
 	<div class="mt-8 opacity-60 grayscale pointer-events-none select-none">
 		<div class="flex items-center gap-2 mb-4">
-			<span class="flex h-8 w-8 items-center justify-center rounded-full border bg-muted text-xs font-medium">2</span>
+			<span
+				class="flex h-8 w-8 items-center justify-center rounded-full border bg-muted text-xs font-medium"
+				>2</span
+			>
 			<h3 class="font-semibold">Content Builder (Next Step)</h3>
 		</div>
-		<div class="rounded-xl border border-dashed border-2 p-8 flex flex-col items-center justify-center text-center space-y-4 bg-gray-50 dark:bg-gray-900/50">
+		<div
+			class="rounded-xl border border-dashed border-2 p-8 flex flex-col items-center justify-center text-center space-y-4 bg-gray-50 dark:bg-gray-900/50"
+		>
 			<div class="flex gap-4 text-muted-foreground">
-				<div class="h-12 w-12 bg-background rounded border shadow-sm flex items-center justify-center">
+				<div
+					class="h-12 w-12 bg-background rounded border shadow-sm flex items-center justify-center"
+				>
 					<FileText class="h-6 w-6" />
 				</div>
-				<div class="h-12 w-12 bg-background rounded border shadow-sm flex items-center justify-center">
+				<div
+					class="h-12 w-12 bg-background rounded border shadow-sm flex items-center justify-center"
+				>
 					<VideoIcon class="h-6 w-6" />
 				</div>
-				<div class="h-12 w-12 bg-background rounded border shadow-sm flex items-center justify-center">
+				<div
+					class="h-12 w-12 bg-background rounded border shadow-sm flex items-center justify-center"
+				>
 					<Image class="h-6 w-6" />
 				</div>
 			</div>
-			<p class="text-sm text-muted-foreground">Add Video, Images, Documents, and Text after creating the module.</p>
+			<p class="text-sm text-muted-foreground">
+				Add Video, Images, Documents, and Text after creating the module.
+			</p>
 		</div>
 	</div>
 </div>

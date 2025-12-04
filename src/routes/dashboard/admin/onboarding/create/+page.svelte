@@ -39,9 +39,7 @@
 			</Button>
 			<div>
 				<h1 class="text-2xl font-bold tracking-tight">Create Onboarding Module</h1>
-				<p class="text-muted-foreground text-sm">
-					Define a new onboarding workflow for employees
-				</p>
+				<p class="text-muted-foreground text-sm">Define a new onboarding workflow for employees</p>
 			</div>
 		</div>
 	</div>
@@ -161,9 +159,7 @@
 									<option value={option.value}>{option.label}</option>
 								{/each}
 							</datalist>
-							<p class="text-xs text-muted-foreground">
-								Helps organize and filter modules
-							</p>
+							<p class="text-xs text-muted-foreground">Helps organize and filter modules</p>
 						</div>
 
 						<div class="h-px bg-border" />
@@ -176,9 +172,7 @@
 								placeholder="Add tag..."
 								allowCustomTerms={true}
 							/>
-							<p class="text-xs text-muted-foreground">
-								Add keywords for easier searching
-							</p>
+							<p class="text-xs text-muted-foreground">Add keywords for easier searching</p>
 						</div>
 					</Card.Content>
 				</Card.Root>
@@ -194,7 +188,12 @@
 								Create Module
 							{/if}
 						</Button>
-						<Button type="button" variant="outline" class="w-full" href="/dashboard/admin/onboarding">
+						<Button
+							type="button"
+							variant="outline"
+							class="w-full"
+							href="/dashboard/admin/onboarding"
+						>
 							Cancel
 						</Button>
 					</Card.Content>

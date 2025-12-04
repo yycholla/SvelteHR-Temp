@@ -483,7 +483,7 @@ grep -r "MountainHR\|SvelteHR" .
 
 ```svelte
 <header>
-  <h1>MountainHR</h1>
+	<h1>MountainHR</h1>
 </header>
 ```
 
@@ -491,11 +491,11 @@ grep -r "MountainHR\|SvelteHR" .
 
 ```svelte
 <script>
-  import { systemName } from '$lib/stores/system-settings';
+	import { systemName } from '$lib/stores/system-settings';
 </script>
 
 <header>
-  <h1>{$systemName}</h1>
+	<h1>{$systemName}</h1>
 </header>
 ```
 
@@ -505,117 +505,117 @@ grep -r "MountainHR\|SvelteHR" .
 
 ```svelte
 <script lang="ts">
-  import { mutation } from '@urql/svelte';
-  import { UPDATE_SYSTEM_SETTINGS_MUTATION } from '$lib/graphql/operations';
-  import { systemSettingsQuery } from '$lib/stores/system-settings';
-  import { toast } from 'svelte-sonner';
-  import { systemSettingsSchema } from '$lib/schemas/system-settings';
+	import { mutation } from '@urql/svelte';
+	import { UPDATE_SYSTEM_SETTINGS_MUTATION } from '$lib/graphql/operations';
+	import { systemSettingsQuery } from '$lib/stores/system-settings';
+	import { toast } from 'svelte-sonner';
+	import { systemSettingsSchema } from '$lib/schemas/system-settings';
 
-  let { data } = $props();
+	let { data } = $props();
 
-  // Form state
-  let formData = $state({
-    systemName: data.settings.systemName,
-    systemTimezone: data.settings.systemTimezone,
-    sessionTimeoutMinutes: data.settings.sessionTimeoutMinutes,
-    // ... all fields
-  });
+	// Form state
+	let formData = $state({
+		systemName: data.settings.systemName,
+		systemTimezone: data.settings.systemTimezone,
+		sessionTimeoutMinutes: data.settings.sessionTimeoutMinutes
+		// ... all fields
+	});
 
-  const updateSettings = mutation({
-    query: UPDATE_SYSTEM_SETTINGS_MUTATION
-  });
+	const updateSettings = mutation({
+		query: UPDATE_SYSTEM_SETTINGS_MUTATION
+	});
 
-  async function handleSubmit(e: Event) {
-    e.preventDefault();
+	async function handleSubmit(e: Event) {
+		e.preventDefault();
 
-    // Validate with Zod
-    const result = systemSettingsSchema.safeParse(formData);
-    if (!result.success) {
-      toast.error('Validation failed');
-      return;
-    }
+		// Validate with Zod
+		const result = systemSettingsSchema.safeParse(formData);
+		if (!result.success) {
+			toast.error('Validation failed');
+			return;
+		}
 
-    // Execute mutation
-    const { data, error } = await updateSettings({ input: formData });
+		// Execute mutation
+		const { data, error } = await updateSettings({ input: formData });
 
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success('Settings updated successfully');
-      systemSettingsQuery.reexecute({ requestPolicy: 'network-only' });
-    }
-  }
+		if (error) {
+			toast.error(error.message);
+		} else {
+			toast.success('Settings updated successfully');
+			systemSettingsQuery.reexecute({ requestPolicy: 'network-only' });
+		}
+	}
 </script>
 
 <form onsubmit={handleSubmit}>
-  <div class="form-section">
-    <h2>General Settings</h2>
+	<div class="form-section">
+		<h2>General Settings</h2>
 
-    <label>
-      System Name
-      <input type="text" bind:value={formData.systemName} required />
-    </label>
+		<label>
+			System Name
+			<input type="text" bind:value={formData.systemName} required />
+		</label>
 
-    <label>
-      Timezone
-      <select bind:value={formData.systemTimezone}>
-        <option value="UTC">UTC</option>
-        <option value="America/New_York">America/New_York</option>
-        <option value="America/Denver">America/Denver</option>
-        <!-- Add all IANA timezones -->
-      </select>
-    </label>
-  </div>
+		<label>
+			Timezone
+			<select bind:value={formData.systemTimezone}>
+				<option value="UTC">UTC</option>
+				<option value="America/New_York">America/New_York</option>
+				<option value="America/Denver">America/Denver</option>
+				<!-- Add all IANA timezones -->
+			</select>
+		</label>
+	</div>
 
-  <div class="form-section">
-    <h2>Authentication Settings</h2>
+	<div class="form-section">
+		<h2>Authentication Settings</h2>
 
-    <label>
-      Session Timeout (minutes)
-      <input type="number" bind:value={formData.sessionTimeoutMinutes} min="5" max="1440" />
-    </label>
+		<label>
+			Session Timeout (minutes)
+			<input type="number" bind:value={formData.sessionTimeoutMinutes} min="5" max="1440" />
+		</label>
 
-    <label>
-      Minimum Password Length
-      <input type="number" bind:value={formData.minPasswordLength} min="8" max="128" />
-    </label>
+		<label>
+			Minimum Password Length
+			<input type="number" bind:value={formData.minPasswordLength} min="8" max="128" />
+		</label>
 
-    <label>
-      Max Login Attempts
-      <input type="number" bind:value={formData.maxLoginAttempts} min="3" max="100" />
-    </label>
+		<label>
+			Max Login Attempts
+			<input type="number" bind:value={formData.maxLoginAttempts} min="3" max="100" />
+		</label>
 
-    <label>
-      <input type="checkbox" bind:checked={formData.requireMfa} />
-      Require MFA for all users
-    </label>
-  </div>
+		<label>
+			<input type="checkbox" bind:checked={formData.requireMfa} />
+			Require MFA for all users
+		</label>
+	</div>
 
-  <div class="form-section">
-    <h2>Developer Settings</h2>
+	<div class="form-section">
+		<h2>Developer Settings</h2>
 
-    <label>
-      Frontend Log Level
-      <select bind:value={formData.logLevelFrontend}>
-        <option value="DEBUG">DEBUG</option>
-        <option value="INFO">INFO</option>
-        <option value="WARN">WARN</option>
-        <option value="ERROR">ERROR</option>
-      </select>
-    </label>
+		<label>
+			Frontend Log Level
+			<select bind:value={formData.logLevelFrontend}>
+				<option value="DEBUG">DEBUG</option>
+				<option value="INFO">INFO</option>
+				<option value="WARN">WARN</option>
+				<option value="ERROR">ERROR</option>
+			</select>
+		</label>
 
-    <label>
-      Backend Log Level
-      <select bind:value={formData.logLevelBackend}>
-        <option value="DEBUG">DEBUG</option>
-        <option value="INFO">INFO</option>
-        <option value="WARN">WARN</option>
-        <option value="ERROR">ERROR</option>
-      </select>
-    </label>
-  </div>
+		<label>
+			Backend Log Level
+			<select bind:value={formData.logLevelBackend}>
+				<option value="DEBUG">DEBUG</option>
+				<option value="INFO">INFO</option>
+				<option value="WARN">WARN</option>
+				<option value="ERROR">ERROR</option>
+			</select>
+		</label>
+	</div>
 
-  <button type="submit">Save Settings</button>
+	<button type="submit">Save Settings</button>
 </form>
 ```
 
@@ -724,44 +724,45 @@ export function validatePassword(password: string): { valid: boolean; errors: st
 
 ```svelte
 <script lang="ts">
-  import { mutation } from '@urql/svelte';
-  import { LOGIN_MUTATION } from '$lib/graphql/operations';
+	import { mutation } from '@urql/svelte';
+	import { LOGIN_MUTATION } from '$lib/graphql/operations';
 
-  let email = $state('');
-  let password = $state('');
-  let errorMessage = $state('');
+	let email = $state('');
+	let password = $state('');
+	let errorMessage = $state('');
 
-  const login = mutation({ query: LOGIN_MUTATION });
+	const login = mutation({ query: LOGIN_MUTATION });
 
-  async function handleLogin() {
-    const result = await login({ email, password });
+	async function handleLogin() {
+		const result = await login({ email, password });
 
-    if (result.error) {
-      const message = result.error.message;
+		if (result.error) {
+			const message = result.error.message;
 
-      if (message.includes('account locked')) {
-        errorMessage = 'Your account has been locked due to too many failed login attempts. Please contact an administrator.';
-      } else if (message.includes('invalid credentials')) {
-        errorMessage = 'Invalid email or password. Please try again.';
-      } else {
-        errorMessage = 'Login failed. Please try again.';
-      }
-    } else {
-      // Successful login
-      goto('/dashboard');
-    }
-  }
+			if (message.includes('account locked')) {
+				errorMessage =
+					'Your account has been locked due to too many failed login attempts. Please contact an administrator.';
+			} else if (message.includes('invalid credentials')) {
+				errorMessage = 'Invalid email or password. Please try again.';
+			} else {
+				errorMessage = 'Login failed. Please try again.';
+			}
+		} else {
+			// Successful login
+			goto('/dashboard');
+		}
+	}
 </script>
 
 <form onsubmit={handleLogin}>
-  <input type="email" bind:value={email} required />
-  <input type="password" bind:value={password} required />
+	<input type="email" bind:value={email} required />
+	<input type="password" bind:value={password} required />
 
-  {#if errorMessage}
-    <div class="error">{errorMessage}</div>
-  {/if}
+	{#if errorMessage}
+		<div class="error">{errorMessage}</div>
+	{/if}
 
-  <button type="submit">Log In</button>
+	<button type="submit">Log In</button>
 </form>
 ```
 

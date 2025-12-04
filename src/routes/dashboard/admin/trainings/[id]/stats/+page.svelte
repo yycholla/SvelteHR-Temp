@@ -27,7 +27,6 @@
 			day: 'numeric'
 		});
 	}
-
 </script>
 
 <svelte:head>
@@ -124,7 +123,8 @@
 			<Card.Content>
 				<div class="text-2xl font-bold text-green-600">{stats.completed}</div>
 				<p class="text-xs text-muted-foreground">
-					{stats.totalAssigned > 0 ? Math.round((stats.completed / stats.totalAssigned) * 100) : 0}% complete
+					{stats.totalAssigned > 0 ? Math.round((stats.completed / stats.totalAssigned) * 100) : 0}%
+					complete
 				</p>
 			</Card.Content>
 		</Card.Root>
@@ -160,7 +160,9 @@
 			<Card.Content>
 				<div class="text-2xl font-bold">{stats.withDueDate}</div>
 				<p class="text-xs text-muted-foreground">
-					{stats.totalAssigned > 0 ? Math.round((stats.withDueDate / stats.totalAssigned) * 100) : 0}% have deadlines
+					{stats.totalAssigned > 0
+						? Math.round((stats.withDueDate / stats.totalAssigned) * 100)
+						: 0}% have deadlines
 				</p>
 			</Card.Content>
 		</Card.Root>
@@ -192,9 +194,7 @@
 	<Card.Root>
 		<Card.Header>
 			<Card.Title>Assigned Employees ({assignments.length})</Card.Title>
-			<Card.Description>
-				View completion status for all assigned employees
-			</Card.Description>
+			<Card.Description>View completion status for all assigned employees</Card.Description>
 		</Card.Header>
 		<Card.Content>
 			<div class="rounded-md border">
@@ -214,7 +214,9 @@
 								<Table.Row>
 									<Table.Cell class="font-medium">
 										<div class="flex items-center gap-3">
-											<div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+											<div
+												class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10"
+											>
 												<User class="h-5 w-5 text-primary" />
 											</div>
 											<div>
@@ -230,11 +232,13 @@
 										<div class="flex flex-col gap-2 min-w-[200px]">
 											<div class="flex items-center justify-between text-sm">
 												<span class="font-medium">{assignment.completionPercentage}%</span>
-												<Badge variant={
-													assignment.status === 'Completed' ? 'default' :
-													assignment.status === 'In Progress' ? 'secondary' :
-													'outline'
-												}>
+												<Badge
+													variant={assignment.status === 'Completed'
+														? 'default'
+														: assignment.status === 'In Progress'
+															? 'secondary'
+															: 'outline'}
+												>
 													{assignment.status}
 												</Badge>
 											</div>

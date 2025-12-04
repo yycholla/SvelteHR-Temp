@@ -467,7 +467,9 @@
 									</div>
 									<div>
 										<div>{department.name}</div>
-										<div class="text-xs text-muted-foreground line-clamp-1">{department.description || ''}</div>
+										<div class="text-xs text-muted-foreground line-clamp-1">
+											{department.description || ''}
+										</div>
 									</div>
 								</div>
 							</Table.Cell>
@@ -485,11 +487,18 @@
 								{#if department.departmentHead}
 									<div class="flex items-center gap-2">
 										<div class="flex h-6 w-6 items-center justify-center rounded-full bg-muted">
-											<span class="text-xs font-medium">{department.departmentHead.firstName?.[0]}{department.departmentHead.lastName?.[0]}</span>
+											<span class="text-xs font-medium"
+												>{department.departmentHead.firstName?.[0]}{department.departmentHead
+													.lastName?.[0]}</span
+											>
 										</div>
 										<div class="flex flex-col">
-											<span class="text-sm font-medium">{department.departmentHead.displayName}</span>
-											<span class="text-xs text-muted-foreground">{department.departmentHead.jobTitle || 'Head'}</span>
+											<span class="text-sm font-medium"
+												>{department.departmentHead.displayName}</span
+											>
+											<span class="text-xs text-muted-foreground"
+												>{department.departmentHead.jobTitle || 'Head'}</span
+											>
 										</div>
 									</div>
 								{:else}
@@ -513,12 +522,20 @@
 							<Table.Cell class="text-right">
 								<div class="flex justify-end gap-2">
 									{#if canViewEmployees}
-										<Button variant="ghost" size="icon" href="/dashboard/departments/{department.id}">
+										<Button
+											variant="ghost"
+											size="icon"
+											href="/dashboard/departments/{department.id}"
+										>
 											<Eye class="h-4 w-4" />
 										</Button>
 									{/if}
 									{#if canManageDepartments}
-										<Button variant="ghost" size="icon" href="/dashboard/departments/{department.id}/edit">
+										<Button
+											variant="ghost"
+											size="icon"
+											href="/dashboard/departments/{department.id}/edit"
+										>
 											<Edit class="h-4 w-4" />
 										</Button>
 									{/if}
@@ -643,4 +660,4 @@
 </div>
 
 <!-- Department Create Dialog -->
-<DepartmentCreateDialog bind:open={showCreateDialog} users={data.users || []} departments={departments} />
+<DepartmentCreateDialog bind:open={showCreateDialog} users={data.users || []} {departments} />

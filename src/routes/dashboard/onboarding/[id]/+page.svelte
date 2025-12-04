@@ -168,7 +168,10 @@
 			case 'TEXT':
 			case 'EMAIL':
 			case 'PHONE':
-				return { component: Input, props: { type: field.type.toLowerCase(), placeholder: field.label } };
+				return {
+					component: Input,
+					props: { type: field.type.toLowerCase(), placeholder: field.label }
+				};
 			case 'TEXTAREA':
 				return { component: Textarea, props: { placeholder: field.label, rows: 4 } };
 			case 'NUMBER':
@@ -195,16 +198,25 @@
 					<p class="text-muted-foreground mt-2">{data.module.description}</p>
 				{/if}
 			</div>
-			<Badge variant={completionPercentage === 100 ? 'default' : 'secondary'} class="text-lg px-4 py-2">
+			<Badge
+				variant={completionPercentage === 100 ? 'default' : 'secondary'}
+				class="text-lg px-4 py-2"
+			>
 				{completionPercentage}% Complete
 			</Badge>
 		</div>
 
 		<!-- Progress Bar -->
 		<div class="mt-6">
-			<Progress value={completionPercentage} class="h-2" aria-valuenow={completionPercentage} data-testid="progress-bar" />
+			<Progress
+				value={completionPercentage}
+				class="h-2"
+				aria-valuenow={completionPercentage}
+				data-testid="progress-bar"
+			/>
 			<p class="text-sm text-muted-foreground mt-2">
-				<span data-testid="completed-forms-count">{data.completedForms}</span> of <span data-testid="total-forms-count">{data.totalForms}</span> forms completed
+				<span data-testid="completed-forms-count">{data.completedForms}</span> of
+				<span data-testid="total-forms-count">{data.totalForms}</span> forms completed
 			</p>
 		</div>
 	</div>
@@ -227,15 +239,25 @@
 						>
 							<div class="flex items-center gap-2">
 								{#if form.isCompleted}
-									<CheckCircle2 class="h-5 w-5 text-green-500 shrink-0" data-testid="status-completed" />
+									<CheckCircle2
+										class="h-5 w-5 text-green-500 shrink-0"
+										data-testid="status-completed"
+									/>
 								{:else if form.isInProgress}
-									<Circle class="h-5 w-5 text-yellow-500 shrink-0" data-testid="status-in-progress" />
+									<Circle
+										class="h-5 w-5 text-yellow-500 shrink-0"
+										data-testid="status-in-progress"
+									/>
 								{:else}
 									<Circle class="h-5 w-5 text-gray-400 shrink-0" data-testid="status-not-started" />
 								{/if}
 								<div class="flex-1 min-w-0">
-									<div class="font-medium text-sm truncate" data-testid="form-step-number">Step {index + 1}</div>
-									<div class="text-xs opacity-80 truncate" data-testid="form-title">{form.title}</div>
+									<div class="font-medium text-sm truncate" data-testid="form-step-number">
+										Step {index + 1}
+									</div>
+									<div class="text-xs opacity-80 truncate" data-testid="form-title">
+										{form.title}
+									</div>
 								</div>
 								<div data-testid="form-status-icon"></div>
 							</div>
@@ -252,10 +274,16 @@
 					<Card.Header>
 						<div class="flex items-start justify-between">
 							<div class="flex-1">
-								<Badge variant="outline" class="mb-2" data-testid="current-form-step-badge">Step {currentFormIndex + 1} of {data.totalForms}</Badge>
-								<Card.Title class="text-2xl" data-testid="current-form-title">{currentForm.title}</Card.Title>
+								<Badge variant="outline" class="mb-2" data-testid="current-form-step-badge"
+									>Step {currentFormIndex + 1} of {data.totalForms}</Badge
+								>
+								<Card.Title class="text-2xl" data-testid="current-form-title"
+									>{currentForm.title}</Card.Title
+								>
 								{#if currentForm.description}
-									<Card.Description class="mt-2" data-testid="current-form-description">{currentForm.description}</Card.Description>
+									<Card.Description class="mt-2" data-testid="current-form-description"
+										>{currentForm.description}</Card.Description
+									>
 								{/if}
 							</div>
 							{#if currentForm.isRequired}
@@ -267,17 +295,25 @@
 						<!-- Render all blocks in the form -->
 						{#each currentForm.blocks as block}
 							{@const BlockIcon = getBlockIcon(block.type)}
-							<div class="border-l-4 border-primary/30 pl-6 py-4" data-testid="block-container-{block.id}">
+							<div
+								class="border-l-4 border-primary/30 pl-6 py-4"
+								data-testid="block-container-{block.id}"
+							>
 								<div class="flex items-center gap-2 mb-4">
 									<BlockIcon class="h-5 w-5 text-primary" />
 									{#if block.title}
-										<h3 class="text-lg font-semibold" data-testid="block-title-{block.id}">{block.title}</h3>
+										<h3 class="text-lg font-semibold" data-testid="block-title-{block.id}">
+											{block.title}
+										</h3>
 									{/if}
 								</div>
 
 								<!-- TEXT Block -->
 								{#if block.type === 'TEXT' && block.textContent}
-									<div class="prose dark:prose-invert max-w-none" data-testid="block-TEXT-{block.id}">
+									<div
+										class="prose dark:prose-invert max-w-none"
+										data-testid="block-TEXT-{block.id}"
+									>
 										<div data-testid="text-content">{block.textContent}</div>
 									</div>
 								{/if}
@@ -375,7 +411,10 @@
 											</p>
 										{/if}
 										{#if block.fileUploadRequirements?.acceptedTypes}
-											<p class="text-xs text-muted-foreground mt-1" data-testid="accepted-file-types">
+											<p
+												class="text-xs text-muted-foreground mt-1"
+												data-testid="accepted-file-types"
+											>
 												Accepted types: {block.fileUploadRequirements.acceptedTypes.join(', ')}
 											</p>
 										{/if}
@@ -408,12 +447,20 @@
 								</Button>
 
 								{#if !isLastForm}
-									<Button onclick={completeForm} disabled={isSaving} data-testid="complete-form-button">
+									<Button
+										onclick={completeForm}
+										disabled={isSaving}
+										data-testid="complete-form-button"
+									>
 										Complete & Continue
 										<ChevronRight class="ml-2 h-4 w-4" />
 									</Button>
 								{:else}
-									<Button onclick={completeForm} disabled={isSaving} data-testid="complete-onboarding-button">
+									<Button
+										onclick={completeForm}
+										disabled={isSaving}
+										data-testid="complete-onboarding-button"
+									>
 										<CheckCircle2 class="mr-2 h-4 w-4" />
 										Complete Onboarding
 									</Button>
@@ -427,9 +474,7 @@
 					<Card.Content class="p-12 text-center">
 						<AlertCircle class="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
 						<h3 class="text-xl font-semibold mb-2">No Forms Available</h3>
-						<p class="text-muted-foreground">
-							This onboarding module doesn't have any forms yet.
-						</p>
+						<p class="text-muted-foreground">This onboarding module doesn't have any forms yet.</p>
 					</Card.Content>
 				</Card.Root>
 			{/if}

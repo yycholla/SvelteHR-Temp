@@ -41,14 +41,20 @@
 <div class="min-h-screen bg-sidebar">
 	<!-- Fixed Sidebar - stays constant across all dashboard routes -->
 	<aside
-		class="fixed left-0 top-0 z-10 h-full bg-sidebar transition-all duration-300 {sidebarState.isCollapsed ? 'w-16' : 'w-64'}"
+		class="fixed left-0 top-0 z-10 h-full bg-sidebar transition-all duration-300 {sidebarState.isCollapsed
+			? 'w-16'
+			: 'w-64'}"
 		aria-label="Main navigation"
 	>
 		<HrAppSidebar {permissions} systemName={data.systemName || 'MountainHR'} />
 	</aside>
 
 	<!-- Main Content Area - only this content changes between routes -->
-	<div class="h-screen overflow-auto transition-all duration-300 {sidebarState.isCollapsed ? 'ml-16' : 'ml-64'}">
+	<div
+		class="h-screen overflow-auto transition-all duration-300 {sidebarState.isCollapsed
+			? 'ml-16'
+			: 'ml-64'}"
+	>
 		<div class="pb-6 pl-3 pr-6 pt-6">
 			<main
 				class="min-h-[calc(100vh-3rem)] rounded-2xl bg-background shadow-sm border border-sidebar-border"

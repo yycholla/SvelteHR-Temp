@@ -177,20 +177,14 @@
 			/>
 		</div>
 
-		<NativeSelect
-			bind:value={selectedCategory}
-			onchange={applyFilters}
-		>
+		<NativeSelect bind:value={selectedCategory} onchange={applyFilters}>
 			<option value="all">All Categories</option>
 			{#each categories as category}
 				<option value={category}>{category}</option>
 			{/each}
 		</NativeSelect>
 
-		<NativeSelect
-			bind:value={selectedSensitivity}
-			onchange={applyFilters}
-		>
+		<NativeSelect bind:value={selectedSensitivity} onchange={applyFilters}>
 			<option value="all">All Sensitivity Levels</option>
 			{#each sensitivityLevels as level}
 				<option value={level}>{level}</option>
@@ -246,7 +240,10 @@
 				</Table.Header>
 				<Table.Body>
 					{#each documents as document (document.id)}
-						<Table.Row class="cursor-pointer hover:bg-muted/50" onclick={() => goto(`/dashboard/documents/${document.id}`)}>
+						<Table.Row
+							class="cursor-pointer hover:bg-muted/50"
+							onclick={() => goto(`/dashboard/documents/${document.id}`)}
+						>
 							<Table.Cell class="text-2xl">{getFileIcon(document.file_type)}</Table.Cell>
 							<Table.Cell class="font-medium">{document.filename}</Table.Cell>
 							<Table.Cell>
@@ -254,12 +251,19 @@
 							</Table.Cell>
 							<Table.Cell>
 								<div class="flex gap-2 flex-wrap items-center">
-									<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {getSensitivityClass(document.sensitivity_level)}">
+									<span
+										class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {getSensitivityClass(
+											document.sensitivity_level
+										)}"
+									>
 										{document.sensitivity_level}
 									</span>
 									{#if document.assigned_users && Array.isArray(document.assigned_users) && document.assigned_users.length > 0}
 										{#each document.assigned_users as assignedUser}
-											<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground" title="Assigned to {assignedUser.email}">
+											<span
+												class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground"
+												title="Assigned to {assignedUser.email}"
+											>
 												👤 {assignedUser.email}
 											</span>
 										{/each}
@@ -375,4 +379,3 @@
 		</div>
 	{/if}
 </div>
-

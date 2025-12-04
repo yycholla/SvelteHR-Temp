@@ -360,7 +360,8 @@ Modern Svelte 5 implementation with server-side data loading and comprehensive m
 						<div class="flex-1">
 							<div class="mb-1 flex items-center justify-between">
 								<span class="text-sm font-medium text-foreground">{metric.label}</span>
-								<span class="text-sm text-muted-foreground">{metric.value}% / {metric.target}%</span>
+								<span class="text-sm text-muted-foreground">{metric.value}% / {metric.target}%</span
+								>
 							</div>
 							<div class="h-2 w-full rounded-full bg-gray-200">
 								<div

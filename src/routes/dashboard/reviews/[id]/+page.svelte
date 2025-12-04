@@ -75,8 +75,12 @@
 	}
 
 	// Count active vs deleted goals
-	const activeGoalsCount = $derived(review.associatedGoals?.filter((g: any) => !g.deleted).length || 0);
-	const deletedGoalsCount = $derived(review.associatedGoals?.filter((g: any) => g.deleted).length || 0);
+	const activeGoalsCount = $derived(
+		review.associatedGoals?.filter((g: any) => !g.deleted).length || 0
+	);
+	const deletedGoalsCount = $derived(
+		review.associatedGoals?.filter((g: any) => g.deleted).length || 0
+	);
 </script>
 
 <div class="review-detail-page space-y-6">

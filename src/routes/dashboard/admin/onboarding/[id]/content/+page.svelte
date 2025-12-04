@@ -121,23 +121,35 @@
 
 	function getIcon(type: string) {
 		switch (type) {
-			case 'TEXT': return Type;
-			case 'DOCUMENT': return FileText;
-			case 'FORM': return ClipboardCheck;
-			case 'FILE_UPLOAD': return Upload;
-			case 'SIGNATURE': return PenTool;
-			default: return FileText;
+			case 'TEXT':
+				return Type;
+			case 'DOCUMENT':
+				return FileText;
+			case 'FORM':
+				return ClipboardCheck;
+			case 'FILE_UPLOAD':
+				return Upload;
+			case 'SIGNATURE':
+				return PenTool;
+			default:
+				return FileText;
 		}
 	}
 
 	function getTypeName(type: string) {
 		switch (type) {
-			case 'TEXT': return 'Text';
-			case 'DOCUMENT': return 'Document';
-			case 'FORM': return 'Form';
-			case 'FILE_UPLOAD': return 'File Upload';
-			case 'SIGNATURE': return 'Signature';
-			default: return type;
+			case 'TEXT':
+				return 'Text';
+			case 'DOCUMENT':
+				return 'Document';
+			case 'FORM':
+				return 'Form';
+			case 'FILE_UPLOAD':
+				return 'File Upload';
+			case 'SIGNATURE':
+				return 'Signature';
+			default:
+				return type;
 		}
 	}
 </script>
@@ -146,15 +158,23 @@
 	<!-- Header -->
 	<div class="mb-8 flex items-center justify-between">
 		<div class="flex items-center gap-4">
-			<Button variant="outline" size="icon" href={`/dashboard/admin/onboarding/${data?.module?.id || ''}`}>
+			<Button
+				variant="outline"
+				size="icon"
+				href={`/dashboard/admin/onboarding/${data?.module?.id || ''}`}
+			>
 				<ArrowLeft class="h-4 w-4" />
 			</Button>
 			<div>
 				<h1 class="text-2xl font-bold tracking-tight">Content Builder</h1>
-				<p class="text-muted-foreground text-sm">Manage content for "{data?.module?.title || 'Loading...'}"</p>
+				<p class="text-muted-foreground text-sm">
+					Manage content for "{data?.module?.title || 'Loading...'}"
+				</p>
 			</div>
 		</div>
-		<Button variant="outline" href={`/dashboard/admin/onboarding/${data?.module?.id || ''}`}>Done</Button>
+		<Button variant="outline" href={`/dashboard/admin/onboarding/${data?.module?.id || ''}`}
+			>Done</Button
+		>
 	</div>
 
 	{#if form?.error}
@@ -165,7 +185,6 @@
 	{/if}
 
 	<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 h-[calc(100vh-200px)]">
-
 		<!-- Left Panel: Content List -->
 		<div class="lg:col-span-1 flex flex-col gap-4 overflow-hidden">
 			<div class="font-semibold text-lg flex items-center gap-2">
@@ -173,19 +192,28 @@
 				<Badge variant="secondary">{items.length} Blocks</Badge>
 			</div>
 
-			<div class="flex-1 overflow-y-auto pr-2 space-y-2"
-				use:dndzone={{items, flipDurationMs: 300}}
+			<div
+				class="flex-1 overflow-y-auto pr-2 space-y-2"
+				use:dndzone={{ items, flipDurationMs: 300 }}
 				onconsider={handleDndConsider}
 				onfinalize={handleDndFinalize}
 			>
 				{#each items as item (item.id)}
-					<div class="group relative" animate:flip={{duration: 300}}>
-						<Card.Root class="transition-all hover:shadow-md cursor-move border-l-4 {editingId === item.id ? 'border-l-primary bg-accent/50' : 'border-l-transparent hover:border-l-muted-foreground'}">
+					<div class="group relative" animate:flip={{ duration: 300 }}>
+						<Card.Root
+							class="transition-all hover:shadow-md cursor-move border-l-4 {editingId === item.id
+								? 'border-l-primary bg-accent/50'
+								: 'border-l-transparent hover:border-l-muted-foreground'}"
+						>
 							<Card.Content class="p-3 flex items-center gap-3">
-								<GripVertical class="h-4 w-4 text-muted-foreground opacity-50 group-hover:opacity-100" />
+								<GripVertical
+									class="h-4 w-4 text-muted-foreground opacity-50 group-hover:opacity-100"
+								/>
 
 								{@const Icon = getIcon(item.type)}
-								<div class="h-8 w-8 rounded bg-background border flex items-center justify-center shrink-0 text-muted-foreground">
+								<div
+									class="h-8 w-8 rounded bg-background border flex items-center justify-center shrink-0 text-muted-foreground"
+								>
 									<Icon class="h-4 w-4" />
 								</div>
 
@@ -200,7 +228,12 @@
 								</div>
 
 								<div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-									<Button variant="ghost" size="icon" class="h-7 w-7" onclick={() => editItem(item)}>
+									<Button
+										variant="ghost"
+										size="icon"
+										class="h-7 w-7"
+										onclick={() => editItem(item)}
+									>
 										<Edit2 class="h-3.5 w-3.5" />
 									</Button>
 									<form
@@ -213,7 +246,12 @@
 										}}
 									>
 										<input type="hidden" name="id" value={item.id} />
-										<Button variant="ghost" size="icon" class="h-7 w-7 text-destructive hover:text-destructive" type="submit">
+										<Button
+											variant="ghost"
+											size="icon"
+											class="h-7 w-7 text-destructive hover:text-destructive"
+											type="submit"
+										>
 											<Trash2 class="h-3.5 w-3.5" />
 										</Button>
 									</form>
@@ -224,8 +262,10 @@
 				{/each}
 
 				{#if items.length === 0}
-					<div class="text-center py-10 border-2 border-dashed rounded-lg text-muted-foreground text-sm">
-						No content yet. <br/> Add blocks from the right panel.
+					<div
+						class="text-center py-10 border-2 border-dashed rounded-lg text-muted-foreground text-sm"
+					>
+						No content yet. <br /> Add blocks from the right panel.
 					</div>
 				{/if}
 			</div>
@@ -241,19 +281,44 @@
 				<Card.Header class="border-b pb-0">
 					{#if !isEditing}
 						<div class="flex flex-wrap gap-2 mb-4 pb-2">
-							<Button variant={activeTab === 'TEXT' ? 'default' : 'outline'} size="sm" onclick={() => selectType('TEXT')} class="gap-2">
+							<Button
+								variant={activeTab === 'TEXT' ? 'default' : 'outline'}
+								size="sm"
+								onclick={() => selectType('TEXT')}
+								class="gap-2"
+							>
 								<Type class="h-4 w-4" /> Text
 							</Button>
-							<Button variant={activeTab === 'DOCUMENT' ? 'default' : 'outline'} size="sm" onclick={() => selectType('DOCUMENT')} class="gap-2">
+							<Button
+								variant={activeTab === 'DOCUMENT' ? 'default' : 'outline'}
+								size="sm"
+								onclick={() => selectType('DOCUMENT')}
+								class="gap-2"
+							>
 								<FileText class="h-4 w-4" /> Document
 							</Button>
-							<Button variant={activeTab === 'FORM' ? 'default' : 'outline'} size="sm" onclick={() => selectType('FORM')} class="gap-2">
+							<Button
+								variant={activeTab === 'FORM' ? 'default' : 'outline'}
+								size="sm"
+								onclick={() => selectType('FORM')}
+								class="gap-2"
+							>
 								<ClipboardCheck class="h-4 w-4" /> Form
 							</Button>
-							<Button variant={activeTab === 'FILE_UPLOAD' ? 'default' : 'outline'} size="sm" onclick={() => selectType('FILE_UPLOAD')} class="gap-2">
+							<Button
+								variant={activeTab === 'FILE_UPLOAD' ? 'default' : 'outline'}
+								size="sm"
+								onclick={() => selectType('FILE_UPLOAD')}
+								class="gap-2"
+							>
 								<Upload class="h-4 w-4" /> File Upload
 							</Button>
-							<Button variant={activeTab === 'SIGNATURE' ? 'default' : 'outline'} size="sm" onclick={() => selectType('SIGNATURE')} class="gap-2">
+							<Button
+								variant={activeTab === 'SIGNATURE' ? 'default' : 'outline'}
+								size="sm"
+								onclick={() => selectType('SIGNATURE')}
+								class="gap-2"
+							>
 								<PenTool class="h-4 w-4" /> Signature
 							</Button>
 						</div>
@@ -275,7 +340,9 @@
 
 									// Add new block to items if creating
 									if (result.data.block) {
-										items = [...items, result.data.block].sort((a: any, b: any) => a.sequenceOrder - b.sequenceOrder);
+										items = [...items, result.data.block].sort(
+											(a: any, b: any) => a.sequenceOrder - b.sequenceOrder
+										);
 									} else {
 										// If updating, reload data
 										await invalidateAll();
@@ -296,7 +363,13 @@
 
 						<div class="space-y-2">
 							<Label for="title">Title</Label>
-							<Input id="title" name="title" bind:value={title} placeholder="e.g. Company Handbook Review" required />
+							<Input
+								id="title"
+								name="title"
+								bind:value={title}
+								placeholder="e.g. Company Handbook Review"
+								required
+							/>
 						</div>
 
 						<div class="flex items-center space-x-2">

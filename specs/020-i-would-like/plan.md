@@ -369,12 +369,12 @@ export const load: PageServerLoad = async (event) => {
 
 ```svelte
 <script lang="ts">
-  import PermissionGuard from '$lib/components/permissions/PermissionGuard.svelte';
-  const { data } = $props();
+	import PermissionGuard from '$lib/components/permissions/PermissionGuard.svelte';
+	const { data } = $props();
 </script>
 
 <PermissionGuard permissions={['employees:write']}>
-  <button>Add Employee</button>
+	<button>Add Employee</button>
 </PermissionGuard>
 ```
 

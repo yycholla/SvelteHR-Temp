@@ -120,7 +120,11 @@
 					>
 						<div class="flex items-start gap-3">
 							<!-- Action Indicator -->
-							<div class="flex h-8 w-8 items-center justify-center rounded-full {getActionColor(log.action)}">
+							<div
+								class="flex h-8 w-8 items-center justify-center rounded-full {getActionColor(
+									log.action
+								)}"
+							>
 								{#if log.isRollback && showRollbackIndicators}
 									<GitBranch class="h-4 w-4" />
 								{:else if log.action === 'CREATE'}

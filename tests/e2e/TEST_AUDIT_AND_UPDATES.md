@@ -323,12 +323,12 @@ export const actions = {
 
 ```svelte
 <SignatureField
-  name="signature-{block.id}"
-  label={block.title || 'Signature'}
-  bind:value={signatureData[block.id]}
-  width={600}
-  height={200}
-  required={block.required || false}
+	name="signature-{block.id}"
+	label={block.title || 'Signature'}
+	bind:value={signatureData[block.id]}
+	width={600}
+	height={200}
+	required={block.required || false}
 />
 ```
 

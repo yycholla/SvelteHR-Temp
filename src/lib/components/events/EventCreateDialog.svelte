@@ -78,7 +78,7 @@
 
 	// Convert employees to SearchOption format for MultiSearchInput
 	let attendeeOptions = $derived(
-		employees.map(e => ({
+		employees.map((e) => ({
 			value: e.id,
 			label: e.displayName
 		}))
@@ -125,7 +125,7 @@
 	// Toggle weekday selection
 	function toggleWeekday(day: number) {
 		if (recurrenceDaysOfWeek.includes(day)) {
-			recurrenceDaysOfWeek = recurrenceDaysOfWeek.filter(d => d !== day);
+			recurrenceDaysOfWeek = recurrenceDaysOfWeek.filter((d) => d !== day);
 		} else {
 			recurrenceDaysOfWeek = [...recurrenceDaysOfWeek, day].sort();
 		}
@@ -262,9 +262,7 @@
 			>
 				<!-- Header -->
 				<div class="sticky top-0 z-10 flex items-center justify-between border-b bg-card px-6 py-4">
-					<h2 id="dialog-title" class="text-xl font-semibold text-foreground">
-						Create Event
-					</h2>
+					<h2 id="dialog-title" class="text-xl font-semibold text-foreground">Create Event</h2>
 					<button
 						type="button"
 						onclick={onClose}
@@ -414,7 +412,10 @@
 								<!-- Recurrence Pattern -->
 								<div class="grid gap-4 sm:grid-cols-2">
 									<div>
-										<label for="recurrenceFrequency" class="block text-sm font-medium text-foreground mb-2">
+										<label
+											for="recurrenceFrequency"
+											class="block text-sm font-medium text-foreground mb-2"
+										>
 											Frequency <span class="text-destructive">*</span>
 										</label>
 										<select
@@ -433,7 +434,10 @@
 									</div>
 
 									<div>
-										<label for="recurrenceInterval" class="block text-sm font-medium text-foreground mb-2">
+										<label
+											for="recurrenceInterval"
+											class="block text-sm font-medium text-foreground mb-2"
+										>
 											Every
 										</label>
 										<input
@@ -462,7 +466,9 @@
 													type="button"
 													onclick={() => toggleWeekday(day.value)}
 													disabled={isSubmitting}
-													class="px-3 py-1 rounded-md text-sm font-medium transition-colors {recurrenceDaysOfWeek.includes(day.value)
+													class="px-3 py-1 rounded-md text-sm font-medium transition-colors {recurrenceDaysOfWeek.includes(
+														day.value
+													)
 														? 'bg-primary text-primary-foreground'
 														: 'bg-background border border-input text-foreground hover:bg-accent'} disabled:opacity-50 disabled:cursor-not-allowed"
 												>
@@ -470,13 +476,20 @@
 												</button>
 											{/each}
 										</div>
-										<input type="hidden" name="recurrenceDaysOfWeek" value={JSON.stringify(recurrenceDaysOfWeek)} />
+										<input
+											type="hidden"
+											name="recurrenceDaysOfWeek"
+											value={JSON.stringify(recurrenceDaysOfWeek)}
+										/>
 									</div>
 								{/if}
 
 								<!-- End Date -->
 								<div>
-									<label for="recurrenceEndDate" class="block text-sm font-medium text-foreground mb-2">
+									<label
+										for="recurrenceEndDate"
+										class="block text-sm font-medium text-foreground mb-2"
+									>
 										End Date <span class="text-destructive">*</span>
 									</label>
 									<input
@@ -489,9 +502,7 @@
 										disabled={isSubmitting}
 										class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
 									/>
-									<p class="mt-1 text-xs text-muted-foreground">
-										Maximum 5 years from start date
-									</p>
+									<p class="mt-1 text-xs text-muted-foreground">Maximum 5 years from start date</p>
 								</div>
 							</div>
 						{/if}
@@ -575,7 +586,8 @@
 								</p>
 							{:else}
 								<p class="text-xs text-muted-foreground">
-									{selectedAttendeeIds.length} {selectedAttendeeIds.length === 1 ? 'attendee' : 'attendees'} selected
+									{selectedAttendeeIds.length}
+									{selectedAttendeeIds.length === 1 ? 'attendee' : 'attendees'} selected
 								</p>
 							{/if}
 						</div>
@@ -590,9 +602,7 @@
 								disabled={isSubmitting}
 								class="h-4 w-4 rounded border-input text-primary focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
 							/>
-							<span class="ml-2 text-sm font-medium text-foreground">
-								Set capacity limit
-							</span>
+							<span class="ml-2 text-sm font-medium text-foreground"> Set capacity limit </span>
 						</label>
 
 						{#if hasCapacityLimit}
@@ -684,8 +694,19 @@
 						>
 							{#if isSubmitting}
 								<svg class="mr-2 h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+									<circle
+										class="opacity-25"
+										cx="12"
+										cy="12"
+										r="10"
+										stroke="currentColor"
+										stroke-width="4"
+									></circle>
+									<path
+										class="opacity-75"
+										fill="currentColor"
+										d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+									></path>
 								</svg>
 								Creating...
 							{:else}

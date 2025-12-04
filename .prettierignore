@@ -31,5 +31,5 @@ graphql-rust-server/scripts/**/*.sql
 # GitHub workflows (YAML formatting managed separately)
 .github/**
 
-# Kubernetes docs (may contain SQL and other embedded code)
-k8s/**/*.md
+# Kubernetes manifests (YAML with Helm/Kustomize templates, use helm lint/kustomize validate instead)
+k8s/**

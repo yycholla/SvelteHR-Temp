@@ -63,9 +63,8 @@
 
 		// Include email in label for searchability (MultiSearchInput only searches label field)
 		// Format: "Display Name (email@example.com)" or just "email@example.com" if no name
-		const label = displayName || `${firstName} ${lastName}`.trim()
-			? `${primaryName} (${email})`
-			: email;
+		const label =
+			displayName || `${firstName} ${lastName}`.trim() ? `${primaryName} (${email})` : email;
 
 		return {
 			value: user.id,
@@ -96,12 +95,13 @@
 			const lastName = (assignment.user?.lastName || '').toLowerCase();
 			const fullName = `${firstName} ${lastName}`.trim().toLowerCase();
 
-			return lowerSearchTerms.some((term) =>
-				displayName.includes(term) ||
-				email.includes(term) ||
-				firstName.includes(term) ||
-				lastName.includes(term) ||
-				fullName.includes(term)
+			return lowerSearchTerms.some(
+				(term) =>
+					displayName.includes(term) ||
+					email.includes(term) ||
+					firstName.includes(term) ||
+					lastName.includes(term) ||
+					fullName.includes(term)
 			);
 		});
 	});
@@ -448,9 +448,7 @@
 							</h4>
 
 							<!-- Assignment Type Tabs -->
-							<div
-								class="grid grid-cols-2 gap-1 p-1 bg-muted rounded-lg text-xs font-medium"
-							>
+							<div class="grid grid-cols-2 gap-1 p-1 bg-muted rounded-lg text-xs font-medium">
 								<button
 									type="button"
 									class="px-2 py-1.5 rounded-md transition-all {assignmentType === 'user'
@@ -517,9 +515,7 @@
 												{...props}
 											>
 												<Calendar class="mr-2 h-4 w-4" />
-												{assignmentDueDate
-													? df.format(new Date(assignmentDueDate))
-													: 'Pick a date'}
+												{assignmentDueDate ? df.format(new Date(assignmentDueDate)) : 'Pick a date'}
 											</Button>
 										{/snippet}
 									</PopoverTrigger>
@@ -552,18 +548,16 @@
 							>
 								{#if isAssigning}
 									Assigning...
-								{:else}
-									{#if assignmentType === 'user'}
-										<UserPlus class="mr-2 h-4 w-4" />
-										Assign {selectedUsersToAssign.length > 0
-											? `(${selectedUsersToAssign.length})`
-											: 'Users'}
-									{:else if assignmentType === 'department'}
-										<Building class="mr-2 h-4 w-4" />
-										Assign {selectedDepartmentsToAssign.length > 0
-											? `(${selectedDepartmentsToAssign.length})`
-											: 'Departments'}
-									{/if}
+								{:else if assignmentType === 'user'}
+									<UserPlus class="mr-2 h-4 w-4" />
+									Assign {selectedUsersToAssign.length > 0
+										? `(${selectedUsersToAssign.length})`
+										: 'Users'}
+								{:else if assignmentType === 'department'}
+									<Building class="mr-2 h-4 w-4" />
+									Assign {selectedDepartmentsToAssign.length > 0
+										? `(${selectedDepartmentsToAssign.length})`
+										: 'Departments'}
 								{/if}
 							</Button>
 						</div>
@@ -575,7 +569,7 @@
 							<h4 class="font-semibold text-sm">Currently Assigned</h4>
 							<div class="w-full max-w-md">
 								<MultiSearchInput
-									bind:searchTerms={searchTerms}
+									bind:searchTerms
 									placeholder="Search by name or email..."
 									allowCustomTerms={true}
 								/>
@@ -603,7 +597,9 @@
 								<p class="text-xs text-muted-foreground">
 									Showing {filteredAssignments().length} of {data.assignments.length} assigned users
 								</p>
-								<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-2">
+								<div
+									class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-2"
+								>
 									{#each filteredAssignments() as assignment (assignment.id)}
 										<div
 											class="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
@@ -617,9 +613,7 @@
 															.charAt(0)
 															.toUpperCase()}
 													</div>
-													{assignment.user?.displayName ||
-														assignment.user?.email ||
-														'Unknown User'}
+													{assignment.user?.displayName || assignment.user?.email || 'Unknown User'}
 												</div>
 												<div class="text-xs text-muted-foreground pl-8">
 													{#if assignment.completedAt}

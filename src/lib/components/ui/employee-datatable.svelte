@@ -366,12 +366,7 @@
 	async function handleBulkStatusChange(newStatus: 'active' | 'inactive' | 'terminated') {
 		const count = selectedCount; // Capture before clearing
 		const employeeIds = [...selectedEmployeeIds]; // Capture employee IDs
-		console.log(
-			'Changing employee status to:',
-			newStatus,
-			'Employee IDs:',
-			employeeIds
-		);
+		console.log('Changing employee status to:', newStatus, 'Employee IDs:', employeeIds);
 
 		// Show loading toast
 		const loadingToastId = toast.loading(

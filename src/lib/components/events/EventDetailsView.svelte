@@ -12,7 +12,11 @@
 	import { formatEventTimeRange } from '$lib/utils/events';
 	import { sanitizeCommentContent, extractMentions } from '$lib/utils/sanitize';
 	import type { RsvpStatus } from '$lib/graphql/types';
-	import type { EventComment, EventHistoryEntry, UserWaitlistStatus } from '$lib/graphql/events-operations';
+	import type {
+		EventComment,
+		EventHistoryEntry,
+		UserWaitlistStatus
+	} from '$lib/graphql/events-operations';
 	import type { EventData } from './types';
 
 	interface Props {
@@ -82,9 +86,7 @@
 	// Initialize reminder from event prop
 	// Since this component is remounted when event changes (keyed in parent), init logic runs once
 	{
-		const userAttendee = event.attendees?.find(
-			(a: any) => a.employeeId === userId
-		);
+		const userAttendee = event.attendees?.find((a: any) => a.employeeId === userId);
 
 		if (userAttendee?.reminderTime) {
 			const minutes = userAttendee.reminderTime;
@@ -116,60 +118,54 @@
 	let filteredAttendees = $derived(
 		activeAttendeeTab === 'all'
 			? event?.attendees || []
-			: (event?.attendees || []).filter(
-				(a: any) => a.responseStatus === activeAttendeeTab
-			)
+			: (event?.attendees || []).filter((a: any) => a.responseStatus === activeAttendeeTab)
 	);
 
 	const userRsvpStatus: RsvpStatus = $derived(
 		!event || !event.attendees
 			? 'no_response'
-			: (event.attendees.find(
-					(a) => a.employeeId === userId
-			  )?.responseStatus || 'no_response')
+			: event.attendees.find((a) => a.employeeId === userId)?.responseStatus || 'no_response'
 	);
 
 	const showCapacityIndicator = $derived(
 		event?.maxCapacity !== null && event?.maxCapacity !== undefined && event.maxCapacity > 0
 	);
 
-	const showWaitlistButton = $derived(
-		event?.isFull === true && event?.waitlistEnabled === true
-	);
+	const showWaitlistButton = $derived(event?.isFull === true && event?.waitlistEnabled === true);
 
-    const isRecurringEvent = $derived(
+	const isRecurringEvent = $derived(
 		event?.rrule !== null && event?.rrule !== undefined && event.rrule !== ''
 	);
 
 	// Handlers
 	async function handleRsvpChange(newStatus: RsvpStatus) {
 		// Bubbles up to parent which handles the logic (including recursion check)
-        // Actually, the recursion/conflict logic is in the parent (Dialog). 
-        // The parent passes `onRsvpUpdate` but that might be just the callback after update.
-        // Wait, the logic for "Show Scope Dialog" was in the Dialog.
-        // If I move this View, the Dialog still holds the "Scope Dialog" and "Conflict Dialog".
-        // So I should emit an event or call a prop to request RSVP change.
-        
-        // The parent (Dialog) expects `onRsvpUpdate` to be a callback *after* update in the original code?
-        // No, `onRsvpUpdate` in original props was `onRsvpUpdate?: (eventId: string, newStatus: RsvpStatus) => void;`
-        // But the `handleRsvpChange` logic in Dialog was complex.
-        
-        // I should pass a prop `onRequestRsvpChange` to this View, which calls back to parent.
-        // The parent will handle scope/conflict checks and then call API.
-        if (onRsvpUpdate) {
-             onRsvpUpdate(event.id, newStatus);
-        }
+		// Actually, the recursion/conflict logic is in the parent (Dialog).
+		// The parent passes `onRsvpUpdate` but that might be just the callback after update.
+		// Wait, the logic for "Show Scope Dialog" was in the Dialog.
+		// If I move this View, the Dialog still holds the "Scope Dialog" and "Conflict Dialog".
+		// So I should emit an event or call a prop to request RSVP change.
+
+		// The parent (Dialog) expects `onRsvpUpdate` to be a callback *after* update in the original code?
+		// No, `onRsvpUpdate` in original props was `onRsvpUpdate?: (eventId: string, newStatus: RsvpStatus) => void;`
+		// But the `handleRsvpChange` logic in Dialog was complex.
+
+		// I should pass a prop `onRequestRsvpChange` to this View, which calls back to parent.
+		// The parent will handle scope/conflict checks and then call API.
+		if (onRsvpUpdate) {
+			onRsvpUpdate(event.id, newStatus);
+		}
 	}
 
-    // Wait! The `onRsvpUpdate` prop in `EventDetailsDialog` was for *external* notification (optimistic UI).
-    // The *internal* `handleRsvpChange` did the heavy lifting.
-    // I need to expose that heavy lifting capability to this child.
-    // OR I keep the `RSVPButton` here but pass the `onChange` handler from the parent.
-    // Let's change the props of `EventDetailsView` to accept `onRsvpChangeRequest`.
-    
-    // But `EventDetailsDialog` has `handleRsvpChange` which takes `newStatus`.
-    // So I'll pass that as a prop `handleRsvpChange`.
-    
+	// Wait! The `onRsvpUpdate` prop in `EventDetailsDialog` was for *external* notification (optimistic UI).
+	// The *internal* `handleRsvpChange` did the heavy lifting.
+	// I need to expose that heavy lifting capability to this child.
+	// OR I keep the `RSVPButton` here but pass the `onChange` handler from the parent.
+	// Let's change the props of `EventDetailsView` to accept `onRsvpChangeRequest`.
+
+	// But `EventDetailsDialog` has `handleRsvpChange` which takes `newStatus`.
+	// So I'll pass that as a prop `handleRsvpChange`.
+
 	async function handleReminderChange(preset: ReminderPreset) {
 		if (!event) return;
 
@@ -332,7 +328,11 @@
 	}
 </script>
 
-<Tabs value={activeTab} onValueChange={(v) => (activeTab = v as any)} class="flex flex-col flex-1 overflow-hidden">
+<Tabs
+	value={activeTab}
+	onValueChange={(v) => (activeTab = v as any)}
+	class="flex flex-col flex-1 overflow-hidden"
+>
 	<TabsList class="mx-6 mt-4">
 		<TabsTrigger value="details">Details</TabsTrigger>
 		<TabsTrigger value="comments" class="relative">
@@ -350,7 +350,9 @@
 			<div class="mb-6">
 				<h1 class="text-2xl font-bold text-foreground mb-3">{event.title}</h1>
 				<div class="flex flex-wrap items-center gap-2">
-					<span class="rounded-md px-2 py-1 text-xs font-medium {getStatusBadgeColor(event.status)}">
+					<span
+						class="rounded-md px-2 py-1 text-xs font-medium {getStatusBadgeColor(event.status)}"
+					>
 						{event.status.charAt(0).toUpperCase() + event.status.slice(1)}
 					</span>
 					<span class="rounded-md px-2 py-1 text-xs font-medium bg-accent text-accent-foreground">
@@ -384,7 +386,9 @@
 							{formatEventTimeRange(event.startTime, event.endTime, event.allDay)}
 						</div>
 						{#if event.allDay}
-							<span class="mt-1 inline-block rounded-md bg-primary/10 px-2 py-0.5 text-xs text-primary">
+							<span
+								class="mt-1 inline-block rounded-md bg-primary/10 px-2 py-0.5 text-xs text-primary"
+							>
 								All Day
 							</span>
 						{/if}
@@ -449,18 +453,30 @@
 				<h3 class="text-sm font-medium text-foreground mb-3">Your RSVP</h3>
 				<div class="flex flex-col sm:flex-row gap-3 items-start">
 					<div>
-						<RSVPButton
-							currentStatus={userRsvpStatus}
-							onChange={onRsvpUpdate || (() => {})}
-						/>
+						<RSVPButton currentStatus={userRsvpStatus} onChange={onRsvpUpdate || (() => {})} />
 					</div>
 
 					{#if userRsvpStatus === 'accepted' || userRsvpStatus === 'tentative'}
 						<div class="flex items-center gap-2">
 							{#if isSavingReminder}
-								<svg class="h-4 w-4 animate-spin text-muted-foreground flex-shrink-0" fill="none" viewBox="0 0 24 24">
-									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+								<svg
+									class="h-4 w-4 animate-spin text-muted-foreground flex-shrink-0"
+									fill="none"
+									viewBox="0 0 24 24"
+								>
+									<circle
+										class="opacity-25"
+										cx="12"
+										cy="12"
+										r="10"
+										stroke="currentColor"
+										stroke-width="4"
+									></circle>
+									<path
+										class="opacity-75"
+										fill="currentColor"
+										d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+									></path>
 								</svg>
 							{:else}
 								<Bell class="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -502,54 +518,78 @@
 
 			{#if event.attendees && event.attendees.length > 0}
 				<div class="border-t pt-6">
-					<h3 class="text-sm font-medium text-foreground mb-4">Attendee List ({displayRsvpStats?.total || 0})</h3>
+					<h3 class="text-sm font-medium text-foreground mb-4">
+						Attendee List ({displayRsvpStats?.total || 0})
+					</h3>
 
 					<div class="flex flex-wrap gap-2 mb-4">
 						<button
-							class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab === 'all' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-							onclick={() => activeAttendeeTab = 'all'}
+							class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab ===
+							'all'
+								? 'bg-primary text-primary-foreground'
+								: 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+							onclick={() => (activeAttendeeTab = 'all')}
 						>
 							All ({displayRsvpStats?.total || 0})
 						</button>
-                        <!-- Only show tabs with count > 0 -->
+						<!-- Only show tabs with count > 0 -->
 						{#if (displayRsvpStats?.accepted || 0) > 0}
 							<button
-								class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab === 'accepted' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-								onclick={() => activeAttendeeTab = 'accepted'}
+								class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab ===
+								'accepted'
+									? 'bg-primary text-primary-foreground'
+									: 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+								onclick={() => (activeAttendeeTab = 'accepted')}
 							>
 								Accepted ({displayRsvpStats?.accepted || 0})
 							</button>
 						{/if}
 						{#if (displayRsvpStats?.tentative || 0) > 0}
 							<button
-								class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab === 'tentative' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-								onclick={() => activeAttendeeTab = 'tentative'}
+								class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab ===
+								'tentative'
+									? 'bg-primary text-primary-foreground'
+									: 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+								onclick={() => (activeAttendeeTab = 'tentative')}
 							>
 								Tentative ({displayRsvpStats?.tentative || 0})
 							</button>
 						{/if}
 						{#if (displayRsvpStats?.declined || 0) > 0}
 							<button
-								class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab === 'declined' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-								onclick={() => activeAttendeeTab = 'declined'}
+								class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab ===
+								'declined'
+									? 'bg-primary text-primary-foreground'
+									: 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+								onclick={() => (activeAttendeeTab = 'declined')}
 							>
 								Declined ({displayRsvpStats?.declined || 0})
 							</button>
 						{/if}
 						{#if (displayRsvpStats?.pending || 0) > 0}
 							<button
-								class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab === 'pending' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-								onclick={() => activeAttendeeTab = 'pending'}
+								class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab ===
+								'pending'
+									? 'bg-primary text-primary-foreground'
+									: 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+								onclick={() => (activeAttendeeTab = 'pending')}
 							>
 								Pending ({displayRsvpStats?.pending || 0})
 							</button>
 						{/if}
-						{#if displayRsvpStats && (displayRsvpStats.total - displayRsvpStats.accepted - displayRsvpStats.declined - displayRsvpStats.tentative - displayRsvpStats.pending) > 0}
+						{#if displayRsvpStats && displayRsvpStats.total - displayRsvpStats.accepted - displayRsvpStats.declined - displayRsvpStats.tentative - displayRsvpStats.pending > 0}
 							<button
-								class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab === 'no_response' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-								onclick={() => activeAttendeeTab = 'no_response'}
+								class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab ===
+								'no_response'
+									? 'bg-primary text-primary-foreground'
+									: 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+								onclick={() => (activeAttendeeTab = 'no_response')}
 							>
-								No Response ({displayRsvpStats.total - displayRsvpStats.accepted - displayRsvpStats.declined - displayRsvpStats.tentative - displayRsvpStats.pending})
+								No Response ({displayRsvpStats.total -
+									displayRsvpStats.accepted -
+									displayRsvpStats.declined -
+									displayRsvpStats.tentative -
+									displayRsvpStats.pending})
 							</button>
 						{/if}
 					</div>
@@ -557,7 +597,9 @@
 					<div class="space-y-2 max-h-60 overflow-y-auto">
 						{#if filteredAttendees.length > 0}
 							{#each filteredAttendees as attendee (attendee.id)}
-								<div class="flex items-center justify-between py-2 px-3 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors">
+								<div
+									class="flex items-center justify-between py-2 px-3 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors"
+								>
 									<div class="flex items-center gap-2">
 										<div class="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
 											<span class="text-xs font-medium text-muted-foreground">
@@ -571,14 +613,21 @@
 											{/if}
 										</div>
 									</div>
-									<span class="rounded-md px-2 py-1 text-xs font-medium {getRsvpStatusColor(attendee.responseStatus)}">
-										{attendee.responseStatus.replace('_', ' ').charAt(0).toUpperCase() + attendee.responseStatus.slice(1).replace('_', ' ')}
+									<span
+										class="rounded-md px-2 py-1 text-xs font-medium {getRsvpStatusColor(
+											attendee.responseStatus
+										)}"
+									>
+										{attendee.responseStatus.replace('_', ' ').charAt(0).toUpperCase() +
+											attendee.responseStatus.slice(1).replace('_', ' ')}
 									</span>
 								</div>
 							{/each}
 						{:else}
 							<p class="text-sm text-muted-foreground py-4 text-center">
-								{activeAttendeeTab === 'all' ? 'No attendees yet.' : `No attendees with ${activeAttendeeTab.replace('_', ' ')} status.`}
+								{activeAttendeeTab === 'all'
+									? 'No attendees yet.'
+									: `No attendees with ${activeAttendeeTab.replace('_', ' ')} status.`}
 							</p>
 						{/if}
 					</div>
