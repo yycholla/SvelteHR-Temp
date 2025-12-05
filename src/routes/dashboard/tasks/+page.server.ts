@@ -7,7 +7,7 @@ import { error, fail } from '@sveltejs/kit';
 import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies, url } = event;
+	const { cookies, url } = event;
 
 	// RBAC: Check task read permissions
 	// All Tasks page requires admin-level access (tasks:read:all)
@@ -15,6 +15,9 @@ export const load: PageServerLoad = async (event) => {
 	requireAuth(event, {
 		requiredPermissions: ['tasks:read:all', 'admin:read']
 	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Import required models for standardized error handling
 	const { createDataRequest } = await import('$lib/models/data-request');
