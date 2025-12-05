@@ -6,6 +6,57 @@ import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 
+// Type definitions for GraphQL query responses
+interface ReviewerInfo {
+	id: string;
+	displayName: string;
+}
+
+interface CycleInfo {
+	name: string;
+}
+
+interface PerformanceReviewFromGraphQL {
+	id: string;
+	cycle: CycleInfo | null;
+	overallRating: number | null;
+	status: string;
+	createdAt: string;
+	reviewer: ReviewerInfo;
+}
+
+interface TransformedReview {
+	id: string;
+	cycle: CycleInfo | null;
+	overallRating: number | null;
+	status: string;
+	createdAt: string;
+	reviewer: ReviewerInfo;
+	reviewPeriod: string;
+}
+
+interface EmployeeGoalRawFromGraphQL {
+	id: string;
+	goalTitle: string;
+	goalDescription: string | null;
+	status: string | null;
+	progressPercentage: number | null;
+	targetDate: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
+interface TransformedGoal {
+	id: string;
+	title: string;
+	description: string | null;
+	status: string;
+	progressPercentage: number | null;
+	targetDate: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
 export const load: PageServerLoad = async (event) => {
 	const { url, cookies } = event;
 
@@ -109,28 +160,28 @@ export const load: PageServerLoad = async (event) => {
 			limit: 20
 		});
 
-		const rawReviews = reviewsResult.data?.performanceReviews || [];
-		const reviews = rawReviews.map((r: any) => ({
+		const rawReviews: PerformanceReviewFromGraphQL[] = reviewsResult.data?.performanceReviews || [];
+		const reviews: TransformedReview[] = rawReviews.map((r: PerformanceReviewFromGraphQL): TransformedReview => ({
 			...r,
 			reviewPeriod: r.cycle?.name || 'Performance Review'
 		}));
 
 		// Calculate overall rating (average of completed reviews)
-		const completedReviews = reviews.filter(
-			(r: any) => r.status === 'COMPLETED' && r.overallRating
+		const completedReviews: TransformedReview[] = reviews.filter(
+			(r: TransformedReview) => r.status === 'COMPLETED' && r.overallRating
 		);
 		const averageRating =
 			completedReviews.length > 0
 				? (
-						completedReviews.reduce((sum: number, r: any) => sum + r.overallRating, 0) /
+						completedReviews.reduce((sum: number, r: TransformedReview) => sum + (r.overallRating || 0), 0) /
 						completedReviews.length
 					).toFixed(1)
 				: 'N/A';
 
 		// Transform employeeGoals to match expected format
-		const rawGoals = goalsResult.data?.employeeGoals || [];
+		const rawGoals: EmployeeGoalRawFromGraphQL[] = goalsResult.data?.employeeGoals || [];
 		console.log('[Performance Page] Raw goals:', rawGoals.length);
-		const goals = rawGoals.map((goal: any) => ({
+		const goals: TransformedGoal[] = rawGoals.map((goal: EmployeeGoalRawFromGraphQL): TransformedGoal => ({
 			id: goal.id,
 			title: goal.goalTitle,
 			description: goal.goalDescription,
@@ -165,20 +216,20 @@ export const load: PageServerLoad = async (event) => {
 		// Calculate goal statistics from real data
 		const goalStats = {
 			total: goals.length,
-			completed: goals.filter((g) => g.status === 'completed').length,
-			inProgress: goals.filter((g) => g.status === 'in_progress').length,
-			atRisk: goals.filter((g) => g.status === 'at_risk').length,
-			notStarted: goals.filter((g) => g.status === 'not_started').length,
-			blocked: goals.filter((g) => g.status === 'blocked').length,
+			completed: goals.filter((g: TransformedGoal) => g.status === 'completed').length,
+			inProgress: goals.filter((g: TransformedGoal) => g.status === 'in_progress').length,
+			atRisk: goals.filter((g: TransformedGoal) => g.status === 'at_risk').length,
+			notStarted: goals.filter((g: TransformedGoal) => g.status === 'not_started').length,
+			blocked: goals.filter((g: TransformedGoal) => g.status === 'blocked').length,
 			averageProgress:
 				goals.length > 0
 					? Math.round(
-							goals.reduce((sum, g) => sum + (g.progressPercentage || 0), 0) / goals.length
+							goals.reduce((sum: number, g: TransformedGoal) => sum + (g.progressPercentage || 0), 0) / goals.length
 						)
 					: 0,
 			completionRate:
 				goals.length > 0
-					? Math.round((goals.filter((g) => g.status === 'completed').length / goals.length) * 100)
+					? Math.round((goals.filter((g: TransformedGoal) => g.status === 'completed').length / goals.length) * 100)
 					: 0
 		};
 
@@ -187,7 +238,7 @@ export const load: PageServerLoad = async (event) => {
 			user,
 			userId,
 			goals: goals.sort(
-				(a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+				(a: TransformedGoal, b: TransformedGoal) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
 			),
 			reviews,
 			averageRating,
