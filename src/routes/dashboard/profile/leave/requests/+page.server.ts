@@ -3,7 +3,7 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { PermissionChecks } from '$lib/server/rbac-utils';
+import { requireAuth } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 import { getLeaveTypeColor } from '$lib/graphql/queries/leave-requests';
 
@@ -33,10 +33,15 @@ function getLeaveTypeCodeFromPolicy(policyName: string): string {
 }
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, url, cookies } = event;
+	const { url, cookies } = event;
 
 	// Check authentication and permissions
-	PermissionChecks.leaveRead(event);
+	requireAuth(event, {
+		requiredPermissions: ['leave:read', 'leave:read:self', 'leave:read:team', 'leave:read:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Use authenticated user's ID
 	const userId = locals.user.id;
