@@ -492,7 +492,8 @@ export default defineConfig({
 			$stores: resolve('./src/lib/stores'),
 			$types: resolve('./src/lib/types'),
 			$graphql: resolve('./src/lib/graphql'),
-			$tests: resolve('./tests')
+			$tests: resolve('./tests'),
+			$routes: resolve('./src/routes')
 		}
 	},
 
