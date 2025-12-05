@@ -3,23 +3,23 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
-	const { params, locals, cookies } = event;
+	const { params, cookies } = event;
 	const departmentId = params.id;
 
 	// Handle "new" department creation route
 	if (departmentId === 'new') {
 		// RBAC: Check department write permissions for creating new department
-		PermissionChecks.departmentWrite(event);
+		requireAuth(event, {
+			requiredPermissions: ['departments:write', 'departments:write:self', 'departments:write:team', 'departments:write:all']
+		});
 
-		if (!locals.user) {
-			error(401, 'Authentication required');
-		}
+		// After permission check, re-destructure locals with guaranteed user
+		const { locals } = event;
 
 		// Get standardized user permissions
-		const { getUserPermissions } = await import('$lib/server/rbac-utils');
 		const userPermissions = getUserPermissions(locals);
 
 		// Return empty department data for new department form
@@ -43,15 +43,15 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	// RBAC: Check department read permissions
-	PermissionChecks.departmentRead(event);
+	requireAuth(event, {
+		requiredPermissions: ['departments:read', 'departments:read:self', 'departments:read:team', 'departments:read:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Import required models for standardized error handling
 	const { createErrorResponse } = await import('$lib/models/error-response');
-
-	// Ensure user is authenticated
-	if (!locals.user) {
-		error(401, 'Authentication required');
-	}
 
 	// Create simple user session object (session-based auth doesn't use JWT)
 	const userSession = {

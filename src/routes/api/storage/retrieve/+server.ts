@@ -3,12 +3,18 @@
 
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { requireAuth } from '$lib/server/rbac-utils';
 
-export const GET: RequestHandler = async ({ url, locals }) => {
+export const GET: RequestHandler = async (event) => {
+	const { url } = event;
+
 	// Step 1: Validate authentication
-	if (!locals.user) {
-		throw error(401, { message: 'Authentication required' });
-	}
+	requireAuth(event, {
+		requiredPermissions: ['documents:read', 'documents:read:self', 'documents:read:team', 'documents:read:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	try {
 		// Step 2: Get storage path from query param

@@ -3,19 +3,19 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
-	const { params, locals, cookies } = event;
+	const { params, cookies } = event;
 	const departmentId = params.id;
 
 	// RBAC: Check department write permissions
-	PermissionChecks.departmentWrite(event);
+	requireAuth(event, {
+		requiredPermissions: ['departments:write', 'departments:write:self', 'departments:write:team', 'departments:write:all']
+	});
 
-	// Ensure user is authenticated
-	if (!locals.user) {
-		error(401, 'Authentication required');
-	}
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Create simple user session object (session-based auth doesn't use JWT)
 	const userSession = {
@@ -182,7 +182,12 @@ export const actions: Actions = {
 		const departmentId = params.id;
 
 		// RBAC: Check department write permissions
-		PermissionChecks.departmentWrite(event);
+		requireAuth(event, {
+			requiredPermissions: ['departments:write', 'departments:write:self', 'departments:write:team', 'departments:write:all']
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		try {
 			const formData = await request.formData();

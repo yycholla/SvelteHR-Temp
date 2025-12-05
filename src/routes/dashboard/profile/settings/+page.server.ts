@@ -4,13 +4,18 @@
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { PermissionChecks } from '$lib/server/rbac-utils';
+import { requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies } = event;
+	const { cookies } = event;
 
 	// Check authentication and permissions
-	PermissionChecks.employeeRead(event);
+	requireAuth(event, {
+		requiredPermissions: ['employees:read', 'employees:read:self', 'employees:read:team', 'employees:read:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	const userId = locals.user.id;
 
@@ -144,10 +149,15 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
 	// Update notification preferences
-	updateNotifications: async ({ request, locals, cookies }) => {
-		if (!locals.user?.id) {
-			return fail(401, { error: 'Authentication required' });
-		}
+	updateNotifications: async (event) => {
+		const { request, cookies } = event;
+
+		requireAuth(event, {
+			requiredPermissions: ['employees:write', 'employees:write:self']
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		try {
 			const formData = await request.formData();
@@ -172,10 +182,15 @@ export const actions: Actions = {
 	},
 
 	// Update theme preference
-	updateTheme: async ({ request, locals, cookies }) => {
-		if (!locals.user?.id) {
-			return fail(401, { error: 'Authentication required' });
-		}
+	updateTheme: async (event) => {
+		const { request, cookies } = event;
+
+		requireAuth(event, {
+			requiredPermissions: ['employees:write', 'employees:write:self']
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		try {
 			const formData = await request.formData();
@@ -236,10 +251,15 @@ export const actions: Actions = {
 	},
 
 	// Request information changes (requires admin approval)
-	requestInfoChange: async ({ request, locals, cookies }) => {
-		if (!locals.user?.id) {
-			return fail(401, { error: 'Authentication required' });
-		}
+	requestInfoChange: async (event) => {
+		const { request, cookies } = event;
+
+		requireAuth(event, {
+			requiredPermissions: ['employees:write', 'employees:write:self']
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		try {
 			const formData = await request.formData();
