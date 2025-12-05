@@ -203,14 +203,14 @@ fn test_user_context_has_role_case_insensitive() {
 
 #[test]
 fn test_error_code_as_str() {
-    assert_eq!(ErrorCode::UNAUTHENTICATED.as_str(), "UNAUTHENTICATED");
-    assert_eq!(ErrorCode::FORBIDDEN.as_str(), "FORBIDDEN");
-    assert_eq!(ErrorCode::BAD_USER_INPUT.as_str(), "BAD_USER_INPUT");
-    assert_eq!(ErrorCode::NOT_FOUND.as_str(), "NOT_FOUND");
-    assert_eq!(ErrorCode::CONFLICT.as_str(), "CONFLICT");
-    assert_eq!(ErrorCode::INTERNAL_ERROR.as_str(), "INTERNAL_ERROR");
-    assert_eq!(ErrorCode::SERVICE_UNAVAILABLE.as_str(), "SERVICE_UNAVAILABLE");
-    assert_eq!(ErrorCode::RATE_LIMITED.as_str(), "RATE_LIMITED");
+    assert_eq!(ErrorCode::Unauthenticated.as_str(), "UNAUTHENTICATED");
+    assert_eq!(ErrorCode::Forbidden.as_str(), "FORBIDDEN");
+    assert_eq!(ErrorCode::BadUserInput.as_str(), "BAD_USER_INPUT");
+    assert_eq!(ErrorCode::NotFound.as_str(), "NOT_FOUND");
+    assert_eq!(ErrorCode::Conflict.as_str(), "CONFLICT");
+    assert_eq!(ErrorCode::InternalError.as_str(), "INTERNAL_ERROR");
+    assert_eq!(ErrorCode::ServiceUnavailable.as_str(), "SERVICE_UNAVAILABLE");
+    assert_eq!(ErrorCode::RateLimited.as_str(), "RATE_LIMITED");
 }
 
 #[test]

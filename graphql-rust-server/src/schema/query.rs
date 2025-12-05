@@ -2125,7 +2125,7 @@ impl QueryRoot {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hr_graphql_server::testing::{TestContext, TestUserRole};
+    use crate::testing::{TestContext, TestUserRole};
 
     /// T017 Pattern: Test not found error with random UUID
     #[tokio::test]

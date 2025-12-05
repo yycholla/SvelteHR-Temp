@@ -222,12 +222,16 @@ impl MultiTenantFixture {
             display_name: NotSet, // Generated column - do not set
             full_name: NotSet,    // Generated column - do not set
             phone_number: Set(None),
+            mobile_number: Set(None),
+            nickname: Set(None),
+            social_media_release: Set(false),
             alternate_phone: Set(None),
             job_title: Set(Some("Software Engineer".to_string())),
             status: Set(Some("active".to_string())),
             department_id: Set(department_id),
             manager_id: Set(None),
             hire_date: Set(Some(Utc::now())),
+            birth_date: Set(None),
             termination_date: Set(None),
             is_active: Set(true),
             failed_login_attempts: Set(0),
