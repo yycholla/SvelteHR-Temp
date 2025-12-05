@@ -89,8 +89,8 @@
 		},
 		// Add actions column if permissions allow
 		...(showActions &&
-		auth.user &&
-		(auth.hasPermission('department:update') || auth.hasPermission('department:delete'))
+		$currentUser &&
+		(hasPermission('department:update') || hasPermission('department:delete'))
 			? [
 					{
 						key: 'actions',
@@ -238,7 +238,7 @@
 			</div>
 
 			<div class="department-list__actions">
-				{#if auth.user && auth.hasPermission('department:create')}
+				{#if $currentUser && hasPermission('department:create')}
 					<Button variant="secondary" leftIcon="eye" onclick={() => goto('/departments/hierarchy')}>
 						View Hierarchy
 					</Button>
@@ -299,7 +299,7 @@
 				</span>
 
 				<div class="bulk-actions__buttons">
-					{#if auth.user && auth.hasPermission('department:update')}
+					{#if $currentUser && hasPermission('department:update')}
 						<Button
 							variant="secondary"
 							size="sm"
@@ -336,7 +336,7 @@
 		<DataTable
 			data={$departments}
 			{columns}
-			loading={auth.isLoadingDepartments}
+			loading={$isLoadingDepartments}
 			{selectable}
 			{compact}
 			hoverable={true}
@@ -370,7 +370,7 @@
 					</Badge>
 				{:else if column.key === 'actions'}
 					<div class="action-buttons">
-						{#if auth.user && auth.hasPermission('department:update')}
+						{#if $currentUser && hasPermission('department:update')}
 							<Button
 								variant="ghost"
 								size="xs"
@@ -383,7 +383,7 @@
 							/>
 						{/if}
 
-						{#if auth.user && auth.hasPermission('department:delete')}
+						{#if $currentUser && hasPermission('department:delete')}
 							<Button
 								variant="ghost"
 								size="xs"
