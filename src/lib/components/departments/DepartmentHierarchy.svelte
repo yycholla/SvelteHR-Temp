@@ -121,7 +121,7 @@
 					{expandAll ? 'Collapse All' : 'Expand All'}
 				</Button>
 
-				{#if auth.user && auth.hasPermission('department:create')}
+				{#if $currentUser && hasPermission('department:create')}
 					<Button
 						variant="secondary"
 						size="sm"
@@ -137,7 +137,7 @@
 
 	<div class="hierarchy-container">
 		<div class="hierarchy-tree">
-			{#if auth.isLoadingDepartments}
+			{#if $isLoadingDepartments}
 				<div class="hierarchy-loading">
 					<div class="loading-spinner"></div>
 					<span class="text-sm text-gray-600">Loading hierarchy...</span>
@@ -167,7 +167,7 @@
 						<i class="icon-folder mx-auto h-12 w-12 text-gray-400"></i>
 						<h3 class="mt-4 text-lg font-medium text-gray-900">No departments found</h3>
 						<p class="mt-2 text-sm text-gray-600">Get started by creating your first department.</p>
-						{#if auth.user && auth.hasPermission('department:create')}
+						{#if $currentUser && hasPermission('department:create')}
 							<Button
 								variant="primary"
 								size="md"
@@ -187,7 +187,7 @@
 							{node}
 							isExpanded={isExpanded(node.department.id)}
 							isSelected={selectedDepartment?.id === node.department.id}
-							canEdit={auth.user && auth.hasPermission('department:update')}
+							canEdit={$currentUser && hasPermission('department:update')}
 							{expandAll}
 							ontoggle={(e) => toggleNode(e.detail)}
 							onselect={(e) => selectDepartment(e.detail)}
@@ -261,7 +261,7 @@
 							View Details
 						</Button>
 
-						{#if auth.user && auth.hasPermission('department:update')}
+						{#if $currentUser && hasPermission('department:update')}
 							<Button
 								variant="primary"
 								size="sm"

@@ -617,7 +617,7 @@
 											<p class="text-xs text-muted-foreground">{permission.description}</p>
 										{/if}
 									</div>
-									{#if auth.hasPermission(selectedRole, permission.id)}
+									{#if hasPermission(selectedRole, permission.id)}
 										<Badge variant="secondary" class="text-xs">Current</Badge>
 									{/if}
 								</label>
