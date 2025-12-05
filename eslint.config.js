@@ -67,6 +67,7 @@ export default ts.config(
 			'no-empty': 'warn',
 			'no-constant-binary-expression': 'warn',
 			'svelte/no-navigation-without-resolve': 'warn',
+			'@typescript-eslint/no-unsafe-function-type': 'warn',
 
 			// Import organization for better structure
 			'sort-imports': [
