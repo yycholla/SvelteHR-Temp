@@ -90,6 +90,7 @@ export default defineConfig({
 						'src/**/*.svelte.{test,spec}.{js,ts}',
 						'tests/unit/**/*.svelte.{test,spec}.{js,ts}',
 						'src/lib/server/**/*.svelte.{test,spec}.{js,ts}',
+						'tests/unit/components/**/*.{test,spec}.{js,ts}', // Component tests run in unit-client
 						'tests/integration/**',
 						'tests/contract/**',
 						'tests/e2e/**'
