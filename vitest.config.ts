@@ -91,6 +91,11 @@ export default defineConfig({
 						'tests/unit/**/*.svelte.{test,spec}.{js,ts}',
 						'src/lib/server/**/*.svelte.{test,spec}.{js,ts}',
 						'tests/unit/components/**/*.{test,spec}.{js,ts}', // Component tests run in unit-client
+						'tests/unit/routes/**/*.{test,spec}.{js,ts}', // Route/page tests (Svelte components)
+						'tests/unit/dashboard-component-syntax.test.ts', // Component test, needs browser
+						'tests/unit/encryption.spec.ts', // Web Crypto API (browser only)
+						'tests/unit/documentValidation.spec.ts', // File/Blob APIs (browser only)
+						'src/**/__tests__/**/*.{test,spec}.{js,ts}', // Component co-located tests (Playwright)
 						'tests/integration/**',
 						'tests/contract/**',
 						'tests/e2e/**'
