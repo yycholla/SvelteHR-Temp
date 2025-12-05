@@ -49,7 +49,7 @@
 	let isOpen = $state(false);
 	let focused = $state(false);
 	let searchTerm = $state('');
-	const selectElement = $state<HTMLSelectElement>();
+	let selectElement = $state<HTMLButtonElement>();
 	let dropdownElement = $state<HTMLDivElement>();
 	let searchInputElement = $state<HTMLInputElement>();
 
@@ -190,7 +190,7 @@
 
 	<div class="select-wrapper">
 		<button
-			bind:this={selectElement as any}
+			bind:this={selectElement}
 			type="button"
 			{id}
 			{disabled}
