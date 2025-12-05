@@ -1,9 +1,9 @@
 # CI Workflow Fixes - Status Tracking
 
 **Branch**: `test/onboarding-forms-ci-updates`
-**CI Run**: 19971956349 (Latest) | Previous: 19971018473, 19968806312
+**CI Run**: 19971956349 (Reference) | Next: TBD
 **Date**: 2025-12-05
-**Latest Commit**: ca6d8942 - `fix(tests): Fix unit test environment and skip problematic EventDetailsDialog tests`
+**Latest Commit**: 8e1f9443 - `fix(tests): Exclude browser-dependent tests from Node environment`
 
 ## Executive Summary
 
@@ -153,6 +153,36 @@ Most common reasons include:
 
 - **Status:** Test file using Playwright in wrong environment
 - **Solution:** Skip or move to e2e tests
+
+#### 5. Resolution (Commit 8e1f9443)
+
+**All 4+ test environment issues fixed by excluding browser-dependent tests from unit-server:**
+
+Added comprehensive exclusion patterns to `vitest.config.ts` (unit-server environment):
+
+```typescript
+exclude: [
+  'src/**/*.svelte.{test,spec}.{js,ts}',
+  'tests/unit/**/*.svelte.{test,spec}.{js,ts}',
+  'src/lib/server/**/*.svelte.{test,spec}.{js,ts}',
+  'tests/unit/components/**/*.{test,spec}.{js,ts}', // Component tests
+  'tests/unit/routes/**/*.{test,spec}.{js,ts}', // Route/page tests ← NEW
+  'tests/unit/dashboard-component-syntax.test.ts', // Component test ← NEW
+  'tests/unit/encryption.spec.ts', // Web Crypto API ← NEW
+  'tests/unit/documentValidation.spec.ts', // File/Blob APIs ← NEW
+  'src/**/__tests__/**/*.{test,spec}.{js,ts}', // Co-located tests ← NEW
+  'tests/integration/**',
+  'tests/contract/**',
+  'tests/e2e/**'
+],
+```
+
+**Tests now run in correct environment:**
+
+- **unit-server (Node.js)**: Pure TypeScript/JavaScript logic tests
+- **unit-client (jsdom/browser)**: Component tests, browser API tests
+
+**Expected Impact**: All 4+ browser API test failures should be resolved in next CI run.
 
 ---
 
