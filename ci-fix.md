@@ -276,71 +276,119 @@ $ cargo test --no-run
 
 ---
 
-## ❌ 4. Type Check - NEEDS FIX
+## 🔄 4. Type Check - IN PROGRESS
 
 **Priority**: MEDIUM (Comprehensive but time-consuming)
-**Effort**: HIGH
+**Effort**: HIGH → MEDIUM (pattern-based approach identified)
 **Impact**: MEDIUM (Improves code quality, may be blocking some features)
+**Latest Commit**: 3b50cdb1
 
 ### Error Summary:
 
 ```
-svelte-check found 1,890 errors and 28 warnings in 301 files
+Initial: 1,890 errors and 28 warnings in 301 files
+Current:  1,850 errors and 28 warnings (40 errors fixed, 2% reduction)
 ```
 
-### Common Error Patterns:
+### Top Error Pattern Identified: `'locals.user' is possibly 'undefined'`
 
-1. **Possibly undefined errors**:
+**Impact**: 274 occurrences across 45 files (14.5% of all type errors)
+**Root Cause**: TypeScript doesn't understand that `error()` and `redirect()` always throw
+**Status**: ✅ **Solution implemented** - TypeScript assertion functions
 
-   ```typescript
-   'response.errors' is possibly 'undefined'
-   ```
+### Solution Implemented (Commit 3b50cdb1):
 
-2. **Unused @ts-expect-error directives**:
+#### 1. Enhanced `requireAuth()` with TypeScript Assertions
 
-   ```typescript
-   Error: Unused '@ts-expect-error' directive.
-   // @ts-expect-error - Invalid aspect ratio
-   ```
+```typescript
+export function requireAuth(
+	event: RequestEvent,
+	config: RBACConfig = {}
+): asserts event is RequestEvent & { locals: { user: NonNullable<...> } } {
+	if (!locals.user) {
+		throw redirect(303, `/login${redirectTo}`); // Added explicit throw
+	}
+	// ... permission checks with throw error()
+}
+```
 
-3. **Type mismatches** (various locations)
+**Usage Pattern for Pages**:
 
-4. **Unused CSS selectors** (28 warnings):
-   ```
-   Warn: Unused CSS selector ".status-invited"
-   Warn: Unused CSS selector ".status-in_progress"
-   Warn: Unused CSS selector ".status-completed"
-   ```
+```typescript
+export const load: PageServerLoad = async (event) => {
+	const { url, cookies } = event;
+	requireAuth(event, {}); // Asserts event.locals.user is defined
 
-### Strategy:
+	// After requireAuth, re-destructure locals with guaranteed user
+	const { locals } = event;
 
-Given the scale (1,890 errors), we have several approaches:
+	// Now locals.user is guaranteed non-null - no type errors!
+	const userId = locals.user.id;
+};
+```
 
-**Option A - Strict Mode Disable (Quick but not ideal)**:
+#### 2. Created `assertUser()` Helper for API Routes
 
-- Temporarily disable strict type checking in `tsconfig.json`
-- Allows CI to pass while fixing incrementally
-- Not recommended for production
+```typescript
+export function assertUser(
+	locals: App.Locals
+): asserts locals is App.Locals & { user: NonNullable<...> } {
+	if (!locals.user) {
+		throw error(401, 'Authentication required');
+	}
+}
+```
 
-**Option B - Incremental Fixing (Recommended)**:
+**Usage Pattern for API Handlers**:
 
-1. Fix errors by file/module (start with most impactful files)
-2. Focus on commonly repeated patterns first
-3. Use `// @ts-ignore` for edge cases temporarily
-4. Create follow-up tickets for remaining errors
+```typescript
+export const GET: RequestHandler = async ({ url, locals }) => {
+	assertUser(locals); // Asserts locals.user is defined
 
-**Option C - Pattern-Based Fixing**:
+	// Now locals.user is guaranteed non-null!
+	const userId = locals.user.id;
+};
+```
 
-1. Fix all "possibly undefined" errors with null checks
-2. Remove all unused `@ts-expect-error` directives
-3. Fix type mismatches category by category
+### Files Fixed So Far (40 errors resolved):
 
-### Files to Prioritize:
+1. ✅ `src/lib/server/rbac-utils.ts` - Added assertion functions (1 error)
+2. ✅ `src/routes/dashboard/+page.server.ts` - Re-destructured locals after requireAuth (30 errors)
+3. ✅ `src/routes/api/storage/retrieve/+server.ts` - Added throw before error() calls (4 errors)
+4. ✅ `src/routes/api/storage/upload/+server.ts` - Replaced auth check with assertUser() (5 errors)
 
-- Core routing files
-- API integration files
-- Authentication/authorization files
-- Frequently used components
+### Remaining Work (245 `locals.user` errors in ~43 files):
+
+**Files by error count (Top 15)**:
+
+```
+22 errors - src/routes/dashboard/management/+page.server.ts
+21 errors - src/routes/dashboard/management/reports/+page.server.ts
+21 errors - src/routes/dashboard/management/leave-approvals/+page.server.ts
+10 errors - src/routes/dashboard/tasks/my-tasks/+page.server.ts
+10 errors - src/routes/dashboard/events/+page.server.ts
+10 errors - src/routes/dashboard/departments/+page.server.ts
+ 8 errors - src/routes/dashboard/employees/+page.server.ts
+ 8 errors - src/routes/dashboard/employees/[id]/+page.server.ts
+ 8 errors - src/routes/dashboard/employees2/[id]/+page.server.ts
+ 7 errors - src/routes/dashboard/tasks/team-tasks/+page.server.ts
+ 6 errors - src/routes/settings/+page.server.ts
+ 6 errors - src/routes/dashboard/tasks/new/+page.server.ts
+ 6 errors - src/routes/dashboard/reviews/+page.server.ts
+ 6 errors - src/routes/dashboard/reviews/create/+page.server.ts
+```
+
+**Fix Pattern**: For each file, apply one of these patterns:
+
+**Pattern A - Pages using `requireAuth()`**: Re-destructure `locals` after the call
+**Pattern B - API routes**: Replace `if (!locals.user) { error(...) }` with `assertUser(locals)`
+
+### Other Error Patterns (1,605 remaining errors):
+
+1. **Unused @ts-expect-error directives** (~50-100 errors)
+2. **Type mismatches** (various locations)
+3. **Unused CSS selectors** (28 warnings)
+4. **Other 'possibly undefined' errors** (not locals.user)
 
 ---
 
@@ -378,10 +426,14 @@ Given the scale (1,890 errors), we have several approaches:
 - [x] vitest.config.ts: Exclude component tests from unit-server - Commit ca6d8942
 - [x] Skip EventDetailsDialog tests (both .spec.ts and .contract.spec.ts) - Commit ca6d8942
 
-### Current Status (Latest: Commit ec3c496f):
+### Current Status (Latest: Commit 3b50cdb1):
 
 - ✅ **Lint**: PASSING (0 errors, 5261 warnings) - CI Run 19971956349
-- ❌ **Type Check**: FAILING (1,890 type errors, 28 warnings) - Not yet addressed
+- 🔄 **Type Check**: IN PROGRESS (1,850 / 1,890 errors fixed = 2% reduction) - Commit 3b50cdb1
+  - ✅ Implemented TypeScript assertion functions (requireAuth, assertUser)
+  - ✅ Fixed 40 errors across 4 files (dashboard, API storage routes)
+  - 🔄 245 'locals.user' errors remaining in ~43 files
+  - 📋 Clear pattern identified for fixing remaining errors
 - ❓ **Unit Tests (Frontend)**: Fixed, pending CI verification (Commit 8e1f9443)
   - Excluded browser API tests from Node environment
   - Expected to pass in next CI run
@@ -392,7 +444,10 @@ Given the scale (1,890 errors), we have several approaches:
 ### Remaining Work:
 
 1. **Monitor Next CI Run** - Verify Unit Test fixes work as expected
-2. **Type Check** - 1,890 type errors (MEDIUM PRIORITY, incremental approach)
+2. 🔥 **Type Check** - 1,850 type errors remaining (IN PROGRESS):
+   - Priority: Fix remaining 245 `locals.user` errors using assertion pattern
+   - Effort: ~1-2 hours (systematic application of proven pattern)
+   - Impact: 15% reduction in total type errors when complete
 
 ### Blocked by Earlier Failures:
 
