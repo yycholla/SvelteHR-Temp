@@ -7,7 +7,7 @@ import type { RequestHandler } from './$types';
 export const GET: RequestHandler = async ({ url, locals }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
-		error(401, { message: 'Authentication required' });
+		throw error(401, { message: 'Authentication required' });
 	}
 
 	try {
@@ -15,7 +15,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 		const storagePath = url.searchParams.get('path');
 
 		if (!storagePath) {
-			error(400, { message: 'Missing required parameter: path' });
+			throw error(400, { message: 'Missing required parameter: path' });
 		}
 
 		// Step 3: Retrieve encrypted data from PostgreSQL
@@ -45,14 +45,14 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 				locals.user.role !== 'super_admin' &&
 				locals.user.role !== 'admin'
 			) {
-				error(403, { message: 'Access denied to this file' });
+				throw error(403, { message: 'Access denied to this file' });
 			}
 
 			return row;
 		});
 
 		if (!result) {
-			error(404, { message: 'File not found' });
+			throw error(404, { message: 'File not found' });
 		}
 
 		// Convert BYTEA to base64

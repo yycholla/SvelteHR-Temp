@@ -1,10 +1,11 @@
 /**
- * Server-side RBAC utilities for SvelteKit load functions
- * Provides consistent permission checking across all pages
+ * Server-side RBAC utilities for SvelteKit load functions and API handlers
+ * Provides consistent permission checking across all pages and endpoints
  */
 
 import { error, redirect } from '@sveltejs/kit';
 import type { RequestEvent } from '@sveltejs/kit';
+import type { App } from '../../../app.d.ts';
 
 export interface RBACConfig {
 	requiredPermissions?: string[];
@@ -58,15 +59,19 @@ export function hasRole(
 
 /**
  * Main RBAC guard function for server-side load functions
+ * Uses TypeScript assertion to guarantee locals.user is defined after this call
  */
-export function requireAuth(event: RequestEvent, config: RBACConfig = {}): void {
+export function requireAuth(
+	event: RequestEvent,
+	config: RBACConfig = {}
+): asserts event is RequestEvent & { locals: { user: NonNullable<RequestEvent['locals']['user']> } } {
 	const { locals } = event;
 
 	// Check if user is authenticated
 	if (!locals.user) {
 		const redirectTo =
 			event.url.pathname === '/' ? '' : `?redirectTo=${encodeURIComponent(event.url.pathname)}`;
-		redirect(303, `/login${redirectTo}`);
+		throw redirect(303, `/login${redirectTo}`);
 	}
 
 	const {
@@ -85,7 +90,7 @@ export function requireAuth(event: RequestEvent, config: RBACConfig = {}): void 
 		);
 
 		if (!hasRequiredPermissions) {
-			error(
+			throw error(
 				403,
 				'Access forbidden: You do not have the required permissions to access this resource'
 			);
@@ -97,7 +102,7 @@ export function requireAuth(event: RequestEvent, config: RBACConfig = {}): void 
 		const hasRequiredRoles = hasRole(locals.roles || [], requiredRoles, requireAll);
 
 		if (!hasRequiredRoles) {
-			error(403, 'Access forbidden: You do not have the required role to access this resource');
+			throw error(403, 'Access forbidden: You do not have the required role to access this resource');
 		}
 	}
 
@@ -110,8 +115,21 @@ export function requireAuth(event: RequestEvent, config: RBACConfig = {}): void 
 		);
 
 		if (!hasAllowedRole) {
-			error(403, 'Access forbidden: Your role does not have access to this resource');
+			throw error(403, 'Access forbidden: Your role does not have access to this resource');
 		}
+	}
+}
+
+/**
+ * Assert that user is authenticated (for API handlers)
+ * This is a simpler version of requireAuth for use in API routes that don't have full RequestEvent
+ * Uses TypeScript assertion to guarantee locals.user is defined after this call
+ */
+export function assertUser(
+	locals: App.Locals
+): asserts locals is App.Locals & { user: NonNullable<App.Locals['user']> } {
+	if (!locals.user) {
+		throw error(401, 'Authentication required');
 	}
 }
 

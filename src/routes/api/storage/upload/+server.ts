@@ -4,12 +4,11 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { setJWTClaims, transaction } from '$lib/server/db';
+import { assertUser } from '$lib/server/rbac-utils';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	// Step 1: Validate authentication
-	if (!locals.user) {
-		error(401, { message: 'Authentication required' });
-	}
+	assertUser(locals);
 
 	try {
 		// Step 2: Parse request body

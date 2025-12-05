@@ -9,10 +9,13 @@ import { ensureBackendReady } from '$lib/server/backend-init';
 import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, url, cookies } = event;
+	const { url, cookies } = event;
 
 	// Check authentication (all authenticated users can access dashboard)
 	requireAuth(event, {});
+
+	// After requireAuth, we can safely destructure locals with user
+	const { locals } = event;
 
 	// CRITICAL: Prevent browser-level caching of dashboard data
 	event.setHeaders({
