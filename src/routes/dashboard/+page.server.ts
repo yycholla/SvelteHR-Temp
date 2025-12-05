@@ -8,6 +8,66 @@ import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 import { logger } from '$lib/utils/logger';
 
+// Type definitions for GraphQL query responses
+interface User {
+	id: string;
+	firstName: string;
+	lastName: string;
+	isActive: boolean;
+	departmentId?: string;
+}
+
+interface Department {
+	id: string;
+	name: string;
+	managerId?: string;
+}
+
+interface AttendanceRecord {
+	id: string;
+	date: string;
+	clockIn: string;
+	clockOut: string | null;
+	hoursWorked: number | null;
+	status: string;
+}
+
+interface LeaveType {
+	id: string;
+	name: string;
+	color: string;
+}
+
+interface LeaveRequest {
+	id: string;
+	leaveType: LeaveType | null;
+	startDate: string;
+	endDate: string;
+	daysRequested: number;
+	status: string;
+	createdAt: string;
+}
+
+interface EmployeeGoal {
+	id: string;
+	employeeId: string;
+	goalTitle: string;
+	goalDescription: string | null;
+	status: string;
+	targetDate: string | null;
+	createdAt: string;
+}
+
+interface Task {
+	id: string;
+	title: string;
+	description: string | null;
+	status: string;
+	priority: string;
+	dueDate: string | null;
+	createdAt: string;
+}
+
 export const load: PageServerLoad = async (event) => {
 	const { url, cookies } = event;
 
@@ -290,8 +350,8 @@ export const load: PageServerLoad = async (event) => {
 		console.log(`✅ Dashboard: Critical queries completed in ${criticalDuration}ms`);
 
 		// Extract critical data immediately
-		const users = (usersResult.status === 'fulfilled' && usersResult.value.data?.users) || [];
-		const departments =
+		const users: User[] = (usersResult.status === 'fulfilled' && usersResult.value.data?.users) || [];
+		const departments: Department[] =
 			(departmentsResult.status === 'fulfilled' && departmentsResult.value.data?.departments) || [];
 
 		// Stream slow queries as promises
@@ -324,15 +384,15 @@ export const load: PageServerLoad = async (event) => {
 			] = results;
 
 			// Extract data with fallbacks
-			const allAttendanceRecords =
+			const allAttendanceRecords: AttendanceRecord[] =
 				(attendanceResult.status === 'fulfilled' &&
 					attendanceResult.value.data?.attendanceRecords) ||
 				[];
-			const leaveRequests =
+			const leaveRequests: LeaveRequest[] =
 				(leaveResult.status === 'fulfilled' && leaveResult.value.data?.leaveRequests) || [];
-			const goals =
+			const goals: EmployeeGoal[] =
 				(goalsResult.status === 'fulfilled' && goalsResult.value.data?.employeeGoals) || [];
-			const tasks = (tasksResult.status === 'fulfilled' && tasksResult.value.data?.tasks) || [];
+			const tasks: Task[] = (tasksResult.status === 'fulfilled' && tasksResult.value.data?.tasks) || [];
 			const events = (eventsResult.status === 'fulfilled' && eventsResult.value.data?.events) || [];
 			const activityLogs =
 				(activityLogsResult.status === 'fulfilled' &&
