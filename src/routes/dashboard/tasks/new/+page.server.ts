@@ -4,13 +4,18 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies, url } = event;
+	const { cookies, url } = event;
 
 	// Check authentication and permissions
-	PermissionChecks.tasksWrite(event);
+	requireAuth(event, {
+		requiredPermissions: ['tasks:write', 'tasks:write:self', 'tasks:write:team', 'tasks:write:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Import required models
 	const { createDataRequest } = await import('$lib/models/data-request');
@@ -229,10 +234,15 @@ export const load: PageServerLoad = async (event) => {
 // Form actions for task creation
 export const actions: Actions = {
 	default: async (event) => {
-		const { request, locals } = event;
+		const { request } = event;
 
 		// Check authentication and permissions
-		PermissionChecks.tasksWrite(event);
+		requireAuth(event, {
+			requiredPermissions: ['tasks:write', 'tasks:write:self', 'tasks:write:team', 'tasks:write:all']
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		try {
 			const formData = await request.formData();

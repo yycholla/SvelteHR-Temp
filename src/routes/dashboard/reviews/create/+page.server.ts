@@ -8,13 +8,18 @@
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { PermissionChecks } from '$lib/server/rbac-utils';
+import { requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, url, cookies } = event;
+	const { url, cookies } = event;
 
 	// Check authentication and permissions (write required to create reviews)
-	PermissionChecks.performanceWrite(event);
+	requireAuth(event, {
+		requiredPermissions: ['performance:write', 'performance:write:self', 'performance:write:team', 'performance:write:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	const userId = locals.user.id;
 	const userRole = locals.user.role || 'employee';

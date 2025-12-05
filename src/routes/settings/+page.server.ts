@@ -8,10 +8,13 @@ import { createSettingsOperations } from '$lib/graphql/settings-operations';
 import { createUrqlClient } from '$lib/graphql/client';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies, url } = event;
+	const { cookies, url } = event;
 
 	// RBAC: Settings pages are accessible to all authenticated users (profile management)
 	requireAuth(event);
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Import required models for standardized error handling
 	const { createDataRequest } = await import('$lib/models/data-request');

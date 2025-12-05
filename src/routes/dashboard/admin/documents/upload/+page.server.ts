@@ -4,7 +4,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { PermissionChecks } from '$lib/server/rbac-utils';
+import { requireAuth } from '$lib/server/rbac-utils';
 import { UPLOAD_DOCUMENT } from '$lib/graphql/document-operations';
 import { GET_EMPLOYEES_QUERY } from '$lib/graphql/employee-operations';
 
@@ -12,10 +12,15 @@ import { createAccessMetadata, logSuccessfulAccess } from '$lib/services/auditSe
 import type { UploadResult } from '$lib/types/document';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies, fetch } = event;
+	const { cookies, fetch } = event;
 
 	// Check authentication and permissions
-	PermissionChecks.adminWrite(event);
+	requireAuth(event, {
+		requiredPermissions: ['admin:write', 'admin:write:self', 'admin:write:team', 'admin:write:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	const userId = locals.user.id;
 	const userPermissions = locals.permissions || [];
