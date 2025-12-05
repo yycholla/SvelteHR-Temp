@@ -131,12 +131,12 @@
 				variant={autoRefresh ? 'primary' : 'secondary'}
 				size="sm"
 				leftIcon={autoRefresh ? 'pause' : 'play'}
-				on:click={toggleAutoRefresh}
+				onclick={toggleAutoRefresh}
 			>
 				{autoRefresh ? 'Pause' : 'Start'} Auto-refresh
 			</Button>
 
-			<Button variant="ghost" size="sm" leftIcon="refresh-cw" on:click={loadMetrics} {loading}>
+			<Button variant="ghost" size="sm" leftIcon="refresh-cw" onclick={loadMetrics} {loading}>
 				Refresh
 			</Button>
 		</div>
@@ -154,7 +154,7 @@
 				<div>
 					<h3>Failed to Load Metrics</h3>
 					<p>{error}</p>
-					<Button variant="secondary" size="sm" on:click={loadMetrics}>Try Again</Button>
+					<Button variant="secondary" size="sm" onclick={loadMetrics}>Try Again</Button>
 				</div>
 			</div>
 		</Card>

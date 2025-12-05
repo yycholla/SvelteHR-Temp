@@ -224,7 +224,7 @@
 
 		<div class="page-header__actions">
 			{#if auth.user && auth.hasPermission('task:create')}
-				<Button variant="primary" leftIcon="plus" on:click={() => goto('/tasks/new')}>
+				<Button variant="primary" leftIcon="plus" onclick={() => goto('/tasks/new')}>
 					Create Task
 				</Button>
 			{/if}
@@ -266,7 +266,7 @@
 
 			{#if hasFiltersApplied}
 				<div class="filter-item">
-					<Button variant="ghost" size="sm" leftIcon="x" on:click={clearFilters}>
+					<Button variant="ghost" size="sm" leftIcon="x" onclick={clearFilters}>
 						Clear Filters
 					</Button>
 				</div>
@@ -288,7 +288,7 @@
 							variant="secondary"
 							size="sm"
 							leftIcon="check"
-							on:click={() => handleBulkAction('complete')}
+							onclick={() => handleBulkAction('complete')}
 						>
 							Mark Complete
 						</Button>
@@ -297,7 +297,7 @@
 							variant="secondary"
 							size="sm"
 							leftIcon="user"
-							on:click={() => handleBulkAction('assign')}
+							onclick={() => handleBulkAction('assign')}
 						>
 							Assign
 						</Button>
@@ -308,7 +308,7 @@
 							variant="danger"
 							size="sm"
 							leftIcon="trash-2"
-							on:click={() => handleBulkAction('delete')}
+							onclick={() => handleBulkAction('delete')}
 						>
 							Delete
 						</Button>
@@ -345,7 +345,7 @@
 				<div class="error-content">
 					<h3 class="error-title">Error Loading Tasks</h3>
 					<p class="error-description">{$taskError}</p>
-					<Button variant="secondary" size="sm" leftIcon="refresh-cw" on:click={loadTasks}>
+					<Button variant="secondary" size="sm" leftIcon="refresh-cw" onclick={loadTasks}>
 						Retry
 					</Button>
 				</div>

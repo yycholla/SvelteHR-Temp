@@ -81,7 +81,7 @@
 
 		<div class="header-actions">
 			{#if $currentUser && hasPermission('onboarding:create')}
-				<Button variant="primary" leftIcon="user-plus" on:click={() => goto('/onboarding/new')}>
+				<Button variant="primary" leftIcon="user-plus" onclick={() => goto('/onboarding/new')}>
 					Start Onboarding
 				</Button>
 			{/if}
@@ -150,21 +150,21 @@
 			<button
 				class="tab-button"
 				class:active={selectedTab === 'active'}
-				on:click={() => (selectedTab = 'active')}
+				onclick={() => (selectedTab = 'active')}
 			>
 				Active ({$activeOnboardingInstances.length})
 			</button>
 			<button
 				class="tab-button"
 				class:active={selectedTab === 'completed'}
-				on:click={() => (selectedTab = 'completed')}
+				onclick={() => (selectedTab = 'completed')}
 			>
 				Completed ({$completedOnboardingInstances.length})
 			</button>
 			<button
 				class="tab-button"
 				class:active={selectedTab === 'all'}
-				on:click={() => (selectedTab = 'all')}
+				onclick={() => (selectedTab = 'all')}
 			>
 				All ({$onboardingInstances.length})
 			</button>
@@ -189,7 +189,7 @@
 							variant="secondary"
 							size="sm"
 							leftIcon="refresh-cw"
-							on:click={() => onboardingService.loadInstances({ reset: true })}
+							onclick={() => onboardingService.loadInstances({ reset: true })}
 							class="mt-2"
 						>
 							Retry
@@ -220,7 +220,7 @@
 							variant="primary"
 							size="md"
 							leftIcon="user-plus"
-							on:click={() => goto('/onboarding/new')}
+							onclick={() => goto('/onboarding/new')}
 							class="mt-4"
 						>
 							Start Onboarding
@@ -291,7 +291,7 @@
 								variant="secondary"
 								size="sm"
 								leftIcon="eye"
-								on:click={() => goto(`/onboarding/${instance.id}`)}
+								onclick={() => goto(`/onboarding/${instance.id}`)}
 							>
 								View Details
 							</Button>
@@ -301,7 +301,7 @@
 									variant="primary"
 									size="sm"
 									leftIcon="check"
-									on:click={() => goto(`/onboarding/${instance.id}/tasks`)}
+									onclick={() => goto(`/onboarding/${instance.id}/tasks`)}
 								>
 									Manage Tasks
 								</Button>

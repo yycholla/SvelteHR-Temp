@@ -227,7 +227,7 @@
 				<button
 					class="tab-button"
 					class:active={selectedTab === 'users'}
-					on:click={() => (selectedTab = 'users')}
+					onclick={() => (selectedTab = 'users')}
 				>
 					<i class="icon-users h-4 w-4"></i>
 					User Roles
@@ -235,7 +235,7 @@
 				<button
 					class="tab-button"
 					class:active={selectedTab === 'roles'}
-					on:click={() => (selectedTab = 'roles')}
+					onclick={() => (selectedTab = 'roles')}
 				>
 					<i class="icon-shield h-4 w-4"></i>
 					Role Definitions
@@ -243,7 +243,7 @@
 				<button
 					class="tab-button"
 					class:active={selectedTab === 'permissions'}
-					on:click={() => (selectedTab = 'permissions')}
+					onclick={() => (selectedTab = 'permissions')}
 				>
 					<i class="icon-lock h-4 w-4"></i>
 					Permission Matrix
@@ -313,7 +313,7 @@
 									variant="secondary"
 									size="xs"
 									leftIcon="edit"
-									on:click={() => openUserRoleModal(row)}
+									onclick={() => openUserRoleModal(row)}
 								>
 									Edit Roles
 								</Button>
@@ -420,7 +420,7 @@
 			<div class="modal-content">
 				<div class="modal-header">
 					<h3 class="modal-title">Edit Roles for {modalUser.display_name}</h3>
-					<button class="modal-close" on:click={closeUserRoleModal} aria-label="Close modal">
+					<button class="modal-close" onclick={closeUserRoleModal} aria-label="Close modal">
 						<i class="icon-x h-5 w-5"></i>
 					</button>
 				</div>
@@ -462,8 +462,8 @@
 				</div>
 
 				<div class="modal-footer">
-					<Button variant="secondary" on:click={closeUserRoleModal}>Cancel</Button>
-					<Button variant="primary" leftIcon="save" on:click={saveUserRoles}>Save Roles</Button>
+					<Button variant="secondary" onclick={closeUserRoleModal}>Cancel</Button>
+					<Button variant="primary" leftIcon="save" onclick={saveUserRoles}>Save Roles</Button>
 				</div>
 			</div>
 		</div>

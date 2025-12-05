@@ -223,7 +223,7 @@
 													variant="secondary"
 													size="sm"
 													leftIcon="play"
-													on:click={() => handleTaskAction(task, 'start')}
+													onclick={() => handleTaskAction(task, 'start')}
 												>
 													Start
 												</Button>
@@ -232,7 +232,7 @@
 													variant="primary"
 													size="sm"
 													leftIcon="check"
-													on:click={() => handleTaskAction(task, 'complete')}
+													onclick={() => handleTaskAction(task, 'complete')}
 												>
 													Complete
 												</Button>
@@ -278,7 +278,7 @@
 		<div class="modal-content">
 			<div class="modal-header">
 				<h3 class="modal-title">Complete Task</h3>
-				<button class="modal-close" on:click={cancelCompletion} aria-label="Close modal">
+				<button class="modal-close" onclick={cancelCompletion} aria-label="Close modal">
 					<i class="icon-x h-5 w-5"></i>
 				</button>
 			</div>
@@ -302,8 +302,8 @@
 			</div>
 
 			<div class="modal-footer">
-				<Button variant="secondary" on:click={cancelCompletion}>Cancel</Button>
-				<Button variant="primary" leftIcon="check" on:click={handleCompleteWithNotes}>
+				<Button variant="secondary" onclick={cancelCompletion}>Cancel</Button>
+				<Button variant="primary" leftIcon="check" onclick={handleCompleteWithNotes}>
 					Mark Complete
 				</Button>
 			</div>

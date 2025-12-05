@@ -589,7 +589,7 @@
 							variant="outline"
 							size="sm"
 							disabled={!hasPreviousPage}
-							on:click={() => goToPage(currentPage - 1)}
+							onclick={() => goToPage(currentPage - 1)}
 						>
 							Previous
 						</Button>
@@ -599,7 +599,7 @@
 								<Button
 									variant={currentPage === i + 1 ? 'default' : 'outline'}
 									size="sm"
-									on:click={() => goToPage(i + 1)}
+									onclick={() => goToPage(i + 1)}
 								>
 									{i + 1}
 								</Button>
@@ -609,7 +609,7 @@
 							<Button
 								variant={currentPage === 1 ? 'default' : 'outline'}
 								size="sm"
-								on:click={() => goToPage(1)}
+								onclick={() => goToPage(1)}
 							>
 								1
 							</Button>
@@ -624,7 +624,7 @@
 									<Button
 										variant={currentPage === pageNum ? 'default' : 'outline'}
 										size="sm"
-										on:click={() => goToPage(pageNum)}
+										onclick={() => goToPage(pageNum)}
 									>
 										{pageNum}
 									</Button>
@@ -638,7 +638,7 @@
 							<Button
 								variant={currentPage === totalPages ? 'default' : 'outline'}
 								size="sm"
-								on:click={() => goToPage(totalPages)}
+								onclick={() => goToPage(totalPages)}
 							>
 								{totalPages}
 							</Button>
@@ -648,7 +648,7 @@
 							variant="outline"
 							size="sm"
 							disabled={!hasNextPage}
-							on:click={() => goToPage(currentPage + 1)}
+							onclick={() => goToPage(currentPage + 1)}
 						>
 							Next
 						</Button>
