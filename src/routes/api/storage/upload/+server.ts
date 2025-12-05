@@ -4,11 +4,18 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { setJWTClaims, transaction } from '$lib/server/db';
-import { assertUser } from '$lib/server/rbac-utils';
+import { requireAuth } from '$lib/server/rbac-utils';
 
-export const POST: RequestHandler = async ({ request, locals }) => {
+export const POST: RequestHandler = async (event) => {
+	const { request } = event;
+
 	// Step 1: Validate authentication
-	assertUser(locals);
+	requireAuth(event, {
+		requiredPermissions: ['documents:write', 'documents:write:self', 'documents:write:team', 'documents:write:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	try {
 		// Step 2: Parse request body

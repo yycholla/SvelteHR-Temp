@@ -9,15 +9,20 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { PermissionChecks } from '$lib/server/rbac-utils';
+import { requireAuth } from '$lib/server/rbac-utils';
 import { canEditReview, canViewReview } from '$lib/utils/rbac';
 
 export const load: PageServerLoad = async (event) => {
-	const { params, locals, cookies, fetch: fetchFn } = event;
+	const { params, cookies, fetch: fetchFn } = event;
 	const reviewId = params.id;
 
 	// Check authentication and permissions
-	PermissionChecks.performanceRead(event);
+	requireAuth(event, {
+		requiredPermissions: ['performance:read', 'performance:read:self', 'performance:read:team', 'performance:read:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	const userId = locals.user.id;
 	const userRole = locals.user.role || 'employee';

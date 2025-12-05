@@ -5,17 +5,20 @@
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { EventsOperations } from '$lib/graphql/events-operations';
-import { PermissionChecks } from '$lib/server/rbac-utils';
+import { requireAuth } from '$lib/server/rbac-utils';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 import { normalizeRsvpStatus } from '$lib/graphql/types';
 
-export const load: PageServerLoad = async ({ params, locals, url, cookies }) => {
-	// Check authentication and permissions
-	if (!locals.user) {
-		redirect(303, `/login?redirectTo=${url.pathname}`);
-	}
+export const load: PageServerLoad = async (event) => {
+	const { params, url, cookies } = event;
 
-	PermissionChecks.eventsRead({ params, locals, url, cookies } as any);
+	// Check authentication and permissions
+	requireAuth(event, {
+		requiredPermissions: ['events:read', 'events:read:self', 'events:read:team', 'events:read:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// T036: Session-based authentication - jwtToken not needed
 	const userCredentials = {
@@ -135,10 +138,15 @@ function getRoleLevel(role: string | undefined): number {
 
 export const actions: Actions = {
 	delete: async (event) => {
-		const { params, locals, cookies, fetch } = event;
+		const { params, cookies, fetch } = event;
 
 		// Check authentication and permissions
-		PermissionChecks.eventsWrite(event);
+		requireAuth(event, {
+			requiredPermissions: ['events:write', 'events:write:self', 'events:write:team', 'events:write:all']
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		// T036: Session-based authentication - jwtToken not needed
 		const userCredentials = {
