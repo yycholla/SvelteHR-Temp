@@ -85,8 +85,13 @@ export default ts.config(
 		}
 	},
 	{
-		files: ['src/lib/components/**/*.svelte'],
+		files: ['**/*.svelte'],
 		rules: {
+			// Disable prefer-const for Svelte files due to Svelte 5 runes syntax
+			// In Svelte 5, props destructuring uses 'let' even when values aren't reassigned
+			// Example: let { value, disabled } = $props() - must use 'let', not 'const'
+			'prefer-const': 'off',
+
 			// Component-specific rules
 			'@typescript-eslint/no-unused-vars': [
 				'error',
