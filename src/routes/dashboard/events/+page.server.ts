@@ -6,7 +6,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { EventsOperations } from '$lib/graphql/events-operations';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
 import type { EventStatus, EventType, EventVisibilityType } from '$lib/graphql/types';
 import { normalizeRsvpStatus } from '$lib/graphql/types';
 import { gql } from '@urql/svelte';
@@ -19,13 +19,16 @@ import {
 	GET_USER_WAITLIST_STATUS
 } from '$lib/graphql/events-operations';
 
-export const load: PageServerLoad = async ({ locals, url, cookies }) => {
-	// Check authentication and permissions
-	if (!locals.user) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
-	}
+export const load: PageServerLoad = async (event) => {
+	const { url, cookies } = event;
 
-	PermissionChecks.eventsRead({ locals, url, cookies } as any);
+	// Check authentication and permissions
+	requireAuth(event, {
+		requiredPermissions: ['events:read', 'events:read:self', 'events:read:team', 'events:read:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Get standardized user permissions
 	const userPerms = getUserPermissions(locals);
@@ -329,10 +332,15 @@ async function fetchUserWaitlistStatus(
 // Form actions
 export const actions: Actions = {
 	updateEventTime: async (event) => {
-		const { request, locals, cookies } = event;
+		const { request, cookies } = event;
 
 		// Check authentication and permissions
-		PermissionChecks.eventsWrite(event);
+		requireAuth(event, {
+			requiredPermissions: ['events:write', 'events:write:self', 'events:write:team', 'events:write:all']
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		// Parse form data
 		const formData = await request.formData();
@@ -395,10 +403,15 @@ export const actions: Actions = {
 	},
 
 	createEvent: async (event) => {
-		const { request, locals, cookies, fetch: eventFetch } = event;
+		const { request, cookies, fetch: eventFetch } = event;
 
 		// Check authentication and permissions
-		PermissionChecks.eventsWrite(event);
+		requireAuth(event, {
+			requiredPermissions: ['events:write', 'events:write:self', 'events:write:team', 'events:write:all']
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		// Parse form data
 		const formData = await request.formData();
@@ -490,10 +503,15 @@ export const actions: Actions = {
 	},
 
 	updateEvent: async (event) => {
-		const { request, locals, cookies } = event;
+		const { request, cookies } = event;
 
 		// Check authentication and permissions
-		PermissionChecks.eventsWrite(event);
+		requireAuth(event, {
+			requiredPermissions: ['events:write', 'events:write:self', 'events:write:team', 'events:write:all']
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		// Parse form data
 		const formData = await request.formData();
@@ -581,11 +599,16 @@ export const actions: Actions = {
 	},
 
 	deleteEvent: async (event) => {
-		const { request, locals, cookies, fetch } = event;
+		const { request, cookies, fetch } = event;
 		console.log('[SERVER] deleteEvent action called');
 
 		// Check authentication and permissions
-		PermissionChecks.eventsWrite(event);
+		requireAuth(event, {
+			requiredPermissions: ['events:write', 'events:write:self', 'events:write:team', 'events:write:all']
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		// Parse form data
 		const formData = await request.formData();
@@ -634,12 +657,17 @@ export const actions: Actions = {
 	},
 
 	updateRsvpStatus: async (event) => {
-		const { request, locals, cookies } = event;
+		const { request, cookies } = event;
 
 		console.log('[SERVER] updateRsvpStatus action called');
 
 		// Check authentication and permissions
-		PermissionChecks.eventsRead(event);
+		requireAuth(event, {
+			requiredPermissions: ['events:read', 'events:read:self', 'events:read:team', 'events:read:all']
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		console.log('[SERVER] User authenticated:', locals.user.id);
 
@@ -780,10 +808,15 @@ export const actions: Actions = {
 	},
 
 	setEventReminder: async (event) => {
-		const { request, locals, cookies } = event;
+		const { request, cookies } = event;
 
 		// Check authentication and permissions
-		PermissionChecks.eventsRead(event);
+		requireAuth(event, {
+			requiredPermissions: ['events:read', 'events:read:self', 'events:read:team', 'events:read:all']
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		// Parse form data
 		const formData = await request.formData();

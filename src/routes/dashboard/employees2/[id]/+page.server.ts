@@ -3,19 +3,19 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
-	const { params, locals } = event;
+	const { params } = event;
 	const employeeId = params.id;
 
 	// RBAC: Check employee write permissions (details view requires write access)
-	PermissionChecks.employeeWrite(event);
+	requireAuth(event, {
+		requiredPermissions: ['employees:write', 'employees:write:self', 'employees:write:team', 'employees:write:all']
+	});
 
-	// Ensure user is authenticated
-	if (!locals.user) {
-		error(401, 'Authentication required');
-	}
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Create simple user session object (session-based auth doesn't use JWT)
 	const userSession = {

@@ -3,19 +3,24 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
 import { validateRoles } from '$lib/schemas/role';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies, url } = event;
-
-	// Debug: Log user roles and permissions
-	console.log('[Employee Directory] User role:', locals.user?.role);
-	console.log('[Employee Directory] User roles array:', locals.roles);
-	console.log('[Employee Directory] User permissions:', locals.permissions);
+	const { cookies, url } = event;
 
 	// RBAC: Check employee directory access permissions
-	PermissionChecks.employeeRead(event);
+	requireAuth(event, {
+		requiredPermissions: ['employees:read', 'employees:read:self', 'employees:read:team', 'employees:read:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
+
+	// Debug: Log user roles and permissions
+	console.log('[Employee Directory] User role:', locals.user.role);
+	console.log('[Employee Directory] User roles array:', locals.roles);
+	console.log('[Employee Directory] User permissions:', locals.permissions);
 
 	// Import required models for standardized error handling
 	const { createErrorResponse } = await import('$lib/models/error-response');
