@@ -4,14 +4,19 @@
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { PermissionChecks } from '$lib/server/rbac-utils';
+import { requireAuth } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, url, cookies, fetch: fetchFn } = event;
+	const { url, cookies, fetch: fetchFn } = event;
 
 	// Check authentication and permissions
-	PermissionChecks.leaveApproval(event);
+	requireAuth(event, {
+		requiredPermissions: ['leave:approve']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	try {
 		// Check backend services are ready before proceeding

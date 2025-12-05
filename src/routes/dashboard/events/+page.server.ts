@@ -22,7 +22,7 @@ import {
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	// Check authentication and permissions
 	if (!locals.user) {
-		redirect(303, `/login?redirectTo=${url.pathname}`);
+		throw redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
 	PermissionChecks.eventsRead({ locals, url, cookies } as any);

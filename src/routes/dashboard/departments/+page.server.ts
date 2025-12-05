@@ -3,13 +3,18 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies, url } = event;
+	const { cookies, url } = event;
 
 	// RBAC: Check department access permissions
-	PermissionChecks.departmentRead(event);
+	requireAuth(event, {
+		requiredPermissions: ['departments:read', 'departments:read:self', 'departments:read:team', 'departments:read:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Import required models for standardized error handling
 	const { createErrorResponse } = await import('$lib/models/error-response');
