@@ -6,6 +6,18 @@ import { GraphQLClient } from '$lib/server/graphql-client';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 
+// Type definitions for GraphQL query responses
+interface EmployeeGoalFromGraphQL {
+	id: string;
+	title: string;
+	description: string | null;
+	status: string;
+	progressPercentage: number | null;
+	targetDate: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
 export const load: PageServerLoad = async (event) => {
 	const { locals, params, url, cookies } = event;
 
@@ -85,7 +97,7 @@ export const load: PageServerLoad = async (event) => {
 			limit: 100
 		});
 
-		const goals = goalsResult.data?.employeeGoals || [];
+		const goals: EmployeeGoalFromGraphQL[] = goalsResult.data?.employeeGoals || [];
 		// NOTE: Rust backend doesn't provide count query, use array length
 		const goalsCount = goals.length;
 
@@ -109,23 +121,29 @@ export const load: PageServerLoad = async (event) => {
 			{ id: '5', name: 'Team Collaboration', color: 'pink' }
 		];
 
+		// Determine if user can manage goals (based on permissions)
+		const canViewOthers =
+			userPermissions.includes('performance:read:team') ||
+			userPermissions.includes('performance:read:all') ||
+			userPermissions.includes('*');
+
 		// Calculate goal statistics from real data
 		const goalStats = {
 			total: goals.length,
-			completed: goals.filter((g) => g.status === 'completed').length,
-			inProgress: goals.filter((g) => g.status === 'in_progress').length,
-			atRisk: goals.filter((g) => g.status === 'at_risk').length,
-			notStarted: goals.filter((g) => g.status === 'not_started').length,
-			blocked: goals.filter((g) => g.status === 'blocked').length,
+			completed: goals.filter((g: EmployeeGoalFromGraphQL) => g.status === 'completed').length,
+			inProgress: goals.filter((g: EmployeeGoalFromGraphQL) => g.status === 'in_progress').length,
+			atRisk: goals.filter((g: EmployeeGoalFromGraphQL) => g.status === 'at_risk').length,
+			notStarted: goals.filter((g: EmployeeGoalFromGraphQL) => g.status === 'not_started').length,
+			blocked: goals.filter((g: EmployeeGoalFromGraphQL) => g.status === 'blocked').length,
 			averageProgress:
 				goals.length > 0
 					? Math.round(
-							goals.reduce((sum, g) => sum + (g.progressPercentage || 0), 0) / goals.length
+							goals.reduce((sum: number, g: EmployeeGoalFromGraphQL) => sum + (g.progressPercentage || 0), 0) / goals.length
 						)
 					: 0,
 			completionRate:
 				goals.length > 0
-					? Math.round((goals.filter((g) => g.status === 'completed').length / goals.length) * 100)
+					? Math.round((goals.filter((g: EmployeeGoalFromGraphQL) => g.status === 'completed').length / goals.length) * 100)
 					: 0
 		};
 
@@ -133,7 +151,7 @@ export const load: PageServerLoad = async (event) => {
 			user,
 			userId,
 			goals: goals.sort(
-				(a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+				(a: EmployeeGoalFromGraphQL, b: EmployeeGoalFromGraphQL) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
 			),
 			goalCategories,
 			goalStats,
