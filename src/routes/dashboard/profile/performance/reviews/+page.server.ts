@@ -6,6 +6,73 @@ import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 
+// Type definitions for GraphQL query responses
+interface UserInfo {
+	id: string;
+	displayName: string;
+	email: string;
+	firstName: string;
+	lastName: string;
+}
+
+interface ReviewCycleInfo {
+	id: string;
+	name: string;
+	reviewType: string;
+	startDate: string;
+	endDate: string;
+}
+
+interface PerformanceReviewResponse {
+	id: string;
+	employeeId: string;
+	reviewerId: string;
+	cycleId: string;
+	templateId: string;
+	status: string;
+	overallRating: number | null;
+	submittedAt: string | null;
+	createdAt: string;
+	updatedAt: string;
+	employee: UserInfo;
+	reviewer: UserInfo;
+	cycle: ReviewCycleInfo;
+}
+
+interface TransformedReview {
+	id: string;
+	type: {
+		id: string;
+		name: string;
+		frequency: string;
+		color: string;
+	};
+	status: string;
+	reviewPeriod: {
+		start: string;
+		end: string;
+	};
+	scheduledDate: string;
+	completedDate: string | null;
+	reviewer: {
+		id: string;
+		displayName: string;
+		email: string;
+	} | null;
+	overallRating: number | null;
+	competencies: never[];
+	goals: never[];
+	feedback: {
+		strengths: never[];
+		improvements: never[];
+		managerComments: null;
+		employeeComments: null;
+	};
+	developmentPlan: never[];
+	createdAt: string;
+	lastUpdated: string;
+}
+
 // Helper functions for review type mapping
 function getReviewTypeName(reviewType: string): string {
 	const typeMap: Record<string, string> = {
@@ -181,7 +248,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// Transform database reviews to frontend format
 		// Note: Using placeholder data for fields that exist in separate tables (review_feedback, review_goal, review_cycle)
-		const reviews = (reviewsData.data?.performanceReviews || []).map((review) => {
+		const reviews: TransformedReview[] = (reviewsData.data?.performanceReviews || []).map((review: PerformanceReviewResponse): TransformedReview => {
 			// Map status enum to string
 			const statusStr =
 				typeof review.status === 'string' ? review.status : review.status?.toLowerCase() || 'draft';
@@ -269,13 +336,13 @@ export const load: PageServerLoad = async (event) => {
 		// Calculate review statistics from actual data
 		const reviewStats = {
 			total: reviews.length,
-			completed: reviews.filter((r) => r.status === 'completed').length,
-			inProgress: reviews.filter((r) => r.status === 'in_progress').length,
-			scheduled: reviews.filter((r) => r.status === 'scheduled').length,
-			overdue: reviews.filter((r) => r.status === 'overdue').length,
+			completed: reviews.filter((r: TransformedReview) => r.status === 'completed').length,
+			inProgress: reviews.filter((r: TransformedReview) => r.status === 'in_progress').length,
+			scheduled: reviews.filter((r: TransformedReview) => r.status === 'scheduled').length,
+			overdue: reviews.filter((r: TransformedReview) => r.status === 'overdue').length,
 			averageRating: reviews
-				.filter((r) => r.status === 'completed' && r.overallRating)
-				.reduce((sum, r, _, arr) => sum + (r.overallRating || 0) / arr.length, 0),
+				.filter((r: TransformedReview) => r.status === 'completed' && r.overallRating)
+				.reduce((sum: number, r: TransformedReview, _: number, arr: TransformedReview[]) => sum + (r.overallRating || 0) / arr.length, 0),
 			lastReviewDate: reviews
 				.filter((r) => r.status === 'completed')
 				.sort(
