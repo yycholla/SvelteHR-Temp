@@ -361,12 +361,15 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
 	default: async (event) => {
-		const { request, locals } = event;
+		const { request } = event;
 
 		// Check authentication
-		if (!locals.user) {
-			error(401, { message: 'Authentication required' });
-		}
+		requireAuth(event, {
+			requiredPermissions: ['tasks:write', 'tasks:write:self', 'tasks:write:team', 'tasks:write:all']
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		try {
 			const formData = await request.formData();

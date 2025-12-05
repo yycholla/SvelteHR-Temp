@@ -3,14 +3,19 @@
 
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { PermissionChecks } from '$lib/server/rbac-utils';
+import { requireAuth } from '$lib/server/rbac-utils';
 import { transaction } from '$lib/server/db';
 
 export const load: PageServerLoad = async (event) => {
-	const { url, locals, fetch } = event;
+	const { url, fetch } = event;
 
 	// Check authentication and permissions
-	PermissionChecks.adminRead(event);
+	requireAuth(event, {
+		requiredPermissions: ['admin:read', 'admin:read:self', 'admin:read:team', 'admin:read:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	const userId = locals.user.id;
 	const userPermissions = locals.permissions || [];

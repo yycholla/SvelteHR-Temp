@@ -3,13 +3,18 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies, url } = event;
+	const { cookies, url } = event;
 
 	// RBAC: Check teams management permissions
-	PermissionChecks.teamRead(event);
+	requireAuth(event, {
+		requiredPermissions: ['teams:read', 'teams:read:self', 'teams:read:team', 'teams:read:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Import required models for standardized error handling
 	const { createDataRequest } = await import('$lib/models/data-request');

@@ -4,14 +4,19 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies, params } = event;
+	const { cookies, params } = event;
 	const { id: taskId } = params;
 
 	// Check authentication and permissions
-	PermissionChecks.tasksRead(event);
+	requireAuth(event, {
+		requiredPermissions: ['tasks:read', 'tasks:read:self', 'tasks:read:team', 'tasks:read:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Import required models
 	const { createDataRequest } = await import('$lib/models/data-request');
@@ -258,11 +263,16 @@ export const load: PageServerLoad = async (event) => {
 // Form actions for task update
 export const actions: Actions = {
 	default: async (event) => {
-		const { request, locals, params } = event;
+		const { request, params } = event;
 		const { id: taskId } = params;
 
 		// Check authentication and permissions
-		PermissionChecks.tasksWrite(event);
+		requireAuth(event, {
+			requiredPermissions: ['tasks:write', 'tasks:write:self', 'tasks:write:team', 'tasks:write:all']
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		// Declare formDataEntries outside try block for catch block access
 		let formDataEntries: Record<string, any> = {};

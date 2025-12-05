@@ -4,14 +4,19 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies, params } = event;
+	const { cookies, params } = event;
 	const { id: taskId } = params;
 
 	// Check authentication and permissions
-	PermissionChecks.tasksRead(event);
+	requireAuth(event, {
+		requiredPermissions: ['tasks:read', 'tasks:read:self', 'tasks:read:team', 'tasks:read:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Import required models
 	const { createDataRequest } = await import('$lib/models/data-request');
@@ -315,14 +320,18 @@ const CREATE_LINKED_RESOURCE = `
 export const actions: Actions = {
 	// Upload file and link to task
 	uploadFile: async (event) => {
-		const { request, locals, params } = event;
+		const { request, params } = event;
 		const { id: taskId } = params;
 
 		// Check authentication and permissions
 		// Using document write permission since we're creating a document
 		// AND task write permission since we're modifying a task
-		PermissionChecks.documentsWrite(event as any);
-		PermissionChecks.tasksWrite(event);
+		requireAuth(event, {
+			requiredPermissions: ['documents:write', 'tasks:write']
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		try {
 			const formData = await request.formData();
@@ -445,10 +454,15 @@ export const actions: Actions = {
 
 	// Update task tags
 	updateTags: async (event) => {
-		const { request, locals, params } = event;
+		const { request, params } = event;
 		const { id: taskId } = params;
 
-		PermissionChecks.tasksWrite(event);
+		requireAuth(event, {
+			requiredPermissions: ['tasks:write', 'tasks:write:self', 'tasks:write:team', 'tasks:write:all']
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		try {
 			const formData = await request.formData();
