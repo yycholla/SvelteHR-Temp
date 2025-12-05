@@ -35,6 +35,19 @@ vi.mock('svelte-sonner', () => ({
 	}
 }));
 
+// Mock lucide-svelte icons
+vi.mock('@lucide/svelte', () => ({
+	Edit: {
+		$$render: () => '<svg data-testid="edit-icon"></svg>'
+	},
+	Trash2: {
+		$$render: () => '<svg data-testid="trash-icon"></svg>'
+	},
+	X: {
+		$$render: () => '<svg data-testid="x-icon"></svg>'
+	}
+}));
+
 describe('EventDetailsDialog', () => {
 	const mockUser = {
 		id: 'user-123',
