@@ -572,7 +572,7 @@ describe('Formatting Functions', () => {
 		});
 
 		it('should return "Due in X days" for near future', () => {
-			const in3Days = new Date(Date.now() + 259200000);
+			const in3Days = new Date(Date.now() + 302400000); // 3.5 days to ensure floor(3.5) = 3
 			expect(formatTaskDueDate(in3Days.toISOString())).toBe('Due in 3 days');
 		});
 
