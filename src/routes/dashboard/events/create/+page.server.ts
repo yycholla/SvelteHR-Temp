@@ -5,16 +5,19 @@
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { createUrqlClient } from '$lib/graphql/client';
-import { PermissionChecks } from '$lib/server/rbac-utils';
+import { requireAuth } from '$lib/server/rbac-utils';
 import { EventsOperations } from '$lib/graphql/events-operations';
 
-export const load: PageServerLoad = async ({ locals, url, cookies }) => {
-	// Check authentication and permissions
-	if (!locals.user) {
-		redirect(303, `/login?redirectTo=${url.pathname}`);
-	}
+export const load: PageServerLoad = async (event) => {
+	const { url, cookies } = event;
 
-	PermissionChecks.eventsWrite({ locals, url, cookies } as any);
+	// Check authentication and permissions
+	requireAuth(event, {
+		requiredPermissions: ['events:write', 'events:write:self', 'events:write:team', 'events:write:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	try {
 		// Get date/time parameters from URL (from calendar click or selection)
@@ -178,10 +181,15 @@ function getDefaultEndTime(): string {
 // Form actions
 export const actions: Actions = {
 	default: async (event) => {
-		const { request, locals, cookies, fetch: eventFetch } = event;
+		const { request, cookies, fetch: eventFetch } = event;
 
 		// Check authentication and permissions
-		PermissionChecks.eventsWrite(event);
+		requireAuth(event, {
+			requiredPermissions: ['events:write', 'events:write:self', 'events:write:team', 'events:write:all']
+		});
+
+		// After permission check, re-destructure locals with guaranteed user
+		const { locals } = event;
 
 		// Parse form data
 		const formData = await request.formData();

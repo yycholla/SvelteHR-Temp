@@ -12,12 +12,15 @@ import type { PageServerLoad } from './$types';
 import { requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, params, url, cookies } = event;
+	const { params, url, cookies } = event;
 
 	// Check authentication and permissions
 	requireAuth(event, {
 		requiredPermissions: ['audit:read']
 	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	const logId = params.id;
 
@@ -155,6 +158,9 @@ export const load: PageServerLoad = async (event) => {
 			transformedLog.before_snapshot,
 			transformedLog.after_snapshot
 		);
+
+		// Get user role from locals
+		const userRole = locals.user.role || 'employee';
 
 		return {
 			log: transformedLog,
