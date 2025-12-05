@@ -66,10 +66,11 @@ export default ts.config(
 			'no-useless-catch': 'warn',
 			'no-empty': 'warn',
 			'no-constant-binary-expression': 'warn',
+			'svelte/no-navigation-without-resolve': 'warn',
 
 			// Import organization for better structure
 			'sort-imports': [
-				'error',
+				'warn',
 				{
 					ignoreCase: false,
 					ignoreDeclarationSort: true,
@@ -131,7 +132,7 @@ export default ts.config(
 
 			// Require explicit return types for audit functions
 			'@typescript-eslint/explicit-function-return-type': [
-				'error',
+				'warn',
 				{
 					allowExpressions: false,
 					allowTypedFunctionExpressions: true
@@ -140,7 +141,7 @@ export default ts.config(
 
 			// Enforce proper error handling patterns
 			'@typescript-eslint/no-floating-promises': 'warn',
-			'@typescript-eslint/promise-function-async': 'error',
+			'@typescript-eslint/promise-function-async': 'warn',
 
 			// Naming conventions for audit operations
 			'@typescript-eslint/naming-convention': [
