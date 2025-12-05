@@ -14,13 +14,16 @@ import { ensureBackendReady } from '$lib/server/backend-init';
 import { requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, url, cookies } = event;
+	const { url, cookies } = event;
 
 	// Check authentication and permissions (bulk rollback requires write and delete)
 	requireAuth(event, {
 		requiredPermissions: ['activities:write', 'activities:delete'],
 		requireAll: true
 	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	try {
 		// Check backend services are ready before proceeding
@@ -170,13 +173,16 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
 	createBatch: async (event) => {
-		const { request, locals, cookies } = event;
+		const { request, cookies } = event;
 
 		// Check authentication and permissions
 		requireAuth(event, {
 			requiredPermissions: ['activities:write', 'activities:delete'],
 			requireAll: true
 		});
+
+		// After permission check, re-destructure locals with guaranteed user
+		const { locals } = event;
 
 		try {
 			const formData = await request.formData();

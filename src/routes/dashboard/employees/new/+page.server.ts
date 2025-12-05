@@ -3,13 +3,18 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies } = event;
+	const { cookies } = event;
 
 	// Check authentication and permissions
-	PermissionChecks.employeeWrite(event);
+	requireAuth(event, {
+		requiredPermissions: ['employees:write', 'employees:write:self', 'employees:write:team', 'employees:write:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	try {
 		// Make direct GraphQL calls to Rust GraphQL backend with session-based authentication
@@ -92,10 +97,15 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
 	default: async (event) => {
-		const { request, cookies, locals } = event;
+		const { request, cookies } = event;
 
 		// Check authentication and permissions
-		PermissionChecks.employeeWrite(event);
+		requireAuth(event, {
+			requiredPermissions: ['employees:write', 'employees:write:self', 'employees:write:team', 'employees:write:all']
+		});
+
+		// After permission check, re-destructure locals with guaranteed user
+		const { locals } = event;
 
 		try {
 			const formData = await request.formData();

@@ -8,12 +8,15 @@ import { error, redirect } from '@sveltejs/kit';
 import { requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, url, cookies } = event;
+	const { url, cookies } = event;
 
 	// Check authentication and permissions
 	requireAuth(event, {
 		requiredPermissions: ['activities:read:self']
 	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	try {
 		// Get GraphQL endpoint
