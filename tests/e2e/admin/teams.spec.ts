@@ -38,7 +38,7 @@ test.describe('Admin Teams Administration Page', () => {
 		]);
 
 		// Should have at least one team/department row
-		await expect(page.locator('[data-testid="team-row"]')).toHaveCount({ min: 1 });
+		expect(await page.locator('[data-testid="team-row"]').count()).toBeGreaterThanOrEqual(1);
 
 		// Each row should have department details and action buttons
 		const firstRow = page.locator('[data-testid="team-row"]').first();
@@ -168,7 +168,7 @@ test.describe('Admin Teams Administration Page', () => {
 
 		// Should show team members list
 		await expect(page.locator('[data-testid="team-members-list"]')).toBeVisible();
-		await expect(page.locator('[data-testid="member-item"]')).toHaveCount({ min: 1 });
+		expect(await page.locator('[data-testid="member-item"]').count()).toBeGreaterThanOrEqual(1);
 
 		// Each team member should show details
 		const firstMember = page.locator('[data-testid="member-item"]').first();
@@ -180,7 +180,7 @@ test.describe('Admin Teams Administration Page', () => {
 		// Should show organizational chart
 		await expect(page.locator('[data-testid="org-chart"]')).toBeVisible();
 		await expect(page.locator('[data-testid="dept-head-node"]')).toBeVisible();
-		await expect(page.locator('[data-testid="team-member-node"]')).toHaveCount({ min: 1 });
+		expect(await page.locator('[data-testid="team-member-node"]').count()).toBeGreaterThanOrEqual(1);
 
 		// Should show department metrics
 		await expect(page.locator('[data-testid="dept-metrics"]')).toBeVisible();
@@ -337,7 +337,7 @@ test.describe('Admin Teams Administration Page', () => {
 
 			// Should load new page of results
 			await expect(page.locator('[data-testid="loading-indicator"]')).not.toBeVisible();
-			await expect(page.locator('[data-testid="team-row"]')).toHaveCount({ min: 1 });
+			expect(await page.locator('[data-testid="team-row"]').count()).toBeGreaterThanOrEqual(1);
 
 			// Previous button should be enabled
 			await expect(page.locator('[data-testid="pagination-prev"]')).toBeEnabled();

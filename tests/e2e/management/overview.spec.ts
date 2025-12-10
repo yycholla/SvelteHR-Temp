@@ -62,7 +62,7 @@ test.describe('Management Overview Dashboard Page', () => {
 		);
 
 		// Should have activity items
-		await expect(page.locator('[data-testid="activity-item"]')).toHaveCount({ min: 1 });
+		expect(await page.locator('[data-testid="activity-item"]').count()).toBeGreaterThanOrEqual(1);
 
 		// Each activity should have timestamp, employee, and description
 		const firstActivity = page.locator('[data-testid="activity-item"]').first();
@@ -293,7 +293,7 @@ test.describe('Management Overview Dashboard Page', () => {
 		]);
 
 		// Should have at least one department row
-		await expect(page.locator('[data-testid="department-row"]')).toHaveCount({ min: 1 });
+		expect(await page.locator('[data-testid="department-row"]').count()).toBeGreaterThanOrEqual(1);
 
 		// Each department should show key metrics
 		const firstDept = page.locator('[data-testid="department-row"]').first();
