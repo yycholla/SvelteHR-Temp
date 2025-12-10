@@ -92,7 +92,7 @@
 		return `${format(start, 'MMM dd')} - ${format(end, 'MMM dd, yyyy')}`;
 	}
 
-	async function handleSubmitRequest(event) {
+	async function handleSubmitRequest(event: Event) {
 		event.preventDefault();
 		// TODO: Implement actual leave request submission
 		console.log('Submitting leave request:', newRequest);

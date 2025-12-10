@@ -29,7 +29,7 @@
 
 	// Filtered task types based on search query
 	const filteredTaskTypes = $derived(
-		data.taskTypes.filter((taskType) => {
+		data.taskTypes.filter((taskType: { name?: string; description?: string }) => {
 			if (!searchQuery) return true;
 			const query = searchQuery.toLowerCase();
 			return (

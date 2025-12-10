@@ -146,12 +146,19 @@ export const load: PageServerLoad = async (event) => {
 			averageHours: Math.round(averageHours * 100) / 100
 		};
 
+		// Determine if user can manage this attendance record
+		const canManageAttendance =
+			!isViewingSelf &&
+			(userPermissions.includes('attendance:write:team') ||
+				userPermissions.includes('attendance:write:all') ||
+				userPermissions.includes('*'));
+
 		return {
 			user,
 			userId,
 			attendanceRecords,
 			attendanceStats,
-			canManageAttendance: canViewOthers,
+			canManageAttendance,
 			isOwnAttendance: locals.user?.id === userId,
 			permissions: locals.permissions || [],
 			loadedAt: new Date().toISOString()

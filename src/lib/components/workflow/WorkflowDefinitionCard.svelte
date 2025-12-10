@@ -175,7 +175,7 @@
 					View Details
 				</button>
 
-				{#if $canManageWorkflows}
+				{#if auth.canManageWorkflows}
 					<button
 						onclick={handleEdit}
 						class="text-sm font-medium text-gray-600 hover:text-gray-800"
@@ -190,7 +190,7 @@
 					<button onclick={handleStartInstance} class="btn btn-primary btn-sm"> Start </button>
 				{/if}
 
-				{#if $canManageWorkflows}
+				{#if auth.canManageWorkflows}
 					<button
 						onclick={handleToggleStatus}
 						class={`btn btn-sm ${definition.status === 'active' ? 'btn-secondary' : 'btn-primary'}`}

@@ -263,7 +263,7 @@
 							<Label for="taskTypeId">Task Type</Label>
 							<Select.Root type="single" name="taskTypeId" value={initialValues.taskTypeId}>
 								<Select.Trigger>
-									{taskTypeOptions.find((o) => o.value === initialValues.taskTypeId)?.label ||
+									{taskTypeOptions.find((o: { value: string; label: string }) => o.value === initialValues.taskTypeId)?.label ||
 										'Select type'}
 								</Select.Trigger>
 								<Select.Content>

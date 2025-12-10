@@ -205,6 +205,15 @@ export const load: PageServerLoad = async (event) => {
 			totalDays: req.daysRequested || 0
 		}));
 
+		// Determine if user can manage leave for this user
+		const canManageLeave =
+			!isViewingSelf &&
+			(userPermissions.includes('leave:write:team') ||
+				userPermissions.includes('leave:write:all') ||
+				userPermissions.includes('leave:approve:team') ||
+				userPermissions.includes('leave:approve:all') ||
+				userPermissions.includes('*'));
+
 		return {
 			user,
 			userId,
@@ -216,7 +225,7 @@ export const load: PageServerLoad = async (event) => {
 				code: type.name,
 				color: type.color || getLeaveTypeColor(type.name)
 			})),
-			canManageLeave: canViewOthers,
+			canManageLeave,
 			isOwnLeave: locals.user?.id === userId,
 			permissions: locals.permissions || [],
 			loadedAt: new Date().toISOString()

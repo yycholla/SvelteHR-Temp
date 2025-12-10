@@ -251,7 +251,7 @@ class ServerPerformanceMonitor {
 		topSlowEndpoints: Array<{ path: string; avgDuration: number; count: number }>;
 	} {
 		const cutoffTime = Date.now() - timeframe;
-		const recentMetrics = this.metrics.filter((m) => m.timestamp > cutoffTime);
+		const recentMetrics = this.metrics.filter((m) => m.timestamp && m.timestamp > cutoffTime);
 
 		const durations = recentMetrics.map((m) => m.duration).sort((a, b) => a - b);
 		const averageResponseTime =
@@ -538,9 +538,9 @@ export function analyzePerformanceTrends(
 	insights: string[];
 } {
 	const now = Date.now();
-	const recent = metrics.filter((m) => now - m.timestamp < timeWindow / 2);
+	const recent = metrics.filter((m) => m.timestamp && now - m.timestamp < timeWindow / 2);
 	const older = metrics.filter(
-		(m) => now - m.timestamp >= timeWindow / 2 && now - m.timestamp < timeWindow
+		(m) => m.timestamp && now - m.timestamp >= timeWindow / 2 && now - m.timestamp < timeWindow
 	);
 
 	if (recent.length === 0 || older.length === 0) {

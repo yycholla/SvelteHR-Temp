@@ -103,14 +103,14 @@
 		uploadError = null;
 
 		// Validate metadata
-		if (!metadataForm.validateMetadata()) {
+		if (!metadataForm?.validateMetadata()) {
 			uploadError = 'Please fill in all required metadata fields';
 			event.preventDefault();
 			return;
 		}
 
 		// Get selected file
-		const file = fileUploader.getSelectedFile();
+		const file = fileUploader?.getSelectedFile();
 		if (!file) {
 			uploadError = 'Please select a file';
 			event.preventDefault();
@@ -169,7 +169,7 @@
 				uploadError = null;
 
 				// Get selected file and add to FormData
-				const file = fileUploader.getSelectedFile();
+				const file = fileUploader?.getSelectedFile();
 				if (!file) {
 					uploadError = 'Please select a file';
 					cancel();
@@ -184,7 +184,7 @@
 				console.log('[Upload] Current metadata:', metadata);
 
 				// Validate metadata before submission
-				if (!metadataForm.validateMetadata()) {
+				if (!metadataForm?.validateMetadata()) {
 					uploadError = 'Please fill in all required metadata fields';
 					cancel();
 					return;

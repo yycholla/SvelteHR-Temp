@@ -66,7 +66,6 @@ export const load: PageServerLoad = async (event) => {
 		},
 		userCredentials: {
 			userId: userSession.userId,
-			userEmail: userSession.metadata.userEmail as string,
 			roles: userSession.roles,
 			permissions: userSession.permissions,
 			// jwtToken omitted for session-based auth

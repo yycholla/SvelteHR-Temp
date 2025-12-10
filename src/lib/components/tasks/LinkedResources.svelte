@@ -352,7 +352,7 @@
 				<!-- Resource Type Selection -->
 				<div class="space-y-2">
 					<Label for="resourceType">Resource Type</Label>
-					<Select.Root bind:selected={selectedResourceType}>
+					<Select.Root bind:value={selectedResourceType}>
 						<Select.Trigger id="resourceType">
 							<Select.Value placeholder="Select resource type" />
 						</Select.Trigger>
@@ -389,7 +389,7 @@
 				<!-- Resource Selection -->
 				<div class="space-y-2">
 					<Label for="resource">Select {formatResourceType(selectedResourceType)}</Label>
-					<Select.Root bind:selected={selectedResourceId}>
+					<Select.Root bind:value={selectedResourceId}>
 						<Select.Trigger id="resource">
 							<Select.Value placeholder="Choose a resource" />
 						</Select.Trigger>

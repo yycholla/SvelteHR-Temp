@@ -275,7 +275,7 @@
 	$effect(() => {
 		if (calendar && calendarEvents.length > 0) {
 			// Remove all existing event sources
-			calendar.getEventSources().forEach((source) => source.remove());
+			calendar.getEventSources().forEach((source: { remove: () => void }) => source.remove());
 			// Add updated events
 			calendar.addEventSource(calendarEvents);
 			// Refetch to ensure calendar is updated

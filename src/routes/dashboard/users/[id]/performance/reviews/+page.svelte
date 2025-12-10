@@ -356,7 +356,7 @@
 											<div class="flex items-center justify-between mb-2">
 												<span class="font-medium text-foreground">{goal.title}</span>
 												<span class="text-sm font-medium {getGoalStatusColor(goal.status)}">
-													{goal.status.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+													{goal.status.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
 												</span>
 											</div>
 											<p class="text-sm text-muted-foreground mb-2">{goal.description}</p>

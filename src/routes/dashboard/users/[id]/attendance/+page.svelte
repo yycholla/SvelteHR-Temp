@@ -45,7 +45,7 @@
 		if (!records) return;
 
 		const today = new Date().toISOString().split('T')[0];
-		const record = records.find((r) => r.date === today);
+		const record = records.find((r: { date: string }) => r.date === today);
 		todayRecord = record || null;
 		isClockedIn = Boolean(record?.clockIn && !record.clockOut);
 	});

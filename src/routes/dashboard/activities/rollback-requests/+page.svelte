@@ -386,7 +386,7 @@
 							}}
 							userRole={data.userRole}
 							onSuccess={handleRequestAction}
-							onError={(error) => toast.error(error)}
+							onError={(error: string) => toast.error(error)}
 						/>
 					</div>
 				</div>

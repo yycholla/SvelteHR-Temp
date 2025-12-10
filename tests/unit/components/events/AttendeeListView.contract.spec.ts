@@ -15,107 +15,97 @@ import type {
 describe('AttendeeListView Contract', () => {
 	const mockAttendees: Attendee[] = [
 		{
-			userId: 'user-1',
-			fullName: 'John Doe',
-			avatarUrl: 'https://example.com/avatar1.jpg',
-			rsvpStatus: 'accepted',
-			rsvpDate: new Date('2025-10-01'),
-			isCreator: true
+			id: 'attendee-1',
+			employeeId: 'emp-1',
+			employee: {
+				id: 'emp-1',
+				displayName: 'John Doe',
+				email: 'john.doe@example.com',
+				jobTitle: 'Software Engineer'
+			},
+			responseStatus: 'ACCEPTED',
+			isOrganizer: true,
+			respondedAt: '2025-10-01T10:00:00Z'
 		},
 		{
-			userId: 'user-2',
-			fullName: 'Jane Smith',
-			avatarUrl: null,
-			rsvpStatus: 'pending',
-			rsvpDate: new Date('2025-10-02'),
-			isCreator: false
+			id: 'attendee-2',
+			employeeId: 'emp-2',
+			employee: {
+				id: 'emp-2',
+				displayName: 'Jane Smith',
+				email: 'jane.smith@example.com',
+				jobTitle: 'Product Manager'
+			},
+			responseStatus: 'PENDING',
+			isOrganizer: false
 		}
 	];
 
-	it('should accept required props: eventId, attendees, canRemoveAttendees', () => {
+	it('should accept required props: attendees', () => {
 		const props: AttendeeListViewProps = {
-			eventId: 'event-123',
-			attendees: mockAttendees,
-			canRemoveAttendees: true
+			attendees: mockAttendees
 		};
 
-		expect(props.eventId).toBe('event-123');
 		expect(props.attendees).toHaveLength(2);
-		expect(props.canRemoveAttendees).toBe(true);
 	});
 
-	it('should accept optional onRemoveAttendee callback', () => {
-		let removedUserId: string | null = null;
-
+	it('should accept optional currentUserId and showFilters', () => {
 		const props: AttendeeListViewProps = {
-			eventId: 'event-123',
 			attendees: mockAttendees,
-			canRemoveAttendees: true,
-			onRemoveAttendee: (userId: string) => {
-				removedUserId = userId;
-			}
+			currentUserId: 'emp-1',
+			showFilters: false
 		};
 
-		expect(props.onRemoveAttendee).toBeDefined();
-
-		if (props.onRemoveAttendee) {
-			props.onRemoveAttendee('user-1');
-			expect(removedUserId).toBe('user-1');
-		}
+		expect(props.currentUserId).toBe('emp-1');
+		expect(props.showFilters).toBe(false);
 	});
 
 	it('should validate attendee structure', () => {
 		const attendee: Attendee = mockAttendees[0];
 
-		expect(attendee.userId).toBeDefined();
-		expect(typeof attendee.userId).toBe('string');
-		expect(attendee.fullName).toBeDefined();
-		expect(typeof attendee.fullName).toBe('string');
-		expect(attendee.rsvpDate instanceof Date).toBe(true);
-		expect(['accepted', 'declined', 'tentative', 'pending'].includes(attendee.rsvpStatus)).toBe(
-			true
-		);
-		expect(typeof attendee.isCreator).toBe('boolean');
+		expect(attendee.id).toBeDefined();
+		expect(typeof attendee.id).toBe('string');
+		expect(attendee.employeeId).toBeDefined();
+		expect(typeof attendee.employeeId).toBe('string');
+		expect(attendee.employee).toBeDefined();
+		expect(attendee.employee.displayName).toBeDefined();
+		expect(typeof attendee.employee.displayName).toBe('string');
+		expect(
+			['ACCEPTED', 'DECLINED', 'TENTATIVE', 'PENDING'].includes(attendee.responseStatus)
+		).toBe(true);
+		expect(typeof attendee.isOrganizer).toBe('boolean');
 	});
 
-	it('should allow null avatarUrl', () => {
-		const attendeeWithAvatar: Attendee = mockAttendees[0];
-		const attendeeWithoutAvatar: Attendee = mockAttendees[1];
+	it('should allow optional respondedAt', () => {
+		const attendeeWithResponse: Attendee = mockAttendees[0];
+		const attendeeWithoutResponse: Attendee = mockAttendees[1];
 
-		expect(attendeeWithAvatar.avatarUrl).toBeTruthy();
-		expect(attendeeWithoutAvatar.avatarUrl).toBeNull();
+		expect(attendeeWithResponse.respondedAt).toBeDefined();
+		expect(attendeeWithoutResponse.respondedAt).toBeUndefined();
 	});
 
 	it('should validate RSVP status values', () => {
-		const validStatuses = ['accepted', 'declined', 'tentative', 'pending'];
+		const validStatuses = ['ACCEPTED', 'DECLINED', 'TENTATIVE', 'PENDING'];
 
 		mockAttendees.forEach((attendee) => {
-			expect(validStatuses.includes(attendee.rsvpStatus)).toBe(true);
+			expect(validStatuses.includes(attendee.responseStatus)).toBe(true);
 		});
 	});
 
-	it('should validate canRemoveAttendees boolean', () => {
-		const propsCanRemove: AttendeeListViewProps = {
-			eventId: 'event-123',
-			attendees: mockAttendees,
-			canRemoveAttendees: true
-		};
+	it('should validate employee structure', () => {
+		const employee = mockAttendees[0].employee;
 
-		const propsCannotRemove: AttendeeListViewProps = {
-			eventId: 'event-123',
-			attendees: mockAttendees,
-			canRemoveAttendees: false
-		};
-
-		expect(propsCanRemove.canRemoveAttendees).toBe(true);
-		expect(propsCannotRemove.canRemoveAttendees).toBe(false);
+		expect(employee.id).toBeDefined();
+		expect(typeof employee.id).toBe('string');
+		expect(employee.displayName).toBeDefined();
+		expect(typeof employee.displayName).toBe('string');
+		expect(employee.email).toBeDefined();
+		expect(typeof employee.email).toBe('string');
 	});
 
 	it('should allow empty attendees array', () => {
 		const props: AttendeeListViewProps = {
-			eventId: 'event-123',
-			attendees: [],
-			canRemoveAttendees: false
+			attendees: []
 		};
 
 		expect(props.attendees).toHaveLength(0);

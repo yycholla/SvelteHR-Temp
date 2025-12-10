@@ -653,7 +653,7 @@ export class GraphQLPerformanceMonitor {
 		end: Date
 	): (GraphQLPerformanceMetrics & { timestamp: number })[] {
 		return this.rawMetrics.filter(
-			(m) => m.timestamp >= start.getTime() && m.timestamp <= end.getTime()
+			(m) => m.timestamp && m.timestamp >= start.getTime() && m.timestamp <= end.getTime()
 		);
 	}
 
@@ -661,7 +661,7 @@ export class GraphQLPerformanceMonitor {
 		timeframe: number
 	): (GraphQLPerformanceMetrics & { timestamp: number })[] {
 		const cutoff = Date.now() - timeframe;
-		return this.rawMetrics.filter((m) => m.timestamp > cutoff);
+		return this.rawMetrics.filter((m) => m.timestamp && m.timestamp > cutoff);
 	}
 
 	private calculateAverageResponseTime(metrics: GraphQLPerformanceMetrics[]): number {
@@ -819,7 +819,7 @@ export class GraphQLPerformanceMonitor {
 
 	private cleanupOldMetrics(): void {
 		const cutoff = Date.now() - this.config.retentionPeriod * 24 * 60 * 60 * 1000;
-		this.rawMetrics = this.rawMetrics.filter((m) => m.timestamp > cutoff);
+		this.rawMetrics = this.rawMetrics.filter((m) => m.timestamp && m.timestamp > cutoff);
 		this.alerts = this.alerts.filter((a) => a.timestamp.getTime() > cutoff);
 	}
 

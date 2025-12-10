@@ -132,7 +132,7 @@ describe('Employee Management Integration Tests', () => {
 
 			// Assert: Should return validation errors
 			expect(response.errors).toBeDefined();
-			expect(response.errors.length).toBeGreaterThan(0);
+			expect(response.errors?.length).toBeGreaterThan(0);
 			expect(response.data?.createEmployee).toBeNull();
 		});
 
@@ -164,7 +164,7 @@ describe('Employee Management Integration Tests', () => {
 
 			// Assert: Access denied for regular employee
 			expect(response.errors).toBeDefined();
-			expect(response.errors[0].message).toMatch(/access denied|forbidden|unauthorized/i);
+			expect(response.errors?.[0]?.message).toMatch(/access denied|forbidden|unauthorized/i);
 		});
 	});
 
@@ -360,7 +360,7 @@ describe('Employee Management Integration Tests', () => {
 
 			// Assert: Regular employees should have limited access
 			expect(response.errors).toBeDefined();
-			expect(response.errors[0].message).toMatch(/access denied|forbidden|unauthorized/i);
+			expect(response.errors?.[0]?.message).toMatch(/access denied|forbidden|unauthorized/i);
 		});
 	});
 
@@ -471,7 +471,7 @@ describe('Employee Management Integration Tests', () => {
 			);
 
 			expect(response.errors).toBeDefined();
-			expect(response.errors[0].message).toMatch(/access denied|forbidden|unauthorized/i);
+			expect(response.errors?.[0]?.message).toMatch(/access denied|forbidden|unauthorized/i);
 		});
 	});
 
@@ -541,7 +541,7 @@ describe('Employee Management Integration Tests', () => {
 			);
 
 			expect(response.errors).toBeDefined();
-			expect(response.errors[0].message).toMatch(/access denied|forbidden|unauthorized/i);
+			expect(response.errors?.[0]?.message).toMatch(/access denied|forbidden|unauthorized/i);
 		});
 	});
 

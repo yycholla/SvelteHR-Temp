@@ -14,37 +14,21 @@ import type {
 } from '$lib/components/events/ConflictWarningDialog.svelte';
 
 describe('ConflictWarningDialog Contract', () => {
-	const mockTargetEvent: CalendarEvent = {
-		id: 'event-1',
+	const mockTargetEvent = {
 		title: 'Team Meeting',
 		startDate: new Date('2025-10-10T10:00:00'),
-		endDate: new Date('2025-10-10T11:00:00'),
-		allDay: false,
-		type: 'meeting',
-		visibility: 'public',
-		isRecurring: false,
-		rrule: null,
-		parentEventId: null,
-		capacity: null,
-		attendeeCount: 5,
-		waitlistCount: 0,
-		waitlistEnabled: false,
-		userRsvpStatus: null,
-		userWaitlistPosition: null,
-		imageUrl: null,
-		imageAspectRatio: null,
-		createdBy: 'user-1',
-		canEdit: false,
-		canDelete: false,
-		hasConflict: true,
-		conflictingEventIds: ['event-2']
+		endDate: new Date('2025-10-10T11:00:00')
 	};
 
-	const mockConflictingEvent: ConflictingEvent = {
+	const mockConflict: ConflictingEvent = {
 		id: 'event-2',
-		title: 'All Hands',
-		startDate: new Date('2025-10-10T10:30:00'),
-		endDate: new Date('2025-10-10T11:30:00'),
+		event: {
+			id: 'event-2',
+			title: 'All Hands',
+			startDate: new Date('2025-10-10T10:30:00'),
+			endDate: new Date('2025-10-10T11:30:00'),
+			location: 'Conference Room A'
+		},
 		overlapDuration: 30,
 		overlapPercentage: 50,
 		severity: 'major'
@@ -53,59 +37,53 @@ describe('ConflictWarningDialog Contract', () => {
 	it('should accept required props', () => {
 		const props: ConflictWarningDialogProps = {
 			open: true,
+			conflicts: [mockConflict],
 			targetEvent: mockTargetEvent,
-			conflictingEvents: [mockConflictingEvent],
-			action: 'rsvp',
 			onConfirm: () => console.log('Confirmed'),
 			onCancel: () => console.log('Cancelled')
 		};
 
 		expect(props.open).toBe(true);
 		expect(props.targetEvent).toBeDefined();
-		expect(props.conflictingEvents).toHaveLength(1);
-		expect(props.action).toBe('rsvp');
+		expect(props.conflicts).toHaveLength(1);
 		expect(typeof props.onConfirm).toBe('function');
 		expect(typeof props.onCancel).toBe('function');
 	});
 
-	it('should validate action is either rsvp or create', () => {
-		const propsRsvp: ConflictWarningDialogProps = {
+	it('should validate target event structure', () => {
+		const props: ConflictWarningDialogProps = {
 			open: true,
+			conflicts: [],
 			targetEvent: mockTargetEvent,
-			conflictingEvents: [],
-			action: 'rsvp',
 			onConfirm: () => {},
 			onCancel: () => {}
 		};
 
-		const propsCreate: ConflictWarningDialogProps = {
-			open: true,
-			targetEvent: mockTargetEvent,
-			conflictingEvents: [],
-			action: 'create',
-			onConfirm: () => {},
-			onCancel: () => {}
-		};
-
-		expect(propsRsvp.action).toBe('rsvp');
-		expect(propsCreate.action).toBe('create');
+		expect(props.targetEvent.title).toBeDefined();
+		expect(typeof props.targetEvent.title).toBe('string');
+		expect(props.targetEvent.startDate instanceof Date).toBe(true);
+		expect(props.targetEvent.endDate instanceof Date).toBe(true);
 	});
 
 	it('should validate conflicting event structure', () => {
 		const conflict: ConflictingEvent = {
 			id: 'event-3',
-			title: 'Workshop',
-			startDate: new Date('2025-10-10T10:15:00'),
-			endDate: new Date('2025-10-10T10:45:00'),
+			event: {
+				id: 'event-3',
+				title: 'Workshop',
+				startDate: new Date('2025-10-10T10:15:00'),
+				endDate: new Date('2025-10-10T10:45:00')
+			},
 			overlapDuration: 30,
 			overlapPercentage: 50,
 			severity: 'major'
 		};
 
 		expect(conflict.id).toBeDefined();
-		expect(conflict.title).toBeDefined();
-		expect(conflict.startDate instanceof Date).toBe(true);
-		expect(conflict.endDate instanceof Date).toBe(true);
+		expect(conflict.event).toBeDefined();
+		expect(conflict.event.title).toBeDefined();
+		expect(conflict.event.startDate instanceof Date).toBe(true);
+		expect(conflict.event.endDate instanceof Date).toBe(true);
 		expect(typeof conflict.overlapDuration).toBe('number');
 		expect(typeof conflict.overlapPercentage).toBe('number');
 		expect(['minor', 'major'].includes(conflict.severity)).toBe(true);
@@ -113,13 +91,13 @@ describe('ConflictWarningDialog Contract', () => {
 
 	it('should validate severity is minor or major', () => {
 		const minorConflict: ConflictingEvent = {
-			...mockConflictingEvent,
+			...mockConflict,
 			overlapPercentage: 20,
 			severity: 'minor'
 		};
 
 		const majorConflict: ConflictingEvent = {
-			...mockConflictingEvent,
+			...mockConflict,
 			overlapPercentage: 60,
 			severity: 'major'
 		};
@@ -134,8 +112,7 @@ describe('ConflictWarningDialog Contract', () => {
 		const props: ConflictWarningDialogProps = {
 			open: true,
 			targetEvent: mockTargetEvent,
-			conflictingEvents: [],
-			action: 'rsvp',
+			conflicts: [],
 			onConfirm: () => {
 				confirmCalled = true;
 			},
@@ -152,8 +129,7 @@ describe('ConflictWarningDialog Contract', () => {
 		const props: ConflictWarningDialogProps = {
 			open: true,
 			targetEvent: mockTargetEvent,
-			conflictingEvents: [],
-			action: 'rsvp',
+			conflicts: [],
 			onConfirm: () => {},
 			onCancel: () => {
 				cancelCalled = true;

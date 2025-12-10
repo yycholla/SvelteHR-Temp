@@ -2,7 +2,7 @@
 // Feature: 028-task-system-expansion - Task T037
 // Load single task with full relationships
 
-import type { PageServerLoad } from './$types';
+import type { Actions, PageServerLoad, RequestEvent } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
 
@@ -42,7 +42,6 @@ export const load: PageServerLoad = async (event) => {
 		variables: { taskId },
 		userCredentials: {
 			userId: userSession.userId,
-			userEmail: userSession.metadata.userEmail as string,
 			roles: userSession.roles,
 			permissions: userSession.permissions,
 			// jwtToken omitted for session-based auth
@@ -319,7 +318,7 @@ const CREATE_LINKED_RESOURCE = `
 // Additional form actions for task details
 export const actions: Actions = {
 	// Upload file and link to task
-	uploadFile: async (event) => {
+	uploadFile: async (event: RequestEvent) => {
 		const { request, params } = event;
 		const { id: taskId } = params;
 
@@ -453,7 +452,7 @@ export const actions: Actions = {
 	},
 
 	// Update task tags
-	updateTags: async (event) => {
+	updateTags: async (event: RequestEvent) => {
 		const { request, params } = event;
 		const { id: taskId } = params;
 
@@ -510,7 +509,7 @@ export const actions: Actions = {
 	},
 
 	// Add comment (Placeholder)
-	addComment: async (event) => {
+	addComment: async (event: RequestEvent) => {
 		// Backend support pending
 		return fail(501, { error: 'Comments are not yet supported by the backend' });
 	}

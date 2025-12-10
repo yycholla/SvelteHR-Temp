@@ -146,7 +146,7 @@
 
 				<div class="space-y-2">
 					<Label>Frequency</Label>
-					<Select.Root bind:selected={frequency} {disabled}>
+					<Select.Root bind:value={frequency} {disabled}>
 						<Select.Trigger class="w-full">
 							<Select.Value />
 						</Select.Trigger>

@@ -3,7 +3,7 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 import { createSettingsOperations } from '$lib/graphql/settings-operations';
 import { createUrqlClient } from '$lib/graphql/client';
 
@@ -46,7 +46,6 @@ export const load: PageServerLoad = async (event) => {
 		},
 		userCredentials: {
 			userId: userSession.userId,
-			userEmail: userSession.metadata.userEmail as string,
 			roles: userSession.roles,
 			permissions: userSession.permissions,
 			// jwtToken omitted for session-based auth
@@ -69,7 +68,6 @@ export const load: PageServerLoad = async (event) => {
 			userId: userSession.userId,
 			userCredentials: {
 				userId: userSession.userId,
-				userEmail: userSession.metadata.userEmail as string,
 				roles: userSession.roles,
 				permissions: userSession.permissions,
 				isAuthenticated: Boolean(userSession.isAuthenticated)
@@ -81,7 +79,6 @@ export const load: PageServerLoad = async (event) => {
 			userId: userSession.userId,
 			userCredentials: {
 				userId: userSession.userId,
-				userEmail: userSession.metadata.userEmail as string,
 				roles: userSession.roles,
 				permissions: userSession.permissions,
 				isAuthenticated: Boolean(userSession.isAuthenticated)

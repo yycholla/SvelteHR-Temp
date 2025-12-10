@@ -90,7 +90,7 @@
 				Refresh
 			</button>
 
-			{#if showCreateButton && $canManageWorkflows}
+			{#if showCreateButton && auth.canManageWorkflows}
 				<button onclick={() => (showCreateDialog = true)} class="btn btn-primary">
 					<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
@@ -247,7 +247,7 @@
 						Get started by creating your first workflow definition.
 					{/if}
 				</p>
-				{#if $canManageWorkflows && !searchTerm && !statusFilter && !categoryFilter}
+				{#if auth.canManageWorkflows && !searchTerm && !statusFilter && !categoryFilter}
 					<div class="mt-6">
 						<button onclick={() => (showCreateDialog = true)} class="btn btn-primary">
 							<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

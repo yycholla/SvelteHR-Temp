@@ -67,7 +67,7 @@
 
 	function canUpdateTask(): boolean {
 		// User can update if they are assigned to the task or have workflow management permissions
-		return task.assignedToId === $user?.id || $canManageWorkflows;
+		return task.assignedToId === auth.user?.id || auth.canManageWorkflows;
 	}
 
 	async function updateTaskStatus(newStatus: string) {

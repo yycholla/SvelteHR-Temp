@@ -383,11 +383,8 @@
 				<div class="space-y-2">
 					<Label for="departmentId">Department *</Label>
 					<Select.Root
-						selected={{
-							value: formData.departmentId,
-							label: departmentOptions.find((d) => d.value === formData.departmentId)?.label || ''
-						}}
-						onSelectedChange={(v: { value?: string; label?: string } | undefined) => (formData.departmentId = v?.value || '')}
+						value={formData.departmentId}
+						onValueChange={(v) => (formData.departmentId = v || '')}
 					>
 						<Select.Trigger class={validationErrors.departmentId ? 'border-destructive' : ''}>
 							<Select.Value placeholder="Select department" />
@@ -406,12 +403,8 @@
 				<div class="space-y-2">
 					<Label for="employmentType">Employment Type</Label>
 					<Select.Root
-						selected={{
-							value: formData.employmentType,
-							label:
-								employmentTypeOptions.find((o) => o.value === formData.employmentType)?.label || ''
-						}}
-						onSelectedChange={(v: { value?: string; label?: string } | undefined) => (formData.employmentType = v?.value || 'FULL_TIME')}
+						value={formData.employmentType}
+						onValueChange={(v) => (formData.employmentType = v || 'FULL_TIME')}
 					>
 						<Select.Trigger>
 							<Select.Value placeholder="Select employment type" />
@@ -441,11 +434,8 @@
 				<div class="space-y-2">
 					<Label for="managerId">Manager</Label>
 					<Select.Root
-						selected={{
-							value: formData.managerId,
-							label: managerOptions.find((m) => m.value === formData.managerId)?.label || ''
-						}}
-						onSelectedChange={(v: { value?: string; label?: string } | undefined) => (formData.managerId = v?.value || '')}
+						value={formData.managerId}
+						onValueChange={(v) => (formData.managerId = v || '')}
 					>
 						<Select.Trigger>
 							<Select.Value placeholder="Select manager" />
@@ -486,11 +476,8 @@
 					<div class="space-y-2">
 						<Label for="payType">Pay Type</Label>
 						<Select.Root
-							selected={{
-								value: formData.payType,
-								label: payTypeOptions.find((p) => p.value === formData.payType)?.label || ''
-							}}
-							onSelectedChange={(v: { value?: string; label?: string } | undefined) => (formData.payType = v?.value || 'SALARY')}
+							value={formData.payType}
+							onValueChange={(v) => (formData.payType = v || 'SALARY')}
 						>
 							<Select.Trigger>
 								<Select.Value placeholder="Select pay type" />
@@ -582,13 +569,8 @@
 				<div class="space-y-2 md:col-span-2">
 					<Label for="emergencyContactRelationship">Relationship</Label>
 					<Select.Root
-						selected={{
-							value: formData.emergencyContactRelationship,
-							label:
-								relationshipOptions.find((r) => r.value === formData.emergencyContactRelationship)
-									?.label || ''
-						}}
-						onSelectedChange={(v: { value?: string; label?: string } | undefined) => (formData.emergencyContactRelationship = v?.value || '')}
+						value={formData.emergencyContactRelationship}
+						onValueChange={(v) => (formData.emergencyContactRelationship = v || '')}
 					>
 						<Select.Trigger>
 							<Select.Value placeholder="Select relationship" />

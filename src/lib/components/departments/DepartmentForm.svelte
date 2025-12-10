@@ -50,7 +50,7 @@
 
 	const managerOptions = $derived([
 		{ value: '', label: 'No Manager Assigned' },
-		...$users.map((user) => ({
+		...$users.map((user: { id: string; display_name?: string; firstName?: string; lastName?: string }) => ({
 			value: user.id,
 			label: user.display_name || `${user.firstName || ''} ${user.lastName || ''}`.trim()
 		}))

@@ -98,7 +98,7 @@
 		return `${format(start, 'MMM dd')} - ${format(end, 'MMM dd, yyyy')}`;
 	}
 
-	async function handleSubmitRequest(event) {
+	async function handleSubmitRequest(event: Event) {
 		event.preventDefault();
 
 		// Simulate API call
@@ -220,7 +220,7 @@
 			</div>
 			<div>
 				<span class="text-3xl font-bold text-yellow-500">
-					{leaveRequests.filter((r) => r.status === 'pending').length}
+					{leaveRequests.filter((r: { status: string }) => r.status === 'pending').length}
 				</span>
 				<p class="mt-1 text-xs text-muted-foreground">Awaiting Approval</p>
 			</div>

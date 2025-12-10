@@ -168,7 +168,7 @@
 
 	// Map roles from database to dropdown options
 	const roleOptions = $derived(
-		roles.map((r) => ({
+		roles.map((r: { name: string }) => ({
 			value: r.name,
 			label: r.name
 		}))

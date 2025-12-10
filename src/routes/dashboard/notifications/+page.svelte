@@ -79,7 +79,7 @@
 	// Mark all as read
 	async function markAllAsRead() {
 		try {
-			const unreadIds = data.notifications.filter((n) => !n.readStatus).map((n) => n.id);
+			const unreadIds = data.notifications.filter((n: { readStatus: boolean }) => !n.readStatus).map((n: { id: string }) => n.id);
 
 			if (unreadIds.length === 0) return;
 
