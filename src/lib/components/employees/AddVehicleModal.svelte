@@ -5,15 +5,6 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Car } from '@lucide/svelte';
 
-	interface Props {
-		isOpen: boolean;
-		employeeId: string;
-		employeeName: string;
-		onSave: (vehicle: VehicleInput) => Promise<void>;
-		onClose: () => void;
-		isSubmitting?: boolean;
-	}
-
 	export interface VehicleInput {
 		employeeId: string;
 		make: string;

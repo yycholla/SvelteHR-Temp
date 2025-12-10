@@ -695,10 +695,8 @@
 	}
 
 	.form-group textarea:focus {
-		outline: none;
+		outline: 2px solid rgba(59, 130, 246, 0.5);
 		border-color: #3b82f6;
-		ring: 2px;
-		ring-color: rgba(59, 130, 246, 0.5);
 	}
 
 	.char-count {

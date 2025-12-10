@@ -90,6 +90,8 @@ export interface GetCompleteDashboardDataVariables {
 	userRole: string;
 }
 
+export type GetCompleteDashboardDataRequest = GetCompleteDashboardDataVariables;
+
 export interface GetCompleteDashboardDataResponse {
 	dashboardData: {
 		metrics: DashboardMetrics;
@@ -198,6 +200,8 @@ export interface VerifyUserAuthenticationVariables {
 	includeRoles?: boolean;
 }
 
+export type VerifyUserAuthenticationRequest = VerifyUserAuthenticationVariables;
+
 export interface VerifyUserAuthenticationResponse {
 	success?: boolean;
 	data?: any;
@@ -251,6 +255,10 @@ export interface GetEmployeesResponse {
 	pagination: PaginationInfo;
 }
 
+export type GetEmployeesWithFilteringResponse = GetEmployeesResponse;
+export type GetEmployeesWithFilteringVariables = GetEmployeesVariables;
+export type GetEmployeesWithFilteringRequest = GetEmployeesVariables;
+
 export interface Employee {
 	id: string;
 	email: string;
@@ -294,6 +302,10 @@ export interface GetDepartmentsResponse {
 	departments: Department[];
 }
 
+export type GetDepartmentsWithStatsResponse = GetDepartmentsResponse;
+export type GetDepartmentsWithStatsVariables = GetDepartmentsVariables;
+export type GetDepartmentsWithStatsRequest = GetDepartmentsVariables;
+
 export interface Department {
 	id: string;
 	name: string;
@@ -334,6 +346,9 @@ export interface RetryFailedOperationResponse {
 	};
 }
 
+export type RetryOperationResponse = RetryFailedOperationResponse;
+export type RetryOperationVariables = RetryFailedOperationVariables;
+
 // =============================================================================
 // Cache Management Operation Contracts
 // =============================================================================
@@ -354,6 +369,9 @@ export interface InvalidateCacheResponse {
 		nextRefreshAt: string;
 	};
 }
+
+export type CacheOperationResponse = InvalidateCacheResponse;
+export type CacheOperationVariables = InvalidateCacheVariables;
 
 export interface CachePolicy {
 	ttlMinutes: number; // Maximum 30 minutes

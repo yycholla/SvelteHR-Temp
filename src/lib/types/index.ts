@@ -125,6 +125,13 @@ export interface Department {
 	updatedAt: string;
 }
 
+export interface DepartmentFilter {
+	searchQuery?: string;
+	isActive?: boolean;
+	parentDepartmentId?: string | null;
+	managerId?: string;
+}
+
 export interface Task {
 	id: string;
 	title: string;

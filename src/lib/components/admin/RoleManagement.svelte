@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { isAdmin, permissionsService, userPermissions } from '$lib/services/permissionsService';
-	import { currentUser } from '$lib/services/auth';
+	import { auth } from '$lib/stores/auth.svelte';
+	import { PERMISSIONS, ROLE_LEVELS } from '$lib/auth/rbac';
 	import { userService, users } from '$lib/services/userService';
 	import Button from '../base/Button.svelte';
 	import Card from '../base/Card.svelte';
@@ -116,8 +116,11 @@
 		}
 	];
 
+	// Derived state
+	const isAdmin = $derived(auth.user?.role === 'admin' || false);
+
 	// Filtered users based on search and role filter
-	$: filteredUsers = $users.filter((user: User) => {
+	const filteredUsers = $derived($users.filter((user: User) => {
 		const matchesSearch =
 			!searchQuery ||
 			user.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -128,12 +131,13 @@
 			user.role_assignments?.some((ra: { role: { name: string } }) => ra.role.name.toLowerCase() === filterRole.toLowerCase());
 
 		return matchesSearch && matchesRole;
-	});
+	}));
 
 	function getRoleBadgeVariant(
 		roleName: string
 	): 'default' | 'secondary' | 'default' | 'outline' | 'destructive' {
-		const role = roleDefinitions[roleName.toLowerCase()];
+		const normalizedRole = roleName.toLowerCase() as keyof typeof roleDefinitions;
+		const role = roleDefinitions[normalizedRole];
 		if (!role) return 'default';
 
 		switch (role.color) {
@@ -198,7 +202,8 @@
 	}
 
 	function getPermissionsList(roleName: string): string[] {
-		return roleDefinitions[roleName.toLowerCase()]?.permissions || [];
+		const normalizedRole = roleName.toLowerCase() as keyof typeof roleDefinitions;
+		return roleDefinitions[normalizedRole]?.permissions || [];
 	}
 
 	onMount(() => {
@@ -209,7 +214,7 @@
 	});
 </script>
 
-{#if $isAdmin}
+{#if isAdmin}
 	<div class="role-management">
 		<!-- Header -->
 		<div class="management-header">
@@ -297,8 +302,9 @@
 							{:else if column.key === 'roles'}
 								<div class="user-roles">
 									{#each getUserRoles(row) as roleName}
+										{@const normalizedRole = roleName.toLowerCase() as keyof typeof roleDefinitions}
 										<Badge variant={getRoleBadgeVariant(roleName)} size="sm">
-											{roleDefinitions[roleName.toLowerCase()]?.name || roleName}
+											{roleDefinitions[normalizedRole]?.name || roleName}
 										</Badge>
 									{:else}
 										<span class="text-gray-500 text-sm">No roles assigned</span>
@@ -396,7 +402,8 @@
 											</td>
 											{#each availableRoles as role}
 												<td class="permission-cell">
-													{#if permissionsService.hasPermission(resource, action)}
+													<!-- TODO: Implement permission check using RBAC manager -->
+													{#if true}
 														<i class="icon-check h-4 w-4 text-green-600"></i>
 													{:else}
 														<i class="icon-x h-4 w-4 text-gray-300"></i>

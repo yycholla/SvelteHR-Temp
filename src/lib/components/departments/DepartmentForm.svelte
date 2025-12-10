@@ -87,29 +87,26 @@
 
 			if (mode === 'create') {
 				const input: CreateDepartmentInput = {
-					name: formData.name.trim(),
-					code: formData.code.trim().toUpperCase(),
-					description: formData.description.trim() || undefined,
-					parentDepartmentId: formData.parentDepartmentId || undefined,
-					managerId: formData.managerId || undefined,
-					budgetLimit: formData.budgetLimit || undefined,
-					costCenter: formData.costCenter.trim() || undefined,
-					location: formData.location.trim() || undefined,
-					isRemoteEnabled: formData.isRemoteEnabled
+					department: {
+						name: formData.name.trim(),
+						description: formData.description.trim() || undefined,
+						parentDepartmentId: formData.parentDepartmentId || undefined,
+						managerId: formData.managerId || undefined,
+						budget: formData.budgetLimit || undefined
+					}
 				};
 
 				result = await departmentService.createDepartment(input);
 			} else {
 				const input: UpdateDepartmentInput = {
-					name: formData.name.trim(),
-					code: formData.code.trim().toUpperCase(),
-					description: formData.description.trim() || undefined,
-					parentDepartmentId: formData.parentDepartmentId || undefined,
-					managerId: formData.managerId || undefined,
-					budgetLimit: formData.budgetLimit || undefined,
-					costCenter: formData.costCenter.trim() || undefined,
-					location: formData.location.trim() || undefined,
-					isRemoteEnabled: formData.isRemoteEnabled
+					id: department!.id,
+					patch: {
+						name: formData.name.trim(),
+						description: formData.description.trim() || undefined,
+						parentDepartmentId: formData.parentDepartmentId || undefined,
+						managerId: formData.managerId || undefined,
+						budget: formData.budgetLimit || undefined
+					}
 				};
 
 				result = await departmentService.updateDepartment(department!.id, input);

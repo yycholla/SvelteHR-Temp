@@ -3,7 +3,7 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
+import { requireAuth, getUserPermissions, PermissionChecks } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies, url } = event;

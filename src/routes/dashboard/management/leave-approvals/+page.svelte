@@ -375,10 +375,11 @@
 		goto(url.toString());
 	}
 
-	function handleStatusFilterChange(status: string) {
+	function handleStatusFilterChange(status: string | string[]) {
+		const statusValue = Array.isArray(status) ? status[0] : status;
 		const url = new URL($page.url);
-		if (status && status !== 'all') {
-			url.searchParams.set('status', status);
+		if (statusValue && statusValue !== 'all') {
+			url.searchParams.set('status', statusValue);
 		} else {
 			url.searchParams.delete('status');
 		}

@@ -644,26 +644,6 @@
 		color: #166534;
 	}
 
-	.status-invited {
-		background-color: #fef3c7;
-		color: #92400e;
-	}
-
-	.status-in_progress {
-		background-color: #dbeafe;
-		color: #1e40af;
-	}
-
-	.status-completed {
-		background-color: #dcfce7;
-		color: #166534;
-	}
-
-	.status-terminated {
-		background-color: #fee2e2;
-		color: #991b1b;
-	}
-
 	.pagination {
 		display: flex;
 		justify-content: center;

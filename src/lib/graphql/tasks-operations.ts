@@ -331,6 +331,9 @@ export interface CreateTaskInput {
 	projectId?: string;
 	estimatedHours?: number;
 	tags?: string[];
+	taskTypeId?: string;
+	parentTaskId?: string;
+	requiresManualReassignment?: boolean;
 }
 
 export interface UpdateTaskInput {
@@ -343,6 +346,9 @@ export interface UpdateTaskInput {
 	estimatedHours?: number;
 	actualHours?: number;
 	tags?: string[];
+	taskTypeId?: string;
+	parentTaskId?: string;
+	requiresManualReassignment?: boolean;
 }
 
 export interface ChangeTaskStatusInput {

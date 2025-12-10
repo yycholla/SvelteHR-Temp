@@ -145,7 +145,16 @@
 
 	// Validate form when data changes
 	$effect(() => {
-		const result = validateForm(formData, validationRules);
+		const fields: Record<string, any> = {};
+		for (const key in formData) {
+			fields[key] = {
+				name: key,
+				label: key,
+				value: (formData as any)[key],
+				rules: (validationRules as any)[key]
+			};
+		}
+		const result = validateForm(fields);
 		validationErrors = result.errors;
 		isValid = result.isValid;
 	});

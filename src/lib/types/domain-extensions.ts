@@ -159,9 +159,9 @@ export type { Event } from '$lib/graphql/events-operations';
  * import type { Department, Task, Event } from '$lib/types/domain-extensions';
  * ```
  */
-export type { Department, Task, Event };
+// export type { Department, Task, Event }; // REMOVED: Already exported via interface/type definitions above
 
 /**
  * Re-export connection types for type-safe dependency handling
  */
-export type { TaskDependencyNode, TaskDependencyConnection };
+// export type { TaskDependencyNode, TaskDependencyConnection }; // REMOVED: Already exported via interface definitions above

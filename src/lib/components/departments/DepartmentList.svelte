@@ -2,10 +2,9 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import {
-		departmentError,
-		departmentService,
 		departments,
-		isLoadingDepartments
+		departmentService,
+		loadDepartments
 	} from '$lib/services/departmentService';
 	import { currentUser, hasPermission } from '$lib/services/auth';
 	import DataTable from '../tables/DataTable.svelte';
@@ -210,11 +209,12 @@
 		if (!confirmed) return;
 
 		try {
-			await departmentService.archiveDepartment(department.id, 'Manual archive via interface');
+			await departmentService.deleteDepartment(department.id);
 			await loadDepartments(); // Refresh the list
-		} catch (error) {
-			console.error('Failed to archive department:', error);
-			alert('Failed to archive department. Please try again.');
+			toast.success('Department archived successfully');
+		} catch (err: any) {
+			console.error('Failed to delete department:', err);
+			toast.error('Failed to archive department');
 		}
 	}
 
@@ -332,7 +332,7 @@
 		<DataTable
 			data={$departments}
 			{columns}
-			loading={$isLoadingDepartments}
+			loading={false}
 			{selectable}
 			{compact}
 			hoverable={true}
@@ -396,26 +396,4 @@
 			</svelte:fragment>
 		</DataTable>
 	</Card>
-
-	{#if $departmentError}
-		<Card padding="md" class="department-list__error">
-			<div class="error-message">
-				<div class="error-icon">
-					<i class="icon-alert-circle"></i>
-				</div>
-				<div class="error-content">
-					<h3 class="error-title">Error Loading Departments</h3>
-					<p class="error-description">{$departmentError}</p>
-					<Button
-						variant="secondary"
-						size="sm"
-						leftIcon="refresh-cw"
-						onclick={() => loadDepartments()}
-					>
-						Retry
-					</Button>
-				</div>
-			</div>
-		</Card>
-	{/if}
 </div>

@@ -184,7 +184,7 @@ export const load: PageServerLoad = async (event) => {
 		const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
 		// Get unique types from actual data (categories are not in current Rust schema)
-		const uniqueTypes = [...new Set(reports.map((r: any) => r.type))];
+		const uniqueTypes: string[] = [...new Set(reports.map((r: any) => r.type))];
 
 		const analytics = {
 			summary: {

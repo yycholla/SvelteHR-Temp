@@ -58,9 +58,10 @@
 				return Download;
 		}
 	};
+
+	const ExportIcon = $derived(getIcon());
 </script>
 
-{@const ExportIcon = getIcon()}
 <Button variant="outline" onclick={exportData} class="gap-2">
 	<ExportIcon class="h-4 w-4" />
 	Export {format.toUpperCase()}

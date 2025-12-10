@@ -85,8 +85,8 @@
 			([a], [b]) => parseInt(b) - parseInt(a)
 		);
 
-		sortedRoleGroups.forEach(([roleLevel, roleEmployees]: [string, any[]]) => {
-			roleEmployees.forEach((emp: any) => {
+		sortedRoleGroups.forEach(([roleLevel, roleEmployees]) => {
+			(roleEmployees as any[]).forEach((emp: any) => {
 				const empNode: TreeNode = {
 					id: emp.id,
 					name: emp.displayName || emp.email,
@@ -196,7 +196,7 @@
 				onclick={() => {
 					// Expand all
 					if (treeData) {
-						const allIds = new Set();
+						const allIds = new Set<string>();
 						function collectIds(node: TreeNode) {
 							allIds.add(node.id);
 							node.children.forEach(collectIds);

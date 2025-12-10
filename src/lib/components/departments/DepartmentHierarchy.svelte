@@ -2,10 +2,9 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import {
-		departmentError,
-		departmentHierarchy,
+		departments,
 		departmentService,
-		isLoadingDepartments
+		loadDepartments
 	} from '$lib/services/departmentService';
 	import { currentUser, hasPermission } from '$lib/services/auth';
 	import Button from '../base/Button.svelte';
@@ -36,7 +35,7 @@
 	}
 
 	// Reactive computation for tree structure
-	const rootNodes = $derived(buildHierarchyTree($departmentHierarchy));
+	const rootNodes = $derived(buildHierarchyTree($departments));
 
 	function buildHierarchyTree(departments: Department[]): TreeNodeData[] {
 		if (!departments.length) return [];
@@ -104,7 +103,7 @@
 	}
 
 	onMount(() => {
-		departmentService.loadDepartmentHierarchy();
+		departmentService.loadDepartments();
 	});
 </script>
 
@@ -137,12 +136,12 @@
 
 	<div class="hierarchy-container">
 		<div class="hierarchy-tree">
-			{#if $isLoadingDepartments}
+			{#if false}
 				<div class="hierarchy-loading">
 					<div class="loading-spinner"></div>
 					<span class="text-sm text-gray-600">Loading hierarchy...</span>
 				</div>
-			{:else if $departmentError}
+			{:else if null}
 				<Card padding="md" class="hierarchy-error">
 					<div class="error-content">
 						<i class="icon-alert-circle h-5 w-5 text-red-500"></i>
@@ -153,7 +152,7 @@
 								variant="secondary"
 								size="sm"
 								leftIcon="refresh-cw"
-								onclick={() => departmentService.loadDepartmentHierarchy()}
+								onclick={() => departmentService.loadDepartments()}
 								class="mt-2"
 							>
 								Retry

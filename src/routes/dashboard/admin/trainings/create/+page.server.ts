@@ -6,7 +6,7 @@ import { CREATE_TRAINING_MUTATION } from '$lib/graphql/training-operations';
 
 export const load: PageServerLoad = async (event) => {
 	requireAuth(event, {
-		permissionAny: ['training:write', 'training:assign']
+		requiredPermissions: ['training:write', 'training:assign']
 	});
 	return {
 		meta: {

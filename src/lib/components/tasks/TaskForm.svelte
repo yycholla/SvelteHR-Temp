@@ -330,18 +330,15 @@
 			if (isEditing && task) {
 				// Update task
 				const updateData: UpdateTaskInput = {
-					id: task.id,
-					taskPatch: {
-						title: formData.title,
-						description: formData.description || null,
-						assigneeId,
-						taskTypeId: formData.taskTypeId,
-						status: formData.status,
-						priority: formData.priority,
-						dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : null,
-						parentTaskId: formData.parentTaskId || null,
-						requiresManualReassignment: formData.requiresManualReassignment
-					}
+					title: formData.title,
+					description: formData.description || undefined, // Use undefined instead of null
+					assigneeId,
+					taskTypeId: formData.taskTypeId,
+					status: formData.status,
+					priority: formData.priority,
+					dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : undefined, // Use undefined instead of null
+					parentTaskId: formData.parentTaskId || undefined, // Use undefined instead of null
+					requiresManualReassignment: formData.requiresManualReassignment
 				};
 				onSubmit(updateData).catch((error) => {
 					console.error('[TaskForm] Submit error:', error);
@@ -349,17 +346,15 @@
 			} else {
 				// Create task
 				const createData: CreateTaskInput = {
-					task: {
-						title: formData.title,
-						description: formData.description || undefined,
-						assigneeId,
-						taskTypeId: formData.taskTypeId,
-						status: formData.status,
-						priority: formData.priority,
-						dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : undefined,
-						parentTaskId: formData.parentTaskId || undefined,
-						requiresManualReassignment: formData.requiresManualReassignment
-					}
+					title: formData.title,
+					description: formData.description || undefined,
+					assigneeId,
+					taskTypeId: formData.taskTypeId,
+					status: formData.status,
+					priority: formData.priority,
+					dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : undefined,
+					parentTaskId: formData.parentTaskId || undefined,
+					requiresManualReassignment: formData.requiresManualReassignment
 				};
 				onSubmit(createData).catch((error) => {
 					console.error('[TaskForm] Submit error:', error);

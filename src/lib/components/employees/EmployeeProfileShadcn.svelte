@@ -50,8 +50,8 @@
 	});
 	const canEdit = $derived(auth.user && (isOwnProfile || auth.hasPermission('user:update')));
 	const canDeactivate = $derived(auth.user && auth.hasPermission('user:delete') && !isOwnProfile);
-	const statusVariant = $derived(employee?.isActive ? 'default' : 'secondary');
-	const statusText = $derived(employee?.isActive ? 'Active' : 'Inactive');
+	const statusVariant = $derived(employee?.is_active ? 'default' : 'secondary');
+	const statusText = $derived(employee?.is_active ? 'Active' : 'Inactive');
 
 	async function loadEmployee() {
 		try {
@@ -214,7 +214,7 @@
 								</Button>
 							{/if}
 
-							{#if canDeactivate && employee.isActive}
+							{#if canDeactivate && employee.is_active}
 								<Button variant="destructive" onclick={() => (showDeactivateModal = true)}>
 									<UserX class="mr-2 h-4 w-4" />
 									Deactivate

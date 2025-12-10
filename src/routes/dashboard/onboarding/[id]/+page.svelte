@@ -340,6 +340,7 @@
 										<div class="space-y-4" data-testid="block-FORM_FIELDS-{block.id}">
 											{#each template.fields as field}
 												{@const fieldInfo = renderFormField(field, block.id)}
+												{@const FieldComponent = fieldInfo.component}
 												<div>
 													<Label for={`${block.id}-${field.name}`}>
 														{field.label}
@@ -347,8 +348,7 @@
 															<span class="text-red-500">*</span>
 														{/if}
 													</Label>
-													<svelte:component
-														this={fieldInfo.component}
+													<FieldComponent
 														id={`${block.id}-${field.name}`}
 														required={field.required}
 														bind:value={formData[field.name]}
