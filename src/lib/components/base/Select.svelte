@@ -19,6 +19,7 @@
 		clearable = false,
 		multiple = false,
 		maxHeight = '300px',
+		class: className = '',
 		onchange = undefined,
 		onfocus = undefined,
 		onblur = undefined
@@ -40,6 +41,7 @@
 		clearable?: boolean;
 		multiple?: boolean;
 		maxHeight?: string;
+		class?: string;
 		onchange?: ((detail: { value: string | number | null; option: any }) => void) | undefined;
 		onfocus?: (() => void) | undefined;
 		onblur?: (() => void) | undefined;
@@ -70,7 +72,8 @@
 			focused && 'select-container--focused',
 			disabled && 'select-container--disabled',
 			variant === 'error' && 'select-container--error',
-			variant === 'success' && 'select-container--success'
+			variant === 'success' && 'select-container--success',
+			className
 		]
 			.filter(Boolean)
 			.join(' ')

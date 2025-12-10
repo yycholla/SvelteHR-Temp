@@ -22,6 +22,7 @@
 		step = null,
 		maxlength = null,
 		pattern = null,
+		class: className = '',
 		oninput = undefined,
 		onchange = undefined,
 		onfocus = undefined,
@@ -61,6 +62,7 @@
 		step?: number | string | null;
 		maxlength?: number | null;
 		pattern?: string | null;
+		class?: string;
 		oninput?: ((detail: { value: string | number; event: Event }) => void) | undefined;
 		onchange?: ((detail: { value: string | number; event: Event }) => void) | undefined;
 		onfocus?: ((detail: { value: string | number; event: FocusEvent }) => void) | undefined;
@@ -82,7 +84,8 @@
 			focused && 'input-container--focused',
 			disabled && 'input-container--disabled',
 			variant === 'error' && 'input-container--error',
-			variant === 'success' && 'input-container--success'
+			variant === 'success' && 'input-container--success',
+			className
 		]
 			.filter(Boolean)
 			.join(' ')

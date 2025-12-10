@@ -15,6 +15,7 @@
 		leftIcon = null,
 		rightIcon = null,
 		iconOnly = false,
+		class: className = '',
 		onclick = undefined,
 		children
 	}: {
@@ -31,6 +32,7 @@
 		leftIcon?: string | null;
 		rightIcon?: string | null;
 		iconOnly?: boolean;
+		class?: string;
 		onclick?: ((event: MouseEvent) => void) | undefined;
 		children?: Snippet;
 	} = $props();
@@ -45,7 +47,8 @@
 			rounded && 'btn--rounded',
 			iconOnly && 'btn--icon-only',
 			disabled && 'btn--disabled',
-			loading && 'btn--loading'
+			loading && 'btn--loading',
+			className
 		]
 			.filter(Boolean)
 			.join(' ')
