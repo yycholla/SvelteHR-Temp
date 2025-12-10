@@ -21,7 +21,7 @@ export type ResourceType =
 	| 'employee'
 	| 'department'
 	| 'performance_review';
-export type AvailabilityStatus = 'Available' | 'Deleted' | 'Moved' | 'Restricted';
+export type AvailabilityStatus = 'Available' | 'Unavailable' | 'Pending';
 
 // Main Task Interface
 export interface Task {

@@ -83,7 +83,7 @@ async function validateEmployeeResource(employeeId: string): Promise<ResourceVal
 				valid: false,
 				exists: false,
 				accessible: false,
-				availabilityStatus: 'Deleted',
+				availabilityStatus: 'Unavailable',
 				error: 'Employee not found'
 			};
 		}
@@ -94,7 +94,7 @@ async function validateEmployeeResource(employeeId: string): Promise<ResourceVal
 				valid: false,
 				exists: true,
 				accessible: false,
-				availabilityStatus: 'Deleted',
+				availabilityStatus: 'Unavailable',
 				resourceTitle: employee.displayName,
 				error: 'Employee is archived'
 			};
@@ -166,7 +166,7 @@ async function validateDocumentResource(documentId: string): Promise<ResourceVal
 				valid: false,
 				exists: false,
 				accessible: false,
-				availabilityStatus: 'Deleted',
+				availabilityStatus: 'Unavailable',
 				error: 'Document not found'
 			};
 		}
@@ -177,7 +177,7 @@ async function validateDocumentResource(documentId: string): Promise<ResourceVal
 				valid: false,
 				exists: true,
 				accessible: false,
-				availabilityStatus: 'Deleted',
+				availabilityStatus: 'Unavailable',
 				resourceTitle: document.title || document.fileName,
 				error: 'Document is archived'
 			};
@@ -248,7 +248,7 @@ async function validateGoalResource(goalId: string): Promise<ResourceValidationR
 				valid: false,
 				exists: false,
 				accessible: false,
-				availabilityStatus: 'Deleted',
+				availabilityStatus: 'Unavailable',
 				error: 'Goal not found'
 			};
 		}
@@ -259,7 +259,7 @@ async function validateGoalResource(goalId: string): Promise<ResourceValidationR
 				valid: false,
 				exists: true,
 				accessible: false,
-				availabilityStatus: 'Deleted',
+				availabilityStatus: 'Unavailable',
 				resourceTitle: goal.title,
 				error: 'Goal is archived'
 			};
@@ -345,7 +345,7 @@ async function validatePerformanceReviewResource(
 				valid: false,
 				exists: false,
 				accessible: false,
-				availabilityStatus: 'Deleted',
+				availabilityStatus: 'Unavailable',
 				error: 'Performance review not found'
 			};
 		}
@@ -356,7 +356,7 @@ async function validatePerformanceReviewResource(
 				valid: false,
 				exists: true,
 				accessible: false,
-				availabilityStatus: 'Deleted',
+				availabilityStatus: 'Unavailable',
 				resourceTitle: review.title,
 				error: 'Performance review is archived'
 			};
@@ -561,9 +561,10 @@ export async function checkTaskLinkedResources(taskId: string): Promise<{
 					break;
 				case 'Unavailable':
 					stats.unavailable++;
+					stats.deleted++; // Count unavailable as deleted for backwards compatibility
 					break;
-				case 'Deleted':
-					stats.deleted++;
+				case 'Pending':
+					// Pending resources are not counted in any category yet
 					break;
 			}
 

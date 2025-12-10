@@ -142,9 +142,9 @@
 			case 'Available':
 				return CheckCircle;
 			case 'Unavailable':
-				return AlertCircle;
-			case 'Deleted':
 				return XCircle;
+			case 'Pending':
+				return Clock;
 			default:
 				return AlertCircle;
 		}
@@ -156,9 +156,9 @@
 			case 'Available':
 				return 'text-green-600 dark:text-green-400';
 			case 'Unavailable':
-				return 'text-yellow-600 dark:text-yellow-400';
-			case 'Deleted':
 				return 'text-red-600 dark:text-red-400';
+			case 'Pending':
+				return 'text-yellow-600 dark:text-yellow-400';
 			default:
 				return 'text-gray-600';
 		}
@@ -296,20 +296,20 @@
 					<!-- Availability Warning -->
 					{#if resource.availabilityStatus !== 'Available'}
 						<div
-							class="rounded-lg border {resource.availabilityStatus === 'Deleted'
+							class="rounded-lg border {resource.availabilityStatus === 'Unavailable'
 								? 'border-destructive bg-destructive/10'
 								: 'border-warning bg-warning/10'} p-2"
 						>
 							<div
-								class="flex items-center gap-2 text-xs {resource.availabilityStatus === 'Deleted'
+								class="flex items-center gap-2 text-xs {resource.availabilityStatus === 'Unavailable'
 									? 'text-destructive'
 									: 'text-warning'}"
 							>
 								<AlertCircle class="h-3 w-3 flex-shrink-0" />
 								<span>
-									{resource.availabilityStatus === 'Deleted'
-										? 'This resource has been deleted'
-										: 'This resource is currently unavailable'}
+									{resource.availabilityStatus === 'Unavailable'
+										? 'This resource is currently unavailable or has been deleted'
+										: 'This resource status is pending validation'}
 								</span>
 							</div>
 						</div>
@@ -326,9 +326,9 @@
 					<div>
 						<h4 class="font-semibold text-warning mb-1">Some Resources Are Unavailable</h4>
 						<p class="text-sm text-warning/90">
-							{resources.filter((r) => r.availabilityStatus === 'Deleted').length > 0
-								? 'Deleted resources should be removed or replaced.'
-								: 'Unavailable resources may have been archived or restricted.'}
+							{resources.filter((r) => r.availabilityStatus === 'Unavailable').length > 0
+								? 'Unavailable resources may have been deleted, archived or restricted and should be removed or replaced.'
+								: 'Some resources are pending validation.'}
 						</p>
 					</div>
 				</div>
