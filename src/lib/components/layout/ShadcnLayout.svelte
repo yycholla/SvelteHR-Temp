@@ -264,7 +264,7 @@
 							<!-- Breadcrumbs -->
 							{#if breadcrumbs.length > 0}
 								<nav class="flex items-center space-x-1 text-sm text-muted-foreground">
-									{#each breadcrumbs as crumb, index}
+									{#each breadcrumbs as crumb: Breadcrumb, index}
 										{#if index > 0}
 											<span>/</span>
 										{/if}
