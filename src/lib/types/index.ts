@@ -96,6 +96,10 @@ export interface Department {
 	employees: User[];
 	employeeCount: number;
 	budget?: number;
+	budgetLimit?: number;
+	costCenter?: string;
+	location?: string;
+	isRemoteEnabled?: boolean;
 	isActive: boolean;
 	createdAt: string;
 	updatedAt: string;
