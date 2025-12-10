@@ -9,6 +9,7 @@
 // - Easier to debug with standard browser APIs
 
 import { beforeEach, describe, expect, test } from 'vitest';
+import { page } from '@vitest/browser/context';
 import {
 	clickElement,
 	countElements,

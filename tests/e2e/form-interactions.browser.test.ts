@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import { page } from '@vitest/browser/context';
 import {
 	captureConsole,
 	clearInput,
