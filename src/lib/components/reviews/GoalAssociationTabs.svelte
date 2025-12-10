@@ -74,7 +74,7 @@
 		const result = CreateGoalSchema.safeParse(newGoalForm);
 		if (!result.success) {
 			newGoalErrors = {};
-			result.error.errors.forEach((err) => {
+			result.error.issues.forEach((err) => {
 				if (err.path[0]) {
 					newGoalErrors[err.path[0] as string] = err.message;
 				}

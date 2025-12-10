@@ -320,7 +320,7 @@
 
 	<!-- Results Count -->
 	<div class="text-sm text-muted-foreground">
-		Showing {filteredReviews().length} of {reviews.length} reviews
+		Showing {filteredReviews.length} of {reviews.length} reviews
 	</div>
 
 	<!-- Reviews List -->
@@ -337,7 +337,7 @@
 				</Card.Root>
 			{/each}
 		</div>
-	{:else if filteredReviews().length === 0}
+	{:else if filteredReviews.length === 0}
 		<Card.Root>
 			<Card.Content class="pt-12 pb-12 text-center">
 				<FileText class="mx-auto mb-4 h-12 w-12 text-muted-foreground opacity-20" />
@@ -351,7 +351,7 @@
 		</Card.Root>
 	{:else}
 		<div class="space-y-4">
-			{#each filteredReviews() as review (review.id)}
+			{#each filteredReviews as review (review.id)}
 				{#if review.status === 'DRAFT'}
 					<DraftReviewIndicator
 						draft={review}
