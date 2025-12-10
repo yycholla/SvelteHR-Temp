@@ -39,7 +39,10 @@ export interface CalendarEvent {
 	imageAspectRatio: '16:9' | '9:16' | null;
 
 	// Metadata
+	organizerId?: string;
 	createdBy: string;
+	createdAt?: Date;
+	updatedAt?: Date;
 	canEdit: boolean;
 	canDelete: boolean;
 
