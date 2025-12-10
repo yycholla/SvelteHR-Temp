@@ -245,7 +245,7 @@
 							<User class="h-4 w-4" />
 						</div>
 						<div class="flex flex-col">
-							<span class="text-sm font-medium">{auth.user.name || 'User'}</span>
+							<span class="text-sm font-medium">{auth.user.display_name || auth.user.email || 'User'}</span>
 							<span class="text-xs text-muted-foreground">{auth.user.role || 'Employee'}</span>
 						</div>
 					</div>
@@ -309,7 +309,7 @@
 									<User class="h-4 w-4" />
 								</div>
 								<div class="flex flex-col">
-									<span class="text-sm font-medium">{auth.user.name || 'User'}</span>
+									<span class="text-sm font-medium">{auth.user.display_name || auth.user.email || 'User'}</span>
 									<span class="text-xs text-muted-foreground">{auth.user.email || ''}</span>
 								</div>
 							</div>

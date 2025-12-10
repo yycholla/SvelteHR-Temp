@@ -11,9 +11,10 @@ import { logger } from '$lib/utils/logger';
 // Type definitions for GraphQL query responses
 interface User {
 	id: string;
-	firstName: string;
-	lastName: string;
-	isActive: boolean;
+	firstName?: string;
+	lastName?: string;
+	email?: string;
+	isActive?: boolean;
 	departmentId?: string;
 }
 
@@ -520,8 +521,8 @@ export const load: PageServerLoad = async (event) => {
 					},
 					teamMembers: teamMembers.slice(0, 10).map((member) => ({
 						id: member.id,
-						name: `${member.firstName} ${member.lastName}`,
-						email: member.email,
+						name: `${member.firstName || ''} ${member.lastName || ''}`.trim() || 'Unknown',
+						email: member.email || 'no-email@example.com',
 						status: member.isActive ? 'active' : 'inactive',
 						department: departments.find((d) => d.id === member.departmentId)?.name || 'Unknown'
 					}))

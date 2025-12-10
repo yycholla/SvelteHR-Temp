@@ -133,7 +133,7 @@
 					{auth.user.displayName}
 				</p>
 				<p class="max-w-32 truncate text-xs text-gray-500">
-					{auth.user.jobTitle || 'Employee'}
+					{auth.user.job_title || auth.user.display_name || 'Employee'}
 				</p>
 			</div>
 
@@ -167,9 +167,9 @@
 							<p class="truncate text-sm text-gray-500">
 								{auth.user.email}
 							</p>
-							{#if auth.user.jobTitle}
+							{#if auth.user.job_title}
 								<p class="truncate text-xs text-gray-400">
-									{auth.user.jobTitle}
+									{auth.user.job_title}
 								</p>
 							{/if}
 						</div>

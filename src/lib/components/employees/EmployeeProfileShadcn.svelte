@@ -173,7 +173,7 @@
 								</Badge>
 							</div>
 							<p class="text-lg text-muted-foreground">
-								{employee.jobTitle || 'No title assigned'}
+								{employee.job_title || 'No title assigned'}
 							</p>
 							<p class="text-muted-foreground">
 								{employee.department?.name || 'No department assigned'}

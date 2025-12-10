@@ -158,7 +158,7 @@
 			lastName: employee.last_name || '',
 			email: employee.email || '',
 			phoneNumber: employee.phone_number || '',
-			jobTitle: employee.jobTitle || '',
+			jobTitle: employee.job_title || '',
 			departmentId: employee.department?.id || '',
 			employmentType: employee.job_info?.employmentType || 'FULL_TIME',
 			hireDate: employee.job_info?.hireDate || '',
