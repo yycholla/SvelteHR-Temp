@@ -15,7 +15,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
-import { type Client, cacheExchange, createClient, fetchExchange } from '@urql/core';
+import { type Client, cacheExchange, createClient, fetchExchange, gql } from '@urql/core';
 import fetch from 'node-fetch';
 
 let graphqlClient: Client;
@@ -35,7 +35,7 @@ beforeAll(() => {
 describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 	describe('Schema Field Integration', () => {
 		test('should query User with managerId field', async () => {
-			const query = `
+			const query = gql`
 				query GetUsersWithManager {
 					users(first: 10) {
 						nodes {
@@ -67,7 +67,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 		});
 
 		test('should query manager relationship', async () => {
-			const query = `
+			const query = gql`
 				query GetUserWithManager {
 					users(
 						filter: { managerId: { isNull: false } }
@@ -103,7 +103,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 		});
 
 		test('should handle null managerId for top-level employees', async () => {
-			const query = `
+			const query = gql`
 				query GetTopLevelEmployees {
 					users(
 						filter: { managerId: { isNull: true } }
@@ -133,7 +133,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 
 	describe('Reporting Chain Query Integration', () => {
 		test('should query nested manager relationships', async () => {
-			const query = `
+			const query = gql`
 				query GetReportingChain {
 					users(
 						filter: { managerId: { isNull: false } }
@@ -175,7 +175,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 		});
 
 		test('should query all employees by manager', async () => {
-			const query = `
+			const query = gql`
 				query GetManagerTeam($managerId: UUID!) {
 					users(filter: { managerId: { equalTo: $managerId } }) {
 						totalCount
@@ -191,7 +191,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 			`;
 
 			// First get a manager ID
-			const managersQuery = `
+			const managersQuery = gql`
 				query GetManagers {
 					users(
 						filter: { managerId: { isNull: true } }
@@ -229,7 +229,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 
 		beforeAll(async () => {
 			// Get two test users
-			const usersQuery = `
+			const usersQuery = gql`
 				query GetTestUsers {
 					users(first: 2) {
 						nodes {
@@ -318,7 +318,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 
 	describe('Query Filtering Integration', () => {
 		test('should filter users by managerId', async () => {
-			const query = `
+			const query = gql`
 				query GetEmployeesByManager($managerId: UUID!) {
 					users(
 						filter: { managerId: { equalTo: $managerId } }
@@ -336,7 +336,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 			`;
 
 			// Get a manager with direct reports
-			const managersQuery = `
+			const managersQuery = gql`
 				query FindManagerWithReports {
 					users(
 						filter: { managerId: { isNull: true } }
@@ -367,7 +367,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 		});
 
 		test('should query users without managers (top-level)', async () => {
-			const query = `
+			const query = gql`
 				query GetTopLevelUsers {
 					users(
 						filter: { managerId: { isNull: true } }
@@ -393,7 +393,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 
 	describe('Database Schema Validation', () => {
 		test('should verify managerId field in User type', async () => {
-			const query = `
+			const query = gql`
 				query IntrospectUserType {
 					__type(name: "User") {
 						name
@@ -428,7 +428,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 		});
 
 		test('should verify userByManagerId relationship exists', async () => {
-			const query = `
+			const query = gql`
 				query IntrospectUserRelationships {
 					__type(name: "User") {
 						fields {
@@ -458,7 +458,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 
 	describe('Organizational Chart Integration', () => {
 		test('should build organizational hierarchy from query results', async () => {
-			const query = `
+			const query = gql`
 				query GetOrgChartData {
 					users(orderBy: MANAGER_ID_ASC) {
 						nodes {
@@ -506,7 +506,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 
 	describe('Performance Integration', () => {
 		test('should query large reporting structure efficiently', async () => {
-			const query = `
+			const query = gql`
 				query GetAllUsersWithManagers {
 					users(first: 100) {
 						totalCount
@@ -564,7 +564,7 @@ export const managerHierarchyTestUtils = {
 	 * Get all direct reports for a manager
 	 */
 	getDirectReports: async (client: Client, managerId: string) => {
-		const query = `
+		const query = gql`
 			query GetDirectReports($managerId: UUID!) {
 				users(filter: { managerId: { equalTo: $managerId } }) {
 					nodes {
@@ -584,7 +584,7 @@ export const managerHierarchyTestUtils = {
 	 * Get reporting chain up to top-level
 	 */
 	getReportingChain: async (client: Client, userId: string) => {
-		const query = `
+		const query = gql`
 			query GetReportingChain($userId: UUID!) {
 				user(id: $userId) {
 					id

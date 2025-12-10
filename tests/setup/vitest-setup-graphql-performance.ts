@@ -5,6 +5,8 @@
  */
 
 import { afterAll, afterEach, beforeAll, beforeEach, expect } from 'vitest';
+import { gql } from '@urql/core';
+import type { TypedDocumentNode } from '@urql/core';
 import { createUrqlClient } from '$lib/graphql/client';
 import { GraphQLPerformanceMonitor } from '$lib/graphql/performance-monitor';
 import { NPlusOneDetector } from '$lib/graphql/n-plus-one-detector';
@@ -183,7 +185,7 @@ export const getPerfTestResults = () => global.__GRAPHQL_PERF_TEST_RESULTS__;
 
 // Load test utilities
 export async function runConcurrentQueries(
-	query: string,
+	query: string | TypedDocumentNode,
 	variables: any,
 	concurrency: number = 10,
 	duration: number = 30000
@@ -192,11 +194,14 @@ export async function runConcurrentQueries(
 	const startTime = Date.now();
 	const results: any[] = [];
 
+	// Convert string query to TypedDocumentNode if needed
+	const queryDoc = typeof query === 'string' ? gql(query) : query;
+
 	startLoadTest();
 
 	while (Date.now() - startTime < duration && isLoadTestActive()) {
 		const batch = Array.from({ length: concurrency }, () =>
-			client.query(query, variables).toPromise()
+			client.query(queryDoc, variables).toPromise()
 		);
 
 		const batchResults = await Promise.allSettled(batch);

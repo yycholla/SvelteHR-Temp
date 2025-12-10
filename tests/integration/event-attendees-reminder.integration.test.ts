@@ -13,7 +13,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
-import { type Client, cacheExchange, createClient, fetchExchange } from '@urql/core';
+import { type Client, cacheExchange, createClient, fetchExchange, gql } from '@urql/core';
 import fetch from 'node-fetch';
 
 // GraphQL client configuration
@@ -34,7 +34,7 @@ beforeAll(() => {
 describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 	describe('Schema Field Integration', () => {
 		test('should query EventAttendee with reminderTime field', async () => {
-			const query = `
+			const query = gql`
 				query GetEventAttendeesWithReminder {
 					allEventAttendees(first: 1) {
 						nodes {
@@ -68,7 +68,7 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 		});
 
 		test('should handle null reminderTime values', async () => {
-			const query = `
+			const query = gql`
 				query GetAttendeesWithoutReminders {
 					allEventAttendees(
 						condition: { reminderTime: null }
@@ -97,7 +97,7 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 		test.skip('should filter attendees with reminders set (NOT SUPPORTED: condition cannot filter isNull: false)', async () => {
 			// Note: Rust GraphQL server 'condition' only supports exact equality, not null checks like isNull: false
 			// This test is skipped until GraphQL server connection filter properly includes reminderTime in EventAttendeeFilter
-			const query = `
+			const query = gql`
 				query GetAttendeesWithReminders {
 					allEventAttendees(
 						filter: { reminderTime: { isNull: false } }
@@ -131,7 +131,7 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 
 		beforeAll(async () => {
 			// Get a test event ID
-			const eventsQuery = `
+			const eventsQuery = gql`
 				query GetTestEvent {
 					events(first: 1) {
 						nodes {
@@ -147,7 +147,7 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 			}
 
 			// Get a test employee ID
-			const usersQuery = `
+			const usersQuery = gql`
 				query GetTestUser {
 					users(first: 1) {
 						nodes {
@@ -257,7 +257,7 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 
 	describe('Query Integration - Reminder Filtering', () => {
 		test('should filter by specific reminder time values', async () => {
-			const query = `
+			const query = gql`
 				query GetAttendeesByReminderTime($reminderTime: Int!) {
 					allEventAttendees(
 						condition: { reminderTime: $reminderTime }
@@ -289,7 +289,7 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 		test.skip('should query attendees with reminder time range (NOT SUPPORTED: condition cannot do range queries)', async () => {
 			// Note: Rust GraphQL server 'condition' only supports exact equality, not range operators like greaterThanOrEqualTo
 			// This test is skipped until GraphQL server connection filter properly includes reminderTime in EventAttendeeFilter
-			const query = `
+			const query = gql`
 				query GetAttendeesInReminderRange($min: Int!, $max: Int!) {
 					allEventAttendees(
 						filter: {
@@ -323,7 +323,7 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 
 	describe('Database Schema Validation', () => {
 		test('should verify reminderTime column exists in database', async () => {
-			const query = `
+			const query = gql`
 				query IntrospectEventAttendeeType {
 					__type(name: "EventAttendee") {
 						name
@@ -357,7 +357,7 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 
 	describe('Frontend Integration Simulation', () => {
 		test('should support typical frontend query pattern', async () => {
-			const query = `
+			const query = gql`
 				query GetEventDetailsForFrontend($eventId: UUID!) {
 					event(id: $eventId) {
 						id
@@ -381,7 +381,7 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 			`;
 
 			// Get a test event first
-			const eventsQuery = `
+			const eventsQuery = gql`
 				query { events(first: 1) { nodes { id } } }
 			`;
 			const eventsResult = await graphqlClient.query(eventsQuery, {}).toPromise();
@@ -411,7 +411,7 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 		test.skip('should query large result set efficiently (NOT SUPPORTED: condition cannot filter isNull: false)', async () => {
 			// Note: Rust GraphQL server 'condition' only supports exact equality, not null checks like isNull: false
 			// This test is skipped until GraphQL server connection filter properly includes reminderTime in EventAttendeeFilter
-			const query = `
+			const query = gql`
 				query GetAllAttendeesWithReminders {
 					allEventAttendees(
 						filter: { reminderTime: { isNull: false } }
@@ -481,7 +481,7 @@ export const eventReminderTestUtils = {
 	 * Query attendees by reminder time
 	 */
 	queryAttendeesByReminderTime: async (client: Client, reminderTime: number) => {
-		const query = `
+		const query = gql`
 			query QueryByReminderTime($reminderTime: Int!) {
 				allEventAttendees(
 					condition: { reminderTime: $reminderTime }

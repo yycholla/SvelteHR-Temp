@@ -13,6 +13,7 @@ import {
 	validateSchema
 } from 'graphql';
 import type { IntrospectionQuery, IntrospectionSchema } from 'graphql';
+import { gql } from '@urql/core';
 import { createUrqlClient } from '$lib/graphql/client';
 import type { Client } from '@urql/core';
 
@@ -80,7 +81,9 @@ describeOrSkip('GraphQL Schema Contract Testing', () => {
 
 		// Fetch live schema introspection
 		try {
-			const result = await client.query(getIntrospectionQuery(), {}).toPromise();
+			// Convert introspection query string to TypedDocumentNode
+			const introspectionQuery = gql(getIntrospectionQuery());
+			const result = await client.query(introspectionQuery, {}).toPromise();
 
 			if (result.error) {
 				throw new Error(`Failed to introspect schema: ${result.error.message}`);

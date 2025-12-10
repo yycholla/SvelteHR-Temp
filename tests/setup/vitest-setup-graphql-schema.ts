@@ -6,6 +6,7 @@
 
 import { afterAll, beforeAll, expect } from 'vitest';
 import { getIntrospectionQuery } from 'graphql';
+import { gql } from '@urql/core';
 import { createUrqlClient } from '$lib/graphql/client';
 
 // Global schema and client for schema testing
@@ -25,12 +26,15 @@ beforeAll(async () => {
 
 	// Fetch and cache schema introspection
 	try {
-		const introspectionQuery = getIntrospectionQuery({
+		const introspectionQueryString = getIntrospectionQuery({
 			descriptions: true,
 			schemaDescription: true,
 			directiveIsRepeatable: true,
 			specifiedByUrl: true
 		});
+
+		// Convert string query to TypedDocumentNode using gql
+		const introspectionQuery = gql(introspectionQueryString);
 
 		const result = await client.query(introspectionQuery, {}).toPromise();
 
