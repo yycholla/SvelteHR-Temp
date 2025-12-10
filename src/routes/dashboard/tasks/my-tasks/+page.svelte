@@ -460,20 +460,15 @@
 				</div>
 
 				<!-- Compact List -->
-				<div class="flex-1 overflow-auto p-2">
-					<TaskList
-						tasks={filteredTasks}
-						userId={data.user?.id || ''}
-						showFilters={false}
-						bind:viewMode
-						bind:sortBy
-						bind:sortOrder
-						onTaskClick={handleTaskClick}
-						onStatusChange={handleStatusChange}
-						loading={false}
-					/>
-				</div>
-			</div>
+				                        <div class="h-[600px] overflow-hidden rounded-md border">
+				                            <TaskList
+				                                tasks={filteredTasks}
+				                                showFilters={false}
+				                                viewMode="list"
+				                                onTaskClick={handleTaskClick}
+				                                onStatusChange={handleStatusChange}
+				                            />
+				                        </div>			</div>
 
 			<!-- 4. Upcoming / Schedule (Bottom Right - Spans 4 cols) -->
 			<div

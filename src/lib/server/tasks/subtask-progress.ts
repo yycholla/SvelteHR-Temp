@@ -7,8 +7,9 @@
  * and provides progress summaries for parent tasks.
  */
 
-import { getGraphQLEndpoint } from '$lib/server/api-url';
 import type { Task, TaskStatus } from '$lib/types/task';
+import type { ApiResponse } from '$lib/types/index';
+import { getGraphQLEndpoint } from '$lib/server/api-url';
 
 /**
  * Task progress information
@@ -24,6 +25,60 @@ export interface TaskProgress {
 	completionPercentage: number;
 	hasSubtasks: boolean;
 	level: number;
+}
+
+interface TaskWithSubtasks {
+	id: string;
+	title: string;
+	status: TaskStatus;
+	tasksByParentTaskId?: {
+		nodes: Array<{
+			id: string;
+			title: string;
+			status: TaskStatus;
+			tasksByParentTaskId?: {
+				nodes: Array<{
+					id: string;
+					title: string;
+					status: TaskStatus;
+					tasksByParentTaskId?: {
+						nodes: Array<{
+							id: string;
+							status: TaskStatus;
+						}>;
+						totalCount: number;
+					};
+				}>;
+				totalCount: number;
+			};
+		}>;
+		totalCount: number;
+	};
+}
+
+interface UserTaskStatisticsResponse {
+	allTasks: {
+		nodes: Array<{
+			id: string;
+			status: TaskStatus;
+		}>;
+		totalCount: number;
+	};
+}
+
+interface DepartmentUsersResponse {
+	allUsers: {
+		nodes: Array<{
+			id: string;
+		}>;
+	};
+}
+
+interface TopLevelTasksResponse {
+	allTasks: {
+		nodes: TaskWithSubtasks[];
+		totalCount: number;
+	};
 }
 
 /**
@@ -97,7 +152,7 @@ export async function getTaskProgress(taskId: string): Promise<TaskProgress | nu
 			return null;
 		}
 
-		const data = await response.json();
+		const data = (await response.json()) as ApiResponse<{ taskById: TaskWithSubtasks }>;
 		const task = data?.data?.taskById;
 
 		if (!task) {
@@ -108,10 +163,10 @@ export async function getTaskProgress(taskId: string): Promise<TaskProgress | nu
 		const totalSubtasks = task.tasksByParentTaskId?.totalCount || 0;
 
 		// Count subtasks by status
-		const completedSubtasks = subtasks.filter((t: any) => t.status === 'DONE').length;
-		const inProgressSubtasks = subtasks.filter((t: any) => t.status === 'IN_PROGRESS').length;
-		const notStartedSubtasks = subtasks.filter((t: any) => t.status === 'TODO').length;
-		const blockedSubtasks = subtasks.filter((t: any) => t.status === 'BLOCKED').length;
+		const completedSubtasks = subtasks.filter((t) => t.status === 'DONE').length;
+		const inProgressSubtasks = subtasks.filter((t) => t.status === 'IN_PROGRESS').length;
+		const notStartedSubtasks = subtasks.filter((t) => t.status === 'TODO').length;
+		const blockedSubtasks = subtasks.filter((t) => t.status === 'BLOCKED').length;
 
 		const completionPercentage =
 			totalSubtasks > 0 ? Math.round((completedSubtasks / totalSubtasks) * 10000) / 100 : 0;
@@ -187,7 +242,7 @@ export async function getHierarchicalProgress(
 			return null;
 		}
 
-		const data = await response.json();
+		const data = (await response.json()) as ApiResponse<{ taskById: TaskWithSubtasks }>;
 		const task = data?.data?.taskById;
 
 		if (!task) {
@@ -208,10 +263,10 @@ export async function getHierarchicalProgress(
 			const level2Subtasks = subtask.tasksByParentTaskId?.nodes || [];
 			const totalLevel2 = subtask.tasksByParentTaskId?.totalCount || 0;
 
-			const completedLevel2 = level2Subtasks.filter((t: any) => t.status === 'DONE').length;
-			const inProgressLevel2 = level2Subtasks.filter((t: any) => t.status === 'IN_PROGRESS').length;
-			const notStartedLevel2 = level2Subtasks.filter((t: any) => t.status === 'TODO').length;
-			const blockedLevel2 = level2Subtasks.filter((t: any) => t.status === 'BLOCKED').length;
+			const completedLevel2 = level2Subtasks.filter((t) => t.status === 'DONE').length;
+			const inProgressLevel2 = level2Subtasks.filter((t) => t.status === 'IN_PROGRESS').length;
+			const notStartedLevel2 = level2Subtasks.filter((t) => t.status === 'TODO').length;
+			const blockedLevel2 = level2Subtasks.filter((t) => t.status === 'BLOCKED').length;
 
 			const completionPercentage =
 				totalLevel2 > 0 ? Math.round((completedLevel2 / totalLevel2) * 10000) / 100 : 0;
@@ -254,7 +309,7 @@ export async function getHierarchicalProgress(
 /**
  * Count all descendants (subtasks at all levels)
  */
-function countAllDescendants(task: any): number {
+function countAllDescendants(task: TaskWithSubtasks): number {
 	let count = 0;
 
 	const level1 = task.tasksByParentTaskId?.nodes || [];
@@ -276,19 +331,19 @@ function countAllDescendants(task: any): number {
 /**
  * Count completed descendants at all levels
  */
-function countCompletedDescendants(task: any): number {
+function countCompletedDescendants(task: TaskWithSubtasks): number {
 	let count = 0;
 
 	const level1 = task.tasksByParentTaskId?.nodes || [];
-	count += level1.filter((t: any) => t.status === 'DONE').length;
+	count += level1.filter((t) => t.status === 'DONE').length;
 
 	for (const level1Task of level1) {
 		const level2 = level1Task.tasksByParentTaskId?.nodes || [];
-		count += level2.filter((t: any) => t.status === 'DONE').length;
+		count += level2.filter((t) => t.status === 'DONE').length;
 
 		for (const level2Task of level2) {
 			const level3 = level2Task.tasksByParentTaskId?.nodes || [];
-			count += level3.filter((t: any) => t.status === 'DONE').length;
+			count += level3.filter((t) => t.status === 'DONE').length;
 		}
 	}
 
@@ -327,14 +382,14 @@ export async function getUserTaskStatistics(userId: string): Promise<ProgressSta
 			return null;
 		}
 
-		const data = await response.json();
+		const data = (await response.json()) as ApiResponse<UserTaskStatisticsResponse>;
 		const tasks = data?.data?.allTasks?.nodes || [];
 		const total = tasks.length;
-		const completed = tasks.filter((t: any) => t.status === 'DONE').length;
-		const inProgress = tasks.filter((t: any) => t.status === 'IN_PROGRESS').length;
-		const notStarted = tasks.filter((t: any) => t.status === 'TODO').length;
-		const blocked = tasks.filter((t: any) => t.status === 'BLOCKED').length;
-		const cancelled = tasks.filter((t: any) => t.status === 'CANCELLED').length;
+		const completed = tasks.filter((t) => t.status === 'DONE').length;
+		const inProgress = tasks.filter((t) => t.status === 'IN_PROGRESS').length;
+		const notStarted = tasks.filter((t) => t.status === 'TODO').length;
+		const blocked = tasks.filter((t) => t.status === 'BLOCKED').length;
+		const cancelled = tasks.filter((t) => t.status === 'CANCELLED').length;
 		const completionRate = total > 0 ? Math.round((completed / total) * 10000) / 100 : 0;
 
 		return {
@@ -383,9 +438,9 @@ export async function getDepartmentTaskStatistics(
 			return null;
 		}
 
-		const deptData = await deptResponse.json();
+		const deptData = (await deptResponse.json()) as ApiResponse<DepartmentUsersResponse>;
 		const users = deptData?.data?.allUsers?.nodes || [];
-		const userIds = users.map((u: any) => u.id);
+		const userIds = users.map((u) => u.id);
 
 		if (userIds.length === 0) {
 			return {
@@ -428,14 +483,14 @@ export async function getDepartmentTaskStatistics(
 			return null;
 		}
 
-		const tasksData = await tasksResponse.json();
+		const tasksData = (await tasksResponse.json()) as ApiResponse<UserTaskStatisticsResponse>;
 		const tasks = tasksData?.data?.allTasks?.nodes || [];
 		const total = tasks.length;
-		const completed = tasks.filter((t: any) => t.status === 'DONE').length;
-		const inProgress = tasks.filter((t: any) => t.status === 'IN_PROGRESS').length;
-		const notStarted = tasks.filter((t: any) => t.status === 'TODO').length;
-		const blocked = tasks.filter((t: any) => t.status === 'BLOCKED').length;
-		const cancelled = tasks.filter((t: any) => t.status === 'CANCELLED').length;
+		const completed = tasks.filter((t) => t.status === 'DONE').length;
+		const inProgress = tasks.filter((t) => t.status === 'IN_PROGRESS').length;
+		const notStarted = tasks.filter((t) => t.status === 'TODO').length;
+		const blocked = tasks.filter((t) => t.status === 'BLOCKED').length;
+		const cancelled = tasks.filter((t) => t.status === 'CANCELLED').length;
 
 		const completionRate = total > 0 ? Math.round((completed / total) * 10000) / 100 : 0;
 
@@ -498,18 +553,18 @@ export async function getTopLevelTasksProgress(): Promise<{
 			return { tasks: [], overallProgress: getEmptyProgressStats() };
 		}
 
-		const data = await response.json();
+		const data = (await response.json()) as ApiResponse<TopLevelTasksResponse>;
 		const tasks = data?.data?.allTasks?.nodes || [];
 		const totalTasks = data?.data?.allTasks?.totalCount || 0;
 
-		const taskProgressList: TaskProgress[] = tasks.map((task: any) => {
+		const taskProgressList: TaskProgress[] = tasks.map((task) => {
 			const subtasks = task.tasksByParentTaskId?.nodes || [];
 			const totalSubtasks = task.tasksByParentTaskId?.totalCount || 0;
 
-			const completedSubtasks = subtasks.filter((t: any) => t.status === 'DONE').length;
-			const inProgressSubtasks = subtasks.filter((t: any) => t.status === 'IN_PROGRESS').length;
-			const notStartedSubtasks = subtasks.filter((t: any) => t.status === 'TODO').length;
-			const blockedSubtasks = subtasks.filter((t: any) => t.status === 'BLOCKED').length;
+			const completedSubtasks = subtasks.filter((t) => t.status === 'DONE').length;
+			const inProgressSubtasks = subtasks.filter((t) => t.status === 'IN_PROGRESS').length;
+			const notStartedSubtasks = subtasks.filter((t) => t.status === 'TODO').length;
+			const blockedSubtasks = subtasks.filter((t) => t.status === 'BLOCKED').length;
 
 			const completionPercentage =
 				totalSubtasks > 0 ? Math.round((completedSubtasks / totalSubtasks) * 10000) / 100 : 0;
@@ -529,11 +584,11 @@ export async function getTopLevelTasksProgress(): Promise<{
 		});
 
 		// Calculate overall progress
-		const completed = tasks.filter((t: any) => t.status === 'DONE').length;
-		const inProgress = tasks.filter((t: any) => t.status === 'IN_PROGRESS').length;
-		const notStarted = tasks.filter((t: any) => t.status === 'TODO').length;
-		const blocked = tasks.filter((t: any) => t.status === 'BLOCKED').length;
-		const cancelled = tasks.filter((t: any) => t.status === 'CANCELLED').length;
+		const completed = tasks.filter((t) => t.status === 'DONE').length;
+		const inProgress = tasks.filter((t) => t.status === 'IN_PROGRESS').length;
+		const notStarted = tasks.filter((t) => t.status === 'TODO').length;
+		const blocked = tasks.filter((t) => t.status === 'BLOCKED').length;
+		const cancelled = tasks.filter((t) => t.status === 'CANCELLED').length;
 
 		const completionRate = totalTasks > 0 ? Math.round((completed / totalTasks) * 10000) / 100 : 0;
 

@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { Activity, Plus, Edit, XCircle } from '@lucide/svelte';
+	import { Activity, Edit, Plus, XCircle } from '@lucide/svelte';
+	import { formatRelativeTime } from '../utils';
 
 	interface Props {
 		employee: any;
-		formatRelativeTime: (date: string) => string;
 	}
 
-	const { employee, formatRelativeTime }: Props = $props();
+	const { employee }: Props = $props();
 </script>
 
 <div class="rounded-xl border bg-card p-5 md:col-span-2 lg:col-span-3">

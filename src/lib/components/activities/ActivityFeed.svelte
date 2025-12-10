@@ -38,7 +38,6 @@
 		compact = false,
 		maxItems,
 		emptyMessage = 'No activity recorded yet',
-		showSnapshotPreview = false,
 		showRollbackIndicators = true
 	}: Props = $props();
 
@@ -68,7 +67,7 @@
 	{#if displayActivities.length > 0}
 		{#if groupByDate && groupedActivities}
 			<!-- Grouped by date view -->
-			{#each Array.from(groupedActivities.entries()) as [date, dateActivities]}
+			{#each Array.from(groupedActivities.entries()) as [date, dateActivities] (date)}
 				<div class="date-group mb-6">
 					<!-- Date Header -->
 					<div class="sticky top-0 z-10 mb-3 bg-background py-2">
@@ -117,7 +116,7 @@
 													<span class="font-medium text-foreground"
 														>{activity.employee.displayName}</span
 													>
-													{' '}
+													&nbsp;
 												{/if}
 												{formatActivityMessage(activity)}
 
@@ -256,7 +255,7 @@
 									<p class="text-sm font-medium text-foreground group-hover:text-primary flex-1">
 										{#if showUserInfo && activity.employee}
 											<span class="font-semibold">{activity.employee.displayName}</span>
-											{' '}
+											&nbsp;
 										{/if}
 										{formatActivityMessage(activity)}
 

@@ -14,8 +14,8 @@
 
 	interface ConflictDetail {
 		field: string;
-		currentValue: any;
-		targetValue: any;
+		currentValue: unknown;
+		targetValue: unknown;
 		conflictType: 'value_mismatch' | 'type_mismatch' | 'missing_field' | 'unexpected_field';
 	}
 
@@ -26,15 +26,13 @@
 	}
 
 	interface Props {
-		logId: string;
 		conflictDetails: ConflictData;
-		reason: string;
 		onResolve: (strategy: 'force' | 'cancel' | 'merge', mergeFields?: string[]) => void;
 		onCancel: () => void;
 		isOpen: boolean;
 	}
 
-	const { logId, conflictDetails, reason, onResolve, onCancel, isOpen }: Props = $props();
+	const { conflictDetails, onResolve, onCancel, isOpen }: Props = $props();
 
 	let selectedStrategy = $state<'force' | 'cancel' | 'merge'>('cancel');
 	let selectedFields = $state<Set<string>>(new Set());
@@ -110,7 +108,7 @@
 		}
 	}
 
-	function formatValue(value: any): string {
+	function formatValue(value: unknown): string {
 		if (value === null) return 'null';
 		if (value === undefined) return 'undefined';
 		if (typeof value === 'object') return JSON.stringify(value, null, 2);
@@ -274,7 +272,7 @@
 						</div>
 
 						<div class="conflict-list">
-							{#each conflictDetails.conflicts as conflict}
+							{#each conflictDetails.conflicts as conflict (conflict.field)}
 								<label class="conflict-item" class:selected={selectedFields.has(conflict.field)}>
 									<input
 										type="checkbox"
@@ -318,7 +316,7 @@
 					<div class="conflict-preview">
 						<h4>Affected Fields</h4>
 						<div class="conflict-list-compact">
-							{#each conflictDetails.conflicts as conflict}
+							{#each conflictDetails.conflicts as conflict (conflict.field)}
 								<div class="conflict-item-compact">
 									<span class="conflict-icon">{getConflictIcon(conflict.conflictType)}</span>
 									<span class="field-name">{conflict.field}</span>

@@ -13,6 +13,7 @@
 	import { Edit2, MessageSquare, Send, Trash2 } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import { formatDistanceToNow } from 'date-fns';
+	import DOMPurify from 'dompurify';
 
 	interface Comment {
 		id: string;
@@ -101,7 +102,8 @@
 
 	function parseContent(content: string): string {
 		// Convert @mentions to highlighted spans
-		return content.replace(/@(\w+)/g, '<span class="mention">@$1</span>');
+		const html = content.replace(/@(\w+)/g, '<span class="mention">@$1</span>');
+		return DOMPurify.sanitize(html);
 	}
 
 	function extractMentions(content: string): string[] {

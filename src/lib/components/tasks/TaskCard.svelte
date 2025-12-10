@@ -9,17 +9,12 @@
 
 	interface Props {
 		task: Task;
-		userId?: string;
 		onClick?: () => void;
 		onStatusChange?: (newStatus: Task['status']) => void;
-		compact?: boolean;
-		showAssignee?: boolean;
-		showDescription?: boolean;
-		showProgress?: boolean;
 		level?: number;
 	}
 
-	const { task, userId, onClick, onStatusChange, level = 0 }: Props = $props();
+	const { task, onClick, onStatusChange, level = 0 }: Props = $props();
 
 	// Simple derived values
 	const isOverdue = $derived(

@@ -1,11 +1,12 @@
 import { sequence } from '@sveltejs/kit/hooks';
 import * as Sentry from '@sentry/sveltekit';
-import type { Handle } from '@sveltejs/kit';
+import type { Handle, RequestEvent } from '@sveltejs/kit';
 import { serverPerformanceMonitor } from '$lib/performance/server-monitor.js';
 import { createStandardError } from '$lib/utils/error-handling.js';
 import { redirect } from '@sveltejs/kit';
 import { authConfig } from '$lib/auth/config.js';
 import { logger } from '$lib/utils/logger.js';
+import type { User } from '$lib/types/index.js';
 
 /**
  * Server-side hooks for session-based authentication, performance optimization and monitoring
@@ -51,7 +52,7 @@ const STATIC_EXTENSIONS = new Set([
  * Caches validated sessions to reduce backend API calls
  */
 interface CachedSession {
-	user: any;
+	user: User;
 	roles: string[];
 	permissions: string[];
 	expiresAt: number;
@@ -203,10 +204,10 @@ function getCacheKey(sessionId: string, pathname: string): string {
 
 // Helper function to authenticate user via session validation with caching
 async function authenticateUser(
-	event: any,
+	event: RequestEvent,
 	pathname: string
 ): Promise<{
-	user: any;
+	user: User;
 	roles: string[];
 	permissions: string[];
 } | null> {
@@ -339,7 +340,7 @@ export const handle: Handle = sequence(Sentry.sentryHandle(), async ({ event, re
 		for (const param of suspiciousParams) {
 			if (event.url.searchParams.has(param)) {
 				// Log security alert
-				console.error('[SECURITY ALERT] Sensitive parameter detected in URL', {
+				logger.error('[SECURITY ALERT] Sensitive parameter detected in URL', undefined, {
 					pathname,
 					parameter: param,
 					timestamp: new Date().toISOString(),
@@ -514,9 +515,9 @@ export const handle: Handle = sequence(Sentry.sentryHandle(), async ({ event, re
 		// Handle SvelteKit redirects and errors - these are special error objects, not Response instances
 		// Check for redirect by status property (3xx status codes)
 		if (error && typeof error === 'object' && 'status' in error) {
-			const statusCode = (error as any).status;
+			const statusCode = (error as { status?: number }).status;
 			// Re-throw all redirects (3xx) and SvelteKit errors (4xx, 5xx with body property)
-			if ((statusCode >= 300 && statusCode < 400) || 'body' in error) {
+			if (typeof statusCode === 'number' && ((statusCode >= 300 && statusCode < 400) || 'body' in error)) {
 				throw error;
 			}
 		}
@@ -540,7 +541,7 @@ export const handle: Handle = sequence(Sentry.sentryHandle(), async ({ event, re
 
 // Error handling hook with standardized error responses
 export const handleError = Sentry.handleErrorWithSentry(
-	({ error, event }: { error: any; event: any }) => {
+	({ error, event }: { error: unknown; event: RequestEvent }) => {
 		// Create standardized error response
 		const standardError = createStandardError(error, {
 			requestId: crypto.randomUUID(),
@@ -550,7 +551,7 @@ export const handleError = Sentry.handleErrorWithSentry(
 		});
 
 		// Log structured error for monitoring
-		logger.error(`Server Error: ${standardError.message}`, error, {
+		logger.error(`Server Error: ${standardError.message}`, error instanceof Error ? error : new Error(String(error)), {
 			requestId: standardError.requestId,
 			type: standardError.type,
 			userMessage: standardError.userMessage,

@@ -192,9 +192,9 @@ export interface ActivityLog {
 	action: ActivityAction;
 	resourceType: ResourceType;
 	resourceId?: string;
-	details?: Record<string, any>;
-	beforeSnapshot?: Record<string, any>;
-	afterSnapshot?: Record<string, any>;
+	details?: Record<string, unknown>;
+	beforeSnapshot?: Record<string, unknown>;
+	afterSnapshot?: Record<string, unknown>;
 	isRollback?: boolean;
 	rolledBackLogId?: string;
 	ipAddress?: string;
@@ -476,7 +476,7 @@ export function isInAppNotification(notification: Notification): boolean {
  * Normalize RSVP status to ensure it's a valid backend enum value
  * Maps invalid values (like 'no_response', null, undefined) to 'pending'
  */
-export function normalizeRsvpStatus(status: any): RsvpStatus {
+export function normalizeRsvpStatus(status: unknown): RsvpStatus {
 	const validStatuses: RsvpStatus[] = ['pending', 'accepted', 'declined', 'tentative'];
 
 	if (typeof status === 'string' && validStatuses.includes(status as RsvpStatus)) {

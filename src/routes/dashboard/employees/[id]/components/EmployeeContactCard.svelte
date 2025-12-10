@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Mail, Phone } from '@lucide/svelte';
+	import { Mail } from '@lucide/svelte';
 
 	interface Props {
 		employee: any;

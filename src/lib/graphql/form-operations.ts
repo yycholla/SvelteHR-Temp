@@ -214,9 +214,9 @@ export interface OnboardingFormBlock {
 	textContent: string | null;
 	documentUrl: string | null;
 	formTemplateId: string | null;
-	fileUploadRequirements: any | null;
-	signatureRequirements: any | null;
-	checkboxItems: any | null;
+	fileUploadRequirements: Record<string, unknown> | null;
+	signatureRequirements: Record<string, unknown> | null;
+	checkboxItems: string[] | null;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -238,7 +238,7 @@ export interface OnboardingFormProgress {
 	userId: string;
 	onboardingFormId: string;
 	status: OnboardingFormProgressStatus;
-	formData: any | null;
+	formData: Record<string, unknown> | null;
 	startedAt: string | null;
 	completedAt: string | null;
 	lastAccessedAt: string | null;
@@ -267,9 +267,9 @@ export interface CreateFormBlockInput {
 	textContent?: string | null;
 	documentUrl?: string | null;
 	formTemplateId?: string | null;
-	fileUploadRequirements?: any | null;
-	signatureRequirements?: any | null;
-	checkboxItems?: any | null;
+	fileUploadRequirements?: Record<string, unknown> | null;
+	signatureRequirements?: Record<string, unknown> | null;
+	checkboxItems?: string[] | null;
 }
 
 export interface UpdateFormBlockInput {
@@ -278,19 +278,19 @@ export interface UpdateFormBlockInput {
 	textContent?: string | null;
 	documentUrl?: string | null;
 	formTemplateId?: string | null;
-	fileUploadRequirements?: any | null;
-	signatureRequirements?: any | null;
-	checkboxItems?: any | null;
+	fileUploadRequirements?: Record<string, unknown> | null;
+	signatureRequirements?: Record<string, unknown> | null;
+	checkboxItems?: string[] | null;
 }
 
 export interface SaveFormProgressInput {
 	userId: string;
 	onboardingFormId: string;
 	status: OnboardingFormProgressStatus;
-	formData?: any | null;
+	formData?: Record<string, unknown> | null;
 }
 
 export interface CompleteFormInput {
 	onboardingFormId: string;
-	formData: any;
+	formData: Record<string, unknown>;
 }

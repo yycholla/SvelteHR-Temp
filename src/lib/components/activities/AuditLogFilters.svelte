@@ -14,6 +14,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
 	import { onMount } from 'svelte';
+	import { SvelteDate } from 'svelte/reactivity';
 
 	export interface FilterCriteria {
 		dateFrom?: string;
@@ -108,13 +109,13 @@
 	];
 
 	function applyDatePreset(days: number) {
-		const today = new Date();
+		const today = new SvelteDate();
 		dateTo = today.toISOString().split('T')[0];
 
 		if (days === 0) {
 			dateFrom = dateTo;
 		} else {
-			const fromDate = new Date(today);
+			const fromDate = new SvelteDate(today);
 			fromDate.setDate(fromDate.getDate() - days);
 			dateFrom = fromDate.toISOString().split('T')[0];
 		}
@@ -138,7 +139,7 @@
 				resourceType: resourceType || undefined,
 				employeeId: employeeId || undefined,
 				employeeName: employeeName || undefined,
-				action: (action as any) || undefined,
+				action: (action as unknown) as 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | '',
 				isRollback: isRollback || undefined,
 				searchTerm: searchTerm || undefined
 			};
@@ -266,7 +267,7 @@
 
 	<!-- Quick Date Presets -->
 	<div class="flex flex-wrap gap-2">
-		{#each datePresets as preset}
+		{#each datePresets as preset (preset.label)}
 			<Button variant="outline" size="sm" onclick={() => applyDatePreset(preset.days)}>
 				{preset.label}
 			</Button>
@@ -366,7 +367,7 @@
 							<div
 								class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md"
 							>
-								{#each filteredResourceTypes() as type}
+								{#each filteredResourceTypes() as type (type)}
 									<button
 										type="button"
 										onclick={() => handleResourceTypeSelect(type)}
@@ -412,7 +413,7 @@
 							<div
 								class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md"
 							>
-								{#each filteredEmployees() as employee}
+								{#each filteredEmployees() as employee (employee.id)}
 									<button
 										type="button"
 										onclick={() => handleEmployeeSelect(employee)}

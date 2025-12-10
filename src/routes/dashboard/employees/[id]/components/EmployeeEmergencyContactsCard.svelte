@@ -1,17 +1,16 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { Phone, Plus, Pencil, Trash2, ShieldAlert } from '@lucide/svelte';
+	import { Pencil, Phone, Plus, ShieldAlert, Trash2 } from '@lucide/svelte';
 
 	interface Props {
 		employee: any;
-		canManageEmployees: boolean;
-		isViewingSelf: boolean;
+		canManage: boolean;
 		onAdd: () => void;
 		onEdit: (contact: any) => void;
 		onDelete: (contactId: string) => void;
 	}
 
-	const { employee, canManageEmployees, isViewingSelf, onAdd, onEdit, onDelete }: Props = $props();
+	const { employee, canManage, onAdd, onEdit, onDelete }: Props = $props();
 </script>
 
 <div class="flex flex-col rounded-xl border bg-card p-5 md:row-span-2">
@@ -20,7 +19,7 @@
 			<ShieldAlert class="h-4 w-4" />
 			<span class="text-xs font-semibold uppercase tracking-wider">Emergency</span>
 		</div>
-		{#if canManageEmployees || isViewingSelf}
+		{#if canManage}
 			<button
 				onclick={onAdd}
 				class="rounded-md bg-secondary p-1.5 text-xs transition-colors hover:bg-secondary/80"
@@ -51,7 +50,7 @@
 						<span>{contact.phoneNumber}</span>
 					</div>
 
-					{#if canManageEmployees || isViewingSelf}
+					{#if canManage}
 						<div class="absolute bottom-2 right-2 hidden gap-1 group-hover:flex">
 							<Button
 								variant="ghost"

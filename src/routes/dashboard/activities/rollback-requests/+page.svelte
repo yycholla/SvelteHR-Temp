@@ -379,7 +379,6 @@
 						<RollbackRequestCard
 							request={{
 								id: request.id,
-								activityLogId: request.activity_log_id,
 								requestedAt: request.created_at || request.requested_at,
 								reason: request.reason,
 								status: request.status,
@@ -392,7 +391,6 @@
 								reviewReason: request.review_notes,
 								reviewedAt: request.reviewed_at,
 								requestedBy: {
-									id: request.requester_id,
 									fullName: request.requester_name,
 									email: request.requester_email,
 									department: request.requester_department || 'Unknown'

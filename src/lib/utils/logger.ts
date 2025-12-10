@@ -14,6 +14,7 @@ class Logger {
 		this.level = isProduction ? 'warn' : 'info';
 		this.format = 'json'; // Always use JSON format for structured logging
 
+		// eslint-disable-next-line no-console
 		console.log(
 			`🔧 Logger initialized: level=${this.level}, format=${this.format}, isProduction=${isProduction}`
 		);
@@ -39,6 +40,7 @@ class Logger {
 			}
 		} catch (error) {
 			// Ignore environment variable errors in SSR context
+			// eslint-disable-next-line no-console
 			console.warn('Logger: Could not read environment variables, using defaults');
 		}
 	}
@@ -62,18 +64,21 @@ class Logger {
 
 	debug(message: string, meta?: LogMeta) {
 		if (this.shouldLog('debug')) {
+			// eslint-disable-next-line no-console
 			console.debug(this.formatMessage('debug', message, meta));
 		}
 	}
 
 	info(message: string, meta?: LogMeta) {
 		if (this.shouldLog('info')) {
+			// eslint-disable-next-line no-console
 			console.info(this.formatMessage('info', message, meta));
 		}
 	}
 
 	warn(message: string, meta?: LogMeta) {
 		if (this.shouldLog('warn')) {
+			// eslint-disable-next-line no-console
 			console.warn(this.formatMessage('warn', message, meta));
 		}
 	}
@@ -87,6 +92,7 @@ class Logger {
 						...meta
 					}
 				: meta;
+			// eslint-disable-next-line no-console
 			console.error(this.formatMessage('error', message, errorMeta || {}));
 		}
 	}

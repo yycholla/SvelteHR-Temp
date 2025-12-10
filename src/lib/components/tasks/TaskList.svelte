@@ -17,7 +17,6 @@
 
 	let {
 		tasks,
-		userId,
 		showFilters = true,
 		viewMode = $bindable('list'),
 		onTaskClick,
@@ -30,7 +29,6 @@
 		priorityFilter = $bindable('all')
 	}: {
 		tasks: Task[];
-		userId?: string;
 		showFilters?: boolean;
 		viewMode?: 'list' | 'hierarchy' | 'kanban';
 		onTaskClick?: (taskId: string) => void;
@@ -281,10 +279,8 @@
 			{#each sortedTasks as task (task.id)}
 				<TaskCard
 					{task}
-					{userId}
 					onClick={() => handleTaskClick(task.id)}
 					onStatusChange={(newStatus) => handleStatusChange(task.id, newStatus)}
-					showProgress={true}
 				/>
 			{/each}
 		</div>
@@ -293,20 +289,16 @@
 			{#each topLevelTasks as task (task.id)}
 				<TaskCard
 					{task}
-					{userId}
 					onClick={() => handleTaskClick(task.id)}
 					onStatusChange={(newStatus) => handleStatusChange(task.id, newStatus)}
-					showProgress={true}
 					level={0}
 				/>
 				{#if task.subtasks && task.subtasks.length > 0}
 					{#each task.subtasks as subtask (subtask.id)}
 						<TaskCard
 							task={subtask}
-							{userId}
 							onClick={() => handleTaskClick(subtask.id)}
 							onStatusChange={(newStatus) => handleStatusChange(subtask.id, newStatus)}
-							compact={true}
 							level={1}
 						/>
 					{/each}
@@ -336,10 +328,8 @@
 							<div animate:flip={{ duration: flipDurationMs }}>
 								<TaskCard
 									{task}
-									{userId}
 									onClick={() => handleTaskClick(task.id)}
 									onStatusChange={(newStatus) => handleStatusChange(task.id, newStatus)}
-									compact={true}
 								/>
 							</div>
 						{/each}

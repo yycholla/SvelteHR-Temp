@@ -344,7 +344,6 @@
 		{:else}
 			<TaskList
 				tasks={filteredTasks}
-				userId={data.user?.id || ''}
 				onTaskClick={handleTaskClick}
 				onStatusChange={handleStatusChange}
 			/>

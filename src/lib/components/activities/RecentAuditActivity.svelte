@@ -13,12 +13,10 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import {
 		Activity,
-		AlertCircle,
 		ChevronRight,
 		Clock,
 		FileText,
-		GitBranch,
-		User
+		GitBranch
 	} from '@lucide/svelte';
 
 	interface ActivityLog {
@@ -113,7 +111,7 @@
 			</div>
 		{:else}
 			<div class="space-y-3">
-				{#each displayLogs as log}
+				{#each displayLogs as log (log.id)}
 					<a
 						href="/dashboard/activities/logs/{log.id}"
 						class="block rounded-lg border p-3 transition-colors hover:bg-accent"

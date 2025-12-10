@@ -13,7 +13,7 @@
 		indeterminate?: boolean;
 		disabled?: boolean;
 		onCheckedChange?: (value: boolean | 'indeterminate') => void;
-		[key: string]: any;
+		[key: string]: unknown;
 	} = $props();
 
 	let mounted = $state(false);

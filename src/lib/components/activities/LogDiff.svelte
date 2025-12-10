@@ -28,7 +28,7 @@
 		return changes;
 	});
 
-	function formatValue(val: any) {
+	function formatValue(val: unknown) {
 		if (val === undefined) return '—';
 		if (val === null) return 'null';
 		if (typeof val === 'object') return JSON.stringify(val, null, 2);

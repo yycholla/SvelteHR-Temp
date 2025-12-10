@@ -7,67 +7,25 @@ import { GraphQLClient } from '$lib/server/graphql-client';
 import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 import { logger } from '$lib/utils/logger';
-
-// Type definitions for GraphQL query responses
-interface User {
-	id: string;
-	firstName?: string;
-	lastName?: string;
-	email?: string;
-	isActive?: boolean;
-	departmentId?: string;
-}
-
-interface Department {
-	id: string;
-	name: string;
-	managerId?: string;
-}
-
-interface AttendanceRecord {
-	id: string;
-	date: string;
-	clockIn: string;
-	clockOut: string | null;
-	hoursWorked: number | null;
-	status: string;
-}
-
-interface LeaveType {
-	id: string;
-	name: string;
-	color: string;
-}
-
-interface LeaveRequest {
-	id: string;
-	leaveType: LeaveType | null;
-	startDate: string;
-	endDate: string;
-	daysRequested: number;
-	status: string;
-	createdAt: string;
-}
-
-interface EmployeeGoal {
-	id: string;
-	employeeId: string;
-	goalTitle: string;
-	goalDescription: string | null;
-	status: string;
-	targetDate: string | null;
-	createdAt: string;
-}
-
-interface Task {
-	id: string;
-	title: string;
-	description: string | null;
-	status: string;
-	priority: string;
-	dueDate: string | null;
-	createdAt: string;
-}
+import type {
+	User,
+	Department,
+	AttendanceRecord,
+	LeaveRequest,
+	EmployeeGoal,
+	Task,
+	ApiEvent,
+	ActivityLog,
+	SystemAuditLog,
+	RollbackRequest,
+	RollbackStats
+} from './dashboard-types';
+import {
+	generateDashboardMetrics,
+	generateQuickActions,
+	generateRecentActivitiesFromLogs,
+	generateUpcomingEventsFromDatabase
+} from './dashboard-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { url, cookies } = event;
@@ -94,7 +52,7 @@ export const load: PageServerLoad = async (event) => {
 	})
 		.then((response) => (response.ok ? response.text() : null))
 		.catch((err) => {
-			console.warn('Failed to fetch weather:', err);
+			logger.warn('Failed to fetch weather', { error: err });
 			return null;
 		});
 
@@ -104,7 +62,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// If backend is not ready, return error state but don't crash
 		if (!backendReady) {
-			console.warn('Backend not ready for main dashboard');
+			logger.warn('Backend not ready for main dashboard');
 			return {
 				user: {
 					id: locals.user.id,
@@ -348,7 +306,7 @@ export const load: PageServerLoad = async (event) => {
 		]);
 
 		const criticalDuration = Date.now() - startQueryTime;
-		console.log(`✅ Dashboard: Critical queries completed in ${criticalDuration}ms`);
+		logger.info('Dashboard: Critical queries completed', { duration: criticalDuration });
 
 		// Extract critical data immediately
 		const users: User[] =
@@ -373,7 +331,7 @@ export const load: PageServerLoad = async (event) => {
 				: [])
 		]).then((results) => {
 			const queryDuration = Date.now() - startQueryTime;
-			console.log(`✅ Dashboard: All queries completed in ${queryDuration}ms`);
+			logger.info('Dashboard: All queries completed', { duration: queryDuration });
 
 			// Extract results with proper indexing
 			const [
@@ -396,42 +354,40 @@ export const load: PageServerLoad = async (event) => {
 				(goalsResult.status === 'fulfilled' && goalsResult.value.data?.employeeGoals) || [];
 			const tasks: Task[] =
 				(tasksResult.status === 'fulfilled' && tasksResult.value.data?.tasks) || [];
-			const events = (eventsResult.status === 'fulfilled' && eventsResult.value.data?.events) || [];
+			const events = ((eventsResult.status === 'fulfilled' && eventsResult.value.data?.events) || []) as ApiEvent[];
 			const activityLogs =
-				(activityLogsResult.status === 'fulfilled' &&
+				((activityLogsResult.status === 'fulfilled' &&
 					activityLogsResult.value.data?.activityLogs) ||
-				[];
+				[]) as ActivityLog[];
 
 			// Extract admin-only data
-			let systemAuditLogs: any[] = [];
+			let systemAuditLogs: SystemAuditLog[] = [];
 			if (isAdmin && results[6]) {
 				const systemAuditResult = results[6];
 				systemAuditLogs =
-					(systemAuditResult.status === 'fulfilled' &&
+					((systemAuditResult.status === 'fulfilled' &&
 						systemAuditResult.value.data?.activityLogs) ||
-					[];
+					[]) as SystemAuditLog[];
 			}
 
 			// Declare super_admin-only variables before use
-			let rollbackRequests: any[] = [];
-			let rollbackStats: any = null;
+			let rollbackRequests: RollbackRequest[] = [];
+			let rollbackStats: RollbackStats | null = null;
 
 			if (isSuperAdmin) {
 				if (results[7]) {
 					const rollbackRequestsResult = results[7];
 					rollbackRequests =
-						(rollbackRequestsResult.status === 'fulfilled' &&
+						((rollbackRequestsResult.status === 'fulfilled' &&
 							rollbackRequestsResult.value.data?.rollbackRequests) ||
-						[];
+						[]) as RollbackRequest[];
 				}
 				if (results[8]) {
 					const rollbackStatsResult = results[8];
 					if (rollbackStatsResult.status === 'fulfilled') {
 						const totalCount = rollbackStatsResult.value.data?.rollbackRequestsCount || 0;
 						rollbackStats = {
-							pendingCount: totalCount,
-							approvedCount: 0,
-							rejectedCount: 0
+							rollbackRequestsCount: totalCount
 						};
 					}
 				}
@@ -629,7 +585,7 @@ export const load: PageServerLoad = async (event) => {
 			dashboardDataPromise
 		};
 	} catch (err) {
-		console.error('Error loading dashboard:', err);
+		logger.error('Error loading dashboard', err instanceof Error ? err : new Error(String(err)));
 		const userPerms = getUserPermissions(locals);
 
 		return {
@@ -683,292 +639,3 @@ export const load: PageServerLoad = async (event) => {
 		};
 	}
 };
-
-// Helper functions (copied from original)
-function generateDashboardMetrics(
-	roles: string[],
-	users: any[],
-	departments: any[],
-	realMetrics: {
-		attendanceRate: number;
-		pendingRequests: number;
-		taskCount: number;
-		remainingVacationDays: number;
-	}
-) {
-	const activeUsers = users.filter((u) => u.isActive);
-
-	const baseMetrics = [
-		{
-			id: 'total_employees',
-			title: 'Total Employees',
-			value: users.length,
-			trend: 'stable' as const,
-			icon: 'Users',
-			color: 'blue'
-		},
-		{
-			id: 'active_employees',
-			title: 'Active Employees',
-			value: activeUsers.length,
-			trend: 'up' as const,
-			icon: 'UserCheck',
-			color: 'green'
-		},
-		{
-			id: 'departments',
-			title: 'Departments',
-			value: departments.length,
-			trend: 'stable' as const,
-			icon: 'Building',
-			color: 'purple'
-		}
-	];
-
-	if (roles.includes('Admin') || roles.includes('HR Manager')) {
-		return [
-			...baseMetrics,
-			{
-				id: 'pending_requests',
-				title: 'Pending Requests',
-				value: realMetrics.pendingRequests,
-				trend: 'stable' as const,
-				icon: 'Clock',
-				color: 'orange'
-			}
-		];
-	}
-
-	if (roles.includes('Manager') || roles.includes('HR Manager')) {
-		return [
-			{
-				id: 'team_size',
-				title: 'Team Members',
-				value: Math.floor(users.length / Math.max(departments.length, 1)),
-				trend: 'stable' as const,
-				icon: 'Users',
-				color: 'blue'
-			},
-			{
-				id: 'attendance_rate',
-				title: 'Attendance Rate',
-				value: `${realMetrics.attendanceRate}%`,
-				trend: realMetrics.attendanceRate >= 90 ? 'up' : ('stable' as const),
-				icon: 'TrendingUp',
-				color: 'green'
-			},
-			{
-				id: 'pending_approvals',
-				title: 'Pending Approvals',
-				value: realMetrics.pendingRequests,
-				trend: 'stable' as const,
-				icon: 'CheckCircle',
-				color: 'orange'
-			}
-		];
-	}
-
-	// Employee metrics with real data
-	return [
-		{
-			id: 'leave_balance',
-			title: 'Leave Balance',
-			value: `${realMetrics.remainingVacationDays} days`,
-			trend: 'stable' as const,
-			icon: 'Calendar',
-			color: 'blue'
-		},
-		{
-			id: 'pending_tasks',
-			title: 'Pending Tasks',
-			value: realMetrics.taskCount,
-			trend: 'stable' as const,
-			icon: 'CheckSquare',
-			color: 'green'
-		},
-		{
-			id: 'attendance_rate',
-			title: 'Attendance Rate',
-			value: `${realMetrics.attendanceRate}%`,
-			trend: realMetrics.attendanceRate >= 90 ? 'up' : ('stable' as const),
-			icon: 'Award',
-			color: 'purple'
-		}
-	];
-}
-
-function generateRecentActivitiesFromLogs(
-	activityLogs: any[],
-	leaveRequests: any[],
-	attendanceRecords: any[],
-	goals: any[],
-	tasks: any[],
-	events: any[],
-	limit: number
-) {
-	const activities: any[] = [];
-
-	activityLogs.forEach((log) => {
-		const actionMap: Record<string, { title: string; icon: string; color: string }> = {
-			create: { title: 'created', icon: 'Plus', color: 'green' },
-			update: { title: 'updated', icon: 'Edit', color: 'blue' },
-			delete: { title: 'deleted', icon: 'Trash', color: 'red' },
-			approve: { title: 'approved', icon: 'CheckCircle', color: 'green' },
-			reject: { title: 'rejected', icon: 'XCircle', color: 'red' },
-			submit: { title: 'submitted', icon: 'Send', color: 'blue' }
-		};
-
-		const actionInfo = actionMap[log.action] || {
-			title: log.action,
-			icon: 'Activity',
-			color: 'gray'
-		};
-
-		activities.push({
-			id: `log-${log.id}`,
-			title: `${actionInfo.title} ${log.resourceType.replace('_', ' ')}`,
-			description: log.details?.description || `${log.resourceType} ${log.action}`,
-			icon: actionInfo.icon,
-			color: actionInfo.color,
-			type: 'activity_log',
-			timestamp: log.createdAt,
-			user: log.userByEmployeeId
-				? {
-						id: log.userByEmployeeId.id,
-						name: `${log.userByEmployeeId.firstName} ${log.userByEmployeeId.lastName}`
-					}
-				: { id: 'system', name: 'System' }
-		});
-	});
-
-	// Supplement with other data
-	if (activities.length < limit) {
-		leaveRequests.slice(0, Math.min(3, limit - activities.length)).forEach((leave) => {
-			activities.push({
-				id: `leave-${leave.id}`,
-				title: `Leave request ${leave.status}`,
-				description: `${leave.leaveType?.name || 'Unknown'} leave from ${leave.startDate} to ${leave.endDate}`,
-				icon: 'Calendar',
-				color:
-					leave.status === 'approved' ? 'green' : leave.status === 'pending' ? 'orange' : 'red',
-				type: 'leave_request',
-				timestamp: leave.createdAt,
-				user: { id: 'user', name: 'You' }
-			});
-		});
-	}
-
-	return activities
-		.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-		.slice(0, limit);
-}
-
-function generateUpcomingEventsFromDatabase(events: any[], userId: string, limit: number) {
-	const now = new Date();
-	const filtered = events.filter((event) => {
-		const startTime = new Date(event.startTime);
-		if (!(startTime >= now && event.status?.toUpperCase() === 'SCHEDULED')) return false;
-		if (event.isPublic) return true;
-		const userAttendee = event.attendees?.find((a: any) => a.employeeId === userId);
-		if (!userAttendee || userAttendee.responseStatus === 'declined') return false;
-		return true;
-	});
-
-	const sorted = filtered.sort((a, b) => {
-		const startTimeA = new Date(a.startTime).getTime();
-		const startTimeB = new Date(b.startTime).getTime();
-		return startTimeA - startTimeB;
-	});
-
-	const limited = sorted.slice(0, limit);
-
-	return limited.map((event) => {
-		const startTime = new Date(event.startTime);
-		const dateStr = startTime.toLocaleDateString('en-US', {
-			weekday: 'short',
-			month: 'short',
-			day: 'numeric'
-		});
-		const timeStr = event.isAllDay
-			? 'All Day'
-			: startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-		const userAttendee = event.attendees?.find((a: any) => a.employeeId === userId);
-		const rsvpStatus = userAttendee?.responseStatus || 'no_response';
-
-		const iconMap = {
-			meeting: 'Users',
-			training: 'BookOpen',
-			social: 'Coffee',
-			company_event: 'Calendar',
-			holiday: 'Sun',
-			interview: 'UserCheck',
-			review: 'Award',
-			team_building: 'Users',
-			other: 'Calendar'
-		};
-
-		return {
-			id: event.id.toString(),
-			title: event.title,
-			description: event.description || '',
-			type: event.eventType,
-			date: dateStr,
-			time: timeStr,
-			location: event.location || 'TBD',
-			icon: iconMap[event.eventType as keyof typeof iconMap] || 'Calendar',
-			color: event.color || '#3B82F6',
-			priority: event.eventType === 'review' || event.eventType === 'interview' ? 'high' : 'medium',
-			organizer: event.userByOrganizerId
-				? `${event.userByOrganizerId.firstName} ${event.userByOrganizerId.lastName}`
-				: 'Unknown',
-			isPublic: event.isPublic,
-			rsvpStatus
-		};
-	});
-}
-
-function generateQuickActions(roles: string[], users: any[]) {
-	const baseActions = [
-		{
-			id: 'view_profile',
-			title: 'View Profile',
-			description: 'View and edit your profile information',
-			icon: 'User',
-			href: '/dashboard/profile',
-			color: 'blue'
-		},
-		{
-			id: 'request_leave',
-			title: 'Request Leave',
-			description: 'Submit a new leave request',
-			icon: 'Calendar',
-			href: '/dashboard/leave/request',
-			color: 'green'
-		}
-	];
-
-	if (roles.includes('Admin') || roles.includes('HR Manager')) {
-		return [
-			...baseActions,
-			{
-				id: 'manage_employees',
-				title: 'Manage Employees',
-				description: 'View and manage employee records',
-				icon: 'Users',
-				href: '/dashboard/employees',
-				color: 'purple',
-				count: users.length
-			},
-			{
-				id: 'analytics',
-				title: 'View Analytics',
-				description: 'Access detailed HR analytics',
-				icon: 'BarChart',
-				href: '/dashboard/admin/analytics',
-				color: 'orange'
-			}
-		];
-	}
-
-	return baseActions;
-}

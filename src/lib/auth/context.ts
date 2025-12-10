@@ -57,8 +57,8 @@ export function extractUserContext(event: RequestEvent): UserContext | null {
 		email: user.email,
 		role: user.role || 'employee',
 		display_name: user.display_name,
-		full_name: (user as any).full_name,
-		department_id: (user as any).department_id,
+		full_name: user.full_name,
+		department_id: user.department_id,
 		permissions: event.locals.permissions || [],
 		authenticated_at: new Date()
 	};

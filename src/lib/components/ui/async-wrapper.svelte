@@ -2,6 +2,7 @@
 	import ErrorBoundary from './error-boundary.svelte';
 	import PageLoading from './page-loading.svelte';
 	import { cn } from '$lib/utils/styles';
+	import type { Snippet } from 'svelte';
 
 	interface Props {
 		loading?: boolean;
@@ -15,7 +16,7 @@
 		showErrorDetails?: boolean;
 		onRetry?: () => void;
 		class?: string;
-		children?: any;
+		children?: Snippet;
 	}
 
 	const {

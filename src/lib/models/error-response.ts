@@ -543,3 +543,23 @@ function detectErrorType(error: unknown): ErrorType {
 export function isErrorResponse(obj: unknown): obj is ErrorResponse {
 	return obj instanceof ErrorResponse;
 }
+
+/**
+ * Interface for application errors with user messages
+ */
+export interface AppError {
+	userMessage: string;
+	code?: string;
+}
+
+/**
+ * Type guard to check if an error is an AppError
+ */
+export function isAppError(error: unknown): error is AppError {
+	return (
+		typeof error === 'object' &&
+		error !== null &&
+		'userMessage' in error &&
+		typeof (error as any).userMessage === 'string'
+	);
+}

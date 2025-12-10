@@ -18,6 +18,14 @@ import {
 	GET_EVENT_HISTORY,
 	GET_USER_WAITLIST_STATUS
 } from '$lib/graphql/events-operations';
+import type { ActivityLogFilter } from '$lib/graphql/types';
+import type { Client } from '@urql/core';
+
+interface AttendeeSubset {
+	id: string;
+	employeeId: string;
+	responseStatus: string;
+}
 
 export const load: PageServerLoad = async (event) => {
 	const { url, cookies } = event;
@@ -69,7 +77,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// Build filter for events based on actual schema fields
 		// PostGraphile's condition expects direct values in snake_case
-		const filter: any = {};
+		const filter: Record<string, unknown> = {};
 
 		// Note: events table has is_public (boolean), not visibility_type
 		// For now, we'll filter by status and type only
@@ -114,12 +122,13 @@ export const load: PageServerLoad = async (event) => {
 		// NOTE: Using Rust GraphQL schema - direct array access (no .nodes wrapper)
 		const stats = {
 			total: eventsResult.totalCount,
-			upcoming: upcomingEventsResult.events.filter((e: any) => new Date(e.startTime) > new Date())
+			upcoming: upcomingEventsResult.events.filter((e) => new Date(e.startTime) > new Date())
 				.length,
 			myEvents: userEventsResult.events.length,
-			accepted: userEventsResult.events.filter((e: any) =>
-				(e.eventAttendees || e.attendees || []).some(
-					(a: any) => a.employeeId === locals.user.id && a.responseStatus === 'accepted'
+			accepted: userEventsResult.events.filter((e) =>
+				(e.eventAttendees || []).some(
+					(a: AttendeeSubset) =>
+						a.employeeId === locals.user.id && a.responseStatus === 'accepted'
 				)
 			).length
 		};
@@ -149,18 +158,32 @@ export const load: PageServerLoad = async (event) => {
 			.toPromise();
 
 		// Transform employees to match expected interface
-		const employees = (employeesResult.data?.users || []).map((user: any) => ({
-			id: user.id,
-			displayName: user.displayName,
-			email: user.email,
-			jobTitle: user.jobTitle,
-			department: user.department
-				? {
-						id: user.department.id,
-						name: user.department.name
-					}
-				: undefined
-		}));
+		interface EmployeeUser {
+			id: string;
+			displayName: string;
+			email: string;
+			jobTitle?: string;
+			department?: {
+				id: string;
+				name: string;
+			};
+		}
+
+		const employees = (employeesResult.data?.users || []).map((user: unknown) => {
+			const u = user as EmployeeUser;
+			return {
+				id: u.id,
+				displayName: u.displayName,
+				email: u.email,
+				jobTitle: u.jobTitle,
+				department: u.department
+					? {
+							id: u.department.id,
+							name: u.department.name
+						}
+					: undefined
+			};
+		});
 
 		// Feature 026: Helper functions are available at module level
 		// (fetchEventComments, fetchEventHistory, fetchUserWaitlistStatus)
@@ -188,21 +211,27 @@ export const load: PageServerLoad = async (event) => {
 			// Feature 026: For per-event data fetching (comments/history/waitlist),
 			// create API endpoints instead of passing urqlClient to client
 		};
-	} catch (err: any) {
+	} catch (err: unknown) {
 		console.error('Error loading events:', err);
 
+		const errorMessage = err instanceof Error ? err.message : String(err);
+
 		// Handle specific error cases
-		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {
+		if (errorMessage.includes('unauthorized') || errorMessage.includes('authentication')) {
 			redirect(303, `/login?redirectTo=${url.pathname}`);
 		}
 
 		// If it's already a SvelteKit error, rethrow it
-		if (err.status) {
+		if (typeof err === 'object' && err !== null && 'status' in err) {
 			throw err;
 		}
 
+		// Use type guard for AppError
+		const { isAppError } = await import('$lib/models/error-response');
+		const userMessage = isAppError(err) ? err.userMessage : undefined;
+
 		error(500, {
-			message: err.userMessage || err.message || 'Failed to load events. Please try again later.'
+			message: userMessage || errorMessage || 'Failed to load events. Please try again later.'
 		});
 	}
 };
@@ -224,7 +253,7 @@ function getRoleLevel(role: string | undefined): number {
 // Feature 026: Helper functions for fetching comments, history, waitlist data
 // T010: Fetch event comments with pagination (20 per page)
 async function fetchEventComments(
-	urqlClient: any,
+	urqlClient: Client,
 	eventId: string,
 	limit: number = 20,
 	offset: number = 0
@@ -259,7 +288,7 @@ async function fetchEventComments(
 
 // T010: Fetch event history with pagination (25 per page)
 async function fetchEventHistory(
-	urqlClient: any,
+	urqlClient: Client,
 	eventId: string,
 	limit: number = 25,
 	offset: number = 0
@@ -294,7 +323,7 @@ async function fetchEventHistory(
 
 // T011: Fetch user's waitlist status for an event
 async function fetchUserWaitlistStatus(
-	urqlClient: any,
+	urqlClient: Client,
 	eventId: string,
 	userId: string
 ): Promise<{ isOnWaitlist: boolean; position: number | null; joinedAt?: string }> {
@@ -399,10 +428,11 @@ export const actions: Actions = {
 			});
 
 			return { success: true };
-		} catch (err: any) {
+		} catch (err: unknown) {
 			console.error('Error updating event time:', err);
+			const { isAppError } = await import('$lib/models/error-response');
 			return fail(500, {
-				error: err.userMessage || 'Failed to update event. Please try again.'
+				error: isAppError(err) ? err.userMessage : 'Failed to update event. Please try again.'
 			});
 		}
 	},
@@ -504,10 +534,11 @@ export const actions: Actions = {
 			});
 
 			return { success: true };
-		} catch (err: any) {
+		} catch (err: unknown) {
 			console.error('Error creating event:', err);
+			const { isAppError } = await import('$lib/models/error-response');
 			return fail(500, {
-				error: err.userMessage || 'Failed to create event. Please try again.'
+				error: isAppError(err) ? err.userMessage : 'Failed to create event. Please try again.'
 			});
 		}
 	},
@@ -605,10 +636,11 @@ export const actions: Actions = {
 			});
 
 			return { success: true };
-		} catch (err: any) {
+		} catch (err: unknown) {
 			console.error('Error updating event:', err);
+			const { isAppError } = await import('$lib/models/error-response');
 			return fail(500, {
-				error: err.userMessage || 'Failed to update event. Please try again.'
+				error: isAppError(err) ? err.userMessage : 'Failed to update event. Please try again.'
 			});
 		}
 	},
@@ -668,10 +700,11 @@ export const actions: Actions = {
 			}
 
 			return { success: true };
-		} catch (err: any) {
+		} catch (err: unknown) {
 			console.error('Error deleting event:', err);
+			const message = err instanceof Error ? err.message : 'Failed to delete event. Please try again.';
 			return fail(500, {
-				error: err.message || 'Failed to delete event. Please try again.'
+				error: message
 			});
 		}
 	},
@@ -798,14 +831,14 @@ export const actions: Actions = {
 
 						// NOTE: Using Rust GraphQL schema - direct array access (no .nodes wrapper)
 						const existingAttendee = (event.eventAttendees || event.attendees || []).find(
-							(a: any) => a.employeeId === locals.user.id
+							(a: AttendeeSubset) => a.employeeId === locals.user.id
 						);
 
 						if (existingAttendee) {
 							console.log('[SERVER] Found existing attendee, updating RSVP status');
 							await eventsOps.updateRsvpStatus({
 								attendeeId: existingAttendee.id,
-								status: status as any,
+								status: status as import('$lib/graphql/types').RsvpStatus,
 								userCredentials
 							});
 						} else {
@@ -823,11 +856,14 @@ export const actions: Actions = {
 
 			console.log('[SERVER] RSVP update successful');
 			return { success: true };
-		} catch (err: any) {
+		} catch (err: unknown) {
 			console.error('[SERVER] Error updating RSVP status:', err);
-			console.error('[SERVER] Error stack:', err.stack);
+			if (err instanceof Error && err.stack) {
+				console.error('[SERVER] Error stack:', err.stack);
+			}
+			const { isAppError } = await import('$lib/models/error-response');
 			return fail(500, {
-				error: err.userMessage || 'Failed to update RSVP status. Please try again.'
+				error: isAppError(err) ? err.userMessage : 'Failed to update RSVP status. Please try again.'
 			});
 		}
 	},
@@ -885,7 +921,7 @@ export const actions: Actions = {
 			// Find the user's attendee record
 			// NOTE: Using Rust GraphQL schema - direct array access (no .nodes wrapper)
 			const attendee = (event.eventAttendees || event.attendees || []).find(
-				(a: any) => a.employeeId === locals.user.id
+				(a: AttendeeSubset) => a.employeeId === locals.user.id
 			);
 
 			if (!attendee) {
@@ -903,10 +939,11 @@ export const actions: Actions = {
 			});
 
 			return { success: true };
-		} catch (err: any) {
+		} catch (err: unknown) {
 			console.error('Error setting event reminder:', err);
+			const { isAppError } = await import('$lib/models/error-response');
 			return fail(500, {
-				error: err.userMessage || 'Failed to set event reminder. Please try again.'
+				error: isAppError(err) ? err.userMessage : 'Failed to set event reminder. Please try again.'
 			});
 		}
 	}

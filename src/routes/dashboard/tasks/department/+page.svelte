@@ -242,7 +242,6 @@
 	<div class="mb-6">
 		<TaskList
 			tasks={data.tasks}
-			userId={data.user?.id}
 			showFilters={false}
 			onTaskClick={(taskId) => handleTaskClick({ id: taskId })}
 			onStatusChange={handleStatusChange}

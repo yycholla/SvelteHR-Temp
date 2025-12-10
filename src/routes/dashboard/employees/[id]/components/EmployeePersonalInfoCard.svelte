@@ -1,16 +1,13 @@
 <script lang="ts">
 	import { Badge } from '$lib/components/ui/badge';
-	import { Building2, MapPin, Clock, User } from '@lucide/svelte';
+	import { Building2, Clock, MapPin, User } from '@lucide/svelte';
+	import { calculateTenure, formatDate, formatRole, getInitials } from '../utils';
 
 	interface Props {
 		employee: any;
-		formatRole: (role: string) => string;
-		formatDate: (date: string) => string;
-		calculateTenure: (date: string) => string;
-		getInitials: (name: string) => string;
 	}
 
-	const { employee, formatRole, formatDate, calculateTenure, getInitials }: Props = $props();
+	const { employee }: Props = $props();
 </script>
 
 <div
@@ -29,7 +26,10 @@
 		<div>
 			<div class="mb-1 flex items-center gap-3">
 				<h1 class="text-3xl font-bold tracking-tight">{employee.displayName}</h1>
-				<Badge variant={employee.isActive ? 'default' : 'secondary'} class="pointer-events-none">
+				<Badge
+					variant={employee.isActive ? 'default' : 'secondary'}
+					class="pointer-events-none"
+				>
 					{employee.isActive ? 'Active' : 'Inactive'}
 				</Badge>
 			</div>

@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { Briefcase } from '@lucide/svelte';
+	import { formatDate } from '../utils';
 
 	interface Props {
 		employee: any;
-		formatDate: (date: string) => string;
 	}
 
-	const { employee, formatDate }: Props = $props();
+	const { employee }: Props = $props();
 </script>
 
 <div class="rounded-xl border bg-card p-5 md:col-span-2">

@@ -5,6 +5,7 @@
 
 import { error, redirect } from '@sveltejs/kit';
 import type { RequestEvent } from '@sveltejs/kit';
+import type { ApiResponse } from '$lib/types/index';
 
 export interface RBACConfig {
 	requiredPermissions?: string[];
@@ -341,6 +342,28 @@ export const PermissionChecks = {
 		})
 };
 
+// Internal types for GraphQL responses
+interface DepartmentManagerData {
+	departmentById?: {
+		id: string;
+		managerId?: string;
+	};
+}
+
+interface EmployeeDepartmentData {
+	managerUser?: {
+		id: string;
+		departmentByDepartmentId?: {
+			id: string;
+			managerId?: string;
+		};
+	};
+	targetUser?: {
+		id: string;
+		departmentId?: string;
+	};
+}
+
 /**
  * Check if a manager has edit access to a specific department/team
  * Admins have full access to all departments
@@ -375,17 +398,16 @@ export async function canEditDepartment(
 							}
 						}
 					`,
-					variables: { departmentId }
-				})
-			});
-
-			const data = await response.json();
-			const department = data?.data?.departmentById;
-
-			// Manager can edit if they are the department manager
-			return department?.managerId === userId;
-		} catch (error) {
-			console.error('[RBAC] Error checking department manager:', error);
+													variables: { departmentId }
+												})
+											});
+									
+											const data = (await response.json()) as ApiResponse<DepartmentManagerData>;
+											const department = data?.data?.departmentById;
+									
+											// Manager can edit if they are the department manager
+											return department?.managerId === userId;
+										} catch (error) {			console.error('[RBAC] Error checking department manager:', error);
 			return false;
 		}
 	}
@@ -445,12 +467,12 @@ export async function canEditEmployee(
 				})
 			});
 
-			const data = await response.json();
+			const data = (await response.json()) as ApiResponse<EmployeeDepartmentData>;
 			const managerDept = data?.data?.managerUser?.departmentByDepartmentId;
 			const targetUserDeptId = data?.data?.targetUser?.departmentId;
 
 			// Manager can edit if they manage the employee's department
-			return managerDept?.id === targetUserDeptId && managerDept?.managerId === userId;
+			return !!(managerDept && managerDept.id === targetUserDeptId && managerDept.managerId === userId);
 		} catch (error) {
 			console.error('[RBAC] Error checking employee department:', error);
 			return false;
@@ -678,7 +700,7 @@ export async function isManagerOfDepartment(
 			})
 		});
 
-		const data = await response.json();
+		const data = (await response.json()) as ApiResponse<DepartmentManagerData>;
 		const department = data?.data?.departmentById;
 
 		return department?.managerId === userId;

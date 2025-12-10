@@ -81,6 +81,7 @@
 	let blockDocumentUrl = $state('');
 	let blockFormTemplateId = $state('');
 	let blockCheckboxItems = $state<string[]>([]);
+	let blockCheckboxItemsString = $state('');
 
 	// Block type configuration
 	const blockTypes = [
@@ -108,6 +109,7 @@
 			blockDocumentUrl = block.documentUrl || '';
 			blockFormTemplateId = block.formTemplateId || '';
 			blockCheckboxItems = block.checkboxItems || [];
+			blockCheckboxItemsString = blockCheckboxItems.join('\n');
 		} else {
 			blockType = 'TEXT';
 			blockTitle = '';
@@ -115,6 +117,7 @@
 			blockDocumentUrl = '';
 			blockFormTemplateId = '';
 			blockCheckboxItems = [];
+			blockCheckboxItemsString = '';
 		}
 		showBlockDialog = true;
 	}
@@ -129,6 +132,7 @@
 		blockDocumentUrl = '';
 		blockFormTemplateId = '';
 		blockCheckboxItems = [];
+		blockCheckboxItemsString = '';
 	}
 
 	// Save block (create or update)
@@ -153,8 +157,16 @@
 			formData.append('documentUrl', blockDocumentUrl);
 		} else if (blockType === 'FORM_FIELDS' && blockFormTemplateId) {
 			formData.append('formTemplateId', blockFormTemplateId);
-		} else if (blockType === 'CHECKBOX' && blockCheckboxItems.length > 0) {
-			formData.append('checkboxItems', JSON.stringify(blockCheckboxItems));
+		} else if (blockType === 'CHECKBOX') {
+			// Parse checkbox items from string
+			blockCheckboxItems = blockCheckboxItemsString
+				.split('\n')
+				.map((item) => item.trim())
+				.filter((item) => item.length > 0);
+
+			if (blockCheckboxItems.length > 0) {
+				formData.append('checkboxItems', JSON.stringify(blockCheckboxItems));
+			}
 		}
 
 		const response = await fetch('', {
@@ -549,7 +561,7 @@
 					<p class="text-xs text-gray-500 mb-2">Add items that employees need to check off</p>
 					<!-- Simplified for now - would need proper array management -->
 					<Textarea
-						bind:value={blockCheckboxItems}
+						bind:value={blockCheckboxItemsString}
 						placeholder="Enter items (one per line)"
 						rows={4}
 					/>

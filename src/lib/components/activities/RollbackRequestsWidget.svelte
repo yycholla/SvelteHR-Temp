@@ -11,7 +11,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
-	import { AlertCircle, CheckSquare, ChevronRight, Clock, XSquare } from '@lucide/svelte';
+	import { CheckSquare, ChevronRight, Clock } from '@lucide/svelte';
 
 	interface RollbackRequest {
 		id: string;
@@ -116,7 +116,7 @@
 			</div>
 		{:else}
 			<div class="space-y-2">
-				{#each displayRequests as request}
+				{#each displayRequests as request (request.id)}
 					<a
 						href="/dashboard/activities/rollback-requests"
 						class="block rounded-lg border p-3 transition-colors hover:bg-accent"

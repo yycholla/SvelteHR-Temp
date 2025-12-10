@@ -19,24 +19,18 @@
 
 	interface Props {
 		task: Task; // Root task with populated subtasks
-		userId?: string;
 		onTaskClick?: (taskId: string) => void;
 		onStatusChange?: (taskId: string, newStatus: Task['status']) => void;
 		maxDepth?: number; // Maximum nesting depth (default: 3)
 		currentDepth?: number; // Current depth level (for recursion tracking)
-		showProgress?: boolean;
-		compact?: boolean;
 	}
 
 	const {
 		task,
-		userId,
 		onTaskClick,
 		onStatusChange,
 		maxDepth = 3,
-		currentDepth = 0,
-		showProgress = false,
-		compact = false
+		currentDepth = 0
 	}: Props = $props();
 
 	// State for expand/collapse
@@ -104,11 +98,8 @@
 		<div class="flex-1">
 			<TaskCard
 				{task}
-				{userId}
 				onClick={handleTaskClick}
 				onStatusChange={handleStatusChange}
-				{showProgress}
-				{compact}
 				level={currentDepth}
 			/>
 
@@ -137,13 +128,10 @@
 				<!-- Recursive TaskHierarchy for subtask -->
 				<TaskHierarchy
 					task={subtask}
-					{userId}
 					{onTaskClick}
 					{onStatusChange}
 					{maxDepth}
 					currentDepth={currentDepth + 1}
-					{showProgress}
-					{compact}
 				/>
 			{/each}
 		</div>

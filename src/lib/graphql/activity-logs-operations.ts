@@ -228,9 +228,9 @@ export interface ActivityLog {
 	action: ActivityAction;
 	resourceType: ResourceType;
 	resourceId?: string;
-	details?: Record<string, any>;
-	beforeSnapshot?: Record<string, any>;
-	afterSnapshot?: Record<string, any>;
+	details?: Record<string, unknown>;
+	beforeSnapshot?: Record<string, unknown>;
+	afterSnapshot?: Record<string, unknown>;
 	isRollback?: boolean;
 	rolledBackLogId?: string;
 	ipAddress?: string;
@@ -444,7 +444,7 @@ export class ActivityLogsOperations {
 		employeeId: string;
 		first?: number;
 		offset?: number;
-		filter?: any; // Changed from ActivityLogFilter to any for PostGraphile condition
+		filter?: Record<string, unknown>; // Changed from ActivityLogFilter to any for PostGraphile condition
 		userCredentials: UserCredentials;
 	}): Promise<{
 		activities: ActivityLog[];
@@ -494,8 +494,9 @@ export class ActivityLogsOperations {
 				totalCount: result.data.allActivityLogs.totalCount,
 				hasNextPage: result.data.allActivityLogs.pageInfo.hasNextPage
 			};
-		} catch (error: any) {
-			if (error.userMessage) {
+		} catch (error: unknown) {
+			const { isAppError } = await import('$lib/models/error-response');
+			if (isAppError(error)) {
 				throw error; // Already formatted error
 			}
 			throw createErrorResponse(error, {
@@ -513,7 +514,7 @@ export class ActivityLogsOperations {
 	async getAuditLogs(params: {
 		first?: number;
 		offset?: number;
-		filter?: any;
+		filter?: Record<string, unknown>;
 		userCredentials: UserCredentials;
 	}): Promise<{
 		activities: ActivityLog[];
@@ -558,8 +559,9 @@ export class ActivityLogsOperations {
 				totalCount: result.data.allActivityLogs.totalCount,
 				hasNextPage: result.data.allActivityLogs.pageInfo.hasNextPage
 			};
-		} catch (error: any) {
-			if (error.userMessage) {
+		} catch (error: unknown) {
+			const { isAppError } = await import('$lib/models/error-response');
+			if (isAppError(error)) {
 				throw error; // Already formatted error
 			}
 			throw createErrorResponse(error, {
@@ -614,8 +616,9 @@ export class ActivityLogsOperations {
 			}
 
 			return result.data.allActivityLogs.nodes;
-		} catch (error: any) {
-			if (error.userMessage) {
+		} catch (error: unknown) {
+			const { isAppError } = await import('$lib/models/error-response');
+			if (isAppError(error)) {
 				throw error; // Already formatted error
 			}
 			throw createErrorResponse(error, {
@@ -672,8 +675,9 @@ export class ActivityLogsOperations {
 			}
 
 			return result.data.allActivityLogs.nodes;
-		} catch (error: any) {
-			if (error.userMessage) {
+		} catch (error: unknown) {
+			const { isAppError } = await import('$lib/models/error-response');
+			if (isAppError(error)) {
 				throw error; // Already formatted error
 			}
 			throw createErrorResponse(error, {
@@ -751,8 +755,9 @@ export class ActivityLogsOperations {
 				userAgent: log.userAgent,
 				createdAt: log.createdAt
 			};
-		} catch (error: any) {
-			if (error.userMessage) {
+		} catch (error: unknown) {
+			const { isAppError } = await import('$lib/models/error-response');
+			if (isAppError(error)) {
 				throw error; // Already formatted error
 			}
 			throw createErrorResponse(error, {

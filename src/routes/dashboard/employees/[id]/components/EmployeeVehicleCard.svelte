@@ -1,18 +1,17 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Car, Plus, Pencil, Trash2 } from '@lucide/svelte';
+	import { Car, Pencil, Plus, Trash2 } from '@lucide/svelte';
 
 	interface Props {
 		employee: any;
-		canManageEmployees: boolean;
-		isViewingSelf: boolean;
+		canManage: boolean;
 		onAdd: () => void;
 		onEdit: (vehicle: any) => void;
 		onDelete: (vehicleId: string) => void;
 	}
 
-	const { employee, canManageEmployees, isViewingSelf, onAdd, onEdit, onDelete }: Props = $props();
+	const { employee, canManage, onAdd, onEdit, onDelete }: Props = $props();
 </script>
 
 <div class="flex flex-col rounded-xl border bg-card p-5">
@@ -26,7 +25,7 @@
 				>{employee.vehicles.length} Active</span
 			>
 		{/if}
-		{#if canManageEmployees || isViewingSelf}
+		{#if canManage}
 			<button
 				onclick={onAdd}
 				class="rounded-md bg-secondary p-1.5 text-xs transition-colors hover:bg-secondary/80"
@@ -55,7 +54,7 @@
 								{vehicle.year} • {vehicle.color || 'No Color'}
 							</p>
 						</div>
-						{#if canManageEmployees || isViewingSelf}
+						{#if canManage}
 							<div class="flex gap-1">
 								<Button
 									variant="ghost"

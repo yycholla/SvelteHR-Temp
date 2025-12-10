@@ -16,9 +16,7 @@
 
 	interface RollbackRequest {
 		id: string;
-		activityLogId: string;
 		requestedBy: {
-			id: string;
 			fullName: string;
 			email: string;
 			department: string;
@@ -36,8 +34,8 @@
 			action: 'CREATE' | 'UPDATE' | 'DELETE';
 			resourceType: string;
 			resourceId: string;
-			beforeSnapshot: Record<string, any>;
-			afterSnapshot: Record<string, any>;
+			beforeSnapshot: Record<string, unknown>;
+			afterSnapshot: Record<string, unknown>;
 		};
 	}
 

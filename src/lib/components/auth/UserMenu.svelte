@@ -43,26 +43,26 @@
 	});
 
 	// Menu actions
-	const handleProfileClick = () => {
+	const handleProfileClick = async () => {
 		dispatch('profileClick');
-		goto('/profile');
 		isOpen = false;
+		await goto('/profile');
 	};
 
-	const handleSettingsClick = () => {
+	const handleSettingsClick = async () => {
 		dispatch('settingsClick');
-		goto('/settings');
 		isOpen = false;
+		await goto('/settings');
 	};
 
-	const handleAdminClick = () => {
-		goto('/dashboard/admin');
+	const handleAdminClick = async () => {
 		isOpen = false;
+		await goto('/dashboard/admin');
 	};
 
-	const handleHRClick = () => {
-		goto('/hr');
+	const handleHRClick = async () => {
 		isOpen = false;
+		await goto('/hr');
 	};
 
 	const handleLogout = async () => {
@@ -70,7 +70,7 @@
 		// Pass current URL to logout for redirect after login
 		await auth.logout($page.url.pathname + $page.url.search);
 		dispatch('logout');
-		goto('/login');
+		await goto('/login');
 	};
 
 	// Get user initials for avatar

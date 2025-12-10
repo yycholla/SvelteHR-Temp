@@ -68,7 +68,7 @@ export async function verifyJWTToken(token: string): Promise<TokenValidationResu
 		const payload = jwt.verify(token, JWT_SECRET, {
 			issuer: authConfig.jwt.issuer,
 			audience: authConfig.jwt.audience,
-			algorithms: [authConfig.jwt.algorithm as any]
+			algorithms: [authConfig.jwt.algorithm as import('jsonwebtoken').Algorithm]
 		}) as JWTPayload;
 
 		// Check if token needs refresh (within refresh threshold)
@@ -196,7 +196,7 @@ export async function generateJWTToken(payload: Partial<JWTPayload>): Promise<st
 	};
 
 	return jwt.sign(tokenPayload, JWT_SECRET, {
-		algorithm: authConfig.jwt.algorithm as any,
+		algorithm: authConfig.jwt.algorithm as import('jsonwebtoken').Algorithm,
 		expiresIn: expiresInSeconds,
 		issuer: authConfig.jwt.issuer,
 		audience: authConfig.jwt.audience
@@ -290,18 +290,24 @@ export function createMockJWTPayload(overrides: Partial<JWTPayload> = {}): JWTPa
 /**
  * Validate JWT payload structure
  */
-export function validateJWTPayloadStructure(payload: any): payload is JWTPayload {
+export function validateJWTPayloadStructure(payload: unknown): payload is JWTPayload {
 	return (
 		typeof payload === 'object' &&
 		payload !== null &&
-		typeof payload.user_id === 'string' &&
-		typeof payload.email === 'string' &&
-		typeof payload.exp === 'number' &&
-		typeof payload.iat === 'number' &&
-		typeof payload.iss === 'string' &&
-		typeof payload.aud === 'string' &&
-		(payload.role === undefined || typeof payload.role === 'string') &&
-		(payload.roles === undefined || Array.isArray(payload.roles)) &&
-		(payload.permissions === undefined || Array.isArray(payload.permissions))
+		'user_id' in payload &&
+		typeof (payload as JWTPayload).user_id === 'string' &&
+		'email' in payload &&
+		typeof (payload as JWTPayload).email === 'string' &&
+		'exp' in payload &&
+		typeof (payload as JWTPayload).exp === 'number' &&
+		'iat' in payload &&
+		typeof (payload as JWTPayload).iat === 'number' &&
+		'iss' in payload &&
+		typeof (payload as JWTPayload).iss === 'string' &&
+		'aud' in payload &&
+		typeof (payload as JWTPayload).aud === 'string' &&
+		((payload as JWTPayload).role === undefined || typeof (payload as JWTPayload).role === 'string') &&
+		((payload as JWTPayload).roles === undefined || Array.isArray((payload as JWTPayload).roles)) &&
+		((payload as JWTPayload).permissions === undefined || Array.isArray((payload as JWTPayload).permissions))
 	);
 }

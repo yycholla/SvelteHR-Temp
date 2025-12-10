@@ -3,6 +3,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { PERMISSIONS, ROLE_LEVELS } from '$lib/auth/rbac';
 	import { userService, users } from '$lib/services/userService';
+	import { logger } from '$lib/utils/logger';
 	import Button from '../base/Button.svelte';
 	import Card from '../base/Card.svelte';
 	import Badge from '../base/Badge.svelte';
@@ -14,8 +15,6 @@
 
 	// Component state
 	let selectedTab = $state<'users' | 'roles' | 'permissions'>('users');
-	const selectedUser = $state<User | null>(null);
-	const selectedRole = $state<string | null>(null);
 	let showUserRoleModal = $state(false);
 	let searchQuery = $state('');
 	let filterRole = $state('');
@@ -161,14 +160,6 @@
 		return user.role_assignments?.map((ra) => ra.role.name) || [];
 	}
 
-	function getHighestRole(user: User): string {
-		const roles = getUserRoles(user);
-		const rolesByLevel = availableRoles
-			.filter((r) => roles.includes(r.value))
-			.sort((a, b) => b.level - a.level);
-		return rolesByLevel[0]?.label || 'No Role';
-	}
-
 	function openUserRoleModal(user: User) {
 		modalUser = user;
 		modalRoles = getUserRoles(user);
@@ -186,7 +177,7 @@
 
 		try {
 			// TODO: Implement role assignment API call
-			console.log('Saving roles for user:', modalUser.id, modalRoles);
+			// console.log('Saving roles for user:', modalUser.id, modalRoles);
 
 			// For now, just close the modal
 			closeUserRoleModal();
@@ -194,15 +185,7 @@
 			// Refresh user data
 			await userService.loadUsers({ reset: true });
 		} catch (error) {
-			console.error('Failed to save user roles:', error);
-		}
-	}
-
-	function toggleRole(roleName: string) {
-		if (modalRoles.includes(roleName)) {
-			modalRoles = modalRoles.filter((r) => r !== roleName);
-		} else {
-			modalRoles = [...modalRoles, roleName];
+			logger.error('Failed to save user roles', error instanceof Error ? error : new Error(String(error)));
 		}
 	}
 
@@ -335,7 +318,7 @@
 			{:else if selectedTab === 'roles'}
 				<!-- Roles Tab -->
 				<div class="roles-grid">
-					{#each availableRoles as role}
+					{#each availableRoles as role (role.value)}
 						<Card padding="md" class="role-card">
 							<div class="role-header">
 								<div class="role-info">
@@ -350,7 +333,7 @@
 							<div class="role-permissions">
 								<h4 class="permissions-title">Key Permissions:</h4>
 								<ul class="permissions-list">
-									{#each getPermissionsList(role.value) as permission}
+									{#each getPermissionsList(role.value) as permission (permission)}
 										<li class="permission-item">
 											<i class="icon-check h-4 w-4 text-green-600"></i>
 											{permission}
@@ -383,7 +366,7 @@
 							<thead>
 								<tr>
 									<th class="resource-header">Resource / Action</th>
-									{#each availableRoles as role}
+									{#each availableRoles as role (role.value)}
 										<th class="role-header">
 											<div class="role-header-content">
 												<span>{role.label}</span>
@@ -396,8 +379,8 @@
 								</tr>
 							</thead>
 							<tbody>
-								{#each ['users', 'departments', 'onboarding', 'compensation', 'reports'] as resource}
-									{#each ['create', 'read', 'update', 'delete'] as action}
+								{#each ['users', 'departments', 'onboarding', 'compensation', 'reports'] as resource (resource)}
+									{#each ['create', 'read', 'update', 'delete'] as action (action)}
 										<tr class="matrix-row">
 											<td class="resource-cell">
 												<div class="resource-info">
@@ -405,7 +388,7 @@
 													<span class="action-name">:{action}</span>
 												</div>
 											</td>
-											{#each availableRoles as role}
+											{#each availableRoles as role (role.value)}
 												<td class="permission-cell">
 													<!-- TODO: Implement permission check using RBAC manager -->
 													{#if true}
@@ -450,7 +433,7 @@
 					<div class="roles-section">
 						<h4 class="section-title">Assign Roles</h4>
 						<div class="roles-list">
-							{#each availableRoles as role}
+							{#each availableRoles as role (role.value)}
 								<label class="role-checkbox">
 									<input
 										type="checkbox"

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Users, UserPlus, Plus } from '@lucide/svelte';
+	import { Plus, UserPlus, Users } from '@lucide/svelte';
 </script>
 
 <div class="rounded-xl border bg-card p-5">

@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { FileText, Upload, Plus, Download, Trash2 } from '@lucide/svelte';
+	import { Download, FileText, Plus, Trash2, Upload } from '@lucide/svelte';
+	import { formatRelativeTime } from '../utils';
 
 	interface Props {
 		employee: any;
-		canViewDocuments: boolean;
-		canAssignDocuments: boolean;
+		canView: boolean;
+		canAssign: boolean;
 		isUnassigningDocument: boolean;
-		formatRelativeTime: (date: string) => string;
 		onUpload: () => void;
 		onAssign: () => void;
 		onUnassign: (assignmentId: string) => void;
@@ -14,17 +14,16 @@
 
 	const {
 		employee,
-		canViewDocuments,
-		canAssignDocuments,
+		canView,
+		canAssign,
 		isUnassigningDocument,
-		formatRelativeTime,
 		onUpload,
 		onAssign,
 		onUnassign
 	}: Props = $props();
 </script>
 
-{#if canViewDocuments}
+{#if canView}
 	<div class="flex flex-col rounded-xl border bg-card p-5 md:col-span-2">
 		<div class="mb-4 flex items-center justify-between">
 			<div class="flex items-center gap-2 text-muted-foreground">
@@ -36,7 +35,7 @@
 					>{employee.assignedDocuments.length} Files</span
 				>
 			{/if}
-			{#if canAssignDocuments}
+			{#if canAssign}
 				<div class="flex gap-1">
 					<button
 						onclick={onUpload}
@@ -87,7 +86,7 @@
 							>
 								<Download class="h-3.5 w-3.5" />
 							</a>
-							{#if canAssignDocuments}
+							{#if canAssign}
 								<button
 									onclick={() => onUnassign(doc.assignmentId)}
 									class="flex h-7 w-7 items-center justify-center rounded hover:bg-muted hover:text-destructive"

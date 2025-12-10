@@ -1,8 +1,5 @@
+// Task Queries
 import { gql } from '@urql/svelte';
-
-// ============================================================================
-// QUERIES
-// ============================================================================
 
 /**
  * Query: Get all tasks with filtering, sorting, and pagination

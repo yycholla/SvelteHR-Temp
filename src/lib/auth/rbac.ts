@@ -66,7 +66,7 @@ export interface RBACManager {
 	// Utility methods
 	getAllPermissions(): string[];
 	getRoleNames(): string[];
-	debugInfo(): Record<string, any>;
+	debugInfo(): Record<string, unknown>;
 }
 
 /**
@@ -248,7 +248,7 @@ export function createRBACManager(
 			return activeRoles.map((assignment) => assignment.role?.name).filter(Boolean) as string[];
 		},
 
-		debugInfo(): Record<string, any> {
+		debugInfo(): Record<string, unknown> {
 			return {
 				userId: this.userId,
 				roleCount: activeRoles.length,
@@ -497,7 +497,7 @@ export function createPermissionChecker(rbacManager: RBACManager) {
 		isAdmin: () => rbacManager.isAdmin(),
 		isHR: () => rbacManager.isHRManager(),
 		isManager: () => rbacManager.isManager(),
-		check: (resource: string, action: string) =>
-			checkPermission(rbacManager, resource, action as any)
+		check: (resource: string, action: 'read' | 'write' | 'create' | 'update' | 'delete' | 'manage') =>
+			checkPermission(rbacManager, resource, action)
 	};
 }
