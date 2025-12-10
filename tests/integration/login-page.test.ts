@@ -82,14 +82,14 @@ describe('Login Page Integration (T018)', () => {
 	describe('Page Load Integration', () => {
 		it('should handle unauthenticated user access to login page', async () => {
 			// Arrange
-			const mockLoadEvent: Partial<LoadEvent> = {
+			const mockLoadEvent = {
 				params: {},
 				url: new URL('http://localhost:5173/login'),
 				cookies: {
 					get: vi.fn().mockReturnValue(null) // No auth token
 				},
 				locals: {} // No user context
-			};
+			} as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -102,7 +102,7 @@ describe('Login Page Integration (T018)', () => {
 
 		it('should redirect authenticated users away from login page', async () => {
 			// Arrange - User already authenticated
-			const mockLoadEvent: Partial<LoadEvent> = {
+			const mockLoadEvent = {
 				params: {},
 				url: new URL('http://localhost:5173/login'),
 				cookies: {
@@ -112,7 +112,7 @@ describe('Login Page Integration (T018)', () => {
 					user: { id: 'user-123', role: 'HR_Manager' },
 					permissions: ['employees:read', 'departments:read']
 				}
-			};
+			} as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -126,14 +126,14 @@ describe('Login Page Integration (T018)', () => {
 		it('should handle redirectTo parameter for post-login navigation', async () => {
 			// Arrange
 			const redirectUrl = '/dashboard';
-			const mockLoadEvent: Partial<LoadEvent> = {
+			const mockLoadEvent = {
 				params: {},
 				url: new URL(`http://localhost:5173/login?redirectTo=${encodeURIComponent(redirectUrl)}`),
 				cookies: {
 					get: vi.fn().mockReturnValue(null)
 				},
 				locals: {}
-			};
+			} as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -511,12 +511,12 @@ describe('Performance Integration', () => {
 	it('should meet login page load performance requirements', async () => {
 		// Arrange
 		const startTime = performance.now();
-		const mockLoadEvent: Partial<LoadEvent> = {
+		const mockLoadEvent = {
 			params: {},
 			url: new URL('http://localhost:5173/login'),
 			cookies: { get: vi.fn().mockReturnValue(null) },
 			locals: {}
-		};
+		} as LoadEvent;
 
 		// Act & Assert - Should throw until implementation exists
 		await expect(async () => {

@@ -95,7 +95,7 @@ describe('Employee Page Integration (T019)', () => {
 	describe('Page Load Integration', () => {
 		it('should integrate with GraphQL operations for employee data loading with filtering', async () => {
 			// Arrange - HR Manager with full permissions
-			const mockLoadEvent: Partial<LoadEvent> = {
+			const mockLoadEvent = {
 				params: {},
 				url: new URL(
 					'http://localhost:5173/employees?department=Engineering&status=active&page=1&limit=20'
@@ -107,7 +107,7 @@ describe('Employee Page Integration (T019)', () => {
 					user: { id: 'user-123', role: 'HR_Manager', departmentId: null },
 					permissions: ['employees:read', 'employees:write', 'employees:delete', 'salary:read']
 				}
-			};
+			} as LoadEvent;
 
 			const employeeRequest: GetEmployeesWithFilteringRequest = {
 				operation: 'GetEmployeesWithFiltering',
@@ -145,7 +145,7 @@ describe('Employee Page Integration (T019)', () => {
 
 		it('should handle department-restricted access for managers', async () => {
 			// Arrange - Department Manager with limited access
-			const mockLoadEvent: Partial<LoadEvent> = {
+			const mockLoadEvent = {
 				params: {},
 				url: new URL('http://localhost:5173/employees'),
 				cookies: {
@@ -155,7 +155,7 @@ describe('Employee Page Integration (T019)', () => {
 					user: { id: 'user-456', role: 'Manager', departmentId: 'dept-engineering' },
 					permissions: ['employees:read', 'department_employees:read', 'department_employees:write']
 				}
-			};
+			} as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -174,16 +174,21 @@ describe('Employee Page Integration (T019)', () => {
 		it('should handle permission errors with graceful degradation', async () => {
 			// Arrange - Employee with minimal permissions
 			const permissionError: ErrorResponse = {
+				id: 'error-permission',
+				operationId: 'op-permission',
+				originalError: null,
+				technicalDetails: 'Permission denied',
+				timestamp: new Date(),
+				isRetryable: false,
+				suggestedActions: ['show_limited_view'],
 				type: 'PERMISSION_ERROR',
-				message: 'Insufficient permissions to view employee salary data',
-				severity: 'medium',
-				suggestedAction: 'show_limited_view',
-				retryable: false
+				userMessage: 'Insufficient permissions to view employee salary data',
+				severity: 'medium'
 			};
 
 			mockGetEmployeesWithFiltering.mockRejectedValueOnce(permissionError);
 
-			const mockLoadEvent: Partial<LoadEvent> = {
+			const mockLoadEvent = {
 				params: {},
 				url: new URL('http://localhost:5173/employees'),
 				cookies: {
@@ -193,7 +198,7 @@ describe('Employee Page Integration (T019)', () => {
 					user: { id: 'user-789', role: 'Employee', departmentId: 'dept-marketing' },
 					permissions: ['profile:read', 'colleagues:read'] // Limited permissions
 				}
-			};
+			} as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {

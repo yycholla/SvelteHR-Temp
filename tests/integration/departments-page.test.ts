@@ -103,12 +103,12 @@ describe('Departments Page Integration (T020)', () => {
 	describe('Page Load Integration', () => {
 		it('should integrate with GraphQL operations for department data loading with statistics', async () => {
 			// Arrange - HR Manager with full access
-			const mockLoadEvent: Partial<LoadEvent> = {
+			const mockLoadEvent = {
 				params: {},
 				url: new URL('http://localhost:5173/departments?includeStats=true&includeInactive=false'),
 				cookies: {
 					get: vi.fn().mockReturnValue('hr-manager-token')
-				} as any,
+				},
 				locals: {
 					user: { id: 'user-123', role: 'HR_Manager', departmentId: null },
 					permissions: [
@@ -119,7 +119,7 @@ describe('Departments Page Integration (T020)', () => {
 						'statistics:read'
 					]
 				}
-			};
+			} as LoadEvent;
 
 			const departmentRequest: GetDepartmentsWithStatsRequest = {
 				operation: 'GetDepartmentsWithStats',
@@ -153,17 +153,17 @@ describe('Departments Page Integration (T020)', () => {
 
 		it('should handle department manager access with hierarchy restrictions', async () => {
 			// Arrange - Department Manager with restricted access
-			const mockLoadEvent: Partial<LoadEvent> = {
+			const mockLoadEvent = {
 				params: {},
 				url: new URL('http://localhost:5173/departments'),
 				cookies: {
 					get: vi.fn().mockReturnValue('dept-manager-token')
-				} as any,
+				},
 				locals: {
 					user: { id: 'user-456', role: 'Manager', departmentId: 'dept-engineering' },
 					permissions: ['departments:read', 'department_stats:read', 'team_budget:read']
 				}
-			};
+			} as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -184,26 +184,31 @@ describe('Departments Page Integration (T020)', () => {
 		it('should handle statistics calculation errors with fallback data', async () => {
 			// Arrange
 			const statisticsError: ErrorResponse = {
+				id: 'error-stats',
+				operationId: 'op-stats',
+				originalError: null,
+				technicalDetails: 'Statistics calculation failed',
+				timestamp: new Date(),
+				isRetryable: true,
+				suggestedActions: ['show_basic_view'],
 				type: 'GRAPHQL_ERROR',
-				message: 'Failed to calculate department performance metrics',
-				severity: 'medium',
-				suggestedAction: 'show_basic_view',
-				retryable: true
+				userMessage: 'Failed to calculate department performance metrics',
+				severity: 'medium'
 			};
 
 			mockGetDepartmentsWithStats.mockRejectedValueOnce(statisticsError);
 
-			const mockLoadEvent: Partial<LoadEvent> = {
+			const mockLoadEvent = {
 				params: {},
 				url: new URL('http://localhost:5173/departments?includeStats=true'),
 				cookies: {
 					get: vi.fn().mockReturnValue('hr-manager-token')
-				} as any,
+				},
 				locals: {
 					user: { id: 'user-123', role: 'HR_Manager' },
 					permissions: ['departments:read', 'statistics:read']
 				}
-			};
+			} as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
