@@ -12,12 +12,10 @@
  * - Automated batch loading suggestions
  */
 
+import type { DocumentNode, FieldNode, SelectionSetNode } from 'graphql';
 import {
-	DocumentNode,
-	FieldNode,
 	GraphQLSchema,
 	Kind,
-	SelectionSetNode,
 	TypeInfo,
 	getNamedType,
 	isListType,
@@ -25,7 +23,23 @@ import {
 	visit,
 	visitWithTypeInfo
 } from 'graphql';
-import type { QueryAnalysis, ResolverCall } from '../../tests/generated/test-types';
+
+// Type definitions for N+1 detection
+export interface QueryAnalysis {
+	operationName?: string;
+	resolverCalls: ResolverCall[];
+	potentialNPlusOne: boolean;
+	duplicateQueries: string[];
+	recommendations: string[];
+}
+
+export interface ResolverCall {
+	fieldName: string;
+	parentType: string;
+	returnType: string;
+	executionTime: number;
+	callCount: number;
+}
 
 export interface NPlusOnePattern {
 	fieldPath: string[];

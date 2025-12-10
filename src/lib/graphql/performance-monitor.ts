@@ -15,8 +15,38 @@
  * - Optimization recommendations
  */
 
-import { DocumentNode, print } from 'graphql';
-import type { GraphQLPerformanceMetrics, QueryAnalysis } from '../../tests/generated/test-types';
+import type { DocumentNode } from 'graphql';
+import { print } from 'graphql';
+
+// Type definitions for performance monitoring
+export interface GraphQLPerformanceMetrics {
+	operationName?: string;
+	operationType: 'query' | 'mutation' | 'subscription';
+	executionTime: number;
+	complexity: number;
+	depth: number;
+	fieldCount: number;
+	errorCount: number;
+	cacheHitRatio: number;
+	timestamp?: number;
+	queryHash?: string;
+}
+
+export interface QueryAnalysis {
+	operationName?: string;
+	resolverCalls: ResolverCall[];
+	potentialNPlusOne: boolean;
+	duplicateQueries: string[];
+	recommendations: string[];
+}
+
+export interface ResolverCall {
+	fieldName: string;
+	parentType: string;
+	returnType: string;
+	executionTime: number;
+	callCount: number;
+}
 
 export interface PerformanceThresholds {
 	warningTime: number; // ms

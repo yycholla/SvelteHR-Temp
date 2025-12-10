@@ -12,8 +12,8 @@
  * - Security validation
  */
 
+import type { DocumentNode } from 'graphql';
 import {
-	DocumentNode,
 	GraphQLError,
 	GraphQLSchema,
 	Kind,
@@ -26,12 +26,45 @@ import {
 	visit,
 	visitWithTypeInfo
 } from 'graphql';
-import type {
-	GraphQLPerformanceMetrics,
-	QueryAnalysis,
-	QueryComplexityConfig,
-	ResolverCall
-} from '../../tests/generated/test-types';
+
+// Type definitions for query complexity analysis
+export interface GraphQLPerformanceMetrics {
+	operationName?: string;
+	operationType: 'query' | 'mutation' | 'subscription';
+	executionTime: number;
+	complexity: number;
+	depth: number;
+	fieldCount: number;
+	errorCount: number;
+	cacheHitRatio: number;
+	timestamp?: number;
+	queryHash?: string;
+}
+
+export interface QueryAnalysis {
+	operationName?: string;
+	resolverCalls: ResolverCall[];
+	potentialNPlusOne: boolean;
+	duplicateQueries: string[];
+	recommendations: string[];
+}
+
+export interface ResolverCall {
+	fieldName: string;
+	parentType: string;
+	returnType: string;
+	executionTime: number;
+	callCount: number;
+}
+
+export interface QueryComplexityConfig {
+	maximumComplexity: number;
+	depthLimit: number;
+	scalarCost: number;
+	objectCost: number;
+	listFactor: number;
+	introspectionCost: number;
+}
 
 /**
  * Default complexity configuration optimized for PostGraphile HR system

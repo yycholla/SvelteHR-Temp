@@ -14,9 +14,8 @@
  * - Security audit capabilities
  */
 
+import type { DocumentNode, FieldNode } from 'graphql';
 import {
-	DocumentNode,
-	FieldNode,
 	GraphQLInterfaceType,
 	GraphQLObjectType,
 	GraphQLSchema,
@@ -27,7 +26,6 @@ import {
 	visit,
 	visitWithTypeInfo
 } from 'graphql';
-import type { GraphQLSecurityValidation } from '../../tests/generated/test-types';
 
 export interface FieldPermissionRule {
 	fieldPath: string;
