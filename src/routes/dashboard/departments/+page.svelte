@@ -247,7 +247,7 @@
 						</div>
 						<div class="space-y-2">
 							<label for="parent" class="text-sm font-medium">Parent Department</label>
-							<Select bind:value={selectedParent}>
+							<Select type="single" bind:value={selectedParent}>
 								<SelectTrigger placeholder="All Parents" />
 								<SelectContent>
 									<SelectItem value="">All Parents</SelectItem>
@@ -260,7 +260,7 @@
 						</div>
 						<div class="space-y-2">
 							<label for="hasHead" class="text-sm font-medium">Leadership Status</label>
-							<Select bind:value={selectedHasHead}>
+							<Select type="single" bind:value={selectedHasHead}>
 								<SelectTrigger placeholder="All Departments" />
 								<SelectContent>
 									{#each hasHeadOptions as option}
@@ -271,7 +271,7 @@
 						</div>
 						<div class="space-y-2">
 							<label for="pagesize" class="text-sm font-medium">Per Page</label>
-							<Select bind:value={pageSize}>
+							<Select type="single" bind:value={pageSize}>
 								<SelectTrigger placeholder="20" />
 								<SelectContent>
 									<SelectItem value="10">10</SelectItem>

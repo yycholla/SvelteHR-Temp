@@ -87,7 +87,7 @@
 	}
 
 	function getEmployeeInitials(employee: UserType): string {
-		return `${employee.firstName?.charAt(0) || ''}${employee.lastName?.charAt(0) || ''}`;
+		return `${employee.first_name?.charAt(0) || ''}${employee.last_name?.charAt(0) || ''}`;
 	}
 
 	function formatDate(dateString: string | null | undefined): string {
@@ -189,11 +189,11 @@
 								</a>
 							</div>
 
-							{#if employee.phoneNumber}
+							{#if employee.phone_number}
 								<div class="flex items-center justify-center gap-2 lg:justify-start">
 									<Phone class="h-4 w-4 text-muted-foreground" />
-									<a href="tel:{employee.phoneNumber}" class="text-primary hover:underline">
-										{formatPhoneNumber(employee.phoneNumber)}
+									<a href="tel:{employee.phone_number}" class="text-primary hover:underline">
+										{formatPhoneNumber(employee.phone_number)}
 									</a>
 								</div>
 							{/if}
@@ -312,7 +312,7 @@
 							<Label class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
 								Full Name
 							</Label>
-							<p class="text-sm">{employee.firstName} {employee.lastName}</p>
+							<p class="text-sm">{employee.first_name} {employee.last_name}</p>
 						</div>
 
 						{#if employee.addresses && employee.addresses.length > 0}

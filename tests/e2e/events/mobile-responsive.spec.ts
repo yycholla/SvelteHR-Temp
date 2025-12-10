@@ -93,12 +93,15 @@ test.describe('Mobile Responsive Calendar', () => {
 		const calendarBox = await calendar.boundingBox();
 
 		if (calendarBox) {
-			await page.touchscreen.tap(calendarBox.x + calendarBox.width - 50, calendarBox.y + 50);
-			await page.touchscreen.swipe(
-				{ x: calendarBox.x + calendarBox.width - 50, y: calendarBox.y + 50 },
-				{ x: calendarBox.x + 50, y: calendarBox.y + 50 },
-				300
-			);
+			// Simulate swipe gesture with touchscreen API
+			const startX = calendarBox.x + calendarBox.width - 50;
+			const startY = calendarBox.y + 50;
+			const endX = calendarBox.x + 50;
+			const endY = calendarBox.y + 50;
+
+			await page.touchscreen.touchStart(startX, startY);
+			await page.touchscreen.touchMove(endX, endY);
+			await page.touchscreen.touchEnd();
 
 			await page.waitForTimeout(500);
 
@@ -175,12 +178,15 @@ test.describe('Mobile Responsive Calendar', () => {
 			const listBox = await listView.boundingBox();
 
 			if (listBox) {
-				await page.touchscreen.tap(listBox.x + 50, listBox.y + 100);
-				await page.touchscreen.swipe(
-					{ x: listBox.x + 50, y: listBox.y + 200 },
-					{ x: listBox.x + 50, y: listBox.y + 50 },
-					300
-				);
+				// Simulate scroll gesture with touchscreen API
+				const startX = listBox.x + 50;
+				const startY = listBox.y + 200;
+				const endX = listBox.x + 50;
+				const endY = listBox.y + 50;
+
+				await page.touchscreen.touchStart(startX, startY);
+				await page.touchscreen.touchMove(endX, endY);
+				await page.touchscreen.touchEnd();
 
 				// Verify scroll occurred (list should move)
 				await page.waitForTimeout(200);
@@ -265,13 +271,14 @@ test.describe('Mobile Responsive Calendar', () => {
 		const containerBox = await calendarContainer.boundingBox();
 
 		if (containerBox) {
-			// Pull down from top
-			await page.touchscreen.tap(containerBox.x + containerBox.width / 2, containerBox.y + 10);
-			await page.touchscreen.swipe(
-				{ x: containerBox.x + containerBox.width / 2, y: containerBox.y + 10 },
-				{ x: containerBox.x + containerBox.width / 2, y: containerBox.y + 150 },
-				300
-			);
+			// Pull down from top - simulate pull-to-refresh gesture
+			const centerX = containerBox.x + containerBox.width / 2;
+			const startY = containerBox.y + 10;
+			const endY = containerBox.y + 150;
+
+			await page.touchscreen.touchStart(centerX, startY);
+			await page.touchscreen.touchMove(centerX, endY);
+			await page.touchscreen.touchEnd();
 
 			await page.waitForTimeout(500);
 

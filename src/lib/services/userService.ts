@@ -10,6 +10,10 @@ import {
 	GET_USER_QUERY,
 	UPDATE_USER_MUTATION
 } from '$lib/graphql/user-operations';
+import { writable } from 'svelte/store';
+
+// Store for users list
+export const users = writable<User[]>([]);
 
 /**
  * Get all users with optional filtering
@@ -168,6 +172,16 @@ export async function getActiveUsers(): Promise<User[]> {
 	return (await getUsers({ isActive: true })).users;
 }
 
+/**
+ * Load users with optional reset flag (for backward compatibility)
+ */
+export async function loadUsers(options?: { reset?: boolean }): Promise<{ users: User[]; totalCount: number }> {
+	// Reset flag is ignored as we always fetch fresh data
+	const result = await getUsers();
+	users.set(result.users);
+	return result;
+}
+
 // Export the service object for consistency with other services
 export const userService = {
 	getUsers,
@@ -177,5 +191,6 @@ export const userService = {
 	deleteUser,
 	searchUsers,
 	getUsersByDepartment,
-	getActiveUsers
+	getActiveUsers,
+	loadUsers
 };

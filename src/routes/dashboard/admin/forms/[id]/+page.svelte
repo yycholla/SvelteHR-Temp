@@ -496,7 +496,7 @@
 			{#if !editingBlock}
 				<div>
 					<Label for="block-type">Block Type</Label>
-					<Select bind:value={blockType}>
+					<Select type="single" bind:value={blockType}>
 						<SelectTrigger id="block-type">
 							<SelectValue placeholder="Select block type" />
 						</SelectTrigger>

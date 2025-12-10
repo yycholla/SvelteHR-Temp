@@ -49,7 +49,7 @@
 	const { attendees, currentUserId, showFilters = true }: AttendeeListViewProps = $props();
 
 	// State
-	let statusFilter = $state<RsvpStatus | 'all'>('all');
+	let statusFilter = $state<RsvpStatus | 'all' | undefined>('all');
 
 	// Derived - filtered attendees
 	const filteredAttendees = $derived(
@@ -100,7 +100,7 @@
 				</h3>
 			</div>
 
-			<Select.Root bind:value={statusFilter}>
+			<Select.Root type="single" bind:value={statusFilter}>
 				<Select.Trigger class="w-40">
 					<Select.Value placeholder="Filter by status" />
 				</Select.Trigger>

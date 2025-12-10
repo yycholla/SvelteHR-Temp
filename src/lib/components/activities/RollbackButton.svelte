@@ -163,7 +163,7 @@
 			throw new Error(result.errors[0].message);
 		}
 
-		const data = result.data.executeRollback.results[0];
+		const data = result.data?.executeRollback?.results?.[0];
 
 		if (!data?.success) {
 			throw new Error(data?.error || 'Rollback failed');

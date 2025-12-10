@@ -104,7 +104,7 @@
 			label: 'Status',
 			sortable: true,
 			type: 'badge',
-			badgeVariant: (value) => (value ? 'success' : 'secondary')
+			badgeVariant: (value) => (value ? 'default' : 'secondary')
 		},
 		{
 			key: 'actions',
@@ -305,7 +305,7 @@
 									{/each}
 								</div>
 							{:else if column.key === 'is_active'}
-								<Badge variant={row.is_active ? 'success' : 'secondary'} size="sm">
+								<Badge variant={row.is_active ? 'default' : 'secondary'} size="sm">
 									{row.is_active ? 'Active' : 'Inactive'}
 								</Badge>
 							{:else if column.key === 'actions'}
@@ -463,7 +463,7 @@
 
 				<div class="modal-footer">
 					<Button variant="secondary" onclick={closeUserRoleModal}>Cancel</Button>
-					<Button variant="primary" leftIcon="save" onclick={saveUserRoles}>Save Roles</Button>
+					<Button variant="default" leftIcon="save" onclick={saveUserRoles}>Save Roles</Button>
 				</div>
 			</div>
 		</div>

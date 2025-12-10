@@ -171,7 +171,7 @@ const DEFAULT_CONFIG: PerformanceMonitorConfig = {
 export class GraphQLPerformanceMonitor {
 	private config: PerformanceMonitorConfig;
 	private queryProfiles: Map<string, QueryPerformanceProfile> = new Map();
-	private rawMetrics: GraphQLPerformanceMetrics[] = [];
+	private rawMetrics: (GraphQLPerformanceMetrics & { timestamp: number })[] = [];
 	private alerts: PerformanceAlert[] = [];
 	private alertHandlers: ((alert: PerformanceAlert) => void)[] = [];
 	private reportHandlers: ((report: PerformanceReport) => void)[] = [];

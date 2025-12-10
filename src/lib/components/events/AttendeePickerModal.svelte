@@ -171,7 +171,7 @@
 					/>
 				</div>
 
-				<Select.Root bind:value={departmentFilter}>
+				<Select.Root type="single" bind:value={departmentFilter}>
 					<Select.Trigger class="w-48">
 						<Select.Value placeholder="All Departments" />
 					</Select.Trigger>

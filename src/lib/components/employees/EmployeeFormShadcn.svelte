@@ -154,10 +154,10 @@
 		if (!employee) return;
 
 		formData = {
-			firstName: employee.firstName || '',
-			lastName: employee.lastName || '',
+			firstName: employee.first_name || '',
+			lastName: employee.last_name || '',
 			email: employee.email || '',
-			phoneNumber: employee.phoneNumber || '',
+			phoneNumber: employee.phone_number || '',
 			jobTitle: employee.jobTitle || '',
 			departmentId: employee.department?.id || '',
 			employmentType: employee.job_info?.employmentType || 'FULL_TIME',
@@ -382,9 +382,9 @@
 
 				<div class="space-y-2">
 					<Label for="departmentId">Department *</Label>
-					<Select.Root
+					<Select.Root type="single"
 						value={formData.departmentId}
-						onValueChange={(v) => (formData.departmentId = v || '')}
+						onValueChange={(v: string | undefined) => (formData.departmentId = v || '')}
 					>
 						<Select.Trigger class={validationErrors.departmentId ? 'border-destructive' : ''}>
 							<Select.Value placeholder="Select department" />
@@ -402,9 +402,9 @@
 
 				<div class="space-y-2">
 					<Label for="employmentType">Employment Type</Label>
-					<Select.Root
+					<Select.Root type="single"
 						value={formData.employmentType}
-						onValueChange={(v) => (formData.employmentType = v || 'FULL_TIME')}
+						onValueChange={(v: string | undefined) => (formData.employmentType = v || 'FULL_TIME')}
 					>
 						<Select.Trigger>
 							<Select.Value placeholder="Select employment type" />
@@ -433,7 +433,7 @@
 
 				<div class="space-y-2">
 					<Label for="managerId">Manager</Label>
-					<Select.Root
+					<Select.Root type="single"
 						value={formData.managerId}
 						onValueChange={(v) => (formData.managerId = v || '')}
 					>
@@ -475,7 +475,7 @@
 
 					<div class="space-y-2">
 						<Label for="payType">Pay Type</Label>
-						<Select.Root
+						<Select.Root type="single"
 							value={formData.payType}
 							onValueChange={(v) => (formData.payType = v || 'SALARY')}
 						>
@@ -568,7 +568,7 @@
 
 				<div class="space-y-2 md:col-span-2">
 					<Label for="emergencyContactRelationship">Relationship</Label>
-					<Select.Root
+					<Select.Root type="single"
 						value={formData.emergencyContactRelationship}
 						onValueChange={(v) => (formData.emergencyContactRelationship = v || '')}
 					>

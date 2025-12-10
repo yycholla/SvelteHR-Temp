@@ -180,7 +180,15 @@ export const load: PageServerLoad = async (event) => {
 		// Step 8: Get unique values for filter dropdowns
 		const uniqueActions = [...new Set(logs.map((log: any) => log.action))].filter(Boolean).sort();
 		const uniqueResourceTypes = [...new Set(logs.map((log: any) => log.resourceType))].filter(Boolean).sort();
-		const uniqueUsers = [...new Map(
+
+		interface LogUser {
+			id: string;
+			displayName: string;
+			email: string;
+			fullName: string;
+		}
+
+		const uniqueUsers: LogUser[] = [...new Map(
 			logs
 				.filter((log: any) => log.user)
 				.map((log: any) => [log.user.id, log.user])

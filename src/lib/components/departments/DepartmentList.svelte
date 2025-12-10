@@ -85,7 +85,7 @@
 			label: 'Status',
 			sortable: true,
 			type: 'badge',
-			badgeVariant: (value) => (value ? 'success' : 'secondary')
+			badgeVariant: (value) => (value ? 'default' : 'secondary')
 		},
 		// Add actions column if permissions allow
 		...(showActions &&
@@ -243,7 +243,7 @@
 						View Hierarchy
 					</Button>
 
-					<Button variant="primary" leftIcon="plus" onclick={() => goto('/departments/new')}>
+					<Button variant="default" leftIcon="plus" onclick={() => goto('/departments/new')}>
 						Add Department
 					</Button>
 				{/if}
@@ -365,7 +365,7 @@
 						</div>
 					</div>
 				{:else if column.key === 'isActive'}
-					<Badge variant={row.isActive ? 'success' : 'secondary'} size="sm">
+					<Badge variant={row.isActive ? 'default' : 'secondary'} size="sm">
 						{getStatusText(row.isActive)}
 					</Badge>
 				{:else if column.key === 'actions'}

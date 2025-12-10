@@ -229,7 +229,7 @@
 												</Button>
 											{:else if task.status === 'InProgress'}
 												<Button
-	variant="primary"
+	variant="default"
 													size="sm"
 													leftIcon="check"
 													onclick={() => handleTaskAction(task, 'complete')}
@@ -303,7 +303,7 @@
 
 			<div class="modal-footer">
 				<Button variant="secondary" onclick={cancelCompletion}>Cancel</Button>
-				<Button variant="primary" leftIcon="check" onclick={handleCompleteWithNotes}>
+				<Button variant="default" leftIcon="check" onclick={handleCompleteWithNotes}>
 					Mark Complete
 				</Button>
 			</div>

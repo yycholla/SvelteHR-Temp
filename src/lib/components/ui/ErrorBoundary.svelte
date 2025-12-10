@@ -153,7 +153,7 @@
 					<!-- Action Buttons -->
 					<div class="flex flex-col justify-center gap-2 sm:flex-row">
 						{#if showRetry}
-							<Button onclick={handleRetry} variant="primary" class="flex items-center gap-2">
+							<Button onclick={handleRetry} variant="default" class="flex items-center gap-2">
 								<RefreshCw class="h-4 w-4" />
 								Try Again
 							</Button>

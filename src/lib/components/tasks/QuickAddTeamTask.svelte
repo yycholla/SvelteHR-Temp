@@ -387,7 +387,7 @@
 
 						<!-- Submit Button -->
 						<InputGroup.Button
-	variant="primary"
+	variant="default"
 							class="rounded-full"
 							size="icon-sm"
 							type="submit"

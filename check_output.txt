@@ -1,0 +1,741 @@
+
+> sveltehr@0.0.1 check
+> svelte-kit sync && svelte-check --tsconfig ./tsconfig.json src/
+
+Loading svelte-check in workspace: /home/chanway/Projects/SvelteHR
+Getting Svelte diagnostics...
+
+/home/chanway/Projects/SvelteHR/src/lib/components/employees/EmployeeList.svelte:647:2
+Warn: Unused CSS selector ".status-invited"
+https://svelte.dev/e/css_unused_selector (svelte)
+
+	.status-invited {
+		background-color: #fef3c7;
+
+/home/chanway/Projects/SvelteHR/src/lib/components/employees/EmployeeList.svelte:652:2
+Warn: Unused CSS selector ".status-in_progress"
+https://svelte.dev/e/css_unused_selector (svelte)
+
+	.status-in_progress {
+		background-color: #dbeafe;
+
+/home/chanway/Projects/SvelteHR/src/lib/components/employees/EmployeeList.svelte:657:2
+Warn: Unused CSS selector ".status-completed"
+https://svelte.dev/e/css_unused_selector (svelte)
+
+	.status-completed {
+		background-color: #dcfce7;
+
+/home/chanway/Projects/SvelteHR/src/lib/components/employees/EmployeeList.svelte:662:2
+Warn: Unused CSS selector ".status-terminated"
+https://svelte.dev/e/css_unused_selector (svelte)
+
+	.status-terminated {
+		background-color: #fee2e2;
+
+/home/chanway/Projects/SvelteHR/src/lib/components/employees/EmployeeForm.svelte:556:26
+Error: Type '"default"' is not assignable to type '"success" | "warning" | "primary" | "secondary" | "tertiary" | "danger" | "ghost" | undefined'. (ts)
+
+			<Button type="submit" variant="default" disabled={!isValid || loading} {loading}>
+				{isEditing ? 'Update Employee' : 'Create Employee'}
+
+/home/chanway/Projects/SvelteHR/src/lib/components/employees/EmployeeProfile.svelte:203:16
+Error: Type '"default"' is not assignable to type '"success" | "warning" | "primary" | "secondary" | "tertiary" | "danger" | "ghost" | undefined'. (ts)
+						{#if canEdit}
+							<Button variant="default" leftIcon="edit" onclick={handleEdit}>Edit Profile</Button>
+						{/if}
+
+/home/chanway/Projects/SvelteHR/src/lib/components/employees/EmployeeProfile.svelte:208:9
+Error: Type '"destructive"' is not assignable to type '"success" | "warning" | "primary" | "secondary" | "tertiary" | "danger" | "ghost" | undefined'. (ts)
+							<Button
+								variant="destructive"
+								leftIcon="user-x"
+
+/home/chanway/Projects/SvelteHR/src/lib/components/employees/EmployeeProfile.svelte:390:11
+Error: Type '"destructive"' is not assignable to type '"success" | "warning" | "primary" | "secondary" | "tertiary" | "danger" | "ghost" | undefined'. (ts)
+
+		<Button variant="destructive" onclick={handleDeactivate} loading={deactivating}>
+			Deactivate Employee
+
+/home/chanway/Projects/SvelteHR/src/lib/components/ui/sidebar/sidebar-menu-button.svelte:68:39
+Error: Generic type 'Record' requires 2 type argument(s). (ts)
+
+{#snippet Button({ props }: { props?: Record })}
+	{@const mergedProps = mergeProps(buttonProps, props)}
+
+/home/chanway/Projects/SvelteHR/src/lib/graphql/performance-monitor.ts:648:18
+Error: Type 'GraphQLPerformanceMetrics[]' is not assignable to type '(GraphQLPerformanceMetrics & { timestamp: number; })[]'.
+  Type 'GraphQLPerformanceMetrics' is not assignable to type 'GraphQLPerformanceMetrics & { timestamp: number; }'.
+    Type 'GraphQLPerformanceMetrics' is not assignable to type '{ timestamp: number; }'.
+      Types of property 'timestamp' are incompatible.
+        Type 'number | undefined' is not assignable to type 'number'.
+          Type 'undefined' is not assignable to type 'number'. 
+		const filtered = this.rawMetrics.filter((m) => (m as any).queryHash === queryHash);
+		return limit ? filtered.slice(-limit) : filtered;
+	}
+
+/home/chanway/Projects/SvelteHR/src/lib/graphql/performance-monitor.ts:648:43
+Error: Type 'GraphQLPerformanceMetrics[]' is not assignable to type '(GraphQLPerformanceMetrics & { timestamp: number; })[]'.
+  Type 'GraphQLPerformanceMetrics' is not assignable to type 'GraphQLPerformanceMetrics & { timestamp: number; }'.
+    Type 'GraphQLPerformanceMetrics' is not assignable to type '{ timestamp: number; }'.
+      Types of property 'timestamp' are incompatible.
+        Type 'number | undefined' is not assignable to type 'number'.
+          Type 'undefined' is not assignable to type 'number'. 
+		const filtered = this.rawMetrics.filter((m) => (m as any).queryHash === queryHash);
+		return limit ? filtered.slice(-limit) : filtered;
+	}
+
+/home/chanway/Projects/SvelteHR/src/lib/graphql/performance-monitor.ts:655:3
+Error: Type 'GraphQLPerformanceMetrics[]' is not assignable to type '(GraphQLPerformanceMetrics & { timestamp: number; })[]'.
+  Type 'GraphQLPerformanceMetrics' is not assignable to type 'GraphQLPerformanceMetrics & { timestamp: number; }'.
+    Type 'GraphQLPerformanceMetrics' is not assignable to type '{ timestamp: number; }'.
+      Types of property 'timestamp' are incompatible.
+        Type 'number | undefined' is not assignable to type 'number'.
+          Type 'undefined' is not assignable to type 'number'. 
+	): (GraphQLPerformanceMetrics & { timestamp: number })[] {
+		return this.rawMetrics.filter(
+			(m) => m.timestamp && m.timestamp >= start.getTime() && m.timestamp <= end.getTime()
+
+/home/chanway/Projects/SvelteHR/src/lib/graphql/performance-monitor.ts:664:3
+Error: Type 'GraphQLPerformanceMetrics[]' is not assignable to type '(GraphQLPerformanceMetrics & { timestamp: number; })[]'.
+  Type 'GraphQLPerformanceMetrics' is not assignable to type 'GraphQLPerformanceMetrics & { timestamp: number; }'.
+    Type 'GraphQLPerformanceMetrics' is not assignable to type '{ timestamp: number; }'.
+      Types of property 'timestamp' are incompatible.
+        Type 'number | undefined' is not assignable to type 'number'.
+          Type 'undefined' is not assignable to type 'number'. 
+		const cutoff = Date.now() - timeframe;
+		return this.rawMetrics.filter((m) => m.timestamp && m.timestamp > cutoff);
+	}
+
+/home/chanway/Projects/SvelteHR/src/lib/graphql/query-complexity-analyzer.ts:234:7
+Error: Object literal may only specify known properties, and 'extensions' does not exist in type 'ASTNode | readonly ASTNode[]'. 
+					{
+						extensions: {
+							code: 'QUERY_COMPLEXITY_TOO_HIGH',
+
+/home/chanway/Projects/SvelteHR/src/lib/graphql/query-complexity-analyzer.ts:249:7
+Error: Object literal may only specify known properties, and 'extensions' does not exist in type 'ASTNode | readonly ASTNode[]'. 
+					{
+						extensions: {
+							code: 'QUERY_DEPTH_TOO_HIGH',
+
+/home/chanway/Projects/SvelteHR/src/lib/graphql/subscription-tester.ts:18:10
+Error: 'DocumentNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled. 
+
+import { DocumentNode, parse, print } from 'graphql';
+import type { Client } from '@urql/core';
+
+/home/chanway/Projects/SvelteHR/src/lib/graphql/subscription-tester.ts:503:6
+Error: Object literal may only specify known properties, and 'next' does not exist in type '(value: OperationResult<any, Record<string, any> | undefined>) => void'. 
+				.subscribe({
+					next: (result: any) => {
+						this.handleSubscriptionMessage(result);
+
+/home/chanway/Projects/SvelteHR/src/lib/types/domain-extensions.ts:148:15
+Error: Duplicate identifier 'Event'. 
+ */
+export type { Event } from '$lib/graphql/events-operations';
+
+/home/chanway/Projects/SvelteHR/src/lib/types/domain-extensions.ts:162:15
+Error: Export declaration conflicts with exported declaration of 'Department'. 
+ */
+export type { Department, Task, Event };
+
+/home/chanway/Projects/SvelteHR/src/lib/types/domain-extensions.ts:162:27
+Error: Export declaration conflicts with exported declaration of 'Task'. 
+ */
+export type { Department, Task, Event };
+
+/home/chanway/Projects/SvelteHR/src/lib/types/domain-extensions.ts:162:33
+Error: Duplicate identifier 'Event'. 
+ */
+export type { Department, Task, Event };
+
+/home/chanway/Projects/SvelteHR/src/lib/types/domain-extensions.ts:162:33
+Error: Cannot export 'Event'. Only local declarations can be exported from a module. 
+ */
+export type { Department, Task, Event };
+
+/home/chanway/Projects/SvelteHR/src/lib/types/domain-extensions.ts:167:15
+Error: Export declaration conflicts with exported declaration of 'TaskDependencyNode'. 
+ */
+export type { TaskDependencyNode, TaskDependencyConnection };
+
+/home/chanway/Projects/SvelteHR/src/lib/types/domain-extensions.ts:167:35
+Error: Export declaration conflicts with exported declaration of 'TaskDependencyConnection'. 
+ */
+export type { TaskDependencyNode, TaskDependencyConnection };
+
+/home/chanway/Projects/SvelteHR/src/lib/graphql/team-management-operations.ts:388:4
+Error: Type 'import("/home/chanway/Projects/SvelteHR/src/lib/generated/graphql").User | undefined' is not assignable to type 'import("/home/chanway/Projects/SvelteHR/src/lib/types/index").User | undefined'.
+  Type 'User' is not assignable to type 'User | undefined'.
+    Type 'User' is missing the following properties from type 'User': password_hash, first_name, last_name, display_name, and 6 more. 
+			description: dept.description ?? undefined,
+			departmentHead: dept.departmentHead ?? undefined,
+			employeeCount: dept.employees?.totalCount || 0,
+
+/home/chanway/Projects/SvelteHR/src/lib/graphql/team-reports-operations.ts:9:2
+Error: Module '"$lib/types/graphql"' has no exported member 'PaginationInput'. 
+	Department,
+	PaginationInput,
+	ReportStatus,
+
+/home/chanway/Projects/SvelteHR/src/lib/graphql/team-reports-operations.ts:10:2
+Error: Module '"$lib/types/graphql"' has no exported member 'ReportStatus'. 
+	PaginationInput,
+	ReportStatus,
+	ReportType,
+
+/home/chanway/Projects/SvelteHR/src/lib/graphql/team-reports-operations.ts:11:2
+Error: Module '"$lib/types/graphql"' has no exported member 'ReportType'. 
+	ReportStatus,
+	ReportType,
+	SortInput,
+
+/home/chanway/Projects/SvelteHR/src/lib/graphql/team-reports-operations.ts:12:2
+Error: Module '"$lib/types/graphql"' has no exported member 'SortInput'. 
+	ReportType,
+	SortInput,
+	TeamReport,
+
+/home/chanway/Projects/SvelteHR/src/lib/graphql/team-reports-operations.ts:13:2
+Error: Module '"$lib/types/graphql"' has no exported member 'TeamReport'. 
+	SortInput,
+	TeamReport,
+	User
+
+/home/chanway/Projects/SvelteHR/src/lib/models/application-page.ts:242:11
+Error: This comparison appears to be unintentional because the types 'DataRequestStatus | undefined' and '"SUCCESS"' have no overlap. 
+			const request = this._activeRequests.get(op.operationName);
+			return request?.status === 'SUCCESS' || this.hasCachedData(op.operationName);
+		});
+
+/home/chanway/Projects/SvelteHR/src/lib/models/application-page.ts:491:4
+Error: Type 'string' is not assignable to type 'CachePolicy'. 
+		const defaultPolicy: PageCachePolicy = {
+			policy: 'cache-first',
+			ttlMinutes: 15,
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/TaskForm.svelte:333:6
+Error: Object literal may only specify known properties, and 'id' does not exist in type 'UpdateTaskInput'. (ts)
+				const updateData: UpdateTaskInput = {
+					id: task.id,
+					taskPatch: {
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/TaskForm.svelte:352:6
+Error: Object literal may only specify known properties, and 'task' does not exist in type 'CreateTaskInput'. (ts)
+				const createData: CreateTaskInput = {
+					task: {
+						title: formData.title,
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/TaskCard.svelte:84:41
+Error: Element implicitly has an 'any' type because expression of type '"IN_PROGRESS" | "BLOCKED" | "CANCELLED" | "TODO" | "REVIEW"' can't be used to index type '{ TODO: string; IN_PROGRESS: string; REVIEW: string; BLOCKED: string; DONE: string; }'.
+  Property 'CANCELLED' does not exist on type '{ TODO: string; IN_PROGRESS: string; REVIEW: string; BLOCKED: string; DONE: string; }'. (ts)
+					{:else}
+						<div class="h-2 w-2 rounded-full {statusColors[task.status] || 'bg-gray-300'}"></div>
+					{/if}
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/TaskCard.svelte:93:23
+Error: Argument of type 'string' is not assignable to parameter of type 'TaskStatus'. (ts)
+							e.stopPropagation();
+							onStatusChange(option.value);
+						}}
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/TaskCard.svelte:105:37
+Error: Element implicitly has an 'any' type because expression of type 'TaskStatus' can't be used to index type '{ TODO: string; IN_PROGRESS: string; REVIEW: string; BLOCKED: string; DONE: string; }'.
+  Property 'CANCELLED' does not exist on type '{ TODO: string; IN_PROGRESS: string; REVIEW: string; BLOCKED: string; DONE: string; }'. (ts)
+	{:else}
+		<div class="h-2 w-2 rounded-full {statusColors[task.status] || 'bg-gray-300'}"></div>
+	{/if}
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/TaskHierarchy.svelte:50:66
+Error: This comparison appears to be unintentional because the types 'TaskStatus' and '"Done"' have no overlap. (ts)
+	const subtaskCount = $derived(task.subtasks?.length || 0);
+	const completedSubtasks = $derived(subtasks.filter((t: Task) => t.status === 'Done').length);
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/TaskDependencies.svelte:214:42
+Error: Argument of type 'string' is not assignable to parameter of type 'TaskStatus'. (ts)
+					{#if blockingTask}
+						{@const StatusIcon = getStatusIcon(blockingTask.status)}
+						<div class="flex items-center justify-between rounded-lg border bg-card p-3">
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/TaskDependencies.svelte:217:66
+Error: Argument of type 'string' is not assignable to parameter of type 'TaskStatus'. (ts)
+							<div class="flex items-center gap-3 flex-1">
+								<StatusIcon class="h-5 w-5 flex-shrink-0 {getStatusColor(blockingTask.status)}" />
+								<div class="flex-1">
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/TaskDependencies.svelte:273:42
+Error: Argument of type 'string' is not assignable to parameter of type 'TaskStatus'. (ts)
+					{#if blockedTask}
+						{@const StatusIcon = getStatusIcon(blockedTask.status)}
+						<div class="flex items-center justify-between rounded-lg border bg-card p-3">
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/TaskDependencies.svelte:276:66
+Error: Argument of type 'string' is not assignable to parameter of type 'TaskStatus'. (ts)
+							<div class="flex items-center gap-3 flex-1">
+								<StatusIcon class="h-5 w-5 flex-shrink-0 {getStatusColor(blockedTask.status)}" />
+								<div class="flex-1">
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/LinkedResources.svelte:65:50
+Error: Argument of type '"Employee"' is not assignable to parameter of type 'ResourceType'. (ts)
+	let isAddDialogOpen = $state(false);
+	let selectedResourceType = $state<ResourceType>('Employee');
+	let selectedResourceId = $state('');
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/LinkedResources.svelte:110:9
+Error: Type '"Employee"' is not comparable to type 'ResourceType'. (ts)
+		switch (type) {
+			case 'Employee':
+				return Users;
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/LinkedResources.svelte:112:9
+Error: Type '"Document"' is not comparable to type 'ResourceType'. (ts)
+				return Users;
+			case 'Document':
+				return FileText;
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/LinkedResources.svelte:114:9
+Error: Type '"Goal"' is not comparable to type 'ResourceType'. (ts)
+				return FileText;
+			case 'Goal':
+				return Target;
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/LinkedResources.svelte:116:9
+Error: Type '"Performance_Review"' is not comparable to type 'ResourceType'. (ts)
+				return Target;
+			case 'Performance_Review':
+				return ClipboardCheck;
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/LinkedResources.svelte:126:9
+Error: Type '"Employee"' is not comparable to type 'ResourceType'. (ts)
+		switch (type) {
+			case 'Employee':
+				return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/30';
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/LinkedResources.svelte:128:9
+Error: Type '"Document"' is not comparable to type 'ResourceType'. (ts)
+				return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/30';
+			case 'Document':
+				return 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900/30';
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/LinkedResources.svelte:130:9
+Error: Type '"Goal"' is not comparable to type 'ResourceType'. (ts)
+				return 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900/30';
+			case 'Goal':
+				return 'text-amber-600 bg-amber-100 dark:text-amber-400 dark:bg-amber-900/30';
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/LinkedResources.svelte:132:9
+Error: Type '"Performance_Review"' is not comparable to type 'ResourceType'. (ts)
+				return 'text-amber-600 bg-amber-100 dark:text-amber-400 dark:bg-amber-900/30';
+			case 'Performance_Review':
+				return 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/30';
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/LinkedResources.svelte:180:3
+Error: Type '"Employee"' is not assignable to type 'ResourceType'. Did you mean '"employee"'? (ts)
+	function openAddDialog() {
+		selectedResourceType = 'Employee';
+		selectedResourceId = '';
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/SubtaskProgress.svelte:68:51
+Error: This comparison appears to be unintentional because the types 'TaskStatus' and '"Done"' have no overlap. (ts)
+			// NOTE: Rust GraphQL returns enum values in PascalCase
+			const completed = subtasks.filter((t: Task) => t.status === 'Done').length;
+			const inProgress = subtasks.filter((t: Task) => t.status === 'InProgress').length;
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/SubtaskProgress.svelte:69:52
+Error: This comparison appears to be unintentional because the types 'TaskStatus' and '"InProgress"' have no overlap. (ts)
+			const completed = subtasks.filter((t: Task) => t.status === 'Done').length;
+			const inProgress = subtasks.filter((t: Task) => t.status === 'InProgress').length;
+			const notStarted = subtasks.filter((t: Task) => t.status === 'Todo').length;
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/SubtaskProgress.svelte:70:52
+Error: This comparison appears to be unintentional because the types 'TaskStatus' and '"Todo"' have no overlap. (ts)
+			const inProgress = subtasks.filter((t: Task) => t.status === 'InProgress').length;
+			const notStarted = subtasks.filter((t: Task) => t.status === 'Todo').length;
+			const blocked = subtasks.filter((t: Task) => t.status === 'Blocked').length;
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/SubtaskProgress.svelte:71:49
+Error: This comparison appears to be unintentional because the types 'TaskStatus' and '"Blocked"' have no overlap. (ts)
+			const notStarted = subtasks.filter((t: Task) => t.status === 'Todo').length;
+			const blocked = subtasks.filter((t: Task) => t.status === 'Blocked').length;
+			const cancelled = subtasks.filter((t: Task) => t.status === 'Cancelled').length;
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tasks/SubtaskProgress.svelte:72:51
+Error: This comparison appears to be unintentional because the types 'TaskStatus' and '"Cancelled"' have no overlap. (ts)
+			const blocked = subtasks.filter((t: Task) => t.status === 'Blocked').length;
+			const cancelled = subtasks.filter((t: Task) => t.status === 'Cancelled').length;
+
+/home/chanway/Projects/SvelteHR/src/lib/performance/performance-budgets.ts:464:84
+Error: Function lacks ending return statement and return type does not include 'undefined'. 
+
+	private generateMessage(budget: PerformanceBudget, value: number, level: string): string {
+		const formattedValue = this.formatValue(value, budget.unit);
+
+/home/chanway/Projects/SvelteHR/src/lib/performance/performance/performance-budgets.ts:464:84
+Error: Function lacks ending return statement and return type does not include 'undefined'. 
+
+	private generateMessage(budget: PerformanceBudget, value: number, level: string): string {
+		const formattedValue = this.formatValue(value, budget.unit);
+
+/home/chanway/Projects/SvelteHR/src/lib/server/permission-refresh.ts:153:4
+Error: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'. 
+		if (event.locals.user) {
+			event.locals.user.departmentId = refreshed.departmentId;
+		}
+
+/home/chanway/Projects/SvelteHR/src/lib/server/audit/task-audit-service.ts:617:52
+Error: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'. 
+	if (before.assigneeId !== after.assigneeId && after.assigneeId !== undefined) {
+		changes.assigneeId = { from: before.assigneeId!, to: after.assigneeId };
+	}
+
+/home/chanway/Projects/SvelteHR/src/lib/server/audit/task-audit-service.ts:626:4
+Error: Type 'Date | null' is not assignable to type 'string | null'.
+  Type 'Date' is not assignable to type 'string'. 
+		changes.dueDate = {
+			from: before.dueDate || null,
+			to: after.dueDate || null
+
+/home/chanway/Projects/SvelteHR/src/lib/server/audit/task-audit-service.ts:627:4
+Error: Type 'Date | null' is not assignable to type 'string | null'.
+  Type 'Date' is not assignable to type 'string'. 
+			from: before.dueDate || null,
+			to: after.dueDate || null
+		};
+
+/home/chanway/Projects/SvelteHR/src/lib/server/tasks/resource-validation.ts:396:8
+Error: Type '"Employee"' is not comparable to type 'ResourceType'. 
+	switch (resourceType) {
+		case 'Employee':
+			return validateEmployeeResource(resourceId);
+
+/home/chanway/Projects/SvelteHR/src/lib/server/tasks/resource-validation.ts:398:8
+Error: Type '"Document"' is not comparable to type 'ResourceType'. 
+			return validateEmployeeResource(resourceId);
+		case 'Document':
+			return validateDocumentResource(resourceId);
+
+/home/chanway/Projects/SvelteHR/src/lib/server/tasks/resource-validation.ts:400:8
+Error: Type '"Goal"' is not comparable to type 'ResourceType'. 
+			return validateDocumentResource(resourceId);
+		case 'Goal':
+			return validateGoalResource(resourceId);
+
+/home/chanway/Projects/SvelteHR/src/lib/server/tasks/resource-validation.ts:402:8
+Error: Type '"Performance_Review"' is not comparable to type 'ResourceType'. 
+			return validateGoalResource(resourceId);
+		case 'Performance_Review':
+			return validatePerformanceReviewResource(resourceId);
+
+/home/chanway/Projects/SvelteHR/src/lib/services/encryption.ts:211:4
+Error: Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'BufferSource'.
+  Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'ArrayBufferView<ArrayBuffer>'.
+    Types of property 'buffer' are incompatible.
+      Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
+        Type 'SharedArrayBuffer' is missing the following properties from type 'ArrayBuffer': resizable, resize, detached, transfer, transferToFixedLength 
+			name: 'AES-GCM',
+			iv,
+			tagLength: 128
+
+/home/chanway/Projects/SvelteHR/src/lib/services/encryption.ts:289:4
+Error: No overload matches this call.
+  Overload 1 of 2, '(algorithm: AlgorithmIdentifier | Pbkdf2Params | EcdhKeyDeriveParams | HkdfParams, baseKey: CryptoKey, derivedKeyType: AlgorithmIdentifier | ... 3 more ... | AesDerivedKeyParams, extractable: boolean, keyUsages: Iterable<...>): Promise<...>', gave the following error.
+    Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'BufferSource'.
+      Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'ArrayBufferView<ArrayBuffer>'.
+        Types of property 'buffer' are incompatible.
+          Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
+            Type 'SharedArrayBuffer' is missing the following properties from type 'ArrayBuffer': resizable, resize, detached, transfer, transferToFixedLength
+  Overload 2 of 2, '(algorithm: AlgorithmIdentifier | Pbkdf2Params | EcdhKeyDeriveParams | HkdfParams, baseKey: CryptoKey, derivedKeyType: AlgorithmIdentifier | ... 3 more ... | AesDerivedKeyParams, extractable: boolean, keyUsages: KeyUsage[]): Promise<...>', gave the following error.
+    Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'BufferSource'.
+      Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'ArrayBufferView<ArrayBuffer>'.
+        Types of property 'buffer' are incompatible.
+          Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
+            Type 'SharedArrayBuffer' is missing the following properties from type 'ArrayBuffer': resizable, resize, detached, transfer, transferToFixedLength 
+			name: 'PBKDF2',
+			salt,
+			iterations,
+
+/home/chanway/Projects/SvelteHR/src/lib/stores/event-notification-prefs.svelte.ts:17:15
+Error: Module '"$lib/graphql/events-operations"' has no exported member 'EventNotificationPreferences'. 
+import { browser } from '$app/environment';
+import type { EventNotificationPreferences } from '$lib/graphql/events-operations';
+
+/home/chanway/Projects/SvelteHR/src/lib/types/types/index.ts:10:15
+Error: Cannot find module '../generated/types' or its corresponding type declarations. 
+// Re-export generated types from GraphQL Code Generator
+export * from '../generated/types';
+
+/home/chanway/Projects/SvelteHR/src/lib/utils/cache-management.ts:264:16
+Error: Type '"Document"' is not assignable to type 'Kind.DOCUMENT'. 
+						key: parseInt(key.split(':')[0], 36), // Convert string key back to numeric
+						query: { kind: 'Document', definitions: [] }, // Minimal query structure
+						variables: {}
+
+/home/chanway/Projects/SvelteHR/src/lib/utils/events.ts:28:53
+Error: Namespace '"/home/chanway/Projects/SvelteHR/src/lib/types/domain-extensions"' has no exported member 'EventAttendeeNode'. 
+	return event.eventAttendeesByEventId.nodes.some(
+		(attendee: import('$lib/types/domain-extensions').EventAttendeeNode) =>
+			attendee.employeeId === userId
+
+/home/chanway/Projects/SvelteHR/src/lib/utils/events.ts:136:3
+Error: Object literal may only specify known properties, and 'no_response' does not exist in type 'Record<RsvpStatus, string>'. 
+		pending: '⏳',
+		no_response: '-'
+	};
+
+/home/chanway/Projects/SvelteHR/src/lib/utils/events.ts:220:46
+Error: Namespace '"/home/chanway/Projects/SvelteHR/src/lib/types/domain-extensions"' has no exported member 'EventAttendeeNode'. 
+	const attendee = event.eventAttendeesByEventId.nodes.find(
+		(a: import('$lib/types/domain-extensions').EventAttendeeNode) => a.employeeId === userId
+	);
+
+/home/chanway/Projects/SvelteHR/src/lib/utils/events.ts:222:20
+Error: Type 'string' is not assignable to type 'RsvpStatus | null'. 
+	);
+	return attendee ? attendee.responseStatus : null;
+}
+
+/home/chanway/Projects/SvelteHR/src/lib/utils/events.ts:234:3
+Error: Object literal may only specify known properties, and 'no_response' does not exist in type 'Record<RsvpStatus, number>'. 
+		pending: 0,
+		no_response: 0
+	};
+
+/home/chanway/Projects/SvelteHR/src/lib/utils/events.ts:240:53
+Error: Namespace '"/home/chanway/Projects/SvelteHR/src/lib/types/domain-extensions"' has no exported member 'EventAttendeeNode'. 
+	event.eventAttendeesByEventId.nodes.forEach(
+		(attendee: import('$lib/types/domain-extensions').EventAttendeeNode) => {
+			counts[attendee.responseStatus]++;
+
+/home/chanway/Projects/SvelteHR/src/lib/utils/events.ts:241:4
+Error: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type 'Record<RsvpStatus, number>'. 
+		(attendee: import('$lib/types/domain-extensions').EventAttendeeNode) => {
+			counts[attendee.responseStatus]++;
+		}
+
+/home/chanway/Projects/SvelteHR/src/lib/utils/reviewValidation.ts:9:48
+Error: Cannot find module '$lib/graphql/graphql/client' or its corresponding type declarations. 
+
+import { createUrqlClient, executeQuery } from '$lib/graphql/graphql/client';
+import { GET_ACTIVE_REVIEWS_FOR_EMPLOYEE } from '$lib/graphql/graphql/reviews-operations';
+
+/home/chanway/Projects/SvelteHR/src/lib/utils/reviewValidation.ts:10:49
+Error: Cannot find module '$lib/graphql/graphql/reviews-operations' or its corresponding type declarations. 
+import { createUrqlClient, executeQuery } from '$lib/graphql/graphql/client';
+import { GET_ACTIVE_REVIEWS_FOR_EMPLOYEE } from '$lib/graphql/graphql/reviews-operations';
+import type { ReviewType } from '$lib/schemas/reviews';
+
+/home/chanway/Projects/SvelteHR/src/lib/utils/rrule.ts:41:29
+Error: Argument of type 'Date | null' is not assignable to parameter of type 'Date'.
+  Type 'null' is not assignable to type 'Date'. 
+		interval: pattern.interval,
+		until: formatDateForRRule(pattern.endDate)
+	};
+
+/home/chanway/Projects/SvelteHR/src/routes/api/documents/[id]/download/+server.ts:135:23
+Error: Argument of type 'Buffer<ArrayBufferLike>' is not assignable to parameter of type 'BodyInit | null | undefined'.
+  Type 'Buffer<ArrayBufferLike>' is missing the following properties from type 'URLSearchParams': size, append, delete, get, and 2 more. 
+		// Step 6: Serve decrypted file as download (not inline)
+		return new Response(decryptedData, {
+			status: 200,
+
+/home/chanway/Projects/SvelteHR/src/routes/api/documents/[id]/preview/view/+server.ts:139:23
+Error: Argument of type 'Buffer<ArrayBufferLike>' is not assignable to parameter of type 'BodyInit | null | undefined'.
+  Type 'Buffer<ArrayBufferLike>' is missing the following properties from type 'URLSearchParams': size, append, delete, get, and 2 more. 
+		// Step 6: Serve decrypted file content inline (not as download)
+		return new Response(decryptedData, {
+			status: 200,
+
+/home/chanway/Projects/SvelteHR/src/routes/api/settings/update/+server.ts:62:14
+Error: Property 'error' does not exist on type 'GraphQLResponse<any>'. Did you mean 'errors'? 
+		// Check for GraphQL errors
+		if (result.error) {
+			console.error('[SETTINGS UPDATE] GraphQL error:', result.error);
+
+/home/chanway/Projects/SvelteHR/src/routes/api/settings/update/+server.ts:63:61
+Error: Property 'error' does not exist on type 'GraphQLResponse<any>'. Did you mean 'errors'? 
+		if (result.error) {
+			console.error('[SETTINGS UPDATE] GraphQL error:', result.error);
+			throw svelteError(500, result.error.message || 'Failed to update settings');
+
+/home/chanway/Projects/SvelteHR/src/routes/api/settings/update/+server.ts:64:34
+Error: Property 'error' does not exist on type 'GraphQLResponse<any>'. Did you mean 'errors'? 
+			console.error('[SETTINGS UPDATE] GraphQL error:', result.error);
+			throw svelteError(500, result.error.message || 'Failed to update settings');
+		}
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/+page.server.ts:524:21
+Error: Property 'email' does not exist on type 'User'. 
+						name: `${member.firstName} ${member.lastName}`,
+						email: member.email,
+						status: member.isActive ? 'active' : 'inactive',
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/documents/+page.server.ts:60:40
+Error: Argument of type 'string[]' is not assignable to parameter of type 'string'. 
+		const transactionResult = await dbTransaction(async (dbClient) => {
+			await setDbClaims(dbClient, userId, userPermissions);
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/documents/+page.server.ts:125:34
+Error: Property 'get' does not exist on type 'number | Map<any, any> | { id: any; displayName: any; }[]'.
+  Property 'get' does not exist on type 'number'. 
+			assigned_users: (doc.assignments || []).map((a: any) => {
+				const userInfo = assigneeMap.get(a.userId);
+				return {
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/documents/+page.server.ts:135:50
+Error: Property 'values' does not exist on type 'number | Map<any, any> | { id: any; displayName: any; }[]'.
+  Property 'values' does not exist on type 'number'. 
+		// Step 8: Get all assignee options for MultiSearchInput
+		const assigneeOptions = Array.from(assigneeMap.values()).map((user) => ({
+			id: user.id,
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/documents/+page.server.ts:136:8
+Error: 'user' is of type 'unknown'. 
+		const assigneeOptions = Array.from(assigneeMap.values()).map((user) => ({
+			id: user.id,
+			displayName: user.displayName,
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/documents/+page.server.ts:137:17
+Error: 'user' is of type 'unknown'. 
+			id: user.id,
+			displayName: user.displayName,
+			email: user.email
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/documents/+page.server.ts:138:11
+Error: 'user' is of type 'unknown'. 
+			displayName: user.displayName,
+			email: user.email
+		}));
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/documents/+page.server.ts:155:26
+Error: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type. 
+			userPermissions,
+			totalPages: Math.ceil(totalCount / limit) || 0
+		};
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/documents/audit/+page.server.ts:151:4
+Error: No value exists in scope for the shorthand property 'isSystemAdmin'. Either declare one or provide an initializer. 
+			userRoles,
+			isSystemAdmin
+		};
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/documents/upload/+page.server.ts:116:4
+Error: No value exists in scope for the shorthand property 'isSystemAdmin'. Either declare one or provide an initializer. 
+			userRoles,
+			isSystemAdmin,
+			categories,
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/onboarding/[id]/forms/+page.server.ts:6:7
+Error: Module '"$lib/graphql/onboarding-operations"' has no exported member 'OnboardingModule'. 
+	GET_ONBOARDING_MODULE_QUERY,
+	type OnboardingModule
+} from '$lib/graphql/onboarding-operations';
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/trainings/create/+page.server.ts:9:3
+Error: Object literal may only specify known properties, and 'permissionAny' does not exist in type 'RBACConfig'. 
+	requireAuth(event, {
+		permissionAny: ['training:write', 'training:assign']
+	});
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/departments/+page.server.ts:242:3
+Error: Cannot find name 'PermissionChecks'. Did you mean 'Permissions'? 
+		// RBAC: Check department write permissions
+		PermissionChecks.departmentWrite(event);
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/documents/+page.server.ts:58:40
+Error: Argument of type 'string[]' is not assignable to parameter of type 'string'. 
+		const [totalCount, assigneeMap] = await dbTransaction(async (dbClient) => {
+			await setDbClaims(dbClient, userId, userPermissions);
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/events/+page.server.ts:491:5
+Error: Property 'organizerId' is missing in type '{ title: string; description: string; eventType: string; startTime: string; endTime: string; isAllDay: boolean; location: string; status: "scheduled"; isPublic: boolean; }' but required in type 'CreateEventInput'. 
+			await eventsOps.createEvent({
+				input: {
+					title,
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/events/create/+page.server.ts:273:5
+Error: Property 'organizerId' is missing in type '{ title: string; description: string; eventType: string; startTime: string; endTime: string; isAllDay: boolean; location: string; status: "scheduled"; isPublic: boolean; }' but required in type 'CreateEventInput'. 
+			const result = await eventsOps.createEvent({
+				input: {
+					title,
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/management/+page.server.ts:253:8
+Error: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ leave_request: { title: string; description: string; icon: string; color: string; href: string; }; performance_review: { title: string; description: string; icon: string; color: string; href: string; }; goal_update: { ...; }; report_generated: { ...; }; }'.
+  No index signature with a parameter of type 'string' was found on type '{ leave_request: { title: string; description: string; icon: string; color: string; href: string; }; performance_review: { title: string; description: string; icon: string; color: string; href: string; }; goal_update: { ...; }; report_generated: { ...; }; }'. 
+				timestamp: new Date(Date.now() - i * 60 * 60 * 1000).toISOString(),
+				...activities[type]
+			};
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/management/reports/+page.server.ts:201:35
+Error: Argument of type '(type: string) => { type: string; count: any; percentage: number; }' is not assignable to parameter of type '(value: unknown, index: number, array: unknown[]) => { type: string; count: any; percentage: number; }'.
+  Types of parameters 'type' and 'value' are incompatible.
+    Type 'unknown' is not assignable to type 'string'. 
+			},
+			typeBreakdown: uniqueTypes.map((type: string) => ({
+				type,
+				count: reports.filter((r: any) => r.type === type).length,
+				percentage:
+					totalCount > 0
+						? Math.round((reports.filter((r: any) => r.type === type).length / totalCount) * 100)
+						: 0
+			})),
+			categoryBreakdown: [{ category: 'General', count: totalCount, percentage: 100 }], // Single category since not in schema
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/profile/performance/reviews/+page.server.ts:262:24
+Error: Property 'toLowerCase' does not exist on type 'never'. 
+						? review.status
+						: review.status?.toLowerCase() || 'draft';
+				const mappedStatus = mapReviewStatus(statusStr);
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/reviews/+page.server.ts:369:39
+Error: Property 'reviewTypesMetadata' does not exist on type '{ performanceReviews: { id: string; status: string; overallRating: number | null; createdAt: string; updatedAt: string; employee: { id: string; displayName: string; email: string; }; reviewer: { id: string; displayName: string; email: string; }; cycle: { ...; } | null; }[]; }'. 
+			employees,
+			reviewTypesMetadata: metadataData?.reviewTypesMetadata || [],
+			selectedEmployee,
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/reviews/[id]/+page.server.ts:111:4
+Error: Expected 5 arguments, but got 6. 
+			undefined, // Session-based auth, no JWT token
+			fetchFn
+		);
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/tasks/+page.server.ts:67:3
+Error: Property 'expiresAt' is missing in type '{ userId: string; roles: string[]; permissions: string[]; isAuthenticated: boolean; }' but required in type 'UserCredentials'. 
+		},
+		userCredentials: {
+			userId: userSession.userId,
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/tasks/[id]/+page.server.ts:43:3
+Error: Property 'expiresAt' is missing in type '{ userId: string; roles: string[]; permissions: string[]; isAuthenticated: boolean; }' but required in type 'UserCredentials'. 
+		variables: { taskId },
+		userCredentials: {
+			userId: userSession.userId,
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/tasks/department/+page.server.ts:113:14
+Error: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ HIGH: number; MEDIUM: number; LOW: number; }'. 
+					const priorityOrder = { HIGH: 3, MEDIUM: 2, LOW: 1 };
+					return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+				},
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/tasks/department/+page.server.ts:113:49
+Error: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ HIGH: number; MEDIUM: number; LOW: number; }'. 
+					const priorityOrder = { HIGH: 3, MEDIUM: 2, LOW: 1 };
+					return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+				},
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/tasks/new/+page.server.ts:368:13
+Error: Cannot find name 'formDataEntries'. Did you mean 'FormDataEvent'? 
+				error: err instanceof Error ? err.message : 'Failed to create task',
+				values: formDataEntries
+			});
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/teams/+page.server.ts:58:3
+Error: Property 'expiresAt' is missing in type '{ userId: string; roles: string[]; permissions: string[]; isAuthenticated: boolean; }' but required in type 'UserCredentials'. 
+		},
+		userCredentials: {
+			userId: userSession.userId,
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/teams/+page.server.ts:82:5

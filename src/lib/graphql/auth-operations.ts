@@ -485,7 +485,12 @@ export async function createUserSessionFromAuth(
 		roles: authResult.user.roles.map((role) => role.name),
 		permissions: extractPermissions(authResult.user.roles),
 		expiresAt: authResult.expiresAt,
-		deviceInfo: authResult.sessionInfo.deviceInfo,
+		deviceInfo: authResult.sessionInfo.deviceInfo
+			? {
+					...authResult.sessionInfo.deviceInfo,
+					ipAddress: authResult.sessionInfo.deviceInfo.ipAddress ?? 'unknown'
+				}
+			: undefined,
 		metadata: {
 			email: authResult.user.email,
 			displayName: authResult.user.displayName,

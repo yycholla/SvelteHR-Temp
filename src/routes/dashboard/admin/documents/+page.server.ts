@@ -132,7 +132,7 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 		}));
 
 		// Step 8: Get all assignee options for MultiSearchInput
-		const assigneeOptions = Array.from(assigneeMap.values()).map((user) => ({
+		const assigneeOptions = Array.from(assigneeMap.values()).map((user: { id: string; displayName: string; email: string }) => ({
 			id: user.id,
 			displayName: user.displayName,
 			email: user.email

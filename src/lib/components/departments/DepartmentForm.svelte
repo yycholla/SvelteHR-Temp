@@ -168,7 +168,7 @@
 						bind:value={formData.code}
 						error={errors.code}
 						placeholder="e.g., ENG, MKT"
-						help="Unique identifier for the department"
+						helperText="Unique identifier for the department"
 						required
 					/>
 				</div>
@@ -193,7 +193,7 @@
 						options={parentOptions}
 						bind:value={formData.parentDepartmentId}
 						placeholder="Select parent department"
-						help="Choose the parent department in the organizational hierarchy"
+						helperText="Choose the parent department in the organizational hierarchy"
 					/>
 				</div>
 
@@ -203,7 +203,7 @@
 						options={managerOptions}
 						bind:value={formData.managerId}
 						placeholder="Select department manager"
-						help="Employee responsible for managing this department"
+						helperText="Employee responsible for managing this department"
 					/>
 				</div>
 			</div>
@@ -219,7 +219,7 @@
 						bind:value={formData.budgetLimit}
 						error={errors.budgetLimit}
 						placeholder="0"
-						help="Annual budget limit in dollars"
+						helperText="Annual budget limit in dollars"
 						step="1000"
 					/>
 				</div>
@@ -229,7 +229,7 @@
 						label="Cost Center"
 						bind:value={formData.costCenter}
 						placeholder="e.g., CC-001"
-						help="Cost center code for financial tracking"
+						helperText="Cost center code for financial tracking"
 					/>
 				</div>
 
@@ -238,7 +238,7 @@
 						label="Location"
 						bind:value={formData.location}
 						placeholder="e.g., New York Office, Remote"
-						help="Primary location or office for this department"
+						helperText="Primary location or office for this department"
 					/>
 				</div>
 
@@ -274,7 +274,7 @@
 
 			<Button
 				type="submit"
-	variant="primary"
+	variant="default"
 				size="md"
 				loading={isSubmitting}
 				leftIcon={mode === 'create' ? 'plus' : 'save'}

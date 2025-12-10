@@ -5,7 +5,7 @@
 import { gql } from '@urql/svelte';
 import type { Client } from '@urql/core';
 import type { Department } from '$lib/types/domain-extensions';
-import type { PaginationInput, SortInput, User } from '$lib/types/graphql';
+import type { PaginationInput, SortInput, User } from '$lib/types';
 
 // Query: Get all teams/departments with statistics
 export const GET_ALL_TEAMS = gql`
@@ -384,8 +384,8 @@ export function buildTeamHierarchy(departments: Department[]): TeamHierarchyNode
 		return {
 			id: dept.id,
 			name: dept.name,
-			description: dept.description,
-			departmentHead: dept.departmentHead,
+			description: dept.description ?? undefined,
+			departmentHead: dept.departmentHead ?? undefined,
 			employeeCount: dept.employees?.totalCount || 0,
 			activeEmployeeCount: dept.activeEmployees?.totalCount || 0,
 			children,

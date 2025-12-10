@@ -109,7 +109,9 @@
 		}
 	];
 
-	const getStatusColor = (status: string) => {
+	const getStatusColor = (
+		status: string
+	): 'default' | 'secondary' | 'destructive' | 'outline' => {
 		switch (status) {
 			case 'compliant':
 			case 'passed':
@@ -141,7 +143,9 @@
 		}
 	};
 
-	const getPriorityColor = (priority: string) => {
+	const getPriorityColor = (
+		priority: string
+	): 'destructive' | 'secondary' | 'outline' => {
 		switch (priority) {
 			case 'high':
 				return 'destructive';

@@ -293,7 +293,7 @@
 							<!-- Size Filter -->
 							<div class="space-y-2">
 								<label for="size" class="text-sm font-medium">Team Size</label>
-								<Select bind:value={selectedSize}>
+								<Select type="single" bind:value={selectedSize}>
 									<SelectTrigger placeholder="All Sizes" />
 									<SelectContent>
 										{#each sizeOptions as option}
@@ -306,7 +306,7 @@
 							<!-- Head Filter -->
 							<div class="space-y-2">
 								<label for="head" class="text-sm font-medium">Leadership</label>
-								<Select bind:value={selectedHead}>
+								<Select type="single" bind:value={selectedHead}>
 									<SelectTrigger placeholder="All Teams" />
 									<SelectContent>
 										{#each headOptions as option}
@@ -319,7 +319,7 @@
 							<!-- Page Size -->
 							<div class="space-y-2">
 								<label for="pagesize" class="text-sm font-medium">Per Page</label>
-								<Select bind:value={pageSize}>
+								<Select type="single" bind:value={pageSize}>
 									<SelectTrigger placeholder="20" />
 									<SelectContent>
 										<SelectItem value="10">10</SelectItem>

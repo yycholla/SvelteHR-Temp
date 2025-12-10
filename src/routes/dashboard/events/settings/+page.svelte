@@ -152,7 +152,7 @@
 						<!-- Default Reminder Time -->
 						<div class="space-y-2">
 							<Label for="minutesBefore">Default Reminder Time</Label>
-							<Select.Root bind:value={minutesBefore}>
+							<Select.Root type="single" bind:value={minutesBefore}>
 								<Select.Trigger id="minutesBefore" class="w-full">
 									<Select.Value placeholder="Select time" />
 								</Select.Trigger>

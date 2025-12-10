@@ -169,7 +169,7 @@
 						<p class="mt-2 text-sm text-gray-600">Get started by creating your first department.</p>
 						{#if $currentUser && hasPermission('department:create')}
 							<Button
-	variant="primary"
+	variant="default"
 								size="md"
 								leftIcon="plus"
 								onclick={() => goto('/departments/new')}
@@ -205,7 +205,7 @@
 					<div class="details-header">
 						<h3 class="text-lg font-semibold text-gray-900">{selectedDepartment.name}</h3>
 						<div class="details-status">
-							<Badge variant={selectedDepartment.isActive ? 'success' : 'secondary'} size="sm">
+							<Badge variant={selectedDepartment.isActive ? 'default' : 'secondary'} size="sm">
 								{selectedDepartment.isActive ? 'Active' : 'Inactive'}
 							</Badge>
 						</div>
@@ -263,7 +263,7 @@
 
 						{#if $currentUser && hasPermission('department:update')}
 							<Button
-	variant="primary"
+	variant="default"
 								size="sm"
 								leftIcon="edit"
 								onclick={() => goto(`/departments/${selectedDepartment.id}/edit`)}

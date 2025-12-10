@@ -59,7 +59,9 @@
 		}
 	}
 
-	function getChangeColor(changeType: ChangeType): string {
+	function getChangeColor(
+		changeType: ChangeType
+	): 'default' | 'destructive' | 'outline' | 'secondary' {
 		switch (changeType) {
 			case 'created':
 				return 'default';

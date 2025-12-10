@@ -110,7 +110,7 @@
 				{#if node.department.code}
 					<span class="node-code">({node.department.code})</span>
 				{/if}
-				<Badge variant={node.department.isActive ? 'success' : 'secondary'} size="xs">
+				<Badge variant={node.department.isActive ? 'default' : 'secondary'} size="xs">
 					{node.department.isActive ? 'Active' : 'Inactive'}
 				</Badge>
 			</div>

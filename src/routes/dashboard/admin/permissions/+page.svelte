@@ -410,7 +410,7 @@
 							<Table.TableCell>
 								{#if user.isActive}
 									<Badge
-	variant="primary"
+	variant="default"
 										class="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
 									>
 										Active

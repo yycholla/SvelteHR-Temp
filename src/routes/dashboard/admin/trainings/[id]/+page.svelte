@@ -284,7 +284,7 @@
 
 	{#if form?.success}
 		<Alert.Root
-	variant="primary"
+	variant="default"
 			class="mb-6 border-green-500 text-green-700 bg-green-50 dark:bg-green-900/20 dark:text-green-400"
 		>
 			<CheckCircle2 class="h-4 w-4" />

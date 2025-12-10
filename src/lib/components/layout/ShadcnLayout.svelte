@@ -32,6 +32,12 @@
 		}>;
 	}
 
+	interface Breadcrumb {
+		label: string;
+		href: string;
+		current: boolean;
+	}
+
 	const { children } = $props();
 
 	// Navigation items based on user role and permissions
@@ -135,9 +141,9 @@
 	});
 
 	// Generate breadcrumbs based on current path
-	const breadcrumbs = $derived(() => {
+	const breadcrumbs = $derived((): Breadcrumb[] => {
 		const parts = currentPath.split('/').filter((part) => part);
-		const breadcrumbs = [];
+		const breadcrumbs: Breadcrumb[] = [];
 
 		const labelMap: Record<string, string> = {
 			dashboard: 'Dashboard',
@@ -194,28 +200,26 @@
 								{@const ItemIcon = typedItem.icon}
 								<Sidebar.MenuItem>
 									{#if typedItem.children && typedItem.children.length > 0}
+										<Sidebar.MenuButton asChild>
+											<a
+												href={typedItem.href}
+												class="flex items-center gap-2"
+												data-active={typedItem.active}
+											>
+												<ItemIcon class="h-4 w-4" />
+												<span>{typedItem.label}</span>
+											</a>
+										</Sidebar.MenuButton>
 										<Sidebar.MenuSub>
-											<Sidebar.MenuSubButton asChild>
-												<a
-													href={typedItem.href}
-													class="flex items-center gap-2"
-													data-active={typedItem.active}
-												>
-													<ItemIcon class="h-4 w-4" />
-													<span>{typedItem.label}</span>
-												</a>
-											</Sidebar.MenuSubButton>
-											<Sidebar.MenuSubContent>
-												{#each typedItem.children as child}
-													<Sidebar.MenuSubItem>
-														<Sidebar.MenuSubButton asChild>
-															<a href={child.href} data-active={child.active}>
-																{child.label}
-															</a>
-														</Sidebar.MenuSubButton>
-													</Sidebar.MenuSubItem>
-												{/each}
-											</Sidebar.MenuSubContent>
+											{#each typedItem.children as child}
+												<Sidebar.MenuSubItem>
+													<Sidebar.MenuSubButton asChild>
+														<a href={child.href} data-active={child.active}>
+															{child.label}
+														</a>
+													</Sidebar.MenuSubButton>
+												</Sidebar.MenuSubItem>
+											{/each}
 										</Sidebar.MenuSub>
 									{:else}
 										<Sidebar.MenuButton asChild>

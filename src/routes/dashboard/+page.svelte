@@ -31,9 +31,11 @@
 
 	// Determine appropriate tasks URL based on user role
 	const tasksUrl = $derived(
-		user.role === 'hr_admin' || user.role === 'system_admin' || user.role === 'super_admin'
+		user.roles.some((role) =>
+			['hr_admin', 'system_admin', 'super_admin'].includes(role.toLowerCase())
+		)
 			? '/dashboard/tasks' // Admins see all tasks
-			: user.role === 'manager'
+			: user.roles.some((role) => role.toLowerCase() === 'manager')
 				? '/dashboard/tasks/team-tasks' // Managers see team tasks
 				: '/dashboard/tasks/my-tasks' // Employees see their own tasks
 	);
@@ -55,7 +57,9 @@
 	);
 
 	// Status Badge Helper
-	function getStatusVariant(status: string) {
+	function getStatusVariant(
+		status: string
+	): 'default' | 'secondary' | 'destructive' | 'outline' {
 		switch (status) {
 			case 'DONE':
 				return 'default';
@@ -80,7 +84,7 @@
 	<header class="flex justify-between items-center flex-wrap gap-4">
 		<div>
 			<h1 class="text-3xl font-bold tracking-tight">
-				{greeting}, {user.firstName || user.displayName || 'Team Member'}
+				{greeting}, {user.first_name || user.displayName || 'Team Member'}
 			</h1>
 			<p class="text-muted-foreground mt-1">Here's what's happening today, {currentDate}.</p>
 		</div>

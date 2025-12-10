@@ -33,8 +33,8 @@
 	const isOwnProfile = $derived(employee?.id === auth.user?.id);
 	const canEdit = $derived(auth.user && (isOwnProfile || auth.hasPermission('user:update')));
 	const canDeactivate = $derived(auth.user && auth.hasPermission('user:delete') && !isOwnProfile);
-	const statusVariant = $derived(employee?.is_active ? 'success' : 'secondary') as
-		| 'success'
+	const statusVariant = $derived(employee?.is_active ? 'default' : 'secondary') as
+		| 'default'
 		| 'secondary';
 	const statusText = $derived(employee?.is_active ? 'Active' : 'Inactive');
 
@@ -205,7 +205,7 @@
 
 						{#if canDeactivate && employee.is_active}
 							<Button
-								variant="destructive"
+								variant="danger"
 								leftIcon="user-x"
 								onclick={() => (showDeactivateModal = true)}
 							>
@@ -387,7 +387,7 @@
 			Cancel
 		</Button>
 
-		<Button variant="destructive" onclick={handleDeactivate} loading={deactivating}>
+		<Button variant="danger" onclick={handleDeactivate} loading={deactivating}>
 			Deactivate Employee
 		</Button>
 	{/snippet}

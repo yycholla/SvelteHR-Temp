@@ -224,7 +224,7 @@
 
 		<div class="page-header__actions">
 			{#if auth.user && auth.hasPermission('task:create')}
-				<Button variant="primary" leftIcon="plus" onclick={() => goto('/tasks/new')}>
+				<Button variant="default" leftIcon="plus" onclick={() => goto('/tasks/new')}>
 					Create Task
 				</Button>
 			{/if}

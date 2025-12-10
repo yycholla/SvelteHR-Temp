@@ -13,9 +13,13 @@ interface EmployeeGoalFromGraphQL {
 	description: string | null;
 	status: string;
 	progressPercentage: number | null;
+	progress?: number;
 	targetDate: string | null;
 	createdAt: string;
 	updatedAt: string;
+	category?: { id: string; name: string; color: string };
+	priority?: string;
+	keyResults?: Array<{ id: string; title: string; progress: number }>;
 }
 
 export const load: PageServerLoad = async (event) => {
@@ -154,10 +158,19 @@ export const load: PageServerLoad = async (event) => {
 					: 0
 		};
 
+		// Enrich goals with category, priority, progress, and keyResults
+		const enrichedGoals = goals.map((goal: EmployeeGoalFromGraphQL, index: number) => ({
+			...goal,
+			category: goal.category || goalCategories[index % goalCategories.length],
+			priority: goal.priority || 'medium',
+			progress: goal.progress ?? goal.progressPercentage ?? 0,
+			keyResults: goal.keyResults || []
+		}));
+
 		return {
 			user,
 			userId,
-			goals: goals.sort(
+			goals: enrichedGoals.sort(
 				(a: EmployeeGoalFromGraphQL, b: EmployeeGoalFromGraphQL) =>
 					new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
 			),

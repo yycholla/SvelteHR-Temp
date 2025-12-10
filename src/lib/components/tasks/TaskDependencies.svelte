@@ -350,7 +350,7 @@
 				<!-- Task Selection -->
 				<div class="space-y-2">
 					<Label for="task">Select Task</Label>
-					<Select.Root bind:value={selectedTaskId}>
+					<Select.Root type="single" bind:value={selectedTaskId}>
 						<Select.Trigger id="task">
 							<Select.Value placeholder="Choose a task" />
 						</Select.Trigger>

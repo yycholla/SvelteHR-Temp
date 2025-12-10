@@ -285,6 +285,8 @@ export interface JobInfo {
 	isRemote: boolean;
 	workSchedule?: WorkSchedule;
 	managerId?: string;
+	salary?: number;
+	payType?: string;
 }
 
 export interface ContactInfo {

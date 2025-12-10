@@ -372,10 +372,14 @@ export const executeQuery = async <
 	query: import('@urql/core').TypedDocumentNode<Data, Variables> | string,
 	variables?: Variables
 ): Promise<Data> => {
-	const result = await client.query(query, variables).toPromise();
+	const result = await client.query(query, variables as Variables).toPromise();
 
 	if (result.error) {
 		throw result.error;
+	}
+
+	if (!result.data) {
+		throw new Error('No data returned from query');
 	}
 
 	return result.data;
@@ -389,10 +393,14 @@ export const executeMutation = async <
 	mutation: import('@urql/core').TypedDocumentNode<Data, Variables> | string,
 	variables?: Variables
 ): Promise<Data> => {
-	const result = await client.mutation(mutation, variables).toPromise();
+	const result = await client.mutation(mutation, variables as Variables).toPromise();
 
 	if (result.error) {
 		throw result.error;
+	}
+
+	if (!result.data) {
+		throw new Error('No data returned from mutation');
 	}
 
 	return result.data;
