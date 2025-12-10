@@ -41,7 +41,7 @@
 		triggerSize = 'default',
 		onSuccess
 	}: {
-		currentUser: {
+		currentUser?: {
 			id: string;
 			email?: string;
 			displayName?: string;
@@ -70,7 +70,7 @@
 	let quickAddDescription = $state('');
 	let quickAddPriority = $state('MEDIUM');
 	let quickAddDueDate = $state<DateValue | undefined>(undefined);
-	let quickAddAssigneeId = $state(currentUser.id); // Default to current user
+	let quickAddAssigneeId = $state(currentUser?.id || ''); // Default to current user
 	let quickAddTaskTypeId = $state('');
 	let isDatePickerOpen = $state(false);
 	let isAssigneeComboboxOpen = $state(false);
@@ -87,9 +87,9 @@
 	// Selected assignee display name
 	const selectedAssigneeName = $derived(
 		assignees.find((a) => a.id === quickAddAssigneeId)?.displayName ||
-			currentUser.displayName ||
-			currentUser.display_name ||
-			currentUser.email ||
+			currentUser?.displayName ||
+			currentUser?.display_name ||
+			currentUser?.email ||
 			'User'
 	);
 
@@ -198,7 +198,7 @@
 						quickAddDescription = '';
 						quickAddPriority = 'MEDIUM';
 						quickAddDueDate = undefined;
-						quickAddAssigneeId = currentUser.id;
+						quickAddAssigneeId = currentUser?.id || '';
 						quickAddTaskTypeId = '';
 						isQuickAddOpen = false;
 					} else if (result.type === 'failure') {

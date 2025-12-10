@@ -33,7 +33,7 @@
 		taskTypes = [],
 		onSuccess
 	}: {
-		currentUser: {
+		currentUser?: {
 			id: string;
 			email?: string;
 			displayName?: string;
