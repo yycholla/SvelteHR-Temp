@@ -152,7 +152,7 @@ export class JWTTestUtils {
 			iat: Math.floor(Date.now() / 1000)
 		};
 
-		return jwt.sign(payload, TEST_CONFIG.JWT_SECRET, { expiresIn });
+		return jwt.sign(payload, TEST_CONFIG.JWT_SECRET, { expiresIn } as jwt.SignOptions);
 	}
 
 	/**

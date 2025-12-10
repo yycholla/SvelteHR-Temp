@@ -25,9 +25,7 @@ export function canUserViewEvent(
 
 	// Private events visible to invited attendees only
 	if (!event.eventAttendeesByEventId) return false;
-	return event.eventAttendeesByEventId.nodes.some(
-		(attendee: EventAttendee) => attendee.employeeId === userId
-	);
+	return event.eventAttendeesByEventId.nodes.some((attendee) => attendee.employeeId === userId);
 }
 
 /**
@@ -216,9 +214,7 @@ export function isEventOrganizer(event: Event, userId: string): boolean {
 export function getUserRsvpStatus(event: Event, userId: string): RsvpStatus | null {
 	if (!event.eventAttendeesByEventId) return null;
 
-	const attendee = event.eventAttendeesByEventId.nodes.find(
-		(a: EventAttendee) => a.employeeId === userId
-	);
+	const attendee = event.eventAttendeesByEventId.nodes.find((a) => a.employeeId === userId);
 	return attendee ? attendee.responseStatus : null;
 }
 
@@ -236,7 +232,7 @@ export function countRsvpStatuses(event: Event): Record<RsvpStatus, number> {
 
 	if (!event.eventAttendeesByEventId) return counts;
 
-	event.eventAttendeesByEventId.nodes.forEach((attendee: EventAttendee) => {
+	event.eventAttendeesByEventId.nodes.forEach((attendee) => {
 		counts[attendee.responseStatus]++;
 	});
 
