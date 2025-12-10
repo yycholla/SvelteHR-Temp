@@ -29,6 +29,7 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Progress } from '$lib/components/ui/progress';
 	import type { Task, TaskStatus } from '$lib/types/task';
+	import type { DocumentMetadata } from '$lib/types/document';
 	import { untrack } from 'svelte';
 
 	// Page data from server
@@ -37,23 +38,13 @@
 	// Get task data - safe access with fallback
 	const task = $derived(data?.task);
 
-	// Type definition for metadata
-	type Metadata = {
-		filename: string;
-		category: string;
-		sensitivityLevel: string;
-		metadataTags: Record<string, string>;
-		assignToEmployees: string[];
-		assignToDepartments: string[];
-	};
-
 	// Local state
 	let isUploading = $state(false);
 	let uploadError = $state<string | null>(null);
 	let fileUploader = $state<FileUploader>();
-	let metadata = $state<Metadata>({
+	let metadata = $state<DocumentMetadata>({
 		filename: '',
-		category: 'Task Attachment',
+		category: 'Other',
 		sensitivityLevel: 'Internal',
 		metadataTags: {},
 		assignToEmployees: [],
