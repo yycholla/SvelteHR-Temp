@@ -123,7 +123,7 @@
 			return expiryDate.getTime() <= thirtyDaysFromNow;
 		}).length
 	);
-	const totalSize = $derived(data.documents.reduce((acc, doc) => acc + doc.file_size_bytes, 0));
+	const totalSize = $derived(data.documents.reduce((acc: number, doc: { file_size_bytes: number }) => acc + doc.file_size_bytes, 0));
 
 	// Actions
 	function handleSearch(terms: string[]) {
