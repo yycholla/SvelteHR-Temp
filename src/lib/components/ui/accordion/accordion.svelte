@@ -8,9 +8,4 @@
 	}: AccordionPrimitive.RootProps = $props();
 </script>
 
-<AccordionPrimitive.Root
-	bind:ref
-	data-slot="accordion-root"
-	class={className}
-	{...restProps}
-/>
+<AccordionPrimitive.Root bind:ref data-slot="accordion-root" class={className} {...restProps} />
