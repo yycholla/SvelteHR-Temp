@@ -53,7 +53,7 @@
 	}
 
 	// Get badge variant for performance status
-	function getStatusVariant(status: string): string {
+	function getStatusVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
 		switch (status) {
 			case 'good':
 				return 'default';
