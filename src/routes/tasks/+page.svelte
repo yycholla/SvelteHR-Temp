@@ -71,7 +71,7 @@
 			label: 'Assignee',
 			sortable: true,
 			type: 'text',
-			format: (value) => value?.displayName || 'Unassigned'
+			format: (value) => value?.display_name || 'Unassigned'
 		},
 		{
 			key: 'priority',
@@ -107,7 +107,7 @@
 		{ value: '', label: 'All Assignees' },
 		...$users.map((user) => ({
 			value: user.id,
-			label: user.displayName
+			label: user.display_name
 		}))
 	];
 

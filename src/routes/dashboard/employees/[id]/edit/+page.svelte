@@ -106,7 +106,7 @@
 	// Extract server-loaded data
 	const employee = $derived(data.employee);
 	const departments = $derived(data.departments);
-	const roles = $derived(data.roles);
+	const roles = $derived((data as any).roles || []);
 	const permissions = $derived(data.permissions);
 
 	// Helper function to format date for HTML5 date input (yyyy-MM-dd)

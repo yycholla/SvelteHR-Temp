@@ -32,7 +32,9 @@ describe('Document Validation - Unit Tests', () => {
 					filename: 'contract.pdf',
 					category: 'Contract',
 					sensitivityLevel: 'Internal',
-					description: 'Employment contract'
+					metadataTags: {
+						description: 'Employment contract'
+					}
 				}
 			};
 
@@ -43,7 +45,7 @@ describe('Document Validation - Unit Tests', () => {
 			expect(result.success).toBe(true);
 			if (result.success) {
 				expect(result.data.metadata.category).toBe('Contract');
-				expect(result.data.metadata.sensitivity_level).toBe('Internal');
+				expect(result.data.metadata.sensitivityLevel).toBe('Internal');
 			}
 		});
 
@@ -60,7 +62,7 @@ describe('Document Validation - Unit Tests', () => {
 				metadata: {
 					filename: 'large.pdf',
 					category: 'Report',
-					sensitivity_level: 'Internal'
+					sensitivityLevel: 'Internal'
 				}
 			};
 
@@ -87,7 +89,7 @@ describe('Document Validation - Unit Tests', () => {
 				metadata: {
 					filename: 'program.exe',
 					category: 'Other',
-					sensitivity_level: 'Internal'
+					sensitivityLevel: 'Internal'
 				}
 			};
 
@@ -111,7 +113,7 @@ describe('Document Validation - Unit Tests', () => {
 				metadata: {
 					filename: 'doc.pdf',
 					category: 'Contract',
-					sensitivity_level: 'InvalidLevel' // Not in enum
+					sensitivityLevel: 'InvalidLevel' // Not in enum
 				}
 			};
 
@@ -135,7 +137,7 @@ describe('Document Validation - Unit Tests', () => {
 				metadata: {
 					filename: 'doc.pdf',
 					// Missing category
-					sensitivity_level: 'Internal'
+					sensitivityLevel: 'Internal'
 				}
 			};
 
@@ -176,7 +178,7 @@ describe('Document Validation - Unit Tests', () => {
 					metadata: {
 						filename: name,
 						category: 'Other',
-						sensitivity_level: 'Internal'
+						sensitivityLevel: 'Internal'
 					}
 				};
 
@@ -185,15 +187,17 @@ describe('Document Validation - Unit Tests', () => {
 			});
 		});
 
-		it('should accept optional description field', () => {
+		it('should accept optional description field in metadataTags', () => {
 			// Arrange
 			const data = {
 				file: createMockFile('doc.pdf', 1024, 'application/pdf'),
 				metadata: {
 					filename: 'doc.pdf',
 					category: 'Policy',
-					sensitivity_level: 'Internal',
-					description: 'This is an optional description field'
+					sensitivityLevel: 'Internal',
+					metadataTags: {
+						description: 'This is an optional description field'
+					}
 				}
 			};
 
@@ -203,12 +207,12 @@ describe('Document Validation - Unit Tests', () => {
 			// Assert
 			expect(result.success).toBe(true);
 			if (result.success) {
-				expect(result.data.metadata.description).toBe('This is an optional description field');
+				expect(result.data.metadata.metadataTags?.description).toBe('This is an optional description field');
 			}
 		});
 
-		it('should enforce description max length (500 chars)', () => {
-			// Arrange: 501 character description
+		it('should accept description in metadataTags with any length', () => {
+			// Arrange: Description in metadataTags has no length restriction (stored as JSONB)
 			const longDescription = 'a'.repeat(501);
 
 			const data = {
@@ -216,21 +220,20 @@ describe('Document Validation - Unit Tests', () => {
 				metadata: {
 					filename: 'doc.pdf',
 					category: 'Policy',
-					sensitivity_level: 'Internal',
-					description: longDescription
+					sensitivityLevel: 'Internal',
+					metadataTags: {
+						description: longDescription
+					}
 				}
 			};
 
 			// Act
 			const result = documentUploadSchema.safeParse(data);
 
-			// Assert
-			expect(result.success).toBe(false);
-			if (!result.success) {
-				const hasLengthError = result.error.issues.some(
-					(issue) => issue.path.includes('description') && issue.message.match(/500|length/i)
-				);
-				expect(hasLengthError).toBe(true);
+			// Assert - Should succeed since metadataTags is a free-form Record<string, unknown>
+			expect(result.success).toBe(true);
+			if (result.success) {
+				expect(result.data.metadata.metadataTags?.description).toBe(longDescription);
 			}
 		});
 	});

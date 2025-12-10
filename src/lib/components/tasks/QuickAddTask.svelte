@@ -76,8 +76,8 @@
 
 	// Selected assignee display name
 	const selectedAssigneeName = $derived(
-		assignees.find((a) => a.id === quickAddAssigneeId)?.displayName ||
-			currentUser.displayName ||
+		assignees.find((a) => a.id === quickAddAssigneeId)?.display_name ||
+			currentUser.display_name ||
 			currentUser.email ||
 			'User'
 	);
@@ -404,7 +404,7 @@
 											<Command.Group>
 												{#each assignees as assignee (assignee.id)}
 													<Command.Item
-														value={assignee.displayName}
+														value={assignee.display_name}
 														onSelect={() => {
 															quickAddAssigneeId = assignee.id;
 															closeAssigneeCombobox();
@@ -413,7 +413,7 @@
 														<Check
 															class={quickAddAssigneeId !== assignee.id ? 'text-transparent' : ''}
 														/>
-														{assignee.displayName}
+														{assignee.display_name}
 													</Command.Item>
 												{/each}
 											</Command.Group>

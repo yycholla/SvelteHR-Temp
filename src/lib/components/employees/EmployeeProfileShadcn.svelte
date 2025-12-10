@@ -155,7 +155,7 @@
 					<div class="flex justify-center lg:justify-start">
 						<Avatar.Root class="h-24 w-24">
 							{#if employee.profileImage}
-								<Avatar.Image src={employee.profileImage} alt={employee.displayName} />
+								<Avatar.Image src={employee.profileImage} alt={employee.display_name} />
 							{/if}
 							<Avatar.Fallback class="text-lg font-semibold">
 								{getEmployeeInitials(employee)}
@@ -167,7 +167,7 @@
 					<div class="flex-1 space-y-4 text-center lg:text-left">
 						<div class="space-y-2">
 							<div class="flex flex-col gap-3 lg:flex-row lg:items-center">
-								<h1 class="text-3xl font-bold">{employee.displayName}</h1>
+								<h1 class="text-3xl font-bold">{employee.display_name}</h1>
 								<Badge variant={statusVariant}>
 									{statusText}
 								</Badge>
@@ -412,7 +412,7 @@
 		<Dialog.Header>
 			<Dialog.Title>Deactivate Employee</Dialog.Title>
 			<Dialog.Description>
-				Are you sure you want to deactivate <strong>{employee?.displayName}</strong>? This will
+				Are you sure you want to deactivate <strong>{employee?.display_name}</strong>? This will
 				prevent them from accessing the system.
 			</Dialog.Description>
 		</Dialog.Header>

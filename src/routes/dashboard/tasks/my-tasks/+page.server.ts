@@ -315,7 +315,6 @@ export const load: PageServerLoad = async (event) => {
 		// Return safe fallback data instead of crashing the page
 		// This prevents the "white screen of death" or hydration errors if data is missing
 		return {
-			user: locals.user,
 			userSession: userSession.toJSON(),
 			tasks: [],
 			totalTasks: 0,
@@ -336,6 +335,7 @@ export const load: PageServerLoad = async (event) => {
 				statusFilter,
 				priorityFilter
 			},
+			// Default permissions if loading failed (includes user property)
 			...getUserPermissions(locals),
 			loadedAt: new Date().toISOString(),
 			error: errorResponse.userMessage
