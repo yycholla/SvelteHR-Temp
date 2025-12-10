@@ -61,8 +61,8 @@ export const GET: RequestHandler = async ({ url, locals, cookies, fetch }) => {
 			})
 			.toPromise();
 
-		if (result.error) {
-			console.error('GraphQL error:', result.error);
+		if (result.errors) {
+			console.error('GraphQL errors:', result.errors);
 			error(500, 'Failed to fetch documents from GraphQL backend');
 		}
 

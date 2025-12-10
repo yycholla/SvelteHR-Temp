@@ -67,8 +67,8 @@ export const GET: RequestHandler = async ({ params, locals, cookies, fetch }) =>
 			})
 			.toPromise();
 
-		if (result.error) {
-			console.error('GraphQL error:', result.error);
+		if (result.errors) {
+			console.error('GraphQL errors:', result.errors);
 			error(500, { message: 'Failed to fetch document from GraphQL backend' });
 		}
 
@@ -136,8 +136,8 @@ export const DELETE: RequestHandler = async ({ params, locals, request, cookies,
 			})
 			.toPromise();
 
-		if (deleteResult.error) {
-			console.error('GraphQL delete error:', deleteResult.error);
+		if (deleteResult.errors) {
+			console.error('GraphQL delete errors:', deleteResult.errors);
 			error(500, { message: 'Failed to delete document via GraphQL backend' });
 		}
 

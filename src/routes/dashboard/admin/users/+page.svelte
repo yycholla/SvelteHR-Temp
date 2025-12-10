@@ -8,7 +8,7 @@
 
 	let showCreateModal = $state(false);
 	let showEditModal = $state(false);
-	let selectedUser = $state(null);
+	let selectedUser = $state<any>(null);
 	let searchQuery = $state('');
 	let loading = $state(false);
 	let errorMessage = $state('');

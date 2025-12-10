@@ -26,6 +26,14 @@ declare global {
 				fullName?: string;
 				job_title?: string;
 				jobTitle?: string;
+				username?: string;
+				profile_image?: string;
+				profileImage?: string;
+				job_information?: {
+					department?: {
+						name?: string;
+					};
+				};
 			};
 			permissions?: string[];
 			roles?: string[];
