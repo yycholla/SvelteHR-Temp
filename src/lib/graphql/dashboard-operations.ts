@@ -601,7 +601,7 @@ export async function getCompleteDashboardData(userId: string, roles: string[] =
 			};
 		}
 
-		if (role === 'manager') {
+		if (roles.includes('manager')) {
 			const teamMetrics = await getTeamMetrics(userId);
 			const teamActivities = await getTeamActivities(userId);
 
@@ -617,7 +617,7 @@ export async function getCompleteDashboardData(userId: string, roles: string[] =
 		console.error('Dashboard data error:', error);
 		// Return a fallback response to avoid completely breaking the dashboard
 		return {
-			user: { id: userId, role },
+			user: { id: userId, roles },
 			metrics: {
 				attendanceRate: 0,
 				pendingRequests: 0,
