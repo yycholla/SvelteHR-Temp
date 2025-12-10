@@ -35,12 +35,8 @@
 	"hooks": {
 		"Stop": [
 			{
-				"hooks": [
-					{
-						"type": "prompt",
-						"prompt": "Evaluate if Claude should stop: $ARGUMENTS. Check if all tasks are complete, npm run check and cargo check return 0 errors or warnings. Ensure builds complete successfully"
-					}
-				]
+				"type": "prompt",
+				"prompt": "Evaluate if Claude should stop: $ARGUMENTS. Check if all tasks are complete, npm run check and cargo check return 0 errors or warnings. Ensure builds complete successfully"
 			}
 		]
 	},
