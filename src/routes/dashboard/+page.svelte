@@ -84,7 +84,7 @@
 	<header class="flex justify-between items-center flex-wrap gap-4">
 		<div>
 			<h1 class="text-3xl font-bold tracking-tight">
-				{greeting}, {user.first_name || user.displayName || 'Team Member'}
+				{greeting}, {user.firstName || user.displayName || 'Team Member'}
 			</h1>
 			<p class="text-muted-foreground mt-1">Here's what's happening today, {currentDate}.</p>
 		</div>

@@ -463,7 +463,7 @@
 
 				<div class="modal-footer">
 					<Button variant="secondary" onclick={closeUserRoleModal}>Cancel</Button>
-					<Button variant="default" leftIcon="save" onclick={saveUserRoles}>Save Roles</Button>
+					<Button variant="primary" leftIcon="save" onclick={saveUserRoles}>Save Roles</Button>
 				</div>
 			</div>
 		</div>

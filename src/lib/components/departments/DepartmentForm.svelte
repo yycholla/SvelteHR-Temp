@@ -274,7 +274,7 @@
 
 			<Button
 				type="submit"
-	variant="default"
+	variant="primary"
 				size="md"
 				loading={isSubmitting}
 				leftIcon={mode === 'create' ? 'plus' : 'save'}

@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { userService } from '$lib/services/userService';
 	import { departmentService, departments } from '$lib/services/departmentService';
-	import Button from '../base/Button.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import Input from '../base/Input.svelte';
 	import Select from '../base/Select.svelte';
 	import Textarea from '../base/Textarea.svelte';
@@ -553,7 +553,7 @@
 				Cancel
 			</Button>
 
-			<Button type="submit" variant="default" disabled={!isValid || loading} {loading}>
+			<Button type="submit" variant="primary" disabled={!isValid || loading} {loading}>
 				{isEditing ? 'Update Employee' : 'Create Employee'}
 			</Button>
 		</div>
