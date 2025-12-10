@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { cn } from '$lib/utils';
-	import type { ComponentType } from 'svelte';
 
 	interface Props {
 		children?: any;

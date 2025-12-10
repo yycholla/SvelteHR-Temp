@@ -1,6 +1,5 @@
 <script lang="ts">
 	import DashboardCard from '$lib/components/ui/layout/DashboardCard.svelte';
-	import type { ComponentType } from 'svelte';
 
 	interface Metric {
 		title: string;

@@ -22,7 +22,7 @@
 		id: string;
 		label: string;
 		href: string;
-		icon: ComponentType;
+		icon: any;
 		active: boolean;
 		children?: Array<{
 			id: string;
