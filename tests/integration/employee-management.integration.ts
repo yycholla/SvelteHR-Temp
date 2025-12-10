@@ -8,6 +8,7 @@ import {
 	TestEmployeeData,
 	TestUser,
 	TestContext,
+	UserRole,
 	cleanupTestData,
 	createTestContext
 } from '../utils/test-helpers';
@@ -33,7 +34,7 @@ describe('Employee Management Integration Tests', () => {
 				firstName: 'Jane',
 				lastName: 'Smith',
 				email: 'jane.smith@company.com',
-				role: 'EMPLOYEE',
+				role: UserRole.EMPLOYEE,
 				departmentId: testContext.departments.engineering.id,
 				hireDate: '2024-09-24T08:00:00Z',
 				managerId: testContext.users.manager.id
@@ -77,7 +78,7 @@ describe('Employee Management Integration Tests', () => {
 				firstName: 'Jane',
 				lastName: 'Smith',
 				email: 'jane.smith@company.com',
-				role: 'EMPLOYEE',
+				role: UserRole.EMPLOYEE,
 				department: {
 					id: testContext.departments.engineering.id,
 					name: 'Engineering'
@@ -136,7 +137,7 @@ describe('Employee Management Integration Tests', () => {
 				firstName: 'Test',
 				lastName: 'Employee',
 				email: 'test.employee@company.com',
-				role: 'EMPLOYEE',
+				role: UserRole.EMPLOYEE,
 				departmentId: testContext.departments.engineering.id,
 				hireDate: '2024-09-24T08:00:00Z'
 			};
@@ -169,7 +170,7 @@ describe('Employee Management Integration Tests', () => {
 				firstName: 'Test',
 				lastName: 'Employee',
 				email: 'test.query@company.com',
-				role: 'EMPLOYEE',
+				role: UserRole.EMPLOYEE,
 				departmentId: testContext.departments.engineering.id
 			});
 		});
@@ -287,7 +288,7 @@ describe('Employee Management Integration Tests', () => {
 				firstName: 'Test',
 				lastName: 'Employee',
 				email: 'test.query@company.com',
-				role: 'EMPLOYEE',
+				role: UserRole.EMPLOYEE,
 				status: 'ACTIVE'
 			});
 
@@ -365,7 +366,7 @@ describe('Employee Management Integration Tests', () => {
 				firstName: 'Update',
 				lastName: 'Test',
 				email: 'update.test@company.com',
-				role: 'EMPLOYEE',
+				role: UserRole.EMPLOYEE,
 				departmentId: testContext.departments.engineering.id
 			});
 		});
@@ -476,7 +477,7 @@ describe('Employee Management Integration Tests', () => {
 				firstName: 'Delete',
 				lastName: 'Test',
 				email: 'delete.test@company.com',
-				role: 'EMPLOYEE',
+				role: UserRole.EMPLOYEE,
 				departmentId: testContext.departments.engineering.id
 			});
 		});
@@ -562,7 +563,7 @@ describe('Employee Management Integration Tests', () => {
 								firstName: `Bulk${index}`,
 								lastName: 'Test',
 								email: `bulk${index}@company.com`,
-								role: 'EMPLOYEE',
+								role: UserRole.EMPLOYEE,
 								departmentId: testContext.departments.engineering.id,
 								hireDate: '2024-09-24T08:00:00Z'
 							}
