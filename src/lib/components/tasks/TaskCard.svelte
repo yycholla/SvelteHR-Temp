@@ -91,7 +91,7 @@
 					<DropdownMenu.Item
 						onclick={(e) => {
 							e.stopPropagation();
-							onStatusChange(option.value);
+							onStatusChange(option.value as Task['status']);
 						}}
 					>
 						<div class="flex items-center gap-2">

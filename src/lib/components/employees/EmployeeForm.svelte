@@ -553,7 +553,7 @@
 				Cancel
 			</Button>
 
-			<Button type="submit" variant="default" disabled={!isValid || loading} {loading}>
+			<Button type="submit" variant="default" disabled={!isValid || loading}>
 				{isEditing ? 'Update Employee' : 'Create Employee'}
 			</Button>
 		</div>
