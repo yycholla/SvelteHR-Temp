@@ -23,7 +23,7 @@ export const documentMetadataSchema = z.object({
 	category: z.string().min(1).max(100),
 	sensitivityLevel: sensitivityLevelSchema,
 	expirationDate: z.date().optional(),
-	metadataTags: z.record(z.unknown()).optional(),
+	metadataTags: z.record(z.string(), z.unknown()).optional(),
 	assignToEmployees: z.array(z.string().uuid()).optional(),
 	assignToDepartments: z.array(z.string().uuid()).optional()
 });
@@ -156,7 +156,7 @@ export const documentUpdateSchema = z.object({
 	category: z.string().min(1).max(100).optional(),
 	sensitivityLevel: sensitivityLevelSchema.optional(),
 	expirationDate: z.date().optional(),
-	metadataTags: z.record(z.unknown()).optional(),
+	metadataTags: z.record(z.string(), z.unknown()).optional(),
 	isDeleted: z.boolean().optional()
 });
 
