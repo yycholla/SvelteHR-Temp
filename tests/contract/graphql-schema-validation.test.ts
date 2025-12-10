@@ -205,9 +205,7 @@ describeOrSkip('GraphQL Schema Contract Testing', () => {
 			const queryType = schema.types.find((type) => type.name === 'Query');
 
 			if (queryType && 'fields' in queryType && queryType.fields) {
-				const listQueries = queryType.fields.filter(
 				const listQueries = queryType.fields.filter((field) => { const typeName = getTypeName(field.type); return field.type.kind === 'OBJECT' && typeName?.endsWith('Connection'); });
-				);
 
 				listQueries.forEach((query) => {
 					const argNames = query.args.map((arg) => arg.name);
@@ -261,7 +259,8 @@ describeOrSkip('GraphQL Schema Contract Testing', () => {
 					}
 
 					// Return type should be a payload type
-					const mutationTypeName = getTypeName(mutation.type); expect(mutationTypeName).toMatch(/Payload$/);
+					const mutationTypeName = getTypeName(mutation.type);
+				expect(mutationTypeName).toMatch(/Payload$/);
 				});
 			}
 		});
@@ -446,7 +445,8 @@ describeOrSkip('GraphQL Schema Contract Testing', () => {
 				if ('fields' in type && type.fields) {
 					return type.fields.some((field) => {
 						// Check if field type references create deep nesting
-						const typeName = getTypeName(field.type); return typeName?.includes('Connection') && typeName.length > 50;
+						const typeName = getTypeName(field.type);
+						return typeName?.includes('Connection') && typeName.length > 50;
 					});
 				}
 				return false;
