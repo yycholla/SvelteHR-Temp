@@ -152,7 +152,7 @@
 	});
 
 	// Derived values for display
-	const employees = filteredEmployees;
+	const employees = $derived(filteredEmployees);
 	const totalCount = $derived(employees.length);
 	const totalPages = $derived(Math.ceil(totalCount / itemsPerPage));
 	const loading = $derived(!clientReady || queryState.fetching);
