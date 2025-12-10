@@ -4,7 +4,7 @@
 	// Purpose: Display event summary with RSVP indicator
 
 	import type { RsvpStatus } from '$lib/graphql/types';
-	import type { Event } from '$lib/graphql/events-operations';
+	import type { Event } from '$lib/types/domain-extensions';
 	import {
 		formatEventTimeRange,
 		getEventStatusColor,

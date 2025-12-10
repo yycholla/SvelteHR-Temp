@@ -424,7 +424,37 @@ export interface Event {
 	color?: string;
 	createdAt: string;
 	updatedAt: string;
+	/** Array format (from Rust GraphQL direct queries) */
 	attendees?: Array<{
+		id: string;
+		employeeId: string;
+		responseStatus: string;
+		employee?: {
+			id: string;
+			displayName: string;
+			email: string;
+		};
+	}>;
+	/** PostGraphile connection format (for compatibility with old queries) */
+	eventAttendeesByEventId?: {
+		nodes: Array<{
+			id: string;
+			employeeId: string;
+			responseStatus: string;
+			isOrganizer?: boolean;
+			isRequired?: boolean;
+			reminderTime?: string | null;
+			employee?: {
+				id: string;
+				displayName: string;
+				email: string;
+				jobTitle?: string;
+			};
+		}>;
+		totalCount?: number;
+	};
+	/** Alias for PostGraphile compatibility */
+	eventAttendees?: Array<{
 		id: string;
 		employeeId: string;
 		responseStatus: string;

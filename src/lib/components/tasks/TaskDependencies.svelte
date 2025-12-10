@@ -11,7 +11,8 @@
 -->
 
 <script lang="ts">
-	import type { Task, TaskDependency } from '$lib/types/task';
+	import type { Task } from '$lib/types/domain-extensions';
+	import type { TaskDependency } from '$lib/types/task';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Select from '$lib/components/ui/select';
@@ -66,8 +67,14 @@
 			if (t.id === task.id) return false;
 
 			// Exclude already linked tasks
-			const alreadyBlocking = blockingDependencies.some((dep) => dep.blockedTaskId === t.id);
-			const alreadyBlockedBy = blockedByDependencies.some((dep) => dep.blockingTaskId === t.id);
+			const alreadyBlocking = blockingDependencies.some(
+				(dep: import('$lib/types/domain-extensions').TaskDependencyNode) =>
+					dep.blockedTaskId === t.id
+			);
+			const alreadyBlockedBy = blockedByDependencies.some(
+				(dep: import('$lib/types/domain-extensions').TaskDependencyNode) =>
+					dep.blockingTaskId === t.id
+			);
 			if (alreadyBlocking || alreadyBlockedBy) return false;
 
 			// Apply search filter
@@ -292,7 +299,10 @@
 	</div>
 
 	<!-- Warning: Task is blocked -->
-	{#if blockedByDependencies.some((dep) => dep.taskByBlockingTaskId?.status !== 'DONE')}
+	{#if blockedByDependencies.some(
+			(dep: import('$lib/types/domain-extensions').TaskDependencyNode) =>
+				dep.taskByBlockingTaskId?.status !== 'DONE'
+		)}
 		<div class="rounded-lg border border-warning bg-warning/10 p-4">
 			<div class="flex items-start gap-3">
 				<AlertTriangle class="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
