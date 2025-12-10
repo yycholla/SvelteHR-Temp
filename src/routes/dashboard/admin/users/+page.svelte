@@ -48,7 +48,7 @@
 			email: '',
 			displayName: '',
 			password: '',
-			roleId: data.roles[0]?.id || '',
+			roleId: String(data.roles[0]?.id || ''),
 			departmentId: '',
 			isActive: true
 		};

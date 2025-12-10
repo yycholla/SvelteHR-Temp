@@ -224,7 +224,7 @@
 					if (result.type === 'success' && result.data?.success) {
 						handleUploadSuccess(result.data.result);
 					} else if (result.type === 'failure') {
-						uploadError = result.data?.error || 'Upload failed';
+						uploadError = typeof result.data?.error === 'string' ? result.data.error : 'Upload failed';
 						isUploading = false;
 					} else if (result.type === 'error') {
 						uploadError = 'Upload failed. Please try again.';
