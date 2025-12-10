@@ -35,7 +35,7 @@
 	const { children } = $props();
 
 	// Navigation items based on user role and permissions
-	const navigationItems = [
+	const navigationItems: NavigationItem[] = [
 		{
 			id: 'dashboard',
 			label: 'Dashboard',
@@ -81,7 +81,7 @@
 	];
 
 	// Admin navigation
-	const adminNavigation = [
+	const adminNavigation: NavigationItem[] = [
 		{
 			id: 'admin',
 			label: 'Administration',
@@ -112,7 +112,7 @@
 
 	// Add admin navigation if user has admin role
 	const visibleNavigation = $derived(() => {
-		const nav = [...navigationItems];
+		const nav: NavigationItem[] = [...navigationItems];
 		if (auth.user?.role === 'admin' || auth.user?.role === 'hr_admin') {
 			nav.push(...adminNavigation);
 		}
@@ -189,23 +189,24 @@
 					<Sidebar.Group>
 						<Sidebar.GroupLabel>Navigation</Sidebar.GroupLabel>
 						<Sidebar.Menu>
-							{#each visibleNavigation as item: NavigationItem}
-								{@const ItemIcon = item.icon}
+							{#each visibleNavigation as item}
+								{@const typedItem = item as NavigationItem}
+								{@const ItemIcon = typedItem.icon}
 								<Sidebar.MenuItem>
-									{#if item.children && item.children.length > 0}
+									{#if typedItem.children && typedItem.children.length > 0}
 										<Sidebar.MenuSub>
 											<Sidebar.MenuSubButton asChild>
 												<a
-													href={item.href}
+													href={typedItem.href}
 													class="flex items-center gap-2"
-													data-active={item.active}
+													data-active={typedItem.active}
 												>
 													<ItemIcon class="h-4 w-4" />
-													<span>{item.label}</span>
+													<span>{typedItem.label}</span>
 												</a>
 											</Sidebar.MenuSubButton>
 											<Sidebar.MenuSubContent>
-												{#each item.children as child}
+												{#each typedItem.children as child}
 													<Sidebar.MenuSubItem>
 														<Sidebar.MenuSubButton asChild>
 															<a href={child.href} data-active={child.active}>
@@ -218,9 +219,9 @@
 										</Sidebar.MenuSub>
 									{:else}
 										<Sidebar.MenuButton asChild>
-											<a href={item.href} class="flex items-center gap-2" data-active={item.active}>
+											<a href={typedItem.href} class="flex items-center gap-2" data-active={typedItem.active}>
 												<ItemIcon class="h-4 w-4" />
-												<span>{item.label}</span>
+												<span>{typedItem.label}</span>
 											</a>
 										</Sidebar.MenuButton>
 									{/if}
