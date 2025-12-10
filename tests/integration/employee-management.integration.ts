@@ -34,7 +34,7 @@ describe('Employee Management Integration Tests', () => {
 	describe('Employee Creation Workflow', () => {
 		test('should create employee with complete workflow', async () => {
 			// Arrange: HR Manager user
-			const hrManager = await TestUser.createHRManager();
+			const hrManager = await TestUser.createManager();
 
 			const newEmployeeData = {
 				firstName: 'Jane',
@@ -105,7 +105,7 @@ describe('Employee Management Integration Tests', () => {
 		});
 
 		test('should reject employee creation with invalid data', async () => {
-			const hrManager = await TestUser.createHRManager();
+			const hrManager = await TestUser.createManager();
 
 			const invalidEmployeeData = {
 				firstName: '', // Empty first name
@@ -182,7 +182,7 @@ describe('Employee Management Integration Tests', () => {
 		});
 
 		test('should retrieve employee list with pagination', async () => {
-			const hrManager = await TestUser.createHRManager();
+			const hrManager = await TestUser.createManager();
 
 			const employeesQuery = `
         query GetEmployees($page: Int!, $limit: Int!) {
@@ -242,7 +242,7 @@ describe('Employee Management Integration Tests', () => {
 		});
 
 		test('should retrieve single employee with full details', async () => {
-			const hrManager = await TestUser.createHRManager();
+			const hrManager = await TestUser.createManager();
 
 			const employeeQuery = `
         query GetEmployee($id: ID!) {
@@ -378,7 +378,7 @@ describe('Employee Management Integration Tests', () => {
 		});
 
 		test('should update employee information', async () => {
-			const hrManager = await TestUser.createHRManager();
+			const hrManager = await TestUser.createManager();
 
 			const updateData = {
 				firstName: 'Updated',
@@ -431,7 +431,7 @@ describe('Employee Management Integration Tests', () => {
 		});
 
 		test('should update employee status', async () => {
-			const hrManager = await TestUser.createHRManager();
+			const hrManager = await TestUser.createManager();
 
 			const statusUpdateMutation = `
         mutation UpdateEmployeeStatus($id: ID!, $input: UpdateEmployeeInput!) {
@@ -526,7 +526,7 @@ describe('Employee Management Integration Tests', () => {
 		});
 
 		test('should prevent deletion by non-admin users', async () => {
-			const hrManager = await TestUser.createHRManager();
+			const hrManager = await TestUser.createManager();
 
 			const deleteEmployeeMutation = `
         mutation DeleteEmployee($id: ID!) {
@@ -547,7 +547,7 @@ describe('Employee Management Integration Tests', () => {
 
 	describe('Performance and Load Testing', () => {
 		test('should handle bulk employee operations within performance targets', async () => {
-			const hrManager = await TestUser.createHRManager();
+			const hrManager = await TestUser.createManager();
 			const startTime = Date.now();
 
 			// Create 50 employees in parallel
@@ -595,7 +595,7 @@ describe('Employee Management Integration Tests', () => {
 		});
 
 		test('should handle large employee list queries efficiently', async () => {
-			const hrManager = await TestUser.createHRManager();
+			const hrManager = await TestUser.createManager();
 			const startTime = Date.now();
 
 			const employeesQuery = `

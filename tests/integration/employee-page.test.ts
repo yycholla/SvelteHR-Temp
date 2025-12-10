@@ -107,7 +107,7 @@ describe('Employee Page Integration (T019)', () => {
 					user: { id: 'user-123', role: 'HR_Manager', departmentId: null },
 					permissions: ['employees:read', 'employees:write', 'employees:delete', 'salary:read']
 				}
-			} as LoadEvent;
+			} as unknown as LoadEvent;
 
 			const employeeRequest: GetEmployeesWithFilteringRequest = {
 				operation: 'GetEmployeesWithFiltering',
@@ -155,7 +155,7 @@ describe('Employee Page Integration (T019)', () => {
 					user: { id: 'user-456', role: 'Manager', departmentId: 'dept-engineering' },
 					permissions: ['employees:read', 'department_employees:read', 'department_employees:write']
 				}
-			} as LoadEvent;
+			} as unknown as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -198,7 +198,7 @@ describe('Employee Page Integration (T019)', () => {
 					user: { id: 'user-789', role: 'Employee', departmentId: 'dept-marketing' },
 					permissions: ['profile:read', 'colleagues:read'] // Limited permissions
 				}
-			} as LoadEvent;
+			} as unknown as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {

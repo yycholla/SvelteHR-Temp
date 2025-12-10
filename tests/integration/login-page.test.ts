@@ -89,7 +89,7 @@ describe('Login Page Integration (T018)', () => {
 					get: vi.fn().mockReturnValue(null) // No auth token
 				},
 				locals: {} // No user context
-			} as LoadEvent;
+			} as unknown as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -112,7 +112,7 @@ describe('Login Page Integration (T018)', () => {
 					user: { id: 'user-123', role: 'HR_Manager' },
 					permissions: ['employees:read', 'departments:read']
 				}
-			} as LoadEvent;
+			} as unknown as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -133,7 +133,7 @@ describe('Login Page Integration (T018)', () => {
 					get: vi.fn().mockReturnValue(null)
 				},
 				locals: {}
-			} as LoadEvent;
+			} as unknown as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -516,7 +516,7 @@ describe('Performance Integration', () => {
 			url: new URL('http://localhost:5173/login'),
 			cookies: { get: vi.fn().mockReturnValue(null) },
 			locals: {}
-		} as LoadEvent;
+		} as unknown as LoadEvent;
 
 		// Act & Assert - Should throw until implementation exists
 		await expect(async () => {

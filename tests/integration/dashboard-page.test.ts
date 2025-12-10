@@ -81,7 +81,7 @@ describe('Dashboard Page Integration (T017)', () => {
 					user: { id: 'user-123', role: 'HR_Manager' },
 					permissions: ['employees:read', 'departments:read']
 				}
-			} as LoadEvent;
+			} as unknown as LoadEvent;
 
 			const dashboardRequest: GetCompleteDashboardDataRequest = {
 				operation: 'GetCompleteDashboardData',
@@ -120,7 +120,7 @@ describe('Dashboard Page Integration (T017)', () => {
 					user: { id: 'user-123', role: 'HR_Manager' },
 					permissions: ['employees:read', 'departments:read']
 				}
-			} as LoadEvent;
+			} as unknown as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -158,7 +158,7 @@ describe('Dashboard Page Integration (T017)', () => {
 				url: new URL('http://localhost:5173/dashboard'),
 				cookies: { get: vi.fn().mockReturnValue('invalid-token') },
 				locals: {} // No user - unauthenticated
-			} as LoadEvent;
+			} as unknown as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -194,7 +194,7 @@ describe('Dashboard Page Integration (T017)', () => {
 					user: { id: 'user-123', role: 'Employee' }, // Limited permissions
 					permissions: ['profile:read']
 				}
-			} as LoadEvent;
+			} as unknown as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -406,7 +406,7 @@ describe('Dashboard Page Integration (T017)', () => {
 					user: { id: 'user-123', role: 'HR_Manager' },
 					permissions: ['employees:read', 'departments:read']
 				}
-			} as LoadEvent;
+			} as unknown as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -458,7 +458,7 @@ describe('Dashboard Page Integration (T017)', () => {
 					user: { id: 'user-456', role: 'Employee' },
 					permissions: ['profile:read', 'timesheet:read']
 				}
-			} as LoadEvent;
+			} as unknown as LoadEvent;
 
 			// HR Manager with full permissions
 			const hrManagerLoadEvent = {
@@ -469,7 +469,7 @@ describe('Dashboard Page Integration (T017)', () => {
 					user: { id: 'user-123', role: 'HR_Manager' },
 					permissions: ['employees:read', 'departments:read', 'reports:hr']
 				}
-			} as LoadEvent;
+			} as unknown as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -498,7 +498,7 @@ describe('Dashboard Page Integration (T017)', () => {
 					},
 					permissions: ['employees:read', 'department_employees:read', 'reports:team']
 				}
-			} as LoadEvent;
+			} as unknown as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {

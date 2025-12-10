@@ -119,7 +119,7 @@ describe('Departments Page Integration (T020)', () => {
 						'statistics:read'
 					]
 				}
-			} as LoadEvent;
+			} as unknown as LoadEvent;
 
 			const departmentRequest: GetDepartmentsWithStatsRequest = {
 				operation: 'GetDepartmentsWithStats',
@@ -163,7 +163,7 @@ describe('Departments Page Integration (T020)', () => {
 					user: { id: 'user-456', role: 'Manager', departmentId: 'dept-engineering' },
 					permissions: ['departments:read', 'department_stats:read', 'team_budget:read']
 				}
-			} as LoadEvent;
+			} as unknown as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -208,7 +208,7 @@ describe('Departments Page Integration (T020)', () => {
 					user: { id: 'user-123', role: 'HR_Manager' },
 					permissions: ['departments:read', 'statistics:read']
 				}
-			} as LoadEvent;
+			} as unknown as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {

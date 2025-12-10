@@ -4,7 +4,7 @@
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { requireAuth } from '$lib/server/rbac-utils';
+import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 
 export const load: PageServerLoad = async (event) => {
@@ -17,6 +17,10 @@ export const load: PageServerLoad = async (event) => {
 
 	// After permission check, re-destructure locals with guaranteed user
 	const { locals } = event;
+
+	// Get user permissions using the centralized helper
+	const userPerms = getUserPermissions(locals);
+	const hasManagerAccess = userPerms.canViewManagement;
 
 	try {
 		// Check backend services are ready before proceeding

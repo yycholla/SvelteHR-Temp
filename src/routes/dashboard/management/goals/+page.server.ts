@@ -3,7 +3,7 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { PermissionChecks } from '$lib/server/rbac-utils';
+import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 
 export const load: PageServerLoad = async (event) => {
@@ -11,6 +11,10 @@ export const load: PageServerLoad = async (event) => {
 
 	// Check authentication and permissions (managers and above)
 	PermissionChecks.goalsRead(event);
+
+	// Get user permissions using the centralized helper
+	const userPerms = getUserPermissions(locals);
+	const hasManagerAccess = userPerms.canViewManagement;
 
 	// Extract search parameters for filtering
 	const searchTerm = url.searchParams.get('search') || '';
