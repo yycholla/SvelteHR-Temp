@@ -185,7 +185,7 @@ export class PermissionsService {
 		return {
 			canViewEmployees: this.rbacManager.canRead('employees'),
 			canManageEmployees: this.rbacManager.canManage('employees'),
-			canViewReports: this.rbacManager.hasPermission(PERMISSIONS.REPORTS_READ),
+			canViewReports: this.rbacManager.hasPermission(PERMISSIONS.REPORTS_READ_ALL),
 			canManageDepartments: this.rbacManager.canManage('departments'),
 			canManageRoles: this.rbacManager.canManage('roles'),
 			canViewPayroll: this.rbacManager.canRead('payroll'),
@@ -274,30 +274,30 @@ export class PermissionsService {
 				suggestions.push(
 					PERMISSIONS.EMPLOYEES_MANAGE,
 					PERMISSIONS.DEPARTMENTS_MANAGE,
-					PERMISSIONS.REPORTS_HR,
+					PERMISSIONS.REPORTS_READ_ALL,
 					PERMISSIONS.PERFORMANCE_MANAGE,
 					PERMISSIONS.LEAVE_APPROVE,
-					PERMISSIONS.PAYROLL_READ
+					PERMISSIONS.PAYROLL_READ_ALL
 				);
 				break;
 			case 'manager':
 				suggestions.push(
-					PERMISSIONS.EMPLOYEES_READ,
-					PERMISSIONS.DEPARTMENTS_READ,
-					PERMISSIONS.REPORTS_TEAM,
-					PERMISSIONS.PERFORMANCE_READ,
+					PERMISSIONS.EMPLOYEES_READ_TEAM,
+					PERMISSIONS.DEPARTMENTS_READ_ALL,
+					PERMISSIONS.REPORTS_READ_TEAM,
+					PERMISSIONS.PERFORMANCE_READ_TEAM,
 					PERMISSIONS.LEAVE_APPROVE
 				);
 				break;
 			case 'employee':
 				suggestions.push(
-					PERMISSIONS.EMPLOYEES_READ,
-					PERMISSIONS.DEPARTMENTS_READ,
-					PERMISSIONS.LEAVE_CREATE
+					PERMISSIONS.EMPLOYEES_READ_SELF,
+					PERMISSIONS.DEPARTMENTS_READ_SELF,
+					PERMISSIONS.LEAVE_WRITE
 				);
 				break;
 			default:
-				suggestions.push(PERMISSIONS.EMPLOYEES_READ);
+				suggestions.push(PERMISSIONS.EMPLOYEES_READ_SELF);
 		}
 
 		return suggestions;
@@ -310,11 +310,11 @@ export class PermissionsService {
 		// Define route-permission mappings
 		const routePermissions: Record<string, string[]> = {
 			'/admin': [PERMISSIONS.ADMIN_ALL],
-			'/hr': [PERMISSIONS.EMPLOYEES_READ],
-			'/hr/employees': [PERMISSIONS.EMPLOYEES_READ],
-			'/hr/employees/create': [PERMISSIONS.EMPLOYEES_CREATE],
-			'/hr/departments': [PERMISSIONS.DEPARTMENTS_READ],
-			'/hr/reports': [PERMISSIONS.REPORTS_HR],
+			'/hr': [PERMISSIONS.EMPLOYEES_READ_ALL],
+			'/hr/employees': [PERMISSIONS.EMPLOYEES_READ_ALL],
+			'/hr/employees/create': [PERMISSIONS.EMPLOYEES_WRITE],
+			'/hr/departments': [PERMISSIONS.DEPARTMENTS_READ_ALL],
+			'/hr/reports': [PERMISSIONS.REPORTS_READ_ALL],
 			'/dashboard': [], // Generally accessible
 			'/profile': [] // User's own profile
 		};
