@@ -126,11 +126,7 @@
 
 	async function loadTasks() {
 		try {
-			await taskService.loadTasks({
-				filters,
-				sorting: { field: sortField, direction: sortDirection },
-				reset: true
-			});
+			await taskService.loadTasks();
 		} catch (error) {
 			console.error('Failed to load tasks:', error);
 		}

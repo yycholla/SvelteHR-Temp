@@ -126,11 +126,7 @@
 
 	async function loadDepartments() {
 		try {
-			await departmentService.loadDepartments({
-				filters,
-				sorting: { field: sortField, direction: sortDirection.toUpperCase() as 'ASC' | 'DESC' },
-				reset: true
-			});
+			await departmentService.loadDepartments();
 		} catch (error) {
 			console.error('Failed to load departments:', error);
 		}

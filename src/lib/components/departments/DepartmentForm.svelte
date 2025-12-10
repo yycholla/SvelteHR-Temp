@@ -129,7 +129,7 @@
 
 	// Load data on mount
 	onMount(() => {
-		departmentService.loadDepartments({ reset: true });
+		departmentService.loadDepartments();
 		userService.loadUsers({ reset: true });
 	});
 </script>
