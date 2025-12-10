@@ -810,3 +810,6 @@ export interface FormProps extends BaseComponentProps {
 export type { User as Employee };
 export type { LeaveRequest as Leave };
 export type { AttendanceRecord as Attendance };
+
+// Re-export user mapper utilities for GraphQL snake_case to camelCase conversion
+export * from './user-mapper';
