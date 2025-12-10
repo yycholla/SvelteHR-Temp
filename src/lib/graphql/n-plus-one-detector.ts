@@ -12,7 +12,7 @@
  * - Automated batch loading suggestions
  */
 
-import type { DocumentNode, FieldNode, SelectionSetNode } from 'graphql';
+import type { ASTVisitor, DocumentNode, FieldNode, SelectionSetNode } from 'graphql';
 import {
 	GraphQLSchema,
 	Kind,
@@ -110,9 +110,9 @@ export class NPlusOneDetector {
 
 		const typeInfo = this.schema ? new TypeInfo(this.schema) : null;
 
-		const visitor = {
+		const visitor: ASTVisitor = {
 			Field: {
-				enter: (node: FieldNode, key: any, parent: any, path: any, ancestors: any[]) => {
+				enter: (node: FieldNode) => {
 					const fieldName = node.name.value;
 					fieldPath.push(fieldName);
 
@@ -131,8 +131,8 @@ export class NPlusOneDetector {
 							parentType?.name || 'Unknown',
 							fieldName,
 							returnType?.name || 'Unknown',
-							isListField,
-							hasNestedSelection,
+							isListField ?? false,
+							hasNestedSelection ?? false,
 							variables
 						);
 
@@ -150,8 +150,8 @@ export class NPlusOneDetector {
 
 					originalComplexity += this.calculateFieldComplexity(
 						node,
-						isListField,
-						hasNestedSelection
+						isListField ?? false,
+						hasNestedSelection ?? false
 					);
 				},
 				leave: () => {
