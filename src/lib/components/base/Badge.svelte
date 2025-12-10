@@ -1,6 +1,6 @@
 <script lang="ts">
 	const {
-		variant = 'primary',
+		variant = 'default',
 		size = 'sm',
 		rounded = true,
 		outline = false,
@@ -9,15 +9,7 @@
 		onremove = undefined,
 		children
 	}: {
-		variant?:
-			| 'primary'
-			| 'secondary'
-			| 'success'
-			| 'warning'
-			| 'danger'
-			| 'info'
-			| 'light'
-			| 'dark';
+		variant?: 'default' | 'secondary' | 'destructive' | 'outline';
 		size?: 'xs' | 'sm' | 'md' | 'lg';
 		rounded?: boolean;
 		outline?: boolean;
@@ -27,11 +19,19 @@
 		children?: import('svelte').Snippet;
 	} = $props();
 
+	// Map new variant names to old CSS classes for backwards compatibility
+	const variantClassMap: Record<string, string> = {
+		default: 'primary',
+		secondary: 'secondary',
+		destructive: 'danger',
+		outline: 'light'
+	};
+
 	// Computed classes
 	const badgeClasses = $derived(
 		[
 			'badge',
-			`badge--${variant}`,
+			`badge--${variantClassMap[variant]}`,
 			`badge--${size}`,
 			rounded && 'badge--rounded',
 			outline && 'badge--outline',
