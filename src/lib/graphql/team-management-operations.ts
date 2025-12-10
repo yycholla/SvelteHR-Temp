@@ -3,6 +3,7 @@
 // Task: T011 - Team management GraphQL operations for /dashboard/teams
 
 import { gql } from '@urql/svelte';
+import type { Client } from '@urql/core';
 import type { Department } from '$lib/types/domain-extensions';
 import type { PaginationInput, SortInput, User } from '$lib/types/graphql';
 

@@ -5,6 +5,7 @@
  */
 
 import { gql } from '@urql/svelte';
+import type { Client } from '@urql/core';
 import { browser } from '$app/environment';
 
 // ============================================================================

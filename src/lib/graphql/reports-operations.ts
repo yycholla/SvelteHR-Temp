@@ -3,6 +3,7 @@
 // Purpose: Manager CRUD operations for HR reports with department-scoped RLS
 
 import { gql } from '@urql/svelte';
+import type { Client } from '@urql/core';
 import type { UserCredentials } from '$lib/models/data-request';
 
 // ============================================================================

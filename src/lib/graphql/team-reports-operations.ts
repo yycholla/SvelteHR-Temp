@@ -3,6 +3,7 @@
 // Task: T011 - Team reports GraphQL operations for /dashboard/management/reports
 
 import { gql } from '@urql/svelte';
+import type { Client } from '@urql/core';
 import type {
 	Department,
 	PaginationInput,
