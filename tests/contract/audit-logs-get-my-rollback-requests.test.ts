@@ -51,10 +51,7 @@ interface GetMyRollbackRequestsResponse {
 	};
 }
 
-const mockGetMyRollbackRequests = vi.fn<
-	[GetMyRollbackRequestsVariables],
-	Promise<GetMyRollbackRequestsResponse>
->();
+const mockGetMyRollbackRequests = vi.fn<Promise<GetMyRollbackRequestsResponse>>();
 
 describe('GetMyRollbackRequests Query Contract (TDD RED - should fail)', () => {
 	beforeEach(() => {

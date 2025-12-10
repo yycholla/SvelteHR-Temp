@@ -779,7 +779,7 @@
 								type="text"
 								bind:value={bankRoutingNumber}
 								placeholder="123456789"
-								maxlength="9"
+								maxlength={9}
 								class="h-9"
 							/>
 						</div>
@@ -792,7 +792,7 @@
 								type="text"
 								bind:value={bankAccountNumberLast4}
 								placeholder="1234"
-								maxlength="4"
+								maxlength={4}
 								class="h-9"
 							/>
 						</div>

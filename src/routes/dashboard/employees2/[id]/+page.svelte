@@ -18,9 +18,51 @@
 	} from '@lucide/svelte';
 	import { format } from 'date-fns';
 
+	// Type definitions for employee data
+	interface LeaveBalance {
+		id: string;
+		year: number;
+		totalDays: number;
+		usedDays: number;
+		remainingDays: number;
+		leaveTypeName: string;
+		leaveTypeDefaultDays: number;
+	}
+
+	interface LeaveRequest {
+		id: string;
+		leaveType?: {
+			id: string;
+			name: string;
+			color?: string;
+		};
+		startDate: string;
+		endDate: string;
+		status: string;
+		reason: string;
+		createdAt: string;
+	}
+
+	interface AssignedDocument {
+		id: string;
+		filename: string;
+		fileType: string;
+		fileSizeBytes: number;
+		category?: string;
+		sensitivityLevel?: string;
+		uploadedAt: string;
+		uploadedByEmail?: string;
+		assignedAt?: string;
+		assignmentReason?: string;
+	}
+
 	interface Props {
 		data: {
-			employee: Record<string, unknown>;
+			employee: Record<string, unknown> & {
+				leaveBalances?: LeaveBalance[];
+				leaveRequests?: LeaveRequest[];
+				assignedDocuments?: AssignedDocument[];
+			};
 			permissions: Record<string, unknown>;
 		};
 	}
@@ -205,7 +247,7 @@
 				<!-- Leave Balance Cards -->
 				<div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
 					{#if employee.leaveBalances}
-						{#each employee.leaveBalances as balance (balance.id)}
+						{#each employee.leaveBalances as balance: LeaveBalance (balance.id)}
 							<Card.Root>
 								<Card.Content class="p-4">
 									<div class="text-xs text-muted-foreground uppercase tracking-wider">
@@ -237,7 +279,7 @@
 					<Card.Content>
 						{#if (employee.leaveRequests?.length ?? 0) > 0}
 							<div class="space-y-4">
-								{#each employee.leaveRequests as request (request.id)}
+								{#each employee.leaveRequests as request: LeaveRequest (request.id)}
 									<div class="flex items-center justify-between p-3 border rounded-lg">
 										<div class="flex items-center gap-3">
 											<div
@@ -269,7 +311,7 @@
 					<Card.Content>
 						{#if (employee.assignedDocuments?.length ?? 0) > 0}
 							<div class="space-y-2">
-								{#each employee.assignedDocuments as doc (doc.id)}
+								{#each employee.assignedDocuments as doc: AssignedDocument (doc.id)}
 									<div
 										class="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
 									>

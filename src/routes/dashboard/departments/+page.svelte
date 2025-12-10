@@ -85,7 +85,7 @@
 	let selectedParent = $state(data.filters.parentFilter);
 	let selectedHasHead = $state(data.filters.hasHeadFilter);
 	const currentPage = $state(data.filters.page);
-	let pageSize = $state(data.filters.limit);
+	let pageSize = $state(String(data.filters.limit));
 	let viewMode = $state<'grid' | 'list'>('list');
 
 	// Sync search terms from URL
@@ -274,10 +274,10 @@
 							<Select bind:value={pageSize}>
 								<SelectTrigger placeholder="20" />
 								<SelectContent>
-									<SelectItem value={10}>10</SelectItem>
-									<SelectItem value={20}>20</SelectItem>
-									<SelectItem value={50}>50</SelectItem>
-									<SelectItem value={100}>100</SelectItem>
+									<SelectItem value="10">10</SelectItem>
+									<SelectItem value="20">20</SelectItem>
+									<SelectItem value="50">50</SelectItem>
+									<SelectItem value="100">100</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>

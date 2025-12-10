@@ -56,11 +56,11 @@
 	function getStatusVariant(status: string): string {
 		switch (status) {
 			case 'good':
-				return 'success';
+				return 'default';
 			case 'needs-improvement':
-				return 'warning';
+				return 'outline';
 			case 'poor':
-				return 'danger';
+				return 'destructive';
 			default:
 				return 'secondary';
 		}
@@ -350,7 +350,7 @@
 						<div class="metric-stats">
 							<div class="metric-row">
 								<span>Total Errors:</span>
-								<Badge variant="danger">{metrics.errors.total}</Badge>
+								<Badge variant="destructive">{metrics.errors.total}</Badge>
 							</div>
 
 							<div class="error-breakdown">
@@ -387,7 +387,7 @@
 							<div class="route-item">
 								<div class="route-path">{route.route}</div>
 								<div class="route-stats">
-									<Badge variant="primary" size="sm">{route.count} visits</Badge>
+									<Badge variant="default" size="sm">{route.count} visits</Badge>
 									<Badge variant="secondary" size="sm">
 										{formatDuration(route.avgDuration)} avg
 									</Badge>
@@ -415,7 +415,7 @@
 									<div class="operation-name">{operation.operation}</div>
 									<div class="operation-type">{operation.type}</div>
 								</div>
-								<Badge variant="warning">
+								<Badge variant="outline">
 									{formatDuration(operation.duration)}
 								</Badge>
 							</div>

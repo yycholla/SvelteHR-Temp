@@ -230,7 +230,7 @@
 
 	// Get assignee display name
 	function getAssigneeName(id: string): string {
-		return availableAssignees.find((a) => a.id === id)?.display_name || 'Unknown';
+		return availableAssignees.find((a) => a.id === id)?.displayName || 'Unknown';
 	}
 
 	// Get task type name
@@ -343,7 +343,7 @@
 					>
 						<NativeSelect.Option value="">All assignees</NativeSelect.Option>
 						{#each availableAssignees as assignee}
-							<NativeSelect.Option value={assignee.id}>{assignee.display_name}</NativeSelect.Option>
+							<NativeSelect.Option value={assignee.id}>{assignee.displayName}</NativeSelect.Option>
 						{/each}
 					</NativeSelect.Root>
 				</div>

@@ -19,6 +19,12 @@ import type {
 import type { RetryHandler } from '$lib/utils/retry-handler';
 import type { CacheInvalidator } from '$lib/utils/cache-management';
 
+// Mock CacheInvalidator interface for testing
+interface MockCacheInvalidator {
+	invalidate: ReturnType<typeof vi.fn>;
+	warmCache: ReturnType<typeof vi.fn>;
+}
+
 // Mock the employee page load function - MUST throw until implementation exists
 const mockEmployeePageLoad = vi.fn().mockImplementation(() => {
 	throw new Error('Employee page load function not implemented - TDD compliance');
@@ -69,7 +75,7 @@ const mockEmployeeRetryHandler: Partial<RetryHandler> = {
 };
 
 // Mock cache invalidator
-const mockEmployeeCacheInvalidator: Partial<CacheInvalidator> = {
+const mockEmployeeCacheInvalidator: MockCacheInvalidator = {
 	invalidate: vi.fn(),
 	warmCache: vi.fn()
 };
@@ -140,7 +146,7 @@ describe('Employee Page Integration (T019)', () => {
 			// Verify integration contract requirements
 			expect(mockGetEmployeesWithFiltering).not.toHaveBeenCalled();
 			expect(mockEmployeeRetryHandler.execute).not.toHaveBeenCalled();
-			expect(mockEmployeeCacheInvalidator.invalidate!).not.toHaveBeenCalled();
+			expect(mockEmployeeCacheInvalidator.invalidate).not.toHaveBeenCalled();
 		});
 
 		it('should handle department-restricted access for managers', async () => {
@@ -538,7 +544,7 @@ describe('Employee Page Integration (T019)', () => {
 			}).toThrow('Employee page component not implemented - TDD compliance');
 
 			// Verify real-time update integration
-			expect(mockEmployeeCacheInvalidator.invalidate!).not.toHaveBeenCalledWith('employees-list');
+			expect(mockEmployeeCacheInvalidator.invalidate).not.toHaveBeenCalledWith('employees-list');
 		});
 
 		it('should handle concurrent edit conflicts with user-friendly resolution', async () => {

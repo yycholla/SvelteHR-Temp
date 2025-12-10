@@ -380,7 +380,7 @@
 						{:else}
 							<tr>
 								<td
-									colspan={isOwnLeave ? '7' : '6'}
+									colspan={isOwnLeave ? 7 : 6}
 									class="px-6 py-8 text-center text-sm text-muted-foreground"
 								>
 									No leave requests found.

@@ -132,17 +132,17 @@
 
 	function getRoleBadgeVariant(
 		roleName: string
-	): 'default' | 'secondary' | 'success' | 'warning' | 'danger' {
+	): 'default' | 'secondary' | 'default' | 'outline' | 'destructive' {
 		const role = roleDefinitions[roleName.toLowerCase()];
 		if (!role) return 'default';
 
 		switch (role.color) {
 			case 'red':
-				return 'danger';
+				return 'destructive';
 			case 'blue':
 				return 'secondary';
 			case 'green':
-				return 'success';
+				return 'default';
 			default:
 				return 'default';
 		}
@@ -463,7 +463,7 @@
 
 				<div class="modal-footer">
 					<Button variant="secondary" onclick={closeUserRoleModal}>Cancel</Button>
-					<Button variant="primary" leftIcon="save" onclick={saveUserRoles}>Save Roles</Button>
+					<Button variant="default" leftIcon="save" onclick={saveUserRoles}>Save Roles</Button>
 				</div>
 			</div>
 		</div>

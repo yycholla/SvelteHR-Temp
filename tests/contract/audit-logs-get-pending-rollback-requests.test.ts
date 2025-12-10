@@ -58,10 +58,7 @@ interface GetPendingRollbackRequestsResponse {
 	};
 }
 
-const mockGetPendingRollbackRequests = vi.fn<
-	[GetPendingRollbackRequestsVariables],
-	Promise<GetPendingRollbackRequestsResponse>
->();
+const mockGetPendingRollbackRequests = vi.fn<Promise<GetPendingRollbackRequestsResponse>>();
 
 describe('GetPendingRollbackRequests Query Contract (TDD RED - should fail)', () => {
 	beforeEach(() => {

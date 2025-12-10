@@ -89,7 +89,7 @@
 	let selectedParent = $state(data.filters.parentFilter);
 	let viewMode = $state<'table' | 'hierarchy'>(data.filters.viewMode as 'table' | 'hierarchy');
 	const currentPage = $state(data.filters.page);
-	let pageSize = $state(data.filters.limit);
+	let pageSize = $state(String(data.filters.limit));
 
 	// Pagination state
 	const totalPages = $derived(Math.ceil(totalTeams / pageSize));
@@ -322,10 +322,10 @@
 								<Select bind:value={pageSize}>
 									<SelectTrigger placeholder="20" />
 									<SelectContent>
-										<SelectItem value={10}>10</SelectItem>
-										<SelectItem value={20}>20</SelectItem>
-										<SelectItem value={50}>50</SelectItem>
-										<SelectItem value={100}>100</SelectItem>
+										<SelectItem value="10">10</SelectItem>
+										<SelectItem value="20">20</SelectItem>
+										<SelectItem value="50">50</SelectItem>
+										<SelectItem value="100">100</SelectItem>
 									</SelectContent>
 								</Select>
 							</div>

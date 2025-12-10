@@ -62,11 +62,11 @@
 	function getChangeColor(changeType: ChangeType): string {
 		switch (changeType) {
 			case 'created':
-				return 'success';
+				return 'default';
 			case 'deleted':
 				return 'destructive';
 			case 'ownership_transfer':
-				return 'warning';
+				return 'outline';
 			case 'attendee_added':
 				return 'default';
 			case 'attendee_removed':

@@ -547,9 +547,9 @@
 		canManageEvent={(data.canCreateEvents && selectedEvent?.organizerId === data.user.id) ||
 			data.userPerms?.canDeleteEvents}
 		rsvpStats={selectedEventRsvpStats}
-		comments={eventComments}
-		history={eventHistory}
-		waitlistStatus={userWaitlistStatus}
+		eventComments={eventComments}
+		eventHistory={eventHistory}
+		userWaitlistStatus={userWaitlistStatus}
 		allEvents={events}
 		onClose={() => {
 			showDetailsDialog = false;

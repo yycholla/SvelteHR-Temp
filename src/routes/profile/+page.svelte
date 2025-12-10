@@ -180,7 +180,7 @@
 								id="address"
 								bind:value={editableData.address}
 								readonly={!isEditing}
-								rows="2"
+								rows={2}
 							/>
 						</div>
 					</div>

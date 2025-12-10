@@ -77,10 +77,7 @@ describeOrSkip('GraphQL Backend Performance Tests (requires Rust server on port 
 		test('Simple GraphQL queries meet performance budget', async () => {
 			console.log('🚀 Testing simple GraphQL query performance...');
 
-			const results = await timeFunction(
-				'SimpleGraphQLQuery',
-				'graphql',
-				() => mockGraphQLOperations.simpleQuery(),
+			const results = await timeFunction('SimpleGraphQLQuery', () => mockGraphQLOperations.simpleQuery(),
 				['graphql', 'simple']
 			);
 
@@ -102,10 +99,7 @@ describeOrSkip('GraphQL Backend Performance Tests (requires Rust server on port 
 		test('Complex GraphQL queries stay within acceptable limits', async () => {
 			console.log('🔍 Testing complex GraphQL query performance...');
 
-			const results = await timeFunction(
-				'ComplexGraphQLQuery',
-				'graphql',
-				() => mockGraphQLOperations.complexQuery(),
+			const results = await timeFunction('ComplexGraphQLQuery', () => mockGraphQLOperations.complexQuery(),
 				['graphql', 'complex']
 			);
 
@@ -133,18 +127,12 @@ describeOrSkip('GraphQL Backend Performance Tests (requires Rust server on port 
 			console.log('✏️ Testing GraphQL mutation performance...');
 
 			// Test simple mutation
-			const simpleMutation = await timeFunction(
-				'SimpleMutation',
-				'graphql',
-				() => mockGraphQLOperations.mutationOperation({ complexity: 'low' }),
+			const simpleMutation = await timeFunction('SimpleMutation', () => mockGraphQLOperations.mutationOperation({ complexity: 'low' }),
 				['graphql', 'mutation', 'simple']
 			);
 
 			// Test complex mutation
-			const complexMutation = await timeFunction(
-				'ComplexMutation',
-				'graphql',
-				() => mockGraphQLOperations.mutationOperation({ complexity: 'high' }),
+			const complexMutation = await timeFunction('ComplexMutation', () => mockGraphQLOperations.mutationOperation({ complexity: 'high' }),
 				['graphql', 'mutation', 'complex']
 			);
 
@@ -165,10 +153,7 @@ describeOrSkip('GraphQL Backend Performance Tests (requires Rust server on port 
 		test('Slow queries are properly identified and flagged', async () => {
 			console.log('🐌 Testing slow query detection...');
 
-			const slowOperation = await timeFunction(
-				'SlowGraphQLQuery',
-				'graphql',
-				() => mockGraphQLOperations.slowQuery(),
+			const slowOperation = await timeFunction('SlowGraphQLQuery', () => mockGraphQLOperations.slowQuery(),
 				['graphql', 'slow']
 			);
 
@@ -222,11 +207,11 @@ describeOrSkip('GraphQL Backend Performance Tests (requires Rust server on port 
 			// Perform multiple operations
 			const operations = [
 				() =>
-					timeFunction('Query1', 'graphql', () => mockGraphQLOperations.simpleQuery(), ['batch']),
+					timeFunction('Query1', () => mockGraphQLOperations.simpleQuery(), ['batch']),
 				() =>
-					timeFunction('Query2', 'graphql', () => mockGraphQLOperations.complexQuery(), ['batch']),
+					timeFunction('Query2', () => mockGraphQLOperations.complexQuery(), ['batch']),
 				() =>
-					timeFunction('Mutation1', 'graphql', () => mockGraphQLOperations.mutationOperation({}), [
+					timeFunction('Mutation1', () => mockGraphQLOperations.mutationOperation({}), [
 						'batch'
 					])
 			];
@@ -326,7 +311,7 @@ describeOrSkip('GraphQL Backend Performance Tests (requires Rust server on port 
 
 			// Create 10 concurrent operations
 			const concurrentOps = Array.from({ length: 10 }, (_, i) =>
-				timeFunction(`ConcurrentQuery${i}`, 'graphql', () => mockGraphQLOperations.simpleQuery(), [
+				timeFunction(`ConcurrentQuery${i}`, () => mockGraphQLOperations.simpleQuery(), [
 					'concurrent'
 				])
 			);
@@ -365,7 +350,7 @@ describeOrSkip('GraphQL Backend Performance Tests (requires Rust server on port 
 			// Test that errors are handled efficiently
 			const errorTest = async () => {
 				try {
-					await timeFunction('ErrorOperation', 'graphql', errorOperation, ['error']);
+					await timeFunction('ErrorOperation', errorOperation, ['error']);
 				} catch (error) {
 					// Expected error
 				}

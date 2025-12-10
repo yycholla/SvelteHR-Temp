@@ -200,12 +200,12 @@
 				{#if showActions}
 					<div class="profile-actions">
 						{#if canEdit}
-							<Button variant="primary" leftIcon="edit" onclick={handleEdit}>Edit Profile</Button>
+							<Button variant="default" leftIcon="edit" onclick={handleEdit}>Edit Profile</Button>
 						{/if}
 
 						{#if canDeactivate && employee.is_active}
 							<Button
-								variant="danger"
+								variant="destructive"
 								leftIcon="user-x"
 								onclick={() => (showDeactivateModal = true)}
 							>
@@ -342,7 +342,7 @@
 					<div class="roles-list">
 						{#if employee.role_assignments && employee.role_assignments.length > 0}
 							{#each employee.role_assignments as assignment}
-								<Badge variant="primary" size="sm">
+								<Badge variant="default" size="sm">
 									{assignment.role.name}
 								</Badge>
 							{/each}
@@ -387,7 +387,7 @@
 			Cancel
 		</Button>
 
-		<Button variant="danger" onclick={handleDeactivate} loading={deactivating}>
+		<Button variant="destructive" onclick={handleDeactivate} loading={deactivating}>
 			Deactivate Employee
 		</Button>
 	{/snippet}

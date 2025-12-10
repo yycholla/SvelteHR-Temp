@@ -107,7 +107,7 @@
 		{ value: '', label: 'All Assignees' },
 		...$users.map((user) => ({
 			value: user.id,
-			label: user.display_name
+			label: user.displayName
 		}))
 	];
 
@@ -224,7 +224,7 @@
 
 		<div class="page-header__actions">
 			{#if auth.user && auth.hasPermission('task:create')}
-				<Button variant="primary" leftIcon="plus" onclick={() => goto('/tasks/new')}>
+				<Button variant="default" leftIcon="plus" onclick={() => goto('/tasks/new')}>
 					Create Task
 				</Button>
 			{/if}
@@ -305,7 +305,7 @@
 
 					{#if auth.user && auth.hasPermission('task:delete')}
 						<Button
-							variant="danger"
+							variant="destructive"
 							size="sm"
 							leftIcon="trash-2"
 							onclick={() => handleBulkAction('delete')}

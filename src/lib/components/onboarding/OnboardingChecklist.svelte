@@ -172,10 +172,10 @@
 												<span class="task-title">{task.title}</span>
 												<div class="task-badges">
 													{#if task.is_required}
-														<Badge variant="danger" size="xs">Required</Badge>
+														<Badge variant="destructive" size="xs">Required</Badge>
 													{/if}
 													{#if getPriorityLevel(task) === 'high'}
-														<Badge variant="danger" size="xs">Urgent</Badge>
+														<Badge variant="destructive" size="xs">Urgent</Badge>
 													{/if}
 												</div>
 											</div>
@@ -229,7 +229,7 @@
 												</Button>
 											{:else if task.status === 'InProgress'}
 												<Button
-													variant="primary"
+													variant="default"
 													size="sm"
 													leftIcon="check"
 													onclick={() => handleTaskAction(task, 'complete')}
@@ -296,14 +296,14 @@
 						label="Completion Notes (Optional)"
 						bind:value={taskNotes}
 						placeholder="Add any notes about completing this task..."
-						rows="4"
+						rows={4}
 					/>
 				</div>
 			</div>
 
 			<div class="modal-footer">
 				<Button variant="secondary" onclick={cancelCompletion}>Cancel</Button>
-				<Button variant="primary" leftIcon="check" onclick={handleCompleteWithNotes}>
+				<Button variant="default" leftIcon="check" onclick={handleCompleteWithNotes}>
 					Mark Complete
 				</Button>
 			</div>

@@ -40,10 +40,7 @@ interface CreateBulkRollbackBatchResponse {
 	};
 }
 
-const mockCreateBulkRollbackBatch = vi.fn<
-	[CreateBulkRollbackBatchVariables],
-	Promise<CreateBulkRollbackBatchResponse>
->();
+const mockCreateBulkRollbackBatch = vi.fn<Promise<CreateBulkRollbackBatchResponse>>();
 
 describe('CreateBulkRollbackBatch Mutation Contract (TDD RED - should fail)', () => {
 	beforeEach(() => {

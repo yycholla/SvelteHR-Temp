@@ -180,7 +180,7 @@
 						label="Description"
 						bind:value={formData.description}
 						placeholder="Brief description of the department's purpose and responsibilities"
-						rows="3"
+						rows={3}
 					/>
 				</div>
 			</div>
@@ -276,7 +276,7 @@
 
 			<Button
 				type="submit"
-				variant="primary"
+				variant="default"
 				size="md"
 				loading={isSubmitting}
 				leftIcon={mode === 'create' ? 'plus' : 'save'}

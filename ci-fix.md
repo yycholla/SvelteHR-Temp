@@ -7,17 +7,17 @@
 
 ## Executive Summary
 
-| Job                   | Status     | Errors                                                    | Effort | Priority |
-| --------------------- | ---------- | --------------------------------------------------------- | ------ | -------- |
-| Lint                  | ✅ PASSING | 0 errors, 5261 warnings                                   | -      | -        |
-| Type Check            | ❌ FAILING | 1,890 type errors, 28 warnings                            | HIGH   | MEDIUM   |
-| Unit Tests (Frontend) | ❓ PENDING | Fixed (waiting for CI verification)                       | DONE   | -        |
-| Backend Tests (Rust)  | ✅ PASSING | 0 errors (Commit ec3c496f)                                | DONE   | -        |
-| E2E Tests             | ⏭️ SKIPPED | Blocked by Type Check                                     | -      | -        |
-| Integration Tests     | ⏭️ SKIPPED | Blocked by Type Check                                     | -      | -        |
-| GraphQL Tests         | ⏭️ SKIPPED | Blocked by Type Check                                     | -      | -        |
-| Contract Tests        | ⏭️ SKIPPED | Blocked by Type Check                                     | -      | -        |
-| Production Build      | ⏭️ SKIPPED | Blocked by Type Check                                     | -      | -        |
+| Job                   | Status     | Errors                              | Effort | Priority |
+| --------------------- | ---------- | ----------------------------------- | ------ | -------- |
+| Lint                  | ✅ PASSING | 0 errors, 5261 warnings             | -      | -        |
+| Type Check            | ❌ FAILING | 1,890 type errors, 28 warnings      | HIGH   | MEDIUM   |
+| Unit Tests (Frontend) | ❓ PENDING | Fixed (waiting for CI verification) | DONE   | -        |
+| Backend Tests (Rust)  | ✅ PASSING | 0 errors (Commit ec3c496f)          | DONE   | -        |
+| E2E Tests             | ⏭️ SKIPPED | Blocked by Type Check               | -      | -        |
+| Integration Tests     | ⏭️ SKIPPED | Blocked by Type Check               | -      | -        |
+| GraphQL Tests         | ⏭️ SKIPPED | Blocked by Type Check               | -      | -        |
+| Contract Tests        | ⏭️ SKIPPED | Blocked by Type Check               | -      | -        |
+| Production Build      | ⏭️ SKIPPED | Blocked by Type Check               | -      | -        |
 
 ---
 
@@ -213,6 +213,7 @@ error[E0063]: missing fields `mobile_number`, `nickname`, `birth_date`, `social_
 ### Fixes Applied:
 
 **1. Commented out tests for undefined functions** (`src/middleware/request_limits.rs`):
+
 ```rust
 // TODO: Implement sanitize_graphql_input() function before re-enabling these tests
 // #[test]
@@ -228,6 +229,7 @@ error[E0063]: missing fields `mobile_number`, `nickname`, `birth_date`, `social_
 ```
 
 **2. Fixed ErrorCode enum variant names** (`tests/utils_tests.rs`):
+
 ```rust
 // Before:
 assert_eq!(ErrorCode::UNAUTHENTICATED.as_str(), "UNAUTHENTICATED");
@@ -239,6 +241,7 @@ assert_eq!(ErrorCode::Forbidden.as_str(), "FORBIDDEN");
 ```
 
 **3. Added missing UserActiveModel fields** (2 test files):
+
 - `tests/rls_integration_tests.rs` (line 216)
 - `tests/graphql_query_edge_cases_tests.rs` (line 684)
 
@@ -256,6 +259,7 @@ let user = UserActiveModel {
 ```
 
 **4. Fixed crate import path** (`src/schema/query.rs` line 2128):
+
 ```rust
 // Before:
 use hr_graphql_server::testing::{TestContext, TestUserRole};

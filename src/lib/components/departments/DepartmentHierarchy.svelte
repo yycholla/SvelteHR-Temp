@@ -169,7 +169,7 @@
 						<p class="mt-2 text-sm text-gray-600">Get started by creating your first department.</p>
 						{#if $currentUser && hasPermission('department:create')}
 							<Button
-								variant="primary"
+								variant="default"
 								size="md"
 								leftIcon="plus"
 								onclick={() => goto('/departments/new')}
@@ -263,7 +263,7 @@
 
 						{#if $currentUser && hasPermission('department:update')}
 							<Button
-								variant="primary"
+								variant="default"
 								size="sm"
 								leftIcon="edit"
 								onclick={() => goto(`/departments/${selectedDepartment.id}/edit`)}

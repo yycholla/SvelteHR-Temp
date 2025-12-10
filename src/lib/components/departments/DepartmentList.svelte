@@ -243,7 +243,7 @@
 						View Hierarchy
 					</Button>
 
-					<Button variant="primary" leftIcon="plus" onclick={() => goto('/departments/new')}>
+					<Button variant="default" leftIcon="plus" onclick={() => goto('/departments/new')}>
 						Add Department
 					</Button>
 				{/if}

@@ -20,6 +20,12 @@ import type {
 import type { RetryHandler } from '$lib/utils/retry-handler';
 import type { CacheInvalidator } from '$lib/utils/cache-management';
 
+// Mock CacheInvalidator interface for testing
+interface MockCacheInvalidator {
+	invalidate: ReturnType<typeof vi.fn>;
+	warmCache: ReturnType<typeof vi.fn>;
+}
+
 // Mock the dashboard page load function - MUST throw until implementation exists
 const mockDashboardLoad = vi.fn().mockImplementation(() => {
 	throw new Error('Dashboard page load function not implemented - TDD compliance');
@@ -54,7 +60,7 @@ const mockRetryHandler: Partial<RetryHandler> = {
 };
 
 // Mock cache invalidator
-const mockCacheInvalidator: Partial<CacheInvalidator> = {
+const mockCacheInvalidator: MockCacheInvalidator = {
 	invalidate: vi.fn(),
 	warmCache: vi.fn()
 };

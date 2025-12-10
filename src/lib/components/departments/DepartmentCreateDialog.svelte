@@ -170,7 +170,7 @@
 						<Select.Item value="">No manager assigned</Select.Item>
 						{#each users as user (user.id)}
 							<Select.Item value={user.id}>
-								{user.display_name || user.email}
+								{user.displayName || user.email}
 								{#if user.role}
 									<span class="text-muted-foreground ml-2 text-xs">
 										({user.role})

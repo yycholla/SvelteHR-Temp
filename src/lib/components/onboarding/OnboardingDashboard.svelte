@@ -29,16 +29,16 @@
 
 	function getStatusVariant(
 		status: string
-	): 'default' | 'secondary' | 'success' | 'warning' | 'danger' {
+	): 'default' | 'secondary' | 'default' | 'outline' | 'destructive' {
 		switch (status) {
 			case 'PreHire':
 				return 'secondary';
 			case 'Onboarding':
-				return 'warning';
+				return 'outline';
 			case 'Active':
-				return 'success';
+				return 'default';
 			case 'Terminated':
-				return 'danger';
+				return 'destructive';
 			default:
 				return 'default';
 		}
@@ -81,7 +81,7 @@
 
 		<div class="header-actions">
 			{#if $currentUser && hasPermission('onboarding:create')}
-				<Button variant="primary" leftIcon="user-plus" onclick={() => goto('/onboarding/new')}>
+				<Button variant="default" leftIcon="user-plus" onclick={() => goto('/onboarding/new')}>
 					Start Onboarding
 				</Button>
 			{/if}
@@ -217,7 +217,7 @@
 					</p>
 					{#if $currentUser && hasPermission('onboarding:create')}
 						<Button
-							variant="primary"
+							variant="default"
 							size="md"
 							leftIcon="user-plus"
 							onclick={() => goto('/onboarding/new')}
@@ -298,7 +298,7 @@
 
 							{#if $currentUser && hasPermission('onboarding:update') && instance.status === 'Onboarding'}
 								<Button
-									variant="primary"
+									variant="default"
 									size="sm"
 									leftIcon="check"
 									onclick={() => goto(`/onboarding/${instance.id}/tasks`)}

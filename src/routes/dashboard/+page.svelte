@@ -58,7 +58,7 @@
 	function getStatusVariant(status: string) {
 		switch (status) {
 			case 'DONE':
-				return 'success';
+				return 'default';
 			case 'IN_PROGRESS':
 				return 'default';
 			case 'TODO':

@@ -40,8 +40,8 @@
 	const statusColor = $derived(() => {
 		if (!hasCapacityLimit) return 'default';
 		if (isFull) return 'destructive';
-		if (percentFull >= 90) return 'warning';
-		return 'success';
+		if (percentFull >= 90) return 'outline';
+		return 'default';
 	});
 
 	const statusText = $derived(() => {
@@ -64,7 +64,7 @@
 		{#if isFull}
 			<Badge variant="destructive" class="ml-1">Full</Badge>
 		{:else if spotsRemaining !== null && spotsRemaining <= 5 && spotsRemaining > 0}
-			<Badge variant="warning" class="ml-1">{spotsRemaining} left</Badge>
+			<Badge variant="outline" class="ml-1">{spotsRemaining} left</Badge>
 		{/if}
 	</div>
 {:else}
@@ -78,7 +78,7 @@
 			{#if isFull}
 				<Badge variant="destructive">Full</Badge>
 			{:else if spotsRemaining !== null && spotsRemaining <= 5 && spotsRemaining > 0}
-				<Badge variant="warning">{spotsRemaining} spots left</Badge>
+				<Badge variant="outline">{spotsRemaining} spots left</Badge>
 			{/if}
 		</div>
 

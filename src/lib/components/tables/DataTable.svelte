@@ -129,7 +129,7 @@
 		column: Column,
 		value: any,
 		row: TableData
-	): 'info' | 'success' | 'warning' | 'light' | 'dark' | 'primary' | 'secondary' | 'danger' {
+	): 'default' | 'secondary' | 'destructive' | 'outline' {
 		if (column.badgeVariant) {
 			return column.badgeVariant(value, row) as any;
 		}
