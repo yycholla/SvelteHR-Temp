@@ -26,6 +26,14 @@
 	} = $props();
 </script>
 
+{#snippet childrenSnippet()}
+	<span data-testid="children">{childrenText}</span>
+{/snippet}
+
+{#snippet fallbackSnippet()}
+	<span data-testid="fallback">{fallbackText}</span>
+{/snippet}
+
 <PermissionGuard
 	{permissions}
 	{requires}
@@ -33,14 +41,7 @@
 	{inverse}
 	{as}
 	class={className}
+	children={childrenSnippet}
+	fallback={fallbackText ? fallbackSnippet : undefined}
 	{...restProps}
->
-	{#snippet children()}
-		<span data-testid="children">{childrenText}</span>
-	{/snippet}
-	{#if fallbackText}
-		{#snippet fallback()}
-			<span data-testid="fallback">{fallbackText}</span>
-		{/snippet}
-	{/if}
-</PermissionGuard>
+/>
