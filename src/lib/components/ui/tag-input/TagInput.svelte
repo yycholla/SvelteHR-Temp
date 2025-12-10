@@ -61,7 +61,9 @@
 
 	// Selected option objects for display
 	const selectedOptions = $derived(
-		selected.map((val) => options.find((opt) => opt.value === val)).filter(Boolean)
+		selected
+			.map((val) => options.find((opt) => opt.value === val))
+			.filter((opt): opt is Option => opt !== undefined)
 	);
 
 	// Check if max selections reached
@@ -234,7 +236,7 @@
 			type="text"
 			class="flex-1 bg-transparent outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed min-w-[120px]"
 			placeholder={selected.length === 0 ? placeholder : ''}
-			disabled={disabled || maxReached}
+			disabled={disabled || Boolean(maxReached)}
 			onfocus={handleFocus}
 			onblur={handleBlur}
 			oninput={handleInput}
