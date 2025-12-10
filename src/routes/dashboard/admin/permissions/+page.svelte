@@ -91,14 +91,14 @@
 
 	// Group permissions by resource for better organization
 	const permissionsByResource = $derived(
-		data.permissions.reduce((acc: Record<string, any[]>, permission: any) => {
+		data.permissions.reduce((acc: Record<string, Permission[]>, permission: Permission) => {
 			const resource = permission.resource || 'general';
 			if (!acc[resource]) {
 				acc[resource] = [];
 			}
 			acc[resource].push(permission);
 			return acc;
-		}, {})
+		}, {} as Record<string, Permission[]>)
 	);
 
 	// Helper functions
@@ -597,10 +597,11 @@
 
 			<div class="space-y-4">
 				{#each Object.entries(permissionsByResource) as [resource, permissions]}
+					{@const typedPermissions = permissions as Permission[]}
 					<div class="rounded-md border p-3">
 						<h4 class="mb-2 font-medium capitalize text-foreground">{resource}</h4>
 						<div class="space-y-2">
-							{#each permissions as permission: Permission}
+							{#each typedPermissions as permission (permission.id)}
 								<label class="flex items-center gap-2 cursor-pointer hover:bg-accent rounded p-2">
 									<input
 										type="checkbox"
