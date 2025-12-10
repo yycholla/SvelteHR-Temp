@@ -24,6 +24,7 @@
 	import type { EventStatus, EventType, EventVisibilityType, RsvpStatus } from '$lib/graphql/types';
 	import { normalizeRsvpStatus } from '$lib/graphql/types';
 	import type {
+		Event,
 		EventComment,
 		EventHistoryEntry,
 		UserWaitlistStatus
@@ -40,6 +41,7 @@
 	} from '$lib/graphql/events-operations';
 	import { sanitizeCommentContent } from '$lib/utils/sanitize';
 	import { createUrqlClient } from '$lib/graphql/client';
+	import type { EventData } from '$lib/components/events/types';
 
 	const { data }: { data: PageData } = $props();
 
@@ -56,8 +58,44 @@
 
 	const timezoneOffset = new Date().getTimezoneOffset();
 
+	// Helper function to convert Event to EventData format
+	function convertEventToEventData(event: Event): EventData {
+		return {
+			id: event.id,
+			title: event.title,
+			description: event.description,
+			startTime: event.startTime,
+			endTime: event.endTime,
+			allDay: event.isAllDay,
+			location: event.location,
+			eventType: event.eventType as EventType,
+			visibilityType: event.isPublic ? ('company' as EventVisibilityType) : ('specific' as EventVisibilityType),
+			status: event.status,
+			organizerId: event.organizerId,
+			rrule: null, // RRULE not yet in GraphQL schema
+			maxCapacity: null, // Capacity not yet in GraphQL schema
+			acceptedCount: event.attendees?.filter(a => normalizeRsvpStatus(a.responseStatus) === 'accepted').length || 0,
+			waitlistCount: 0, // Waitlist count not yet in GraphQL schema
+			waitlistEnabled: false, // Waitlist not yet fully implemented
+			isFull: false,
+			organizer: event.organizer ? {
+				displayName: event.organizer.displayName
+			} : undefined,
+			attendees: event.attendees?.map(a => ({
+				id: a.id,
+				employeeId: a.employeeId,
+				responseStatus: normalizeRsvpStatus(a.responseStatus),
+				reminderTime: null,
+				employee: a.employee ? {
+					displayName: a.employee.displayName
+				} : undefined
+			}))
+		};
+	}
+
 	// State - use $derived for automatic reactive tracking
 	const events = $derived(data.events || []);
+	const eventsAsEventData = $derived(events.map(convertEventToEventData));
 
 	let localRsvpStatuses = $state<Record<string, RsvpStatus>>({});
 	let pendingRsvpUpdates = $state<Record<string, RsvpStatus>>({});
@@ -550,7 +588,7 @@
 		{eventComments}
 		{eventHistory}
 		{userWaitlistStatus}
-		allEvents={events}
+		allEvents={eventsAsEventData}
 		onClose={() => {
 			showDetailsDialog = false;
 			selectedEvent = null;

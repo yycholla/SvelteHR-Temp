@@ -8,6 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 import type { EventDetailsDialogProps } from '$lib/components/events/EventDetailsDialog.svelte';
+import type { EventType, EventVisibilityType } from '$lib/graphql/types';
 
 describe.skip('EventDetailsDialog Contract', () => {
 	it('should accept required props: event, isOpen, userId, onClose', () => {
@@ -18,8 +19,8 @@ describe.skip('EventDetailsDialog Contract', () => {
 			endTime: '2025-10-15T11:00:00Z',
 			allDay: false,
 			status: 'scheduled',
-			eventType: 'meeting',
-			visibilityType: 'company',
+			eventType: 'meeting' as EventType,
+			visibilityType: 'company' as EventVisibilityType,
 			organizerId: 'user-123',
 			rrule: null,
 			attendees: []
@@ -48,8 +49,8 @@ describe.skip('EventDetailsDialog Contract', () => {
 			endTime: '2025-10-15T11:00:00Z',
 			allDay: false,
 			status: 'scheduled',
-			eventType: 'meeting',
-			visibilityType: 'company',
+			eventType: 'meeting' as EventType,
+			visibilityType: 'company' as EventVisibilityType,
 			organizerId: 'user-123',
 			rrule: null,
 			attendees: []
@@ -63,10 +64,11 @@ describe.skip('EventDetailsDialog Contract', () => {
 		};
 
 		const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-		expect(uuidRegex.test(props.event.id)).toBe(true);
-		expect(props.event.title).toBeDefined();
-		expect(props.event.startTime).toBeDefined();
-		expect(props.event.endTime).toBeDefined();
+		expect(props.event).toBeDefined();
+		expect(uuidRegex.test(props.event!.id)).toBe(true);
+		expect(props.event!.title).toBeDefined();
+		expect(props.event!.startTime).toBeDefined();
+		expect(props.event!.endTime).toBeDefined();
 	});
 
 	it('should validate isOpen is boolean', () => {
@@ -77,8 +79,8 @@ describe.skip('EventDetailsDialog Contract', () => {
 			endTime: '2025-10-15T11:00:00Z',
 			allDay: false,
 			status: 'scheduled',
-			eventType: 'meeting',
-			visibilityType: 'company',
+			eventType: 'meeting' as EventType,
+			visibilityType: 'company' as EventVisibilityType,
 			organizerId: 'user-123',
 			rrule: null,
 			attendees: []
@@ -114,8 +116,8 @@ describe.skip('EventDetailsDialog Contract', () => {
 			endTime: '2025-10-15T11:00:00Z',
 			allDay: false,
 			status: 'scheduled',
-			eventType: 'meeting',
-			visibilityType: 'company',
+			eventType: 'meeting' as EventType,
+			visibilityType: 'company' as EventVisibilityType,
 			organizerId: 'user-123',
 			rrule: null,
 			attendees: []
