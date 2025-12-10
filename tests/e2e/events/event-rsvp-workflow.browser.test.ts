@@ -145,7 +145,7 @@ describe('Event RSVP Workflow (Vitest Browser)', () => {
 			await waitFor(500);
 
 			// Verify URL updated
-			const currentUrl = page.url();
+			const currentUrl = window.location.href;
 			expect(currentUrl).toContain('visibility=');
 		}
 
@@ -156,7 +156,7 @@ describe('Event RSVP Workflow (Vitest Browser)', () => {
 			await waitFor(500);
 
 			// Verify URL updated
-			const currentUrl = page.url();
+			const currentUrl = window.location.href;
 			expect(currentUrl).toContain('status=');
 		}
 
@@ -167,7 +167,7 @@ describe('Event RSVP Workflow (Vitest Browser)', () => {
 			await waitFor(500);
 
 			// Verify URL updated
-			const currentUrl = page.url();
+			const currentUrl = window.location.href;
 			expect(currentUrl).toContain('eventType=');
 		}
 

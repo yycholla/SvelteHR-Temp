@@ -319,7 +319,7 @@ export function extractNumber(text: string): number {
  * await expectURLMatch('/dashboard');
  */
 export async function expectURLMatch(pattern: string) {
-	const url = await page.url();
+	const url = window.location.href;
 	const regex = new RegExp(pattern.replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*'));
 	expect(url).toMatch(regex);
 }
