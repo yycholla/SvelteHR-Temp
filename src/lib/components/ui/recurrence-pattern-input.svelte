@@ -7,7 +7,7 @@
 	import { Calendar } from '$lib/components/ui/calendar';
 	import { Popover, PopoverContent, PopoverTrigger } from '$lib/components/ui/popover';
 	import { CalendarIcon, X } from '@lucide/svelte';
-	import { DateFormatter, getLocalTimeZone } from '@internationalized/date';
+	import { DateFormatter, getLocalTimeZone, parseDate } from '@internationalized/date';
 	import { cn } from '$lib/utils';
 	import { generateRRule, validate5YearLimit } from '$lib/utils/rrule';
 
@@ -206,7 +206,7 @@
 					<PopoverContent class="w-auto p-0">
 						<Calendar
 							type="single"
-							value={endDate ? new Date(endDate) : undefined}
+							value={endDate ? parseDate(endDate.split('T')[0]) : undefined}
 							onValueChange={(v) => {
 								if (v) {
 									const dateObj = v.toDate(getLocalTimeZone());

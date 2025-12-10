@@ -25,7 +25,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Popover, PopoverContent, PopoverTrigger } from '$lib/components/ui/popover';
 	import { Calendar } from '$lib/components/ui/calendar';
-	import { DateFormatter, getLocalTimeZone } from '@internationalized/date';
+	import { DateFormatter, getLocalTimeZone, parseDate } from '@internationalized/date';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { cn } from '$lib/utils';
@@ -543,7 +543,7 @@
 										<PopoverContent class="w-auto p-0">
 											<Calendar
 												type="single"
-												value={assignmentDueDate ? new Date(assignmentDueDate) : undefined}
+												value={assignmentDueDate ? parseDate(assignmentDueDate.split('T')[0]) : undefined}
 												onValueChange={(v) => {
 													if (v) {
 														const dateObj = v.toDate(getLocalTimeZone());

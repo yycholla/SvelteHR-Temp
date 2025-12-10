@@ -150,7 +150,7 @@ export async function updateSessionPermissions(
 
 		// Update locals with new data
 		if (event.locals.user) {
-			event.locals.user.departmentId = refreshed.departmentId;
+			event.locals.user.departmentId = refreshed.departmentId ?? undefined;
 		}
 		event.locals.roles = refreshed.roles;
 		event.locals.permissions = refreshed.permissions;

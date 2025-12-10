@@ -19,7 +19,7 @@
 	import { Calendar as CalendarComponent } from '$lib/components/ui/calendar';
 	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
 	import { formatDistanceToNow } from 'date-fns';
-	import { DateFormatter, getLocalTimeZone } from '@internationalized/date';
+	import { DateFormatter, getLocalTimeZone, parseDate } from '@internationalized/date';
 	import { onDestroy, onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
@@ -522,7 +522,7 @@
 									<PopoverContent class="w-auto p-0">
 										<CalendarComponent
 											type="single"
-											value={assignmentDueDate ? new Date(assignmentDueDate) : undefined}
+											value={assignmentDueDate ? parseDate(assignmentDueDate.split('T')[0]) : undefined}
 											onValueChange={(v) => {
 												if (v) {
 													const dateObj = v.toDate(getLocalTimeZone());

@@ -85,9 +85,9 @@
 			await client.mutation(CREATE_TASK_TYPE, {
 				input: {
 					name: formData.name,
-					description: formData.description || null,
-					defaultPriority: formData.defaultPriority || null,
-					colorCode: formData.colorCode || null
+					description: formData.description || undefined,
+					defaultPriority: formData.defaultPriority || undefined,
+					colorCode: formData.colorCode || undefined
 				}
 			});
 
@@ -115,9 +115,9 @@
 
 			const updateInput: UpdateTaskTypeInput = {
 				name: formData.name,
-				description: formData.description || null,
-				defaultPriority: formData.defaultPriority || null,
-				colorCode: formData.colorCode || null,
+				description: formData.description || undefined,
+				defaultPriority: formData.defaultPriority || undefined,
+				colorCode: formData.colorCode || undefined,
 				isActive: formData.isActive
 			};
 
