@@ -117,7 +117,7 @@
 	];
 
 	// Filtered users based on search and role filter
-	$: filteredUsers = $users.filter((user) => {
+	$: filteredUsers = $users.filter((user: User) => {
 		const matchesSearch =
 			!searchQuery ||
 			user.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -125,7 +125,7 @@
 
 		const matchesRole =
 			!filterRole ||
-			user.role_assignments?.some((ra) => ra.role.name.toLowerCase() === filterRole.toLowerCase());
+			user.role_assignments?.some((ra: { role: { name: string } }) => ra.role.name.toLowerCase() === filterRole.toLowerCase());
 
 		return matchesSearch && matchesRole;
 	});
@@ -352,7 +352,7 @@
 								<div class="stat-item">
 									<span class="stat-label">Users with this role:</span>
 									<span class="stat-value">
-										{$users.filter((u) => getUserRoles(u).includes(role.value)).length}
+										{$users.filter((u: User) => getUserRoles(u).includes(role.value)).length}
 									</span>
 								</div>
 							</div>
@@ -463,7 +463,7 @@
 
 				<div class="modal-footer">
 					<Button variant="secondary" onclick={closeUserRoleModal}>Cancel</Button>
-					<Button variant="default" leftIcon="save" onclick={saveUserRoles}>Save Roles</Button>
+					<Button variant="primary" leftIcon="save" onclick={saveUserRoles}>Save Roles</Button>
 				</div>
 			</div>
 		</div>

@@ -200,7 +200,7 @@
 				{#if showActions}
 					<div class="profile-actions">
 						{#if canEdit}
-							<Button variant="default" leftIcon="edit" onclick={handleEdit}>Edit Profile</Button>
+							<Button variant="primary" leftIcon="edit" onclick={handleEdit}>Edit Profile</Button>
 						{/if}
 
 						{#if canDeactivate && employee.is_active}

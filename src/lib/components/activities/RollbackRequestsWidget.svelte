@@ -164,7 +164,7 @@
 			<div class="mt-4 flex gap-2">
 				<Button
 					size="sm"
-					variant="default"
+	variant="primary"
 					href="/dashboard/activities/rollback-requests"
 					class="flex-1"
 				>

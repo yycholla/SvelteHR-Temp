@@ -919,7 +919,7 @@
 				}}>Cancel</Button
 			>
 			<Button
-				variant="default"
+	variant="primary"
 				onclick={confirmRevert}
 				disabled={isSubmitting}
 				class="bg-amber-600 hover:bg-amber-700"

@@ -32,7 +32,7 @@
 
 	// Filtered users based on search query
 	const filteredUsers = $derived(
-		data.users.filter((user) => {
+		data.users.filter((user: { email?: string; display_name?: string; full_name?: string }) => {
 			if (!searchQuery) return true;
 			const query = searchQuery.toLowerCase();
 			return (

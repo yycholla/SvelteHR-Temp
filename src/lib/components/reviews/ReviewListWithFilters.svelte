@@ -433,7 +433,7 @@
 										View
 									</Button>
 									{#if review.status === 'DRAFT'}
-										<Button variant="default" size="sm" onclick={() => handleEdit(review)}>
+										<Button variant="primary" size="sm" onclick={() => handleEdit(review)}>
 											<Edit class="mr-2 h-4 w-4" />
 											Edit
 										</Button>

@@ -295,7 +295,7 @@
 						<div class="flex gap-2">
 							<Button
 								size="sm"
-								variant="default"
+	variant="primary"
 								onclick={handleBulkApprove}
 								disabled={!canBulkApprove}
 							>

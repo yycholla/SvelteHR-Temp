@@ -71,17 +71,17 @@
 	// Assignees
 	const assigneeOptions = $derived([
 		{ value: '', label: 'Unassigned' },
-		...data.assignees.map((u) => ({ value: `user:${u.id}`, label: u.displayName })),
-		...data.departments.map((d) => ({ value: `dept:${d.id}`, label: `${d.name} (Department)` }))
+		...data.assignees.map((u: { id: string; displayName: string }) => ({ value: `user:${u.id}`, label: u.displayName })),
+		...data.departments.map((d: { id: string; name: string }) => ({ value: `dept:${d.id}`, label: `${d.name} (Department)` }))
 	]);
 
 	// Task Types
-	const taskTypeOptions = $derived(data.taskTypes.map((t) => ({ value: t.id, label: t.name })));
+	const taskTypeOptions = $derived(data.taskTypes.map((t: { id: string; name: string }) => ({ value: t.id, label: t.name })));
 
 	// Parent Tasks
 	const parentTaskOptions = $derived([
 		{ value: '', label: 'None' },
-		...data.parentTasks.map((t) => ({ value: t.id, label: t.title }))
+		...data.parentTasks.map((t: { id: string; title: string }) => ({ value: t.id, label: t.title }))
 	]);
 
 	// Status options
