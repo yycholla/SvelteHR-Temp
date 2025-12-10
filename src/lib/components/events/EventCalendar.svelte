@@ -67,7 +67,7 @@
 				title: event.title,
 				backgroundColor: colorMap[rsvpStatus],
 				borderColor: colorMap[rsvpStatus],
-				allDay: event.allDay,
+				allDay: event.isAllDay,
 				extendedProps: {
 					...event,
 					rsvpStatus,

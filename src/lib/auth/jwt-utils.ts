@@ -188,19 +188,18 @@ export async function generateJWTToken(payload: Partial<JWTPayload>): Promise<st
 		expiresInSeconds = parseInt(expirationTime);
 	}
 
-	const tokenPayload: JWTPayload = {
+	const tokenPayload = {
 		user_id: payload.user_id || '',
 		email: payload.email || '',
 		role: payload.role || 'employee',
-		permissions: payload.permissions || [],
-		iat: now,
-		exp: now + expiresInSeconds,
-		iss: authConfig.jwt.issuer,
-		aud: authConfig.jwt.audience
+		permissions: payload.permissions || []
 	};
 
 	return jwt.sign(tokenPayload, JWT_SECRET, {
-		algorithm: authConfig.jwt.algorithm as any
+		algorithm: authConfig.jwt.algorithm as any,
+		expiresIn: expiresInSeconds,
+		issuer: authConfig.jwt.issuer,
+		audience: authConfig.jwt.audience
 	});
 }
 

@@ -228,9 +228,9 @@
 				<div>
 					<div class="text-sm font-medium text-foreground">Date & Time</div>
 					<div class="text-sm text-muted-foreground">
-						{formatEventTimeRange(data.event.startTime, data.event.endTime, data.event.allDay)}
+						{formatEventTimeRange(data.event.startTime, data.event.endTime, data.event.isAllDay)}
 					</div>
-					{#if data.event.allDay}
+					{#if data.event.isAllDay}
 						<span
 							class="mt-1 inline-block rounded-md bg-primary/10 px-2 py-0.5 text-xs text-primary"
 						>

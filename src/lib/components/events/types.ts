@@ -6,7 +6,7 @@ export interface EventData {
 	description?: string;
 	startTime: string;
 	endTime: string;
-	allDay?: boolean;
+	isAllDay?: boolean;
 	location?: string;
 	eventType: EventType;
 	visibilityType?: EventVisibilityType;

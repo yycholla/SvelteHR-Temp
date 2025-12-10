@@ -18,7 +18,7 @@
 	let description = $state(event.description || '');
 	let startTime = $state(event.startTime.slice(0, 16));
 	let endTime = $state(event.endTime.slice(0, 16));
-	let isAllDay = $state(event.allDay || false);
+	let isAllDay = $state(event.isAllDay || false);
 	let location = $state(event.location || '');
 	let eventType = $state<EventType>(event.eventType);
 	let visibilityType = $state<EventVisibilityType>(event.visibilityType || 'company');

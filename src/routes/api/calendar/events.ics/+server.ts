@@ -133,7 +133,7 @@ function generateVEvent(event: any): string[] {
 	lines.push(`DTSTAMP:${formatICalDate(now)}`);
 
 	// Start and end times
-	if (event.allDay) {
+	if (event.isAllDay) {
 		// All-day events use VALUE=DATE format (YYYYMMDD)
 		const startDate = new Date(event.startTime);
 		const endDate = new Date(event.endTime);

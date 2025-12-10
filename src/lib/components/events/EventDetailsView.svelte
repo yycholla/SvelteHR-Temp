@@ -383,9 +383,9 @@
 					<div>
 						<div class="text-sm font-medium text-foreground mb-1">Date & Time</div>
 						<div class="text-sm text-muted-foreground">
-							{formatEventTimeRange(event.startTime, event.endTime, event.allDay)}
+							{formatEventTimeRange(event.startTime, event.endTime, event.isAllDay)}
 						</div>
-						{#if event.allDay}
+						{#if event.isAllDay}
 							<span
 								class="mt-1 inline-block rounded-md bg-primary/10 px-2 py-0.5 text-xs text-primary"
 							>

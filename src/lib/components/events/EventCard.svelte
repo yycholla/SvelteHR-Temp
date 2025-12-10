@@ -30,7 +30,7 @@
 	const isUpcoming = $derived(isEventUpcoming(event));
 	const isOngoing = $derived(isEventOngoing(event));
 	const eventTypeLabel = $derived(EVENT_TYPE_LABELS[event.eventType] || event.eventType);
-	const timeRange = $derived(formatEventTimeRange(event.startTime, event.endTime, event.allDay));
+	const timeRange = $derived(formatEventTimeRange(event.startTime, event.endTime, event.isAllDay));
 
 	// Get hex color based on RSVP status (4 distinct colors)
 	function getRsvpStatusHexColor(status: RsvpStatus | null): string {

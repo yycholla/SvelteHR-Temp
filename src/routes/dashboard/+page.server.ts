@@ -888,7 +888,7 @@ function generateUpcomingEventsFromDatabase(events: any[], userId: string, limit
 			month: 'short',
 			day: 'numeric'
 		});
-		const timeStr = event.allDay
+		const timeStr = event.isAllDay
 			? 'All Day'
 			: startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 		const userAttendee = event.attendees?.find((a: any) => a.employeeId === userId);

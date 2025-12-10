@@ -59,9 +59,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		});
 
 		// Check for GraphQL errors
-		if (result.error) {
-			console.error('[SETTINGS UPDATE] GraphQL error:', result.error);
-			throw svelteError(500, result.error.message || 'Failed to update settings');
+		if (result.errors) {
+			console.error('[SETTINGS UPDATE] GraphQL errors:', result.errors);
+			throw svelteError(500, result.errors[0]?.message || 'Failed to update settings');
 		}
 
 		// Return success

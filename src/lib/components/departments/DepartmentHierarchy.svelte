@@ -189,10 +189,10 @@
 							isSelected={selectedDepartment?.id === node.department.id}
 							canEdit={$currentUser && hasPermission('department:update')}
 							{expandAll}
-							ontoggle={(e) => toggleNode(e.detail)}
-							onselect={(e) => selectDepartment(e.detail)}
-							onedit={(e) => goto(`/departments/${e.detail}/edit`)}
-							onview={(e) => goto(`/departments/${e.detail}`)}
+							ontoggle={(id) => toggleNode(id)}
+							onselect={(dept) => selectDepartment(dept)}
+							onedit={(id) => goto(`/departments/${id}/edit`)}
+							onview={(id) => goto(`/departments/${id}`)}
 						/>
 					{/each}
 				</div>

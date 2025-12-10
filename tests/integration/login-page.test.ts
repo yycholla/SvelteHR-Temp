@@ -301,8 +301,12 @@ describe('Login Page Integration (T018)', () => {
 					refreshToken: 'refresh-token-67890',
 					expiresAt: '2024-01-15T18:00:00Z'
 				},
-				pagination: null,
-				errors: []
+				authData: {
+					token: 'jwt-token-12345',
+					refreshToken: 'refresh-token-67890',
+					expiresAt: '2024-01-15T18:00:00Z',
+					tokenType: 'Bearer'
+				}
 			};
 
 			mockLoginUser.mockResolvedValueOnce(authResponse);
@@ -365,8 +369,12 @@ describe('Login Page Integration (T018)', () => {
 					refreshToken: 'new-refresh-token-09876',
 					expiresAt: '2024-01-15T19:00:00Z'
 				},
-				pagination: null,
-				errors: []
+				authData: {
+					token: 'new-jwt-token-54321',
+					refreshToken: 'new-refresh-token-09876',
+					expiresAt: '2024-01-15T19:00:00Z',
+					tokenType: 'Bearer'
+				}
 			};
 
 			mockVerifyUserAuthentication.mockRejectedValueOnce(expiredTokenError);
@@ -402,8 +410,12 @@ describe('Login Page Integration (T018)', () => {
 				refreshToken: 'secure-refresh-token',
 				expiresAt: '2024-01-15T18:00:00Z'
 			},
-			pagination: null,
-			errors: []
+			authData: {
+				token: 'secure-jwt-token',
+				refreshToken: 'secure-refresh-token',
+				expiresAt: '2024-01-15T18:00:00Z',
+				tokenType: 'Bearer'
+			}
 		};
 
 		mockLoginUser.mockResolvedValueOnce(authResponse);

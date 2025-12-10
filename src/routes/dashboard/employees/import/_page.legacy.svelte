@@ -123,12 +123,22 @@ JOHNSON, ROBERT,2024-03-10,HR Manager</pre>
 		<div class="mb-6 rounded-lg border border-success/50 bg-success/10 p-6">
 			<h3 class="mb-2 text-lg font-semibold text-success-foreground">Import Completed</h3>
 			<div class="text-sm text-success-foreground">
-				<p>Total rows processed: {form.totalRows}</p>
-				<p>Successful: {form.successful}</p>
-				<p>Failed: {form.failed}</p>
+				{#if 'totalRows' in form}
+					<p>Total rows processed: {form.totalRows}</p>
+				{/if}
+				{#if 'successful' in form}
+					<p>Successful: {form.successful}</p>
+				{/if}
+				{#if 'failed' in form}
+					<p>Failed: {form.failed}</p>
+				{/if}
+				{#if !('totalRows' in form) && form.job}
+					<p>Import job created: {form.job.id}</p>
+					<p>Step: {form.step}</p>
+				{/if}
 			</div>
 
-			{#if form.results && form.results.length > 0}
+			{#if 'results' in form && Array.isArray(form.results) && form.results.length > 0}
 				<div class="mt-4 max-h-96 overflow-auto">
 					<table class="w-full text-sm">
 						<thead class="sticky top-0 bg-card">

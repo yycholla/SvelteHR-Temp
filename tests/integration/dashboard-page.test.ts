@@ -220,30 +220,31 @@ describe('Dashboard Page Integration (T017)', () => {
 		it('should render dashboard page with proper data integration', async () => {
 			// Arrange
 			const mockDashboardData: GetCompleteDashboardDataResponse = {
-				success: true,
-				data: {
+				dashboardData: {
 					metrics: {
-						totalEmployees: 150,
-						activeProjects: 12,
-						pendingReviews: 8,
-						upcomingDeadlines: 3
+						attendanceRate: 0.95,
+						pendingRequests: 8,
+						taskCount: 12,
+						remainingVacationDays: 15
 					},
-					recentActivity: [
+					user: {
+						userId: 'user-123',
+						userName: 'Admin User',
+						userEmail: 'admin@example.com',
+						userRole: 'HR_Manager'
+					},
+					activities: [
 						{
-							id: 'activity-1',
-							type: 'employee_hired',
-							message: 'New employee John Doe joined Marketing',
-							timestamp: '2024-01-15T10:00:00Z'
+							activityId: 'activity-1',
+							activityType: 'employee_hired',
+							activityDescription: 'New employee John Doe joined Marketing',
+							activityTimestamp: '2024-01-15T10:00:00Z',
+							activityUser: 'Admin User'
 						}
 					],
-					quickStats: {
-						departmentCount: 8,
-						averageSalary: 75000,
-						retentionRate: 0.92
-					}
-				},
-				pagination: null,
-				errors: []
+					tasks: [],
+					upcomingEvents: []
+				}
 			};
 
 			// Mock successful data loading
@@ -326,35 +327,43 @@ describe('Dashboard Page Integration (T017)', () => {
 		it('should handle real-time dashboard metric updates via cache invalidation', async () => {
 			// Arrange
 			const initialData: GetCompleteDashboardDataResponse = {
-				success: true,
-				data: {
+				dashboardData: {
 					metrics: {
-						totalEmployees: 150,
-						activeProjects: 12,
-						pendingReviews: 8,
-						upcomingDeadlines: 3
+						attendanceRate: 0.95,
+						pendingRequests: 8,
+						taskCount: 12,
+						remainingVacationDays: 15
 					},
-					recentActivity: [],
-					quickStats: { departmentCount: 8, averageSalary: 75000, retentionRate: 0.92 }
-				},
-				pagination: null,
-				errors: []
+					user: {
+						userId: 'user-123',
+						userName: 'Admin User',
+						userEmail: 'admin@example.com',
+						userRole: 'HR_Manager'
+					},
+					activities: [],
+					tasks: [],
+					upcomingEvents: []
+				}
 			};
 
 			const updatedData: GetCompleteDashboardDataResponse = {
-				success: true,
-				data: {
+				dashboardData: {
 					metrics: {
-						totalEmployees: 151,
-						activeProjects: 12,
-						pendingReviews: 7,
-						upcomingDeadlines: 3
+						attendanceRate: 0.96,
+						pendingRequests: 7,
+						taskCount: 12,
+						remainingVacationDays: 15
 					},
-					recentActivity: [],
-					quickStats: { departmentCount: 8, averageSalary: 75000, retentionRate: 0.92 }
-				},
-				pagination: null,
-				errors: []
+					user: {
+						userId: 'user-123',
+						userName: 'Admin User',
+						userEmail: 'admin@example.com',
+						userRole: 'HR_Manager'
+					},
+					activities: [],
+					tasks: [],
+					upcomingEvents: []
+				}
 			};
 
 			// Act & Assert - Should throw until implementation exists
