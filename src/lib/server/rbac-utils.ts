@@ -5,7 +5,6 @@
 
 import { error, redirect } from '@sveltejs/kit';
 import type { RequestEvent } from '@sveltejs/kit';
-import type { App } from '../../../app.d.ts';
 
 export interface RBACConfig {
 	requiredPermissions?: string[];
