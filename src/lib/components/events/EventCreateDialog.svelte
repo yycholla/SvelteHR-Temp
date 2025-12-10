@@ -17,7 +17,7 @@
 	import ImageUploadWidget from './ImageUploadWidget.svelte';
 	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
 	import { generateRRule, validate5YearLimit } from '$lib/utils/rrule';
-	import type { RecurrencePattern } from '$lib/utils/rrule';
+	import type { DayOfWeek } from '$lib/types/events';
 
 	// Export type definitions for test imports
 	export interface EventCreateDialogProps {
@@ -59,7 +59,7 @@
 	let isRecurring = $state(false);
 	let recurrenceFrequency = $state<'daily' | 'weekly' | 'monthly' | 'yearly'>('weekly');
 	let recurrenceInterval = $state(1);
-	let recurrenceDaysOfWeek = $state<number[]>([]);
+	let recurrenceDaysOfWeek = $state<DayOfWeek[]>([]);
 	let recurrenceEndDate = $state('');
 
 	// Feature 027: Image upload state
@@ -89,14 +89,14 @@
 	const timezoneOffset = new Date().getTimezoneOffset();
 
 	// Weekday options for weekly recurrence
-	const WEEKDAYS = [
-		{ value: 0, label: 'Sun' },
-		{ value: 1, label: 'Mon' },
-		{ value: 2, label: 'Tue' },
-		{ value: 3, label: 'Wed' },
-		{ value: 4, label: 'Thu' },
-		{ value: 5, label: 'Fri' },
-		{ value: 6, label: 'Sat' }
+	const WEEKDAYS: Array<{ value: DayOfWeek; label: string }> = [
+		{ value: 0 as DayOfWeek, label: 'Sun' },
+		{ value: 1 as DayOfWeek, label: 'Mon' },
+		{ value: 2 as DayOfWeek, label: 'Tue' },
+		{ value: 3 as DayOfWeek, label: 'Wed' },
+		{ value: 4 as DayOfWeek, label: 'Thu' },
+		{ value: 5 as DayOfWeek, label: 'Fri' },
+		{ value: 6 as DayOfWeek, label: 'Sat' }
 	];
 
 	// Handle all-day toggle
@@ -124,11 +124,11 @@
 	}
 
 	// Toggle weekday selection
-	function toggleWeekday(day: number) {
+	function toggleWeekday(day: DayOfWeek) {
 		if (recurrenceDaysOfWeek.includes(day)) {
 			recurrenceDaysOfWeek = recurrenceDaysOfWeek.filter((d) => d !== day);
 		} else {
-			recurrenceDaysOfWeek = [...recurrenceDaysOfWeek, day].sort();
+			recurrenceDaysOfWeek = [...recurrenceDaysOfWeek, day].sort() as DayOfWeek[];
 		}
 	}
 
@@ -183,7 +183,7 @@
 
 		// Add RRULE to form data if recurring
 		if (isRecurring && recurrenceEndDate) {
-			const pattern: RecurrencePattern = {
+			const pattern = {
 				frequency: recurrenceFrequency,
 				interval: recurrenceInterval,
 				daysOfWeek: recurrenceDaysOfWeek,
@@ -291,7 +291,10 @@
 								onClose();
 								onSuccess?.();
 							} else if (result.type === 'failure') {
-								const errorMsg = result.data?.error || 'Failed to create event';
+								const errorMsg =
+									typeof result.data?.error === 'string'
+										? result.data.error
+										: 'Failed to create event';
 								toast.error(errorMsg);
 							} else if (result.type === 'error') {
 								toast.error('An unexpected error occurred');

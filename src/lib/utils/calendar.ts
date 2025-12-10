@@ -12,6 +12,17 @@
 import type { CalendarEvent } from '$lib/types/events';
 
 /**
+ * Conflicting event with overlap details
+ */
+export interface ConflictingEvent {
+	id: string;
+	event: CalendarEvent;
+	overlapDuration: number;
+	overlapPercentage: number;
+	severity: 'minor' | 'major';
+}
+
+/**
  * Detects if two events overlap in time
  * Events touch but don't overlap (end1 === start2) returns false
  */
@@ -78,20 +89,8 @@ export function classifySeverity(overlapPercentage: number): 'minor' | 'major' {
 export function findConflictingEvents(
 	targetEvent: CalendarEvent,
 	allEvents: CalendarEvent[]
-): Array<{
-	id: string;
-	event: CalendarEvent;
-	overlapDuration: number;
-	overlapPercentage: number;
-	severity: 'minor' | 'major';
-}> {
-	const conflicts: Array<{
-		id: string;
-		event: CalendarEvent;
-		overlapDuration: number;
-		overlapPercentage: number;
-		severity: 'minor' | 'major';
-	}> = [];
+): ConflictingEvent[] {
+	const conflicts: ConflictingEvent[] = [];
 
 	for (const event of allEvents) {
 		// Skip the target event itself

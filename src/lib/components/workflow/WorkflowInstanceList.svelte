@@ -54,7 +54,7 @@
 	);
 
 	onMount(() => {
-		workflowActions.loadInstances(limit);
+		workflowActions.loadInstances(definitionId || undefined);
 	});
 
 	function handleStatusFilter(status: string) {
@@ -63,7 +63,7 @@
 	}
 
 	function handleRefresh() {
-		workflowActions.loadInstances(limit);
+		workflowActions.loadInstances(definitionId || undefined);
 	}
 
 	function handleViewDetails(instance: any) {

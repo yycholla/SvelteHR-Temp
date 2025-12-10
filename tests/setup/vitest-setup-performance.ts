@@ -20,7 +20,7 @@ afterAll(() => {
 	const report = stopPerformanceMonitoring();
 	console.log('Performance test suite completed:');
 	console.log(`- Total operations: ${report.totalTests}`);
-	console.log(`- Average response time: ${Math.round(report.averageResponseTime)}ms`);
+	console.log(`- Average response time: ${Math.round(report.averageDuration)}ms`);
 	console.log(
 		`- Success rate: ${Math.round((report.performanceTargets.passed / (report.performanceTargets.passed + report.performanceTargets.failed)) * 100)}%`
 	);

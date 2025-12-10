@@ -4,7 +4,7 @@
  */
 
 import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
-import { type Browser, type BrowserContext, type Page, chromium } from 'puppeteer';
+import puppeteer, { type Browser, type BrowserContext, type Page } from 'puppeteer';
 
 // Global test state
 let browser: Browser | null = null;
@@ -20,7 +20,7 @@ const BROWSER_OPTIONS = {
 // Setup browser before all security tests
 beforeAll(async () => {
 	try {
-		browser = await chromium.launch(BROWSER_OPTIONS);
+		browser = await puppeteer.launch(BROWSER_OPTIONS);
 		console.log('[Security Tests] Browser launched successfully');
 	} catch (error) {
 		console.error('[Security Tests] Failed to launch browser:', error);

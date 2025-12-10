@@ -17,8 +17,8 @@ import type {
 	GetCompleteDashboardDataRequest,
 	GetCompleteDashboardDataResponse
 } from '$lib/types/graphql-contracts';
-import type { RetryHandler } from '$lib/utils/retry-handler';
-import type { CacheInvalidator } from '$lib/utils/cache-management';
+import { RetryHandler } from '$lib/utils/retry-handler';
+import { CacheInvalidator } from '$lib/utils/cache-management';
 
 // Mock CacheInvalidator interface for testing
 interface MockCacheInvalidator {
@@ -90,14 +90,27 @@ describe('Dashboard Page Integration (T017)', () => {
 			} as unknown as LoadEvent;
 
 			const dashboardRequest: GetCompleteDashboardDataRequest = {
-				operation: 'GetCompleteDashboardData',
+				id: 'request-123',
+				operationName: 'GetCompleteDashboardData',
 				variables: {
 					userId: 'user-123',
-					includeMetrics: true,
-					dateRange: '30d'
+					userRole: 'HR_Manager'
 				},
+				userCredentials: {
+					id: 'session-123',
+					userId: 'user-123',
+					jwtToken: 'mock-auth-token',
+					permissions: ['employees:read', 'departments:read'],
+					roles: ['HR_Manager'],
+					isAuthenticated: true,
+					expiresAt: new Date(Date.now() + 3600000),
+					lastActivity: new Date()
+				},
+				status: 'pending',
+				retryAttempts: 0,
+				createdAt: new Date(),
+				completedAt: null,
 				timeoutMs: 5000,
-				maxRetries: 3,
 				cachePolicy: 'cache-first',
 				cacheTtlMinutes: 30
 			};
@@ -151,9 +164,7 @@ describe('Dashboard Page Integration (T017)', () => {
 				technicalDetails: 'Token validation failed',
 				timestamp: new Date(),
 				isRetryable: false,
-				suggestedActions: [
-					{ label: 'Sign In', action: 'redirect_to_login', isPrimary: true }
-				],
+				suggestedActions: [{ label: 'Sign In', action: 'redirect_to_login', isPrimary: true }],
 				type: 'AUTHENTICATION_ERROR',
 				userMessage: 'Invalid or expired authentication token',
 				severity: 'high'
@@ -228,18 +239,17 @@ describe('Dashboard Page Integration (T017)', () => {
 						remainingVacationDays: 15
 					},
 					user: {
-						userId: 'user-123',
-						userName: 'Admin User',
-						userEmail: 'admin@example.com',
-						userRole: 'HR_Manager'
+						id: 'user-123',
+						displayName: 'Admin User',
+						role: 'HR_Manager'
 					},
 					activities: [
 						{
-							activityId: 'activity-1',
-							activityType: 'employee_hired',
-							activityDescription: 'New employee John Doe joined Marketing',
-							activityTimestamp: '2024-01-15T10:00:00Z',
-							activityUser: 'Admin User'
+							id: 'activity-1',
+							type: 'employee_hired',
+							message: 'New employee John Doe joined Marketing',
+							timestamp: '2024-01-15T10:00:00Z',
+							severity: 'info'
 						}
 					],
 					tasks: [],
@@ -335,10 +345,9 @@ describe('Dashboard Page Integration (T017)', () => {
 						remainingVacationDays: 15
 					},
 					user: {
-						userId: 'user-123',
-						userName: 'Admin User',
-						userEmail: 'admin@example.com',
-						userRole: 'HR_Manager'
+						id: 'user-123',
+						displayName: 'Admin User',
+						role: 'HR_Manager'
 					},
 					activities: [],
 					tasks: [],
@@ -355,10 +364,9 @@ describe('Dashboard Page Integration (T017)', () => {
 						remainingVacationDays: 15
 					},
 					user: {
-						userId: 'user-123',
-						userName: 'Admin User',
-						userEmail: 'admin@example.com',
-						userRole: 'HR_Manager'
+						id: 'user-123',
+						displayName: 'Admin User',
+						role: 'HR_Manager'
 					},
 					activities: [],
 					tasks: [],
@@ -444,14 +452,27 @@ describe('Dashboard Page Integration (T017)', () => {
 		it('should cache dashboard data with 30-minute TTL', async () => {
 			// Arrange
 			const dashboardRequest: GetCompleteDashboardDataRequest = {
-				operation: 'GetCompleteDashboardData',
+				id: 'request-cache-test',
+				operationName: 'GetCompleteDashboardData',
 				variables: {
 					userId: 'user-123',
-					includeMetrics: true,
-					dateRange: '30d'
+					userRole: 'HR_Manager'
 				},
+				userCredentials: {
+					id: 'session-cache',
+					userId: 'user-123',
+					jwtToken: 'mock-auth-token',
+					permissions: ['employees:read', 'departments:read'],
+					roles: ['HR_Manager'],
+					isAuthenticated: true,
+					expiresAt: new Date(Date.now() + 3600000),
+					lastActivity: new Date()
+				},
+				status: 'pending',
+				retryAttempts: 0,
+				createdAt: new Date(),
+				completedAt: null,
 				timeoutMs: 5000,
-				maxRetries: 3,
 				cachePolicy: 'cache-first',
 				cacheTtlMinutes: 30 // Must respect 30-minute maximum
 			};

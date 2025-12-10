@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { workflowActions } from '$lib/stores/workflow';
+	import { workflowActions, type WorkflowTriggerType } from '$lib/stores/workflow';
 	import { auth } from '$lib/stores/auth.svelte';
 
 	// Props
@@ -15,11 +15,24 @@
 	let error = $state('');
 
 	// Form data
-	const formData = $state({
+	const formData = $state<{
+		name: string;
+		description: string;
+		category: string;
+		triggerType: WorkflowTriggerType;
+		triggerConditions: string;
+		definition: string;
+		isTemplate: boolean;
+		timeoutMinutes: number;
+		maxRetries: number;
+		retryDelayMinutes: number;
+		status: 'draft' | 'active' | 'inactive';
+		departmentId: string | null;
+	}>({
 		name: '',
 		description: '',
 		category: '',
-		triggerType: 'manual',
+		triggerType: 'MANUAL_TRIGGER',
 		triggerConditions: '{}',
 		definition: '{"steps": []}',
 		isTemplate: false,

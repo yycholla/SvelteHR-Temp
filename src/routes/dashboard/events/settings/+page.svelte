@@ -45,8 +45,8 @@
 		if (form?.success) {
 			toast.success('Notification preferences saved successfully');
 			isSaving = false;
-		} else if (form?.error) {
-			toast.error(form.error);
+		} else if (form && 'error' in form && form.error) {
+			toast.error(String(form.error));
 			isSaving = false;
 		}
 	});

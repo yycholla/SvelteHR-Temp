@@ -82,7 +82,7 @@
 
 	// Check if user has required permissions
 	const hasRequiredPermissions = $derived.by(() => {
-		if (!requires) {
+		if (!requires || (Array.isArray(requires) && requires.length === 0)) {
 			// No permission requirement - always show
 			return true;
 		}

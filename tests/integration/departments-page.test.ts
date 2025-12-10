@@ -17,8 +17,8 @@ import type {
 	GetDepartmentsWithStatsRequest,
 	GetDepartmentsWithStatsResponse
 } from '$lib/types/graphql-contracts';
-import type { RetryHandler } from '$lib/utils/retry-handler';
-import type { CacheInvalidator } from '$lib/utils/cache-management';
+import { RetryHandler } from '$lib/utils/retry-handler';
+import { CacheInvalidator } from '$lib/utils/cache-management';
 
 // Mock CacheInvalidator interface for testing
 interface MockCacheInvalidator {
@@ -128,20 +128,40 @@ describe('Departments Page Integration (T020)', () => {
 			} as unknown as LoadEvent;
 
 			const departmentRequest: GetDepartmentsWithStatsRequest = {
-				operation: 'GetDepartmentsWithStats',
+				id: 'req-dept-stats-001',
+				operationName: 'GetDepartmentsWithStats',
 				variables: {
-					includeStatistics: true,
 					includeInactive: false,
-					includeBudgetData: true,
-					includeEmployeeMetrics: true,
-					hierarchyDepth: -1, // Full hierarchy
-					dateRange: {
-						from: '2024-01-01',
-						to: '2024-12-31'
-					}
+					includeEmployeeStats: true,
+					includeFinancialStats: true,
+					statsDateRange: {
+						startDate: '2024-01-01',
+						endDate: '2024-12-31'
+					},
+					sortBy: 'name',
+					sortDirection: 'asc'
 				},
+				userCredentials: {
+					id: 'session-123',
+					userId: 'user-123',
+					jwtToken: 'hr-manager-token',
+					permissions: [
+						'departments:read',
+						'departments:write',
+						'departments:delete',
+						'budget:read',
+						'statistics:read'
+					],
+					roles: ['HR_Manager'],
+					isAuthenticated: true,
+					expiresAt: new Date(Date.now() + 3600000),
+					lastActivity: new Date()
+				},
+				status: 'pending',
+				retryAttempts: 0,
+				createdAt: new Date(),
+				completedAt: null,
 				timeoutMs: 5000,
-				maxRetries: 3,
 				cachePolicy: 'cache-first',
 				cacheTtlMinutes: 30 // Department data cached longer due to less frequent changes
 			};
@@ -196,7 +216,13 @@ describe('Departments Page Integration (T020)', () => {
 				technicalDetails: 'Statistics calculation failed',
 				timestamp: new Date(),
 				isRetryable: true,
-				suggestedActions: ['show_basic_view'],
+				suggestedActions: [
+					{
+						label: 'Show Basic View',
+						action: 'show_basic_view',
+						isPrimary: true
+					}
+				],
 				type: 'GRAPHQL_ERROR',
 				userMessage: 'Failed to calculate department performance metrics',
 				severity: 'medium'
@@ -232,52 +258,50 @@ describe('Departments Page Integration (T020)', () => {
 		it('should handle department tree visualization with drag-and-drop reorganization', async () => {
 			// Arrange
 			const hierarchicalDepartments: GetDepartmentsWithStatsResponse = {
-				success: true,
-				data: {
-					departments: [
-						{
-							id: 'dept-company',
-							name: 'Company',
-							parentId: null,
-							level: 0,
-							children: [
-								{
-									id: 'dept-engineering',
-									name: 'Engineering',
-									parentId: 'dept-company',
-									level: 1,
-									employeeCount: 45,
-									budget: 2500000,
-									budgetUtilization: 0.87,
-									children: [
-										{
-											id: 'dept-frontend',
-											name: 'Frontend Development',
-											parentId: 'dept-engineering',
-											level: 2,
-											employeeCount: 12,
-											budget: 800000,
-											budgetUtilization: 0.83
-										}
-									]
-								}
-							]
-						}
-					],
-					statistics: {
-						totalDepartments: 3,
-						totalEmployees: 57,
-						totalBudget: 3300000,
-						averageBudgetUtilization: 0.85
+				departments: [
+					{
+						id: 'dept-company',
+						name: 'Company',
+						isActive: true,
+						createdAt: '2020-01-01T00:00:00Z',
+						employeeCount: 57
+					},
+					{
+						id: 'dept-engineering',
+						name: 'Engineering',
+						isActive: true,
+						createdAt: '2020-01-01T00:00:00Z',
+						employeeCount: 45
+					},
+					{
+						id: 'dept-frontend',
+						name: 'Frontend Development',
+						isActive: true,
+						createdAt: '2020-01-01T00:00:00Z',
+						employeeCount: 12
 					}
-				},
-				pagination: null,
-				errors: []
+				],
+				summary: {
+					totalDepartments: 3,
+					activeDepartments: 3,
+					inactiveDepartments: 0,
+					totalEmployeesAcrossAllDepts: 57,
+					totalBudgetAcrossAllDepts: 3300000,
+					averageDepartmentSize: 19,
+					largestDepartment: {
+						name: 'Engineering',
+						employeeCount: 45
+					},
+					smallestDepartment: {
+						name: 'Frontend Development',
+						employeeCount: 12
+					}
+				}
 			};
 
 			const mockProps = {
 				data: {
-					departments: hierarchicalDepartments.data.departments,
+					departments: hierarchicalDepartments.departments,
 					userPermissions: ['departments:write', 'hierarchy:modify'],
 					user: { id: 'user-123', role: 'HR_Manager' }
 				}
@@ -290,7 +314,7 @@ describe('Departments Page Integration (T020)', () => {
 
 			// Verify hierarchical visualization integration
 			expect(mockHierarchyHandler.buildDepartmentTree).not.toHaveBeenCalledWith(
-				hierarchicalDepartments.data.departments
+				hierarchicalDepartments.departments
 			);
 			expect(screen.queryByTestId('department-tree')).toBeNull();
 			expect(screen.queryByTestId('drag-drop-container')).toBeNull();
@@ -336,11 +360,22 @@ describe('Departments Page Integration (T020)', () => {
 		it('should validate hierarchy integrity during modifications', async () => {
 			// Arrange
 			const invalidHierarchyError: ErrorResponse = {
+				id: 'error-hierarchy',
+				operationId: 'op-reorganize',
 				type: 'VALIDATION_ERROR',
-				message: 'Invalid hierarchy: Creating circular department reference',
+				originalError: null,
+				userMessage: 'Invalid hierarchy: Creating circular department reference',
+				technicalDetails: 'Circular reference detected in department hierarchy',
 				severity: 'high',
-				suggestedAction: 'fix_hierarchy',
-				retryable: false
+				suggestedActions: [
+					{
+						label: 'Fix Hierarchy',
+						action: 'fix_hierarchy',
+						isPrimary: true
+					}
+				],
+				isRetryable: false,
+				timestamp: new Date()
 			};
 
 			const circularMove = {
@@ -791,16 +826,34 @@ describe('Departments Page Integration (T020)', () => {
 			// Arrange
 			const startTime = performance.now();
 			const complexStatsRequest: GetDepartmentsWithStatsRequest = {
-				operation: 'GetDepartmentsWithStats',
+				id: 'req-dept-stats-perf',
+				operationName: 'GetDepartmentsWithStats',
 				variables: {
-					includeStatistics: true,
-					statisticsDepth: 'comprehensive',
-					includeTrendAnalysis: true,
-					includeBenchmarking: true,
-					includeProjections: true
+					includeInactive: false,
+					includeEmployeeStats: true,
+					includeFinancialStats: true,
+					statsDateRange: {
+						startDate: '2024-01-01',
+						endDate: '2024-12-31'
+					},
+					sortBy: 'name',
+					sortDirection: 'asc'
 				},
+				userCredentials: {
+					id: 'session-perf',
+					userId: 'user-123',
+					jwtToken: 'perf-test-token',
+					permissions: ['departments:read', 'statistics:read'],
+					roles: ['HR_Manager'],
+					isAuthenticated: true,
+					expiresAt: new Date(Date.now() + 3600000),
+					lastActivity: new Date()
+				},
+				status: 'pending',
+				retryAttempts: 0,
+				createdAt: new Date(),
+				completedAt: null,
 				timeoutMs: 5000,
-				maxRetries: 3,
 				cachePolicy: 'cache-first',
 				cacheTtlMinutes: 30 // Longer cache for complex calculations
 			};
@@ -829,13 +882,30 @@ describe('Departments Page Integration (T020)', () => {
 			};
 
 			const departmentRequest: GetDepartmentsWithStatsRequest = {
-				operation: 'GetDepartmentsWithStats',
+				id: 'req-dept-cache',
+				operationName: 'GetDepartmentsWithStats',
 				variables: {
-					includeStatistics: true,
-					includeBudgetData: true
+					includeInactive: false,
+					includeEmployeeStats: true,
+					includeFinancialStats: true,
+					sortBy: 'name',
+					sortDirection: 'asc'
 				},
+				userCredentials: {
+					id: 'session-cache',
+					userId: 'user-123',
+					jwtToken: 'cache-test-token',
+					permissions: ['departments:read', 'statistics:read', 'budget:read'],
+					roles: ['HR_Manager'],
+					isAuthenticated: true,
+					expiresAt: new Date(Date.now() + 3600000),
+					lastActivity: new Date()
+				},
+				status: 'pending',
+				retryAttempts: 0,
+				createdAt: new Date(),
+				completedAt: null,
 				timeoutMs: 5000,
-				maxRetries: 3,
 				cachePolicy: 'cache-first',
 				cacheTtlMinutes: 30 // Respects maximum cache TTL
 			};

@@ -266,7 +266,6 @@ export class GraphQLAssertions {
 	 * Assert GraphQL response performance
 	 */
 	static assertResponseTime(response: GraphQLResponse, maxDuration: number = 200): void {
-		const operationName = defaultClient.extractOperationName('') || 'unknown';
 		const metrics = defaultClient.getPerformanceMetrics();
 		const latestMetric = metrics[metrics.length - 1];
 

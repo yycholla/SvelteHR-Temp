@@ -11,6 +11,7 @@
  */
 
 import type { Client } from '@urql/core';
+import { Kind } from 'graphql';
 import type {
 	CachePolicy,
 	InvalidateCacheResponse,
@@ -261,7 +262,7 @@ export class CacheInvalidator {
 				this.client!.reexecuteOperation(
 					this.client!.createRequestOperation('query', {
 						key: parseInt(key.split(':')[0], 36), // Convert string key back to numeric
-						query: { kind: 'Document', definitions: [] }, // Minimal query structure
+						query: { kind: Kind.DOCUMENT, definitions: [] }, // Minimal query structure
 						variables: {}
 					})
 				);

@@ -387,10 +387,11 @@
 		goto(url.toString());
 	}
 
-	function handleLeaveTypeFilterChange(type: string) {
+	function handleLeaveTypeFilterChange(type: string | string[]) {
+		const typeValue = Array.isArray(type) ? type[0] : type;
 		const url = new URL($page.url);
-		if (type) {
-			url.searchParams.set('leaveType', type);
+		if (typeValue) {
+			url.searchParams.set('leaveType', typeValue);
 		} else {
 			url.searchParams.delete('leaveType');
 		}
@@ -555,7 +556,7 @@
 					<!-- Status Filter -->
 					<div class="w-full md:w-48">
 						<Label>Status</Label>
-						<Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+						<Select type="single" value={statusFilter} onValueChange={handleStatusFilterChange}>
 							<SelectTrigger placeholder="All Statuses" />
 							<SelectContent>
 								<SelectItem value="all">All Statuses</SelectItem>
@@ -569,7 +570,7 @@
 					<!-- Leave Type Filter -->
 					<div class="w-full md:w-48">
 						<Label>Leave Type</Label>
-						<Select value={leaveTypeFilter} onValueChange={handleLeaveTypeFilterChange}>
+						<Select type="single" value={leaveTypeFilter} onValueChange={handleLeaveTypeFilterChange}>
 							<SelectTrigger placeholder="All Types" />
 							<SelectContent>
 								<SelectItem value="">All Types</SelectItem>
@@ -920,7 +921,7 @@
 				}}>Cancel</Button
 			>
 			<Button
-	variant="default"
+				variant="default"
 				onclick={confirmRevert}
 				disabled={isSubmitting}
 				class="bg-amber-600 hover:bg-amber-700"

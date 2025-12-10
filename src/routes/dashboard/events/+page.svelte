@@ -66,29 +66,37 @@
 			description: event.description,
 			startTime: event.startTime,
 			endTime: event.endTime,
-			allDay: event.isAllDay,
+			isAllDay: event.isAllDay,
 			location: event.location,
 			eventType: event.eventType as EventType,
-			visibilityType: event.isPublic ? ('company' as EventVisibilityType) : ('specific' as EventVisibilityType),
+			visibilityType: event.isPublic
+				? ('company' as EventVisibilityType)
+				: ('specific' as EventVisibilityType),
 			status: event.status,
 			organizerId: event.organizerId,
 			rrule: null, // RRULE not yet in GraphQL schema
 			maxCapacity: null, // Capacity not yet in GraphQL schema
-			acceptedCount: event.attendees?.filter(a => normalizeRsvpStatus(a.responseStatus) === 'accepted').length || 0,
+			acceptedCount:
+				event.attendees?.filter((a) => normalizeRsvpStatus(a.responseStatus) === 'accepted')
+					.length || 0,
 			waitlistCount: 0, // Waitlist count not yet in GraphQL schema
 			waitlistEnabled: false, // Waitlist not yet fully implemented
 			isFull: false,
-			organizer: event.organizer ? {
-				displayName: event.organizer.displayName
-			} : undefined,
-			attendees: event.attendees?.map(a => ({
+			organizer: event.organizer
+				? {
+						displayName: event.organizer.displayName
+					}
+				: undefined,
+			attendees: event.attendees?.map((a) => ({
 				id: a.id,
 				employeeId: a.employeeId,
 				responseStatus: normalizeRsvpStatus(a.responseStatus),
 				reminderTime: null,
-				employee: a.employee ? {
-					displayName: a.employee.displayName
-				} : undefined
+				employee: a.employee
+					? {
+							displayName: a.employee.displayName
+						}
+					: undefined
 			}))
 		};
 	}

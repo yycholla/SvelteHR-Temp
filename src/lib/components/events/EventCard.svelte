@@ -38,7 +38,9 @@
 			accepted: '#22c55e', // Green
 			declined: '#ef4444', // Red
 			tentative: '#f59e0b', // Amber/Orange
-			pending: '#3b82f6' // Blue
+			pending: '#3b82f6', // Blue
+			no_response: '#94a3b8', // Gray
+			waitlisted: '#a855f7' // Purple
 		};
 		return status ? colorMap[status] : '#94a3b8'; // Default gray for no status
 	}
@@ -204,7 +206,7 @@
 				</svg>
 				<span
 					>Organized by <span class="font-medium text-foreground"
-						>{event.userByOrganizerId?.displayName || 'Unknown'}</span
+						>{(event as any).userByOrganizerId?.displayName || 'Unknown'}</span
 					></span
 				>
 			</div>

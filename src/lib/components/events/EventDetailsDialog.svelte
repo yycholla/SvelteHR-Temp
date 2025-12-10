@@ -16,13 +16,47 @@
 	import EventEditForm from './EventEditForm.svelte';
 	import EventDetailsView from './EventDetailsView.svelte';
 	import { type ConflictingEvent, findConflictingEvents } from '$lib/utils/calendar';
-	import type { RsvpStatus } from '$lib/graphql/types';
+	import type { CalendarEvent, EventType as CalendarEventType } from '$lib/types/events';
+	import type {
+		RsvpStatus,
+		EventType as GraphQLEventType,
+		EventVisibilityType
+	} from '$lib/graphql/types';
 	import type {
 		EventComment,
 		EventHistoryEntry,
 		UserWaitlistStatus
 	} from '$lib/graphql/events-operations';
 	import type { EventData } from './types';
+
+	// Helper function to map GraphQL EventType to CalendarEvent EventType
+	function mapEventType(graphqlType: GraphQLEventType): CalendarEventType {
+		// Map GraphQL event types that don't exist in CalendarEvent to 'other'
+		const typeMap: Record<GraphQLEventType, CalendarEventType> = {
+			meeting: 'meeting',
+			training: 'training',
+			company_event: 'company_event',
+			holiday: 'holiday',
+			social: 'other',
+			interview: 'other',
+			review: 'other',
+			team_building: 'other',
+			other: 'other'
+		};
+		return typeMap[graphqlType];
+	}
+
+	function mapEventVisibility(
+		graphqlType: EventVisibilityType | undefined
+	): 'public' | 'private' | 'department' {
+		if (!graphqlType) return 'public';
+		const map: Record<EventVisibilityType, 'public' | 'private' | 'department'> = {
+			company: 'public',
+			department: 'department',
+			specific: 'private'
+		};
+		return map[graphqlType] || 'public';
+	}
 
 	// Export type definitions for test imports
 	export interface EventDetailsDialogProps {
@@ -176,8 +210,8 @@
 	}
 
 	// Handle RSVP with recurring event scope and conflicts
-	// This is passed as the onRsvpUpdate prop to EventDetailsView (via an adapter if needed)
-	async function handleRsvpChange(newStatus: RsvpStatus) {
+	// This is the handler passed to EventDetailsView
+	function handleRsvpChange(newStatus: RsvpStatus) {
 		// Note: RSVPButton only passes newStatus, not eventId
 		// We use local `event` from props/closure for event context
 
@@ -191,7 +225,7 @@
 		}
 
 		// Otherwise, update RSVP directly
-		await updateRsvpStatus(newStatus, 'this_event');
+		updateRsvpStatus(newStatus, 'this_event');
 	}
 
 	async function handleScopeConfirm(scope: 'this_event' | 'this_and_future' | 'all_events') {
@@ -208,9 +242,39 @@
 				startDate: new Date(event.startTime),
 				endDate: new Date(event.endTime),
 				userRsvpStatus: pendingRsvpStatus
-			};
+			} as CalendarEvent;
 
-			const conflicts = findConflictingEvents(targetEvent, allEvents, userId);
+			// Map EventData to CalendarEvent format
+			const calendarEvents: CalendarEvent[] = allEvents.map((e) => ({
+				id: e.id,
+				title: e.title,
+				description: e.description,
+				startDate: new Date(e.startTime),
+				endDate: new Date(e.endTime),
+				isAllDay: e.isAllDay ?? false,
+				type: mapEventType(e.eventType),
+				visibility: mapEventVisibility(e.visibilityType),
+				isRecurring: !!e.rrule,
+				rrule: e.rrule ?? null,
+				parentEventId: null,
+				capacity: e.maxCapacity ?? null,
+				attendeeCount: e.acceptedCount ?? 0,
+				waitlistCount: e.waitlistCount ?? 0,
+				waitlistEnabled: e.waitlistEnabled ?? false,
+				userRsvpStatus:
+					e.attendees?.find((a) => a.employeeId === userId)?.responseStatus ?? null,
+				userWaitlistPosition: null,
+				imageUrl: null,
+				imageAspectRatio: null,
+				organizerId: e.organizerId,
+				createdBy: e.organizerId ?? '',
+				canEdit: false,
+				canDelete: false,
+				hasConflict: false,
+				conflictingEventIds: []
+			}));
+
+			const conflicts = findConflictingEvents(targetEvent, calendarEvents);
 
 			if (conflicts.length > 0) {
 				detectedConflicts = conflicts;
@@ -406,7 +470,7 @@
 		<RecurrenceScopeDialog
 			bind:open={showScopeDialog}
 			eventTitle={event.title}
-			action="RSVP update"
+			action="rsvp"
 			onConfirm={handleScopeConfirm}
 			onCancel={() => {
 				showScopeDialog = false;

@@ -3,7 +3,7 @@
  * Feature: 027-we-need-to - Events Calendar with FullCalendar 6.x
  */
 
-export type RsvpStatus = 'accepted' | 'declined' | 'pending' | 'waitlisted';
+export type RsvpStatus = 'pending' | 'accepted' | 'declined' | 'tentative' | 'no_response' | 'waitlisted';
 export type EventType = 'meeting' | 'training' | 'company_event' | 'holiday' | 'other';
 export type EventVisibility = 'public' | 'private' | 'department';
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -15,9 +15,11 @@ export interface CalendarEvent {
 	description?: string;
 	startDate: Date;
 	endDate: Date;
-	allDay: boolean;
+	isAllDay: boolean;
+	allDay?: boolean; // Alias for backward compatibility
 	type: EventType;
 	visibility: EventVisibility;
+	visibilityType?: EventVisibility; // Alias for consistency
 
 	// Recurrence
 	isRecurring: boolean;
@@ -40,6 +42,11 @@ export interface CalendarEvent {
 
 	// Metadata
 	organizerId?: string;
+	userByOrganizerId?: {
+		id: string;
+		displayName: string;
+		email: string;
+	};
 	createdBy: string;
 	createdAt?: Date;
 	updatedAt?: Date;

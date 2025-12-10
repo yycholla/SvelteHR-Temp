@@ -466,10 +466,10 @@
 								<p class="text-sm text-gray-500">Signature pad will be rendered here</p>
 							{:else if block.type === 'CHECKBOX' && block.checkboxItems}
 								<div class="space-y-2">
-									{#each block.checkboxItems as item}
+									{#each block.checkboxItems as item, i}
 										<div class="flex items-center gap-2">
-											<Checkbox disabled />
-											<label class="text-sm">{item}</label>
+											<Checkbox id="checkbox-{block.id}-{i}" disabled />
+											<label for="checkbox-{block.id}-{i}" class="text-sm">{item}</label>
 										</div>
 									{/each}
 								</div>

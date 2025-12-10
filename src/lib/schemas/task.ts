@@ -31,9 +31,9 @@ export const auditActionTypeSchema = z.enum([
 export const createTaskSchema = z.object({
 	title: z
 		.string()
+		.trim()
 		.min(1, 'Title is required')
-		.max(255, 'Title must be 255 characters or less')
-		.trim(),
+		.max(255, 'Title must be 255 characters or less'),
 	description: z.string().optional(),
 	assigneeId: z.string().uuid('Invalid assignee ID'),
 	taskTypeId: z.string().uuid('Invalid task type ID'),
@@ -54,7 +54,7 @@ export const createTaskSchema = z.object({
 
 // Update Task Schema (all fields optional)
 export const updateTaskSchema = z.object({
-	title: z.string().min(1, 'Title cannot be empty').max(255).trim().optional(),
+	title: z.string().trim().min(1, 'Title cannot be empty').max(255).optional(),
 	description: z.string().optional(),
 	assigneeId: z.string().uuid('Invalid assignee ID').optional(),
 	taskTypeId: z.string().uuid('Invalid task type ID').optional(),
@@ -88,9 +88,9 @@ export const createLinkedResourceSchema = z.object({
 export const createTaskTypeSchema = z.object({
 	name: z
 		.string()
+		.trim()
 		.min(1, 'Task type name is required')
-		.max(100, 'Task type name must be 100 characters or less')
-		.trim(),
+		.max(100, 'Task type name must be 100 characters or less'),
 	description: z.string().optional()
 });
 

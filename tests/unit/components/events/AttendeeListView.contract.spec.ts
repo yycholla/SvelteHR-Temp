@@ -23,7 +23,7 @@ describe('AttendeeListView Contract', () => {
 				email: 'john.doe@example.com',
 				jobTitle: 'Software Engineer'
 			},
-			responseStatus: 'ACCEPTED',
+			responseStatus: 'accepted',
 			isOrganizer: true,
 			respondedAt: '2025-10-01T10:00:00Z'
 		},
@@ -36,7 +36,7 @@ describe('AttendeeListView Contract', () => {
 				email: 'jane.smith@example.com',
 				jobTitle: 'Product Manager'
 			},
-			responseStatus: 'PENDING',
+			responseStatus: 'pending',
 			isOrganizer: false
 		}
 	];
@@ -70,9 +70,9 @@ describe('AttendeeListView Contract', () => {
 		expect(attendee.employee).toBeDefined();
 		expect(attendee.employee.displayName).toBeDefined();
 		expect(typeof attendee.employee.displayName).toBe('string');
-		expect(
-			['ACCEPTED', 'DECLINED', 'TENTATIVE', 'PENDING'].includes(attendee.responseStatus)
-		).toBe(true);
+		expect(['accepted', 'declined', 'tentative', 'pending'].includes(attendee.responseStatus)).toBe(
+			true
+		);
 		expect(typeof attendee.isOrganizer).toBe('boolean');
 	});
 
@@ -85,7 +85,7 @@ describe('AttendeeListView Contract', () => {
 	});
 
 	it('should validate RSVP status values', () => {
-		const validStatuses = ['ACCEPTED', 'DECLINED', 'TENTATIVE', 'PENDING'];
+		const validStatuses = ['accepted', 'declined', 'tentative', 'pending'];
 
 		mockAttendees.forEach((attendee) => {
 			expect(validStatuses.includes(attendee.responseStatus)).toBe(true);

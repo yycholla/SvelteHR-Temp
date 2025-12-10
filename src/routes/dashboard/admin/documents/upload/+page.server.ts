@@ -49,6 +49,13 @@ export const load: PageServerLoad = async (event) => {
 		timestamp: new Date().toISOString()
 	});
 
+	// Check if user is system admin
+	const isSystemAdmin =
+		userPermissions.includes('*') ||
+		userPermissions.includes('*:*') ||
+		userRoles.includes('system_admin') ||
+		locals.user.role === 'system_admin';
+
 	try {
 		// Step 3: Load document categories (would come from database)
 		// TODO: Call GET /api/documents/categories when implemented

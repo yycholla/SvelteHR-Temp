@@ -14,9 +14,10 @@ import type { LoadEvent } from '@sveltejs/kit';
 import type {
 	DataRequest,
 	ErrorResponse,
-	VerifyUserAuthenticationResponse
+	VerifyUserAuthenticationResponse,
+	VerifyUserAuthenticationVariables
 } from '$lib/types/graphql-contracts';
-import type { RetryHandler } from '$lib/utils/retry-handler';
+import { RetryHandler } from '$lib/utils/retry-handler';
 
 // Mock the login page load function - MUST throw until implementation exists
 const mockLoginPageLoad = vi.fn().mockImplementation(() => {
@@ -302,10 +303,35 @@ describe('Login Page Integration (T018)', () => {
 					expiresAt: '2024-01-15T18:00:00Z'
 				},
 				authData: {
-					token: 'jwt-token-12345',
-					refreshToken: 'refresh-token-67890',
-					expiresAt: '2024-01-15T18:00:00Z',
-					tokenType: 'Bearer'
+					isValid: true,
+					user: {
+						id: 'user-123',
+						email: 'admin@example.com',
+						displayName: 'Admin User',
+						firstName: 'Admin',
+						lastName: 'User',
+						isActive: true,
+						emailVerified: true,
+						createdAt: '2024-01-01T00:00:00Z',
+						updatedAt: '2024-01-01T00:00:00Z'
+					},
+					roles: [
+						{
+							id: 'role-1',
+							name: 'HR_Manager',
+							displayName: 'HR Manager',
+							description: 'HR Manager Role',
+							permissions: ['employees:read', 'departments:read', 'reports:hr']
+						}
+					],
+					permissions: ['employees:read', 'departments:read', 'reports:hr'],
+					tokenInfo: {
+						expiresAt: '2024-01-15T18:00:00Z',
+						issuedAt: '2024-01-15T17:00:00Z',
+						needsRefresh: false,
+						refreshToken: 'refresh-token-67890'
+					},
+					sessionInfo: null
 				}
 			};
 
@@ -370,10 +396,35 @@ describe('Login Page Integration (T018)', () => {
 					expiresAt: '2024-01-15T19:00:00Z'
 				},
 				authData: {
-					token: 'new-jwt-token-54321',
-					refreshToken: 'new-refresh-token-09876',
-					expiresAt: '2024-01-15T19:00:00Z',
-					tokenType: 'Bearer'
+					isValid: true,
+					user: {
+						id: 'user-123',
+						email: 'admin@example.com',
+						displayName: 'Admin User',
+						firstName: 'Admin',
+						lastName: 'User',
+						isActive: true,
+						emailVerified: true,
+						createdAt: '2024-01-01T00:00:00Z',
+						updatedAt: '2024-01-01T00:00:00Z'
+					},
+					roles: [
+						{
+							id: 'role-1',
+							name: 'HR_Manager',
+							displayName: 'HR Manager',
+							description: 'HR Manager Role',
+							permissions: ['employees:read', 'departments:read', 'reports:hr']
+						}
+					],
+					permissions: ['employees:read', 'departments:read', 'reports:hr'],
+					tokenInfo: {
+						expiresAt: '2024-01-15T19:00:00Z',
+						issuedAt: '2024-01-15T18:00:00Z',
+						needsRefresh: false,
+						refreshToken: 'new-refresh-token-09876'
+					},
+					sessionInfo: null
 				}
 			};
 
@@ -396,57 +447,85 @@ describe('Login Page Integration (T018)', () => {
 			expect(mockSessionManager.refreshSession).not.toHaveBeenCalled();
 		});
 
-		const authResponse: VerifyUserAuthenticationResponse = {
-			success: true,
-			data: {
-				user: {
-					id: 'user-123',
-					email: 'admin@example.com',
-					displayName: 'Admin User',
-					role: 'HR_Manager',
-					permissions: ['employees:read', 'departments:read', 'reports:hr']
+		it('should handle secure cookie configuration for authentication tokens', async () => {
+			// Arrange
+			const authResponse: VerifyUserAuthenticationResponse = {
+				success: true,
+				data: {
+					user: {
+						id: 'user-123',
+						email: 'admin@example.com',
+						displayName: 'Admin User',
+						role: 'HR_Manager',
+						permissions: ['employees:read', 'departments:read', 'reports:hr']
+					},
+					token: 'secure-jwt-token',
+					refreshToken: 'secure-refresh-token',
+					expiresAt: '2024-01-15T18:00:00Z'
 				},
-				token: 'secure-jwt-token',
-				refreshToken: 'secure-refresh-token',
-				expiresAt: '2024-01-15T18:00:00Z'
-			},
-			authData: {
-				token: 'secure-jwt-token',
-				refreshToken: 'secure-refresh-token',
-				expiresAt: '2024-01-15T18:00:00Z',
-				tokenType: 'Bearer'
-			}
-		};
+				authData: {
+					isValid: true,
+					user: {
+						id: 'user-123',
+						email: 'admin@example.com',
+						displayName: 'Admin User',
+						firstName: 'Admin',
+						lastName: 'User',
+						isActive: true,
+						emailVerified: true,
+						createdAt: '2024-01-01T00:00:00Z',
+						updatedAt: '2024-01-01T00:00:00Z'
+					},
+					roles: [
+						{
+							id: 'role-1',
+							name: 'HR_Manager',
+							displayName: 'HR Manager',
+							description: 'HR Manager Role',
+							permissions: ['employees:read', 'departments:read', 'reports:hr']
+						}
+					],
+					permissions: ['employees:read', 'departments:read', 'reports:hr'],
+					tokenInfo: {
+						expiresAt: '2024-01-15T18:00:00Z',
+						issuedAt: '2024-01-15T17:00:00Z',
+						needsRefresh: false,
+						refreshToken: 'secure-refresh-token'
+					},
+					sessionInfo: null
+				}
+			};
 
-		mockLoginUser.mockResolvedValueOnce(authResponse);
+			mockLoginUser.mockResolvedValueOnce(authResponse);
 
-		// Act & Assert - Should throw until implementation exists
-		await expect(async () => {
-			await mockLoginUser({
-				operation: 'LoginUser',
-				variables: { email: 'admin@example.com', password: 'admin123' },
-				timeoutMs: 5000,
-				maxRetries: 3,
-				cachePolicy: 'no-cache',
-				cacheTtlMinutes: 0
-			});
-		}).rejects.toThrow('LoginUser operation not implemented - TDD compliance');
+			// Act & Assert - Should throw until implementation exists
+			await expect(async () => {
+				await mockLoginUser({
+					operation: 'LoginUser',
+					variables: { email: 'admin@example.com', password: 'admin123' },
+					timeoutMs: 5000,
+					maxRetries: 3,
+					cachePolicy: 'no-cache',
+					cacheTtlMinutes: 0
+				});
+			}).rejects.toThrow('LoginUser operation not implemented - TDD compliance');
 
-		// Verify secure cookie settings would be applied
-		const expectedCookieOptions = {
-			httpOnly: true,
-			secure: true,
-			sameSite: 'strict',
-			path: '/',
-			maxAge: 3600 // 1 hour
-		};
+			// Verify secure cookie settings would be applied
+			const expectedCookieOptions = {
+				httpOnly: true,
+				secure: true,
+				sameSite: 'strict',
+				path: '/',
+				maxAge: 3600 // 1 hour
+			};
 
-		expect(mockSessionManager.createSession).not.toHaveBeenCalledWith(
-			expect.objectContaining({
-				cookieOptions: expectedCookieOptions
-			})
-		);
-	});
+			expect(mockSessionManager.createSession).not.toHaveBeenCalledWith(
+				expect.objectContaining({
+					cookieOptions: expectedCookieOptions
+				})
+			);
+		});
+});
 });
 
 describe('Security Features Integration', () => {
@@ -512,7 +591,7 @@ describe('Security Features Integration', () => {
 		// Act & Assert - Should throw until implementation exists
 		expect(() => {
 			mockLoginPageComponent(mockProps);
-		}).rejects.toThrow('Login page component not implemented - TDD compliance');
+		}).toThrow('Login page component not implemented - TDD compliance');
 
 		// Verify password validation integration
 		expect(screen.queryByTestId('password-requirements')).toBeNull();
@@ -546,25 +625,21 @@ describe('Performance Integration', () => {
 
 	it('should handle authentication request timeout within 5 seconds', async () => {
 		// Arrange
-		const loginRequest: VerifyUserAuthenticationRequest = {
-			operation: 'VerifyUserAuthentication',
-			variables: {
-				email: 'admin@example.com',
-				password: 'admin123'
-			},
-			timeoutMs: 5000, // Must respect timeout
-			maxRetries: 3,
-			cachePolicy: 'no-cache',
-			cacheTtlMinutes: 0 // No caching for auth
+		const loginVariables: VerifyUserAuthenticationVariables = {
+			token: 'test-token-12345',
+			includePermissions: true,
+			includeRoles: true
 		};
+
+		const timeoutMs = 5000; // Must respect timeout
 
 		// Act & Assert - Should throw until implementation exists
 		await expect(async () => {
-			await mockVerifyUserAuthentication(loginRequest);
+			await mockVerifyUserAuthentication(loginVariables);
 		}).rejects.toThrow('VerifyUserAuthentication operation not implemented - TDD compliance');
 
 		// Verify timeout enforcement
-		expect(loginRequest.timeoutMs).toBeLessThanOrEqual(5000);
+		expect(timeoutMs).toBeLessThanOrEqual(5000);
 	});
 });
 

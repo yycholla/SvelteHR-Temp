@@ -57,7 +57,7 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 		const uniqueUserIds = [...new Set(allAssignments.map((a: any) => a.userId))];
 
 		const transactionResult = await dbTransaction(async (dbClient) => {
-			await setDbClaims(dbClient, userId, userPermissions);
+			await setDbClaims(dbClient, userId, locals.user!.role || 'employee');
 
 			// Get document count
 			const countResult = await dbClient.query(
@@ -104,7 +104,11 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 			return [count, userMap, allEmployees];
 		});
 
-		const [totalCount, assigneeMap, allEmployees] = transactionResult;
+		const [totalCount, assigneeMap, allEmployees] = transactionResult as [
+			number,
+			Map<string, { id: string; displayName: string; email: string }>,
+			{ id: string; displayName: string }[]
+		];
 
 		// Step 7: Transform GraphQL response to match page format
 		const documents = (response.data?.documents || []).map((doc: any) => ({
@@ -122,7 +126,7 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 			expiration_date: doc.expiryDate,
 			version_number: doc.versionNumber,
 			assigned_users: (doc.assignments || []).map((a: any) => {
-				const userInfo = assigneeMap.get(a.userId);
+				const userInfo = (assigneeMap as Map<string, any>).get(a.userId);
 				return {
 					id: a.userId,
 					email: userInfo?.email || 'Unknown',
@@ -132,7 +136,9 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 		}));
 
 		// Step 8: Get all assignee options for MultiSearchInput
-		const assigneeOptions = Array.from(assigneeMap.values()).map((user: { id: string; displayName: string; email: string }) => ({
+		const assigneeOptions = Array.from(
+			(assigneeMap as Map<string, { id: string; displayName: string; email: string }>).values()
+		).map((user) => ({
 			id: user.id,
 			displayName: user.displayName,
 			email: user.email

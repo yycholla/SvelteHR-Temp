@@ -84,7 +84,7 @@ export async function encryptFile(
 	const encryptedData = await window.crypto.subtle.encrypt(
 		{
 			name: 'AES-GCM',
-			iv,
+			iv: iv as any,
 			tagLength: 128 // 128-bit authentication tag
 		},
 		key,
@@ -150,7 +150,7 @@ export async function encryptFileChunked(
 		const encryptedChunk = await window.crypto.subtle.encrypt(
 			{
 				name: 'AES-GCM',
-				iv
+				iv: iv as any
 			},
 			key,
 			chunkData
@@ -208,7 +208,7 @@ export async function decryptFile(
 	const decryptedData = await window.crypto.subtle.decrypt(
 		{
 			name: 'AES-GCM',
-			iv,
+			iv: iv as any,
 			tagLength: 128
 		},
 		key,
@@ -253,7 +253,7 @@ export async function importKey(base64Key: string): Promise<CryptoKey> {
 	// Import as CryptoKey
 	return await window.crypto.subtle.importKey(
 		'raw',
-		bytes.buffer,
+		bytes as any,
 		{
 			name: 'AES-GCM',
 			length: 256
@@ -286,7 +286,7 @@ export async function deriveKeyFromPassword(
 	return await window.crypto.subtle.deriveKey(
 		{
 			name: 'PBKDF2',
-			salt: salt as BufferSource,
+			salt: salt as any,
 			iterations,
 			hash: 'SHA-256'
 		},

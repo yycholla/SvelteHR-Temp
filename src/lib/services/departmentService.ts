@@ -168,14 +168,21 @@ import { writable } from 'svelte/store';
 export const departments = writable<Department[]>([]);
 
 /**
+ * Store for department loading errors
+ */
+export const departmentError = writable<string | null>(null);
+
+/**
  * Load departments into the store
  */
 export async function loadDepartments(): Promise<void> {
+	departmentError.set(null);
 	try {
 		const result = await getDepartments();
 		departments.set(result.departments);
-	} catch (error) {
+	} catch (error: any) {
 		console.error('Error loading departments:', error);
+		departmentError.set(error.message || 'Failed to load departments');
 	}
 }
 
@@ -189,5 +196,6 @@ export const departmentService = {
 	getDepartmentsByManager,
 	searchDepartments,
 	departments,
+	departmentError,
 	loadDepartments
 };

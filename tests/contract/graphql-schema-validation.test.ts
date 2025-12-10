@@ -106,7 +106,7 @@ describeOrSkip('GraphQL Schema Contract Testing', () => {
 			liveSchema = result.data as IntrospectionQuery;
 		} catch (error) {
 			console.warn('Could not fetch live schema, using cached version');
-			liveSchema = introspectionResult as IntrospectionQuery;
+			liveSchema = introspectionResult as unknown as IntrospectionQuery;
 		}
 	});
 
@@ -205,7 +205,10 @@ describeOrSkip('GraphQL Schema Contract Testing', () => {
 			const queryType = schema.types.find((type) => type.name === 'Query');
 
 			if (queryType && 'fields' in queryType && queryType.fields) {
-				const listQueries = queryType.fields.filter((field) => { const typeName = getTypeName(field.type); return field.type.kind === 'OBJECT' && typeName?.endsWith('Connection'); });
+				const listQueries = queryType.fields.filter((field) => {
+					const typeName = getTypeName(field.type);
+					return field.type.kind === 'OBJECT' && typeName?.endsWith('Connection');
+				});
 
 				listQueries.forEach((query) => {
 					const argNames = query.args.map((arg) => arg.name);
@@ -260,7 +263,7 @@ describeOrSkip('GraphQL Schema Contract Testing', () => {
 
 					// Return type should be a payload type
 					const mutationTypeName = getTypeName(mutation.type);
-				expect(mutationTypeName).toMatch(/Payload$/);
+					expect(mutationTypeName).toMatch(/Payload$/);
 				});
 			}
 		});
@@ -274,9 +277,10 @@ describeOrSkip('GraphQL Schema Contract Testing', () => {
 				const type = schema.types.find((t) => t.name === typeName);
 
 				if (type && 'fields' in type && type.fields) {
-					const hasIdField = type.fields.some(
-						(field) => { const fieldTypeName = getTypeName(field.type); return field.name === 'id' && fieldTypeName === 'ID'; }
-					);
+					const hasIdField = type.fields.some((field) => {
+						const fieldTypeName = getTypeName(field.type);
+						return field.name === 'id' && fieldTypeName === 'ID';
+					});
 
 					expect(hasIdField, `Type ${typeName} should have an ID field`).toBe(true);
 				}

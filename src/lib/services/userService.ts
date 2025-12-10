@@ -175,7 +175,9 @@ export async function getActiveUsers(): Promise<User[]> {
 /**
  * Load users with optional reset flag (for backward compatibility)
  */
-export async function loadUsers(options?: { reset?: boolean }): Promise<{ users: User[]; totalCount: number }> {
+export async function loadUsers(options?: {
+	reset?: boolean;
+}): Promise<{ users: User[]; totalCount: number }> {
 	// Reset flag is ignored as we always fetch fresh data
 	const result = await getUsers();
 	users.set(result.users);
@@ -192,5 +194,7 @@ export const userService = {
 	searchUsers,
 	getUsersByDepartment,
 	getActiveUsers,
-	loadUsers
+	loadUsers,
+	getUserDetails: getUser,
+	deactivateUser: (id: string, reason?: string) => updateUser(id, { isActive: false } as any) // reason handling needs backend support
 };

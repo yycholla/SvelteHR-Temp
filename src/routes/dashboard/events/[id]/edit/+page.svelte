@@ -17,7 +17,7 @@
 	let isAllDay = $state(data.event.isAllDay || false);
 	let location = $state(data.event.location || '');
 	let eventType = $state<EventType>(data.event.eventType);
-	let visibilityType = $state<EventVisibilityType>(data.event.visibilityType);
+	let visibilityType = $state<EventVisibilityType>(data.event.visibilityType || 'company');
 	let isSubmitting = $state(false);
 	let errors = $state<Record<string, string>>({});
 

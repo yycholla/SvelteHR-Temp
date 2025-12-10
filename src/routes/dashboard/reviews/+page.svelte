@@ -239,7 +239,7 @@
 		bind:open={createDialogOpen}
 		employee={selectedEmployee}
 		availableGoals={[]}
-		reviewTypesMetadata={data.reviewTypesMetadata}
+		reviewTypesMetadata={data.reviewTypesMetadata as any}
 		loading={false}
 		on:createReview={handleCreateReview}
 		on:saveAsDraft={handleSaveAsDraft}

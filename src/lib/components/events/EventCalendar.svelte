@@ -140,13 +140,17 @@
 								{
 									id: info.event.id,
 									startDate: info.event.start || new Date(),
-									endDate: info.event.end || new Date()
-								},
+									endDate: info.event.end || new Date(),
+									title: info.event.title,
+									allDay: info.event.allDay
+								} as any,
 								{
 									id: otherEvent.id,
 									startDate: new Date(otherEvent.startTime),
-									endDate: new Date(otherEvent.endTime)
-								}
+									endDate: new Date(otherEvent.endTime),
+									title: otherEvent.title,
+									allDay: otherEvent.isAllDay
+								} as any
 							);
 
 							if (conflict) {

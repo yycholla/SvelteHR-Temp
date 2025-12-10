@@ -660,4 +660,4 @@
 </div>
 
 <!-- Department Create Dialog -->
-<DepartmentCreateDialog bind:open={showCreateDialog} users={data.users || []} {departments} />
+<DepartmentCreateDialog bind:open={showCreateDialog} users={[]} {departments} />

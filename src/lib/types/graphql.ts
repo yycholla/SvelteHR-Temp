@@ -19,7 +19,13 @@ export interface PaginationInput {
 
 export type ReportStatus = 'generating' | 'completed' | 'failed';
 
-export type ReportType = 'attendance' | 'performance' | 'goals' | 'productivity' | 'leave' | 'custom';
+export type ReportType =
+	| 'attendance'
+	| 'performance'
+	| 'goals'
+	| 'productivity'
+	| 'leave'
+	| 'custom';
 
 export interface SortInput {
 	field: string;

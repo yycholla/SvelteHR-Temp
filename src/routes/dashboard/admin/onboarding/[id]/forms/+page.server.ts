@@ -1,10 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { urqlClient } from '$lib/api/urql-client';
-import {
-	GET_ONBOARDING_MODULE_QUERY,
-	type OnboardingModule
-} from '$lib/graphql/onboarding-operations';
+import { GET_ONBOARDING_MODULE_QUERY } from '$lib/graphql/onboarding-operations';
 import {
 	CREATE_ONBOARDING_FORM,
 	DELETE_ONBOARDING_FORM,
@@ -12,6 +9,18 @@ import {
 	REORDER_ONBOARDING_FORMS,
 	UPDATE_ONBOARDING_FORM
 } from '$lib/graphql/form-operations';
+
+interface OnboardingModule {
+	id: string;
+	title: string;
+	description: string;
+	isActive: boolean;
+	category: string;
+	tags: string[];
+	authorId: string;
+	createdAt: string;
+	updatedAt: string;
+}
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const { user } = locals;

@@ -54,10 +54,10 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 			response.data?.documents?.flatMap((doc: any) => doc.assignments || []) || [];
 		const uniqueUserIds = [...new Set(allAssignments.map((a: any) => a.userId))];
 
-		const [totalCount, assigneeMap] = await dbTransaction(async (dbClient) => {
-			await setDbClaims(dbClient, userId, userPermissions);
+		const transactionResult = await dbTransaction(async (dbClient) => {
+			await setDbClaims(dbClient, userId, locals.user!.role || 'employee');
 
-			// Get document count (only for documents assigned to current user)
+			// Get document count
 			const countResult = await dbClient.query(
 				`SELECT COUNT(DISTINCT d.id) as count
 				 FROM hr_public.documents d
@@ -91,6 +91,11 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 
 			return [count, userMap];
 		});
+
+		const [totalCount, assigneeMap] = transactionResult as [
+			number,
+			Map<string, { id: string; displayName: string; email: string }>
+		];
 
 		// Step 7: Filter documents to only show those assigned to current user
 		const userDocuments = (response.data?.documents || []).filter((doc: any) => {

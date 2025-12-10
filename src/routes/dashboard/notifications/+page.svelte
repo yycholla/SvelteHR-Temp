@@ -13,8 +13,12 @@
 	const { data }: { data: PageData } = $props();
 
 	// Filter state
-	let selectedCategory = $state<NotificationCategory | 'all'>(data.filters.category || 'all');
-	let selectedType = $state<NotificationType | 'all'>(data.filters.type || 'all');
+	let selectedCategory = $state<NotificationCategory | 'all'>(
+		(data.filters.category as NotificationCategory) || 'all'
+	);
+	let selectedType = $state<NotificationType | 'all'>(
+		(data.filters.type as NotificationType) || 'all'
+	);
 	let selectedReadStatus = $state<string>(data.filters.readStatus || 'all');
 
 	// Get notification category icon
@@ -79,7 +83,9 @@
 	// Mark all as read
 	async function markAllAsRead() {
 		try {
-			const unreadIds = data.notifications.filter((n: { readStatus: boolean }) => !n.readStatus).map((n: { id: string }) => n.id);
+			const unreadIds = data.notifications
+				.filter((n: Notification) => !n.readStatus)
+				.map((n: Notification) => n.id);
 
 			if (unreadIds.length === 0) return;
 
@@ -301,7 +307,10 @@
 							<div class="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
 								<span>{getRelativeTime(notification.createdAt)}</span>
 								<span>•</span>
-								<span class="capitalize">{NOTIFICATION_CATEGORY_LABELS[notification.category]}</span
+								<span class="capitalize"
+									>{NOTIFICATION_CATEGORY_LABELS[
+										notification.category as NotificationCategory
+									]}</span
 								>
 								{#if notification.type === 'email'}
 									<span>•</span>

@@ -13,16 +13,16 @@
 	import type { Permission, User } from '$lib/types';
 
 	// Component state
-	let selectedTab: 'users' | 'roles' | 'permissions' = 'users';
-	const selectedUser: User | null = null;
-	const selectedRole: string | null = null;
-	let showUserRoleModal = false;
-	let searchQuery = '';
-	let filterRole = '';
+	let selectedTab = $state<'users' | 'roles' | 'permissions'>('users');
+	const selectedUser = $state<User | null>(null);
+	const selectedRole = $state<string | null>(null);
+	let showUserRoleModal = $state(false);
+	let searchQuery = $state('');
+	let filterRole = $state('');
 
 	// Modal state
-	let modalUser: User | null = null;
-	let modalRoles: string[] = [];
+	let modalUser = $state<User | null>(null);
+	let modalRoles = $state<string[]>([]);
 
 	// Available roles
 	const availableRoles = [
@@ -120,18 +120,23 @@
 	const isAdmin = $derived(auth.user?.role === 'admin' || false);
 
 	// Filtered users based on search and role filter
-	const filteredUsers = $derived($users.filter((user: User) => {
-		const matchesSearch =
-			!searchQuery ||
-			user.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			user.email.toLowerCase().includes(searchQuery.toLowerCase());
+	const filteredUsers = $derived(
+		$users.filter((user: User) => {
+			const matchesSearch =
+				!searchQuery ||
+				user.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				user.email.toLowerCase().includes(searchQuery.toLowerCase());
 
-		const matchesRole =
-			!filterRole ||
-			user.role_assignments?.some((ra: { role: { name: string } }) => ra.role.name.toLowerCase() === filterRole.toLowerCase());
+			const matchesRole =
+				!filterRole ||
+				user.role_assignments?.some(
+					(ra: { role: { name: string } }) =>
+						ra.role.name.toLowerCase() === filterRole.toLowerCase()
+				);
 
-		return matchesSearch && matchesRole;
-	}));
+			return matchesSearch && matchesRole;
+		})
+	);
 
 	function getRoleBadgeVariant(
 		roleName: string
@@ -293,7 +298,7 @@
 						hoverable={true}
 						emptyMessage="No users found"
 					>
-						<svelte:fragment slot="cell" let:column let:value let:row>
+						{#snippet cellRenderer({ column, value, row })}
 							{#if column.key === 'display_name'}
 								<div class="user-info">
 									<div class="user-name">{row.display_name}</div>
@@ -301,7 +306,7 @@
 								</div>
 							{:else if column.key === 'roles'}
 								<div class="user-roles">
-									{#each getUserRoles(row) as roleName}
+									{#each getUserRoles(row as unknown as User) as roleName}
 										{@const normalizedRole = roleName.toLowerCase() as keyof typeof roleDefinitions}
 										<Badge variant={getRoleBadgeVariant(roleName)} size="sm">
 											{roleDefinitions[normalizedRole]?.name || roleName}
@@ -319,12 +324,12 @@
 									variant="secondary"
 									size="xs"
 									leftIcon="edit"
-									onclick={() => openUserRoleModal(row)}
+									onclick={() => openUserRoleModal(row as unknown as User)}
 								>
 									Edit Roles
 								</Button>
 							{/if}
-						</svelte:fragment>
+						{/snippet}
 					</DataTable>
 				</Card>
 			{:else if selectedTab === 'roles'}

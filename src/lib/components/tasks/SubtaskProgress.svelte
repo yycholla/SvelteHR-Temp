@@ -65,11 +65,11 @@
 			}
 
 			// NOTE: Rust GraphQL returns enum values in PascalCase
-			const completed = subtasks.filter((t: Task) => t.status === 'Done').length;
-			const inProgress = subtasks.filter((t: Task) => t.status === 'InProgress').length;
-			const notStarted = subtasks.filter((t: Task) => t.status === 'Todo').length;
-			const blocked = subtasks.filter((t: Task) => t.status === 'Blocked').length;
-			const cancelled = subtasks.filter((t: Task) => t.status === 'Cancelled').length;
+			const completed = subtasks.filter((t: Task) => (t.status as any) === 'Done').length;
+			const inProgress = subtasks.filter((t: Task) => (t.status as any) === 'InProgress').length;
+			const notStarted = subtasks.filter((t: Task) => (t.status as any) === 'Todo').length;
+			const blocked = subtasks.filter((t: Task) => (t.status as any) === 'Blocked').length;
+			const cancelled = subtasks.filter((t: Task) => (t.status as any) === 'Cancelled').length;
 
 			const completionPercentage = Math.round((completed / total) * 100);
 

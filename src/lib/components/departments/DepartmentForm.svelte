@@ -31,7 +31,7 @@
 		description: department?.description || '',
 		parentDepartmentId: department?.parentDepartment?.id || '',
 		managerId: department?.manager?.id || '',
-		budgetLimit: department?.budgetLimit || null,
+		budgetLimit: department?.budgetLimit || undefined,
 		costCenter: department?.costCenter || '',
 		location: department?.location || '',
 		isRemoteEnabled: department?.isRemoteEnabled || false
@@ -50,10 +50,12 @@
 
 	const managerOptions = $derived([
 		{ value: '', label: 'No Manager Assigned' },
-		...$users.map((user: { id: string; display_name?: string; firstName?: string; lastName?: string }) => ({
-			value: user.id,
-			label: user.display_name || `${user.firstName || ''} ${user.lastName || ''}`.trim()
-		}))
+		...$users.map(
+			(user: { id: string; display_name?: string; firstName?: string; lastName?: string }) => ({
+				value: user.id,
+				label: user.display_name || `${user.firstName || ''} ${user.lastName || ''}`.trim()
+			})
+		)
 	]);
 
 	function validateForm(): boolean {
@@ -86,28 +88,21 @@
 			let result: Department;
 
 			if (mode === 'create') {
-				const input: CreateDepartmentInput = {
-					department: {
-						name: formData.name.trim(),
-						description: formData.description.trim() || undefined,
-						parentDepartmentId: formData.parentDepartmentId || undefined,
-						managerId: formData.managerId || undefined,
-						budget: formData.budgetLimit || undefined
-					}
-				};
+				const input = {
+					name: formData.name.trim(),
+					description: formData.description.trim() || undefined,
+					parentDepartmentId: formData.parentDepartmentId || undefined,
+					managerId: formData.managerId || undefined
+				} as CreateDepartmentInput;
 
 				result = await departmentService.createDepartment(input);
 			} else {
-				const input: UpdateDepartmentInput = {
-					id: department!.id,
-					patch: {
-						name: formData.name.trim(),
-						description: formData.description.trim() || undefined,
-						parentDepartmentId: formData.parentDepartmentId || undefined,
-						managerId: formData.managerId || undefined,
-						budget: formData.budgetLimit || undefined
-					}
-				};
+				const input = {
+					name: formData.name.trim(),
+					description: formData.description.trim() || undefined,
+					parentDepartmentId: formData.parentDepartmentId || undefined,
+					managerId: formData.managerId || undefined
+				} as UpdateDepartmentInput;
 
 				result = await departmentService.updateDepartment(department!.id, input);
 			}
@@ -153,7 +148,7 @@
 					<Input
 						label="Department Name"
 						bind:value={formData.name}
-						error={errors.name}
+						errorText={errors.name}
 						placeholder="e.g., Engineering, Marketing"
 						required
 					/>
@@ -163,7 +158,7 @@
 					<Input
 						label="Department Code"
 						bind:value={formData.code}
-						error={errors.code}
+						errorText={errors.code}
 						placeholder="e.g., ENG, MKT"
 						helperText="Unique identifier for the department"
 						required
@@ -214,7 +209,7 @@
 						type="number"
 						label="Budget Limit"
 						bind:value={formData.budgetLimit}
-						error={errors.budgetLimit}
+						errorText={errors.budgetLimit}
 						placeholder="0"
 						helperText="Annual budget limit in dollars"
 						step="1000"
@@ -271,7 +266,7 @@
 
 			<Button
 				type="submit"
-	variant="primary"
+				variant="primary"
 				size="md"
 				loading={isSubmitting}
 				leftIcon={mode === 'create' ? 'plus' : 'save'}

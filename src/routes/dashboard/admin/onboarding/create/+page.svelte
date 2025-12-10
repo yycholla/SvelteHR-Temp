@@ -142,7 +142,7 @@
 							<Switch bind:checked={isActive} />
 						</div>
 
-						<div class="h-px bg-border" />
+						<div class="h-px bg-border"></div>
 
 						<!-- Category -->
 						<div class="space-y-2">
@@ -162,7 +162,7 @@
 							<p class="text-xs text-muted-foreground">Helps organize and filter modules</p>
 						</div>
 
-						<div class="h-px bg-border" />
+						<div class="h-px bg-border"></div>
 
 						<!-- Tags -->
 						<div class="space-y-2">

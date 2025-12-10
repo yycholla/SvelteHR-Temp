@@ -192,7 +192,7 @@ export const load: PageServerLoad = async (event) => {
 			logs
 				.filter((log: any) => log.user)
 				.map((log: any) => [log.user.id, log.user])
-		).values()];
+		).values()] as LogUser[];
 
 		// Step 9: Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);

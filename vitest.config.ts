@@ -91,6 +91,7 @@ export default defineConfig({
 						'tests/unit/**/*.svelte.{test,spec}.{js,ts}',
 						'src/lib/server/**/*.svelte.{test,spec}.{js,ts}',
 						'tests/unit/components/**/*.{test,spec}.{js,ts}', // Component tests run in unit-client
+						'src/lib/components/**/*.{test,spec}.{js,ts}', // Component co-located tests run in unit-client
 						'tests/unit/routes/**/*.{test,spec}.{js,ts}', // Route/page tests (Svelte components)
 						'tests/unit/dashboard-component-syntax.test.ts', // Component test, needs browser
 						'tests/unit/encryption.spec.ts', // Web Crypto API (browser only)
@@ -375,7 +376,6 @@ export default defineConfig({
 					environment: 'node',
 					include: ['tests/e2e/**/*.puppeteer.{test,spec}.{js,ts}'],
 					exclude: [
-						'tests/e2e/**/*.stagehand.spec.ts',
 						'tests/e2e/**/*.browser.{test,spec}.{js,ts}',
 						'tests/unit/**',
 						'tests/integration/**',
@@ -407,7 +407,6 @@ export default defineConfig({
 					include: ['tests/e2e/**/*.spec.ts'],
 					exclude: [
 						'tests/e2e/**/*.puppeteer.{test,spec}.{js,ts}',
-						'tests/e2e/**/*.stagehand.spec.ts',
 						'tests/e2e/**/*.browser.{test,spec}.{js,ts}',
 						'tests/unit/**',
 						'tests/integration/**',

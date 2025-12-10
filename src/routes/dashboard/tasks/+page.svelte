@@ -97,11 +97,11 @@
 			bgColor: 'bg-red-100 dark:bg-red-900/30'
 		},
 		{
-			label: 'Deferred',
-			value: data.taskStats?.deferred || 0,
-			icon: XCircle,
-			color: 'text-gray-600',
-			bgColor: 'bg-gray-100 dark:bg-gray-900/30'
+			label: 'Review',
+			value: data.taskStats?.review || 0,
+			icon: Target,
+			color: 'text-purple-600',
+			bgColor: 'bg-purple-100 dark:bg-purple-900/30'
 		},
 		{
 			label: 'Completed',
@@ -276,8 +276,6 @@
 				tasks={filteredTasks}
 				userId={data.user?.id || ''}
 				onTaskClick={handleTaskClick}
-				showProgress={true}
-				compact={false}
 			/>
 		{/if}
 	</div>

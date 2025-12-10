@@ -103,7 +103,7 @@
 
 		// Generate RRULE string
 		try {
-			const rruleString = generateRRule(recurrencePattern, startDate);
+			const rruleString = generateRRule(recurrencePattern as any, startDate);
 			recurrencePattern.rruleString = rruleString;
 			pattern = recurrencePattern;
 		} catch (error) {

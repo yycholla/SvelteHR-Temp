@@ -4,6 +4,7 @@
 
 **SvelteHR** is a modern, comprehensive HR management system. It is a full-stack application featuring a **SvelteKit** frontend and a **Rust** GraphQL backend.
 
+- Local Development: Docker and MakeFile based. make dev make dev-logs, etc...
 - **Frontend**: SvelteKit 2.22+, Svelte 5 (Runes), TypeScript 5, Tailwind CSS 4.
 - **Backend**: Rust (Axum, Async-GraphQL, SeaORM), PostgreSQL 14+, Redis.
 - **Key Features**: Employee profiles, RBAC, Event Management, Task Tracking, Activity Logging, Notifications.
@@ -26,19 +27,19 @@
 - **Install Dependencies**: `npm install`
 - **Start Dev Server**:
   - With Doppler (Secrets): `npm run dev`
-  - Local (No Secrets): `npm run dev:local` (Runs on http://localhost:5173)
+  - Local (No Secrets): `npm run dev:local` (Runs on <http://localhost:5173>)
 - **Build**: `npm run build`
 - **Type Check**: `npm run check` (Run this before committing!)
-- **Lint/Format**: `npm run lint` / `npm run format`
+- **Lint/Format**: `npm run lint` / `npm run format` (Run this before committing!)
 
 ### Backend (`graphql-rust-server/`)
 
-- **Run Dev Server**: `cargo run` (Runs on http://localhost:4000)
+- **Run Dev Server**: `cargo run` (Runs on <http://localhost:4000>)
 - **Test**: `cargo test`
 
 ### Database
 
-- **Migrations**: `npm run db:migrate`
+- **Migrations**: Hot apply if binary builds in container
 - **Reset/Rebuild**: `npm run db:rebuild`
 - **Status**: `npm run db:migrate:status`
 
@@ -66,9 +67,9 @@
 
 ### Important Rules
 
-1.  **Always run `npm run check`** before finalizing changes to catch type errors.
-2.  **Respect RBAC**: Ensure code handles permissions (Admin, HR Manager, Manager, Employee) correctly.
-3.  **Server-Side API**: Never expose backend API calls in client-side code.
+1. **Always run `npm run check`** before finalizing changes to catch type errors.
+2. **Respect RBAC**: Ensure code handles permissions (Admin, HR Manager, Manager, Employee) correctly.
+3. **Server-Side API**: Never expose backend API calls in client-side code.
 
 ## Current Context (2025-11-19)
 

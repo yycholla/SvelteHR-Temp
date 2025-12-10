@@ -444,7 +444,7 @@
 	</Tabs.Content>
 </Tabs.Root>
 
-{#snippet DataTableLimit({ row }: { row: Row<Schema> })}
+{#snippet DataTableLimit({ row }: { row: Row<any> })}
 	<form
 		onsubmit={(e) => {
 			e.preventDefault();
@@ -464,7 +464,7 @@
 	</form>
 {/snippet}
 
-{#snippet DataTableTarget({ row }: { row: Row<Schema> })}
+{#snippet DataTableTarget({ row }: { row: Row<any> })}
 	<form
 		onsubmit={(e) => {
 			e.preventDefault();
@@ -484,7 +484,7 @@
 	</form>
 {/snippet}
 
-{#snippet DataTableType({ row }: { row: Row<Schema> })}
+{#snippet DataTableType({ row }: { row: Row<any> })}
 	<div class="w-32">
 		<Badge variant="outline" class="px-1.5 text-muted-foreground">
 			{row.original.type}
@@ -492,7 +492,7 @@
 	</div>
 {/snippet}
 
-{#snippet DataTableStatus({ row }: { row: Row<Schema> })}
+{#snippet DataTableStatus({ row }: { row: Row<any> })}
 	<Badge variant="outline" class="px-1.5 text-muted-foreground">
 		{#if row.original.status === 'Done'}
 			<CircleCheckFilledIcon class="fill-green-500 dark:fill-green-400" />
@@ -523,7 +523,7 @@
 	</DropdownMenu.Root>
 {/snippet}
 
-{#snippet DraggableRow({ row }: { row: Row<Schema> })}
+{#snippet DraggableRow({ row }: { row: Row<any> })}
 	{@const { transform, transition, node, isDragging } = useSortable({
 		id: () => row.original.id
 	})}

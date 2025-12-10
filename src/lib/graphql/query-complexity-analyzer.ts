@@ -230,12 +230,15 @@ export class QueryComplexityAnalyzer {
 			errors.push(
 				new GraphQLError(
 					`Query complexity ${metrics.complexity} exceeds maximum allowed complexity ${this.config.maximumComplexity}`,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
 					{
-						extensions: {
-							code: 'QUERY_COMPLEXITY_TOO_HIGH',
-							complexity: metrics.complexity,
-							maxComplexity: this.config.maximumComplexity
-						}
+						code: 'QUERY_COMPLEXITY_TOO_HIGH',
+						complexity: metrics.complexity,
+						maxComplexity: this.config.maximumComplexity
 					}
 				)
 			);
@@ -245,12 +248,15 @@ export class QueryComplexityAnalyzer {
 			errors.push(
 				new GraphQLError(
 					`Query depth ${metrics.depth} exceeds maximum allowed depth ${this.config.depthLimit}`,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
 					{
-						extensions: {
-							code: 'QUERY_DEPTH_TOO_HIGH',
-							depth: metrics.depth,
-							maxDepth: this.config.depthLimit
-						}
+						code: 'QUERY_DEPTH_TOO_HIGH',
+						depth: metrics.depth,
+						maxDepth: this.config.depthLimit
 					}
 				)
 			);

@@ -26,6 +26,7 @@
 	let selectedFile = $state<File | null>(null);
 	let isDragging = $state(false);
 	let errorMessage = $state<string | null>(null);
+	let fileInput = $state<HTMLInputElement | undefined>(undefined);
 
 	// Update bindable props when file changes
 	$effect(() => {
@@ -147,6 +148,7 @@
 				<label class="file-select-button">
 					Choose File
 					<input
+						bind:this={fileInput}
 						type="file"
 						accept={allowedTypes.map((t) => MIME_TYPE_MAP[t] || '').join(',')}
 						onchange={handleFileSelect}

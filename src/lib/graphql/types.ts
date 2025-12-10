@@ -10,7 +10,7 @@ export type EventVisibilityType = 'company' | 'department' | 'specific';
 
 export type EventStatus = 'scheduled' | 'ongoing' | 'completed' | 'cancelled' | 'postponed';
 
-export type RsvpStatus = 'pending' | 'accepted' | 'declined' | 'tentative';
+export type RsvpStatus = 'pending' | 'accepted' | 'declined' | 'tentative' | 'no_response' | 'waitlisted';
 
 export type EventType =
 	| 'meeting'
@@ -119,10 +119,12 @@ export interface Event {
 	type: EventType;
 	startDate: string;
 	endDate: string;
-	allDay: boolean;
+	isAllDay: boolean;
+	allDay?: boolean; // Alias for backward compatibility
 	location?: string;
 	organizerId: string;
 	organizer: UserReference;
+	userByOrganizerId?: UserReference; // Alias for organizer
 	departmentId?: string;
 	department?: DepartmentReference;
 	visibilityType: EventVisibilityType;
@@ -513,7 +515,9 @@ export const RSVP_STATUS_LABELS: Record<RsvpStatus, string> = {
 	pending: 'Pending',
 	accepted: 'Accepted',
 	declined: 'Declined',
-	tentative: 'Tentative'
+	tentative: 'Tentative',
+	no_response: 'No Response',
+	waitlisted: 'Waitlisted'
 };
 
 export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {

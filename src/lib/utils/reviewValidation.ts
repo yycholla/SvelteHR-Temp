@@ -6,8 +6,8 @@
  * Helper functions for validating review operations
  */
 
-import { createUrqlClient, executeQuery } from '$lib/graphql/graphql/client';
-import { GET_ACTIVE_REVIEWS_FOR_EMPLOYEE } from '$lib/graphql/graphql/reviews-operations';
+import { createUrqlClient, executeQuery } from '$lib/graphql/client';
+import { GET_ACTIVE_REVIEWS_FOR_EMPLOYEE } from '$lib/graphql/queries/performance-reviews';
 import type { ReviewType } from '$lib/schemas/reviews';
 
 /**

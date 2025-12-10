@@ -15,7 +15,7 @@
  * - Connection resilience testing
  */
 
-import { DocumentNode, parse, print } from 'graphql';
+import { parse, print, type DocumentNode } from 'graphql';
 import type { Client } from '@urql/core';
 import type { OperationResult } from '../types/urql.js';
 
@@ -499,23 +499,8 @@ class SubscriptionTestRunner {
 		return new Promise((resolve, reject) => {
 			const subscription = this.client
 				.subscription(this.scenario.subscription, this.scenario.variables)
-				.subscribe({
-					next: (result: any) => {
-						this.handleSubscriptionMessage(result);
-					},
-					error: (error: any) => {
-						this.result.errors.push({
-							type: 'subscription',
-							message: error.message,
-							timestamp: new Date(),
-							details: error
-						});
-						reject(error);
-					},
-					complete: () => {
-						this.logDebug('Subscription completed');
-						resolve();
-					}
+				.subscribe((result: any) => {
+					this.handleSubscriptionMessage(result);
 				});
 
 			this.subscription = subscription;

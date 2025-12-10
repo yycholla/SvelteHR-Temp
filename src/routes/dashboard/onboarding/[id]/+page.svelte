@@ -156,9 +156,21 @@
 		}
 	}
 
-	function getFormTemplate(templateId: string | null) {
+	type FormTemplate = {
+		id: string;
+		fields: Array<{
+			name: string;
+			label: string;
+			type: string;
+			required?: boolean;
+		}>;
+	};
+
+	function getFormTemplate(templateId: string | null): FormTemplate | null {
 		if (!templateId) return null;
-		return data.formTemplates.get(templateId);
+		const template = data.formTemplates.get(templateId);
+		// Type assertion - we know from server that templates have fields
+		return template ? (template as FormTemplate) : null;
 	}
 
 	function renderFormField(field: any, blockId: string) {

@@ -87,7 +87,7 @@
 		onclick={handleBackdropClick}
 		onkeydown={(e) => {
 			if (e.key === 'Escape' || e.key === 'Enter') {
-				handleBackdropClick(e);
+				handleBackdropClick(e as unknown as MouseEvent);
 			}
 		}}
 	>

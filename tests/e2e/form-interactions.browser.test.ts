@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
-import { page } from '@vitest/browser/context';
+import { page as vitestPage } from '@vitest/browser/context';
+import type { Page as PuppeteerPage } from 'puppeteer';
 import {
 	captureConsole,
 	clearInput,
@@ -13,6 +14,9 @@ import {
 	waitFor,
 	waitForElement
 } from '../utils/vitest-browser-helpers';
+
+// Cast Vitest page to Puppeteer page for full API access
+const page = vitestPage as unknown as PuppeteerPage;
 
 /**
  * E2E test for form interactions using Vitest Browser Mode
@@ -136,7 +140,17 @@ describe('Form Interactions (Vitest Browser)', () => {
 			// Interact with first select if available
 			const hasSelect = await isElementVisible('select');
 			if (hasSelect) {
-				await selectOption('select', { index: 1 });
+				// Get the first option value and select it
+				const selectElement = await page.$('select');
+				if (selectElement) {
+					const options = await selectElement.$$('option');
+					if (options.length > 1) {
+						const value = await options[1].evaluate((el) => el.value);
+						if (value) {
+							await selectOption('select', value);
+						}
+					}
+				}
 			}
 		}
 
@@ -185,7 +199,8 @@ describe('Form Interactions (Vitest Browser)', () => {
 			await waitFor(500);
 
 			// Field should be cleared
-			const inputValue = await page.locator('input[type="text"]').inputValue();
+			const inputElement = await page.$('input[type="text"]');
+			const inputValue = inputElement ? await inputElement.evaluate((el) => el.value) : '';
 			expect(inputValue).toBe('');
 		}
 	});

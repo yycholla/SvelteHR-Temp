@@ -38,7 +38,7 @@ export function generateRRule(pattern: RecurrencePattern, startDate: Date): stri
 	} = {
 		freq: pattern.frequency.toUpperCase(),
 		interval: pattern.interval,
-		until: formatDateForRRule(pattern.endDate)
+		until: formatDateForRRule(pattern.endDate || new Date())
 	};
 
 	// Add BYDAY for weekly recurrence

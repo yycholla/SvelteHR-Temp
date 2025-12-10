@@ -16,6 +16,7 @@ export function createMockCalendarEvent(overrides: Partial<CalendarEvent> = {}):
 		title: 'Test Event',
 		startDate: new Date('2025-10-15T10:00:00'),
 		endDate: new Date('2025-10-15T11:00:00'),
+		isAllDay: false,
 		allDay: false,
 		type: 'meeting',
 		visibility: 'public',

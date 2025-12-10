@@ -135,6 +135,31 @@ export const GET_PERFORMANCE_REVIEW_STATS = `
 `;
 
 /**
+ * Check for active reviews for an employee
+ */
+export const GET_ACTIVE_REVIEWS_FOR_EMPLOYEE = `
+  query GetActiveReviewsForEmployee($employeeId: UUID!, $reviewType: String) {
+    activeReviewsForEmployee: allPerformanceReviews(
+      condition: {
+        employeeId: $employeeId,
+        # We check for non-completed reviews
+      }
+      filter: {
+        status: { notEqualTo: COMPLETED }
+      }
+    ) {
+      totalCount
+      nodes {
+        id
+        status
+        # Assuming reviewType exists or we infer from reviewPeriod/other fields
+        # reviewPeriod 
+      }
+    }
+  }
+`;
+
+/**
  * Update performance review
  */
 export const UPDATE_PERFORMANCE_REVIEW = `

@@ -76,13 +76,13 @@ afterEach(() => {
 });
 
 // Add global test utilities
-interface CustomGlobalThis extends GlobalThis {
+interface CustomGlobalThis {
 	testUtils: {
 		waitForNextTick(): Promise<void>;
 		sleep(ms: number): Promise<void>;
 	};
 }
-(globalThis as CustomGlobalThis).testUtils = {
+(globalThis as unknown as CustomGlobalThis).testUtils = {
 	waitForNextTick: () => new Promise((resolve) => process.nextTick(resolve)),
 	sleep: (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 };

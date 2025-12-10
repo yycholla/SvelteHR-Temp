@@ -127,7 +127,7 @@ class EventNotificationPrefsStore {
 			...this.preferences,
 			reminderDefaults: {
 				enabled,
-				minutesBefore: minutesBefore ?? this.preferences.reminderDefaults.minutesBefore
+				minutesBefore: minutesBefore ?? this.preferences.reminderDefaults?.minutesBefore ?? 15
 			}
 		};
 	}

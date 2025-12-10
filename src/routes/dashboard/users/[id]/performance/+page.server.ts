@@ -20,6 +20,7 @@ interface EmployeeGoalFromGraphQL {
 	category?: { id: string; name: string; color: string };
 	priority?: string;
 	keyResults?: Array<{ id: string; title: string; progress: number }>;
+	assignedBy?: { id: string; displayName: string; email: string } | null;
 }
 
 export const load: PageServerLoad = async (event) => {
@@ -92,6 +93,11 @@ export const load: PageServerLoad = async (event) => {
 					targetDate
 					createdAt
 					updatedAt
+					assignedBy {
+						id
+						displayName
+						email
+					}
 				}
 			}
 		`;

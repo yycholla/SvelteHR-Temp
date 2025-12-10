@@ -182,7 +182,9 @@
 
 											<div class="task-meta">
 												<span class="task-type">
-													<i class="icon-{getTaskTypeIcon(task.task_type ?? 'check-square')} h-4 w-4"></i>
+													<i
+														class="icon-{getTaskTypeIcon(task.task_type ?? 'check-square')} h-4 w-4"
+													></i>
 													{task.task_type}
 												</span>
 
@@ -229,7 +231,7 @@
 												</Button>
 											{:else if task.status === 'InProgress'}
 												<Button
-	variant="primary"
+													variant="primary"
 													size="sm"
 													leftIcon="check"
 													onclick={() => handleTaskAction(task, 'complete')}

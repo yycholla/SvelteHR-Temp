@@ -2,16 +2,15 @@
 // Tests complete workflows for employee CRUD operations
 // Created: 2025-09-24
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, beforeAll, afterAll, beforeEach } from 'vitest';
 import {
 	TestEmployee,
-	TestEmployeeData,
 	TestUser,
-	TestContext,
 	UserRole,
 	cleanupTestData,
 	createTestContext
 } from '../utils/test-helpers';
+import type { TestEmployeeData, TestContext } from '../utils/test-helpers';
 import { performGraphQLMutation, performGraphQLQuery } from '../utils/graphql-test-client';
 
 describe('Employee Management Integration Tests', () => {
@@ -359,7 +358,7 @@ describe('Employee Management Integration Tests', () => {
 	});
 
 	describe('Employee Update Operations', () => {
-		let testEmployee: any;
+		let testEmployee: TestEmployeeData;
 
 		beforeAll(async () => {
 			testEmployee = await TestEmployee.create({
@@ -470,7 +469,7 @@ describe('Employee Management Integration Tests', () => {
 	});
 
 	describe('Employee Deletion Operations', () => {
-		let testEmployee: any;
+		let testEmployee: TestEmployeeData;
 
 		beforeEach(async () => {
 			testEmployee = await TestEmployee.create({

@@ -15,7 +15,8 @@ export function groupActivitiesByDate(activities: ActivityLog[]): Map<string, Ac
 		const date = new Date(activity.createdAt).toLocaleDateString('en-US', {
 			year: 'numeric',
 			month: 'long',
-			day: 'numeric'
+			day: 'numeric',
+			timeZone: 'UTC'
 		});
 
 		if (!grouped.has(date)) {

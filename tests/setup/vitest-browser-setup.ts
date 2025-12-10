@@ -4,7 +4,7 @@
 
 import { afterEach, beforeAll } from 'vitest';
 import { page } from '@vitest/browser/context';
-import type { BrowserContext, Page as PuppeteerPage } from 'puppeteer'; // Import Puppeteer's Page and BrowserContext types
+import type { BrowserContext, Page as PlaywrightPage } from '@playwright/test';
 
 beforeAll(async () => {
 	console.log('Setting up browser test environment...');
@@ -12,22 +12,21 @@ beforeAll(async () => {
 	// Configure browser for component testing
 	if (page) {
 		try {
-			// Cast page to PuppeteerPage to access its methods
-			const puppeteerPage = page as unknown as PuppeteerPage;
+			// Cast page to PlaywrightPage to access its methods
+			const playwrightPage = page as unknown as PlaywrightPage;
 
 			// Set consistent viewport
-			await puppeteerPage.setViewport({ width: 1280, height: 720 });
+			await playwrightPage.setViewportSize({ width: 1280, height: 720 });
 
 			// Set timezone
-			await puppeteerPage.emulateTimezone('UTC');
+			// await playwrightPage.emulateTimezone('UTC'); // Not directly available on Playwright Page
 
 			// Set locale
-			await puppeteerPage.setExtraHTTPHeaders({
+			await playwrightPage.setExtraHTTPHeaders({
 				'Accept-Language': 'en-US,en;q=0.9'
 			});
 
-			// Navigate to test page
-			await puppeteerPage.goto('about:blank');
+			await playwrightPage.goto('about:blank');
 		} catch (error) {
 			console.error('Failed to setup browser test environment:', error);
 			console.error('Failed operation:', (error as Error).message);
@@ -40,20 +39,19 @@ beforeAll(async () => {
 afterEach(async () => {
 	// Clean up browser state after each test
 	if (page) {
-		// Cast page to PuppeteerPage to access its methods
-		const puppeteerPage = page as unknown as PuppeteerPage;
+		// Cast page to PlaywrightPage to access its methods
+		const playwrightPage = page as unknown as PlaywrightPage;
 
 		// Clear local storage
-		await puppeteerPage.evaluate(() => {
+		await playwrightPage.evaluate(() => {
 			localStorage.clear();
 			sessionStorage.clear();
 		});
 
 		// Clear cookies
-		const context = puppeteerPage.browserContext() as BrowserContext; // Explicitly cast to BrowserContext
-		await context.clearCookies();
+		await playwrightPage.context().clearCookies();
 
 		// Navigate to blank page
-		await puppeteerPage.goto('about:blank');
+		await playwrightPage.goto('about:blank');
 	}
 });

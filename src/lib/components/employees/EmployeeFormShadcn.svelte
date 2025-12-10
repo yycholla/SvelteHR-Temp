@@ -207,7 +207,7 @@
 		};
 
 		if (isEditing) {
-			return baseData as UpdateUserInput;
+			return baseData as unknown as UpdateUserInput;
 		} else {
 			return {
 				...baseData,
@@ -220,7 +220,7 @@
 				roleIds: formData.roleIds,
 				salary: formData.salary ? parseFloat(formData.salary) : undefined,
 				payType: formData.payType
-			} as CreateUserInput;
+			} as unknown as CreateUserInput;
 		}
 	}
 
@@ -391,7 +391,8 @@
 
 				<div class="space-y-2">
 					<Label for="departmentId">Department *</Label>
-					<Select.Root type="single"
+					<Select.Root
+						type="single"
 						value={formData.departmentId}
 						onValueChange={(v: string | undefined) => (formData.departmentId = v || '')}
 					>
@@ -411,7 +412,8 @@
 
 				<div class="space-y-2">
 					<Label for="employmentType">Employment Type</Label>
-					<Select.Root type="single"
+					<Select.Root
+						type="single"
 						value={formData.employmentType}
 						onValueChange={(v: string | undefined) => (formData.employmentType = v || 'FULL_TIME')}
 					>
@@ -442,7 +444,8 @@
 
 				<div class="space-y-2">
 					<Label for="managerId">Manager</Label>
-					<Select.Root type="single"
+					<Select.Root
+						type="single"
 						value={formData.managerId}
 						onValueChange={(v) => (formData.managerId = v || '')}
 					>
@@ -484,7 +487,8 @@
 
 					<div class="space-y-2">
 						<Label for="payType">Pay Type</Label>
-						<Select.Root type="single"
+						<Select.Root
+							type="single"
 							value={formData.payType}
 							onValueChange={(v) => (formData.payType = v || 'SALARY')}
 						>
@@ -577,7 +581,8 @@
 
 				<div class="space-y-2 md:col-span-2">
 					<Label for="emergencyContactRelationship">Relationship</Label>
-					<Select.Root type="single"
+					<Select.Root
+						type="single"
 						value={formData.emergencyContactRelationship}
 						onValueChange={(v) => (formData.emergencyContactRelationship = v || '')}
 					>

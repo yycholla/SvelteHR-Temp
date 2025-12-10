@@ -347,8 +347,6 @@
 				userId={data.user?.id || ''}
 				onTaskClick={handleTaskClick}
 				onStatusChange={handleStatusChange}
-				showProgress={true}
-				compact={false}
 			/>
 		{/if}
 	</div>

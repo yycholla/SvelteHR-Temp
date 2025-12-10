@@ -430,9 +430,7 @@
 		gap: 0.75rem;
 	}
 
-	.header-icon {
-		color: #f59e0b;
-	}
+
 
 	.modal-header h3 {
 		margin: 0;

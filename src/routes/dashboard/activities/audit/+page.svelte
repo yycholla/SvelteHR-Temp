@@ -13,8 +13,12 @@
 
 	// Filter state
 	let selectedEmployee = $state(data.filters.employeeId || '');
-	let selectedAction = $state<ActivityAction | 'all'>(data.filters.action || 'all');
-	let selectedResourceType = $state<ResourceType | 'all'>(data.filters.resourceType || 'all');
+	let selectedAction = $state<ActivityAction | 'all'>(
+		(data.filters.action as ActivityAction | 'all') || 'all'
+	);
+	let selectedResourceType = $state<ResourceType | 'all'>(
+		(data.filters.resourceType as ResourceType | 'all') || 'all'
+	);
 	let selectedDaysBack = $state(data.filters.daysBack || 7);
 	let searchQuery = $state(data.filters.searchQuery || '');
 

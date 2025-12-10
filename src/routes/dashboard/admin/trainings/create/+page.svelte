@@ -169,7 +169,7 @@
 							<Switch bind:checked={isActive} />
 						</div>
 
-						<div class="h-px bg-border" />
+						<div class="h-px bg-border"></div>
 
 						<!-- Tags -->
 						<div class="space-y-2">

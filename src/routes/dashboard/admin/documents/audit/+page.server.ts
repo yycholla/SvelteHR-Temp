@@ -44,6 +44,11 @@ export const load: PageServerLoad = async (event) => {
 		timestamp: new Date().toISOString()
 	});
 
+	const isSystemAdmin =
+		userRoles.includes('system_admin') ||
+		userPermissions.includes('*') ||
+		userPermissions.includes('*:*');
+
 	try {
 		// Step 3: Parse query parameters
 		const page = parseInt(url.searchParams.get('page') || '1');

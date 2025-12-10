@@ -1,12 +1,8 @@
 <!-- Re-export the main data table component -->
 <script lang="ts">
-	import DataTable from '../data-table.svelte';
+	import DataTable from '../tables/DataTable.svelte';
 
-	const { children, ...props } = $props();
+	const { cellRenderer, ...props } = $props();
 </script>
 
-<DataTable {...props}>
-	{#if children}
-		{@render children()}
-	{/if}
-</DataTable>
+<DataTable {cellRenderer} {...props} />

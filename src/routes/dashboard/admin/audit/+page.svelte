@@ -15,16 +15,23 @@
 
 	// Filtered logs based on search query
 	const filteredLogs = $derived(
-		data.auditLogs.filter((log: { action?: string; resourceType?: string; userByUserId?: { email?: string } }) => {
-			if (!searchQuery) return true;
-			const query = searchQuery.toLowerCase();
-			return (
-				log.action?.toLowerCase().includes(query) ||
-				log.resourceType?.toLowerCase().includes(query) ||
-				log.userByUserId?.email?.toLowerCase().includes(query) ||
-				log.ipAddress?.includes(query)
-			);
-		})
+		data.auditLogs.filter(
+			(log: {
+				action?: string;
+				resourceType?: string;
+				userByUserId?: { email?: string };
+				ipAddress?: string;
+			}) => {
+				if (!searchQuery) return true;
+				const query = searchQuery.toLowerCase();
+				return (
+					log.action?.toLowerCase().includes(query) ||
+					log.resourceType?.toLowerCase().includes(query) ||
+					log.userByUserId?.email?.toLowerCase().includes(query) ||
+					log.ipAddress?.includes(query)
+				);
+			}
+		)
 	);
 
 	function applyFilters() {
@@ -48,14 +55,23 @@
 	function exportLogs() {
 		// Convert logs to CSV format
 		const headers = ['Timestamp', 'User', 'Action', 'Resource Type', 'Resource ID', 'IP Address'];
-		const rows = filteredLogs.map((log: { createdAt: string | Date; userByUserId?: { email?: string }; action: string; resourceType: string; resourceId: string; ipAddress?: string }) => [
-			new Date(log.createdAt).toLocaleString(),
-			log.userByUserId?.email || 'Unknown',
-			log.action,
-			log.resourceType,
-			log.resourceId,
-			log.ipAddress
-		]);
+		const rows = filteredLogs.map(
+			(log: {
+				createdAt: string | Date;
+				userByUserId?: { email?: string };
+				action: string;
+				resourceType: string;
+				resourceId: string;
+				ipAddress?: string;
+			}) => [
+				new Date(log.createdAt).toLocaleString(),
+				log.userByUserId?.email || 'Unknown',
+				log.action,
+				log.resourceType,
+				log.resourceId,
+				log.ipAddress || ''
+			]
+		);
 
 		const csv = [headers, ...rows].map((row) => row.join(',')).join('\n');
 

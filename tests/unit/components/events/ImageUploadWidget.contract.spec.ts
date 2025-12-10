@@ -88,9 +88,9 @@ describe('ImageUploadWidget Contract', () => {
 		expect(props9x16.aspectRatio).toBe('9:16');
 
 		// Type system should prevent invalid values
-		// @ts-expect-error - Invalid aspect ratio
 		const invalidProps: ImageUploadWidgetProps = {
-			aspectRatio: '4:3' as any, // Cast to any to allow testing invalid values
+			// @ts-expect-error - Invalid aspect ratio
+			aspectRatio: '4:3', // Cast removed to trigger type error
 			onImageSelected: vi.fn(),
 			onImageRemoved: vi.fn()
 		};

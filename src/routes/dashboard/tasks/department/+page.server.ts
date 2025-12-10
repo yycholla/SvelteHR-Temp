@@ -109,7 +109,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			// Client-side sorting (since Rust schema doesn't support orderBy)
 			const sortFunctions: Record<string, (a: any, b: any) => number> = {
 				priority: (a, b) => {
-					const priorityOrder = { HIGH: 3, MEDIUM: 2, LOW: 1 };
+					const priorityOrder: Record<string, number> = { HIGH: 3, MEDIUM: 2, LOW: 1 };
 					return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
 				},
 				dueDate: (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),

@@ -56,27 +56,69 @@
 		assignmentReason?: string;
 	}
 
+	interface Employee {
+		id: string;
+		firstName?: string;
+		lastName?: string;
+		displayName?: string;
+		fullName?: string;
+		email?: string;
+		role?: string;
+		jobTitle?: string;
+		status?: string;
+		hireDate?: string | null;
+		isActive?: boolean;
+		departmentId?: string;
+		phoneNumber?: string | null;
+		mobileNumber?: string | null;
+		addressLine1?: string | null;
+		addressLine2?: string | null;
+		city?: string | null;
+		stateProvince?: string | null;
+		postalCode?: string | null;
+		country?: string | null;
+		avatarUrl?: string | null;
+		department?: {
+			id: string;
+			name: string;
+			manager?: {
+				id: string;
+				displayName: string;
+			};
+		} | null;
+		leaveBalances?: LeaveBalance[];
+		leaveRequests?: LeaveRequest[];
+		assignedDocuments?: AssignedDocument[];
+	}
+
 	interface Props {
 		data: {
-			employee: Record<string, unknown> & {
-				leaveBalances?: LeaveBalance[];
-				leaveRequests?: LeaveRequest[];
-				assignedDocuments?: AssignedDocument[];
+			employee: Employee;
+			permissions: {
+				canViewContactInfo?: boolean;
+				canViewEmergencyContacts?: boolean;
+				canViewVehicles?: boolean;
+				canViewCompensation?: boolean;
+				canCreateReviews?: boolean;
+				canAssignDocuments?: boolean;
+				isEmployeeManager?: boolean;
+				isViewingSelf?: boolean;
+				canViewDocuments?: boolean;
+				[key: string]: any;
 			};
-			permissions: Record<string, unknown>;
 		};
 	}
 
 	const { data }: Props = $props();
 
 	// Use derived state for reactivity
-	const employee = $derived(data.employee ?? {});
-	const permissions = $derived(data.permissions ?? {});
+	const employee = $derived(data.employee);
+	const permissions = $derived(data.permissions);
 
 	// Helpers
 	const initials = $derived((employee.firstName?.[0] ?? '') + (employee.lastName?.[0] ?? ''));
 
-	function formatDate(dateStr: string | null) {
+	function formatDate(dateStr: string | null | undefined) {
 		if (!dateStr) return 'N/A';
 		try {
 			return format(new Date(dateStr), 'MMM dd, yyyy');

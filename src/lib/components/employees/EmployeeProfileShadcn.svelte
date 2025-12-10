@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { createEventDispatcher, onMount } from 'svelte';
-	import { userService, currentUser as userServiceCurrentUser } from '$lib/services/userService';
+	import { userService } from '$lib/services/userService';
+	import { currentUser as userServiceCurrentUser } from '$lib/services/auth';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
@@ -50,8 +51,13 @@
 	});
 	const canEdit = $derived(auth.user && (isOwnProfile || auth.hasPermission('user:update')));
 	const canDeactivate = $derived(auth.user && auth.hasPermission('user:delete') && !isOwnProfile);
-	const statusVariant = $derived(employee?.is_active ? 'default' : 'secondary');
-	const statusText = $derived(employee?.is_active ? 'Active' : 'Inactive');
+	const statusVariant = $derived.by(
+		(): 'default' | 'secondary' =>
+			(employee?.isActive ?? employee?.is_active) ? 'default' : 'secondary'
+	);
+	const statusText = $derived.by(
+		(): string => ((employee?.isActive ?? employee?.is_active) ? 'Active' : 'Inactive')
+	);
 
 	async function loadEmployee() {
 		try {
@@ -214,7 +220,7 @@
 								</Button>
 							{/if}
 
-							{#if canDeactivate && employee.is_active}
+							{#if canDeactivate && (employee.isActive ?? employee.is_active)}
 								<Button variant="destructive" onclick={() => (showDeactivateModal = true)}>
 									<UserX class="mr-2 h-4 w-4" />
 									Deactivate

@@ -9,9 +9,10 @@
 	// Mock stores until services are implemented
 	import { writable } from 'svelte/store';
 	import type { User } from '$lib/types';
-	const tasks = writable<Task[]>([]);
+	import type { Task as TaskType } from '$lib/types/task';
+	const tasks = writable<TaskType[]>([]);
 	const isLoadingTasks = writable(false);
-	const taskError = writable(null);
+	const taskError = writable<string | null>(null);
 	const users = writable<User[]>([]);
 	const taskService = {
 		loadTasks: async () => {},
@@ -30,7 +31,7 @@
 	import Badge from '$lib/components/base/Badge.svelte';
 	import Card from '$lib/components/base/Card.svelte';
 	import type { Column } from '$lib/components/tables/DataTable.svelte';
-	import type { Task, TaskFilter, TaskPriority, TaskStatus } from '$lib/types';
+	import type { Task, TaskFilter, TaskPriority, TaskStatus } from '$lib/types/task';
 
 	// Filter state
 	let searchQuery = '';
@@ -39,22 +40,23 @@
 	let assigneeFilter = '';
 	let sortField = 'createdAt';
 	let sortDirection: 'asc' | 'desc' = 'desc';
-	let selectedTasks: Task[] = [];
+	let selectedTasks: TaskType[] = [];
 
 	// Filter options
 	const statusOptions = [
 		{ value: '', label: 'All Status' },
 		{ value: 'TODO', label: 'To Do' },
 		{ value: 'IN_PROGRESS', label: 'In Progress' },
+		{ value: 'BLOCKED', label: 'Blocked' },
 		{ value: 'REVIEW', label: 'In Review' },
-		{ value: 'COMPLETED', label: 'Completed' },
+		{ value: 'DONE', label: 'Done' },
 		{ value: 'CANCELLED', label: 'Cancelled' }
 	];
 
 	const priorityOptions = [
 		{ value: '', label: 'All Priority' },
 		{ value: 'LOW', label: 'Low' },
-		{ value: 'NORMAL', label: 'Normal' },
+		{ value: 'MEDIUM', label: 'Medium' },
 		{ value: 'HIGH', label: 'High' },
 		{ value: 'URGENT', label: 'Urgent' }
 	];
@@ -72,34 +74,27 @@
 			label: 'Assignee',
 			sortable: true,
 			type: 'text',
-			format: (value) => value?.display_name || 'Unassigned'
+			format: (value: any) => (value?.display_name || 'Unassigned')
 		},
 		{
 			key: 'priority',
 			label: 'Priority',
 			sortable: true,
 			type: 'badge',
-			badgeVariant: (value) => getPriorityVariant(value)
+			badgeVariant: (value: any) => getPriorityVariant(value as TaskPriority)
 		},
 		{
 			key: 'status',
 			label: 'Status',
 			sortable: true,
 			type: 'badge',
-			badgeVariant: (value) => getStatusVariant(value)
+			badgeVariant: (value: any) => getStatusVariant(value as TaskStatus)
 		},
 		{
 			key: 'dueDate',
 			label: 'Due Date',
 			sortable: true,
 			type: 'date'
-		},
-		{
-			key: 'progress',
-			label: 'Progress',
-			sortable: true,
-			type: 'text',
-			format: (value) => (value ? `${value}%` : '0%')
 		}
 	];
 
@@ -117,9 +112,9 @@
 
 	function buildFilters(): TaskFilter {
 		return {
-			...(searchQuery && { searchQuery }),
-			...(statusFilter && { status: [statusFilter as TaskStatus] }),
-			...(priorityFilter && { priority: [priorityFilter as TaskPriority] }),
+			...(searchQuery && { search: searchQuery }),
+			...(statusFilter && { status: statusFilter as TaskStatus }),
+			...(priorityFilter && { priority: priorityFilter as TaskPriority }),
 			...(assigneeFilter && { assigneeId: assigneeFilter })
 		};
 	}
@@ -133,9 +128,9 @@
 	}
 
 	function getPriorityVariant(priority: TaskPriority): string {
-		const variants = {
+		const variants: Record<TaskPriority, string> = {
 			LOW: 'secondary',
-			NORMAL: 'primary',
+			MEDIUM: 'primary',
 			HIGH: 'warning',
 			URGENT: 'danger'
 		};
@@ -143,31 +138,29 @@
 	}
 
 	function getStatusVariant(status: TaskStatus): string {
-		const variants: Record<string, string> = {
+		const variants: Record<TaskStatus, string> = {
 			TODO: 'secondary',
 			IN_PROGRESS: 'primary',
-			REVIEW: 'warning',
 			BLOCKED: 'danger',
-			COMPLETED: 'success',
+			REVIEW: 'warning',
 			DONE: 'success',
 			CANCELLED: 'danger'
 		};
 		return variants[status] || 'secondary';
 	}
 
-	function handleSort(event: CustomEvent) {
-		sortField = event.detail.key;
-		sortDirection = event.detail.direction;
+	function handleSort(detail: { key: string; direction: 'asc' | 'desc' }) {
+		sortField = detail.key;
+		sortDirection = detail.direction;
 		loadTasks();
 	}
 
-	function handleRowClick(event: CustomEvent) {
-		const { row } = event.detail;
-		goto(`/tasks/${row.id}`);
+	function handleRowClick(detail: { row: Record<string, any>; index: number }) {
+		goto(`/tasks/${detail.row.id}`);
 	}
 
-	function handleSelectionChange(event: CustomEvent) {
-		selectedTasks = event.detail;
+	function handleSelectionChange(detail: any[]) {
+		selectedTasks = detail;
 	}
 
 	function clearFilters() {
@@ -239,7 +232,7 @@
 					placeholder="Search tasks..."
 					leftIcon="search"
 					bind:value={searchQuery}
-					on:input={loadTasks}
+					oninput={loadTasks}
 				/>
 			</div>
 
@@ -304,7 +297,7 @@
 
 					{#if auth.user && auth.hasPermission('task:delete')}
 						<Button
-							variant="destructive"
+							variant="danger"
 							size="sm"
 							leftIcon="trash-2"
 							onclick={() => handleBulkAction('delete')}
@@ -322,15 +315,15 @@
 		<DataTable
 			data={$tasks}
 			{columns}
-			loading={auth.isLoadingTasks}
+			loading={$isLoadingTasks}
 			selectable={true}
 			hoverable={true}
 			currentSort={{ key: sortField, direction: sortDirection }}
 			bind:selectedRows={selectedTasks}
 			emptyMessage="No tasks found"
-			on:sort={handleSort}
-			on:rowClick={handleRowClick}
-			on:selectionChange={handleSelectionChange}
+			onsort={handleSort}
+			onrowClick={handleRowClick}
+			onselectionChange={handleSelectionChange}
 		/>
 	</Card>
 

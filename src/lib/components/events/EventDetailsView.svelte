@@ -36,7 +36,7 @@
 		userWaitlistStatus?: UserWaitlistStatus;
 		hasMoreComments?: boolean;
 		hasMoreHistory?: boolean;
-		onRsvpUpdate?: (eventId: string, newStatus: RsvpStatus) => void;
+		onRsvpUpdate?: (newStatus: RsvpStatus) => void;
 		onAddComment?: (content: string, mentions: string[]) => Promise<void>;
 		onUpdateComment?: (commentId: string, content: string) => Promise<void>;
 		onDeleteComment?: (commentId: string) => Promise<void>;
@@ -121,7 +121,7 @@
 			: (event?.attendees || []).filter((a: any) => a.responseStatus === activeAttendeeTab)
 	);
 
-	const userRsvpStatus: RsvpStatus = $derived(
+	const userRsvpStatus = $derived(
 		!event?.attendees
 			? 'no_response'
 			: event.attendees.find((a) => a.employeeId === userId)?.responseStatus || 'no_response'
@@ -137,23 +137,43 @@
 		event?.rrule !== null && event?.rrule !== undefined && event.rrule !== ''
 	);
 
+	// Mappers for child components
+	const mappedComments = $derived(
+		eventComments.map((c) => ({
+			id: c.id,
+			content: c.content || c.commentText || '',
+			author: {
+				id: c.author?.id || c.user?.id || 'unknown',
+				name: c.author?.name || c.user?.displayName || 'Unknown',
+				avatarUrl: c.author?.avatarUrl
+			},
+			mentions: c.mentions || [],
+			createdAt: c.createdAt,
+			updatedAt: c.updatedAt
+		}))
+	);
+
+	const mappedHistory = $derived(
+		eventHistory.map((h) => ({
+			id: h.id,
+			changedBy: {
+				id: h.changedBy?.id || 'unknown',
+				name: h.changedBy?.name || h.changedBy?.displayName || 'System'
+			},
+			changeType: h.changeType as any,
+			fieldName: h.fieldName,
+			oldValue: h.oldValue || h.oldValues,
+			newValue: h.newValue || h.newValues,
+			changedAt: h.changedAt || h.createdAt
+		}))
+	);
+
 	// Handlers
 	async function handleRsvpChange(newStatus: RsvpStatus) {
-		// Bubbles up to parent which handles the logic (including recursion check)
-		// Actually, the recursion/conflict logic is in the parent (Dialog).
-		// The parent passes `onRsvpUpdate` but that might be just the callback after update.
-		// Wait, the logic for "Show Scope Dialog" was in the Dialog.
-		// If I move this View, the Dialog still holds the "Scope Dialog" and "Conflict Dialog".
-		// So I should emit an event or call a prop to request RSVP change.
-
-		// The parent (Dialog) expects `onRsvpUpdate` to be a callback *after* update in the original code?
-		// No, `onRsvpUpdate` in original props was `onRsvpUpdate?: (eventId: string, newStatus: RsvpStatus) => void;`
-		// But the `handleRsvpChange` logic in Dialog was complex.
-
-		// I should pass a prop `onRequestRsvpChange` to this View, which calls back to parent.
-		// The parent will handle scope/conflict checks and then call API.
+		// Call the parent's RSVP handler
+		// Parent (EventDetailsDialog) will handle scope dialog, conflict checks, and API call
 		if (onRsvpUpdate) {
-			onRsvpUpdate(event.id, newStatus);
+			onRsvpUpdate(newStatus);
 		}
 	}
 
@@ -383,7 +403,7 @@
 					<div>
 						<div class="text-sm font-medium text-foreground mb-1">Date & Time</div>
 						<div class="text-sm text-muted-foreground">
-							{formatEventTimeRange(event.startTime, event.endTime, event.isAllDay)}
+							{formatEventTimeRange(event.startTime, event.endTime, event.isAllDay ?? false)}
 						</div>
 						{#if event.isAllDay}
 							<span
@@ -453,7 +473,7 @@
 				<h3 class="text-sm font-medium text-foreground mb-3">Your RSVP</h3>
 				<div class="flex flex-col sm:flex-row gap-3 items-start">
 					<div>
-						<RSVPButton currentStatus={userRsvpStatus} onChange={onRsvpUpdate || (() => {})} />
+						<RSVPButton currentStatus={userRsvpStatus} onChange={handleRsvpChange} />
 					</div>
 
 					{#if userRsvpStatus === 'accepted' || userRsvpStatus === 'tentative'}
@@ -638,7 +658,7 @@
 		<TabsContent value="comments" class="p-6">
 			<EventCommentThread
 				eventId={event.id}
-				comments={eventComments}
+				comments={mappedComments}
 				currentUserId={userId}
 				currentUserRole={userRole}
 				eventOrganizerId={event.organizerId}
@@ -657,7 +677,7 @@
 
 		<TabsContent value="history" class="p-6">
 			<EventHistoryView
-				history={eventHistory}
+				history={mappedHistory}
 				onLoadMore={onLoadMoreHistory}
 				hasMore={hasMoreHistory}
 			/>

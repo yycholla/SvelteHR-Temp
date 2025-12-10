@@ -69,11 +69,10 @@ export const load: PageServerLoad = async (event) => {
 			roles: userSession.roles,
 			permissions: userSession.permissions,
 			// jwtToken omitted for session-based auth
-			isAuthenticated: Boolean(userSession.isAuthenticated)
+			isAuthenticated: Boolean(userSession.isAuthenticated),
+			expiresAt: userSession.expiresAt
 		},
-		timeoutMs: 5000,
-		retryAttempts: 0,
-		maxRetries: 3
+		timeoutMs: 5000
 	});
 
 	try {

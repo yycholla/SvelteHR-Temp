@@ -27,6 +27,8 @@ export interface DataRequest<TVariables = any, TData = any> {
 	createdAt: Date;
 	completedAt: Date | null;
 	timeoutMs: number; // Maximum 5000ms
+	cachePolicy?: 'cache-first' | 'cache-only' | 'network-only' | 'cache-and-network';
+	cacheTtlMinutes?: number;
 }
 
 export type RequestStatus = 'pending' | 'loading' | 'success' | 'error' | 'timeout' | 'retrying';
@@ -90,7 +92,7 @@ export interface GetCompleteDashboardDataVariables {
 	userRole: string;
 }
 
-export type GetCompleteDashboardDataRequest = GetCompleteDashboardDataVariables;
+export type GetCompleteDashboardDataRequest = DataRequest<GetCompleteDashboardDataVariables>;
 
 export interface GetCompleteDashboardDataResponse {
 	dashboardData: {
@@ -255,9 +257,51 @@ export interface GetEmployeesResponse {
 	pagination: PaginationInfo;
 }
 
-export type GetEmployeesWithFilteringResponse = GetEmployeesResponse;
-export type GetEmployeesWithFilteringVariables = GetEmployeesVariables;
-export type GetEmployeesWithFilteringRequest = GetEmployeesVariables;
+export interface GetEmployeesWithFilteringVariables {
+	filters?: {
+		departmentIds?: string[];
+		roleIds?: string[];
+		isActive?: boolean;
+		searchTerm?: string;
+		hiredDateRange?: {
+			startDate: string;
+			endDate: string;
+		};
+	};
+	sorting?: {
+		field: string;
+		direction: 'asc' | 'desc';
+	} | null;
+	pagination?: {
+		page: number;
+		limit: number;
+		offset?: number;
+	};
+	includeDetails?: boolean;
+}
+
+export interface GetEmployeesWithFilteringResponse {
+	employees: Employee[];
+	pagination: PaginationInfo;
+	appliedFilters?: {
+		departmentIds?: string[];
+		roleIds?: string[];
+		isActive?: boolean;
+		totalFiltersApplied: number;
+	};
+	summary?: {
+		totalEmployees: number;
+		activeEmployees: number;
+		inactiveEmployees: number;
+		departmentBreakdown: Array<{
+			departmentId: string;
+			departmentName: string;
+			count: number;
+		}>;
+	};
+}
+
+export type GetEmployeesWithFilteringRequest = DataRequest<GetEmployeesWithFilteringVariables>;
 
 export interface Employee {
 	id: string;
@@ -302,9 +346,62 @@ export interface GetDepartmentsResponse {
 	departments: Department[];
 }
 
-export type GetDepartmentsWithStatsResponse = GetDepartmentsResponse;
-export type GetDepartmentsWithStatsVariables = GetDepartmentsVariables;
-export type GetDepartmentsWithStatsRequest = GetDepartmentsVariables;
+export interface GetDepartmentsWithStatsVariables {
+	includeInactive?: boolean;
+	includeEmployeeStats?: boolean;
+	includeFinancialStats?: boolean;
+	statsDateRange?: {
+		startDate: string;
+		endDate: string;
+	};
+	sortBy?: string;
+	sortDirection?: 'asc' | 'desc';
+}
+
+export interface GetDepartmentsWithStatsResponse {
+	departments: Department[];
+	summary?: {
+		totalDepartments: number;
+		activeDepartments: number;
+		inactiveDepartments: number;
+		totalEmployeesAcrossAllDepts: number;
+		totalBudgetAcrossAllDepts: number;
+		averageDepartmentSize: number;
+		largestDepartment: {
+			name: string;
+			employeeCount: number;
+		};
+		smallestDepartment: {
+			name: string;
+			employeeCount: number;
+		};
+	};
+	aggregatedStats?: {
+		companyWideMetrics: {
+			totalHeadcount: number;
+			averagePerformanceRating: number;
+			totalSalaryExpense: number;
+			averageCompanySalary: number;
+			totalTurnoverRate: number;
+			averageTenure: number;
+		};
+		departmentComparisons: Array<{
+			departmentId: string;
+			departmentName: string;
+			performanceVsAverage: number;
+			salaryVsAverage: number;
+			turnoverVsAverage: number;
+		}>;
+	};
+	metadata?: {
+		lastCalculated: string;
+		calculationDuration: number;
+		dataFreshness: string;
+		nextUpdateScheduled: string;
+	};
+}
+
+export type GetDepartmentsWithStatsRequest = DataRequest<GetDepartmentsWithStatsVariables>;
 
 export interface Department {
 	id: string;
@@ -338,6 +435,15 @@ export interface RetryFailedOperationResponse {
 		success: boolean;
 		data?: any;
 		error?: ErrorResponse;
+		finalError?: ErrorResponse; // For test compatibility
+		attemptCount?: number;
+		totalDuration?: number;
+		retryHistory?: Array<{
+			attempt: number;
+			delay: number;
+			error: string;
+			timestamp: string;
+		}>;
 		retryInfo: {
 			attemptsRemaining: number;
 			nextRetryDelay: number;
@@ -346,8 +452,16 @@ export interface RetryFailedOperationResponse {
 	};
 }
 
+export interface RetryExecutionVariables {
+	operation: Function;
+	maxAttempts: number;
+	baseDelayMs: number;
+	enableJitter: boolean;
+	operationName: string;
+}
+
 export type RetryOperationResponse = RetryFailedOperationResponse;
-export type RetryOperationVariables = RetryFailedOperationVariables;
+export type RetryOperationVariables = RetryFailedOperationVariables | RetryExecutionVariables;
 
 // =============================================================================
 // Cache Management Operation Contracts
@@ -370,8 +484,48 @@ export interface InvalidateCacheResponse {
 	};
 }
 
-export type CacheOperationResponse = InvalidateCacheResponse;
-export type CacheOperationVariables = InvalidateCacheVariables;
+export interface CacheLookupResponse {
+	cacheResult: {
+		operationName: string;
+		cacheKey: string;
+		hitStatus: 'hit' | 'miss' | 'stale' | 'error';
+		data: any;
+		metadata: {
+			timestamp: string;
+			ttl: number;
+			accessCount: number;
+			lastAccessed: string;
+			dataFreshness: 'current' | 'stale' | 'expired';
+			cacheSource: 'urql' | 'browser' | 'memory';
+			compressionUsed: boolean;
+			sizeBytes: number;
+		};
+		performance: {
+			retrievalTime: number;
+			compressionTime: number;
+			validationTime: number;
+			totalTime: number;
+		};
+	};
+}
+
+export type CacheOperationResponse = InvalidateCacheResponse | CacheLookupResponse;
+
+export interface InvalidateCacheVariables {
+	cacheKeys: string[];
+	scope: 'user' | 'department' | 'global';
+	userId: string;
+	reason: string;
+}
+
+export interface CacheLookupVariables {
+	operationName: string;
+	cacheKey: string | null;
+	policy?: CachePolicy | null;
+	forceRefresh: boolean;
+}
+
+export type CacheOperationVariables = InvalidateCacheVariables | CacheLookupVariables;
 
 export interface CachePolicy {
 	ttlMinutes: number; // Maximum 30 minutes

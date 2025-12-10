@@ -69,11 +69,16 @@
 		label: string;
 		variant: 'default' | 'secondary' | 'destructive' | 'outline';
 	} {
-		const badges = {
+		const badges: Record<
+			RsvpStatus,
+			{ label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }
+		> = {
 			accepted: { label: 'Accepted', variant: 'default' as const },
 			declined: { label: 'Declined', variant: 'destructive' as const },
 			tentative: { label: 'Tentative', variant: 'secondary' as const },
-			pending: { label: 'Pending', variant: 'outline' as const }
+			pending: { label: 'Pending', variant: 'outline' as const },
+			no_response: { label: 'No Response', variant: 'outline' as const },
+			waitlisted: { label: 'Waitlisted', variant: 'secondary' as const }
 		};
 		return badges[status];
 	}

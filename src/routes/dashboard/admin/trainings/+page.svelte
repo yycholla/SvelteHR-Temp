@@ -196,11 +196,15 @@
 										</DropdownMenu.Trigger>
 										<DropdownMenu.Content align="end">
 											<DropdownMenu.Label>Actions</DropdownMenu.Label>
-											<DropdownMenu.Item href="/dashboard/admin/trainings/{training.id}">
+											<DropdownMenu.Item
+												onSelect={() => goto(`/dashboard/admin/trainings/${training.id}`)}
+											>
 												<Edit class="mr-2 h-4 w-4" />
 												Edit Details
 											</DropdownMenu.Item>
-											<DropdownMenu.Item href="/dashboard/admin/trainings/{training.id}/content">
+											<DropdownMenu.Item
+												onSelect={() => goto(`/dashboard/admin/trainings/${training.id}/content`)}
+											>
 												<GraduationCap class="mr-2 h-4 w-4" />
 												Manage Content
 											</DropdownMenu.Item>

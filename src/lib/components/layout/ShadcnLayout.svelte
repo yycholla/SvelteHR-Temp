@@ -114,19 +114,19 @@
 	];
 
 	// Calculate unread notifications
-	const unreadNotifications = $derived(() => notifications.filter((n) => !n.read).length);
+	const unreadNotifications = $derived(notifications.filter((n) => !n.read).length);
+
+	// Get current path first (used by multiple derived values)
+	const currentPath = $derived($page.url.pathname);
 
 	// Add admin navigation if user has admin role
-	const visibleNavigation = $derived(() => {
+	const visibleNavigation = $derived.by(() => {
 		const nav: NavigationItem[] = [...navigationItems];
 		if (auth.user?.role === 'admin' || auth.user?.role === 'hr_admin') {
 			nav.push(...adminNavigation);
 		}
 		return nav;
 	});
-
-	// Update navigation active states based on current path
-	const currentPath = $derived($page.url.pathname);
 
 	// Update active states
 	$effect(() => {
@@ -157,12 +157,12 @@
 			directory: 'Directory'
 		};
 
-		let currentPath = '';
+		let currentHref = '';
 		parts.forEach((part, index) => {
-			currentPath += `/${part}`;
+			currentHref += `/${part}`;
 			breadcrumbs.push({
 				label: labelMap[part] || part.charAt(0).toUpperCase() + part.slice(1),
-				href: currentPath,
+				href: currentHref,
 				current: index === parts.length - 1
 			});
 		});
@@ -200,37 +200,43 @@
 								{@const ItemIcon = typedItem.icon}
 								<Sidebar.MenuItem>
 									{#if typedItem.children && typedItem.children.length > 0}
-										<Sidebar.MenuButton asChild>
-											<a
-												href={typedItem.href}
-												class="flex items-center gap-2"
-												data-active={typedItem.active}
-											>
-												<ItemIcon class="h-4 w-4" />
-												<span>{typedItem.label}</span>
-											</a>
+										<Sidebar.MenuButton isActive={typedItem.active}>
+											{#snippet child({ props })}
+												<a
+													{...props}
+													href={typedItem.href}
+													class="flex items-center gap-2"
+												>
+													<ItemIcon class="h-4 w-4" />
+													<span>{typedItem.label}</span>
+												</a>
+											{/snippet}
 										</Sidebar.MenuButton>
 										<Sidebar.MenuSub>
-											{#each typedItem.children as child}
+											{#each typedItem.children as childItem}
 												<Sidebar.MenuSubItem>
-													<Sidebar.MenuSubButton asChild>
-														<a href={child.href} data-active={child.active}>
-															{child.label}
-														</a>
+													<Sidebar.MenuSubButton isActive={childItem.active}>
+														{#snippet child({ props })}
+															<a {...props} href={childItem.href}>
+																{childItem.label}
+															</a>
+														{/snippet}
 													</Sidebar.MenuSubButton>
 												</Sidebar.MenuSubItem>
 											{/each}
 										</Sidebar.MenuSub>
 									{:else}
-										<Sidebar.MenuButton asChild>
-											<a
-												href={typedItem.href}
-												class="flex items-center gap-2"
-												data-active={typedItem.active}
-											>
-												<ItemIcon class="h-4 w-4" />
-												<span>{typedItem.label}</span>
-											</a>
+										<Sidebar.MenuButton isActive={typedItem.active}>
+											{#snippet child({ props })}
+												<a
+													{...props}
+													href={typedItem.href}
+													class="flex items-center gap-2"
+												>
+													<ItemIcon class="h-4 w-4" />
+													<span>{typedItem.label}</span>
+												</a>
+											{/snippet}
 										</Sidebar.MenuButton>
 									{/if}
 								</Sidebar.MenuItem>
@@ -245,7 +251,9 @@
 							<User class="h-4 w-4" />
 						</div>
 						<div class="flex flex-col">
-							<span class="text-sm font-medium">{auth.user.display_name || auth.user.email || 'User'}</span>
+							<span class="text-sm font-medium"
+								>{auth.user.display_name || auth.user.email || 'User'}</span
+							>
 							<span class="text-xs text-muted-foreground">{auth.user.role || 'Employee'}</span>
 						</div>
 					</div>
@@ -264,7 +272,7 @@
 							<!-- Breadcrumbs -->
 							{#if breadcrumbs.length > 0}
 								<nav class="flex items-center space-x-1 text-sm text-muted-foreground">
-									{#each breadcrumbs as crumb: Breadcrumb, index}
+									{#each breadcrumbs as crumb, index}
 										{#if index > 0}
 											<span>/</span>
 										{/if}
@@ -309,7 +317,9 @@
 									<User class="h-4 w-4" />
 								</div>
 								<div class="flex flex-col">
-									<span class="text-sm font-medium">{auth.user.display_name || auth.user.email || 'User'}</span>
+									<span class="text-sm font-medium"
+										>{auth.user.display_name || auth.user.email || 'User'}</span
+									>
 									<span class="text-xs text-muted-foreground">{auth.user.email || ''}</span>
 								</div>
 							</div>

@@ -287,11 +287,19 @@ export interface Employee {
 	status: string;
 	createdAt: string;
 	updatedAt: string;
+	avatarUrl?: string;
+	profileImage?: string;
 	department?: {
 		id: string;
 		name: string;
 		description?: string;
 		managerId?: string;
+		manager?: {
+			id: string;
+			fullName: string;
+			displayName?: string;
+			email?: string;
+		};
 	};
 	manager?: {
 		id: string;

@@ -67,7 +67,7 @@ interface GetActivityLogsResponse {
 }
 
 // Mock implementation (will be replaced in T044)
-const mockGetActivityLogs = vi.fn<Promise<GetActivityLogsResponse>>();
+const mockGetActivityLogs = vi.fn<() => Promise<GetActivityLogsResponse>>();
 
 describe('GetActivityLogs Query Contract (TDD RED - should fail)', () => {
 	beforeEach(() => {

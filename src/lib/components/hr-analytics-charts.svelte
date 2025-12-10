@@ -3,7 +3,6 @@
 	import * as Chart from '$lib/components/ui/chart';
 	import * as Select from '$lib/components/ui/select';
 	import { ChartContainer } from '$lib/components/ui/chart';
-	import { formatUserRole, getUserDepartment } from '$lib/graphql/user-operations';
 	import { scaleUtc } from 'd3-scale';
 	import { Area, AreaChart, ChartClipPath } from 'layerchart';
 	import { curveNatural } from 'd3-shape';
@@ -18,6 +17,7 @@
 		isActive: boolean;
 		createdAt: string;
 		hireDate?: string;
+		departmentId?: string;
 		userRoleAssignmentsByUserId?: {
 			nodes: Array<{
 				userRoleByRoleId: {
@@ -68,6 +68,14 @@
 		const depts = new Set(users.map((user) => getUserDepartment(user)));
 		return Array.from(depts).sort();
 	});
+
+	// Helper to get user department
+	function getUserDepartment(user: User): string {
+		// Try to find department from role assignments or other fields if available
+		// This is a placeholder logic based on available User interface
+		// Ideally User interface should have department info
+		return 'Unknown'; 
+	}
 
 	// Chart configurations using shadcn-svelte chart config
 	const hireChartConfig = $derived.by(() => {

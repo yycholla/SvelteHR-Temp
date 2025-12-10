@@ -23,9 +23,11 @@ export type AssignmentStatus = 'active' | 'revoked';
 
 export type DocumentRole = 'Admin' | 'HR' | 'Manager' | 'Employee';
 
-export type SortField = 'uploaded_at' | 'filename' | 'category' | 'expiration_date';
+export type SortField = 'uploaded_at' | 'filename' | 'category' | 'expiration_date' | 'file_size_bytes';
 
 export type SortOrder = 'asc' | 'desc';
+
+export type AssignmentType = 'employee' | 'department' | 'team';
 
 // Main document entity
 export interface Document {
@@ -46,6 +48,7 @@ export interface Document {
 	deleted_at?: Date;
 	deleted_by?: string; // UUID reference to User
 	assigned_users?: Array<{ email: string; id: string }>; // JSON aggregated from document_assignments
+	description?: string; // Added description field
 }
 
 // Document assignment to employee or department
@@ -54,10 +57,12 @@ export interface DocumentAssignment {
 	document_id: string; // UUID reference to Document
 	employee_id?: string; // UUID reference to User (null for department assignments)
 	department_id?: string; // UUID reference to Department (null for individual assignments)
+	team_id?: string; // UUID reference to Team (null for individual/dept assignments)
 	assigned_by: string; // UUID reference to User
 	assigned_at: Date;
 	assignment_status: AssignmentStatus;
 	assignment_reason?: string;
+	assignment_type?: AssignmentType; // Added assignment_type for UI logic
 }
 
 // Access log entry for audit trail

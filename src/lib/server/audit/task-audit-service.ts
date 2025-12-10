@@ -34,8 +34,8 @@ export interface TaskChanges {
 	description?: { from: string | null; to: string | null };
 	status?: { from: TaskStatus; to: TaskStatus };
 	priority?: { from: TaskPriority; to: TaskPriority };
-	assigneeId?: { from: string; to: string };
-	creatorId?: { from: string; to: string };
+	assigneeId?: { from: string | null; to: string | null };
+	creatorId?: { from: string | null; to: string | null };
 	taskTypeId?: { from: string; to: string };
 	dueDate?: { from: string | null; to: string | null };
 	parentTaskId?: { from: string | null; to: string | null };
@@ -614,18 +614,22 @@ export function getTaskChanges(before: Partial<Task>, after: Partial<Task>): Tas
 	}
 
 	if (before.assigneeId !== after.assigneeId && after.assigneeId !== undefined) {
-		changes.assigneeId = { from: before.assigneeId!, to: after.assigneeId };
+		changes.assigneeId = { from: before.assigneeId || '', to: after.assigneeId };
 	}
 
 	if (before.taskTypeId !== after.taskTypeId && after.taskTypeId !== undefined) {
-		changes.taskTypeId = { from: before.taskTypeId!, to: after.taskTypeId };
+		changes.taskTypeId = { from: before.taskTypeId || '', to: after.taskTypeId };
 	}
 
 	if (before.dueDate !== after.dueDate && after.dueDate !== undefined) {
-		changes.dueDate = {
-			from: before.dueDate || null,
-			to: after.dueDate || null
-		};
+		const fromDate = before.dueDate ? String(before.dueDate) : null;
+		const toDate = after.dueDate ? String(after.dueDate) : null;
+		if (fromDate !== toDate) {
+			changes.dueDate = {
+				from: fromDate,
+				to: toDate
+			};
+		}
 	}
 
 	if (before.parentTaskId !== after.parentTaskId && after.parentTaskId !== undefined) {

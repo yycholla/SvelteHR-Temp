@@ -17,7 +17,7 @@
 		readScope: 'none' | 'self' | 'team' | 'all';
 		write: boolean;
 		delete: boolean;
-		special: { action: string; enabled: boolean }[];
+		special: { action: string; id: string; enabled: boolean }[];
 	}
 
 	let searchQuery = $state('');
@@ -73,7 +73,7 @@
 						'delete'
 					].includes(perm.action)
 				) {
-					resourceState.special.push({ action: perm.action, enabled: true });
+					resourceState.special.push({ action: perm.action, id: perm.id, enabled: true });
 				}
 			}
 		});

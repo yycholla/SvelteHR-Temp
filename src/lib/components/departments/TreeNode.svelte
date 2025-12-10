@@ -2,13 +2,7 @@
 	import Badge from '../base/Badge.svelte';
 	import TreeNode from './TreeNode.svelte';
 	import type { Department } from '$lib/types';
-
-	// Define the node structure
-	interface TreeNodeData {
-		department: Department;
-		children: TreeNodeData[];
-		level: number;
-	}
+	import type { TreeNodeData } from './types';
 
 	const {
 		node,

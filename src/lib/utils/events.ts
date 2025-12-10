@@ -103,7 +103,9 @@ export function getRsvpStatusColor(status: RsvpStatus): string {
 		accepted: 'bg-green-500/10 text-green-600 dark:text-green-400',
 		declined: 'bg-red-500/10 text-red-600 dark:text-red-400',
 		tentative: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-		pending: 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+		pending: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+		no_response: 'bg-gray-500/10 text-gray-600 dark:text-gray-400',
+		waitlisted: 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
 	};
 	return colorMap[status] || 'bg-muted text-muted-foreground';
 }
@@ -126,7 +128,7 @@ export function getEventStatusColor(status: EventStatus): string {
  * Get icon for RSVP status
  */
 export function getRsvpStatusIcon(status: RsvpStatus): string {
-	const iconMap: Record<RsvpStatus, string> = {
+	const iconMap: Record<string, string> = {
 		accepted: '✓',
 		declined: '✗',
 		tentative: '?',
@@ -215,7 +217,7 @@ export function getUserRsvpStatus(event: Event, userId: string): RsvpStatus | nu
 	if (!event.eventAttendeesByEventId) return null;
 
 	const attendee = event.eventAttendeesByEventId.nodes.find((a) => a.employeeId === userId);
-	return attendee ? attendee.responseStatus : null;
+	return attendee ? (attendee.responseStatus as RsvpStatus) : null;
 }
 
 /**
@@ -227,7 +229,8 @@ export function countRsvpStatuses(event: Event): Record<RsvpStatus, number> {
 		declined: 0,
 		tentative: 0,
 		pending: 0,
-		no_response: 0
+		no_response: 0,
+		waitlisted: 0
 	};
 
 	if (!event.eventAttendeesByEventId) return counts;

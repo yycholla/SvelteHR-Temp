@@ -259,7 +259,7 @@ export const load: PageServerLoad = async (event) => {
 				const statusStr =
 					typeof review.status === 'string'
 						? review.status
-						: review.status?.toLowerCase() || 'draft';
+						: (review.status as string)?.toLowerCase() || 'draft';
 				const mappedStatus = mapReviewStatus(statusStr);
 
 				// Infer review type from cycleId existence (would need to query review_cycle for actual type)

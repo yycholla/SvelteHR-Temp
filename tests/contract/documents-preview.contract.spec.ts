@@ -15,6 +15,8 @@ import { beforeAll, describe, expect, it } from 'vitest';
  */
 
 describe('GET /api/documents/{id}/preview - Contract Tests', () => {
+	const API_BASE_URL = process.env.API_BASE_URL || process.env.PUBLIC_API_URL || 'http://localhost:5173';
+
 	let userAToken: string;
 	let userBToken: string;
 	let departmentUserToken: string;
@@ -40,7 +42,7 @@ describe('GET /api/documents/{id}/preview - Contract Tests', () => {
 
 	it('should allow user to preview own document (200 + previewUrl + expiresAt)', async () => {
 		// Act: User A previews their own document
-		const response = await fetch(`/api/documents/${userADocumentId}/preview`, {
+		const response = await fetch(`${API_BASE_URL}/api/documents/${userADocumentId}/preview`, {
 			method: 'GET',
 			headers: {
 				Authorization: `Bearer ${userAToken}`
@@ -69,7 +71,7 @@ describe('GET /api/documents/{id}/preview - Contract Tests', () => {
 
 	it("should deny user from previewing another user's document (403)", async () => {
 		// Act: User A attempts to preview User B's document
-		const response = await fetch(`/api/documents/${userBDocumentId}/preview`, {
+		const response = await fetch(`${API_BASE_URL}/api/documents/${userBDocumentId}/preview`, {
 			method: 'GET',
 			headers: {
 				Authorization: `Bearer ${userAToken}`
@@ -86,7 +88,7 @@ describe('GET /api/documents/{id}/preview - Contract Tests', () => {
 
 	it('should allow department member to preview department document (200)', async () => {
 		// Act: Department user previews department-wide document
-		const response = await fetch(`/api/documents/${departmentDocumentId}/preview`, {
+		const response = await fetch(`${API_BASE_URL}/api/documents/${departmentDocumentId}/preview`, {
 			method: 'GET',
 			headers: {
 				Authorization: `Bearer ${departmentUserToken}`
@@ -103,7 +105,7 @@ describe('GET /api/documents/{id}/preview - Contract Tests', () => {
 
 	it('should deny non-department member from previewing department document (403)', async () => {
 		// Act: User A (not in department) attempts to preview department document
-		const response = await fetch(`/api/documents/${departmentDocumentId}/preview`, {
+		const response = await fetch(`${API_BASE_URL}/api/documents/${departmentDocumentId}/preview`, {
 			method: 'GET',
 			headers: {
 				Authorization: `Bearer ${userAToken}`
@@ -120,7 +122,7 @@ describe('GET /api/documents/{id}/preview - Contract Tests', () => {
 
 	it('should return 401 for unauthenticated requests', async () => {
 		// Act: Preview without auth token
-		const response = await fetch(`/api/documents/${userADocumentId}/preview`, {
+		const response = await fetch(`${API_BASE_URL}/api/documents/${userADocumentId}/preview`, {
 			method: 'GET'
 		});
 
@@ -134,7 +136,7 @@ describe('GET /api/documents/{id}/preview - Contract Tests', () => {
 
 	it('should return 404 for non-existent document', async () => {
 		// Act: Preview non-existent document
-		const response = await fetch('/api/documents/non-existent-doc-id/preview', {
+		const response = await fetch(`${API_BASE_URL}/api/documents/non-existent-doc-id/preview`, {
 			method: 'GET',
 			headers: {
 				Authorization: `Bearer ${userAToken}`
@@ -151,7 +153,7 @@ describe('GET /api/documents/{id}/preview - Contract Tests', () => {
 
 	it('should allow admin to preview any document', async () => {
 		// Act: Admin previews any user's document
-		const response = await fetch(`/api/documents/${userBDocumentId}/preview`, {
+		const response = await fetch(`${API_BASE_URL}/api/documents/${userBDocumentId}/preview`, {
 			method: 'GET',
 			headers: {
 				Authorization: `Bearer ${adminToken}`
@@ -170,7 +172,7 @@ describe('GET /api/documents/{id}/preview - Contract Tests', () => {
 		// TODO: Create test document with DOCX file type
 
 		// Act: Preview Office document
-		const response = await fetch(`/api/documents/${userADocumentId}/preview`, {
+		const response = await fetch(`${API_BASE_URL}/api/documents/${userADocumentId}/preview`, {
 			method: 'GET',
 			headers: {
 				Authorization: `Bearer ${userAToken}`
@@ -191,7 +193,7 @@ describe('GET /api/documents/{id}/preview - Contract Tests', () => {
 
 	it('should log preview access in audit log', async () => {
 		// Act: Preview document
-		const response = await fetch(`/api/documents/${userADocumentId}/preview`, {
+		const response = await fetch(`${API_BASE_URL}/api/documents/${userADocumentId}/preview`, {
 			method: 'GET',
 			headers: {
 				Authorization: `Bearer ${userAToken}`

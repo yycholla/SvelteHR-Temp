@@ -54,10 +54,14 @@
 		data && data.filters && data.filters.searchTerm ? data.filters.searchTerm : ''
 	);
 	let selectedStatus = $state<TaskStatus | 'all'>(
-		data && data.filters && data.filters.statusFilter ? data.filters.statusFilter : 'all'
+		data && data.filters && data.filters.statusFilter
+			? (data.filters.statusFilter as TaskStatus | 'all')
+			: 'all'
 	);
 	let selectedPriority = $state<TaskPriority | 'all'>(
-		data && data.filters && data.filters.priorityFilter ? data.filters.priorityFilter : 'all'
+		data && data.filters && data.filters.priorityFilter
+			? (data.filters.priorityFilter as TaskPriority | 'all')
+			: 'all'
 	);
 
 	// View state
@@ -157,16 +161,17 @@
 	);
 
 	// Options for dropdowns
-	const statusOptions = [
+	const statusOptions: Array<{ value: TaskStatus | 'all'; label: string }> = [
 		{ value: 'all', label: 'All Statuses' },
-		{ value: 'TO_DO', label: 'To Do' },
+		{ value: 'TODO', label: 'To Do' },
 		{ value: 'IN_PROGRESS', label: 'In Progress' },
+		{ value: 'REVIEW', label: 'In Review' },
 		{ value: 'BLOCKED', label: 'Blocked' },
-		{ value: 'COMPLETED', label: 'Completed' },
-		{ value: 'DEFERRED', label: 'Deferred' }
+		{ value: 'DONE', label: 'Done' },
+		{ value: 'CANCELLED', label: 'Cancelled' }
 	];
 
-	const priorityOptions = [
+	const priorityOptions: Array<{ value: TaskPriority | 'all'; label: string }> = [
 		{ value: 'all', label: 'All Priorities' },
 		{ value: 'URGENT', label: 'Urgent' },
 		{ value: 'HIGH', label: 'High' },
@@ -398,7 +403,7 @@
 								{#each statusOptions as option (option.value)}
 									<DropdownMenu.Item
 										onclick={() => {
-											selectedStatus = option.value as any;
+											selectedStatus = option.value;
 											handleFilterChange();
 										}}
 									>
@@ -426,7 +431,10 @@
 								<DropdownMenu.Label>Sort by</DropdownMenu.Label>
 								<DropdownMenu.Separator />
 								{#each sortOptions as option (option.value)}
-									<DropdownMenu.Item onclick={() => (sortBy = option.value as any)}>
+									<DropdownMenu.Item
+										onclick={() =>
+											(sortBy = option.value as 'created_at' | 'due_date' | 'priority' | 'title' | 'smart')}
+									>
 										<div class="flex items-center gap-2">
 											{#if sortBy === option.value}
 												<CheckCircle class="h-3.5 w-3.5 text-primary" />

@@ -132,7 +132,7 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 		);
 
 		// Step 6: Serve decrypted file as download (not inline)
-		return new Response(decryptedData, {
+		return new Response(new Uint8Array(decryptedData), {
 			status: 200,
 			headers: {
 				'Content-Type': document.mimeType,

@@ -34,7 +34,8 @@
 		selectedRows = $bindable([]),
 		onsort = undefined,
 		onrowClick = undefined,
-		onselectionChange = undefined
+		onselectionChange = undefined,
+		cellRenderer
 	}: {
 		data?: TableData[];
 		columns?: Column[];
@@ -51,6 +52,9 @@
 		onsort?: ((detail: { key: string; direction: 'asc' | 'desc' }) => void) | undefined;
 		onrowClick?: ((detail: { row: TableData; index: number }) => void) | undefined;
 		onselectionChange?: ((detail: any[]) => void) | undefined;
+		cellRenderer?: import('svelte').Snippet<
+			[{ column: Column; value: any; row: TableData }]
+		>;
 	} = $props();
 
 	// Computed selection states
@@ -250,7 +254,13 @@
 									class:data-table__body-cell--center={column.align === 'center'}
 									class:data-table__body-cell--right={column.align === 'right'}
 								>
-									{#if column.type === 'badge'}
+									{#if column.type === 'custom' && cellRenderer}
+										{@render cellRenderer({ column, value: row[column.key], row })}
+									{:else if column.type === 'custom'}
+										<span class="data-table__cell-content">
+											{formatCellValue(column, row[column.key], row)}
+										</span>
+									{:else if column.type === 'badge'}
 										<Badge variant={getBadgeVariant(column, row[column.key], row)} size="sm">
 											{formatCellValue(column, row[column.key], row)}
 										</Badge>

@@ -53,10 +53,10 @@ interface ActivityLogDetail {
 }
 
 interface GetActivityLogResponse {
-	activityLogById: ActivityLogDetail | null;
+	activityLog: ActivityLogDetail | null;
 }
 
-const mockGetActivityLog = vi.fn<Promise<GetActivityLogResponse>>();
+const mockGetActivityLog = vi.fn<() => Promise<GetActivityLogResponse>>();
 
 describe('GetActivityLog Query Contract (TDD RED - should fail)', () => {
 	beforeEach(() => {

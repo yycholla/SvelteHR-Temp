@@ -112,8 +112,8 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 			})
 			.toPromise();
 
-		if (uploadResult.errors) {
-			console.error('[Upload API] GraphQL upload errors:', uploadResult.errors);
+		if (uploadResult.error) {
+			console.error('[Upload API] GraphQL upload errors:', uploadResult.error);
 			error(500, 'Failed to upload document to GraphQL backend');
 		}
 

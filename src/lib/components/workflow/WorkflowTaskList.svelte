@@ -31,7 +31,7 @@
 	const statusOptions = [
 		{ value: '', label: 'All Statuses' },
 		{ value: 'pending', label: 'Pending' },
-		{ value: 'in_progress', label: 'In Progress' },
+		{ value: 'running', label: 'In Progress' },
 		{ value: 'completed', label: 'Completed' },
 		{ value: 'failed', label: 'Failed' },
 		{ value: 'cancelled', label: 'Cancelled' }
@@ -65,7 +65,7 @@
 	// Group tasks by status
 	const groupedTasks = $derived({
 		pending: filteredBySearch.filter((task) => task.status === 'pending'),
-		in_progress: filteredBySearch.filter((task) => task.status === 'in_progress'),
+		running: filteredBySearch.filter((task) => task.status === 'running'),
 		completed: filteredBySearch.filter((task) => task.status === 'completed'),
 		failed: filteredBySearch.filter((task) => task.status === 'failed'),
 		cancelled: filteredBySearch.filter((task) => task.status === 'cancelled')
@@ -151,7 +151,7 @@
 									d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
 								/>
 							</svg>
-						{:else if status === 'in_progress'}
+						{:else if status === 'running'}
 							<svg
 								class="h-5 w-5 animate-spin text-blue-500"
 								fill="none"

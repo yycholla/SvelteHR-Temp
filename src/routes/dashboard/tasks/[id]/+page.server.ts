@@ -48,9 +48,7 @@ export const load: PageServerLoad = async (event) => {
 			isAuthenticated: Boolean(userSession.isAuthenticated),
 			expiresAt: userSession.expiresAt
 		},
-		timeoutMs: 5000,
-		retryAttempts: 0,
-		maxRetries: 3
+		timeoutMs: 5000
 	});
 
 	try {

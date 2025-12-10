@@ -5,21 +5,21 @@ import type { EventType } from '../types';
 
 export type EventVisibilityType = 'company' | 'department' | 'specific';
 export type EventStatus = 'scheduled' | 'ongoing' | 'completed' | 'cancelled' | 'postponed';
-export type RsvpStatus = 'pending' | 'accepted' | 'declined' | 'tentative' | 'no_response';
+export type RsvpStatus = 'pending' | 'accepted' | 'declined' | 'tentative' | 'no_response' | 'waitlisted';
 
 /**
  * Event Notification Preferences Interface
  * Feature: 027-we-need-to - Events Calendar
  */
 export interface EventNotificationPreferences {
-	userId: string;
-	enableReminders: boolean;
-	defaultReminderMinutes: number;
 	emailNotifications: boolean;
 	pushNotifications: boolean;
-	notifyOnRsvpChange: boolean;
-	notifyOnEventUpdate: boolean;
-	notifyOnWaitlistPromotion: boolean;
+	reminderTime?: number; // Minutes before event
+	notifyOnUpdate?: boolean;
+	notifyOnCancellation?: boolean;
+	commentMentions: boolean;
+	waitlistPromotions: boolean;
+	eventUpdates: boolean;
 	reminderDefaults?: {
 		enabled: boolean;
 		minutesBefore: number;
@@ -127,6 +127,7 @@ export interface Event {
 	startTime: string;
 	endTime: string;
 	isAllDay: boolean;
+	allDay?: boolean; // Alias for backward compatibility
 	location?: string;
 	organizerId: string;
 	organizer?: {
@@ -134,6 +135,11 @@ export interface Event {
 		displayName: string;
 		email: string;
 	};
+	userByOrganizerId?: {
+		id: string;
+		displayName: string;
+		email: string;
+	}; // Alias for organizer
 	isPublic: boolean;
 	visibilityType?: EventVisibilityType; // Multi-tier visibility support
 	status: EventStatus;
@@ -204,6 +210,7 @@ export interface EventComment {
 	eventId: string;
 	userId: string;
 	commentText: string;
+	content?: string; // Alias for commentText (for Comment interface compatibility)
 	createdAt: string;
 	updatedAt: string;
 	deletedAt?: string | null;
@@ -212,6 +219,13 @@ export interface EventComment {
 		displayName: string;
 		email: string;
 	};
+	author?: {
+		id: string;
+		name: string;
+		displayName?: string;
+		avatarUrl?: string;
+	}; // Alias for user (for Comment interface compatibility)
+	mentions?: Array<{ id: string; name: string }>; // Parsed mentions from commentText
 }
 
 /**
@@ -225,9 +239,14 @@ export interface EventHistoryEntry {
 	oldValues?: any;
 	newValues?: any;
 	createdAt: string;
+	changedAt?: string; // Alias for createdAt (for HistoryEntry interface compatibility)
+	fieldName?: string; // For specific field changes
+	oldValue?: any; // Alias for oldValues
+	newValue?: any; // Alias for newValues
 	changedBy?: {
 		id: string;
 		displayName: string;
+		name?: string; // Alias for displayName
 		email: string;
 	};
 }

@@ -58,6 +58,7 @@
 			totalActiveEmployees: number;
 			totalInactiveEmployees: number;
 			departments: any[];
+			validRoles: any[];
 			employeeAutocompleteOptions: Array<{ value: string; label: string; email?: string }>;
 			filters: {
 				searchTerm: string;
@@ -90,7 +91,7 @@
 	const totalActiveEmployees = $derived(data.totalActiveEmployees);
 	const totalInactiveEmployees = $derived(data.totalInactiveEmployees);
 	const departments = $derived(data.departments);
-	const roles = $derived(data.validRoles);
+	const validRoles = $derived(data.validRoles);
 	const filters = $derived(data.filters);
 	const permissions = $derived(data.permissions);
 	// Granular employee permissions
@@ -477,7 +478,7 @@
 				<div class="mb-6 border-b pb-6">
 					<!-- Historical Employee Trend Chart -->
 					{#if !isHistoricalDataLoading && hasHistoricalData}
-						<Accordion.Root type="single" collapsible>
+						<Accordion.Root type="single">
 							<Accordion.Item value="trend-chart">
 								<Accordion.Trigger class="hover:no-underline">
 									<div class="flex items-center gap-2">
@@ -597,6 +598,7 @@
 											</span>
 										</div>
 										<Slider
+											type="multiple"
 											bind:value={dateRangeSlider}
 											min={sliderMin}
 											max={365}

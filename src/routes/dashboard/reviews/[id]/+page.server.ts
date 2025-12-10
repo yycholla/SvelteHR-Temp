@@ -107,8 +107,7 @@ export const load: PageServerLoad = async (event) => {
 			userRole,
 			review.employeeId,
 			review.reviewerId,
-			undefined, // Session-based auth, no JWT token
-			fetchFn
+			cookies
 		);
 
 		if (!hasViewPermission) {

@@ -279,8 +279,8 @@ export const actions: Actions = {
 					isAllDay,
 					location,
 					status: 'scheduled',
-					isPublic
-					// organizerId is set automatically from UserContext
+					isPublic,
+					organizerId: locals.user.id
 				},
 				userCredentials
 			});

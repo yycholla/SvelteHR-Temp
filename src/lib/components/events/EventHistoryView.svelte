@@ -41,9 +41,28 @@
 	interface Props {
 		history: HistoryEntry[];
 		variant?: 'default' | 'compact';
+		onLoadMore?: () => Promise<void>;
+		hasMore?: boolean;
 	}
 
-	const { history = [], variant = 'default' }: Props = $props();
+	const {
+		history = [],
+		variant = 'default',
+		onLoadMore,
+		hasMore = false
+	}: Props = $props();
+
+	let isLoadingMore = $state(false);
+
+	async function handleLoadMore() {
+		if (!onLoadMore) return;
+		isLoadingMore = true;
+		try {
+			await onLoadMore();
+		} finally {
+			isLoadingMore = false;
+		}
+	}
 
 	function getChangeIcon(changeType: ChangeType) {
 		switch (changeType) {
@@ -238,5 +257,17 @@
 				</AccordionItem>
 			{/each}
 		</Accordion>
+	{/if}
+
+	{#if hasMore && onLoadMore && variant !== 'compact'}
+		<div class="mt-4 flex justify-center">
+			<button
+				onclick={handleLoadMore}
+				disabled={isLoadingMore}
+				class="text-sm text-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+			>
+				{isLoadingMore ? 'Loading...' : 'Load older history'}
+			</button>
+		</div>
 	{/if}
 </div>

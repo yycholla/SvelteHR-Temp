@@ -81,13 +81,14 @@
 		const adminRoles = ['admin', 'super_admin', 'system_admin'];
 
 		if (role && adminRoles.includes(role)) return true;
-		if (roles.some((r: string) => adminRoles.includes(r))) return true;
 
 		return false;
 	});
 
 	const previewDocument = $derived(
-		previewDocumentId ? data.documents.find((doc: { id: string }) => doc.id === previewDocumentId) : null
+		previewDocumentId
+			? data.documents.find((doc: { id: string }) => doc.id === previewDocumentId)
+			: null
 	);
 
 	const hasActiveFilters = $derived(
@@ -113,7 +114,9 @@
 
 	// Stats
 	const totalDocuments = $derived(data.totalCount);
-	const encryptedCount = $derived(data.documents.filter((doc: { is_encrypted: boolean }) => doc.is_encrypted).length);
+	const encryptedCount = $derived(
+		data.documents.filter((doc: { is_encrypted: boolean }) => doc.is_encrypted).length
+	);
 	const expiringCount = $derived(
 		data.documents.filter((doc: { expiration_date?: Date | string }) => {
 			if (!doc.expiration_date) return false;
@@ -123,7 +126,12 @@
 			return expiryDate.getTime() <= thirtyDaysFromNow;
 		}).length
 	);
-	const totalSize = $derived(data.documents.reduce((acc: number, doc: { file_size_bytes: number }) => acc + doc.file_size_bytes, 0));
+	const totalSize = $derived(
+		data.documents.reduce(
+			(acc: number, doc: { file_size_bytes: number }) => acc + doc.file_size_bytes,
+			0
+		)
+	);
 
 	// Actions
 	function handleSearch(terms: string[]) {

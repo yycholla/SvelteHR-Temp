@@ -14,13 +14,65 @@
 		User
 	} from '@lucide/svelte';
 	import { format, parseISO } from 'date-fns';
+	import type { ComponentType } from 'svelte';
+
+	interface ReviewType {
+		id: string;
+		name: string;
+		frequency: string;
+		color: string;
+	}
+
+	interface Competency {
+		name: string;
+		rating: number;
+		feedback: string;
+	}
+
+	interface Goal {
+		id: string;
+		title: string;
+		description: string;
+		completionStatus: string;
+	}
+
+	interface Feedback {
+		strengths: string[];
+		improvements: string[];
+		managerComments: string | null;
+		employeeComments: string | null;
+	}
+
+	interface Review {
+		id: string;
+		type: ReviewType;
+		status: string;
+		reviewPeriod: {
+			start: string;
+			end: string;
+		};
+		scheduledDate: string;
+		completedDate: string | null;
+		reviewer: {
+			id: string;
+			displayName: string;
+			email: string;
+		} | null;
+		overallRating: number;
+		competencies: Competency[];
+		goals: Goal[];
+		feedback: Feedback;
+		developmentPlan: string[];
+		createdAt: string;
+		lastUpdated: string;
+	}
 
 	const { data } = $props();
 
 	const user = $derived(data.user);
 	const userId = $derived(data.userId);
-	const reviews = $derived(data.reviews);
-	const reviewTypes = $derived(data.reviewTypes);
+	const reviews = $derived(data.reviews as Review[]);
+	const reviewTypes = $derived(data.reviewTypes as ReviewType[]);
 	const competencyAreas = $derived(data.competencyAreas);
 	const reviewStats = $derived(data.reviewStats);
 	const canManageReviews = $derived(data.canManageReviews);
@@ -28,18 +80,18 @@
 
 	let selectedStatus = $state('all');
 	let selectedType = $state('all');
-	let expandedReview = $state(null);
+	let expandedReview = $state<string | null>(null);
 
 	// Filter reviews based on selected filters
 	const filteredReviews = $derived(
 		reviews.filter((review) => {
 			const statusMatch = selectedStatus === 'all' || review.status === selectedStatus;
-			const typeMatch = selectedType === 'all' || review.type.id === selectedType;
+			const typeMatch = selectedType === 'all' || review.type.id.toString() === selectedType;
 			return statusMatch && typeMatch;
 		})
 	);
 
-	function getStatusIcon(status: string) {
+	function getStatusIcon(status: string): any {
 		switch (status) {
 			case 'completed':
 				return CheckCircle;
@@ -127,10 +179,10 @@
 			</div>
 			<div>
 				<h1 class="text-2xl font-bold text-foreground">
-					{isOwnReviews ? 'My Performance Reviews' : `${user?.displayName} - Performance Reviews`}
+					{isOwnReviews ? 'My Performance Reviews' : `${user?.displayName ?? 'User'} - Performance Reviews`}
 				</h1>
 				<p class="text-muted-foreground">
-					{user?.departmentByDepartmentId?.name || 'No Department'} • {user?.role}
+					{user?.department?.name ?? 'No Department'}
 				</p>
 			</div>
 		</div>
@@ -222,7 +274,7 @@
 				>
 					<option value="all">All Types</option>
 					{#each reviewTypes as type}
-						<option value={type.id}>{type.name}</option>
+						<option value={type.id.toString()}>{type.name}</option>
 					{/each}
 				</select>
 			</div>
@@ -264,19 +316,19 @@
 								)}"
 							>
 								<StatusIcon class="h-3 w-3" />
-								{review.status.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+								{review.status.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
 							</span>
 
 							{#if review.status === 'completed' && review.overallRating}
 								{@const { fullStars, hasHalfStar } = getRatingStars(review.overallRating)}
 								<div class="flex items-center gap-1">
-									{#each Array(fullStars) as _}
+									{#each Array.from({ length: fullStars }) as _}
 										<Star class="h-4 w-4 fill-yellow-400 text-yellow-400" />
 									{/each}
 									{#if hasHalfStar}
 										<Star class="h-4 w-4 fill-yellow-200 text-yellow-400" />
 									{/if}
-									{#each Array(5 - fullStars - (hasHalfStar ? 1 : 0)) as _}
+									{#each Array.from({ length: 5 - fullStars - (hasHalfStar ? 1 : 0) }) as _}
 										<Star class="h-4 w-4 text-muted-foreground" />
 									{/each}
 									<span class="ml-1 text-sm font-medium text-foreground"
@@ -295,15 +347,17 @@
 					</div>
 
 					<div class="mt-4 flex items-center gap-6 text-sm text-muted-foreground">
-						<div class="flex items-center gap-1">
-							<User class="h-4 w-4" />
-							<span>Reviewer: {review.reviewer.displayName}</span>
-						</div>
+						{#if review.reviewer}
+							<div class="flex items-center gap-1">
+								<User class="h-4 w-4" />
+								<span>Reviewer: {review.reviewer.displayName}</span>
+							</div>
+						{/if}
 						<div class="flex items-center gap-1">
 							<Calendar class="h-4 w-4" />
 							<span>
 								{review.status === 'completed' ? 'Completed' : 'Scheduled'}:
-								{formatDate(review.completedDate || review.scheduledDate)}
+								{review.completedDate ? formatDate(review.completedDate) : formatDate(review.scheduledDate)}
 							</span>
 						</div>
 					</div>
@@ -325,13 +379,13 @@
 										<div class="flex items-center justify-between mb-2">
 											<span class="font-medium text-foreground">{competency.name}</span>
 											<div class="flex items-center gap-1">
-												{#each Array(fullStars) as _}
+												{#each Array.from({ length: fullStars }) as _}
 													<Star class="h-3 w-3 fill-yellow-400 text-yellow-400" />
 												{/each}
 												{#if hasHalfStar}
 													<Star class="h-3 w-3 fill-yellow-200 text-yellow-400" />
 												{/if}
-												{#each Array(5 - fullStars - (hasHalfStar ? 1 : 0)) as _}
+												{#each Array.from({ length: 5 - fullStars - (hasHalfStar ? 1 : 0) }) as _}
 													<Star class="h-3 w-3 text-muted-foreground" />
 												{/each}
 												<span class="ml-1 text-xs text-muted-foreground">{competency.rating}</span>
@@ -355,18 +409,38 @@
 										<div class="bg-muted dark:bg-muted p-4 rounded-lg">
 											<div class="flex items-center justify-between mb-2">
 												<span class="font-medium text-foreground">{goal.title}</span>
-												<span class="text-sm font-medium {getGoalStatusColor(goal.status)}">
-													{goal.status.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+												<span class="text-sm font-medium {getGoalStatusColor(goal.completionStatus)}">
+													{goal.completionStatus
+														.replace('_', ' ')
+														.replace(/\b\w/g, (l: string) => l.toUpperCase())}
 												</span>
 											</div>
 											<p class="text-sm text-muted-foreground mb-2">{goal.description}</p>
-											<div class="w-full bg-gray-200 rounded-full h-2">
-												<div
-													class="h-2 rounded-full bg-blue-500"
-													style="width: {goal.progress}%"
-												></div>
-											</div>
-											<span class="text-xs text-muted-foreground">{goal.progress}% complete</span>
+											{#if goal.completionStatus === 'achieved'}
+												<div class="w-full bg-gray-200 rounded-full h-2">
+													<div
+														class="h-2 rounded-full bg-blue-500"
+														style="width: 100%"
+													></div>
+												</div>
+												<span class="text-xs text-muted-foreground">100% complete</span>
+											{:else if goal.completionStatus === 'partially_achieved'}
+												<div class="w-full bg-gray-200 rounded-full h-2">
+													<div
+														class="h-2 rounded-full bg-blue-500"
+														style="width: 50%"
+													></div>
+												</div>
+												<span class="text-xs text-muted-foreground">50% complete</span>
+											{:else}
+												<div class="w-full bg-gray-200 rounded-full h-2">
+													<div
+														class="h-2 rounded-full bg-blue-500"
+														style="width: 0%"
+													></div>
+												</div>
+												<span class="text-xs text-muted-foreground">0% complete</span>
+											{/if}
 										</div>
 									{/each}
 								</div>

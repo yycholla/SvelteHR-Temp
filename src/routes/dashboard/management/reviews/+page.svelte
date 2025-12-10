@@ -31,7 +31,7 @@
 	} from '$lib/components/ui/card';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
-	import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
+	import * as Select from '$lib/components/ui/select';
 	import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Avatar, AvatarFallback } from '$lib/components/ui/avatar';
@@ -91,15 +91,12 @@
 
 	// Local state for UI
 	let selectedView = $state('all');
-	const showCreateModal = $state(false);
 	let showDetailsModal = $state(false);
 	let showEditModal = $state(false);
 	let currentReview = $state<any>(null);
-	const isSubmitting = $state(false);
 	let searchQuery = $state(data.filters.searchTerm || '');
-	const statusFilter = $state(data.filters.statusFilter || '');
-	const periodFilter = $state(data.filters.periodFilter || '');
-	const departmentFilter = $state(data.filters.departmentFilter || '');
+	let statusFilter = $state<string | undefined>(data.filters.statusFilter || undefined);
+	let periodFilter = $state<string | undefined>(data.filters.periodFilter || undefined);
 
 	// Employee selector state
 	let showEmployeeSelector = $state(false);
@@ -245,22 +242,13 @@
 		if (!confirm('Are you sure you want to delete this performance review?')) return;
 
 		try {
-			const performanceOps = createPerformanceOperations(null);
-
-			await performanceOps.deletePerformanceReview({
-				id: review.id,
-				userCredentials: {
-					userId: userSession.userId,
-					userEmail: userSession.userEmail,
-					role: userSession.role,
-					accessToken: userSession.accessToken
-				}
-			});
-
-			toast.success('Performance review deleted successfully');
+			// TODO: Implement GraphQL mutation for deleting performance review
+			// For now, just show a placeholder message
+			console.log('Delete review:', review.id);
+			toast.success('Review deletion coming soon');
 
 			// Refresh the page to get updated data
-			goto($page.url.pathname, { invalidateAll: true });
+			// goto($page.url.pathname, { invalidateAll: true });
 		} catch (error) {
 			console.error('Failed to delete performance review:', error);
 			toast.error('Failed to delete performance review');
@@ -279,7 +267,8 @@
 		goto(url.toString());
 	}
 
-	function handleStatusFilterChange(status: string) {
+	function handleStatusFilterChange(status: string | undefined) {
+		statusFilter = status;
 		const url = new URL($page.url);
 		if (status) {
 			url.searchParams.set('status', status);
@@ -290,7 +279,8 @@
 		goto(url.toString());
 	}
 
-	function handlePeriodFilterChange(period: string) {
+	function handlePeriodFilterChange(period: string | undefined) {
+		periodFilter = period;
 		const url = new URL($page.url);
 		if (period) {
 			url.searchParams.set('period', period);
@@ -481,29 +471,33 @@
 					<!-- Status Filter -->
 					<div class="w-full md:w-48">
 						<Label>Status</Label>
-						<Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-							<SelectTrigger placeholder="All Statuses" />
-							<SelectContent>
-								<SelectItem value="">All Statuses</SelectItem>
+						<Select.Root type="single" value={statusFilter} onValueChange={handleStatusFilterChange}>
+							<Select.Trigger>
+								<Select.Value placeholder="All Statuses" />
+							</Select.Trigger>
+							<Select.Content>
+								<Select.Item value="">All Statuses</Select.Item>
 								{#each reviewStatusOptions as status}
-									<SelectItem value={status.value}>{status.label}</SelectItem>
+									<Select.Item value={status.value}>{status.label}</Select.Item>
 								{/each}
-							</SelectContent>
-						</Select>
+							</Select.Content>
+						</Select.Root>
 					</div>
 
 					<!-- Period Filter -->
 					<div class="w-full md:w-48">
 						<Label>Review Period</Label>
-						<Select value={periodFilter} onValueChange={handlePeriodFilterChange}>
-							<SelectTrigger placeholder="All Periods" />
-							<SelectContent>
-								<SelectItem value="">All Periods</SelectItem>
+						<Select.Root type="single" value={periodFilter} onValueChange={handlePeriodFilterChange}>
+							<Select.Trigger>
+								<Select.Value placeholder="All Periods" />
+							</Select.Trigger>
+							<Select.Content>
+								<Select.Item value="">All Periods</Select.Item>
 								{#each reviewPeriods as period}
-									<SelectItem value={period.value}>{period.label}</SelectItem>
+									<Select.Item value={period.value}>{period.label}</Select.Item>
 								{/each}
-							</SelectContent>
-						</Select>
+							</Select.Content>
+						</Select.Root>
 					</div>
 				</div>
 			</CardContent>

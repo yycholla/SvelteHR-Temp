@@ -246,9 +246,11 @@ export const actions: Actions = {
 		// After permission check, re-destructure locals
 		const { locals } = event;
 
+		let formDataEntries: Record<string, any> = {};
+
 		try {
 			const formData = await request.formData();
-			const formDataEntries = Object.fromEntries(formData);
+			formDataEntries = Object.fromEntries(formData);
 			const { getGraphQLEndpoint, authenticatedGraphQLRequest } =
 				await import('$lib/server/api-url');
 			const graphqlEndpoint = getGraphQLEndpoint();

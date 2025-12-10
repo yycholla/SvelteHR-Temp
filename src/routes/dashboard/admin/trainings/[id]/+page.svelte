@@ -45,12 +45,12 @@
 	let searchTerms = $state<string[]>([]);
 	let recurrencePattern = $state(
 		training.rrule
-			? {
+			? ({
 					frequency: 'weekly',
 					interval: 1,
 					endDate: training.recurrenceEndDate ? new Date(training.recurrenceEndDate) : null,
 					rruleString: training.rrule
-				}
+				} as any)
 			: null
 	);
 
@@ -284,7 +284,7 @@
 
 	{#if form?.success}
 		<Alert.Root
-	variant="default"
+			variant="default"
 			class="mb-6 border-green-500 text-green-700 bg-green-50 dark:bg-green-900/20 dark:text-green-400"
 		>
 			<CheckCircle2 class="h-4 w-4" />
@@ -380,7 +380,7 @@
 							<Switch bind:checked={isActive} />
 						</div>
 
-						<div class="h-px bg-border" />
+						<div class="h-px bg-border"></div>
 
 						<!-- Tags -->
 						<div class="space-y-2">
@@ -419,7 +419,7 @@
 							/>
 						</div>
 
-						<div class="h-px bg-border my-2" />
+						<div class="h-px bg-border my-2"></div>
 
 						<RecurrencePatternInput
 							bind:pattern={recurrencePattern}
@@ -543,7 +543,9 @@
 										<PopoverContent class="w-auto p-0">
 											<Calendar
 												type="single"
-												value={assignmentDueDate ? parseDate(assignmentDueDate.split('T')[0]) : undefined}
+												value={assignmentDueDate
+													? parseDate(assignmentDueDate.split('T')[0])
+													: undefined}
 												onValueChange={(v) => {
 													if (v) {
 														const dateObj = v.toDate(getLocalTimeZone());

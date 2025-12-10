@@ -50,6 +50,7 @@
 		onSubmit?: (data: CreateTaskInput | UpdateTaskInput) => Promise<void>; // Optional - for custom submission
 		onCancel: () => void;
 		loading?: boolean;
+		initialValues?: Partial<CreateTaskInput> & { assigneeId?: string };
 	}
 
 	const {
@@ -61,7 +62,8 @@
 		parentTasks = [],
 		onSubmit,
 		onCancel,
-		loading = false
+		loading = false,
+		initialValues = {}
 	}: Props = $props();
 
 	// Use assignees if provided, otherwise use users
@@ -75,16 +77,25 @@
 	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
 	// Assignees are now an array of "user:id" or "dept:id" strings
 	let formData = $state({
-		title: task?.title || '',
-		description: task?.description || '',
-		assignees: task?.assigneeId ? [`user:${task.assigneeId}`] : ([] as string[]),
-		taskTypeId: task?.taskTypeId || '',
-		status: task?.status || ('TODO' as TaskStatus),
-		priority: task?.priority || ('MEDIUM' as TaskPriority),
-		dueDate: task?.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : '',
-		parentTaskId: task?.parentTaskId || '',
+		title: task?.title || initialValues.title || '',
+		description: task?.description || initialValues.description || '',
+		assignees: task?.assigneeId
+			? [`user:${task.assigneeId}`]
+			: initialValues.assigneeId
+				? [`user:${initialValues.assigneeId}`]
+				: ([] as string[]),
+		taskTypeId: task?.taskTypeId || initialValues.taskTypeId || '',
+		status: task?.status || initialValues.status || ('TODO' as TaskStatus),
+		priority: task?.priority || initialValues.priority || ('MEDIUM' as TaskPriority),
+		dueDate: task?.dueDate
+			? format(new Date(task.dueDate), 'yyyy-MM-dd')
+			: initialValues.dueDate
+				? format(new Date(initialValues.dueDate), 'yyyy-MM-dd')
+				: '',
+		parentTaskId: task?.parentTaskId || initialValues.parentTaskId || '',
 		reminderTime: '60', // Default 60 minutes before due date (string for Select compatibility)
-		requiresManualReassignment: task?.requiresManualReassignment || false
+		requiresManualReassignment:
+			task?.requiresManualReassignment || initialValues.requiresManualReassignment || false
 	});
 
 	// Search state for dropdowns

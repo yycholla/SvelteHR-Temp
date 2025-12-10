@@ -6,8 +6,8 @@
  */
 
 import type { ErrorResponse } from './error-response';
-import type { DataRequest } from './data-request';
-import type { CachePolicy } from '$lib/types/graphql-contracts';
+import { DataRequestStatus, type DataRequest } from './data-request';
+import type { CachePolicy as CacheConfig } from '$lib/types/graphql-contracts';
 
 /**
  * Page loading state enumeration
@@ -37,7 +37,7 @@ export interface PageErrorState {
  * Cache policy configuration for page data
  */
 export interface PageCachePolicy {
-	policy: CachePolicy;
+	policy: 'cache-first' | 'cache-only' | 'network-only' | 'cache-and-network';
 	ttlMinutes: number; // ≤30 minutes as per requirements
 	allowStaleData: boolean;
 	invalidateOnUserChange: boolean;
@@ -239,7 +239,7 @@ export class ApplicationPage {
 		const requiredOps = this.requiredOperations.filter((op) => op.isRequired);
 		return requiredOps.every((op) => {
 			const request = this._activeRequests.get(op.operationName);
-			return request?.status === 'SUCCESS' || this.hasCachedData(op.operationName);
+			return request?.status === DataRequestStatus.SUCCESS || this.hasCachedData(op.operationName);
 		});
 	}
 

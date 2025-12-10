@@ -75,7 +75,8 @@ export function getRsvpStatusColor(status: RsvpStatus): string {
 		accepted: 'green',
 		declined: 'red',
 		tentative: 'yellow',
-		no_response: 'gray'
+		no_response: 'gray',
+		waitlisted: 'orange'
 	};
 	return statusColors[status] || 'gray';
 }

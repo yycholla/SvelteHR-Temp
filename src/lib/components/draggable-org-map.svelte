@@ -318,7 +318,7 @@
 						role="button"
 						tabindex="0"
 						onmousedown={(e) => handleMouseDown(e, node)}
-						aria-label="Draggable employee node for {node.fullName}"
+						aria-label="Draggable employee node for {node.name}"
 					>
 						<div
 							class="h-[120px] w-[200px] rounded-lg border-2 bg-white p-3 {getNodeColor(

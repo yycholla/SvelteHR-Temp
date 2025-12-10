@@ -1,11 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import {
-		departments,
-		departmentService,
-		loadDepartments
-	} from '$lib/services/departmentService';
+	import { toast } from 'svelte-sonner';
+	import { departments, departmentService, loadDepartments } from '$lib/services/departmentService';
 	import { currentUser, hasPermission } from '$lib/services/auth';
 	import DataTable from '../tables/DataTable.svelte';
 	import Button from '../base/Button.svelte';
@@ -123,7 +120,7 @@
 		};
 	}
 
-	async function loadDepartments() {
+	async function refreshDepartments() {
 		try {
 			await departmentService.loadDepartments();
 		} catch (error) {
@@ -131,19 +128,19 @@
 		}
 	}
 
-	function handleSort(event: CustomEvent) {
-		sortField = event.detail.key;
-		sortDirection = event.detail.direction;
-		loadDepartments();
+	function handleSort(detail: { key: string; direction: 'asc' | 'desc' }) {
+		sortField = detail.key;
+		sortDirection = detail.direction;
+		refreshDepartments();
 	}
 
-	function handleRowClick(event: CustomEvent) {
-		const { row } = event.detail;
+	function handleRowClick(detail: { row: any; index: number }) {
+		const { row } = detail;
 		goto(`/departments/${row.id}`);
 	}
 
-	function handleSelectionChange(event: CustomEvent) {
-		selectedDepartments = event.detail;
+	function handleSelectionChange(detail: any[]) {
+		selectedDepartments = detail;
 	}
 
 	function clearFilters() {
@@ -210,7 +207,7 @@
 
 		try {
 			await departmentService.deleteDepartment(department.id);
-			await loadDepartments(); // Refresh the list
+			await refreshDepartments(); // Refresh the list
 			toast.success('Department archived successfully');
 		} catch (err: any) {
 			console.error('Failed to delete department:', err);
@@ -219,7 +216,7 @@
 	}
 
 	onMount(() => {
-		loadDepartments();
+		refreshDepartments();
 	});
 </script>
 
@@ -256,7 +253,7 @@
 						placeholder="Search departments..."
 						leftIcon="search"
 						bind:value={searchQuery}
-						oninput={() => loadDepartments()}
+						oninput={() => refreshDepartments()}
 					/>
 				</div>
 
@@ -343,7 +340,7 @@
 			onrowClick={handleRowClick}
 			onselectionChange={handleSelectionChange}
 		>
-			<svelte:fragment slot="cell" let:column let:value let:row>
+			{#snippet cellRenderer({ column, value, row })}
 				{#if column.key === 'name'}
 					<div class="department-name-cell">
 						<div class="department-info">
@@ -387,13 +384,13 @@
 								leftIcon="archive"
 								onclick={(e) => {
 									e.stopPropagation();
-									handleDeleteDepartment(row);
+									handleDeleteDepartment(row as Department);
 								}}
 							/>
 						{/if}
 					</div>
 				{/if}
-			</svelte:fragment>
+			{/snippet}
 		</DataTable>
 	</Card>
 </div>

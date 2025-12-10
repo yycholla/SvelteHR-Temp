@@ -474,6 +474,8 @@ export class PerformanceBudgetValidator {
 				return `⚠️ ${budget.name}: ${formattedValue} exceeds warning threshold (target: ${formattedTarget})`;
 			case 'critical':
 				return `❌ ${budget.name}: ${formattedValue} critically exceeds target (${formattedTarget})`;
+			default:
+				return `${budget.name}: ${formattedValue}`;
 		}
 	}
 

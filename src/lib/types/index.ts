@@ -31,6 +31,7 @@ export interface User {
 	hire_date?: string;
 	termination_date?: string;
 	is_active: boolean;
+	isActive?: boolean;
 	failed_login_attempts: number;
 	locked_until?: string;
 	last_login?: string;
@@ -40,6 +41,14 @@ export interface User {
 	username?: string;
 	profile_image?: string;
 	profileImage?: string;
+	// CamelCase aliases for GraphQL compatibility
+	firstName?: string;
+	lastName?: string;
+	displayName?: string;
+	fullName?: string;
+	hireDate?: string;
+	avatarUrl?: string;
+	jobTitle?: string;
 	// Nested objects from related tables
 	job_info?: JobInfo;
 	contact_info?: ContactInfo;
@@ -66,11 +75,22 @@ export interface User {
 		name?: string;
 		code?: string;
 		description?: string;
+		manager?: {
+			id: string;
+			display_name?: string;
+			displayName?: string;
+			full_name?: string;
+			fullName?: string;
+			email?: string;
+		};
 	};
 	manager?: {
 		id: string;
 		display_name?: string;
+		displayName?: string;
 		full_name?: string;
+		fullName?: string;
+		email?: string;
 	};
 }
 
@@ -130,6 +150,21 @@ export interface DepartmentFilter {
 	isActive?: boolean;
 	parentDepartmentId?: string | null;
 	managerId?: string;
+}
+
+export interface CreateDepartmentInput {
+	name: string;
+	description?: string;
+	managerId?: string;
+	parentDepartmentId?: string;
+}
+
+export interface UpdateDepartmentInput {
+	name?: string;
+	description?: string;
+	managerId?: string;
+	parentDepartmentId?: string;
+	isActive?: boolean;
 }
 
 export interface Task {

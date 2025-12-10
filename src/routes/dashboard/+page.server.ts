@@ -552,7 +552,8 @@ export const load: PageServerLoad = async (event) => {
 						date: event.date,
 						time: event.time,
 						type: event.type,
-						rsvpStatus: event.rsvpStatus
+						rsvpStatus: event.rsvpStatus,
+						location: event.location
 					}))
 				},
 				dashboardMetrics,

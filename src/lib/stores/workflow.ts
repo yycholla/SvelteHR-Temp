@@ -7,12 +7,29 @@ import { writable, derived } from 'svelte/store';
 // Type Definitions
 // ===========================
 
+export type WorkflowTriggerType =
+	| 'DOCUMENT_SIGNED'
+	| 'DOCUMENT_UPLOADED'
+	| 'EMPLOYEE_HIRED'
+	| 'EMPLOYEE_TERMINATED'
+	| 'GOAL_COMPLETED'
+	| 'GOAL_CREATED'
+	| 'MANUAL_TRIGGER'
+	| 'PAYROLL_PROCESSED'
+	| 'REVIEW_COMPLETED'
+	| 'REVIEW_CREATED'
+	| 'SCHEDULED_TRIGGER'
+	| 'TIME_OFF_APPROVED'
+	| 'TIME_OFF_REJECTED'
+	| 'TIME_OFF_REQUESTED'
+	| 'USER_CREATED';
+
 export interface WorkflowDefinitionWithStats {
 	id: string;
 	name: string;
 	description?: string;
 	category?: string | null;
-	triggerType: 'manual' | 'scheduled' | 'event' | 'webhook';
+	triggerType: WorkflowTriggerType;
 	triggerConditions?: Record<string, any>;
 	definition: Record<string, any>;
 	isTemplate: boolean;
@@ -65,17 +82,19 @@ export interface WorkflowInstance {
 	updatedAt: string;
 }
 
+export type WorkflowTaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'skipped';
+
 export interface WorkflowTask {
 	id: string;
 	workflowInstanceId: string;
 	stepName: string;
 	stepType: string;
-	status: 'pending' | 'in_progress' | 'running' | 'completed' | 'failed' | 'cancelled' | 'skipped';
+	status: WorkflowTaskStatus;
 	assignedTo?: string;
 	assignedToId?: string;
 	assignedById?: string;
 	priority?: string | null;
-	title?: string;
+	title: string;
 	description?: string;
 	dueDate?: string;
 	taskType?: string;
@@ -331,7 +350,7 @@ export const workflowActions = {
 				name: input.workflowDefinition.name || '',
 				description: input.workflowDefinition.description,
 				category: input.workflowDefinition.category,
-				triggerType: input.workflowDefinition.triggerType || 'manual',
+				triggerType: input.workflowDefinition.triggerType || 'MANUAL_TRIGGER',
 				triggerConditions: input.workflowDefinition.triggerConditions,
 				definition: input.workflowDefinition.definition || {},
 				isTemplate: input.workflowDefinition.isTemplate || false,

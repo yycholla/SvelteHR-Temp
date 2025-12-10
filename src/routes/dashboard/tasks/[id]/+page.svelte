@@ -81,20 +81,25 @@
 	// Derived state for progress
 	const subtaskProgress = $derived.by(() => {
 		if (!task?.subtasks || task.subtasks.length === 0) return 0;
-		const completed = task.subtasks.filter(
-			(st: Task) => st.status === 'DONE' || st.status === 'COMPLETED'
-		).length;
+		const completed = task.subtasks.filter((st: Task) => st.status === 'DONE').length;
 		return Math.round((completed / task.subtasks.length) * 100);
 	});
 
 	const completedSubtasksCount = $derived.by(() => {
 		if (!task?.subtasks) return 0;
-		return task.subtasks.filter((st: Task) => st.status === 'DONE' || st.status === 'COMPLETED')
-			.length;
+		return task.subtasks.filter((st: Task) => st.status === 'DONE').length;
 	});
 
 	// Status configuration matching the mockup's aesthetic
-	const statusConfig = {
+	const statusConfig: Record<
+		TaskStatus,
+		{
+			label: string;
+			color: string;
+			bgColor: string;
+			borderColor: string;
+		}
+	> = {
 		TODO: {
 			label: 'To Do',
 			color: 'text-slate-600',
@@ -119,12 +124,6 @@
 			bgColor: 'bg-red-100',
 			borderColor: 'border-red-200'
 		},
-		COMPLETED: {
-			label: 'Completed',
-			color: 'text-green-600',
-			bgColor: 'bg-green-100',
-			borderColor: 'border-green-200'
-		},
 		DONE: {
 			label: 'Done',
 			color: 'text-green-600',
@@ -136,12 +135,6 @@
 			color: 'text-gray-500',
 			bgColor: 'bg-gray-100',
 			borderColor: 'border-gray-200'
-		},
-		DEFERRED: {
-			label: 'Deferred',
-			color: 'text-amber-600',
-			bgColor: 'bg-amber-100',
-			borderColor: 'border-amber-200'
 		}
 	};
 
@@ -271,9 +264,7 @@
 
 	// Derived configs
 	const currentStatus = $derived(
-		task
-			? statusConfig[task.status as keyof typeof statusConfig] || statusConfig.TODO
-			: statusConfig.TODO
+		task ? statusConfig[task.status as TaskStatus] || statusConfig.TODO : statusConfig.TODO
 	);
 	const currentPriority = $derived(
 		task
@@ -415,22 +406,19 @@
 										<button
 											class={cn(
 												'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
-												subtask.status === 'DONE' || subtask.status === 'COMPLETED'
+												subtask.status === 'DONE'
 													? 'bg-primary border-primary text-primary-foreground'
 													: 'border-input hover:bg-accent hover:text-accent-foreground'
 											)}
 											onclick={() => {
-												const newStatus =
-													subtask.status === 'DONE' || subtask.status === 'COMPLETED'
-														? 'TODO'
-														: 'DONE';
+												const newStatus = subtask.status === 'DONE' ? 'TODO' : 'DONE';
 												handleStatusChange(subtask.id, newStatus as TaskStatus);
 											}}
-											aria-label={subtask.status === 'DONE' || subtask.status === 'COMPLETED'
+											aria-label={subtask.status === 'DONE'
 												? 'Mark as incomplete'
 												: 'Mark as complete'}
 										>
-											{#if subtask.status === 'DONE' || subtask.status === 'COMPLETED'}
+											{#if subtask.status === 'DONE'}
 												<CheckCircle2 class="h-3.5 w-3.5" />
 											{/if}
 										</button>
@@ -439,8 +427,7 @@
 												href="/dashboard/tasks/{subtask.id}"
 												class={cn(
 													'block text-sm font-medium leading-none hover:underline',
-													(subtask.status === 'DONE' || subtask.status === 'COMPLETED') &&
-														'line-through text-muted-foreground'
+													subtask.status === 'DONE' && 'line-through text-muted-foreground'
 												)}
 											>
 												{subtask.title}

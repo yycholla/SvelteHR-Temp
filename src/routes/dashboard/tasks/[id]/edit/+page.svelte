@@ -71,12 +71,20 @@
 	// Assignees
 	const assigneeOptions = $derived([
 		{ value: '', label: 'Unassigned' },
-		...data.assignees.map((u: { id: string; displayName: string }) => ({ value: `user:${u.id}`, label: u.displayName })),
-		...data.departments.map((d: { id: string; name: string }) => ({ value: `dept:${d.id}`, label: `${d.name} (Department)` }))
+		...data.assignees.map((u: { id: string; displayName: string }) => ({
+			value: `user:${u.id}`,
+			label: u.displayName
+		})),
+		...data.departments.map((d: { id: string; name: string }) => ({
+			value: `dept:${d.id}`,
+			label: `${d.name} (Department)`
+		}))
 	]);
 
 	// Task Types
-	const taskTypeOptions = $derived(data.taskTypes.map((t: { id: string; name: string }) => ({ value: t.id, label: t.name })));
+	const taskTypeOptions = $derived(
+		data.taskTypes.map((t: { id: string; name: string }) => ({ value: t.id, label: t.name }))
+	);
 
 	// Parent Tasks
 	const parentTaskOptions = $derived([
@@ -263,8 +271,9 @@
 							<Label for="taskTypeId">Task Type</Label>
 							<Select.Root type="single" name="taskTypeId" value={initialValues.taskTypeId}>
 								<Select.Trigger>
-									{taskTypeOptions.find((o: { value: string; label: string }) => o.value === initialValues.taskTypeId)?.label ||
-										'Select type'}
+									{taskTypeOptions.find(
+										(o: { value: string; label: string }) => o.value === initialValues.taskTypeId
+									)?.label || 'Select type'}
 								</Select.Trigger>
 								<Select.Content>
 									{#each taskTypeOptions as option}

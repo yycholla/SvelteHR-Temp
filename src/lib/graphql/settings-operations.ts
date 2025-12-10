@@ -546,6 +546,75 @@ export class SettingsOperations {
 			}, 1000);
 		});
 	}
+
+	/**
+	 * Get user activity log for settings page
+	 */
+	async getUserActivityLog(params: {
+		userId: string;
+		limit?: number;
+		userCredentials: UserCredentials;
+	}): Promise<any[]> {
+		try {
+			// Fetch actual activity logs from GraphQL backend
+			const activeClient = this.client || defaultClient;
+
+			const activityResult = await activeClient.query(GET_USER_ACTIVITIES, {
+				userId: params.userId,
+				limit: params.limit || 10
+			});
+
+			if (activityResult.error) {
+				throw activityResult.error;
+			}
+
+			const activities = activityResult.data?.activityLogs || [];
+
+			// Transform to expected format
+			return activities.map((activity: any) => ({
+				id: activity.id,
+				action: activity.action,
+				description: `${activity.action} on ${activity.resourceType}`,
+				timestamp: activity.createdAt,
+				ipAddress: activity.ipAddress,
+				userAgent: activity.userAgent
+			}));
+		} catch (error) {
+			console.error('Failed to fetch user activity log:', error);
+
+			// Fallback to mock data if GraphQL fails
+			console.warn('Falling back to mock activity log data');
+			const mockActivityLog = [
+				{
+					id: '1',
+					action: 'profile_updated',
+					description: 'Updated profile information',
+					timestamp: '2024-12-18T10:30:00Z',
+					ipAddress: '192.168.1.100',
+					userAgent: 'Mozilla/5.0...'
+				},
+				{
+					id: '2',
+					action: 'password_changed',
+					description: 'Changed account password',
+					timestamp: '2024-12-15T14:20:00Z',
+					ipAddress: '192.168.1.100',
+					userAgent: 'Mozilla/5.0...'
+				},
+				{
+					id: '3',
+					action: 'notifications_updated',
+					description: 'Updated notification preferences',
+					timestamp: '2024-12-10T09:15:00Z',
+					ipAddress: '192.168.1.100',
+					userAgent: 'Mozilla/5.0...'
+				}
+			];
+
+			console.log(`Loaded activity log for user: ${params.userId} (fallback to mock)`);
+			return mockActivityLog;
+		}
+	}
 }
 
 /**
@@ -553,75 +622,6 @@ export class SettingsOperations {
  */
 export function createSettingsOperations(client: Client | null): SettingsOperations {
 	return new SettingsOperations(client);
-}
-
-/**
- * Get user activity log for settings page
- */
-export async function getUserActivityLog(params: {
-	userId: string;
-	limit?: number;
-	userCredentials: UserCredentials;
-}): Promise<any[]> {
-	try {
-		// Fetch actual activity logs from GraphQL backend
-		const activeClient = defaultClient;
-
-		const activityResult = await activeClient.query(GET_USER_ACTIVITIES, {
-			userId: params.userId,
-			limit: params.limit || 10
-		});
-
-		if (activityResult.error) {
-			throw activityResult.error;
-		}
-
-		const activities = activityResult.data?.activityLogs || [];
-
-		// Transform to expected format
-		return activities.map((activity: any) => ({
-			id: activity.id,
-			action: activity.action,
-			description: `${activity.action} on ${activity.resourceType}`,
-			timestamp: activity.createdAt,
-			ipAddress: activity.ipAddress,
-			userAgent: activity.userAgent
-		}));
-	} catch (error) {
-		console.error('Failed to fetch user activity log:', error);
-
-		// Fallback to mock data if GraphQL fails
-		console.warn('Falling back to mock activity log data');
-		const mockActivityLog = [
-			{
-				id: '1',
-				action: 'profile_updated',
-				description: 'Updated profile information',
-				timestamp: '2024-12-18T10:30:00Z',
-				ipAddress: '192.168.1.100',
-				userAgent: 'Mozilla/5.0...'
-			},
-			{
-				id: '2',
-				action: 'password_changed',
-				description: 'Changed account password',
-				timestamp: '2024-12-15T14:20:00Z',
-				ipAddress: '192.168.1.100',
-				userAgent: 'Mozilla/5.0...'
-			},
-			{
-				id: '3',
-				action: 'notifications_updated',
-				description: 'Updated notification preferences',
-				timestamp: '2024-12-10T09:15:00Z',
-				ipAddress: '192.168.1.100',
-				userAgent: 'Mozilla/5.0...'
-			}
-		];
-
-		console.log(`Loaded activity log for user: ${params.userId} (fallback to mock)`);
-		return mockActivityLog;
-	}
 }
 
 /**

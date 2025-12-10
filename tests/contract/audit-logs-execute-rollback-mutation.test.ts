@@ -43,7 +43,7 @@ interface ExecuteRollbackResponse {
 	};
 }
 
-const mockExecuteRollback = vi.fn<Promise<ExecuteRollbackResponse>>();
+const mockExecuteRollback = vi.fn<() => Promise<ExecuteRollbackResponse>>();
 
 describe('ExecuteRollback Mutation Contract (TDD RED - should fail)', () => {
 	beforeEach(() => {

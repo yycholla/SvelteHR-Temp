@@ -18,8 +18,8 @@ import type {
 	ErrorResponse,
 	GetEmployeesWithFilteringResponse,
 	GetEmployeesWithFilteringVariables
-} from '$lib/types/graphql-contracts';
-import { GRAPHQL_OPERATION_CONSTANTS } from '$lib/types/graphql-contracts';
+} from '../../src/lib/types/graphql-contracts.js';
+import { GRAPHQL_OPERATION_CONSTANTS } from '../../src/lib/types/graphql-contracts.js';
 
 // Mock the implementation (this will be replaced in Phase 3.3)
 const mockGetEmployeesWithFiltering = vi.fn();
@@ -136,89 +136,41 @@ describe('GetEmployeesWithFiltering Contract', () => {
 		test('should return complete employee data structure', async () => {
 			// Arrange - Expected response structure
 			const expectedResponse: GetEmployeesWithFilteringResponse = {
-				employeesData: {
-					employees: [
-						{
-							id: 'emp_123',
-							employeeNumber: 'EMP001',
-							personalInfo: {
-								firstName: 'John',
-								lastName: 'Doe',
-								displayName: 'John Doe',
-								email: 'john.doe@company.com',
-								phone: '+1-555-123-4567',
-								dateOfBirth: '1990-05-15',
-								address: {
-									street: '123 Main St',
-									city: 'San Francisco',
-									state: 'CA',
-									zipCode: '94105',
-									country: 'USA'
-								}
-							},
-							employmentInfo: {
-								hireDate: '2024-02-15',
-								status: 'active',
-								employmentType: 'full-time',
-								department: {
-									id: 'dept_456',
-									name: 'Engineering',
-									code: 'ENG'
-								},
-								position: {
-									id: 'pos_789',
-									title: 'Software Engineer',
-									level: 'Senior'
-								},
-								manager: {
-									id: 'emp_456',
-									displayName: 'Jane Smith',
-									email: 'jane.smith@company.com'
-								},
-								salary: {
-									amount: 95000.0,
-									currency: 'USD',
-									frequency: 'annual'
-								}
-							},
-							systemInfo: {
-								isActive: true,
-								lastLoginAt: '2025-09-25T09:30:00Z',
-								createdAt: '2024-02-15T10:00:00Z',
-								updatedAt: '2025-09-24T16:20:00Z',
-								profileImage: 'https://example.com/avatars/john-doe.jpg'
-							},
-							roles: [
-								{
-									id: 'role_123',
-									name: 'Employee',
-									permissions: ['profile:read', 'profile:update']
-								}
-							]
-						}
-					],
-					pagination: {
-						currentPage: 1,
-						totalPages: 5,
-						totalCount: 97,
-						hasNextPage: true,
-						hasPreviousPage: false,
-						pageSize: 20
-					},
-					appliedFilters: {
-						departmentIds: ['dept_456'],
+				employees: [
+					{
+						id: 'emp_123',
+						email: 'john.doe@company.com',
+						displayName: 'John Doe',
+						role: 'Employee',
+						department: 'Engineering',
 						isActive: true,
-						totalFiltersApplied: 2
-					},
-					summary: {
-						totalEmployees: 97,
-						activeEmployees: 89,
-						inactiveEmployees: 8,
-						departmentBreakdown: [
-							{ departmentId: 'dept_456', departmentName: 'Engineering', count: 23 },
-							{ departmentId: 'dept_789', departmentName: 'Sales', count: 18 }
-						]
+						startDate: '2024-02-15',
+						profileImage: 'https://example.com/avatars/john-doe.jpg',
+						contactInfo: {
+							phone: '+1-555-123-4567',
+							address: '123 Main St, San Francisco, CA 94105, USA'
+						}
 					}
+				],
+				pagination: {
+					currentPage: 1,
+					totalPages: 5,
+					totalItems: 97,
+					itemsPerPage: 20
+				},
+				appliedFilters: {
+					departmentIds: ['dept_456'],
+					isActive: true,
+					totalFiltersApplied: 2
+				},
+				summary: {
+					totalEmployees: 97,
+					activeEmployees: 89,
+					inactiveEmployees: 8,
+					departmentBreakdown: [
+						{ departmentId: 'dept_456', departmentName: 'Engineering', count: 23 },
+						{ departmentId: 'dept_789', departmentName: 'Sales', count: 18 }
+					]
 				}
 			};
 
@@ -233,26 +185,24 @@ describe('GetEmployeesWithFiltering Contract', () => {
 			);
 
 			// Verify the expected structure is valid TypeScript
-			expect(expectedResponse.employeesData).toBeDefined();
-			expect(expectedResponse.employeesData.employees).toBeDefined();
-			expect(Array.isArray(expectedResponse.employeesData.employees)).toBe(true);
-			expect(expectedResponse.employeesData.pagination).toBeDefined();
-			expect(expectedResponse.employeesData.summary).toBeDefined();
+			expect(expectedResponse.employees).toBeDefined();
+			expect(Array.isArray(expectedResponse.employees)).toBe(true);
+			expect(expectedResponse.pagination).toBeDefined();
+			expect(expectedResponse.summary).toBeDefined();
 		});
 
 		test('should validate required fields in employee response', async () => {
 			// Test that all required fields are present
 			const requiredFields = [
-				'employeesData.employees[0].id',
-				'employeesData.employees[0].employeeNumber',
-				'employeesData.employees[0].personalInfo.firstName',
-				'employeesData.employees[0].personalInfo.lastName',
-				'employeesData.employees[0].personalInfo.email',
-				'employeesData.employees[0].employmentInfo.hireDate',
-				'employeesData.employees[0].employmentInfo.status',
-				'employeesData.employees[0].employmentInfo.department.name',
-				'employeesData.pagination.totalCount',
-				'employeesData.summary.totalEmployees'
+				'employees[0].id',
+				'employees[0].email',
+				'employees[0].displayName',
+				'employees[0].role',
+				'employees[0].department',
+				'employees[0].isActive',
+				'employees[0].startDate',
+				'pagination.totalItems',
+				'summary.totalEmployees'
 			];
 
 			// Expected to FAIL - field validation not implemented
@@ -271,25 +221,21 @@ describe('GetEmployeesWithFiltering Contract', () => {
 		test('should handle empty results correctly', async () => {
 			// Arrange - Empty results scenario
 			const expectedEmptyResponse: GetEmployeesWithFilteringResponse = {
-				employeesData: {
-					employees: [],
-					pagination: {
-						currentPage: 1,
-						totalPages: 0,
-						totalCount: 0,
-						hasNextPage: false,
-						hasPreviousPage: false,
-						pageSize: 20
-					},
-					appliedFilters: {
-						totalFiltersApplied: 0
-					},
-					summary: {
-						totalEmployees: 0,
-						activeEmployees: 0,
-						inactiveEmployees: 0,
-						departmentBreakdown: []
-					}
+				employees: [],
+				pagination: {
+					currentPage: 1,
+					totalPages: 0,
+					totalItems: 0,
+					itemsPerPage: 20
+				},
+				appliedFilters: {
+					totalFiltersApplied: 0
+				},
+				summary: {
+					totalEmployees: 0,
+					activeEmployees: 0,
+					inactiveEmployees: 0,
+					departmentBreakdown: []
 				}
 			};
 
@@ -303,8 +249,8 @@ describe('GetEmployeesWithFiltering Contract', () => {
 			).rejects.toThrow('Empty response handling not implemented');
 
 			// Verify empty response structure
-			expect(expectedEmptyResponse.employeesData.employees).toHaveLength(0);
-			expect(expectedEmptyResponse.employeesData.pagination.totalCount).toBe(0);
+			expect(expectedEmptyResponse.employees).toHaveLength(0);
+			expect(expectedEmptyResponse.pagination.totalItems).toBe(0);
 		});
 	});
 
@@ -569,10 +515,10 @@ export const employeesTestHelpers = {
 
 	validateEmployeesResponse: (response: any): boolean => {
 		return (
-			response?.employeesData?.employees &&
-			Array.isArray(response.employeesData.employees) &&
-			response?.employeesData?.pagination &&
-			typeof response.employeesData.pagination.totalCount === 'number'
+			response?.employees &&
+			Array.isArray(response.employees) &&
+			response?.pagination &&
+			typeof response.pagination.totalItems === 'number'
 		);
 	},
 

@@ -216,7 +216,7 @@ export const load: PageServerLoad = async (event) => {
 			{ limit: 100 }
 		);
 
-		const metadataData = reviewsResponse.data;
+		const metadataData = metadataResponse.data;
 
 		// Query 3: Get all employees for employee selector (if user can create reviews)
 		let employees = [];

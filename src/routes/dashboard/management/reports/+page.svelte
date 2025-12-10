@@ -16,12 +16,54 @@
 		X
 	} from '@lucide/svelte';
 	import * as Tabs from '$lib/components/ui/tabs';
-	import type { HRReport, ReportAnalytics } from '$lib/graphql/reports-operations';
+	import type { HrReport, ReportAnalytics } from '$lib/graphql/reports-operations';
 	import {
 		REPORT_CATEGORIES,
 		REPORT_STATUSES,
 		REPORT_TYPES
 	} from '$lib/graphql/reports-operations';
+
+	// Extended report type with UI-specific fields
+	interface HRReport extends Omit<HrReport, 'creator' | 'department'> {
+		description?: string;
+		visibility?: string;
+		outputFormat?: string;
+		schedule?: string;
+		recipients?: string[];
+		parameters?: Record<string, any>;
+		generatedCount?: number;
+		lastRunAt?: string | null;
+		// Override department and creator to make them optional for safer access
+		department: {
+			id: string;
+			name: string;
+		} | null;
+		creator: {
+			id: string;
+			displayName: string;
+			email: string;
+		} | null;
+	}
+
+	// Extended analytics type with UI-specific fields
+	interface ExtendedReportAnalytics extends ReportAnalytics {
+		performanceMetrics: {
+			successRate: number;
+			errorRate: number;
+			avgExecutionTime?: number;
+			totalExecutionTime?: number;
+		};
+		popularReports?: Array<{
+			title: string;
+			runCount: number;
+			lastRun: string | null;
+		}>;
+		departmentUsage?: Array<{
+			department: string;
+			reportCount: number;
+			lastActivity: string | null;
+		}>;
+	}
 
 	// Define props interface
 	interface Props {
@@ -30,7 +72,7 @@
 			userSession: any;
 			reports: HRReport[];
 			totalReports: number;
-			reportAnalytics: ReportAnalytics;
+			reportAnalytics: ExtendedReportAnalytics;
 			filters: {
 				searchTerm: string;
 				typeFilter: string;
@@ -95,7 +137,7 @@
 	});
 
 	// Run report form state
-	const runForm = $state({
+	let runForm = $state({
 		reportId: '',
 		parameters: {}
 	});
@@ -162,8 +204,10 @@
 
 	function handleRunReport(report: HRReport) {
 		selectedReport = report;
-		runForm.reportId = report.id;
-		runForm.parameters = {};
+		runForm = {
+			reportId: report.id,
+			parameters: {}
+		};
 		showRunModal = true;
 	}
 
@@ -176,7 +220,7 @@
 		// Simulate report download
 		const link = document.createElement('a');
 		link.href = `/api/reports/${report.id}/download`;
-		link.download = `${report.title}.${report.outputFormat}`;
+		link.download = `${report.title}.${report.outputFormat || 'pdf'}`;
 		document.body.appendChild(link);
 		link.click();
 		document.body.removeChild(link);
@@ -504,13 +548,13 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 									</span>
 								</td>
 								<td class="px-6 py-4 text-sm text-foreground">
-									{report.department || 'All'}
+									{report.department ? report.department.name : 'All'}
 								</td>
 								<td class="px-6 py-4 text-sm text-foreground">
-									{report.generatedCount}
+									{report.generatedCount ?? 0}
 								</td>
 								<td class="px-6 py-4 text-sm text-foreground">
-									{formatDate(report.lastRunAt)}
+									{formatDate(report.lastRunAt ?? null)}
 								</td>
 								<td class="px-6 py-4">
 									<div class="flex items-center gap-2">
@@ -588,13 +632,13 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 						</div>
 						<div class="text-center">
 							<div class="text-2xl font-bold text-blue-600">
-								{reportAnalytics.performanceMetrics.avgExecutionTime}s
+								{reportAnalytics.performanceMetrics.avgExecutionTime ?? 0}s
 							</div>
 							<div class="text-sm text-muted-foreground">Avg Execution Time</div>
 						</div>
 						<div class="text-center">
 							<div class="text-2xl font-bold text-purple-600">
-								{reportAnalytics.performanceMetrics.totalExecutionTime}s
+								{reportAnalytics.performanceMetrics.totalExecutionTime ?? 0}s
 							</div>
 							<div class="text-sm text-muted-foreground">Total Execution Time</div>
 						</div>
@@ -623,43 +667,47 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 				</div>
 
 				<!-- Popular Reports -->
-				<div class="rounded-lg border bg-card p-6 shadow-sm">
-					<h3 class="mb-6 text-lg font-semibold text-foreground">Most Popular Reports</h3>
-					<div class="space-y-4">
-						{#each reportAnalytics.popularReports as report}
-							<div class="flex items-center justify-between rounded-lg bg-muted p-4 dark:bg-muted">
-								<div>
-									<div class="font-medium text-foreground">{report.title}</div>
-									<div class="text-sm text-muted-foreground">
-										Last run: {formatDate(report.lastRun)}
+				{#if reportAnalytics.popularReports && reportAnalytics.popularReports.length > 0}
+					<div class="rounded-lg border bg-card p-6 shadow-sm">
+						<h3 class="mb-6 text-lg font-semibold text-foreground">Most Popular Reports</h3>
+						<div class="space-y-4">
+							{#each reportAnalytics.popularReports as report}
+								<div class="flex items-center justify-between rounded-lg bg-muted p-4 dark:bg-muted">
+									<div>
+										<div class="font-medium text-foreground">{report.title}</div>
+										<div class="text-sm text-muted-foreground">
+											Last run: {formatDate(report.lastRun)}
+										</div>
+									</div>
+									<div class="text-right">
+										<div class="text-lg font-semibold text-blue-600">{report.runCount}</div>
+										<div class="text-sm text-muted-foreground">runs</div>
 									</div>
 								</div>
-								<div class="text-right">
-									<div class="text-lg font-semibold text-blue-600">{report.runCount}</div>
-									<div class="text-sm text-muted-foreground">runs</div>
-								</div>
-							</div>
-						{/each}
+							{/each}
+						</div>
 					</div>
-				</div>
+				{/if}
 
 				<!-- Department Usage -->
-				<div class="rounded-lg border bg-card p-6 shadow-sm">
-					<h3 class="mb-6 text-lg font-semibold text-foreground">Department Usage</h3>
-					<div class="space-y-4">
-						{#each reportAnalytics.departmentUsage as dept}
-							<div class="flex items-center justify-between">
-								<span class="text-sm font-medium text-foreground">{dept.department}</span>
-								<div class="flex items-center gap-4">
-									<span class="text-sm text-muted-foreground">{dept.reportCount} reports</span>
-									<span class="text-xs text-muted-foreground"
-										>Last: {formatDate(dept.lastActivity)}</span
-									>
+				{#if reportAnalytics.departmentUsage && reportAnalytics.departmentUsage.length > 0}
+					<div class="rounded-lg border bg-card p-6 shadow-sm">
+						<h3 class="mb-6 text-lg font-semibold text-foreground">Department Usage</h3>
+						<div class="space-y-4">
+							{#each reportAnalytics.departmentUsage as dept}
+								<div class="flex items-center justify-between">
+									<span class="text-sm font-medium text-foreground">{dept.department}</span>
+									<div class="flex items-center gap-4">
+										<span class="text-sm text-muted-foreground">{dept.reportCount} reports</span>
+										<span class="text-xs text-muted-foreground"
+											>Last: {formatDate(dept.lastActivity)}</span
+										>
+									</div>
 								</div>
-							</div>
-						{/each}
+							{/each}
+						</div>
 					</div>
-				</div>
+				{/if}
 			</div>
 		</Tabs.Content>
 	{/if}
@@ -820,7 +868,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 							</div>
 							<div>
 								<dt class="text-sm font-medium text-muted-foreground">Generated Count</dt>
-								<dd class="mt-1 text-sm text-foreground">{selectedReport.generatedCount}</dd>
+								<dd class="mt-1 text-sm text-foreground">{selectedReport.generatedCount ?? 0}</dd>
 							</div>
 						</div>
 
@@ -838,20 +886,22 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 							</div>
 							<div>
 								<dt class="text-sm font-medium text-muted-foreground">Last Run</dt>
-								<dd class="mt-1 text-sm text-foreground">{formatDate(selectedReport.lastRunAt)}</dd>
+								<dd class="mt-1 text-sm text-foreground">{formatDate(selectedReport.lastRunAt ?? null)}</dd>
 							</div>
 						</div>
 
 						<div>
 							<dt class="text-sm font-medium text-muted-foreground">Created By</dt>
-							<dd class="mt-1 text-sm text-foreground">{selectedReport.createdBy.displayName}</dd>
+							<dd class="mt-1 text-sm text-foreground">
+								{selectedReport.creator ? selectedReport.creator.displayName : 'Unknown'}
+							</dd>
 						</div>
 					</div>
 				</div>
 
 				<div class="bg-muted px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 dark:bg-muted">
 					<button
-						onclick={() => handleDownloadReport(selectedReport)}
+						onclick={() => selectedReport && handleDownloadReport(selectedReport)}
 						class="inline-flex w-full justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none sm:ml-3 sm:w-auto"
 					>
 						<Download class="mr-2 h-4 w-4" />
@@ -859,7 +909,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 					</button>
 					{#if data.canRunReports}
 						<button
-							onclick={() => handleRunReport(selectedReport)}
+							onclick={() => selectedReport && handleRunReport(selectedReport)}
 							class="mt-3 inline-flex w-full justify-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto"
 						>
 							<RotateCcw class="mr-2 h-4 w-4" />

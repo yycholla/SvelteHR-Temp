@@ -19,6 +19,8 @@ import { beforeAll, describe, expect, it } from 'vitest';
  */
 
 describe('POST /api/documents/upload - Contract Tests', () => {
+	const API_BASE_URL = process.env.API_BASE_URL || process.env.PUBLIC_API_URL || 'http://localhost:5173';
+
 	let authToken: string;
 	let employeeToken: string;
 	let adminToken: string;
@@ -41,7 +43,7 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 		formData.append('sensitivity_level', 'Internal');
 
 		// Act: Upload document
-		const response = await fetch('/api/documents/upload', {
+		const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {
 			method: 'POST',
 			headers: {
 				Authorization: `Bearer ${adminToken}`
@@ -67,7 +69,7 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 		formData.append('sensitivity_level', 'Internal');
 
 		// Act: Attempt upload
-		const response = await fetch('/api/documents/upload', {
+		const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {
 			method: 'POST',
 			headers: {
 				Authorization: `Bearer ${adminToken}`
@@ -92,7 +94,7 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 		formData.append('sensitivity_level', 'Internal');
 
 		// Act: Attempt upload
-		const response = await fetch('/api/documents/upload', {
+		const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {
 			method: 'POST',
 			headers: {
 				Authorization: `Bearer ${adminToken}`
@@ -117,7 +119,7 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 		formData.append('sensitivity_level', 'Internal');
 
 		// Act: Attempt upload without auth
-		const response = await fetch('/api/documents/upload', {
+		const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {
 			method: 'POST',
 			body: formData
 		});
@@ -139,7 +141,7 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 		formData.append('sensitivity_level', 'Internal');
 
 		// Act: Attempt upload as employee
-		const response = await fetch('/api/documents/upload', {
+		const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {
 			method: 'POST',
 			headers: {
 				Authorization: `Bearer ${employeeToken}`
@@ -163,7 +165,7 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 		// Missing category and sensitivity_level
 
 		// Act: Attempt upload
-		const response = await fetch('/api/documents/upload', {
+		const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {
 			method: 'POST',
 			headers: {
 				Authorization: `Bearer ${adminToken}`
@@ -205,7 +207,7 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 			formData.append('category', 'Other');
 			formData.append('sensitivity_level', 'Internal');
 
-			const response = await fetch('/api/documents/upload', {
+			const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {
 				method: 'POST',
 				headers: {
 					Authorization: `Bearer ${adminToken}`

@@ -14,6 +14,15 @@
 	let currentRsvpStatus = $state<RsvpStatus>(data.userRsvpStatus);
 	let isRsvpUpdating = $state(false);
 
+	// Calculate no_response count as derived value
+	const noResponseCount = $derived(
+		data.rsvpStats.total -
+			data.rsvpStats.accepted -
+			data.rsvpStats.declined -
+			data.rsvpStats.tentative -
+			data.rsvpStats.pending
+	);
+
 	// Tab state for attendees section
 	type AttendeeTab = 'all' | 'accepted' | 'declined' | 'tentative' | 'pending';
 	let activeAttendeeTab = $state<AttendeeTab>('all');
@@ -23,7 +32,7 @@
 		activeAttendeeTab === 'all'
 			? data.event.eventAttendeesByEventId?.nodes || []
 			: (data.event.eventAttendeesByEventId?.nodes || []).filter(
-					(a: any) => a.responseStatus === activeAttendeeTab
+					(a: any) => (a.responseStatus as RsvpStatus) === activeAttendeeTab
 				)
 	);
 
@@ -95,7 +104,9 @@
 			accepted: 'bg-primary/10 text-primary',
 			declined: 'bg-destructive/10 text-destructive',
 			tentative: 'bg-accent text-accent-foreground',
-			pending: 'bg-primary/10 text-primary'
+			pending: 'bg-primary/10 text-primary',
+			no_response: 'bg-muted text-muted-foreground',
+			waitlisted: 'bg-secondary text-secondary-foreground'
 		};
 		return colors[status] || 'bg-muted text-muted-foreground';
 	}
@@ -163,9 +174,11 @@
 					<span class="rounded-md bg-accent px-2 py-1 text-xs font-medium text-accent-foreground">
 						{data.event.eventType.charAt(0).toUpperCase() + data.event.eventType.slice(1)}
 					</span>
-					<span class="rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
-						{getVisibilityLabel(data.event.visibilityType)}
-					</span>
+					{#if data.event.visibilityType}
+						<span class="rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+							{getVisibilityLabel(data.event.visibilityType)}
+						</span>
+					{/if}
 				</div>
 			</div>
 
@@ -361,7 +374,9 @@
 			<div class="text-sm text-muted-foreground">Pending</div>
 		</div>
 		<div class="rounded-lg border bg-card p-4 text-center shadow-sm">
-			<div class="text-2xl font-bold text-muted-foreground">{data.rsvpStats.noResponse}</div>
+			<div class="text-2xl font-bold text-muted-foreground">
+				{noResponseCount}
+			</div>
 			<div class="text-sm text-muted-foreground">No Response</div>
 		</div>
 	</div>
@@ -431,12 +446,12 @@
 							<div class="flex items-center">
 								<div class="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
 									<span class="text-sm font-medium text-muted-foreground">
-										{attendee.userByEmployeeId?.displayName?.charAt(0)?.toUpperCase() || '?'}
+										{attendee.employee?.displayName?.charAt(0)?.toUpperCase() || '?'}
 									</span>
 								</div>
 								<div class="ml-3">
 									<div class="text-sm font-medium text-foreground">
-										{attendee.userByEmployeeId?.displayName || 'Unknown'}
+										{attendee.employee?.displayName || 'Unknown'}
 										{#if attendee.employeeId === data.user.id}
 											<span class="ml-2 text-xs text-primary">(You)</span>
 										{/if}
@@ -450,7 +465,7 @@
 							</div>
 							<span
 								class="rounded-md px-2 py-1 text-xs font-medium {getRsvpStatusColor(
-									attendee.responseStatus
+									attendee.responseStatus as RsvpStatus
 								)}"
 							>
 								{attendee.responseStatus.replace('_', ' ').charAt(0).toUpperCase() +

@@ -2,7 +2,7 @@
 // Helper functions for E2E testing with Puppeteer
 // Created: 2025-10-27
 
-import type { Browser, Page } from 'puppeteer';
+import type { Browser, Page, KeyInput } from 'puppeteer';
 import { expect } from 'vitest';
 
 // Configuration
@@ -146,7 +146,7 @@ export async function uncheckCheckbox(selector: string) {
 /**
  * Press a keyboard key
  */
-export async function pressKey(key: string) {
+export async function pressKey(key: KeyInput) {
 	const page = getPage();
 	await page.keyboard.press(key);
 }
@@ -403,7 +403,7 @@ export function captureConsole() {
 
 		if (type === 'log') {
 			logs.push({ type, text });
-		} else if (type === 'warning') {
+		} else if (type === 'warn') {
 			warnings.push({ type, text });
 		} else if (type === 'error') {
 			errors.push({ type, text });

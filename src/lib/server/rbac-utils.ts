@@ -351,13 +351,13 @@ export async function canEditDepartment(
 	departmentId: string,
 	userRole: string
 ): Promise<boolean> {
-	// Admins can edit any department
-	if (userRole === 'Admin') {
+	if (userRole.toLowerCase() === 'admin') {
 		return true;
 	}
 
 	// For managers, check if they manage this department
-	if (userRole === 'Manager' || userRole === 'HR Manager') {
+	const roleLower = userRole.toLowerCase();
+	if (roleLower === 'manager' || roleLower === 'hr manager') {
 		try {
 			// Import here to avoid circular dependencies
 			const { getGraphQLEndpoint } = await import('$lib/server/api-url');
@@ -406,17 +406,18 @@ export async function canEditEmployee(
 	userRole: string
 ): Promise<boolean> {
 	// Admins can edit anyone
-	if (userRole === 'Admin') {
+	if (userRole.toLowerCase() === 'admin') {
 		return true;
 	}
 
 	// Employees can only edit themselves
-	if (userRole === 'Employee') {
+	if (userRole.toLowerCase() === 'employee') {
 		return userId === targetEmployeeId;
 	}
 
 	// For managers, check if target employee is in their department
-	if (userRole === 'Manager' || userRole === 'HR Manager') {
+	const roleLower = userRole.toLowerCase();
+	if (roleLower === 'manager' || roleLower === 'hr manager') {
 		try {
 			const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 			const graphqlEndpoint = getGraphQLEndpoint();
@@ -616,39 +617,32 @@ export function getUserPermissions(locals: App.Locals) {
  * T036: Role precedence implementation
  */
 const ROLE_HIERARCHY = {
-	Admin: 100,
-	'HR Manager': 75,
-	Manager: 50,
-	Employee: 25,
+	admin: 100,
+	'hr manager': 75,
+	manager: 50,
+	employee: 25,
 	guest: 0
 } as const;
 
-/**
- * Get the highest priority role from a roles array
- * Used when a user has multiple roles to determine their effective permissions
- *
- * @param roles - Array of role names
- * @returns The highest priority role name
- *
- * @example
- * getRolePrecedence(['employee', 'admin', 'manager']) // returns 'admin'
- * getRolePrecedence(['manager', 'employee']) // returns 'manager'
- * getRolePrecedence(['employee']) // returns 'employee'
- */
 export function getRolePrecedence(roles: string[]): string {
 	if (!roles || roles.length === 0) return 'guest';
 
-	let highestRole = 'Employee';
+	let highestRole = 'guest';
 	let highestLevel = 0;
 
 	for (const role of roles) {
-		const level = ROLE_HIERARCHY[role as keyof typeof ROLE_HIERARCHY] || 0;
-		if (level > highestLevel) {
+		const normalizedRole = role.toLowerCase();
+		const level = ROLE_HIERARCHY[normalizedRole as keyof typeof ROLE_HIERARCHY] || 0;
+		if (level >= highestLevel) { // >= to ensure we pick up at least one valid role if multiple have same level or if first one is found
 			highestLevel = level;
-			highestRole = role;
+			highestRole = role; // Return the original role string, or normalized? Tests expect 'admin'.
 		}
 	}
-
+	
+	// If the highest role found is 'guest' but roles were provided, and none matched hierarchy, return the first one or 'guest'? 
+	// Test expects 'employee' if only 'employee' is passed.
+	// If 'employee' is in hierarchy, it works.
+	
 	return highestRole;
 }
 

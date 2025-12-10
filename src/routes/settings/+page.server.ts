@@ -5,7 +5,7 @@ import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 import { createSettingsOperations } from '$lib/graphql/settings-operations';
-import { createUrqlClient } from '$lib/graphql/client';
+import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies, url } = event;
@@ -52,14 +52,12 @@ export const load: PageServerLoad = async (event) => {
 			isAuthenticated: Boolean(userSession.isAuthenticated),
 			expiresAt: userSession.expiresAt
 		},
-		timeoutMs: 5000,
-		retryAttempts: 0,
-		maxRetries: 3
+		timeoutMs: 5000
 	});
 
 	try {
 		// Create GraphQL client for server-side operations
-		const graphqlClient = createUrqlClient(fetch, undefined, undefined, cookies.getAll());
+		const graphqlClient = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
 
 		// Create settings operations instance
 		const settingsOps = createSettingsOperations(graphqlClient);
@@ -104,7 +102,8 @@ export const load: PageServerLoad = async (event) => {
 			canExportData:
 				locals.permissions?.includes('data:export') ||
 				locals.permissions?.includes('*') ||
-				(locals.user.role && ['hr_manager', 'hr_admin', 'hr_super_admin'].includes(locals.user.role)),
+				(locals.user.role &&
+					['hr_manager', 'hr_admin', 'hr_super_admin'].includes(locals.user.role)),
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {

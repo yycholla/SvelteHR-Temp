@@ -1,17 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import {
-		departments,
-		departmentService,
-		loadDepartments
-	} from '$lib/services/departmentService';
+	import { departments, departmentError, departmentService, loadDepartments } from '$lib/services/departmentService';
 	import { currentUser, hasPermission } from '$lib/services/auth';
 	import Button from '../base/Button.svelte';
 	import Card from '../base/Card.svelte';
 	import Badge from '../base/Badge.svelte';
 	import TreeNode from './TreeNode.svelte';
 	import type { Department } from '$lib/types';
+	import type { TreeNodeData } from './types';
 
 	// Props
 	const {
@@ -26,13 +23,6 @@
 	let expandedNodes = $state(new Set<string>());
 	let selectedDepartment = $state<Department | null>(null);
 	let expandAll = $state(initialExpandAll);
-
-	// Hierarchy tree structure
-	interface TreeNodeData {
-		department: Department;
-		children: TreeNodeData[];
-		level: number;
-	}
 
 	// Reactive computation for tree structure
 	const rootNodes = $derived(buildHierarchyTree($departments));
@@ -141,7 +131,7 @@
 					<div class="loading-spinner"></div>
 					<span class="text-sm text-gray-600">Loading hierarchy...</span>
 				</div>
-			{:else if null}
+			{:else if $departmentError}
 				<Card padding="md" class="hierarchy-error">
 					<div class="error-content">
 						<i class="icon-alert-circle h-5 w-5 text-red-500"></i>
@@ -168,7 +158,7 @@
 						<p class="mt-2 text-sm text-gray-600">Get started by creating your first department.</p>
 						{#if $currentUser && hasPermission('department:create')}
 							<Button
-	variant="primary"
+								variant="primary"
 								size="md"
 								leftIcon="plus"
 								onclick={() => goto('/departments/new')}
@@ -186,7 +176,7 @@
 							{node}
 							isExpanded={isExpanded(node.department.id)}
 							isSelected={selectedDepartment?.id === node.department.id}
-							canEdit={$currentUser && hasPermission('department:update')}
+							canEdit={($currentUser && hasPermission('department:update')) || false}
 							{expandAll}
 							ontoggle={(id) => toggleNode(id)}
 							onselect={(dept) => selectDepartment(dept)}
@@ -255,17 +245,17 @@
 							variant="secondary"
 							size="sm"
 							leftIcon="eye"
-							onclick={() => goto(`/departments/${selectedDepartment.id}`)}
+							onclick={() => selectedDepartment && goto(`/departments/${selectedDepartment.id}`)}
 						>
 							View Details
 						</Button>
 
 						{#if $currentUser && hasPermission('department:update')}
 							<Button
-	variant="primary"
+								variant="primary"
 								size="sm"
 								leftIcon="edit"
-								onclick={() => goto(`/departments/${selectedDepartment.id}/edit`)}
+								onclick={() => selectedDepartment && goto(`/departments/${selectedDepartment.id}/edit`)}
 							>
 								Edit
 							</Button>

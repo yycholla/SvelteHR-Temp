@@ -285,8 +285,5 @@
 		transition: all 0.15s ease-in-out;
 	}
 
-	/* Hover effects for better UX */
-	button:hover .text-gray-400 {
-		color: #6b7280;
-	}
+
 </style>

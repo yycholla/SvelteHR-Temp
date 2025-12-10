@@ -16,11 +16,23 @@ import type {
 	ErrorResponse,
 	GetEmployeesWithFilteringRequest
 } from '$lib/types/graphql-contracts';
-import type { RetryHandler } from '$lib/utils/retry-handler';
-import type { CacheInvalidator } from '$lib/utils/cache-management';
+
+// Mock RetryHandler interface for testing
+interface RetryHandler {
+	execute<T>(operation: () => Promise<T>, operationName?: string): Promise<T>;
+	scheduleRetry<T>(
+		operation: () => Promise<T>,
+		error: ErrorResponse,
+		operationName?: string
+	): Promise<T> | null;
+	cancel(): void;
+	reset(): void;
+	getState(): any;
+	updateConfig(updates: any): void;
+}
 
 // Mock CacheInvalidator interface for testing
-interface MockCacheInvalidator {
+interface CacheInvalidator {
 	invalidate: ReturnType<typeof vi.fn>;
 	warmCache: ReturnType<typeof vi.fn>;
 }
@@ -75,7 +87,7 @@ const mockEmployeeRetryHandler: Partial<RetryHandler> = {
 };
 
 // Mock cache invalidator
-const mockEmployeeCacheInvalidator: MockCacheInvalidator = {
+const mockEmployeeCacheInvalidator: CacheInvalidator = {
 	invalidate: vi.fn(),
 	warmCache: vi.fn()
 };
@@ -116,11 +128,12 @@ describe('Employee Page Integration (T019)', () => {
 			} as unknown as LoadEvent;
 
 			const employeeRequest: GetEmployeesWithFilteringRequest = {
-				operation: 'GetEmployeesWithFiltering',
+				id: 'req-123',
+				operationName: 'GetEmployeesWithFiltering',
 				variables: {
 					filters: {
-						department: 'Engineering',
-						status: 'active'
+						departmentIds: ['Engineering'],
+						isActive: true
 					},
 					pagination: {
 						page: 1,
@@ -129,11 +142,23 @@ describe('Employee Page Integration (T019)', () => {
 					sorting: {
 						field: 'lastName',
 						direction: 'asc'
-					},
-					includeSalaryData: true // HR Manager can see salary data
+					}
 				},
+				userCredentials: {
+					id: 'session-123',
+					userId: 'user-123',
+					jwtToken: 'hr-manager-token',
+					permissions: ['employees:read', 'employees:write', 'employees:delete', 'salary:read'],
+					roles: ['HR_Manager'],
+					isAuthenticated: true,
+					expiresAt: new Date(Date.now() + 3600000),
+					lastActivity: new Date()
+				},
+				status: 'pending',
+				retryAttempts: 0,
+				createdAt: new Date(),
+				completedAt: null,
 				timeoutMs: 5000,
-				maxRetries: 3,
 				cachePolicy: 'cache-first',
 				cacheTtlMinutes: 15 // Employee data cached for 15 minutes
 			};
@@ -716,13 +741,27 @@ describe('Employee Page Integration (T019)', () => {
 			// Arrange
 			const startTime = performance.now();
 			const employeeRequest: GetEmployeesWithFilteringRequest = {
-				operation: 'GetEmployeesWithFiltering',
+				id: 'req-perf-123',
+				operationName: 'GetEmployeesWithFiltering',
 				variables: {
 					filters: {},
 					pagination: { page: 1, limit: 50 }
 				},
+				userCredentials: {
+					id: 'session-123',
+					userId: 'user-123',
+					jwtToken: 'hr-manager-token',
+					permissions: ['employees:read'],
+					roles: ['HR_Manager'],
+					isAuthenticated: true,
+					expiresAt: new Date(Date.now() + 3600000),
+					lastActivity: new Date()
+				},
+				status: 'pending',
+				retryAttempts: 0,
+				createdAt: new Date(),
+				completedAt: null,
 				timeoutMs: 5000,
-				maxRetries: 3,
 				cachePolicy: 'cache-first',
 				cacheTtlMinutes: 15 // Employee data cached for performance
 			};

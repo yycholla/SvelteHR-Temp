@@ -45,6 +45,10 @@ describe('Management Page State Reactivity - RED Phase', () => {
 			permissions: ['management:read:team'],
 			canManageTeam: true,
 			canViewAllTeams: false,
+			canManageLeave: true,
+			canManageReviews: true,
+			canManageGoals: true,
+			canGenerateReports: true,
 			loadedAt: new Date().toISOString()
 		};
 
@@ -114,6 +118,10 @@ describe('Management Page State Reactivity - RED Phase', () => {
 			permissions: ['management:read:team'],
 			canManageTeam: true,
 			canViewAllTeams: false,
+			canManageLeave: true,
+			canManageReviews: true,
+			canManageGoals: true,
+			canGenerateReports: true,
 			loadedAt: new Date().toISOString()
 		};
 

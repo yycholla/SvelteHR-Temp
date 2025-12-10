@@ -11,13 +11,25 @@
 		User
 	} from '@lucide/svelte';
 	import { format, formatDistanceToNow, parseISO } from 'date-fns';
+	import type { PageData } from './$types';
 
-	const { data } = $props();
+	interface AttendanceRecord {
+		id: string;
+		date: string;
+		clockIn: string | null;
+		clockOut: string | null;
+		hoursWorked: number;
+		status: string;
+		location: string | null;
+		notes: string | null;
+	}
+
+	const { data }: { data: PageData } = $props();
 
 	// Extract data properties directly to avoid circular dependencies
 	const user = $derived(data.user);
 	const userId = $derived(data.userId);
-	const attendanceRecords = $derived(data.attendanceRecords);
+	const attendanceRecords = $derived(data.attendanceRecords ?? []);
 	const attendanceStats = $derived(data.attendanceStats);
 	const canManageAttendance = $derived(data.canManageAttendance);
 	const isOwnAttendance = $derived(data.isOwnAttendance);
@@ -25,7 +37,7 @@
 	// Current date for clock in/out functionality
 	let currentTime = $state(new Date());
 	let isClockedIn = $state(false);
-	let todayRecord = $state(null);
+	let todayRecord = $state<AttendanceRecord | null>(null);
 
 	// Update current time every minute with proper cleanup
 	$effect(() => {
@@ -45,7 +57,7 @@
 		if (!records) return;
 
 		const today = new Date().toISOString().split('T')[0];
-		const record = records.find((r: { date: string }) => r.date === today);
+		const record = records.find((r: AttendanceRecord) => r.date === today);
 		todayRecord = record || null;
 		isClockedIn = Boolean(record?.clockIn && !record.clockOut);
 	});
@@ -92,7 +104,9 @@
 
 <svelte:head>
 	<title
-		>{isOwnAttendance ? 'My Attendance' : `${user?.displayName} - Attendance`} | MountainHR</title
+		>{isOwnAttendance
+			? 'My Attendance'
+			: `${user?.firstName ?? ''} ${user?.lastName ?? ''} - Attendance`} | MountainHR</title
 	>
 </svelte:head>
 
@@ -105,10 +119,12 @@
 			</div>
 			<div>
 				<h1 class="text-2xl font-bold text-foreground">
-					{isOwnAttendance ? 'My Attendance' : `${user?.displayName} - Attendance`}
+					{isOwnAttendance
+						? 'My Attendance'
+						: `${user?.firstName ?? ''} ${user?.lastName ?? ''} - Attendance`}
 				</h1>
 				<p class="text-muted-foreground">
-					{user?.departmentByDepartmentId?.name || 'No Department'} • {user?.role}
+					{user?.department?.name ?? 'No Department'} • {user?.status ?? 'N/A'}
 				</p>
 			</div>
 		</div>
@@ -195,19 +211,19 @@
 				<div>
 					<p class="text-sm font-medium text-muted-foreground">Clock In</p>
 					<p class="text-lg font-semibold text-foreground">
-						{todayRecord.clockIn ? formatTime(todayRecord.clockIn) : 'Not clocked in'}
+						{todayRecord?.clockIn ? formatTime(todayRecord.clockIn) : 'Not clocked in'}
 					</p>
 				</div>
 				<div>
 					<p class="text-sm font-medium text-muted-foreground">Clock Out</p>
 					<p class="text-lg font-semibold text-foreground">
-						{todayRecord.clockOut ? formatTime(todayRecord.clockOut) : 'Not clocked out'}
+						{todayRecord?.clockOut ? formatTime(todayRecord.clockOut) : 'Not clocked out'}
 					</p>
 				</div>
 				<div>
 					<p class="text-sm font-medium text-muted-foreground">Hours Worked</p>
 					<p class="text-lg font-semibold text-foreground">
-						{todayRecord.hoursWorked ? `${todayRecord.hoursWorked}h` : '0h'}
+						{todayRecord?.hoursWorked ? `${todayRecord.hoursWorked}h` : '0h'}
 					</p>
 				</div>
 			</div>
@@ -262,7 +278,7 @@
 						</tr>
 					</thead>
 					<tbody class="">
-						{#each attendanceRecords as record}
+						{#each attendanceRecords as record (record.id)}
 							<tr class="border-b hover:bg-muted/50">
 								<td class="px-6 py-4 text-sm whitespace-nowrap text-foreground">
 									{formatDate(record.date)}
@@ -293,11 +309,11 @@
 								<td class="px-6 py-4 text-sm whitespace-nowrap text-foreground">
 									<div class="flex items-center gap-2">
 										<MapPin class="h-4 w-4 text-muted-foreground" />
-										{record.location}
+										{record.location ?? '-'}
 									</div>
 								</td>
 								<td class="px-6 py-4 text-sm text-muted-foreground">
-									{record.notes || '-'}
+									{record.notes ?? '-'}
 								</td>
 							</tr>
 						{:else}

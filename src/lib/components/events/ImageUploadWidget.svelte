@@ -281,10 +281,10 @@
 			ondragleave={handleDragLeave}
 			ondragover={handleDragOver}
 			ondrop={handleDrop}
-			onclick={() => fileInput.click()}
+			onclick={() => fileInput?.click()}
 			role="button"
 			tabindex={0}
-			onkeydown={(e) => e.key === 'Enter' && fileInput.click()}
+			onkeydown={(e) => e.key === 'Enter' && fileInput?.click()}
 		>
 			<div class="flex flex-col items-center justify-center gap-4 py-12">
 				{#if isProcessing}
