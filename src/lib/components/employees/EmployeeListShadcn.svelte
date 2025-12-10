@@ -104,13 +104,17 @@
 	const searchFilter = $derived(() => {
 		if (!filters.search) return null;
 		const search = filters.search.toLowerCase();
-		return (employee: any) =>
+		return (employee: Employee) =>
 			employee.displayName?.toLowerCase().includes(search) ||
 			employee.email?.toLowerCase().includes(search);
 	});
 
 	// Store query state in reactive variables to avoid direct store access in derived
-	let queryState = $state({ fetching: true, error: null, data: null });
+	let queryState = $state<{
+		fetching: boolean;
+		error: { message: string } | null;
+		data: { users: Employee[] } | null;
+	}>({ fetching: true, error: null, data: null });
 
 	// Update query state when usersQuery changes
 	$effect(() => {
@@ -140,7 +144,7 @@
 	});
 
 	// Filter results client-side for search
-	const filteredEmployees = $derived(() => {
+	const filteredEmployees: Employee[] = $derived.by(() => {
 		if (!queryState.data) return [];
 		const employees = queryState.data?.users || [];
 		if (!searchFilter) return employees;
@@ -148,7 +152,7 @@
 	});
 
 	// Derived values for display
-	const employees = $derived(filteredEmployees);
+	const employees = filteredEmployees;
 	const totalCount = $derived(employees.length);
 	const totalPages = $derived(Math.ceil(totalCount / itemsPerPage));
 	const loading = $derived(!clientReady || queryState.fetching);
@@ -261,7 +265,11 @@
 				<Input
 					placeholder="Search employees..."
 					value={filters.search || ''}
-					oninput={(e) => handleFiltersChange({ ...filters, search: e.target.value })}
+					oninput={(e) =>
+						handleFiltersChange({
+							...filters,
+							search: (e.target as HTMLInputElement).value
+						})}
 					class="w-64 pl-8"
 				/>
 			</div>
@@ -368,7 +376,7 @@
 						</Table.Row>
 					</Table.Header>
 					<Table.Body>
-						{#each employees as employee: Employee (employee.id)}
+						{#each employees as employee (employee.id)}
 							<Table.Row>
 								<Table.Cell>
 									<input

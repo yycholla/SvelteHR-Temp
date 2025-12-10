@@ -379,9 +379,6 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		// Throw SvelteKit error with user-friendly message
-		error(500, {
-			message: 'Employee directory temporarily unavailable',
-			details: errorResponse.userMessage
-		});
+		error(500, 'Employee directory temporarily unavailable');
 	}
 };

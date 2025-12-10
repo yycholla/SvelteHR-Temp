@@ -33,7 +33,7 @@ const GET_DOCUMENTS_QUERY = gql`
 export const GET: RequestHandler = async ({ url, locals, cookies, fetch }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
-		error(401, { message: 'Authentication required' });
+		error(401, 'Authentication required');
 	}
 
 	try {
@@ -63,7 +63,7 @@ export const GET: RequestHandler = async ({ url, locals, cookies, fetch }) => {
 
 		if (result.error) {
 			console.error('GraphQL error:', result.error);
-			error(500, { message: 'Failed to fetch documents from GraphQL backend' });
+			error(500, 'Failed to fetch documents from GraphQL backend');
 		}
 
 		// Step 6: Apply client-side filtering based on RBAC
@@ -102,9 +102,9 @@ export const GET: RequestHandler = async ({ url, locals, cookies, fetch }) => {
 		console.error('Document listing error:', err);
 
 		if (err && typeof err === 'object' && 'issues' in err) {
-			error(400, { message: 'Invalid filter parameters', errors: err });
+			error(400, 'Invalid filter parameters');
 		}
 
-		error(500, { message: 'Internal server error during document listing' });
+		error(500, 'Internal server error during document listing');
 	}
 };

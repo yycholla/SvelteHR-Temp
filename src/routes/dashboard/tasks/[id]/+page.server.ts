@@ -3,7 +3,7 @@
 // Load single task with full relationships
 
 import type { PageServerLoad } from './$types';
-import { error } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {

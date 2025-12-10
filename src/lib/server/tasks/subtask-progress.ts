@@ -329,6 +329,7 @@ export async function getUserTaskStatistics(userId: string): Promise<ProgressSta
 
 		const data = await response.json();
 		const tasks = data?.data?.allTasks?.nodes || [];
+		const total = tasks.length;
 		const completed = tasks.filter((t: any) => t.status === 'DONE').length;
 		const inProgress = tasks.filter((t: any) => t.status === 'IN_PROGRESS').length;
 		const notStarted = tasks.filter((t: any) => t.status === 'TODO').length;
@@ -429,6 +430,7 @@ export async function getDepartmentTaskStatistics(
 
 		const tasksData = await tasksResponse.json();
 		const tasks = tasksData?.data?.allTasks?.nodes || [];
+		const total = tasks.length;
 		const completed = tasks.filter((t: any) => t.status === 'DONE').length;
 		const inProgress = tasks.filter((t: any) => t.status === 'IN_PROGRESS').length;
 		const notStarted = tasks.filter((t: any) => t.status === 'TODO').length;

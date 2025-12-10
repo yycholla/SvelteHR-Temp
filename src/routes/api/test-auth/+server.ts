@@ -5,8 +5,5 @@ import type { RequestHandler } from './$types';
 import { error, json } from '@sveltejs/kit';
 
 export const POST: RequestHandler = async () => {
-	error(410, {
-		message: 'This endpoint has been deprecated',
-		details: 'Session-based authentication is now used. Please use /api/auth/login instead.'
-	});
+	error(410, 'This endpoint has been deprecated. Session-based authentication is now used. Please use /api/auth/login instead.');
 };

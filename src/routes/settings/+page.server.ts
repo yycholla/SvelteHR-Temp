@@ -128,9 +128,6 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		// Throw SvelteKit error with user-friendly message
-		error(500, {
-			message: 'Settings temporarily unavailable',
-			details: errorResponse.userMessage
-		});
+		error(500, 'Settings temporarily unavailable');
 	}
 };

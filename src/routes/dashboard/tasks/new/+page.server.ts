@@ -39,7 +39,7 @@ export const load: PageServerLoad = async (event) => {
 	const parentTaskId = url.searchParams.get('parent') || null;
 
 	try {
-		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+		const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
 		// Get JWT token from cookies for Rust GraphQL server authentication
@@ -224,10 +224,7 @@ export const load: PageServerLoad = async (event) => {
 			error: errorResponse
 		});
 
-		error(500, {
-			message: 'Task creation temporarily unavailable',
-			details: errorResponse.userMessage
-		});
+		error(500, 'Task creation temporarily unavailable');
 	}
 };
 

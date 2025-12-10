@@ -235,9 +235,6 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		// Throw SvelteKit error with user-friendly message
-		error(500, {
-			message: 'Department details temporarily unavailable',
-			details: errorResponse.userMessage
-		});
+		error(500, 'Department details temporarily unavailable');
 	}
 };

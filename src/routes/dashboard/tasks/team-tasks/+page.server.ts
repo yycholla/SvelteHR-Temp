@@ -287,10 +287,7 @@ export const load: PageServerLoad = async (event) => {
 			error: errorResponse
 		});
 
-		error(500, {
-			message: 'Team tasks temporarily unavailable',
-			details: errorResponse.userMessage
-		});
+		error(500, 'Team tasks temporarily unavailable');
 	}
 };
 

@@ -133,10 +133,7 @@ export const GET: RequestHandler = async ({ url, request }) => {
 	} catch (err) {
 		console.error('Performance API error:', err);
 
-		error(500, {
-			message: 'Failed to retrieve performance data',
-			error: err instanceof Error ? err.message : 'Unknown error'
-		});
+		error(500, 'Failed to retrieve performance data');
 	}
 };
 
@@ -240,10 +237,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 			error(400, 'Invalid JSON in request body');
 		}
 
-		error(500, {
-			message: 'Failed to process performance action',
-			error: err instanceof Error ? err.message : 'Unknown error'
-		});
+		error(500, 'Failed to process performance action');
 	}
 };
 
@@ -273,10 +267,7 @@ export const PUT: RequestHandler = async ({ request }) => {
 	} catch (err) {
 		console.error('Performance config update error:', err);
 
-		error(500, {
-			message: 'Failed to update performance configuration',
-			error: err instanceof Error ? err.message : 'Unknown error'
-		});
+		error(500, 'Failed to update performance configuration');
 	}
 };
 
@@ -303,10 +294,7 @@ export const DELETE: RequestHandler = async ({ url }) => {
 	} catch (err) {
 		console.error('Performance metrics deletion error:', err);
 
-		error(500, {
-			message: 'Failed to delete performance metrics',
-			error: err instanceof Error ? err.message : 'Unknown error'
-		});
+		error(500, 'Failed to delete performance metrics');
 	}
 };
 

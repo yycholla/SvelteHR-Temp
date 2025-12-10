@@ -8,7 +8,7 @@
  * Sends reminders X minutes before task due date based on reminder_time field.
  */
 
-import cron from 'node-cron';
+import cron, { type ScheduledTask } from 'node-cron';
 import { getGraphQLEndpoint } from '$lib/server/api-url';
 import type { Task, TaskStatus } from '$lib/types/task';
 
@@ -30,7 +30,7 @@ export interface PendingTaskReminder {
  * Runs every 5 minutes to check for pending task reminders
  */
 export class TaskReminderScheduler {
-	private static cronTask: cron.ScheduledTask | null = null;
+	private static cronTask: ScheduledTask | null = null;
 	private static isRunning = false;
 	private static processedReminders = new Set<string>(); // Track sent reminders
 

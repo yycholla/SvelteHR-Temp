@@ -100,7 +100,7 @@ export const load: PageServerLoad = async (event) => {
 		const task = taskData?.data?.task || null;
 
 		if (!task) {
-			error(404, { message: 'Task not found' });
+			error(404, 'Task not found');
 		}
 
 		console.log('[Task Edit] Raw task data from GraphQL:', {
@@ -253,10 +253,7 @@ export const load: PageServerLoad = async (event) => {
 			error: errorResponse
 		});
 
-		error(500, {
-			message: 'Task edit temporarily unavailable',
-			details: errorResponse.userMessage
-		});
+		error(500, 'Task edit temporarily unavailable');
 	}
 };
 

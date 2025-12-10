@@ -195,6 +195,18 @@ export const GET_REPORTS_DASHBOARD = gql`
   }
 `;
 
+// Query: Get available report types
+export const GET_AVAILABLE_REPORTS = gql`
+  query GetAvailableReports {
+    availableReports {
+      reportType
+      name
+      description
+      category
+    }
+  }
+`;
+
 // Query: Search reports with advanced filtering
 export const SEARCH_REPORTS = gql`
   query SearchReports(
