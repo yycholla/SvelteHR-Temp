@@ -245,7 +245,8 @@ export const ReviewTypeMetadataSchema = z.object({
 	value: ReviewTypeSchema,
 	label: z.string(),
 	description: z.string(),
-	displayOrder: z.number().int()
+	displayOrder: z.number().int(),
+	icon: z.string().optional()
 });
 
 export type ReviewTypeMetadata = z.infer<typeof ReviewTypeMetadataSchema>;
@@ -258,61 +259,71 @@ export const reviewTypes: ReviewTypeMetadata[] = [
 		value: 'ANNUAL_REVIEW',
 		label: 'Annual Review',
 		description: 'Comprehensive yearly performance evaluation',
-		displayOrder: 1
+		displayOrder: 1,
+		icon: '📅'
 	},
 	{
 		value: 'MID_YEAR_REVIEW',
 		label: 'Mid-Year Review',
 		description: 'Six-month progress check and goal adjustment',
-		displayOrder: 2
+		displayOrder: 2,
+		icon: '📊'
 	},
 	{
 		value: 'QUARTERLY_REVIEW',
 		label: 'Quarterly Review',
 		description: 'Three-month performance checkpoint',
-		displayOrder: 3
+		displayOrder: 3,
+		icon: '📈'
 	},
 	{
 		value: 'PROBATIONARY_REVIEW',
 		label: 'Probationary Review',
 		description: 'Evaluation during probation period',
-		displayOrder: 4
+		displayOrder: 4,
+		icon: '🔍'
 	},
 	{
 		value: 'NINETY_DAY_REVIEW',
 		label: '90-Day Review',
 		description: 'New hire 90-day evaluation',
-		displayOrder: 5
+		displayOrder: 5,
+		icon: '🎯'
 	},
 	{
 		value: 'PROJECT_BASED_REVIEW',
 		label: 'Project-Based Review',
 		description: 'Performance review tied to specific project completion',
-		displayOrder: 6
+		displayOrder: 6,
+		icon: '📦'
 	},
 	{
 		value: 'PROMOTION_REVIEW',
 		label: 'Promotion Review',
 		description: 'Evaluation for role advancement consideration',
-		displayOrder: 7
+		displayOrder: 7,
+		icon: '⬆️'
 	},
 	{
 		value: 'PERFORMANCE_IMPROVEMENT_PLAN',
 		label: 'Performance Improvement Plan (PIP)',
 		description: 'Structured plan to address performance concerns',
-		displayOrder: 8
+		displayOrder: 8,
+		icon: '⚠️'
 	},
 	{
 		value: 'SELF_REVIEW',
 		label: 'Self Review',
 		description: 'Employee self-assessment',
-		displayOrder: 9
+		displayOrder: 9,
+		icon: '🪞'
 	},
 	{
 		value: 'EXIT_REVIEW',
 		label: 'Exit Review',
 		description: 'Final review before departure',
-		displayOrder: 10
+		displayOrder: 10,
+		icon: '👋'
 	}
 ];
 

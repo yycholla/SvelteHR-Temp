@@ -35,21 +35,23 @@
 					value: m.value,
 					label: m.label,
 					description: m.description,
-					displayOrder: m.displayOrder
+					displayOrder: m.displayOrder,
+					icon: m.icon
 				}))
 			: reviewTypes.map((t) => ({
 					value: t.value,
 					label: t.label,
 					description: t.description,
-					displayOrder: t.displayOrder
+					displayOrder: t.displayOrder,
+					icon: t.icon
 				}))
 	);
 
-	// Selected option
-	const selectedOption = $derived(typeOptions.find((opt) => opt.value === value));
+	// Current option metadata for description display
+	const currentMetadata = $derived(typeOptions.find((opt) => opt.value === value));
 
-	// Handle selection change
-	function handleValueChange(newValue: string | undefined) {
+	// Handle selection change from Select component
+	function handleValueChange(newValue: string): void {
 		if (newValue) {
 			value = newValue as ReviewType;
 		}
@@ -66,16 +68,9 @@
 		</Label>
 	{/if}
 
-	<Select.Root {disabled} onSelectedChange={(v) => handleValueChange(v?.value)}>
+	<Select.Root {disabled} type="single" value={value} onValueChange={handleValueChange}>
 		<Select.Trigger id="review-type-select" class="w-full {error ? 'border-destructive' : ''}">
-			<Select.Value placeholder="Select a review type">
-				{#if selectedOption}
-					<div class="flex items-center gap-2">
-						<span class="text-2xl">{reviewTypes.find((t) => t.value === value)?.icon || '📋'}</span>
-						<span>{selectedOption.label}</span>
-					</div>
-				{/if}
-			</Select.Value>
+			<Select.Value placeholder="Select a review type" />
 		</Select.Trigger>
 
 		<Select.Content>
@@ -85,7 +80,7 @@
 						<div class="flex flex-col gap-1 py-1">
 							<div class="flex items-center gap-2">
 								<span class="text-xl">
-									{reviewTypes.find((t) => t.value === option.value)?.icon || '📋'}
+									{option.icon || '📋'}
 								</span>
 								<span class="font-medium">{option.label}</span>
 							</div>
@@ -101,9 +96,9 @@
 		<p class="text-sm text-destructive mt-1">{error}</p>
 	{/if}
 
-	{#if selectedOption}
+	{#if currentMetadata}
 		<p class="text-sm text-muted-foreground mt-2">
-			{selectedOption.description}
+			{currentMetadata.description}
 		</p>
 	{/if}
 </div>
