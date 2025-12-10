@@ -38,11 +38,11 @@
 
 	// Determine user permissions for assignee selection
 	const canAssignToAnyone = $derived(
-		data.user.role === 'hr_admin' ||
-			data.user.role === 'system_admin' ||
-			data.user.role === 'super_admin'
+		data.user?.role === 'hr_admin' ||
+			data.user?.role === 'system_admin' ||
+			data.user?.role === 'super_admin'
 	);
-	const canAssignToTeam = $derived(data.user.role === 'manager');
+	const canAssignToTeam = $derived(data.user?.role === 'manager');
 	const canAssign = $derived(canAssignToAnyone || canAssignToTeam);
 
 	// Filter state from URL params
@@ -272,7 +272,7 @@
 		{:else}
 			<TaskList
 				tasks={filteredTasks}
-				userId={data.user.id}
+				userId={data.user?.id || ''}
 				onTaskClick={handleTaskClick}
 				showProgress={true}
 				compact={false}

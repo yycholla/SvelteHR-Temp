@@ -16,6 +16,21 @@
 	} from '@lucide/svelte';
 	import { page } from '$app/stores';
 	import { auth } from '$lib/stores/auth.svelte';
+	import type { ComponentType } from 'svelte';
+
+	interface NavigationItem {
+		id: string;
+		label: string;
+		href: string;
+		icon: ComponentType;
+		active: boolean;
+		children?: Array<{
+			id: string;
+			label: string;
+			href: string;
+			active?: boolean;
+		}>;
+	}
 
 	const { children } = $props();
 
@@ -174,7 +189,7 @@
 					<Sidebar.Group>
 						<Sidebar.GroupLabel>Navigation</Sidebar.GroupLabel>
 						<Sidebar.Menu>
-							{#each visibleNavigation as item}
+							{#each visibleNavigation as item: NavigationItem}
 								{@const ItemIcon = item.icon}
 								<Sidebar.MenuItem>
 									{#if item.children && item.children.length > 0}

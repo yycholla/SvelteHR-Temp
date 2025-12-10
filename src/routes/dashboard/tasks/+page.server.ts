@@ -284,7 +284,6 @@ export const load: PageServerLoad = async (event) => {
 
 		// Return server-side loaded data
 		return {
-			user: userPermissions.user,
 			userSession: userSession.toJSON(),
 			tasks,
 			totalTasks: tasks.length,
@@ -303,6 +302,7 @@ export const load: PageServerLoad = async (event) => {
 				page,
 				limit
 			},
+			// RBAC: Standardized permission checks (includes user property)
 			...userPermissions,
 			loadedAt: new Date().toISOString()
 		};
@@ -328,7 +328,6 @@ export const load: PageServerLoad = async (event) => {
 
 		// Return safe fallback data instead of crashing
 		return {
-			user: locals.user || { id: '', role: 'guest' },
 			userSession: userSession.toJSON(),
 			tasks: [],
 			totalTasks: 0,
@@ -354,7 +353,7 @@ export const load: PageServerLoad = async (event) => {
 				page,
 				limit
 			},
-			// Default permissions if loading failed
+			// Default permissions if loading failed (includes user property)
 			...getUserPermissions(locals),
 			loadedAt: new Date().toISOString(),
 			error: errorResponse.userMessage

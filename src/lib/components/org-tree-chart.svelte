@@ -85,8 +85,8 @@
 			([a], [b]) => parseInt(b) - parseInt(a)
 		);
 
-		sortedRoleGroups.forEach(([roleLevel, roleEmployees]) => {
-			roleEmployees.forEach((emp) => {
+		sortedRoleGroups.forEach(([roleLevel, roleEmployees]: [string, any[]]) => {
+			roleEmployees.forEach((emp: any) => {
 				const empNode: TreeNode = {
 					id: emp.id,
 					name: emp.displayName || emp.email,

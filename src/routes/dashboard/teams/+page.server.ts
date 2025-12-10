@@ -255,7 +255,6 @@ export const load: PageServerLoad = async (event) => {
 		const userPermissions = getUserPermissions(locals);
 
 		return {
-			user: userPermissions.user,
 			userSession: userSession.toJSON(), // Convert UserSession to serializable object
 			teams: departments.map((dept: any) => {
 				const manager = dept.managerId ? managersMap.get(dept.managerId) : null;
@@ -300,10 +299,9 @@ export const load: PageServerLoad = async (event) => {
 			},
 			// Team/Department context for managers
 			managedDepartmentId,
-			isAdmin,
 			canViewAllTeams: isAdmin, // Only admins can view all teams
 			canViewManagedTeam: !!managedDepartmentId, // Managers can view their department
-			// RBAC: Standardized permission checks
+			// RBAC: Standardized permission checks (includes user and isAdmin properties)
 			...userPermissions,
 			loadedAt: new Date().toISOString()
 		};

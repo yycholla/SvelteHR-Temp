@@ -20,6 +20,7 @@
 	import Badge from '$lib/components/ui/badge/badge.svelte';
 	import { isTestModeActive, permissionTestActions } from '$lib/stores/permission-test.svelte';
 	import { Beaker } from '@lucide/svelte';
+	import type { Permission } from '$lib/types';
 
 	const { data } = $props();
 
@@ -181,7 +182,7 @@
 	}
 
 	function userHasRole(user: any, roleId: string): boolean {
-		return user.roles?.some((r: any) => r.id === roleId) || false;
+		return user.role === roleId || false;
 	}
 
 	function getPermissionBadgeVariant(action: string): 'default' | 'secondary' | 'destructive' {
@@ -396,12 +397,10 @@
 							<Table.TableCell>{user.department?.name || '—'}</Table.TableCell>
 							<Table.TableCell>
 								<div class="flex flex-wrap gap-1">
-									{#if user.roles && user.roles.length > 0}
-										{#each user.roles as role}
-											<Badge variant="secondary">{role.name}</Badge>
-										{/each}
+									{#if user.role}
+										<Badge variant="secondary">{user.role}</Badge>
 									{:else}
-										<span class="text-sm text-muted-foreground">No roles</span>
+										<span class="text-sm text-muted-foreground">No role</span>
 									{/if}
 								</div>
 							</Table.TableCell>
@@ -601,7 +600,7 @@
 					<div class="rounded-md border p-3">
 						<h4 class="mb-2 font-medium capitalize text-foreground">{resource}</h4>
 						<div class="space-y-2">
-							{#each permissions as permission}
+							{#each permissions as permission: Permission}
 								<label class="flex items-center gap-2 cursor-pointer hover:bg-accent rounded p-2">
 									<input
 										type="checkbox"

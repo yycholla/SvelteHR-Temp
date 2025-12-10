@@ -23,6 +23,10 @@ export type AssignmentStatus = 'active' | 'revoked';
 
 export type DocumentRole = 'Admin' | 'HR' | 'Manager' | 'Employee';
 
+export type SortField = 'uploaded_at' | 'filename' | 'category' | 'expiration_date';
+
+export type SortOrder = 'asc' | 'desc';
+
 // Main document entity
 export interface Document {
 	id: string; // UUID

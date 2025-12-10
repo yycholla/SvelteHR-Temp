@@ -214,13 +214,13 @@ export const load: PageServerLoad = async (event) => {
 
 		// Prepare return data
 		const returnData = {
-			user: userPermissions.user,
 			userSession: userSession.toJSON(),
 			task: flattenedTask, // Use flattened structure for form compatibility
 			assignees: assigneesData?.data?.users || [],
 			departments: departmentsData?.data?.departments || [],
 			taskTypes: taskTypesData?.data?.taskTypes || [],
 			parentTasks: potentialParents,
+			// RBAC: Standardized permission checks (includes user property)
 			...userPermissions,
 			loadedAt: new Date().toISOString()
 		};

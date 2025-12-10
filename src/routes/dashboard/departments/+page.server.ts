@@ -186,7 +186,6 @@ export const load: PageServerLoad = async (event) => {
 
 		// Return server-side loaded data
 		return {
-			user: userPermissions.user,
 			userSession: userSession.toJSON(), // Convert UserSession to serializable object
 			departments,
 			users: users.filter((u: any) => u.isActive), // Return only active users for dropdowns
@@ -199,7 +198,7 @@ export const load: PageServerLoad = async (event) => {
 				page,
 				limit
 			},
-			// RBAC: Standardized permission checks
+			// RBAC: Standardized permission checks (includes user property)
 			...userPermissions,
 			loadedAt: new Date().toISOString()
 		};

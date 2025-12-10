@@ -255,7 +255,6 @@ export const load: PageServerLoad = async (event) => {
 		const taskTypesData = taskTypesResponse;
 
 		return {
-			user: userPermissions.user,
 			userSession: userSession.toJSON(),
 			tasks,
 			totalTasks: tasks.length,
@@ -268,6 +267,7 @@ export const load: PageServerLoad = async (event) => {
 				priorityFilter,
 				assigneeFilter
 			},
+			// RBAC: Standardized permission checks (includes user property)
 			...userPermissions,
 			loadedAt: new Date().toISOString()
 		};

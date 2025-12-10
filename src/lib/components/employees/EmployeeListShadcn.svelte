@@ -368,7 +368,7 @@
 						</Table.Row>
 					</Table.Header>
 					<Table.Body>
-						{#each employees as employee (employee.id)}
+						{#each employees as employee: Employee (employee.id)}
 							<Table.Row>
 								<Table.Cell>
 									<input

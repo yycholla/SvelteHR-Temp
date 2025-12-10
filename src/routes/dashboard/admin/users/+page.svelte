@@ -62,7 +62,7 @@
 			email: user.email,
 			displayName: user.displayName || '',
 			password: '',
-			roleId: user.roles?.[0]?.name || '',
+			roleId: user.role || '',
 			departmentId: user.department?.id || '',
 			isActive: user.isActive
 		};
@@ -378,7 +378,7 @@
 						<td class="px-4 py-3">{user.email}</td>
 						<td class="px-4 py-3">{user.displayName || '—'}</td>
 						<td class="px-4 py-3">
-							{user.roles?.[0]?.name || 'employee'}
+							{user.role || 'employee'}
 						</td>
 						<td class="px-4 py-3">{user.department?.name || '—'}</td>
 						<td class="px-4 py-3">

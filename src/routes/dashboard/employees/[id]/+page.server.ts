@@ -493,11 +493,13 @@ export const load: PageServerLoad = async (event) => {
 				canViewVehicles,
 				canViewCompensation,
 				canCreateReviews,
-				canViewDocuments, // Management and above only
 				canAssignDocuments: isAdmin,
 				isEmployeeManager,
 				isViewingSelf,
-				...userPermissions
+				// Spread userPermissions last to include all RBAC permissions (includes canViewDocuments)
+				...userPermissions,
+				// Override canViewDocuments with employee-specific logic (management and above only)
+				canViewDocuments
 			},
 			loadedAt: new Date().toISOString()
 		};

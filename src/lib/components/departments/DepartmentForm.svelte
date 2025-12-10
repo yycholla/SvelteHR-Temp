@@ -54,7 +54,6 @@
 			value: user.id,
 			label:
 				user.display_name ||
-				user.displayName ||
 				`${user.firstName || ''} ${user.lastName || ''}`.trim()
 		}))
 	]);

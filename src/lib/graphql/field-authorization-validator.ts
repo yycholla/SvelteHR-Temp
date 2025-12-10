@@ -254,7 +254,7 @@ export class FieldAuthorizationValidator {
 					fieldResults.push(accessResult);
 
 					// Track required permissions
-					accessResult.missingPermissions.forEach((permission) =>
+					accessResult.missingPermissions.forEach((permission: string) =>
 						requiredPermissions.add(permission)
 					);
 
@@ -643,7 +643,7 @@ export class FieldAuthorizationValidator {
 		const permissionCounts = new Map<string, number>();
 
 		fieldResults.forEach((result) => {
-			result.missingPermissions.forEach((permission) => {
+			result.missingPermissions.forEach((permission: string) => {
 				permissionCounts.set(permission, (permissionCounts.get(permission) || 0) + 1);
 			});
 		});

@@ -175,18 +175,16 @@
 						</div>
 					</div>
 
-					<!-- Role Badges -->
-					{#if auth.user.roles && auth.user.roles.length > 0}
+					<!-- Role Badge -->
+					{#if auth.user.role}
 						<div class="mt-2 flex flex-wrap gap-1">
-							{#each auth.user.roles as role}
-								<span
-									class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {getRoleBadgeColor(
-										role
-									)}"
-								>
-									{role.replace('_', ' ').toUpperCase()}
-								</span>
-							{/each}
+							<span
+								class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {getRoleBadgeColor(
+									auth.user.role
+								)}"
+							>
+								{auth.user.role.replace('_', ' ').toUpperCase()}
+							</span>
 						</div>
 					{/if}
 				</div>
@@ -216,7 +214,7 @@
 					</button>
 
 					<!-- HR Section (if has access) -->
-					{#if hasHRAccess(auth.user.roles)}
+					{#if auth.user.role && hasHRAccess([auth.user.role])}
 						<div class="mt-1 border-t border-gray-100 pt-1">
 							<button
 								type="button"
@@ -231,7 +229,7 @@
 					{/if}
 
 					<!-- Admin Section (if has access) -->
-					{#if hasAdminAccess(auth.user.roles)}
+					{#if auth.user.role && hasAdminAccess([auth.user.role])}
 						<div class="mt-1 border-t border-gray-100 pt-1">
 							<button
 								type="button"

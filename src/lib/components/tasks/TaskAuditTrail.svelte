@@ -224,7 +224,7 @@
 										</Badge>
 										{#if entry.user}
 											<span class="text-sm text-muted-foreground">by</span>
-											<span class="text-sm font-medium">{entry.user.displayName}</span>
+											<span class="text-sm font-medium">{entry.user.display_name}</span>
 										{/if}
 									</div>
 									<div class="mt-1 flex items-center gap-2 text-xs text-muted-foreground">

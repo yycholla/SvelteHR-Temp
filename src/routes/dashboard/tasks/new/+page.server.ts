@@ -196,7 +196,6 @@ export const load: PageServerLoad = async (event) => {
 
 		// Return server-side loaded data
 		return {
-			user: userPermissions.user,
 			userSession: userSession.toJSON(),
 			assignees,
 			departments,
@@ -204,6 +203,7 @@ export const load: PageServerLoad = async (event) => {
 			parentTasks,
 			parentTask,
 			parentTaskId,
+			// RBAC: Standardized permission checks (includes user property)
 			...userPermissions,
 			loadedAt: new Date().toISOString()
 		};

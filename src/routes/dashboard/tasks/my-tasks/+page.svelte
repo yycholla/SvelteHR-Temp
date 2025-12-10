@@ -455,7 +455,7 @@
 				<div class="flex-1 overflow-auto p-2">
 					<TaskList
 						tasks={filteredTasks}
-						userId={data.user.id}
+						userId={data.user?.id || ''}
 						showFilters={false}
 						bind:viewMode
 						bind:sortBy

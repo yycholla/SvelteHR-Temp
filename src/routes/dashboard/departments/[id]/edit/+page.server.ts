@@ -141,7 +141,7 @@ export const load: PageServerLoad = async (event) => {
 			.map((user: any) => ({
 				id: user.id,
 				displayName: user.displayName || 'Unknown',
-				role: user.roles?.[0]?.name || 'Employee' // Get first role or default to Employee
+				role: user.role || 'Employee' // Get role or default to Employee
 			}));
 
 		// Get standardized user permissions

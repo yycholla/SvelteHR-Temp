@@ -153,7 +153,7 @@
 		useSensor(KeyboardSensor, {})
 	);
 
-	const dataIds: UniqueIdentifier[] = $derived(data.map((item) => item.id));
+	const dataIds: UniqueIdentifier[] = $derived(data.map((item: Schema) => item.id));
 
 	const table = createSvelteTable({
 		get data() {
@@ -266,19 +266,19 @@
 				{viewLabel}
 			</Select.Trigger>
 			<Select.Content>
-				{#each views as view (view.id)}
-					<Select.Item value={view.id}>{view.label}</Select.Item>
+				{#each views as viewItem (viewItem.id)}
+					<Select.Item value={viewItem.id}>{viewItem.label}</Select.Item>
 				{/each}
 			</Select.Content>
 		</Select.Root>
 		<Tabs.List
 			class="**:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:px-1 @4xl/main:flex hidden"
 		>
-			{#each views as view (view.id)}
-				<Tabs.Trigger value={view.id}>
-					{view.label}
-					{#if view.badge > 0}
-						<Badge variant="secondary">{view.badge}</Badge>
+			{#each views as viewItem (viewItem.id)}
+				<Tabs.Trigger value={viewItem.id}>
+					{viewItem.label}
+					{#if viewItem.badge > 0}
+						<Badge variant="secondary">{viewItem.badge}</Badge>
 					{/if}
 				</Tabs.Trigger>
 			{/each}

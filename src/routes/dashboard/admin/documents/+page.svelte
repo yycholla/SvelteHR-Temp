@@ -68,7 +68,6 @@
 		if (typeof window !== 'undefined') {
 			console.log('[Documents] Checking permissions:', {
 				role: data.user?.role,
-				roles: data.user?.roles,
 				permissions: data.userPermissions
 			});
 		}
@@ -76,9 +75,8 @@
 		// Check permissions
 		if (data.userPermissions?.includes('documents:write')) return true;
 
-		// Check roles (singular and plural, case-insensitive)
+		// Check role (case-insensitive)
 		const role = data.user?.role?.toLowerCase();
-		const roles = (data.user?.roles || []).map((r: string) => r.toLowerCase());
 
 		const adminRoles = ['admin', 'super_admin', 'system_admin'];
 

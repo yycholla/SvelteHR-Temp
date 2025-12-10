@@ -93,12 +93,11 @@ export const load: PageServerLoad = async (event) => {
 
 		// Return server-side loaded data with GraphQL-fetched settings
 		return {
-			user: userPermissions.user,
 			userSession: userSession.toJSON(), // Convert UserSession to serializable object
 			userSettings,
 			activityLog,
 			activeTab,
-			// RBAC: Standardized permission checks with profile-specific permissions
+			// RBAC: Standardized permission checks with profile-specific permissions (includes user property)
 			...userPermissions,
 			canUpdateProfile: true, // All users can update their own profile
 			canChangePassword: true, // All users can change their password

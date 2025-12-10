@@ -74,7 +74,7 @@
 
 	// Update bindable props when metadata or errors change
 	$effect(() => {
-		hasRequiredFields = metadata.category !== '' && metadata.sensitivityLevel !== '';
+		hasRequiredFields = !!metadata.category && !!metadata.sensitivityLevel;
 		metadataValid = Object.keys(errors).length === 0 && hasRequiredFields;
 		console.log(
 			'[DocumentMetadataForm] hasRequiredFields updated:',
@@ -122,7 +122,7 @@
 	];
 
 	// Derived validation state
-	const isValid = $derived(Object.keys(errors).length === 0 && metadata.category !== '');
+	const isValid = $derived(Object.keys(errors).length === 0 && !!metadata.category);
 
 	// Validate field
 	function validateField(field: keyof DocumentMetadata) {
@@ -229,7 +229,7 @@
 	export function getMetadataState() {
 		return {
 			isValid,
-			hasRequiredFields: metadata.category !== '' && metadata.sensitivityLevel !== ''
+			hasRequiredFields: !!metadata.category && !!metadata.sensitivityLevel
 		};
 	}
 </script>

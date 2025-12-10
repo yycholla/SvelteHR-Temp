@@ -247,7 +247,7 @@
 							</Label>
 							<div class="flex items-center gap-2">
 								<Calendar class="h-4 w-4 text-muted-foreground" />
-								<p class="text-sm">{formatDate(employee.jobInfo?.hireDate)}</p>
+								<p class="text-sm">{formatDate(employee.job_info?.hireDate)}</p>
 							</div>
 						</div>
 
@@ -255,7 +255,7 @@
 							<Label class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
 								Employment Type
 							</Label>
-							<p class="text-sm">{employee.jobInfo?.employmentType || 'N/A'}</p>
+							<p class="text-sm">{employee.job_info?.employmentType || 'N/A'}</p>
 						</div>
 
 						<div class="space-y-2">
@@ -264,7 +264,7 @@
 							</Label>
 							<div class="flex items-center gap-2">
 								<UserIcon class="h-4 w-4 text-muted-foreground" />
-								<p class="text-sm">{employee.manager?.displayName || 'No manager assigned'}</p>
+								<p class="text-sm">{employee.manager?.display_name || 'No manager assigned'}</p>
 							</div>
 						</div>
 
@@ -274,11 +274,11 @@
 							</Label>
 							<div class="flex items-center gap-2">
 								<MapPin class="h-4 w-4 text-muted-foreground" />
-								<p class="text-sm">{employee.jobInfo?.isRemote ? 'Remote' : 'On-site'}</p>
+								<p class="text-sm">{employee.job_info?.isRemote ? 'Remote' : 'On-site'}</p>
 							</div>
 						</div>
 
-						{#if employee.jobInfo?.salary && (isOwnProfile || auth.hasPermission('user:view_salary'))}
+						{#if employee.job_info?.salary && (isOwnProfile || auth.hasPermission('user:view_salary'))}
 							<div class="space-y-2">
 								<Label class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
 									Salary
@@ -286,9 +286,9 @@
 								<div class="flex items-center gap-2">
 									<DollarSign class="h-4 w-4 text-muted-foreground" />
 									<p class="text-sm">
-										{formatCurrency(employee.jobInfo.salary)}
+										{formatCurrency(employee.job_info.salary)}
 										<span class="ml-1 text-xs text-muted-foreground">
-											{employee.jobInfo.payType?.toLowerCase() || 'annually'}
+											{employee.job_info.payType?.toLowerCase() || 'annually'}
 										</span>
 									</p>
 								</div>
@@ -315,7 +315,8 @@
 							<p class="text-sm">{employee.firstName} {employee.lastName}</p>
 						</div>
 
-						{#if employee.address}
+						{#if employee.addresses && employee.addresses.length > 0}
+							{@const address = employee.addresses[0]}
 							<div class="space-y-2">
 								<Label class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
 									Address
@@ -323,14 +324,14 @@
 								<div class="flex items-start gap-2">
 									<MapPin class="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
 									<div class="text-sm">
-										{#if employee.address.street}
-											<div>{employee.address.street}</div>
+										{#if address.address_line_1}
+											<div>{address.address_line_1}</div>
 										{/if}
 										<div>
-											{employee.address.city || ''}{employee.address.city && employee.address.state
+											{address.city || ''}{address.city && address.state_province
 												? ', '
-												: ''}{employee.address.state || ''}
-											{employee.address.zipCode || ''}
+												: ''}{address.state_province || ''}
+											{address.postal_code || ''}
 										</div>
 									</div>
 								</div>
@@ -341,7 +342,7 @@
 			</Card.Root>
 
 			<!-- Emergency Contact -->
-			{#if employee.emergencyContact}
+			{#if employee.emergency_contact}
 				<Card.Root>
 					<Card.Header>
 						<Card.Title class="flex items-center gap-2">
@@ -355,21 +356,21 @@
 								<Label class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
 									Name
 								</Label>
-								<p class="text-sm">{employee.emergencyContact.name || 'N/A'}</p>
+								<p class="text-sm">{employee.emergency_contact.name || 'N/A'}</p>
 							</div>
 
 							<div class="space-y-2">
 								<Label class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
 									Phone
 								</Label>
-								<p class="text-sm">{formatPhoneNumber(employee.emergencyContact.phone)}</p>
+								<p class="text-sm">{formatPhoneNumber(employee.emergency_contact.phone)}</p>
 							</div>
 
 							<div class="space-y-2 sm:col-span-2">
 								<Label class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
 									Relationship
 								</Label>
-								<p class="text-sm">{employee.emergencyContact.relationship || 'N/A'}</p>
+								<p class="text-sm">{employee.emergency_contact.relationship || 'N/A'}</p>
 							</div>
 						</div>
 					</Card.Content>
@@ -390,12 +391,10 @@
 							Assigned Roles
 						</Label>
 						<div class="flex flex-wrap gap-2">
-							{#if employee.roles && employee.roles.length > 0}
-								{#each employee.roles as role}
-									<Badge variant="outline">
-										{role.displayName || role.name}
-									</Badge>
-								{/each}
+							{#if employee.role}
+								<Badge variant="outline">
+									{employee.role}
+								</Badge>
 							{:else}
 								<p class="text-sm text-muted-foreground">No roles assigned</p>
 							{/if}

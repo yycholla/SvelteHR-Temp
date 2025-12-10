@@ -86,7 +86,7 @@ export function createRBACManager(
 	const uniquePermissions = new Set<string>();
 
 	activeRoles.forEach((assignment) => {
-		assignment.role?.permissions?.forEach((permission) => {
+		assignment.role?.permissions?.forEach((permission: Permission) => {
 			if (permission.isActive && !uniquePermissions.has(permission.id)) {
 				uniquePermissions.add(permission.id);
 				allPermissions.push(permission);

@@ -158,7 +158,7 @@
 		{#if task.assignee}
 			<Avatar.Root class="h-6 w-6 border">
 				<Avatar.Fallback class="text-[10px] bg-primary/10 text-primary">
-					{task.assignee.displayName?.substring(0, 2).toUpperCase() || 'UN'}
+					{task.assignee.display_name?.substring(0, 2).toUpperCase() || 'UN'}
 				</Avatar.Fallback>
 			</Avatar.Root>
 		{/if}

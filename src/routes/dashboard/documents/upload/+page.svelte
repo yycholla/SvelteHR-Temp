@@ -41,7 +41,7 @@
 	// Derive metadata validation directly from metadata object
 	// Note: filename is set automatically when file is selected, so we only check the user-entered fields
 	const hasRequiredMetadata = $derived(
-		metadata.category !== '' && metadata.sensitivityLevel !== ''
+		!!metadata.category && !!metadata.sensitivityLevel
 	);
 
 	// Derived state for upload button

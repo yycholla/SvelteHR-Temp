@@ -22,7 +22,7 @@
 				const headers = Object.keys(dataToExport[0]);
 				const csvContent = [
 					headers.join(','),
-					...dataToExport.map((row) => headers.map((header) => row[header]).join(','))
+					...dataToExport.map((row: any) => headers.map((header: string) => row[header]).join(','))
 				].join('\n');
 
 				const blob = new Blob([csvContent], { type: 'text/csv' });

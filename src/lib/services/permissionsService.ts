@@ -113,7 +113,7 @@ export class PermissionsService {
 		const permissions = this.rbacManager.permissions;
 		const grouped: Record<string, Permission[]> = {};
 
-		permissions.forEach((permission) => {
+		permissions.forEach((permission: Permission) => {
 			const resource = permission.resource || 'general';
 			if (!grouped[resource]) {
 				grouped[resource] = [];

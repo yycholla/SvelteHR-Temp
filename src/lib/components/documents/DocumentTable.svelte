@@ -10,7 +10,7 @@
 	import { ArrowUpDown, Search } from '@lucide/svelte';
 	import type { Document } from '$lib/types/document';
 	import type {
-		DocumentCategory,
+		DocumentCategoryType,
 		FileType,
 		SensitivityLevel,
 		SortField,
@@ -24,7 +24,7 @@
 		pageSize?: number;
 		sortBy?: SortField;
 		sortOrder?: SortOrder;
-		filterCategory?: DocumentCategory | null;
+		filterCategory?: DocumentCategoryType | null;
 		filterSensitivity?: SensitivityLevel | null;
 		searchQuery?: string;
 		canPreview?: (doc: Document) => boolean;
@@ -32,7 +32,7 @@
 		onPageChange?: (page: number) => void;
 		onSortChange?: (field: SortField, order: SortOrder) => void;
 		onFilterChange?: (filters: {
-			category?: DocumentCategory | null;
+			category?: DocumentCategoryType | null;
 			sensitivity?: SensitivityLevel | null;
 			search?: string;
 		}) => void;
@@ -71,7 +71,7 @@
 	const endIndex = $derived(Math.min(currentPage * pageSize, totalCount));
 
 	// Categories and sensitivity levels for filters
-	const categories: DocumentCategory[] = [
+	const categories: DocumentCategoryType[] = [
 		'Contract',
 		'Policy',
 		'Report',
@@ -92,7 +92,7 @@
 	// Handle filter changes
 	function applyFilters() {
 		onFilterChange({
-			category: selectedCategory === 'all' ? null : (selectedCategory as DocumentCategory),
+			category: selectedCategory === 'all' ? null : (selectedCategory as DocumentCategoryType),
 			sensitivity: selectedSensitivity === 'all' ? null : (selectedSensitivity as SensitivityLevel),
 			search
 		});

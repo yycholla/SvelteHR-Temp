@@ -170,7 +170,7 @@
 	const userOptions = $derived(
 		availableUsers.map((user) => ({
 			value: `user:${user.id}`,
-			label: user.displayName || user.email,
+			label: user.display_name || user.email,
 			type: 'user' as const
 		}))
 	);

@@ -92,7 +92,7 @@
 
 	function getManagerInfo(department: Department): string {
 		if (!department.manager) return 'No manager assigned';
-		return department.manager.display_name || department.manager.displayName || 'Unknown';
+		return department.manager.display_name || 'Unknown';
 	}
 
 	function getDepartmentStats(department: Department): string {

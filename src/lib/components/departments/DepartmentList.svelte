@@ -72,7 +72,7 @@
 			label: 'Manager',
 			sortable: true,
 			type: 'text',
-			format: (value) => value?.display_name || value?.displayName || 'N/A'
+			format: (value) => value?.display_name || 'N/A'
 		},
 		{
 			key: 'employeeCount',
@@ -177,7 +177,7 @@
 					const csvData = selectedDepartments.map((dept) => ({
 						Name: dept.name,
 						Code: dept.code,
-						Manager: dept.manager?.display_name || dept.manager?.displayName || 'N/A',
+						Manager: dept.manager?.display_name || 'N/A',
 						'Employee Count': dept.employeeCount || 0,
 						'Budget Limit': dept.budgetLimit || 'N/A',
 						Status: dept.isActive ? 'Active' : 'Inactive'

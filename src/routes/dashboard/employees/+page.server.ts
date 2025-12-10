@@ -334,14 +334,13 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		return {
-			user: userPermissions.user,
 			userSession: userSession.toJSON(), // Convert UserSession to serializable object
 			employees,
 			totalEmployees, // Total count after all filters, before pagination
 			totalActiveEmployees, // Total active count from ALL employees
 			totalInactiveEmployees, // Total inactive count from ALL employees
 			departments: departmentsData?.data?.departments || [],
-			roles: validRoles, // Use filtered roles with valid names only
+			validRoles, // Use filtered roles with valid names only (renamed to avoid conflict with userPermissions.roles)
 			employeeAutocompleteOptions, // All employee names for search autocomplete
 			filters: {
 				searchTerm,
@@ -351,7 +350,7 @@ export const load: PageServerLoad = async (event) => {
 				page,
 				limit
 			},
-			// RBAC: Standardized permission checks
+			// RBAC: Standardized permission checks (includes user and roles properties)
 			...userPermissions,
 			canCreateReviews,
 			loadedAt: new Date().toISOString()
