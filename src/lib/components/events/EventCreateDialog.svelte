@@ -19,7 +19,8 @@
 	import { generateRRule, validate5YearLimit } from '$lib/utils/rrule';
 	import type { RecurrencePattern } from '$lib/utils/rrule';
 
-	interface Props {
+	// Export type definitions for test imports
+	export interface EventCreateDialogProps {
 		isOpen: boolean;
 		defaultStartTime?: string;
 		defaultEndTime?: string;
@@ -45,7 +46,7 @@
 		employees = [],
 		onClose,
 		onSuccess
-	}: Props = $props();
+	}: EventCreateDialogProps = $props();
 
 	// Form state
 	let startTime = $state(defaultStartTime || '');

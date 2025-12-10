@@ -7,6 +7,19 @@
 	// Feature 027: Import conflict detection utility
 	import { detectConflict } from '$lib/utils/calendar';
 
+	// Export type definitions for test imports
+	export interface EventCalendarProps {
+		events: any[];
+		userId: string;
+		canManageEvents?: boolean;
+		localRsvpStatuses: Record<string, any>;
+		onEventClick?: (event: any) => void;
+		onDateClick?: (date: Date) => void;
+		onDateSelect?: (start: Date, end: Date, allDay: boolean) => void;
+		onEventDrop?: (eventId: string, newStart: Date, newEnd: Date) => void;
+		visibilityFilter?: 'all' | 'company' | 'department' | 'specific';
+	}
+
 	// Props with Svelte 5 runes syntax
 	const {
 		events = [],
@@ -18,17 +31,7 @@
 		onDateSelect,
 		onEventDrop,
 		visibilityFilter = 'all'
-	}: {
-		events: any[];
-		userId: string;
-		canManageEvents?: boolean;
-		localRsvpStatuses: Record<string, any>;
-		onEventClick?: (event: any) => void;
-		onDateClick?: (date: Date) => void;
-		onDateSelect?: (start: Date, end: Date, allDay: boolean) => void;
-		onEventDrop?: (eventId: string, newStart: Date, newEnd: Date) => void;
-		visibilityFilter?: 'all' | 'company' | 'department' | 'specific';
-	} = $props();
+	}: EventCalendarProps = $props();
 
 	// State
 	let calendarEl: HTMLElement;

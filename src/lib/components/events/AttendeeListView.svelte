@@ -24,28 +24,33 @@
 	import { Crown, Users } from '@lucide/svelte';
 	import type { RsvpStatus } from '$lib/graphql/events-operations';
 
+	// Export type definitions for test imports
+	export interface Attendee {
+		id: string;
+		employeeId: string;
+		employee: {
+			id: string;
+			displayName: string;
+			email: string;
+			jobTitle?: string;
+		};
+		responseStatus: RsvpStatus;
+		isOrganizer: boolean;
+		respondedAt?: string;
+	}
+
+	export interface AttendeeListViewProps {
+		attendees: Array<Attendee>;
+		currentUserId?: string;
+		showFilters?: boolean;
+	}
+
 	// Props with Svelte 5 runes
 	const {
 		attendees,
 		currentUserId,
 		showFilters = true
-	}: {
-		attendees: Array<{
-			id: string;
-			employeeId: string;
-			employee: {
-				id: string;
-				displayName: string;
-				email: string;
-				jobTitle?: string;
-			};
-			responseStatus: RsvpStatus;
-			isOrganizer: boolean;
-			respondedAt?: string;
-		}>;
-		currentUserId?: string;
-		showFilters?: boolean;
-	} = $props();
+	}: AttendeeListViewProps = $props();
 
 	// State
 	let statusFilter = $state<RsvpStatus | 'all'>('all');

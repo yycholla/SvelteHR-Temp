@@ -27,28 +27,26 @@
 	import { AlertTriangle, Calendar, Clock } from '@lucide/svelte';
 	import { formatDate, formatTime } from '$lib/utils/date-formatting';
 
-	// Props with Svelte 5 runes
-	let {
-		open = $bindable(),
-		conflicts,
-		targetEvent,
-		onConfirm,
-		onCancel
-	}: {
+	// Export type definitions for test imports
+	export interface CalendarEvent {
+		id: string;
+		title: string;
+		startDate: Date;
+		endDate: Date;
+		location?: string;
+	}
+
+	export interface ConflictingEvent {
+		id: string;
+		event: CalendarEvent;
+		overlapDuration: number; // minutes
+		overlapPercentage: number;
+		severity: 'minor' | 'major';
+	}
+
+	export interface ConflictWarningDialogProps {
 		open: boolean;
-		conflicts: Array<{
-			id: string;
-			event: {
-				id: string;
-				title: string;
-				startDate: Date;
-				endDate: Date;
-				location?: string;
-			};
-			overlapDuration: number; // minutes
-			overlapPercentage: number;
-			severity: 'minor' | 'major';
-		}>;
+		conflicts: Array<ConflictingEvent>;
 		targetEvent: {
 			title: string;
 			startDate: Date;
@@ -56,7 +54,16 @@
 		};
 		onConfirm: () => void;
 		onCancel: () => void;
-	} = $props();
+	}
+
+	// Props with Svelte 5 runes
+	let {
+		open = $bindable(),
+		conflicts,
+		targetEvent,
+		onConfirm,
+		onCancel
+	}: ConflictWarningDialogProps = $props();
 
 	// Derived
 	const hasConflicts = $derived(conflicts.length > 0);

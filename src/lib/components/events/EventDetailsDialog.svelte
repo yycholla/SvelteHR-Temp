@@ -24,7 +24,8 @@
 	} from '$lib/graphql/events-operations';
 	import type { EventData } from './types';
 
-	interface Props {
+	// Export type definitions for test imports
+	export interface EventDetailsDialogProps {
 		isOpen: boolean;
 		event: EventData | null;
 		userId: string;
@@ -86,7 +87,7 @@
 		onLoadMoreHistory,
 		onJoinWaitlist,
 		onLeaveWaitlist
-	}: Props = $props();
+	}: EventDetailsDialogProps = $props();
 
 	// Dialog-level state
 	let isDeleting = $state(false);

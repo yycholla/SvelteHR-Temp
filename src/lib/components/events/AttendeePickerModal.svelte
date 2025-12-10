@@ -29,14 +29,8 @@
 	import { Search, Users, X } from '@lucide/svelte';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 
-	// Props with Svelte 5 runes
-	let {
-		open = $bindable(),
-		employees,
-		selectedIds = $bindable([]),
-		onConfirm,
-		onCancel
-	}: {
+	// Export type definitions for test imports
+	export interface AttendeePickerModalProps {
 		open: boolean;
 		employees: Array<{
 			id: string;
@@ -48,7 +42,16 @@
 		selectedIds: string[];
 		onConfirm: (selectedIds: string[]) => void;
 		onCancel: () => void;
-	} = $props();
+	}
+
+	// Props with Svelte 5 runes
+	let {
+		open = $bindable(),
+		employees,
+		selectedIds = $bindable([]),
+		onConfirm,
+		onCancel
+	}: AttendeePickerModalProps = $props();
 
 	// State
 	let searchTerm = $state('');
