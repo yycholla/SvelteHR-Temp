@@ -55,7 +55,11 @@ export type ErrorType =
 	| 'PERMISSION_ERROR'
 	| 'VALIDATION_ERROR'
 	| 'NETWORK_ERROR'
-	| 'AUTHENTICATION_ERROR';
+	| 'AUTHENTICATION_ERROR'
+	| 'DATA_LOAD_ERROR'
+	| 'TIMEOUT_ERROR'
+	| 'SETTINGS_ERROR'
+	| 'GRAPHQL_ERROR';
 
 export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';
 
@@ -139,11 +143,68 @@ export interface UpcomingEvent {
 // Authentication Operation Contracts
 // =============================================================================
 
+export interface AuthUser {
+	id: string;
+	email: string;
+	displayName: string;
+	firstName: string;
+	lastName: string;
+	isActive: boolean;
+	emailVerified: boolean;
+	profileImage?: string;
+	lastLoginAt?: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface AuthRole {
+	id: string;
+	name: string;
+	displayName: string;
+	description: string;
+	permissions: string[];
+}
+
+export interface AuthTokenInfo {
+	expiresAt: string;
+	issuedAt: string;
+	needsRefresh: boolean;
+	refreshToken?: string | null;
+}
+
+export interface AuthSessionInfo {
+	sessionId: string;
+	ipAddress?: string;
+	userAgent?: string;
+	deviceInfo?: {
+		type: string;
+		os: string;
+		browser: string;
+	};
+}
+
+export interface AuthData {
+	isValid: boolean;
+	user: AuthUser | null;
+	roles: AuthRole[];
+	permissions: string[];
+	tokenInfo: AuthTokenInfo;
+	sessionInfo: AuthSessionInfo | null;
+}
+
+export interface VerifyUserAuthenticationVariables {
+	token: string;
+	includePermissions?: boolean;
+	includeRoles?: boolean;
+}
+
 export interface VerifyUserAuthenticationResponse {
-	success: boolean;
-	data?: any; // Added this line
-	currentUser: AuthenticatedUser;
-	authStatus: AuthStatus;
+	success?: boolean;
+	data?: any;
+	authData: AuthData;
+	// Legacy properties for backward compatibility
+	currentUser?: AuthenticatedUser;
+	authStatus?: AuthStatus;
 }
 
 export interface AuthenticatedUser {
