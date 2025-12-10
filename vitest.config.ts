@@ -116,6 +116,7 @@ export default defineConfig({
 					environment: 'jsdom',
 					include: [
 						'tests/unit/components/**/*.{test,spec}.{js,ts}',
+						'tests/unit/routes/**/*.{test,spec}.{js,ts}',
 						'src/lib/components/**/*.{test,spec}.{js,ts}'
 					],
 					exclude: [
