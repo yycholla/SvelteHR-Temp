@@ -16,8 +16,8 @@
 	let isUpdating = $state(false);
 
 	// Derived values
-	const statusColor = $derived(getStatusColor(task.status));
-	const priorityColor = $derived(getPriorityColor(task.priority));
+	const statusColor = $derived(getStatusColor(task.status ?? ''));
+	const priorityColor = $derived(getPriorityColor(task.priority ?? ''));
 	const canUpdate = $derived(canUpdateTask());
 	const isOverdue = $derived(
 		task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed'

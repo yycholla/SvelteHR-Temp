@@ -13,7 +13,7 @@
 	// Derived values
 	const statusColor = $derived(getStatusColor(instance.status));
 	const categoryColor = $derived(
-		getCategoryColor(instance.workflowDefinitionByWorkflowDefinitionId?.category)
+		getCategoryColor(instance.workflowDefinitionByWorkflowDefinitionId?.category ?? '')
 	);
 	const duration = $derived(calculateDuration(instance.startedAt, instance.completedAt));
 

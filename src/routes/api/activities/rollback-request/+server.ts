@@ -71,10 +71,10 @@ export const POST: RequestHandler = async ({ locals, cookies, request }) => {
 			})
 			.toPromise();
 
-		if (result.errors) {
-			console.error('[RollbackRequest] GraphQL errors:', result.errors);
+		if (result.error) {
+			console.error('[RollbackRequest] GraphQL errors:', result.error);
 			error(500, {
-				message: result.errors[0]?.message || 'Failed to create rollback request'
+				message: result.error.message || 'Failed to create rollback request'
 			});
 		}
 

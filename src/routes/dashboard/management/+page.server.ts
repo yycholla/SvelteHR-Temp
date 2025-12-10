@@ -212,10 +212,16 @@ export const load: PageServerLoad = async (event) => {
 		// Generate recent activities based on team size
 		const recentActivities = Array.from({ length: Math.min(8, filteredUsers.length) }, (_, i) => {
 			const user = filteredUsers[Math.floor(Math.random() * filteredUsers.length)];
-			const types = ['leave_request', 'performance_review', 'goal_update', 'report_generated'];
+			const types = ['leave_request', 'performance_review', 'goal_update', 'report_generated'] as const;
 			const type = types[i % types.length];
 
-			const activities = {
+			const activities: Record<typeof types[number], {
+				title: string;
+				description: string;
+				icon: string;
+				color: string;
+				href: string;
+			}> = {
 				leave_request: {
 					title: `${user?.firstName || 'Employee'} ${user?.lastName || ''} requested vacation leave`,
 					description: `${new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toLocaleDateString()} - 5 days`,

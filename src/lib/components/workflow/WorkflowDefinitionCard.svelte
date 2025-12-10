@@ -21,8 +21,8 @@
 	} = $props();
 
 	// Derived values
-	const statusColor = $derived(getStatusColor(definition.status));
-	const categoryColor = $derived(getCategoryColor(definition.category));
+	const statusColor = $derived(getStatusColor(definition.status ?? ''));
+	const categoryColor = $derived(getCategoryColor(definition.category ?? ''));
 
 	function getStatusColor(status: string) {
 		switch (status) {

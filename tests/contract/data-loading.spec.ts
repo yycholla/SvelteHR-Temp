@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { expect, test } from '@playwright/test';
 
 /**
  * Contract test for data loading queries
@@ -68,10 +68,10 @@ interface EmployeeListData {
 const GRAPHQL_ENDPOINT = 'http://localhost:4000/graphql';
 
 // Skip these tests in CI (no backend available)
-const describeOrSkip = process.env.CI ? describe.skip : describe;
+const describeOrSkip = process.env.CI ? test.describe.skip : test.describe;
 
 describeOrSkip('Data Loading GraphQL Contract', () => {
-	it('should load dashboard data with correct schema', async () => {
+	test('should load dashboard data with correct schema', async ({ request }) => {
 		// This test will initially fail until the query is implemented
 		const query = `
 			query GetDashboardData($userId: ID!, $includeAnalytics: Boolean) {

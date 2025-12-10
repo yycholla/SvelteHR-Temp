@@ -73,6 +73,11 @@ export const load: PageServerLoad = async (event) => {
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
+		// Headers for session-based authentication (cookies sent automatically)
+		const headers: Record<string, string> = {
+			'Content-Type': 'application/json'
+		};
+
 		let managedDepartmentId: string | null = null;
 		const isAdmin = userSession.roles.includes('admin');
 
@@ -136,11 +141,6 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Get JWT token from cookies for Rust GraphQL server authentication
-
-		// Headers for session-based authentication (cookies sent automatically)
-		const headers: Record<string, string> = {
-			'Content-Type': 'application/json'
-		};
 
 		// Fetch departments (teams) data
 		// When filtering by single department ID, use singular query; otherwise use plural

@@ -233,7 +233,10 @@ export function countRsvpStatuses(event: Event): Record<RsvpStatus, number> {
 	if (!event.eventAttendeesByEventId) return counts;
 
 	event.eventAttendeesByEventId.nodes.forEach((attendee) => {
-		counts[attendee.responseStatus]++;
+		const status = attendee.responseStatus as RsvpStatus;
+		if (status in counts) {
+			counts[status]++;
+		}
 	});
 
 	return counts;

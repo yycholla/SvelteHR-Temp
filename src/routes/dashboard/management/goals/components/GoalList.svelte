@@ -160,10 +160,12 @@
 
 						<!-- Goal Details -->
 						<div class="flex items-center gap-4 text-sm text-muted-foreground">
-							<span class="flex items-center gap-1">
-								<Calendar class="h-4 w-4" />
-								Due: {formatDate(goal.targetDate)}
-							</span>
+							{#if goal.targetDate}
+								<span class="flex items-center gap-1">
+									<Calendar class="h-4 w-4" />
+									Due: {formatDate(goal.targetDate)}
+								</span>
+							{/if}
 							{#if goal.keyResults?.totalCount}
 								<span class="flex items-center gap-1">
 									<Users class="h-4 w-4" />

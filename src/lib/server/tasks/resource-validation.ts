@@ -2,14 +2,13 @@
  * Resource Validation Service for Task Linked Resources
  * Feature: 028-task-system-expansion - T024
  *
- * Validates linked resources (Employee, Document, Goal, Performance Review)
+ * Validates linked resources (employee, document, performance_review)
  * before they are linked to tasks and provides availability checking.
  *
  * Resource types:
- * - Employee: User records
- * - Document: Document records
- * - Goal: Goal/OKR records
- * - Performance_Review: Performance review records
+ * - employee: User records
+ * - document: Document records
+ * - performance_review: Performance review records
  */
 
 import { getGraphQLEndpoint } from '$lib/server/api-url';
@@ -393,13 +392,11 @@ export async function validateLinkedResource(
 	resourceId: string
 ): Promise<ResourceValidationResult> {
 	switch (resourceType) {
-		case 'Employee':
+		case 'employee':
 			return validateEmployeeResource(resourceId);
-		case 'Document':
+		case 'document':
 			return validateDocumentResource(resourceId);
-		case 'Goal':
-			return validateGoalResource(resourceId);
-		case 'Performance_Review':
+		case 'performance_review':
 			return validatePerformanceReviewResource(resourceId);
 		default:
 			return {

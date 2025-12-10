@@ -1,12 +1,12 @@
 <!--
   LinkedResources Component
   Feature: 028-task-system-expansion - Task T032
-  
-  Manage linked resources (Employee, Document, Goal, Performance Review)
+
+  Manage linked resources (employee, document, performance_review)
   - Display existing resources with availability status
   - Add new resources with type and search selection
   - Remove resources with confirmation
-  - Status indicators (Available, Unavailable, Deleted)
+  - Status indicators (Available, Unavailable, Pending)
   - Last checked timestamp
   - Resource validation warnings
 -->
@@ -62,17 +62,16 @@
 
 	// State
 	let isAddDialogOpen = $state(false);
-	let selectedResourceType = $state<ResourceType>('Employee');
+	let selectedResourceType = $state<ResourceType>('employee');
 	let selectedResourceId = $state('');
 	let searchQuery = $state('');
 	let isSubmitting = $state(false);
 
 	// Resource type options
 	const resourceTypeOptions = [
-		{ value: 'Employee', label: 'Employee', icon: Users },
-		{ value: 'Document', label: 'Document', icon: FileText },
-		{ value: 'Goal', label: 'Goal/OKR', icon: Target },
-		{ value: 'Performance_Review', label: 'Performance Review', icon: ClipboardCheck }
+		{ value: 'employee', label: 'Employee', icon: Users },
+		{ value: 'document', label: 'Document', icon: FileText },
+		{ value: 'performance_review', label: 'Performance Review', icon: ClipboardCheck }
 	];
 
 	// Filter available resources by type and search query
@@ -107,13 +106,11 @@
 	// Get resource type icon
 	function getResourceTypeIcon(type: ResourceType) {
 		switch (type) {
-			case 'Employee':
+			case 'employee':
 				return Users;
-			case 'Document':
+			case 'document':
 				return FileText;
-			case 'Goal':
-				return Target;
-			case 'Performance_Review':
+			case 'performance_review':
 				return ClipboardCheck;
 			default:
 				return FileText;
@@ -123,13 +120,11 @@
 	// Get resource type color
 	function getResourceTypeColor(type: ResourceType) {
 		switch (type) {
-			case 'Employee':
+			case 'employee':
 				return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/30';
-			case 'Document':
+			case 'document':
 				return 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900/30';
-			case 'Goal':
-				return 'text-amber-600 bg-amber-100 dark:text-amber-400 dark:bg-amber-900/30';
-			case 'Performance_Review':
+			case 'performance_review':
 				return 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/30';
 			default:
 				return 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-900/30';
@@ -177,7 +172,7 @@
 
 	// Open add dialog
 	function openAddDialog() {
-		selectedResourceType = 'Employee';
+		selectedResourceType = 'employee';
 		selectedResourceId = '';
 		searchQuery = '';
 		isAddDialogOpen = true;
