@@ -300,7 +300,7 @@
 	}
 
 	// Statistics
-	const stats = $derived(() => {
+	const stats = $derived.by(() => {
 		if (!filteredNodes || filteredNodes.length === 0) {
 			return {
 				total: 0,
@@ -327,7 +327,7 @@
 	});
 
 	// Get unique departments for filter
-	const departments = $derived(() => {
+	const departments = $derived.by(() => {
 		const depts = new Set(orgNodes.map((n) => n.department));
 		return Array.from(depts).sort();
 	});
