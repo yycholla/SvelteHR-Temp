@@ -207,7 +207,9 @@ describe('Document Validation - Unit Tests', () => {
 			// Assert
 			expect(result.success).toBe(true);
 			if (result.success) {
-				expect(result.data.metadata.metadataTags?.description).toBe('This is an optional description field');
+				expect(result.data.metadata.metadataTags?.description).toBe(
+					'This is an optional description field'
+				);
 			}
 		});
 

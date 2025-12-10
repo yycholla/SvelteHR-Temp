@@ -63,7 +63,9 @@ export function hasRole(
 export function requireAuth(
 	event: RequestEvent,
 	config: RBACConfig = {}
-): asserts event is RequestEvent & { locals: { user: NonNullable<RequestEvent['locals']['user']> } } {
+): asserts event is RequestEvent & {
+	locals: { user: NonNullable<RequestEvent['locals']['user']> };
+} {
 	const { locals } = event;
 
 	// Check if user is authenticated
@@ -101,7 +103,10 @@ export function requireAuth(
 		const hasRequiredRoles = hasRole(locals.roles || [], requiredRoles, requireAll);
 
 		if (!hasRequiredRoles) {
-			throw error(403, 'Access forbidden: You do not have the required role to access this resource');
+			throw error(
+				403,
+				'Access forbidden: You do not have the required role to access this resource'
+			);
 		}
 	}
 

@@ -6,7 +6,12 @@ import { requireAuth } from '$lib/server/rbac-utils';
 export const load: PageServerLoad = async (event) => {
 	// Check authentication and permissions
 	requireAuth(event, {
-		requiredPermissions: ['employees:read', 'employees:read:self', 'employees:read:team', 'employees:read:all']
+		requiredPermissions: [
+			'employees:read',
+			'employees:read:self',
+			'employees:read:team',
+			'employees:read:all'
+		]
 	});
 
 	// After permission check, re-destructure locals with guaranteed user

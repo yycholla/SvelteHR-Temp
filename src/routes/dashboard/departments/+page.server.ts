@@ -10,7 +10,12 @@ export const load: PageServerLoad = async (event) => {
 
 	// RBAC: Check department access permissions
 	requireAuth(event, {
-		requiredPermissions: ['departments:read', 'departments:read:self', 'departments:read:team', 'departments:read:all']
+		requiredPermissions: [
+			'departments:read',
+			'departments:read:self',
+			'departments:read:team',
+			'departments:read:all'
+		]
 	});
 
 	// After permission check, re-destructure locals with guaranteed user

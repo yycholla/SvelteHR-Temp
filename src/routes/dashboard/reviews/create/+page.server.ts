@@ -15,7 +15,12 @@ export const load: PageServerLoad = async (event) => {
 
 	// Check authentication and permissions (write required to create reviews)
 	requireAuth(event, {
-		requiredPermissions: ['performance:write', 'performance:write:self', 'performance:write:team', 'performance:write:all']
+		requiredPermissions: [
+			'performance:write',
+			'performance:write:self',
+			'performance:write:team',
+			'performance:write:all'
+		]
 	});
 
 	// After permission check, re-destructure locals with guaranteed user

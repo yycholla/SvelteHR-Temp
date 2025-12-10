@@ -200,7 +200,10 @@ export const load: PageServerLoad = async (event) => {
 		const allTimeApproved = leaveRequests.filter((req: any) => req.status === 'approved').length;
 		const allTimeRejected = leaveRequests.filter((req: any) => req.status === 'rejected').length;
 		const allTimeTotal = leaveRequests.length;
-		const totalDaysRequested = leaveRequests.reduce((sum: number, req: any) => sum + req.daysRequested, 0);
+		const totalDaysRequested = leaveRequests.reduce(
+			(sum: number, req: any) => sum + req.daysRequested,
+			0
+		);
 		const approvalRate = allTimeTotal > 0 ? (allTimeApproved / allTimeTotal) * 100 : 0;
 
 		// Calculate time-based metrics (simplified - using all data for now)

@@ -23,7 +23,7 @@
 	let emailNotifications = $state(data.preferences.emailNotifications);
 	let pushNotifications = $state(data.preferences.pushNotifications);
 	let reminderEnabled = $state(data.preferences.reminderDefaults.enabled);
-	let minutesBefore = $state(data.preferences.reminderDefaults.minutesBefore);
+	let minutesBefore = $state(String(data.preferences.reminderDefaults.minutesBefore));
 	let commentMentions = $state(data.preferences.commentMentions);
 	let waitlistPromotions = $state(data.preferences.waitlistPromotions);
 	let eventUpdates = $state(data.preferences.eventUpdates);

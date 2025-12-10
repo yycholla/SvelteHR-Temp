@@ -301,7 +301,8 @@
 								: 'border-warning bg-warning/10'} p-2"
 						>
 							<div
-								class="flex items-center gap-2 text-xs {resource.availabilityStatus === 'Unavailable'
+								class="flex items-center gap-2 text-xs {resource.availabilityStatus ===
+								'Unavailable'
 									? 'text-destructive'
 									: 'text-warning'}"
 							>

@@ -180,7 +180,9 @@ test.describe('Admin Teams Administration Page', () => {
 		// Should show organizational chart
 		await expect(page.locator('[data-testid="org-chart"]')).toBeVisible();
 		await expect(page.locator('[data-testid="dept-head-node"]')).toBeVisible();
-		expect(await page.locator('[data-testid="team-member-node"]').count()).toBeGreaterThanOrEqual(1);
+		expect(await page.locator('[data-testid="team-member-node"]').count()).toBeGreaterThanOrEqual(
+			1
+		);
 
 		// Should show department metrics
 		await expect(page.locator('[data-testid="dept-metrics"]')).toBeVisible();

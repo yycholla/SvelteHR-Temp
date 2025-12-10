@@ -46,11 +46,7 @@
 	}
 
 	// Props with Svelte 5 runes
-	const {
-		attendees,
-		currentUserId,
-		showFilters = true
-	}: AttendeeListViewProps = $props();
+	const { attendees, currentUserId, showFilters = true }: AttendeeListViewProps = $props();
 
 	// State
 	let statusFilter = $state<RsvpStatus | 'all'>('all');

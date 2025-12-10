@@ -106,7 +106,7 @@
 	let expandedNodes = $state<Set<string>>(new Set());
 
 	// Pagination state
-	const totalPages = $derived(Math.ceil(totalDepartments / pageSize));
+	const totalPages = $derived(Math.ceil(totalDepartments / Number(pageSize)));
 	const hasNextPage = $derived(currentPage < totalPages);
 	const hasPreviousPage = $derived(currentPage > 1);
 
@@ -132,7 +132,7 @@
 		if (selectedParent) searchParams.set('parent', selectedParent);
 		if (selectedHasHead) searchParams.set('hasHead', selectedHasHead);
 		searchParams.set('page', '1'); // Reset to first page on new search
-		if (pageSize !== 20) searchParams.set('limit', pageSize.toString());
+		if (pageSize !== '20') searchParams.set('limit', pageSize);
 
 		goto(`${currentPathname}?${searchParams.toString()}`);
 	}
@@ -151,7 +151,7 @@
 		searchTerms = [];
 		selectedParent = '';
 		selectedHasHead = '';
-		pageSize = 20;
+		pageSize = '20';
 		goto(currentPathname);
 	}
 
@@ -579,8 +579,8 @@
 			<Card.Content class="py-4">
 				<div class="flex items-center justify-between">
 					<div class="text-sm text-muted-foreground">
-						Showing {(currentPage - 1) * pageSize + 1} to {Math.min(
-							currentPage * pageSize,
+						Showing {(currentPage - 1) * Number(pageSize) + 1} to {Math.min(
+							currentPage * Number(pageSize),
 							totalDepartments
 						)} of {totalDepartments} departments
 					</div>

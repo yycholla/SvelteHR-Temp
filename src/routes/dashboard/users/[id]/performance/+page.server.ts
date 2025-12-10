@@ -138,12 +138,19 @@ export const load: PageServerLoad = async (event) => {
 			averageProgress:
 				goals.length > 0
 					? Math.round(
-							goals.reduce((sum: number, g: EmployeeGoalFromGraphQL) => sum + (g.progressPercentage || 0), 0) / goals.length
+							goals.reduce(
+								(sum: number, g: EmployeeGoalFromGraphQL) => sum + (g.progressPercentage || 0),
+								0
+							) / goals.length
 						)
 					: 0,
 			completionRate:
 				goals.length > 0
-					? Math.round((goals.filter((g: EmployeeGoalFromGraphQL) => g.status === 'completed').length / goals.length) * 100)
+					? Math.round(
+							(goals.filter((g: EmployeeGoalFromGraphQL) => g.status === 'completed').length /
+								goals.length) *
+								100
+						)
 					: 0
 		};
 
@@ -151,7 +158,8 @@ export const load: PageServerLoad = async (event) => {
 			user,
 			userId,
 			goals: goals.sort(
-				(a: EmployeeGoalFromGraphQL, b: EmployeeGoalFromGraphQL) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+				(a: EmployeeGoalFromGraphQL, b: EmployeeGoalFromGraphQL) =>
+					new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
 			),
 			goalCategories,
 			goalStats,

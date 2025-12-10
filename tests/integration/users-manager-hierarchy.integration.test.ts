@@ -69,10 +69,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 		test('should query manager relationship', async () => {
 			const query = gql`
 				query GetUserWithManager {
-					users(
-						filter: { managerId: { isNull: false } }
-						first: 1
-					) {
+					users(filter: { managerId: { isNull: false } }, first: 1) {
 						nodes {
 							id
 							firstName
@@ -105,10 +102,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 		test('should handle null managerId for top-level employees', async () => {
 			const query = gql`
 				query GetTopLevelEmployees {
-					users(
-						filter: { managerId: { isNull: true } }
-						first: 5
-					) {
+					users(filter: { managerId: { isNull: true } }, first: 5) {
 						nodes {
 							id
 							firstName
@@ -135,10 +129,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 		test('should query nested manager relationships', async () => {
 			const query = gql`
 				query GetReportingChain {
-					users(
-						filter: { managerId: { isNull: false } }
-						first: 1
-					) {
+					users(filter: { managerId: { isNull: false } }, first: 1) {
 						nodes {
 							id
 							firstName
@@ -193,10 +184,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 			// First get a manager ID
 			const managersQuery = gql`
 				query GetManagers {
-					users(
-						filter: { managerId: { isNull: true } }
-						first: 1
-					) {
+					users(filter: { managerId: { isNull: true } }, first: 1) {
 						nodes {
 							id
 						}
@@ -320,10 +308,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 		test('should filter users by managerId', async () => {
 			const query = gql`
 				query GetEmployeesByManager($managerId: UUID!) {
-					users(
-						filter: { managerId: { equalTo: $managerId } }
-						first: 20
-					) {
+					users(filter: { managerId: { equalTo: $managerId } }, first: 20) {
 						totalCount
 						nodes {
 							id
@@ -338,10 +323,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 			// Get a manager with direct reports
 			const managersQuery = gql`
 				query FindManagerWithReports {
-					users(
-						filter: { managerId: { isNull: true } }
-						first: 1
-					) {
+					users(filter: { managerId: { isNull: true } }, first: 1) {
 						nodes {
 							id
 						}
@@ -369,9 +351,7 @@ describe('Users Manager Hierarchy Integration (P1 Core)', () => {
 		test('should query users without managers (top-level)', async () => {
 			const query = gql`
 				query GetTopLevelUsers {
-					users(
-						filter: { managerId: { isNull: true } }
-					) {
+					users(filter: { managerId: { isNull: true } }) {
 						totalCount
 						nodes {
 							id

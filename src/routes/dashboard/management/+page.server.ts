@@ -11,7 +11,12 @@ export const load: PageServerLoad = async (event) => {
 
 	// Check authentication and permissions (managers and above)
 	requireAuth(event, {
-		requiredPermissions: ['management:read', 'management:read:self', 'management:read:team', 'management:read:all']
+		requiredPermissions: [
+			'management:read',
+			'management:read:self',
+			'management:read:team',
+			'management:read:all'
+		]
 	});
 
 	// After permission check, re-destructure locals with guaranteed user
@@ -165,7 +170,9 @@ export const load: PageServerLoad = async (event) => {
 		// Filter employees for managers (admins see all)
 		const filteredUsers = isAdmin
 			? users
-			: users.filter((u: any) => (managedDepartmentId ? u.departmentId === managedDepartmentId : false));
+			: users.filter((u: any) =>
+					managedDepartmentId ? u.departmentId === managedDepartmentId : false
+				);
 
 		// Generate mock dashboard analytics from real user data
 		const dashboardAnalytics = {

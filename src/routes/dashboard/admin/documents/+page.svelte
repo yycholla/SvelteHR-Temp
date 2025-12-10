@@ -87,7 +87,7 @@
 	});
 
 	const previewDocument = $derived(
-		previewDocumentId ? data.documents.find((doc) => doc.id === previewDocumentId) : null
+		previewDocumentId ? data.documents.find((doc: { id: string }) => doc.id === previewDocumentId) : null
 	);
 
 	const hasActiveFilters = $derived(
@@ -96,7 +96,7 @@
 
 	// Search Options
 	const documentSearchOptions = $derived(
-		data.documents.map((doc) => ({
+		data.documents.map((doc: { id: string; filename: string }) => ({
 			value: doc.id,
 			label: doc.filename
 		}))
@@ -113,9 +113,9 @@
 
 	// Stats
 	const totalDocuments = $derived(data.totalCount);
-	const encryptedCount = $derived(data.documents.filter((doc) => doc.is_encrypted).length);
+	const encryptedCount = $derived(data.documents.filter((doc: { is_encrypted: boolean }) => doc.is_encrypted).length);
 	const expiringCount = $derived(
-		data.documents.filter((doc) => {
+		data.documents.filter((doc: { expiration_date?: Date | string }) => {
 			if (!doc.expiration_date) return false;
 			const expiryDate = new Date(doc.expiration_date);
 			const now = Date.now();

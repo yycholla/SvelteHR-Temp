@@ -350,7 +350,8 @@ export const load: PageServerLoad = async (event) => {
 		console.log(`✅ Dashboard: Critical queries completed in ${criticalDuration}ms`);
 
 		// Extract critical data immediately
-		const users: User[] = (usersResult.status === 'fulfilled' && usersResult.value.data?.users) || [];
+		const users: User[] =
+			(usersResult.status === 'fulfilled' && usersResult.value.data?.users) || [];
 		const departments: Department[] =
 			(departmentsResult.status === 'fulfilled' && departmentsResult.value.data?.departments) || [];
 
@@ -392,7 +393,8 @@ export const load: PageServerLoad = async (event) => {
 				(leaveResult.status === 'fulfilled' && leaveResult.value.data?.leaveRequests) || [];
 			const goals: EmployeeGoal[] =
 				(goalsResult.status === 'fulfilled' && goalsResult.value.data?.employeeGoals) || [];
-			const tasks: Task[] = (tasksResult.status === 'fulfilled' && tasksResult.value.data?.tasks) || [];
+			const tasks: Task[] =
+				(tasksResult.status === 'fulfilled' && tasksResult.value.data?.tasks) || [];
 			const events = (eventsResult.status === 'fulfilled' && eventsResult.value.data?.events) || [];
 			const activityLogs =
 				(activityLogsResult.status === 'fulfilled' &&

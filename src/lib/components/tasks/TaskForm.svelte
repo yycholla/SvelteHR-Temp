@@ -542,7 +542,7 @@
 				<Select.Root
 					type="single"
 					bind:value={formData.parentTaskId}
-					onSelectedChange={(v) => {
+					onSelectedChange={(v: { value?: string; label?: string } | undefined) => {
 						parentTaskSearchTerm = ''; // Reset search on selection
 					}}
 				>

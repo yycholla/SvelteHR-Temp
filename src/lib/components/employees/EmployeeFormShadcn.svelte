@@ -387,7 +387,7 @@
 							value: formData.departmentId,
 							label: departmentOptions.find((d) => d.value === formData.departmentId)?.label || ''
 						}}
-						onSelectedChange={(v) => (formData.departmentId = v?.value || '')}
+						onSelectedChange={(v: { value?: string; label?: string } | undefined) => (formData.departmentId = v?.value || '')}
 					>
 						<Select.Trigger class={validationErrors.departmentId ? 'border-destructive' : ''}>
 							<Select.Value placeholder="Select department" />
@@ -411,7 +411,7 @@
 							label:
 								employmentTypeOptions.find((o) => o.value === formData.employmentType)?.label || ''
 						}}
-						onSelectedChange={(v) => (formData.employmentType = v?.value || 'FULL_TIME')}
+						onSelectedChange={(v: { value?: string; label?: string } | undefined) => (formData.employmentType = v?.value || 'FULL_TIME')}
 					>
 						<Select.Trigger>
 							<Select.Value placeholder="Select employment type" />
@@ -445,7 +445,7 @@
 							value: formData.managerId,
 							label: managerOptions.find((m) => m.value === formData.managerId)?.label || ''
 						}}
-						onSelectedChange={(v) => (formData.managerId = v?.value || '')}
+						onSelectedChange={(v: { value?: string; label?: string } | undefined) => (formData.managerId = v?.value || '')}
 					>
 						<Select.Trigger>
 							<Select.Value placeholder="Select manager" />
@@ -490,7 +490,7 @@
 								value: formData.payType,
 								label: payTypeOptions.find((p) => p.value === formData.payType)?.label || ''
 							}}
-							onSelectedChange={(v) => (formData.payType = v?.value || 'SALARY')}
+							onSelectedChange={(v: { value?: string; label?: string } | undefined) => (formData.payType = v?.value || 'SALARY')}
 						>
 							<Select.Trigger>
 								<Select.Value placeholder="Select pay type" />
@@ -588,7 +588,7 @@
 								relationshipOptions.find((r) => r.value === formData.emergencyContactRelationship)
 									?.label || ''
 						}}
-						onSelectedChange={(v) => (formData.emergencyContactRelationship = v?.value || '')}
+						onSelectedChange={(v: { value?: string; label?: string } | undefined) => (formData.emergencyContactRelationship = v?.value || '')}
 					>
 						<Select.Trigger>
 							<Select.Value placeholder="Select relationship" />

@@ -73,7 +73,10 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 
 		// Step 4: Validate upload data
 		if (!body.filename || !body.fileSizeBytes || !body.encryptedData || !body.encryptionKeyId) {
-			error(400, 'Missing required fields (filename, fileSizeBytes, encryptedData, encryptionKeyId)');
+			error(
+				400,
+				'Missing required fields (filename, fileSizeBytes, encryptedData, encryptionKeyId)'
+			);
 		}
 
 		// Validate file size (50MB max)

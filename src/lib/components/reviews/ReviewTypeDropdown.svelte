@@ -68,7 +68,7 @@
 		</Label>
 	{/if}
 
-	<Select.Root {disabled} type="single" value={value} onValueChange={handleValueChange}>
+	<Select.Root {disabled} type="single" {value} onValueChange={handleValueChange}>
 		<Select.Trigger id="review-type-select" class="w-full {error ? 'border-destructive' : ''}">
 			<Select.Value placeholder="Select a review type" />
 		</Select.Trigger>

@@ -354,10 +354,20 @@ export function serializeCookies(cookies: any): string {
 }
 
 // Export types for TypeScript support
-export type { Client, CombinedError, Operation, OperationResult, TypedDocumentNode, AnyVariables } from '@urql/core';
+export type {
+	Client,
+	CombinedError,
+	Operation,
+	OperationResult,
+	TypedDocumentNode,
+	AnyVariables
+} from '@urql/core';
 
 // Export common query/mutation helpers
-export const executeQuery = async <Data = any, Variables extends import('@urql/core').AnyVariables = import('@urql/core').AnyVariables>(
+export const executeQuery = async <
+	Data = any,
+	Variables extends import('@urql/core').AnyVariables = import('@urql/core').AnyVariables
+>(
 	client: Client,
 	query: import('@urql/core').TypedDocumentNode<Data, Variables> | string,
 	variables?: Variables
@@ -371,7 +381,10 @@ export const executeQuery = async <Data = any, Variables extends import('@urql/c
 	return result.data;
 };
 
-export const executeMutation = async <Data = any, Variables extends import('@urql/core').AnyVariables = import('@urql/core').AnyVariables>(
+export const executeMutation = async <
+	Data = any,
+	Variables extends import('@urql/core').AnyVariables = import('@urql/core').AnyVariables
+>(
 	client: Client,
 	mutation: import('@urql/core').TypedDocumentNode<Data, Variables> | string,
 	variables?: Variables

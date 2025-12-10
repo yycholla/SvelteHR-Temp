@@ -125,7 +125,12 @@ export const load: PageServerLoad = async (event) => {
 
 	// Check authentication and permissions
 	requireAuth(event, {
-		requiredPermissions: ['performance:read', 'performance:read:self', 'performance:read:team', 'performance:read:all']
+		requiredPermissions: [
+			'performance:read',
+			'performance:read:self',
+			'performance:read:team',
+			'performance:read:all'
+		]
 	});
 
 	// After permission check, re-destructure locals with guaranteed user
@@ -248,62 +253,66 @@ export const load: PageServerLoad = async (event) => {
 
 		// Transform database reviews to frontend format
 		// Note: Using placeholder data for fields that exist in separate tables (review_feedback, review_goal, review_cycle)
-		const reviews: TransformedReview[] = (reviewsData.data?.performanceReviews || []).map((review: PerformanceReviewResponse): TransformedReview => {
-			// Map status enum to string
-			const statusStr =
-				typeof review.status === 'string' ? review.status : review.status?.toLowerCase() || 'draft';
-			const mappedStatus = mapReviewStatus(statusStr);
+		const reviews: TransformedReview[] = (reviewsData.data?.performanceReviews || []).map(
+			(review: PerformanceReviewResponse): TransformedReview => {
+				// Map status enum to string
+				const statusStr =
+					typeof review.status === 'string'
+						? review.status
+						: review.status?.toLowerCase() || 'draft';
+				const mappedStatus = mapReviewStatus(statusStr);
 
-			// Infer review type from cycleId existence (would need to query review_cycle for actual type)
-			const inferredType = 'annual'; // Default - actual type is in review_cycle table
+				// Infer review type from cycleId existence (would need to query review_cycle for actual type)
+				const inferredType = 'annual'; // Default - actual type is in review_cycle table
 
-			// Calculate review period from creation/submission dates (approximation until we query review_cycle)
-			const createdDate = new Date(review.createdAt);
-			const yearStart = new Date(createdDate.getFullYear(), 0, 1);
-			const yearEnd = new Date(createdDate.getFullYear(), 11, 31);
+				// Calculate review period from creation/submission dates (approximation until we query review_cycle)
+				const createdDate = new Date(review.createdAt);
+				const yearStart = new Date(createdDate.getFullYear(), 0, 1);
+				const yearEnd = new Date(createdDate.getFullYear(), 11, 31);
 
-			return {
-				id: review.id,
-				type: {
-					id: inferredType,
-					name: getReviewTypeName(inferredType),
-					frequency: getReviewTypeFrequency(inferredType),
-					color: getReviewTypeColor(inferredType)
-				},
-				status: mappedStatus,
-				reviewPeriod: {
-					start: yearStart.toISOString().split('T')[0],
-					end: yearEnd.toISOString().split('T')[0]
-				},
-				scheduledDate: review.createdAt.split('T')[0],
-				completedDate: review.submittedAt
-					? review.submittedAt.split('T')[0]
-					: mappedStatus === 'completed'
-						? review.updatedAt.split('T')[0]
+				return {
+					id: review.id,
+					type: {
+						id: inferredType,
+						name: getReviewTypeName(inferredType),
+						frequency: getReviewTypeFrequency(inferredType),
+						color: getReviewTypeColor(inferredType)
+					},
+					status: mappedStatus,
+					reviewPeriod: {
+						start: yearStart.toISOString().split('T')[0],
+						end: yearEnd.toISOString().split('T')[0]
+					},
+					scheduledDate: review.createdAt.split('T')[0],
+					completedDate: review.submittedAt
+						? review.submittedAt.split('T')[0]
+						: mappedStatus === 'completed'
+							? review.updatedAt.split('T')[0]
+							: null,
+					reviewer: review.reviewer
+						? {
+								id: review.reviewer.id,
+								displayName:
+									review.reviewer.displayName ||
+									`${review.reviewer.firstName} ${review.reviewer.lastName}`,
+								email: review.reviewer.email
+							}
 						: null,
-				reviewer: review.reviewer
-					? {
-							id: review.reviewer.id,
-							displayName:
-								review.reviewer.displayName ||
-								`${review.reviewer.firstName} ${review.reviewer.lastName}`,
-							email: review.reviewer.email
-						}
-					: null,
-				overallRating: review.overallRating || null,
-				competencies: [], // Would need to query review_template or review_feedback for competencies
-				goals: [], // Would need to query review_goals table
-				feedback: {
-					strengths: [], // Would need to query review_feedback table with feedback_type='manager'
-					improvements: [], // Would need to query review_feedback table
-					managerComments: null, // Would need to query review_feedback table
-					employeeComments: null // Would need to query review_feedback table with feedback_type='self_review'
-				},
-				developmentPlan: [], // Would need to query review_goals table
-				createdAt: review.createdAt,
-				lastUpdated: review.updatedAt
-			};
-		});
+					overallRating: review.overallRating || null,
+					competencies: [], // Would need to query review_template or review_feedback for competencies
+					goals: [], // Would need to query review_goals table
+					feedback: {
+						strengths: [], // Would need to query review_feedback table with feedback_type='manager'
+						improvements: [], // Would need to query review_feedback table
+						managerComments: null, // Would need to query review_feedback table
+						employeeComments: null // Would need to query review_feedback table with feedback_type='self_review'
+					},
+					developmentPlan: [], // Would need to query review_goals table
+					createdAt: review.createdAt,
+					lastUpdated: review.updatedAt
+				};
+			}
+		);
 
 		// Static review types (could be loaded from database in future)
 		const reviewTypes = [
@@ -342,7 +351,11 @@ export const load: PageServerLoad = async (event) => {
 			overdue: reviews.filter((r: TransformedReview) => r.status === 'overdue').length,
 			averageRating: reviews
 				.filter((r: TransformedReview) => r.status === 'completed' && r.overallRating)
-				.reduce((sum: number, r: TransformedReview, _: number, arr: TransformedReview[]) => sum + (r.overallRating || 0) / arr.length, 0),
+				.reduce(
+					(sum: number, r: TransformedReview, _: number, arr: TransformedReview[]) =>
+						sum + (r.overallRating || 0) / arr.length,
+					0
+				),
 			lastReviewDate: reviews
 				.filter((r) => r.status === 'completed')
 				.sort(

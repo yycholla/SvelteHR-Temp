@@ -10,7 +10,12 @@ export const GET: RequestHandler = async (event) => {
 
 	// Step 1: Validate authentication
 	requireAuth(event, {
-		requiredPermissions: ['documents:read', 'documents:read:self', 'documents:read:team', 'documents:read:all']
+		requiredPermissions: [
+			'documents:read',
+			'documents:read:self',
+			'documents:read:team',
+			'documents:read:all'
+		]
 	});
 
 	// After permission check, re-destructure locals with guaranteed user

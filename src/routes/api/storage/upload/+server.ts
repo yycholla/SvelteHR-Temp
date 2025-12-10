@@ -11,7 +11,12 @@ export const POST: RequestHandler = async (event) => {
 
 	// Step 1: Validate authentication
 	requireAuth(event, {
-		requiredPermissions: ['documents:write', 'documents:write:self', 'documents:write:team', 'documents:write:all']
+		requiredPermissions: [
+			'documents:write',
+			'documents:write:self',
+			'documents:write:team',
+			'documents:write:all'
+		]
 	});
 
 	// After permission check, re-destructure locals with guaranteed user

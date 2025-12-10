@@ -7,6 +7,7 @@ The User Type Mapper solves the property naming mismatch between GraphQL API res
 ## Problem Statement
 
 **GraphQL API returns snake_case:**
+
 ```typescript
 {
   id: "123",
@@ -22,6 +23,7 @@ The User Type Mapper solves the property naming mismatch between GraphQL API res
 ```
 
 **Components expect camelCase:**
+
 ```typescript
 {
   id: "123",
@@ -51,10 +53,10 @@ The `user-mapper.ts` utility provides:
 
 ```typescript
 import {
-  mapUserFromGraphQL,
-  mapUserToGraphQL,
-  type UserClient,
-  type UserGraphQL
+	mapUserFromGraphQL,
+	mapUserToGraphQL,
+	type UserClient,
+	type UserGraphQL
 } from '$lib/types/user-mapper';
 ```
 
@@ -67,19 +69,19 @@ import {
 import { mapUserFromGraphQL } from '$lib/types/user-mapper';
 
 export const load: PageServerLoad = async ({ locals }) => {
-  const client = createUrqlClient();
+	const client = createUrqlClient();
 
-  // GraphQL query returns snake_case data
-  const result = await client.query(GET_USER_QUERY, { id: userId }).toPromise();
+	// GraphQL query returns snake_case data
+	const result = await client.query(GET_USER_QUERY, { id: userId }).toPromise();
 
-  if (result.data?.user) {
-    // Convert to camelCase for components
-    const userClient = mapUserFromGraphQL(result.data.user);
+	if (result.data?.user) {
+		// Convert to camelCase for components
+		const userClient = mapUserFromGraphQL(result.data.user);
 
-    return {
-      user: userClient  // Now components can use user.displayName, user.jobInfo, etc.
-    };
-  }
+		return {
+			user: userClient // Now components can use user.displayName, user.jobInfo, etc.
+		};
+	}
 };
 ```
 
@@ -90,14 +92,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 import { mapUserToGraphQL } from '$lib/types/user-mapper';
 
 async function updateUser(userClient: UserClient) {
-  // Convert camelCase to snake_case for GraphQL mutation
-  const userGraphQL = mapUserToGraphQL(userClient);
+	// Convert camelCase to snake_case for GraphQL mutation
+	const userGraphQL = mapUserToGraphQL(userClient);
 
-  const result = await client.mutation(UPDATE_USER_MUTATION, {
-    input: userGraphQL
-  });
+	const result = await client.mutation(UPDATE_USER_MUTATION, {
+		input: userGraphQL
+	});
 
-  return result;
+	return result;
 }
 ```
 
@@ -109,20 +111,20 @@ Matches the exact structure returned by GraphQL queries with snake_case properti
 
 ```typescript
 interface UserGraphQL {
-  id: string;
-  email: string;
-  first_name?: string;
-  last_name?: string;
-  display_name?: string;
-  job_title?: string;
-  department_id?: string;
-  is_active?: boolean;
-  created_at?: string;
+	id: string;
+	email: string;
+	first_name?: string;
+	last_name?: string;
+	display_name?: string;
+	job_title?: string;
+	department_id?: string;
+	is_active?: boolean;
+	created_at?: string;
 
-  // Nested objects
-  job_info?: JobInfoGraphQL;
-  emergency_contacts?: EmergencyContactGraphQL[];
-  // ... more fields
+	// Nested objects
+	job_info?: JobInfoGraphQL;
+	emergency_contacts?: EmergencyContactGraphQL[];
+	// ... more fields
 }
 ```
 
@@ -132,20 +134,20 @@ Client-side interface with camelCase properties expected by Svelte components:
 
 ```typescript
 interface UserClient {
-  id: string;
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  displayName?: string;
-  jobTitle?: string;
-  departmentId?: string;
-  isActive?: boolean;
-  createdAt?: string;
+	id: string;
+	email: string;
+	firstName?: string;
+	lastName?: string;
+	displayName?: string;
+	jobTitle?: string;
+	departmentId?: string;
+	isActive?: boolean;
+	createdAt?: string;
 
-  // Nested objects
-  jobInfo?: JobInfoClient;
-  emergencyContacts?: EmergencyContactClient[];
-  // ... more fields
+	// Nested objects
+	jobInfo?: JobInfoClient;
+	emergencyContacts?: EmergencyContactClient[];
+	// ... more fields
 }
 ```
 
@@ -158,22 +160,23 @@ interface UserClient {
 Converts GraphQL snake_case user to client-side camelCase format.
 
 **Example:**
+
 ```typescript
 const graphqlUser = {
-  id: "123",
-  first_name: "John",
-  last_name: "Doe",
-  display_name: "John Doe",
-  job_info: {
-    hire_date: "2024-01-15",
-    employment_type: "FULL_TIME"
-  }
+	id: '123',
+	first_name: 'John',
+	last_name: 'Doe',
+	display_name: 'John Doe',
+	job_info: {
+		hire_date: '2024-01-15',
+		employment_type: 'FULL_TIME'
+	}
 };
 
 const clientUser = mapUserFromGraphQL(graphqlUser);
 
-console.log(clientUser.firstName);      // "John"
-console.log(clientUser.displayName);    // "John Doe"
+console.log(clientUser.firstName); // "John"
+console.log(clientUser.displayName); // "John Doe"
 console.log(clientUser.jobInfo?.hireDate); // "2024-01-15"
 ```
 
@@ -182,22 +185,23 @@ console.log(clientUser.jobInfo?.hireDate); // "2024-01-15"
 Converts client-side camelCase user back to GraphQL snake_case format.
 
 **Example:**
+
 ```typescript
 const clientUser: UserClient = {
-  id: "123",
-  firstName: "Jane",
-  lastName: "Smith",
-  displayName: "Jane Smith",
-  jobInfo: {
-    hireDate: "2024-02-01",
-    employmentType: "PART_TIME"
-  }
+	id: '123',
+	firstName: 'Jane',
+	lastName: 'Smith',
+	displayName: 'Jane Smith',
+	jobInfo: {
+		hireDate: '2024-02-01',
+		employmentType: 'PART_TIME'
+	}
 };
 
 const graphqlUser = mapUserToGraphQL(clientUser);
 
-console.log(graphqlUser.first_name);           // "Jane"
-console.log(graphqlUser.job_info?.hire_date);  // "2024-02-01"
+console.log(graphqlUser.first_name); // "Jane"
+console.log(graphqlUser.job_info?.hire_date); // "2024-02-01"
 ```
 
 ### Nested Object Mappers
@@ -206,11 +210,11 @@ The mapper also provides specialized functions for nested objects:
 
 ```typescript
 import {
-  mapJobInfoFromGraphQL,
-  mapContactInfoFromGraphQL,
-  mapPersonalInfoFromGraphQL,
-  mapEmergencyContactFromGraphQL,
-  mapDepartmentFromGraphQL
+	mapJobInfoFromGraphQL,
+	mapContactInfoFromGraphQL,
+	mapPersonalInfoFromGraphQL,
+	mapEmergencyContactFromGraphQL,
+	mapDepartmentFromGraphQL
 } from '$lib/types/user-mapper';
 ```
 
@@ -235,37 +239,37 @@ const graphqlUsers = mapUsersToGraphQL(clientUsers);
 ```svelte
 <!-- src/routes/profile/+page.svelte -->
 <script lang="ts">
-  import type { UserClient } from '$lib/types/user-mapper';
+	import type { UserClient } from '$lib/types/user-mapper';
 
-  // Data from +page.server.ts (already mapped to camelCase)
-  let { data }: { data: { user: UserClient } } = $props();
+	// Data from +page.server.ts (already mapped to camelCase)
+	let { data }: { data: { user: UserClient } } = $props();
 </script>
 
 <div class="profile">
-  <h1>{data.user.displayName}</h1>
-  <p>Email: {data.user.email}</p>
-  <p>Job Title: {data.user.jobTitle}</p>
+	<h1>{data.user.displayName}</h1>
+	<p>Email: {data.user.email}</p>
+	<p>Job Title: {data.user.jobTitle}</p>
 
-  {#if data.user.jobInfo}
-    <div class="job-details">
-      <p>Hire Date: {data.user.jobInfo.hireDate}</p>
-      <p>Employment Type: {data.user.jobInfo.employmentType}</p>
-      <p>Remote: {data.user.jobInfo.isRemote ? 'Yes' : 'No'}</p>
-    </div>
-  {/if}
+	{#if data.user.jobInfo}
+		<div class="job-details">
+			<p>Hire Date: {data.user.jobInfo.hireDate}</p>
+			<p>Employment Type: {data.user.jobInfo.employmentType}</p>
+			<p>Remote: {data.user.jobInfo.isRemote ? 'Yes' : 'No'}</p>
+		</div>
+	{/if}
 
-  {#if data.user.emergencyContacts}
-    <h2>Emergency Contacts</h2>
-    {#each data.user.emergencyContacts as contact}
-      <div class="contact">
-        <p>{contact.name} ({contact.relationship})</p>
-        <p>Phone: {contact.phoneNumber}</p>
-        {#if contact.isPrimary}
-          <span class="badge">Primary</span>
-        {/if}
-      </div>
-    {/each}
-  {/if}
+	{#if data.user.emergencyContacts}
+		<h2>Emergency Contacts</h2>
+		{#each data.user.emergencyContacts as contact}
+			<div class="contact">
+				<p>{contact.name} ({contact.relationship})</p>
+				<p>Phone: {contact.phoneNumber}</p>
+				{#if contact.isPrimary}
+					<span class="badge">Primary</span>
+				{/if}
+			</div>
+		{/each}
+	{/if}
 </div>
 ```
 
@@ -275,20 +279,22 @@ import { mapUserFromGraphQL } from '$lib/types/user-mapper';
 import { GET_USER_QUERY } from '$lib/graphql/user-operations';
 
 export const load: PageServerLoad = async ({ locals }) => {
-  const client = createUrqlClient();
+	const client = createUrqlClient();
 
-  const result = await client.query(GET_USER_QUERY, {
-    id: locals.user.id
-  }).toPromise();
+	const result = await client
+		.query(GET_USER_QUERY, {
+			id: locals.user.id
+		})
+		.toPromise();
 
-  if (!result.data?.user) {
-    throw error(404, 'User not found');
-  }
+	if (!result.data?.user) {
+		throw error(404, 'User not found');
+	}
 
-  // Convert GraphQL snake_case to client camelCase
-  const user = mapUserFromGraphQL(result.data.user);
+	// Convert GraphQL snake_case to client camelCase
+	const user = mapUserFromGraphQL(result.data.user);
 
-  return { user };
+	return { user };
 };
 ```
 
@@ -300,46 +306,46 @@ import { mapUserFromGraphQL, mapUserToGraphQL } from '$lib/types/user-mapper';
 import { UPDATE_USER_MUTATION } from '$lib/graphql/user-operations';
 
 export const load: PageServerLoad = async ({ locals }) => {
-  const client = createUrqlClient();
-  const result = await client.query(GET_USER_QUERY, { id: locals.user.id }).toPromise();
+	const client = createUrqlClient();
+	const result = await client.query(GET_USER_QUERY, { id: locals.user.id }).toPromise();
 
-  return {
-    user: mapUserFromGraphQL(result.data.user)
-  };
+	return {
+		user: mapUserFromGraphQL(result.data.user)
+	};
 };
 
 export const actions = {
-  updateProfile: async ({ request, locals }) => {
-    const formData = await request.formData();
+	updateProfile: async ({ request, locals }) => {
+		const formData = await request.formData();
 
-    // Build UserClient object from form
-    const userClient: UserClient = {
-      id: locals.user.id,
-      firstName: formData.get('firstName') as string,
-      lastName: formData.get('lastName') as string,
-      displayName: formData.get('displayName') as string,
-      phoneNumber: formData.get('phoneNumber') as string,
-      jobInfo: {
-        employmentType: formData.get('employmentType') as string,
-        isRemote: formData.get('isRemote') === 'true'
-      }
-    };
+		// Build UserClient object from form
+		const userClient: UserClient = {
+			id: locals.user.id,
+			firstName: formData.get('firstName') as string,
+			lastName: formData.get('lastName') as string,
+			displayName: formData.get('displayName') as string,
+			phoneNumber: formData.get('phoneNumber') as string,
+			jobInfo: {
+				employmentType: formData.get('employmentType') as string,
+				isRemote: formData.get('isRemote') === 'true'
+			}
+		};
 
-    // Convert to GraphQL snake_case for mutation
-    const userGraphQL = mapUserToGraphQL(userClient);
+		// Convert to GraphQL snake_case for mutation
+		const userGraphQL = mapUserToGraphQL(userClient);
 
-    const client = createUrqlClient();
-    const result = await client.mutation(UPDATE_USER_MUTATION, {
-      id: userClient.id,
-      input: userGraphQL
-    });
+		const client = createUrqlClient();
+		const result = await client.mutation(UPDATE_USER_MUTATION, {
+			id: userClient.id,
+			input: userGraphQL
+		});
 
-    if (result.error) {
-      return fail(400, { error: result.error.message });
-    }
+		if (result.error) {
+			return fail(400, { error: result.error.message });
+		}
 
-    return { success: true };
-  }
+		return { success: true };
+	}
 };
 ```
 
@@ -350,26 +356,28 @@ export const actions = {
 import { mapUserFromGraphQL, type UserClient } from '$lib/types/user-mapper';
 
 class AuthStore {
-  user = $state<UserClient | null>(null);
+	user = $state<UserClient | null>(null);
 
-  async setUser(userGraphQL: UserGraphQL): Promise<void> {
-    // Convert GraphQL user to client format
-    this.user = mapUserFromGraphQL(userGraphQL);
-    await this.loadUserRoles(this.user.id);
-  }
+	async setUser(userGraphQL: UserGraphQL): Promise<void> {
+		// Convert GraphQL user to client format
+		this.user = mapUserFromGraphQL(userGraphQL);
+		await this.loadUserRoles(this.user.id);
+	}
 
-  async refreshUser(): Promise<void> {
-    if (!this.user?.id) return;
+	async refreshUser(): Promise<void> {
+		if (!this.user?.id) return;
 
-    const client = createUrqlClient();
-    const result = await client.query(GET_USER_QUERY, {
-      id: this.user.id
-    }).toPromise();
+		const client = createUrqlClient();
+		const result = await client
+			.query(GET_USER_QUERY, {
+				id: this.user.id
+			})
+			.toPromise();
 
-    if (result.data?.user) {
-      this.user = mapUserFromGraphQL(result.data.user);
-    }
-  }
+		if (result.data?.user) {
+			this.user = mapUserFromGraphQL(result.data.user);
+		}
+	}
 }
 ```
 
@@ -380,22 +388,24 @@ class AuthStore {
 Replace direct GraphQL responses with mapped data:
 
 **Before:**
+
 ```typescript
 export const load: PageServerLoad = async () => {
-  const result = await client.query(GET_USER_QUERY, { id }).toPromise();
-  return { user: result.data.user }; // snake_case
+	const result = await client.query(GET_USER_QUERY, { id }).toPromise();
+	return { user: result.data.user }; // snake_case
 };
 ```
 
 **After:**
+
 ```typescript
 import { mapUserFromGraphQL } from '$lib/types/user-mapper';
 
 export const load: PageServerLoad = async () => {
-  const result = await client.query(GET_USER_QUERY, { id }).toPromise();
-  return {
-    user: mapUserFromGraphQL(result.data.user) // camelCase
-  };
+	const result = await client.query(GET_USER_QUERY, { id }).toPromise();
+	return {
+		user: mapUserFromGraphQL(result.data.user) // camelCase
+	};
 };
 ```
 
@@ -404,11 +414,13 @@ export const load: PageServerLoad = async () => {
 Replace generic User types with UserClient:
 
 **Before:**
+
 ```typescript
 let { data }: { data: { user: User } } = $props();
 ```
 
 **After:**
+
 ```typescript
 import type { UserClient } from '$lib/types/user-mapper';
 
@@ -421,10 +433,10 @@ No code changes needed! Components already use camelCase:
 
 ```typescript
 // These all work automatically after mapping
-user.displayName
-user.firstName
-user.jobInfo?.hireDate
-user.emergencyContacts?.[0].phoneNumber
+user.displayName;
+user.firstName;
+user.jobInfo?.hireDate;
+user.emergencyContacts?.[0].phoneNumber;
 ```
 
 ## Best Practices
@@ -495,11 +507,11 @@ Example of TypeScript catching errors:
 ```typescript
 const user = mapUserFromGraphQL(graphqlUser);
 
-user.displayName;  // ✅ Valid - camelCase
+user.displayName; // ✅ Valid - camelCase
 user.display_name; // ❌ TypeScript error - snake_case not allowed
 
-user.jobInfo?.hireDate;      // ✅ Valid - camelCase
-user.job_info?.hire_date;    // ❌ TypeScript error - snake_case not allowed
+user.jobInfo?.hireDate; // ✅ Valid - camelCase
+user.job_info?.hire_date; // ❌ TypeScript error - snake_case not allowed
 ```
 
 ## Performance Considerations

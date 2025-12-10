@@ -11,7 +11,12 @@ export const load: PageServerLoad = async (event) => {
 
 	// RBAC: Check department write permissions
 	requireAuth(event, {
-		requiredPermissions: ['departments:write', 'departments:write:self', 'departments:write:team', 'departments:write:all']
+		requiredPermissions: [
+			'departments:write',
+			'departments:write:self',
+			'departments:write:team',
+			'departments:write:all'
+		]
 	});
 
 	// After permission check, re-destructure locals with guaranteed user
@@ -183,7 +188,12 @@ export const actions: Actions = {
 
 		// RBAC: Check department write permissions
 		requireAuth(event, {
-			requiredPermissions: ['departments:write', 'departments:write:self', 'departments:write:team', 'departments:write:all']
+			requiredPermissions: [
+				'departments:write',
+				'departments:write:self',
+				'departments:write:team',
+				'departments:write:all'
+			]
 		});
 
 		// After permission check, re-destructure locals

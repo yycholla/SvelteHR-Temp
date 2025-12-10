@@ -104,10 +104,7 @@ describe('Employee Skills Integration (P2 Feature)', () => {
 		test('should filter skills by proficiency level', async () => {
 			const query = gql`
 				query GetExpertSkills {
-					employeeSkills(
-						filter: { proficiencyLevel: { equalTo: 5 } }
-						first: 10
-					) {
+					employeeSkills(filter: { proficiencyLevel: { equalTo: 5 } }, first: 10) {
 						nodes {
 							id
 							skillName
@@ -135,14 +132,7 @@ describe('Employee Skills Integration (P2 Feature)', () => {
 		test('should filter skills by proficiency range', async () => {
 			const query = gql`
 				query GetAdvancedSkills {
-					employeeSkills(
-						filter: {
-							proficiencyLevel: {
-								greaterThanOrEqualTo: 4
-							}
-						}
-						first: 20
-					) {
+					employeeSkills(filter: { proficiencyLevel: { greaterThanOrEqualTo: 4 } }, first: 20) {
 						nodes {
 							id
 							skillName
@@ -169,10 +159,7 @@ describe('Employee Skills Integration (P2 Feature)', () => {
 		test('should search skills by name', async () => {
 			const query = gql`
 				query SearchSkillsByName($searchTerm: String!) {
-					employeeSkills(
-						filter: { skillName: { includesInsensitive: $searchTerm } }
-						first: 20
-					) {
+					employeeSkills(filter: { skillName: { includesInsensitive: $searchTerm } }, first: 20) {
 						nodes {
 							id
 							skillName
@@ -198,10 +185,7 @@ describe('Employee Skills Integration (P2 Feature)', () => {
 		test('should query skills with endorsements', async () => {
 			const query = gql`
 				query GetEndorsedSkills {
-					employeeSkills(
-						filter: { endorsedBy: { isNull: false } }
-						first: 10
-					) {
+					employeeSkills(filter: { endorsedBy: { isNull: false } }, first: 10) {
 						nodes {
 							id
 							skillName
@@ -359,10 +343,7 @@ describe('Employee Certifications Integration (P2 Feature)', () => {
 		test('should filter permanent certifications (null expiryDate)', async () => {
 			const query = gql`
 				query GetPermanentCertifications {
-					employeeCertifications(
-						filter: { expiryDate: { isNull: true } }
-						first: 10
-					) {
+					employeeCertifications(filter: { expiryDate: { isNull: true } }, first: 10) {
 						nodes {
 							id
 							certificationName
@@ -387,12 +368,7 @@ describe('Employee Certifications Integration (P2 Feature)', () => {
 			const query = gql`
 				query GetExpiringSoonCertifications($date: Date!) {
 					employeeCertifications(
-						filter: {
-							expiryDate: {
-								isNull: false
-								lessThan: $date
-							}
-						}
+						filter: { expiryDate: { isNull: false, lessThan: $date } }
 						first: 20
 					) {
 						nodes {

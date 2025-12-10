@@ -17,7 +17,12 @@ export const load: PageServerLoad = async (event) => {
 
 	// Check authentication and permissions
 	requireAuth(event, {
-		requiredPermissions: ['performance:read', 'performance:read:self', 'performance:read:team', 'performance:read:all']
+		requiredPermissions: [
+			'performance:read',
+			'performance:read:self',
+			'performance:read:team',
+			'performance:read:all'
+		]
 	});
 
 	// After permission check, re-destructure locals with guaranteed user

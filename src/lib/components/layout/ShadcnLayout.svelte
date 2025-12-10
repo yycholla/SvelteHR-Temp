@@ -219,7 +219,11 @@
 										</Sidebar.MenuSub>
 									{:else}
 										<Sidebar.MenuButton asChild>
-											<a href={typedItem.href} class="flex items-center gap-2" data-active={typedItem.active}>
+											<a
+												href={typedItem.href}
+												class="flex items-center gap-2"
+												data-active={typedItem.active}
+											>
 												<ItemIcon class="h-4 w-4" />
 												<span>{typedItem.label}</span>
 											</a>

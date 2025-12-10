@@ -62,7 +62,12 @@ export const load: PageServerLoad = async (event) => {
 
 	// Check authentication and permissions
 	requireAuth(event, {
-		requiredPermissions: ['performance:read', 'performance:read:self', 'performance:read:team', 'performance:read:all']
+		requiredPermissions: [
+			'performance:read',
+			'performance:read:self',
+			'performance:read:team',
+			'performance:read:all'
+		]
 	});
 
 	// After permission check, re-destructure locals with guaranteed user
@@ -161,10 +166,12 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		const rawReviews: PerformanceReviewFromGraphQL[] = reviewsResult.data?.performanceReviews || [];
-		const reviews: TransformedReview[] = rawReviews.map((r: PerformanceReviewFromGraphQL): TransformedReview => ({
-			...r,
-			reviewPeriod: r.cycle?.name || 'Performance Review'
-		}));
+		const reviews: TransformedReview[] = rawReviews.map(
+			(r: PerformanceReviewFromGraphQL): TransformedReview => ({
+				...r,
+				reviewPeriod: r.cycle?.name || 'Performance Review'
+			})
+		);
 
 		// Calculate overall rating (average of completed reviews)
 		const completedReviews: TransformedReview[] = reviews.filter(
@@ -173,25 +180,29 @@ export const load: PageServerLoad = async (event) => {
 		const averageRating =
 			completedReviews.length > 0
 				? (
-						completedReviews.reduce((sum: number, r: TransformedReview) => sum + (r.overallRating || 0), 0) /
-						completedReviews.length
+						completedReviews.reduce(
+							(sum: number, r: TransformedReview) => sum + (r.overallRating || 0),
+							0
+						) / completedReviews.length
 					).toFixed(1)
 				: 'N/A';
 
 		// Transform employeeGoals to match expected format
 		const rawGoals: EmployeeGoalRawFromGraphQL[] = goalsResult.data?.employeeGoals || [];
 		console.log('[Performance Page] Raw goals:', rawGoals.length);
-		const goals: TransformedGoal[] = rawGoals.map((goal: EmployeeGoalRawFromGraphQL): TransformedGoal => ({
-			id: goal.id,
-			title: goal.goalTitle,
-			description: goal.goalDescription,
-			// Convert GraphQL enum (NOT_STARTED) to frontend format (not_started)
-			status: goal.status?.toLowerCase() || 'not_started',
-			progressPercentage: goal.progressPercentage,
-			targetDate: goal.targetDate,
-			createdAt: goal.createdAt,
-			updatedAt: goal.updatedAt
-		}));
+		const goals: TransformedGoal[] = rawGoals.map(
+			(goal: EmployeeGoalRawFromGraphQL): TransformedGoal => ({
+				id: goal.id,
+				title: goal.goalTitle,
+				description: goal.goalDescription,
+				// Convert GraphQL enum (NOT_STARTED) to frontend format (not_started)
+				status: goal.status?.toLowerCase() || 'not_started',
+				progressPercentage: goal.progressPercentage,
+				targetDate: goal.targetDate,
+				createdAt: goal.createdAt,
+				updatedAt: goal.updatedAt
+			})
+		);
 
 		// Calculate date ranges for current quarter
 		const currentDate = new Date();
@@ -224,12 +235,19 @@ export const load: PageServerLoad = async (event) => {
 			averageProgress:
 				goals.length > 0
 					? Math.round(
-							goals.reduce((sum: number, g: TransformedGoal) => sum + (g.progressPercentage || 0), 0) / goals.length
+							goals.reduce(
+								(sum: number, g: TransformedGoal) => sum + (g.progressPercentage || 0),
+								0
+							) / goals.length
 						)
 					: 0,
 			completionRate:
 				goals.length > 0
-					? Math.round((goals.filter((g: TransformedGoal) => g.status === 'completed').length / goals.length) * 100)
+					? Math.round(
+							(goals.filter((g: TransformedGoal) => g.status === 'completed').length /
+								goals.length) *
+								100
+						)
 					: 0
 		};
 
@@ -238,7 +256,8 @@ export const load: PageServerLoad = async (event) => {
 			user,
 			userId,
 			goals: goals.sort(
-				(a: TransformedGoal, b: TransformedGoal) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+				(a: TransformedGoal, b: TransformedGoal) =>
+					new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
 			),
 			reviews,
 			averageRating,

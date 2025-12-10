@@ -52,9 +52,7 @@
 		{ value: '', label: 'No Manager Assigned' },
 		...$users.map((user) => ({
 			value: user.id,
-			label:
-				user.display_name ||
-				`${user.firstName || ''} ${user.lastName || ''}`.trim()
+			label: user.display_name || `${user.firstName || ''} ${user.lastName || ''}`.trim()
 		}))
 	]);
 

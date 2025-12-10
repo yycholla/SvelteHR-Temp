@@ -70,10 +70,7 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 		test('should handle null reminderTime values', async () => {
 			const query = gql`
 				query GetAttendeesWithoutReminders {
-					allEventAttendees(
-						condition: { reminderTime: null }
-						first: 5
-					) {
+					allEventAttendees(condition: { reminderTime: null }, first: 5) {
 						nodes {
 							id
 							reminderTime
@@ -99,10 +96,7 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 			// This test is skipped until GraphQL server connection filter properly includes reminderTime in EventAttendeeFilter
 			const query = gql`
 				query GetAttendeesWithReminders {
-					allEventAttendees(
-						filter: { reminderTime: { isNull: false } }
-						first: 10
-					) {
+					allEventAttendees(filter: { reminderTime: { isNull: false } }, first: 10) {
 						nodes {
 							id
 							reminderTime
@@ -259,10 +253,7 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 		test('should filter by specific reminder time values', async () => {
 			const query = gql`
 				query GetAttendeesByReminderTime($reminderTime: Int!) {
-					allEventAttendees(
-						condition: { reminderTime: $reminderTime }
-						first: 10
-					) {
+					allEventAttendees(condition: { reminderTime: $reminderTime }, first: 10) {
 						nodes {
 							id
 							reminderTime
@@ -292,12 +283,7 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 			const query = gql`
 				query GetAttendeesInReminderRange($min: Int!, $max: Int!) {
 					allEventAttendees(
-						filter: {
-							reminderTime: {
-								greaterThanOrEqualTo: $min
-								lessThanOrEqualTo: $max
-							}
-						}
+						filter: { reminderTime: { greaterThanOrEqualTo: $min, lessThanOrEqualTo: $max } }
 						first: 20
 					) {
 						nodes {
@@ -382,7 +368,13 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 
 			// Get a test event first
 			const eventsQuery = gql`
-				query { events(first: 1) { nodes { id } } }
+				query {
+					events(first: 1) {
+						nodes {
+							id
+						}
+					}
+				}
 			`;
 			const eventsResult = await graphqlClient.query(eventsQuery, {}).toPromise();
 
@@ -413,10 +405,7 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 			// This test is skipped until GraphQL server connection filter properly includes reminderTime in EventAttendeeFilter
 			const query = gql`
 				query GetAllAttendeesWithReminders {
-					allEventAttendees(
-						filter: { reminderTime: { isNull: false } }
-						first: 100
-					) {
+					allEventAttendees(filter: { reminderTime: { isNull: false } }, first: 100) {
 						totalCount
 						nodes {
 							id
@@ -483,9 +472,7 @@ export const eventReminderTestUtils = {
 	queryAttendeesByReminderTime: async (client: Client, reminderTime: number) => {
 		const query = gql`
 			query QueryByReminderTime($reminderTime: Int!) {
-				allEventAttendees(
-					condition: { reminderTime: $reminderTime }
-				) {
+				allEventAttendees(condition: { reminderTime: $reminderTime }) {
 					nodes {
 						id
 						reminderTime

@@ -85,14 +85,17 @@ export const load: PageServerLoad = async (event) => {
 			averageProgress:
 				transformedGoals.length > 0
 					? Math.round(
-							transformedGoals.reduce((sum: number, g: any) => sum + (g.progressPercentage || 0), 0) /
-								transformedGoals.length
+							transformedGoals.reduce(
+								(sum: number, g: any) => sum + (g.progressPercentage || 0),
+								0
+							) / transformedGoals.length
 						)
 					: 0,
 			completionRate:
 				totalGoals > 0
 					? Math.round(
-							(transformedGoals.filter((g: any) => g.status === 'completed').length / totalGoals) * 100
+							(transformedGoals.filter((g: any) => g.status === 'completed').length / totalGoals) *
+								100
 						)
 					: 0
 		};

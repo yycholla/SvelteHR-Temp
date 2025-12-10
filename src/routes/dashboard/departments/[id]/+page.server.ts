@@ -13,7 +13,12 @@ export const load: PageServerLoad = async (event) => {
 	if (departmentId === 'new') {
 		// RBAC: Check department write permissions for creating new department
 		requireAuth(event, {
-			requiredPermissions: ['departments:write', 'departments:write:self', 'departments:write:team', 'departments:write:all']
+			requiredPermissions: [
+				'departments:write',
+				'departments:write:self',
+				'departments:write:team',
+				'departments:write:all'
+			]
 		});
 
 		// After permission check, re-destructure locals with guaranteed user
@@ -44,7 +49,12 @@ export const load: PageServerLoad = async (event) => {
 
 	// RBAC: Check department read permissions
 	requireAuth(event, {
-		requiredPermissions: ['departments:read', 'departments:read:self', 'departments:read:team', 'departments:read:all']
+		requiredPermissions: [
+			'departments:read',
+			'departments:read:self',
+			'departments:read:team',
+			'departments:read:all'
+		]
 	});
 
 	// After permission check, re-destructure locals with guaranteed user

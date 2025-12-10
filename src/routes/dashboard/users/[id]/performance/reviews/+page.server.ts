@@ -211,7 +211,9 @@ export const load: PageServerLoad = async (event) => {
 		const allReviews: PerformanceReviewFromGraphQL[] = reviewsData.data?.performanceReviews || [];
 
 		// Client-side filtering for employeeId
-		const rawReviews: PerformanceReviewFromGraphQL[] = allReviews.filter((review: PerformanceReviewFromGraphQL) => review.employeeId === userId);
+		const rawReviews: PerformanceReviewFromGraphQL[] = allReviews.filter(
+			(review: PerformanceReviewFromGraphQL) => review.employeeId === userId
+		);
 
 		// Static competency areas for display
 		const competencyAreas = [
@@ -236,49 +238,51 @@ export const load: PageServerLoad = async (event) => {
 		];
 
 		// Map reviews to expected format
-		const reviews: TransformedReview[] = rawReviews.map((review: PerformanceReviewFromGraphQL): TransformedReview => {
-			// Extract cycle information for review type and period
-			const cycleType = review.cycle?.reviewType || 'annual_review';
-			const matchingType =
-				reviewTypes.find((t) => t.id === cycleType.replace('_review', '')) || reviewTypes[0];
+		const reviews: TransformedReview[] = rawReviews.map(
+			(review: PerformanceReviewFromGraphQL): TransformedReview => {
+				// Extract cycle information for review type and period
+				const cycleType = review.cycle?.reviewType || 'annual_review';
+				const matchingType =
+					reviewTypes.find((t) => t.id === cycleType.replace('_review', '')) || reviewTypes[0];
 
-			// Map goals from review_goal relationships
-			const goals = Array.isArray(review.goals) ? review.goals : [];
+				// Map goals from review_goal relationships
+				const goals = Array.isArray(review.goals) ? review.goals : [];
 
-			return {
-				id: review.id,
-				type: matchingType,
-				status: review.status || 'scheduled',
-				reviewPeriod: {
-					start: review.cycle?.startDate || new Date().toISOString().split('T')[0],
-					end: review.cycle?.endDate || new Date().toISOString().split('T')[0]
-				},
-				scheduledDate: review.createdAt?.split('T')[0],
-				completedDate:
-					review.status === 'completed' && review.submittedAt
-						? review.submittedAt.split('T')[0]
+				return {
+					id: review.id,
+					type: matchingType,
+					status: review.status || 'scheduled',
+					reviewPeriod: {
+						start: review.cycle?.startDate || new Date().toISOString().split('T')[0],
+						end: review.cycle?.endDate || new Date().toISOString().split('T')[0]
+					},
+					scheduledDate: review.createdAt?.split('T')[0],
+					completedDate:
+						review.status === 'completed' && review.submittedAt
+							? review.submittedAt.split('T')[0]
+							: null,
+					reviewer: review.reviewer
+						? {
+								id: review.reviewer.id,
+								displayName: review.reviewer.displayName,
+								email: review.reviewer.email
+							}
 						: null,
-				reviewer: review.reviewer
-					? {
-							id: review.reviewer.id,
-							displayName: review.reviewer.displayName,
-							email: review.reviewer.email
-						}
-					: null,
-				overallRating: review.overallRating || 0,
-				competencies: [], // Would need to query review_feedback or review_template
-				goals,
-				feedback: {
-					strengths: [], // Would need to query review_feedback with feedback_type='strengths'
-					improvements: [], // Would need to query review_feedback with feedback_type='improvements'
-					managerComments: review.managerFeedback || '',
-					employeeComments: null // Would need to query review_feedback with feedback_type='self_review'
-				},
-				developmentPlan: [], // Would need to query review_goals with goal_type='development'
-				createdAt: review.createdAt,
-				lastUpdated: review.updatedAt
-			};
-		});
+					overallRating: review.overallRating || 0,
+					competencies: [], // Would need to query review_feedback or review_template
+					goals,
+					feedback: {
+						strengths: [], // Would need to query review_feedback with feedback_type='strengths'
+						improvements: [], // Would need to query review_feedback with feedback_type='improvements'
+						managerComments: review.managerFeedback || '',
+						employeeComments: null // Would need to query review_feedback with feedback_type='self_review'
+					},
+					developmentPlan: [], // Would need to query review_goals with goal_type='development'
+					createdAt: review.createdAt,
+					lastUpdated: review.updatedAt
+				};
+			}
+		);
 
 		// Determine if user can manage reviews (based on permissions)
 		const canViewOthers =
@@ -295,11 +299,17 @@ export const load: PageServerLoad = async (event) => {
 			overdue: reviews.filter((r: TransformedReview) => r.status === 'overdue').length,
 			averageRating: reviews
 				.filter((r: TransformedReview) => r.status === 'completed' && r.overallRating > 0)
-				.reduce((sum: number, r: TransformedReview, _: number, arr: TransformedReview[]) => sum + r.overallRating / (arr.length || 1), 0),
-			lastReviewDate: reviews.find((r: TransformedReview) => r.status === 'completed')?.completedDate || null,
+				.reduce(
+					(sum: number, r: TransformedReview, _: number, arr: TransformedReview[]) =>
+						sum + r.overallRating / (arr.length || 1),
+					0
+				),
+			lastReviewDate:
+				reviews.find((r: TransformedReview) => r.status === 'completed')?.completedDate || null,
 			nextReviewDate:
-				reviews.find((r: TransformedReview) => r.status === 'scheduled' || r.status === 'in_progress')
-					?.scheduledDate || null
+				reviews.find(
+					(r: TransformedReview) => r.status === 'scheduled' || r.status === 'in_progress'
+				)?.scheduledDate || null
 		};
 
 		return {

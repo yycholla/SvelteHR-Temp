@@ -10,7 +10,12 @@ export const load: PageServerLoad = async (event) => {
 
 	// Check authentication and permissions
 	requireAuth(event, {
-		requiredPermissions: ['employees:write', 'employees:write:self', 'employees:write:team', 'employees:write:all']
+		requiredPermissions: [
+			'employees:write',
+			'employees:write:self',
+			'employees:write:team',
+			'employees:write:all'
+		]
 	});
 
 	// After permission check, re-destructure locals with guaranteed user
@@ -101,7 +106,12 @@ export const actions: Actions = {
 
 		// Check authentication and permissions
 		requireAuth(event, {
-			requiredPermissions: ['employees:write', 'employees:write:self', 'employees:write:team', 'employees:write:all']
+			requiredPermissions: [
+				'employees:write',
+				'employees:write:self',
+				'employees:write:team',
+				'employees:write:all'
+			]
 		});
 
 		// After permission check, re-destructure locals with guaranteed user

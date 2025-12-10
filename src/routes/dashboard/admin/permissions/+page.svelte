@@ -91,14 +91,17 @@
 
 	// Group permissions by resource for better organization
 	const permissionsByResource = $derived(
-		data.permissions.reduce((acc: Record<string, Permission[]>, permission: Permission) => {
-			const resource = permission.resource || 'general';
-			if (!acc[resource]) {
-				acc[resource] = [];
-			}
-			acc[resource].push(permission);
-			return acc;
-		}, {} as Record<string, Permission[]>)
+		data.permissions.reduce(
+			(acc: Record<string, Permission[]>, permission: Permission) => {
+				const resource = permission.resource || 'general';
+				if (!acc[resource]) {
+					acc[resource] = [];
+				}
+				acc[resource].push(permission);
+				return acc;
+			},
+			{} as Record<string, Permission[]>
+		)
 	);
 
 	// Helper functions

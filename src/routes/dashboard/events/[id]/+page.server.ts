@@ -142,7 +142,12 @@ export const actions: Actions = {
 
 		// Check authentication and permissions
 		requireAuth(event, {
-			requiredPermissions: ['events:write', 'events:write:self', 'events:write:team', 'events:write:all']
+			requiredPermissions: [
+				'events:write',
+				'events:write:self',
+				'events:write:team',
+				'events:write:all'
+			]
 		});
 
 		// After permission check, re-destructure locals

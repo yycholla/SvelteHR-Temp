@@ -518,8 +518,7 @@ export function getTaskPermissionsSummary(
 			effectiveRole === 'manager' || effectiveRole === 'admin' || effectiveRole === 'super_admin',
 		canReassignTasks:
 			hasPermission(userPermissions, ['tasks:reassign']) || effectiveRole === 'manager',
-		canDeleteTasks:
-			hasPermission(userPermissions, ['tasks:delete']) || effectiveRole === 'admin',
+		canDeleteTasks: hasPermission(userPermissions, ['tasks:delete']) || effectiveRole === 'admin',
 		canManageTaskTypes: effectiveRole === 'admin' || effectiveRole === 'super_admin',
 		effectiveRole
 	};
