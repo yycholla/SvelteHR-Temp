@@ -24,6 +24,8 @@ declare global {
 				departmentName?: string;
 				full_name?: string;
 				fullName?: string;
+				job_title?: string;
+				jobTitle?: string;
 			};
 			permissions?: string[];
 			roles?: string[];
