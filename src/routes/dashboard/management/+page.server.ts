@@ -155,7 +155,7 @@ export const load: PageServerLoad = async (event) => {
 		// Determine user's managed department
 		let managedDepartmentId: number | null = null;
 		if (!isAdmin && isManager) {
-			const userDept = departments.find((d) => d.managerId === locals.user.id);
+			const userDept = departments.find((d: any) => d.managerId === locals.user.id);
 			managedDepartmentId = userDept?.id || null;
 		}
 
@@ -165,7 +165,7 @@ export const load: PageServerLoad = async (event) => {
 		// Filter employees for managers (admins see all)
 		const filteredUsers = isAdmin
 			? users
-			: users.filter((u) => (managedDepartmentId ? u.departmentId === managedDepartmentId : false));
+			: users.filter((u: any) => (managedDepartmentId ? u.departmentId === managedDepartmentId : false));
 
 		// Generate mock dashboard analytics from real user data
 		const dashboardAnalytics = {
@@ -196,7 +196,7 @@ export const load: PageServerLoad = async (event) => {
 			},
 			teamStats: {
 				totalEmployees: filteredUsers.length,
-				activeEmployees: filteredUsers.filter((u) => u.isActive).length,
+				activeEmployees: filteredUsers.filter((u: any) => u.isActive).length,
 				departmentCount: isAdmin ? departments.length : 1,
 				avgTenure: '2.5 years'
 			}

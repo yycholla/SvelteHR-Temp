@@ -57,7 +57,7 @@ export const load: PageServerLoad = async (event) => {
 		const totalGoals = goals.length; // Use array length instead of count query
 
 		// Transform goals data to expected format
-		const transformedGoals = goals.map((goal) => ({
+		const transformedGoals = goals.map((goal: any) => ({
 			...goal,
 			title: goal.goalTitle,
 			description: goal.goalDescription,
@@ -72,33 +72,33 @@ export const load: PageServerLoad = async (event) => {
 		// Calculate analytics from real data
 		const analytics = {
 			totalGoals,
-			activeGoals: transformedGoals.filter((g) => g.status === 'in_progress').length,
-			completedGoals: transformedGoals.filter((g) => g.status === 'completed').length,
+			activeGoals: transformedGoals.filter((g: any) => g.status === 'in_progress').length,
+			completedGoals: transformedGoals.filter((g: any) => g.status === 'completed').length,
 			overdueGoals: transformedGoals.filter(
-				(g) => new Date(g.targetDate) < new Date() && g.status !== 'completed'
+				(g: any) => new Date(g.targetDate) < new Date() && g.status !== 'completed'
 			).length,
 			highPriorityGoals: 0, // Priority field doesn't exist in schema
 			averageProgress:
 				transformedGoals.length > 0
 					? Math.round(
-							transformedGoals.reduce((sum, g) => sum + (g.progressPercentage || 0), 0) /
+							transformedGoals.reduce((sum: number, g: any) => sum + (g.progressPercentage || 0), 0) /
 								transformedGoals.length
 						)
 					: 0,
 			completionRate:
 				totalGoals > 0
 					? Math.round(
-							(transformedGoals.filter((g) => g.status === 'completed').length / totalGoals) * 100
+							(transformedGoals.filter((g: any) => g.status === 'completed').length / totalGoals) * 100
 						)
 					: 0
 		};
 
 		// Calculate additional metrics
 		const onTrackGoals = transformedGoals.filter(
-			(g) => (g.progressPercentage || 0) >= 50 && g.status === 'in_progress'
+			(g: any) => (g.progressPercentage || 0) >= 50 && g.status === 'in_progress'
 		).length;
 		const atRiskGoals = transformedGoals.filter(
-			(g) => (g.progressPercentage || 0) < 50 && g.status === 'in_progress'
+			(g: any) => (g.progressPercentage || 0) < 50 && g.status === 'in_progress'
 		).length;
 		const behindGoals = analytics.overdueGoals;
 

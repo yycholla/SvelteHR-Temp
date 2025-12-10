@@ -235,7 +235,7 @@ describe('Events Query Contract', () => {
 			const result = await mockEventsQuery(variables);
 
 			// Assert
-			expect(result.events.every((e) => e.visibility === 'public')).toBe(true);
+			expect(result.events.every((e: Event) => e.visibility === 'public')).toBe(true);
 		});
 
 		test('should return only invited private events', async () => {

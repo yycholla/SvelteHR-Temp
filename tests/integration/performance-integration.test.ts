@@ -86,7 +86,7 @@ describe('Performance Monitoring Integration', () => {
 
 		// Check that the metric was recorded
 		const entries = performanceMonitor.getEntries?.() || [];
-		const testEntry = entries.find((e) => e.name.includes('TestOperation'));
+		const testEntry = entries.find((e: any) => e.name.includes('TestOperation'));
 
 		if (testEntry) {
 			expect(testEntry.duration).toBeGreaterThan(90); // Approximately 100ms
@@ -128,7 +128,7 @@ describe('Performance Monitoring Integration', () => {
 		}
 
 		const entries = performanceMonitor.getEntries?.() || [];
-		const errorEntry = entries.find((e) => e.name === 'ErrorTest');
+		const errorEntry = entries.find((e: any) => e.name === 'ErrorTest');
 
 		if (errorEntry) {
 			expect(errorEntry.status).toBe('error');

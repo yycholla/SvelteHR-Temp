@@ -175,7 +175,7 @@ export const load: PageServerLoad = async (event) => {
 		const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
 		// Get unique types from actual data (categories are not in current Rust schema)
-		const uniqueTypes = [...new Set(reports.map((r) => r.type))];
+		const uniqueTypes = [...new Set(reports.map((r: any) => r.type))];
 
 		const analytics = {
 			summary: {
@@ -183,18 +183,18 @@ export const load: PageServerLoad = async (event) => {
 				activeReports: 0, // No status field in current Rust schema
 				scheduledReports: 0, // No status field in current Rust schema
 				completedReports: totalCount, // Assume all reports are completed
-				generatedToday: reports.filter((r) => new Date(r.createdAt) >= todayStart).length,
-				generatedThisWeek: reports.filter((r) => new Date(r.createdAt) >= weekStart).length,
-				generatedThisMonth: reports.filter((r) => new Date(r.createdAt) >= monthStart).length,
+				generatedToday: reports.filter((r: any) => new Date(r.createdAt) >= todayStart).length,
+				generatedThisWeek: reports.filter((r: any) => new Date(r.createdAt) >= weekStart).length,
+				generatedThisMonth: reports.filter((r: any) => new Date(r.createdAt) >= monthStart).length,
 				mostPopularType: uniqueTypes[0] || 'general',
 				avgRunTime: 0 // Not calculated from current schema
 			},
-			typeBreakdown: uniqueTypes.map((type) => ({
+			typeBreakdown: uniqueTypes.map((type: string) => ({
 				type,
-				count: reports.filter((r) => r.type === type).length,
+				count: reports.filter((r: any) => r.type === type).length,
 				percentage:
 					totalCount > 0
-						? Math.round((reports.filter((r) => r.type === type).length / totalCount) * 100)
+						? Math.round((reports.filter((r: any) => r.type === type).length / totalCount) * 100)
 						: 0
 			})),
 			categoryBreakdown: [{ category: 'General', count: totalCount, percentage: 100 }], // Single category since not in schema

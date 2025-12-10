@@ -146,7 +146,7 @@ export const load: PageServerLoad = async (event) => {
 		const totalRequests = leaveRequestsData.length;
 
 		// Transform GraphQL data to expected format
-		const leaveRequests = leaveRequestsData.map((request) => ({
+		const leaveRequests = leaveRequestsData.map((request: any) => ({
 			id: request.id.toString(),
 			nodeId: `node${request.id}`,
 			employeeId: request.employeeId,
@@ -192,11 +192,11 @@ export const load: PageServerLoad = async (event) => {
 		}));
 
 		// Calculate statistics from all fetched requests
-		const allTimePending = leaveRequests.filter((req) => req.status === 'pending').length;
-		const allTimeApproved = leaveRequests.filter((req) => req.status === 'approved').length;
-		const allTimeRejected = leaveRequests.filter((req) => req.status === 'rejected').length;
+		const allTimePending = leaveRequests.filter((req: any) => req.status === 'pending').length;
+		const allTimeApproved = leaveRequests.filter((req: any) => req.status === 'approved').length;
+		const allTimeRejected = leaveRequests.filter((req: any) => req.status === 'rejected').length;
 		const allTimeTotal = leaveRequests.length;
-		const totalDaysRequested = leaveRequests.reduce((sum, req) => sum + req.daysRequested, 0);
+		const totalDaysRequested = leaveRequests.reduce((sum: number, req: any) => sum + req.daysRequested, 0);
 		const approvalRate = allTimeTotal > 0 ? (allTimeApproved / allTimeTotal) * 100 : 0;
 
 		// Calculate time-based metrics (simplified - using all data for now)
@@ -218,7 +218,7 @@ export const load: PageServerLoad = async (event) => {
 		// Status filtering
 		if (statusFilter && statusFilter !== 'all') {
 			filteredRequests = filteredRequests.filter(
-				(req) => req.status === statusFilter.toLowerCase()
+				(req: any) => req.status === statusFilter.toLowerCase()
 			);
 		}
 
@@ -226,7 +226,7 @@ export const load: PageServerLoad = async (event) => {
 		if (searchTerm) {
 			const searchLower = searchTerm.toLowerCase();
 			filteredRequests = filteredRequests.filter(
-				(req) =>
+				(req: any) =>
 					req.employee.displayName.toLowerCase().includes(searchLower) ||
 					req.leaveType.toLowerCase().includes(searchLower) ||
 					req.reason.toLowerCase().includes(searchLower)

@@ -27,7 +27,7 @@ test.describe('Form Interactions (Stagehand)', () => {
 		try {
 			// Track console warnings
 			const consoleWarnings: string[] = [];
-			stagehand.page.on('console', (msg) => {
+			stagehand.page.on('console', (msg: any) => {
 				if (msg.type() === 'warning') {
 					consoleWarnings.push(msg.text());
 				}
@@ -64,7 +64,7 @@ test.describe('Form Interactions (Stagehand)', () => {
 			const consoleWarnings: string[] = [];
 			const consoleErrors: string[] = [];
 
-			stagehand.page.on('console', (msg) => {
+			stagehand.page.on('console', (msg: any) => {
 				if (msg.type() === 'warning') {
 					consoleWarnings.push(msg.text());
 				} else if (msg.type() === 'error') {
@@ -103,7 +103,7 @@ test.describe('Form Interactions (Stagehand)', () => {
 		try {
 			const consoleWarnings: string[] = [];
 
-			stagehand.page.on('console', (msg) => {
+			stagehand.page.on('console', (msg: any) => {
 				if (msg.type() === 'warning') {
 					consoleWarnings.push(msg.text());
 				}
@@ -193,7 +193,7 @@ test.describe('Form Interactions (Stagehand)', () => {
 		try {
 			const consoleErrors: string[] = [];
 
-			stagehand.page.on('console', (msg) => {
+			stagehand.page.on('console', (msg: any) => {
 				if (msg.type() === 'error') {
 					consoleErrors.push(msg.text());
 				}
@@ -222,7 +222,11 @@ test.describe('Form Interactions (Stagehand)', () => {
 
 			// Interact with any available controls
 			if (formControls.controls.length > 0) {
-				for (const control of formControls.controls.slice(0, 2)) {
+				for (const control of formControls.controls.slice(0, 2) as Array<{
+					type: string;
+					label: string;
+					isRequired?: boolean;
+				}>) {
 					// Interact with up to 2 controls
 					if (control.type.includes('dropdown') || control.type.includes('select')) {
 						await performAction(

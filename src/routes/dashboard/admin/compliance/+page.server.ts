@@ -44,8 +44,8 @@ export const load: PageServerLoad = async (event) => {
 
 		const activeUsers = users.filter((u: any) => u.isActive).length;
 		const inactiveUsers = totalUsers - activeUsers;
-		const recentlyUpdated = users.filter((u) => new Date(u.updatedAt) >= thirtyDaysAgo).length;
-		const staleUsers = users.filter((u) => new Date(u.updatedAt) < ninetyDaysAgo).length;
+		const recentlyUpdated = users.filter((u: any) => new Date(u.updatedAt) >= thirtyDaysAgo).length;
+		const staleUsers = users.filter((u: any) => new Date(u.updatedAt) < ninetyDaysAgo).length;
 
 		const complianceMetrics = {
 			dataAccuracy: {

@@ -500,10 +500,10 @@ class SubscriptionTestRunner {
 			const subscription = this.client
 				.subscription(this.scenario.subscription, this.scenario.variables)
 				.subscribe({
-					next: (result) => {
+					next: (result: any) => {
 						this.handleSubscriptionMessage(result);
 					},
-					error: (error) => {
+					error: (error: any) => {
 						this.result.errors.push({
 							type: 'subscription',
 							message: error.message,

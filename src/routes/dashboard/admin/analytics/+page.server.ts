@@ -61,12 +61,12 @@ export const load: PageServerLoad = async (event) => {
 		const departmentNames = new Map<number, string>();
 
 		// Map department IDs to names
-		departments.forEach((dept) => {
+		departments.forEach((dept: any) => {
 			departmentNames.set(dept.id, dept.name);
 		});
 
 		// Count users per department
-		users.forEach((user) => {
+		users.forEach((user: any) => {
 			const deptName = departmentNames.get(user.departmentId) || 'Unknown';
 			departmentCounts.set(deptName, (departmentCounts.get(deptName) || 0) + 1);
 		});
@@ -139,14 +139,14 @@ export const load: PageServerLoad = async (event) => {
 			roleDistribution: (() => {
 				// Calculate role distribution from real data using role assignments
 				const roleCounts = new Map<string, number>();
-				userRoles.forEach((roleAssignment) => {
+				userRoles.forEach((roleAssignment: any) => {
 					const role = roleAssignment.roleName || 'Employee';
 					roleCounts.set(role, (roleCounts.get(role) || 0) + 1);
 				});
 
 				return Array.from(roleCounts.entries())
-					.map(([role, count]) => ({ role, count }))
-					.sort((a, b) => b.count - a.count);
+					.map(([role, count]: [string, number]) => ({ role, count }))
+					.sort((a: any, b: any) => b.count - a.count);
 			})()
 		};
 

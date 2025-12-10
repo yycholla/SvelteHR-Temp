@@ -28,12 +28,12 @@ describe('AttendeePickerModal Contract', () => {
 		const props: AttendeePickerModalProps = {
 			open: true,
 			selectedUserIds: ['user-1', 'user-2', 'user-3'],
-			onSelectionChange: (userIds) => {},
+			onSelectionChange: (userIds: string[]) => {},
 			onClose: () => {}
 		};
 
 		expect(Array.isArray(props.selectedUserIds)).toBe(true);
-		expect(props.selectedUserIds.every((id) => typeof id === 'string')).toBe(true);
+		expect(props.selectedUserIds.every((id: string) => typeof id === 'string')).toBe(true);
 		expect(props.selectedUserIds).toHaveLength(3);
 	});
 
@@ -41,7 +41,7 @@ describe('AttendeePickerModal Contract', () => {
 		const props: AttendeePickerModalProps = {
 			open: true,
 			selectedUserIds: [],
-			onSelectionChange: (userIds) => {},
+			onSelectionChange: (userIds: string[]) => {},
 			onClose: () => {}
 		};
 
@@ -55,7 +55,7 @@ describe('AttendeePickerModal Contract', () => {
 		const props: AttendeePickerModalProps = {
 			open: true,
 			selectedUserIds: [],
-			onSelectionChange: (userIds) => {
+			onSelectionChange: (userIds: string[]) => {
 				receivedUserIds = userIds;
 			},
 			onClose: () => {}
@@ -74,7 +74,7 @@ describe('AttendeePickerModal Contract', () => {
 		const props: AttendeePickerModalProps = {
 			open: true,
 			selectedUserIds: [],
-			onSelectionChange: (userIds) => {},
+			onSelectionChange: (userIds: string[]) => {},
 			onClose: () => {
 				closeCalled = true;
 			}

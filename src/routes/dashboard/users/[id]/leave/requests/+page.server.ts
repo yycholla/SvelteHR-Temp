@@ -182,7 +182,7 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		// Map leave requests to match the expected format
-		const formattedLeaveRequests = leaveRequests.map((req) => ({
+		const formattedLeaveRequests = leaveRequests.map((req: any) => ({
 			id: req.id,
 			startDate: req.startDate,
 			endDate: req.endDate,
