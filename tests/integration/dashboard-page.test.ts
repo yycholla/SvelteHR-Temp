@@ -151,7 +151,9 @@ describe('Dashboard Page Integration (T017)', () => {
 				technicalDetails: 'Token validation failed',
 				timestamp: new Date(),
 				isRetryable: false,
-				suggestedActions: ['redirect_to_login'],
+				suggestedActions: [
+					{ label: 'Sign In', action: 'redirect_to_login', isPrimary: true }
+				],
 				type: 'AUTHENTICATION_ERROR',
 				userMessage: 'Invalid or expired authentication token',
 				severity: 'high'
@@ -184,7 +186,9 @@ describe('Dashboard Page Integration (T017)', () => {
 				technicalDetails: 'Insufficient permissions',
 				timestamp: new Date(),
 				isRetryable: false,
-				suggestedActions: ['show_limited_view'],
+				suggestedActions: [
+					{ label: 'View Limited Dashboard', action: 'show_limited_view', isPrimary: true }
+				],
 				type: 'PERMISSION_ERROR',
 				userMessage: 'Insufficient permissions for dashboard metrics',
 				severity: 'medium'
@@ -292,7 +296,7 @@ describe('Dashboard Page Integration (T017)', () => {
 				technicalDetails: 'Network request failed',
 				timestamp: new Date(),
 				isRetryable: true,
-				suggestedActions: ['retry_operation'],
+				suggestedActions: [{ label: 'Retry', action: 'retry_operation', isPrimary: true }],
 				type: 'NETWORK_ERROR',
 				userMessage: 'Failed to load dashboard data',
 				severity: 'high'

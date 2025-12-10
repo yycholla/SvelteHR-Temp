@@ -1,5 +1,22 @@
 <script lang="ts">
-	import { Sidebar } from '$lib/components/ui/sidebar';
+	import {
+		Sidebar,
+		SidebarContent,
+		SidebarFooter,
+		SidebarGroup,
+		SidebarGroupLabel,
+		SidebarHeader,
+		SidebarInset,
+		SidebarMenu,
+		SidebarMenuButton,
+		SidebarMenuItem,
+		SidebarMenuSub,
+		SidebarMenuSubButton,
+		SidebarMenuSubItem,
+		SidebarProvider,
+		SidebarRail,
+		SidebarTrigger
+	} from '$lib/components/ui/sidebar';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
@@ -141,7 +158,7 @@
 	});
 
 	// Generate breadcrumbs based on current path
-	const breadcrumbs = $derived((): Breadcrumb[] => {
+	const breadcrumbs: Breadcrumb[] = $derived.by(() => {
 		const parts = currentPath.split('/').filter((part) => part);
 		const breadcrumbs: Breadcrumb[] = [];
 
@@ -173,11 +190,11 @@
 
 <!-- Only show layout if authenticated -->
 {#if auth.isAuthenticated && auth.user}
-	<Sidebar.Provider>
+	<SidebarProvider>
 		<div class="flex h-screen bg-background">
 			<!-- Sidebar -->
-			<Sidebar.Root class="border-r">
-				<Sidebar.Header>
+			<Sidebar class="border-r">
+				<SidebarHeader>
 					<div class="flex items-center gap-2 px-4 py-3">
 						<div
 							class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"
@@ -189,11 +206,11 @@
 							<span class="text-xs text-muted-foreground">HR Management</span>
 						</div>
 					</div>
-				</Sidebar.Header>
+				</SidebarHeader>
 
-				<Sidebar.Content>
-					<Sidebar.Group>
-						<Sidebar.GroupLabel>Navigation</Sidebar.GroupLabel>
+				<SidebarContent>
+					<SidebarGroup>
+						<SidebarGroupLabel>Navigation</SidebarGroupLabel>
 						<Sidebar.Menu>
 							{#each visibleNavigation as item}
 								{@const typedItem = item as NavigationItem}
@@ -236,10 +253,10 @@
 								</Sidebar.MenuItem>
 							{/each}
 						</Sidebar.Menu>
-					</Sidebar.Group>
-				</Sidebar.Content>
+					</SidebarGroup>
+				</SidebarContent>
 
-				<Sidebar.Footer>
+				<SidebarFooter>
 					<div class="flex items-center gap-2 px-4 py-3">
 						<div class="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
 							<User class="h-4 w-4" />
@@ -249,8 +266,8 @@
 							<span class="text-xs text-muted-foreground">{auth.user.role || 'Employee'}</span>
 						</div>
 					</div>
-				</Sidebar.Footer>
-			</Sidebar.Root>
+				</SidebarFooter>
+			</Sidebar>
 
 			<!-- Main Content Area -->
 			<div class="flex flex-1 flex-col">
@@ -323,7 +340,7 @@
 				</main>
 			</div>
 		</div>
-	</Sidebar.Provider>
+	</SidebarProvider>
 {:else}
 	<!-- Loading state while authentication is being determined -->
 	<div class="flex min-h-screen items-center justify-center bg-background">

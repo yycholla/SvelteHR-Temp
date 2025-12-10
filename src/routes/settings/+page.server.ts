@@ -49,7 +49,8 @@ export const load: PageServerLoad = async (event) => {
 			roles: userSession.roles,
 			permissions: userSession.permissions,
 			// jwtToken omitted for session-based auth
-			isAuthenticated: Boolean(userSession.isAuthenticated)
+			isAuthenticated: Boolean(userSession.isAuthenticated),
+			expiresAt: userSession.expiresAt
 		},
 		timeoutMs: 5000,
 		retryAttempts: 0,
@@ -70,7 +71,8 @@ export const load: PageServerLoad = async (event) => {
 				userId: userSession.userId,
 				roles: userSession.roles,
 				permissions: userSession.permissions,
-				isAuthenticated: Boolean(userSession.isAuthenticated)
+				isAuthenticated: Boolean(userSession.isAuthenticated),
+				expiresAt: userSession.expiresAt
 			}
 		});
 
@@ -81,7 +83,8 @@ export const load: PageServerLoad = async (event) => {
 				userId: userSession.userId,
 				roles: userSession.roles,
 				permissions: userSession.permissions,
-				isAuthenticated: Boolean(userSession.isAuthenticated)
+				isAuthenticated: Boolean(userSession.isAuthenticated),
+				expiresAt: userSession.expiresAt
 			}
 		});
 
@@ -101,7 +104,7 @@ export const load: PageServerLoad = async (event) => {
 			canExportData:
 				locals.permissions?.includes('data:export') ||
 				locals.permissions?.includes('*') ||
-				['hr_manager', 'hr_admin', 'hr_super_admin'].includes(locals.user.role),
+				(locals.user.role && ['hr_manager', 'hr_admin', 'hr_super_admin'].includes(locals.user.role)),
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {

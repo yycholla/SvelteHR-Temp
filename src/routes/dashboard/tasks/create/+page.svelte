@@ -13,7 +13,7 @@
 	let title = $state('');
 	let description = $state('');
 	let priority = $state<TaskPriority>('medium');
-	let status = $state<TaskStatus>('pending');
+	let status = $state<TaskStatus>('todo');
 	let dueDate = $state(data.defaultDueDate);
 	let assignmentType = $state<'employee' | 'department'>('employee');
 	let assigneeId = $state('');

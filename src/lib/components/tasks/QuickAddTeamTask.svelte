@@ -33,7 +33,17 @@
 		taskTypes = [],
 		onSuccess
 	}: {
-		currentUser: { id: string; displayName: string; role: string };
+		currentUser: {
+			id: string;
+			email?: string;
+			displayName?: string;
+			display_name?: string;
+			role?: string;
+			firstName?: string;
+			first_name?: string;
+			lastName?: string;
+			last_name?: string;
+		};
 		departments: Array<{ id: string; name: string; description?: string }>;
 		taskTypes: Array<{ id: string; name: string; colorCode: string }>;
 		onSuccess?: () => void;

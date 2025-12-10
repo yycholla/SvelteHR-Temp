@@ -186,7 +186,9 @@ describe('Employee Page Integration (T019)', () => {
 				technicalDetails: 'Permission denied',
 				timestamp: new Date(),
 				isRetryable: false,
-				suggestedActions: ['show_limited_view'],
+				suggestedActions: [
+					{ label: 'View Limited Data', action: 'show_limited_view', isPrimary: true }
+				],
 				type: 'PERMISSION_ERROR',
 				userMessage: 'Insufficient permissions to view employee salary data',
 				severity: 'medium'

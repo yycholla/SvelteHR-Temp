@@ -146,11 +146,13 @@
 	}
 
 	function getStatusVariant(status: TaskStatus): string {
-		const variants = {
+		const variants: Record<string, string> = {
 			TODO: 'secondary',
 			IN_PROGRESS: 'primary',
 			REVIEW: 'warning',
+			BLOCKED: 'danger',
 			COMPLETED: 'success',
+			DONE: 'success',
 			CANCELLED: 'danger'
 		};
 		return variants[status] || 'secondary';

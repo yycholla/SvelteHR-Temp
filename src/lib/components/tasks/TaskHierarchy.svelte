@@ -47,7 +47,7 @@
 	const canExpand = $derived(hasSubtasks && currentDepth < maxDepth);
 	const subtasks = $derived(task.subtasks || []);
 	const subtaskCount = $derived(task.subtasks?.length || 0);
-	const completedSubtasks = $derived(subtasks.filter((t: Task) => t.status === 'Done').length);
+	const completedSubtasks = $derived(subtasks.filter((t: Task) => t.status === 'DONE').length);
 
 	// Calculate completion percentage for subtasks
 	const completionPercentage = $derived(() => {

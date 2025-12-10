@@ -10,33 +10,41 @@ import { describe, expect, it } from 'vitest';
 import type { EventCalendarProps } from '$lib/components/events/EventCalendar.svelte';
 
 describe('EventCalendar Contract', () => {
-	it('should accept required props: onEventClick and onDateSelect', () => {
+	it('should accept required props: events, userId, localRsvpStatuses, onEventClick and onDateSelect', () => {
 		const mockEventClick = (eventId: string) => console.log('Event clicked:', eventId);
 		const mockDateSelect = (date: Date) => console.log('Date selected:', date);
 
 		const props: EventCalendarProps = {
+			events: [],
+			userId: 'user-123',
+			localRsvpStatuses: {},
 			onEventClick: mockEventClick,
 			onDateSelect: mockDateSelect
 		};
 
+		expect(props.events).toBeDefined();
+		expect(props.userId).toBeDefined();
+		expect(props.localRsvpStatuses).toBeDefined();
 		expect(props.onEventClick).toBeDefined();
 		expect(props.onDateSelect).toBeDefined();
 		expect(typeof props.onEventClick).toBe('function');
 		expect(typeof props.onDateSelect).toBe('function');
 	});
 
-	it('should accept optional initialDate prop', () => {
-		const mockDate = new Date('2025-10-08');
+	it('should accept optional canManageEvents prop', () => {
 		const mockEventClick = (eventId: string) => console.log('Event clicked:', eventId);
 		const mockDateSelect = (date: Date) => console.log('Date selected:', date);
 
 		const props: EventCalendarProps = {
-			initialDate: mockDate,
+			events: [],
+			userId: 'user-123',
+			localRsvpStatuses: {},
+			canManageEvents: true,
 			onEventClick: mockEventClick,
 			onDateSelect: mockDateSelect
 		};
 
-		expect(props.initialDate).toBe(mockDate);
+		expect(props.canManageEvents).toBe(true);
 	});
 
 	it('should validate onEventClick callback receives eventId string', () => {
@@ -47,6 +55,9 @@ describe('EventCalendar Contract', () => {
 		};
 
 		const props: EventCalendarProps = {
+			events: [],
+			userId: 'user-123',
+			localRsvpStatuses: {},
 			onEventClick: mockEventClick,
 			onDateSelect: (date: Date) => {}
 		};
@@ -64,6 +75,9 @@ describe('EventCalendar Contract', () => {
 		};
 
 		const props: EventCalendarProps = {
+			events: [],
+			userId: 'user-123',
+			localRsvpStatuses: {},
 			onEventClick: (eventId: string) => {},
 			onDateSelect: mockDateSelect
 		};

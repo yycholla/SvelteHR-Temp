@@ -80,7 +80,7 @@
 
 		const adminRoles = ['admin', 'super_admin', 'system_admin'];
 
-		if (adminRoles.includes(role)) return true;
+		if (role && adminRoles.includes(role)) return true;
 		if (roles.some((r: string) => adminRoles.includes(r))) return true;
 
 		return false;

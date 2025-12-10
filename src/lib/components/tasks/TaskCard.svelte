@@ -48,7 +48,8 @@
 		IN_PROGRESS: 'bg-blue-500',
 		REVIEW: 'bg-yellow-500',
 		BLOCKED: 'bg-red-500',
-		DONE: 'bg-green-500'
+		DONE: 'bg-green-500',
+		CANCELLED: 'bg-gray-400'
 	};
 
 	const statusOptions = [

@@ -160,8 +160,8 @@
 								<div class="task-main">
 									<div class="task-status">
 										<i
-											class="icon-{getStatusIcon(task.status)} h-5 w-5 {getStatusColor(
-												task.status
+											class="icon-{getStatusIcon(task.status ?? 'Pending')} h-5 w-5 {getStatusColor(
+												task.status ?? 'Pending'
 											)}"
 										></i>
 									</div>
@@ -182,7 +182,7 @@
 
 											<div class="task-meta">
 												<span class="task-type">
-													<i class="icon-{getTaskTypeIcon(task.task_type)} h-4 w-4"></i>
+													<i class="icon-{getTaskTypeIcon(task.task_type ?? 'check-square')} h-4 w-4"></i>
 													{task.task_type}
 												</span>
 

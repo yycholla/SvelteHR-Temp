@@ -101,7 +101,7 @@
 
 	// Get status icon for dependency task
 	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
-	function getStatusIcon(status: Task['status']) {
+	function getStatusIcon(status: string) {
 		switch (status) {
 			case 'DONE':
 				return CheckCircle;
@@ -116,7 +116,7 @@
 
 	// Get status color for dependency task
 	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
-	function getStatusColor(status: Task['status']) {
+	function getStatusColor(status: string) {
 		switch (status) {
 			case 'DONE':
 				return 'text-green-600 dark:text-green-400';

@@ -41,7 +41,17 @@
 		triggerSize = 'default',
 		onSuccess
 	}: {
-		currentUser: { id: string; displayName: string; role: string };
+		currentUser: {
+			id: string;
+			email?: string;
+			displayName?: string;
+			display_name?: string;
+			role?: string;
+			firstName?: string;
+			first_name?: string;
+			lastName?: string;
+			last_name?: string;
+		};
 		assignees: Array<{ id: string; displayName: string }>;
 		taskTypes: Array<{ id: string; name: string; colorCode: string }>;
 		canAssign?: boolean;
@@ -78,6 +88,7 @@
 	const selectedAssigneeName = $derived(
 		assignees.find((a) => a.id === quickAddAssigneeId)?.displayName ||
 			currentUser.displayName ||
+			currentUser.display_name ||
 			currentUser.email ||
 			'User'
 	);

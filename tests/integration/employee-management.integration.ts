@@ -7,18 +7,11 @@ import {
 	TestEmployee,
 	TestEmployeeData,
 	TestUser,
+	TestContext,
 	cleanupTestData,
 	createTestContext
 } from '../utils/test-helpers';
 import { performGraphQLMutation, performGraphQLQuery } from '../utils/graphql-test-client';
-
-interface TestContext {
-	departments: any[];
-	users: any[];
-	createdEmployees: TestEmployeeData[];
-	authTokens: Record<string, string>;
-	cleanup?: () => Promise<void>;
-}
 
 describe('Employee Management Integration Tests', () => {
 	let testContext: TestContext;

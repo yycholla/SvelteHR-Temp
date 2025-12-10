@@ -67,7 +67,7 @@ describe('Credential Leakage Prevention', () => {
 		});
 
 		// Wait for potential redirect/cleanup
-		await page.waitForTimeout(1000);
+		await new Promise((resolve) => setTimeout(resolve, 1000));
 
 		// Verify credentials were stripped by server-side middleware
 		const finalUrl = page.url();
@@ -87,7 +87,7 @@ describe('Credential Leakage Prevention', () => {
 			{ waitUntil: 'networkidle2' }
 		);
 
-		await page.waitForTimeout(1000);
+		await new Promise((resolve) => setTimeout(resolve, 1000));
 
 		const finalUrl = page.url();
 
@@ -182,7 +182,7 @@ describe('Credential Leakage Prevention', () => {
 		await gotoPage('/login');
 
 		// Wait for headers to be captured
-		await page.waitForTimeout(500);
+		await new Promise((resolve) => setTimeout(resolve, 500));
 
 		// Verify security headers
 		expect(headers['referrer-policy']?.toLowerCase()).toBe('no-referrer');
@@ -202,7 +202,7 @@ describe('Credential Leakage Prevention', () => {
 		});
 
 		// Wait for client-side cleanup (if JavaScript is handling it)
-		await page.waitForTimeout(2000);
+		await new Promise((resolve) => setTimeout(resolve, 2000));
 
 		// Check if URL was cleaned by client-side code
 		const currentUrl = page.url();
@@ -260,7 +260,7 @@ describe('Credential Leakage Prevention', () => {
 		await page.click('[data-testid="login-submit-button"]');
 
 		// Wait for validation to complete
-		await page.waitForTimeout(500);
+		await new Promise((resolve) => setTimeout(resolve, 500));
 
 		const urlAfterValidation = page.url();
 
