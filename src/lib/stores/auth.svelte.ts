@@ -19,6 +19,26 @@ export interface User {
 	isActive: boolean;
 	role?: string;
 	role_assignments?: UserRoleAssignment[];
+	job_title?: string;
+	jobTitle?: string;
+	username?: string;
+	profile_image?: string;
+	profileImage?: string;
+	job_information?: {
+		department?: {
+			id?: string;
+			name?: string;
+		};
+	};
+	department?: {
+		id?: string;
+		name?: string;
+	};
+	manager?: {
+		id: string;
+		display_name?: string;
+		displayName?: string;
+	};
 }
 
 class AuthStore {

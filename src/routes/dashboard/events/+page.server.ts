@@ -238,8 +238,8 @@ async function fetchEventComments(
 			})
 			.toPromise();
 
-		if (result.error || !result.data) {
-			console.error('Error fetching event comments:', result.error);
+		if (result.errors || !result.data) {
+			console.error('Error fetching event comments:', result.errors);
 			return { comments: [], totalCount: 0, hasMore: false };
 		}
 
@@ -273,8 +273,8 @@ async function fetchEventHistory(
 			})
 			.toPromise();
 
-		if (result.error || !result.data) {
-			console.error('Error fetching event history:', result.error);
+		if (result.errors || !result.data) {
+			console.error('Error fetching event history:', result.errors);
 			return { history: [], totalCount: 0, hasMore: false };
 		}
 
@@ -306,8 +306,8 @@ async function fetchUserWaitlistStatus(
 			})
 			.toPromise();
 
-		if (result.error || !result.data) {
-			console.error('Error fetching waitlist status:', result.error);
+		if (result.errors || !result.data) {
+			console.error('Error fetching waitlist status:', result.errors);
 			return { isOnWaitlist: false, position: null };
 		}
 
@@ -779,13 +779,13 @@ export const actions: Actions = {
 					.mutation(CREATE_ATTENDEE_WITH_STATUS, { input })
 					.toPromise();
 
-				if (result.error) {
-					console.error('[SERVER] GraphQL error creating attendee:', result.error);
+				if (result.errors) {
+					console.error('[SERVER] GraphQL errors creating attendee:', result.errors);
 
 					// Check if it's a duplicate key error (user is already an attendee)
 					const isDuplicateKey =
-						result.error.message?.includes('event_attendees_unique') ||
-						result.error.message?.includes('duplicate key');
+						result.errors[0]?.message?.includes('event_attendees_unique') ||
+						result.errors[0]?.message?.includes('duplicate key');
 
 					if (isDuplicateKey) {
 						console.log('[SERVER] User is already an attendee, fetching existing record to update');
@@ -813,7 +813,7 @@ export const actions: Actions = {
 							throw new Error('Unable to update RSVP status. Please try again.');
 						}
 					} else {
-						throw new Error(result.error.message);
+						throw new Error(result.errors[0]?.message || 'GraphQL error occurred');
 					}
 				} else {
 					// Migration: ✅ Direct return value (no nested wrapper)

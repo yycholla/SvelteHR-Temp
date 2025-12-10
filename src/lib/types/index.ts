@@ -37,12 +37,21 @@ export interface User {
 	created_at: string;
 	updated_at: string;
 	deleted_at?: string;
+	username?: string;
+	profile_image?: string;
+	profileImage?: string;
 	// Nested objects from related tables
 	job_info?: JobInfo;
 	contact_info?: ContactInfo;
 	personal_info?: PersonalInfo;
 	emergency_contact?: EmergencyContact;
 	addresses?: UserAddress[];
+	job_information?: {
+		department?: {
+			id?: string;
+			name?: string;
+		};
+	};
 	// Relations
 	role_assignments?: Array<{
 		role: {
@@ -52,6 +61,17 @@ export interface User {
 			description?: string;
 		};
 	}>;
+	department?: {
+		id: string;
+		name?: string;
+		code?: string;
+		description?: string;
+	};
+	manager?: {
+		id: string;
+		display_name?: string;
+		full_name?: string;
+	};
 }
 
 export interface UserFilter {

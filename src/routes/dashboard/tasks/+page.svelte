@@ -208,16 +208,18 @@
 <div class="space-y-6" data-testid="tasks-dashboard">
 	<!-- Page Header -->
 	<div class="flex items-start justify-end gap-4">
-		<QuickAddTask
-			currentUser={data.user}
-			assignees={data.assignees}
-			taskTypes={data.taskTypes}
-			{canAssign}
-			onSuccess={async () => {
-				// Refresh the page data after task creation
-				await invalidateAll();
-			}}
-		/>
+		{#if data.user}
+			<QuickAddTask
+				currentUser={data.user}
+				assignees={data.assignees}
+				taskTypes={data.taskTypes}
+				{canAssign}
+				onSuccess={async () => {
+					// Refresh the page data after task creation
+					await invalidateAll();
+				}}
+			/>
+		{/if}
 	</div>
 
 	<!-- Statistics Cards -->

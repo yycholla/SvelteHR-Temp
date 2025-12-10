@@ -43,9 +43,11 @@
 	let deactivating = $state(false);
 
 	// Computed values - add type guards for never type narrowing
-	const isOwnProfile = $derived(
-		employee && auth.user ? employee.id === auth.user.id : false
-	);
+	const isOwnProfile = $derived.by(() => {
+		const currentUser = auth.user;
+		if (!employee || !currentUser) return false;
+		return employee.id === currentUser.id;
+	});
 	const canEdit = $derived(auth.user && (isOwnProfile || auth.hasPermission('user:update')));
 	const canDeactivate = $derived(auth.user && auth.hasPermission('user:delete') && !isOwnProfile);
 	const statusVariant = $derived(employee?.isActive ? 'default' : 'secondary');

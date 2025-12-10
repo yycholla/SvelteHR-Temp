@@ -8,10 +8,11 @@
 
 	// Mock stores until services are implemented
 	import { writable } from 'svelte/store';
-	const tasks = writable([]);
+	import type { User } from '$lib/types';
+	const tasks = writable<Task[]>([]);
 	const isLoadingTasks = writable(false);
 	const taskError = writable(null);
-	const users = writable([]);
+	const users = writable<User[]>([]);
 	const taskService = {
 		loadTasks: async () => {},
 		createTask: async (task: any) => {},
@@ -107,7 +108,7 @@
 		{ value: '', label: 'All Assignees' },
 		...$users.map((user) => ({
 			value: user.id,
-			label: user.displayName
+			label: user.display_name
 		}))
 	];
 
