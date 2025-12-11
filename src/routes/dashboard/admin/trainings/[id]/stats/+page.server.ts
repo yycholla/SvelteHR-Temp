@@ -53,7 +53,7 @@ export const load: PageServerLoad = async (event) => {
 	const assignmentsResponse = await client.query(assignmentsQuery, { trainingId: id });
 
 	if (assignmentsResponse.errors) {
-		logger.error('Assignments query error:', assignmentsResponse.errors);
+		logger.error('Assignments query error:', undefined, { errors: assignmentsResponse.errors });
 	}
 
 	const assignments = assignmentsResponse.data?.trainingAssignments || [];
@@ -115,7 +115,10 @@ export const load: PageServerLoad = async (event) => {
 						totalContents > 0 ? Math.round((completedCount / totalContents) * 100) : 0;
 				}
 			} catch (err) {
-				logger.error(`Error fetching progress for user ${assignment.userId}:`, err as Error);
+				logger.error('Error fetching progress for user:', {
+					userId: assignment.userId,
+					error: err as Error
+				});
 			}
 
 			return {

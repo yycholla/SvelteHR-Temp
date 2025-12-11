@@ -1,6 +1,6 @@
 <script lang="ts">
-	import {
 	import { logger } from '$lib/utils/logger';
+	import {
 		type ColumnDef,
 		type SortingState,
 		type VisibilityState,
@@ -294,7 +294,7 @@
 	async function handleBulkDepartmentChange(departmentId: string) {
 		const count = selectedCount; // Capture before clearing
 		const employeeIds = [...selectedEmployeeIds]; // Capture employee IDs
-		logger.info('Moving employees to department:', departmentId, 'Employee IDs:', employeeIds);
+		logger.info('Moving employees to department:', { departmentId, employeeIds });
 
 		// Show loading toast
 		const loadingToastId = toast.loading(
@@ -367,7 +367,7 @@
 	async function handleBulkStatusChange(newStatus: 'active' | 'inactive' | 'terminated') {
 		const count = selectedCount; // Capture before clearing
 		const employeeIds = [...selectedEmployeeIds]; // Capture employee IDs
-		logger.info('Changing employee status to:', newStatus, 'Employee IDs:', employeeIds);
+		logger.info('Changing employee status to:', { newStatus, employeeIds });
 
 		// Show loading toast
 		const loadingToastId = toast.loading(
@@ -396,10 +396,10 @@
 					);
 
 					// Debug logging to see actual response
-					logger.info(`[Status Change] Full result: ${result}`);
-					logger.info('[Status Change] Has error?', !!result.error);
-					logger.info('[Status Change] Error details:', result.error);
-					logger.info('[Status Change] Data:', result.data);
+					logger.info('[Status Change] Full result:', { result });
+					logger.info('[Status Change] Has error?', { hasError: !!result.error });
+					logger.info('[Status Change] Error details:', { error: result.error });
+					logger.info('[Status Change] Data:', { data: result.data });
 
 					if (result.error) {
 						logger.error('[Status Change] GraphQL Error:', result.error.message);
@@ -414,10 +414,11 @@
 			const successCount = results.filter((r) => r.status === 'fulfilled').length;
 			const failureCount = results.filter((r) => r.status === 'rejected').length;
 
-			logger.info('[Status Change] Results summary:');
-			logger.info(`[Status Change] Success count: ${successCount}`);
-			logger.info(`[Status Change] Failure count: ${failureCount}`);
-			logger.info(`[Status Change] All results: ${results}`);
+			logger.info('[Status Change] Results summary:', {
+				successCount,
+				failureCount,
+				results
+			});
 
 			// Dismiss loading toast
 			toast.dismiss(loadingToastId);
@@ -428,15 +429,15 @@
 			// Show result message
 			if (failureCount === 0) {
 				const message = `Set ${successCount} ${successCount === 1 ? 'employee' : 'employees'} as ${statusDisplay}`;
-				logger.info(`[Status Change] Success toast: ${message}`);
+				logger.info('[Status Change] Success toast:', { message });
 				toast.success(message);
 			} else if (successCount > 0) {
 				const message = `Updated ${successCount} ${successCount === 1 ? 'employee' : 'employees'}, but ${failureCount} failed`;
-				logger.info(`[Status Change] Warning toast: ${message}`);
+				logger.info('[Status Change] Warning toast:', { message });
 				toast.warning(message);
 			} else {
 				const message = `Failed to update employees. Please try again.`;
-				logger.info(`[Status Change] Error toast: ${message}`);
+				logger.info('[Status Change] Error toast:', { message });
 				toast.error(message);
 			}
 

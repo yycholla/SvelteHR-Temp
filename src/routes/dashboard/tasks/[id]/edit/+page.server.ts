@@ -48,7 +48,7 @@ export const load: PageServerLoad = async (event) => {
 			'Content-Type': 'application/json'
 		};
 
-		logger.info(`[Task Edit] Loading task for editing: ${taskId}`);
+		logger.info('[Task Edit] Loading task for editing', { taskId });
 
 		// Load task data
 		// NOTE: Using Rust GraphQL schema - singular query for ID lookup
@@ -94,8 +94,11 @@ export const load: PageServerLoad = async (event) => {
 		const taskData = await taskResponse.json();
 
 		if (taskData.errors) {
-			logger.error('[Task Edit] GraphQL errors:', taskData.errors);
-			throw new Error(taskData.errors[0]?.message || 'Failed to load task');
+			const errorMsg = taskData.errors[0]?.message || 'Failed to load task';
+			logger.error('[Task Edit] GraphQL errors', new Error(errorMsg), {
+				errors: taskData.errors
+			});
+			throw new Error(errorMsg);
 		}
 
 		const task = taskData?.data?.task || null;
@@ -387,9 +390,12 @@ export const actions: Actions = {
 			const updateData = await updateResponse.json();
 
 			if (updateData.errors) {
-				logger.error('[Task Edit] Update errors:', updateData.errors);
+				const errorMsg = updateData.errors[0]?.message || 'Failed to update task';
+				logger.error('[Task Edit] Update errors', new Error(errorMsg), {
+					errors: updateData.errors
+				});
 				return fail(400, {
-					error: updateData.errors[0]?.message || 'Failed to update task',
+					error: errorMsg,
 					values: formDataEntries
 				});
 			}
@@ -427,7 +433,7 @@ export const actions: Actions = {
 			}
 
 			// Log actual errors only (not redirects)
-			logger.error('[Task Edit] Update error:', err as Error);
+			logger.error('[Task Edit] Update error', err instanceof Error ? err : new Error(String(err)));
 
 			return fail(500, {
 				error: err instanceof Error ? err.message : 'Failed to update task',

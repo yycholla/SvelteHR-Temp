@@ -14,7 +14,7 @@ import { type SignatureWorker, createSignatureWorker } from './signature-worker.
  */
 async function main(): Promise<void> {
 	logger.info('Starting Audit Log Signature Worker...');
-	logger.info('Environment:', process.env.NODE_ENV || 'development');
+	logger.info('Environment:', { env: process.env.NODE_ENV || 'development' });
 
 	// Load configuration from environment variables
 	const config = {
@@ -58,7 +58,7 @@ async function main(): Promise<void> {
 		});
 
 		process.on('unhandledRejection', (reason, promise) => {
-			logger.error('Unhandled rejection at:', promise, 'reason:', reason);
+			logger.error('Unhandled rejection', new Error(String(reason)), { promise, reason });
 		});
 
 		logger.info('Signature worker is running. Press Ctrl+C to stop.');

@@ -63,7 +63,7 @@ export const load: PageServerLoad = async (event) => {
 		const response = await client.query(query, { id });
 
 		if (response.errors) {
-			logger.error('GraphQL errors loading onboarding module:', response.errors);
+			logger.error('GraphQL errors loading onboarding module:', undefined, { errors: response.errors });
 			throw error(500, {
 				message: `Failed to load module: ${response.errors[0]?.message || 'Unknown error'}`
 			});
@@ -83,14 +83,17 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		if (!usersResponse.ok) {
-			logger.error('Failed to fetch users from REST endpoint:', usersResponse.statusText);
+			logger.error('Failed to fetch users from REST endpoint:', undefined, {
+				status: usersResponse.status,
+				statusText: usersResponse.statusText
+			});
 			throw error(500, { message: 'Failed to load users' });
 		}
 
 		const allUsers = await usersResponse.json();
 
-		logger.info('[ONBOARDING SERVER] Fetched users count:', allUsers.length);
-		logger.info('[ONBOARDING SERVER] Sample user:', allUsers[0]);
+		logger.info('[ONBOARDING SERVER] Fetched users count:', { count: allUsers.length });
+		logger.info('[ONBOARDING SERVER] Sample user:', { user: allUsers[0] });
 
 		// Fetch all departments for bulk assignment
 		const departmentsResponse = await client.query(GET_ALL_DEPARTMENTS_QUERY);
@@ -138,7 +141,7 @@ export const actions: Actions = {
 		try {
 			const response = await client.mutation(ASSIGN_ONBOARDING_MUTATION, variables);
 			if (response.errors) {
-				logger.error('Assignment creation errors:', response.errors);
+				logger.error('Assignment creation errors:', undefined, { errors: response.errors });
 				return fail(500, { error: response.errors[0].message });
 			}
 		} catch (err) {
@@ -163,7 +166,7 @@ export const actions: Actions = {
 		try {
 			const response = await client.mutation(DELETE_ONBOARDING_ASSIGNMENT_MUTATION, variables);
 			if (response.errors) {
-				logger.error('Assignment deletion errors:', response.errors);
+				logger.error('Assignment deletion errors:', undefined, { errors: response.errors });
 				return fail(500, { error: response.errors[0].message });
 			}
 		} catch (err) {
@@ -195,7 +198,7 @@ export const actions: Actions = {
 		try {
 			const response = await client.mutation(ASSIGN_ONBOARDING_TO_DEPARTMENT_MUTATION, variables);
 			if (response.errors) {
-				logger.error('Bulk assignment errors:', response.errors);
+				logger.error('Bulk assignment errors:', undefined, { errors: response.errors });
 				return fail(500, { error: response.errors[0].message });
 			}
 			const count = response.data?.onboarding?.assignOnboardingToDepartment || 0;

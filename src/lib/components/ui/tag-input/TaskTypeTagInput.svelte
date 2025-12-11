@@ -353,7 +353,7 @@
 		>
 			<!-- Existing task types -->
 			{#each filteredTaskTypes as taskType, index (taskType.id)}
-				{logger.info('[TaskTypeTagInput] Rendering option:', taskType.name)}
+				{logger.info('[TaskTypeTagInput] Rendering option:', { name: taskType.name })}
 				<button
 					type="button"
 					data-option

@@ -220,7 +220,7 @@
 			goto($page.url.pathname, { invalidateAll: true });
 		} catch (error) {
 			alert('An error occurred during assignment');
-			logger.error(error);
+			logger.error('Assignment error:', error as Error);
 		} finally {
 			isAssigning = false;
 			selectedUsersToAssign = [];

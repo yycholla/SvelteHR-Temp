@@ -2,6 +2,7 @@ import type { PageServerLoad } from './$types';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import { error } from '@sveltejs/kit';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, params, cookies } = event;

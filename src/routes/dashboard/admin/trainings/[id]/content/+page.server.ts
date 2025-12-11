@@ -7,6 +7,7 @@ import {
 	DELETE_CONTENT_MUTATION,
 	UPDATE_CONTENT_MUTATION
 } from '$lib/graphql/training-operations';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	requireAuth(event, { requiredRoles: ['Admin', 'HR Manager'] });
@@ -34,7 +35,7 @@ export const load: PageServerLoad = async (event) => {
 		const response = await client.query(query, { id });
 
 		if (response.errors) {
-			logger.error('GraphQL errors loading training content:', response.errors);
+			logger.error('GraphQL errors loading training content:', undefined, { errors: response.errors });
 			throw error(500, {
 				message: `Failed to load training: ${response.errors[0]?.message || 'Unknown error'}`
 			});

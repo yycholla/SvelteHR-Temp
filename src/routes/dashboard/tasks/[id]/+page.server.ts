@@ -56,7 +56,7 @@ export const load: PageServerLoad = async (event) => {
 		const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
-		logger.info(`[Task Details] Loading task: ${taskId}`);
+		logger.info('[Task Details] Loading task', { taskId });
 
 		// Load task with full relationships
 		// NOTE: Using Rust GraphQL schema - singular query for ID lookup
@@ -139,11 +139,16 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		const taskData = await taskResponse.json();
-		logger.info(`[Task Details] Task response: ${taskData}`);
+		logger.info('[Task Details] Task response received', {
+			hasTask: !!taskData?.data?.task
+		});
 
 		if (taskData.errors) {
-			logger.error('[Task Details] GraphQL errors:', taskData.errors);
-			throw new Error(taskData.errors[0]?.message || 'Failed to load task');
+			const errorMsg = taskData.errors[0]?.message || 'Failed to load task';
+			logger.error('[Task Details] GraphQL errors', new Error(errorMsg), {
+				errors: taskData.errors
+			});
+			throw new Error(errorMsg);
 		}
 
 		const task = taskData?.data?.task || null;
@@ -278,10 +283,10 @@ export const load: PageServerLoad = async (event) => {
 			}
 		);
 
-		logger.error('[Task Details Error Details]', {
+		logger.error('[Task Details Error Details]', undefined, {
 			userId: locals.user?.id,
 			taskId,
-			error: errorResponse
+			errorMessage: errorResponse.userMessage
 		});
 
 		return {
@@ -439,14 +444,18 @@ export const actions: Actions = {
 			const linkData = await linkResponse.json();
 
 			if (linkData.errors) {
-				logger.error('Failed to link document:', linkData.errors);
+				const errorMsg = linkData.errors[0]?.message || 'Failed to link document';
+				logger.error('Failed to link document', new Error(errorMsg), {
+					errors: linkData.errors,
+					taskId
+				});
 				// Note: Document is uploaded but not linked. Could delete it, but simpler to leave it for now.
 				return fail(500, { error: 'Document uploaded but failed to link to task' });
 			}
 
 			return { success: true };
 		} catch (err) {
-			logger.error('Task file upload error:', err as Error);
+			logger.error('Task file upload error', err instanceof Error ? err : new Error(String(err)));
 			return fail(500, { error: 'Failed to upload file' });
 		}
 	},
@@ -503,7 +512,7 @@ export const actions: Actions = {
 
 			return { success: true };
 		} catch (err) {
-			logger.error('Update tags error:', err as Error);
+			logger.error('Update tags error', err instanceof Error ? err : new Error(String(err)));
 			return fail(500, { error: 'Failed to update tags' });
 		}
 	},

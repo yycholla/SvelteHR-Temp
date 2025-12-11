@@ -268,17 +268,17 @@
 
 	// Debug logging
 	$effect(() => {
-		logger.info('[TaskForm] Available users:', availableUsers.length);
-		logger.info('[TaskForm] Available departments:', departments.length);
-		logger.info('[TaskForm] Combined assignee options:', combinedAssigneeOptions().length);
-		logger.info('[TaskForm] Task types:', taskTypes.length);
-		logger.info('[TaskForm] Form data assignees:', formData.assignees);
-		logger.info('[TaskForm] Total parent tasks:', parentTasks.length);
-		logger.info('[TaskForm] Filtered parent tasks:', filteredParentTasks().length);
-		logger.info('[TaskForm] Form data status:', formData.status);
-		logger.info(`[TaskForm] Selected status: ${selectedStatus}`);
-		logger.info('[TaskForm] Form data priority:', formData.priority);
-		logger.info(`[TaskForm] Selected priority: ${selectedPriority}`);
+		logger.info('[TaskForm] Available users:', { count: availableUsers.length });
+		logger.info('[TaskForm] Available departments:', { count: departments.length });
+		logger.info('[TaskForm] Combined assignee options:', { count: combinedAssigneeOptions().length });
+		logger.info('[TaskForm] Task types:', { count: taskTypes.length });
+		logger.info('[TaskForm] Form data assignees:', { assignees: formData.assignees });
+		logger.info('[TaskForm] Total parent tasks:', { count: parentTasks.length });
+		logger.info('[TaskForm] Filtered parent tasks:', { count: filteredParentTasks().length });
+		logger.info('[TaskForm] Form data status:', { status: formData.status });
+		logger.info('[TaskForm] Selected status:', { selectedStatus });
+		logger.info('[TaskForm] Form data priority:', { priority: formData.priority });
+		logger.info('[TaskForm] Selected priority:', { selectedPriority });
 	});
 
 	// Validate form on data changes
@@ -504,7 +504,7 @@
 						bind:selected={formData.assignees}
 						placeholder="Type to search users or departments..."
 						onSelectedChange={(selected) => {
-							logger.info(`[TaskForm] Assignees changed:: ${selected}`);
+							logger.info('[TaskForm] Assignees changed:', { selected });
 							formData.assignees = selected;
 						}}
 					/>
@@ -534,7 +534,7 @@
 							}
 						}}
 						onCreate={(newTaskType) => {
-							logger.info(`Created new task type: ${newTaskType}`);
+							logger.info('Created new task type:', { newTaskType });
 						}}
 					/>
 					{#if fieldErrors.taskTypeId}

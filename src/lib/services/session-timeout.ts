@@ -141,7 +141,7 @@ export class SessionTimeoutManager {
 				this.resetActivity();
 				return true;
 			} else {
-				logger.warn('⏱️ Session refresh failed:', response.status);
+				logger.warn('⏱️ Session refresh failed:', { status: response.status });
 				return false;
 			}
 		} catch (error) {

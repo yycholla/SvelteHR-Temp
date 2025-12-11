@@ -21,8 +21,8 @@ export const GET: RequestHandler = async ({ request }) => {
 		if (!verifyResponse.ok) {
 			// Only log on failure
 			logger.error('[Verify] === SESSION VERIFICATION FAILED ===');
-			logger.error('[Verify] API response status:', verifyResponse.status);
-			logger.error('[Verify] Verify URL:', verifyUrl);
+			logger.error('[Verify] API response status', new Error('Verification failed'), { status: verifyResponse.status });
+			logger.error('[Verify] Verify URL', new Error('Verification failed'), { verifyUrl });
 			return json(
 				{
 					success: false,
@@ -42,8 +42,8 @@ export const GET: RequestHandler = async ({ request }) => {
 	} catch (error) {
 		// Only log on error
 		logger.error('[Verify] === SESSION VERIFICATION FAILED ===');
-		logger.error('[Verify] FATAL ERROR:', error as Error);
-		logger.error('[Verify] Verify URL:', `${getApiBaseUrl()}/auth/me`);
+		logger.error('[Verify] FATAL ERROR', error as Error);
+		logger.error('[Verify] Verify URL', new Error('Verification failed'), { verifyUrl: `${getApiBaseUrl()}/auth/me` });
 		return json(
 			{
 				success: false,

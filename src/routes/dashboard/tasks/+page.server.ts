@@ -86,8 +86,11 @@ export const load: PageServerLoad = async (event) => {
 			'Content-Type': 'application/json'
 		};
 
-		logger.info('[Tasks Dashboard] User role:', locals.user?.role, '(session-based auth)');
-		logger.info('[Tasks Dashboard] Filters:', {
+		logger.info('[Tasks Dashboard] User role', {
+			role: locals.user?.role,
+			authType: 'session-based'
+		});
+		logger.info('[Tasks Dashboard] Filters', {
 			searchTerm,
 			statusFilter,
 			priorityFilter,
@@ -153,11 +156,16 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		const tasksData = await tasksResponse.json();
-		logger.info(`[Tasks Dashboard] Tasks response: ${tasksData}`);
+		logger.info('[Tasks Dashboard] Tasks response received', {
+			tasksCount: tasksData?.data?.tasks?.length || 0
+		});
 
 		if (tasksData.errors) {
-			logger.error('[Tasks Dashboard] GraphQL errors:', tasksData.errors);
-			throw new Error(tasksData.errors[0]?.message || 'Failed to load tasks');
+			const errorMsg = tasksData.errors[0]?.message || 'Failed to load tasks';
+			logger.error('[Tasks Dashboard] GraphQL errors', new Error(errorMsg), {
+				errors: tasksData.errors
+			});
+			throw new Error(errorMsg);
 		}
 
 		let tasks = tasksData?.data?.tasks || [];
@@ -318,11 +326,13 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		// Log error details for debugging
-		logger.error('[Tasks Dashboard Error Details]', {
+		logger.error('[Tasks Dashboard Error Details]', undefined, {
 			userId: locals.user?.id,
 			userRole: locals.user?.role,
-			filters: { searchTerm, statusFilter, priorityFilter },
-			error: errorResponse
+			searchTerm,
+			statusFilter,
+			priorityFilter,
+			errorMessage: errorResponse.userMessage
 		});
 
 		// Return safe fallback data instead of crashing
@@ -392,7 +402,7 @@ export const actions: Actions = {
 			const parentTaskId = formData.get('parentTaskId') as string | null;
 			const dueDate = formData.get('dueDate') as string | null;
 
-			logger.info('[Quick Add Task] Creating task:', {
+			logger.info('[Quick Add Task] Creating task', {
 				title,
 				priority,
 				assigneeId,
@@ -445,9 +455,12 @@ export const actions: Actions = {
 			const createData = await createResponse.json();
 
 			if (createData.errors) {
-				logger.error('[Quick Add Task] Create errors:', createData.errors);
+				const errorMsg = createData.errors[0]?.message || 'Failed to create task';
+				logger.error('[Quick Add Task] Create errors', new Error(errorMsg), {
+					errors: createData.errors
+				});
 				return fail(400, {
-					error: createData.errors[0]?.message || 'Failed to create task'
+					error: errorMsg
 				});
 			}
 
@@ -459,14 +472,16 @@ export const actions: Actions = {
 				});
 			}
 
-			logger.info('[Quick Add Task] Task created successfully:', newTask.id);
+			logger.info('[Quick Add Task] Task created successfully', {
+				taskId: newTask.id
+			});
 
 			return {
 				success: true,
 				taskId: newTask.id
 			};
 		} catch (err) {
-			logger.error('[Quick Add Task] Create error:', err as Error);
+			logger.error('[Quick Add Task] Create error', err instanceof Error ? err : new Error(String(err)));
 
 			return fail(500, {
 				error: err instanceof Error ? err.message : 'Failed to create task'

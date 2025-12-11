@@ -11,7 +11,7 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 		// Call Rust GraphQL API logout endpoint to clear session server-side
 		const apiBaseUrl = getApiBaseUrl();
 		const logoutUrl = `${apiBaseUrl}/auth/logout`;
-		logger.info(`[Logout] Calling Rust API logout: ${logoutUrl}`);
+		logger.info('[Logout] Calling Rust API logout', { logoutUrl });
 
 		// Forward cookies to backend for session clearing
 		const cookieHeader = request.headers.get('cookie') || '';
@@ -24,13 +24,13 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 			}
 		});
 
-		logger.info('[Logout] API response status:', logoutResponse.status);
+		logger.info('[Logout] API response status', { status: logoutResponse.status });
 
 		// Clear all session cookies on the frontend
 		const cookieNames = ['hr_token', 'auth-token', 'session', 'id.session'];
 		for (const name of cookieNames) {
 			cookies.delete(name, { path: '/' });
-			logger.info(`[Logout] Cleared cookie: ${name}`);
+			logger.info('[Logout] Cleared cookie', { name });
 		}
 
 		// Return success even if backend logout fails (frontend cleanup is sufficient)

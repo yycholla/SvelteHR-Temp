@@ -50,7 +50,7 @@ export const load: PageServerLoad = async (event) => {
 			'Content-Type': 'application/json'
 		};
 
-		logger.info(`[Task Create] Loading form options, parentTaskId: ${parentTaskId}`);
+		logger.info('[Task Create] Loading form options', { parentTaskId });
 
 		// Load assignees
 		const assigneesResponse = await authenticatedGraphQLRequest(
@@ -338,9 +338,12 @@ export const actions: Actions = {
 			const createData = await createResponse.json();
 
 			if (createData.errors) {
-				logger.error('[Task Create] Create errors:', createData.errors);
+				const errorMsg = createData.errors[0]?.message || 'Failed to create task';
+				logger.error('[Task Create] Create errors', new Error(errorMsg), {
+					errors: createData.errors
+				});
 				return fail(400, {
-					error: createData.errors[0]?.message || 'Failed to create task',
+					error: errorMsg,
 					values: formDataEntries
 				});
 			}
@@ -354,7 +357,9 @@ export const actions: Actions = {
 				});
 			}
 
-			logger.info('[Task Create] Task created successfully:', newTask.id);
+			logger.info('[Task Create] Task created successfully', {
+				taskId: newTask.id
+			});
 
 			// Redirect to new task details page
 			redirect(303, `/dashboard/tasks/${newTask.id}`);
@@ -364,7 +369,7 @@ export const actions: Actions = {
 				throw err;
 			}
 
-			logger.error('[Task Create] Create error:', err as Error);
+			logger.error('[Task Create] Create error', err instanceof Error ? err : new Error(String(err)));
 
 			return fail(500, {
 				error: err instanceof Error ? err.message : 'Failed to create task',

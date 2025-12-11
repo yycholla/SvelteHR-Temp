@@ -4,6 +4,7 @@
 import type { PageServerLoad } from './$types';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 import { PermissionChecks } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, cookies } = event;

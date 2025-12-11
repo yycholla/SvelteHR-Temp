@@ -407,25 +407,25 @@ export const RetryConditions = {
 export function logRetryAttempt(attempt: number, delay: number, error: ErrorResponse): void {
 	if (import.meta.env.DEV) {
 		console.group(`🔄 Retry Attempt ${attempt}`);
-		logger.info('Delay:', `${delay}ms`);
-		logger.info('Error:', error.userMessage);
-		logger.info('Error Type:', error.type);
-		logger.info('Is Retryable:', error.isRetryable);
+		logger.info('Delay:', { delay: `${delay}ms` });
+		logger.info('Error:', { message: error.userMessage });
+		logger.info('Error Type:', { type: error.type });
+		logger.info('Is Retryable:', { isRetryable: error.isRetryable });
 		console.groupEnd();
 	}
 }
 
 export function logRetrySuccess(attempt: number): void {
 	if (import.meta.env.DEV) {
-		logger.info(`✅ Retry Success after ${attempt} attempts`);
+		logger.info('✅ Retry Success after attempts', { attempt });
 	}
 }
 
 export function logMaxAttemptsReached(error: ErrorResponse): void {
 	if (import.meta.env.DEV) {
 		console.group(`❌ Max Retry Attempts Reached`);
-		logger.error('Final Error:', error.userMessage);
-		logger.error('Error Details:', error as Error);
+		logger.error('Final Error', new Error(error.userMessage));
+		logger.error('Error Details', new Error(JSON.stringify(error)));
 		console.groupEnd();
 	}
 }

@@ -12,6 +12,7 @@ import {
 	UPDATE_FORM_BLOCK,
 	UPDATE_ONBOARDING_FORM
 } from '$lib/graphql/form-operations';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const { user } = locals;

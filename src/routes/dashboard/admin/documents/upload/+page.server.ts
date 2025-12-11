@@ -101,7 +101,7 @@ export const load: PageServerLoad = async (event) => {
 					label: user.fullName || user.displayName || user.email
 				}));
 
-				logger.info('[UPLOAD PAGE] Loaded employee options:', employeeOptions.length);
+				logger.info('[UPLOAD PAGE] Loaded employee options:', { count: employeeOptions.length });
 			}
 		} catch (err) {
 			logger.error('[UPLOAD PAGE] Failed to load employees:', err as Error);
@@ -277,7 +277,7 @@ export const actions: Actions = {
 			);
 
 			if (keyResponse.errors?.length) {
-				logger.error('[UPLOAD ACTION] Key registration failed:', keyResponse.errors);
+				logger.error('[UPLOAD ACTION] Key registration failed:', undefined, { errors: keyResponse.errors });
 				return fail(500, {
 					error: keyResponse.errors[0].message || 'Failed to register encryption key'
 				});
@@ -339,7 +339,7 @@ export const actions: Actions = {
 			const response = await graphqlClient.mutation(UPLOAD_DOCUMENT, mutationVariables);
 
 			if (response.errors?.length) {
-				logger.error('[UPLOAD ACTION] GraphQL upload errors:', response.errors);
+				logger.error('[UPLOAD ACTION] GraphQL upload errors:', undefined, { errors: response.errors });
 				return fail(500, {
 					error: response.errors[0].message || 'Failed to upload document'
 				});

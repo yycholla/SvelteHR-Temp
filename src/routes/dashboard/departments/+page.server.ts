@@ -73,11 +73,14 @@ export const load: PageServerLoad = async (event) => {
 			Cookie: cookieHeader // Forward all cookies for session authentication
 		};
 
-		logger.info(
-			'[Departments] Using Rust GraphQL with session-based auth, user role:',
-			locals.user?.role
-		);
-		logger.info('[Departments] Filters:', { searchTerm, parentFilter, hasHeadFilter });
+		logger.info('[Departments] Using Rust GraphQL with session-based auth', {
+			userRole: locals.user?.role
+		});
+		logger.info('[Departments] Filters', {
+			searchTerm,
+			parentFilter,
+			hasHeadFilter
+		});
 
 		// Load departments data with linked employee relationships
 		const departmentsResponse = await fetch(graphqlEndpoint, {
@@ -105,7 +108,9 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		const departmentsData = await departmentsResponse.json();
-		logger.info(`[Departments] Departments data: ${departmentsData}`);
+		logger.info('[Departments] Departments data loaded', {
+			count: departmentsData?.data?.departments?.length || 0
+		});
 
 		// Load users for department manager dropdown
 		const usersResponse = await fetch(graphqlEndpoint, {
@@ -133,7 +138,10 @@ export const load: PageServerLoad = async (event) => {
 		const usersData = await usersResponse.json();
 
 		if (usersData.errors) {
-			logger.error('[Departments] Users GraphQL errors:', usersData.errors);
+			const errorMsg = usersData.errors[0]?.message || 'Users GraphQL errors';
+			logger.error('[Departments] Users GraphQL errors', new Error(errorMsg), {
+				errors: usersData.errors
+			});
 		}
 
 		// Keep all users for department counting (both active and inactive)
@@ -221,13 +229,13 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		// Log error details for debugging
-		logger.error('[Departments Error Details]', {
+		logger.error('[Departments Error Details]', undefined, {
 			userId: locals.user?.id,
 			userRole: locals.user?.role,
 			searchTerm,
 			parentFilter,
 			hasHeadFilter,
-			error: errorResponse
+			errorMessage: errorResponse.userMessage
 		});
 
 		// Throw SvelteKit error with user-friendly message
@@ -293,14 +301,19 @@ export const actions: Actions = {
 				})
 			});
 
-			logger.info('[Departments] Department creation request sent');
+			logger.info('[Departments] Department creation request sent', {
+				name
+			});
 
 			const createData = await createResponse.json();
 
 			if (createData.errors) {
-				logger.error('[Departments] GraphQL errors:', createData.errors);
+				const errorMsg = createData.errors[0]?.message || 'Failed to create department';
+				logger.error('[Departments] GraphQL errors', new Error(errorMsg), {
+					errors: createData.errors
+				});
 				return fail(500, {
-					error: createData.errors[0]?.message || 'Failed to create department'
+					error: errorMsg
 				});
 			}
 
@@ -312,12 +325,14 @@ export const actions: Actions = {
 				});
 			}
 
-			logger.info(`[Departments] Successfully created department with ID: ${newDepartmentId}`);
+			logger.info('[Departments] Successfully created department', {
+				departmentId: newDepartmentId
+			});
 
 			// Return success (dialog will close and refresh the page)
 			return { success: true, departmentId: newDepartmentId };
 		} catch (err: any) {
-			logger.error('[Departments] Error creating department:', err as Error);
+			logger.error('[Departments] Error creating department', err instanceof Error ? err : new Error(String(err)));
 
 			return fail(500, {
 				error: 'Failed to create department. Please try again.'

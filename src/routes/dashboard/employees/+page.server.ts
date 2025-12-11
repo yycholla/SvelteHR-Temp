@@ -127,7 +127,8 @@ export const load: PageServerLoad = async (event) => {
 
 		// Check for GraphQL errors
 		if (employeesData.errors) {
-			logger.error('[Employee Directory] GraphQL errors', {
+			const errorMsg = employeesData.errors[0]?.message || 'GraphQL errors';
+			logger.error('[Employee Directory] GraphQL errors', new Error(errorMsg), {
 				errors: employeesData.errors
 			});
 		}
@@ -263,7 +264,8 @@ export const load: PageServerLoad = async (event) => {
 
 		// Check for GraphQL errors
 		if (departmentsData.errors) {
-			logger.error('[Employee Directory] Departments GraphQL errors', {
+			const errorMsg = departmentsData.errors[0]?.message || 'Departments GraphQL errors';
+			logger.error('[Employee Directory] Departments GraphQL errors', new Error(errorMsg), {
 				errors: departmentsData.errors
 			});
 		}
@@ -284,7 +286,7 @@ export const load: PageServerLoad = async (event) => {
 		if (rolesResponse.ok) {
 			rolesData = await rolesResponse.json();
 		} else {
-			logger.error('[Employee Directory] Failed to load roles via REST', {
+			logger.error('[Employee Directory] Failed to load roles via REST', new Error('Failed to load roles'), {
 				status: rolesResponse.statusText
 			});
 		}
@@ -341,13 +343,13 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		// Log error details for debugging
-		logger.error('[Employee Directory Error Details]', {
+		logger.error('[Employee Directory Error Details]', undefined, {
 			userId: locals.user?.id,
 			userRole: locals.user?.role,
 			searchTerm,
 			departmentFilter,
 			statusFilter,
-			error: errorResponse
+			errorMessage: errorResponse.userMessage
 		});
 
 		// Throw SvelteKit error with user-friendly message

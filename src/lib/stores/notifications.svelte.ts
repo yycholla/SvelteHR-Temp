@@ -167,7 +167,7 @@ class NotificationStore {
 		};
 
 		this.eventSource.onerror = (err) => {
-			logger.error('[NotificationStore] SSE error:', err as Error);
+			logger.error('[NotificationStore] SSE error', new Error('EventSource error'), { event: err });
 			this.isConnecting = false; // Reset connection guard on error
 
 			// Check if it's an auth error (readyState 2 = CLOSED)

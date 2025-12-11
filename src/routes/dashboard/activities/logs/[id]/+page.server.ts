@@ -141,7 +141,7 @@ export const load: PageServerLoad = async (event) => {
 							new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
 					);
 			} catch (timelineError) {
-				logger.error('[ActivityLogDetail] Error loading timeline:', timelineError);
+				logger.error('[ActivityLogDetail] Error loading timeline', timelineError as Error);
 				// Continue without timeline if query fails
 			}
 		}
@@ -180,7 +180,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 		};
 	} catch (err) {
-		logger.error('[ActivityLogDetail] Error loading activity log:', err as Error);
+		logger.error('[ActivityLogDetail] Error loading activity log', err as Error);
 
 		// Handle specific error cases
 		if (err && typeof err === 'object' && 'message' in err) {

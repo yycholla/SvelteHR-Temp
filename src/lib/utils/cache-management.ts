@@ -590,8 +590,8 @@ export function logCacheOperation(
 export function debugCacheState(invalidator: CacheInvalidator): void {
 	if (import.meta.env.DEV) {
 		console.group('📊 Cache Debug Information');
-		logger.info('Metrics:', invalidator.getMetrics());
-		logger.info('Invalidation History:', invalidator.getInvalidationHistory());
+		logger.info('Metrics:', { metrics: invalidator.getMetrics() });
+		logger.info('Invalidation History:', { history: invalidator.getInvalidationHistory() });
 		console.groupEnd();
 	}
 }

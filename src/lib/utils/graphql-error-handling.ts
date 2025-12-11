@@ -353,7 +353,7 @@ export function createStandardizedError(
 	if (import.meta.env.DEV) {
 		console.group(`🔴 GraphQL Error: ${operationName}`);
 		logger.error('Original Error:', originalError);
-		logger.error('Classified Error:', errorResponse);
+		logger.error('Classified Error', new Error(JSON.stringify(errorResponse)));
 		console.groupEnd();
 	}
 
@@ -405,12 +405,12 @@ export function createErrorHandler(config: ErrorHandlerConfig) {
 export function logErrorDetails(error: ErrorResponse): void {
 	if (import.meta.env.DEV) {
 		console.group(`🔍 Error Details: ${error.id}`);
-		logger.info('Type:', error.type);
-		logger.info('Severity:', error.severity);
-		logger.info('User Message:', error.userMessage);
-		logger.info('Is Retryable:', error.isRetryable);
-		logger.info('Suggested Actions:', error.suggestedActions);
-		logger.info('Technical Details:', error.technicalDetails);
+		logger.info('Type:', { type: error.type });
+		logger.info('Severity:', { severity: error.severity });
+		logger.info('User Message:', { message: error.userMessage });
+		logger.info('Is Retryable:', { isRetryable: error.isRetryable });
+		logger.info('Suggested Actions:', { actions: error.suggestedActions });
+		logger.info('Technical Details:', { details: error.technicalDetails });
 		console.groupEnd();
 	}
 }

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import {
 	import { logger } from '$lib/utils/logger';
+	import {
 		Activity,
 		Award,
 		BarChart3,

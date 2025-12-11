@@ -77,9 +77,9 @@
 	$effect(() => {
 		hasRequiredFields = !!metadata.category && !!metadata.sensitivityLevel;
 		metadataValid = Object.keys(errors).length === 0 && hasRequiredFields;
-		logger.info(`[DocumentMetadataForm] hasRequiredFields updated: ${hasRequiredFields}`);
-		logger.info(`category: ${metadata.category}`);
-		logger.info(`sensitivityLevel: ${metadata.sensitivityLevel}`);
+		logger.info('[DocumentMetadataForm] hasRequiredFields updated:', { hasRequiredFields });
+		logger.info('[DocumentMetadataForm] category:', { category: metadata.category });
+		logger.info('[DocumentMetadataForm] sensitivityLevel:', { sensitivityLevel: metadata.sensitivityLevel });
 	});
 
 	// Categories and sensitivity levels
@@ -189,9 +189,7 @@
 				expirationDate: metadata.expirationDate ? new Date(metadata.expirationDate) : undefined
 			};
 
-			logger.info(
-				`[DocumentMetadataForm] Validating manually constructed object: ${validationData}`
-			);
+			logger.info('[DocumentMetadataForm] Validating manually constructed object:', { validationData });
 			logger.info('[DocumentMetadataForm] Field types:', {
 				filenameType: typeof validationData.filename,
 				categoryType: typeof validationData.category,
@@ -209,9 +207,9 @@
 			return true;
 		} catch (error: any) {
 			logger.error('Catch failed', error as Error);
-			logger.error('[DocumentMetadataForm] Error name:', error.name);
-			logger.error('[DocumentMetadataForm] Error message:', error.message);
-			logger.error('[DocumentMetadataForm] Error stack:', error.stack);
+			logger.error('[DocumentMetadataForm] Error name:', { name: error.name });
+			logger.error('[DocumentMetadataForm] Error message:', { message: error.message });
+			logger.error('[DocumentMetadataForm] Error stack:', { stack: error.stack });
 			if (error.errors) {
 				logger.error('[DocumentMetadataForm] Zod errors:', JSON.stringify(error.errors, null, 2));
 				errors = error.errors.reduce((acc: Record<string, string>, err: any) => {

@@ -5,6 +5,7 @@ import type { PageServerLoad } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, cookies } = event;

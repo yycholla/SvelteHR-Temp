@@ -204,10 +204,10 @@ class ServerPerformanceMonitor {
 
 		if (duration > 100) {
 			// Database budget
-			logger.warn(
-				`🐌 Slow database query took ${Math.round(duration)}ms:`,
-				this.sanitizeQuery(query)
-			);
+			logger.warn('🐌 Slow database query', {
+				duration: `${Math.round(duration)}ms`,
+				query: this.sanitizeQuery(query)
+			});
 		}
 	}
 

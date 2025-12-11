@@ -1,6 +1,6 @@
 <script lang="ts">
-	import {
 	import { logger } from '$lib/utils/logger';
+	import {
 		ArrowLeft,
 		Building,
 		Calendar,
@@ -74,7 +74,7 @@
 	});
 
 	// Debug: Log user options to console
-	logger.info('[ONBOARDING] User options:', userOptions.slice(0, 5));
+	logger.info('[ONBOARDING] User options:', { sampleOptions: userOptions.slice(0, 5) });
 
 	// Transform departments for Select options
 	const departmentOptions = data.departments.map((dept: any) => ({
@@ -181,7 +181,7 @@
 			goto($page.url.pathname, { invalidateAll: true });
 		} catch (error) {
 			alert('An error occurred during assignment');
-			logger.error(error);
+			logger.error('Assignment error:', error as Error);
 		} finally {
 			isAssigning = false;
 			selectedUsersToAssign = [];

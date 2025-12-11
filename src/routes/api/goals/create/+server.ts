@@ -5,7 +5,7 @@ import type { RequestHandler } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 
 export const POST: RequestHandler = async ({ request, cookies, locals }) => {
-	logger.info('[Goal Create API] START - User:', locals.user?.id);
+	logger.info('[Goal Create API] START', { userId: locals.user?.id });
 
 	// Check authentication
 	if (!locals.user) {
@@ -15,7 +15,7 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
 
 	try {
 		const body = await request.json();
-		logger.info('[Goal Create API] Request body:', JSON.stringify(body, null, 2));
+		logger.info('[Goal Create API] Request body', { body: JSON.stringify(body, null, 2) });
 
 		const { employeeId, title, description, targetDate, status, progressPercentage } = body;
 
@@ -57,17 +57,16 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
 			}
 		};
 
-		logger.info(
-			'[Goal Create API] Sending mutation with variables:',
-			JSON.stringify(variables, null, 2)
-		);
+		logger.info('[Goal Create API] Sending mutation with variables', {
+			variables: JSON.stringify(variables, null, 2)
+		});
 
 		const result = await graphqlClient.mutation(mutation, variables);
 
-		logger.info('[Goal Create API] GraphQL result:', JSON.stringify(result, null, 2));
+		logger.info('[Goal Create API] GraphQL result', { result: JSON.stringify(result, null, 2) });
 
 		if (result.errors) {
-			logger.error('[Goal Create API] GraphQL errors:', JSON.stringify(result.errors, null, 2));
+			logger.error('[Goal Create API] GraphQL errors', new Error('GraphQL errors'), { errors: JSON.stringify(result.errors, null, 2) });
 			const errorMessage = result.errors.map((e: any) => e.message).join('; ');
 			return json(
 				{
@@ -84,14 +83,13 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
 			return json({ message: 'No data returned from goal creation' }, { status: 500 });
 		}
 
-		logger.info('[Goal Create API] Successfully created goal:', result.data.createEmployeeGoal);
+		logger.info('[Goal Create API] Successfully created goal', { goal: result.data.createEmployeeGoal });
 		return json({ goal: result.data.createEmployeeGoal }, { status: 201 });
 	} catch (error) {
-		logger.error('[Goal Create API] Catch block error:', error as Error);
-		logger.error(
-			'[Goal Create API] Error stack:',
-			error instanceof Error ? error.stack : 'No stack'
-		);
+		logger.error('[Goal Create API] Catch block error', error as Error);
+		logger.error('[Goal Create API] Error stack', new Error('Stack trace'), {
+			stack: error instanceof Error ? error.stack : 'No stack'
+		});
 		return json(
 			{
 				message: error instanceof Error ? error.message : 'Failed to create goal',

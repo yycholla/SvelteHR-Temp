@@ -5,7 +5,7 @@ import type { RequestHandler } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 
 export const DELETE: RequestHandler = async ({ params, cookies, locals }) => {
-	logger.info('[Goal Delete API] START - User:', locals.user?.id, 'Goal:', params.goalId);
+	logger.info('[Goal Delete API] START', { userId: locals.user?.id, goalId: params.goalId });
 
 	// Check authentication
 	if (!locals.user) {
@@ -35,17 +35,16 @@ export const DELETE: RequestHandler = async ({ params, cookies, locals }) => {
 			id: goalId
 		};
 
-		logger.info(
-			'[Goal Delete API] Sending mutation with variables:',
-			JSON.stringify(variables, null, 2)
-		);
+		logger.info('[Goal Delete API] Sending mutation with variables', {
+			variables: JSON.stringify(variables, null, 2)
+		});
 
 		const result = await graphqlClient.mutation(mutation, variables);
 
-		logger.info('[Goal Delete API] GraphQL result:', JSON.stringify(result, null, 2));
+		logger.info('[Goal Delete API] GraphQL result', { result: JSON.stringify(result, null, 2) });
 
 		if (result.errors) {
-			logger.error('[Goal Delete API] GraphQL errors:', JSON.stringify(result.errors, null, 2));
+			logger.error('[Goal Delete API] GraphQL errors', new Error('GraphQL errors'), { errors: JSON.stringify(result.errors, null, 2) });
 			const errorMessage = result.errors.map((e: any) => e.message).join('; ');
 			return json(
 				{
@@ -72,11 +71,10 @@ export const DELETE: RequestHandler = async ({ params, cookies, locals }) => {
 		logger.info('[Goal Delete API] Successfully deleted goal');
 		return json({ success: true, message: 'Goal deleted successfully' }, { status: 200 });
 	} catch (error) {
-		logger.error('[Goal Delete API] Catch block error:', error as Error);
-		logger.error(
-			'[Goal Delete API] Error stack:',
-			error instanceof Error ? error.stack : 'No stack'
-		);
+		logger.error('[Goal Delete API] Catch block error', error as Error);
+		logger.error('[Goal Delete API] Error stack', new Error('Stack trace'), {
+			stack: error instanceof Error ? error.stack : 'No stack'
+		});
 		return json(
 			{
 				message: error instanceof Error ? error.message : 'Failed to delete goal',

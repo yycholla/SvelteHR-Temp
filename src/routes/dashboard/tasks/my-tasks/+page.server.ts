@@ -44,7 +44,9 @@ export const load: PageServerLoad = async (event) => {
 		const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
-		logger.info('[My Tasks] Loading tasks for user:', locals.user.id);
+		logger.info('[My Tasks] Loading tasks for user', {
+			userId: locals.user.id
+		});
 
 		// Load user's tasks with authenticated request (forwards session cookies)
 		// NOTE: Rust GraphQL schema uses TaskFilter input object
@@ -100,11 +102,16 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		const tasksData = await tasksResponse.json();
-		logger.info(`[My Tasks] Tasks response: ${tasksData}`);
+		logger.info('[My Tasks] Tasks response received', {
+			tasksCount: tasksData?.data?.tasks?.length || 0
+		});
 
 		if (tasksData.errors) {
-			logger.error('[My Tasks] GraphQL errors:', tasksData.errors);
-			throw new Error(tasksData.errors[0]?.message || 'Failed to load tasks');
+			const errorMsg = tasksData.errors[0]?.message || 'Failed to load tasks';
+			logger.error('[My Tasks] GraphQL errors', new Error(errorMsg), {
+				errors: tasksData.errors
+			});
+			throw new Error(errorMsg);
 		}
 
 		let tasks = tasksData?.data?.tasks || [];
@@ -308,9 +315,9 @@ export const load: PageServerLoad = async (event) => {
 			}
 		);
 
-		logger.error('[My Tasks Error Details]', {
+		logger.error('[My Tasks Error Details]', undefined, {
 			userId: locals.user?.id,
-			error: errorResponse
+			errorMessage: errorResponse.userMessage
 		});
 
 		// Return safe fallback data instead of crashing the page
@@ -375,7 +382,7 @@ export const actions: Actions = {
 			const taskTypeId = formData.get('taskTypeId') as string | null;
 			const dueDate = formData.get('dueDate') as string | null;
 
-			logger.info('[My Tasks - Quick Add] Creating task:', {
+			logger.info('[My Tasks - Quick Add] Creating task', {
 				title,
 				priority,
 				assigneeId,
@@ -426,9 +433,12 @@ export const actions: Actions = {
 			const createData = await createResponse.json();
 
 			if (createData.errors) {
-				logger.error('[My Tasks - Quick Add] Create errors:', createData.errors);
+				const errorMsg = createData.errors[0]?.message || 'Failed to create task';
+				logger.error('[My Tasks - Quick Add] Create errors', new Error(errorMsg), {
+					errors: createData.errors
+				});
 				return fail(400, {
-					error: createData.errors[0]?.message || 'Failed to create task'
+					error: errorMsg
 				});
 			}
 
@@ -440,14 +450,16 @@ export const actions: Actions = {
 				});
 			}
 
-			logger.info('[My Tasks - Quick Add] Task created successfully:', newTask.id);
+			logger.info('[My Tasks - Quick Add] Task created successfully', {
+				taskId: newTask.id
+			});
 
 			return {
 				success: true,
 				taskId: newTask.id
 			};
 		} catch (err) {
-			logger.error('[My Tasks - Quick Add] Create error:', err as Error);
+			logger.error('[My Tasks - Quick Add] Create error', err instanceof Error ? err : new Error(String(err)));
 
 			return fail(500, {
 				error: err instanceof Error ? err.message : 'Failed to create task'

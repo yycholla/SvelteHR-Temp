@@ -9,6 +9,7 @@ import {
 	REORDER_ONBOARDING_FORMS,
 	UPDATE_ONBOARDING_FORM
 } from '$lib/graphql/form-operations';
+import { logger } from '$lib/utils/logger';
 
 interface OnboardingModule {
 	id: string;

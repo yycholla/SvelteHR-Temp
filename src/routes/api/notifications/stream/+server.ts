@@ -10,14 +10,14 @@ export const GET: RequestHandler = async ({ locals, cookies, request }) => {
 	if (!locals.user?.id) {
 		// Only log debug info on authentication errors
 		logger.error('❌ SSE: No authenticated user found in session');
-		logger.error('❌ SSE: Cookie header:', cookieHeader || 'NO COOKIES SENT');
-		logger.error('❌ SSE: Cookies parsed by SvelteKit:', {
+		logger.error('❌ SSE: Cookie header', new Error('No authenticated user'), { cookieHeader: cookieHeader || 'NO COOKIES SENT' });
+		logger.error('❌ SSE: Cookies parsed by SvelteKit', new Error('No authenticated user'), {
 			'id.session': cookies.get('id.session'),
 			session: cookies.get('session'),
 			hr_token: cookies.get('hr_token'),
 			'auth-token': cookies.get('auth-token')
 		});
-		logger.error('❌ SSE: locals.user:', locals.user);
+		logger.error('❌ SSE: locals.user', new Error('No authenticated user'), { user: locals.user });
 		error(401, 'Authentication required');
 	}
 
@@ -41,7 +41,7 @@ export const GET: RequestHandler = async ({ locals, cookies, request }) => {
 				try {
 					controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
 				} catch (err) {
-					logger.error('Error sending SSE event:', err as Error);
+					logger.error('Error sending SSE event', err as Error);
 					isClosed = true;
 					if (intervalId) {
 						clearInterval(intervalId);
@@ -106,7 +106,7 @@ export const GET: RequestHandler = async ({ locals, cookies, request }) => {
 					const result = await graphqlResponse.json();
 
 					if (result.errors) {
-						logger.error('❌ SSE: GraphQL errors:', result.errors);
+						logger.error('❌ SSE: GraphQL errors', new Error('GraphQL errors'), { errors: result.errors });
 						sendEvent({ type: 'error', message: 'Failed to fetch notifications' });
 						return;
 					}
@@ -129,7 +129,7 @@ export const GET: RequestHandler = async ({ locals, cookies, request }) => {
 						}))
 					});
 				} catch (err) {
-					logger.error('Error fetching notifications in SSE:', err as Error);
+					logger.error('Error fetching notifications in SSE', err as Error);
 					sendEvent({ type: 'error', message: 'Failed to fetch notifications' });
 				}
 			}, 5000); // Poll every 5 seconds

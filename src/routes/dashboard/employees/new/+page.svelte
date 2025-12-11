@@ -88,13 +88,13 @@
 
 			isSubmitting = true;
 			return async ({ result, update }) => {
-				logger.info('[Employee Form] Result type:', result.type);
-				logger.info(`[Employee Form] Full result:: ${result}`;
+				logger.info(`[Employee Form] Result type: ${result.type}`);
+				logger.info(`[Employee Form] Full result:: ${result}`);
 				isSubmitting = false;
 
 				// Handle different result types
 				if (result.type === 'redirect') {
-					logger.info('[Employee Form] Redirecting to:', result.location);
+					logger.info(`[Employee Form] Redirecting to:' ${result.location}`);
 					// Let the redirect happen naturally
 					await update();
 				} else if (result.type === 'failure') {
@@ -105,7 +105,7 @@
 					logger.info('[Employee Form] Error:', result.error);
 					await update();
 				} else {
-					logger.info('[Employee Form] Other result type:', result.type);
+					logger.info(`[Employee Form] Other result type:' ${result.type}`);
 					// For any other result type, update normally
 					await update();
 				}

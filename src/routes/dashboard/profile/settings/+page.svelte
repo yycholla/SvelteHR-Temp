@@ -1,6 +1,6 @@
 <script lang="ts">
-	/**
 	import { logger } from '$lib/utils/logger';
+	/**
 	 * Profile Settings Page
 	 * Allows users to manage their profile settings, notification preferences, and theme
 	 */

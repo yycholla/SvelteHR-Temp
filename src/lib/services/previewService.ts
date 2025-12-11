@@ -71,7 +71,7 @@ export async function generatePreview(
 		// Trigger async conversion job
 		// In production, this would queue a job in a background worker
 		queueOfficeConversion(documentId, storagePath, fileType).catch((error) => {
-			logger.error(`Office conversion failed for document ${documentId}:`, error as Error);
+			logger.error('Office conversion failed for document', error as Error, { documentId });
 		});
 	}
 
@@ -123,9 +123,11 @@ export async function convertOfficeToPDF(
 		const conversionTime = Date.now() - startTime;
 
 		// Log conversion metrics
-		logger.info(
-			`Office document converted in ${conversionTime}ms: ${filePath} -> ${convertedPath}`
-		);
+		logger.info('Office document converted', {
+			conversionTime: `${conversionTime}ms`,
+			filePath,
+			convertedPath
+		});
 
 		return {
 			convertedPath,
@@ -136,7 +138,9 @@ export async function convertOfficeToPDF(
 		const conversionTime = Date.now() - startTime;
 		const errorMessage = error instanceof Error ? error.message : 'Unknown conversion error';
 
-		logger.error(`Office conversion failed after ${conversionTime}ms:`, errorMessage);
+		logger.error('Office conversion failed', new Error(errorMessage), {
+			conversionTime: `${conversionTime}ms`
+		});
 
 		return {
 			convertedPath: '',
@@ -166,7 +170,7 @@ async function queueOfficeConversion(
 	// 4. Store converted version
 	// 5. Update conversion status
 
-	logger.info(`Queuing Office conversion for document ${documentId} (${fileType})`);
+	logger.info('Queuing Office conversion for document', { documentId, fileType });
 
 	// Example job queue structure:
 	// await jobQueue.add('convert-office-document', {

@@ -80,7 +80,7 @@
 	const filteredReviews = $derived.by(() => {
 		let filtered = reviews;
 
-		logger.info('🔍 Starting filter - reviews:', filtered.length);
+		logger.info('🔍 Starting filter - reviews:', { count: filtered.length });
 
 		// Apply search
 		if (searchQuery) {
@@ -96,21 +96,19 @@
 
 		// Apply type filters
 		if (selectedTypes.length > 0) {
-			logger.info('🔍 Type filter - before:', filtered.length, 'selectedTypes:', selectedTypes);
+			logger.info('🔍 Type filter - before:', { filteredLength: filtered.length, selectedTypes });
 			filtered = filtered.filter((review) => selectedTypes.includes(review.reviewType));
-			logger.info('🔍 Type filter - after:', filtered.length);
+			logger.info('🔍 Type filter - after:', { filteredLength: filtered.length });
 		}
 
 		// Apply status filters
 		if (selectedStatuses.length > 0) {
-			logger.info(
-				'🔍 Status filter - before:',
-				filtered.length,
-				'selectedStatuses:',
+			logger.info('🔍 Status filter - before:', {
+				filteredLength: filtered.length,
 				selectedStatuses
-			);
+			});
 			filtered = filtered.filter((review) => selectedStatuses.includes(review.status));
-			logger.info('🔍 Status filter - after:', filtered.length);
+			logger.info('🔍 Status filter - after:', { filteredLength: filtered.length });
 		}
 
 		// Apply sorting

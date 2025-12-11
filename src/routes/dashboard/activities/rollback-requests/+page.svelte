@@ -1,6 +1,6 @@
 <script lang="ts">
-	/**
 	import { logger } from '$lib/utils/logger';
+	/**
 	 * Rollback Requests Page - UI
 	 * Feature: 020-we-need-to (Comprehensive Audit Logging with Rollback)
 	 * Task: T045

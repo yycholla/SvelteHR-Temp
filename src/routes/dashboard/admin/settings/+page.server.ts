@@ -90,7 +90,9 @@ export const load: PageServerLoad = async (event) => {
 				const uiCategory = categoryMapping[setting.category] || setting.category;
 				settings[uiCategory] = parsed;
 			} catch (parseError) {
-				logger.error(`[ADMIN SETTINGS] Failed to parse ${setting.category}:`, parseError);
+				logger.error('[ADMIN SETTINGS] Failed to parse category:', parseError as Error, {
+					category: setting.category
+				});
 				// Keep empty object for this category
 			}
 		}

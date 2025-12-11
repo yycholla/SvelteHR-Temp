@@ -96,14 +96,14 @@ export async function logTaskAction(input: TaskAuditInput): Promise<boolean> {
 		});
 
 		if (!response.ok) {
-			logger.error('[TASK AUDIT] GraphQL mutation failed:', response.statusText);
+			logger.error('[TASK AUDIT] GraphQL mutation failed', new Error(response.statusText));
 			return false;
 		}
 
 		const result = await response.json();
 
 		if (result.errors) {
-			logger.error('[TASK AUDIT] GraphQL errors:', result.errors);
+			logger.error('[TASK AUDIT] GraphQL errors', new Error(JSON.stringify(result.errors)));
 			return false;
 		}
 
@@ -192,7 +192,7 @@ export async function logTaskUpdated(
 
 	// Only log if there are actual changes
 	if (changes.length === 0) {
-		logger.info(`[TASK AUDIT] No changes detected for task: ${taskId}`);
+		logger.info('[TASK AUDIT] No changes detected for task:', { taskId });
 		return true;
 	}
 
@@ -527,7 +527,7 @@ export async function getTaskAuditTrail(taskId: string, limit: number = 50): Pro
 		});
 
 		if (!response.ok) {
-			logger.error('[TASK AUDIT] Failed to fetch audit trail:', response.statusText);
+			logger.error('[TASK AUDIT] Failed to fetch audit trail', new Error(response.statusText));
 			return [];
 		}
 

@@ -33,7 +33,7 @@ export const load: PageServerLoad = async (event) => {
 			'Content-Type': 'application/json'
 		};
 
-		logger.info('[Activities] Loading activities for user:', locals.user.id);
+		logger.info('[Activities] Loading activities for user', { userId: locals.user.id });
 
 		// Fetch user's activity logs using Rust GraphQL backend
 		// Migration: ✅ Use idiomatic Rust pattern (activityLogs with userId parameter)
@@ -69,10 +69,10 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		const activitiesData = await activitiesResponse.json();
-		logger.info('[Activities] Response:', activitiesData);
+		logger.info('[Activities] Response', { activitiesData });
 
 		if (activitiesData.errors) {
-			logger.error('[Activities] GraphQL errors:', activitiesData.errors);
+			logger.error('[Activities] GraphQL errors', new Error('GraphQL errors'), { errors: activitiesData.errors });
 			throw new Error(activitiesData.errors[0]?.message || 'Failed to load activities');
 		}
 
@@ -92,7 +92,7 @@ export const load: PageServerLoad = async (event) => {
 			user: locals.user
 		};
 	} catch (err: any) {
-		logger.error('[Activities] Error loading activities:', err as Error);
+		logger.error('[Activities] Error loading activities', err as Error);
 
 		// Handle specific error cases
 		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {

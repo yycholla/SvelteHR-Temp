@@ -50,7 +50,7 @@ const AUTH_CONFIG = {
  */
 export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
 	try {
-		logger.info('🔐 AuthService: Attempting login for', credentials.email);
+		logger.info('🔐 AuthService: Attempting login for', { email: credentials.email });
 
 		if (!credentials.email || !credentials.password) {
 			return {
@@ -86,7 +86,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
 				message: 'Login successful'
 			};
 		} catch (apiError) {
-			logger.error('Authentication API error:', apiError);
+			logger.error('Authentication API error:', apiError as Error);
 			return {
 				success: false,
 				error: 'Unable to connect to authentication service',
@@ -114,7 +114,7 @@ export async function logout(): Promise<{ success: boolean; message?: string }> 
 		await fetch(AUTH_CONFIG.endpoints.logout, {
 			method: 'POST',
 			credentials: 'include' // Include session cookies for server-side session clearing
-		}).catch((err) => logger.warn(`Logout endpoint failed: ${err}`));
+		}).catch((err) => logger.warn('Logout endpoint failed:', { error: err }));
 
 		return {
 			success: true,
@@ -213,7 +213,10 @@ export async function initializeAuth(): Promise<{
 }> {
 	const result = await verifySession();
 
-	logger.info('🔧 AuthService: Initialized', { authenticated: result.valid, user: result.user });
+	logger.info('🔧 AuthService: Initialized', {
+		authenticated: result.valid,
+		user: result.user
+	});
 
 	return {
 		isAuthenticated: result.valid,

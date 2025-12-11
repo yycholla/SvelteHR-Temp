@@ -158,7 +158,7 @@ export class ICalService {
 			try {
 				vevent.updatePropertyWithValue('rrule', event.rrule);
 			} catch (error) {
-				logger.warn('Invalid RRULE, skipping:', event.rrule);
+				logger.warn('Invalid RRULE, skipping:', { rrule: event.rrule });
 			}
 		}
 

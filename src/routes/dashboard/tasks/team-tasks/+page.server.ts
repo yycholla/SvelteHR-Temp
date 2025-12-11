@@ -47,7 +47,9 @@ export const load: PageServerLoad = async (event) => {
 		// Create authenticated GraphQL client with session cookies
 		const client = GraphQLClient.fromCookies(cookies);
 
-		logger.info('[Team Tasks] Loading team tasks for user:', locals.user.id);
+		logger.info('[Team Tasks] Loading team tasks for user', {
+			userId: locals.user.id
+		});
 
 		// Load current user's information to get their department
 		const currentUserResponse = await client.query(
@@ -89,15 +91,22 @@ export const load: PageServerLoad = async (event) => {
 			}
 		);
 
-		logger.info(`[Team Tasks] Departments response: ${departmentsResponse}`);
+		logger.info('[Team Tasks] Departments response received', {
+			hasDepartments: !!departmentsResponse?.data?.departments
+		});
 
 		if (departmentsResponse.errors) {
-			logger.error('[Team Tasks] Departments GraphQL errors:', departmentsResponse.errors);
-			throw new Error(departmentsResponse.errors[0]?.message || 'Failed to load departments');
+			const errorMsg = departmentsResponse.errors[0]?.message || 'Failed to load departments';
+			logger.error('[Team Tasks] Departments GraphQL errors', new Error(errorMsg), {
+				errors: departmentsResponse.errors
+			});
+			throw new Error(errorMsg);
 		}
 
 		const departments = departmentsResponse?.data?.departments || [];
-		logger.info('[Team Tasks] Found departments:', departments.length);
+		logger.info('[Team Tasks] Found departments', {
+			count: departments.length
+		});
 
 		// Load team tasks
 		// NOTE: Rust GraphQL schema doesn't support complex filters
@@ -151,16 +160,23 @@ export const load: PageServerLoad = async (event) => {
 			}
 		);
 
-		logger.info(`[Team Tasks] Tasks response: ${tasksResponse}`);
+		logger.info('[Team Tasks] Tasks response received', {
+			tasksCount: tasksResponse?.data?.tasks?.length || 0
+		});
 
 		if (tasksResponse.errors) {
-			logger.error('[Team Tasks] GraphQL errors:', tasksResponse.errors);
-			throw new Error(tasksResponse.errors[0]?.message || 'Failed to load team tasks');
+			const errorMsg = tasksResponse.errors[0]?.message || 'Failed to load team tasks';
+			logger.error('[Team Tasks] GraphQL errors', new Error(errorMsg), {
+				errors: tasksResponse.errors
+			});
+			throw new Error(errorMsg);
 		}
 
 		let tasks = tasksResponse?.data?.tasks || [];
 
-		logger.info('[Team Tasks] Total tasks before filter:', tasks.length);
+		logger.info('[Team Tasks] Total tasks before filter', {
+			count: tasks.length
+		});
 
 		if (userDepartmentId) {
 			// User has a department - filter to show only tasks assigned to that department
@@ -283,9 +299,9 @@ export const load: PageServerLoad = async (event) => {
 			}
 		);
 
-		logger.error('[Team Tasks Error Details]', {
+		logger.error('[Team Tasks Error Details]', undefined, {
 			userId: locals.user?.id,
-			error: errorResponse
+			errorMessage: errorResponse.userMessage
 		});
 
 		error(500, 'Team tasks temporarily unavailable');
@@ -323,7 +339,7 @@ export const actions: Actions = {
 			const taskTypeId = formData.get('taskTypeId') as string | null;
 			const dueDate = formData.get('dueDate') as string | null;
 
-			logger.info('[Team Tasks - Quick Add] Creating team task:', {
+			logger.info('[Team Tasks - Quick Add] Creating team task', {
 				title,
 				priority,
 				departmentId,
@@ -374,9 +390,12 @@ export const actions: Actions = {
 			const createData = await createResponse.json();
 
 			if (createData.errors) {
-				logger.error('[Team Tasks - Quick Add] Create errors:', createData.errors);
+				const errorMsg = createData.errors[0]?.message || 'Failed to create task';
+				logger.error('[Team Tasks - Quick Add] Create errors', new Error(errorMsg), {
+					errors: createData.errors
+				});
 				return fail(400, {
-					error: createData.errors[0]?.message || 'Failed to create task'
+					error: errorMsg
 				});
 			}
 
@@ -388,14 +407,16 @@ export const actions: Actions = {
 				});
 			}
 
-			logger.info('[Team Tasks - Quick Add] Task created successfully:', newTask.id);
+			logger.info('[Team Tasks - Quick Add] Task created successfully', {
+				taskId: newTask.id
+			});
 
 			return {
 				success: true,
 				taskId: newTask.id
 			};
 		} catch (err) {
-			logger.error('[Team Tasks - Quick Add] Create error:', err as Error);
+			logger.error('[Team Tasks - Quick Add] Create error', err instanceof Error ? err : new Error(String(err)));
 
 			return fail(500, {
 				error: err instanceof Error ? err.message : 'Failed to create task'

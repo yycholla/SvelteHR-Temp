@@ -5,6 +5,7 @@ import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { requireAuth } from '$lib/server/rbac-utils';
 import { transaction } from '$lib/server/db';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { url, fetch } = event;

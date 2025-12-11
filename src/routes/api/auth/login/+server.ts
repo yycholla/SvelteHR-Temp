@@ -15,7 +15,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 
 		// Check rate limiting
 		if (isRateLimited(clientIp)) {
-			logger.warn(`[Login] Rate limit exceeded for IP: ${clientIp}`);
+			logger.warn('[Login] Rate limit exceeded', { clientIp });
 			return json(
 				{
 					success: false,
@@ -54,7 +54,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 				hasPassword: !!password
 			});
 		} else {
-			logger.warn(`[Login] Invalid content type: ${contentType}`);
+			logger.warn('[Login] Invalid content type', { contentType });
 			recordFailedLogin(clientIp);
 			return json(
 				{
@@ -82,7 +82,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 		logger.info('[Login] Calling Rust API /auth/login...');
 		const apiBaseUrl = getApiBaseUrl();
 		const loginUrl = `${apiBaseUrl}/auth/login`;
-		logger.info(`[Login] Login URL: ${loginUrl}`);
+		logger.info('[Login] Login URL', { loginUrl });
 
 		const loginResponse = await fetch(loginUrl, {
 			method: 'POST',
@@ -92,11 +92,11 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 			body: JSON.stringify({ email, password })
 		});
 
-		logger.info('[Login] API response status:', loginResponse.status);
+		logger.info('[Login] API response status', { status: loginResponse.status });
 
 		if (!loginResponse.ok) {
 			const errorData = await loginResponse.json();
-			logger.info(`[Login] API error response: ${errorData}`);
+			logger.info('[Login] API error response', { errorData });
 
 			// Record failed login attempt
 			recordFailedLogin(clientIp);
@@ -112,15 +112,15 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 		}
 
 		const loginData = await loginResponse.json();
-		logger.info('[Login] Login successful, user:', loginData.user.email);
-		logger.info('[Login] Force password change:', loginData.user.force_password_change);
+		logger.info('[Login] Login successful', { userEmail: loginData.user.email });
+		logger.info('[Login] Force password change', { forcePasswordChange: loginData.user.force_password_change });
 
 		// Clear rate limit on successful login
 		clearRateLimit(clientIp);
 
 		// Extract Set-Cookie headers from Rust backend response and forward to browser
 		const setCookieHeaders = loginResponse.headers.getSetCookie?.() || [];
-		logger.info('[Login] Forwarding', setCookieHeaders.length, 'session cookies from Rust backend');
+		logger.info('[Login] Forwarding session cookies from Rust backend', { cookieCount: setCookieHeaders.length });
 
 		// Parse and set each cookie in SvelteKit
 		for (const cookieHeader of setCookieHeaders) {
@@ -149,9 +149,11 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 					options.maxAge = parseInt(maxAgeMatch[1]);
 				}
 
-				logger.info(
-					`[Login] Setting cookie: ${name} (HttpOnly: ${options.httpOnly}, Secure: ${options.secure})`
-				);
+				logger.info('[Login] Setting cookie', {
+					name,
+					httpOnly: options.httpOnly,
+					secure: options.secure
+				});
 				cookies.set(name, value, options);
 			}
 		}
@@ -166,8 +168,8 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 		});
 	} catch (error) {
 		logger.info('[Login] === LOGIN ATTEMPT FAILED ===');
-		logger.error('[Login] FATAL ERROR:', error as Error);
-		logger.error('[Login] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+		logger.error('[Login] FATAL ERROR', error as Error);
+		logger.error('[Login] Error stack', new Error('Stack trace'), { stack: error instanceof Error ? error.stack : 'No stack trace' });
 
 		// Security: Don't expose internal errors in production
 		const isProduction = process.env.NODE_ENV === 'production';

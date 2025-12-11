@@ -55,7 +55,7 @@ export const actions: Actions = {
 			const response = await client.mutation(CREATE_ONBOARDING_MODULE_MUTATION, variables);
 
 			if (response.errors) {
-				logger.error('Onboarding module creation errors:', response.errors);
+				logger.error('Onboarding module creation errors:', undefined, { errors: response.errors });
 				return fail(500, {
 					error: response.errors[0].message,
 					values: { title, description, category, isActive }

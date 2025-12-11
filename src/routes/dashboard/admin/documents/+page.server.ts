@@ -42,7 +42,7 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 		});
 
 		if (response.errors && response.errors.length > 0) {
-			logger.error('[Documents] GraphQL errors:', response.errors);
+			logger.error('[Documents] GraphQL errors:', undefined, { errors: response.errors });
 			error(500, {
 				message: response.errors[0].message || 'Failed to load documents'
 			});

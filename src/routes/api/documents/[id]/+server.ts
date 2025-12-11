@@ -69,7 +69,7 @@ export const GET: RequestHandler = async ({ params, locals, cookies, fetch }) =>
 			.toPromise();
 
 		if (result.error) {
-			logger.error('GraphQL errors:', result.error);
+			logger.error('GraphQL errors', result.error);
 			error(500, { message: 'Failed to fetch document from GraphQL backend' });
 		}
 
@@ -123,9 +123,11 @@ export const DELETE: RequestHandler = async ({ params, locals, request, cookies,
 	}
 
 	try {
-		logger.info(
-			`[DELETE] Starting delete for document ${documentId} by user ${userId} (${userRole})`
-		);
+		logger.info('[DELETE] Starting delete for document', {
+			documentId,
+			userId,
+			userRole
+		});
 
 		// Step 3: Create GraphQL client with session cookies
 		const urqlClient = createUrqlClient(fetch, undefined, undefined, cookies.get('hr_session'));
@@ -138,7 +140,7 @@ export const DELETE: RequestHandler = async ({ params, locals, request, cookies,
 			.toPromise();
 
 		if (deleteResult.error) {
-			logger.error('GraphQL delete errors:', deleteResult.error);
+			logger.error('GraphQL delete errors', deleteResult.error);
 			error(500, { message: 'Failed to delete document via GraphQL backend' });
 		}
 
@@ -153,7 +155,7 @@ export const DELETE: RequestHandler = async ({ params, locals, request, cookies,
 			'unknown';
 		const userAgent = request.headers.get('user-agent') || 'unknown';
 
-		logger.info(`[DELETE] Logging access: ip=${clientIp}, ua=${userAgent}`);
+		logger.info('[DELETE] Logging access', { clientIp, userAgent });
 
 		await urqlClient
 			.mutation(CREATE_ACCESS_LOG_MUTATION, {
@@ -167,15 +169,15 @@ export const DELETE: RequestHandler = async ({ params, locals, request, cookies,
 			})
 			.toPromise();
 
-		logger.info(`[DELETE] Access log created successfully`);
+		logger.info('[DELETE] Access log created successfully');
 
 		return json({
 			success: true,
 			message: `Document has been deleted successfully.`
 		});
 	} catch (err) {
-		logger.error('[DELETE] Document delete error:', err as Error);
-		logger.error('[DELETE] Error stack:', (err as Error).stack);
+		logger.error('[DELETE] Document delete error', err as Error);
+		logger.error('[DELETE] Error stack', new Error('Stack trace'), { stack: (err as Error).stack });
 
 		// Re-throw SvelteKit errors
 		if (err && typeof err === 'object' && 'status' in err) {

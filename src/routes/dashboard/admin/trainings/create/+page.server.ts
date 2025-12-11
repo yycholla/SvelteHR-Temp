@@ -101,7 +101,7 @@ export const actions: Actions = {
 			logger.info('=========================');
 
 			if (response.errors) {
-				logger.error('Training creation errors:', response.errors);
+				logger.error('Training creation errors:', undefined, { errors: response.errors });
 				return fail(500, {
 					error: response.errors[0].message,
 					values: { title, description, startDate, endDate, isActive, metaTitle, metaDescription }
@@ -109,10 +109,12 @@ export const actions: Actions = {
 			}
 
 			const newTrainingId = response.data?.training?.createTraining?.id;
-			logger.info(`Extracted newTrainingId: ${newTrainingId}`);
+			logger.info('Extracted newTrainingId:', { newTrainingId });
 
 			if (newTrainingId) {
-				logger.info('Redirecting to:', `/dashboard/admin/trainings/${newTrainingId}/content`);
+				logger.info('Redirecting to training content editor:', {
+					path: `/dashboard/admin/trainings/${newTrainingId}/content`
+				});
 				// Redirect to the content builder for this new training
 				throw redirect(303, `/dashboard/admin/trainings/${newTrainingId}/content`);
 			} else {

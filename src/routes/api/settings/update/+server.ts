@@ -61,7 +61,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 		// Check for GraphQL errors
 		if (result.errors) {
-			logger.error('[SETTINGS UPDATE] GraphQL errors:', result.errors);
+			logger.error('[SETTINGS UPDATE] GraphQL errors', new Error('GraphQL errors'), { errors: result.errors });
 			throw svelteError(500, result.errors[0]?.message || 'Failed to update settings');
 		}
 
@@ -71,7 +71,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			settings: result.data?.updateSystemSettings
 		});
 	} catch (err: any) {
-		logger.error('[SETTINGS UPDATE] Error:', err as Error);
+		logger.error('[SETTINGS UPDATE] Error', err as Error);
 
 		// If it's already a SvelteKit error, re-throw it
 		if (err.status) {

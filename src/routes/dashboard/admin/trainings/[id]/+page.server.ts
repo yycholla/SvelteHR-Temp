@@ -52,7 +52,10 @@ export const load: PageServerLoad = async (event) => {
 	});
 
 	if (!usersResponse.ok) {
-		logger.error('Failed to fetch users from REST endpoint:', usersResponse.statusText);
+		logger.error('Failed to fetch users from REST endpoint:', {
+			status: usersResponse.status,
+			statusText: usersResponse.statusText
+		});
 		throw fail(500, { error: 'Failed to load users' });
 	}
 
@@ -68,7 +71,9 @@ export const load: PageServerLoad = async (event) => {
 	});
 
 	if (assignmentsResponse.errors) {
-		logger.error('Training assignments query error:', assignmentsResponse.errors[0]?.message);
+		logger.error('Training assignments query error:', {
+			message: assignmentsResponse.errors[0]?.message
+		});
 	} else {
 		assignments = assignmentsResponse.data?.trainingAssignments || [];
 	}
@@ -163,7 +168,7 @@ export const actions: Actions = {
 		try {
 			const response = await client.mutation(mutation, variables);
 			if (response.errors) {
-				logger.error('Update training errors:', response.errors);
+				logger.error('Update training errors:', undefined, { errors: response.errors });
 				return fail(500, { error: response.errors[0].message });
 			}
 		} catch (err) {
@@ -198,7 +203,7 @@ export const actions: Actions = {
 		try {
 			const response = await client.mutation(CREATE_ASSIGNMENT_MUTATION, variables);
 			if (response.errors) {
-				logger.error('Assignment creation errors:', response.errors);
+				logger.error('Assignment creation errors:', undefined, { errors: response.errors });
 				return fail(500, { error: response.errors[0].message });
 			}
 		} catch (err) {
@@ -223,7 +228,7 @@ export const actions: Actions = {
 		try {
 			const response = await client.mutation(DELETE_ASSIGNMENT_MUTATION, variables);
 			if (response.errors) {
-				logger.error('Assignment deletion errors:', response.errors);
+				logger.error('Assignment deletion errors:', undefined, { errors: response.errors });
 				return fail(500, { error: response.errors[0].message });
 			}
 		} catch (err) {
@@ -256,7 +261,7 @@ export const actions: Actions = {
 		try {
 			const response = await client.mutation(ASSIGN_TO_DEPARTMENT_MUTATION, variables);
 			if (response.errors) {
-				logger.error('Bulk assignment errors:', response.errors);
+				logger.error('Bulk assignment errors:', undefined, { errors: response.errors });
 				return fail(500, { error: response.errors[0].message });
 			}
 			const count = response.data?.training?.assignTrainingToDepartment || 0;
@@ -283,7 +288,7 @@ export const actions: Actions = {
 		try {
 			const response = await client.mutation(ASSIGN_TO_ALL_EMPLOYEES_MUTATION, variables);
 			if (response.errors) {
-				logger.error('Bulk assignment errors:', response.errors);
+				logger.error('Bulk assignment errors:', undefined, { errors: response.errors });
 				return fail(500, { error: response.errors[0].message });
 			}
 			const count = response.data?.training?.assignTrainingToAllEmployees || 0;
