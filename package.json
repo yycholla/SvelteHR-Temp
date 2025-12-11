@@ -106,13 +106,7 @@
 		"schema:cache:stats": "export $(grep -v '^#' .env | xargs) && cd tools/schema-validator && node dist/cli/index.js cache stats --config ../../schema-validator.config.json",
 		"analyze:complexity": "eslint --config eslint.analysis.config.js src",
 		"analyze:duplication": "jscpd src",
-		"analyze": "npm run analyze:complexity && npm run analyze:duplication",
-		"dev:k8s": "tilt up",
-		"dev:k8s:down": "tilt down",
-		"dev:k8s:ci": "tilt ci",
-		"dev:k8s:logs": "tilt logs",
-		"dev:k8s:trigger": "tilt trigger",
-		"dev:k8s:clean": "tilt down --delete-namespaces"
+		"analyze": "npm run analyze:complexity && npm run analyze:duplication"
 	},
 	"devDependencies": {
 		"@dnd-kit-svelte/core": "^0.0.11",

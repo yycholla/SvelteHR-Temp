@@ -10,6 +10,7 @@ import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
 import type { EventStatus, EventType, EventVisibilityType } from '$lib/graphql/types';
 import { normalizeRsvpStatus } from '$lib/graphql/types';
 import { gql } from '@urql/svelte';
+import { logger } from '$lib/utils/logger';
 // Feature 026: Import GraphQL operations for comments, history, waitlist
 import {
 	type EventComment,
@@ -212,7 +213,7 @@ export const load: PageServerLoad = async (event) => {
 			// create API endpoints instead of passing urqlClient to client
 		};
 	} catch (err: unknown) {
-		console.error('Error loading events:', err);
+		logger.error('Error loading events:', err instanceof Error ? err : new Error(String(err)));
 
 		const errorMessage = err instanceof Error ? err.message : String(err);
 
@@ -268,7 +269,7 @@ async function fetchEventComments(
 			.toPromise();
 
 		if (result.error || !result.data) {
-			console.error('Error fetching event comments:', result.error);
+			logger.error('Error fetching event comments:', result.error);
 			return { comments: [], totalCount: 0, hasMore: false };
 		}
 
@@ -281,7 +282,7 @@ async function fetchEventComments(
 			hasMore: comments.length >= limit
 		};
 	} catch (err) {
-		console.error('Failed to fetch event comments:', err);
+		logger.error('Failed to fetch event comments:', err instanceof Error ? err : new Error(String(err)));
 		return { comments: [], totalCount: 0, hasMore: false };
 	}
 }
@@ -303,7 +304,7 @@ async function fetchEventHistory(
 			.toPromise();
 
 		if (result.error || !result.data) {
-			console.error('Error fetching event history:', result.error);
+			logger.error('Error fetching event history:', result.error);
 			return { history: [], totalCount: 0, hasMore: false };
 		}
 
@@ -316,7 +317,7 @@ async function fetchEventHistory(
 			hasMore: history.length >= limit
 		};
 	} catch (err) {
-		console.error('Failed to fetch event history:', err);
+		logger.error('Failed to fetch event history:', err instanceof Error ? err : new Error(String(err)));
 		return { history: [], totalCount: 0, hasMore: false };
 	}
 }
@@ -336,7 +337,7 @@ async function fetchUserWaitlistStatus(
 			.toPromise();
 
 		if (result.error || !result.data) {
-			console.error('Error fetching waitlist status:', result.error);
+			logger.error('Error fetching waitlist status:', result.error);
 			return { isOnWaitlist: false, position: null };
 		}
 
@@ -353,7 +354,7 @@ async function fetchUserWaitlistStatus(
 
 		return { isOnWaitlist: false, position: null };
 	} catch (err) {
-		console.error('Failed to fetch waitlist status:', err);
+		logger.error('Failed to fetch waitlist status:', err instanceof Error ? err : new Error(String(err)));
 		return { isOnWaitlist: false, position: null };
 	}
 }
@@ -429,7 +430,7 @@ export const actions: Actions = {
 
 			return { success: true };
 		} catch (err: unknown) {
-			console.error('Error updating event time:', err);
+			logger.error('Error updating event time:', err instanceof Error ? err : new Error(String(err)));
 			const { isAppError } = await import('$lib/models/error-response');
 			return fail(500, {
 				error: isAppError(err) ? err.userMessage : 'Failed to update event. Please try again.'
@@ -535,7 +536,7 @@ export const actions: Actions = {
 
 			return { success: true };
 		} catch (err: unknown) {
-			console.error('Error creating event:', err);
+			logger.error('Error creating event:', err instanceof Error ? err : new Error(String(err)));
 			const { isAppError } = await import('$lib/models/error-response');
 			return fail(500, {
 				error: isAppError(err) ? err.userMessage : 'Failed to create event. Please try again.'
@@ -637,7 +638,7 @@ export const actions: Actions = {
 
 			return { success: true };
 		} catch (err: unknown) {
-			console.error('Error updating event:', err);
+			logger.error('Error updating event:', err instanceof Error ? err : new Error(String(err)));
 			const { isAppError } = await import('$lib/models/error-response');
 			return fail(500, {
 				error: isAppError(err) ? err.userMessage : 'Failed to update event. Please try again.'
@@ -647,7 +648,7 @@ export const actions: Actions = {
 
 	deleteEvent: async (event) => {
 		const { request, cookies, fetch } = event;
-		console.log('[SERVER] deleteEvent action called');
+		logger.info('[SERVER] deleteEvent action called');
 
 		// Check authentication and permissions
 		requireAuth(event, {
@@ -665,7 +666,7 @@ export const actions: Actions = {
 		// Parse form data
 		const formData = await request.formData();
 		const eventId = formData.get('eventId') as string;
-		console.log('[SERVER] Deleting event with ID:', eventId);
+		logger.info('[SERVER] Deleting event with ID:', { eventId });
 
 		if (!eventId) {
 			return fail(400, { error: 'Event ID is required.' });
@@ -678,7 +679,7 @@ export const actions: Actions = {
 			// Use REST API for deletion
 			// Use environment variable for backend URL or default to localhost:4000
 			const backendUrl = process.env.PUBLIC_API_URL || 'http://localhost:4000';
-			console.log(`[SERVER] Calling REST endpoint: DELETE ${backendUrl}/api/events/${eventId}`);
+			logger.debug(`[SERVER] Calling REST endpoint: DELETE ${backendUrl}/api/events/${eventId}`);
 
 			const response = await fetch(`${backendUrl}/api/events/${eventId}`, {
 				method: 'DELETE',
@@ -687,7 +688,7 @@ export const actions: Actions = {
 				}
 			});
 
-			console.log('[SERVER] Delete operation response status:', response.status);
+			logger.debug('[SERVER] Delete operation response status:', { status: response.status });
 
 			if (!response.ok) {
 				if (response.status === 404) {
@@ -701,7 +702,7 @@ export const actions: Actions = {
 
 			return { success: true };
 		} catch (err: unknown) {
-			console.error('Error deleting event:', err);
+			logger.error('Error deleting event:', err instanceof Error ? err : new Error(String(err)));
 			const message = err instanceof Error ? err.message : 'Failed to delete event. Please try again.';
 			return fail(500, {
 				error: message
@@ -712,7 +713,7 @@ export const actions: Actions = {
 	updateRsvpStatus: async (event) => {
 		const { request, cookies } = event;
 
-		console.log('[SERVER] updateRsvpStatus action called');
+		logger.info('[SERVER] updateRsvpStatus action called');
 
 		// Check authentication and permissions
 		requireAuth(event, {
@@ -727,7 +728,7 @@ export const actions: Actions = {
 		// After permission check, re-destructure locals
 		const { locals } = event;
 
-		console.log('[SERVER] User authenticated:', locals.user.id);
+		logger.debug('[SERVER] User authenticated:', { userId: locals.user.id });
 
 		// Parse form data
 		const formData = await request.formData();
@@ -736,7 +737,7 @@ export const actions: Actions = {
 		const status = formData.get('status') as string;
 		const scope = formData.get('scope') as string;
 
-		console.log('[SERVER UPDATE] FormData received:', {
+		logger.debug('[SERVER UPDATE] FormData received:', {
 			attendeeId,
 			eventId,
 			status,
@@ -745,20 +746,20 @@ export const actions: Actions = {
 		});
 
 		if (!eventId || !status) {
-			console.error('[SERVER] Missing eventId or status');
+			logger.error('[SERVER] Missing eventId or status');
 			return fail(400, { error: 'Event ID and status are required' });
 		}
 
 		// Normalize and validate the RSVP status
 		const normalizedStatus = normalizeRsvpStatus(status);
-		console.log('[SERVER UPDATE] Normalized status:', {
+		logger.debug('[SERVER UPDATE] Normalized status:', {
 			original: status,
 			normalized: normalizedStatus,
 			wasChanged: status !== normalizedStatus
 		});
 
 		try {
-			console.log('[SERVER] Creating URQL client and EventsOperations');
+			logger.debug('[SERVER] Creating URQL client and EventsOperations');
 			// Session-based auth - forward cookies for authentication
 			const cookieHeader = serializeCookies(cookies);
 			const urqlClient = createUrqlClient(undefined, undefined, undefined, cookieHeader);
@@ -775,16 +776,16 @@ export const actions: Actions = {
 
 			if (attendeeId) {
 				// Update existing attendee
-				console.log('[SERVER] Updating existing attendee:', attendeeId);
+				logger.debug('[SERVER] Updating existing attendee:', { attendeeId });
 				const result = await eventsOps.updateRsvpStatus({
 					attendeeId,
 					status: normalizedStatus,
 					userCredentials
 				});
-				console.log('[SERVER] Update result:', result);
+				logger.debug('[SERVER] Update result:', { result });
 			} else {
 				// Create new attendee record with RSVP status directly
-				console.log('[SERVER] Creating new attendee with RSVP status:', normalizedStatus);
+				logger.debug('[SERVER] Creating new attendee with RSVP status:', { normalizedStatus });
 
 				// Migration: ✅ Use idiomatic Rust pattern (direct input, no nested wrapper)
 				const CREATE_ATTENDEE_WITH_STATUS = gql`
@@ -806,14 +807,14 @@ export const actions: Actions = {
 					isRequired: false
 				};
 
-				console.log('[SERVER] Creating attendee with input:', input);
+				logger.debug('[SERVER] Creating attendee with input:', input);
 
 				const result = await urqlClient
 					.mutation(CREATE_ATTENDEE_WITH_STATUS, { input })
 					.toPromise();
 
 				if (result.error) {
-					console.error('[SERVER] GraphQL errors creating attendee:', result.error);
+					logger.error('[SERVER] GraphQL errors creating attendee:', result.error);
 
 					// Check if it's a duplicate key error (user is already an attendee)
 					const isDuplicateKey =
@@ -821,7 +822,7 @@ export const actions: Actions = {
 						result.error.message?.includes('duplicate key');
 
 					if (isDuplicateKey) {
-						console.log('[SERVER] User is already an attendee, fetching existing record to update');
+						logger.info('[SERVER] User is already an attendee, fetching existing record to update');
 
 						// Fetch the event to get the existing attendee ID
 						const event = await eventsOps.getEventById({
@@ -835,14 +836,14 @@ export const actions: Actions = {
 						);
 
 						if (existingAttendee) {
-							console.log('[SERVER] Found existing attendee, updating RSVP status');
+							logger.info('[SERVER] Found existing attendee, updating RSVP status');
 							await eventsOps.updateRsvpStatus({
 								attendeeId: existingAttendee.id,
 								status: status as import('$lib/graphql/types').RsvpStatus,
 								userCredentials
 							});
 						} else {
-							console.error('[SERVER] Could not find existing attendee after duplicate key error!');
+							logger.error('[SERVER] Could not find existing attendee after duplicate key error!');
 							throw new Error('Unable to update RSVP status. Please try again.');
 						}
 					} else {
@@ -850,16 +851,16 @@ export const actions: Actions = {
 					}
 				} else {
 					// Migration: ✅ Direct return value (no nested wrapper)
-					console.log('[SERVER] Created attendee:', result.data?.createEventAttendee);
+					logger.debug('[SERVER] Created attendee:', result.data?.createEventAttendee);
 				}
 			}
 
-			console.log('[SERVER] RSVP update successful');
+			logger.info('[SERVER] RSVP update successful');
 			return { success: true };
 		} catch (err: unknown) {
-			console.error('[SERVER] Error updating RSVP status:', err);
+			logger.error('[SERVER] Error updating RSVP status:', err instanceof Error ? err : new Error(String(err)));
 			if (err instanceof Error && err.stack) {
-				console.error('[SERVER] Error stack:', err.stack);
+				logger.error('[SERVER] Error stack:', { stack: err.stack });
 			}
 			const { isAppError } = await import('$lib/models/error-response');
 			return fail(500, {
@@ -940,7 +941,7 @@ export const actions: Actions = {
 
 			return { success: true };
 		} catch (err: unknown) {
-			console.error('Error setting event reminder:', err);
+			logger.error('Error setting event reminder:', err instanceof Error ? err : new Error(String(err)));
 			const { isAppError } = await import('$lib/models/error-response');
 			return fail(500, {
 				error: isAppError(err) ? err.userMessage : 'Failed to set event reminder. Please try again.'
