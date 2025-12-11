@@ -77,7 +77,7 @@
 
 	// Handle successful upload
 	function handleUploadSuccess(result: UploadResult) {
-		logger.info('Upload successful:'.replace(/['`]$/, `: ${result}'`/));
+		logger.info(`Upload successful:: ${result}`;
 		uploadComplete = true;
 		uploadedDocumentId = result.documentId;
 
@@ -177,12 +177,12 @@
 					return;
 				}
 
-				logger.info('[Upload] About to validate metadata, metadataForm:'.replace(/['`]$/, `: ${metadataForm}'`/));
+				logger.info(`[Upload] About to validate metadata, metadataForm:: ${metadataForm}`;
 				logger.info(
 					'[Upload] metadataForm.validateMetadata exists?',
 					typeof metadataForm?.validateMetadata
 				);
-				logger.info('[Upload] Current metadata:'.replace(/['`]$/, `: ${metadata}'`/));
+				logger.info(`[Upload] Current metadata:: ${metadata}`;
 
 				// Validate metadata before submission
 				if (!metadataForm?.validateMetadata()) {
@@ -220,7 +220,7 @@
 				isUploading = true;
 
 				return async ({ result, update }) => {
-					logger.info('[Upload] Form submission result:'.replace(/['`]$/, `: ${result}'`/));
+					logger.info(`[Upload] Form submission result:: ${result}`;
 
 					if (result.type === 'success' && result.data?.success) {
 						handleUploadSuccess(result.data.result as UploadResult);

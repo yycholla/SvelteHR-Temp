@@ -6,6 +6,7 @@
 import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
 import { requireAuth } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { url, cookies } = event;
@@ -69,7 +70,7 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		const notificationsData = await notificationsResponse.json();
-		logger.info('[Notifications] Response:'.replace(/['`]$/, `: ${notificationsData}'`/));
+		logger.info(`[Notifications] Response: ${notificationsData}`);
 
 		if (notificationsData.errors) {
 			logger.error('[Notifications] GraphQL errors:', notificationsData.errors);

@@ -119,7 +119,7 @@ export class NotificationService {
 			// const channel = `notifications:${userId}`;
 			// websocketServer.send(channel, notification);
 
-			logger.info(`[WebSocket] Sending notification to user ${userId}:`.replace(/['`]$/, `: ${notification}'`/));
+			logger.info(`[WebSocket] Sending notification to user ${userId}: ${notification}`);
 		} catch (error) {
 			logger.error('Error sending WebSocket notification:', error as Error);
 		}

@@ -4,6 +4,7 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
+import { logger } from '$lib/utils/logger';
 import { createUrqlClient } from '$lib/graphql/client';
 import { requireAuth } from '$lib/server/rbac-utils';
 import { EventsOperations } from '$lib/graphql/events-operations';

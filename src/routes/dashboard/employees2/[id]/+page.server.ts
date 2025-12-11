@@ -4,6 +4,7 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { params } = event;

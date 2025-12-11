@@ -73,7 +73,7 @@
 	async function handleAssignment(assignments: Partial<DocumentAssignment>[]) {
 		try {
 			// TODO: Call assignment API endpoint
-			logger.info('Assigning document:'.replace(/['`]$/, `: ${assignments}'`/));
+			logger.info(`Assigning document: ${assignments}`);
 
 			// Close modal and show success
 			isAssignmentModalOpen = false;

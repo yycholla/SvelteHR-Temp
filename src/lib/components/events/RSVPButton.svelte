@@ -58,10 +58,10 @@
 
 	function handleStatusChange(newStatus: RsvpStatus) {
 		logger.info('[RSVPButton] handleStatusChange called');
-		logger.info('[RSVPButton] newStatus:'.replace(/['`]$/, `: ${newStatus}'`/));
-		logger.info('[RSVPButton] currentStatus:'.replace(/['`]$/, `: ${currentStatus}'`/));
-		logger.info('[RSVPButton] disabled:'.replace(/['`]$/, `: ${disabled}'`/));
-		logger.info('[RSVPButton] loading:'.replace(/['`]$/, `: ${loading}'`/));
+		logger.info(`[RSVPButton] newStatus:: ${newStatus}`);
+		logger.info(`[RSVPButton] currentStatus:: ${currentStatus}`);
+		logger.info(`[RSVPButton] disabled:: ${disabled}`);
+		logger.info(`[RSVPButton] loading:: ${loading}`);
 
 		if (newStatus !== currentStatus && !disabled && !loading) {
 			logger.info('[RSVPButton] Calling onChange handler');

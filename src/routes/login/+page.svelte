@@ -85,7 +85,7 @@
 				const authenticated = auth.isAuthenticated;
 
 				if (!loading && user && authenticated) {
-					logger.info('Auth state loaded, user:'.replace(/['`]$/, `: ${user}'`/));
+					logger.info(`Auth state loaded, user: ${user}`);
 					break;
 				}
 				await new Promise((resolve) => setTimeout(resolve, 100));
@@ -104,7 +104,7 @@
 			if (!redirectTo && browser) {
 				const savedReturnUrl = localStorage.getItem('hr_return_url');
 				if (savedReturnUrl) {
-					logger.info('Found saved return URL:'.replace(/['`]$/, `: ${savedReturnUrl}'`/));
+					logger.info(`Found saved return URL: ${savedReturnUrl}`);
 					redirectTo = savedReturnUrl;
 					// Clear the saved URL after using it
 					localStorage.removeItem('hr_return_url');
@@ -118,7 +118,7 @@
 				redirectTo = '/dashboard';
 			}
 
-			logger.info('Redirecting to:'.replace(/['`]$/, `: ${redirectTo}'`/));
+			logger.info(`Redirecting to: ${redirectTo}`);
 			// Use replaceState to prevent navigation conflicts
 			await goto(redirectTo, { replaceState: true });
 		} catch (error) {

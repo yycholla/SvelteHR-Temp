@@ -196,7 +196,7 @@
 		logger.info('🔍 [Filter] Starting with reviews:', filtered?.length || 0);
 
 		if (selectedView !== 'all') {
-			logger.info('🔍 [Filter] Applying view filter:'.replace(/['`]$/, `: ${selectedView}'`/));
+			logger.info(`🔍 [Filter] Applying view filter: ${selectedView}`);
 			filtered = filtered.filter((review) => {
 				switch (selectedView) {
 					case 'pending':
@@ -213,7 +213,7 @@
 		}
 
 		if (searchQuery) {
-			logger.info('🔍 [Filter] Applying search filter:'.replace(/['`]$/, `: ${searchQuery}'`/));
+			logger.info(`🔍 [Filter] Applying search filter: ${searchQuery}`);
 			const query = searchQuery.toLowerCase();
 			filtered = filtered.filter(
 				(review) =>
@@ -352,14 +352,14 @@
 	function handleCreateReview(event: CustomEvent) {
 		const { data: reviewData } = event.detail;
 		// TODO: Call GraphQL mutation
-		logger.info('Create review:'.replace(/['`]$/, `: ${reviewData}'`/));
+		logger.info(`Create review: ${reviewData}`);
 		toast.success('Review creation coming soon');
 	}
 
 	function handleSaveAsDraft(event: CustomEvent) {
 		const { data: draftData } = event.detail;
 		// TODO: Call GraphQL mutation to save draft
-		logger.info('Save draft:'.replace(/['`]$/, `: ${draftData}'`/));
+		logger.info(`Save draft: ${draftData}`);
 		toast.success('Draft save coming soon');
 	}
 </script>

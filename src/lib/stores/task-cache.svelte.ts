@@ -235,7 +235,7 @@ class TaskCacheManager {
 				this.pendingRequests.delete(key);
 				// If we have stale data, return it on error
 				if (entry) {
-					logger.warn(`Fetch failed for ${key}, returning stale data:`.replace(/['`]$/, `: ${error}'`/));
+					logger.warn(`Fetch failed for ${key}, returning stale data: ${error}`);
 					entry.error = error instanceof Error ? error : new Error(String(error));
 					return entry.data as T;
 				}
@@ -335,7 +335,7 @@ class TaskCacheManager {
 			const data = await fetchFn();
 			this.set(key, data, config);
 		} catch (error) {
-			logger.warn(`Cache warming failed for ${operation}:`.replace(/['`]$/, `: ${error}'`/));
+			logger.warn(`Cache warming failed for ${operation}: ${error}`);
 		}
 	}
 }

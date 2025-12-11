@@ -5,6 +5,7 @@ import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
+import { logger } from '$lib/utils/logger';
 
 // Type definitions for GraphQL query responses
 interface ReviewerInfo {
@@ -77,7 +78,7 @@ export const load: PageServerLoad = async (event) => {
 	const userId = locals.user.id;
 
 	try {
-		logger.info('[Performance Page] Loading performance data for user:'.replace(/['`]$/, `: ${userId}'`/));
+		logger.info(`[Performance Page] Loading performance data for user: ${userId}`);
 
 		// Ensure backend is ready before proceeding
 		await ensureBackendReady();

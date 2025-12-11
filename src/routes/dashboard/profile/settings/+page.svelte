@@ -97,7 +97,7 @@
 		const formData = new FormData(form);
 		const theme = formData.get('theme') as string;
 
-		logger.info('[Settings] Submitting theme:'.replace(/['`]$/, `: ${theme}'`/));
+		logger.info(`[Settings] Submitting theme: ${theme}`);
 
 		try {
 			const response = await fetch(form.action, {
@@ -110,7 +110,7 @@
 
 			// SvelteKit form actions return JSON with type and data properties
 			const result = await response.json();
-			logger.info('[Settings] Server response:'.replace(/['`]$/, `: ${result}'`/));
+			logger.info(`[Settings] Server response: ${result}`);
 
 			if (result.type === 'success' || (response.ok && result.data?.success)) {
 				logger.info('[Settings] Theme update successful');
@@ -118,7 +118,7 @@
 
 				// Apply theme immediately via mode-watcher
 				setMode(theme as 'light' | 'dark' | 'system');
-				logger.info('[Settings] Theme applied:'.replace(/['`]$/, `: ${theme}'`/));
+				logger.info(`[Settings] Theme applied: ${theme}`);
 			} else {
 				const errorMsg = result.data?.error || result.error || 'Failed to update theme';
 				logger.error('[Settings] Theme update failed:', result);

@@ -9,6 +9,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { url, cookies } = event;

@@ -3,6 +3,7 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
+import { logger } from '$lib/utils/logger';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
 

@@ -3,6 +3,7 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
+import { logger } from '$lib/utils/logger';
 import { PermissionChecks, getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
@@ -104,7 +105,7 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		const departmentsData = await departmentsResponse.json();
-		logger.info('[Departments] Departments data:'.replace(/['`]$/, `: ${departmentsData}'`/));
+		logger.info(`[Departments] Departments data: ${departmentsData}`);
 
 		// Load users for department manager dropdown
 		const usersResponse = await fetch(graphqlEndpoint, {

@@ -3,6 +3,7 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
+import { logger } from '$lib/utils/logger';
 import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
@@ -131,7 +132,7 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		const departmentData = await departmentResponse.json();
-		logger.info('[Department Detail] Department data:'.replace(/['`]$/, `: ${departmentData}'`/));
+		logger.info(`[Department Detail] Department data: ${departmentData}`);
 
 		// Check if department exists
 		const department = departmentData?.data?.department;

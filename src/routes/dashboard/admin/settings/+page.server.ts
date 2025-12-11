@@ -2,6 +2,7 @@
 // Admin-only page for managing system-wide configuration
 
 import type { PageServerLoad } from './$types';
+import { logger } from '$lib/utils/logger';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';

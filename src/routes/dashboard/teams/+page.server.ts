@@ -4,6 +4,7 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies, url } = event;
@@ -235,13 +236,13 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Debug logging
-		logger.info('[Teams Page] Filter Department ID:'.replace(/['`]$/, `: ${filterDepartmentId}'`/));
-		logger.info('[Teams Page] Is Admin:'.replace(/['`]$/, `: ${isAdmin}'`/));
+		logger.info(`[Teams Page] Filter Department ID: ${filterDepartmentId}`);
+		logger.info(`[Teams Page] Is Admin: ${isAdmin}`);
 		logger.info('[Teams Page] Departments found:', departments.length);
 		const totalCount = departments.length; // Rust server doesn't provide totalCount in this format
 
 		logger.info('[Teams Page] Departments found:', departments.length);
-		logger.info('[Teams Page] Total count:'.replace(/['`]$/, `: ${totalCount}'`/));
+		logger.info(`[Teams Page] Total count: ${totalCount}`);
 
 		// Calculate team statistics (employee counts not available in current Rust GraphQL schema)
 		const totalEmployees = 0; // TODO: Implement separate query for employee counts per department

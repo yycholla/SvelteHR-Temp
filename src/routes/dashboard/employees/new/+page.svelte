@@ -89,7 +89,7 @@
 			isSubmitting = true;
 			return async ({ result, update }) => {
 				logger.info('[Employee Form] Result type:', result.type);
-				logger.info('[Employee Form] Full result:'.replace(/['`]$/, `: ${result}'`/));
+				logger.info(`[Employee Form] Full result:: ${result}`;
 				isSubmitting = false;
 
 				// Handle different result types

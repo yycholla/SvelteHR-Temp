@@ -9,6 +9,7 @@ import {
 	GET_FORMS_BY_MODULE,
 	SAVE_FORM_PROGRESS
 } from '$lib/graphql/form-operations';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	requireAuth(event, {});

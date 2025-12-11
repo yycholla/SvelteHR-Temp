@@ -1,6 +1,5 @@
 <script lang="ts">
 	/**
-	import { logger } from '$lib/utils/logger';
 	 * ReviewListWithFilters Component
 	 * Feature: 023-reviews-creation-it
 	 * Task: T032
@@ -8,6 +7,7 @@
 	 * Filterable list of performance reviews with sorting and search
 	 */
 	import { createEventDispatcher } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 	import * as Card from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';

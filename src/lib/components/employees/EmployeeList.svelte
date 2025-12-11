@@ -57,7 +57,7 @@
 	onMount(() => {
 		// Initialize the query with the direct client
 		try {
-			logger.info('URQL client:'.replace(/['`]$/, `: ${client}'`/));
+			logger.info(`URQL client:: ${client}`);
 
 			if (!client?.createRequestOperation) {
 				throw new Error('URQL client is not properly initialized');
@@ -178,18 +178,18 @@
 				deactivateSelected();
 				break;
 			default:
-				logger.info(`Bulk action: ${action} for`.replace(/['`]$/, `: ${selectedEmployees}'`/));
+				logger.info(`Bulk action: ${action} for ${selectedEmployees}`);
 		}
 	};
 
 	const exportSelected = () => {
 		// TODO: Implement export functionality
-		logger.info('Exporting employees:'.replace(/['`]$/, `: ${selectedEmployees}'`/));
+		logger.info(`Exporting employees:: ${selectedEmployees}`);
 	};
 
 	const deactivateSelected = () => {
 		// TODO: Implement bulk deactivation
-		logger.info('Deactivating employees:'.replace(/['`]$/, `: ${selectedEmployees}'`/));
+		logger.info(`Deactivating employees:: ${selectedEmployees}`);
 	};
 
 	// Store the rerun function separately to avoid reactive access

@@ -7,6 +7,7 @@
 	 * Allows users to edit/delete their own comments.
 	 */
 
+	import { logger } from '$lib/utils/logger';
 	import { Button } from '$lib/components/ui/button';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';

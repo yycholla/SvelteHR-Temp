@@ -1,5 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { logger } from '$lib/utils/logger';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
 import { CREATE_TRAINING_MUTATION } from '$lib/graphql/training-operations';
@@ -108,7 +109,7 @@ export const actions: Actions = {
 			}
 
 			const newTrainingId = response.data?.training?.createTraining?.id;
-			logger.info('Extracted newTrainingId:'.replace(/['`]$/, `: ${newTrainingId}'`/));
+			logger.info(`Extracted newTrainingId: ${newTrainingId}`);
 
 			if (newTrainingId) {
 				logger.info('Redirecting to:', `/dashboard/admin/trainings/${newTrainingId}/content`);

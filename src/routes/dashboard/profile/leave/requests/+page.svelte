@@ -104,7 +104,7 @@
 
 		// Simulate API call
 		try {
-			logger.info('Submitting leave request:'.replace(/['`]$/, `: ${newRequest}'`/));
+			logger.info(`Submitting leave request: ${newRequest}`);
 			// In a real app, await fetch(...) here
 
 			toast.success('Request Submitted', {
@@ -137,7 +137,7 @@
 
 		try {
 			// Simulate API call
-			logger.info('Cancelling request:'.replace(/['`]$/, `: ${requestId}'`/));
+			logger.info(`Cancelling request: ${requestId}`);
 
 			toast.success('Request Cancelled', {
 				description: 'The leave request has been successfully cancelled.'

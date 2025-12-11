@@ -1,6 +1,5 @@
 <script lang="ts">
 	/**
-	import { logger } from '$lib/utils/logger';
 	 * Review Detail Page
 	 * Feature: 023-reviews-creation-it
 	 * Task: T036
@@ -8,6 +7,7 @@
 	 * Display and edit individual performance review
 	 */
 	import { goto } from '$app/navigation';
+	import { logger } from '$lib/utils/logger';
 	import type { PageData } from './$types';
 	import * as Card from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';

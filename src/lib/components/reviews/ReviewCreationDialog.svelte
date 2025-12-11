@@ -1,6 +1,5 @@
 <script lang="ts">
 	/**
-	import { logger } from '$lib/utils/logger';
 	 * ReviewCreationDialog Component
 	 * Feature: 023-reviews-creation-it
 	 * Task: T029
@@ -9,6 +8,7 @@
 	 * Includes draft auto-save functionality with 3-second debounce
 	 */
 	import { createEventDispatcher } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';

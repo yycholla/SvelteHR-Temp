@@ -49,7 +49,7 @@ async function queryUserData(userId: string): Promise<{
 		});
 
 		if (!response.ok) {
-			logger.error('[PERMISSION REFRESH] GraphQL query failed:', response.statusText);
+			logger.error('[PERMISSION REFRESH] GraphQL query failed', new Error(response.statusText));
 			return null;
 		}
 
@@ -57,7 +57,7 @@ async function queryUserData(userId: string): Promise<{
 		const user = data?.data?.userById;
 
 		if (!user) {
-			logger.warn('[PERMISSION REFRESH] User not found:'.replace(/['`]$/, `: ${userId}'`/));
+			logger.warn(`[PERMISSION REFRESH] User not found: ${userId}`);
 			return null;
 		}
 
@@ -103,7 +103,7 @@ export async function refreshUserPermissions(
 	permissions: string[];
 	departmentChanged: boolean;
 } | null> {
-	logger.info('[PERMISSION REFRESH] Refreshing permissions for user:'.replace(/['`]$/, `: ${userId}'`/));
+	logger.info(`[PERMISSION REFRESH] Refreshing permissions for user: ${userId}`);
 
 	// Query current user data
 	const userData = await queryUserData(userId);
@@ -184,7 +184,7 @@ export async function checkPermissionsNeedRefresh(
 
 	// If permissions are older than maxAge, refresh
 	if (age > maxAgeMs) {
-		logger.info('[PERMISSION REFRESH] Permissions expired (age: %dms)'.replace(/['`]$/, `: ${age}'`/));
+		logger.info(`[PERMISSION REFRESH] Permissions expired (age: ${age}ms)`);
 		return true;
 	}
 
@@ -259,7 +259,7 @@ export async function invalidateUserCache(userId: string): Promise<void> {
 		// await redis.del(`user:${userId}:department`);
 		// await redis.del(`user:${userId}:roles`);
 
-		logger.info('[PERMISSION REFRESH] Cache invalidation called for user:'.replace(/['`]$/, `: ${userId}'`/));
+		logger.info(`[PERMISSION REFRESH] Cache invalidation called for user: ${userId}`);
 	} catch (error) {
 		logger.error('Catch failed', error as Error);
 	}

@@ -33,7 +33,8 @@
 	$effect(() => {
 		hasFile = selectedFile !== null;
 		fileName = selectedFile?.name || null;
-		logger.info('[FileUploader] hasFile updated:', hasFile, 'selectedFile:', selectedFile?.name);
+		logger.info(`[FileUploader] hasFile updated: ${hasFile}`);
+		logger.info(`selectedFile: ${selectedFile?.name}`);
 	});
 
 	// Handle file selection from input
@@ -68,7 +69,7 @@
 
 	// Validate and set selected file
 	function validateAndSetFile(file: File) {
-		logger.info('[FileUploader] validateAndSetFile called with:', file.name, 'size:', file.size);
+		logger.info(`[FileUploader] validateAndSetFile called with: ${file.name} size:, ${file.size}`);
 		errorMessage = null;
 
 		// Validate file size
@@ -90,7 +91,7 @@
 
 		// Update metadata with filename immediately
 		metadata.filename = file.name;
-		logger.info('[FileUploader] metadata.filename set to:', metadata.filename);
+		logger.info(`[FileUploader] metadata.filename set to: ${metadata.filename}`);
 	}
 
 	// Expose function to get selected file for parent form submission

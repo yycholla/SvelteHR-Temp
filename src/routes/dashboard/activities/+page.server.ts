@@ -6,6 +6,7 @@
 import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
 import { requireAuth } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { url, cookies } = event;

@@ -192,7 +192,7 @@ export async function logTaskUpdated(
 
 	// Only log if there are actual changes
 	if (changes.length === 0) {
-		logger.info('[TASK AUDIT] No changes detected for task:'.replace(/['`]$/, `: ${taskId}'`/));
+		logger.info(`[TASK AUDIT] No changes detected for task: ${taskId}`);
 		return true;
 	}
 

@@ -1,5 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { logger } from '$lib/utils/logger';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
 import { CREATE_ONBOARDING_MODULE_MUTATION } from '$lib/graphql/onboarding-operations';

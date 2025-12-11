@@ -2,6 +2,7 @@
 // Admin-only page for managing permissions for a specific role
 
 import type { Actions, PageServerLoad } from './$types';
+import { logger } from '$lib/utils/logger';
 import {
 	createUrqlClient,
 	executeMutation,
@@ -57,12 +58,12 @@ export const load: PageServerLoad = async (event) => {
 		// Find the specific role
 		const role = rolesData?.roles?.find((r: any) => r.id === roleId);
 
-		logger.info('[ROLE PERMISSIONS] Loading role:'.replace(/['`]$/, `: ${roleId}'`/));
+		logger.info(`[ROLE PERMISSIONS] Loading role: ${roleId}`);
 		logger.info(
 			'[ROLE PERMISSIONS] Found roles:',
 			rolesData?.roles?.map((r: any) => ({ id: r.id, name: r.name }))
 		);
-		logger.info('[ROLE PERMISSIONS] Found role:'.replace(/['`]$/, `: ${role}'`/));
+		logger.info(`[ROLE PERMISSIONS] Found role: ${role}`);
 
 		if (!role) {
 			logger.error('[ROLE PERMISSIONS] Role not found:', roleId);

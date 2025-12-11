@@ -64,7 +64,7 @@
 		}));
 
 		// await fetch('/api/trainings/content/reorder', { ... })
-		logger.info('Reordering:'.replace(/['`]$/, `: ${updates}'`/));
+		logger.info(`Reordering: ${updates}`);
 	}
 
 	function selectType(newType: string) {

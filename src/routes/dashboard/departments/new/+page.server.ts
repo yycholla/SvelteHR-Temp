@@ -3,6 +3,7 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
+import { logger } from '$lib/utils/logger';
 import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {

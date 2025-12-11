@@ -5,6 +5,7 @@ import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import { setJWTClaims, transaction } from '$lib/server/db';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 	// Check authentication and permissions
@@ -206,7 +207,7 @@ export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 				teams = teamsData;
 			} catch (err) {
 				// Teams table might not exist yet
-				logger.info('Teams table not found or query failed:'.replace(/['`]$/, `: ${err}'`/));
+				logger.info(`Teams table not found or query failed: ${err}`);
 				teams = [];
 			}
 		}

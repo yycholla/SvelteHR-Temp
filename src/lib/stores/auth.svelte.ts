@@ -178,14 +178,14 @@ class AuthStore {
 			await fetch('/api/auth/logout', {
 				method: 'POST',
 				credentials: 'include'
-			}).catch((err) => logger.warn('Logout endpoint failed:'.replace(/['`]$/, `: ${err}'`/)));
+			}).catch((err) => logger.warn(`Logout endpoint failed: ${err}`));
 
 			// Use dynamic import to avoid circular dependency if permission-test imports auth
 			// (Assuming permission-test is already runes-based or compatible)
 			const { clearTestModeOnLogout } = await import('$lib/stores/permission-test.svelte');
 			clearTestModeOnLogout();
 		} catch (error) {
-			logger.warn('Logout error:'.replace(/['`]$/, `: ${error}'`/));
+			logger.warn(`Logout error: ${error}`);
 		} finally {
 			this.reset();
 		}
@@ -223,7 +223,7 @@ class AuthStore {
 				logger.info('ℹ No theme preference found, using system default');
 			}
 		} catch (error) {
-			logger.warn('Unable to load theme preference, using system default:'.replace(/['`]$/, `: ${error}'`/));
+			logger.warn(`Unable to load theme preference, using system default: ${error}`);
 		}
 	}
 

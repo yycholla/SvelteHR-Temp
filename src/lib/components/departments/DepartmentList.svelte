@@ -3,7 +3,7 @@
 	import { logger } from '$lib/utils/logger';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
-	import { departments, departmentService, loadDepartments } from '$lib/services/departmentService';
+	import { departmentService, departments, loadDepartments } from '$lib/services/departmentService';
 	import { currentUser, hasPermission } from '$lib/services/auth';
 	import DataTable from '../tables/DataTable.svelte';
 	import Button from '../base/Button.svelte';
@@ -159,11 +159,11 @@
 			switch (action) {
 				case 'activate':
 					// TODO: Implement bulk department activation
-					logger.info('Bulk activate:'.replace(/['`]$/, `: ${selectedDepartments}'`/));
+					logger.info(`Bulk activate:: ${selectedDepartments}`);
 					break;
 				case 'archive':
 					// TODO: Implement bulk department archiving
-					logger.info('Bulk archive:'.replace(/['`]$/, `: ${selectedDepartments}'`/));
+					logger.info(`Bulk archive:: ${selectedDepartments}`);
 					break;
 				case 'export':
 					// Simple CSV export
@@ -211,7 +211,7 @@
 			await refreshDepartments(); // Refresh the list
 			toast.success('Department archived successfully');
 		} catch (err: any) {
-			logger.error("Failed to delete department", err as Error);
+			logger.error('Failed to delete department', err as Error);
 			toast.error('Failed to archive department');
 		}
 	}

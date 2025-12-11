@@ -9,6 +9,7 @@
 	 * - EventEditForm: For the edit mode form
 	 */
 
+	import { logger } from '$lib/utils/logger';
 	import { invalidateAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { Edit, Trash2, X } from '@lucide/svelte';
@@ -19,9 +20,9 @@
 	import { type ConflictingEvent, findConflictingEvents } from '$lib/utils/calendar';
 	import type { CalendarEvent, EventType as CalendarEventType } from '$lib/types/events';
 	import type {
-		RsvpStatus,
+		EventVisibilityType,
 		EventType as GraphQLEventType,
-		EventVisibilityType
+		RsvpStatus
 	} from '$lib/graphql/types';
 	import type {
 		EventComment,
@@ -262,8 +263,7 @@
 				attendeeCount: e.acceptedCount ?? 0,
 				waitlistCount: e.waitlistCount ?? 0,
 				waitlistEnabled: e.waitlistEnabled ?? false,
-				userRsvpStatus:
-					e.attendees?.find((a) => a.employeeId === userId)?.responseStatus ?? null,
+				userRsvpStatus: e.attendees?.find((a) => a.employeeId === userId)?.responseStatus ?? null,
 				userWaitlistPosition: null,
 				imageUrl: null,
 				imageAspectRatio: null,

@@ -436,7 +436,7 @@ export function createLeaveManagementOperations(client: any) {
 		}) {
 			// In a real implementation, this would use the UPDATE_LEAVE_REQUEST_STATUS mutation
 			// For now, return a mock response
-			logger.info('Approve leave request:'.replace(/['`]$/, `: ${params}'`/));
+			logger.info(`Approve leave request: ${params}`);
 			return { success: true };
 		},
 
@@ -447,7 +447,7 @@ export function createLeaveManagementOperations(client: any) {
 		}) {
 			// In a real implementation, this would use the UPDATE_LEAVE_REQUEST_STATUS mutation
 			// For now, return a mock response
-			logger.info('Deny leave request:'.replace(/['`]$/, `: ${params}'`/));
+			logger.info(`Deny leave request: ${params}`);
 			return { success: true };
 		}
 	};

@@ -46,7 +46,7 @@ export function preloadComponent(importFn: () => Promise<any>): void {
 	if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
 		requestIdleCallback(() => {
 			importFn().catch((error) => {
-				logger.warn('Component preload failed:'.replace(/['`]$/, `: ${error}'`/));
+				logger.warn(`Component preload failed: ${error}`);
 			});
 		});
 	}

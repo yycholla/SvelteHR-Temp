@@ -26,7 +26,7 @@
 	const { data } = $props();
 
 	// Debug logging
-	logger.info('[PERMISSIONS PAGE] Data:'.replace(/['`]$/, `: ${data}'`/));
+	logger.info(`[PERMISSIONS PAGE] Data: ${data}`);
 	logger.info('[PERMISSIONS PAGE] Roles:', data.roles);
 	logger.info('[PERMISSIONS PAGE] Permissions:', data.permissions);
 	logger.info('[PERMISSIONS PAGE] Users:', data.users);

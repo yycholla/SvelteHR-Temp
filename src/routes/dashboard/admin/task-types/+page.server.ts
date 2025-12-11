@@ -2,10 +2,11 @@
 // Admin-only page for managing task types
 
 import type { PageServerLoad } from './$types';
+import { error } from '@sveltejs/kit';
+import { logger } from '$lib/utils/logger';
 import { createUrqlClient, executeQuery, serializeCookies } from '$lib/graphql/client';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import { GET_TASK_TYPES } from '$lib/graphql/tasks-operations';
-import { error } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, cookies, fetch: fetchFn } = event;

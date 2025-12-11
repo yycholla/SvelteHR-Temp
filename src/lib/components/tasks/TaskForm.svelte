@@ -276,9 +276,9 @@
 		logger.info('[TaskForm] Total parent tasks:', parentTasks.length);
 		logger.info('[TaskForm] Filtered parent tasks:', filteredParentTasks().length);
 		logger.info('[TaskForm] Form data status:', formData.status);
-		logger.info('[TaskForm] Selected status:'.replace(/['`]$/, `: ${selectedStatus}'`/));
+		logger.info(`[TaskForm] Selected status: ${selectedStatus}`);
 		logger.info('[TaskForm] Form data priority:', formData.priority);
-		logger.info('[TaskForm] Selected priority:'.replace(/['`]$/, `: ${selectedPriority}'`/));
+		logger.info(`[TaskForm] Selected priority: ${selectedPriority}`);
 	});
 
 	// Validate form on data changes
@@ -504,7 +504,7 @@
 						bind:selected={formData.assignees}
 						placeholder="Type to search users or departments..."
 						onSelectedChange={(selected) => {
-							logger.info('[TaskForm] Assignees changed:'.replace(/['`]$/, `: ${selected}'`/));
+							logger.info(`[TaskForm] Assignees changed:: ${selected}`);
 							formData.assignees = selected;
 						}}
 					/>
@@ -534,7 +534,7 @@
 							}
 						}}
 						onCreate={(newTaskType) => {
-							logger.info('Created new task type:'.replace(/['`]$/, `: ${newTaskType}'`/));
+							logger.info(`Created new task type: ${newTaskType}`);
 						}}
 					/>
 					{#if fieldErrors.taskTypeId}

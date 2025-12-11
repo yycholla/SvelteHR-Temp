@@ -7,7 +7,7 @@ import { GraphQLClient } from '$lib/server/graphql-client';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import { UPLOAD_DOCUMENT } from '$lib/graphql/document-operations';
 import { GET_EMPLOYEES_QUERY } from '$lib/graphql/employee-operations';
-
+import { logger } from '$lib/utils/logger';
 import { createAccessMetadata, logSuccessfulAccess } from '$lib/services/auditService';
 import type { UploadResult } from '$lib/types/document';
 

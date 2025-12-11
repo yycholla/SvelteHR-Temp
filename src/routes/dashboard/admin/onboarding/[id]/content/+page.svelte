@@ -92,7 +92,7 @@
 			id: item.id,
 			sequenceOrder: index
 		}));
-		logger.info('Reordering:'.replace(/['`]$/, `: ${updates}'`/));
+		logger.info(`Reordering: ${updates}`);
 	}
 
 	function selectType(newType: string) {

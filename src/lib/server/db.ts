@@ -49,9 +49,10 @@ export async function query<T extends pkg.QueryResultRow = any>(
 
 		return result;
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
-		logger.error('Query:', text);
-		logger.error('Params:', params);
+		logger.error('Database query failed', error as Error, {
+			query: text,
+			params
+		});
 		throw error;
 	}
 }

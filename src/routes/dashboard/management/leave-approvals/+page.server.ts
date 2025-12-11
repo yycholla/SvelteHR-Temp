@@ -3,6 +3,7 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
+import { logger } from '$lib/utils/logger';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
@@ -390,7 +391,7 @@ export const actions: Actions = {
 		`;
 
 		try {
-			logger.info('[Server] Executing approve mutation for:'.replace(/['`]$/, `: ${leaveRequestId}'`/));
+			logger.info(`[Server] Executing approve mutation for: ${leaveRequestId}`);
 			const result = await graphqlClient.query(mutation, {
 				input: {
 					requestId: leaveRequestId
@@ -402,7 +403,7 @@ export const actions: Actions = {
 				return fail(500, { message: 'Failed to approve leave request' });
 			}
 
-			logger.info('[Server] Approve successful for:'.replace(/['`]$/, `: ${leaveRequestId}'`/));
+			logger.info(`[Server] Approve successful for: ${leaveRequestId}`);
 			return { success: true, message: 'Leave request approved' };
 		} catch (err) {
 			logger.error('[Server] Error approving leave request:', err as Error);
@@ -435,7 +436,7 @@ export const actions: Actions = {
 		`;
 
 		try {
-			logger.info('[Server] Executing deny mutation for:'.replace(/['`]$/, `: ${leaveRequestId}'`/));
+			logger.info(`[Server] Executing deny mutation for: ${leaveRequestId}`);
 			const result = await graphqlClient.query(mutation, {
 				input: {
 					requestId: leaveRequestId,
@@ -448,7 +449,7 @@ export const actions: Actions = {
 				return fail(500, { message: 'Failed to deny leave request' });
 			}
 
-			logger.info('[Server] Deny successful for:'.replace(/['`]$/, `: ${leaveRequestId}'`/));
+			logger.info(`[Server] Deny successful for: ${leaveRequestId}`);
 			return { success: true, message: 'Leave request denied' };
 		} catch (err) {
 			logger.error('[Server] Error denying leave request:', err as Error);

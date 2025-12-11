@@ -108,10 +108,9 @@ export class SubscriptionManager {
 			return () => {};
 		}
 
-		logger.info(
-			'[SUBSCRIPTIONS] Setting up department change subscription for user:',
-			this.userId
-		);
+		logger.info('[SUBSCRIPTIONS] Setting up department change subscription for user', {
+			userId: this.userId
+		});
 
 		// Try WebSocket subscription first
 		try {
@@ -125,7 +124,7 @@ export class SubscriptionManager {
 
 			this.subscriptions.set('department-change', subscription);
 		} catch (error) {
-			logger.warn('[SUBSCRIPTIONS] WebSocket subscription failed, using polling fallback:'.replace(/['`]$/, `: ${error}'`/));
+			logger.warn(`[SUBSCRIPTIONS] WebSocket subscription failed, using polling fallback: ${error}`);
 		}
 
 		// Set up polling fallback (every 60 seconds)
@@ -151,7 +150,9 @@ export class SubscriptionManager {
 			return () => {};
 		}
 
-		logger.info('[SUBSCRIPTIONS] Setting up role change subscription for user:', this.userId);
+		logger.info('[SUBSCRIPTIONS] Setting up role change subscription for user', {
+			userId: this.userId
+		});
 
 		try {
 			const subscription = client
@@ -164,7 +165,7 @@ export class SubscriptionManager {
 
 			this.subscriptions.set('role-change', subscription);
 		} catch (error) {
-			logger.warn('[SUBSCRIPTIONS] Role subscription failed:'.replace(/['`]$/, `: ${error}'`/));
+			logger.warn(`[SUBSCRIPTIONS] Role subscription failed: ${error}`);
 		}
 
 		return () => {

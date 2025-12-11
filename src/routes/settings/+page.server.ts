@@ -6,6 +6,7 @@ import { error } from '@sveltejs/kit';
 import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 import { createSettingsOperations } from '$lib/graphql/settings-operations';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies, url } = event;

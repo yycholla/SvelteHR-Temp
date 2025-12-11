@@ -470,12 +470,12 @@ export function createPerformanceOperations(client: any) {
 			areasForImprovement?: string;
 			managerFeedback?: string;
 		}) {
-			logger.info('Update performance review:'.replace(/['`]$/, `: ${params}'`/));
+			logger.info(`Update performance review: ${params}`);
 			return { success: true };
 		},
 
 		async submitReview(params: { id: string; overallRating: number; managerFeedback: string }) {
-			logger.info('Submit performance review:'.replace(/['`]$/, `: ${params}'`/));
+			logger.info(`Submit performance review: ${params}`);
 			return { success: true };
 		}
 	};

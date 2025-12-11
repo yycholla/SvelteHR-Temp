@@ -1,6 +1,7 @@
-import { logger } from '$lib/utils/logger';
 #!/usr/bin/env node
 // Signature Worker Startup Script
+
+import { logger } from '$lib/utils/logger';
 // Feature: 021-i-have-setup (Comprehensive Audit Logging)
 // Run this as a background process: node start-signature-worker.js
 

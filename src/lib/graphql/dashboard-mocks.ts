@@ -6,11 +6,7 @@ import { logger } from '$lib/utils/logger';
  * Originally located in dashboard-operations.ts.
  */
 
-import type {
-	DashboardMetric,
-	ActivityItem,
-	UpcomingEvent
-} from './dashboard-operations';
+import type { ActivityItem, DashboardMetric, UpcomingEvent } from './dashboard-operations';
 
 /**
  * Get complete dashboard data based on user roles and permissions
@@ -18,11 +14,11 @@ import type {
 export async function getCompleteDashboardData(userId: string, roles: string[] = ['Employee']) {
 	// Validate userId parameter
 	if (!userId || userId.trim().length === 0) {
-		logger.warn('Dashboard operations called with invalid userId:'.replace(/['`]$/, `: ${userId}'`/));
+		logger.warn(`Dashboard operations called with invalid userId:: ${userId}`);
 		throw new Error('Invalid user ID provided');
 	}
 
-	logger.info('🔍 Dashboard operations - userId:', userId, 'roles:', roles);
+	logger.info('🔍 Dashboard operations - userId:' + userId + 'roles:' + roles);
 
 	try {
 		// Create base dashboard data with mock data for now
@@ -123,10 +119,7 @@ export async function generatePersonalActivity(
 /**
  * Generate personal tasks for a user
  */
-export async function generatePersonalTasks(
-	userId: string,
-	limit: number = 5
-): Promise<string[]> {
+export async function generatePersonalTasks(userId: string, limit: number = 5): Promise<string[]> {
 	// Mock personal tasks - in real implementation, this would query GraphQL
 	const mockTasks = [
 		'Complete Time Sheet',

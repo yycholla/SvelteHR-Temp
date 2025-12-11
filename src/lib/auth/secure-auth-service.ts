@@ -74,7 +74,9 @@ class SecureAuthService {
 				this.resetAuthState();
 			} else {
 				// Other errors (500, 503, etc.) - log but don't crash
-				logger.warn('Auth verification returned unexpected status:', response.status);
+				logger.warn('Auth verification returned unexpected status', {
+					statusCode: response.status
+				});
 				this.resetAuthState();
 			}
 		} catch (error) {
@@ -151,9 +153,9 @@ class SecureAuthService {
 					'Content-Type': 'application/json'
 				},
 				credentials: 'include'
-			}).catch((err) => logger.warn('Logout endpoint failed:'.replace(/['`]$/, `: ${err}'`/)));
+			}).catch((err) => logger.warn(`Logout endpoint failed:: ${err}`));
 		} catch (error) {
-			logger.warn('Logout request failed:'.replace(/['`]$/, `: ${error}'`/));
+			logger.warn(`Logout request failed:: ${error}`);
 		} finally {
 			// Always clean up local state
 			this.resetAuthState();

@@ -114,7 +114,7 @@ export async function logout(): Promise<{ success: boolean; message?: string }> 
 		await fetch(AUTH_CONFIG.endpoints.logout, {
 			method: 'POST',
 			credentials: 'include' // Include session cookies for server-side session clearing
-		}).catch((err) => logger.warn('Logout endpoint failed:'.replace(/['`]$/, `: ${err}'`/)));
+		}).catch((err) => logger.warn(`Logout endpoint failed: ${err}`));
 
 		return {
 			success: true,

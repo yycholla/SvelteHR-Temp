@@ -8,6 +8,7 @@ import { GraphQLClient } from '$lib/server/graphql-client';
 import { ensureBackendReady } from '$lib/server/backend-init';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import type { TaskPriority, TaskStatus } from '$lib/graphql/types';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	// Check authentication and permissions

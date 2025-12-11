@@ -5,6 +5,7 @@
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies, params } = event;
@@ -47,7 +48,7 @@ export const load: PageServerLoad = async (event) => {
 			'Content-Type': 'application/json'
 		};
 
-		logger.info('[Task Edit] Loading task for editing:'.replace(/['`]$/, `: ${taskId}'`/));
+		logger.info(`[Task Edit] Loading task for editing: ${taskId}`);
 
 		// Load task data
 		// NOTE: Using Rust GraphQL schema - singular query for ID lookup

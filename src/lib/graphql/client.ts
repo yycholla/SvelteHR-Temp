@@ -93,7 +93,12 @@ const customErrorExchange = errorExchange({
 					e.message?.includes('invalid')
 			)
 		) {
-			logger.warn('GraphQL authentication error (session expired/invalid):', error.graphQLErrors);
+			logger.warn('GraphQL authentication error (session expired/invalid)', {
+				errors: error.graphQLErrors.map((e) => ({
+					message: e.message,
+					code: e.extensions?.code
+				}))
+			});
 
 			// Session authentication - redirect to login (server hooks will handle session cleanup)
 			if (browser) {
@@ -108,7 +113,9 @@ const customErrorExchange = errorExchange({
 
 		// Handle rate limiting
 		if (error.graphQLErrors.some((e) => e.extensions?.code === 'RATE_LIMIT_EXCEEDED')) {
-			logger.warn('Rate limit exceeded for operation:', operation.key);
+			logger.warn('Rate limit exceeded for operation', {
+				operationKey: operation.key
+			});
 		}
 
 		// Handle network errors
@@ -127,7 +134,7 @@ const customErrorExchange = errorExchange({
 
 		// Log other GraphQL errors
 		error.graphQLErrors.forEach(({ message, extensions }) => {
-			logger.error('GraphQL error:', message, extensions);
+			logger.error('GraphQL error', new Error(message), { extensions });
 		});
 	}
 });
@@ -253,10 +260,9 @@ export const createUrqlClient = (
 			// For server-side requests, explicitly forward cookies
 			if (!browser && cookies) {
 				headers['Cookie'] = cookies;
-				logger.info(
-					'[GraphQL Client] Forwarding session cookies to backend:',
-					cookies.substring(0, 50) + '...'
-				);
+				logger.info('[GraphQL Client] Forwarding session cookies to backend', {
+					cookiePreview: cookies.substring(0, 50)
+				});
 			} else if (!browser) {
 				logger.warn('[GraphQL Client] WARNING: No cookies to forward! Authentication may fail.');
 			}

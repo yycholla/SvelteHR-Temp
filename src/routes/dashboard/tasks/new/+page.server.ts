@@ -5,6 +5,7 @@
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies, url } = event;
@@ -49,7 +50,7 @@ export const load: PageServerLoad = async (event) => {
 			'Content-Type': 'application/json'
 		};
 
-		logger.info('[Task Create] Loading form options, parentTaskId:'.replace(/['`]$/, `: ${parentTaskId}'`/));
+		logger.info(`[Task Create] Loading form options, parentTaskId: ${parentTaskId}`);
 
 		// Load assignees
 		const assigneesResponse = await authenticatedGraphQLRequest(

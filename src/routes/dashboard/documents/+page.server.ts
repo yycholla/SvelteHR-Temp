@@ -6,6 +6,7 @@ import type { PageServerLoad } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import { GET_DOCUMENTS } from '$lib/graphql/document-operations';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 	// Check authentication and permissions

@@ -3,6 +3,7 @@
 
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { logger } from '$lib/utils/logger';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
 import { UPLOAD_DOCUMENT } from '$lib/graphql/document-operations';

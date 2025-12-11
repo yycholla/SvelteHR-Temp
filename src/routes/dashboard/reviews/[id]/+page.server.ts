@@ -11,6 +11,7 @@ import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { requireAuth } from '$lib/server/rbac-utils';
 import { canEditReview, canViewReview } from '$lib/utils/rbac';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { params, cookies, fetch: fetchFn } = event;

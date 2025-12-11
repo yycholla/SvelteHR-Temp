@@ -354,7 +354,7 @@ export class ReminderScheduler {
 			}
 
 			const notificationId = data?.data?.createNotification?.notification?.id;
-			logger.info('[ReminderScheduler] Created notification:'.replace(/['`]$/, `: ${notificationId}'`/));
+			logger.info(`[ReminderScheduler] Created notification: ${notificationId}`);
 		} catch (error) {
 			logger.error('Catch failed', error as Error);
 			throw error;

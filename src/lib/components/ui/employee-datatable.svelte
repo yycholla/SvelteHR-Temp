@@ -396,7 +396,7 @@
 					);
 
 					// Debug logging to see actual response
-					logger.info('[Status Change] Full result:'.replace(/['`]$/, `: ${result}'`/));
+					logger.info(`[Status Change] Full result: ${result}`);
 					logger.info('[Status Change] Has error?', !!result.error);
 					logger.info('[Status Change] Error details:', result.error);
 					logger.info('[Status Change] Data:', result.data);
@@ -415,9 +415,9 @@
 			const failureCount = results.filter((r) => r.status === 'rejected').length;
 
 			logger.info('[Status Change] Results summary:');
-			logger.info('[Status Change] Success count:'.replace(/['`]$/, `: ${successCount}'`/));
-			logger.info('[Status Change] Failure count:'.replace(/['`]$/, `: ${failureCount}'`/));
-			logger.info('[Status Change] All results:'.replace(/['`]$/, `: ${results}'`/));
+			logger.info(`[Status Change] Success count: ${successCount}`);
+			logger.info(`[Status Change] Failure count: ${failureCount}`);
+			logger.info(`[Status Change] All results: ${results}`);
 
 			// Dismiss loading toast
 			toast.dismiss(loadingToastId);
@@ -428,15 +428,15 @@
 			// Show result message
 			if (failureCount === 0) {
 				const message = `Set ${successCount} ${successCount === 1 ? 'employee' : 'employees'} as ${statusDisplay}`;
-				logger.info('[Status Change] Success toast:'.replace(/['`]$/, `: ${message}'`/));
+				logger.info(`[Status Change] Success toast: ${message}`);
 				toast.success(message);
 			} else if (successCount > 0) {
 				const message = `Updated ${successCount} ${successCount === 1 ? 'employee' : 'employees'}, but ${failureCount} failed`;
-				logger.info('[Status Change] Warning toast:'.replace(/['`]$/, `: ${message}'`/));
+				logger.info(`[Status Change] Warning toast: ${message}`);
 				toast.warning(message);
 			} else {
 				const message = `Failed to update employees. Please try again.`;
-				logger.info('[Status Change] Error toast:'.replace(/['`]$/, `: ${message}'`/));
+				logger.info(`[Status Change] Error toast: ${message}`);
 				toast.error(message);
 			}
 

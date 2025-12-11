@@ -9,7 +9,7 @@
 	const { data, form } = $props();
 
 	// Debug logging
-	logger.info('[ROLE PERMISSIONS PAGE] Data:'.replace(/['`]$/, `: ${data}'`/));
+	logger.info(`[ROLE PERMISSIONS PAGE] Data: ${data}`);
 	logger.info('[ROLE PERMISSIONS PAGE] Role:', data.role);
 	logger.info('[ROLE PERMISSIONS PAGE] Permissions:', data.permissions?.length);
 

@@ -127,7 +127,7 @@
 	async function handleSubmitGoal(event: SubmitEvent) {
 		event.preventDefault();
 		// TODO: Implement actual goal creation
-		logger.info('Creating new goal:'.replace(/['`]$/, `: ${newGoal}'`/));
+		logger.info('Creating new goal', { newGoal });
 		showNewGoalForm = false;
 		newGoal = {
 			title: '',
@@ -140,7 +140,7 @@
 
 	async function handleUpdateProgress(goalId: string, newProgress: number) {
 		// TODO: Implement goal progress update
-		logger.info('Updating goal progress:', goalId, newProgress);
+		logger.info('Updating goal progress', { goalId, newProgress });
 	}
 </script>
 

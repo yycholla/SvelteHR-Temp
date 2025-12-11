@@ -2,6 +2,7 @@
 // Admin-only page for managing roles, permissions, and user-role assignments
 
 import type { Actions, PageServerLoad } from './$types';
+import { logger } from '$lib/utils/logger';
 import {
 	createUrqlClient,
 	executeMutation,

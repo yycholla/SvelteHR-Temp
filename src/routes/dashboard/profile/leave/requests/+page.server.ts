@@ -6,6 +6,7 @@ import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 import { getLeaveTypeColor } from '$lib/graphql/queries/leave-requests';
+import { logger } from '$lib/utils/logger';
 
 // Helper function to get human-readable leave type name
 function getLeaveTypeName(typeCode: string): string {

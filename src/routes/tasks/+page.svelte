@@ -177,15 +177,15 @@
 		switch (action) {
 			case 'complete':
 				// TODO: Implement bulk complete
-				logger.info('Bulk complete:'.replace(/['`]$/, `: ${selectedTasks}'`/));
+				logger.info(`Bulk complete: ${selectedTasks}`);
 				break;
 			case 'assign':
 				// TODO: Show bulk assign modal
-				logger.info('Bulk assign:'.replace(/['`]$/, `: ${selectedTasks}'`/));
+				logger.info(`Bulk assign: ${selectedTasks}`);
 				break;
 			case 'delete':
 				// TODO: Show bulk delete confirmation
-				logger.info('Bulk delete:'.replace(/['`]$/, `: ${selectedTasks}'`/));
+				logger.info(`Bulk delete: ${selectedTasks}`);
 				break;
 		}
 	}

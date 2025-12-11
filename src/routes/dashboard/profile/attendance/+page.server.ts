@@ -5,6 +5,7 @@ import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { url, cookies } = event;
@@ -109,7 +110,7 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		logger.info('[Attendance] GraphQL response:', JSON.stringify(attendanceData, null, 2));
-		logger.info('[Attendance] Employee ID:'.replace(/['`]$/, `: ${userId}'`/));
+		logger.info(`[Attendance] Employee ID: ${userId}`);
 		logger.info('[Attendance] Records found:', attendanceData.data?.attendanceRecords?.length);
 
 		const attendanceRecords = (attendanceData.data?.attendanceRecords || []).map((record: any) => ({

@@ -5,6 +5,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies } = event;
@@ -246,7 +247,7 @@ export const actions: Actions = {
 				sameSite: 'lax'
 			});
 
-			logger.info('[Update Theme] Success! Theme updated to:'.replace(/['`]$/, `: ${theme}'`/));
+			logger.info(`[Update Theme] Success! Theme updated to: ${theme}`);
 
 			return { success: true, message: `Theme updated to ${theme}` };
 		} catch (err) {

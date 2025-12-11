@@ -448,7 +448,7 @@ export class CacheWarmer {
 				// Small delay between operations to avoid overwhelming the server
 				await new Promise((resolve) => setTimeout(resolve, 100));
 			} catch (error) {
-				logger.warn(`Cache warming failed for ${op.operationName}:`.replace(/['`]$/, `: ${error}'`/));
+				logger.warn(`Cache warming failed for ${op.operationName}: ${error}`);
 			}
 		}
 	}

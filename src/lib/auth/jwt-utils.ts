@@ -151,13 +151,16 @@ export async function decodeJWTTokenUnsafe(token: string): Promise<JWTPayload | 
 		// Server-side: Try simple base64 decode first (for our custom tokens)
 		const parts = token.split('.');
 		if (parts.length !== 3) {
-			logger.warn('Invalid JWT format: expected 3 parts, got', parts.length);
+			logger.warn('Invalid JWT format: expected 3 parts', {
+				actualParts: parts.length,
+				tokenPreview: token.substring(0, 20) + '...'
+			});
 			return null;
 		}
 
 		// Decode the payload part (index 1)
 		const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-		logger.info('🔍 Server decoded payload:'.replace(/['`]$/, `: ${payload}'`/));
+		logger.info(`🔍 Server decoded payload:: ${payload}`);
 		return payload as JWTPayload;
 	} catch (error) {
 		logger.warn('Failed to decode JWT token on server:', {

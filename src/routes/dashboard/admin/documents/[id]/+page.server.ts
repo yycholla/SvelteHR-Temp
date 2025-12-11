@@ -3,6 +3,7 @@
 
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { logger } from '$lib/utils/logger';
 import { requireAuth } from '$lib/server/rbac-utils';
 import { setJWTClaims, transaction } from '$lib/server/db';
 
@@ -209,7 +210,7 @@ export const load: PageServerLoad = async (event) => {
 				teams = teamsData;
 			} catch (err) {
 				// Teams table might not exist yet
-				logger.info('Teams table not found or query failed:'.replace(/['`]$/, `: ${err}'`/));
+				logger.info(`Teams table not found or query failed: ${err}`);
 				teams = [];
 			}
 		}

@@ -5,6 +5,7 @@
 import type { Actions, PageServerLoad, RequestEvent } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies, params } = event;
@@ -55,7 +56,7 @@ export const load: PageServerLoad = async (event) => {
 		const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
-		logger.info('[Task Details] Loading task:'.replace(/['`]$/, `: ${taskId}'`/));
+		logger.info(`[Task Details] Loading task: ${taskId}`);
 
 		// Load task with full relationships
 		// NOTE: Using Rust GraphQL schema - singular query for ID lookup
@@ -138,7 +139,7 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		const taskData = await taskResponse.json();
-		logger.info('[Task Details] Task response:'.replace(/['`]$/, `: ${taskData}'`/));
+		logger.info(`[Task Details] Task response: ${taskData}`);
 
 		if (taskData.errors) {
 			logger.error('[Task Details] GraphQL errors:', taskData.errors);

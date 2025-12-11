@@ -359,7 +359,7 @@ export class PerformanceBudgetValidator {
 				const result = this.validateMetric(budgetName, value);
 				results.push(result);
 			} catch (error) {
-				logger.warn(`Could not validate metric ${budgetName}:`.replace(/['`]$/, `: ${error}'`/));
+				logger.warn(`Could not validate metric ${budgetName}: ${error}`);
 			}
 		}
 

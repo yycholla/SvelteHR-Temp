@@ -5,6 +5,7 @@
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies, url } = event;
@@ -152,7 +153,7 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		const tasksData = await tasksResponse.json();
-		logger.info('[Tasks Dashboard] Tasks response:'.replace(/['`]$/, `: ${tasksData}'`/));
+		logger.info(`[Tasks Dashboard] Tasks response: ${tasksData}`);
 
 		if (tasksData.errors) {
 			logger.error('[Tasks Dashboard] GraphQL errors:', tasksData.errors);

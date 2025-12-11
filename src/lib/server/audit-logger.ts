@@ -110,7 +110,7 @@ export async function logAction(
 		});
 
 		if (!response.ok) {
-			logger.error('[AUDIT LOGGER] GraphQL mutation failed:', response.statusText);
+			logger.error('[AUDIT LOGGER] GraphQL mutation failed', new Error(response.statusText));
 			return false;
 		}
 

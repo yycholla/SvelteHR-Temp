@@ -96,7 +96,7 @@
 	async function handleSubmitRequest(event: Event) {
 		event.preventDefault();
 		// TODO: Implement actual leave request submission
-		logger.info('Submitting leave request:'.replace(/['`]$/, `: ${newRequest}'`/));
+		logger.info(`Submitting leave request: ${newRequest}`);
 		showNewRequestForm = false;
 		newRequest = {
 			leaveTypeId: '',
@@ -108,7 +108,7 @@
 
 	async function handleCancelRequest(requestId: string) {
 		// TODO: Implement request cancellation
-		logger.info('Cancelling request:'.replace(/['`]$/, `: ${requestId}'`/));
+		logger.info(`Cancelling request: ${requestId}`);
 	}
 </script>
 

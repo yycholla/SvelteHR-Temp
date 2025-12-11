@@ -6,6 +6,7 @@ import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import { createUrqlClient } from '$lib/graphql/client';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	// Check authentication and permissions

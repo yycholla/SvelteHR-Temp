@@ -11,7 +11,7 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 		// Call Rust GraphQL API logout endpoint to clear session server-side
 		const apiBaseUrl = getApiBaseUrl();
 		const logoutUrl = `${apiBaseUrl}/auth/logout`;
-		logger.info('[Logout] Calling Rust API logout:'.replace(/['`]$/, `: ${logoutUrl}'`/));
+		logger.info(`[Logout] Calling Rust API logout: ${logoutUrl}`);
 
 		// Forward cookies to backend for session clearing
 		const cookieHeader = request.headers.get('cookie') || '';

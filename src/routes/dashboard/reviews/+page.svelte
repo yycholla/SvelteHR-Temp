@@ -1,6 +1,5 @@
 <script lang="ts">
 	/**
-	import { logger } from '$lib/utils/logger';
 	 * Performance Reviews Management Page
 	 * Feature: 023-reviews-creation-it
 	 * Task: T034
@@ -9,6 +8,7 @@
 	 */
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
+	import { logger } from '$lib/utils/logger';
 	import type { PageData } from './$types';
 	import * as Card from '$lib/components/ui/card';
 	import * as Dialog from '$lib/components/ui/dialog';
@@ -84,13 +84,13 @@
 	function handleCreateReview(event: CustomEvent) {
 		const { data: reviewData } = event.detail;
 		// TODO: Call GraphQL mutation
-		logger.info('Create review:'.replace(/['`]$/, `: ${reviewData}'`/));
+		logger.info(`Create review: ${reviewData}`);
 	}
 
 	function handleSaveAsDraft(event: CustomEvent) {
 		const { data: draftData } = event.detail;
 		// TODO: Call GraphQL mutation to save draft
-		logger.info('Save draft:'.replace(/['`]$/, `: ${draftData}'`/));
+		logger.info(`Save draft: ${draftData}`);
 	}
 
 	// Open create dialog

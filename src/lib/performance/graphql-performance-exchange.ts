@@ -331,7 +331,7 @@ export class GraphQLPerformanceTester {
 				const duration = performance.now() - start;
 				logger.info(`  Warmup ${i + 1}: ${Math.round(duration)}ms`);
 			} catch (error) {
-				logger.warn(`  Warmup ${i + 1} failed:`.replace(/['`]$/, `: ${error}'`/));
+				logger.warn(`  Warmup ${i + 1} failed: ${error}`);
 			}
 		}
 

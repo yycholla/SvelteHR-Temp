@@ -54,7 +54,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 				hasPassword: !!password
 			});
 		} else {
-			logger.warn('[Login] Invalid content type:'.replace(/['`]$/, `: ${contentType}'`/));
+			logger.warn(`[Login] Invalid content type: ${contentType}`);
 			recordFailedLogin(clientIp);
 			return json(
 				{
@@ -82,7 +82,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 		logger.info('[Login] Calling Rust API /auth/login...');
 		const apiBaseUrl = getApiBaseUrl();
 		const loginUrl = `${apiBaseUrl}/auth/login`;
-		logger.info('[Login] Login URL:'.replace(/['`]$/, `: ${loginUrl}'`/));
+		logger.info(`[Login] Login URL: ${loginUrl}`);
 
 		const loginResponse = await fetch(loginUrl, {
 			method: 'POST',
@@ -96,7 +96,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 
 		if (!loginResponse.ok) {
 			const errorData = await loginResponse.json();
-			logger.info('[Login] API error response:'.replace(/['`]$/, `: ${errorData}'`/));
+			logger.info(`[Login] API error response: ${errorData}`);
 
 			// Record failed login attempt
 			recordFailedLogin(clientIp);

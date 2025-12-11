@@ -5,6 +5,7 @@
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies, url } = event;
@@ -70,7 +71,7 @@ export const load: PageServerLoad = async (event) => {
 		const currentUser = currentUserResponse?.data?.user;
 		const userDepartmentId = currentUser?.departmentId;
 
-		logger.info('[Team Tasks] Current user department ID:'.replace(/['`]$/, `: ${userDepartmentId}'`/));
+		logger.info(`[Team Tasks] Current user department ID: ${userDepartmentId}`);
 
 		// Load departments for team task assignment
 		const departmentsResponse = await client.query(
@@ -88,7 +89,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 		);
 
-		logger.info('[Team Tasks] Departments response:'.replace(/['`]$/, `: ${departmentsResponse}'`/));
+		logger.info(`[Team Tasks] Departments response: ${departmentsResponse}`);
 
 		if (departmentsResponse.errors) {
 			logger.error('[Team Tasks] Departments GraphQL errors:', departmentsResponse.errors);
@@ -150,7 +151,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 		);
 
-		logger.info('[Team Tasks] Tasks response:'.replace(/['`]$/, `: ${tasksResponse}'`/));
+		logger.info(`[Team Tasks] Tasks response: ${tasksResponse}`);
 
 		if (tasksResponse.errors) {
 			logger.error('[Team Tasks] GraphQL errors:', tasksResponse.errors);

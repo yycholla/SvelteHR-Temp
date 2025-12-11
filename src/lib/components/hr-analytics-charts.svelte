@@ -100,7 +100,7 @@
 
 	// Initialize charts after component mounts and DOM is ready
 	onMount(() => {
-		logger.info('Analytics charts component mounted, users:'.replace(/['`]$/, `: ${users}'`/));
+		logger.info(`Analytics charts component mounted, users: ${users}`);
 	});
 
 	// Set charts ready only when we have data AND after sufficient delay for container sizing
@@ -320,7 +320,7 @@
 			result.push(currentPoint);
 		}
 
-		logger.info('Final hireDepartmentData:'.replace(/['`]$/, `: ${result}'`/));
+		logger.info(`Final hireDepartmentData: ${result}`);
 		logger.info('All departments:', Array.from(allDepartments));
 		return result;
 	});
@@ -376,7 +376,7 @@
 			{} as Record<string, any>
 		);
 
-		logger.info('Accumulated hiresByMonth:'.replace(/['`]$/, `: ${hiresByMonth}'`/));
+		logger.info(`Accumulated hiresByMonth: ${hiresByMonth}`);
 
 		// Sort by date and convert to cumulative count
 		const sortedMonths = Object.values(hiresByMonth).sort(
@@ -406,7 +406,7 @@
 			});
 		});
 
-		logger.info('Final hireData (cumulative with start point):'.replace(/['`]$/, `: ${result}'`/));
+		logger.info(`Final hireData (cumulative with start point): ${result}`);
 		return result;
 	});
 </script>

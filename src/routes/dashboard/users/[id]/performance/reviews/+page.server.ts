@@ -5,6 +5,7 @@ import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
+import { logger } from '$lib/utils/logger';
 
 // Type definitions for GraphQL query responses
 interface ReviewerInfo {

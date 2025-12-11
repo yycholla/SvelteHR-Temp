@@ -75,7 +75,7 @@ export function debugJWTToken(cookies: Cookies): JWTDebugInfo {
 	}
 
 	if (dev) {
-		logger.info('🔐 JWT Debug Info:'.replace(/['`]$/, `: ${debugInfo}'`/));
+		logger.info(`🔐 JWT Debug Info: ${debugInfo}`);
 	}
 
 	return debugInfo;

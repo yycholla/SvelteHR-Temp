@@ -177,7 +177,7 @@
 			await new Promise((resolve) => setTimeout(resolve, 1000));
 
 			updateSuccess = 'Profile updated successfully!';
-			logger.info('Profile updated:'.replace(/['`]$/, `: ${profileForm}'`/));
+			logger.info(`Profile updated: ${profileForm}`);
 		} catch (error) {
 			updateError = 'Failed to update profile. Please try again.';
 			logger.error('Profile update error:', error as Error);
@@ -254,7 +254,7 @@
 			await new Promise((resolve) => setTimeout(resolve, 800));
 
 			updateSuccess = 'Appearance settings updated!';
-			logger.info('Appearance updated:'.replace(/['`]$/, `: ${appearanceSettings}'`/));
+			logger.info(`Appearance updated: ${appearanceSettings}`);
 		} catch (error) {
 			updateError = 'Failed to update appearance settings.';
 			logger.error('Appearance update error:', error as Error);
@@ -274,7 +274,7 @@
 			await new Promise((resolve) => setTimeout(resolve, 800));
 
 			updateSuccess = 'Privacy settings updated!';
-			logger.info('Privacy updated:'.replace(/['`]$/, `: ${privacySettings}'`/));
+			logger.info(`Privacy updated: ${privacySettings}`);
 		} catch (error) {
 			updateError = 'Failed to update privacy settings.';
 			logger.error('Privacy update error:', error as Error);

@@ -293,8 +293,8 @@
 
 			// Parse response body
 			const result = await response.json();
-			logger.info('[EmployeeCreateDialog] Response status:', response.status);
-			logger.info('[EmployeeCreateDialog] Response body:'.replace(/['`]$/, `: ${result}'`/));
+			logger.info(`[EmployeeCreateDialog] Response status: ${response.status}`);
+			logger.info(`[EmployeeCreateDialog] Response body:: ${result}`);
 
 			// Check if request was successful based on HTTP status
 			if (response.ok) {
@@ -321,7 +321,7 @@
 				// Error case - extract error message from result
 				// SvelteKit fail() returns: { error: 'message' } for fetch requests
 				const errorMessage = result.error || result.data?.error || 'Failed to create employee';
-				logger.info('[EmployeeCreateDialog] Error message:'.replace(/['`]$/, `: ${errorMessage}'`/));
+				logger.error(`[EmployeeCreateDialog] Error message:`, errorMessage);
 
 				// Parse error to see if it's field-specific
 				const { field, message } = parseErrorMessage(errorMessage);

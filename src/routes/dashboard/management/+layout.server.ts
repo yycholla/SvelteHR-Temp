@@ -3,6 +3,7 @@
 
 import type { LayoutServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
+import { logger } from '$lib/utils/logger';
 
 export const load: LayoutServerLoad = async ({ locals }) => {
 	// Check if user is authenticated

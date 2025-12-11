@@ -4,6 +4,7 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
+import { logger } from '$lib/utils/logger';
 import { EventsOperations } from '$lib/graphql/events-operations';
 import { requireAuth } from '$lib/server/rbac-utils';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
@@ -74,7 +75,7 @@ export const load: PageServerLoad = async (event) => {
 		});
 		// Normalize RSVP status to ensure it's a valid backend enum value
 		const userRsvpStatus = normalizeRsvpStatus(userAttendee?.responseStatus);
-		logger.info('[SERVER LOAD] Normalized status:'.replace(/['`]$/, `: ${userRsvpStatus}'`/));
+		logger.info(`[SERVER LOAD] Normalized status: ${userRsvpStatus}`);
 
 		// Check if user is the organizer
 		const isOrganizer = event.organizerId === locals.user.id;

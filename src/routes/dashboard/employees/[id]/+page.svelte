@@ -38,7 +38,7 @@
 
 	// Debug: Log permissions to console
 	$effect(() => {
-		logger.info('[Employee Detail Page] Permissions:'.replace(/['`]$/, `: ${permissions}'`/));
+		logger.info(`[Employee Detail Page] Permissions: ${permissions}`);
 	});
 
 	// Modal state

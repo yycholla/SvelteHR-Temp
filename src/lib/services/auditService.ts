@@ -43,10 +43,11 @@ export async function logAccess(
 		});
 
 		if (!response.ok) {
-			logger.error('Failed to log access attempt:', await response.text());
+			const errorText = await response.text();
+			logger.error('Failed to log access attempt', new Error(errorText));
 		}
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Failed to log access', error as Error);
 	}
 }
 

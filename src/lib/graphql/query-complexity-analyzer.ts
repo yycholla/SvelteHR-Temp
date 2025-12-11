@@ -202,7 +202,7 @@ export class QueryComplexityAnalyzer {
 			}
 		} catch (error) {
 			errorCount++;
-			logger.warn('Query complexity analysis error:'.replace(/['`]$/, `: ${error}'`/));
+			logger.warn(`Query complexity analysis error: ${error}`);
 		}
 
 		const executionTime = performance.now() - startTime;
@@ -530,7 +530,7 @@ export function createComplexityMiddleware(analyzer: QueryComplexityAnalyzer) {
 					});
 				}
 			} catch (error) {
-				logger.warn('Complexity validation error:'.replace(/['`]$/, `: ${error}'`/));
+				logger.warn(`Complexity validation error: ${error}`);
 			}
 		}
 
