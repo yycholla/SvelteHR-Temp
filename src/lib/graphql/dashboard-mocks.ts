@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Dashboard Mock Data Generators
  *
@@ -17,11 +18,11 @@ import type {
 export async function getCompleteDashboardData(userId: string, roles: string[] = ['Employee']) {
 	// Validate userId parameter
 	if (!userId || userId.trim().length === 0) {
-		console.warn('Dashboard operations called with invalid userId:', userId);
+		logger.warn('Dashboard operations called with invalid userId:'.replace(/['`]$/, `: ${userId}'`/));
 		throw new Error('Invalid user ID provided');
 	}
 
-	console.log('🔍 Dashboard operations - userId:', userId, 'roles:', roles);
+	logger.info('🔍 Dashboard operations - userId:', userId, 'roles:', roles);
 
 	try {
 		// Create base dashboard data with mock data for now
@@ -63,7 +64,7 @@ export async function getCompleteDashboardData(userId: string, roles: string[] =
 
 		return baseData;
 	} catch (error) {
-		console.error('Dashboard data error:', error);
+		logger.error('Catch failed', error as Error);
 		// Return a fallback response to avoid completely breaking the dashboard
 		return {
 			user: { id: userId, roles },

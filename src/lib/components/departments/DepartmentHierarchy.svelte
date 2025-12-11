@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { departments, departmentError, departmentService, loadDepartments } from '$lib/services/departmentService';
+	import { departmentError, departmentService, departments, loadDepartments } from '$lib/services/departmentService';
 	import { currentUser, hasPermission } from '$lib/services/auth';
 	import Button from '../base/Button.svelte';
 	import Card from '../base/Card.svelte';

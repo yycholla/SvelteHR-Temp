@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import { logger } from '$lib/utils/logger';
 	import { toast } from 'svelte-sonner';
 	import { Bell, Calendar as CalendarIcon, MapPin, User, Users } from '@lucide/svelte';
 	import RSVPButton from './RSVPButton.svelte';
@@ -226,7 +227,7 @@
 					selectedReminder = 'none';
 				}
 			} catch (error) {
-				console.error('Error setting reminder:', error);
+				logger.error('Catch failed', error as Error);
 				toast.error('Failed to set reminder. Please try again.');
 				selectedReminder = 'none';
 			} finally {
@@ -253,7 +254,7 @@
 					toast.error('Failed to disable reminder');
 				}
 			} catch (error) {
-				console.error('Error disabling reminder:', error);
+				logger.error('Catch failed', error as Error);
 				toast.error('Failed to disable reminder');
 			} finally {
 				isSavingReminder = false;

@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Server-side password change handling
 // Requires authentication and handles force_password_change flag
 
@@ -70,7 +71,7 @@ export const actions: Actions = {
 				Cookie: cookieHeader
 			};
 
-			console.log('[Change Password] Submitting password change for user:', locals.user.email);
+			logger.info('[Change Password] Submitting password change for user:', locals.user.email);
 
 			const response = await fetch(graphqlEndpoint, {
 				method: 'POST',
@@ -97,7 +98,7 @@ export const actions: Actions = {
 			});
 
 			if (!response.ok) {
-				console.error('[Change Password] GraphQL request failed:', response.statusText);
+				logger.error('[Change Password] GraphQL request failed:', response.statusText);
 				return fail(500, {
 					error: `Password change failed: ${response.statusText}`,
 					success: false
@@ -107,7 +108,7 @@ export const actions: Actions = {
 			const result = await response.json();
 
 			if (result.errors && result.errors.length > 0) {
-				console.error('[Change Password] GraphQL errors:', result.errors);
+				logger.error('[Change Password] GraphQL errors:', result.errors);
 				const errorMessage = result.errors[0]?.message || 'Password change failed';
 				return fail(400, {
 					error: errorMessage,
@@ -124,7 +125,7 @@ export const actions: Actions = {
 				});
 			}
 
-			console.log('[Change Password] Password changed successfully for user:', locals.user.email);
+			logger.info('[Change Password] Password changed successfully for user:', locals.user.email);
 
 			// Redirect to dashboard after successful password change
 			throw redirect(303, '/dashboard');
@@ -134,7 +135,7 @@ export const actions: Actions = {
 				throw err;
 			}
 
-			console.error('[Change Password] Error during password change:', err);
+			logger.error('[Change Password] Error during password change:', err as Error);
 			return fail(500, {
 				error: err.message || 'An unexpected error occurred',
 				success: false

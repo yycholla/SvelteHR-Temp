@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Storage exists check API endpoint (Feature 024)
 // GET /api/storage/exists?path=... - Check if storage path exists
 
@@ -32,7 +33,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 		// For now, return false (file doesn't exist in mock)
 		return json({ exists: false });
 	} catch (err) {
-		console.error('File exists check error:', err);
+		logger.error('File exists check error:', err as Error);
 
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err;

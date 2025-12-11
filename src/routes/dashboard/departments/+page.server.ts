@@ -3,7 +3,7 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { requireAuth, getUserPermissions, PermissionChecks } from '$lib/server/rbac-utils';
+import { PermissionChecks, getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies, url } = event;
@@ -72,11 +72,11 @@ export const load: PageServerLoad = async (event) => {
 			Cookie: cookieHeader // Forward all cookies for session authentication
 		};
 
-		console.log(
+		logger.info(
 			'[Departments] Using Rust GraphQL with session-based auth, user role:',
 			locals.user?.role
 		);
-		console.log('[Departments] Filters:', { searchTerm, parentFilter, hasHeadFilter });
+		logger.info('[Departments] Filters:', { searchTerm, parentFilter, hasHeadFilter });
 
 		// Load departments data with linked employee relationships
 		const departmentsResponse = await fetch(graphqlEndpoint, {
@@ -104,7 +104,7 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		const departmentsData = await departmentsResponse.json();
-		console.log('[Departments] Departments data:', departmentsData);
+		logger.info('[Departments] Departments data:'.replace(/['`]$/, `: ${departmentsData}'`/));
 
 		// Load users for department manager dropdown
 		const usersResponse = await fetch(graphqlEndpoint, {
@@ -132,7 +132,7 @@ export const load: PageServerLoad = async (event) => {
 		const usersData = await usersResponse.json();
 
 		if (usersData.errors) {
-			console.error('[Departments] Users GraphQL errors:', usersData.errors);
+			logger.error('[Departments] Users GraphQL errors:', usersData.errors);
 		}
 
 		// Keep all users for department counting (both active and inactive)
@@ -208,7 +208,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[Departments Load Error]', err);
+		logger.error('[Departments Load Error]', err as Error);
 
 		// Create standardized error response
 		const errorResponse = createErrorResponse(
@@ -220,7 +220,7 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		// Log error details for debugging
-		console.error('[Departments Error Details]', {
+		logger.error('[Departments Error Details]', {
 			userId: locals.user?.id,
 			userRole: locals.user?.role,
 			searchTerm,
@@ -292,12 +292,12 @@ export const actions: Actions = {
 				})
 			});
 
-			console.log('[Departments] Department creation request sent');
+			logger.info('[Departments] Department creation request sent');
 
 			const createData = await createResponse.json();
 
 			if (createData.errors) {
-				console.error('[Departments] GraphQL errors:', createData.errors);
+				logger.error('[Departments] GraphQL errors:', createData.errors);
 				return fail(500, {
 					error: createData.errors[0]?.message || 'Failed to create department'
 				});
@@ -311,12 +311,12 @@ export const actions: Actions = {
 				});
 			}
 
-			console.log(`[Departments] Successfully created department with ID: ${newDepartmentId}`);
+			logger.info(`[Departments] Successfully created department with ID: ${newDepartmentId}`);
 
 			// Return success (dialog will close and refresh the page)
 			return { success: true, departmentId: newDepartmentId };
 		} catch (err: any) {
-			console.error('[Departments] Error creating department:', err);
+			logger.error('[Departments] Error creating department:', err as Error);
 
 			return fail(500, {
 				error: 'Failed to create department. Please try again.'

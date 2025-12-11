@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { workflowActions, type WorkflowTriggerType } from '$lib/stores/workflow';
+	import { type WorkflowTriggerType, workflowActions } from '$lib/stores/workflow';
 	import { auth } from '$lib/stores/auth.svelte';
 
 	// Props

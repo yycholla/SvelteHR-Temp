@@ -126,7 +126,7 @@ export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 			userRoles
 		};
 	} catch (err) {
-		console.error('Audit log load error:', err);
+		logger.error('Audit log load error:', err as Error);
 
 		// Re-throw redirects and errors
 		if (err && typeof err === 'object' && ('status' in err || 'location' in err)) {

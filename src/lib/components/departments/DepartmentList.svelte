@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { departments, departmentService, loadDepartments } from '$lib/services/departmentService';
@@ -124,7 +125,7 @@
 		try {
 			await departmentService.loadDepartments();
 		} catch (error) {
-			console.error('Failed to load departments:', error);
+			logger.error('Catch failed', error as Error);
 		}
 	}
 
@@ -158,11 +159,11 @@
 			switch (action) {
 				case 'activate':
 					// TODO: Implement bulk department activation
-					console.log('Bulk activate:', selectedDepartments);
+					logger.info('Bulk activate:'.replace(/['`]$/, `: ${selectedDepartments}'`/));
 					break;
 				case 'archive':
 					// TODO: Implement bulk department archiving
-					console.log('Bulk archive:', selectedDepartments);
+					logger.info('Bulk archive:'.replace(/['`]$/, `: ${selectedDepartments}'`/));
 					break;
 				case 'export':
 					// Simple CSV export
@@ -190,7 +191,7 @@
 					break;
 			}
 		} catch (error) {
-			console.error('Bulk action failed:', error);
+			logger.error('Catch failed', error as Error);
 		}
 	}
 
@@ -210,7 +211,7 @@
 			await refreshDepartments(); // Refresh the list
 			toast.success('Department archived successfully');
 		} catch (err: any) {
-			console.error('Failed to delete department:', err);
+			logger.error("Failed to delete department", err as Error);
 			toast.error('Failed to archive department');
 		}
 	}

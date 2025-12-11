@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Storage retrieve API endpoint (Feature 024)
 // GET /api/storage/retrieve?path=... - Retrieve encrypted file data
 
@@ -78,7 +79,7 @@ export const GET: RequestHandler = async (event) => {
 			}
 		});
 	} catch (err) {
-		console.error('File retrieval error:', err);
+		logger.error('File retrieval error:', err as Error);
 
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err;

@@ -1,12 +1,12 @@
 import { GraphQLClient } from '$lib/server/graphql-client';
 import type {
+	ActivityLog,
 	AttendanceRecord,
 	DashboardDepartment,
 	DashboardUser,
 	EmployeeGoal,
 	LeaveRequest,
-	Task,
-	ActivityLog
+	Task
 } from '$lib/types/dashboard';
 import {
 	GET_DEPARTMENTS_QUERY,
@@ -15,11 +15,11 @@ import {
 	GET_ROLLBACK_STATS_QUERY,
 	GET_SYSTEM_AUDIT_LOGS_QUERY,
 	GET_UPCOMING_EVENTS_QUERY,
+	GET_USERS_QUERY,
 	GET_USER_ATTENDANCE_QUERY,
 	GET_USER_GOALS_QUERY,
 	GET_USER_LEAVE_REQUESTS_QUERY,
-	GET_USER_TASKS_QUERY,
-	GET_USERS_QUERY
+	GET_USER_TASKS_QUERY
 } from '$lib/graphql/dashboard/queries';
 
 export class DashboardService {

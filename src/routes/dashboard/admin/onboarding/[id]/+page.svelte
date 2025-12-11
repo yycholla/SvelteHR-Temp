@@ -1,5 +1,6 @@
 <script lang="ts">
 	import {
+	import { logger } from '$lib/utils/logger';
 		ArrowLeft,
 		Building,
 		Calendar,
@@ -73,7 +74,7 @@
 	});
 
 	// Debug: Log user options to console
-	console.log('[ONBOARDING] User options:', userOptions.slice(0, 5));
+	logger.info('[ONBOARDING] User options:', userOptions.slice(0, 5));
 
 	// Transform departments for Select options
 	const departmentOptions = data.departments.map((dept: any) => ({
@@ -180,7 +181,7 @@
 			goto($page.url.pathname, { invalidateAll: true });
 		} catch (error) {
 			alert('An error occurred during assignment');
-			console.error(error);
+			logger.error(error);
 		} finally {
 			isAssigning = false;
 			selectedUsersToAssign = [];
@@ -213,7 +214,7 @@
 	}
 
 	onMount(() => {
-		console.log('[ONBOARDING DETAIL] Component mounted', {
+		logger.info('[ONBOARDING DETAIL] Component mounted', {
 			moduleId: data.module.id,
 			url: $page.url.href,
 			pathname: $page.url.pathname,
@@ -222,7 +223,7 @@
 
 		// Listen for navigation events
 		const handlePopState = (event: PopStateEvent) => {
-			console.log('[ONBOARDING DETAIL] PopState event detected', {
+			logger.info('[ONBOARDING DETAIL] PopState event detected', {
 				event,
 				url: window.location.href,
 				timestamp: new Date().toISOString()
@@ -230,7 +231,7 @@
 		};
 
 		const handleBeforeUnload = () => {
-			console.log('[ONBOARDING DETAIL] Page unloading', {
+			logger.info('[ONBOARDING DETAIL] Page unloading', {
 				url: window.location.href,
 				timestamp: new Date().toISOString()
 			});
@@ -247,7 +248,7 @@
 
 	onDestroy(() => {
 		if (browser) {
-			console.log('[ONBOARDING DETAIL] Component destroying', {
+			logger.info('[ONBOARDING DETAIL] Component destroying', {
 				url: $page.url.href,
 				timestamp: new Date().toISOString()
 			});
@@ -257,7 +258,7 @@
 	// Track page store changes
 	$effect(() => {
 		if (browser) {
-			console.log('[ONBOARDING DETAIL] Page store changed', {
+			logger.info('[ONBOARDING DETAIL] Page store changed', {
 				url: $page.url.href,
 				pathname: $page.url.pathname,
 				timestamp: new Date().toISOString()

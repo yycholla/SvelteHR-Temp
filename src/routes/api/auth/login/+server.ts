@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Authentication endpoint - Login with Rust GraphQL API
 import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
@@ -7,14 +8,14 @@ import { clearRateLimit, isRateLimited, recordFailedLogin } from '$lib/../hooks.
 
 export const POST: RequestHandler = async ({ request, cookies, getClientAddress }) => {
 	try {
-		console.log('[Login] === LOGIN ATTEMPT START ===');
+		logger.info('[Login] === LOGIN ATTEMPT START ===');
 
 		// Get client IP for rate limiting
 		const clientIp = getClientAddress();
 
 		// Check rate limiting
 		if (isRateLimited(clientIp)) {
-			console.warn(`[Login] Rate limit exceeded for IP: ${clientIp}`);
+			logger.warn(`[Login] Rate limit exceeded for IP: ${clientIp}`);
 			return json(
 				{
 					success: false,
@@ -38,7 +39,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 			email = body.email;
 			password = body.password;
 			rememberMe = body.rememberMe || false;
-			console.log('[Login] JSON credentials received:', { email, hasPassword: !!password });
+			logger.info('[Login] JSON credentials received:', { email, hasPassword: !!password });
 		} else if (
 			contentType.includes('application/x-www-form-urlencoded') ||
 			contentType.includes('multipart/form-data')
@@ -48,12 +49,12 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 			email = formData.get('email') as string;
 			password = formData.get('password') as string;
 			rememberMe = formData.get('rememberMe') === 'on' || formData.get('rememberMe') === 'true';
-			console.log('[Login] Form-data credentials received (JS fallback):', {
+			logger.info('[Login] Form-data credentials received (JS fallback):', {
 				email,
 				hasPassword: !!password
 			});
 		} else {
-			console.warn('[Login] Invalid content type:', contentType);
+			logger.warn('[Login] Invalid content type:'.replace(/['`]$/, `: ${contentType}'`/));
 			recordFailedLogin(clientIp);
 			return json(
 				{
@@ -66,7 +67,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 		}
 
 		if (!email || !password) {
-			console.log('[Login] Missing credentials');
+			logger.info('[Login] Missing credentials');
 			recordFailedLogin(clientIp); // Record failed attempt
 			return json(
 				{
@@ -78,10 +79,10 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 		}
 
 		// Call Rust GraphQL API login endpoint
-		console.log('[Login] Calling Rust API /auth/login...');
+		logger.info('[Login] Calling Rust API /auth/login...');
 		const apiBaseUrl = getApiBaseUrl();
 		const loginUrl = `${apiBaseUrl}/auth/login`;
-		console.log('[Login] Login URL:', loginUrl);
+		logger.info('[Login] Login URL:'.replace(/['`]$/, `: ${loginUrl}'`/));
 
 		const loginResponse = await fetch(loginUrl, {
 			method: 'POST',
@@ -91,11 +92,11 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 			body: JSON.stringify({ email, password })
 		});
 
-		console.log('[Login] API response status:', loginResponse.status);
+		logger.info('[Login] API response status:', loginResponse.status);
 
 		if (!loginResponse.ok) {
 			const errorData = await loginResponse.json();
-			console.log('[Login] API error response:', errorData);
+			logger.info('[Login] API error response:'.replace(/['`]$/, `: ${errorData}'`/));
 
 			// Record failed login attempt
 			recordFailedLogin(clientIp);
@@ -111,15 +112,15 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 		}
 
 		const loginData = await loginResponse.json();
-		console.log('[Login] Login successful, user:', loginData.user.email);
-		console.log('[Login] Force password change:', loginData.user.force_password_change);
+		logger.info('[Login] Login successful, user:', loginData.user.email);
+		logger.info('[Login] Force password change:', loginData.user.force_password_change);
 
 		// Clear rate limit on successful login
 		clearRateLimit(clientIp);
 
 		// Extract Set-Cookie headers from Rust backend response and forward to browser
 		const setCookieHeaders = loginResponse.headers.getSetCookie?.() || [];
-		console.log('[Login] Forwarding', setCookieHeaders.length, 'session cookies from Rust backend');
+		logger.info('[Login] Forwarding', setCookieHeaders.length, 'session cookies from Rust backend');
 
 		// Parse and set each cookie in SvelteKit
 		for (const cookieHeader of setCookieHeaders) {
@@ -148,7 +149,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 					options.maxAge = parseInt(maxAgeMatch[1]);
 				}
 
-				console.log(
+				logger.info(
 					`[Login] Setting cookie: ${name} (HttpOnly: ${options.httpOnly}, Secure: ${options.secure})`
 				);
 				cookies.set(name, value, options);
@@ -156,7 +157,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 		}
 
 		// Return response with user data
-		console.log('[Login] === LOGIN ATTEMPT SUCCESSFUL ===');
+		logger.info('[Login] === LOGIN ATTEMPT SUCCESSFUL ===');
 		return json({
 			success: true,
 			user: loginData.user,
@@ -164,9 +165,9 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 			message: 'Login successful'
 		});
 	} catch (error) {
-		console.log('[Login] === LOGIN ATTEMPT FAILED ===');
-		console.error('[Login] FATAL ERROR:', error);
-		console.error('[Login] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+		logger.info('[Login] === LOGIN ATTEMPT FAILED ===');
+		logger.error('[Login] FATAL ERROR:', error as Error);
+		logger.error('[Login] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
 
 		// Security: Don't expose internal errors in production
 		const isProduction = process.env.NODE_ENV === 'production';

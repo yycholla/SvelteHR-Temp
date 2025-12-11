@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Resource Validation Service for Task Linked Resources
  * Feature: 028-task-system-expansion - T024
@@ -110,7 +111,7 @@ async function validateEmployeeResource(employeeId: string): Promise<ResourceVal
 			}
 		};
 	} catch (error) {
-		console.error('[Resource Validation] Error validating employee:', error);
+		logger.error('Catch failed', error as Error);
 		return {
 			valid: false,
 			exists: false,
@@ -193,7 +194,7 @@ async function validateDocumentResource(documentId: string): Promise<ResourceVal
 			}
 		};
 	} catch (error) {
-		console.error('[Resource Validation] Error validating document:', error);
+		logger.error('Catch failed', error as Error);
 		return {
 			valid: false,
 			exists: false,
@@ -287,7 +288,7 @@ async function validateGoalResource(goalId: string): Promise<ResourceValidationR
 			}
 		};
 	} catch (error) {
-		console.error('[Resource Validation] Error validating goal:', error);
+		logger.error('Catch failed', error as Error);
 		return {
 			valid: false,
 			exists: false,
@@ -373,7 +374,7 @@ async function validatePerformanceReviewResource(
 			}
 		};
 	} catch (error) {
-		console.error('[Resource Validation] Error validating performance review:', error);
+		logger.error('Catch failed', error as Error);
 		return {
 			valid: false,
 			exists: false,
@@ -471,20 +472,20 @@ export async function updateResourceAvailabilityStatus(
 		});
 
 		if (!response.ok) {
-			console.error('[Resource Validation] Failed to update availability status');
+			logger.error('[Resource Validation] Failed to update availability status');
 			return false;
 		}
 
 		const data = await response.json();
 
 		if (data.errors) {
-			console.error('[Resource Validation] GraphQL errors:', data.errors);
+			logger.error('[Resource Validation] GraphQL errors:', data.errors);
 			return false;
 		}
 
 		return true;
 	} catch (error) {
-		console.error('[Resource Validation] Error updating availability status:', error);
+		logger.error('Catch failed', error as Error);
 		return false;
 	}
 }
@@ -572,7 +573,7 @@ export async function checkTaskLinkedResources(taskId: string): Promise<{
 
 		return stats;
 	} catch (error) {
-		console.error('[Resource Validation] Error checking task linked resources:', error);
+		logger.error('Catch failed', error as Error);
 		return { total: 0, available: 0, unavailable: 0, deleted: 0, errors: 1 };
 	}
 }
@@ -634,7 +635,7 @@ export async function periodicResourceCheck(): Promise<{
 			resourcesUpdated += stats.unavailable + stats.deleted;
 		}
 
-		console.info('[Resource Validation] Periodic check completed:', {
+		logger.info('[Resource Validation] Periodic check completed:', {
 			tasksChecked: tasks.length,
 			resourcesChecked,
 			resourcesUpdated
@@ -646,7 +647,7 @@ export async function periodicResourceCheck(): Promise<{
 			resourcesUpdated
 		};
 	} catch (error) {
-		console.error('[Resource Validation] Error in periodic resource check:', error);
+		logger.error('Catch failed', error as Error);
 		return { tasksChecked: 0, resourcesChecked: 0, resourcesUpdated: 0 };
 	}
 }
@@ -697,7 +698,7 @@ export async function getTaskLinkedResourcesWithStatus(
 			lastChecked: new Date(resource.lastChecked)
 		}));
 	} catch (error) {
-		console.error('[Resource Validation] Error fetching linked resources with status:', error);
+		logger.error('Catch failed', error as Error);
 		return [];
 	}
 }

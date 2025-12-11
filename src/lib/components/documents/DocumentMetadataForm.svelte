@@ -1,5 +1,6 @@
 <script lang="ts">
 	// DocumentMetadataForm component (Feature 024)
+	import { logger } from '$lib/utils/logger';
 	// Form for editing document metadata with validation
 
 	import type {
@@ -76,7 +77,7 @@
 	$effect(() => {
 		hasRequiredFields = !!metadata.category && !!metadata.sensitivityLevel;
 		metadataValid = Object.keys(errors).length === 0 && hasRequiredFields;
-		console.log(
+		logger.info(
 			'[DocumentMetadataForm] hasRequiredFields updated:',
 			hasRequiredFields,
 			'category:',
@@ -152,7 +153,7 @@
 
 		// Validate all fields
 		try {
-			console.log('[DocumentMetadataForm] validateMetadata called with:', {
+			logger.info('[DocumentMetadataForm] validateMetadata called with:', {
 				...metadata,
 				expirationDate: metadata.expirationDate,
 				expirationDateType: typeof metadata.expirationDate,
@@ -170,16 +171,16 @@
 				assignToDepartments: []
 			};
 
-			console.log('[DocumentMetadataForm] Testing schema with hardcoded data...');
+			logger.info('[DocumentMetadataForm] Testing schema with hardcoded data...');
 			try {
 				documentMetadataSchema.parse(testData);
-				console.log('[DocumentMetadataForm] ✅ Schema test with hardcoded data PASSED');
+				logger.info('[DocumentMetadataForm] ✅ Schema test with hardcoded data PASSED');
 			} catch (testError: any) {
-				console.error(
+				logger.error(
 					'[DocumentMetadataForm] ❌ Schema test with hardcoded data FAILED:',
 					testError
 				);
-				console.error('[DocumentMetadataForm] Test error stack:', testError.stack);
+				logger.error('[DocumentMetadataForm] Test error stack:', testError.stack);
 			}
 
 			// Test 2: Try manual construction field by field
@@ -193,8 +194,8 @@
 				expirationDate: metadata.expirationDate ? new Date(metadata.expirationDate) : undefined
 			};
 
-			console.log('[DocumentMetadataForm] Validating manually constructed object:', validationData);
-			console.log('[DocumentMetadataForm] Field types:', {
+			logger.info('[DocumentMetadataForm] Validating manually constructed object:'.replace(/['`]$/, `: ${validationData}'`/));
+			logger.info('[DocumentMetadataForm] Field types:', {
 				filenameType: typeof validationData.filename,
 				categoryType: typeof validationData.category,
 				sensitivityLevelType: typeof validationData.sensitivityLevel,
@@ -206,16 +207,16 @@
 			});
 
 			documentMetadataSchema.parse(validationData);
-			console.log('[DocumentMetadataForm] ✅ Validation PASSED!');
+			logger.info('[DocumentMetadataForm] ✅ Validation PASSED!');
 			errors = {};
 			return true;
 		} catch (error: any) {
-			console.error('[DocumentMetadataForm] ❌ Validation FAILED:', error);
-			console.error('[DocumentMetadataForm] Error name:', error.name);
-			console.error('[DocumentMetadataForm] Error message:', error.message);
-			console.error('[DocumentMetadataForm] Error stack:', error.stack);
+			logger.error('Catch failed', error as Error);
+			logger.error('[DocumentMetadataForm] Error name:', error.name);
+			logger.error('[DocumentMetadataForm] Error message:', error.message);
+			logger.error('[DocumentMetadataForm] Error stack:', error.stack);
 			if (error.errors) {
-				console.error('[DocumentMetadataForm] Zod errors:', JSON.stringify(error.errors, null, 2));
+				logger.error('[DocumentMetadataForm] Zod errors:', JSON.stringify(error.errors, null, 2));
 				errors = error.errors.reduce((acc: Record<string, string>, err: any) => {
 					acc[err.path[0]] = err.message;
 					return acc;

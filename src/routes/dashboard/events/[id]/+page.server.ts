@@ -41,7 +41,7 @@ export const load: PageServerLoad = async (event) => {
 			userCredentials
 		});
 
-		console.log(
+		logger.info(
 			'[Event Detail] Retrieved event:',
 			JSON.stringify(
 				{
@@ -67,14 +67,14 @@ export const load: PageServerLoad = async (event) => {
 		const attendees = event.eventAttendees || event.attendees || [];
 		const userAttendee = attendees.find((a: any) => a.employeeId === locals.user.id);
 		// Debug: Log the raw response status before normalization
-		console.log('[SERVER LOAD] Raw responseStatus from GraphQL:', {
+		logger.info('[SERVER LOAD] Raw responseStatus from GraphQL:', {
 			userAttendeeExists: !!userAttendee,
 			rawStatus: userAttendee?.responseStatus,
 			statusType: typeof userAttendee?.responseStatus
 		});
 		// Normalize RSVP status to ensure it's a valid backend enum value
 		const userRsvpStatus = normalizeRsvpStatus(userAttendee?.responseStatus);
-		console.log('[SERVER LOAD] Normalized status:', userRsvpStatus);
+		logger.info('[SERVER LOAD] Normalized status:'.replace(/['`]$/, `: ${userRsvpStatus}'`/));
 
 		// Check if user is the organizer
 		const isOrganizer = event.organizerId === locals.user.id;
@@ -105,7 +105,7 @@ export const load: PageServerLoad = async (event) => {
 			user: locals.user
 		};
 	} catch (err: any) {
-		console.error('Error loading event details:', err);
+		logger.error('Error loading event details:', err as Error);
 
 		// Handle specific error cases
 		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {
@@ -213,7 +213,7 @@ export const actions: Actions = {
 			// Redirect to events list
 			redirect(303, '/dashboard/events');
 		} catch (err: any) {
-			console.error('Error deleting event:', err);
+			logger.error('Error deleting event:', err as Error);
 
 			// If it's a redirect, rethrow it
 			if (err.status === 303) {

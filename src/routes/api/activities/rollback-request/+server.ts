@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Rollback Request API Endpoint
  * Feature: 020-we-need-to (Comprehensive Audit Logging with Rollback)
@@ -72,7 +73,7 @@ export const POST: RequestHandler = async ({ locals, cookies, request }) => {
 			.toPromise();
 
 		if (result.error) {
-			console.error('[RollbackRequest] GraphQL errors:', result.error);
+			logger.error('[RollbackRequest] GraphQL errors:', result.error);
 			error(500, {
 				message: result.error.message || 'Failed to create rollback request'
 			});
@@ -90,7 +91,7 @@ export const POST: RequestHandler = async ({ locals, cookies, request }) => {
 			message: 'Rollback request submitted successfully'
 		});
 	} catch (err) {
-		console.error('[RollbackRequest] Error:', err);
+		logger.error('[RollbackRequest] Error:', err as Error);
 
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err; // Re-throw SvelteKit errors

@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Document upload API endpoint (Feature 024)
 // POST /api/documents/upload
 // Handles encrypted document upload with metadata and assignments
@@ -54,14 +55,14 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 	);
 
 	if (!canUploadDocuments) {
-		console.error('[Upload API] Permission denied:', {
+		logger.error('[Upload API] Permission denied:', {
 			userId: locals.user?.id,
 			permissions: userPermissions
 		});
 		error(403, 'Insufficient permissions. documents:write permission required.');
 	}
 
-	console.log('[Upload API] Authorization passed:', {
+	logger.info('[Upload API] Authorization passed:', {
 		userId: locals.user.id,
 		permissions: userPermissions
 	});
@@ -69,7 +70,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 	try {
 		// Step 3: Parse request body
 		const body = await request.json();
-		console.log('[Upload API] Received request body:', JSON.stringify(body, null, 2));
+		logger.info('[Upload API] Received request body:', JSON.stringify(body, null, 2));
 
 		// Step 4: Validate upload data
 		if (!body.filename || !body.fileSizeBytes || !body.encryptedData || !body.encryptionKeyId) {
@@ -105,7 +106,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 			expirationDate: body.expirationDate || null
 		};
 
-		console.log('[Upload API] Uploading to GraphQL backend');
+		logger.info('[Upload API] Uploading to GraphQL backend');
 		const uploadResult = await urqlClient
 			.mutation(UPLOAD_DOCUMENT_MUTATION, {
 				input: uploadInput
@@ -113,7 +114,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 			.toPromise();
 
 		if (uploadResult.error) {
-			console.error('[Upload API] GraphQL upload errors:', uploadResult.error);
+			logger.error('[Upload API] GraphQL upload errors:', uploadResult.error);
 			error(500, 'Failed to upload document to GraphQL backend');
 		}
 
@@ -122,11 +123,11 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 			error(500, 'Upload succeeded but no document returned');
 		}
 
-		console.log('[Upload API] Document uploaded successfully:', document.id);
+		logger.info('[Upload API] Document uploaded successfully:', document.id);
 
 		// Step 7: Create document assignments (if provided)
 		if (body.assignToEmployees && body.assignToEmployees.length > 0) {
-			console.log('[Upload API] Creating employee assignments:', body.assignToEmployees.length);
+			logger.info('[Upload API] Creating employee assignments:', body.assignToEmployees.length);
 			for (const employeeId of body.assignToEmployees) {
 				await urqlClient
 					.mutation(CREATE_DOCUMENT_ASSIGNMENT_MUTATION, {
@@ -142,7 +143,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 		}
 
 		// Step 8: Log upload in audit trail
-		console.log('[Upload API] Logging document access');
+		logger.info('[Upload API] Logging document access');
 		await urqlClient
 			.mutation(CREATE_ACCESS_LOG_MUTATION, {
 				input: {
@@ -165,9 +166,9 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 			{ status: 201 }
 		);
 	} catch (err) {
-		console.error('Document upload error:', err);
-		console.error('Error stack:', err instanceof Error ? err.stack : 'No stack trace');
-		console.error('Error details:', JSON.stringify(err, null, 2));
+		logger.error('Document upload error:', err as Error);
+		logger.error('Error stack:', err instanceof Error ? err.stack : 'No stack trace');
+		logger.error('Error details:', JSON.stringify(err, null, 2));
 
 		if (err instanceof z.ZodError) {
 			error(400, 'Invalid upload data');
@@ -179,7 +180,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 
 		// Return more detailed error message
 		const errorMessage = err instanceof Error ? err.message : 'Internal server error during upload';
-		console.error('Throwing error with message:', errorMessage);
+		logger.error('Throwing error with message:', errorMessage);
 		error(500, errorMessage);
 	}
 };

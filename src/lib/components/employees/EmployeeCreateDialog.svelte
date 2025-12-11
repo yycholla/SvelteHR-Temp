@@ -6,6 +6,7 @@
 
 <script lang="ts">
 	import * as Dialog from '$lib/components/ui/dialog';
+	import { logger } from '$lib/utils/logger';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -292,8 +293,8 @@
 
 			// Parse response body
 			const result = await response.json();
-			console.log('[EmployeeCreateDialog] Response status:', response.status);
-			console.log('[EmployeeCreateDialog] Response body:', result);
+			logger.info('[EmployeeCreateDialog] Response status:', response.status);
+			logger.info('[EmployeeCreateDialog] Response body:'.replace(/['`]$/, `: ${result}'`/));
 
 			// Check if request was successful based on HTTP status
 			if (response.ok) {
@@ -314,13 +315,13 @@
 				} else {
 					// Unexpected success format
 					toast.error('Employee created but response format unexpected');
-					console.error('[EmployeeCreateDialog] Unexpected success format:', result);
+					logger.error('[EmployeeCreateDialog] Unexpected success format:', result);
 				}
 			} else {
 				// Error case - extract error message from result
 				// SvelteKit fail() returns: { error: 'message' } for fetch requests
 				const errorMessage = result.error || result.data?.error || 'Failed to create employee';
-				console.log('[EmployeeCreateDialog] Error message:', errorMessage);
+				logger.info('[EmployeeCreateDialog] Error message:'.replace(/['`]$/, `: ${errorMessage}'`/));
 
 				// Parse error to see if it's field-specific
 				const { field, message } = parseErrorMessage(errorMessage);
@@ -336,7 +337,7 @@
 			}
 		} catch (error) {
 			toast.error('An unexpected error occurred');
-			console.error('[EmployeeCreateDialog] Error:', error);
+			logger.error('Catch failed', error as Error);
 		} finally {
 			submitting = false;
 		}

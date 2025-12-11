@@ -1,5 +1,6 @@
 <script lang="ts">
 	import {
+	import { logger } from '$lib/utils/logger';
 		type ColumnDef,
 		type SortingState,
 		type VisibilityState,
@@ -293,7 +294,7 @@
 	async function handleBulkDepartmentChange(departmentId: string) {
 		const count = selectedCount; // Capture before clearing
 		const employeeIds = [...selectedEmployeeIds]; // Capture employee IDs
-		console.log('Moving employees to department:', departmentId, 'Employee IDs:', employeeIds);
+		logger.info('Moving employees to department:', departmentId, 'Employee IDs:', employeeIds);
 
 		// Show loading toast
 		const loadingToastId = toast.loading(
@@ -357,7 +358,7 @@
 				window.location.reload();
 			}
 		} catch (error) {
-			console.error('[Bulk Department Update Error]', error);
+			logger.error('Catch failed', error as Error);
 			toast.dismiss(loadingToastId);
 			toast.error('Failed to update employees. Please try again.');
 		}
@@ -366,7 +367,7 @@
 	async function handleBulkStatusChange(newStatus: 'active' | 'inactive' | 'terminated') {
 		const count = selectedCount; // Capture before clearing
 		const employeeIds = [...selectedEmployeeIds]; // Capture employee IDs
-		console.log('Changing employee status to:', newStatus, 'Employee IDs:', employeeIds);
+		logger.info('Changing employee status to:', newStatus, 'Employee IDs:', employeeIds);
 
 		// Show loading toast
 		const loadingToastId = toast.loading(
@@ -395,13 +396,13 @@
 					);
 
 					// Debug logging to see actual response
-					console.log('[Status Change] Full result:', result);
-					console.log('[Status Change] Has error?', !!result.error);
-					console.log('[Status Change] Error details:', result.error);
-					console.log('[Status Change] Data:', result.data);
+					logger.info('[Status Change] Full result:'.replace(/['`]$/, `: ${result}'`/));
+					logger.info('[Status Change] Has error?', !!result.error);
+					logger.info('[Status Change] Error details:', result.error);
+					logger.info('[Status Change] Data:', result.data);
 
 					if (result.error) {
-						console.error('[Status Change] GraphQL Error:', result.error.message);
+						logger.error('[Status Change] GraphQL Error:', result.error.message);
 						throw new Error(result.error.message);
 					}
 
@@ -413,10 +414,10 @@
 			const successCount = results.filter((r) => r.status === 'fulfilled').length;
 			const failureCount = results.filter((r) => r.status === 'rejected').length;
 
-			console.log('[Status Change] Results summary:');
-			console.log('[Status Change] Success count:', successCount);
-			console.log('[Status Change] Failure count:', failureCount);
-			console.log('[Status Change] All results:', results);
+			logger.info('[Status Change] Results summary:');
+			logger.info('[Status Change] Success count:'.replace(/['`]$/, `: ${successCount}'`/));
+			logger.info('[Status Change] Failure count:'.replace(/['`]$/, `: ${failureCount}'`/));
+			logger.info('[Status Change] All results:'.replace(/['`]$/, `: ${results}'`/));
 
 			// Dismiss loading toast
 			toast.dismiss(loadingToastId);
@@ -427,15 +428,15 @@
 			// Show result message
 			if (failureCount === 0) {
 				const message = `Set ${successCount} ${successCount === 1 ? 'employee' : 'employees'} as ${statusDisplay}`;
-				console.log('[Status Change] Success toast:', message);
+				logger.info('[Status Change] Success toast:'.replace(/['`]$/, `: ${message}'`/));
 				toast.success(message);
 			} else if (successCount > 0) {
 				const message = `Updated ${successCount} ${successCount === 1 ? 'employee' : 'employees'}, but ${failureCount} failed`;
-				console.log('[Status Change] Warning toast:', message);
+				logger.info('[Status Change] Warning toast:'.replace(/['`]$/, `: ${message}'`/));
 				toast.warning(message);
 			} else {
 				const message = `Failed to update employees. Please try again.`;
-				console.log('[Status Change] Error toast:', message);
+				logger.info('[Status Change] Error toast:'.replace(/['`]$/, `: ${message}'`/));
 				toast.error(message);
 			}
 
@@ -447,7 +448,7 @@
 				window.location.reload();
 			}
 		} catch (error) {
-			console.error('[Bulk Status Update Error]', error);
+			logger.error('Catch failed', error as Error);
 			toast.dismiss(loadingToastId);
 			toast.error('Failed to update employees. Please try again.');
 		}

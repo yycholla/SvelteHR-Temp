@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Label } from '$lib/components/ui/label';
+	import { logger } from '$lib/utils/logger';
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
 	import * as Select from '$lib/components/ui/select';
@@ -107,7 +108,7 @@
 			recurrencePattern.rruleString = rruleString;
 			pattern = recurrencePattern;
 		} catch (error) {
-			console.error('Error generating RRULE:', error);
+			logger.error('Catch failed', error as Error);
 		}
 	}
 

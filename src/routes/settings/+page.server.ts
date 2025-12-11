@@ -107,7 +107,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[Settings Load Error]', err);
+		logger.error('[Settings Load Error]', err as Error);
 
 		// Create standardized error response
 		const errorResponse = createErrorResponse(
@@ -119,7 +119,7 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		// Log error details for debugging
-		console.error('[Settings Error Details]', {
+		logger.error('[Settings Error Details]', {
 			userId: locals.user?.id,
 			userRole: locals.user?.role,
 			activeTab,

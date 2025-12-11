@@ -44,7 +44,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	]);
 
 	if (moduleResult.error) {
-		console.error('Error fetching module:', moduleResult.error);
+		logger.error('Error fetching module:', moduleResult.error);
 		throw error(500, 'Failed to load onboarding module');
 	}
 
@@ -53,7 +53,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	}
 
 	if (formsResult.error) {
-		console.error('Error fetching forms:', formsResult.error);
+		logger.error('Error fetching forms:', formsResult.error);
 		throw error(500, 'Failed to load forms');
 	}
 
@@ -94,7 +94,7 @@ export const actions: Actions = {
 		const result = await urqlClient.mutation(CREATE_ONBOARDING_FORM, { input });
 
 		if (result.error) {
-			console.error('Error creating form:', result.error);
+			logger.error('Error creating form:', result.error);
 			return { success: false, error: 'Failed to create form' };
 		}
 
@@ -123,7 +123,7 @@ export const actions: Actions = {
 		const result = await urqlClient.mutation(UPDATE_ONBOARDING_FORM, { id, input });
 
 		if (result.error) {
-			console.error('Error updating form:', result.error);
+			logger.error('Error updating form:', result.error);
 			return { success: false, error: 'Failed to update form' };
 		}
 
@@ -143,7 +143,7 @@ export const actions: Actions = {
 		const result = await urqlClient.mutation(DELETE_ONBOARDING_FORM, { id });
 
 		if (result.error) {
-			console.error('Error deleting form:', result.error);
+			logger.error('Error deleting form:', result.error);
 			return { success: false, error: 'Failed to delete form' };
 		}
 
@@ -166,7 +166,7 @@ export const actions: Actions = {
 		});
 
 		if (result.error) {
-			console.error('Error reordering forms:', result.error);
+			logger.error('Error reordering forms:', result.error);
 			return { success: false, error: 'Failed to reorder forms' };
 		}
 

@@ -57,7 +57,7 @@ export const actions: Actions = {
 
 			return { success: true };
 		} catch (err) {
-			console.error('Delete onboarding module error:', err);
+			logger.error('Delete onboarding module error:', err as Error);
 			return fail(500, { error: 'Internal server error' });
 		}
 	}

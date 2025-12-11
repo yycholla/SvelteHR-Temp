@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { logger } from '$lib/utils/logger';
 	import { goto, invalidateAll } from '$app/navigation';
 	import {
 		Check,
@@ -25,10 +26,10 @@
 	const { data } = $props();
 
 	// Debug logging
-	console.log('[PERMISSIONS PAGE] Data:', data);
-	console.log('[PERMISSIONS PAGE] Roles:', data.roles);
-	console.log('[PERMISSIONS PAGE] Permissions:', data.permissions);
-	console.log('[PERMISSIONS PAGE] Users:', data.users);
+	logger.info('[PERMISSIONS PAGE] Data:'.replace(/['`]$/, `: ${data}'`/));
+	logger.info('[PERMISSIONS PAGE] Roles:', data.roles);
+	logger.info('[PERMISSIONS PAGE] Permissions:', data.permissions);
+	logger.info('[PERMISSIONS PAGE] Users:', data.users);
 
 	// State management using Svelte 5 runes
 	let activeTab = $state<'roles' | 'users'>('roles');

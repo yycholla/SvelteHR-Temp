@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
 import { type UserRoleAssignment, createRBACManager } from '$lib/auth/rbac';
@@ -113,7 +114,7 @@ class AuthStore {
 				// Check for force_password_change flag
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				if ((result.user as any).force_password_change === true) {
-					console.log('[Auth] User must change password on first login');
+					logger.info('[Auth] User must change password on first login');
 
 					const user: User = {
 						id: result.user.id,
@@ -177,14 +178,14 @@ class AuthStore {
 			await fetch('/api/auth/logout', {
 				method: 'POST',
 				credentials: 'include'
-			}).catch((err) => console.warn('Logout endpoint failed:', err));
+			}).catch((err) => logger.warn('Logout endpoint failed:'.replace(/['`]$/, `: ${err}'`/)));
 
 			// Use dynamic import to avoid circular dependency if permission-test imports auth
 			// (Assuming permission-test is already runes-based or compatible)
 			const { clearTestModeOnLogout } = await import('$lib/stores/permission-test.svelte');
 			clearTestModeOnLogout();
 		} catch (error) {
-			console.warn('Logout error:', error);
+			logger.warn('Logout error:'.replace(/['`]$/, `: ${error}'`/));
 		} finally {
 			this.reset();
 		}
@@ -214,15 +215,15 @@ class AuthStore {
 			if (userSettings?.preferences?.appearance?.darkMode !== undefined) {
 				const mode = userSettings.preferences.appearance.darkMode ? 'dark' : 'light';
 				(userPrefersMode as any).set(mode);
-				console.log(`✓ Applied user theme on login: ${mode}`);
+				logger.info(`✓ Applied user theme on login: ${mode}`);
 			} else if (userSettings?.preferences?.theme) {
 				(userPrefersMode as any).set(userSettings.preferences.theme as 'light' | 'dark' | 'system');
-				console.log(`✓ Applied user theme on login: ${userSettings.preferences.theme}`);
+				logger.info(`✓ Applied user theme on login: ${userSettings.preferences.theme}`);
 			} else {
-				console.log('ℹ No theme preference found, using system default');
+				logger.info('ℹ No theme preference found, using system default');
 			}
 		} catch (error) {
-			console.warn('Unable to load theme preference, using system default:', error);
+			logger.warn('Unable to load theme preference, using system default:'.replace(/['`]$/, `: ${error}'`/));
 		}
 	}
 
@@ -287,29 +288,29 @@ class AuthStore {
 							isActive: true
 						}
 					];
-					console.log(
+					logger.info(
 						`[Auth] Loaded ${roleWithPermissionNames.permissions.length} permissions for role: ${matchingRole.name}`
 					);
 				} else {
-					console.warn(`[Auth] Role definition not found for user role: ${userRoleName}`);
+					logger.warn(`[Auth] Role definition not found for user role: ${userRoleName}`);
 					this.roles = [];
 				}
 			} else {
 				// Fallback: If roles query failed or no data
-				console.warn('[Auth] Could not load roles metadata from backend');
+				logger.warn('[Auth] Could not load roles metadata from backend');
 				// Note: The User type does not have roleAssignments field in the current schema
 				// Using role string from user object instead
 				this.roles = [];
 			}
 		} catch (error) {
-			console.error('[Auth] Error loading user roles:', error);
+			logger.error('Catch failed', error as Error);
 
 			// Emergency fallback for Admin users if API fails completely
 			if (
 				this.user?.role &&
 				['admin', 'super admin', 'system admin'].includes(this.user.role.toLowerCase())
 			) {
-				console.log('[Auth] Applying emergency Admin permissions (API failed)');
+				logger.info('[Auth] Applying emergency Admin permissions (API failed)');
 				this.roles = [
 					{
 						id: 'admin-fallback',
@@ -337,9 +338,9 @@ class AuthStore {
 	}
 
 	async validateSession(): Promise<boolean> {
-		console.log('validateSession: Starting session validation');
+		logger.info('validateSession: Starting session validation');
 		if (!browser) {
-			console.log('validateSession: Not in browser, returning false');
+			logger.info('validateSession: Not in browser, returning false');
 			return false;
 		}
 
@@ -350,13 +351,13 @@ class AuthStore {
 			});
 
 			if (!response.ok) {
-				console.log('validateSession: Session validation failed, clearing auth state');
+				logger.info('validateSession: Session validation failed, clearing auth state');
 				this.reset();
 				return false;
 			}
 
 			const data = await response.json();
-			console.log('validateSession: Session is valid');
+			logger.info('validateSession: Session is valid');
 
 			if (!this.user && data.user) {
 				const user: User = {
@@ -373,10 +374,10 @@ class AuthStore {
 				this.user = user;
 			}
 
-			console.log('validateSession: Validation successful, user is authenticated');
+			logger.info('validateSession: Validation successful, user is authenticated');
 			return true;
 		} catch (error) {
-			console.error('validateSession: Session validation error:', error);
+			logger.error('Catch failed', error as Error);
 			this.reset();
 			return false;
 		}
@@ -397,7 +398,7 @@ class AuthStore {
 				await this.setUser(userResult.data.user);
 			}
 		} catch (error) {
-			console.error('Error refreshing user data:', error);
+			logger.error('Catch failed', error as Error);
 			this.setError('Failed to refresh user data');
 		} finally {
 			this.setLoading(false);

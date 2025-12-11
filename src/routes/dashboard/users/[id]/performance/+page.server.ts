@@ -193,7 +193,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('Error loading user performance data:', err);
+		logger.error('Error loading user performance data:', err as Error);
 
 		// Return error state instead of throwing to prevent page crash
 		return {

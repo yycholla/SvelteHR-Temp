@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
+	import { logger } from '$lib/utils/logger';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -104,7 +105,7 @@
 			resetForm();
 			onClose();
 		} catch (error) {
-			console.error('Failed to save emergency contact:', error);
+			logger.error('Catch failed', error as Error);
 		}
 	}
 

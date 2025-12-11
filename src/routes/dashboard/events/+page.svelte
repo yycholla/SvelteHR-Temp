@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { logger } from '$lib/utils/logger';
 	import EventCalendar from '$lib/components/events/EventCalendar.svelte';
 	import EventCreateDialog from '$lib/components/events/EventCreateDialog.svelte';
 	import EventDetailsDialog from '$lib/components/events/EventDetailsDialog.svelte';
@@ -218,7 +219,7 @@
 			commentCount = result.data.eventCommentsCount || rawComments.length; // Adjust if count available
 			hasMoreComments = rawComments.length >= 20;
 		} catch (err) {
-			console.error(err);
+			logger.error(err);
 		}
 	}
 
@@ -249,7 +250,7 @@
 			}
 			hasMoreHistory = rawHistory.length >= 25;
 		} catch (err) {
-			console.error(err);
+			logger.error(err);
 		}
 	}
 
@@ -266,7 +267,7 @@
 				userWaitlistStatus = { isOnWaitlist: false, position: null };
 			}
 		} catch (err) {
-			console.error(err);
+			logger.error(err);
 		}
 	}
 

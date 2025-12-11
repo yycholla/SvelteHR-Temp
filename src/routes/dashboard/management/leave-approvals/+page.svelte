@@ -3,6 +3,7 @@
 
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { logger } from '$lib/utils/logger';
 	import { page } from '$app/stores';
 	import {
 		AlertCircle,
@@ -252,7 +253,7 @@
 				toast.error(result.data?.message || 'Failed to approve leave request');
 			}
 		} catch (error) {
-			console.error('Failed to approve leave request:', error);
+			logger.error('Failed to approve leave request:', error as Error);
 			toast.error('Failed to approve leave request');
 		} finally {
 			isSubmitting = false;
@@ -301,7 +302,7 @@
 				toast.error(result.data?.message || 'Failed to deny leave request');
 			}
 		} catch (error) {
-			console.error('Failed to deny leave request:', error);
+			logger.error('Failed to deny leave request:', error as Error);
 			toast.error('Failed to deny leave request');
 		} finally {
 			isSubmitting = false;
@@ -356,7 +357,7 @@
 				toast.error(result.data?.message || 'Failed to revert leave request');
 			}
 		} catch (error) {
-			console.error('Failed to revert leave request:', error);
+			logger.error('Failed to revert leave request:', error as Error);
 			toast.error('Failed to revert leave request');
 		} finally {
 			isSubmitting = false;

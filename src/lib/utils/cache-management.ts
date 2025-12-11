@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Cache Management Utilities
  * SvelteHR GraphQL Integration Error Resolution
@@ -148,14 +149,14 @@ export function createCachePolicy(
 
 export function validateCachePolicy(policy: CachePolicy): boolean {
 	if (policy.ttlMinutes > GRAPHQL_OPERATION_CONSTANTS.MAX_CACHE_TTL_MINUTES) {
-		console.warn(
+		logger.warn(
 			`Cache TTL ${policy.ttlMinutes} exceeds maximum allowed ${GRAPHQL_OPERATION_CONSTANTS.MAX_CACHE_TTL_MINUTES} minutes`
 		);
 		return false;
 	}
 
 	if (policy.ttlMinutes <= 0) {
-		console.warn('Cache TTL must be positive');
+		logger.warn('Cache TTL must be positive');
 		return false;
 	}
 
@@ -271,7 +272,7 @@ export class CacheInvalidator {
 			this.metrics.invalidationCount += keys.length;
 			return true;
 		} catch (error) {
-			console.error('Cache invalidation failed:', error);
+			logger.error('Cache invalidation failed:', error as Error);
 			return false;
 		}
 	}
@@ -296,7 +297,7 @@ export class CacheInvalidator {
 
 		// This is a simplified implementation
 		// In a real scenario, you'd need to integrate with URQL's cache introspection
-		console.log(`Would invalidate cache entries matching pattern: ${pattern}`);
+		logger.info(`Would invalidate cache entries matching pattern: ${pattern}`);
 
 		return 0; // Return number of invalidated entries
 	}
@@ -447,7 +448,7 @@ export class CacheWarmer {
 				// Small delay between operations to avoid overwhelming the server
 				await new Promise((resolve) => setTimeout(resolve, 100));
 			} catch (error) {
-				console.warn(`Cache warming failed for ${op.operationName}:`, error);
+				logger.warn(`Cache warming failed for ${op.operationName}:`.replace(/['`]$/, `: ${error}'`/));
 			}
 		}
 	}
@@ -582,15 +583,15 @@ export function logCacheOperation(
 	if (import.meta.env.DEV) {
 		const status = hit ? '🎯 HIT' : '❌ MISS';
 		const durationStr = duration ? ` (${duration}ms)` : '';
-		console.log(`📦 Cache ${status}: ${operation} - ${key}${durationStr}`);
+		logger.info(`📦 Cache ${status}: ${operation} - ${key}${durationStr}`);
 	}
 }
 
 export function debugCacheState(invalidator: CacheInvalidator): void {
 	if (import.meta.env.DEV) {
 		console.group('📊 Cache Debug Information');
-		console.log('Metrics:', invalidator.getMetrics());
-		console.log('Invalidation History:', invalidator.getInvalidationHistory());
+		logger.info('Metrics:', invalidator.getMetrics());
+		logger.info('Invalidation History:', invalidator.getInvalidationHistory());
 		console.groupEnd();
 	}
 }

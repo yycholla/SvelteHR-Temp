@@ -1,5 +1,6 @@
 <script lang="ts">
 	import {
+	import { logger } from '$lib/utils/logger';
 		Activity,
 		Award,
 		BarChart3,
@@ -194,7 +195,7 @@
 				try {
 					expandedSections = JSON.parse(saved);
 				} catch (error) {
-					console.error('Failed to parse saved sidebar state:', error);
+					logger.error('Catch failed', error as Error);
 				}
 			}
 		}
@@ -218,7 +219,7 @@
 			await auth.logout($page.url.pathname);
 			goto('/login');
 		} catch (error) {
-			console.error('Logout error:', error);
+			logger.error('Catch failed', error as Error);
 			// Still navigate to login even if logout fails
 			goto('/login');
 		}

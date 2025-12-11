@@ -7,7 +7,7 @@
  * Enforces 5-year maximum limit for recurring events
  */
 
-import type { RecurrencePattern, DayOfWeek } from '$lib/types/events';
+import type { DayOfWeek, RecurrencePattern } from '$lib/types/events';
 
 /**
  * Day of week mapping for RRULE BYDAY parameter

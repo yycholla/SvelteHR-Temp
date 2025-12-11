@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { workflowActions, type WorkflowTaskStatus } from '$lib/stores/workflow';
+	import { type WorkflowTaskStatus, workflowActions } from '$lib/stores/workflow';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { WorkflowTask } from '$lib/stores/workflow';
 

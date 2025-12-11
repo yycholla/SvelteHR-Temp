@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Delete Notification API Endpoint
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
@@ -6,7 +7,7 @@ import { GraphQLClient } from '$lib/server/graphql-client';
 export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	// Session-based authentication - user must be authenticated via hooks.server.ts
 	if (!locals.user?.id) {
-		console.error('Delete notification: No authenticated user found in session');
+		logger.error('Delete notification: No authenticated user found in session');
 		error(401, 'Authentication required');
 	}
 
@@ -15,7 +16,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	// Get session cookie for GraphQL client (handled by browser automatically)
 	const authToken = cookies.get('hr_token') || cookies.get('auth-token');
 	if (!authToken) {
-		console.error('Delete notification: No session cookie found');
+		logger.error('Delete notification: No session cookie found');
 		error(401, 'Session cookie required');
 	}
 
@@ -46,7 +47,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 
 		return json({ success: true });
 	} catch (err: any) {
-		console.error('Error deleting notification:', err);
+		logger.error('Error deleting notification:', err as Error);
 		error(500, {
 			message: err.message || 'Failed to delete notification'
 		});

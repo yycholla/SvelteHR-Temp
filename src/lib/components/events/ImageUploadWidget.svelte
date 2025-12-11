@@ -21,6 +21,7 @@
 
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 	import { browser } from '$app/environment';
 	import { validateImageFile } from '$lib/utils/image-validation';
 	import { Image as ImageIcon, Upload, X } from '@lucide/svelte';
@@ -110,7 +111,7 @@
 				toggleDragModeOnDblclick: false
 			});
 		} catch (error) {
-			console.error('Failed to initialize cropper:', error);
+			logger.error('Catch failed', error as Error);
 			errors = ['Failed to initialize image cropper'];
 		}
 	}
@@ -156,7 +157,7 @@
 				0.9
 			);
 		} catch (error) {
-			console.error('Failed to crop image:', error);
+			logger.error('Catch failed', error as Error);
 			errors = ['Failed to crop image'];
 		}
 	}

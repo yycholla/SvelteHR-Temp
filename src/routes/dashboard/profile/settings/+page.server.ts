@@ -147,7 +147,7 @@ export const load: PageServerLoad = async (event) => {
 			themePreference
 		};
 	} catch (err) {
-		console.error('[Settings Load Error]', err);
+		logger.error('[Settings Load Error]', err as Error);
 		error(500, 'Failed to load profile settings');
 	}
 };
@@ -181,7 +181,7 @@ export const actions: Actions = {
 			// For now, just return success
 			return { success: true, message: 'Notification preferences updated successfully' };
 		} catch (err) {
-			console.error('[Update Notifications Error]', err);
+			logger.error('[Update Notifications Error]', err as Error);
 			return fail(500, { error: 'Failed to update notification preferences' });
 		}
 	},
@@ -201,7 +201,7 @@ export const actions: Actions = {
 			const formData = await request.formData();
 			const theme = formData.get('theme') as string;
 
-			console.log('[Update Theme] User:', locals.user.id, 'Theme:', theme);
+			logger.info('[Update Theme] User:', locals.user.id, 'Theme:', theme);
 
 			if (!['light', 'dark', 'system'].includes(theme)) {
 				return fail(400, { error: 'Invalid theme selection' });
@@ -221,7 +221,7 @@ export const actions: Actions = {
 				}
 			`;
 
-			console.log('[Update Theme] Calling GraphQL with userId:', locals.user.id, 'theme:', theme);
+			logger.info('[Update Theme] Calling GraphQL with userId:', locals.user.id, 'theme:', theme);
 
 			const result = await graphqlClient.query(updateMutation, {
 				userId: locals.user.id,
@@ -230,11 +230,11 @@ export const actions: Actions = {
 				}
 			});
 
-			console.log('[Update Theme] GraphQL result:', JSON.stringify(result, null, 2));
+			logger.info('[Update Theme] GraphQL result:', JSON.stringify(result, null, 2));
 
 			// Check for GraphQL errors
 			if (result.errors && result.errors.length > 0) {
-				console.error('[Update Theme] GraphQL errors found:', result.errors);
+				logger.error('[Update Theme] GraphQL errors found:', result.errors);
 				// Don't fail here - still set the cookie for client-side consistency
 			}
 
@@ -246,11 +246,11 @@ export const actions: Actions = {
 				sameSite: 'lax'
 			});
 
-			console.log('[Update Theme] Success! Theme updated to:', theme);
+			logger.info('[Update Theme] Success! Theme updated to:'.replace(/['`]$/, `: ${theme}'`/));
 
 			return { success: true, message: `Theme updated to ${theme}` };
 		} catch (err) {
-			console.error('[Update Theme Error]', err);
+			logger.error('[Update Theme Error]', err as Error);
 			return fail(500, { error: 'Failed to update theme preference' });
 		}
 	},
@@ -337,7 +337,7 @@ export const actions: Actions = {
 				message: `Profile change request submitted with ${Object.keys(changes).length} field(s). An administrator will review your request.`
 			};
 		} catch (err) {
-			console.error('[Request Info Change Error]', err);
+			logger.error('[Request Info Change Error]', err as Error);
 			return fail(500, { error: 'Failed to submit change request' });
 		}
 	}

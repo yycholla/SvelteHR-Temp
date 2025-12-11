@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { format, formatDistanceToNow } from 'date-fns';
+	import { logger } from '$lib/utils/logger';
 	import { CHANGE_TASK_STATUS } from '$lib/graphql/tasks-operations';
 	import { client } from '$lib/graphql/client';
 	import { toast } from 'svelte-sonner';
@@ -201,7 +202,7 @@
 			toast.success('Task status updated');
 			await invalidateAll();
 		} catch (error) {
-			console.error('Failed to change task status:', error);
+			logger.error('Failed to change task status:', error as Error);
 			toast.error('Failed to update task status');
 		}
 	}
@@ -230,7 +231,7 @@
 				toast.error('Failed to update tags');
 			}
 		} catch (error) {
-			console.error('Tag update error:', error);
+			logger.error('Tag update error:', error as Error);
 			toast.error('Failed to update tags');
 		} finally {
 			isUpdatingTags = false;

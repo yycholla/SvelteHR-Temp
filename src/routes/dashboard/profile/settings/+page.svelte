@@ -1,5 +1,6 @@
 <script lang="ts">
 	/**
+	import { logger } from '$lib/utils/logger';
 	 * Profile Settings Page
 	 * Allows users to manage their profile settings, notification preferences, and theme
 	 */
@@ -96,7 +97,7 @@
 		const formData = new FormData(form);
 		const theme = formData.get('theme') as string;
 
-		console.log('[Settings] Submitting theme:', theme);
+		logger.info('[Settings] Submitting theme:'.replace(/['`]$/, `: ${theme}'`/));
 
 		try {
 			const response = await fetch(form.action, {
@@ -109,22 +110,22 @@
 
 			// SvelteKit form actions return JSON with type and data properties
 			const result = await response.json();
-			console.log('[Settings] Server response:', result);
+			logger.info('[Settings] Server response:'.replace(/['`]$/, `: ${result}'`/));
 
 			if (result.type === 'success' || (response.ok && result.data?.success)) {
-				console.log('[Settings] Theme update successful');
+				logger.info('[Settings] Theme update successful');
 				toast.success(`Theme updated to ${theme}`);
 
 				// Apply theme immediately via mode-watcher
 				setMode(theme as 'light' | 'dark' | 'system');
-				console.log('[Settings] Theme applied:', theme);
+				logger.info('[Settings] Theme applied:'.replace(/['`]$/, `: ${theme}'`/));
 			} else {
 				const errorMsg = result.data?.error || result.error || 'Failed to update theme';
-				console.error('[Settings] Theme update failed:', result);
+				logger.error('[Settings] Theme update failed:', result);
 				toast.error(errorMsg);
 			}
 		} catch (error) {
-			console.error('[Settings] Theme update error:', error);
+			logger.error('[Settings] Theme update error:', error as Error);
 			toast.error('Failed to update theme preference');
 		}
 	}

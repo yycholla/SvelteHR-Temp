@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // User service for managing user operations
 // Provides CRUD operations and user management functionality
 
@@ -55,7 +56,7 @@ export async function getUsers(filters?: {
 			totalCount: result.data?.users_aggregate?.aggregate?.count || 0
 		};
 	} catch (error) {
-		console.error('Error fetching users:', error);
+		logger.error('Error fetching users:', error as Error);
 		throw error;
 	}
 }
@@ -75,7 +76,7 @@ export async function getUser(id: string): Promise<User | null> {
 
 		return result.data?.user || null;
 	} catch (error) {
-		console.error('Error fetching user:', error);
+		logger.error('Error fetching user:', error as Error);
 		throw error;
 	}
 }
@@ -99,7 +100,7 @@ export async function createUser(input: CreateUserInput): Promise<User> {
 
 		return result.data.createUser.user;
 	} catch (error) {
-		console.error('Error creating user:', error);
+		logger.error('Error creating user:', error as Error);
 		throw error;
 	}
 }
@@ -126,7 +127,7 @@ export async function updateUser(id: string, input: UpdateUserInput): Promise<Us
 
 		return result.data.updateUser.user;
 	} catch (error) {
-		console.error('Error updating user:', error);
+		logger.error('Error updating user:', error as Error);
 		throw error;
 	}
 }
@@ -146,7 +147,7 @@ export async function deleteUser(id: string): Promise<boolean> {
 
 		return result.data?.deleteUser?.deletedUserId !== null;
 	} catch (error) {
-		console.error('Error deleting user:', error);
+		logger.error('Error deleting user:', error as Error);
 		throw error;
 	}
 }

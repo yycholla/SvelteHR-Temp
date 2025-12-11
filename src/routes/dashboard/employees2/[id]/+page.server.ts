@@ -3,7 +3,7 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { params } = event;
@@ -59,7 +59,7 @@ export const load: PageServerLoad = async (event) => {
 			Cookie: cookieHeader
 		};
 
-		console.log(
+		logger.info(
 			'[Employee Detail] Using Rust GraphQL backend with session-based auth, user roles:',
 			locals.roles
 		);
@@ -318,17 +318,17 @@ export const load: PageServerLoad = async (event) => {
 
 					return result.rows;
 				});
-				console.log(
+				logger.info(
 					`[Employee Detail] Loaded ${assignedDocuments.length} assigned documents for employee ${employeeId}`
 				);
 			} catch (err) {
-				console.error('Failed to fetch employee documents:', err);
+				logger.error('Failed to fetch employee documents:', err as Error);
 				assignedDocuments = [];
 			}
 
 			// Fetch available documents (not assigned to this employee) for admins
 			if (isAdmin) {
-				console.log(
+				logger.info(
 					`[Employee Detail] Fetching available documents for admin, employee: ${employeeId}`
 				);
 				try {
@@ -339,7 +339,7 @@ export const load: PageServerLoad = async (event) => {
 						const countResult = await client.query(
 							`SELECT COUNT(*) as total FROM hr_public.documents WHERE deleted_at IS NULL`
 						);
-						console.log(
+						logger.info(
 							`[Employee Detail] Total documents in system: ${countResult.rows[0].total}`
 						);
 
@@ -367,22 +367,22 @@ export const load: PageServerLoad = async (event) => {
 							[employeeId]
 						);
 
-						console.log(
+						logger.info(
 							`[Employee Detail] Available documents (not assigned to ${employeeId}): ${result.rows.length}`
 						);
 						return result.rows;
 					});
 				} catch (err) {
-					console.error('Failed to fetch available documents:', err);
+					logger.error('Failed to fetch available documents:', err as Error);
 					availableDocuments = [];
 				}
 			} else {
-				console.log(
+				logger.info(
 					`[Employee Detail] User is not admin, skipping available documents for assignment (assigned documents still loaded)`
 				);
 			}
 		} else {
-			console.log(
+			logger.info(
 				`[Employee Detail] User does not have permission to view documents for employee ${employeeId}`
 			);
 		}
@@ -489,7 +489,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[Employee Detail Load Error]', err);
+		logger.error('[Employee Detail Load Error]', err as Error);
 
 		// If it's already a SvelteKit error, rethrow it
 		if (err && typeof err === 'object' && 'status' in err) {

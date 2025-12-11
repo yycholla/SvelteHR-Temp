@@ -1,16 +1,16 @@
 // Dashboard Utility Functions
 
 import type {
-	User,
-	Department,
-	DashboardActivity,
 	ActivityLog,
-	LeaveRequest,
-	AttendanceRecord,
-	EmployeeGoal,
-	Task,
 	ApiEvent,
-	DashboardEvent
+	AttendanceRecord,
+	DashboardActivity,
+	DashboardEvent,
+	Department,
+	EmployeeGoal,
+	LeaveRequest,
+	Task,
+	User
 } from './dashboard-types';
 
 export function generateDashboardMetrics(

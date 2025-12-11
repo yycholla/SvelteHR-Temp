@@ -28,7 +28,7 @@ export const actions: Actions = {
 				tags = JSON.parse(tagsJson);
 			}
 		} catch (e) {
-			console.error('Failed to parse tags:', e);
+			logger.error('Failed to parse tags:', e as Error);
 		}
 
 		if (!title) {
@@ -54,7 +54,7 @@ export const actions: Actions = {
 			const response = await client.mutation(CREATE_ONBOARDING_MODULE_MUTATION, variables);
 
 			if (response.errors) {
-				console.error('Onboarding module creation errors:', response.errors);
+				logger.error('Onboarding module creation errors:', response.errors);
 				return fail(500, {
 					error: response.errors[0].message,
 					values: { title, description, category, isActive }
@@ -73,7 +73,7 @@ export const actions: Actions = {
 				throw err;
 			}
 
-			console.error('Onboarding module creation error:', err);
+			logger.error('Onboarding module creation error:', err as Error);
 			return fail(500, {
 				error: 'Internal server error',
 				values: { title, description, category, isActive }

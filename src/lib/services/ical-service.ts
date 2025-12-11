@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * iCal Export Service
  * Feature: 025-events-flesh-out
@@ -63,7 +64,7 @@ export class ICalService {
 
 			return comp.toString();
 		} catch (error) {
-			console.error('Error generating iCal event:', error);
+			logger.error('Error generating iCal event:', error as Error);
 			throw new Error('Failed to generate iCal file');
 		}
 	}
@@ -92,7 +93,7 @@ export class ICalService {
 
 			return comp.toString();
 		} catch (error) {
-			console.error('Error generating iCal calendar:', error);
+			logger.error('Error generating iCal calendar:', error as Error);
 			throw new Error('Failed to generate iCal calendar');
 		}
 	}
@@ -157,7 +158,7 @@ export class ICalService {
 			try {
 				vevent.updatePropertyWithValue('rrule', event.rrule);
 			} catch (error) {
-				console.warn('Invalid RRULE, skipping:', event.rrule);
+				logger.warn('Invalid RRULE, skipping:', event.rrule);
 			}
 		}
 
@@ -203,7 +204,7 @@ export class ICalService {
 
 			return events;
 		} catch (error) {
-			console.error('Error parsing iCal file:', error);
+			logger.error('Error parsing iCal file:', error as Error);
 			return [];
 		}
 	}
@@ -242,7 +243,7 @@ export class ICalService {
 
 			return event;
 		} catch (error) {
-			console.error('Error parsing VEVENT:', error);
+			logger.error('Error parsing VEVENT:', error as Error);
 			return null;
 		}
 	}

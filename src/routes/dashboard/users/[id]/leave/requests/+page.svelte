@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { logger } from '$lib/utils/logger';
 	import {
 		AlertCircle,
 		Calendar,
@@ -95,7 +96,7 @@
 	async function handleSubmitRequest(event: Event) {
 		event.preventDefault();
 		// TODO: Implement actual leave request submission
-		console.log('Submitting leave request:', newRequest);
+		logger.info('Submitting leave request:'.replace(/['`]$/, `: ${newRequest}'`/));
 		showNewRequestForm = false;
 		newRequest = {
 			leaveTypeId: '',
@@ -107,7 +108,7 @@
 
 	async function handleCancelRequest(requestId: string) {
 		// TODO: Implement request cancellation
-		console.log('Cancelling request:', requestId);
+		logger.info('Cancelling request:'.replace(/['`]$/, `: ${requestId}'`/));
 	}
 </script>
 

@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Audit Logs Page Server-Side Data Loading (Admin Only)
 // Feature: 019-we-need-to - Task T031
 // Purpose: Load system-wide activity logs for administrators
@@ -171,7 +172,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			user: locals.user
 		};
 	} catch (err: any) {
-		console.error('Error loading audit logs:', err);
+		logger.error('Error loading audit logs:', err as Error);
 
 		// Handle specific error cases
 		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {

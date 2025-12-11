@@ -1,5 +1,6 @@
 <script>
-	console.log('Test page loaded successfully');
+	logger.info('Test page loaded successfully');
+	import { logger } from '$lib/utils/logger';
 </script>
 
 <!-- Minimal test page to isolate errors -->

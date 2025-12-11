@@ -1,4 +1,4 @@
-import type { Client, AnyVariables, TypedDocumentNode } from '@urql/core';
+import type { AnyVariables, Client, TypedDocumentNode } from '@urql/core';
 import type { UserCredentials } from '$lib/models/data-request';
 
 // Dynamic import for createDataRequest and createErrorResponse to avoid circular dependencies

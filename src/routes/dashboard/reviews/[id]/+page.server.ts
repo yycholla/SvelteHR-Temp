@@ -91,7 +91,7 @@ export const load: PageServerLoad = async (event) => {
 		const reviewData = await reviewResponse.json();
 
 		if (reviewData.errors) {
-			console.error('[Review Detail] GraphQL errors:', reviewData.errors);
+			logger.error('[Review Detail] GraphQL errors:', reviewData.errors);
 			throw new Error(reviewData.errors[0]?.message || 'Failed to load review');
 		}
 
@@ -197,7 +197,7 @@ export const load: PageServerLoad = async (event) => {
 			throw err; // Re-throw SvelteKit errors (401, 403, 404)
 		}
 
-		console.error('Error loading review detail:', err);
+		logger.error('Error loading review detail:', err as Error);
 		error(500, 'Failed to load review details');
 	}
 };

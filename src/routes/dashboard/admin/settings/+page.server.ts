@@ -89,7 +89,7 @@ export const load: PageServerLoad = async (event) => {
 				const uiCategory = categoryMapping[setting.category] || setting.category;
 				settings[uiCategory] = parsed;
 			} catch (parseError) {
-				console.error(`[ADMIN SETTINGS] Failed to parse ${setting.category}:`, parseError);
+				logger.error(`[ADMIN SETTINGS] Failed to parse ${setting.category}:`, parseError);
 				// Keep empty object for this category
 			}
 		}
@@ -98,7 +98,7 @@ export const load: PageServerLoad = async (event) => {
 			settings
 		};
 	} catch (error) {
-		console.error('[ADMIN SETTINGS] Load error:', error);
+		logger.error('[ADMIN SETTINGS] Load error:', error as Error);
 		// Return default settings structure even on error to prevent undefined errors
 		return {
 			settings: {

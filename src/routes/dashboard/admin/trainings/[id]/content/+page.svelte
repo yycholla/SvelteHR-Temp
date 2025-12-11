@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { logger } from '$lib/utils/logger';
 	import { flip } from 'svelte/animate';
-	import { dndzone, type DndEvent } from 'svelte-dnd-action';
+	import { type DndEvent, dndzone } from 'svelte-dnd-action';
 	import {
 		ArrowLeft,
 		Edit2,
@@ -63,7 +64,7 @@
 		}));
 
 		// await fetch('/api/trainings/content/reorder', { ... })
-		console.log('Reordering:', updates);
+		logger.info('Reordering:'.replace(/['`]$/, `: ${updates}'`/));
 	}
 
 	function selectType(newType: string) {

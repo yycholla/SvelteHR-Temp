@@ -12,6 +12,7 @@
 
 <script lang="ts">
 	import { Plus, X } from '@lucide/svelte';
+	import { logger } from '$lib/utils/logger';
 	import { Badge } from '$lib/components/ui/badge';
 	import { createUrqlClient } from '$lib/graphql/client';
 	import { CREATE_TASK_TYPE } from '$lib/graphql/tasks-operations';
@@ -57,7 +58,7 @@
 		});
 
 		// Debug logging
-		console.log('[TaskTypeTagInput] Filtering:', {
+		logger.info('[TaskTypeTagInput] Filtering:', {
 			totalTaskTypes: taskTypes.length,
 			taskTypesArray: taskTypes,
 			selected,
@@ -139,7 +140,7 @@
 				onCreate?.(newTaskType);
 			}
 		} catch (error) {
-			console.error('Failed to create task type:', error);
+			logger.error('Catch failed', error as Error);
 			createError = 'Failed to create task type';
 		} finally {
 			isCreating = false;
@@ -220,7 +221,7 @@
 	// Handle input focus
 	function handleFocus() {
 		if (!disabled) {
-			console.log('[TaskTypeTagInput] Focus - opening dropdown', {
+			logger.info('[TaskTypeTagInput] Focus - opening dropdown', {
 				taskTypesCount: taskTypes.length,
 				selected,
 				disabled
@@ -257,7 +258,7 @@
 
 	// Debug: Track taskTypes prop changes
 	$effect(() => {
-		console.log('[TaskTypeTagInput] taskTypes prop changed:', {
+		logger.info('[TaskTypeTagInput] taskTypes prop changed:', {
 			count: taskTypes.length,
 			taskTypes,
 			selected
@@ -282,7 +283,7 @@
 		role="button"
 		tabindex="0"
 		onclick={() => {
-			console.log('[TaskTypeTagInput] Outer div clicked, focusing input');
+			logger.info('[TaskTypeTagInput] Outer div clicked, focusing input');
 			inputElement?.focus();
 		}}
 		onkeydown={(e) => {
@@ -340,7 +341,7 @@
 
 	<!-- Dropdown with filtered options -->
 	{#if isOpen && (filteredTaskTypes.length > 0 || canCreateNew)}
-		{console.log('[TaskTypeTagInput] Rendering dropdown:', {
+		{logger.info('[TaskTypeTagInput] Rendering dropdown:', {
 			isOpen,
 			filteredCount: filteredTaskTypes.length,
 			canCreateNew,
@@ -352,7 +353,7 @@
 		>
 			<!-- Existing task types -->
 			{#each filteredTaskTypes as taskType, index (taskType.id)}
-				{console.log('[TaskTypeTagInput] Rendering option:', taskType.name)}
+				{logger.info('[TaskTypeTagInput] Rendering option:', taskType.name)}
 				<button
 					type="button"
 					data-option
@@ -396,7 +397,7 @@
 			{/if}
 		</div>
 	{:else}
-		{console.log('[TaskTypeTagInput] Dropdown NOT rendering:', {
+		{logger.info('[TaskTypeTagInput] Dropdown NOT rendering:', {
 			isOpen,
 			filteredCount: filteredTaskTypes.length,
 			canCreateNew,

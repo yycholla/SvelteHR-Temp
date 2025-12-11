@@ -31,7 +31,7 @@ export const load: PageServerLoad = async (event) => {
 			totalCount: sortedTaskTypes.length
 		};
 	} catch (err) {
-		console.error('[ADMIN TASK TYPES] Load error:', err);
+		logger.error('[ADMIN TASK TYPES] Load error:', err as Error);
 		return {
 			taskTypes: [],
 			totalCount: 0,

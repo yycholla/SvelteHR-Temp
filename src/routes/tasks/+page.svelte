@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
 	// TODO: These services need to be implemented
@@ -123,7 +124,7 @@
 		try {
 			await taskService.loadTasks();
 		} catch (error) {
-			console.error('Failed to load tasks:', error);
+			logger.error('Failed to load tasks:', error as Error);
 		}
 	}
 
@@ -176,15 +177,15 @@
 		switch (action) {
 			case 'complete':
 				// TODO: Implement bulk complete
-				console.log('Bulk complete:', selectedTasks);
+				logger.info('Bulk complete:'.replace(/['`]$/, `: ${selectedTasks}'`/));
 				break;
 			case 'assign':
 				// TODO: Show bulk assign modal
-				console.log('Bulk assign:', selectedTasks);
+				logger.info('Bulk assign:'.replace(/['`]$/, `: ${selectedTasks}'`/));
 				break;
 			case 'delete':
 				// TODO: Show bulk delete confirmation
-				console.log('Bulk delete:', selectedTasks);
+				logger.info('Bulk delete:'.replace(/['`]$/, `: ${selectedTasks}'`/));
 				break;
 		}
 	}

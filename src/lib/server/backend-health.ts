@@ -1,3 +1,5 @@
+import { logger } from '$lib/utils/logger';
+
 /**
  * Backend Health Check Utility
  *
@@ -118,16 +120,16 @@ export async function waitForBackend(
 	endpoint?: string,
 	options: HealthCheckOptions = {}
 ): Promise<HealthCheckResult> {
-	console.log('[BackendHealth] Waiting for backend to become healthy...');
+	logger.info('[BackendHealth] Waiting for backend to become healthy...');
 
 	const result = await checkBackendHealth(endpoint, options);
 
 	if (result.healthy) {
-		console.log(
+		logger.info(
 			`[BackendHealth] ✅ Backend is healthy (took ${result.totalTime}ms, ${result.retries} retries)`
 		);
 	} else {
-		console.error(`[BackendHealth] ❌ ${result.message}`);
+		logger.error(`[BackendHealth] ❌ ${result.message}`);
 	}
 
 	return result;
@@ -160,7 +162,7 @@ export async function withExponentialBackoff<T>(
 				// Calculate delay with exponential backoff
 				const delay = Math.min(initialDelay * Math.pow(backoffMultiplier, retries - 1), maxDelay);
 
-				console.log(`[BackendHealth] Retry ${retries}/${maxRetries} after ${delay}ms delay...`);
+				logger.info(`[BackendHealth] Retry ${retries}/${maxRetries} after ${delay}ms delay...`);
 
 				await new Promise((resolve) => setTimeout(resolve, delay));
 			}

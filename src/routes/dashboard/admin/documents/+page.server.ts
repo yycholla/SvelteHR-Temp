@@ -41,7 +41,7 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 		});
 
 		if (response.errors && response.errors.length > 0) {
-			console.error('[Documents] GraphQL errors:', response.errors);
+			logger.error('[Documents] GraphQL errors:', response.errors);
 			error(500, {
 				message: response.errors[0].message || 'Failed to load documents'
 			});
@@ -161,7 +161,7 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 			totalPages: Math.ceil(totalCount / limit) || 0
 		};
 	} catch (err) {
-		console.error('Document list load error:', err);
+		logger.error('Document list load error:', err as Error);
 
 		// Re-throw redirects and errors
 		if (err && typeof err === 'object' && ('status' in err || 'location' in err)) {

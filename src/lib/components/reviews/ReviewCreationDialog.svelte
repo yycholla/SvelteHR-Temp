@@ -1,5 +1,6 @@
 <script lang="ts">
 	/**
+	import { logger } from '$lib/utils/logger';
 	 * ReviewCreationDialog Component
 	 * Feature: 023-reviews-creation-it
 	 * Task: T029
@@ -146,7 +147,7 @@
 			// Simulate save delay
 			await tick();
 		} catch (error) {
-			console.error('Failed to save draft:', error);
+			logger.error('Catch failed', error as Error);
 		} finally {
 			isDraftSaving = false;
 		}

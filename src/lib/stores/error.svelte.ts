@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Error Management Store (Svelte 5 Runes)
  * Manages application errors, warnings, and loading states with reactive state
@@ -98,7 +99,7 @@ export const errorStore = new ErrorStore();
 
 // Helper functions for common error scenarios
 export function handleGraphQLError(error: any, operation?: string): void {
-	console.error(`GraphQL Error${operation ? ` in ${operation}` : ''}:`, error);
+	logger.error('Handle graph q l error failed', error as Error);
 
 	const message = error.message || 'A GraphQL operation failed';
 	const userMessage = error.extensions?.userMessage || message;
@@ -120,7 +121,7 @@ export function handleGraphQLError(error: any, operation?: string): void {
 }
 
 export function handleServerError(error: any, context?: string): void {
-	console.error(`Server Error${context ? ` in ${context}` : ''}:`, error);
+	logger.error('Handle server error failed', error as Error);
 
 	const isNetworkError = !navigator.onLine || error.name === 'NetworkError';
 	const message = isNetworkError

@@ -31,7 +31,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// If backend is not ready, return error state but don't crash
 		if (!backendReady) {
-			console.warn('Backend not ready for user attendance page');
+			logger.warn('Backend not ready for user attendance page');
 			return {
 				user: null,
 				userId,
@@ -108,9 +108,9 @@ export const load: PageServerLoad = async (event) => {
 			offset: 0
 		});
 
-		console.log('[Attendance] GraphQL response:', JSON.stringify(attendanceData, null, 2));
-		console.log('[Attendance] Employee ID:', userId);
-		console.log('[Attendance] Records found:', attendanceData.data?.attendanceRecords?.length);
+		logger.info('[Attendance] GraphQL response:', JSON.stringify(attendanceData, null, 2));
+		logger.info('[Attendance] Employee ID:'.replace(/['`]$/, `: ${userId}'`/));
+		logger.info('[Attendance] Records found:', attendanceData.data?.attendanceRecords?.length);
 
 		const attendanceRecords = (attendanceData.data?.attendanceRecords || []).map((record: any) => ({
 			id: record.id,
@@ -191,7 +191,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('Error loading user attendance data:', err);
+		logger.error('Error loading user attendance data:', err as Error);
 
 		// Return error state instead of throwing to prevent page crash
 		return {

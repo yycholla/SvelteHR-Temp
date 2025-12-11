@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 	import { userService } from '$lib/services/userService';
 	import { departmentService, departments } from '$lib/services/departmentService';
 	import { Button } from '$lib/components/ui/button';
@@ -283,7 +284,7 @@
 			departmentService.loadDepartments();
 		} else {
 			// Fallback if loadDepartments is not available (e.g. mock)
-			console.warn('loadDepartments not available');
+			logger.warn('loadDepartments not available');
 		}
 	});
 </script>

@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Logout endpoint - Clear session with Rust GraphQL API
 import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
@@ -5,12 +6,12 @@ import { getApiBaseUrl } from '$lib/server/api-url.js';
 
 export const POST: RequestHandler = async ({ cookies, request }) => {
 	try {
-		console.log('[Logout] === LOGOUT REQUEST START ===');
+		logger.info('[Logout] === LOGOUT REQUEST START ===');
 
 		// Call Rust GraphQL API logout endpoint to clear session server-side
 		const apiBaseUrl = getApiBaseUrl();
 		const logoutUrl = `${apiBaseUrl}/auth/logout`;
-		console.log('[Logout] Calling Rust API logout:', logoutUrl);
+		logger.info('[Logout] Calling Rust API logout:'.replace(/['`]$/, `: ${logoutUrl}'`/));
 
 		// Forward cookies to backend for session clearing
 		const cookieHeader = request.headers.get('cookie') || '';
@@ -23,23 +24,23 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 			}
 		});
 
-		console.log('[Logout] API response status:', logoutResponse.status);
+		logger.info('[Logout] API response status:', logoutResponse.status);
 
 		// Clear all session cookies on the frontend
 		const cookieNames = ['hr_token', 'auth-token', 'session', 'id.session'];
 		for (const name of cookieNames) {
 			cookies.delete(name, { path: '/' });
-			console.log(`[Logout] Cleared cookie: ${name}`);
+			logger.info(`[Logout] Cleared cookie: ${name}`);
 		}
 
 		// Return success even if backend logout fails (frontend cleanup is sufficient)
-		console.log('[Logout] === LOGOUT SUCCESSFUL ===');
+		logger.info('[Logout] === LOGOUT SUCCESSFUL ===');
 		return json({
 			success: true,
 			message: 'Logged out successfully'
 		});
 	} catch (error) {
-		console.error('[Logout] Error during logout:', error);
+		logger.error('[Logout] Error during logout:', error as Error);
 
 		// Still clear frontend cookies even if backend fails
 		const cookieNames = ['hr_token', 'auth-token', 'session', 'id.session'];

@@ -31,7 +31,7 @@ export const load: PageServerLoad = async (event) => {
 	const hasManagerAccess = userPerms.canViewManagement;
 	const isAdmin = userPerms.isAdmin;
 
-	console.log('🔍 Load function - User:', {
+	logger.info('🔍 Load function - User:', {
 		userId: locals.user?.id,
 		role: locals.user?.role,
 		hasManagerAccess,
@@ -111,7 +111,7 @@ export const load: PageServerLoad = async (event) => {
 		const reviewsData = reviewsResponse.data;
 
 		// Debug logging
-		console.log('📊 [Management Reviews] GraphQL response:', {
+		logger.info('📊 [Management Reviews] GraphQL response:', {
 			hasData: !!reviewsData,
 			reviewsCount: reviewsData?.performanceReviews?.length || 0,
 			firstReview: reviewsData?.performanceReviews?.[0] || null
@@ -129,7 +129,7 @@ export const load: PageServerLoad = async (event) => {
 				const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 				const graphqlEndpoint = getGraphQLEndpoint();
 
-				console.log('📊 Loading employees for selector...');
+				logger.info('📊 Loading employees for selector...');
 
 				// Forward session cookies for authentication
 				const cookieHeader = event.request.headers.get('cookie') || '';
@@ -164,7 +164,7 @@ export const load: PageServerLoad = async (event) => {
 				const employeesData = await employeesResponse.json();
 
 				// Log response for debugging
-				console.log('📊 Employees response:', {
+				logger.info('📊 Employees response:', {
 					hasData: !!employeesData.data,
 					hasErrors: !!employeesData.errors,
 					errorCount: employeesData.errors?.length || 0,
@@ -173,9 +173,9 @@ export const load: PageServerLoad = async (event) => {
 
 				// Check for GraphQL errors
 				if (employeesData.errors && employeesData.errors.length > 0) {
-					console.error('❌ GraphQL Errors in GetEmployeesForSelector:');
+					logger.error('❌ GraphQL Errors in GetEmployeesForSelector:');
 					employeesData.errors.forEach((err: any, idx: number) => {
-						console.error(`  Error ${idx + 1}:`, {
+						logger.error(`  Error ${idx + 1}:`, {
 							message: err.message,
 							path: err.path,
 							extensions: err.extensions
@@ -184,9 +184,9 @@ export const load: PageServerLoad = async (event) => {
 				}
 
 				employees = employeesData.data?.users || [];
-				console.log('✅ Employees loaded:', employees.length);
+				logger.info('✅ Employees loaded:', employees.length);
 			} catch (empError) {
-				console.error('❌ Error loading employees (caught exception):', {
+				logger.error('❌ Error loading employees (caught exception):', {
 					error: empError,
 					message: empError instanceof Error ? empError.message : String(empError),
 					stack: empError instanceof Error ? empError.stack : undefined
@@ -194,7 +194,7 @@ export const load: PageServerLoad = async (event) => {
 				employees = [];
 			}
 		} else {
-			console.log('⚠️ User does not have manager access, skipping employee loading');
+			logger.info('⚠️ User does not have manager access, skipping employee loading');
 		}
 
 		// Process performance reviews data (Rust GraphQL server returns status in lowercase)
@@ -331,7 +331,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('Error loading performance reviews:', err);
+		logger.error('Error loading performance reviews:', err as Error);
 
 		// Return empty data structure with error information
 		return {

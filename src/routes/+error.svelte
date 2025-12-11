@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { logger } from '$lib/utils/logger';
 	import { goto } from '$app/navigation';
 	import { untrack } from 'svelte';
 	import ErrorBoundary from '$lib/components/ui/error-boundary.svelte';
@@ -10,7 +11,7 @@
 			const result = fn();
 			return result ?? fallback;
 		} catch (e) {
-			console.warn('Safe getter caught error:', e);
+			logger.warn('Safe getter caught error:', e);
 			return fallback;
 		}
 	}
@@ -104,7 +105,7 @@
 			if (typeof window !== 'undefined' && import.meta.env.DEV) {
 				const errorToLog = safeGet(() => error, null);
 				if (errorToLog) {
-					console.error('SvelteKit Error Page:', {
+					logger.error('SvelteKit Error Page:', {
 						status: safeGet(() => status, 500),
 						error: errorToLog,
 						url: safeGet(() => pageData?.url?.pathname, 'unknown')
@@ -114,7 +115,7 @@
 		} catch (e) {
 			// Silently ignore logging errors to prevent cascading failures
 			try {
-				console.error('Error logging failed:', e);
+				logger.error('Error logging failed:', e as Error);
 			} catch {
 				// Really can't log, give up
 			}

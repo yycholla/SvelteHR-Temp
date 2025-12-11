@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { logger } from '$lib/utils/logger';
 	import {
 		AlertCircle,
 		Building,
@@ -219,7 +220,7 @@
 			goto($page.url.pathname, { invalidateAll: true });
 		} catch (error) {
 			alert('An error occurred during assignment');
-			console.error(error);
+			logger.error(error);
 		} finally {
 			isAssigning = false;
 			selectedUsersToAssign = [];

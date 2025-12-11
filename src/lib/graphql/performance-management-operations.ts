@@ -263,12 +263,12 @@ export const DELETE_PERFORMANCE_REVIEW = gql`
 // ============================================================================
 
 import type {
-	PerformanceReviewFilter,
 	CreatePerformanceReviewInput,
-	UpdatePerformanceReviewInput,
 	DeletePerformanceReviewInput,
 	PerformanceReview,
-	PerformanceStatistics
+	PerformanceReviewFilter,
+	PerformanceStatistics,
+	UpdatePerformanceReviewInput
 } from '$lib/types/performance';
 
 import {

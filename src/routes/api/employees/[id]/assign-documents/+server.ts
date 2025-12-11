@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Employee document assignment endpoint (Feature 024)
 // POST /api/employees/[id]/assign-documents - Assign documents to an employee
 // ✅ Migrated to GraphQL backend (Phase 3 - Document API Migration)
@@ -54,7 +55,7 @@ export const POST: RequestHandler = async ({ params, locals, request, cookies, f
 			error(400, { message: 'Invalid request: documentIds must be a non-empty array' });
 		}
 
-		console.log(
+		logger.info(
 			`[ASSIGN DOCS] User ${userId} assigning ${documentIds.length} documents to employee ${employeeId}`
 		);
 
@@ -92,25 +93,25 @@ export const POST: RequestHandler = async ({ params, locals, request, cookies, f
 					const errorMsg = assignmentResult.error.message || '';
 					if (errorMsg.includes('duplicate') || errorMsg.includes('already assigned')) {
 						skippedCount++;
-						console.log(
+						logger.info(
 							`[ASSIGN DOCS] Document ${documentId} already assigned to employee ${employeeId}`
 						);
 					} else {
 						errors.push(`Document ${documentId}: ${errorMsg}`);
-						console.error(
+						logger.error(
 							`[ASSIGN DOCS] Error assigning document ${documentId}:`,
 							assignmentResult.error
 						);
 					}
 				} else {
 					assignedCount++;
-					console.log(`[ASSIGN DOCS] Document ${documentId} assigned to employee ${employeeId}`);
+					logger.info(`[ASSIGN DOCS] Document ${documentId} assigned to employee ${employeeId}`);
 				}
 			} catch (err) {
 				errors.push(
 					`Document ${documentId}: ${err instanceof Error ? err.message : 'Unknown error'}`
 				);
-				console.error(`[ASSIGN DOCS] Exception assigning document ${documentId}:`, err);
+				logger.error(`[ASSIGN DOCS] Exception assigning document ${documentId}:`, err as Error);
 			}
 		}
 
@@ -126,7 +127,7 @@ export const POST: RequestHandler = async ({ params, locals, request, cookies, f
 				? `Assigned ${assignedCount} document(s), skipped ${skippedCount}, ${errors.length} errors`
 				: `Successfully assigned ${assignedCount} document(s) to ${employee.email}`;
 
-		console.log(
+		logger.info(
 			`[ASSIGN DOCS] Completed: ${assignedCount} assigned, ${skippedCount} skipped, ${errors.length} errors`
 		);
 
@@ -139,7 +140,7 @@ export const POST: RequestHandler = async ({ params, locals, request, cookies, f
 			errors: errors.length > 0 ? errors : undefined
 		});
 	} catch (err) {
-		console.error('[ASSIGN DOCS] Error:', err);
+		logger.error('[ASSIGN DOCS] Error:', err as Error);
 
 		// Re-throw SvelteKit errors
 		if (err && typeof err === 'object' && 'status' in err) {

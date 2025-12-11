@@ -4,7 +4,7 @@
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 
 export const load: PageServerLoad = async (event) => {
@@ -28,7 +28,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// If backend is not ready, return error state but don't crash
 		if (!backendReady) {
-			console.warn('Backend not ready for leave requests page');
+			logger.warn('Backend not ready for leave requests page');
 			const emptyMetrics = {
 				total: 0,
 				pending: 0,
@@ -294,7 +294,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('Error loading leave requests:', err);
+		logger.error('Error loading leave requests:', err as Error);
 
 		// Extract search parameters for error response
 		const searchTerm = url.searchParams.get('search') || '';
@@ -390,7 +390,7 @@ export const actions: Actions = {
 		`;
 
 		try {
-			console.log('[Server] Executing approve mutation for:', leaveRequestId);
+			logger.info('[Server] Executing approve mutation for:'.replace(/['`]$/, `: ${leaveRequestId}'`/));
 			const result = await graphqlClient.query(mutation, {
 				input: {
 					requestId: leaveRequestId
@@ -398,14 +398,14 @@ export const actions: Actions = {
 			});
 
 			if (result.errors) {
-				console.error('[Server] GraphQL errors:', result.errors);
+				logger.error('[Server] GraphQL errors:', result.errors);
 				return fail(500, { message: 'Failed to approve leave request' });
 			}
 
-			console.log('[Server] Approve successful for:', leaveRequestId);
+			logger.info('[Server] Approve successful for:'.replace(/['`]$/, `: ${leaveRequestId}'`/));
 			return { success: true, message: 'Leave request approved' };
 		} catch (err) {
-			console.error('[Server] Error approving leave request:', err);
+			logger.error('[Server] Error approving leave request:', err as Error);
 			return fail(500, { message: 'Failed to approve leave request' });
 		}
 	},
@@ -435,7 +435,7 @@ export const actions: Actions = {
 		`;
 
 		try {
-			console.log('[Server] Executing deny mutation for:', leaveRequestId);
+			logger.info('[Server] Executing deny mutation for:'.replace(/['`]$/, `: ${leaveRequestId}'`/));
 			const result = await graphqlClient.query(mutation, {
 				input: {
 					requestId: leaveRequestId,
@@ -444,14 +444,14 @@ export const actions: Actions = {
 			});
 
 			if (result.errors) {
-				console.error('[Server] GraphQL errors:', result.errors);
+				logger.error('[Server] GraphQL errors:', result.errors);
 				return fail(500, { message: 'Failed to deny leave request' });
 			}
 
-			console.log('[Server] Deny successful for:', leaveRequestId);
+			logger.info('[Server] Deny successful for:'.replace(/['`]$/, `: ${leaveRequestId}'`/));
 			return { success: true, message: 'Leave request denied' };
 		} catch (err) {
-			console.error('[Server] Error denying leave request:', err);
+			logger.error('[Server] Error denying leave request:', err as Error);
 			return fail(500, { message: 'Failed to deny leave request' });
 		}
 	},
@@ -462,7 +462,7 @@ export const actions: Actions = {
 	// 1. Adding a new mutation: revertLeaveRequestToPending(input: RevertLeaveRequestInput)
 	// 2. Or extending updateLeaveRequest to allow status changes for approved/rejected requests
 	revertToPending: async ({ request, cookies, locals }) => {
-		console.log('[Server] Revert to pending action not yet implemented in Rust backend');
+		logger.info('[Server] Revert to pending action not yet implemented in Rust backend');
 		return fail(501, {
 			message:
 				'Revert to pending functionality is not yet available. This feature requires backend support.'

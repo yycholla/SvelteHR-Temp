@@ -3,7 +3,7 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies, url } = event;
@@ -235,13 +235,13 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Debug logging
-		console.log('[Teams Page] Filter Department ID:', filterDepartmentId);
-		console.log('[Teams Page] Is Admin:', isAdmin);
-		console.log('[Teams Page] Departments found:', departments.length);
+		logger.info('[Teams Page] Filter Department ID:'.replace(/['`]$/, `: ${filterDepartmentId}'`/));
+		logger.info('[Teams Page] Is Admin:'.replace(/['`]$/, `: ${isAdmin}'`/));
+		logger.info('[Teams Page] Departments found:', departments.length);
 		const totalCount = departments.length; // Rust server doesn't provide totalCount in this format
 
-		console.log('[Teams Page] Departments found:', departments.length);
-		console.log('[Teams Page] Total count:', totalCount);
+		logger.info('[Teams Page] Departments found:', departments.length);
+		logger.info('[Teams Page] Total count:'.replace(/['`]$/, `: ${totalCount}'`/));
 
 		// Calculate team statistics (employee counts not available in current Rust GraphQL schema)
 		const totalEmployees = 0; // TODO: Implement separate query for employee counts per department
@@ -304,7 +304,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[Teams Management Load Error]', err);
+		logger.error('[Teams Management Load Error]', err as Error);
 
 		// Create standardized error response
 		const errorResponse = createErrorResponse(
@@ -317,7 +317,7 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		// Log error details for debugging
-		console.error('[Teams Management Error Details]', {
+		logger.error('[Teams Management Error Details]', {
 			userId: locals.user?.id,
 			userRole: locals.user?.role,
 			searchTerm,

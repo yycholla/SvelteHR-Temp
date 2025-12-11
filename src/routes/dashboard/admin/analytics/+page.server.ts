@@ -155,7 +155,7 @@ export const load: PageServerLoad = async (event) => {
 			chartData
 		};
 	} catch (error) {
-		console.error('Error loading admin analytics data:', error);
+		logger.error('Error loading admin analytics data:', error as Error);
 		return {
 			analytics: {
 				overview: { totalUsers: 0, activeUsers: 0, totalDepartments: 0, totalRoles: 0 },

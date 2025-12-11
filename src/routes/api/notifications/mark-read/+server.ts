@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // API Route: Mark notification(s) as read
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
@@ -6,7 +7,7 @@ import { GraphQLClient } from '$lib/server/graphql-client';
 export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	// Session-based authentication - user must be authenticated via hooks.server.ts
 	if (!locals.user?.id) {
-		console.error('Mark-read: No authenticated user found in session');
+		logger.error('Mark-read: No authenticated user found in session');
 		error(401, 'Authentication required');
 	}
 
@@ -15,7 +16,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	// Get session cookie for GraphQL client (handled by browser automatically)
 	const authToken = cookies.get('hr_token') || cookies.get('auth-token');
 	if (!authToken) {
-		console.error('Mark-read: No session cookie found');
+		logger.error('Mark-read: No session cookie found');
 		error(401, 'Session cookie required');
 	}
 
@@ -65,7 +66,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 			markedCount: notificationIds.length
 		});
 	} catch (err) {
-		console.error('Error marking notifications as read:', err);
+		logger.error('Error marking notifications as read:', err as Error);
 		error(500, 'Failed to mark notifications as read');
 	}
 };

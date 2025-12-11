@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * GraphQL Subscriptions: Real-time Department Transfer Detection
  * Feature: 016-repair-management-pages - Task T037
@@ -103,11 +104,11 @@ export class SubscriptionManager {
 	 */
 	subscribeToDepartmentChanges(client: Client): () => void {
 		if (!browser || !this.userId) {
-			console.warn('[SUBSCRIPTIONS] Cannot subscribe: not in browser or no user ID');
+			logger.warn('[SUBSCRIPTIONS] Cannot subscribe: not in browser or no user ID');
 			return () => {};
 		}
 
-		console.info(
+		logger.info(
 			'[SUBSCRIPTIONS] Setting up department change subscription for user:',
 			this.userId
 		);
@@ -124,7 +125,7 @@ export class SubscriptionManager {
 
 			this.subscriptions.set('department-change', subscription);
 		} catch (error) {
-			console.warn('[SUBSCRIPTIONS] WebSocket subscription failed, using polling fallback:', error);
+			logger.warn('[SUBSCRIPTIONS] WebSocket subscription failed, using polling fallback:'.replace(/['`]$/, `: ${error}'`/));
 		}
 
 		// Set up polling fallback (every 60 seconds)
@@ -150,7 +151,7 @@ export class SubscriptionManager {
 			return () => {};
 		}
 
-		console.info('[SUBSCRIPTIONS] Setting up role change subscription for user:', this.userId);
+		logger.info('[SUBSCRIPTIONS] Setting up role change subscription for user:', this.userId);
 
 		try {
 			const subscription = client
@@ -163,7 +164,7 @@ export class SubscriptionManager {
 
 			this.subscriptions.set('role-change', subscription);
 		} catch (error) {
-			console.warn('[SUBSCRIPTIONS] Role subscription failed:', error);
+			logger.warn('[SUBSCRIPTIONS] Role subscription failed:'.replace(/['`]$/, `: ${error}'`/));
 		}
 
 		return () => {
@@ -180,7 +181,7 @@ export class SubscriptionManager {
 
 		// Check if department actually changed
 		if (newDepartmentId && newDepartmentId !== oldDepartmentId) {
-			console.info('[SUBSCRIPTIONS] Department change detected:', {
+			logger.info('[SUBSCRIPTIONS] Department change detected:', {
 				userId: this.userId,
 				oldDepartmentId,
 				newDepartmentId,
@@ -224,7 +225,7 @@ export class SubscriptionManager {
 		const newRoleName = roleData.role?.name;
 		const newPermissions = roleData.role?.permissions || [];
 
-		console.info('[SUBSCRIPTIONS] Role change detected:', {
+		logger.info('[SUBSCRIPTIONS] Role change detected:', {
 			userId: this.userId,
 			roleId: newRoleId,
 			roleName: newRoleName
@@ -262,7 +263,7 @@ export class SubscriptionManager {
 
 				// Check if department changed
 				if (currentDepartmentId && currentDepartmentId !== this.lastKnownDepartment) {
-					console.info('[SUBSCRIPTIONS] Department change detected via polling:', {
+					logger.info('[SUBSCRIPTIONS] Department change detected via polling:', {
 						oldDepartmentId: this.lastKnownDepartment,
 						newDepartmentId: currentDepartmentId
 					});
@@ -275,7 +276,7 @@ export class SubscriptionManager {
 				}
 			}
 		} catch (error) {
-			console.error('[SUBSCRIPTIONS] Polling error:', error);
+			logger.error('Catch failed', error as Error);
 		}
 	}
 
@@ -293,7 +294,7 @@ export class SubscriptionManager {
 		const interval = setInterval(callback, intervalMs);
 		this.pollingIntervals.set(key, interval);
 
-		console.info(`[SUBSCRIPTIONS] Started polling for ${key} (every ${intervalMs}ms)`);
+		logger.info(`[SUBSCRIPTIONS] Started polling for ${key} (every ${intervalMs}ms)`);
 	}
 
 	/**
@@ -304,7 +305,7 @@ export class SubscriptionManager {
 		if (interval) {
 			clearInterval(interval);
 			this.pollingIntervals.delete(key);
-			console.info(`[SUBSCRIPTIONS] Stopped polling for ${key}`);
+			logger.info(`[SUBSCRIPTIONS] Stopped polling for ${key}`);
 		}
 	}
 
@@ -318,7 +319,7 @@ export class SubscriptionManager {
 			this.subscriptions.delete('department-change');
 		}
 		this.stopPolling('department-change');
-		console.info('[SUBSCRIPTIONS] Unsubscribed from department changes');
+		logger.info('[SUBSCRIPTIONS] Unsubscribed from department changes');
 	}
 
 	/**
@@ -330,14 +331,14 @@ export class SubscriptionManager {
 			subscription.unsubscribe();
 			this.subscriptions.delete('role-change');
 		}
-		console.info('[SUBSCRIPTIONS] Unsubscribed from role changes');
+		logger.info('[SUBSCRIPTIONS] Unsubscribed from role changes');
 	}
 
 	/**
 	 * Clean up all subscriptions and intervals
 	 */
 	destroy(): void {
-		console.info('[SUBSCRIPTIONS] Destroying subscription manager');
+		logger.info('[SUBSCRIPTIONS] Destroying subscription manager');
 
 		// Unsubscribe from all
 		this.unsubscribeFromDepartmentChanges();

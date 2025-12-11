@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Review Validation Utility Functions
  * Feature: 023-reviews-creation-it
@@ -53,7 +54,7 @@ export async function checkDuplicateActiveReview(
 
 		return null;
 	} catch (error) {
-		console.error('Error checking for duplicate reviews:', error);
+		logger.error('Error checking for duplicate reviews:', error as Error);
 		return 'Unable to verify duplicate reviews at this time';
 	}
 }
@@ -93,7 +94,7 @@ export async function getActiveReviews(
 
 		return result.activeReviewsForEmployee.nodes;
 	} catch (error) {
-		console.error('Error fetching active reviews:', error);
+		logger.error('Error fetching active reviews:', error as Error);
 		return [];
 	}
 }

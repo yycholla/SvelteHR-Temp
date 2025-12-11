@@ -206,7 +206,7 @@ export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 				teams = teamsData;
 			} catch (err) {
 				// Teams table might not exist yet
-				console.log('Teams table not found or query failed:', err);
+				logger.info('Teams table not found or query failed:'.replace(/['`]$/, `: ${err}'`/));
 				teams = [];
 			}
 		}
@@ -225,7 +225,7 @@ export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 			user: locals.user
 		};
 	} catch (err) {
-		console.error('Document detail load error:', err);
+		logger.error('Document detail load error:', err as Error);
 
 		// Re-throw redirects and errors
 		if (err && typeof err === 'object' && ('status' in err || 'location' in err)) {

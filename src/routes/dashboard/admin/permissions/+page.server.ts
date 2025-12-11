@@ -64,7 +64,7 @@ export const load: PageServerLoad = async (event) => {
 			users: usersData?.users || []
 		};
 	} catch (err) {
-		console.error('[ADMIN PERMISSIONS] Load error:', err);
+		logger.error('[ADMIN PERMISSIONS] Load error:', err as Error);
 		return {
 			roles: [],
 			permissions: [],
@@ -100,7 +100,7 @@ export const actions: Actions = {
 
 			return { success: true, message: 'Role created successfully' };
 		} catch (err) {
-			console.error('[CREATE ROLE] Error:', err);
+			logger.error('[CREATE ROLE] Error:', err as Error);
 			return fail(500, { error: 'Failed to create role' });
 		}
 	},
@@ -131,7 +131,7 @@ export const actions: Actions = {
 
 			return { success: true, message: 'Role updated successfully' };
 		} catch (err) {
-			console.error('[UPDATE ROLE] Error:', err);
+			logger.error('[UPDATE ROLE] Error:', err as Error);
 			return fail(500, { error: 'Failed to update role' });
 		}
 	},
@@ -158,7 +158,7 @@ export const actions: Actions = {
 
 			return { success: true, message: 'Role deleted successfully' };
 		} catch (err) {
-			console.error('[DELETE ROLE] Error:', err);
+			logger.error('[DELETE ROLE] Error:', err as Error);
 			return fail(500, { error: 'Failed to delete role' });
 		}
 	},
@@ -188,7 +188,7 @@ export const actions: Actions = {
 
 			return { success: true, message: 'Permission assigned successfully' };
 		} catch (err) {
-			console.error('[ASSIGN PERMISSION] Error:', err);
+			logger.error('[ASSIGN PERMISSION] Error:', err as Error);
 			return fail(500, { error: 'Failed to assign permission' });
 		}
 	},
@@ -218,7 +218,7 @@ export const actions: Actions = {
 
 			return { success: true, message: 'Permission removed successfully' };
 		} catch (err) {
-			console.error('[REMOVE PERMISSION] Error:', err);
+			logger.error('[REMOVE PERMISSION] Error:', err as Error);
 			return fail(500, { error: 'Failed to remove permission' });
 		}
 	},
@@ -304,7 +304,7 @@ export const actions: Actions = {
 
 			return { success: true, message };
 		} catch (err) {
-			console.error('[BULK ASSIGN PERMISSIONS] Error:', err);
+			logger.error('[BULK ASSIGN PERMISSIONS] Error:', err as Error);
 			return fail(500, { error: 'Failed to update permissions' });
 		}
 	},
@@ -336,7 +336,7 @@ export const actions: Actions = {
 
 			return { success: true, message: 'Permissions removed successfully' };
 		} catch (err) {
-			console.error('[BULK REMOVE PERMISSIONS] Error:', err);
+			logger.error('[BULK REMOVE PERMISSIONS] Error:', err as Error);
 			return fail(500, { error: 'Failed to remove permissions' });
 		}
 	},
@@ -366,7 +366,7 @@ export const actions: Actions = {
 
 			return { success: true, message: 'Role assigned to user successfully' };
 		} catch (err) {
-			console.error('[ASSIGN ROLE TO USER] Error:', err);
+			logger.error('[ASSIGN ROLE TO USER] Error:', err as Error);
 			return fail(500, { error: 'Failed to assign role to user' });
 		}
 	},
@@ -396,7 +396,7 @@ export const actions: Actions = {
 
 			return { success: true, message: 'Role removed from user successfully' };
 		} catch (err) {
-			console.error('[REMOVE ROLE FROM USER] Error:', err);
+			logger.error('[REMOVE ROLE FROM USER] Error:', err as Error);
 			return fail(500, { error: 'Failed to remove role from user' });
 		}
 	}

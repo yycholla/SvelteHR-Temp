@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Document download API endpoint (Feature 024)
 // GET /api/documents/[id]/download - Download document (with decryption if encrypted)
 // ✅ Fully migrated to GraphQL backend (Phase 2 - Document API Migration)
@@ -60,7 +61,7 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 			.toPromise();
 
 		if (docResult.error) {
-			console.error('GraphQL error fetching document:', docResult.error);
+			logger.error('GraphQL error fetching document:', docResult.error);
 			error(500, { message: 'Failed to fetch document metadata' });
 		}
 
@@ -80,7 +81,7 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 		// TODO: Check document assignments via GraphQL when available
 
 		if (!canAccess) {
-			console.log(`Download access denied for user ${userId} to document ${documentId}`);
+			logger.info(`Download access denied for user ${userId} to document ${documentId}`);
 			error(403, {
 				message: 'Access denied. You do not have permission to download this document.'
 			});
@@ -105,7 +106,7 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 			// Decrypt file using GraphQL data
 			decryptedData = decryptFileFromGraphQL(storage.encryptedData, storage.iv, encryptionKey);
 
-			console.log(
+			logger.info(
 				`Encrypted document ${documentId} decrypted for download - ${decryptedData.length} bytes`
 			);
 		} else {
@@ -127,7 +128,7 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 			})
 			.toPromise();
 
-		console.log(
+		logger.info(
 			`Document ${documentId} downloaded by user ${userId} - decrypted ${decryptedData.length} bytes`
 		);
 
@@ -146,7 +147,7 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 			}
 		});
 	} catch (err) {
-		console.error('Document download error:', err);
+		logger.error('Document download error:', err as Error);
 
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err;

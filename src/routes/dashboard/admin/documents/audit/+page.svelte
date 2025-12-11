@@ -1,5 +1,6 @@
 <script lang="ts">
 	// Audit log page (Feature 024)
+	import { logger } from '$lib/utils/logger';
 	// Access log viewer for HR/Admin with filtering and export
 
 	import { goto } from '$app/navigation';
@@ -63,7 +64,7 @@
 
 			window.open(`/api/documents/audit/export?${params.toString()}`, '_blank');
 		} catch (error) {
-			console.error('Export error:', error);
+			logger.error('Export error:', error as Error);
 			alert('Failed to export audit log. Please try again.');
 		}
 	}

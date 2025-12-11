@@ -1,5 +1,6 @@
 <script lang="ts">
 	/**
+	import { logger } from '$lib/utils/logger';
 	 * ReviewListWithFilters Component
 	 * Feature: 023-reviews-creation-it
 	 * Task: T032
@@ -66,7 +67,7 @@
 
 	// Debug logging
 	$effect(() => {
-		console.log('🔍 ReviewListWithFilters - Input reviews:', {
+		logger.info('🔍 ReviewListWithFilters - Input reviews:', {
 			reviewsCount: reviews.length,
 			firstReview: reviews[0] || null,
 			searchQuery,
@@ -79,7 +80,7 @@
 	const filteredReviews = $derived.by(() => {
 		let filtered = reviews;
 
-		console.log('🔍 Starting filter - reviews:', filtered.length);
+		logger.info('🔍 Starting filter - reviews:', filtered.length);
 
 		// Apply search
 		if (searchQuery) {
@@ -95,21 +96,21 @@
 
 		// Apply type filters
 		if (selectedTypes.length > 0) {
-			console.log('🔍 Type filter - before:', filtered.length, 'selectedTypes:', selectedTypes);
+			logger.info('🔍 Type filter - before:', filtered.length, 'selectedTypes:', selectedTypes);
 			filtered = filtered.filter((review) => selectedTypes.includes(review.reviewType));
-			console.log('🔍 Type filter - after:', filtered.length);
+			logger.info('🔍 Type filter - after:', filtered.length);
 		}
 
 		// Apply status filters
 		if (selectedStatuses.length > 0) {
-			console.log(
+			logger.info(
 				'🔍 Status filter - before:',
 				filtered.length,
 				'selectedStatuses:',
 				selectedStatuses
 			);
 			filtered = filtered.filter((review) => selectedStatuses.includes(review.status));
-			console.log('🔍 Status filter - after:', filtered.length);
+			logger.info('🔍 Status filter - after:', filtered.length);
 		}
 
 		// Apply sorting
@@ -129,7 +130,7 @@
 			return sortOrder === 'asc' ? comparison : -comparison;
 		});
 
-		console.log('🔍 Final filtered result:', {
+		logger.info('🔍 Final filtered result:', {
 			filteredCount: filtered.length,
 			firstFiltered: filtered[0] || null
 		});

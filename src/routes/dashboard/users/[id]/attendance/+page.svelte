@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { logger } from '$lib/utils/logger';
 	import {
 		AlertCircle,
 		Calendar,
@@ -98,7 +99,7 @@
 
 	async function handleClockAction() {
 		// TODO: Implement actual clock in/out functionality
-		console.log(isClockedIn ? 'Clocking out...' : 'Clocking in...');
+		logger.info(isClockedIn ? 'Clocking out...' : 'Clocking in...');
 	}
 </script>
 

@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * RBAC Validation Utility Functions
  * Feature: 023-reviews-creation-it
@@ -67,7 +68,7 @@ export async function isDirectReport(
 
 		return reportIds.includes(employeeId);
 	} catch (error) {
-		console.error('Error checking direct report relationship:', error);
+		logger.error('Error checking direct report relationship:', error as Error);
 		return false;
 	}
 }

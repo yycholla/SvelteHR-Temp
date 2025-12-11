@@ -1,5 +1,6 @@
 <script lang="ts">
 	import * as Card from '$lib/components/ui/card';
+	import { logger } from '$lib/utils/logger';
 	import * as Chart from '$lib/components/ui/chart';
 	import * as Select from '$lib/components/ui/select';
 	import { ChartContainer } from '$lib/components/ui/chart';
@@ -99,7 +100,7 @@
 
 	// Initialize charts after component mounts and DOM is ready
 	onMount(() => {
-		console.log('Analytics charts component mounted, users:', users);
+		logger.info('Analytics charts component mounted, users:'.replace(/['`]$/, `: ${users}'`/));
 	});
 
 	// Set charts ready only when we have data AND after sufficient delay for container sizing
@@ -108,7 +109,7 @@
 			// Longer delay to ensure LayerChart containers have proper dimensions
 			setTimeout(() => {
 				chartsReady = true;
-				console.log(
+				logger.info(
 					'Charts ready set to true, users:',
 					users.length,
 					'hireDepartmentData:',
@@ -120,22 +121,22 @@
 
 	// Add reactive effect to monitor when users data becomes available
 	$effect(() => {
-		console.log('CHART EFFECT: Users data changed, length:', users?.length || 0);
+		logger.info('CHART EFFECT: Users data changed, length:', users?.length || 0);
 		if (users && users.length > 0) {
-			console.log('CHART: Users data is now available');
+			logger.info('CHART: Users data is now available');
 		}
 	});
 
 	// Process hire date data by department for LayerChart
 	const hireDepartmentData = $derived.by(() => {
-		console.log(
+		logger.info(
 			'CHART DERIVED: Computing hireDepartmentData, users:',
 			users?.length || 0,
 			'timeRange:',
 			timeRange
 		);
 		if (!users || users.length === 0) {
-			console.log('CHART DERIVED: No users data, returning empty array');
+			logger.info('CHART DERIVED: No users data, returning empty array');
 			return [];
 		}
 
@@ -176,7 +177,7 @@
 			// Include if hire date is within our range OR if they were hired before and are still active
 			return hireDate >= startDate || hireDate <= startDate;
 		});
-		console.log('Active users for department analysis:', activeUsers.length);
+		logger.info('Active users for department analysis:', activeUsers.length);
 
 		// Group active users by month-year and department
 		const hiresByMonthAndDept = activeUsers.reduce(
@@ -186,7 +187,7 @@
 
 					// Check if date is valid
 					if (isNaN(hireDate.getTime())) {
-						console.warn('Invalid date for user:', user.email);
+						logger.warn('Invalid date for user:', user.email);
 						return acc;
 					}
 
@@ -210,7 +211,7 @@
 
 					acc[monthKey].departments[department] += 1;
 				} catch (error) {
-					console.warn('Error processing user:', user.email, error);
+					logger.warn('Error processing user:', user.email, error);
 				}
 
 				return acc;
@@ -319,30 +320,30 @@
 			result.push(currentPoint);
 		}
 
-		console.log('Final hireDepartmentData:', result);
-		console.log('All departments:', Array.from(allDepartments));
+		logger.info('Final hireDepartmentData:'.replace(/['`]$/, `: ${result}'`/));
+		logger.info('All departments:', Array.from(allDepartments));
 		return result;
 	});
 
 	// Process hire date data for LayerChart - only count active employees (total line)
 	const hireData = $derived.by(() => {
-		console.log('Computing hireData, users:', users?.length || 0, users);
+		logger.info('Computing hireData, users:', users?.length || 0, users);
 		if (!users || users.length === 0) return [];
 
 		// Filter to only active employees first
 		const activeUsers = users.filter((user) => user.isActive);
-		console.log('Active users:', activeUsers.length, 'out of', users.length);
+		logger.info('Active users:', activeUsers.length, 'out of', users.length);
 
 		// Group active users by month-year
 		const hiresByMonth = activeUsers.reduce(
 			(acc, user) => {
 				try {
-					console.log('Processing user:', user.email, 'hireDate:', user.hireDate);
+					logger.info('Processing user:', user.email, 'hireDate:', user.hireDate);
 					const hireDate = new Date(user.hireDate || user.createdAt);
 
 					// Check if date is valid
 					if (isNaN(hireDate.getTime())) {
-						console.warn(
+						logger.warn(
 							'Invalid date for user:',
 							user.email,
 							'hireDate:',
@@ -365,9 +366,9 @@
 					}
 
 					acc[monthKey].employees += 1;
-					console.log('Updated accumulator for', monthKey, acc[monthKey]);
+					logger.info('Updated accumulator for', monthKey, acc[monthKey]);
 				} catch (error) {
-					console.warn('Error processing user:', user.email, error);
+					logger.warn('Error processing user:', user.email, error);
 				}
 
 				return acc;
@@ -375,7 +376,7 @@
 			{} as Record<string, any>
 		);
 
-		console.log('Accumulated hiresByMonth:', hiresByMonth);
+		logger.info('Accumulated hiresByMonth:'.replace(/['`]$/, `: ${hiresByMonth}'`/));
 
 		// Sort by date and convert to cumulative count
 		const sortedMonths = Object.values(hiresByMonth).sort(
@@ -405,7 +406,7 @@
 			});
 		});
 
-		console.log('Final hireData (cumulative with start point):', result);
+		logger.info('Final hireData (cumulative with start point):'.replace(/['`]$/, `: ${result}'`/));
 		return result;
 	});
 </script>

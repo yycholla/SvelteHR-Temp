@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 import { Client, cacheExchange, errorExchange, fetchExchange } from '@urql/core';
 import { authExchange } from '@urql/exchange-auth';
 import { retryExchange } from '@urql/exchange-retry';
@@ -92,11 +93,11 @@ const customErrorExchange = errorExchange({
 					e.message?.includes('invalid')
 			)
 		) {
-			console.warn('GraphQL authentication error (session expired/invalid):', error.graphQLErrors);
+			logger.warn('GraphQL authentication error (session expired/invalid):', error.graphQLErrors);
 
 			// Session authentication - redirect to login (server hooks will handle session cleanup)
 			if (browser) {
-				console.log('🔴 REDIRECT: Session expired/invalid, redirecting to login');
+				logger.info('🔴 REDIRECT: Session expired/invalid, redirecting to login');
 
 				// Only redirect if we're not already on a login/auth related page
 				if (!window.location.pathname.includes('/login')) {
@@ -107,12 +108,12 @@ const customErrorExchange = errorExchange({
 
 		// Handle rate limiting
 		if (error.graphQLErrors.some((e) => e.extensions?.code === 'RATE_LIMIT_EXCEEDED')) {
-			console.warn('Rate limit exceeded for operation:', operation.key);
+			logger.warn('Rate limit exceeded for operation:', operation.key);
 		}
 
 		// Handle network errors
 		if (error.networkError) {
-			console.error('Network error:', error.networkError);
+			logger.error('Network error:', error.networkError);
 
 			// Dispatch custom event for offline handling
 			if (browser) {
@@ -126,7 +127,7 @@ const customErrorExchange = errorExchange({
 
 		// Log other GraphQL errors
 		error.graphQLErrors.forEach(({ message, extensions }) => {
-			console.error('GraphQL error:', message, extensions);
+			logger.error('GraphQL error:', message, extensions);
 		});
 	}
 });
@@ -149,7 +150,7 @@ const createAuthExchange = (serverSideToken?: string) => {
 				// Session authentication - if auth fails, redirect to login
 				// Session cookies will be cleared by the server hooks
 				if (browser) {
-					console.log('🔴 REDIRECT: Session authentication failed, redirecting to login');
+					logger.info('🔴 REDIRECT: Session authentication failed, redirecting to login');
 					goto('/login');
 				}
 			},
@@ -252,12 +253,12 @@ export const createUrqlClient = (
 			// For server-side requests, explicitly forward cookies
 			if (!browser && cookies) {
 				headers['Cookie'] = cookies;
-				console.log(
+				logger.info(
 					'[GraphQL Client] Forwarding session cookies to backend:',
 					cookies.substring(0, 50) + '...'
 				);
 			} else if (!browser) {
-				console.warn('[GraphQL Client] WARNING: No cookies to forward! Authentication may fail.');
+				logger.warn('[GraphQL Client] WARNING: No cookies to forward! Authentication may fail.');
 			}
 
 			return {
@@ -277,7 +278,7 @@ export const client = createUrqlClient();
 export const setJwtToken = (jwtToken: string) => {
 	// Session-based auth doesn't use client-side tokens
 	// This function is kept for backwards compatibility
-	console.warn('setJwtToken called - session-based auth does not use client-side tokens');
+	logger.warn('setJwtToken called - session-based auth does not use client-side tokens');
 };
 
 export const clearAuthTokens = () => {

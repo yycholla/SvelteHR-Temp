@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 	import { browser } from '$app/environment';
 	import type { EventInput } from '@fullcalendar/core';
 	import { Bell } from '@lucide/svelte';
@@ -271,7 +272,7 @@
 			calendar.render();
 			calendar.addEventSource(calendarEvents);
 		} catch (error) {
-			console.error('[EventCalendar] Error initializing calendar:', error);
+			logger.error('Catch failed', error as Error);
 		}
 	});
 

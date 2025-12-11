@@ -1,5 +1,6 @@
 <script lang="ts">
 	/**
+	import { logger } from '$lib/utils/logger';
 	 * EventDetailsDialog Component
 	 * Unified dialog for viewing and editing event details.
 	 *
@@ -202,7 +203,7 @@
 				toast.error(errorMsg);
 			}
 		} catch (error) {
-			console.error('Error deleting event:', error);
+			logger.error('Catch failed', error as Error);
 			toast.error('Failed to delete event. Please try again.');
 		} finally {
 			isDeleting = false;
@@ -295,7 +296,7 @@
 		newStatus: RsvpStatus,
 		scope: 'this_event' | 'this_and_future' | 'all_events'
 	) {
-		console.log('[EventDetailsDialog] updateRsvpStatus called with:', {
+		logger.info('[EventDetailsDialog] updateRsvpStatus called with:', {
 			newStatus,
 			statusType: typeof newStatus,
 			scope,
@@ -311,7 +312,7 @@
 		formData.append('status', newStatus);
 		formData.append('scope', scope);
 
-		console.log('[EventDetailsDialog] FormData created:', {
+		logger.info('[EventDetailsDialog] FormData created:', {
 			eventId: formData.get('eventId'),
 			status: formData.get('status'),
 			scope: formData.get('scope'),
@@ -357,7 +358,7 @@
 				toast.error('Failed to update RSVP');
 			}
 		} catch (error) {
-			console.error('[RSVP] Fetch error:', error);
+			logger.error('Catch failed', error as Error);
 			toast.error('Network error updating RSVP');
 		}
 	}

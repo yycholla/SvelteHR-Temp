@@ -3,7 +3,7 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies } = event;
@@ -34,7 +34,7 @@ export const load: PageServerLoad = async (event) => {
 			Cookie: cookieHeader // Forward all cookies for session authentication
 		};
 
-		console.log(
+		logger.info(
 			'[Employee New] Using Rust GraphQL with session-based auth, user roles:',
 			locals.roles
 		);
@@ -63,7 +63,7 @@ export const load: PageServerLoad = async (event) => {
 		const departmentsData = await departmentsResponse.json();
 
 		if (departmentsData.errors && departmentsData.errors.length > 0) {
-			console.error('[Employee New] GraphQL errors:', departmentsData.errors);
+			logger.error('[Employee New] GraphQL errors:', departmentsData.errors);
 			error(500, 'Failed to load departments');
 		}
 
@@ -87,7 +87,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 		};
 	} catch (err: any) {
-		console.error('[Employee New] Error loading data:', err);
+		logger.error('[Employee New] Error loading data:', err as Error);
 
 		// If it's already a SvelteKit error, rethrow it
 		if (err.status) {
@@ -199,23 +199,23 @@ export const actions: Actions = {
 				})
 			});
 
-			console.log('[Employee New] User creation request sent');
+			logger.info('[Employee New] User creation request sent');
 
 			// Always parse JSON response to check for GraphQL errors
 			// GraphQL can return errors even with HTTP 200, or have detailed errors with HTTP 400/500
 			const createData = await createResponse.json();
-			console.log('[Employee New] Full response:', JSON.stringify(createData, null, 2));
+			logger.info('[Employee New] Full response:', JSON.stringify(createData, null, 2));
 
 			if (createData.errors && createData.errors.length > 0) {
-				console.error('[Employee New] GraphQL errors:', createData.errors);
-				console.error(
+				logger.error('[Employee New] GraphQL errors:', createData.errors);
+				logger.error(
 					'[Employee New] Full error object:',
 					JSON.stringify(createData.errors, null, 2)
 				);
 
 				// Parse GraphQL error to provide user-friendly message
 				const errorMessage = createData.errors[0].message || 'Failed to create employee';
-				console.error('[Employee New] Error message to parse:', errorMessage);
+				logger.error('[Employee New] Error message to parse:', errorMessage);
 				let userFriendlyError = errorMessage;
 
 				// Handle common validation errors
@@ -267,7 +267,7 @@ export const actions: Actions = {
 				} else {
 					// If we don't recognize the error, show the backend message directly
 					// This is better than showing a generic "Failed to create employee" message
-					console.error('[Employee New] Unhandled error pattern, showing raw message');
+					logger.error('[Employee New] Unhandled error pattern, showing raw message');
 				}
 
 				return fail(400, {
@@ -290,13 +290,13 @@ export const actions: Actions = {
 				});
 			}
 
-			console.log(`[Employee New] Successfully created employee with ID: ${newEmployeeId}`);
+			logger.info(`[Employee New] Successfully created employee with ID: ${newEmployeeId}`);
 
 			// SvelteKit automatically serializes redirects to JSON for fetch requests
 			// and performs actual redirects for traditional form submissions
 			throw redirect(303, `/dashboard/employees?success=created`);
 		} catch (err: any) {
-			console.error('[Employee New] Error creating employee:', err);
+			logger.error('[Employee New] Error creating employee:', err as Error);
 
 			// If it's a redirect, rethrow it (this is the successful case)
 			if (err.status === 303 || err.status === 302 || err.status === 301) {

@@ -301,5 +301,5 @@ export function getStatusInfo(review: Partial<PerformanceReview>): {
 		overdue: { status: 'overdue', variant: 'destructive' }
 	};
 
-	return statusMap[status] || { status: status, variant: 'default' };
+	return statusMap[status] || { status, variant: 'default' };
 }

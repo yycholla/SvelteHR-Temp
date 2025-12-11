@@ -3,8 +3,9 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 import { validateRoles } from '$lib/schemas/role';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies, url } = event;
@@ -23,9 +24,11 @@ export const load: PageServerLoad = async (event) => {
 	const { locals } = event;
 
 	// Debug: Log user roles and permissions
-	console.log('[Employee Directory] User role:', locals.user.role);
-	console.log('[Employee Directory] User roles array:', locals.roles);
-	console.log('[Employee Directory] User permissions:', locals.permissions);
+	logger.debug('[Employee Directory] User access info', {
+		role: locals.user.role,
+		roles: locals.roles,
+		permissions: locals.permissions
+	});
 
 	// Import required models for standardized error handling
 	const { createErrorResponse } = await import('$lib/models/error-response');
@@ -79,11 +82,10 @@ export const load: PageServerLoad = async (event) => {
 			Cookie: cookieHeader // Forward all cookies for session authentication
 		};
 
-		console.log(
-			'[Employee Directory] Using Rust GraphQL with session-based auth, user role:',
-			locals.user?.role
-		);
-		console.log('[Employee Directory] Filters:', { searchTerm, departmentFilter, statusFilter });
+		logger.debug('[Employee Directory] Using Rust GraphQL with session-based auth', {
+			userRole: locals.user?.role,
+			filters: { searchTerm, departmentFilter, statusFilter }
+		});
 
 		// Load ALL employees first (no pagination) to get accurate total count
 		// We'll apply pagination after filtering
@@ -125,20 +127,15 @@ export const load: PageServerLoad = async (event) => {
 
 		// Check for GraphQL errors
 		if (employeesData.errors) {
-			console.error(
-				'[Employee Directory] GraphQL errors:',
-				JSON.stringify(employeesData.errors, null, 2)
-			);
-			for (const error of employeesData.errors) {
-				console.error('[Employee Directory] Error:', error.message, 'Path:', error.path);
-			}
+			logger.error('[Employee Directory] GraphQL errors', {
+				errors: employeesData.errors
+			});
 		}
 
-		console.log(
-			'[Employee Directory] Total employees fetched:',
-			employeesData?.data?.users?.length
-		);
-		console.log('[Employee Directory] Status filter:', statusFilter);
+		logger.debug('[Employee Directory] Fetch stats', {
+			totalFetched: employeesData?.data?.users?.length,
+			statusFilter
+		});
 
 		// Extract employees from Rust GraphQL response (direct array, no nodes wrapper)
 		let allEmployees = employeesData?.data?.users || [];
@@ -148,14 +145,7 @@ export const load: PageServerLoad = async (event) => {
 		const totalInactiveEmployees = allEmployees.filter((emp: any) => emp.isActive === false).length;
 
 		// Debug: Check isActive values
-		console.log(
-			'[Employee Directory] Employee isActive values:',
-			allEmployees.map((e: any) => ({
-				email: e.email,
-				isActive: e.isActive
-			}))
-		);
-		console.log('[Employee Directory] Stats:', {
+		logger.debug('[Employee Directory] Employee stats', {
 			total: allEmployees.length,
 			active: totalActiveEmployees,
 			inactive: totalInactiveEmployees
@@ -165,22 +155,15 @@ export const load: PageServerLoad = async (event) => {
 		if (statusFilter === 'active') {
 			// Only show employees where isActive is true
 			allEmployees = allEmployees.filter((emp: any) => emp.isActive === true);
-			console.log('[Employee Directory] After active filter:', allEmployees.length, 'employees');
 		} else if (statusFilter === 'inactive') {
 			// Only show employees where isActive is false
 			allEmployees = allEmployees.filter((emp: any) => emp.isActive === false);
-			console.log('[Employee Directory] After inactive filter:', allEmployees.length, 'employees');
 		}
 		// If statusFilter is empty string, show all employees (no filtering)
 
 		// Filter by department
 		if (departmentFilter) {
 			allEmployees = allEmployees.filter((emp: any) => emp.departmentId === departmentFilter);
-			console.log(
-				'[Employee Directory] After department filter:',
-				allEmployees.length,
-				'employees'
-			);
 		}
 
 		// Filter by role (roles is now an array of {id, name} objects)
@@ -188,7 +171,6 @@ export const load: PageServerLoad = async (event) => {
 			allEmployees = allEmployees.filter((emp: any) =>
 				emp.roles?.some((role: any) => role.name === roleFilter)
 			);
-			console.log('[Employee Directory] After role filter:', allEmployees.length, 'employees');
 		}
 
 		// Client-side filtering for search term (supports multiple comma-separated terms)
@@ -222,7 +204,6 @@ export const load: PageServerLoad = async (event) => {
 					);
 				});
 			});
-			console.log('[Employee Directory] After search filter:', allEmployees.length, 'employees');
 		}
 
 		// Get total count AFTER all filtering
@@ -246,12 +227,10 @@ export const load: PageServerLoad = async (event) => {
 			role: emp.roles && emp.roles.length > 0 ? emp.roles[0].name : null
 		}));
 
-		console.log('[Employee Directory] Pagination:', {
+		logger.debug('[Employee Directory] Pagination info', {
 			totalEmployees,
 			page,
 			limit,
-			startIndex,
-			endIndex,
 			pageEmployees: employees.length
 		});
 
@@ -284,21 +263,10 @@ export const load: PageServerLoad = async (event) => {
 
 		// Check for GraphQL errors
 		if (departmentsData.errors) {
-			console.error(
-				'[Employee Directory] Departments GraphQL errors:',
-				JSON.stringify(departmentsData.errors, null, 2)
-			);
-			for (const error of departmentsData.errors) {
-				console.error(
-					'[Employee Directory] Departments Error:',
-					error.message,
-					'Path:',
-					error.path
-				);
-			}
+			logger.error('[Employee Directory] Departments GraphQL errors', {
+				errors: departmentsData.errors
+			});
 		}
-
-		console.log('[Employee Directory] Departments data:', departmentsData);
 
 		// Load roles data via REST API
 		const { getApiBaseUrl } = await import('$lib/server/api-url');
@@ -316,17 +284,16 @@ export const load: PageServerLoad = async (event) => {
 		if (rolesResponse.ok) {
 			rolesData = await rolesResponse.json();
 		} else {
-			console.error(
-				'[Employee Directory] Failed to load roles via REST:',
-				rolesResponse.statusText
-			);
+			logger.error('[Employee Directory] Failed to load roles via REST', {
+				status: rolesResponse.statusText
+			});
 		}
 
-		console.log('[Employee Directory] Roles data (REST):', rolesData);
+		logger.debug('[Employee Directory] Roles data loaded', { count: rolesData.length });
 
 		// Defensive: Validate roles with Zod schema to prevent SSR crashes from invalid data
 		const validRoles = validateRoles(rolesData || []);
-		console.log('[Employee Directory] Valid roles after Zod validation:', validRoles.length);
+		logger.debug('[Employee Directory] Valid roles count', { count: validRoles.length });
 
 		// Return server-side loaded data
 		// Get standardized user permissions
@@ -361,7 +328,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[Employee Directory Load Error]', err);
+		logger.error('[Employee Directory Load Error]', err instanceof Error ? err : new Error(String(err)));
 
 		// Create standardized error response
 		const errorResponse = createErrorResponse(
@@ -374,7 +341,7 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		// Log error details for debugging
-		console.error('[Employee Directory Error Details]', {
+		logger.error('[Employee Directory Error Details]', {
 			userId: locals.user?.id,
 			userRole: locals.user?.role,
 			searchTerm,

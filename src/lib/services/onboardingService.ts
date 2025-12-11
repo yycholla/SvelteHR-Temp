@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Onboarding Service
  *
@@ -5,7 +6,7 @@
  * Used by OnboardingChecklist and OnboardingDashboard components.
  */
 
-import { writable, derived, type Readable } from 'svelte/store';
+import { type Readable, derived, writable } from 'svelte/store';
 
 export interface OnboardingTask {
 	id: string;
@@ -102,12 +103,12 @@ class OnboardingServiceImpl implements OnboardingService {
 
 	async completeTask(taskId: string, userId: string): Promise<void> {
 		// TODO: Implement actual API call
-		console.log(`Completing task ${taskId} for user ${userId}`);
+		logger.info(`Completing task ${taskId} for user ${userId}`);
 	}
 
 	async uncompleteTask(taskId: string, userId: string): Promise<void> {
 		// TODO: Implement actual API call
-		console.log(`Uncompleting task ${taskId} for user ${userId}`);
+		logger.info(`Uncompleting task ${taskId} for user ${userId}`);
 	}
 
 	async loadInstances(options?: { reset?: boolean }): Promise<void> {
@@ -129,7 +130,7 @@ class OnboardingServiceImpl implements OnboardingService {
 
 	async loadTemplates(): Promise<void> {
 		// TODO: Implement actual API call
-		console.log('Loading onboarding templates');
+		logger.info('Loading onboarding templates');
 	}
 }
 

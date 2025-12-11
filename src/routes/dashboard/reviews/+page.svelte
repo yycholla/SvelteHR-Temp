@@ -1,5 +1,6 @@
 <script lang="ts">
 	/**
+	import { logger } from '$lib/utils/logger';
 	 * Performance Reviews Management Page
 	 * Feature: 023-reviews-creation-it
 	 * Task: T034
@@ -21,7 +22,7 @@
 
 	// Debug logging
 	$effect(() => {
-		console.log('📊 Client-side data:', {
+		logger.info('📊 Client-side data:', {
 			reviewsCount: data.reviews?.length || 0,
 			firstReview: data.reviews?.[0] || null,
 			stats: data.stats
@@ -76,20 +77,20 @@
 	function handleDeleteDraft(event: CustomEvent) {
 		const { draft } = event.detail;
 		// TODO: Implement draft deletion with confirmation
-		console.log('Delete draft:', draft.id);
+		logger.info('Delete draft:', draft.id);
 	}
 
 	// Handle create review
 	function handleCreateReview(event: CustomEvent) {
 		const { data: reviewData } = event.detail;
 		// TODO: Call GraphQL mutation
-		console.log('Create review:', reviewData);
+		logger.info('Create review:'.replace(/['`]$/, `: ${reviewData}'`/));
 	}
 
 	function handleSaveAsDraft(event: CustomEvent) {
 		const { data: draftData } = event.detail;
 		// TODO: Call GraphQL mutation to save draft
-		console.log('Save draft:', draftData);
+		logger.info('Save draft:'.replace(/['`]$/, `: ${draftData}'`/));
 	}
 
 	// Open create dialog

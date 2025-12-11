@@ -6,7 +6,7 @@
  */
 
 import type { ErrorResponse } from './error-response';
-import { DataRequestStatus, type DataRequest } from './data-request';
+import { type DataRequest, DataRequestStatus } from './data-request';
 import type { CachePolicy as CacheConfig } from '$lib/types/graphql-contracts';
 
 /**

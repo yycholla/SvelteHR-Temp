@@ -1,5 +1,6 @@
 <script lang="ts">
 	// RSVPButton Component
+	import { logger } from '$lib/utils/logger';
 	// Feature: 019-we-need-to - Task T021
 	// Purpose: RSVP action dropdown for event responses
 
@@ -56,29 +57,29 @@
 	}
 
 	function handleStatusChange(newStatus: RsvpStatus) {
-		console.log('[RSVPButton] handleStatusChange called');
-		console.log('[RSVPButton] newStatus:', newStatus);
-		console.log('[RSVPButton] currentStatus:', currentStatus);
-		console.log('[RSVPButton] disabled:', disabled);
-		console.log('[RSVPButton] loading:', loading);
+		logger.info('[RSVPButton] handleStatusChange called');
+		logger.info('[RSVPButton] newStatus:'.replace(/['`]$/, `: ${newStatus}'`/));
+		logger.info('[RSVPButton] currentStatus:'.replace(/['`]$/, `: ${currentStatus}'`/));
+		logger.info('[RSVPButton] disabled:'.replace(/['`]$/, `: ${disabled}'`/));
+		logger.info('[RSVPButton] loading:'.replace(/['`]$/, `: ${loading}'`/));
 
 		if (newStatus !== currentStatus && !disabled && !loading) {
-			console.log('[RSVPButton] Calling onChange handler');
+			logger.info('[RSVPButton] Calling onChange handler');
 			const result = onChange(newStatus);
 
 			// If onChange returns a Promise, handle loading state
 			if (result instanceof Promise) {
-				console.log('[RSVPButton] onChange returned a Promise');
+				logger.info('[RSVPButton] onChange returned a Promise');
 				result.finally(() => {
-					console.log('[RSVPButton] Promise resolved, closing dropdown');
+					logger.info('[RSVPButton] Promise resolved, closing dropdown');
 					isOpen = false;
 				});
 			} else {
-				console.log('[RSVPButton] onChange returned synchronously');
+				logger.info('[RSVPButton] onChange returned synchronously');
 				isOpen = false;
 			}
 		} else {
-			console.log('[RSVPButton] Skipping onChange - status unchanged or button disabled');
+			logger.info('[RSVPButton] Skipping onChange - status unchanged or button disabled');
 		}
 	}
 

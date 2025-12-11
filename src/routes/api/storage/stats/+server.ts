@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Storage statistics API endpoint (Feature 024)
 // GET /api/storage/stats - Get storage statistics
 
@@ -27,7 +28,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 			userBytes: 0
 		});
 	} catch (err) {
-		console.error('Storage stats error:', err);
+		logger.error('Storage stats error:', err as Error);
 
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err;

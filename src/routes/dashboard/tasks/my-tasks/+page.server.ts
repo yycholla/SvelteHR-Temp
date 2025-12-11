@@ -4,7 +4,7 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
-import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies, url } = event;
@@ -43,7 +43,7 @@ export const load: PageServerLoad = async (event) => {
 		const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
-		console.log('[My Tasks] Loading tasks for user:', locals.user.id);
+		logger.info('[My Tasks] Loading tasks for user:', locals.user.id);
 
 		// Load user's tasks with authenticated request (forwards session cookies)
 		// NOTE: Rust GraphQL schema uses TaskFilter input object
@@ -99,10 +99,10 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		const tasksData = await tasksResponse.json();
-		console.log('[My Tasks] Tasks response:', tasksData);
+		logger.info('[My Tasks] Tasks response:'.replace(/['`]$/, `: ${tasksData}'`/));
 
 		if (tasksData.errors) {
-			console.error('[My Tasks] GraphQL errors:', tasksData.errors);
+			logger.error('[My Tasks] GraphQL errors:', tasksData.errors);
 			throw new Error(tasksData.errors[0]?.message || 'Failed to load tasks');
 		}
 
@@ -297,7 +297,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[My Tasks Load Error]', err);
+		logger.error('[My Tasks Load Error]', err as Error);
 
 		const errorResponse = createErrorResponse(
 			err instanceof Error ? err : new Error('My tasks load failed'),
@@ -307,7 +307,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 		);
 
-		console.error('[My Tasks Error Details]', {
+		logger.error('[My Tasks Error Details]', {
 			userId: locals.user?.id,
 			error: errorResponse
 		});
@@ -374,7 +374,7 @@ export const actions: Actions = {
 			const taskTypeId = formData.get('taskTypeId') as string | null;
 			const dueDate = formData.get('dueDate') as string | null;
 
-			console.log('[My Tasks - Quick Add] Creating task:', {
+			logger.info('[My Tasks - Quick Add] Creating task:', {
 				title,
 				priority,
 				assigneeId,
@@ -425,7 +425,7 @@ export const actions: Actions = {
 			const createData = await createResponse.json();
 
 			if (createData.errors) {
-				console.error('[My Tasks - Quick Add] Create errors:', createData.errors);
+				logger.error('[My Tasks - Quick Add] Create errors:', createData.errors);
 				return fail(400, {
 					error: createData.errors[0]?.message || 'Failed to create task'
 				});
@@ -439,14 +439,14 @@ export const actions: Actions = {
 				});
 			}
 
-			console.log('[My Tasks - Quick Add] Task created successfully:', newTask.id);
+			logger.info('[My Tasks - Quick Add] Task created successfully:', newTask.id);
 
 			return {
 				success: true,
 				taskId: newTask.id
 			};
 		} catch (err) {
-			console.error('[My Tasks - Quick Add] Create error:', err);
+			logger.error('[My Tasks - Quick Add] Create error:', err as Error);
 
 			return fail(500, {
 				error: err instanceof Error ? err.message : 'Failed to create task'

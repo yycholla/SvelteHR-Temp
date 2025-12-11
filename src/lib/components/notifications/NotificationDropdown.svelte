@@ -1,5 +1,6 @@
 <script lang="ts">
 	/**
+	import { logger } from '$lib/utils/logger';
 	 * NotificationDropdown Component
 	 * Displays unread notifications with badge counter and dropdown list
 	 */
@@ -74,7 +75,7 @@
 					body: JSON.stringify({ notificationIds: [notification.id] })
 				});
 			} catch (err) {
-				console.error('Failed to mark notification as read:', err);
+				logger.error('Failed to mark notification as read:', err as Error);
 			}
 		}
 
@@ -98,7 +99,7 @@
 
 			// SSE stream will automatically update notifications, no reload needed
 		} catch (err) {
-			console.error('Failed to mark all as read:', err);
+			logger.error('Failed to mark all as read:', err as Error);
 		}
 	}
 </script>

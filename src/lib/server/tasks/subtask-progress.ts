@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Subtask Progress Calculation Service
  * Feature: 028-task-system-expansion - T025
@@ -148,7 +149,7 @@ export async function getTaskProgress(taskId: string): Promise<TaskProgress | nu
 		});
 
 		if (!response.ok) {
-			console.error('[Subtask Progress] Failed to fetch task');
+			logger.error('[Subtask Progress] Failed to fetch task');
 			return null;
 		}
 
@@ -184,7 +185,7 @@ export async function getTaskProgress(taskId: string): Promise<TaskProgress | nu
 			level: 0
 		};
 	} catch (error) {
-		console.error('[Subtask Progress] Error getting task progress:', error);
+		logger.error('Catch failed', error as Error);
 		return null;
 	}
 }
@@ -301,7 +302,7 @@ export async function getHierarchicalProgress(
 			completedDescendants
 		};
 	} catch (error) {
-		console.error('[Subtask Progress] Error getting hierarchical progress:', error);
+		logger.error('Catch failed', error as Error);
 		return null;
 	}
 }
@@ -402,7 +403,7 @@ export async function getUserTaskStatistics(userId: string): Promise<ProgressSta
 			completionRate
 		};
 	} catch (error) {
-		console.error('[Subtask Progress] Error getting user task statistics:', error);
+		logger.error('Catch failed', error as Error);
 		return null;
 	}
 }
@@ -504,7 +505,7 @@ export async function getDepartmentTaskStatistics(
 			completionRate
 		};
 	} catch (error) {
-		console.error('[Subtask Progress] Error getting department task statistics:', error);
+		logger.error('Catch failed', error as Error);
 		return null;
 	}
 }
@@ -607,7 +608,7 @@ export async function getTopLevelTasksProgress(): Promise<{
 			overallProgress
 		};
 	} catch (error) {
-		console.error('[Subtask Progress] Error getting top-level tasks progress:', error);
+		logger.error('Catch failed', error as Error);
 		return { tasks: [], overallProgress: getEmptyProgressStats() };
 	}
 }

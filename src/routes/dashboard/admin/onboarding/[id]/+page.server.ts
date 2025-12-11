@@ -10,7 +10,7 @@ import {
 import { GET_ALL_DEPARTMENTS_QUERY } from '$lib/graphql/training-operations';
 
 export const load: PageServerLoad = async (event) => {
-	console.log('[ONBOARDING DETAIL SERVER] Load function called', {
+	logger.info('[ONBOARDING DETAIL SERVER] Load function called', {
 		moduleId: event.params.id,
 		url: event.url.href,
 		pathname: event.url.pathname,
@@ -62,7 +62,7 @@ export const load: PageServerLoad = async (event) => {
 		const response = await client.query(query, { id });
 
 		if (response.errors) {
-			console.error('GraphQL errors loading onboarding module:', response.errors);
+			logger.error('GraphQL errors loading onboarding module:', response.errors);
 			throw error(500, {
 				message: `Failed to load module: ${response.errors[0]?.message || 'Unknown error'}`
 			});
@@ -82,14 +82,14 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		if (!usersResponse.ok) {
-			console.error('Failed to fetch users from REST endpoint:', usersResponse.statusText);
+			logger.error('Failed to fetch users from REST endpoint:', usersResponse.statusText);
 			throw error(500, { message: 'Failed to load users' });
 		}
 
 		const allUsers = await usersResponse.json();
 
-		console.log('[ONBOARDING SERVER] Fetched users count:', allUsers.length);
-		console.log('[ONBOARDING SERVER] Sample user:', allUsers[0]);
+		logger.info('[ONBOARDING SERVER] Fetched users count:', allUsers.length);
+		logger.info('[ONBOARDING SERVER] Sample user:', allUsers[0]);
 
 		// Fetch all departments for bulk assignment
 		const departmentsResponse = await client.query(GET_ALL_DEPARTMENTS_QUERY);
@@ -106,7 +106,7 @@ export const load: PageServerLoad = async (event) => {
 			throw err;
 		}
 
-		console.error('Error loading onboarding module page:', err);
+		logger.error('Error loading onboarding module page:', err as Error);
 		throw error(500, {
 			message: 'Failed to load onboarding module'
 		});
@@ -137,11 +137,11 @@ export const actions: Actions = {
 		try {
 			const response = await client.mutation(ASSIGN_ONBOARDING_MUTATION, variables);
 			if (response.errors) {
-				console.error('Assignment creation errors:', response.errors);
+				logger.error('Assignment creation errors:', response.errors);
 				return fail(500, { error: response.errors[0].message });
 			}
 		} catch (err) {
-			console.error('Assignment creation error:', err);
+			logger.error('Assignment creation error:', err as Error);
 			return fail(500, { error: 'Internal server error' });
 		}
 
@@ -162,11 +162,11 @@ export const actions: Actions = {
 		try {
 			const response = await client.mutation(DELETE_ONBOARDING_ASSIGNMENT_MUTATION, variables);
 			if (response.errors) {
-				console.error('Assignment deletion errors:', response.errors);
+				logger.error('Assignment deletion errors:', response.errors);
 				return fail(500, { error: response.errors[0].message });
 			}
 		} catch (err) {
-			console.error('Assignment deletion error:', err);
+			logger.error('Assignment deletion error:', err as Error);
 			return fail(500, { error: 'Internal server error' });
 		}
 
@@ -194,13 +194,13 @@ export const actions: Actions = {
 		try {
 			const response = await client.mutation(ASSIGN_ONBOARDING_TO_DEPARTMENT_MUTATION, variables);
 			if (response.errors) {
-				console.error('Bulk assignment errors:', response.errors);
+				logger.error('Bulk assignment errors:', response.errors);
 				return fail(500, { error: response.errors[0].message });
 			}
 			const count = response.data?.onboarding?.assignOnboardingToDepartment || 0;
 			return { success: true, message: `Assigned to ${count} employee(s)` };
 		} catch (err) {
-			console.error('Bulk assignment error:', err);
+			logger.error('Bulk assignment error:', err as Error);
 			return fail(500, { error: 'Internal server error' });
 		}
 	}

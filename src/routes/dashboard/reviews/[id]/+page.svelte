@@ -1,5 +1,6 @@
 <script lang="ts">
 	/**
+	import { logger } from '$lib/utils/logger';
 	 * Review Detail Page
 	 * Feature: 023-reviews-creation-it
 	 * Task: T036
@@ -57,17 +58,17 @@
 	// Handle actions
 	function handleEdit() {
 		// TODO: Implement edit functionality
-		console.log('Edit review');
+		logger.info('Edit review');
 	}
 
 	function handleDelete() {
 		// TODO: Implement delete with confirmation
-		console.log('Delete review');
+		logger.info('Delete review');
 	}
 
 	function handleCompleteReview() {
 		// TODO: Implement status transition
-		console.log('Complete review');
+		logger.info('Complete review');
 	}
 
 	function handleBackToList() {

@@ -65,7 +65,7 @@ export const load: PageServerLoad = async (event) => {
 			.toPromise();
 
 		if (response.error) {
-			console.error('[AUDIT LOGS] GraphQL Error:', response.error);
+			logger.error('[AUDIT LOGS] GraphQL Error:', response.error);
 			throw new Error(response.error.message);
 		}
 
@@ -126,7 +126,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 		};
 	} catch (error: any) {
-		console.error('[AUDIT LOGS] Load error:', error);
+		logger.error('[AUDIT LOGS] Load error:', error as Error);
 		return {
 			auditLogs: [],
 			totalCount: 0,

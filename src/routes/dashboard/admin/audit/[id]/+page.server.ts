@@ -42,7 +42,7 @@ export const load: PageServerLoad = async (event) => {
 		const response = await client.query(query, { id }).toPromise();
 
 		if (response.error) {
-			console.error('[AUDIT LOG DETAIL] GraphQL Error:', response.error);
+			logger.error('[AUDIT LOG DETAIL] GraphQL Error:', response.error);
 			throw error(500, 'Failed to load audit log details');
 		}
 
@@ -54,7 +54,7 @@ export const load: PageServerLoad = async (event) => {
 			activityLog: response.data.activityLog
 		};
 	} catch (err: any) {
-		console.error('[AUDIT LOG DETAIL] Load error:', err);
+		logger.error('[AUDIT LOG DETAIL] Load error:', err as Error);
 		if (err.status) throw err;
 		throw error(500, 'Failed to load audit log details');
 	}

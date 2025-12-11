@@ -75,9 +75,9 @@ export const load: PageServerLoad = async (event) => {
 		const employeesData = await employeesResponse.json();
 
 		if (employeesData.errors && employeesData.errors.length > 0) {
-			console.error('❌ GraphQL Errors in GetEmployeesForReview:');
+			logger.error('❌ GraphQL Errors in GetEmployeesForReview:');
 			employeesData.errors.forEach((err: any, idx: number) => {
-				console.error(`  Error ${idx + 1}:`, {
+				logger.error(`  Error ${idx + 1}:`, {
 					message: err.message,
 					path: err.path,
 					extensions: err.extensions
@@ -118,9 +118,9 @@ export const load: PageServerLoad = async (event) => {
 			const goalsData = await goalsResponse.json();
 
 			if (goalsData.errors && goalsData.errors.length > 0) {
-				console.error('❌ GraphQL Errors in GetEmployeeGoals:');
+				logger.error('❌ GraphQL Errors in GetEmployeeGoals:');
 				goalsData.errors.forEach((err: any, idx: number) => {
-					console.error(`  Error ${idx + 1}:`, {
+					logger.error(`  Error ${idx + 1}:`, {
 						message: err.message,
 						path: err.path,
 						extensions: err.extensions
@@ -265,7 +265,7 @@ export const load: PageServerLoad = async (event) => {
 			availableGoals
 		};
 	} catch (err) {
-		console.error('Error loading review creation page:', err);
+		logger.error('Error loading review creation page:', err as Error);
 
 		// Provide review types even on error so dropdown still works
 		const reviewTypesMetadata = [
@@ -447,7 +447,7 @@ export const actions: Actions = {
 
 				const cycleData = await cycleResponse.json();
 				if (cycleData.errors) {
-					console.error('❌ GraphQL Errors in createReviewCycle:', cycleData.errors);
+					logger.error('❌ GraphQL Errors in createReviewCycle:', cycleData.errors);
 					return fail(500, {
 						error: `Failed to create review cycle: ${cycleData.errors[0].message}`,
 						success: false
@@ -488,9 +488,9 @@ export const actions: Actions = {
 			const result = await response.json();
 
 			if (result.errors) {
-				console.error('❌ GraphQL Errors in createPerformanceReview:');
+				logger.error('❌ GraphQL Errors in createPerformanceReview:');
 				result.errors.forEach((err: any, idx: number) => {
-					console.error(`  Error ${idx + 1}:`, {
+					logger.error(`  Error ${idx + 1}:`, {
 						message: err.message,
 						path: err.path,
 						extensions: err.extensions
@@ -516,7 +516,7 @@ export const actions: Actions = {
 			if (goalIds.length > 0 || newGoals.length > 0) {
 				// TODO: Implement goal association via backend mutations
 				// For now, goals will need to be added via the review detail page
-				console.log('⚠️ Goal association not yet implemented - add goals via review detail page');
+				logger.info('⚠️ Goal association not yet implemented - add goals via review detail page');
 			}
 
 			// Redirect to the review detail page
@@ -527,7 +527,7 @@ export const actions: Actions = {
 				throw err;
 			}
 
-			console.error('Error creating review:', err);
+			logger.error('Error creating review:', err as Error);
 			return fail(500, {
 				error: err instanceof Error ? err.message : 'Failed to create review',
 				success: false

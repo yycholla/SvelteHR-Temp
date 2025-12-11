@@ -25,7 +25,7 @@ export const load: PageServerLoad = async (event) => {
 		const moduleResult = await urqlClient.query(GET_ONBOARDING_MODULE_QUERY, { id });
 
 		if (moduleResult.error) {
-			console.error('Error fetching module:', moduleResult.error);
+			logger.error('Error fetching module:', moduleResult.error);
 			throw error(500, 'Failed to load onboarding module');
 		}
 
@@ -40,7 +40,7 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		if (formsResult.error) {
-			console.error('Error fetching forms:', formsResult.error);
+			logger.error('Error fetching forms:', formsResult.error);
 			throw error(500, 'Failed to load forms');
 		}
 
@@ -141,7 +141,7 @@ export const load: PageServerLoad = async (event) => {
 			user
 		};
 	} catch (err) {
-		console.error('Error loading onboarding module:', err);
+		logger.error('Error loading onboarding module:', err as Error);
 		throw error(500, 'Failed to load onboarding module');
 	}
 };
@@ -169,7 +169,7 @@ export const actions: Actions = {
 		const result = await urqlClient.mutation(SAVE_FORM_PROGRESS, { input });
 
 		if (result.error) {
-			console.error('Error saving progress:', result.error);
+			logger.error('Error saving progress:', result.error);
 			return { success: false, error: 'Failed to save progress' };
 		}
 
@@ -195,7 +195,7 @@ export const actions: Actions = {
 		const result = await urqlClient.mutation(COMPLETE_FORM, { input });
 
 		if (result.error) {
-			console.error('Error completing form:', result.error);
+			logger.error('Error completing form:', result.error);
 			return { success: false, error: 'Failed to complete form' };
 		}
 

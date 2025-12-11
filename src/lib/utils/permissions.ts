@@ -155,7 +155,7 @@ export function getHighestRoleLevel(userRoles: Array<{ name: RoleName; level: nu
  * ```ts
  * const result = checkPermissionDetailed(user.permissions, 'employees:read');
  * if (!result.allowed) {
- *   console.log(`Access denied: ${result.reason}`);
+ *   logger.info(`Access denied: ${result.reason}`);
  * }
  * ```
  */

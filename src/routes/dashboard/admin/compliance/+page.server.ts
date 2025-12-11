@@ -136,7 +136,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 		};
 	} catch (error) {
-		console.error('[ADMIN COMPLIANCE] Load error:', error);
+		logger.error('[ADMIN COMPLIANCE] Load error:', error as Error);
 		return {
 			complianceMetrics: {
 				dataAccuracy: { score: 0, status: 'unknown', description: '' },

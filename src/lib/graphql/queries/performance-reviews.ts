@@ -1,3 +1,5 @@
+import { logger } from '$lib/utils/logger';
+
 /**
  * PostGraphile GraphQL Queries for Performance Reviews
  *
@@ -468,12 +470,12 @@ export function createPerformanceOperations(client: any) {
 			areasForImprovement?: string;
 			managerFeedback?: string;
 		}) {
-			console.log('Update performance review:', params);
+			logger.info('Update performance review:'.replace(/['`]$/, `: ${params}'`/));
 			return { success: true };
 		},
 
 		async submitReview(params: { id: string; overallRating: number; managerFeedback: string }) {
-			console.log('Submit performance review:', params);
+			logger.info('Submit performance review:'.replace(/['`]$/, `: ${params}'`/));
 			return { success: true };
 		}
 	};

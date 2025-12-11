@@ -15,6 +15,7 @@
 import { getGraphQLEndpoint } from '$lib/server/api-url';
 import { logTaskReassigned } from '$lib/server/audit/task-audit-service';
 import type { Task } from '$lib/types/task';
+import { logger } from '$lib/utils/logger';
 
 /**
  * Organizational change types
@@ -103,7 +104,7 @@ export async function handleManagerChange(
 			}
 		}
 
-		console.info(`[ORG CHANGE] Handled manager change: ${results.length} tasks processed`, {
+		logger.info(`[ORG CHANGE] Handled manager change: ${results.length} tasks processed`, {
 			departmentId,
 			oldManagerId,
 			newManagerId,
@@ -111,7 +112,7 @@ export async function handleManagerChange(
 			manualReassignments: results.filter((r) => r.requiresManualReassignment).length
 		});
 	} catch (error) {
-		console.error('[ORG CHANGE] Error handling manager change:', error);
+		logger.error('[ORG CHANGE] Error handling manager change:', error instanceof Error ? error : new Error(String(error)));
 	}
 
 	return results;
@@ -183,7 +184,7 @@ export async function handleEmployeeDepartmentChange(
 			}
 		}
 
-		console.info(
+		logger.info(
 			`[ORG CHANGE] Handled employee department change: ${results.length} tasks processed`,
 			{
 				employeeId,
@@ -192,7 +193,7 @@ export async function handleEmployeeDepartmentChange(
 			}
 		);
 	} catch (error) {
-		console.error('[ORG CHANGE] Error handling employee department change:', error);
+		logger.error('[ORG CHANGE] Error handling employee department change:', error instanceof Error ? error : new Error(String(error)));
 	}
 
 	return results;
@@ -251,12 +252,12 @@ export async function handleEmployeeTermination(
 			}
 		}
 
-		console.info(`[ORG CHANGE] Handled employee termination: ${results.length} tasks processed`, {
+		logger.info(`[ORG CHANGE] Handled employee termination: ${results.length} tasks processed`, {
 			employeeId,
 			departmentId
 		});
 	} catch (error) {
-		console.error('[ORG CHANGE] Error handling employee termination:', error);
+		logger.error('[ORG CHANGE] Error handling employee termination:', error instanceof Error ? error : new Error(String(error)));
 	}
 
 	return results;
@@ -295,12 +296,12 @@ export async function handleDepartmentDissolution(
 			}
 		}
 
-		console.info(`[ORG CHANGE] Handled department dissolution: ${results.length} tasks flagged`, {
+		logger.info(`[ORG CHANGE] Handled department dissolution: ${results.length} tasks flagged`, {
 			departmentId,
 			employeeCount: departmentEmployees.length
 		});
 	} catch (error) {
-		console.error('[ORG CHANGE] Error handling department dissolution:', error);
+		logger.error('[ORG CHANGE] Error handling department dissolution:', error instanceof Error ? error : new Error(String(error)));
 	}
 
 	return results;
@@ -345,14 +346,14 @@ async function getTasksAssignedToUser(userId: string): Promise<Task[]> {
 		});
 
 		if (!response.ok) {
-			console.error('[ORG CHANGE] Failed to fetch user tasks');
+			logger.error('[ORG CHANGE] Failed to fetch user tasks');
 			return [];
 		}
 
 		const data = await response.json();
 		return data?.data?.allTasks?.nodes || [];
 	} catch (error) {
-		console.error('[ORG CHANGE] Error fetching user tasks:', error);
+		logger.error('[ORG CHANGE] Error fetching user tasks:', error instanceof Error ? error : new Error(String(error)));
 		return [];
 	}
 }
@@ -387,7 +388,7 @@ async function getDepartmentManager(departmentId: string): Promise<string | null
 		const data = await response.json();
 		return data?.data?.departmentById?.managerId || null;
 	} catch (error) {
-		console.error('[ORG CHANGE] Error fetching department manager:', error);
+		logger.error('[ORG CHANGE] Error fetching department manager:', error instanceof Error ? error : new Error(String(error)));
 		return null;
 	}
 }
@@ -424,7 +425,7 @@ async function getDepartmentEmployees(departmentId: string): Promise<string[]> {
 		const users = data?.data?.allUsers?.nodes || [];
 		return users.map((user: any) => user.id);
 	} catch (error) {
-		console.error('[ORG CHANGE] Error fetching department employees:', error);
+		logger.error('[ORG CHANGE] Error fetching department employees:', error instanceof Error ? error : new Error(String(error)));
 		return [];
 	}
 }
@@ -470,14 +471,14 @@ async function reassignTask(
 		});
 
 		if (!response.ok) {
-			console.error('[ORG CHANGE] Failed to reassign task:', taskId);
+			logger.error('[ORG CHANGE] Failed to reassign task:', undefined, { taskId });
 			return false;
 		}
 
 		const data = await response.json();
 
 		if (data.errors) {
-			console.error('[ORG CHANGE] GraphQL errors reassigning task:', data.errors);
+			logger.error('[ORG CHANGE] GraphQL errors reassigning task:', undefined, { errors: data.errors });
 			return false;
 		}
 
@@ -486,7 +487,7 @@ async function reassignTask(
 
 		return true;
 	} catch (error) {
-		console.error('[ORG CHANGE] Error reassigning task:', error);
+		logger.error('[ORG CHANGE] Error reassigning task:', error instanceof Error ? error : new Error(String(error)));
 		return false;
 	}
 }
@@ -529,21 +530,21 @@ async function flagTaskForManualReassignment(
 		});
 
 		if (!response.ok) {
-			console.error('[ORG CHANGE] Failed to flag task for manual reassignment:', taskId);
+			logger.error('[ORG CHANGE] Failed to flag task for manual reassignment:', undefined, { taskId });
 			return false;
 		}
 
 		const data = await response.json();
 
 		if (data.errors) {
-			console.error('[ORG CHANGE] GraphQL errors flagging task:', data.errors);
+			logger.error('[ORG CHANGE] GraphQL errors flagging task:', undefined, { errors: data.errors });
 			return false;
 		}
 
-		console.info('[ORG CHANGE] Flagged task for manual reassignment:', taskId);
+		logger.info('[ORG CHANGE] Flagged task for manual reassignment:', { taskId });
 		return true;
 	} catch (error) {
-		console.error('[ORG CHANGE] Error flagging task:', error);
+		logger.error('[ORG CHANGE] Error flagging task:', error instanceof Error ? error : new Error(String(error)));
 		return false;
 	}
 }
@@ -616,7 +617,7 @@ export async function getTasksRequiringManualReassignment(departmentId?: string)
 
 		return tasks;
 	} catch (error) {
-		console.error('[ORG CHANGE] Error fetching tasks requiring reassignment:', error);
+		logger.error('[ORG CHANGE] Error fetching tasks requiring reassignment:', error instanceof Error ? error : new Error(String(error)));
 		return [];
 	}
 }
@@ -629,7 +630,8 @@ export async function getTasksRequiringManualReassignment(departmentId?: string)
 export async function processOrganizationalChange(
 	event: OrganizationalChangeEvent
 ): Promise<TaskReassignmentResult[]> {
-	console.info('[ORG CHANGE] Processing organizational change:', event.type, {
+	logger.info('[ORG CHANGE] Processing organizational change:', {
+		type: event.type,
 		affectedUserId: event.affectedUserId,
 		affectedDepartmentId: event.affectedDepartmentId
 	});
@@ -694,7 +696,7 @@ export async function processOrganizationalChange(
 			break;
 
 		default:
-			console.warn('[ORG CHANGE] Unknown organizational change type:', event.type);
+			logger.warn('[ORG CHANGE] Unknown organizational change type:', { type: event.type });
 	}
 
 	return results;

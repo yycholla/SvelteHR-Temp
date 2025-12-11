@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 	import { metricsService } from '$lib/services/metricsService';
 	import Card from '../base/Card.svelte';
 	import Button from '../base/Button.svelte';
@@ -35,7 +36,7 @@
 			metrics = await response.json();
 		} catch (err: any) {
 			error = err.message;
-			console.error('Failed to load performance metrics:', err);
+			logger.error('Failed to load performance metrics:', err as Error);
 		} finally {
 			loading = false;
 		}

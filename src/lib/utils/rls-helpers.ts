@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * RLS (Row-Level Security) Policy Helpers
  * Feature: 020-we-need-to (Comprehensive Audit Logging with Rollback)
@@ -63,7 +64,7 @@ export function extractJWTClaims(token: string): JWTClaims {
 
 		return claims;
 	} catch (error) {
-		console.error('[RLSHelpers] Failed to extract JWT claims:', error);
+		logger.error('[RLSHelpers] Failed to extract JWT claims:', error as Error);
 		throw new Error('Failed to extract JWT claims');
 	}
 }
@@ -127,7 +128,7 @@ export async function setPostGraphileSessionVariables(
 			SET LOCAL jwt.claims.scope = ${context.scope}
 		`;
 	} catch (error) {
-		console.error('[RLSHelpers] Failed to set session variables:', error);
+		logger.error('[RLSHelpers] Failed to set session variables:', error as Error);
 		throw new Error('Failed to set session variables for RLS');
 	}
 }
@@ -296,7 +297,7 @@ export async function clearPostGraphileSessionVariables(connection: Sql): Promis
 			RESET jwt.claims.scope;
 		`;
 	} catch (error) {
-		console.error('[RLSHelpers] Failed to clear session variables:', error);
+		logger.error('[RLSHelpers] Failed to clear session variables:', error as Error);
 	}
 }
 

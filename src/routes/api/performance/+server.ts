@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Performance Monitoring API Endpoint
  *
@@ -131,7 +132,7 @@ export const GET: RequestHandler = async ({ url, request }) => {
 				});
 		}
 	} catch (err) {
-		console.error('Performance API error:', err);
+		logger.error('Performance API error:', err as Error);
 
 		error(500, 'Failed to retrieve performance data');
 	}
@@ -231,7 +232,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 				error(400, 'Invalid action specified');
 		}
 	} catch (err) {
-		console.error('Performance API POST error:', err);
+		logger.error('Performance API POST error:', err as Error);
 
 		if (err instanceof Error && err.message.includes('JSON')) {
 			error(400, 'Invalid JSON in request body');
@@ -265,7 +266,7 @@ export const PUT: RequestHandler = async ({ request }) => {
 			timestamp: new Date().toISOString()
 		});
 	} catch (err) {
-		console.error('Performance config update error:', err);
+		logger.error('Performance config update error:', err as Error);
 
 		error(500, 'Failed to update performance configuration');
 	}
@@ -292,7 +293,7 @@ export const DELETE: RequestHandler = async ({ url }) => {
 			timestamp: new Date().toISOString()
 		});
 	} catch (err) {
-		console.error('Performance metrics deletion error:', err);
+		logger.error('Performance metrics deletion error:', err as Error);
 
 		error(500, 'Failed to delete performance metrics');
 	}

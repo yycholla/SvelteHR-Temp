@@ -21,6 +21,7 @@ import { browser } from '$app/environment';
 import { afterNavigate, beforeNavigate } from '$app/navigation';
 import { derived, readonly, writable } from 'svelte/store';
 import type { Readable, Writable } from 'svelte/store';
+import { logger } from '$lib/utils/logger';
 
 /**
  * UUID generation with fallbacks for environments that don't support crypto.randomUUID()
@@ -33,7 +34,7 @@ function generateUUID(): string {
 			return crypto.randomUUID();
 		} catch (error) {
 			// Fall through to next method if it fails
-			console.warn('crypto.randomUUID() failed, using fallback', error);
+			logger.warn('crypto.randomUUID() failed, using fallback', { error: error as Error });
 		}
 	}
 
@@ -58,7 +59,7 @@ function generateUUID(): string {
 			].join('-');
 		} catch (error) {
 			// Fall through to Math.random() fallback
-			console.warn('crypto.getRandomValues() failed, using Math.random() fallback', error);
+			logger.warn('crypto.getRandomValues() failed, using Math.random() fallback', { error: error as Error });
 		}
 	}
 
@@ -158,7 +159,7 @@ class ClientPerformanceMonitor {
 		if (!browser || this.isMonitoring) return;
 
 		this.isMonitoring = true;
-		console.log('🚀 Performance monitoring started');
+		logger.info('🚀 Performance monitoring started');
 
 		// Clear previous data
 		this.metrics.set([]);
@@ -178,7 +179,7 @@ class ClientPerformanceMonitor {
 		if (!browser || !this.isMonitoring) return;
 
 		this.isMonitoring = false;
-		console.log('⏹️ Performance monitoring stopped');
+		logger.info('⏹️ Performance monitoring stopped');
 
 		// Clean up observers
 		this.performanceObserver?.disconnect();
@@ -207,7 +208,7 @@ class ClientPerformanceMonitor {
 
 		// Log performance warnings
 		if (fullMetric.status === 'warning' || fullMetric.status === 'error') {
-			console.warn(
+			logger.warn(
 				`🐌 Performance ${fullMetric.status}: ${fullMetric.name} took ${fullMetric.duration}ms`
 			);
 		}
@@ -389,7 +390,7 @@ class ClientPerformanceMonitor {
 
 			this.navigationObserver.observe({ entryTypes: ['navigation'] });
 		} catch (error) {
-			console.warn('Navigation timing observer not supported:', error);
+			logger.warn('Navigation timing observer not supported:', { error: error as Error });
 		}
 
 		// Observe long tasks (>50ms)
@@ -414,7 +415,7 @@ class ClientPerformanceMonitor {
 
 			this.longTaskObserver.observe({ entryTypes: ['longtask'] });
 		} catch (error) {
-			console.warn('Long task observer not supported:', error);
+			logger.warn('Long task observer not supported:', { error: error as Error });
 		}
 	}
 
@@ -438,7 +439,7 @@ class ClientPerformanceMonitor {
 
 			lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
 		} catch (error) {
-			console.warn('LCP observer not supported:', error);
+			logger.warn('LCP observer not supported:', { error: error as Error });
 		}
 
 		// Track First Contentful Paint (FCP)
@@ -456,7 +457,7 @@ class ClientPerformanceMonitor {
 
 			fcpObserver.observe({ entryTypes: ['paint'] });
 		} catch (error) {
-			console.warn('FCP observer not supported:', error);
+			logger.warn('FCP observer not supported:', { error: error as Error });
 		}
 
 		// Track Cumulative Layout Shift (CLS)
@@ -478,7 +479,7 @@ class ClientPerformanceMonitor {
 
 			clsObserver.observe({ entryTypes: ['layout-shift'] });
 		} catch (error) {
-			console.warn('CLS observer not supported:', error);
+			logger.warn('CLS observer not supported:', { error: error as Error });
 		}
 
 		// Track Time to First Byte (TTFB) from navigation timing
@@ -650,7 +651,7 @@ class ClientPerformanceMonitor {
 
 		// Log critical alerts to console
 		if (fullAlert.severity === 'critical' || fullAlert.severity === 'high') {
-			console.error(`🚨 Performance Alert (${fullAlert.severity}): ${fullAlert.message}`);
+			logger.error(`🚨 Performance Alert (${fullAlert.severity}): ${fullAlert.message}`);
 		}
 	}
 

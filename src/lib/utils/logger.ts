@@ -1,7 +1,7 @@
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LogMeta {
-	[key: string]: any;
+	[key: string]: unknown;
 }
 
 class Logger {
@@ -14,8 +14,7 @@ class Logger {
 		this.level = isProduction ? 'warn' : 'info';
 		this.format = 'json'; // Always use JSON format for structured logging
 
-		// eslint-disable-next-line no-console
-		console.log(
+		logger.info(
 			`🔧 Logger initialized: level=${this.level}, format=${this.format}, isProduction=${isProduction}`
 		);
 
@@ -40,8 +39,10 @@ class Logger {
 			}
 		} catch (error) {
 			// Ignore environment variable errors in SSR context
-			// eslint-disable-next-line no-console
-			console.warn('Logger: Could not read environment variables, using defaults');
+
+			logger.warn('Logger: Could not read environment variables, using defaults', {
+				error: error as Error
+			});
 		}
 	}
 
@@ -64,22 +65,19 @@ class Logger {
 
 	debug(message: string, meta?: LogMeta) {
 		if (this.shouldLog('debug')) {
-			// eslint-disable-next-line no-console
-			console.debug(this.formatMessage('debug', message, meta));
+			logger.debug(this.formatMessage('debug', message, meta));
 		}
 	}
 
 	info(message: string, meta?: LogMeta) {
 		if (this.shouldLog('info')) {
-			// eslint-disable-next-line no-console
-			console.info(this.formatMessage('info', message, meta));
+			logger.info(this.formatMessage('info', message, meta));
 		}
 	}
 
 	warn(message: string, meta?: LogMeta) {
 		if (this.shouldLog('warn')) {
-			// eslint-disable-next-line no-console
-			console.warn(this.formatMessage('warn', message, meta));
+			logger.warn(this.formatMessage('warn', message, meta));
 		}
 	}
 
@@ -92,8 +90,8 @@ class Logger {
 						...meta
 					}
 				: meta;
-			// eslint-disable-next-line no-console
-			console.error(this.formatMessage('error', message, errorMeta || {}));
+
+			logger.error(this.formatMessage('error', message, errorMeta || {}));
 		}
 	}
 

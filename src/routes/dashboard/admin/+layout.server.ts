@@ -26,7 +26,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 
 	if (!isAdmin) {
 		// Log admin access attempt for audit purposes
-		console.warn('[ADMIN ACCESS DENIED]', {
+		logger.warn('[ADMIN ACCESS DENIED]', {
 			userId: locals.user.id,
 			userEmail: locals.user.email,
 			roles: userRoles,
@@ -38,7 +38,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	}
 
 	// Log successful admin access
-	console.info('[ADMIN ACCESS GRANTED]', {
+	logger.info('[ADMIN ACCESS GRANTED]', {
 		userId: locals.user.id,
 		userEmail: locals.user.email,
 		timestamp: new Date().toISOString()

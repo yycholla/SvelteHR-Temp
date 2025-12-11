@@ -4,7 +4,7 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
-import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies, url } = event;
@@ -46,7 +46,7 @@ export const load: PageServerLoad = async (event) => {
 		// Create authenticated GraphQL client with session cookies
 		const client = GraphQLClient.fromCookies(cookies);
 
-		console.log('[Team Tasks] Loading team tasks for user:', locals.user.id);
+		logger.info('[Team Tasks] Loading team tasks for user:', locals.user.id);
 
 		// Load current user's information to get their department
 		const currentUserResponse = await client.query(
@@ -70,7 +70,7 @@ export const load: PageServerLoad = async (event) => {
 		const currentUser = currentUserResponse?.data?.user;
 		const userDepartmentId = currentUser?.departmentId;
 
-		console.log('[Team Tasks] Current user department ID:', userDepartmentId);
+		logger.info('[Team Tasks] Current user department ID:'.replace(/['`]$/, `: ${userDepartmentId}'`/));
 
 		// Load departments for team task assignment
 		const departmentsResponse = await client.query(
@@ -88,15 +88,15 @@ export const load: PageServerLoad = async (event) => {
 			}
 		);
 
-		console.log('[Team Tasks] Departments response:', departmentsResponse);
+		logger.info('[Team Tasks] Departments response:'.replace(/['`]$/, `: ${departmentsResponse}'`/));
 
 		if (departmentsResponse.errors) {
-			console.error('[Team Tasks] Departments GraphQL errors:', departmentsResponse.errors);
+			logger.error('[Team Tasks] Departments GraphQL errors:', departmentsResponse.errors);
 			throw new Error(departmentsResponse.errors[0]?.message || 'Failed to load departments');
 		}
 
 		const departments = departmentsResponse?.data?.departments || [];
-		console.log('[Team Tasks] Found departments:', departments.length);
+		logger.info('[Team Tasks] Found departments:', departments.length);
 
 		// Load team tasks
 		// NOTE: Rust GraphQL schema doesn't support complex filters
@@ -150,16 +150,16 @@ export const load: PageServerLoad = async (event) => {
 			}
 		);
 
-		console.log('[Team Tasks] Tasks response:', tasksResponse);
+		logger.info('[Team Tasks] Tasks response:'.replace(/['`]$/, `: ${tasksResponse}'`/));
 
 		if (tasksResponse.errors) {
-			console.error('[Team Tasks] GraphQL errors:', tasksResponse.errors);
+			logger.error('[Team Tasks] GraphQL errors:', tasksResponse.errors);
 			throw new Error(tasksResponse.errors[0]?.message || 'Failed to load team tasks');
 		}
 
 		let tasks = tasksResponse?.data?.tasks || [];
 
-		console.log('[Team Tasks] Total tasks before filter:', tasks.length);
+		logger.info('[Team Tasks] Total tasks before filter:', tasks.length);
 
 		if (userDepartmentId) {
 			// User has a department - filter to show only tasks assigned to that department
@@ -172,13 +172,13 @@ export const load: PageServerLoad = async (event) => {
 				return isUserDepartment && hasNoIndividualAssignee;
 			});
 
-			console.log(
+			logger.info(
 				`[Team Tasks] Filtered to ${tasks.length} tasks assigned to department:`,
 				userDepartmentId
 			);
 		} else {
 			// User is not assigned to a department - show no tasks
-			console.warn('[Team Tasks] User is not assigned to a department - showing no team tasks');
+			logger.warn('[Team Tasks] User is not assigned to a department - showing no team tasks');
 			tasks = [];
 		}
 
@@ -272,7 +272,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[Team Tasks Load Error]', err);
+		logger.error('[Team Tasks Load Error]', err as Error);
 
 		const errorResponse = createErrorResponse(
 			err instanceof Error ? err : new Error('Team tasks load failed'),
@@ -282,7 +282,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 		);
 
-		console.error('[Team Tasks Error Details]', {
+		logger.error('[Team Tasks Error Details]', {
 			userId: locals.user?.id,
 			error: errorResponse
 		});
@@ -322,7 +322,7 @@ export const actions: Actions = {
 			const taskTypeId = formData.get('taskTypeId') as string | null;
 			const dueDate = formData.get('dueDate') as string | null;
 
-			console.log('[Team Tasks - Quick Add] Creating team task:', {
+			logger.info('[Team Tasks - Quick Add] Creating team task:', {
 				title,
 				priority,
 				departmentId,
@@ -373,7 +373,7 @@ export const actions: Actions = {
 			const createData = await createResponse.json();
 
 			if (createData.errors) {
-				console.error('[Team Tasks - Quick Add] Create errors:', createData.errors);
+				logger.error('[Team Tasks - Quick Add] Create errors:', createData.errors);
 				return fail(400, {
 					error: createData.errors[0]?.message || 'Failed to create task'
 				});
@@ -387,14 +387,14 @@ export const actions: Actions = {
 				});
 			}
 
-			console.log('[Team Tasks - Quick Add] Task created successfully:', newTask.id);
+			logger.info('[Team Tasks - Quick Add] Task created successfully:', newTask.id);
 
 			return {
 				success: true,
 				taskId: newTask.id
 			};
 		} catch (err) {
-			console.error('[Team Tasks - Quick Add] Create error:', err);
+			logger.error('[Team Tasks - Quick Add] Create error:', err as Error);
 
 			return fail(500, {
 				error: err instanceof Error ? err.message : 'Failed to create task'

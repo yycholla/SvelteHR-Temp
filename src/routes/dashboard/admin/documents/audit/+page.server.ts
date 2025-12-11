@@ -23,7 +23,7 @@ export const load: PageServerLoad = async (event) => {
 
 	if (false) {
 		// Log access attempt for audit purposes
-		console.warn('[DOCUMENT AUDIT ACCESS DENIED]', {
+		logger.warn('[DOCUMENT AUDIT ACCESS DENIED]', {
 			userId: locals.user.id,
 			userEmail: locals.user.email,
 			userRole: locals.user.role,
@@ -38,7 +38,7 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	// Log successful access
-	console.info('[DOCUMENT AUDIT ACCESS GRANTED]', {
+	logger.info('[DOCUMENT AUDIT ACCESS GRANTED]', {
 		userId: locals.user.id,
 		userEmail: locals.user.email,
 		timestamp: new Date().toISOString()
@@ -156,7 +156,7 @@ export const load: PageServerLoad = async (event) => {
 			isSystemAdmin
 		};
 	} catch (err) {
-		console.error('Audit log load error:', err);
+		logger.error('Audit log load error:', err as Error);
 
 		// Re-throw redirects and errors
 		if (err && typeof err === 'object' && ('status' in err || 'location' in err)) {

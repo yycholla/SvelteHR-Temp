@@ -3,7 +3,7 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { params, cookies } = event;
@@ -59,7 +59,7 @@ export const load: PageServerLoad = async (event) => {
 			Cookie: cookieHeader
 		};
 
-		console.log(
+		logger.info(
 			'[Employee Edit] Using Rust GraphQL backend with session-based auth, user roles:',
 			locals.roles
 		);
@@ -278,7 +278,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[Employee Edit Load Error]', err);
+		logger.error('[Employee Edit Load Error]', err as Error);
 
 		// If it's already a SvelteKit error, rethrow it
 		if (err && typeof err === 'object' && 'status' in err) {
@@ -346,7 +346,7 @@ export const actions: Actions = {
 				Cookie: cookieHeader
 			};
 
-			console.log('[Employee Update] Using session-based auth for mutation');
+			logger.info('[Employee Update] Using session-based auth for mutation');
 
 			// Build update input - only include fields that have values
 			const updateInput: any = {};
@@ -399,17 +399,17 @@ export const actions: Actions = {
 			const updateData = await updateResponse.json();
 
 			if (updateData.errors) {
-				console.error('[Employee Update Error]', updateData.errors);
+				logger.error('[Employee Update Error]', updateData.errors);
 				return fail(500, {
 					error: 'Failed to update employee'
 				});
 			}
 
-			console.log('[Employee Update] User profile updated successfully');
+			logger.info('[Employee Update] User profile updated successfully');
 
 			// Handle role assignment if role changed
 			if (role) {
-				console.log('[Employee Update] Updating role to:', role);
+				logger.info('[Employee Update] Updating role to:'.replace(/['`]$/, `: ${role}'`/));
 
 				const updatedEmployee = updateData?.data?.users?.updateUser;
 				const currentRoles = updatedEmployee?.roles || [];
@@ -461,7 +461,7 @@ export const actions: Actions = {
 							});
 							const removeData = await removeResponse.json();
 							if (removeData.errors) {
-								console.error(
+								logger.error(
 									`[Employee Update] Error removing role ${currentRole.name}:`,
 									removeData.errors
 								);
@@ -469,7 +469,7 @@ export const actions: Actions = {
 									error: `Failed to remove old role: ${removeData.errors[0]?.message || 'Unknown error'}`
 								});
 							}
-							console.log(`[Employee Update] Removed role: ${currentRole.name}`);
+							logger.info(`[Employee Update] Removed role: ${currentRole.name}`);
 						}
 
 						// Assign new role
@@ -501,18 +501,18 @@ export const actions: Actions = {
 						const assignData = await assignResponse.json();
 
 						if (assignData.errors) {
-							console.error('[Employee Update] Role assignment errors:', assignData.errors);
+							logger.error('[Employee Update] Role assignment errors:', assignData.errors);
 							return fail(500, {
 								error: `Failed to assign new role: ${assignData.errors[0]?.message || 'Unknown error'}`
 							});
 						} else {
-							console.log(`[Employee Update] Assigned new role: ${role}`);
+							logger.info(`[Employee Update] Assigned new role: ${role}`);
 						}
 					} else {
-						console.warn(`[Employee Update] Role "${role}" not found in database`);
+						logger.warn(`[Employee Update] Role "${role}" not found in database`);
 					}
 				} else {
-					console.log('[Employee Update] Role unchanged, skipping role assignment');
+					logger.info('[Employee Update] Role unchanged, skipping role assignment');
 				}
 			}
 
@@ -666,7 +666,7 @@ export const actions: Actions = {
 
 			// Handle compensation (admin only)
 			// TODO: Compensation mutations not yet implemented in GraphQL schema
-			console.warn(
+			logger.warn(
 				'[Employee Update] Compensation mutations not yet implemented - skipping compensation update'
 			);
 
@@ -678,7 +678,7 @@ export const actions: Actions = {
 				throw err;
 			}
 
-			console.error('[Employee Update Action Error]', err);
+			logger.error('[Employee Update Action Error]', err as Error);
 			return fail(500, {
 				error: 'Failed to update employee'
 			});

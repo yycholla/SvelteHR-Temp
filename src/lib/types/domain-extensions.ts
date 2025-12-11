@@ -10,8 +10,8 @@
 
 import type {
 	Department as DepartmentBase,
-	User,
 	JobInfosConnection,
+	User,
 	UsersConnection
 } from '$lib/generated/graphql';
 

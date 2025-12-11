@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { logger } from '$lib/utils/logger';
 	import { fade } from 'svelte/transition';
 	import { toast } from 'svelte-sonner';
 	import type { ActionData, PageData } from './$types';
@@ -44,7 +45,7 @@
 						// Auto-guess mapping with new headers
 						guessMapping(newHeaders);
 					} catch (e) {
-						console.error('Failed to parse headers', e);
+						logger.error('Failed to parse headers', e as Error);
 						toast.error('Failed to parse CSV headers');
 					}
 				}
@@ -115,7 +116,7 @@
 		// If we found a header row deeper in the file (and it has a reasonable score indicating it's not just noise)
 		// Score > 3 implies at least 1 keyword match or > 3 columns
 		if (bestHeaderIndex > 0 && maxScore > 3) {
-			console.log(
+			logger.info(
 				`[CSV Cleaner] Skipping ${bestHeaderIndex} rows. Found header at line ${bestHeaderIndex + 1} (Score: ${maxScore})`
 			);
 			toast.info(`Detected metadata rows. Skipping to line ${bestHeaderIndex + 1}.`);

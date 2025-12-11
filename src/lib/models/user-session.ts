@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * T023: UserSession Entity Model
  *
@@ -523,7 +524,7 @@ export class UserSession {
 	private hashUserId(userId: string): string {
 		// Handle undefined userId gracefully
 		if (!userId) {
-			console.warn('UserSession.hashUserId called with undefined userId, using fallback');
+			logger.warn('UserSession.hashUserId called with undefined userId, using fallback');
 			userId = 'anonymous-user';
 		}
 

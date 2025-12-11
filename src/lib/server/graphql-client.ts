@@ -1,6 +1,7 @@
 import { dev } from '$app/environment';
 import { getGraphQLEndpoint } from './api-url';
 import type { Cookies } from '@sveltejs/kit';
+import { logger } from '$lib/utils/logger';
 
 export interface GraphQLError {
 	message: string;
@@ -118,7 +119,7 @@ export class GraphQLClient {
 				if (!response.ok) {
 					// Try to get error details from response body
 					const errorText = await response.text();
-					console.error(`❌ GraphQL HTTP ${response.status}:`, errorText.substring(0, 500));
+					logger.error(`❌ GraphQL HTTP ${response.status}: ${errorText.substring(0, 500)}`);
 					throw new Error(`GraphQL endpoint returned ${response.status}`);
 				}
 
@@ -126,9 +127,9 @@ export class GraphQLClient {
 
 				// Log GraphQL errors if present
 				if (result.errors && result.errors.length > 0) {
-					console.error(`❌ GraphQL returned ${result.errors.length} error(s):`);
+					logger.error(`❌ GraphQL returned ${result.errors.length} error(s):`);
 					result.errors.forEach((err: GraphQLError, idx: number) => {
-						console.error(`  Error ${idx + 1}:`, {
+						logger.error(`  Error ${idx + 1}: ${err.message}`, undefined, {
 							message: err.message,
 							path: err.path,
 							extensions: err.extensions
@@ -181,7 +182,7 @@ export class GraphQLClient {
 				lastError = error instanceof Error ? error : new Error(String(error));
 
 				if (dev && attempt < retries) {
-					console.log(`🔄 Retrying GraphQL operation (attempt ${attempt + 1}/${retries + 1})`);
+					logger.info(`🔄 Retrying GraphQL operation (attempt ${attempt + 1}/${retries + 1})`);
 				}
 
 				if (attempt < retries) {

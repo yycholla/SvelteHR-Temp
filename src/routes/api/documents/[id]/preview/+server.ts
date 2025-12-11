@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Document preview API endpoint (Feature 024)
 // GET /api/documents/[id]/preview - Generate document preview (with decryption if encrypted)
 
@@ -67,7 +68,7 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 
 		if (!canAccess) {
 			// Log denied access
-			console.log(`Access denied for user ${userId} to document ${documentId}`);
+			logger.info(`Access denied for user ${userId} to document ${documentId}`);
 			error(403, {
 				message: 'Access denied. You do not have permission to preview this document.'
 			});
@@ -106,7 +107,7 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 			// - Convert to PDF using LibreOffice headless
 			// - Re-encrypt PDF
 			// - Store converted version
-			console.log(`Office document conversion queued for ${documentId}`);
+			logger.info(`Office document conversion queued for ${documentId}`);
 		}
 
 		// Step 7: Return preview metadata
@@ -120,7 +121,7 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 			mimeType: document.mime_type
 		});
 	} catch (err) {
-		console.error('Document preview error:', err);
+		logger.error('Document preview error:', err as Error);
 
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err;

@@ -13,6 +13,7 @@
 
 <script lang="ts">
 	import type { AvailabilityStatus, LinkedResource, ResourceType } from '$lib/types/task';
+	import { logger } from '$lib/utils/logger';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Select from '$lib/components/ui/select';
@@ -190,7 +191,7 @@
 			await onAddResource(selectedResourceType, selectedResourceId, selectedResource.title);
 			isAddDialogOpen = false;
 		} catch (error) {
-			console.error('[LinkedResources] Add error:', error);
+			logger.error('Catch failed', error as Error);
 			// Error handled by parent
 		} finally {
 			isSubmitting = false;
@@ -204,7 +205,7 @@
 		try {
 			await onRemoveResource(resourceId);
 		} catch (error) {
-			console.error('[LinkedResources] Remove error:', error);
+			logger.error('Catch failed', error as Error);
 			// Error handled by parent
 		}
 	}

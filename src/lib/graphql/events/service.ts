@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Events Operations Service
 // Migrated from events-operations.ts
 
@@ -375,7 +376,7 @@ export class EventsOperations extends BaseOperations {
 				notificationId: notification?.id
 			};
 		} catch (error) {
-			console.error('[EventsOperations] Error creating notification:', error);
+			logger.error('Catch failed', error as Error);
 			return {
 				success: false,
 				error: error instanceof Error ? error.message : 'Unknown error'

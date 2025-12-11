@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Document management endpoints (Feature 024)
 // GET /api/documents/[id] - Get document by ID
 // DELETE /api/documents/[id] - Soft delete a document
@@ -68,7 +69,7 @@ export const GET: RequestHandler = async ({ params, locals, cookies, fetch }) =>
 			.toPromise();
 
 		if (result.error) {
-			console.error('GraphQL errors:', result.error);
+			logger.error('GraphQL errors:', result.error);
 			error(500, { message: 'Failed to fetch document from GraphQL backend' });
 		}
 
@@ -93,7 +94,7 @@ export const GET: RequestHandler = async ({ params, locals, cookies, fetch }) =>
 
 		return json(document);
 	} catch (err) {
-		console.error('Document fetch error:', err);
+		logger.error('Document fetch error:', err as Error);
 
 		// Re-throw SvelteKit errors
 		if (err && typeof err === 'object' && 'status' in err) {
@@ -122,7 +123,7 @@ export const DELETE: RequestHandler = async ({ params, locals, request, cookies,
 	}
 
 	try {
-		console.log(
+		logger.info(
 			`[DELETE] Starting delete for document ${documentId} by user ${userId} (${userRole})`
 		);
 
@@ -137,7 +138,7 @@ export const DELETE: RequestHandler = async ({ params, locals, request, cookies,
 			.toPromise();
 
 		if (deleteResult.error) {
-			console.error('GraphQL delete errors:', deleteResult.error);
+			logger.error('GraphQL delete errors:', deleteResult.error);
 			error(500, { message: 'Failed to delete document via GraphQL backend' });
 		}
 
@@ -152,7 +153,7 @@ export const DELETE: RequestHandler = async ({ params, locals, request, cookies,
 			'unknown';
 		const userAgent = request.headers.get('user-agent') || 'unknown';
 
-		console.log(`[DELETE] Logging access: ip=${clientIp}, ua=${userAgent}`);
+		logger.info(`[DELETE] Logging access: ip=${clientIp}, ua=${userAgent}`);
 
 		await urqlClient
 			.mutation(CREATE_ACCESS_LOG_MUTATION, {
@@ -166,15 +167,15 @@ export const DELETE: RequestHandler = async ({ params, locals, request, cookies,
 			})
 			.toPromise();
 
-		console.log(`[DELETE] Access log created successfully`);
+		logger.info(`[DELETE] Access log created successfully`);
 
 		return json({
 			success: true,
 			message: `Document has been deleted successfully.`
 		});
 	} catch (err) {
-		console.error('[DELETE] Document delete error:', err);
-		console.error('[DELETE] Error stack:', (err as Error).stack);
+		logger.error('[DELETE] Document delete error:', err as Error);
+		logger.error('[DELETE] Error stack:', (err as Error).stack);
 
 		// Re-throw SvelteKit errors
 		if (err && typeof err === 'object' && 'status' in err) {

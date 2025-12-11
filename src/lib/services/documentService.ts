@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Document operations service (Feature 024)
 // High-level service coordinating encryption, storage, and metadata management
 
@@ -87,7 +88,7 @@ export async function prepareDocumentUpload(
 			uploadInput
 		};
 	} catch (error) {
-		console.error('Document preparation failed:', error);
+		logger.error('Catch failed', error as Error);
 		throw error;
 	}
 }
@@ -99,7 +100,7 @@ export async function uploadDocument(
 	metadata: DocumentMetadata,
 	onProgress?: (progress: UploadProgress) => void
 ): Promise<UploadResult> {
-	console.warn(
+	logger.warn(
 		'[documentService] uploadDocument is deprecated. Use prepareDocumentUpload + server-side GraphQL.'
 	);
 

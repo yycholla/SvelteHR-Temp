@@ -2,8 +2,6 @@
 > sveltehr@0.0.1 analyze:complexity
 > eslint --config eslint.analysis.config.js src
 
-(node:139879) ESLintIgnoreWarning: The ".eslintignore" file is no longer supported. Switch to using the "ignores" property in "eslint.config.js": https://eslint.org/docs/latest/use/configure/migration-guide#ignoring-files
-(Use `node --trace-warnings ...` to show where the warning was created)
 
 /home/chanway/Projects/SvelteHR/src/hooks.server.ts
   206:1   warning  Async function 'authenticateUser' has a complexity of 21. Maximum allowed is 10  complexity
@@ -1814,36 +1812,14 @@
   359:4   warning  Unexpected console statement                                                                  no-console
 
 /home/chanway/Projects/SvelteHR/src/lib/server/tasks/organizational-change-handlers.ts
-   60:8   warning  Async function 'handleManagerChange' has too many parameters (5). Maximum allowed is 4      max-params
-  106:3   warning  Unexpected console statement                                                                no-console
-  114:3   warning  Unexpected console statement                                                                no-console
-  186:3   warning  Unexpected console statement                                                                no-console
-  195:3   warning  Unexpected console statement                                                                no-console
-  254:3   warning  Unexpected console statement                                                                no-console
-  259:3   warning  Unexpected console statement                                                                no-console
-  298:3   warning  Unexpected console statement                                                                no-console
-  303:3   warning  Unexpected console statement                                                                no-console
-  348:4   warning  Unexpected console statement                                                                no-console
-  355:3   warning  Unexpected console statement                                                                no-console
-  390:3   warning  Unexpected console statement                                                                no-console
-  425:27  warning  Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
-  427:3   warning  Unexpected console statement                                                                no-console
-  435:1   warning  Async function 'reassignTask' has too many parameters (5). Maximum allowed is 4             max-params
-  473:4   warning  Unexpected console statement                                                                no-console
-  480:4   warning  Unexpected console statement                                                                no-console
-  489:3   warning  Unexpected console statement                                                                no-console
-  499:2   warning  'performedBy' is defined but never used. Allowed unused args must match /^_/u               @typescript-eslint/no-unused-vars
-  501:1   warning  File has too many lines (701). Maximum allowed is 500                                       max-lines
-  532:4   warning  Unexpected console statement                                                                no-console
-  539:4   warning  Unexpected console statement                                                                no-console
-  543:3   warning  Unexpected console statement                                                                no-console
-  546:3   warning  Unexpected console statement                                                                no-console
-  558:20  warning  Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
-  614:32  warning  Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
-  619:3   warning  Unexpected console statement                                                                no-console
-  629:8   warning  Async function 'processOrganizationalChange' has a complexity of 18. Maximum allowed is 10  complexity
-  632:2   warning  Unexpected console statement                                                                no-console
-  697:4   warning  Unexpected console statement                                                                no-console
+   61:8   warning  Async function 'handleManagerChange' has too many parameters (5). Maximum allowed is 4      max-params
+  426:27  warning  Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  436:1   warning  Async function 'reassignTask' has too many parameters (5). Maximum allowed is 4             max-params
+  500:2   warning  'performedBy' is defined but never used. Allowed unused args must match /^_/u               @typescript-eslint/no-unused-vars
+  501:1   warning  File has too many lines (703). Maximum allowed is 500                                       max-lines
+  559:20  warning  Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  615:32  warning  Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  630:8   warning  Async function 'processOrganizationalChange' has a complexity of 18. Maximum allowed is 10  complexity
 
 /home/chanway/Projects/SvelteHR/src/lib/server/tasks/resource-validation.ts
    27:28  warning  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
@@ -1877,29 +1853,11 @@
   610:3  warning  Unexpected console statement                                                                no-console
 
 /home/chanway/Projects/SvelteHR/src/lib/server/tasks/task-reminder-scheduler.ts
-   13:15  warning  'Task' is defined but never used                                                  @typescript-eslint/no-unused-vars
-   43:4   warning  Unexpected console statement                                                      no-console
-   47:3   warning  Unexpected console statement                                                      no-console
-   65:4   warning  Unexpected console statement                                                      no-console
-   74:4   warning  Unexpected console statement                                                      no-console
-   84:5   warning  Unexpected console statement                                                      no-console
-   88:4   warning  Unexpected console statement                                                      no-console
-   94:4   warning  Unexpected console statement                                                      no-console
-  157:5   warning  Unexpected console statement                                                      no-console
-  167:20  warning  Unexpected any. Specify a different type                                          @typescript-eslint/no-explicit-any
-  191:17  warning  Unexpected any. Specify a different type                                          @typescript-eslint/no-explicit-any
-  206:4   warning  Unexpected console statement                                                      no-console
-  256:4   warning  Unexpected console statement                                                      no-console
-  260:4   warning  Unexpected console statement                                                      no-console
-  326:4   warning  Unexpected console statement                                                      no-console
-  331:4   warning  Unexpected console statement                                                      no-console
-  397:3   warning  Unexpected console statement                                                      no-console
-  405:8   warning  Async function 'checkOverdueTasks' has a complexity of 12. Maximum allowed is 10  complexity
-  452:4   warning  Unexpected console statement                                                      no-console
-  472:4   warning  Unexpected console statement                                                      no-console
-  477:3   warning  Unexpected console statement                                                      no-console
-  488:2   warning  Unexpected console statement                                                      no-console
-  497:2   warning  Unexpected console statement                                                      no-console
+   13:15  warning  'Task' is defined but never used                                                              @typescript-eslint/no-unused-vars
+  168:20  warning  Unexpected any. Specify a different type                                                      @typescript-eslint/no-explicit-any
+  192:17  warning  Unexpected any. Specify a different type                                                      @typescript-eslint/no-explicit-any
+  268:2   warning  Static async method 'createNotificationRecord' has a complexity of 11. Maximum allowed is 10  complexity
+  406:8   warning  Async function 'checkOverdueTasks' has a complexity of 13. Maximum allowed is 10              complexity
 
 /home/chanway/Projects/SvelteHR/src/lib/services/auditService.ts
    17:8  warning  Async function 'logAccess' has too many parameters (6). Maximum allowed is 4            max-params
@@ -3746,46 +3704,20 @@ Prefer explicitly defining any function parameters and return type  @typescript-
 
 /home/chanway/Projects/SvelteHR/src/routes/dashboard/employees/+page.server.ts
     6:23  warning  Member 'getUserPermissions' of the import declaration should be sorted alphabetically  sort-imports
-    9:51  warning  Async arrow function has a complexity of 40. Maximum allowed is 10                     complexity
-   10:10  warning  'cookies' is assigned a value but never used                                           @typescript-eslint/no-unused-vars
-   26:2   warning  Unexpected console statement                                                           no-console
-   27:2   warning  Unexpected console statement                                                           no-console
-   28:2   warning  Unexpected console statement                                                           no-console
-   82:3   warning  Unexpected console statement                                                           no-console
-   86:3   warning  Unexpected console statement                                                           no-console
-  128:4   warning  Unexpected console statement                                                           no-console
-  133:5   warning  Unexpected console statement                                                           no-console
-  137:3   warning  Unexpected console statement                                                           no-console
-  141:3   warning  Unexpected console statement                                                           no-console
-  147:58  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
-  148:60  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
-  151:3   warning  Unexpected console statement                                                           no-console
-  153:25  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
-  158:3   warning  Unexpected console statement                                                           no-console
-  167:45  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
-  168:4   warning  Unexpected console statement                                                           no-console
+   10:51  warning  Async arrow function has a complexity of 39. Maximum allowed is 10                     complexity
+   11:10  warning  'cookies' is assigned a value but never used                                           @typescript-eslint/no-unused-vars
+  144:58  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
+  145:60  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
+  157:45  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
+  160:45  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
+  166:45  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
   171:45  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
-  172:4   warning  Unexpected console statement                                                           no-console
-  178:45  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
-  179:4   warning  Unexpected console statement                                                           no-console
-  188:45  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
-  189:28  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
-  191:4   warning  Unexpected console statement                                                           no-console
-  202:45  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
-  209:17  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
-  225:4   warning  Unexpected console statement                                                           no-console
-  234:77  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
-  243:72  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
-  249:3   warning  Unexpected console statement                                                           no-console
-  287:4   warning  Unexpected console statement                                                           no-console
-  292:5   warning  Unexpected console statement                                                           no-console
-  301:3   warning  Unexpected console statement                                                           no-console
-  315:18  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
-  319:4   warning  Unexpected console statement                                                           no-console
-  325:3   warning  Unexpected console statement                                                           no-console
-  329:3   warning  Unexpected console statement                                                           no-console
-  364:3   warning  Unexpected console statement                                                           no-console
-  377:3   warning  Unexpected console statement                                                           no-console
+  172:28  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
+  184:45  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
+  191:17  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
+  215:77  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
+  224:72  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
+  283:18  warning  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
 
 /home/chanway/Projects/SvelteHR/src/routes/dashboard/employees/+page.svelte
     5:11  warning  'Input' is defined but never used. Allowed unused vars must match /^(\$\$Props|\$\$Events|\$\$Slots)$/u                        @typescript-eslint/no-unused-vars
@@ -4037,52 +3969,18 @@ Prefer explicitly defining any function parameters and return type  @typescript-
 
 /home/chanway/Projects/SvelteHR/src/routes/dashboard/events/+page.server.ts
     9:23  warning  Member 'getUserPermissions' of the import declaration should be sorted alphabetically  sort-imports
-   21:15  warning  'ActivityLogFilter' is defined but never used                                          @typescript-eslint/no-unused-vars
-   30:51  warning  Async arrow function has a complexity of 23. Maximum allowed is 10                     complexity
-  215:3   warning  Unexpected console statement                                                           no-console
-  240:10  warning  'getRoleLevel' is defined but never used                                               @typescript-eslint/no-unused-vars
-  255:16  warning  'fetchEventComments' is defined but never used                                         @typescript-eslint/no-unused-vars
-  271:4   warning  Unexpected console statement                                                           no-console
-  284:3   warning  Unexpected console statement                                                           no-console
-  290:16  warning  'fetchEventHistory' is defined but never used                                          @typescript-eslint/no-unused-vars
-  306:4   warning  Unexpected console statement                                                           no-console
-  319:3   warning  Unexpected console statement                                                           no-console
-  325:16  warning  'fetchUserWaitlistStatus' is defined but never used                                    @typescript-eslint/no-unused-vars
-  339:4   warning  Unexpected console statement                                                           no-console
-  356:3   warning  Unexpected console statement                                                           no-console
-  432:4   warning  Unexpected console statement                                                           no-console
-  441:20  warning  'cookies' is assigned a value but never used                                           @typescript-eslint/no-unused-vars
-  501:1   warning  File has too many lines (950). Maximum allowed is 500                                  max-lines
-  538:4   warning  Unexpected console statement                                                           no-console
-  640:4   warning  Unexpected console statement                                                           no-console
-  650:3   warning  Unexpected console statement                                                           no-console
-  663:11  warning  'locals' is assigned a value but never used                                            @typescript-eslint/no-unused-vars
-  668:3   warning  Unexpected console statement                                                           no-console
-  681:4   warning  Unexpected console statement                                                           no-console
-  690:4   warning  Unexpected console statement                                                           no-console
-  704:4   warning  Unexpected console statement                                                           no-console
-  712:2   warning  Async method 'updateRsvpStatus' has a complexity of 20. Maximum allowed is 10          complexity
-  715:3   warning  Unexpected console statement                                                           no-console
-  730:3   warning  Unexpected console statement                                                           no-console
-  739:3   warning  Unexpected console statement                                                           no-console
-  748:4   warning  Unexpected console statement                                                           no-console
-  754:3   warning  Unexpected console statement                                                           no-console
-  761:4   warning  Unexpected console statement                                                           no-console
-  778:5   warning  Unexpected console statement                                                           no-console
-  784:5   warning  Unexpected console statement                                                           no-console
-  787:5   warning  Unexpected console statement                                                           no-console
-  809:5   warning  Unexpected console statement                                                           no-console
-  816:6   warning  Unexpected console statement                                                           no-console
-  824:7   warning  Unexpected console statement                                                           no-console
-  837:7   warning  Blocks are nested too deeply (5). Maximum allowed is 4                                 max-depth
-  838:8   warning  Unexpected console statement                                                           no-console
-  845:8   warning  Unexpected console statement                                                           no-console
-  853:6   warning  Unexpected console statement                                                           no-console
-  857:4   warning  Unexpected console statement                                                           no-console
-  860:4   warning  Unexpected console statement                                                           no-console
-  862:5   warning  Unexpected console statement                                                           no-console
-  871:2   warning  Async method 'setEventReminder' has a complexity of 12. Maximum allowed is 10          complexity
-  943:4   warning  Unexpected console statement                                                           no-console
+   22:15  warning  'ActivityLogFilter' is defined but never used                                          @typescript-eslint/no-unused-vars
+   31:51  warning  Async arrow function has a complexity of 24. Maximum allowed is 10                     complexity
+  241:10  warning  'getRoleLevel' is defined but never used                                               @typescript-eslint/no-unused-vars
+  256:16  warning  'fetchEventComments' is defined but never used                                         @typescript-eslint/no-unused-vars
+  291:16  warning  'fetchEventHistory' is defined but never used                                          @typescript-eslint/no-unused-vars
+  326:16  warning  'fetchUserWaitlistStatus' is defined but never used                                    @typescript-eslint/no-unused-vars
+  442:20  warning  'cookies' is assigned a value but never used                                           @typescript-eslint/no-unused-vars
+  501:1   warning  File has too many lines (951). Maximum allowed is 500                                  max-lines
+  664:11  warning  'locals' is assigned a value but never used                                            @typescript-eslint/no-unused-vars
+  713:2   warning  Async method 'updateRsvpStatus' has a complexity of 21. Maximum allowed is 10          complexity
+  838:7   warning  Blocks are nested too deeply (5). Maximum allowed is 4                                 max-depth
+  872:2   warning  Async method 'setEventReminder' has a complexity of 13. Maximum allowed is 10          complexity
 
 /home/chanway/Projects/SvelteHR/src/routes/dashboard/events/+page.svelte
    12:11  warning  'Badge' is defined but never used. Allowed unused vars must match /^(\$\$Props|\$\$Events|\$\$Slots)$/u                    @typescript-eslint/no-unused-vars
@@ -5420,6 +5318,6 @@ Prefer explicitly defining any function parameters and return type  @typescript-
   18:8  warning  Unexpected goto() call without resolve()  svelte/no-navigation-without-resolve
   25:9  warning  Unexpected goto() call without resolve()  svelte/no-navigation-without-resolve
 
-✖ 4470 problems (1 error, 4469 warnings)
+✖ 4370 problems (1 error, 4369 warnings)
   1 error and 42 warnings potentially fixable with the `--fix` option.
 

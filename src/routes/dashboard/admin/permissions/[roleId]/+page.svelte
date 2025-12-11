@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { logger } from '$lib/utils/logger';
 	import { invalidateAll } from '$app/navigation';
 	import { goto } from '$app/navigation';
 	import { ArrowLeft, ChevronRight, Save, Search, Zap } from '@lucide/svelte';
@@ -8,9 +9,9 @@
 	const { data, form } = $props();
 
 	// Debug logging
-	console.log('[ROLE PERMISSIONS PAGE] Data:', data);
-	console.log('[ROLE PERMISSIONS PAGE] Role:', data.role);
-	console.log('[ROLE PERMISSIONS PAGE] Permissions:', data.permissions?.length);
+	logger.info('[ROLE PERMISSIONS PAGE] Data:'.replace(/['`]$/, `: ${data}'`/));
+	logger.info('[ROLE PERMISSIONS PAGE] Role:', data.role);
+	logger.info('[ROLE PERMISSIONS PAGE] Permissions:', data.permissions?.length);
 
 	// State management - using matrix structure
 	interface ResourcePermissions {

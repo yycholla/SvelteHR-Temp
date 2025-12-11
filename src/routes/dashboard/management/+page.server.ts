@@ -3,7 +3,7 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 
 export const load: PageServerLoad = async (event) => {
@@ -28,7 +28,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// If backend is not ready, return error state but don't crash
 		if (!backendReady) {
-			console.warn('Backend not ready for management dashboard');
+			logger.warn('Backend not ready for management dashboard');
 			return {
 				user: {
 					id: locals.user.id,
@@ -418,7 +418,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('Error loading management dashboard:', err);
+		logger.error('Error loading management dashboard:', err as Error);
 
 		// Extract search parameters for error response
 		const selectedPeriod = url.searchParams.get('period') || 'this-month';

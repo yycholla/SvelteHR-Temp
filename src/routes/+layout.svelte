@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 	import { page } from '$app/stores';
 	import { auth } from '$lib/stores/auth.svelte';
 	import ToastContainer from '$lib/components/ui/toast-container.svelte';
@@ -95,7 +96,7 @@
 						}
 					},
 					onSessionRefreshed: () => {
-						console.log('⏱️ Session refreshed successfully');
+						logger.info('⏱️ Session refreshed successfully');
 					}
 				}
 			);

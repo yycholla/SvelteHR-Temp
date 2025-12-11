@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * N+1 Query Detection and Prevention for GraphQL
  *
@@ -617,7 +618,7 @@ const ${batchKey}Loader = new DataLoader(async (keys) => {
 
 		// Alert on performance threshold breach
 		if (executionTime > this.config.performanceThreshold) {
-			console.warn(`N+1 Detector: Slow execution detected for ${fieldPath}: ${executionTime}ms`);
+			logger.warn(`N+1 Detector: Slow execution detected for ${fieldPath}: ${executionTime}ms`);
 		}
 	}
 

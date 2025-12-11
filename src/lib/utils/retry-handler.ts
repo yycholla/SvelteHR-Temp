@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Retry Handler Utilities
  * SvelteHR GraphQL Integration Error Resolution
@@ -406,25 +407,25 @@ export const RetryConditions = {
 export function logRetryAttempt(attempt: number, delay: number, error: ErrorResponse): void {
 	if (import.meta.env.DEV) {
 		console.group(`🔄 Retry Attempt ${attempt}`);
-		console.log('Delay:', `${delay}ms`);
-		console.log('Error:', error.userMessage);
-		console.log('Error Type:', error.type);
-		console.log('Is Retryable:', error.isRetryable);
+		logger.info('Delay:', `${delay}ms`);
+		logger.info('Error:', error.userMessage);
+		logger.info('Error Type:', error.type);
+		logger.info('Is Retryable:', error.isRetryable);
 		console.groupEnd();
 	}
 }
 
 export function logRetrySuccess(attempt: number): void {
 	if (import.meta.env.DEV) {
-		console.log(`✅ Retry Success after ${attempt} attempts`);
+		logger.info(`✅ Retry Success after ${attempt} attempts`);
 	}
 }
 
 export function logMaxAttemptsReached(error: ErrorResponse): void {
 	if (import.meta.env.DEV) {
 		console.group(`❌ Max Retry Attempts Reached`);
-		console.error('Final Error:', error.userMessage);
-		console.error('Error Details:', error);
+		logger.error('Final Error:', error.userMessage);
+		logger.error('Error Details:', error as Error);
 		console.groupEnd();
 	}
 }

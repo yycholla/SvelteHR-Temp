@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
@@ -64,7 +65,7 @@
 
 		for (const param of suspiciousParams) {
 			if (url.searchParams.has(param)) {
-				console.error('[SECURITY] Credentials detected in URL, clearing...');
+				logger.error('[SECURITY] Credentials detected in URL, clearing...');
 				// Clear the URL without reloading
 				window.history.replaceState({}, '', url.pathname);
 				return false;

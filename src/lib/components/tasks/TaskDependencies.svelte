@@ -12,6 +12,7 @@
 
 <script lang="ts">
 	import type { Task } from '$lib/types/domain-extensions';
+	import { logger } from '$lib/utils/logger';
 	import type { TaskDependency } from '$lib/types/task';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
@@ -154,7 +155,7 @@
 			}
 			isAddDialogOpen = false;
 		} catch (error) {
-			console.error('[TaskDependencies] Add error:', error);
+			logger.error('Catch failed', error as Error);
 			// Error handled by parent
 		} finally {
 			isSubmitting = false;
@@ -168,7 +169,7 @@
 		try {
 			await onRemoveDependency(dependencyId);
 		} catch (error) {
-			console.error('[TaskDependencies] Remove error:', error);
+			logger.error('Catch failed', error as Error);
 			// Error handled by parent
 		}
 	}

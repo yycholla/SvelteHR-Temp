@@ -1,5 +1,5 @@
 // Task Utils
-import type { Task, TaskStatus, TaskPriority } from '$lib/types/task';
+import type { Task, TaskPriority, TaskStatus } from '$lib/types/task';
 
 /**
  * Helper: Validate task input

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { logger } from '$lib/utils/logger';
 	import {
 		AlertCircle,
 		Calendar,
@@ -103,7 +104,7 @@
 
 		// Simulate API call
 		try {
-			console.log('Submitting leave request:', newRequest);
+			logger.info('Submitting leave request:'.replace(/['`]$/, `: ${newRequest}'`/));
 			// In a real app, await fetch(...) here
 
 			toast.success('Request Submitted', {
@@ -136,7 +137,7 @@
 
 		try {
 			// Simulate API call
-			console.log('Cancelling request:', requestId);
+			logger.info('Cancelling request:'.replace(/['`]$/, `: ${requestId}'`/));
 
 			toast.success('Request Cancelled', {
 				description: 'The leave request has been successfully cancelled.'

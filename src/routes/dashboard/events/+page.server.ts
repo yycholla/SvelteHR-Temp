@@ -6,7 +6,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { EventsOperations } from '$lib/graphql/events-operations';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
-import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 import type { EventStatus, EventType, EventVisibilityType } from '$lib/graphql/types';
 import { normalizeRsvpStatus } from '$lib/graphql/types';
 import { gql } from '@urql/svelte';

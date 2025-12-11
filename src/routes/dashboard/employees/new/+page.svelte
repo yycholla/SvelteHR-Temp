@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { logger } from '$lib/utils/logger';
 	import { goto } from '$app/navigation';
 	import type { ActionData, PageData } from './$types';
 
@@ -87,24 +88,24 @@
 
 			isSubmitting = true;
 			return async ({ result, update }) => {
-				console.log('[Employee Form] Result type:', result.type);
-				console.log('[Employee Form] Full result:', result);
+				logger.info('[Employee Form] Result type:', result.type);
+				logger.info('[Employee Form] Full result:'.replace(/['`]$/, `: ${result}'`/));
 				isSubmitting = false;
 
 				// Handle different result types
 				if (result.type === 'redirect') {
-					console.log('[Employee Form] Redirecting to:', result.location);
+					logger.info('[Employee Form] Redirecting to:', result.location);
 					// Let the redirect happen naturally
 					await update();
 				} else if (result.type === 'failure') {
-					console.log('[Employee Form] Failure:', result.data);
+					logger.info('[Employee Form] Failure:', result.data);
 					// Show error message
 					await update();
 				} else if (result.type === 'error') {
-					console.log('[Employee Form] Error:', result.error);
+					logger.info('[Employee Form] Error:', result.error);
 					await update();
 				} else {
-					console.log('[Employee Form] Other result type:', result.type);
+					logger.info('[Employee Form] Other result type:', result.type);
 					// For any other result type, update normally
 					await update();
 				}

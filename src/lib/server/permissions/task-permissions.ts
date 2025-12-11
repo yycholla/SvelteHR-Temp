@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Task-specific RBAC Permission Helpers
  * Feature: 028-task-system-expansion
@@ -282,7 +283,7 @@ async function isUserDirectReport(managerId: string, employeeId: string): Promis
 
 		return false;
 	} catch (error) {
-		console.error('[Task Permissions] Error checking direct report:', error);
+		logger.error('Catch failed', error as Error);
 		return false;
 	}
 }
@@ -443,7 +444,7 @@ async function getTaskById(taskId: string): Promise<{
 		const data = await response.json();
 		return data?.data?.taskById || null;
 	} catch (error) {
-		console.error('[Task Permissions] Error fetching task:', error);
+		logger.error('Catch failed', error as Error);
 		return null;
 	}
 }

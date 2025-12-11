@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { logger } from '$lib/utils/logger';
 	import { page } from '$app/stores';
 	import { Check, Edit, Plus, Search, Trash2, X } from '@lucide/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
@@ -94,7 +95,7 @@
 			closeModals();
 			goto($page.url.pathname, { invalidateAll: true });
 		} catch (error) {
-			console.error('Create task type error:', error);
+			logger.error('Create task type error:', error as Error);
 			errorMessage = 'Failed to create task type';
 		} finally {
 			loading = false;
@@ -129,7 +130,7 @@
 			closeModals();
 			goto($page.url.pathname, { invalidateAll: true });
 		} catch (error) {
-			console.error('Update task type error:', error);
+			logger.error('Update task type error:', error as Error);
 			errorMessage = 'Failed to update task type';
 		} finally {
 			loading = false;
@@ -151,7 +152,7 @@
 
 			goto($page.url.pathname, { invalidateAll: true });
 		} catch (error) {
-			console.error('Delete task type error:', error);
+			logger.error('Delete task type error:', error as Error);
 			errorMessage = 'Failed to delete task type';
 		} finally {
 			loading = false;
@@ -172,7 +173,7 @@
 
 			goto($page.url.pathname, { invalidateAll: true });
 		} catch (error) {
-			console.error('Toggle status error:', error);
+			logger.error('Toggle status error:', error as Error);
 			errorMessage = 'Failed to update task type status';
 		} finally {
 			loading = false;

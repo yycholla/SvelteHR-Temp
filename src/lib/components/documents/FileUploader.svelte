@@ -1,5 +1,6 @@
 <script lang="ts">
 	// FileUploader component (Feature 024)
+	import { logger } from '$lib/utils/logger';
 	// Simple drag-and-drop file selection for server-side encryption
 	// Encryption happens on SvelteKit server, not in browser
 
@@ -32,7 +33,7 @@
 	$effect(() => {
 		hasFile = selectedFile !== null;
 		fileName = selectedFile?.name || null;
-		console.log('[FileUploader] hasFile updated:', hasFile, 'selectedFile:', selectedFile?.name);
+		logger.info('[FileUploader] hasFile updated:', hasFile, 'selectedFile:', selectedFile?.name);
 	});
 
 	// Handle file selection from input
@@ -67,29 +68,29 @@
 
 	// Validate and set selected file
 	function validateAndSetFile(file: File) {
-		console.log('[FileUploader] validateAndSetFile called with:', file.name, 'size:', file.size);
+		logger.info('[FileUploader] validateAndSetFile called with:', file.name, 'size:', file.size);
 		errorMessage = null;
 
 		// Validate file size
 		if (!validateFileSize(file.size)) {
 			errorMessage = `File size exceeds ${maxSizeMB}MB limit`;
-			console.log('[FileUploader] File size validation failed');
+			logger.info('[FileUploader] File size validation failed');
 			return;
 		}
 
 		// Validate file type
 		if (!validateFileType(file.name)) {
 			errorMessage = `Invalid file type. Allowed: ${allowedTypes.join(', ')}`;
-			console.log('[FileUploader] File type validation failed');
+			logger.info('[FileUploader] File type validation failed');
 			return;
 		}
 
-		console.log('[FileUploader] Validation passed, setting selectedFile');
+		logger.info('[FileUploader] Validation passed, setting selectedFile');
 		selectedFile = file;
 
 		// Update metadata with filename immediately
 		metadata.filename = file.name;
-		console.log('[FileUploader] metadata.filename set to:', metadata.filename);
+		logger.info('[FileUploader] metadata.filename set to:', metadata.filename);
 	}
 
 	// Expose function to get selected file for parent form submission

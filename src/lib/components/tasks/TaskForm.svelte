@@ -14,6 +14,7 @@
 
 <script lang="ts">
 	import type { Task, TaskPriority, TaskStatus, TaskType } from '$lib/types/task';
+	import { logger } from '$lib/utils/logger';
 	import type { User } from '$lib/types/user';
 	import type { CreateTaskInput, UpdateTaskInput } from '$lib/graphql/tasks-operations';
 	import { validateTaskInput } from '$lib/graphql/tasks-operations';
@@ -257,7 +258,7 @@
 			);
 
 			if (!isParentTaskStillValid) {
-				console.log(
+				logger.info(
 					'[TaskForm] Parent task no longer valid for selected assignees, clearing selection'
 				);
 				formData.parentTaskId = '';
@@ -267,17 +268,17 @@
 
 	// Debug logging
 	$effect(() => {
-		console.log('[TaskForm] Available users:', availableUsers.length);
-		console.log('[TaskForm] Available departments:', departments.length);
-		console.log('[TaskForm] Combined assignee options:', combinedAssigneeOptions().length);
-		console.log('[TaskForm] Task types:', taskTypes.length);
-		console.log('[TaskForm] Form data assignees:', formData.assignees);
-		console.log('[TaskForm] Total parent tasks:', parentTasks.length);
-		console.log('[TaskForm] Filtered parent tasks:', filteredParentTasks().length);
-		console.log('[TaskForm] Form data status:', formData.status);
-		console.log('[TaskForm] Selected status:', selectedStatus);
-		console.log('[TaskForm] Form data priority:', formData.priority);
-		console.log('[TaskForm] Selected priority:', selectedPriority);
+		logger.info('[TaskForm] Available users:', availableUsers.length);
+		logger.info('[TaskForm] Available departments:', departments.length);
+		logger.info('[TaskForm] Combined assignee options:', combinedAssigneeOptions().length);
+		logger.info('[TaskForm] Task types:', taskTypes.length);
+		logger.info('[TaskForm] Form data assignees:', formData.assignees);
+		logger.info('[TaskForm] Total parent tasks:', parentTasks.length);
+		logger.info('[TaskForm] Filtered parent tasks:', filteredParentTasks().length);
+		logger.info('[TaskForm] Form data status:', formData.status);
+		logger.info('[TaskForm] Selected status:'.replace(/['`]$/, `: ${selectedStatus}'`/));
+		logger.info('[TaskForm] Form data priority:', formData.priority);
+		logger.info('[TaskForm] Selected priority:'.replace(/['`]$/, `: ${selectedPriority}'`/));
 	});
 
 	// Validate form on data changes
@@ -352,7 +353,7 @@
 					requiresManualReassignment: formData.requiresManualReassignment
 				};
 				onSubmit(updateData).catch((error) => {
-					console.error('[TaskForm] Submit error:', error);
+					logger.error('If failed', error as Error);
 				});
 			} else {
 				// Create task
@@ -368,7 +369,7 @@
 					requiresManualReassignment: formData.requiresManualReassignment
 				};
 				onSubmit(createData).catch((error) => {
-					console.error('[TaskForm] Submit error:', error);
+					logger.error('Operation failed', error as Error);
 				});
 			}
 
@@ -503,7 +504,7 @@
 						bind:selected={formData.assignees}
 						placeholder="Type to search users or departments..."
 						onSelectedChange={(selected) => {
-							console.log('[TaskForm] Assignees changed:', selected);
+							logger.info('[TaskForm] Assignees changed:'.replace(/['`]$/, `: ${selected}'`/));
 							formData.assignees = selected;
 						}}
 					/>
@@ -533,7 +534,7 @@
 							}
 						}}
 						onCreate={(newTaskType) => {
-							console.log('Created new task type:', newTaskType);
+							logger.info('Created new task type:'.replace(/['`]$/, `: ${newTaskType}'`/));
 						}}
 					/>
 					{#if fieldErrors.taskTypeId}

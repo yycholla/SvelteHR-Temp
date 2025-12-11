@@ -1,5 +1,6 @@
 <script lang="ts">
 	// Event Edit Page
+	import { logger } from '$lib/utils/logger';
 	// Feature: 019-we-need-to - Task T035
 	// Purpose: Form for editing existing events
 
@@ -76,7 +77,7 @@
 			// Navigate back to event detail on success
 			goto(`/dashboard/events/${data.event.id}`);
 		} catch (error) {
-			console.error('Failed to update event:', error);
+			logger.error('Failed to update event:', error as Error);
 			alert('Failed to update event. Please try again.');
 		} finally {
 			isSubmitting = false;

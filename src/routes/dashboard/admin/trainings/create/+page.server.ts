@@ -37,7 +37,7 @@ export const actions: Actions = {
 				tags = JSON.parse(tagsJson);
 			}
 		} catch (e) {
-			console.error('Failed to parse tags:', e);
+			logger.error('Failed to parse tags:', e as Error);
 		}
 
 		// Parse recurrence pattern
@@ -54,7 +54,7 @@ export const actions: Actions = {
 				}
 			}
 		} catch (e) {
-			console.error('Failed to parse recurrence pattern:', e);
+			logger.error('Failed to parse recurrence pattern:', e as Error);
 		}
 
 		if (!title) {
@@ -89,18 +89,18 @@ export const actions: Actions = {
 		try {
 			const response = await client.mutation(CREATE_TRAINING_MUTATION, variables);
 
-			console.log('=== MUTATION RESPONSE ===');
-			console.log('Full response:', JSON.stringify(response, null, 2));
-			console.log('response.data:', response.data);
-			console.log('response.data?.training:', response.data?.training);
-			console.log(
+			logger.info('=== MUTATION RESPONSE ===');
+			logger.info('Full response:', JSON.stringify(response, null, 2));
+			logger.info('response.data:', response.data);
+			logger.info('response.data?.training:', response.data?.training);
+			logger.info(
 				'response.data?.training?.createTraining:',
 				response.data?.training?.createTraining
 			);
-			console.log('=========================');
+			logger.info('=========================');
 
 			if (response.errors) {
-				console.error('Training creation errors:', response.errors);
+				logger.error('Training creation errors:', response.errors);
 				return fail(500, {
 					error: response.errors[0].message,
 					values: { title, description, startDate, endDate, isActive, metaTitle, metaDescription }
@@ -108,14 +108,14 @@ export const actions: Actions = {
 			}
 
 			const newTrainingId = response.data?.training?.createTraining?.id;
-			console.log('Extracted newTrainingId:', newTrainingId);
+			logger.info('Extracted newTrainingId:'.replace(/['`]$/, `: ${newTrainingId}'`/));
 
 			if (newTrainingId) {
-				console.log('Redirecting to:', `/dashboard/admin/trainings/${newTrainingId}/content`);
+				logger.info('Redirecting to:', `/dashboard/admin/trainings/${newTrainingId}/content`);
 				// Redirect to the content builder for this new training
 				throw redirect(303, `/dashboard/admin/trainings/${newTrainingId}/content`);
 			} else {
-				console.error('newTrainingId is falsy! Falling through to default redirect.');
+				logger.error('newTrainingId is falsy! Falling through to default redirect.');
 			}
 		} catch (err) {
 			// Re-throw redirects (these are successful responses, not errors)
@@ -124,7 +124,7 @@ export const actions: Actions = {
 				throw err;
 			}
 
-			console.error('Training creation error:', err);
+			logger.error('Training creation error:', err as Error);
 			return fail(500, {
 				error: 'Internal server error',
 				values: { title, description, startDate, endDate, isActive, metaTitle, metaDescription }

@@ -1,3 +1,5 @@
+import { logger } from '$lib/utils/logger';
+
 /**
  * PostGraphile GraphQL Queries for Leave Requests
  *
@@ -434,7 +436,7 @@ export function createLeaveManagementOperations(client: any) {
 		}) {
 			// In a real implementation, this would use the UPDATE_LEAVE_REQUEST_STATUS mutation
 			// For now, return a mock response
-			console.log('Approve leave request:', params);
+			logger.info('Approve leave request:'.replace(/['`]$/, `: ${params}'`/));
 			return { success: true };
 		},
 
@@ -445,7 +447,7 @@ export function createLeaveManagementOperations(client: any) {
 		}) {
 			// In a real implementation, this would use the UPDATE_LEAVE_REQUEST_STATUS mutation
 			// For now, return a mock response
-			console.log('Deny leave request:', params);
+			logger.info('Deny leave request:'.replace(/['`]$/, `: ${params}'`/));
 			return { success: true };
 		}
 	};

@@ -35,7 +35,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// If backend is not ready, return error state but don't crash
 		if (!backendReady) {
-			console.warn('Backend not ready for user leave requests page');
+			logger.warn('Backend not ready for user leave requests page');
 			return {
 				user: null,
 				userId,
@@ -231,7 +231,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('Error loading user leave requests:', err);
+		logger.error('Error loading user leave requests:', err as Error);
 
 		// Return error state instead of throwing to prevent page crash
 		return {

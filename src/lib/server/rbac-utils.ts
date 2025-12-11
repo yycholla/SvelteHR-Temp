@@ -6,6 +6,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { RequestEvent } from '@sveltejs/kit';
 import type { ApiResponse } from '$lib/types/index';
+import { logger } from '$lib/utils/logger';
 
 export interface RBACConfig {
 	requiredPermissions?: string[];
@@ -407,7 +408,7 @@ export async function canEditDepartment(
 									
 											// Manager can edit if they are the department manager
 											return department?.managerId === userId;
-										} catch (error) {			console.error('[RBAC] Error checking department manager:', error);
+										} catch (error) {			logger.error('Department by id failed', error as Error);
 			return false;
 		}
 	}
@@ -474,7 +475,7 @@ export async function canEditEmployee(
 			// Manager can edit if they manage the employee's department
 			return !!(managerDept && managerDept.id === targetUserDeptId && managerDept.managerId === userId);
 		} catch (error) {
-			console.error('[RBAC] Error checking employee department:', error);
+			logger.error('Catch failed', error as Error);
 			return false;
 		}
 	}
@@ -705,7 +706,7 @@ export async function isManagerOfDepartment(
 
 		return department?.managerId === userId;
 	} catch (error) {
-		console.error('[RBAC] Error checking if user is department manager:', error);
+		logger.error('Catch failed', error as Error);
 		return false;
 	}
 }

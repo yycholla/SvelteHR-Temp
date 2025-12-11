@@ -1,4 +1,4 @@
-import type { Event, RsvpStatus, EventVisibilityType } from './types';
+import type { Event, EventVisibilityType, RsvpStatus } from './types';
 
 /**
  * Helper: Validate event input

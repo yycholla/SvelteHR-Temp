@@ -9,7 +9,7 @@ export * from './authService';
 
 // Re-export auth store functionality for backwards compatibility
 import { auth } from '$lib/stores/auth.svelte';
-import { writable, derived, type Readable } from 'svelte/store';
+import { type Readable, derived, writable } from 'svelte/store';
 
 /**
  * Current user store for backwards compatibility

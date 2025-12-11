@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 #!/usr/bin/env node
 // Signature Worker Startup Script
 // Feature: 021-i-have-setup (Comprehensive Audit Logging)
@@ -11,8 +12,8 @@ import { type SignatureWorker, createSignatureWorker } from './signature-worker.
  * Main function to start the signature worker
  */
 async function main(): Promise<void> {
-	console.log('Starting Audit Log Signature Worker...');
-	console.log('Environment:', process.env.NODE_ENV || 'development');
+	logger.info('Starting Audit Log Signature Worker...');
+	logger.info('Environment:', process.env.NODE_ENV || 'development');
 
 	// Load configuration from environment variables
 	const config = {
@@ -31,8 +32,8 @@ async function main(): Promise<void> {
 
 		// Log worker status
 		const status = worker.getStatus();
-		console.log('Worker started successfully');
-		console.log('Configuration:', {
+		logger.info('Worker started successfully');
+		logger.info('Configuration:', {
 			batchSize: status.config.batchSize,
 			batchIntervalMs: status.config.batchIntervalMs,
 			publicKeyId: status.publicKeyId
@@ -40,7 +41,7 @@ async function main(): Promise<void> {
 
 		// Handle graceful shutdown
 		const shutdown = async (signal: string) => {
-			console.log(`\nReceived ${signal}, shutting down gracefully...`);
+			logger.info(`\nReceived ${signal}, shutting down gracefully...`);
 			if (worker) {
 				await worker.stop();
 			}
@@ -52,16 +53,16 @@ async function main(): Promise<void> {
 
 		// Keep process alive
 		process.on('uncaughtException', (error) => {
-			console.error('Uncaught exception:', error);
+			logger.error('If failed', error as Error);
 		});
 
 		process.on('unhandledRejection', (reason, promise) => {
-			console.error('Unhandled rejection at:', promise, 'reason:', reason);
+			logger.error('Unhandled rejection at:', promise, 'reason:', reason);
 		});
 
-		console.log('Signature worker is running. Press Ctrl+C to stop.');
+		logger.info('Signature worker is running. Press Ctrl+C to stop.');
 	} catch (error) {
-		console.error('Failed to start signature worker:', error);
+		logger.error('Catch failed', error as Error);
 		process.exit(1);
 	}
 }
@@ -69,7 +70,7 @@ async function main(): Promise<void> {
 // Run main function if this script is executed directly
 // Always run when this module is loaded
 main().catch((error) => {
-	console.error('Fatal error:', error);
+	logger.error('Catch failed', error as Error);
 	process.exit(1);
 });
 

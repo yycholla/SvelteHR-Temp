@@ -3,7 +3,7 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { params, cookies } = event;
@@ -59,7 +59,7 @@ export const load: PageServerLoad = async (event) => {
 			Cookie: cookieHeader // Forward all cookies for session authentication
 		};
 
-		console.log(
+		logger.info(
 			'[Department Edit] Using Rust GraphQL with session-based auth, user role:',
 			locals.user?.role
 		);
@@ -169,7 +169,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[Department Edit Load Error]', err);
+		logger.error('[Department Edit Load Error]', err as Error);
 
 		// If it's already a SvelteKit error, rethrow it
 		if (err && typeof err === 'object' && 'status' in err) {
@@ -253,7 +253,7 @@ export const actions: Actions = {
 			const updateData = await updateResponse.json();
 
 			if (updateData.errors) {
-				console.error('[Department Update Error]', updateData.errors);
+				logger.error('[Department Update Error]', updateData.errors);
 				return fail(500, {
 					error: 'Failed to update department'
 				});
@@ -267,7 +267,7 @@ export const actions: Actions = {
 				throw err;
 			}
 
-			console.error('[Department Update Action Error]', err);
+			logger.error('[Department Update Action Error]', err as Error);
 			return fail(500, {
 				error: 'Failed to update department'
 			});

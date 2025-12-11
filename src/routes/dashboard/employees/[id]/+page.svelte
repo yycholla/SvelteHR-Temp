@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
+	import { logger } from '$lib/utils/logger';
 	import AssignDocumentsModal from '$lib/components/employees/AssignDocumentsModal.svelte';
 	import UploadDocumentModal from '$lib/components/documents/UploadDocumentModal.svelte';
 	import AddEmergencyContactModal,
@@ -37,7 +38,7 @@
 
 	// Debug: Log permissions to console
 	$effect(() => {
-		console.log('[Employee Detail Page] Permissions:', permissions);
+		logger.info('[Employee Detail Page] Permissions:'.replace(/['`]$/, `: ${permissions}'`/));
 	});
 
 	// Modal state
@@ -75,7 +76,7 @@
 			isAssignDocsModalOpen = false;
 			window.location.reload();
 		} catch (error) {
-			console.error('Assignment error:', error);
+			logger.error('Assignment error:', error as Error);
 			toast.error('Assignment Failed', {
 				description: 'Failed to assign documents. Please try again.'
 			});
@@ -125,7 +126,7 @@
 			});
 			window.location.reload();
 		} catch (error) {
-			console.error('Failed to unassign document:', error);
+			logger.error('Failed to unassign document:', error as Error);
 			toast.error('Action Failed', {
 				description: 'Failed to unassign document. Please try again.'
 			});
@@ -218,7 +219,7 @@
 			editingContact = null;
 			window.location.reload();
 		} catch (error) {
-			console.error('Failed to save emergency contact:', error);
+			logger.error('Failed to save emergency contact:', error as Error);
 			toast.error('Action Failed', {
 				description: `Failed to ${editingContact ? 'update' : 'add'} emergency contact. Please try again.`
 			});
@@ -266,7 +267,7 @@
 			});
 			window.location.reload();
 		} catch (error) {
-			console.error('Failed to delete emergency contact:', error);
+			logger.error('Failed to delete emergency contact:', error as Error);
 			toast.error('Action Failed', {
 				description: 'Failed to delete emergency contact. Please try again.'
 			});
@@ -362,7 +363,7 @@
 			editingVehicle = null;
 			window.location.reload();
 		} catch (error) {
-			console.error('Failed to save vehicle:', error);
+			logger.error('Failed to save vehicle:', error as Error);
 			toast.error('Action Failed', {
 				description: `Failed to ${editingVehicle ? 'update' : 'add'} vehicle. Please try again.`
 			});
@@ -409,7 +410,7 @@
 			});
 			window.location.reload();
 		} catch (error) {
-			console.error('Failed to delete vehicle:', error);
+			logger.error('Failed to delete vehicle:', error as Error);
 			toast.error('Action Failed', {
 				description: 'Failed to delete vehicle. Please try again.'
 			});

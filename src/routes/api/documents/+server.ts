@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Document listing and filtering API endpoint (Feature 024)
 // GET /api/documents - List documents with RBAC filtering and pagination
 // Migrated to GraphQL backend (Phase 2 - Document API Migration)
@@ -62,7 +63,7 @@ export const GET: RequestHandler = async ({ url, locals, cookies, fetch }) => {
 			.toPromise();
 
 		if (result.error) {
-			console.error('GraphQL errors:', result.error);
+			logger.error('GraphQL errors:', result.error);
 			error(500, 'Failed to fetch documents from GraphQL backend');
 		}
 
@@ -99,7 +100,7 @@ export const GET: RequestHandler = async ({ url, locals, cookies, fetch }) => {
 			totalPages: Math.ceil(totalCount / filters.limit)
 		});
 	} catch (err) {
-		console.error('Document listing error:', err);
+		logger.error('Document listing error:', err as Error);
 
 		if (err && typeof err === 'object' && 'issues' in err) {
 			error(400, 'Invalid filter parameters');

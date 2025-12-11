@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Task Audit Service
  * Feature: 028-task-system-expansion - T021
@@ -95,18 +96,18 @@ export async function logTaskAction(input: TaskAuditInput): Promise<boolean> {
 		});
 
 		if (!response.ok) {
-			console.error('[TASK AUDIT] GraphQL mutation failed:', response.statusText);
+			logger.error('[TASK AUDIT] GraphQL mutation failed:', response.statusText);
 			return false;
 		}
 
 		const result = await response.json();
 
 		if (result.errors) {
-			console.error('[TASK AUDIT] GraphQL errors:', result.errors);
+			logger.error('[TASK AUDIT] GraphQL errors:', result.errors);
 			return false;
 		}
 
-		console.info('[TASK AUDIT] Logged task action:', {
+		logger.info('[TASK AUDIT] Logged task action:', {
 			action: input.action,
 			taskId: input.taskId,
 			userId: input.userId,
@@ -115,7 +116,7 @@ export async function logTaskAction(input: TaskAuditInput): Promise<boolean> {
 
 		return true;
 	} catch (error) {
-		console.error('[TASK AUDIT] Error logging task action:', error);
+		logger.error('Catch failed', error as Error);
 		return false;
 	}
 }
@@ -191,7 +192,7 @@ export async function logTaskUpdated(
 
 	// Only log if there are actual changes
 	if (changes.length === 0) {
-		console.info('[TASK AUDIT] No changes detected for task:', taskId);
+		logger.info('[TASK AUDIT] No changes detected for task:'.replace(/['`]$/, `: ${taskId}'`/));
 		return true;
 	}
 
@@ -526,14 +527,14 @@ export async function getTaskAuditTrail(taskId: string, limit: number = 50): Pro
 		});
 
 		if (!response.ok) {
-			console.error('[TASK AUDIT] Failed to fetch audit trail:', response.statusText);
+			logger.error('[TASK AUDIT] Failed to fetch audit trail:', response.statusText);
 			return [];
 		}
 
 		const data = await response.json();
 		return data?.data?.taskAuditEntries?.nodes || [];
 	} catch (error) {
-		console.error('[TASK AUDIT] Error fetching audit trail:', error);
+		logger.error('Catch failed', error as Error);
 		return [];
 	}
 }
@@ -583,7 +584,7 @@ export async function getUserTaskActions(userId: string, limit: number = 20): Pr
 		const data = await response.json();
 		return data?.data?.taskAuditEntries?.nodes || [];
 	} catch (error) {
-		console.error('[TASK AUDIT] Error fetching user actions:', error);
+		logger.error('Catch failed', error as Error);
 		return [];
 	}
 }

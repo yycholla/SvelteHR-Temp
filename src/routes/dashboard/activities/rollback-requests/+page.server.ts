@@ -29,7 +29,7 @@ export const load: PageServerLoad = async (event) => {
 		const backendReady = await ensureBackendReady();
 
 		if (!backendReady) {
-			console.warn('Backend not ready for rollback requests page');
+			logger.warn('Backend not ready for rollback requests page');
 			return {
 				requests: [],
 				totalCount: 0,
@@ -177,7 +177,7 @@ export const load: PageServerLoad = async (event) => {
 			userId: locals.user.id
 		};
 	} catch (err) {
-		console.error('[RollbackRequestsPage] Error loading rollback requests:', err);
+		logger.error('[RollbackRequestsPage] Error loading rollback requests:', err as Error);
 
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err; // Re-throw SvelteKit errors

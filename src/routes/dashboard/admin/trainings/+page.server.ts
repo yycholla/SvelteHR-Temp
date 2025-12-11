@@ -79,7 +79,7 @@ export const actions: Actions = {
 
 			return { success: true };
 		} catch (err) {
-			console.error('Delete training error:', err);
+			logger.error('Delete training error:', err as Error);
 			return fail(500, { error: 'Internal server error' });
 		}
 	}

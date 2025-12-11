@@ -4,7 +4,7 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies, params } = event;
@@ -47,7 +47,7 @@ export const load: PageServerLoad = async (event) => {
 			'Content-Type': 'application/json'
 		};
 
-		console.log('[Task Edit] Loading task for editing:', taskId);
+		logger.info('[Task Edit] Loading task for editing:'.replace(/['`]$/, `: ${taskId}'`/));
 
 		// Load task data
 		// NOTE: Using Rust GraphQL schema - singular query for ID lookup
@@ -93,7 +93,7 @@ export const load: PageServerLoad = async (event) => {
 		const taskData = await taskResponse.json();
 
 		if (taskData.errors) {
-			console.error('[Task Edit] GraphQL errors:', taskData.errors);
+			logger.error('[Task Edit] GraphQL errors:', taskData.errors);
 			throw new Error(taskData.errors[0]?.message || 'Failed to load task');
 		}
 
@@ -103,7 +103,7 @@ export const load: PageServerLoad = async (event) => {
 			error(404, 'Task not found');
 		}
 
-		console.log('[Task Edit] Raw task data from GraphQL:', {
+		logger.info('[Task Edit] Raw task data from GraphQL:', {
 			taskId: task.id,
 			title: task.title,
 			assignee: task.assignee,
@@ -181,7 +181,7 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		const taskTypesData = await taskTypesResponse.json();
-		console.log('[Task Edit] Task types loaded:', {
+		logger.info('[Task Edit] Task types loaded:', {
 			count: taskTypesData?.data?.taskTypes?.length || 0,
 			taskTypes: taskTypesData?.data?.taskTypes
 		});
@@ -225,7 +225,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 
-		console.log('[Task Edit] Returning data to page:', {
+		logger.info('[Task Edit] Returning data to page:', {
 			taskId: flattenedTask.id,
 			assigneesCount: returnData.assignees.length,
 			departmentsCount: returnData.departments.length,
@@ -237,7 +237,7 @@ export const load: PageServerLoad = async (event) => {
 		// Return server-side loaded data
 		return returnData;
 	} catch (err) {
-		console.error('[Task Edit Load Error]', err);
+		logger.error('[Task Edit Load Error]', err as Error);
 
 		const errorResponse = createErrorResponse(
 			err instanceof Error ? err : new Error('Task edit load failed'),
@@ -247,7 +247,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 		);
 
-		console.error('[Task Edit Error Details]', {
+		logger.error('[Task Edit Error Details]', {
 			userId: locals.user?.id,
 			taskId,
 			error: errorResponse
@@ -308,7 +308,7 @@ export const actions: Actions = {
 				}
 			}
 
-			console.log('[Task Edit] Updating task:', taskId, {
+			logger.info('[Task Edit] Updating task:', taskId, {
 				title,
 				status,
 				priority,
@@ -386,7 +386,7 @@ export const actions: Actions = {
 			const updateData = await updateResponse.json();
 
 			if (updateData.errors) {
-				console.error('[Task Edit] Update errors:', updateData.errors);
+				logger.error('[Task Edit] Update errors:', updateData.errors);
 				return fail(400, {
 					error: updateData.errors[0]?.message || 'Failed to update task',
 					values: formDataEntries
@@ -402,7 +402,7 @@ export const actions: Actions = {
 				});
 			}
 
-			console.log('[Task Edit] Task updated successfully:', {
+			logger.info('[Task Edit] Task updated successfully:', {
 				id: updatedTask.id,
 				title: updatedTask.title,
 				status: updatedTask.status,
@@ -426,7 +426,7 @@ export const actions: Actions = {
 			}
 
 			// Log actual errors only (not redirects)
-			console.error('[Task Edit] Update error:', err);
+			logger.error('[Task Edit] Update error:', err as Error);
 
 			return fail(500, {
 				error: err instanceof Error ? err.message : 'Failed to update task',

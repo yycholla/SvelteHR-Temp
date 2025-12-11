@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * ⚠️ DEPRECATED: JWT Utility Functions
  *
@@ -139,7 +140,9 @@ export async function decodeJWTTokenUnsafe(token: string): Promise<JWTPayload | 
 			const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
 			return payload as JWTPayload;
 		} catch (error) {
-			console.warn('Failed to decode JWT token on client:', error);
+			logger.warn('Failed to decode JWT token on client:', {
+				error: error as Error
+			});
 			return null;
 		}
 	}
@@ -148,16 +151,18 @@ export async function decodeJWTTokenUnsafe(token: string): Promise<JWTPayload | 
 		// Server-side: Try simple base64 decode first (for our custom tokens)
 		const parts = token.split('.');
 		if (parts.length !== 3) {
-			console.warn('Invalid JWT format: expected 3 parts, got', parts.length);
+			logger.warn('Invalid JWT format: expected 3 parts, got', parts.length);
 			return null;
 		}
 
 		// Decode the payload part (index 1)
 		const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-		console.log('🔍 Server decoded payload:', payload);
+		logger.info('🔍 Server decoded payload:'.replace(/['`]$/, `: ${payload}'`/));
 		return payload as JWTPayload;
 	} catch (error) {
-		console.warn('Failed to decode JWT token on server:', error);
+		logger.warn('Failed to decode JWT token on server:', {
+			error: error as Error
+		});
 		return null;
 	}
 }
@@ -306,8 +311,10 @@ export function validateJWTPayloadStructure(payload: unknown): payload is JWTPay
 		typeof (payload as JWTPayload).iss === 'string' &&
 		'aud' in payload &&
 		typeof (payload as JWTPayload).aud === 'string' &&
-		((payload as JWTPayload).role === undefined || typeof (payload as JWTPayload).role === 'string') &&
+		((payload as JWTPayload).role === undefined ||
+			typeof (payload as JWTPayload).role === 'string') &&
 		((payload as JWTPayload).roles === undefined || Array.isArray((payload as JWTPayload).roles)) &&
-		((payload as JWTPayload).permissions === undefined || Array.isArray((payload as JWTPayload).permissions))
+		((payload as JWTPayload).permissions === undefined ||
+			Array.isArray((payload as JWTPayload).permissions))
 	);
 }

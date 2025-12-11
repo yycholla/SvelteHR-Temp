@@ -178,7 +178,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('Error loading management goals data:', err);
+		logger.error('Error loading management goals data:', err as Error);
 
 		// Return error state instead of throwing to prevent page crash
 		return {

@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Image Service
  * Feature: 025-events-flesh-out
@@ -141,7 +142,7 @@ export class ImageService {
 				originalSize
 			};
 		} catch (error) {
-			console.error('Image upload error:', error);
+			logger.error('Image upload error:', error as Error);
 			return {
 				success: false,
 				error: error instanceof Error ? error.message : 'Unknown image processing error'
@@ -167,7 +168,7 @@ export class ImageService {
 
 			return resized;
 		} catch (error) {
-			console.error('Image resize error:', error);
+			logger.error('Image resize error:', error as Error);
 			return null;
 		}
 	}
@@ -187,7 +188,7 @@ export class ImageService {
 
 			return thumbnail;
 		} catch (error) {
-			console.error('Thumbnail creation error:', error);
+			logger.error('Thumbnail creation error:', error as Error);
 			return null;
 		}
 	}
@@ -215,7 +216,7 @@ export class ImageService {
 
 			return await optimized.toBuffer();
 		} catch (error) {
-			console.error('Image optimization error:', error);
+			logger.error('Image optimization error:', error as Error);
 			return null;
 		}
 	}
@@ -228,7 +229,7 @@ export class ImageService {
 			const metadata = await sharp(fileBuffer).metadata();
 			return metadata;
 		} catch (error) {
-			console.error('Error getting image metadata:', error);
+			logger.error('Error getting image metadata:', error as Error);
 			return null;
 		}
 	}
@@ -256,7 +257,7 @@ export class ImageService {
 
 			return true;
 		} catch (error) {
-			console.error('Error deleting image:', error);
+			logger.error('Error deleting image:', error as Error);
 			return false;
 		}
 	}

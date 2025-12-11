@@ -51,7 +51,7 @@ export const load: PageServerLoad = async (event) => {
 	});
 
 	if (!usersResponse.ok) {
-		console.error('Failed to fetch users from REST endpoint:', usersResponse.statusText);
+		logger.error('Failed to fetch users from REST endpoint:', usersResponse.statusText);
 		throw fail(500, { error: 'Failed to load users' });
 	}
 
@@ -67,7 +67,7 @@ export const load: PageServerLoad = async (event) => {
 	});
 
 	if (assignmentsResponse.errors) {
-		console.error('Training assignments query error:', assignmentsResponse.errors[0]?.message);
+		logger.error('Training assignments query error:', assignmentsResponse.errors[0]?.message);
 	} else {
 		assignments = assignmentsResponse.data?.trainingAssignments || [];
 	}
@@ -102,7 +102,7 @@ export const actions: Actions = {
 				tags = JSON.parse(tagsJson);
 			}
 		} catch (e) {
-			console.error('Failed to parse tags:', e);
+			logger.error('Failed to parse tags:', e as Error);
 		}
 
 		// Parse recurrence pattern
@@ -119,7 +119,7 @@ export const actions: Actions = {
 				}
 			}
 		} catch (e) {
-			console.error('Failed to parse recurrence pattern:', e);
+			logger.error('Failed to parse recurrence pattern:', e as Error);
 		}
 
 		if (!title) {
@@ -162,11 +162,11 @@ export const actions: Actions = {
 		try {
 			const response = await client.mutation(mutation, variables);
 			if (response.errors) {
-				console.error('Update training errors:', response.errors);
+				logger.error('Update training errors:', response.errors);
 				return fail(500, { error: response.errors[0].message });
 			}
 		} catch (err) {
-			console.error('Update training error:', err);
+			logger.error('Update training error:', err as Error);
 			return fail(500, { error: 'Internal server error' });
 		}
 
@@ -197,11 +197,11 @@ export const actions: Actions = {
 		try {
 			const response = await client.mutation(CREATE_ASSIGNMENT_MUTATION, variables);
 			if (response.errors) {
-				console.error('Assignment creation errors:', response.errors);
+				logger.error('Assignment creation errors:', response.errors);
 				return fail(500, { error: response.errors[0].message });
 			}
 		} catch (err) {
-			console.error('Assignment creation error:', err);
+			logger.error('Assignment creation error:', err as Error);
 			return fail(500, { error: 'Internal server error' });
 		}
 
@@ -222,11 +222,11 @@ export const actions: Actions = {
 		try {
 			const response = await client.mutation(DELETE_ASSIGNMENT_MUTATION, variables);
 			if (response.errors) {
-				console.error('Assignment deletion errors:', response.errors);
+				logger.error('Assignment deletion errors:', response.errors);
 				return fail(500, { error: response.errors[0].message });
 			}
 		} catch (err) {
-			console.error('Assignment deletion error:', err);
+			logger.error('Assignment deletion error:', err as Error);
 			return fail(500, { error: 'Internal server error' });
 		}
 
@@ -255,13 +255,13 @@ export const actions: Actions = {
 		try {
 			const response = await client.mutation(ASSIGN_TO_DEPARTMENT_MUTATION, variables);
 			if (response.errors) {
-				console.error('Bulk assignment errors:', response.errors);
+				logger.error('Bulk assignment errors:', response.errors);
 				return fail(500, { error: response.errors[0].message });
 			}
 			const count = response.data?.training?.assignTrainingToDepartment || 0;
 			return { success: true, message: `Assigned to ${count} employee(s)` };
 		} catch (err) {
-			console.error('Bulk assignment error:', err);
+			logger.error('Bulk assignment error:', err as Error);
 			return fail(500, { error: 'Internal server error' });
 		}
 	},
@@ -282,13 +282,13 @@ export const actions: Actions = {
 		try {
 			const response = await client.mutation(ASSIGN_TO_ALL_EMPLOYEES_MUTATION, variables);
 			if (response.errors) {
-				console.error('Bulk assignment errors:', response.errors);
+				logger.error('Bulk assignment errors:', response.errors);
 				return fail(500, { error: response.errors[0].message });
 			}
 			const count = response.data?.training?.assignTrainingToAllEmployees || 0;
 			return { success: true, message: `Assigned to ${count} employee(s)` };
 		} catch (err) {
-			console.error('Bulk assignment error:', err);
+			logger.error('Bulk assignment error:', err as Error);
 			return fail(500, { error: 'Internal server error' });
 		}
 	}

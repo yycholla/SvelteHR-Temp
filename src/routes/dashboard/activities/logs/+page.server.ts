@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Audit Logs Page - Server Load
 // Feature: Modern audit logging with Rust GraphQL backend
 // Displays comprehensive activity tracking with filtering and pagination
@@ -27,7 +28,7 @@ export const load: PageServerLoad = async (event) => {
 		const { authenticatedGraphQLRequest, getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
-		console.log('[Audit Logs] Loading audit logs:', {
+		logger.info('[Audit Logs] Loading audit logs:', {
 			page,
 			pageSize,
 			userId,
@@ -75,7 +76,7 @@ export const load: PageServerLoad = async (event) => {
 		const logsData = await logsResponse.json();
 
 		if (logsData.errors) {
-			console.error('[Audit Logs] GraphQL errors:', logsData.errors);
+			logger.error('[Audit Logs] GraphQL errors:', logsData.errors);
 			throw new Error(logsData.errors[0]?.message || 'Failed to load audit logs');
 		}
 
@@ -225,7 +226,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[Audit Logs Load Error]', err);
+		logger.error('[Audit Logs Load Error]', err as Error);
 
 		// Re-throw redirects and errors
 		if (err && typeof err === 'object' && ('status' in err || 'location' in err)) {

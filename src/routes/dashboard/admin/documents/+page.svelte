@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { logger } from '$lib/utils/logger';
 	import DocumentDataTable from '$lib/components/ui/document-datatable.svelte';
 	import PreviewModal from '$lib/components/documents/PreviewModal.svelte';
 	import UploadDocumentModal from '$lib/components/documents/UploadDocumentModal.svelte';
@@ -66,7 +67,7 @@
 	const canUpload = $derived.by(() => {
 		// Debug permissions
 		if (typeof window !== 'undefined') {
-			console.log('[Documents] Checking permissions:', {
+			logger.info('[Documents] Checking permissions:', {
 				role: data.user?.role,
 				permissions: data.userPermissions
 			});

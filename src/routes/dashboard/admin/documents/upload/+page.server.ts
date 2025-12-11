@@ -28,7 +28,7 @@ export const load: PageServerLoad = async (event) => {
 
 	if (false) {
 		// Log access attempt for audit purposes
-		console.warn('[DOCUMENT UPLOAD ACCESS DENIED]', {
+		logger.warn('[DOCUMENT UPLOAD ACCESS DENIED]', {
 			userId: locals.user.id,
 			userEmail: locals.user.email,
 			userRole: locals.user.role,
@@ -43,7 +43,7 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	// Log successful access
-	console.info('[DOCUMENT UPLOAD ACCESS GRANTED]', {
+	logger.info('[DOCUMENT UPLOAD ACCESS GRANTED]', {
 		userId: locals.user.id,
 		userEmail: locals.user.email,
 		timestamp: new Date().toISOString()
@@ -100,10 +100,10 @@ export const load: PageServerLoad = async (event) => {
 					label: user.fullName || user.displayName || user.email
 				}));
 
-				console.log('[UPLOAD PAGE] Loaded employee options:', employeeOptions.length);
+				logger.info('[UPLOAD PAGE] Loaded employee options:', employeeOptions.length);
 			}
 		} catch (err) {
-			console.error('[UPLOAD PAGE] Failed to load employees:', err);
+			logger.error('[UPLOAD PAGE] Failed to load employees:', err as Error);
 			// Continue without employee options - form will still work
 		}
 
@@ -127,7 +127,7 @@ export const load: PageServerLoad = async (event) => {
 			teams
 		};
 	} catch (err) {
-		console.error('Upload page load error:', err);
+		logger.error('Upload page load error:', err as Error);
 
 		// Re-throw redirects and errors
 		if (err && typeof err === 'object' && ('status' in err || 'location' in err)) {
@@ -161,7 +161,7 @@ export const actions: Actions = {
 			locals.user.role === 'system_admin';
 
 		if (!isSystemAdmin) {
-			console.warn('[DOCUMENT UPLOAD ACTION DENIED]', {
+			logger.warn('[DOCUMENT UPLOAD ACTION DENIED]', {
 				userId: locals.user.id,
 				userEmail: locals.user.email,
 				userRole: locals.user.role,
@@ -179,7 +179,7 @@ export const actions: Actions = {
 			// Step 3: Parse form data (now expecting raw file, not encrypted)
 			const formData = await request.formData();
 
-			console.log(
+			logger.info(
 				'[UPLOAD ACTION] FormData entries:',
 				Array.from(formData.entries()).map(([key, value]) => ({
 					key,
@@ -203,7 +203,7 @@ export const actions: Actions = {
 				? JSON.parse(formData.get('assignToDepartments') as string)
 				: [];
 
-			console.log('[UPLOAD ACTION] Parsed form data:', {
+			logger.info('[UPLOAD ACTION] Parsed form data:', {
 				hasFile: !!file,
 				fileType: file ? typeof file : 'undefined',
 				isFileInstance: file instanceof File,
@@ -235,7 +235,7 @@ export const actions: Actions = {
 				});
 			}
 
-			console.log('[UPLOAD ACTION] Server-side encryption starting:', {
+			logger.info('[UPLOAD ACTION] Server-side encryption starting:', {
 				filename: file.name,
 				size: file.size,
 				type: file.type
@@ -251,7 +251,7 @@ export const actions: Actions = {
 			const encryptionResult = encryptFileWithNewKey(fileBuffer);
 
 			// Step 6: Register encryption key with Rust backend
-			console.log('[UPLOAD ACTION] Registering encryption key...');
+			logger.info('[UPLOAD ACTION] Registering encryption key...');
 			const graphqlClient = GraphQLClient.fromCookies(cookies);
 
 			const keyInput = {
@@ -276,7 +276,7 @@ export const actions: Actions = {
 			);
 
 			if (keyResponse.errors?.length) {
-				console.error('[UPLOAD ACTION] Key registration failed:', keyResponse.errors);
+				logger.error('[UPLOAD ACTION] Key registration failed:', keyResponse.errors);
 				return fail(500, {
 					error: keyResponse.errors[0].message || 'Failed to register encryption key'
 				});
@@ -298,7 +298,7 @@ export const actions: Actions = {
 			const encryptedDataBase64 = packagedData.toString('base64');
 
 			// Step 8: Upload to Rust GraphQL backend
-			console.log('[UPLOAD ACTION] Uploading encrypted document to Rust backend...');
+			logger.info('[UPLOAD ACTION] Uploading encrypted document to Rust backend...');
 			const uploadInput = {
 				filename: file.name,
 				fileType: fileExtension,
@@ -314,7 +314,7 @@ export const actions: Actions = {
 				assignToDepartments
 			};
 
-			console.log('[UPLOAD ACTION] Upload input prepared:', {
+			logger.info('[UPLOAD ACTION] Upload input prepared:', {
 				filename: uploadInput.filename,
 				fileType: uploadInput.fileType,
 				fileSizeBytes: uploadInput.fileSizeBytes,
@@ -330,7 +330,7 @@ export const actions: Actions = {
 
 			// Log the exact GraphQL request being sent
 			const mutationVariables = { input: uploadInput };
-			console.log(
+			logger.info(
 				'[UPLOAD ACTION] GraphQL mutation variables:',
 				JSON.stringify(mutationVariables, null, 2).substring(0, 1000)
 			);
@@ -338,7 +338,7 @@ export const actions: Actions = {
 			const response = await graphqlClient.mutation(UPLOAD_DOCUMENT, mutationVariables);
 
 			if (response.errors?.length) {
-				console.error('[UPLOAD ACTION] GraphQL upload errors:', response.errors);
+				logger.error('[UPLOAD ACTION] GraphQL upload errors:', response.errors);
 				return fail(500, {
 					error: response.errors[0].message || 'Failed to upload document'
 				});
@@ -354,7 +354,7 @@ export const actions: Actions = {
 			// Step 9: Log successful upload
 			await logSuccessfulAccess(document.id, userId, 'view', createAccessMetadata(), fetch);
 
-			console.log('[UPLOAD ACTION] Document uploaded successfully:', {
+			logger.info('[UPLOAD ACTION] Document uploaded successfully:', {
 				documentId: document.id,
 				filename: file.name,
 				size: file.size,
@@ -373,7 +373,7 @@ export const actions: Actions = {
 				result: uploadResult
 			};
 		} catch (err) {
-			console.error('[UPLOAD ACTION] Upload failed:', err);
+			logger.error('[UPLOAD ACTION] Upload failed:', err as Error);
 
 			// Re-throw redirects and errors
 			if (err && typeof err === 'object' && ('status' in err || 'location' in err)) {

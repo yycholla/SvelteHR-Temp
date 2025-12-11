@@ -1,5 +1,6 @@
 <script lang="ts">
 	// Task Create Page
+	import { logger } from '$lib/utils/logger';
 	// Feature: 019-we-need-to - Task T036
 	// Purpose: Form for creating new tasks
 
@@ -70,7 +71,7 @@
 			// Navigate to tasks list on success
 			goto('/dashboard/tasks/my-tasks');
 		} catch (error) {
-			console.error('Failed to create task:', error);
+			logger.error('Failed to create task:', error as Error);
 			alert('Failed to create task. Please try again.');
 		} finally {
 			isSubmitting = false;

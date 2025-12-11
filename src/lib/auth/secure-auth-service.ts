@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Secure Authentication service for session-based authentication
 // Session management using axum-login backend with HTTP-only cookies
 
@@ -73,11 +74,11 @@ class SecureAuthService {
 				this.resetAuthState();
 			} else {
 				// Other errors (500, 503, etc.) - log but don't crash
-				console.warn('Auth verification returned unexpected status:', response.status);
+				logger.warn('Auth verification returned unexpected status:', response.status);
 				this.resetAuthState();
 			}
 		} catch (error) {
-			console.error('Auth service initialization failed:', error);
+			logger.error('Failed to initialize authentication', error as Error);
 			// Network error or fetch failed - reset state but don't logout
 			this.resetAuthState();
 		}
@@ -130,7 +131,7 @@ class SecureAuthService {
 				sessionExpires: data.sessionExpires
 			};
 		} catch (error) {
-			console.error('Login error:', error);
+			logger.error('Login request failed', error as Error);
 			return {
 				success: false,
 				error: error instanceof Error ? error.message : 'Network error'
@@ -150,9 +151,9 @@ class SecureAuthService {
 					'Content-Type': 'application/json'
 				},
 				credentials: 'include'
-			}).catch((err) => console.warn('Logout endpoint failed:', err));
+			}).catch((err) => logger.warn('Logout endpoint failed:'.replace(/['`]$/, `: ${err}'`/)));
 		} catch (error) {
-			console.warn('Logout request failed:', error);
+			logger.warn('Logout request failed:'.replace(/['`]$/, `: ${error}'`/));
 		} finally {
 			// Always clean up local state
 			this.resetAuthState();

@@ -1,5 +1,6 @@
 <script lang="ts">
 	// Notifications Center Page
+	import { logger } from '$lib/utils/logger';
 	// Feature: 019-we-need-to - Task T032
 	// Purpose: Display and manage user notifications
 
@@ -76,7 +77,7 @@
 			// Reload page to show updated state
 			window.location.reload();
 		} catch (err) {
-			console.error('Failed to mark as read:', err);
+			logger.error('Failed to mark as read:', err as Error);
 		}
 	}
 
@@ -102,7 +103,7 @@
 			// Reload page to show updated state
 			window.location.reload();
 		} catch (err) {
-			console.error('Failed to mark all as read:', err);
+			logger.error('Failed to mark all as read:', err as Error);
 		}
 	}
 
@@ -122,7 +123,7 @@
 			// Reload page to show updated list
 			window.location.reload();
 		} catch (err) {
-			console.error('Failed to delete notification:', err);
+			logger.error('Failed to delete notification:', err as Error);
 			alert('Failed to delete notification. Please try again.');
 		}
 	}

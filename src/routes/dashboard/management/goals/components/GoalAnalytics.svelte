@@ -4,7 +4,7 @@
 </script>
 
 <script lang="ts">
-	import { BarChart3, TrendingUp, Target, Calendar } from '@lucide/svelte';
+	import { BarChart3, Calendar, Target, TrendingUp } from '@lucide/svelte';
 
 	interface Props {
 		analytics: any;

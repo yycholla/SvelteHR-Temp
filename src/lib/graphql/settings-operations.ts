@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // GraphQL Operations: User Settings Management
 // Created: 2024-12-18
 // Task: T041 - User settings and preferences GraphQL operations for /settings
@@ -399,13 +400,13 @@ export class SettingsOperations {
 				updatedAt: userData.updatedAt
 			};
 
-			console.log(`Loaded settings for user: ${params.userId} (hybrid: GraphQL + mock)`);
+			logger.info(`Loaded settings for user: ${params.userId} (hybrid: GraphQL + mock)`);
 			return userSettings;
 		} catch (error) {
-			console.error('Failed to fetch user settings from GraphQL:', error);
+			logger.error('Catch failed', error as Error);
 
 			// Fallback to mock data if GraphQL fails
-			console.warn('Falling back to mock user settings data');
+			logger.warn('Falling back to mock user settings data');
 			const mockUserSettings = {
 				id: params.userId,
 				email: 'user@company.com',
@@ -493,7 +494,7 @@ export class SettingsOperations {
 			// Mock profile update - in real implementation, this would execute GraphQL mutation
 			setTimeout(() => {
 				clearTimeout(timeoutId);
-				console.log(`Updated profile for user: ${params.input.userId}`);
+				logger.info(`Updated profile for user: ${params.input.userId}`);
 				resolve({
 					user: {
 						...params.input.profile,
@@ -535,7 +536,7 @@ export class SettingsOperations {
 			// Mock preferences update
 			setTimeout(() => {
 				clearTimeout(timeoutId);
-				console.log(`Updated preferences for user: ${params.input.userId}`);
+				logger.info(`Updated preferences for user: ${params.input.userId}`);
 				resolve({
 					userPreferences: {
 						...params.input.preferences,
@@ -580,10 +581,10 @@ export class SettingsOperations {
 				userAgent: activity.userAgent
 			}));
 		} catch (error) {
-			console.error('Failed to fetch user activity log:', error);
+			logger.error('Catch failed', error as Error);
 
 			// Fallback to mock data if GraphQL fails
-			console.warn('Falling back to mock activity log data');
+			logger.warn('Falling back to mock activity log data');
 			const mockActivityLog = [
 				{
 					id: '1',
@@ -611,7 +612,7 @@ export class SettingsOperations {
 				}
 			];
 
-			console.log(`Loaded activity log for user: ${params.userId} (fallback to mock)`);
+			logger.info(`Loaded activity log for user: ${params.userId} (fallback to mock)`);
 			return mockActivityLog;
 		}
 	}

@@ -1,5 +1,6 @@
 <script lang="ts">
 	// Document detail page (Feature 024)
+	import { logger } from '$lib/utils/logger';
 	// Individual document view with metadata, preview, assignments, and access log
 
 	import { goto } from '$app/navigation';
@@ -51,7 +52,7 @@
 			const result = await response.json();
 			previewUrl = result.previewUrl;
 		} catch (error) {
-			console.error('Preview error:', error);
+			logger.error('Preview error:', error as Error);
 			previewError = error instanceof Error ? error.message : 'Failed to load preview';
 		} finally {
 			previewLoading = false;
@@ -63,7 +64,7 @@
 		try {
 			window.open(`/api/documents/${data.document.id}/download`, '_blank');
 		} catch (error) {
-			console.error('Download error:', error);
+			logger.error('Download error:', error as Error);
 			alert('Failed to download document. Please try again.');
 		}
 	}
@@ -72,7 +73,7 @@
 	async function handleAssignment(assignments: Partial<DocumentAssignment>[]) {
 		try {
 			// TODO: Call assignment API endpoint
-			console.log('Assigning document:', assignments);
+			logger.info('Assigning document:'.replace(/['`]$/, `: ${assignments}'`/));
 
 			// Close modal and show success
 			isAssignmentModalOpen = false;
@@ -81,7 +82,7 @@
 			// Refresh page data
 			window.location.reload();
 		} catch (error) {
-			console.error('Assignment error:', error);
+			logger.error('Assignment error:', error as Error);
 			alert('Failed to assign document. Please try again.');
 		}
 	}
@@ -109,7 +110,7 @@
 			alert('Document deleted successfully!');
 			goto('/dashboard/documents');
 		} catch (error) {
-			console.error('Delete error:', error);
+			logger.error('Delete error:', error as Error);
 			alert('Failed to delete document. Please try again.');
 		}
 	}

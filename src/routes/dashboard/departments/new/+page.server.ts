@@ -29,7 +29,7 @@ export const load: PageServerLoad = async (event) => {
 			Cookie: cookieHeader // Forward all cookies for session authentication
 		};
 
-		console.log(
+		logger.info(
 			'[Department New] Using Rust GraphQL with session-based auth, user role:',
 			locals.user?.role
 		);
@@ -54,7 +54,7 @@ export const load: PageServerLoad = async (event) => {
 		const departmentsData = await departmentsResponse.json();
 
 		if (departmentsData.errors) {
-			console.error('[Department New] GraphQL errors:', departmentsData.errors);
+			logger.error('[Department New] GraphQL errors:', departmentsData.errors);
 		}
 
 		// Load users for department manager dropdown
@@ -82,7 +82,7 @@ export const load: PageServerLoad = async (event) => {
 		const usersData = await usersResponse.json();
 
 		if (usersData.errors) {
-			console.error('[Department New] Users GraphQL errors:', usersData.errors);
+			logger.error('[Department New] Users GraphQL errors:', usersData.errors);
 		}
 
 		// Filter to active users only
@@ -99,7 +99,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[Department New] Error loading data:', err);
+		logger.error('[Department New] Error loading data:', err as Error);
 
 		// If it's already a SvelteKit error, rethrow it
 		if (err && typeof err === 'object' && 'status' in err) {
@@ -172,12 +172,12 @@ export const actions: Actions = {
 				})
 			});
 
-			console.log('[Department New] Department creation request sent');
+			logger.info('[Department New] Department creation request sent');
 
 			const createData = await createResponse.json();
 
 			if (createData.errors) {
-				console.error('[Department New] GraphQL errors:', createData.errors);
+				logger.error('[Department New] GraphQL errors:', createData.errors);
 				return fail(500, {
 					error: createData.errors[0]?.message || 'Failed to create department'
 				});
@@ -191,12 +191,12 @@ export const actions: Actions = {
 				});
 			}
 
-			console.log(`[Department New] Successfully created department with ID: ${newDepartmentId}`);
+			logger.info(`[Department New] Successfully created department with ID: ${newDepartmentId}`);
 
 			// Redirect to the new department detail page with success message
 			redirect(303, `/dashboard/departments/${newDepartmentId}?success=created`);
 		} catch (err: any) {
-			console.error('[Department New] Error creating department:', err);
+			logger.error('[Department New] Error creating department:', err as Error);
 
 			// If it's a redirect, rethrow it
 			if (err.status === 303) {

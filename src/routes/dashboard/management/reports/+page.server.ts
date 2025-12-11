@@ -3,7 +3,7 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 
 export const load: PageServerLoad = async (event) => {
@@ -41,7 +41,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// If backend is not ready, return error state but don't crash
 		if (!backendReady) {
-			console.warn('Backend not ready for management reports page');
+			logger.warn('Backend not ready for management reports page');
 			return {
 				user: {
 					id: locals.user.id,
@@ -253,7 +253,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('Error loading management reports data:', err);
+		logger.error('Error loading management reports data:', err as Error);
 
 		// Return error state instead of throwing to prevent page crash
 		return {

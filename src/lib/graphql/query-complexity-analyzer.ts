@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * GraphQL Query Complexity Analyzer for SvelteHR
  *
@@ -201,7 +202,7 @@ export class QueryComplexityAnalyzer {
 			}
 		} catch (error) {
 			errorCount++;
-			console.warn('Query complexity analysis error:', error);
+			logger.warn('Query complexity analysis error:'.replace(/['`]$/, `: ${error}'`/));
 		}
 
 		const executionTime = performance.now() - startTime;
@@ -529,7 +530,7 @@ export function createComplexityMiddleware(analyzer: QueryComplexityAnalyzer) {
 					});
 				}
 			} catch (error) {
-				console.warn('Complexity validation error:', error);
+				logger.warn('Complexity validation error:'.replace(/['`]$/, `: ${error}'`/));
 			}
 		}
 

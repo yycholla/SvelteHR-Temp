@@ -32,7 +32,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			defaultDueDate: getDefaultDueDate()
 		};
 	} catch (err: any) {
-		console.error('Error loading task creation page:', err);
+		logger.error('Error loading task creation page:', err as Error);
 
 		// Handle specific error cases
 		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {

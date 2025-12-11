@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Permissions and Roles Operations - GraphQL Integration
  *
@@ -318,7 +319,7 @@ export const executePermissionsQuery = async <T = any>(
 	const result = await client.query(query, variables).toPromise();
 
 	if (result.error) {
-		console.error('Permissions query error:', result.error);
+		logger.error('Permissions query error:', result.error);
 		throw result.error;
 	}
 
@@ -336,7 +337,7 @@ export const executePermissionsMutation = async <T = any>(
 	const result = await client.mutation(mutation, variables).toPromise();
 
 	if (result.error) {
-		console.error('Permissions mutation error:', result.error);
+		logger.error('Permissions mutation error:', result.error);
 		throw result.error;
 	}
 

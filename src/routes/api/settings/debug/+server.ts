@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // API Route: Get developer debug settings
 // Returns the developer settings category for system_admin users
 
@@ -41,7 +42,7 @@ export const GET: RequestHandler = async ({ cookies }) => {
 
 		return json({ settings });
 	} catch (err: any) {
-		console.error('[DEBUG SETTINGS] Error:', err);
+		logger.error('[DEBUG SETTINGS] Error:', err as Error);
 
 		// Return default settings on error
 		return json({

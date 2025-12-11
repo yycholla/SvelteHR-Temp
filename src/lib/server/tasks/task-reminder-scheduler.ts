@@ -11,6 +11,7 @@
 import cron, { type ScheduledTask } from 'node-cron';
 import { getGraphQLEndpoint } from '$lib/server/api-url';
 import type { Task, TaskStatus } from '$lib/types/task';
+import { logger } from '$lib/utils/logger';
 
 export interface PendingTaskReminder {
 	taskId: string;
@@ -40,11 +41,11 @@ export class TaskReminderScheduler {
 	 */
 	static start(): void {
 		if (this.cronTask) {
-			console.log('[TaskReminderScheduler] Already running');
+			logger.info('[TaskReminderScheduler] Already running');
 			return;
 		}
 
-		console.log('[TaskReminderScheduler] Starting task reminder scheduler');
+		logger.info('[TaskReminderScheduler] Starting task reminder scheduler');
 
 		// Run every 5 minutes
 		this.cronTask = cron.schedule('*/5 * * * *', async () => {
@@ -62,7 +63,7 @@ export class TaskReminderScheduler {
 		if (this.cronTask) {
 			this.cronTask.stop();
 			this.cronTask = null;
-			console.log('[TaskReminderScheduler] Stopped');
+			logger.info('[TaskReminderScheduler] Stopped');
 		}
 	}
 
@@ -71,7 +72,7 @@ export class TaskReminderScheduler {
 	 */
 	private static async checkAndSendReminders(): Promise<void> {
 		if (this.isRunning) {
-			console.log('[TaskReminderScheduler] Previous check still running, skipping...');
+			logger.info('[TaskReminderScheduler] Previous check still running, skipping...');
 			return;
 		}
 
@@ -81,17 +82,17 @@ export class TaskReminderScheduler {
 			const pendingReminders = await this.getPendingReminders();
 
 			if (pendingReminders.length === 0) {
-				console.log('[TaskReminderScheduler] No pending reminders');
+				logger.debug('[TaskReminderScheduler] No pending reminders');
 				return;
 			}
 
-			console.log(`[TaskReminderScheduler] Found ${pendingReminders.length} pending reminders`);
+			logger.info(`[TaskReminderScheduler] Found ${pendingReminders.length} pending reminders`);
 
 			for (const reminder of pendingReminders) {
 				await this.sendReminder(reminder);
 			}
 		} catch (error) {
-			console.error('[TaskReminderScheduler] Error checking reminders:', error);
+			logger.error('[TaskReminderScheduler] Error checking reminders:', error instanceof Error ? error : new Error(String(error)));
 		} finally {
 			this.isRunning = false;
 		}
@@ -154,7 +155,7 @@ export class TaskReminderScheduler {
 			});
 
 			if (!response.ok) {
-				console.error('[TaskReminderScheduler] Failed to fetch tasks with reminders');
+				logger.error('[TaskReminderScheduler] Failed to fetch tasks with reminders');
 				return [];
 			}
 
@@ -203,7 +204,7 @@ export class TaskReminderScheduler {
 
 			return pendingReminders;
 		} catch (error) {
-			console.error('[TaskReminderScheduler] Error fetching pending reminders:', error);
+			logger.error('[TaskReminderScheduler] Error fetching pending reminders:', error instanceof Error ? error : new Error(String(error)));
 			return [];
 		}
 	}
@@ -253,11 +254,11 @@ export class TaskReminderScheduler {
 				this.processedReminders = new Set(entries.slice(-2000));
 			}
 
-			console.log(
+			logger.info(
 				`[TaskReminderScheduler] Sent reminder to ${reminder.assigneeName} for task "${reminder.taskTitle}"`
 			);
 		} catch (error) {
-			console.error('[TaskReminderScheduler] Error sending reminder:', error);
+			logger.error('[TaskReminderScheduler] Error sending reminder:', error instanceof Error ? error : new Error(String(error)));
 		}
 	}
 
@@ -323,12 +324,12 @@ export class TaskReminderScheduler {
 				throw new Error(result.errors[0]?.message || 'GraphQL error');
 			}
 
-			console.log(
+			logger.debug(
 				'[TaskReminderScheduler] Created notification:',
-				result.data?.createNotification?.notification?.id
+				{ id: result.data?.createNotification?.notification?.id }
 			);
 		} catch (error) {
-			console.error('[TaskReminderScheduler] Error creating notification:', error);
+			logger.error('[TaskReminderScheduler] Error creating notification:', error instanceof Error ? error : new Error(String(error)));
 			// Don't throw - we don't want to stop the scheduler
 		}
 	}
@@ -394,7 +395,7 @@ export class TaskReminderScheduler {
 	 */
 	static clearCache(): void {
 		this.processedReminders.clear();
-		console.log('[TaskReminderScheduler] Cleared processed reminders cache');
+		logger.info('[TaskReminderScheduler] Cleared processed reminders cache');
 	}
 }
 
@@ -449,7 +450,7 @@ export async function checkOverdueTasks(): Promise<number> {
 		});
 
 		if (!response.ok) {
-			console.error('[TaskReminderScheduler] Failed to fetch overdue tasks');
+			logger.error('[TaskReminderScheduler] Failed to fetch overdue tasks');
 			return 0;
 		}
 
@@ -469,12 +470,12 @@ export async function checkOverdueTasks(): Promise<number> {
 
 			// Create overdue notification
 			// Note: This could be enhanced with a check to avoid duplicate daily reminders
-			console.log(`[TaskReminderScheduler] Task "${task.title}" is ${daysOverdue} day(s) overdue`);
+			logger.info(`[TaskReminderScheduler] Task "${task.title}" is ${daysOverdue} day(s) overdue`);
 		}
 
 		return overdueTasks.length;
 	} catch (error) {
-		console.error('[TaskReminderScheduler] Error checking overdue tasks:', error);
+		logger.error('[TaskReminderScheduler] Error checking overdue tasks:', error instanceof Error ? error : new Error(String(error)));
 		return 0;
 	}
 }
@@ -485,7 +486,7 @@ export async function checkOverdueTasks(): Promise<number> {
  */
 export function initTaskReminderScheduler(): void {
 	TaskReminderScheduler.start();
-	console.log('[TaskReminderScheduler] Initialized and started');
+	logger.info('[TaskReminderScheduler] Initialized and started');
 }
 
 /**
@@ -494,5 +495,5 @@ export function initTaskReminderScheduler(): void {
  */
 export function stopTaskReminderScheduler(): void {
 	TaskReminderScheduler.stop();
-	console.log('[TaskReminderScheduler] Stopped');
+	logger.info('[TaskReminderScheduler] Stopped');
 }

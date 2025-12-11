@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * GraphQL Error Handling Utilities
  * SvelteHR GraphQL Integration Error Resolution
@@ -351,8 +352,8 @@ export function createStandardizedError(
 	// Log error in development mode
 	if (import.meta.env.DEV) {
 		console.group(`🔴 GraphQL Error: ${operationName}`);
-		console.error('Original Error:', originalError);
-		console.error('Classified Error:', errorResponse);
+		logger.error('Original Error:', originalError);
+		logger.error('Classified Error:', errorResponse);
 		console.groupEnd();
 	}
 
@@ -404,12 +405,12 @@ export function createErrorHandler(config: ErrorHandlerConfig) {
 export function logErrorDetails(error: ErrorResponse): void {
 	if (import.meta.env.DEV) {
 		console.group(`🔍 Error Details: ${error.id}`);
-		console.log('Type:', error.type);
-		console.log('Severity:', error.severity);
-		console.log('User Message:', error.userMessage);
-		console.log('Is Retryable:', error.isRetryable);
-		console.log('Suggested Actions:', error.suggestedActions);
-		console.log('Technical Details:', error.technicalDetails);
+		logger.info('Type:', error.type);
+		logger.info('Severity:', error.severity);
+		logger.info('User Message:', error.userMessage);
+		logger.info('Is Retryable:', error.isRetryable);
+		logger.info('Suggested Actions:', error.suggestedActions);
+		logger.info('Technical Details:', error.technicalDetails);
 		console.groupEnd();
 	}
 }
@@ -441,7 +442,7 @@ export function createErrorBoundaryHandler(
 
 		reset() {
 			// Reset error boundary state
-			console.log('🔄 Error boundary reset');
+			logger.info('🔄 Error boundary reset');
 		}
 	};
 }

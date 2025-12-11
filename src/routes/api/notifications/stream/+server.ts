@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // SSE endpoint for real-time notification updates
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
@@ -8,15 +9,15 @@ export const GET: RequestHandler = async ({ locals, cookies, request }) => {
 	// Session-based authentication - user must be authenticated via hooks.server.ts
 	if (!locals.user?.id) {
 		// Only log debug info on authentication errors
-		console.error('❌ SSE: No authenticated user found in session');
-		console.error('❌ SSE: Cookie header:', cookieHeader || 'NO COOKIES SENT');
-		console.error('❌ SSE: Cookies parsed by SvelteKit:', {
+		logger.error('❌ SSE: No authenticated user found in session');
+		logger.error('❌ SSE: Cookie header:', cookieHeader || 'NO COOKIES SENT');
+		logger.error('❌ SSE: Cookies parsed by SvelteKit:', {
 			'id.session': cookies.get('id.session'),
 			session: cookies.get('session'),
 			hr_token: cookies.get('hr_token'),
 			'auth-token': cookies.get('auth-token')
 		});
-		console.error('❌ SSE: locals.user:', locals.user);
+		logger.error('❌ SSE: locals.user:', locals.user);
 		error(401, 'Authentication required');
 	}
 
@@ -40,7 +41,7 @@ export const GET: RequestHandler = async ({ locals, cookies, request }) => {
 				try {
 					controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
 				} catch (err) {
-					console.error('Error sending SSE event:', err);
+					logger.error('Error sending SSE event:', err as Error);
 					isClosed = true;
 					if (intervalId) {
 						clearInterval(intervalId);
@@ -105,7 +106,7 @@ export const GET: RequestHandler = async ({ locals, cookies, request }) => {
 					const result = await graphqlResponse.json();
 
 					if (result.errors) {
-						console.error('❌ SSE: GraphQL errors:', result.errors);
+						logger.error('❌ SSE: GraphQL errors:', result.errors);
 						sendEvent({ type: 'error', message: 'Failed to fetch notifications' });
 						return;
 					}
@@ -128,14 +129,14 @@ export const GET: RequestHandler = async ({ locals, cookies, request }) => {
 						}))
 					});
 				} catch (err) {
-					console.error('Error fetching notifications in SSE:', err);
+					logger.error('Error fetching notifications in SSE:', err as Error);
 					sendEvent({ type: 'error', message: 'Failed to fetch notifications' });
 				}
 			}, 5000); // Poll every 5 seconds
 		},
 		cancel() {
 			// Called when the client disconnects
-			console.log('SSE client disconnected');
+			logger.info('SSE client disconnected');
 			isClosed = true;
 			if (intervalId) {
 				clearInterval(intervalId);

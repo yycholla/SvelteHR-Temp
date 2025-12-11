@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Storage upload API endpoint (Feature 024)
 // POST /api/storage/upload - Upload encrypted file data
 
@@ -83,7 +84,7 @@ export const POST: RequestHandler = async (event) => {
 			);
 		});
 
-		console.log(`File stored at: ${storagePath}, size: ${metadata.fileSizeBytes} bytes`);
+		logger.info(`File stored at: ${storagePath}, size: ${metadata.fileSizeBytes} bytes`);
 
 		// Step 5: Return storage result
 		return json(
@@ -94,7 +95,7 @@ export const POST: RequestHandler = async (event) => {
 			{ status: 201 }
 		);
 	} catch (err) {
-		console.error('File storage error:', err);
+		logger.error('File storage error:', err as Error);
 
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err; // Re-throw SvelteKit errors

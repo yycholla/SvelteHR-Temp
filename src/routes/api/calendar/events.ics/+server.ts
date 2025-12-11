@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // iCal Feed Endpoint for Events Calendar
 // Generates RFC 5545 compliant iCalendar format for calendar applications
 
@@ -93,7 +94,7 @@ export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 			}
 		});
 	} catch (err) {
-		console.error('Error generating iCal feed:', err);
+		logger.error('Error generating iCal feed:', err as Error);
 		error(500, 'Failed to generate calendar feed');
 	}
 };

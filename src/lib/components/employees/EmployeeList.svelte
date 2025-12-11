@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 	import { queryStore } from '@urql/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
 	import { GET_EMPLOYEES_QUERY } from '$lib/graphql/employee-operations';
@@ -56,13 +57,13 @@
 	onMount(() => {
 		// Initialize the query with the direct client
 		try {
-			console.log('URQL client:', client);
+			logger.info('URQL client:'.replace(/['`]$/, `: ${client}'`/));
 
 			if (!client?.createRequestOperation) {
 				throw new Error('URQL client is not properly initialized');
 			}
 
-			console.log('URQL client validated, initializing query...');
+			logger.info('URQL client validated, initializing query...');
 			clientReady = true;
 			usersQuery = queryStore({
 				client,
@@ -73,7 +74,7 @@
 				}
 			});
 		} catch (error) {
-			console.error('Error initializing query store:', error);
+			logger.error('Catch failed', error as Error);
 			clientReady = false;
 		}
 
@@ -114,7 +115,7 @@
 					rerunQuery = () => state.rerun({ requestPolicy: 'network-only' });
 				}
 
-				console.log('URQL Query State:', {
+				logger.info('URQL Query State:', {
 					fetching: state.fetching,
 					error: state.error,
 					dataNodes: state.data?.users?.length || 0
@@ -177,18 +178,18 @@
 				deactivateSelected();
 				break;
 			default:
-				console.log(`Bulk action: ${action} for`, selectedEmployees);
+				logger.info(`Bulk action: ${action} for`.replace(/['`]$/, `: ${selectedEmployees}'`/));
 		}
 	};
 
 	const exportSelected = () => {
 		// TODO: Implement export functionality
-		console.log('Exporting employees:', selectedEmployees);
+		logger.info('Exporting employees:'.replace(/['`]$/, `: ${selectedEmployees}'`/));
 	};
 
 	const deactivateSelected = () => {
 		// TODO: Implement bulk deactivation
-		console.log('Deactivating employees:', selectedEmployees);
+		logger.info('Deactivating employees:'.replace(/['`]$/, `: ${selectedEmployees}'`/));
 	};
 
 	// Store the rerun function separately to avoid reactive access

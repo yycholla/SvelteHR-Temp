@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Server-side Performance Monitor for SvelteHR
  *
@@ -129,7 +130,7 @@ class ServerPerformanceMonitor {
 
 				// Log slow requests
 				if (duration > this.config.slowRequestThreshold) {
-					console.warn(
+					logger.warn(
 						`🐌 Slow request: ${event.request.method} ${event.url.pathname} took ${Math.round(duration)}ms`
 					);
 				}
@@ -180,7 +181,7 @@ class ServerPerformanceMonitor {
 
 		if (duration > 200) {
 			// GraphQL budget
-			console.warn(`🐌 Slow GraphQL operation: ${operationName} took ${Math.round(duration)}ms`);
+			logger.warn(`🐌 Slow GraphQL operation: ${operationName} took ${Math.round(duration)}ms`);
 		}
 	}
 
@@ -203,7 +204,7 @@ class ServerPerformanceMonitor {
 
 		if (duration > 100) {
 			// Database budget
-			console.warn(
+			logger.warn(
 				`🐌 Slow database query took ${Math.round(duration)}ms:`,
 				this.sanitizeQuery(query)
 			);
@@ -323,7 +324,7 @@ class ServerPerformanceMonitor {
 	 */
 	clearMetrics(): void {
 		this.metrics = [];
-		console.log('🗑️ Server performance metrics cleared');
+		logger.info('🗑️ Server performance metrics cleared');
 	}
 
 	/**
@@ -373,7 +374,7 @@ class ServerPerformanceMonitor {
 
 		// Detailed logging if enabled
 		if (this.config.enableDetailedLogging) {
-			console.log(`📊 Performance metric:`, {
+			logger.info(`📊 Performance metric:`, {
 				type: fullMetric.type,
 				path: fullMetric.path,
 				duration: `${Math.round(fullMetric.duration)}ms`,
@@ -434,12 +435,12 @@ class ServerPerformanceMonitor {
 			const memUsage = process.memoryUsage();
 
 			if (memUsage.rss > this.config.memoryThreshold) {
-				console.warn(`⚠️ High memory usage detected: ${Math.round(memUsage.rss / 1024 / 1024)}MB`);
+				logger.warn(`⚠️ High memory usage detected: ${Math.round(memUsage.rss / 1024 / 1024)}MB`);
 			}
 
 			// Force garbage collection if available and memory is high
 			if (global.gc && memUsage.rss > this.config.memoryThreshold * 0.9) {
-				console.log('🗑️ Forcing garbage collection due to high memory usage');
+				logger.info('🗑️ Forcing garbage collection due to high memory usage');
 				global.gc();
 			}
 		}, 30000);

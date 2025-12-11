@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Access logging and audit service (Feature 024)
 // Comprehensive audit trail for compliance and security
 
@@ -42,10 +43,10 @@ export async function logAccess(
 		});
 
 		if (!response.ok) {
-			console.error('Failed to log access attempt:', await response.text());
+			logger.error('Failed to log access attempt:', await response.text());
 		}
 	} catch (error) {
-		console.error('Failed to log access attempt:', error);
+		logger.error('Catch failed', error as Error);
 	}
 }
 

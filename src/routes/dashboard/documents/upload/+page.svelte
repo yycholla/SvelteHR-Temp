@@ -1,5 +1,6 @@
 <script lang="ts">
 	// Document upload page (Feature 024)
+	import { logger } from '$lib/utils/logger';
 	// Upload page with file selection and metadata form
 
 	import { goto } from '$app/navigation';
@@ -54,7 +55,7 @@
 
 	// Debug logging
 	$effect(() => {
-		console.log(
+		logger.info(
 			'[Parent] State update - hasFile:',
 			hasFile,
 			'metadata.filename:',
@@ -76,7 +77,7 @@
 
 	// Handle successful upload
 	function handleUploadSuccess(result: UploadResult) {
-		console.log('Upload successful:', result);
+		logger.info('Upload successful:'.replace(/['`]$/, `: ${result}'`/));
 		uploadComplete = true;
 		uploadedDocumentId = result.documentId;
 
@@ -88,7 +89,7 @@
 
 	// Handle upload error
 	function handleUploadError(error: Error) {
-		console.error('Upload failed:', error);
+		logger.error('Upload failed:', error as Error);
 		uploadError = error.message;
 		isUploading = false;
 	}
@@ -176,12 +177,12 @@
 					return;
 				}
 
-				console.log('[Upload] About to validate metadata, metadataForm:', metadataForm);
-				console.log(
+				logger.info('[Upload] About to validate metadata, metadataForm:'.replace(/['`]$/, `: ${metadataForm}'`/));
+				logger.info(
 					'[Upload] metadataForm.validateMetadata exists?',
 					typeof metadataForm?.validateMetadata
 				);
-				console.log('[Upload] Current metadata:', metadata);
+				logger.info('[Upload] Current metadata:'.replace(/['`]$/, `: ${metadata}'`/));
 
 				// Validate metadata before submission
 				if (!metadataForm?.validateMetadata()) {
@@ -207,7 +208,7 @@
 				// Send employee assignments as JSON string - automatically assign to current user
 				formData.set('assignToEmployees', JSON.stringify([data.user?.id].filter(Boolean)));
 
-				console.log('[Upload] Starting upload...', {
+				logger.info('[Upload] Starting upload...', {
 					filename: file.name,
 					size: file.size,
 					type: file.type,
@@ -219,7 +220,7 @@
 				isUploading = true;
 
 				return async ({ result, update }) => {
-					console.log('[Upload] Form submission result:', result);
+					logger.info('[Upload] Form submission result:'.replace(/['`]$/, `: ${result}'`/));
 
 					if (result.type === 'success' && result.data?.success) {
 						handleUploadSuccess(result.data.result as UploadResult);

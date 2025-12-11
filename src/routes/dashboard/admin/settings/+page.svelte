@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { AlertCircle, Save } from '@lucide/svelte';
+	import { logger } from '$lib/utils/logger';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 
@@ -61,7 +62,7 @@
 				successMessage = '';
 			}, 3000);
 		} catch (error: any) {
-			console.error('Save settings error:', error);
+			logger.error('Save settings error:', error as Error);
 			errorMessage = error.message || 'Failed to save settings';
 		} finally {
 			loading = false;

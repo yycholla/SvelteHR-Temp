@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { logger } from '$lib/utils/logger';
 	import { page } from '$app/stores';
 	import {
 		AlertTriangle,
@@ -126,7 +127,7 @@
 	async function handleSubmitGoal(event: SubmitEvent) {
 		event.preventDefault();
 		// TODO: Implement actual goal creation
-		console.log('Creating new goal:', newGoal);
+		logger.info('Creating new goal:'.replace(/['`]$/, `: ${newGoal}'`/));
 		showNewGoalForm = false;
 		newGoal = {
 			title: '',
@@ -139,7 +140,7 @@
 
 	async function handleUpdateProgress(goalId: string, newProgress: number) {
 		// TODO: Implement goal progress update
-		console.log('Updating goal progress:', goalId, newProgress);
+		logger.info('Updating goal progress:', goalId, newProgress);
 	}
 </script>
 

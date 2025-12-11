@@ -1,7 +1,7 @@
 // Workflow Store - Workflow management and orchestration
 // Created: 2025-12-08
 
-import { writable, derived } from 'svelte/store';
+import { derived, writable } from 'svelte/store';
 
 // ===========================
 // Type Definitions

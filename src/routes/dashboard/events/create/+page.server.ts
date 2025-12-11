@@ -73,7 +73,7 @@ export const load: PageServerLoad = async (event) => {
 			defaultAllDay
 		};
 	} catch (err: any) {
-		console.error('Error loading event creation page:', err);
+		logger.error('Error loading event creation page:', err as Error);
 
 		// Handle specific error cases
 		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {
@@ -288,7 +288,7 @@ export const actions: Actions = {
 			// Redirect to events list on success
 			redirect(303, '/dashboard/events');
 		} catch (err: any) {
-			console.error('Error creating event:', err);
+			logger.error('Error creating event:', err as Error);
 
 			if (err.status === 303) {
 				throw err; // Re-throw redirect

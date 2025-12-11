@@ -9,7 +9,7 @@ import {
 } from '$lib/graphql/onboarding-operations';
 
 export const load: PageServerLoad = async (event) => {
-	console.log('[ONBOARDING CONTENT EDITOR SERVER] Load function called', {
+	logger.info('[ONBOARDING CONTENT EDITOR SERVER] Load function called', {
 		moduleId: event.params.id,
 		url: event.url.href,
 		pathname: event.url.pathname,
@@ -55,7 +55,7 @@ export const load: PageServerLoad = async (event) => {
 		const response = await client.query(query, { id });
 
 		if (response.errors) {
-			console.error('GraphQL errors loading onboarding content:', response.errors);
+			logger.error('GraphQL errors loading onboarding content:', response.errors);
 			throw error(500, {
 				message: `Failed to load onboarding module: ${response.errors[0]?.message || 'Unknown error'}`
 			});
@@ -76,7 +76,7 @@ export const load: PageServerLoad = async (event) => {
 			throw err;
 		}
 
-		console.error('Error loading onboarding content page:', err);
+		logger.error('Error loading onboarding content page:', err as Error);
 		throw error(500, {
 			message: 'Failed to load onboarding content'
 		});

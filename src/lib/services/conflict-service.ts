@@ -1,3 +1,5 @@
+import { logger } from '$lib/utils/logger';
+
 /**
  * Conflict Detection Service
  * Feature: 025-events-flesh-out
@@ -63,7 +65,7 @@ export class ConflictService {
 				conflictCount: conflicts.length
 			};
 		} catch (error) {
-			console.error('Error checking conflicts:', error);
+			logger.error('Catch failed', error as Error);
 			return {
 				hasConflicts: false,
 				conflicts: [],
@@ -98,7 +100,7 @@ export class ConflictService {
 
 			return conflictMap;
 		} catch (error) {
-			console.error('Error getting user conflicts:', error);
+			logger.error('Catch failed', error as Error);
 			return new Map();
 		}
 	}
@@ -125,7 +127,7 @@ export class ConflictService {
 			// Placeholder implementation
 			return null;
 		} catch (error) {
-			console.error('Error finding available slot:', error);
+			logger.error('Catch failed', error as Error);
 			return null;
 		}
 	}

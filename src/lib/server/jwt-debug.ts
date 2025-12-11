@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * DEPRECATED: JWT Debugging Utilities
  *
@@ -74,7 +75,7 @@ export function debugJWTToken(cookies: Cookies): JWTDebugInfo {
 	}
 
 	if (dev) {
-		console.log('🔐 JWT Debug Info:', debugInfo);
+		logger.info('🔐 JWT Debug Info:'.replace(/['`]$/, `: ${debugInfo}'`/));
 	}
 
 	return debugInfo;
@@ -82,6 +83,6 @@ export function debugJWTToken(cookies: Cookies): JWTDebugInfo {
 
 /** @deprecated Session-based auth doesn't use JWT tokens */
 export function createTestJWT(): string {
-	console.warn('createTestJWT is deprecated - use session-based authentication');
+	logger.warn('createTestJWT is deprecated - use session-based authentication');
 	return '';
 }

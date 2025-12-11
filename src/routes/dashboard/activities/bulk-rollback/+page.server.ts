@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Bulk Rollback Page - Server Load
  * Feature: 020-we-need-to (Comprehensive Audit Logging with Rollback)
@@ -30,7 +31,7 @@ export const load: PageServerLoad = async (event) => {
 		const backendReady = await ensureBackendReady();
 
 		if (!backendReady) {
-			console.warn('Backend not ready for bulk rollback page');
+			logger.warn('Backend not ready for bulk rollback page');
 			return {
 				availableLogs: [],
 				recentBatches: [],
@@ -159,7 +160,7 @@ export const load: PageServerLoad = async (event) => {
 			userId: locals.user.id
 		};
 	} catch (err) {
-		console.error('[BulkRollbackPage] Error loading bulk rollback page:', err);
+		logger.error('[BulkRollbackPage] Error loading bulk rollback page:', err as Error);
 
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err; // Re-throw SvelteKit errors
@@ -237,7 +238,7 @@ export const actions: Actions = {
 				batchId: batch.id
 			};
 		} catch (err) {
-			console.error('[BulkRollbackPage] Error creating batch:', err);
+			logger.error('[BulkRollbackPage] Error creating batch:', err as Error);
 			return {
 				success: false,
 				error: err instanceof Error ? err.message : 'Failed to create batch'

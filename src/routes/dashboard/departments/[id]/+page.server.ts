@@ -3,7 +3,7 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { params, cookies } = event;
@@ -100,7 +100,7 @@ export const load: PageServerLoad = async (event) => {
 			Cookie: cookieHeader // Forward all cookies for session authentication
 		};
 
-		console.log(
+		logger.info(
 			'[Department Detail] Using Rust GraphQL with session-based auth, user role:',
 			locals.user?.role
 		);
@@ -131,7 +131,7 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		const departmentData = await departmentResponse.json();
-		console.log('[Department Detail] Department data:', departmentData);
+		logger.info('[Department Detail] Department data:'.replace(/['`]$/, `: ${departmentData}'`/));
 
 		// Check if department exists
 		const department = departmentData?.data?.department;
@@ -227,7 +227,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[Department Detail Load Error]', err);
+		logger.error('[Department Detail Load Error]', err as Error);
 
 		// If it's already a SvelteKit error, rethrow it
 		if (err && typeof err === 'object' && 'status' in err) {

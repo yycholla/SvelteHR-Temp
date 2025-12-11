@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Department service for managing department operations
 // Provides CRUD operations and department management functionality
 
@@ -47,7 +48,7 @@ export async function getDepartments(filters?: {
 			totalCount: result.data?.departments_aggregate?.aggregate?.count || 0
 		};
 	} catch (error) {
-		console.error('Error fetching departments:', error);
+		logger.error('Catch failed', error as Error);
 		throw error;
 	}
 }
@@ -67,7 +68,7 @@ export async function getDepartment(id: string): Promise<Department | null> {
 
 		return result.data?.department || null;
 	} catch (error) {
-		console.error('Error fetching department:', error);
+		logger.error('Catch failed', error as Error);
 		throw error;
 	}
 }
@@ -91,7 +92,7 @@ export async function createDepartment(input: CreateDepartmentInput): Promise<De
 
 		return result.data.createDepartment.department;
 	} catch (error) {
-		console.error('Error creating department:', error);
+		logger.error('Catch failed', error as Error);
 		throw error;
 	}
 }
@@ -121,7 +122,7 @@ export async function updateDepartment(
 
 		return result.data.updateDepartment.department;
 	} catch (error) {
-		console.error('Error updating department:', error);
+		logger.error('Catch failed', error as Error);
 		throw error;
 	}
 }
@@ -141,7 +142,7 @@ export async function deleteDepartment(id: string): Promise<boolean> {
 
 		return result.data?.deleteDepartment?.deletedDepartmentId !== null;
 	} catch (error) {
-		console.error('Error deleting department:', error);
+		logger.error('Catch failed', error as Error);
 		throw error;
 	}
 }
@@ -181,7 +182,7 @@ export async function loadDepartments(): Promise<void> {
 		const result = await getDepartments();
 		departments.set(result.departments);
 	} catch (error: any) {
-		console.error('Error loading departments:', error);
+		logger.error('Catch failed', error as Error);
 		departmentError.set(error.message || 'Failed to load departments');
 	}
 }

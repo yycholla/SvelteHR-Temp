@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { logger } from '$lib/utils/logger';
 	import { invalidateAll } from '$app/navigation';
 	import { flip } from 'svelte/animate';
-	import { dndzone, type DndEvent } from 'svelte-dnd-action';
+	import { type DndEvent, dndzone } from 'svelte-dnd-action';
 	import { onDestroy, onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import {
@@ -49,7 +50,7 @@
 	const isEditing = $derived(!!editingId);
 
 	onMount(() => {
-		console.log('[ONBOARDING CONTENT EDITOR] Component mounted', {
+		logger.info('[ONBOARDING CONTENT EDITOR] Component mounted', {
 			moduleId: data?.module?.id,
 			url: window.location.href,
 			pathname: window.location.pathname,
@@ -63,7 +64,7 @@
 
 	onDestroy(() => {
 		if (browser) {
-			console.log('[ONBOARDING CONTENT EDITOR] Component destroying', {
+			logger.info('[ONBOARDING CONTENT EDITOR] Component destroying', {
 				url: window.location.href,
 				timestamp: new Date().toISOString()
 			});
@@ -91,7 +92,7 @@
 			id: item.id,
 			sequenceOrder: index
 		}));
-		console.log('Reordering:', updates);
+		logger.info('Reordering:'.replace(/['`]$/, `: ${updates}'`/));
 	}
 
 	function selectType(newType: string) {

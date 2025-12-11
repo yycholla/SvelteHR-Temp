@@ -5,6 +5,7 @@
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { logger } from '$lib/utils/logger';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -176,10 +177,10 @@
 			await new Promise((resolve) => setTimeout(resolve, 1000));
 
 			updateSuccess = 'Profile updated successfully!';
-			console.log('Profile updated:', profileForm);
+			logger.info('Profile updated:'.replace(/['`]$/, `: ${profileForm}'`/));
 		} catch (error) {
 			updateError = 'Failed to update profile. Please try again.';
-			console.error('Profile update error:', error);
+			logger.error('Profile update error:', error as Error);
 		} finally {
 			isUpdating = false;
 		}
@@ -214,10 +215,10 @@
 
 			updateSuccess = 'Password changed successfully!';
 			passwordForm = { currentPassword: '', newPassword: '', confirmPassword: '' };
-			console.log('Password changed');
+			logger.info('Password changed');
 		} catch (error) {
 			updateError = 'Failed to change password. Please try again.';
-			console.error('Password change error:', error);
+			logger.error('Password change error:', error as Error);
 		} finally {
 			isUpdating = false;
 		}
@@ -236,7 +237,7 @@
 			updateSuccess = 'Notification preferences updated!';
 		} catch (error) {
 			updateError = 'Failed to update notification preferences.';
-			console.error('Notifications update error:', error);
+			logger.error('Notifications update error:', error as Error);
 		} finally {
 			isUpdating = false;
 		}
@@ -253,10 +254,10 @@
 			await new Promise((resolve) => setTimeout(resolve, 800));
 
 			updateSuccess = 'Appearance settings updated!';
-			console.log('Appearance updated:', appearanceSettings);
+			logger.info('Appearance updated:'.replace(/['`]$/, `: ${appearanceSettings}'`/));
 		} catch (error) {
 			updateError = 'Failed to update appearance settings.';
-			console.error('Appearance update error:', error);
+			logger.error('Appearance update error:', error as Error);
 		} finally {
 			isUpdating = false;
 		}
@@ -273,10 +274,10 @@
 			await new Promise((resolve) => setTimeout(resolve, 800));
 
 			updateSuccess = 'Privacy settings updated!';
-			console.log('Privacy updated:', privacySettings);
+			logger.info('Privacy updated:'.replace(/['`]$/, `: ${privacySettings}'`/));
 		} catch (error) {
 			updateError = 'Failed to update privacy settings.';
-			console.error('Privacy update error:', error);
+			logger.error('Privacy update error:', error as Error);
 		} finally {
 			isUpdating = false;
 		}
@@ -293,10 +294,10 @@
 			await new Promise((resolve) => setTimeout(resolve, 2000));
 
 			updateSuccess = 'Data export initiated. You will receive an email when ready for download.';
-			console.log('User data export requested');
+			logger.info('User data export requested');
 		} catch (error) {
 			updateError = 'Failed to export user data. Please try again.';
-			console.error('Data export error:', error);
+			logger.error('Data export error:', error as Error);
 		} finally {
 			isUpdating = false;
 		}

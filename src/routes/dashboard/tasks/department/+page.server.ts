@@ -152,7 +152,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 					);
 				}
 			} catch (err) {
-				console.error('Error fetching departments for admin:', err);
+				logger.error('Error fetching departments for admin:', err as Error);
 				// Fallback to user's department if query fails
 				if (locals.user.department_id) {
 					managedDepartments = [
@@ -206,7 +206,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			user: locals.user
 		};
 	} catch (err: any) {
-		console.error('Error loading department tasks:', err);
+		logger.error('Error loading department tasks:', err as Error);
 
 		// Handle specific error cases
 		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {

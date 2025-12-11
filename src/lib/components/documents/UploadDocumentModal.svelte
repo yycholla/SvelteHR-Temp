@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { logger } from '$lib/utils/logger';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Label } from '$lib/components/ui/label';
 	import { Button } from '$lib/components/ui/button';
@@ -65,7 +66,7 @@
 			fileContentBase64 = base64String;
 			iv = Array.from({ length: 12 }, () => Math.floor(Math.random() * 256)); // Mock IV
 		} catch (error) {
-			console.error('Error processing file:', error);
+			logger.error('Catch failed', error as Error);
 			toast.error('File processing failed');
 			file = null;
 			fileContentBase64 = null;
@@ -142,7 +143,7 @@
 			onSuccess?.();
 			onClose();
 		} catch (error) {
-			console.error('Upload error:', error);
+			logger.error('Catch failed', error as Error);
 			toast.error('Upload failed', {
 				description: error instanceof Error ? error.message : 'An unexpected error occurred.'
 			});

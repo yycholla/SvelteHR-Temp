@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Document preview view endpoint (Feature 024)
 // GET /api/documents/[id]/preview/view - Serve document content for preview
 // This endpoint serves the document content inline for preview in the browser
@@ -64,7 +65,7 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 			.toPromise();
 
 		if (docResult.error) {
-			console.error('GraphQL error fetching document:', docResult.error);
+			logger.error('GraphQL error fetching document:', docResult.error);
 			error(500, { message: 'Failed to fetch document metadata' });
 		}
 
@@ -84,7 +85,7 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 		// TODO: Check document assignments via GraphQL when available
 
 		if (!canAccess) {
-			console.log(`Preview access denied for user ${userId} to document ${documentId}`);
+			logger.info(`Preview access denied for user ${userId} to document ${documentId}`);
 			error(403, {
 				message: 'Access denied. You do not have permission to preview this document.'
 			});
@@ -109,7 +110,7 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 			// Decrypt file using GraphQL data
 			decryptedData = decryptFileFromGraphQL(storage.encryptedData, storage.iv, encryptionKey);
 
-			console.log(
+			logger.info(
 				`Encrypted document ${documentId} decrypted for preview - ${decryptedData.length} bytes`
 			);
 		} else {
@@ -131,7 +132,7 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 			})
 			.toPromise();
 
-		console.log(
+		logger.info(
 			`Document ${documentId} previewed by user ${userId} - decrypted ${decryptedData.length} bytes`
 		);
 
@@ -151,7 +152,7 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 			}
 		});
 	} catch (err) {
-		console.error('Document preview view error:', err);
+		logger.error('Document preview view error:', err as Error);
 
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err;

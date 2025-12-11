@@ -139,9 +139,9 @@ export const load: PageServerLoad = async (event) => {
 
 		// Log any GraphQL errors
 		if (reviewsResponse.errors && reviewsResponse.errors.length > 0) {
-			console.error('❌ GraphQL Errors in GetPerformanceReviews:');
+			logger.error('❌ GraphQL Errors in GetPerformanceReviews:');
 			reviewsResponse.errors.forEach((err, idx) => {
-				console.error(`  Error ${idx + 1}:`, {
+				logger.error(`  Error ${idx + 1}:`, {
 					message: err.message,
 					path: err.path,
 					extensions: err.extensions
@@ -152,7 +152,7 @@ export const load: PageServerLoad = async (event) => {
 		const reviewsData = reviewsResponse.data;
 
 		// Debug logging
-		console.log('📊 Reviews query response:', {
+		logger.info('📊 Reviews query response:', {
 			hasData: !!reviewsData,
 			reviewsCount: reviewsData?.performanceReviews?.length || 0,
 			firstReview: reviewsData?.performanceReviews?.[0] || null
@@ -170,7 +170,7 @@ export const load: PageServerLoad = async (event) => {
 		}));
 
 		// Debug logging after transformation
-		console.log('📊 After transformation:', {
+		logger.info('📊 After transformation:', {
 			mappedReviewsCount: mappedReviews.length,
 			firstMappedReview: mappedReviews[0] || null,
 			statusValues: [...new Set(mappedReviews.map((r) => r.status))]
@@ -182,7 +182,7 @@ export const load: PageServerLoad = async (event) => {
 			['DRAFT', 'IN_PROGRESS', 'COMPLETED'].includes(statusFilter.toUpperCase())
 		) {
 			mappedReviews = mappedReviews.filter((r) => r.status === statusFilter.toUpperCase());
-			console.log('📊 After status filter:', {
+			logger.info('📊 After status filter:', {
 				statusFilter,
 				remainingCount: mappedReviews.length
 			});
@@ -258,9 +258,9 @@ export const load: PageServerLoad = async (event) => {
 				const employeesData = await employeesResponse.json();
 
 				if (employeesData.errors && employeesData.errors.length > 0) {
-					console.error('❌ GraphQL Errors in GetEmployeesForSelector:');
+					logger.error('❌ GraphQL Errors in GetEmployeesForSelector:');
 					employeesData.errors.forEach((err: any, idx: number) => {
-						console.error(`  Error ${idx + 1}:`, {
+						logger.error(`  Error ${idx + 1}:`, {
 							message: err.message,
 							path: err.path,
 							extensions: err.extensions
@@ -270,7 +270,7 @@ export const load: PageServerLoad = async (event) => {
 
 				employees = employeesData.data?.users || [];
 			} catch (empError) {
-				console.error('❌ Error loading employees:', empError);
+				logger.error('❌ Error loading employees:', empError);
 				employees = [];
 			}
 		}
@@ -307,9 +307,9 @@ export const load: PageServerLoad = async (event) => {
 				);
 
 				if (employeeResponse.errors && employeeResponse.errors.length > 0) {
-					console.error('❌ GraphQL Errors in GetEmployee:');
+					logger.error('❌ GraphQL Errors in GetEmployee:');
 					employeeResponse.errors.forEach((err, idx) => {
-						console.error(`  Error ${idx + 1}:`, {
+						logger.error(`  Error ${idx + 1}:`, {
 							message: err.message,
 							path: err.path,
 							extensions: err.extensions
@@ -319,7 +319,7 @@ export const load: PageServerLoad = async (event) => {
 
 				selectedEmployee = employeeResponse.data?.user || null;
 			} catch (empError) {
-				console.error('❌ Error loading employee:', empError);
+				logger.error('❌ Error loading employee:', empError);
 			}
 		}
 
@@ -345,7 +345,7 @@ export const load: PageServerLoad = async (event) => {
 		const completedCount = reviews.filter((r) => r.status === 'completed').length;
 
 		// Debug logging final results
-		console.log('📊 Final results:', {
+		logger.info('📊 Final results:', {
 			totalReviews,
 			reviewsCount: reviews.length,
 			draftCount,
@@ -393,7 +393,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 		};
 	} catch (err) {
-		console.error('Error loading reviews:', err);
+		logger.error('Error loading reviews:', err as Error);
 
 		return {
 			user: {

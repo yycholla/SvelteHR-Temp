@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Standardized error handling utilities for consistent error responses
 // T055: Error Handling Standardization - CRITICAL
 
@@ -143,7 +144,7 @@ export function createStandardError(
 	};
 
 	// Log error for debugging (exclude sensitive information)
-	console.error(`[${timestamp}] ${type.toUpperCase()} Error:`, {
+	logger.error(`[${timestamp}] ${type.toUpperCase()} Error:`, {
 		type,
 		message: standardError.message,
 		statusCode,
@@ -306,7 +307,7 @@ export async function withRetry<T>(
 			// Calculate delay with exponential backoff
 			const delay = Math.min(baseDelay * Math.pow(2, attempt - 1), maxDelay);
 
-			console.warn(
+			logger.warn(
 				`Operation failed (attempt ${attempt}/${maxRetries + 1}), retrying in ${delay}ms:`,
 				error
 			);

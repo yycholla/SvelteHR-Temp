@@ -177,7 +177,7 @@
 
 		try {
 			// TODO: Implement role assignment API call
-			// console.log('Saving roles for user:', modalUser.id, modalRoles);
+			// logger.info('Saving roles for user:', modalUser.id, modalRoles);
 
 			// For now, just close the modal
 			closeUserRoleModal();

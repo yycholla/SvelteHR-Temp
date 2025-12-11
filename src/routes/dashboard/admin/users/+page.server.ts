@@ -122,7 +122,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 		};
 	} catch (error) {
-		console.error('[ADMIN USERS] Load error:', error);
+		logger.error('[ADMIN USERS] Load error:', error as Error);
 		return {
 			users: [],
 			totalCount: 0,

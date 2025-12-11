@@ -3,6 +3,7 @@
 
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { logger } from '$lib/utils/logger';
 	import { page } from '$app/stores';
 	import {
 		AlertTriangle,
@@ -81,7 +82,7 @@
 
 	// Debug logging
 	$effect(() => {
-		console.log('🔍 [Management Reviews Component] Data received:', {
+		logger.info('🔍 [Management Reviews Component] Data received:', {
 			performanceReviewsCount: performanceReviews?.length || 0,
 			firstReview: performanceReviews?.[0] || null,
 			selectedView,
@@ -106,7 +107,7 @@
 
 	// Filtered employees for selector
 	const filteredEmployees = $derived.by(() => {
-		console.log('🔍 Employee data:', {
+		logger.info('🔍 Employee data:', {
 			totalEmployees: data.employees?.length || 0,
 			employees: data.employees,
 			searchQuery: employeeSearchQuery
@@ -192,10 +193,10 @@
 	// Filter and display logic
 	const filteredReviews = $derived.by(() => {
 		let filtered = performanceReviews;
-		console.log('🔍 [Filter] Starting with reviews:', filtered?.length || 0);
+		logger.info('🔍 [Filter] Starting with reviews:', filtered?.length || 0);
 
 		if (selectedView !== 'all') {
-			console.log('🔍 [Filter] Applying view filter:', selectedView);
+			logger.info('🔍 [Filter] Applying view filter:'.replace(/['`]$/, `: ${selectedView}'`/));
 			filtered = filtered.filter((review) => {
 				switch (selectedView) {
 					case 'pending':
@@ -208,11 +209,11 @@
 						return true;
 				}
 			});
-			console.log('🔍 [Filter] After view filter:', filtered.length);
+			logger.info('🔍 [Filter] After view filter:', filtered.length);
 		}
 
 		if (searchQuery) {
-			console.log('🔍 [Filter] Applying search filter:', searchQuery);
+			logger.info('🔍 [Filter] Applying search filter:'.replace(/['`]$/, `: ${searchQuery}'`/));
 			const query = searchQuery.toLowerCase();
 			filtered = filtered.filter(
 				(review) =>
@@ -220,10 +221,10 @@
 					review.reviewer?.displayName.toLowerCase().includes(query) ||
 					review.employee?.department?.name.toLowerCase().includes(query)
 			);
-			console.log('🔍 [Filter] After search filter:', filtered.length);
+			logger.info('🔍 [Filter] After search filter:', filtered.length);
 		}
 
-		console.log('🔍 [Filter] Final filtered reviews:', filtered.length);
+		logger.info('🔍 [Filter] Final filtered reviews:', filtered.length);
 		return filtered;
 	});
 
@@ -244,13 +245,13 @@
 		try {
 			// TODO: Implement GraphQL mutation for deleting performance review
 			// For now, just show a placeholder message
-			console.log('Delete review:', review.id);
+			logger.info('Delete review:', review.id);
 			toast.success('Review deletion coming soon');
 
 			// Refresh the page to get updated data
 			// goto($page.url.pathname, { invalidateAll: true });
 		} catch (error) {
-			console.error('Failed to delete performance review:', error);
+			logger.error('Failed to delete performance review:', error as Error);
 			toast.error('Failed to delete performance review');
 		}
 	}
@@ -351,14 +352,14 @@
 	function handleCreateReview(event: CustomEvent) {
 		const { data: reviewData } = event.detail;
 		// TODO: Call GraphQL mutation
-		console.log('Create review:', reviewData);
+		logger.info('Create review:'.replace(/['`]$/, `: ${reviewData}'`/));
 		toast.success('Review creation coming soon');
 	}
 
 	function handleSaveAsDraft(event: CustomEvent) {
 		const { data: draftData } = event.detail;
 		// TODO: Call GraphQL mutation to save draft
-		console.log('Save draft:', draftData);
+		logger.info('Save draft:'.replace(/['`]$/, `: ${draftData}'`/));
 		toast.success('Draft save coming soon');
 	}
 </script>

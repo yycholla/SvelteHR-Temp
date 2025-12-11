@@ -1,5 +1,6 @@
 <script lang="ts">
 	// Event Detail Page
+	import { logger } from '$lib/utils/logger';
 	// Feature: 019-we-need-to - Task T029
 	// Purpose: Display full event details with RSVP management
 
@@ -38,7 +39,7 @@
 
 	// Handle RSVP status change
 	async function handleRsvpChange(newStatus: RsvpStatus) {
-		console.log('[CLIENT] handleRsvpChange called with:', {
+		logger.info('[CLIENT] handleRsvpChange called with:', {
 			newStatus,
 			statusType: typeof newStatus,
 			statusValue: newStatus
@@ -55,7 +56,7 @@
 			formData.append('eventId', data.event.id);
 			formData.append('status', newStatus);
 
-			console.log('[CLIENT] FormData created:', {
+			logger.info('[CLIENT] FormData created:', {
 				eventId: formData.get('eventId'),
 				status: formData.get('status'),
 				attendeeId: formData.get('attendeeId')
@@ -78,7 +79,7 @@
 			currentRsvpStatus = newStatus;
 			window.location.reload();
 		} catch (error) {
-			console.error('Failed to update RSVP:', error);
+			logger.error('Failed to update RSVP:', error as Error);
 			alert('Failed to update RSVP. Please try again.');
 		} finally {
 			isRsvpUpdating = false;

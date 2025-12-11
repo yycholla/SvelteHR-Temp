@@ -1,3 +1,5 @@
+import { logger } from '$lib/utils/logger';
+
 /**
  * Bundle Optimization Utilities
  * Feature: 028-task-system-expansion - T065
@@ -26,12 +28,12 @@ export async function lazyLoadComponent<T>(
 		const duration = performance.now() - startTime;
 
 		if (duration > 500) {
-			console.warn(`⚠️ Slow component load: ${componentName} took ${Math.round(duration)}ms`);
+			logger.warn(`⚠️ Slow component load: ${componentName} took ${Math.round(duration)}ms`);
 		}
 
 		return module.default;
 	} catch (error) {
-		console.error(`Failed to load component ${componentName}:`, error);
+		logger.error('Catch failed', error as Error);
 		throw new Error(`Component ${componentName} failed to load`);
 	}
 }
@@ -44,7 +46,7 @@ export function preloadComponent(importFn: () => Promise<any>): void {
 	if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
 		requestIdleCallback(() => {
 			importFn().catch((error) => {
-				console.warn('Component preload failed:', error);
+				logger.warn('Component preload failed:'.replace(/['`]$/, `: ${error}'`/));
 			});
 		});
 	}
@@ -212,23 +214,23 @@ export function logBundleAnalysis(): void {
 	const metrics = analyzeBundlePerformance();
 
 	console.group('📦 Bundle Analysis');
-	console.log(`Total Size: ${formatBytes(metrics.totalSize)}`);
-	console.log(`JavaScript: ${formatBytes(metrics.jsSize)}`);
-	console.log(`CSS: ${formatBytes(metrics.cssSize)}`);
-	console.log(`Chunks: ${metrics.chunkCount}`);
-	console.log(`Largest Chunk: ${formatBytes(metrics.largestChunk)}`);
-	console.log(`Est. Load Time (3G): ${(metrics.estimatedLoadTime * 1000).toFixed(0)}ms`);
+	logger.info(`Total Size: ${formatBytes(metrics.totalSize)}`);
+	logger.info(`JavaScript: ${formatBytes(metrics.jsSize)}`);
+	logger.info(`CSS: ${formatBytes(metrics.cssSize)}`);
+	logger.info(`Chunks: ${metrics.chunkCount}`);
+	logger.info(`Largest Chunk: ${formatBytes(metrics.largestChunk)}`);
+	logger.info(`Est. Load Time (3G): ${(metrics.estimatedLoadTime * 1000).toFixed(0)}ms`);
 	console.groupEnd();
 
 	// Performance warnings
 	if (metrics.totalSize > 500 * 1024) {
-		console.warn('⚠️ Total bundle size exceeds 500KB');
+		logger.warn('⚠️ Total bundle size exceeds 500KB');
 	}
 	if (metrics.largestChunk > 200 * 1024) {
-		console.warn('⚠️ Largest chunk exceeds 200KB');
+		logger.warn('⚠️ Largest chunk exceeds 200KB');
 	}
 	if (metrics.estimatedLoadTime > 3) {
-		console.warn('⚠️ Estimated load time exceeds 3 seconds on 3G');
+		logger.warn('⚠️ Estimated load time exceeds 3 seconds on 3G');
 	}
 }
 
@@ -425,7 +427,7 @@ export function initBundleOptimization(): void {
 			const budget = checkPerformanceBudgets();
 			if (!budget.passed) {
 				console.group('⚠️ Performance Budget Violations');
-				budget.violations.forEach((violation) => console.warn(violation));
+				budget.violations.forEach((violation) => logger.warn(violation));
 				console.groupEnd();
 			}
 
@@ -433,7 +435,7 @@ export function initBundleOptimization(): void {
 			if (recommendations.length > 0) {
 				console.group('💡 Chunk Optimization Recommendations');
 				recommendations.forEach((rec) => {
-					console.log(
+					logger.info(
 						`${rec.chunk}: ${rec.issue} - ${rec.recommendation} (Est. reduction: ${formatBytes(rec.estimatedReduction)})`
 					);
 				});

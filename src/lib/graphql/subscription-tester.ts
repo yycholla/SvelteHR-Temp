@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * GraphQL Subscription Testing Utilities
  *
@@ -15,7 +16,7 @@
  * - Connection resilience testing
  */
 
-import { parse, print, type DocumentNode } from 'graphql';
+import { type DocumentNode, parse, print } from 'graphql';
 import type { Client } from '@urql/core';
 import type { OperationResult } from '../types/urql.js';
 
@@ -656,7 +657,7 @@ class SubscriptionTestRunner {
 
 	private logDebug(message: string, ...args: any[]): void {
 		if (this.config.debugMode) {
-			console.log(`[SubscriptionTester:${this.scenario.name}] ${message}`, ...args);
+			logger.info(`[SubscriptionTester:${this.scenario.name}] ${message}`, ...args);
 		}
 	}
 

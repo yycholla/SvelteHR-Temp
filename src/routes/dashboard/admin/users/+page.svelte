@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { logger } from '$lib/utils/logger';
 	import { goto } from '$app/navigation';
 	import { Edit, Filter, Plus, Search, Trash2, UserCheck, UserX } from '@lucide/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
@@ -137,7 +138,7 @@
 			closeModals();
 			goto($page.url.pathname, { invalidateAll: true });
 		} catch (error) {
-			console.error('Create user error:', error);
+			logger.error('Create user error:', error as Error);
 			errorMessage = 'Failed to create user';
 		} finally {
 			loading = false;
@@ -183,7 +184,7 @@
 			closeModals();
 			goto($page.url.pathname, { invalidateAll: true });
 		} catch (error) {
-			console.error('Update user error:', error);
+			logger.error('Update user error:', error as Error);
 			errorMessage = 'Failed to update user';
 		} finally {
 			loading = false;
@@ -214,7 +215,7 @@
 
 			goto($page.url.pathname, { invalidateAll: true });
 		} catch (error) {
-			console.error('Delete user error:', error);
+			logger.error('Delete user error:', error as Error);
 			errorMessage = 'Failed to delete user';
 		} finally {
 			loading = false;
@@ -247,7 +248,7 @@
 
 			goto($page.url.pathname, { invalidateAll: true });
 		} catch (error) {
-			console.error('Toggle status error:', error);
+			logger.error('Toggle status error:', error as Error);
 			errorMessage = 'Failed to update user status';
 		} finally {
 			loading = false;

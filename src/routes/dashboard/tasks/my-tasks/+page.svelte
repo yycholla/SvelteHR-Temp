@@ -10,6 +10,7 @@
 
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { logger } from '$lib/utils/logger';
 	import { goto, invalidateAll, replaceState } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -254,7 +255,7 @@
 			// Refresh the data
 			await invalidateAll();
 		} catch (error) {
-			console.error('Failed to change task status:', error);
+			logger.error('Failed to change task status:', error as Error);
 			toast.error('Failed to update task status');
 		}
 	}

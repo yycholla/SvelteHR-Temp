@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * RRULE Service
  * Feature: 025-events-flesh-out
@@ -128,7 +129,7 @@ export class RRuleService {
 
 			return instances;
 		} catch (error) {
-			console.error('Error expanding recurring event:', error);
+			logger.error('Error expanding recurring event:', error as Error);
 			return [];
 		}
 	}
@@ -185,7 +186,7 @@ export class RRuleService {
 			const nextOccurrence = validation.rrule.after(afterDate, true);
 			return nextOccurrence;
 		} catch (error) {
-			console.error('Error getting next occurrence:', error);
+			logger.error('Error getting next occurrence:', error as Error);
 			return null;
 		}
 	}
@@ -221,7 +222,7 @@ export class RRuleService {
 				);
 			});
 		} catch (error) {
-			console.error('Error checking date match:', error);
+			logger.error('Error checking date match:', error as Error);
 			return false;
 		}
 	}

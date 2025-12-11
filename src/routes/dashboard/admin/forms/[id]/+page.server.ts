@@ -32,7 +32,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const result = await urqlClient.query(GET_ONBOARDING_FORM, { id: formId });
 
 	if (result.error) {
-		console.error('Error fetching form:', result.error);
+		logger.error('Error fetching form:', result.error);
 		throw error(500, 'Failed to load form');
 	}
 
@@ -79,7 +79,7 @@ export const actions: Actions = {
 		const result = await urqlClient.mutation(CREATE_FORM_BLOCK, { input });
 
 		if (result.error) {
-			console.error('Error creating block:', result.error);
+			logger.error('Error creating block:', result.error);
 			throw error(500, 'Failed to create block');
 		}
 
@@ -113,7 +113,7 @@ export const actions: Actions = {
 		const result = await urqlClient.mutation(UPDATE_FORM_BLOCK, { id, input });
 
 		if (result.error) {
-			console.error('Error updating block:', result.error);
+			logger.error('Error updating block:', result.error);
 			throw error(500, 'Failed to update block');
 		}
 
@@ -133,7 +133,7 @@ export const actions: Actions = {
 		const result = await urqlClient.mutation(DELETE_FORM_BLOCK, { id });
 
 		if (result.error) {
-			console.error('Error deleting block:', result.error);
+			logger.error('Error deleting block:', result.error);
 			throw error(500, 'Failed to delete block');
 		}
 
@@ -157,7 +157,7 @@ export const actions: Actions = {
 		});
 
 		if (result.error) {
-			console.error('Error reordering blocks:', result.error);
+			logger.error('Error reordering blocks:', result.error);
 			throw error(500, 'Failed to reorder blocks');
 		}
 
@@ -182,7 +182,7 @@ export const actions: Actions = {
 		const result = await urqlClient.mutation(UPDATE_ONBOARDING_FORM, { id, input });
 
 		if (result.error) {
-			console.error('Error updating form:', result.error);
+			logger.error('Error updating form:', result.error);
 			throw error(500, 'Failed to update form');
 		}
 

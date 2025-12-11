@@ -111,7 +111,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// If backend is not ready, return error state but don't crash
 		if (!backendReady) {
-			console.warn('Backend not ready for user performance reviews page');
+			logger.warn('Backend not ready for user performance reviews page');
 			return {
 				user: null,
 				userId,
@@ -325,7 +325,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('Error loading user performance reviews:', err);
+		logger.error('Error loading user performance reviews:', err as Error);
 
 		// Return error state instead of throwing to prevent page crash
 		return {

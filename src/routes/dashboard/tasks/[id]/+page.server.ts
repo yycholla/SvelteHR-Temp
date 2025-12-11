@@ -4,7 +4,7 @@
 
 import type { Actions, PageServerLoad, RequestEvent } from './$types';
 import { error, fail } from '@sveltejs/kit';
-import { requireAuth, getUserPermissions } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies, params } = event;
@@ -55,7 +55,7 @@ export const load: PageServerLoad = async (event) => {
 		const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
-		console.log('[Task Details] Loading task:', taskId);
+		logger.info('[Task Details] Loading task:'.replace(/['`]$/, `: ${taskId}'`/));
 
 		// Load task with full relationships
 		// NOTE: Using Rust GraphQL schema - singular query for ID lookup
@@ -138,10 +138,10 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		const taskData = await taskResponse.json();
-		console.log('[Task Details] Task response:', taskData);
+		logger.info('[Task Details] Task response:'.replace(/['`]$/, `: ${taskData}'`/));
 
 		if (taskData.errors) {
-			console.error('[Task Details] GraphQL errors:', taskData.errors);
+			logger.error('[Task Details] GraphQL errors:', taskData.errors);
 			throw new Error(taskData.errors[0]?.message || 'Failed to load task');
 		}
 
@@ -267,7 +267,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[Task Details Load Error]', err);
+		logger.error('[Task Details Load Error]', err as Error);
 
 		const errorResponse = createErrorResponse(
 			err instanceof Error ? err : new Error('Task details load failed'),
@@ -277,7 +277,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 		);
 
-		console.error('[Task Details Error Details]', {
+		logger.error('[Task Details Error Details]', {
 			userId: locals.user?.id,
 			taskId,
 			error: errorResponse
@@ -438,14 +438,14 @@ export const actions: Actions = {
 			const linkData = await linkResponse.json();
 
 			if (linkData.errors) {
-				console.error('Failed to link document:', linkData.errors);
+				logger.error('Failed to link document:', linkData.errors);
 				// Note: Document is uploaded but not linked. Could delete it, but simpler to leave it for now.
 				return fail(500, { error: 'Document uploaded but failed to link to task' });
 			}
 
 			return { success: true };
 		} catch (err) {
-			console.error('Task file upload error:', err);
+			logger.error('Task file upload error:', err as Error);
 			return fail(500, { error: 'Failed to upload file' });
 		}
 	},
@@ -502,7 +502,7 @@ export const actions: Actions = {
 
 			return { success: true };
 		} catch (err) {
-			console.error('Update tags error:', err);
+			logger.error('Update tags error:', err as Error);
 			return fail(500, { error: 'Failed to update tags' });
 		}
 	},

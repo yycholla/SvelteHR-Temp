@@ -57,15 +57,15 @@ export const load: PageServerLoad = async (event) => {
 		// Find the specific role
 		const role = rolesData?.roles?.find((r: any) => r.id === roleId);
 
-		console.log('[ROLE PERMISSIONS] Loading role:', roleId);
-		console.log(
+		logger.info('[ROLE PERMISSIONS] Loading role:'.replace(/['`]$/, `: ${roleId}'`/));
+		logger.info(
 			'[ROLE PERMISSIONS] Found roles:',
 			rolesData?.roles?.map((r: any) => ({ id: r.id, name: r.name }))
 		);
-		console.log('[ROLE PERMISSIONS] Found role:', role);
+		logger.info('[ROLE PERMISSIONS] Found role:'.replace(/['`]$/, `: ${role}'`/));
 
 		if (!role) {
-			console.error('[ROLE PERMISSIONS] Role not found:', roleId);
+			logger.error('[ROLE PERMISSIONS] Role not found:', roleId);
 			error(404, 'Role not found');
 		}
 
@@ -74,7 +74,7 @@ export const load: PageServerLoad = async (event) => {
 			permissions: permissionsData?.permissions || []
 		};
 	} catch (err) {
-		console.error('[ROLE PERMISSIONS] Load error:', err);
+		logger.error('[ROLE PERMISSIONS] Load error:', err as Error);
 		return {
 			role: null,
 			permissions: [],
@@ -165,7 +165,7 @@ export const actions: Actions = {
 
 			return { success: true, message };
 		} catch (err) {
-			console.error('[UPDATE PERMISSIONS] Error:', err);
+			logger.error('[UPDATE PERMISSIONS] Error:', err as Error);
 			return fail(500, { error: 'Failed to update permissions' });
 		}
 	}

@@ -1,5 +1,6 @@
 <script lang="ts">
 	/**
+	import { logger } from '$lib/utils/logger';
 	 * Rollback Requests Page - UI
 	 * Feature: 020-we-need-to (Comprehensive Audit Logging with Rollback)
 	 * Task: T045
@@ -130,7 +131,7 @@
 				toast.error(result.error || 'Bulk approval failed');
 			}
 		} catch (error) {
-			console.error('[RollbackRequests] Bulk approve error:', error);
+			logger.error('[RollbackRequests] Bulk approve error:', error as Error);
 			toast.error('Failed to approve requests');
 		}
 	}
@@ -158,7 +159,7 @@
 				toast.error(result.error || 'Bulk rejection failed');
 			}
 		} catch (error) {
-			console.error('[RollbackRequests] Bulk reject error:', error);
+			logger.error('[RollbackRequests] Bulk reject error:', error as Error);
 			toast.error('Failed to reject requests');
 		}
 	}

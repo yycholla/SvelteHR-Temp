@@ -8,17 +8,17 @@ import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 import { logger } from '$lib/utils/logger';
 import type {
-	User,
-	Department,
-	AttendanceRecord,
-	LeaveRequest,
-	EmployeeGoal,
-	Task,
-	ApiEvent,
 	ActivityLog,
-	SystemAuditLog,
+	ApiEvent,
+	AttendanceRecord,
+	Department,
+	EmployeeGoal,
+	LeaveRequest,
 	RollbackRequest,
-	RollbackStats
+	RollbackStats,
+	SystemAuditLog,
+	Task,
+	User
 } from './dashboard-types';
 import {
 	generateDashboardMetrics,

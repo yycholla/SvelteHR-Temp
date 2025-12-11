@@ -77,7 +77,7 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 			// departments: []
 		};
 	} catch (err: any) {
-		console.error('Error loading event edit page:', err);
+		logger.error('Error loading event edit page:', err as Error);
 
 		// Handle specific error cases
 		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {
