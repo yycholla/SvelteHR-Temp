@@ -101,10 +101,9 @@ export const load: PageServerLoad = async (event) => {
 			Cookie: cookieHeader // Forward all cookies for session authentication
 		};
 
-		logger.info(
-			'[Department Detail] Using Rust GraphQL with session-based auth, user role:',
-			locals.user?.role
-		);
+		logger.info('[Department Detail] Using Rust GraphQL with session-based auth', {
+			userRole: locals.user?.role
+		});
 
 		// Load department data with Rust GraphQL schema
 		// NOTE: Using Rust GraphQL schema - use singular department query with ID
@@ -132,7 +131,9 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		const departmentData = await departmentResponse.json();
-		logger.info(`[Department Detail] Department data: ${departmentData}`);
+		logger.info('[Department Detail] Department data loaded', {
+			hasDepartment: !!departmentData?.data?.department
+		});
 
 		// Check if department exists
 		const department = departmentData?.data?.department;

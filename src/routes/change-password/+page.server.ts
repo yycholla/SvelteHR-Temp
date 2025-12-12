@@ -71,7 +71,9 @@ export const actions: Actions = {
 				Cookie: cookieHeader
 			};
 
-			logger.info('[Change Password] Submitting password change for user', { userEmail: locals.user.email });
+			logger.info('[Change Password] Submitting password change for user', {
+				userEmail: locals.user.email
+			});
 
 			const response = await fetch(graphqlEndpoint, {
 				method: 'POST',
@@ -98,7 +100,11 @@ export const actions: Actions = {
 			});
 
 			if (!response.ok) {
-				logger.error('[Change Password] GraphQL request failed', new Error('GraphQL request failed'), { statusText: response.statusText });
+				logger.error(
+					'[Change Password] GraphQL request failed',
+					new Error('GraphQL request failed'),
+					{ statusText: response.statusText }
+				);
 				return fail(500, {
 					error: `Password change failed: ${response.statusText}`,
 					success: false
@@ -108,7 +114,9 @@ export const actions: Actions = {
 			const result = await response.json();
 
 			if (result.errors && result.errors.length > 0) {
-				logger.error('[Change Password] GraphQL errors', new Error('GraphQL errors'), { errors: result.errors });
+				logger.error('[Change Password] GraphQL errors', new Error('GraphQL errors'), {
+					errors: result.errors
+				});
 				const errorMessage = result.errors[0]?.message || 'Password change failed';
 				return fail(400, {
 					error: errorMessage,
@@ -125,7 +133,9 @@ export const actions: Actions = {
 				});
 			}
 
-			logger.info('[Change Password] Password changed successfully for user', { userEmail: locals.user.email });
+			logger.info('[Change Password] Password changed successfully for user', {
+				userEmail: locals.user.email
+			});
 
 			// Redirect to dashboard after successful password change
 			throw redirect(303, '/dashboard');

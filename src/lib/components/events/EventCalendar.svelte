@@ -3,7 +3,6 @@
 	import { logger } from '$lib/utils/logger';
 	import { browser } from '$app/environment';
 	import type { EventInput } from '@fullcalendar/core';
-	import { Bell } from '@lucide/svelte';
 
 	// Feature 027: Import conflict detection utility
 	import { detectConflict } from '$lib/utils/calendar';
@@ -345,12 +344,12 @@
 				<div class="animate-pulse">
 					<div class="h-8 bg-muted rounded mb-4"></div>
 					<div class="grid grid-cols-7 gap-2 mb-2">
-						{#each Array(7) as _}
+						{#each Array(7) as _, i (i)}
 							<div class="h-6 bg-muted rounded"></div>
 						{/each}
 					</div>
 					<div class="grid grid-cols-7 gap-2">
-						{#each Array(35) as _}
+						{#each Array(35) as _, i (i)}
 							<div class="h-20 bg-muted rounded"></div>
 						{/each}
 					</div>

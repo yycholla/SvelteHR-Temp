@@ -55,29 +55,21 @@
 
 	// Debug logging
 	$effect(() => {
-		logger.info(
-			'[Parent] State update - hasFile:',
+		logger.info('[Parent] State update', {
 			hasFile,
-			'metadata.filename:',
-			metadata.filename,
-			'metadata.category:',
-			metadata.category,
-			'metadata.sensitivityLevel:',
-			metadata.sensitivityLevel,
-			'hasRequiredMetadata:',
+			'metadata.filename': metadata.filename,
+			'metadata.category': metadata.category,
+			'metadata.sensitivityLevel': metadata.sensitivityLevel,
 			hasRequiredMetadata,
-			'isUploading:',
 			isUploading,
-			'uploadComplete:',
 			uploadComplete,
-			'canUpload:',
 			canUpload
-		);
+		});
 	});
 
 	// Handle successful upload
 	function handleUploadSuccess(result: UploadResult) {
-		logger.info(`Upload successful:: ${result}`;
+		logger.info('Upload successful', { documentId: result.documentId });
 		uploadComplete = true;
 		uploadedDocumentId = result.documentId;
 
@@ -177,12 +169,15 @@
 					return;
 				}
 
-				logger.info(`[Upload] About to validate metadata, metadataForm:: ${metadataForm}`;
-				logger.info(
-					'[Upload] metadataForm.validateMetadata exists?',
-					typeof metadataForm?.validateMetadata
-				);
-				logger.info(`[Upload] Current metadata:: ${metadata}`;
+				logger.info('[Upload] About to validate metadata', {
+					hasMetadataForm: !!metadataForm,
+					hasValidateMethod: typeof metadataForm?.validateMetadata === 'function'
+				});
+				logger.info('[Upload] Current metadata', {
+					category: metadata.category,
+					sensitivityLevel: metadata.sensitivityLevel,
+					hasExpirationDate: !!metadata.expirationDate
+				});
 
 				// Validate metadata before submission
 				if (!metadataForm?.validateMetadata()) {
@@ -220,7 +215,10 @@
 				isUploading = true;
 
 				return async ({ result, update }) => {
-					logger.info(`[Upload] Form submission result:: ${result}`;
+					logger.info('[Upload] Form submission result', {
+						type: result.type,
+						hasData: result.type === 'success' && 'data' in result ? !!result.data : false
+					});
 
 					if (result.type === 'success' && result.data?.success) {
 						handleUploadSuccess(result.data.result as UploadResult);

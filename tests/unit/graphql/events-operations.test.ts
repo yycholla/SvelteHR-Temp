@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventsOperations } from '$lib/graphql/events/service';
 import { GET_ALL_EVENTS } from '$lib/graphql/events/queries';
 import { CREATE_EVENT } from '$lib/graphql/events/mutations';

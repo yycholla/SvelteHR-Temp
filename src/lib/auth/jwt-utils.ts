@@ -183,7 +183,6 @@ export async function generateJWTToken(payload: Partial<JWTPayload>): Promise<st
 	}
 
 	const jwt = (await import('jsonwebtoken')).default;
-	const now = Math.floor(Date.now() / 1000);
 	const expirationTime = authConfig.jwt.expirationTime;
 
 	// Convert expiration time to seconds

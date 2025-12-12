@@ -358,7 +358,7 @@
 				window.location.reload();
 			}
 		} catch (error) {
-			logger.error('Catch failed', error as Error);
+			logger.error('Bulk department change failed', error as Error);
 			toast.dismiss(loadingToastId);
 			toast.error('Failed to update employees. Please try again.');
 		}
@@ -402,7 +402,7 @@
 					logger.info('[Status Change] Data:', { data: result.data });
 
 					if (result.error) {
-						logger.error('[Status Change] GraphQL Error:', result.error.message);
+						logger.error('[Status Change] GraphQL Error:', new Error(result.error.message));
 						throw new Error(result.error.message);
 					}
 
@@ -449,7 +449,7 @@
 				window.location.reload();
 			}
 		} catch (error) {
-			logger.error('Catch failed', error as Error);
+			logger.error('Bulk status change failed', error as Error);
 			toast.dismiss(loadingToastId);
 			toast.error('Failed to update employees. Please try again.');
 		}

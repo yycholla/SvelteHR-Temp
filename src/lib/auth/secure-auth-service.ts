@@ -4,6 +4,7 @@ import { logger } from '$lib/utils/logger';
 
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
+import { resolveRoute } from '$app/paths';
 import { authConfig, getAuthEndpoints } from './config';
 
 export interface AuthState {
@@ -163,7 +164,7 @@ class SecureAuthService {
 
 			// Redirect to login page
 			if (browser) {
-				goto('/login');
+				goto(resolveRoute('/login'));
 			}
 		}
 	}

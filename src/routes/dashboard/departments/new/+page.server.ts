@@ -30,10 +30,9 @@ export const load: PageServerLoad = async (event) => {
 			Cookie: cookieHeader // Forward all cookies for session authentication
 		};
 
-		logger.info(
-			'[Department New] Using Rust GraphQL with session-based auth, user role:',
-			locals.user?.role
-		);
+		logger.info('[Department New] Using Rust GraphQL with session-based auth', {
+			userRole: locals.user?.role
+		});
 
 		// Load existing departments for parent department dropdown
 		const departmentsResponse = await fetch(graphqlEndpoint, {
@@ -55,7 +54,10 @@ export const load: PageServerLoad = async (event) => {
 		const departmentsData = await departmentsResponse.json();
 
 		if (departmentsData.errors) {
-			logger.error('[Department New] GraphQL errors:', departmentsData.errors);
+			const errorMsg = departmentsData.errors[0]?.message || 'GraphQL errors';
+			logger.error('[Department New] GraphQL errors', new Error(errorMsg), {
+				errors: departmentsData.errors
+			});
 		}
 
 		// Load users for department manager dropdown
@@ -83,7 +85,10 @@ export const load: PageServerLoad = async (event) => {
 		const usersData = await usersResponse.json();
 
 		if (usersData.errors) {
-			logger.error('[Department New] Users GraphQL errors:', usersData.errors);
+			const errorMsg = usersData.errors[0]?.message || 'Users GraphQL errors';
+			logger.error('[Department New] Users GraphQL errors', new Error(errorMsg), {
+				errors: usersData.errors
+			});
 		}
 
 		// Filter to active users only
@@ -178,9 +183,12 @@ export const actions: Actions = {
 			const createData = await createResponse.json();
 
 			if (createData.errors) {
-				logger.error('[Department New] GraphQL errors:', createData.errors);
+				const errorMsg = createData.errors[0]?.message || 'Failed to create department';
+				logger.error('[Department New] GraphQL errors', new Error(errorMsg), {
+					errors: createData.errors
+				});
 				return fail(500, {
-					error: createData.errors[0]?.message || 'Failed to create department'
+					error: errorMsg
 				});
 			}
 

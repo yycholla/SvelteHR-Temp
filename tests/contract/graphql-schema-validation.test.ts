@@ -12,7 +12,7 @@ import {
 	introspectionFromSchema,
 	validateSchema
 } from 'graphql';
-import type { IntrospectionQuery, IntrospectionSchema, IntrospectionOutputTypeRef } from 'graphql';
+import type { IntrospectionOutputTypeRef, IntrospectionQuery, IntrospectionSchema } from 'graphql';
 import { gql } from '@urql/core';
 import { createUrqlClient } from '$lib/graphql/client';
 import type { Client } from '@urql/core';

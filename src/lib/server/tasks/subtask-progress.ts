@@ -185,7 +185,7 @@ export async function getTaskProgress(taskId: string): Promise<TaskProgress | nu
 			level: 0
 		};
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Failed to calculate task progress', error as Error);
 		return null;
 	}
 }
@@ -302,7 +302,7 @@ export async function getHierarchicalProgress(
 			completedDescendants
 		};
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Failed to calculate hierarchical progress', error as Error);
 		return null;
 	}
 }
@@ -383,30 +383,29 @@ export async function getUserTaskStatistics(userId: string): Promise<ProgressSta
 			return null;
 		}
 
-		const data = (await response.json()) as ApiResponse<UserTaskStatisticsResponse>;
-		const tasks = data?.data?.allTasks?.nodes || [];
-		const total = tasks.length;
-		const completed = tasks.filter((t) => t.status === 'DONE').length;
-		const inProgress = tasks.filter((t) => t.status === 'IN_PROGRESS').length;
-		const notStarted = tasks.filter((t) => t.status === 'TODO').length;
-		const blocked = tasks.filter((t) => t.status === 'BLOCKED').length;
-		const cancelled = tasks.filter((t) => t.status === 'CANCELLED').length;
-		const completionRate = total > 0 ? Math.round((completed / total) * 10000) / 100 : 0;
-
-		return {
-			total,
-			completed,
-			inProgress,
-			notStarted,
-			blocked,
-			cancelled,
-			completionRate
-		};
-	} catch (error) {
-		logger.error('Catch failed', error as Error);
-		return null;
-	}
-}
+		        const data = (await response.json()) as ApiResponse<UserTaskStatisticsResponse>;
+		        const tasks = data?.data?.allTasks?.nodes || [];
+		        const total = tasks.length;
+		        const completed = tasks.filter((t) => t.status === 'DONE').length;
+		        const inProgress = tasks.filter((t) => t.status === 'IN_PROGRESS').length;
+		        const notStarted = tasks.filter((t) => t.status === 'TODO').length;
+		        const blocked = tasks.filter((t) => t.status === 'BLOCKED').length;
+		        const cancelled = tasks.filter((t) => t.status === 'CANCELLED').length;
+		        const completionRate = total > 0 ? Math.round((completed / total) * 10000) / 100 : 0;
+		
+		        return {
+		            total,
+		            completed,
+		            inProgress,
+		            notStarted,
+		            blocked,
+		            cancelled,
+		            completionRate
+		        };
+		    } catch (error) {
+		        logger.error('Failed to get user task statistics', error as Error);
+		        return null;
+		    }}
 
 /**
  * Get progress statistics for a department
@@ -505,7 +504,7 @@ export async function getDepartmentTaskStatistics(
 			completionRate
 		};
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Failed to get department task statistics', error as Error);
 		return null;
 	}
 }
@@ -608,7 +607,7 @@ export async function getTopLevelTasksProgress(): Promise<{
 			overallProgress
 		};
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Failed to get top-level tasks progress', error as Error);
 		return { tasks: [], overallProgress: getEmptyProgressStats() };
 	}
 }

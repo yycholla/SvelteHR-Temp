@@ -2,17 +2,9 @@
 	import { createEventDispatcher, onMount } from 'svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/stores';
-	import {
-		Bell,
-		Building,
-		ChevronDown,
-		LogOut,
-		Settings,
-		Shield,
-		User,
-		UserCog
-	} from '@lucide/svelte';
+	import { Building, ChevronDown, LogOut, Settings, Shield, User } from '@lucide/svelte';
 
 	/**
 	 * User Menu Component
@@ -46,23 +38,23 @@
 	const handleProfileClick = async () => {
 		dispatch('profileClick');
 		isOpen = false;
-		await goto('/profile');
+		await goto(resolve('/profile'));
 	};
 
 	const handleSettingsClick = async () => {
 		dispatch('settingsClick');
 		isOpen = false;
-		await goto('/settings');
+		await goto(resolve('/settings'));
 	};
 
 	const handleAdminClick = async () => {
 		isOpen = false;
-		await goto('/dashboard/admin');
+		await goto(resolve('/dashboard/admin'));
 	};
 
 	const handleHRClick = async () => {
 		isOpen = false;
-		await goto('/hr');
+		await goto(resolve('/hr' as any));
 	};
 
 	const handleLogout = async () => {
@@ -70,7 +62,7 @@
 		// Pass current URL to logout for redirect after login
 		await auth.logout($page.url.pathname + $page.url.search);
 		dispatch('logout');
-		await goto('/login');
+		await goto(resolve('/login'));
 	};
 
 	// Get user initials for avatar
@@ -284,6 +276,4 @@
 	span {
 		transition: all 0.15s ease-in-out;
 	}
-
-
 </style>

@@ -215,7 +215,7 @@
 												review.status
 											)}"
 										>
-											{review.status.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+											{review.status.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
 										</span>
 									</td>
 									<td class="px-5 py-4 text-right">

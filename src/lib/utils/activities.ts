@@ -187,7 +187,15 @@ export function formatActivityMessage(activity: ActivityLog): string {
 		const event_title = typeof s.event_title === 'string' ? s.event_title : undefined;
 		const task_name = typeof s.task_name === 'string' ? s.task_name : undefined;
 
-		itemName = title || name || displayNameProp || display_name || full_name || event_title || task_name || null;
+		itemName =
+			title ||
+			name ||
+			displayNameProp ||
+			display_name ||
+			full_name ||
+			event_title ||
+			task_name ||
+			null;
 	}
 
 	// Fallback to details if no snapshot name found

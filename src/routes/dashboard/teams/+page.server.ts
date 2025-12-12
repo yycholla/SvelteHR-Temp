@@ -238,10 +238,10 @@ export const load: PageServerLoad = async (event) => {
 		// Debug logging
 		logger.info(`[Teams Page] Filter Department ID: ${filterDepartmentId}`);
 		logger.info(`[Teams Page] Is Admin: ${isAdmin}`);
-		logger.info('[Teams Page] Departments found:', departments.length);
+		logger.info('[Teams Page] Departments found:', { count: departments.length });
 		const totalCount = departments.length; // Rust server doesn't provide totalCount in this format
 
-		logger.info('[Teams Page] Departments found:', departments.length);
+		logger.info('[Teams Page] Departments found:', { count: departments.length });
 		logger.info(`[Teams Page] Total count: ${totalCount}`);
 
 		// Calculate team statistics (employee counts not available in current Rust GraphQL schema)
@@ -318,7 +318,7 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		// Log error details for debugging
-		logger.error('[Teams Management Error Details]', {
+		logger.error('[Teams Management Error Details]', undefined, {
 			userId: locals.user?.id,
 			userRole: locals.user?.role,
 			searchTerm,

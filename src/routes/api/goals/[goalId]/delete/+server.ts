@@ -44,7 +44,9 @@ export const DELETE: RequestHandler = async ({ params, cookies, locals }) => {
 		logger.info('[Goal Delete API] GraphQL result', { result: JSON.stringify(result, null, 2) });
 
 		if (result.errors) {
-			logger.error('[Goal Delete API] GraphQL errors', new Error('GraphQL errors'), { errors: JSON.stringify(result.errors, null, 2) });
+			logger.error('[Goal Delete API] GraphQL errors', new Error('GraphQL errors'), {
+				errors: JSON.stringify(result.errors, null, 2)
+			});
 			const errorMessage = result.errors.map((e: any) => e.message).join('; ');
 			return json(
 				{

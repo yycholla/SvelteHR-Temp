@@ -3,6 +3,7 @@
 	// Individual document card display with RBAC-aware actions
 
 	import { goto } from '$app/navigation';
+	import { resolveRoute } from '$app/paths';
 	import type { Document } from '$lib/types/document';
 
 	interface Props {
@@ -23,7 +24,7 @@
 
 	// Navigate to document detail page
 	function handleCardClick() {
-		goto(`/dashboard/documents/${document.id}`);
+		goto(resolveRoute(`/dashboard/documents/${document.id}`));
 	}
 
 	// File type icons mapping
@@ -107,7 +108,7 @@
 		</div>
 
 		{#if document.assigned_users && Array.isArray(document.assigned_users) && document.assigned_users.length > 0}
-			{#each document.assigned_users as assignedUser}
+			{#each document.assigned_users as assignedUser (assignedUser.id)}
 				<div class="assigned-user-badge" title="Assigned to {assignedUser.email}">
 					👤 {assignedUser.email}
 				</div>

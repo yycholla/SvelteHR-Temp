@@ -15,6 +15,7 @@ import { logger } from '$lib/utils/logger';
 ```
 
 This causes compilation errors:
+
 ```
 Error: Cannot find name 'logger'. (ts)
 ```
@@ -38,16 +39,17 @@ Error: Cannot find name 'logger'. (ts)
 
 ```svelte
 <script lang="ts">
-  // Add logger import with other utility imports
-  import { logger } from '$lib/utils/logger';
-  import { createMutation } from '@urql/svelte';
-  import type { ReviewType } from '$lib/types';
+	// Add logger import with other utility imports
+	import { logger } from '$lib/utils/logger';
+	import { createMutation } from '@urql/svelte';
+	import type { ReviewType } from '$lib/types';
 
-  // ... rest of component
+	// ... rest of component
 </script>
 ```
 
 **Import Organization Rules**:
+
 1. Place logger import **after** Svelte imports
 2. Place logger import **with** other utility imports
 3. Place logger import **before** component imports
@@ -55,23 +57,23 @@ Error: Cannot find name 'logger'. (ts)
 
 ```svelte
 <script lang="ts">
-  // 1. Svelte framework imports
-  import { onMount } from 'svelte';
-  import { goto } from '$app/navigation';
+	// 1. Svelte framework imports
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 
-  // 2. UI library imports
-  import * as Card from '$lib/components/ui/card';
-  import Button from '$lib/components/ui/button';
+	// 2. UI library imports
+	import * as Card from '$lib/components/ui/card';
+	import Button from '$lib/components/ui/button';
 
-  // 3. Utility imports (INCLUDING LOGGER)
-  import { logger } from '$lib/utils/logger';
-  import { formatDate } from '$lib/utils/formatters';
+	// 3. Utility imports (INCLUDING LOGGER)
+	import { logger } from '$lib/utils/logger';
+	import { formatDate } from '$lib/utils/formatters';
 
-  // 4. Type imports
-  import type { Review } from '$lib/types';
+	// 4. Type imports
+	import type { Review } from '$lib/types';
 
-  // 5. Component imports
-  import ReviewCard from './ReviewCard.svelte';
+	// 5. Component imports
+	import ReviewCard from './ReviewCard.svelte';
 </script>
 ```
 
@@ -85,6 +87,7 @@ import type { GraphQLResponse } from './types';
 ```
 
 **Import Organization Rules**:
+
 1. External dependencies first
 2. `$lib` imports second
 3. Relative imports last
@@ -217,18 +220,21 @@ After running automated script:
 ## Verification
 
 ### Before Fix
+
 ```bash
 $ npm run check 2>&1 | grep "Cannot find name 'logger'" | wc -l
 450
 ```
 
 ### After Fix
+
 ```bash
 $ npm run check 2>&1 | grep "Cannot find name 'logger'" | wc -l
 0
 ```
 
 ### Expected Error Reduction
+
 - **Before**: 910 errors
 - **After**: ~460 errors (50% reduction)
 
@@ -237,6 +243,7 @@ $ npm run check 2>&1 | grep "Cannot find name 'logger'" | wc -l
 ### Example 1: Svelte Component
 
 **Before** (`ReviewCreationDialog.svelte`):
+
 ```svelte
 <script lang="ts">
 	import { createMutation } from '@urql/svelte';
@@ -251,6 +258,7 @@ $ npm run check 2>&1 | grep "Cannot find name 'logger'" | wc -l
 ```
 
 **After**:
+
 ```svelte
 <script lang="ts">
 	import { createMutation } from '@urql/svelte';
@@ -268,6 +276,7 @@ $ npm run check 2>&1 | grep "Cannot find name 'logger'" | wc -l
 ### Example 2: TypeScript File
 
 **Before** (`performance-reviews.ts`):
+
 ```typescript
 import { gql } from '@urql/svelte';
 import type { Review } from '$lib/types';
@@ -279,6 +288,7 @@ export async function updateReview(params: UpdateParams) {
 ```
 
 **After**:
+
 ```typescript
 import { gql } from '@urql/svelte';
 import { logger } from '$lib/utils/logger'; // ✅ Added
@@ -310,15 +320,17 @@ git checkout -- src/
 ## Quality Standards
 
 ✅ **Good Logger Import**:
+
 ```svelte
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { logger } from '$lib/utils/logger';
-  import type { User } from '$lib/types';
+	import { onMount } from 'svelte';
+	import { logger } from '$lib/utils/logger';
+	import type { User } from '$lib/types';
 </script>
 ```
 
 ❌ **Bad Logger Import**:
+
 ```svelte
 <script lang="ts">
   // Wrong: No lang="ts" attribute

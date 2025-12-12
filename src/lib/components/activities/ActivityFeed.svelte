@@ -25,7 +25,6 @@
 		compact?: boolean;
 		maxItems?: number;
 		emptyMessage?: string;
-		showSnapshotPreview?: boolean; // Feature 020 enhancement
 		showRollbackIndicators?: boolean; // Feature 020 enhancement
 	}
 

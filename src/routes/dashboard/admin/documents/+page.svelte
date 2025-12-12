@@ -105,7 +105,7 @@
 	);
 
 	const assigneeSearchOptions = $derived(
-		(data.assigneeOptions || []).map((assignee) => ({
+		(data.assigneeOptions || []).map((assignee: { id: string; displayName: string }) => ({
 			value: assignee.id,
 			label: assignee.displayName
 		}))

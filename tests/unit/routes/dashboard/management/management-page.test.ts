@@ -1,11 +1,11 @@
-import { render, fireEvent } from '@testing-library/svelte';
+import { fireEvent, render } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import ManagementPage from '../../../../../src/routes/dashboard/management/+page.svelte';
 import {
 	formatDate,
-	getProgressColor,
+	getAlertColors,
 	getAlertIcon,
-	getAlertColors
+	getProgressColor
 } from '../../../../../src/routes/dashboard/management/utils';
 
 // Mock SvelteKit's $app/navigation

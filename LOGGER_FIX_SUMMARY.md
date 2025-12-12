@@ -5,6 +5,7 @@
 ### Current Status
 
 **✅ COMPLETED FILES:**
+
 1. `/src/routes/dashboard/tasks/+page.server.ts` - Fixed
 2. `/src/routes/dashboard/tasks/[id]/+page.server.ts` - Fixed
 3. `/src/routes/dashboard/tasks/my-tasks/+page.server.ts` - Fixed
@@ -13,6 +14,7 @@
 6. `/src/routes/dashboard/departments/+page.server.ts` - Fixed
 
 **⚠️ REMAINING FILES (29 files):**
+
 - Task routes: `[id]/edit`, `new` (2 files)
 - Department routes: `[id]`, `[id]/edit`, `new` (3 files)
 - Document routes: `upload`, main page, upload svelte (3 files)
@@ -29,14 +31,14 @@
 
 ```typescript
 class Logger {
-  debug(message: string, meta?: LogMeta): void
-  info(message: string, meta?: LogMeta): void
-  warn(message: string, meta?: LogMeta): void
-  error(message: string, error?: Error, meta?: LogMeta): void
+	debug(message: string, meta?: LogMeta): void;
+	info(message: string, meta?: LogMeta): void;
+	warn(message: string, meta?: LogMeta): void;
+	error(message: string, error?: Error, meta?: LogMeta): void;
 }
 
 interface LogMeta {
-  [key: string]: unknown;
+	[key: string]: unknown;
 }
 ```
 
@@ -45,19 +47,22 @@ interface LogMeta {
 #### Pattern 1: Info/Debug/Warn with Primitives
 
 ❌ **WRONG:**
+
 ```typescript
 logger.info('[Context] Message:', primitiveValue);
 logger.info(`[Context] Message: ${primitiveValue}`);
 ```
 
 ✅ **CORRECT:**
+
 ```typescript
 logger.info('[Context] Message', {
-  propertyName: primitiveValue
+	propertyName: primitiveValue
 });
 ```
 
 **Examples:**
+
 ```typescript
 // Before
 logger.info('[Tasks] Loading task:', taskId);
@@ -71,76 +76,80 @@ logger.info('[Tasks] Found tasks', { count });
 #### Pattern 2: Error with Non-Error Objects
 
 ❌ **WRONG:**
+
 ```typescript
 logger.error('[Context] Error:', errorArray);
 logger.error('[Context] Error:', err as Error);
 ```
 
 ✅ **CORRECT:**
+
 ```typescript
 // For GraphQL errors
 const errorMsg = errors[0]?.message || 'Default message';
 logger.error('[Context] Error description', new Error(errorMsg), {
-  errors: errors
+	errors: errors
 });
 
 // For caught errors
-logger.error('[Context] Error description',
-  err instanceof Error ? err : new Error(String(err))
-);
+logger.error('[Context] Error description', err instanceof Error ? err : new Error(String(err)));
 ```
 
 **Examples:**
+
 ```typescript
 // Before
 if (data.errors) {
-  logger.error('[Tasks] GraphQL errors:', data.errors);
-  throw new Error(data.errors[0]?.message);
+	logger.error('[Tasks] GraphQL errors:', data.errors);
+	throw new Error(data.errors[0]?.message);
 }
 
 // After
 if (data.errors) {
-  const errorMsg = data.errors[0]?.message || 'Failed to load';
-  logger.error('[Tasks] GraphQL errors', new Error(errorMsg), {
-    errors: data.errors
-  });
-  throw new Error(errorMsg);
+	const errorMsg = data.errors[0]?.message || 'Failed to load';
+	logger.error('[Tasks] GraphQL errors', new Error(errorMsg), {
+		errors: data.errors
+	});
+	throw new Error(errorMsg);
 }
 ```
 
 #### Pattern 3: Error Details Logging
 
 ❌ **WRONG:**
+
 ```typescript
 logger.error('[Context] Error Details', {
-  userId: user.id,
-  error: errorResponse
+	userId: user.id,
+	error: errorResponse
 });
 ```
 
 ✅ **CORRECT:**
+
 ```typescript
 logger.error('[Context] Error Details', undefined, {
-  userId: user.id,
-  errorMessage: errorResponse.userMessage
+	userId: user.id,
+	errorMessage: errorResponse.userMessage
 });
 ```
 
 **Example:**
+
 ```typescript
 // Before
 logger.error('[Tasks Error Details]', {
-  userId: locals.user?.id,
-  filters: { status, priority },
-  error: errorResponse
+	userId: locals.user?.id,
+	filters: { status, priority },
+	error: errorResponse
 });
 
 // After
 logger.error('[Tasks Error Details]', undefined, {
-  userId: locals.user?.id,
-  status,
-  priority,
-  errorMessage: errorResponse.userMessage
+	userId: locals.user?.id,
+	status,
+	priority,
+	errorMessage: errorResponse.userMessage
 });
 ```
 
@@ -233,20 +242,24 @@ npm run lint
 ## Files Requiring Attention
 
 ### High Priority (Frequent Use):
+
 1. `tasks/new/+page.server.ts` - Task creation form
 2. `tasks/[id]/edit/+page.server.ts` - Task editing
 3. `employees/[id]/+page.server.ts` - Employee details
 4. `employees/[id]/edit/+page.server.ts` - Employee editing
 
 ### Medium Priority:
+
 5-15. Event, document, and management routes
 
 ### Lower Priority:
+
 16-29. Settings, profile, and error pages
 
 ## Success Criteria
 
 All logger type errors eliminated when running:
+
 ```bash
 npm run check 2>&1 | grep "logger\."
 ```

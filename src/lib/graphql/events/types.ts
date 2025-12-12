@@ -5,7 +5,13 @@ import type { EventType } from '../types';
 
 export type EventVisibilityType = 'company' | 'department' | 'specific';
 export type EventStatus = 'scheduled' | 'ongoing' | 'completed' | 'cancelled' | 'postponed';
-export type RsvpStatus = 'pending' | 'accepted' | 'declined' | 'tentative' | 'no_response' | 'waitlisted';
+export type RsvpStatus =
+	| 'pending'
+	| 'accepted'
+	| 'declined'
+	| 'tentative'
+	| 'no_response'
+	| 'waitlisted';
 
 /**
  * Event Notification Preferences Interface

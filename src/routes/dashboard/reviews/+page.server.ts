@@ -5,50 +5,40 @@
  *
  * Server-side data loading for reviews management page
  * Implements permission-based access control
+ * Refactored: Phase 2 - Using Phase 1 Foundation utilities
  */
 
 import type { PageServerLoad } from './$types';
-import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { requireAuth } from '$lib/server/rbac-utils';
+import { RBACDataLoader } from '$lib/server/route-loaders';
+import { QueryParamExtractor } from '$lib/server/route-helpers';
 import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
-	const { url, cookies } = event;
+	const loader = new RBACDataLoader(event, [
+		'performance:read',
+		'performance:read:self',
+		'performance:read:team',
+		'performance:read:all'
+	]);
 
-	// Check authentication and permissions
-	requireAuth(event, {
-		requiredPermissions: [
-			'performance:read',
-			'performance:read:self',
-			'performance:read:team',
-			'performance:read:all'
-		]
-	});
+	return loader.loadWithClient(async () => {
+		const { url, cookies } = event;
+		const params = new QueryParamExtractor(url);
 
-	// After permission check, re-destructure locals with guaranteed user
-	const { locals } = event;
+		const userId = loader.getUserId();
+		const userRole = loader.getUserRole();
 
-	const userId = locals.user.id;
-	const userRole = locals.user.role || 'employee';
-	const userPermissions = locals.permissions || [];
+		// Check if user can create reviews (write permission)
+		const canCreate = loader.hasPermission('performance:write');
 
-	// Check if user can create reviews (write permission)
-	const canCreate =
-		userPermissions.includes('*') ||
-		userPermissions.includes('*:*') ||
-		userPermissions.includes('performance:write');
+		// Extract search parameters using QueryParamExtractor
+		const { page, limit } = params.getPagination(20);
+		const searchQuery = params.getString('search');
+		const statusFilter = params.getString('status');
+		const typeFilter = params.getString('type');
+		const employeeId = params.getString('employee');
 
-	// Extract search parameters
-	const page = parseInt(url.searchParams.get('page') || '1', 10);
-	const limit = parseInt(url.searchParams.get('limit') || '20', 10);
-	const offset = (page - 1) * limit;
-	const searchQuery = url.searchParams.get('search') || '';
-	const statusFilter = url.searchParams.get('status');
-	const typeFilter = url.searchParams.get('type');
-	const employeeId = url.searchParams.get('employee');
-
-	try {
 		// Create server-side GraphQL client with Docker-aware endpoint
 		const client = GraphQLClient.fromCookies(cookies);
 
@@ -142,7 +132,7 @@ export const load: PageServerLoad = async (event) => {
 		if (reviewsResponse.errors && reviewsResponse.errors.length > 0) {
 			logger.error('❌ GraphQL Errors in GetPerformanceReviews:');
 			reviewsResponse.errors.forEach((err, idx) => {
-				logger.error(`  Error ${idx + 1}:`, {
+				logger.error(`  Error ${idx + 1}:`, undefined, {
 					message: err.message,
 					path: err.path,
 					extensions: err.extensions
@@ -261,7 +251,7 @@ export const load: PageServerLoad = async (event) => {
 				if (employeesData.errors && employeesData.errors.length > 0) {
 					logger.error('❌ GraphQL Errors in GetEmployeesForSelector:');
 					employeesData.errors.forEach((err: any, idx: number) => {
-						logger.error(`  Error ${idx + 1}:`, {
+						logger.error(`  Error ${idx + 1}:`, undefined, {
 							message: err.message,
 							path: err.path,
 							extensions: err.extensions
@@ -271,7 +261,10 @@ export const load: PageServerLoad = async (event) => {
 
 				employees = employeesData.data?.users || [];
 			} catch (empError) {
-				logger.error('❌ Error loading employees:', empError);
+				logger.error(
+					'❌ Error loading employees:',
+					empError instanceof Error ? empError : new Error(String(empError))
+				);
 				employees = [];
 			}
 		}
@@ -310,7 +303,7 @@ export const load: PageServerLoad = async (event) => {
 				if (employeeResponse.errors && employeeResponse.errors.length > 0) {
 					logger.error('❌ GraphQL Errors in GetEmployee:');
 					employeeResponse.errors.forEach((err, idx) => {
-						logger.error(`  Error ${idx + 1}:`, {
+						logger.error(`  Error ${idx + 1}:`, undefined, {
 							message: err.message,
 							path: err.path,
 							extensions: err.extensions
@@ -320,7 +313,10 @@ export const load: PageServerLoad = async (event) => {
 
 				selectedEmployee = employeeResponse.data?.user || null;
 			} catch (empError) {
-				logger.error('❌ Error loading employee:', empError);
+				logger.error(
+					'❌ Error loading employee:',
+					empError instanceof Error ? empError : new Error(String(empError))
+				);
 			}
 		}
 
@@ -341,17 +337,18 @@ export const load: PageServerLoad = async (event) => {
 
 		// Calculate statistics
 		const totalReviews = mappedReviews.length;
-		const draftCount = reviews.filter((r) => r.status === 'draft').length;
-		const inProgressCount = reviews.filter((r) => r.status === 'in_progress').length;
-		const completedCount = reviews.filter((r) => r.status === 'completed').length;
+		const stats = {
+			total: totalReviews,
+			draft: reviews.filter((r) => r.status === 'draft').length,
+			inProgress: reviews.filter((r) => r.status === 'in_progress').length,
+			completed: reviews.filter((r) => r.status === 'completed').length
+		};
 
 		// Debug logging final results
 		logger.info('📊 Final results:', {
 			totalReviews,
 			reviewsCount: reviews.length,
-			draftCount,
-			inProgressCount,
-			completedCount,
+			stats,
 			firstReview: reviews[0] || null
 		});
 
@@ -359,22 +356,11 @@ export const load: PageServerLoad = async (event) => {
 		const totalPages = Math.ceil(totalReviews / limit);
 
 		return {
-			user: {
-				id: userId,
-				email: locals.user.email || '',
-				displayName: locals.user.display_name || 'User',
-				role: userRole
-			},
 			reviews,
 			employees,
 			reviewTypesMetadata: metadataData?.reviewTypesMetadata || [],
 			selectedEmployee,
-			stats: {
-				total: totalReviews,
-				draft: draftCount,
-				inProgress: inProgressCount,
-				completed: completedCount
-			},
+			stats,
 			filters: {
 				search: searchQuery,
 				status: statusFilter,
@@ -393,44 +379,5 @@ export const load: PageServerLoad = async (event) => {
 				canViewAll: userRole === 'admin' || userRole === 'super_admin' || userRole === 'hr_manager'
 			}
 		};
-	} catch (err) {
-		logger.error('Error loading reviews:', err as Error);
-
-		return {
-			user: {
-				id: userId,
-				email: locals.user.email || '',
-				displayName: locals.user.display_name || 'User',
-				role: userRole
-			},
-			reviews: [],
-			employees: [],
-			reviewTypesMetadata: [],
-			selectedEmployee: null,
-			stats: {
-				total: 0,
-				draft: 0,
-				inProgress: 0,
-				completed: 0
-			},
-			filters: {
-				search: searchQuery,
-				status: statusFilter,
-				type: typeFilter
-			},
-			pagination: {
-				page,
-				limit,
-				total: 0,
-				totalPages: 0,
-				hasNextPage: false,
-				hasPreviousPage: false
-			},
-			permissions: {
-				canCreate: false,
-				canViewAll: false
-			},
-			error: `Failed to load reviews: ${err instanceof Error ? err.message : 'Unknown error'}`
-		};
-	}
+	});
 };

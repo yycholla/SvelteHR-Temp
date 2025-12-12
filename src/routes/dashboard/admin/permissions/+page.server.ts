@@ -3,13 +3,9 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { logger } from '$lib/utils/logger';
-import {
-	createUrqlClient,
-	executeMutation,
-	executeQuery,
-	serializeCookies
-} from '$lib/graphql/client';
-import { PermissionChecks } from '$lib/server/rbac-utils';
+import { createUrqlClient, executeMutation, executeQuery } from '$lib/graphql/client';
+import { RBACDataLoader } from '$lib/server/route-loaders';
+import { requireAuth } from '$lib/server/rbac-utils';
 import {
 	ASSIGN_PERMISSION_TO_ROLE,
 	ASSIGN_ROLE_TO_USER,
@@ -26,37 +22,22 @@ import {
 } from '$lib/graphql/permissions-operations';
 import { error, fail } from '@sveltejs/kit';
 
-/**
- * Check if user has admin access permissions
- */
-function checkAdminAccess(locals: App.Locals): boolean {
-	const userPermissions = locals.permissions || [];
-	const userRoles = locals.roles || [];
-	return (
-		userPermissions.includes('*') ||
-		userPermissions.includes('*:*') ||
-		userPermissions.includes('admin:read') ||
-		userRoles.includes('system_admin') ||
-		userRoles.includes('admin')
-	);
-}
-
 export const load: PageServerLoad = async (event) => {
-	const { locals, fetch: fetchFn, cookies } = event;
+	const loader = new RBACDataLoader(event, [
+		'admin:read',
+		'admin:*',
+		'*',
+		'*:*',
+		'roles:read',
+		'permissions:read'
+	]);
 
-	// Check authentication and permissions
-	PermissionChecks.adminRead(event);
-
-	try {
-		// Create GraphQL client with server-side fetch (session-based auth)
-		const cookieHeader = serializeCookies(cookies);
-		const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
-
+	return loader.loadWithClient(async (client) => {
 		// Execute queries in parallel for optimal performance
 		const [rolesData, permissionsData, usersData] = await Promise.all([
-			executeQuery(client, GET_ROLES_WITH_PERMISSIONS, { limit: 100, offset: 0 }),
-			executeQuery(client, GET_ALL_PERMISSIONS, { limit: 200, offset: 0 }),
-			executeQuery(client, GET_USERS_WITH_ROLES, { limit: 500, offset: 0 })
+			executeQuery(client.getClient(), GET_ROLES_WITH_PERMISSIONS, { limit: 100, offset: 0 }),
+			executeQuery(client.getClient(), GET_ALL_PERMISSIONS, { limit: 200, offset: 0 }),
+			executeQuery(client.getClient(), GET_USERS_WITH_ROLES, { limit: 500, offset: 0 })
 		]);
 
 		return {
@@ -64,27 +45,27 @@ export const load: PageServerLoad = async (event) => {
 			permissions: permissionsData?.permissions || [],
 			users: usersData?.users || []
 		};
-	} catch (err) {
-		logger.error('[ADMIN PERMISSIONS] Load error:', err as Error);
-		return {
-			roles: [],
-			permissions: [],
-			users: [],
-			error: 'Failed to load permissions data'
-		};
-	}
+	});
 };
+
+/**
+ * Helper: Create GraphQL client for actions with admin auth check
+ */
+function createAdminClient(event: any) {
+	requireAuth(event, {
+		requiredPermissions: ['admin:write', 'admin:*', '*', '*:*', 'roles:write', 'permissions:write']
+	});
+	const cookieHeader = event.request.headers.get('cookie') || '';
+	return createUrqlClient(event.fetch, undefined, undefined, cookieHeader);
+}
 
 export const actions: Actions = {
 	/**
 	 * Create new role
 	 */
-	createRole: async ({ request, fetch: fetchFn, locals, cookies }) => {
-		if (!checkAdminAccess(locals)) {
-			return fail(403, { error: 'Admin access required' });
-		}
-
-		const formData = await request.formData();
+	createRole: async (event) => {
+		const client = createAdminClient(event);
+		const formData = await event.request.formData();
 		const name = formData.get('name') as string;
 		const description = formData.get('description') as string;
 
@@ -93,12 +74,9 @@ export const actions: Actions = {
 		}
 
 		try {
-			const cookieHeader = serializeCookies(cookies);
-			const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			await executeMutation(client, CREATE_ROLE, {
 				input: { name, description: description || null }
 			});
-
 			return { success: true, message: 'Role created successfully' };
 		} catch (err) {
 			logger.error('[CREATE ROLE] Error:', err as Error);
@@ -109,12 +87,9 @@ export const actions: Actions = {
 	/**
 	 * Update existing role
 	 */
-	updateRole: async ({ request, fetch: fetchFn, locals, cookies }) => {
-		if (!checkAdminAccess(locals)) {
-			return fail(403, { error: 'Admin access required' });
-		}
-
-		const formData = await request.formData();
+	updateRole: async (event) => {
+		const client = createAdminClient(event);
+		const formData = await event.request.formData();
 		const id = formData.get('id') as string;
 		const name = formData.get('name') as string;
 		const description = formData.get('description') as string;
@@ -124,12 +99,9 @@ export const actions: Actions = {
 		}
 
 		try {
-			const cookieHeader = serializeCookies(cookies);
-			const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			await executeMutation(client, UPDATE_ROLE, {
 				input: { id, name, description: description || null }
 			});
-
 			return { success: true, message: 'Role updated successfully' };
 		} catch (err) {
 			logger.error('[UPDATE ROLE] Error:', err as Error);
@@ -140,12 +112,9 @@ export const actions: Actions = {
 	/**
 	 * Delete role
 	 */
-	deleteRole: async ({ request, fetch: fetchFn, locals, cookies }) => {
-		if (!checkAdminAccess(locals)) {
-			return fail(403, { error: 'Admin access required' });
-		}
-
-		const formData = await request.formData();
+	deleteRole: async (event) => {
+		const client = createAdminClient(event);
+		const formData = await event.request.formData();
 		const id = formData.get('id') as string;
 
 		if (!id) {
@@ -153,10 +122,7 @@ export const actions: Actions = {
 		}
 
 		try {
-			const cookieHeader = serializeCookies(cookies);
-			const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			await executeMutation(client, DELETE_ROLE, { input: { id } });
-
 			return { success: true, message: 'Role deleted successfully' };
 		} catch (err) {
 			logger.error('[DELETE ROLE] Error:', err as Error);
@@ -167,12 +133,9 @@ export const actions: Actions = {
 	/**
 	 * Assign permission to role
 	 */
-	assignPermission: async ({ request, fetch: fetchFn, locals, cookies }) => {
-		if (!checkAdminAccess(locals)) {
-			return fail(403, { error: 'Admin access required' });
-		}
-
-		const formData = await request.formData();
+	assignPermission: async (event) => {
+		const client = createAdminClient(event);
+		const formData = await event.request.formData();
 		const roleId = formData.get('roleId') as string;
 		const permissionId = formData.get('permissionId') as string;
 
@@ -181,12 +144,9 @@ export const actions: Actions = {
 		}
 
 		try {
-			const cookieHeader = serializeCookies(cookies);
-			const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			await executeMutation(client, ASSIGN_PERMISSION_TO_ROLE, {
 				input: { roleId, permissionId }
 			});
-
 			return { success: true, message: 'Permission assigned successfully' };
 		} catch (err) {
 			logger.error('[ASSIGN PERMISSION] Error:', err as Error);
@@ -197,12 +157,9 @@ export const actions: Actions = {
 	/**
 	 * Remove permission from role
 	 */
-	removePermission: async ({ request, fetch: fetchFn, locals, cookies }) => {
-		if (!checkAdminAccess(locals)) {
-			return fail(403, { error: 'Admin access required' });
-		}
-
-		const formData = await request.formData();
+	removePermission: async (event) => {
+		const client = createAdminClient(event);
+		const formData = await event.request.formData();
 		const roleId = formData.get('roleId') as string;
 		const permissionId = formData.get('permissionId') as string;
 
@@ -211,12 +168,9 @@ export const actions: Actions = {
 		}
 
 		try {
-			const cookieHeader = serializeCookies(cookies);
-			const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			await executeMutation(client, REMOVE_PERMISSION_FROM_ROLE, {
 				input: { roleId, permissionId }
 			});
-
 			return { success: true, message: 'Permission removed successfully' };
 		} catch (err) {
 			logger.error('[REMOVE PERMISSION] Error:', err as Error);
@@ -228,12 +182,9 @@ export const actions: Actions = {
 	 * Bulk assign permissions to role
 	 * This action handles both adding AND removing permissions by comparing current vs desired state
 	 */
-	bulkAssignPermissions: async ({ request, fetch: fetchFn, locals, cookies }) => {
-		if (!checkAdminAccess(locals)) {
-			return fail(403, { error: 'Admin access required' });
-		}
-
-		const formData = await request.formData();
+	bulkAssignPermissions: async (event) => {
+		const client = createAdminClient(event);
+		const formData = await event.request.formData();
 		const roleId = formData.get('roleId') as string;
 		const permissionIds = formData.get('permissionIds') as string;
 
@@ -242,8 +193,6 @@ export const actions: Actions = {
 		}
 
 		try {
-			const cookieHeader = serializeCookies(cookies);
-			const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			const desiredPermissionIds = JSON.parse(permissionIds) as string[];
 
 			// Get current permissions for the role
@@ -251,28 +200,25 @@ export const actions: Actions = {
 				limit: 100,
 				offset: 0
 			});
-			const role = rolesData.roles.find((r: any) => r.id === roleId);
+			const role = rolesData.roles.find((r: { id: string }) => r.id === roleId);
 
 			if (!role) {
 				return fail(404, { error: 'Role not found' });
 			}
 
 			// Calculate current permission IDs
-			const currentPermissionIds = role.permissions?.map((p: any) => p.id) || [];
+			const currentPermissionIds = role.permissions?.map((p: { id: string }) => p.id) || [];
 
-			// Calculate permissions to add (in desired but not in current)
+			// Calculate permissions to add/remove
 			const permissionsToAdd = desiredPermissionIds.filter(
 				(id) => !currentPermissionIds.includes(id)
 			);
-
-			// Calculate permissions to remove (in current but not in desired)
 			const permissionsToRemove = currentPermissionIds.filter(
 				(id: string) => !desiredPermissionIds.includes(id)
 			);
 
 			// Execute mutations in parallel if needed
 			const mutations = [];
-
 			if (permissionsToAdd.length > 0) {
 				mutations.push(
 					executeMutation(client, BULK_ASSIGN_PERMISSIONS, {
@@ -280,7 +226,6 @@ export const actions: Actions = {
 					})
 				);
 			}
-
 			if (permissionsToRemove.length > 0) {
 				mutations.push(
 					executeMutation(client, BULK_REMOVE_PERMISSIONS, {
@@ -288,12 +233,11 @@ export const actions: Actions = {
 					})
 				);
 			}
-
 			if (mutations.length > 0) {
 				await Promise.all(mutations);
 			}
 
-			// Create a summary message
+			// Create summary message
 			const messages = [];
 			if (permissionsToAdd.length > 0) {
 				messages.push(`${permissionsToAdd.length} permission(s) added`);
@@ -313,12 +257,9 @@ export const actions: Actions = {
 	/**
 	 * Bulk remove permissions from role
 	 */
-	bulkRemovePermissions: async ({ request, fetch: fetchFn, locals, cookies }) => {
-		if (!checkAdminAccess(locals)) {
-			return fail(403, { error: 'Admin access required' });
-		}
-
-		const formData = await request.formData();
+	bulkRemovePermissions: async (event) => {
+		const client = createAdminClient(event);
+		const formData = await event.request.formData();
 		const roleId = formData.get('roleId') as string;
 		const permissionIds = formData.get('permissionIds') as string;
 
@@ -327,14 +268,10 @@ export const actions: Actions = {
 		}
 
 		try {
-			const cookieHeader = serializeCookies(cookies);
-			const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			const permissionIdArray = JSON.parse(permissionIds);
-
 			await executeMutation(client, BULK_REMOVE_PERMISSIONS, {
 				input: { roleId, permissionIds: permissionIdArray }
 			});
-
 			return { success: true, message: 'Permissions removed successfully' };
 		} catch (err) {
 			logger.error('[BULK REMOVE PERMISSIONS] Error:', err as Error);
@@ -345,12 +282,9 @@ export const actions: Actions = {
 	/**
 	 * Assign role to user
 	 */
-	assignRoleToUser: async ({ request, fetch: fetchFn, locals, cookies }) => {
-		if (!checkAdminAccess(locals)) {
-			return fail(403, { error: 'Admin access required' });
-		}
-
-		const formData = await request.formData();
+	assignRoleToUser: async (event) => {
+		const client = createAdminClient(event);
+		const formData = await event.request.formData();
 		const userId = formData.get('userId') as string;
 		const roleId = formData.get('roleId') as string;
 
@@ -359,12 +293,9 @@ export const actions: Actions = {
 		}
 
 		try {
-			const cookieHeader = serializeCookies(cookies);
-			const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			await executeMutation(client, ASSIGN_ROLE_TO_USER, {
 				input: { userId, roleId }
 			});
-
 			return { success: true, message: 'Role assigned to user successfully' };
 		} catch (err) {
 			logger.error('[ASSIGN ROLE TO USER] Error:', err as Error);
@@ -375,12 +306,9 @@ export const actions: Actions = {
 	/**
 	 * Remove role from user
 	 */
-	removeRoleFromUser: async ({ request, fetch: fetchFn, locals, cookies }) => {
-		if (!checkAdminAccess(locals)) {
-			return fail(403, { error: 'Admin access required' });
-		}
-
-		const formData = await request.formData();
+	removeRoleFromUser: async (event) => {
+		const client = createAdminClient(event);
+		const formData = await event.request.formData();
 		const userId = formData.get('userId') as string;
 		const roleId = formData.get('roleId') as string;
 
@@ -389,12 +317,9 @@ export const actions: Actions = {
 		}
 
 		try {
-			const cookieHeader = serializeCookies(cookies);
-			const client = createUrqlClient(fetchFn, undefined, undefined, cookieHeader);
 			await executeMutation(client, REMOVE_ROLE_FROM_USER, {
 				input: { userId, roleId }
 			});
-
 			return { success: true, message: 'Role removed from user successfully' };
 		} catch (err) {
 			logger.error('[REMOVE ROLE FROM USER] Error:', err as Error);

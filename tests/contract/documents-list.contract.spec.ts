@@ -15,7 +15,8 @@ import { beforeAll, describe, expect, it } from 'vitest';
  */
 
 describe('GET /api/documents - Contract Tests', () => {
-	const API_BASE_URL = process.env.API_BASE_URL || process.env.PUBLIC_API_URL || 'http://localhost:5173';
+	const API_BASE_URL =
+		process.env.API_BASE_URL || process.env.PUBLIC_API_URL || 'http://localhost:5173';
 
 	let employeeToken: string;
 	let managerToken: string;
@@ -286,12 +287,15 @@ describe('GET /api/documents - Contract Tests', () => {
 
 	it('should return empty array when no documents match filters', async () => {
 		// Act: Filter with non-existent criteria
-		const response = await fetch(`${API_BASE_URL}/api/documents?category=NonExistent&search=xyzabc123`, {
-			method: 'GET',
-			headers: {
-				Authorization: `Bearer ${adminToken}`
+		const response = await fetch(
+			`${API_BASE_URL}/api/documents?category=NonExistent&search=xyzabc123`,
+			{
+				method: 'GET',
+				headers: {
+					Authorization: `Bearer ${adminToken}`
+				}
 			}
-		});
+		);
 
 		// Assert: Success but empty results
 		expect(response.status).toBe(200);

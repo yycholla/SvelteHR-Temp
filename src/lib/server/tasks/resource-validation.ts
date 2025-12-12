@@ -111,7 +111,7 @@ async function validateEmployeeResource(employeeId: string): Promise<ResourceVal
 			}
 		};
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Error checking employee', error as Error);
 		return {
 			valid: false,
 			exists: false,
@@ -194,7 +194,7 @@ async function validateDocumentResource(documentId: string): Promise<ResourceVal
 			}
 		};
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Error checking document', error as Error);
 		return {
 			valid: false,
 			exists: false,
@@ -288,7 +288,7 @@ async function validateGoalResource(goalId: string): Promise<ResourceValidationR
 			}
 		};
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Error checking goal', error as Error);
 		return {
 			valid: false,
 			exists: false,
@@ -374,7 +374,7 @@ async function validatePerformanceReviewResource(
 			}
 		};
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Error checking performance review', error as Error);
 		return {
 			valid: false,
 			exists: false,
@@ -485,7 +485,7 @@ export async function updateResourceAvailabilityStatus(
 
 		return true;
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Error updating resource availability status', error as Error);
 		return false;
 	}
 }
@@ -573,7 +573,7 @@ export async function checkTaskLinkedResources(taskId: string): Promise<{
 
 		return stats;
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Error checking task linked resources', error as Error);
 		return { total: 0, available: 0, unavailable: 0, deleted: 0, errors: 1 };
 	}
 }
@@ -647,7 +647,7 @@ export async function periodicResourceCheck(): Promise<{
 			resourcesUpdated
 		};
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Error running periodic resource check', error as Error);
 		return { tasksChecked: 0, resourcesChecked: 0, resourcesUpdated: 0 };
 	}
 }
@@ -698,7 +698,7 @@ export async function getTaskLinkedResourcesWithStatus(
 			lastChecked: new Date(resource.lastChecked)
 		}));
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Error fetching task linked resources', error as Error);
 		return [];
 	}
 }

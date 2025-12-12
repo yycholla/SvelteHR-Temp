@@ -52,8 +52,7 @@
 		file = selectedFile;
 		isUploading = true;
 		try {
-			// Read file as ArrayBuffer for encryption/base64
-			const arrayBuffer = await file.arrayBuffer();
+			// Read file as base64
 			const base64String = await new Promise<string>((resolve, reject) => {
 				const reader = new FileReader();
 				reader.onload = () => {
@@ -95,7 +94,7 @@
 
 	function handleFileSelect(e: Event) {
 		const target = e.target as HTMLInputElement;
-		if (target.files && target.files[0]) {
+		if (target.files?.[0]) {
 			handleFileSelected(target.files[0]);
 		}
 	}

@@ -138,7 +138,7 @@
 				<p class="text-sm text-muted-foreground">No attendees found</p>
 			</div>
 		{:else}
-			{#each filteredAttendees as attendee}
+			{#each filteredAttendees as attendee (attendee.id)}
 				{@const isCurrentUser = attendee.employeeId === currentUserId}
 				{@const badge = getRsvpBadge(attendee.responseStatus)}
 

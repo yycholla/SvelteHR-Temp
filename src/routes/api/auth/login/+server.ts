@@ -113,14 +113,18 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 
 		const loginData = await loginResponse.json();
 		logger.info('[Login] Login successful', { userEmail: loginData.user.email });
-		logger.info('[Login] Force password change', { forcePasswordChange: loginData.user.force_password_change });
+		logger.info('[Login] Force password change', {
+			forcePasswordChange: loginData.user.force_password_change
+		});
 
 		// Clear rate limit on successful login
 		clearRateLimit(clientIp);
 
 		// Extract Set-Cookie headers from Rust backend response and forward to browser
 		const setCookieHeaders = loginResponse.headers.getSetCookie?.() || [];
-		logger.info('[Login] Forwarding session cookies from Rust backend', { cookieCount: setCookieHeaders.length });
+		logger.info('[Login] Forwarding session cookies from Rust backend', {
+			cookieCount: setCookieHeaders.length
+		});
 
 		// Parse and set each cookie in SvelteKit
 		for (const cookieHeader of setCookieHeaders) {
@@ -169,7 +173,9 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 	} catch (error) {
 		logger.info('[Login] === LOGIN ATTEMPT FAILED ===');
 		logger.error('[Login] FATAL ERROR', error as Error);
-		logger.error('[Login] Error stack', new Error('Stack trace'), { stack: error instanceof Error ? error.stack : 'No stack trace' });
+		logger.error('[Login] Error stack', undefined, {
+			stack: error instanceof Error ? error.stack : 'No stack trace'
+		});
 
 		// Security: Don't expose internal errors in production
 		const isProduction = process.env.NODE_ENV === 'production';

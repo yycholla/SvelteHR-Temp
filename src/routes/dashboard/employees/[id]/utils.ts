@@ -34,8 +34,7 @@ export function calculateTenure(hireDateString: string): string {
 	const years = Math.floor(diffDays / 365);
 	const months = Math.floor((diffDays % 365) / 30);
 
-	if (years > 0)
-		return `${years} Yr${years > 1 ? 's' : ''}, ${months} Mo${months > 1 ? 's' : ''}`;
+	if (years > 0) return `${years} Yr${years > 1 ? 's' : ''}, ${months} Mo${months > 1 ? 's' : ''}`;
 	return `${months} Month${months !== 1 ? 's' : ''}`;
 }
 

@@ -16,7 +16,6 @@
 
 	interface Props {
 		logId: string;
-		resourceType?: string;
 		action: string;
 		canDirectRollback: boolean;
 		canRequestRollback?: boolean;
@@ -27,7 +26,6 @@
 
 	const {
 		logId,
-		resourceType,
 		action,
 		canDirectRollback,
 		canRequestRollback = false,

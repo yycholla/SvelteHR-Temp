@@ -52,7 +52,7 @@ export const load: PageServerLoad = async (event) => {
 	});
 
 	if (!usersResponse.ok) {
-		logger.error('Failed to fetch users from REST endpoint:', {
+		logger.error('Failed to fetch users from REST endpoint', undefined, {
 			status: usersResponse.status,
 			statusText: usersResponse.statusText
 		});
@@ -71,7 +71,7 @@ export const load: PageServerLoad = async (event) => {
 	});
 
 	if (assignmentsResponse.errors) {
-		logger.error('Training assignments query error:', {
+		logger.error('Training assignments query error', undefined, {
 			message: assignmentsResponse.errors[0]?.message
 		});
 	} else {

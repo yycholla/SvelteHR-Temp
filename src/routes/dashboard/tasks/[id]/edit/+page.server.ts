@@ -251,7 +251,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 		);
 
-		logger.error('[Task Edit Error Details]', {
+		logger.error('[Task Edit Error Details]', undefined, {
 			userId: locals.user?.id,
 			taskId,
 			error: errorResponse
@@ -312,7 +312,8 @@ export const actions: Actions = {
 				}
 			}
 
-			logger.info('[Task Edit] Updating task:', taskId, {
+			logger.info('[Task Edit] Updating task', {
+				taskId,
 				title,
 				status,
 				priority,

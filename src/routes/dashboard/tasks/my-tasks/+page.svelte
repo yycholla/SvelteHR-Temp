@@ -434,7 +434,12 @@
 								{#each sortOptions as option (option.value)}
 									<DropdownMenu.Item
 										onclick={() =>
-											(sortBy = option.value as 'created_at' | 'due_date' | 'priority' | 'title' | 'smart')}
+											(sortBy = option.value as
+												| 'created_at'
+												| 'due_date'
+												| 'priority'
+												| 'title'
+												| 'smart')}
 									>
 										<div class="flex items-center gap-2">
 											{#if sortBy === option.value}
@@ -461,15 +466,16 @@
 				</div>
 
 				<!-- Compact List -->
-				                        <div class="h-[600px] overflow-hidden rounded-md border">
-				                            <TaskList
-				                                tasks={filteredTasks}
-				                                showFilters={false}
-				                                viewMode="list"
-				                                onTaskClick={handleTaskClick}
-				                                onStatusChange={handleStatusChange}
-				                            />
-				                        </div>			</div>
+				<div class="h-[600px] overflow-hidden rounded-md border">
+					<TaskList
+						tasks={filteredTasks}
+						showFilters={false}
+						viewMode="list"
+						onTaskClick={handleTaskClick}
+						onStatusChange={handleStatusChange}
+					/>
+				</div>
+			</div>
 
 			<!-- 4. Upcoming / Schedule (Bottom Right - Spans 4 cols) -->
 			<div

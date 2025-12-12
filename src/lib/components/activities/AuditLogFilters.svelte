@@ -139,7 +139,7 @@
 				resourceType: resourceType || undefined,
 				employeeId: employeeId || undefined,
 				employeeName: employeeName || undefined,
-				action: (action as unknown) as 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | '',
+				action: action as unknown as 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | '',
 				isRollback: isRollback || undefined,
 				searchTerm: searchTerm || undefined
 			};

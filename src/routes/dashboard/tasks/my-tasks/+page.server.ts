@@ -459,7 +459,10 @@ export const actions: Actions = {
 				taskId: newTask.id
 			};
 		} catch (err) {
-			logger.error('[My Tasks - Quick Add] Create error', err instanceof Error ? err : new Error(String(err)));
+			logger.error(
+				'[My Tasks - Quick Add] Create error',
+				err instanceof Error ? err : new Error(String(err))
+			);
 
 			return fail(500, {
 				error: err instanceof Error ? err.message : 'Failed to create task'

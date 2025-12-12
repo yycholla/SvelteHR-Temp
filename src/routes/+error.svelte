@@ -11,7 +11,7 @@
 			const result = fn();
 			return result ?? fallback;
 		} catch (e) {
-			logger.warn('Safe getter caught error:', e);
+			logger.warn('Safe getter caught error:', { error: String(e) });
 			return fallback;
 		}
 	}
@@ -105,9 +105,12 @@
 			if (typeof window !== 'undefined' && import.meta.env.DEV) {
 				const errorToLog = safeGet(() => error, null);
 				if (errorToLog) {
-					logger.error('SvelteKit Error Page:', {
+					const errorObj =
+						errorToLog instanceof Error
+							? errorToLog
+							: new Error(errorToLog?.message || String(errorToLog));
+					logger.error('SvelteKit Error Page:', errorObj, {
 						status: safeGet(() => status, 500),
-						error: errorToLog,
 						url: safeGet(() => pageData?.url?.pathname, 'unknown')
 					});
 				}

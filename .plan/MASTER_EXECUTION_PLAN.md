@@ -19,13 +19,17 @@
 The codebase has **910 compilation errors** caused by an incomplete logger refactoring. The errors are well-categorized and mostly mechanical. **60% can be fixed with automated scripts** in 2-3 hours. The remaining 40% requires manual review but follows clear patterns.
 
 ### Root Cause
+
 A centralized `logger` utility was introduced to replace `console.*` statements, but:
+
 1. Import statements were not added
 2. Logger API was misunderstood
 3. Syntax errors introduced during refactoring
 
 ### Solution Approach
+
 Fix in 5 phases, from mechanical (automated) to complex (manual):
+
 1. Add missing imports (automated)
 2. Fix syntax errors (semi-automated)
 3. Correct logger API usage (manual, pattern-based)
@@ -34,14 +38,14 @@ Fix in 5 phases, from mechanical (automated) to complex (manual):
 
 ## Phase Overview
 
-| Phase | Type | Errors | Effort | Time | Automation |
-|-------|------|--------|--------|------|------------|
-| 1 | Missing Imports | 450 | Low | 2h | 80% |
-| 2 | Syntax Errors | 120 | Low | 1h | 70% |
-| 3 | Logger API | 86 | Medium | 3-4h | 20% |
-| 4 | Specific Fixes | 8 | Low | 0.5h | 50% |
-| 5 | Complex Types | 247 | High | 8-12h | 10% |
-| **Total** | | **910** | | **14-20h** | **~40%** |
+| Phase     | Type            | Errors  | Effort | Time       | Automation |
+| --------- | --------------- | ------- | ------ | ---------- | ---------- |
+| 1         | Missing Imports | 450     | Low    | 2h         | 80%        |
+| 2         | Syntax Errors   | 120     | Low    | 1h         | 70%        |
+| 3         | Logger API      | 86      | Medium | 3-4h       | 20%        |
+| 4         | Specific Fixes  | 8       | Low    | 0.5h       | 50%        |
+| 5         | Complex Types   | 247     | High   | 8-12h      | 10%        |
+| **Total** |                 | **910** |        | **14-20h** | **~40%**   |
 
 ## Pre-Execution Checklist
 

@@ -3,7 +3,6 @@
 	import Button from '../base/Button.svelte';
 	import Card from '../base/Card.svelte';
 	import Badge from '../base/Badge.svelte';
-	import Input from '../base/Input.svelte';
 	import Textarea from '../base/Textarea.svelte';
 	import type { OnboardingTask } from '$lib/services/onboardingService';
 
@@ -29,7 +28,7 @@
 		{} as Record<string, OnboardingTask[]>
 	);
 
-	$: categoryOrder = ['HR', 'IT', 'Security', 'Training', 'Equipment', 'Documentation', 'Other'];
+	const categoryOrder = ['HR', 'IT', 'Security', 'Training', 'Equipment', 'Documentation', 'Other'];
 
 	let selectedTask: OnboardingTask | null = null;
 	let taskNotes = '';
@@ -142,7 +141,7 @@
 <div class="onboarding-checklist">
 	{#if showCategories}
 		<!-- Categorized View -->
-		{#each categoryOrder as category}
+		{#each categoryOrder as category (category)}
 			{#if tasksByCategory[category]?.length > 0}
 				<Card padding="md" class="category-section">
 					<div class="category-header">

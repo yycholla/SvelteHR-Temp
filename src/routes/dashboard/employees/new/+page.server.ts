@@ -35,10 +35,9 @@ export const load: PageServerLoad = async (event) => {
 			Cookie: cookieHeader // Forward all cookies for session authentication
 		};
 
-		logger.info(
-			'[Employee New] Using Rust GraphQL with session-based auth, user roles:',
-			locals.roles
-		);
+		logger.info('[Employee New] Using Rust GraphQL with session-based auth', {
+			userRoles: locals.roles
+		});
 
 		// Load departments for dropdown
 		const departmentsResponse = await fetch(graphqlEndpoint, {
@@ -64,7 +63,10 @@ export const load: PageServerLoad = async (event) => {
 		const departmentsData = await departmentsResponse.json();
 
 		if (departmentsData.errors && departmentsData.errors.length > 0) {
-			logger.error('[Employee New] GraphQL errors:', departmentsData.errors);
+			const errorMsg = departmentsData.errors[0]?.message || 'Failed to load departments';
+			logger.error('[Employee New] GraphQL errors', new Error(errorMsg), {
+				errors: departmentsData.errors
+			});
 			error(500, 'Failed to load departments');
 		}
 
@@ -205,18 +207,24 @@ export const actions: Actions = {
 			// Always parse JSON response to check for GraphQL errors
 			// GraphQL can return errors even with HTTP 200, or have detailed errors with HTTP 400/500
 			const createData = await createResponse.json();
-			logger.info('[Employee New] Full response:', JSON.stringify(createData, null, 2));
+			logger.info('[Employee New] Full response:', {
+				response: JSON.stringify(createData, null, 2)
+			});
 
 			if (createData.errors && createData.errors.length > 0) {
-				logger.error('[Employee New] GraphQL errors:', createData.errors);
-				logger.error(
-					'[Employee New] Full error object:',
-					JSON.stringify(createData.errors, null, 2)
-				);
+				const errorMsg = createData.errors[0]?.message || 'Failed to create employee';
+				logger.error('[Employee New] GraphQL errors', new Error(errorMsg), {
+					errors: createData.errors
+				});
+				logger.error('[Employee New] Full error object', undefined, {
+					errorsJson: JSON.stringify(createData.errors, null, 2)
+				});
 
 				// Parse GraphQL error to provide user-friendly message
 				const errorMessage = createData.errors[0].message || 'Failed to create employee';
-				logger.error('[Employee New] Error message to parse:', errorMessage);
+				logger.error('[Employee New] Error message to parse', undefined, {
+					errorMessage
+				});
 				let userFriendlyError = errorMessage;
 
 				// Handle common validation errors

@@ -115,9 +115,8 @@ export const load: PageServerLoad = async (event) => {
 						totalContents > 0 ? Math.round((completedCount / totalContents) * 100) : 0;
 				}
 			} catch (err) {
-				logger.error('Error fetching progress for user:', {
-					userId: assignment.userId,
-					error: err as Error
+				logger.error('Error fetching progress for user', err as Error, {
+					userId: assignment.userId
 				});
 			}
 

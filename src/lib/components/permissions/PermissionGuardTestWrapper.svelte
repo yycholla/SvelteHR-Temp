@@ -24,9 +24,7 @@
 </script>
 
 <PermissionGuard {permissions} {requires} {requireAll} {inverse} {as} class={className}>
-	{#snippet children()}
-		<span>Access Granted</span>
-	{/snippet}
+	<span>Access Granted</span>
 	{#snippet fallback()}
 		{#if showFallback}
 			<span>Access Denied</span>

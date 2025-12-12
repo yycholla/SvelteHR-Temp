@@ -114,7 +114,9 @@ export const load: PageServerLoad = async (event) => {
 			offset: 0
 		});
 
-		logger.info('[Attendance] GraphQL response:', JSON.stringify(attendanceData, null, 2));
+		logger.info('[Attendance] GraphQL response:', {
+			response: JSON.stringify(attendanceData, null, 2)
+		});
 		logger.info(`[Attendance] Employee ID: ${userId}`);
 		logger.info('[Attendance] Records found:', attendanceData.data?.attendanceRecords?.length);
 

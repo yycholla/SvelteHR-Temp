@@ -9,7 +9,7 @@
 	 * Shows real-time progress and handles up to 100 rollbacks per batch.
 	 */
 
-	import { createEventDispatcher } from 'svelte';
+	import { SvelteSet } from 'svelte/reactivity';
 	import { AlertCircle, CheckCircle, Loader2, XCircle } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
@@ -36,19 +36,16 @@
 	interface Props {
 		logs: ActivityLogSummary[];
 		isOpen: boolean;
-		userRole: string;
 		onClose: () => void;
 		onComplete?: (batchId: string) => void;
 	}
 
-	const { logs, isOpen, userRole, onClose, onComplete }: Props = $props();
+	const { logs, isOpen, onClose, onComplete }: Props = $props();
 
-	let selectedLogs = $state(new Set<string>());
+	let selectedLogs = $state(new SvelteSet<string>());
 	let isProcessing = $state(false);
 	let progress = $state<BulkRollbackProgress | null>(null);
 	let eventSource = $state<EventSource | null>(null);
-
-	const dispatch = createEventDispatcher();
 
 	// Computed properties
 	const canProceed = $derived(selectedLogs.size > 0 && selectedLogs.size <= 100);
@@ -62,7 +59,7 @@
 			selectedLogs.clear();
 		} else {
 			const logsToSelect = logs.slice(0, 100); // Max 100
-			selectedLogs = new Set(logsToSelect.map((log) => log.id));
+			selectedLogs = new SvelteSet(logsToSelect.map((log) => log.id));
 		}
 	}
 

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { render } from '@testing-library/svelte';
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import BentoGridTestWrapper from './BentoGridTestWrapper.svelte';
 
 describe('BentoGrid', () => {

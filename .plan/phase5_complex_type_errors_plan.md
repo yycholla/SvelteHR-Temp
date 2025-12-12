@@ -11,6 +11,7 @@
 After completing Phases 1-4, approximately 247 errors remain. These are complex type errors, logic issues, and edge cases that require individual analysis and context-aware fixes.
 
 Unlike the mechanical fixes in earlier phases, these errors represent:
+
 - Complex type mismatches
 - Incorrect type conversions
 - Missing type definitions
@@ -28,13 +29,14 @@ Error: Conversion of type 'Event' to type 'Error' may be a mistake because neith
 ```
 
 **Example**:
+
 ```typescript
 // ❌ WRONG
 const error = event as Error;
 
 // ✅ CORRECT - Type guard
 function isError(value: unknown): value is Error {
-  return value instanceof Error;
+	return value instanceof Error;
 }
 
 const error = isError(event) ? event : new Error(String(event));
@@ -50,15 +52,16 @@ Error: Argument of type 'ErrorResponse' is not assignable to parameter of type '
 ```
 
 **Example**:
+
 ```typescript
 // ❌ WRONG - Custom type doesn't match expected interface
 logger.info('Cache metrics', cacheMetrics);
 
 // ✅ CORRECT - Transform to compatible type
 logger.info('Cache metrics', {
-  hitRate: cacheMetrics.hitRate,
-  misses: cacheMetrics.misses,
-  size: cacheMetrics.size
+	hitRate: cacheMetrics.hitRate,
+	misses: cacheMetrics.misses,
+	size: cacheMetrics.size
 } satisfies LogMeta);
 ```
 
@@ -71,6 +74,7 @@ Error: Object literal may only specify known properties, and 'type' does not exi
 ```
 
 **Example**:
+
 ```typescript
 // ❌ WRONG - Adding non-standard property to Error
 const error = new Error(message);
@@ -78,12 +82,12 @@ error.type = 'validation'; // Type error
 
 // ✅ CORRECT - Extend Error type
 class ValidationError extends Error {
-  public readonly type = 'validation';
+	public readonly type = 'validation';
 
-  constructor(message: string) {
-    super(message);
-    this.name = 'ValidationError';
-  }
+	constructor(message: string) {
+		super(message);
+		this.name = 'ValidationError';
+	}
 }
 
 const error = new ValidationError(message);
@@ -98,19 +102,18 @@ Error: Type 'Promise<typeof import("...")>' is not assignable to type 'Promise<{
 ```
 
 **Example** (`bundle-optimizer.ts:85`):
+
 ```typescript
 // ❌ WRONG
-TaskForm: () => lazyLoadComponent(() => import('$lib/components/tasks/TaskForm.svelte'), 'TaskForm')
+TaskForm: () =>
+	lazyLoadComponent(() => import('$lib/components/tasks/TaskForm.svelte'), 'TaskForm');
 
 // ✅ CORRECT - Ensure proper return type
 TaskForm: () =>
-  lazyLoadComponent(
-    async () => {
-      const module = await import('$lib/components/tasks/TaskForm.svelte');
-      return { default: module.default || module };
-    },
-    'TaskForm'
-  )
+	lazyLoadComponent(async () => {
+		const module = await import('$lib/components/tasks/TaskForm.svelte');
+		return { default: module.default || module };
+	}, 'TaskForm');
 ```
 
 ### Category E: Function Signature Mismatches
@@ -133,6 +136,7 @@ Error: Argument of type 'unknown' is not assignable to parameter of type 'Error 
 ```
 
 **Example**:
+
 ```typescript
 // ❌ WRONG - unknown not narrowed
 catch (error) {
@@ -165,17 +169,20 @@ cat /tmp/error_patterns.txt
 ### Step 2: Prioritize by Impact
 
 **High Priority** (Blocks Core Functionality):
+
 - Authentication errors
 - Database query errors
 - API client errors
 - Route loading errors
 
 **Medium Priority** (Reduces Quality):
+
 - Utility function errors
 - Helper type errors
 - Component prop errors
 
 **Low Priority** (Nice to Have):
+
 - Example/demo page errors
 - Non-critical feature errors
 - Edge case handling
@@ -183,6 +190,7 @@ cat /tmp/error_patterns.txt
 ### Step 3: Fix in Batches
 
 Group related errors and fix together:
+
 - All errors in same file
 - All errors of same pattern
 - All errors in same domain (auth, db, etc.)
@@ -196,6 +204,7 @@ Group related errors and fix together:
 **Errors**: Type property on Error, unknown types
 
 **Strategy**:
+
 1. Create custom Error types for each category
 2. Implement proper type guards
 3. Use discriminated unions for error types
@@ -206,29 +215,27 @@ Group related errors and fix together:
 type AppErrorType = 'validation' | 'authentication' | 'authorization' | 'network' | 'unknown';
 
 class AppError extends Error {
-  constructor(
-    message: string,
-    public readonly type: AppErrorType,
-    public readonly statusCode: number = 500
-  ) {
-    super(message);
-    this.name = 'AppError';
-  }
+	constructor(
+		message: string,
+		public readonly type: AppErrorType,
+		public readonly statusCode: number = 500
+	) {
+		super(message);
+		this.name = 'AppError';
+	}
 }
 
 function handleError(error: unknown, context?: LogMeta): void {
-  const appError = error instanceof AppError
-    ? error
-    : new AppError(
-        error instanceof Error ? error.message : String(error),
-        'unknown'
-      );
+	const appError =
+		error instanceof AppError
+			? error
+			: new AppError(error instanceof Error ? error.message : String(error), 'unknown');
 
-  logger.error(appError.message, appError, {
-    type: appError.type,
-    statusCode: appError.statusCode,
-    ...context
-  });
+	logger.error(appError.message, appError, {
+		type: appError.type,
+		statusCode: appError.statusCode,
+		...context
+	});
 }
 ```
 
@@ -237,6 +244,7 @@ function handleError(error: unknown, context?: LogMeta): void {
 **Errors**: Custom types as LogMeta
 
 **Strategy**:
+
 1. Create serialization helpers
 2. Transform complex objects before logging
 3. Use type-safe metadata
@@ -245,21 +253,21 @@ function handleError(error: unknown, context?: LogMeta): void {
 // ✅ Idiomatic cache logging
 
 interface CacheMetrics {
-  hits: number;
-  misses: number;
-  evictions: number;
-  size: number;
-  hitRate: number;
+	hits: number;
+	misses: number;
+	evictions: number;
+	size: number;
+	hitRate: number;
 }
 
 function logCacheMetrics(metrics: CacheMetrics): void {
-  logger.info('Cache metrics updated', {
-    hits: metrics.hits,
-    misses: metrics.misses,
-    evictions: metrics.evictions,
-    size: metrics.size,
-    hitRate: Math.round(metrics.hitRate * 100) / 100
-  } satisfies LogMeta);
+	logger.info('Cache metrics updated', {
+		hits: metrics.hits,
+		misses: metrics.misses,
+		evictions: metrics.evictions,
+		size: metrics.size,
+		hitRate: Math.round(metrics.hitRate * 100) / 100
+	} satisfies LogMeta);
 }
 ```
 
@@ -268,6 +276,7 @@ function logCacheMetrics(metrics: CacheMetrics): void {
 **Errors**: Promise type mismatch, lazy loading
 
 **Strategy**:
+
 1. Ensure lazy load wrapper returns correct type
 2. Add proper type annotations
 3. Handle module resolution correctly
@@ -277,33 +286,31 @@ function logCacheMetrics(metrics: CacheMetrics): void {
 
 type LazyComponent<T> = () => Promise<{ default: T }>;
 
-function lazyLoadComponent<T>(
-  importFn: () => Promise<T>,
-  componentName: string
-): LazyComponent<T> {
-  return async () => {
-    try {
-      const module = await importFn();
-      return { default: module };
-    } catch (error) {
-      logger.error(`Failed to lazy load component: ${componentName}`, error as Error);
-      throw error;
-    }
-  };
+function lazyLoadComponent<T>(importFn: () => Promise<T>, componentName: string): LazyComponent<T> {
+	return async () => {
+		try {
+			const module = await importFn();
+			return { default: module };
+		} catch (error) {
+			logger.error(`Failed to lazy load component: ${componentName}`, error as Error);
+			throw error;
+		}
+	};
 }
 
 // Usage
 export const lazyComponents = {
-  TaskForm: lazyLoadComponent(
-    () => import('$lib/components/tasks/TaskForm.svelte').then(m => m.default),
-    'TaskForm'
-  )
+	TaskForm: lazyLoadComponent(
+		() => import('$lib/components/tasks/TaskForm.svelte').then((m) => m.default),
+		'TaskForm'
+	)
 };
 ```
 
 ### Medium Priority Files
 
 Files with 2-5 errors that need attention but don't block core functionality:
+
 - GraphQL client files
 - Component utility files
 - Store files
@@ -311,6 +318,7 @@ Files with 2-5 errors that need attention but don't block core functionality:
 ### Low Priority Files
 
 Files with 1-2 errors in non-critical paths:
+
 - Example pages
 - Demo components
 - Development utilities
@@ -322,35 +330,33 @@ Files with 1-2 errors in non-critical paths:
 ```typescript
 // ✅ GOOD - Proper type narrowing
 function processValue(value: unknown): string {
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number') return String(value);
-  if (value && typeof value === 'object' && 'toString' in value) {
-    return String(value);
-  }
-  return JSON.stringify(value);
+	if (typeof value === 'string') return value;
+	if (typeof value === 'number') return String(value);
+	if (value && typeof value === 'object' && 'toString' in value) {
+		return String(value);
+	}
+	return JSON.stringify(value);
 }
 
 // ✅ GOOD - Custom type guards
 function isErrorLike(error: unknown): error is { message: string; stack?: string } {
-  return (
-    error !== null &&
-    typeof error === 'object' &&
-    'message' in error &&
-    typeof error.message === 'string'
-  );
+	return (
+		error !== null &&
+		typeof error === 'object' &&
+		'message' in error &&
+		typeof error.message === 'string'
+	);
 }
 
 // ✅ GOOD - Discriminated unions
-type Result<T, E> =
-  | { success: true; data: T }
-  | { success: false; error: E };
+type Result<T, E> = { success: true; data: T } | { success: false; error: E };
 
 function handleResult<T>(result: Result<T, Error>): T {
-  if (result.success) {
-    return result.data;
-  }
-  logger.error('Operation failed', result.error);
-  throw result.error;
+	if (result.success) {
+		return result.data;
+	}
+	logger.error('Operation failed', result.error);
+	throw result.error;
 }
 ```
 
@@ -359,32 +365,29 @@ function handleResult<T>(result: Result<T, Error>): T {
 ```typescript
 // ✅ GOOD - Comprehensive error handling
 async function fetchData(id: string): Promise<Data> {
-  try {
-    const response = await fetch(`/api/data/${id}`);
+	try {
+		const response = await fetch(`/api/data/${id}`);
 
-    if (!response.ok) {
-      throw new AppError(
-        `Failed to fetch data: ${response.statusText}`,
-        'network',
-        response.status
-      );
-    }
+		if (!response.ok) {
+			throw new AppError(
+				`Failed to fetch data: ${response.statusText}`,
+				'network',
+				response.status
+			);
+		}
 
-    const data = await response.json();
-    return dataSchema.parse(data); // Zod validation
+		const data = await response.json();
+		return dataSchema.parse(data); // Zod validation
+	} catch (error: unknown) {
+		if (error instanceof AppError) {
+			throw error;
+		}
 
-  } catch (error: unknown) {
-    if (error instanceof AppError) {
-      throw error;
-    }
+		const err = error instanceof Error ? error : new Error(String(error));
 
-    const err = error instanceof Error
-      ? error
-      : new Error(String(error));
-
-    logger.error('Data fetch failed', err, { dataId: id });
-    throw new AppError('Failed to fetch data', 'unknown');
-  }
+		logger.error('Data fetch failed', err, { dataId: id });
+		throw new AppError('Failed to fetch data', 'unknown');
+	}
 }
 ```
 
@@ -392,21 +395,19 @@ async function fetchData(id: string): Promise<Data> {
 
 ```typescript
 // ✅ GOOD - Type-safe promise handling
-async function loadModule<T>(
-  path: string
-): Promise<{ default: T }> {
-  try {
-    const module = await import(path);
+async function loadModule<T>(path: string): Promise<{ default: T }> {
+	try {
+		const module = await import(path);
 
-    if (!module.default) {
-      throw new Error(`Module ${path} has no default export`);
-    }
+		if (!module.default) {
+			throw new Error(`Module ${path} has no default export`);
+		}
 
-    return { default: module.default };
-  } catch (error) {
-    logger.error('Module load failed', error as Error, { path });
-    throw error;
-  }
+		return { default: module.default };
+	} catch (error) {
+		logger.error('Module load failed', error as Error, { path });
+		throw error;
+	}
 }
 ```
 
@@ -415,16 +416,19 @@ async function loadModule<T>(
 ### Week 1: High Priority (Days 1-3)
 
 **Day 1**: Error handling utilities (4 hours)
+
 - Fix `error-handling.ts`
 - Create custom error types
 - Implement type guards
 
 **Day 2**: API and database (4 hours)
+
 - Fix GraphQL client errors
 - Fix database query errors
 - Fix API client errors
 
 **Day 3**: Performance and optimization (4 hours)
+
 - Fix bundle optimizer
 - Fix cache management
 - Fix server monitoring
@@ -432,11 +436,13 @@ async function loadModule<T>(
 ### Week 2: Medium Priority (Days 4-5)
 
 **Day 4**: Component errors (4 hours)
+
 - Fix Svelte component type errors
 - Fix prop type mismatches
 - Fix event handler types
 
 **Day 5**: Store and state management (4 hours)
+
 - Fix store type errors
 - Fix derived state types
 - Fix reactive patterns
@@ -444,6 +450,7 @@ async function loadModule<T>(
 ### Week 3: Low Priority (Day 6)
 
 **Day 6**: Cleanup and edge cases (4 hours)
+
 - Fix remaining example pages
 - Fix development utilities
 - Final verification
@@ -482,14 +489,14 @@ Before marking each batch complete:
 
 ### Progress Tracking
 
-| Phase | Errors Remaining | % Complete |
-|-------|-----------------|------------|
-| Start | 910 | 0% |
-| After Phase 1 | 460 | 49% |
-| After Phase 2 | 340 | 63% |
-| After Phase 3 | 254 | 72% |
-| After Phase 4 | 247 | 73% |
-| After Phase 5 | 0 | 100% |
+| Phase         | Errors Remaining | % Complete |
+| ------------- | ---------------- | ---------- |
+| Start         | 910              | 0%         |
+| After Phase 1 | 460              | 49%        |
+| After Phase 2 | 340              | 63%        |
+| After Phase 3 | 254              | 72%        |
+| After Phase 4 | 247              | 73%        |
+| After Phase 5 | 0                | 100%       |
 
 ### Final Verification
 

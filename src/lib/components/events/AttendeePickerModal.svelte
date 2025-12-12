@@ -177,7 +177,7 @@
 					</Select.Trigger>
 					<Select.Content>
 						<Select.Item value="all">All Departments</Select.Item>
-						{#each departments as dept}
+						{#each departments as dept (dept.id)}
 							<Select.Item value={dept.id}>{dept.name}</Select.Item>
 						{/each}
 					</Select.Content>
@@ -217,7 +217,7 @@
 							<p class="text-sm text-muted-foreground">No employees found matching your criteria</p>
 						</div>
 					{:else}
-						{#each filteredEmployees as employee}
+						{#each filteredEmployees as employee (employee.id)}
 							<div
 								class="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent"
 								role="button"

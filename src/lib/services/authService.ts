@@ -94,7 +94,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
 			};
 		}
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Login failed', error as Error);
 		return {
 			success: false,
 			error: error instanceof Error ? error.message : 'Login failed',
@@ -114,14 +114,18 @@ export async function logout(): Promise<{ success: boolean; message?: string }> 
 		await fetch(AUTH_CONFIG.endpoints.logout, {
 			method: 'POST',
 			credentials: 'include' // Include session cookies for server-side session clearing
-		}).catch((err) => logger.warn('Logout endpoint failed:', { error: err }));
+		}).catch((err) =>
+			logger.warn('Logout endpoint failed', {
+				error: err instanceof Error ? err.message : String(err)
+			})
+		);
 
 		return {
 			success: true,
 			message: 'Logout successful'
 		};
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Logout failed', error as Error);
 		return {
 			success: false,
 			message: 'An error occurred during logout'
@@ -174,7 +178,7 @@ export async function verifySession(): Promise<{
 			error: 'No user data in response'
 		};
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Session verification failed', error as Error);
 		return {
 			valid: false,
 			error: error instanceof Error ? error.message : 'Session verification failed'
@@ -194,7 +198,7 @@ export async function isAuthenticated(): Promise<boolean> {
  * Handle authentication errors and redirect to login if needed
  */
 export function handleAuthError(error: any, redirectToLogin = true): void {
-	logger.error('Handle auth error failed', error as Error);
+	logger.error('Authentication error occurred', error as Error);
 
 	// Redirect to login page if requested and in browser
 	if (redirectToLogin && browser) {

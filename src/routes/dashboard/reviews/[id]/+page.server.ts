@@ -5,36 +5,30 @@
  *
  * Server-side data loading for individual review detail page
  * Implements permission-based access control
+ * Refactored: Phase 2 - Using Phase 1 Foundation utilities
  */
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { requireAuth } from '$lib/server/rbac-utils';
+import { RBACDataLoader } from '$lib/server/route-loaders';
 import { canEditReview, canViewReview } from '$lib/utils/rbac';
 import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
-	const { params, cookies, fetch: fetchFn } = event;
-	const reviewId = params.id;
+	const loader = new RBACDataLoader(event, [
+		'performance:read',
+		'performance:read:self',
+		'performance:read:team',
+		'performance:read:all'
+	]);
 
-	// Check authentication and permissions
-	requireAuth(event, {
-		requiredPermissions: [
-			'performance:read',
-			'performance:read:self',
-			'performance:read:team',
-			'performance:read:all'
-		]
-	});
+	return loader.loadWithClient(async () => {
+		const { params, cookies } = event;
+		const reviewId = params.id;
 
-	// After permission check, re-destructure locals with guaranteed user
-	const { locals } = event;
+		const userId = loader.getUserId();
+		const userRole = loader.getUserRole();
 
-	const userId = locals.user.id;
-	const userRole = locals.user.role || 'employee';
-	const userPermissions = locals.permissions || [];
-
-	try {
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
@@ -177,12 +171,6 @@ export const load: PageServerLoad = async (event) => {
 		};
 
 		return {
-			user: {
-				id: userId,
-				email: locals.user.email || '',
-				displayName: locals.user.display_name || 'User',
-				role: userRole
-			},
 			review: transformedReview,
 			availableGoals,
 			permissions: {
@@ -192,13 +180,5 @@ export const load: PageServerLoad = async (event) => {
 					userRole === 'admin' || userRole === 'super_admin' || userId === review.reviewerId
 			}
 		};
-	} catch (err) {
-		// Handle specific errors
-		if (err instanceof Error && 'status' in err) {
-			throw err; // Re-throw SvelteKit errors (401, 403, 404)
-		}
-
-		logger.error('Error loading review detail:', err as Error);
-		error(500, 'Failed to load review details');
-	}
+	});
 };

@@ -3,20 +3,10 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
-	import {
-		Bell,
-		Building2,
-		Calendar,
-		Home,
-		Menu,
-		Search,
-		Settings,
-		User,
-		Users
-	} from '@lucide/svelte';
+	import { Bell, Building2, Calendar, Home, Search, Settings, User, Users } from '@lucide/svelte';
 	import { page } from '$app/stores';
+	import { resolve } from '$app/paths';
 	import { auth } from '$lib/stores/auth.svelte';
-	import type { ComponentType } from 'svelte';
 
 	interface NavigationItem {
 		id: string;
@@ -195,7 +185,7 @@
 					<Sidebar.Group>
 						<Sidebar.GroupLabel>Navigation</Sidebar.GroupLabel>
 						<Sidebar.Menu>
-							{#each visibleNavigation as item}
+							{#each visibleNavigation as item (item.id)}
 								{@const typedItem = item as NavigationItem}
 								{@const ItemIcon = typedItem.icon}
 								<Sidebar.MenuItem>
@@ -204,7 +194,7 @@
 											{#snippet child({ props })}
 												<a
 													{...props}
-													href={typedItem.href}
+													href={resolve(typedItem.href as any)}
 													class="flex items-center gap-2"
 												>
 													<ItemIcon class="h-4 w-4" />
@@ -213,11 +203,11 @@
 											{/snippet}
 										</Sidebar.MenuButton>
 										<Sidebar.MenuSub>
-											{#each typedItem.children as childItem}
+											{#each typedItem.children as childItem (childItem.id)}
 												<Sidebar.MenuSubItem>
 													<Sidebar.MenuSubButton isActive={childItem.active}>
 														{#snippet child({ props })}
-															<a {...props} href={childItem.href}>
+															<a {...props} href={resolve(childItem.href as any)}>
 																{childItem.label}
 															</a>
 														{/snippet}
@@ -225,13 +215,12 @@
 												</Sidebar.MenuSubItem>
 											{/each}
 										</Sidebar.MenuSub>
-									{:else}
-										<Sidebar.MenuButton isActive={typedItem.active}>
-											{#snippet child({ props })}
-												<a
-													{...props}
-													href={typedItem.href}
-													class="flex items-center gap-2"
+																{:else}
+																	<Sidebar.MenuButton isActive={typedItem.active}>
+																		{#snippet child({ props })}
+																			<a
+																				{...props}
+																				href={resolve(typedItem.href as any)}													class="flex items-center gap-2"
 												>
 													<ItemIcon class="h-4 w-4" />
 													<span>{typedItem.label}</span>
@@ -272,14 +261,14 @@
 							<!-- Breadcrumbs -->
 							{#if breadcrumbs.length > 0}
 								<nav class="flex items-center space-x-1 text-sm text-muted-foreground">
-									{#each breadcrumbs as crumb, index}
+									{#each breadcrumbs as crumb, index (crumb.href)}
 										{#if index > 0}
 											<span>/</span>
 										{/if}
 										{#if crumb.current}
 											<span class="font-medium text-foreground">{crumb.label}</span>
 										{:else}
-											<a href={crumb.href} class="transition-colors hover:text-foreground">
+											<a href={resolve(crumb.href as any)} class="transition-colors hover:text-foreground">
 												{crumb.label}
 											</a>
 										{/if}

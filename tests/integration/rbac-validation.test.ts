@@ -3,7 +3,7 @@
  * RBAC Integration Validation Tests
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('RBAC Integration Validation', () => {
 	test('should redirect unauthenticated users to login', async ({ page }) => {

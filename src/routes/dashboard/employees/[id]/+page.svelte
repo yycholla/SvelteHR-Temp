@@ -3,14 +3,12 @@
 	import { logger } from '$lib/utils/logger';
 	import AssignDocumentsModal from '$lib/components/employees/AssignDocumentsModal.svelte';
 	import UploadDocumentModal from '$lib/components/documents/UploadDocumentModal.svelte';
-	import AddEmergencyContactModal,
-		{
+	import AddEmergencyContactModal, {
 		type EmergencyContactInput
-		} from '$lib/components/employees/AddEmergencyContactModal.svelte';
-	import AddVehicleModal,
-		{
+	} from '$lib/components/employees/AddEmergencyContactModal.svelte';
+	import AddVehicleModal, {
 		type VehicleInput
-		} from '$lib/components/employees/AddVehicleModal.svelte';
+	} from '$lib/components/employees/AddVehicleModal.svelte';
 	import { ChevronRight, Pencil } from '@lucide/svelte';
 	import { confirmService } from '$lib/stores/confirm.svelte';
 	import { toast } from 'svelte-sonner';
@@ -493,9 +491,9 @@
 			<EmployeeVehicleCard
 				{employee}
 				canManage={permissions.canManageEmployees || permissions.isViewingSelf}
-			onAdd={openAddVehicleModal}
-			onEdit={openEditVehicleModal}
-			onDelete={handleDeleteVehicle}
+				onAdd={openAddVehicleModal}
+				onEdit={openEditVehicleModal}
+				onDelete={handleDeleteVehicle}
 			/>
 
 			<EmployeeDependentsCard />

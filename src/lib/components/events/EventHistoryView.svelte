@@ -14,7 +14,7 @@
 		AccordionTrigger
 	} from '$lib/components/ui/accordion';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Calendar, History, MapPin, User, Users } from '@lucide/svelte';
+	import { Calendar, History, User, Users } from '@lucide/svelte';
 	import { format, formatDistanceToNow } from 'date-fns';
 
 	type ChangeType =
@@ -45,12 +45,7 @@
 		hasMore?: boolean;
 	}
 
-	const {
-		history = [],
-		variant = 'default',
-		onLoadMore,
-		hasMore = false
-	}: Props = $props();
+	const { history = [], variant = 'default', onLoadMore, hasMore = false }: Props = $props();
 
 	let isLoadingMore = $state(false);
 
@@ -141,7 +136,7 @@
 	}
 
 	function getChangeDescription(entry: HistoryEntry): string {
-		const { changeType, fieldName, oldValue, newValue, changedBy } = entry;
+		const { changeType, fieldName, changedBy } = entry;
 
 		if (changeType === 'created') {
 			return `${changedBy.name} created this event`;

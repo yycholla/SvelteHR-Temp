@@ -7,7 +7,6 @@
 	 * Allows users to edit/delete their own comments.
 	 */
 
-	import { logger } from '$lib/utils/logger';
 	import { Button } from '$lib/components/ui/button';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
@@ -44,7 +43,6 @@
 	}
 
 	const {
-		eventId,
 		comments = [],
 		currentUserId,
 		currentUserRole,
@@ -52,9 +50,7 @@
 		onAddComment,
 		onUpdateComment,
 		onDeleteComment,
-		readonly = false,
-		hasMore = false,
-		onLoadMore
+		readonly = false
 	}: Props = $props();
 
 	let newCommentContent = $state('');
@@ -275,7 +271,7 @@
 						{#if comment.mentions.length > 0}
 							<div class="flex gap-2 items-center text-xs text-muted-foreground">
 								<span>Mentioned:</span>
-								{#each comment.mentions as mention}
+								{#each comment.mentions as mention (mention.id)}
 									<span class="bg-muted px-2 py-1 rounded">{mention.name}</span>
 								{/each}
 							</div>

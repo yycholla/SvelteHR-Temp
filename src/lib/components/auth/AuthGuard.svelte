@@ -43,5 +43,4 @@
 <slot />
 
 <style>
-
 </style>

@@ -92,7 +92,10 @@ export class TaskReminderScheduler {
 				await this.sendReminder(reminder);
 			}
 		} catch (error) {
-			logger.error('[TaskReminderScheduler] Error checking reminders:', error instanceof Error ? error : new Error(String(error)));
+			logger.error(
+				'[TaskReminderScheduler] Error checking reminders:',
+				error instanceof Error ? error : new Error(String(error))
+			);
 		} finally {
 			this.isRunning = false;
 		}
@@ -204,7 +207,10 @@ export class TaskReminderScheduler {
 
 			return pendingReminders;
 		} catch (error) {
-			logger.error('[TaskReminderScheduler] Error fetching pending reminders:', error instanceof Error ? error : new Error(String(error)));
+			logger.error(
+				'[TaskReminderScheduler] Error fetching pending reminders:',
+				error instanceof Error ? error : new Error(String(error))
+			);
 			return [];
 		}
 	}
@@ -258,7 +264,10 @@ export class TaskReminderScheduler {
 				`[TaskReminderScheduler] Sent reminder to ${reminder.assigneeName} for task "${reminder.taskTitle}"`
 			);
 		} catch (error) {
-			logger.error('[TaskReminderScheduler] Error sending reminder:', error instanceof Error ? error : new Error(String(error)));
+			logger.error(
+				'[TaskReminderScheduler] Error sending reminder:',
+				error instanceof Error ? error : new Error(String(error))
+			);
 		}
 	}
 
@@ -324,12 +333,14 @@ export class TaskReminderScheduler {
 				throw new Error(result.errors[0]?.message || 'GraphQL error');
 			}
 
-			logger.debug(
-				'[TaskReminderScheduler] Created notification:',
-				{ id: result.data?.createNotification?.notification?.id }
-			);
+			logger.debug('[TaskReminderScheduler] Created notification:', {
+				id: result.data?.createNotification?.notification?.id
+			});
 		} catch (error) {
-			logger.error('[TaskReminderScheduler] Error creating notification:', error instanceof Error ? error : new Error(String(error)));
+			logger.error(
+				'[TaskReminderScheduler] Error creating notification:',
+				error instanceof Error ? error : new Error(String(error))
+			);
 			// Don't throw - we don't want to stop the scheduler
 		}
 	}
@@ -475,7 +486,10 @@ export async function checkOverdueTasks(): Promise<number> {
 
 		return overdueTasks.length;
 	} catch (error) {
-		logger.error('[TaskReminderScheduler] Error checking overdue tasks:', error instanceof Error ? error : new Error(String(error)));
+		logger.error(
+			'[TaskReminderScheduler] Error checking overdue tasks:',
+			error instanceof Error ? error : new Error(String(error))
+		);
 		return 0;
 	}
 }

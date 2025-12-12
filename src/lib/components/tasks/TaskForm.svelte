@@ -270,7 +270,9 @@
 	$effect(() => {
 		logger.info('[TaskForm] Available users:', { count: availableUsers.length });
 		logger.info('[TaskForm] Available departments:', { count: departments.length });
-		logger.info('[TaskForm] Combined assignee options:', { count: combinedAssigneeOptions().length });
+		logger.info('[TaskForm] Combined assignee options:', {
+			count: combinedAssigneeOptions().length
+		});
 		logger.info('[TaskForm] Task types:', { count: taskTypes.length });
 		logger.info('[TaskForm] Form data assignees:', { assignees: formData.assignees });
 		logger.info('[TaskForm] Total parent tasks:', { count: parentTasks.length });
@@ -353,7 +355,7 @@
 					requiresManualReassignment: formData.requiresManualReassignment
 				};
 				onSubmit(updateData).catch((error) => {
-					logger.error('If failed', error as Error);
+					logger.error('Task update failed', error as Error);
 				});
 			} else {
 				// Create task
@@ -369,7 +371,7 @@
 					requiresManualReassignment: formData.requiresManualReassignment
 				};
 				onSubmit(createData).catch((error) => {
-					logger.error('Operation failed', error as Error);
+					logger.error('Task creation failed', error as Error);
 				});
 			}
 

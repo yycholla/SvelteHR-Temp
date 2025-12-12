@@ -497,7 +497,9 @@ export function createPermissionChecker(rbacManager: RBACManager) {
 		isAdmin: () => rbacManager.isAdmin(),
 		isHR: () => rbacManager.isHRManager(),
 		isManager: () => rbacManager.isManager(),
-		check: (resource: string, action: 'read' | 'write' | 'create' | 'update' | 'delete' | 'manage') =>
-			checkPermission(rbacManager, resource, action)
+		check: (
+			resource: string,
+			action: 'read' | 'write' | 'create' | 'update' | 'delete' | 'manage'
+		) => checkPermission(rbacManager, resource, action)
 	};
 }

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/stores';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { AlertTriangle, Loader2 } from '@lucide/svelte';
@@ -90,8 +91,9 @@
 			if (!isAuthorized && !auth.isLoading) {
 				// Add current path as redirect parameter
 				const currentPath = $page.url.pathname + $page.url.search;
-				const redirectUrl = `${redirectTo}?redirect=${encodeURIComponent(currentPath)}`;
-				goto(redirectUrl);
+				const resolvedPath = resolve(redirectTo as any);
+				// eslint-disable-next-line svelte/no-navigation-without-resolve
+				goto(`${resolvedPath}?redirect=${encodeURIComponent(currentPath)}`);
 			}
 		}
 	});
@@ -130,7 +132,7 @@
 
 				<div class="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
 					<button
-						onclick={() => goto('/dashboard')}
+						onclick={() => goto(resolve('/dashboard'))}
 						class="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
 					>
 						Go to Dashboard
@@ -156,8 +158,6 @@
 {/if}
 
 <style>
-
-
 	/* Focus styles for accessibility */
 	button:focus {
 		box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);

@@ -60,10 +60,9 @@ export const load: PageServerLoad = async (event) => {
 			Cookie: cookieHeader
 		};
 
-		logger.info(
-			'[Employee Detail] Using Rust GraphQL backend with session-based auth, user roles:',
-			locals.roles
-		);
+		logger.info('[Employee Detail] Using Rust GraphQL backend with session-based auth', {
+			userRoles: locals.roles
+		});
 
 		// Determine if user can view detailed employee information
 		// Note: Role names from RBAC: "Admin", "HR Manager", "Manager", "Employee"
@@ -340,9 +339,10 @@ export const load: PageServerLoad = async (event) => {
 
 					return result.rows;
 				});
-				logger.info(
-					`[Employee Detail] Loaded ${assignedDocuments.length} assigned documents for employee ${employeeId}`
-				);
+				logger.info('[Employee Detail] Loaded assigned documents for employee', {
+					count: assignedDocuments.length,
+					employeeId
+				});
 			} catch (err) {
 				logger.error('Failed to fetch employee documents:', err as Error);
 				assignedDocuments = [];
@@ -350,9 +350,9 @@ export const load: PageServerLoad = async (event) => {
 
 			// Fetch available documents (not assigned to this employee) for admins
 			if (isAdmin) {
-				logger.info(
-					`[Employee Detail] Fetching available documents for admin, employee: ${employeeId}`
-				);
+				logger.info('[Employee Detail] Fetching available documents for admin', {
+					employeeId
+				});
 				try {
 					availableDocuments = await transaction(async (client) => {
 						await setJWTClaims(client, locals.user.id, locals.user.role || 'employee');
@@ -361,9 +361,9 @@ export const load: PageServerLoad = async (event) => {
 						const countResult = await client.query(
 							`SELECT COUNT(*) as total FROM hr_public.documents WHERE deleted_at IS NULL`
 						);
-						logger.info(
-							`[Employee Detail] Total documents in system: ${countResult.rows[0].total}`
-						);
+						logger.info('[Employee Detail] Total documents in system', {
+							total: countResult.rows[0].total
+						});
 
 						// Then get documents not assigned to this employee
 						const result = await client.query(
@@ -389,9 +389,10 @@ export const load: PageServerLoad = async (event) => {
 							[employeeId]
 						);
 
-						logger.info(
-							`[Employee Detail] Available documents (not assigned to ${employeeId}): ${result.rows.length}`
-						);
+						logger.info('[Employee Detail] Available documents not assigned to employee', {
+							employeeId,
+							count: result.rows.length
+						});
 						return result.rows;
 					});
 				} catch (err) {
@@ -400,12 +401,18 @@ export const load: PageServerLoad = async (event) => {
 				}
 			} else {
 				logger.info(
-					`[Employee Detail] User is not admin, skipping available documents for assignment (assigned documents still loaded)`
+					'[Employee Detail] User is not admin, skipping available documents for assignment',
+					{
+						note: 'assigned documents still loaded'
+					}
 				);
 			}
 		} else {
 			logger.info(
-				`[Employee Detail] User does not have permission to view documents for employee ${employeeId}`
+				'[Employee Detail] User does not have permission to view documents for employee',
+				{
+					employeeId
+				}
 			);
 		}
 

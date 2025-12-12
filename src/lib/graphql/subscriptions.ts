@@ -124,7 +124,9 @@ export class SubscriptionManager {
 
 			this.subscriptions.set('department-change', subscription);
 		} catch (error) {
-			logger.warn(`[SUBSCRIPTIONS] WebSocket subscription failed, using polling fallback: ${error}`);
+			logger.warn(
+				`[SUBSCRIPTIONS] WebSocket subscription failed, using polling fallback: ${error}`
+			);
 		}
 
 		// Set up polling fallback (every 60 seconds)

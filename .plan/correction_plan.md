@@ -5,6 +5,7 @@ You correctly pointed out that using `unknown` and custom type guards in an ad-h
 The goal is to use `TypeSafeApiResult` (or a similar generic wrapper) to enforce type safety on API calls without manually writing type guards for every single response, while still avoiding `any`.
 
 ## Strategy
+
 1.  **Define `TypeSafeApiResult`**: Create a generic type wrapper for API responses if it doesn't exist, or use the existing `ApiResponse<T>` from `src/lib/types/index.ts`.
 2.  **Revisit `src/lib/server/rbac-utils.ts`**: Replace the `unknown` + manual type guard pattern with `TypeSafeApiResult<DepartmentManagerResponse>`.
 3.  **Audit other changes**: Ensure we haven't lost type information elsewhere.

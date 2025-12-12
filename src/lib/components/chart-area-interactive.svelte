@@ -6,6 +6,7 @@
 	import { scaleUtc } from 'd3-scale';
 	import { Area, AreaChart } from 'layerchart';
 	import { curveNatural } from 'd3-shape';
+	import { SvelteDate } from 'svelte/reactivity';
 
 	const chartData = [
 		{ date: new Date('2024-04-01'), desktop: 222, mobile: 150 },
@@ -118,7 +119,7 @@
 
 	const filteredData = $derived(
 		chartData.filter((item) => {
-			const referenceDate = new Date('2024-06-30');
+			const referenceDate = new SvelteDate('2024-06-30');
 			let daysToSubtract = 90;
 			if (timeRange === '30d') {
 				daysToSubtract = 30;

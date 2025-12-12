@@ -18,7 +18,6 @@
 
 	const {
 		isOpen = false,
-		documentId,
 		filename,
 		mimeType = '',
 		fileType = '',

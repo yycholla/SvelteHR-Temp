@@ -54,7 +54,7 @@ async function main(): Promise<void> {
 
 		// Keep process alive
 		process.on('uncaughtException', (error) => {
-			logger.error('If failed', error as Error);
+			logger.error('Uncaught exception in signature worker', error as Error);
 		});
 
 		process.on('unhandledRejection', (reason, promise) => {
@@ -63,7 +63,7 @@ async function main(): Promise<void> {
 
 		logger.info('Signature worker is running. Press Ctrl+C to stop.');
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Signature worker main loop failed', error as Error);
 		process.exit(1);
 	}
 }
@@ -71,7 +71,7 @@ async function main(): Promise<void> {
 // Run main function if this script is executed directly
 // Always run when this module is loaded
 main().catch((error) => {
-	logger.error('Catch failed', error as Error);
+	logger.error('Signature worker failed to start', error as Error);
 	process.exit(1);
 });
 

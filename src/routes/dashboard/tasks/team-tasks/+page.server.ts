@@ -4,308 +4,237 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
-import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { requireAuth } from '$lib/server/rbac-utils';
 import { logger } from '$lib/utils/logger';
+import { RBACDataLoader } from '$lib/server/route-loaders';
+import { QueryParamExtractor, ClientSideFilter } from '$lib/server/route-helpers';
+import { StatisticsCalculator } from '$lib/server/analytics';
 
 export const load: PageServerLoad = async (event) => {
-	const { cookies, url } = event;
+	// Initialize RBAC loader with required permissions
+	const loader = new RBACDataLoader(event, [
+		'tasks:read',
+		'tasks:read:self',
+		'tasks:read:team',
+		'tasks:read:all'
+	]);
 
-	// Check authentication and permissions
-	requireAuth(event, {
-		requiredPermissions: ['tasks:read', 'tasks:read:self', 'tasks:read:team', 'tasks:read:all']
-	});
+	return loader.loadWithClient(async (client) => {
+		const { locals, url } = event;
+		if (!locals.user) throw error(401, 'Unauthorized');
 
-	// After permission check, re-destructure locals with guaranteed user
-	const { locals } = event;
+		// Extract filter parameters
+		const params = new QueryParamExtractor(url);
+		const statusFilter = params.getString('status');
+		const priorityFilter = params.getString('priority');
+		const assigneeFilter = params.getString('assignee');
+		const searchTerm = params.getString('search');
 
-	// Import required models
-	const { createUserSession } = await import('$lib/models/user-session');
-	const { createErrorResponse } = await import('$lib/models/error-response');
-
-	// Create user session
-	const userSession = createUserSession({
-		userId: locals.user.id,
-		// jwtToken is optional for session-based authentication
-		roles: [locals.user.role || 'employee'],
-		permissions: locals.permissions || [],
-		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-		metadata: {
-			userEmail: locals.user.email,
-			displayName: locals.user.display_name || locals.user.email
-		}
-	});
-
-	// Extract filter parameters
-	const statusFilter = url.searchParams.get('status') || '';
-	const priorityFilter = url.searchParams.get('priority') || '';
-	const assigneeFilter = url.searchParams.get('assignee') || '';
-	const searchTerm = url.searchParams.get('search') || '';
-
-	try {
-		const { GraphQLClient } = await import('$lib/server/graphql-client');
-
-		// Create authenticated GraphQL client with session cookies
-		const client = GraphQLClient.fromCookies(cookies);
-
-		logger.info('[Team Tasks] Loading team tasks for user', {
-			userId: locals.user.id
-		});
-
-		// Load current user's information to get their department
-		const currentUserResponse = await client.query(
-			`
-				query GetCurrentUser($id: UUID!) {
-					user(id: $id) {
-						id
-						departmentId
-						department {
-							id
-							name
-						}
-					}
-				}
-			`,
-			{
-				id: locals.user.id
-			}
-		);
-
-		const currentUser = currentUserResponse?.data?.user;
-		const userDepartmentId = currentUser?.departmentId;
-
-		logger.info(`[Team Tasks] Current user department ID: ${userDepartmentId}`);
-
-		// Load departments for team task assignment
-		const departmentsResponse = await client.query(
-			`
-				query GetDepartments($limit: Int) {
-					departments(limit: $limit) {
-						id
-						name
-						description
-					}
-				}
-			`,
-			{
-				limit: 100
-			}
-		);
-
-		logger.info('[Team Tasks] Departments response received', {
-			hasDepartments: !!departmentsResponse?.data?.departments
-		});
-
-		if (departmentsResponse.errors) {
-			const errorMsg = departmentsResponse.errors[0]?.message || 'Failed to load departments';
-			logger.error('[Team Tasks] Departments GraphQL errors', new Error(errorMsg), {
-				errors: departmentsResponse.errors
+		try {
+			logger.info('[Team Tasks] Loading team tasks for user', {
+				userId: locals.user.id
 			});
-			throw new Error(errorMsg);
-		}
 
-		const departments = departmentsResponse?.data?.departments || [];
-		logger.info('[Team Tasks] Found departments', {
-			count: departments.length
-		});
-
-		// Load team tasks
-		// NOTE: Rust GraphQL schema doesn't support complex filters
-		// We'll do all filtering client-side
-		const tasksResponse = await client.query(
-			`
-				query GetTeamTasks($limit: Int!, $offset: Int!) {
-					tasks(limit: $limit, offset: $offset) {
-						id
-						title
-						description
-						status
-						priority
-						dueDate
-						requiresManualReassignment
-						archived
-						createdAt
-						updatedAt
-						assignee {
+			// Load current user's information to get their department
+			const currentUserResponse = await client.query(
+				`
+					query GetCurrentUser($id: UUID!) {
+						user(id: $id) {
 							id
-							displayName
-							email
 							departmentId
+							department {
+								id
+								name
+							}
 						}
-						department {
+					}
+				`,
+				{
+					id: locals.user.id
+				}
+			);
+
+			const currentUser = currentUserResponse?.user;
+			const userDepartmentId = currentUser?.departmentId;
+
+			logger.info(`[Team Tasks] Current user department ID: ${userDepartmentId}`);
+
+			// Load departments for team task assignment
+			const departmentsResponse = await client.query(
+				`
+					query GetDepartments($limit: Int) {
+						departments(limit: $limit) {
 							id
 							name
 							description
 						}
-						creator {
-							id
-							displayName
-							email
-							departmentId
-						}
-						taskType {
-							id
-							name
-						}
-						parentTask {
+					}
+				`,
+				{
+					limit: 100
+				}
+			);
+
+			const departments = departmentsResponse?.departments || [];
+
+			// Load team tasks
+			// NOTE: Rust GraphQL schema doesn't support complex filters
+			// We'll do all filtering client-side
+			const tasksResponse = await client.query(
+				`
+					query GetTeamTasks($limit: Int!, $offset: Int!) {
+						tasks(limit: $limit, offset: $offset) {
 							id
 							title
+							description
 							status
+							priority
+							dueDate
+							requiresManualReassignment
+							archived
+							createdAt
+							updatedAt
+							assignee {
+								id
+								displayName
+								email
+								departmentId
+							}
+							department {
+								id
+								name
+								description
+							}
+							creator {
+								id
+								displayName
+								email
+								departmentId
+							}
+							taskType {
+								id
+								name
+							}
+							parentTask {
+								id
+								title
+								status
+							}
 						}
 					}
+				`,
+				{
+					limit: 200,
+					offset: 0
 				}
-			`,
-			{
-				limit: 200,
-				offset: 0
-			}
-		);
-
-		logger.info('[Team Tasks] Tasks response received', {
-			tasksCount: tasksResponse?.data?.tasks?.length || 0
-		});
-
-		if (tasksResponse.errors) {
-			const errorMsg = tasksResponse.errors[0]?.message || 'Failed to load team tasks';
-			logger.error('[Team Tasks] GraphQL errors', new Error(errorMsg), {
-				errors: tasksResponse.errors
-			});
-			throw new Error(errorMsg);
-		}
-
-		let tasks = tasksResponse?.data?.tasks || [];
-
-		logger.info('[Team Tasks] Total tasks before filter', {
-			count: tasks.length
-		});
-
-		if (userDepartmentId) {
-			// User has a department - filter to show only tasks assigned to that department
-			tasks = tasks.filter((task: any) => {
-				// Only include tasks that are assigned to the user's department
-				// AND don't have an individual assignee (department-level tasks only)
-				const isUserDepartment = task.department?.id === userDepartmentId;
-				const hasNoIndividualAssignee = !task.assignee?.id;
-
-				return isUserDepartment && hasNoIndividualAssignee;
-			});
-
-			logger.info(
-				`[Team Tasks] Filtered to ${tasks.length} tasks assigned to department:`,
-				userDepartmentId
 			);
-		} else {
-			// User is not assigned to a department - show no tasks
-			logger.warn('[Team Tasks] User is not assigned to a department - showing no team tasks');
-			tasks = [];
-		}
 
-		// Client-side filtering for status
-		if (statusFilter) {
-			// NOTE: Rust GraphQL returns enum values in SCREAMING_SNAKE_CASE
-			const statusUpper = statusFilter.toUpperCase().replace('-', '_');
-			tasks = tasks.filter((task: any) => task.status === statusUpper);
-		}
+			let tasks = tasksResponse?.tasks || [];
 
-		// Client-side filtering for priority
-		if (priorityFilter) {
-			const priorityUpper = priorityFilter.toUpperCase();
-			tasks = tasks.filter((task: any) => task.priority === priorityUpper);
-		}
+			// Apply team/department filtering logic
+			const taskFilter = new ClientSideFilter(tasks);
 
-		// Client-side filtering for assignee filter
-		if (assigneeFilter) {
-			tasks = tasks.filter((task: any) => task.assignee?.id === assigneeFilter);
-		}
+			if (userDepartmentId) {
+				// User has a department - filter to show only tasks assigned to that department
+				// AND don't have an individual assignee (department-level tasks only)
+				taskFilter.filter((task: any) => {
+					const isUserDepartment = task.department?.id === userDepartmentId;
+					const hasNoIndividualAssignee = !task.assignee?.id;
+					return isUserDepartment && hasNoIndividualAssignee;
+				});
+			} else {
+				// User is not assigned to a department - show no tasks
+				logger.warn('[Team Tasks] User is not assigned to a department - showing no team tasks');
+				taskFilter.filter(() => false);
+			}
 
-		// Client-side search filtering
-		if (searchTerm) {
-			const searchLower = searchTerm.toLowerCase();
-			tasks = tasks.filter((task: any) => {
-				const title = task.title?.toLowerCase() || '';
-				const description = task.description?.toLowerCase() || '';
-				const assigneeName = task.assignee?.displayName?.toLowerCase() || '';
-				return (
-					title.includes(searchLower) ||
-					description.includes(searchLower) ||
-					assigneeName.includes(searchLower)
+			// Client-side filtering for status
+			if (statusFilter) {
+				// NOTE: Rust GraphQL returns enum values in SCREAMING_SNAKE_CASE
+				const statusUpper = statusFilter.toUpperCase().replace('-', '_');
+				taskFilter.where('status', statusUpper);
+			}
+
+			// Client-side filtering for priority
+			if (priorityFilter) {
+				const priorityUpper = priorityFilter.toUpperCase();
+				taskFilter.where('priority', priorityUpper);
+			}
+
+			// Client-side filtering for assignee filter
+			if (assigneeFilter) {
+				taskFilter.filter((task: any) => task.assignee?.id === assigneeFilter);
+			}
+
+			// Client-side search filtering
+			if (searchTerm) {
+				taskFilter.search(searchTerm, ['title', 'description']);
+				// Additional check for assignee name
+				taskFilter.filter((task: any) =>
+					task.assignee?.displayName?.toLowerCase().includes(searchTerm.toLowerCase())
 				);
-			});
-		}
+			}
 
-		// Calculate task statistics
-		// NOTE: Rust GraphQL returns enum values in SCREAMING_SNAKE_CASE (async-graphql default)
-		const taskStats = {
-			total: tasks.length,
-			notStarted: tasks.filter((t: any) => t.status === 'TODO').length,
-			inProgress: tasks.filter((t: any) => t.status === 'IN_PROGRESS').length,
-			blocked: tasks.filter((t: any) => t.status === 'BLOCKED').length,
-			review: tasks.filter((t: any) => t.status === 'REVIEW').length,
-			completed: tasks.filter((t: any) => t.status === 'DONE').length,
-			overdue: tasks.filter((t: any) => {
-				if (!t.dueDate) return false;
-				return new Date(t.dueDate) < new Date() && t.status !== 'DONE';
-			}).length
-		};
+			// Get final filtered tasks
+			const filteredTasks = taskFilter.get();
 
-		// Get standardized user permissions
-		const userPermissions = getUserPermissions(locals);
+			// Calculate task statistics using StatisticsCalculator
+			const taskStats = StatisticsCalculator.forTasks(filteredTasks);
 
-		// Load task types for the form
-		const taskTypesResponse = await client.query(
-			`
-				query GetTaskTypesForFilter($isActive: Boolean) {
-					taskTypes(isActive: $isActive) {
-						id
-						name
-						description
-						defaultPriority
-						colorCode
-						isActive
+			// Load task types for the form
+			const taskTypesResponse = await client.query(
+				`
+					query GetTaskTypesForFilter($isActive: Boolean) {
+						taskTypes(isActive: $isActive) {
+							id
+							name
+							description
+							defaultPriority
+							colorCode
+							isActive
+						}
 					}
+				`,
+				{
+					isActive: true
 				}
-			`,
-			{
-				isActive: true
-			}
-		);
+			);
 
-		const taskTypesData = taskTypesResponse;
+			const taskTypes = taskTypesResponse?.taskTypes || [];
 
-		return {
-			userSession: userSession.toJSON(),
-			tasks,
-			totalTasks: tasks.length,
-			departments,
-			taskTypes: taskTypesData?.data?.taskTypes || [],
-			taskStats,
-			filters: {
-				searchTerm,
-				statusFilter,
-				priorityFilter,
-				assigneeFilter
-			},
-			// RBAC: Standardized permission checks (includes user property)
-			...userPermissions,
-			loadedAt: new Date().toISOString()
-		};
-	} catch (err) {
-		logger.error('[Team Tasks Load Error]', err as Error);
+			// Import user session model only if needed (or rely on RBACDataLoader structure)
+			const { createUserSession } = await import('$lib/models/user-session');
+			const userSession = createUserSession({
+				userId: locals.user.id,
+				roles: [locals.user.role || 'employee'],
+				permissions: locals.permissions || [],
+				expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+				metadata: {
+					userEmail: locals.user.email,
+					displayName: locals.user.display_name || locals.user.email
+				}
+			});
 
-		const errorResponse = createErrorResponse(
-			err instanceof Error ? err : new Error('Team tasks load failed'),
-			{
-				type: 'DATA_LOAD_ERROR',
-				userMessage: 'Unable to load team tasks. Please refresh the page or try again later.'
-			}
-		);
-
-		logger.error('[Team Tasks Error Details]', undefined, {
-			userId: locals.user?.id,
-			errorMessage: errorResponse.userMessage
-		});
-
-		error(500, 'Team tasks temporarily unavailable');
-	}
+			return {
+				userSession: userSession.toJSON(),
+				tasks: filteredTasks,
+				totalTasks: filteredTasks.length,
+				departments,
+				taskTypes,
+				taskStats,
+				filters: {
+					searchTerm,
+					statusFilter,
+					priorityFilter,
+					assigneeFilter
+				}
+			};
+		} catch (err) {
+			logger.error('[Team Tasks Load Error]', err as Error);
+			// RBACDataLoader will handle the error and return a 500
+			throw err;
+		}
+	});
 };
 
 export const actions: Actions = {
@@ -321,9 +250,6 @@ export const actions: Actions = {
 				'tasks:write:all'
 			]
 		});
-
-		// After permission check, re-destructure locals
-		const { locals } = event;
 
 		try {
 			const formData = await request.formData();
@@ -416,7 +342,10 @@ export const actions: Actions = {
 				taskId: newTask.id
 			};
 		} catch (err) {
-			logger.error('[Team Tasks - Quick Add] Create error', err instanceof Error ? err : new Error(String(err)));
+			logger.error(
+				'[Team Tasks - Quick Add] Create error',
+				err instanceof Error ? err : new Error(String(err))
+			);
 
 			return fail(500, {
 				error: err instanceof Error ? err.message : 'Failed to create task'

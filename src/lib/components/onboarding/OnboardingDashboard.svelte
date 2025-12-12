@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import {
 		activeOnboardingInstances,
 		completedOnboardingInstances,
@@ -13,7 +14,6 @@
 	import Button from '../base/Button.svelte';
 	import Card from '../base/Card.svelte';
 	import Badge from '../base/Badge.svelte';
-	import type { OnboardingInstance } from '$lib/services/onboardingService';
 
 	// Internal state
 	let selectedTab: 'active' | 'completed' | 'all' = 'active';
@@ -81,8 +81,11 @@
 
 		<div class="header-actions">
 			{#if $currentUser && hasPermission('onboarding:create')}
-				<Button variant="primary" leftIcon="user-plus" onclick={() => goto('/onboarding/new')}>
-					Start Onboarding
+				<Button
+					variant="primary"
+					leftIcon="user-plus"
+					                    onclick={() => goto(resolve('/onboarding/new' as any))}
+					                >					Start Onboarding
 				</Button>
 			{/if}
 		</div>
@@ -220,7 +223,7 @@
 							variant="primary"
 							size="md"
 							leftIcon="user-plus"
-							onclick={() => goto('/onboarding/new')}
+							onclick={() => goto(resolve('/onboarding/new' as any))}
 							class="mt-4"
 						>
 							Start Onboarding
@@ -291,7 +294,7 @@
 								variant="secondary"
 								size="sm"
 								leftIcon="eye"
-								onclick={() => goto(`/onboarding/${instance.id}`)}
+								onclick={() => goto(resolve(`/onboarding/${instance.id}` as any))}
 							>
 								View Details
 							</Button>
@@ -301,7 +304,7 @@
 									variant="primary"
 									size="sm"
 									leftIcon="check"
-									onclick={() => goto(`/onboarding/${instance.id}/tasks`)}
+									onclick={() => goto(resolve(`/onboarding/${instance.id}/tasks` as any))}
 								>
 									Manage Tasks
 								</Button>

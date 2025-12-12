@@ -67,7 +67,7 @@ export const load: PageServerLoad = async ({ locals, cookies, fetch }) => {
 					label: user.fullName || user.displayName || user.email
 				}));
 
-				logger.info('[UPLOAD PAGE] Loaded employee options:', employeeOptions.length);
+				logger.info('[UPLOAD PAGE] Loaded employee options', { count: employeeOptions.length });
 			}
 		} catch (err) {
 			logger.error('[UPLOAD PAGE] Failed to load employees:', err as Error);
@@ -123,15 +123,14 @@ export const actions: Actions = {
 			// Step 3: Parse form data (now expecting raw file, not encrypted)
 			const formData = await request.formData();
 
-			logger.info(
-				'[UPLOAD ACTION] FormData entries:',
-				Array.from(formData.entries()).map(([key, value]) => ({
+			logger.info('[UPLOAD ACTION] FormData entries:', {
+				entries: Array.from(formData.entries()).map(([key, value]) => ({
 					key,
 					valueType: typeof value,
 					isFile: value instanceof File,
 					fileName: value instanceof File ? value.name : 'N/A'
 				}))
-			);
+			});
 
 			const file = formData.get('file') as File;
 			const category = formData.get('category') as string;
@@ -147,7 +146,7 @@ export const actions: Actions = {
 				? JSON.parse(formData.get('assignToDepartments') as string)
 				: [];
 
-			logger.info('[UPLOAD ACTION] Parsed form data:', {
+			logger.info('[UPLOAD ACTION] Parsed form data', {
 				hasFile: !!file,
 				fileType: file ? typeof file : 'undefined',
 				isFileInstance: file instanceof File,
@@ -179,7 +178,7 @@ export const actions: Actions = {
 				});
 			}
 
-			logger.info('[UPLOAD ACTION] Server-side encryption starting:', {
+			logger.info('[UPLOAD ACTION] Server-side encryption starting', {
 				filename: file.name,
 				size: file.size,
 				type: file.type
@@ -220,7 +219,11 @@ export const actions: Actions = {
 			);
 
 			if (keyResponse.errors?.length) {
-				logger.error('[UPLOAD ACTION] Key registration failed:', keyResponse.errors);
+				logger.error(
+					'[UPLOAD ACTION] Key registration failed',
+					new Error(keyResponse.errors[0]?.message || 'Key registration failed'),
+					{ errors: keyResponse.errors.map((e) => ({ message: e.message })) }
+				);
 				return fail(500, {
 					error: keyResponse.errors[0].message || 'Failed to register encryption key'
 				});
@@ -258,7 +261,7 @@ export const actions: Actions = {
 				assignToDepartments
 			};
 
-			logger.info('[UPLOAD ACTION] Upload input prepared:', {
+			logger.info('[UPLOAD ACTION] Upload input prepared', {
 				filename: uploadInput.filename,
 				fileType: uploadInput.fileType,
 				fileSizeBytes: uploadInput.fileSizeBytes,
@@ -274,15 +277,18 @@ export const actions: Actions = {
 
 			// Log the exact GraphQL request being sent
 			const mutationVariables = { input: uploadInput };
-			logger.info(
-				'[UPLOAD ACTION] GraphQL mutation variables:',
-				JSON.stringify(mutationVariables, null, 2).substring(0, 1000)
-			);
+			logger.info('[UPLOAD ACTION] GraphQL mutation variables', {
+				variablesPreview: JSON.stringify(mutationVariables, null, 2).substring(0, 1000)
+			});
 
 			const response = await graphqlClient.mutation(UPLOAD_DOCUMENT, mutationVariables);
 
 			if (response.errors?.length) {
-				logger.error('[UPLOAD ACTION] GraphQL upload errors:', response.errors);
+				logger.error(
+					'[UPLOAD ACTION] GraphQL upload errors',
+					new Error(response.errors[0]?.message || 'Upload failed'),
+					{ errors: response.errors.map((e) => ({ message: e.message })) }
+				);
 				return fail(500, {
 					error: response.errors[0].message || 'Failed to upload document'
 				});
@@ -298,7 +304,7 @@ export const actions: Actions = {
 			// Step 9: Log successful upload
 			await logSuccessfulAccess(document.id, userId, 'view', createAccessMetadata(), fetch);
 
-			logger.info('[UPLOAD ACTION] Document uploaded successfully:', {
+			logger.info('[UPLOAD ACTION] Document uploaded successfully', {
 				documentId: document.id,
 				filename: file.name,
 				size: file.size,

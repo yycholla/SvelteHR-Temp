@@ -116,7 +116,7 @@ export class SignatureWorker {
 
 		// Handle connection errors
 		this.client.on('error', (err) => {
-			logger.error("Signature worker connection error", err as Error);
+			logger.error('Signature worker connection error', err as Error);
 			this.handleConnectionError();
 		});
 
@@ -153,7 +153,7 @@ export class SignatureWorker {
 				await this.client.query('UNLISTEN audit_log_inserted');
 				this.client.release();
 			} catch (error) {
-				logger.error('Catch failed', error as Error);
+				logger.error('Error releasing client during shutdown', error as Error);
 			}
 			this.client = null;
 		}
@@ -208,7 +208,7 @@ export class SignatureWorker {
 			await this.signBatch(logIds);
 			logger.info(`Successfully signed ${batchSize} audit logs`);
 		} catch (error) {
-			logger.error('Catch failed', error as Error);
+			logger.error('Error processing batch of audit logs', error as Error);
 			// Re-add failed logs to pending set for retry
 			logIds.forEach((id) => this.pendingLogIds.add(id));
 		}
@@ -249,7 +249,7 @@ export class SignatureWorker {
 					const signature = signAuditLog(log, this.privateKey);
 					signatures.push({ logId: log.id, signature });
 				} catch (error) {
-					logger.error('Catch failed', error as Error);
+					logger.error('Error signing audit log entry', error as Error);
 					// Continue with other logs
 				}
 			}
@@ -322,7 +322,7 @@ export class SignatureWorker {
 				await this.start();
 			}
 		} catch (error) {
-			logger.error('Catch failed', error as Error);
+			logger.error('Error during signature worker reconnection', error as Error);
 			// Will retry on next error
 		}
 	}

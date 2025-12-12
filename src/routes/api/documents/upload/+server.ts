@@ -127,7 +127,9 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 
 		// Step 7: Create document assignments (if provided)
 		if (body.assignToEmployees && body.assignToEmployees.length > 0) {
-			logger.info('[Upload API] Creating employee assignments', { assignmentCount: body.assignToEmployees.length });
+			logger.info('[Upload API] Creating employee assignments', {
+				assignmentCount: body.assignToEmployees.length
+			});
 			for (const employeeId of body.assignToEmployees) {
 				await urqlClient
 					.mutation(CREATE_DOCUMENT_ASSIGNMENT_MUTATION, {
@@ -167,8 +169,12 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 		);
 	} catch (err) {
 		logger.error('Document upload error', err as Error);
-		logger.error('Error stack', new Error('Stack trace'), { stack: err instanceof Error ? err.stack : 'No stack trace' });
-		logger.error('Error details', new Error('Error details'), { details: JSON.stringify(err, null, 2) });
+		logger.error('Error stack', new Error('Stack trace'), {
+			stack: err instanceof Error ? err.stack : 'No stack trace'
+		});
+		logger.error('Error details', new Error('Error details'), {
+			details: JSON.stringify(err, null, 2)
+		});
 
 		if (err instanceof z.ZodError) {
 			error(400, 'Invalid upload data');

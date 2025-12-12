@@ -7,7 +7,6 @@
 		placeholder = 'Select an option...',
 		disabled = false,
 		required = false,
-		name = null,
 		id = null,
 		size = 'md',
 		variant = 'default',
@@ -17,7 +16,6 @@
 		errorText = null,
 		searchable = false,
 		clearable = false,
-		multiple = false,
 		maxHeight = '300px',
 		class: className = '',
 		onchange = undefined,
@@ -29,7 +27,6 @@
 		placeholder?: string;
 		disabled?: boolean;
 		required?: boolean;
-		name?: string | null;
 		id?: string | null;
 		size?: 'sm' | 'md' | 'lg';
 		variant?: 'default' | 'error' | 'success';
@@ -39,7 +36,6 @@
 		errorText?: string | null;
 		searchable?: boolean;
 		clearable?: boolean;
-		multiple?: boolean;
 		maxHeight?: string;
 		class?: string;
 		onchange?: ((detail: { value: string | number | null; option: any }) => void) | undefined;

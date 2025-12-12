@@ -25,7 +25,6 @@
 		maxCapacity = null,
 		waitlistCount = 0,
 		isFull = false,
-		showWaitlistButton = false,
 		variant = 'default'
 	}: Props = $props();
 
@@ -36,13 +35,6 @@
 	const spotsRemaining = $derived(
 		hasCapacityLimit && maxCapacity ? maxCapacity - acceptedCount : null
 	);
-
-	const statusColor = $derived(() => {
-		if (!hasCapacityLimit) return 'default';
-		if (isFull) return 'destructive';
-		if (percentFull >= 90) return 'outline';
-		return 'default';
-	});
 
 	const statusText = $derived(() => {
 		if (!hasCapacityLimit) {

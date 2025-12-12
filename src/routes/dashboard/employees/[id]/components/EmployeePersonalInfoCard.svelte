@@ -26,10 +26,7 @@
 		<div>
 			<div class="mb-1 flex items-center gap-3">
 				<h1 class="text-3xl font-bold tracking-tight">{employee.displayName}</h1>
-				<Badge
-					variant={employee.isActive ? 'default' : 'secondary'}
-					class="pointer-events-none"
-				>
+				<Badge variant={employee.isActive ? 'default' : 'secondary'} class="pointer-events-none">
 					{employee.isActive ? 'Active' : 'Inactive'}
 				</Badge>
 			</div>

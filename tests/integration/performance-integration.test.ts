@@ -127,7 +127,9 @@ describe('Performance Monitoring Integration', () => {
 		};
 
 		try {
-			await performanceMonitor.timeFunction('ErrorTest', 'component', errorOperation, ['error-test']);
+			await performanceMonitor.timeFunction('ErrorTest', 'component', errorOperation, [
+				'error-test'
+			]);
 		} catch (error) {
 			// Expected error
 		}

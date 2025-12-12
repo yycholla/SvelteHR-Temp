@@ -220,7 +220,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 		);
 
-		logger.error('[Task Create Error Details]', {
+		logger.error('[Task Create Error Details]', undefined, {
 			userId: locals.user?.id,
 			error: errorResponse
 		});
@@ -369,7 +369,10 @@ export const actions: Actions = {
 				throw err;
 			}
 
-			logger.error('[Task Create] Create error', err instanceof Error ? err : new Error(String(err)));
+			logger.error(
+				'[Task Create] Create error',
+				err instanceof Error ? err : new Error(String(err))
+			);
 
 			return fail(500, {
 				error: err instanceof Error ? err.message : 'Failed to create task',

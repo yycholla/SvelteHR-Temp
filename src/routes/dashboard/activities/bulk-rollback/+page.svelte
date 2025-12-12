@@ -392,7 +392,6 @@
 	<BulkRollbackDialog
 		logs={data.availableLogs.filter((log) => selectedLogs.has(log.id))}
 		isOpen={showDialog}
-		userRole={data.userId}
 		onClose={() => (showDialog = false)}
 		onComplete={handleBatchComplete}
 	/>

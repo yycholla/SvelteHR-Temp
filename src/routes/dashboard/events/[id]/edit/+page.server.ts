@@ -1,52 +1,44 @@
 // Event Edit Page Server-Side Data Loading
 // Feature: 019-we-need-to - Task T035
 // Purpose: Load existing event data for editing
+// Refactored: Phase 2 - Using Phase 1 Foundation utilities
 
 import type { PageServerLoad } from './$types';
-import { error, redirect } from '@sveltejs/kit';
-import { logger } from '$lib/utils/logger';
-import { EventsOperations } from '$lib/graphql/events-operations';
-import { PermissionChecks } from '$lib/server/rbac-utils';
-import { createUrqlClient } from '$lib/graphql/client';
+import { error } from '@sveltejs/kit';
+import { RBACDataLoader } from '$lib/server/route-loaders';
+import { GET_EVENT_BY_ID } from '$lib/graphql/events/queries';
 
-export const load: PageServerLoad = async ({ params, locals, url, cookies }) => {
-	// Check authentication and permissions
-	if (!locals.user) {
-		redirect(303, `/login?redirectTo=${url.pathname}`);
-	}
+export const load: PageServerLoad = async (event) => {
+	const loader = new RBACDataLoader(event, [
+		'events:read',
+		'events:read:self',
+		'events:read:team',
+		'events:read:all'
+	]);
 
-	PermissionChecks.eventsRead({ params, locals, url, cookies } as any);
+	return loader.loadWithClient(async (client) => {
+		const { params } = event;
 
-	// T036: Session-based authentication - jwtToken not needed
-	const userCredentials = {
-		userId: locals.user.id,
-		roles: locals.roles || [],
-		permissions: locals.permissions || [],
-		isAuthenticated: true,
-		expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-	};
+		// Fetch event details using UnifiedGraphQLClient
+		const eventData = await client.query(
+			GET_EVENT_BY_ID,
+			{ id: params.id },
+			{
+				operationName: 'GetEventById',
+				errorMessage: 'Failed to load event for editing',
+				dataPath: 'event'
+			}
+		);
 
-	try {
-		// Initialize GraphQL client and operations
-		// T036: Session-based authentication
-		const urqlClient = createUrqlClient();
-		const eventsOps = new EventsOperations(urqlClient);
-
-		// Fetch event details
-		const event = await eventsOps.getEventById({
-			eventId: params.id,
-			userCredentials
-		});
-
-		if (!event) {
+		if (!eventData) {
 			error(404, {
 				message: 'Event not found or you do not have permission to view it.'
 			});
 		}
 
 		// Check if user is the organizer or admin
-		const roleLevel = getRoleLevel(locals.user.role);
-		const isOrganizer = event.organizerId === locals.user.id;
+		const roleLevel = getRoleLevel(loader.getUserRole());
+		const isOrganizer = eventData.organizerId === loader.getUserId();
 		const canEditEvent = isOrganizer || roleLevel >= 100; // Organizer or Admin
 
 		if (!canEditEvent) {
@@ -56,44 +48,27 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 		}
 
 		// Format dates for datetime-local input
-		const startTime = new Date(event.startTime).toISOString().slice(0, 16);
-		const endTime = new Date(event.endTime).toISOString().slice(0, 16);
+		const startTime = new Date(eventData.startTime).toISOString().slice(0, 16);
+		const endTime = new Date(eventData.endTime).toISOString().slice(0, 16);
 
 		// TODO: Fetch list of employees for attendee selection
-		// const employees = await fetchEmployees(urqlClient);
+		// const employees = await client.query(GET_EMPLOYEES, ...);
 
 		// TODO: Fetch list of departments for department-wide events
-		// const departments = await fetchDepartments(urqlClient);
+		// const departments = await client.query(GET_DEPARTMENTS, ...);
 
 		return {
 			event: {
-				...event,
+				...eventData,
 				startTime,
 				endTime
 			},
-			user: locals.user,
 			isOrganizer,
 			minDate: new Date().toISOString().split('T')[0] // Today's date for date picker min
 			// employees: [],
 			// departments: []
 		};
-	} catch (err: any) {
-		logger.error('Error loading event edit page:', err as Error);
-
-		// Handle specific error cases
-		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {
-			redirect(303, `/login?redirectTo=${url.pathname}`);
-		}
-
-		// If it's already a SvelteKit error, rethrow it
-		if (err.status) {
-			throw err;
-		}
-
-		error(500, {
-			message: 'Failed to load event edit form. Please try again later.'
-		});
-	}
+	});
 };
 
 // Helper function to get role level for authorization

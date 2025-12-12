@@ -25,13 +25,7 @@
 		currentDepth?: number; // Current depth level (for recursion tracking)
 	}
 
-	const {
-		task,
-		onTaskClick,
-		onStatusChange,
-		maxDepth = 3,
-		currentDepth = 0
-	}: Props = $props();
+	const { task, onTaskClick, onStatusChange, maxDepth = 3, currentDepth = 0 }: Props = $props();
 
 	// State for expand/collapse
 	let isExpanded = $state(currentDepth < 2); // Auto-expand first 2 levels

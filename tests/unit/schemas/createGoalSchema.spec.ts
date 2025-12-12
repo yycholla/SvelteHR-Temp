@@ -11,10 +11,7 @@ import { z } from 'zod';
 
 // Temporary local schema for testing structure (remove when actual schema is implemented)
 const CreateGoalSchema = z.object({
-	title: z
-		.string()
-		.min(1, 'Title is required')
-		.max(255, 'Title must be 255 characters or less'),
+	title: z.string().min(1, 'Title is required').max(255, 'Title must be 255 characters or less'),
 	description: z.string().min(1, 'Description is required'),
 	targetCompletionDate: z.string().date('Target completion date must be a valid date'),
 	successMetrics: z.string().min(1, 'Success metrics are required')
@@ -47,7 +44,7 @@ describe('T021: CreateGoalSchema validation', () => {
 			const titleError = result.error.issues.find((issue) => issue.path[0] === 'title');
 			expect(titleError).toBeDefined();
 			// Default Zod error for undefined input
-			// expect(titleError?.message).toContain('required'); 
+			// expect(titleError?.message).toContain('required');
 		}
 	});
 

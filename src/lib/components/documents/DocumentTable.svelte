@@ -3,6 +3,7 @@
 	// Paginated, filterable, sortable document table with RBAC-aware actions
 
 	import { goto } from '$app/navigation';
+	import { resolveRoute } from '$app/paths';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import NativeSelect from '$lib/components/ui/native-select/native-select.svelte';
@@ -11,7 +12,6 @@
 	import type { Document } from '$lib/types/document';
 	import type {
 		DocumentCategoryType,
-		FileType,
 		SensitivityLevel,
 		SortField,
 		SortOrder
@@ -179,14 +179,14 @@
 
 		<NativeSelect bind:value={selectedCategory} onchange={applyFilters}>
 			<option value="all">All Categories</option>
-			{#each categories as category}
+			{#each categories as category (category)}
 				<option value={category}>{category}</option>
 			{/each}
 		</NativeSelect>
 
 		<NativeSelect bind:value={selectedSensitivity} onchange={applyFilters}>
 			<option value="all">All Sensitivity Levels</option>
-			{#each sensitivityLevels as level}
+			{#each sensitivityLevels as level (level)}
 				<option value={level}>{level}</option>
 			{/each}
 		</NativeSelect>
@@ -242,7 +242,7 @@
 					{#each documents as document (document.id)}
 						<Table.Row
 							class="cursor-pointer hover:bg-muted/50"
-							onclick={() => goto(`/dashboard/documents/${document.id}`)}
+							onclick={() => goto(resolveRoute(`/dashboard/documents/${document.id}`))}
 						>
 							<Table.Cell class="text-2xl">{getFileIcon(document.file_type)}</Table.Cell>
 							<Table.Cell class="font-medium">{document.filename}</Table.Cell>
@@ -259,7 +259,7 @@
 										{document.sensitivity_level}
 									</span>
 									{#if document.assigned_users && Array.isArray(document.assigned_users) && document.assigned_users.length > 0}
-										{#each document.assigned_users as assignedUser}
+										{#each document.assigned_users as assignedUser (assignedUser.id)}
 											<span
 												class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground"
 												title="Assigned to {assignedUser.email}"
@@ -347,7 +347,7 @@
 				{#each Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
 					const startPage = Math.max(1, currentPage - 2);
 					return startPage + i;
-				}).filter((p) => p <= totalPages) as page}
+				}).filter((p) => p <= totalPages) as page (page)}
 					<Button
 						variant={page === currentPage ? 'default' : 'outline'}
 						size="sm"

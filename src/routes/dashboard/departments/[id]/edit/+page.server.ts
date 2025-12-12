@@ -60,10 +60,9 @@ export const load: PageServerLoad = async (event) => {
 			Cookie: cookieHeader // Forward all cookies for session authentication
 		};
 
-		logger.info(
-			'[Department Edit] Using Rust GraphQL with session-based auth, user role:',
-			locals.user?.role
-		);
+		logger.info('[Department Edit] Using Rust GraphQL with session-based auth', {
+			userRole: locals.user?.role
+		});
 
 		// Load department data
 		const departmentResponse = await fetch(graphqlEndpoint, {
@@ -254,7 +253,10 @@ export const actions: Actions = {
 			const updateData = await updateResponse.json();
 
 			if (updateData.errors) {
-				logger.error('[Department Update Error]', updateData.errors);
+				const errorMsg = updateData.errors[0]?.message || 'Failed to update department';
+				logger.error('[Department Update Error]', new Error(errorMsg), {
+					errors: updateData.errors
+				});
 				return fail(500, {
 					error: 'Failed to update department'
 				});

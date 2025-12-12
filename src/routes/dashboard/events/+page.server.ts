@@ -1,12 +1,16 @@
 // Events List Page Server-Side Data Loading
 // Feature: 019-we-need-to - Task T028
 // Purpose: Load events with filtering and visibility controls
+// Refactored: Phase 2 - Using Phase 1 Foundation utilities (partial migration)
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { EventsOperations } from '$lib/graphql/events-operations';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
-import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { requireAuth } from '$lib/server/rbac-utils';
+import { RBACDataLoader } from '$lib/server/route-loaders';
+import { QueryParamExtractor } from '$lib/server/route-helpers';
+import { StatisticsCalculator } from '$lib/server/analytics';
 import type { EventStatus, EventType, EventVisibilityType } from '$lib/graphql/types';
 import { normalizeRsvpStatus } from '$lib/graphql/types';
 import { gql } from '@urql/svelte';
@@ -29,44 +33,38 @@ interface AttendeeSubset {
 }
 
 export const load: PageServerLoad = async (event) => {
-	const { url, cookies } = event;
+	const loader = new RBACDataLoader(event, [
+		'events:read',
+		'events:read:self',
+		'events:read:team',
+		'events:read:all'
+	]);
 
-	// Check authentication and permissions
-	requireAuth(event, {
-		requiredPermissions: ['events:read', 'events:read:self', 'events:read:team', 'events:read:all']
-	});
+	return loader.loadWithClient(async (client) => {
+		const { url, cookies } = event;
+		const params = new QueryParamExtractor(url);
 
-	// After permission check, re-destructure locals with guaranteed user
-	const { locals } = event;
+		// Session-based authentication credentials
+		const userCredentials = {
+			userId: loader.getUserId(),
+			roles: loader['locals'].roles || [],
+			permissions: loader['locals'].permissions || [],
+			isAuthenticated: true,
+			expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+		};
 
-	// Get standardized user permissions
-	const userPerms = getUserPermissions(locals);
-
-	// T036: Session-based authentication - jwtToken not needed
-	const userCredentials = {
-		userId: locals.user.id,
-		roles: locals.roles || [],
-		permissions: locals.permissions || [],
-		isAuthenticated: true,
-		expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-	};
-
-	try {
-		// Initialize GraphQL client and operations with session cookie forwarding
-		// For server-side: createUrqlClient(fetchFn?, authToken?, url?, cookies?)
-		// Session-based auth forwards cookies for authentication
+		// Initialize GraphQL operations with session cookie forwarding
 		const cookieHeader = serializeCookies(cookies);
 		const urqlClient = createUrqlClient(undefined, undefined, undefined, cookieHeader);
 		const eventsOps = new EventsOperations(urqlClient);
 
-		// Get query parameters for filtering
-		const visibilityFilter = url.searchParams.get('visibility') as EventVisibilityType | null;
-		const statusFilter = url.searchParams.get('status') as EventStatus | null;
-		const typeFilter = url.searchParams.get('type') as EventType | null;
-		const sortBy = url.searchParams.get('sort') || 'date';
-		const page = parseInt(url.searchParams.get('page') || '1');
-		const limit = parseInt(url.searchParams.get('limit') || '50');
-		const view = url.searchParams.get('view') || 'list'; // 'list' or 'calendar'
+		// Get query parameters for filtering (using QueryParamExtractor)
+		const visibilityFilter = params.getString('visibility') as EventVisibilityType | null;
+		const statusFilter = params.getString('status') as EventStatus | null;
+		const typeFilter = params.getString('type') as EventType | null;
+		const sortBy = params.getString('sort', 'date');
+		const { page, limit } = params.getPagination(50);
+		const view = params.getString('view', 'list'); // 'list' or 'calendar'
 
 		// Determine sort order for GraphQL
 		const orderByMap: Record<string, string> = {
@@ -114,22 +112,24 @@ export const load: PageServerLoad = async (event) => {
 
 		// Fetch user's events for "My Events" tab
 		const userEventsResult = await eventsOps.getUserEvents({
-			employeeId: locals.user.id,
+			employeeId: loader.getUserId(),
 			limit: 1000,
 			userCredentials
 		});
 
-		// Calculate statistics
-		// NOTE: Using Rust GraphQL schema - direct array access (no .nodes wrapper)
+		// Calculate statistics using Phase 1 Foundation helper
+		const eventStats = StatisticsCalculator.forEvents(eventsResult.events);
+
 		const stats = {
 			total: eventsResult.totalCount,
-			upcoming: upcomingEventsResult.events.filter((e) => new Date(e.startTime) > new Date())
-				.length,
+			upcoming: eventStats.upcoming,
+			ongoing: eventStats.ongoing,
+			past: eventStats.past,
+			cancelled: eventStats.cancelled,
 			myEvents: userEventsResult.events.length,
 			accepted: userEventsResult.events.filter((e) =>
 				(e.eventAttendees || []).some(
-					(a: AttendeeSubset) =>
-						a.employeeId === locals.user.id && a.responseStatus === 'accepted'
+					(a: AttendeeSubset) => a.employeeId === loader.getUserId() && a.responseStatus === 'accepted'
 				)
 			).length
 		};
@@ -204,37 +204,13 @@ export const load: PageServerLoad = async (event) => {
 				view
 			},
 			statistics: stats,
-			canCreateEvents: userPerms.canManageEvents, // Use standardized permission
-			userPerms, // Pass full permissions object to frontend
-			user: locals.user,
+			canCreateEvents: loader.hasPermission('events:write'), // Use loader permission check
 			// Feature 027: Pass employees for attendee picker and all events for conflict detection
 			employees
 			// Feature 026: For per-event data fetching (comments/history/waitlist),
 			// create API endpoints instead of passing urqlClient to client
 		};
-	} catch (err: unknown) {
-		logger.error('Error loading events:', err instanceof Error ? err : new Error(String(err)));
-
-		const errorMessage = err instanceof Error ? err.message : String(err);
-
-		// Handle specific error cases
-		if (errorMessage.includes('unauthorized') || errorMessage.includes('authentication')) {
-			redirect(303, `/login?redirectTo=${url.pathname}`);
-		}
-
-		// If it's already a SvelteKit error, rethrow it
-		if (typeof err === 'object' && err !== null && 'status' in err) {
-			throw err;
-		}
-
-		// Use type guard for AppError
-		const { isAppError } = await import('$lib/models/error-response');
-		const userMessage = isAppError(err) ? err.userMessage : undefined;
-
-		error(500, {
-			message: userMessage || errorMessage || 'Failed to load events. Please try again later.'
-		});
-	}
+	});
 };
 
 // Helper function to get role level for authorization
@@ -269,7 +245,13 @@ async function fetchEventComments(
 			.toPromise();
 
 		if (result.error || !result.data) {
-			logger.error('Error fetching event comments:', result.error);
+			logger.error(
+				'Error fetching event comments',
+				result.error instanceof Error
+					? result.error
+					: new Error(String(result.error) || 'Unknown error'),
+				{ eventId, limit, offset }
+			);
 			return { comments: [], totalCount: 0, hasMore: false };
 		}
 
@@ -282,7 +264,10 @@ async function fetchEventComments(
 			hasMore: comments.length >= limit
 		};
 	} catch (err) {
-		logger.error('Failed to fetch event comments:', err instanceof Error ? err : new Error(String(err)));
+		logger.error(
+			'Failed to fetch event comments:',
+			err instanceof Error ? err : new Error(String(err))
+		);
 		return { comments: [], totalCount: 0, hasMore: false };
 	}
 }
@@ -304,7 +289,13 @@ async function fetchEventHistory(
 			.toPromise();
 
 		if (result.error || !result.data) {
-			logger.error('Error fetching event history:', result.error);
+			logger.error(
+				'Error fetching event history',
+				result.error instanceof Error
+					? result.error
+					: new Error(String(result.error) || 'Unknown error'),
+				{ eventId, limit, offset }
+			);
 			return { history: [], totalCount: 0, hasMore: false };
 		}
 
@@ -317,7 +308,10 @@ async function fetchEventHistory(
 			hasMore: history.length >= limit
 		};
 	} catch (err) {
-		logger.error('Failed to fetch event history:', err instanceof Error ? err : new Error(String(err)));
+		logger.error(
+			'Failed to fetch event history:',
+			err instanceof Error ? err : new Error(String(err))
+		);
 		return { history: [], totalCount: 0, hasMore: false };
 	}
 }
@@ -337,7 +331,13 @@ async function fetchUserWaitlistStatus(
 			.toPromise();
 
 		if (result.error || !result.data) {
-			logger.error('Error fetching waitlist status:', result.error);
+			logger.error(
+				'Error fetching waitlist status',
+				result.error instanceof Error
+					? result.error
+					: new Error(String(result.error) || 'Unknown error'),
+				{ eventId, userId }
+			);
 			return { isOnWaitlist: false, position: null };
 		}
 
@@ -354,7 +354,10 @@ async function fetchUserWaitlistStatus(
 
 		return { isOnWaitlist: false, position: null };
 	} catch (err) {
-		logger.error('Failed to fetch waitlist status:', err instanceof Error ? err : new Error(String(err)));
+		logger.error(
+			'Failed to fetch waitlist status:',
+			err instanceof Error ? err : new Error(String(err))
+		);
 		return { isOnWaitlist: false, position: null };
 	}
 }
@@ -430,7 +433,10 @@ export const actions: Actions = {
 
 			return { success: true };
 		} catch (err: unknown) {
-			logger.error('Error updating event time:', err instanceof Error ? err : new Error(String(err)));
+			logger.error(
+				'Error updating event time:',
+				err instanceof Error ? err : new Error(String(err))
+			);
 			const { isAppError } = await import('$lib/models/error-response');
 			return fail(500, {
 				error: isAppError(err) ? err.userMessage : 'Failed to update event. Please try again.'
@@ -703,7 +709,8 @@ export const actions: Actions = {
 			return { success: true };
 		} catch (err: unknown) {
 			logger.error('Error deleting event:', err instanceof Error ? err : new Error(String(err)));
-			const message = err instanceof Error ? err.message : 'Failed to delete event. Please try again.';
+			const message =
+				err instanceof Error ? err.message : 'Failed to delete event. Please try again.';
 			return fail(500, {
 				error: message
 			});
@@ -858,9 +865,12 @@ export const actions: Actions = {
 			logger.info('[SERVER] RSVP update successful');
 			return { success: true };
 		} catch (err: unknown) {
-			logger.error('[SERVER] Error updating RSVP status:', err instanceof Error ? err : new Error(String(err)));
+			logger.error(
+				'[SERVER] Error updating RSVP status:',
+				err instanceof Error ? err : new Error(String(err))
+			);
 			if (err instanceof Error && err.stack) {
-				logger.error('[SERVER] Error stack:', { stack: err.stack });
+				logger.error('[SERVER] Error stack:', undefined, { stack: err.stack });
 			}
 			const { isAppError } = await import('$lib/models/error-response');
 			return fail(500, {
@@ -941,7 +951,10 @@ export const actions: Actions = {
 
 			return { success: true };
 		} catch (err: unknown) {
-			logger.error('Error setting event reminder:', err instanceof Error ? err : new Error(String(err)));
+			logger.error(
+				'Error setting event reminder:',
+				err instanceof Error ? err : new Error(String(err))
+			);
 			const { isAppError } = await import('$lib/models/error-response');
 			return fail(500, {
 				error: isAppError(err) ? err.userMessage : 'Failed to set event reminder. Please try again.'

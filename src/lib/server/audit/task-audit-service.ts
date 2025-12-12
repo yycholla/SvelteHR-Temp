@@ -116,7 +116,7 @@ export async function logTaskAction(input: TaskAuditInput): Promise<boolean> {
 
 		return true;
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Task audit log failed', error as Error);
 		return false;
 	}
 }
@@ -534,7 +534,7 @@ export async function getTaskAuditTrail(taskId: string, limit: number = 50): Pro
 		const data = await response.json();
 		return data?.data?.taskAuditEntries?.nodes || [];
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Failed to fetch task audit trail', error as Error);
 		return [];
 	}
 }
@@ -584,7 +584,7 @@ export async function getUserTaskActions(userId: string, limit: number = 20): Pr
 		const data = await response.json();
 		return data?.data?.taskAuditEntries?.nodes || [];
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Failed to fetch user task actions', error as Error);
 		return [];
 	}
 }

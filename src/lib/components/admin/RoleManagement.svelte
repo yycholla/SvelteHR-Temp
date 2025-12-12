@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { PERMISSIONS, ROLE_LEVELS } from '$lib/auth/rbac';
 	import { userService, users } from '$lib/services/userService';
 	import { logger } from '$lib/utils/logger';
 	import Button from '../base/Button.svelte';
@@ -11,7 +10,7 @@
 	import Select from '../base/Select.svelte';
 	import DataTable from '../tables/DataTable.svelte';
 	import type { Column } from '../tables/DataTable.svelte';
-	import type { Permission, User } from '$lib/types';
+	import type { User } from '$lib/types';
 
 	// Component state
 	let selectedTab = $state<'users' | 'roles' | 'permissions'>('users');
@@ -185,7 +184,10 @@
 			// Refresh user data
 			await userService.loadUsers({ reset: true });
 		} catch (error) {
-			logger.error('Failed to save user roles', error instanceof Error ? error : new Error(String(error)));
+			logger.error(
+				'Failed to save user roles',
+				error instanceof Error ? error : new Error(String(error))
+			);
 		}
 	}
 
@@ -281,7 +283,7 @@
 						hoverable={true}
 						emptyMessage="No users found"
 					>
-						{#snippet cellRenderer({ column, value, row })}
+						{#snippet cellRenderer({ column, row })}
 							{#if column.key === 'display_name'}
 								<div class="user-info">
 									<div class="user-name">{row.display_name}</div>
@@ -289,7 +291,7 @@
 								</div>
 							{:else if column.key === 'roles'}
 								<div class="user-roles">
-									{#each getUserRoles(row as unknown as User) as roleName}
+									{#each getUserRoles(row as unknown as User) as roleName (roleName)}
 										{@const normalizedRole = roleName.toLowerCase() as keyof typeof roleDefinitions}
 										<Badge variant={getRoleBadgeVariant(roleName)} size="sm">
 											{roleDefinitions[normalizedRole]?.name || roleName}

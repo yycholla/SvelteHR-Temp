@@ -1,5 +1,7 @@
 import type { AnyVariables, Client, TypedDocumentNode } from '@urql/core';
+import type { DocumentNode } from 'graphql';
 import type { UserCredentials } from '$lib/models/data-request';
+import { logger } from '$lib/utils/logger';
 
 // Dynamic import for createDataRequest and createErrorResponse to avoid circular dependencies
 // if they import types from other files that might import this base class.
@@ -128,5 +130,153 @@ export class BaseOperations {
 			client: this.client,
 			...options
 		});
+	}
+
+	/**
+	 * Execute a GraphQL query with standardized error handling
+	 *
+	 * Simplified API for queries that doesn't require UserCredentials.
+	 * Provides consistent error handling and optional data path extraction.
+	 *
+	 * @param query - GraphQL query (DocumentNode or string)
+	 * @param variables - Query variables (optional)
+	 * @param options - Operation metadata and error customization
+	 * @returns Extracted data from the query response
+	 *
+	 * @example
+	 * ```typescript
+	 * const users = await this.executeQuery(
+	 *   GET_USERS_QUERY,
+	 *   { limit: 20 },
+	 *   {
+	 *     operationName: 'GetUsers',
+	 *     errorMessage: 'Failed to load users',
+	 *     dataPath: 'allUsers'
+	 *   }
+	 * );
+	 * ```
+	 */
+	protected async executeQuery<TData = any, TVariables = any>(
+		query: TypedDocumentNode<TData, TVariables> | DocumentNode | string,
+		variables?: TVariables,
+		options?: {
+			operationName?: string;
+			errorMessage?: string;
+			dataPath?: string;
+		}
+	): Promise<TData> {
+		const { operationName, errorMessage, dataPath } = options || {};
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		try {
+			const result = await this.client.query(query as any, variables ?? {}).toPromise();
+
+			if (result.error) {
+				logger.error(`[${operationName || 'GraphQL Query'}] Query error`, result.error, {
+					operationName,
+					variables
+				});
+				throw createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: errorMessage || 'Query failed. Please try again.'
+				});
+			}
+
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No data returned from server. Please try again.'
+				});
+			}
+
+			// Extract data from specified path or return full data
+			return dataPath ? (result.data as any)[dataPath] : result.data;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error response
+			}
+			logger.error(`[${operationName || 'GraphQL Query'}] Query failed`, error, {
+				operationName,
+				variables
+			});
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: errorMessage || 'Operation failed. Please try again.'
+			});
+		}
+	}
+
+	/**
+	 * Execute a GraphQL mutation with standardized error handling
+	 *
+	 * Simplified API for mutations that doesn't require UserCredentials.
+	 * Provides consistent error handling and optional data path extraction.
+	 *
+	 * @param mutation - GraphQL mutation (DocumentNode or string)
+	 * @param variables - Mutation variables (optional)
+	 * @param options - Operation metadata and error customization
+	 * @returns Extracted data from the mutation response
+	 *
+	 * @example
+	 * ```typescript
+	 * const updatedUser = await this.executeMutation(
+	 *   UPDATE_USER_MUTATION,
+	 *   { userId: '123', input: { name: 'John' } },
+	 *   {
+	 *     operationName: 'UpdateUser',
+	 *     errorMessage: 'Failed to update user',
+	 *     dataPath: 'updateUser'
+	 *   }
+	 * );
+	 * ```
+	 */
+	protected async executeMutation<TData = any, TVariables = any>(
+		mutation: TypedDocumentNode<TData, TVariables> | DocumentNode | string,
+		variables?: TVariables,
+		options?: {
+			operationName?: string;
+			errorMessage?: string;
+			dataPath?: string;
+		}
+	): Promise<TData> {
+		const { operationName, errorMessage, dataPath } = options || {};
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		try {
+			const result = await this.client.mutation(mutation as any, variables ?? {}).toPromise();
+
+			if (result.error) {
+				logger.error(`[${operationName || 'GraphQL Mutation'}] Mutation error`, result.error, {
+					operationName,
+					variables
+				});
+				throw createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: errorMessage || 'Mutation failed. Please try again.'
+				});
+			}
+
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No data returned from server. Please try again.'
+				});
+			}
+
+			// Extract data from specified path or return full data
+			return dataPath ? (result.data as any)[dataPath] : result.data;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error response
+			}
+			logger.error(`[${operationName || 'GraphQL Mutation'}] Mutation failed`, error, {
+				operationName,
+				variables
+			});
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: errorMessage || 'Operation failed. Please try again.'
+			});
+		}
 	}
 }

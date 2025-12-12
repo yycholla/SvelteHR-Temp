@@ -60,10 +60,9 @@ export const load: PageServerLoad = async (event) => {
 			Cookie: cookieHeader
 		};
 
-		logger.info(
-			'[Employee Detail] Using Rust GraphQL backend with session-based auth, user roles:',
-			locals.roles
-		);
+		logger.info('[Employee Detail] Using Rust GraphQL backend with session-based auth', {
+			userRoles: locals.roles
+		});
 
 		// Determine if user can view detailed employee information
 		// Note: Role names from RBAC: "Admin", "HR Manager", "Manager", "Employee"

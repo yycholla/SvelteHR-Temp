@@ -40,7 +40,11 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 		});
 
 		if (response.errors && response.errors.length > 0) {
-			logger.error('[Documents] GraphQL errors:', response.errors);
+			logger.error(
+				'[Documents] GraphQL errors',
+				new Error(response.errors[0]?.message || 'GraphQL error'),
+				{ errors: response.errors.map((e) => ({ message: e.message })) }
+			);
 			error(500, {
 				message: response.errors[0].message || 'Failed to load documents'
 			});

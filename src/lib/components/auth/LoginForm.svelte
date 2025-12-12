@@ -2,9 +2,7 @@
 	import { createEventDispatcher } from 'svelte';
 	import { logger } from '$lib/utils/logger';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { browser } from '$app/environment';
-	import { goto } from '$app/navigation';
-	import { type UserRoleAssignment, createRBACManager } from '$lib/auth/rbac';
+	import { resolve } from '$app/paths';
 	import { AlertCircle, Eye, EyeOff, Loader2, Lock, Mail } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -255,7 +253,7 @@
 
 			<div class="text-sm">
 				<a
-					href="/auth/forgot-password"
+					href={resolve('/auth/forgot-password' as any)}
 					class="font-medium text-primary transition-colors hover:text-primary/80 focus:underline focus:outline-none"
 				>
 					Forgot your password?
@@ -288,7 +286,7 @@
 			<p class="text-sm text-muted-foreground">
 				Don't have an account?
 				<a
-					href="/auth/register"
+					href={resolve('/auth/register' as any)}
 					class="font-medium text-primary transition-colors hover:text-primary/80 focus:underline focus:outline-none"
 				>
 					Contact HR to get started

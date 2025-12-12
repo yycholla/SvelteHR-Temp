@@ -283,7 +283,7 @@ async function isUserDirectReport(managerId: string, employeeId: string): Promis
 
 		return false;
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Error checking direct report status', error as Error);
 		return false;
 	}
 }
@@ -444,7 +444,7 @@ async function getTaskById(taskId: string): Promise<{
 		const data = await response.json();
 		return data?.data?.taskById || null;
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Error fetching task by ID', error as Error);
 		return null;
 	}
 }

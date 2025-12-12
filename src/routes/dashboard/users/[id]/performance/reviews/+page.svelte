@@ -179,7 +179,9 @@
 			</div>
 			<div>
 				<h1 class="text-2xl font-bold text-foreground">
-					{isOwnReviews ? 'My Performance Reviews' : `${user?.displayName ?? 'User'} - Performance Reviews`}
+					{isOwnReviews
+						? 'My Performance Reviews'
+						: `${user?.displayName ?? 'User'} - Performance Reviews`}
 				</h1>
 				<p class="text-muted-foreground">
 					{user?.department?.name ?? 'No Department'}
@@ -357,7 +359,9 @@
 							<Calendar class="h-4 w-4" />
 							<span>
 								{review.status === 'completed' ? 'Completed' : 'Scheduled'}:
-								{review.completedDate ? formatDate(review.completedDate) : formatDate(review.scheduledDate)}
+								{review.completedDate
+									? formatDate(review.completedDate)
+									: formatDate(review.scheduledDate)}
 							</span>
 						</div>
 					</div>
@@ -409,7 +413,9 @@
 										<div class="bg-muted dark:bg-muted p-4 rounded-lg">
 											<div class="flex items-center justify-between mb-2">
 												<span class="font-medium text-foreground">{goal.title}</span>
-												<span class="text-sm font-medium {getGoalStatusColor(goal.completionStatus)}">
+												<span
+													class="text-sm font-medium {getGoalStatusColor(goal.completionStatus)}"
+												>
 													{goal.completionStatus
 														.replace('_', ' ')
 														.replace(/\b\w/g, (l: string) => l.toUpperCase())}
@@ -418,26 +424,17 @@
 											<p class="text-sm text-muted-foreground mb-2">{goal.description}</p>
 											{#if goal.completionStatus === 'achieved'}
 												<div class="w-full bg-gray-200 rounded-full h-2">
-													<div
-														class="h-2 rounded-full bg-blue-500"
-														style="width: 100%"
-													></div>
+													<div class="h-2 rounded-full bg-blue-500" style="width: 100%"></div>
 												</div>
 												<span class="text-xs text-muted-foreground">100% complete</span>
 											{:else if goal.completionStatus === 'partially_achieved'}
 												<div class="w-full bg-gray-200 rounded-full h-2">
-													<div
-														class="h-2 rounded-full bg-blue-500"
-														style="width: 50%"
-													></div>
+													<div class="h-2 rounded-full bg-blue-500" style="width: 50%"></div>
 												</div>
 												<span class="text-xs text-muted-foreground">50% complete</span>
 											{:else}
 												<div class="w-full bg-gray-200 rounded-full h-2">
-													<div
-														class="h-2 rounded-full bg-blue-500"
-														style="width: 0%"
-													></div>
+													<div class="h-2 rounded-full bg-blue-500" style="width: 0%"></div>
 												</div>
 												<span class="text-xs text-muted-foreground">0% complete</span>
 											{/if}

@@ -75,7 +75,7 @@
 			label: 'Assignee',
 			sortable: true,
 			type: 'text',
-			format: (value: any) => (value?.display_name || 'Unassigned')
+			format: (value: any) => value?.display_name || 'Unassigned'
 		},
 		{
 			key: 'priority',

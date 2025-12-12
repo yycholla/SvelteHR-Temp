@@ -55,29 +55,21 @@
 
 	// Debug logging
 	$effect(() => {
-		logger.info(
-			'[Parent] State update - hasFile:',
+		logger.info('[Parent] State update', {
 			hasFile,
-			'metadata.filename:',
-			metadata.filename,
-			'metadata.category:',
-			metadata.category,
-			'metadata.sensitivityLevel:',
-			metadata.sensitivityLevel,
-			'hasRequiredMetadata:',
+			filename: metadata.filename,
+			category: metadata.category,
+			sensitivityLevel: metadata.sensitivityLevel,
 			hasRequiredMetadata,
-			'isUploading:',
 			isUploading,
-			'uploadComplete:',
 			uploadComplete,
-			'canUpload:',
 			canUpload
-		);
+		});
 	});
 
 	// Handle successful upload
 	function handleUploadSuccess(result: UploadResult) {
-		logger.info('Upload successful:', { result });
+		logger.info('Upload successful', { result });
 		uploadComplete = true;
 		uploadedDocumentId = result.documentId;
 
@@ -207,7 +199,7 @@
 				// Send employee assignments as JSON string
 				formData.set('assignToEmployees', JSON.stringify(assignedEmployeeIds || []));
 
-				logger.info('[Upload] Starting upload...', {
+				logger.info('[Upload] Starting upload', {
 					filename: file.name,
 					size: file.size,
 					type: file.type,

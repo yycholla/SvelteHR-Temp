@@ -75,7 +75,7 @@
 		// Try to find department from role assignments or other fields if available
 		// This is a placeholder logic based on available User interface
 		// Ideally User interface should have department info
-		return 'Unknown'; 
+		return 'Unknown';
 	}
 
 	// Chart configurations using shadcn-svelte chart config
@@ -183,7 +183,7 @@
 
 					// Check if date is valid
 					if (isNaN(hireDate.getTime())) {
-						logger.warn('Invalid date for user:', user.email);
+						logger.warn('Invalid date for user:', { email: user.email });
 						return acc;
 					}
 
@@ -207,7 +207,10 @@
 
 					acc[monthKey].departments[department] += 1;
 				} catch (error) {
-					logger.warn('Error processing user:', { email: user.email, error });
+					logger.warn('Error processing user:', {
+						email: user.email,
+						error: error instanceof Error ? error.message : String(error)
+					});
 				}
 
 				return acc;
@@ -361,7 +364,10 @@
 					acc[monthKey].employees += 1;
 					logger.info('Updated accumulator', { monthKey, data: acc[monthKey] });
 				} catch (error) {
-					logger.warn('Error processing user:', { email: user.email, error });
+					logger.warn('Error processing user:', {
+						email: user.email,
+						error: error instanceof Error ? error.message : String(error)
+					});
 				}
 
 				return acc;

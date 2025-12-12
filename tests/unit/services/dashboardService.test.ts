@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DashboardService } from '$lib/services/dashboardService';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import {
-	GET_USERS_QUERY,
 	GET_DEPARTMENTS_QUERY,
+	GET_USERS_QUERY,
 	GET_USER_ATTENDANCE_QUERY
 } from '$lib/graphql/dashboard/queries';
 

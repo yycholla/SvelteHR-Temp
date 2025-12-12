@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import type { Snippet } from 'svelte';
 
 	const {
@@ -66,7 +67,7 @@
 </script>
 
 {#if href && !disabled && !loading}
-	<a {href} {target} {rel} class={buttonClasses} role="button">
+	<a href={resolve(href as any)} {target} {rel} class={buttonClasses} role="button">
 		{#if leftIcon && !iconOnly}
 			<span class="btn__icon btn__icon--left">
 				<i class="icon-{leftIcon}"></i>

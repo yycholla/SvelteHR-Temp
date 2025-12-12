@@ -10,7 +10,9 @@ export const GET: RequestHandler = async ({ locals, cookies, request }) => {
 	if (!locals.user?.id) {
 		// Only log debug info on authentication errors
 		logger.error('❌ SSE: No authenticated user found in session');
-		logger.error('❌ SSE: Cookie header', new Error('No authenticated user'), { cookieHeader: cookieHeader || 'NO COOKIES SENT' });
+		logger.error('❌ SSE: Cookie header', new Error('No authenticated user'), {
+			cookieHeader: cookieHeader || 'NO COOKIES SENT'
+		});
 		logger.error('❌ SSE: Cookies parsed by SvelteKit', new Error('No authenticated user'), {
 			'id.session': cookies.get('id.session'),
 			session: cookies.get('session'),
@@ -106,7 +108,9 @@ export const GET: RequestHandler = async ({ locals, cookies, request }) => {
 					const result = await graphqlResponse.json();
 
 					if (result.errors) {
-						logger.error('❌ SSE: GraphQL errors', new Error('GraphQL errors'), { errors: result.errors });
+						logger.error('❌ SSE: GraphQL errors', new Error('GraphQL errors'), {
+							errors: result.errors
+						});
 						sendEvent({ type: 'error', message: 'Failed to fetch notifications' });
 						return;
 					}

@@ -1,18 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
-	import {
-		Building2,
-		ChevronDown,
-		ChevronRight,
-		Crown,
-		Mail,
-		Phone,
-		User,
-		Users
-	} from '@lucide/svelte';
+	import { Building2, ChevronDown, ChevronRight, Crown, Mail, User } from '@lucide/svelte';
+	import { SvelteSet } from 'svelte/reactivity';
 
 	// Props
 	const {
@@ -39,7 +30,7 @@
 	}
 
 	// State for expanded nodes
-	let expandedNodes = $state(new Set<string>());
+	let expandedNodes = $state(new SvelteSet<string>());
 
 	// Build hierarchical tree structure
 	function buildTreeStructure(): TreeNode {
@@ -85,7 +76,7 @@
 			([a], [b]) => parseInt(b) - parseInt(a)
 		);
 
-		(sortedRoleGroups as any[]).forEach(([roleLevel, roleEmployees]) => {
+		(sortedRoleGroups as any[]).forEach(([, roleEmployees]) => {
 			(roleEmployees as any[]).forEach((emp: any) => {
 				const empNode: TreeNode = {
 					id: emp.id,
@@ -136,7 +127,7 @@
 		} else {
 			expandedNodes.add(nodeId);
 		}
-		expandedNodes = new Set(expandedNodes); // Trigger reactivity
+		expandedNodes = new SvelteSet(expandedNodes); // Trigger reactivity
 	}
 
 	function getNodeIcon(node: TreeNode) {
@@ -172,11 +163,6 @@
 			}
 		}
 	});
-
-	// Render tree nodes recursively using Svelte components
-	function renderTreeNodes(nodes: TreeNode[], depth: number = 0): TreeNode[] {
-		return nodes;
-	}
 </script>
 
 <div class="space-y-4">
@@ -196,7 +182,7 @@
 				onclick={() => {
 					// Expand all
 					if (treeData) {
-						const allIds = new Set<string>();
+						const allIds = new SvelteSet<string>();
 						function collectIds(node: TreeNode) {
 							allIds.add(node.id);
 							node.children.forEach(collectIds);
@@ -212,7 +198,7 @@
 				variant="outline"
 				size="sm"
 				onclick={() => {
-					expandedNodes = new Set();
+					expandedNodes = new SvelteSet();
 				}}
 			>
 				Collapse All
@@ -323,7 +309,7 @@
 		<!-- Children -->
 		{#if node.children.length > 0 && expandedNodes.has(node.id)}
 			<div class="ml-12 space-y-2">
-				{#each node.children as child}
+				{#each node.children as child (child.id)}
 					{@render TreeNode(child, depth + 1)}
 				{/each}
 			</div>

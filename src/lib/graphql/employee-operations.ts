@@ -8,6 +8,7 @@
 import { gql } from '@urql/svelte';
 import type { Client } from '@urql/core';
 import type { UserCredentials } from '$lib/models/data-request';
+import { BaseOperations } from './base-operations';
 
 // ============================================================================
 // QUERIES
@@ -371,11 +372,9 @@ export interface EmployeeStatistic {
 /**
  * Employee Operations with Idiomatic Rust GraphQL Patterns
  */
-export class EmployeeOperations {
-	private client: Client;
-
+export class EmployeeOperations extends BaseOperations {
 	constructor(client: Client) {
-		this.client = client;
+		super(client);
 	}
 
 	/**
@@ -391,62 +390,33 @@ export class EmployeeOperations {
 		totalCount: number;
 		hasNextPage: boolean;
 	}> {
-		const { createDataRequest } = await import('$lib/models/data-request');
-		const { createErrorResponse } = await import('$lib/models/error-response');
-
 		const limit = params.limit || 20;
-		const dataRequest = createDataRequest({
-			operationName: 'GetEmployees',
-			variables: {
+
+		const result = await this.executeQuery(
+			GET_EMPLOYEES_QUERY,
+			{
 				limit,
 				offset: params.offset || 0
 			},
-			userCredentials: params.userCredentials,
-			timeoutMs: 5000
-		});
-
-		try {
-			const result = await this.client
-				.query(GET_EMPLOYEES_QUERY, dataRequest.variables)
-				.toPromise();
-
-			if (result.error) {
-				const errorResponse = createErrorResponse(result.error, {
-					type: 'graphql',
-					userMessage: 'Unable to load employee list. Please check your permissions and try again.'
-				});
-				throw errorResponse;
+			{
+				operationName: 'GetEmployees',
+				errorMessage: 'Unable to load employee list. Please try again.'
 			}
+		);
 
-			if (!result.data?.users) {
-				throw createErrorResponse(new Error('No data returned'), {
-					type: 'graphql',
-					userMessage: 'No employee data returned. Please try again.'
-				});
-			}
+		const employees = result.users;
 
-			const employees = result.data.users;
-
-			// Apply client-side filtering if needed (backend doesn't support filters yet)
-			let filteredEmployees = employees;
-			if (params.filter) {
-				filteredEmployees = this.applyClientFilter(employees, params.filter);
-			}
-
-			return {
-				employees: filteredEmployees,
-				totalCount: filteredEmployees.length,
-				hasNextPage: employees.length === limit
-			};
-		} catch (error: any) {
-			if (error.userMessage) {
-				throw error;
-			}
-			throw createErrorResponse(error, {
-				type: 'graphql',
-				userMessage: 'Failed to load employees. Please try again.'
-			});
+		// Apply client-side filtering if needed (backend doesn't support filters yet)
+		let filteredEmployees = employees;
+		if (params.filter) {
+			filteredEmployees = this.applyClientFilter(employees, params.filter);
 		}
+
+		return {
+			employees: filteredEmployees,
+			totalCount: filteredEmployees.length,
+			hasNextPage: employees.length === limit
+		};
 	}
 
 	/**
@@ -457,49 +427,19 @@ export class EmployeeOperations {
 		offset?: number;
 		userCredentials: UserCredentials;
 	}): Promise<{ departments: Department[] }> {
-		const { createDataRequest } = await import('$lib/models/data-request');
-		const { createErrorResponse } = await import('$lib/models/error-response');
-
-		const dataRequest = createDataRequest({
-			operationName: 'GetDepartments',
-			variables: {
+		const result = await this.executeQuery(
+			GET_DEPARTMENTS_QUERY,
+			{
 				limit: params.limit || 100,
 				offset: params.offset || 0
 			},
-			userCredentials: params.userCredentials,
-			timeoutMs: 3000
-		});
-
-		try {
-			const result = await this.client
-				.query(GET_DEPARTMENTS_QUERY, dataRequest.variables)
-				.toPromise();
-
-			if (result.error) {
-				const errorResponse = createErrorResponse(result.error, {
-					type: 'graphql',
-					userMessage: 'Unable to load departments. Please try again.'
-				});
-				throw errorResponse;
+			{
+				operationName: 'GetDepartments',
+				errorMessage: 'Unable to load departments. Please try again.'
 			}
+		);
 
-			if (!result.data?.departments) {
-				throw createErrorResponse(new Error('No data returned'), {
-					type: 'graphql',
-					userMessage: 'No department data returned. Please try again.'
-				});
-			}
-
-			return { departments: result.data.departments };
-		} catch (error: any) {
-			if (error.userMessage) {
-				throw error;
-			}
-			throw createErrorResponse(error, {
-				type: 'graphql',
-				userMessage: 'Failed to load departments. Please try again.'
-			});
-		}
+		return { departments: result.departments };
 	}
 
 	/**
@@ -509,93 +449,32 @@ export class EmployeeOperations {
 		id: string;
 		userCredentials: UserCredentials;
 	}): Promise<Employee> {
-		const { createDataRequest } = await import('$lib/models/data-request');
-		const { createErrorResponse } = await import('$lib/models/error-response');
-
-		const dataRequest = createDataRequest({
-			operationName: 'GetEmployeeById',
-			variables: { id: params.id },
-			userCredentials: params.userCredentials,
-			timeoutMs: 3000
-		});
-
-		try {
-			const result = await this.client
-				.query(GET_EMPLOYEE_BY_ID_QUERY, dataRequest.variables)
-				.toPromise();
-
-			if (result.error) {
-				const errorResponse = createErrorResponse(result.error, {
-					type: 'graphql',
-					userMessage:
-						'Unable to load employee details. Please check the employee ID and try again.'
-				});
-				throw errorResponse;
+		const result = await this.executeQuery(
+			GET_EMPLOYEE_BY_ID_QUERY,
+			{ id: params.id },
+			{
+				operationName: 'GetEmployeeById',
+				errorMessage: 'Unable to load employee details. Please try again.'
 			}
+		);
 
-			if (!result.data?.user) {
-				throw createErrorResponse(new Error('Employee not found'), {
-					type: 'validation',
-					userMessage: 'Employee not found. Please check the employee ID.'
-				});
-			}
-
-			return result.data.user;
-		} catch (error: any) {
-			if (error.userMessage) {
-				throw error;
-			}
-			throw createErrorResponse(error, {
-				type: 'graphql',
-				userMessage: 'Failed to load employee details. Please try again.'
-			});
-		}
+		return result.user;
 	}
 
 	/**
 	 * Get current authenticated user
 	 */
 	async getCurrentUser(params: { userCredentials: UserCredentials }): Promise<Employee> {
-		const { createDataRequest } = await import('$lib/models/data-request');
-		const { createErrorResponse } = await import('$lib/models/error-response');
-
-		const dataRequest = createDataRequest({
-			operationName: 'GetCurrentUser',
-			variables: {},
-			userCredentials: params.userCredentials,
-			timeoutMs: 3000
-		});
-
-		try {
-			const result = await this.client
-				.query(GET_CURRENT_USER_QUERY, dataRequest.variables)
-				.toPromise();
-
-			if (result.error) {
-				const errorResponse = createErrorResponse(result.error, {
-					type: 'graphql',
-					userMessage: 'Unable to load your profile. Please try again.'
-				});
-				throw errorResponse;
+		const result = await this.executeQuery(
+			GET_CURRENT_USER_QUERY,
+			{},
+			{
+				operationName: 'GetCurrentUser',
+				errorMessage: 'Unable to load your profile. Please try again.'
 			}
+		);
 
-			if (!result.data?.me) {
-				throw createErrorResponse(new Error('User not found'), {
-					type: 'validation',
-					userMessage: 'Unable to load your profile.'
-				});
-			}
-
-			return result.data.me;
-		} catch (error: any) {
-			if (error.userMessage) {
-				throw error;
-			}
-			throw createErrorResponse(error, {
-				type: 'graphql',
-				userMessage: 'Failed to load your profile. Please try again.'
-			});
-		}
+		return result.me;
 	}
 
 	/**
@@ -605,46 +484,16 @@ export class EmployeeOperations {
 		input: CreateUserInput;
 		userCredentials: UserCredentials;
 	}): Promise<Employee> {
-		const { createDataRequest } = await import('$lib/models/data-request');
-		const { createErrorResponse } = await import('$lib/models/error-response');
-
-		const dataRequest = createDataRequest({
-			operationName: 'CreateUser',
-			variables: { input: params.input },
-			userCredentials: params.userCredentials,
-			timeoutMs: 8000
-		});
-
-		try {
-			const result = await this.client
-				.mutation(CREATE_EMPLOYEE_MUTATION, dataRequest.variables)
-				.toPromise();
-
-			if (result.error) {
-				const errorResponse = createErrorResponse(result.error, {
-					type: 'validation',
-					userMessage: 'Unable to create employee. Please check the information and try again.'
-				});
-				throw errorResponse;
+		const result = await this.executeMutation(
+			CREATE_EMPLOYEE_MUTATION,
+			{ input: params.input },
+			{
+				operationName: 'CreateEmployee',
+				errorMessage: 'Unable to create employee. Please try again.'
 			}
+		);
 
-			if (!result.data?.createUser) {
-				throw createErrorResponse(new Error('No data returned'), {
-					type: 'graphql',
-					userMessage: 'No employee data returned. Please try again.'
-				});
-			}
-
-			return result.data.createUser;
-		} catch (error: any) {
-			if (error.userMessage) {
-				throw error;
-			}
-			throw createErrorResponse(error, {
-				type: 'graphql',
-				userMessage: 'Failed to create employee. Please try again.'
-			});
-		}
+		return result.createUser;
 	}
 
 	/**
@@ -655,46 +504,16 @@ export class EmployeeOperations {
 		input: UpdateUserInput;
 		userCredentials: UserCredentials;
 	}): Promise<Employee> {
-		const { createDataRequest } = await import('$lib/models/data-request');
-		const { createErrorResponse } = await import('$lib/models/error-response');
-
-		const dataRequest = createDataRequest({
-			operationName: 'UpdateUser',
-			variables: { id: params.id, input: params.input },
-			userCredentials: params.userCredentials,
-			timeoutMs: 6000
-		});
-
-		try {
-			const result = await this.client
-				.mutation(UPDATE_EMPLOYEE_MUTATION, dataRequest.variables)
-				.toPromise();
-
-			if (result.error) {
-				const errorResponse = createErrorResponse(result.error, {
-					type: 'validation',
-					userMessage: 'Unable to update employee. Please check the information and try again.'
-				});
-				throw errorResponse;
+		const result = await this.executeMutation(
+			UPDATE_EMPLOYEE_MUTATION,
+			{ id: params.id, input: params.input },
+			{
+				operationName: 'UpdateEmployee',
+				errorMessage: 'Unable to update employee. Please try again.'
 			}
+		);
 
-			if (!result.data?.updateUser) {
-				throw createErrorResponse(new Error('No data returned'), {
-					type: 'graphql',
-					userMessage: 'No employee data returned. Please try again.'
-				});
-			}
-
-			return result.data.updateUser;
-		} catch (error: any) {
-			if (error.userMessage) {
-				throw error;
-			}
-			throw createErrorResponse(error, {
-				type: 'graphql',
-				userMessage: 'Failed to update employee. Please try again.'
-			});
-		}
+		return result.updateUser;
 	}
 
 	/**
@@ -702,39 +521,16 @@ export class EmployeeOperations {
 	 * Returns: Boolean indicating success
 	 */
 	async deleteEmployee(params: { id: string; userCredentials: UserCredentials }): Promise<boolean> {
-		const { createDataRequest } = await import('$lib/models/data-request');
-		const { createErrorResponse } = await import('$lib/models/error-response');
-
-		const dataRequest = createDataRequest({
-			operationName: 'DeleteUser',
-			variables: { id: params.id },
-			userCredentials: params.userCredentials,
-			timeoutMs: 4000
-		});
-
-		try {
-			const result = await this.client
-				.mutation(DELETE_EMPLOYEE_MUTATION, dataRequest.variables)
-				.toPromise();
-
-			if (result.error) {
-				const errorResponse = createErrorResponse(result.error, {
-					type: 'permission',
-					userMessage: 'Unable to delete employee. Please check your permissions and try again.'
-				});
-				throw errorResponse;
+		const result = await this.executeMutation(
+			DELETE_EMPLOYEE_MUTATION,
+			{ id: params.id },
+			{
+				operationName: 'DeleteEmployee',
+				errorMessage: 'Unable to delete employee. Please try again.'
 			}
+		);
 
-			return result.data?.deleteUser || false;
-		} catch (error: any) {
-			if (error.userMessage) {
-				throw error;
-			}
-			throw createErrorResponse(error, {
-				type: 'graphql',
-				userMessage: 'Failed to delete employee. Please try again.'
-			});
-		}
+		return result.deleteUser || false;
 	}
 
 	/**

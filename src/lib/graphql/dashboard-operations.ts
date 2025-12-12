@@ -557,15 +557,3 @@ export interface UpcomingEvent {
 	attendees?: string[];
 	location?: string;
 }
-
-
-
-
-
-
-
-
-
-
-
-

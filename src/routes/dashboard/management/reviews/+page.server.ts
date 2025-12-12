@@ -1,11 +1,17 @@
-// Performance Reviews Management Page - Server-Side Data Loading
-// Implements proper PostGraphile GraphQL queries for performance review management
+/**
+ * Performance Reviews Management Page - Server Load
+ * Feature: 023-reviews-creation-it
+ * Task: T038
+ *
+ * Server-side data loading for management view of performance reviews
+ * Refactored: Phase 2 - Using Phase 1 Foundation utilities
+ */
 
 import type { PageServerLoad } from './$types';
-import { error } from '@sveltejs/kit';
+import { RBACDataLoader } from '$lib/server/route-loaders';
+import { QueryParamExtractor } from '$lib/server/route-helpers';
+import { StatisticsCalculator } from '$lib/server/analytics';
 import { logger } from '$lib/utils/logger';
-import { GraphQLClient } from '$lib/server/graphql-client';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
 
 // Performance Review types for Rust GraphQL server
 interface PerformanceReview {
@@ -22,37 +28,32 @@ interface PerformanceReview {
 }
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, url, cookies, fetch: fetchFn } = event;
+	const loader = new RBACDataLoader(event, [
+		'performance:read',
+		'performance:read:self',
+		'performance:read:team',
+		'performance:read:all'
+	]);
 
-	// Check authentication and permissions
-	PermissionChecks.performanceRead(event);
+	return loader.loadWithClient(async (client) => {
+		const { url, cookies } = event;
+		const params = new QueryParamExtractor(url);
 
-	// Get user permissions using the centralized helper
-	const userPerms = getUserPermissions(locals);
-	const hasManagerAccess = userPerms.canViewManagement;
-	const isAdmin = userPerms.isAdmin;
+		const searchTerm = params.getString('search');
+		const statusFilter = params.getString('status', 'all');
+		const periodFilter = params.getString('period');
+		const departmentFilter = params.getString('department');
+		const { page, limit, offset } = params.getPagination(20);
 
-	logger.info('🔍 Load function - User:', {
-		userId: locals.user?.id,
-		role: locals.user?.role,
-		hasManagerAccess,
-		isAdmin
-	});
+		const hasManagerAccess = loader.hasPermission('performance:write');
+		const isAdmin = loader.getUserRole() === 'admin' || loader.getUserRole() === 'super_admin';
 
-	// Create server-side GraphQL client with Docker-aware endpoint
-	const client = GraphQLClient.fromCookies(cookies);
-
-	// Get JWT token for return data
-
-	// Extract search parameters for filtering and pagination
-	const searchTerm = url.searchParams.get('search') || '';
-	const statusFilter = url.searchParams.get('status') || 'all';
-	const periodFilter = url.searchParams.get('period') || '';
-	const departmentFilter = url.searchParams.get('department') || '';
-	const page = parseInt(url.searchParams.get('page') || '1', 10);
-	const limit = parseInt(url.searchParams.get('limit') || '20', 10);
-	const offset = (page - 1) * limit;
-	try {
+		logger.info('🔍 Management Reviews - User:', {
+			userId: loader.getUserId(),
+			role: loader.getUserRole(),
+			hasManagerAccess,
+			isAdmin
+		});
 		// Query 1: Get performance reviews with pagination and filtering
 		// Using Rust GraphQL server schema with normalized relationships
 		const reviewsQuery = `
@@ -105,11 +106,9 @@ export const load: PageServerLoad = async (event) => {
 			offset
 		};
 
-		const reviewsResponse = await client.query<{
+		const reviewsData = await client.query<{
 			performanceReviews: PerformanceReview[];
 		}>(reviewsQuery, reviewsVariables);
-
-		const reviewsData = reviewsResponse.data;
 
 		// Debug logging
 		logger.info('📊 [Management Reviews] GraphQL response:', {
@@ -176,7 +175,7 @@ export const load: PageServerLoad = async (event) => {
 				if (employeesData.errors && employeesData.errors.length > 0) {
 					logger.error('❌ GraphQL Errors in GetEmployeesForSelector:');
 					employeesData.errors.forEach((err: any, idx: number) => {
-						logger.error(`  Error ${idx + 1}:`, {
+						logger.error(`  Error ${idx + 1}:`, undefined, {
 							message: err.message,
 							path: err.path,
 							extensions: err.extensions
@@ -187,11 +186,14 @@ export const load: PageServerLoad = async (event) => {
 				employees = employeesData.data?.users || [];
 				logger.info('✅ Employees loaded:', employees.length);
 			} catch (empError) {
-				logger.error('❌ Error loading employees (caught exception):', {
-					error: empError,
-					message: empError instanceof Error ? empError.message : String(empError),
-					stack: empError instanceof Error ? empError.stack : undefined
-				});
+				logger.error(
+					'❌ Error loading employees (caught exception):',
+					empError instanceof Error ? empError : new Error(String(empError)),
+					{
+						message: empError instanceof Error ? empError.message : String(empError),
+						stack: empError instanceof Error ? empError.stack : undefined
+					}
+				);
 				employees = [];
 			}
 		} else {
@@ -245,7 +247,7 @@ export const load: PageServerLoad = async (event) => {
 		if (searchTerm) {
 			const searchLower = searchTerm.toLowerCase();
 			filteredReviews = performanceReviews.filter(
-				(review) =>
+				(review: (typeof performanceReviews)[number]) =>
 					review.employee?.displayName?.toLowerCase().includes(searchLower) ||
 					review.reviewPeriod.toLowerCase().includes(searchLower) ||
 					review.goals?.toLowerCase().includes(searchLower)
@@ -253,56 +255,37 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Calculate statistics from the reviews data
-		const totalCount = performanceReviews.length;
-		const completedCount = performanceReviews.filter((r) => r.status === 'completed').length;
-		const inProgressCount = performanceReviews.filter((r) => r.status === 'in_progress').length;
-		const notStartedCount = performanceReviews.filter((r) => r.status === 'not_started').length;
-		const draftCount = performanceReviews.filter((r) => r.status === 'draft').length;
+		const reviewStats = StatisticsCalculator.forPerformanceReviews(performanceReviews);
+		const totalCount = reviewStats.total;
 
 		// Calculate average rating across all completed reviews
-		const completedReviews = performanceReviews.filter((review) => review.status === 'completed');
+		const completedReviews = performanceReviews.filter(
+			(review: (typeof performanceReviews)[number]) => review.status === 'completed'
+		);
 		const averageRating =
 			completedReviews.length > 0
-				? completedReviews.reduce((sum, review) => sum + (review.overallRating || 0), 0) /
-					completedReviews.length
+				? completedReviews.reduce(
+						(sum: number, review: (typeof performanceReviews)[number]) =>
+							sum + (review.overallRating || 0),
+						0
+					) / completedReviews.length
 				: 0;
 
 		// Calculate completion rate
-		const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
-		// Calculate overdue reviews client-side
-		// Reviews without submission date that are older than 30 days are considered overdue
-		const overdueReviews = performanceReviews.filter((review) => {
-			if (review.status === 'completed' || review.submittedAt) return false;
-			const createdDate = new Date(review.createdAt);
-			const now = new Date();
-			const daysDiff = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
-			return daysDiff > 30;
-		}).length;
+		const completionRate =
+			totalCount > 0 ? Math.round((reviewStats.completed / totalCount) * 100) : 0;
 
 		// Pagination info
 		const totalPages = Math.ceil(totalCount / limit);
 
 		return {
-			user: {
-				id: locals.user?.id || '',
-				email: locals.user?.email || '',
-				displayName: locals.user?.display_name || 'User',
-				role: locals.user?.role || 'employee'
-			},
-			userSession: {
-				userId: locals.user?.id || '',
-				userEmail: locals.user?.email || '',
-				role: locals.user?.role || 'employee',
-				accessToken: '' // Session-based auth doesn't use access tokens
-			},
 			performanceReviews: filteredReviews,
 			totalReviews: totalCount,
 			employees,
 			reviewAnalytics: {
 				totalReviews: totalCount,
-				completedReviews: completedCount,
-				overdueReviews,
+				completedReviews: reviewStats.completed,
+				overdueReviews: reviewStats.overdue,
 				completionRate,
 				averageRatings: {
 					overall: Math.round(averageRating * 10) / 10, // Round to 1 decimal
@@ -325,64 +308,9 @@ export const load: PageServerLoad = async (event) => {
 				hasNextPage: page * limit < totalCount,
 				hasPreviousPage: page > 1
 			},
-			permissions: locals.permissions || [],
 			canCreateReviews: hasManagerAccess,
 			canEditReviews: hasManagerAccess,
-			canViewAllReviews: locals.roles?.includes('admin') || false,
-			loadedAt: new Date().toISOString()
+			canViewAllReviews: isAdmin
 		};
-	} catch (err) {
-		logger.error('Error loading performance reviews:', err as Error);
-
-		// Return empty data structure with error information
-		return {
-			user: {
-				id: locals.user?.id || '',
-				email: locals.user?.email || '',
-				displayName: locals.user?.display_name || 'User',
-				role: locals.user?.role || 'employee'
-			},
-			userSession: {
-				userId: locals.user?.id || '',
-				userEmail: locals.user?.email || '',
-				role: locals.user?.role || 'employee',
-				accessToken: '' // Session-based auth doesn't use access tokens
-			},
-			performanceReviews: [],
-			totalReviews: 0,
-			employees: [],
-			reviewAnalytics: {
-				totalReviews: 0,
-				completedReviews: 0,
-				overdueReviews: 0,
-				completionRate: 0,
-				averageRatings: {
-					overall: 0,
-					goalsAchievement: 0,
-					collaboration: 0,
-					communication: 0
-				}
-			},
-			filters: {
-				searchTerm,
-				statusFilter,
-				periodFilter,
-				departmentFilter
-			},
-			pagination: {
-				page,
-				limit,
-				total: 0,
-				totalPages: 0,
-				hasNextPage: false,
-				hasPreviousPage: false
-			},
-			permissions: locals.permissions || [],
-			canCreateReviews: hasManagerAccess,
-			canEditReviews: hasManagerAccess,
-			canViewAllReviews: locals.roles?.includes('admin') || false,
-			loadedAt: new Date().toISOString(),
-			error: `Failed to load performance reviews: ${err instanceof Error ? err.message : 'Unknown error'}`
-		};
-	}
+	});
 };

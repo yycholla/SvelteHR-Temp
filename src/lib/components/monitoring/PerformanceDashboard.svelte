@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
 	import { logger } from '$lib/utils/logger';
-	import { metricsService } from '$lib/services/metricsService';
 	import Card from '../base/Card.svelte';
 	import Button from '../base/Button.svelte';
 	import Badge from '../base/Badge.svelte';
@@ -356,7 +355,7 @@
 
 							<div class="error-breakdown">
 								<h4>By Type:</h4>
-								{#each Object.entries(metrics.errors.byType).slice(0, 3) as [type, count]}
+								{#each Object.entries(metrics.errors.byType).slice(0, 3) as [type, count] (`${type}-${count}`)}
 									<div class="error-item">
 										<span class="error-type">{type}</span>
 										<Badge variant="secondary" size="sm">{count}</Badge>
@@ -384,7 +383,7 @@
 					</h3>
 
 					<div class="routes-list">
-						{#each metrics.business.topRoutes.slice(0, 5) as route}
+						{#each metrics.business.topRoutes.slice(0, 5) as route (route.route)}
 							<div class="route-item">
 								<div class="route-path">{route.route}</div>
 								<div class="route-stats">
@@ -410,7 +409,7 @@
 					</h3>
 
 					<div class="operations-list">
-						{#each metrics.business.slowestOperations.slice(0, 5) as operation}
+						{#each metrics.business.slowestOperations.slice(0, 5) as operation (operation.operation)}
 							<div class="operation-item">
 								<div class="operation-info">
 									<div class="operation-name">{operation.operation}</div>

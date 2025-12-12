@@ -272,10 +272,7 @@
 				</Card.Content>
 			</Card.Root>
 		{:else}
-			<TaskList
-				tasks={filteredTasks}
-				onTaskClick={handleTaskClick}
-			/>
+			<TaskList tasks={filteredTasks} onTaskClick={handleTaskClick} />
 		{/if}
 	</div>
 </div>

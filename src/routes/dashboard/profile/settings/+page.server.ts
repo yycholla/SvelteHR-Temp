@@ -202,7 +202,7 @@ export const actions: Actions = {
 			const formData = await request.formData();
 			const theme = formData.get('theme') as string;
 
-			logger.info('[Update Theme] User:', locals.user.id, 'Theme:', theme);
+			logger.info('[Update Theme] User and theme', { userId: locals.user.id, theme });
 
 			if (!['light', 'dark', 'system'].includes(theme)) {
 				return fail(400, { error: 'Invalid theme selection' });
@@ -222,7 +222,7 @@ export const actions: Actions = {
 				}
 			`;
 
-			logger.info('[Update Theme] Calling GraphQL with userId:', locals.user.id, 'theme:', theme);
+			logger.info('[Update Theme] Calling GraphQL', { userId: locals.user.id, theme });
 
 			const result = await graphqlClient.query(updateMutation, {
 				userId: locals.user.id,
@@ -231,11 +231,11 @@ export const actions: Actions = {
 				}
 			});
 
-			logger.info('[Update Theme] GraphQL result:', JSON.stringify(result, null, 2));
+			logger.info('[Update Theme] GraphQL result', { result: JSON.stringify(result, null, 2) });
 
 			// Check for GraphQL errors
 			if (result.errors && result.errors.length > 0) {
-				logger.error('[Update Theme] GraphQL errors found:', result.errors);
+				logger.error('[Update Theme] GraphQL errors found', undefined, { errors: result.errors });
 				// Don't fail here - still set the cookie for client-side consistency
 			}
 
@@ -247,7 +247,7 @@ export const actions: Actions = {
 				sameSite: 'lax'
 			});
 
-			logger.info(`[Update Theme] Success! Theme updated to: ${theme}`);
+			logger.info('[Update Theme] Success! Theme updated', { theme });
 
 			return { success: true, message: `Theme updated to ${theme}` };
 		} catch (err) {

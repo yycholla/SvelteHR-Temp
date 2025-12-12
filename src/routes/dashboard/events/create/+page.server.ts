@@ -1,40 +1,36 @@
 // Event Create Page Server-Side Data Loading
 // Feature: 019-we-need-to - Task T033
 // Purpose: Load initial data for event creation form
+// Refactored: Phase 2 - Using Phase 1 Foundation utilities
 
 import type { Actions, PageServerLoad } from './$types';
-import { error, fail, redirect } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { logger } from '$lib/utils/logger';
-import { createUrqlClient } from '$lib/graphql/client';
-import { requireAuth } from '$lib/server/rbac-utils';
+import { RBACDataLoader } from '$lib/server/route-loaders';
+import { QueryParamExtractor } from '$lib/server/route-helpers';
 import { EventsOperations } from '$lib/graphql/events-operations';
+import { createUrqlClient } from '$lib/graphql/client';
 
 export const load: PageServerLoad = async (event) => {
-	const { url, cookies } = event;
+	const loader = new RBACDataLoader(event, [
+		'events:write',
+		'events:write:self',
+		'events:write:team',
+		'events:write:all'
+	]);
 
-	// Check authentication and permissions
-	requireAuth(event, {
-		requiredPermissions: [
-			'events:write',
-			'events:write:self',
-			'events:write:team',
-			'events:write:all'
-		]
-	});
+	return loader.loadWithClient(async () => {
+		const { url } = event;
+		const params = new QueryParamExtractor(url);
 
-	// After permission check, re-destructure locals with guaranteed user
-	const { locals } = event;
-
-	try {
 		// Get date/time parameters from URL (from calendar click or selection)
-		const startParam = url.searchParams.get('start');
-		const endParam = url.searchParams.get('end');
-		const dateParam = url.searchParams.get('date'); // Fallback for single click
-		const allDayParam = url.searchParams.get('allDay');
+		const startParam = params.getString('start');
+		const endParam = params.getString('end');
+		const dateParam = params.getString('date'); // Fallback for single click
+		const defaultAllDay = params.getBoolean('allDay', false);
 
 		let defaultStartTime: string;
 		let defaultEndTime: string;
-		let defaultAllDay: boolean = allDayParam === 'true';
 
 		if (startParam && endParam) {
 			// Use start and end times from calendar selection (drag)
@@ -54,18 +50,15 @@ export const load: PageServerLoad = async (event) => {
 			// Use default times (next hour)
 			defaultStartTime = getDefaultStartTime();
 			defaultEndTime = getDefaultEndTime();
-			defaultAllDay = false;
 		}
 
 		// TODO: Fetch list of employees for attendee selection
-		// const urqlClient = createUrqlClient(token);
-		// const employees = await fetchEmployees(urqlClient);
+		// const employees = await client.query(GET_EMPLOYEES, ...);
 
 		// TODO: Fetch list of departments for department-wide events
-		// const departments = await fetchDepartments(urqlClient);
+		// const departments = await client.query(GET_DEPARTMENTS, ...);
 
 		return {
-			user: locals.user,
 			// employees: [],
 			// departments: [],
 			minDate: new Date().toISOString().split('T')[0], // Today's date for date picker min
@@ -73,23 +66,7 @@ export const load: PageServerLoad = async (event) => {
 			defaultEndTime,
 			defaultAllDay
 		};
-	} catch (err: any) {
-		logger.error('Error loading event creation page:', err as Error);
-
-		// Handle specific error cases
-		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {
-			redirect(303, `/login?redirectTo=${url.pathname}`);
-		}
-
-		// If it's already a SvelteKit error, rethrow it
-		if (err.status) {
-			throw err;
-		}
-
-		error(500, {
-			message: 'Failed to load event creation form. Please try again later.'
-		});
-	}
+	});
 };
 
 // Helper function to get role level for authorization
@@ -187,20 +164,14 @@ function getDefaultEndTime(): string {
 // Form actions
 export const actions: Actions = {
 	default: async (event) => {
-		const { request, cookies, fetch: eventFetch } = event;
+		const loader = new RBACDataLoader(event, [
+			'events:write',
+			'events:write:self',
+			'events:write:team',
+			'events:write:all'
+		]);
 
-		// Check authentication and permissions
-		requireAuth(event, {
-			requiredPermissions: [
-				'events:write',
-				'events:write:self',
-				'events:write:team',
-				'events:write:all'
-			]
-		});
-
-		// After permission check, re-destructure locals with guaranteed user
-		const { locals } = event;
+		const { request, fetch: eventFetch } = event;
 
 		// Parse form data
 		const formData = await request.formData();
@@ -220,23 +191,12 @@ export const actions: Actions = {
 		}
 
 		try {
-			// T036: Session-based authentication - pass fetch and cookies to forward session
+			// Session-based authentication - pass fetch and cookies to forward session
 			const cookieHeader = request.headers.get('cookie') || '';
 			const urqlClient = createUrqlClient(eventFetch, undefined, undefined, cookieHeader);
 			const eventsOps = new EventsOperations(urqlClient);
 
-			// T036: Session-based authentication - jwtToken not needed
-			const userCredentials = {
-				userId: locals.user.id,
-				roles: locals.roles || [],
-				permissions: locals.permissions || [],
-				isAuthenticated: true,
-				expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-			};
-
-			// Create the event
 			// Parse datetime-local as user's local time and convert to UTC
-			// Parse datetime-local and adjust for user's timezone
 			const parseLocalTime = (timeStr: string, offsetMinutes: number): Date => {
 				const match = timeStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
 				if (!match) throw new Error('Invalid datetime format');
@@ -269,7 +229,16 @@ export const actions: Actions = {
 			const startTimeUTC = startDate.toISOString();
 			const endTimeUTC = endDate.toISOString();
 
-			// Migration: ✅ Use idiomatic Rust pattern (direct input, no nested wrapper)
+			// Session-based authentication credentials
+			const userCredentials = {
+				userId: loader.getUserId(),
+				roles: loader['locals'].roles || [],
+				permissions: loader['locals'].permissions || [],
+				isAuthenticated: true,
+				expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+			};
+
+			// Create the event
 			const result = await eventsOps.createEvent({
 				input: {
 					title,
@@ -281,22 +250,25 @@ export const actions: Actions = {
 					location,
 					status: 'scheduled',
 					isPublic,
-					organizerId: locals.user.id
+					organizerId: loader.getUserId()
 				},
 				userCredentials
 			});
 
 			// Redirect to events list on success
 			redirect(303, '/dashboard/events');
-		} catch (err: any) {
+		} catch (err: unknown) {
 			logger.error('Error creating event:', err as Error);
 
-			if (err.status === 303) {
+			if (err && typeof err === 'object' && 'status' in err && err.status === 303) {
 				throw err; // Re-throw redirect
 			}
 
 			return fail(500, {
-				error: err.userMessage || 'Failed to create event. Please try again.'
+				error:
+					(err && typeof err === 'object' && 'userMessage' in err && typeof err.userMessage === 'string'
+						? err.userMessage
+						: null) || 'Failed to create event. Please try again.'
 			});
 		}
 	}

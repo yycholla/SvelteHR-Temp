@@ -120,7 +120,7 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		// Log error details for debugging
-		logger.error('[Settings Error Details]', {
+		logger.error('[Settings Error Details]', undefined, {
 			userId: locals.user?.id,
 			userRole: locals.user?.role,
 			activeTab,

@@ -12,7 +12,7 @@
  * - Error handling
  */
 
-import { beforeEach, describe, expect, test, vi, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { User } from '$lib/stores/auth.svelte';
 
 // Setup global window mock before any imports
@@ -139,13 +139,13 @@ describe('AuthStore', () => {
 		}
 
 		// Reset auth store state
-		if (auth && auth.reset) {
+		if (auth?.reset) {
 			auth.reset();
 		}
 	});
 
 	afterEach(() => {
-		if (auth && auth.reset) {
+		if (auth?.reset) {
 			auth.reset();
 		}
 	});

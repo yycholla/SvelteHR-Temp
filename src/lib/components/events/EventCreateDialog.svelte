@@ -465,7 +465,7 @@
 											Repeat on <span class="text-destructive">*</span>
 										</div>
 										<div class="flex flex-wrap gap-2">
-											{#each WEEKDAYS as day}
+											{#each WEEKDAYS as day (day.value)}
 												<button
 													type="button"
 													onclick={() => toggleWeekday(day.value)}

@@ -2,7 +2,7 @@
 // Helper functions for E2E testing with Puppeteer
 // Created: 2025-10-27
 
-import type { Browser, Page, KeyInput } from 'puppeteer';
+import type { Browser, KeyInput, Page } from 'puppeteer';
 import { expect } from 'vitest';
 
 // Configuration

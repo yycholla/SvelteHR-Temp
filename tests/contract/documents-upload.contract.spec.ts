@@ -19,7 +19,8 @@ import { beforeAll, describe, expect, it } from 'vitest';
  */
 
 describe('POST /api/documents/upload - Contract Tests', () => {
-	const API_BASE_URL = process.env.API_BASE_URL || process.env.PUBLIC_API_URL || 'http://localhost:5173';
+	const API_BASE_URL =
+		process.env.API_BASE_URL || process.env.PUBLIC_API_URL || 'http://localhost:5173';
 
 	let authToken: string;
 	let employeeToken: string;

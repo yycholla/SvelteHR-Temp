@@ -517,7 +517,10 @@ export const handle: Handle = sequence(Sentry.sentryHandle(), async ({ event, re
 		if (error && typeof error === 'object' && 'status' in error) {
 			const statusCode = (error as { status?: number }).status;
 			// Re-throw all redirects (3xx) and SvelteKit errors (4xx, 5xx with body property)
-			if (typeof statusCode === 'number' && ((statusCode >= 300 && statusCode < 400) || 'body' in error)) {
+			if (
+				typeof statusCode === 'number' &&
+				((statusCode >= 300 && statusCode < 400) || 'body' in error)
+			) {
 				throw error;
 			}
 		}
@@ -551,17 +554,21 @@ export const handleError = Sentry.handleErrorWithSentry(
 		});
 
 		// Log structured error for monitoring
-		logger.error(`Server Error: ${standardError.message}`, error instanceof Error ? error : new Error(String(error)), {
-			requestId: standardError.requestId,
-			type: standardError.type,
-			userMessage: standardError.userMessage,
-			statusCode: standardError.statusCode,
-			url: event?.url?.pathname,
-			method: event?.request?.method,
-			userId: event?.locals?.user?.id,
-			userAgent: event?.request?.headers?.get('user-agent')?.slice(0, 100),
-			timestamp: standardError.timestamp
-		});
+		logger.error(
+			`Server Error: ${standardError.message}`,
+			error instanceof Error ? error : new Error(String(error)),
+			{
+				requestId: standardError.requestId,
+				type: standardError.type,
+				userMessage: standardError.userMessage,
+				statusCode: standardError.statusCode,
+				url: event?.url?.pathname,
+				method: event?.request?.method,
+				userId: event?.locals?.user?.id,
+				userAgent: event?.request?.headers?.get('user-agent')?.slice(0, 100),
+				timestamp: standardError.timestamp
+			}
+		);
 
 		// In production, send to error tracking service
 		// Example: Sentry, Rollbar, DataDog, etc.

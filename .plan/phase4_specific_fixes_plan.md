@@ -23,6 +23,7 @@ Each is simple to fix but requires a different approach.
 **File**: `src/lib/server/audit/start-signature-worker.ts`
 
 **Errors**:
+
 ```
 Error: '#!' can only be used at the start of a file.
 Error: ';' expected.
@@ -57,6 +58,7 @@ import { logger } from '$lib/utils/logger';
 ### Quality Standards
 
 **✅ Correct Shebang Usage**:
+
 ```typescript
 #!/usr/bin/env node
 /**
@@ -68,17 +70,18 @@ import { logger } from '$lib/utils/logger';
 import { AuditSignatureService } from './audit-signature-service';
 
 async function main() {
-  logger.info('Starting Audit Log Signature Worker');
-  // ... worker logic
+	logger.info('Starting Audit Log Signature Worker');
+	// ... worker logic
 }
 
-main().catch(error => {
-  logger.error('Worker failed', error);
-  process.exit(1);
+main().catch((error) => {
+	logger.error('Worker failed', error);
+	process.exit(1);
 });
 ```
 
 **File Permissions**:
+
 ```bash
 # Make executable
 chmod +x src/lib/server/audit/start-signature-worker.ts
@@ -104,6 +107,7 @@ import { logger } from '$lib/utils/logger';
 **File**: `src/lib/components/tasks/TaskForm.svelte`
 
 **Error**:
+
 ```
 Error: Module '"/home/chanway/.../TaskForm.svelte"' has no default export.
 ```
@@ -111,7 +115,7 @@ Error: Module '"/home/chanway/.../TaskForm.svelte"' has no default export.
 **Consuming File**: `src/routes/dashboard/tasks/new/+page.svelte`
 
 ```svelte
-import TaskForm from '$lib/components/tasks/TaskForm.svelte';  // ❌ Fails
+import TaskForm from '$lib/components/tasks/TaskForm.svelte'; // ❌ Fails
 ```
 
 ### Root Cause Analysis
@@ -121,16 +125,17 @@ In Svelte 5, components don't automatically export a default. The component stru
 ```svelte
 <!-- TaskForm.svelte -->
 <script lang="ts">
-  // Component logic
-  let props = $props<TaskFormProps>();
+	// Component logic
+	let props = $props<TaskFormProps>();
 </script>
 
 <form>
-  <!-- Template -->
+	<!-- Template -->
 </form>
 ```
 
 But TypeScript expects:
+
 ```typescript
 export default class TaskForm extends SvelteComponent<TaskFormProps> {}
 ```
@@ -163,17 +168,17 @@ If exporting types or utilities from component:
 ```svelte
 <!-- TaskForm.svelte -->
 <script lang="ts" context="module">
-  export type TaskFormProps = {
-    // ... props
-  };
+	export type TaskFormProps = {
+		// ... props
+	};
 </script>
 
 <script lang="ts">
-  let props = $props<TaskFormProps>();
+	let props = $props<TaskFormProps>();
 </script>
 
 <form>
-  <!-- Template -->
+	<!-- Template -->
 </form>
 ```
 
@@ -183,20 +188,20 @@ Ensure component follows Svelte 5 patterns:
 
 ```svelte
 <script lang="ts">
-  import type { Task } from '$lib/types';
+	import type { Task } from '$lib/types';
 
-  interface Props {
-    task?: Task;
-    onSubmit: (task: Task) => void;
-  }
+	interface Props {
+		task?: Task;
+		onSubmit: (task: Task) => void;
+	}
 
-  let { task, onSubmit }: Props = $props();
+	let { task, onSubmit }: Props = $props();
 
-  // Component logic
+	// Component logic
 </script>
 
 <form>
-  <!-- Template -->
+	<!-- Template -->
 </form>
 ```
 
@@ -207,9 +212,9 @@ If component exports utilities:
 ```svelte
 <!-- Consumer -->
 <script lang="ts">
-  import TaskForm from '$lib/components/tasks/TaskForm.svelte';
-  // Or if module exports exist:
-  import { type TaskFormProps } from '$lib/components/tasks/TaskForm.svelte';
+	import TaskForm from '$lib/components/tasks/TaskForm.svelte';
+	// Or if module exports exist:
+	import { type TaskFormProps } from '$lib/components/tasks/TaskForm.svelte';
 </script>
 ```
 
@@ -233,17 +238,19 @@ Most likely the component is fine, but there's a syntax error preventing it from
 **File**: `src/routes/sentry-example-page/+page.svelte`
 
 **Warning**:
+
 ```
 Warn: Unused CSS selector ".connectivity-error a"
 ```
 
 **Code**:
+
 ```svelte
 <style>
-  .connectivity-error a {
-    color: #ffffff;
-    text-decoration: underline;
-  }
+	.connectivity-error a {
+		color: #ffffff;
+		text-decoration: underline;
+	}
 </style>
 ```
 
@@ -279,14 +286,14 @@ If the class should be used:
 
 ```svelte
 <div class="connectivity-error">
-  <p>Connection lost. <a href="/retry">Retry</a></p>
+	<p>Connection lost. <a href="/retry">Retry</a></p>
 </div>
 
 <style>
-  .connectivity-error a {
-    color: #ffffff;
-    text-decoration: underline;
-  }
+	.connectivity-error a {
+		color: #ffffff;
+		text-decoration: underline;
+	}
 </style>
 ```
 
@@ -296,10 +303,10 @@ If added via JavaScript:
 
 ```svelte
 <style>
-  :global(.connectivity-error a) {
-    color: #ffffff;
-    text-decoration: underline;
-  }
+	:global(.connectivity-error a) {
+		color: #ffffff;
+		text-decoration: underline;
+	}
 </style>
 ```
 
@@ -365,12 +372,14 @@ npm run check 2>&1 | grep -E "(start-signature|TaskForm|connectivity-error)"
 ## Expected Results
 
 ### Before Phase 4
+
 ```
 $ npm run check 2>&1 | wc -l
 ~254 errors + 1 warning
 ```
 
 ### After Phase 4
+
 ```
 $ npm run check 2>&1 | wc -l
 ~247 errors (8 errors + 1 warning eliminated)
@@ -379,6 +388,7 @@ $ npm run check 2>&1 | wc -l
 ## Quality Standards
 
 ### Shebang Files
+
 ```typescript
 #!/usr/bin/env node
 /**
@@ -392,27 +402,29 @@ import { logger } from '$lib/utils/logger';
 ```
 
 ### Svelte 5 Components
+
 ```svelte
 <script lang="ts">
-  import type { ComponentProps } from 'svelte';
+	import type { ComponentProps } from 'svelte';
 
-  interface Props {
-    // Prop definitions
-  }
+	interface Props {
+		// Prop definitions
+	}
 
-  let props: Props = $props();
+	let props: Props = $props();
 </script>
 
 <div>
-  <!-- Template -->
+	<!-- Template -->
 </div>
 
 <style>
-  /* Only include used selectors */
+	/* Only include used selectors */
 </style>
 ```
 
 ### CSS Hygiene
+
 - Remove all unused selectors
 - Use `:global()` for dynamic classes
 - Use Svelte's scoped styles by default

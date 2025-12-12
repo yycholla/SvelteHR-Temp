@@ -22,9 +22,9 @@ import { encryptFile, generateEncryptionKey } from '$lib/services/encryption';
 describe('Preview Generation - Integration Tests', () => {
 	let adminToken: string;
 	let employeeToken: string;
-	let pdfDocumentId: string = '';
-	let docxDocumentId: string = '';
-	let xlsxDocumentId: string = '';
+	const pdfDocumentId: string = '';
+	const docxDocumentId: string = '';
+	const xlsxDocumentId: string = '';
 
 	beforeAll(async () => {
 		// TODO: Set up test database and users

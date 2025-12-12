@@ -8,6 +8,7 @@
  -->
 
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
@@ -118,7 +119,7 @@
 			<div class="space-y-2">
 				{#each displayRequests as request (request.id)}
 					<a
-						href="/dashboard/activities/rollback-requests"
+						href={resolve('/dashboard/activities/rollback-requests')}
 						class="block rounded-lg border p-3 transition-colors hover:bg-accent"
 					>
 						<div class="flex items-start justify-between gap-2">

@@ -60,10 +60,9 @@ export const load: PageServerLoad = async (event) => {
 			Cookie: cookieHeader
 		};
 
-		logger.info(
-			'[Employee Edit] Using Rust GraphQL backend with session-based auth, user roles:',
-			locals.roles
-		);
+		logger.info('[Employee Edit] Using Rust GraphQL backend with session-based auth', {
+			userRoles: locals.roles
+		});
 
 		// Determine if user can edit detailed employee information
 		const userRoles = locals.roles || [];
@@ -400,7 +399,10 @@ export const actions: Actions = {
 			const updateData = await updateResponse.json();
 
 			if (updateData.errors) {
-				logger.error('[Employee Update Error]', updateData.errors);
+				const errorMsg = updateData.errors[0]?.message || 'Failed to update employee';
+				logger.error('[Employee Update Error]', new Error(errorMsg), {
+					errors: updateData.errors
+				});
 				return fail(500, {
 					error: 'Failed to update employee'
 				});
@@ -410,7 +412,7 @@ export const actions: Actions = {
 
 			// Handle role assignment if role changed
 			if (role) {
-				logger.info(`[Employee Update] Updating role to: ${role}`);
+				logger.info('[Employee Update] Updating role', { newRole: role });
 
 				const updatedEmployee = updateData?.data?.users?.updateUser;
 				const currentRoles = updatedEmployee?.roles || [];
@@ -462,15 +464,16 @@ export const actions: Actions = {
 							});
 							const removeData = await removeResponse.json();
 							if (removeData.errors) {
-								logger.error(
-									`[Employee Update] Error removing role ${currentRole.name}:`,
-									removeData.errors
-								);
+								const errorMsg = removeData.errors[0]?.message || 'Unknown error';
+								logger.error('[Employee Update] Error removing role', new Error(errorMsg), {
+									roleName: currentRole.name,
+									errors: removeData.errors
+								});
 								return fail(500, {
-									error: `Failed to remove old role: ${removeData.errors[0]?.message || 'Unknown error'}`
+									error: `Failed to remove old role: ${errorMsg}`
 								});
 							}
-							logger.info(`[Employee Update] Removed role: ${currentRole.name}`);
+							logger.info('[Employee Update] Removed role', { roleName: currentRole.name });
 						}
 
 						// Assign new role
@@ -502,15 +505,18 @@ export const actions: Actions = {
 						const assignData = await assignResponse.json();
 
 						if (assignData.errors) {
-							logger.error('[Employee Update] Role assignment errors:', assignData.errors);
+							const errorMsg = assignData.errors[0]?.message || 'Unknown error';
+							logger.error('[Employee Update] Role assignment errors', new Error(errorMsg), {
+								errors: assignData.errors
+							});
 							return fail(500, {
-								error: `Failed to assign new role: ${assignData.errors[0]?.message || 'Unknown error'}`
+								error: `Failed to assign new role: ${errorMsg}`
 							});
 						} else {
-							logger.info(`[Employee Update] Assigned new role: ${role}`);
+							logger.info('[Employee Update] Assigned new role', { role });
 						}
 					} else {
-						logger.warn(`[Employee Update] Role "${role}" not found in database`);
+						logger.warn('[Employee Update] Role not found in database', { role });
 					}
 				} else {
 					logger.info('[Employee Update] Role unchanged, skipping role assignment');

@@ -15,7 +15,8 @@ import { beforeAll, describe, expect, it } from 'vitest';
  */
 
 describe('Encryption Keys API - Contract Tests', () => {
-	const API_BASE_URL = process.env.API_BASE_URL || process.env.PUBLIC_API_URL || 'http://localhost:5173';
+	const API_BASE_URL =
+		process.env.API_BASE_URL || process.env.PUBLIC_API_URL || 'http://localhost:5173';
 
 	let userAToken: string;
 	let userBToken: string;

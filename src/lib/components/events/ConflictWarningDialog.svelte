@@ -66,7 +66,6 @@
 	}: ConflictWarningDialogProps = $props();
 
 	// Derived
-	const hasConflicts = $derived(conflicts.length > 0);
 	const hasMajorConflicts = $derived(conflicts.some((c) => c.severity === 'major'));
 	const minorConflicts = $derived(conflicts.filter((c) => c.severity === 'minor'));
 	const majorConflicts = $derived(conflicts.filter((c) => c.severity === 'major'));
@@ -120,7 +119,7 @@
 						Major Conflicts (≥30% overlap)
 					</h3>
 					<div class="space-y-2">
-						{#each majorConflicts as conflict}
+						{#each majorConflicts as conflict (conflict.event.id)}
 							<div class="rounded-lg border border-destructive/50 bg-destructive/10 p-3">
 								<div class="flex items-start justify-between">
 									<div class="flex-1">
@@ -168,7 +167,7 @@
 						Minor Conflicts (&lt;30% overlap)
 					</h3>
 					<div class="space-y-2">
-						{#each minorConflicts as conflict}
+						{#each minorConflicts as conflict (conflict.event.id)}
 							<div class="rounded-lg border bg-muted/50 p-3">
 								<div class="flex items-start justify-between">
 									<div class="flex-1">

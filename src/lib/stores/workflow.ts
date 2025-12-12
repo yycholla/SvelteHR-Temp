@@ -82,7 +82,13 @@ export interface WorkflowInstance {
 	updatedAt: string;
 }
 
-export type WorkflowTaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'skipped';
+export type WorkflowTaskStatus =
+	| 'pending'
+	| 'running'
+	| 'completed'
+	| 'failed'
+	| 'cancelled'
+	| 'skipped';
 
 export interface WorkflowTask {
 	id: string;

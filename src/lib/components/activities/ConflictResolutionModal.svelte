@@ -9,6 +9,7 @@
 	 * Displays field-by-field comparison and supports 3 resolution strategies.
 	 */
 
+	import { SvelteSet } from 'svelte/reactivity';
 	import { AlertTriangle, Loader2, X } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
@@ -20,7 +21,6 @@
 	}
 
 	interface ConflictData {
-		hasConflicts: boolean;
 		conflictFields: string[];
 		conflicts: ConflictDetail[];
 	}
@@ -35,7 +35,7 @@
 	const { conflictDetails, onResolve, onCancel, isOpen }: Props = $props();
 
 	let selectedStrategy = $state<'force' | 'cancel' | 'merge'>('cancel');
-	let selectedFields = $state<Set<string>>(new Set());
+	let selectedFields = $state(new SvelteSet<string>());
 	let isExecuting = $state(false);
 
 	// Computed properties
@@ -80,7 +80,7 @@
 		if (selectedFields.size === conflictDetails.conflicts.length) {
 			selectedFields.clear();
 		} else {
-			selectedFields = new Set(conflictDetails.conflicts.map((c) => c.field));
+			selectedFields = new SvelteSet(conflictDetails.conflicts.map((c) => c.field));
 		}
 	}
 
@@ -427,8 +427,6 @@
 		align-items: center;
 		gap: 0.75rem;
 	}
-
-
 
 	.modal-header h3 {
 		margin: 0;

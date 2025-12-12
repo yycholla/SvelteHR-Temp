@@ -12,18 +12,19 @@ The logger utility has a specific type signature that many calls violate, causin
 
 ```typescript
 interface LogMeta {
-  [key: string]: unknown;
+	[key: string]: unknown;
 }
 
 class Logger {
-  debug(message: string, meta?: LogMeta): void;
-  info(message: string, meta?: LogMeta): void;
-  warn(message: string, meta?: LogMeta): void;
-  error(message: string, error?: Error, meta?: LogMeta): void;
+	debug(message: string, meta?: LogMeta): void;
+	info(message: string, meta?: LogMeta): void;
+	warn(message: string, meta?: LogMeta): void;
+	error(message: string, error?: Error, meta?: LogMeta): void;
 }
 ```
 
 Common violations:
+
 - Passing non-`LogMeta` values as second parameter
 - Passing non-`Error` objects to `error()` method
 - Passing primitive types (string, number) instead of objects
@@ -34,12 +35,14 @@ Common violations:
 ### Pattern 1: Passing Primitives as LogMeta
 
 **Error**:
+
 ```
 Error: Argument of type 'string' is not assignable to parameter of type 'LogMeta'.
 Error: Argument of type 'number' is not assignable to parameter of type 'LogMeta'.
 ```
 
 **Before**:
+
 ```typescript
 // ❌ WRONG - string as second parameter
 logger.info('Rate limit exceeded for operation', operation.key);
@@ -49,6 +52,7 @@ logger.warn('Invalid JWT format: expected 3 parts, got', parts.length);
 ```
 
 **After**:
+
 ```typescript
 // ✅ CORRECT - wrap in object
 logger.info('Rate limit exceeded for operation', { operationKey: operation.key });
@@ -60,11 +64,13 @@ logger.warn('Invalid JWT format: expected 3 parts', { actualParts: parts.length 
 ### Pattern 2: Passing Strings as Error Parameter
 
 **Error**:
+
 ```
 Error: Argument of type 'string' is not assignable to parameter of type 'Error'.
 ```
 
 **Before**:
+
 ```typescript
 // ❌ WRONG - string instead of Error object
 logger.error('Query failed', text);
@@ -74,6 +80,7 @@ logger.error('Failed to log access attempt', await response.text());
 ```
 
 **After**:
+
 ```typescript
 // ✅ CORRECT - error in metadata, or create Error
 logger.error('Query failed', new Error(text));
@@ -89,12 +96,14 @@ logger.error('Failed to log access attempt', new Error(errorText));
 ### Pattern 3: Passing Arrays/Objects as Error
 
 **Error**:
+
 ```
 Error: Argument of type 'GraphQLError[]' is not assignable to parameter of type 'LogMeta'.
 Error: Argument of type 'any[]' is not assignable to parameter of type 'Error'.
 ```
 
 **Before**:
+
 ```typescript
 // ❌ WRONG - array of errors as metadata
 logger.warn('GraphQL authentication error:', error.graphQLErrors);
@@ -104,10 +113,11 @@ logger.error('Params:', params);
 ```
 
 **After**:
+
 ```typescript
 // ✅ CORRECT - wrap in metadata object
 logger.warn('GraphQL authentication error', {
-  errors: error.graphQLErrors.map(e => ({ message: e.message, code: e.extensions?.code }))
+	errors: error.graphQLErrors.map((e) => ({ message: e.message, code: e.extensions?.code }))
 });
 
 // ✅ CORRECT - params in metadata
@@ -117,37 +127,42 @@ logger.error('Query failed', queryError, { params });
 ### Pattern 4: Too Many Arguments
 
 **Error**:
+
 ```
 Error: Expected 1-3 arguments, but got 4.
 ```
 
 **Before**:
+
 ```typescript
 // ❌ WRONG - 4 arguments to logger.error
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled rejection at:', promise, 'reason:', reason);
+	logger.error('Unhandled rejection at:', promise, 'reason:', reason);
 });
 ```
 
 **After**:
+
 ```typescript
 // ✅ CORRECT - combine into message and metadata
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled rejection', reason as Error, {
-    promise: String(promise)
-  });
+	logger.error('Unhandled rejection', reason as Error, {
+		promise: String(promise)
+	});
 });
 ```
 
 ### Pattern 5: Objects as Metadata (Complex Types)
 
 **Error**:
+
 ```
 Error: Argument of type 'CacheMetrics' is not assignable to parameter of type 'LogMeta'.
 Error: Argument of type 'ErrorResponse' is not assignable to parameter of type 'Error'.
 ```
 
 **Before**:
+
 ```typescript
 // ❌ WRONG - complex object passed directly
 logger.info('Cache metrics', cacheMetrics);
@@ -157,18 +172,19 @@ logger.error('Request failed', errorResponse);
 ```
 
 **After**:
+
 ```typescript
 // ✅ CORRECT - spread object or serialize
 logger.info('Cache metrics', {
-  hitRate: cacheMetrics.hitRate,
-  misses: cacheMetrics.misses,
-  evictions: cacheMetrics.evictions
+	hitRate: cacheMetrics.hitRate,
+	misses: cacheMetrics.misses,
+	evictions: cacheMetrics.evictions
 });
 
 // ✅ CORRECT - convert to Error or use metadata
 logger.error('Request failed', new Error(errorResponse.message), {
-  statusCode: errorResponse.statusCode,
-  errorCode: errorResponse.code
+	statusCode: errorResponse.statusCode,
+	errorCode: errorResponse.code
 });
 ```
 
@@ -256,14 +272,14 @@ logger.info('Cache state', cacheObject);
 
 // After - Extract relevant fields
 logger.info('Cache state', {
-  size: cacheObject.size,
-  hits: cacheObject.hits,
-  misses: cacheObject.misses
+	size: cacheObject.size,
+	hits: cacheObject.hits,
+	misses: cacheObject.misses
 });
 
 // Or use JSON.stringify for debugging
 logger.debug('Full cache state', {
-  cache: JSON.stringify(cacheObject)
+	cache: JSON.stringify(cacheObject)
 });
 ```
 
@@ -275,7 +291,7 @@ logger.error('Error at:', location, 'reason:', reason);
 
 // After
 logger.error('Error occurred', reason as Error, {
-  location: String(location)
+	location: String(location)
 });
 ```
 
@@ -307,22 +323,22 @@ logger.info('Forwarding session cookies:', cookies.substring(0, 50) + '...');
 
 // After
 logger.warn('GraphQL authentication error', {
-  errors: error.graphQLErrors.map(e => ({
-    message: e.message,
-    code: e.extensions?.code
-  }))
+	errors: error.graphQLErrors.map((e) => ({
+		message: e.message,
+		code: e.extensions?.code
+	}))
 });
 
 logger.warn('Rate limit exceeded for operation', {
-  operationKey: operation.key
+	operationKey: operation.key
 });
 
 error.graphQLErrors.forEach(({ message, extensions }) => {
-  logger.error('GraphQL error', new Error(message), { extensions });
+	logger.error('GraphQL error', new Error(message), { extensions });
 });
 
 logger.info('Forwarding session cookies to backend', {
-  cookiePreview: cookies.substring(0, 50)
+	cookiePreview: cookies.substring(0, 50)
 });
 ```
 
@@ -338,8 +354,8 @@ logger.error('Params:', params);
 
 // After
 logger.error('Database query failed', error as Error, {
-  query: text,
-  params
+	query: text,
+	params
 });
 ```
 
@@ -353,8 +369,8 @@ logger.warn('Invalid JWT format: expected 3 parts, got', parts.length);
 
 // After
 logger.warn('Invalid JWT format: expected 3 parts', {
-  actualParts: parts.length,
-  token: token.substring(0, 20) + '...'
+	actualParts: parts.length,
+	token: token.substring(0, 20) + '...'
 });
 ```
 
@@ -365,29 +381,32 @@ logger.warn('Invalid JWT format: expected 3 parts', {
 ```typescript
 // Before (Line 148)
 logger.error(`[${timestamp}] ${type.toUpperCase()} Error:`, {
-  type,
-  message: standardError.message,
-  stack: standardError.stack
+	type,
+	message: standardError.message,
+	stack: standardError.stack
 });
 
 // After - Remove type from Error object
 const errorInfo = {
-  type,
-  message: standardError.message,
-  stack: standardError.stack,
-  timestamp
+	type,
+	message: standardError.message,
+	stack: standardError.stack,
+	timestamp
 };
 logger.error(`${type.toUpperCase()} Error`, standardError, errorInfo);
 
 // Before (Line 312)
-logger.warn(`Operation failed (attempt ${attempt}/${maxRetries + 1}), retrying in ${delay}ms:`, error);
+logger.warn(
+	`Operation failed (attempt ${attempt}/${maxRetries + 1}), retrying in ${delay}ms:`,
+	error
+);
 
 // After
 logger.warn(`Operation failed, retrying`, {
-  attempt,
-  maxRetries: maxRetries + 1,
-  delay,
-  error: error instanceof Error ? error.message : String(error)
+	attempt,
+	maxRetries: maxRetries + 1,
+	delay,
+	error: error instanceof Error ? error.message : String(error)
 });
 ```
 
@@ -448,18 +467,21 @@ After fixing each logger call:
 ## Expected Results
 
 ### Before Phase 3
+
 ```
 $ npm run check 2>&1 | grep "Argument of type" | wc -l
 86
 ```
 
 ### After Phase 3
+
 ```
 $ npm run check 2>&1 | grep "Argument of type" | wc -l
 0
 ```
 
 ### Error Count Progress
+
 - **Before Phase 3**: ~340 errors
 - **After Phase 3**: ~254 errors (25% reduction)
 
@@ -480,27 +502,27 @@ logger.info('User logged in');
 
 // Message with structured metadata
 logger.info('User logged in', {
-  userId: user.id,
-  role: user.role,
-  timestamp: Date.now()
+	userId: user.id,
+	role: user.role,
+	timestamp: Date.now()
 });
 
 // Error with context
 try {
-  await riskyOperation();
+	await riskyOperation();
 } catch (error) {
-  logger.error('Operation failed', error as Error, {
-    operation: 'riskyOperation',
-    userId: user.id
-  });
+	logger.error('Operation failed', error as Error, {
+		operation: 'riskyOperation',
+		userId: user.id
+	});
 }
 
 // Multiple data points
 logger.warn('Rate limit approaching', {
-  current: requests.length,
-  limit: RATE_LIMIT,
-  window: '1h',
-  userId: user.id
+	current: requests.length,
+	limit: RATE_LIMIT,
+	window: '1h',
+	userId: user.id
 });
 
 // ❌ BAD EXAMPLES

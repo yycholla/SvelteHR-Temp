@@ -158,7 +158,7 @@
 			aria-orientation="vertical"
 		>
 			<div class="py-1">
-				{#each statusOptions as status}
+				{#each statusOptions as status (status)}
 					{@const isActive = status === currentStatus}
 					{@const label = RSVP_STATUS_LABELS[status]}
 					{@const icon = getRsvpStatusIcon(status)}

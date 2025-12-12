@@ -78,7 +78,7 @@ export const load: PageServerLoad = async (event) => {
 	const userId = locals.user.id;
 
 	try {
-		logger.info(`[Performance Page] Loading performance data for user: ${userId}`);
+		logger.info('[Performance Page] Loading performance data for user', { userId });
 
 		// Ensure backend is ready before proceeding
 		await ensureBackendReady();
@@ -109,10 +109,10 @@ export const load: PageServerLoad = async (event) => {
 		logger.info('[Performance Page] Fetching user data...');
 		const userData = await graphqlClient.query(userQuery, { id: userId });
 		const user = userData.data?.user || null;
-		logger.info('[Performance Page] User data:', user ? 'Found' : 'Not found');
+		logger.info('[Performance Page] User data', { found: !!user });
 
 		if (!user) {
-			logger.error('[Performance Page] User not found:', userId);
+			logger.error('[Performance Page] User not found', undefined, { userId });
 			error(404, 'User not found');
 		}
 
@@ -138,10 +138,10 @@ export const load: PageServerLoad = async (event) => {
 			employeeId: userId,
 			limit: 100
 		});
-		logger.info(
-			'[Performance Page] Goals result:',
-			goalsResult.data ? `Found ${goalsResult.data.employeeGoals?.length || 0} goals` : 'No data'
-		);
+		logger.info('[Performance Page] Goals result', {
+			goalsFound: goalsResult.data ? goalsResult.data.employeeGoals?.length || 0 : 0,
+			hasData: !!goalsResult.data
+		});
 
 		// Fetch performance reviews for history and rating
 		const reviewsQuery = `
@@ -190,7 +190,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// Transform employeeGoals to match expected format
 		const rawGoals: EmployeeGoalRawFromGraphQL[] = goalsResult.data?.employeeGoals || [];
-		logger.info('[Performance Page] Raw goals:', rawGoals.length);
+		logger.info('[Performance Page] Raw goals', { goalsCount: rawGoals.length });
 		const goals: TransformedGoal[] = rawGoals.map(
 			(goal: EmployeeGoalRawFromGraphQL): TransformedGoal => ({
 				id: goal.id,

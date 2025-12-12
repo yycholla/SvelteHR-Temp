@@ -399,16 +399,17 @@ export async function canEditDepartment(
 							}
 						}
 					`,
-													variables: { departmentId }
-												})
-											});
-									
-											const data = (await response.json()) as ApiResponse<DepartmentManagerData>;
-											const department = data?.data?.departmentById;
-									
-											// Manager can edit if they are the department manager
-											return department?.managerId === userId;
-										} catch (error) {			logger.error('Department by id failed', error as Error);
+					variables: { departmentId }
+				})
+			});
+
+			const data = (await response.json()) as ApiResponse<DepartmentManagerData>;
+			const department = data?.data?.departmentById;
+
+			// Manager can edit if they are the department manager
+			return department?.managerId === userId;
+		} catch (error) {
+			logger.error('Department by id failed', error as Error);
 			return false;
 		}
 	}
@@ -473,9 +474,13 @@ export async function canEditEmployee(
 			const targetUserDeptId = data?.data?.targetUser?.departmentId;
 
 			// Manager can edit if they manage the employee's department
-			return !!(managerDept && managerDept.id === targetUserDeptId && managerDept.managerId === userId);
+			return !!(
+				managerDept &&
+				managerDept.id === targetUserDeptId &&
+				managerDept.managerId === userId
+			);
 		} catch (error) {
-			logger.error('Catch failed', error as Error);
+			logger.error('Error checking employee edit permissions', error as Error);
 			return false;
 		}
 	}
@@ -656,16 +661,17 @@ export function getRolePrecedence(roles: string[]): string {
 	for (const role of roles) {
 		const normalizedRole = role.toLowerCase();
 		const level = ROLE_HIERARCHY[normalizedRole as keyof typeof ROLE_HIERARCHY] || 0;
-		if (level >= highestLevel) { // >= to ensure we pick up at least one valid role if multiple have same level or if first one is found
+		if (level >= highestLevel) {
+			// >= to ensure we pick up at least one valid role if multiple have same level or if first one is found
 			highestLevel = level;
 			highestRole = role; // Return the original role string, or normalized? Tests expect 'admin'.
 		}
 	}
-	
-	// If the highest role found is 'guest' but roles were provided, and none matched hierarchy, return the first one or 'guest'? 
+
+	// If the highest role found is 'guest' but roles were provided, and none matched hierarchy, return the first one or 'guest'?
 	// Test expects 'employee' if only 'employee' is passed.
 	// If 'employee' is in hierarchy, it works.
-	
+
 	return highestRole;
 }
 
@@ -706,7 +712,7 @@ export async function isManagerOfDepartment(
 
 		return department?.managerId === userId;
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Error checking department manager', error as Error);
 		return false;
 	}
 }

@@ -10,32 +10,36 @@ The codebase has 910 compilation errors from an incomplete logger refactoring. *
 
 ## The 5-Phase Fix
 
-| # | Phase | Errors | Time | Type | Start Here |
-|---|-------|--------|------|------|------------|
-| 1 | Add Logger Imports | 450 | 2h | 🤖 Auto | [Plan](./phase1_missing_imports_plan.md) |
-| 2 | Fix Syntax Errors | 120 | 1h | 🤖 Auto | [Plan](./phase2_syntax_errors_plan.md) |
-| 3 | Fix Logger API | 86 | 3-4h | 👤 Manual | [Plan](./phase3_logger_api_fixes_plan.md) |
-| 4 | Specific Fixes | 8 | 0.5h | 👤 Manual | [Plan](./phase4_specific_fixes_plan.md) |
-| 5 | Complex Types | 247 | 8-12h | 👤 Manual | [Plan](./phase5_complex_type_errors_plan.md) |
+| #   | Phase              | Errors | Time  | Type      | Start Here                                   |
+| --- | ------------------ | ------ | ----- | --------- | -------------------------------------------- |
+| 1   | Add Logger Imports | 450    | 2h    | 🤖 Auto   | [Plan](./phase1_missing_imports_plan.md)     |
+| 2   | Fix Syntax Errors  | 120    | 1h    | 🤖 Auto   | [Plan](./phase2_syntax_errors_plan.md)       |
+| 3   | Fix Logger API     | 86     | 3-4h  | 👤 Manual | [Plan](./phase3_logger_api_fixes_plan.md)    |
+| 4   | Specific Fixes     | 8      | 0.5h  | 👤 Manual | [Plan](./phase4_specific_fixes_plan.md)      |
+| 5   | Complex Types      | 247    | 8-12h | 👤 Manual | [Plan](./phase5_complex_type_errors_plan.md) |
 
 ## Day-by-Day Timeline
 
 ### Day 1: Phases 1-2 (3-4 hours)
+
 - Run automated scripts for imports and syntax
 - Reduce errors: 910 → 340 (63% done)
 - Commit and test
 
 ### Day 2: Phase 3 (4 hours)
+
 - Fix logger API type errors manually
 - Reduce errors: 340 → 254 (72% done)
 - Commit and test
 
 ### Day 3: Phase 4-5 Start (4 hours)
+
 - Quick specific fixes
 - Begin complex type errors
 - Reduce errors: 254 → ~200 (78% done)
 
 ### Days 4-6: Phase 5 Complete (8-12 hours)
+
 - Finish complex type errors
 - Reduce errors: ~200 → 0 (100% done)
 - Final testing and documentation
@@ -126,17 +130,20 @@ find src -type f \( -name "*.ts" -o -name "*.svelte" \) \
 ## Files by Priority
 
 ### High Priority (Fix First)
+
 - `src/lib/graphql/client.ts` - API communication
 - `src/lib/server/db.ts` - Database queries
 - `src/lib/auth/jwt-utils.ts` - Authentication
 - `src/lib/utils/error-handling.ts` - Error handling
 
 ### Medium Priority
+
 - Components in `src/lib/components/`
 - Routes in `src/routes/dashboard/`
 - GraphQL queries in `src/lib/graphql/queries/`
 
 ### Low Priority
+
 - Example pages
 - Development utilities
 - Non-critical features
@@ -144,12 +151,14 @@ find src -type f \( -name "*.ts" -o -name "*.svelte" \) \
 ## Success Criteria
 
 ✅ Phase complete when:
+
 - Expected error reduction achieved
 - `npm run check` passes for that category
 - Changes committed
 - Build succeeds (after Phase 2+)
 
 ✅ Project complete when:
+
 - 0 errors: `npm run check` shows no errors
 - Build works: `npm run build` succeeds
 - Tests pass: All tests green
@@ -192,20 +201,20 @@ logger.info('User logged in');
 
 // With metadata
 logger.info('User logged in', {
-  userId: user.id,
-  role: user.role,
-  timestamp: Date.now()
+	userId: user.id,
+	role: user.role,
+	timestamp: Date.now()
 });
 
 // Error with context
 try {
-  await riskyOperation();
+	await riskyOperation();
 } catch (error) {
-  logger.error('Operation failed', error as Error, {
-    operation: 'riskyOperation',
-    userId: user.id
-  });
-  throw error;
+	logger.error('Operation failed', error as Error, {
+		operation: 'riskyOperation',
+		userId: user.id
+	});
+	throw error;
 }
 ```
 
@@ -241,14 +250,14 @@ catch (error: unknown) {
 
 ## Progress Tracking
 
-| Milestone | Errors | % Complete |
-|-----------|--------|------------|
-| Start | 910 | 0% |
-| After Phase 1 | 460 | 49% |
-| After Phase 2 | 340 | 63% |
-| After Phase 3 | 254 | 72% |
-| After Phase 4 | 247 | 73% |
-| **After Phase 5** | **0** | **100%** ✅ |
+| Milestone         | Errors | % Complete  |
+| ----------------- | ------ | ----------- |
+| Start             | 910    | 0%          |
+| After Phase 1     | 460    | 49%         |
+| After Phase 2     | 340    | 63%         |
+| After Phase 3     | 254    | 72%         |
+| After Phase 4     | 247    | 73%         |
+| **After Phase 5** | **0**  | **100%** ✅ |
 
 ---
 

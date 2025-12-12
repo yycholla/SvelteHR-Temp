@@ -14,10 +14,6 @@ class Logger {
 		this.level = isProduction ? 'warn' : 'info';
 		this.format = 'json'; // Always use JSON format for structured logging
 
-		logger.info(
-			`🔧 Logger initialized: level=${this.level}, format=${this.format}, isProduction=${isProduction}`
-		);
-
 		// Try to override with environment variables if available
 		try {
 			if (typeof process !== 'undefined' && process.env) {
@@ -37,12 +33,8 @@ class Logger {
 					this.format = envFormat;
 				}
 			}
-		} catch (error) {
+		} catch {
 			// Ignore environment variable errors in SSR context
-
-			logger.warn('Logger: Could not read environment variables, using defaults', {
-				error: error as Error
-			});
 		}
 	}
 
@@ -65,19 +57,19 @@ class Logger {
 
 	debug(message: string, meta?: LogMeta) {
 		if (this.shouldLog('debug')) {
-			logger.debug(this.formatMessage('debug', message, meta));
+			console.debug(this.formatMessage('debug', message, meta));
 		}
 	}
 
 	info(message: string, meta?: LogMeta) {
 		if (this.shouldLog('info')) {
-			logger.info(this.formatMessage('info', message, meta));
+			console.info(this.formatMessage('info', message, meta));
 		}
 	}
 
 	warn(message: string, meta?: LogMeta) {
 		if (this.shouldLog('warn')) {
-			logger.warn(this.formatMessage('warn', message, meta));
+			console.warn(this.formatMessage('warn', message, meta));
 		}
 	}
 
@@ -91,7 +83,7 @@ class Logger {
 					}
 				: meta;
 
-			logger.error(this.formatMessage('error', message, errorMeta || {}));
+			console.error(this.formatMessage('error', message, errorMeta || {}));
 		}
 	}
 

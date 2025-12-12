@@ -59,7 +59,9 @@ function generateUUID(): string {
 			].join('-');
 		} catch (error) {
 			// Fall through to Math.random() fallback
-			logger.warn('crypto.getRandomValues() failed, using Math.random() fallback', { error: error as Error });
+			logger.warn('crypto.getRandomValues() failed, using Math.random() fallback', {
+				error: error as Error
+			});
 		}
 	}
 

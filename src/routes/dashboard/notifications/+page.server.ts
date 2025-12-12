@@ -34,7 +34,7 @@ export const load: PageServerLoad = async (event) => {
 			'Content-Type': 'application/json'
 		};
 
-		logger.info('[Notifications] Loading notifications for user:', locals.user.id);
+		logger.info('[Notifications] Loading notifications for user', { userId: locals.user.id });
 
 		// Fetch user's notifications using Rust GraphQL backend
 		// Migration: ✅ Use idiomatic Rust pattern (fetch all, filter client-side)
@@ -70,10 +70,14 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		const notificationsData = await notificationsResponse.json();
-		logger.info(`[Notifications] Response: ${notificationsData}`);
+		logger.info('[Notifications] Response received', { hasData: !!notificationsData });
 
 		if (notificationsData.errors) {
-			logger.error('[Notifications] GraphQL errors:', notificationsData.errors);
+			logger.error(
+				'[Notifications] GraphQL errors',
+				new Error(notificationsData.errors[0]?.message || 'GraphQL error'),
+				{ errors: notificationsData.errors.map((e: any) => ({ message: e.message })) }
+			);
 			throw new Error(notificationsData.errors[0]?.message || 'Failed to load notifications');
 		}
 

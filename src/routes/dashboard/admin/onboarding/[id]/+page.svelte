@@ -74,7 +74,7 @@
 	});
 
 	// Debug: Log user options to console
-	logger.info('[ONBOARDING] User options:', { sampleOptions: userOptions.slice(0, 5) });
+	logger.info('[ONBOARDING] User options', { sampleOptions: userOptions.slice(0, 5) });
 
 	// Transform departments for Select options
 	const departmentOptions = data.departments.map((dept: any) => ({

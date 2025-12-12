@@ -109,9 +109,13 @@ export const load: PageServerLoad = async (event) => {
 			offset: 0
 		});
 
-		logger.info('[Attendance] GraphQL response:', JSON.stringify(attendanceData, null, 2));
-		logger.info(`[Attendance] Employee ID: ${userId}`);
-		logger.info('[Attendance] Records found:', attendanceData.data?.attendanceRecords?.length);
+		logger.info('[Attendance] GraphQL response', {
+			response: JSON.stringify(attendanceData, null, 2)
+		});
+		logger.info('[Attendance] Employee ID', { employeeId: userId });
+		logger.info('[Attendance] Records found', {
+			recordsCount: attendanceData.data?.attendanceRecords?.length
+		});
 
 		const attendanceRecords = (attendanceData.data?.attendanceRecords || []).map((record: any) => ({
 			id: record.id,

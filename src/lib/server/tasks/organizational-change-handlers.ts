@@ -112,7 +112,10 @@ export async function handleManagerChange(
 			manualReassignments: results.filter((r) => r.requiresManualReassignment).length
 		});
 	} catch (error) {
-		logger.error('[ORG CHANGE] Error handling manager change:', error instanceof Error ? error : new Error(String(error)));
+		logger.error(
+			'[ORG CHANGE] Error handling manager change:',
+			error instanceof Error ? error : new Error(String(error))
+		);
 	}
 
 	return results;
@@ -193,7 +196,10 @@ export async function handleEmployeeDepartmentChange(
 			}
 		);
 	} catch (error) {
-		logger.error('[ORG CHANGE] Error handling employee department change:', error instanceof Error ? error : new Error(String(error)));
+		logger.error(
+			'[ORG CHANGE] Error handling employee department change:',
+			error instanceof Error ? error : new Error(String(error))
+		);
 	}
 
 	return results;
@@ -257,7 +263,10 @@ export async function handleEmployeeTermination(
 			departmentId
 		});
 	} catch (error) {
-		logger.error('[ORG CHANGE] Error handling employee termination:', error instanceof Error ? error : new Error(String(error)));
+		logger.error(
+			'[ORG CHANGE] Error handling employee termination:',
+			error instanceof Error ? error : new Error(String(error))
+		);
 	}
 
 	return results;
@@ -301,7 +310,10 @@ export async function handleDepartmentDissolution(
 			employeeCount: departmentEmployees.length
 		});
 	} catch (error) {
-		logger.error('[ORG CHANGE] Error handling department dissolution:', error instanceof Error ? error : new Error(String(error)));
+		logger.error(
+			'[ORG CHANGE] Error handling department dissolution:',
+			error instanceof Error ? error : new Error(String(error))
+		);
 	}
 
 	return results;
@@ -353,7 +365,10 @@ async function getTasksAssignedToUser(userId: string): Promise<Task[]> {
 		const data = await response.json();
 		return data?.data?.allTasks?.nodes || [];
 	} catch (error) {
-		logger.error('[ORG CHANGE] Error fetching user tasks:', error instanceof Error ? error : new Error(String(error)));
+		logger.error(
+			'[ORG CHANGE] Error fetching user tasks:',
+			error instanceof Error ? error : new Error(String(error))
+		);
 		return [];
 	}
 }
@@ -388,7 +403,10 @@ async function getDepartmentManager(departmentId: string): Promise<string | null
 		const data = await response.json();
 		return data?.data?.departmentById?.managerId || null;
 	} catch (error) {
-		logger.error('[ORG CHANGE] Error fetching department manager:', error instanceof Error ? error : new Error(String(error)));
+		logger.error(
+			'[ORG CHANGE] Error fetching department manager:',
+			error instanceof Error ? error : new Error(String(error))
+		);
 		return null;
 	}
 }
@@ -425,7 +443,10 @@ async function getDepartmentEmployees(departmentId: string): Promise<string[]> {
 		const users = data?.data?.allUsers?.nodes || [];
 		return users.map((user: any) => user.id);
 	} catch (error) {
-		logger.error('[ORG CHANGE] Error fetching department employees:', error instanceof Error ? error : new Error(String(error)));
+		logger.error(
+			'[ORG CHANGE] Error fetching department employees:',
+			error instanceof Error ? error : new Error(String(error))
+		);
 		return [];
 	}
 }
@@ -478,7 +499,9 @@ async function reassignTask(
 		const data = await response.json();
 
 		if (data.errors) {
-			logger.error('[ORG CHANGE] GraphQL errors reassigning task:', undefined, { errors: data.errors });
+			logger.error('[ORG CHANGE] GraphQL errors reassigning task:', undefined, {
+				errors: data.errors
+			});
 			return false;
 		}
 
@@ -487,7 +510,10 @@ async function reassignTask(
 
 		return true;
 	} catch (error) {
-		logger.error('[ORG CHANGE] Error reassigning task:', error instanceof Error ? error : new Error(String(error)));
+		logger.error(
+			'[ORG CHANGE] Error reassigning task:',
+			error instanceof Error ? error : new Error(String(error))
+		);
 		return false;
 	}
 }
@@ -530,21 +556,28 @@ async function flagTaskForManualReassignment(
 		});
 
 		if (!response.ok) {
-			logger.error('[ORG CHANGE] Failed to flag task for manual reassignment:', undefined, { taskId });
+			logger.error('[ORG CHANGE] Failed to flag task for manual reassignment:', undefined, {
+				taskId
+			});
 			return false;
 		}
 
 		const data = await response.json();
 
 		if (data.errors) {
-			logger.error('[ORG CHANGE] GraphQL errors flagging task:', undefined, { errors: data.errors });
+			logger.error('[ORG CHANGE] GraphQL errors flagging task:', undefined, {
+				errors: data.errors
+			});
 			return false;
 		}
 
 		logger.info('[ORG CHANGE] Flagged task for manual reassignment:', { taskId });
 		return true;
 	} catch (error) {
-		logger.error('[ORG CHANGE] Error flagging task:', error instanceof Error ? error : new Error(String(error)));
+		logger.error(
+			'[ORG CHANGE] Error flagging task:',
+			error instanceof Error ? error : new Error(String(error))
+		);
 		return false;
 	}
 }
@@ -617,7 +650,10 @@ export async function getTasksRequiringManualReassignment(departmentId?: string)
 
 		return tasks;
 	} catch (error) {
-		logger.error('[ORG CHANGE] Error fetching tasks requiring reassignment:', error instanceof Error ? error : new Error(String(error)));
+		logger.error(
+			'[ORG CHANGE] Error fetching tasks requiring reassignment:',
+			error instanceof Error ? error : new Error(String(error))
+		);
 		return [];
 	}
 }

@@ -3,7 +3,13 @@
  * Feature: 027-we-need-to - Events Calendar with FullCalendar 6.x
  */
 
-export type RsvpStatus = 'pending' | 'accepted' | 'declined' | 'tentative' | 'no_response' | 'waitlisted';
+export type RsvpStatus =
+	| 'pending'
+	| 'accepted'
+	| 'declined'
+	| 'tentative'
+	| 'no_response'
+	| 'waitlisted';
 export type EventType = 'meeting' | 'training' | 'company_event' | 'holiday' | 'other';
 export type EventVisibility = 'public' | 'private' | 'department';
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';

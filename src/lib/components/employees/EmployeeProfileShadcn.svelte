@@ -51,12 +51,11 @@
 	});
 	const canEdit = $derived(auth.user && (isOwnProfile || auth.hasPermission('user:update')));
 	const canDeactivate = $derived(auth.user && auth.hasPermission('user:delete') && !isOwnProfile);
-	const statusVariant = $derived.by(
-		(): 'default' | 'secondary' =>
-			(employee?.isActive ?? employee?.is_active) ? 'default' : 'secondary'
+	const statusVariant = $derived.by((): 'default' | 'secondary' =>
+		(employee?.isActive ?? employee?.is_active) ? 'default' : 'secondary'
 	);
-	const statusText = $derived.by(
-		(): string => ((employee?.isActive ?? employee?.is_active) ? 'Active' : 'Inactive')
+	const statusText = $derived.by((): string =>
+		(employee?.isActive ?? employee?.is_active) ? 'Active' : 'Inactive'
 	);
 
 	async function loadEmployee() {

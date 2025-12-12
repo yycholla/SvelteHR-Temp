@@ -76,7 +76,7 @@ async function queryUserData(userId: string): Promise<{
 			permissions
 		};
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Failed to query user data', error as Error);
 		return null;
 	}
 }
@@ -165,7 +165,7 @@ export async function updateSessionPermissions(
 
 		return true;
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Failed to update session permissions', error as Error);
 		return false;
 	}
 }
@@ -238,7 +238,7 @@ async function logDepartmentTransfer(
 
 		logger.info('[PERMISSION REFRESH] Logged department transfer to audit log');
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Failed to log department transfer', error as Error);
 		// Don't throw - audit logging failure shouldn't break permission refresh
 	}
 }
@@ -261,7 +261,7 @@ export async function invalidateUserCache(userId: string): Promise<void> {
 
 		logger.info(`[PERMISSION REFRESH] Cache invalidation called for user: ${userId}`);
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Failed to invalidate user cache', error as Error);
 	}
 }
 

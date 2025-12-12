@@ -5,78 +5,51 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { logger } from '$lib/utils/logger';
 import { GraphQLClient } from '$lib/server/graphql-client';
+import { RBACDataLoader } from '$lib/server/route-loaders';
 import { requireAuth } from '$lib/server/rbac-utils';
 import { UPLOAD_DOCUMENT } from '$lib/graphql/document-operations';
 import { GET_EMPLOYEES_QUERY } from '$lib/graphql/employee-operations';
-
 import { createAccessMetadata, logSuccessfulAccess } from '$lib/services/auditService';
 import type { UploadResult } from '$lib/types/document';
 
+const DOCUMENT_CATEGORIES = [
+	{ id: 'contract', name: 'Contract' },
+	{ id: 'policy', name: 'Policy' },
+	{ id: 'report', name: 'Report' },
+	{ id: 'invoice', name: 'Invoice' },
+	{ id: 'certificate', name: 'Certificate' },
+	{ id: 'payslip', name: 'Payslip' },
+	{ id: 'license', name: 'License' },
+	{ id: 'other', name: 'Other' }
+];
+
 export const load: PageServerLoad = async (event) => {
-	const { cookies, fetch } = event;
+	const loader = new RBACDataLoader(event, [
+		'admin:write',
+		'admin:write:self',
+		'admin:write:team',
+		'admin:write:all',
+		'documents:write',
+		'*',
+		'*:*'
+	]);
 
-	// Check authentication and permissions
-	requireAuth(event, {
-		requiredPermissions: ['admin:write', 'admin:write:self', 'admin:write:team', 'admin:write:all']
-	});
-
-	// After permission check, re-destructure locals with guaranteed user
-	const { locals } = event;
-
-	const userId = locals.user.id;
-	const userPermissions = locals.permissions || [];
-	const userRoles = locals.roles || [];
-
-	if (false) {
-		// Log access attempt for audit purposes
-		logger.warn('[DOCUMENT UPLOAD ACCESS DENIED]', {
-			userId: locals.user.id,
-			userEmail: locals.user.email,
-			userRole: locals.user.role,
-			roles: userRoles,
-			permissions: userPermissions,
+	return loader.loadWithClient(async (client) => {
+		// Log successful access
+		logger.info('[DOCUMENT UPLOAD ACCESS GRANTED]', {
+			userId: loader.getUserId(),
 			timestamp: new Date().toISOString()
 		});
 
-		error(403, {
-			message: 'Insufficient permissions. Document upload requires system administrator access.'
-		});
-	}
+		// Check if user is system admin
+		const isSystemAdmin =
+			loader.hasPermission('*') ||
+			loader.hasPermission('*:*') ||
+			loader.hasRole('system_admin');
 
-	// Log successful access
-	logger.info('[DOCUMENT UPLOAD ACCESS GRANTED]', {
-		userId: locals.user.id,
-		userEmail: locals.user.email,
-		timestamp: new Date().toISOString()
-	});
-
-	// Check if user is system admin
-	const isSystemAdmin =
-		userPermissions.includes('*') ||
-		userPermissions.includes('*:*') ||
-		userRoles.includes('system_admin') ||
-		locals.user.role === 'system_admin';
-
-	try {
-		// Step 3: Load document categories (would come from database)
-		// TODO: Call GET /api/documents/categories when implemented
-		const categories = [
-			{ id: 'contract', name: 'Contract' },
-			{ id: 'policy', name: 'Policy' },
-			{ id: 'report', name: 'Report' },
-			{ id: 'invoice', name: 'Invoice' },
-			{ id: 'certificate', name: 'Certificate' },
-			{ id: 'payslip', name: 'Payslip' },
-			{ id: 'license', name: 'License' },
-			{ id: 'other', name: 'Other' }
-		];
-
-		// Step 4: Load employees for assignment (system_admin can assign to all employees)
+		// Load employees for assignment
 		let employeeOptions: Array<{ value: string; label: string }> = [];
 		try {
-			const graphqlClient = GraphQLClient.fromCookies(cookies);
-
-			// Extract the query string from the gql template
 			const queryString = `
 				query GetEmployees($limit: Int, $offset: Int) {
 					users(limit: $limit, offset: $offset) {
@@ -90,56 +63,36 @@ export const load: PageServerLoad = async (event) => {
 				}
 			`;
 
-			const employeesResponse = await graphqlClient.query(queryString, {
+			const employeesResponse = await client.query(queryString, {
 				limit: 1000,
 				offset: 0
 			});
 
-			if (employeesResponse.data?.users) {
-				employeeOptions = employeesResponse.data.users.map((user: any) => ({
+			if (employeesResponse?.users) {
+				employeeOptions = employeesResponse.users.map((user: { id: string; fullName?: string; displayName?: string; email: string }) => ({
 					value: user.id,
 					label: user.fullName || user.displayName || user.email
 				}));
 
-				logger.info('[UPLOAD PAGE] Loaded employee options:', { count: employeeOptions.length });
+				logger.info('[UPLOAD PAGE] Loaded employee options', { count: employeeOptions.length });
 			}
 		} catch (err) {
 			logger.error('[UPLOAD PAGE] Failed to load employees:', err as Error);
 			// Continue without employee options - form will still work
 		}
 
-		// Step 5: Load departments for department-wide assignment
-		// TODO: Call GET /api/departments when integrated
-		const departments: any[] = []; // Would be populated from API
+		// TODO: Load departments and teams when integrated
+		const departments: unknown[] = [];
+		const teams: unknown[] = [];
 
-		// Step 6: Load teams for team assignment
-		// TODO: Call GET /api/teams when integrated
-		const teams: any[] = []; // Would be populated from API
-
-		// Step 7: Return data for upload page
 		return {
-			user: locals.user,
-			userPermissions,
-			userRoles,
 			isSystemAdmin,
-			categories,
+			categories: DOCUMENT_CATEGORIES,
 			employeeOptions,
 			departments,
 			teams
 		};
-	} catch (err) {
-		logger.error('Upload page load error:', err as Error);
-
-		// Re-throw redirects and errors
-		if (err && typeof err === 'object' && ('status' in err || 'location' in err)) {
-			throw err;
-		}
-
-		// Generic error fallback
-		error(500, {
-			message: 'Failed to load upload page. Please try again later.'
-		});
-	}
+	});
 };
 
 // Server-side actions for document upload
@@ -180,15 +133,14 @@ export const actions: Actions = {
 			// Step 3: Parse form data (now expecting raw file, not encrypted)
 			const formData = await request.formData();
 
-			logger.info(
-				'[UPLOAD ACTION] FormData entries:',
-				Array.from(formData.entries()).map(([key, value]) => ({
+			logger.info('[UPLOAD ACTION] FormData entries', {
+				entries: Array.from(formData.entries()).map(([key, value]) => ({
 					key,
 					valueType: typeof value,
 					isFile: value instanceof File,
 					fileName: value instanceof File ? value.name : 'N/A'
 				}))
-			);
+			});
 
 			const file = formData.get('file') as File;
 			const category = formData.get('category') as string;
@@ -204,7 +156,7 @@ export const actions: Actions = {
 				? JSON.parse(formData.get('assignToDepartments') as string)
 				: [];
 
-			logger.info('[UPLOAD ACTION] Parsed form data:', {
+			logger.info('[UPLOAD ACTION] Parsed form data', {
 				hasFile: !!file,
 				fileType: file ? typeof file : 'undefined',
 				isFileInstance: file instanceof File,
@@ -236,7 +188,7 @@ export const actions: Actions = {
 				});
 			}
 
-			logger.info('[UPLOAD ACTION] Server-side encryption starting:', {
+			logger.info('[UPLOAD ACTION] Server-side encryption starting', {
 				filename: file.name,
 				size: file.size,
 				type: file.type
@@ -277,7 +229,9 @@ export const actions: Actions = {
 			);
 
 			if (keyResponse.errors?.length) {
-				logger.error('[UPLOAD ACTION] Key registration failed:', undefined, { errors: keyResponse.errors });
+				logger.error('[UPLOAD ACTION] Key registration failed:', undefined, {
+					errors: keyResponse.errors
+				});
 				return fail(500, {
 					error: keyResponse.errors[0].message || 'Failed to register encryption key'
 				});
@@ -315,7 +269,7 @@ export const actions: Actions = {
 				assignToDepartments
 			};
 
-			logger.info('[UPLOAD ACTION] Upload input prepared:', {
+			logger.info('[UPLOAD ACTION] Upload input prepared', {
 				filename: uploadInput.filename,
 				fileType: uploadInput.fileType,
 				fileSizeBytes: uploadInput.fileSizeBytes,
@@ -331,15 +285,16 @@ export const actions: Actions = {
 
 			// Log the exact GraphQL request being sent
 			const mutationVariables = { input: uploadInput };
-			logger.info(
-				'[UPLOAD ACTION] GraphQL mutation variables:',
-				JSON.stringify(mutationVariables, null, 2).substring(0, 1000)
-			);
+			logger.info('[UPLOAD ACTION] GraphQL mutation variables', {
+				variables: JSON.stringify(mutationVariables, null, 2).substring(0, 1000)
+			});
 
 			const response = await graphqlClient.mutation(UPLOAD_DOCUMENT, mutationVariables);
 
 			if (response.errors?.length) {
-				logger.error('[UPLOAD ACTION] GraphQL upload errors:', undefined, { errors: response.errors });
+				logger.error('[UPLOAD ACTION] GraphQL upload errors:', undefined, {
+					errors: response.errors
+				});
 				return fail(500, {
 					error: response.errors[0].message || 'Failed to upload document'
 				});
@@ -355,7 +310,7 @@ export const actions: Actions = {
 			// Step 9: Log successful upload
 			await logSuccessfulAccess(document.id, userId, 'view', createAccessMetadata(), fetch);
 
-			logger.info('[UPLOAD ACTION] Document uploaded successfully:', {
+			logger.info('[UPLOAD ACTION] Document uploaded successfully', {
 				documentId: document.id,
 				filename: file.name,
 				size: file.size,

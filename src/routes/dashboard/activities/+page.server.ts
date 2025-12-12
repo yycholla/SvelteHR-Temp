@@ -72,7 +72,9 @@ export const load: PageServerLoad = async (event) => {
 		logger.info('[Activities] Response', { activitiesData });
 
 		if (activitiesData.errors) {
-			logger.error('[Activities] GraphQL errors', new Error('GraphQL errors'), { errors: activitiesData.errors });
+			logger.error('[Activities] GraphQL errors', new Error('GraphQL errors'), {
+				errors: activitiesData.errors
+			});
 			throw new Error(activitiesData.errors[0]?.message || 'Failed to load activities');
 		}
 

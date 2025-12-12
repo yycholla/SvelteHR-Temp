@@ -23,8 +23,7 @@
 
 	let {
 		open = $bindable(false),
-		users = [],
-		departments = []
+		users = []
 	}: {
 		open: boolean;
 		users: User[];

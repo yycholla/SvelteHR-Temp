@@ -56,7 +56,9 @@ export const load: PageServerLoad = async (event) => {
 		const response = await client.query(query, { id });
 
 		if (response.errors) {
-			logger.error('GraphQL errors loading onboarding content:', undefined, { errors: response.errors });
+			logger.error('GraphQL errors loading onboarding content:', undefined, {
+				errors: response.errors
+			});
 			throw error(500, {
 				message: `Failed to load onboarding module: ${response.errors[0]?.message || 'Unknown error'}`
 			});

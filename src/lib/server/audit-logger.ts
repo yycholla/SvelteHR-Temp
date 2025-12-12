@@ -130,7 +130,7 @@ export async function logAction(
 
 		return true;
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Audit log action failed', error as Error);
 		return false;
 	}
 }
@@ -429,7 +429,7 @@ export async function getAuditLogsForResource(
 		const data = await response.json();
 		return data?.data?.auditLogs?.nodes || [];
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Failed to get audit logs for resource', error as Error);
 		return [];
 	}
 }
@@ -477,7 +477,7 @@ export async function getAuditLogsForUser(userId: string, limit: number = 50): P
 		const data = await response.json();
 		return data?.data?.auditLogs?.nodes || [];
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Failed to get audit logs for user', error as Error);
 		return [];
 	}
 }

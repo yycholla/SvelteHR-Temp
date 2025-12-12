@@ -20,7 +20,7 @@
 -->
 
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import { logger } from '$lib/utils/logger';
 	import { browser } from '$app/environment';
 	import { validateImageFile } from '$lib/utils/image-validation';
@@ -316,7 +316,7 @@
 
 	{#if errors.length > 0}
 		<div class="mt-2 space-y-1">
-			{#each errors as error}
+			{#each errors as error, i (i)}
 				<p class="text-sm text-destructive">{error}</p>
 			{/each}
 		</div>

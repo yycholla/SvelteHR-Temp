@@ -2,7 +2,7 @@
 // Tests complete workflows for employee CRUD operations
 // Created: 2025-09-24
 
-import { describe, expect, test, beforeAll, afterAll, beforeEach } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import {
 	TestEmployee,
 	TestUser,
@@ -10,7 +10,7 @@ import {
 	cleanupTestData,
 	createTestContext
 } from '../utils/test-helpers';
-import type { TestEmployeeData, TestContext } from '../utils/test-helpers';
+import type { TestContext, TestEmployeeData } from '../utils/test-helpers';
 import { performGraphQLMutation, performGraphQLQuery } from '../utils/graphql-test-client';
 
 describe('Employee Management Integration Tests', () => {

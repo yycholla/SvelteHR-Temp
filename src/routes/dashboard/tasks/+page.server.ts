@@ -1,373 +1,224 @@
 // Server-side data loading for tasks dashboard page
 // Feature: 028-task-system-expansion - Task T035
-// Server-side route with RBAC, GraphQL data loading, and filter handling
+// REFACTORED: Phase 1 Foundation - Integration Proof-of-Concept
+// Demonstrates: RBACDataLoader, UnifiedGraphQLClient, QueryParamExtractor,
+//               ClientSideFilter, StatisticsCalculator
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
-import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 import { logger } from '$lib/utils/logger';
+import { requireAuth } from '$lib/server/rbac-utils';
+
+// Phase 1 Foundation Utilities
+import { RBACDataLoader } from '$lib/server/route-loaders';
+import { QueryParamExtractor } from '$lib/server/route-helpers/query-params';
+import { ClientSideFilter } from '$lib/server/route-helpers/client-filter';
+import { StatisticsCalculator } from '$lib/server/analytics/statistics-calculator';
 
 export const load: PageServerLoad = async (event) => {
-	const { cookies, url } = event;
+	const { url } = event;
 
-	// RBAC: Check task read permissions
-	// All Tasks page requires admin-level access (tasks:read:all)
-	// Managers and employees should use My Tasks and Team Tasks instead
-	requireAuth(event, {
-		requiredPermissions: ['tasks:read:all', 'admin:read']
-	});
+	// Use RBACDataLoader - handles auth, session, permissions automatically
+	const loader = new RBACDataLoader(event, ['tasks:read:all', 'admin:read']);
 
-	// After permission check, re-destructure locals with guaranteed user
-	const { locals } = event;
+	return loader.loadWithClient(async (client) => {
+		// Use QueryParamExtractor for type-safe URL parameter extraction
+		const params = new QueryParamExtractor(url);
+		const { page, limit } = params.getPagination(20);
 
-	// Import required models for standardized error handling
-	const { createDataRequest } = await import('$lib/models/data-request');
-	const { createErrorResponse } = await import('$lib/models/error-response');
-	const { createUserSession } = await import('$lib/models/user-session');
-
-	// Create user session from server locals (session-based auth, no JWT token)
-	const userSession = createUserSession({
-		userId: locals.user.id,
-		// jwtToken is optional for session-based authentication
-		roles: [locals.user.role || 'employee'],
-		permissions: locals.permissions || [],
-		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
-		metadata: {
-			userEmail: locals.user.email,
-			displayName: locals.user.display_name || locals.user.email
-		}
-	});
-
-	// Extract search and filter parameters from URL
-	const searchTerm = url.searchParams.get('search') || '';
-	const statusFilter = url.searchParams.get('status') || ''; // Empty = all statuses
-	const priorityFilter = url.searchParams.get('priority') || '';
-	const assigneeFilter = url.searchParams.get('assignee') || '';
-	const taskTypeFilter = url.searchParams.get('taskType') || '';
-	const dueDateStart = url.searchParams.get('dueDateStart') || '';
-	const dueDateEnd = url.searchParams.get('dueDateEnd') || '';
-	const hasParent = url.searchParams.get('hasParent'); // null, 'true', or 'false'
-	const page = parseInt(url.searchParams.get('page') || '1', 10);
-	const limit = parseInt(url.searchParams.get('limit') || '20', 10);
-
-	// Create data request for task dashboard
-	const dataRequest = createDataRequest({
-		operationName: 'GetTaskDashboard',
-		variables: {
-			searchTerm,
-			statusFilter,
-			priorityFilter,
-			assigneeFilter,
-			taskTypeFilter,
-			dueDateStart,
-			dueDateEnd,
-			hasParent,
-			page,
-			limit
-		},
-		userCredentials: {
-			userId: userSession.userId,
-			roles: userSession.roles,
-			permissions: userSession.permissions,
-			// jwtToken omitted for session-based auth
-			isAuthenticated: Boolean(userSession.isAuthenticated),
-			expiresAt: userSession.expiresAt
-		},
-		timeoutMs: 5000
-	});
-
-	try {
-		// Make direct GraphQL calls to Rust GraphQL backend
-		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
-		const graphqlEndpoint = getGraphQLEndpoint();
-
-		// Headers for session-based authentication (cookies sent automatically)
-		const headers: Record<string, string> = {
-			'Content-Type': 'application/json'
+		// Extract all filter parameters
+		const filters = {
+			searchTerm: params.getString('search'),
+			statusFilter: params.getString('status'),
+			priorityFilter: params.getString('priority'),
+			assigneeFilter: params.getString('assignee'),
+			taskTypeFilter: params.getString('taskType'),
+			dueDateStart: params.getString('dueDateStart'),
+			dueDateEnd: params.getString('dueDateEnd'),
+			hasParent: params.getString('hasParent')
 		};
 
-		logger.info('[Tasks Dashboard] User role', {
-			role: locals.user?.role,
-			authType: 'session-based'
-		});
-		logger.info('[Tasks Dashboard] Filters', {
-			searchTerm,
-			statusFilter,
-			priorityFilter,
-			assigneeFilter,
-			taskTypeFilter,
-			dueDateStart,
-			dueDateEnd,
-			hasParent
-		});
+		logger.info('[Tasks Dashboard] Filters', filters);
 
-		// Load tasks with full relationships
-		// NOTE: Rust GraphQL backend does NOT support filter parameter
-		// Fetch all tasks and filter client-side
-		const tasksResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetTasksForDashboard($limit: Int!, $offset: Int!) {
-						tasks(limit: $limit, offset: $offset) {
-							id
-							title
-							description
-							status
-							priority
-							dueDate
-							requiresManualReassignment
-							archived
-							createdAt
-							updatedAt
-							assignee {
-								id
-								displayName
-								email
-							}
-							department {
-								id
-								name
-								description
-							}
-							creator {
-								id
-								displayName
-								email
-							}
-							taskType {
-								id
-								name
-							}
-							parentTask {
-								id
-								title
-								status
-							}
-						}
-					}
-				`,
-				variables: {
-					limit: 1000, // Fetch large dataset for client-side filtering
-					offset: 0
-				}
-			})
-		});
-
-		const tasksData = await tasksResponse.json();
-		logger.info('[Tasks Dashboard] Tasks response received', {
-			tasksCount: tasksData?.data?.tasks?.length || 0
-		});
-
-		if (tasksData.errors) {
-			const errorMsg = tasksData.errors[0]?.message || 'Failed to load tasks';
-			logger.error('[Tasks Dashboard] GraphQL errors', new Error(errorMsg), {
-				errors: tasksData.errors
-			});
-			throw new Error(errorMsg);
-		}
-
-		let tasks = tasksData?.data?.tasks || [];
-
-		// Client-side filtering for status (Rust backend doesn't support filter parameter)
-		if (statusFilter) {
-			const statusUpper = statusFilter.toUpperCase().replace('-', '_');
-			tasks = tasks.filter((task: any) => task.status === statusUpper);
-		}
-
-		// Client-side filtering for priority
-		if (priorityFilter) {
-			const priorityUpper = priorityFilter.toUpperCase();
-			tasks = tasks.filter((task: any) => task.priority === priorityUpper);
-		}
-
-		// Client-side filtering for search term
-		if (searchTerm) {
-			const searchLower = searchTerm.toLowerCase();
-			tasks = tasks.filter((task: any) => {
-				const title = task.title?.toLowerCase() || '';
-				const description = task.description?.toLowerCase() || '';
-				return title.includes(searchLower) || description.includes(searchLower);
-			});
-		}
-
-		// Client-side filtering for due date range
-		if (dueDateStart || dueDateEnd) {
-			tasks = tasks.filter((task: any) => {
-				if (!task.dueDate) return false;
-				const taskDate = new Date(task.dueDate);
-				if (dueDateStart && taskDate < new Date(dueDateStart)) return false;
-				if (dueDateEnd && taskDate > new Date(dueDateEnd)) return false;
-				return true;
-			});
-		}
-
-		// Client-side filtering for parent task
-		if (hasParent === 'true') {
-			// Only subtasks (has parent)
-			tasks = tasks.filter((task: any) => task.parentTask != null);
-		} else if (hasParent === 'false') {
-			// Only top-level tasks (no parent)
-			tasks = tasks.filter((task: any) => task.parentTask == null);
-		}
-
-		// Client-side filtering for assignee
-		if (assigneeFilter) {
-			tasks = tasks.filter((task: any) => task.assignee?.id === assigneeFilter);
-		}
-
-		// Client-side filtering for task type
-		if (taskTypeFilter) {
-			tasks = tasks.filter((task: any) => task.taskType?.id === taskTypeFilter);
-		}
-
-		// Load assignees (users) for filter dropdown
-		const assigneesResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetUsersForAssigneeFilter($limit: Int!) {
-						users(limit: $limit) {
+		try {
+			// GraphQL query definitions
+			const GET_TASKS_QUERY = `
+				query GetTasksForDashboard($limit: Int!, $offset: Int!) {
+					tasks(limit: $limit, offset: $offset) {
+						id
+						title
+						description
+						status
+						priority
+						dueDate
+						requiresManualReassignment
+						archived
+						createdAt
+						updatedAt
+						assignee {
 							id
 							displayName
 							email
-							roles {
-								id
-								name
-							}
 						}
-					}
-				`,
-				variables: {
-					limit: 100
-				}
-			})
-		});
-
-		const assigneesData = await assigneesResponse.json();
-
-		// Load task types for filter dropdown
-		const taskTypesResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetTaskTypesForFilter($isActive: Boolean) {
-						taskTypes(isActive: $isActive) {
+						department {
 							id
 							name
 							description
-							defaultPriority
-							colorCode
-							isActive
+						}
+						creator {
+							id
+							displayName
+							email
+						}
+						taskType {
+							id
+							name
+						}
+						parentTask {
+							id
+							title
+							status
 						}
 					}
-				`,
-				variables: {
-					limit: 100
 				}
-			})
-		});
+			`;
 
-		const taskTypesData = await taskTypesResponse.json();
+			const GET_ASSIGNEES_QUERY = `
+				query GetUsersForAssigneeFilter($limit: Int!) {
+					users(limit: $limit) {
+						id
+						displayName
+						email
+						roles {
+							id
+							name
+						}
+					}
+				}
+			`;
 
-		// Get standardized user permissions
-		const userPermissions = getUserPermissions(locals);
+			const GET_TASK_TYPES_QUERY = `
+				query GetTaskTypesForFilter($limit: Int!) {
+					taskTypes(isActive: true) {
+						id
+						name
+						description
+						defaultPriority
+						colorCode
+						isActive
+					}
+				}
+			`;
 
-		// Calculate task statistics
-		// NOTE: Rust GraphQL returns enum values in SCREAMING_SNAKE_CASE (async-graphql default)
-		// Database stores: 'todo', 'in_progress', etc. (lowercase)
-		// GraphQL returns: 'TODO', 'IN_PROGRESS', etc. (uppercase)
-		const taskStats = {
-			total: tasks.length,
-			notStarted: tasks.filter((t: any) => t.status === 'TODO').length,
-			inProgress: tasks.filter((t: any) => t.status === 'IN_PROGRESS').length,
-			blocked: tasks.filter((t: any) => t.status === 'BLOCKED').length,
-			review: tasks.filter((t: any) => t.status === 'REVIEW').length,
-			completed: tasks.filter((t: any) => t.status === 'DONE').length
-		};
+			// Use UnifiedGraphQLClient to execute all queries
+			// Fetch large dataset for client-side filtering (backend doesn't support filters yet)
+			const tasksData = await client.query(
+				GET_TASKS_QUERY,
+				{ limit: 1000, offset: 0 },
+				{
+					operationName: 'GetTasksForDashboard',
+					errorMessage: 'Failed to load tasks',
+					dataPath: 'tasks'
+				}
+			);
 
-		// Return server-side loaded data
-		return {
-			userSession: userSession.toJSON(),
-			tasks,
-			totalTasks: tasks.length,
-			assignees: assigneesData?.data?.users || [],
-			taskTypes: taskTypesData?.data?.taskTypes || [],
-			taskStats,
-			filters: {
-				searchTerm,
-				statusFilter,
-				priorityFilter,
-				assigneeFilter,
-				taskTypeFilter,
-				dueDateStart,
-				dueDateEnd,
-				hasParent,
-				page,
-				limit
-			},
-			// RBAC: Standardized permission checks (includes user property)
-			...userPermissions,
-			loadedAt: new Date().toISOString()
-		};
-	} catch (err) {
-		logger.error('[Tasks Dashboard Load Error]', err as Error);
+			const assignees = await client.query(
+				GET_ASSIGNEES_QUERY,
+				{ limit: 100 },
+				{
+					operationName: 'GetUsersForAssigneeFilter',
+					errorMessage: 'Failed to load assignees',
+					dataPath: 'users'
+				}
+			);
 
-		// Create standardized error response
-		const errorResponse = createErrorResponse(
-			err instanceof Error ? err : new Error('Tasks dashboard load failed'),
-			{
-				type: 'DATA_LOAD_ERROR',
-				userMessage: 'Unable to load tasks dashboard. Please refresh the page or try again later.'
-			}
-		);
+			const taskTypes = await client.query(
+				GET_TASK_TYPES_QUERY,
+				{ limit: 100 },
+				{
+					operationName: 'GetTaskTypesForFilter',
+					errorMessage: 'Failed to load task types',
+					dataPath: 'taskTypes'
+				}
+			);
 
-		// Log error details for debugging
-		logger.error('[Tasks Dashboard Error Details]', undefined, {
-			userId: locals.user?.id,
-			userRole: locals.user?.role,
-			searchTerm,
-			statusFilter,
-			priorityFilter,
-			errorMessage: errorResponse.userMessage
-		});
+			logger.info('[Tasks Dashboard] Tasks loaded', {
+				count: tasksData?.length || 0
+			});
 
-		// Return safe fallback data instead of crashing
-		return {
-			userSession: userSession.toJSON(),
-			tasks: [],
-			totalTasks: 0,
-			assignees: [],
-			taskTypes: [],
-			taskStats: {
-				total: 0,
-				notStarted: 0,
-				inProgress: 0,
-				blocked: 0,
-				review: 0,
-				completed: 0
-			},
-			filters: {
-				searchTerm,
-				statusFilter,
-				priorityFilter,
-				assigneeFilter,
-				taskTypeFilter,
-				dueDateStart,
-				dueDateEnd,
-				hasParent,
-				page,
-				limit
-			},
-			// Default permissions if loading failed (includes user property)
-			...getUserPermissions(locals),
-			loadedAt: new Date().toISOString(),
-			error: errorResponse.userMessage
-		};
-	}
+			// Use ClientSideFilter for fluent filtering API
+			let filteredTasks = new ClientSideFilter(tasksData || [])
+				// Status filter (GraphQL returns SCREAMING_SNAKE_CASE)
+				.where('status', filters.statusFilter ? filters.statusFilter.toUpperCase().replace('-', '_') : undefined)
+				// Priority filter
+				.where('priority', filters.priorityFilter ? filters.priorityFilter.toUpperCase() : undefined)
+				// Assignee filter
+				.filter((task: any) => !filters.assigneeFilter || task.assignee?.id === filters.assigneeFilter)
+				// Task type filter
+				.filter((task: any) => !filters.taskTypeFilter || task.taskType?.id === filters.taskTypeFilter)
+				// Search filter (title + description)
+				.search(filters.searchTerm, ['title', 'description'])
+				// Due date range filter
+				.filter((task: any) => {
+					if (!filters.dueDateStart && !filters.dueDateEnd) return true;
+					if (!task.dueDate) return false;
+					const taskDate = new Date(task.dueDate);
+					if (filters.dueDateStart && taskDate < new Date(filters.dueDateStart)) return false;
+					if (filters.dueDateEnd && taskDate > new Date(filters.dueDateEnd)) return false;
+					return true;
+				})
+				// Parent task filter
+				.filter((task: any) => {
+					if (filters.hasParent === 'true') return task.parentTask != null;
+					if (filters.hasParent === 'false') return task.parentTask == null;
+					return true;
+				})
+				.get();
+
+			// Use StatisticsCalculator for task statistics
+			const taskStats = StatisticsCalculator.forTasks(filteredTasks);
+
+			// Return standardized data structure
+			// RBACDataLoader already includes userSession and permissions
+			return {
+				tasks: filteredTasks,
+				totalTasks: filteredTasks.length,
+				assignees: assignees || [],
+				taskTypes: taskTypes || [],
+				taskStats,
+				filters: {
+					...filters,
+					page,
+					limit
+				}
+			};
+		} catch (err) {
+			logger.error('[Tasks Dashboard Load Error]', err as Error);
+
+			// Return safe fallback data
+			return {
+				tasks: [],
+				totalTasks: 0,
+				assignees: [],
+				taskTypes: [],
+				taskStats: {
+					total: 0,
+					notStarted: 0,
+					inProgress: 0,
+					blocked: 0,
+					review: 0,
+					completed: 0,
+					overdue: 0
+				},
+				filters: {
+					...filters,
+					page,
+					limit
+				},
+				error: err instanceof Error ? err.message : 'Failed to load tasks dashboard'
+			};
+		}
+	});
 };
 
 export const actions: Actions = {
@@ -481,7 +332,10 @@ export const actions: Actions = {
 				taskId: newTask.id
 			};
 		} catch (err) {
-			logger.error('[Quick Add Task] Create error', err instanceof Error ? err : new Error(String(err)));
+			logger.error(
+				'[Quick Add Task] Create error',
+				err instanceof Error ? err : new Error(String(err))
+			);
 
 			return fail(500, {
 				error: err instanceof Error ? err.message : 'Failed to create task'

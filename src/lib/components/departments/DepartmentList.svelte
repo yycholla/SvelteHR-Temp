@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { logger } from '$lib/utils/logger';
 	import { goto } from '$app/navigation';
+	import { resolveRoute } from '$app/paths';
 	import { toast } from 'svelte-sonner';
 	import { departmentService, departments, loadDepartments } from '$lib/services/departmentService';
 	import { currentUser, hasPermission } from '$lib/services/auth';
@@ -137,7 +138,7 @@
 
 	function handleRowClick(detail: { row: any; index: number }) {
 		const { row } = detail;
-		goto(`/departments/${row.id}`);
+		goto(resolveRoute(`/departments/${row.id}` as any));
 	}
 
 	function handleSelectionChange(detail: any[]) {
@@ -153,19 +154,19 @@
 	async function handleBulkAction(action: string) {
 		if (selectedDepartments.length === 0) return;
 
-		const departmentIds = selectedDepartments.map((dept) => dept.id);
-
 		try {
 			switch (action) {
-				case 'activate':
+				case 'activate': {
 					// TODO: Implement bulk department activation
 					logger.info(`Bulk activate:: ${selectedDepartments}`);
 					break;
-				case 'archive':
+				}
+				case 'archive': {
 					// TODO: Implement bulk department archiving
 					logger.info(`Bulk archive:: ${selectedDepartments}`);
 					break;
-				case 'export':
+				}
+				case 'export': {
 					// Simple CSV export
 					const csvData = selectedDepartments.map((dept) => ({
 						Name: dept.name,
@@ -189,6 +190,7 @@
 					a.click();
 					URL.revokeObjectURL(url);
 					break;
+				}
 			}
 		} catch (error) {
 			logger.error('Catch failed', error as Error);
@@ -233,11 +235,19 @@
 
 			<div class="department-list__actions">
 				{#if $currentUser && hasPermission('department:create')}
-					<Button variant="secondary" leftIcon="eye" onclick={() => goto('/departments/hierarchy')}>
+					<Button
+						variant="secondary"
+						leftIcon="eye"
+						onclick={() => goto(resolveRoute('/departments/hierarchy' as any))}
+					>
 						View Hierarchy
 					</Button>
 
-					<Button variant="primary" leftIcon="plus" onclick={() => goto('/departments/new')}>
+					<Button
+						variant="primary"
+						leftIcon="plus"
+						onclick={() => goto(resolveRoute('/departments/new' as any))}
+					>
 						Add Department
 					</Button>
 				{/if}
@@ -372,7 +382,7 @@
 								leftIcon="edit"
 								onclick={(e) => {
 									e.stopPropagation();
-									goto(`/departments/${row.id}/edit`);
+									goto(resolveRoute(`/departments/${row.id}/edit` as any));
 								}}
 							/>
 						{/if}

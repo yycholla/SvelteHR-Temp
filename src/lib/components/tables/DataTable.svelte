@@ -52,9 +52,7 @@
 		onsort?: ((detail: { key: string; direction: 'asc' | 'desc' }) => void) | undefined;
 		onrowClick?: ((detail: { row: TableData; index: number }) => void) | undefined;
 		onselectionChange?: ((detail: any[]) => void) | undefined;
-		cellRenderer?: import('svelte').Snippet<
-			[{ column: Column; value: any; row: TableData }]
-		>;
+		cellRenderer?: import('svelte').Snippet<[{ column: Column; value: any; row: TableData }]>;
 	} = $props();
 
 	// Computed selection states

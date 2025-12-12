@@ -19,6 +19,7 @@ logger.info(`Loading task: ${taskId}`);
 ```
 
 This causes TypeScript compilation errors:
+
 ```
 Error: ')' expected.
 ```
@@ -80,6 +81,7 @@ logger.warn(`Rate limit approaching: ${current}/${limit}`);
 ```
 
 **Rationale**:
+
 - Single colon is more conventional in English
 - Avoids confusion with scope resolution operators (C++, Rust)
 - Cleaner visual appearance
@@ -216,11 +218,13 @@ echo "Done! Run 'npm run check' to verify."
 Using your editor's find-and-replace with regex:
 
 **Find**:
+
 ```regex
 (logger\.[a-z]+\(`[^`]+)`\s*;
 ```
 
 **Replace**:
+
 ```
 $1`);
 ```
@@ -255,9 +259,7 @@ logger.info('User logged in', { userId, role });
 logger.error('Database query failed', error, { query: 'SELECT *' });
 
 // Multi-line for readability
-logger.info(
-	`Processing batch ${batchId} with ${count} items`
-);
+logger.info(`Processing batch ${batchId} with ${count} items`);
 ```
 
 ### ❌ Incorrect Patterns to Avoid
@@ -285,6 +287,7 @@ logger.info(`User: ${user.id}, Role: ${user.role}, Dept: ${user.dept}`);
 ### Example 1: Server Route File
 
 **Before** (`+page.server.ts`):
+
 ```typescript
 export const load: PageServerLoad = async ({ params }) => {
 	const { id } = params;
@@ -302,17 +305,18 @@ export const load: PageServerLoad = async ({ params }) => {
 ```
 
 **After**:
+
 ```typescript
 export const load: PageServerLoad = async ({ params }) => {
 	const { id } = params;
-	logger.info(`Loading document: ${id}`);  // ✅ Fixed
+	logger.info(`Loading document: ${id}`); // ✅ Fixed
 
 	try {
 		const doc = await fetchDocument(id);
-		logger.info(`Document loaded: ${doc.title}`);  // ✅ Fixed
+		logger.info(`Document loaded: ${doc.title}`); // ✅ Fixed
 		return { document: doc };
 	} catch (err) {
-		logger.error('Failed to load document', err as Error, { documentId: id });  // ✅ Better pattern
+		logger.error('Failed to load document', err as Error, { documentId: id }); // ✅ Better pattern
 		throw error(500, 'Document not found');
 	}
 };
@@ -321,6 +325,7 @@ export const load: PageServerLoad = async ({ params }) => {
 ### Example 2: GraphQL Query File
 
 **Before** (`leave-requests.ts`):
+
 ```typescript
 async approveLeaveRequest(params: ApproveParams) {
 	logger.info(`Approve leave request:: ${params}`;  // ❌ Missing paren
@@ -329,6 +334,7 @@ async approveLeaveRequest(params: ApproveParams) {
 ```
 
 **After** (Improved):
+
 ```typescript
 async approveLeaveRequest(params: ApproveParams) {
 	logger.info('Approving leave request', { requestId: params.id, approverId: params.approverId });  // ✅ Better
@@ -339,6 +345,7 @@ async approveLeaveRequest(params: ApproveParams) {
 ### Example 3: Component File
 
 **Before** (`TaskForm.svelte`):
+
 ```typescript
 function handleSubmit() {
 	logger.info(`[TaskForm] Selected status:: ${selectedStatus}`;  // ❌ Missing paren
@@ -347,9 +354,10 @@ function handleSubmit() {
 ```
 
 **After**:
+
 ```typescript
 function handleSubmit() {
-	logger.info('[TaskForm] Submitting with status', { status: selectedStatus });  // ✅ Better pattern
+	logger.info('[TaskForm] Submitting with status', { status: selectedStatus }); // ✅ Better pattern
 	// ... submit logic
 }
 ```
@@ -366,18 +374,21 @@ npm run check 2>&1 | grep "')' expected" | wc -l
 ```
 
 ### Before Fix
+
 ```
 $ npm run check 2>&1 | grep "')' expected" | wc -l
 120
 ```
 
 ### After Fix
+
 ```
 $ npm run check 2>&1 | grep "')' expected" | wc -l
 0
 ```
 
 ### Expected Error Reduction
+
 - **Before**: ~460 errors (after Phase 1)
 - **After**: ~340 errors (26% additional reduction)
 

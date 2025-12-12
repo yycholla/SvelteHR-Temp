@@ -33,7 +33,7 @@ export async function lazyLoadComponent<T>(
 
 		return module.default;
 	} catch (error) {
-		logger.error('Catch failed', error as Error);
+		logger.error('Component lazy load failed', error as Error, { componentName });
 		throw new Error(`Component ${componentName} failed to load`);
 	}
 }
@@ -46,7 +46,9 @@ export function preloadComponent(importFn: () => Promise<any>): void {
 	if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
 		requestIdleCallback(() => {
 			importFn().catch((error) => {
-				logger.warn(`Component preload failed: ${error}`);
+				logger.warn('Component preload failed', {
+					error: error instanceof Error ? error.message : String(error)
+				});
 			});
 		});
 	}

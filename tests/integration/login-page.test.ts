@@ -525,7 +525,7 @@ describe('Login Page Integration (T018)', () => {
 				})
 			);
 		});
-});
+	});
 });
 
 describe('Security Features Integration', () => {

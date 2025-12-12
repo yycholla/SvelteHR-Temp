@@ -124,7 +124,7 @@ export async function waitForCalendarRender(
  */
 export function mockFullCalendarPlugins() {
 	return {
-		Calendar: vi.fn().mockImplementation(function (el: HTMLElement, options: any) {
+		Calendar: vi.fn().mockImplementation((el: HTMLElement, options: any) => {
 			return mockFullCalendar();
 		}),
 		dayGridPlugin: { default: {} },

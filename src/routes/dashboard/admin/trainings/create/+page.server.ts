@@ -91,13 +91,12 @@ export const actions: Actions = {
 			const response = await client.mutation(CREATE_TRAINING_MUTATION, variables);
 
 			logger.info('=== MUTATION RESPONSE ===');
-			logger.info('Full response:', JSON.stringify(response, null, 2));
-			logger.info('response.data:', response.data);
-			logger.info('response.data?.training:', response.data?.training);
-			logger.info(
-				'response.data?.training?.createTraining:',
-				response.data?.training?.createTraining
-			);
+			logger.info('Full response', { response: JSON.stringify(response, null, 2) });
+			logger.info('response.data', { data: response.data });
+			logger.info('response.data?.training', { training: response.data?.training });
+			logger.info('response.data?.training?.createTraining', {
+				createTraining: response.data?.training?.createTraining
+			});
 			logger.info('=========================');
 
 			if (response.errors) {
@@ -109,10 +108,10 @@ export const actions: Actions = {
 			}
 
 			const newTrainingId = response.data?.training?.createTraining?.id;
-			logger.info('Extracted newTrainingId:', { newTrainingId });
+			logger.info('Extracted newTrainingId', { newTrainingId });
 
 			if (newTrainingId) {
-				logger.info('Redirecting to training content editor:', {
+				logger.info('Redirecting to training content editor', {
 					path: `/dashboard/admin/trainings/${newTrainingId}/content`
 				});
 				// Redirect to the content builder for this new training

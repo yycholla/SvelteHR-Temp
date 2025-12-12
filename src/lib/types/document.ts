@@ -23,7 +23,12 @@ export type AssignmentStatus = 'active' | 'revoked';
 
 export type DocumentRole = 'Admin' | 'HR' | 'Manager' | 'Employee';
 
-export type SortField = 'uploaded_at' | 'filename' | 'category' | 'expiration_date' | 'file_size_bytes';
+export type SortField =
+	| 'uploaded_at'
+	| 'filename'
+	| 'category'
+	| 'expiration_date'
+	| 'file_size_bytes';
 
 export type SortOrder = 'asc' | 'desc';
 

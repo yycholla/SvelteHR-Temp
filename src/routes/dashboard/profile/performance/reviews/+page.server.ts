@@ -1,10 +1,15 @@
-// User Performance Reviews - Server-Side Data Loading
-// Implements proper PostGraphile GraphQL queries with backend initialization
+/**
+ * User Performance Reviews Page - Server Load
+ * Feature: 023-reviews-creation-it
+ * Task: T039
+ *
+ * Server-side data loading for user's own performance reviews
+ * Refactored: Phase 2 - Using Phase 1 Foundation utilities
+ */
+
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { GraphQLClient } from '$lib/server/graphql-client';
-import { requireAuth } from '$lib/server/rbac-utils';
-import { ensureBackendReady } from '$lib/server/backend-init';
+import { RBACDataLoader } from '$lib/server/route-loaders';
 import { logger } from '$lib/utils/logger';
 
 // Type definitions for GraphQL query responses
@@ -122,61 +127,15 @@ function mapReviewStatus(status: string): string {
 }
 
 export const load: PageServerLoad = async (event) => {
-	const { url, cookies } = event;
+	const loader = new RBACDataLoader(event, [
+		'performance:read',
+		'performance:read:self',
+		'performance:read:team',
+		'performance:read:all'
+	]);
 
-	// Check authentication and permissions
-	requireAuth(event, {
-		requiredPermissions: [
-			'performance:read',
-			'performance:read:self',
-			'performance:read:team',
-			'performance:read:all'
-		]
-	});
-
-	// After permission check, re-destructure locals with guaranteed user
-	const { locals } = event;
-
-	// Use authenticated user's ID
-	const userId = locals.user.id;
-
-	try {
-		// Check backend services are ready before proceeding
-		const backendReady = await ensureBackendReady();
-
-		// If backend is not ready, return error state but don't crash
-		if (!backendReady) {
-			logger.warn('Backend not ready for user performance reviews page');
-			return {
-				user: null,
-				userId,
-				reviews: [],
-				reviewTypes: [],
-				competencyAreas: [],
-				reviewStats: {
-					total: 0,
-					completed: 0,
-					inProgress: 0,
-					scheduled: 0,
-					overdue: 0,
-					averageRating: 0,
-					lastReviewDate: null,
-					nextReviewDate: null
-				},
-				canManageReviews: false,
-				isOwnReviews: true,
-				permissions: locals.permissions || [],
-				loadedAt: new Date().toISOString(),
-				error: {
-					message: 'Backend services are initializing. Please try again in a moment.',
-					details: 'Backend initialization in progress',
-					retryable: true
-				}
-			};
-		}
-
-		// Create GraphQL client with authentication
-		const graphqlClient = GraphQLClient.fromCookies(cookies);
+	return loader.loadWithClient(async (client) => {
+		const userId = loader.getUserId();
 
 		// Load user details using new GraphQL client
 		// Migration: ✅ Use idiomatic Rust pattern (user with id parameter)
@@ -198,7 +157,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 		`;
 
-		const userData = await graphqlClient.query(userQuery, { id: userId });
+		const userData = await client.query(userQuery, { id: userId });
 		const user = userData.data?.user;
 
 		if (!user) {
@@ -246,7 +205,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 		`;
 
-		const reviewsData = await graphqlClient.query(reviewsQuery, {
+		const reviewsData = await client.query(reviewsQuery, {
 			employeeId: userId,
 			limit: 50,
 			offset: 0
@@ -381,39 +340,7 @@ export const load: PageServerLoad = async (event) => {
 			competencyAreas,
 			reviewStats,
 			canManageReviews: false,
-			isOwnReviews: true,
-			permissions: locals.permissions || [],
-			loadedAt: new Date().toISOString()
+			isOwnReviews: true
 		};
-	} catch (err) {
-		logger.error('Error loading user performance reviews:', err as Error);
-
-		// Return error state instead of throwing to prevent page crash
-		return {
-			user: null,
-			userId,
-			reviews: [],
-			reviewTypes: [],
-			competencyAreas: [],
-			reviewStats: {
-				total: 0,
-				completed: 0,
-				inProgress: 0,
-				scheduled: 0,
-				overdue: 0,
-				averageRating: 0,
-				lastReviewDate: null,
-				nextReviewDate: null
-			},
-			canManageReviews: false,
-			isOwnReviews: true,
-			permissions: locals.permissions || [],
-			loadedAt: new Date().toISOString(),
-			error: {
-				message: 'Unable to load performance reviews. Please try again later.',
-				details: err instanceof Error ? err.message : 'Unknown error',
-				retryable: true
-			}
-		};
-	}
+	});
 };

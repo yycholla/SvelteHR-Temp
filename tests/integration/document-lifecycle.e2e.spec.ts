@@ -2,7 +2,11 @@
 // Tests complete document workflow from upload to audit
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { decryptFile, encryptFile, generateEncryptionKey } from '../../src/lib/services/encryption.js';
+import {
+	decryptFile,
+	encryptFile,
+	generateEncryptionKey
+} from '../../src/lib/services/encryption.js';
 
 /**
  * End-to-End Integration Test: Complete Document Lifecycle
@@ -196,7 +200,11 @@ describe('Document Lifecycle - E2E Integration Tests', () => {
 			console.log(`Downloaded ${encryptedDownloadData.byteLength} bytes (encrypted)`);
 
 			// Step 9: Client-side decryption
-			const { decryptedData: decryptedBlob } = await decryptFile(encryptedDownloadData, encryptionKey, iv);
+			const { decryptedData: decryptedBlob } = await decryptFile(
+				encryptedDownloadData,
+				encryptionKey,
+				iv
+			);
 			const decryptedData = new Uint8Array(await decryptedBlob.arrayBuffer());
 
 			// Step 10: Verify decrypted content matches original

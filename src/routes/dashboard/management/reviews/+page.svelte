@@ -193,10 +193,10 @@
 	// Filter and display logic
 	const filteredReviews = $derived.by(() => {
 		let filtered = performanceReviews;
-		logger.info('🔍 [Filter] Starting with reviews:', filtered?.length || 0);
+		logger.info('🔍 [Filter] Starting with reviews', { count: filtered?.length || 0 });
 
 		if (selectedView !== 'all') {
-			logger.info(`🔍 [Filter] Applying view filter: ${selectedView}`);
+			logger.info('🔍 [Filter] Applying view filter', { view: selectedView });
 			filtered = filtered.filter((review) => {
 				switch (selectedView) {
 					case 'pending':
@@ -209,11 +209,11 @@
 						return true;
 				}
 			});
-			logger.info('🔍 [Filter] After view filter:', filtered.length);
+			logger.info('🔍 [Filter] After view filter', { count: filtered.length });
 		}
 
 		if (searchQuery) {
-			logger.info(`🔍 [Filter] Applying search filter: ${searchQuery}`);
+			logger.info('🔍 [Filter] Applying search filter', { searchQuery });
 			const query = searchQuery.toLowerCase();
 			filtered = filtered.filter(
 				(review) =>
@@ -221,10 +221,10 @@
 					review.reviewer?.displayName.toLowerCase().includes(query) ||
 					review.employee?.department?.name.toLowerCase().includes(query)
 			);
-			logger.info('🔍 [Filter] After search filter:', filtered.length);
+			logger.info('🔍 [Filter] After search filter', { count: filtered.length });
 		}
 
-		logger.info('🔍 [Filter] Final filtered reviews:', filtered.length);
+		logger.info('🔍 [Filter] Final filtered reviews', { count: filtered.length });
 		return filtered;
 	});
 
@@ -245,13 +245,17 @@
 		try {
 			// TODO: Implement GraphQL mutation for deleting performance review
 			// For now, just show a placeholder message
-			logger.info('Delete review:', review.id);
+			logger.info('Delete review', { reviewId: review.id });
 			toast.success('Review deletion coming soon');
 
 			// Refresh the page to get updated data
 			// goto($page.url.pathname, { invalidateAll: true });
 		} catch (error) {
-			logger.error('Failed to delete performance review:', error as Error);
+			logger.error(
+				'Failed to delete performance review',
+				error instanceof Error ? error : new Error(String(error)),
+				{ reviewId: review.id }
+			);
 			toast.error('Failed to delete performance review');
 		}
 	}
@@ -352,14 +356,14 @@
 	function handleCreateReview(event: CustomEvent) {
 		const { data: reviewData } = event.detail;
 		// TODO: Call GraphQL mutation
-		logger.info(`Create review: ${reviewData}`);
+		logger.info('Create review', { reviewData });
 		toast.success('Review creation coming soon');
 	}
 
 	function handleSaveAsDraft(event: CustomEvent) {
 		const { data: draftData } = event.detail;
 		// TODO: Call GraphQL mutation to save draft
-		logger.info(`Save draft: ${draftData}`);
+		logger.info('Save draft', { draftData });
 		toast.success('Draft save coming soon');
 	}
 </script>
@@ -472,7 +476,11 @@
 					<!-- Status Filter -->
 					<div class="w-full md:w-48">
 						<Label>Status</Label>
-						<Select.Root type="single" value={statusFilter} onValueChange={handleStatusFilterChange}>
+						<Select.Root
+							type="single"
+							value={statusFilter}
+							onValueChange={handleStatusFilterChange}
+						>
 							<Select.Trigger>
 								<Select.Value placeholder="All Statuses" />
 							</Select.Trigger>
@@ -488,7 +496,11 @@
 					<!-- Period Filter -->
 					<div class="w-full md:w-48">
 						<Label>Review Period</Label>
-						<Select.Root type="single" value={periodFilter} onValueChange={handlePeriodFilterChange}>
+						<Select.Root
+							type="single"
+							value={periodFilter}
+							onValueChange={handlePeriodFilterChange}
+						>
 							<Select.Trigger>
 								<Select.Value placeholder="All Periods" />
 							</Select.Trigger>

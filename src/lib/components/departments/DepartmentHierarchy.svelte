@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { departmentError, departmentService, departments, loadDepartments } from '$lib/services/departmentService';
+	import { resolveRoute } from '$app/paths';
+	import { SvelteSet, SvelteMap } from 'svelte/reactivity';
+	import { departmentError, departmentService, departments } from '$lib/services/departmentService';
 	import { currentUser, hasPermission } from '$lib/services/auth';
 	import Button from '../base/Button.svelte';
 	import Card from '../base/Card.svelte';
@@ -20,7 +22,7 @@
 	} = $props();
 
 	// Internal state
-	let expandedNodes = $state(new Set<string>());
+	let expandedNodes = $state(new SvelteSet<string>());
 	let selectedDepartment = $state<Department | null>(null);
 	let expandAll = $state(initialExpandAll);
 
@@ -31,7 +33,7 @@
 		if (!departments.length) return [];
 
 		// Build a map for quick lookups
-		const deptMap = new Map<string, Department>();
+		const deptMap = new SvelteMap<string, Department>();
 		departments.forEach((dept) => deptMap.set(dept.id, dept));
 
 		// Find root departments (no parent)
@@ -57,7 +59,7 @@
 	}
 
 	function toggleNode(departmentId: string) {
-		const newSet = new Set(expandedNodes);
+		const newSet = new SvelteSet(expandedNodes);
 		if (newSet.has(departmentId)) {
 			newSet.delete(departmentId);
 		} else {
@@ -115,10 +117,9 @@
 						variant="secondary"
 						size="sm"
 						leftIcon="plus"
-						onclick={() => goto('/departments/new')}
-					>
-						Add Department
-					</Button>
+						            onclick={() => goto(resolveRoute('/departments/new' as any))}
+						          >
+						            Add Department					</Button>
 				{/if}
 			</div>
 		</div>
@@ -161,7 +162,7 @@
 								variant="primary"
 								size="md"
 								leftIcon="plus"
-								onclick={() => goto('/departments/new')}
+								onclick={() => goto(resolveRoute('/departments/new' as any))}
 								class="mt-4"
 							>
 								Create Department
@@ -180,8 +181,8 @@
 							{expandAll}
 							ontoggle={(id) => toggleNode(id)}
 							onselect={(dept) => selectDepartment(dept)}
-							onedit={(id) => goto(`/departments/${id}/edit`)}
-							onview={(id) => goto(`/departments/${id}`)}
+							onedit={(id) => goto(resolveRoute(`/departments/${id}/edit` as any))}
+							onview={(id) => goto(resolveRoute(`/departments/${id}` as any))}
 						/>
 					{/each}
 				</div>
@@ -245,7 +246,8 @@
 							variant="secondary"
 							size="sm"
 							leftIcon="eye"
-							onclick={() => selectedDepartment && goto(`/departments/${selectedDepartment.id}`)}
+							onclick={() =>
+								selectedDepartment && goto(resolveRoute(`/departments/${selectedDepartment.id}` as any))}
 						>
 							View Details
 						</Button>
@@ -255,7 +257,9 @@
 								variant="primary"
 								size="sm"
 								leftIcon="edit"
-								onclick={() => selectedDepartment && goto(`/departments/${selectedDepartment.id}/edit`)}
+								onclick={() =>
+									selectedDepartment &&
+									goto(resolveRoute(`/departments/${selectedDepartment.id}/edit` as any))}
 							>
 								Edit
 							</Button>

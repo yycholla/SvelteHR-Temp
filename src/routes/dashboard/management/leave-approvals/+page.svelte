@@ -571,7 +571,11 @@
 					<!-- Leave Type Filter -->
 					<div class="w-full md:w-48">
 						<Label>Leave Type</Label>
-						<Select type="single" value={leaveTypeFilter} onValueChange={handleLeaveTypeFilterChange}>
+						<Select
+							type="single"
+							value={leaveTypeFilter}
+							onValueChange={handleLeaveTypeFilterChange}
+						>
 							<SelectTrigger placeholder="All Types" />
 							<SelectContent>
 								<SelectItem value="">All Types</SelectItem>

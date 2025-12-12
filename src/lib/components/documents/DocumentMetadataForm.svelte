@@ -36,9 +36,6 @@
 		}),
 		assignedEmployeeIds = $bindable<string[]>([]),
 		employeeOptions = [],
-		onSubmit = () => {},
-		onCancel = () => {},
-		isSubmitting = false,
 		hasRequiredFields = $bindable(false),
 		metadataValid = $bindable(false),
 		showEmployeeAssignment = true
@@ -79,7 +76,9 @@
 		metadataValid = Object.keys(errors).length === 0 && hasRequiredFields;
 		logger.info('[DocumentMetadataForm] hasRequiredFields updated:', { hasRequiredFields });
 		logger.info('[DocumentMetadataForm] category:', { category: metadata.category });
-		logger.info('[DocumentMetadataForm] sensitivityLevel:', { sensitivityLevel: metadata.sensitivityLevel });
+		logger.info('[DocumentMetadataForm] sensitivityLevel:', {
+			sensitivityLevel: metadata.sensitivityLevel
+		});
 	});
 
 	// Categories and sensitivity levels
@@ -173,9 +172,11 @@
 			} catch (testError: any) {
 				logger.error(
 					'[DocumentMetadataForm] ❌ Schema test with hardcoded data FAILED:',
-					testError
+					testError instanceof Error ? testError : new Error(String(testError))
 				);
-				logger.error('[DocumentMetadataForm] Test error stack:', testError.stack);
+				logger.error('[DocumentMetadataForm] Test error stack:', undefined, {
+					stack: testError.stack
+				});
 			}
 
 			// Test 2: Try manual construction field by field
@@ -189,7 +190,9 @@
 				expirationDate: metadata.expirationDate ? new Date(metadata.expirationDate) : undefined
 			};
 
-			logger.info('[DocumentMetadataForm] Validating manually constructed object:', { validationData });
+			logger.info('[DocumentMetadataForm] Validating manually constructed object:', {
+				validationData
+			});
 			logger.info('[DocumentMetadataForm] Field types:', {
 				filenameType: typeof validationData.filename,
 				categoryType: typeof validationData.category,
@@ -207,11 +210,13 @@
 			return true;
 		} catch (error: any) {
 			logger.error('Catch failed', error as Error);
-			logger.error('[DocumentMetadataForm] Error name:', { name: error.name });
-			logger.error('[DocumentMetadataForm] Error message:', { message: error.message });
-			logger.error('[DocumentMetadataForm] Error stack:', { stack: error.stack });
+			logger.error('[DocumentMetadataForm] Error name:', undefined, { name: error.name });
+			logger.error('[DocumentMetadataForm] Error message:', undefined, { message: error.message });
+			logger.error('[DocumentMetadataForm] Error stack:', undefined, { stack: error.stack });
 			if (error.errors) {
-				logger.error('[DocumentMetadataForm] Zod errors:', JSON.stringify(error.errors, null, 2));
+				logger.error('[DocumentMetadataForm] Zod errors:', undefined, {
+					zodErrors: JSON.stringify(error.errors, null, 2)
+				});
 				errors = error.errors.reduce((acc: Record<string, string>, err: any) => {
 					acc[err.path[0]] = err.message;
 					return acc;
@@ -258,7 +263,7 @@
 			class={touched.category && errors.category ? 'border-red-500' : ''}
 			required
 		>
-			{#each categories as category}
+			{#each categories as category (category)}
 				<NativeSelectOption value={category}>{category}</NativeSelectOption>
 			{/each}
 		</NativeSelect>
@@ -279,7 +284,7 @@
 			class={touched.sensitivityLevel && errors.sensitivityLevel ? 'border-red-500' : ''}
 			required
 		>
-			{#each sensitivityLevels as level}
+			{#each sensitivityLevels as level (level.value)}
 				<NativeSelectOption value={level.value}>
 					{level.label} - {level.description}
 				</NativeSelectOption>

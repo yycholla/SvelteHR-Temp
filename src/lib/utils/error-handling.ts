@@ -154,7 +154,11 @@ export function createStandardError(
 		requestId: standardError.requestId,
 		timestamp
 	};
-	logger.error(`${type.toUpperCase()} Error`, originalError instanceof Error ? originalError : new Error(standardError.message), errorInfo);
+	logger.error(
+		`${type.toUpperCase()} Error`,
+		originalError instanceof Error ? originalError : new Error(standardError.message),
+		errorInfo
+	);
 
 	return standardError;
 }

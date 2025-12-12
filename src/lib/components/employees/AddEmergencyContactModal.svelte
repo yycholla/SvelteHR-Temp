@@ -75,7 +75,7 @@
 
 		if (!phoneNumber.trim()) {
 			newErrors.phoneNumber = 'Phone number is required';
-		} else if (!/^[\d\s\-\(\)\+]+$/.test(phoneNumber)) {
+		} else if (!/^[\d\s\-()\\+]+$/.test(phoneNumber)) {
 			newErrors.phoneNumber = 'Invalid phone number format';
 		}
 

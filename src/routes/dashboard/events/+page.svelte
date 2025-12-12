@@ -113,8 +113,8 @@
 	$effect(() => {
 		const newStatuses: Record<string, RsvpStatus> = {};
 		const updatesToClear: string[] = [];
-		(events || []).forEach((event) => {
-			const userAttendee = event.attendees?.find((a: any) => a.employeeId === data.user.id);
+		(events || []).forEach((event: Event) => {
+			const userAttendee = event.attendees?.find((a) => a.employeeId === data.user.id);
 			const serverStatus = normalizeRsvpStatus(userAttendee?.responseStatus);
 			if (pendingRsvpUpdates[event.id]) {
 				const pendingStatus = pendingRsvpUpdates[event.id];
@@ -219,7 +219,11 @@
 			commentCount = result.data.eventCommentsCount || rawComments.length; // Adjust if count available
 			hasMoreComments = rawComments.length >= 20;
 		} catch (err) {
-			logger.error(err);
+			logger.error(
+				'Failed to fetch event comments',
+				err instanceof Error ? err : new Error(String(err)),
+				{ eventId }
+			);
 		}
 	}
 
@@ -250,7 +254,11 @@
 			}
 			hasMoreHistory = rawHistory.length >= 25;
 		} catch (err) {
-			logger.error(err);
+			logger.error(
+				'Failed to fetch event history',
+				err instanceof Error ? err : new Error(String(err)),
+				{ eventId }
+			);
 		}
 	}
 
@@ -267,7 +275,11 @@
 				userWaitlistStatus = { isOnWaitlist: false, position: null };
 			}
 		} catch (err) {
-			logger.error(err);
+			logger.error(
+				'Failed to fetch waitlist status',
+				err instanceof Error ? err : new Error(String(err)),
+				{ eventId }
+			);
 		}
 	}
 

@@ -35,9 +35,9 @@
 			['hr_admin', 'system_admin', 'super_admin', 'Admin', 'admin'].includes(role)
 		)
 			? '/dashboard/tasks' // Admins see all tasks
-			: (user.roles || []).some((role: string) =>
-				role.toLowerCase() === 'manager' || role === 'Manager'
-			)
+			: (user.roles || []).some(
+						(role: string) => role.toLowerCase() === 'manager' || role === 'Manager'
+				  )
 				? '/dashboard/tasks/team-tasks' // Managers see team tasks
 				: '/dashboard/tasks/my-tasks' // Employees see their own tasks
 	);

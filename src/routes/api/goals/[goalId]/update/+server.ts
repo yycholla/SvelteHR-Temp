@@ -66,7 +66,9 @@ export const PATCH: RequestHandler = async ({ request, params, cookies, locals }
 		logger.info('[Goal Update API] GraphQL result', { result: JSON.stringify(result, null, 2) });
 
 		if (result.errors) {
-			logger.error('[Goal Update API] GraphQL errors', new Error('GraphQL errors'), { errors: JSON.stringify(result.errors, null, 2) });
+			logger.error('[Goal Update API] GraphQL errors', new Error('GraphQL errors'), {
+				errors: JSON.stringify(result.errors, null, 2)
+			});
 			const errorMessage = result.errors.map((e: any) => e.message).join('; ');
 			return json(
 				{
@@ -83,7 +85,9 @@ export const PATCH: RequestHandler = async ({ request, params, cookies, locals }
 			return json({ message: 'No data returned from goal update' }, { status: 500 });
 		}
 
-		logger.info('[Goal Update API] Successfully updated goal', { goal: result.data.updateEmployeeGoal });
+		logger.info('[Goal Update API] Successfully updated goal', {
+			goal: result.data.updateEmployeeGoal
+		});
 		return json({ goal: result.data.updateEmployeeGoal }, { status: 200 });
 	} catch (error) {
 		logger.error('[Goal Update API] Catch block error', error as Error);

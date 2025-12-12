@@ -66,7 +66,9 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
 		logger.info('[Goal Create API] GraphQL result', { result: JSON.stringify(result, null, 2) });
 
 		if (result.errors) {
-			logger.error('[Goal Create API] GraphQL errors', new Error('GraphQL errors'), { errors: JSON.stringify(result.errors, null, 2) });
+			logger.error('[Goal Create API] GraphQL errors', new Error('GraphQL errors'), {
+				errors: JSON.stringify(result.errors, null, 2)
+			});
 			const errorMessage = result.errors.map((e: any) => e.message).join('; ');
 			return json(
 				{
@@ -83,7 +85,9 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
 			return json({ message: 'No data returned from goal creation' }, { status: 500 });
 		}
 
-		logger.info('[Goal Create API] Successfully created goal', { goal: result.data.createEmployeeGoal });
+		logger.info('[Goal Create API] Successfully created goal', {
+			goal: result.data.createEmployeeGoal
+		});
 		return json({ goal: result.data.createEmployeeGoal }, { status: 201 });
 	} catch (error) {
 		logger.error('[Goal Create API] Catch block error', error as Error);

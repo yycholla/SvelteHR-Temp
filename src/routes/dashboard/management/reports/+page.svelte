@@ -672,7 +672,9 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 						<h3 class="mb-6 text-lg font-semibold text-foreground">Most Popular Reports</h3>
 						<div class="space-y-4">
 							{#each reportAnalytics.popularReports as report}
-								<div class="flex items-center justify-between rounded-lg bg-muted p-4 dark:bg-muted">
+								<div
+									class="flex items-center justify-between rounded-lg bg-muted p-4 dark:bg-muted"
+								>
 									<div>
 										<div class="font-medium text-foreground">{report.title}</div>
 										<div class="text-sm text-muted-foreground">
@@ -886,7 +888,9 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 							</div>
 							<div>
 								<dt class="text-sm font-medium text-muted-foreground">Last Run</dt>
-								<dd class="mt-1 text-sm text-foreground">{formatDate(selectedReport.lastRunAt ?? null)}</dd>
+								<dd class="mt-1 text-sm text-foreground">
+									{formatDate(selectedReport.lastRunAt ?? null)}
+								</dd>
 							</div>
 						</div>
 
