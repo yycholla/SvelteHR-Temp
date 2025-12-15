@@ -2,6 +2,7 @@ import { dev } from '$app/environment';
 import { getGraphQLEndpoint } from './api-url';
 import type { Cookies } from '@sveltejs/kit';
 import { logger } from '$lib/utils/logger';
+import { print, type DocumentNode } from 'graphql';
 
 export interface GraphQLError {
 	message: string;
@@ -58,7 +59,7 @@ export class GraphQLClient {
 	 * Execute a GraphQL query
 	 */
 	async query<T = any>(
-		query: string,
+		query: string | DocumentNode,
 		variables?: Record<string, any>
 	): Promise<GraphQLResponse<T>> {
 		return this.execute<T>(query, variables);
@@ -68,7 +69,7 @@ export class GraphQLClient {
 	 * Execute a GraphQL mutation
 	 */
 	async mutation<T = any>(
-		mutation: string,
+		mutation: string | DocumentNode,
 		variables?: Record<string, any>
 	): Promise<GraphQLResponse<T>> {
 		return this.execute<T>(mutation, variables);
@@ -78,7 +79,7 @@ export class GraphQLClient {
 	 * Execute a GraphQL operation with retry logic
 	 */
 	private async execute<T = any>(
-		operation: string,
+		operation: string | DocumentNode,
 		variables?: Record<string, any>
 	): Promise<GraphQLResponse<T>> {
 		return this.withRetry(async () => {
@@ -104,11 +105,13 @@ export class GraphQLClient {
 					headers['Authorization'] = `Bearer ${this.token}`;
 				}
 
+				const queryString = typeof operation === 'string' ? operation : print(operation);
+
 				const response = await fetch(this.endpoint, {
 					method: 'POST',
 					headers,
 					body: JSON.stringify({
-						query: operation,
+						query: queryString,
 						variables
 					}),
 					signal: controller.signal

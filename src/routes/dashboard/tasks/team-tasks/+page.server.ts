@@ -129,7 +129,7 @@ export const load: PageServerLoad = async (event) => {
 				}
 			);
 
-			let tasks = tasksResponse?.tasks || [];
+			const tasks = tasksResponse?.tasks || [];
 
 			// Apply team/department filtering logic
 			const taskFilter = new ClientSideFilter(tasks);

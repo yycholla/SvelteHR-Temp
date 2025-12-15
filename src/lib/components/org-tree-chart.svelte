@@ -30,7 +30,7 @@
 	}
 
 	// State for expanded nodes
-	let expandedNodes = $state(new SvelteSet<string>());
+	const expandedNodes = new SvelteSet<string>();
 
 	// Build hierarchical tree structure
 	function buildTreeStructure(): TreeNode {
@@ -127,7 +127,6 @@
 		} else {
 			expandedNodes.add(nodeId);
 		}
-		expandedNodes = new SvelteSet(expandedNodes); // Trigger reactivity
 	}
 
 	function getNodeIcon(node: TreeNode) {
@@ -182,13 +181,12 @@
 				onclick={() => {
 					// Expand all
 					if (treeData) {
-						const allIds = new SvelteSet<string>();
+						expandedNodes.clear();
 						function collectIds(node: TreeNode) {
-							allIds.add(node.id);
+							expandedNodes.add(node.id);
 							node.children.forEach(collectIds);
 						}
 						collectIds(treeData);
-						expandedNodes = allIds;
 					}
 				}}
 			>
@@ -198,7 +196,7 @@
 				variant="outline"
 				size="sm"
 				onclick={() => {
-					expandedNodes = new SvelteSet();
+					expandedNodes.clear();
 				}}
 			>
 				Collapse All

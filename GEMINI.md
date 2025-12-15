@@ -11,7 +11,7 @@
 
 ## Directory Structure
 
-- **Root**: Frontend (SvelteKit) application.
+- **`Root`**: Frontend (SvelteKit) application.
 - `graphql-rust-server/`: Rust backend application.
 - `src/`: Frontend source code.
   - `lib/`: Shared utilities, components, stores.

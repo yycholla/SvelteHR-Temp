@@ -22,7 +22,7 @@
 	} = $props();
 
 	// Internal state
-	let expandedNodes = $state(new SvelteSet<string>());
+	const expandedNodes = new SvelteSet<string>();
 	let selectedDepartment = $state<Department | null>(null);
 	let expandAll = $state(initialExpandAll);
 
@@ -59,13 +59,11 @@
 	}
 
 	function toggleNode(departmentId: string) {
-		const newSet = new SvelteSet(expandedNodes);
-		if (newSet.has(departmentId)) {
-			newSet.delete(departmentId);
+		if (expandedNodes.has(departmentId)) {
+			expandedNodes.delete(departmentId);
 		} else {
-			newSet.add(departmentId);
+			expandedNodes.add(departmentId);
 		}
-		expandedNodes = newSet;
 	}
 
 	function isExpanded(departmentId: string): boolean {

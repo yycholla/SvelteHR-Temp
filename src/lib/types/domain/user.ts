@@ -1,214 +1,142 @@
-// User and Employee related types
+import type { JobInfo, ContactInfo, PersonalInfo, EmergencyContact, UserAddress } from './nested';
 
 export interface User {
 	id: string;
 	email: string;
-	password_hash?: string;
-	passwordHash?: string;
-	first_name?: string;
-	firstName?: string;
-	last_name?: string;
-	lastName?: string;
-	display_name?: string;
-	displayName?: string;
-	full_name?: string;
-	fullName?: string;
-	name?: string; // Alias for display_name or full_name
-	username?: string; // Login username
-	role?: string;
-	roles?: Array<{ id: string; name: string; displayName?: string }>;
+	password_hash: string;
+	first_name: string;
+	last_name: string;
+	display_name: string;
+	full_name: string;
+	role: string;
 	phone_number?: string;
-	phoneNumber?: string;
 	alternate_phone?: string;
-	alternatePhone?: string;
 	job_title?: string;
-	jobTitle?: string;
 	status?: string;
 	department_id?: string;
-	departmentId?: string;
 	manager_id?: string;
-	managerId?: string;
 	hire_date?: string;
-	hireDate?: string;
 	termination_date?: string;
-	terminationDate?: string;
-	is_active?: boolean;
+	is_active: boolean;
 	isActive?: boolean;
-	failed_login_attempts?: number;
-	failedLoginAttempts?: number;
+	failed_login_attempts: number;
 	locked_until?: string;
-	lockedUntil?: string;
 	last_login?: string;
-	lastLogin?: string;
-	created_at?: string;
-	createdAt?: string;
-	updated_at?: string;
-	updatedAt?: string;
+	created_at: string;
+	updated_at: string;
 	deleted_at?: string;
-	deletedAt?: string;
+	username?: string;
 	profile_image?: string;
-	profileImage?: string; // Avatar/profile image URL
+	profileImage?: string;
+	// CamelCase aliases for GraphQL compatibility
+	firstName?: string;
+	lastName?: string;
+	displayName?: string;
+	fullName?: string;
+	hireDate?: string;
+	avatarUrl?: string;
+	jobTitle?: string;
+	departmentId?: string; // Added alias
+	managerId?: string;    // Added alias
 	// Nested objects from related tables
 	job_info?: JobInfo;
-	jobInfo?: JobInfo;
-	job_information?: {
-		title?: string;
-		department?: {
-			id: string;
-			name: string;
-		};
-		hire_date?: string;
-		employment_type?: string;
-	};
 	contact_info?: ContactInfo;
-	contactInfo?: ContactInfo;
 	personal_info?: PersonalInfo;
-	personalInfo?: PersonalInfo;
 	emergency_contact?: EmergencyContact;
-	emergencyContact?: EmergencyContact;
-	// Address support: both array and single object patterns
 	addresses?: UserAddress[];
-	address?: {
-		// Single address object for convenience
-		street?: string;
-		city?: string;
-		state?: string;
-		zipCode?: string;
-		country?: string;
+	job_information?: {
+		department?: {
+			id?: string;
+			name?: string;
+		};
 	};
-	// Relationship objects (populated from joins)
-	department?: Department; // Populated department object
-	manager?: User; // Populated manager object
 	// Relations
 	role_assignments?: Array<{
 		role: {
 			id: string;
 			name: string;
+			level: number;
+			description?: string;
 		};
 	}>;
+	department?: {
+		id: string;
+		name?: string;
+		code?: string;
+		description?: string;
+		manager?: {
+			id: string;
+			display_name?: string;
+			displayName?: string;
+			full_name?: string;
+			fullName?: string;
+			email?: string;
+		};
+	};
+	manager?: {
+		id: string;
+		display_name?: string;
+		displayName?: string;
+		full_name?: string;
+		fullName?: string;
+		email?: string;
+	};
 }
 
-export interface UserAddress {
-	address_line_1?: string; // Added for backward compatibility
-	street?: string;
-	city?: string;
-	state?: string;
-	state_province?: string; // Added for backward compatibility
-	zipCode?: string;
-	postal_code?: string; // Added for backward compatibility
-	country?: string;
-}
-
-export interface JobInfo {
-	title?: string;
-	department?: string;
-	manager?: string;
-	hire_date?: string;
-	hireDate?: string;
-	employment_type?: string;
-	employmentType?: string;
-	salary?: number;
-	currency?: string;
-	isRemote?: boolean;
-	payType?: string;
-}
-
-export interface ContactInfo {
-	phone_number?: string;
-	phoneNumber?: string;
-	address?: string;
-	emergency_contact_name?: string;
-	emergencyContactName?: string;
-	emergency_contact_phone?: string;
-	emergencyContactPhone?: string;
-}
-
-export interface PersonalInfo {
-	date_of_birth?: string;
-	dateOfBirth?: string;
-	gender?: string;
-	nationality?: string;
-	marital_status?: string;
-	maritalStatus?: string;
-}
-
-export interface EmergencyContact {
-	id: string;
-	employee_id?: string;
-	employeeId?: string;
-	name: string;
-	relationship: string;
-	phone_number: string;
-	phoneNumber?: string;
-	phone?: string; // Alias for phone_number
-	email?: string;
-	is_primary?: boolean;
-	isPrimary?: boolean;
-}
-
-export interface Department {
-	id: string;
-	name: string;
-	code?: string;
-	description?: string;
-	manager_id?: string;
-	managerId?: string;
-	parent_department_id?: string;
-	parentDepartmentId?: string;
-	manager?: User; // Populated manager object
-	parent_department?: Department; // Populated parent department
-	parentDepartment?: Department; // Alias for parent_department
-	created_at?: string;
-	createdAt?: string;
-	updated_at?: string;
-	updatedAt?: string;
+export interface UserFilter {
 	isActive?: boolean;
-	employeeCount?: number;
-	budgetLimit?: number;
-	costCenter?: string;
-	location?: string;
-	isRemoteEnabled?: boolean;
+	onboardingStatus?: string[];
+	departmentId?: string;
+	roleId?: string;
+	searchQuery?: string;
+	hireDate?: {
+		start?: string;
+		end?: string;
+	};
 }
 
-// Input types for mutations
 export interface CreateUserInput {
-	firstName: string;
-	lastName: string;
 	email: string;
+	username?: string;
 	password?: string;
+	firstName?: string;
+	lastName?: string;
 	role?: string;
-	jobTitle?: string;
+	roleIds?: string[];
 	departmentId?: string;
+	jobTitle?: string;
+	hireDate?: string;
+	phoneNumber?: string;
+	addressStreet?: string;
+	addressCity?: string;
+	addressState?: string;
+	addressZipCode?: string;
+	employmentType?: string;
+	isRemote?: boolean;
 	managerId?: string;
-	startDate?: string;
+	salary?: number;
+	payType?: string;
+	emergencyContactName?: string;
+	emergencyContactPhone?: string;
+	emergencyContactRelationship?: string;
 }
 
 export interface UpdateUserInput {
+	email?: string;
 	firstName?: string;
 	lastName?: string;
-	email?: string;
-	jobTitle?: string;
+	role?: string;
+	roleIds?: string[];
 	departmentId?: string;
+	jobTitle?: string;
+	phoneNumber?: string;
+	addressStreet?: string;
+	addressCity?: string;
+	addressState?: string;
+	addressZipCode?: string;
 	managerId?: string;
 	isActive?: boolean;
-}
-
-export interface CreateDepartmentInput {
-	name: string;
-	description?: string;
-	managerId?: string;
-	parentDepartmentId?: string;
-}
-
-export interface UpdateDepartmentInput {
-	name?: string;
-	description?: string;
-	managerId?: string;
-	parentDepartmentId?: string;
-	isActive?: boolean;
-}
-
-export interface DepartmentFilter {
-	isActive?: boolean;
-	search?: string;
+	emergencyContactName?: string;
+	emergencyContactPhone?: string;
+	emergencyContactRelationship?: string;
 }

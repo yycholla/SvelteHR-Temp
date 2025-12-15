@@ -125,7 +125,7 @@ export const load: PageServerLoad = async (event) => {
 			}));
 
 			// Use ClientSideFilter for fluent filtering API
-			let filteredEmployees = new ClientSideFilter(allEmployees || [])
+			const filteredEmployees = new ClientSideFilter(allEmployees || [])
 				// Status filter (active/inactive)
 				.filter((emp: any) => {
 					if (filters.statusFilter === 'active') return emp.isActive === true;

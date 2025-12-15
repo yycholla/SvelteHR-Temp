@@ -2,37 +2,21 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
 	import * as Card from '$lib/components/ui/card';
-	import { Badge } from '$lib/components/ui/badge';
-	import { Separator } from '$lib/components/ui/separator';
 	import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
 	import {
-		BarChart3,
 		Building,
 		Building2,
-		Crown,
-		Edit,
-		Eye,
-		Filter,
 		Plus,
-		Search,
-		Target,
 		TreePine,
-		TrendingUp,
-		UserCheck,
-		Users
 	} from '@lucide/svelte';
-
-	// Helper function to categorize team size
-	function categorizeTeamSize(count: number): { label: string; color: string } {
-		if (count === 0) return { label: 'Empty', color: 'gray' };
-		if (count <= 5) return { label: 'Small', color: 'blue' };
-		if (count <= 15) return { label: 'Medium', color: 'green' };
-		if (count <= 30) return { label: 'Large', color: 'yellow' };
-		return { label: 'Enterprise', color: 'purple' };
-	}
+	
+	// Import decomposed components
+	import PageHeader from '$lib/components/teams/page/PageHeader.svelte';
+	import TeamStats from '$lib/components/teams/page/TeamStats.svelte';
+	import PageFilters from '$lib/components/teams/page/PageFilters.svelte';
+	import TeamGrid from '$lib/components/teams/page/TeamGrid.svelte';
+	import PagePagination from '$lib/components/departments/page/PagePagination.svelte'; // Reusing pagination from departments
 
 	// Subscribe to page store at top level
 	const currentUrl = $derived($page.url);
@@ -72,13 +56,10 @@
 	const { data }: Props = $props();
 
 	// Extract server-loaded data
-	const user = $derived(data.user);
 	const teams = $derived(data.teams);
 	const totalTeams = $derived(data.totalTeams);
-	const hierarchy = $derived(data.hierarchy);
 	const teamStats = $derived(data.teamStats);
 	const filters = $derived(data.filters);
-	const permissions = $derived(data.permissions);
 	const canManageTeams = $derived(data.canManageTeams);
 	const canViewEmployees = $derived(data.canViewEmployees);
 
@@ -86,7 +67,6 @@
 	let searchTerm = $state(data.filters.searchTerm);
 	let selectedSize = $state(data.filters.sizeFilter);
 	let selectedHead = $state(data.filters.headFilter);
-	let selectedParent = $state(data.filters.parentFilter);
 	let viewMode = $state<'table' | 'hierarchy'>(data.filters.viewMode as 'table' | 'hierarchy');
 	const currentPage = $state(data.filters.page);
 	let pageSize = $state(String(data.filters.limit));
@@ -117,7 +97,6 @@
 		if (searchTerm) searchParams.set('search', searchTerm);
 		if (selectedSize) searchParams.set('size', selectedSize);
 		if (selectedHead) searchParams.set('head', selectedHead);
-		if (selectedParent) searchParams.set('parent', selectedParent);
 		if (viewMode !== 'table') searchParams.set('view', viewMode);
 		searchParams.set('page', '1'); // Reset to first page on new search
 		if (pageSize !== '20') searchParams.set('limit', pageSize);
@@ -139,17 +118,9 @@
 		searchTerm = '';
 		selectedSize = '';
 		selectedHead = '';
-		selectedParent = '';
 		viewMode = 'table';
 		pageSize = '20';
 		goto(currentPathname);
-	}
-
-	// Format employee count
-	function formatEmployeeCount(count: number): string {
-		if (count === 0) return 'No employees';
-		if (count === 1) return '1 employee';
-		return `${count} employees`;
 	}
 
 	// Handle view mode change
@@ -172,74 +143,10 @@
 
 <!-- Page Header -->
 <div class="space-y-6">
-	<div class="flex items-center justify-between">
-		<div>
-			<h1 class="text-3xl font-bold tracking-tight">Teams Management</h1>
-			<p class="text-muted-foreground">Manage organizational structure and team composition</p>
-		</div>
-
-		{#if canManageTeams}
-			<div class="flex gap-2">
-				<Button variant="outline" size="sm">
-					<TreePine class="mr-2 h-4 w-4" />
-					Org Chart
-				</Button>
-				<Button size="sm" href="/dashboard/teams/new">
-					<Plus class="mr-2 h-4 w-4" />
-					Create Team
-				</Button>
-			</div>
-		{/if}
-	</div>
+	<PageHeader {canManageTeams} />
 
 	<!-- Statistics Cards -->
-	<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
-		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Total Teams</Card.Title>
-				<Building class="h-4 w-4 text-muted-foreground" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold">{teamStats.totalTeams}</div>
-				<p class="text-xs text-muted-foreground">organizational units</p>
-			</Card.Content>
-		</Card.Root>
-
-		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Total Employees</Card.Title>
-				<Users class="h-4 w-4 text-blue-600" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold text-blue-600">{teamStats.totalEmployees}</div>
-				<p class="text-xs text-muted-foreground">across all teams</p>
-			</Card.Content>
-		</Card.Root>
-
-		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Average Team Size</Card.Title>
-				<BarChart3 class="h-4 w-4 text-green-600" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold text-green-600">{teamStats.averageTeamSize}</div>
-				<p class="text-xs text-muted-foreground">employees per team</p>
-			</Card.Content>
-		</Card.Root>
-
-		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Teams with Heads</Card.Title>
-				<Crown class="h-4 w-4 text-yellow-600" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold text-yellow-600">{teamStats.teamsWithHeads}</div>
-				<p class="text-xs text-muted-foreground">
-					{Math.round((teamStats.teamsWithHeads / teamStats.totalTeams) * 100)}% have leadership
-				</p>
-			</Card.Content>
-		</Card.Root>
-	</div>
+	<TeamStats {teamStats} />
 
 	<!-- View Mode Tabs -->
 	<Tabs
@@ -259,188 +166,22 @@
 			</TabsList>
 
 			<!-- Search and Filters Card -->
-			<Card.Root class="mb-6">
-				<Card.Header>
-					<Card.Title>Search & Filter Teams</Card.Title>
-					<Card.Description>Find teams by name, size, or leadership status</Card.Description>
-				</Card.Header>
-				<Card.Content>
-					<form
-						onsubmit={(e) => {
-							e.preventDefault();
-							handleSearch();
-						}}
-						class="space-y-4"
-					>
-						<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
-							<!-- Search Input -->
-							<div class="space-y-2">
-								<label for="search" class="text-sm font-medium">Search</label>
-								<div class="relative">
-									<Search
-										class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-									/>
-									<Input
-										id="search"
-										type="text"
-										placeholder="Search team names..."
-										bind:value={searchTerm}
-										class="pl-9"
-									/>
-								</div>
-							</div>
-
-							<!-- Size Filter -->
-							<div class="space-y-2">
-								<label for="size" class="text-sm font-medium">Team Size</label>
-								<Select type="single" bind:value={selectedSize}>
-									<SelectTrigger placeholder="All Sizes" />
-									<SelectContent>
-										{#each sizeOptions as option}
-											<SelectItem value={option.value}>{option.label}</SelectItem>
-										{/each}
-									</SelectContent>
-								</Select>
-							</div>
-
-							<!-- Head Filter -->
-							<div class="space-y-2">
-								<label for="head" class="text-sm font-medium">Leadership</label>
-								<Select type="single" bind:value={selectedHead}>
-									<SelectTrigger placeholder="All Teams" />
-									<SelectContent>
-										{#each headOptions as option}
-											<SelectItem value={option.value}>{option.label}</SelectItem>
-										{/each}
-									</SelectContent>
-								</Select>
-							</div>
-
-							<!-- Page Size -->
-							<div class="space-y-2">
-								<label for="pagesize" class="text-sm font-medium">Per Page</label>
-								<Select type="single" bind:value={pageSize}>
-									<SelectTrigger placeholder="20" />
-									<SelectContent>
-										<SelectItem value="10">10</SelectItem>
-										<SelectItem value="20">20</SelectItem>
-										<SelectItem value="50">50</SelectItem>
-										<SelectItem value="100">100</SelectItem>
-									</SelectContent>
-								</Select>
-							</div>
-						</div>
-
-						<div class="flex gap-2">
-							<Button type="submit">
-								<Search class="mr-2 h-4 w-4" />
-								Search
-							</Button>
-							<Button type="button" variant="outline" onclick={clearFilters}>Clear Filters</Button>
-						</div>
-					</form>
-				</Card.Content>
-			</Card.Root>
+			<PageFilters
+				bind:searchTerm
+				bind:selectedSize
+				bind:selectedHead
+				bind:pageSize
+				{sizeOptions}
+				{headOptions}
+				onSearch={handleSearch}
+				onClear={clearFilters}
+			/>
 		</div>
 
 		<!-- Card View Content -->
 		<TabsContent value="table" class="space-y-6">
 			<!-- Teams Grid -->
-			<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-				{#each teams as team}
-					{@const sizeInfo = categorizeTeamSize(team.employees?.totalCount || 0)}
-					<Card.Root class="transition-shadow hover:shadow-md">
-						<Card.Header class="pb-3">
-							<div class="flex items-start justify-between">
-								<div class="flex items-center space-x-3">
-									<div
-										class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10"
-									>
-										<Building2 class="h-6 w-6 text-primary" />
-									</div>
-									<div>
-										<Card.Title class="text-lg">{team.name}</Card.Title>
-										<Card.Description>{team.description || 'No description'}</Card.Description>
-									</div>
-								</div>
-								{#if team.departmentHead}
-									<Badge variant="default">
-										<Crown class="mr-1 h-3 w-3" />
-										Has Head
-									</Badge>
-								{:else}
-									<Badge variant="outline">
-										<UserCheck class="mr-1 h-3 w-3" />
-										No Head
-									</Badge>
-								{/if}
-							</div>
-						</Card.Header>
-						<Card.Content class="space-y-3">
-							<!-- Team Information -->
-							<div class="space-y-2">
-								{#if team.departmentHead}
-									<div class="flex items-center text-sm">
-										<UserCheck class="mr-2 h-4 w-4 text-green-600" />
-										<span class="font-medium">{team.departmentHead.displayName}</span>
-										<span class="ml-1 text-muted-foreground"
-											>({team.departmentHead.jobTitle || 'Head'})</span
-										>
-									</div>
-								{/if}
-
-								{#if team.parentDepartment}
-									<div class="flex items-center text-sm text-muted-foreground">
-										<Building class="mr-2 h-4 w-4" />
-										<span>Parent: {team.parentDepartment.name}</span>
-									</div>
-								{/if}
-
-								<div class="flex items-center text-sm text-muted-foreground">
-									<Users class="mr-2 h-4 w-4" />
-									<span>{formatEmployeeCount(team.employees?.totalCount || 0)}</span>
-								</div>
-
-								{#if team.subDepartments?.totalCount > 0}
-									<div class="flex items-center text-sm text-muted-foreground">
-										<TreePine class="mr-2 h-4 w-4" />
-										<span>{team.subDepartments.totalCount} sub-teams</span>
-									</div>
-								{/if}
-
-								<!-- Team Size Badge -->
-								<div class="flex items-center text-sm">
-									<Badge
-										variant="outline"
-										class="bg-{sizeInfo.color}-50 border-{sizeInfo.color}-200 text-{sizeInfo.color}-800"
-									>
-										<BarChart3 class="mr-1 h-3 w-3" />
-										{sizeInfo.label}
-									</Badge>
-								</div>
-							</div>
-
-							<Separator />
-
-							<!-- Actions -->
-							<div class="flex gap-2">
-								{#if canViewEmployees}
-									<Button variant="outline" size="sm" href="/dashboard/teams/{team.id}">
-										<Eye class="mr-2 h-4 w-4" />
-										View Details
-									</Button>
-								{/if}
-								{#if canManageTeams}
-									<Button variant="outline" size="sm" href="/dashboard/teams/{team.id}/edit">
-										<Edit class="mr-2 h-4 w-4" />
-										Edit
-									</Button>
-								{/if}
-							</div>
-						</Card.Content>
-					</Card.Root>
-				{/each}
-			</div>
+			<TeamGrid {teams} {canViewEmployees} {canManageTeams} />
 
 			<!-- Empty State -->
 			{#if teams.length === 0}
@@ -469,87 +210,15 @@
 
 			<!-- Pagination -->
 			{#if totalPages > 1}
-				<Card.Root>
-					<Card.Content class="py-4">
-						<div class="flex items-center justify-between">
-							<div class="text-sm text-muted-foreground">
-								Showing {(currentPage - 1) * Number(pageSize) + 1} to {Math.min(
-									currentPage * Number(pageSize),
-									totalTeams
-								)} of {totalTeams} teams
-							</div>
-							<div class="flex gap-2">
-								<Button
-									variant="outline"
-									size="sm"
-									disabled={!hasPreviousPage}
-									onclick={() => goToPage(currentPage - 1)}
-								>
-									Previous
-								</Button>
-
-								{#if totalPages <= 7}
-									{#each Array(totalPages) as _, i}
-										<Button
-											variant={currentPage === i + 1 ? 'default' : 'outline'}
-											size="sm"
-											onclick={() => goToPage(i + 1)}
-										>
-											{i + 1}
-										</Button>
-									{/each}
-								{:else}
-									<!-- Complex pagination with ellipsis -->
-									<Button
-										variant={currentPage === 1 ? 'default' : 'outline'}
-										size="sm"
-										onclick={() => goToPage(1)}
-									>
-										1
-									</Button>
-
-									{#if currentPage > 3}
-										<span class="px-2 text-muted-foreground">...</span>
-									{/if}
-
-									{#each Array(Math.min(5, totalPages - 2)) as _, i}
-										{@const pageNum = Math.max(2, Math.min(currentPage - 2 + i, totalPages - 1))}
-										{#if pageNum >= 2 && pageNum <= totalPages - 1}
-											<Button
-												variant={currentPage === pageNum ? 'default' : 'outline'}
-												size="sm"
-												onclick={() => goToPage(pageNum)}
-											>
-												{pageNum}
-											</Button>
-										{/if}
-									{/each}
-
-									{#if currentPage < totalPages - 2}
-										<span class="px-2 text-muted-foreground">...</span>
-									{/if}
-
-									<Button
-										variant={currentPage === totalPages ? 'default' : 'outline'}
-										size="sm"
-										onclick={() => goToPage(totalPages)}
-									>
-										{totalPages}
-									</Button>
-								{/if}
-
-								<Button
-									variant="outline"
-									size="sm"
-									disabled={!hasNextPage}
-									onclick={() => goToPage(currentPage + 1)}
-								>
-									Next
-								</Button>
-							</div>
-						</div>
-					</Card.Content>
-				</Card.Root>
+				<PagePagination
+					{currentPage}
+					{totalPages}
+					totalDepartments={totalTeams}
+					{pageSize}
+					{hasPreviousPage}
+					{hasNextPage}
+					onPageChange={goToPage}
+				/>
 			{/if}
 		</TabsContent>
 

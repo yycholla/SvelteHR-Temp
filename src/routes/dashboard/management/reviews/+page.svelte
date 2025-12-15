@@ -5,51 +5,23 @@
 	import { goto } from '$app/navigation';
 	import { logger } from '$lib/utils/logger';
 	import { page } from '$app/stores';
-	import {
-		AlertTriangle,
-		Award,
-		BarChart3,
-		Calendar,
-		CheckCircle,
-		Clock,
-		Filter,
-		Plus,
-		Search,
-		Star,
-		TrendingUp,
-		User,
-		Users
-	} from '@lucide/svelte';
+	import { Plus } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
 	import { Button } from '$lib/components/ui/button';
-	import {
-		Card,
-		CardContent,
-		CardDescription,
-		CardHeader,
-		CardTitle
-	} from '$lib/components/ui/card';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
-	import * as Select from '$lib/components/ui/select';
-	import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
-	import { Badge } from '$lib/components/ui/badge';
-	import { Avatar, AvatarFallback } from '$lib/components/ui/avatar';
-	import { Progress } from '$lib/components/ui/progress';
-	import * as Dialog from '$lib/components/ui/dialog';
 	import { ReviewCreationDialog } from '$lib/components/reviews';
 
 	import {
-		createPerformanceOperations,
-		formatReviewPeriod,
-		getRatingInfo,
-		getStatusInfo,
-		isReviewOverdue,
-		performanceRatings,
-		reviewPeriods,
-		reviewStatusOptions
+		isReviewOverdue
 	} from '$lib/graphql/queries/performance-reviews';
+
+	// Import new decomposed components
+	import ReviewStats from './components/ReviewStats.svelte';
+	import ReviewAnalytics from './components/ReviewAnalytics.svelte';
+	import ReviewFilters from './components/ReviewFilters.svelte';
+	import ReviewList from './components/ReviewList.svelte';
+	import ReviewDetailsModal from './components/ReviewDetailsModal.svelte';
+	import EmployeeSelectorModal from './components/EmployeeSelectorModal.svelte';
 
 	// Page data from server
 	interface Props {
@@ -72,13 +44,10 @@
 	const { data }: Props = $props();
 
 	// Derived state using Svelte 5 runes
-	const user = $derived(data.user);
-	const userSession = $derived(data.userSession);
 	const performanceReviews = $derived(data.performanceReviews);
 	const reviewAnalytics = $derived(data.reviewAnalytics);
 	const canCreateReviews = $derived(data.canCreateReviews);
 	const canEditReviews = $derived(data.canEditReviews);
-	const canViewAllReviews = $derived(data.canViewAllReviews);
 
 	// Debug logging
 	$effect(() => {
@@ -107,12 +76,6 @@
 
 	// Filtered employees for selector
 	const filteredEmployees = $derived.by(() => {
-		logger.info('🔍 Employee data:', {
-			totalEmployees: data.employees?.length || 0,
-			employees: data.employees,
-			searchQuery: employeeSearchQuery
-		});
-
 		if (!employeeSearchQuery) return data.employees || [];
 
 		const query = employeeSearchQuery.toLowerCase();
@@ -125,78 +88,11 @@
 		);
 	});
 
-	// Statistics cards data
-	const statsCards = $derived([
-		{
-			title: 'Total Reviews',
-			value: reviewAnalytics.totalReviews,
-			description: 'All performance reviews',
-			icon: Users,
-			color: 'bg-blue-50 text-blue-700 border-blue-200',
-			iconColor: 'text-blue-600'
-		},
-		{
-			title: 'Completed Reviews',
-			value: reviewAnalytics.completedReviews,
-			description: 'Reviews finished',
-			icon: CheckCircle,
-			color: 'bg-green-50 text-green-700 border-green-200',
-			iconColor: 'text-green-600'
-		},
-		{
-			title: 'Overdue Reviews',
-			value: reviewAnalytics.overdueReviews,
-			description: 'Need immediate attention',
-			icon: AlertTriangle,
-			color: 'bg-orange-50 text-orange-700 border-orange-200',
-			iconColor: 'text-orange-600'
-		},
-		{
-			title: 'Completion Rate',
-			value: `${reviewAnalytics.completionRate}%`,
-			description: 'Reviews completed on time',
-			icon: TrendingUp,
-			color: 'bg-purple-50 text-purple-700 border-purple-200',
-			iconColor: 'text-purple-600'
-		}
-	]);
-
-	// Rating categories for analytics display
-	const ratingCategories = $derived([
-		{
-			label: 'Overall Performance',
-			value: reviewAnalytics.averageRatings.overall,
-			color: 'bg-blue-500'
-		},
-		{
-			label: 'Goal Achievement',
-			value: reviewAnalytics.averageRatings.goalsAchievement,
-			color: 'bg-green-500'
-		},
-		{
-			label: 'Collaboration',
-			value: reviewAnalytics.averageRatings.collaboration,
-			color: 'bg-purple-500'
-		},
-		{
-			label: 'Communication',
-			value: reviewAnalytics.averageRatings.communication,
-			color: 'bg-indigo-500'
-		},
-		{
-			label: 'Leadership',
-			value: reviewAnalytics.averageRatings.leadership,
-			color: 'bg-cyan-500'
-		}
-	]);
-
 	// Filter and display logic
 	const filteredReviews = $derived.by(() => {
 		let filtered = performanceReviews;
-		logger.info('🔍 [Filter] Starting with reviews', { count: filtered?.length || 0 });
 
 		if (selectedView !== 'all') {
-			logger.info('🔍 [Filter] Applying view filter', { view: selectedView });
 			filtered = filtered.filter((review) => {
 				switch (selectedView) {
 					case 'pending':
@@ -209,11 +105,9 @@
 						return true;
 				}
 			});
-			logger.info('🔍 [Filter] After view filter', { count: filtered.length });
 		}
 
 		if (searchQuery) {
-			logger.info('🔍 [Filter] Applying search filter', { searchQuery });
 			const query = searchQuery.toLowerCase();
 			filtered = filtered.filter(
 				(review) =>
@@ -221,10 +115,8 @@
 					review.reviewer?.displayName.toLowerCase().includes(query) ||
 					review.employee?.department?.name.toLowerCase().includes(query)
 			);
-			logger.info('🔍 [Filter] After search filter', { count: filtered.length });
 		}
 
-		logger.info('🔍 [Filter] Final filtered reviews', { count: filtered.length });
 		return filtered;
 	});
 
@@ -247,9 +139,6 @@
 			// For now, just show a placeholder message
 			logger.info('Delete review', { reviewId: review.id });
 			toast.success('Review deletion coming soon');
-
-			// Refresh the page to get updated data
-			// goto($page.url.pathname, { invalidateAll: true });
 		} catch (error) {
 			logger.error(
 				'Failed to delete performance review',
@@ -261,10 +150,10 @@
 	}
 
 	// Navigation handlers for filtering
-	function handleSearch() {
+	function handleSearch(query: string) {
 		const url = new URL($page.url);
-		if (searchQuery) {
-			url.searchParams.set('search', searchQuery);
+		if (query) {
+			url.searchParams.set('search', query);
 		} else {
 			url.searchParams.delete('search');
 		}
@@ -296,55 +185,17 @@
 		goto(url.toString());
 	}
 
-	// Get initials for avatar
-	function getInitials(name: string): string {
-		return (
-			name
-				?.split(' ')
-				.map((n) => n[0])
-				.join('')
-				.toUpperCase() || 'U'
-		);
-	}
-
-	// Get status badge variant
-	function getStatusBadgeVariant(
-		status: string
-	): 'default' | 'secondary' | 'destructive' | 'outline' {
-		switch (status) {
-			case 'completed':
-				return 'default';
-			case 'in_progress':
-				return 'secondary';
-			case 'draft':
-				return 'outline';
-			default:
-				return 'outline';
-		}
-	}
-
-	// Get rating stars
-	function renderRatingStars(rating: number): string {
-		const filled = Math.floor(rating);
-		const empty = 5 - filled;
-		return '★'.repeat(filled) + '☆'.repeat(empty);
-	}
-
-	// Format dates
-	function formatDate(dateString: string): string {
-		return new Date(dateString).toLocaleDateString();
-	}
-
-	// Open create dialog
+	// Open create dialog (not used directly in template but kept for logic)
+	// Actually, the + button onclick uses goto, but if we wanted modal:
+	/*
 	function openCreateDialog() {
 		if (selectedEmployee) {
-			// If we already have a selected employee, open review dialog
 			createDialogOpen = true;
 		} else {
-			// Show employee selector first
 			showEmployeeSelector = true;
 		}
 	}
+	*/
 
 	function handleEmployeeSelected(employee: any) {
 		selectedEmployee = employee;
@@ -396,481 +247,55 @@
 		</div>
 
 		<!-- Statistics Cards -->
-		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-			{#each statsCards as stat}
-				{@const Icon = stat.icon}
-				<Card class={`${stat.color} border`}>
-					<CardContent class="p-6">
-						<div class="flex items-center justify-between">
-							<div>
-								<p class="text-sm font-medium opacity-75">{stat.title}</p>
-								<p class="mt-2 text-2xl font-bold">{stat.value}</p>
-								<p class="mt-1 text-xs opacity-75">{stat.description}</p>
-							</div>
-							<div class={`${stat.iconColor} opacity-75`}>
-								<Icon class="h-8 w-8" />
-							</div>
-						</div>
-					</CardContent>
-				</Card>
-			{/each}
-		</div>
+		<ReviewStats {reviewAnalytics} />
 
 		<!-- Performance Analytics -->
-		{#if reviewAnalytics.averageRatings.overall > 0}
-			<Card>
-				<CardHeader>
-					<CardTitle class="flex items-center gap-2">
-						<BarChart3 class="h-5 w-5" />
-						Performance Analytics
-					</CardTitle>
-					<CardDescription>Average ratings across different performance categories</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<div class="space-y-4">
-						{#each ratingCategories as category}
-							<div class="flex items-center justify-between">
-								<div class="flex items-center gap-3">
-									<div class={`h-3 w-3 rounded-full ${category.color}`}></div>
-									<span class="text-sm font-medium">{category.label}</span>
-								</div>
-								<div class="flex items-center gap-2">
-									<Progress value={category.value * 20} class="w-24" />
-									<span class="w-8 text-sm text-muted-foreground">{category.value.toFixed(1)}</span>
-								</div>
-							</div>
-						{/each}
-					</div>
-				</CardContent>
-			</Card>
-		{/if}
+		<ReviewAnalytics averageRatings={reviewAnalytics.averageRatings} />
 
 		<!-- Filters -->
-		<Card>
-			<CardHeader>
-				<CardTitle class="flex items-center gap-2">
-					<Filter class="h-5 w-5" />
-					Filter Reviews
-				</CardTitle>
-			</CardHeader>
-			<CardContent>
-				<div class="flex flex-col gap-4 md:flex-row md:items-end">
-					<!-- Search -->
-					<div class="flex-1">
-						<Label for="search">Search</Label>
-						<div class="flex gap-2">
-							<Input
-								id="search"
-								placeholder="Search by employee, reviewer, or department..."
-								bind:value={searchQuery}
-								onkeydown={(e) => {
-									if (e.key === 'Enter') handleSearch();
-								}}
-							/>
-							<Button onclick={handleSearch} size="sm">
-								<Search class="h-4 w-4" />
-							</Button>
-						</div>
-					</div>
+		<ReviewFilters
+			bind:searchQuery
+			bind:statusFilter
+			bind:periodFilter
+			onSearch={handleSearch}
+			onStatusChange={handleStatusFilterChange}
+			onPeriodChange={handlePeriodFilterChange}
+		/>
 
-					<!-- Status Filter -->
-					<div class="w-full md:w-48">
-						<Label>Status</Label>
-						<Select.Root
-							type="single"
-							value={statusFilter}
-							onValueChange={handleStatusFilterChange}
-						>
-							<Select.Trigger>
-								<Select.Value placeholder="All Statuses" />
-							</Select.Trigger>
-							<Select.Content>
-								<Select.Item value="">All Statuses</Select.Item>
-								{#each reviewStatusOptions as status}
-									<Select.Item value={status.value}>{status.label}</Select.Item>
-								{/each}
-							</Select.Content>
-						</Select.Root>
-					</div>
-
-					<!-- Period Filter -->
-					<div class="w-full md:w-48">
-						<Label>Review Period</Label>
-						<Select.Root
-							type="single"
-							value={periodFilter}
-							onValueChange={handlePeriodFilterChange}
-						>
-							<Select.Trigger>
-								<Select.Value placeholder="All Periods" />
-							</Select.Trigger>
-							<Select.Content>
-								<Select.Item value="">All Periods</Select.Item>
-								{#each reviewPeriods as period}
-									<Select.Item value={period.value}>{period.label}</Select.Item>
-								{/each}
-							</Select.Content>
-						</Select.Root>
-					</div>
-				</div>
-			</CardContent>
-		</Card>
-
-		<!-- Tabs for different views -->
-		<Tabs
-			value={selectedView}
-			onValueChange={(value) => {
-				selectedView = value;
-			}}
-		>
-			<TabsList class="grid w-full grid-cols-4">
-				<TabsTrigger value="all">
-					All Reviews ({data.totalReviews})
-				</TabsTrigger>
-				<TabsTrigger value="pending">
-					Pending ({reviewAnalytics.totalReviews - reviewAnalytics.completedReviews})
-				</TabsTrigger>
-				<TabsTrigger value="completed">
-					Completed ({reviewAnalytics.completedReviews})
-				</TabsTrigger>
-				<TabsTrigger value="overdue">
-					Overdue ({reviewAnalytics.overdueReviews})
-				</TabsTrigger>
-			</TabsList>
-
-			<TabsContent value={selectedView} class="mt-4">
-				<!-- Performance Reviews List -->
-				<div class="space-y-4">
-					{#if filteredReviews.length === 0}
-						<Card>
-							<CardContent class="p-8 text-center">
-								<Award class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-								<h3 class="mb-2 text-lg font-semibold text-foreground">No reviews found</h3>
-								<p class="text-muted-foreground">
-									{#if selectedView === 'pending'}
-										No pending performance reviews at the moment.
-									{:else if selectedView === 'completed'}
-										No completed performance reviews found.
-									{:else if selectedView === 'overdue'}
-										No overdue performance reviews found.
-									{:else}
-										No performance reviews match your current filters.
-									{/if}
-								</p>
-							</CardContent>
-						</Card>
-					{:else}
-						{#each filteredReviews as review}
-							<Card class="transition-shadow hover:shadow-md">
-								<CardContent class="p-6">
-									<div class="flex items-start justify-between">
-										<!-- Review Info -->
-										<div class="flex flex-1 items-start space-x-4">
-											<!-- Employee Avatar -->
-											<Avatar class="h-12 w-12">
-												<AvatarFallback class="bg-blue-100 text-blue-700">
-													{getInitials(review.employee?.displayName || '')}
-												</AvatarFallback>
-											</Avatar>
-
-											<!-- Review Details -->
-											<div class="flex-1 space-y-2">
-												<div class="flex flex-wrap items-center gap-3">
-													<h3 class="text-lg font-semibold text-foreground">
-														{review.employee?.displayName || 'Unknown Employee'}
-													</h3>
-													<Badge variant={getStatusBadgeVariant(review.status)} class="capitalize">
-														{getStatusInfo(review.status).label}
-													</Badge>
-													{#if review.overallRating}
-														<Badge
-															variant="outline"
-															class="border-yellow-200 bg-yellow-50 text-yellow-700"
-														>
-															<Star class="mr-1 h-3 w-3" />
-															{review.overallRating}/5
-														</Badge>
-													{/if}
-													{#if isReviewOverdue(review)}
-														<Badge variant="destructive">
-															<Clock class="mr-1 h-3 w-3" />
-															Overdue
-														</Badge>
-													{/if}
-												</div>
-
-												<div class="space-y-1 text-sm text-muted-foreground">
-													<p>
-														<strong>Department:</strong>
-														{review.employee?.department?.name || 'N/A'}
-													</p>
-													<p>
-														<strong>Reviewer:</strong>
-														{review.reviewer?.displayName || 'Not assigned'}
-													</p>
-													<p>
-														<strong>Review Period:</strong>
-														{formatReviewPeriod(review.reviewPeriodStart, review.reviewPeriodEnd)}
-													</p>
-													{#if review.overallRating}
-														<p>
-															<strong>Overall Rating:</strong>
-															{renderRatingStars(review.overallRating)} ({review.overallRating}/5)
-														</p>
-													{/if}
-													{#if review.strengths}
-														<p>
-															<strong>Key Strengths:</strong>
-															{review.strengths.substring(0, 100)}...
-														</p>
-													{/if}
-												</div>
-
-												<div class="text-xs text-muted-foreground">
-													Created on {formatDate(review.createdAt)}
-													{#if review.completedAt}
-														• Completed on {formatDate(review.completedAt)}
-													{/if}
-												</div>
-											</div>
-										</div>
-
-										<!-- Actions -->
-										<div class="ml-4 flex gap-2">
-											<Button size="sm" variant="outline" onclick={() => handleViewReview(review)}>
-												View Details
-											</Button>
-											{#if canEditReviews && review.status !== 'completed'}
-												<Button
-													size="sm"
-													variant="outline"
-													onclick={() => handleEditReview(review)}
-												>
-													Edit
-												</Button>
-											{/if}
-											{#if canCreateReviews}
-												<Button
-													size="sm"
-													variant="outline"
-													onclick={() => handleDeleteReview(review)}
-													class="border-red-200 text-red-600 hover:border-red-300 hover:text-red-700"
-												>
-													Delete
-												</Button>
-											{/if}
-										</div>
-									</div>
-								</CardContent>
-							</Card>
-						{/each}
-					{/if}
-				</div>
-			</TabsContent>
-		</Tabs>
+		<!-- Reviews List with Tabs -->
+		<ReviewList
+			{filteredReviews}
+			totalReviews={data.totalReviews}
+			pendingCount={reviewAnalytics.totalReviews - reviewAnalytics.completedReviews}
+			completedCount={reviewAnalytics.completedReviews}
+			overdueCount={reviewAnalytics.overdueReviews}
+			bind:selectedView
+			{canCreateReviews}
+			{canEditReviews}
+			onView={handleViewReview}
+			onEdit={handleEditReview}
+			onDelete={handleDeleteReview}
+		/>
 	</div>
 </div>
 
 <!-- Review Details Modal -->
-<Dialog.Root bind:open={showDetailsModal}>
-	<Dialog.Portal>
-		<Dialog.Overlay />
-		<Dialog.Content class="max-w-4xl">
-			<Dialog.Header>
-				<Dialog.Title>Performance Review Details</Dialog.Title>
-				<Dialog.Description>
-					{#if currentReview}
-						Review for {currentReview.employee?.displayName} • {formatReviewPeriod(
-							currentReview.reviewPeriodStart,
-							currentReview.reviewPeriodEnd
-						)}
-					{/if}
-				</Dialog.Description>
-			</Dialog.Header>
-
-			{#if currentReview}
-				<div class="max-h-96 space-y-6 overflow-y-auto">
-					<!-- Employee Info -->
-					<div class="rounded-lg bg-muted p-4 dark:bg-muted">
-						<h4 class="mb-2 font-semibold">Employee Information</h4>
-						<div class="grid grid-cols-2 gap-4 text-sm">
-							<p><strong>Name:</strong> {currentReview.employee?.displayName}</p>
-							<p><strong>Department:</strong> {currentReview.employee?.department?.name}</p>
-							<p><strong>Job Title:</strong> {currentReview.employee?.jobTitle || 'N/A'}</p>
-							<p><strong>Reviewer:</strong> {currentReview.reviewer?.displayName}</p>
-						</div>
-					</div>
-
-					<!-- Ratings -->
-					{#if currentReview.overallRating}
-						<div>
-							<h4 class="mb-3 font-semibold">Performance Ratings</h4>
-							<div class="grid grid-cols-2 gap-4">
-								<div class="text-sm">
-									<p class="font-medium">Overall Performance</p>
-									<p class="text-yellow-600">
-										{renderRatingStars(currentReview.overallRating)} ({currentReview.overallRating}/5)
-									</p>
-								</div>
-								{#if currentReview.goalsAchievement}
-									<div class="text-sm">
-										<p class="font-medium">Goals Achievement</p>
-										<p class="text-yellow-600">
-											{renderRatingStars(currentReview.goalsAchievement)} ({currentReview.goalsAchievement}/5)
-										</p>
-									</div>
-								{/if}
-								{#if currentReview.collaboration}
-									<div class="text-sm">
-										<p class="font-medium">Collaboration</p>
-										<p class="text-yellow-600">
-											{renderRatingStars(currentReview.collaboration)} ({currentReview.collaboration}/5)
-										</p>
-									</div>
-								{/if}
-								{#if currentReview.communication}
-									<div class="text-sm">
-										<p class="font-medium">Communication</p>
-										<p class="text-yellow-600">
-											{renderRatingStars(currentReview.communication)} ({currentReview.communication}/5)
-										</p>
-									</div>
-								{/if}
-							</div>
-						</div>
-					{/if}
-
-					<!-- Review Content -->
-					{#if currentReview.strengths}
-						<div>
-							<h4 class="mb-2 font-semibold">Strengths</h4>
-							<p class="rounded bg-green-50 p-3 text-sm text-foreground">
-								{currentReview.strengths}
-							</p>
-						</div>
-					{/if}
-
-					{#if currentReview.areasForImprovement}
-						<div>
-							<h4 class="mb-2 font-semibold">Areas for Improvement</h4>
-							<p class="rounded bg-orange-50 p-3 text-sm text-foreground">
-								{currentReview.areasForImprovement}
-							</p>
-						</div>
-					{/if}
-
-					{#if currentReview.goalsForNextPeriod}
-						<div>
-							<h4 class="mb-2 font-semibold">Goals for Next Period</h4>
-							<p class="rounded bg-blue-50 p-3 text-sm text-foreground">
-								{currentReview.goalsForNextPeriod}
-							</p>
-						</div>
-					{/if}
-
-					{#if currentReview.developmentPlan}
-						<div>
-							<h4 class="mb-2 font-semibold">Development Plan</h4>
-							<p class="rounded bg-purple-50 p-3 text-sm text-foreground">
-								{currentReview.developmentPlan}
-							</p>
-						</div>
-					{/if}
-
-					{#if currentReview.employeeSelfAssessment}
-						<div>
-							<h4 class="mb-2 font-semibold">Employee Self-Assessment</h4>
-							<p class="rounded bg-muted p-3 text-sm text-foreground dark:bg-muted">
-								{currentReview.employeeSelfAssessment}
-							</p>
-						</div>
-					{/if}
-				</div>
-			{/if}
-
-			<Dialog.Footer>
-				<Button
-					variant="outline"
-					onclick={() => {
-						showDetailsModal = false;
-					}}>Close</Button
-				>
-				{#if canEditReviews && currentReview && currentReview.status !== 'completed'}
-					<Button
-						onclick={() => {
-							showDetailsModal = false;
-							handleEditReview(currentReview);
-						}}>Edit Review</Button
-					>
-				{/if}
-			</Dialog.Footer>
-		</Dialog.Content>
-	</Dialog.Portal>
-</Dialog.Root>
+<ReviewDetailsModal
+	bind:open={showDetailsModal}
+	{currentReview}
+	{canEditReviews}
+	onClose={() => (showDetailsModal = false)}
+	onEdit={handleEditReview}
+/>
 
 <!-- Employee Selector Dialog -->
-<Dialog.Root bind:open={showEmployeeSelector}>
-	<Dialog.Portal>
-		<Dialog.Overlay />
-		<Dialog.Content class="max-h-[80vh] max-w-2xl">
-			<Dialog.Header>
-				<Dialog.Title>Select Employee for Review</Dialog.Title>
-				<Dialog.Description>
-					Choose an employee to create a performance review for
-				</Dialog.Description>
-			</Dialog.Header>
-
-			<div class="space-y-4 py-4">
-				<!-- Search Input -->
-				<div class="relative">
-					<Search class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-					<Input
-						type="text"
-						placeholder="Search employees by name or email..."
-						bind:value={employeeSearchQuery}
-						class="pl-9"
-					/>
-				</div>
-
-				<!-- Employee List -->
-				<div class="max-h-96 overflow-y-auto rounded-md border">
-					{#if filteredEmployees.length === 0}
-						<div class="p-8 text-center text-muted-foreground">
-							<User class="mx-auto mb-2 h-12 w-12 opacity-50" />
-							<p>No employees found</p>
-							{#if employeeSearchQuery}
-								<p class="mt-1 text-sm">Try adjusting your search</p>
-							{/if}
-						</div>
-					{:else}
-						<div class="divide-y">
-							{#each filteredEmployees as employee (employee.id)}
-								<button
-									type="button"
-									class="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-accent"
-									onclick={() => handleEmployeeSelected(employee)}
-								>
-									<div class="flex-1">
-										<div class="font-medium">{employee.displayName}</div>
-										<div class="text-sm text-muted-foreground">{employee.email}</div>
-									</div>
-									<Badge variant="outline">
-										{employee.firstName}
-										{employee.lastName}
-									</Badge>
-								</button>
-							{/each}
-						</div>
-					{/if}
-				</div>
-			</div>
-
-			<Dialog.Footer>
-				<Button variant="outline" onclick={() => (showEmployeeSelector = false)}>Cancel</Button>
-			</Dialog.Footer>
-		</Dialog.Content>
-	</Dialog.Portal>
-</Dialog.Root>
+<EmployeeSelectorModal
+	bind:open={showEmployeeSelector}
+	bind:searchQuery={employeeSearchQuery}
+	{filteredEmployees}
+	onSelect={handleEmployeeSelected}
+	onCancel={() => (showEmployeeSelector = false)}
+/>
 
 <!-- Create Review Dialog -->
 {#if selectedEmployee}

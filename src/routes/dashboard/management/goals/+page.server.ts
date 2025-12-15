@@ -1,235 +1,242 @@
 // Management Goals - Server-Side Data Loading
 // Implements proper PostGraphile GraphQL queries with backend initialization
 import type { PageServerLoad } from './$types';
-import { error } from '@sveltejs/kit';
 import { logger } from '$lib/utils/logger';
-import { GraphQLClient } from '$lib/server/graphql-client';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
+import { RBACDataLoader } from '$lib/server/route-loaders';
+import { QueryParamExtractor, ClientSideFilter } from '$lib/server/route-helpers';
+import { StatisticsCalculator, Aggregators } from '$lib/server/analytics';
+import { gql } from '@urql/svelte';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, url, cookies } = event;
+	// Initialize RBAC loader with required permissions
+	const loader = new RBACDataLoader(event, [
+		'goals:read',
+		'goals:read:self',
+		'goals:read:team',
+		'goals:read:all'
+	]);
 
-	// Check authentication and permissions (managers and above)
-	PermissionChecks.goalsRead(event);
+	return loader.loadWithClient(async (client) => {
+		const { locals, url } = event;
+		const userPerms = loader['permissions']; // Access computed permissions
+		const hasManagerAccess = userPerms.canViewManagement;
 
-	// Get user permissions using the centralized helper
-	const userPerms = getUserPermissions(locals);
-	const hasManagerAccess = userPerms.canViewManagement;
+		const params = new QueryParamExtractor(url);
+		const { page, limit } = params.getPagination(20);
+		const searchTerm = params.getString('search');
+		const statusFilter = params.getString('status');
+		const priorityFilter = params.getString('priority');
 
-	// Extract search parameters for filtering
-	const searchTerm = url.searchParams.get('search') || '';
-	const statusFilter = url.searchParams.get('status') || '';
-	const priorityFilter = url.searchParams.get('priority') || '';
-	const page = parseInt(url.searchParams.get('page') || '1', 10);
-	const limit = 20;
-	const offset = (page - 1) * limit;
-	try {
-		// Ensure backend is ready before proceeding
-		await ensureBackendReady();
+		// Default empty structure for error cases
+		const getEmptyState = (errorMsg?: string, errorDetails?: string) => {
+			return {
+				user: {
+					id: locals.user?.id || '',
+					email: locals.user?.email || '',
+					displayName: locals.user?.display_name || 'User',
+					role: locals.user?.role || 'employee'
+				},
+				userSession: {
+					userId: locals.user?.id || '',
+					userEmail: locals.user?.email || '',
+					role: locals.user?.role || 'employee',
+					accessToken: ''
+				},
+				teamGoals: [],
+				totalGoals: 0,
+				goalsAnalytics: {
+					summary: { totalGoals: 0, activeGoals: 0, completedGoals: 0, overdueGoals: 0 },
+					progress: { averageProgress: 0, onTrackGoals: 0, atRiskGoals: 0, behindGoals: 0 },
+					byType: { okr: 0, kpi: 0, milestone: 0, objective: 0 },
+					breakdowns: { priority: [], type: [] },
+					healthScore: 0
+				},
+				filters: {
+					searchTerm,
+					statusFilter,
+					typeFilter: '',
+					priorityFilter
+				},
+				pagination: {
+					currentPage: page,
+					limit,
+					totalPages: 0,
+					hasNextPage: false,
+					hasPreviousPage: false
+				},
+				permissions: locals.permissions || [],
+				canCreateGoals: hasManagerAccess,
+				canEditGoals: hasManagerAccess,
+				canViewAllGoals: locals.roles?.includes('admin') || false,
+				loadedAt: new Date().toISOString(),
+				error: errorMsg
+					? {
+							message: errorMsg,
+							details: errorDetails || 'Unknown error',
+							retryable: true
+						}
+					: undefined
+			};
+		};
 
-		// Create GraphQL client with authentication
-		const graphqlClient = GraphQLClient.fromCookies(cookies);
+		try {
+			// Ensure backend is ready before proceeding
+			const backendReady = await ensureBackendReady();
+			if (!backendReady) {
+				return getEmptyState(
+					'Backend services are initializing. Please try again in a moment.',
+					'Backend initialization in progress'
+				);
+			}
 
-		// Load actual goals from database using Rust GraphQL server
-		// NOTE: Rust backend doesn't provide employeeGoalsCount query, use array length instead
-		const goalsQuery = `
-			query GetEmployeeGoals($limit: Int!, $offset: Int!) {
-				employeeGoals(limit: $limit, offset: $offset) {
-					id
-					employeeId
-					goalTitle
-					goalDescription
-					status
-					progressPercentage
-					targetDate
-					createdAt
-					updatedAt
+			// Load actual goals from database using Rust GraphQL server
+			const GET_GOALS = gql`
+				query GetEmployeeGoals($limit: Int!, $offset: Int!) {
+					employeeGoals(limit: $limit, offset: $offset) {
+						id
+						employeeId
+						goalTitle
+						goalDescription
+						status
+						progressPercentage
+						targetDate
+						createdAt
+						updatedAt
+					}
 				}
+			`;
+
+			const result = await client.query(GET_GOALS, {
+				limit: 1000, // Fetch large dataset for client-side filtering/stats
+				offset: 0
+			});
+
+			const goals = result?.employeeGoals || [];
+
+			// Transform goals data
+			const transformedGoals = goals.map((goal: any) => ({
+				...goal,
+				title: goal.goalTitle,
+				description: goal.goalDescription,
+				userByEmployeeId: {
+					id: goal.employeeId,
+					firstName: 'Employee', // Placeholder
+					lastName: goal.employeeId.slice(-4), // Placeholder
+					email: `employee${goal.employeeId}@company.com` // Placeholder
+				}
+			}));
+
+			// Use ClientSideFilter
+			const filter = new ClientSideFilter(transformedGoals);
+
+			if (searchTerm) {
+				filter.search(searchTerm, ['title', 'description']);
 			}
-		`;
 
-		const result = await graphqlClient.query(goalsQuery, {
-			limit: 1000, // Fetch large dataset for accurate count
-			offset: 0
-		});
-
-		if (!result.data) {
-			throw new Error('Failed to fetch goals data');
-		}
-
-		const goals = result.data.employeeGoals || [];
-		const totalGoals = goals.length; // Use array length instead of count query
-
-		// Transform goals data to expected format
-		const transformedGoals = goals.map((goal: any) => ({
-			...goal,
-			title: goal.goalTitle,
-			description: goal.goalDescription,
-			userByEmployeeId: {
-				id: goal.employeeId,
-				firstName: 'Employee', // Placeholder
-				lastName: goal.employeeId.slice(-4), // Placeholder
-				email: `employee${goal.employeeId}@company.com` // Placeholder
+			if (statusFilter) {
+				filter.where('status', statusFilter);
 			}
-		}));
 
-		// Calculate analytics from real data
-		const analytics = {
-			totalGoals,
-			activeGoals: transformedGoals.filter((g: any) => g.status === 'in_progress').length,
-			completedGoals: transformedGoals.filter((g: any) => g.status === 'completed').length,
-			overdueGoals: transformedGoals.filter(
+			// Apply filtering
+			const filteredGoals = filter.get();
+			const totalGoals = filteredGoals.length;
+
+			// Pagination
+			const paginatedGoals = filter.paginate(page, limit).get();
+
+			// Calculate analytics using Aggregators and StatisticsCalculator
+			// Use FULL filtered list for analytics to be accurate for current view context?
+			// Or full unfiltered list? Previous implementation used 'goals' (fetched result).
+			// Let's use 'transformedGoals' (full fetch) for analytics consistency.
+			const analyticsList = transformedGoals;
+
+			const calc = new StatisticsCalculator(analyticsList);
+			const activeGoals = calc.count((g: any) => g.status === 'in_progress');
+			const completedGoals = calc.count((g: any) => g.status === 'completed');
+			const overdueGoals = calc.count(
 				(g: any) => new Date(g.targetDate) < new Date() && g.status !== 'completed'
-			).length,
-			highPriorityGoals: 0, // Priority field doesn't exist in schema
-			averageProgress:
-				transformedGoals.length > 0
-					? Math.round(
-							transformedGoals.reduce(
-								(sum: number, g: any) => sum + (g.progressPercentage || 0),
-								0
-							) / transformedGoals.length
-						)
-					: 0,
-			completionRate:
-				totalGoals > 0
-					? Math.round(
-							(transformedGoals.filter((g: any) => g.status === 'completed').length / totalGoals) *
-								100
-						)
-					: 0
-		};
+			);
 
-		// Calculate additional metrics
-		const onTrackGoals = transformedGoals.filter(
-			(g: any) => (g.progressPercentage || 0) >= 50 && g.status === 'in_progress'
-		).length;
-		const atRiskGoals = transformedGoals.filter(
-			(g: any) => (g.progressPercentage || 0) < 50 && g.status === 'in_progress'
-		).length;
-		const behindGoals = analytics.overdueGoals;
+			const averageProgress =
+				analyticsList.length > 0
+					? Math.round(Aggregators.average(analyticsList, 'progressPercentage'))
+					: 0;
 
-		// Calculate goals by type (if type field exists)
-		const byType = {
-			okr: 0, // Would need to add type field to schema
-			kpi: 0,
-			milestone: 0,
-			objective: 0
-		};
+			// Additional metrics
+			const onTrackGoals = calc.count(
+				(g: any) => (g.progressPercentage || 0) >= 50 && g.status === 'in_progress'
+			);
+			const atRiskGoals = calc.count(
+				(g: any) => (g.progressPercentage || 0) < 50 && g.status === 'in_progress'
+			);
 
-		// Calculate health score (0-100)
-		const healthScore =
-			totalGoals > 0
-				? Math.round(((analytics.completedGoals + onTrackGoals) / totalGoals) * 100)
-				: 0;
+			// Health score
+			const healthScore =
+				analyticsList.length > 0
+					? Math.round(((completedGoals + onTrackGoals) / analyticsList.length) * 100)
+					: 0;
 
-		return {
-			user: {
-				id: locals.user?.id || '',
-				email: locals.user?.email || '',
-				displayName: locals.user?.display_name || 'User',
-				role: locals.user?.role || 'employee'
-			},
-			userSession: {
-				userId: locals.user?.id || '',
-				userEmail: locals.user?.email || '',
-				role: locals.user?.role || 'employee',
-				accessToken: '' // Session-based auth doesn't use access tokens
-			},
-			teamGoals: transformedGoals,
-			totalGoals,
-			goalsAnalytics: {
-				summary: {
-					totalGoals: analytics.totalGoals,
-					activeGoals: analytics.activeGoals,
-					completedGoals: analytics.completedGoals,
-					overdueGoals: analytics.overdueGoals
+			return {
+				user: {
+					id: locals.user?.id || '',
+					email: locals.user?.email || '',
+					displayName: locals.user?.display_name || 'User',
+					role: locals.user?.role || 'employee'
 				},
-				progress: {
-					averageProgress: analytics.averageProgress,
-					onTrackGoals,
-					atRiskGoals,
-					behindGoals
+				userSession: {
+					userId: locals.user?.id || '',
+					userEmail: locals.user?.email || '',
+					role: locals.user?.role || 'employee',
+					accessToken: ''
 				},
-				byType,
-				breakdowns: {
-					priority: [], // Priority field doesn't exist in schema yet
-					type: [] // Type field doesn't exist in schema yet
+				teamGoals: paginatedGoals,
+				totalGoals,
+				goalsAnalytics: {
+					summary: {
+						totalGoals: analyticsList.length,
+						activeGoals,
+						completedGoals,
+						overdueGoals
+					},
+					progress: {
+						averageProgress,
+						onTrackGoals,
+						atRiskGoals,
+						behindGoals: overdueGoals
+					},
+					byType: { okr: 0, kpi: 0, milestone: 0, objective: 0 },
+					breakdowns: {
+						priority: [],
+						type: []
+					},
+					healthScore
 				},
-				healthScore
-			},
-			filters: {
-				searchTerm,
-				statusFilter,
-				typeFilter: '',
-				priorityFilter
-			},
-			pagination: {
-				currentPage: page,
-				limit,
-				totalPages: Math.ceil(totalGoals / limit),
-				hasNextPage: page * limit < totalGoals,
-				hasPreviousPage: page > 1
-			},
-			permissions: locals.permissions || [],
-			canCreateGoals: hasManagerAccess,
-			canEditGoals: hasManagerAccess,
-			canViewAllGoals: locals.roles?.includes('admin') || false,
-			loadedAt: new Date().toISOString()
-		};
-	} catch (err) {
-		logger.error('Error loading management goals data:', err as Error);
-
-		// Return error state instead of throwing to prevent page crash
-		return {
-			user: {
-				id: locals.user?.id || '',
-				email: locals.user?.email || '',
-				displayName: locals.user?.display_name || 'User',
-				role: locals.user?.role || 'employee'
-			},
-			userSession: {
-				userId: locals.user?.id || '',
-				userEmail: locals.user?.email || '',
-				role: locals.user?.role || 'employee',
-				accessToken: '' // Session-based auth doesn't use access tokens
-			},
-			teamGoals: [],
-			totalGoals: 0,
-			goalsAnalytics: {
-				summary: { totalGoals: 0, activeGoals: 0, completedGoals: 0, overdueGoals: 0 },
-				progress: { averageProgress: 0, onTrackGoals: 0, atRiskGoals: 0, behindGoals: 0 },
-				byType: { okr: 0, kpi: 0, milestone: 0, objective: 0 },
-				breakdowns: {
-					priority: [],
-					type: []
+				filters: {
+					searchTerm,
+					statusFilter,
+					typeFilter: '',
+					priorityFilter
 				},
-				healthScore: 0
-			},
-			filters: {
-				searchTerm: url.searchParams.get('search') || '',
-				statusFilter: url.searchParams.get('status') || '',
-				typeFilter: '',
-				priorityFilter: url.searchParams.get('priority') || ''
-			},
-			pagination: {
-				currentPage: parseInt(url.searchParams.get('page') || '1', 10),
-				limit: 20,
-				totalPages: 0,
-				hasNextPage: false,
-				hasPreviousPage: false
-			},
-			permissions: locals.permissions || [],
-			canCreateGoals: false,
-			canEditGoals: false,
-			canViewAllGoals: false,
-			loadedAt: new Date().toISOString(),
-			error: {
-				message: 'Failed to load goals data. Please try again later.',
-				details: err instanceof Error ? err.message : 'Unknown error',
-				retryable: true
-			}
-		};
-	}
+				pagination: {
+					currentPage: page,
+					limit,
+					totalPages: Math.ceil(totalGoals / limit),
+					hasNextPage: page * limit < totalGoals,
+					hasPreviousPage: page > 1
+				},
+				permissions: locals.permissions || [],
+				canCreateGoals: hasManagerAccess,
+				canEditGoals: hasManagerAccess,
+				canViewAllGoals: locals.roles?.includes('admin') || false,
+				loadedAt: new Date().toISOString()
+			};
+		} catch (err) {
+			logger.error('Error loading management goals data:', err as Error);
+			return getEmptyState(
+				'Failed to load goals data. Please try again later.',
+				err instanceof Error ? err.message : 'Unknown error'
+			);
+		}
+	});
 };

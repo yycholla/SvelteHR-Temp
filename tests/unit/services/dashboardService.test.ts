@@ -45,7 +45,7 @@ describe('DashboardService', () => {
 			const mockUsers = [{ id: '1', firstName: 'John' }];
 			const mockDepts = [{ id: '1', name: 'Engineering' }];
 
-			mockQuery.mockImplementation((query: string) => {
+			mockQuery.mockImplementation((query: any) => {
 				if (query === GET_USERS_QUERY) {
 					return Promise.resolve({ data: { users: mockUsers } });
 				}

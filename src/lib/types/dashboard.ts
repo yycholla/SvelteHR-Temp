@@ -1,44 +1,17 @@
 // Dashboard Types
+import type { User } from './domain/user';
+import type { Department } from './domain/department';
+import type { AttendanceRecord } from './domain/attendance';
+import type { LeaveRequest, LeaveType } from './domain/leave';
+import type { Task } from './domain/task';
+import type { ActivityType, NotificationType, NotificationPriority } from './domain/enums';
 
-export interface DashboardUser {
-	id: string;
-	firstName: string;
-	lastName: string;
-	email: string;
-	isActive: boolean;
-	departmentId?: string;
-}
+// Re-export domain types used in dashboard
+export type { User, Department, AttendanceRecord, LeaveRequest, LeaveType, Task, ActivityType, NotificationType, NotificationPriority };
 
-export interface DashboardDepartment {
-	id: string;
-	name: string;
-	managerId?: string;
-}
-
-export interface AttendanceRecord {
-	id: string;
-	date: string;
-	clockIn: string;
-	clockOut: string | null;
-	hoursWorked: number | null;
-	status: string;
-}
-
-export interface LeaveType {
-	id: string;
-	name: string;
-	color: string;
-}
-
-export interface LeaveRequest {
-	id: string;
-	leaveType: LeaveType | null;
-	startDate: string;
-	endDate: string;
-	daysRequested: number;
-	status: string;
-	createdAt: string;
-}
+// Re-export for convenience (Legacy aliases)
+export type DashboardUser = User;
+export type DashboardDepartment = Department;
 
 export interface EmployeeGoal {
 	id: string;
@@ -50,20 +23,12 @@ export interface EmployeeGoal {
 	createdAt: string;
 }
 
-export interface Task {
-	id: string;
-	title: string;
-	description: string | null;
-	status: string;
-	priority: string;
-	dueDate: string | null;
-	createdAt: string;
-}
-
 export interface DashboardMetrics {
 	attendanceRate: number;
 	pendingRequests: number;
 	taskCount: number;
+	completedTaskCount?: number;
+	totalTaskCount?: number;
 	remainingVacationDays: number;
 }
 
@@ -74,6 +39,71 @@ export interface ActivityLog {
 	resourceId: string;
 	details: any;
 	createdAt: string;
+	userByEmployeeId?: User;
+}
+
+export interface SystemAuditLog extends ActivityLog {
+	isRollback?: boolean;
+	employeeName?: string;
+}
+
+export interface RollbackRequest {
+	id: string;
+	entityType: string;
+	status: string;
+	reason: string;
+	createdAt: string;
+	requester: User | null;
+	requesterName?: string;
+	resourceType?: string;
+}
+
+export interface RollbackStats {
+	rollbackRequestsCount: number;
+}
+
+export interface DashboardActivity {
+	id: string;
+	title: string;
+	description: string;
+	icon: string;
+	color: string;
+	type: string;
+	timestamp: string;
+	user: { id: string; name: string };
+}
+
+export interface DashboardEvent {
+	id: string;
+	title: string;
+	description: string;
+	type: string;
+	date: string;
+	time: string;
+	location: string;
+	icon: string;
+	color: string;
+	priority: string;
+	organizer: string;
+	isPublic: boolean;
+	rsvpStatus: string;
+}
+
+export interface ApiEvent {
+	id: string;
+	title: string;
+	description: string | null;
+	eventType: string;
+	startTime: string;
+	endTime: string;
+	allDay: boolean;
+	location: string | null;
+	isPublic: boolean;
+	status: string;
+	color: string | null;
+	organizerId: string;
+	attendees: Array<{ id: string; employeeId: string; responseStatus: string }>;
+	userByOrganizerId?: User;
 }
 
 export interface DashboardData {
@@ -82,6 +112,8 @@ export interface DashboardData {
 		email: string;
 		displayName: string;
 		roles: string[];
+		firstName?: string;
+		lastName?: string;
 	};
 	userSession: {
 		userId: string;
@@ -91,13 +123,13 @@ export interface DashboardData {
 	};
 	dashboardData: {
 		metrics: DashboardMetrics;
-		activities: ActivityLog[];
+		activities: DashboardActivity[];
 		tasks: Task[];
-		events: any[]; // Define specific event type if needed
+		events: DashboardEvent[];
 	};
 	dashboardMetrics: any[]; // Legacy/Specific metrics array
-	recentActivities: ActivityLog[];
-	upcomingEvents: any[];
+	recentActivities: DashboardActivity[];
+	upcomingEvents: DashboardEvent[];
 	quickActions: any[];
 	preferences: {
 		selectedPeriod: string;
@@ -105,16 +137,54 @@ export interface DashboardData {
 		theme: string;
 		showWelcome: boolean;
 	};
-	permissions: string[];
+	permissions?: string[];
 	userPerms: any;
 	canManageUsers: boolean;
 	canViewReports: boolean;
 	canApproveLeave: boolean;
+	isAdmin?: boolean;
+	isSuperAdmin?: boolean;
 	weatherPromise: Promise<string | null>;
-	loadedAt: string;
+	loadedAt?: string;
 	error?: {
 		message: string;
 		details: string;
 		retryable: boolean;
 	};
+	systemAuditLogs?: any[];
+	rollbackRequests?: any[];
+	rollbackStats?: RollbackStats | null;
+}
+
+export interface QuickStats {
+	pendingTasks: number;
+	completedTasksThisWeek: number;
+	overdueTasksCount: number;
+	pendingLeaveRequests: number;
+	teamSize: number;
+	attendanceRate: number;
+}
+
+export interface Activity {
+	id: string;
+	type: ActivityType;
+	description: string;
+	actor: User;
+	target?: string;
+	timestamp: string;
+	metadata?: Record<string, any>;
+}
+
+export interface Notification {
+	id: string;
+	type: NotificationType;
+	title: string;
+	message: string;
+	recipient: User;
+	isRead: boolean;
+	priority: NotificationPriority;
+	actionUrl?: string;
+	actionLabel?: string;
+	createdAt: string;
+	expiresAt?: string;
 }

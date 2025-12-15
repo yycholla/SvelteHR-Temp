@@ -147,7 +147,7 @@ export const load: PageServerLoad = async (event) => {
 			});
 
 			// Use ClientSideFilter for fluent filtering API
-			let filteredTasks = new ClientSideFilter(tasksData || [])
+			const filteredTasks = new ClientSideFilter(tasksData || [])
 				// Status filter (GraphQL returns SCREAMING_SNAKE_CASE)
 				.where('status', filters.statusFilter ? filters.statusFilter.toUpperCase().replace('-', '_') : undefined)
 				// Priority filter
