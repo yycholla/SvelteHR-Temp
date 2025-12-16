@@ -235,11 +235,12 @@
 								<!-- Embedded YouTube Video Player -->
 								<div class="aspect-video w-full rounded-lg overflow-hidden shadow-lg">
 									<iframe
-										src={`https://www.youtube.com/embed/${videoId}`}
+										src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}&rel=0`}
 										title={activeContent.title}
 										frameborder="0"
 										allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
 										allowfullscreen
+										referrerpolicy="strict-origin-when-cross-origin"
 										class="w-full h-full"
 									></iframe>
 								</div>
