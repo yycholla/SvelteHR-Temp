@@ -44,75 +44,93 @@ export async function loadEventsData(event: RequestEvent) {
 		if (typeFilter) filter.event_type = typeFilter;
 
 		// Fetch events visible to the user
+		// Note: Rust backend doesn't support filtering/sorting yet, handled client-side
 		const GET_EVENTS = gql`
-			query GetAllEvents($first: Int, $offset: Int, $filter: EventCondition, $orderBy: [EventsOrderBy!]) {
-				events(first: $first, offset: $offset, condition: $filter, orderBy: $orderBy) {
-					totalCount
-					nodes {
+			query GetAllEvents($limit: Int, $offset: Int) {
+				events(limit: $limit, offset: $offset) {
+					id
+					title
+					description
+					eventType
+					startTime
+					endTime
+					isAllDay
+					location
+					status
+					isPublic
+					color
+					organizerId
+					createdAt
+					updatedAt
+					attendees(limit: 100) {
 						id
-						title
-						description
-						eventType
-						startTime
-						endTime
-						allDay
-						location
-						status
-						isPublic
-						color
-						organizerId
-						createdAt
-						updatedAt
-						eventAttendees {
-							nodes {
-								id
-								employeeId
-								responseStatus
-								isOrganizer
-							}
-						}
-						organizer {
+						employeeId
+						responseStatus
+						employee {
 							id
 							displayName
 							email
 						}
+					}
+					organizer {
+						id
+						displayName
+						email
 					}
 				}
 			}
 		`;
 
 		const eventsResponse = await client.query(GET_EVENTS, {
-			first: limit,
-			offset,
-			filter,
-			orderBy: [orderBy] as any
+			limit,
+			offset
 		});
 
-		const events = eventsResponse?.events?.nodes || [];
-		const totalCount = eventsResponse?.events?.totalCount || 0;
+		let events = eventsResponse?.data?.events || [];
 
-		// Fetch user's events for "My Events" tab (filtered client-side for simplicity in this view)
+		// Apply client-side filtering since backend doesn't support it yet
+		if (statusFilter) {
+			events = events.filter((e: any) => e.status === statusFilter);
+		}
+		if (typeFilter) {
+			events = events.filter((e: any) => e.eventType === typeFilter);
+		}
+
+		// Apply client-side sorting
+		if (sortBy === 'date') {
+			events = events.sort((a: any, b: any) =>
+				new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+			);
+		} else if (sortBy === 'created') {
+			events = events.sort((a: any, b: any) =>
+				new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+			);
+		} else if (sortBy === 'title') {
+			events = events.sort((a: any, b: any) =>
+				a.title.localeCompare(b.title)
+			);
+		}
+
+		const totalCount = events.length;
+
+		// Fetch all events for statistics calculation
 		const GET_STATS_DATA = gql`
-			query GetEventStats {
-				events(condition: { status: "scheduled" }) {
-					nodes {
-						id
-						startTime
-						endTime
-						status
-						eventAttendees {
-							nodes {
-								employeeId
-								responseStatus
-							}
-						}
+			query GetEventStats($limit: Int) {
+				events(limit: $limit) {
+					id
+					startTime
+					endTime
+					status
+					attendees(limit: 100) {
+						employeeId
+						responseStatus
 					}
 				}
 			}
 		`;
 
-		const statsResponse = await client.query(GET_STATS_DATA);
-		const allEventsForStats = statsResponse?.events?.nodes || [];
+		const statsResponse = await client.query(GET_STATS_DATA, { limit: 1000 });
+		const allEventsForStats = statsResponse?.data?.events || [];
 
 		// Calculate statistics
 		const eventStats = StatisticsCalculator.forEvents(allEventsForStats);
@@ -124,10 +142,10 @@ export async function loadEventsData(event: RequestEvent) {
 			past: eventStats.past,
 			cancelled: eventStats.cancelled,
 			myEvents: allEventsForStats.filter((e: any) =>
-				(e.eventAttendees?.nodes || []).some((a: any) => a.employeeId === userId)
+				(e.attendees || []).some((a: any) => a.employeeId === userId)
 			).length,
 			accepted: allEventsForStats.filter((e: any) =>
-				(e.eventAttendees?.nodes || []).some(
+				(e.attendees || []).some(
 					(a: any) => a.employeeId === userId && a.responseStatus === 'accepted'
 				)
 			).length
@@ -184,8 +202,7 @@ export async function loadEventsData(event: RequestEvent) {
 
 		const mappedEvents = events.map((e: any) => ({
 			...e,
-			eventAttendees: e.eventAttendees?.nodes || [],
-			attendees: e.eventAttendees?.nodes || []
+			attendees: e.attendees || []
 		}));
 
 		return {
