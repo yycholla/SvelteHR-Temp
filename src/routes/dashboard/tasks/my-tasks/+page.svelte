@@ -466,7 +466,7 @@
 				</div>
 
 				<!-- Compact List -->
-				<div class="rounded-md border">
+				<div class="rounded-md border p-4">
 					<TaskList
 						tasks={filteredTasks}
 						showFilters={false}
