@@ -83,6 +83,9 @@ export const load: PageServerLoad = async (event) => {
 
 		let notifications = notificationsData?.data?.notifications || [];
 
+		// Calculate unread count from all notifications (before filtering)
+		const unreadCount = notifications.filter((n: any) => !n.readStatus).length;
+
 		// Client-side filtering for category
 		if (categoryFilter) {
 			notifications = notifications.filter((n: any) => n.category === categoryFilter);
@@ -105,25 +108,6 @@ export const load: PageServerLoad = async (event) => {
 		const startIndex = (page - 1) * limit;
 		const endIndex = startIndex + limit;
 		notifications = notifications.slice(startIndex, endIndex);
-
-		// Fetch unread count
-		const unreadCountResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetUnreadCount($recipientId: UUID) {
-						unreadNotificationsCount(recipientId: $recipientId)
-					}
-				`,
-				variables: {
-					recipientId: locals.user.id
-				}
-			})
-		});
-
-		const unreadCountData = await unreadCountResponse.json();
-		const unreadCount = unreadCountData?.data?.unreadNotificationsCount || 0;
 
 		return {
 			notifications,
