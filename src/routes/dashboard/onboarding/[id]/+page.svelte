@@ -350,20 +350,20 @@
 									{@const template = getFormTemplate(block.formTemplateId)}
 									{#if template?.fields}
 										<div class="space-y-4" data-testid="block-FORM_FIELDS-{block.id}">
-											{#each template.fields as field (`${block.id}-${field.name}`)}
+											{#each template.fields as field, fieldIndex (`${block.id}-${fieldIndex}`)}
 												{@const fieldInfo = renderFormField(field, block.id)}
 												{@const FieldComponent = fieldInfo.component}
 												<div>
-													<Label for={`${block.id}-${field.name}`}>
+													<Label for={`${block.id}-${field.name || fieldIndex}`}>
 														{field.label}
 														{#if field.required}
 															<span class="text-red-500">*</span>
 														{/if}
 													</Label>
 													<FieldComponent
-														id={`${block.id}-${field.name}`}
+														id={`${block.id}-${field.name || fieldIndex}`}
 														required={field.required}
-														bind:value={formData[`${block.id}-${field.name}`]}
+														bind:value={formData[`${block.id}-${field.name || fieldIndex}`]}
 														{...fieldInfo.props}
 													/>
 												</div>
