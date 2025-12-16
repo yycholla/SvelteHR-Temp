@@ -158,9 +158,22 @@ export const load: PageServerLoad = async (event) => {
 		`;
 
 		const userData = await client.query(userQuery, { id: userId });
+
+		// Log errors if any
+		if (userData.errors) {
+			logger.error('[Reviews] GraphQL errors fetching user:', new Error('GraphQL errors'), {
+				errors: userData.errors
+			});
+		}
+
 		const user = userData.data?.user;
 
 		if (!user) {
+			logger.error('[Reviews] User not found', new Error('User not found'), {
+				userId,
+				hasData: !!userData.data,
+				hasErrors: !!userData.errors
+			});
 			error(404, 'User not found');
 		}
 
