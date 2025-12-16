@@ -159,6 +159,15 @@ export const load: PageServerLoad = async (event) => {
 
 		const userData = await client.query(userQuery, { id: userId });
 
+		// Log the full response for debugging
+		logger.info('[Reviews] User query response', {
+			userId,
+			hasData: !!userData.data,
+			hasErrors: !!userData.errors,
+			dataKeys: userData.data ? Object.keys(userData.data) : [],
+			fullResponse: JSON.stringify(userData).substring(0, 500)
+		});
+
 		// Log errors if any
 		if (userData.errors) {
 			logger.error('[Reviews] GraphQL errors fetching user:', new Error('GraphQL errors'), {
@@ -172,7 +181,8 @@ export const load: PageServerLoad = async (event) => {
 			logger.error('[Reviews] User not found', new Error('User not found'), {
 				userId,
 				hasData: !!userData.data,
-				hasErrors: !!userData.errors
+				hasErrors: !!userData.errors,
+				dataValue: userData.data
 			});
 			error(404, 'User not found');
 		}
