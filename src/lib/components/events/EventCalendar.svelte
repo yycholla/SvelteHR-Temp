@@ -110,9 +110,20 @@
 				import('@fullcalendar/rrule')
 			]);
 
+			// Find first upcoming event to set initial calendar date
+			const now = new Date();
+			const upcomingEvents = filteredEvents
+				.filter((e: any) => new Date(e.startTime) > now)
+				.sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+
+			const initialDate = upcomingEvents.length > 0
+				? new Date(upcomingEvents[0].startTime)
+				: new Date(); // Default to today if no upcoming events
+
 			calendar = new Calendar(calendarEl, {
 				plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, rrulePlugin],
 				initialView: 'dayGridMonth',
+				initialDate,
 				headerToolbar: {
 					left: 'prev,next today',
 					center: 'title',
