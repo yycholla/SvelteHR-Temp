@@ -350,7 +350,7 @@
 									{@const template = getFormTemplate(block.formTemplateId)}
 									{#if template?.fields}
 										<div class="space-y-4" data-testid="block-FORM_FIELDS-{block.id}">
-											{#each template.fields as field}
+											{#each template.fields as field (`${block.id}-${field.name}`)}
 												{@const fieldInfo = renderFormField(field, block.id)}
 												{@const FieldComponent = fieldInfo.component}
 												<div>
@@ -363,7 +363,7 @@
 													<FieldComponent
 														id={`${block.id}-${field.name}`}
 														required={field.required}
-														bind:value={formData[field.name]}
+														bind:value={formData[`${block.id}-${field.name}`]}
 														{...fieldInfo.props}
 													/>
 												</div>
