@@ -1140,6 +1140,9 @@ impl QueryRoot {
 
         let mut query = NotificationEntity::find();
 
+        // Filter out soft-deleted notifications
+        query = query.filter(NotificationColumn::DeletedAt.is_null());
+
         // Add user filter if provided
         if let Some(uid) = user_id {
             query = query.filter(NotificationColumn::RecipientId.eq(uid));
