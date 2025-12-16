@@ -199,6 +199,7 @@ export class StatisticsCalculator<T = any> {
 	 * Event statistics helper
 	 *
 	 * Calculates standard event statistics including upcoming, ongoing, past, and cancelled.
+	 * "Upcoming" counts events starting within the next 30 days.
 	 *
 	 * @param events - Array of events
 	 * @returns Event statistics object
@@ -208,7 +209,7 @@ export class StatisticsCalculator<T = any> {
 	 * const stats = StatisticsCalculator.forEvents(events);
 	 * // {
 	 * //   total: 120,
-	 * //   upcoming: 45,
+	 * //   upcoming: 45,  // Events in next 30 days
 	 * //   ongoing: 5,
 	 * //   past: 65,
 	 * //   cancelled: 5
@@ -224,9 +225,13 @@ export class StatisticsCalculator<T = any> {
 	} {
 		const calculator = new StatisticsCalculator(events);
 		const now = new Date();
+		const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
 		return calculator.calculate({
-			upcoming: (e) => new Date(e.startTime) > now && e.status !== 'CANCELLED',
+			upcoming: (e) => {
+				const startTime = new Date(e.startTime);
+				return startTime > now && startTime <= thirtyDaysFromNow && e.status !== 'CANCELLED';
+			},
 			ongoing: (e) => {
 				const start = new Date(e.startTime);
 				const end = new Date(e.endTime);
