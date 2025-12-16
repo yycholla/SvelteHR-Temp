@@ -466,7 +466,7 @@
 				</div>
 
 				<!-- Compact List -->
-				<div class="h-[600px] overflow-hidden rounded-md border">
+				<div class="rounded-md border">
 					<TaskList
 						tasks={filteredTasks}
 						showFilters={false}
