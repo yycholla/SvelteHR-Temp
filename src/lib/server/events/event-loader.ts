@@ -27,8 +27,13 @@ export async function loadEventsData(event: RequestEvent) {
 		const statusFilter = params.getString('status') as EventStatus | null;
 		const typeFilter = params.getString('type') as EventType | null;
 		const sortBy = params.getString('sort', 'date');
-		const { page, limit, offset } = params.getPagination(50);
 		const view = params.getString('view', 'list');
+
+		// For calendar view, fetch all events (no pagination)
+		// For list view, use pagination
+		const { page, limit, offset } = view === 'calendar'
+			? { page: 1, limit: 1000, offset: 0 }
+			: params.getPagination(50);
 
 		// Determine sort order for GraphQL
 		const orderByMap: Record<string, string> = {
