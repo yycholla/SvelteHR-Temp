@@ -88,6 +88,11 @@ export async function loadEventsData(event: RequestEvent) {
 
 		let events = eventsResponse?.events || [];
 
+		// Debug: Log what events are being fetched for display
+		console.log('=== EVENTS DISPLAY DEBUG ===');
+		console.log(`Fetched ${events.length} events for display (limit: ${limit}, offset: ${offset})`);
+		console.log(`User: ${event.locals.user?.email}, Role: ${event.locals.user?.role}`);
+
 		// Apply client-side filtering since backend doesn't support it yet
 		if (statusFilter) {
 			events = events.filter((e: any) => e.status === statusFilter);
@@ -132,8 +137,17 @@ export async function loadEventsData(event: RequestEvent) {
 		const statsResponse = await client.query(GET_STATS_DATA, { limit: 1000 });
 		const allEventsForStats = statsResponse?.events || [];
 
+		// Debug: Log stats data
+		console.log('=== EVENTS STATS DEBUG ===');
+		console.log(`Fetched ${allEventsForStats.length} events for stats calculation`);
+		const upcomingCount = allEventsForStats.filter(
+			(e: any) => new Date(e.startTime) > new Date()
+		).length;
+		console.log(`Raw upcoming count (all future): ${upcomingCount}`);
+
 		// Calculate statistics
 		const eventStats = StatisticsCalculator.forEvents(allEventsForStats);
+		console.log(`Calculated stats:`, eventStats);
 
 		const stats = {
 			total: totalCount,
