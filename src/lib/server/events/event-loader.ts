@@ -86,7 +86,7 @@ export async function loadEventsData(event: RequestEvent) {
 			offset
 		});
 
-		let events = eventsResponse?.data?.events || [];
+		let events = eventsResponse?.events || [];
 
 		// Apply client-side filtering since backend doesn't support it yet
 		if (statusFilter) {
@@ -130,7 +130,7 @@ export async function loadEventsData(event: RequestEvent) {
 		`;
 
 		const statsResponse = await client.query(GET_STATS_DATA, { limit: 1000 });
-		const allEventsForStats = statsResponse?.data?.events || [];
+		const allEventsForStats = statsResponse?.events || [];
 
 		// Calculate statistics
 		const eventStats = StatisticsCalculator.forEvents(allEventsForStats);
