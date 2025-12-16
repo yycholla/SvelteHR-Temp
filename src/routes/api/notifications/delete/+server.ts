@@ -13,13 +13,6 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 
 	const userId = locals.user.id;
 
-	// Get session cookie for GraphQL client (handled by browser automatically)
-	const authToken = cookies.get('hr_token') || cookies.get('auth-token');
-	if (!authToken) {
-		logger.error('Delete notification: No session cookie found');
-		error(401, 'Session cookie required');
-	}
-
 	try {
 		const { notificationId } = await request.json();
 
@@ -27,22 +20,18 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 			error(400, 'Notification ID is required');
 		}
 
-		const graphqlClient = new GraphQLClient();
-		graphqlClient.setToken(authToken);
+		// Create GraphQL client with session cookies for tower-sessions authentication
+		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
-		// Delete notification mutation
+		// Delete notification mutation using Rust GraphQL schema
 		const deleteNotificationMutation = `
-			mutation DeleteNotification($notificationId: UUID!) {
-				deleteNotificationById(input: { id: $notificationId }) {
-					notification {
-						id
-					}
-				}
+			mutation DeleteNotification($id: UUID!) {
+				deleteNotification(id: $id)
 			}
 		`;
 
 		await graphqlClient.query(deleteNotificationMutation, {
-			notificationId
+			id: notificationId
 		});
 
 		return json({ success: true });

@@ -13,13 +13,6 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 
 	const userId = locals.user.id;
 
-	// Get session cookie for GraphQL client (handled by browser automatically)
-	const authToken = cookies.get('hr_token') || cookies.get('auth-token');
-	if (!authToken) {
-		logger.error('Mark-read: No session cookie found');
-		error(401, 'Session cookie required');
-	}
-
 	try {
 		const { notificationIds } = await request.json();
 
@@ -27,35 +20,26 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 			error(400, 'Invalid notification IDs');
 		}
 
-		const graphqlClient = new GraphQLClient();
-		graphqlClient.setToken(authToken);
+		// Create GraphQL client with session cookies for tower-sessions authentication
+		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
-		// Mark each notification as read
-		const currentTime = new Date().toISOString();
+		// Mark each notification as read using Rust GraphQL schema
 		const mutations = notificationIds.map(async (notificationId: string) => {
 			const markAsReadMutation = `
-				mutation MarkNotificationAsRead($notificationId: UUID!, $readAt: Datetime!) {
-					updateNotificationById(
-						input: {
-							id: $notificationId
-							notificationPatch: {
-								readStatus: true
-								readAt: $readAt
-							}
-						}
-					) {
-						notification {
-							id
-							readStatus
-							readAt
-						}
+				mutation MarkNotificationAsRead($id: UUID!, $input: UpdateNotificationInput!) {
+					updateNotification(id: $id, input: $input) {
+						id
+						readStatus
+						readAt
 					}
 				}
 			`;
 
 			return graphqlClient.query(markAsReadMutation, {
-				notificationId,
-				readAt: currentTime
+				id: notificationId,
+				input: {
+					readStatus: true
+				}
 			});
 		});
 
