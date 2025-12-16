@@ -5,7 +5,7 @@
 	// Purpose: Display and manage user notifications
 
 	import type { PageData } from './$types';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
 	import type { Notification, NotificationCategory, NotificationType } from '$lib/graphql/types';
 	import { getRelativeTime } from '$lib/utils/activities';
@@ -74,8 +74,8 @@
 				throw new Error('Failed to mark as read');
 			}
 
-			// Reload page to show updated state
-			window.location.reload();
+			// Refresh data without full page reload
+			await invalidateAll();
 		} catch (err) {
 			logger.error('Failed to mark as read:', err as Error);
 		}
@@ -100,8 +100,8 @@
 				throw new Error('Failed to mark all as read');
 			}
 
-			// Reload page to show updated state
-			window.location.reload();
+			// Refresh data without full page reload
+			await invalidateAll();
 		} catch (err) {
 			logger.error('Failed to mark all as read:', err as Error);
 		}
@@ -120,8 +120,8 @@
 				throw new Error('Failed to delete notification');
 			}
 
-			// Reload page to show updated list
-			window.location.reload();
+			// Refresh data without full page reload
+			await invalidateAll();
 		} catch (err) {
 			logger.error('Failed to delete notification:', err as Error);
 			alert('Failed to delete notification. Please try again.');
