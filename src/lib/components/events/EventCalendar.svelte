@@ -48,6 +48,9 @@
 	const calendarEvents = $derived(
 		filteredEvents.map((event: any) => {
 			const rsvpStatus = localRsvpStatuses[event.id] || 'pending';
+			const now = new Date();
+			const eventEnd = new Date(event.endTime);
+			const isPastEvent = eventEnd < now;
 
 			// RSVP status-based colors (4 distinct colors)
 			const colorMap: Record<string, string> = {
@@ -57,6 +60,9 @@
 				pending: '#3b82f6' // Blue
 			};
 
+			// Gray out past events
+			const eventColor = isPastEvent ? '#9ca3af' : colorMap[rsvpStatus];
+
 			const userAttendee = event.eventAttendeesByEventId?.nodes?.find(
 				(a: any) => a.employeeId === userId
 			);
@@ -64,14 +70,17 @@
 
 			const calendarEvent: any = {
 				id: event.id,
-				title: event.title,
-				backgroundColor: colorMap[rsvpStatus],
-				borderColor: colorMap[rsvpStatus],
+				title: isPastEvent ? `[Past] ${event.title}` : event.title,
+				backgroundColor: eventColor,
+				borderColor: eventColor,
 				allDay: event.isAllDay,
+				classNames: isPastEvent ? ['past-event'] : [],
+				editable: !isPastEvent && canManageEvents, // Past events are not editable
 				extendedProps: {
 					...event,
 					rsvpStatus,
-					hasReminder
+					hasReminder,
+					isPastEvent
 				}
 			};
 
@@ -527,5 +536,22 @@
 	/* Use secondary color which usually contrasts well with card background */
 	:global(.fc-day-today) {
 		background-color: hsl(var(--secondary) / 0.5) !important;
+	}
+
+	/* Past Event Styling - Make them visually distinct and indicate they're read-only */
+	:global(.past-event) {
+		opacity: 0.6;
+		cursor: not-allowed !important;
+	}
+
+	:global(.past-event .fc-event-title) {
+		font-style: italic;
+		text-decoration: line-through;
+	}
+
+	/* Prevent hover effects on past events */
+	:global(.past-event:hover) {
+		opacity: 0.6 !important;
+		filter: none !important;
 	}
 </style>
