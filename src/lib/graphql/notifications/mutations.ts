@@ -2,44 +2,24 @@ import { gql } from '@urql/svelte';
 
 /**
  * Mutation: Mark notification as read
+ * Rust GraphQL Schema: updateNotification(id: UUID!, input: UpdateNotificationInput!)
  */
 export const MARK_NOTIFICATION_READ = gql`
-	mutation MarkNotificationRead($input: UpdateNotificationInput!) {
-		updateNotification(input: $input) {
-			notification {
-				id
-				readStatus
-				readAt
-			}
-			clientMutationId
-		}
-	}
-`;
-
-/**
- * Mutation: Mark all user notifications as read
- * PostGraphile: Uses updateNotificationsByCondition with direct condition values
- */
-export const MARK_ALL_READ = gql`
-	mutation MarkAllRead($condition: NotificationCondition!, $patch: NotificationPatch!) {
-		updateNotifications(condition: $condition, patch: $patch) {
-			notifications {
-				id
-				readStatus
-				readAt
-			}
+	mutation MarkNotificationRead($id: UUID!, $input: UpdateNotificationInput!) {
+		updateNotification(id: $id, input: $input) {
+			id
+			readStatus
+			readAt
 		}
 	}
 `;
 
 /**
  * Mutation: Delete notification
+ * Rust GraphQL Schema: deleteNotification(id: UUID!)
  */
 export const DELETE_NOTIFICATION = gql`
-	mutation DeleteNotification($input: DeleteNotificationInput!) {
-		deleteNotification(input: $input) {
-			deletedNotificationId
-			clientMutationId
-		}
+	mutation DeleteNotification($id: UUID!) {
+		deleteNotification(id: $id)
 	}
 `;

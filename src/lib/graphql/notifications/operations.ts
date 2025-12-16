@@ -9,10 +9,9 @@ import {
 } from './queries';
 import {
 	MARK_NOTIFICATION_READ,
-	MARK_ALL_READ,
 	DELETE_NOTIFICATION
 } from './mutations';
-import type { Notification, UpdateNotificationInput, DeleteNotificationInput } from './types';
+import type { Notification, UpdateNotificationInput } from './types';
 
 /**
  * T016: Notifications Operations with Read/Unread Tracking
@@ -194,22 +193,22 @@ export class NotificationsOperations {
 
 	/**
 	 * Mark notification as read
+	 * Rust GraphQL Schema: updateNotification(id: UUID!, input: UpdateNotificationInput!)
 	 */
 	async markNotificationRead(params: {
 		notificationId: string;
 		userCredentials: UserCredentials;
 	}): Promise<Notification> {
 		const input: UpdateNotificationInput = {
-			id: params.notificationId,
-			patch: {
-				readStatus: true,
-				readAt: new Date().toISOString()
-			}
+			readStatus: true
 		};
 
 		const dataRequest = createDataRequest({
 			operationName: 'MarkNotificationRead',
-			variables: { input },
+			variables: {
+				id: params.notificationId,
+				input
+			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
@@ -235,7 +234,7 @@ export class NotificationsOperations {
 				});
 			}
 
-			return result.data.updateNotification.notification;
+			return result.data.updateNotification;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error
@@ -249,74 +248,27 @@ export class NotificationsOperations {
 
 	/**
 	 * Mark all user notifications as read
-	 * PostGraphile: Uses condition and patch parameters
+	 * TODO: Implement bulk update mutation in Rust backend
+	 * For now, this can be done by calling markNotificationRead for each notification
 	 */
 	async markAllRead(params: {
 		recipientId: string;
 		userCredentials: UserCredentials;
 	}): Promise<boolean> {
-		const condition = {
-			recipientId: params.recipientId,
-			readStatus: false
-		};
-
-		const patch = {
-			readStatus: true,
-			readAt: new Date().toISOString()
-		};
-
-		const dataRequest = createDataRequest({
-			operationName: 'MarkAllRead',
-			variables: { condition, patch },
-			userCredentials: params.userCredentials,
-			timeoutMs: 5000
-		});
-
-		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(MARK_ALL_READ, dataRequest.variables).toPromise();
-
-			if (result.error) {
-				const errorResponse = createErrorResponse(result.error, {
-					type: 'graphql',
-					userMessage: 'Unable to mark all notifications as read. Please try again.'
-				});
-				throw errorResponse;
-			}
-
-			if (!result.data) {
-				throw createErrorResponse(new Error('No data returned'), {
-					type: 'graphql',
-					userMessage: 'No data returned. Please try again.'
-				});
-			}
-
-			return true;
-		} catch (error: any) {
-			if (error.userMessage) {
-				throw error; // Already formatted error
-			}
-			throw createErrorResponse(error, {
-				type: 'graphql',
-				userMessage: 'Failed to mark all notifications as read. Please try again.'
-			});
-		}
+		throw new Error('markAllRead not yet implemented in Rust backend. Use markNotificationRead for individual notifications.');
 	}
 
 	/**
 	 * Delete notification
+	 * Rust GraphQL Schema: deleteNotification(id: UUID!)
 	 */
 	async deleteNotification(params: {
 		notificationId: string;
 		userCredentials: UserCredentials;
-	}): Promise<string> {
-		const input: DeleteNotificationInput = {
-			id: params.notificationId
-		};
-
+	}): Promise<boolean> {
 		const dataRequest = createDataRequest({
 			operationName: 'DeleteNotification',
-			variables: { input },
+			variables: { id: params.notificationId },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
@@ -342,7 +294,7 @@ export class NotificationsOperations {
 				});
 			}
 
-			return result.data.deleteNotification.deletedNotificationId;
+			return result.data.deleteNotification;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error

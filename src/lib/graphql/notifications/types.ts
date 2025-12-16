@@ -18,18 +18,9 @@ export interface NotificationCondition {
 	recipientId?: string;
 }
 
+// Rust GraphQL Schema input types
 export interface UpdateNotificationInput {
-	clientMutationId?: string;
-	id: string;
-	patch: {
-		readStatus?: boolean;
-		readAt?: string;
-	};
-}
-
-export interface DeleteNotificationInput {
-	clientMutationId?: string;
-	id: string;
+	readStatus?: boolean;
 }
 
 export interface Notification {

@@ -58,6 +58,7 @@ pub use linked_resource::{
 };
 pub use notification::{
     Model as Notification, NotificationCategory, NotificationResourceType, NotificationType,
+    UpdateNotificationInput,
 };
 pub use performance_review::{
     CreatePerformanceReviewInput, Model as PerformanceReview, PerformanceReviewStatus,
