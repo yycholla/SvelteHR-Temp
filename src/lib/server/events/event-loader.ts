@@ -27,12 +27,12 @@ export async function loadEventsData(event: RequestEvent) {
 		const statusFilter = params.getString('status') as EventStatus | null;
 		const typeFilter = params.getString('type') as EventType | null;
 		const sortBy = params.getString('sort', 'date');
-		const view = params.getString('view', 'list');
+		const view = params.getString('view', 'calendar');
 
 		// For calendar view, fetch all events (no pagination)
 		// For list view, use pagination
 		const { page, limit, offset } = view === 'calendar'
-			? { page: 1, limit: 1000, offset: 0 }
+			? { page: 1, limit: 500, offset: 0 }
 			: params.getPagination(50);
 
 		// Determine sort order for GraphQL
@@ -98,6 +98,19 @@ export async function loadEventsData(event: RequestEvent) {
 		console.log(`Fetched ${events.length} events for display (limit: ${limit}, offset: ${offset})`);
 		console.log(`User: ${event.locals.user?.email}, Role: ${event.locals.user?.role}`);
 
+		// For calendar view, filter to events within a few months of current date
+		// This reduces the dataset while ensuring all visible months have data
+		if (view === 'calendar') {
+		const now = new Date();
+		const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+		const threeMonthsAhead = new Date(now.getFullYear(), now.getMonth() + 4, 0);
+
+		events = events.filter((e: any) => {
+			const eventStart = new Date(e.startTime);
+			return eventStart >= twoMonthsAgo && eventStart <= threeMonthsAhead;
+		});
+	}
+
 		// Apply client-side filtering since backend doesn't support it yet
 		if (statusFilter) {
 			events = events.filter((e: any) => e.status === statusFilter);
@@ -139,7 +152,7 @@ export async function loadEventsData(event: RequestEvent) {
 			}
 		`;
 
-		const statsResponse = await client.query(GET_STATS_DATA, { limit: 1000 });
+		const statsResponse = await client.query(GET_STATS_DATA, { limit: 500 });
 		const allEventsForStats = statsResponse?.events || [];
 
 		// Debug: Log stats data
@@ -188,7 +201,7 @@ export async function loadEventsData(event: RequestEvent) {
 		`;
 
 		const employeesResult = await client.query(FETCH_ALL_EMPLOYEES, {
-			limit: 1000,
+			limit: 500,
 			offset: 0
 		});
 
