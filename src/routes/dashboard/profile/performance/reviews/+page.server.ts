@@ -157,33 +157,15 @@ export const load: PageServerLoad = async (event) => {
 			}
 		`;
 
-		const userData = await client.query(userQuery, { id: userId });
-
-		// Log the full response for debugging
-		logger.info('[Reviews] User query response', {
-			userId,
-			hasData: !!userData.data,
-			hasErrors: !!userData.errors,
-			dataKeys: userData.data ? Object.keys(userData.data) : [],
-			fullResponse: JSON.stringify(userData).substring(0, 500)
+		// UnifiedGraphQLClient returns data directly, not wrapped in { data }
+		const user = await client.query(userQuery, { id: userId }, {
+			operationName: 'GetUser',
+			dataPath: 'user',
+			errorMessage: 'Failed to load user data'
 		});
 
-		// Log errors if any
-		if (userData.errors) {
-			logger.error('[Reviews] GraphQL errors fetching user:', new Error('GraphQL errors'), {
-				errors: userData.errors
-			});
-		}
-
-		const user = userData.data?.user;
-
 		if (!user) {
-			logger.error('[Reviews] User not found', new Error('User not found'), {
-				userId,
-				hasData: !!userData.data,
-				hasErrors: !!userData.errors,
-				dataValue: userData.data
-			});
+			logger.error('[Reviews] User not found', new Error('User not found'), { userId });
 			error(404, 'User not found');
 		}
 
@@ -228,15 +210,20 @@ export const load: PageServerLoad = async (event) => {
 			}
 		`;
 
-		const reviewsData = await client.query(reviewsQuery, {
+		// UnifiedGraphQLClient returns data directly with dataPath extraction
+		const performanceReviews = await client.query(reviewsQuery, {
 			employeeId: userId,
 			limit: 50,
 			offset: 0
+		}, {
+			operationName: 'GetPerformanceReviewsByEmployee',
+			dataPath: 'performanceReviews',
+			errorMessage: 'Failed to load performance reviews'
 		});
 
 		// Transform database reviews to frontend format
 		// Note: Using placeholder data for fields that exist in separate tables (review_feedback, review_goal, review_cycle)
-		const reviews: TransformedReview[] = (reviewsData.data?.performanceReviews || []).map(
+		const reviews: TransformedReview[] = (performanceReviews || []).map(
 			(review: PerformanceReviewResponse): TransformedReview => {
 				// Map status enum to string
 				const statusStr =
