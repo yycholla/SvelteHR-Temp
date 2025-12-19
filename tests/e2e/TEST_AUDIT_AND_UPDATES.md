@@ -61,7 +61,7 @@ This document tracks the status of E2E tests and the updates needed to align tes
 
 **Files to Update**:
 
-- `src/routes/dashboard/admin/onboarding/[id]/forms/+page.svelte`
+- `src/routes/admin/onboarding/[id]/forms/+page.svelte`
 
 **Required data-testid Attributes**:
 
@@ -88,7 +88,7 @@ This document tracks the status of E2E tests and the updates needed to align tes
 
 **Files to Update**:
 
-- `src/routes/dashboard/admin/forms/[id]/+page.svelte`
+- `src/routes/admin/forms/[id]/+page.svelte`
 
 **Required data-testid Attributes**:
 

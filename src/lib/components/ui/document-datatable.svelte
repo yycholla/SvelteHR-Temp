@@ -19,6 +19,7 @@
 		onColumnVisibilityChange?: (visibility: VisibilityState) => void;
 		onPreview: (documentId: string) => void;
 		onDownload: (documentId: string) => void;
+		dense?: boolean;
 	}
 
 	const props: Props = $props();

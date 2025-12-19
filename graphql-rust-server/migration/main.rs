@@ -57,6 +57,8 @@ mod m20251202_005_seed_w4_form_template;
 mod m20251202_006_integrate_onboarding_documents;
 mod m20251202_007_create_onboarding_forms;
 mod m20251203_001_migrate_content_blocks_to_forms;
+mod m20251217_001_add_inline_form_elements;
+mod m20251217_002_create_media_assets;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -108,6 +110,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20251202_006_integrate_onboarding_documents::Migration),
             Box::new(m20251202_007_create_onboarding_forms::Migration),
             Box::new(m20251203_001_migrate_content_blocks_to_forms::Migration),
+            Box::new(m20251217_001_add_inline_form_elements::Migration),
+            Box::new(m20251217_002_create_media_assets::Migration),
         ]
     }
 }

@@ -15,13 +15,13 @@ describe('Admin - Training Creation (Puppeteer)', () => {
 	});
 
 	test('can navigate to training creation page', async () => {
-		await gotoPage('/dashboard/admin/trainings/create');
+		await gotoPage('/admin/trainings/create');
 		const hasTitle = await pageContainsText('Create Training');
 		expect(hasTitle).toBe(true);
 	});
 
 	test('can create a new training', async () => {
-		await gotoPage('/dashboard/admin/trainings/create');
+		await gotoPage('/admin/trainings/create');
 
 		const title = `Test Training ${Date.now()}`;
 		await fillInput('input[name="title"]', title);
@@ -40,7 +40,7 @@ describe('Admin - Training Creation (Puppeteer)', () => {
 		}
 
 		// Verify we are redirected to list
-		expect(page.url()).toContain('/dashboard/admin/trainings');
+		expect(page.url()).toContain('/admin/trainings');
 		expect(page.url()).not.toContain('/create');
 	});
 });

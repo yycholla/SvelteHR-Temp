@@ -171,6 +171,7 @@ impl OnboardingMutations {
             text_content: Set(input.text_content),
             document_url: Set(input.document_url),
             form_template_id: Set(input.form_template_id),
+            inline_form_elements: Set(input.inline_form_elements),
             file_upload_requirements: Set(input.file_upload_requirements),
             signature_requirements: Set(input.signature_requirements),
             created_at: Set(Utc::now()),
@@ -206,6 +207,9 @@ impl OnboardingMutations {
         }
         if let Some(form_template_id) = input.form_template_id {
             block.form_template_id = Set(Some(form_template_id));
+        }
+        if let Some(inline_form_elements) = input.inline_form_elements {
+            block.inline_form_elements = Set(Some(inline_form_elements));
         }
         if let Some(file_upload_requirements) = input.file_upload_requirements {
             block.file_upload_requirements = Set(Some(file_upload_requirements));
@@ -321,6 +325,7 @@ impl OnboardingMutations {
             text_content: Set(input.text_content),
             document_url: Set(input.document_url),
             form_template_id: Set(input.form_template_id),
+            inline_form_elements: Set(input.inline_form_elements),
             file_upload_requirements: Set(input.file_upload_requirements),
             signature_requirements: Set(input.signature_requirements),
             checkbox_items: Set(input.checkbox_items),
@@ -355,6 +360,9 @@ impl OnboardingMutations {
         }
         if let Some(form_template_id) = input.form_template_id {
             block.form_template_id = Set(Some(form_template_id));
+        }
+        if let Some(inline_form_elements) = input.inline_form_elements {
+            block.inline_form_elements = Set(Some(inline_form_elements));
         }
         if let Some(file_upload_requirements) = input.file_upload_requirements {
             block.file_upload_requirements = Set(Some(file_upload_requirements));

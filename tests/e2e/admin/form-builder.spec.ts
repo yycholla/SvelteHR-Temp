@@ -17,7 +17,7 @@ test.describe('Admin Form Builder - Block Management', () => {
 		await page.waitForURL('/dashboard', { timeout: 10000 });
 
 		// Navigate to onboarding and get/create a form for testing
-		await page.goto('/dashboard/admin/onboarding');
+		await page.goto('/admin/onboarding');
 		const moduleCard = page.locator('[data-testid^="module-card-"]').first();
 
 		if (await moduleCard.isVisible()) {

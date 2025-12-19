@@ -1896,6 +1896,31 @@ impl QueryRoot {
     }
 
     // =========================================================================
+    // Media Asset Queries
+    // =========================================================================
+
+    /// Get media assets with optional filtering
+    async fn media_assets(
+        &self,
+        ctx: &Context<'_>,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<crate::models::media_asset::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(50).clamp(1, 100);
+        let offset = offset.unwrap_or(0).max(0);
+
+        let assets = crate::models::media_asset::Entity::find()
+            .order_by_desc(crate::models::media_asset::Column::CreatedAt)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(&db)
+            .await?;
+
+        Ok(assets)
+    }
+
+    // =========================================================================
     // RBAC Queries - Roles, Permissions, and Assignments
     // =========================================================================
 

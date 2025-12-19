@@ -26,7 +26,7 @@ describe('Admin - User Management (Puppeteer)', () => {
 	});
 
 	test('admin can access user management page', async () => {
-		await gotoPage('/dashboard/admin/users');
+		await gotoPage('/admin/users');
 
 		// Wait for users table to load
 		await waitForElement('[data-testid="admin-users-table"]');
@@ -37,7 +37,7 @@ describe('Admin - User Management (Puppeteer)', () => {
 	});
 
 	test('users table displays user list', async () => {
-		await gotoPage('/dashboard/admin/users');
+		await gotoPage('/admin/users');
 		await waitForElement('[data-testid="admin-users-table"]');
 
 		// Count users in table (should have at least 1 - the admin)
@@ -53,7 +53,7 @@ describe('Admin - User Management (Puppeteer)', () => {
 	});
 
 	test('add user button is visible to admins', async () => {
-		await gotoPage('/dashboard/admin/users');
+		await gotoPage('/admin/users');
 
 		// Wait for page to load
 		await waitForElement('[data-testid="admin-users-table"]');
@@ -64,7 +64,7 @@ describe('Admin - User Management (Puppeteer)', () => {
 	});
 
 	test('edit user button is available for each user', async () => {
-		await gotoPage('/dashboard/admin/users');
+		await gotoPage('/admin/users');
 		await waitForElement('[data-testid="admin-users-table"]');
 
 		// Check if edit buttons are present
@@ -82,7 +82,7 @@ describe('Admin - User Management (Puppeteer)', () => {
 	});
 
 	test('delete user button is available for each user', async () => {
-		await gotoPage('/dashboard/admin/users');
+		await gotoPage('/admin/users');
 		await waitForElement('[data-testid="admin-users-table"]');
 
 		// Check if delete buttons are present
@@ -99,7 +99,7 @@ describe('Admin - User Management (Puppeteer)', () => {
 	});
 
 	test('admin can click add user button', async () => {
-		await gotoPage('/dashboard/admin/users');
+		await gotoPage('/admin/users');
 		await waitForElement('[data-testid="admin-add-user-button"]');
 
 		// Click add user button
@@ -118,7 +118,7 @@ describe('Admin - User Management (Puppeteer)', () => {
 	});
 
 	test('users table shows realistic data', async () => {
-		await gotoPage('/dashboard/admin/users');
+		await gotoPage('/admin/users');
 		await waitForElement('[data-testid="admin-users-table"]');
 
 		// Get table text
@@ -139,7 +139,7 @@ describe('Admin - User Management (Puppeteer)', () => {
 	});
 
 	test('users table has proper column headers', async () => {
-		await gotoPage('/dashboard/admin/users');
+		await gotoPage('/admin/users');
 		await waitForElement('[data-testid="admin-users-table"]');
 
 		// Check for common user management columns
@@ -160,7 +160,7 @@ describe('Admin - Settings Management (Puppeteer)', () => {
 	});
 
 	test('admin can access settings page', async () => {
-		await gotoPage('/dashboard/admin/settings');
+		await gotoPage('/admin/settings');
 
 		// Wait for settings form to load
 		await waitForElement('[data-testid="admin-settings-form"]');
@@ -171,7 +171,7 @@ describe('Admin - Settings Management (Puppeteer)', () => {
 	});
 
 	test('settings form has configuration options', async () => {
-		await gotoPage('/dashboard/admin/settings');
+		await gotoPage('/admin/settings');
 		await waitForElement('[data-testid="admin-settings-form"]');
 
 		// Check for form inputs
@@ -184,7 +184,7 @@ describe('Admin - Settings Management (Puppeteer)', () => {
 	});
 
 	test('settings form has save functionality', async () => {
-		await gotoPage('/dashboard/admin/settings');
+		await gotoPage('/admin/settings');
 		await waitForElement('[data-testid="admin-settings-form"]');
 
 		// Look for save button
@@ -202,7 +202,7 @@ describe('Admin - Settings Management (Puppeteer)', () => {
 	});
 
 	test('settings page displays configuration sections', async () => {
-		await gotoPage('/dashboard/admin/settings');
+		await gotoPage('/admin/settings');
 		await waitForElement('[data-testid="admin-settings-form"]');
 
 		// Check for common settings sections
@@ -226,7 +226,7 @@ describe('Admin - Settings Management (Puppeteer)', () => {
 	});
 
 	test('settings form validates input', async () => {
-		await gotoPage('/dashboard/admin/settings');
+		await gotoPage('/admin/settings');
 		await waitForElement('[data-testid="admin-settings-form"]');
 
 		// Try to find and interact with a text input
@@ -256,7 +256,7 @@ describe('Admin - Main Dashboard (Puppeteer)', () => {
 	});
 
 	test('admin can access main admin dashboard', async () => {
-		await gotoPage('/dashboard/admin');
+		await gotoPage('/admin');
 
 		// Wait for admin page to load
 		await waitForElement('[data-testid="admin-page"]');
@@ -267,7 +267,7 @@ describe('Admin - Main Dashboard (Puppeteer)', () => {
 	});
 
 	test('admin dashboard shows system overview', async () => {
-		await gotoPage('/dashboard/admin');
+		await gotoPage('/admin');
 		await waitForElement('[data-testid="admin-page"]');
 
 		// Check for common admin dashboard elements
@@ -281,7 +281,7 @@ describe('Admin - Main Dashboard (Puppeteer)', () => {
 	});
 
 	test('admin dashboard has navigation to management sections', async () => {
-		await gotoPage('/dashboard/admin');
+		await gotoPage('/admin');
 		await waitForElement('[data-testid="admin-page"]');
 
 		// Check for links to admin sections
@@ -297,7 +297,7 @@ describe('Admin - Main Dashboard (Puppeteer)', () => {
 	});
 
 	test('admin dashboard loads without errors', async () => {
-		await gotoPage('/dashboard/admin');
+		await gotoPage('/admin');
 
 		// Verify no error messages
 		const hasError =
@@ -319,7 +319,7 @@ describe('Admin - Permission Checks (Puppeteer)', () => {
 	});
 
 	test('admin has access to all admin routes', async () => {
-		const adminRoutes = ['/dashboard/admin', '/dashboard/admin/users', '/dashboard/admin/settings'];
+		const adminRoutes = ['/admin', '/admin/users', '/admin/settings'];
 
 		for (const route of adminRoutes) {
 			await gotoPage(route);
@@ -341,15 +341,15 @@ describe('Admin - Permission Checks (Puppeteer)', () => {
 
 	test('admin can navigate between admin pages', async () => {
 		// Start at main admin page
-		await gotoPage('/dashboard/admin');
+		await gotoPage('/admin');
 		await waitForElement('[data-testid="admin-page"]');
 
 		// Navigate to users
-		await gotoPage('/dashboard/admin/users');
+		await gotoPage('/admin/users');
 		await waitForElement('[data-testid="admin-users-table"]');
 
 		// Navigate to settings
-		await gotoPage('/dashboard/admin/settings');
+		await gotoPage('/admin/settings');
 		await waitForElement('[data-testid="admin-settings-form"]');
 
 		// All pages loaded successfully
@@ -357,7 +357,7 @@ describe('Admin - Permission Checks (Puppeteer)', () => {
 	});
 
 	test('admin portal has consistent layout across pages', async () => {
-		const adminPages = ['/dashboard/admin', '/dashboard/admin/users', '/dashboard/admin/settings'];
+		const adminPages = ['/admin', '/admin/users', '/admin/settings'];
 
 		for (const pagePath of adminPages) {
 			await gotoPage(pagePath);
@@ -377,14 +377,14 @@ describe('Admin - Data Integrity (Puppeteer)', () => {
 	});
 
 	test('user data persists across page refreshes', async () => {
-		await gotoPage('/dashboard/admin/users');
+		await gotoPage('/admin/users');
 		await waitForElement('[data-testid="admin-users-table"]');
 
 		// Get initial user count
 		const initialCount = await countElements('[data-testid="admin-users-table"] tr');
 
 		// Reload page
-		await gotoPage('/dashboard/admin/users');
+		await gotoPage('/admin/users');
 		await waitForElement('[data-testid="admin-users-table"]');
 
 		// Get count after refresh
@@ -395,7 +395,7 @@ describe('Admin - Data Integrity (Puppeteer)', () => {
 	});
 
 	test('settings data is loaded from database', async () => {
-		await gotoPage('/dashboard/admin/settings');
+		await gotoPage('/admin/settings');
 		await waitForElement('[data-testid="admin-settings-form"]');
 
 		// Get settings form text

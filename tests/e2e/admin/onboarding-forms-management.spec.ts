@@ -17,7 +17,7 @@ test.describe('Admin Onboarding Forms Management', () => {
 		await page.waitForURL('/dashboard', { timeout: 10000 });
 
 		// Navigate to onboarding modules
-		await page.goto('/dashboard/admin/onboarding');
+		await page.goto('/admin/onboarding');
 		await page.waitForSelector('[data-testid="onboarding-modules-list"]', { timeout: 10000 });
 
 		// Get the first module ID or create one for testing
@@ -30,7 +30,7 @@ test.describe('Admin Onboarding Forms Management', () => {
 
 	test('should display Forms management page', async ({ page }) => {
 		// Navigate to Forms management
-		await page.goto(`/dashboard/admin/onboarding/${moduleId}/forms`);
+		await page.goto(`/admin/onboarding/${moduleId}/forms`);
 		await page.waitForSelector('h1:has-text("Manage Forms")', { timeout: 10000 });
 
 		// Check for Forms list
@@ -43,7 +43,7 @@ test.describe('Admin Onboarding Forms Management', () => {
 	});
 
 	test('should create a new form', async ({ page }) => {
-		await page.goto(`/dashboard/admin/onboarding/${moduleId}/forms`);
+		await page.goto(`/admin/onboarding/${moduleId}/forms`);
 		await page.waitForSelector('h1:has-text("Manage Forms")', { timeout: 10000 });
 
 		// Click Create Form button
@@ -66,7 +66,7 @@ test.describe('Admin Onboarding Forms Management', () => {
 	});
 
 	test('should edit an existing form', async ({ page }) => {
-		await page.goto(`/dashboard/admin/onboarding/${moduleId}/forms`);
+		await page.goto(`/admin/onboarding/${moduleId}/forms`);
 		await page.waitForSelector('[data-testid="forms-list"]', { timeout: 10000 });
 
 		// Find first form and click edit
@@ -93,7 +93,7 @@ test.describe('Admin Onboarding Forms Management', () => {
 	});
 
 	test('should reorder forms using up/down buttons', async ({ page }) => {
-		await page.goto(`/dashboard/admin/onboarding/${moduleId}/forms`);
+		await page.goto(`/admin/onboarding/${moduleId}/forms`);
 		await page.waitForSelector('[data-testid="forms-list"]', { timeout: 10000 });
 
 		// Get initial order of forms
@@ -117,7 +117,7 @@ test.describe('Admin Onboarding Forms Management', () => {
 	});
 
 	test('should delete a form with confirmation', async ({ page }) => {
-		await page.goto(`/dashboard/admin/onboarding/${moduleId}/forms`);
+		await page.goto(`/admin/onboarding/${moduleId}/forms`);
 		await page.waitForSelector('[data-testid="forms-list"]', { timeout: 10000 });
 
 		// Get initial count of forms
@@ -142,7 +142,7 @@ test.describe('Admin Onboarding Forms Management', () => {
 	});
 
 	test('should cancel form deletion', async ({ page }) => {
-		await page.goto(`/dashboard/admin/onboarding/${moduleId}/forms`);
+		await page.goto(`/admin/onboarding/${moduleId}/forms`);
 		await page.waitForSelector('[data-testid="forms-list"]', { timeout: 10000 });
 
 		const initialFormCount = await page.locator('[data-testid^="form-card-"]').count();
@@ -163,7 +163,7 @@ test.describe('Admin Onboarding Forms Management', () => {
 	});
 
 	test('should navigate to Form Builder via "Edit Blocks" button', async ({ page }) => {
-		await page.goto(`/dashboard/admin/onboarding/${moduleId}/forms`);
+		await page.goto(`/admin/onboarding/${moduleId}/forms`);
 		await page.waitForSelector('[data-testid="forms-list"]', { timeout: 10000 });
 
 		// Find first form and click "Edit Blocks"
@@ -181,7 +181,7 @@ test.describe('Admin Onboarding Forms Management', () => {
 	});
 
 	test('should show required indicator for required forms', async ({ page }) => {
-		await page.goto(`/dashboard/admin/onboarding/${moduleId}/forms`);
+		await page.goto(`/admin/onboarding/${moduleId}/forms`);
 		await page.waitForSelector('[data-testid="forms-list"]', { timeout: 10000 });
 
 		// Find a required form
@@ -192,7 +192,7 @@ test.describe('Admin Onboarding Forms Management', () => {
 	});
 
 	test('should display form sequence order', async ({ page }) => {
-		await page.goto(`/dashboard/admin/onboarding/${moduleId}/forms`);
+		await page.goto(`/admin/onboarding/${moduleId}/forms`);
 		await page.waitForSelector('[data-testid="forms-list"]', { timeout: 10000 });
 
 		// Verify forms are numbered
@@ -210,7 +210,7 @@ test.describe('Admin Onboarding Forms Management', () => {
 	});
 
 	test('should validate form creation with empty title', async ({ page }) => {
-		await page.goto(`/dashboard/admin/onboarding/${moduleId}/forms`);
+		await page.goto(`/admin/onboarding/${moduleId}/forms`);
 		await page.waitForSelector('h1:has-text("Manage Forms")', { timeout: 10000 });
 
 		// Click Create Form button
@@ -225,7 +225,7 @@ test.describe('Admin Onboarding Forms Management', () => {
 	});
 
 	test('should close form dialog on cancel', async ({ page }) => {
-		await page.goto(`/dashboard/admin/onboarding/${moduleId}/forms`);
+		await page.goto(`/admin/onboarding/${moduleId}/forms`);
 		await page.waitForSelector('h1:has-text("Manage Forms")', { timeout: 10000 });
 
 		// Open create form dialog

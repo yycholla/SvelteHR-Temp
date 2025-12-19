@@ -5,24 +5,20 @@
 
 	interface Props {
 		table: any;
+		dense?: boolean;
 	}
 
-	let { table }: Props = $props();
+	let { table, dense = false }: Props = $props();
 </script>
 
-<Table.Header>
+<Table.Header class={dense ? 'sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b' : ''}>
 	{#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
-		<Table.Row>
+		<Table.Row class={dense ? 'hover:bg-transparent border-none' : ''}>
 			{#each headerGroup.headers as header (header.id)}
 				<Table.Head
-					class={header.column.getCanSort()
-						? 'cursor-pointer'
-						: '' +
-							(header.column.id === 'select'
-								? ' pr-2 pl-6'
-								: header.column.id === 'filename'
-									? ' pl-2'
-									: '')}
+					class={(header.column.getCanSort() ? 'cursor-pointer select-none' : '') +
+						(header.column.id === 'select' ? ' pr-2 pl-6' : header.column.id === 'filename' ? ' pl-2' : '') +
+						(dense ? ' py-2 text-xs uppercase tracking-wider font-semibold border-r last:border-r-0' : '')}
 					style={header.column.columnDef.size
 						? `width: ${header.column.columnDef.size}px; min-width: ${header.column.columnDef.size}px;`
 						: ''}

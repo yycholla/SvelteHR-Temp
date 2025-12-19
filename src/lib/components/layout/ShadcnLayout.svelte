@@ -81,7 +81,7 @@
 		{
 			id: 'admin',
 			label: 'Administration',
-			href: '/dashboard/admin',
+			href: '/admin',
 			icon: Settings,
 			active: false
 		}

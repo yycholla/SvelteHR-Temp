@@ -61,6 +61,7 @@ export const load: PageServerLoad = async (event) => {
 							textContent
 							documentUrl
 							formTemplateId
+							inlineFormElements
 							fileUploadRequirements
 							signatureRequirements
 							checkboxItems

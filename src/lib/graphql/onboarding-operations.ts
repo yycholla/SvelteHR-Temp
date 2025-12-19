@@ -83,6 +83,7 @@ export const GET_CONTENT_BLOCKS_QUERY = `
 			textContent
 			documentUrl
 			formTemplateId
+			inlineFormElements
 			fileUploadRequirements
 			signatureRequirements
 			createdAt
@@ -101,6 +102,12 @@ export const CREATE_CONTENT_BLOCK_MUTATION = `
 				type
 				sequenceOrder
 				isRequired
+				textContent
+				documentUrl
+				formTemplateId
+				inlineFormElements
+				fileUploadRequirements
+				signatureRequirements
 			}
 		}
 	}
@@ -115,6 +122,12 @@ export const UPDATE_CONTENT_BLOCK_MUTATION = `
 				type
 				sequenceOrder
 				isRequired
+				textContent
+				documentUrl
+				formTemplateId
+				inlineFormElements
+				fileUploadRequirements
+				signatureRequirements
 			}
 		}
 	}
@@ -138,6 +151,7 @@ export const GET_FORM_TEMPLATES_QUERY = `
 			category
 			version
 			isActive
+			fields
 			createdAt
 			updatedAt
 		}
@@ -156,6 +170,27 @@ export const GET_FORM_TEMPLATE_QUERY = `
 			fields
 			createdAt
 			updatedAt
+		}
+	}
+`;
+
+export const SAVE_INLINE_FORM_AS_TEMPLATE_MUTATION = `
+	mutation SaveInlineFormAsTemplate($contentBlockId: UUID!, $name: String!, $description: String, $category: String) {
+		onboarding {
+			saveInlineFormAsTemplate(
+				contentBlockId: $contentBlockId
+				name: $name
+				description: $description
+				category: $category
+			) {
+				id
+				name
+				description
+				category
+				version
+				isActive
+				fields
+			}
 		}
 	}
 `;

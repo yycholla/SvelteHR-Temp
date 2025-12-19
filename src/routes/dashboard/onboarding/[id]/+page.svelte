@@ -3,33 +3,29 @@
 	import {
 		AlertCircle,
 		CheckCircle2,
-		CheckSquare,
 		ChevronLeft,
 		ChevronRight,
 		Circle,
-		FileText,
-		PenTool,
-		Save,
-		Upload
+		Save
 	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Progress } from '$lib/components/ui/progress';
 	import * as Card from '$lib/components/ui/card';
-	import { SignatureField } from '$lib/components/ui/signature-canvas';
-	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { Label } from '$lib/components/ui/label';
-	import { Input } from '$lib/components/ui/input';
-	import { Textarea } from '$lib/components/ui/textarea';
 	import { toast } from 'svelte-sonner';
+	import { superForm } from 'sveltekit-superforms';
+	import { zodClient } from 'sveltekit-superforms/adapters';
+	import { setContext } from 'svelte';
+	import { generateMultiBlockSchema, type FormTemplate } from '$lib/forms';
+	import { z } from 'zod';
+	import FormBlockRenderer from '$lib/components/onboarding/renderer/FormBlockRenderer.svelte';
 
 	const { data } = $props();
 
 	// State
 	let currentFormIndex = $state(0);
-	let formData = $state<Record<string, any>>({});
-	const checkboxStates = $state<Record<string, boolean>>({});
-	const signatureData = $state<Record<string, string | null>>({});
+	let checkboxStates = $state<Record<string, boolean>>({});
+	let signatureData = $state<Record<string, string | null>>({});
 	let isSaving = $state(false);
 
 	// Derived values
@@ -40,26 +36,41 @@
 		data.totalForms > 0 ? Math.round((data.completedForms / data.totalForms) * 100) : 0
 	);
 
-	// Initialize form data from saved progress
-	$effect(() => {
-		if (currentForm?.progress?.formData) {
-			formData = { ...currentForm.progress.formData };
-		} else {
-			formData = {};
+	// Generate Zod schema for current form
+	const formSchema = $derived.by(() => {
+		if (!currentForm?.blocks) {
+			return z.object({});
 		}
+		return generateMultiBlockSchema(
+			currentForm.blocks,
+			data.formTemplates as Map<string, FormTemplate>
+		);
 	});
 
-	function getBlockIcon(type: string) {
-		const icons: Record<string, any> = {
-			TEXT: FileText,
-			FORM_FIELDS: FileText,
-			DOCUMENT: FileText,
-			FILE_UPLOAD: Upload,
-			SIGNATURE: PenTool,
-			CHECKBOX: CheckSquare
-		};
-		return icons[type] || FileText;
-	}
+	// Initialize superform with dynamic schema
+	const superform = $derived.by(() => {
+		const initialData = currentForm?.progress?.formData || {};
+		return superForm(initialData, {
+			validators: zodClient(formSchema as any),
+			dataType: 'json',
+			resetForm: false,
+			invalidateAll: false
+		});
+	});
+
+	const { form: formData, allErrors } = $derived(superform);
+
+	// Set form context for Formsnap components
+	$effect(() => {
+		setContext('form', superform);
+	});
+
+	// Load saved progress when form changes
+	$effect(() => {
+		if (currentForm?.progress?.formData) {
+			Object.assign($formData, currentForm.progress.formData);
+		}
+	});
 
 	function nextForm() {
 		if (!isLastForm) {
@@ -87,7 +98,7 @@
 		const formDataToSave = new FormData();
 		formDataToSave.append('onboardingFormId', currentForm.id);
 		formDataToSave.append('status', 'IN_PROGRESS');
-		formDataToSave.append('formData', JSON.stringify(formData));
+		formDataToSave.append('formData', JSON.stringify($formData));
 
 		const response = await fetch('', {
 			method: 'POST',
@@ -109,10 +120,16 @@
 	async function completeForm() {
 		if (!currentForm) return;
 
+		// Check for validation errors
+		if ($allErrors.length > 0) {
+			toast.error('Please fix validation errors before submitting');
+			return;
+		}
+
 		isSaving = true;
 		const formDataToSubmit = new FormData();
 		formDataToSubmit.append('onboardingFormId', currentForm.id);
-		formDataToSubmit.append('formData', JSON.stringify(formData));
+		formDataToSubmit.append('formData', JSON.stringify($formData));
 
 		const response = await fetch('', {
 			method: 'POST',
@@ -139,60 +156,6 @@
 			toast.error('Failed to complete form');
 		}
 		isSaving = false;
-	}
-
-	function parseCheckboxItems(jsonData: any): string[] {
-		if (!jsonData) return [];
-		try {
-			if (typeof jsonData === 'string') {
-				return JSON.parse(jsonData);
-			}
-			if (Array.isArray(jsonData)) {
-				return jsonData;
-			}
-			return [];
-		} catch {
-			return [];
-		}
-	}
-
-	type FormTemplate = {
-		id: string;
-		fields: Array<{
-			name: string;
-			label: string;
-			type: string;
-			required?: boolean;
-		}>;
-	};
-
-	function getFormTemplate(templateId: string | null): FormTemplate | null {
-		if (!templateId) return null;
-		const template = data.formTemplates.get(templateId);
-		// Type assertion - we know from server that templates have fields
-		return template ? (template as FormTemplate) : null;
-	}
-
-	function renderFormField(field: any, blockId: string) {
-		const fieldId = `${blockId}-${field.name}`;
-
-		switch (field.type) {
-			case 'TEXT':
-			case 'EMAIL':
-			case 'PHONE':
-				return {
-					component: Input,
-					props: { type: field.type.toLowerCase(), placeholder: field.label }
-				};
-			case 'TEXTAREA':
-				return { component: Textarea, props: { placeholder: field.label, rows: 4 } };
-			case 'NUMBER':
-				return { component: Input, props: { type: 'number', placeholder: field.label } };
-			case 'DATE':
-				return { component: Input, props: { type: 'date' } };
-			default:
-				return { component: Input, props: { type: 'text', placeholder: field.label } };
-		}
 	}
 </script>
 
@@ -304,135 +267,14 @@
 						</div>
 					</Card.Header>
 					<Card.Content class="space-y-8">
-						<!-- Render all blocks in the form -->
+						<!-- Render all blocks in the form using the new renderer -->
 						{#each currentForm.blocks as block}
-							{@const BlockIcon = getBlockIcon(block.type)}
-							<div
-								class="border-l-4 border-primary/30 pl-6 py-4"
-								data-testid="block-container-{block.id}"
-							>
-								<div class="flex items-center gap-2 mb-4">
-									<BlockIcon class="h-5 w-5 text-primary" />
-									{#if block.title}
-										<h3 class="text-lg font-semibold" data-testid="block-title-{block.id}">
-											{block.title}
-										</h3>
-									{/if}
-								</div>
-
-								<!-- TEXT Block -->
-								{#if block.type === 'TEXT' && block.textContent}
-									<div
-										class="prose dark:prose-invert max-w-none"
-										data-testid="block-TEXT-{block.id}"
-									>
-										<div data-testid="text-content">{block.textContent}</div>
-									</div>
-								{/if}
-
-								<!-- DOCUMENT Block -->
-								{#if block.type === 'DOCUMENT' && block.documentUrl}
-									<div data-testid="block-DOCUMENT-{block.id}">
-										<a
-											href={block.documentUrl}
-											target="_blank"
-											rel="noopener noreferrer"
-											class="text-primary hover:underline flex items-center gap-2"
-										>
-											<FileText class="h-4 w-4" />
-											View Document
-										</a>
-									</div>
-								{/if}
-
-								<!-- FORM_FIELDS Block -->
-								{#if block.type === 'FORM_FIELDS' && block.formTemplateId}
-									{@const template = getFormTemplate(block.formTemplateId)}
-									{#if template?.fields}
-										<div class="space-y-4" data-testid="block-FORM_FIELDS-{block.id}">
-											{#each template.fields as field, fieldIndex (`${block.id}-${fieldIndex}`)}
-												{@const fieldInfo = renderFormField(field, block.id)}
-												{@const FieldComponent = fieldInfo.component}
-												<div>
-													<Label for={`${block.id}-${field.name || fieldIndex}`}>
-														{field.label}
-														{#if field.required}
-															<span class="text-red-500">*</span>
-														{/if}
-													</Label>
-													<FieldComponent
-														id={`${block.id}-${field.name || fieldIndex}`}
-														required={field.required}
-														bind:value={formData[`${block.id}-${field.name || fieldIndex}`]}
-														{...fieldInfo.props}
-													/>
-												</div>
-											{/each}
-										</div>
-									{/if}
-								{/if}
-
-								<!-- CHECKBOX Block -->
-								{#if block.type === 'CHECKBOX'}
-									{@const items = parseCheckboxItems(block.checkboxItems)}
-									<div class="space-y-3" data-testid="block-CHECKBOX-{block.id}">
-										{#each items as item, idx}
-											<div class="flex items-start gap-2">
-												<Checkbox
-													id={`${block.id}-checkbox-${idx}`}
-													bind:checked={checkboxStates[`${block.id}-${idx}`]}
-												/>
-												<Label
-													for={`${block.id}-checkbox-${idx}`}
-													class="text-sm leading-relaxed cursor-pointer"
-												>
-													{item}
-												</Label>
-											</div>
-										{/each}
-									</div>
-								{/if}
-
-								<!-- SIGNATURE Block -->
-								{#if block.type === 'SIGNATURE'}
-									<div data-testid="block-SIGNATURE-{block.id}">
-										<div data-testid="signature-field">
-											<SignatureField
-												name="signature-{block.id}"
-												label={block.title || 'Signature'}
-												bind:value={signatureData[block.id]}
-												width={600}
-												height={200}
-												required={block.required || false}
-											/>
-										</div>
-									</div>
-								{/if}
-
-								<!-- FILE_UPLOAD Block -->
-								{#if block.type === 'FILE_UPLOAD'}
-									<div data-testid="block-FILE_UPLOAD-{block.id}">
-										<Input
-											type="file"
-											id={`${block.id}-file`}
-											accept={block.fileUploadRequirements?.acceptedTypes?.join(',') || '*'}
-										/>
-										{#if block.fileUploadRequirements?.maxSizeMB}
-											<p class="text-xs text-muted-foreground mt-1" data-testid="file-size-limit">
-												Max file size: {block.fileUploadRequirements.maxSizeMB}MB
-											</p>
-										{/if}
-										{#if block.fileUploadRequirements?.acceptedTypes}
-											<p
-												class="text-xs text-muted-foreground mt-1"
-												data-testid="accepted-file-types"
-											>
-												Accepted types: {block.fileUploadRequirements.acceptedTypes.join(', ')}
-											</p>
-										{/if}
-									</div>
-								{/if}
-							</div>
+							<FormBlockRenderer 
+								{block} 
+								bind:checkboxStates 
+								bind:signatureData 
+								formTemplates={data.formTemplates as Map<string, any>} 
+							/>
 						{/each}
 
 						<!-- Form Actions -->

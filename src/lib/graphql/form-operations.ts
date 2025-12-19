@@ -14,6 +14,21 @@ export const FORM_BLOCK_FRAGMENT = gql`
 		textContent
 		documentUrl
 		formTemplateId
+		inlineFormFields {
+			name
+			label
+			type
+			required
+			placeholder
+			validation {
+				minLength
+				maxLength
+				min
+				max
+				pattern
+				options
+			}
+		}
 		fileUploadRequirements
 		signatureRequirements
 		checkboxItems
@@ -205,6 +220,88 @@ export type OnboardingFormBlockType =
 
 export type OnboardingFormProgressStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
 
+// Form Field Types for Inline Forms
+export type FormFieldType =
+	| 'TEXT'
+	| 'EMAIL'
+	| 'PHONE'
+	| 'TEXTAREA'
+	| 'NUMBER'
+	| 'DATE'
+	| 'SELECT'
+	| 'CHECKBOX';
+
+export interface FormFieldValidation {
+	minLength?: number;
+	maxLength?: number;
+	min?: number;
+	max?: number;
+	pattern?: string;
+	options?: string[];
+}
+
+export interface FormFieldDefinition {
+	name: string;
+	label: string;
+	type: FormFieldType;
+	required?: boolean;
+	placeholder?: string;
+	validation?: FormFieldValidation;
+}
+
+// Text Block for inline instructions/context
+export type TextBlockStyle = 'info' | 'warning' | 'contract' | 'plain';
+
+export interface TextBlockDefinition {
+	elementType: 'TEXT_BLOCK';
+	content: string;
+	style?: TextBlockStyle;
+}
+
+export interface HeaderDefinition {
+	elementType: 'HEADER';
+	content: string;
+	level: 1 | 2 | 3;
+}
+
+export interface DividerDefinition {
+	elementType: 'DIVIDER';
+}
+
+export interface QuoteDefinition {
+	elementType: 'QUOTE';
+	content: string;
+}
+
+export interface MediaDefinition {
+	elementType: 'MEDIA';
+	mediaType: 'image' | 'video' | 'document';
+	url: string;
+	caption?: string;
+	altText?: string; // For images
+}
+
+// Union type for all form elements (fields + text blocks)
+export type FormElement =
+	| (FormFieldDefinition & { elementType: 'FIELD' })
+	| TextBlockDefinition
+	| HeaderDefinition
+	| DividerDefinition
+	| QuoteDefinition
+	| MediaDefinition;
+
+export interface FormTemplate {
+	id: string;
+	name: string;
+	description: string | null;
+	category: string | null;
+	version: string | null;
+	isActive: boolean;
+	fields: FormFieldDefinition[];
+	createdAt: string;
+	updatedAt: string;
+}
+
 export interface OnboardingFormBlock {
 	id: string;
 	onboardingFormId: string;
@@ -214,6 +311,8 @@ export interface OnboardingFormBlock {
 	textContent: string | null;
 	documentUrl: string | null;
 	formTemplateId: string | null;
+	inlineFormFields: FormFieldDefinition[] | null;  // DEPRECATED: Use inlineFormElements instead
+	inlineFormElements: FormElement[] | null;  // NEW: Inline form elements (fields + text blocks)
 	fileUploadRequirements: Record<string, unknown> | null;
 	signatureRequirements: Record<string, unknown> | null;
 	checkboxItems: string[] | null;
@@ -267,6 +366,8 @@ export interface CreateFormBlockInput {
 	textContent?: string | null;
 	documentUrl?: string | null;
 	formTemplateId?: string | null;
+	inlineFormFields?: FormFieldDefinition[] | null;  // DEPRECATED: Use inlineFormElements
+	inlineFormElements?: FormElement[] | null;  // NEW: Inline form elements (fields + text blocks)
 	fileUploadRequirements?: Record<string, unknown> | null;
 	signatureRequirements?: Record<string, unknown> | null;
 	checkboxItems?: string[] | null;
@@ -278,6 +379,8 @@ export interface UpdateFormBlockInput {
 	textContent?: string | null;
 	documentUrl?: string | null;
 	formTemplateId?: string | null;
+	inlineFormFields?: FormFieldDefinition[] | null;  // DEPRECATED: Use inlineFormElements
+	inlineFormElements?: FormElement[] | null;  // NEW: Inline form elements (fields + text blocks)
 	fileUploadRequirements?: Record<string, unknown> | null;
 	signatureRequirements?: Record<string, unknown> | null;
 	checkboxItems?: string[] | null;

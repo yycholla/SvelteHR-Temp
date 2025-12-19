@@ -49,7 +49,7 @@
 
 	const handleAdminClick = async () => {
 		isOpen = false;
-		await goto(resolve('/dashboard/admin'));
+		await goto(resolve('/admin'));
 	};
 
 	const handleHRClick = async () => {

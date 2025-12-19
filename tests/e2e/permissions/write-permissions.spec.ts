@@ -225,10 +225,10 @@ test.describe('Admin Panel Write Permissions (US2)', () => {
 		await loginWithPermissions(page, ['admin:read'], ['Admin']);
 
 		// Navigate to admin analytics
-		await page.goto('/dashboard/admin/analytics');
+		await page.goto('/admin/analytics');
 
 		// Verify page loaded (read permission granted)
-		await expect(page).toHaveURL('/dashboard/admin/analytics');
+		await expect(page).toHaveURL('/admin/analytics');
 
 		// Look for action buttons that require write permission
 		const writeButtons = page.locator(
@@ -249,10 +249,10 @@ test.describe('Admin Panel Write Permissions (US2)', () => {
 		await loginWithPermissions(page, ['admin:read', 'admin:write'], ['Admin']);
 
 		// Navigate to admin analytics
-		await page.goto('/dashboard/admin/analytics');
+		await page.goto('/admin/analytics');
 
 		// Verify page loaded
-		await expect(page).toHaveURL('/dashboard/admin/analytics');
+		await expect(page).toHaveURL('/admin/analytics');
 
 		// Action buttons should be visible and enabled
 		const writeButtons = page

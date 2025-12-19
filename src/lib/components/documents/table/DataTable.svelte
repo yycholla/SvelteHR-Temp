@@ -32,6 +32,7 @@
 		onColumnVisibilityChange?: (visibility: VisibilityState) => void;
 		onPreview: (documentId: string) => void;
 		onDownload: (documentId: string) => void;
+		dense?: boolean;
 	}
 
 	const {
@@ -49,7 +50,8 @@
 		columnVisibilityState,
 		onColumnVisibilityChange,
 		onPreview,
-		onDownload
+		onDownload,
+		dense = false
 	}: Props = $props();
 
 	// Sorting state
@@ -190,7 +192,7 @@
 	});
 </script>
 
-<div class="space-y-4">
+<div class={dense ? 'h-full flex flex-col' : 'space-y-4'}>
 	<!-- Controls Row: Columns only when not in external control mode -->
 	{#if showPerPageControl}
 		<TableControls {table} />
@@ -198,11 +200,13 @@
 
 	<!-- DataTable -->
 	<div
-		class="overflow-auto rounded-md border bg-card text-card-foreground"
+		class={dense 
+			? 'flex-1 overflow-auto border-t bg-background' 
+			: 'overflow-auto rounded-md border bg-card text-card-foreground'}
 		data-testid="document-datatable"
 	>
 		<div class="w-full table-auto">
-			<TableHeader {table} />
+			<TableHeader {table} {dense} />
 			<TableBody
 				{table}
 				{columns}
@@ -210,13 +214,27 @@
 				{canDownload}
 				{onPreview}
 				{onDownload}
+				{dense}
 			/>
 		</div>
 
-		<TablePagination
-			{currentPage}
-			{totalPages}
-			{onPageChange}
-		/>
+		{#if !dense}
+			<TablePagination
+				{currentPage}
+				{totalPages}
+				{onPageChange}
+			/>
+		{/if}
 	</div>
+	
+	{#if dense}
+		<div class="border-t p-2 bg-background flex-shrink-0">
+			<TablePagination
+				{currentPage}
+				{totalPages}
+				{onPageChange}
+				dense={true}
+			/>
+		</div>
+	{/if}
 </div>

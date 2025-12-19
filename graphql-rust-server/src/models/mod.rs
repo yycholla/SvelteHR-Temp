@@ -24,6 +24,7 @@ pub mod task_audit_entry;
 pub mod task_dependency;
 pub mod user;
 pub mod user_session;
+pub mod media_asset;
 
 // Re-export generated entities for easy access
 pub use generated::*;
@@ -84,6 +85,7 @@ pub use task_dependency::{
 pub use user::{CreateUserInput, UpdateUserInput, Model as User, UserCondition, UsersConnection, UsersOrderBy, UserStatus};
 pub use user_role_assignment::{AssignRoleInput, Model as UserRoleAssignment, UserRoleAssignmentsConnection};
 pub use session::{Model as Session};
+pub use media_asset::{Model as MediaAsset};
 
 // New domain model re-exports
 pub use employee::{

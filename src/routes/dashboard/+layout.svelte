@@ -16,6 +16,7 @@
 
 	// Initialize notifications - auth already validated server-side in hooks.server.ts
 	onMount(() => {
+		console.log('Mounting Dashboard Layout');
 		// Initialize notifications with server data
 		if (data.notifications) {
 			notificationStore.setNotifications(data.notifications);
@@ -37,9 +38,8 @@
 </ClientOnly>
 
 <!-- Dashboard Layout: Fixed sidebar with content area -->
-<!-- Auth is already validated server-side in hooks.server.ts, so no client-side check needed -->
 <div class="min-h-screen bg-sidebar">
-	<!-- Fixed Sidebar - stays constant across all dashboard routes -->
+	<!-- Fixed Sidebar -->
 	<aside
 		class="fixed left-0 top-0 z-10 h-full bg-sidebar transition-all duration-300 {sidebarState.isCollapsed
 			? 'w-16'
@@ -49,7 +49,7 @@
 		<HrAppSidebar {permissions} systemName={data.systemName || 'MountainHR'} />
 	</aside>
 
-	<!-- Main Content Area - only this content changes between routes -->
+	<!-- Main Content Area -->
 	<div
 		class="h-screen overflow-auto transition-all duration-300 {sidebarState.isCollapsed
 			? 'ml-16'

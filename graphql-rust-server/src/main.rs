@@ -17,6 +17,7 @@ use tower::ServiceBuilder;
 use tower_http::{
     cors::CorsLayer,
     trace::TraceLayer,
+    services::ServeDir,
 };
 use tower_sessions::{cookie::SameSite, Expiry, SessionManagerLayer};
 
@@ -140,6 +141,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .layer(axum_middleware::from_fn_with_state(app_state.clone(), session_auth_middleware)))
         .route("/api/users", axum::routing::get(get_users_handler)
             .layer(axum_middleware::from_fn_with_state(app_state.clone(), session_auth_middleware)))
+        .route("/api/upload", post(hr_graphql_server::handlers::upload::upload_handler)
+            .layer(axum_middleware::from_fn_with_state(app_state.clone(), session_auth_middleware)))
+        .nest_service("/uploads", ServeDir::new("uploads"))
         // GraphQL endpoints with optional session auth
         .route("/graphql",
             get(graphql_playground)

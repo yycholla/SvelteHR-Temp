@@ -162,7 +162,7 @@ test.describe('Backend Initialization', () => {
 			'/dashboard',
 			'/dashboard/employees',
 			'/dashboard/departments',
-			'/dashboard/admin/analytics',
+			'/admin/analytics',
 			'/dashboard/management',
 			'/dashboard/management/goals'
 		];

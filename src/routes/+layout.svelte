@@ -13,6 +13,7 @@
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
+	import { sidebarState } from '$lib/stores/sidebar.svelte';
 
 	// Initialize PostGraphile GraphQL client for the entire app
 	setContextClient(createUrqlClient());
@@ -56,6 +57,7 @@
 	// Initialize session timeout on mount (only for authenticated pages)
 	onMount(() => {
 		mounted = true;
+		sidebarState.init();
 
 		// Sync server-validated user to client store (non-blocking)
 		if (data?.user?.id) {

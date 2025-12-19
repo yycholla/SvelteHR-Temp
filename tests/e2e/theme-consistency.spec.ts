@@ -144,11 +144,11 @@ test.describe('Theme Consistency', () => {
 
 	test('admin pages respect light and dark mode styling', async ({ page }) => {
 		const adminPages = [
-			'/dashboard/admin/user-management',
-			'/dashboard/admin/system-settings',
-			'/dashboard/admin/audit-logs',
-			'/dashboard/admin/analytics',
-			'/dashboard/admin/compliance'
+			'/admin/user-management',
+			'/admin/system-settings',
+			'/admin/audit-logs',
+			'/admin/analytics',
+			'/admin/compliance'
 		];
 
 		for (const pagePath of adminPages) {

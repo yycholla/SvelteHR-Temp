@@ -238,49 +238,49 @@
 	const adminItems = [
 		{
 			title: 'All Documents',
-			url: '/dashboard/admin/documents',
+			url: '/admin/documents',
 			icon: FolderOpen,
 			permission: 'documents:read:all'
 		},
 		{
 			title: 'Training Modules',
-			url: '/dashboard/admin/trainings',
+			url: '/admin/trainings',
 			icon: GraduationCap,
 			permissionAny: ['training:write', 'training:assign']
 		},
 		{
 			title: 'Onboarding Modules',
-			url: '/dashboard/admin/onboarding',
+			url: '/admin/onboarding',
 			icon: BookOpen,
 			permissionAny: ['onboarding:write', 'onboarding:assign']
 		},
 		{
 			title: 'User Management',
-			url: '/dashboard/admin/users',
+			url: '/admin/users',
 			icon: User,
 			permission: 'users:read:all'
 		},
 		{
 			title: 'Roles & Permissions',
-			url: '/dashboard/admin/permissions',
+			url: '/admin/permissions',
 			icon: Shield,
 			permissionAny: ['roles:read:all', 'permissions:read:all']
 		},
 		{
 			title: 'System Settings',
-			url: '/dashboard/admin/settings',
+			url: '/admin/settings',
 			icon: Settings,
 			permission: 'admin:read:all'
 		},
 		{
 			title: 'Audit Logs',
-			url: '/dashboard/admin/audit',
+			url: '/admin/audit',
 			icon: FileText,
 			permission: 'activities:read:all'
 		},
 		{
 			title: 'Analytics Dashboard',
-			url: '/dashboard/admin/analytics',
+			url: '/admin/analytics',
 			icon: BarChart3,
 			permissionAny: ['reports:read:all', 'reports:analytics']
 		},
@@ -353,14 +353,21 @@
 	{/if}
 
 	{#if canAccessAdministration}
-		<SidebarSection
-			title="Administration"
-			icon={Shield}
-			items={filteredAdminItems}
-			isCollapsed={sidebarState.isCollapsed}
-			pathMatch="/admin"
-			testId="nav-admin"
-		/>
+		<div class="px-3 pb-3 mt-4">
+			<a
+				href="/admin"
+				class="flex w-full items-center {sidebarState.isCollapsed
+					? 'justify-center'
+					: ''} rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-primary hover:text-primary-foreground text-sidebar-foreground border border-sidebar-border"
+				title="Administration"
+				data-testid="nav-admin-console"
+			>
+				<Shield class="h-4 w-4 {sidebarState.isCollapsed ? '' : 'mr-3'}" />
+				{#if !sidebarState.isCollapsed}
+					Admin Console
+				{/if}
+			</a>
+		</div>
 	{/if}
 
 	{#if showDebugInfo}

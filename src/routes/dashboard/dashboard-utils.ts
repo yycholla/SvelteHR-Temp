@@ -296,7 +296,7 @@ export function generateQuickActions(roles: string[], users: User[]) {
 				title: 'View Analytics',
 				description: 'Access detailed HR analytics',
 				icon: 'BarChart',
-				href: '/dashboard/admin/analytics',
+				href: '/admin/analytics',
 				color: 'orange'
 			}
 		];
