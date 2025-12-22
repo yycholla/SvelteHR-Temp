@@ -21,7 +21,7 @@
 			: []
 	);
 	
-	let selectedId = $state<string | null>(items.length > 0 ? items[0].id : null);
+	let selectedId = $state<string | null>(null);
 	let sidebarMode = $state<'structure' | 'properties'>('structure');
 	let isSaving = $state(false);
 

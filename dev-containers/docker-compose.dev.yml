@@ -87,6 +87,12 @@ services:
       SEED_VOLUME_TARGET: small
       SEED_ENABLE_AUDIT: true
       ENVIRONMENT: development
+      # Intuit QuickBooks Integration
+      INTUIT_CLIENT_ID: ABtBLG39mgu3uUM3AQEtppTBXmT6SLvr42ahiouGRz8cOJJyYM
+      INTUIT_CLIENT_SECRET: OUN6pvfsN5uToTcsjZt6K0FBUdiOZFNswrzPDtvq
+      INTUIT_REDIRECT_URI: http://localhost:5173/api/intuit/callback
+      INTUIT_ENVIRONMENT: sandbox
+      INTUIT_SCOPES: com.intuit.quickbooks.accounting com.intuit.quickbooks.payment
     networks:
       - sveltehr-dev
     depends_on:

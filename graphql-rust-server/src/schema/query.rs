@@ -2148,6 +2148,11 @@ impl QueryRoot {
     async fn rollback(&self) -> crate::schema::mutations::RollbackQueries {
         crate::schema::mutations::RollbackQueries
     }
+
+    /// Intuit QuickBooks integration queries
+    async fn intuit(&self) -> crate::schema::mutations::IntuitQueries {
+        crate::schema::mutations::IntuitQueries
+    }
 }
 
 #[cfg(test)]

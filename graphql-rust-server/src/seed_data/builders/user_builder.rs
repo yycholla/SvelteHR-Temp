@@ -116,6 +116,7 @@ pub async fn seed_users(
             theme_preference: Set("system".to_string()),
             force_password_change: Set(false),
             birth_date: Set(None),
+            intuit_employee_id: Set(None),
             created_at: Set(now),
             updated_at: Set(now),
             deleted_at: Set(None),

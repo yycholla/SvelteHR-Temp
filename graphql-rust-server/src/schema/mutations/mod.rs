@@ -9,6 +9,7 @@ pub mod time;
 pub mod user;
 pub mod training;
 pub mod onboarding;
+pub mod intuit;
 
 pub use auth::AuthMutations;
 pub use department::DepartmentMutations;
@@ -21,3 +22,4 @@ pub use time::TimeMutations;
 pub use user::UserMutations;
 pub use training::TrainingMutations;
 pub use onboarding::OnboardingMutations;
+pub use intuit::{IntuitMutations, IntuitQueries};

@@ -134,6 +134,7 @@ pub struct Model {
     pub force_password_change: bool,
     pub theme_preference: String,
     pub birth_date: Option<chrono::NaiveDate>,
+    pub intuit_employee_id: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,

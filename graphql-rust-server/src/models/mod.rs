@@ -25,6 +25,7 @@ pub mod task_dependency;
 pub mod user;
 pub mod user_session;
 pub mod media_asset;
+pub mod intuit_connection;
 
 // Re-export generated entities for easy access
 pub use generated::*;

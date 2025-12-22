@@ -2,14 +2,16 @@
 	import { page } from '$app/stores';
 	import { logger } from '$lib/utils/logger';
 	import { goto } from '$app/navigation';
-	import { Plus } from '@lucide/svelte';
+	import { Plus, Filter } from '@lucide/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
 
 	// Import decomposed components
 	import UserFilters from './components/UserFilters.svelte';
 	import UserTable from './components/UserTable.svelte';
+	import UserSpreadsheet from './components/UserSpreadsheet.svelte';
 	import UserCreateModal from './components/UserCreateModal.svelte';
 	import UserEditModal from './components/UserEditModal.svelte';
+	import type { RowEdit } from '$lib/components/ui/spreadsheet';
 
 	const { data } = $props();
 
@@ -118,8 +120,8 @@
 			const client = createUrqlClient();
 			const mutation = `
 				mutation CreateUser($input: CreateUserInput!) {
-					createUser(input: $input) {
-						user {
+					users {
+						createUser(input: $input) {
 							id
 							email
 							displayName
@@ -128,39 +130,22 @@
 				}
 			`;
 
+			// Parse displayName into firstName and lastName
+			const nameParts = (formData.displayName || '').trim().split(' ');
+			const firstName = nameParts[0] || 'User';
+			const lastName = nameParts.slice(1).join(' ') || '';
+
 			await client.mutation(mutation, {
 				input: {
-					user: {
-						email: formData.email,
-						displayName: formData.displayName,
-						role: 'employee', // Default role
-						isActive: formData.isActive,
-						departmentId: formData.departmentId || null
-					}
+					email: formData.email,
+					firstName: firstName,
+					lastName: lastName,
+					password: formData.password,
+					status: formData.isActive ? 'active' : 'inactive', // Backend expects lowercase
+					departmentId: formData.departmentId || null,
+					roleName: formData.roleId || 'Employee' // roleId is actually the role name
 				}
 			});
-
-			// Assign role if selected
-			if (formData.roleId) {
-				const roleAssignMutation = `
-					mutation AssignRole($input: CreateUserRoleInput!) {
-						createUserRole(input: $input) {
-							userRole {
-								id
-							}
-						}
-					}
-				`;
-
-				await client.mutation(roleAssignMutation, {
-					input: {
-						userRole: {
-							userId: '...', // Need user ID from previous mutation
-							roleId: formData.roleId
-						}
-					}
-				});
-			}
 
 			closeModals();
 			goto($page.url.pathname, { invalidateAll: true });
@@ -184,9 +169,9 @@
 		try {
 			const client = createUrqlClient();
 			const mutation = `
-				mutation UpdateUser($input: UpdateUserInput!) {
-					updateUser(input: $input) {
-						user {
+				mutation UpdateUser($id: UUID!, $input: UpdateUserInput!) {
+					users {
+						updateUser(id: $id, input: $input) {
 							id
 							email
 							displayName
@@ -196,15 +181,18 @@
 				}
 			`;
 
+			// Parse displayName into firstName and lastName
+			const nameParts = (formData.displayName || '').trim().split(' ');
+			const firstName = nameParts[0] || '';
+			const lastName = nameParts.slice(1).join(' ') || '';
+
 			await client.mutation(mutation, {
+				id: selectedUser.id,
 				input: {
-					id: selectedUser.id,
-					patch: {
-						email: formData.email,
-						displayName: formData.displayName,
-						isActive: formData.isActive,
-						departmentId: formData.departmentId || null
-					}
+					email: formData.email,
+					firstName: firstName || undefined,
+					lastName: lastName || undefined,
+					departmentId: formData.departmentId || null
 				}
 			});
 
@@ -227,17 +215,15 @@
 		try {
 			const client = createUrqlClient();
 			const mutation = `
-				mutation DeleteUser($input: DeleteUserInput!) {
-					deleteUser(input: $input) {
-						deletedUserId
+				mutation DeleteUser($id: UUID!) {
+					users {
+						deleteUser(id: $id)
 					}
 				}
 			`;
 
 			await client.mutation(mutation, {
-				input: {
-					id: userId
-				}
+				id: userId
 			});
 
 			goto($page.url.pathname, { invalidateAll: true });
@@ -254,9 +240,9 @@
 		try {
 			const client = createUrqlClient();
 			const mutation = `
-				mutation UpdateUserStatus($input: UpdateUserInput!) {
-					updateUser(input: $input) {
-						user {
+				mutation UpdateUserStatus($id: UUID!, $input: UpdateUserInput!) {
+					users {
+						updateUser(id: $id, input: $input) {
 							id
 							isActive
 						}
@@ -264,12 +250,13 @@
 				}
 			`;
 
+			// Toggle status enum (active <-> inactive) - backend expects lowercase
+			const newStatus = user.isActive ? 'inactive' : 'active';
+
 			await client.mutation(mutation, {
+				id: user.id,
 				input: {
-					id: user.id,
-					patch: {
-						isActive: !user.isActive
-					}
+					status: newStatus
 				}
 			});
 
@@ -289,6 +276,156 @@
 	function clearFilters() {
 		filters = { role: '', department: '', status: '' };
 		searchQuery = '';
+	}
+
+	// Handle inline edits from spreadsheet
+	async function handleSaveEdits(edits: RowEdit<unknown>[]) {
+		loading = true;
+		errorMessage = '';
+
+		try {
+			const client = createUrqlClient();
+
+			// Process each edit
+			for (const edit of edits) {
+				const mutation = `
+					mutation UpdateUser($id: UUID!, $input: UpdateUserInput!) {
+						users {
+							updateUser(id: $id, input: $input) {
+								id
+								email
+								displayName
+								firstName
+								lastName
+							}
+						}
+					}
+				`;
+
+				let inputValue = edit.value;
+
+				// Handle displayName - convert to firstName/lastName
+				if (edit.field === 'displayName') {
+					const nameParts = String(edit.value || '').trim().split(' ');
+					const firstName = nameParts[0] || '';
+					const lastName = nameParts.slice(1).join(' ') || '';
+
+					await client.mutation(mutation, {
+						id: edit.rowId,
+						input: {
+							firstName: firstName || undefined,
+							lastName: lastName || undefined
+						}
+					});
+					continue;
+				}
+
+				// Handle firstName and lastName directly
+				if (edit.field === 'firstName') {
+					await client.mutation(mutation, {
+						id: edit.rowId,
+						input: {
+							firstName: String(inputValue || '')
+						}
+					});
+					continue;
+				}
+
+				if (edit.field === 'lastName') {
+					await client.mutation(mutation, {
+						id: edit.rowId,
+						input: {
+							lastName: String(inputValue || '')
+						}
+					});
+					continue;
+				}
+
+				// Handle department change
+				if (edit.field === 'departmentId') {
+					await client.mutation(mutation, {
+						id: edit.rowId,
+						input: {
+							departmentId: inputValue || null
+						}
+					});
+					continue;
+				}
+
+				// Handle role change - requires RBAC mutations
+				if (edit.field === 'role') {
+					const newRoleName = String(inputValue);
+
+					// Find the role ID from the role name
+					const newRole = data.roles.find((r: { id: string; name: string }) => r.name === newRoleName);
+					if (!newRole) {
+						logger.error(`Role not found: ${newRoleName}`);
+						continue;
+					}
+
+					// Get the user's current role assignments
+					const user = edit.originalRow as any;
+					const currentRoleAssignments = user.roles || [];
+
+					// Remove all existing role assignments
+					for (const roleAssignment of currentRoleAssignments) {
+						const removeRoleMutation = `
+							mutation RemoveRoleFromUser($userId: UUID!, $roleId: UUID!) {
+								rbac {
+									removeRoleFromUser(userId: $userId, roleId: $roleId) {
+										success
+										message
+									}
+								}
+							}
+						`;
+
+						await client.mutation(removeRoleMutation, {
+							userId: edit.rowId,
+							roleId: roleAssignment.id
+						});
+					}
+
+					// Assign the new role
+					const assignRoleMutation = `
+						mutation AssignRoleToUser($input: AssignRoleInput!) {
+							rbac {
+								assignRoleToUser(input: $input) {
+									id
+									userId
+									roleId
+								}
+							}
+						}
+					`;
+
+					await client.mutation(assignRoleMutation, {
+						input: {
+							userId: edit.rowId,
+							roleId: newRole.id
+						}
+					});
+
+					continue;
+				}
+
+				// Handle other fields (email, etc.)
+				await client.mutation(mutation, {
+					id: edit.rowId,
+					input: {
+						[edit.field]: inputValue
+					}
+				});
+			}
+
+			// Refresh data
+			await goto($page.url.pathname, { invalidateAll: true });
+		} catch (error) {
+			logger.error('Save edits error:', error as Error);
+			errorMessage = 'Failed to save changes';
+		} finally {
+			loading = false;
+		}
 	}
 </script>
 
@@ -338,14 +475,17 @@
 		</div>
 	{/if}
 
-	<!-- Table Area - Flush -->
+	<!-- Table Area - Enhanced Spreadsheet -->
 	<div class="flex-1 overflow-hidden min-h-0 relative">
-		<UserTable
+		<UserSpreadsheet
 			{filteredUsers}
 			{loading}
+			roles={data.roles}
+			departments={data.departments}
 			onToggleStatus={toggleUserStatus}
 			onEditUser={openEditModal}
 			onDeleteUser={handleDeleteUser}
+			onSaveEdits={handleSaveEdits}
 		/>
 	</div>
 
@@ -353,6 +493,9 @@
 	<footer class="flex-shrink-0 border-t bg-muted/20 px-3 py-1.5 flex items-center justify-between text-xs">
 		<div class="text-muted-foreground">
 			{filteredUsers.length} users found
+		</div>
+		<div class="text-muted-foreground">
+			💡 <span class="font-medium">Tip:</span> Double-click cells to edit • Click <Filter class="inline h-3 w-3" /> to filter • Click sort arrows to sort
 		</div>
 	</footer>
 </div>

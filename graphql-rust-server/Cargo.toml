@@ -65,6 +65,11 @@ jsonwebtoken = "9.0"
  time = "0.3"
  tracing = "0.1"
 
+# Intuit QuickBooks Integration
+oauth2 = "4.4"
+reqwest-middleware = "0.2"
+reqwest-retry = "0.3"
+
 [dependencies.async-graphql]
 version = "7.0"
 features = ["chrono", "uuid", "dataloader", "boxed-trait"]
@@ -135,8 +140,10 @@ optional = true
 
 [dependencies.reqwest]
 version = "0.12"
-features = ["json"]
-optional = true
+features = ["json", "rustls-tls"]
+
+[dependencies.quickbooks-types]
+version = "0.1"
 
 [dependencies.hdrhistogram]
 version = "7.5"
@@ -150,7 +157,7 @@ optional = true
 
 [features]
 # Feature for enabling test utilities in integration tests
-test-utils = ["dep:testcontainers", "dep:testcontainers-modules", "dep:reqwest", "dep:hdrhistogram", "dep:rand"]
+test-utils = ["dep:testcontainers", "dep:testcontainers-modules", "dep:hdrhistogram", "dep:rand"]
 
 # Loki logging integration
 loki = ["dep:tracing-loki"]

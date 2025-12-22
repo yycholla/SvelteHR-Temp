@@ -95,7 +95,8 @@ export default defineConfig({
 			'svelte/animate',
 			'svelte/easing',
 			'svelte/transition',
-			'@vincjo/datatables'
+			'@vincjo/datatables',
+			'xlsx'
 		],
 		exclude: ['@sveltejs/kit', 'jsonwebtoken']
 	},

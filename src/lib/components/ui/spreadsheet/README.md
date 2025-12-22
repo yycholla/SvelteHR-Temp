@@ -7,6 +7,7 @@ A powerful, reusable spreadsheet-like table component with column visibility con
 - ✅ **Column Visibility Controls** - Show/hide columns with a dropdown menu
 - ✅ **Inline Editing** - Double-click cells to edit values in place
 - ✅ **Batch Save** - Save all edits at once with a save button
+- ✅ **Bulk Operations** - Select multiple rows and perform batch actions
 - ✅ **Type Safe** - Full TypeScript support with generics
 - ✅ **Customizable** - Custom cell renderers via snippets
 - ✅ **Responsive** - Sticky headers and overflow handling
@@ -249,6 +250,115 @@ interface RowEdit<T> {
 }
 ```
 
+## Bulk Operations
+
+### Row Selection
+Enable row selection to allow users to select multiple rows and perform batch operations:
+
+```typescript
+const config: SpreadsheetConfig<User> = {
+	// ... other config
+	enableRowSelection: true,
+	selectionMode: 'multiple', // or 'single'
+	onSelectionChange: (selectedIds) => {
+		console.log('Selected:', selectedIds);
+	}
+};
+```
+
+When enabled:
+- A checkbox column appears as the first column
+- Click checkboxes to select/deselect rows
+- Click the header checkbox to select/deselect all visible rows
+- Selected rows are highlighted with a blue background
+
+### Bulk Actions
+Define bulk actions that appear when rows are selected:
+
+```typescript
+const config: SpreadsheetConfig<User> = {
+	// ... other config
+	enableRowSelection: true,
+	bulkActions: [
+		{
+			id: 'bulk-delete',
+			label: 'Delete Selected',
+			variant: 'destructive',
+			requiresConfirmation: true,
+			confirmationMessage: (count) => `Delete ${count} user(s)?`,
+			handler: async (selectedRows, selectedIds) => {
+				// Perform bulk delete operation
+				for (const userId of selectedIds) {
+					await deleteUser(userId);
+				}
+			}
+		},
+		{
+			id: 'bulk-activate',
+			label: 'Activate Selected',
+			variant: 'default',
+			handler: async (selectedRows) => {
+				// Activate all selected users
+				for (const user of selectedRows) {
+					await activateUser(user.id);
+				}
+			}
+		}
+	]
+};
+```
+
+### Bulk Action Configuration
+```typescript
+interface BulkAction<T> {
+	/** Unique identifier */
+	id: string;
+
+	/** Button label */
+	label: string;
+
+	/** Button variant: 'default' | 'destructive' | 'outline' */
+	variant?: 'default' | 'destructive' | 'outline';
+
+	/** Require confirmation dialog? */
+	requiresConfirmation?: boolean;
+
+	/** Confirmation message (can be function) */
+	confirmationMessage?: string | ((count: number) => string);
+
+	/** Handler function */
+	handler: (selectedRows: T[], selectedIds: Set<string>) => Promise<void> | void;
+}
+```
+
+### Bulk Actions Toolbar
+When rows are selected, a toolbar appears showing:
+- Count of selected items
+- Bulk action buttons
+- "Deselect All" button
+
+The toolbar automatically:
+- Shows confirmation dialogs for destructive actions
+- Handles async operations
+- Displays error states
+- Deselects rows after successful operations
+
+### Selection Modes
+- **`multiple`** (default): Select any number of rows
+- **`single`**: Only one row can be selected at a time
+
+### Selection State
+Access selection state programmatically:
+```typescript
+const config: SpreadsheetConfig<User> = {
+	// ... other config
+	onSelectionChange: (selectedIds) => {
+		console.log('Selected IDs:', Array.from(selectedIds));
+		// Update external state if needed
+	}
+};
+```
+
 ## Column Visibility
 
 ### Show/Hide Columns
@@ -301,6 +411,18 @@ interface SpreadsheetConfig<T> {
 	/** Callback when save is clicked */
 	onSave?: (edits: RowEdit<T>[]) => void | Promise<void>;
 
+	/** Enable row selection with checkboxes */
+	enableRowSelection?: boolean;
+
+	/** Bulk actions available when rows are selected */
+	bulkActions?: BulkAction<T>[];
+
+	/** Selection mode: 'single' | 'multiple' */
+	selectionMode?: 'single' | 'multiple';
+
+	/** Callback when selection changes */
+	onSelectionChange?: (selectedIds: Set<string>) => void;
+
 	/** Loading state */
 	loading?: boolean;
 
@@ -312,9 +434,8 @@ interface SpreadsheetConfig<T> {
 ## Complete Examples
 
 See these files for complete working examples:
-- `src/routes/admin/users/components/UserSpreadsheet.svelte` - User management with inline editing
+- `src/routes/admin/users/components/UserSpreadsheet.svelte` - User management with inline editing and save functionality
 - `src/routes/admin/trainings/components/TrainingSpreadsheet.svelte` - Training modules with custom cells
-- `src/routes/admin/users/+page-enhanced.svelte` - Full page integration with save functionality
 
 ## Styling
 

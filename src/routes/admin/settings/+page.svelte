@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { AlertCircle, Save, Globe, Lock, Bell, Shield, Terminal, Activity } from '@lucide/svelte';
+	import { AlertCircle, Save, Globe, Lock, Bell, Shield, Terminal, Activity, Plug } from '@lucide/svelte';
 	import { logger } from '$lib/utils/logger';
 	import { Button } from '$lib/components/ui/button';
 
@@ -62,7 +62,8 @@
 		{ id: 'authentication', label: 'Authentication', icon: Lock },
 		{ id: 'notifications', label: 'Notifications', icon: Bell },
 		{ id: 'security', label: 'Security', icon: Shield },
-		{ id: 'developer', label: 'Developer', icon: Terminal }
+		{ id: 'developer', label: 'Developer', icon: Terminal },
+		{ id: 'integrations', label: 'Integrations', icon: Plug, href: '/admin/settings/integrations' }
 	];
 </script>
 
@@ -93,16 +94,29 @@
 			</div>
 			{#each tabs as tab}
 				{@const Icon = tab.icon}
-				<button
-					onclick={() => (activeTab = tab.id)}
-					class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors text-left
-					{activeTab === tab.id 
-						? 'bg-primary/10 text-primary' 
-						: 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
-				>
-					<Icon class="h-4 w-4" />
-					{tab.label}
-				</button>
+				{#if tab.href}
+					<!-- External link tab -->
+					<a
+						href={tab.href}
+						class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors
+						text-muted-foreground hover:bg-muted hover:text-foreground"
+					>
+						<Icon class="h-4 w-4" />
+						{tab.label}
+					</a>
+				{:else}
+					<!-- In-page tab -->
+					<button
+						onclick={() => (activeTab = tab.id)}
+						class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors text-left
+						{activeTab === tab.id
+							? 'bg-primary/10 text-primary'
+							: 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
+					>
+						<Icon class="h-4 w-4" />
+						{tab.label}
+					</button>
+				{/if}
 			{/each}
 		</nav>
 

@@ -9,6 +9,16 @@ export type ColumnType = 'text' | 'number' | 'date' | 'select' | 'badge' | 'cust
 
 export type EditMode = 'none' | 'inline' | 'modal';
 
+export type SortDirection = 'asc' | 'desc' | null;
+
+export type FilterType = 'text' | 'select' | 'date' | 'number' | 'boolean';
+
+export interface ColumnFilter {
+	type: FilterType;
+	value: string | number | boolean | null;
+	options?: Array<{ value: string | number; label: string }>;
+}
+
 export interface ColumnDefinition<T = unknown> {
 	/** Unique identifier for the column */
 	id: string;
@@ -31,8 +41,24 @@ export interface ColumnDefinition<T = unknown> {
 	/** Whether column is editable */
 	editable?: boolean;
 
+	/** Whether column is sortable */
+	sortable?: boolean;
+
+	/** Whether column is filterable */
+	filterable?: boolean;
+
+	/** Filter configuration */
+	filterConfig?: {
+		type: FilterType;
+		options?: Array<{ value: string | number; label: string }>;
+		placeholder?: string;
+	};
+
 	/** Extract value from row data */
 	getValue: (row: T) => unknown;
+
+	/** Extract sortable value (defaults to getValue) */
+	getSortValue?: (row: T) => string | number | Date;
 
 	/** For editable columns: get editable value */
 	getEditValue?: (row: T) => string | number | boolean;
@@ -79,6 +105,12 @@ export interface SpreadsheetConfig<T = unknown> {
 	/** Edit mode for the table */
 	editMode?: EditMode;
 
+	/** Enable sorting */
+	enableSorting?: boolean;
+
+	/** Enable filtering */
+	enableFiltering?: boolean;
+
 	/** Whether to show column visibility controls */
 	showColumnControls?: boolean;
 
@@ -96,8 +128,66 @@ export interface SpreadsheetConfig<T = unknown> {
 
 	/** Empty state message */
 	emptyMessage?: string;
+
+	/** Enable row selection with checkboxes */
+	enableRowSelection?: boolean;
+
+	/** Bulk actions available when rows are selected */
+	bulkActions?: BulkAction<T>[];
+
+	/** Selection mode - single or multiple rows */
+	selectionMode?: 'single' | 'multiple';
+
+	/** Callback when selection changes */
+	onSelectionChange?: (selectedIds: Set<string>) => void;
+
+	/** Export configuration */
+	exportConfig?: ExportConfig;
 }
 
 export interface ColumnVisibility {
 	[columnId: string]: boolean;
+}
+
+export interface ColumnSort {
+	columnId: string;
+	direction: SortDirection;
+}
+
+export interface ColumnFilters {
+	[columnId: string]: string | number | boolean | null;
+}
+
+export interface BulkAction<T = unknown> {
+	/** Unique identifier for the action */
+	id: string;
+
+	/** Display label for the action button */
+	label: string;
+
+	/** Button variant */
+	variant?: 'default' | 'destructive' | 'outline';
+
+	/** Whether this action requires confirmation */
+	requiresConfirmation?: boolean;
+
+	/** Confirmation message (can be function to include count) */
+	confirmationMessage?: string | ((count: number) => string);
+
+	/** Handler function called when action is triggered */
+	handler: (selectedRows: T[], selectedIds: Set<string>) => Promise<void> | void;
+}
+
+export interface ExportConfig {
+	/** Enable export functionality */
+	enabled?: boolean;
+
+	/** Available export formats */
+	formats?: Array<'csv' | 'excel'>;
+
+	/** Default filename (without extension, timestamp will be appended) */
+	filename?: string;
+
+	/** Include hidden columns in export */
+	includeHiddenColumns?: boolean;
 }

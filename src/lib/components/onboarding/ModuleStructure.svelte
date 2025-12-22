@@ -92,8 +92,17 @@
 						: 'bg-card border-border hover:border-primary/50'}"
 					onclick={() => onSelect(item)}
 				>
-					<div class="cursor-grab active:cursor-grabbing p-1 -ml-1 text-muted-foreground/50 hover:text-foreground transition-colors"
+					<div
+						role="button"
+						tabindex="0"
+						class="cursor-grab active:cursor-grabbing p-1 -ml-1 text-muted-foreground/50 hover:text-foreground transition-colors"
 						onclick={(e) => e.stopPropagation()}
+						onkeydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								e.stopPropagation();
+							}
+						}}
 					>
 						<GripVertical class="h-4 w-4" />
 					</div>

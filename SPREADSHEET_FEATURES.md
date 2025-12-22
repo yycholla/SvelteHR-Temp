@@ -124,11 +124,11 @@ Replace your existing table component with `SpreadsheetTable`:
 
 ### Option 2: Gradual Migration
 
-Keep both versions side by side:
-- `+page.svelte` - Original version
-- `+page-enhanced.svelte` - New spreadsheet version
-
-Test the enhanced version, then rename once satisfied.
+To test before fully committing:
+1. Create a component like `UserSpreadsheet.svelte`
+2. Import it conditionally in your page
+3. Toggle between old and new with a flag
+4. Once satisfied, replace the old table completely
 
 ## Features in Action
 
@@ -153,9 +153,9 @@ Click the "Columns" button in the table header to:
 
 ## Next Steps
 
-1. **Try the Enhanced User Page**
-   - Navigate to `/admin/users` (original)
-   - Compare with the enhanced version in `+page-enhanced.svelte`
+1. **Review the Examples**
+   - Check `UserSpreadsheet.svelte` for a complete implementation
+   - See `TrainingSpreadsheet.svelte` for another pattern
 
 2. **Apply to Other Tables**
    - Use `UserSpreadsheet.svelte` as a template

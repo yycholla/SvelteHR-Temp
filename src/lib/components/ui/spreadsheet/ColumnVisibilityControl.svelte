@@ -1,9 +1,9 @@
-<script lang="ts">
+<script lang="ts" generics="T">
 	import { Columns3, Check } from '@lucide/svelte';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import type { ColumnDefinition, ColumnVisibility } from './types';
 
-	interface Props<T = unknown> {
+	interface Props {
 		columns: ColumnDefinition<T>[];
 		columnVisibility: ColumnVisibility;
 		onToggle: (columnId: string) => void;
@@ -37,14 +37,37 @@
 		<DropdownMenu.Label>Column Visibility</DropdownMenu.Label>
 		<DropdownMenu.Separator />
 
-		{#each hideableColumns as column (column.id)}
-			<DropdownMenu.CheckboxItem
-				checked={columnVisibility[column.id] !== false}
-				onCheckedChange={() => onToggle(column.id)}
-			>
-				{column.label}
-			</DropdownMenu.CheckboxItem>
-		{/each}
+		<div class="px-1 py-1">
+			{#each hideableColumns as column (column.id)}
+				<div
+					role="menuitemcheckbox"
+					aria-checked={columnVisibility[column.id] !== false}
+					class="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded cursor-pointer transition-colors"
+					onclick={(e) => {
+						e.stopPropagation();
+						onToggle(column.id);
+					}}
+					onkeydown={(e) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.preventDefault();
+							e.stopPropagation();
+							onToggle(column.id);
+						}
+					}}
+					tabindex="0"
+				>
+					<input
+						type="checkbox"
+						checked={columnVisibility[column.id] !== false}
+						onchange={() => onToggle(column.id)}
+						class="h-4 w-4 rounded border-input pointer-events-none"
+						tabindex="-1"
+						aria-hidden="true"
+					/>
+					<span class="text-sm">{column.label}</span>
+				</div>
+			{/each}
+		</div>
 
 		{#if hideableColumns.length > 0}
 			<DropdownMenu.Separator />
