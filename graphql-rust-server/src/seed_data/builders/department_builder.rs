@@ -59,6 +59,11 @@ pub async fn seed_departments(
             description: Set(Some(description.to_string())),
             parent_department_id: Set(None),
             manager_id: Set(None), // Will be updated after users are created
+            intuit_department_id: Set(None),
+            last_synced_at: Set(None),
+            last_modified_at: Set(now),
+            quickbooks_sync_token: Set(None),
+            sync_status: Set("synced".to_string()),
             created_at: Set(now),
             updated_at: Set(now),
             deleted_at: Set(None),

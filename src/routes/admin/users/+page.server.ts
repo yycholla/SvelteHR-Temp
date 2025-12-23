@@ -26,6 +26,8 @@ export const load: PageServerLoad = async (event) => {
 						id
 						email
 						displayName
+						firstName
+						lastName
 						roles {
 							id
 							name
@@ -37,6 +39,16 @@ export const load: PageServerLoad = async (event) => {
 							id
 							name
 						}
+						manager {
+							id
+							displayName
+							email
+						}
+						jobTitle
+						phone
+						mobilePhone
+						birthDate
+						hireDate
 					}
 				}
 			`;
@@ -61,11 +73,16 @@ export const load: PageServerLoad = async (event) => {
 			const users = usersData?.users || [];
 			const departments = departmentsData?.departments || [];
 
-			// Build roles list from user data (flatten and get unique role values)
-			const uniqueRoles = [
-				...new Set(users.flatMap((u: any) => (u.roles || []).map((r: any) => r.name)))
-			];
-			const roles = uniqueRoles.filter(Boolean).map((name) => ({ id: name, name }));
+			// Build roles list from user data (collect unique role objects with proper UUIDs)
+			const roleMap = new Map<string, { id: string; name: string }>();
+			users.forEach((u: any) => {
+				(u.roles || []).forEach((r: any) => {
+					if (r.id && r.name && !roleMap.has(r.id)) {
+						roleMap.set(r.id, { id: r.id, name: r.name });
+					}
+				});
+			});
+			const roles = Array.from(roleMap.values());
 
 			// Use ClientSideFilter for filtering and pagination
 			const userFilter = new ClientSideFilter(users);

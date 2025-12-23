@@ -26,6 +26,7 @@ pub mod user;
 pub mod user_session;
 pub mod media_asset;
 pub mod intuit_connection;
+pub mod intuit_sync_log;
 
 // Re-export generated entities for easy access
 pub use generated::*;

@@ -27,6 +27,9 @@ pub struct QuickBooksResponse<T> {
     #[serde(rename = "Employee")]
     pub employee: Option<T>,
 
+    #[serde(rename = "Department")]
+    pub department: Option<T>,
+
     #[serde(rename = "QueryResponse")]
     pub query_response: Option<QueryResponse<T>>,
 
@@ -145,13 +148,21 @@ pub struct BatchItemRequest {
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
 pub enum BatchOperation {
-    Create {
+    CreateEmployee {
         #[serde(rename = "Employee")]
         employee: EmployeeExtended,
     },
-    Update {
+    UpdateEmployee {
         #[serde(rename = "Employee")]
         employee: EmployeeExtended,
+    },
+    CreateDepartment {
+        #[serde(rename = "Department")]
+        department: Department,
+    },
+    UpdateDepartment {
+        #[serde(rename = "Department")]
+        department: Department,
     },
     Query {
         #[serde(rename = "Query")]
@@ -162,8 +173,11 @@ pub enum BatchOperation {
 /// Batch operation response
 #[derive(Debug, Deserialize)]
 pub struct BatchResponse {
-    #[serde(rename = "BatchItemResponse")]
+    #[serde(rename = "BatchItemResponse", default)]
     pub batch_item_responses: Vec<BatchItemResponse>,
+
+    #[serde(rename = "Fault")]
+    pub fault: Option<ApiFault>,
 
     #[serde(rename = "time")]
     pub time: Option<String>,
@@ -178,6 +192,9 @@ pub struct BatchItemResponse {
     #[serde(rename = "Employee")]
     pub employee: Option<Employee>,
 
+    #[serde(rename = "Department")]
+    pub department: Option<Department>,
+
     #[serde(rename = "QueryResponse")]
     pub query_response: Option<QueryResponse<Employee>>,
 
@@ -188,13 +205,17 @@ pub struct BatchItemResponse {
 /// Extended Employee struct with additional QuickBooks fields not in the base crate
 ///
 /// Note: The quickbooks-types crate (v0.1.1) is missing some fields that QuickBooks
-/// supports, such as DepartmentRef and ParentRef (for manager/supervisor).
+/// supports, such as DepartmentRef, ParentRef (for manager/supervisor), and sparse.
 /// This struct allows us to serialize these fields when creating/updating employees.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct EmployeeExtended {
     #[serde(flatten)]
     pub base: Employee,
+
+    /// User-defined employee number (stable identifier across systems)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub employee_number: Option<String>,
 
     /// Reference to the department this employee belongs to
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -204,15 +225,79 @@ pub struct EmployeeExtended {
     /// Note: QuickBooks uses "ParentRef" for the manager relationship
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parent_ref: Option<NtRef>,
+
+    /// Whether this is a sparse update (only specified fields will be updated)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sparse: Option<bool>,
 }
 
 impl From<Employee> for EmployeeExtended {
     fn from(base: Employee) -> Self {
         Self {
             base,
+            employee_number: None,
             department_ref: None,
             parent_ref: None,
+            sparse: None,
         }
+    }
+}
+
+/// QuickBooks Department entity
+///
+/// Represents a department in QuickBooks for organizational classification.
+/// Note: The quickbooks-types crate (v0.1.1) does not include a Department type,
+/// so we define our own based on the QuickBooks Online API documentation.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "PascalCase")]
+pub struct Department {
+    /// Unique identifier for the department (QB assigned)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+
+    /// Name of the department (required for creation)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+
+    /// Whether the department is active
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub active: Option<bool>,
+
+    /// Whether this is a sub-department
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sub_department: Option<bool>,
+
+    /// Reference to parent department (for sub-departments)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parent_ref: Option<NtRef>,
+
+    /// Fully qualified name (QB computed)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fully_qualified_name: Option<String>,
+
+    /// Sync token for concurrency control (QB managed)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sync_token: Option<String>,
+
+    /// Metadata (timestamps, etc.)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub meta_data: Option<MetaData>,
+
+    /// Domain (typically "QBO")
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub domain: Option<String>,
+
+    /// Whether this is a sparse update
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sparse: Option<bool>,
+}
+
+/// Helper function to create a minimal department for QuickBooks
+pub fn create_minimal_department(name: String) -> Department {
+    Department {
+        name: Some(name),
+        active: Some(true),
+        ..Default::default()
     }
 }
 

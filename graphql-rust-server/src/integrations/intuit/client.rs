@@ -31,7 +31,7 @@ impl IntuitClient {
     }
 
     /// Get a single employee by ID
-    pub async fn get_employee(&self, employee_id: &str) -> Result<Employee> {
+    pub async fn get_employee(&self, employee_id: &str) -> Result<EmployeeExtended> {
         let url = format!(
             "{}/v3/company/{}/employee/{}",
             self.base_url, self.realm_id, employee_id
@@ -46,11 +46,12 @@ impl IntuitClient {
             .await
             .context("Failed to send request to QuickBooks API")?;
 
-        self.handle_response(response).await
+        let employee = self.handle_response(response).await?;
+        Ok(employee.into())
     }
 
     /// Query all employees
-    pub async fn list_employees(&self) -> Result<Vec<Employee>> {
+    pub async fn list_employees(&self) -> Result<Vec<EmployeeExtended>> {
         let url = format!(
             "{}/v3/company/{}/query?query=select * from Employee MAXRESULTS 1000",
             self.base_url, self.realm_id
@@ -84,11 +85,14 @@ impl IntuitClient {
         Ok(qb_response
             .query_response
             .and_then(|qr| qr.employees)
-            .unwrap_or_default())
+            .unwrap_or_default()
+            .into_iter()
+            .map(|emp| emp.into())
+            .collect())
     }
 
     /// Create a new employee in QuickBooks
-    pub async fn create_employee(&self, employee: Employee) -> Result<Employee> {
+    pub async fn create_employee(&self, employee: super::models::EmployeeExtended) -> Result<Employee> {
         let url = format!("{}/v3/company/{}/employee", self.base_url, self.realm_id);
 
         let response = self
@@ -106,8 +110,13 @@ impl IntuitClient {
     }
 
     /// Update an existing employee
-    pub async fn update_employee(&self, employee: Employee) -> Result<Employee> {
+    pub async fn update_employee(&self, employee: super::models::EmployeeExtended) -> Result<Employee> {
         let url = format!("{}/v3/company/{}/employee", self.base_url, self.realm_id);
+
+        // Log the update request payload for debugging
+        if let Ok(request_json) = serde_json::to_string_pretty(&employee) {
+            tracing::debug!("Employee update request payload: {}", request_json);
+        }
 
         let response = self
             .http_client
@@ -120,7 +129,35 @@ impl IntuitClient {
             .await
             .context("Failed to update employee in QuickBooks")?;
 
-        self.handle_response(response).await
+        let status = response.status();
+        tracing::debug!("QuickBooks employee update response status: {}", status);
+
+        // Get response text for debugging
+        let response_text = response.text().await
+            .context("Failed to get response text")?;
+
+        tracing::debug!("QuickBooks employee update response body: {}", response_text);
+
+        // Parse and return the employee
+        let qb_response: super::models::QuickBooksResponse<Employee> = serde_json::from_str(&response_text)
+            .context(format!("Failed to parse update response: {}", response_text))?;
+
+        // Check for API-level errors
+        if let Some(fault) = qb_response.fault {
+            return Err(anyhow::anyhow!(
+                "QuickBooks API error: {}",
+                fault
+                    .errors
+                    .first()
+                    .map(|e| format!("{} ({})", e.message, e.detail))
+                    .unwrap_or_else(|| "Unknown error".to_string())
+            ));
+        }
+
+        // Return the employee data
+        qb_response
+            .employee
+            .ok_or_else(|| anyhow::anyhow!("No employee data in response"))
     }
 
     /// Deactivate an employee (set Active = false)
@@ -136,7 +173,15 @@ impl IntuitClient {
             ..Default::default()
         };
 
-        self.update_employee(employee).await
+        let employee_extended = super::models::EmployeeExtended {
+            base: employee,
+            employee_number: None,
+            department_ref: None,
+            parent_ref: None,
+            sparse: None,
+        };
+
+        self.update_employee(employee_extended).await
     }
 
     /// Batch create multiple employees in QuickBooks
@@ -155,7 +200,7 @@ impl IntuitClient {
                 .enumerate()
                 .map(|(index, employee)| BatchItemRequest {
                     batch_id: format!("bid_{}", index),
-                    operation: BatchOperation::Create {
+                    operation: BatchOperation::CreateEmployee {
                         employee: employee.clone(),
                     },
                 })
@@ -165,8 +210,15 @@ impl IntuitClient {
                 batch_item_requests: batch_items,
             };
 
+            // Log the request payload for debugging
+            if let Ok(request_json) = serde_json::to_string_pretty(&batch_request) {
+                tracing::debug!("Employee batch request payload: {}", request_json);
+            }
+
             // Send batch request
             let url = format!("{}/v3/company/{}/batch", self.base_url, self.realm_id);
+
+            tracing::info!("Sending employee batch request to QuickBooks: {} employees", chunk.len());
 
             let response = self
                 .http_client
@@ -180,15 +232,31 @@ impl IntuitClient {
                 .context("Failed to send batch request to QuickBooks")?;
 
             let status = response.status();
+            tracing::info!("QuickBooks employee batch response status: {}", status);
+
             if status == StatusCode::UNAUTHORIZED {
                 return Err(anyhow::anyhow!("Unauthorized: Access token may be expired or invalid"));
             }
 
+            // Get response text for debugging
+            let response_text = response.text().await
+                .context("Failed to get response text")?;
+
+            tracing::debug!("QuickBooks employee batch response body: {}", response_text);
+
             // Parse batch response
-            let batch_response: super::models::BatchResponse = response
-                .json()
-                .await
-                .context("Failed to parse batch response")?;
+            let batch_response: super::models::BatchResponse = serde_json::from_str(&response_text)
+                .context(format!("Failed to parse batch response: {}", response_text))?;
+
+            // Check for top-level fault (entire batch rejected)
+            if let Some(fault) = batch_response.fault {
+                tracing::error!("QuickBooks rejected entire batch: {}", fault);
+                // Return error for all employees in this batch
+                for _ in chunk {
+                    all_results.push(Err(anyhow::anyhow!("Batch rejected: {}", fault)));
+                }
+                continue;
+            }
 
             // Process each item in the batch response
             for item_response in batch_response.batch_item_responses {
@@ -203,6 +271,246 @@ impl IntuitClient {
         }
 
         Ok(all_results)
+    }
+
+    /// Query departments from QuickBooks
+    pub async fn query_departments(&self) -> Result<Vec<super::models::Department>> {
+        let query = "SELECT%20*%20FROM%20Department";
+        let url = format!("{}/v3/company/{}/query?query={}",
+            self.base_url,
+            self.realm_id,
+            query
+        );
+
+        tracing::info!("Querying departments from QuickBooks: {}", url);
+
+        let response = self
+            .http_client
+            .get(&url)
+            .bearer_auth(&self.access_token)
+            .header("Accept", "application/json")
+            .send()
+            .await
+            .context("Failed to query departments from QuickBooks")?;
+
+        let status = response.status();
+        tracing::info!("QuickBooks department query response status: {}", status);
+
+        if status == StatusCode::UNAUTHORIZED {
+            return Err(anyhow::anyhow!("Unauthorized: Access token may be expired or invalid"));
+        }
+
+        let response_text = response.text().await
+            .context("Failed to get response text")?;
+
+        tracing::debug!("QuickBooks department query response: {}", response_text);
+
+        #[derive(serde::Deserialize)]
+        struct QueryResponse {
+            #[serde(rename = "QueryResponse")]
+            query_response: QueryResult,
+        }
+
+        #[derive(serde::Deserialize)]
+        struct QueryResult {
+            #[serde(rename = "Department", default)]
+            department: Vec<super::models::Department>,
+        }
+
+        let parsed: QueryResponse = serde_json::from_str(&response_text)
+            .context(format!("Failed to parse query response: {}", response_text))?;
+
+        tracing::info!("Found {} departments in QuickBooks", parsed.query_response.department.len());
+
+        Ok(parsed.query_response.department)
+    }
+
+    /// Batch create multiple departments in QuickBooks
+    /// QuickBooks supports up to 30 operations per batch request
+    pub async fn batch_create_departments(&self, departments: Vec<super::models::Department>) -> Result<Vec<Result<super::models::Department>>> {
+        use super::models::{BatchRequest, BatchItemRequest, BatchOperation};
+
+        // Split into chunks of 30 (QuickBooks batch limit)
+        let chunks: Vec<_> = departments.chunks(30).collect();
+        let mut all_results = Vec::new();
+
+        for (chunk_idx, chunk) in chunks.iter().enumerate() {
+            tracing::info!("Processing department batch {}/{} with {} items",
+                chunk_idx + 1, chunks.len(), chunk.len());
+
+            // Build batch request
+            let batch_items: Vec<BatchItemRequest> = chunk
+                .iter()
+                .enumerate()
+                .map(|(index, department)| {
+                    tracing::debug!("Preparing department '{}' for batch",
+                        department.name.as_ref().unwrap_or(&"Unknown".to_string()));
+                    BatchItemRequest {
+                        batch_id: format!("bid_{}", index),
+                        operation: BatchOperation::CreateDepartment {
+                            department: department.clone(),
+                        },
+                    }
+                })
+                .collect();
+
+            let batch_request = BatchRequest {
+                batch_item_requests: batch_items,
+            };
+
+            // Send batch request
+            let url = format!("{}/v3/company/{}/batch", self.base_url, self.realm_id);
+            tracing::info!("Sending batch request to QuickBooks: {}", url);
+
+            let response = self
+                .http_client
+                .post(&url)
+                .bearer_auth(&self.access_token)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .json(&batch_request)
+                .send()
+                .await
+                .context("Failed to send batch request to QuickBooks")?;
+
+            let status = response.status();
+            tracing::info!("QuickBooks batch response status: {}", status);
+
+            if status == StatusCode::UNAUTHORIZED {
+                return Err(anyhow::anyhow!("Unauthorized: Access token may be expired or invalid"));
+            }
+
+            // Get response text for debugging
+            let response_text = response.text().await
+                .context("Failed to get response text")?;
+
+            tracing::debug!("QuickBooks batch response body: {}", response_text);
+
+            // Parse batch response
+            let batch_response: super::models::BatchResponse = serde_json::from_str(&response_text)
+                .context(format!("Failed to parse batch response: {}", response_text))?;
+
+            // Process each item in the batch response
+            for item_response in batch_response.batch_item_responses {
+                if let Some(fault) = item_response.fault {
+                    all_results.push(Err(anyhow::anyhow!("{}", fault)));
+                } else if let Some(department) = item_response.department {
+                    all_results.push(Ok(department));
+                } else {
+                    all_results.push(Err(anyhow::anyhow!("No department or fault in batch response")));
+                }
+            }
+        }
+
+        Ok(all_results)
+    }
+
+    /// Get a single department by ID from QuickBooks
+    pub async fn get_department(&self, department_id: &str) -> Result<super::models::Department> {
+        let url = format!(
+            "{}/v3/company/{}/department/{}",
+            self.base_url, self.realm_id, department_id
+        );
+
+        tracing::debug!("Fetching department {} from QuickBooks", department_id);
+
+        let response = self
+            .http_client
+            .get(&url)
+            .bearer_auth(&self.access_token)
+            .header("Accept", "application/json")
+            .send()
+            .await
+            .context("Failed to get department from QuickBooks")?;
+
+        let status = response.status();
+        tracing::debug!("QuickBooks get department response status: {}", status);
+
+        if status == StatusCode::UNAUTHORIZED {
+            return Err(anyhow::anyhow!("Unauthorized: Access token may be expired or invalid"));
+        }
+
+        // Get response text for debugging
+        let response_text = response.text().await
+            .context("Failed to get response text")?;
+
+        tracing::debug!("QuickBooks get department response: {}", response_text);
+
+        // Parse response
+        let qb_response: super::models::QuickBooksResponse<super::models::Department> =
+            serde_json::from_str(&response_text)
+                .context(format!("Failed to parse department response: {}", response_text))?;
+
+        // Check for API-level errors
+        if let Some(fault) = qb_response.fault {
+            return Err(anyhow::anyhow!(
+                "QuickBooks API error: {}",
+                fault
+                    .errors
+                    .first()
+                    .map(|e| e.message.clone())
+                    .unwrap_or_else(|| "Unknown error".to_string())
+            ));
+        }
+
+        // Extract department from response
+        qb_response.department
+            .ok_or_else(|| anyhow::anyhow!("No department returned in response"))
+    }
+
+    /// Update an existing department in QuickBooks
+    pub async fn update_department(&self, department: super::models::Department) -> Result<super::models::Department> {
+        let url = format!("{}/v3/company/{}/department", self.base_url, self.realm_id);
+
+        // Log the update request payload for debugging
+        if let Ok(request_json) = serde_json::to_string_pretty(&department) {
+            tracing::debug!("Department update request payload: {}", request_json);
+        }
+
+        let response = self
+            .http_client
+            .post(&url) // QuickBooks uses POST for updates
+            .bearer_auth(&self.access_token)
+            .header("Content-Type", "application/json")
+            .header("Accept", "application/json")
+            .json(&department)
+            .send()
+            .await
+            .context("Failed to update department in QuickBooks")?;
+
+        let status = response.status();
+        tracing::debug!("QuickBooks department update response status: {}", status);
+
+        if status == StatusCode::UNAUTHORIZED {
+            return Err(anyhow::anyhow!("Unauthorized: Access token may be expired or invalid"));
+        }
+
+        // Get response text for debugging
+        let response_text = response.text().await
+            .context("Failed to get response text")?;
+
+        tracing::debug!("QuickBooks department update response body: {}", response_text);
+
+        // Parse and return the department
+        let qb_response: super::models::QuickBooksResponse<super::models::Department> =
+            serde_json::from_str(&response_text)
+                .context(format!("Failed to parse update response: {}", response_text))?;
+
+        // Check for API-level errors
+        if let Some(fault) = qb_response.fault {
+            return Err(anyhow::anyhow!(
+                "QuickBooks API error: {}",
+                fault
+                    .errors
+                    .first()
+                    .map(|e| format!("{} ({})", e.message, e.detail))
+                    .unwrap_or_else(|| "Unknown error".to_string())
+            ));
+        }
+
+        // Extract department from response
+        qb_response.department
+            .ok_or_else(|| anyhow::anyhow!("No department returned in update response"))
     }
 
     /// Get company information from QuickBooks

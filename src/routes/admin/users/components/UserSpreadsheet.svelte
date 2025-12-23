@@ -7,9 +7,17 @@
 		id: string;
 		email: string;
 		displayName: string | null;
+		firstName?: string;
+		lastName?: string;
 		role: string;
 		roles?: Array<{ id: string; name: string }>;
 		department: { id: string; name: string } | null;
+		manager?: { id: string; displayName: string; email: string } | null;
+		jobTitle?: string | null;
+		phone?: string | null;
+		mobilePhone?: string | null;
+		birthDate?: string | null;
+		hireDate?: string | null;
 		isActive: boolean;
 		createdAt?: string;
 		updatedAt?: string;
@@ -32,6 +40,7 @@
 
 	interface Props {
 		filteredUsers: User[];
+		allUsers?: User[]; // For manager dropdown
 		loading: boolean;
 		roles: Array<{ id: string; name: string }>;
 		departments: Array<{ id: string; name: string }>;
@@ -41,7 +50,7 @@
 		onSaveEdits?: (edits: RowEdit<User>[]) => Promise<void>;
 	}
 
-	const { filteredUsers, loading, roles, departments, onToggleStatus, onEditUser, onDeleteUser, onSaveEdits }: Props =
+	const { filteredUsers, allUsers, loading, roles, departments, onToggleStatus, onEditUser, onDeleteUser, onSaveEdits }: Props =
 		$props();
 
 	// Define columns for the user table
@@ -169,6 +178,119 @@
 					...departments.map(d => ({ value: d.name, label: d.name }))
 				]
 			}
+		},
+		{
+			id: 'manager',
+			label: 'Manager',
+			type: 'select',
+			visible: true,
+			hideable: true,
+			editable: true,
+			sortable: true,
+			filterable: true,
+			getValue: (user) => user.manager?.displayName || '—',
+			getEditValue: (user) => user.manager?.id || '',
+			getSortValue: (user) => (user.manager?.displayName || '').toLowerCase(),
+			field: 'managerId',
+			options: [
+				{ value: '', label: '—' },
+				...(allUsers || filteredUsers).map(u => ({ value: u.id, label: u.displayName || u.email }))
+			],
+			filterConfig: {
+				type: 'select',
+				options: [
+					{ value: '', label: 'All' },
+					...(allUsers || filteredUsers).map(u => ({ value: u.manager?.displayName || '', label: u.manager?.displayName || '' })).filter(o => o.value)
+				]
+			}
+		},
+		{
+			id: 'jobTitle',
+			label: 'Job Title',
+			type: 'text',
+			visible: false, // Hidden by default
+			hideable: true,
+			editable: true,
+			sortable: true,
+			filterable: true,
+			getValue: (user) => user.jobTitle || '—',
+			getEditValue: (user) => user.jobTitle || '',
+			getSortValue: (user) => (user.jobTitle || '').toLowerCase(),
+			field: 'jobTitle',
+			filterConfig: {
+				type: 'text',
+				placeholder: 'Filter by job title...'
+			}
+		},
+		{
+			id: 'phone',
+			label: 'Phone',
+			type: 'text',
+			visible: false, // Hidden by default
+			hideable: true,
+			editable: true,
+			sortable: true,
+			filterable: true,
+			getValue: (user) => user.phone || '—',
+			getEditValue: (user) => user.phone || '',
+			getSortValue: (user) => user.phone || '',
+			field: 'phone',
+			filterConfig: {
+				type: 'text',
+				placeholder: 'Filter by phone...'
+			}
+		},
+		{
+			id: 'mobilePhone',
+			label: 'Mobile',
+			type: 'text',
+			visible: false, // Hidden by default
+			hideable: true,
+			editable: true,
+			sortable: true,
+			filterable: true,
+			getValue: (user) => user.mobilePhone || '—',
+			getEditValue: (user) => user.mobilePhone || '',
+			getSortValue: (user) => user.mobilePhone || '',
+			field: 'mobilePhone',
+			filterConfig: {
+				type: 'text',
+				placeholder: 'Filter by mobile...'
+			}
+		},
+		{
+			id: 'birthDate',
+			label: 'Birth Date',
+			type: 'date',
+			visible: false, // Hidden by default
+			hideable: true,
+			editable: true,
+			sortable: true,
+			filterable: false,
+			getValue: (user) => {
+				if (!user.birthDate) return '—';
+				return new Date(user.birthDate).toLocaleDateString();
+			},
+			getEditValue: (user) => user.birthDate || '',
+			getSortValue: (user) => (user.birthDate ? new Date(user.birthDate).getTime() : 0),
+			field: 'birthDate'
+		},
+		{
+			id: 'hireDate',
+			label: 'Hire Date',
+			type: 'date',
+			visible: false, // Hidden by default
+			hideable: true,
+			editable: true,
+			sortable: true,
+			filterable: false,
+			getValue: (user) => {
+				if (!user.hireDate) return '—';
+				return new Date(user.hireDate).toLocaleDateString();
+			},
+			getEditValue: (user) => user.hireDate || '',
+			getSortValue: (user) => (user.hireDate ? new Date(user.hireDate).getTime() : 0),
+			field: 'hireDate'
 		},
 		{
 			id: 'status',

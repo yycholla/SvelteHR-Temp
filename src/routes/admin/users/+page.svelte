@@ -29,6 +29,12 @@
 		password: '',
 		roleId: '',
 		departmentId: '',
+		managerId: '',
+		jobTitle: '',
+		phone: '',
+		mobilePhone: '',
+		birthDate: '',
+		hireDate: '',
 		isActive: true
 	});
 
@@ -80,6 +86,12 @@
 			password: '',
 			roleId: String(data.roles[0]?.id || ''),
 			departmentId: '',
+			managerId: '',
+			jobTitle: '',
+			phone: '',
+			mobilePhone: '',
+			birthDate: '',
+			hireDate: '',
 			isActive: true
 		};
 		showCreateModal = true;
@@ -94,6 +106,12 @@
 			password: '',
 			roleId: user.role || '',
 			departmentId: user.department?.id || '',
+			managerId: user.manager?.id || '',
+			jobTitle: user.jobTitle || '',
+			phone: user.phone || '',
+			mobilePhone: user.mobilePhone || '',
+			birthDate: user.birthDate || '',
+			hireDate: user.hireDate || '',
 			isActive: user.isActive
 		};
 		showEditModal = true;
@@ -192,7 +210,13 @@
 					email: formData.email,
 					firstName: firstName || undefined,
 					lastName: lastName || undefined,
-					departmentId: formData.departmentId || null
+					departmentId: formData.departmentId || null,
+					managerId: formData.managerId || null,
+					jobTitle: formData.jobTitle || null,
+					phone: formData.phone || null,
+					mobile: formData.mobilePhone || null,
+					birthDate: formData.birthDate || null,
+					hireDate: formData.hireDate || null
 				}
 			});
 
@@ -352,6 +376,72 @@
 					continue;
 				}
 
+				// Handle manager change
+				if (edit.field === 'managerId') {
+					await client.mutation(mutation, {
+						id: edit.rowId,
+						input: {
+							managerId: inputValue || null
+						}
+					});
+					continue;
+				}
+
+				// Handle jobTitle change
+				if (edit.field === 'jobTitle') {
+					await client.mutation(mutation, {
+						id: edit.rowId,
+						input: {
+							jobTitle: String(inputValue || '')
+						}
+					});
+					continue;
+				}
+
+				// Handle phone change
+				if (edit.field === 'phone') {
+					await client.mutation(mutation, {
+						id: edit.rowId,
+						input: {
+							phone: String(inputValue || '')
+						}
+					});
+					continue;
+				}
+
+				// Handle mobile change
+				if (edit.field === 'mobilePhone') {
+					await client.mutation(mutation, {
+						id: edit.rowId,
+						input: {
+							mobilePhone: String(inputValue || '')
+						}
+					});
+					continue;
+				}
+
+				// Handle birthDate change
+				if (edit.field === 'birthDate') {
+					await client.mutation(mutation, {
+						id: edit.rowId,
+						input: {
+							birthDate: inputValue ? String(inputValue) : null
+						}
+					});
+					continue;
+				}
+
+				// Handle hireDate change
+				if (edit.field === 'hireDate') {
+					await client.mutation(mutation, {
+						id: edit.rowId,
+						input: {
+							hireDate: inputValue ? String(inputValue) : null
+						}
+					});
+					continue;
+				}
+
 				// Handle role change - requires RBAC mutations
 				if (edit.field === 'role') {
 					const newRoleName = String(inputValue);
@@ -479,6 +569,7 @@
 	<div class="flex-1 overflow-hidden min-h-0 relative">
 		<UserSpreadsheet
 			{filteredUsers}
+			allUsers={data.users}
 			{loading}
 			roles={data.roles}
 			departments={data.departments}
@@ -516,6 +607,7 @@
 	{selectedUser}
 	bind:formData
 	departments={data.departments}
+	allUsers={data.users}
 	{loading}
 	onClose={closeModals}
 	onSubmit={handleUpdateUser}
