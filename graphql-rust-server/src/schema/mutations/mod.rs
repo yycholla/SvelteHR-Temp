@@ -10,6 +10,10 @@ pub mod user;
 pub mod training;
 pub mod onboarding;
 pub mod intuit;
+pub mod validation;
+pub mod reconciliation;
+pub mod sync_rollback;
+pub mod error_recovery;
 
 pub use auth::AuthMutations;
 pub use department::DepartmentMutations;
@@ -23,3 +27,7 @@ pub use user::UserMutations;
 pub use training::TrainingMutations;
 pub use onboarding::OnboardingMutations;
 pub use intuit::{IntuitMutations, IntuitQueries};
+pub use validation::ValidationMutation;
+pub use reconciliation::ReconciliationMutations;
+pub use sync_rollback::SyncRollbackMutations;
+pub use error_recovery::ErrorRecoveryMutations;

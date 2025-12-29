@@ -2,10 +2,32 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
-	import { AlertCircle, CheckCircle2, RefreshCw, Link as LinkIcon, Unlink, Upload, Download, RotateCcw } from '@lucide/svelte';
+	import { AlertCircle, CheckCircle2, RefreshCw, Link as LinkIcon, Unlink, Upload, Download, RotateCcw, Lock } from '@lucide/svelte';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
+	import { invalidate } from '$app/navigation';
+	import { errorStore, showSuccess } from '$lib/stores/error.svelte';
+	import * as Dialog from '$lib/components/ui/dialog';
 
 	const { data } = $props();
+
+	// Sync permissions from server
+	const perms = $derived(data.syncPermissions || {
+		canTriggerEmployeeSync: false,
+		canTriggerDepartmentSync: false,
+		canPushToQuickBooks: false,
+		canTriggerBidirectionalSync: false,
+		canForceFullSync: false,
+		canCancelSync: false,
+		canViewConflicts: false,
+		canResolveConflicts: false,
+		canBulkResolveConflicts: false,
+		canViewHistory: false,
+		canViewMetrics: false,
+		canViewAuditTrail: false,
+		canExportData: false,
+		canManageIntegrations: false,
+		canManagePermissions: false,
+	});
 
 	let syncing = $state(false);
 	let pushingDepartments = $state(false);
@@ -17,13 +39,17 @@
 	let pullingAll = $state(false);
 	let disconnecting = $state(false);
 	let resettingForTest = $state(false);
-	let errorMessage = $state('');
 
-	let syncMessage = $state('');
+	// Dialog states
+	let bidirectionalSyncDialogOpen = $state(false);
+	let resetTestDialogOpen = $state(false);
+	let disconnectDialogOpen = $state(false);
+	let pendingBidirectionalSync = $state<'EMPLOYEE' | 'DEPARTMENT' | null>(null);
 
 	// Two-way sync state
 	let syncingBidirectional = $state(false);
 	let selectedConflictStrategy = $state('LAST_WRITE_WINS');
+	let selectedSyncMode = $state('AUTO');
 	let selectedEntityType = $state<'EMPLOYEE' | 'DEPARTMENT' | null>(null);
 
 	// Check if we're in development mode
@@ -31,25 +57,31 @@
 
 	async function syncNow() {
 		syncing = true;
-		errorMessage = '';
-		syncMessage = '';
-
+		
 		try {
 			const response = await fetch('/api/intuit/sync', { method: 'POST' });
 			const result = await response.json();
 
 			if (!response.ok) {
-				errorMessage = result.message || result.error || 'Failed to sync';
+				errorStore.add({
+				message: result.message || result.error || 'Failed to sync',
+				type: 'error',
+				details: result
+			});
 			} else {
-				syncMessage = result.message || 'Sync completed';
+				showSuccess(result.message || 'Sync completed');
 				if (result.errors && result.errors.length > 0) {
 					console.log('Sync warnings:', result.errors);
 				}
 				// Reload page after a delay to show the message
-				setTimeout(() => window.location.reload(), 2000);
+				await invalidate('app:integrations');
 			}
-		} catch (error) {
-			errorMessage = 'Failed to sync with QuickBooks';
+		} catch (error: any) {
+			errorStore.add({
+				message: 'Failed to sync with QuickBooks',
+				type: 'error',
+				details: error
+			});
 		} finally {
 			syncing = false;
 		}
@@ -57,25 +89,31 @@
 
 	async function pushDepartments() {
 		pushingDepartments = true;
-		errorMessage = '';
-		syncMessage = '';
-
+		
 		try {
 			const response = await fetch('/api/intuit/push?type=departments', { method: 'POST' });
 			const result = await response.json();
 
 			if (!response.ok) {
-				errorMessage = result.message || result.error || 'Failed to push departments';
+				errorStore.add({
+				message: result.message || result.error || 'Failed to push departments',
+				type: 'error',
+				details: result
+			});
 			} else {
-				syncMessage = result.message || 'Departments pushed successfully';
+				showSuccess(result.message || 'Departments pushed successfully');
 				if (result.errors && result.errors.length > 0) {
 					console.log('Push warnings:', result.errors);
 				}
 				// Reload page after a delay to show the message
-				setTimeout(() => window.location.reload(), 2000);
+				await invalidate('app:integrations');
 			}
-		} catch (error) {
-			errorMessage = 'Failed to push departments to QuickBooks';
+		} catch (error: any) {
+			errorStore.add({
+				message: 'Failed to push departments to QuickBooks',
+				type: 'error',
+				details: error
+			});
 		} finally {
 			pushingDepartments = false;
 		}
@@ -83,25 +121,31 @@
 
 	async function pushEmployees() {
 		pushingEmployees = true;
-		errorMessage = '';
-		syncMessage = '';
-
+		
 		try {
 			const response = await fetch('/api/intuit/push?type=employees', { method: 'POST' });
 			const result = await response.json();
 
 			if (!response.ok) {
-				errorMessage = result.message || result.error || 'Failed to push employees';
+				errorStore.add({
+				message: result.message || result.error || 'Failed to push employees',
+				type: 'error',
+				details: result
+			});
 			} else {
-				syncMessage = result.message || 'Employees pushed successfully';
+				showSuccess(result.message || 'Employees pushed successfully');
 				if (result.errors && result.errors.length > 0) {
 					console.log('Push warnings:', result.errors);
 				}
 				// Reload page after a delay to show the message
-				setTimeout(() => window.location.reload(), 2000);
+				await invalidate('app:integrations');
 			}
-		} catch (error) {
-			errorMessage = 'Failed to push employees to QuickBooks';
+		} catch (error: any) {
+			errorStore.add({
+				message: 'Failed to push employees to QuickBooks',
+				type: 'error',
+				details: error
+			});
 		} finally {
 			pushingEmployees = false;
 		}
@@ -109,25 +153,31 @@
 
 	async function pushAll() {
 		pushingAll = true;
-		errorMessage = '';
-		syncMessage = '';
-
+		
 		try {
 			const response = await fetch('/api/intuit/push?type=all', { method: 'POST' });
 			const result = await response.json();
 
 			if (!response.ok) {
-				errorMessage = result.message || result.error || 'Failed to push data';
+				errorStore.add({
+				message: result.message || result.error || 'Failed to push data',
+				type: 'error',
+				details: result
+			});
 			} else {
-				syncMessage = result.message || 'Push completed successfully';
+				showSuccess(result.message || 'Push completed successfully');
 				if (result.errors && result.errors.length > 0) {
 					console.log('Push warnings:', result.errors);
 				}
 				// Reload page after a delay to show the message
-				setTimeout(() => window.location.reload(), 2000);
+				await invalidate('app:integrations');
 			}
-		} catch (error) {
-			errorMessage = 'Failed to push data to QuickBooks';
+		} catch (error: any) {
+			errorStore.add({
+				message: 'Failed to push data to QuickBooks',
+				type: 'error',
+				details: error
+			});
 		} finally {
 			pushingAll = false;
 		}
@@ -135,25 +185,31 @@
 
 	async function updateEmployeeDepartments() {
 		updatingEmployeeDepartments = true;
-		errorMessage = '';
-		syncMessage = '';
-
+		
 		try {
 			const response = await fetch('/api/intuit/push?type=employee-departments', { method: 'POST' });
 			const result = await response.json();
 
 			if (!response.ok) {
-				errorMessage = result.message || result.error || 'Failed to update employee departments';
+				errorStore.add({
+				message: result.message || result.error || 'Failed to update employee departments',
+				type: 'error',
+				details: result
+			});
 			} else {
-				syncMessage = result.message || 'Employee departments updated successfully';
+				showSuccess(result.message || 'Employee departments updated successfully');
 				if (result.errors && result.errors.length > 0) {
 					console.log('Update warnings:', result.errors);
 				}
 				// Reload page after a delay to show the message
-				setTimeout(() => window.location.reload(), 2000);
+				await invalidate('app:integrations');
 			}
-		} catch (error) {
-			errorMessage = 'Failed to update employee departments in QuickBooks';
+		} catch (error: any) {
+			errorStore.add({
+				message: 'Failed to update employee departments in QuickBooks',
+				type: 'error',
+				details: error
+			});
 		} finally {
 			updatingEmployeeDepartments = false;
 		}
@@ -161,25 +217,31 @@
 
 	async function pullDepartments() {
 		pullingDepartments = true;
-		errorMessage = '';
-		syncMessage = '';
-
+		
 		try {
 			const response = await fetch('/api/intuit/pull?type=departments', { method: 'POST' });
 			const result = await response.json();
 
 			if (!response.ok) {
-				errorMessage = result.message || result.error || 'Failed to pull departments';
+				errorStore.add({
+				message: result.message || result.error || 'Failed to pull departments',
+				type: 'error',
+				details: result
+			});
 			} else {
-				syncMessage = result.message || 'Departments pulled successfully';
+				showSuccess(result.message || 'Departments pulled successfully');
 				if (result.errors && result.errors.length > 0) {
 					console.log('Pull warnings:', result.errors);
 				}
 				// Reload page after a delay to show the message
-				setTimeout(() => window.location.reload(), 2000);
+				await invalidate('app:integrations');
 			}
-		} catch (error) {
-			errorMessage = 'Failed to pull departments from QuickBooks';
+		} catch (error: any) {
+			errorStore.add({
+				message: 'Failed to pull departments from QuickBooks',
+				type: 'error',
+				details: error
+			});
 		} finally {
 			pullingDepartments = false;
 		}
@@ -187,25 +249,31 @@
 
 	async function pullEmployees() {
 		pullingEmployees = true;
-		errorMessage = '';
-		syncMessage = '';
-
+		
 		try {
 			const response = await fetch('/api/intuit/pull?type=employees', { method: 'POST' });
 			const result = await response.json();
 
 			if (!response.ok) {
-				errorMessage = result.message || result.error || 'Failed to pull employees';
+				errorStore.add({
+				message: result.message || result.error || 'Failed to pull employees',
+				type: 'error',
+				details: result
+			});
 			} else {
-				syncMessage = result.message || 'Employees pulled successfully';
+				showSuccess(result.message || 'Employees pulled successfully');
 				if (result.errors && result.errors.length > 0) {
 					console.log('Pull warnings:', result.errors);
 				}
 				// Reload page after a delay to show the message
-				setTimeout(() => window.location.reload(), 2000);
+				await invalidate('app:integrations');
 			}
-		} catch (error) {
-			errorMessage = 'Failed to pull employees from QuickBooks';
+		} catch (error: any) {
+			errorStore.add({
+				message: 'Failed to pull employees from QuickBooks',
+				type: 'error',
+				details: error
+			});
 		} finally {
 			pullingEmployees = false;
 		}
@@ -213,118 +281,157 @@
 
 	async function pullAll() {
 		pullingAll = true;
-		errorMessage = '';
-		syncMessage = '';
-
+		
 		try {
 			const response = await fetch('/api/intuit/pull?type=all', { method: 'POST' });
 			const result = await response.json();
 
 			if (!response.ok) {
-				errorMessage = result.message || result.error || 'Failed to pull data';
+				errorStore.add({
+				message: result.message || result.error || 'Failed to pull data',
+				type: 'error',
+				details: result
+			});
 			} else {
-				syncMessage = result.message || 'Pull completed successfully';
+				showSuccess(result.message || 'Pull completed successfully');
 				if (result.errors && result.errors.length > 0) {
 					console.log('Pull warnings:', result.errors);
 				}
 				// Reload page after a delay to show the message
-				setTimeout(() => window.location.reload(), 2000);
+				await invalidate('app:integrations');
 			}
-		} catch (error) {
-			errorMessage = 'Failed to pull data from QuickBooks';
+		} catch (error: any) {
+			errorStore.add({
+				message: 'Failed to pull data from QuickBooks',
+				type: 'error',
+				details: error
+			});
 		} finally {
 			pullingAll = false;
 		}
 	}
 
-	async function syncBidirectional(entityType: 'EMPLOYEE' | 'DEPARTMENT') {
-		if (!confirm(`This will sync ${entityType.toLowerCase()}s in both directions, applying the ${selectedConflictStrategy.replace(/_/g, ' ').toLowerCase()} strategy for conflicts. Continue?`)) {
-			return;
-		}
+	function openBidirectionalSyncDialog(entityType: 'EMPLOYEE' | 'DEPARTMENT') {
+		pendingBidirectionalSync = entityType;
+		bidirectionalSyncDialogOpen = true;
+	}
+
+	async function confirmBidirectionalSync() {
+		if (!pendingBidirectionalSync) return;
+
+		bidirectionalSyncDialogOpen = false;
+		const entityType = pendingBidirectionalSync;
+		pendingBidirectionalSync = null;
 
 		syncingBidirectional = true;
 		selectedEntityType = entityType;
-		errorMessage = '';
-		syncMessage = '';
-
+		
 		try {
 			const response = await fetch('/api/intuit/sync-bidirectional', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					entityType,
-					conflictStrategy: selectedConflictStrategy
+					conflictStrategy: selectedConflictStrategy,
+					syncMode: selectedSyncMode
 				})
 			});
 
 			const result = await response.json();
 
 			if (!response.ok) {
-				errorMessage = result.message || result.error || 'Failed to perform bidirectional sync';
+				errorStore.add({
+					message: result.message || result.error || 'Failed to perform bidirectional sync',
+					type: 'error',
+					details: result
+				});
 			} else {
-				const { pushed_count = 0, pulled_count = 0, conflicts_resolved = 0, errors = [] } = result;
-				syncMessage = `Bidirectional sync completed: ${pushed_count} pushed, ${pulled_count} pulled, ${conflicts_resolved} conflicts resolved`;
+				const { pushed_count = 0, pulled_count = 0, conflicts_resolved = 0, errors = [], sync_mode = 'unknown', changes_detected = 0, changes_processed = 0 } = result;
+				showSuccess(`${sync_mode.toUpperCase()} sync completed: ${changes_detected} detected, ${changes_processed} processed (${pushed_count} pushed, ${pulled_count} pulled, ${conflicts_resolved} conflicts resolved)`);
 
 				if (errors.length > 0) {
 					console.warn('Sync errors:', errors);
-					errorMessage = `Completed with ${errors.length} error(s). Check console for details.`;
+					errorStore.add({
+						message: `Completed with ${errors.length} error(s). Check console for details.`,
+						type: 'error',
+						details: errors
+					});
 				}
 
 				// Reload page after a delay to show the message
-				setTimeout(() => window.location.reload(), 3000);
+				await invalidate('app:integrations');
 			}
-		} catch (error) {
-			errorMessage = 'Failed to perform bidirectional sync';
+		} catch (error: any) {
+			errorStore.add({
+				message: 'Failed to perform bidirectional sync',
+				type: 'error',
+				details: error
+			});
 		} finally {
 			syncingBidirectional = false;
 			selectedEntityType = null;
 		}
 	}
 
-	async function resetForTesting() {
-		if (!confirm('This will reset QuickBooks IDs for all departments and up to 5 employees so they can be re-synced. Continue?')) {
-			return;
-		}
+	function openResetTestDialog() {
+		resetTestDialogOpen = true;
+	}
 
+	async function confirmResetTest() {
+		resetTestDialogOpen = false;
 		resettingForTest = true;
-		errorMessage = '';
-		syncMessage = '';
-
+		
 		try {
 			const response = await fetch('/api/intuit/reset-test', { method: 'POST' });
 			const result = await response.json();
 
 			if (!response.ok) {
-				errorMessage = result.message || result.error || 'Failed to reset for testing';
+				errorStore.add({
+					message: result.message || result.error || 'Failed to reset for testing',
+					type: 'error',
+					details: result
+				});
 			} else {
-				syncMessage = result.message || `Reset ${result.resetCount || 0} item(s) for testing. You can now re-push them.`;
+				showSuccess(result.message || `Reset ${result.resetCount || 0} item(s) for testing. You can now re-push them.`);
 			}
-		} catch (error) {
-			errorMessage = 'Failed to reset sync status';
+		} catch (error: any) {
+			errorStore.add({
+				message: 'Failed to reset sync status',
+				type: 'error',
+				details: error
+			});
 		} finally {
 			resettingForTest = false;
 		}
 	}
 
-	async function disconnectIntuit() {
-		if (!confirm('Are you sure you want to disconnect from QuickBooks? This will stop all data synchronization.')) {
-			return;
-		}
+	function openDisconnectDialog() {
+		disconnectDialogOpen = true;
+	}
 
+	async function confirmDisconnect() {
+		disconnectDialogOpen = false;
 		disconnecting = true;
-		errorMessage = '';
-
+	
 		try {
 			const response = await fetch('/api/intuit/disconnect', { method: 'POST' });
 
 			if (!response.ok) {
 				const result = await response.json();
-				errorMessage = result.error || 'Failed to disconnect';
+				errorStore.add({
+					message: result.error || 'Failed to disconnect',
+					type: 'error',
+					details: result
+				});
 			} else {
 				window.location.reload();
 			}
-		} catch (error) {
-			errorMessage = 'Failed to disconnect from QuickBooks';
+		} catch (error: any) {
+			errorStore.add({
+				message: 'Failed to disconnect from QuickBooks',
+				type: 'error',
+				details: error
+			});
 		} finally {
 			disconnecting = false;
 		}
@@ -339,24 +446,10 @@
 		</p>
 	</div>
 
-	{#if errorMessage}
-		<Alert variant="destructive" class="mb-6">
-			<AlertCircle class="h-4 w-4" />
-			<AlertDescription>{errorMessage}</AlertDescription>
-		</Alert>
-	{/if}
-
 	{#if data.error}
 		<Alert variant="destructive" class="mb-6">
 			<AlertCircle class="h-4 w-4" />
 			<AlertDescription>{data.error}</AlertDescription>
-		</Alert>
-	{/if}
-
-	{#if syncMessage}
-		<Alert class="mb-6 border-green-600 bg-green-50 text-green-900">
-			<CheckCircle2 class="h-4 w-4 text-green-600" />
-			<AlertDescription>{syncMessage}</AlertDescription>
 		</Alert>
 	{/if}
 
@@ -442,6 +535,7 @@
 
 					<!-- Actions -->
 					<div class="space-y-3">
+						{#if perms.canPushToQuickBooks}
 						<div>
 							<p class="text-sm font-medium mb-2">Push to QuickBooks:</p>
 							<div class="flex flex-wrap gap-2">
@@ -477,6 +571,15 @@
 								Note: Employees are created without department assignments due to QuickBooks API limitations.
 							</p>
 						</div>
+						{:else}
+						<div class="p-3 bg-muted/50 rounded-md">
+							<p class="text-sm text-muted-foreground flex items-center gap-2">
+								<Lock class="h-4 w-4" />
+								Push operations require additional permissions
+							</p>
+						</div>
+						{/if}
+						{#if perms.canPushToQuickBooks}
 						<div>
 							<p class="text-sm font-medium mb-2">Update in QuickBooks:</p>
 							<div class="flex flex-wrap gap-2">
@@ -494,9 +597,12 @@
 								Updates existing QuickBooks employees with their department assignments.
 							</p>
 						</div>
+						{/if}
+						{#if perms.canTriggerEmployeeSync || perms.canTriggerDepartmentSync}
 						<div>
 							<p class="text-sm font-medium mb-2">Pull from QuickBooks:</p>
 							<div class="flex flex-wrap gap-2">
+								{#if perms.canTriggerDepartmentSync}
 								<Button onclick={pullDepartments} disabled={pullingDepartments || pullingAll} variant="secondary" size="sm">
 									{#if pullingDepartments}
 										<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
@@ -506,6 +612,8 @@
 										Departments
 									{/if}
 								</Button>
+								{/if}
+								{#if perms.canTriggerEmployeeSync}
 								<Button onclick={pullEmployees} disabled={pullingEmployees || pullingAll} variant="secondary" size="sm">
 									{#if pullingEmployees}
 										<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
@@ -515,6 +623,8 @@
 										Employees
 									{/if}
 								</Button>
+								{/if}
+								{#if perms.canTriggerEmployeeSync && perms.canTriggerDepartmentSync}
 								<Button onclick={pullAll} disabled={pullingAll || pullingDepartments || pullingEmployees} variant="secondary" size="sm">
 									{#if pullingAll}
 										<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
@@ -524,13 +634,16 @@
 										All Data
 									{/if}
 								</Button>
+								{/if}
 							</div>
 							<p class="text-xs text-muted-foreground mt-1">
 								Import data from QuickBooks into the HR system. Existing records will be updated, new ones will be created.
 							</p>
 						</div>
+						{/if}
 
 						<!-- Two-Way Sync Section -->
+						{#if perms.canTriggerBidirectionalSync}
 						<div class="border-t pt-4 mt-4">
 							<p class="text-sm font-medium mb-2 flex items-center gap-2">
 								<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -543,12 +656,14 @@
 							<div class="mb-3">
 								<div class="flex items-center justify-between mb-1">
 									<label for="conflict-strategy" class="text-xs font-medium text-muted-foreground">Conflict Strategy:</label>
+									{#if perms.canViewConflicts}
 									<a
 										href="/admin/settings/integrations/conflicts"
 										class="text-xs text-blue-600 hover:text-blue-800 underline"
 									>
 										View Conflicts →
 									</a>
+									{/if}
 								</div>
 								<select
 									id="conflict-strategy"
@@ -574,10 +689,34 @@
 								</p>
 							</div>
 
+							<!-- Sync Mode Selector (Feature 3: Incremental Sync) -->
+							<div class="mb-3">
+								<label for="sync-mode" class="text-xs font-medium text-muted-foreground">Sync Mode:</label>
+								<select
+									id="sync-mode"
+									bind:value={selectedSyncMode}
+									class="w-full max-w-md text-sm border rounded-md px-3 py-1.5 bg-background mt-1"
+									disabled={syncingBidirectional}
+								>
+									<option value="AUTO">Auto (Recommended) - System decides based on conditions</option>
+									<option value="INCREMENTAL">Incremental - Only sync changes since last sync</option>
+									<option value="FULL">Full - Sync all entities (integrity check)</option>
+								</select>
+								<p class="text-xs text-muted-foreground mt-1">
+									{#if selectedSyncMode === 'AUTO'}
+										System automatically chooses between incremental and full sync based on last sync time and data integrity checks.
+									{:else if selectedSyncMode === 'INCREMENTAL'}
+										Only entities modified since the last sync will be processed. Faster but requires previous successful sync.
+									{:else}
+										All entities will be synced regardless of modification time. Slower but ensures complete data integrity.
+									{/if}
+								</p>
+							</div>
+
 							<!-- Sync Buttons -->
 							<div class="flex flex-wrap gap-2">
 								<Button
-									onclick={() => syncBidirectional('EMPLOYEE')}
+									onclick={() => openBidirectionalSyncDialog('EMPLOYEE')}
 									disabled={syncingBidirectional}
 									variant="default"
 									size="sm"
@@ -595,7 +734,7 @@
 								</Button>
 
 								<Button
-									onclick={() => syncBidirectional('DEPARTMENT')}
+									onclick={() => openBidirectionalSyncDialog('DEPARTMENT')}
 									disabled={syncingBidirectional}
 									variant="default"
 									size="sm"
@@ -621,11 +760,12 @@
 								</p>
 							</div>
 						</div>
+						{/if}
 
-						{#if isDev}
+						{#if isDev && perms.canManageIntegrations}
 							<div>
 								<p class="text-sm font-medium mb-2 text-orange-600">Development Tools:</p>
-								<Button onclick={resetForTesting} disabled={resettingForTest} variant="outline" size="sm" class="border-orange-300 text-orange-700 hover:bg-orange-50">
+								<Button onclick={openResetTestDialog} disabled={resettingForTest} variant="outline" size="sm" class="border-orange-300 text-orange-700 hover:bg-orange-50">
 									{#if resettingForTest}
 										<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
 										Resetting...
@@ -637,8 +777,9 @@
 								<p class="text-xs text-muted-foreground mt-1">Clears QuickBooks IDs from all departments and 5 employees to re-test sync</p>
 							</div>
 						{/if}
+						{#if perms.canManageIntegrations}
 						<div class="flex gap-2">
-							<Button onclick={disconnectIntuit} disabled={disconnecting} variant="destructive">
+							<Button onclick={openDisconnectDialog} disabled={disconnecting} variant="destructive">
 								{#if disconnecting}
 									<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
 									Disconnecting...
@@ -648,6 +789,7 @@
 								{/if}
 							</Button>
 						</div>
+						{/if}
 					</div>
 				</div>
 			{:else}
@@ -676,10 +818,19 @@
 					</div>
 
 					<!-- Connect Button -->
+					{#if perms.canManageIntegrations}
 					<a href="/api/intuit/connect" class="inline-flex items-center justify-center rounded-md bg-primary px-8 py-3 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
 						<LinkIcon class="h-4 w-4 mr-2" />
 						Connect to QuickBooks
 					</a>
+					{:else}
+					<div class="p-4 bg-muted/50 rounded-md">
+						<p class="text-sm text-muted-foreground flex items-center gap-2">
+							<Lock class="h-4 w-4" />
+							You do not have permission to connect integrations. Contact your administrator.
+						</p>
+					</div>
+					{/if}
 
 					<!-- Note -->
 					<Alert>
@@ -730,3 +881,83 @@
 		</div>
 	</div>
 </div>
+
+<!-- Bidirectional Sync Confirmation Dialog -->
+<Dialog.Root bind:open={bidirectionalSyncDialogOpen}>
+	<Dialog.Content class="sm:max-w-md">
+		<Dialog.Header>
+			<Dialog.Title>Confirm Bidirectional Sync</Dialog.Title>
+			<Dialog.Description>
+				{#if pendingBidirectionalSync}
+					This will sync <strong>{pendingBidirectionalSync.toLowerCase()}s</strong> in both directions, applying
+					the <strong>{selectedConflictStrategy.replace(/_/g, ' ').toLowerCase()}</strong> strategy for
+					conflicts.
+					<div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
+						<p class="text-yellow-900 font-medium mb-1">⚠️ Warning</p>
+						<p class="text-yellow-800">
+							This operation will modify data in both your local database and QuickBooks. Make sure
+							you understand the conflict resolution strategy before proceeding.
+						</p>
+					</div>
+				{/if}
+			</Dialog.Description>
+		</Dialog.Header>
+		<Dialog.Footer class="gap-2">
+			<Button variant="outline" onclick={() => (bidirectionalSyncDialogOpen = false)}>
+				Cancel
+			</Button>
+			<Button onclick={confirmBidirectionalSync}>Continue Sync</Button>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>
+
+<!-- Reset Test Confirmation Dialog -->
+<Dialog.Root bind:open={resetTestDialogOpen}>
+	<Dialog.Content class="sm:max-w-md">
+		<Dialog.Header>
+			<Dialog.Title>Confirm Reset for Testing</Dialog.Title>
+			<Dialog.Description>
+				<p>
+					This will reset QuickBooks IDs for <strong>all departments</strong> and up to{' '}
+					<strong>5 employees</strong> so they can be re-synced.
+				</p>
+				<div class="mt-3 p-3 bg-orange-50 border border-orange-200 rounded text-sm">
+					<p class="text-orange-900 font-medium mb-1">🔧 Development Tool</p>
+					<p class="text-orange-800">
+						This is a testing utility. The affected records will be marked as "not synced" and can be
+						pushed to QuickBooks again.
+					</p>
+				</div>
+			</Dialog.Description>
+		</Dialog.Header>
+		<Dialog.Footer class="gap-2">
+			<Button variant="outline" onclick={() => (resetTestDialogOpen = false)}>Cancel</Button>
+			<Button onclick={confirmResetTest} variant="outline" class="border-orange-300 text-orange-700">
+				Reset for Testing
+			</Button>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>
+
+<!-- Disconnect Confirmation Dialog -->
+<Dialog.Root bind:open={disconnectDialogOpen}>
+	<Dialog.Content class="sm:max-w-md">
+		<Dialog.Header>
+			<Dialog.Title>Disconnect from QuickBooks?</Dialog.Title>
+			<Dialog.Description>
+				<p>Are you sure you want to disconnect from QuickBooks?</p>
+				<div class="mt-3 p-3 bg-red-50 border border-red-200 rounded text-sm">
+					<p class="text-red-900 font-medium mb-1">⚠️ Warning</p>
+					<p class="text-red-800">
+						This will stop all data synchronization between your system and QuickBooks. You'll need to
+						reconnect and re-authorize to resume syncing.
+					</p>
+				</div>
+			</Dialog.Description>
+		</Dialog.Header>
+		<Dialog.Footer class="gap-2">
+			<Button variant="outline" onclick={() => (disconnectDialogOpen = false)}>Cancel</Button>
+			<Button onclick={confirmDisconnect} variant="destructive">Disconnect</Button>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>

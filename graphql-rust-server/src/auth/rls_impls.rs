@@ -1,9 +1,9 @@
-use sea_orm::{EntityTrait, QueryFilter, ColumnTrait, Select};
+use sea_orm::{QueryFilter, ColumnTrait, Select};
 use crate::auth::{RlsFilterable, UserContext};
 use crate::models::{
     task::{Entity as TaskEntity, Column as TaskColumn},
-    user::{Entity as UserEntity, Column as UserColumn},
-    department::{Entity as DepartmentEntity},
+    user::Entity as UserEntity,
+    department::Entity as DepartmentEntity,
     leave_request::{Entity as LeaveRequestEntity, Column as LeaveRequestColumn},
     performance_review::{Entity as PerformanceReviewEntity, Column as PerformanceReviewColumn},
 };

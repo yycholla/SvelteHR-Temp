@@ -1,10 +1,43 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { goto } from '$app/navigation';
+	import { invalidate } from '$app/navigation';
+	import { errorStore, showSuccess } from '$lib/stores/error.svelte';
+	import * as Dialog from '$lib/components/ui/dialog';
+	import { Lock } from '@lucide/svelte';
 
 	let { data } = $props();
 	let conflicts = $derived(data.conflicts);
 	let resolving = $state<string | null>(null);
+	let confirmDialogOpen = $state(false);
+	let pendingResolution = $state<{ conflict: any; resolution: 'KEEP_LOCAL' | 'KEEP_REMOTE' } | null>(
+		null
+	);
+
+	// Conflict permissions from server
+	const perms = $derived(data.conflictPermissions || {
+		canViewConflicts: false,
+		canResolveConflicts: false,
+		canBulkResolveConflicts: false,
+	});
+
+	function openConfirmDialog(conflict: any, resolution: 'KEEP_LOCAL' | 'KEEP_REMOTE') {
+		pendingResolution = { conflict, resolution };
+		confirmDialogOpen = true;
+	}
+
+	async function confirmResolve() {
+		if (!pendingResolution) return;
+
+		confirmDialogOpen = false;
+		await resolveConflict(pendingResolution.conflict, pendingResolution.resolution);
+		pendingResolution = null;
+	}
+
+	function cancelResolve() {
+		confirmDialogOpen = false;
+		pendingResolution = null;
+	}
 
 	async function resolveConflict(conflict: any, resolution: 'KEEP_LOCAL' | 'KEEP_REMOTE') {
 		resolving = conflict.entityId;
@@ -25,14 +58,27 @@
 			const result = await response.json();
 
 			if (result.success) {
-				// Reload the page to refresh conflicts list
-				window.location.reload();
+				// Show success toast
+				const action = resolution === 'KEEP_LOCAL' ? 'local data' : 'QuickBooks data';
+				showSuccess(`Conflict resolved: Kept ${action} for ${conflict.employeeName || conflict.entityType}`);
+
+				// Invalidate data to trigger reactive refresh
+				await invalidate('app:conflicts');
 			} else {
-				alert(`Failed to resolve conflict: ${result.error || 'Unknown error'}`);
+				// Show error toast
+				errorStore.add({
+					message: `Failed to resolve conflict: ${result.error || 'Unknown error'}`,
+					type: 'error',
+					details: result
+				});
 			}
 		} catch (error) {
 			console.error('Error resolving conflict:', error);
-			alert('Failed to resolve conflict. Check console for details.');
+			errorStore.add({
+				message: 'Failed to resolve conflict. Please try again.',
+				type: 'error',
+				details: error
+			});
 		} finally {
 			resolving = null;
 		}
@@ -41,6 +87,10 @@
 	function formatDate(dateStr: string | null) {
 		if (!dateStr) return 'Never';
 		return new Date(dateStr).toLocaleString();
+	}
+
+	function getResolutionLabel(resolution: 'KEEP_LOCAL' | 'KEEP_REMOTE'): string {
+		return resolution === 'KEEP_LOCAL' ? 'local data' : 'QuickBooks data';
 	}
 </script>
 
@@ -124,30 +174,53 @@
 							</div>
 
 							<div class="flex gap-2 ml-4">
-								<Button
-									variant="outline"
-									size="sm"
-									disabled={resolving !== null}
-									onclick={() => resolveConflict(conflict, 'KEEP_LOCAL')}
-								>
-									{#if resolving === conflict.entityId}
-										Resolving...
-									{:else}
-										Keep Local
-									{/if}
-								</Button>
-								<Button
-									variant="outline"
-									size="sm"
-									disabled={resolving !== null}
-									onclick={() => resolveConflict(conflict, 'KEEP_REMOTE')}
-								>
-									{#if resolving === conflict.entityId}
-										Resolving...
-									{:else}
-										Keep QuickBooks
-									{/if}
-								</Button>
+								{#if conflict.description.includes('has no email address') || conflict.description.includes('has no name')}
+									<!-- For conflicts requiring data in QuickBooks, show instructions instead of buttons -->
+									<div class="text-sm bg-blue-50 border border-blue-200 rounded px-3 py-2 max-w-xs">
+										<p class="font-medium text-blue-900 mb-1">📝 Action Required</p>
+										<p class="text-blue-800">
+											{#if conflict.description.includes('has no email address')}
+												Add an email address in QuickBooks, then re-sync.
+											{:else if conflict.description.includes('has no name')}
+												Add a name in QuickBooks, then re-sync.
+											{/if}
+										</p>
+									</div>
+								{:else if conflict.description.includes('no longer exists in QuickBooks')}
+									<!-- For deleted employees, show manual action instructions -->
+									<div class="text-sm bg-blue-50 border border-blue-200 rounded px-3 py-2 max-w-xs">
+										<p class="font-medium text-blue-900 mb-1">📝 Action Required</p>
+										<p class="text-blue-800">
+											This employee was deleted from QuickBooks. Manually unlink or deactivate the local employee.
+										</p>
+									</div>
+								{:else}
+									<!-- Standard conflict resolution buttons for resolvable conflicts -->
+									<Button
+										variant="outline"
+										size="sm"
+										disabled={resolving !== null}
+										onclick={() => openConfirmDialog(conflict, 'KEEP_LOCAL')}
+									>
+										{#if resolving === conflict.entityId}
+											Resolving...
+										{:else}
+											Keep Local
+										{/if}
+									</Button>
+									<Button
+										variant="outline"
+										size="sm"
+										disabled={resolving !== null}
+										onclick={() => openConfirmDialog(conflict, 'KEEP_REMOTE')}
+									>
+										{#if resolving === conflict.entityId}
+											Resolving...
+										{:else}
+											Keep QuickBooks
+										{/if}
+									</Button>
+								{/if}
 							</div>
 						</div>
 					</div>
@@ -168,3 +241,34 @@
 		</div>
 	{/if}
 </div>
+
+<!-- Confirmation Dialog -->
+<Dialog.Root bind:open={confirmDialogOpen}>
+	<Dialog.Content class="sm:max-w-md">
+		<Dialog.Header>
+			<Dialog.Title>Confirm Conflict Resolution</Dialog.Title>
+			<Dialog.Description>
+				{#if pendingResolution}
+					Are you sure you want to keep
+					<strong>{getResolutionLabel(pendingResolution.resolution)}</strong>
+					for
+					<strong>
+						{pendingResolution.conflict.employeeName ||
+							pendingResolution.conflict.entityType}
+					</strong>?
+					<div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
+						<p class="text-yellow-900 font-medium mb-1">⚠️ Warning</p>
+						<p class="text-yellow-800">
+							This will overwrite the other version and cannot be undone. Make sure you've
+							communicated with your team about this decision.
+						</p>
+					</div>
+				{/if}
+			</Dialog.Description>
+		</Dialog.Header>
+		<Dialog.Footer class="gap-2">
+			<Button variant="outline" onclick={cancelResolve}>Cancel</Button>
+			<Button onclick={confirmResolve}>Confirm Resolution</Button>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>

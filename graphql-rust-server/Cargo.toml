@@ -69,6 +69,12 @@ jsonwebtoken = "9.0"
 oauth2 = "4.4"
 reqwest-middleware = "0.2"
 reqwest-retry = "0.3"
+percent-encoding = "2.3.2"
+
+# Webhook signature verification
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
 
 [dependencies.async-graphql]
 version = "7.0"
@@ -77,6 +83,13 @@ features = ["chrono", "uuid", "dataloader", "boxed-trait"]
 [dependencies.chrono]
 version = "0.4"
 features = ["serde"]
+
+[dependencies.chrono-tz]
+version = "0.10"
+features = ["serde"]
+
+[dependencies.tokio-cron-scheduler]
+version = "0.14"
 
 [dependencies.sea-orm]
 version = "0.12"

@@ -59,6 +59,20 @@ mod m20251223_001_add_intuit_department_id;
 mod m20251226_001_add_sync_tracking;
 mod m20251226_002_enhance_sync_log;
 mod m20251226_002_enforce_email_rules;
+mod m20251226_003_enforce_department_names;
+mod m20251229_001_create_validation_tables;
+mod m20251229_002_add_sync_permissions;
+mod m20251229_003_seed_sync_role_permissions;
+mod m20251229_004_incremental_sync;
+mod m20251229_005_create_sync_health_monitoring;
+mod m20251229_006_create_audit_trail;
+mod m20251229_007_create_reconciliation;
+mod m20251229_008_create_webhooks;
+mod m20251229_009_create_batch_operations;
+mod m20251229_010_create_rollback_system;
+mod m20251229_011_create_error_recovery;
+mod m20251229_012_enhance_audit_trail;
+mod m20251229_013_create_compliance_reports;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -119,6 +133,20 @@ impl MigratorTrait for Migrator {
             Box::new(m20251226_001_add_sync_tracking::Migration),
             Box::new(m20251226_002_enhance_sync_log::Migration),
             Box::new(m20251226_002_enforce_email_rules::Migration),
+            Box::new(m20251226_003_enforce_department_names::Migration),
+            Box::new(m20251229_001_create_validation_tables::Migration),
+            Box::new(m20251229_002_add_sync_permissions::Migration),
+            Box::new(m20251229_003_seed_sync_role_permissions::Migration),
+            Box::new(m20251229_004_incremental_sync::Migration),
+            Box::new(m20251229_005_create_sync_health_monitoring::Migration),
+            Box::new(m20251229_006_create_audit_trail::Migration),
+            Box::new(m20251229_007_create_reconciliation::Migration),
+            Box::new(m20251229_008_create_webhooks::Migration),
+            Box::new(m20251229_009_create_batch_operations::Migration),
+            Box::new(m20251229_010_create_rollback_system::Migration),
+            Box::new(m20251229_011_create_error_recovery::Migration),
+            Box::new(m20251229_012_enhance_audit_trail::Migration),
+            Box::new(m20251229_013_create_compliance_reports::Migration),
         ]
     }
 }

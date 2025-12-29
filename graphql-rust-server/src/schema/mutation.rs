@@ -4193,6 +4193,11 @@ impl MutationRoot {
         EmployeeImportMutations
     }
 
+    /// Validation rule management and failure resolution
+    async fn validation(&self) -> crate::schema::mutations::ValidationMutation {
+        crate::schema::mutations::ValidationMutation
+    }
+
     // ==================================================================================
     // Notification Mutations
     // ==================================================================================

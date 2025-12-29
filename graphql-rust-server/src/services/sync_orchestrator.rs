@@ -21,6 +21,8 @@ use crate::models::{user, department};
 use super::{
     sync_tracker::{ChangeRecord, EntityType, SyncTracker},
     conflict_resolver::{ConflictResolver, ConflictStrategy, ConflictRecord},
+    validation_engine::ValidationEngine,
+    incremental_sync::{IncrementalSyncService, SyncMode},
 };
 
 /// Result of a sync operation
@@ -42,6 +44,10 @@ pub struct SyncReport {
     pub errors: Vec<SyncError>,
     pub started_at: DateTime<Utc>,
     pub completed_at: DateTime<Utc>,
+    // Incremental sync metadata (Feature 3)
+    pub sync_mode: String,
+    pub changes_detected: usize,
+    pub changes_processed: usize,
 }
 
 /// Detailed error information for sync operations
@@ -59,6 +65,296 @@ pub struct SyncError {
 pub struct SyncOrchestrator;
 
 impl SyncOrchestrator {
+    /// Intelligent sync that automatically chooses between full and incremental mode (Feature 3)
+    ///
+    /// Decision logic:
+    /// - Auto mode: Let IncrementalSyncService decide based on conditions
+    /// - Full mode: Force full sync regardless of conditions
+    /// - Incremental mode: Force incremental sync (fallback to full if not viable)
+    pub async fn sync_bidirectional_intelligent(
+        db: &DatabaseConnection,
+        client: &IntuitClient,
+        entity_type: EntityType,
+        strategy: ConflictStrategy,
+        requested_mode: SyncMode,
+    ) -> Result<SyncReport> {
+        let started_at = Utc::now();
+
+        // Decide sync mode
+        let decision = IncrementalSyncService::decide_sync_mode(db, entity_type, requested_mode)
+            .await
+            .context("Failed to decide sync mode")?;
+
+        tracing::info!(
+            "Sync mode decision for {:?}: {} - {}",
+            entity_type,
+            decision.sync_mode.as_str(),
+            decision.reason
+        );
+
+        // Execute appropriate sync
+        let mut report = match decision.sync_mode {
+            SyncMode::Incremental => {
+                Self::sync_bidirectional_incremental(db, client, entity_type, strategy, &decision.metadata)
+                    .await
+                    .unwrap_or_else(|e| {
+                        tracing::warn!(
+                            "Incremental sync failed, falling back to full sync: {}",
+                            e
+                        );
+                        // Fallback to full sync on incremental failure
+                        let full_result = futures::executor::block_on(
+                            Self::sync_bidirectional(db, client, entity_type, strategy)
+                        );
+                        full_result.unwrap_or_else(|e| SyncReport {
+                            pushed_count: 0,
+                            pulled_count: 0,
+                            updated_count: 0,
+                            skipped_count: 0,
+                            conflicts_resolved: 0,
+                            errors: vec![SyncError {
+                                entity_type: format!("{:?}", entity_type),
+                                entity_id: None,
+                                quickbooks_id: None,
+                                error_message: format!("Both incremental and full sync failed: {}", e),
+                                error_code: Some("SYNC_FAILED".to_string()),
+                                is_retryable: true,
+                            }],
+                            started_at,
+                            completed_at: Utc::now(),
+                            sync_mode: "full_fallback".to_string(),
+                            changes_detected: 0,
+                            changes_processed: 0,
+                        })
+                    })
+            }
+            SyncMode::Full | SyncMode::Auto => {
+                Self::sync_bidirectional(db, client, entity_type, strategy).await?
+            }
+        };
+
+        // Update sync metadata if successful
+        if report.errors.is_empty() || report.pushed_count > 0 || report.pulled_count > 0 {
+            let sync_time = report.completed_at;
+            if let Err(e) = IncrementalSyncService::update_sync_metadata(
+                db,
+                entity_type,
+                sync_time,
+                None,
+            )
+            .await
+            {
+                tracing::warn!("Failed to update sync metadata: {}", e);
+            }
+        }
+
+        // Ensure sync_mode is set
+        if report.sync_mode.is_empty() {
+            report.sync_mode = decision.sync_mode.as_str().to_string();
+        }
+
+        Ok(report)
+    }
+
+    /// Incremental bidirectional sync (Feature 3)
+    ///
+    /// Only syncs entities that have changed since last sync
+    async fn sync_bidirectional_incremental(
+        db: &DatabaseConnection,
+        client: &IntuitClient,
+        entity_type: EntityType,
+        strategy: ConflictStrategy,
+        metadata: &super::incremental_sync::SyncMetadata,
+    ) -> Result<SyncReport> {
+        let started_at = Utc::now();
+        let mut errors = Vec::new();
+        let mut pushed_count = 0;
+        let mut pulled_count = 0;
+        let updated_count = 0;
+        let skipped_count = 0;
+        let mut conflicts_resolved = 0;
+
+        // Get last sync timestamp with buffer for clock skew
+        let since = metadata.last_sync_at
+            .ok_or_else(|| anyhow::anyhow!("No last sync timestamp for incremental sync"))?;
+        let since_with_buffer = IncrementalSyncService::calculate_since_timestamp(since);
+
+        tracing::info!(
+            "Incremental sync for {:?} since {} (with 5min buffer: {})",
+            entity_type,
+            since,
+            since_with_buffer
+        );
+
+        // 1. Detect incremental local changes
+        let local_changes = IncrementalSyncService::get_incremental_local_changes(
+            db,
+            entity_type,
+            since_with_buffer,
+        )
+        .await
+        .context("Failed to detect incremental local changes")?;
+
+        tracing::info!(
+            "Detected {} incremental local changes for {:?}",
+            local_changes.len(),
+            entity_type
+        );
+
+        // 2. Detect incremental remote changes
+        let remote_changes = IncrementalSyncService::get_incremental_remote_changes(
+            client,
+            db,
+            entity_type,
+            since_with_buffer,
+        )
+        .await
+        .context("Failed to detect incremental remote changes")?;
+
+        tracing::info!(
+            "Detected {} incremental remote changes for {:?}",
+            remote_changes.len(),
+            entity_type
+        );
+
+        let changes_detected = local_changes.len() + remote_changes.len();
+
+        // 3. Identify conflicts
+        let conflicts = Self::identify_conflicts(&local_changes, &remote_changes);
+
+        tracing::info!("Identified {} conflicts for {:?}", conflicts.len(), entity_type);
+
+        // 4. Apply conflict resolution strategy
+        let (resolved_local, resolved_remote) = match ConflictResolver::resolve(
+            db,
+            conflicts.clone(),
+            strategy,
+        )
+        .await
+        {
+            Ok((local, remote)) => {
+                conflicts_resolved = conflicts.len();
+                (local, remote)
+            }
+            Err(e) => {
+                for conflict in &conflicts {
+                    errors.push(SyncError {
+                        entity_type: format!("{:?}", entity_type),
+                        entity_id: Some(conflict.entity_id.clone()),
+                        quickbooks_id: conflict.quickbooks_id.clone(),
+                        error_message: format!("Conflict requires manual review: {}", e),
+                        error_code: Some("CONFLICT_MANUAL_REVIEW".to_string()),
+                        is_retryable: false,
+                    });
+                }
+                (Vec::new(), Vec::new())
+            }
+        };
+
+        // 5. Separate conflicting IDs from change lists
+        let conflict_ids: HashSet<String> = conflicts
+            .iter()
+            .map(|c| c.entity_id.clone())
+            .collect();
+
+        let local_to_push: Vec<ChangeRecord> = local_changes
+            .into_iter()
+            .filter(|c| !conflict_ids.contains(&c.entity_id))
+            .chain(resolved_local)
+            .collect();
+
+        let remote_to_pull: Vec<ChangeRecord> = remote_changes
+            .into_iter()
+            .filter(|c| !conflict_ids.contains(&c.entity_id))
+            .chain(resolved_remote)
+            .collect();
+
+        // 6. Push local changes
+        let push_results = Self::push_changes(client, db, entity_type, &local_to_push).await;
+        for result in &push_results {
+            if result.success {
+                pushed_count += 1;
+            } else {
+                errors.push(SyncError {
+                    entity_type: format!("{:?}", entity_type),
+                    entity_id: Some(result.entity_id.clone()),
+                    quickbooks_id: None,
+                    error_message: result.error_message.clone().unwrap_or_default(),
+                    error_code: None,
+                    is_retryable: true,
+                });
+            }
+        }
+
+        // 7. Pull remote changes
+        let pull_results = Self::pull_changes(client, db, entity_type, &remote_to_pull).await;
+        for result in &pull_results {
+            if result.success {
+                pulled_count += 1;
+            } else {
+                errors.push(SyncError {
+                    entity_type: format!("{:?}", entity_type),
+                    entity_id: Some(result.entity_id.clone()),
+                    quickbooks_id: None,
+                    error_message: result.error_message.clone().unwrap_or_default(),
+                    error_code: None,
+                    is_retryable: true,
+                });
+            }
+        }
+
+        // 8. Mark successfully synced records
+        for result in push_results.iter().chain(pull_results.iter()) {
+            if result.success {
+                if let Err(e) = SyncTracker::mark_synced(
+                    db,
+                    entity_type,
+                    &result.entity_id,
+                    None,
+                )
+                .await
+                {
+                    errors.push(SyncError {
+                        entity_type: format!("{:?}", entity_type),
+                        entity_id: Some(result.entity_id.clone()),
+                        quickbooks_id: None,
+                        error_message: format!("Failed to mark as synced: {}", e),
+                        error_code: None,
+                        is_retryable: true,
+                    });
+                }
+            }
+        }
+
+        let completed_at = Utc::now();
+        let changes_processed = pushed_count + pulled_count;
+
+        tracing::info!(
+            "Incremental sync completed for {:?}: {} changes detected, {} processed (pushed={}, pulled={}), {} conflicts, {} errors",
+            entity_type,
+            changes_detected,
+            changes_processed,
+            pushed_count,
+            pulled_count,
+            conflicts_resolved,
+            errors.len()
+        );
+
+        Ok(SyncReport {
+            pushed_count,
+            pulled_count,
+            updated_count,
+            skipped_count,
+            conflicts_resolved,
+            errors,
+            started_at,
+            completed_at,
+            sync_mode: "incremental".to_string(),
+            changes_detected,
+            changes_processed,
+        })
+    }
+
     /// Check if this is the first sync for this entity type
     ///
     /// Returns true if:
@@ -311,6 +607,117 @@ impl SyncOrchestrator {
             errors,
             started_at,
             completed_at,
+            sync_mode: "full".to_string(),
+            changes_detected: pushed_count + pulled_count,
+            changes_processed: pushed_count + pulled_count,
+        })
+    }
+
+    /// Push local changes to QuickBooks only (one-way sync)
+    ///
+    /// Detects local changes and pushes them to QuickBooks without pulling remote changes.
+    /// Useful for batch uploads or when you only want to sync local changes.
+    pub async fn sync_push(
+        db: &DatabaseConnection,
+        client: &IntuitClient,
+        entity_type: EntityType,
+    ) -> Result<SyncReport> {
+        let started_at = Utc::now();
+        let mut errors = Vec::new();
+        let mut pushed_count = 0;
+
+        // Detect local changes
+        let local_changes = SyncTracker::get_local_changes(db, entity_type)
+            .await
+            .context("Failed to detect local changes")?;
+
+        tracing::info!("Detected {} local changes to push for {:?}", local_changes.len(), entity_type);
+
+        // Push local changes to QuickBooks
+        let push_results = Self::push_changes(client, db, entity_type, &local_changes).await;
+        for result in &push_results {
+            if result.success {
+                pushed_count += 1;
+            } else {
+                errors.push(SyncError {
+                    entity_type: format!("{:?}", entity_type),
+                    entity_id: Some(result.entity_id.clone()),
+                    quickbooks_id: None,
+                    error_message: result.error_message.clone().unwrap_or_default(),
+                    error_code: None,
+                    is_retryable: true,
+                });
+            }
+        }
+
+        let completed_at = Utc::now();
+
+        Ok(SyncReport {
+            pushed_count,
+            pulled_count: 0,
+            updated_count: 0,
+            skipped_count: 0,
+            conflicts_resolved: 0,
+            errors,
+            started_at,
+            completed_at,
+            sync_mode: "push".to_string(),
+            changes_detected: local_changes.len(),
+            changes_processed: pushed_count,
+        })
+    }
+
+    /// Pull remote changes from QuickBooks only (one-way sync)
+    ///
+    /// Detects QuickBooks changes and pulls them to local DB without pushing local changes.
+    /// Useful for importing data from QuickBooks or refreshing local state.
+    pub async fn sync_pull(
+        db: &DatabaseConnection,
+        client: &IntuitClient,
+        entity_type: EntityType,
+    ) -> Result<SyncReport> {
+        let started_at = Utc::now();
+        let mut errors = Vec::new();
+        let mut pulled_count = 0;
+
+        // Detect remote changes
+        let remote_changes = SyncTracker::get_remote_changes(client, db, entity_type)
+            .await
+            .context("Failed to detect remote changes")?;
+
+        tracing::info!("Detected {} remote changes to pull for {:?}", remote_changes.len(), entity_type);
+
+        // Pull remote changes to local DB
+        let pull_results = Self::pull_changes(client, db, entity_type, &remote_changes).await;
+        for result in &pull_results {
+            if result.success {
+                pulled_count += 1;
+            } else {
+                errors.push(SyncError {
+                    entity_type: format!("{:?}", entity_type),
+                    entity_id: Some(result.entity_id.clone()),
+                    quickbooks_id: None,
+                    error_message: result.error_message.clone().unwrap_or_default(),
+                    error_code: None,
+                    is_retryable: true,
+                });
+            }
+        }
+
+        let completed_at = Utc::now();
+
+        Ok(SyncReport {
+            pushed_count: 0,
+            pulled_count,
+            updated_count: 0,
+            skipped_count: 0,
+            conflicts_resolved: 0,
+            errors,
+            started_at,
+            completed_at,
+            sync_mode: "pull".to_string(),
+            changes_detected: remote_changes.len(),
+            changes_processed: pulled_count,
         })
     }
 
@@ -407,6 +814,31 @@ impl SyncOrchestrator {
                 };
             }
         };
+
+        // 2a. VALIDATION: Validate employee data before pushing to QuickBooks
+        let validation_engine = ValidationEngine::new();
+        let validation_result = validation_engine.validate_local_employee(&employee);
+
+        if validation_result.has_errors() {
+            // Log validation errors
+            if let Err(e) = validation_engine.save_errors(db, &validation_result.errors).await {
+                tracing::warn!("Failed to save validation errors: {}", e);
+            }
+
+            // Build error message from validation errors
+            let error_details: Vec<String> = validation_result.errors.iter()
+                .map(|err| format!("{}: {}", err.field_name, err.error_message))
+                .collect();
+
+            return SyncResult {
+                entity_id: change.entity_id.clone(),
+                success: false,
+                error_message: Some(format!(
+                    "VALIDATION FAILED: Employee data quality issues prevent sync. Errors: {}",
+                    error_details.join("; ")
+                )),
+            };
+        }
 
         // 3. Convert to QuickBooks format
         let result = if let Some(qb_id) = employee.intuit_employee_id.clone() {
@@ -546,6 +978,31 @@ impl SyncOrchestrator {
             }
         };
 
+        // 2a. VALIDATION: Validate department data before pushing to QuickBooks
+        let validation_engine = ValidationEngine::new();
+        let validation_result = validation_engine.validate_local_department(&dept);
+
+        if validation_result.has_errors() {
+            // Log validation errors
+            if let Err(e) = validation_engine.save_errors(db, &validation_result.errors).await {
+                tracing::warn!("Failed to save validation errors: {}", e);
+            }
+
+            // Build error message from validation errors
+            let error_details: Vec<String> = validation_result.errors.iter()
+                .map(|err| format!("{}: {}", err.field_name, err.error_message))
+                .collect();
+
+            return SyncResult {
+                entity_id: change.entity_id.clone(),
+                success: false,
+                error_message: Some(format!(
+                    "VALIDATION FAILED: Department data quality issues prevent sync. Errors: {}",
+                    error_details.join("; ")
+                )),
+            };
+        }
+
         // 3. Convert to QuickBooks format
         let result = if let Some(qb_id) = dept.intuit_department_id.clone() {
             // UPDATE existing QuickBooks department
@@ -659,6 +1116,32 @@ impl SyncOrchestrator {
                 };
             }
         };
+
+        // 1a. VALIDATION: Validate QuickBooks employee data before pulling
+        let validation_engine = ValidationEngine::new();
+        let validation_result = validation_engine.validate_quickbooks_employee(&qb_employee, qb_id);
+
+        if validation_result.has_errors() {
+            // Log validation errors
+            if let Err(e) = validation_engine.save_errors(db, &validation_result.errors).await {
+                tracing::warn!("Failed to save validation errors: {}", e);
+            }
+
+            // Build error message from validation errors
+            let error_details: Vec<String> = validation_result.errors.iter()
+                .map(|err| format!("{}: {}", err.field_name, err.error_message))
+                .collect();
+
+            return SyncResult {
+                entity_id: change.entity_id.clone(),
+                success: false,
+                error_message: Some(format!(
+                    "VALIDATION FAILED: QuickBooks employee data quality issues prevent sync. QB ID: {}. Errors: {}",
+                    qb_id,
+                    error_details.join("; ")
+                )),
+            };
+        }
 
         // 2. Find or create local employee
         // First, try to find by intuit_employee_id
@@ -856,6 +1339,32 @@ impl SyncOrchestrator {
             }
         };
 
+        // 1a. VALIDATION: Validate QuickBooks department data before pulling
+        let validation_engine = ValidationEngine::new();
+        let validation_result = validation_engine.validate_quickbooks_department(&qb_dept, qb_id);
+
+        if validation_result.has_errors() {
+            // Log validation errors
+            if let Err(e) = validation_engine.save_errors(db, &validation_result.errors).await {
+                tracing::warn!("Failed to save validation errors: {}", e);
+            }
+
+            // Build error message from validation errors
+            let error_details: Vec<String> = validation_result.errors.iter()
+                .map(|err| format!("{}: {}", err.field_name, err.error_message))
+                .collect();
+
+            return SyncResult {
+                entity_id: change.entity_id.clone(),
+                success: false,
+                error_message: Some(format!(
+                    "VALIDATION FAILED: QuickBooks department data quality issues prevent sync. QB ID: {}. Errors: {}",
+                    qb_id,
+                    error_details.join("; ")
+                )),
+            };
+        }
+
         // 2. Find or create local department
         // First, try to find by intuit_department_id
         let existing = department::Entity::find()
@@ -867,7 +1376,15 @@ impl SyncOrchestrator {
             Ok(Some(local_dept)) => {
                 // UPDATE existing local department
                 let mut active_model: department::ActiveModel = local_dept.into();
-                active_model.name = Set(qb_dept.name.clone().unwrap_or_default());
+
+                // Only update name if QuickBooks has a valid (non-empty) name
+                // This prevents overwriting valid local names with empty values from QuickBooks
+                if let Some(dept_name) = qb_dept.name.clone() {
+                    if !dept_name.trim().is_empty() {
+                        active_model.name = Set(dept_name);
+                    }
+                }
+
                 active_model.quickbooks_sync_token = Set(qb_dept.sync_token.clone());
                 active_model.last_synced_at = Set(Some(Utc::now()));
                 active_model.sync_status = Set("synced".to_string());
@@ -876,8 +1393,24 @@ impl SyncOrchestrator {
             }
             Ok(None) => {
                 // CREATE new local department
+                // Validate that department has a name (required for data quality)
+                let dept_name = qb_dept.name.clone().unwrap_or_default();
+
+                if dept_name.trim().is_empty() {
+                    return SyncResult {
+                        entity_id: change.entity_id.clone(),
+                        success: false,
+                        error_message: Some(format!(
+                            "CONFLICT: QuickBooks department (QB ID: {}) has no name. \
+                             Cannot create local record without a valid name. \
+                             Please add a name in QuickBooks and sync again.",
+                            qb_id
+                        )),
+                    };
+                }
+
                 let new_model = department::ActiveModel {
-                    name: Set(qb_dept.name.clone().unwrap_or_default()),
+                    name: Set(dept_name),
                     intuit_department_id: Set(Some(qb_id.clone())),
                     quickbooks_sync_token: Set(qb_dept.sync_token),
                     last_synced_at: Set(Some(Utc::now())),

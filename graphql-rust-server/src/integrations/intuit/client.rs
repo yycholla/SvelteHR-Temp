@@ -1,5 +1,6 @@
 use super::models::*;
 use anyhow::{Context, Result};
+use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest::{Client as HttpClient, StatusCode};
 use std::env;
 
@@ -511,6 +512,138 @@ impl IntuitClient {
         // Extract department from response
         qb_response.department
             .ok_or_else(|| anyhow::anyhow!("No department returned in update response"))
+    }
+
+    /// Query employees changed since a specific timestamp (INCREMENTAL SYNC - Feature 3)
+    ///
+    /// Uses QuickBooks Query API with WHERE clause filtering by Metadata.LastUpdatedTime
+    pub async fn list_employees_since(&self, since: chrono::DateTime<chrono::Utc>) -> Result<Vec<EmployeeExtended>> {
+        // Format timestamp for QuickBooks query (RFC 3339 format)
+        let since_str = since.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+
+        // QuickBooks Query API with timestamp filter
+        let query = format!(
+            "select * from Employee WHERE Metadata.LastUpdatedTime > '{}' MAXRESULTS 1000",
+            since_str
+        );
+
+        let url = format!(
+            "{}/v3/company/{}/query?query={}",
+            self.base_url,
+            self.realm_id,
+            utf8_percent_encode(&query, NON_ALPHANUMERIC)
+        );
+
+        tracing::debug!("Incremental employee query: {}", query);
+
+        let response = self
+            .http_client
+            .get(&url)
+            .bearer_auth(&self.access_token)
+            .header("Accept", "application/json")
+            .send()
+            .await
+            .context("Failed to query incremental employees from QuickBooks")?;
+
+        let qb_response: QuickBooksResponse<Employee> = response
+            .json()
+            .await
+            .context("Failed to parse QuickBooks incremental response")?;
+
+        if let Some(fault) = qb_response.fault {
+            return Err(anyhow::anyhow!(
+                "QuickBooks API error: {}",
+                fault
+                    .errors
+                    .first()
+                    .map(|e| e.message.clone())
+                    .unwrap_or_else(|| "Unknown error".to_string())
+            ));
+        }
+
+        let employees: Vec<EmployeeExtended> = qb_response
+            .query_response
+            .and_then(|qr| qr.employees)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|emp| emp.into())
+            .collect();
+
+        tracing::info!("Incremental sync found {} changed employees", employees.len());
+
+        Ok(employees)
+    }
+
+    /// Query departments changed since a specific timestamp (INCREMENTAL SYNC - Feature 3)
+    ///
+    /// Uses QuickBooks Query API with WHERE clause filtering by Metadata.LastUpdatedTime
+    pub async fn query_departments_since(&self, since: chrono::DateTime<chrono::Utc>) -> Result<Vec<super::models::Department>> {
+        // Format timestamp for QuickBooks query (RFC 3339 format)
+        let since_str = since.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+
+        // QuickBooks Query API with timestamp filter
+        let query = format!(
+            "select * from Department WHERE Metadata.LastUpdatedTime > '{}' MAXRESULTS 1000",
+            since_str
+        );
+
+        let url = format!(
+            "{}/v3/company/{}/query?query={}",
+            self.base_url,
+            self.realm_id,
+            utf8_percent_encode(&query, NON_ALPHANUMERIC)
+        );
+
+        tracing::debug!("Incremental department query: {}", query);
+
+        let response = self
+            .http_client
+            .get(&url)
+            .bearer_auth(&self.access_token)
+            .header("Accept", "application/json")
+            .send()
+            .await
+            .context("Failed to query incremental departments from QuickBooks")?;
+
+        // Parse response - departments use a custom wrapper
+        #[derive(Debug, serde::Deserialize)]
+        struct DepartmentQueryResponse {
+            #[serde(rename = "Department")]
+            pub departments: Option<Vec<super::models::Department>>,
+        }
+
+        #[derive(Debug, serde::Deserialize)]
+        struct DepartmentResponse {
+            #[serde(rename = "QueryResponse")]
+            pub query_response: Option<DepartmentQueryResponse>,
+            #[serde(rename = "Fault")]
+            pub fault: Option<super::models::ApiFault>,
+        }
+
+        let qb_response: DepartmentResponse = response
+            .json()
+            .await
+            .context("Failed to parse QuickBooks incremental department response")?;
+
+        if let Some(fault) = qb_response.fault {
+            return Err(anyhow::anyhow!(
+                "QuickBooks API error: {}",
+                fault
+                    .errors
+                    .first()
+                    .map(|e| e.message.clone())
+                    .unwrap_or_else(|| "Unknown error".to_string())
+            ));
+        }
+
+        let departments = qb_response
+            .query_response
+            .and_then(|qr| qr.departments)
+            .unwrap_or_default();
+
+        tracing::info!("Incremental sync found {} changed departments", departments.len());
+
+        Ok(departments)
     }
 
     /// Get company information from QuickBooks

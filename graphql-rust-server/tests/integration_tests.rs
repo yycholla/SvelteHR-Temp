@@ -12,3 +12,6 @@ mod common;
 // Integration test modules
 #[path = "integration/graphql_queries_test.rs"]
 mod graphql_queries_test;
+
+#[path = "integration/test_incremental_sync.rs"]
+mod test_incremental_sync;

@@ -31,6 +31,12 @@ pub struct Model {
     pub next_retry_at: Option<DateTimeWithTimeZone>,
     pub quickbooks_metadata: Option<JsonValue>,
 
+    // Incremental sync tracking fields (Feature 3)
+    pub sync_mode: String,
+    pub changes_detected: i32,
+    pub changes_processed: i32,
+    pub sync_duration_ms: Option<i32>,
+
     pub created_at: DateTimeWithTimeZone,
 }
 
@@ -79,6 +85,10 @@ impl ActiveModel {
             retry_count: Set(0),
             next_retry_at: Set(None),
             quickbooks_metadata: Set(None),
+            sync_mode: Set("full".to_string()),
+            changes_detected: Set(0),
+            changes_processed: Set(0),
+            sync_duration_ms: Set(None),
             created_at: Set(Utc::now().into()),
         }
     }

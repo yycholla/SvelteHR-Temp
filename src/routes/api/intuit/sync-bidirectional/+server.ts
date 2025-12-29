@@ -2,9 +2,9 @@ import { json, type RequestHandler } from '@sveltejs/kit';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 
 const SYNC_BIDIRECTIONAL_MUTATION = `
-	mutation SyncBidirectional($entityType: EntityTypeInput!, $conflictStrategy: ConflictStrategyInput) {
+	mutation SyncBidirectional($entityType: EntityTypeInput!, $conflictStrategy: ConflictStrategyInput, $syncMode: SyncModeInput) {
 		intuit {
-			syncBidirectional(entityType: $entityType, conflictStrategy: $conflictStrategy) {
+			syncBidirectional(entityType: $entityType, conflictStrategy: $conflictStrategy, syncMode: $syncMode) {
 				success
 				pushedCount
 				pulledCount
@@ -12,6 +12,9 @@ const SYNC_BIDIRECTIONAL_MUTATION = `
 				errors
 				startedAt
 				completedAt
+				syncMode
+				changesDetected
+				changesProcessed
 			}
 		}
 	}
@@ -20,7 +23,7 @@ const SYNC_BIDIRECTIONAL_MUTATION = `
 export const POST: RequestHandler = async ({ request, fetch, cookies }) => {
 	try {
 		const body = await request.json();
-		const { entityType, conflictStrategy } = body;
+		const { entityType, conflictStrategy, syncMode } = body;
 
 		if (!entityType) {
 			return json({ error: 'Entity type is required' }, { status: 400 });
@@ -33,7 +36,8 @@ export const POST: RequestHandler = async ({ request, fetch, cookies }) => {
 		const result = await client
 			.mutation(SYNC_BIDIRECTIONAL_MUTATION, {
 				entityType,
-				conflictStrategy: conflictStrategy || null
+				conflictStrategy: conflictStrategy || null,
+				syncMode: syncMode || null
 			})
 			.toPromise();
 
@@ -62,7 +66,10 @@ export const POST: RequestHandler = async ({ request, fetch, cookies }) => {
 			errors: syncResult.errors || [],
 			started_at: syncResult.startedAt,
 			completed_at: syncResult.completedAt,
-			message: `Bidirectional sync completed: ${syncResult.pushedCount} pushed, ${syncResult.pulledCount} pulled, ${syncResult.conflictsResolved} conflicts resolved`
+			sync_mode: syncResult.syncMode || 'unknown',
+			changes_detected: syncResult.changesDetected || 0,
+			changes_processed: syncResult.changesProcessed || 0,
+			message: `${syncResult.syncMode || 'UNKNOWN'} sync completed: ${syncResult.changesDetected || 0} detected, ${syncResult.changesProcessed || 0} processed (${syncResult.pushedCount} pushed, ${syncResult.pulledCount} pulled, ${syncResult.conflictsResolved} conflicts resolved)`
 		});
 	} catch (error) {
 		console.error('Error in sync-bidirectional API:', error);

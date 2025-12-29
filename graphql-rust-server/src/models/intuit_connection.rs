@@ -16,6 +16,13 @@ pub struct Model {
     pub company_name: Option<String>,
     pub is_active: bool,
     pub last_sync_at: Option<DateTimeWithTimeZone>,
+
+    // Incremental sync tracking per entity type (Feature 3)
+    pub employee_sync_token: Option<String>,
+    pub department_sync_token: Option<String>,
+    pub last_employee_sync_at: Option<DateTimeWithTimeZone>,
+    pub last_department_sync_at: Option<DateTimeWithTimeZone>,
+
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
     pub deleted_at: Option<DateTimeWithTimeZone>,

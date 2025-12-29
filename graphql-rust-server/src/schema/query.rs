@@ -2153,6 +2153,36 @@ impl QueryRoot {
     async fn intuit(&self) -> crate::schema::mutations::IntuitQueries {
         crate::schema::mutations::IntuitQueries
     }
+
+    /// Intuit QuickBooks sync preview queries
+    async fn intuit_preview(&self) -> crate::schema::queries::IntuitPreviewQueries {
+        crate::schema::queries::IntuitPreviewQueries
+    }
+
+    /// Intuit QuickBooks sync health monitoring queries
+    async fn intuit_health(&self) -> crate::schema::queries::IntuitHealthQueries {
+        crate::schema::queries::IntuitHealthQueries
+    }
+
+    /// Reconciliation queries for data consistency verification
+    async fn reconciliation(&self) -> crate::schema::queries::ReconciliationQueries {
+        crate::schema::queries::ReconciliationQueries
+    }
+
+    /// Compliance report queries for regulatory requirements
+    async fn compliance(&self) -> crate::schema::queries::ComplianceQueries {
+        crate::schema::queries::ComplianceQueries
+    }
+
+    /// Batch operations queries for sync batching monitoring
+    async fn batch_operations(&self) -> crate::schema::queries::BatchOperationsQueries {
+        crate::schema::queries::BatchOperationsQueries
+    }
+
+    /// Validation queries for data quality checks
+    async fn validation(&self) -> crate::schema::queries::ValidationQuery {
+        crate::schema::queries::ValidationQuery
+    }
 }
 
 #[cfg(test)]

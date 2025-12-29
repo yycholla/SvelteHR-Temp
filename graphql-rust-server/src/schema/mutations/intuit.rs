@@ -17,7 +17,8 @@ use crate::{
     },
     services::{
         SyncTracker, EntityType, ChangeRecord, SyncStatusCounts,
-        SyncOrchestrator, ConflictStrategy,
+        SyncOrchestrator, ConflictStrategy, SyncMode,
+        PermissionChecker, SyncPermission,
     },
 };
 use sea_orm::QueryOrder;
@@ -103,6 +104,27 @@ impl From<ConflictStrategyInput> for ConflictStrategy {
     }
 }
 
+/// Sync mode for incremental vs full synchronization
+#[derive(async_graphql::Enum, Clone, Copy, PartialEq, Eq)]
+pub enum SyncModeInput {
+    /// Full sync - process all entities
+    Full,
+    /// Incremental sync - process only changed entities
+    Incremental,
+    /// Auto - system decides based on conditions (recommended)
+    Auto,
+}
+
+impl From<SyncModeInput> for SyncMode {
+    fn from(input: SyncModeInput) -> Self {
+        match input {
+            SyncModeInput::Full => SyncMode::Full,
+            SyncModeInput::Incremental => SyncMode::Incremental,
+            SyncModeInput::Auto => SyncMode::Auto,
+        }
+    }
+}
+
 /// Resolution strategy for a single conflict
 #[derive(async_graphql::Enum, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ConflictResolutionInput {
@@ -131,6 +153,12 @@ pub struct BidirectionalSyncResult {
     pub errors: Vec<String>,
     pub started_at: chrono::DateTime<Utc>,
     pub completed_at: chrono::DateTime<Utc>,
+    /// Sync mode used (full, incremental, auto)
+    pub sync_mode: String,
+    /// Number of changes detected before processing
+    pub changes_detected: i32,
+    /// Number of changes successfully processed
+    pub changes_processed: i32,
 }
 
 /// Sync status overview for a specific entity type
@@ -228,13 +256,13 @@ pub struct IntuitQueries;
 impl IntuitQueries {
     /// Get authorization URL for OAuth flow
     async fn authorization_url(&self, ctx: &Context<'_>) -> Result<AuthorizationUrlResponse> {
-        // Verify user is authenticated and is admin
+        let db = get_db_from_context(ctx)?;
         let user_context = ctx.data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
-        if !user_context.is_admin() && !user_context.is_system() {
-            return Err(async_graphql::Error::new("Admin access required"));
-        }
+        // Use permission checker for granular access control
+        let checker = PermissionChecker::new(db);
+        checker.require(user_context, SyncPermission::ManageIntegrations).await?;
 
         let (url, csrf_token) = intuit::get_authorization_url()
             .map_err(|e| async_graphql::Error::new(format!("Failed to generate authorization URL: {}", e)))?;
@@ -248,13 +276,18 @@ impl IntuitQueries {
     /// Get current connection status
     async fn connection(&self, ctx: &Context<'_>) -> Result<ConnectionInfo> {
         let db = get_db_from_context(ctx)?;
-
-        // Verify user is authenticated and is admin
         let user_context = ctx.data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
-        if !user_context.is_admin() && !user_context.is_system() {
-            return Err(async_graphql::Error::new("Admin access required"));
+        // Use permission checker - viewing connection status requires manage or view permissions
+        let checker = PermissionChecker::new(db.clone());
+        let result = checker.check_any(user_context, &[
+            SyncPermission::ManageIntegrations,
+            SyncPermission::ViewSyncHistory,
+        ]).await?;
+
+        if !result.granted {
+            return Err(async_graphql::Error::new("Permission denied: requires sync view or manage permissions"));
         }
 
         // Get the most recent active connection
@@ -283,19 +316,15 @@ impl IntuitQueries {
     /// Get comprehensive sync status overview
     ///
     /// Returns counts of records by sync_status for all entity types.
-    /// Requires admin permissions.
+    /// Requires view metrics permission.
     async fn sync_status(&self, ctx: &Context<'_>) -> Result<SyncStatusOverview> {
         let db = get_db_from_context(ctx)?;
-
-        // Verify user has admin permissions
         let user_context = ctx.data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
-        if !user_context.has_permission("manage:integrations") {
-            return Err(async_graphql::Error::new(
-                "Permission denied: manage:integrations required"
-            ));
-        }
+        // Use permission checker for granular access control
+        let checker = PermissionChecker::new(db.clone());
+        checker.require(user_context, SyncPermission::ViewMetrics).await?;
 
         // Get status counts for employees and departments
         let employee_counts = SyncTracker::get_sync_status_counts(&db, EntityType::Employee)
@@ -334,23 +363,19 @@ impl IntuitQueries {
     /// Get list of pending changes for a specific entity type
     ///
     /// Returns records that have changed locally since last sync.
-    /// Requires admin permissions.
+    /// Requires view history permission.
     async fn pending_changes(
         &self,
         ctx: &Context<'_>,
         entity_type: String,
     ) -> Result<Vec<PendingChange>> {
         let db = get_db_from_context(ctx)?;
-
-        // Verify user has admin permissions
         let user_context = ctx.data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
-        if !user_context.has_permission("manage:integrations") {
-            return Err(async_graphql::Error::new(
-                "Permission denied: manage:integrations required"
-            ));
-        }
+        // Use permission checker for granular access control
+        let checker = PermissionChecker::new(db.clone());
+        checker.require(user_context, SyncPermission::ViewSyncHistory).await?;
 
         // Parse entity type
         let entity_type_enum = match entity_type.to_lowercase().as_str() {
@@ -372,19 +397,15 @@ impl IntuitQueries {
     /// Get list of records with sync conflicts
     ///
     /// Returns records that have sync conflicts requiring manual resolution.
-    /// Requires admin permissions.
+    /// Requires view conflicts permission.
     async fn conflicts(&self, ctx: &Context<'_>) -> Result<Vec<ConflictRecord>> {
         let db = get_db_from_context(ctx)?;
-
-        // Verify user has admin permissions
         let user_context = ctx.data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
-        if !user_context.has_permission("manage:integrations") {
-            return Err(async_graphql::Error::new(
-                "Permission denied: manage:integrations required"
-            ));
-        }
+        // Use permission checker for granular access control
+        let checker = PermissionChecker::new(db.clone());
+        checker.require(user_context, SyncPermission::ViewConflicts).await?;
 
         // Query recent sync logs with unresolved conflicts
         // Exclude logs where conflict_resolution starts with "Manually resolved"
@@ -508,23 +529,19 @@ impl IntuitQueries {
     /// Get recent sync operation history
     ///
     /// Returns the most recent sync operations with their status and counts.
-    /// Requires admin permissions.
+    /// Requires view history permission.
     async fn sync_history(
         &self,
         ctx: &Context<'_>,
         limit: Option<i32>,
     ) -> Result<Vec<SyncLogEntry>> {
         let db = get_db_from_context(ctx)?;
-
-        // Verify user has admin permissions
         let user_context = ctx.data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
-        if !user_context.has_permission("manage:integrations") {
-            return Err(async_graphql::Error::new(
-                "Permission denied: manage:integrations required"
-            ));
-        }
+        // Use permission checker for granular access control
+        let checker = PermissionChecker::new(db.clone());
+        checker.require(user_context, SyncPermission::ViewSyncHistory).await?;
 
         let limit = limit.unwrap_or(20).clamp(1, 100) as u64;
 
@@ -549,6 +566,36 @@ impl IntuitQueries {
             created_at: log.created_at.into(),
         }).collect())
     }
+
+    /// Get health monitoring queries
+    async fn health(&self) -> crate::schema::queries::IntuitHealthQueries {
+        crate::schema::queries::IntuitHealthQueries
+    }
+
+    /// Get sync preview queries
+    async fn preview(&self) -> crate::schema::queries::IntuitPreviewQueries {
+        crate::schema::queries::IntuitPreviewQueries
+    }
+
+    /// Get audit trail queries
+    async fn audit(&self) -> crate::schema::queries::AuditQueries {
+        crate::schema::queries::AuditQueries
+    }
+
+    /// Get reconciliation queries
+    async fn reconciliation(&self) -> crate::schema::queries::ReconciliationQueries {
+        crate::schema::queries::ReconciliationQueries
+    }
+
+    /// Get sync rollback queries
+    async fn rollback(&self) -> crate::schema::queries::SyncRollbackQueries {
+        crate::schema::queries::SyncRollbackQueries
+    }
+
+    /// Get error recovery queries
+    async fn error_recovery(&self) -> crate::schema::queries::ErrorRecoveryQueries {
+        crate::schema::queries::ErrorRecoveryQueries
+    }
 }
 
 /// Intuit mutation operations
@@ -559,14 +606,12 @@ impl IntuitMutations {
     /// Connect to QuickBooks using OAuth code and realm ID
     async fn connect(&self, ctx: &Context<'_>, code: String, realm_id: String) -> Result<ConnectResult> {
         let db = get_db_from_context(ctx)?;
-
-        // Verify user is authenticated and is admin
         let user_context = ctx.data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
-        if !user_context.is_admin() && !user_context.is_system() {
-            return Err(async_graphql::Error::new("Admin access required"));
-        }
+        // Use permission checker for granular access control
+        let checker = PermissionChecker::new(db.clone());
+        checker.require(user_context, SyncPermission::ManageIntegrations).await?;
 
         // Exchange code for tokens
         let tokens = match intuit::exchange_code_for_tokens(code).await {
@@ -605,6 +650,10 @@ impl IntuitMutations {
             company_name: Set(company_name.clone()),
             is_active: Set(true),
             last_sync_at: Set(None),
+            employee_sync_token: Set(None),
+            department_sync_token: Set(None),
+            last_employee_sync_at: Set(None),
+            last_department_sync_at: Set(None),
             created_at: Set(Utc::now().into()),
             updated_at: Set(Utc::now().into()),
             deleted_at: Set(None),
@@ -622,14 +671,12 @@ impl IntuitMutations {
     /// Disconnect from QuickBooks
     async fn disconnect(&self, ctx: &Context<'_>) -> Result<DisconnectResult> {
         let db = get_db_from_context(ctx)?;
-
-        // Verify user is authenticated and is admin
         let user_context = ctx.data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
-        if !user_context.is_admin() && !user_context.is_system() {
-            return Err(async_graphql::Error::new("Admin access required"));
-        }
+        // Use permission checker for granular access control
+        let checker = PermissionChecker::new(db.clone());
+        checker.require(user_context, SyncPermission::ManageIntegrations).await?;
 
         // Soft delete the most recent connection
         let connection = IntuitConnectionEntity::find()
@@ -660,14 +707,12 @@ impl IntuitMutations {
     /// Push employees from HR system to QuickBooks
     async fn push_employees_to_quickbooks(&self, ctx: &Context<'_>) -> Result<SyncResult> {
         let db = get_db_from_context(ctx)?;
-
-        // Verify user is authenticated and is admin
         let user_context = ctx.data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
-        if !user_context.is_admin() && !user_context.is_system() {
-            return Err(async_graphql::Error::new("Admin access required"));
-        }
+        // Use permission checker for granular access control
+        let checker = PermissionChecker::new(db.clone());
+        checker.require(user_context, SyncPermission::PushToQuickBooks).await?;
 
         // Get active connection
         let connection = get_active_connection(&db).await?;
@@ -1001,9 +1046,9 @@ impl IntuitMutations {
         let db = get_db_from_context(ctx)?;
         let user_context = ctx.data::<UserContext>()?;
 
-        if !user_context.is_admin() && !user_context.is_system() {
-            return Err(async_graphql::Error::new("Admin access required"));
-        }
+        // Use permission checker for granular access control
+        let checker = PermissionChecker::new(db.clone());
+        checker.require(user_context, SyncPermission::PushToQuickBooks).await?;
 
         let connection = get_active_connection(&db).await?;
         let (access_token, _) = ensure_valid_token(&db, &connection).await?;
@@ -1106,14 +1151,12 @@ impl IntuitMutations {
     /// Synchronize all employees with QuickBooks (pull from QB to HR)
     async fn sync_all_employees(&self, ctx: &Context<'_>) -> Result<SyncResult> {
         let db = get_db_from_context(ctx)?;
-
-        // Verify user is authenticated and is admin
         let user_context = ctx.data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
-        if !user_context.is_admin() && !user_context.is_system() {
-            return Err(async_graphql::Error::new("Admin access required"));
-        }
+        // Use permission checker for granular access control
+        let checker = PermissionChecker::new(db.clone());
+        checker.require(user_context, SyncPermission::TriggerEmployeeSync).await?;
 
         // Get active connection
         let connection = get_active_connection(&db).await?;
@@ -1336,14 +1379,12 @@ impl IntuitMutations {
     /// Push departments from HR system to QuickBooks
     async fn push_departments_to_quickbooks(&self, ctx: &Context<'_>) -> Result<SyncResult> {
         let db = get_db_from_context(ctx)?;
-
-        // Verify user is authenticated and is admin
         let user_context = ctx.data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
-        if !user_context.is_admin() && !user_context.is_system() {
-            return Err(async_graphql::Error::new("Admin access required"));
-        }
+        // Use permission checker for granular access control
+        let checker = PermissionChecker::new(db.clone());
+        checker.require(user_context, SyncPermission::PushToQuickBooks).await?;
 
         // Get active connection
         let connection = get_active_connection(&db).await?;
@@ -1565,14 +1606,12 @@ impl IntuitMutations {
     /// Synchronize all departments with QuickBooks (pull from QB to HR)
     async fn sync_all_departments(&self, ctx: &Context<'_>) -> Result<SyncResult> {
         let db = get_db_from_context(ctx)?;
-
-        // Verify user is authenticated and is admin
         let user_context = ctx.data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
-        if !user_context.is_admin() && !user_context.is_system() {
-            return Err(async_graphql::Error::new("Admin access required"));
-        }
+        // Use permission checker for granular access control
+        let checker = PermissionChecker::new(db.clone());
+        checker.require(user_context, SyncPermission::TriggerDepartmentSync).await?;
 
         // Get active connection
         let connection = get_active_connection(&db).await?;
@@ -1765,17 +1804,16 @@ impl IntuitMutations {
         ctx: &Context<'_>,
         entity_type: EntityTypeInput,
         conflict_strategy: Option<ConflictStrategyInput>,
+        sync_mode: Option<SyncModeInput>,
     ) -> Result<BidirectionalSyncResult> {
         let entity_type = entity_type.into();
         let db = get_db_from_context(ctx)?;
-
-        // Verify user is authenticated and is admin
         let user_context = ctx.data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
-        if !user_context.has_permission("manage:integrations") {
-            return Err(async_graphql::Error::new("Permission denied: manage:integrations required"));
-        }
+        // Use permission checker for granular access control
+        let checker = PermissionChecker::new(db.clone());
+        checker.require(user_context, SyncPermission::TriggerBidirectionalSync).await?;
 
         // Get active connection and ensure valid token
         let connection = get_active_connection(&db).await?;
@@ -1790,14 +1828,20 @@ impl IntuitMutations {
             .map(|s| s.into())
             .unwrap_or(ConflictStrategy::LastWriteWins);
 
+        // Determine sync mode (default to Auto)
+        let mode = sync_mode
+            .map(|m| m.into())
+            .unwrap_or(SyncMode::Auto);
+
         tracing::info!(
-            "Starting bidirectional sync for {:?} with strategy {:?}",
+            "Starting bidirectional sync for {:?} with strategy {:?} and mode {:?}",
             entity_type,
-            strategy
+            strategy,
+            mode
         );
 
-        // Perform bidirectional sync
-        let sync_report = SyncOrchestrator::sync_bidirectional(&db, &client, entity_type, strategy)
+        // Perform intelligent bidirectional sync with mode selection
+        let sync_report = SyncOrchestrator::sync_bidirectional_intelligent(&db, &client, entity_type, strategy, mode)
             .await
             .map_err(|e| async_graphql::Error::new(format!("Sync failed: {}", e)))?;
 
@@ -1834,6 +1878,11 @@ impl IntuitMutations {
         sync_log.pulled_count = Set(sync_report.pulled_count as i32);
         sync_log.updated_count = Set(sync_report.updated_count as i32);
         sync_log.skipped_count = Set(sync_report.skipped_count as i32);
+
+        // Set incremental sync metadata (Feature 3)
+        sync_log.sync_mode = Set(sync_report.sync_mode.clone());
+        sync_log.changes_detected = Set(sync_report.changes_detected as i32);
+        sync_log.changes_processed = Set(sync_report.changes_processed as i32);
 
         if !sync_report.errors.is_empty() {
             let error_summary = sync_report.errors.iter()
@@ -1884,6 +1933,9 @@ impl IntuitMutations {
             errors: error_messages,
             started_at: sync_report.started_at,
             completed_at: sync_report.completed_at,
+            sync_mode: sync_report.sync_mode,
+            changes_detected: sync_report.changes_detected as i32,
+            changes_processed: sync_report.changes_processed as i32,
         })
     }
 
@@ -1900,14 +1952,12 @@ impl IntuitMutations {
     ) -> Result<ConflictResolutionResult> {
         let entity_type_enum: EntityType = entity_type.into();
         let db = get_db_from_context(ctx)?;
-
-        // Verify user is authenticated and is admin
         let user_context = ctx.data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
-        if !user_context.has_permission("manage:integrations") {
-            return Err(async_graphql::Error::new("Permission denied: manage:integrations required"));
-        }
+        // Use permission checker for granular access control
+        let checker = PermissionChecker::new(db.clone());
+        checker.require(user_context, SyncPermission::ResolveConflicts).await?;
 
         tracing::info!(
             "Resolving conflict for {:?} entity_id={} with resolution={:?}",
@@ -1995,14 +2045,12 @@ impl IntuitMutations {
         #[cfg(debug_assertions)]
         {
             let db = get_db_from_context(ctx)?;
-
-            // Verify user is authenticated and is admin
             let user_context = ctx.data::<UserContext>()
                 .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
-            if !user_context.is_admin() && !user_context.is_system() {
-                return Err(async_graphql::Error::new("Admin access required"));
-            }
+            // Dev endpoints require ManageIntegrations permission (critical)
+            let checker = PermissionChecker::new(db.clone());
+            checker.require(user_context, SyncPermission::ManageIntegrations).await?;
 
             use crate::models::user::{Entity as UserEntity, Column as UserColumn, ActiveModel as UserActiveModel};
 
@@ -2048,14 +2096,12 @@ impl IntuitMutations {
         #[cfg(debug_assertions)]
         {
             let db = get_db_from_context(ctx)?;
-
-            // Verify user is authenticated and is admin
             let user_context = ctx.data::<UserContext>()
                 .map_err(|_| async_graphql::Error::new("Authentication required"))?;
 
-            if !user_context.is_admin() && !user_context.is_system() {
-                return Err(async_graphql::Error::new("Admin access required"));
-            }
+            // Dev endpoints require ManageIntegrations permission (critical)
+            let checker = PermissionChecker::new(db.clone());
+            checker.require(user_context, SyncPermission::ManageIntegrations).await?;
 
             use crate::models::department::{Entity as DepartmentEntity, Column as DepartmentColumn, ActiveModel as DepartmentActiveModel};
 
@@ -2081,6 +2127,21 @@ impl IntuitMutations {
 
             Ok(reset_count)
         }
+    }
+
+    /// Get reconciliation mutations
+    async fn reconciliation(&self) -> crate::schema::mutations::ReconciliationMutations {
+        crate::schema::mutations::ReconciliationMutations
+    }
+
+    /// Get sync rollback mutations
+    async fn rollback(&self) -> crate::schema::mutations::SyncRollbackMutations {
+        crate::schema::mutations::SyncRollbackMutations
+    }
+
+    /// Get error recovery mutations
+    async fn error_recovery(&self) -> crate::schema::mutations::ErrorRecoveryMutations {
+        crate::schema::mutations::ErrorRecoveryMutations
     }
 }
 

@@ -3,7 +3,7 @@
 //! Provides a standardized interface for applying security filters to SeaORM queries
 //! based on the authenticated user's context.
 
-use sea_orm::{EntityTrait, Select, ColumnTrait, QueryFilter};
+use sea_orm::{EntityTrait, Select};
 use crate::auth::UserContext;
 
 /// Trait for entities that support Row-Level Security filtering

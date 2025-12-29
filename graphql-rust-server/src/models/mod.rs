@@ -27,6 +27,28 @@ pub mod user_session;
 pub mod media_asset;
 pub mod intuit_connection;
 pub mod intuit_sync_log;
+pub mod validation_rule;
+pub mod validation_failure;
+pub mod sync_permission_audit;
+pub mod sync_schedule;
+pub mod sync_schedule_history;
+pub mod sync_health_metrics;
+pub mod sync_health_alerts;
+pub mod audit_logs;
+pub mod audit_log_retention;
+pub mod reconciliation_reports;
+pub mod reconciliation_discrepancies;
+pub mod webhook_subscriptions;
+pub mod webhook_events;
+pub mod batch_operations;
+pub mod batch_operation_items;
+pub mod sync_snapshots;
+pub mod rollback_operations;
+pub mod failed_operations;
+pub mod retry_history;
+pub mod sync_sessions;
+pub mod compliance_reports;
+pub mod report_schedules;
 
 // Re-export generated entities for easy access
 pub use generated::*;
