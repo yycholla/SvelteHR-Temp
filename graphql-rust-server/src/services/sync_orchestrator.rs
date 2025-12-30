@@ -8,6 +8,7 @@ use chrono::{DateTime, Utc};
 use sea_orm::{DatabaseConnection, EntityTrait, Set, ActiveModelTrait, ColumnTrait, QueryFilter, PaginatorTrait};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::integrations::intuit::{
@@ -23,6 +24,7 @@ use super::{
     conflict_resolver::{ConflictResolver, ConflictStrategy, ConflictRecord},
     validation_engine::ValidationEngine,
     incremental_sync::{IncrementalSyncService, SyncMode},
+    health_monitor::HealthMonitor,
 };
 
 /// Result of a sync operation
@@ -340,19 +342,24 @@ impl SyncOrchestrator {
             errors.len()
         );
 
-        Ok(SyncReport {
+        let report = SyncReport {
             pushed_count,
             pulled_count,
             updated_count,
             skipped_count,
             conflicts_resolved,
-            errors,
+            errors: errors.clone(),
             started_at,
             completed_at,
             sync_mode: "incremental".to_string(),
             changes_detected,
             changes_processed,
-        })
+        };
+
+        // Record health metrics
+        Self::record_health_metrics(db, &report, entity_type).await;
+
+        Ok(report)
     }
 
     /// Check if this is the first sync for this entity type
@@ -598,19 +605,24 @@ impl SyncOrchestrator {
 
         let completed_at = Utc::now();
 
-        Ok(SyncReport {
+        // Record health metrics
+        let report = SyncReport {
             pushed_count,
             pulled_count,
             updated_count,
             skipped_count,
             conflicts_resolved,
-            errors,
+            errors: errors.clone(),
             started_at,
             completed_at,
             sync_mode: "full".to_string(),
             changes_detected: pushed_count + pulled_count,
             changes_processed: pushed_count + pulled_count,
-        })
+        };
+
+        Self::record_health_metrics(db, &report, entity_type).await;
+
+        Ok(report)
     }
 
     /// Push local changes to QuickBooks only (one-way sync)
@@ -1466,6 +1478,55 @@ impl SyncOrchestrator {
         }
 
         errors
+    }
+
+    /// Record health metrics after sync operation
+    async fn record_health_metrics(
+        db: &DatabaseConnection,
+        report: &SyncReport,
+        entity_type: EntityType,
+    ) {
+        let monitor = HealthMonitor::new(Arc::new(db.clone()));
+
+        let sync_duration_ms = (report.completed_at - report.started_at)
+            .num_milliseconds() as i32;
+
+        let records_processed = (report.pushed_count + report.pulled_count) as i32;
+        let errors_count = report.errors.len() as i32;
+
+        let connection_status = if errors_count == 0 {
+            "healthy"
+        } else if report.error_rate > 0.5 {
+            "down"
+        } else {
+            "degraded"
+        };
+
+        let sync_direction = match report.sync_mode.as_str() {
+            "push" => Some("push".to_string()),
+            "pull" => Some("pull".to_string()),
+            _ => Some("bidirectional".to_string()),
+        };
+
+        if let Err(e) = monitor
+            .record_sync_metric(
+                Some(sync_duration_ms),
+                Some(records_processed),
+                errors_count,
+                None, // API calls not tracked yet
+                connection_status,
+                Some(format!("{:?}", entity_type)),
+                sync_direction,
+            )
+            .await
+        {
+            tracing::warn!("Failed to record health metric: {}", e);
+        }
+
+        // Check if alert conditions are triggered
+        if let Err(e) = monitor.check_alert_conditions().await {
+            tracing::warn!("Failed to check alert conditions: {}", e);
+        }
     }
 }
 

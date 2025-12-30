@@ -2198,6 +2198,11 @@ impl QueryRoot {
     async fn sync_schedule(&self) -> crate::schema::queries::SyncScheduleQuery {
         crate::schema::queries::SyncScheduleQuery
     }
+
+    /// Sync health monitoring queries for sync performance and alerts
+    async fn sync_health(&self) -> crate::schema::queries::SyncHealthQueries {
+        crate::schema::queries::SyncHealthQueries
+    }
 }
 
 #[cfg(test)]

@@ -1,10 +1,3 @@
-//! Migration: Create Sync Health Monitoring Tables
-//!
-//! This migration creates the infrastructure for comprehensive sync health monitoring:
-//! 1. sync_health_metrics: Time-series data for performance tracking
-//! 2. sync_health_alerts: Alert system for degraded sync health
-//! 3. Indexes for efficient querying and trending
-
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
@@ -13,7 +6,7 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // 1. Create sync_health_metrics table for time-series performance data
+        // Create sync_health_metrics table
         manager
             .create_table(
                 Table::create()
@@ -23,67 +16,53 @@ impl MigrationTrait for Migration {
                         ColumnDef::new(SyncHealthMetrics::Id)
                             .uuid()
                             .not_null()
-                            .primary_key()
-                            .extra("DEFAULT gen_random_uuid()".to_string()),
+                            .primary_key(),
                     )
                     .col(
                         ColumnDef::new(SyncHealthMetrics::RecordedAt)
                             .timestamp_with_time_zone()
                             .not_null()
-                            .extra("DEFAULT NOW()".to_string()),
+                            .default(Expr::current_timestamp()),
                     )
-                    .col(
-                        ColumnDef::new(SyncHealthMetrics::SyncDurationMs)
-                            .integer()
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(SyncHealthMetrics::RecordsProcessed)
-                            .integer()
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(SyncHealthMetrics::ErrorsCount)
-                            .integer()
-                            .not_null()
-                            .default(0),
-                    )
-                    .col(
-                        ColumnDef::new(SyncHealthMetrics::ApiCallsUsed)
-                            .integer()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(SyncHealthMetrics::SyncDurationMs).integer().null())
+                    .col(ColumnDef::new(SyncHealthMetrics::RecordsProcessed).integer().null())
+                    .col(ColumnDef::new(SyncHealthMetrics::ErrorsCount).integer().default(0))
+                    .col(ColumnDef::new(SyncHealthMetrics::ApiCallsUsed).integer().default(0))
                     .col(
                         ColumnDef::new(SyncHealthMetrics::ConnectionStatus)
-                            .string_len(20)
-                            .not_null()
-                            .default("unknown"),
-                    )
-                    .col(
-                        ColumnDef::new(SyncHealthMetrics::EntityType)
-                            .string_len(50)
+                            .string()
                             .null(),
                     )
-                    .col(
-                        ColumnDef::new(SyncHealthMetrics::SyncDirection)
-                            .string_len(20)
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(SyncHealthMetrics::SuccessRate)
-                            .double()
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(SyncHealthMetrics::Metadata)
-                            .json_binary()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(SyncHealthMetrics::EntityType).string().null())
+                    .col(ColumnDef::new(SyncHealthMetrics::SyncDirection).string().null())
+                    .col(ColumnDef::new(SyncHealthMetrics::Metadata).json_binary().null())
                     .to_owned(),
             )
             .await?;
 
-        // 2. Create sync_health_alerts table for alerting system
+        // Create index on recorded_at for time-series queries
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_sync_health_metrics_recorded_at")
+                    .table((Schema::HrPublic, SyncHealthMetrics::Table))
+                    .col(SyncHealthMetrics::RecordedAt)
+                    .to_owned(),
+            )
+            .await?;
+
+        // Create index on connection_status for health checks
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_sync_health_metrics_connection_status")
+                    .table((Schema::HrPublic, SyncHealthMetrics::Table))
+                    .col(SyncHealthMetrics::ConnectionStatus)
+                    .to_owned(),
+            )
+            .await?;
+
+        // Create sync_health_alerts table
         manager
             .create_table(
                 Table::create()
@@ -93,29 +72,24 @@ impl MigrationTrait for Migration {
                         ColumnDef::new(SyncHealthAlerts::Id)
                             .uuid()
                             .not_null()
-                            .primary_key()
-                            .extra("DEFAULT gen_random_uuid()".to_string()),
+                            .primary_key(),
                     )
                     .col(
                         ColumnDef::new(SyncHealthAlerts::AlertType)
-                            .string_len(50)
+                            .string()
                             .not_null(),
                     )
                     .col(
                         ColumnDef::new(SyncHealthAlerts::Severity)
-                            .string_len(20)
+                            .string()
                             .not_null(),
                     )
-                    .col(
-                        ColumnDef::new(SyncHealthAlerts::Message)
-                            .text()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(SyncHealthAlerts::Message).text().not_null())
                     .col(
                         ColumnDef::new(SyncHealthAlerts::TriggeredAt)
                             .timestamp_with_time_zone()
                             .not_null()
-                            .extra("DEFAULT NOW()".to_string()),
+                            .default(Expr::current_timestamp()),
                     )
                     .col(
                         ColumnDef::new(SyncHealthAlerts::ResolvedAt)
@@ -123,146 +97,57 @@ impl MigrationTrait for Migration {
                             .null(),
                     )
                     .col(
-                        ColumnDef::new(SyncHealthAlerts::EntityType)
-                            .string_len(50)
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(SyncHealthAlerts::MetricSnapshot)
-                            .json_binary()
-                            .null(),
-                    )
-                    .col(
                         ColumnDef::new(SyncHealthAlerts::NotifiedUsers)
                             .array(ColumnType::Uuid)
                             .null(),
                     )
+                    .col(ColumnDef::new(SyncHealthAlerts::Metadata).json_binary().null())
                     .col(
                         ColumnDef::new(SyncHealthAlerts::CreatedAt)
                             .timestamp_with_time_zone()
                             .not_null()
-                            .extra("DEFAULT NOW()".to_string()),
+                            .default(Expr::current_timestamp()),
                     )
                     .col(
                         ColumnDef::new(SyncHealthAlerts::UpdatedAt)
                             .timestamp_with_time_zone()
                             .not_null()
-                            .extra("DEFAULT NOW()".to_string()),
+                            .default(Expr::current_timestamp()),
                     )
                     .to_owned(),
             )
             .await?;
 
-        // 3. Create indexes for efficient time-series queries on metrics
+        // Create index on triggered_at for alert history
         manager
             .create_index(
                 Index::create()
-                    .if_not_exists()
-                    .name("idx_sync_health_metrics_recorded_at")
-                    .table((Schema::HrPublic, SyncHealthMetrics::Table))
-                    .col(SyncHealthMetrics::RecordedAt)
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .create_index(
-                Index::create()
-                    .if_not_exists()
-                    .name("idx_sync_health_metrics_status")
-                    .table((Schema::HrPublic, SyncHealthMetrics::Table))
-                    .col(SyncHealthMetrics::ConnectionStatus)
-                    .col(SyncHealthMetrics::RecordedAt)
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .create_index(
-                Index::create()
-                    .if_not_exists()
-                    .name("idx_sync_health_metrics_entity")
-                    .table((Schema::HrPublic, SyncHealthMetrics::Table))
-                    .col(SyncHealthMetrics::EntityType)
-                    .col(SyncHealthMetrics::RecordedAt)
-                    .to_owned(),
-            )
-            .await?;
-
-        // 4. Create indexes for alerts
-        manager
-            .create_index(
-                Index::create()
-                    .if_not_exists()
-                    .name("idx_sync_health_alerts_triggered")
+                    .name("idx_sync_health_alerts_triggered_at")
                     .table((Schema::HrPublic, SyncHealthAlerts::Table))
                     .col(SyncHealthAlerts::TriggeredAt)
                     .to_owned(),
             )
             .await?;
 
+        // Create index on severity for filtering critical alerts
         manager
             .create_index(
                 Index::create()
-                    .if_not_exists()
-                    .name("idx_sync_health_alerts_unresolved")
-                    .table((Schema::HrPublic, SyncHealthAlerts::Table))
-                    .col(SyncHealthAlerts::ResolvedAt)
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .create_index(
-                Index::create()
-                    .if_not_exists()
                     .name("idx_sync_health_alerts_severity")
                     .table((Schema::HrPublic, SyncHealthAlerts::Table))
                     .col(SyncHealthAlerts::Severity)
-                    .col(SyncHealthAlerts::TriggeredAt)
                     .to_owned(),
             )
             .await?;
 
-        // 5. Add check constraints for data integrity
+        // Create index on resolved_at to find active alerts
         manager
-            .get_connection()
-            .execute_unprepared(
-                r#"
-                ALTER TABLE hr_public.sync_health_metrics
-                ADD CONSTRAINT valid_connection_status
-                CHECK (connection_status IN ('healthy', 'degraded', 'down', 'unknown'))
-                "#,
-            )
-            .await?;
-
-        manager
-            .get_connection()
-            .execute_unprepared(
-                r#"
-                ALTER TABLE hr_public.sync_health_alerts
-                ADD CONSTRAINT valid_severity
-                CHECK (severity IN ('info', 'warning', 'error', 'critical'))
-                "#,
-            )
-            .await?;
-
-        manager
-            .get_connection()
-            .execute_unprepared(
-                r#"
-                ALTER TABLE hr_public.sync_health_alerts
-                ADD CONSTRAINT valid_alert_type
-                CHECK (alert_type IN (
-                    'high_error_rate',
-                    'slow_sync',
-                    'connection_down',
-                    'api_quota_low',
-                    'consecutive_failures',
-                    'sync_timeout',
-                    'data_validation_failure'
-                ))
-                "#,
+            .create_index(
+                Index::create()
+                    .name("idx_sync_health_alerts_resolved_at")
+                    .table((Schema::HrPublic, SyncHealthAlerts::Table))
+                    .col(SyncHealthAlerts::ResolvedAt)
+                    .to_owned(),
             )
             .await?;
 
@@ -270,11 +155,56 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // Drop tables in reverse order
+        // Drop indexes first
+        manager
+            .drop_index(
+                Index::drop()
+                    .name("idx_sync_health_alerts_resolved_at")
+                    .table((Schema::HrPublic, SyncHealthAlerts::Table))
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .drop_index(
+                Index::drop()
+                    .name("idx_sync_health_alerts_severity")
+                    .table((Schema::HrPublic, SyncHealthAlerts::Table))
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .drop_index(
+                Index::drop()
+                    .name("idx_sync_health_alerts_triggered_at")
+                    .table((Schema::HrPublic, SyncHealthAlerts::Table))
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .drop_index(
+                Index::drop()
+                    .name("idx_sync_health_metrics_connection_status")
+                    .table((Schema::HrPublic, SyncHealthMetrics::Table))
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .drop_index(
+                Index::drop()
+                    .name("idx_sync_health_metrics_recorded_at")
+                    .table((Schema::HrPublic, SyncHealthMetrics::Table))
+                    .to_owned(),
+            )
+            .await?;
+
+        // Drop tables
         manager
             .drop_table(
                 Table::drop()
-                    .if_exists()
                     .table((Schema::HrPublic, SyncHealthAlerts::Table))
                     .to_owned(),
             )
@@ -283,7 +213,6 @@ impl MigrationTrait for Migration {
         manager
             .drop_table(
                 Table::drop()
-                    .if_exists()
                     .table((Schema::HrPublic, SyncHealthMetrics::Table))
                     .to_owned(),
             )
@@ -310,7 +239,6 @@ enum SyncHealthMetrics {
     ConnectionStatus,
     EntityType,
     SyncDirection,
-    SuccessRate,
     Metadata,
 }
 
@@ -323,9 +251,8 @@ enum SyncHealthAlerts {
     Message,
     TriggeredAt,
     ResolvedAt,
-    EntityType,
-    MetricSnapshot,
     NotifiedUsers,
+    Metadata,
     CreatedAt,
     UpdatedAt,
 }

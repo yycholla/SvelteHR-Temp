@@ -4163,6 +4163,11 @@ impl MutationRoot {
         TimeEntryMutations
     }
 
+    /// Sync health monitoring mutations for alert management
+    async fn sync_health(&self) -> crate::schema::mutations::SyncHealthMutations {
+        crate::schema::mutations::SyncHealthMutations
+    }
+
     /// User mutations (existing)
     async fn users(&self) -> UserMutations {
         UserMutations

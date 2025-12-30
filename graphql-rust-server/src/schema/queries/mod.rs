@@ -12,6 +12,7 @@ pub mod batch_operations;
 pub mod webhook;
 pub mod sync_schedule;
 pub mod time_entry;
+pub mod sync_health;
 
 pub use validation::ValidationQuery;
 pub use intuit_health::IntuitHealthQueries;
@@ -25,3 +26,4 @@ pub use batch_operations::BatchOperationsQueries;
 pub use webhook::WebhookQueries;
 pub use sync_schedule::SyncScheduleQuery;
 pub use time_entry::TimeEntryQueries;
+pub use sync_health::SyncHealthQueries;
