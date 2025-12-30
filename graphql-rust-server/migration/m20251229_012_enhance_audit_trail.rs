@@ -1,7 +1,5 @@
 use sea_orm_migration::prelude::*;
 
-use migration::m20251017_001_schemas::Schema;
-
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
@@ -154,6 +152,11 @@ impl MigrationTrait for Migration {
 
         Ok(())
     }
+}
+
+#[derive(DeriveIden)]
+enum Schema {
+    HrPublic,
 }
 
 #[derive(DeriveIden)]
