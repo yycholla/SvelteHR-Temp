@@ -1,5 +1,7 @@
 use sea_orm_migration::prelude::*;
 
+use crate::m20251017_001_schemas::Schema;
+
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
@@ -10,7 +12,7 @@ impl MigrationTrait for Migration {
         manager
             .alter_table(
                 Table::alter()
-                    .table(AuditLogs::Table)
+                    .table((Schema::HrPublic, AuditLogs::Table))
                     .add_column(
                         ColumnDef::new(AuditLogs::AuditId)
                             .string()
@@ -41,7 +43,7 @@ impl MigrationTrait for Migration {
             .create_index(
                 Index::create()
                     .name("idx_audit_logs_audit_id")
-                    .table(AuditLogs::Table)
+                    .table((Schema::HrPublic, AuditLogs::Table))
                     .col(AuditLogs::AuditId)
                     .to_owned(),
             )
@@ -52,7 +54,7 @@ impl MigrationTrait for Migration {
             .create_index(
                 Index::create()
                     .name("idx_audit_logs_previous_audit_id")
-                    .table(AuditLogs::Table)
+                    .table((Schema::HrPublic, AuditLogs::Table))
                     .col(AuditLogs::PreviousAuditId)
                     .to_owned(),
             )
@@ -62,7 +64,7 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(SyncSessions::Table)
+                    .table((Schema::HrPublic, SyncSessions::Table))
                     .if_not_exists()
                     .col(
                         ColumnDef::new(SyncSessions::Id)
@@ -92,7 +94,7 @@ impl MigrationTrait for Migration {
             .create_index(
                 Index::create()
                     .name("idx_sync_sessions_started_at")
-                    .table(SyncSessions::Table)
+                    .table((Schema::HrPublic, SyncSessions::Table))
                     .col(SyncSessions::StartedAt)
                     .to_owned(),
             )
@@ -103,7 +105,7 @@ impl MigrationTrait for Migration {
             .create_index(
                 Index::create()
                     .name("idx_sync_sessions_user_id")
-                    .table(SyncSessions::Table)
+                    .table((Schema::HrPublic, SyncSessions::Table))
                     .col(SyncSessions::UserId)
                     .to_owned(),
             )
@@ -115,7 +117,7 @@ impl MigrationTrait for Migration {
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Drop sync_sessions table
         manager
-            .drop_table(Table::drop().table(SyncSessions::Table).to_owned())
+            .drop_table(Table::drop().table((Schema::HrPublic, SyncSessions::Table)).to_owned())
             .await?;
 
         // Drop indexes
@@ -123,7 +125,7 @@ impl MigrationTrait for Migration {
             .drop_index(
                 Index::drop()
                     .name("idx_audit_logs_audit_id")
-                    .table(AuditLogs::Table)
+                    .table((Schema::HrPublic, AuditLogs::Table))
                     .to_owned(),
             )
             .await?;
@@ -132,7 +134,7 @@ impl MigrationTrait for Migration {
             .drop_index(
                 Index::drop()
                     .name("idx_audit_logs_previous_audit_id")
-                    .table(AuditLogs::Table)
+                    .table((Schema::HrPublic, AuditLogs::Table))
                     .to_owned(),
             )
             .await?;
@@ -141,7 +143,7 @@ impl MigrationTrait for Migration {
         manager
             .alter_table(
                 Table::alter()
-                    .table(AuditLogs::Table)
+                    .table((Schema::HrPublic, AuditLogs::Table))
                     .drop_column(AuditLogs::AuditId)
                     .drop_column(AuditLogs::PreviousAuditId)
                     .drop_column(AuditLogs::AuditHash)
