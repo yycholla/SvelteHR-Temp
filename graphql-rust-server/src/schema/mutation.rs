@@ -11,7 +11,7 @@ use crate::{
     database::get_db_from_context,
     error::AppError,
     schema::mutations::{
-        AuthMutations, UserMutations, DepartmentMutations, TaskMutations, RbacMutations, TimeMutations, EmployeeMutations, EmployeeImportMutations, TrainingMutations, OnboardingMutations, IntuitMutations,
+        AuthMutations, UserMutations, DepartmentMutations, TaskMutations, RbacMutations, TimeMutations, EmployeeMutations, EmployeeImportMutations, TrainingMutations, OnboardingMutations, IntuitMutations, WebhookMutations, TimeEntryMutations,
         // Import auth types to avoid naming conflicts
         auth::{LoginInput, AuthResponse, LogoutResult, RefreshSessionResponse},
     },
@@ -4153,6 +4153,16 @@ impl MutationRoot {
         IntuitMutations
     }
 
+    /// Webhook mutations for QuickBooks webhook management
+    async fn webhooks(&self) -> WebhookMutations {
+        WebhookMutations
+    }
+
+    /// Time entry mutations for time tracking CRUD and QuickBooks sync
+    async fn time_entries(&self) -> TimeEntryMutations {
+        TimeEntryMutations
+    }
+
     /// User mutations (existing)
     async fn users(&self) -> UserMutations {
         UserMutations
@@ -4196,6 +4206,36 @@ impl MutationRoot {
     /// Validation rule management and failure resolution
     async fn validation(&self) -> crate::schema::mutations::ValidationMutation {
         crate::schema::mutations::ValidationMutation
+    }
+
+    /// Sync schedule management for automated sync operations
+    async fn sync_schedule(&self) -> crate::schema::mutations::SyncScheduleMutation {
+        crate::schema::mutations::SyncScheduleMutation
+    }
+
+    /// Sync preview/dry run for previewing changes before execution
+    async fn sync_preview(&self) -> crate::schema::mutations::SyncPreviewMutation {
+        crate::schema::mutations::SyncPreviewMutation
+    }
+
+    /// Selective sync for syncing specific entities
+    async fn selective_sync(&self) -> crate::schema::mutations::SelectiveSyncMutation {
+        crate::schema::mutations::SelectiveSyncMutation
+    }
+
+    /// Field mapping configuration for QuickBooks sync
+    async fn field_mapping(&self) -> crate::schema::mutations::FieldMappingMutation {
+        crate::schema::mutations::FieldMappingMutation
+    }
+
+    /// Per-employee sync management and history
+    async fn employee_sync(&self) -> crate::schema::mutations::EmployeeSyncMutation {
+        crate::schema::mutations::EmployeeSyncMutation
+    }
+
+    /// Incremental sync toggle and configuration
+    async fn incremental_sync(&self) -> crate::schema::mutations::IncrementalSyncMutation {
+        crate::schema::mutations::IncrementalSyncMutation
     }
 
     // ==================================================================================

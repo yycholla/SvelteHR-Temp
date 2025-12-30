@@ -25,9 +25,11 @@ pub struct TaskFilter {
 }
 
 #[derive(Default)]
+#[allow(dead_code)]
 pub struct TaskQueries;
 
 #[Object]
+#[allow(dead_code)]
 impl TaskQueries {
     /// Users can only view tasks from their department unless they have Admin role.
     async fn tasks(

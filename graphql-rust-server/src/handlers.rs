@@ -20,6 +20,7 @@ pub mod events;
 pub mod roles;
 pub mod users;
 pub mod upload;
+pub mod intuit_webhook;
 
 use crate::models::user::Entity as UserEntity; // Import UserEntity
 

@@ -25,7 +25,7 @@ use hr_graphql_server::{
     auth::AuthBackend,
     database::create_db_connection,
     dataloader::DataLoaderContext,
-    handlers::{graphql_handler, graphql_playground, login_handler, logout_handler, me_handler, refresh_handler, sessions_handler, events::delete_event_handler, roles::get_roles_handler, users::get_users_handler, AppState},
+    handlers::{graphql_handler, graphql_playground, login_handler, logout_handler, me_handler, refresh_handler, sessions_handler, events::delete_event_handler, roles::get_roles_handler, users::get_users_handler, intuit_webhook::intuit_webhook_handler, AppState},
     middleware::{optional_session_auth_middleware, security_headers_middleware, session_auth_middleware},
     schema::create_schema,
     logging,
@@ -143,6 +143,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .layer(axum_middleware::from_fn_with_state(app_state.clone(), session_auth_middleware)))
         .route("/api/upload", post(hr_graphql_server::handlers::upload::upload_handler)
             .layer(axum_middleware::from_fn_with_state(app_state.clone(), session_auth_middleware)))
+        // QuickBooks webhook endpoint (no auth - uses HMAC signature verification)
+        .route("/api/intuit/webhook", post(intuit_webhook_handler))
         .nest_service("/uploads", ServeDir::new("uploads"))
         // GraphQL endpoints with optional session auth
         .route("/graphql",

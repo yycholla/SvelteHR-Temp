@@ -227,6 +227,7 @@ enum SyncPermissionAudit {
 }
 
 #[derive(Iden)]
+#[allow(dead_code)]
 enum Users {
     Table,
     Id,

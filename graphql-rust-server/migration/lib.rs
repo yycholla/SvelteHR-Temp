@@ -73,6 +73,7 @@ mod m20251229_010_create_rollback_system;
 mod m20251229_011_create_error_recovery;
 mod m20251229_012_enhance_audit_trail;
 mod m20251229_013_create_compliance_reports;
+mod m20251230_001_create_time_entries;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -147,6 +148,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20251229_011_create_error_recovery::Migration),
             Box::new(m20251229_012_enhance_audit_trail::Migration),
             Box::new(m20251229_013_create_compliance_reports::Migration),
+            Box::new(m20251230_001_create_time_entries::Migration),
         ]
     }
 }

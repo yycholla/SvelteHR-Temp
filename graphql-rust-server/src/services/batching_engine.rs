@@ -2,8 +2,7 @@
 //!
 //! Groups sync operations into optimal batches for efficient API usage
 
-use crate::integrations::intuit::IntuitClient;
-use crate::models::{batch_operations, batch_operation_items, user};
+use crate::models::{batch_operations, batch_operation_items};
 use chrono::Utc;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
@@ -214,7 +213,7 @@ impl BatchingEngine {
 
         // Process items (mock processing for now - would integrate with sync orchestrator)
         let mut successful = 0;
-        let mut failed = 0;
+        let failed = 0;
 
         for item in &batch.items {
             let item_result = batch_operation_items::ActiveModel {
@@ -294,7 +293,7 @@ impl BatchingEngine {
     pub async fn get_efficiency_metrics(
         &self,
     ) -> Result<BatchingEfficiencyMetrics, sea_orm::DbErr> {
-        use sea_orm::sea_query::Expr;
+        
 
         let batches = batch_operations::Entity::find()
             .filter(batch_operations::Column::Status.eq("completed"))

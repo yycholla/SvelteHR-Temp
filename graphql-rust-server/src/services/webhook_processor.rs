@@ -231,7 +231,7 @@ impl WebhookProcessor {
         &self,
         event: &webhook_events::Model,
         intuit_client: &IntuitClient,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         match event.entity_name.as_str() {
             "Employee" => {
                 self.sync_employee(&event.entity_id, intuit_client).await?;
@@ -255,7 +255,7 @@ impl WebhookProcessor {
         &self,
         employee_id: &str,
         _intuit_client: &IntuitClient,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // Note: Actual sync should be triggered by a background job or manual trigger
         // This webhook processor just records the event for later processing
         tracing::info!("Employee {} changed in QuickBooks - sync recommended", employee_id);
@@ -267,11 +267,52 @@ impl WebhookProcessor {
         &self,
         department_id: &str,
         _intuit_client: &IntuitClient,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // Note: Actual sync should be triggered by a background job or manual trigger
         // This webhook processor just records the event for later processing
         tracing::info!("Department {} changed in QuickBooks - sync recommended", department_id);
         Ok(())
+    }
+
+    /// Get a single webhook event by ID
+    pub async fn get_event(
+        &self,
+        event_id: Uuid,
+    ) -> Result<Option<webhook_events::Model>, sea_orm::DbErr> {
+        webhook_events::Entity::find_by_id(event_id)
+            .one(&*self.db)
+            .await
+    }
+
+    /// Get webhook events with optional filters
+    pub async fn get_events(
+        &self,
+        status: Option<String>,
+        event_type: Option<String>,
+        limit: u64,
+    ) -> Result<Vec<webhook_events::Model>, sea_orm::DbErr> {
+        use sea_orm::QueryOrder;
+
+        let mut query = webhook_events::Entity::find();
+
+        if let Some(s) = status {
+            query = query.filter(webhook_events::Column::Status.eq(s));
+        }
+
+        if let Some(et) = event_type {
+            query = query.filter(webhook_events::Column::EventType.eq(et));
+        }
+
+        query
+            .order_by_desc(webhook_events::Column::CreatedAt)
+            .limit(limit)
+            .all(&*self.db)
+            .await
+    }
+
+    /// Get webhook event statistics (alias for get_event_stats)
+    pub async fn get_event_statistics(&self) -> Result<WebhookEventStats, sea_orm::DbErr> {
+        self.get_event_stats(None).await
     }
 
     /// Get webhook event statistics
@@ -294,6 +335,27 @@ impl WebhookProcessor {
         let failed = all_events.iter().filter(|e| e.status == "failed").count();
         let retrying = all_events.iter().filter(|e| e.status == "retrying").count();
 
+        // Calculate average processing time for completed events
+        // Note: We use received_at as start time and processed_at as end time
+        let completed_with_times: Vec<_> = all_events
+            .iter()
+            .filter(|e| e.status == "completed" && e.processed_at.is_some())
+            .collect();
+
+        let avg_processing_time_ms = if !completed_with_times.is_empty() {
+            let total_ms: i64 = completed_with_times
+                .iter()
+                .map(|e| {
+                    let started = e.received_at;
+                    let completed = e.processed_at.unwrap();
+                    (completed - started).num_milliseconds()
+                })
+                .sum();
+            Some(total_ms / completed_with_times.len() as i64)
+        } else {
+            None
+        };
+
         Ok(WebhookEventStats {
             total,
             pending,
@@ -301,6 +363,7 @@ impl WebhookProcessor {
             completed,
             failed,
             retrying,
+            avg_processing_time_ms,
         })
     }
 
@@ -348,6 +411,83 @@ impl WebhookProcessor {
 
         Ok(retried_count)
     }
+
+    /// Retry a single failed webhook event
+    pub async fn retry_failed_event(
+        &self,
+        event_id: Uuid,
+    ) -> Result<RetryResult, anyhow::Error> {
+        use crate::integrations::intuit::IntuitClient;
+
+        // Get the event
+        let event = webhook_events::Entity::find_by_id(event_id)
+            .one(&*self.db)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Event {} not found", event_id))?;
+
+        // Check if it's a failed event
+        if event.status != "failed" {
+            return Ok(RetryResult {
+                success: false,
+                message: format!("Event {} is not in failed status (current: {})", event_id, event.status),
+                events_processed: 0,
+            });
+        }
+
+        // Create Intuit client
+        let intuit_client = IntuitClient::new(
+            std::env::var("INTUIT_CLIENT_ID").unwrap_or_default(),
+            std::env::var("INTUIT_CLIENT_SECRET").unwrap_or_default(),
+        )?;
+
+        // Mark as retrying
+        let mut active_event: webhook_events::ActiveModel = event.clone().into();
+        active_event.status = Set("retrying".to_string());
+        active_event.update(&*self.db).await?;
+
+        // Attempt to process
+        match self.process_event(&event, &intuit_client).await {
+            Ok(_) => {
+                let mut active_event: webhook_events::ActiveModel = event.into();
+                active_event.status = Set("completed".to_string());
+                active_event.processed_at = Set(Some(Utc::now().into()));
+                active_event.update(&*self.db).await?;
+
+                Ok(RetryResult {
+                    success: true,
+                    message: format!("Event {} retried successfully", event_id),
+                    events_processed: 1,
+                })
+            }
+            Err(e) => {
+                let error_msg = {
+                    let msg = e.to_string();
+                    drop(e);
+                    msg
+                };
+
+                let mut active_event: webhook_events::ActiveModel = event.clone().into();
+                active_event.status = Set("failed".to_string());
+                active_event.processing_attempts = Set(event.processing_attempts + 1);
+                active_event.last_error = Set(Some(error_msg.clone()));
+                active_event.update(&*self.db).await?;
+
+                Ok(RetryResult {
+                    success: false,
+                    message: format!("Event {} retry failed: {}", event_id, error_msg),
+                    events_processed: 0,
+                })
+            }
+        }
+    }
+}
+
+/// Result of retrying a webhook event
+#[derive(Debug, Clone)]
+pub struct RetryResult {
+    pub success: bool,
+    pub message: String,
+    pub events_processed: usize,
 }
 
 /// Webhook event statistics
@@ -359,4 +499,5 @@ pub struct WebhookEventStats {
     pub completed: usize,
     pub failed: usize,
     pub retrying: usize,
+    pub avg_processing_time_ms: Option<i64>,
 }

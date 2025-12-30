@@ -2179,9 +2179,24 @@ impl QueryRoot {
         crate::schema::queries::BatchOperationsQueries
     }
 
+    /// Webhook queries for QuickBooks webhook monitoring
+    async fn webhooks(&self) -> crate::schema::queries::WebhookQueries {
+        crate::schema::queries::WebhookQueries
+    }
+
+    /// Time entry queries for time tracking and QuickBooks sync
+    async fn time_entries(&self) -> crate::schema::queries::TimeEntryQueries {
+        crate::schema::queries::TimeEntryQueries
+    }
+
     /// Validation queries for data quality checks
     async fn validation(&self) -> crate::schema::queries::ValidationQuery {
         crate::schema::queries::ValidationQuery
+    }
+
+    /// Sync schedule queries for automated sync scheduling
+    async fn sync_schedule(&self) -> crate::schema::queries::SyncScheduleQuery {
+        crate::schema::queries::SyncScheduleQuery
     }
 }
 

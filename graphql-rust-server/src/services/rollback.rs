@@ -3,7 +3,7 @@
 //! Provides comprehensive rollback capabilities for sync operations
 
 use crate::models::{
-    department, intuit_sync_log, rollback_operations, sync_snapshots, user,
+    department, rollback_operations, sync_snapshots, user,
 };
 use crate::services::audit_logger::AuditLogger;
 use chrono::Utc;

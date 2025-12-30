@@ -475,12 +475,74 @@
 							<CheckCircle2 class="h-3 w-3 mr-1" />
 							Connected
 						</Badge>
+						<div class="flex flex-col gap-1 items-end">
+							<a
+								href="/admin/settings/integrations/sync-status"
+								class="text-xs text-blue-600 hover:text-blue-800 underline"
+							>
+								📊 View Sync Dashboard
+							</a>
+							<a
+								href="/admin/settings/integrations/health"
+								class="text-xs text-green-600 hover:text-green-800 underline"
+							>
+								💚 Health Monitoring
+							</a>
+							<a
+								href="/admin/settings/integrations/conflicts"
+								class="text-xs text-orange-600 hover:text-orange-800 underline"
+							>
+								⚠️ View Conflicts
+							</a>
 						<a
-							href="/admin/settings/integrations/sync-status"
-							class="text-xs text-blue-600 hover:text-blue-800 underline"
+							href="/admin/settings/integrations/audit"
+							class="text-xs text-purple-600 hover:text-purple-800 underline"
 						>
-							📊 View Sync Dashboard
+							📋 Audit Trail
 						</a>
+						<a
+							href="/admin/settings/integrations/reconciliation"
+							class="text-xs text-indigo-600 hover:text-indigo-800 underline"
+						>
+							🔄 Reconciliation
+						</a>
+						<a
+							href="/admin/settings/integrations/webhooks"
+							class="text-xs text-pink-600 hover:text-pink-800 underline"
+						>
+							🪝 Webhooks
+						</a>
+						<a
+							href="/admin/settings/integrations/validation"
+							class="text-xs text-teal-600 hover:text-teal-800 underline"
+						>
+							✓ Validation Rules
+						</a>
+						<a
+							href="/admin/settings/integrations/errors"
+							class="text-xs text-rose-600 hover:text-rose-800 underline"
+						>
+							🔄 Error Recovery
+						</a>
+						<a
+							href="/admin/settings/integrations/batches"
+							class="text-xs text-cyan-600 hover:text-cyan-800 underline"
+						>
+							📦 Batch Operations
+						</a>
+						<a
+							href="/admin/settings/integrations/compliance"
+							class="text-xs text-amber-600 hover:text-amber-800 underline"
+						>
+							🛡️ Compliance Reports
+						</a>
+						<a
+							href="/admin/settings/integrations/rollback"
+							class="text-xs text-violet-600 hover:text-violet-800 underline"
+						>
+							↩️ Sync Rollback
+						</a>
+						</div>
 					{:else}
 						<Badge variant="secondary">
 							Not Connected

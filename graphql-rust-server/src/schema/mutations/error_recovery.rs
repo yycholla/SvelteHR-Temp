@@ -30,6 +30,7 @@ pub struct MoveToDeadLetterInput {
 
 /// Result of a retry operation
 #[derive(SimpleObject)]
+#[allow(dead_code)]
 pub struct RetryOperationResult {
     pub operation_id: String,
     pub success: bool,

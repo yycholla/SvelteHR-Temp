@@ -6,7 +6,7 @@
 use anyhow::{Context, Result};
 use chrono::{DateTime, Datelike, Timelike, Utc};
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
     QueryOrder, QuerySelect, Set,
 };
 use std::sync::Arc;
@@ -238,7 +238,7 @@ impl SyncScheduler {
 
     /// Execute a schedule (static version for use in async closures)
     async fn execute_schedule_static(db: DatabaseConnection, schedule_id: Uuid) -> Result<()> {
-        use crate::models::sync_schedule::{ActiveModel, Column, Entity};
+        use crate::models::sync_schedule::{ActiveModel, Entity};
 
         let started_at = Utc::now();
 
@@ -465,7 +465,7 @@ impl SyncScheduler {
 
     /// Update the next run time for a schedule based on its cron expression
     async fn update_next_run_time(&self, schedule_id: Uuid) -> Result<()> {
-        use crate::models::sync_schedule::{ActiveModel, Column, Entity};
+        use crate::models::sync_schedule::{ActiveModel, Entity};
 
         let schedule = Entity::find_by_id(schedule_id)
             .one(&self.db)
@@ -490,7 +490,7 @@ impl SyncScheduler {
 
     /// Enable or disable a schedule
     pub async fn toggle_schedule(&self, schedule_id: Uuid, enabled: bool) -> Result<()> {
-        use crate::models::sync_schedule::{ActiveModel, Column, Entity};
+        use crate::models::sync_schedule::{ActiveModel, Entity};
 
         let schedule = Entity::find_by_id(schedule_id)
             .one(&self.db)

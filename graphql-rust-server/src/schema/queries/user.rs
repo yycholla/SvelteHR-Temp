@@ -9,9 +9,11 @@ use crate::{
 };
 
 #[derive(Default)]
+#[allow(dead_code)]
 pub struct UserQueries;
 
 #[Object]
+#[allow(dead_code)]
 impl UserQueries {
     /// Get all users with optional filtering and pagination
     ///
