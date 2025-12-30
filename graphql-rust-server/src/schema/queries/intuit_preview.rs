@@ -197,7 +197,7 @@ pub struct FieldChange {
     pub change_type: ChangeType,
 }
 
-#[Object]
+#[Object(name = "PreviewFieldChange")]
 impl FieldChange {
     async fn field_name(&self) -> &str {
         &self.field_name

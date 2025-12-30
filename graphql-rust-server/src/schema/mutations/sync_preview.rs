@@ -42,6 +42,7 @@ pub struct SyncPreviewChange {
 }
 
 #[derive(SimpleObject, Debug, Clone, Serialize, Deserialize)]
+#[graphql(name = "SyncFieldChange")]
 pub struct FieldChange {
     /// Field name
     pub field_name: String,
