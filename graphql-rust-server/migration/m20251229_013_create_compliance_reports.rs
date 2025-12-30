@@ -10,7 +10,7 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(ComplianceReports::Table)
+                    .table((Schema::HrPublic, ComplianceReports::Table))
                     .if_not_exists()
                     .col(
                         ColumnDef::new(ComplianceReports::Id)
@@ -90,8 +90,8 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_compliance_reports_generated_by")
-                            .from(ComplianceReports::Table, ComplianceReports::GeneratedBy)
-                            .to(Users::Table, Users::Id)
+                            .from((Schema::HrPublic, ComplianceReports::Table), ComplianceReports::GeneratedBy)
+                            .to((Schema::HrPublic, Users::Table), Users::Id)
                             .on_delete(ForeignKeyAction::Restrict),
                     )
                     .to_owned(),
@@ -103,7 +103,7 @@ impl MigrationTrait for Migration {
             .create_index(
                 Index::create()
                     .name("idx_compliance_reports_type_period")
-                    .table(ComplianceReports::Table)
+                    .table((Schema::HrPublic, ComplianceReports::Table))
                     .col(ComplianceReports::ReportType)
                     .col(ComplianceReports::PeriodStart)
                     .col(ComplianceReports::PeriodEnd)
@@ -115,7 +115,7 @@ impl MigrationTrait for Migration {
             .create_index(
                 Index::create()
                     .name("idx_compliance_reports_generated_by")
-                    .table(ComplianceReports::Table)
+                    .table((Schema::HrPublic, ComplianceReports::Table))
                     .col(ComplianceReports::GeneratedBy)
                     .to_owned(),
             )
@@ -125,7 +125,7 @@ impl MigrationTrait for Migration {
             .create_index(
                 Index::create()
                     .name("idx_compliance_reports_status")
-                    .table(ComplianceReports::Table)
+                    .table((Schema::HrPublic, ComplianceReports::Table))
                     .col(ComplianceReports::Status)
                     .to_owned(),
             )
@@ -135,7 +135,7 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(ReportSchedules::Table)
+                    .table((Schema::HrPublic, ReportSchedules::Table))
                     .if_not_exists()
                     .col(
                         ColumnDef::new(ReportSchedules::Id)
@@ -195,8 +195,8 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_report_schedules_created_by")
-                            .from(ReportSchedules::Table, ReportSchedules::CreatedBy)
-                            .to(Users::Table, Users::Id)
+                            .from((Schema::HrPublic, ReportSchedules::Table), ReportSchedules::CreatedBy)
+                            .to((Schema::HrPublic, Users::Table), Users::Id)
                             .on_delete(ForeignKeyAction::Restrict),
                     )
                     .to_owned(),
@@ -208,7 +208,7 @@ impl MigrationTrait for Migration {
             .create_index(
                 Index::create()
                     .name("idx_report_schedules_enabled_next_run")
-                    .table(ReportSchedules::Table)
+                    .table((Schema::HrPublic, ReportSchedules::Table))
                     .col(ReportSchedules::Enabled)
                     .col(ReportSchedules::NextRunAt)
                     .to_owned(),
@@ -224,7 +224,7 @@ impl MigrationTrait for Migration {
             .drop_index(
                 Index::drop()
                     .name("idx_report_schedules_enabled_next_run")
-                    .table(ReportSchedules::Table)
+                    .table((Schema::HrPublic, ReportSchedules::Table))
                     .to_owned(),
             )
             .await?;
@@ -233,7 +233,7 @@ impl MigrationTrait for Migration {
             .drop_index(
                 Index::drop()
                     .name("idx_compliance_reports_status")
-                    .table(ComplianceReports::Table)
+                    .table((Schema::HrPublic, ComplianceReports::Table))
                     .to_owned(),
             )
             .await?;
@@ -242,7 +242,7 @@ impl MigrationTrait for Migration {
             .drop_index(
                 Index::drop()
                     .name("idx_compliance_reports_generated_by")
-                    .table(ComplianceReports::Table)
+                    .table((Schema::HrPublic, ComplianceReports::Table))
                     .to_owned(),
             )
             .await?;
@@ -251,18 +251,18 @@ impl MigrationTrait for Migration {
             .drop_index(
                 Index::drop()
                     .name("idx_compliance_reports_type_period")
-                    .table(ComplianceReports::Table)
+                    .table((Schema::HrPublic, ComplianceReports::Table))
                     .to_owned(),
             )
             .await?;
 
         // Drop tables
         manager
-            .drop_table(Table::drop().table(ReportSchedules::Table).to_owned())
+            .drop_table(Table::drop().table((Schema::HrPublic, ReportSchedules::Table)).to_owned())
             .await?;
 
         manager
-            .drop_table(Table::drop().table(ComplianceReports::Table).to_owned())
+            .drop_table(Table::drop().table((Schema::HrPublic, ComplianceReports::Table)).to_owned())
             .await?;
 
         Ok(())
@@ -307,4 +307,9 @@ enum ReportSchedules {
 enum Users {
     Table,
     Id,
+}
+
+#[derive(DeriveIden)]
+enum Schema {
+    HrPublic,
 }
