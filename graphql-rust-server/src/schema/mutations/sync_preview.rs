@@ -71,6 +71,7 @@ pub struct SyncPreviewResponse {
 }
 
 #[derive(SimpleObject, Debug, Clone, Serialize, Deserialize)]
+#[graphql(name = "SyncPreviewSummary")]
 pub struct PreviewSummary {
     pub total_creates: i32,
     pub total_updates: i32,

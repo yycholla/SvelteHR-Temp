@@ -327,7 +327,7 @@ pub struct PreviewSummary {
     pub safe_to_proceed: bool,
 }
 
-#[Object]
+#[Object(name = "IntuitPreviewSummary")]
 impl PreviewSummary {
     async fn total_creates(&self) -> i32 {
         self.total_creates
