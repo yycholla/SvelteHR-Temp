@@ -205,7 +205,7 @@ impl TimeEntryQueries {
         &self,
         ctx: &Context<'_>,
     ) -> Result<TimeTrackingStats> {
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
         let user_ctx = ctx.data::<UserContext>()?;
 
         // Check permissions
@@ -213,7 +213,7 @@ impl TimeEntryQueries {
             return Err("Permission denied: You need time_sync:view_status permission".into());
         }
 
-        let sync_service = TimeTrackingSync::new(db.clone());
+        let sync_service = TimeTrackingSync::new(Arc::new(db.clone()));
         let stats = sync_service.get_sync_stats().await?;
 
         Ok(TimeTrackingStats {

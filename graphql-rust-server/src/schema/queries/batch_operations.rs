@@ -23,15 +23,15 @@ impl BatchOperationsQueries {
         batch_id: String,
     ) -> Result<Option<BatchOperation>> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let engine = BatchingEngine::new(db.clone());
+        let engine = BatchingEngine::new(Arc::new(db.clone()));
         let batch = engine
             .get_batch_operation(Uuid::parse_str(&batch_id)?)
             .await?;
@@ -47,15 +47,15 @@ impl BatchOperationsQueries {
         limit: Option<i32>,
     ) -> Result<Vec<BatchOperation>> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let engine = BatchingEngine::new(db.clone());
+        let engine = BatchingEngine::new(Arc::new(db.clone()));
         let batches = engine
             .get_recent_batches(
                 entity_type,
@@ -69,15 +69,15 @@ impl BatchOperationsQueries {
     /// Get batching efficiency metrics
     async fn batching_efficiency(&self, ctx: &Context<'_>) -> Result<BatchingEfficiencyMetrics> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let engine = BatchingEngine::new(db.clone());
+        let engine = BatchingEngine::new(Arc::new(db.clone()));
         let metrics = engine.get_efficiency_metrics().await?;
 
         Ok(BatchingEfficiencyMetrics::from(metrics))

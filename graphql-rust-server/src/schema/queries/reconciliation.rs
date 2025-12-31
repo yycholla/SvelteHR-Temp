@@ -24,15 +24,15 @@ impl ReconciliationQueries {
         report_id: String,
     ) -> Result<Option<ReconciliationReport>> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let service = ReconciliationService::new(db.clone());
+        let service = ReconciliationService::new(Arc::new(db.clone()));
         let report = service
             .get_report(Uuid::parse_str(&report_id)?)
             .await?;
@@ -48,15 +48,15 @@ impl ReconciliationQueries {
         limit: Option<i32>,
     ) -> Result<Vec<ReconciliationReport>> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let service = ReconciliationService::new(db.clone());
+        let service = ReconciliationService::new(Arc::new(db.clone()));
         let reports = service
             .get_recent_reports(
                 entity_type.map(|et| et.as_str().to_string()),
@@ -75,15 +75,15 @@ impl ReconciliationQueries {
         unresolved_only: Option<bool>,
     ) -> Result<Vec<ReconciliationDiscrepancy>> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let service = ReconciliationService::new(db.clone());
+        let service = ReconciliationService::new(Arc::new(db.clone()));
         let discrepancies = service
             .get_report_discrepancies(
                 Uuid::parse_str(&report_id)?,
@@ -101,15 +101,15 @@ impl ReconciliationQueries {
         report_id: String,
     ) -> Result<DiscrepancyStats> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let service = ReconciliationService::new(db.clone());
+        let service = ReconciliationService::new(Arc::new(db.clone()));
         let stats = service
             .get_discrepancy_stats(Uuid::parse_str(&report_id)?)
             .await?;

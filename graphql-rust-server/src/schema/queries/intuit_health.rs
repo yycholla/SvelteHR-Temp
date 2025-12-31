@@ -18,15 +18,15 @@ impl IntuitHealthQueries {
     /// Get current sync health snapshot
     async fn sync_health(&self, ctx: &Context<'_>) -> Result<SyncHealth> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let monitor = HealthMonitor::new(db.clone());
+        let monitor = HealthMonitor::new(Arc::new(db.clone()));
         let snapshot = monitor.get_health_snapshot().await?;
 
         Ok(SyncHealth::from(snapshot))
@@ -40,15 +40,15 @@ impl IntuitHealthQueries {
         unresolved_only: Option<bool>,
     ) -> Result<Vec<SyncAlert>> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let monitor = HealthMonitor::new(db.clone());
+        let monitor = HealthMonitor::new(Arc::new(db.clone()));
         let alerts = monitor
             .get_recent_alerts(limit.unwrap_or(20) as u64, unresolved_only.unwrap_or(false))
             .await?;
@@ -59,15 +59,15 @@ impl IntuitHealthQueries {
     /// Get metrics time series for charting
     async fn sync_metrics(&self, ctx: &Context<'_>, hours: Option<i32>) -> Result<Vec<SyncMetric>> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewMetrics)
             .await?;
 
-        let monitor = HealthMonitor::new(db.clone());
+        let monitor = HealthMonitor::new(Arc::new(db.clone()));
         let metrics = monitor.get_metrics_time_series(hours.unwrap_or(24) as i64).await?;
 
         Ok(metrics.into_iter().map(SyncMetric::from).collect())

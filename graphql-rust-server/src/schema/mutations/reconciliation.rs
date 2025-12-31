@@ -18,16 +18,16 @@ impl ReconciliationMutations {
     /// Run reconciliation for employees
     async fn reconcile_employees(&self, ctx: &Context<'_>) -> Result<ReconciliationResult> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
         let intuit_client = ctx.data::<IntuitClient>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::TriggerEmployeeSync)
             .await?;
 
-        let service = ReconciliationService::new(db.clone());
+        let service = ReconciliationService::new(Arc::new(db.clone()));
         let result = service
             .reconcile_employees(
                 intuit_client,
@@ -48,15 +48,15 @@ impl ReconciliationMutations {
         resolution_notes: String,
     ) -> Result<bool> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ResolveConflicts)
             .await?;
 
-        let service = ReconciliationService::new(db.clone());
+        let service = ReconciliationService::new(Arc::new(db.clone()));
         service
             .resolve_discrepancy(
                 Uuid::parse_str(&discrepancy_id)?,

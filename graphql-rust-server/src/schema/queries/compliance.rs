@@ -23,15 +23,15 @@ impl ComplianceQueries {
         report_id: String,
     ) -> Result<Option<ComplianceReport>> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission - only users with ViewSyncHistory can access compliance reports
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let service = ComplianceReportService::new(db.clone());
+        let service = ComplianceReportService::new(Arc::new(db.clone()));
         let report = service
             .get_report(Uuid::parse_str(&report_id)?)
             .await?;
@@ -47,15 +47,15 @@ impl ComplianceQueries {
         limit: Option<i32>,
     ) -> Result<Vec<ComplianceReport>> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let service = ComplianceReportService::new(db.clone());
+        let service = ComplianceReportService::new(Arc::new(db.clone()));
         let reports = service
             .get_recent_reports(
                 report_type.map(|rt| rt.as_str().to_string()),
@@ -72,15 +72,15 @@ impl ComplianceQueries {
         ctx: &Context<'_>,
     ) -> Result<Vec<ReportSchedule>> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ManageIntegrations)
             .await?;
 
-        let service = ComplianceReportService::new(db.clone());
+        let service = ComplianceReportService::new(Arc::new(db.clone()));
         let schedules = service.get_active_schedules().await?;
 
         Ok(schedules.into_iter().map(ReportSchedule::from).collect())

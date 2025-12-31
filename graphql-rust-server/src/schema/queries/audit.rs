@@ -25,15 +25,15 @@ impl AuditQueries {
         offset: Option<i32>,
     ) -> Result<AuditLogsResult> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let audit_logger = AuditLogger::new(db.clone());
+        let audit_logger = AuditLogger::new(Arc::new(db.clone()));
 
         // Convert filters
         let service_filters = filters.map(|f| AuditLogFilters {
@@ -69,15 +69,15 @@ impl AuditQueries {
         limit: Option<i32>,
     ) -> Result<Vec<AuditLog>> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let audit_logger = AuditLogger::new(db.clone());
+        let audit_logger = AuditLogger::new(Arc::new(db.clone()));
         let logs = audit_logger
             .get_entity_audit_trail(
                 &entity_type,
@@ -97,15 +97,15 @@ impl AuditQueries {
         to: DateTime<Utc>,
     ) -> Result<AuditVerificationResult> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission - requires ManageSyncSchedules for security verification
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ManageSyncSchedules)
             .await?;
 
-        let audit_logger = AuditLogger::new(db.clone());
+        let audit_logger = AuditLogger::new(Arc::new(db.clone()));
         let verification = audit_logger.verify_audit_chain(from, to).await?;
 
         Ok(AuditVerificationResult::from(verification))
@@ -119,15 +119,15 @@ impl AuditQueries {
         to: DateTime<Utc>,
     ) -> Result<ComplianceReportResult> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let audit_logger = AuditLogger::new(db.clone());
+        let audit_logger = AuditLogger::new(Arc::new(db.clone()));
         let report = audit_logger.generate_compliance_report(from, to).await?;
 
         Ok(ComplianceReportResult::from(report))

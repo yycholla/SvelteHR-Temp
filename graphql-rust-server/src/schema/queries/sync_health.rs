@@ -18,15 +18,15 @@ impl SyncHealthQueries {
     /// Get current sync health status with aggregated metrics
     async fn sync_health_status(&self, ctx: &Context<'_>) -> Result<SyncHealthStatus> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<DatabaseConnection>>()?;
+        let db = ctx.data::<DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let monitor = HealthMonitor::new(db.clone());
+        let monitor = HealthMonitor::new(Arc::new(db.clone()));
         let snapshot = monitor.get_health_snapshot().await?;
 
         Ok(SyncHealthStatus::from(snapshot))
@@ -39,16 +39,16 @@ impl SyncHealthQueries {
         #[graphql(desc = "Timeframe in hours (default: 24)")] timeframe: Option<i32>,
     ) -> Result<Vec<SyncHealthMetric>> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<DatabaseConnection>>()?;
+        let db = ctx.data::<DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
         let hours = timeframe.unwrap_or(24);
-        let monitor = HealthMonitor::new(db.clone());
+        let monitor = HealthMonitor::new(Arc::new(db.clone()));
         let metrics = monitor.get_metrics_time_series(hours as i64).await?;
 
         Ok(metrics.into_iter().map(SyncHealthMetric::from).collect())
@@ -62,10 +62,10 @@ impl SyncHealthQueries {
         #[graphql(desc = "Maximum number of alerts to return (default: 20)")] limit: Option<i32>,
     ) -> Result<Vec<SyncHealthAlert>> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<DatabaseConnection>>()?;
+        let db = ctx.data::<DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
@@ -73,7 +73,7 @@ impl SyncHealthQueries {
         let unresolved_only = status.as_deref() == Some("active");
         let max_limit = limit.unwrap_or(20);
 
-        let monitor = HealthMonitor::new(db.clone());
+        let monitor = HealthMonitor::new(Arc::new(db.clone()));
         let alerts = monitor
             .get_recent_alerts(max_limit as u64, unresolved_only)
             .await?;

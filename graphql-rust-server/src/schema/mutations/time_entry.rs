@@ -355,7 +355,7 @@ impl TimeEntryMutations {
         ctx: &Context<'_>,
         time_entry_ids: Option<Vec<Uuid>>,
     ) -> Result<TimeSyncResult> {
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
         let user_ctx = ctx.data::<UserContext>()?;
 
         // Check permissions
@@ -374,7 +374,7 @@ impl TimeEntryMutations {
         let intuit_client = IntuitClient::new(client_id, client_secret)
             .map_err(|e| format!("Failed to create Intuit client: {}", e))?;
 
-        let sync_service = TimeTrackingSync::new(db.clone());
+        let sync_service = TimeTrackingSync::new(Arc::new(db.clone()));
         let result = sync_service
             .push_time_entries(&intuit_client, &realm_id, time_entry_ids)
             .await
@@ -400,7 +400,7 @@ impl TimeEntryMutations {
         start_date: Option<String>,
         end_date: Option<String>,
     ) -> Result<TimeSyncResult> {
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
         let user_ctx = ctx.data::<UserContext>()?;
 
         // Check permissions
@@ -419,7 +419,7 @@ impl TimeEntryMutations {
         let intuit_client = IntuitClient::new(client_id, client_secret)
             .map_err(|e| format!("Failed to create Intuit client: {}", e))?;
 
-        let sync_service = TimeTrackingSync::new(db.clone());
+        let sync_service = TimeTrackingSync::new(Arc::new(db.clone()));
         let result = sync_service
             .pull_time_activities(&intuit_client, &realm_id, start_date, end_date)
             .await

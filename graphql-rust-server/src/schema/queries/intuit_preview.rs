@@ -28,11 +28,11 @@ impl IntuitPreviewQueries {
         entity_type: EntityTypeInput,
     ) -> Result<SyncPreview> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
         let intuit_client = ctx.data::<IntuitClient>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
@@ -50,7 +50,7 @@ impl IntuitPreviewQueries {
         };
 
         // Generate preview
-        let preview_service = SyncPreviewService::new((**db).clone());
+        let preview_service = SyncPreviewService::new(db.clone());
         let preview = preview_service
             .generate_preview(intuit_client, service_direction, service_entity_type)
             .await

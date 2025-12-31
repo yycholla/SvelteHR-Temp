@@ -21,10 +21,10 @@ impl WebhookQueries {
         use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
@@ -33,7 +33,7 @@ impl WebhookQueries {
         let subscription = webhook_subscriptions::Entity::find()
             .filter(webhook_subscriptions::Column::IsActive.eq(true))
             .filter(webhook_subscriptions::Column::DeletedAt.is_null())
-            .one(&**db)
+            .one(db)
             .await?;
 
         match subscription {
@@ -61,15 +61,15 @@ impl WebhookQueries {
         event_id: String,
     ) -> Result<Option<WebhookEvent>> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let processor = WebhookProcessor::new(db.clone());
+        let processor = WebhookProcessor::new(Arc::new(db.clone()));
         let event = processor
             .get_event(Uuid::parse_str(&event_id)?)
             .await?;
@@ -86,15 +86,15 @@ impl WebhookQueries {
         limit: Option<i32>,
     ) -> Result<Vec<WebhookEvent>> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let processor = WebhookProcessor::new(db.clone());
+        let processor = WebhookProcessor::new(Arc::new(db.clone()));
         let events = processor
             .get_events(
                 status,
@@ -113,15 +113,15 @@ impl WebhookQueries {
         limit: Option<i32>,
     ) -> Result<Vec<WebhookEvent>> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let processor = WebhookProcessor::new(db.clone());
+        let processor = WebhookProcessor::new(Arc::new(db.clone()));
         let events = processor
             .get_events(
                 Some("pending".to_string()),
@@ -136,15 +136,15 @@ impl WebhookQueries {
     /// Get webhook event statistics
     async fn webhook_statistics(&self, ctx: &Context<'_>) -> Result<WebhookStatistics> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ViewSyncHistory)
             .await?;
 
-        let processor = WebhookProcessor::new(db.clone());
+        let processor = WebhookProcessor::new(Arc::new(db.clone()));
         let stats = processor.get_event_statistics().await?;
 
         Ok(WebhookStatistics::from(stats))

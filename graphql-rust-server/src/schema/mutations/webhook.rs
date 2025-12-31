@@ -24,10 +24,10 @@ impl WebhookMutations {
         use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, Set};
 
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ManageIntegrations)
             .await?;
@@ -36,7 +36,7 @@ impl WebhookMutations {
         let connection = intuit_connection::Entity::find()
             .filter(intuit_connection::Column::IsActive.eq(true))
             .filter(intuit_connection::Column::DeletedAt.is_null())
-            .one(&**db)
+            .one(db)
             .await
             .map_err(|e| format!("Database error: {}", e))?
             .ok_or("No active QuickBooks connection found")?;
@@ -77,7 +77,7 @@ impl WebhookMutations {
         };
 
         use sea_orm::ActiveModelTrait;
-        subscription.insert(&**db)
+        subscription.insert(db)
             .await
             .map_err(|e| format!("Failed to save webhook subscription: {}", e))?;
 
@@ -97,10 +97,10 @@ impl WebhookMutations {
         use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ManageIntegrations)
             .await?;
@@ -109,7 +109,7 @@ impl WebhookMutations {
         let subscription = webhook_subscriptions::Entity::find()
             .filter(webhook_subscriptions::Column::IsActive.eq(true))
             .filter(webhook_subscriptions::Column::DeletedAt.is_null())
-            .one(&**db)
+            .one(db)
             .await
             .map_err(|e| format!("Database error: {}", e))?
             .ok_or("No active webhook subscription found")?;
@@ -120,7 +120,7 @@ impl WebhookMutations {
         active_subscription.deleted_at = Set(Some(chrono::Utc::now().into()));
         active_subscription.updated_at = Set(chrono::Utc::now().into());
 
-        active_subscription.update(&**db)
+        active_subscription.update(db)
             .await
             .map_err(|e| format!("Failed to deactivate webhook subscription: {}", e))?;
 
@@ -137,15 +137,15 @@ impl WebhookMutations {
         event_id: String,
     ) -> Result<RetryWebhookEventResult> {
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission - requires ManageIntegrations permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ManageIntegrations)
             .await?;
 
-        let processor = WebhookProcessor::new(db.clone());
+        let processor = WebhookProcessor::new(Arc::new(db.clone()));
         let result = processor
             .retry_failed_event(Uuid::parse_str(&event_id)?)
             .await
@@ -167,10 +167,10 @@ impl WebhookMutations {
         use crate::integrations::intuit::IntuitClient;
 
         let user_ctx = ctx.data::<UserContext>()?;
-        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+        let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
         // Check permission - requires ManageIntegrations permission
-        let permission_checker = PermissionChecker::new((**db).clone());
+        let permission_checker = PermissionChecker::new(db.clone());
         permission_checker
             .require(user_ctx, SyncPermission::ManageIntegrations)
             .await?;
@@ -181,7 +181,7 @@ impl WebhookMutations {
             std::env::var("INTUIT_CLIENT_SECRET").unwrap_or_default(),
         ).map_err(|e| format!("Failed to create Intuit client: {}", e))?;
 
-        let processor = WebhookProcessor::new(db.clone());
+        let processor = WebhookProcessor::new(Arc::new(db.clone()));
         let events_processed = processor
             .process_pending_events(&intuit_client, limit.unwrap_or(10).max(1).min(50) as u64)
             .await
