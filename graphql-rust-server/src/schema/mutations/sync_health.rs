@@ -26,7 +26,7 @@ impl SyncHealthMutations {
         // Check permission
         let permission_checker = PermissionChecker::new((**db).clone());
         permission_checker
-            .require(user_ctx, SyncPermission::ManageSync)
+            .require(user_ctx, SyncPermission::ManageSyncSchedules)
             .await?;
 
         // Parse alert ID
@@ -52,7 +52,7 @@ impl SyncHealthMutations {
         // Check permission
         let permission_checker = PermissionChecker::new((**db).clone());
         permission_checker
-            .require(user_ctx, SyncPermission::ManageSync)
+            .require(user_ctx, SyncPermission::ManageSyncSchedules)
             .await?;
 
         // Run health check

@@ -168,6 +168,7 @@
 				<div>
 					<Label for="entityType">Entity Type</Label>
 					<Select
+						type="single"
 						value={entityType as any}
 						onValueChange={(value: any) => {
 							entityType = value;
@@ -187,6 +188,7 @@
 				<div>
 					<Label for="syncDirection">Sync Direction</Label>
 					<Select
+						type="single"
 						value={syncDirection as any}
 						onValueChange={(value: any) => {
 							syncDirection = value;

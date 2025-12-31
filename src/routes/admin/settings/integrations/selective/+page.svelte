@@ -215,6 +215,7 @@
 				<div>
 					<Label for="syncDirection">Sync Direction</Label>
 					<Select
+						type="single"
 						value={syncDirection as any}
 						onValueChange={(value: any) => {
 							syncDirection = value;
@@ -227,7 +228,7 @@
 							{#each syncDirections as direction}
 								<SelectItem value={direction.value}>
 									<div class="flex items-center gap-2">
-										<svelte:component this={direction.icon} class="h-4 w-4" />
+										<direction.icon class="h-4 w-4" />
 										{direction.label}
 									</div>
 								</SelectItem>

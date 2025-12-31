@@ -355,6 +355,7 @@
 				<CardContent>
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<Select
+							type="single"
 							value={selectedStatus as any}
 							onValueChange={(value: any) => {
 								selectedStatus = value;
@@ -372,6 +373,7 @@
 						</Select>
 
 						<Select
+							type="single"
 							value={selectedEventType as any}
 							onValueChange={(value: any) => {
 								selectedEventType = value;

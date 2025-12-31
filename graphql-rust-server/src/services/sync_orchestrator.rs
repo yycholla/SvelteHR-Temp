@@ -1493,10 +1493,16 @@ impl SyncOrchestrator {
 
         let records_processed = (report.pushed_count + report.pulled_count) as i32;
         let errors_count = report.errors.len() as i32;
+        let total_records = (report.pushed_count + report.pulled_count + report.updated_count) as f64;
+        let error_rate = if total_records > 0.0 {
+            errors_count as f64 / total_records
+        } else {
+            0.0
+        };
 
         let connection_status = if errors_count == 0 {
             "healthy"
-        } else if report.error_rate > 0.5 {
+        } else if error_rate > 0.5 {
             "down"
         } else {
             "degraded"

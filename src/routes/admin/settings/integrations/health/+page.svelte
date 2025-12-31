@@ -15,7 +15,7 @@
 	import { invalidate } from '$app/navigation';
 
 	let { data } = $props();
-	let health = $derived(data.health);
+	let health = $derived(data.healthStatus);
 	let alerts = $derived(data.alerts);
 	let metrics = $derived(data.metrics);
 
@@ -90,13 +90,6 @@
 			Refresh
 		</Button>
 	</div>
-
-	{#if data.error}
-		<Alert variant="destructive" class="mb-6">
-			<AlertCircle class="h-4 w-4" />
-			<AlertDescription>{data.error}</AlertDescription>
-		</Alert>
-	{/if}
 
 	{#if health}
 		<!-- Status Overview -->
@@ -277,9 +270,6 @@
 										<span>Duration: {formatDuration(metric.syncDurationMs || 0)}</span>
 										<span>Records: {metric.recordsProcessed || 0}</span>
 										<span>Errors: {metric.errorsCount}</span>
-										{#if metric.successRate}
-											<span>Success: {formatPercentage(metric.successRate)}</span>
-										{/if}
 									</div>
 								</div>
 							</div>

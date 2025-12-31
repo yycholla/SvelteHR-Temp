@@ -325,6 +325,7 @@
 			<div class="flex items-center gap-4">
 				<div class="flex-1">
 					<Select
+						type="single"
 						value={selectedStatus as any}
 						onValueChange={(v: any) => handleStatusChange(v)}
 					>

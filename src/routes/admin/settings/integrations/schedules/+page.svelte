@@ -77,8 +77,9 @@
 	});
 
 	$effect(() => {
-		if (filters.enabled !== undefined) selectedEnabled = filters.enabled ? 'true' : 'all';
-		if (filters.entityType) selectedEntityType = filters.entityType;
+		const f = filters as any;
+		if (f.enabled !== undefined) selectedEnabled = f.enabled ? 'true' : 'all';
+		if (f.entityType) selectedEntityType = f.entityType;
 	});
 
 	// Entity types
@@ -597,6 +598,7 @@
 				<CardContent>
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<Select
+							type="single"
 							value={selectedEnabled as any}
 							onValueChange={(value: any) => {
 								selectedEnabled = value;
@@ -613,6 +615,7 @@
 						</Select>
 
 						<Select
+							type="single"
 							value={selectedEntityType as any}
 							onValueChange={(value: any) => {
 								selectedEntityType = value;
@@ -730,6 +733,7 @@
 				<div>
 					<Label for="entityType">Entity Type *</Label>
 					<Select
+						type="single"
 						value={formData.entityType as any}
 						onValueChange={(value: any) => {
 							formData.entityType = value;
@@ -749,6 +753,7 @@
 				<div>
 					<Label for="syncDirection">Sync Direction *</Label>
 					<Select
+						type="single"
 						value={formData.syncDirection as any}
 						onValueChange={(value: any) => {
 							formData.syncDirection = value;
@@ -769,6 +774,7 @@
 			<div>
 				<Label for="cronPreset">Schedule *</Label>
 				<Select
+					type="single"
 					value={cronPresets.find((p) => p.value === formData.cronExpression)?.value || 'custom'}
 					onValueChange={(value: any) => {
 						if (value !== 'custom') {
@@ -803,6 +809,7 @@
 			<div>
 				<Label for="timezone">Timezone *</Label>
 				<Select
+					type="single"
 					value={formData.timezone as any}
 					onValueChange={(value: any) => {
 						formData.timezone = value;
@@ -871,6 +878,7 @@
 				<div>
 					<Label for="edit-entityType">Entity Type *</Label>
 					<Select
+						type="single"
 						value={formData.entityType as any}
 						onValueChange={(value: any) => {
 							formData.entityType = value;
@@ -890,6 +898,7 @@
 				<div>
 					<Label for="edit-syncDirection">Sync Direction *</Label>
 					<Select
+						type="single"
 						value={formData.syncDirection as any}
 						onValueChange={(value: any) => {
 							formData.syncDirection = value;
@@ -919,6 +928,7 @@
 			<div>
 				<Label for="edit-timezone">Timezone *</Label>
 				<Select
+					type="single"
 					value={formData.timezone as any}
 					onValueChange={(value: any) => {
 						formData.timezone = value;

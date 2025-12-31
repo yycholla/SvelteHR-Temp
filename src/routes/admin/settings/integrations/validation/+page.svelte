@@ -178,6 +178,7 @@
 		<CardContent>
 			<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 				<Select
+					type="single"
 					value={selectedEntityType as any}
 					onValueChange={(value: any) => {
 						selectedEntityType = value;
@@ -195,6 +196,7 @@
 				</Select>
 
 				<Select
+					type="single"
 					value={selectedEnabled as any}
 					onValueChange={(value: any) => {
 						selectedEnabled = value;

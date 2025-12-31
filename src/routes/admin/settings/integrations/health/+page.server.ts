@@ -1,71 +1,104 @@
+import type { PageServerLoad, Actions } from './$types';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
-import type { PageServerLoad } from './$types';
+import { error, fail } from '@sveltejs/kit';
+import {
+	SYNC_HEALTH_STATUS_QUERY,
+	SYNC_HEALTH_METRICS_QUERY,
+	SYNC_HEALTH_ALERTS_QUERY,
+	RESOLVE_HEALTH_ALERT_MUTATION,
+	type SyncHealthStatusQueryData,
+	type SyncHealthMetricsQueryData,
+	type SyncHealthAlertsQueryData,
+	type ResolveHealthAlertMutationData
+} from '$lib/graphql/sync-health-operations';
 
-const SYNC_HEALTH_QUERY = `
-	query GetSyncHealth {
-		intuit {
-			syncHealth {
-				uptimePercentage
-				avgSyncDurationMs
-				totalSyncs24h
-				successRate
-				errorRate
-				lastSuccessfulSync
-				currentStatus
-				activeAlertsCount
-			}
-			syncAlerts(limit: 10, unresolvedOnly: false) {
-				id
-				alertType
-				severity
-				message
-				triggeredAt
-				resolvedAt
-				entityType
-			}
-			syncMetrics(hours: 24) {
-				id
-				recordedAt
-				syncDurationMs
-				recordsProcessed
-				errorsCount
-				connectionStatus
-				successRate
-			}
-		}
-	}
-`;
-
-export const load: PageServerLoad = async ({ fetch, cookies, depends }) => {
-	depends('app:sync-health');
-
+export const load: PageServerLoad = async ({ fetch, cookies }) => {
+	// Create authenticated GraphQL client
 	const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
 
 	try {
-		const result = await client.query(SYNC_HEALTH_QUERY, {}).toPromise();
+		// Fetch health status
+		const statusResult = await client
+			.query<SyncHealthStatusQueryData>(SYNC_HEALTH_STATUS_QUERY, {})
+			.toPromise();
 
-		if (result.error) {
-			console.error('Failed to fetch sync health:', result.error);
-			return {
-				health: null,
-				alerts: [],
-				metrics: [],
-				error: 'Failed to load sync health data'
-			};
+		if (statusResult.error) {
+			console.error('Failed to fetch health status:', statusResult.error);
+			throw error(500, 'Failed to load sync health status');
+		}
+
+		// Fetch metrics for last 24 hours
+		const metricsResult = await client
+			.query<SyncHealthMetricsQueryData>(SYNC_HEALTH_METRICS_QUERY, {
+				timeframe: 24
+			})
+			.toPromise();
+
+		if (metricsResult.error) {
+			console.error('Failed to fetch health metrics:', metricsResult.error);
+			throw error(500, 'Failed to load sync health metrics');
+		}
+
+		// Fetch active alerts
+		const alertsResult = await client
+			.query<SyncHealthAlertsQueryData>(SYNC_HEALTH_ALERTS_QUERY, {
+				status: null, // Get all alerts
+				limit: 50
+			})
+			.toPromise();
+
+		if (alertsResult.error) {
+			console.error('Failed to fetch health alerts:', alertsResult.error);
+			throw error(500, 'Failed to load sync health alerts');
 		}
 
 		return {
-			health: result.data?.intuit?.syncHealth || null,
-			alerts: result.data?.intuit?.syncAlerts || [],
-			metrics: result.data?.intuit?.syncMetrics || []
+			healthStatus: statusResult.data?.syncHealth.syncHealthStatus ?? null,
+			metrics: metricsResult.data?.syncHealth.syncHealthMetrics ?? [],
+			alerts: alertsResult.data?.syncHealth.syncHealthAlerts ?? []
 		};
-	} catch (error) {
-		console.error('Error loading sync health:', error);
-		return {
-			health: null,
-			alerts: [],
-			metrics: [],
-			error: 'Failed to load sync health data'
-		};
+	} catch (err) {
+		console.error('Health dashboard load error:', err);
+		throw error(500, 'Failed to load sync health dashboard');
+	}
+};
+
+export const actions: Actions = {
+	resolveAlert: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const alertId = formData.get('alertId') as string;
+
+		if (!alertId) {
+			return fail(400, { error: 'Alert ID is required' });
+		}
+
+		const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
+
+		try {
+			const result = await client
+				.mutation<ResolveHealthAlertMutationData>(RESOLVE_HEALTH_ALERT_MUTATION, {
+					alertId
+				})
+				.toPromise();
+
+			if (result.error) {
+				console.error('Failed to resolve alert:', result.error);
+				return fail(500, { error: 'Failed to resolve alert' });
+			}
+
+			if (!result.data?.syncHealth.resolveHealthAlert.success) {
+				return fail(500, {
+					error: result.data?.syncHealth.resolveHealthAlert.message ?? 'Failed to resolve alert'
+				});
+			}
+
+			return {
+				success: true,
+				message: result.data.syncHealth.resolveHealthAlert.message
+			};
+		} catch (err) {
+			console.error('Resolve alert error:', err);
+			return fail(500, { error: 'Failed to resolve alert' });
+		}
 	}
 };
