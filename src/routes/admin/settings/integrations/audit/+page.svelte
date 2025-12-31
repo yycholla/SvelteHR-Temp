@@ -39,6 +39,10 @@
 	let refreshing = $state(false);
 	let searchQuery = $state('');
 	let expandedLogs = $state<Set<string>>(new Set());
+	let verifying = $state(false);
+	let generatingReport = $state(false);
+	let verificationResult = $state<any>(null);
+	let complianceReport = $state<any>(null);
 
 	// Initialize from URL filters
 	let selectedCategory = $state('all');
@@ -165,6 +169,104 @@
 			return null;
 		}
 	}
+
+	async function verifyAuditIntegrity() {
+		if (!browser) return;
+
+		verifying = true;
+		verificationResult = null;
+
+		try {
+			const thirtyDaysAgo = new Date();
+			thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+			const now = new Date();
+
+			const VERIFY_INTEGRITY_QUERY = `
+				query VerifyAuditIntegrity($from: DateTime!, $to: DateTime!) {
+					audit {
+						verifyAuditIntegrity(from: $from, to: $to) {
+							valid
+							totalEntries
+							issuesFound
+							issues
+						}
+					}
+				}
+			`;
+
+			const client = createUrqlClient(fetch);
+			const result = await client
+				.query(VERIFY_INTEGRITY_QUERY, {
+					from: thirtyDaysAgo.toISOString(),
+					to: now.toISOString()
+				})
+				.toPromise();
+
+			if (result.error) {
+				console.error('Verification failed:', result.error);
+			} else {
+				verificationResult = result.data?.audit?.verifyAuditIntegrity;
+			}
+		} catch (error) {
+			console.error('Error verifying audit chain:', error);
+		} finally {
+			verifying = false;
+		}
+	}
+
+	async function generateComplianceReport() {
+		if (!browser) return;
+
+		generatingReport = true;
+		complianceReport = null;
+
+		try {
+			const thirtyDaysAgo = new Date();
+			thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+			const now = new Date();
+
+			const COMPLIANCE_REPORT_QUERY = `
+				query ComplianceReport($from: DateTime!, $to: DateTime!) {
+					audit {
+						complianceReport(from: $from, to: $to) {
+							startDate
+							endDate
+							totalActions
+							dataModifications
+							failedOperations
+							userActivity {
+								userEmail
+								totalActions
+								failedActions
+								dataChanges
+							}
+						}
+					}
+				}
+			`;
+
+			const client = createUrqlClient(fetch);
+			const result = await client
+				.query(COMPLIANCE_REPORT_QUERY, {
+					from: thirtyDaysAgo.toISOString(),
+					to: now.toISOString()
+				})
+				.toPromise();
+
+			if (result.error) {
+				console.error('Report generation failed:', result.error);
+			} else {
+				complianceReport = result.data?.audit?.complianceReport;
+			}
+		} catch (error) {
+			console.error('Error generating compliance report:', error);
+		} finally {
+			generatingReport = false;
+		}
+	}
+
+	import { browser } from '$app/environment';
+	import { createUrqlClient } from '$lib/graphql/client';
 </script>
 
 <div class="container mx-auto py-8 px-4">
@@ -175,10 +277,25 @@
 				Comprehensive activity log for QuickBooks sync operations
 			</p>
 		</div>
-		<Button onclick={refreshAuditLogs} disabled={refreshing} variant="outline" size="sm">
-			<RefreshCw class="h-4 w-4 mr-2 {refreshing ? 'animate-spin' : ''}" />
-			Refresh
-		</Button>
+		<div class="flex gap-2">
+			<Button onclick={verifyAuditIntegrity} disabled={verifying} variant="outline" size="sm">
+				<RefreshCw class="h-4 w-4 mr-2 {verifying ? 'animate-spin' : ''}" />
+				{verifying ? 'Verifying...' : 'Verify Integrity'}
+			</Button>
+			<Button
+				onclick={generateComplianceReport}
+				disabled={generatingReport}
+				variant="outline"
+				size="sm"
+			>
+				<Database class="h-4 w-4 mr-2 {generatingReport ? 'animate-spin' : ''}" />
+				{generatingReport ? 'Generating...' : 'Compliance Report'}
+			</Button>
+			<Button onclick={refreshAuditLogs} disabled={refreshing} variant="outline" size="sm">
+				<RefreshCw class="h-4 w-4 mr-2 {refreshing ? 'animate-spin' : ''}" />
+				Refresh
+			</Button>
+		</div>
 	</div>
 
 	{#if data.error}
@@ -186,6 +303,130 @@
 			<AlertCircle class="h-4 w-4" />
 			<AlertDescription>{data.error}</AlertDescription>
 		</Alert>
+	{/if}
+
+	<!-- Verification Result -->
+	{#if verificationResult}
+		<Card class="mb-6">
+			<CardHeader>
+				<CardTitle class="flex items-center gap-2">
+					{#if verificationResult.valid}
+						<CheckCircle2 class="h-5 w-5 text-green-600" />
+						Audit Chain Verified
+					{:else}
+						<XCircle class="h-5 w-5 text-red-600" />
+						Audit Chain Issues Detected
+					{/if}
+				</CardTitle>
+				<CardDescription>
+					Integrity check for last 30 days
+				</CardDescription>
+			</CardHeader>
+			<CardContent>
+				<div class="grid grid-cols-3 gap-4 mb-4">
+					<div>
+						<p class="text-sm text-muted-foreground">Total Entries</p>
+						<p class="text-2xl font-bold">{verificationResult.totalEntries}</p>
+					</div>
+					<div>
+						<p class="text-sm text-muted-foreground">Issues Found</p>
+						<p class="text-2xl font-bold {verificationResult.issuesFound > 0 ? 'text-red-600' : 'text-green-600'}">
+							{verificationResult.issuesFound}
+						</p>
+					</div>
+					<div>
+						<p class="text-sm text-muted-foreground">Status</p>
+						<Badge variant={verificationResult.valid ? 'default' : 'destructive'}>
+							{verificationResult.valid ? 'Valid' : 'Invalid'}
+						</Badge>
+					</div>
+				</div>
+
+				{#if verificationResult.issues && verificationResult.issues.length > 0}
+					<div class="mt-4 p-4 border rounded-lg bg-muted/50">
+						<h4 class="text-sm font-medium mb-2">Issues Detected:</h4>
+						<ul class="space-y-1">
+							{#each verificationResult.issues as issue}
+								<li class="text-sm text-muted-foreground">• {issue}</li>
+							{/each}
+						</ul>
+					</div>
+				{/if}
+
+				<div class="mt-4 flex justify-end">
+					<Button variant="ghost" size="sm" onclick={() => (verificationResult = null)}>
+						Dismiss
+					</Button>
+				</div>
+			</CardContent>
+		</Card>
+	{/if}
+
+	<!-- Compliance Report -->
+	{#if complianceReport}
+		<Card class="mb-6">
+			<CardHeader>
+				<div class="flex items-center justify-between">
+					<div>
+						<CardTitle>Compliance Report</CardTitle>
+						<CardDescription>
+							{new Date(complianceReport.startDate).toLocaleDateString()} - {new Date(complianceReport.endDate).toLocaleDateString()}
+						</CardDescription>
+					</div>
+					<Button variant="ghost" size="sm" onclick={() => (complianceReport = null)}>
+						Dismiss
+					</Button>
+				</div>
+			</CardHeader>
+			<CardContent>
+				<!-- Summary Stats -->
+				<div class="grid grid-cols-3 gap-4 mb-6">
+					<div class="p-4 border rounded-lg">
+						<p class="text-sm text-muted-foreground mb-1">Total Actions</p>
+						<p class="text-2xl font-bold">{complianceReport.totalActions}</p>
+					</div>
+					<div class="p-4 border rounded-lg">
+						<p class="text-sm text-muted-foreground mb-1">Data Modifications</p>
+						<p class="text-2xl font-bold">{complianceReport.dataModifications}</p>
+					</div>
+					<div class="p-4 border rounded-lg">
+						<p class="text-sm text-muted-foreground mb-1">Failed Operations</p>
+						<p class="text-2xl font-bold text-red-600">{complianceReport.failedOperations}</p>
+					</div>
+				</div>
+
+				<!-- User Activity Table -->
+				{#if complianceReport.userActivity && complianceReport.userActivity.length > 0}
+					<div>
+						<h4 class="text-sm font-medium mb-3">User Activity Summary</h4>
+						<div class="border rounded-lg overflow-hidden">
+							<table class="w-full">
+								<thead class="bg-muted">
+									<tr>
+										<th class="px-4 py-2 text-left text-sm font-medium">User</th>
+										<th class="px-4 py-2 text-right text-sm font-medium">Total Actions</th>
+										<th class="px-4 py-2 text-right text-sm font-medium">Failed Actions</th>
+										<th class="px-4 py-2 text-right text-sm font-medium">Data Changes</th>
+									</tr>
+								</thead>
+								<tbody>
+									{#each complianceReport.userActivity as activity}
+										<tr class="border-t">
+											<td class="px-4 py-2 text-sm">{activity.userEmail}</td>
+											<td class="px-4 py-2 text-sm text-right">{activity.totalActions}</td>
+											<td class="px-4 py-2 text-sm text-right {activity.failedActions > 0 ? 'text-red-600 font-medium' : ''}">
+												{activity.failedActions}
+											</td>
+											<td class="px-4 py-2 text-sm text-right">{activity.dataChanges}</td>
+										</tr>
+									{/each}
+								</tbody>
+							</table>
+						</div>
+					</div>
+				{/if}
+			</CardContent>
+		</Card>
 	{/if}
 
 	<!-- Filters and Search -->

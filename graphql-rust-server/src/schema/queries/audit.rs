@@ -88,6 +88,50 @@ impl AuditQueries {
 
         Ok(logs.into_iter().map(AuditLog::from).collect())
     }
+
+    /// Verify audit chain integrity
+    async fn verify_audit_integrity(
+        &self,
+        ctx: &Context<'_>,
+        from: DateTime<Utc>,
+        to: DateTime<Utc>,
+    ) -> Result<AuditVerificationResult> {
+        let user_ctx = ctx.data::<UserContext>()?;
+        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+
+        // Check permission - requires ManageSyncSchedules for security verification
+        let permission_checker = PermissionChecker::new((**db).clone());
+        permission_checker
+            .require(user_ctx, SyncPermission::ManageSyncSchedules)
+            .await?;
+
+        let audit_logger = AuditLogger::new(db.clone());
+        let verification = audit_logger.verify_audit_chain(from, to).await?;
+
+        Ok(AuditVerificationResult::from(verification))
+    }
+
+    /// Generate compliance report
+    async fn compliance_report(
+        &self,
+        ctx: &Context<'_>,
+        from: DateTime<Utc>,
+        to: DateTime<Utc>,
+    ) -> Result<ComplianceReportResult> {
+        let user_ctx = ctx.data::<UserContext>()?;
+        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+
+        // Check permission
+        let permission_checker = PermissionChecker::new((**db).clone());
+        permission_checker
+            .require(user_ctx, SyncPermission::ViewSyncHistory)
+            .await?;
+
+        let audit_logger = AuditLogger::new(db.clone());
+        let report = audit_logger.generate_compliance_report(from, to).await?;
+
+        Ok(ComplianceReportResult::from(report))
+    }
 }
 
 /// Input filters for audit log queries
@@ -263,6 +307,135 @@ impl From<audit_logs::Model> for AuditLog {
             error_message: model.error_message,
             metadata: model.metadata,
             created_at: model.created_at.with_timezone(&Utc),
+        }
+    }
+}
+
+/// Audit verification result
+#[derive(Debug, Clone)]
+pub struct AuditVerificationResult {
+    pub valid: bool,
+    pub total_entries: i32,
+    pub issues_found: i32,
+    pub issues: Vec<String>,
+}
+
+#[Object]
+impl AuditVerificationResult {
+    async fn valid(&self) -> bool {
+        self.valid
+    }
+
+    async fn total_entries(&self) -> i32 {
+        self.total_entries
+    }
+
+    async fn issues_found(&self) -> i32 {
+        self.issues_found
+    }
+
+    async fn issues(&self) -> &Vec<String> {
+        &self.issues
+    }
+}
+
+impl From<crate::services::audit_logger::AuditVerification> for AuditVerificationResult {
+    fn from(verification: crate::services::audit_logger::AuditVerification) -> Self {
+        Self {
+            valid: verification.valid,
+            total_entries: verification.total_entries as i32,
+            issues_found: verification.issues_found as i32,
+            issues: verification.issues,
+        }
+    }
+}
+
+/// Compliance report result
+#[derive(Debug, Clone)]
+pub struct ComplianceReportResult {
+    pub start_date: DateTime<Utc>,
+    pub end_date: DateTime<Utc>,
+    pub total_actions: i32,
+    pub data_modifications: i32,
+    pub failed_operations: i32,
+    pub user_activity: Vec<UserActivityResult>,
+}
+
+#[Object]
+impl ComplianceReportResult {
+    async fn start_date(&self) -> DateTime<Utc> {
+        self.start_date
+    }
+
+    async fn end_date(&self) -> DateTime<Utc> {
+        self.end_date
+    }
+
+    async fn total_actions(&self) -> i32 {
+        self.total_actions
+    }
+
+    async fn data_modifications(&self) -> i32 {
+        self.data_modifications
+    }
+
+    async fn failed_operations(&self) -> i32 {
+        self.failed_operations
+    }
+
+    async fn user_activity(&self) -> &Vec<UserActivityResult> {
+        &self.user_activity
+    }
+}
+
+impl From<crate::services::audit_logger::ComplianceReport> for ComplianceReportResult {
+    fn from(report: crate::services::audit_logger::ComplianceReport) -> Self {
+        Self {
+            start_date: report.start_date,
+            end_date: report.end_date,
+            total_actions: report.total_actions,
+            data_modifications: report.data_modifications,
+            failed_operations: report.failed_operations,
+            user_activity: report.user_activity.into_iter().map(UserActivityResult::from).collect(),
+        }
+    }
+}
+
+/// User activity result
+#[derive(Debug, Clone)]
+pub struct UserActivityResult {
+    pub user_email: String,
+    pub total_actions: i32,
+    pub failed_actions: i32,
+    pub data_changes: i32,
+}
+
+#[Object]
+impl UserActivityResult {
+    async fn user_email(&self) -> &str {
+        &self.user_email
+    }
+
+    async fn total_actions(&self) -> i32 {
+        self.total_actions
+    }
+
+    async fn failed_actions(&self) -> i32 {
+        self.failed_actions
+    }
+
+    async fn data_changes(&self) -> i32 {
+        self.data_changes
+    }
+}
+
+impl From<crate::services::audit_logger::UserActivityStats> for UserActivityResult {
+    fn from(stats: crate::services::audit_logger::UserActivityStats) -> Self {
+        Self {
+            user_email: stats.user_email,
+            total_actions: stats.total_actions,
+            failed_actions: stats.failed_actions,
+            data_changes: stats.data_changes,
         }
     }
 }

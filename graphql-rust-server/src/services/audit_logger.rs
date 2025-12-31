@@ -187,10 +187,57 @@ impl AuditLogger {
         AuditLogBuilder::new(event_type, event_category)
     }
 
-    /// Record an audit log entry
-    pub async fn record(&self, log: audit_logs::ActiveModel) -> Result<Uuid, sea_orm::DbErr> {
+    /// Record an audit log entry with tamper detection
+    pub async fn record(&self, mut log: audit_logs::ActiveModel) -> Result<Uuid, sea_orm::DbErr> {
+        use sha2::{Sha256, Digest};
+
+        // Generate unique audit ID
+        let audit_id = format!("AUD-{}", Uuid::new_v4());
+        log.audit_id = Set(Some(audit_id.clone()));
+
+        // Get the last audit entry for chaining
+        let previous_audit_id = self.get_last_audit_id().await?;
+        log.previous_audit_id = Set(previous_audit_id.clone());
+
+        // Calculate hash for tamper detection
+        let mut hasher = Sha256::new();
+        hasher.update(audit_id.as_bytes());
+        if let Some(prev_id) = &previous_audit_id {
+            hasher.update(prev_id.as_bytes());
+        }
+        hasher.update(log.event_type.as_ref().as_bytes());
+        hasher.update(log.action.as_ref().as_bytes());
+        if let Some(entity_id) = log.entity_id.as_ref() {
+            hasher.update(entity_id.as_bytes());
+        }
+        // Hash the snapshots
+        if let Some(old_vals) = log.old_values.as_ref() {
+            if let Ok(json_bytes) = serde_json::to_vec(old_vals) {
+                hasher.update(&json_bytes);
+            }
+        }
+        if let Some(new_vals) = log.new_values.as_ref() {
+            if let Ok(json_bytes) = serde_json::to_vec(new_vals) {
+                hasher.update(&json_bytes);
+            }
+        }
+
+        let audit_hash = format!("{:x}", hasher.finalize());
+        log.audit_hash = Set(Some(audit_hash));
+
         let result = log.insert(&*self.db).await?;
         Ok(result.id)
+    }
+
+    /// Get the last audit ID for chain linking
+    async fn get_last_audit_id(&self) -> Result<Option<String>, sea_orm::DbErr> {
+        let last_entry = audit_logs::Entity::find()
+            .filter(audit_logs::Column::AuditId.is_not_null())
+            .order_by_desc(audit_logs::Column::CreatedAt)
+            .one(&*self.db)
+            .await?;
+
+        Ok(last_entry.and_then(|e| e.audit_id))
     }
 
     /// Log sync operation
@@ -373,6 +420,187 @@ impl AuditLogger {
 
         Ok(total_deleted)
     }
+
+    /// Verify the integrity of the audit trail chain
+    pub async fn verify_audit_chain(
+        &self,
+        from: chrono::DateTime<Utc>,
+        to: chrono::DateTime<Utc>,
+    ) -> Result<AuditVerification, sea_orm::DbErr> {
+        use sha2::{Sha256, Digest};
+
+        let entries = audit_logs::Entity::find()
+            .filter(audit_logs::Column::CreatedAt.gte(from))
+            .filter(audit_logs::Column::CreatedAt.lte(to))
+            .filter(audit_logs::Column::AuditId.is_not_null())
+            .order_by_asc(audit_logs::Column::CreatedAt)
+            .all(&*self.db)
+            .await?;
+
+        let mut valid = true;
+        let mut issues = Vec::new();
+        let total_entries = entries.len();
+
+        for (i, entry) in entries.iter().enumerate() {
+            // Verify hash
+            if let Some(stored_hash) = &entry.audit_hash {
+                let mut hasher = Sha256::new();
+                if let Some(audit_id) = &entry.audit_id {
+                    hasher.update(audit_id.as_bytes());
+                }
+                if let Some(prev_id) = &entry.previous_audit_id {
+                    hasher.update(prev_id.as_bytes());
+                }
+                hasher.update(entry.event_type.as_bytes());
+                hasher.update(entry.action.as_bytes());
+                if let Some(entity_id) = &entry.entity_id {
+                    hasher.update(entity_id.as_bytes());
+                }
+                if let Some(old_vals) = &entry.old_values {
+                    if let Ok(json_bytes) = serde_json::to_vec(old_vals) {
+                        hasher.update(&json_bytes);
+                    }
+                }
+                if let Some(new_vals) = &entry.new_values {
+                    if let Ok(json_bytes) = serde_json::to_vec(new_vals) {
+                        hasher.update(&json_bytes);
+                    }
+                }
+
+                let computed_hash = format!("{:x}", hasher.finalize());
+                if stored_hash != &computed_hash {
+                    valid = false;
+                    issues.push(format!(
+                        "Hash mismatch for audit {} - possible tampering detected",
+                        entry.audit_id.as_ref().unwrap_or(&"unknown".to_string())
+                    ));
+                }
+            } else {
+                // Entry missing hash (legacy entry)
+                issues.push(format!(
+                    "Audit entry {} missing hash - created before tamper detection was enabled",
+                    entry.audit_id.as_ref().unwrap_or(&"unknown".to_string())
+                ));
+            }
+
+            // Verify chain linkage (skip first entry)
+            if i > 0 {
+                let expected_prev_id = entries[i - 1].audit_id.clone();
+                if entry.previous_audit_id != expected_prev_id {
+                    valid = false;
+                    issues.push(format!(
+                        "Chain broken at audit {} - expected previous ID {:?}, got {:?}",
+                        entry.audit_id.as_ref().unwrap_or(&"unknown".to_string()),
+                        expected_prev_id,
+                        entry.previous_audit_id
+                    ));
+                }
+            }
+        }
+
+        Ok(AuditVerification {
+            valid,
+            total_entries,
+            issues_found: issues.len(),
+            issues,
+        })
+    }
+
+    /// Generate compliance report for a date range
+    pub async fn generate_compliance_report(
+        &self,
+        from: chrono::DateTime<Utc>,
+        to: chrono::DateTime<Utc>,
+    ) -> Result<ComplianceReport, sea_orm::DbErr> {
+        // Get all logs in range
+        let logs = audit_logs::Entity::find()
+            .filter(audit_logs::Column::CreatedAt.gte(from))
+            .filter(audit_logs::Column::CreatedAt.lte(to))
+            .all(&*self.db)
+            .await?;
+
+        let total_actions = logs.len() as i32;
+
+        // Count failed operations
+        let failed_operations = logs
+            .iter()
+            .filter(|log| log.status == "failed")
+            .count() as i32;
+
+        // Count data modifications
+        let data_modifications = logs
+            .iter()
+            .filter(|log| {
+                log.event_category == "data_change" ||
+                log.event_category == "sync"
+            })
+            .count() as i32;
+
+        // Group by user for user activity
+        use std::collections::HashMap;
+        let mut user_activity_map: HashMap<String, UserActivityStats> = HashMap::new();
+
+        for log in &logs {
+            if let Some(user_email) = &log.user_email {
+                let stats = user_activity_map
+                    .entry(user_email.clone())
+                    .or_insert(UserActivityStats {
+                        user_email: user_email.clone(),
+                        total_actions: 0,
+                        failed_actions: 0,
+                        data_changes: 0,
+                    });
+
+                stats.total_actions += 1;
+                if log.status == "failed" {
+                    stats.failed_actions += 1;
+                }
+                if log.event_category == "data_change" {
+                    stats.data_changes += 1;
+                }
+            }
+        }
+
+        let user_activity: Vec<UserActivityStats> = user_activity_map.into_values().collect();
+
+        Ok(ComplianceReport {
+            start_date: from,
+            end_date: to,
+            total_actions,
+            data_modifications,
+            failed_operations,
+            user_activity,
+        })
+    }
+}
+
+/// Audit chain verification result
+#[derive(Debug, Clone)]
+pub struct AuditVerification {
+    pub valid: bool,
+    pub total_entries: usize,
+    pub issues_found: usize,
+    pub issues: Vec<String>,
+}
+
+/// Compliance report data
+#[derive(Debug, Clone)]
+pub struct ComplianceReport {
+    pub start_date: chrono::DateTime<Utc>,
+    pub end_date: chrono::DateTime<Utc>,
+    pub total_actions: i32,
+    pub data_modifications: i32,
+    pub failed_operations: i32,
+    pub user_activity: Vec<UserActivityStats>,
+}
+
+/// User activity statistics
+#[derive(Debug, Clone)]
+pub struct UserActivityStats {
+    pub user_email: String,
+    pub total_actions: i32,
+    pub failed_actions: i32,
+    pub data_changes: i32,
 }
 
 /// Filters for querying audit logs
