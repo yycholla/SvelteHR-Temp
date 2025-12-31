@@ -1,9 +1,17 @@
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
-import type { PageServerLoad } from './$types';
+import type { PageServerLoad, Actions } from './$types';
+import { fail } from '@sveltejs/kit';
 
 const WEBHOOKS_QUERY = `
 	query GetWebhooks($status: String, $eventType: String, $limit: Int) {
 		webhooks {
+			webhookStatus {
+				isActive
+				webhookId
+				entityNames
+				lastDeliveredAt
+				failureCount
+			}
 			webhookEvents(status: $status, eventType: $eventType, limit: $limit) {
 				id
 				eventType
@@ -101,6 +109,7 @@ export const load: PageServerLoad = async ({ fetch, cookies, depends, url }) => 
 		}
 
 		return {
+			webhookStatus: result.data?.webhooks?.webhookStatus || null,
 			events: result.data?.webhooks?.webhookEvents || [],
 			statistics: result.data?.webhooks?.webhookStatistics || null,
 			selectedEvent: null,
@@ -109,10 +118,133 @@ export const load: PageServerLoad = async ({ fetch, cookies, depends, url }) => 
 	} catch (error) {
 		console.error('Error loading webhooks:', error);
 		return {
+			webhookStatus: null,
 			events: [],
 			statistics: null,
 			selectedEvent: null,
 			error: 'Failed to load webhook data'
 		};
+	}
+};
+
+const REGISTER_WEBHOOK_MUTATION = `
+	mutation RegisterWebhook($entityNames: [String!]!) {
+		webhooks {
+			registerWebhook(entityNames: $entityNames) {
+				success
+				message
+				webhookId
+			}
+		}
+	}
+`;
+
+const UNREGISTER_WEBHOOK_MUTATION = `
+	mutation UnregisterWebhook {
+		webhooks {
+			unregisterWebhook {
+				success
+				message
+			}
+		}
+	}
+`;
+
+const RETRY_EVENT_MUTATION = `
+	mutation RetryWebhookEvent($eventId: String!) {
+		webhooks {
+			retryWebhookEvent(eventId: $eventId) {
+				success
+				message
+				eventsProcessed
+			}
+		}
+	}
+`;
+
+export const actions: Actions = {
+	register: async ({ fetch, cookies, request }) => {
+		const formData = await request.formData();
+		const entityNames = formData.getAll('entityNames') as string[];
+
+		if (!entityNames || entityNames.length === 0) {
+			return fail(400, { error: 'Please select at least one entity type' });
+		}
+
+		const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
+
+		try {
+			const result = await client
+				.mutation(REGISTER_WEBHOOK_MUTATION, { entityNames })
+				.toPromise();
+
+			if (result.error) {
+				console.error('Failed to register webhook:', result.error);
+				return fail(500, { error: 'Failed to register webhook subscription' });
+			}
+
+			const response = result.data?.webhooks?.registerWebhook;
+			if (!response?.success) {
+				return fail(500, { error: response?.message || 'Failed to register webhook' });
+			}
+
+			return { success: true, message: response.message };
+		} catch (error) {
+			console.error('Error registering webhook:', error);
+			return fail(500, { error: 'Failed to register webhook subscription' });
+		}
+	},
+
+	unregister: async ({ fetch, cookies }) => {
+		const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
+
+		try {
+			const result = await client.mutation(UNREGISTER_WEBHOOK_MUTATION, {}).toPromise();
+
+			if (result.error) {
+				console.error('Failed to unregister webhook:', result.error);
+				return fail(500, { error: 'Failed to unregister webhook subscription' });
+			}
+
+			const response = result.data?.webhooks?.unregisterWebhook;
+			if (!response?.success) {
+				return fail(500, { error: response?.message || 'Failed to unregister webhook' });
+			}
+
+			return { success: true, message: response.message };
+		} catch (error) {
+			console.error('Error unregistering webhook:', error);
+			return fail(500, { error: 'Failed to unregister webhook subscription' });
+		}
+	},
+
+	retry: async ({ fetch, cookies, request }) => {
+		const formData = await request.formData();
+		const eventId = formData.get('eventId') as string;
+
+		if (!eventId) {
+			return fail(400, { error: 'Event ID is required' });
+		}
+
+		const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
+
+		try {
+			const result = await client.mutation(RETRY_EVENT_MUTATION, { eventId }).toPromise();
+
+			if (result.error) {
+				console.error('Failed to retry event:', result.error);
+				return fail(500, { error: 'Failed to retry webhook event' });
+			}
+
+			const response = result.data?.webhooks?.retryWebhookEvent;
+			if (!response?.success) {
+				return fail(500, { error: response?.message || 'Failed to retry event' });
+			}
+
+			return { success: true, message: response.message };
+		} catch (error) {
+			console.error('Error retrying event:', error);
+			return fail(500, { error: 'Failed to retry webhook event' });
+		}
 	}
 };

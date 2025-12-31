@@ -15,6 +15,45 @@ pub struct WebhookQueries;
 
 #[Object]
 impl WebhookQueries {
+    /// Get webhook subscription status
+    async fn webhook_status(&self, ctx: &Context<'_>) -> Result<WebhookStatus> {
+        use crate::models::webhook_subscriptions;
+        use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+
+        let user_ctx = ctx.data::<UserContext>()?;
+        let db = ctx.data::<Arc<sea_orm::DatabaseConnection>>()?;
+
+        // Check permission
+        let permission_checker = PermissionChecker::new((**db).clone());
+        permission_checker
+            .require(user_ctx, SyncPermission::ViewSyncHistory)
+            .await?;
+
+        // Find active subscription
+        let subscription = webhook_subscriptions::Entity::find()
+            .filter(webhook_subscriptions::Column::IsActive.eq(true))
+            .filter(webhook_subscriptions::Column::DeletedAt.is_null())
+            .one(&**db)
+            .await?;
+
+        match subscription {
+            Some(sub) => Ok(WebhookStatus {
+                is_active: true,
+                webhook_id: Some(sub.webhook_id),
+                entity_names: serde_json::from_value(sub.entity_names).unwrap_or_default(),
+                last_delivered_at: sub.last_delivered_at.map(|dt| dt.with_timezone(&Utc)),
+                failure_count: sub.failure_count,
+            }),
+            None => Ok(WebhookStatus {
+                is_active: false,
+                webhook_id: None,
+                entity_names: vec![],
+                last_delivered_at: None,
+                failure_count: 0,
+            }),
+        }
+    }
+
     /// Get webhook event by ID
     async fn webhook_event(
         &self,
@@ -110,6 +149,25 @@ impl WebhookQueries {
 
         Ok(WebhookStatistics::from(stats))
     }
+}
+
+/// Webhook subscription status
+#[derive(Debug, Clone)]
+pub struct WebhookStatus {
+    pub is_active: bool,
+    pub webhook_id: Option<String>,
+    pub entity_names: Vec<String>,
+    pub last_delivered_at: Option<DateTime<Utc>>,
+    pub failure_count: i32,
+}
+
+#[Object]
+impl WebhookStatus {
+    async fn is_active(&self) -> bool { self.is_active }
+    async fn webhook_id(&self) -> Option<&str> { self.webhook_id.as_deref() }
+    async fn entity_names(&self) -> &[String] { &self.entity_names }
+    async fn last_delivered_at(&self) -> Option<DateTime<Utc>> { self.last_delivered_at }
+    async fn failure_count(&self) -> i32 { self.failure_count }
 }
 
 /// Webhook event

@@ -72,8 +72,18 @@ pub async fn intuit_webhook_handler(
             StatusCode::BAD_REQUEST
         })?;
 
+    // Extract realm_id from first event notification (all should be for same realm)
+    let realm_id = payload
+        .event_notifications
+        .first()
+        .map(|n| n.realm_id.clone())
+        .ok_or_else(|| {
+            tracing::error!("Webhook payload contains no event notifications");
+            StatusCode::BAD_REQUEST
+        })?;
+
     // Process webhook asynchronously
-    match processor.process_webhook(signature, payload, &verifier_token).await {
+    match processor.process_webhook(&realm_id, payload, signature).await {
         Ok(result) => {
             tracing::info!(
                 "Webhook processed successfully: {} events processed, {} events failed",

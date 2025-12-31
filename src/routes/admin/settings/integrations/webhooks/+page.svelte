@@ -25,8 +25,10 @@
 	} from '@lucide/svelte';
 	import { invalidate, goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { enhance } from '$app/forms';
 
-	let { data } = $props();
+	let { data, form } = $props();
+	let webhookStatus = $derived(data.webhookStatus);
 	let events = $derived(data.events);
 	let statistics = $derived(data.statistics);
 	let selectedEvent = $derived(data.selectedEvent);
@@ -35,6 +37,9 @@
 	let refreshing = $state(false);
 	let selectedStatus = $state('all');
 	let selectedEventType = $state('all');
+	let showRegisterDialog = $state(false);
+	let selectedEntities = $state(['Employee', 'Department']);
+	let isSubmitting = $state(false);
 
 	$effect(() => {
 		if ((filters as any).status) selectedStatus = (filters as any).status;
@@ -164,6 +169,138 @@
 		</Alert>
 	{/if}
 
+	{#if form?.error}
+		<Alert variant="destructive" class="mb-6">
+			<AlertCircle class="h-4 w-4" />
+			<AlertDescription>{form.error}</AlertDescription>
+		</Alert>
+	{/if}
+
+	{#if form?.success}
+		<Alert class="mb-6 border-green-200 bg-green-50">
+			<CheckCircle2 class="h-4 w-4 text-green-600" />
+			<AlertDescription class="text-green-800">{form.message}</AlertDescription>
+		</Alert>
+	{/if}
+
+	<!-- Webhook Status Card (only show when not viewing event details) -->
+	{#if !selectedEvent && webhookStatus}
+		<Card class="mb-6">
+			<CardHeader>
+				<div class="flex items-center justify-between">
+					<div>
+						<CardTitle class="flex items-center gap-2">
+							<Webhook class="h-5 w-5" />
+							Webhook Subscription Status
+						</CardTitle>
+						<CardDescription>
+							{webhookStatus.isActive
+								? 'Real-time event notifications are active'
+								: 'Configure webhooks to receive instant notifications'}
+						</CardDescription>
+					</div>
+					<div>
+						{#if webhookStatus.isActive}
+							<form method="POST" action="?/unregister" use:enhance>
+								<Button type="submit" variant="destructive" size="sm" disabled={isSubmitting}>
+									{isSubmitting ? 'Unregistering...' : 'Unregister Webhook'}
+								</Button>
+							</form>
+						{:else}
+							<Button onclick={() => (showRegisterDialog = !showRegisterDialog)} size="sm">
+								Register Webhook
+							</Button>
+						{/if}
+					</div>
+				</div>
+			</CardHeader>
+			<CardContent>
+				{#if webhookStatus.isActive}
+					<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+						<div>
+							<p class="text-sm text-muted-foreground">Status</p>
+							<div class="flex items-center gap-2 mt-1">
+								<div class="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
+								<p class="font-medium text-green-600">Active</p>
+							</div>
+						</div>
+						<div>
+							<p class="text-sm text-muted-foreground">Webhook ID</p>
+							<p class="font-mono text-sm mt-1">
+								{webhookStatus.webhookId || 'N/A'}
+							</p>
+						</div>
+						<div>
+							<p class="text-sm text-muted-foreground">Subscribed Entities</p>
+							<div class="flex flex-wrap gap-1 mt-1">
+								{#each webhookStatus.entityNames as entity}
+									<Badge variant="secondary" class="text-xs">{entity}</Badge>
+								{/each}
+							</div>
+						</div>
+						<div>
+							<p class="text-sm text-muted-foreground">Last Delivery</p>
+							<p class="text-sm mt-1">
+								{webhookStatus.lastDeliveredAt
+									? formatDate(webhookStatus.lastDeliveredAt)
+									: 'Never'}
+							</p>
+						</div>
+					</div>
+
+					{#if webhookStatus.failureCount > 0}
+						<Alert variant="destructive" class="mt-4">
+							<AlertCircle class="h-4 w-4" />
+							<AlertDescription>
+								{webhookStatus.failureCount} delivery failure(s) recorded
+							</AlertDescription>
+						</Alert>
+					{/if}
+				{:else if showRegisterDialog}
+					<form method="POST" action="?/register" use:enhance class="space-y-4 mt-4">
+						<div>
+							<p class="text-sm font-medium mb-3">Select entity types to subscribe to:</p>
+							<div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+								{#each ['Employee', 'Department', 'Customer'] as entity}
+									<label class="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/30">
+										<input
+											type="checkbox"
+											name="entityNames"
+											value={entity}
+											checked={selectedEntities.includes(entity)}
+											onchange={(e) => {
+												if (e.currentTarget.checked) {
+													selectedEntities = [...selectedEntities, entity];
+												} else {
+													selectedEntities = selectedEntities.filter((e) => e !== entity);
+												}
+											}}
+											class="rounded"
+										/>
+										<span class="text-sm font-medium">{entity}</span>
+									</label>
+								{/each}
+							</div>
+						</div>
+						<div class="flex gap-3">
+							<Button type="submit" disabled={isSubmitting || selectedEntities.length === 0}>
+								{isSubmitting ? 'Registering...' : 'Register Webhook'}
+							</Button>
+							<Button
+								type="button"
+								variant="outline"
+								onclick={() => (showRegisterDialog = false)}
+								disabled={isSubmitting}
+							>
+								Cancel
+							</Button>
+						</div>
+					</form>
+				{/if}
+			</CardContent>
+		</Card>
+	{/if}
+
 	{#if selectedEvent}
 		<!-- Event Detail View -->
 		<div class="space-y-6">
@@ -241,8 +378,21 @@
 						<Alert variant="destructive" class="mt-4">
 							<AlertCircle class="h-4 w-4" />
 							<AlertDescription>
-								<span class="font-medium">Processing Error:</span>
-								{selectedEvent.lastError}
+								<div class="flex items-center justify-between">
+									<div>
+										<span class="font-medium">Processing Error:</span>
+										{selectedEvent.lastError}
+									</div>
+									{#if selectedEvent.status === 'failed'}
+										<form method="POST" action="?/retry" use:enhance>
+											<input type="hidden" name="eventId" value={selectedEvent.id} />
+											<Button type="submit" size="sm" variant="outline" disabled={isSubmitting}>
+												<RotateCw class="h-4 w-4 mr-2" />
+												Retry
+											</Button>
+										</form>
+									{/if}
+								</div>
 							</AlertDescription>
 						</Alert>
 					{/if}
