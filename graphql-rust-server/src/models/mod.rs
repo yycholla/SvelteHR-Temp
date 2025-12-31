@@ -49,6 +49,7 @@ pub mod retry_history;
 pub mod sync_sessions;
 pub mod compliance_reports;
 pub mod report_schedules;
+pub mod payroll_sync_history;
 
 // Re-export generated entities for easy access
 pub use generated::*;

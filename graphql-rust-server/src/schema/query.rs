@@ -2203,6 +2203,11 @@ impl QueryRoot {
     async fn sync_health(&self) -> crate::schema::queries::SyncHealthQueries {
         crate::schema::queries::SyncHealthQueries
     }
+
+    /// Payroll queries for compensation data and sync status
+    async fn payroll(&self) -> crate::schema::queries::PayrollQueries {
+        crate::schema::queries::PayrollQueries
+    }
 }
 
 #[cfg(test)]

@@ -19,6 +19,7 @@ pub mod retry_service;
 pub mod compliance_reports;
 pub mod batching_engine;
 pub mod time_tracking_sync;
+pub mod payroll_service;
 
 pub use pagination::{
     paginate, paginate_cursor, encode_cursor, decode_cursor,
@@ -89,4 +90,8 @@ pub use batching_engine::{
 pub use time_tracking_sync::{
     TimeTrackingSync, SyncResult as TimeTrackingSyncResult,
     SyncStats as TimeTrackingSyncStats, QuickBooksTimeActivity,
+};
+pub use payroll_service::{
+    PayrollService, CompensationType, PaySchedule, SyncDirection as PayrollSyncDirection,
+    UpdateCompensationInput, PayrollItem, CompensationHistoryRecord, PayrollSyncStatus,
 };
