@@ -276,7 +276,8 @@
 						<div>
 							<p class="text-sm text-muted-foreground">Sync Direction</p>
 							<Badge variant="outline">
-								<svelte:component this={getDirectionIcon(syncStatus.syncDirection)} class="h-3 w-3 mr-1" />
+								{@const DirectionIcon = getDirectionIcon(syncStatus.syncDirection)}
+								<DirectionIcon class="h-3 w-3 mr-1" />
 								{syncStatus.syncDirection}
 							</Badge>
 						</div>
@@ -359,14 +360,16 @@
 										<Badge variant="outline">{entry.syncType}</Badge>
 									</TableCell>
 									<TableCell>
+										{@const DirectionIcon = getDirectionIcon(entry.direction)}
 										<Badge variant="secondary">
-											<svelte:component this={getDirectionIcon(entry.direction)} class="h-3 w-3 mr-1" />
+											<DirectionIcon class="h-3 w-3 mr-1" />
 											{entry.direction}
 										</Badge>
 									</TableCell>
 									<TableCell>
+										{@const StatusIcon = getStatusIcon(entry.status)}
 										<Badge variant={getStatusBadgeVariant(entry.status)}>
-											<svelte:component this={getStatusIcon(entry.status)} class="h-3 w-3 mr-1" />
+											<StatusIcon class="h-3 w-3 mr-1" />
 											{entry.status}
 										</Badge>
 									</TableCell>
@@ -429,6 +432,7 @@
 			<div>
 				<Label for="sync-direction">Default Sync Direction</Label>
 				<Select
+					type="single"
 					value={syncDirection as any}
 					onValueChange={(value: any) => {
 						syncDirection = value;
@@ -439,9 +443,10 @@
 					</SelectTrigger>
 					<SelectContent>
 						{#each directions as direction}
+							{@const Icon = direction.icon}
 							<SelectItem value={direction.value}>
 								<div class="flex items-center gap-2">
-									<svelte:component this={direction.icon} class="h-4 w-4" />
+									<Icon class="h-4 w-4" />
 									{direction.label}
 								</div>
 							</SelectItem>
@@ -476,6 +481,7 @@
 			<div>
 				<Label for="trigger-direction">Sync Direction</Label>
 				<Select
+					type="single"
 					value={selectedSyncDirection as any}
 					onValueChange={(value: any) => {
 						selectedSyncDirection = value;
@@ -486,9 +492,10 @@
 					</SelectTrigger>
 					<SelectContent>
 						{#each directions as direction}
+							{@const Icon = direction.icon}
 							<SelectItem value={direction.value}>
 								<div class="flex items-center gap-2">
-									<svelte:component this={direction.icon} class="h-4 w-4" />
+									<Icon class="h-4 w-4" />
 									{direction.label}
 								</div>
 							</SelectItem>

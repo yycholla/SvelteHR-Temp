@@ -210,8 +210,9 @@
 				</div>
 
 				<!-- Category Filter -->
-				<!-- svelte-ignore a11y-label-has-associated-control -->
+				<!-- svelte-ignore a11y_label_has_associated_control -->
 				<Select
+					type="single"
 					value={selectedCategory as any}
 					onValueChange={(value: any) => {
 						selectedCategory = value;
@@ -229,8 +230,9 @@
 				</Select>
 
 				<!-- Entity Type Filter -->
-				<!-- svelte-ignore a11y-label-has-associated-control -->
+				<!-- svelte-ignore a11y_label_has_associated_control -->
 				<Select
+					type="single"
 					value={selectedEntityType as any}
 					onValueChange={(value: any) => {
 						selectedEntityType = value;

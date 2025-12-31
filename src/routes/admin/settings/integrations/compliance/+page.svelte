@@ -227,6 +227,7 @@
 					<div class="flex items-center gap-4">
 						<div class="flex-1">
 							<Select
+								type="single"
 								value={selectedReportType as any}
 								onValueChange={(value: any) => handleReportTypeChange(value)}
 							>

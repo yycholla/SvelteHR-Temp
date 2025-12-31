@@ -349,6 +349,7 @@
 			<div>
 				<Label for="clear-entity-type">Entity Type</Label>
 				<Select
+					type="single"
 					value={selectedEntityType as any}
 					onValueChange={(value: any) => {
 						selectedEntityType = value;
@@ -398,6 +399,7 @@
 			<div>
 				<Label for="force-entity-type">Entity Type</Label>
 				<Select
+					type="single"
 					value={selectedForceEntityType as any}
 					onValueChange={(value: any) => {
 						selectedForceEntityType = value;

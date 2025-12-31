@@ -291,10 +291,10 @@
 				<Card.Content>
 					<div class="space-y-4">
 						{#each recentAudits as audit}
+							{@const StatusIcon = getStatusIcon(audit.status)}
 							<div class="flex items-center justify-between rounded-lg border p-4">
 								<div class="flex items-center gap-3">
-									<svelte:component
-										this={getStatusIcon(audit.status)}
+									<StatusIcon
 										class="h-5 w-5 {audit.status === 'passed'
 											? 'text-green-500'
 											: audit.status === 'action-required'

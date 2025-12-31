@@ -378,6 +378,7 @@
 				</CardHeader>
 				<CardContent>
 					<Select
+						type="single"
 						value={selectedEntityType as any}
 						onValueChange={(value: any) => {
 							selectedEntityType = value;

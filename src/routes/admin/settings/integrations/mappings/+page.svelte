@@ -340,6 +340,7 @@
 			<div class="flex gap-4 items-center">
 				<Label for="entityFilter">Filter by Entity Type</Label>
 				<Select
+					type="single"
 					value={entityTypeFilter as any}
 					onValueChange={(value: any) => {
 						entityTypeFilter = value === 'All' ? null : value;
@@ -401,8 +402,9 @@
 								<TableCell class="font-mono text-sm">{mapping.localField}</TableCell>
 								<TableCell class="font-mono text-sm">{mapping.quickbooksField}</TableCell>
 								<TableCell>
+									{@const DirectionIcon = getDirectionIcon(mapping.direction)}
 									<Badge variant={getDirectionBadgeVariant(mapping.direction)}>
-										<svelte:component this={getDirectionIcon(mapping.direction)} class="h-3 w-3 mr-1" />
+										<DirectionIcon class="h-3 w-3 mr-1" />
 										{mapping.direction}
 									</Badge>
 								</TableCell>
@@ -455,6 +457,7 @@
 			<div>
 				<Label for="create-entity-type">Entity Type</Label>
 				<Select
+					type="single"
 					value={selectedEntityType as any}
 					onValueChange={(value: any) => {
 						selectedEntityType = value;
@@ -478,6 +481,7 @@
 				<div>
 					<Label for="create-local-field">Local Field</Label>
 					<Select
+						type="single"
 						value={selectedLocalField as any}
 						onValueChange={(value: any) => {
 							selectedLocalField = value;
@@ -502,6 +506,7 @@
 				<div>
 					<Label for="create-qb-field">QuickBooks Field</Label>
 					<Select
+						type="single"
 						value={selectedQuickbooksField as any}
 						onValueChange={(value: any) => {
 							selectedQuickbooksField = value;
@@ -527,6 +532,7 @@
 			<div>
 				<Label for="create-direction">Sync Direction</Label>
 				<Select
+					type="single"
 					value={selectedDirection as any}
 					onValueChange={(value: any) => {
 						selectedDirection = value;
@@ -537,9 +543,10 @@
 					</SelectTrigger>
 					<SelectContent>
 						{#each directions as direction}
+							{@const Icon = direction.icon}
 							<SelectItem value={direction.value}>
 								<div class="flex items-center gap-2">
-									<svelte:component this={direction.icon} class="h-4 w-4" />
+									<Icon class="h-4 w-4" />
 									{direction.label}
 								</div>
 							</SelectItem>
@@ -605,6 +612,7 @@
 			<div>
 				<Label for="edit-qb-field">QuickBooks Field</Label>
 				<Select
+					type="single"
 					value={selectedQuickbooksField as any}
 					onValueChange={(value: any) => {
 						selectedQuickbooksField = value;
@@ -629,6 +637,7 @@
 			<div>
 				<Label for="edit-direction">Sync Direction</Label>
 				<Select
+					type="single"
 					value={selectedDirection as any}
 					onValueChange={(value: any) => {
 						selectedDirection = value;
@@ -639,9 +648,10 @@
 					</SelectTrigger>
 					<SelectContent>
 						{#each directions as direction}
+							{@const Icon = direction.icon}
 							<SelectItem value={direction.value}>
 								<div class="flex items-center gap-2">
-									<svelte:component this={direction.icon} class="h-4 w-4" />
+									<Icon class="h-4 w-4" />
 									{direction.label}
 								</div>
 							</SelectItem>

@@ -199,9 +199,10 @@
 						</SelectTrigger>
 						<SelectContent>
 							{#each syncDirections as direction}
+							{@const Icon = direction.icon}
 								<SelectItem value={direction.value}>
 									<div class="flex items-center gap-2">
-										<svelte:component this={direction.icon} class="h-4 w-4" />
+										<Icon class="h-4 w-4" />
 										{direction.label}
 									</div>
 								</SelectItem>
@@ -362,12 +363,12 @@
 						{:else}
 							{#each previewData.creates as change, idx}
 								{@const changeId = `create-${idx}`}
+								{@const ChangeIcon = getChangeIcon(change.changeType)}
 								<div class="border rounded-lg p-4">
 									<div class="flex items-start justify-between mb-2">
 										<div class="flex-1">
 											<div class="flex items-center gap-2 mb-1">
-												<svelte:component
-													this={getChangeIcon(change.changeType)}
+												<ChangeIcon
 													class="h-5 w-5 text-green-600"
 												/>
 												<p class="font-medium">{change.displayName}</p>
@@ -417,12 +418,12 @@
 						{:else}
 							{#each previewData.updates as change, idx}
 								{@const changeId = `update-${idx}`}
+								{@const ChangeIcon = getChangeIcon(change.changeType)}
 								<div class="border rounded-lg p-4">
 									<div class="flex items-start justify-between mb-2">
 										<div class="flex-1">
 											<div class="flex items-center gap-2 mb-1">
-												<svelte:component
-													this={getChangeIcon(change.changeType)}
+												<ChangeIcon
 													class="h-5 w-5 text-blue-600"
 												/>
 												<p class="font-medium">{change.displayName}</p>
@@ -483,12 +484,12 @@
 							</div>
 						{:else}
 							{#each previewData.deletes as change}
+								{@const ChangeIcon = getChangeIcon(change.changeType)}
 								<div class="border rounded-lg p-4 bg-red-50">
 									<div class="flex items-start justify-between">
 										<div class="flex-1">
 											<div class="flex items-center gap-2 mb-1">
-												<svelte:component
-													this={getChangeIcon(change.changeType)}
+												<ChangeIcon
 													class="h-5 w-5 text-red-600"
 												/>
 												<p class="font-medium">{change.displayName}</p>
