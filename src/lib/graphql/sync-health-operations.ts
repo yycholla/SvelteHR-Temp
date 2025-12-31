@@ -13,7 +13,7 @@ import { gql } from '@urql/svelte';
 export interface SyncHealthStatus {
 	uptimePercentage: number;
 	avgSyncDurationMs: number;
-	totalSyncs24h: number;
+	totalSyncs24H: number;
 	successRate: number;
 	errorRate: number;
 	lastSuccessfulSync: string | null;
@@ -53,7 +53,7 @@ export const SYNC_HEALTH_STATUS_QUERY = gql`
 			syncHealthStatus {
 				uptimePercentage
 				avgSyncDurationMs
-				totalSyncs24h
+				totalSyncs24H
 				successRate
 				errorRate
 				lastSuccessfulSync

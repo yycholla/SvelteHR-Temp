@@ -128,7 +128,7 @@
 						<div>
 							<p class="text-3xl font-bold">{formatPercentage(health.successRate)}</p>
 							<p class="text-sm text-muted-foreground mt-1">
-								{health.totalSyncs24h} syncs
+								{health.totalSyncs24H} syncs
 							</p>
 						</div>
 						<CheckCircle2 class="h-10 w-10 text-green-500" />
