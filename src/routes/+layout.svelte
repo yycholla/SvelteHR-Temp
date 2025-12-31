@@ -11,6 +11,8 @@
 	import { toast } from 'svelte-sonner';
 	import { type SessionTimeoutManager, initSessionTimeout } from '$lib/services/session-timeout';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
+	import CommandPalette from '$lib/components/CommandPalette.svelte';
+	import { initializeCommands } from '$lib/command-palette';
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { sidebarState } from '$lib/stores/sidebar.svelte';
@@ -58,6 +60,9 @@
 	onMount(() => {
 		mounted = true;
 		sidebarState.init();
+
+		// Initialize command palette commands
+		initializeCommands();
 
 		// Sync server-validated user to client store (non-blocking)
 		if (data?.user?.id) {
@@ -142,6 +147,11 @@
 <!-- Global confirm dialog -->
 {#if mounted}
 	<ConfirmDialog />
+{/if}
+
+<!-- Command Palette (Cmd+K / Ctrl+K) -->
+{#if mounted && data?.user}
+	<CommandPalette userPermissions={[]} />
 {/if}
 
 <!-- Global toast notifications -->
