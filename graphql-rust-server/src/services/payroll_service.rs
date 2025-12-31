@@ -8,7 +8,7 @@ use anyhow::{Context, Result};
 use chrono::Utc;
 use rust_decimal::Decimal;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Set,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -452,7 +452,7 @@ impl PayrollService {
     }
 
     /// Log sync history
-    async fn log_sync_history(&self, input: CreatePayrollSyncHistoryInput) -> Result<Uuid> {
+    async fn log_sync_history(&self, _input: CreatePayrollSyncHistoryInput) -> Result<Uuid> {
         // In a real implementation, this would insert into payroll_sync_history table
         // For now, return a new UUID
         Ok(Uuid::new_v4())
