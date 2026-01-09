@@ -116,3 +116,4 @@ graphql-rust-server/target
 recover-files.sh
 !src/routes/dashboard/activities/logs/
 !src/routes/dashboard/activities/logs/**
+.secrets

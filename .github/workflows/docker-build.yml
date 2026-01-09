@@ -223,6 +223,7 @@ jobs:
           build-args: |
             BUILDKIT_INLINE_CACHE=1
             NODE_ENV=production
+            PUBLIC_API_URL=${{ secrets.PUBLIC_API_URL || 'http://hr-graphql-rust:4000' }}
 
       - name: Calculate build time
         id: build-time

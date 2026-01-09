@@ -57,9 +57,13 @@ COPY --from=deps-all /app/node_modules ./node_modules
 # Copy source code
 COPY . .
 
-# Build argument for NODE_ENV
+# Build arguments
 ARG NODE_ENV=production
+ARG PUBLIC_API_URL=http://hr-graphql-rust:4000
+
+# Set environment variables for build
 ENV NODE_ENV=${NODE_ENV}
+ENV PUBLIC_API_URL=${PUBLIC_API_URL}
 
 # Build the application with Vite cache mount
 RUN --mount=type=cache,target=/app/node_modules/.vite \
