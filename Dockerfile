@@ -66,6 +66,8 @@ ENV NODE_ENV=${NODE_ENV}
 ENV PUBLIC_API_URL=${PUBLIC_API_URL}
 
 # Build the application with Vite cache mount
+# Increase Node.js heap size for large builds (8897 modules)
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN --mount=type=cache,target=/app/node_modules/.vite \
     npx vite build
 
