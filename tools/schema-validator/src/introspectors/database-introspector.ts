@@ -242,7 +242,9 @@ export class DatabaseIntrospector {
     //          await client.end()
 
     // For now, return empty result to allow tests to run
-    console.warn('DatabaseIntrospector: Using mock implementation. Connect to real DB in production.');
+    console.warn(
+      'DatabaseIntrospector: Using mock implementation. Connect to real DB in production.'
+    );
     return { rows: [] };
   }
 

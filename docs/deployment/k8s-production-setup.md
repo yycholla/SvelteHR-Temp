@@ -87,12 +87,12 @@ root-app (ArgoCD top-level application)
 
 ### Minimum Hardware Specifications
 
-| Component | Minimum | Recommended | Notes |
-|-----------|---------|-------------|-------|
-| **CPU** | 4 cores | 8 cores | For infrastructure + applications |
-| **RAM** | 16 GB | 32 GB | PostgreSQL, monitoring stack, applications |
-| **Disk** | 100 GB SSD | 250 GB SSD | For persistent volumes (PVs) + backups |
-| **Network** | 100 Mbps | 1 Gbps | For image pulls and external traffic |
+| Component   | Minimum    | Recommended | Notes                                      |
+| ----------- | ---------- | ----------- | ------------------------------------------ |
+| **CPU**     | 4 cores    | 8 cores     | For infrastructure + applications          |
+| **RAM**     | 16 GB      | 32 GB       | PostgreSQL, monitoring stack, applications |
+| **Disk**    | 100 GB SSD | 250 GB SSD  | For persistent volumes (PVs) + backups     |
+| **Network** | 100 Mbps   | 1 Gbps      | For image pulls and external traffic       |
 
 ### Operating System
 

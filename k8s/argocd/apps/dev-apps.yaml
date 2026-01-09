@@ -14,7 +14,7 @@ spec:
   # Source: Dev application manifests from Git
   source:
     repoURL: https://github.com/Mountain-Care-Rx/SvelteHR.git
-    targetRevision: main  # App definitions on main, apps track develop branch
+    targetRevision: main # App definitions on main, apps track develop branch
     path: k8s/argocd/applications/dev
 
   # Destination: Deploy to in-cluster
@@ -24,10 +24,10 @@ spec:
 
   # Sync policy: MANUAL (as requested)
   syncPolicy:
-    automated: null  # Manual sync for dev environment
+    automated: null # Manual sync for dev environment
 
     syncOptions:
-      - CreateNamespace=false  # argocd namespace already exists
+      - CreateNamespace=false # argocd namespace already exists
 
     retry:
       limit: 3

@@ -1,138 +1,96 @@
 // Server-side data loading for departments page
 // T036: Fix department management pages with standardized error handling
+// REFACTORED: Phase 1 Foundation - Integration Proof-of-Concept #3
+// Demonstrates: RBACDataLoader, UnifiedGraphQLClient, QueryParamExtractor
 
-import type { PageServerLoad, Actions } from './$types';
-import { error, redirect, fail } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import type { Actions, PageServerLoad } from './$types';
+import { fail } from '@sveltejs/kit';
+import { logger } from '$lib/utils/logger';
+import { PermissionChecks } from '$lib/server/rbac-utils';
+
+// Phase 1 Foundation Utilities
+import { RBACDataLoader } from '$lib/server/route-loaders';
+import { QueryParamExtractor } from '$lib/server/route-helpers/query-params';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies, url } = event;
+	const { url } = event;
 
-	// RBAC: Check department access permissions
-	PermissionChecks.departmentRead(event);
+	// Use RBACDataLoader - handles auth, session, permissions automatically
+	const loader = new RBACDataLoader(event, [
+		'departments:read',
+		'departments:read:self',
+		'departments:read:team',
+		'departments:read:all'
+	]);
 
-	// Import required models for standardized error handling
-	const { createErrorResponse } = await import('$lib/models/error-response');
+	return loader.loadWithClient(async (client) => {
+		// Use QueryParamExtractor for type-safe URL parameter extraction
+		const params = new QueryParamExtractor(url);
+		const { page, limit } = params.getPagination(20);
 
-	// Create simple user session object (session-based auth doesn't use JWT)
-	const userSession = {
-		userId: locals.user.id,
-		roles: [locals.user.role || 'employee'],
-		permissions: locals.permissions || [],
-		isAuthenticated: true,
-		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-		metadata: {
-			userEmail: locals.user.email,
-			displayName: locals.user.display_name || locals.user.email
-		},
-		toJSON: () => ({
-			userId: locals.user.id,
-			roles: [locals.user.role || 'employee'],
-			permissions: locals.permissions || [],
-			isAuthenticated: true,
-			expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-			metadata: {
-				userEmail: locals.user.email,
-				displayName: locals.user.display_name || locals.user.email
-			}
-		})
-	};
-
-	// Extract search parameters from URL
-	const searchTerm = url.searchParams.get('search') || '';
-	const parentFilter = url.searchParams.get('parent') || '';
-	const hasHeadFilter = url.searchParams.get('hasHead') || '';
-	const page = parseInt(url.searchParams.get('page') || '1', 10);
-	const limit = parseInt(url.searchParams.get('limit') || '20', 10);
-	const offset = (page - 1) * limit;
-
-	// Note: dataRequest is not needed for session-based auth
-	// We fetch data directly with session cookies
-
-	try {
-		// Make direct GraphQL calls to Rust GraphQL backend with session-based authentication
-		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
-		const graphqlEndpoint = getGraphQLEndpoint();
-
-		// Headers for session-based authentication
-		// Forward session cookies to Rust GraphQL backend
-		const cookieHeader = event.request.headers.get('cookie') || '';
-		const headers: Record<string, string> = {
-			'Content-Type': 'application/json',
-			'Cookie': cookieHeader // Forward all cookies for session authentication
+		// Extract all filter parameters
+		const filters = {
+			searchTerm: params.getString('search'),
+			parentFilter: params.getString('parent'),
+			hasHeadFilter: params.getString('hasHead')
 		};
 
-		console.log(
-			'[Departments] Using Rust GraphQL with session-based auth, user role:',
-			locals.user?.role
-		);
-		console.log('[Departments] Filters:', { searchTerm, parentFilter, hasHeadFilter });
+		logger.info('[Departments] Filters', filters);
 
-		// Load departments data with linked employee relationships
-		const departmentsResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetDepartments($limit: Int, $offset: Int) {
-						departments(limit: $limit, offset: $offset) {
-							id
-							name
-							description
-							managerId
-							parentDepartmentId
-							createdAt
-							updatedAt
-						}
-					}
-				`,
-				variables: {
-					limit: limit,
-					offset: offset
+		// GraphQL query definitions
+		const GET_DEPARTMENTS_QUERY = `
+			query GetDepartments($limit: Int, $offset: Int) {
+				departments(limit: $limit, offset: $offset) {
+					id
+					name
+					description
+					managerId
+					parentDepartmentId
+					createdAt
+					updatedAt
 				}
-			})
-		});
+			}
+		`;
 
-		const departmentsData = await departmentsResponse.json();
-		console.log('[Departments] Departments data:', departmentsData);
-
-		// Load users for department manager dropdown
-		const usersResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetUsers {
-						users(limit: 1000) {
-							id
-							displayName
-							email
-							departmentId
-							roles {
-								id
-								name
-							}
-							isActive
-						}
+		const GET_USERS_QUERY = `
+			query GetUsers {
+				users(limit: 1000) {
+					id
+					displayName
+					email
+					departmentId
+					roles {
+						id
+						name
 					}
-				`
-			})
+					isActive
+				}
+			}
+		`;
+
+		// Use UnifiedGraphQLClient to execute all queries
+		const departments = await client.query(
+			GET_DEPARTMENTS_QUERY,
+			{ limit, offset: (page - 1) * limit },
+			{
+				operationName: 'GetDepartments',
+				errorMessage: 'Failed to load departments',
+				dataPath: 'departments'
+			}
+		);
+
+		const users = await client.query(GET_USERS_QUERY, {}, {
+			operationName: 'GetUsers',
+			errorMessage: 'Failed to load users',
+			dataPath: 'users'
 		});
 
-		const usersData = await usersResponse.json();
+		logger.info('[Departments] Departments data loaded', {
+			count: departments?.length || 0
+		});
 
-		if (usersData.errors) {
-			console.error('[Departments] Users GraphQL errors:', usersData.errors);
-		}
-
-		// Keep all users for department counting (both active and inactive)
-		const users = usersData?.data?.users || [];
-
-		// Get standardized user permissions
-		const userPermissions = getUserPermissions(locals);
-
-		// Extract departments from Rust GraphQL response and enrich with related data
-		const departments = (departmentsData?.data?.departments || []).map((dept: any) => {
+		// Enrich departments with related data
+		const enrichedDepartments = (departments || []).map((dept: any) => {
 			// Find manager/department head from users list
 			const departmentHead = dept.managerId
 				? users.find((u: any) => u.id === dept.managerId)
@@ -144,11 +102,11 @@ export const load: PageServerLoad = async (event) => {
 
 			// Find parent department
 			const parentDepartment = dept.parentDepartmentId
-				? departmentsData?.data?.departments.find((d: any) => d.id === dept.parentDepartmentId)
+				? departments.find((d: any) => d.id === dept.parentDepartmentId)
 				: null;
 
 			// Count sub-departments
-			const subDepartments = (departmentsData?.data?.departments || []).filter(
+			const subDepartments = (departments || []).filter(
 				(d: any) => d.parentDepartmentId === dept.id
 			);
 
@@ -179,61 +137,31 @@ export const load: PageServerLoad = async (event) => {
 			};
 		});
 
-		// Return server-side loaded data
+		// Return standardized data structure
+		// RBACDataLoader already includes userSession and permissions
 		return {
-			user: userPermissions.user,
-			userSession: userSession.toJSON(), // Convert UserSession to serializable object
-			departments,
+			departments: enrichedDepartments,
 			users: users.filter((u: any) => u.isActive), // Return only active users for dropdowns
-			totalDepartments: departments.length, // Use actual count from results
+			totalDepartments: enrichedDepartments.length,
 			hierarchy: [], // For now, return empty hierarchy
 			filters: {
-				searchTerm,
-				parentFilter,
-				hasHeadFilter,
+				...filters,
 				page,
 				limit
-			},
-			// RBAC: Standardized permission checks
-			...userPermissions,
-			loadedAt: new Date().toISOString()
-		};
-	} catch (err) {
-		console.error('[Departments Load Error]', err);
-
-		// Create standardized error response
-		const errorResponse = createErrorResponse(
-			err instanceof Error ? err : new Error('Departments load failed'),
-			{
-				type: 'DATA_LOAD_ERROR',
-				userMessage: 'Unable to load departments. Please refresh the page or try again later.'
 			}
-		);
-
-		// Log error details for debugging
-		console.error('[Departments Error Details]', {
-			userId: locals.user?.id,
-			userRole: locals.user?.role,
-			searchTerm,
-			parentFilter,
-			hasHeadFilter,
-			error: errorResponse
-		});
-
-		// Throw SvelteKit error with user-friendly message
-		error(500, {
-        			message: 'Departments temporarily unavailable',
-        			details: errorResponse.userMessage
-        		});
-	}
+		};
+	});
 };
 
 export const actions: Actions = {
 	create: async (event) => {
-		const { request, locals } = event;
+		const { request } = event;
 
 		// RBAC: Check department write permissions
 		PermissionChecks.departmentWrite(event);
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		try {
 			const formData = await request.formData();
@@ -248,16 +176,10 @@ export const actions: Actions = {
 				});
 			}
 
-			// Make GraphQL mutation to create department with session-based authentication
-			const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+			// Make GraphQL mutation with session-based authentication
+			const { getGraphQLEndpoint, authenticatedGraphQLRequest } =
+				await import('$lib/server/api-url');
 			const graphqlEndpoint = getGraphQLEndpoint();
-
-			// Headers for session-based authentication
-			const cookieHeader = request.headers.get('cookie') || '';
-			const headers: Record<string, string> = {
-				'Content-Type': 'application/json',
-				'Cookie': cookieHeader
-			};
 
 			// Build input object
 			const input: any = {
@@ -266,34 +188,37 @@ export const actions: Actions = {
 				managerId: managerId || null
 			};
 
-			const createResponse = await fetch(graphqlEndpoint, {
-				method: 'POST',
-				headers,
-				body: JSON.stringify({
-					query: `
-						mutation CreateDepartment($input: CreateDepartmentInput!) {
-							departments {
-								createDepartment(input: $input) {
-									id
-									name
-									description
-									managerId
-								}
+			const createResponse = await authenticatedGraphQLRequest(
+				graphqlEndpoint,
+				`
+					mutation CreateDepartment($input: CreateDepartmentInput!) {
+						departments {
+							createDepartment(input: $input) {
+								id
+								name
+								description
+								managerId
 							}
 						}
-					`,
-					variables: { input }
-				})
-			});
+					}
+				`,
+				{ input },
+				request
+			);
 
-			console.log('[Departments] Department creation request sent');
+			logger.info('[Departments] Department creation request sent', {
+				name
+			});
 
 			const createData = await createResponse.json();
 
 			if (createData.errors) {
-				console.error('[Departments] GraphQL errors:', createData.errors);
+				const errorMsg = createData.errors[0]?.message || 'Failed to create department';
+				logger.error('[Departments] GraphQL errors', new Error(errorMsg), {
+					errors: createData.errors
+				});
 				return fail(500, {
-					error: createData.errors[0]?.message || 'Failed to create department'
+					error: errorMsg
 				});
 			}
 
@@ -305,12 +230,17 @@ export const actions: Actions = {
 				});
 			}
 
-			console.log(`[Departments] Successfully created department with ID: ${newDepartmentId}`);
+			logger.info('[Departments] Successfully created department', {
+				departmentId: newDepartmentId
+			});
 
 			// Return success (dialog will close and refresh the page)
 			return { success: true, departmentId: newDepartmentId };
 		} catch (err: any) {
-			console.error('[Departments] Error creating department:', err);
+			logger.error(
+				'[Departments] Error creating department',
+				err instanceof Error ? err : new Error(String(err))
+			);
 
 			return fail(500, {
 				error: 'Failed to create department. Please try again.'

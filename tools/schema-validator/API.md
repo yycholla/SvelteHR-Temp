@@ -82,6 +82,7 @@ constructor(config: SchemaValidatorConfig)
 ```
 
 **Parameters:**
+
 - `config`: Configuration object (see [SchemaValidatorConfig](#schemavalidatorconfig))
 
 **Example:**
@@ -93,8 +94,8 @@ const validator = new SchemaValidator({
   graphqlPaths: ['./src/**/*.ts', './src/**/*.svelte'],
   strict: true,
   typeMappings: {
-    'citext': 'String',
-    'geometry': 'JSON',
+    citext: 'String',
+    geometry: 'JSON',
   },
 });
 ```
@@ -108,6 +109,7 @@ Performs complete three-way validation of schema alignment.
 **Returns:** `Promise<ValidationResult>`
 
 **Workflow:**
+
 1. Parse GraphQL operations from source files
 2. Introspect PostgreSQL database schema
 3. Introspect GraphQL API schema
@@ -149,6 +151,7 @@ if (!result.passed) {
 Validates only specific files (incremental validation).
 
 **Parameters:**
+
 - `filePaths`: Array of file paths to validate
 
 **Returns:** `Promise<ValidationResult>`
@@ -167,7 +170,7 @@ watcher.on('change', async (filePath) => {
 
   if (!result.passed) {
     console.error(`❌ Validation failed for ${filePath}`);
-    result.errors.forEach(error => console.error(`  ${error.message}`));
+    result.errors.forEach((error) => console.error(`  ${error.message}`));
   } else {
     console.log(`✅ ${filePath} is aligned`);
   }
@@ -218,6 +221,7 @@ constructor(options?: TypeComparatorOptions)
 ```
 
 **Parameters:**
+
 - `options.customMappings`: Custom PostgreSQL to GraphQL type mappings
 - `options.strict`: Enable strict type checking (default: false)
 
@@ -243,6 +247,7 @@ const comparator = new TypeComparator({
 Check if GraphQL and PostgreSQL types are compatible.
 
 **Parameters:**
+
 - `graphqlType`: GraphQL type (e.g., "String", "Int!", "[String]")
 - `pgType`: PostgreSQL type (e.g., "text", "int4", "text[]")
 
@@ -262,12 +267,14 @@ const compatible4 = comparator.areTypesCompatible('String', 'int4'); // false
 Check if nullability constraints are compatible.
 
 **Parameters:**
+
 - `graphqlNullable`: GraphQL field is nullable
 - `dbNullable`: Database column is nullable
 
 **Returns:** `boolean` - true if nullability is compatible
 
 **Compatibility Rules:**
+
 - GraphQL nullable + DB nullable = ✅ Compatible
 - GraphQL nullable + DB non-null = ✅ Compatible (DB guarantees non-null)
 - GraphQL non-null + DB nullable = ❌ Incompatible (runtime errors possible)
@@ -294,6 +301,7 @@ const check4 = comparator.isNullabilityCompatible(false, false); // true
 Comprehensive three-way type comparison.
 
 **Parameters:**
+
 - `graphqlType`: GraphQL type from query
 - `dbType`: PostgreSQL column type
 - `apiType`: API field type
@@ -319,6 +327,7 @@ if (!result.compatible) {
 Generate suggestion for fixing type mismatches.
 
 **Parameters:**
+
 - `graphqlType`: Current GraphQL type
 - `dbType`: Database type
 
@@ -337,6 +346,7 @@ console.log(suggestion);
 Check if type requires custom scalar definition.
 
 **Parameters:**
+
 - `graphqlType`: GraphQL type name
 
 **Returns:** `boolean` - true if custom scalar is needed
@@ -356,6 +366,7 @@ comparator.requiresCustomScalar('Int'); // false
 Validate enum value alignment between database and API.
 
 **Parameters:**
+
 - `dbValues`: Enum values from database
 - `apiValues`: Enum values from API
 
@@ -379,6 +390,7 @@ console.log(`Extra in API: ${result.extraInApi}`); // []
 Add custom type mapping.
 
 **Parameters:**
+
 - `pgType`: PostgreSQL type
 - `graphqlType`: Corresponding GraphQL type
 
@@ -412,7 +424,7 @@ comparator.clearCustomMappings();
 #### Constructor
 
 ```typescript
-constructor()
+constructor();
 ```
 
 #### Methods
@@ -422,6 +434,7 @@ constructor()
 Parse GraphQL operations from multiple files.
 
 **Parameters:**
+
 - `filePaths`: Array of file paths to parse
 
 **Returns:** `Promise<Map<string, GraphQLOperation[]>>` - Map of file paths to operations
@@ -441,7 +454,7 @@ for (const [filePath, operations] of operationsMap.entries()) {
   console.log(`\nFile: ${filePath}`);
   operations.forEach((op) => {
     console.log(`  Operation: ${op.name} (${op.operationType})`);
-    console.log(`  Fields: ${op.selections.map(s => s.name).join(', ')}`);
+    console.log(`  Fields: ${op.selections.map((s) => s.name).join(', ')}`);
   });
 }
 ```
@@ -451,6 +464,7 @@ for (const [filePath, operations] of operationsMap.entries()) {
 Parse GraphQL operations from a single file.
 
 **Parameters:**
+
 - `filePath`: File path to parse
 
 **Returns:** `Promise<GraphQLOperation[]>` - Array of operations
@@ -490,6 +504,7 @@ constructor(connectionString: string)
 ```
 
 **Parameters:**
+
 - `connectionString`: PostgreSQL connection URL
 
 **Example:**
@@ -497,9 +512,7 @@ constructor(connectionString: string)
 ```typescript
 import { DatabaseIntrospector } from 'schema-validator';
 
-const introspector = new DatabaseIntrospector(
-  'postgresql://user:password@localhost:5432/mydb'
-);
+const introspector = new DatabaseIntrospector('postgresql://user:password@localhost:5432/mydb');
 ```
 
 #### Methods
@@ -531,6 +544,7 @@ console.log('Disconnected from database');
 Introspect database schema.
 
 **Parameters:**
+
 - `schemaName`: PostgreSQL schema name (default: 'public')
 
 **Returns:** `Promise<DatabaseColumn[]>` - Array of database columns
@@ -591,6 +605,7 @@ constructor(apiUrl: string, headers?: Record<string, string>)
 ```
 
 **Parameters:**
+
 - `apiUrl`: GraphQL endpoint URL
 - `headers`: Optional HTTP headers (e.g., Authorization)
 
@@ -599,13 +614,10 @@ constructor(apiUrl: string, headers?: Record<string, string>)
 ```typescript
 import { ApiIntrospector } from 'schema-validator';
 
-const introspector = new ApiIntrospector(
-  'http://localhost:8080/graphql',
-  {
-    'Authorization': `Bearer ${process.env.API_TOKEN}`,
-    'X-Custom-Header': 'value',
-  }
-);
+const introspector = new ApiIntrospector('http://localhost:8080/graphql', {
+  Authorization: `Bearer ${process.env.API_TOKEN}`,
+  'X-Custom-Header': 'value',
+});
 ```
 
 #### Methods
@@ -625,7 +637,7 @@ console.log('Query fields:');
 schema.queryFields.forEach((field) => {
   console.log(`  ${field.fieldName}: ${field.graphqlType}`);
   if (field.args.length > 0) {
-    console.log(`    Args: ${field.args.map(a => `${a.name}: ${a.type}`).join(', ')}`);
+    console.log(`    Args: ${field.args.map((a) => `${a.name}: ${a.type}`).join(', ')}`);
   }
 });
 
@@ -648,6 +660,7 @@ for (const [typeName, fields] of schema.types.entries()) {
 Get fields for a specific type.
 
 **Parameters:**
+
 - `typeName`: GraphQL type name
 
 **Returns:** `Promise<ApiField[]>` - Array of fields
@@ -698,11 +711,13 @@ interface SchemaValidatorConfig {
   computedFields?: string[] | undefined;
 
   /** Cache configuration */
-  cache?: {
-    enabled: boolean;
-    directory: string;
-    ttl: number; // seconds
-  } | undefined;
+  cache?:
+    | {
+        enabled: boolean;
+        directory: string;
+        ttl: number; // seconds
+      }
+    | undefined;
 }
 ```
 
@@ -792,10 +807,12 @@ interface DatabaseColumn {
   isPrimaryKey: boolean;
 
   /** Foreign key reference */
-  foreignKey?: {
-    table: string;
-    column: string;
-  } | undefined;
+  foreignKey?:
+    | {
+        table: string;
+        column: string;
+      }
+    | undefined;
 
   /** Default value */
   defaultValue?: string | undefined;
@@ -825,10 +842,12 @@ interface ApiField {
   args: ArgumentInfo[];
 
   /** Resolver location */
-  resolverLocation?: {
-    file: string;
-    line: number;
-  } | undefined;
+  resolverLocation?:
+    | {
+        file: string;
+        line: number;
+      }
+    | undefined;
 
   /** Field alias */
   alias?: string | undefined;
@@ -942,15 +961,15 @@ const validator = new SchemaValidator({
   strict: true,
   typeMappings: {
     // PostgreSQL extensions
-    'citext': 'String',        // Case-insensitive text
-    'ltree': 'String',         // Label tree
-    'geometry': 'JSON',        // PostGIS geometry
-    'geography': 'JSON',       // PostGIS geography
+    citext: 'String', // Case-insensitive text
+    ltree: 'String', // Label tree
+    geometry: 'JSON', // PostGIS geometry
+    geography: 'JSON', // PostGIS geography
 
     // Custom application types
-    'money': 'Float',
-    'email': 'String',
-    'url': 'String',
+    money: 'Float',
+    email: 'String',
+    url: 'String',
   },
 });
 ```
@@ -964,11 +983,11 @@ const validator = new SchemaValidator({
   graphqlPaths: ['./src/**/*.ts'],
   strict: true,
   computedFields: [
-    'User.fullName',           // first_name + last_name
-    'User.displayName',        // Formatted name
+    'User.fullName', // first_name + last_name
+    'User.displayName', // Formatted name
     'Employee.yearsOfService', // Calculated from hire_date
-    'Order.total',             // subtotal + tax + shipping
-    'Product.averageRating',   // Calculated from reviews
+    'Order.total', // subtotal + tax + shipping
+    'Product.averageRating', // Calculated from reviews
   ],
 });
 ```
@@ -978,14 +997,10 @@ const validator = new SchemaValidator({
 ```typescript
 // Validate only User type fields
 const result = await validator.validate();
-const userFields = result.alignments.filter(
-  (a) => a.fieldPath.startsWith('User.')
-);
+const userFields = result.alignments.filter((a) => a.fieldPath.startsWith('User.'));
 
 // Check for specific error types
-const missingDbFields = result.alignments.filter(
-  (a) => a.status === AlignmentStatus.MissingDb
-);
+const missingDbFields = result.alignments.filter((a) => a.status === AlignmentStatus.MissingDb);
 
 // Generate targeted report
 if (missingDbFields.length > 0) {
@@ -1017,9 +1032,7 @@ export function schemaValidatorPlugin(config: SchemaValidatorConfig): Plugin {
       const result = await validator.validate();
 
       if (!result.passed) {
-        const errorMsg = result.errors
-          .map((e) => `${e.fieldPath}: ${e.message}`)
-          .join('\n');
+        const errorMsg = result.errors.map((e) => `${e.fieldPath}: ${e.message}`).join('\n');
         this.error(`Schema validation failed:\n${errorMsg}`);
       }
     },
@@ -1072,10 +1085,7 @@ async function main() {
   const result = await validator.validate();
 
   // Write JSON report
-  await writeFile(
-    'schema-validation-report.json',
-    JSON.stringify(result, null, 2)
-  );
+  await writeFile('schema-validation-report.json', JSON.stringify(result, null, 2));
 
   // Write Markdown summary
   const markdown = generateMarkdownReport(result);
@@ -1111,14 +1121,22 @@ function generateMarkdownReport(result: ValidationResult): string {
 - Type mismatch: ${result.summary.byStatus.type_mismatch}
 - Nullability mismatch: ${result.summary.byStatus.nullability_mismatch}
 
-${result.errors.length > 0 ? `## Errors\n\n${result.errors.map((e) => `
+${
+  result.errors.length > 0
+    ? `## Errors\n\n${result.errors
+        .map(
+          (e) => `
 ### ${e.fieldPath}
 
 **Code:** \`${e.code}\`
 **Message:** ${e.message}
 **Location:** ${e.location.file}:${e.location.line}:${e.location.column}
 ${e.suggestion ? `\n**Suggestion:** ${e.suggestion}` : ''}
-`).join('\n')}` : ''}
+`
+        )
+        .join('\n')}`
+    : ''
+}
   `;
 }
 
@@ -1205,9 +1223,7 @@ async function validateWithRetry(
     }
   }
 
-  throw new Error(
-    `Validation failed after ${maxRetries} attempts: ${lastError?.message}`
-  );
+  throw new Error(`Validation failed after ${maxRetries} attempts: ${lastError?.message}`);
 }
 
 // Usage

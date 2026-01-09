@@ -14,7 +14,7 @@
  * Covers: FR-003, FR-014
  */
 
-import { test, expect, describe, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 const mockGraphQLClient = {
 	query: vi.fn(),

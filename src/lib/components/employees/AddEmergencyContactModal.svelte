@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
+	import { logger } from '$lib/utils/logger';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -26,7 +27,7 @@
 		isPrimary: boolean;
 	}
 
-	let {
+	const {
 		isOpen,
 		employeeId,
 		employeeName,
@@ -74,7 +75,7 @@
 
 		if (!phoneNumber.trim()) {
 			newErrors.phoneNumber = 'Phone number is required';
-		} else if (!/^[\d\s\-\(\)\+]+$/.test(phoneNumber)) {
+		} else if (!/^[\d\s\-()\\+]+$/.test(phoneNumber)) {
 			newErrors.phoneNumber = 'Invalid phone number format';
 		}
 
@@ -104,7 +105,7 @@
 			resetForm();
 			onClose();
 		} catch (error) {
-			console.error('Failed to save emergency contact:', error);
+			logger.error('Catch failed', error as Error);
 		}
 	}
 
@@ -196,14 +197,8 @@
 
 			<!-- Is Primary -->
 			<div class="flex items-center space-x-2">
-				<Checkbox.Root
-					id="contact-primary"
-					bind:checked={isPrimary}
-					disabled={isSubmitting}
-				/>
-				<Label for="contact-primary" class="font-normal">
-					Set as primary emergency contact
-				</Label>
+				<Checkbox.Root id="contact-primary" bind:checked={isPrimary} disabled={isSubmitting} />
+				<Label for="contact-primary" class="font-normal">Set as primary emergency contact</Label>
 			</div>
 
 			<!-- Actions -->

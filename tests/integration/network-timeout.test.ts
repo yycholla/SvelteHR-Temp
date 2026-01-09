@@ -13,7 +13,7 @@
  * - URQL timeout configuration and behavior
  */
 
-import { test, expect, describe, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { ErrorResponse } from '$lib/types/graphql-contracts';
 import { GRAPHQL_OPERATION_CONSTANTS } from '$lib/types/graphql-contracts';
 
@@ -235,7 +235,7 @@ describe('Network Timeout Integration', () => {
 
 			// Verify expected actions structure
 			expect(expectedActions.length).toBeGreaterThan(0);
-			expect(expectedActions.some((action) => action.isPrimary)).toBe(true);
+			expect(expectedActions.some((action: any) => action.isPrimary)).toBe(true);
 		});
 	});
 
@@ -338,14 +338,14 @@ describe('Network Timeout Integration', () => {
 
 		test('should handle URQL timeout exchange behavior', async () => {
 			// Arrange - URQL timeout exchange testing
-			const mockUrqlTimeoutExchange = vi.fn().mockImplementation((forward) => (ops$) => {
+			const mockUrqlTimeoutExchange = vi.fn().mockImplementation((forward: any) => (ops$: any) => {
 				// This would be the actual timeout exchange implementation
 				throw new Error('URQL timeout exchange not implemented');
 			});
 
 			// Expected to FAIL - timeout exchange not implemented
 			await expect(() => {
-				mockUrqlTimeoutExchange((op) => op);
+				mockUrqlTimeoutExchange((op: any) => op);
 			}).toThrow('URQL timeout exchange not implemented');
 		});
 
@@ -469,7 +469,7 @@ export const networkTimeoutTestHelpers = {
 	},
 
 	mockUrqlTimeoutExchange: () => {
-		return vi.fn().mockImplementation((forward) => (ops$) => {
+		return vi.fn().mockImplementation((forward: any) => (ops$: any) => {
 			// Mock timeout exchange behavior
 			throw new Error('Mock URQL timeout exchange - not implemented yet');
 		});

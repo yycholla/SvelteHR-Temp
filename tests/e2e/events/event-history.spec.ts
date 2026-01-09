@@ -10,7 +10,7 @@
  * - Pagination with "Load More" button
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Event History - Display and Pagination', () => {
 	test.beforeEach(async ({ page }) => {
@@ -78,7 +78,9 @@ test.describe('Event History - Display and Pagination', () => {
 				expect(newState).toBe('true');
 
 				// Verify content is visible
-				const accordionContent = accordionTrigger.locator('..').locator('[role="region"], div[data-state="open"]');
+				const accordionContent = accordionTrigger
+					.locator('..')
+					.locator('[role="region"], div[data-state="open"]');
 				await expect(accordionContent).toBeVisible();
 			}
 		}
@@ -152,7 +154,9 @@ test.describe('Event History - Display and Pagination', () => {
 
 	test('should display actor information (who made the change)', async ({ page }) => {
 		// Look for user information in history entries
-		const userInfo = page.locator('text=/changed by|by|made by/i, [class*="user-name"], [class*="actor"]').first();
+		const userInfo = page
+			.locator('text=/changed by|by|made by/i, [class*="user-name"], [class*="actor"]')
+			.first();
 		const userCount = await userInfo.count();
 
 		if (userCount > 0) {
@@ -206,7 +210,7 @@ test.describe('Event History - Display and Pagination', () => {
 
 	test('should hide "Load More" button when all entries loaded', async ({ page }) => {
 		// If Load More exists, click it until it disappears
-		let loadMoreButton = page.locator('button:has-text("Load More")').first();
+		const loadMoreButton = page.locator('button:has-text("Load More")').first();
 		let loadMoreCount = await loadMoreButton.count();
 		let clickCount = 0;
 		const maxClicks = 10; // Prevent infinite loop
@@ -228,7 +232,9 @@ test.describe('Event History - Display and Pagination', () => {
 
 	test('should show empty state when no history exists', async ({ page }) => {
 		// For a newly created event, history might be empty
-		const emptyState = page.locator('text=/No changes recorded|No history available|Event history is empty/');
+		const emptyState = page.locator(
+			'text=/No changes recorded|No history available|Event history is empty/'
+		);
 		const emptyCount = await emptyState.count();
 
 		if (emptyCount > 0) {

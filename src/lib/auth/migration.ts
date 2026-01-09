@@ -1,3 +1,5 @@
+import { logger } from '$lib/utils/logger';
+
 /**
  * DEPRECATED: JWT to Session Migration Utilities
  *
@@ -30,8 +32,8 @@ export function cleanupLegacyJWTTokens(): void {
 		localStorage.removeItem('jwt-expiry');
 		sessionStorage.removeItem('jwt-temp-token');
 
-		console.log('✅ Cleaned up legacy JWT tokens');
+		logger.info('✅ Cleaned up legacy JWT tokens');
 	} catch (error) {
-		console.warn('Failed to cleanup legacy JWT tokens:', error);
+		logger.warn('Failed to cleanup legacy JWT tokens:', { error: error as Error });
 	}
 }

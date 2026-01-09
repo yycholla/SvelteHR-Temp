@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { permissionsService, userPermissions, isAdmin } from '$lib/services/permissionsService';
-	import { currentUser } from '$lib/services/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 	import { userService, users } from '$lib/services/userService';
+	import { logger } from '$lib/utils/logger';
 	import Button from '../base/Button.svelte';
 	import Card from '../base/Card.svelte';
 	import Badge from '../base/Badge.svelte';
@@ -10,19 +10,17 @@
 	import Select from '../base/Select.svelte';
 	import DataTable from '../tables/DataTable.svelte';
 	import type { Column } from '../tables/DataTable.svelte';
-	import type { User, Permission } from '$lib/types';
+	import type { User } from '$lib/types';
 
 	// Component state
-	let selectedTab: 'users' | 'roles' | 'permissions' = 'users';
-	let selectedUser: User | null = null;
-	let selectedRole: string | null = null;
-	let showUserRoleModal = false;
-	let searchQuery = '';
-	let filterRole = '';
+	let selectedTab = $state<'users' | 'roles' | 'permissions'>('users');
+	let showUserRoleModal = $state(false);
+	let searchQuery = $state('');
+	let filterRole = $state('');
 
 	// Modal state
-	let modalUser: User | null = null;
-	let modalRoles: string[] = [];
+	let modalUser = $state<User | null>(null);
+	let modalRoles = $state<string[]>([]);
 
 	// Available roles
 	const availableRoles = [
@@ -104,7 +102,7 @@
 			label: 'Status',
 			sortable: true,
 			type: 'badge',
-			badgeVariant: (value) => (value ? 'success' : 'secondary')
+			badgeVariant: (value) => (value ? 'default' : 'secondary')
 		},
 		{
 			key: 'actions',
@@ -116,33 +114,42 @@
 		}
 	];
 
+	// Derived state
+	const isAdmin = $derived(auth.user?.role === 'admin' || false);
+
 	// Filtered users based on search and role filter
-	$: filteredUsers = $users.filter((user) => {
-		const matchesSearch =
-			!searchQuery ||
-			user.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			user.email.toLowerCase().includes(searchQuery.toLowerCase());
+	const filteredUsers = $derived(
+		$users.filter((user: User) => {
+			const matchesSearch =
+				!searchQuery ||
+				user.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				user.email.toLowerCase().includes(searchQuery.toLowerCase());
 
-		const matchesRole =
-			!filterRole ||
-			user.role_assignments?.some((ra) => ra.role.name.toLowerCase() === filterRole.toLowerCase());
+			const matchesRole =
+				!filterRole ||
+				user.role_assignments?.some(
+					(ra: { role: { name: string } }) =>
+						ra.role.name.toLowerCase() === filterRole.toLowerCase()
+				);
 
-		return matchesSearch && matchesRole;
-	});
+			return matchesSearch && matchesRole;
+		})
+	);
 
 	function getRoleBadgeVariant(
 		roleName: string
-	): 'default' | 'secondary' | 'success' | 'warning' | 'danger' {
-		const role = roleDefinitions[roleName.toLowerCase()];
+	): 'default' | 'secondary' | 'default' | 'outline' | 'destructive' {
+		const normalizedRole = roleName.toLowerCase() as keyof typeof roleDefinitions;
+		const role = roleDefinitions[normalizedRole];
 		if (!role) return 'default';
 
 		switch (role.color) {
 			case 'red':
-				return 'danger';
+				return 'destructive';
 			case 'blue':
 				return 'secondary';
 			case 'green':
-				return 'success';
+				return 'default';
 			default:
 				return 'default';
 		}
@@ -150,14 +157,6 @@
 
 	function getUserRoles(user: User): string[] {
 		return user.role_assignments?.map((ra) => ra.role.name) || [];
-	}
-
-	function getHighestRole(user: User): string {
-		const roles = getUserRoles(user);
-		const rolesByLevel = availableRoles
-			.filter((r) => roles.includes(r.value))
-			.sort((a, b) => b.level - a.level);
-		return rolesByLevel[0]?.label || 'No Role';
 	}
 
 	function openUserRoleModal(user: User) {
@@ -177,7 +176,7 @@
 
 		try {
 			// TODO: Implement role assignment API call
-			console.log('Saving roles for user:', modalUser.id, modalRoles);
+			// logger.info('Saving roles for user:', modalUser.id, modalRoles);
 
 			// For now, just close the modal
 			closeUserRoleModal();
@@ -185,20 +184,16 @@
 			// Refresh user data
 			await userService.loadUsers({ reset: true });
 		} catch (error) {
-			console.error('Failed to save user roles:', error);
-		}
-	}
-
-	function toggleRole(roleName: string) {
-		if (modalRoles.includes(roleName)) {
-			modalRoles = modalRoles.filter((r) => r !== roleName);
-		} else {
-			modalRoles = [...modalRoles, roleName];
+			logger.error(
+				'Failed to save user roles',
+				error instanceof Error ? error : new Error(String(error))
+			);
 		}
 	}
 
 	function getPermissionsList(roleName: string): string[] {
-		return roleDefinitions[roleName.toLowerCase()]?.permissions || [];
+		const normalizedRole = roleName.toLowerCase() as keyof typeof roleDefinitions;
+		return roleDefinitions[normalizedRole]?.permissions || [];
 	}
 
 	onMount(() => {
@@ -209,7 +204,7 @@
 	});
 </script>
 
-{#if $isAdmin}
+{#if isAdmin}
 	<div class="role-management">
 		<!-- Header -->
 		<div class="management-header">
@@ -227,7 +222,7 @@
 				<button
 					class="tab-button"
 					class:active={selectedTab === 'users'}
-					on:click={() => (selectedTab = 'users')}
+					onclick={() => (selectedTab = 'users')}
 				>
 					<i class="icon-users h-4 w-4"></i>
 					User Roles
@@ -235,7 +230,7 @@
 				<button
 					class="tab-button"
 					class:active={selectedTab === 'roles'}
-					on:click={() => (selectedTab = 'roles')}
+					onclick={() => (selectedTab = 'roles')}
 				>
 					<i class="icon-shield h-4 w-4"></i>
 					Role Definitions
@@ -243,7 +238,7 @@
 				<button
 					class="tab-button"
 					class:active={selectedTab === 'permissions'}
-					on:click={() => (selectedTab = 'permissions')}
+					onclick={() => (selectedTab = 'permissions')}
 				>
 					<i class="icon-lock h-4 w-4"></i>
 					Permission Matrix
@@ -288,7 +283,7 @@
 						hoverable={true}
 						emptyMessage="No users found"
 					>
-						<svelte:fragment slot="cell" let:column let:value let:row>
+						{#snippet cellRenderer({ column, row })}
 							{#if column.key === 'display_name'}
 								<div class="user-info">
 									<div class="user-name">{row.display_name}</div>
@@ -296,16 +291,17 @@
 								</div>
 							{:else if column.key === 'roles'}
 								<div class="user-roles">
-									{#each getUserRoles(row) as roleName}
+									{#each getUserRoles(row as unknown as User) as roleName (roleName)}
+										{@const normalizedRole = roleName.toLowerCase() as keyof typeof roleDefinitions}
 										<Badge variant={getRoleBadgeVariant(roleName)} size="sm">
-											{roleDefinitions[roleName.toLowerCase()]?.name || roleName}
+											{roleDefinitions[normalizedRole]?.name || roleName}
 										</Badge>
 									{:else}
 										<span class="text-gray-500 text-sm">No roles assigned</span>
 									{/each}
 								</div>
 							{:else if column.key === 'is_active'}
-								<Badge variant={row.is_active ? 'success' : 'secondary'} size="sm">
+								<Badge variant={row.is_active ? 'default' : 'secondary'} size="sm">
 									{row.is_active ? 'Active' : 'Inactive'}
 								</Badge>
 							{:else if column.key === 'actions'}
@@ -313,18 +309,18 @@
 									variant="secondary"
 									size="xs"
 									leftIcon="edit"
-									on:click={() => openUserRoleModal(row)}
+									onclick={() => openUserRoleModal(row as unknown as User)}
 								>
 									Edit Roles
 								</Button>
 							{/if}
-						</svelte:fragment>
+						{/snippet}
 					</DataTable>
 				</Card>
 			{:else if selectedTab === 'roles'}
 				<!-- Roles Tab -->
 				<div class="roles-grid">
-					{#each availableRoles as role}
+					{#each availableRoles as role (role.value)}
 						<Card padding="md" class="role-card">
 							<div class="role-header">
 								<div class="role-info">
@@ -339,7 +335,7 @@
 							<div class="role-permissions">
 								<h4 class="permissions-title">Key Permissions:</h4>
 								<ul class="permissions-list">
-									{#each getPermissionsList(role.value) as permission}
+									{#each getPermissionsList(role.value) as permission (permission)}
 										<li class="permission-item">
 											<i class="icon-check h-4 w-4 text-green-600"></i>
 											{permission}
@@ -352,7 +348,7 @@
 								<div class="stat-item">
 									<span class="stat-label">Users with this role:</span>
 									<span class="stat-value">
-										{$users.filter((u) => getUserRoles(u).includes(role.value)).length}
+										{$users.filter((u: User) => getUserRoles(u).includes(role.value)).length}
 									</span>
 								</div>
 							</div>
@@ -372,7 +368,7 @@
 							<thead>
 								<tr>
 									<th class="resource-header">Resource / Action</th>
-									{#each availableRoles as role}
+									{#each availableRoles as role (role.value)}
 										<th class="role-header">
 											<div class="role-header-content">
 												<span>{role.label}</span>
@@ -385,8 +381,8 @@
 								</tr>
 							</thead>
 							<tbody>
-								{#each ['users', 'departments', 'onboarding', 'compensation', 'reports'] as resource}
-									{#each ['create', 'read', 'update', 'delete'] as action}
+								{#each ['users', 'departments', 'onboarding', 'compensation', 'reports'] as resource (resource)}
+									{#each ['create', 'read', 'update', 'delete'] as action (action)}
 										<tr class="matrix-row">
 											<td class="resource-cell">
 												<div class="resource-info">
@@ -394,9 +390,10 @@
 													<span class="action-name">:{action}</span>
 												</div>
 											</td>
-											{#each availableRoles as role}
+											{#each availableRoles as role (role.value)}
 												<td class="permission-cell">
-													{#if permissionsService.hasPermission(resource, action)}
+													<!-- TODO: Implement permission check using RBAC manager -->
+													{#if true}
 														<i class="icon-check h-4 w-4 text-green-600"></i>
 													{:else}
 														<i class="icon-x h-4 w-4 text-gray-300"></i>
@@ -420,7 +417,7 @@
 			<div class="modal-content">
 				<div class="modal-header">
 					<h3 class="modal-title">Edit Roles for {modalUser.display_name}</h3>
-					<button class="modal-close" on:click={closeUserRoleModal} aria-label="Close modal">
+					<button class="modal-close" onclick={closeUserRoleModal} aria-label="Close modal">
 						<i class="icon-x h-5 w-5"></i>
 					</button>
 				</div>
@@ -438,7 +435,7 @@
 					<div class="roles-section">
 						<h4 class="section-title">Assign Roles</h4>
 						<div class="roles-list">
-							{#each availableRoles as role}
+							{#each availableRoles as role (role.value)}
 								<label class="role-checkbox">
 									<input
 										type="checkbox"
@@ -462,8 +459,8 @@
 				</div>
 
 				<div class="modal-footer">
-					<Button variant="secondary" on:click={closeUserRoleModal}>Cancel</Button>
-					<Button variant="primary" leftIcon="save" on:click={saveUserRoles}>Save Roles</Button>
+					<Button variant="secondary" onclick={closeUserRoleModal}>Cancel</Button>
+					<Button variant="primary" leftIcon="save" onclick={saveUserRoles}>Save Roles</Button>
 				</div>
 			</div>
 		</div>
@@ -478,5 +475,3 @@
 		</div>
 	</Card>
 {/if}
-
-

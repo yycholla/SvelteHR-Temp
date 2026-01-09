@@ -14,7 +14,7 @@
  * - Error message "Action cancelled due to logging failure"
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Types for the logging service (will be implemented in T028)
 interface ActivityLogInput {

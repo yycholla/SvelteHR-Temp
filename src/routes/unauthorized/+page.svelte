@@ -5,7 +5,7 @@
 	import { goto } from '$app/navigation';
 	import type { PageData } from './$types';
 
-	let { data }: { data: PageData } = $props();
+	const { data }: { data: PageData } = $props();
 
 	// Get the attempted URL from query params if available
 	const attemptedUrl = $derived($page.url.searchParams.get('from') || '/dashboard');
@@ -55,9 +55,7 @@
 		<h1 class="heading">Access Denied</h1>
 
 		<!-- Message -->
-		<p class="message">
-			You don't have permission to access this resource.
-		</p>
+		<p class="message">You don't have permission to access this resource.</p>
 
 		<!-- Details -->
 		<div class="details">

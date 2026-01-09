@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 	import { page } from '$app/stores';
 	import { auth } from '$lib/stores/auth.svelte';
 	import ToastContainer from '$lib/components/ui/toast-container.svelte';
@@ -10,8 +11,11 @@
 	import { toast } from 'svelte-sonner';
 	import { type SessionTimeoutManager, initSessionTimeout } from '$lib/services/session-timeout';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
+	import CommandPalette from '$lib/components/CommandPalette.svelte';
+	import { initializeCommands } from '$lib/command-palette';
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
+	import { sidebarState } from '$lib/stores/sidebar.svelte';
 
 	// Initialize PostGraphile GraphQL client for the entire app
 	setContextClient(createUrqlClient());
@@ -24,71 +28,41 @@
 	let sessionTimeoutManager: SessionTimeoutManager | null = null;
 	let showTimeoutBlur = $state(false);
 	let timeoutToastId: string | number | undefined;
-	let countdownInterval: ReturnType<typeof setInterval> | null = null;
 
 	// Simplify layout logic to prevent reactive re-mounting issues
 	const isAuthPage = $derived($page?.url?.pathname === '/login');
 	const isPublicPage = $derived(isAuthPage || $page?.url?.pathname === '/');
 
-	// Show timeout warning with Sonner
+	// Show/update timeout warning with Sonner
 	function showTimeoutSonner(remainingSeconds: number) {
 		const minutes = Math.floor(remainingSeconds / 60);
 		const seconds = remainingSeconds % 60;
 
+		// Create or update the toast with the same ID
 		timeoutToastId = toast.warning(
 			`Session expiring in ${minutes}:${seconds.toString().padStart(2, '0')}`,
 			{
+				id: timeoutToastId, // Reuse the same toast ID to update instead of creating new
 				description: 'Click anywhere or press Continue to stay logged in',
 				duration: Infinity,
 				action: {
 					label: 'Continue',
 					onClick: () => {
 						showTimeoutBlur = false;
-						if (countdownInterval) {
-							clearInterval(countdownInterval);
-							countdownInterval = null;
-						}
 						sessionTimeoutManager?.refreshSession();
 					}
 				}
 			}
 		);
-
-		// Update countdown every second
-		countdownInterval = setInterval(() => {
-			const remaining = sessionTimeoutManager?.getRemainingTime() || 0;
-			if (remaining <= 0) {
-				if (countdownInterval) {
-					clearInterval(countdownInterval);
-					countdownInterval = null;
-				}
-				return;
-			}
-
-			const min = Math.floor(remaining / 60);
-			const sec = remaining % 60;
-			toast.warning(`Session expiring in ${min}:${sec.toString().padStart(2, '0')}`, {
-				id: timeoutToastId,
-				description: 'Click anywhere or press Continue to stay logged in',
-				duration: Infinity,
-				action: {
-					label: 'Continue',
-					onClick: () => {
-						showTimeoutBlur = false;
-						if (countdownInterval) {
-							clearInterval(countdownInterval);
-							countdownInterval = null;
-						}
-						sessionTimeoutManager?.refreshSession();
-					}
-				}
-			});
-		}, 1000);
 	}
 
 	// Initialize session timeout on mount (only for authenticated pages)
 	onMount(() => {
 		mounted = true;
+		sidebarState.init();
+
+		// Initialize command palette commands
+		initializeCommands();
 
 		// Sync server-validated user to client store (non-blocking)
 		if (data?.user?.id) {
@@ -126,14 +100,10 @@
 								toast.dismiss(timeoutToastId);
 								timeoutToastId = undefined;
 							}
-							if (countdownInterval) {
-								clearInterval(countdownInterval);
-								countdownInterval = null;
-							}
 						}
 					},
 					onSessionRefreshed: () => {
-						console.log('⏱️ Session refreshed successfully');
+						logger.info('⏱️ Session refreshed successfully');
 					}
 				}
 			);
@@ -148,9 +118,6 @@
 		}
 		if (timeoutToastId) {
 			toast.dismiss(timeoutToastId);
-		}
-		if (countdownInterval) {
-			clearInterval(countdownInterval);
 		}
 	});
 </script>
@@ -180,6 +147,11 @@
 <!-- Global confirm dialog -->
 {#if mounted}
 	<ConfirmDialog />
+{/if}
+
+<!-- Command Palette (Cmd+K / Ctrl+K) -->
+{#if mounted && data?.user}
+	<CommandPalette userPermissions={data?.permissions || []} />
 {/if}
 
 <!-- Global toast notifications -->

@@ -1,17 +1,17 @@
 // T003: Unit tests for client-side permission utilities
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-	hasPermission,
-	hasAnyPermission,
+	buildPermissionContext,
+	buildPermissionString,
+	checkPermissionDetailed,
+	filterByPermission,
+	getHighestRoleLevel,
 	hasAllPermissions,
+	hasAnyPermission,
+	hasPermission,
 	hasRole,
 	hasRoleLevel,
-	getHighestRoleLevel,
-	checkPermissionDetailed,
-	buildPermissionContext,
-	parsePermission,
-	buildPermissionString,
-	filterByPermission
+	parsePermission
 } from './permissions';
 import { RoleHierarchy } from '$lib/types/permissions';
 import type { PermissionString, RoleName } from '$lib/types/permissions';
@@ -19,44 +19,44 @@ import type { PermissionString, RoleName } from '$lib/types/permissions';
 describe('hasPermission', () => {
 	it('should return true for exact permission match', () => {
 		const userPermissions: PermissionString[] = ['employees:read', 'departments:write'];
-		expect(auth.hasPermission(userPermissions, 'employees:read')).toBe(true);
-		expect(auth.hasPermission(userPermissions, 'departments:write')).toBe(true);
+		expect(hasPermission(userPermissions, 'employees:read')).toBe(true);
+		expect(hasPermission(userPermissions, 'departments:write')).toBe(true);
 	});
 
 	it('should return false when permission is missing', () => {
 		const userPermissions: PermissionString[] = ['employees:read'];
-		expect(auth.hasPermission(userPermissions, 'employees:write')).toBe(false);
-		expect(auth.hasPermission(userPermissions, 'departments:read')).toBe(false);
+		expect(hasPermission(userPermissions, 'employees:write')).toBe(false);
+		expect(hasPermission(userPermissions, 'departments:read')).toBe(false);
 	});
 
 	it('should return true for admin wildcard "*"', () => {
 		const userPermissions: PermissionString[] = ['*'];
-		expect(auth.hasPermission(userPermissions, 'employees:read')).toBe(true);
-		expect(auth.hasPermission(userPermissions, 'employees:write')).toBe(true);
-		expect(auth.hasPermission(userPermissions, 'departments:delete')).toBe(true);
+		expect(hasPermission(userPermissions, 'employees:read')).toBe(true);
+		expect(hasPermission(userPermissions, 'employees:write')).toBe(true);
+		expect(hasPermission(userPermissions, 'departments:delete')).toBe(true);
 	});
 
 	it('should return true for admin wildcard "*:*"', () => {
 		const userPermissions: PermissionString[] = ['*:*'];
-		expect(auth.hasPermission(userPermissions, 'employees:read')).toBe(true);
-		expect(auth.hasPermission(userPermissions, 'admin:write')).toBe(true);
+		expect(hasPermission(userPermissions, 'employees:read')).toBe(true);
+		expect(hasPermission(userPermissions, 'admin:write')).toBe(true);
 	});
 
 	it('should match scoped permissions to unscoped checks', () => {
 		const userPermissions: PermissionString[] = ['employees:read:team', 'departments:write:all'];
-		expect(auth.hasPermission(userPermissions, 'employees:read')).toBe(true);
-		expect(auth.hasPermission(userPermissions, 'departments:write')).toBe(true);
+		expect(hasPermission(userPermissions, 'employees:read')).toBe(true);
+		expect(hasPermission(userPermissions, 'departments:write')).toBe(true);
 	});
 
 	it('should NOT match different actions even with same resource', () => {
 		const userPermissions: PermissionString[] = ['employees:read:team'];
-		expect(auth.hasPermission(userPermissions, 'employees:write')).toBe(false);
-		expect(auth.hasPermission(userPermissions, 'employees:delete')).toBe(false);
+		expect(hasPermission(userPermissions, 'employees:write')).toBe(false);
+		expect(hasPermission(userPermissions, 'employees:delete')).toBe(false);
 	});
 
 	it('should handle empty permission arrays', () => {
 		const userPermissions: PermissionString[] = [];
-		expect(auth.hasPermission(userPermissions, 'employees:read')).toBe(false);
+		expect(hasPermission(userPermissions, 'employees:read')).toBe(false);
 	});
 });
 
@@ -75,9 +75,7 @@ describe('hasAnyPermission', () => {
 
 	it('should return true with admin wildcard', () => {
 		const userPermissions: PermissionString[] = ['*'];
-		expect(hasAnyPermission(userPermissions, ['employees:write', 'departments:delete'])).toBe(
-			true
-		);
+		expect(hasAnyPermission(userPermissions, ['employees:write', 'departments:delete'])).toBe(true);
 	});
 
 	it('should handle empty arrays', () => {
@@ -124,36 +122,30 @@ describe('hasRole', () => {
 			{ id: '1', name: 'Manager' as RoleName, level: RoleHierarchy.Manager },
 			{ id: '2', name: 'Employee' as RoleName, level: RoleHierarchy.Employee }
 		];
-		expect(auth.hasRole(userRoles, 'Manager')).toBe(true);
-		expect(auth.hasRole(userRoles, 'Employee')).toBe(true);
+		expect(hasRole(userRoles, 'Manager')).toBe(true);
+		expect(hasRole(userRoles, 'Employee')).toBe(true);
 	});
 
 	it('should return false if user does not have the specified role', () => {
-		const userRoles = [
-			{ id: '1', name: 'Employee' as RoleName, level: RoleHierarchy.Employee }
-		];
-		expect(auth.hasRole(userRoles, 'Admin')).toBe(false);
-		expect(auth.hasRole(userRoles, 'HR Manager')).toBe(false);
+		const userRoles = [{ id: '1', name: 'Employee' as RoleName, level: RoleHierarchy.Employee }];
+		expect(hasRole(userRoles, 'Admin')).toBe(false);
+		expect(hasRole(userRoles, 'HR Manager')).toBe(false);
 	});
 
 	it('should handle empty role arrays', () => {
-		expect(auth.hasRole([], 'Admin')).toBe(false);
+		expect(hasRole([], 'Admin')).toBe(false);
 	});
 });
 
 describe('hasRoleLevel', () => {
 	it('should return true if user has role level >= required', () => {
-		const userRoles = [
-			{ id: '1', name: 'Manager' as RoleName, level: RoleHierarchy.Manager }
-		];
+		const userRoles = [{ id: '1', name: 'Manager' as RoleName, level: RoleHierarchy.Manager }];
 		expect(hasRoleLevel(userRoles, RoleHierarchy.Employee)).toBe(true); // 50 >= 25
 		expect(hasRoleLevel(userRoles, RoleHierarchy.Manager)).toBe(true); // 50 >= 50
 	});
 
 	it('should return false if user has role level < required', () => {
-		const userRoles = [
-			{ id: '1', name: 'Employee' as RoleName, level: RoleHierarchy.Employee }
-		];
+		const userRoles = [{ id: '1', name: 'Employee' as RoleName, level: RoleHierarchy.Employee }];
 		expect(hasRoleLevel(userRoles, RoleHierarchy.Manager)).toBe(false); // 25 < 50
 		expect(hasRoleLevel(userRoles, RoleHierarchy.Admin)).toBe(false); // 25 < 100
 	});
@@ -186,9 +178,7 @@ describe('getHighestRoleLevel', () => {
 	});
 
 	it('should return single role level', () => {
-		const userRoles = [
-			{ id: '1', name: 'Manager' as RoleName, level: RoleHierarchy.Manager }
-		];
+		const userRoles = [{ id: '1', name: 'Manager' as RoleName, level: RoleHierarchy.Manager }];
 		expect(getHighestRoleLevel(userRoles)).toBe(RoleHierarchy.Manager);
 	});
 });

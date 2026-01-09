@@ -34,26 +34,26 @@ Reusable fragments reduce duplication and enable incremental loading:
 
 ```typescript
 // Minimal task fields (65% payload reduction)
-TASK_CORE_FRAGMENT
+TASK_CORE_FRAGMENT;
 
 // Task with assignee (40% payload reduction)
-TASK_WITH_ASSIGNEE_FRAGMENT
+TASK_WITH_ASSIGNEE_FRAGMENT;
 
 // Full task data (baseline)
-TASK_FULL_FRAGMENT
+TASK_FULL_FRAGMENT;
 ```
 
 #### 2. Context-Specific Queries
 
 Different queries for different use cases:
 
-| Query | Use Case | Payload Reduction | Target Time |
-|-------|----------|-------------------|-------------|
-| `GET_TASKS_MINIMAL` | Task lists, dashboards | 65% | 100ms |
-| `GET_TASKS_WITH_ASSIGNEES` | Lists with user info | 40% | 200ms |
-| `GET_TASK_DETAIL` | Detail pages | 0% (baseline) | 300ms |
-| `GET_TASK_HIERARCHY_SHALLOW` | Hierarchy views | 30% | 400ms |
-| `GET_MY_TASKS_OPTIMIZED` | Personal dashboard | 50% | 150ms |
+| Query                        | Use Case               | Payload Reduction | Target Time |
+| ---------------------------- | ---------------------- | ----------------- | ----------- |
+| `GET_TASKS_MINIMAL`          | Task lists, dashboards | 65%               | 100ms       |
+| `GET_TASKS_WITH_ASSIGNEES`   | Lists with user info   | 40%               | 200ms       |
+| `GET_TASK_DETAIL`            | Detail pages           | 0% (baseline)     | 300ms       |
+| `GET_TASK_HIERARCHY_SHALLOW` | Hierarchy views        | 30%               | 400ms       |
+| `GET_MY_TASKS_OPTIMIZED`     | Personal dashboard     | 50%               | 150ms       |
 
 #### 3. Batch Operations
 
@@ -61,7 +61,7 @@ Single queries replace multiple round-trips:
 
 ```typescript
 // Instead of N queries for N tasks
-GET_TASKS_STATUS_BATCH // 1 query for N tasks
+GET_TASKS_STATUS_BATCH; // 1 query for N tasks
 ```
 
 ### Usage Examples
@@ -71,10 +71,10 @@ import { selectOptimalQuery, TASK_QUERY_BUDGETS } from '$lib/graphql/tasks-query
 
 // Automatic query selection based on requirements
 const hint = {
-  requiredFields: ['core', 'assignee'],
-  expectedSize: 'medium',
-  timeSensitive: false,
-  cacheStrategy: 'cache-first'
+	requiredFields: ['core', 'assignee'],
+	expectedSize: 'medium',
+	timeSensitive: false,
+	cacheStrategy: 'cache-first'
 };
 
 const { query, estimatedPayloadReduction, cachePolicy } = selectOptimalQuery(hint);
@@ -116,12 +116,12 @@ Intelligent caching with Stale-While-Revalidate (SWR) pattern provides:
 
 Different TTLs for different data types:
 
-| Data Type | TTL | Stale Time | Background Refresh |
-|-----------|-----|------------|-------------------|
-| Task Lists | 3min | 1min | ✅ |
-| Task Detail | 10min | 5min | ✅ |
-| Statistics | 2min | 30s | ✅ |
-| My Tasks | 5min | 2min | ✅ |
+| Data Type   | TTL   | Stale Time | Background Refresh |
+| ----------- | ----- | ---------- | ------------------ |
+| Task Lists  | 3min  | 1min       | ✅                 |
+| Task Detail | 10min | 5min       | ✅                 |
+| Statistics  | 2min  | 30s        | ✅                 |
+| My Tasks    | 5min  | 2min       | ✅                 |
 
 ### SWR Pattern
 
@@ -145,13 +145,13 @@ import { taskCache, TASK_CACHE_CONFIGS } from '$lib/stores/task-cache';
 
 // Get task with SWR
 const task = await taskCache.get(
-  'GetTaskDetail',
-  async () => {
-    const response = await fetch(`/api/tasks/${taskId}`);
-    return response.json();
-  },
-  { taskId },
-  TASK_CACHE_CONFIGS.taskDetail
+	'GetTaskDetail',
+	async () => {
+		const response = await fetch(`/api/tasks/${taskId}`);
+		return response.json();
+	},
+	{ taskId },
+	TASK_CACHE_CONFIGS.taskDetail
 );
 ```
 
@@ -162,13 +162,13 @@ import { createCachedTaskStore } from '$lib/stores/task-cache';
 
 // Create reactive cached store
 const myTasks = createCachedTaskStore(
-  'GetMyTasks',
-  async () => {
-    const response = await fetch('/api/tasks/my-tasks');
-    return response.json();
-  },
-  { userId },
-  TASK_CACHE_CONFIGS.myTasks
+	'GetMyTasks',
+	async () => {
+		const response = await fetch('/api/tasks/my-tasks');
+		return response.json();
+	},
+	{ userId },
+	TASK_CACHE_CONFIGS.myTasks
 );
 
 // Use in component
@@ -184,9 +184,7 @@ import { optimisticUpdate } from '$lib/stores/task-cache';
 
 // Update cache before server response
 optimisticUpdate('GetMyTasks:userId:123', (tasks) => {
-  return tasks.map(t =>
-    t.id === taskId ? { ...t, status: 'Completed' } : t
-  );
+	return tasks.map((t) => (t.id === taskId ? { ...t, status: 'Completed' } : t));
 });
 
 // Then perform mutation
@@ -200,10 +198,10 @@ import { preloadTask, preloadMyTasks } from '$lib/stores/task-cache';
 
 // Preload data before navigation
 onNavigate(({ to }) => {
-  if (to?.route.id === '/tasks/[id]') {
-    const taskId = to.params.id;
-    preloadTask(taskId); // Non-blocking preload
-  }
+	if (to?.route.id === '/tasks/[id]') {
+		const taskId = to.params.id;
+		preloadTask(taskId); // Non-blocking preload
+	}
 });
 ```
 
@@ -269,9 +267,9 @@ BUNDLE_PERFORMANCE_BUDGETS = {
 
 ```typescript
 import {
-  analyzeBundlePerformance,
-  logBundleAnalysis,
-  checkPerformanceBudgets
+	analyzeBundlePerformance,
+	logBundleAnalysis,
+	checkPerformanceBudgets
 } from '$lib/performance/bundle-optimizer';
 
 // Analyze current bundle
@@ -297,7 +295,7 @@ logBundleAnalysis();
 // Check budget compliance
 const budget = checkPerformanceBudgets();
 if (!budget.passed) {
-  console.warn('Budget violations:', budget.violations);
+	console.warn('Budget violations:', budget.violations);
 }
 ```
 
@@ -307,10 +305,10 @@ if (!budget.passed) {
 import { getChunkOptimizationRecommendations } from '$lib/performance/bundle-optimizer';
 
 const recommendations = getChunkOptimizationRecommendations();
-recommendations.forEach(rec => {
-  console.log(`${rec.chunk}: ${rec.issue}`);
-  console.log(`  Recommendation: ${rec.recommendation}`);
-  console.log(`  Est. Reduction: ${rec.estimatedReduction} bytes`);
+recommendations.forEach((rec) => {
+	console.log(`${rec.chunk}: ${rec.issue}`);
+	console.log(`  Recommendation: ${rec.recommendation}`);
+	console.log(`  Est. Reduction: ${rec.estimatedReduction} bytes`);
 });
 ```
 
@@ -322,8 +320,8 @@ Add to your app layout:
 import { initBundleOptimization } from '$lib/performance/bundle-optimizer';
 
 if (browser && dev) {
-  initBundleOptimization();
-  // Automatically logs analysis and recommendations on page load
+	initBundleOptimization();
+	// Automatically logs analysis and recommendations on page load
 }
 ```
 
@@ -337,15 +335,15 @@ Lazy loading defers loading of heavy components until needed, reducing initial b
 
 ### Lazy-Loaded Components
 
-| Component | Size | Load Time | Trigger |
-|-----------|------|-----------|---------|
-| TaskForm | 45 KB | 150ms | Create/Edit button click |
-| TaskHierarchy | 30 KB | 100ms | Hierarchy tab click |
-| TaskDependencies | 55 KB | 200ms | Dependencies tab click |
-| TaskAuditTrail | 25 KB | 80ms | Audit tab click |
-| LinkedResources | 20 KB | 70ms | Resources tab click |
-| SubtaskProgress | 15 KB | 50ms | Progress chart load |
-| TaskFilters | 35 KB | 120ms | Filter panel open |
+| Component        | Size  | Load Time | Trigger                  |
+| ---------------- | ----- | --------- | ------------------------ |
+| TaskForm         | 45 KB | 150ms     | Create/Edit button click |
+| TaskHierarchy    | 30 KB | 100ms     | Hierarchy tab click      |
+| TaskDependencies | 55 KB | 200ms     | Dependencies tab click   |
+| TaskAuditTrail   | 25 KB | 80ms      | Audit tab click          |
+| LinkedResources  | 20 KB | 70ms      | Resources tab click      |
+| SubtaskProgress  | 15 KB | 50ms      | Progress chart load      |
+| TaskFilters      | 35 KB | 120ms     | Filter panel open        |
 
 **Total Savings:** ~225 KB deferred from initial bundle
 
@@ -355,19 +353,19 @@ Lazy loading defers loading of heavy components until needed, reducing initial b
 
 ```svelte
 <script lang="ts">
-import { TaskComponents } from '$lib/performance/bundle-optimizer';
+	import { TaskComponents } from '$lib/performance/bundle-optimizer';
 
-let showForm = false;
-let TaskForm;
+	let showForm = false;
+	let TaskForm;
 
-async function openTaskForm() {
-  showForm = true;
-  TaskForm = await TaskComponents.TaskForm(); // Dynamic import
-}
+	async function openTaskForm() {
+		showForm = true;
+		TaskForm = await TaskComponents.TaskForm(); // Dynamic import
+	}
 </script>
 
 {#if showForm}
-  <svelte:component this={TaskForm} />
+	<svelte:component this={TaskForm} />
 {/if}
 ```
 
@@ -378,9 +376,9 @@ import { lazyLoadBatch } from '$lib/performance/bundle-optimizer';
 
 // Load multiple components in parallel
 const components = await lazyLoadBatch({
-  TaskForm: () => import('$lib/components/tasks/TaskForm.svelte'),
-  TaskFilters: () => import('$lib/components/tasks/TaskFilters.svelte'),
-  TaskList: () => import('$lib/components/tasks/TaskList.svelte')
+	TaskForm: () => import('$lib/components/tasks/TaskForm.svelte'),
+	TaskFilters: () => import('$lib/components/tasks/TaskFilters.svelte'),
+	TaskList: () => import('$lib/components/tasks/TaskList.svelte')
 });
 
 // Use loaded components
@@ -394,7 +392,7 @@ import { preloadComponent } from '$lib/performance/bundle-optimizer';
 
 // Preload on hover (anticipatory loading)
 function handleMouseEnter() {
-  preloadComponent(() => import('$lib/components/tasks/TaskForm.svelte'));
+	preloadComponent(() => import('$lib/components/tasks/TaskForm.svelte'));
 }
 ```
 
@@ -405,8 +403,8 @@ import { preloadCriticalTaskComponents } from '$lib/performance/bundle-optimizer
 
 // Preload commonly used components during idle time
 onMount(() => {
-  preloadCriticalTaskComponents();
-  // Preloads: TaskForm, TaskFilters
+	preloadCriticalTaskComponents();
+	// Preloads: TaskForm, TaskFilters
 });
 ```
 
@@ -416,14 +414,14 @@ onMount(() => {
 
 ### Target Metrics
 
-| Metric | Target | Current | Status |
-|--------|--------|---------|--------|
-| Initial Load | < 2s | 1.4s | ✅ |
-| Time to Interactive | < 3s | 2.1s | ✅ |
-| Task List Load | < 200ms | 145ms | ✅ |
-| Task Detail Load | < 300ms | 215ms | ✅ |
-| Cache Hit Rate | > 80% | 87% | ✅ |
-| Bundle Size | < 500 KB | 378 KB | ✅ |
+| Metric              | Target   | Current | Status |
+| ------------------- | -------- | ------- | ------ |
+| Initial Load        | < 2s     | 1.4s    | ✅     |
+| Time to Interactive | < 3s     | 2.1s    | ✅     |
+| Task List Load      | < 200ms  | 145ms   | ✅     |
+| Task Detail Load    | < 300ms  | 215ms   | ✅     |
+| Cache Hit Rate      | > 80%    | 87%     | ✅     |
+| Bundle Size         | < 500 KB | 378 KB  | ✅     |
 
 ### Monitoring
 

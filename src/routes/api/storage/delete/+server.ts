@@ -1,7 +1,8 @@
+import { logger } from '$lib/utils/logger';
 // Storage delete API endpoint (Feature 024)
 // DELETE /api/storage/delete - Delete encrypted file data
 
-import { json, error } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
 export const DELETE: RequestHandler = async ({ request, locals }) => {
@@ -28,12 +29,11 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 		// DELETE FROM hr_public.encrypted_file_storage
 		// WHERE storage_path = ? AND uploaded_by = ?
 
-		console.log(`File deleted: ${storagePath} by user ${locals.user.id}`);
+		logger.info(`File deleted: ${storagePath} by user ${locals.user.id}`);
 
 		return json({ success: true });
-
 	} catch (err) {
-		console.error('File deletion error:', err);
+		logger.error('File deletion error:', err as Error);
 
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err;

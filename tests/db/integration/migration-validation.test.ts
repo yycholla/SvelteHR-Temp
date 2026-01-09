@@ -14,10 +14,10 @@
  * This validates the complete migration validation workflow.
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { Client } from 'pg';
 import { spawn } from 'child_process';
-import { existsSync, readFileSync, mkdirSync, rmSync, writeFileSync, readdirSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { createHash } from 'crypto';
 
@@ -126,10 +126,7 @@ describe('Integration: Migration Validation Error Detection', () => {
 
 	it('should detect duplicate sequence numbers (DUPLICATE_SEQUENCE)', async () => {
 		// Create duplicate sequence
-		writeFileSync(
-			join(TEST_MIGRATIONS_DIR, '20251003_001_duplicate_sequence.sql'),
-			'SELECT 1;'
-		);
+		writeFileSync(join(TEST_MIGRATIONS_DIR, '20251003_001_duplicate_sequence.sql'), 'SELECT 1;');
 
 		const result = await runCommand('tsx', [
 			VALIDATE_CLI_PATH,
@@ -148,10 +145,7 @@ describe('Integration: Migration Validation Error Detection', () => {
 
 	it('should warn on large sequence gaps (SEQUENCE_GAP)', async () => {
 		// Create large gap (003 → 010)
-		writeFileSync(
-			join(TEST_MIGRATIONS_DIR, '20251003_010_large_gap.sql'),
-			'SELECT 1;'
-		);
+		writeFileSync(join(TEST_MIGRATIONS_DIR, '20251003_010_large_gap.sql'), 'SELECT 1;');
 
 		const result = await runCommand('tsx', [
 			VALIDATE_CLI_PATH,
@@ -171,10 +165,13 @@ describe('Integration: Migration Validation Error Detection', () => {
 		const originalContent = readFileSync(migrationPath, 'utf-8');
 		const originalChecksum = createHash('sha256').update(originalContent).digest('hex');
 
-		await testClient.query(`
+		await testClient.query(
+			`
 			INSERT INTO schema_migrations (filename, checksum, applied_by, execution_time_ms)
 			VALUES ($1, $2, 'test_user', 100)
-		`, ['20251003_001_create_users_table.sql', originalChecksum]);
+		`,
+			['20251003_001_create_users_table.sql', originalChecksum]
+		);
 
 		// Modify the migration file
 		writeFileSync(
@@ -270,10 +267,7 @@ describe('Integration: Migration Validation Error Detection', () => {
 
 	it('should fail on warnings in strict mode', async () => {
 		// Create gap (warning in normal mode, error in strict mode)
-		writeFileSync(
-			join(TEST_MIGRATIONS_DIR, '20251003_010_gap.sql'),
-			'SELECT 1;'
-		);
+		writeFileSync(join(TEST_MIGRATIONS_DIR, '20251003_010_gap.sql'), 'SELECT 1;');
 
 		const normalResult = await runCommand('tsx', [
 			VALIDATE_CLI_PATH,
@@ -299,14 +293,8 @@ describe('Integration: Migration Validation Error Detection', () => {
 	it('should detect multiple error types in single validation run', async () => {
 		// Create multiple invalid migrations
 		writeFileSync(join(TEST_MIGRATIONS_DIR, 'invalid_name.sql'), 'SELECT 1;');
-		writeFileSync(
-			join(TEST_MIGRATIONS_DIR, '20251003_001_duplicate.sql'),
-			'SELECT 1;'
-		);
-		writeFileSync(
-			join(TEST_MIGRATIONS_DIR, '20251003_005_Invalid_Uppercase.sql'),
-			'SELECT 1;'
-		);
+		writeFileSync(join(TEST_MIGRATIONS_DIR, '20251003_001_duplicate.sql'), 'SELECT 1;');
+		writeFileSync(join(TEST_MIGRATIONS_DIR, '20251003_005_Invalid_Uppercase.sql'), 'SELECT 1;');
 
 		const result = await runCommand('tsx', [
 			VALIDATE_CLI_PATH,

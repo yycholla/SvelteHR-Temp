@@ -6,84 +6,83 @@
  * MUST FAIL until EventCreateDialog component is implemented.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { EventCreateDialogProps } from '$lib/components/events/EventCreateDialog.svelte';
 
 describe('EventCreateDialog Contract', () => {
-	it('should accept required props: open, onClose, onEventCreated', () => {
+	it('should accept required props: isOpen, onClose, onSuccess', () => {
 		const props: EventCreateDialogProps = {
-			open: true,
+			isOpen: true,
 			onClose: () => console.log('Dialog closed'),
-			onEventCreated: (eventId: string) => console.log('Event created:', eventId)
+			onSuccess: () => console.log('Event created')
 		};
 
-		expect(props.open).toBe(true);
+		expect(props.isOpen).toBe(true);
 		expect(props.onClose).toBeDefined();
-		expect(props.onEventCreated).toBeDefined();
+		expect(props.onSuccess).toBeDefined();
 		expect(typeof props.onClose).toBe('function');
-		expect(typeof props.onEventCreated).toBe('function');
+		expect(typeof props.onSuccess).toBe('function');
 	});
 
-	it('should accept optional initialDate prop', () => {
-		const initialDate = new Date('2025-10-15T10:00:00');
+	it('should accept optional defaultStartTime prop', () => {
+		const defaultStartTime = '2025-10-15T10:00';
 
 		const props: EventCreateDialogProps = {
-			open: true,
-			initialDate,
+			isOpen: true,
+			defaultStartTime,
 			onClose: () => {},
-			onEventCreated: (eventId: string) => {}
+			onSuccess: () => {}
 		};
 
-		expect(props.initialDate).toBe(initialDate);
-		expect(props.initialDate instanceof Date).toBe(true);
+		expect(props.defaultStartTime).toBe(defaultStartTime);
+		expect(typeof props.defaultStartTime).toBe('string');
 	});
 
-	it('should validate onEventCreated callback receives eventId string', () => {
-		let receivedEventId: string | null = null;
+	it('should validate onSuccess callback invocation', () => {
+		let successCalled = false;
 
 		const props: EventCreateDialogProps = {
-			open: true,
+			isOpen: true,
 			onClose: () => {},
-			onEventCreated: (eventId: string) => {
-				receivedEventId = eventId;
+			onSuccess: () => {
+				successCalled = true;
 			}
 		};
 
-		const testEventId = '987e6543-e21b-43c1-b123-987654321000';
-		props.onEventCreated(testEventId);
-		expect(receivedEventId).toBe(testEventId);
+		if (props.onSuccess) props.onSuccess();
+		expect(successCalled).toBe(true);
 	});
 
 	it('should validate onClose callback invocation', () => {
 		let closeCalled = false;
 
 		const props: EventCreateDialogProps = {
-			open: true,
+			isOpen: true,
 			onClose: () => {
 				closeCalled = true;
 			},
-			onEventCreated: (eventId: string) => {}
+			onSuccess: () => {}
 		};
 
 		props.onClose();
 		expect(closeCalled).toBe(true);
 	});
 
-	it('should validate open boolean controls dialog visibility', () => {
+	it('should validate isOpen boolean controls dialog visibility', () => {
 		const propsOpen: EventCreateDialogProps = {
-			open: true,
+			isOpen: true,
 			onClose: () => {},
-			onEventCreated: () => {}
+			onSuccess: () => {}
 		};
 
 		const propsClosed: EventCreateDialogProps = {
-			open: false,
+			isOpen: false,
 			onClose: () => {},
-			onEventCreated: () => {}
+			onSuccess: () => {}
 		};
 
-		expect(propsOpen.open).toBe(true);
-		expect(propsClosed.open).toBe(false);
+		expect(propsOpen.isOpen).toBe(true);
+		expect(propsClosed.isOpen).toBe(false);
 	});
 
 	it('should fail if EventCreateDialog component type is not defined', () => {

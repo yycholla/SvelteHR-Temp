@@ -88,7 +88,7 @@ export class ReminderScheduler {
 				await this.sendReminder(reminder);
 			}
 		} catch (error) {
-			console.error('[ReminderScheduler] Error checking reminders:', error);
+			logger.error('Error in checkAndSendReminders', error as Error);
 		} finally {
 			this.isRunning = false;
 		}
@@ -169,7 +169,7 @@ export class ReminderScheduler {
 			);
 
 			if (data.errors) {
-				console.error('[ReminderScheduler] GraphQL errors:', data.errors);
+				logger.error('[ReminderScheduler] GraphQL errors:', data.errors);
 				return [];
 			}
 
@@ -208,12 +208,11 @@ export class ReminderScheduler {
 				}));
 
 			return pendingReminders;
-		} catch (error) {
-			console.error('[ReminderScheduler] Error fetching pending reminders:', error);
-			// Return empty array instead of throwing - scheduler will try again next minute
-			return [];
-		}
-	}
+		        } catch (error) {
+		            logger.error('Error fetching pending reminders', error as Error);
+		            // Return empty array instead of throwing - scheduler will try again next minute
+		            return [];
+		        }	}
 
 	/**
 	 * Send a reminder notification
@@ -265,14 +264,13 @@ export class ReminderScheduler {
 				this.processedReminders = new Set(entries.slice(-1000));
 			}
 
-			console.log(
+			logger.info(
 				`[ReminderScheduler] Sent reminder to ${reminder.userName} for event "${reminder.eventTitle}"`
 			);
-		} catch (error) {
-			console.error('[ReminderScheduler] Error sending reminder:', error);
-		}
-	}
-
+		        } catch (error) {
+		            logger.error('Error sending reminder', error as Error);
+		        }
+		    }
 	/**
 	 * Create a notification record in the database using Rust GraphQL backend
 	 */
@@ -349,14 +347,14 @@ export class ReminderScheduler {
 			);
 
 			if (data.errors) {
-				console.error('[ReminderScheduler] GraphQL errors:', data.errors);
+				logger.error('[ReminderScheduler] GraphQL errors:', data.errors);
 				throw new Error(data.errors[0]?.message || 'Failed to create notification');
 			}
 
 			const notificationId = data?.data?.createNotification?.notification?.id;
-			console.log('[ReminderScheduler] Created notification:', notificationId);
+			logger.info(`[ReminderScheduler] Created notification: ${notificationId}`);
 		} catch (error) {
-			console.error('[ReminderScheduler] Error creating notification:', error);
+			logger.error('Error creating notification record', error as Error);
 			throw error;
 		}
 	}

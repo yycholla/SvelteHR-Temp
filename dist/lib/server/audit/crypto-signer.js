@@ -12,11 +12,11 @@ import { createSign, createVerify, createHash, generateKeyPairSync } from 'crypt
  * @returns KeyPair with privateKey and publicKey as KeyObjects
  */
 export function generateKeyPair() {
-    const { privateKey, publicKey } = generateKeyPairSync('ec', {
-        namedCurve: 'prime256v1' // P-256 curve for ES256
-        // Don't specify encoding - returns KeyObject instead of string
-    });
-    return { privateKey, publicKey };
+	const { privateKey, publicKey } = generateKeyPairSync('ec', {
+		namedCurve: 'prime256v1' // P-256 curve for ES256
+		// Don't specify encoding - returns KeyObject instead of string
+	});
+	return { privateKey, publicKey };
 }
 /**
  * Create canonical JSON representation for deterministic signing
@@ -26,21 +26,21 @@ export function generateKeyPair() {
  * @returns Canonical JSON string
  */
 function canonicalizeJSON(obj) {
-    if (obj === null || obj === undefined) {
-        return JSON.stringify(obj);
-    }
-    if (typeof obj !== 'object') {
-        return JSON.stringify(obj);
-    }
-    if (Array.isArray(obj)) {
-        return '[' + obj.map(canonicalizeJSON).join(',') + ']';
-    }
-    // Sort object keys and recursively canonicalize
-    const sortedKeys = Object.keys(obj).sort();
-    const pairs = sortedKeys.map((key) => {
-        return JSON.stringify(key) + ':' + canonicalizeJSON(obj[key]);
-    });
-    return '{' + pairs.join(',') + '}';
+	if (obj === null || obj === undefined) {
+		return JSON.stringify(obj);
+	}
+	if (typeof obj !== 'object') {
+		return JSON.stringify(obj);
+	}
+	if (Array.isArray(obj)) {
+		return '[' + obj.map(canonicalizeJSON).join(',') + ']';
+	}
+	// Sort object keys and recursively canonicalize
+	const sortedKeys = Object.keys(obj).sort();
+	const pairs = sortedKeys.map((key) => {
+		return JSON.stringify(key) + ':' + canonicalizeJSON(obj[key]);
+	});
+	return '{' + pairs.join(',') + '}';
 }
 /**
  * Sign audit log entry with private key
@@ -51,14 +51,14 @@ function canonicalizeJSON(obj) {
  * @returns Base64-encoded signature string
  */
 export function signAuditLog(logEntry, privateKey) {
-    // Create canonical JSON representation for deterministic signing
-    const canonicalData = canonicalizeJSON(logEntry);
-    // Create signature using SHA-256 hash
-    const sign = createSign('SHA256');
-    sign.update(canonicalData);
-    sign.end();
-    // Sign and return Base64-encoded signature
-    return sign.sign(privateKey, 'base64');
+	// Create canonical JSON representation for deterministic signing
+	const canonicalData = canonicalizeJSON(logEntry);
+	// Create signature using SHA-256 hash
+	const sign = createSign('SHA256');
+	sign.update(canonicalData);
+	sign.end();
+	// Sign and return Base64-encoded signature
+	return sign.sign(privateKey, 'base64');
 }
 /**
  * Verify audit log signature
@@ -70,20 +70,19 @@ export function signAuditLog(logEntry, privateKey) {
  * @returns true if signature is valid, false otherwise
  */
 export function verifySignature(logEntry, signature, publicKey) {
-    try {
-        // Create canonical JSON representation (must match signing process)
-        const canonicalData = canonicalizeJSON(logEntry);
-        // Create verification context
-        const verify = createVerify('SHA256');
-        verify.update(canonicalData);
-        verify.end();
-        // Verify signature
-        return verify.verify(publicKey, signature, 'base64');
-    }
-    catch (error) {
-        // Invalid signature format or verification error
-        return false;
-    }
+	try {
+		// Create canonical JSON representation (must match signing process)
+		const canonicalData = canonicalizeJSON(logEntry);
+		// Create verification context
+		const verify = createVerify('SHA256');
+		verify.update(canonicalData);
+		verify.end();
+		// Verify signature
+		return verify.verify(publicKey, signature, 'base64');
+	} catch (error) {
+		// Invalid signature format or verification error
+		return false;
+	}
 }
 /**
  * Export public key to PEM format string
@@ -93,7 +92,7 @@ export function verifySignature(logEntry, signature, publicKey) {
  * @returns PEM-formatted public key string
  */
 export function exportPublicKey(publicKey) {
-    return publicKey.export({ type: 'spki', format: 'pem' }).toString();
+	return publicKey.export({ type: 'spki', format: 'pem' }).toString();
 }
 /**
  * Export private key to PEM format string
@@ -103,7 +102,7 @@ export function exportPublicKey(publicKey) {
  * @returns PEM-formatted private key string
  */
 export function exportPrivateKey(privateKey) {
-    return privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
+	return privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
 }
 /**
  * Load public key from PEM string
@@ -112,7 +111,7 @@ export function exportPrivateKey(privateKey) {
  * @returns KeyObject for verification
  */
 export function loadPublicKey(pemString) {
-    return createVerify('SHA256').constructor.prototype.constructor.createPublicKey(pemString);
+	return createVerify('SHA256').constructor.prototype.constructor.createPublicKey(pemString);
 }
 /**
  * Load private key from PEM string
@@ -121,7 +120,7 @@ export function loadPublicKey(pemString) {
  * @returns KeyObject for signing
  */
 export function loadPrivateKey(pemString) {
-    return createSign('SHA256').constructor.prototype.constructor.createPrivateKey(pemString);
+	return createSign('SHA256').constructor.prototype.constructor.createPrivateKey(pemString);
 }
 /**
  * Generate public key ID for tracking key rotation
@@ -131,19 +130,19 @@ export function loadPrivateKey(pemString) {
  * @returns Short key identifier string
  */
 export function generatePublicKeyId(publicKey) {
-    const pemKey = exportPublicKey(publicKey);
-    const hash = createHash('sha256');
-    hash.update(pemKey);
-    return hash.digest('hex').substring(0, 16); // First 16 chars for uniqueness
+	const pemKey = exportPublicKey(publicKey);
+	const hash = createHash('sha256');
+	hash.update(pemKey);
+	return hash.digest('hex').substring(0, 16); // First 16 chars for uniqueness
 }
 // Export all utilities
 export default {
-    generateKeyPair,
-    signAuditLog,
-    verifySignature,
-    exportPublicKey,
-    exportPrivateKey,
-    loadPublicKey,
-    loadPrivateKey,
-    generatePublicKeyId
+	generateKeyPair,
+	signAuditLog,
+	verifySignature,
+	exportPublicKey,
+	exportPrivateKey,
+	loadPublicKey,
+	loadPrivateKey,
+	generatePublicKeyId
 };

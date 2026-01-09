@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import type { Snippet } from 'svelte';
 	import * as Card from '$lib/components/ui/card';
@@ -104,11 +105,15 @@
 					© {new Date().getFullYear()} MountainHR. All rights reserved.
 				</p>
 				<div class="mt-2 flex justify-center space-x-4 text-xs text-muted-foreground">
-					<a href="/privacy" class="transition-colors hover:text-foreground">Privacy Policy</a>
+					<a href={resolve('/privacy' as any)} class="transition-colors hover:text-foreground"
+						>Privacy Policy</a
+					>
 					<span>•</span>
-					<a href="/terms" class="transition-colors hover:text-foreground">Terms of Service</a>
+					<a href={resolve('/terms' as any)} class="transition-colors hover:text-foreground"
+						>Terms of Service</a
+					>
 					<span>•</span>
-					<a href="/support" class="transition-colors hover:text-foreground">Support</a>
+					<a href={resolve('/support' as any)} class="transition-colors hover:text-foreground">Support</a>
 				</div>
 			</div>
 		{/if}

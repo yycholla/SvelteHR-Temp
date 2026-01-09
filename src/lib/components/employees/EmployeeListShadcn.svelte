@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 	import { queryStore } from '@urql/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
 	import { GET_EMPLOYEES_QUERY } from '$lib/graphql/employee-operations';
@@ -10,7 +11,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Search, Plus, RefreshCw, Grid, List, Users } from '@lucide/svelte';
+	import { Grid, List, Plus, RefreshCw, Search, Users } from '@lucide/svelte';
 
 	/**
 	 * Employee List Component (shadcn-svelte version)
@@ -49,7 +50,7 @@
 		directReports: { aggregate: { count: number } };
 	}
 
-	let {
+	const {
 		initialFilters = {},
 		compactView = false,
 		showFilters = true,
@@ -60,7 +61,7 @@
 	// State
 	let filters: EmployeeFilters = $state({ ...initialFilters });
 	let currentPage = $state(1);
-	let itemsPerPage = 20;
+	const itemsPerPage = 20;
 	let viewMode: 'grid' | 'table' = $state('table');
 	let selectedEmployees: string[] = $state([]);
 
@@ -74,13 +75,13 @@
 	onMount(() => {
 		// Initialize the query with the direct client
 		try {
-			console.log('URQL client:', client);
+			logger.info(`URQL client:: ${client}`);
 
-			if (!client || !client.createRequestOperation) {
+			if (!client?.createRequestOperation) {
 				throw new Error('URQL client is not properly initialized');
 			}
 
-			console.log('URQL client validated, initializing query...');
+			logger.info('URQL client validated, initializing query...');
 			clientReady = true;
 			usersQuery = queryStore({
 				client,
@@ -91,7 +92,7 @@
 				}
 			});
 		} catch (error) {
-			console.error('Error initializing query store:', error);
+			logger.error('Catch failed', error as Error);
 			clientReady = false;
 		}
 
@@ -104,13 +105,17 @@
 	const searchFilter = $derived(() => {
 		if (!filters.search) return null;
 		const search = filters.search.toLowerCase();
-		return (employee: any) =>
+		return (employee: Employee) =>
 			employee.displayName?.toLowerCase().includes(search) ||
 			employee.email?.toLowerCase().includes(search);
 	});
 
 	// Store query state in reactive variables to avoid direct store access in derived
-	let queryState = $state({ fetching: true, error: null, data: null });
+	let queryState = $state<{
+		fetching: boolean;
+		error: { message: string } | null;
+		data: { users: Employee[] } | null;
+	}>({ fetching: true, error: null, data: null });
 
 	// Update query state when usersQuery changes
 	$effect(() => {
@@ -128,7 +133,7 @@
 					rerunQuery = () => state.rerun({ requestPolicy: 'network-only' });
 				}
 
-				console.log('URQL Query State:', {
+				logger.info('URQL Query State:', {
 					fetching: state.fetching,
 					error: state.error,
 					dataNodes: state.data?.users?.length || 0
@@ -140,7 +145,7 @@
 	});
 
 	// Filter results client-side for search
-	const filteredEmployees = $derived(() => {
+	const filteredEmployees: Employee[] = $derived.by(() => {
 		if (!queryState.data) return [];
 		const employees = queryState.data?.users || [];
 		if (!searchFilter) return employees;
@@ -192,18 +197,18 @@
 				deactivateSelected();
 				break;
 			default:
-				console.log(`Bulk action: ${action} for`, selectedEmployees);
+				logger.info(`Bulk action: ${action} for ${selectedEmployees}`);
 		}
 	};
 
 	const exportSelected = () => {
 		// TODO: Implement export functionality
-		console.log('Exporting employees:', selectedEmployees);
+		logger.info(`Exporting employees:: ${selectedEmployees}`);
 	};
 
 	const deactivateSelected = () => {
 		// TODO: Implement bulk deactivation
-		console.log('Deactivating employees:', selectedEmployees);
+		logger.info(`Deactivating employees:: ${selectedEmployees}`);
 	};
 
 	// Store the rerun function separately to avoid reactive access
@@ -261,7 +266,11 @@
 				<Input
 					placeholder="Search employees..."
 					value={filters.search || ''}
-					oninput={(e) => handleFiltersChange({ ...filters, search: e.target.value })}
+					oninput={(e) =>
+						handleFiltersChange({
+							...filters,
+							search: (e.target as HTMLInputElement).value
+						})}
 					class="w-64 pl-8"
 				/>
 			</div>

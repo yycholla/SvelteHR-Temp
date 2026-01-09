@@ -1,42 +1,112 @@
 /**
  * Performance Review Creation Page - Server Load & Actions
  * Feature: 023-reviews-creation-it
+ * Task: T036
  *
  * Server-side data loading and mutation handling for review creation page
+ * Refactored: Phase 2 - Using Phase 1 Foundation utilities
  */
 
-import type { PageServerLoad, Actions } from './$types';
-import { error, redirect, fail } from '@sveltejs/kit';
-import { GraphQLClient } from '$lib/server/graphql-client';
-import { PermissionChecks } from '$lib/server/rbac-utils';
+import type { Actions, PageServerLoad } from './$types';
+import { fail, redirect } from '@sveltejs/kit';
+import { RBACDataLoader } from '$lib/server/route-loaders';
+import { QueryParamExtractor } from '$lib/server/route-helpers';
+import { logger } from '$lib/utils/logger';
+
+// Review types metadata constant
+// NOTE: reviewTypesMetadata field does not exist in Rust GraphQL backend
+// Using hardcoded metadata based on ReviewType enum in backend
+const REVIEW_TYPES_METADATA = [
+	{
+		value: 'ANNUAL_REVIEW',
+		label: 'Annual Review',
+		description: 'Comprehensive yearly performance evaluation',
+		displayOrder: 1
+	},
+	{
+		value: 'MID_YEAR_REVIEW',
+		label: 'Mid-Year Review',
+		description: 'Semi-annual performance check-in',
+		displayOrder: 2
+	},
+	{
+		value: 'QUARTERLY_REVIEW',
+		label: 'Quarterly Review',
+		description: 'Quarterly performance assessment',
+		displayOrder: 3
+	},
+	{
+		value: 'PROBATIONARY_REVIEW',
+		label: 'Probationary Review',
+		description: 'Review during probationary period',
+		displayOrder: 4
+	},
+	{
+		value: 'NINETY_DAY_REVIEW',
+		label: '90-Day Review',
+		description: 'Initial 90-day performance evaluation',
+		displayOrder: 5
+	},
+	{
+		value: 'PERFORMANCE_IMPROVEMENT_PLAN',
+		label: 'Performance Improvement Plan',
+		description: 'Structured plan for performance improvement',
+		displayOrder: 6
+	},
+	{
+		value: 'PROJECT_BASED_REVIEW',
+		label: 'Project-Based Review',
+		description: 'Review focused on specific project completion',
+		displayOrder: 7
+	},
+	{
+		value: 'PROMOTION_REVIEW',
+		label: 'Promotion Review',
+		description: 'Evaluation for promotion consideration',
+		displayOrder: 8
+	},
+	{
+		value: 'SELF_REVIEW',
+		label: 'Self Review',
+		description: 'Employee self-assessment',
+		displayOrder: 9
+	},
+	{
+		value: 'EXIT_REVIEW',
+		label: 'Exit Review',
+		description: 'Final review upon employee departure',
+		displayOrder: 10
+	}
+] as const;
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, url, cookies } = event;
+	const loader = new RBACDataLoader(event, [
+		'performance:write',
+		'performance:write:self',
+		'performance:write:team',
+		'performance:write:all'
+	]);
 
-	// Check authentication and permissions (write required to create reviews)
-	PermissionChecks.performanceWrite(event);
+	return loader.loadWithClient(async () => {
+		const { url, cookies } = event;
+		const params = new QueryParamExtractor(url);
+		const employeeId = params.getString('employee');
 
-	const userId = locals.user.id;
-	const userRole = locals.user.role || 'employee';
-
-	// Get employee ID from URL parameter (optional)
-	const employeeId = url.searchParams.get('employee');
-
-	try {
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
 		// Forward session cookies for authentication
 		const cookieHeader = event.request.headers.get('cookie') || '';
 
+		const headers: Record<string, string> = {
+			'Content-Type': 'application/json',
+			Cookie: cookieHeader
+		};
+
 		// Query 1: Get all employees for employee selector
-		// NOTE: Using Rust GraphQL schema (direct arrays, no .nodes wrapper)
 		const employeesResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'Cookie': cookieHeader
-			},
+			headers,
 			body: JSON.stringify({
 				query: `
 					query GetEmployeesForReview($limit: Int!) {
@@ -56,37 +126,31 @@ export const load: PageServerLoad = async (event) => {
 						}
 					}
 				`,
-				variables: {
-					limit: 200
-				}
+				variables: { limit: 200 }
 			})
 		});
 
 		const employeesData = await employeesResponse.json();
 
 		if (employeesData.errors && employeesData.errors.length > 0) {
-			console.error('❌ GraphQL Errors in GetEmployeesForReview:');
-			employeesData.errors.forEach((err: any, idx: number) => {
-				console.error(`  Error ${idx + 1}:`, {
-					message: err.message,
-					path: err.path,
-					extensions: err.extensions
+			logger.error('❌ GraphQL Errors in GetEmployeesForReview:');
+			employeesData.errors.forEach((err: unknown, idx: number) => {
+				logger.error(`  Error ${idx + 1}:`, undefined, {
+					message: (err as { message?: string }).message,
+					path: (err as { path?: unknown }).path,
+					extensions: (err as { extensions?: unknown }).extensions
 				});
 			});
 		}
 
 		const employees = employeesData.data?.users || [];
 
-		// Query 1.5: Get available goals for the selected employee (if provided)
-		// NOTE: Using Rust GraphQL schema (direct arrays, no .nodes wrapper)
-		let availableGoals: any[] = [];
+		// Query 2: Get available goals for the selected employee (if provided)
+		let availableGoals: unknown[] = [];
 		if (employeeId) {
 			const goalsResponse = await fetch(graphqlEndpoint, {
 				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'Cookie': cookieHeader
-				},
+				headers,
 				body: JSON.stringify({
 					query: `
 						query GetEmployeeGoals($employeeId: UUID!, $limit: Int!) {
@@ -108,39 +172,46 @@ export const load: PageServerLoad = async (event) => {
 			const goalsData = await goalsResponse.json();
 
 			if (goalsData.errors && goalsData.errors.length > 0) {
-				console.error('❌ GraphQL Errors in GetEmployeeGoals:');
-				goalsData.errors.forEach((err: any, idx: number) => {
-					console.error(`  Error ${idx + 1}:`, {
-						message: err.message,
-						path: err.path,
-						extensions: err.extensions
+				logger.error('❌ GraphQL Errors in GetEmployeeGoals:');
+				goalsData.errors.forEach((err: unknown, idx: number) => {
+					logger.error(`  Error ${idx + 1}:`, undefined, {
+						message: (err as { message?: string }).message,
+						path: (err as { path?: unknown }).path,
+						extensions: (err as { extensions?: unknown }).extensions
 					});
 				});
 			}
 
 			// Transform employeeGoals response to match expected format
 			const employeeGoals = goalsData.data?.employeeGoals || [];
-			availableGoals = employeeGoals.map((goal: any) => ({
-				id: goal.id,
-				title: goal.goalTitle,
-				description: goal.goalDescription,
-				targetDate: goal.targetDate,
-				status: goal.status,
-				progressPercentage: goal.progressPercentage,
-				createdAt: goal.createdAt
-			}));
+			availableGoals = employeeGoals.map((goal: unknown) => {
+				const g = goal as {
+					id: string;
+					goalTitle: string;
+					goalDescription: string;
+					targetDate: string;
+					status: string;
+					progressPercentage: number;
+					createdAt: string;
+				};
+				return {
+					id: g.id,
+					title: g.goalTitle,
+					description: g.goalDescription,
+					targetDate: g.targetDate,
+					status: g.status,
+					progressPercentage: g.progressPercentage,
+					createdAt: g.createdAt
+				};
+			});
 		}
 
-		// Query 2: Get selected employee details if provided
-		// NOTE: Using Rust GraphQL schema (direct arrays, no .nodes wrapper)
+		// Query 3: Get selected employee details if provided
 		let selectedEmployee = null;
 		if (employeeId) {
 			const employeeResponse = await fetch(graphqlEndpoint, {
 				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'Cookie': cookieHeader
-				},
+				headers,
 				body: JSON.stringify({
 					query: `
 						query GetEmployee($employeeId: UUID!) {
@@ -171,128 +242,30 @@ export const load: PageServerLoad = async (event) => {
 			}
 		}
 
-		// Query 3: Get review types metadata
-		// NOTE: reviewTypesMetadata field does not exist in Rust GraphQL backend
-		// Using hardcoded metadata based on ReviewType enum in backend
-		const reviewTypesMetadata: Array<{
-			value: string;
-			label: string;
-			description: string;
-			displayOrder: number;
-		}> = [
-			{
-				value: 'ANNUAL_REVIEW',
-				label: 'Annual Review',
-				description: 'Comprehensive yearly performance evaluation',
-				displayOrder: 1
-			},
-			{
-				value: 'MID_YEAR_REVIEW',
-				label: 'Mid-Year Review',
-				description: 'Semi-annual performance check-in',
-				displayOrder: 2
-			},
-			{
-				value: 'QUARTERLY_REVIEW',
-				label: 'Quarterly Review',
-				description: 'Quarterly performance assessment',
-				displayOrder: 3
-			},
-			{
-				value: 'PROBATIONARY_REVIEW',
-				label: 'Probationary Review',
-				description: 'Review during probationary period',
-				displayOrder: 4
-			},
-			{
-				value: 'NINETY_DAY_REVIEW',
-				label: '90-Day Review',
-				description: 'Initial 90-day performance evaluation',
-				displayOrder: 5
-			},
-			{
-				value: 'PERFORMANCE_IMPROVEMENT_PLAN',
-				label: 'Performance Improvement Plan',
-				description: 'Structured plan for performance improvement',
-				displayOrder: 6
-			},
-			{
-				value: 'PROJECT_BASED_REVIEW',
-				label: 'Project-Based Review',
-				description: 'Review focused on specific project completion',
-				displayOrder: 7
-			},
-			{
-				value: 'PROMOTION_REVIEW',
-				label: 'Promotion Review',
-				description: 'Evaluation for promotion consideration',
-				displayOrder: 8
-			},
-			{
-				value: 'SELF_REVIEW',
-				label: 'Self Review',
-				description: 'Employee self-assessment',
-				displayOrder: 9
-			},
-			{
-				value: 'EXIT_REVIEW',
-				label: 'Exit Review',
-				description: 'Final review upon employee departure',
-				displayOrder: 10
-			}
-		];
-
 		return {
-			user: {
-				id: userId,
-				email: locals.user.email || '',
-				displayName: locals.user.display_name || 'User',
-				role: userRole
-			},
 			employees,
 			selectedEmployee,
-			reviewTypesMetadata,
+			reviewTypesMetadata: REVIEW_TYPES_METADATA,
 			availableGoals
 		};
-	} catch (err) {
-		console.error('Error loading review creation page:', err);
-
-		// Provide review types even on error so dropdown still works
-		const reviewTypesMetadata = [
-			{ value: 'ANNUAL_REVIEW', label: 'Annual Review', description: 'Comprehensive yearly performance evaluation', displayOrder: 1 },
-			{ value: 'MID_YEAR_REVIEW', label: 'Mid-Year Review', description: 'Semi-annual performance check-in', displayOrder: 2 },
-			{ value: 'QUARTERLY_REVIEW', label: 'Quarterly Review', description: 'Quarterly performance assessment', displayOrder: 3 },
-			{ value: 'PROBATIONARY_REVIEW', label: 'Probationary Review', description: 'Review during probationary period', displayOrder: 4 },
-			{ value: 'NINETY_DAY_REVIEW', label: '90-Day Review', description: 'Initial 90-day performance evaluation', displayOrder: 5 },
-			{ value: 'PERFORMANCE_IMPROVEMENT_PLAN', label: 'Performance Improvement Plan', description: 'Structured plan for performance improvement', displayOrder: 6 },
-			{ value: 'PROJECT_BASED_REVIEW', label: 'Project-Based Review', description: 'Review focused on specific project completion', displayOrder: 7 },
-			{ value: 'PROMOTION_REVIEW', label: 'Promotion Review', description: 'Evaluation for promotion consideration', displayOrder: 8 },
-			{ value: 'SELF_REVIEW', label: 'Self Review', description: 'Employee self-assessment', displayOrder: 9 },
-			{ value: 'EXIT_REVIEW', label: 'Exit Review', description: 'Final review upon employee departure', displayOrder: 10 }
-		];
-
-		return {
-			user: {
-				id: userId,
-				email: locals.user.email || '',
-				displayName: locals.user.display_name || 'User',
-				role: userRole
-			},
-			employees: [],
-			selectedEmployee: null,
-			reviewTypesMetadata,
-			availableGoals: [],
-			error: `Failed to load data: ${err instanceof Error ? err.message : 'Unknown error'}`
-		};
-	}
+	});
 };
 
 export const actions: Actions = {
 	/**
 	 * Create a new performance review (always starts as DRAFT)
 	 */
-	createReview: async ({ request, cookies, locals }) => {
+	createReview: async (event) => {
+		const loader = new RBACDataLoader(event, [
+			'performance:write',
+			'performance:write:self',
+			'performance:write:team',
+			'performance:write:all'
+		]);
+
 		try {
+			const { request } = event;
+
 			// Forward session cookies for authentication
 			const cookieHeader = request.headers.get('cookie') || '';
 
@@ -314,7 +287,9 @@ export const actions: Actions = {
 				newGoals.push({
 					title: formData.get(`newGoals[${goalIndex}].title`) as string,
 					description: formData.get(`newGoals[${goalIndex}].description`) as string,
-					targetCompletionDate: formData.get(`newGoals[${goalIndex}].targetCompletionDate`) as string,
+					targetCompletionDate: formData.get(
+						`newGoals[${goalIndex}].targetCompletionDate`
+					) as string,
 					successMetrics: formData.get(`newGoals[${goalIndex}].successMetrics`) as string
 				});
 				goalIndex++;
@@ -342,14 +317,7 @@ export const actions: Actions = {
 			const graphqlEndpoint = getGraphQLEndpoint();
 
 			// Get current user ID as reviewer
-			const reviewerId = locals.user?.id;
-
-			if (!reviewerId) {
-				return fail(401, {
-					error: 'Authentication required',
-					success: false
-				});
-			}
+			const reviewerId = loader.getUserId();
 
 			// Step 1: Create review cycle with review type and date range
 			let cycleId: string | null = null;
@@ -359,7 +327,7 @@ export const actions: Actions = {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
-						'Cookie': cookieHeader
+						Cookie: cookieHeader
 					},
 					body: JSON.stringify({
 						query: `
@@ -375,7 +343,7 @@ export const actions: Actions = {
 							input: {
 								name: cycleName,
 								description: notes || null,
-								reviewType: reviewType,
+								reviewType,
 								startDate: new Date(reviewPeriodStart).toISOString(),
 								endDate: new Date(reviewPeriodEnd).toISOString()
 							}
@@ -385,9 +353,19 @@ export const actions: Actions = {
 
 				const cycleData = await cycleResponse.json();
 				if (cycleData.errors) {
-					console.error('❌ GraphQL Errors in createReviewCycle:', cycleData.errors);
+					logger.error(
+						'❌ GraphQL Errors in createReviewCycle',
+						new Error(
+							(cycleData.errors[0] as { message?: string })?.message || 'Cycle creation failed'
+						),
+						{
+							errors: cycleData.errors.map((e: unknown) => ({
+								message: (e as { message?: string }).message
+							}))
+						}
+					);
 					return fail(500, {
-						error: `Failed to create review cycle: ${cycleData.errors[0].message}`,
+						error: `Failed to create review cycle: ${(cycleData.errors[0] as { message?: string }).message}`,
 						success: false
 					});
 				}
@@ -399,7 +377,7 @@ export const actions: Actions = {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					'Cookie': cookieHeader
+					Cookie: cookieHeader
 				},
 				body: JSON.stringify({
 					query: `
@@ -426,17 +404,23 @@ export const actions: Actions = {
 			const result = await response.json();
 
 			if (result.errors) {
-				console.error('❌ GraphQL Errors in createPerformanceReview:');
-				result.errors.forEach((err: any, idx: number) => {
-					console.error(`  Error ${idx + 1}:`, {
-						message: err.message,
-						path: err.path,
-						extensions: err.extensions
-					});
-				});
+				logger.error(
+					'❌ GraphQL Errors in createPerformanceReview',
+					new Error(
+						(result.errors[0] as { message?: string })?.message || 'Review creation failed'
+					),
+					{
+						errors: result.errors.map((err: unknown) => ({
+							message: (err as { message?: string }).message,
+							path: (err as { path?: unknown }).path,
+							extensions: (err as { extensions?: unknown }).extensions
+						}))
+					}
+				);
 
 				return fail(500, {
-					error: result.errors[0]?.message || 'Failed to create review',
+					error:
+						(result.errors[0] as { message?: string })?.message || 'Failed to create review',
 					success: false
 				});
 			}
@@ -454,7 +438,7 @@ export const actions: Actions = {
 			if (goalIds.length > 0 || newGoals.length > 0) {
 				// TODO: Implement goal association via backend mutations
 				// For now, goals will need to be added via the review detail page
-				console.log('⚠️ Goal association not yet implemented - add goals via review detail page');
+				logger.info('⚠️ Goal association not yet implemented - add goals via review detail page');
 			}
 
 			// Redirect to the review detail page
@@ -465,7 +449,7 @@ export const actions: Actions = {
 				throw err;
 			}
 
-			console.error('Error creating review:', err);
+			logger.error('Error creating review:', err as Error);
 			return fail(500, {
 				error: err instanceof Error ? err.message : 'Failed to create review',
 				success: false

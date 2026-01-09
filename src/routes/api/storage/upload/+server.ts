@@ -1,15 +1,27 @@
+import { logger } from '$lib/utils/logger';
 // Storage upload API endpoint (Feature 024)
 // POST /api/storage/upload - Upload encrypted file data
 
-import { json, error } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { transaction, setJWTClaims } from '$lib/server/db';
+import { setJWTClaims, transaction } from '$lib/server/db';
+import { requireAuth } from '$lib/server/rbac-utils';
 
-export const POST: RequestHandler = async ({ request, locals }) => {
+export const POST: RequestHandler = async (event) => {
+	const { request } = event;
+
 	// Step 1: Validate authentication
-	if (!locals.user) {
-		error(401, { message: 'Authentication required' });
-	}
+	requireAuth(event, {
+		requiredPermissions: [
+			'documents:write',
+			'documents:write:self',
+			'documents:write:team',
+			'documents:write:all'
+		]
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	try {
 		// Step 2: Parse request body
@@ -72,16 +84,18 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			);
 		});
 
-		console.log(`File stored at: ${storagePath}, size: ${metadata.fileSizeBytes} bytes`);
+		logger.info(`File stored at: ${storagePath}, size: ${metadata.fileSizeBytes} bytes`);
 
 		// Step 5: Return storage result
-		return json({
-			storagePath,
-			bytesStored: metadata.fileSizeBytes
-		}, { status: 201 });
-
+		return json(
+			{
+				storagePath,
+				bytesStored: metadata.fileSizeBytes
+			},
+			{ status: 201 }
+		);
 	} catch (err) {
-		console.error('File storage error:', err);
+		logger.error('File storage error:', err as Error);
 
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err; // Re-throw SvelteKit errors

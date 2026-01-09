@@ -52,6 +52,39 @@ mod m20251201_001_create_training_module;
 mod m20251201_002_add_training_permissions;
 mod m20251202_001_enhance_training_schema;
 mod m20251202_003_add_training_recurrence;
+mod m20251202_004_create_onboarding_module;
+mod m20251202_005_seed_w4_form_template;
+mod m20251202_006_integrate_onboarding_documents;
+mod m20251202_007_create_onboarding_forms;
+mod m20251203_001_migrate_content_blocks_to_forms;
+mod m20251217_001_add_inline_form_elements;
+mod m20251217_002_create_media_assets;
+mod m20251222_create_intuit_integration;
+mod m20251222_002_add_quickbooks_employee_fields;
+mod m20251222_003_fix_display_name_add_preferred_name;
+mod m20251223_001_add_intuit_department_id;
+mod m20251226_001_add_sync_tracking;
+mod m20251226_002_enhance_sync_log;
+mod m20251226_002_enforce_email_rules;
+mod m20251226_003_enforce_department_names;
+mod m20251229_001_create_validation_tables;
+mod m20251229_002_add_sync_permissions;
+mod m20251229_003_seed_sync_role_permissions;
+mod m20251229_004_incremental_sync;
+mod m20251229_005_create_sync_health_monitoring;
+mod m20251229_006_create_audit_trail;
+mod m20251229_007_create_reconciliation;
+mod m20251229_008_create_webhooks;
+mod m20251229_009_create_batch_operations;
+mod m20251229_010_create_rollback_system;
+mod m20251229_011_create_error_recovery;
+mod m20251229_012_enhance_audit_trail;
+mod m20251229_013_create_compliance_reports;
+mod m20251230_001_create_time_entries;
+mod m20251230_002_payroll_integration;
+mod m20251231_001_email_digests;
+mod m20260101_001_create_sync_schedules;
+mod m20260107_001_fix_cron_constraint;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -98,6 +131,39 @@ impl MigratorTrait for Migrator {
             Box::new(m20251201_002_add_training_permissions::Migration),
             Box::new(m20251202_001_enhance_training_schema::Migration),
             Box::new(m20251202_003_add_training_recurrence::Migration),
+            Box::new(m20251202_004_create_onboarding_module::Migration),
+            Box::new(m20251202_005_seed_w4_form_template::Migration),
+            Box::new(m20251202_006_integrate_onboarding_documents::Migration),
+            Box::new(m20251202_007_create_onboarding_forms::Migration),
+            Box::new(m20251203_001_migrate_content_blocks_to_forms::Migration),
+            Box::new(m20251217_001_add_inline_form_elements::Migration),
+            Box::new(m20251217_002_create_media_assets::Migration),
+            Box::new(m20251222_create_intuit_integration::Migration),
+            Box::new(m20251222_002_add_quickbooks_employee_fields::Migration),
+            Box::new(m20251222_003_fix_display_name_add_preferred_name::Migration),
+            Box::new(m20251223_001_add_intuit_department_id::Migration),
+            Box::new(m20251226_001_add_sync_tracking::Migration),
+            Box::new(m20251226_002_enhance_sync_log::Migration),
+            Box::new(m20251226_002_enforce_email_rules::Migration),
+            Box::new(m20251226_003_enforce_department_names::Migration),
+            Box::new(m20251229_001_create_validation_tables::Migration),
+            Box::new(m20251229_002_add_sync_permissions::Migration),
+            Box::new(m20251229_003_seed_sync_role_permissions::Migration),
+            Box::new(m20251229_004_incremental_sync::Migration),
+            Box::new(m20251229_005_create_sync_health_monitoring::Migration),
+            Box::new(m20251229_006_create_audit_trail::Migration),
+            Box::new(m20251229_007_create_reconciliation::Migration),
+            Box::new(m20251229_008_create_webhooks::Migration),
+            Box::new(m20251229_009_create_batch_operations::Migration),
+            Box::new(m20251229_010_create_rollback_system::Migration),
+            Box::new(m20251229_011_create_error_recovery::Migration),
+            Box::new(m20251229_012_enhance_audit_trail::Migration),
+            Box::new(m20251229_013_create_compliance_reports::Migration),
+            Box::new(m20251230_001_create_time_entries::Migration),
+            Box::new(m20251230_002_payroll_integration::Migration),
+            Box::new(m20251231_001_email_digests::Migration),
+            Box::new(m20260101_001_create_sync_schedules::Migration),
+            Box::new(m20260107_001_fix_cron_constraint::Migration),
         ]
     }
 }

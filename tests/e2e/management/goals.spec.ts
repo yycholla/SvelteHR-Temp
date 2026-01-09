@@ -3,7 +3,7 @@
 // Task: T007 - E2E test Goals & OKRs tracking management page
 // CRITICAL: This test MUST FAIL initially as per TDD approach
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Management Goals & OKRs Tracking Page', () => {
 	test.beforeEach(async ({ page }) => {
@@ -39,7 +39,7 @@ test.describe('Management Goals & OKRs Tracking Page', () => {
 		]);
 
 		// Should have at least one goal row
-		await expect(page.locator('[data-testid="goal-row"]')).toHaveCount({ min: 1 });
+		expect(await page.locator('[data-testid="goal-row"]').count()).toBeGreaterThanOrEqual(1);
 
 		// Each row should have goal details and action buttons
 		const firstRow = page.locator('[data-testid="goal-row"]').first();
@@ -316,7 +316,7 @@ test.describe('Management Goals & OKRs Tracking Page', () => {
 
 		// Should show key results with progress
 		await expect(page.locator('[data-testid="key-results-list"]')).toBeVisible();
-		await expect(page.locator('[data-testid="key-result-item"]')).toHaveCount({ min: 1 });
+		expect(await page.locator('[data-testid="key-result-item"]').count()).toBeGreaterThanOrEqual(1);
 
 		// Each key result should show title, progress, and status
 		const firstKeyResult = page.locator('[data-testid="key-result-item"]').first();
@@ -341,7 +341,7 @@ test.describe('Management Goals & OKRs Tracking Page', () => {
 
 			// Should load new page of results
 			await expect(page.locator('[data-testid="loading-indicator"]')).not.toBeVisible();
-			await expect(page.locator('[data-testid="goal-row"]')).toHaveCount({ min: 1 });
+			expect(await page.locator('[data-testid="goal-row"]').count()).toBeGreaterThanOrEqual(1);
 
 			// Previous button should be enabled
 			await expect(page.locator('[data-testid="pagination-prev"]')).toBeEnabled();

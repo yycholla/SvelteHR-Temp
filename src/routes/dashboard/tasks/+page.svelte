@@ -38,11 +38,11 @@
 
 	// Determine user permissions for assignee selection
 	const canAssignToAnyone = $derived(
-		data.user.role === 'hr_admin' ||
-			data.user.role === 'system_admin' ||
-			data.user.role === 'super_admin'
+		data.user?.role === 'hr_admin' ||
+			data.user?.role === 'system_admin' ||
+			data.user?.role === 'super_admin'
 	);
-	const canAssignToTeam = $derived(data.user.role === 'manager');
+	const canAssignToTeam = $derived(data.user?.role === 'manager');
 	const canAssign = $derived(canAssignToAnyone || canAssignToTeam);
 
 	// Filter state from URL params
@@ -56,7 +56,11 @@
 		dueDateStart: data.filters?.dueDateStart || null,
 		dueDateEnd: data.filters?.dueDateEnd || null,
 		hasParent:
-			data.filters?.hasParent === 'true' ? true : data.filters?.hasParent === 'false' ? false : null,
+			data.filters?.hasParent === 'true'
+				? true
+				: data.filters?.hasParent === 'false'
+					? false
+					: null,
 		hasDependencies: null
 	});
 
@@ -93,11 +97,11 @@
 			bgColor: 'bg-red-100 dark:bg-red-900/30'
 		},
 		{
-			label: 'Deferred',
-			value: data.taskStats?.deferred || 0,
-			icon: XCircle,
-			color: 'text-gray-600',
-			bgColor: 'bg-gray-100 dark:bg-gray-900/30'
+			label: 'Review',
+			value: data.taskStats?.review || 0,
+			icon: Target,
+			color: 'text-purple-600',
+			bgColor: 'bg-purple-100 dark:bg-purple-900/30'
 		},
 		{
 			label: 'Completed',
@@ -204,16 +208,18 @@
 <div class="space-y-6" data-testid="tasks-dashboard">
 	<!-- Page Header -->
 	<div class="flex items-start justify-end gap-4">
-		<QuickAddTask
-			currentUser={data.user}
-			assignees={data.assignees}
-			taskTypes={data.taskTypes}
-			{canAssign}
-			onSuccess={async () => {
-				// Refresh the page data after task creation
-				await invalidateAll();
-			}}
-		/>
+		{#if data.user}
+			<QuickAddTask
+				currentUser={data.user}
+				assignees={data.assignees}
+				taskTypes={data.taskTypes}
+				{canAssign}
+				onSuccess={async () => {
+					// Refresh the page data after task creation
+					await invalidateAll();
+				}}
+			/>
+		{/if}
 	</div>
 
 	<!-- Statistics Cards -->
@@ -266,13 +272,7 @@
 				</Card.Content>
 			</Card.Root>
 		{:else}
-			<TaskList
-				tasks={filteredTasks}
-				userId={data.user.id}
-				onTaskClick={handleTaskClick}
-				showProgress={true}
-				compact={false}
-			/>
+			<TaskList tasks={filteredTasks} onTaskClick={handleTaskClick} />
 		{/if}
 	</div>
 </div>

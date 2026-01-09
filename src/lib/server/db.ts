@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // PostgreSQL database connection utilities
 // Server-side only - do not import from client code
 
@@ -25,7 +26,7 @@ function getPool(): pkg.Pool {
 	if (!pool) {
 		pool = new Pool(dbConfig);
 		pool.on('error', (err) => {
-			console.error('Unexpected error on idle database client', err);
+			logger.error('Database pool error', err as Error);
 		});
 	}
 	return pool;
@@ -43,22 +44,21 @@ export async function query<T extends pkg.QueryResultRow = any>(
 
 		// Log slow queries (>100ms)
 		if (duration > 100) {
-			console.warn(`Slow query (${duration}ms): ${text.substring(0, 100)}...`);
+			logger.warn(`Slow query (${duration}ms): ${text.substring(0, 100)}...`);
 		}
 
 		return result;
 	} catch (error) {
-		console.error('Database query error:', error);
-		console.error('Query:', text);
-		console.error('Params:', params);
+		logger.error('Database query failed', error as Error, {
+			query: text,
+			params
+		});
 		throw error;
 	}
 }
 
 // Transaction helper
-export async function transaction<T>(
-	callback: (client: pkg.PoolClient) => Promise<T>
-): Promise<T> {
+export async function transaction<T>(callback: (client: pkg.PoolClient) => Promise<T>): Promise<T> {
 	const client = await getPool().connect();
 	try {
 		await client.query('BEGIN');

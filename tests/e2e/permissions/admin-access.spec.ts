@@ -2,7 +2,7 @@
 // These tests should FAIL initially - admin routes may not have proper permission checks
 // SECURITY CRITICAL: Ensures only authorized admins can access admin routes
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 // Test helper to create a session with specific permissions
 async function loginWithPermissions(
@@ -43,7 +43,7 @@ async function loginWithPermissions(
 }
 
 test.describe('Admin Analytics Access Control (US1)', () => {
-	test('should block Manager from accessing /dashboard/admin/analytics', async ({ page }) => {
+	test('should block Manager from accessing /admin/analytics', async ({ page }) => {
 		// Login as Manager (has some HR permissions but not admin:read)
 		await loginWithPermissions(
 			page,
@@ -52,7 +52,7 @@ test.describe('Admin Analytics Access Control (US1)', () => {
 		);
 
 		// Attempt to access admin analytics
-		await page.goto('/dashboard/admin/analytics');
+		await page.goto('/admin/analytics');
 
 		// Should be redirected to unauthorized page
 		// This test will FAIL if permission check is missing
@@ -66,7 +66,7 @@ test.describe('Admin Analytics Access Control (US1)', () => {
 		).toBeTruthy();
 	});
 
-	test('should block HR Manager from accessing /dashboard/admin/analytics', async ({ page }) => {
+	test('should block HR Manager from accessing /admin/analytics', async ({ page }) => {
 		// Login as HR Manager (has HR permissions but not admin:read)
 		await loginWithPermissions(
 			page,
@@ -81,7 +81,7 @@ test.describe('Admin Analytics Access Control (US1)', () => {
 		);
 
 		// Attempt to access admin analytics
-		await page.goto('/dashboard/admin/analytics');
+		await page.goto('/admin/analytics');
 
 		// Should be redirected to unauthorized page
 		await expect(page).toHaveURL(/\/(unauthorized|login|dashboard)/);
@@ -94,15 +94,15 @@ test.describe('Admin Analytics Access Control (US1)', () => {
 		).toBeTruthy();
 	});
 
-	test('should allow Admin to access /dashboard/admin/analytics', async ({ page }) => {
+	test('should allow Admin to access /admin/analytics', async ({ page }) => {
 		// Login as Admin with admin:read permission
 		await loginWithPermissions(page, ['admin:read', 'admin:write'], ['Admin']);
 
 		// Navigate to admin analytics
-		await page.goto('/dashboard/admin/analytics');
+		await page.goto('/admin/analytics');
 
 		// Should successfully load the page
-		await expect(page).toHaveURL('/dashboard/admin/analytics');
+		await expect(page).toHaveURL('/admin/analytics');
 
 		// Verify analytics content is present (not an error page)
 		const heading = await page.textContent('h1');
@@ -113,17 +113,17 @@ test.describe('Admin Analytics Access Control (US1)', () => {
 		expect(pageContent).not.toContain('Access Denied');
 	});
 
-	test('should allow Admin with wildcard (*) to access /dashboard/admin/analytics', async ({
+	test('should allow Admin with wildcard (*) to access /admin/analytics', async ({
 		page
 	}) => {
 		// Login as Admin with wildcard permission
 		await loginWithPermissions(page, ['*'], ['Admin']);
 
 		// Navigate to admin analytics
-		await page.goto('/dashboard/admin/analytics');
+		await page.goto('/admin/analytics');
 
 		// Should successfully load the page
-		await expect(page).toHaveURL('/dashboard/admin/analytics');
+		await expect(page).toHaveURL('/admin/analytics');
 
 		// Verify page loaded successfully
 		const pageContent = await page.textContent('body');
@@ -163,7 +163,7 @@ test.describe('Admin System Routes Access Control (US1)', () => {
 		const adminRoutes = [
 			'/admin/departments',
 			'/admin/users',
-			'/dashboard/admin/analytics',
+			'/admin/analytics',
 			'/admin/system'
 		];
 
@@ -185,7 +185,7 @@ test.describe('Admin System Routes Access Control (US1)', () => {
 		);
 
 		// Attempt to access admin routes
-		const adminRoutes = ['/admin/departments', '/dashboard/admin/analytics'];
+		const adminRoutes = ['/admin/departments', '/admin/analytics'];
 
 		for (const route of adminRoutes) {
 			await page.goto(route);
@@ -200,7 +200,7 @@ test.describe('Admin System Routes Access Control (US1)', () => {
 		await loginWithPermissions(page, ['*'], ['Admin']);
 
 		// Test all admin routes that should be accessible
-		const adminRoutes = ['/admin/departments', '/dashboard/admin/analytics'];
+		const adminRoutes = ['/admin/departments', '/admin/analytics'];
 
 		for (const route of adminRoutes) {
 			await page.goto(route);
@@ -222,10 +222,10 @@ test.describe('Granular Admin Permission Checks (US1)', () => {
 		await loginWithPermissions(page, ['admin:read'], ['Admin']);
 
 		// Navigate to admin analytics
-		await page.goto('/dashboard/admin/analytics');
+		await page.goto('/admin/analytics');
 
 		// Should successfully load the page (read permission granted)
-		await expect(page).toHaveURL('/dashboard/admin/analytics');
+		await expect(page).toHaveURL('/admin/analytics');
 
 		// Verify analytics content is visible
 		const pageContent = await page.textContent('body');
@@ -237,13 +237,13 @@ test.describe('Granular Admin Permission Checks (US1)', () => {
 		await loginWithPermissions(page, ['admin:read'], ['Admin']);
 
 		// Navigate to admin page
-		await page.goto('/dashboard/admin/analytics');
+		await page.goto('/admin/analytics');
 
 		// Verify write-action buttons are hidden (tested in Phase 3)
 		// This is a placeholder for future button visibility tests
 		// For now, just verify page loads
 		const url = page.url();
-		expect(url).toContain('/dashboard/admin/analytics');
+		expect(url).toContain('/admin/analytics');
 	});
 
 	test('should require admin:delete for destructive actions', async ({ page }) => {
@@ -251,10 +251,10 @@ test.describe('Granular Admin Permission Checks (US1)', () => {
 		await loginWithPermissions(page, ['admin:read', 'admin:write'], ['Admin']);
 
 		// Navigate to admin page
-		await page.goto('/dashboard/admin/analytics');
+		await page.goto('/admin/analytics');
 
 		// Verify page loads (read/write granted)
-		await expect(page).toHaveURL('/dashboard/admin/analytics');
+		await expect(page).toHaveURL('/admin/analytics');
 
 		// Delete buttons should be hidden (tested in Phase 4)
 		// For now, just verify no access denied
@@ -273,7 +273,7 @@ test.describe('Role Hierarchy and Permission Inheritance', () => {
 			'/dashboard', // basic dashboard
 			'/hr/employees', // employees:read
 			'/admin/departments', // departments:read + admin
-			'/dashboard/admin/analytics' // admin:read
+			'/admin/analytics' // admin:read
 		];
 
 		for (const route of mixedRoutes) {
@@ -296,7 +296,7 @@ test.describe('Role Hierarchy and Permission Inheritance', () => {
 		);
 
 		// Navigate to admin analytics
-		await page.goto('/dashboard/admin/analytics');
+		await page.goto('/admin/analytics');
 
 		// Should be denied access (role level doesn't grant admin permissions)
 		await expect(page).toHaveURL(/\/(unauthorized|login|dashboard)/);
@@ -317,7 +317,7 @@ test.describe('Performance and Security Edge Cases', () => {
 
 		// Rapidly navigate between routes
 		for (let i = 0; i < 5; i++) {
-			await page.goto('/dashboard/admin/analytics');
+			await page.goto('/admin/analytics');
 			await page.goto('/hr/employees');
 		}
 
@@ -334,10 +334,10 @@ test.describe('Performance and Security Edge Cases', () => {
 
 		// Attempt to access admin route with various URL patterns
 		const escalationAttempts = [
-			'/dashboard/admin/analytics',
-			'/dashboard/admin/analytics?admin=true',
-			'/dashboard/admin/analytics#admin',
-			'/admin/../dashboard/admin/analytics'
+			'/admin/analytics',
+			'/admin/analytics?admin=true',
+			'/admin/analytics#admin',
+			'/admin/../admin/analytics'
 		];
 
 		for (const attempt of escalationAttempts) {

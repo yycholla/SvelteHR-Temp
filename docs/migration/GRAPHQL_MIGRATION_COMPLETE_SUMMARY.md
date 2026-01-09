@@ -11,6 +11,7 @@
 Successfully migrated the SvelteHR application from direct PostgreSQL database access to a centralized Rust GraphQL backend with automatic audit logging. All document-related API routes now use GraphQL queries and mutations, eliminating direct database connections from the frontend except for encryption key retrieval.
 
 **Key Achievements:**
+
 - ✅ 6/6 document API routes fully migrated to GraphQL
 - ✅ Automatic audit logging middleware for all GraphQL mutations
 - ✅ Rollback execution and snapshot management via GraphQL
@@ -26,6 +27,7 @@ Successfully migrated the SvelteHR application from direct PostgreSQL database a
 **Created:** `graphql-rust-server/src/middleware/audit.rs`
 
 **Features Implemented:**
+
 - Automatic audit logging for **all** GraphQL mutations
 - Asynchronous execution (non-blocking)
 - Operation name and action type extraction (CREATE, UPDATE, DELETE, etc.)
@@ -35,6 +37,7 @@ Successfully migrated the SvelteHR application from direct PostgreSQL database a
 - Activity log entries with before/after snapshots (when available)
 
 **Integration:**
+
 ```rust
 // graphql-rust-server/src/schema/mod.rs
 pub fn create_schema() -> GraphQLSchema {
@@ -53,6 +56,7 @@ pub fn create_schema() -> GraphQLSchema {
 **Created:** `graphql-rust-server/src/schema/mutations/rollback.rs`
 
 **Mutations Added:**
+
 1. **`executeRollback(rollbackRequestId: UUID!)`**
    - Validates rollback request is approved
    - Retrieves before_snapshot from activity_logs
@@ -66,6 +70,7 @@ pub fn create_schema() -> GraphQLSchema {
    - Useful for pre-migration or manual backup points
 
 **Queries Added:**
+
 1. **`snapshots(entityType, entityId, limit)`**
    - Returns all activity logs with snapshots for an entity
    - Ordered by newest first
@@ -85,16 +90,17 @@ pub fn create_schema() -> GraphQLSchema {
 
 **Routes Migrated:**
 
-| Route | Status | GraphQL Operations Used |
-|-------|--------|------------------------|
-| `/api/documents/+server.ts` | ✅ | `documents` query |
-| `/api/documents/[id]/+server.ts` | ✅ | `document` query, `deleteDocument` mutation |
-| `/api/documents/upload/+server.ts` | ✅ | `uploadDocument` mutation, `createDocumentAssignment` mutation |
-| `/api/documents/[id]/preview/view/+server.ts` | ✅ | `document` query with `encryptedFileStorage` relationship |
-| `/api/documents/[id]/download/+server.ts` | ✅ | `document` query with `encryptedFileStorage` relationship |
-| `/api/employees/[id]/assign-documents/+server.ts` | ✅ | `createDocumentAssignment` mutation |
+| Route                                             | Status | GraphQL Operations Used                                        |
+| ------------------------------------------------- | ------ | -------------------------------------------------------------- |
+| `/api/documents/+server.ts`                       | ✅     | `documents` query                                              |
+| `/api/documents/[id]/+server.ts`                  | ✅     | `document` query, `deleteDocument` mutation                    |
+| `/api/documents/upload/+server.ts`                | ✅     | `uploadDocument` mutation, `createDocumentAssignment` mutation |
+| `/api/documents/[id]/preview/view/+server.ts`     | ✅     | `document` query with `encryptedFileStorage` relationship      |
+| `/api/documents/[id]/download/+server.ts`         | ✅     | `document` query with `encryptedFileStorage` relationship      |
+| `/api/employees/[id]/assign-documents/+server.ts` | ✅     | `createDocumentAssignment` mutation                            |
 
 **Key Pattern:**
+
 ```typescript
 // Before: Direct SQL
 const doc = await client.query('SELECT * FROM documents WHERE id = $1', [id]);
@@ -106,6 +112,7 @@ const doc = result.data?.document;
 ```
 
 **Encrypted File Handling:**
+
 ```typescript
 // GraphQL returns base64-encoded encrypted data + IV
 const storage = document.encryptedFileStorage;
@@ -209,17 +216,20 @@ const decrypted = decryptFileFromGraphQL(storage.encryptedData, storage.iv, encr
 ## 📊 Migration Statistics
 
 ### Code Reduction
+
 - **Direct DB Queries Removed:** ~300 lines of SQL code
 - **GraphQL Operations Added:** 15 operations (13 documents + 2 rollback)
 - **Backend Infrastructure:** +740 lines (audit + rollback/snapshot)
 - **Net Impact:** More maintainable, centralized data access
 
 ### Performance Improvements
+
 - **Audit Logging:** Asynchronous (non-blocking mutations)
 - **Connection Pooling:** Centralized in Rust backend
 - **Caching:** Can be added to GraphQL resolvers (future)
 
 ### Security Enhancements
+
 - ✅ Reduced surface area for SQL injection
 - ✅ Centralized authentication via GraphQL
 - ✅ Automatic audit logging (compliance-ready)
@@ -231,6 +241,7 @@ const decrypted = decryptFileFromGraphQL(storage.encryptedData, storage.iv, encr
 ## 🔐 Security Architecture
 
 ### Authentication Flow
+
 ```
 Client Request → SvelteKit +server.ts
   ↓
@@ -250,6 +261,7 @@ Client Request → SvelteKit +server.ts
 ```
 
 ### Encryption Flow
+
 ```
 Upload:
   Client encrypts file → base64 + IV → GraphQL mutation → Rust backend stores encrypted data
@@ -273,12 +285,14 @@ Download/Preview:
 ## ⚠️ What Still Needs Direct DB Access
 
 ### By Design (Security)
+
 - **Encryption Key Retrieval** (`getDecryptionKey`)
   - Keys stored encrypted with pgcrypto
   - Direct DB access required to call `hr_public.decrypt_key_data()`
   - Alternative (exposing decrypted keys via GraphQL) is a security risk
 
 ### Lower Priority (Can Be Migrated Later)
+
 - **Dashboard Pages:**
   - `/dashboard/documents/[id]/+page.server.ts` (document detail)
   - `/dashboard/documents/+page.server.ts` (document listing)
@@ -286,6 +300,7 @@ Download/Preview:
   - **Effort:** 1-2 hours (can reuse existing GraphQL operations)
 
 ### Not Document-Related (Out of Scope)
+
 - **General Storage Routes:**
   - `/api/storage/upload`, `/api/storage/retrieve`, etc.
   - Used by `storageService.ts` for general file storage
@@ -316,6 +331,7 @@ Download/Preview:
    - Replaced by: `snapshots` query
 
 **Action Required:**
+
 - Update any code importing these services to use GraphQL operations
 - Delete service files after verification
 
@@ -324,6 +340,7 @@ Download/Preview:
 ## 🧪 Testing Recommendations
 
 ### Backend Testing
+
 ```bash
 # Run Rust backend tests
 cd graphql-rust-server
@@ -336,6 +353,7 @@ cargo test
 ```
 
 ### Frontend Testing
+
 ```bash
 # E2E tests with Playwright
 npm run test:e2e
@@ -345,6 +363,7 @@ npm run test:e2e -- tests/documents.spec.ts
 ```
 
 ### Manual Testing Checklist
+
 - [ ] Document upload creates audit log
 - [ ] Document delete creates audit log
 - [ ] Preview/download work with encrypted files
@@ -360,6 +379,7 @@ npm run test:e2e -- tests/documents.spec.ts
 ## 🚀 Deployment Checklist
 
 ### Prerequisites
+
 1. ✅ Rust backend compiled and tested
 2. ✅ PostgreSQL `activity_logs` table exists
 3. ✅ `encryptedFileStorage` relationship added to document model
@@ -368,6 +388,7 @@ npm run test:e2e -- tests/documents.spec.ts
 ### Deployment Steps
 
 **1. Deploy Rust Backend**
+
 ```bash
 cd graphql-rust-server
 cargo build --release
@@ -375,12 +396,14 @@ cargo build --release
 ```
 
 **2. Deploy Frontend**
+
 ```bash
 npm run build
 # Deploy to SvelteKit hosting (Vercel, Netlify, etc.)
 ```
 
 **3. Verify Deployment**
+
 ```bash
 # Health check
 curl https://your-backend.com/health
@@ -392,6 +415,7 @@ curl -X POST https://your-backend.com/graphql \
 ```
 
 **4. Monitor Audit Logs**
+
 ```sql
 -- Verify audit logs are being created
 SELECT COUNT(*) FROM hr_public.activity_logs
@@ -409,6 +433,7 @@ ORDER BY COUNT(*) DESC;
 ## 📈 Future Enhancements
 
 ### Short Term (1-2 weeks)
+
 1. **Migrate Dashboard Pages**
    - Update `/dashboard/documents/*` to use GraphQL
    - Estimated effort: 2-3 hours
@@ -422,6 +447,7 @@ ORDER BY COUNT(*) DESC;
    - Support for documents, employees, etc.
 
 ### Medium Term (1-2 months)
+
 1. **GraphQL Subscriptions for Real-Time Audit Logs**
    - Live updates when new audit logs are created
    - Useful for admin dashboards
@@ -435,6 +461,7 @@ ORDER BY COUNT(*) DESC;
    - Reduce storage costs
 
 ### Long Term (3-6 months)
+
 1. **Batch Rollback Operations**
    - Support for rolling back multiple changes at once
    - Transaction safety across entities
@@ -452,6 +479,7 @@ ORDER BY COUNT(*) DESC;
 ## 🎓 Lessons Learned
 
 ### What Went Well
+
 1. **Incremental Migration**
    - Migrating route-by-route allowed for testing at each step
    - Minimal disruption to existing functionality
@@ -469,6 +497,7 @@ ORDER BY COUNT(*) DESC;
    - Server-side decryption maintains security
 
 ### Challenges Encountered
+
 1. **SeaORM Query Syntax**
    - Initial compilation errors with filter/order methods
    - Required understanding of trait imports (`ColumnTrait`, `QueryFilter`, etc.)
@@ -482,7 +511,9 @@ ORDER BY COUNT(*) DESC;
    - Requires per-entity-type logic (TODO)
 
 ### Best Practices Established
+
 1. **Always Use GraphQL Client with Session Cookie**
+
    ```typescript
    const urqlClient = createUrqlClient(fetch, undefined, undefined, cookies.get('hr_session'));
    ```
@@ -500,16 +531,19 @@ ORDER BY COUNT(*) DESC;
 ## 📚 References
 
 ### Documentation
+
 - **async-graphql Extensions:** https://async-graphql.github.io/async-graphql/en/extensions.html
 - **SeaORM Query API:** https://www.sea-ql.org/SeaORM/docs/basic-crud/select/
 - **urql Client (Svelte):** https://formidable.com/open-source/urql/docs/basics/svelte/
 
 ### Internal Documentation
+
 - **`DOCUMENT_API_MIGRATION_STATUS.md`** - Document route migration details
 - **`AUDIT_ROLLBACK_MIGRATION_STATUS.md`** - Audit/rollback infrastructure details
 - **`REMAINING_DB_ACCESS_ANALYSIS.md`** - Analysis of remaining DB access
 
 ### GraphQL Operations
+
 - **`src/lib/graphql/operations/documents.graphql`** - Document operations
 - **`src/lib/graphql/operations/rollback.graphql`** - Rollback operations
 
@@ -532,11 +566,13 @@ ORDER BY COUNT(*) DESC;
 ## 🙏 Acknowledgments
 
 **Migration Scope:**
+
 - Frontend: Direct PostgreSQL access → GraphQL backend
 - Backend: Rust + async-graphql + SeaORM + AuditExtension
 - Infrastructure: Automatic audit logging + rollback/snapshot operations
 
 **Timeline:**
+
 - Phase 1 (Audit Middleware): 2 hours
 - Phase 2 (Rollback/Snapshot): 2 hours
 - Phase 3 (Document Routes): 1.5 hours
@@ -548,4 +584,4 @@ ORDER BY COUNT(*) DESC;
 
 **Status:** ✅ **MIGRATION COMPLETE**
 
-*All core document functionality has been successfully migrated to the Rust GraphQL backend. The system is ready for production deployment with enhanced security, maintainability, and audit compliance.*
+_All core document functionality has been successfully migrated to the Rust GraphQL backend. The system is ready for production deployment with enhanced security, maintainability, and audit compliance._

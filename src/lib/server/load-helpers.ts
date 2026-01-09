@@ -32,7 +32,9 @@ export async function createServerLoad<T>(
 			const permissions = event.locals.permissions || [];
 			const hasPermission = requiredPermissions.some(
 				(permission) =>
-					permissions.includes(permission) || permissions.includes('*') || permissions.includes('*:*')
+					permissions.includes(permission) ||
+					permissions.includes('*') ||
+					permissions.includes('*:*')
 			);
 
 			if (!hasPermission) {

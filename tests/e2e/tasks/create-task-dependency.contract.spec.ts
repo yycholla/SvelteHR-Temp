@@ -6,7 +6,7 @@
  * Tests the createTaskDependency GraphQL mutation with circular dependency prevention.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('CreateTaskDependency Mutation Contract', () => {
 	let taskAId: string;
@@ -51,7 +51,9 @@ test.describe('CreateTaskDependency Mutation Contract', () => {
 		await modal.locator('button:has-text("Add")').click();
 
 		// Verify success toast
-		await expect(page.locator('.toast:has-text("Dependency added")')).toBeVisible({ timeout: 3000 });
+		await expect(page.locator('.toast:has-text("Dependency added")')).toBeVisible({
+			timeout: 3000
+		});
 
 		// Verify dependency appears in UI
 		await expect(page.locator('.dependency-item:has-text("Task A")')).toBeVisible();
@@ -67,7 +69,9 @@ test.describe('CreateTaskDependency Mutation Contract', () => {
 		await modal.locator('select[name="blockingTaskId"]').selectOption(taskBId);
 		await modal.locator('button:has-text("Add")').click();
 
-		await expect(page.locator('.toast:has-text("Dependency added")')).toBeVisible({ timeout: 3000 });
+		await expect(page.locator('.toast:has-text("Dependency added")')).toBeVisible({
+			timeout: 3000
+		});
 
 		// Now try to create Task B depends on Task A (creates cycle)
 		await page.goto(`/dashboard/tasks/${taskBId}`);
@@ -119,10 +123,14 @@ test.describe('CreateTaskDependency Mutation Contract', () => {
 		await modal.locator('select[name="blockingTaskId"]').selectOption(taskAId);
 		await modal.locator('button:has-text("Add")').click();
 
-		await expect(page.locator('.toast:has-text("Dependency added")')).toBeVisible({ timeout: 3000 });
+		await expect(page.locator('.toast:has-text("Dependency added")')).toBeVisible({
+			timeout: 3000
+		});
 
 		// Verify dependency section shows blocking task
-		const dependencySection = page.locator('.dependencies-section, section:has-text("Dependencies")');
+		const dependencySection = page.locator(
+			'.dependencies-section, section:has-text("Dependencies")'
+		);
 		await expect(dependencySection).toBeVisible();
 		await expect(dependencySection.locator('.dependency-item:has-text("Task A")')).toBeVisible();
 

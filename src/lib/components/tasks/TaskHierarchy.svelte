@@ -19,42 +19,26 @@
 
 	interface Props {
 		task: Task; // Root task with populated subtasks
-		userId?: string;
 		onTaskClick?: (taskId: string) => void;
 		onStatusChange?: (taskId: string, newStatus: Task['status']) => void;
 		maxDepth?: number; // Maximum nesting depth (default: 3)
 		currentDepth?: number; // Current depth level (for recursion tracking)
-		showProgress?: boolean;
-		compact?: boolean;
 	}
 
-	let {
-		task,
-		userId,
-		onTaskClick,
-		onStatusChange,
-		maxDepth = 3,
-		currentDepth = 0,
-		showProgress = false,
-		compact = false
-	}: Props = $props();
+	const { task, onTaskClick, onStatusChange, maxDepth = 3, currentDepth = 0 }: Props = $props();
 
 	// State for expand/collapse
 	let isExpanded = $state(currentDepth < 2); // Auto-expand first 2 levels
 
 	// Derived state
-	let hasSubtasks = $derived(
-		task.subtasks && task.subtasks.length > 0
-	);
-	let canExpand = $derived(hasSubtasks && currentDepth < maxDepth);
-	let subtasks = $derived(task.subtasks || []);
-	let subtaskCount = $derived(task.subtasks?.length || 0);
-	let completedSubtasks = $derived(
-		subtasks.filter((t: Task) => t.status === 'Done').length
-	);
+	const hasSubtasks = $derived(task.subtasks && task.subtasks.length > 0);
+	const canExpand = $derived(hasSubtasks && currentDepth < maxDepth);
+	const subtasks = $derived(task.subtasks || []);
+	const subtaskCount = $derived(task.subtasks?.length || 0);
+	const completedSubtasks = $derived(subtasks.filter((t: Task) => t.status === 'DONE').length);
 
 	// Calculate completion percentage for subtasks
-	let completionPercentage = $derived(() => {
+	const completionPercentage = $derived(() => {
 		if (subtaskCount === 0) return 0;
 		return Math.round((completedSubtasks / subtaskCount) * 100);
 	});
@@ -108,11 +92,8 @@
 		<div class="flex-1">
 			<TaskCard
 				{task}
-				{userId}
 				onClick={handleTaskClick}
 				onStatusChange={handleStatusChange}
-				{showProgress}
-				{compact}
 				level={currentDepth}
 			/>
 
@@ -141,13 +122,10 @@
 				<!-- Recursive TaskHierarchy for subtask -->
 				<TaskHierarchy
 					task={subtask}
-					{userId}
 					{onTaskClick}
 					{onStatusChange}
 					{maxDepth}
 					currentDepth={currentDepth + 1}
-					{showProgress}
-					{compact}
 				/>
 			{/each}
 		</div>
@@ -159,11 +137,11 @@
 			<div class="flex items-center gap-2">
 				<GitBranch class="h-4 w-4 flex-shrink-0" />
 				<span>
-					Maximum nesting depth reached. This task has {subtaskCount} more subtask{subtaskCount > 1 ? 's' : ''}.
+					Maximum nesting depth reached. This task has {subtaskCount} more subtask{subtaskCount > 1
+						? 's'
+						: ''}.
 				</span>
 			</div>
 		</div>
 	{/if}
 </div>
-
-

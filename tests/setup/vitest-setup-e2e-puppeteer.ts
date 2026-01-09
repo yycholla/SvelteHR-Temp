@@ -3,7 +3,7 @@
 // Created: 2025-10-27
 // Updated: Feature 039 - Added test database reset and artifact capture
 
-import { beforeAll, afterEach, afterAll } from 'vitest';
+import { afterAll, afterEach, beforeAll } from 'vitest';
 import puppeteer, { type Browser, type Page } from 'puppeteer';
 import { setBrowser, setPage } from '../utils/puppeteer-helpers';
 import { execSync } from 'child_process';
@@ -42,12 +42,7 @@ beforeAll(async () => {
 
 	browser = await puppeteer.launch({
 		headless,
-		args: [
-			'--no-sandbox',
-			'--disable-setuid-sandbox',
-			'--disable-dev-shm-usage',
-			'--disable-gpu'
-		],
+		args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
 		defaultViewport: {
 			width: 1280,
 			height: 720

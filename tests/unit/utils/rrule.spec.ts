@@ -6,12 +6,12 @@
  * MUST FAIL until implementation in src/lib/utils/rrule.ts
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
+	formatRRuleString,
 	generateRRule,
 	parseRecurrencePattern,
-	validate5YearLimit,
-	formatRRuleString
+	validate5YearLimit
 } from '$lib/utils/rrule';
 import type { RecurrencePattern } from '$lib/types/events';
 
@@ -109,7 +109,7 @@ describe('RRULE Generation', () => {
 				endDate: new Date('2025-12-31')
 			};
 
-			const pattern = parseRecurrencePattern(formData, new Date('2025-10-10'));
+			const pattern = parseRecurrencePattern(formData as any, new Date('2025-10-10'));
 
 			expect(pattern.frequency).toBe('daily');
 			expect(pattern.interval).toBe(1);
@@ -124,7 +124,7 @@ describe('RRULE Generation', () => {
 				endDate: new Date('2025-12-31')
 			};
 
-			const pattern = parseRecurrencePattern(formData, new Date('2025-10-10'));
+			const pattern = parseRecurrencePattern(formData as any, new Date('2025-10-10'));
 
 			expect(pattern.frequency).toBe('weekly');
 			expect(pattern.daysOfWeek).toEqual([1, 3, 5]);
@@ -139,7 +139,7 @@ describe('RRULE Generation', () => {
 				endDate: new Date('2025-12-31')
 			};
 
-			const pattern = parseRecurrencePattern(formData, new Date('2025-10-10'));
+			const pattern = parseRecurrencePattern(formData as any, new Date('2025-10-10'));
 
 			expect(pattern.rruleString).toContain('BYDAY=SU,MO,TU,WE,TH,FR,SA');
 		});

@@ -5,7 +5,7 @@ metadata:
   name: cloudnative-pg
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "1"  # After monitoring (depends on PodMonitor CRD)
+    argocd.argoproj.io/sync-wave: '1' # After monitoring (depends on PodMonitor CRD)
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -15,7 +15,7 @@ spec:
     # Source 1: Helm chart from cloudnative-pg
     - repoURL: https://cloudnative-pg.github.io/charts
       chart: cloudnative-pg
-      targetRevision: 0.26.1  # Pin specific version
+      targetRevision: 0.26.1 # Pin specific version
       helm:
         valueFiles:
           - $values/k8s/helm-values/cloudnative-pg-values.yaml
@@ -31,8 +31,8 @@ spec:
   syncPolicy:
     # Automated GitOps sync enabled
     automated:
-      prune: true  # Remove resources deleted from Git
-      selfHeal: true  # Auto-correct cluster drift
+      prune: true # Remove resources deleted from Git
+      selfHeal: true # Auto-correct cluster drift
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true

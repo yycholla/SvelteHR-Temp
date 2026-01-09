@@ -22,6 +22,7 @@
 		step = null,
 		maxlength = null,
 		pattern = null,
+		class: className = '',
 		oninput = undefined,
 		onchange = undefined,
 		onfocus = undefined,
@@ -29,7 +30,17 @@
 		onkeydown = undefined,
 		onkeyup = undefined
 	}: {
-		type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date' | 'datetime-local' | 'time';
+		type?:
+			| 'text'
+			| 'email'
+			| 'password'
+			| 'number'
+			| 'tel'
+			| 'url'
+			| 'search'
+			| 'date'
+			| 'datetime-local'
+			| 'time';
 		value?: string | number;
 		placeholder?: string;
 		disabled?: boolean;
@@ -51,6 +62,7 @@
 		step?: number | string | null;
 		maxlength?: number | null;
 		pattern?: string | null;
+		class?: string;
 		oninput?: ((detail: { value: string | number; event: Event }) => void) | undefined;
 		onchange?: ((detail: { value: string | number; event: Event }) => void) | undefined;
 		onfocus?: ((detail: { value: string | number; event: FocusEvent }) => void) | undefined;
@@ -64,7 +76,7 @@
 	let inputElement: HTMLInputElement;
 
 	// Computed classes
-	let containerClasses = $derived(
+	const containerClasses = $derived(
 		[
 			'input-container',
 			`input-container--${size}`,
@@ -72,13 +84,14 @@
 			focused && 'input-container--focused',
 			disabled && 'input-container--disabled',
 			variant === 'error' && 'input-container--error',
-			variant === 'success' && 'input-container--success'
+			variant === 'success' && 'input-container--success',
+			className
 		]
 			.filter(Boolean)
 			.join(' ')
 	);
 
-	let inputClasses = $derived(
+	const inputClasses = $derived(
 		[
 			'input',
 			`input--${size}`,
@@ -198,5 +211,3 @@
 		</div>
 	{/if}
 </div>
-
-

@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Async Signature Worker for Audit Logs (T029)
 // Feature: 021-i-have-setup (Comprehensive Audit Logging)
 // Implements LISTEN/NOTIFY pattern for batch signature generation
@@ -5,7 +6,12 @@
 // FR-013: Async signature generation to minimize performance impact
 
 import { Pool, type PoolClient } from 'pg';
-import { signAuditLog, generateKeyPair, exportPublicKey, generatePublicKeyId } from './crypto-signer.js';
+import {
+	exportPublicKey,
+	generateKeyPair,
+	generatePublicKeyId,
+	signAuditLog
+} from './crypto-signer.js';
 
 /**
  * Configuration for signature worker
@@ -110,11 +116,13 @@ export class SignatureWorker {
 
 		// Handle connection errors
 		this.client.on('error', (err) => {
-			console.error('SignatureWorker database error:', err);
+			logger.error('Signature worker connection error', err as Error);
 			this.handleConnectionError();
 		});
 
-		console.log(`SignatureWorker started (batch size: ${this.config.batchSize}, interval: ${this.config.batchIntervalMs}ms)`);
+		logger.info(
+			`SignatureWorker started (batch size: ${this.config.batchSize}, interval: ${this.config.batchIntervalMs}ms)`
+		);
 	}
 
 	/**
@@ -135,7 +143,7 @@ export class SignatureWorker {
 
 		// Process remaining pending logs
 		if (this.pendingLogIds.size > 0) {
-			console.log(`Processing ${this.pendingLogIds.size} remaining logs before shutdown...`);
+			logger.info(`Processing ${this.pendingLogIds.size} remaining logs before shutdown...`);
 			await this.processBatch();
 		}
 
@@ -145,7 +153,7 @@ export class SignatureWorker {
 				await this.client.query('UNLISTEN audit_log_inserted');
 				this.client.release();
 			} catch (error) {
-				console.error('Error during SignatureWorker shutdown:', error);
+				logger.error('Error releasing client during shutdown', error as Error);
 			}
 			this.client = null;
 		}
@@ -153,7 +161,7 @@ export class SignatureWorker {
 		// Close pool
 		await this.pool.end();
 
-		console.log('SignatureWorker stopped');
+		logger.info('SignatureWorker stopped');
 	}
 
 	/**
@@ -194,13 +202,13 @@ export class SignatureWorker {
 		// Clear these from pending set
 		logIds.forEach((id) => this.pendingLogIds.delete(id));
 
-		console.log(`Processing batch of ${batchSize} audit logs for signature generation...`);
+		logger.info(`Processing batch of ${batchSize} audit logs for signature generation...`);
 
 		try {
 			await this.signBatch(logIds);
-			console.log(`Successfully signed ${batchSize} audit logs`);
+			logger.info(`Successfully signed ${batchSize} audit logs`);
 		} catch (error) {
-			console.error(`Error signing batch of ${batchSize} logs:`, error);
+			logger.error('Error processing batch of audit logs', error as Error);
 			// Re-add failed logs to pending set for retry
 			logIds.forEach((id) => this.pendingLogIds.add(id));
 		}
@@ -241,7 +249,7 @@ export class SignatureWorker {
 					const signature = signAuditLog(log, this.privateKey);
 					signatures.push({ logId: log.id, signature });
 				} catch (error) {
-					console.error(`Failed to sign audit log ${log.id}:`, error);
+					logger.error('Error signing audit log entry', error as Error);
 					// Continue with other logs
 				}
 			}
@@ -255,12 +263,7 @@ export class SignatureWorker {
 					)
 					.join(', ');
 
-				const params = signatures.flatMap((s) => [
-					s.logId,
-					s.signature,
-					'ES256',
-					this.publicKeyId
-				]);
+				const params = signatures.flatMap((s) => [s.logId, s.signature, 'ES256', this.publicKeyId]);
 
 				await client.query(
 					`
@@ -298,7 +301,7 @@ export class SignatureWorker {
 	 * Handle connection errors and attempt reconnection
 	 */
 	private async handleConnectionError(): Promise<void> {
-		console.error('SignatureWorker connection lost, attempting to reconnect...');
+		logger.error('SignatureWorker connection lost, attempting to reconnect...');
 
 		// Release old client
 		if (this.client) {
@@ -319,7 +322,7 @@ export class SignatureWorker {
 				await this.start();
 			}
 		} catch (error) {
-			console.error('SignatureWorker reconnection failed:', error);
+			logger.error('Error during signature worker reconnection', error as Error);
 			// Will retry on next error
 		}
 	}

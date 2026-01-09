@@ -1,12 +1,11 @@
+import { logger } from '$lib/utils/logger';
 // Secure Authentication service for session-based authentication
 // Session management using axum-login backend with HTTP-only cookies
 
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
-import {
-	authConfig,
-	getAuthEndpoints
-} from './config';
+import { resolveRoute } from '$app/paths';
+import { authConfig, getAuthEndpoints } from './config';
 
 export interface AuthState {
 	isAuthenticated: boolean;
@@ -66,7 +65,9 @@ class SecureAuthService {
 					this.authState.isAuthenticated = true;
 					this.authState.user = data.user;
 					this.authState.permissions = data.permissions || [];
-					this.authState.sessionExpires = data.sessionExpires ? new Date(data.sessionExpires) : null;
+					this.authState.sessionExpires = data.sessionExpires
+						? new Date(data.sessionExpires)
+						: null;
 				}
 			} else if (response.status === 401) {
 				// Expected for unauthenticated users - not an error
@@ -74,11 +75,13 @@ class SecureAuthService {
 				this.resetAuthState();
 			} else {
 				// Other errors (500, 503, etc.) - log but don't crash
-				console.warn('Auth verification returned unexpected status:', response.status);
+				logger.warn('Auth verification returned unexpected status', {
+					statusCode: response.status
+				});
 				this.resetAuthState();
 			}
 		} catch (error) {
-			console.error('Auth service initialization failed:', error);
+			logger.error('Failed to initialize authentication', error as Error);
 			// Network error or fetch failed - reset state but don't logout
 			this.resetAuthState();
 		}
@@ -131,7 +134,7 @@ class SecureAuthService {
 				sessionExpires: data.sessionExpires
 			};
 		} catch (error) {
-			console.error('Login error:', error);
+			logger.error('Login request failed', error as Error);
 			return {
 				success: false,
 				error: error instanceof Error ? error.message : 'Network error'
@@ -151,9 +154,9 @@ class SecureAuthService {
 					'Content-Type': 'application/json'
 				},
 				credentials: 'include'
-			}).catch((err) => console.warn('Logout endpoint failed:', err));
+			}).catch((err) => logger.warn(`Logout endpoint failed:: ${err}`));
 		} catch (error) {
-			console.warn('Logout request failed:', error);
+			logger.warn(`Logout request failed:: ${error}`);
 		} finally {
 			// Always clean up local state
 			this.resetAuthState();
@@ -161,7 +164,7 @@ class SecureAuthService {
 
 			// Redirect to login page
 			if (browser) {
-				goto('/login');
+				goto(resolveRoute('/login'));
 			}
 		}
 	}
@@ -208,7 +211,9 @@ class SecureAuthService {
 	 */
 	hasPermission(permission: string): boolean {
 		return (
-			this.authState.permissions.includes('*') || this.authState.permissions.includes('*:*') || this.authState.permissions.includes(permission)
+			this.authState.permissions.includes('*') ||
+			this.authState.permissions.includes('*:*') ||
+			this.authState.permissions.includes(permission)
 		);
 	}
 
@@ -216,7 +221,8 @@ class SecureAuthService {
 	 * Check if user has any of the specified permissions
 	 */
 	hasAnyPermission(permissions: string[]): boolean {
-		if (this.authState.permissions.includes('*') || this.authState.permissions.includes('*:*')) return true;
+		if (this.authState.permissions.includes('*') || this.authState.permissions.includes('*:*'))
+			return true;
 		return permissions.some((permission) => this.authState.permissions.includes(permission));
 	}
 

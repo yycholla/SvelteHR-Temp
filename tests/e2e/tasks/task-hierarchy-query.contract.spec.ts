@@ -6,7 +6,7 @@
  * Tests the taskHierarchy GraphQL query with nested subtasks and progress calculation.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('TaskHierarchy Query Contract', () => {
 	let parentTaskId: string;
@@ -155,7 +155,9 @@ test.describe('TaskHierarchy Query Contract', () => {
 		await page.goto('/dashboard/tasks');
 
 		// Toggle hierarchy view
-		const hierarchyToggle = page.locator('button:has-text("Hierarchy"), input[name="viewMode"][value="hierarchy"]');
+		const hierarchyToggle = page.locator(
+			'button:has-text("Hierarchy"), input[name="viewMode"][value="hierarchy"]'
+		);
 		await hierarchyToggle.click();
 
 		await page.waitForResponse((response) => response.url().includes('graphql'));
@@ -184,7 +186,9 @@ test.describe('TaskHierarchy Query Contract', () => {
 
 		// Find parent task with expand button
 		const parentTaskRow = page.locator(`.task-item:has-text("Parent Task - Project Alpha")`);
-		const expandButton = parentTaskRow.locator('button[aria-label*="Expand"], button:has-text("▶")');
+		const expandButton = parentTaskRow.locator(
+			'button[aria-label*="Expand"], button:has-text("▶")'
+		);
 
 		// Initially collapsed (or expanded)
 		await expandButton.click();

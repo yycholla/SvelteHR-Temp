@@ -2,8 +2,8 @@ apiVersion: v2
 name: sveltehr
 description: A Helm chart for SvelteHR - Modern HR Management System
 type: application
-version: 2.0.0
-appVersion: "2.0.0"
+version: 2.0.1
+appVersion: '2.0.0'
 
 keywords:
   - hr
@@ -21,7 +21,7 @@ maintainers:
 dependencies:
   # Bitnami Redis - High-performance key-value store with HA support
   - name: redis
-    version: "20.5.0"
+    version: '20.5.0'
     repository: https://charts.bitnami.com/bitnami
     condition: redis.enabled
     tags:
@@ -34,18 +34,18 @@ dependencies:
 # Annotations for improved chart discovery
 annotations:
   # Container optimizations
-  build.optimizations: "BuildKit cache mounts, multi-stage builds, multi-target Rust builds"
-  rust.cargo-chef: "true"
-  frontend.vite: "7.0.4"
-  backend.rust: "1.90"
+  build.optimizations: 'BuildKit cache mounts, multi-stage builds, multi-target Rust builds'
+  rust.cargo-chef: 'true'
+  frontend.vite: '7.0.4'
+  backend.rust: '1.90'
 
   # Deployment features
-  deployment.features: "Helm hooks for migrations, dependency management, GitOps ready"
-  argocd.enabled: "true"
+  deployment.features: 'Helm hooks for migrations, dependency management, GitOps ready'
+  argocd.enabled: 'true'
 
   # Security
-  security.secrets: "External Secrets Operator (Doppler integration)"
-  security.rbac: "true"
+  security.secrets: 'External Secrets Operator (Doppler integration)'
+  security.rbac: 'true'
 
   # License
-  license: "MIT"
+  license: 'MIT'

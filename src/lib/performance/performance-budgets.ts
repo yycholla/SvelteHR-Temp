@@ -1,3 +1,5 @@
+import { logger } from '$lib/utils/logger';
+
 /**
  * Performance Budgets Configuration for SvelteHR
  *
@@ -357,7 +359,7 @@ export class PerformanceBudgetValidator {
 				const result = this.validateMetric(budgetName, value);
 				results.push(result);
 			} catch (error) {
-				console.warn(`Could not validate metric ${budgetName}:`, error);
+				logger.warn(`Could not validate metric ${budgetName}: ${error}`);
 			}
 		}
 
@@ -474,6 +476,8 @@ export class PerformanceBudgetValidator {
 				return `⚠️ ${budget.name}: ${formattedValue} exceeds warning threshold (target: ${formattedTarget})`;
 			case 'critical':
 				return `❌ ${budget.name}: ${formattedValue} critically exceeds target (${formattedTarget})`;
+			default:
+				return `${budget.name}: ${formattedValue}`;
 		}
 	}
 

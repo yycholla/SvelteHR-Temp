@@ -4,7 +4,7 @@
 // FR-006: Cryptographic signatures for audit logs
 // FR-022: Signature verification for tamper detection
 
-import { createSign, createVerify, createHash, generateKeyPairSync, type KeyObject } from 'crypto';
+import { type KeyObject, createHash, createSign, createVerify, generateKeyPairSync } from 'crypto';
 
 /**
  * Key pair interface for ECDSA ES256 keys

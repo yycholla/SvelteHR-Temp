@@ -5,6 +5,7 @@ import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { requireAuth } from '$lib/server/rbac-utils';
 import { transaction } from '$lib/server/db';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 	// Check authentication and permissions
@@ -126,7 +127,7 @@ export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 			userRoles
 		};
 	} catch (err) {
-		console.error('Audit log load error:', err);
+		logger.error('Audit log load error:', err as Error);
 
 		// Re-throw redirects and errors
 		if (err && typeof err === 'object' && ('status' in err || 'location' in err)) {
@@ -135,7 +136,7 @@ export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 
 		// Generic error fallback
 		error(500, {
-        			message: 'Failed to load audit logs. Please try again later.'
-        		});
+			message: 'Failed to load audit logs. Please try again later.'
+		});
 	}
 };

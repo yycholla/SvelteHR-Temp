@@ -33,9 +33,10 @@ Every health check has these parameters:
 ### PostgreSQL Health Check
 
 **Configuration**:
+
 ```yaml
 healthcheck:
-  test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+  test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
   interval: 10s
   timeout: 5s
   retries: 5
@@ -43,17 +44,20 @@ healthcheck:
 ```
 
 **Rationale**:
+
 - **interval: 10s** - Check every 10 seconds (database state is stable)
 - **timeout: 5s** - PostgreSQL should respond quickly
 - **retries: 5** - Allow 50 seconds of failures before marking unhealthy
 - **start_period: 30s** - Database initialization can take 20-30 seconds
 
 **Health Check Command**:
+
 - `pg_isready` checks if PostgreSQL is accepting connections
 - Uses environment variables for user and database name
 - Exit code 0 = accepting connections, non-zero = not ready
 
 **Expected Startup Timeline**:
+
 1. Container starts (0s)
 2. PostgreSQL initializes (0-30s) - health checks don't count as failures
 3. First health check after start_period (30s)
@@ -62,9 +66,10 @@ healthcheck:
 ### Redis Health Check
 
 **Configuration**:
+
 ```yaml
 healthcheck:
-  test: ["CMD", "redis-cli", "ping"]
+  test: ['CMD', 'redis-cli', 'ping']
   interval: 10s
   timeout: 3s
   retries: 3
@@ -72,17 +77,20 @@ healthcheck:
 ```
 
 **Rationale**:
+
 - **interval: 10s** - Frequent checks for fast failure detection
 - **timeout: 3s** - Redis should respond almost instantly
 - **retries: 3** - Allow 30 seconds of failures (conservative)
 - **start_period: 10s** - Redis starts very quickly (usually <5 seconds)
 
 **Health Check Command**:
+
 - `redis-cli ping` returns `PONG` if Redis is healthy
 - No authentication required (default configuration)
 - Fast response time (<10ms typically)
 
 **Expected Startup Timeline**:
+
 1. Container starts (0s)
 2. Redis initializes (0-5s)
 3. First health check after start_period (10s)
@@ -91,9 +99,10 @@ healthcheck:
 ### Rust GraphQL Backend Health Check
 
 **Configuration**:
+
 ```yaml
 healthcheck:
-  test: ["CMD-SHELL", "curl -f http://localhost:4000/health || exit 1"]
+  test: ['CMD-SHELL', 'curl -f http://localhost:4000/health || exit 1']
   interval: 30s
   timeout: 10s
   retries: 3
@@ -101,29 +110,33 @@ healthcheck:
 ```
 
 **Rationale**:
+
 - **interval: 30s** - Less frequent (application state is more stable)
 - **timeout: 10s** - Allow time for slow startup or migrations
 - **retries: 3** - Allow 90 seconds of failures (migrations can be slow)
 - **start_period: 60s** - Account for database migrations (can take 30-60s)
 
 **Health Check Command**:
+
 - `curl -f` fetches `/health` endpoint and fails on HTTP error codes
 - Backend must implement `/health` endpoint returning HTTP 200
 - Should verify database connectivity and critical dependencies
 
 **Expected Health Endpoint Response**:
+
 ```json
 {
-  "status": "healthy",
-  "timestamp": "2025-10-28T12:00:00Z",
-  "checks": {
-    "database": "connected",
-    "redis": "connected"
-  }
+	"status": "healthy",
+	"timestamp": "2025-10-28T12:00:00Z",
+	"checks": {
+		"database": "connected",
+		"redis": "connected"
+	}
 }
 ```
 
 **Expected Startup Timeline**:
+
 1. Container starts (0s)
 2. Rust binary initialization (0-10s)
 3. Database migrations run (10-60s) - health checks don't count as failures
@@ -133,9 +146,10 @@ healthcheck:
 ### SvelteKit Frontend Health Check
 
 **Configuration**:
+
 ```yaml
 healthcheck:
-  test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+  test: ['CMD-SHELL', 'curl -f http://localhost:3000/health || exit 1']
   interval: 30s
   timeout: 10s
   retries: 3
@@ -143,49 +157,56 @@ healthcheck:
 ```
 
 **Rationale**:
+
 - **interval: 30s** - Less frequent (static assets, stable state)
 - **timeout: 10s** - Allow time for SSR rendering
 - **retries: 3** - Allow 90 seconds of failures
 - **start_period: 30s** - Node.js initialization and build loading (20-30s)
 
 **Health Check Command**:
+
 - `curl -f` fetches `/health` endpoint and fails on HTTP error codes
 - Frontend must implement `/health` route returning HTTP 200
 - Should verify backend API connectivity
 
 **Expected Health Endpoint Implementation** (`src/routes/health/+server.ts`):
+
 ```typescript
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ fetch }) => {
-  try {
-    // Verify backend is reachable
-    const response = await fetch('http://hr-graphql-rust:4000/health', {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
-    });
+	try {
+		// Verify backend is reachable
+		const response = await fetch('http://hr-graphql-rust:4000/health', {
+			method: 'GET',
+			headers: { 'Content-Type': 'application/json' }
+		});
 
-    if (!response.ok) {
-      return new Response(JSON.stringify({ status: 'unhealthy', reason: 'backend_unreachable' }), {
-        status: 503,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
+		if (!response.ok) {
+			return new Response(JSON.stringify({ status: 'unhealthy', reason: 'backend_unreachable' }), {
+				status: 503,
+				headers: { 'Content-Type': 'application/json' }
+			});
+		}
 
-    return new Response(JSON.stringify({ status: 'healthy', timestamp: new Date().toISOString() }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  } catch (error) {
-    return new Response(JSON.stringify({ status: 'unhealthy', error: error.message }), {
-      status: 503,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
+		return new Response(
+			JSON.stringify({ status: 'healthy', timestamp: new Date().toISOString() }),
+			{
+				status: 200,
+				headers: { 'Content-Type': 'application/json' }
+			}
+		);
+	} catch (error) {
+		return new Response(JSON.stringify({ status: 'unhealthy', error: error.message }), {
+			status: 503,
+			headers: { 'Content-Type': 'application/json' }
+		});
+	}
 };
 ```
 
 **Expected Startup Timeline**:
+
 1. Container starts (0s)
 2. Node.js and SvelteKit initialization (0-30s)
 3. First health check after start_period (30s)
@@ -194,9 +215,11 @@ export const GET: RequestHandler = async ({ fetch }) => {
 ### Caddy Health Check
 
 **Configuration**:
+
 ```yaml
 healthcheck:
-  test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:2019/config/ || exit 1"]
+  test:
+    ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:2019/config/ || exit 1']
   interval: 30s
   timeout: 5s
   retries: 3
@@ -204,17 +227,20 @@ healthcheck:
 ```
 
 **Rationale**:
+
 - **interval: 30s** - Caddy is very stable once started
 - **timeout: 5s** - Admin API responds quickly
 - **retries: 3** - Allow 90 seconds of failures
 - **start_period: 10s** - Caddy starts very quickly (<5 seconds)
 
 **Health Check Command**:
+
 - `wget --spider` checks if admin API is accessible without downloading
 - Uses Caddy's admin API on port 2019
 - Verifies Caddy is running and configuration is loaded
 
 **Expected Startup Timeline**:
+
 1. Container starts (0s)
 2. Caddy loads Caddyfile and starts (0-5s)
 3. Let's Encrypt provisioning (if production mode, 5-60s)
@@ -223,13 +249,13 @@ healthcheck:
 
 ## Health Check Timing Summary
 
-| Service | Start Period | First Check | Expected Healthy | Total Startup |
-|---------|--------------|-------------|------------------|---------------|
-| PostgreSQL | 30s | 30s | ~30s | ~30s |
-| Redis | 10s | 10s | ~10s | ~10s |
-| Backend | 60s | 60s | ~60s | ~60s (with migrations) |
-| Frontend | 30s | 30s | ~30s | ~30s |
-| Caddy | 10s | 10s | ~10s (localhost) | ~10-60s |
+| Service    | Start Period | First Check | Expected Healthy | Total Startup          |
+| ---------- | ------------ | ----------- | ---------------- | ---------------------- |
+| PostgreSQL | 30s          | 30s         | ~30s             | ~30s                   |
+| Redis      | 10s          | 10s         | ~10s             | ~10s                   |
+| Backend    | 60s          | 60s         | ~60s             | ~60s (with migrations) |
+| Frontend   | 30s          | 30s         | ~30s             | ~30s                   |
+| Caddy      | 10s          | 10s         | ~10s (localhost) | ~10-60s                |
 
 **Total Stack Startup Time**: ~60 seconds (worst case with migrations)
 
@@ -328,11 +354,13 @@ docker inspect sveltehr-postgres-prod --format='{{json .State.Health}}' | jq
 ### Common Issues
 
 **Issue**: Container is "starting" forever
+
 ```
 STATUS: health: starting (30 minutes ago)
 ```
 
 **Solution**:
+
 1. Check health check command manually:
    ```bash
    docker exec sveltehr-backend-prod curl -f http://localhost:4000/health
@@ -344,11 +372,13 @@ STATUS: health: starting (30 minutes ago)
 3. Verify start_period is long enough for initialization
 
 **Issue**: Container is unhealthy after startup
+
 ```
 STATUS: unhealthy
 ```
 
 **Solution**:
+
 1. Check recent health check failures:
    ```bash
    docker inspect sveltehr-backend-prod --format='{{json .State.Health.Log}}' | jq
@@ -358,11 +388,13 @@ STATUS: unhealthy
 4. Check application logs for errors
 
 **Issue**: Service restarts repeatedly
+
 ```
 STATUS: Restarting (5) 10 seconds ago
 ```
 
 **Solution**:
+
 1. Health check may be too strict (reduce retries)
 2. Service may be crashing (check logs)
 3. Dependencies may be unhealthy (check `depends_on`)

@@ -84,7 +84,9 @@
 		isSubmitting = true;
 
 		try {
-			const targetDateTime = newGoal.targetDate ? new Date(newGoal.targetDate + 'T23:59:59.999Z').toISOString() : null;
+			const targetDateTime = newGoal.targetDate
+				? new Date(newGoal.targetDate + 'T23:59:59.999Z').toISOString()
+				: null;
 
 			const response = await fetch('/api/goals/create', {
 				method: 'POST',
@@ -136,9 +138,10 @@
 
 	<!-- Main Bento Grid -->
 	<div class="grid auto-rows-[minmax(160px,auto)] grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4">
-		
 		<!-- 1. Overall Rating (Small) -->
-		<div class="relative flex flex-col justify-between overflow-hidden rounded-xl border bg-card p-5">
+		<div
+			class="relative flex flex-col justify-between overflow-hidden rounded-xl border bg-card p-5"
+		>
 			<div class="z-10 mb-2 flex items-center gap-2 text-muted-foreground">
 				<Star class="h-4 w-4" />
 				<span class="text-xs font-semibold uppercase tracking-wider">Overall Rating</span>
@@ -244,7 +247,9 @@
 				<div class="divide-y divide-border/50">
 					{#if reviews.length > 0}
 						{#each reviews as review}
-							<div class="flex items-center justify-between p-4 transition-colors hover:bg-muted/20">
+							<div
+								class="flex items-center justify-between p-4 transition-colors hover:bg-muted/20"
+							>
 								<div>
 									<p class="text-sm font-medium">{review.reviewPeriod || 'Performance Review'}</p>
 									<p class="text-xs text-muted-foreground">
@@ -269,7 +274,9 @@
 
 	<!-- New Goal Modal -->
 	{#if showNewGoalForm}
-		<div class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+		<div
+			class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+		>
 			<div class="w-full max-w-lg rounded-xl border bg-card p-6 shadow-lg">
 				<h2 class="mb-4 text-lg font-semibold text-foreground">Create New Goal</h2>
 				<form onsubmit={handleSubmitGoal} class="space-y-4">

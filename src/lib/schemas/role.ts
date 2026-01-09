@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Zod schemas for role validation
  * Used for runtime validation of role data from GraphQL backend
@@ -39,7 +40,7 @@ export function validateRoles(roles: unknown[]): Role[] {
 		if (result.success) {
 			validRoles.push(result.data);
 		} else {
-			console.warn('[Role Validation] Invalid role data:', {
+			logger.warn('[Role Validation] Invalid role data:', {
 				role,
 				errors: (result.error as any).errors
 			});

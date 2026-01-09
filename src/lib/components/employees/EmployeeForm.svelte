@@ -1,17 +1,20 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 	import { userService } from '$lib/services/userService';
 	import { departmentService, departments } from '$lib/services/departmentService';
-	import Button from '../base/Button.svelte';
-	import Input from '../base/Input.svelte';
-	import Select from '../base/Select.svelte';
-	import Textarea from '../base/Textarea.svelte';
-	import Card from '../base/Card.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import { validateForm } from '$lib/utils/validation';
-	import type { ValidationResult } from '$lib/utils/validation';
-	import type { User, CreateUserInput, UpdateUserInput } from '$lib/types';
+	import type { CreateUserInput, UpdateUserInput, User } from '$lib/types';
+	
+	// Import decomposed components
+	import BasicInfo from './form-legacy/BasicInfo.svelte';
+	import JobInfo from './form-legacy/JobInfo.svelte';
+	import AddressInfo from './form-legacy/AddressInfo.svelte';
+	import ContactInfo from './form-legacy/ContactInfo.svelte';
+	import AccountInfo from './form-legacy/AccountInfo.svelte';
 
-	let {
+	const {
 		employee = null,
 		isEditing = false,
 		loading = false,
@@ -122,14 +125,14 @@
 	];
 
 	// Computed values
-	let departmentOptions = $derived(
+	const departmentOptions = $derived(
 		$departments.map((dept: any) => ({
 			value: dept.id,
 			label: dept.name
 		}))
 	);
 
-	let managerOptions = $derived([
+	const managerOptions = $derived([
 		{ value: '', label: 'No Manager' }
 		// TODO: Load actual managers from API
 	]);
@@ -244,10 +247,7 @@
 			const submissionData = prepareSubmissionData();
 
 			if (isEditing && employee) {
-				const updatedEmployee = await userService.updateUser(
-					employee.id,
-					submissionData as any
-				);
+				const updatedEmployee = await userService.updateUser(employee.id, submissionData as any);
 				onsuccess?.({ employee: updatedEmployee, action: 'update' });
 			} else {
 				const newEmployee = await userService.createUser(submissionData as any);
@@ -286,264 +286,66 @@
 			departmentService.loadDepartments();
 		} else {
 			// Fallback if loadDepartments is not available (e.g. mock)
-			console.warn('loadDepartments not available');
+			logger.warn('loadDepartments not available');
 		}
 	});
 </script>
 
 <form onsubmit={handleSubmit} class="employee-form">
 	<!-- Basic Information -->
-	<Card>
-		<div class="form-section">
-			<h3 class="form-section__title">Basic Information</h3>
-
-			<div class="form-grid">
-				<div class="form-field">
-					<Input
-						label="First Name"
-						bind:value={formData.firstName}
-						required
-						errorText={validationErrors.firstName}
-						placeholder="Enter first name"
-					/>
-				</div>
-
-				<div class="form-field">
-					<Input
-						label="Last Name"
-						bind:value={formData.lastName}
-						required
-						errorText={validationErrors.lastName}
-						placeholder="Enter last name"
-					/>
-				</div>
-
-				<div class="form-field">
-					<Input
-						label="Email"
-						type="email"
-						bind:value={formData.email}
-						required
-						disabled={isEditing}
-						errorText={validationErrors.email}
-						placeholder="Enter email address"
-					/>
-				</div>
-
-				<div class="form-field">
-					<Input
-						label="Phone Number"
-						type="tel"
-						bind:value={formData.phoneNumber}
-						errorText={validationErrors.phoneNumber}
-						placeholder="Enter phone number"
-					/>
-				</div>
-			</div>
-		</div>
-	</Card>
+	<BasicInfo
+		bind:firstName={formData.firstName}
+		bind:lastName={formData.lastName}
+		bind:email={formData.email}
+		bind:phoneNumber={formData.phoneNumber}
+		{validationErrors}
+		{isEditing}
+	/>
 
 	<!-- Employment Information -->
-	<Card>
-		<div class="form-section">
-			<h3 class="form-section__title">Employment Information</h3>
-
-			<div class="form-grid">
-				<div class="form-field">
-					<Input
-						label="Job Title"
-						bind:value={formData.jobTitle}
-						required
-						errorText={validationErrors.jobTitle}
-						placeholder="Enter job title"
-					/>
-				</div>
-
-				<div class="form-field">
-					<Select
-						label="Department"
-						options={departmentOptions}
-						bind:value={formData.departmentId}
-						required
-						errorText={validationErrors.departmentId}
-						placeholder="Select department"
-					/>
-				</div>
-
-				<div class="form-field">
-					<Select
-						label="Employment Type"
-						options={employmentTypeOptions}
-						bind:value={formData.employmentType}
-						required
-					/>
-				</div>
-
-				<div class="form-field">
-					<Input
-						label="Hire Date"
-						type="date"
-						bind:value={formData.hireDate}
-						required={!isEditing}
-						disabled={isEditing}
-						errorText={validationErrors.hireDate}
-					/>
-				</div>
-
-				<div class="form-field">
-					<Select
-						label="Manager"
-						options={managerOptions}
-						bind:value={formData.managerId}
-						placeholder="Select manager (optional)"
-					/>
-				</div>
-
-				<div class="form-field">
-					<Select label="Pay Type" options={payTypeOptions} bind:value={formData.payType} />
-				</div>
-
-				<div class="form-field">
-					<Input
-						label="Salary"
-						type="number"
-						bind:value={formData.salary}
-						placeholder="Enter salary amount"
-						helperText="Annual salary or hourly rate"
-					/>
-				</div>
-
-				<div class="form-field form-field--checkbox">
-					<label class="checkbox-label">
-						<input type="checkbox" bind:checked={formData.isRemote} class="checkbox-input" />
-						<span class="checkbox-text">Remote Employee</span>
-					</label>
-				</div>
-			</div>
-		</div>
-	</Card>
+	<JobInfo
+		bind:jobTitle={formData.jobTitle}
+		bind:departmentId={formData.departmentId}
+		bind:employmentType={formData.employmentType}
+		bind:hireDate={formData.hireDate}
+		bind:managerId={formData.managerId}
+		bind:payType={formData.payType}
+		bind:salary={formData.salary}
+		bind:isRemote={formData.isRemote}
+		{validationErrors}
+		{isEditing}
+		{departmentOptions}
+		{employmentTypeOptions}
+		{managerOptions}
+		{payTypeOptions}
+	/>
 
 	<!-- Address Information -->
-	<Card>
-		<div class="form-section">
-			<h3 class="form-section__title">Address Information</h3>
-
-			<div class="form-grid">
-				<div class="form-field form-field--full-width">
-					<Input
-						label="Street Address"
-						bind:value={formData.addressStreet}
-						placeholder="Enter street address"
-					/>
-				</div>
-
-				<div class="form-field">
-					<Input label="City" bind:value={formData.addressCity} placeholder="Enter city" />
-				</div>
-
-				<div class="form-field">
-					<Input label="State" bind:value={formData.addressState} placeholder="Enter state" />
-				</div>
-
-				<div class="form-field">
-					<Input
-						label="ZIP Code"
-						bind:value={formData.addressZipCode}
-						placeholder="Enter ZIP code"
-					/>
-				</div>
-			</div>
-		</div>
-	</Card>
+	<AddressInfo
+		bind:addressStreet={formData.addressStreet}
+		bind:addressCity={formData.addressCity}
+		bind:addressState={formData.addressState}
+		bind:addressZipCode={formData.addressZipCode}
+	/>
 
 	<!-- Emergency Contact -->
-	<Card>
-		<div class="form-section">
-			<h3 class="form-section__title">Emergency Contact</h3>
-
-			<div class="form-grid">
-				<div class="form-field">
-					<Input
-						label="Contact Name"
-						bind:value={formData.emergencyContactName}
-						placeholder="Enter emergency contact name"
-					/>
-				</div>
-
-				<div class="form-field">
-					<Input
-						label="Contact Phone"
-						type="tel"
-						bind:value={formData.emergencyContactPhone}
-						placeholder="Enter emergency contact phone"
-					/>
-				</div>
-
-				<div class="form-field">
-					<Select
-						label="Relationship"
-						options={relationshipOptions}
-						bind:value={formData.emergencyContactRelationship}
-						placeholder="Select relationship"
-					/>
-				</div>
-			</div>
-		</div>
-	</Card>
+	<ContactInfo
+		bind:emergencyContactName={formData.emergencyContactName}
+		bind:emergencyContactPhone={formData.emergencyContactPhone}
+		bind:emergencyContactRelationship={formData.emergencyContactRelationship}
+		{relationshipOptions}
+	/>
 
 	<!-- Authentication (for new employees only) -->
-	{#if !isEditing}
-		<Card>
-			<div class="form-section">
-				<h3 class="form-section__title">Account Information</h3>
-
-				<div class="form-grid">
-					<div class="form-field">
-						<Input
-							label="Username"
-							bind:value={formData.username}
-							required
-							errorText={validationErrors.username}
-							placeholder="Enter username"
-						/>
-					</div>
-
-					<div class="form-field">
-						<Select
-							label="Role"
-							options={roleOptions}
-							bind:value={formData.roleIds[0]}
-							required
-							placeholder="Select role"
-						/>
-					</div>
-
-					<div class="form-field">
-						<Input
-							label="Password"
-							type="password"
-							bind:value={formData.password}
-							required
-							errorText={validationErrors.password}
-							placeholder="Enter password"
-							helperText="Minimum 8 characters"
-						/>
-					</div>
-
-					<div class="form-field">
-						<Input
-							label="Confirm Password"
-							type="password"
-							bind:value={formData.confirmPassword}
-							required
-							errorText={validationErrors.confirmPassword}
-							placeholder="Confirm password"
-						/>
-					</div>
-				</div>
-			</div>
-		</Card>
-	{/if}
+	<AccountInfo
+		bind:username={formData.username}
+		bind:password={formData.password}
+		bind:confirmPassword={formData.confirmPassword}
+		bind:roleIds={formData.roleIds}
+		{validationErrors}
+		{roleOptions}
+		{isEditing}
+	/>
 
 	<!-- Form Actions -->
 	<div class="form-actions">
@@ -552,11 +354,11 @@
 		</div>
 
 		<div class="form-actions__right">
-			<Button type="button" variant="tertiary" onclick={handleCancel} disabled={loading}>
+			<Button type="button" variant="outline" onclick={handleCancel} disabled={loading}>
 				Cancel
 			</Button>
 
-			<Button type="submit" variant="primary" disabled={!isValid || loading} {loading}>
+			<Button type="submit" variant="default" disabled={!isValid || loading}>
 				{isEditing ? 'Update Employee' : 'Create Employee'}
 			</Button>
 		</div>

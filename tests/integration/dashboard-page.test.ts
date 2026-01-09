@@ -7,18 +7,24 @@
  * Following TDD methodology - these tests MUST FAIL until implementation exists.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi, type MockedFunction } from 'vitest';
+import { type MockedFunction, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import type { LoadEvent } from '@sveltejs/kit';
 import type {
-	GetCompleteDashboardDataRequest,
-	GetCompleteDashboardDataResponse,
 	DataRequest,
-	ErrorResponse
+	ErrorResponse,
+	GetCompleteDashboardDataRequest,
+	GetCompleteDashboardDataResponse
 } from '$lib/types/graphql-contracts';
-import type { RetryHandler } from '$lib/utils/retry-handler';
-import type { CacheInvalidator } from '$lib/utils/cache-management';
+import { RetryHandler } from '$lib/utils/retry-handler';
+import { CacheInvalidator } from '$lib/utils/cache-management';
+
+// Mock CacheInvalidator interface for testing
+interface MockCacheInvalidator {
+	invalidate: ReturnType<typeof vi.fn>;
+	warmCache: ReturnType<typeof vi.fn>;
+}
 
 // Mock the dashboard page load function - MUST throw until implementation exists
 const mockDashboardLoad = vi.fn().mockImplementation(() => {
@@ -54,7 +60,7 @@ const mockRetryHandler: Partial<RetryHandler> = {
 };
 
 // Mock cache invalidator
-const mockCacheInvalidator: Partial<CacheInvalidator> = {
+const mockCacheInvalidator: MockCacheInvalidator = {
 	invalidate: vi.fn(),
 	warmCache: vi.fn()
 };
@@ -71,27 +77,40 @@ describe('Dashboard Page Integration (T017)', () => {
 	describe('Page Load Integration', () => {
 		it('should integrate with GraphQL operations for complete dashboard data loading', async () => {
 			// Arrange - Mock load event
-			const mockLoadEvent: Partial<LoadEvent> = {
+			const mockLoadEvent = {
 				params: {},
 				url: new URL('http://localhost:5173/dashboard'),
 				cookies: {
 					get: vi.fn().mockReturnValue('mock-auth-token')
-				} as any,
+				},
 				locals: {
 					user: { id: 'user-123', role: 'HR_Manager' },
 					permissions: ['employees:read', 'departments:read']
 				}
-			};
+			} as unknown as LoadEvent;
 
 			const dashboardRequest: GetCompleteDashboardDataRequest = {
-				operation: 'GetCompleteDashboardData',
+				id: 'request-123',
+				operationName: 'GetCompleteDashboardData',
 				variables: {
 					userId: 'user-123',
-					includeMetrics: true,
-					dateRange: '30d'
+					userRole: 'HR_Manager'
 				},
+				userCredentials: {
+					id: 'session-123',
+					userId: 'user-123',
+					jwtToken: 'mock-auth-token',
+					permissions: ['employees:read', 'departments:read'],
+					roles: ['HR_Manager'],
+					isAuthenticated: true,
+					expiresAt: new Date(Date.now() + 3600000),
+					lastActivity: new Date()
+				},
+				status: 'pending',
+				retryAttempts: 0,
+				createdAt: new Date(),
+				completedAt: null,
 				timeoutMs: 5000,
-				maxRetries: 3,
 				cachePolicy: 'cache-first',
 				cacheTtlMinutes: 30
 			};
@@ -112,15 +131,15 @@ describe('Dashboard Page Integration (T017)', () => {
 			const timeoutError = new Error('Network timeout after 5000ms');
 			mockGetCompleteDashboardData.mockRejectedValueOnce(timeoutError);
 
-			const mockLoadEvent: Partial<LoadEvent> = {
+			const mockLoadEvent = {
 				params: {},
 				url: new URL('http://localhost:5173/dashboard'),
-				cookies: { get: vi.fn().mockReturnValue('mock-auth-token') } as any,
+				cookies: { get: vi.fn().mockReturnValue('mock-auth-token') },
 				locals: {
 					user: { id: 'user-123', role: 'HR_Manager' },
 					permissions: ['employees:read', 'departments:read']
 				}
-			};
+			} as unknown as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -139,21 +158,26 @@ describe('Dashboard Page Integration (T017)', () => {
 		it('should handle authentication errors with proper redirect in dashboard page', async () => {
 			// Arrange
 			const authError: ErrorResponse = {
+				id: 'error-auth',
+				operationId: 'op-auth',
+				originalError: null,
+				technicalDetails: 'Token validation failed',
+				timestamp: new Date(),
+				isRetryable: false,
+				suggestedActions: [{ label: 'Sign In', action: 'redirect_to_login', isPrimary: true }],
 				type: 'AUTHENTICATION_ERROR',
-				message: 'Invalid or expired authentication token',
-				severity: 'high',
-				suggestedAction: 'redirect_to_login',
-				retryable: false
+				userMessage: 'Invalid or expired authentication token',
+				severity: 'high'
 			};
 
 			mockGetCompleteDashboardData.mockRejectedValueOnce(authError);
 
-			const mockLoadEvent: Partial<LoadEvent> = {
+			const mockLoadEvent = {
 				params: {},
 				url: new URL('http://localhost:5173/dashboard'),
-				cookies: { get: vi.fn().mockReturnValue('invalid-token') } as any,
+				cookies: { get: vi.fn().mockReturnValue('invalid-token') },
 				locals: {} // No user - unauthenticated
-			};
+			} as unknown as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -167,24 +191,31 @@ describe('Dashboard Page Integration (T017)', () => {
 		it('should handle permission errors with graceful degradation in dashboard', async () => {
 			// Arrange
 			const permissionError: ErrorResponse = {
+				id: 'error-permission',
+				operationId: 'op-permission',
+				originalError: null,
+				technicalDetails: 'Insufficient permissions',
+				timestamp: new Date(),
+				isRetryable: false,
+				suggestedActions: [
+					{ label: 'View Limited Dashboard', action: 'show_limited_view', isPrimary: true }
+				],
 				type: 'PERMISSION_ERROR',
-				message: 'Insufficient permissions for dashboard metrics',
-				severity: 'medium',
-				suggestedAction: 'show_limited_view',
-				retryable: false
+				userMessage: 'Insufficient permissions for dashboard metrics',
+				severity: 'medium'
 			};
 
 			mockGetCompleteDashboardData.mockRejectedValueOnce(permissionError);
 
-			const mockLoadEvent: Partial<LoadEvent> = {
+			const mockLoadEvent = {
 				params: {},
 				url: new URL('http://localhost:5173/dashboard'),
-				cookies: { get: vi.fn().mockReturnValue('valid-token') } as any,
+				cookies: { get: vi.fn().mockReturnValue('valid-token') },
 				locals: {
 					user: { id: 'user-123', role: 'Employee' }, // Limited permissions
 					permissions: ['profile:read']
 				}
-			};
+			} as unknown as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -200,30 +231,30 @@ describe('Dashboard Page Integration (T017)', () => {
 		it('should render dashboard page with proper data integration', async () => {
 			// Arrange
 			const mockDashboardData: GetCompleteDashboardDataResponse = {
-				success: true,
-				data: {
+				dashboardData: {
 					metrics: {
-						totalEmployees: 150,
-						activeProjects: 12,
-						pendingReviews: 8,
-						upcomingDeadlines: 3
+						attendanceRate: 0.95,
+						pendingRequests: 8,
+						taskCount: 12,
+						remainingVacationDays: 15
 					},
-					recentActivity: [
+					user: {
+						id: 'user-123',
+						displayName: 'Admin User',
+						role: 'HR_Manager'
+					},
+					activities: [
 						{
 							id: 'activity-1',
 							type: 'employee_hired',
 							message: 'New employee John Doe joined Marketing',
-							timestamp: '2024-01-15T10:00:00Z'
+							timestamp: '2024-01-15T10:00:00Z',
+							severity: 'info'
 						}
 					],
-					quickStats: {
-						departmentCount: 8,
-						averageSalary: 75000,
-						retentionRate: 0.92
-					}
-				},
-				pagination: null,
-				errors: []
+					tasks: [],
+					upcomingEvents: []
+				}
 			};
 
 			// Mock successful data loading
@@ -270,11 +301,16 @@ describe('Dashboard Page Integration (T017)', () => {
 		it('should display error states with retry options in dashboard', async () => {
 			// Arrange - Simulate error state
 			const networkError: ErrorResponse = {
+				id: 'error-network',
+				operationId: 'op-network',
+				originalError: null,
+				technicalDetails: 'Network request failed',
+				timestamp: new Date(),
+				isRetryable: true,
+				suggestedActions: [{ label: 'Retry', action: 'retry_operation', isPrimary: true }],
 				type: 'NETWORK_ERROR',
-				message: 'Failed to load dashboard data',
-				severity: 'high',
-				suggestedAction: 'retry_operation',
-				retryable: true
+				userMessage: 'Failed to load dashboard data',
+				severity: 'high'
 			};
 
 			const mockProps = {
@@ -301,35 +337,41 @@ describe('Dashboard Page Integration (T017)', () => {
 		it('should handle real-time dashboard metric updates via cache invalidation', async () => {
 			// Arrange
 			const initialData: GetCompleteDashboardDataResponse = {
-				success: true,
-				data: {
+				dashboardData: {
 					metrics: {
-						totalEmployees: 150,
-						activeProjects: 12,
-						pendingReviews: 8,
-						upcomingDeadlines: 3
+						attendanceRate: 0.95,
+						pendingRequests: 8,
+						taskCount: 12,
+						remainingVacationDays: 15
 					},
-					recentActivity: [],
-					quickStats: { departmentCount: 8, averageSalary: 75000, retentionRate: 0.92 }
-				},
-				pagination: null,
-				errors: []
+					user: {
+						id: 'user-123',
+						displayName: 'Admin User',
+						role: 'HR_Manager'
+					},
+					activities: [],
+					tasks: [],
+					upcomingEvents: []
+				}
 			};
 
 			const updatedData: GetCompleteDashboardDataResponse = {
-				success: true,
-				data: {
+				dashboardData: {
 					metrics: {
-						totalEmployees: 151,
-						activeProjects: 12,
-						pendingReviews: 7,
-						upcomingDeadlines: 3
+						attendanceRate: 0.96,
+						pendingRequests: 7,
+						taskCount: 12,
+						remainingVacationDays: 15
 					},
-					recentActivity: [],
-					quickStats: { departmentCount: 8, averageSalary: 75000, retentionRate: 0.92 }
-				},
-				pagination: null,
-				errors: []
+					user: {
+						id: 'user-123',
+						displayName: 'Admin User',
+						role: 'HR_Manager'
+					},
+					activities: [],
+					tasks: [],
+					upcomingEvents: []
+				}
 			};
 
 			// Act & Assert - Should throw until implementation exists
@@ -383,15 +425,15 @@ describe('Dashboard Page Integration (T017)', () => {
 		it('should meet dashboard page load performance requirements', async () => {
 			// Arrange
 			const startTime = performance.now();
-			const mockLoadEvent: Partial<LoadEvent> = {
+			const mockLoadEvent = {
 				params: {},
 				url: new URL('http://localhost:5173/dashboard'),
-				cookies: { get: vi.fn().mockReturnValue('mock-auth-token') } as any,
+				cookies: { get: vi.fn().mockReturnValue('mock-auth-token') },
 				locals: {
 					user: { id: 'user-123', role: 'HR_Manager' },
 					permissions: ['employees:read', 'departments:read']
 				}
-			};
+			} as unknown as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -410,14 +452,27 @@ describe('Dashboard Page Integration (T017)', () => {
 		it('should cache dashboard data with 30-minute TTL', async () => {
 			// Arrange
 			const dashboardRequest: GetCompleteDashboardDataRequest = {
-				operation: 'GetCompleteDashboardData',
+				id: 'request-cache-test',
+				operationName: 'GetCompleteDashboardData',
 				variables: {
 					userId: 'user-123',
-					includeMetrics: true,
-					dateRange: '30d'
+					userRole: 'HR_Manager'
 				},
+				userCredentials: {
+					id: 'session-cache',
+					userId: 'user-123',
+					jwtToken: 'mock-auth-token',
+					permissions: ['employees:read', 'departments:read'],
+					roles: ['HR_Manager'],
+					isAuthenticated: true,
+					expiresAt: new Date(Date.now() + 3600000),
+					lastActivity: new Date()
+				},
+				status: 'pending',
+				retryAttempts: 0,
+				createdAt: new Date(),
+				completedAt: null,
 				timeoutMs: 5000,
-				maxRetries: 3,
 				cachePolicy: 'cache-first',
 				cacheTtlMinutes: 30 // Must respect 30-minute maximum
 			};
@@ -435,26 +490,26 @@ describe('Dashboard Page Integration (T017)', () => {
 	describe('RBAC Integration', () => {
 		it('should filter dashboard data based on user permissions', async () => {
 			// Arrange - Employee with limited permissions
-			const employeeLoadEvent: Partial<LoadEvent> = {
+			const employeeLoadEvent = {
 				params: {},
 				url: new URL('http://localhost:5173/dashboard'),
-				cookies: { get: vi.fn().mockReturnValue('employee-token') } as any,
+				cookies: { get: vi.fn().mockReturnValue('employee-token') },
 				locals: {
 					user: { id: 'user-456', role: 'Employee' },
 					permissions: ['profile:read', 'timesheet:read']
 				}
-			};
+			} as unknown as LoadEvent;
 
 			// HR Manager with full permissions
-			const hrManagerLoadEvent: Partial<LoadEvent> = {
+			const hrManagerLoadEvent = {
 				params: {},
 				url: new URL('http://localhost:5173/dashboard'),
-				cookies: { get: vi.fn().mockReturnValue('hr-manager-token') } as any,
+				cookies: { get: vi.fn().mockReturnValue('hr-manager-token') },
 				locals: {
 					user: { id: 'user-123', role: 'HR_Manager' },
 					permissions: ['employees:read', 'departments:read', 'reports:hr']
 				}
-			};
+			} as unknown as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -471,10 +526,10 @@ describe('Dashboard Page Integration (T017)', () => {
 
 		it('should handle department-specific permissions in dashboard', async () => {
 			// Arrange - Manager with department-specific access
-			const departmentManagerLoadEvent: Partial<LoadEvent> = {
+			const departmentManagerLoadEvent = {
 				params: {},
 				url: new URL('http://localhost:5173/dashboard'),
-				cookies: { get: vi.fn().mockReturnValue('dept-manager-token') } as any,
+				cookies: { get: vi.fn().mockReturnValue('dept-manager-token') },
 				locals: {
 					user: {
 						id: 'user-789',
@@ -483,7 +538,7 @@ describe('Dashboard Page Integration (T017)', () => {
 					},
 					permissions: ['employees:read', 'department_employees:read', 'reports:team']
 				}
-			};
+			} as unknown as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {

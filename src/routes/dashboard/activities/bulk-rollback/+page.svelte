@@ -390,8 +390,9 @@
 <!-- Bulk Rollback Dialog -->
 {#if showDialog}
 	<BulkRollbackDialog
-		selectedLogs={Array.from(selectedLogs)}
+		logs={data.availableLogs.filter((log) => selectedLogs.has(log.id))}
+		isOpen={showDialog}
+		onClose={() => (showDialog = false)}
 		onComplete={handleBatchComplete}
-		onCancel={() => (showDialog = false)}
 	/>
 {/if}

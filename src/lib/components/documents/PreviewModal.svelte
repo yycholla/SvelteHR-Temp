@@ -16,9 +16,8 @@
 		onDownload?: () => void;
 	}
 
-	let {
+	const {
 		isOpen = false,
-		documentId,
 		filename,
 		mimeType = '',
 		fileType = '',
@@ -31,35 +30,34 @@
 	}: Props = $props();
 
 	// Determine actual MIME type from either mimeType or legacy fileType
-	let actualMimeType = $derived(mimeType || convertFileTypeToMimeType(fileType));
+	const actualMimeType = $derived(mimeType || convertFileTypeToMimeType(fileType));
 
 	// Helper to convert legacy FileType to MIME type
 	function convertFileTypeToMimeType(type: string): string {
 		const mimeMap: Record<string, string> = {
-			'PDF': 'application/pdf',
-			'JPEG': 'image/jpeg',
-			'PNG': 'image/png',
-			'GIF': 'image/gif',
-			'TXT': 'text/plain',
-			'CSV': 'text/csv',
-			'DOCX': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-			'XLSX': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+			PDF: 'application/pdf',
+			JPEG: 'image/jpeg',
+			PNG: 'image/png',
+			GIF: 'image/gif',
+			TXT: 'text/plain',
+			CSV: 'text/csv',
+			DOCX: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+			XLSX: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 		};
 		return mimeMap[type] || type;
 	}
 
 	// Derived state based on MIME type
-	let isPDF = $derived(actualMimeType === 'application/pdf');
-	let isImage = $derived(actualMimeType.startsWith('image/'));
-	let isText = $derived(actualMimeType === 'text/plain' || actualMimeType === 'text/csv');
-	let isOfficeDoc = $derived(
-		actualMimeType.includes('wordprocessingml') ||
-		actualMimeType.includes('spreadsheetml')
+	const isPDF = $derived(actualMimeType === 'application/pdf');
+	const isImage = $derived(actualMimeType.startsWith('image/'));
+	const isText = $derived(actualMimeType === 'text/plain' || actualMimeType === 'text/csv');
+	const isOfficeDoc = $derived(
+		actualMimeType.includes('wordprocessingml') || actualMimeType.includes('spreadsheetml')
 	);
-	let canPreview = $derived(isPDF || isImage || isText);
+	const canPreview = $derived(isPDF || isImage || isText);
 
 	// Get display file type
-	let displayFileType = $derived(
+	const displayFileType = $derived(
 		fileType || actualMimeType.split('/').pop()?.toUpperCase() || 'FILE'
 	);
 
@@ -88,7 +86,7 @@
 		onclick={handleBackdropClick}
 		onkeydown={(e) => {
 			if (e.key === 'Escape' || e.key === 'Enter') {
-				handleBackdropClick(e);
+				handleBackdropClick(e as unknown as MouseEvent);
 			}
 		}}
 	>
@@ -113,9 +111,7 @@
 							⬇️ Download
 						</button>
 					{/if}
-					<button class="action-button close-button" onclick={onClose} title="Close">
-						✕
-					</button>
+					<button class="action-button close-button" onclick={onClose} title="Close"> ✕ </button>
 				</div>
 			</div>
 
@@ -134,9 +130,7 @@
 						<h3>Preview Error</h3>
 						<p>{error}</p>
 						{#if canDownload}
-							<button class="retry-button" onclick={onDownload}>
-								Download Instead
-							</button>
+							<button class="retry-button" onclick={onDownload}> Download Instead </button>
 						{/if}
 					</div>
 				{:else if !canPreview}
@@ -159,21 +153,13 @@
 				{:else if previewUrl}
 					<!-- Preview content -->
 					{#if isPDF}
-						<iframe
-							src={previewUrl}
-							title="PDF Preview: {filename}"
-							class="pdf-preview"
-						></iframe>
+						<iframe src={previewUrl} title="PDF Preview: {filename}" class="pdf-preview"></iframe>
 					{:else if isImage}
 						<div class="image-preview-container">
 							<img src={previewUrl} alt={filename} class="image-preview" />
 						</div>
 					{:else if isText}
-						<iframe
-							src={previewUrl}
-							title="Text Preview: {filename}"
-							class="text-preview"
-						></iframe>
+						<iframe src={previewUrl} title="Text Preview: {filename}" class="text-preview"></iframe>
 					{/if}
 				{:else}
 					<!-- No preview URL -->

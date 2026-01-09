@@ -7,7 +7,7 @@
  * MUST FAIL until waitlist features are implemented.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Join Waitlist for Full Event', () => {
 	test.beforeEach(async ({ page }) => {
@@ -61,9 +61,9 @@ test.describe('Join Waitlist for Full Event', () => {
 			await waitlistButton.click();
 
 			// Verify confirmation toast
-			await expect(
-				page.locator('.toast:has-text("Added to waitlist")')
-			).toBeVisible({ timeout: 3000 });
+			await expect(page.locator('.toast:has-text("Added to waitlist")')).toBeVisible({
+				timeout: 3000
+			});
 
 			// Verify waitlist position is shown
 			const waitlistPosition = dialog.locator('text=/Waitlist position.*#\\d+/');
@@ -133,9 +133,9 @@ test.describe('Join Waitlist for Full Event', () => {
 			await leaveWaitlistButton.click();
 
 			// Verify confirmation
-			await expect(
-				page.locator('.toast:has-text("Removed from waitlist")')
-			).toBeVisible({ timeout: 3000 });
+			await expect(page.locator('.toast:has-text("Removed from waitlist")')).toBeVisible({
+				timeout: 3000
+			});
 
 			// Verify "Join Waitlist" button reappears
 			await page.waitForTimeout(500);
@@ -190,7 +190,9 @@ test.describe('Join Waitlist for Full Event', () => {
 
 				// Verify waitlist badge appears on calendar event
 				const updatedEvent = page.locator(`.fc-event[data-event-id="${eventId}"]`);
-				const waitlistBadge = updatedEvent.locator('.waitlist-badge, .rsvp-badge:has-text("Waitlist")');
+				const waitlistBadge = updatedEvent.locator(
+					'.waitlist-badge, .rsvp-badge:has-text("Waitlist")'
+				);
 
 				await expect(waitlistBadge).toBeVisible();
 			}
@@ -199,9 +201,9 @@ test.describe('Join Waitlist for Full Event', () => {
 
 	test('should not show waitlist option if waitlist is disabled', async ({ page }) => {
 		// Find event that is full but has waitlist disabled
-		const fullEventNoWaitlist = page.locator(
-			'.fc-event[data-capacity-status="full"][data-waitlist-enabled="false"]'
-		).first();
+		const fullEventNoWaitlist = page
+			.locator('.fc-event[data-capacity-status="full"][data-waitlist-enabled="false"]')
+			.first();
 
 		if ((await fullEventNoWaitlist.count()) > 0) {
 			await fullEventNoWaitlist.click();
@@ -273,7 +275,9 @@ test.describe('Join Waitlist for Full Event', () => {
 
 				// Note initial position
 				const dialog = page.locator('[role="dialog"]').first();
-				const initialPositionText = await dialog.locator('text=/Waitlist position.*#\\d+/').textContent();
+				const initialPositionText = await dialog
+					.locator('text=/Waitlist position.*#\\d+/')
+					.textContent();
 				const initialPosition = parseInt(initialPositionText?.match(/#(\d+)/)?.[1] || '0');
 
 				// In real test, another user would leave waitlist
@@ -284,9 +288,9 @@ test.describe('Join Waitlist for Full Event', () => {
 	});
 
 	test('should allow waitlist for recurring event with scope selection', async ({ page }) => {
-		const fullRecurringEvent = page.locator(
-			'.fc-event[data-capacity-status="full"][data-is-recurring="true"]'
-		).first();
+		const fullRecurringEvent = page
+			.locator('.fc-event[data-capacity-status="full"][data-is-recurring="true"]')
+			.first();
 
 		if ((await fullRecurringEvent.count()) > 0) {
 			await fullRecurringEvent.click();
@@ -302,9 +306,9 @@ test.describe('Join Waitlist for Full Event', () => {
 			await page.click('button:has-text("This occurrence only")');
 
 			// Verify confirmation
-			await expect(
-				page.locator('.toast:has-text("Added to waitlist")')
-			).toBeVisible({ timeout: 3000 });
+			await expect(page.locator('.toast:has-text("Added to waitlist")')).toBeVisible({
+				timeout: 3000
+			});
 		}
 	});
 });

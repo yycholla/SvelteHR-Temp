@@ -11,7 +11,8 @@
 -->
 
 <script lang="ts">
-	import { X, Plus } from '@lucide/svelte';
+	import { Plus, X } from '@lucide/svelte';
+	import { logger } from '$lib/utils/logger';
 	import { Badge } from '$lib/components/ui/badge';
 	import { createUrqlClient } from '$lib/graphql/client';
 	import { CREATE_TASK_TYPE } from '$lib/graphql/tasks-operations';
@@ -45,7 +46,7 @@
 	let createError = $state('');
 
 	// Filtered task types based on search
-	let filteredTaskTypes = $derived.by(() => {
+	const filteredTaskTypes = $derived.by(() => {
 		const searchLower = searchTerm.toLowerCase();
 		const filtered = taskTypes.filter((tt) => {
 			// Exclude already selected
@@ -57,7 +58,7 @@
 		});
 
 		// Debug logging
-		console.log('[TaskTypeTagInput] Filtering:', {
+		logger.info('[TaskTypeTagInput] Filtering:', {
 			totalTaskTypes: taskTypes.length,
 			taskTypesArray: taskTypes,
 			selected,
@@ -72,18 +73,14 @@
 	});
 
 	// Selected task type for display
-	let selectedTaskType = $derived(
-		taskTypes.find((tt) => tt.id === selected)
-	);
+	const selectedTaskType = $derived(taskTypes.find((tt) => tt.id === selected));
 
 	// Check if search term could be a new task type name
-	let canCreateNew = $derived.by(() => {
+	const canCreateNew = $derived.by(() => {
 		if (!searchTerm || searchTerm.trim().length < 2) return false;
 
 		// Check if exact match exists
-		const exactMatch = taskTypes.some(
-			(tt) => tt.name.toLowerCase() === searchTerm.toLowerCase()
-		);
+		const exactMatch = taskTypes.some((tt) => tt.name.toLowerCase() === searchTerm.toLowerCase());
 
 		return !exactMatch;
 	});
@@ -143,7 +140,7 @@
 				onCreate?.(newTaskType);
 			}
 		} catch (error) {
-			console.error('Failed to create task type:', error);
+			logger.error('Catch failed', error as Error);
 			createError = 'Failed to create task type';
 		} finally {
 			isCreating = false;
@@ -224,7 +221,7 @@
 	// Handle input focus
 	function handleFocus() {
 		if (!disabled) {
-			console.log('[TaskTypeTagInput] Focus - opening dropdown', {
+			logger.info('[TaskTypeTagInput] Focus - opening dropdown', {
 				taskTypesCount: taskTypes.length,
 				selected,
 				disabled
@@ -261,10 +258,10 @@
 
 	// Debug: Track taskTypes prop changes
 	$effect(() => {
-		console.log('[TaskTypeTagInput] taskTypes prop changed:', {
+		logger.info('[TaskTypeTagInput] taskTypes prop changed:', {
 			count: taskTypes.length,
-			taskTypes: taskTypes,
-			selected: selected
+			taskTypes,
+			selected
 		});
 	});
 
@@ -286,7 +283,7 @@
 		role="button"
 		tabindex="0"
 		onclick={() => {
-			console.log('[TaskTypeTagInput] Outer div clicked, focusing input');
+			logger.info('[TaskTypeTagInput] Outer div clicked, focusing input');
 			inputElement?.focus();
 		}}
 		onkeydown={(e) => {
@@ -311,7 +308,7 @@
 						e.stopPropagation();
 						removeSelected();
 					}}
-					disabled={disabled}
+					{disabled}
 				>
 					<X class="h-3 w-3" />
 				</button>
@@ -325,7 +322,7 @@
 			type="text"
 			class="flex-1 bg-transparent outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed min-w-[120px]"
 			placeholder={!selected ? placeholder : ''}
-			disabled={disabled}
+			{disabled}
 			onfocus={handleFocus}
 			onblur={handleBlur}
 			oninput={handleInput}
@@ -344,7 +341,7 @@
 
 	<!-- Dropdown with filtered options -->
 	{#if isOpen && (filteredTaskTypes.length > 0 || canCreateNew)}
-		{console.log('[TaskTypeTagInput] Rendering dropdown:', {
+		{logger.info('[TaskTypeTagInput] Rendering dropdown:', {
 			isOpen,
 			filteredCount: filteredTaskTypes.length,
 			canCreateNew,
@@ -356,7 +353,7 @@
 		>
 			<!-- Existing task types -->
 			{#each filteredTaskTypes as taskType, index (taskType.id)}
-				{console.log('[TaskTypeTagInput] Rendering option:', taskType.name)}
+				{logger.info('[TaskTypeTagInput] Rendering option:', { name: taskType.name })}
 				<button
 					type="button"
 					data-option
@@ -383,8 +380,7 @@
 				<button
 					type="button"
 					data-option
-					class="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground border-t {filteredTaskTypes
-						.length +
+					class="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground border-t {filteredTaskTypes.length +
 						0 ===
 					highlightedIndex
 						? 'bg-accent text-accent-foreground'
@@ -401,7 +397,7 @@
 			{/if}
 		</div>
 	{:else}
-		{console.log('[TaskTypeTagInput] Dropdown NOT rendering:', {
+		{logger.info('[TaskTypeTagInput] Dropdown NOT rendering:', {
 			isOpen,
 			filteredCount: filteredTaskTypes.length,
 			canCreateNew,

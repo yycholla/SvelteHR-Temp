@@ -12,7 +12,7 @@
  * - Comment deletion (own comments only)
  */
 
-import { test, expect, describe, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 interface CreateEventCommentInput {
 	eventId: string;

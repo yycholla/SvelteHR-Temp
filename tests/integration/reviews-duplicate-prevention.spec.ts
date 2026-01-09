@@ -6,12 +6,8 @@
  * This test MUST FAIL initially because duplicate check logic is not implemented.
  */
 
-import { test, expect, describe, beforeAll, afterAll } from 'vitest';
-import {
-	createTestContext,
-	cleanupTestData,
-	TestUser
-} from '../utils/test-helpers';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { TestUser, cleanupTestData, createTestContext } from '../utils/test-helpers';
 import { performGraphQLMutation } from '../utils/graphql-test-client';
 
 interface TestContext {
@@ -42,7 +38,7 @@ describe('T016: Duplicate active review prevention', () => {
 			authTokens: {
 				admin: admin.token
 			},
-			users: { admin: admin, hrManager: null, manager: null, employee: employee },
+			users: { admin, hrManager: null, manager: null, employee },
 			departments: { engineering: null, marketing: null, hr: null },
 			createdEmployees: [],
 			createdUsers: [],

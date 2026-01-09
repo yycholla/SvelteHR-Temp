@@ -1,4 +1,4 @@
-use async_graphql::{Context, InputObject, Object, Result};
+use async_graphql::{Context, InputObject, Object, Result, SimpleObject};
 use chrono::{DateTime, Utc, NaiveDate};
 use csv::ReaderBuilder;
 use sea_orm::{
@@ -10,14 +10,20 @@ use serde_json::json;
 use uuid::Uuid;
 
 use crate::{
+    auth::UserContext,
     database::get_db_from_context,
     error::AppError,
+    integrations::intuit::IntuitClientManager,
     models::{
         employee::{
             import_job::{self, ImportJobStatus},
             import_row::{self, ImportRowStatus},
         },
         user,
+    },
+    services::{
+        permission_checker::{PermissionChecker, SyncPermission},
+        validation_engine::ValidationEngine,
     },
 };
 
@@ -414,7 +420,169 @@ impl EmployeeImportMutations {
         job_active.status = Set(ImportJobStatus::Completed);
         job_active.completed_at = Set(Some(Utc::now()));
         let updated_job = job_active.update(&db).await?;
-        
+
         Ok(updated_job)
     }
+
+    /// Import a QuickBooks employee with a manually provided email address
+    /// This is used to resolve validation errors where employees lack email in QuickBooks
+    async fn import_employee_with_email(
+        &self,
+        ctx: &Context<'_>,
+        quickbooks_id: String,
+        email: String,
+    ) -> Result<ImportEmployeeWithEmailResult> {
+        let user_ctx = ctx.data::<UserContext>()?;
+        let db = get_db_from_context(ctx)?;
+
+        // Check permission
+        let permission_checker = PermissionChecker::new(db.clone());
+        permission_checker
+            .require(user_ctx, SyncPermission::TriggerEmployeeSync)
+            .await?;
+
+        // Validate email format
+        if !email.contains('@') || email.trim().is_empty() {
+            return Ok(ImportEmployeeWithEmailResult {
+                success: false,
+                message: "Invalid email address format".to_string(),
+                employee_id: None,
+                employee_name: None,
+            });
+        }
+
+        // Check if email already exists
+        let existing_user = user::Entity::find()
+            .filter(user::Column::Email.eq(&email))
+            .one(&db)
+            .await?;
+
+        if existing_user.is_some() {
+            return Ok(ImportEmployeeWithEmailResult {
+                success: false,
+                message: format!("Email {} is already in use by another employee", email),
+                employee_id: None,
+                employee_name: None,
+            });
+        }
+
+        // Get QuickBooks client
+        let client_manager = IntuitClientManager::new(db.clone());
+        let intuit_client = client_manager
+            .get_client()
+            .await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to connect to QuickBooks: {}", e)))?;
+
+        // Fetch employee from QuickBooks
+        let qb_employee = match intuit_client.get_employee(&quickbooks_id).await {
+            Ok(emp) => emp,
+            Err(e) => {
+                return Ok(ImportEmployeeWithEmailResult {
+                    success: false,
+                    message: format!("Failed to fetch employee from QuickBooks: {}", e),
+                    employee_id: None,
+                    employee_name: None,
+                });
+            }
+        };
+
+        // Check if employee already exists locally (by QB ID)
+        let existing = user::Entity::find()
+            .filter(user::Column::IntuitEmployeeId.eq(Some(quickbooks_id.clone())))
+            .one(&db)
+            .await?;
+
+        if existing.is_some() {
+            return Ok(ImportEmployeeWithEmailResult {
+                success: false,
+                message: format!(
+                    "Employee {} is already linked to QuickBooks ID {}",
+                    qb_employee.base.display_name.as_ref().unwrap_or(&"Unknown".to_string()),
+                    quickbooks_id
+                ),
+                employee_id: None,
+                employee_name: None,
+            });
+        }
+
+        // Generate a random password that user must change on first login
+        use bcrypt::{hash, DEFAULT_COST};
+        let random_password = Uuid::new_v4().to_string();
+        let password_hash = match hash(random_password, DEFAULT_COST) {
+            Ok(hash) => hash,
+            Err(e) => {
+                return Ok(ImportEmployeeWithEmailResult {
+                    success: false,
+                    message: format!("Failed to hash password: {}", e),
+                    employee_id: None,
+                    employee_name: None,
+                });
+            }
+        };
+
+        // Create the employee with the provided email
+        let new_employee_id = Uuid::new_v4();
+        let employee_name = format!(
+            "{} {}",
+            qb_employee.base.given_name.as_ref().unwrap_or(&"Unknown".to_string()),
+            qb_employee.base.family_name.as_ref().unwrap_or(&"".to_string())
+        );
+
+        let new_model = user::ActiveModel {
+            id: Set(new_employee_id),
+            first_name: Set(qb_employee.base.given_name.clone().unwrap_or_default()),
+            last_name: Set(qb_employee.base.family_name.clone().unwrap_or_default()),
+            email: Set(email.clone()),
+            password_hash: Set(password_hash),
+            force_password_change: Set(true),
+            employee_number: Set(qb_employee.employee_number.clone()),
+            is_active: Set(qb_employee.base.active.unwrap_or(true)),
+            intuit_employee_id: Set(Some(quickbooks_id.clone())),
+            quickbooks_sync_token: Set(qb_employee.base.sync_token),
+            last_synced_at: Set(Some(Utc::now())),
+            last_modified_at: Set(Utc::now()),
+            sync_status: Set("synced".to_string()),
+            created_at: Set(Utc::now()),
+            updated_at: Set(Utc::now()),
+            ..Default::default()
+        };
+
+        match new_model.insert(&db).await {
+            Ok(_) => {
+                // Clear validation errors for this QB ID
+                let validation_engine = ValidationEngine::new();
+                if let Err(e) = validation_engine
+                    .clear_errors_for_entity(&db, &quickbooks_id)
+                    .await
+                {
+                    tracing::error!("Failed to clear validation errors: {}", e);
+                }
+
+                Ok(ImportEmployeeWithEmailResult {
+                    success: true,
+                    message: format!(
+                        "Successfully imported {} with email {}",
+                        employee_name, email
+                    ),
+                    employee_id: Some(new_employee_id.to_string()),
+                    employee_name: Some(employee_name),
+                })
+            }
+            Err(e) => Ok(ImportEmployeeWithEmailResult {
+                success: false,
+                message: format!("Failed to create employee: {}", e),
+                employee_id: None,
+                employee_name: None,
+            }),
+        }
+    }
+}
+
+/// Result of importing an employee with email
+#[derive(SimpleObject)]
+pub struct ImportEmployeeWithEmailResult {
+    pub success: bool,
+    pub message: String,
+    pub employee_id: Option<String>,
+    pub employee_name: Option<String>,
 }

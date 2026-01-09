@@ -205,6 +205,7 @@ alias rd-clean='docker exec sveltehr-graphql-rust cargo clean'
 ## Common Development Scenarios
 
 ### Scenario: Adding a new dependency
+
 ```bash
 # 1. Add to Cargo.toml (edit file locally)
 # 2. cargo-watch detects change
@@ -213,6 +214,7 @@ alias rd-clean='docker exec sveltehr-graphql-rust cargo clean'
 ```
 
 ### Scenario: Fixing a bug in existing code
+
 ```bash
 # 1. Edit src/models/event.rs
 # 2. Save file
@@ -223,12 +225,14 @@ alias rd-clean='docker exec sveltehr-graphql-rust cargo clean'
 ```
 
 ### Scenario: Running migrations
+
 ```bash
 # Migrations are typically run in the postgres container
 docker exec sveltehr-postgres-dev psql -U postgres -d hr_system -f /migrations/001_init.sql
 ```
 
 ### Scenario: Inspecting GraphQL schema
+
 ```bash
 # Open GraphQL Playground
 open http://localhost:4000

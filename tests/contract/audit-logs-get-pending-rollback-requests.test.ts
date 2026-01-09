@@ -15,7 +15,7 @@
  * - Sorted by requestedAt DESC
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface GetPendingRollbackRequestsVariables {
 	first: number;
@@ -58,10 +58,7 @@ interface GetPendingRollbackRequestsResponse {
 	};
 }
 
-const mockGetPendingRollbackRequests = vi.fn<
-	[GetPendingRollbackRequestsVariables],
-	Promise<GetPendingRollbackRequestsResponse>
->();
+const mockGetPendingRollbackRequests = vi.fn<() => Promise<GetPendingRollbackRequestsResponse>>();
 
 describe('GetPendingRollbackRequests Query Contract (TDD RED - should fail)', () => {
 	beforeEach(() => {

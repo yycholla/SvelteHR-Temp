@@ -15,15 +15,15 @@
 	import type { Task, TaskStatus } from '$lib/types/task';
 	import { Badge } from '$lib/components/ui/badge';
 	import {
+		AlertCircle,
 		CheckCircle,
 		Circle,
 		Clock,
-		AlertCircle,
-		XCircle,
-		TrendingUp,
-		TrendingDown,
 		Minus,
-		Target
+		Target,
+		TrendingDown,
+		TrendingUp,
+		XCircle
 	} from '@lucide/svelte';
 	import { differenceInDays, isAfter } from 'date-fns';
 
@@ -34,7 +34,7 @@
 		showOnTrack?: boolean; // Show on-track indicator
 	}
 
-	let { task, showDetails = true, compact = false, showOnTrack = true }: Props = $props();
+	const { task, showDetails = true, compact = false, showOnTrack = true }: Props = $props();
 
 	// Calculate subtask statistics
 	interface SubtaskStats {
@@ -47,41 +47,43 @@
 		completionPercentage: number;
 	}
 
-	let subtaskStats = $derived<SubtaskStats>(() => {
-		const subtasks = task.subtasks || [];
-		const total = subtasks.length;
+	const subtaskStats = $derived(
+		((): SubtaskStats => {
+			const subtasks = task.subtasks || [];
+			const total = subtasks.length;
 
-		if (total === 0) {
+			if (total === 0) {
+				return {
+					total: 0,
+					completed: 0,
+					inProgress: 0,
+					notStarted: 0,
+					blocked: 0,
+					cancelled: 0,
+					completionPercentage: 0
+				};
+			}
+
+			// NOTE: Rust GraphQL returns enum values in PascalCase
+			const completed = subtasks.filter((t: Task) => (t.status as any) === 'Done').length;
+			const inProgress = subtasks.filter((t: Task) => (t.status as any) === 'InProgress').length;
+			const notStarted = subtasks.filter((t: Task) => (t.status as any) === 'Todo').length;
+			const blocked = subtasks.filter((t: Task) => (t.status as any) === 'Blocked').length;
+			const cancelled = subtasks.filter((t: Task) => (t.status as any) === 'Cancelled').length;
+
+			const completionPercentage = Math.round((completed / total) * 100);
+
 			return {
-				total: 0,
-				completed: 0,
-				inProgress: 0,
-				notStarted: 0,
-				blocked: 0,
-				cancelled: 0,
-				completionPercentage: 0
+				total,
+				completed,
+				inProgress,
+				notStarted,
+				blocked,
+				cancelled,
+				completionPercentage
 			};
-		}
-
-		// NOTE: Rust GraphQL returns enum values in PascalCase
-		const completed = subtasks.filter((t: Task) => t.status === 'Done').length;
-		const inProgress = subtasks.filter((t: Task) => t.status === 'InProgress').length;
-		const notStarted = subtasks.filter((t: Task) => t.status === 'Todo').length;
-		const blocked = subtasks.filter((t: Task) => t.status === 'Blocked').length;
-		const cancelled = subtasks.filter((t: Task) => t.status === 'Cancelled').length;
-
-		const completionPercentage = Math.round((completed / total) * 100);
-
-		return {
-			total,
-			completed,
-			inProgress,
-			notStarted,
-			blocked,
-			cancelled,
-			completionPercentage
-		};
-	});
+		})()
+	);
 
 	// Calculate if task is on track based on due date
 	interface OnTrackStatus {
@@ -91,41 +93,43 @@
 		actualProgress: number;
 	}
 
-	let onTrackStatus = $derived<OnTrackStatus | null>(() => {
-		if (!showOnTrack || !task.dueDate) return null;
+	const onTrackStatus = $derived(
+		((): OnTrackStatus | null => {
+			if (!showOnTrack || !task.dueDate) return null;
 
-		const now = new Date();
-		const dueDate = new Date(task.dueDate);
-		const createdDate = new Date(task.createdAt);
+			const now = new Date();
+			const dueDate = new Date(task.dueDate);
+			const createdDate = new Date(task.createdAt);
 
-		// Check if past due date
-		if (isAfter(now, dueDate)) {
+			// Check if past due date
+			if (isAfter(now, dueDate)) {
+				return {
+					isOnTrack: subtaskStats.completionPercentage === 100,
+					daysRemaining: 0,
+					expectedProgress: 100,
+					actualProgress: subtaskStats.completionPercentage
+				};
+			}
+
+			const daysRemaining = differenceInDays(dueDate, now);
+			const totalDays = differenceInDays(dueDate, createdDate);
+			const daysElapsed = totalDays - daysRemaining;
+
+			// Calculate expected progress (linear)
+			const expectedProgress = totalDays > 0 ? Math.round((daysElapsed / totalDays) * 100) : 0;
+			const actualProgress = subtaskStats.completionPercentage;
+
+			// Consider on track if within 10% of expected progress
+			const isOnTrack = actualProgress >= expectedProgress - 10;
+
 			return {
-				isOnTrack: subtaskStats().completionPercentage === 100,
-				daysRemaining: 0,
-				expectedProgress: 100,
-				actualProgress: subtaskStats().completionPercentage
+				isOnTrack,
+				daysRemaining,
+				expectedProgress,
+				actualProgress
 			};
-		}
-
-		const daysRemaining = differenceInDays(dueDate, now);
-		const totalDays = differenceInDays(dueDate, createdDate);
-		const daysElapsed = totalDays - daysRemaining;
-
-		// Calculate expected progress (linear)
-		const expectedProgress = totalDays > 0 ? Math.round((daysElapsed / totalDays) * 100) : 0;
-		const actualProgress = subtaskStats().completionPercentage;
-
-		// Consider on track if within 10% of expected progress
-		const isOnTrack = actualProgress >= expectedProgress - 10;
-
-		return {
-			isOnTrack,
-			daysRemaining,
-			expectedProgress,
-			actualProgress
-		};
-	});
+		})()
+	);
 
 	// Status configuration
 	// NOTE: Keys must match the property names in SubtaskStats interface
@@ -172,7 +176,7 @@
 	}
 
 	// Check if task has subtasks
-	let hasSubtasks = $derived(subtaskStats().total > 0);
+	const hasSubtasks = $derived(subtaskStats.total > 0);
 </script>
 
 <div class="subtask-progress" class:compact>
@@ -190,11 +194,11 @@
 				<div class="flex items-center gap-2">
 					<Target class="h-4 w-4 text-primary" />
 					<span class="text-sm font-medium">
-						{subtaskStats().completed} of {subtaskStats().total} completed
+						{subtaskStats.completed} of {subtaskStats.total} completed
 					</span>
 				</div>
-				<Badge variant={subtaskStats().completionPercentage === 100 ? 'default' : 'secondary'}>
-					{subtaskStats().completionPercentage}%
+				<Badge variant={subtaskStats.completionPercentage === 100 ? 'default' : 'secondary'}>
+					{subtaskStats.completionPercentage}%
 				</Badge>
 			</div>
 
@@ -202,8 +206,8 @@
 			<div class="progress-bar-container">
 				<div class="progress-bar-track">
 					<div
-						class="progress-bar-fill {getProgressColor(subtaskStats().completionPercentage)}"
-						style="width: {subtaskStats().completionPercentage}%"
+						class="progress-bar-fill {getProgressColor(subtaskStats.completionPercentage)}"
+						style="width: {subtaskStats.completionPercentage}%"
 					></div>
 				</div>
 			</div>
@@ -217,7 +221,8 @@
 							<span>On track</span>
 							{#if onTrackStatus.daysRemaining !== null && onTrackStatus.daysRemaining > 0}
 								<span class="text-muted-foreground">
-									({onTrackStatus.daysRemaining} {onTrackStatus.daysRemaining === 1 ? 'day' : 'days'} remaining)
+									({onTrackStatus.daysRemaining}
+									{onTrackStatus.daysRemaining === 1 ? 'day' : 'days'} remaining)
 								</span>
 							{/if}
 						</div>
@@ -229,7 +234,8 @@
 								<span class="text-muted-foreground">(Overdue)</span>
 							{:else if onTrackStatus.daysRemaining !== null}
 								<span class="text-muted-foreground">
-									({Math.abs(onTrackStatus.expectedProgress - onTrackStatus.actualProgress)}% behind)
+									({Math.abs(onTrackStatus.expectedProgress - onTrackStatus.actualProgress)}%
+									behind)
 								</span>
 							{/if}
 						</div>
@@ -241,7 +247,8 @@
 			{#if showDetails && !compact}
 				<div class="status-breakdown">
 					{#each Object.entries(statusConfig) as [status, config]}
-						{@const count = subtaskStats()[status.toLowerCase().replace(' ', '') as keyof SubtaskStats]}
+						{@const count =
+							subtaskStats[status.toLowerCase().replace(' ', '') as keyof SubtaskStats]}
 						{#if typeof count === 'number' && count > 0}
 							{@const StatusIcon = config.icon}
 							<div class="status-item">
@@ -262,15 +269,13 @@
 			{#if compact}
 				<div class="compact-summary">
 					<span class="text-xs text-muted-foreground">
-						{subtaskStats().inProgress > 0 ? `${subtaskStats().inProgress} in progress` : ''}
-						{subtaskStats().inProgress > 0 && subtaskStats().notStarted > 0 ? ', ' : ''}
-						{subtaskStats().notStarted > 0 ? `${subtaskStats().notStarted} not started` : ''}
-						{subtaskStats().blocked > 0 ? `, ${subtaskStats().blocked} blocked` : ''}
+						{subtaskStats.inProgress > 0 ? `${subtaskStats.inProgress} in progress` : ''}
+						{subtaskStats.inProgress > 0 && subtaskStats.notStarted > 0 ? ', ' : ''}
+						{subtaskStats.notStarted > 0 ? `${subtaskStats.notStarted} not started` : ''}
+						{subtaskStats.blocked > 0 ? `, ${subtaskStats.blocked} blocked` : ''}
 					</span>
 				</div>
 			{/if}
 		</div>
 	{/if}
 </div>
-
-

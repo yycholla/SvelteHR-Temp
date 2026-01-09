@@ -10,10 +10,10 @@
  * This is an E2E test that validates the complete initialization workflow.
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { Client } from 'pg';
 import { spawn } from 'child_process';
-import { existsSync, readFileSync, mkdirSync, rmSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'fs';
 import { join } from 'path';
 
 const TEST_DB_NAME = `hr_test_fresh_init_${Date.now()}`;
@@ -147,9 +147,7 @@ describe('Integration: Fresh Database Initialization', () => {
 		const usersQuery = await testClient.query('SELECT COUNT(*) FROM hr_public.users');
 		expect(usersQuery.rows[0].count).toBeDefined();
 
-		const departmentsQuery = await testClient.query(
-			'SELECT COUNT(*) FROM hr_public.departments'
-		);
+		const departmentsQuery = await testClient.query('SELECT COUNT(*) FROM hr_public.departments');
 		expect(departmentsQuery.rows[0].count).toBeDefined();
 
 		const eventsQuery = await testClient.query('SELECT COUNT(*) FROM hr_public.events');
@@ -243,12 +241,15 @@ describe('Integration: Fresh Database Initialization', () => {
 		];
 
 		for (const table of requiredTables) {
-			const result = await testClient.query(`
+			const result = await testClient.query(
+				`
 				SELECT table_name
 				FROM information_schema.tables
 				WHERE table_schema = 'hr_public'
 				AND table_name = $1
-			`, [table]);
+			`,
+				[table]
+			);
 
 			expect(result.rows.length).toBe(1);
 		}

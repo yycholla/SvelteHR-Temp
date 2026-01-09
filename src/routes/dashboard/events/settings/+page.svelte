@@ -5,7 +5,7 @@
 	 * Purpose: UI for configuring event notification preferences
 	 */
 
-	import type { PageData, ActionData } from './$types';
+	import type { ActionData, PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { toast } from 'svelte-sonner';
 	import * as Card from '$lib/components/ui/card';
@@ -15,15 +15,15 @@
 	import { Input } from '$lib/components/ui/input';
 	import * as Select from '$lib/components/ui/select';
 	import { Separator } from '$lib/components/ui/separator';
-	import { Bell, Mail, MessageSquare, Users, Calendar, Save } from '@lucide/svelte';
+	import { Bell, Calendar, Mail, MessageSquare, Save, Users } from '@lucide/svelte';
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	const { data, form }: { data: PageData; form: ActionData } = $props();
 
 	// Local state for form (Svelte 5 runes)
 	let emailNotifications = $state(data.preferences.emailNotifications);
 	let pushNotifications = $state(data.preferences.pushNotifications);
 	let reminderEnabled = $state(data.preferences.reminderDefaults.enabled);
-	let minutesBefore = $state(data.preferences.reminderDefaults.minutesBefore);
+	let minutesBefore = $state(String(data.preferences.reminderDefaults.minutesBefore));
 	let commentMentions = $state(data.preferences.commentMentions);
 	let waitlistPromotions = $state(data.preferences.waitlistPromotions);
 	let eventUpdates = $state(data.preferences.eventUpdates);
@@ -32,12 +32,12 @@
 
 	// Reminder time options
 	const reminderOptions = [
-		{ value: 5, label: '5 minutes before' },
-		{ value: 15, label: '15 minutes before' },
-		{ value: 30, label: '30 minutes before' },
-		{ value: 60, label: '1 hour before' },
-		{ value: 120, label: '2 hours before' },
-		{ value: 1440, label: '1 day before' }
+		{ value: '5', label: '5 minutes before' },
+		{ value: '15', label: '15 minutes before' },
+		{ value: '30', label: '30 minutes before' },
+		{ value: '60', label: '1 hour before' },
+		{ value: '120', label: '2 hours before' },
+		{ value: '1440', label: '1 day before' }
 	];
 
 	// Handle form success/error
@@ -45,8 +45,8 @@
 		if (form?.success) {
 			toast.success('Notification preferences saved successfully');
 			isSaving = false;
-		} else if (form?.error) {
-			toast.error(form.error);
+		} else if (form && 'error' in form && form.error) {
+			toast.error(String(form.error));
 			isSaving = false;
 		}
 	});
@@ -56,9 +56,7 @@
 	<!-- Header -->
 	<div class="mb-8">
 		<h1 class="text-3xl font-bold tracking-tight">Notification Settings</h1>
-		<p class="mt-2 text-muted-foreground">
-			Configure how you want to be notified about events
-		</p>
+		<p class="mt-2 text-muted-foreground">Configure how you want to be notified about events</p>
 	</div>
 
 	<!-- Settings Form -->
@@ -92,9 +90,7 @@
 								<Mail class="h-4 w-4" />
 								Email Notifications
 							</Label>
-							<p class="text-sm text-muted-foreground">
-								Receive event notifications via email
-							</p>
+							<p class="text-sm text-muted-foreground">Receive event notifications via email</p>
 						</div>
 						<Switch
 							bind:checked={emailNotifications}
@@ -132,9 +128,7 @@
 						<Calendar class="h-5 w-5" />
 						Event Reminders
 					</Card.Title>
-					<Card.Description>
-						Configure automatic reminders for accepted events
-					</Card.Description>
+					<Card.Description>Configure automatic reminders for accepted events</Card.Description>
 				</Card.Header>
 				<Card.Content class="space-y-4">
 					<!-- Enable Reminders -->
@@ -158,7 +152,7 @@
 						<!-- Default Reminder Time -->
 						<div class="space-y-2">
 							<Label for="minutesBefore">Default Reminder Time</Label>
-							<Select.Root bind:value={minutesBefore}>
+							<Select.Root type="single" bind:value={minutesBefore}>
 								<Select.Trigger id="minutesBefore" class="w-full">
 									<Select.Value placeholder="Select time" />
 								</Select.Trigger>

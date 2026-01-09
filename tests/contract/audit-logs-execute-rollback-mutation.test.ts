@@ -15,7 +15,7 @@
  * - Validates cannot rollback a rollback entry
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface ExecuteRollbackInput {
 	logId: string; // UUID
@@ -43,10 +43,7 @@ interface ExecuteRollbackResponse {
 	};
 }
 
-const mockExecuteRollback = vi.fn<
-	[ExecuteRollbackVariables],
-	Promise<ExecuteRollbackResponse>
->();
+const mockExecuteRollback = vi.fn<() => Promise<ExecuteRollbackResponse>>();
 
 describe('ExecuteRollback Mutation Contract (TDD RED - should fail)', () => {
 	beforeEach(() => {

@@ -10,7 +10,7 @@ spec:
     # IMPORTANT: Match this with the issuer in values-prod.yaml ingress annotation
     # Current values-prod.yaml uses: letsencrypt-staging
     # Change to letsencrypt-prod when ready for production certificates
-    name: letsencrypt-staging  # Use letsencrypt-prod for production
+    name: letsencrypt-staging # Use letsencrypt-prod for production
     kind: ClusterIssuer
   dnsNames:
     - hr.mtncarerx.com
@@ -44,7 +44,7 @@ metadata:
   namespace: sveltehr-prod
   annotations:
     # Match with Certificate issuer above (letsencrypt-staging)
-    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+    cert-manager.io/cluster-issuer: 'letsencrypt-staging'
 spec:
   ingressClassName: traefik
   rules:
@@ -55,6 +55,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: cm-acme-http-solver  # cert-manager creates this automatically
+                name: cm-acme-http-solver # cert-manager creates this automatically
                 port:
                   number: 8089

@@ -5,12 +5,12 @@
 # without the complexity of an operator
 
 # Redis architecture (replication with Sentinel for HA)
-architecture: replication  # Options: standalone, replication
+architecture: replication # Options: standalone, replication
 
 # Authentication
 auth:
   enabled: true
-  password: "redis-dev-password"  # Change in production via secrets
+  password: 'redis-dev-password' # Change in production via secrets
 
 # Redis master configuration
 master:
@@ -39,7 +39,7 @@ master:
 
 # Redis replica configuration
 replica:
-  replicaCount: 1  # Will be increased to 2 for prod
+  replicaCount: 1 # Will be increased to 2 for prod
 
   # Persistence
   persistence:
@@ -61,7 +61,7 @@ sentinel:
   enabled: true
 
   # Sentinel instances
-  quorum: 1  # Will be 2 for prod (majority of sentinels)
+  quorum: 1 # Will be 2 for prod (majority of sentinels)
 
   # Resources
   resources:
@@ -74,7 +74,7 @@ sentinel:
 
   # Persistence
   persistence:
-    enabled: false  # Sentinel doesn't need persistence
+    enabled: false # Sentinel doesn't need persistence
 
 # Metrics (Prometheus integration)
 metrics:

@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
@@ -65,7 +66,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			}
 		});
 	} catch (error) {
-		console.error('GraphQL Proxy Error:', error);
+		logger.error('GraphQL Proxy Error:', error as Error);
 		return json(
 			{
 				errors: [

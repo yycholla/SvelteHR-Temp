@@ -10,9 +10,8 @@ metadata:
     {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
-    {{- if .Values.ingress.tls.enabled }}
-    traefik.ingress.kubernetes.io/router.middlewares: {{ .Values.global.namespace }}-redirect-https@kubernetescrd
-    {{- end }}
+    # Middleware removed: nginx handles SSL termination and proxies to K8s
+    # Redirect middleware caused loop: nginx HTTPS -> K8s HTTP -> middleware redirects to HTTPS -> loop
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   {{- if .Values.ingress.tls.enabled }}

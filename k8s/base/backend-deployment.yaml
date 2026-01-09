@@ -27,7 +27,7 @@ spec:
             - containerPort: 4000
               name: http
           # Build DATABASE_URL and start server directly (no entrypoint needed)
-          command: ["/bin/sh", "-c"]
+          command: ['/bin/sh', '-c']
           args:
             - |
               export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"

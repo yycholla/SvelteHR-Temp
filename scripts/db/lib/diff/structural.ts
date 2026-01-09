@@ -15,10 +15,7 @@ import type { TableDiff, ColumnDiff, TableDiffType, ColumnDiffType } from '../..
  * @param target - Target schema (live database)
  * @returns Array of TableDiff objects with structural differences
  */
-export function compareTableNames(
-	source: SchemaMetadata,
-	target: SchemaMetadata
-): TableDiff[] {
+export function compareTableNames(source: SchemaMetadata, target: SchemaMetadata): TableDiff[] {
 	const sourceTables = new Map(source.tables.map((t) => [t.tableName, t]));
 	const targetTables = new Map(target.tables.map((t) => [t.tableName, t]));
 

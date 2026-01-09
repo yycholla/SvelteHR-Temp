@@ -100,14 +100,15 @@ watch -n 5 velero backup get
 
 Required secrets in Doppler (`sveltehr` project, `prod` config):
 
-| Secret | Description | Example |
-|--------|-------------|---------|
-| `MINIO_ROOT_USER` | MinIO admin username | `minioadmin` |
-| `MINIO_ROOT_PASSWORD` | MinIO admin password | `<32-char random>` |
-| `VELERO_MINIO_ACCESS_KEY` | Velero's access key | `velero` |
-| `VELERO_MINIO_SECRET_KEY` | Velero's secret key | `<32-char random>` |
+| Secret                    | Description          | Example            |
+| ------------------------- | -------------------- | ------------------ |
+| `MINIO_ROOT_USER`         | MinIO admin username | `minioadmin`       |
+| `MINIO_ROOT_PASSWORD`     | MinIO admin password | `<32-char random>` |
+| `VELERO_MINIO_ACCESS_KEY` | Velero's access key  | `velero`           |
+| `VELERO_MINIO_SECRET_KEY` | Velero's secret key  | `<32-char random>` |
 
 Generate secrets:
+
 ```bash
 openssl rand -base64 32
 ```
@@ -126,16 +127,19 @@ openssl rand -base64 32
 1. **Setup new cluster** (K3s, RKE2, etc.)
 
 2. **Install prerequisites**:
+
 ```bash
 # Install cert-manager, traefik, CloudNativePG, External Secrets
 ```
 
 3. **Install backup infrastructure**:
+
 ```bash
 /home/chanway/SvelteHR/k8s/scripts/install-backup-infrastructure.sh
 ```
 
 4. **Restore MinIO data** (if using local MinIO):
+
 ```bash
 # Transfer MinIO backup from old system
 kubectl cp ./minio-backup.tar.gz backup-system/<minio-pod>:/tmp/
@@ -143,11 +147,13 @@ kubectl exec -n backup-system <minio-pod> -- tar xzf /tmp/minio-backup.tar.gz -C
 ```
 
 5. **Verify backups available**:
+
 ```bash
 velero backup get
 ```
 
 6. **Restore application**:
+
 ```bash
 # Restore latest weekly backup
 velero restore create disaster-recovery \
@@ -298,14 +304,15 @@ velero backup get -o json | \
 
 ## Backup Schedules (Default)
 
-| Schedule | Cron | Retention | Scope |
-|----------|------|-----------|-------|
-| `daily-backup` | `0 2 * * *` | 30 days | sveltehr-prod, backup-system, cnpg-system, monitoring |
-| `weekly-backup` | `0 3 * * 0` | 90 days | All namespaces |
+| Schedule        | Cron        | Retention | Scope                                                 |
+| --------------- | ----------- | --------- | ----------------------------------------------------- |
+| `daily-backup`  | `0 2 * * *` | 30 days   | sveltehr-prod, backup-system, cnpg-system, monitoring |
+| `weekly-backup` | `0 3 * * 0` | 90 days   | All namespaces                                        |
 
 ## Performance Tips
 
 1. **Exclude unnecessary data**:
+
 ```bash
 velero backup create optimized-backup \
   --exclude-namespaces kube-system,kube-public \

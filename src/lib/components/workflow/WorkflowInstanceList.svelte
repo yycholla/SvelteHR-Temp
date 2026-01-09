@@ -2,8 +2,8 @@
 	import { onMount } from 'svelte';
 	import {
 		filteredInstances,
-		workflowActions,
 		isWorkflowLoading,
+		workflowActions,
 		workflowError
 	} from '$lib/stores/workflow';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -11,7 +11,7 @@
 	import WorkflowInstanceDetails from './WorkflowInstanceDetails.svelte';
 
 	// Props
-	let {
+	const {
 		showFilters = true,
 		limit = 50,
 		definitionId = null
@@ -54,7 +54,7 @@
 	);
 
 	onMount(() => {
-		workflowActions.loadInstances(limit);
+		workflowActions.loadInstances(definitionId || undefined);
 	});
 
 	function handleStatusFilter(status: string) {
@@ -63,7 +63,7 @@
 	}
 
 	function handleRefresh() {
-		workflowActions.loadInstances(limit);
+		workflowActions.loadInstances(definitionId || undefined);
 	}
 
 	function handleViewDetails(instance: any) {
@@ -264,5 +264,3 @@
 {#if showDetails && selectedInstance}
 	<WorkflowInstanceDetails instance={selectedInstance} onclose={handleCloseDetails} />
 {/if}
-
-

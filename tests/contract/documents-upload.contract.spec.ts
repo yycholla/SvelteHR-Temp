@@ -1,7 +1,7 @@
 // Contract test: Document upload API (T011)
 // Tests POST /api/documents/upload endpoint
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
  * Contract Test: Document Upload API
@@ -19,6 +19,9 @@ import { describe, it, expect, beforeAll } from 'vitest';
  */
 
 describe('POST /api/documents/upload - Contract Tests', () => {
+	const API_BASE_URL =
+		process.env.API_BASE_URL || process.env.PUBLIC_API_URL || 'http://localhost:5173';
+
 	let authToken: string;
 	let employeeToken: string;
 	let adminToken: string;
@@ -41,10 +44,10 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 		formData.append('sensitivity_level', 'Internal');
 
 		// Act: Upload document
-		const response = await fetch('/api/documents/upload', {
+		const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {
 			method: 'POST',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			},
 			body: formData
 		});
@@ -67,10 +70,10 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 		formData.append('sensitivity_level', 'Internal');
 
 		// Act: Attempt upload
-		const response = await fetch('/api/documents/upload', {
+		const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {
 			method: 'POST',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			},
 			body: formData
 		});
@@ -92,10 +95,10 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 		formData.append('sensitivity_level', 'Internal');
 
 		// Act: Attempt upload
-		const response = await fetch('/api/documents/upload', {
+		const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {
 			method: 'POST',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			},
 			body: formData
 		});
@@ -117,7 +120,7 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 		formData.append('sensitivity_level', 'Internal');
 
 		// Act: Attempt upload without auth
-		const response = await fetch('/api/documents/upload', {
+		const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {
 			method: 'POST',
 			body: formData
 		});
@@ -139,10 +142,10 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 		formData.append('sensitivity_level', 'Internal');
 
 		// Act: Attempt upload as employee
-		const response = await fetch('/api/documents/upload', {
+		const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {
 			method: 'POST',
 			headers: {
-				'Authorization': `Bearer ${employeeToken}`
+				Authorization: `Bearer ${employeeToken}`
 			},
 			body: formData
 		});
@@ -163,10 +166,10 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 		// Missing category and sensitivity_level
 
 		// Act: Attempt upload
-		const response = await fetch('/api/documents/upload', {
+		const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {
 			method: 'POST',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			},
 			body: formData
 		});
@@ -186,8 +189,14 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 			{ name: 'image.jpeg', mime: 'image/jpeg' },
 			{ name: 'photo.png', mime: 'image/png' },
 			{ name: 'animation.gif', mime: 'image/gif' },
-			{ name: 'document.docx', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
-			{ name: 'spreadsheet.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+			{
+				name: 'document.docx',
+				mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+			},
+			{
+				name: 'spreadsheet.xlsx',
+				mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+			},
 			{ name: 'notes.txt', mime: 'text/plain' },
 			{ name: 'data.csv', mime: 'text/csv' }
 		];
@@ -199,10 +208,10 @@ describe('POST /api/documents/upload - Contract Tests', () => {
 			formData.append('category', 'Other');
 			formData.append('sensitivity_level', 'Internal');
 
-			const response = await fetch('/api/documents/upload', {
+			const response = await fetch(`${API_BASE_URL}/api/documents/upload`, {
 				method: 'POST',
 				headers: {
-					'Authorization': `Bearer ${adminToken}`
+					Authorization: `Bearer ${adminToken}`
 				},
 				body: formData
 			});

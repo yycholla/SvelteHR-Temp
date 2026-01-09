@@ -191,17 +191,17 @@ You can restrict access further using Tailscale ACLs:
 ```jsonc
 // tailscale ACL example
 {
-  "acls": [
-    {
-      "action": "accept",
-      "src": ["tag:developer"],
-      "dst": ["tag:dev:*"]
-    }
-  ],
-  "tagOwners": {
-    "tag:dev": ["your-email@example.com"],
-    "tag:developer": ["your-email@example.com"]
-  }
+	"acls": [
+		{
+			"action": "accept",
+			"src": ["tag:developer"],
+			"dst": ["tag:dev:*"]
+		}
+	],
+	"tagOwners": {
+		"tag:dev": ["your-email@example.com"],
+		"tag:developer": ["your-email@example.com"]
+	}
 }
 ```
 
@@ -227,17 +227,18 @@ npm run dev:k8s:down
 
 ## 📊 Comparison with Other Access Methods
 
-| Method | Security | Speed | Setup | Works Remotely |
-|--------|----------|-------|-------|----------------|
-| **Tailscale** | ✅ Excellent | ✅ Fast | ⚠️ Medium | ✅ Yes |
-| Port Forwarding | ❌ Poor | ✅ Fast | ✅ Easy | ❌ No |
-| Cloudflare Tunnel | ✅ Good | ⚠️ Medium | ⚠️ Medium | ✅ Yes |
-| VPN | ✅ Good | ⚠️ Medium | ❌ Hard | ✅ Yes |
-| Local Network | ⚠️ Fair | ✅ Fast | ✅ Easy | ❌ No |
+| Method            | Security     | Speed     | Setup     | Works Remotely |
+| ----------------- | ------------ | --------- | --------- | -------------- |
+| **Tailscale**     | ✅ Excellent | ✅ Fast   | ⚠️ Medium | ✅ Yes         |
+| Port Forwarding   | ❌ Poor      | ✅ Fast   | ✅ Easy   | ❌ No          |
+| Cloudflare Tunnel | ✅ Good      | ⚠️ Medium | ⚠️ Medium | ✅ Yes         |
+| VPN               | ✅ Good      | ⚠️ Medium | ❌ Hard   | ✅ Yes         |
+| Local Network     | ⚠️ Fair      | ✅ Fast   | ✅ Easy   | ❌ No          |
 
 ## 🎉 You're All Set!
 
 You can now:
+
 - ✅ Access Tilt UI from any device
 - ✅ View frontend on phone/tablet with HMR
 - ✅ Test on real devices
@@ -248,4 +249,4 @@ You can now:
 
 **Questions?** Check the [Troubleshooting](#troubleshooting) section or ask the team!
 
-*Last updated: 2025-11-02*
+_Last updated: 2025-11-02_

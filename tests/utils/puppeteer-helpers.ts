@@ -2,7 +2,7 @@
 // Helper functions for E2E testing with Puppeteer
 // Created: 2025-10-27
 
-import type { Browser, Page } from 'puppeteer';
+import type { Browser, KeyInput, Page } from 'puppeteer';
 import { expect } from 'vitest';
 
 // Configuration
@@ -42,7 +42,10 @@ export function getPage(): Page {
 /**
  * Navigate to a page within the application
  */
-export async function gotoPage(path: string, options?: { waitUntil?: 'load' | 'networkidle0' | 'networkidle2' }) {
+export async function gotoPage(
+	path: string,
+	options?: { waitUntil?: 'load' | 'networkidle0' | 'networkidle2' }
+) {
 	const page = getPage();
 	const url = path.startsWith('http') ? path : `${PUPPETEER_CONFIG.BASE_URL}${path}`;
 
@@ -109,7 +112,9 @@ export async function selectOption(selector: string, value: string | { index: nu
 	if (typeof value === 'string') {
 		await page.select(selector, value);
 	} else {
-		const options = await page.$$eval(`${selector} option`, (opts: any[]) => opts.map(o => o.value));
+		const options = await page.$$eval(`${selector} option`, (opts: any[]) =>
+			opts.map((o) => o.value)
+		);
 		await page.select(selector, options[value.index]);
 	}
 }
@@ -141,7 +146,7 @@ export async function uncheckCheckbox(selector: string) {
 /**
  * Press a keyboard key
  */
-export async function pressKey(key: string) {
+export async function pressKey(key: KeyInput) {
 	const page = getPage();
 	await page.keyboard.press(key);
 }
@@ -329,13 +334,15 @@ export async function login(email: string, password: string) {
 	await fillInput('[data-testid="login-password-input"]', password);
 
 	// Set up navigation promise before clicking submit
-	const navigationPromise = page.waitForNavigation({
-		waitUntil: 'networkidle2',
-		timeout: 15000
-	}).catch(() => {
-		// Navigation might have already completed, ignore error
-		return null;
-	});
+	const navigationPromise = page
+		.waitForNavigation({
+			waitUntil: 'networkidle2',
+			timeout: 15000
+		})
+		.catch(() => {
+			// Navigation might have already completed, ignore error
+			return null;
+		});
 
 	// Submit the form
 	await clickElement('[data-testid="login-submit-button"]');
@@ -360,15 +367,19 @@ export async function login(email: string, password: string) {
 
 	// Verify cookies are set
 	const cookies = await page.cookies();
-	const hasSessionCookie = cookies.some(cookie =>
-		cookie.name.includes('session') ||
-		cookie.name.includes('token') ||
-		cookie.name.includes('auth') ||
-		cookie.name === 'hr_token'
+	const hasSessionCookie = cookies.some(
+		(cookie) =>
+			cookie.name.includes('session') ||
+			cookie.name.includes('token') ||
+			cookie.name.includes('auth') ||
+			cookie.name === 'hr_token'
 	);
 
 	if (!hasSessionCookie) {
-		console.warn('Warning: No session cookie found after login. Cookies:', cookies.map(c => c.name));
+		console.warn(
+			'Warning: No session cookie found after login. Cookies:',
+			cookies.map((c) => c.name)
+		);
 	}
 
 	// Wait for page to fully load and auth state to be initialized
@@ -392,7 +403,7 @@ export function captureConsole() {
 
 		if (type === 'log') {
 			logs.push({ type, text });
-		} else if (type === 'warning') {
+		} else if (type === 'warn') {
 			warnings.push({ type, text });
 		} else if (type === 'error') {
 			errors.push({ type, text });
@@ -434,10 +445,7 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
  * Retry a function with exponential backoff
  * Implements FR-019: Automatic retry logic (2-3 attempts)
  */
-export async function withRetry<T>(
-	fn: () => Promise<T>,
-	options: RetryOptions = {}
-): Promise<T> {
+export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
 	const config = { ...DEFAULT_RETRY_OPTIONS, ...options };
 	let lastError: Error | null = null;
 
@@ -457,9 +465,7 @@ export async function withRetry<T>(
 		}
 	}
 
-	throw new Error(
-		`Failed after ${config.maxAttempts} attempts. Last error: ${lastError?.message}`
-	);
+	throw new Error(`Failed after ${config.maxAttempts} attempts. Last error: ${lastError?.message}`);
 }
 
 /**

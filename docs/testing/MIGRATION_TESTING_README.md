@@ -18,26 +18,31 @@ This directory contains smoke tests and integration tests for validating the mig
 Validates that the migration is working correctly by testing:
 
 **Query Pattern Validation**:
+
 - ✅ Uses idiomatic query names (`events`, not `allEvents`)
 - ✅ Returns direct arrays (not `.nodes`)
 - ✅ Uses `limit`/`offset` pagination (not `first`/`after`)
 - ❌ Rejects PostGraphile patterns (`allEvents`, `.nodes`)
 
 **Single Entity Query Validation**:
+
 - ✅ Uses `event(id)` (not `eventById`)
 - ❌ Rejects PostGraphile single entity patterns
 
 **Relationship Resolver Validation**:
+
 - ✅ Uses idiomatic names (`organizer`, not `userByOrganizerId`)
 - ✅ Uses direct arrays for one-to-many (`attendees`, not `.nodes`)
 - ❌ Rejects PostGraphile relationship patterns
 
 **Mutation Pattern Validation**:
+
 - ✅ Uses `createEvent(input)` (not nested wrappers)
 - ✅ Uses `updateEvent(id, input)` (not `ByNodeId`)
 - ❌ Rejects PostGraphile mutation patterns
 
 **Critical Path Integration**:
+
 - ✅ Events list with organizers loads correctly
 - ✅ Tasks list with assignees loads correctly
 - ✅ Users list with departments loads correctly
@@ -45,10 +50,12 @@ Validates that the migration is working correctly by testing:
 - ✅ Leave requests load correctly
 
 **Field Existence Validation**:
+
 - ❌ `nodeId` field doesn't exist (PostGraphile artifact)
 - ❌ `icon` field doesn't exist on LeaveType (removed)
 
 **Performance Validation**:
+
 - ⚡ Events query completes under 2 seconds
 - ⚡ Pagination performs efficiently
 
@@ -104,6 +111,7 @@ VITEST=true
 ### Backend Requirements
 
 **Before running tests, ensure**:
+
 1. Rust GraphQL server is running on port 4000
 2. Database is populated with test data
 3. Authentication is disabled or test JWT token is configured
@@ -154,16 +162,17 @@ Migration is complete and working correctly. All idiomatic Rust patterns are fun
 ### Adding New Migration Tests
 
 1. **Identify pattern to test**
+
    ```typescript
    // Example: Testing new mutation pattern
    describe('New Mutation Pattern', () => {
-     it('should use idiomatic pattern', async () => {
-       // Test idiomatic pattern works
-     });
+   	it('should use idiomatic pattern', async () => {
+   		// Test idiomatic pattern works
+   	});
 
-     it('should NOT accept PostGraphile pattern', async () => {
-       // Test PostGraphile pattern fails
-     });
+   	it('should NOT accept PostGraphile pattern', async () => {
+   		// Test PostGraphile pattern fails
+   	});
    });
    ```
 
@@ -181,6 +190,7 @@ Migration is complete and working correctly. All idiomatic Rust patterns are fun
 ## 🎯 Test Coverage Goals
 
 ### Phase 0 (Foundation)
+
 - [x] Basic query patterns
 - [x] Single entity queries
 - [x] Relationship resolvers
@@ -188,6 +198,7 @@ Migration is complete and working correctly. All idiomatic Rust patterns are fun
 - [x] Critical paths
 
 ### Phase 1 (Operations)
+
 - [ ] Events operations migration
 - [ ] Tasks operations migration
 - [ ] Employee operations migration
@@ -195,11 +206,13 @@ Migration is complete and working correctly. All idiomatic Rust patterns are fun
 - [ ] Leave management operations migration
 
 ### Phase 2 (Pages)
+
 - [ ] Events pages
 - [ ] Tasks pages
 - [ ] Performance reviews pages
 
 ### Phase 3 (Components)
+
 - [ ] Event components
 - [ ] Task components
 - [ ] Employee components
@@ -220,7 +233,7 @@ DEBUG=* npm run test:unit -- tests/integration/graphql/migration-smoke-tests.tes
 // Add to test
 const result = await client.query(query, {}).toPromise();
 if (result.error) {
-  console.error('GraphQL Error:', JSON.stringify(result.error, null, 2));
+	console.error('GraphQL Error:', JSON.stringify(result.error, null, 2));
 }
 ```
 
@@ -265,6 +278,7 @@ query {
 ### GitHub Actions Integration
 
 Tests run automatically on:
+
 - Pull requests to `main`
 - Commits to migration branches
 - Nightly builds
@@ -303,6 +317,7 @@ jobs:
 ## 🎓 Best Practices
 
 1. **Always run tests before committing**
+
    ```bash
    npm run test:unit -- tests/integration/graphql/migration-smoke-tests.test.ts
    ```
@@ -328,11 +343,13 @@ jobs:
 ## 📞 Support
 
 **Issues with tests?**
+
 - Check backend is running: `curl http://localhost:4000/graphql`
 - Check database has data: Query via GraphQL Playground
 - Review test logs: `npm run test:unit -- --reporter=verbose`
 
 **Questions about patterns?**
+
 - Consult `/MIGRATION_PATTERN_GUIDE.md` for examples
 - Check `/BACKEND_API_REFERENCE.md` for available queries/mutations
 

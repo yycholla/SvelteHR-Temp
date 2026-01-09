@@ -48,10 +48,7 @@ export type {
 } from './constraints';
 
 // Re-export function/trigger types (will be defined in functions.ts)
-export type {
-	FunctionDefinition,
-	TriggerDefinition
-} from './functions';
+export type { FunctionDefinition, TriggerDefinition } from './functions';
 
 /**
  * Validation Functions

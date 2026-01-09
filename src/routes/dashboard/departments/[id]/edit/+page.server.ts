@@ -1,21 +1,27 @@
 // Server-side data loading and form handling for department edit page
 // Follows RBAC patterns with server-side API calls only
 
-import type { PageServerLoad, Actions } from './$types';
-import { error, redirect, fail } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import type { Actions, PageServerLoad } from './$types';
+import { error, fail, redirect } from '@sveltejs/kit';
+import { logger } from '$lib/utils/logger';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
-	const { params, locals, cookies } = event;
+	const { params, cookies } = event;
 	const departmentId = params.id;
 
 	// RBAC: Check department write permissions
-	PermissionChecks.departmentWrite(event);
+	requireAuth(event, {
+		requiredPermissions: [
+			'departments:write',
+			'departments:write:self',
+			'departments:write:team',
+			'departments:write:all'
+		]
+	});
 
-	// Ensure user is authenticated
-	if (!locals.user) {
-		error(401, 'Authentication required');
-	}
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Create simple user session object (session-based auth doesn't use JWT)
 	const userSession = {
@@ -51,13 +57,12 @@ export const load: PageServerLoad = async (event) => {
 		const cookieHeader = event.request.headers.get('cookie') || '';
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
-			'Cookie': cookieHeader // Forward all cookies for session authentication
+			Cookie: cookieHeader // Forward all cookies for session authentication
 		};
 
-		console.log(
-			'[Department Edit] Using Rust GraphQL with session-based auth, user role:',
-			locals.user?.role
-		);
+		logger.info('[Department Edit] Using Rust GraphQL with session-based auth', {
+			userRole: locals.user?.role
+		});
 
 		// Load department data
 		const departmentResponse = await fetch(graphqlEndpoint, {
@@ -141,7 +146,7 @@ export const load: PageServerLoad = async (event) => {
 			.map((user: any) => ({
 				id: user.id,
 				displayName: user.displayName || 'Unknown',
-				role: user.roles?.[0]?.name || 'Employee' // Get first role or default to Employee
+				role: user.role || 'Employee' // Get role or default to Employee
 			}));
 
 		// Get standardized user permissions
@@ -156,15 +161,15 @@ export const load: PageServerLoad = async (event) => {
 				description: department.description,
 				managerId: department.managerId,
 				parentDepartmentId: department.parentDepartmentId,
-				manager: manager
+				manager
 			},
-			users: users,
+			users,
 			// RBAC: Standardized permission checks
 			...userPermissions,
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[Department Edit Load Error]', err);
+		logger.error('[Department Edit Load Error]', err as Error);
 
 		// If it's already a SvelteKit error, rethrow it
 		if (err && typeof err === 'object' && 'status' in err) {
@@ -182,7 +187,17 @@ export const actions: Actions = {
 		const departmentId = params.id;
 
 		// RBAC: Check department write permissions
-		PermissionChecks.departmentWrite(event);
+		requireAuth(event, {
+			requiredPermissions: [
+				'departments:write',
+				'departments:write:self',
+				'departments:write:team',
+				'departments:write:all'
+			]
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		try {
 			const formData = await request.formData();
@@ -205,7 +220,7 @@ export const actions: Actions = {
 			const cookieHeader = request.headers.get('cookie') || '';
 			const headers: Record<string, string> = {
 				'Content-Type': 'application/json',
-				'Cookie': cookieHeader
+				Cookie: cookieHeader
 			};
 
 			// Update department using correct mutation signature with input object
@@ -238,7 +253,10 @@ export const actions: Actions = {
 			const updateData = await updateResponse.json();
 
 			if (updateData.errors) {
-				console.error('[Department Update Error]', updateData.errors);
+				const errorMsg = updateData.errors[0]?.message || 'Failed to update department';
+				logger.error('[Department Update Error]', new Error(errorMsg), {
+					errors: updateData.errors
+				});
 				return fail(500, {
 					error: 'Failed to update department'
 				});
@@ -252,7 +270,7 @@ export const actions: Actions = {
 				throw err;
 			}
 
-			console.error('[Department Update Action Error]', err);
+			logger.error('[Department Update Action Error]', err as Error);
 			return fail(500, {
 				error: 'Failed to update department'
 			});

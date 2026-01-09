@@ -59,6 +59,7 @@ impl Related<super::content::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(InputObject)]
+#[graphql(name = "UpdateTrainingProgressInput")]
 pub struct UpdateProgressInput {
     pub status: ProgressStatus,
 }

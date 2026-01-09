@@ -5,14 +5,14 @@
  * Tests pure calculation and formatting functions for subtask progress tracking.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
+	type ProgressStatistics,
+	type TaskProgress,
 	calculateSubtaskProgress,
 	formatProgressPercentage,
 	getProgressColor,
-	isTaskOnTrack,
-	type TaskProgress,
-	type ProgressStatistics
+	isTaskOnTrack
 } from '$lib/server/tasks/subtask-progress';
 import type { Task, TaskStatus } from '$lib/types/task';
 
@@ -209,7 +209,7 @@ describe('isTaskOnTrack', () => {
 			expect(result.reason).toBe('Task overdue');
 		});
 
-		it('should return not on track for yesterday\'s due date', () => {
+		it("should return not on track for yesterday's due date", () => {
 			const yesterday = new Date();
 			yesterday.setDate(yesterday.getDate() - 1);
 			const result = isTaskOnTrack(yesterday, 80, 'IN_PROGRESS');

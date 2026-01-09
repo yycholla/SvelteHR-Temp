@@ -7,7 +7,6 @@
 		placeholder = 'Select an option...',
 		disabled = false,
 		required = false,
-		name = null,
 		id = null,
 		size = 'md',
 		variant = 'default',
@@ -17,8 +16,8 @@
 		errorText = null,
 		searchable = false,
 		clearable = false,
-		multiple = false,
 		maxHeight = '300px',
+		class: className = '',
 		onchange = undefined,
 		onfocus = undefined,
 		onblur = undefined
@@ -28,7 +27,6 @@
 		placeholder?: string;
 		disabled?: boolean;
 		required?: boolean;
-		name?: string | null;
 		id?: string | null;
 		size?: 'sm' | 'md' | 'lg';
 		variant?: 'default' | 'error' | 'success';
@@ -38,8 +36,8 @@
 		errorText?: string | null;
 		searchable?: boolean;
 		clearable?: boolean;
-		multiple?: boolean;
 		maxHeight?: string;
+		class?: string;
 		onchange?: ((detail: { value: string | number | null; option: any }) => void) | undefined;
 		onfocus?: (() => void) | undefined;
 		onblur?: (() => void) | undefined;
@@ -49,20 +47,20 @@
 	let isOpen = $state(false);
 	let focused = $state(false);
 	let searchTerm = $state('');
-	let selectElement = $state<HTMLSelectElement>();
+	let selectElement = $state<HTMLButtonElement>();
 	let dropdownElement = $state<HTMLDivElement>();
 	let searchInputElement = $state<HTMLInputElement>();
 
 	// Computed values
-	let filteredOptions = $derived(
+	const filteredOptions = $derived(
 		searchable && searchTerm
 			? options.filter((option) => option.label.toLowerCase().includes(searchTerm.toLowerCase()))
 			: options
 	);
 
-	let selectedOption = $derived(options.find((option) => option.value === value) || null);
+	const selectedOption = $derived(options.find((option) => option.value === value) || null);
 
-	let containerClasses = $derived(
+	const containerClasses = $derived(
 		[
 			'select-container',
 			`select-container--${size}`,
@@ -70,13 +68,14 @@
 			focused && 'select-container--focused',
 			disabled && 'select-container--disabled',
 			variant === 'error' && 'select-container--error',
-			variant === 'success' && 'select-container--success'
+			variant === 'success' && 'select-container--success',
+			className
 		]
 			.filter(Boolean)
 			.join(' ')
 	);
 
-	let selectClasses = $derived(
+	const selectClasses = $derived(
 		['select', `select--${size}`, `select--${variant}`, isOpen && 'select--open']
 			.filter(Boolean)
 			.join(' ')
@@ -190,7 +189,7 @@
 
 	<div class="select-wrapper">
 		<button
-			bind:this={selectElement as any}
+			bind:this={selectElement}
 			type="button"
 			{id}
 			{disabled}
@@ -286,5 +285,3 @@
 		</div>
 	{/if}
 </div>
-
-

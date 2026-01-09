@@ -76,6 +76,11 @@ pub struct Model {
     pub description: Option<String>,
     pub parent_department_id: Option<Uuid>,
     pub manager_id: Option<Uuid>,
+    pub intuit_department_id: Option<String>,
+    pub last_synced_at: Option<DateTime<Utc>>,
+    pub last_modified_at: DateTime<Utc>,
+    pub quickbooks_sync_token: Option<String>,
+    pub sync_status: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
@@ -129,6 +134,11 @@ impl Model {
     /// Department manager ID (foreign key to users)
     async fn manager_id(&self) -> Option<Uuid> {
         self.manager_id
+    }
+
+    /// QuickBooks department ID for integration
+    async fn intuit_department_id(&self) -> Option<&str> {
+        self.intuit_department_id.as_deref()
     }
 
     /// Record creation timestamp
@@ -207,6 +217,7 @@ mod tests {
             description: Some("Software development team".to_string()),
             parent_department_id: None,
             manager_id: None,
+            intuit_department_id: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
             deleted_at: None,

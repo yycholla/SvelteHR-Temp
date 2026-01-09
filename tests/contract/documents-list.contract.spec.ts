@@ -1,7 +1,7 @@
 // Contract test: Document list API (T014)
 // Tests GET /api/documents endpoint
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
  * Contract Test: Document List API
@@ -15,6 +15,9 @@ import { describe, it, expect, beforeAll } from 'vitest';
  */
 
 describe('GET /api/documents - Contract Tests', () => {
+	const API_BASE_URL =
+		process.env.API_BASE_URL || process.env.PUBLIC_API_URL || 'http://localhost:5173';
+
 	let employeeToken: string;
 	let managerToken: string;
 	let adminToken: string;
@@ -34,10 +37,10 @@ describe('GET /api/documents - Contract Tests', () => {
 
 	it('should list documents with employeeId filter', async () => {
 		// Act: Filter documents by employee ID
-		const response = await fetch(`/api/documents?employeeId=${employeeId}`, {
+		const response = await fetch(`${API_BASE_URL}/api/documents?employeeId=${employeeId}`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			}
 		});
 
@@ -61,10 +64,10 @@ describe('GET /api/documents - Contract Tests', () => {
 
 	it('should list documents with category filter', async () => {
 		// Act: Filter by category
-		const response = await fetch('/api/documents?category=Contract', {
+		const response = await fetch(`${API_BASE_URL}/api/documents?category=Contract`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			}
 		});
 
@@ -82,10 +85,10 @@ describe('GET /api/documents - Contract Tests', () => {
 
 	it('should list documents with sensitivity filter', async () => {
 		// Act: Filter by sensitivity level
-		const response = await fetch('/api/documents?sensitivityLevel=Confidential', {
+		const response = await fetch(`${API_BASE_URL}/api/documents?sensitivityLevel=Confidential`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			}
 		});
 
@@ -103,10 +106,10 @@ describe('GET /api/documents - Contract Tests', () => {
 
 	it('should handle pagination correctly (page=2, limit=20)', async () => {
 		// Act: Request second page with 20 items per page
-		const response = await fetch('/api/documents?page=2&limit=20', {
+		const response = await fetch(`${API_BASE_URL}/api/documents?page=2&limit=20`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			}
 		});
 
@@ -125,10 +128,10 @@ describe('GET /api/documents - Contract Tests', () => {
 
 	it('should enforce RBAC: employee sees only assigned documents', async () => {
 		// Act: Employee lists documents
-		const response = await fetch('/api/documents', {
+		const response = await fetch(`${API_BASE_URL}/api/documents`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${employeeToken}`
+				Authorization: `Bearer ${employeeToken}`
 			}
 		});
 
@@ -155,10 +158,10 @@ describe('GET /api/documents - Contract Tests', () => {
 
 	it('should enforce RBAC: manager sees direct reports documents', async () => {
 		// Act: Manager lists documents
-		const response = await fetch('/api/documents', {
+		const response = await fetch(`${API_BASE_URL}/api/documents`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${managerToken}`
+				Authorization: `Bearer ${managerToken}`
 			}
 		});
 
@@ -176,10 +179,10 @@ describe('GET /api/documents - Contract Tests', () => {
 
 	it('should enforce RBAC: admin sees all non-deleted documents', async () => {
 		// Act: Admin lists all documents
-		const response = await fetch('/api/documents', {
+		const response = await fetch(`${API_BASE_URL}/api/documents`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			}
 		});
 
@@ -195,7 +198,7 @@ describe('GET /api/documents - Contract Tests', () => {
 
 	it('should return 401 for unauthenticated requests', async () => {
 		// Act: List without auth token
-		const response = await fetch('/api/documents', {
+		const response = await fetch(`${API_BASE_URL}/api/documents`, {
 			method: 'GET'
 		});
 
@@ -212,7 +215,7 @@ describe('GET /api/documents - Contract Tests', () => {
 		const response1 = await fetch('/api/documents?page=0&limit=20', {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			}
 		});
 
@@ -225,7 +228,7 @@ describe('GET /api/documents - Contract Tests', () => {
 		const response2 = await fetch('/api/documents?page=1&limit=-1', {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			}
 		});
 
@@ -237,10 +240,10 @@ describe('GET /api/documents - Contract Tests', () => {
 
 	it('should support search by filename', async () => {
 		// Act: Search for documents by filename
-		const response = await fetch('/api/documents?search=contract', {
+		const response = await fetch(`${API_BASE_URL}/api/documents?search=contract`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			}
 		});
 
@@ -258,12 +261,15 @@ describe('GET /api/documents - Contract Tests', () => {
 
 	it('should support multiple filters combined', async () => {
 		// Act: Apply category + sensitivity + search filters
-		const response = await fetch('/api/documents?category=Contract&sensitivityLevel=Confidential&search=employee', {
-			method: 'GET',
-			headers: {
-				'Authorization': `Bearer ${adminToken}`
+		const response = await fetch(
+			`${API_BASE_URL}/api/documents?category=Contract&sensitivityLevel=Confidential&search=employee`,
+			{
+				method: 'GET',
+				headers: {
+					Authorization: `Bearer ${adminToken}`
+				}
 			}
-		});
+		);
 
 		// Assert: Success with multi-filtered results
 		expect(response.status).toBe(200);
@@ -281,12 +287,15 @@ describe('GET /api/documents - Contract Tests', () => {
 
 	it('should return empty array when no documents match filters', async () => {
 		// Act: Filter with non-existent criteria
-		const response = await fetch('/api/documents?category=NonExistent&search=xyzabc123', {
-			method: 'GET',
-			headers: {
-				'Authorization': `Bearer ${adminToken}`
+		const response = await fetch(
+			`${API_BASE_URL}/api/documents?category=NonExistent&search=xyzabc123`,
+			{
+				method: 'GET',
+				headers: {
+					Authorization: `Bearer ${adminToken}`
+				}
 			}
-		});
+		);
 
 		// Assert: Success but empty results
 		expect(response.status).toBe(200);

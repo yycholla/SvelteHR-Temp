@@ -14,8 +14,9 @@
  * - employee_certifications table with expiry_date tracking
  */
 
-import { test, expect, describe, beforeAll, afterAll } from 'vitest';
-import { createClient, type Client, cacheExchange, fetchExchange } from '@urql/core';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { type Client, cacheExchange, createClient, fetchExchange } from '@urql/core';
+import { gql } from '@urql/core';
 import fetch from 'node-fetch';
 
 let graphqlClient: Client;
@@ -35,7 +36,7 @@ beforeAll(() => {
 describe('Employee Skills Integration (P2 Feature)', () => {
 	describe('Schema Field Integration', () => {
 		test('should query EmployeeSkill with all fields', async () => {
-			const query = `
+			const query = gql`
 				query GetEmployeeSkills {
 					employeeSkills(first: 10) {
 						nodes {
@@ -70,7 +71,7 @@ describe('Employee Skills Integration (P2 Feature)', () => {
 		});
 
 		test('should query user relationship from skill', async () => {
-			const query = `
+			const query = gql`
 				query GetSkillsWithUser {
 					employeeSkills(first: 1) {
 						nodes {
@@ -101,12 +102,9 @@ describe('Employee Skills Integration (P2 Feature)', () => {
 
 	describe('Proficiency Level Validation Integration', () => {
 		test('should filter skills by proficiency level', async () => {
-			const query = `
+			const query = gql`
 				query GetExpertSkills {
-					employeeSkills(
-						filter: { proficiencyLevel: { equalTo: 5 } }
-						first: 10
-					) {
+					employeeSkills(filter: { proficiencyLevel: { equalTo: 5 } }, first: 10) {
 						nodes {
 							id
 							skillName
@@ -132,16 +130,9 @@ describe('Employee Skills Integration (P2 Feature)', () => {
 		});
 
 		test('should filter skills by proficiency range', async () => {
-			const query = `
+			const query = gql`
 				query GetAdvancedSkills {
-					employeeSkills(
-						filter: {
-							proficiencyLevel: {
-								greaterThanOrEqualTo: 4
-							}
-						}
-						first: 20
-					) {
+					employeeSkills(filter: { proficiencyLevel: { greaterThanOrEqualTo: 4 } }, first: 20) {
 						nodes {
 							id
 							skillName
@@ -166,12 +157,9 @@ describe('Employee Skills Integration (P2 Feature)', () => {
 
 	describe('Full-Text Search Integration', () => {
 		test('should search skills by name', async () => {
-			const query = `
+			const query = gql`
 				query SearchSkillsByName($searchTerm: String!) {
-					employeeSkills(
-						filter: { skillName: { includesInsensitive: $searchTerm } }
-						first: 20
-					) {
+					employeeSkills(filter: { skillName: { includesInsensitive: $searchTerm } }, first: 20) {
 						nodes {
 							id
 							skillName
@@ -181,9 +169,7 @@ describe('Employee Skills Integration (P2 Feature)', () => {
 				}
 			`;
 
-			const result = await graphqlClient
-				.query(query, { searchTerm: 'script' })
-				.toPromise();
+			const result = await graphqlClient.query(query, { searchTerm: 'script' }).toPromise();
 
 			expect(result.error).toBeUndefined();
 			expect(result.data).toBeDefined();
@@ -197,12 +183,9 @@ describe('Employee Skills Integration (P2 Feature)', () => {
 
 	describe('Endorsement System Integration', () => {
 		test('should query skills with endorsements', async () => {
-			const query = `
+			const query = gql`
 				query GetEndorsedSkills {
-					employeeSkills(
-						filter: { endorsedBy: { isNull: false } }
-						first: 10
-					) {
+					employeeSkills(filter: { endorsedBy: { isNull: false } }, first: 10) {
 						nodes {
 							id
 							skillName
@@ -229,7 +212,7 @@ describe('Employee Skills Integration (P2 Feature)', () => {
 		let testUserId: string;
 
 		beforeAll(async () => {
-			const usersQuery = `
+			const usersQuery = gql`
 				query GetTestUser {
 					users(first: 1) {
 						nodes {
@@ -292,7 +275,7 @@ describe('Employee Skills Integration (P2 Feature)', () => {
 describe('Employee Certifications Integration (P2 Feature)', () => {
 	describe('Schema Field Integration', () => {
 		test('should query EmployeeCertification with all fields', async () => {
-			const query = `
+			const query = gql`
 				query GetEmployeeCertifications {
 					employeeCertifications(first: 10) {
 						nodes {
@@ -328,7 +311,7 @@ describe('Employee Certifications Integration (P2 Feature)', () => {
 		});
 
 		test('should query user relationship from certification', async () => {
-			const query = `
+			const query = gql`
 				query GetCertificationsWithUser {
 					employeeCertifications(first: 1) {
 						nodes {
@@ -358,12 +341,9 @@ describe('Employee Certifications Integration (P2 Feature)', () => {
 
 	describe('Expiry Date Filtering Integration', () => {
 		test('should filter permanent certifications (null expiryDate)', async () => {
-			const query = `
+			const query = gql`
 				query GetPermanentCertifications {
-					employeeCertifications(
-						filter: { expiryDate: { isNull: true } }
-						first: 10
-					) {
+					employeeCertifications(filter: { expiryDate: { isNull: true } }, first: 10) {
 						nodes {
 							id
 							certificationName
@@ -385,15 +365,10 @@ describe('Employee Certifications Integration (P2 Feature)', () => {
 		});
 
 		test('should filter certifications expiring soon', async () => {
-			const query = `
+			const query = gql`
 				query GetExpiringSoonCertifications($date: Date!) {
 					employeeCertifications(
-						filter: {
-							expiryDate: {
-								isNull: false
-								lessThan: $date
-							}
-						}
+						filter: { expiryDate: { isNull: false, lessThan: $date } }
 						first: 20
 					) {
 						nodes {
@@ -414,9 +389,7 @@ describe('Employee Certifications Integration (P2 Feature)', () => {
 			ninetyDaysLater.setDate(ninetyDaysLater.getDate() + 90);
 			const dateString = ninetyDaysLater.toISOString().split('T')[0];
 
-			const result = await graphqlClient
-				.query(query, { date: dateString })
-				.toPromise();
+			const result = await graphqlClient.query(query, { date: dateString }).toPromise();
 
 			expect(result.error).toBeUndefined();
 			expect(result.data).toBeDefined();
@@ -431,7 +404,7 @@ describe('Employee Certifications Integration (P2 Feature)', () => {
 
 	describe('Full-Text Search Integration', () => {
 		test('should search certifications by name', async () => {
-			const query = `
+			const query = gql`
 				query SearchCertificationsByName($searchTerm: String!) {
 					employeeCertifications(
 						filter: { certificationName: { includesInsensitive: $searchTerm } }
@@ -446,9 +419,7 @@ describe('Employee Certifications Integration (P2 Feature)', () => {
 				}
 			`;
 
-			const result = await graphqlClient
-				.query(query, { searchTerm: 'AWS' })
-				.toPromise();
+			const result = await graphqlClient.query(query, { searchTerm: 'AWS' }).toPromise();
 
 			expect(result.error).toBeUndefined();
 			expect(result.data).toBeDefined();
@@ -460,7 +431,7 @@ describe('Employee Certifications Integration (P2 Feature)', () => {
 		});
 
 		test('should search certifications by issuer', async () => {
-			const query = `
+			const query = gql`
 				query SearchCertificationsByIssuer($searchTerm: String!) {
 					employeeCertifications(
 						filter: { issuer: { includesInsensitive: $searchTerm } }
@@ -475,9 +446,7 @@ describe('Employee Certifications Integration (P2 Feature)', () => {
 				}
 			`;
 
-			const result = await graphqlClient
-				.query(query, { searchTerm: 'Amazon' })
-				.toPromise();
+			const result = await graphqlClient.query(query, { searchTerm: 'Amazon' }).toPromise();
 
 			expect(result.error).toBeUndefined();
 			expect(result.data).toBeDefined();
@@ -488,7 +457,7 @@ describe('Employee Certifications Integration (P2 Feature)', () => {
 		let testUserId: string;
 
 		beforeAll(async () => {
-			const usersQuery = `
+			const usersQuery = gql`
 				query GetTestUser {
 					users(first: 1) {
 						nodes {
@@ -594,7 +563,7 @@ describe('Employee Certifications Integration (P2 Feature)', () => {
 
 	describe('Database Schema Validation', () => {
 		test('should verify EmployeeSkill type exists', async () => {
-			const query = `
+			const query = gql`
 				query IntrospectEmployeeSkillType {
 					__type(name: "EmployeeSkill") {
 						name
@@ -622,7 +591,7 @@ describe('Employee Certifications Integration (P2 Feature)', () => {
 		});
 
 		test('should verify EmployeeCertification type exists', async () => {
-			const query = `
+			const query = gql`
 				query IntrospectEmployeeCertificationType {
 					__type(name: "EmployeeCertification") {
 						name
@@ -652,7 +621,7 @@ describe('Employee Certifications Integration (P2 Feature)', () => {
 
 	describe('Performance Integration', () => {
 		test('should query large skill dataset efficiently', async () => {
-			const query = `
+			const query = gql`
 				query GetAllSkills {
 					employeeSkills(first: 100) {
 						totalCount
@@ -676,7 +645,7 @@ describe('Employee Certifications Integration (P2 Feature)', () => {
 		});
 
 		test('should query large certification dataset efficiently', async () => {
-			const query = `
+			const query = gql`
 				query GetAllCertifications {
 					employeeCertifications(first: 100) {
 						totalCount
@@ -724,16 +693,18 @@ export const skillsCertificationsTestUtils = {
 			}
 		`;
 
-		return client.mutation(mutation, {
-			input: {
-				employeeSkill: {
-					userId,
-					skillName,
-					proficiencyLevel,
-					endorsedBy: []
+		return client
+			.mutation(mutation, {
+				input: {
+					employeeSkill: {
+						userId,
+						skillName,
+						proficiencyLevel,
+						endorsedBy: []
+					}
 				}
-			}
-		}).toPromise();
+			})
+			.toPromise();
 	},
 
 	/**
@@ -758,16 +729,18 @@ export const skillsCertificationsTestUtils = {
 			}
 		`;
 
-		return client.mutation(mutation, {
-			input: {
-				employeeCertification: {
-					userId,
-					certificationName,
-					issuer,
-					issuedDate: new Date().toISOString().split('T')[0],
-					expiryDate
+		return client
+			.mutation(mutation, {
+				input: {
+					employeeCertification: {
+						userId,
+						certificationName,
+						issuer,
+						issuedDate: new Date().toISOString().split('T')[0],
+						expiryDate
+					}
 				}
-			}
-		}).toPromise();
+			})
+			.toPromise();
 	}
 };

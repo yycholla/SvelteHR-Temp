@@ -35,7 +35,7 @@ configuration:
       default: true
       config:
         region: us-east-1
-        s3ForcePathStyle: "true"
+        s3ForcePathStyle: 'true'
         s3Url: http://minio.backup-system.svc.cluster.local:9000
         publicUrl: http://minio.backup-system.svc.cluster.local:9000
 
@@ -56,9 +56,9 @@ schedules:
   # Daily full cluster backup at 2 AM
   daily-backup:
     disabled: false
-    schedule: "0 2 * * *"
+    schedule: '0 2 * * *'
     template:
-      ttl: "720h"  # 30 days retention
+      ttl: '720h' # 30 days retention
       includedNamespaces:
         - sveltehr-prod
         - backup-system
@@ -69,11 +69,11 @@ schedules:
   # Weekly full cluster backup on Sunday at 3 AM
   weekly-backup:
     disabled: false
-    schedule: "0 3 * * 0"
+    schedule: '0 3 * * 0'
     template:
-      ttl: "2160h"  # 90 days retention
+      ttl: '2160h' # 90 days retention
       includedNamespaces:
-        - "*"
+        - '*'
       snapshotVolumes: true
 
 # Metrics

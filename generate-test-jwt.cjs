@@ -24,9 +24,9 @@ const EXPIRATION_HOURS = 24;
 
 // Default admin user from database
 const DEFAULT_USER = {
-  user_id: '25775732-e69f-4e9c-9eae-dec37f96172e',
-  email: 'admin@mountainhr.dev',
-  role: 'super_admin'
+	user_id: '25775732-e69f-4e9c-9eae-dec37f96172e',
+	email: 'admin@mountainhr.dev',
+	role: 'super_admin'
 };
 
 // Parse command line arguments
@@ -37,33 +37,33 @@ const role = args[2] || DEFAULT_USER.role;
 
 // Determine permissions based on role
 const getPermissions = (role) => {
-  if (role === 'super_admin' || role === 'admin') {
-    return ['*'];
-  }
-  if (role === 'hr_manager') {
-    return ['employees:*', 'departments:*', 'reports:*'];
-  }
-  if (role === 'manager') {
-    return ['employees:read', 'team:*', 'reports:read'];
-  }
-  return ['profile:*'];
+	if (role === 'super_admin' || role === 'admin') {
+		return ['*'];
+	}
+	if (role === 'hr_manager') {
+		return ['employees:*', 'departments:*', 'reports:*'];
+	}
+	if (role === 'manager') {
+		return ['employees:read', 'team:*', 'reports:read'];
+	}
+	return ['profile:*'];
 };
 
 // Generate token payload (MUST match Rust API Claims structure)
 const now = Math.floor(Date.now() / 1000);
 const payload = {
-  sub: user_id,           // Subject (user ID) - required by Rust API
-  user_id,                // Also include user_id for compatibility
-  roles: [role],          // Roles as array - required by Rust API
-  email,                  // Optional email field
-  permissions: getPermissions(role),  // Optional permissions array
-  iat: now,
-  exp: now + (EXPIRATION_HOURS * 60 * 60)
+	sub: user_id, // Subject (user ID) - required by Rust API
+	user_id, // Also include user_id for compatibility
+	roles: [role], // Roles as array - required by Rust API
+	email, // Optional email field
+	permissions: getPermissions(role), // Optional permissions array
+	iat: now,
+	exp: now + EXPIRATION_HOURS * 60 * 60
 };
 
 // Generate JWT token
 const token = jwt.sign(payload, JWT_SECRET, {
-  algorithm: JWT_ALGORITHM
+	algorithm: JWT_ALGORITHM
 });
 
 // Output results

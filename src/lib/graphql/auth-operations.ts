@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * T026: Authentication Operations - GraphQL Integration
  *
@@ -7,8 +8,7 @@
 
 import { gql } from '@urql/svelte';
 import type { Client } from '@urql/core';
-import type { DataRequest, UserCredentials } from '$lib/models/data-request';
-import type { ErrorResponse } from '$lib/models/error-response';
+import type { UserCredentials } from '$lib/models/data-request';
 import type { UserSession } from '$lib/models/user-session';
 
 /**
@@ -232,7 +232,7 @@ export class AuthenticationOperations {
 			const result = await this.client.query(LOGIN_MUTATION, dataRequest.variables).toPromise();
 
 			if (result.error) {
-				console.error('Login GraphQL error:', result.error);
+				logger.error('Login GraphQL error:', result.error);
 				const errorResponse = createErrorResponse(result.error, {
 					type: 'authentication',
 					userMessage: 'Invalid email or password. Please try again.'
@@ -247,7 +247,7 @@ export class AuthenticationOperations {
 				});
 			}
 
-			console.log('Login successful:', result.data.authenticate.user.email);
+			logger.info('Login successful:', result.data.authenticate.user.email);
 			return result.data.authenticate;
 		} catch (error: any) {
 			if (error.userMessage) {
@@ -286,10 +286,12 @@ export class AuthenticationOperations {
 
 		try {
 			// Server-side query using toPromise()
-			const result = await this.client.query(REFRESH_TOKEN_MUTATION, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(REFRESH_TOKEN_MUTATION, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
-				console.error('Token refresh error:', result.error);
+				logger.error('Token refresh error:', result.error);
 				const errorResponse = createErrorResponse(result.error, {
 					type: 'authentication',
 					userMessage: 'Your session has expired. Please sign in again.'
@@ -304,7 +306,7 @@ export class AuthenticationOperations {
 				});
 			}
 
-			console.log('Token refresh successful');
+			logger.info('Token refresh successful');
 			return {
 				...result.data.refreshToken,
 				sessionInfo: {
@@ -353,7 +355,7 @@ export class AuthenticationOperations {
 			const result = await this.client.query(VERIFY_TOKEN_QUERY, dataRequest.variables).toPromise();
 
 			if (result.error) {
-				console.error('Token verification error:', result.error);
+				logger.error('Token verification error:', result.error);
 				const errorResponse = createErrorResponse(result.error, {
 					type: 'authentication',
 					userMessage: 'Your session is no longer valid. Please sign in again.'
@@ -368,7 +370,7 @@ export class AuthenticationOperations {
 				});
 			}
 
-			console.log('Token verification successful');
+			logger.info('Token verification successful');
 			const user = result.data.currentUser;
 			return {
 				user,
@@ -419,23 +421,23 @@ export class AuthenticationOperations {
 			const result = await this.client.query(LOGOUT_MUTATION, dataRequest.variables).toPromise();
 
 			if (result.error) {
-				console.error('Logout error:', result.error);
+				logger.error('Logout error:', result.error);
 				// Don't fail logout on server error - allow local cleanup
-				console.log('Proceeding with local logout despite server error');
+				logger.info('Proceeding with local logout despite server error');
 				return { success: true, message: 'Logged out locally' };
 			}
 
 			if (!result.data?.logout) {
-				console.warn('No logout data returned, proceeding with local cleanup');
+				logger.warn('No logout data returned, proceeding with local cleanup');
 				return { success: true, message: 'Logged out locally' };
 			}
 
-			console.log('Logout successful');
+			logger.info('Logout successful');
 			return result.data.logout;
 		} catch (error: any) {
-			console.error('Logout error:', error);
+			logger.error('Catch failed', error as Error);
 			// Don't fail logout on any error - allow local cleanup
-			console.log('Proceeding with local logout despite error');
+			logger.info('Proceeding with local logout despite error');
 			return { success: true, message: 'Logged out locally' };
 		}
 	}
@@ -483,7 +485,12 @@ export async function createUserSessionFromAuth(
 		roles: authResult.user.roles.map((role) => role.name),
 		permissions: extractPermissions(authResult.user.roles),
 		expiresAt: authResult.expiresAt,
-		deviceInfo: authResult.sessionInfo.deviceInfo,
+		deviceInfo: authResult.sessionInfo.deviceInfo
+			? {
+					...authResult.sessionInfo.deviceInfo,
+					ipAddress: authResult.sessionInfo.deviceInfo.ipAddress ?? 'unknown'
+				}
+			: undefined,
 		metadata: {
 			email: authResult.user.email,
 			displayName: authResult.user.displayName,

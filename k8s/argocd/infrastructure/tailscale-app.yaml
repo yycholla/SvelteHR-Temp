@@ -5,7 +5,7 @@ metadata:
   name: tailscale
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "1"  # After monitoring
+    argocd.argoproj.io/sync-wave: '1' # After monitoring
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -15,7 +15,7 @@ spec:
     # Source 1: Helm chart from Tailscale
     - repoURL: https://pkgs.tailscale.com/helmcharts
       chart: tailscale-operator
-      targetRevision: 1.x  # Use latest stable 1.x
+      targetRevision: 1.x # Use latest stable 1.x
       helm:
         valueFiles:
           - $values/k8s/helm-values/tailscale-operator-values.yaml
@@ -31,8 +31,8 @@ spec:
   syncPolicy:
     # Automated GitOps sync enabled
     automated:
-      prune: true  # Remove resources deleted from Git
-      selfHeal: true  # Auto-correct cluster drift
+      prune: true # Remove resources deleted from Git
+      selfHeal: true # Auto-correct cluster drift
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true

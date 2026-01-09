@@ -2,7 +2,7 @@
 // Enhanced performance monitoring and reporting
 // Created: 2025-09-24
 
-import type { Reporter, TestCase, TestResult, FullResult } from '@playwright/test/reporter'; // Added type-only import
+import type { FullResult, Reporter, TestCase, TestResult } from '@playwright/test/reporter'; // Added type-only import
 import { promises as fs } from 'fs';
 import { resolve } from 'path';
 
@@ -80,7 +80,8 @@ class PerformanceReporter implements Reporter {
 		}
 	}
 
-	async onEnd(result: FullResult): Promise<void> { // Changed to async and returns Promise<void>
+	async onEnd(result: FullResult): Promise<void> {
+		// Changed to async and returns Promise<void>
 		const endTime = Date.now();
 		const totalDuration = endTime - this.startTime;
 
@@ -197,7 +198,8 @@ class PerformanceReporter implements Reporter {
 		if (result.stdout) {
 			const errorMatches = result.stdout.filter(
 				(output) =>
-					typeof output === 'string' && (output.toLowerCase().includes('error') || output.toLowerCase().includes('failed'))
+					typeof output === 'string' &&
+					(output.toLowerCase().includes('error') || output.toLowerCase().includes('failed'))
 			);
 			metrics.consoleErrors = errorMatches.length;
 		}
@@ -217,7 +219,7 @@ class PerformanceReporter implements Reporter {
 					this.performanceMetrics.length,
 				passedTests: this.performanceMetrics.filter((m) => m.status === 'passed').length,
 				failedTests: this.performanceMetrics.filter((m) => m.status === 'failed').length,
-			skippedTests: this.performanceMetrics.filter((m) => m.status === 'skipped').length
+				skippedTests: this.performanceMetrics.filter((m) => m.status === 'skipped').length
 			},
 			performance: {
 				budgetViolations: this.performanceMetrics.filter((m) =>
@@ -326,8 +328,8 @@ class PerformanceReporter implements Reporter {
         <table>
             <tr><th>Test Name</th><th>Duration</th><th>Browser</th><th>Status</th></tr>
             ${slowestTests
-								.map(
-									(test) => `
+							.map(
+								(test) => `
                 <tr>
                     <td>${test.testName}</td>
                     <td>${test.duration}ms</td>
@@ -345,8 +347,8 @@ class PerformanceReporter implements Reporter {
         <table>
             <tr><th>Category</th><th>Count</th><th>Avg Duration</th></tr>
             ${Object.entries(categoryBreakdown)
-								.map(
-									([category, data]) => `
+							.map(
+								([category, data]) => `
                 <tr>
                     <td>${category}</td>
                     <td>${data.count}</td>
@@ -421,13 +423,16 @@ class PerformanceReporter implements Reporter {
 
 	private logPerformanceSummary() {
 		const totalTests = this.performanceMetrics.length;
-		const passedTests = this.performanceMetrics.filter((m: PerformanceMetrics) => m.status === 'passed').length;
+		const passedTests = this.performanceMetrics.filter(
+			(m: PerformanceMetrics) => m.status === 'passed'
+		).length;
 		const budgetViolations = this.performanceMetrics.filter((m: PerformanceMetrics) =>
 			m.annotations.some((a) => a.includes('Performance Budget Violations'))
 		).length;
 
 		const avgDuration = Math.round(
-			this.performanceMetrics.reduce((sum, m: PerformanceMetrics) => sum + m.duration, 0) / totalTests
+			this.performanceMetrics.reduce((sum, m: PerformanceMetrics) => sum + m.duration, 0) /
+				totalTests
 		);
 
 		console.log('\n📊 Performance Summary:');
@@ -439,7 +444,9 @@ class PerformanceReporter implements Reporter {
 		if (budgetViolations > 0) {
 			console.log('\n⚠️  Performance Issues Detected:');
 			this.performanceMetrics
-				.filter((m: PerformanceMetrics) => m.annotations.some((a) => a.includes('Performance Budget Violations')))
+				.filter((m: PerformanceMetrics) =>
+					m.annotations.some((a) => a.includes('Performance Budget Violations'))
+				)
 				.slice(0, 5)
 				.forEach((metric: PerformanceMetrics) => {
 					console.log(`   • ${metric.testName}: ${metric.duration}ms`);

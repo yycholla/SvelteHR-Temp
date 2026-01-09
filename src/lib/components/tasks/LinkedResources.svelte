@@ -1,18 +1,19 @@
 <!--
   LinkedResources Component
   Feature: 028-task-system-expansion - Task T032
-  
-  Manage linked resources (Employee, Document, Goal, Performance Review)
+
+  Manage linked resources (employee, document, performance_review)
   - Display existing resources with availability status
   - Add new resources with type and search selection
   - Remove resources with confirmation
-  - Status indicators (Available, Unavailable, Deleted)
+  - Status indicators (Available, Unavailable, Pending)
   - Last checked timestamp
   - Resource validation warnings
 -->
 
 <script lang="ts">
-	import type { LinkedResource, ResourceType, AvailabilityStatus } from '$lib/types/task';
+	import type { AvailabilityStatus, LinkedResource, ResourceType } from '$lib/types/task';
+	import { logger } from '$lib/utils/logger';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Select from '$lib/components/ui/select';
@@ -20,19 +21,19 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import {
+		AlertCircle,
+		CheckCircle,
+		ClipboardCheck,
+		Clock,
+		FileText,
 		Link as LinkIcon,
-		Unlink,
 		Plus,
 		Search,
-		Trash2,
-		Users,
-		FileText,
 		Target,
-		ClipboardCheck,
-		CheckCircle,
-		XCircle,
-		AlertCircle,
-		Clock
+		Trash2,
+		Unlink,
+		Users,
+		XCircle
 	} from '@lucide/svelte';
 	import { formatDistance } from 'date-fns';
 
@@ -43,12 +44,16 @@
 			type: ResourceType;
 			title: string;
 		}>;
-		onAddResource: (resourceType: ResourceType, resourceId: string, resourceTitle: string) => Promise<void>;
+		onAddResource: (
+			resourceType: ResourceType,
+			resourceId: string,
+			resourceTitle: string
+		) => Promise<void>;
 		onRemoveResource: (resourceId: string) => Promise<void>;
 		loading?: boolean;
 	}
 
-	let {
+	const {
 		resources,
 		availableResources,
 		onAddResource,
@@ -58,22 +63,21 @@
 
 	// State
 	let isAddDialogOpen = $state(false);
-	let selectedResourceType = $state<ResourceType>('Employee');
+	let selectedResourceType = $state<ResourceType>('employee');
 	let selectedResourceId = $state('');
 	let searchQuery = $state('');
 	let isSubmitting = $state(false);
 
 	// Resource type options
 	const resourceTypeOptions = [
-		{ value: 'Employee', label: 'Employee', icon: Users },
-		{ value: 'Document', label: 'Document', icon: FileText },
-		{ value: 'Goal', label: 'Goal/OKR', icon: Target },
-		{ value: 'Performance_Review', label: 'Performance Review', icon: ClipboardCheck }
+		{ value: 'employee', label: 'Employee', icon: Users },
+		{ value: 'document', label: 'Document', icon: FileText },
+		{ value: 'performance_review', label: 'Performance Review', icon: ClipboardCheck }
 	];
 
 	// Filter available resources by type and search query
-	let filteredResources = $derived(() => {
-		let filtered = availableResources.filter((r) => {
+	const filteredResources = $derived(() => {
+		const filtered = availableResources.filter((r) => {
 			// Filter by type
 			if (r.type !== selectedResourceType) return false;
 
@@ -93,7 +97,7 @@
 	});
 
 	// Resource options for select dropdown
-	let resourceOptions = $derived(
+	const resourceOptions = $derived(
 		filteredResources().map((r) => ({
 			value: r.id,
 			label: r.title
@@ -103,13 +107,11 @@
 	// Get resource type icon
 	function getResourceTypeIcon(type: ResourceType) {
 		switch (type) {
-			case 'Employee':
+			case 'employee':
 				return Users;
-			case 'Document':
+			case 'document':
 				return FileText;
-			case 'Goal':
-				return Target;
-			case 'Performance_Review':
+			case 'performance_review':
 				return ClipboardCheck;
 			default:
 				return FileText;
@@ -119,13 +121,11 @@
 	// Get resource type color
 	function getResourceTypeColor(type: ResourceType) {
 		switch (type) {
-			case 'Employee':
+			case 'employee':
 				return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/30';
-			case 'Document':
+			case 'document':
 				return 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900/30';
-			case 'Goal':
-				return 'text-amber-600 bg-amber-100 dark:text-amber-400 dark:bg-amber-900/30';
-			case 'Performance_Review':
+			case 'performance_review':
 				return 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/30';
 			default:
 				return 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-900/30';
@@ -138,9 +138,9 @@
 			case 'Available':
 				return CheckCircle;
 			case 'Unavailable':
-				return AlertCircle;
-			case 'Deleted':
 				return XCircle;
+			case 'Pending':
+				return Clock;
 			default:
 				return AlertCircle;
 		}
@@ -152,9 +152,9 @@
 			case 'Available':
 				return 'text-green-600 dark:text-green-400';
 			case 'Unavailable':
-				return 'text-yellow-600 dark:text-yellow-400';
-			case 'Deleted':
 				return 'text-red-600 dark:text-red-400';
+			case 'Pending':
+				return 'text-yellow-600 dark:text-yellow-400';
 			default:
 				return 'text-gray-600';
 		}
@@ -173,7 +173,7 @@
 
 	// Open add dialog
 	function openAddDialog() {
-		selectedResourceType = 'Employee';
+		selectedResourceType = 'employee';
 		selectedResourceId = '';
 		searchQuery = '';
 		isAddDialogOpen = true;
@@ -191,7 +191,7 @@
 			await onAddResource(selectedResourceType, selectedResourceId, selectedResource.title);
 			isAddDialogOpen = false;
 		} catch (error) {
-			console.error('[LinkedResources] Add error:', error);
+			logger.error('Catch failed', error as Error);
 			// Error handled by parent
 		} finally {
 			isSubmitting = false;
@@ -205,7 +205,7 @@
 		try {
 			await onRemoveResource(resourceId);
 		} catch (error) {
-			console.error('[LinkedResources] Remove error:', error);
+			logger.error('Catch failed', error as Error);
 			// Error handled by parent
 		}
 	}
@@ -249,7 +249,11 @@
 					<div class="flex items-start justify-between gap-3">
 						<div class="flex items-start gap-3 flex-1">
 							<!-- Type Icon -->
-							<div class="flex h-10 w-10 items-center justify-center rounded-full flex-shrink-0 {getResourceTypeColor(resource.resourceType)}">
+							<div
+								class="flex h-10 w-10 items-center justify-center rounded-full flex-shrink-0 {getResourceTypeColor(
+									resource.resourceType
+								)}"
+							>
 								<TypeIcon class="h-5 w-5" />
 							</div>
 
@@ -259,7 +263,11 @@
 									<Badge variant="outline" class="text-xs">
 										{formatResourceType(resource.resourceType)}
 									</Badge>
-									<StatusIcon class="h-4 w-4 flex-shrink-0 {getAvailabilityColor(resource.availabilityStatus)}" />
+									<StatusIcon
+										class="h-4 w-4 flex-shrink-0 {getAvailabilityColor(
+											resource.availabilityStatus
+										)}"
+									/>
 								</div>
 								<p class="font-medium text-foreground truncate">{resource.resourceTitle}</p>
 								<div class="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
@@ -283,13 +291,22 @@
 
 					<!-- Availability Warning -->
 					{#if resource.availabilityStatus !== 'Available'}
-						<div class="rounded-lg border {resource.availabilityStatus === 'Deleted' ? 'border-destructive bg-destructive/10' : 'border-warning bg-warning/10'} p-2">
-							<div class="flex items-center gap-2 text-xs {resource.availabilityStatus === 'Deleted' ? 'text-destructive' : 'text-warning'}">
+						<div
+							class="rounded-lg border {resource.availabilityStatus === 'Unavailable'
+								? 'border-destructive bg-destructive/10'
+								: 'border-warning bg-warning/10'} p-2"
+						>
+							<div
+								class="flex items-center gap-2 text-xs {resource.availabilityStatus ===
+								'Unavailable'
+									? 'text-destructive'
+									: 'text-warning'}"
+							>
 								<AlertCircle class="h-3 w-3 flex-shrink-0" />
 								<span>
-									{resource.availabilityStatus === 'Deleted' 
-										? 'This resource has been deleted'
-										: 'This resource is currently unavailable'}
+									{resource.availabilityStatus === 'Unavailable'
+										? 'This resource is currently unavailable or has been deleted'
+										: 'This resource status is pending validation'}
 								</span>
 							</div>
 						</div>
@@ -306,9 +323,9 @@
 					<div>
 						<h4 class="font-semibold text-warning mb-1">Some Resources Are Unavailable</h4>
 						<p class="text-sm text-warning/90">
-							{resources.filter((r) => r.availabilityStatus === 'Deleted').length > 0 
-								? 'Deleted resources should be removed or replaced.'
-								: 'Unavailable resources may have been archived or restricted.'}
+							{resources.filter((r) => r.availabilityStatus === 'Unavailable').length > 0
+								? 'Unavailable resources may have been deleted, archived or restricted and should be removed or replaced.'
+								: 'Some resources are pending validation.'}
 						</p>
 					</div>
 				</div>
@@ -322,7 +339,8 @@
 			<Dialog.Header>
 				<Dialog.Title>Link Resource to Task</Dialog.Title>
 				<Dialog.Description>
-					Select a resource to link to this task. Linked resources provide context and documentation.
+					Select a resource to link to this task. Linked resources provide context and
+					documentation.
 				</Dialog.Description>
 			</Dialog.Header>
 
@@ -330,7 +348,7 @@
 				<!-- Resource Type Selection -->
 				<div class="space-y-2">
 					<Label for="resourceType">Resource Type</Label>
-					<Select.Root bind:selected={selectedResourceType}>
+					<Select.Root type="single" bind:value={selectedResourceType}>
 						<Select.Trigger id="resourceType">
 							<Select.Value placeholder="Select resource type" />
 						</Select.Trigger>
@@ -352,7 +370,9 @@
 				<div class="space-y-2">
 					<Label for="search">Search {formatResourceType(selectedResourceType)}s</Label>
 					<div class="relative">
-						<Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+						<Search
+							class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+						/>
 						<Input
 							id="search"
 							bind:value={searchQuery}
@@ -365,7 +385,7 @@
 				<!-- Resource Selection -->
 				<div class="space-y-2">
 					<Label for="resource">Select {formatResourceType(selectedResourceType)}</Label>
-					<Select.Root bind:selected={selectedResourceId}>
+					<Select.Root type="single" bind:value={selectedResourceId}>
 						<Select.Trigger id="resource">
 							<Select.Value placeholder="Choose a resource" />
 						</Select.Trigger>
@@ -398,5 +418,3 @@
 		</Dialog.Content>
 	</Dialog.Root>
 </div>
-
-

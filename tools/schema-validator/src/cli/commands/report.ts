@@ -49,7 +49,10 @@ export async function reportCommand(options: ReportCommandOptions): Promise<void
 
     process.exit(result.passed ? 0 : 1);
   } catch (error) {
-    console.error(chalk.red('❌ Report generation failed:'), error instanceof Error ? error.message : String(error));
+    console.error(
+      chalk.red('❌ Report generation failed:'),
+      error instanceof Error ? error.message : String(error)
+    );
     process.exit(1);
   }
 }

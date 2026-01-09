@@ -19,6 +19,7 @@ Currently, the system maintains separate `User` and `Employee` tables with dupli
 ### Example of Current Issue
 
 When user profile shows "User" instead of "System":
+
 - Employee record has `first_name: "System"`
 - User record might have `displayName: "User"` or `firstName: null`
 - GraphQL queries use camelCase (`firstName`) vs backend uses snake_case (`first_name`)
@@ -29,6 +30,7 @@ When user profile shows "User" instead of "System":
 ## Current Architecture
 
 ### User Table (Authentication)
+
 ```sql
 users (
   id UUID PRIMARY KEY,
@@ -46,6 +48,7 @@ users (
 ```
 
 ### Employee Table (HR Data)
+
 ```sql
 employees (
   id UUID PRIMARY KEY,
@@ -128,6 +131,7 @@ employees (
 ### Phase 1: Database Schema Updates
 
 **1.1 Add employee_id to users table**
+
 ```sql
 ALTER TABLE users
 ADD COLUMN employee_id UUID REFERENCES employees(id);
@@ -137,6 +141,7 @@ ADD COLUMN user_type TEXT DEFAULT 'employee';
 ```
 
 **1.2 Create migration script to link existing records**
+
 ```sql
 -- Link users to employees by email (assuming 1:1 mapping)
 UPDATE users u
@@ -149,6 +154,7 @@ SELECT COUNT(*) FROM users WHERE employee_id IS NULL;
 ```
 
 **1.3 Remove duplicate fields from users (after verification)**
+
 ```sql
 -- WARNING: Only run after confirming all data is synced
 ALTER TABLE users DROP COLUMN first_name;
@@ -159,6 +165,7 @@ ALTER TABLE users DROP COLUMN display_name;
 ### Phase 2: Backend Changes (Rust)
 
 **2.1 Update User Model**
+
 ```rust
 // src/models/user.rs
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
@@ -189,6 +196,7 @@ pub enum Relation {
 ```
 
 **2.2 Update GraphQL Queries**
+
 ```rust
 // User query should always join employee data
 pub async fn get_user_with_employee(
@@ -203,92 +211,96 @@ pub async fn get_user_with_employee(
 ```
 
 **2.3 Update GraphQL Schema**
+
 ```graphql
 type User {
-  id: UUID!
-  email: String!
-  employeeId: UUID
-  userType: String!
-  isActive: Boolean!
+	id: UUID!
+	email: String!
+	employeeId: UUID
+	userType: String!
+	isActive: Boolean!
 
-  # ✅ Personal info comes from joined employee
-  employee: Employee
-  firstName: String      # Resolves from employee.firstName
-  lastName: String       # Resolves from employee.lastName
-  displayName: String    # Resolves from employee.displayName
+	# ✅ Personal info comes from joined employee
+	employee: Employee
+	firstName: String # Resolves from employee.firstName
+	lastName: String # Resolves from employee.lastName
+	displayName: String # Resolves from employee.displayName
 }
 
 type Employee {
-  id: UUID!
-  firstName: String!
-  lastName: String!
-  displayName: String!
-  email: String!
-  department: Department
-  position: String
-  # ... other fields
+	id: UUID!
+	firstName: String!
+	lastName: String!
+	displayName: String!
+	email: String!
+	department: Department
+	position: String
+	# ... other fields
 }
 ```
 
 ### Phase 3: Frontend Updates
 
 **3.1 Update Auth Store**
+
 ```typescript
 // src/lib/stores/auth.ts
 export interface User {
-  id: string;
-  email: string;
-  employeeId?: string;
-  userType: 'employee' | 'contractor' | 'external';
-  isActive: boolean;
+	id: string;
+	email: string;
+	employeeId?: string;
+	userType: 'employee' | 'contractor' | 'external';
+	isActive: boolean;
 
-  // Personal info from joined employee
-  employee?: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    displayName: string;
-    email: string;
-    departmentId?: string;
-    position?: string;
-  };
+	// Personal info from joined employee
+	employee?: {
+		id: string;
+		firstName: string;
+		lastName: string;
+		displayName: string;
+		email: string;
+		departmentId?: string;
+		position?: string;
+	};
 
-  // Convenience getters
-  firstName?: string;  // Computed from employee
-  lastName?: string;   // Computed from employee
-  displayName?: string; // Computed from employee
+	// Convenience getters
+	firstName?: string; // Computed from employee
+	lastName?: string; // Computed from employee
+	displayName?: string; // Computed from employee
 }
 ```
 
 **3.2 Update GraphQL Queries**
+
 ```typescript
 // Always fetch employee data with user
 export const GET_CURRENT_USER = gql`
-  query GetCurrentUser {
-    me {
-      id
-      email
-      employeeId
-      userType
-      isActive
-      employee {
-        id
-        firstName
-        lastName
-        displayName
-        email
-        department {
-          id
-          name
-        }
-        position
-      }
-    }
-  }
+	query GetCurrentUser {
+		me {
+			id
+			email
+			employeeId
+			userType
+			isActive
+			employee {
+				id
+				firstName
+				lastName
+				displayName
+				email
+				department {
+					id
+					name
+				}
+				position
+			}
+		}
+	}
 `;
 ```
 
 **3.3 Update Display Logic**
+
 ```typescript
 // Use employee data for display
 const displayName = user.employee?.displayName || user.email;
@@ -298,6 +310,7 @@ const firstName = user.employee?.firstName;
 ### Phase 4: Data Validation
 
 **4.1 Create validation script**
+
 ```sql
 -- Check for orphaned users (no employee)
 SELECT id, email, user_type
@@ -350,6 +363,7 @@ If migration fails, rollback steps:
 ## Files to Modify
 
 ### Backend (Rust)
+
 - `src/models/user.rs` - User model + Employee relation
 - `src/models/employee.rs` - Verify no changes needed
 - `src/schema/queries/user.rs` - Update to always join employee
@@ -358,6 +372,7 @@ If migration fails, rollback steps:
 - `migrations/*.sql` - Add migration scripts
 
 ### Frontend (SvelteKit)
+
 - `src/lib/stores/auth.ts` - Update User interface
 - `src/lib/graphql/postgraphile-operations.ts` - Update queries
 - `src/lib/components/hr-app-sidebar.svelte` - Use employee data
@@ -366,6 +381,7 @@ If migration fails, rollback steps:
 - All profile pages - Update to use employee fields
 
 ### Database
+
 - Migration script: `001_add_employee_id_to_users.sql`
 - Migration script: `002_link_users_to_employees.sql`
 - Migration script: `003_remove_duplicate_user_fields.sql`
@@ -385,16 +401,19 @@ If migration fails, rollback steps:
 ## Implementation Timeline
 
 **Day 1: Database + Backend**
+
 - Morning: Create and test migration scripts
 - Afternoon: Update Rust models and relations
 - Evening: Update GraphQL schema and resolvers
 
 **Day 2: Frontend + Testing**
+
 - Morning: Update auth store and GraphQL queries
 - Afternoon: Update all UI components
 - Evening: Integration testing
 
 **Day 3: Deployment + Validation**
+
 - Morning: Deploy to staging
 - Afternoon: Production deployment
 - Evening: Monitor and validate

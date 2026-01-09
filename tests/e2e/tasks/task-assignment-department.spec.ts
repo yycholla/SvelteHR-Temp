@@ -2,7 +2,7 @@
 // Feature: 019-we-need-to - Phase 6
 // Purpose: Test department-wide task assignment and management
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Task Assignment - Department', () => {
 	// Setup: Login before each test (manager account needed)
@@ -71,9 +71,9 @@ test.describe('Task Assignment - Department', () => {
 
 		if (!(await forbiddenMessage.isVisible())) {
 			// Find status filter
-			const statusFilter = page.locator('select[name="status"]').or(
-				page.locator('select:has(option:has-text("Pending"))')
-			);
+			const statusFilter = page
+				.locator('select[name="status"]')
+				.or(page.locator('select:has(option:has-text("Pending"))'));
 
 			if (await statusFilter.isVisible()) {
 				// Test filtering by "Pending"
@@ -106,9 +106,9 @@ test.describe('Task Assignment - Department', () => {
 
 		if (!(await forbiddenMessage.isVisible())) {
 			// Find priority filter
-			const priorityFilter = page.locator('select[name="priority"]').or(
-				page.locator('select:has(option:has-text("Urgent"))')
-			);
+			const priorityFilter = page
+				.locator('select[name="priority"]')
+				.or(page.locator('select:has(option:has-text("Urgent"))'));
 
 			if (await priorityFilter.isVisible()) {
 				// Test filtering by "Urgent"
@@ -139,9 +139,9 @@ test.describe('Task Assignment - Department', () => {
 
 		if (!(await forbiddenMessage.isVisible())) {
 			// Find sort dropdown
-			const sortSelect = page.locator('select[name="sort"]').or(
-				page.locator('select:has(option:has-text("Due Date"))')
-			);
+			const sortSelect = page
+				.locator('select[name="sort"]')
+				.or(page.locator('select:has(option:has-text("Due Date"))'));
 
 			if (await sortSelect.isVisible()) {
 				// Test sort by due date
@@ -174,9 +174,9 @@ test.describe('Task Assignment - Department', () => {
 
 		if (!(await forbiddenMessage.isVisible())) {
 			// Check if department selector is visible (for multi-department managers)
-			const deptSelector = page.locator('select[name="department"]').or(
-				page.locator('select:has(option:has-text("Engineering"))')
-			);
+			const deptSelector = page
+				.locator('select[name="department"]')
+				.or(page.locator('select:has(option:has-text("Engineering"))'));
 
 			if (await deptSelector.isVisible()) {
 				// Get list of department options
@@ -230,9 +230,9 @@ test.describe('Task Assignment - Department', () => {
 			await departmentRadio.check();
 
 			// Verify department selection field is visible
-			const departmentField = page.locator('input[name="departmentId"]').or(
-				page.locator('text=/Department selection/i')
-			);
+			const departmentField = page
+				.locator('input[name="departmentId"]')
+				.or(page.locator('text=/Department selection/i'));
 			await expect(departmentField).toBeVisible();
 
 			// Verify info about department tasks
@@ -257,9 +257,9 @@ test.describe('Task Assignment - Department', () => {
 
 		if (!(await forbiddenMessage.isVisible())) {
 			// Find task items
-			const taskItems = page.locator('[data-testid="task-item"]').or(
-				page.locator('a[href*="/tasks/"]')
-			);
+			const taskItems = page
+				.locator('[data-testid="task-item"]')
+				.or(page.locator('a[href*="/tasks/"]'));
 
 			if ((await taskItems.count()) > 0) {
 				// Click first task
@@ -283,12 +283,12 @@ test.describe('Task Assignment - Department', () => {
 
 		if (!(await forbiddenMessage.isVisible())) {
 			// Look for pagination controls
-			const nextButton = page.locator('button:has-text("Next")').or(
-				page.locator('a:has-text("Next")')
-			);
-			const prevButton = page.locator('button:has-text("Previous")').or(
-				page.locator('a:has-text("Previous")')
-			);
+			const nextButton = page
+				.locator('button:has-text("Next")')
+				.or(page.locator('a:has-text("Next")'));
+			const prevButton = page
+				.locator('button:has-text("Previous")')
+				.or(page.locator('a:has-text("Previous")'));
 
 			// Check if pagination exists
 			if (await nextButton.isVisible()) {
@@ -339,9 +339,9 @@ test.describe('Task Assignment - Department', () => {
 
 		if (!(await forbiddenMessage.isVisible())) {
 			// Look for overdue indicator
-			const overdueIndicator = page.locator('text=/Overdue|Past Due/i').or(
-				page.locator('[data-status="overdue"]')
-			);
+			const overdueIndicator = page
+				.locator('text=/Overdue|Past Due/i')
+				.or(page.locator('[data-status="overdue"]'));
 
 			// If overdue tasks exist, verify they're highlighted
 			if ((await overdueIndicator.count()) > 0) {
@@ -364,9 +364,9 @@ test.describe('Task Assignment - Department', () => {
 
 		if (!(await forbiddenMessage.isVisible())) {
 			// Look for urgent priority badge
-			const urgentBadge = page.locator('text=/Urgent/i').or(
-				page.locator('[data-priority="urgent"]')
-			);
+			const urgentBadge = page
+				.locator('text=/Urgent/i')
+				.or(page.locator('[data-priority="urgent"]'));
 
 			// If urgent tasks exist, verify they're visible
 			if ((await urgentBadge.count()) > 0) {
@@ -409,9 +409,9 @@ test.describe('Task Assignment - Department', () => {
 						await page.waitForLoadState('networkidle');
 
 						// Try to mark as completed
-						const completeButton = page.locator('button:has-text("Complete")').or(
-							page.locator('button:has-text("Mark as Completed")')
-						);
+						const completeButton = page
+							.locator('button:has-text("Complete")')
+							.or(page.locator('button:has-text("Mark as Completed")'));
 
 						if (await completeButton.isVisible()) {
 							await completeButton.click();

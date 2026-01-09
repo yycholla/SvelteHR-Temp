@@ -29,14 +29,8 @@
 	import { Search, Users, X } from '@lucide/svelte';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 
-	// Props with Svelte 5 runes
-	let {
-		open = $bindable(),
-		employees,
-		selectedIds = $bindable([]),
-		onConfirm,
-		onCancel
-	}: {
+	// Export type definitions for test imports
+	export interface AttendeePickerModalProps {
 		open: boolean;
 		employees: Array<{
 			id: string;
@@ -48,7 +42,16 @@
 		selectedIds: string[];
 		onConfirm: (selectedIds: string[]) => void;
 		onCancel: () => void;
-	} = $props();
+	}
+
+	// Props with Svelte 5 runes
+	let {
+		open = $bindable(),
+		employees,
+		selectedIds = $bindable([]),
+		onConfirm,
+		onCancel
+	}: AttendeePickerModalProps = $props();
 
 	// State
 	let searchTerm = $state('');
@@ -56,18 +59,18 @@
 	let localSelectedIds = $state<string[]>([...selectedIds]);
 
 	// Derived - unique departments
-	let departments = $derived(
-		Array.from(new Set(employees.map(e => e.department?.id).filter(Boolean)))
-			.map(id => {
-				const emp = employees.find(e => e.department?.id === id);
+	const departments = $derived(
+		Array.from(new Set(employees.map((e) => e.department?.id).filter(Boolean)))
+			.map((id) => {
+				const emp = employees.find((e) => e.department?.id === id);
 				return { id: id!, name: emp?.department?.name || 'Unknown' };
 			})
 			.sort((a, b) => a.name.localeCompare(b.name))
 	);
 
 	// Derived - filtered employees
-	let filteredEmployees = $derived(
-		employees.filter(emp => {
+	const filteredEmployees = $derived(
+		employees.filter((emp) => {
 			// Search filter
 			const searchLower = searchTerm.toLowerCase();
 			const matchesSearch =
@@ -87,16 +90,16 @@
 	);
 
 	// Derived - selection state
-	let selectedCount = $derived(localSelectedIds.length);
-	let allFilteredSelected = $derived(
+	const selectedCount = $derived(localSelectedIds.length);
+	const allFilteredSelected = $derived(
 		filteredEmployees.length > 0 &&
-		filteredEmployees.every(emp => localSelectedIds.includes(emp.id))
+			filteredEmployees.every((emp) => localSelectedIds.includes(emp.id))
 	);
 
 	// Toggle employee selection
 	function toggleEmployee(employeeId: string) {
 		if (localSelectedIds.includes(employeeId)) {
-			localSelectedIds = localSelectedIds.filter(id => id !== employeeId);
+			localSelectedIds = localSelectedIds.filter((id) => id !== employeeId);
 		} else {
 			localSelectedIds = [...localSelectedIds, employeeId];
 		}
@@ -106,11 +109,11 @@
 	function toggleAllFiltered() {
 		if (allFilteredSelected) {
 			// Deselect all filtered
-			const filteredIds = new Set(filteredEmployees.map(e => e.id));
-			localSelectedIds = localSelectedIds.filter(id => !filteredIds.has(id));
+			const filteredIds = new Set(filteredEmployees.map((e) => e.id));
+			localSelectedIds = localSelectedIds.filter((id) => !filteredIds.has(id));
 		} else {
 			// Select all filtered
-			const filteredIds = filteredEmployees.map(e => e.id);
+			const filteredIds = filteredEmployees.map((e) => e.id);
 			const uniqueIds = new Set([...localSelectedIds, ...filteredIds]);
 			localSelectedIds = Array.from(uniqueIds);
 		}
@@ -152,9 +155,7 @@
 				<Users class="h-5 w-5" />
 				Select Attendees
 			</Dialog.Title>
-			<Dialog.Description>
-				Choose employees to invite to this event
-			</Dialog.Description>
+			<Dialog.Description>Choose employees to invite to this event</Dialog.Description>
 		</Dialog.Header>
 
 		<div class="space-y-4">
@@ -170,13 +171,13 @@
 					/>
 				</div>
 
-				<Select.Root bind:value={departmentFilter}>
+				<Select.Root type="single" bind:value={departmentFilter}>
 					<Select.Trigger class="w-48">
 						<Select.Value placeholder="All Departments" />
 					</Select.Trigger>
 					<Select.Content>
 						<Select.Item value="all">All Departments</Select.Item>
-						{#each departments as dept}
+						{#each departments as dept (dept.id)}
 							<Select.Item value={dept.id}>{dept.name}</Select.Item>
 						{/each}
 					</Select.Content>
@@ -213,12 +214,10 @@
 					{#if filteredEmployees.length === 0}
 						<div class="flex flex-col items-center justify-center py-12 text-center">
 							<Users class="mb-2 h-12 w-12 text-muted-foreground" />
-							<p class="text-sm text-muted-foreground">
-								No employees found matching your criteria
-							</p>
+							<p class="text-sm text-muted-foreground">No employees found matching your criteria</p>
 						</div>
 					{:else}
-						{#each filteredEmployees as employee}
+						{#each filteredEmployees as employee (employee.id)}
 							<div
 								class="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent"
 								role="button"
@@ -251,11 +250,10 @@
 		</div>
 
 		<Dialog.Footer>
-			<Button variant="outline" onclick={handleCancel}>
-				Cancel
-			</Button>
+			<Button variant="outline" onclick={handleCancel}>Cancel</Button>
 			<Button onclick={handleConfirm}>
-				Add {selectedCount} {selectedCount === 1 ? 'Attendee' : 'Attendees'}
+				Add {selectedCount}
+				{selectedCount === 1 ? 'Attendee' : 'Attendees'}
 			</Button>
 		</Dialog.Footer>
 	</Dialog.Content>

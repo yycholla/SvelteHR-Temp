@@ -9,7 +9,7 @@
  * Migration: 20251010_009_add_departments_manager_ids.sql
  */
 
-import { test, expect, describe, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 const mockGraphQLClient = {
 	query: vi.fn(),
@@ -42,9 +42,9 @@ describe('Departments Co-Managers Contract (P1 Core)', () => {
 				new Error('Field "managerIds" not found in type "Department"')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { deptId: 'dept_123' })
-			).rejects.toThrow('Field "managerIds" not found');
+			await expect(mockGraphQLClient.query(query, { deptId: 'dept_123' })).rejects.toThrow(
+				'Field "managerIds" not found'
+			);
 		});
 
 		test('should expose managers relationship (resolved from managerIds)', async () => {
@@ -68,9 +68,9 @@ describe('Departments Co-Managers Contract (P1 Core)', () => {
 				new Error('Relationship "managers" not implemented')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { deptId: 'dept_123' })
-			).rejects.toThrow('Relationship "managers" not implemented');
+			await expect(mockGraphQLClient.query(query, { deptId: 'dept_123' })).rejects.toThrow(
+				'Relationship "managers" not implemented'
+			);
 		});
 
 		test('should allow empty managerIds array', async () => {
@@ -92,13 +92,11 @@ describe('Departments Co-Managers Contract (P1 Core)', () => {
 				}
 			};
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('Schema regeneration required')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('Schema regeneration required'));
 
-			await expect(
-				mockGraphQLClient.query(query, { deptId: 'dept_123' })
-			).rejects.toThrow('Schema regeneration required');
+			await expect(mockGraphQLClient.query(query, { deptId: 'dept_123' })).rejects.toThrow(
+				'Schema regeneration required'
+			);
 		});
 	});
 
@@ -128,9 +126,9 @@ describe('Departments Co-Managers Contract (P1 Core)', () => {
 				new Error('updateDepartmentManagers mutation not implemented')
 			);
 
-			await expect(
-				mockGraphQLClient.mutation(mutation, variables)
-			).rejects.toThrow('updateDepartmentManagers mutation not implemented');
+			await expect(mockGraphQLClient.mutation(mutation, variables)).rejects.toThrow(
+				'updateDepartmentManagers mutation not implemented'
+			);
 		});
 
 		test('should add new co-manager to existing array', async () => {
@@ -206,9 +204,7 @@ describe('Departments Co-Managers Contract (P1 Core)', () => {
 				}
 			`;
 
-			mockGraphQLClient.mutation.mockRejectedValue(
-				new Error('Array replacement not implemented')
-			);
+			mockGraphQLClient.mutation.mockRejectedValue(new Error('Array replacement not implemented'));
 
 			await expect(
 				mockGraphQLClient.mutation(mutation, {
@@ -237,9 +233,9 @@ describe('Departments Co-Managers Contract (P1 Core)', () => {
 				new Error('Array containment filter not implemented')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { managerId: 'user_mgr1' })
-			).rejects.toThrow('Array containment filter not implemented');
+			await expect(mockGraphQLClient.query(query, { managerId: 'user_mgr1' })).rejects.toThrow(
+				'Array containment filter not implemented'
+			);
 		});
 
 		test('should query departments with multiple managers', async () => {
@@ -259,13 +255,11 @@ describe('Departments Co-Managers Contract (P1 Core)', () => {
 				}
 			`;
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('Array length filter not implemented')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('Array length filter not implemented'));
 
-			await expect(
-				mockGraphQLClient.query(query)
-			).rejects.toThrow('Array length filter not implemented');
+			await expect(mockGraphQLClient.query(query)).rejects.toThrow(
+				'Array length filter not implemented'
+			);
 		});
 	});
 
@@ -296,9 +290,9 @@ describe('Departments Co-Managers Contract (P1 Core)', () => {
 				new Error('Data migration validation requires live data')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { deptId: 'dept_123' })
-			).rejects.toThrow('Data migration validation requires live data');
+			await expect(mockGraphQLClient.query(query, { deptId: 'dept_123' })).rejects.toThrow(
+				'Data migration validation requires live data'
+			);
 		});
 
 		test('should verify all departments have managerIds populated', async () => {
@@ -319,9 +313,9 @@ describe('Departments Co-Managers Contract (P1 Core)', () => {
 				new Error('Migration status check requires live connection')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query)
-			).rejects.toThrow('Migration status check requires live connection');
+			await expect(mockGraphQLClient.query(query)).rejects.toThrow(
+				'Migration status check requires live connection'
+			);
 		});
 	});
 
@@ -344,9 +338,9 @@ describe('Departments Co-Managers Contract (P1 Core)', () => {
 				udt_name: '_uuid'
 			};
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Database verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Database verification requires live connection'));
 
 			await expect(mockDbQuery(dbQuery)).rejects.toThrow(
 				'Database verification requires live connection'
@@ -361,9 +355,9 @@ describe('Departments Co-Managers Contract (P1 Core)', () => {
 				AND indexname = 'idx_departments_manager_ids';
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Index verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Index verification requires live connection'));
 
 			await expect(mockDbQuery(indexQuery)).rejects.toThrow(
 				'Index verification requires live connection'
@@ -378,9 +372,9 @@ describe('Departments Co-Managers Contract (P1 Core)', () => {
 				AND trigger_name = 'validate_department_managers';
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Trigger verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Trigger verification requires live connection'));
 
 			await expect(mockDbQuery(triggerQuery)).rejects.toThrow(
 				'Trigger verification requires live connection'
@@ -441,9 +435,7 @@ describe('Departments Co-Managers Contract (P1 Core)', () => {
 				}
 			`;
 
-			mockGraphQLClient.mutation.mockRejectedValue(
-				new Error('Duplicate handling not implemented')
-			);
+			mockGraphQLClient.mutation.mockRejectedValue(new Error('Duplicate handling not implemented'));
 
 			await expect(
 				mockGraphQLClient.mutation(mutation, {
@@ -471,9 +463,9 @@ describe('Departments Co-Managers Contract (P1 Core)', () => {
 				new Error('Index usage validation not implemented')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { managerId: 'user_mgr1' })
-			).rejects.toThrow('Index usage validation not implemented');
+			await expect(mockGraphQLClient.query(query, { managerId: 'user_mgr1' })).rejects.toThrow(
+				'Index usage validation not implemented'
+			);
 		});
 	});
 });

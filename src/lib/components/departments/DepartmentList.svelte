@@ -1,12 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 	import { goto } from '$app/navigation';
-	import {
-		departmentService,
-		departments,
-		isLoadingDepartments,
-		departmentError
-	} from '$lib/services/departmentService';
+	import { resolveRoute } from '$app/paths';
+	import { toast } from 'svelte-sonner';
+	import { departmentService, departments, loadDepartments } from '$lib/services/departmentService';
 	import { currentUser, hasPermission } from '$lib/services/auth';
 	import DataTable from '../tables/DataTable.svelte';
 	import Button from '../base/Button.svelte';
@@ -18,7 +16,7 @@
 	import type { Department, DepartmentFilter } from '$lib/types';
 
 	// Props
-	let {
+	const {
 		showHeader = true,
 		showFilters = true,
 		showActions = true,
@@ -54,7 +52,7 @@
 	];
 
 	// Table columns configuration
-	let columns = $derived<Column[]>([
+	const columns = $derived<Column[]>([
 		{
 			key: 'name',
 			label: 'Department Name',
@@ -72,7 +70,7 @@
 			label: 'Manager',
 			sortable: true,
 			type: 'text',
-			format: (value) => value?.display_name || value?.displayName || 'N/A'
+			format: (value) => value?.display_name || 'N/A'
 		},
 		{
 			key: 'employeeCount',
@@ -85,12 +83,12 @@
 			label: 'Status',
 			sortable: true,
 			type: 'badge',
-			badgeVariant: (value) => (value ? 'success' : 'secondary')
+			badgeVariant: (value) => (value ? 'default' : 'secondary')
 		},
 		// Add actions column if permissions allow
 		...(showActions &&
-		auth.user &&
-		(auth.hasPermission('department:update') || auth.hasPermission('department:delete'))
+		$currentUser &&
+		(hasPermission('department:update') || hasPermission('department:delete'))
 			? [
 					{
 						key: 'actions',
@@ -105,8 +103,8 @@
 	]);
 
 	// Reactive filters
-	let filters = $derived(buildFilters());
-	let hasFiltersApplied = $derived(searchQuery || statusFilter || parentFilter);
+	const filters = $derived(buildFilters());
+	const hasFiltersApplied = $derived(searchQuery || statusFilter || parentFilter);
 
 	// Load data when filters change
 	$effect(() => {
@@ -124,31 +122,27 @@
 		};
 	}
 
-	async function loadDepartments() {
+	async function refreshDepartments() {
 		try {
-			await departmentService.loadDepartments({
-				filters,
-				sorting: { field: sortField, direction: sortDirection.toUpperCase() as 'ASC' | 'DESC' },
-				reset: true
-			});
+			await departmentService.loadDepartments();
 		} catch (error) {
-			console.error('Failed to load departments:', error);
+			logger.error('Catch failed', error as Error);
 		}
 	}
 
-	function handleSort(event: CustomEvent) {
-		sortField = event.detail.key;
-		sortDirection = event.detail.direction;
-		loadDepartments();
+	function handleSort(detail: { key: string; direction: 'asc' | 'desc' }) {
+		sortField = detail.key;
+		sortDirection = detail.direction;
+		refreshDepartments();
 	}
 
-	function handleRowClick(event: CustomEvent) {
-		const { row } = event.detail;
-		goto(`/departments/${row.id}`);
+	function handleRowClick(detail: { row: any; index: number }) {
+		const { row } = detail;
+		goto(resolveRoute(`/departments/${row.id}` as any));
 	}
 
-	function handleSelectionChange(event: CustomEvent) {
-		selectedDepartments = event.detail;
+	function handleSelectionChange(detail: any[]) {
+		selectedDepartments = detail;
 	}
 
 	function clearFilters() {
@@ -160,24 +154,24 @@
 	async function handleBulkAction(action: string) {
 		if (selectedDepartments.length === 0) return;
 
-		const departmentIds = selectedDepartments.map((dept) => dept.id);
-
 		try {
 			switch (action) {
-				case 'activate':
+				case 'activate': {
 					// TODO: Implement bulk department activation
-					console.log('Bulk activate:', selectedDepartments);
+					logger.info(`Bulk activate:: ${selectedDepartments}`);
 					break;
-				case 'archive':
+				}
+				case 'archive': {
 					// TODO: Implement bulk department archiving
-					console.log('Bulk archive:', selectedDepartments);
+					logger.info(`Bulk archive:: ${selectedDepartments}`);
 					break;
-				case 'export':
+				}
+				case 'export': {
 					// Simple CSV export
 					const csvData = selectedDepartments.map((dept) => ({
 						Name: dept.name,
 						Code: dept.code,
-						Manager: dept.manager?.display_name || dept.manager?.displayName || 'N/A',
+						Manager: dept.manager?.display_name || 'N/A',
 						'Employee Count': dept.employeeCount || 0,
 						'Budget Limit': dept.budgetLimit || 'N/A',
 						Status: dept.isActive ? 'Active' : 'Inactive'
@@ -196,9 +190,10 @@
 					a.click();
 					URL.revokeObjectURL(url);
 					break;
+				}
 			}
 		} catch (error) {
-			console.error('Bulk action failed:', error);
+			logger.error('Catch failed', error as Error);
 		}
 	}
 
@@ -214,16 +209,17 @@
 		if (!confirmed) return;
 
 		try {
-			await departmentService.archiveDepartment(department.id, 'Manual archive via interface');
-			await loadDepartments(); // Refresh the list
-		} catch (error) {
-			console.error('Failed to archive department:', error);
-			alert('Failed to archive department. Please try again.');
+			await departmentService.deleteDepartment(department.id);
+			await refreshDepartments(); // Refresh the list
+			toast.success('Department archived successfully');
+		} catch (err: any) {
+			logger.error('Failed to delete department', err as Error);
+			toast.error('Failed to archive department');
 		}
 	}
 
 	onMount(() => {
-		loadDepartments();
+		refreshDepartments();
 	});
 </script>
 
@@ -238,16 +234,20 @@
 			</div>
 
 			<div class="department-list__actions">
-				{#if auth.user && auth.hasPermission('department:create')}
+				{#if $currentUser && hasPermission('department:create')}
 					<Button
 						variant="secondary"
 						leftIcon="eye"
-						onclick={() => goto('/departments/hierarchy')}
+						onclick={() => goto(resolveRoute('/departments/hierarchy' as any))}
 					>
 						View Hierarchy
 					</Button>
 
-					<Button variant="primary" leftIcon="plus" onclick={() => goto('/departments/new')}>
+					<Button
+						variant="primary"
+						leftIcon="plus"
+						onclick={() => goto(resolveRoute('/departments/new' as any))}
+					>
 						Add Department
 					</Button>
 				{/if}
@@ -264,7 +264,7 @@
 						placeholder="Search departments..."
 						leftIcon="search"
 						bind:value={searchQuery}
-						oninput={() => loadDepartments()}
+						oninput={() => refreshDepartments()}
 					/>
 				</div>
 
@@ -303,7 +303,7 @@
 				</span>
 
 				<div class="bulk-actions__buttons">
-					{#if auth.user && auth.hasPermission('department:update')}
+					{#if $currentUser && hasPermission('department:update')}
 						<Button
 							variant="secondary"
 							size="sm"
@@ -340,7 +340,7 @@
 		<DataTable
 			data={$departments}
 			{columns}
-			loading={auth.isLoadingDepartments}
+			loading={false}
 			{selectable}
 			{compact}
 			hoverable={true}
@@ -351,7 +351,7 @@
 			onrowClick={handleRowClick}
 			onselectionChange={handleSelectionChange}
 		>
-			<svelte:fragment slot="cell" let:column let:value let:row>
+			{#snippet cellRenderer({ column, value, row })}
 				{#if column.key === 'name'}
 					<div class="department-name-cell">
 						<div class="department-info">
@@ -369,12 +369,12 @@
 						</div>
 					</div>
 				{:else if column.key === 'isActive'}
-					<Badge variant={row.isActive ? 'success' : 'secondary'} size="sm">
+					<Badge variant={row.isActive ? 'default' : 'secondary'} size="sm">
 						{getStatusText(row.isActive)}
 					</Badge>
 				{:else if column.key === 'actions'}
 					<div class="action-buttons">
-						{#if auth.user && auth.hasPermission('department:update')}
+						{#if $currentUser && hasPermission('department:update')}
 							<Button
 								variant="ghost"
 								size="xs"
@@ -382,12 +382,12 @@
 								leftIcon="edit"
 								onclick={(e) => {
 									e.stopPropagation();
-									goto(`/departments/${row.id}/edit`);
+									goto(resolveRoute(`/departments/${row.id}/edit` as any));
 								}}
 							/>
 						{/if}
 
-						{#if auth.user && auth.hasPermission('department:delete')}
+						{#if $currentUser && hasPermission('department:delete')}
 							<Button
 								variant="ghost"
 								size="xs"
@@ -395,37 +395,13 @@
 								leftIcon="archive"
 								onclick={(e) => {
 									e.stopPropagation();
-									handleDeleteDepartment(row);
+									handleDeleteDepartment(row as Department);
 								}}
 							/>
 						{/if}
 					</div>
 				{/if}
-			</svelte:fragment>
+			{/snippet}
 		</DataTable>
 	</Card>
-
-	{#if $departmentError}
-		<Card padding="md" class="department-list__error">
-			<div class="error-message">
-				<div class="error-icon">
-					<i class="icon-alert-circle"></i>
-				</div>
-				<div class="error-content">
-					<h3 class="error-title">Error Loading Departments</h3>
-					<p class="error-description">{$departmentError}</p>
-					<Button
-						variant="secondary"
-						size="sm"
-						leftIcon="refresh-cw"
-						onclick={() => loadDepartments()}
-					>
-						Retry
-					</Button>
-				</div>
-			</div>
-		</Card>
-	{/if}
 </div>
-
-

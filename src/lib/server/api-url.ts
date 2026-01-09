@@ -5,6 +5,8 @@
 
 import { env } from '$env/dynamic/private';
 import { env as publicEnv } from '$env/dynamic/public';
+import { print } from 'graphql';
+import type { TypedDocumentNode } from '@urql/core';
 
 /**
  * Get the GraphQL API URL for server-side requests
@@ -50,7 +52,7 @@ export function isContainerized(): boolean {
  */
 export async function authenticatedGraphQLRequest(
 	endpoint: string,
-	query: string,
+	query: TypedDocumentNode | string,
 	variables?: any,
 	request?: Request
 ): Promise<Response> {
@@ -60,18 +62,21 @@ export async function authenticatedGraphQLRequest(
 
 	// Forward session cookies for authentication
 	// Defensive check: ensure request has headers property with get method
-	if (request && request.headers && typeof request.headers.get === 'function') {
+	if (request?.headers && typeof request.headers.get === 'function') {
 		const cookieHeader = request.headers.get('cookie');
 		if (cookieHeader) {
 			headers['Cookie'] = cookieHeader;
 		}
 	}
 
+	// Convert TypedDocumentNode to string if needed
+	const queryString = typeof query === 'string' ? query : print(query);
+
 	return fetch(endpoint, {
 		method: 'POST',
 		headers,
 		body: JSON.stringify({
-			query,
+			query: queryString,
 			variables: variables || {}
 		})
 	});

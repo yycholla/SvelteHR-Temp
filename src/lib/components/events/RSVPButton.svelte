@@ -1,5 +1,6 @@
 <script lang="ts">
 	// RSVPButton Component
+	import { logger } from '$lib/utils/logger';
 	// Feature: 019-we-need-to - Task T021
 	// Purpose: RSVP action dropdown for event responses
 
@@ -15,7 +16,7 @@
 		size?: 'sm' | 'md' | 'lg';
 	}
 
-	let {
+	const {
 		currentStatus,
 		onChange,
 		disabled = false,
@@ -38,7 +39,7 @@
 	};
 
 	// Derived values
-	let buttonClasses = $derived(`
+	const buttonClasses = $derived(`
 		inline-flex items-center gap-2 rounded-lg font-medium transition-all
 		${sizeClasses[size]}
 		${getRsvpStatusColor(currentStatus)}
@@ -46,8 +47,8 @@
 		border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
 	`);
 
-	let currentLabel = $derived(RSVP_STATUS_LABELS[currentStatus]);
-	let currentIcon = $derived(getRsvpStatusIcon(currentStatus));
+	const currentLabel = $derived(RSVP_STATUS_LABELS[currentStatus]);
+	const currentIcon = $derived(getRsvpStatusIcon(currentStatus));
 
 	function toggleDropdown() {
 		if (!disabled && !loading) {
@@ -56,29 +57,29 @@
 	}
 
 	function handleStatusChange(newStatus: RsvpStatus) {
-		console.log('[RSVPButton] handleStatusChange called');
-		console.log('[RSVPButton] newStatus:', newStatus);
-		console.log('[RSVPButton] currentStatus:', currentStatus);
-		console.log('[RSVPButton] disabled:', disabled);
-		console.log('[RSVPButton] loading:', loading);
+		logger.info('[RSVPButton] handleStatusChange called');
+		logger.info(`[RSVPButton] newStatus:: ${newStatus}`);
+		logger.info(`[RSVPButton] currentStatus:: ${currentStatus}`);
+		logger.info(`[RSVPButton] disabled:: ${disabled}`);
+		logger.info(`[RSVPButton] loading:: ${loading}`);
 
 		if (newStatus !== currentStatus && !disabled && !loading) {
-			console.log('[RSVPButton] Calling onChange handler');
+			logger.info('[RSVPButton] Calling onChange handler');
 			const result = onChange(newStatus);
 
 			// If onChange returns a Promise, handle loading state
 			if (result instanceof Promise) {
-				console.log('[RSVPButton] onChange returned a Promise');
+				logger.info('[RSVPButton] onChange returned a Promise');
 				result.finally(() => {
-					console.log('[RSVPButton] Promise resolved, closing dropdown');
+					logger.info('[RSVPButton] Promise resolved, closing dropdown');
 					isOpen = false;
 				});
 			} else {
-				console.log('[RSVPButton] onChange returned synchronously');
+				logger.info('[RSVPButton] onChange returned synchronously');
 				isOpen = false;
 			}
 		} else {
-			console.log('[RSVPButton] Skipping onChange - status unchanged or button disabled');
+			logger.info('[RSVPButton] Skipping onChange - status unchanged or button disabled');
 		}
 	}
 
@@ -122,8 +123,13 @@
 		<span class="flex items-center gap-1.5">
 			{#if loading}
 				<svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
+					></circle>
+					<path
+						class="opacity-75"
+						fill="currentColor"
+						d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+					></path>
 				</svg>
 			{:else}
 				<span>{currentIcon}</span>
@@ -152,7 +158,7 @@
 			aria-orientation="vertical"
 		>
 			<div class="py-1">
-				{#each statusOptions as status}
+				{#each statusOptions as status (status)}
 					{@const isActive = status === currentStatus}
 					{@const label = RSVP_STATUS_LABELS[status]}
 					{@const icon = getRsvpStatusIcon(status)}
@@ -160,7 +166,9 @@
 					<button
 						type="button"
 						class="flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors
-							{isActive ? 'bg-gray-100 dark:bg-accent font-medium text-gray-900 dark:text-foreground' : 'text-gray-700 dark:text-foreground hover:bg-gray-50 dark:hover:bg-accent'}
+							{isActive
+							? 'bg-gray-100 dark:bg-accent font-medium text-gray-900 dark:text-foreground'
+							: 'text-gray-700 dark:text-foreground hover:bg-gray-50 dark:hover:bg-accent'}
 						"
 						role="menuitem"
 						onclick={() => handleStatusChange(status)}
@@ -168,7 +176,11 @@
 						<span class="flex h-5 w-5 items-center justify-center">
 							{#if isActive}
 								<svg class="h-4 w-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-									<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+									<path
+										fill-rule="evenodd"
+										d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+										clip-rule="evenodd"
+									/>
 								</svg>
 							{:else}
 								<span>{icon}</span>

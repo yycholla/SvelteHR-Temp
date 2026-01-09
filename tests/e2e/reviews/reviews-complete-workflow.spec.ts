@@ -12,7 +12,7 @@
  * - RBAC filtering (admin/hr_manager/manager/employee)
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Performance Reviews Complete Workflow', () => {
 	test.beforeEach(async ({ page }) => {
@@ -96,10 +96,7 @@ test.describe('Performance Reviews Complete Workflow', () => {
 			'Obtain AWS Solutions Architect certification'
 		);
 		await page.fill('[data-testid="new-goal-target-date"]', '2025-06-30');
-		await page.fill(
-			'[data-testid="new-goal-success-metrics"]',
-			'Pass exam with score >= 750'
-		);
+		await page.fill('[data-testid="new-goal-success-metrics"]', 'Pass exam with score >= 750');
 		await page.click('[data-testid="add-new-goal"]');
 
 		// Verify goal appears in summary
@@ -500,9 +497,7 @@ test.describe('Performance Reviews Complete Workflow', () => {
 		);
 
 		// Verify status changed to IN_PROGRESS
-		await expect(page.locator('[data-testid="review-status-badge"]')).toContainText(
-			'In Progress'
-		);
+		await expect(page.locator('[data-testid="review-status-badge"]')).toContainText('In Progress');
 	});
 
 	test('should handle pagination for large review lists', async ({ page }) => {

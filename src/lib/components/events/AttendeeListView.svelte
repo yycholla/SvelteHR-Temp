@@ -21,48 +21,47 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Select from '$lib/components/ui/select';
 	import { Avatar } from '$lib/components/ui/avatar';
-	import { Users, Crown } from '@lucide/svelte';
+	import { Crown, Users } from '@lucide/svelte';
 	import type { RsvpStatus } from '$lib/graphql/events-operations';
 
-	// Props with Svelte 5 runes
-	let {
-		attendees,
-		currentUserId,
-		showFilters = true
-	}: {
-		attendees: Array<{
+	// Export type definitions for test imports
+	export interface Attendee {
+		id: string;
+		employeeId: string;
+		employee: {
 			id: string;
-			employeeId: string;
-			employee: {
-				id: string;
-				displayName: string;
-				email: string;
-				jobTitle?: string;
-			};
-			responseStatus: RsvpStatus;
-			isOrganizer: boolean;
-			respondedAt?: string;
-		}>;
+			displayName: string;
+			email: string;
+			jobTitle?: string;
+		};
+		responseStatus: RsvpStatus;
+		isOrganizer: boolean;
+		respondedAt?: string;
+	}
+
+	export interface AttendeeListViewProps {
+		attendees: Array<Attendee>;
 		currentUserId?: string;
 		showFilters?: boolean;
-	} = $props();
+	}
+
+	// Props with Svelte 5 runes
+	const { attendees, currentUserId, showFilters = true }: AttendeeListViewProps = $props();
 
 	// State
-	let statusFilter = $state<RsvpStatus | 'all'>('all');
+	let statusFilter = $state<RsvpStatus | 'all' | undefined>('all');
 
 	// Derived - filtered attendees
-	let filteredAttendees = $derived(
-		statusFilter === 'all'
-			? attendees
-			: attendees.filter(a => a.responseStatus === statusFilter)
+	const filteredAttendees = $derived(
+		statusFilter === 'all' ? attendees : attendees.filter((a) => a.responseStatus === statusFilter)
 	);
 
 	// Derived - counts by status
-	let statusCounts = $derived({
-		accepted: attendees.filter(a => a.responseStatus === 'accepted').length,
-		declined: attendees.filter(a => a.responseStatus === 'declined').length,
-		tentative: attendees.filter(a => a.responseStatus === 'tentative').length,
-		pending: attendees.filter(a => a.responseStatus === 'pending').length
+	const statusCounts = $derived({
+		accepted: attendees.filter((a) => a.responseStatus === 'accepted').length,
+		declined: attendees.filter((a) => a.responseStatus === 'declined').length,
+		tentative: attendees.filter((a) => a.responseStatus === 'tentative').length,
+		pending: attendees.filter((a) => a.responseStatus === 'pending').length
 	});
 
 	// Get RSVP badge variant and color
@@ -70,11 +69,16 @@
 		label: string;
 		variant: 'default' | 'secondary' | 'destructive' | 'outline';
 	} {
-		const badges = {
+		const badges: Record<
+			RsvpStatus,
+			{ label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }
+		> = {
 			accepted: { label: 'Accepted', variant: 'default' as const },
 			declined: { label: 'Declined', variant: 'destructive' as const },
 			tentative: { label: 'Tentative', variant: 'secondary' as const },
-			pending: { label: 'Pending', variant: 'outline' as const }
+			pending: { label: 'Pending', variant: 'outline' as const },
+			no_response: { label: 'No Response', variant: 'outline' as const },
+			waitlisted: { label: 'Waitlisted', variant: 'secondary' as const }
 		};
 		return badges[status];
 	}
@@ -83,7 +87,7 @@
 	function getInitials(name: string): string {
 		return name
 			.split(' ')
-			.map(n => n[0])
+			.map((n) => n[0])
 			.join('')
 			.toUpperCase()
 			.slice(0, 2);
@@ -101,7 +105,7 @@
 				</h3>
 			</div>
 
-			<Select.Root bind:value={statusFilter}>
+			<Select.Root type="single" bind:value={statusFilter}>
 				<Select.Trigger class="w-40">
 					<Select.Value placeholder="Filter by status" />
 				</Select.Trigger>
@@ -131,12 +135,10 @@
 		{#if filteredAttendees.length === 0}
 			<div class="flex flex-col items-center justify-center py-12 text-center">
 				<Users class="mb-2 h-12 w-12 text-muted-foreground" />
-				<p class="text-sm text-muted-foreground">
-					No attendees found
-				</p>
+				<p class="text-sm text-muted-foreground">No attendees found</p>
 			</div>
 		{:else}
-			{#each filteredAttendees as attendee}
+			{#each filteredAttendees as attendee (attendee.id)}
 				{@const isCurrentUser = attendee.employeeId === currentUserId}
 				{@const badge = getRsvpBadge(attendee.responseStatus)}
 
@@ -147,7 +149,9 @@
 				>
 					<!-- Avatar -->
 					<Avatar class="h-10 w-10">
-						<div class="flex h-full w-full items-center justify-center bg-primary/10 text-sm font-medium">
+						<div
+							class="flex h-full w-full items-center justify-center bg-primary/10 text-sm font-medium"
+						>
 							{getInitials(attendee.employee.displayName)}
 						</div>
 					</Avatar>

@@ -9,7 +9,7 @@
  * Migration: 20251010_012_add_performance_review_ratings.sql
  */
 
-import { test, expect, describe, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 const mockGraphQLClient = {
 	query: vi.fn(),
@@ -43,9 +43,9 @@ describe('Performance Reviews Ratings Contract (P2 Feature)', () => {
 				new Error('Rating fields not found in PerformanceReview type')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { reviewId: 'review_123' })
-			).rejects.toThrow('Rating fields not found');
+			await expect(mockGraphQLClient.query(query, { reviewId: 'review_123' })).rejects.toThrow(
+				'Rating fields not found'
+			);
 		});
 
 		test('should allow null values for optional rating fields', async () => {
@@ -77,13 +77,11 @@ describe('Performance Reviews Ratings Contract (P2 Feature)', () => {
 				}
 			};
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('Schema regeneration required')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('Schema regeneration required'));
 
-			await expect(
-				mockGraphQLClient.query(query, { reviewId: 'review_123' })
-			).rejects.toThrow('Schema regeneration required');
+			await expect(mockGraphQLClient.query(query, { reviewId: 'review_123' })).rejects.toThrow(
+				'Schema regeneration required'
+			);
 		});
 	});
 
@@ -108,9 +106,9 @@ describe('Performance Reviews Ratings Contract (P2 Feature)', () => {
 				new Error('Computed field "averageRating" not implemented')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { reviewId: 'review_123' })
-			).rejects.toThrow('Computed field "averageRating" not implemented');
+			await expect(mockGraphQLClient.query(query, { reviewId: 'review_123' })).rejects.toThrow(
+				'Computed field "averageRating" not implemented'
+			);
 		});
 
 		test('should calculate average from all 6 rating fields', async () => {
@@ -147,9 +145,9 @@ describe('Performance Reviews Ratings Contract (P2 Feature)', () => {
 				new Error('calculate_average_rating() function not implemented')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { reviewId: 'review_all_4s' })
-			).rejects.toThrow('calculate_average_rating() function not implemented');
+			await expect(mockGraphQLClient.query(query, { reviewId: 'review_all_4s' })).rejects.toThrow(
+				'calculate_average_rating() function not implemented'
+			);
 		});
 
 		test('should handle NULL ratings when calculating average', async () => {
@@ -186,9 +184,9 @@ describe('Performance Reviews Ratings Contract (P2 Feature)', () => {
 				new Error('NULL handling in average calculation not implemented')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { reviewId: 'review_partial' })
-			).rejects.toThrow('NULL handling in average calculation not implemented');
+			await expect(mockGraphQLClient.query(query, { reviewId: 'review_partial' })).rejects.toThrow(
+				'NULL handling in average calculation not implemented'
+			);
 		});
 
 		test('should return NULL if all ratings are NULL', async () => {
@@ -372,9 +370,7 @@ describe('Performance Reviews Ratings Contract (P2 Feature)', () => {
 					}
 				`;
 
-				mockGraphQLClient.mutation.mockRejectedValue(
-					new Error('Schema regeneration required')
-				);
+				mockGraphQLClient.mutation.mockRejectedValue(new Error('Schema regeneration required'));
 
 				await expect(
 					mockGraphQLClient.mutation(mutation, {
@@ -406,13 +402,11 @@ describe('Performance Reviews Ratings Contract (P2 Feature)', () => {
 				}
 			`;
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('Average rating filter not implemented')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('Average rating filter not implemented'));
 
-			await expect(
-				mockGraphQLClient.query(query, { minAverage: 4.0 })
-			).rejects.toThrow('Average rating filter not implemented');
+			await expect(mockGraphQLClient.query(query, { minAverage: 4.0 })).rejects.toThrow(
+				'Average rating filter not implemented'
+			);
 		});
 
 		test('should aggregate average ratings by employee', async () => {
@@ -433,13 +427,11 @@ describe('Performance Reviews Ratings Contract (P2 Feature)', () => {
 				}
 			`;
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('Rating aggregation not implemented')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('Rating aggregation not implemented'));
 
-			await expect(
-				mockGraphQLClient.query(query, { employeeId: 'user_123' })
-			).rejects.toThrow('Rating aggregation not implemented');
+			await expect(mockGraphQLClient.query(query, { employeeId: 'user_123' })).rejects.toThrow(
+				'Rating aggregation not implemented'
+			);
 		});
 
 		test('should get rating distribution across all reviews', async () => {
@@ -487,9 +479,9 @@ describe('Performance Reviews Ratings Contract (P2 Feature)', () => {
 				);
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Database verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Database verification requires live connection'));
 
 			await expect(mockDbQuery(dbQuery)).rejects.toThrow(
 				'Database verification requires live connection'
@@ -505,9 +497,9 @@ describe('Performance Reviews Ratings Contract (P2 Feature)', () => {
 				AND conname LIKE 'chk_%_rating';
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Constraint verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Constraint verification requires live connection'));
 
 			await expect(mockDbQuery(constraintQuery)).rejects.toThrow(
 				'Constraint verification requires live connection'
@@ -528,9 +520,9 @@ describe('Performance Reviews Ratings Contract (P2 Feature)', () => {
 				data_type: 'numeric'
 			};
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Function verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Function verification requires live connection'));
 
 			await expect(mockDbQuery(functionQuery)).rejects.toThrow(
 				'Function verification requires live connection'
@@ -548,9 +540,9 @@ describe('Performance Reviews Ratings Contract (P2 Feature)', () => {
 				AND pronamespace = 'hr_public'::regnamespace;
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Parameter verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Parameter verification requires live connection'));
 
 			await expect(mockDbQuery(paramQuery)).rejects.toThrow(
 				'Parameter verification requires live connection'
@@ -591,9 +583,9 @@ describe('Performance Reviews Ratings Contract (P2 Feature)', () => {
 					new Error(`${testCase.category} rating filter not implemented`)
 				);
 
-				await expect(
-					mockGraphQLClient.query(query, { minRating: 4 })
-				).rejects.toThrow('rating filter not implemented');
+				await expect(mockGraphQLClient.query(query, { minRating: 4 })).rejects.toThrow(
+					'rating filter not implemented'
+				);
 			}
 		});
 	});
@@ -623,9 +615,7 @@ describe('Performance Reviews Ratings Contract (P2 Feature)', () => {
 				}
 			`;
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('Rating trends query not implemented')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('Rating trends query not implemented'));
 
 			await expect(
 				mockGraphQLClient.query(query, {
@@ -648,9 +638,7 @@ describe('Performance Reviews Ratings Contract (P2 Feature)', () => {
 			`;
 
 			// All ratings NULL → should return NULL, not throw error
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('Division by zero not handled')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('Division by zero not handled'));
 
 			await expect(
 				mockGraphQLClient.query(query, { reviewId: 'review_no_ratings' })

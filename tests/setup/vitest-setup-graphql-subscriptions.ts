@@ -4,7 +4,7 @@
  * Setup configuration for GraphQL subscription and real-time feature testing.
  */
 
-import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 import { createUrqlClient } from '$lib/graphql/client';
 import { GraphQLSubscriptionTester } from '$lib/graphql/subscription-tester';
 

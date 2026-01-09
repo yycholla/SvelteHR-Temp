@@ -6,6 +6,7 @@ import type { PageServerLoad } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import { GET_DOCUMENTS } from '$lib/graphql/document-operations';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 	// Check authentication and permissions
@@ -39,23 +40,29 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 		});
 
 		if (response.errors && response.errors.length > 0) {
-			console.error('[Documents] GraphQL errors:', response.errors);
+			logger.error(
+				'[Documents] GraphQL errors',
+				new Error(response.errors[0]?.message || 'GraphQL error'),
+				{ errors: response.errors.map((e) => ({ message: e.message })) }
+			);
 			error(500, {
-            				message: response.errors[0].message || 'Failed to load documents'
-            			});
+				message: response.errors[0].message || 'Failed to load documents'
+			});
 		}
 
 		// Step 5: Load database utilities
-		const { transaction: dbTransaction, setJWTClaims: setDbClaims } = await import('$lib/server/db');
+		const { transaction: dbTransaction, setJWTClaims: setDbClaims } =
+			await import('$lib/server/db');
 
 		// Step 6: Get total count from database and load assignee data
-		const allAssignments = response.data?.documents?.flatMap((doc: any) => doc.assignments || []) || [];
+		const allAssignments =
+			response.data?.documents?.flatMap((doc: any) => doc.assignments || []) || [];
 		const uniqueUserIds = [...new Set(allAssignments.map((a: any) => a.userId))];
 
-		const [totalCount, assigneeMap] = await dbTransaction(async (dbClient) => {
-			await setDbClaims(dbClient, userId, userPermissions);
+		const transactionResult = await dbTransaction(async (dbClient) => {
+			await setDbClaims(dbClient, userId, locals.user!.role || 'employee');
 
-			// Get document count (only for documents assigned to current user)
+			// Get document count
 			const countResult = await dbClient.query(
 				`SELECT COUNT(DISTINCT d.id) as count
 				 FROM hr_public.documents d
@@ -68,7 +75,7 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 			const count = parseInt(countResult.rows[0].count, 10);
 
 			// Load user data for assignees
-			let userMap = new Map();
+			const userMap = new Map();
 
 			if (uniqueUserIds.length > 0) {
 				const userResult = await dbClient.query(
@@ -89,6 +96,11 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 
 			return [count, userMap];
 		});
+
+		const [totalCount, assigneeMap] = transactionResult as [
+			number,
+			Map<string, { id: string; displayName: string; email: string }>
+		];
 
 		// Step 7: Filter documents to only show those assigned to current user
 		const userDocuments = (response.data?.documents || []).filter((doc: any) => {
@@ -161,7 +173,7 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 			totalPages: Math.ceil(totalCount / limit) || 0
 		};
 	} catch (err) {
-		console.error('Document list load error:', err);
+		logger.error('Document list load error:', err as Error);
 
 		// Re-throw redirects and errors
 		if (err && typeof err === 'object' && ('status' in err || 'location' in err)) {
@@ -170,7 +182,7 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 
 		// Generic error fallback
 		error(500, {
-        			message: 'Failed to load documents. Please try again later.'
-        		});
+			message: 'Failed to load documents. Please try again later.'
+		});
 	}
 };

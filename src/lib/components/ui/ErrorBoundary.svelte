@@ -2,9 +2,9 @@
 <!-- T055: Error Handling Standardization - CRITICAL -->
 
 <script lang="ts">
-	import { createErrorBoundary, type StandardErrorResponse } from '$lib/utils/error-handling.js';
+	import { type StandardErrorResponse, createErrorBoundary } from '$lib/utils/error-handling.js';
 	import { onMount } from 'svelte';
-	import { AlertCircle, RefreshCw, Home, ChevronDown, ChevronUp } from '@lucide/svelte';
+	import { AlertCircle, ChevronDown, ChevronUp, Home, RefreshCw } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import {
 		Card,
@@ -30,7 +30,7 @@
 		children: import('svelte').Snippet;
 	}
 
-	let {
+	const {
 		fallback,
 		showDetails = false,
 		onError,
@@ -153,13 +153,13 @@
 					<!-- Action Buttons -->
 					<div class="flex flex-col justify-center gap-2 sm:flex-row">
 						{#if showRetry}
-							<Button on:click={handleRetry} variant="default" class="flex items-center gap-2">
+							<Button onclick={handleRetry} variant="default" class="flex items-center gap-2">
 								<RefreshCw class="h-4 w-4" />
 								Try Again
 							</Button>
 						{/if}
 
-						<Button on:click={goHome} variant="outline" class="flex items-center gap-2">
+						<Button onclick={goHome} variant="outline" class="flex items-center gap-2">
 							<Home class="h-4 w-4" />
 							Go Home
 						</Button>
@@ -169,7 +169,7 @@
 					{#if showDetails && errorBoundary.error!.details}
 						<div class="mt-4 border-t pt-4">
 							<Button
-								on:click={() => (showErrorDetails = !showErrorDetails)}
+								onclick={() => (showErrorDetails = !showErrorDetails)}
 								variant="ghost"
 								size="sm"
 								class="flex items-center gap-2 text-xs"

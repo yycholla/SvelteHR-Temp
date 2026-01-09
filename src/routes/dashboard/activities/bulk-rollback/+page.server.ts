@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Bulk Rollback Page - Server Load
  * Feature: 020-we-need-to (Comprehensive Audit Logging with Rollback)
@@ -8,13 +9,13 @@
  */
 
 import { error, redirect } from '@sveltejs/kit';
-import type { PageServerLoad, Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { ensureBackendReady } from '$lib/server/backend-init';
 import { requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, url, cookies } = event;
+	const { url, cookies } = event;
 
 	// Check authentication and permissions (bulk rollback requires write and delete)
 	requireAuth(event, {
@@ -22,12 +23,15 @@ export const load: PageServerLoad = async (event) => {
 		requireAll: true
 	});
 
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
+
 	try {
 		// Check backend services are ready before proceeding
 		const backendReady = await ensureBackendReady();
 
 		if (!backendReady) {
-			console.warn('Backend not ready for bulk rollback page');
+			logger.warn('Backend not ready for bulk rollback page');
 			return {
 				availableLogs: [],
 				recentBatches: [],
@@ -83,8 +87,8 @@ export const load: PageServerLoad = async (event) => {
 		let availableLogs = logsData.data?.activityLogs || [];
 
 		// Sort by createdAt DESC (client-side since Rust schema doesn't support orderBy)
-		availableLogs = availableLogs.sort((a: any, b: any) =>
-			new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+		availableLogs = availableLogs.sort(
+			(a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
 		);
 
 		// Filter out rollback logs (client-side filtering)
@@ -112,7 +116,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// NOTE: bulkRollbackBatches query doesn't exist yet in Rust GraphQL schema
 		// Temporarily use empty array until query is implemented
-		let recentBatches: any[] = [];
+		const recentBatches: any[] = [];
 
 		// TODO: Implement bulkRollbackBatches query in Rust GraphQL server
 		// Expected fields: id, requestedBy, totalItems, processedItems, status, completedAt, createdAt
@@ -156,27 +160,30 @@ export const load: PageServerLoad = async (event) => {
 			userId: locals.user.id
 		};
 	} catch (err) {
-		console.error('[BulkRollbackPage] Error loading bulk rollback page:', err);
+		logger.error('[BulkRollbackPage] Error loading bulk rollback page:', err as Error);
 
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err; // Re-throw SvelteKit errors
 		}
 
 		error(500, {
-        			message: 'Failed to load bulk rollback page'
-        		});
+			message: 'Failed to load bulk rollback page'
+		});
 	}
 };
 
 export const actions: Actions = {
 	createBatch: async (event) => {
-		const { request, locals, cookies } = event;
+		const { request, cookies } = event;
 
 		// Check authentication and permissions
 		requireAuth(event, {
 			requiredPermissions: ['activities:write', 'activities:delete'],
 			requireAll: true
 		});
+
+		// After permission check, re-destructure locals with guaranteed user
+		const { locals } = event;
 
 		try {
 			const formData = await request.formData();
@@ -231,7 +238,7 @@ export const actions: Actions = {
 				batchId: batch.id
 			};
 		} catch (err) {
-			console.error('[BulkRollbackPage] Error creating batch:', err);
+			logger.error('[BulkRollbackPage] Error creating batch:', err as Error);
 			return {
 				success: false,
 				error: err instanceof Error ? err.message : 'Failed to create batch'

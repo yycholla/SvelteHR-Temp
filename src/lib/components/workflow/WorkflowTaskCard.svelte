@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { workflowActions } from '$lib/stores/workflow';
+	import { type WorkflowTaskStatus, workflowActions } from '$lib/stores/workflow';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { WorkflowTask } from '$lib/stores/workflow';
 
 	// Props
-	let {
+	const {
 		task,
 		onupdate = undefined
 	}: {
@@ -16,8 +16,8 @@
 	let isUpdating = $state(false);
 
 	// Derived values
-	const statusColor = $derived(getStatusColor(task.status));
-	const priorityColor = $derived(getPriorityColor(task.priority));
+	const statusColor = $derived(getStatusColor(task.status ?? ''));
+	const priorityColor = $derived(getPriorityColor(task.priority ?? ''));
 	const canUpdate = $derived(canUpdateTask());
 	const isOverdue = $derived(
 		task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed'
@@ -27,7 +27,7 @@
 		switch (status) {
 			case 'pending':
 				return 'bg-yellow-100 text-yellow-800';
-			case 'in_progress':
+			case 'running':
 				return 'bg-blue-100 text-blue-800';
 			case 'completed':
 				return 'bg-green-100 text-green-800';
@@ -67,17 +67,17 @@
 
 	function canUpdateTask(): boolean {
 		// User can update if they are assigned to the task or have workflow management permissions
-		return task.assignedToId === $user?.id || $canManageWorkflows;
+		return task.assignedToId === auth.user?.id || auth.canManageWorkflows;
 	}
 
-	async function updateTaskStatus(newStatus: string) {
+	async function updateTaskStatus(newStatus: WorkflowTaskStatus) {
 		if (!canUpdate) return;
 
 		isUpdating = true;
 
-		const patch = {
+		const patch: Partial<WorkflowTask> = {
 			status: newStatus,
-			completedAt: newStatus === 'completed' ? new Date().toISOString() : null
+			completedAt: newStatus === 'completed' ? new Date().toISOString() : undefined
 		};
 
 		const success = await workflowActions.updateTask(task.id, patch);
@@ -139,7 +139,7 @@
 							d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
 						/>
 					</svg>
-				{:else if task.status === 'in_progress'}
+				{:else if task.status === 'running'}
 					<svg class="h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
@@ -324,7 +324,7 @@
 			<div class="flex gap-2">
 				{#if task.status === 'pending'}
 					<button
-						onclick={() => updateTaskStatus('in_progress')}
+						onclick={() => updateTaskStatus('running')}
 						disabled={isUpdating}
 						class="btn btn-primary btn-sm"
 					>
@@ -347,7 +347,7 @@
 						{/if}
 						Start Task
 					</button>
-				{:else if task.status === 'in_progress'}
+				{:else if task.status === 'running'}
 					<button
 						onclick={() => updateTaskStatus('completed')}
 						disabled={isUpdating}
@@ -394,5 +394,3 @@
 		</div>
 	{/if}
 </div>
-
-

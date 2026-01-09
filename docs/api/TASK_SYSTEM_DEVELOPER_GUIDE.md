@@ -204,69 +204,61 @@ npm run dev:local
 ```svelte
 <!-- src/lib/components/tasks/MyNewComponent.svelte -->
 <script lang="ts">
-  import type { Task } from '$lib/types/task';
+	import type { Task } from '$lib/types/task';
 
-  interface Props {
-    task: Task;
-    onUpdate?: (task: Task) => void;
-  }
+	interface Props {
+		task: Task;
+		onUpdate?: (task: Task) => void;
+	}
 
-  let { task, onUpdate }: Props = $props();
+	let { task, onUpdate }: Props = $props();
 
-  // Reactive computations
-  let isOverdue = $derived(
-    task.dueDate && new Date(task.dueDate) < new Date()
-  );
+	// Reactive computations
+	let isOverdue = $derived(task.dueDate && new Date(task.dueDate) < new Date());
 </script>
 
 <div class="task-component">
-  <h3>{task.title}</h3>
-  {#if isOverdue}
-    <span class="badge badge-error">Overdue</span>
-  {/if}
+	<h3>{task.title}</h3>
+	{#if isOverdue}
+		<span class="badge badge-error">Overdue</span>
+	{/if}
 
-  <button onclick={() => onUpdate?.(task)}>
-    Update
-  </button>
+	<button onclick={() => onUpdate?.(task)}> Update </button>
 </div>
 
 <style>
-  .task-component {
-    @apply p-4 rounded-lg border;
-  }
+	.task-component {
+		@apply rounded-lg border p-4;
+	}
 </style>
 ```
 
 ### Component Best Practices
 
 1. **Use Svelte 5 Runes**:
+
    ```svelte
-   let count = $state(0);
-   let doubled = $derived(count * 2);
-   let { prop1, prop2 } = $props();
+   let count = $state(0); let doubled = $derived(count * 2); let {(prop1, prop2)} = $props();
    ```
 
 2. **TypeScript Interfaces**:
+
    ```typescript
    interface Props {
-     task: Task;
-     editable?: boolean;
+   	task: Task;
+   	editable?: boolean;
    }
    ```
 
 3. **Event Handlers**:
+
    ```svelte
    <button onclick={() => handleClick()}>Click</button>
    ```
 
 4. **Accessibility**:
    ```svelte
-   <button
-     aria-label="Mark task as complete"
-     role="button"
-   >
-     Complete
-   </button>
+   <button aria-label="Mark task as complete" role="button"> Complete </button>
    ```
 
 ---
@@ -281,16 +273,18 @@ import { GET_ALL_TASKS } from '$lib/graphql/tasks-operations';
 
 const client = createUrqlClient();
 
-const result = await client.query(GET_ALL_TASKS, {
-  first: 20,
-  condition: { status: 'In Progress' }
-}).toPromise();
+const result = await client
+	.query(GET_ALL_TASKS, {
+		first: 20,
+		condition: { status: 'In Progress' }
+	})
+	.toPromise();
 
 if (result.error) {
-  console.error('Query failed:', result.error);
+	console.error('Query failed:', result.error);
 } else {
-  const tasks = result.data.allTasks.nodes;
-  console.log('Tasks:', tasks);
+	const tasks = result.data.allTasks.nodes;
+	console.log('Tasks:', tasks);
 }
 ```
 
@@ -299,25 +293,27 @@ if (result.error) {
 ```typescript
 import { CREATE_TASK } from '$lib/graphql/tasks-operations';
 
-const result = await client.mutation(CREATE_TASK, {
-  input: {
-    task: {
-      title: 'New Task',
-      description: 'Task description',
-      assigneeId: 'user-uuid',
-      taskTypeId: 'type-uuid',
-      status: 'Not Started',
-      priority: 'High',
-      dueDate: '2025-10-31T23:59:59Z'
-    }
-  }
-}).toPromise();
+const result = await client
+	.mutation(CREATE_TASK, {
+		input: {
+			task: {
+				title: 'New Task',
+				description: 'Task description',
+				assigneeId: 'user-uuid',
+				taskTypeId: 'type-uuid',
+				status: 'Not Started',
+				priority: 'High',
+				dueDate: '2025-10-31T23:59:59Z'
+			}
+		}
+	})
+	.toPromise();
 
 if (result.error) {
-  console.error('Mutation failed:', result.error);
+	console.error('Mutation failed:', result.error);
 } else {
-  const newTask = result.data.createTask.task;
-  console.log('Created task:', newTask);
+	const newTask = result.data.createTask.task;
+	console.log('Created task:', newTask);
 }
 ```
 
@@ -325,26 +321,28 @@ if (result.error) {
 
 ```typescript
 import {
-  GET_TASKS_MINIMAL,
-  GET_TASKS_WITH_ASSIGNEES,
-  selectOptimalQuery
+	GET_TASKS_MINIMAL,
+	GET_TASKS_WITH_ASSIGNEES,
+	selectOptimalQuery
 } from '$lib/graphql/tasks-query-optimizer';
 
 // Automatic query selection
 const hint = {
-  requiredFields: ['core', 'assignee'],
-  expectedSize: 'medium',
-  timeSensitive: false,
-  cacheStrategy: 'cache-first'
+	requiredFields: ['core', 'assignee'],
+	expectedSize: 'medium',
+	timeSensitive: false,
+	cacheStrategy: 'cache-first'
 };
 
 const { query, estimatedPayloadReduction } = selectOptimalQuery(hint);
 // Returns GET_TASKS_WITH_ASSIGNEES with 40% reduction
 
-const result = await client.query(query, {
-  first: 20,
-  condition: { archived: false }
-}).toPromise();
+const result = await client
+	.query(query, {
+		first: 20,
+		condition: { archived: false }
+	})
+	.toPromise();
 ```
 
 ---
@@ -354,32 +352,28 @@ const result = await client.query(query, {
 ### Task Cache Store
 
 ```typescript
-import {
-  taskCache,
-  TASK_CACHE_CONFIGS,
-  createCachedTaskStore
-} from '$lib/stores/task-cache';
+import { taskCache, TASK_CACHE_CONFIGS, createCachedTaskStore } from '$lib/stores/task-cache';
 
 // Basic caching
 const task = await taskCache.get(
-  'GetTaskDetail',
-  async () => {
-    const response = await fetch(`/api/tasks/${taskId}`);
-    return response.json();
-  },
-  { taskId },
-  TASK_CACHE_CONFIGS.taskDetail
+	'GetTaskDetail',
+	async () => {
+		const response = await fetch(`/api/tasks/${taskId}`);
+		return response.json();
+	},
+	{ taskId },
+	TASK_CACHE_CONFIGS.taskDetail
 );
 
 // Svelte store integration
 const myTasksStore = createCachedTaskStore(
-  'GetMyTasks',
-  async () => {
-    const response = await fetch('/api/tasks/my-tasks');
-    return response.json();
-  },
-  { userId },
-  TASK_CACHE_CONFIGS.myTasks
+	'GetMyTasks',
+	async () => {
+		const response = await fetch('/api/tasks/my-tasks');
+		return response.json();
+	},
+	{ userId },
+	TASK_CACHE_CONFIGS.myTasks
 );
 
 // Use in component
@@ -393,20 +387,18 @@ $: isLoading = $myTasksStore.isLoading;
 import { optimisticUpdate } from '$lib/stores/task-cache';
 
 async function completeTask(taskId: string) {
-  // Update cache immediately
-  optimisticUpdate('GetMyTasks:userId:123', (tasks) => {
-    return tasks.map(t =>
-      t.id === taskId ? { ...t, status: 'Completed' } : t
-    );
-  });
+	// Update cache immediately
+	optimisticUpdate('GetMyTasks:userId:123', (tasks) => {
+		return tasks.map((t) => (t.id === taskId ? { ...t, status: 'Completed' } : t));
+	});
 
-  // Perform mutation
-  try {
-    await updateTask({ id: taskId, status: 'Completed' });
-  } catch (error) {
-    // Revert on error
-    taskCache.invalidate('GetMyTasks');
-  }
+	// Perform mutation
+	try {
+		await updateTask({ id: taskId, status: 'Completed' });
+	} catch (error) {
+		// Revert on error
+		taskCache.invalidate('GetMyTasks');
+	}
 }
 ```
 
@@ -422,17 +414,17 @@ import { describe, it, expect } from 'vitest';
 import { isTaskOverdue, getTaskStatusColor } from '$lib/utils/tasks';
 
 describe('isTaskOverdue', () => {
-  it('should return true for overdue tasks', () => {
-    const task = {
-      id: '1',
-      title: 'Test',
-      status: 'In Progress',
-      dueDate: new Date('2020-01-01').toISOString(),
-      archived: false
-    };
+	it('should return true for overdue tasks', () => {
+		const task = {
+			id: '1',
+			title: 'Test',
+			status: 'In Progress',
+			dueDate: new Date('2020-01-01').toISOString(),
+			archived: false
+		};
 
-    expect(isTaskOverdue(task)).toBe(true);
-  });
+		expect(isTaskOverdue(task)).toBe(true);
+	});
 });
 ```
 
@@ -443,14 +435,14 @@ describe('isTaskOverdue', () => {
 import { test, expect } from '@playwright/test';
 
 test('can create a new task', async ({ page }) => {
-  await page.goto('/dashboard/tasks');
-  await page.click('button:has-text("New Task")');
+	await page.goto('/dashboard/tasks');
+	await page.click('button:has-text("New Task")');
 
-  await page.fill('input[name="title"]', 'Test Task');
-  await page.selectOption('select[name="priority"]', 'High');
-  await page.click('button[type="submit"]');
+	await page.fill('input[name="title"]', 'Test Task');
+	await page.selectOption('select[name="priority"]', 'High');
+	await page.click('button[type="submit"]');
 
-  await expect(page.locator('text=Test Task')).toBeVisible();
+	await expect(page.locator('text=Test Task')).toBeVisible();
 });
 ```
 
@@ -474,47 +466,53 @@ npm run test:unit -- tests/unit/utils/tasks.test.ts
 ### Query Optimization
 
 1. **Use minimal queries for lists**:
+
    ```typescript
    // ❌ Don't load full data for lists
-   GET_ALL_TASKS  // Full fields
+   GET_ALL_TASKS; // Full fields
 
    // ✅ Use minimal query
-   GET_TASKS_MINIMAL  // Core fields only (65% smaller)
+   GET_TASKS_MINIMAL; // Core fields only (65% smaller)
    ```
 
 2. **Implement pagination**:
+
    ```typescript
-   const tasks = await client.query(GET_TASKS_WITH_ASSIGNEES, {
-     first: 20,  // Page size
-     offset: 0   // Page offset
-   }).toPromise();
+   const tasks = await client
+   	.query(GET_TASKS_WITH_ASSIGNEES, {
+   		first: 20, // Page size
+   		offset: 0 // Page offset
+   	})
+   	.toPromise();
    ```
 
 3. **Use cursor pagination for large datasets**:
    ```typescript
-   const tasks = await client.query(GET_TASKS_WITH_ASSIGNEES, {
-     first: 20,
-     after: lastCursor  // From previous page
-   }).toPromise();
+   const tasks = await client
+   	.query(GET_TASKS_WITH_ASSIGNEES, {
+   		first: 20,
+   		after: lastCursor // From previous page
+   	})
+   	.toPromise();
    ```
 
 ### Lazy Loading Components
 
 ```svelte
 <script lang="ts">
-  import { TaskComponents } from '$lib/performance/bundle-optimizer';
+	import { TaskComponents } from '$lib/performance/bundle-optimizer';
 
-  let TaskForm;
-  let showForm = $state(false);
+	let TaskForm;
+	let showForm = $state(false);
 
-  async function openForm() {
-    TaskForm = await TaskComponents.TaskForm();
-    showForm = true;
-  }
+	async function openForm() {
+		TaskForm = await TaskComponents.TaskForm();
+		showForm = true;
+	}
 </script>
 
 {#if showForm && TaskForm}
-  <svelte:component this={TaskForm} />
+	<svelte:component this={TaskForm} />
 {/if}
 ```
 
@@ -525,11 +523,11 @@ import { cacheActions } from '$lib/stores/task-cache';
 
 // Invalidate after mutation
 async function updateTask(input) {
-  await client.mutation(UPDATE_TASK, { input }).toPromise();
+	await client.mutation(UPDATE_TASK, { input }).toPromise();
 
-  // Invalidate related caches
-  cacheActions.invalidate('GetMyTasks');
-  cacheActions.invalidate('GetTaskDetail');
+	// Invalidate related caches
+	cacheActions.invalidate('GetMyTasks');
+	cacheActions.invalidate('GetTaskDetail');
 }
 ```
 
@@ -544,23 +542,23 @@ async function updateTask(input) {
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-  if (!locals.user) {
-    throw error(401, 'Unauthorized');
-  }
+	if (!locals.user) {
+		throw error(401, 'Unauthorized');
+	}
 
-  const searchTerm = url.searchParams.get('search') || '';
-  const status = url.searchParams.get('status') || '';
+	const searchTerm = url.searchParams.get('search') || '';
+	const status = url.searchParams.get('status') || '';
 
-  // Load data server-side
-  const tasks = await fetchTasksFromGraphQL({
-    searchTerm,
-    status
-  });
+	// Load data server-side
+	const tasks = await fetchTasksFromGraphQL({
+		searchTerm,
+		status
+	});
 
-  return {
-    tasks,
-    filters: { searchTerm, status }
-  };
+	return {
+		tasks,
+		filters: { searchTerm, status }
+	};
 };
 ```
 
@@ -571,20 +569,20 @@ import { z } from 'zod';
 import { createTaskSchema } from '$lib/schemas/task';
 
 const formData = {
-  title: 'New Task',
-  description: 'Description',
-  assigneeId: 'user-uuid',
-  taskTypeId: 'type-uuid',
-  status: 'Not Started',
-  priority: 'High'
+	title: 'New Task',
+	description: 'Description',
+	assigneeId: 'user-uuid',
+	taskTypeId: 'type-uuid',
+	status: 'Not Started',
+	priority: 'High'
 };
 
 try {
-  const validated = createTaskSchema.parse(formData);
-  // Form is valid, proceed
+	const validated = createTaskSchema.parse(formData);
+	// Form is valid, proceed
 } catch (error) {
-  // Validation errors
-  console.error(error.errors);
+	// Validation errors
+	console.error(error.errors);
 }
 ```
 
@@ -593,19 +591,9 @@ try {
 ```typescript
 import { canUserViewTask, canUserEditTask } from '$lib/utils/tasks';
 
-const userCanView = canUserViewTask(
-  task,
-  user.id,
-  user.departmentId,
-  user.roleLevel
-);
+const userCanView = canUserViewTask(task, user.id, user.departmentId, user.roleLevel);
 
-const userCanEdit = canUserEditTask(
-  task,
-  user.id,
-  user.departmentId,
-  user.roleLevel
-);
+const userCanEdit = canUserEditTask(task, user.id, user.departmentId, user.roleLevel);
 ```
 
 ---
@@ -619,6 +607,7 @@ const userCanEdit = canUserEditTask(
 **Problem:** Query returns `null` or errors
 
 **Solution:**
+
 1. Check authentication token
 2. Verify RLS policies
 3. Check query syntax
@@ -635,6 +624,7 @@ npm run dev
 **Problem:** Queries taking > 500ms
 
 **Solution:**
+
 1. Use optimized queries from `tasks-query-optimizer.ts`
 2. Implement pagination
 3. Check database indexes
@@ -645,14 +635,14 @@ npm run dev
 import { graphqlPerformanceTester } from '$lib/performance/graphql-performance-exchange';
 
 await graphqlPerformanceTester.testOperation(
-  'GetAllTasks',
-  async () => {
-    return client.query(GET_ALL_TASKS, { first: 20 }).toPromise();
-  },
-  {
-    iterations: 10,
-    maxDuration: 200  // ms
-  }
+	'GetAllTasks',
+	async () => {
+		return client.query(GET_ALL_TASKS, { first: 20 }).toPromise();
+	},
+	{
+		iterations: 10,
+		maxDuration: 200 // ms
+	}
 );
 ```
 
@@ -661,6 +651,7 @@ await graphqlPerformanceTester.testOperation(
 **Problem:** Stale data after mutations
 
 **Solution:**
+
 1. Invalidate cache after mutations
 2. Use optimistic updates
 3. Check cache TTL configuration
@@ -680,6 +671,7 @@ cacheActions.invalidate(`GetTaskDetail:taskId:${taskId}`);
 **Problem:** Initial bundle > 500 KB
 
 **Solution:**
+
 1. Enable lazy loading for heavy components
 2. Check for unused dependencies
 3. Verify tree-shaking

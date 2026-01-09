@@ -1,6 +1,8 @@
 import { dev } from '$app/environment';
 import { getGraphQLEndpoint } from './api-url';
 import type { Cookies } from '@sveltejs/kit';
+import { logger } from '$lib/utils/logger';
+import { print, type DocumentNode } from 'graphql';
 
 export interface GraphQLError {
 	message: string;
@@ -57,7 +59,7 @@ export class GraphQLClient {
 	 * Execute a GraphQL query
 	 */
 	async query<T = any>(
-		query: string,
+		query: string | DocumentNode,
 		variables?: Record<string, any>
 	): Promise<GraphQLResponse<T>> {
 		return this.execute<T>(query, variables);
@@ -67,7 +69,7 @@ export class GraphQLClient {
 	 * Execute a GraphQL mutation
 	 */
 	async mutation<T = any>(
-		mutation: string,
+		mutation: string | DocumentNode,
 		variables?: Record<string, any>
 	): Promise<GraphQLResponse<T>> {
 		return this.execute<T>(mutation, variables);
@@ -77,7 +79,7 @@ export class GraphQLClient {
 	 * Execute a GraphQL operation with retry logic
 	 */
 	private async execute<T = any>(
-		operation: string,
+		operation: string | DocumentNode,
 		variables?: Record<string, any>
 	): Promise<GraphQLResponse<T>> {
 		return this.withRetry(async () => {
@@ -87,7 +89,7 @@ export class GraphQLClient {
 			try {
 				const headers: HeadersInit = {
 					'Content-Type': 'application/json',
-					'Accept': 'application/json'
+					Accept: 'application/json'
 				};
 
 				// Forward session cookies for tower-sessions authentication
@@ -103,11 +105,13 @@ export class GraphQLClient {
 					headers['Authorization'] = `Bearer ${this.token}`;
 				}
 
+				const queryString = typeof operation === 'string' ? operation : print(operation);
+
 				const response = await fetch(this.endpoint, {
 					method: 'POST',
 					headers,
 					body: JSON.stringify({
-						query: operation,
+						query: queryString,
 						variables
 					}),
 					signal: controller.signal
@@ -118,7 +122,7 @@ export class GraphQLClient {
 				if (!response.ok) {
 					// Try to get error details from response body
 					const errorText = await response.text();
-					console.error(`❌ GraphQL HTTP ${response.status}:`, errorText.substring(0, 500));
+					logger.error(`❌ GraphQL HTTP ${response.status}: ${errorText.substring(0, 500)}`);
 					throw new Error(`GraphQL endpoint returned ${response.status}`);
 				}
 
@@ -126,9 +130,9 @@ export class GraphQLClient {
 
 				// Log GraphQL errors if present
 				if (result.errors && result.errors.length > 0) {
-					console.error(`❌ GraphQL returned ${result.errors.length} error(s):`);
+					logger.error(`❌ GraphQL returned ${result.errors.length} error(s):`);
 					result.errors.forEach((err: GraphQLError, idx: number) => {
-						console.error(`  Error ${idx + 1}:`, {
+						logger.error(`  Error ${idx + 1}: ${err.message}`, undefined, {
 							message: err.message,
 							path: err.path,
 							extensions: err.extensions
@@ -165,7 +169,7 @@ export class GraphQLClient {
 				// Check for GraphQL errors that shouldn't be retried
 				if (this.isGraphQLResponse(result)) {
 					const errors = result.errors;
-					if (errors?.some(e => this.isNonRetriableError(e))) {
+					if (errors?.some((e) => this.isNonRetriableError(e))) {
 						return result;
 					}
 					if (errors?.length && attempt < retries) {
@@ -181,7 +185,7 @@ export class GraphQLClient {
 				lastError = error instanceof Error ? error : new Error(String(error));
 
 				if (dev && attempt < retries) {
-					console.log(`🔄 Retrying GraphQL operation (attempt ${attempt + 1}/${retries + 1})`);
+					logger.info(`🔄 Retrying GraphQL operation (attempt ${attempt + 1}/${retries + 1})`);
 				}
 
 				if (attempt < retries) {
@@ -198,7 +202,7 @@ export class GraphQLClient {
 	 * Check if a value is a GraphQL response
 	 */
 	private isGraphQLResponse(value: any): value is GraphQLResponse {
-		return value && (typeof value === 'object') && ('data' in value || 'errors' in value);
+		return value && typeof value === 'object' && ('data' in value || 'errors' in value);
 	}
 
 	/**
@@ -207,10 +211,12 @@ export class GraphQLClient {
 	private isNonRetriableError(error: GraphQLError): boolean {
 		const code = error.extensions?.code;
 		// Don't retry client errors
-		return code === 'BAD_REQUEST' ||
-			   code === 'GRAPHQL_VALIDATION_FAILED' ||
-			   code === 'FORBIDDEN' ||
-			   code === 'UNAUTHENTICATED';
+		return (
+			code === 'BAD_REQUEST' ||
+			code === 'GRAPHQL_VALIDATION_FAILED' ||
+			code === 'FORBIDDEN' ||
+			code === 'UNAUTHENTICATED'
+		);
 	}
 
 	/**
@@ -247,7 +253,7 @@ export class GraphQLClient {
 	 * Sleep helper for retry logic
 	 */
 	private sleep(ms: number): Promise<void> {
-		return new Promise(resolve => setTimeout(resolve, ms));
+		return new Promise((resolve) => setTimeout(resolve, ms));
 	}
 
 	/**

@@ -1,3 +1,5 @@
+import { logger } from '$lib/utils/logger';
+
 // RBAC (Role-Based Access Control) service (Feature 024)
 // 4-tier hierarchy: Admin (100), HR (80), Manager (60), Employee (20)
 // Enforces direct report hierarchy for managers
@@ -12,10 +14,7 @@ export interface RBACContext {
 }
 
 // Check if user can access a specific document
-export async function canAccessDocument(
-	userId: string,
-	documentId: string
-): Promise<boolean> {
+export async function canAccessDocument(userId: string, documentId: string): Promise<boolean> {
 	try {
 		const response = await fetch(`/api/rbac/can-access-document`, {
 			method: 'POST',
@@ -32,16 +31,13 @@ export async function canAccessDocument(
 		const result = await response.json();
 		return result.canAccess;
 	} catch (error) {
-		console.error('RBAC check failed:', error);
+		logger.error('RBAC check failed:', error as Error);
 		return false;
 	}
 }
 
 // Check if user can upload documents in a specific category
-export async function canUploadDocument(
-	userId: string,
-	category: string
-): Promise<boolean> {
+export async function canUploadDocument(userId: string, category: string): Promise<boolean> {
 	try {
 		const response = await fetch(`/api/rbac/can-upload`, {
 			method: 'POST',
@@ -58,7 +54,7 @@ export async function canUploadDocument(
 		const result = await response.json();
 		return result.canUpload;
 	} catch (error) {
-		console.error('RBAC upload check failed:', error);
+		logger.error('RBAC upload check failed:', error as Error);
 		return false;
 	}
 }
@@ -77,7 +73,7 @@ export async function getDirectReports(managerId: string): Promise<string[]> {
 		const result = await response.json();
 		return result.directReports;
 	} catch (error) {
-		console.error('Failed to get direct reports:', error);
+		logger.error('Failed to get direct reports:', error as Error);
 		return [];
 	}
 }
@@ -131,10 +127,7 @@ export function canRestoreDocuments(role: Role): boolean {
 }
 
 // Check document category restrictions
-export async function canAccessCategory(
-	userId: string,
-	category: string
-): Promise<boolean> {
+export async function canAccessCategory(userId: string, category: string): Promise<boolean> {
 	try {
 		const response = await fetch(`/api/rbac/can-access-category`, {
 			method: 'POST',
@@ -151,7 +144,7 @@ export async function canAccessCategory(
 		const result = await response.json();
 		return result.canAccess;
 	} catch (error) {
-		console.error('Category access check failed:', error);
+		logger.error('Category access check failed:', error as Error);
 		return false;
 	}
 }
@@ -178,7 +171,7 @@ export async function getUserPermissions(userId: string): Promise<{
 
 		return await response.json();
 	} catch (error) {
-		console.error('Failed to get user permissions:', error);
+		logger.error('Failed to get user permissions:', error as Error);
 		return {
 			canUpload: false,
 			canAssign: false,
@@ -193,10 +186,7 @@ export async function getUserPermissions(userId: string): Promise<{
 }
 
 // Check if user is in the management chain for an employee
-export async function isInManagementChain(
-	managerId: string,
-	employeeId: string
-): Promise<boolean> {
+export async function isInManagementChain(managerId: string, employeeId: string): Promise<boolean> {
 	const directReports = await getDirectReports(managerId);
 	return directReports.includes(employeeId);
 }
@@ -215,7 +205,7 @@ export async function getAccessibleEmployees(userId: string): Promise<string[]> 
 		const result = await response.json();
 		return result.employeeIds;
 	} catch (error) {
-		console.error('Failed to get accessible employees:', error);
+		logger.error('Failed to get accessible employees:', error as Error);
 		return [];
 	}
 }
@@ -241,7 +231,7 @@ export async function canAssignToEmployee(
 		const result = await response.json();
 		return result.canAssign;
 	} catch (error) {
-		console.error('Assignment permission check failed:', error);
+		logger.error('Assignment permission check failed:', error as Error);
 		return false;
 	}
 }

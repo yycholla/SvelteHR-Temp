@@ -15,7 +15,7 @@
  * Covers: FR-010, FR-011, FR-012, FR-013, FR-014, FR-015, FR-016, FR-017, FR-018, FR-019, FR-020, FR-021, FR-022, FR-023, FR-030
  */
 
-import { test, expect, describe, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 const mockGraphQLClient = {
 	query: vi.fn(),
@@ -168,9 +168,13 @@ describe('Admin Operations Contract', () => {
 			);
 
 			await expect(
-				mockGraphQLClient.query('query GetAllPerformanceReviews', {}, {
-					authorization: `Bearer ${testAdmin.adminToken}`
-				})
+				mockGraphQLClient.query(
+					'query GetAllPerformanceReviews',
+					{},
+					{
+						authorization: `Bearer ${testAdmin.adminToken}`
+					}
+				)
 			).rejects.toThrow('GetAllPerformanceReviews admin operation not implemented');
 		});
 
@@ -203,9 +207,13 @@ describe('Admin Operations Contract', () => {
 			);
 
 			await expect(
-				mockGraphQLClient.query('query GetAllGoals', {}, {
-					authorization: `Bearer ${testAdmin.adminToken}`
-				})
+				mockGraphQLClient.query(
+					'query GetAllGoals',
+					{},
+					{
+						authorization: `Bearer ${testAdmin.adminToken}`
+					}
+				)
 			).rejects.toThrow('GetAllGoals admin operation not implemented');
 		});
 
@@ -238,9 +246,13 @@ describe('Admin Operations Contract', () => {
 			);
 
 			await expect(
-				mockGraphQLClient.query('query GetAllTasks', {}, {
-					authorization: `Bearer ${testAdmin.adminToken}`
-				})
+				mockGraphQLClient.query(
+					'query GetAllTasks',
+					{},
+					{
+						authorization: `Bearer ${testAdmin.adminToken}`
+					}
+				)
 			).rejects.toThrow('GetAllTasks admin operation not implemented');
 		});
 
@@ -273,9 +285,13 @@ describe('Admin Operations Contract', () => {
 			);
 
 			await expect(
-				mockGraphQLClient.query('query GetAllReports', {}, {
-					authorization: `Bearer ${testAdmin.adminToken}`
-				})
+				mockGraphQLClient.query(
+					'query GetAllReports',
+					{},
+					{
+						authorization: `Bearer ${testAdmin.adminToken}`
+					}
+				)
 			).rejects.toThrow('GetAllReports admin operation not implemented');
 		});
 
@@ -325,9 +341,13 @@ describe('Admin Operations Contract', () => {
 			);
 
 			await expect(
-				mockGraphQLClient.query('query GetOrganizationReportAnalytics', {}, {
-					authorization: `Bearer ${testAdmin.adminToken}`
-				})
+				mockGraphQLClient.query(
+					'query GetOrganizationReportAnalytics',
+					{},
+					{
+						authorization: `Bearer ${testAdmin.adminToken}`
+					}
+				)
 			).rejects.toThrow('Organization-wide analytics not implemented');
 
 			expect(expectedResponseStructure.data.reportAnalytics.departmentUsage).toBeDefined();
@@ -363,9 +383,7 @@ describe('Admin Operations Contract', () => {
 				departmentId: 'dept_001'
 			};
 
-			mockGraphQLClient.mutate.mockRejectedValue(
-				new Error('CreateUser mutation not implemented')
-			);
+			mockGraphQLClient.mutate.mockRejectedValue(new Error('CreateUser mutation not implemented'));
 
 			await expect(
 				mockGraphQLClient.mutate('mutation CreateUser', variables, {
@@ -383,9 +401,7 @@ describe('Admin Operations Contract', () => {
 				isActive: true
 			};
 
-			mockGraphQLClient.mutate.mockRejectedValue(
-				new Error('UpdateUser mutation not implemented')
-			);
+			mockGraphQLClient.mutate.mockRejectedValue(new Error('UpdateUser mutation not implemented'));
 
 			await expect(
 				mockGraphQLClient.mutate('mutation UpdateUser', variables, {
@@ -397,9 +413,7 @@ describe('Admin Operations Contract', () => {
 		test('should allow admin to delete user (soft delete)', async () => {
 			const variables = { id: 'user_001' };
 
-			mockGraphQLClient.mutate.mockRejectedValue(
-				new Error('DeleteUser mutation not implemented')
-			);
+			mockGraphQLClient.mutate.mockRejectedValue(new Error('DeleteUser mutation not implemented'));
 
 			await expect(
 				mockGraphQLClient.mutate('mutation DeleteUser', variables, {
@@ -414,9 +428,7 @@ describe('Admin Operations Contract', () => {
 				role: 'manager'
 			};
 
-			mockGraphQLClient.mutate.mockRejectedValue(
-				new Error('AssignRole mutation not implemented')
-			);
+			mockGraphQLClient.mutate.mockRejectedValue(new Error('AssignRole mutation not implemented'));
 
 			await expect(
 				mockGraphQLClient.mutate('mutation AssignRole', variables, {
@@ -494,9 +506,7 @@ describe('Admin Operations Contract', () => {
 				}
 			};
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('GetAuditLogs query not implemented')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('GetAuditLogs query not implemented'));
 
 			await expect(
 				mockGraphQLClient.query('query GetAuditLogs', variables, {
@@ -543,9 +553,13 @@ describe('Admin Operations Contract', () => {
 			);
 
 			await expect(
-				mockGraphQLClient.query('query GetOrganizationAnalytics', {}, {
-					authorization: `Bearer ${testAdmin.adminToken}`
-				})
+				mockGraphQLClient.query(
+					'query GetOrganizationAnalytics',
+					{},
+					{
+						authorization: `Bearer ${testAdmin.adminToken}`
+					}
+				)
 			).rejects.toThrow('GetOrganizationAnalytics query not implemented');
 
 			expect(expectedResponseStructure.data).toBeDefined();
@@ -564,9 +578,13 @@ describe('Admin Operations Contract', () => {
 			});
 
 			await expect(
-				mockGraphQLClient.query('query GetAllUsers', {}, {
-					authorization: `Bearer ${testEmployee.employeeToken}` // Employee token, not admin
-				})
+				mockGraphQLClient.query(
+					'query GetAllUsers',
+					{},
+					{
+						authorization: `Bearer ${testEmployee.employeeToken}` // Employee token, not admin
+					}
+				)
 			).rejects.toMatchObject({
 				graphQLErrors: expect.arrayContaining([
 					expect.objectContaining({
@@ -588,9 +606,13 @@ describe('Admin Operations Contract', () => {
 			});
 
 			await expect(
-				mockGraphQLClient.query('query GetSystemSettings', {}, {
-					authorization: `Bearer ${testEmployee.employeeToken}`
-				})
+				mockGraphQLClient.query(
+					'query GetSystemSettings',
+					{},
+					{
+						authorization: `Bearer ${testEmployee.employeeToken}`
+					}
+				)
 			).rejects.toMatchObject({
 				graphQLErrors: expect.arrayContaining([
 					expect.objectContaining({ extensions: { code: 'FORBIDDEN' } })
@@ -609,9 +631,13 @@ describe('Admin Operations Contract', () => {
 			});
 
 			await expect(
-				mockGraphQLClient.query('query GetAuditLogs', {}, {
-					authorization: `Bearer ${testEmployee.employeeToken}`
-				})
+				mockGraphQLClient.query(
+					'query GetAuditLogs',
+					{},
+					{
+						authorization: `Bearer ${testEmployee.employeeToken}`
+					}
+				)
 			).rejects.toMatchObject({
 				graphQLErrors: expect.arrayContaining([
 					expect.objectContaining({ extensions: { code: 'FORBIDDEN' } })
@@ -630,14 +656,16 @@ describe('Admin Operations Contract', () => {
 			};
 
 			// User should have FULL admin access, not restricted to their department
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('Role precedence logic not implemented')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('Role precedence logic not implemented'));
 
 			await expect(
-				mockGraphQLClient.query('query GetAllLeaveRequests', {}, {
-					authorization: `Bearer ${userWithBothRoles.token}`
-				})
+				mockGraphQLClient.query(
+					'query GetAllLeaveRequests',
+					{},
+					{
+						authorization: `Bearer ${userWithBothRoles.token}`
+					}
+				)
 			).rejects.toThrow('Role precedence logic not implemented');
 
 			// Expected: User can see ALL departments, not just dept_001
@@ -657,9 +685,7 @@ describe('Admin Operations Contract', () => {
 				hasUnrestrictedAccess: true
 			};
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('Admin badge indicator not implemented')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('Admin badge indicator not implemented'));
 
 			await expect(mockGraphQLClient.query('query', {}, {})).rejects.toThrow(
 				'Admin badge indicator not implemented'

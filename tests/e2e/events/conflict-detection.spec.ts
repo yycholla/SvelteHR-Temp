@@ -7,7 +7,7 @@
  * MUST FAIL until conflict detection is implemented.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Conflict Detection', () => {
 	test.beforeEach(async ({ page }) => {
@@ -168,9 +168,9 @@ test.describe('Conflict Detection', () => {
 				await page.click('button:has-text("RSVP Anyway")');
 
 				// Verify RSVP completes
-				await expect(
-					page.locator('.toast:has-text("RSVP confirmed")')
-				).toBeVisible({ timeout: 3000 });
+				await expect(page.locator('.toast:has-text("RSVP confirmed")')).toBeVisible({
+					timeout: 3000
+				});
 			}
 		}
 	});
@@ -314,9 +314,9 @@ test.describe('Conflict Detection', () => {
 	});
 
 	test('should detect conflicts in recurring events', async ({ page }) => {
-		const recurringConflict = page.locator(
-			'.fc-event[data-is-recurring="true"][data-has-conflict="true"]'
-		).first();
+		const recurringConflict = page
+			.locator('.fc-event[data-is-recurring="true"][data-has-conflict="true"]')
+			.first();
 
 		if ((await recurringConflict.count()) > 0) {
 			await recurringConflict.click();

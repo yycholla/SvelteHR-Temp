@@ -14,9 +14,6 @@
         "@sveltejs/mcp"
       ],
       "env": {}
-    },
-    "Sentry": {
-      "url": "https://mcp.sentry.dev/mcp/mountain-care-rx/javascript-sveltekit"
     }
   }
 }

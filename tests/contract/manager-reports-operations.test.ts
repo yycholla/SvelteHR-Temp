@@ -14,7 +14,7 @@
  * Covers: FR-006, FR-017
  */
 
-import { test, expect, describe, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 const mockGraphQLClient = {
 	query: vi.fn(),
@@ -241,9 +241,7 @@ describe('Manager Reports Operations Contract', () => {
 			const validStatuses = ['draft', 'published', 'archived'];
 
 			for (const status of validStatuses) {
-				mockGraphQLClient.mutate.mockRejectedValue(
-					new Error('Status validation not implemented')
-				);
+				mockGraphQLClient.mutate.mockRejectedValue(new Error('Status validation not implemented'));
 
 				await expect(
 					mockGraphQLClient.mutate('mutation', { input: { status } }, {})
@@ -269,13 +267,11 @@ describe('Manager Reports Operations Contract', () => {
 				}
 			};
 
-			mockGraphQLClient.mutate.mockRejectedValue(
-				new Error('JSONB field update not implemented')
-			);
+			mockGraphQLClient.mutate.mockRejectedValue(new Error('JSONB field update not implemented'));
 
-			await expect(
-				mockGraphQLClient.mutate('mutation', variables, {})
-			).rejects.toThrow('JSONB field update not implemented');
+			await expect(mockGraphQLClient.mutate('mutation', variables, {})).rejects.toThrow(
+				'JSONB field update not implemented'
+			);
 		});
 	});
 

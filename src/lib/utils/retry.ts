@@ -23,10 +23,7 @@ const DEFAULT_OPTIONS: Required<RetryOptions> = {
 /**
  * Execute a function with retry logic
  */
-export async function retry<T>(
-	fn: () => Promise<T>,
-	options: RetryOptions = {}
-): Promise<T> {
+export async function retry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
 	const opts = { ...DEFAULT_OPTIONS, ...options };
 	let lastError: Error | null = null;
 
@@ -106,17 +103,18 @@ export function isRetryableError(error: any): boolean {
 	// HTTP status codes that are retryable
 	if (error?.status) {
 		const status = Number(error.status);
-		return status === 429 || // Too Many Requests
-			   status === 502 || // Bad Gateway
-			   status === 503 || // Service Unavailable
-			   status === 504;   // Gateway Timeout
+		return (
+			status === 429 || // Too Many Requests
+			status === 502 || // Bad Gateway
+			status === 503 || // Service Unavailable
+			status === 504
+		); // Gateway Timeout
 	}
 
 	// GraphQL errors that might be retryable
 	if (error?.extensions?.code) {
 		const code = error.extensions.code;
-		return code === 'INTERNAL_SERVER_ERROR' ||
-			   code === 'SERVICE_UNAVAILABLE';
+		return code === 'INTERNAL_SERVER_ERROR' || code === 'SERVICE_UNAVAILABLE';
 	}
 
 	return false;
@@ -138,7 +136,7 @@ export function createRetryFetch(options: RetryOptions = {}): typeof fetch {
  * Sleep for specified milliseconds
  */
 export function sleep(ms: number): Promise<void> {
-	return new Promise(resolve => setTimeout(resolve, ms));
+	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -173,10 +171,7 @@ export function debounce<T extends (...args: any[]) => void>(
 /**
  * Throttle a function
  */
-export function throttle<T extends (...args: any[]) => void>(
-	fn: T,
-	limit: number
-): T {
+export function throttle<T extends (...args: any[]) => void>(fn: T, limit: number): T {
 	let inThrottle = false;
 	let lastArgs: any[] | null = null;
 

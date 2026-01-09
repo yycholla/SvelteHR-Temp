@@ -69,6 +69,7 @@ cd /home/yycholla/Documents/SvelteHR
 ```
 
 This script will:
+
 - Start minikube with 2 CPUs, 4GB RAM, 20GB disk
 - Enable ingress addon
 - Enable metrics-server addon
@@ -82,6 +83,7 @@ This script will:
 ```
 
 This script will:
+
 - Configure Docker to use minikube's Docker daemon
 - Build frontend image: `sveltehr-frontend:latest`
 - Build backend image: `sveltehr-backend:latest`
@@ -97,6 +99,7 @@ This script will:
 ```
 
 This will:
+
 - Create namespaces (sveltehr-dev, sveltehr-prod, sveltehr-system)
 - Install cert-manager
 - Install CloudNativePG operator (PostgreSQL)
@@ -111,6 +114,7 @@ This will:
 ```
 
 This will:
+
 - Create secrets with proper structure
 - Apply kustomize configuration
 - Wait for PostgreSQL cluster to be ready
@@ -159,6 +163,7 @@ kubectl get pods -n sveltehr-dev
 ```
 
 Expected output:
+
 ```
 NAME                                 READY   STATUS    RESTARTS   AGE
 sveltehr-backend-xxx                 1/1     Running   0          2m

@@ -1,0 +1,69 @@
+{{digest_name}}
+{{period_label}}
+═══════════════════════════════════════════════════════════════
+
+{{#if show_sync_summary}}
+SYNC ACTIVITY SUMMARY
+─────────────────────────────────────────────────────────────
+
+Total Syncs:        {{total_syncs}}
+Successful:         {{successful_syncs}}
+Failed:             {{failed_syncs}}
+
+{{#if has_failed_syncs}}
+⚠️  WARNING: {{failed_syncs}} sync operations failed during this period.
+Please review the sync logs for details.
+{{/if}}
+
+{{/if}}
+{{#if show_conflicts}}
+CONFLICT MANAGEMENT
+─────────────────────────────────────────────────────────────
+
+Conflicts Detected: {{conflicts_detected}}
+Conflicts Resolved: {{conflicts_resolved}}
+Pending Resolution: {{pending_conflicts}}
+
+{{#if has_pending_conflicts}}
+🔔 ACTION REQUIRED: {{pending_conflicts}} conflicts require manual resolution.
+Please review the reconciliation dashboard.
+{{/if}}
+
+{{/if}}
+{{#if show_health_metrics}}
+SYSTEM HEALTH
+─────────────────────────────────────────────────────────────
+
+System Uptime:      {{uptime_percentage}}%
+Data Quality Score: {{data_quality_score}}%
+
+{{#if has_health_issues}}
+⚠️  NOTICE: System health metrics are below optimal levels.
+Please check the health dashboard for details.
+{{/if}}
+
+{{/if}}
+{{#if show_new_employees}}
+EMPLOYEE UPDATES
+─────────────────────────────────────────────────────────────
+
+New Employees:      {{new_employees}}
+Updated Records:    {{updated_employees}}
+
+{{#if has_new_employees}}
+Recently Added:
+{{#each new_employee_list}}
+  • {{this.name}} ({{this.email}})
+{{/each}}
+{{/if}}
+
+{{/if}}
+
+═══════════════════════════════════════════════════════════════
+
+You're receiving this email as part of the "{{digest_name}}" digest.
+
+Manage your email preferences: {{unsubscribe_url}}
+View Dashboard: {{dashboard_url}}
+
+© {{current_year}} SvelteHR. All rights reserved.

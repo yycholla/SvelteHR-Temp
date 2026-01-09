@@ -7,7 +7,7 @@ metadata:
   name: argocd-image-updater
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "1"  # Install after monitoring (wave 0)
+    argocd.argoproj.io/sync-wave: '1' # Install after monitoring (wave 0)
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -88,11 +88,11 @@ spec:
   # Sync policy: Manual sync for infrastructure components
   syncPolicy:
     automated:
-      prune: true  # Remove resources deleted from Git
-      selfHeal: true  # Auto-correct cluster drift  # Manual sync for infrastructure
+      prune: true # Remove resources deleted from Git
+      selfHeal: true # Auto-correct cluster drift  # Manual sync for infrastructure
 
     syncOptions:
-      - CreateNamespace=false  # Namespace already exists
+      - CreateNamespace=false # Namespace already exists
       - ServerSideApply=true
 
     retry:

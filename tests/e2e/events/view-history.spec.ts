@@ -7,7 +7,7 @@
  * MUST FAIL until event history functionality is implemented.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('View Event History', () => {
 	test.beforeEach(async ({ page }) => {
@@ -29,7 +29,9 @@ test.describe('View Event History', () => {
 		await expect(historyTab).toHaveAttribute('aria-selected', 'true');
 
 		// Verify history section is visible
-		const historySection = dialog.locator('[role="tabpanel"]').filter({ hasText: /History|Timeline/ });
+		const historySection = dialog
+			.locator('[role="tabpanel"]')
+			.filter({ hasText: /History|Timeline/ });
 		await expect(historySection).toBeVisible();
 	});
 
@@ -221,7 +223,9 @@ test.describe('View Event History', () => {
 		const historyTimeline = dialog.locator('.history-timeline');
 
 		// Look for waitlist promotion entries
-		const promotionEntries = historyTimeline.locator('text=/promoted from waitlist|joined waitlist/i');
+		const promotionEntries = historyTimeline.locator(
+			'text=/promoted from waitlist|joined waitlist/i'
+		);
 
 		if ((await promotionEntries.count()) > 0) {
 			await expect(promotionEntries.first()).toBeVisible();
@@ -271,7 +275,9 @@ test.describe('View Event History', () => {
 			await expect(groupedEntry.first()).toBeVisible();
 
 			// Verify can expand to see individual actions
-			const expandButton = groupedEntry.locator('.. button:has-text("Show all"), .. button:has-text("Expand")');
+			const expandButton = groupedEntry.locator(
+				'.. button:has-text("Show all"), .. button:has-text("Expand")'
+			);
 
 			if ((await expandButton.count()) > 0) {
 				await expandButton.click();
@@ -382,7 +388,9 @@ test.describe('View Event History', () => {
 		await page.waitForTimeout(500);
 
 		// If there's a "Load More" button
-		const loadMoreButton = dialog.locator('button:has-text("Load More"), button:has-text("Show More")');
+		const loadMoreButton = dialog.locator(
+			'button:has-text("Load More"), button:has-text("Show More")'
+		);
 
 		if ((await loadMoreButton.count()) > 0) {
 			// Count initial history items

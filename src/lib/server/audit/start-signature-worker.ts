@@ -1,18 +1,20 @@
 #!/usr/bin/env node
 // Signature Worker Startup Script
+
+import { logger } from '$lib/utils/logger';
 // Feature: 021-i-have-setup (Comprehensive Audit Logging)
 // Run this as a background process: node start-signature-worker.js
 
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { createSignatureWorker, type SignatureWorker } from './signature-worker.js';
+import { type SignatureWorker, createSignatureWorker } from './signature-worker.js';
 
 /**
  * Main function to start the signature worker
  */
 async function main(): Promise<void> {
-	console.log('Starting Audit Log Signature Worker...');
-	console.log('Environment:', process.env.NODE_ENV || 'development');
+	logger.info('Starting Audit Log Signature Worker...');
+	logger.info('Environment:', { env: process.env.NODE_ENV || 'development' });
 
 	// Load configuration from environment variables
 	const config = {
@@ -31,8 +33,8 @@ async function main(): Promise<void> {
 
 		// Log worker status
 		const status = worker.getStatus();
-		console.log('Worker started successfully');
-		console.log('Configuration:', {
+		logger.info('Worker started successfully');
+		logger.info('Configuration:', {
 			batchSize: status.config.batchSize,
 			batchIntervalMs: status.config.batchIntervalMs,
 			publicKeyId: status.publicKeyId
@@ -40,28 +42,28 @@ async function main(): Promise<void> {
 
 		// Handle graceful shutdown
 		const shutdown = async (signal: string) => {
-			console.log(`\nReceived ${signal}, shutting down gracefully...`);
+			logger.info(`\nReceived ${signal}, shutting down gracefully...`);
 			if (worker) {
 				await worker.stop();
 			}
 			process.exit(0);
 		};
 
-		process.on('SIGINT', () => shutdown('SIGINT'));
-		process.on('SIGTERM', () => shutdown('SIGTERM'));
+		process.on('SIGINT', async () => shutdown('SIGINT'));
+		process.on('SIGTERM', async () => shutdown('SIGTERM'));
 
 		// Keep process alive
 		process.on('uncaughtException', (error) => {
-			console.error('Uncaught exception:', error);
+			logger.error('Uncaught exception in signature worker', error as Error);
 		});
 
 		process.on('unhandledRejection', (reason, promise) => {
-			console.error('Unhandled rejection at:', promise, 'reason:', reason);
+			logger.error('Unhandled rejection', new Error(String(reason)), { promise, reason });
 		});
 
-		console.log('Signature worker is running. Press Ctrl+C to stop.');
+		logger.info('Signature worker is running. Press Ctrl+C to stop.');
 	} catch (error) {
-		console.error('Failed to start signature worker:', error);
+		logger.error('Signature worker main loop failed', error as Error);
 		process.exit(1);
 	}
 }
@@ -69,7 +71,7 @@ async function main(): Promise<void> {
 // Run main function if this script is executed directly
 // Always run when this module is loaded
 main().catch((error) => {
-	console.error('Fatal error:', error);
+	logger.error('Signature worker failed to start', error as Error);
 	process.exit(1);
 });
 

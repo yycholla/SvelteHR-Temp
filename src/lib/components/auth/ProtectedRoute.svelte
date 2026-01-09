@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/stores';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { Loader2, AlertTriangle } from '@lucide/svelte';
+	import { AlertTriangle, Loader2 } from '@lucide/svelte';
 
 	/**
 	 * Protected Route Component
@@ -20,7 +21,7 @@
 		children?: any;
 	}
 
-	let {
+	const {
 		requiredRoles = [],
 		requiredPermissions = [],
 		minRoleLevel = null,
@@ -46,7 +47,7 @@
 		// But if previous code worked with includes, maybe it's strings.
 		// For safety, I will use auth.hasRole(role) if available, or just check auth.roles.
 		// auth.hasRole takes a string.
-		
+
 		// Check required roles
 		if (requiredRoles.length > 0) {
 			// Use auth.hasRole which encapsulates the logic
@@ -68,7 +69,9 @@
 
 		// Check specific permissions
 		if (requiredPermissions.length > 0) {
-			const hasRequiredPermissions = requiredPermissions.every((permission) => auth.hasPermission(permission));
+			const hasRequiredPermissions = requiredPermissions.every((permission) =>
+				auth.hasPermission(permission)
+			);
 			if (!hasRequiredPermissions) {
 				unauthorizedReason = `Required permissions: ${requiredPermissions.join(', ')}`;
 				return false;
@@ -88,8 +91,9 @@
 			if (!isAuthorized && !auth.isLoading) {
 				// Add current path as redirect parameter
 				const currentPath = $page.url.pathname + $page.url.search;
-				const redirectUrl = `${redirectTo}?redirect=${encodeURIComponent(currentPath)}`;
-				goto(redirectUrl);
+				const resolvedPath = resolve(redirectTo as any);
+				// eslint-disable-next-line svelte/no-navigation-without-resolve
+				goto(`${resolvedPath}?redirect=${encodeURIComponent(currentPath)}`);
 			}
 		}
 	});
@@ -128,7 +132,7 @@
 
 				<div class="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
 					<button
-						onclick={() => goto('/dashboard')}
+						onclick={() => goto(resolve('/dashboard'))}
 						class="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
 					>
 						Go to Dashboard
@@ -154,20 +158,6 @@
 {/if}
 
 <style>
-	/* Loading animation improvements */
-	@keyframes spin {
-		from {
-			transform: rotate(0deg);
-		}
-		to {
-			transform: rotate(360deg);
-		}
-	}
-
-	.animate-spin {
-		animation: spin 1s linear infinite;
-	}
-
 	/* Focus styles for accessibility */
 	button:focus {
 		box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);

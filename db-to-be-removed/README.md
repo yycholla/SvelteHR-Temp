@@ -50,6 +50,7 @@ Example: `20251010_001_events_system.sql`
 The system runs migrations automatically using Docker healthchecks:
 
 **On First Container Creation:**
+
 1. PostgreSQL initializes
 2. Init scripts run (`01_create_migration_tracking.sh`, `02_run_migrations.sh`)
 3. Migration tracking table created
@@ -57,6 +58,7 @@ The system runs migrations automatically using Docker healthchecks:
 5. Recorded in `hr_public.schema_migrations`
 
 **On Every Subsequent Start:**
+
 1. PostgreSQL starts
 2. Healthcheck runs after 45s
 3. `check-and-apply-migrations.sh` detects pending migrations
@@ -64,6 +66,7 @@ The system runs migrations automatically using Docker healthchecks:
 5. Container marked healthy
 
 **Benefits:**
+
 - ✅ Automatic sync across development machines
 - ✅ No manual `npm run migrate` needed
 - ✅ Idempotent - migrations only run once
@@ -74,11 +77,13 @@ See [AUTOMATIC_MIGRATIONS.md](./AUTOMATIC_MIGRATIONS.md) for complete details.
 ### Adding New Migrations
 
 1. Create a new migration file in `db/migrations/`:
+
    ```bash
    touch db/migrations/20251010_006_add_new_feature.sql
    ```
 
 2. Write your SQL (always use transactions):
+
    ```sql
    BEGIN;
 
@@ -89,6 +94,7 @@ See [AUTOMATIC_MIGRATIONS.md](./AUTOMATIC_MIGRATIONS.md) for complete details.
    ```
 
 3. Test locally:
+
    ```bash
    # Rebuild database from scratch
    docker compose -f dev-containers/docker-compose.dev.yml down postgres-dev
@@ -97,6 +103,7 @@ See [AUTOMATIC_MIGRATIONS.md](./AUTOMATIC_MIGRATIONS.md) for complete details.
    ```
 
 4. Verify:
+
    ```bash
    # Check logs
    docker logs sveltehr-postgres-dev 2>&1 | grep -A5 "your_migration_name"
@@ -122,6 +129,7 @@ See [AUTOMATIC_MIGRATIONS.md](./AUTOMATIC_MIGRATIONS.md) for complete details.
 If a migration fails during initialization:
 
 1. Check container logs:
+
    ```bash
    docker logs sveltehr-postgres-dev 2>&1 | grep ERROR
    ```
@@ -140,6 +148,7 @@ If a migration fails during initialization:
 ### Current Migration Status
 
 Run schema verification to check current state:
+
 ```bash
 npm run db:verify
 ```
@@ -157,6 +166,7 @@ We've organized migrations into feature-based files for better maintainability:
 - **20251010_005_review_goals.sql** - Performance review goals junction
 
 Each consolidated migration includes:
+
 - Table creation with all columns
 - Indexes and constraints
 - Functions and triggers
@@ -166,6 +176,7 @@ Each consolidated migration includes:
 ## Production Deployment
 
 For production, use a proper migration tool like:
+
 - **Flyway** (Java-based)
 - **Liquibase** (Java-based with XML/YAML/SQL)
 - **migrate** (Go-based, simple)
@@ -176,15 +187,18 @@ The current setup is optimized for development where we frequently rebuild from 
 ## Troubleshooting
 
 ### "relation already exists" errors
+
 - The migration was run before. Either:
   - Add `IF NOT EXISTS` to your CREATE statements
   - Drop and recreate the database volume
 
 ### "column does not exist" errors
+
 - Check schema prefix: use `hr_public.table_name`, not just `table_name`
 - Verify column names match actual table definition
 
 ### "permission denied" errors
+
 - Check RLS policies
 - Verify role grants in migration files
 - Ensure proper role hierarchy
@@ -192,6 +206,7 @@ The current setup is optimized for development where we frequently rebuild from 
 ## Schema Snapshot & Drift Detection
 
 Update baseline after schema changes:
+
 ```bash
 npm run db:snapshot
 git add schema-snapshots/baseline-schema.json

@@ -53,13 +53,13 @@ In the `prod` config, add these secrets with **UPPERCASE** keys:
 
 Click **"Add Secret"** for each:
 
-| Secret Key (UPPERCASE) | Current Value | Notes |
-|------------------------|---------------|-------|
-| `POSTGRES_PASSWORD` | `secure-postgres-password-changeme` | Change to strong password |
-| `JWT_SECRET` | `secure-jwt-secret-changeme` | Change to random string (32+ chars) |
-| `JWT_REFRESH_SECRET` | `secure-jwt-refresh-secret-changeme` | Change to random string (32+ chars) |
-| `SERVICE_AUTH_KEY` | `secure-service-auth-key-changeme` | Change to random string (32+ chars) |
-| `PGADMIN_PASSWORD` | `admin` | Change to secure password |
+| Secret Key (UPPERCASE) | Current Value                        | Notes                               |
+| ---------------------- | ------------------------------------ | ----------------------------------- |
+| `POSTGRES_PASSWORD`    | `secure-postgres-password-changeme`  | Change to strong password           |
+| `JWT_SECRET`           | `secure-jwt-secret-changeme`         | Change to random string (32+ chars) |
+| `JWT_REFRESH_SECRET`   | `secure-jwt-refresh-secret-changeme` | Change to random string (32+ chars) |
+| `SERVICE_AUTH_KEY`     | `secure-service-auth-key-changeme`   | Change to random string (32+ chars) |
+| `PGADMIN_PASSWORD`     | `admin`                              | Change to secure password           |
 
 #### Generating Strong Secrets (Optional)
 
@@ -111,25 +111,26 @@ Find the `externalSecrets` section and update it:
 ```yaml
 # External Secrets Operator with Doppler (production)
 externalSecrets:
-  enabled: true  # ← Change from false to true
+  enabled: true # ← Change from false to true
   refreshInterval: 15m
 
   doppler:
-    serviceToken: "dp.st.prod.YOUR_TOKEN_HERE"  # ← Paste your token here
-    project: "sveltehr"  # ← Matches your Doppler project name
-    config: "prod"       # ← Matches your Doppler config name
+    serviceToken: 'dp.st.prod.YOUR_TOKEN_HERE' # ← Paste your token here
+    project: 'sveltehr' # ← Matches your Doppler project name
+    config: 'prod' # ← Matches your Doppler config name
 ```
 
 **Example with token**:
+
 ```yaml
 externalSecrets:
   enabled: true
   refreshInterval: 15m
 
   doppler:
-    serviceToken: "dp.st.prod.a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
-    project: "sveltehr"
-    config: "prod"
+    serviceToken: 'dp.st.prod.a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6'
+    project: 'sveltehr'
+    config: 'prod'
 ```
 
 ---
@@ -288,18 +289,21 @@ kubectl logs -n sveltehr-prod deployment/sveltehr-backend --tail=50
 ## Benefits of Doppler Integration
 
 ### ✅ Security
+
 - No plaintext secrets in Git repository
 - Centralized access control and audit logs
 - Service token can be revoked instantly
 - Secrets encrypted at rest and in transit
 
 ### ✅ Operational
+
 - Change secrets in Doppler dashboard → auto-syncs to K8s
 - No need to run `kubectl` commands to update secrets
 - Team members can access secrets via Doppler UI
 - Secret rotation without deployment downtime
 
 ### ✅ Compliance
+
 - Audit trail: who accessed/changed secrets and when
 - Secret versioning and rollback capability
 - Compliance-ready (SOC 2, GDPR, HIPAA)
@@ -338,6 +342,7 @@ That's it! No Helm upgrades, no kubectl secret commands.
 ### ExternalSecret shows "SecretSyncFailed"
 
 **Check the error**:
+
 ```bash
 kubectl describe externalsecret sveltehr-external-secrets -n sveltehr-prod
 ```
@@ -367,6 +372,7 @@ kubectl describe externalsecret sveltehr-external-secrets -n sveltehr-prod
 **Symptoms**: Secrets updated in K8s but pods still use old values
 
 **Fix**: Restart pods to remount secrets:
+
 ```bash
 kubectl rollout restart deployment <deployment-name> -n sveltehr-prod
 ```
@@ -376,11 +382,13 @@ kubectl rollout restart deployment <deployment-name> -n sveltehr-prod
 ### External Secrets Operator not running
 
 **Check operator status**:
+
 ```bash
 kubectl get pods -n external-secrets-system
 ```
 
 **If not running**, reinstall:
+
 ```bash
 helm install external-secrets external-secrets/external-secrets \
   -n external-secrets-system \
@@ -393,12 +401,14 @@ helm install external-secrets external-secrets/external-secrets \
 ### Want to temporarily disable External Secrets
 
 **Option 1: Disable in values and redeploy**:
+
 ```yaml
 externalSecrets:
-  enabled: false  # Reverts to hardcoded secrets in values.yaml
+  enabled: false # Reverts to hardcoded secrets in values.yaml
 ```
 
 **Option 2: Delete ExternalSecrets (keeps secrets in place)**:
+
 ```bash
 kubectl delete externalsecret --all -n sveltehr-prod
 # Secrets remain in K8s but won't auto-sync anymore
@@ -409,6 +419,7 @@ kubectl delete externalsecret --all -n sveltehr-prod
 ## Security Best Practices
 
 ### ✅ DO
+
 - Use **read-only** service tokens for Kubernetes
 - Rotate Doppler service tokens periodically (e.g., every 90 days)
 - Use separate Doppler configs for dev/staging/prod
@@ -416,6 +427,7 @@ kubectl delete externalsecret --all -n sveltehr-prod
 - Set token expiration if possible
 
 ### ❌ DON'T
+
 - Don't commit Doppler tokens to Git (use values-prod.yaml which is gitignored in secrets)
 - Don't use full-access tokens (read/write) for Kubernetes
 - Don't share service tokens between environments
@@ -445,8 +457,8 @@ Configure Prometheus to alert on ExternalSecret failures:
   expr: external_secrets_sync_calls_total{status="error"} > 0
   for: 10m
   annotations:
-    summary: "External Secret sync failed"
-    description: "Check Doppler token and connectivity"
+    summary: 'External Secret sync failed'
+    description: 'Check Doppler token and connectivity'
 ```
 
 ---
@@ -454,6 +466,7 @@ Configure Prometheus to alert on ExternalSecret failures:
 ## Cost
 
 **Doppler Pricing**:
+
 - **Free tier**: Unlimited secrets, 5 users, perfect for this use case
 - **Team tier**: $12/user/month if you need more than 5 users
 
@@ -482,6 +495,7 @@ Configure Prometheus to alert on ExternalSecret failures:
 ## Summary
 
 You've successfully configured:
+
 - ✅ External Secrets Operator installed
 - ✅ Doppler project and config created
 - ✅ Secrets migrated from K8s to Doppler
@@ -492,6 +506,7 @@ You've successfully configured:
 **Your secrets are now managed centrally via Doppler!** 🎉
 
 To verify everything is working:
+
 ```bash
 kubectl get externalsecret -n sveltehr-prod
 # Should show "SecretSynced" status

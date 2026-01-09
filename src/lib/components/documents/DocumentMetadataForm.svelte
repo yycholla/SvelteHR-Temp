@@ -1,8 +1,13 @@
 <script lang="ts">
 	// DocumentMetadataForm component (Feature 024)
+	import { logger } from '$lib/utils/logger';
 	// Form for editing document metadata with validation
 
-	import type { DocumentMetadata, DocumentCategoryType, SensitivityLevel } from '$lib/types/document';
+	import type {
+		DocumentCategoryType,
+		DocumentMetadata,
+		SensitivityLevel
+	} from '$lib/types/document';
 	import { documentMetadataSchema } from '$lib/schemas/documentSchemas';
 	import NativeSelect from '$lib/components/ui/native-select/native-select.svelte';
 	import NativeSelectOption from '$lib/components/ui/native-select/native-select-option.svelte';
@@ -31,9 +36,6 @@
 		}),
 		assignedEmployeeIds = $bindable<string[]>([]),
 		employeeOptions = [],
-		onSubmit = () => {},
-		onCancel = () => {},
-		isSubmitting = false,
 		hasRequiredFields = $bindable(false),
 		metadataValid = $bindable(false),
 		showEmployeeAssignment = true
@@ -70,10 +72,13 @@
 
 	// Update bindable props when metadata or errors change
 	$effect(() => {
-		hasRequiredFields = metadata.category !== '' && metadata.sensitivityLevel !== '';
+		hasRequiredFields = !!metadata.category && !!metadata.sensitivityLevel;
 		metadataValid = Object.keys(errors).length === 0 && hasRequiredFields;
-		console.log('[DocumentMetadataForm] hasRequiredFields updated:', hasRequiredFields,
-			'category:', metadata.category, 'sensitivityLevel:', metadata.sensitivityLevel);
+		logger.info('[DocumentMetadataForm] hasRequiredFields updated:', { hasRequiredFields });
+		logger.info('[DocumentMetadataForm] category:', { category: metadata.category });
+		logger.info('[DocumentMetadataForm] sensitivityLevel:', {
+			sensitivityLevel: metadata.sensitivityLevel
+		});
 	});
 
 	// Categories and sensitivity levels
@@ -112,7 +117,7 @@
 	];
 
 	// Derived validation state
-	let isValid = $derived(Object.keys(errors).length === 0 && metadata.category !== '');
+	const isValid = $derived(Object.keys(errors).length === 0 && !!metadata.category);
 
 	// Validate field
 	function validateField(field: keyof DocumentMetadata) {
@@ -142,7 +147,7 @@
 
 		// Validate all fields
 		try {
-			console.log('[DocumentMetadataForm] validateMetadata called with:', {
+			logger.info('[DocumentMetadataForm] validateMetadata called with:', {
 				...metadata,
 				expirationDate: metadata.expirationDate,
 				expirationDateType: typeof metadata.expirationDate,
@@ -160,13 +165,18 @@
 				assignToDepartments: []
 			};
 
-			console.log('[DocumentMetadataForm] Testing schema with hardcoded data...');
+			logger.info('[DocumentMetadataForm] Testing schema with hardcoded data...');
 			try {
 				documentMetadataSchema.parse(testData);
-				console.log('[DocumentMetadataForm] ✅ Schema test with hardcoded data PASSED');
+				logger.info('[DocumentMetadataForm] ✅ Schema test with hardcoded data PASSED');
 			} catch (testError: any) {
-				console.error('[DocumentMetadataForm] ❌ Schema test with hardcoded data FAILED:', testError);
-				console.error('[DocumentMetadataForm] Test error stack:', testError.stack);
+				logger.error(
+					'[DocumentMetadataForm] ❌ Schema test with hardcoded data FAILED:',
+					testError instanceof Error ? testError : new Error(String(testError))
+				);
+				logger.error('[DocumentMetadataForm] Test error stack:', undefined, {
+					stack: testError.stack
+				});
 			}
 
 			// Test 2: Try manual construction field by field
@@ -180,8 +190,10 @@
 				expirationDate: metadata.expirationDate ? new Date(metadata.expirationDate) : undefined
 			};
 
-			console.log('[DocumentMetadataForm] Validating manually constructed object:', validationData);
-			console.log('[DocumentMetadataForm] Field types:', {
+			logger.info('[DocumentMetadataForm] Validating manually constructed object:', {
+				validationData
+			});
+			logger.info('[DocumentMetadataForm] Field types:', {
 				filenameType: typeof validationData.filename,
 				categoryType: typeof validationData.category,
 				sensitivityLevelType: typeof validationData.sensitivityLevel,
@@ -193,23 +205,22 @@
 			});
 
 			documentMetadataSchema.parse(validationData);
-			console.log('[DocumentMetadataForm] ✅ Validation PASSED!');
+			logger.info('[DocumentMetadataForm] ✅ Validation PASSED!');
 			errors = {};
 			return true;
 		} catch (error: any) {
-			console.error('[DocumentMetadataForm] ❌ Validation FAILED:', error);
-			console.error('[DocumentMetadataForm] Error name:', error.name);
-			console.error('[DocumentMetadataForm] Error message:', error.message);
-			console.error('[DocumentMetadataForm] Error stack:', error.stack);
+			logger.error('Catch failed', error as Error);
+			logger.error('[DocumentMetadataForm] Error name:', undefined, { name: error.name });
+			logger.error('[DocumentMetadataForm] Error message:', undefined, { message: error.message });
+			logger.error('[DocumentMetadataForm] Error stack:', undefined, { stack: error.stack });
 			if (error.errors) {
-				console.error('[DocumentMetadataForm] Zod errors:', JSON.stringify(error.errors, null, 2));
-				errors = error.errors.reduce(
-					(acc: Record<string, string>, err: any) => {
-						acc[err.path[0]] = err.message;
-						return acc;
-					},
-					{}
-				);
+				logger.error('[DocumentMetadataForm] Zod errors:', undefined, {
+					zodErrors: JSON.stringify(error.errors, null, 2)
+				});
+				errors = error.errors.reduce((acc: Record<string, string>, err: any) => {
+					acc[err.path[0]] = err.message;
+					return acc;
+				}, {});
 			}
 			return false;
 		}
@@ -219,7 +230,7 @@
 	export function getMetadataState() {
 		return {
 			isValid,
-			hasRequiredFields: metadata.category !== '' && metadata.sensitivityLevel !== ''
+			hasRequiredFields: !!metadata.category && !!metadata.sensitivityLevel
 		};
 	}
 </script>
@@ -252,7 +263,7 @@
 			class={touched.category && errors.category ? 'border-red-500' : ''}
 			required
 		>
-			{#each categories as category}
+			{#each categories as category (category)}
 				<NativeSelectOption value={category}>{category}</NativeSelectOption>
 			{/each}
 		</NativeSelect>
@@ -273,7 +284,7 @@
 			class={touched.sensitivityLevel && errors.sensitivityLevel ? 'border-red-500' : ''}
 			required
 		>
-			{#each sensitivityLevels as level}
+			{#each sensitivityLevels as level (level.value)}
 				<NativeSelectOption value={level.value}>
 					{level.label} - {level.description}
 				</NativeSelectOption>
@@ -377,10 +388,6 @@
 		outline: none;
 		border-color: #4299e1;
 		box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
-	}
-
-	.field-input.error {
-		border-color: #f56565;
 	}
 
 	.field-textarea {

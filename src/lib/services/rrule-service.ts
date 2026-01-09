@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * RRULE Service
  * Feature: 025-events-flesh-out
@@ -99,7 +100,9 @@ export class RRuleService {
 			});
 
 			// Get occurrences within range
-			const occurrences = rruleWithDtstart.between(rangeStart, rangeEnd, true).slice(0, maxOccurrences);
+			const occurrences = rruleWithDtstart
+				.between(rangeStart, rangeEnd, true)
+				.slice(0, maxOccurrences);
 
 			// Calculate event duration
 			const eventDuration = eventData.endTime.getTime() - eventData.startTime.getTime();
@@ -126,7 +129,7 @@ export class RRuleService {
 
 			return instances;
 		} catch (error) {
-			console.error('Error expanding recurring event:', error);
+			logger.error('Error expanding recurring event:', error as Error);
 			return [];
 		}
 	}
@@ -183,7 +186,7 @@ export class RRuleService {
 			const nextOccurrence = validation.rrule.after(afterDate, true);
 			return nextOccurrence;
 		} catch (error) {
-			console.error('Error getting next occurrence:', error);
+			logger.error('Error getting next occurrence:', error as Error);
 			return null;
 		}
 	}
@@ -219,7 +222,7 @@ export class RRuleService {
 				);
 			});
 		} catch (error) {
-			console.error('Error checking date match:', error);
+			logger.error('Error checking date match:', error as Error);
 			return false;
 		}
 	}

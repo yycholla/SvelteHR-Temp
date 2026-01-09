@@ -2,7 +2,6 @@
 // Database configuration, authentication, and test data management
 // Created: 2025-09-24
 
-import { vi } from 'vitest';
 import { nanoid } from 'nanoid';
 import jwt from 'jsonwebtoken';
 
@@ -152,7 +151,7 @@ export class JWTTestUtils {
 			iat: Math.floor(Date.now() / 1000)
 		};
 
-		return jwt.sign(payload, TEST_CONFIG.JWT_SECRET, { expiresIn });
+		return jwt.sign(payload, TEST_CONFIG.JWT_SECRET, { expiresIn } as jwt.SignOptions);
 	}
 
 	/**
@@ -430,9 +429,9 @@ export class DatabaseTestUtils {
 // Authentication test utilities
 export class AuthTestUtils {
 	/**
-	 * Mock authentication middleware
+	 * Authentication middleware for testing
 	 */
-	static mockAuthMiddleware = vi.fn((req: any, res: any, next: any) => {
+	static authMiddleware(req: any, res: any, next: any) {
 		const token = req.headers.authorization?.replace('Bearer ', '');
 
 		if (!token) {
@@ -446,7 +445,7 @@ export class AuthTestUtils {
 		} catch (error) {
 			return res.status(401).json({ error: 'Invalid token' });
 		}
-	});
+	}
 
 	/**
 	 * Check if user has required permission
@@ -575,9 +574,9 @@ export class TestDataValidator {
 	}
 }
 
-// Export all utilities
-export * from './graphql-test-client';
-export * from './performance-monitor';
+// Note: graphql-test-client and performance-monitor exports removed
+// to avoid Vitest dependency conflicts with Playwright E2E tests.
+// Import those utilities directly if needed for unit tests.
 
 // Default exports for convenience
 export default {

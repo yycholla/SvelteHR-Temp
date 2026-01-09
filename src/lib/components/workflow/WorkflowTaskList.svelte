@@ -2,15 +2,15 @@
 	import { onMount } from 'svelte';
 	import {
 		filteredTasks,
-		workflowActions,
 		isWorkflowLoading,
+		workflowActions,
 		workflowError
 	} from '$lib/stores/workflow';
 	import { auth } from '$lib/stores/auth.svelte';
 	import WorkflowTaskCard from './WorkflowTaskCard.svelte';
 
 	// Props
-	let {
+	const {
 		showFilters = true,
 		limit = 50,
 		instanceId = null,
@@ -31,7 +31,7 @@
 	const statusOptions = [
 		{ value: '', label: 'All Statuses' },
 		{ value: 'pending', label: 'Pending' },
-		{ value: 'in_progress', label: 'In Progress' },
+		{ value: 'running', label: 'In Progress' },
 		{ value: 'completed', label: 'Completed' },
 		{ value: 'failed', label: 'Failed' },
 		{ value: 'cancelled', label: 'Cancelled' }
@@ -65,7 +65,7 @@
 	// Group tasks by status
 	const groupedTasks = $derived({
 		pending: filteredBySearch.filter((task) => task.status === 'pending'),
-		in_progress: filteredBySearch.filter((task) => task.status === 'in_progress'),
+		running: filteredBySearch.filter((task) => task.status === 'running'),
 		completed: filteredBySearch.filter((task) => task.status === 'completed'),
 		failed: filteredBySearch.filter((task) => task.status === 'failed'),
 		cancelled: filteredBySearch.filter((task) => task.status === 'cancelled')
@@ -138,7 +138,12 @@
 					</div>
 					<div class="rounded-full bg-gray-50 p-2">
 						{#if status === 'pending'}
-							<svg class="h-5 w-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg
+								class="h-5 w-5 text-yellow-500"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
 								<path
 									stroke-linecap="round"
 									stroke-linejoin="round"
@@ -146,7 +151,7 @@
 									d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
 								/>
 							</svg>
-						{:else if status === 'in_progress'}
+						{:else if status === 'running'}
 							<svg
 								class="h-5 w-5 animate-spin text-blue-500"
 								fill="none"
@@ -161,7 +166,12 @@
 								/>
 							</svg>
 						{:else if status === 'completed'}
-							<svg class="h-5 w-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg
+								class="h-5 w-5 text-green-500"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
 								<path
 									stroke-linecap="round"
 									stroke-linejoin="round"
@@ -170,7 +180,12 @@
 								/>
 							</svg>
 						{:else if status === 'failed'}
-							<svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg
+								class="h-5 w-5 text-red-500"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
 								<path
 									stroke-linecap="round"
 									stroke-linejoin="round"
@@ -179,7 +194,12 @@
 								/>
 							</svg>
 						{:else if status === 'cancelled'}
-							<svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg
+								class="h-5 w-5 text-gray-500"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
 								<path
 									stroke-linecap="round"
 									stroke-linejoin="round"
@@ -188,7 +208,12 @@
 								/>
 							</svg>
 						{:else}
-							<svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg
+								class="h-5 w-5 text-gray-400"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
 								<path
 									stroke-linecap="round"
 									stroke-linejoin="round"
@@ -347,5 +372,3 @@
 		{/if}
 	{/if}
 </div>
-
-

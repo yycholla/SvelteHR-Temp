@@ -9,13 +9,8 @@
  * - Permission hierarchy checks
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-	hasPermission,
-	hasRole,
-	canEditDepartment,
-	canEditEmployee
-} from '$lib/server/rbac-utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { canEditDepartment, canEditEmployee, hasPermission, hasRole } from '$lib/server/rbac-utils';
 
 describe('RBAC Utilities', () => {
 	describe('hasPermission', () => {

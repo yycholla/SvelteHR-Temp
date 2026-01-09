@@ -1,5 +1,6 @@
 <script lang="ts">
 	// Event Edit Page
+	import { logger } from '$lib/utils/logger';
 	// Feature: 019-we-need-to - Task T035
 	// Purpose: Form for editing existing events
 
@@ -17,7 +18,7 @@
 	let isAllDay = $state(data.event.isAllDay || false);
 	let location = $state(data.event.location || '');
 	let eventType = $state<EventType>(data.event.eventType);
-	let visibilityType = $state<EventVisibilityType>(data.event.visibilityType);
+	let visibilityType = $state<EventVisibilityType>(data.event.visibilityType || 'company');
 	let isSubmitting = $state(false);
 	let errors = $state<Record<string, string>>({});
 
@@ -76,7 +77,7 @@
 			// Navigate back to event detail on success
 			goto(`/dashboard/events/${data.event.id}`);
 		} catch (error) {
-			console.error('Failed to update event:', error);
+			logger.error('Failed to update event:', error as Error);
 			alert('Failed to update event. Please try again.');
 		} finally {
 			isSubmitting = false;

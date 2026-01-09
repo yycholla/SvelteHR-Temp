@@ -1,8 +1,9 @@
+import { logger } from '$lib/utils/logger';
 // Document listing and filtering API endpoint (Feature 024)
 // GET /api/documents - List documents with RBAC filtering and pagination
 // Migrated to GraphQL backend (Phase 2 - Document API Migration)
 
-import { json, error } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { documentFilterSchema } from '$lib/schemas/documentSchemas';
 import { createUrqlClient } from '$lib/graphql/client';
@@ -33,7 +34,7 @@ const GET_DOCUMENTS_QUERY = gql`
 export const GET: RequestHandler = async ({ url, locals, cookies, fetch }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
-		error(401, { message: 'Authentication required' });
+		error(401, 'Authentication required');
 	}
 
 	try {
@@ -62,8 +63,8 @@ export const GET: RequestHandler = async ({ url, locals, cookies, fetch }) => {
 			.toPromise();
 
 		if (result.error) {
-			console.error('GraphQL error:', result.error);
-			error(500, { message: 'Failed to fetch documents from GraphQL backend' });
+			logger.error('GraphQL errors:', result.error);
+			error(500, 'Failed to fetch documents from GraphQL backend');
 		}
 
 		// Step 6: Apply client-side filtering based on RBAC
@@ -99,12 +100,12 @@ export const GET: RequestHandler = async ({ url, locals, cookies, fetch }) => {
 			totalPages: Math.ceil(totalCount / filters.limit)
 		});
 	} catch (err) {
-		console.error('Document listing error:', err);
+		logger.error('Document listing error:', err as Error);
 
 		if (err && typeof err === 'object' && 'issues' in err) {
-			error(400, { message: 'Invalid filter parameters', errors: err });
+			error(400, 'Invalid filter parameters');
 		}
 
-		error(500, { message: 'Internal server error during document listing' });
+		error(500, 'Internal server error during document listing');
 	}
 };

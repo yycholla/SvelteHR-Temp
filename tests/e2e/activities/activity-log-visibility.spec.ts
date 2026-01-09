@@ -2,7 +2,7 @@
 // Feature: 019-we-need-to - Phase 6
 // Purpose: Test activity log visibility and access control
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Activity Log Visibility', () => {
 	// Setup: Login before each test
@@ -30,9 +30,9 @@ test.describe('Activity Log Visibility', () => {
 		await expect(page.locator('h1')).toContainText(/Activities|Activity|My Activities/i);
 
 		// Verify activity feed or empty state
-		const activityFeed = page.locator('[data-testid="activity-feed"]').or(
-			page.locator('.activity-feed')
-		);
+		const activityFeed = page
+			.locator('[data-testid="activity-feed"]')
+			.or(page.locator('.activity-feed'));
 		const emptyState = page.locator('text=/No activities|No recent activity/i');
 
 		// Either activities exist or empty state is shown
@@ -45,9 +45,9 @@ test.describe('Activity Log Visibility', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Look for various activity action types
-		const activityItems = page.locator('[data-testid="activity-item"]').or(
-			page.locator('.activity-item')
-		);
+		const activityItems = page
+			.locator('[data-testid="activity-item"]')
+			.or(page.locator('.activity-item'));
 
 		if ((await activityItems.count()) > 0) {
 			// Check for common action types
@@ -77,9 +77,9 @@ test.describe('Activity Log Visibility', () => {
 		await page.goto('/dashboard/activities');
 		await page.waitForLoadState('networkidle');
 
-		const activityItems = page.locator('[data-testid="activity-item"]').or(
-			page.locator('.activity-item')
-		);
+		const activityItems = page
+			.locator('[data-testid="activity-item"]')
+			.or(page.locator('.activity-item'));
 
 		if ((await activityItems.count()) > 0) {
 			// Verify activity items show resource type
@@ -110,9 +110,9 @@ test.describe('Activity Log Visibility', () => {
 		await page.goto('/dashboard/activities');
 		await page.waitForLoadState('networkidle');
 
-		const activityItems = page.locator('[data-testid="activity-item"]').or(
-			page.locator('.activity-item')
-		);
+		const activityItems = page
+			.locator('[data-testid="activity-item"]')
+			.or(page.locator('.activity-item'));
 
 		if ((await activityItems.count()) > 0) {
 			// Verify timestamps are displayed
@@ -142,12 +142,12 @@ test.describe('Activity Log Visibility', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Look for pagination controls
-		const nextButton = page.locator('button:has-text("Next")').or(
-			page.locator('a:has-text("Next")')
-		);
-		const prevButton = page.locator('button:has-text("Previous")').or(
-			page.locator('a:has-text("Previous")')
-		);
+		const nextButton = page
+			.locator('button:has-text("Next")')
+			.or(page.locator('a:has-text("Next")'));
+		const prevButton = page
+			.locator('button:has-text("Previous")')
+			.or(page.locator('a:has-text("Previous")'));
 
 		// Check if pagination exists
 		if (await nextButton.isVisible()) {
@@ -204,9 +204,9 @@ test.describe('Activity Log Visibility', () => {
 
 		if (!(await forbiddenMessage.isVisible())) {
 			// Look for employee filter dropdown
-			const employeeFilter = page.locator('select[name="employee"]').or(
-				page.locator('select:has(option:has-text("All Employees"))')
-			);
+			const employeeFilter = page
+				.locator('select[name="employee"]')
+				.or(page.locator('select:has(option:has-text("All Employees"))'));
 
 			if (await employeeFilter.isVisible()) {
 				// Get options
@@ -239,9 +239,9 @@ test.describe('Activity Log Visibility', () => {
 
 		if (!(await forbiddenMessage.isVisible())) {
 			// Look for action filter
-			const actionFilter = page.locator('select[name="action"]').or(
-				page.locator('select:has(option:has-text("All Actions"))')
-			);
+			const actionFilter = page
+				.locator('select[name="action"]')
+				.or(page.locator('select:has(option:has-text("All Actions"))'));
 
 			if (await actionFilter.isVisible()) {
 				// Try selecting different actions
@@ -271,9 +271,9 @@ test.describe('Activity Log Visibility', () => {
 
 		if (!(await forbiddenMessage.isVisible())) {
 			// Look for search input
-			const searchInput = page.locator('input[type="search"]').or(
-				page.locator('input[placeholder*="Search"]')
-			);
+			const searchInput = page
+				.locator('input[type="search"]')
+				.or(page.locator('input[placeholder*="Search"]'));
 
 			if (await searchInput.isVisible()) {
 				// Enter search term
@@ -333,9 +333,9 @@ test.describe('Activity Log Visibility', () => {
 
 		if (!(await forbiddenMessage.isVisible())) {
 			// Look for export button
-			const exportButton = page.locator('button:has-text("Export")').or(
-				page.locator('button:has-text("Download")')
-			);
+			const exportButton = page
+				.locator('button:has-text("Export")')
+				.or(page.locator('button:has-text("Download")'));
 
 			if (await exportButton.isVisible()) {
 				// Set up download listener
@@ -366,13 +366,7 @@ test.describe('Activity Log Visibility', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Look for date grouping headers
-		const dateHeaders = [
-			/today/i,
-			/yesterday/i,
-			/this week/i,
-			/last week/i,
-			/\d{4}-\d{2}-\d{2}/
-		];
+		const dateHeaders = [/today/i, /yesterday/i, /this week/i, /last week/i, /\d{4}-\d{2}-\d{2}/];
 
 		// Check if activities are grouped by date
 		let foundDateGrouping = false;
@@ -385,9 +379,9 @@ test.describe('Activity Log Visibility', () => {
 
 		// Date grouping might be optional based on implementation
 		// Just verify activities or empty state is visible
-		const activityContent = page.locator('[data-testid="activity-feed"]').or(
-			page.locator('text=/No activities/i')
-		);
+		const activityContent = page
+			.locator('[data-testid="activity-feed"]')
+			.or(page.locator('text=/No activities/i'));
 		await expect(activityContent).toBeVisible();
 	});
 
@@ -414,9 +408,9 @@ test.describe('Activity Log Visibility', () => {
 		await page.goto('/dashboard/activities');
 		await page.waitForLoadState('networkidle');
 
-		const activityItems = page.locator('[data-testid="activity-item"]').or(
-			page.locator('.activity-item')
-		);
+		const activityItems = page
+			.locator('[data-testid="activity-item"]')
+			.or(page.locator('.activity-item'));
 
 		if ((await activityItems.count()) > 0) {
 			// Verify each activity has:

@@ -1,17 +1,17 @@
-import { test, expect, describe } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import {
-	gotoPage,
-	waitForElement,
-	fillInput,
-	selectOption,
-	pressKey,
-	isElementVisible,
-	countElements,
 	captureConsole,
-	clickElement,
 	clearInput,
+	clickElement,
+	countElements,
+	fillInput,
+	getPage,
+	gotoPage,
+	isElementVisible,
+	pressKey,
+	selectOption,
 	waitFor,
-	getPage
+	waitForElement
 } from '../utils/puppeteer-helpers';
 
 /**
@@ -39,8 +39,8 @@ describe('Form Interactions (Puppeteer)', () => {
 		await waitFor(1000);
 
 		// Check for deprecation warnings
-		const deprecationWarnings = console.warnings.filter((w) =>
-			w.text.includes('on:submit') || w.text.includes('deprecated')
+		const deprecationWarnings = console.warnings.filter(
+			(w) => w.text.includes('on:submit') || w.text.includes('deprecated')
 		);
 
 		expect(deprecationWarnings).toHaveLength(0);
@@ -94,7 +94,9 @@ describe('Form Interactions (Puppeteer)', () => {
 
 		// Should have no deprecation warnings
 		const deprecationWarnings = console.warnings.filter(
-			(w) => w.text.includes('deprecated') && (w.text.includes('on:') || w.text.includes('event attribute'))
+			(w) =>
+				w.text.includes('deprecated') &&
+				(w.text.includes('on:') || w.text.includes('event attribute'))
 		);
 		expect(deprecationWarnings).toHaveLength(0);
 	});
@@ -125,7 +127,9 @@ describe('Form Interactions (Puppeteer)', () => {
 		await fillInput('[data-testid="employee-search-input"]', 'Software Engineer');
 
 		// Check for additional form controls using data-testid
-		const hasDepartmentFilter = await isElementVisible('[data-testid="employee-department-filter"]');
+		const hasDepartmentFilter = await isElementVisible(
+			'[data-testid="employee-department-filter"]'
+		);
 		if (hasDepartmentFilter) {
 			await selectOption('[data-testid="employee-department-filter"]', { index: 1 });
 		}
@@ -173,7 +177,10 @@ describe('Form Interactions (Puppeteer)', () => {
 
 			// Field should be cleared - use Puppeteer API
 			const page = getPage();
-			const inputValue = await page.$eval('[data-testid="employee-search-input"]', (el: any) => el.value);
+			const inputValue = await page.$eval(
+				'[data-testid="employee-search-input"]',
+				(el: any) => el.value
+			);
 			expect(inputValue).toBe('');
 		}
 	});

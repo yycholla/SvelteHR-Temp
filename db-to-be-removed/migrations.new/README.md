@@ -36,53 +36,62 @@ Migrations must be applied in numerical order:
 ### Key Design Decisions
 
 #### 1. **All Tables in `hr_public` Schema**
-   - Consistent with Rust SeaORM models
-   - All tables explicitly specify `schema_name = "hr_public"` in Rust
-   - Eliminates schema search_path issues
+
+- Consistent with Rust SeaORM models
+- All tables explicitly specify `schema_name = "hr_public"` in Rust
+- Eliminates schema search_path issues
 
 #### 2. **UUID Primary Keys**
-   - All tables use `UUID PRIMARY KEY DEFAULT gen_random_uuid()`
-   - Consistent with Rust models using `Uuid` type
-   - Better for distributed systems and security
+
+- All tables use `UUID PRIMARY KEY DEFAULT gen_random_uuid()`
+- Consistent with Rust models using `Uuid` type
+- Better for distributed systems and security
 
 #### 3. **TIMESTAMPTZ for Timestamps**
-   - All timestamps use `TIMESTAMPTZ` (timezone-aware)
-   - Matches Rust `chrono::DateTime<Utc>` type
-   - Automatic UTC handling
+
+- All timestamps use `TIMESTAMPTZ` (timezone-aware)
+- Matches Rust `chrono::DateTime<Utc>` type
+- Automatic UTC handling
 
 #### 4. **Soft Deletes**
-   - Tables with `deleted_at TIMESTAMPTZ` column support soft deletion
-   - Indexes use `WHERE deleted_at IS NULL` for query performance
-   - Preserves data for audit trails
+
+- Tables with `deleted_at TIMESTAMPTZ` column support soft deletion
+- Indexes use `WHERE deleted_at IS NULL` for query performance
+- Preserves data for audit trails
 
 #### 5. **Computed Columns**
-   - `users.display_name` and `users.full_name` - GENERATED ALWAYS AS STORED
-   - `time_off_balances.balance_days` - computed balance
-   - Ensures data consistency
+
+- `users.display_name` and `users.full_name` - GENERATED ALWAYS AS STORED
+- `time_off_balances.balance_days` - computed balance
+- Ensures data consistency
 
 #### 6. **JSONB for Flexible Data**
-   - `review_templates.template_data` - dynamic form definitions
-   - `activity_logs.metadata` - extensible audit data
-   - `system_settings.value` - key-value configuration
-   - Balances flexibility with type safety
+
+- `review_templates.template_data` - dynamic form definitions
+- `activity_logs.metadata` - extensible audit data
+- `system_settings.value` - key-value configuration
+- Balances flexibility with type safety
 
 #### 7. **Comprehensive Indexes**
-   - Foreign key indexes for join performance
-   - Partial indexes with `WHERE deleted_at IS NULL`
-   - Full-text search indexes using `GIN(to_tsvector())`
-   - Composite indexes for common query patterns
-   - GIST indexes for timestamp ranges on events
+
+- Foreign key indexes for join performance
+- Partial indexes with `WHERE deleted_at IS NULL`
+- Full-text search indexes using `GIN(to_tsvector())`
+- Composite indexes for common query patterns
+- GIST indexes for timestamp ranges on events
 
 #### 8. **CHECK Constraints**
-   - Data integrity at database level
-   - Email format validation
-   - Salary range validation
-   - Date logic validation (end_date >= start_date)
-   - Prevent self-references where inappropriate
+
+- Data integrity at database level
+- Email format validation
+- Salary range validation
+- Date logic validation (end_date >= start_date)
+- Prevent self-references where inappropriate
 
 ## Table Groups
 
 ### Core Authentication (7 tables)
+
 - **users** - User accounts with RBAC (23 columns)
 - **roles** - Role definitions with hierarchy levels
 - **permissions** - Resource-based permissions
@@ -92,6 +101,7 @@ Migrations must be applied in numerical order:
 - **user_sessions** - Axum-login session tracking
 
 ### HR Core (4 tables)
+
 - **departments** - Organizational structure
 - **leave_types** - Leave type definitions with accrual rules
 - **time_off_policies** - Policy definitions
@@ -99,6 +109,7 @@ Migrations must be applied in numerical order:
 - **leave_requests** - Leave request workflow
 
 ### Task Management (5 tables)
+
 - **tasks** - Task tracking with dependencies (22 columns)
 - **task_types** - Task categorization
 - **task_assignees** - Multi-assignee support
@@ -106,6 +117,7 @@ Migrations must be applied in numerical order:
 - **task_audit_entries** - Immutable audit trail
 
 ### Events Calendar (5 tables)
+
 - **events** - Events with recurring support (21 columns)
 - **event_attendees** - RSVP tracking
 - **event_waitlist** - Capacity overflow queue
@@ -113,6 +125,7 @@ Migrations must be applied in numerical order:
 - **event_history** - Event change audit trail
 
 ### Document Management (6 tables)
+
 - **documents** - Document metadata and storage
 - **document_categories** - Hierarchical categorization
 - **documents_versions** - Version history
@@ -121,6 +134,7 @@ Migrations must be applied in numerical order:
 - **encrypted_file_storage** - Encrypted content storage
 
 ### Performance Reviews (5 tables)
+
 - **performance_reviews** - Review records (17 columns)
 - **review_cycles** - Review periods with due dates
 - **review_templates** - Customizable form templates
@@ -128,6 +142,7 @@ Migrations must be applied in numerical order:
 - **review_feedback** - 360-degree feedback
 
 ### Employee Details (5 tables)
+
 - **emergency_contacts** - Emergency contact info
 - **employee_skills** - Skills with proficiency levels
 - **employee_certifications** - Professional certifications
@@ -135,9 +150,11 @@ Migrations must be applied in numerical order:
 - **employee_goals** - Personal/professional goals
 
 ### Time & Attendance (1 table)
+
 - **attendance_records** - Daily attendance tracking
 
 ### System Audit (10 tables)
+
 - **activity_logs** - Comprehensive activity audit (16 columns)
 - **rollback_requests** - Data rollback workflow
 - **bulk_rollback_batches** - Bulk rollback operations
@@ -153,10 +170,12 @@ Migrations must be applied in numerical order:
 ## ENUM Types (13 total)
 
 ### Task Management
+
 - `task_status` - todo, in_progress, blocked, review, done, cancelled
 - `task_priority` - low, medium, high, urgent
 
 ### Event Management
+
 - `event_type` - meeting, training, social, company_event, holiday, interview, review, team_building, other
 - `event_status` - draft, scheduled, in_progress, completed, cancelled
 - `event_visibility` - public, private, department, team
@@ -164,32 +183,40 @@ Migrations must be applied in numerical order:
 - `rsvp_scope` - this_event, all_events
 
 ### Leave Management
+
 - `leave_status` - pending, approved, rejected, cancelled
 
 ### Performance Reviews
+
 - `review_status` - not_started, in_progress, completed
 
 ### Employee Status
+
 - `employee_status` - ACTIVE, INACTIVE, TERMINATED, ON_LEAVE
 
 ### Document Management
+
 - `document_status` - draft, published, archived, deleted
 - `assignment_status` - assigned, read, acknowledged, completed
 
 ### Notifications
+
 - `notification_type` - 16 types (event_invite, task_assigned, etc.)
 - `notification_category` - event, task, leave, document, review, system
 
 ### Resources
+
 - `resource_type` - task, event, document, review, leave_request, employee_goal, department
 
 ### Rollback
+
 - `rollback_status` - pending, processing, completed, failed, cancelled
 - `rollback_item_status` - pending, success, failed, skipped
 
 ## Features Implemented
 
 ### Security & Compliance
+
 - ✅ Soft delete support on most tables
 - ✅ Comprehensive audit trails (activity_logs, event_history, task_audit_entries)
 - ✅ Encryption key management
@@ -198,6 +225,7 @@ Migrations must be applied in numerical order:
 - ✅ IP address and user agent tracking
 
 ### Data Integrity
+
 - ✅ Foreign key constraints with appropriate ON DELETE actions
 - ✅ UNIQUE constraints preventing duplicates
 - ✅ CHECK constraints for business logic
@@ -206,6 +234,7 @@ Migrations must be applied in numerical order:
 - ✅ Self-reference prevention where needed
 
 ### Performance Optimization
+
 - ✅ Comprehensive indexing strategy
 - ✅ Partial indexes with WHERE clauses
 - ✅ Full-text search indexes (GIN)
@@ -214,6 +243,7 @@ Migrations must be applied in numerical order:
 - ✅ Foreign key indexes for joins
 
 ### Advanced Features
+
 - ✅ Recurring events (RFC 5545 RRULE support)
 - ✅ Event capacity and waitlist management
 - ✅ Multi-assignee task support
@@ -226,6 +256,7 @@ Migrations must be applied in numerical order:
 - ✅ Hierarchical structures (departments, document categories)
 
 ### Developer Experience
+
 - ✅ Automatic `updated_at` triggers on all tables
 - ✅ Comprehensive table and column comments
 - ✅ Idiomatic SQL formatting
@@ -237,6 +268,7 @@ Migrations must be applied in numerical order:
 All migrations are designed to work seamlessly with SeaORM:
 
 ### Rust Model Mapping
+
 ```rust
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "users", schema_name = "hr_public")]
@@ -248,6 +280,7 @@ pub struct Model {
 ```
 
 ### Key Compatibility Points
+
 - ✅ All tables in `hr_public` schema
 - ✅ UUID primary keys with `gen_random_uuid()`
 - ✅ `TIMESTAMPTZ` → `DateTime<Utc>`
@@ -259,6 +292,7 @@ pub struct Model {
 ## Migration Application
 
 ### Using psql
+
 ```bash
 for f in /path/to/migrations.new/202510*.sql; do
     psql -U postgres -d sveltehr < "$f"
@@ -266,6 +300,7 @@ done
 ```
 
 ### Using Rust Database Tool
+
 ```bash
 # If using sea-orm-cli
 sea-orm-cli migrate up
@@ -275,6 +310,7 @@ cargo run --bin migrate
 ```
 
 ### Verification
+
 ```sql
 -- Check all tables created
 SELECT schemaname, tablename
@@ -296,25 +332,33 @@ ORDER BY typname;
 ## Important Notes
 
 ### Schema Search Path
+
 The migrations do NOT rely on `search_path`. All table references explicitly qualify schema:
+
 - `hr_public.users` (not just `users`)
 - `hr_public.departments` (not just `departments`)
 
 ### Migration Tracking
+
 The `public.schema_migrations` table tracks applied migrations:
+
 ```sql
 INSERT INTO public.schema_migrations (version, description, checksum)
 VALUES ('20251017_001', 'Enable extensions and create schemas', 'abc123...');
 ```
 
 ### Circular Dependencies
+
 Resolved via:
+
 1. Create `users` table without `department_id` FK
 2. Create `departments` table with `manager_id` FK to users
 3. Add `department_id` FK constraint to users
 
 ### Future Enhancements
+
 These migrations provide a solid foundation. Future additions:
+
 - Row-level security policies (RLS)
 - Materialized views for analytics
 - Partitioning for large tables (activity_logs, etc.)
@@ -324,18 +368,23 @@ These migrations provide a solid foundation. Future additions:
 ## Troubleshooting
 
 ### Issue: Schema not found
+
 **Solution:** Ensure migration 001 ran successfully to create `hr_public` schema
 
 ### Issue: ENUM type conflicts
+
 **Solution:** Drop existing ENUMs before reapplying:
+
 ```sql
 DROP TYPE IF EXISTS hr_public.task_status CASCADE;
 ```
 
 ### Issue: Foreign key constraint failures
+
 **Solution:** Apply migrations in order. Some tables depend on others.
 
 ### Issue: Trigger errors
+
 **Solution:** Ensure migration 012 runs last (requires all tables to exist)
 
 ## Credits

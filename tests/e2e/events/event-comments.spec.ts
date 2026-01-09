@@ -11,7 +11,7 @@
  * - Pagination with "Load More" button
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Event Comments - CRUD Operations', () => {
 	test.beforeEach(async ({ page }) => {
@@ -40,7 +40,9 @@ test.describe('Event Comments - CRUD Operations', () => {
 
 	test('should add comment with plain text', async ({ page }) => {
 		// Find comment input
-		const commentInput = page.locator('textarea[placeholder*="comment"], textarea[name="comment"]').first();
+		const commentInput = page
+			.locator('textarea[placeholder*="comment"], textarea[name="comment"]')
+			.first();
 		await commentInput.waitFor({ state: 'visible' });
 
 		// Type comment
@@ -48,7 +50,9 @@ test.describe('Event Comments - CRUD Operations', () => {
 		await commentInput.fill(testComment);
 
 		// Submit comment
-		const submitButton = page.locator('button:has-text("Add Comment"), button:has-text("Post"), button[type="submit"]').first();
+		const submitButton = page
+			.locator('button:has-text("Add Comment"), button:has-text("Post"), button[type="submit"]')
+			.first();
 		await submitButton.click();
 
 		// Wait for comment to appear
@@ -61,7 +65,9 @@ test.describe('Event Comments - CRUD Operations', () => {
 
 	test('should add comment with @mention', async ({ page }) => {
 		// Find comment input
-		const commentInput = page.locator('textarea[placeholder*="comment"], textarea[name="comment"]').first();
+		const commentInput = page
+			.locator('textarea[placeholder*="comment"], textarea[name="comment"]')
+			.first();
 		await commentInput.waitFor({ state: 'visible' });
 
 		// Type comment with @mention
@@ -69,7 +75,9 @@ test.describe('Event Comments - CRUD Operations', () => {
 		await commentInput.fill(testComment);
 
 		// Submit comment
-		const submitButton = page.locator('button:has-text("Add Comment"), button:has-text("Post"), button[type="submit"]').first();
+		const submitButton = page
+			.locator('button:has-text("Add Comment"), button:has-text("Post"), button[type="submit"]')
+			.first();
 		await submitButton.click();
 
 		// Wait for comment to appear
@@ -82,7 +90,9 @@ test.describe('Event Comments - CRUD Operations', () => {
 
 	test('should strip HTML tags from comment (XSS protection)', async ({ page }) => {
 		// Find comment input
-		const commentInput = page.locator('textarea[placeholder*="comment"], textarea[name="comment"]').first();
+		const commentInput = page
+			.locator('textarea[placeholder*="comment"], textarea[name="comment"]')
+			.first();
 		await commentInput.waitFor({ state: 'visible' });
 
 		// Try to inject HTML
@@ -90,7 +100,9 @@ test.describe('Event Comments - CRUD Operations', () => {
 		await commentInput.fill(maliciousComment);
 
 		// Submit comment
-		const submitButton = page.locator('button:has-text("Add Comment"), button:has-text("Post"), button[type="submit"]').first();
+		const submitButton = page
+			.locator('button:has-text("Add Comment"), button:has-text("Post"), button[type="submit"]')
+			.first();
 		await submitButton.click();
 
 		// Wait for comment to appear
@@ -107,7 +119,9 @@ test.describe('Event Comments - CRUD Operations', () => {
 
 	test('should strip JavaScript from comment (XSS protection)', async ({ page }) => {
 		// Find comment input
-		const commentInput = page.locator('textarea[placeholder*="comment"], textarea[name="comment"]').first();
+		const commentInput = page
+			.locator('textarea[placeholder*="comment"], textarea[name="comment"]')
+			.first();
 		await commentInput.waitFor({ state: 'visible' });
 
 		// Try to inject script
@@ -122,7 +136,9 @@ test.describe('Event Comments - CRUD Operations', () => {
 		});
 
 		// Submit comment
-		const submitButton = page.locator('button:has-text("Add Comment"), button:has-text("Post"), button[type="submit"]').first();
+		const submitButton = page
+			.locator('button:has-text("Add Comment"), button:has-text("Post"), button[type="submit"]')
+			.first();
 		await submitButton.click();
 
 		// Wait for comment processing
@@ -138,11 +154,15 @@ test.describe('Event Comments - CRUD Operations', () => {
 
 	test('should edit own comment', async ({ page }) => {
 		// First, add a comment
-		const commentInput = page.locator('textarea[placeholder*="comment"], textarea[name="comment"]').first();
+		const commentInput = page
+			.locator('textarea[placeholder*="comment"], textarea[name="comment"]')
+			.first();
 		const originalComment = `Original comment ${Date.now()}`;
 		await commentInput.fill(originalComment);
 
-		const submitButton = page.locator('button:has-text("Add Comment"), button:has-text("Post"), button[type="submit"]').first();
+		const submitButton = page
+			.locator('button:has-text("Add Comment"), button:has-text("Post"), button[type="submit"]')
+			.first();
 		await submitButton.click();
 		await page.waitForTimeout(1000);
 
@@ -150,7 +170,9 @@ test.describe('Event Comments - CRUD Operations', () => {
 		const commentContainer = page.locator(`text=${originalComment}`).locator('..').locator('..');
 
 		// Find edit button (usually a pencil icon or "Edit" text)
-		const editButton = commentContainer.locator('button[aria-label*="Edit"], button:has-text("Edit")').first();
+		const editButton = commentContainer
+			.locator('button[aria-label*="Edit"], button:has-text("Edit")')
+			.first();
 
 		// Check if edit button exists (should for own comments)
 		const editButtonCount = await editButton.count();
@@ -174,10 +196,14 @@ test.describe('Event Comments - CRUD Operations', () => {
 
 	test('should display relative timestamps for recent comments', async ({ page }) => {
 		// Add a new comment
-		const commentInput = page.locator('textarea[placeholder*="comment"], textarea[name="comment"]').first();
+		const commentInput = page
+			.locator('textarea[placeholder*="comment"], textarea[name="comment"]')
+			.first();
 		await commentInput.fill(`New comment ${Date.now()}`);
 
-		const submitButton = page.locator('button:has-text("Add Comment"), button:has-text("Post"), button[type="submit"]').first();
+		const submitButton = page
+			.locator('button:has-text("Add Comment"), button:has-text("Post"), button[type="submit"]')
+			.first();
 		await submitButton.click();
 		await page.waitForTimeout(1000);
 
@@ -226,7 +252,9 @@ test.describe('Event Comments - CRUD Operations', () => {
 			const commentInput = page.locator('textarea[placeholder*="comment"]').first();
 			await commentInput.fill('First comment!');
 
-			const submitButton = page.locator('button:has-text("Add Comment"), button:has-text("Post")').first();
+			const submitButton = page
+				.locator('button:has-text("Add Comment"), button:has-text("Post")')
+				.first();
 			await submitButton.click();
 			await page.waitForTimeout(1000);
 
@@ -237,7 +265,9 @@ test.describe('Event Comments - CRUD Operations', () => {
 
 	test('should display inline error on comment submission failure', async ({ page }) => {
 		// Try to submit empty comment
-		const submitButton = page.locator('button:has-text("Add Comment"), button:has-text("Post"), button[type="submit"]').first();
+		const submitButton = page
+			.locator('button:has-text("Add Comment"), button:has-text("Post"), button[type="submit"]')
+			.first();
 		await submitButton.click();
 
 		// Wait for error message

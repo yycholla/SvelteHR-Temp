@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { AlertTriangle, RefreshCw, Home, Bug } from '@lucide/svelte';
+	import { AlertTriangle, Bug, Home, RefreshCw } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import {
 		Card,
@@ -24,7 +24,7 @@
 		onHome?: () => void;
 	}
 
-	let {
+	const {
 		error,
 		title = 'Something went wrong',
 		description = 'We encountered an unexpected error. Please try again or contact support if the problem persists.',
@@ -60,13 +60,15 @@
 	}
 
 	// Extract error details reactively with safe access
-	let errorMessage = $derived(
-		!error ? 'Unknown error occurred' :
-		typeof error === 'string' ? error :
-		error?.message ?? 'Unknown error occurred'
+	const errorMessage = $derived(
+		!error
+			? 'Unknown error occurred'
+			: typeof error === 'string'
+				? error
+				: (error?.message ?? 'Unknown error occurred')
 	);
-	let errorStack = $derived(error ? (error?.stack ?? '') : '');
-	let errorName = $derived(error ? (error?.name ?? 'Error') : 'Error');
+	const errorStack = $derived(error ? (error?.stack ?? '') : '');
+	const errorName = $derived(error ? (error?.name ?? 'Error') : 'Error');
 </script>
 
 {#if error}

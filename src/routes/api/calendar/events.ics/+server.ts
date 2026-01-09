@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // iCal Feed Endpoint for Events Calendar
 // Generates RFC 5545 compliant iCalendar format for calendar applications
 
@@ -93,7 +94,7 @@ export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 			}
 		});
 	} catch (err) {
-		console.error('Error generating iCal feed:', err);
+		logger.error('Error generating iCal feed:', err as Error);
 		error(500, 'Failed to generate calendar feed');
 	}
 };
@@ -133,7 +134,7 @@ function generateVEvent(event: any): string[] {
 	lines.push(`DTSTAMP:${formatICalDate(now)}`);
 
 	// Start and end times
-	if (event.allDay) {
+	if (event.isAllDay) {
 		// All-day events use VALUE=DATE format (YYYYMMDD)
 		const startDate = new Date(event.startTime);
 		const endDate = new Date(event.endTime);
@@ -230,8 +231,8 @@ function formatICalDateOnly(date: Date): string {
 function escapeICalText(text: string): string {
 	return text
 		.replace(/\\/g, '\\\\') // Backslash
-		.replace(/;/g, '\\;')    // Semicolon
-		.replace(/,/g, '\\,')    // Comma
-		.replace(/\n/g, '\\n')   // Newline
-		.replace(/\r/g, '');     // Remove carriage return
+		.replace(/;/g, '\\;') // Semicolon
+		.replace(/,/g, '\\,') // Comma
+		.replace(/\n/g, '\\n') // Newline
+		.replace(/\r/g, ''); // Remove carriage return
 }

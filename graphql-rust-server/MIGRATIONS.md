@@ -18,6 +18,7 @@ CREATE TABLE seaql_migrations (
 ```
 
 When you run `migration up`, SeaORM:
+
 1. Checks the `seaql_migrations` table for applied migrations
 2. Compares with the list of available migrations
 3. **Only applies new migrations** that haven't been run yet
@@ -258,16 +259,19 @@ Before deploying a migration to production:
 **Solutions**:
 
 1. **Check migration logs**:
+
    ```bash
    docker-compose -f docker-compose.prod.yml logs hr-graphql-rust | grep -A 10 "Migration"
    ```
 
 2. **Inspect seaql_migrations table**:
+
    ```bash
    docker exec -it sveltehr-postgres-prod psql -U postgres -d hr_system -c "SELECT * FROM seaql_migrations ORDER BY applied_at DESC;"
    ```
 
 3. **Manually fix failed migration**:
+
    ```bash
    # Connect to database
    docker exec -it sveltehr-postgres-prod psql -U postgres -d hr_system
@@ -378,6 +382,7 @@ enum Users {
 ```
 
 This migration:
+
 - ✅ Adds a new nullable column (safe, doesn't affect existing rows)
 - ✅ Adds an index (performance improvement)
 - ✅ Can be rolled back in development (down method)
@@ -388,6 +393,7 @@ This migration:
 ## Summary
 
 The production migration system is designed to be:
+
 - **Safe**: Only applies pending migrations, never touches existing data
 - **Automatic**: Runs on every container startup
 - **Tracked**: Maintains migration history

@@ -12,7 +12,7 @@
  * Migrations: 20251010_019 through 20251010_022
  */
 
-import { test, expect, describe, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 const mockGraphQLClient = {
 	query: vi.fn(),
@@ -66,13 +66,11 @@ describe('Materialized Views Contract (P4 Performance)', () => {
 				}
 			`;
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('department_metrics view not queryable')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('department_metrics view not queryable'));
 
-			await expect(
-				mockGraphQLClient.query(query, { deptId: 'dept_123' })
-			).rejects.toThrow('department_metrics view not queryable');
+			await expect(mockGraphQLClient.query(query, { deptId: 'dept_123' })).rejects.toThrow(
+				'department_metrics view not queryable'
+			);
 		});
 
 		test('should filter by active employee count', async () => {
@@ -94,9 +92,9 @@ describe('Materialized Views Contract (P4 Performance)', () => {
 				new Error('DepartmentMetric filtering not implemented')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { minEmployees: 10 })
-			).rejects.toThrow('DepartmentMetric filtering not implemented');
+			await expect(mockGraphQLClient.query(query, { minEmployees: 10 })).rejects.toThrow(
+				'DepartmentMetric filtering not implemented'
+			);
 		});
 
 		test('should verify unique index on departmentId for CONCURRENT refresh', async () => {
@@ -107,9 +105,9 @@ describe('Materialized Views Contract (P4 Performance)', () => {
 				AND indexname = 'department_metrics_pkey';
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Index verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Index verification requires live connection'));
 
 			await expect(mockDbQuery(indexQuery)).rejects.toThrow(
 				'Index verification requires live connection'
@@ -166,9 +164,7 @@ describe('Materialized Views Contract (P4 Performance)', () => {
 				}
 			`;
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('goal_statistics view not queryable')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('goal_statistics view not queryable'));
 
 			await expect(
 				mockGraphQLClient.query(query, {
@@ -200,9 +196,9 @@ describe('Materialized Views Contract (P4 Performance)', () => {
 				new Error('GoalStatistic filtering not implemented')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { minCompletion: 80.0 })
-			).rejects.toThrow('GoalStatistic filtering not implemented');
+			await expect(mockGraphQLClient.query(query, { minCompletion: 80.0 })).rejects.toThrow(
+				'GoalStatistic filtering not implemented'
+			);
 		});
 
 		test('should verify unique index on (userId, quarter, year) for CONCURRENT refresh', async () => {
@@ -213,9 +209,9 @@ describe('Materialized Views Contract (P4 Performance)', () => {
 				AND indexname = 'goal_statistics_pkey';
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Index verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Index verification requires live connection'));
 
 			await expect(mockDbQuery(indexQuery)).rejects.toThrow(
 				'Index verification requires live connection'
@@ -269,9 +265,7 @@ describe('Materialized Views Contract (P4 Performance)', () => {
 				}
 			`;
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('report_analytics view not queryable')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('report_analytics view not queryable'));
 
 			await expect(
 				mockGraphQLClient.query(query, {
@@ -301,9 +295,9 @@ describe('Materialized Views Contract (P4 Performance)', () => {
 				new Error('ReportAnalytic filtering not implemented')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { maxRate: 80.0 })
-			).rejects.toThrow('ReportAnalytic filtering not implemented');
+			await expect(mockGraphQLClient.query(query, { maxRate: 80.0 })).rejects.toThrow(
+				'ReportAnalytic filtering not implemented'
+			);
 		});
 
 		test('should handle NULL attendance_rate_percentage gracefully', async () => {
@@ -319,13 +313,9 @@ describe('Materialized Views Contract (P4 Performance)', () => {
 				}
 			`;
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('NULL handling not implemented')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('NULL handling not implemented'));
 
-			await expect(mockGraphQLClient.query(query)).rejects.toThrow(
-				'NULL handling not implemented'
-			);
+			await expect(mockGraphQLClient.query(query)).rejects.toThrow('NULL handling not implemented');
 		});
 	});
 
@@ -396,9 +386,7 @@ describe('Materialized Views Contract (P4 Performance)', () => {
 				}
 			};
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('Single row constraint not implemented')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('Single row constraint not implemented'));
 
 			await expect(mockGraphQLClient.query(query)).rejects.toThrow(
 				'Single row constraint not implemented'
@@ -413,9 +401,9 @@ describe('Materialized Views Contract (P4 Performance)', () => {
 				AND indexname = 'dashboard_summaries_pkey';
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Index verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Index verification requires live connection'));
 
 			await expect(mockDbQuery(indexQuery)).rejects.toThrow(
 				'Index verification requires live connection'
@@ -510,9 +498,7 @@ describe('Materialized Views Contract (P4 Performance)', () => {
 				}
 			`;
 
-			mockGraphQLClient.mutation.mockRejectedValue(
-				new Error('CONCURRENT refresh not implemented')
-			);
+			mockGraphQLClient.mutation.mockRejectedValue(new Error('CONCURRENT refresh not implemented'));
 
 			await expect(mockGraphQLClient.mutation(mutation)).rejects.toThrow(
 				'CONCURRENT refresh not implemented'
@@ -540,9 +526,9 @@ describe('Materialized Views Contract (P4 Performance)', () => {
 				ispopulated: true
 			};
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('View verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('View verification requires live connection'));
 
 			await expect(mockDbQuery(viewQuery)).rejects.toThrow(
 				'View verification requires live connection'
@@ -557,9 +543,9 @@ describe('Materialized Views Contract (P4 Performance)', () => {
 				AND schemaname = 'hr_public';
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('View verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('View verification requires live connection'));
 
 			await expect(mockDbQuery(viewQuery)).rejects.toThrow(
 				'View verification requires live connection'
@@ -574,9 +560,9 @@ describe('Materialized Views Contract (P4 Performance)', () => {
 				AND schemaname = 'hr_public';
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('View verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('View verification requires live connection'));
 
 			await expect(mockDbQuery(viewQuery)).rejects.toThrow(
 				'View verification requires live connection'
@@ -591,9 +577,9 @@ describe('Materialized Views Contract (P4 Performance)', () => {
 				AND schemaname = 'hr_public';
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('View verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('View verification requires live connection'));
 
 			await expect(mockDbQuery(viewQuery)).rejects.toThrow(
 				'View verification requires live connection'
@@ -618,9 +604,9 @@ describe('Materialized Views Contract (P4 Performance)', () => {
 				AND indexdef LIKE '%UNIQUE%';
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Index verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Index verification requires live connection'));
 
 			await expect(mockDbQuery(indexQuery)).rejects.toThrow(
 				'Index verification requires live connection'
@@ -640,9 +626,9 @@ describe('Materialized Views Contract (P4 Performance)', () => {
 				);
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Population verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Population verification requires live connection'));
 
 			await expect(mockDbQuery(populationQuery)).rejects.toThrow(
 				'Population verification requires live connection'
@@ -686,9 +672,9 @@ describe('Materialized Views Contract (P4 Performance)', () => {
 				WHERE department_id = 'dept_123';
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('EXPLAIN ANALYZE requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('EXPLAIN ANALYZE requires live connection'));
 
 			await expect(mockDbQuery(explainQuery)).rejects.toThrow(
 				'EXPLAIN ANALYZE requires live connection'
@@ -758,9 +744,7 @@ describe('Materialized Views Contract (P4 Performance)', () => {
 			`;
 
 			// Expected: totalCount = 0 when no departments exist
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('Empty table handling not implemented')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('Empty table handling not implemented'));
 
 			await expect(mockGraphQLClient.query(query)).rejects.toThrow(
 				'Empty table handling not implemented'

@@ -71,6 +71,7 @@ This document defines the complete data model for the System Settings feature, i
 **Table Name**: `system_settings`
 
 **Constraints**:
+
 - **Singleton Enforcement**: CHECK constraint `id = 1` ensures only one row exists
 - **Initialization**: Seeded with default values on migration
 
@@ -132,27 +133,27 @@ CREATE TRIGGER update_system_settings_updated_at
 
 #### Field Specifications
 
-| Field | Type | Nullable | Default | Validation | Purpose |
-|-------|------|----------|---------|------------|---------|
-| `id` | INTEGER | NO | - | Must be 1 | Singleton enforcement |
-| `system_name` | VARCHAR(255) | NO | 'MoncuraHR' | 3-255 chars | System branding name |
-| `system_timezone` | VARCHAR(100) | NO | 'UTC' | IANA format | Default timezone for date/time display |
-| `session_timeout_minutes` | INTEGER | NO | 60 | 5-1440 | JWT expiration duration |
-| `min_password_length` | INTEGER | NO | 12 | 8-128 | Minimum password characters |
-| `max_login_attempts` | INTEGER | NO | 5 | 3-100 | Failed logins before lockout |
-| `require_mfa` | BOOLEAN | NO | false | - | MFA enforcement flag |
-| `password_expiration_enabled` | BOOLEAN | NO | false | - | Password expiry enforcement |
-| `password_expiration_days` | INTEGER | YES | 90 | 30-365 or NULL | Days until password expires |
-| `https_enforced` | BOOLEAN | NO | false | - | Force HTTPS redirects |
-| `csp_policy` | TEXT | YES | NULL | - | Content Security Policy header |
-| `x_frame_options` | BOOLEAN | NO | true | - | Enable X-Frame-Options header |
-| `hsts_enabled` | BOOLEAN | NO | false | - | Enable HSTS header |
-| `cors_origins` | TEXT[] | YES | NULL | Valid URLs | Allowed CORS origins |
-| `log_level_frontend` | VARCHAR(20) | NO | 'INFO' | Enum values | Frontend container log level |
-| `log_level_backend` | VARCHAR(20) | NO | 'INFO' | Enum values | Backend container log level |
-| `created_at` | TIMESTAMPTZ | NO | NOW() | - | Creation timestamp (UTC) |
-| `updated_at` | TIMESTAMPTZ | NO | NOW() | - | Last modification timestamp (UTC) |
-| `updated_by` | UUID | YES | NULL | FK to users | User who made last change |
+| Field                         | Type         | Nullable | Default     | Validation     | Purpose                                |
+| ----------------------------- | ------------ | -------- | ----------- | -------------- | -------------------------------------- |
+| `id`                          | INTEGER      | NO       | -           | Must be 1      | Singleton enforcement                  |
+| `system_name`                 | VARCHAR(255) | NO       | 'MoncuraHR' | 3-255 chars    | System branding name                   |
+| `system_timezone`             | VARCHAR(100) | NO       | 'UTC'       | IANA format    | Default timezone for date/time display |
+| `session_timeout_minutes`     | INTEGER      | NO       | 60          | 5-1440         | JWT expiration duration                |
+| `min_password_length`         | INTEGER      | NO       | 12          | 8-128          | Minimum password characters            |
+| `max_login_attempts`          | INTEGER      | NO       | 5           | 3-100          | Failed logins before lockout           |
+| `require_mfa`                 | BOOLEAN      | NO       | false       | -              | MFA enforcement flag                   |
+| `password_expiration_enabled` | BOOLEAN      | NO       | false       | -              | Password expiry enforcement            |
+| `password_expiration_days`    | INTEGER      | YES      | 90          | 30-365 or NULL | Days until password expires            |
+| `https_enforced`              | BOOLEAN      | NO       | false       | -              | Force HTTPS redirects                  |
+| `csp_policy`                  | TEXT         | YES      | NULL        | -              | Content Security Policy header         |
+| `x_frame_options`             | BOOLEAN      | NO       | true        | -              | Enable X-Frame-Options header          |
+| `hsts_enabled`                | BOOLEAN      | NO       | false       | -              | Enable HSTS header                     |
+| `cors_origins`                | TEXT[]       | YES      | NULL        | Valid URLs     | Allowed CORS origins                   |
+| `log_level_frontend`          | VARCHAR(20)  | NO       | 'INFO'      | Enum values    | Frontend container log level           |
+| `log_level_backend`           | VARCHAR(20)  | NO       | 'INFO'      | Enum values    | Backend container log level            |
+| `created_at`                  | TIMESTAMPTZ  | NO       | NOW()       | -              | Creation timestamp (UTC)               |
+| `updated_at`                  | TIMESTAMPTZ  | NO       | NOW()       | -              | Last modification timestamp (UTC)      |
+| `updated_by`                  | UUID         | YES      | NULL        | FK to users    | User who made last change              |
 
 #### Indexes
 
@@ -169,6 +170,7 @@ CREATE TRIGGER update_system_settings_updated_at
 **Table Name**: `notification_channels`
 
 **Constraints**:
+
 - **Channel Type Validation**: CHECK constraint ensures valid channel types
 - **Config JSON Validation**: Application-level validation of JSON structure per channel type
 
@@ -206,38 +208,40 @@ CREATE TRIGGER update_notification_channels_updated_at
 
 #### Field Specifications
 
-| Field | Type | Nullable | Default | Validation | Purpose |
-|-------|------|----------|---------|------------|---------|
-| `id` | UUID | NO | gen_random_uuid() | - | Unique channel identifier |
-| `channel_type` | VARCHAR(50) | NO | - | 'email' or 'webhook' | Type of notification channel |
-| `enabled` | BOOLEAN | NO | true | - | Whether channel is active |
-| `config_json` | JSONB | NO | - | Type-specific schema | Channel configuration (encrypted sensitive fields) |
-| `created_at` | TIMESTAMPTZ | NO | NOW() | - | Creation timestamp (UTC) |
-| `updated_at` | TIMESTAMPTZ | NO | NOW() | - | Last modification timestamp (UTC) |
+| Field          | Type        | Nullable | Default           | Validation           | Purpose                                            |
+| -------------- | ----------- | -------- | ----------------- | -------------------- | -------------------------------------------------- |
+| `id`           | UUID        | NO       | gen_random_uuid() | -                    | Unique channel identifier                          |
+| `channel_type` | VARCHAR(50) | NO       | -                 | 'email' or 'webhook' | Type of notification channel                       |
+| `enabled`      | BOOLEAN     | NO       | true              | -                    | Whether channel is active                          |
+| `config_json`  | JSONB       | NO       | -                 | Type-specific schema | Channel configuration (encrypted sensitive fields) |
+| `created_at`   | TIMESTAMPTZ | NO       | NOW()             | -                    | Creation timestamp (UTC)                           |
+| `updated_at`   | TIMESTAMPTZ | NO       | NOW()             | -                    | Last modification timestamp (UTC)                  |
 
 #### Config JSON Schemas
 
 **Email Channel**:
+
 ```json
 {
-  "smtp_host": "smtp.sendgrid.net",
-  "smtp_port": 587,
-  "smtp_username": "apikey",
-  "smtp_password": "ENCRYPTED_BASE64_STRING", // Encrypted with pgcrypto
-  "from_address": "noreply@moncurahr.com",
-  "use_tls": true
+	"smtp_host": "smtp.sendgrid.net",
+	"smtp_port": 587,
+	"smtp_username": "apikey",
+	"smtp_password": "ENCRYPTED_BASE64_STRING", // Encrypted with pgcrypto
+	"from_address": "noreply@moncurahr.com",
+	"use_tls": true
 }
 ```
 
 **Webhook Channel**:
+
 ```json
 {
-  "webhook_url": "https://hooks.example.com/notifications",
-  "auth_token": "ENCRYPTED_BASE64_STRING", // Encrypted with pgcrypto
-  "custom_headers": {
-    "X-Custom-Header": "value"
-  },
-  "timeout_seconds": 5
+	"webhook_url": "https://hooks.example.com/notifications",
+	"auth_token": "ENCRYPTED_BASE64_STRING", // Encrypted with pgcrypto
+	"custom_headers": {
+		"X-Custom-Header": "value"
+	},
+	"timeout_seconds": 5
 }
 ```
 
@@ -304,16 +308,17 @@ CREATE INDEX IF NOT EXISTS idx_users_failed_attempts ON users(failed_login_attem
 
 #### New Field Specifications
 
-| Field | Type | Nullable | Default | Validation | Purpose |
-|-------|------|----------|---------|------------|---------|
-| `failed_login_attempts` | INTEGER | NO | 0 | >= 0 | Count of consecutive failed logins |
-| `account_locked` | BOOLEAN | NO | false | - | Whether account is locked |
-| `locked_at` | TIMESTAMPTZ | YES | NULL | - | When account was locked (UTC) |
-| `password_last_changed` | TIMESTAMPTZ | YES | NOW() | - | Last password change date (UTC) |
+| Field                   | Type        | Nullable | Default | Validation | Purpose                            |
+| ----------------------- | ----------- | -------- | ------- | ---------- | ---------------------------------- |
+| `failed_login_attempts` | INTEGER     | NO       | 0       | >= 0       | Count of consecutive failed logins |
+| `account_locked`        | BOOLEAN     | NO       | false   | -          | Whether account is locked          |
+| `locked_at`             | TIMESTAMPTZ | YES      | NULL    | -          | When account was locked (UTC)      |
+| `password_last_changed` | TIMESTAMPTZ | YES      | NOW()   | -          | Last password change date (UTC)    |
 
 #### Business Logic
 
 **Account Lockout Flow**:
+
 1. On failed login: Increment `failed_login_attempts`
 2. If `failed_login_attempts >= system_settings.max_login_attempts`:
    - Set `account_locked = true`
@@ -326,6 +331,7 @@ CREATE INDEX IF NOT EXISTS idx_users_failed_attempts ON users(failed_login_attem
    - Set `locked_at = NULL`
 
 **Password Expiration Check**:
+
 1. If `system_settings.password_expiration_enabled = true`
 2. Calculate: `NOW() - password_last_changed`
 3. If difference > `password_expiration_days`:
@@ -448,52 +454,52 @@ import { z } from 'zod';
 
 // SystemSettings schema
 export const systemSettingsSchema = z.object({
-  systemName: z.string().min(3).max(255),
-  systemTimezone: z.string().regex(/^[A-Z][a-zA-Z_/+-]+$/), // IANA format
-  sessionTimeoutMinutes: z.number().int().min(5).max(1440),
-  minPasswordLength: z.number().int().min(8).max(128),
-  maxLoginAttempts: z.number().int().min(3).max(100),
-  requireMfa: z.boolean(),
-  passwordExpirationEnabled: z.boolean(),
-  passwordExpirationDays: z.number().int().min(30).max(365).nullable(),
-  httpsEnforced: z.boolean(),
-  cspPolicy: z.string().nullable(),
-  xFrameOptions: z.boolean(),
-  hstEnabled: z.boolean(),
-  corsOrigins: z.array(z.string().url()).nullable(),
-  logLevelFrontend: z.enum(['DEBUG', 'INFO', 'WARN', 'ERROR']),
-  logLevelBackend: z.enum(['DEBUG', 'INFO', 'WARN', 'ERROR'])
+	systemName: z.string().min(3).max(255),
+	systemTimezone: z.string().regex(/^[A-Z][a-zA-Z_/+-]+$/), // IANA format
+	sessionTimeoutMinutes: z.number().int().min(5).max(1440),
+	minPasswordLength: z.number().int().min(8).max(128),
+	maxLoginAttempts: z.number().int().min(3).max(100),
+	requireMfa: z.boolean(),
+	passwordExpirationEnabled: z.boolean(),
+	passwordExpirationDays: z.number().int().min(30).max(365).nullable(),
+	httpsEnforced: z.boolean(),
+	cspPolicy: z.string().nullable(),
+	xFrameOptions: z.boolean(),
+	hstEnabled: z.boolean(),
+	corsOrigins: z.array(z.string().url()).nullable(),
+	logLevelFrontend: z.enum(['DEBUG', 'INFO', 'WARN', 'ERROR']),
+	logLevelBackend: z.enum(['DEBUG', 'INFO', 'WARN', 'ERROR'])
 });
 
 // Email channel schema
 export const emailChannelSchema = z.object({
-  channelType: z.literal('email'),
-  enabled: z.boolean(),
-  config: z.object({
-    smtpHost: z.string().min(1),
-    smtpPort: z.number().int().min(1).max(65535),
-    smtpUsername: z.string().min(1),
-    smtpPassword: z.string().min(1),
-    fromAddress: z.string().email(),
-    useTls: z.boolean().default(true)
-  })
+	channelType: z.literal('email'),
+	enabled: z.boolean(),
+	config: z.object({
+		smtpHost: z.string().min(1),
+		smtpPort: z.number().int().min(1).max(65535),
+		smtpUsername: z.string().min(1),
+		smtpPassword: z.string().min(1),
+		fromAddress: z.string().email(),
+		useTls: z.boolean().default(true)
+	})
 });
 
 // Webhook channel schema
 export const webhookChannelSchema = z.object({
-  channelType: z.literal('webhook'),
-  enabled: z.boolean(),
-  config: z.object({
-    webhookUrl: z.string().url(),
-    authToken: z.string().optional(),
-    customHeaders: z.record(z.string()).optional(),
-    timeoutSeconds: z.number().int().min(1).max(30).default(5)
-  })
+	channelType: z.literal('webhook'),
+	enabled: z.boolean(),
+	config: z.object({
+		webhookUrl: z.string().url(),
+		authToken: z.string().optional(),
+		customHeaders: z.record(z.string()).optional(),
+		timeoutSeconds: z.number().int().min(1).max(30).default(5)
+	})
 });
 
 export const notificationChannelSchema = z.discriminatedUnion('channelType', [
-  emailChannelSchema,
-  webhookChannelSchema
+	emailChannelSchema,
+	webhookChannelSchema
 ]);
 ```
 
@@ -894,59 +900,71 @@ enum Users {
 ### Common Queries
 
 **1. Fetch System Settings (once per app initialization)**
+
 ```sql
 SELECT * FROM system_settings WHERE id = 1;
 ```
+
 - **Frequency**: Once per backend/frontend initialization
 - **Performance**: O(1) primary key lookup
 - **Caching**: Cache in application memory, TTL 5 minutes
 
 **2. Update System Settings (admin action)**
+
 ```sql
 UPDATE system_settings
 SET system_name = $1, system_timezone = $2, updated_at = NOW(), updated_by = $3
 WHERE id = 1
 RETURNING *;
 ```
+
 - **Frequency**: <1 per day (admin-only)
 - **Performance**: O(1) primary key update
 - **Side Effects**: Invalidate cache, trigger container restarts (if log level changed)
 
 **3. Fetch Enabled Notification Channels**
+
 ```sql
 SELECT * FROM notification_channels
 WHERE enabled = true
 ORDER BY channel_type;
 ```
+
 - **Frequency**: Once per notification event
 - **Performance**: O(n) with index on `enabled`
 - **Expected Rows**: 1-5 channels
 
 **4. Check Account Lockout**
+
 ```sql
 SELECT account_locked, failed_login_attempts
 FROM users
 WHERE id = $1;
 ```
+
 - **Frequency**: Every login attempt
 - **Performance**: O(1) primary key lookup
 - **Indexed**: Primary key on `id`
 
 **5. Increment Failed Login Attempts**
+
 ```sql
 UPDATE users
 SET failed_login_attempts = failed_login_attempts + 1
 WHERE id = $1;
 ```
+
 - **Frequency**: Every failed login
 - **Performance**: O(1) primary key update
 
 **6. Lock Account After Max Attempts**
+
 ```sql
 UPDATE users
 SET account_locked = true, locked_at = NOW()
 WHERE id = $1 AND failed_login_attempts >= $2;
 ```
+
 - **Frequency**: On reaching max_login_attempts
 - **Performance**: O(1) primary key update
 
@@ -957,25 +975,30 @@ WHERE id = $1 AND failed_login_attempts >= $2;
 ### ACID Properties
 
 **Atomicity**:
+
 - All mutations wrapped in database transactions
 - Settings updates are atomic (all-or-nothing)
 
 **Consistency**:
+
 - CHECK constraints enforce valid ranges
 - Foreign key constraints maintain referential integrity
 - Application-level validation before persistence
 
 **Isolation**:
+
 - READ COMMITTED isolation level (PostgreSQL default)
 - No concurrent modifications expected (singleton table, admin-only updates)
 
 **Durability**:
+
 - All writes commit to PostgreSQL WAL before response
 - Database backups include settings (critical for disaster recovery)
 
 ### Referential Integrity
 
 **system_settings.updated_by → users.id**:
+
 - ON DELETE SET NULL (preserve audit trail even if admin user deleted)
 
 **No cascading deletes** (settings deletion not allowed due to singleton constraint)
@@ -987,6 +1010,7 @@ WHERE id = $1 AND failed_login_attempts >= $2;
 ### Critical Data
 
 **Must backup**:
+
 - `system_settings` table (singleton row)
 - `notification_channels` table (includes encrypted credentials)
 - `users` table extensions (lockout state)
@@ -994,6 +1018,7 @@ WHERE id = $1 AND failed_login_attempts >= $2;
 ### Recovery Procedures
 
 **Scenario 1: Settings Corruption**
+
 ```sql
 -- Restore to defaults
 UPDATE system_settings
@@ -1010,6 +1035,7 @@ WHERE id = 1;
 ```
 
 **Scenario 2: Lost Encryption Key**
+
 - Notification channels become unrecoverable (credentials encrypted)
 - Require administrators to re-enter SMTP/webhook credentials
 - No system downtime (notifications fail gracefully per best-effort policy)
@@ -1021,10 +1047,12 @@ WHERE id = 1;
 ### Encryption at Rest
 
 **Sensitive Fields**:
+
 - `notification_channels.config_json.smtp_password`
 - `notification_channels.config_json.auth_token`
 
 **Encryption Method**:
+
 - PostgreSQL `pgcrypto` extension
 - AES-256 encryption
 - Key stored in environment variable `SETTINGS_ENCRYPTION_KEY`
@@ -1032,11 +1060,13 @@ WHERE id = 1;
 ### Access Control
 
 **Admin-Only Operations**:
+
 - All `system_settings` mutations
 - All `notification_channels` mutations
 - `unlockUserAccount` mutation
 
 **GraphQL Guard Implementation**:
+
 ```rust
 #[graphql(guard = "RoleGuard::new(Role::Admin)")]
 async fn update_system_settings(
@@ -1051,6 +1081,7 @@ async fn update_system_settings(
 ### Audit Logging
 
 **Tracked Changes**:
+
 - All system settings updates (via `updated_at` and `updated_by`)
 - Notification channel creation/modification
 - Account lockouts and unlocks

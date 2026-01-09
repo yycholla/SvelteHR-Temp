@@ -39,7 +39,10 @@ export async function checkCommand(options: CheckCommandOptions): Promise<void> 
     console.log(report);
     process.exit(cached.passed ? 0 : 1);
   } catch (error) {
-    console.error(chalk.red('❌ Check failed:'), error instanceof Error ? error.message : String(error));
+    console.error(
+      chalk.red('❌ Check failed:'),
+      error instanceof Error ? error.message : String(error)
+    );
     process.exit(1);
   }
 }

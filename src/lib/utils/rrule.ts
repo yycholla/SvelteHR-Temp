@@ -7,7 +7,7 @@
  * Enforces 5-year maximum limit for recurring events
  */
 
-import type { RecurrencePattern } from '$lib/types/events';
+import type { DayOfWeek, RecurrencePattern } from '$lib/types/events';
 
 /**
  * Day of week mapping for RRULE BYDAY parameter
@@ -38,7 +38,7 @@ export function generateRRule(pattern: RecurrencePattern, startDate: Date): stri
 	} = {
 		freq: pattern.frequency.toUpperCase(),
 		interval: pattern.interval,
-		until: formatDateForRRule(pattern.endDate)
+		until: formatDateForRRule(pattern.endDate || new Date())
 	};
 
 	// Add BYDAY for weekly recurrence

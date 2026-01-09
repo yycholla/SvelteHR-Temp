@@ -2,7 +2,7 @@
 	import type { WorkflowInstance } from '$lib/stores/workflow';
 
 	// Props
-	let {
+	const {
 		instance,
 		onviewDetails = undefined
 	}: {
@@ -12,7 +12,9 @@
 
 	// Derived values
 	const statusColor = $derived(getStatusColor(instance.status));
-	const categoryColor = $derived(getCategoryColor(instance.workflowDefinitionByWorkflowDefinitionId?.category));
+	const categoryColor = $derived(
+		getCategoryColor(instance.workflowDefinitionByWorkflowDefinitionId?.category ?? '')
+	);
 	const duration = $derived(calculateDuration(instance.startedAt, instance.completedAt));
 
 	function getStatusColor(status: string) {
@@ -59,7 +61,7 @@
 		});
 	}
 
-	function calculateDuration(startedAt: string | null, completedAt: string | null) {
+	function calculateDuration(startedAt: string | undefined, completedAt: string | undefined) {
 		if (!startedAt) return null;
 
 		const start = new Date(startedAt);

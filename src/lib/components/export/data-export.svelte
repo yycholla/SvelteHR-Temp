@@ -2,7 +2,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Download, FileText, Table2 } from '@lucide/svelte';
 
-	let {
+	const {
 		data = [],
 		filename = 'export',
 		format = 'csv'
@@ -22,7 +22,7 @@
 				const headers = Object.keys(dataToExport[0]);
 				const csvContent = [
 					headers.join(','),
-					...dataToExport.map((row) => headers.map((header) => row[header]).join(','))
+					...dataToExport.map((row: any) => headers.map((header: string) => row[header]).join(','))
 				].join('\n');
 
 				const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -58,9 +58,10 @@
 				return Download;
 		}
 	};
+
+	const ExportIcon = $derived(getIcon());
 </script>
 
-{@const ExportIcon = getIcon()}
 <Button variant="outline" onclick={exportData} class="gap-2">
 	<ExportIcon class="h-4 w-4" />
 	Export {format.toUpperCase()}

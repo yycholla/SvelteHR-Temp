@@ -6,51 +6,53 @@
  * This test MUST FAIL initially because the schema is not yet defined.
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { z } from 'zod';
 
 // Import the schema (will fail initially - schema not created yet)
 // import { CreateReviewSchema } from '$lib/schemas/performance-reviews';
 
 // Temporary local schema for testing structure (remove when actual schema is implemented)
-const CreateReviewSchema = z.object({
-	employeeId: z.string().uuid('Employee ID must be a valid UUID'),
-	reviewType: z.enum([
-		'ANNUAL_REVIEW',
-		'MID_YEAR_REVIEW',
-		'QUARTERLY_REVIEW',
-		'PROBATIONARY_REVIEW',
-		'PERFORMANCE_IMPROVEMENT_PLAN',
-		'NINETY_DAY_REVIEW',
-		'PROJECT_BASED_REVIEW',
-		'PROMOTION_REVIEW',
-		'EXIT_REVIEW',
-		'SELF_REVIEW'
-	]),
-	reviewPeriodStart: z.string().date().optional(),
-	reviewPeriodEnd: z.string().date().optional(),
-	goalIds: z.array(z.string().uuid()),
-	newGoals: z.array(
-		z.object({
-			title: z.string().min(1).max(255),
-			description: z.string().min(1),
-			targetCompletionDate: z.string().date(),
-			successMetrics: z.string().min(1)
-		})
-	),
-	notes: z.string().optional()
-}).refine(
-	(data) => {
-		if (data.reviewPeriodStart && data.reviewPeriodEnd) {
-			return new Date(data.reviewPeriodStart) < new Date(data.reviewPeriodEnd);
+const CreateReviewSchema = z
+	.object({
+		employeeId: z.string().uuid('Employee ID must be a valid UUID'),
+		reviewType: z.enum([
+			'ANNUAL_REVIEW',
+			'MID_YEAR_REVIEW',
+			'QUARTERLY_REVIEW',
+			'PROBATIONARY_REVIEW',
+			'PERFORMANCE_IMPROVEMENT_PLAN',
+			'NINETY_DAY_REVIEW',
+			'PROJECT_BASED_REVIEW',
+			'PROMOTION_REVIEW',
+			'EXIT_REVIEW',
+			'SELF_REVIEW'
+		]),
+		reviewPeriodStart: z.string().date().optional(),
+		reviewPeriodEnd: z.string().date().optional(),
+		goalIds: z.array(z.string().uuid()),
+		newGoals: z.array(
+			z.object({
+				title: z.string().min(1).max(255),
+				description: z.string().min(1),
+				targetCompletionDate: z.string().date(),
+				successMetrics: z.string().min(1)
+			})
+		),
+		notes: z.string().optional()
+	})
+	.refine(
+		(data) => {
+			if (data.reviewPeriodStart && data.reviewPeriodEnd) {
+				return new Date(data.reviewPeriodStart) < new Date(data.reviewPeriodEnd);
+			}
+			return true;
+		},
+		{
+			message: 'reviewPeriodEnd must be after reviewPeriodStart',
+			path: ['reviewPeriodEnd']
 		}
-		return true;
-	},
-	{
-		message: 'reviewPeriodEnd must be after reviewPeriodStart',
-		path: ['reviewPeriodEnd']
-	}
-);
+	);
 
 describe('T019: CreateReviewSchema validation', () => {
 	test('should pass validation with valid input', () => {
@@ -86,9 +88,7 @@ describe('T019: CreateReviewSchema validation', () => {
 		expect(result.success).toBe(false);
 
 		if (!result.success) {
-			const employeeIdError = result.error.issues.find(
-				(issue) => issue.path[0] === 'employeeId'
-			);
+			const employeeIdError = result.error.issues.find((issue) => issue.path[0] === 'employeeId');
 			expect(employeeIdError).toBeDefined();
 		}
 	});
@@ -105,9 +105,7 @@ describe('T019: CreateReviewSchema validation', () => {
 		expect(result.success).toBe(false);
 
 		if (!result.success) {
-			const employeeIdError = result.error.issues.find(
-				(issue) => issue.path[0] === 'employeeId'
-			);
+			const employeeIdError = result.error.issues.find((issue) => issue.path[0] === 'employeeId');
 			expect(employeeIdError).toBeDefined();
 			expect(employeeIdError?.message).toContain('UUID');
 		}
@@ -127,9 +125,7 @@ describe('T019: CreateReviewSchema validation', () => {
 		expect(result.success).toBe(false);
 
 		if (!result.success) {
-			const dateError = result.error.issues.find(
-				(issue) => issue.path[0] === 'reviewPeriodEnd'
-			);
+			const dateError = result.error.issues.find((issue) => issue.path[0] === 'reviewPeriodEnd');
 			expect(dateError).toBeDefined();
 			expect(dateError?.message).toContain('after');
 		}
@@ -139,10 +135,7 @@ describe('T019: CreateReviewSchema validation', () => {
 		const validInput = {
 			employeeId: '123e4567-e89b-12d3-a456-426614174000',
 			reviewType: 'ANNUAL_REVIEW',
-			goalIds: [
-				'223e4567-e89b-12d3-a456-426614174000',
-				'323e4567-e89b-12d3-a456-426614174000'
-			],
+			goalIds: ['223e4567-e89b-12d3-a456-426614174000', '323e4567-e89b-12d3-a456-426614174000'],
 			newGoals: []
 		};
 
@@ -162,9 +155,7 @@ describe('T019: CreateReviewSchema validation', () => {
 		expect(result.success).toBe(false);
 
 		if (!result.success) {
-			const goalIdError = result.error.issues.find(
-				(issue) => issue.path[0] === 'goalIds'
-			);
+			const goalIdError = result.error.issues.find((issue) => issue.path[0] === 'goalIds');
 			expect(goalIdError).toBeDefined();
 		}
 	});

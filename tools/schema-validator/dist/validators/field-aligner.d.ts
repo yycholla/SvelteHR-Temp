@@ -8,19 +8,46 @@ import { TypeComparator } from './type-comparator.js';
 /**
  * Align a single field across all three layers
  */
-export declare function alignField(graphqlField: FieldReference, dbColumn: DatabaseColumn | undefined, apiField: ApiField | undefined, fieldPath: string, sourceFile: string, sourceLine: number, sourceColumn: number, typeComparator: TypeComparator): FieldAlignment;
+export declare function alignField(
+  graphqlField: FieldReference,
+  dbColumn: DatabaseColumn | undefined,
+  apiField: ApiField | undefined,
+  fieldPath: string,
+  sourceFile: string,
+  sourceLine: number,
+  sourceColumn: number,
+  typeComparator: TypeComparator
+): FieldAlignment;
 /**
  * Compute alignment status based on field presence and type compatibility
  */
-export declare function computeAlignmentStatus(graphqlField: FieldReference, dbColumn: DatabaseColumn | undefined, apiField: ApiField | undefined, typeComparator: TypeComparator): AlignmentStatus;
+export declare function computeAlignmentStatus(
+  graphqlField: FieldReference,
+  dbColumn: DatabaseColumn | undefined,
+  apiField: ApiField | undefined,
+  typeComparator: TypeComparator
+): AlignmentStatus;
 /**
  * Generate error message for misalignment
  */
-export declare function generateErrorMessage(status: AlignmentStatus, fieldPath: string, graphqlField: FieldReference, dbColumn: DatabaseColumn | undefined, apiField: ApiField | undefined): string | undefined;
+export declare function generateErrorMessage(
+  status: AlignmentStatus,
+  fieldPath: string,
+  graphqlField: FieldReference,
+  dbColumn: DatabaseColumn | undefined,
+  apiField: ApiField | undefined
+): string | undefined;
 /**
  * Generate actionable suggestion for fixing misalignment
  */
-export declare function generateSuggestion(status: AlignmentStatus, fieldPath: string, graphqlField: FieldReference, dbColumn: DatabaseColumn | undefined, apiField: ApiField | undefined, typeComparator: TypeComparator): string | undefined;
+export declare function generateSuggestion(
+  status: AlignmentStatus,
+  fieldPath: string,
+  graphqlField: FieldReference,
+  dbColumn: DatabaseColumn | undefined,
+  apiField: ApiField | undefined,
+  typeComparator: TypeComparator
+): string | undefined;
 /**
  * Check if field path represents a computed field
  */

@@ -7,7 +7,7 @@
  * MUST FAIL until real-time subscription functionality is implemented.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Real-Time Event Updates', () => {
 	test.beforeEach(async ({ page }) => {
@@ -284,7 +284,9 @@ test.describe('Real-Time Event Updates', () => {
 		await page.reload();
 
 		// Verify error notification appears
-		const errorToast = page.locator('.toast:has-text("Connection error"), .toast:has-text("Failed to connect")');
+		const errorToast = page.locator(
+			'.toast:has-text("Connection error"), .toast:has-text("Failed to connect")'
+		);
 
 		if ((await errorToast.count()) > 0) {
 			await expect(errorToast).toBeVisible();
@@ -341,10 +343,8 @@ test.describe('Real-Time Event Updates', () => {
 	test('should throttle rapid subscription updates', async ({ page }) => {
 		// If many events are updated rapidly, UI should throttle updates
 		// to avoid excessive re-renders
-
 		// This would be tested by simulating rapid subscription messages
 		// and verifying UI doesn't freeze or lag
-
 		// In real implementation, use debouncing/throttling on subscription handlers
 	});
 });

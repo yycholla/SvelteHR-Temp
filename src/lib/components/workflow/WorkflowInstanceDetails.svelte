@@ -2,7 +2,7 @@
 	import type { WorkflowInstance } from '$lib/stores/workflow';
 
 	// Props
-	let {
+	const {
 		instance,
 		onclose = undefined
 	}: {
@@ -42,7 +42,7 @@
 		});
 	}
 
-	function calculateDuration(startedAt: string | null, completedAt: string | null) {
+	function calculateDuration(startedAt: string | undefined, completedAt: string | undefined) {
 		if (!startedAt) return null;
 
 		const start = new Date(startedAt);

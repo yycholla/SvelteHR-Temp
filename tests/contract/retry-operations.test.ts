@@ -13,11 +13,11 @@
  * - Performance impact and timeout behavior
  */
 
-import { test, expect, describe, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type {
-	RetryOperationVariables,
+	ErrorResponse,
 	RetryOperationResponse,
-	ErrorResponse
+	RetryOperationVariables
 } from '$lib/types/graphql-contracts';
 import { GRAPHQL_OPERATION_CONSTANTS } from '$lib/types/graphql-contracts';
 
@@ -173,7 +173,12 @@ describe('Retry Operations Contract', () => {
 						{ attempt: 1, delay: 1000, error: 'Persistent failure', timestamp: expect.any(String) },
 						{ attempt: 2, delay: 2000, error: 'Persistent failure', timestamp: expect.any(String) },
 						{ attempt: 3, delay: 4000, error: 'Persistent failure', timestamp: expect.any(String) }
-					]
+					],
+					retryInfo: {
+						attemptsRemaining: 0,
+						nextRetryDelay: 0,
+						maxRetries: 3
+					}
 				}
 			};
 

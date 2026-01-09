@@ -1,7 +1,7 @@
 // Contract test: Encryption keys API (T015)
 // Tests encryption key management endpoints
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
  * Contract Test: Encryption Keys API
@@ -15,6 +15,9 @@ import { describe, it, expect, beforeAll } from 'vitest';
  */
 
 describe('Encryption Keys API - Contract Tests', () => {
+	const API_BASE_URL =
+		process.env.API_BASE_URL || process.env.PUBLIC_API_URL || 'http://localhost:5173';
+
 	let userAToken: string;
 	let userBToken: string;
 	let adminToken: string;
@@ -43,10 +46,10 @@ describe('Encryption Keys API - Contract Tests', () => {
 			};
 
 			// Act: Register key
-			const response = await fetch('/api/encryption/keys', {
+			const response = await fetch(`${API_BASE_URL}/api/encryption/keys`, {
 				method: 'POST',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`,
+					Authorization: `Bearer ${userAToken}`,
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify(keyData)
@@ -76,7 +79,7 @@ describe('Encryption Keys API - Contract Tests', () => {
 			};
 
 			// Act: Register without auth
-			const response = await fetch('/api/encryption/keys', {
+			const response = await fetch(`${API_BASE_URL}/api/encryption/keys`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
@@ -101,10 +104,10 @@ describe('Encryption Keys API - Contract Tests', () => {
 			};
 
 			// Act: Register with incomplete data
-			const response = await fetch('/api/encryption/keys', {
+			const response = await fetch(`${API_BASE_URL}/api/encryption/keys`, {
 				method: 'POST',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`,
+					Authorization: `Bearer ${userAToken}`,
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify(invalidData)
@@ -127,10 +130,10 @@ describe('Encryption Keys API - Contract Tests', () => {
 			};
 
 			// Act: Register with invalid encoding
-			const response = await fetch('/api/encryption/keys', {
+			const response = await fetch(`${API_BASE_URL}/api/encryption/keys`, {
 				method: 'POST',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`,
+					Authorization: `Bearer ${userAToken}`,
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify(invalidData)
@@ -162,7 +165,7 @@ describe('Encryption Keys API - Contract Tests', () => {
 			const response1 = await fetch('/api/encryption/keys', {
 				method: 'POST',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`,
+					Authorization: `Bearer ${userAToken}`,
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify(keyData1)
@@ -174,7 +177,7 @@ describe('Encryption Keys API - Contract Tests', () => {
 			const response2 = await fetch('/api/encryption/keys', {
 				method: 'POST',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`,
+					Authorization: `Bearer ${userAToken}`,
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify(keyData2)
@@ -195,7 +198,7 @@ describe('Encryption Keys API - Contract Tests', () => {
 			const response = await fetch(`/api/encryption/keys/${userAKeyId}`, {
 				method: 'GET',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`
+					Authorization: `Bearer ${userAToken}`
 				}
 			});
 
@@ -213,12 +216,12 @@ describe('Encryption Keys API - Contract Tests', () => {
 			expect(data.encryptedKeyData).toMatch(/^[A-Za-z0-9+/]+=*$/);
 		});
 
-		it('should deny access to another user\'s key (403)', async () => {
+		it("should deny access to another user's key (403)", async () => {
 			// Act: User A attempts to retrieve User B's key
 			const response = await fetch(`/api/encryption/keys/${userBKeyId}`, {
 				method: 'GET',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`
+					Authorization: `Bearer ${userAToken}`
 				}
 			});
 
@@ -246,10 +249,10 @@ describe('Encryption Keys API - Contract Tests', () => {
 
 		it('should return 404 for non-existent key', async () => {
 			// Act: Retrieve non-existent key
-			const response = await fetch('/api/encryption/keys/non-existent-key-id', {
+			const response = await fetch(`${API_BASE_URL}/api/encryption/keys/non-existent-key-id`, {
 				method: 'GET',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`
+					Authorization: `Bearer ${userAToken}`
 				}
 			});
 
@@ -266,7 +269,7 @@ describe('Encryption Keys API - Contract Tests', () => {
 			const response = await fetch(`/api/encryption/keys/${userAKeyId}`, {
 				method: 'GET',
 				headers: {
-					'Authorization': `Bearer ${adminToken}`
+					Authorization: `Bearer ${adminToken}`
 				}
 			});
 
@@ -286,7 +289,7 @@ describe('Encryption Keys API - Contract Tests', () => {
 			const response = await fetch(`/api/encryption/keys/${userAKeyId}`, {
 				method: 'DELETE',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`
+					Authorization: `Bearer ${userAToken}`
 				}
 			});
 
@@ -294,12 +297,12 @@ describe('Encryption Keys API - Contract Tests', () => {
 			expect(response.status).toBe(204); // No content
 		});
 
-		it('should prevent deletion of another user\'s key', async () => {
+		it("should prevent deletion of another user's key", async () => {
 			// Act: User A attempts to delete User B's key
 			const response = await fetch(`/api/encryption/keys/${userBKeyId}`, {
 				method: 'DELETE',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`
+					Authorization: `Bearer ${userAToken}`
 				}
 			});
 
@@ -320,10 +323,10 @@ describe('Encryption Keys API - Contract Tests', () => {
 				keyAlgorithm: 'AES-GCM-256'
 			};
 
-			const response = await fetch('/api/encryption/keys', {
+			const response = await fetch(`${API_BASE_URL}/api/encryption/keys`, {
 				method: 'POST',
 				headers: {
-					'Authorization': `Bearer ${userAToken}`,
+					Authorization: `Bearer ${userAToken}`,
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify(keyData)

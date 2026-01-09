@@ -34,6 +34,7 @@ docker-compose down
 ```
 
 Server will be available at:
+
 - GraphQL endpoint: `http://localhost:4001/graphql`
 - GraphQL Playground: `http://localhost:4001/`
 - Health check: `http://localhost:4001/health`
@@ -60,15 +61,15 @@ cargo watch -x run
 
 ```graphql
 query GetAttendees {
-  eventAttendees(limit: 10) {
-    id
-    eventId
-    employeeId
-    responseStatus
-    reminderTime
-    isOrganizer
-    createdAt
-  }
+	eventAttendees(limit: 10) {
+		id
+		eventId
+		employeeId
+		responseStatus
+		reminderTime
+		isOrganizer
+		createdAt
+	}
 }
 ```
 
@@ -76,15 +77,10 @@ query GetAttendees {
 
 ```graphql
 query GetAttendeesWithReminders {
-  eventAttendees(
-    filter: {
-      reminderTimeGte: 10
-      reminderTimeLte: 60
-    }
-  ) {
-    id
-    reminderTime
-  }
+	eventAttendees(filter: { reminderTimeGte: 10, reminderTimeLte: 60 }) {
+		id
+		reminderTime
+	}
 }
 ```
 
@@ -92,15 +88,11 @@ query GetAttendeesWithReminders {
 
 ```graphql
 query GetAttendeesWithoutReminders {
-  eventAttendees(
-    filter: {
-      reminderTimeIsNull: true
-    }
-  ) {
-    id
-    eventId
-    reminderTime
-  }
+	eventAttendees(filter: { reminderTimeIsNull: true }) {
+		id
+		eventId
+		reminderTime
+	}
 }
 ```
 
@@ -108,19 +100,19 @@ query GetAttendeesWithoutReminders {
 
 ```graphql
 mutation CreateAttendee {
-  createEventAttendee(
-    input: {
-      eventId: "550e8400-e29b-41d4-a716-446655440000"
-      employeeId: "660e8400-e29b-41d4-a716-446655440001"
-      responseStatus: PENDING
-      reminderTime: 15
-      isOrganizer: false
-    }
-  ) {
-    id
-    reminderTime
-    responseStatus
-  }
+	createEventAttendee(
+		input: {
+			eventId: "550e8400-e29b-41d4-a716-446655440000"
+			employeeId: "660e8400-e29b-41d4-a716-446655440001"
+			responseStatus: PENDING
+			reminderTime: 15
+			isOrganizer: false
+		}
+	) {
+		id
+		reminderTime
+		responseStatus
+	}
 }
 ```
 
@@ -128,15 +120,10 @@ mutation CreateAttendee {
 
 ```graphql
 mutation UpdateReminder {
-  updateEventAttendee(
-    id: "770e8400-e29b-41d4-a716-446655440002"
-    input: {
-      reminderTime: 30
-    }
-  ) {
-    id
-    reminderTime
-  }
+	updateEventAttendee(id: "770e8400-e29b-41d4-a716-446655440002", input: { reminderTime: 30 }) {
+		id
+		reminderTime
+	}
 }
 ```
 
@@ -145,19 +132,23 @@ mutation UpdateReminder {
 Unlike PostGraphile, this Rust implementation supports **ALL filtering operations**:
 
 ### Exact Matching
+
 - `id`, `eventId`, `employeeId`, `responseStatus`, `isRequired`, `scope`, `isOrganizer`
 
 ### Null Checks
+
 - `reminderTimeIsNull: true` - Get attendees without reminders
 - `reminderTimeIsNull: false` - Get attendees with reminders
 
 ### Range Queries
+
 - `reminderTimeGt: 10` - Greater than
 - `reminderTimeLt: 60` - Less than
 - `reminderTimeGte: 10` - Greater than or equal
 - `reminderTimeLte: 60` - Less than or equal
 
 ### Pagination
+
 - `limit: 100` - Number of results (max 1000)
 - `offset: 0` - Skip N results
 
@@ -167,15 +158,15 @@ Unlike PostGraphile, this Rust implementation supports **ALL filtering operation
 
 ```graphql
 type EventAttendee {
-  id: UUID!
-  eventId: UUID!
-  employeeId: UUID!
-  responseStatus: RsvpStatus!
-  isRequired: Boolean!
-  createdAt: DateTime!
-  reminderTime: Int
-  scope: RsvpScope
-  isOrganizer: Boolean!
+	id: UUID!
+	eventId: UUID!
+	employeeId: UUID!
+	responseStatus: RsvpStatus!
+	isRequired: Boolean!
+	createdAt: DateTime!
+	reminderTime: Int
+	scope: RsvpScope
+	isOrganizer: Boolean!
 }
 ```
 
@@ -183,10 +174,10 @@ type EventAttendee {
 
 ```graphql
 enum RsvpStatus {
-  PENDING
-  ACCEPTED
-  DECLINED
-  TENTATIVE
+	PENDING
+	ACCEPTED
+	DECLINED
+	TENTATIVE
 }
 ```
 
@@ -194,8 +185,8 @@ enum RsvpStatus {
 
 ```graphql
 enum RsvpScope {
-  THIS_EVENT
-  ALL_EVENTS
+	THIS_EVENT
+	ALL_EVENTS
 }
 ```
 
@@ -220,14 +211,14 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
 
 ## Comparison with PostGraphile
 
-| Feature | PostGraphile | Rust + async-graphql |
-|---------|--------------|---------------------|
-| Null checks | ❌ Limited | ✅ Full support |
-| Range queries | ❌ Requires indexes | ✅ Always works |
-| Custom logic | ⚠️ Plugin system | ✅ Native Rust code |
-| Performance | Good | Excellent |
-| Type safety | Runtime | Compile-time |
-| Filtering | Index-dependent | Always available |
+| Feature       | PostGraphile        | Rust + async-graphql |
+| ------------- | ------------------- | -------------------- |
+| Null checks   | ❌ Limited          | ✅ Full support      |
+| Range queries | ❌ Requires indexes | ✅ Always works      |
+| Custom logic  | ⚠️ Plugin system    | ✅ Native Rust code  |
+| Performance   | Good                | Excellent            |
+| Type safety   | Runtime             | Compile-time         |
+| Filtering     | Index-dependent     | Always available     |
 
 ## Development
 

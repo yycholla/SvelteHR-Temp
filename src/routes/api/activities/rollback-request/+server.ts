@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Rollback Request API Endpoint
  * Feature: 020-we-need-to (Comprehensive Audit Logging with Rollback)
@@ -36,8 +37,8 @@ export const POST: RequestHandler = async ({ locals, cookies, request }) => {
 
 	if (!allowedRoles.includes(userRole)) {
 		error(403, {
-        			message: 'Access denied. Only HR admins and admins can submit rollback requests.'
-        		});
+			message: 'Access denied. Only HR admins and admins can submit rollback requests.'
+		});
 	}
 
 	const token = cookies.get('hr_token') || cookies.get('auth-token');
@@ -72,10 +73,10 @@ export const POST: RequestHandler = async ({ locals, cookies, request }) => {
 			.toPromise();
 
 		if (result.error) {
-			console.error('[RollbackRequest] GraphQL error:', result.error);
+			logger.error('[RollbackRequest] GraphQL errors:', result.error);
 			error(500, {
-            				message: result.error.message || 'Failed to create rollback request'
-            			});
+				message: result.error.message || 'Failed to create rollback request'
+			});
 		}
 
 		if (!result.data?.createRollbackRequest?.rollbackRequest) {
@@ -90,14 +91,14 @@ export const POST: RequestHandler = async ({ locals, cookies, request }) => {
 			message: 'Rollback request submitted successfully'
 		});
 	} catch (err) {
-		console.error('[RollbackRequest] Error:', err);
+		logger.error('[RollbackRequest] Error:', err as Error);
 
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err; // Re-throw SvelteKit errors
 		}
 
 		error(500, {
-        			message: 'Failed to submit rollback request'
-        		});
+			message: 'Failed to submit rollback request'
+		});
 	}
 };

@@ -4,8 +4,9 @@
  * Setup configuration for GraphQL schema validation and contract testing.
  */
 
-import { beforeAll, afterAll, expect } from 'vitest';
+import { afterAll, beforeAll, expect } from 'vitest';
 import { getIntrospectionQuery } from 'graphql';
+import { gql } from '@urql/core';
 import { createUrqlClient } from '$lib/graphql/client';
 
 // Global schema and client for schema testing
@@ -25,12 +26,15 @@ beforeAll(async () => {
 
 	// Fetch and cache schema introspection
 	try {
-		const introspectionQuery = getIntrospectionQuery({
+		const introspectionQueryString = getIntrospectionQuery({
 			descriptions: true,
 			schemaDescription: true,
 			directiveIsRepeatable: true,
 			specifiedByUrl: true
 		});
+
+		// Convert string query to TypedDocumentNode using gql
+		const introspectionQuery = gql(introspectionQueryString);
 
 		const result = await client.query(introspectionQuery, {}).toPromise();
 
@@ -42,7 +46,8 @@ beforeAll(async () => {
 			console.warn('Failed to fetch schema introspection, using fallback');
 			// Load fallback introspection data if available
 			try {
-					const fallbackIntrospection = (await import('$lib/generated/introspection.json')).default as any;
+				const fallbackIntrospection = (await import('$lib/generated/introspection.json'))
+					.default as any;
 				global.__GRAPHQL_INTROSPECTION_RESULT__ =
 					fallbackIntrospection.default || fallbackIntrospection;
 				global.__GRAPHQL_SCHEMA_CACHE__.set(
@@ -58,7 +63,8 @@ beforeAll(async () => {
 
 		// Try to load from generated files
 		try {
-				const fallbackIntrospection = (await import('$lib/generated/introspection.json')).default as any;
+			const fallbackIntrospection = (await import('$lib/generated/introspection.json'))
+				.default as any;
 			global.__GRAPHQL_INTROSPECTION_RESULT__ =
 				fallbackIntrospection.default || fallbackIntrospection;
 			global.__GRAPHQL_SCHEMA_CACHE__.set('introspection', global.__GRAPHQL_INTROSPECTION_RESULT__);

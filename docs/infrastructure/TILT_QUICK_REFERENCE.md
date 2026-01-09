@@ -26,14 +26,14 @@ npm run dev:k8s:clean
 
 ## 📝 Common Commands
 
-| Task | Command |
-|------|---------|
-| Start Tilt | `npm run dev:k8s` or `tilt up` |
-| Stop Tilt | `npm run dev:k8s:down` or `tilt down` |
-| Full cleanup | `npm run dev:k8s:clean` |
-| View logs | `tilt logs <resource-name>` |
-| Manual trigger | `tilt trigger <resource-name>` |
-| List resources | `tilt get resources` |
+| Task           | Command                               |
+| -------------- | ------------------------------------- |
+| Start Tilt     | `npm run dev:k8s` or `tilt up`        |
+| Stop Tilt      | `npm run dev:k8s:down` or `tilt down` |
+| Full cleanup   | `npm run dev:k8s:clean`               |
+| View logs      | `tilt logs <resource-name>`           |
+| Manual trigger | `tilt trigger <resource-name>`        |
+| List resources | `tilt get resources`                  |
 
 ---
 
@@ -52,11 +52,13 @@ npm run dev:k8s:clean
 ## 🎯 What Gets Live-Synced?
 
 **✅ Instant sync (no rebuild):**
+
 - `src/` - All source code
 - `static/` - Static assets
 - `*.config.js` - Config files
 
 **⚠️ Triggers rebuild:**
+
 - `Dockerfile` changes
 - `package.json` dependencies
 
@@ -65,6 +67,7 @@ npm run dev:k8s:clean
 ## 🐛 Quick Fixes
 
 **HMR not working?**
+
 ```bash
 # Check frontend logs
 tilt logs sveltehr-dev-frontend
@@ -74,6 +77,7 @@ tilt down && tilt up
 ```
 
 **Pod keeps restarting?**
+
 ```bash
 # Check pod status
 kubectl get pods -n sveltehr-dev
@@ -83,6 +87,7 @@ kubectl logs -n sveltehr-dev <pod-name>
 ```
 
 **Port already in use?**
+
 ```bash
 # Find and kill process
 lsof -i :5173
@@ -90,6 +95,7 @@ kill -9 <PID>
 ```
 
 **Can't connect to K8s?**
+
 ```bash
 # Verify cluster
 kubectl cluster-info
@@ -104,12 +110,14 @@ kubectl config get-contexts
 ## 📊 Tilt UI (http://localhost:10350)
 
 **Status Indicators:**
+
 - 🟢 Green = Running OK
 - 🟡 Yellow = Building/Updating
 - 🔴 Red = Error (click for details)
 - ⚪ Gray = Manual trigger
 
 **Features:**
+
 - Click resource → View logs
 - Click button → Trigger manual action
 - Watch build progress in real-time
@@ -153,16 +161,16 @@ SvelteHR/
 
 ## ⚡ Performance Stats
 
-| Metric | Before Tilt | With Tilt | Improvement |
-|--------|-------------|-----------|-------------|
-| Code change → Live | 60-120s | <2s | **30-60x faster** |
-| Container rebuild | Every change | Never* | **∞ faster** |
-| Feedback loop | Minutes | Seconds | **Game changer** |
+| Metric             | Before Tilt  | With Tilt | Improvement       |
+| ------------------ | ------------ | --------- | ----------------- |
+| Code change → Live | 60-120s      | <2s       | **30-60x faster** |
+| Container rebuild  | Every change | Never\*   | **∞ faster**      |
+| Feedback loop      | Minutes      | Seconds   | **Game changer**  |
 
-*Rebuilds only on Dockerfile or major changes
+\*Rebuilds only on Dockerfile or major changes
 
 ---
 
 **Happy Coding! 🚀**
 
-*Tilt v0.35.2 - Last updated: 2025-11-02*
+_Tilt v0.35.2 - Last updated: 2025-11-02_

@@ -7,30 +7,39 @@ The seed data implementation is structurally complete, but has compilation error
 ## Compilation Errors Found
 
 ### 1. Document Model Issues
+
 ```rust
 error[E0560]: struct `document::ActiveModel` has no field named `is_public`
 ```
+
 **Fix**: Check `src/models/documents/document.rs` for actual field names
 
 ### 2. SeaORM Column API Issues
+
 ```rust
 error[E0599]: `user::Column` is not an iterator
 error[E0599]: no method named `is_null` found for enum `user::Column`
 ```
+
 **Fix**: SeaORM 0.12 uses different API than assumed. Need to use:
+
 - `filter(user::Column::DeletedAt.is_null())` instead of `filter(user::Column::DeletedAt.is_null())`
 - Check actual SeaORM 0.12 QueryFilter syntax
 
 ### 3. DateTime API Issues
+
 ```rust
 error[E0599]: no method named `weekday` found for struct `chrono::DateTime`
 ```
+
 **Fix**: Use `entry_date.naive_local().weekday()` or similar for chrono DateTime
 
 ### 4. Select Iterator Issues
+
 ```rust
 error[E0599]: `sea_orm::Select<user::Entity>` is not an iterator
 ```
+
 **Fix**: Need to `.all(db).await?` before iterating
 
 ## Root Cause
@@ -44,7 +53,9 @@ The seed builders were written based on typical SeaORM patterns, but without acc
 ## Recommended Fix Steps
 
 ### Step 1: Verify Model Structures
+
 Read the actual entity files and document their fields:
+
 ```bash
 # Check user model
 cat src/models/user.rs | grep "pub.*Column"
@@ -57,7 +68,9 @@ cat src/models/department.rs | grep "pub.*Column"
 ```
 
 ### Step 2: Fix SeaORM Query API Usage
+
 Update all queries to use correct SeaORM 0.12 syntax:
+
 ```rust
 // WRONG (what was written):
 .filter(user::Column::DeletedAt.is_null())
@@ -71,6 +84,7 @@ Update all queries to use correct SeaORM 0.12 syntax:
 ```
 
 ### Step 3: Fix Chrono DateTime Usage
+
 ```rust
 // WRONG:
 entry_date.weekday()
@@ -82,9 +96,11 @@ entry_date.date_naive().weekday()
 ```
 
 ### Step 4: Fix Document Model Fields
+
 Check `src/models/documents/document.rs` for actual fields and update `operational_builder.rs` accordingly.
 
 ### Step 5: Test Compilation Locally
+
 ```bash
 # Test seed-data binary compilation
 cargo build --bin seed-data

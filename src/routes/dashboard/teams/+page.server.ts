@@ -3,13 +3,19 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies, url } = event;
+	const { cookies, url } = event;
 
 	// RBAC: Check teams management permissions
-	PermissionChecks.teamRead(event);
+	requireAuth(event, {
+		requiredPermissions: ['teams:read', 'teams:read:self', 'teams:read:team', 'teams:read:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Import required models for standardized error handling
 	const { createDataRequest } = await import('$lib/models/data-request');
@@ -52,15 +58,13 @@ export const load: PageServerLoad = async (event) => {
 		},
 		userCredentials: {
 			userId: userSession.userId,
-			userEmail: userSession.metadata.userEmail as string,
 			roles: userSession.roles,
 			permissions: userSession.permissions,
 			// jwtToken omitted for session-based auth
-			isAuthenticated: Boolean(userSession.isAuthenticated)
+			isAuthenticated: Boolean(userSession.isAuthenticated),
+			expiresAt: userSession.expiresAt
 		},
-		timeoutMs: 5000,
-		retryAttempts: 0,
-		maxRetries: 3
+		timeoutMs: 5000
 	});
 
 	try {
@@ -68,8 +72,13 @@ export const load: PageServerLoad = async (event) => {
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
+		// Headers for session-based authentication (cookies sent automatically)
+		const headers: Record<string, string> = {
+			'Content-Type': 'application/json'
+		};
+
 		let managedDepartmentId: string | null = null;
-		let isAdmin = userSession.roles.includes('admin');
+		const isAdmin = userSession.roles.includes('admin');
 
 		// For managers, get their managed department
 		if (!isAdmin && userSession.roles.includes('manager')) {
@@ -131,11 +140,6 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Get JWT token from cookies for Rust GraphQL server authentication
-
-		// Headers for session-based authentication (cookies sent automatically)
-		const headers: Record<string, string> = {
-			'Content-Type': 'application/json',
-		};
 
 		// Fetch departments (teams) data
 		// When filtering by single department ID, use singular query; otherwise use plural
@@ -203,7 +207,7 @@ export const load: PageServerLoad = async (event) => {
 
 		if (managerIds.length > 0) {
 			// Fetch all managers in parallel
-			const managerPromises = managerIds.map(managerId =>
+			const managerPromises = managerIds.map((managerId) =>
 				fetch(graphqlEndpoint, {
 					method: 'POST',
 					headers,
@@ -219,11 +223,11 @@ export const load: PageServerLoad = async (event) => {
 						`,
 						variables: { id: managerId }
 					})
-				}).then(r => r.json())
+				}).then((r) => r.json())
 			);
 
 			const managerResponses = await Promise.all(managerPromises);
-			managerResponses.forEach(response => {
+			managerResponses.forEach((response) => {
 				const manager = response?.data?.user;
 				if (manager) {
 					managersMap.set(manager.id, manager);
@@ -232,13 +236,13 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Debug logging
-		console.log('[Teams Page] Filter Department ID:', filterDepartmentId);
-		console.log('[Teams Page] Is Admin:', isAdmin);
-		console.log('[Teams Page] Departments found:', departments.length);
+		logger.info(`[Teams Page] Filter Department ID: ${filterDepartmentId}`);
+		logger.info(`[Teams Page] Is Admin: ${isAdmin}`);
+		logger.info('[Teams Page] Departments found:', { count: departments.length });
 		const totalCount = departments.length; // Rust server doesn't provide totalCount in this format
 
-		console.log('[Teams Page] Departments found:', departments.length);
-		console.log('[Teams Page] Total count:', totalCount);
+		logger.info('[Teams Page] Departments found:', { count: departments.length });
+		logger.info(`[Teams Page] Total count: ${totalCount}`);
 
 		// Calculate team statistics (employee counts not available in current Rust GraphQL schema)
 		const totalEmployees = 0; // TODO: Implement separate query for employee counts per department
@@ -250,7 +254,6 @@ export const load: PageServerLoad = async (event) => {
 		const userPermissions = getUserPermissions(locals);
 
 		return {
-			user: userPermissions.user,
 			userSession: userSession.toJSON(), // Convert UserSession to serializable object
 			teams: departments.map((dept: any) => {
 				const manager = dept.managerId ? managersMap.get(dept.managerId) : null;
@@ -295,15 +298,14 @@ export const load: PageServerLoad = async (event) => {
 			},
 			// Team/Department context for managers
 			managedDepartmentId,
-			isAdmin,
 			canViewAllTeams: isAdmin, // Only admins can view all teams
 			canViewManagedTeam: !!managedDepartmentId, // Managers can view their department
-			// RBAC: Standardized permission checks
+			// RBAC: Standardized permission checks (includes user and isAdmin properties)
 			...userPermissions,
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[Teams Management Load Error]', err);
+		logger.error('[Teams Management Load Error]', err as Error);
 
 		// Create standardized error response
 		const errorResponse = createErrorResponse(
@@ -316,7 +318,7 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		// Log error details for debugging
-		console.error('[Teams Management Error Details]', {
+		logger.error('[Teams Management Error Details]', undefined, {
 			userId: locals.user?.id,
 			userRole: locals.user?.role,
 			searchTerm,
@@ -327,9 +329,6 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		// Throw SvelteKit error with user-friendly message
-		error(500, {
-        			message: 'Teams management temporarily unavailable',
-        			details: errorResponse.userMessage
-        		});
+		error(500, 'Teams management temporarily unavailable');
 	}
 };

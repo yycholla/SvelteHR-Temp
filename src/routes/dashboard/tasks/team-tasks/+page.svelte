@@ -10,6 +10,7 @@
 
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { logger } from '$lib/utils/logger';
 	import { goto } from '$app/navigation';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Input } from '$lib/components/ui/input';
@@ -206,7 +207,7 @@
 			// Refresh the data
 			await invalidateAll();
 		} catch (error) {
-			console.error('Failed to change task status:', error);
+			logger.error('Failed to change task status:', error as Error);
 			toast.error('Failed to update task status');
 		}
 	}
@@ -344,11 +345,8 @@
 		{:else}
 			<TaskList
 				tasks={filteredTasks}
-				userId={data.user.id}
 				onTaskClick={handleTaskClick}
 				onStatusChange={handleStatusChange}
-				showProgress={true}
-				compact={false}
 			/>
 		{/if}
 	</div>

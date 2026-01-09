@@ -17,6 +17,7 @@ This is ONLY acceptable in local development environments. For any production or
    - Use HSTS (HTTP Strict Transport Security) headers
 
 2. **Production Environment Variables**:
+
    ```bash
    RUST_ENV=production
    REQUIRE_HTTPS=true
@@ -30,12 +31,14 @@ This is ONLY acceptable in local development environments. For any production or
 #### 🔒 Password Transmission Flow:
 
 **Current Development (HTTP):**
+
 ```
 Browser → HTTP → Server
 Password sent in plaintext (vulnerable to MITM)
 ```
 
 **Production (HTTPS Required):**
+
 ```
 Browser → TLS Encrypted → Server
 Password encrypted in transit layer
@@ -79,6 +82,7 @@ Password encrypted in transit layer
 ### Connection Security
 
 **Production Requirements:**
+
 - Use TLS/SSL for database connections
 - Rotate database credentials regularly
 - Use principle of least privilege for database users
@@ -89,11 +93,13 @@ Password encrypted in transit layer
 ### Current Configuration
 
 **Development:**
+
 ```env
 JWT_SECRET=dev-jwt-secret-change-in-production
 ```
 
 **Production Requirements:**
+
 - Generate cryptographically secure JWT secret (minimum 256 bits)
 - Store in secure secrets manager (AWS Secrets Manager, HashiCorp Vault, etc.)
 - Rotate JWT secrets periodically
@@ -111,6 +117,7 @@ JWT_SECRET=dev-jwt-secret-change-in-production
 ### Session Configuration
 
 **Production Requirements:**
+
 - Use Redis or PostgreSQL for session storage (not memory)
 - Set secure session cookie attributes
 - Implement session timeout (idle and absolute)
@@ -162,6 +169,7 @@ If you discover a security vulnerability, please email: security@example.com
 ## Compliance
 
 Depending on your deployment, consider compliance requirements:
+
 - GDPR (EU)
 - HIPAA (Healthcare, US)
 - SOC 2

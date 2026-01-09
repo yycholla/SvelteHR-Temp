@@ -1,6 +1,6 @@
-@import "tailwindcss";
-@import "tailwindcss/utilities" layer(utilities);
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tailwindcss/utilities' layer(utilities);
+@import 'tw-animate-css';
 @custom-variant dark (&:is(.dark *));
 
 /* Base CSS Variables - Light Mode */
@@ -118,18 +118,33 @@
 	--spacing: 0.25rem;
 
 	@keyframes accordion-down {
-		from { height: 0; }
-		to { height: var(--bits-accordion-content-height); }
+		from {
+			height: 0;
+		}
+		to {
+			height: var(--bits-accordion-content-height);
+		}
 	}
 
 	@keyframes accordion-up {
-		from { height: var(--bits-accordion-content-height); }
-		to { height: 0; }
+		from {
+			height: var(--bits-accordion-content-height);
+		}
+		to {
+			height: 0;
+		}
 	}
 
 	@keyframes caret-blink {
-		0%, 70%, 100% { opacity: 1; }
-		20%, 50% { opacity: 0; }
+		0%,
+		70%,
+		100% {
+			opacity: 1;
+		}
+		20%,
+		50% {
+			opacity: 0;
+		}
 	}
 
 	--animate-accordion-down: accordion-down 0.2s ease-out;
@@ -156,7 +171,7 @@
 	}
 
 	::-webkit-scrollbar-thumb {
-		@apply bg-muted-foreground/20 rounded-full;
+		@apply rounded-full bg-muted-foreground/20;
 	}
 
 	::-webkit-scrollbar-thumb:hover {

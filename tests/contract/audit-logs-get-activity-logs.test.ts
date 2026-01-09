@@ -15,7 +15,7 @@
  * - RLS policies enforce correct access control
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Types based on GraphQL schema from contracts/graphql-operations.graphql
 interface GetActivityLogsVariables {
@@ -67,7 +67,7 @@ interface GetActivityLogsResponse {
 }
 
 // Mock implementation (will be replaced in T044)
-const mockGetActivityLogs = vi.fn<[GetActivityLogsVariables], Promise<GetActivityLogsResponse>>();
+const mockGetActivityLogs = vi.fn<() => Promise<GetActivityLogsResponse>>();
 
 describe('GetActivityLogs Query Contract (TDD RED - should fail)', () => {
 	beforeEach(() => {
@@ -323,9 +323,4 @@ describe('GetActivityLogs Query Contract (TDD RED - should fail)', () => {
 });
 
 // Export types for use in implementation (T044)
-export type {
-	GetActivityLogsVariables,
-	GetActivityLogsResponse,
-	ActivityLogNode,
-	PageInfo
-};
+export type { GetActivityLogsVariables, GetActivityLogsResponse, ActivityLogNode, PageInfo };

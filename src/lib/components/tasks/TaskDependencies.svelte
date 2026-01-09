@@ -11,7 +11,9 @@
 -->
 
 <script lang="ts">
-	import type { Task, TaskDependency } from '$lib/types/task';
+	import type { Task } from '$lib/types/domain-extensions';
+	import { logger } from '$lib/utils/logger';
+	import type { TaskDependency } from '$lib/types/task';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Select from '$lib/components/ui/select';
@@ -19,15 +21,15 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import {
-		Link2,
-		Link2Off,
 		AlertTriangle,
 		CheckCircle,
 		Circle,
-		XCircle,
+		Link2,
+		Link2Off,
 		Plus,
 		Search,
-		Trash2
+		Trash2,
+		XCircle
 	} from '@lucide/svelte';
 
 	interface Props {
@@ -38,7 +40,7 @@
 		loading?: boolean;
 	}
 
-	let {
+	const {
 		task,
 		availableTasks,
 		onAddDependency,
@@ -54,32 +56,33 @@
 	let isSubmitting = $state(false);
 
 	// Derived state - blocking tasks (tasks that this task blocks)
-	let blockingDependencies = $derived(
-		task.taskDependenciesByBlockingTaskId?.nodes || []
-	);
+	const blockingDependencies = $derived(task.taskDependenciesByBlockingTaskId?.nodes || []);
 
 	// Derived state - blocked tasks (tasks that block this task)
-	let blockedByDependencies = $derived(
-		task.taskDependenciesByBlockedTaskId?.nodes || []
-	);
+	const blockedByDependencies = $derived(task.taskDependenciesByBlockedTaskId?.nodes || []);
 
 	// Filter available tasks for dependency creation
-	let filteredTasks = $derived(() => {
-		let filtered = availableTasks.filter((t) => {
+	const filteredTasks = $derived(() => {
+		const filtered = availableTasks.filter((t) => {
 			// Exclude current task
 			if (t.id === task.id) return false;
 
 			// Exclude already linked tasks
-			const alreadyBlocking = blockingDependencies.some((dep) => dep.blockedTaskId === t.id);
-			const alreadyBlockedBy = blockedByDependencies.some((dep) => dep.blockingTaskId === t.id);
+			const alreadyBlocking = blockingDependencies.some(
+				(dep: import('$lib/types/domain-extensions').TaskDependencyNode) =>
+					dep.blockedTaskId === t.id
+			);
+			const alreadyBlockedBy = blockedByDependencies.some(
+				(dep: import('$lib/types/domain-extensions').TaskDependencyNode) =>
+					dep.blockingTaskId === t.id
+			);
 			if (alreadyBlocking || alreadyBlockedBy) return false;
 
 			// Apply search filter
 			if (searchQuery) {
 				const query = searchQuery.toLowerCase();
 				return (
-					t.title.toLowerCase().includes(query) ||
-					t.description?.toLowerCase().includes(query)
+					t.title.toLowerCase().includes(query) || t.description?.toLowerCase().includes(query)
 				);
 			}
 
@@ -90,7 +93,7 @@
 	});
 
 	// Task options for select dropdown
-	let taskOptions = $derived(
+	const taskOptions = $derived(
 		filteredTasks().map((t) => ({
 			value: t.id,
 			label: `${t.title} (${t.status})`
@@ -99,7 +102,7 @@
 
 	// Get status icon for dependency task
 	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
-	function getStatusIcon(status: Task['status']) {
+	function getStatusIcon(status: string) {
 		switch (status) {
 			case 'DONE':
 				return CheckCircle;
@@ -114,7 +117,7 @@
 
 	// Get status color for dependency task
 	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
-	function getStatusColor(status: Task['status']) {
+	function getStatusColor(status: string) {
 		switch (status) {
 			case 'DONE':
 				return 'text-green-600 dark:text-green-400';
@@ -152,7 +155,7 @@
 			}
 			isAddDialogOpen = false;
 		} catch (error) {
-			console.error('[TaskDependencies] Add error:', error);
+			logger.error('Catch failed', error as Error);
 			// Error handled by parent
 		} finally {
 			isSubmitting = false;
@@ -166,7 +169,7 @@
 		try {
 			await onRemoveDependency(dependencyId);
 		} catch (error) {
-			console.error('[TaskDependencies] Remove error:', error);
+			logger.error('Catch failed', error as Error);
 			// Error handled by parent
 		}
 	}
@@ -186,7 +189,12 @@
 				<h4 class="font-medium">Blocked By</h4>
 				<Badge variant="secondary">{blockedByDependencies.length}</Badge>
 			</div>
-			<Button size="sm" variant="outline" onclick={() => openAddDialog('blocked')} disabled={loading}>
+			<Button
+				size="sm"
+				variant="outline"
+				onclick={() => openAddDialog('blocked')}
+				disabled={loading}
+			>
 				<Plus class="mr-2 h-4 w-4" />
 				Add Blocker
 			</Button>
@@ -242,7 +250,12 @@
 				<h4 class="font-medium">This Task Blocks</h4>
 				<Badge variant="secondary">{blockingDependencies.length}</Badge>
 			</div>
-			<Button size="sm" variant="outline" onclick={() => openAddDialog('blocking')} disabled={loading}>
+			<Button
+				size="sm"
+				variant="outline"
+				onclick={() => openAddDialog('blocking')}
+				disabled={loading}
+			>
 				<Plus class="mr-2 h-4 w-4" />
 				Add Dependency
 			</Button>
@@ -251,9 +264,7 @@
 		{#if blockingDependencies.length === 0}
 			<div class="rounded-lg border border-dashed bg-muted/30 p-6 text-center">
 				<Link2Off class="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
-				<p class="text-sm text-muted-foreground">
-					This task is not blocking any other tasks.
-				</p>
+				<p class="text-sm text-muted-foreground">This task is not blocking any other tasks.</p>
 			</div>
 		{:else}
 			<div class="space-y-2">
@@ -269,9 +280,7 @@
 									<p class="text-xs text-muted-foreground">Status: {blockedTask.status}</p>
 								</div>
 								{#if task.status !== 'DONE'}
-									<Badge variant="outline" class="flex-shrink-0">
-										Waiting on this task
-									</Badge>
+									<Badge variant="outline" class="flex-shrink-0">Waiting on this task</Badge>
 								{/if}
 							</div>
 							<Button
@@ -291,7 +300,10 @@
 	</div>
 
 	<!-- Warning: Task is blocked -->
-	{#if blockedByDependencies.some((dep) => dep.taskByBlockingTaskId?.status !== 'DONE')}
+	{#if blockedByDependencies.some(
+			(dep: import('$lib/types/domain-extensions').TaskDependencyNode) =>
+				dep.taskByBlockingTaskId?.status !== 'DONE'
+		)}
 		<div class="rounded-lg border border-warning bg-warning/10 p-4">
 			<div class="flex items-start gap-3">
 				<AlertTriangle class="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
@@ -324,7 +336,9 @@
 				<div class="space-y-2">
 					<Label for="search">Search Tasks</Label>
 					<div class="relative">
-						<Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+						<Search
+							class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+						/>
 						<Input
 							id="search"
 							bind:value={searchQuery}
@@ -337,7 +351,7 @@
 				<!-- Task Selection -->
 				<div class="space-y-2">
 					<Label for="task">Select Task</Label>
-					<Select.Root bind:selected={selectedTaskId}>
+					<Select.Root type="single" bind:value={selectedTaskId}>
 						<Select.Trigger id="task">
 							<Select.Value placeholder="Choose a task" />
 						</Select.Trigger>
@@ -378,5 +392,3 @@
 		</Dialog.Content>
 	</Dialog.Root>
 </div>
-
-

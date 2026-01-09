@@ -40,6 +40,7 @@ npm run db:rebuild
 ```
 
 This will:
+
 - Stop the postgres container
 - Delete the database volume
 - Start a fresh container
@@ -79,14 +80,14 @@ git commit -m "chore: update schema baseline after adding feature_name"
 
 ## Common Commands
 
-| Command | Description |
-|---------|-------------|
-| `npm run db:new-migration <name>` | Create new migration file |
-| `npm run db:rebuild` | Rebuild database from scratch |
-| `npm run db:logs` | View migration execution logs |
-| `npm run db:check` | Count tables in hr_public schema |
-| `npm run db:verify` | Check for schema drift |
-| `npm run db:snapshot` | Create new baseline snapshot |
+| Command                           | Description                      |
+| --------------------------------- | -------------------------------- |
+| `npm run db:new-migration <name>` | Create new migration file        |
+| `npm run db:rebuild`              | Rebuild database from scratch    |
+| `npm run db:logs`                 | View migration execution logs    |
+| `npm run db:check`                | Count tables in hr_public schema |
+| `npm run db:verify`               | Check for schema drift           |
+| `npm run db:snapshot`             | Create new baseline snapshot     |
 
 ## Migration Best Practices
 
@@ -145,6 +146,7 @@ Before committing, intentionally break your migration to verify error handling:
 If a migration fails:
 
 1. **Check the logs** for exact error:
+
    ```bash
    docker logs sveltehr-postgres-dev 2>&1 | grep ERROR -A10
    ```
@@ -206,6 +208,7 @@ db/
 ```
 
 **Key Points:**
+
 - Files run in **alphabetical order** (timestamp-based)
 - Only `.sql` files in `migrations/` are executed
 - `.bak`, `.disabled`, `_archive/` are ignored
@@ -222,6 +225,7 @@ We use feature-based migration files:
 - **20251010_005_review_goals.sql** - Review goals junction
 
 Each includes:
+
 - Table creation
 - Indexes
 - Foreign keys

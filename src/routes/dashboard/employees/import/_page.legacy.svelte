@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import type { PageData, ActionData } from './$types';
+	import type { ActionData, PageData } from './$types';
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	const { data, form }: { data: PageData; form: ActionData } = $props();
 
 	// CSV upload state
 	let csvContent = $state('');
@@ -95,7 +95,9 @@
 		<h2 class="mb-3 text-lg font-semibold text-foreground">CSV Format Requirements</h2>
 		<div class="space-y-2 text-sm text-muted-foreground">
 			<p><strong>Required Columns:</strong> Name, Hire Date, Role</p>
-			<p><strong>Name Format:</strong> "LAST, FIRST" or "LAST, FIRST M" (middle names will be dropped)</p>
+			<p>
+				<strong>Name Format:</strong> "LAST, FIRST" or "LAST, FIRST M" (middle names will be dropped)
+			</p>
 			<p><strong>Date Format:</strong> YYYY-MM-DD, MM/DD/YYYY, or YYYY/MM/DD</p>
 			<p><strong>Supported Roles:</strong> Admin, HR Manager, Manager, Employee</p>
 		</div>
@@ -121,12 +123,22 @@ JOHNSON, ROBERT,2024-03-10,HR Manager</pre>
 		<div class="mb-6 rounded-lg border border-success/50 bg-success/10 p-6">
 			<h3 class="mb-2 text-lg font-semibold text-success-foreground">Import Completed</h3>
 			<div class="text-sm text-success-foreground">
-				<p>Total rows processed: {form.totalRows}</p>
-				<p>Successful: {form.successful}</p>
-				<p>Failed: {form.failed}</p>
+				{#if 'totalRows' in form}
+					<p>Total rows processed: {form.totalRows}</p>
+				{/if}
+				{#if 'successful' in form}
+					<p>Successful: {form.successful}</p>
+				{/if}
+				{#if 'failed' in form}
+					<p>Failed: {form.failed}</p>
+				{/if}
+				{#if !('totalRows' in form) && form.job}
+					<p>Import job created: {form.job.id}</p>
+					<p>Step: {form.step}</p>
+				{/if}
 			</div>
 
-			{#if form.results && form.results.length > 0}
+			{#if 'results' in form && Array.isArray(form.results) && form.results.length > 0}
 				<div class="mt-4 max-h-96 overflow-auto">
 					<table class="w-full text-sm">
 						<thead class="sticky top-0 bg-card">
@@ -147,9 +159,7 @@ JOHNSON, ROBERT,2024-03-10,HR Manager</pre>
 										{#if result.success}
 											<span class="text-success-foreground">✓ Success</span>
 										{:else}
-											<span class="text-destructive"
-												>✗ {result.error || 'Failed'}</span
-											>
+											<span class="text-destructive">✗ {result.error || 'Failed'}</span>
 										{/if}
 									</td>
 								</tr>
@@ -222,15 +232,12 @@ JOHNSON, ROBERT,2024-03-10,HR Manager</pre>
 
 				<!-- Temporary Password -->
 				<div>
-					<label
-						for="temporaryPassword"
-						class="mb-2 block text-sm font-medium text-foreground"
-					>
+					<label for="temporaryPassword" class="mb-2 block text-sm font-medium text-foreground">
 						Temporary Password <span class="text-destructive">*</span>
 					</label>
 					<p class="mb-2 text-xs text-muted-foreground">
-						This password will be set for all imported employees. They will be required to
-						change it on first login.
+						This password will be set for all imported employees. They will be required to change it
+						on first login.
 					</p>
 					<div class="relative">
 						<input
@@ -249,12 +256,7 @@ JOHNSON, ROBERT,2024-03-10,HR Manager</pre>
 							class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
 						>
 							{#if showPassword}
-								<svg
-									class="h-5 w-5"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
+								<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path
 										stroke-linecap="round"
 										stroke-linejoin="round"
@@ -263,12 +265,7 @@ JOHNSON, ROBERT,2024-03-10,HR Manager</pre>
 									/>
 								</svg>
 							{:else}
-								<svg
-									class="h-5 w-5"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
+								<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path
 										stroke-linecap="round"
 										stroke-linejoin="round"

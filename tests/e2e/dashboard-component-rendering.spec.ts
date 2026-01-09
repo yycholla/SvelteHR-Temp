@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Dashboard Component Rendering - RED Phase', () => {
 	test('dashboard loads without JavaScript console errors from deprecated components', async ({

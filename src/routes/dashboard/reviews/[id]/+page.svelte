@@ -7,29 +7,30 @@
 	 * Display and edit individual performance review
 	 */
 	import { goto } from '$app/navigation';
+	import { logger } from '$lib/utils/logger';
 	import type { PageData } from './$types';
 	import * as Card from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
 	import {
+		AlertTriangle,
 		ArrowLeft,
-		Edit,
-		Trash2,
 		Calendar,
-		User,
-		Target,
+		Edit,
 		FileText,
-		AlertTriangle
+		Target,
+		Trash2,
+		User
 	} from '@lucide/svelte';
 	import {
-		getReviewTypeInfo,
+		formatReviewPeriod,
 		getReviewStatusInfo,
-		formatReviewPeriod
+		getReviewTypeInfo
 	} from '$lib/graphql/reviews-operations';
-	import type { ReviewType, ReviewStatus } from '$lib/schemas/reviews';
+	import type { ReviewStatus, ReviewType } from '$lib/schemas/reviews';
 
-	let { data }: { data: PageData } = $props();
+	const { data }: { data: PageData } = $props();
 
 	const review = data.review;
 	const reviewTypeInfo = getReviewTypeInfo((review.reviewType || 'ANNUAL_REVIEW') as ReviewType);
@@ -57,17 +58,17 @@
 	// Handle actions
 	function handleEdit() {
 		// TODO: Implement edit functionality
-		console.log('Edit review');
+		logger.info('Edit review');
 	}
 
 	function handleDelete() {
 		// TODO: Implement delete with confirmation
-		console.log('Delete review');
+		logger.info('Delete review');
 	}
 
 	function handleCompleteReview() {
 		// TODO: Implement status transition
-		console.log('Complete review');
+		logger.info('Complete review');
 	}
 
 	function handleBackToList() {
@@ -75,8 +76,12 @@
 	}
 
 	// Count active vs deleted goals
-	const activeGoalsCount = $derived(review.associatedGoals?.filter((g: any) => !g.deleted).length || 0);
-	const deletedGoalsCount = $derived(review.associatedGoals?.filter((g: any) => g.deleted).length || 0);
+	const activeGoalsCount = $derived(
+		review.associatedGoals?.filter((g: any) => !g.deleted).length || 0
+	);
+	const deletedGoalsCount = $derived(
+		review.associatedGoals?.filter((g: any) => g.deleted).length || 0
+	);
 </script>
 
 <div class="review-detail-page space-y-6">

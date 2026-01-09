@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
 import { type UserRoleAssignment, createRBACManager } from '$lib/auth/rbac';
@@ -19,6 +20,26 @@ export interface User {
 	isActive: boolean;
 	role?: string;
 	role_assignments?: UserRoleAssignment[];
+	job_title?: string;
+	jobTitle?: string;
+	username?: string;
+	profile_image?: string;
+	profileImage?: string;
+	job_information?: {
+		department?: {
+			id?: string;
+			name?: string;
+		};
+	};
+	department?: {
+		id?: string;
+		name?: string;
+	};
+	manager?: {
+		id: string;
+		display_name?: string;
+		displayName?: string;
+	};
 }
 
 class AuthStore {
@@ -30,18 +51,24 @@ class AuthStore {
 
 	// Derived State
 	isAuthenticated = $derived(!!this.user);
-	
+
 	// RBAC Manager
 	rbac = $derived(createRBACManager(this.roles, this.user?.id ?? null));
 
 	// Permission Checks
 	canViewUsers = $derived(this.safeCheck(() => this.rbac.hasPermission('view_users')));
 	canManageUsers = $derived(this.safeCheck(() => this.rbac.hasPermission('update_users')));
-	canViewSensitiveData = $derived(this.safeCheck(() => this.rbac.hasPermission('view_sensitive_data')));
+	canViewSensitiveData = $derived(
+		this.safeCheck(() => this.rbac.hasPermission('view_sensitive_data'))
+	);
 	canManageRoles = $derived(this.safeCheck(() => this.rbac.hasPermission('assign_roles')));
-	canApproveLeave = $derived(this.safeCheck(() => this.rbac.hasPermission('approve_leave_requests')));
+	canApproveLeave = $derived(
+		this.safeCheck(() => this.rbac.hasPermission('approve_leave_requests'))
+	);
 	canManageWorkflows = $derived(this.safeCheck(() => this.rbac.hasPermission('manage_workflows')));
-	canManageCompliance = $derived(this.safeCheck(() => this.rbac.hasPermission('manage_compliance')));
+	canManageCompliance = $derived(
+		this.safeCheck(() => this.rbac.hasPermission('manage_compliance'))
+	);
 
 	userHighestRole = $derived.by(() => {
 		try {
@@ -87,13 +114,14 @@ class AuthStore {
 				// Check for force_password_change flag
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				if ((result.user as any).force_password_change === true) {
-					console.log('[Auth] User must change password on first login');
+					logger.info('[Auth] User must change password on first login');
 
 					const user: User = {
 						id: result.user.id,
 						email: result.user.email,
-						// eslint-disable-next-line @typescript-eslint/no-explicit-any
-						displayName: (result.user as any).displayName ?? result.user.email.split('@')[0] ?? 'User',
+
+						displayName:
+							(result.user as any).displayName ?? result.user.email.split('@')[0] ?? 'User',
 						onboardingStatus: 'Active',
 						isActive: true,
 						// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -114,8 +142,9 @@ class AuthStore {
 				const user: User = {
 					id: result.user.id,
 					email: result.user.email,
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					displayName: (result.user as any).displayName ?? result.user.email.split('@')[0] ?? 'User',
+
+					displayName:
+						(result.user as any).displayName ?? result.user.email.split('@')[0] ?? 'User',
 					onboardingStatus: 'Active',
 					isActive: true,
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -149,15 +178,14 @@ class AuthStore {
 			await fetch('/api/auth/logout', {
 				method: 'POST',
 				credentials: 'include'
-			}).catch((err) => console.warn('Logout endpoint failed:', err));
+			}).catch((err) => logger.warn(`Logout endpoint failed: ${err}`));
 
 			// Use dynamic import to avoid circular dependency if permission-test imports auth
 			// (Assuming permission-test is already runes-based or compatible)
 			const { clearTestModeOnLogout } = await import('$lib/stores/permission-test.svelte');
 			clearTestModeOnLogout();
-
 		} catch (error) {
-			console.warn('Logout error:', error);
+			logger.warn(`Logout error: ${error}`);
 		} finally {
 			this.reset();
 		}
@@ -174,7 +202,6 @@ class AuthStore {
 			const settingsOps = createSettingsOperations(urqlClient);
 
 			const userSettings = await settingsOps.getUserSettings({
-				userId,
 				userCredentials: {
 					userId,
 					roles: [],
@@ -184,18 +211,14 @@ class AuthStore {
 				}
 			});
 
-			if (userSettings?.preferences?.appearance?.darkMode !== undefined) {
-				const mode = userSettings.preferences.appearance.darkMode ? 'dark' : 'light';
-				(userPrefersMode as any).set(mode);
-				console.log(`✓ Applied user theme on login: ${mode}`);
-			} else if (userSettings?.preferences?.theme) {
+			if (userSettings?.preferences?.theme) {
 				(userPrefersMode as any).set(userSettings.preferences.theme as 'light' | 'dark' | 'system');
-				console.log(`✓ Applied user theme on login: ${userSettings.preferences.theme}`);
+				logger.info(`✓ Applied user theme on login: ${userSettings.preferences.theme}`);
 			} else {
-				console.log('ℹ No theme preference found, using system default');
+				logger.info('ℹ No theme preference found, using system default');
 			}
 		} catch (error) {
-			console.warn('Unable to load theme preference, using system default:', error);
+			logger.warn(`Unable to load theme preference, using system default: ${error}`);
 		}
 	}
 
@@ -210,7 +233,7 @@ class AuthStore {
 		this.isLoading = true;
 		try {
 			const client = createUrqlClient();
-			
+
 			// Strategy: Fetch all roles with permissions and find the one matching user's role name
 			// This is robust because we have user.role string from login/session
 			const query = `
@@ -229,67 +252,77 @@ class AuthStore {
 			`;
 
 			const result = await client.query(query, {}).toPromise();
-			
+
 			if (result.data?.roles && this.user?.role) {
 				const userRoleName = this.user.role;
 				// Case-insensitive match
-				const matchingRole = result.data.roles.find((r: any) => 
-					r.name.toLowerCase() === userRoleName.toLowerCase()
+				const matchingRole = result.data.roles.find(
+					(r: any) => r.name.toLowerCase() === userRoleName.toLowerCase()
 				);
-				
+
 				if (matchingRole) {
 					// Construct a UserRoleAssignment structure for RBAC manager
 					// Note: Backend permissions don't have 'name' field, so we construct it from resource:action
 					const roleWithPermissionNames = {
 						...matchingRole,
-						permissions: matchingRole.permissions?.map((p: any) => ({
-							...p,
-							name: `${p.resource}:${p.action}`,
-							isActive: true
-						})) || []
+						permissions:
+							matchingRole.permissions?.map((p: any) => ({
+								...p,
+								name: `${p.resource}:${p.action}`,
+								isActive: true
+							})) || []
 					};
 
-					this.roles = [{
-						id: `assignment-${userId}`,
-						userId: userId,
-						roleId: matchingRole.id,
-						role: roleWithPermissionNames,
-						assignedAt: new Date().toISOString(),
-						isActive: true
-					}];
-					console.log(`[Auth] Loaded ${roleWithPermissionNames.permissions.length} permissions for role: ${matchingRole.name}`);
+					this.roles = [
+						{
+							id: `assignment-${userId}`,
+							userId,
+							roleId: matchingRole.id,
+							role: roleWithPermissionNames,
+							assignedAt: new Date().toISOString(),
+							isActive: true
+						}
+					];
+					logger.info(
+						`[Auth] Loaded ${roleWithPermissionNames.permissions.length} permissions for role: ${matchingRole.name}`
+					);
 				} else {
-					console.warn(`[Auth] Role definition not found for user role: ${userRoleName}`);
+					logger.warn(`[Auth] Role definition not found for user role: ${userRoleName}`);
 					this.roles = [];
 				}
 			} else {
 				// Fallback: If roles query failed or no data
-				console.warn('[Auth] Could not load roles metadata from backend');
+				logger.warn('[Auth] Could not load roles metadata from backend');
 				// Note: The User type does not have roleAssignments field in the current schema
 				// Using role string from user object instead
 				this.roles = [];
 			}
 		} catch (error) {
-			console.error('[Auth] Error loading user roles:', error);
-			
+			logger.error('Catch failed', error as Error);
+
 			// Emergency fallback for Admin users if API fails completely
-			if (this.user?.role && ['admin', 'super admin', 'system admin'].includes(this.user.role.toLowerCase())) {
-				console.log('[Auth] Applying emergency Admin permissions (API failed)');
-				this.roles = [{
-					id: 'admin-fallback',
-					userId: userId,
-					roleId: 'admin',
-					role: {
-						id: 'admin',
-						name: 'Admin',
-						level: 100,
-						description: 'Fallback Admin',
-						isActive: true,
-						permissions: [{ id: 'all', name: '*', resource: '*', action: '*', isActive: true }]
-					},
-					assignedAt: new Date().toISOString(),
-					isActive: true
-				}];
+			if (
+				this.user?.role &&
+				['admin', 'super admin', 'system admin'].includes(this.user.role.toLowerCase())
+			) {
+				logger.info('[Auth] Applying emergency Admin permissions (API failed)');
+				this.roles = [
+					{
+						id: 'admin-fallback',
+						userId,
+						roleId: 'admin',
+						role: {
+							id: 'admin',
+							name: 'Admin',
+							level: 100,
+							description: 'Fallback Admin',
+							isActive: true,
+							permissions: [{ id: 'all', name: '*', resource: '*', action: '*', isActive: true }]
+						},
+						assignedAt: new Date().toISOString(),
+						isActive: true
+					}
+				];
 			} else {
 				this.roles = [];
 				this.error = 'Failed to load user permissions';
@@ -300,9 +333,9 @@ class AuthStore {
 	}
 
 	async validateSession(): Promise<boolean> {
-		console.log('validateSession: Starting session validation');
+		logger.info('validateSession: Starting session validation');
 		if (!browser) {
-			console.log('validateSession: Not in browser, returning false');
+			logger.info('validateSession: Not in browser, returning false');
 			return false;
 		}
 
@@ -313,13 +346,13 @@ class AuthStore {
 			});
 
 			if (!response.ok) {
-				console.log('validateSession: Session validation failed, clearing auth state');
+				logger.info('validateSession: Session validation failed, clearing auth state');
 				this.reset();
 				return false;
 			}
 
 			const data = await response.json();
-			console.log('validateSession: Session is valid');
+			logger.info('validateSession: Session is valid');
 
 			if (!this.user && data.user) {
 				const user: User = {
@@ -336,10 +369,10 @@ class AuthStore {
 				this.user = user;
 			}
 
-			console.log('validateSession: Validation successful, user is authenticated');
+			logger.info('validateSession: Validation successful, user is authenticated');
 			return true;
 		} catch (error) {
-			console.error('validateSession: Session validation error:', error);
+			logger.error('Catch failed', error as Error);
 			this.reset();
 			return false;
 		}
@@ -360,7 +393,7 @@ class AuthStore {
 				await this.setUser(userResult.data.user);
 			}
 		} catch (error) {
-			console.error('Error refreshing user data:', error);
+			logger.error('Catch failed', error as Error);
 			this.setError('Failed to refresh user data');
 		} finally {
 			this.setLoading(false);

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import type { PageData, ActionData } from './$types';
+	import type { ActionData, PageData } from './$types';
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	const { data, form }: { data: PageData; form: ActionData } = $props();
 
 	// Form state
 	let currentPassword = $state('');
@@ -46,10 +46,9 @@
 	}
 
 	// Password strength indicator
-	let passwordStrength = $derived(() => {
+	const passwordStrength = $derived(() => {
 		if (newPassword.length === 0) return { level: 0, text: '', color: '' };
-		if (newPassword.length < 8)
-			return { level: 1, text: 'Too short', color: 'bg-destructive' };
+		if (newPassword.length < 8) return { level: 1, text: 'Too short', color: 'bg-destructive' };
 
 		let strength = 0;
 		if (newPassword.length >= 12) strength++;
@@ -76,8 +75,8 @@
 		{#if data.forcePasswordChange}
 			<div class="mt-4 rounded-lg border border-warning bg-warning/10 p-4">
 				<p class="text-sm font-medium text-warning-foreground">
-					You are required to change your password before continuing. Please choose a
-					secure password.
+					You are required to change your password before continuing. Please choose a secure
+					password.
 				</p>
 			</div>
 		{:else}
@@ -114,10 +113,7 @@
 		<div class="space-y-6">
 			<!-- Current Password -->
 			<div>
-				<label
-					for="currentPassword"
-					class="mb-2 block text-sm font-medium text-foreground"
-				>
+				<label for="currentPassword" class="mb-2 block text-sm font-medium text-foreground">
 					Current Password <span class="text-destructive">*</span>
 				</label>
 				<div class="relative">
@@ -223,9 +219,7 @@
 						<div class="flex gap-1">
 							{#each Array(4) as _, i}
 								<div
-									class="h-1 flex-1 rounded-full {i < strength.level
-										? strength.color
-										: 'bg-muted'}"
+									class="h-1 flex-1 rounded-full {i < strength.level ? strength.color : 'bg-muted'}"
 								></div>
 							{/each}
 						</div>
@@ -242,10 +236,7 @@
 
 			<!-- Confirm New Password -->
 			<div>
-				<label
-					for="confirmPassword"
-					class="mb-2 block text-sm font-medium text-foreground"
-				>
+				<label for="confirmPassword" class="mb-2 block text-sm font-medium text-foreground">
 					Confirm New Password <span class="text-destructive">*</span>
 				</label>
 				<div class="relative">

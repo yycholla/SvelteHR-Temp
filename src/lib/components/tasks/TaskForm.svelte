@@ -13,19 +13,26 @@
 -->
 
 <script lang="ts">
-	import type { Task, TaskStatus, TaskPriority, TaskType } from '$lib/types/task';
+	import type { Task, TaskPriority, TaskStatus, TaskType } from '$lib/types/task';
+	import { logger } from '$lib/utils/logger';
 	import type { User } from '$lib/types/user';
 	import type { CreateTaskInput, UpdateTaskInput } from '$lib/graphql/tasks-operations';
 	import { validateTaskInput } from '$lib/graphql/tasks-operations';
-	import * as Select from '$lib/components/ui/select';
 	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import { Textarea } from '$lib/components/ui/textarea';
-	import { Label } from '$lib/components/ui/label';
-	import { Switch } from '$lib/components/ui/switch';
-	import { TagInput, TaskTypeTagInput } from '$lib/components/ui/tag-input';
-	import { Calendar, CheckSquare, AlertCircle, User as UserIcon, Clock, Building2 } from '@lucide/svelte';
+	import {
+		AlertCircle,
+		Building2,
+		CheckSquare,
+		User as UserIcon
+	} from '@lucide/svelte';
 	import { format } from 'date-fns';
+
+	// Import decomposed components
+	import TaskBasicInfo from './form/TaskBasicInfo.svelte';
+	import TaskAssignment from './form/TaskAssignment.svelte';
+	import TaskStatusPriority from './form/TaskStatusPriority.svelte';
+	import TaskScheduling from './form/TaskScheduling.svelte';
+	import TaskAdvancedOptions from './form/TaskAdvancedOptions.svelte';
 
 	interface Department {
 		id: string;
@@ -43,9 +50,10 @@
 		onSubmit?: (data: CreateTaskInput | UpdateTaskInput) => Promise<void>; // Optional - for custom submission
 		onCancel: () => void;
 		loading?: boolean;
+		initialValues?: Partial<CreateTaskInput> & { assigneeId?: string };
 	}
 
-	let {
+	const {
 		task = null,
 		taskTypes = [],
 		users = [],
@@ -54,30 +62,38 @@
 		parentTasks = [],
 		onSubmit,
 		onCancel,
-		loading = false
+		loading = false,
+		initialValues = {}
 	}: Props = $props();
 
 	// Use assignees if provided, otherwise use users
-	let availableUsers = $derived(assignees.length > 0 ? assignees : users);
+	const availableUsers = $derived(assignees.length > 0 ? assignees : users);
 
 	// Form mode
-	let isEditing = $derived(task !== null);
-	let formTitle = $derived(isEditing ? 'Edit Task' : 'Create New Task');
+	const isEditing = $derived(task !== null);
+	const formTitle = $derived(isEditing ? 'Edit Task' : 'Create New Task');
 
 	// Form state
-	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
-	// Assignees are now an array of "user:id" or "dept:id" strings
 	let formData = $state({
-		title: task?.title || '',
-		description: task?.description || '',
-		assignees: task?.assigneeId ? [`user:${task.assigneeId}`] : ([] as string[]),
-		taskTypeId: task?.taskTypeId || '',
-		status: task?.status || ('TODO' as TaskStatus),
-		priority: task?.priority || ('MEDIUM' as TaskPriority),
-		dueDate: task?.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : '',
-		parentTaskId: task?.parentTaskId || '',
+		title: task?.title || initialValues.title || '',
+		description: task?.description || initialValues.description || '',
+		assignees: task?.assigneeId
+			? [`user:${task.assigneeId}`]
+			: initialValues.assigneeId
+				? [`user:${initialValues.assigneeId}`]
+				: ([] as string[]),
+		taskTypeId: task?.taskTypeId || initialValues.taskTypeId || '',
+		status: task?.status || initialValues.status || ('TODO' as TaskStatus),
+		priority: task?.priority || initialValues.priority || ('MEDIUM' as TaskPriority),
+		dueDate: task?.dueDate
+			? format(new Date(task.dueDate), 'yyyy-MM-dd')
+			: initialValues.dueDate
+				? format(new Date(initialValues.dueDate), 'yyyy-MM-dd')
+				: '',
+		parentTaskId: task?.parentTaskId || initialValues.parentTaskId || '',
 		reminderTime: '60', // Default 60 minutes before due date (string for Select compatibility)
-		requiresManualReassignment: task?.requiresManualReassignment || false
+		requiresManualReassignment:
+			task?.requiresManualReassignment || initialValues.requiresManualReassignment || false
 	});
 
 	// Search state for dropdowns
@@ -88,7 +104,7 @@
 	let fieldErrors = $state<Record<string, string>>({});
 
 	// Combined assignee options for TagInput (both users and departments)
-	let combinedAssigneeOptions = $derived(() => {
+	const combinedAssigneeOptions = $derived.by(() => {
 		const combined = [
 			...userOptions.map((opt) => ({
 				value: opt.value,
@@ -108,7 +124,7 @@
 	});
 
 	// Derived state
-	let isValid = $derived(() => {
+	const isValid = $derived.by(() => {
 		// Required fields
 		if (!formData.title.trim()) return false;
 		if (!formData.assignees || formData.assignees.length === 0) return false;
@@ -119,8 +135,6 @@
 	});
 
 	// Status options
-	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
-	// Status options - Rust GraphQL schema enums
 	const statusOptions = [
 		{ value: 'TODO', label: 'To Do' },
 		{ value: 'IN_PROGRESS', label: 'In Progress' },
@@ -131,7 +145,6 @@
 	];
 
 	// Priority options with colors
-	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
 	const priorityOptions = [
 		{ value: 'LOW', label: 'Low', color: 'text-gray-600' },
 		{ value: 'MEDIUM', label: 'Medium', color: 'text-blue-600' },
@@ -140,7 +153,6 @@
 	];
 
 	// Reminder time options (in minutes)
-	// NOTE: Values must be strings for Select component compatibility
 	const reminderTimeOptions = [
 		{ value: '15', label: '15 minutes before' },
 		{ value: '30', label: '30 minutes before' },
@@ -153,14 +165,14 @@
 	];
 
 	// Computed options for select fields
-	let taskTypeOptions = $derived(
+	const taskTypeOptions = $derived(
 		taskTypes.map((type) => ({
 			value: type.id,
 			label: type.name
 		}))
 	);
 
-	let userOptions = $derived(
+	const userOptions = $derived(
 		availableUsers.map((user) => ({
 			value: `user:${user.id}`,
 			label: user.displayName || user.email,
@@ -168,7 +180,7 @@
 		}))
 	);
 
-	let departmentOptions = $derived(
+	const departmentOptions = $derived(
 		departments.map((dept) => ({
 			value: `dept:${dept.id}`,
 			label: dept.name,
@@ -177,87 +189,63 @@
 	);
 
 	// Filter parent tasks based on selected assignees (multi-assignee support)
-	// Only show tasks that are assigned to any of the selected users/departments or are unassigned
-	let filteredParentTasks = $derived(() => {
+	const filteredParentTasks = $derived.by(() => {
 		if (!formData.assignees || formData.assignees.length === 0) {
-			// No assignees selected, show all tasks
 			return parentTasks;
 		}
 
-		// Extract the actual IDs without the prefixes
 		const selectedIds = formData.assignees.map((assignee) =>
 			assignee.replace(/^(user:|dept:)/, '')
 		);
 
 		return parentTasks.filter((task) => {
-			// Always allow unassigned tasks as parents
 			if (!task.assigneeId) return true;
-
-			// Check if the parent task is assigned to any of the selected entities
 			return selectedIds.includes(task.assigneeId);
 		});
 	});
 
-	let parentTaskOptions = $derived([
+	const parentTaskOptions = $derived([
 		{ value: '', label: 'None (Top-level task)' },
-		...filteredParentTasks().map((parentTask) => ({
+		...filteredParentTasks.map((parentTask) => ({
 			value: parentTask.id,
 			label: parentTask.title
 		}))
 	]);
 
 	// Filtered parent task options based on search
-	let filteredParentTaskOptions = $derived(() => {
+	const filteredParentTaskOptions = $derived.by(() => {
 		if (!parentTaskSearchTerm.trim()) return parentTaskOptions;
 		const searchLower = parentTaskSearchTerm.toLowerCase();
 		return parentTaskOptions.filter((task) => task.label.toLowerCase().includes(searchLower));
 	});
 
-	// Selected values for Select components (Svelte 5 runes format)
-	// Note: $derived creates a reactive value, not a function
-	let selectedTaskType = $derived(taskTypeOptions.find((opt) => opt.value === formData.taskTypeId));
-
-	let selectedParentTask = $derived(
+	// Selected values for Select components
+	const selectedParentTask = $derived(
 		parentTaskOptions.find((opt) => opt.value === formData.parentTaskId)
 	);
 
-	let selectedStatus = $derived(statusOptions.find((opt) => opt.value === formData.status));
+	const selectedStatus = $derived(statusOptions.find((opt) => opt.value === formData.status));
 
-	let selectedPriority = $derived(priorityOptions.find((opt) => opt.value === formData.priority));
+	const selectedPriority = $derived(priorityOptions.find((opt) => opt.value === formData.priority));
 
-	let selectedReminderTime = $derived(
+	const selectedReminderTime = $derived(
 		reminderTimeOptions.find((opt) => opt.value === formData.reminderTime)
 	);
 
-	// Clear parent task selection if it's no longer valid for the selected assignees
+	// Clear parent task selection if it's no longer valid
 	$effect(() => {
 		if (formData.parentTaskId && formData.assignees && formData.assignees.length > 0) {
-			const isParentTaskStillValid = filteredParentTasks().some(
+			const isParentTaskStillValid = filteredParentTasks.some(
 				(task) => task.id === formData.parentTaskId
 			);
 
 			if (!isParentTaskStillValid) {
-				console.log(
+				logger.info(
 					'[TaskForm] Parent task no longer valid for selected assignees, clearing selection'
 				);
 				formData.parentTaskId = '';
 			}
 		}
-	});
-
-	// Debug logging
-	$effect(() => {
-		console.log('[TaskForm] Available users:', availableUsers.length);
-		console.log('[TaskForm] Available departments:', departments.length);
-		console.log('[TaskForm] Combined assignee options:', combinedAssigneeOptions().length);
-		console.log('[TaskForm] Task types:', taskTypes.length);
-		console.log('[TaskForm] Form data assignees:', formData.assignees);
-		console.log('[TaskForm] Total parent tasks:', parentTasks.length);
-		console.log('[TaskForm] Filtered parent tasks:', filteredParentTasks().length);
-		console.log('[TaskForm] Form data status:', formData.status);
-		console.log('[TaskForm] Selected status:', selectedStatus);
-		console.log('[TaskForm] Form data priority:', formData.priority);
-		console.log('[TaskForm] Selected priority:', selectedPriority);
 	});
 
 	// Validate form on data changes
@@ -301,75 +289,56 @@
 		fieldErrors = newFieldErrors;
 	});
 
-	// Handle client-side validation before form submission
 	function handleClientSideValidation(e: Event) {
-		// Validate form
-		if (!isValid()) {
+		if (!isValid) {
 			e.preventDefault();
 			return false;
 		}
 
-		// Call optional onSubmit callback if provided (for backwards compatibility)
 		if (onSubmit) {
 			e.preventDefault();
 
-			// Extract first assignee ID (temporary until backend supports multiple assignees)
-			// Remove the "user:" or "dept:" prefix
 			const firstAssignee = formData.assignees[0];
 			const assigneeId = firstAssignee ? firstAssignee.replace(/^(user:|dept:)/, '') : '';
 
 			if (isEditing && task) {
-				// Update task
 				const updateData: UpdateTaskInput = {
-					id: task.id,
-					taskPatch: {
-						title: formData.title,
-						description: formData.description || null,
-						assigneeId: assigneeId,
-						taskTypeId: formData.taskTypeId,
-						status: formData.status,
-						priority: formData.priority,
-						dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : null,
-						parentTaskId: formData.parentTaskId || null,
-						requiresManualReassignment: formData.requiresManualReassignment
-					}
+					title: formData.title,
+					description: formData.description || undefined,
+					assigneeId,
+					taskTypeId: formData.taskTypeId,
+					status: formData.status,
+					priority: formData.priority,
+					dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : undefined,
+					parentTaskId: formData.parentTaskId || undefined,
+					requiresManualReassignment: formData.requiresManualReassignment
 				};
-				onSubmit(updateData).catch(error => {
-					console.error('[TaskForm] Submit error:', error);
+				onSubmit(updateData).catch((error) => {
+					logger.error('Task update failed', error as Error);
 				});
 			} else {
-				// Create task
 				const createData: CreateTaskInput = {
-					task: {
-						title: formData.title,
-						description: formData.description || undefined,
-						assigneeId: assigneeId,
-						taskTypeId: formData.taskTypeId,
-						status: formData.status,
-						priority: formData.priority,
-						dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : undefined,
-						parentTaskId: formData.parentTaskId || undefined,
-						requiresManualReassignment: formData.requiresManualReassignment
-					}
+					title: formData.title,
+					description: formData.description || undefined,
+					assigneeId,
+					taskTypeId: formData.taskTypeId,
+					status: formData.status,
+					priority: formData.priority,
+					dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : undefined,
+					parentTaskId: formData.parentTaskId || undefined,
+					requiresManualReassignment: formData.requiresManualReassignment
 				};
-				onSubmit(createData).catch(error => {
-					console.error('[TaskForm] Submit error:', error);
+				onSubmit(createData).catch((error) => {
+					logger.error('Task creation failed', error as Error);
 				});
 			}
 
 			return false;
 		}
 
-		// If no onSubmit callback, allow native form submission to proceed
 		return true;
 	}
 
-	// Handle cancel
-	function handleCancel() {
-		onCancel();
-	}
-
-	// Reset form
 	function handleReset() {
 		if (isEditing && task) {
 			formData = {
@@ -428,280 +397,61 @@
 	{/if}
 
 	<form method="POST" onsubmit={handleClientSideValidation} class="space-y-6">
-		<!-- Basic Information Section -->
-		<div class="space-y-4 rounded-lg border bg-card p-6">
-			<h3 class="border-b pb-2 text-lg font-semibold">Basic Information</h3>
+		<TaskBasicInfo
+			bind:title={formData.title}
+			bind:description={formData.description}
+			{fieldErrors}
+		/>
 
-			<!-- Title -->
-			<div class="space-y-2">
-				<Label for="title">
-					Task Title <span class="text-destructive">*</span>
-				</Label>
-				<Input
-					id="title"
-					bind:value={formData.title}
-					placeholder="Enter task title"
-					class={fieldErrors.title ? 'border-destructive' : ''}
-					maxlength={255}
-					required
-				/>
-				{#if fieldErrors.title}
-					<p class="text-sm text-destructive">{fieldErrors.title}</p>
-				{/if}
-			</div>
+		<TaskAssignment
+			bind:assignees={formData.assignees}
+			bind:taskTypeId={formData.taskTypeId}
+			bind:parentTaskId={formData.parentTaskId}
+			combinedAssigneeOptions={combinedAssigneeOptions}
+			{availableUsers}
+			{departments}
+			{taskTypes}
+			{parentTaskOptions}
+			filteredParentTaskOptions={filteredParentTaskOptions}
+			{selectedParentTask}
+			bind:parentTaskSearchTerm
+			filteredParentTasksCount={filteredParentTasks.length}
+			totalParentTasksCount={parentTasks.length}
+			{loading}
+			{fieldErrors}
+		/>
 
-			<!-- Description -->
-			<div class="space-y-2">
-				<Label for="description">Description</Label>
-				<Textarea
-					id="description"
-					bind:value={formData.description}
-					placeholder="Enter task description (optional)"
-					class={fieldErrors.description ? 'border-destructive' : ''}
-					rows={5}
-					maxlength={5000}
-				/>
-				{#if fieldErrors.description}
-					<p class="text-sm text-destructive">{fieldErrors.description}</p>
-				{/if}
-				<p class="text-xs text-muted-foreground">
-					{formData.description?.length || 0} / 5000 characters
-				</p>
-			</div>
-		</div>
+		<TaskStatusPriority
+			bind:status={formData.status}
+			bind:priority={formData.priority}
+			{selectedStatus}
+			{selectedPriority}
+			{statusOptions}
+			{priorityOptions}
+		/>
 
-		<!-- Assignment Section -->
-		<div class="space-y-4 rounded-lg border bg-card p-6">
-			<h3 class="flex items-center gap-2 border-b pb-2 text-lg font-semibold">
-				<UserIcon class="h-4 w-4" />
-				Assignment
-			</h3>
+		<TaskScheduling
+			bind:dueDate={formData.dueDate}
+			bind:reminderTime={formData.reminderTime}
+			{selectedReminderTime}
+			{reminderTimeOptions}
+			{fieldErrors}
+		/>
 
-			<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-				<!-- Assignees (Multi-select with email-style tag input) -->
-				<div class="space-y-2">
-					<Label for="assignees">
-						Assignees <span class="text-destructive">*</span>
-					</Label>
-					<TagInput
-						options={combinedAssigneeOptions()}
-						bind:selected={formData.assignees}
-						placeholder="Type to search users or departments..."
-						onSelectedChange={(selected) => {
-							console.log('[TaskForm] Assignees changed:', selected);
-							formData.assignees = selected;
-						}}
-					/>
-					{#if fieldErrors.assignees}
-						<p class="text-sm text-destructive">{fieldErrors.assignees}</p>
-					{/if}
-					<p class="text-xs text-muted-foreground">
-						{combinedAssigneeOptions().length} available ({availableUsers.length} users, {departments.length} departments)
-					</p>
-				</div>
-
-				<!-- Task Type -->
-				<div class="space-y-2">
-					<Label for="taskType">
-						Task Type <span class="text-destructive">*</span>
-					</Label>
-				<TaskTypeTagInput
-					taskTypes={taskTypes}
-					bind:selected={formData.taskTypeId}
-					placeholder="Select or create task type..."
-					disabled={loading}
-					onSelectedChange={(selected) => {
-						formData.taskTypeId = selected;
-						if (fieldErrors.taskTypeId) {
-							delete fieldErrors.taskTypeId;
-						}
-					}}
-					onCreate={(newTaskType) => {
-						console.log('Created new task type:', newTaskType);
-					}}
-				/>
-					{#if fieldErrors.taskTypeId}
-						<p class="text-sm text-destructive">{fieldErrors.taskTypeId}</p>
-					{/if}
-				</div>
-			</div>
-
-			<!-- Parent Task (for subtasks) -->
-			<div class="space-y-2">
-				<Label for="parentTask">Parent Task (Optional)</Label>
-				<Select.Root
-					type="single"
-					bind:value={formData.parentTaskId}
-					onSelectedChange={(v) => {
-						parentTaskSearchTerm = ''; // Reset search on selection
-					}}
-				>
-					<Select.Trigger id="parentTask">
-						{selectedParentTask?.label ?? 'None (Top-level task)'}
-					</Select.Trigger>
-					<Select.Content class="max-h-[300px]">
-						{#if parentTaskOptions.length > 1}
-							<!-- Search Input (only show if there are tasks beyond "None") -->
-							<div class="sticky top-0 z-10 border-b bg-popover p-2">
-								<Input
-									type="text"
-									placeholder="Search tasks..."
-									bind:value={parentTaskSearchTerm}
-									class="h-8 text-sm"
-									onclick={(e) => e.stopPropagation()}
-									onkeydown={(e) => e.stopPropagation()}
-								/>
-							</div>
-
-							<!-- Scrollable Task List -->
-							<div class="max-h-[200px] overflow-y-auto">
-								{#if filteredParentTaskOptions().length === 0}
-									<div class="p-4 text-center text-sm text-muted-foreground">
-										No tasks found matching "{parentTaskSearchTerm}"
-									</div>
-								{:else}
-									{#each filteredParentTaskOptions() as parent}
-										<Select.Item value={parent.value} label={parent.label}
-											>{parent.label}</Select.Item
-										>
-									{/each}
-								{/if}
-							</div>
-						{:else}
-							<!-- No tasks available, just show the "None" option -->
-							{#each parentTaskOptions as parent}
-								<Select.Item value={parent.value} label={parent.label}>{parent.label}</Select.Item>
-							{/each}
-						{/if}
-					</Select.Content>
-				</Select.Root>
-				<p class="text-xs text-muted-foreground">
-					{#if parentTaskOptions.length > 1}
-						{filteredParentTaskOptions().length} of {parentTaskOptions.length} tasks available
-					{#if formData.assignees && formData.assignees.length > 0 && filteredParentTasks().length < parentTasks.length}
-						<span class="text-primary">(filtered by assignees)</span>
-					{/if}
-					{:else}
-						Select a parent task to create a subtask
-					{/if}
-				</p>
-			</div>
-		</div>
-
-		<!-- Status & Priority Section -->
-		<div class="space-y-4 rounded-lg border bg-card p-6">
-			<h3 class="border-b pb-2 text-lg font-semibold">Status & Priority</h3>
-
-			<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-				<!-- Status -->
-				<div class="space-y-2">
-					<Label for="status">Status</Label>
-					<Select.Root type="single" bind:value={formData.status}>
-						<Select.Trigger id="status">
-							{selectedStatus?.label ?? 'Select status'}
-						</Select.Trigger>
-						<Select.Content>
-							{#each statusOptions as status}
-								<Select.Item value={status.value} label={status.label}>{status.label}</Select.Item>
-							{/each}
-						</Select.Content>
-					</Select.Root>
-				</div>
-
-				<!-- Priority -->
-				<div class="space-y-2">
-					<Label for="priority">Priority</Label>
-					<Select.Root type="single" bind:value={formData.priority}>
-						<Select.Trigger id="priority">
-							{selectedPriority?.label ?? 'Select priority'}
-						</Select.Trigger>
-						<Select.Content>
-							{#each priorityOptions as priority}
-								<Select.Item value={priority.value} label={priority.label}>
-									<span class={priority.color}>{priority.label}</span>
-								</Select.Item>
-							{/each}
-						</Select.Content>
-					</Select.Root>
-				</div>
-			</div>
-		</div>
-
-		<!-- Due Date & Reminders Section -->
-		<div class="space-y-4 rounded-lg border bg-card p-6">
-			<h3 class="flex items-center gap-2 border-b pb-2 text-lg font-semibold">
-				<Clock class="h-4 w-4" />
-				Due Date & Reminders
-			</h3>
-
-			<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-				<!-- Due Date -->
-				<div class="space-y-2">
-					<Label for="dueDate">Due Date</Label>
-					<div class="relative">
-						<Input
-							id="dueDate"
-							type="date"
-							bind:value={formData.dueDate}
-							class={fieldErrors.dueDate ? 'border-destructive' : ''}
-						/>
-						<Calendar
-							class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-						/>
-					</div>
-					{#if fieldErrors.dueDate}
-						<p class="text-sm text-destructive">{fieldErrors.dueDate}</p>
-					{/if}
-				</div>
-
-				<!-- Reminder Time -->
-				{#if formData.dueDate}
-					<div class="space-y-2">
-						<Label for="reminderTime">Reminder Before Due Date</Label>
-						<Select.Root type="single" bind:value={formData.reminderTime}>
-							<Select.Trigger id="reminderTime">
-								{selectedReminderTime?.label ?? 'Select reminder time'}
-							</Select.Trigger>
-							<Select.Content>
-								{#each reminderTimeOptions as reminder}
-									<Select.Item value={reminder.value} label={reminder.label}
-										>{reminder.label}</Select.Item
-									>
-								{/each}
-							</Select.Content>
-						</Select.Root>
-						<p class="text-xs text-muted-foreground">You'll be notified before the task is due</p>
-					</div>
-				{/if}
-			</div>
-		</div>
-
-		<!-- Advanced Options Section -->
-		<div class="space-y-4 rounded-lg border bg-card p-6">
-			<h3 class="border-b pb-2 text-lg font-semibold">Advanced Options</h3>
-
-			<!-- Requires Manual Reassignment -->
-			<div class="flex items-center justify-between">
-				<div class="space-y-0.5">
-					<Label>Requires Manual Reassignment</Label>
-					<p class="text-sm text-muted-foreground">
-						Prevent automatic reassignment during organizational changes
-					</p>
-				</div>
-				<Switch bind:checked={formData.requiresManualReassignment} />
-			</div>
-		</div>
+		<TaskAdvancedOptions
+			bind:requiresManualReassignment={formData.requiresManualReassignment}
+		/>
 
 		<!-- Form Actions -->
 		<div class="flex items-center justify-between border-t pt-6">
 			<Button type="button" variant="ghost" onclick={handleReset} disabled={loading}>Reset</Button>
 
 			<div class="flex items-center gap-3">
-				<Button type="button" variant="outline" onclick={handleCancel} disabled={loading}>
+				<Button type="button" variant="outline" onclick={onCancel} disabled={loading}>
 					Cancel
 				</Button>
 
-				<Button type="submit" disabled={!isValid() || loading} class="min-w-32">
+				<Button type="submit" disabled={!isValid || loading} class="min-w-32">
 					{#if loading}
 						<div class="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
 					{/if}
@@ -719,12 +469,14 @@
 		<input type="hidden" name="parentTaskId" bind:value={formData.parentTaskId} />
 		<input type="hidden" name="dueDate" bind:value={formData.dueDate} />
 		<input type="hidden" name="reminderTime" bind:value={formData.reminderTime} />
-		<input type="hidden" name="requiresManualReassignment" bind:value={formData.requiresManualReassignment} />
+		<input
+			type="hidden"
+			name="requiresManualReassignment"
+			bind:value={formData.requiresManualReassignment}
+		/>
 		<!-- assigneeId derived from first assignee in array -->
 		{#if formData.assignees.length > 0}
 			<input type="hidden" name="assigneeId" value={formData.assignees[0]} />
 		{/if}
 	</form>
 </div>
-
-

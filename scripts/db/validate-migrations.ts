@@ -68,7 +68,11 @@ program
 	.name('validate-migrations')
 	.description('Validate migration files for consistency and correctness')
 	.option('--migrations-path <path>', 'Path to migration files directory', './migrations')
-	.option('--database-url <url>', 'PostgreSQL connection URL for checksum validation', process.env.DATABASE_URL)
+	.option(
+		'--database-url <url>',
+		'PostgreSQL connection URL for checksum validation',
+		process.env.DATABASE_URL
+	)
 	.option('--check-syntax', 'Validate SQL syntax (requires database connection)', false)
 	.option('--check-rollbacks', 'Check for rollback file existence', false)
 	.option('--strict', 'Treat warnings as errors', false)
@@ -258,9 +262,7 @@ async function validateChecksums(
 			WHERE success = true
 		`);
 
-		const appliedMigrations = new Map(
-			appliedResult.rows.map((r) => [r.filename, r.checksum])
-		);
+		const appliedMigrations = new Map(appliedResult.rows.map((r) => [r.filename, r.checksum]));
 
 		// Validate checksums
 		for (const file of files) {

@@ -129,7 +129,9 @@ export function validateColumnDiff(diff: ColumnDiff): string[] {
 	];
 	if (mismatchTypes.includes(diff.diffType)) {
 		if (diff.sourceValue === undefined || diff.targetValue === undefined) {
-			errors.push(`For diffType "${diff.diffType}", both sourceValue and targetValue must be defined`);
+			errors.push(
+				`For diffType "${diff.diffType}", both sourceValue and targetValue must be defined`
+			);
 		}
 	}
 

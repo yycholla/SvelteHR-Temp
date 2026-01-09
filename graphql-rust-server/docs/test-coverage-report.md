@@ -9,6 +9,7 @@
 ## Executive Summary
 
 ### Current State
+
 - **Total Test Functions:** 75 unit tests
 - **Files with Tests:** 38 out of 151 total files (25.2%)
 - **Files without Tests:** 113 files (74.8%)
@@ -16,6 +17,7 @@
 - **Test Distribution:** Heavily concentrated in infrastructure layers, minimal in business logic
 
 ### Critical Findings
+
 1. **GraphQL Schema Layer:** 11.1% file coverage - **CRITICAL GAP**
 2. **Authentication & Security:** 46.7% file coverage - moderate coverage
 3. **Database & RLS:** 83.3% file coverage - **GOOD**
@@ -26,29 +28,32 @@
 
 ## Coverage by Module Category
 
-| Category | Files | Files w/ Tests | Total Lines | Test Count | File Coverage | Priority |
-|----------|-------|----------------|-------------|------------|---------------|----------|
-| **Database & RLS** | 6 | 5 | 1,282 | 10 | 83.3% | High |
-| **Business Logic** | 8 | 6 | 2,212 | 14 | 75.0% | High |
-| **Utilities** | 3 | 2 | 471 | 3 | 66.7% | Medium |
-| **Testing Infrastructure** | 10 | 6 | 1,933 | 10 | 60.0% | Low |
-| **Authentication & Security** | 15 | 7 | 3,183 | 15 | 46.7% | **Critical** |
-| **Models** | 73 | 19 | 10,603 | 22 | 26.0% | **Critical** |
-| **GraphQL Schema** | 9 | 1 | 7,490 | 0 | 11.1% | **Critical** |
-| **Seed Data Builders** | 14 | 1 | 2,368 | 0 | 7.1% | Low |
+| Category                      | Files | Files w/ Tests | Total Lines | Test Count | File Coverage | Priority     |
+| ----------------------------- | ----- | -------------- | ----------- | ---------- | ------------- | ------------ |
+| **Database & RLS**            | 6     | 5              | 1,282       | 10         | 83.3%         | High         |
+| **Business Logic**            | 8     | 6              | 2,212       | 14         | 75.0%         | High         |
+| **Utilities**                 | 3     | 2              | 471         | 3          | 66.7%         | Medium       |
+| **Testing Infrastructure**    | 10    | 6              | 1,933       | 10         | 60.0%         | Low          |
+| **Authentication & Security** | 15    | 7              | 3,183       | 15         | 46.7%         | **Critical** |
+| **Models**                    | 73    | 19             | 10,603      | 22         | 26.0%         | **Critical** |
+| **GraphQL Schema**            | 9     | 1              | 7,490       | 0          | 11.1%         | **Critical** |
+| **Seed Data Builders**        | 14    | 1              | 2,368       | 0          | 7.1%          | Low          |
 
 ### Category Analysis
 
 #### 1. Database & RLS (83.3% file coverage) ✅
+
 **Status:** STRONG coverage in critical security layer
 
 **Tested Files:**
+
 - `src/db/rls.rs` - 3 tests (RLS session variables)
 - `src/db/rls_context.rs` - 3 tests (RLS context management)
 - `src/db/filters.rs` - 5 tests (Database filtering)
 - `src/db/optimistic_lock.rs` - 2 tests (Concurrency control)
 
 **Gaps:**
+
 - `src/database.rs` - 0 tests (database connection pooling)
 
 **Risk Level:** LOW - Core security features are well-tested
@@ -56,15 +61,18 @@
 ---
 
 #### 2. Business Logic (75.0% file coverage) ✅
+
 **Status:** GOOD coverage for query building and pagination
 
 **Tested Files:**
+
 - `src/services/pagination.rs` - 6 tests (Cursor-based pagination)
 - `src/services/query_builder.rs` - 3 tests (Dynamic query construction)
 - `src/services/advanced_filters.rs` - 2 tests (Filter logic)
 - `src/loaders/mod.rs` - 1 test (DataLoader implementation)
 
 **Gaps:**
+
 - `src/handlers.rs` - 0 tests (397 lines, **HIGH PRIORITY**)
 - `src/services/relationship_loader.rs` - 1 test (337 lines, needs more)
 
@@ -73,15 +81,18 @@
 ---
 
 #### 3. Authentication & Security (46.7% file coverage) ⚠️
+
 **Status:** MODERATE coverage with CRITICAL gaps
 
 **Well-Tested:**
+
 - `src/middleware/auth.rs` - 6 tests (JWT validation)
 - `src/auth/authorization.rs` - 4 tests (RBAC permission checks)
 - `src/middleware/guards.rs` - 2 tests (Route guards)
 - `src/auth/context.rs` - 2 tests (User context)
 
 **CRITICAL GAPS (0 tests):**
+
 - `src/auth/backend.rs` - **531 lines** - Authentication backend
 - `src/auth/handlers.rs` - 347 lines - Login/logout handlers
 - `src/middleware/csrf.rs` - 210 lines - CSRF protection
@@ -95,9 +106,11 @@
 ---
 
 #### 4. GraphQL Schema (11.1% file coverage) 🚨
+
 **Status:** CRITICAL - Virtually untested business logic layer
 
 **Massive Untested Files:**
+
 - `src/schema/mutation.rs` - **3,966 lines, 0 tests** 🚨
 - `src/schema/query.rs` - **1,693 lines, 0 tests** 🚨
 - `src/schema/mutations/rbac.rs` - **663 lines, 0 tests**
@@ -107,6 +120,7 @@
 - `src/schema/mutations/user.rs` - 0 tests
 
 **Impact:** This is the PRIMARY API surface exposed to clients. Zero test coverage means:
+
 - No validation of RBAC enforcement in mutations
 - No verification of GraphQL resolver logic
 - No error handling validation
@@ -117,14 +131,17 @@
 ---
 
 #### 5. Models (26.0% file coverage) ⚠️
+
 **Status:** LOW coverage for data layer
 
 **Tested Models (1-2 tests each):**
+
 - `src/models/notification.rs` - 3 tests
 - `src/models/user.rs` - 2 tests
 - 19 other models with 1 test each (basic smoke tests)
 
 **Untested Models (54 files, 0 tests):**
+
 - `src/models/role.rs` - 195 lines (RBAC critical)
 - `src/models/permission.rs` - 153 lines (RBAC critical)
 - `src/models/department.rs` - 217 lines
@@ -141,7 +158,9 @@
 ### Untested Critical Paths (Priority: CRITICAL)
 
 #### 1. Row-Level Security (RLS) - Partial Coverage
+
 **Risk:** SQL injection, privilege escalation
+
 - ✅ `src/db/rls.rs` - RLS variable setting (3 tests)
 - ✅ `src/db/rls_context.rs` - Context management (3 tests)
 - ❌ Integration tests with actual queries - **MISSING**
@@ -152,9 +171,11 @@
 ---
 
 #### 2. RBAC Permission Checks - 0% Coverage 🚨
+
 **Risk:** Authorization bypass, privilege escalation
 
 **Completely Untested:**
+
 - `src/auth/backend.rs` (531 lines):
   - Password verification logic
   - Failed login attempt tracking
@@ -174,9 +195,11 @@
 ---
 
 #### 3. GraphQL Resolvers - 0% Coverage 🚨
+
 **Risk:** Business logic bugs, data corruption, authorization bypass
 
 **Untested Resolver Categories:**
+
 - **Mutations** (2,710 lines in mutation.rs alone):
   - User CRUD operations
   - Employee management
@@ -197,13 +220,16 @@
 ---
 
 #### 4. Authentication Middleware - Partial Coverage
+
 **Risk:** Authentication bypass, session hijacking
 
 **Tested:**
+
 - ✅ JWT token validation (6 tests in middleware/auth.rs)
 - ✅ User context extraction
 
 **Untested:**
+
 - ❌ Session management (session_auth.rs - 0 tests)
 - ❌ CSRF protection (csrf.rs - 210 lines, 0 tests)
 - ❌ Rate limiting (rate_limiting.rs - 187 lines, 0 tests)
@@ -214,9 +240,11 @@
 ---
 
 #### 5. Request Handlers - 0% Coverage 🚨
+
 **Risk:** Input validation bypass, error handling failures
 
 **Completely Untested:**
+
 - `src/handlers.rs` (397 lines):
   - HTTP request parsing
   - Error response formatting
@@ -230,6 +258,7 @@
 ## Test Distribution Analysis
 
 ### Files with Most Tests (Well-Tested)
+
 1. `src/middleware/request_limits.rs` - 6 tests ✅
 2. `src/services/pagination.rs` - 6 tests ✅
 3. `src/testing/load_testing/config.rs` - 5 tests
@@ -238,6 +267,7 @@
 6. `src/auth/authorization.rs` - 4 tests ✅
 
 ### Largest Untested Files (High-Risk)
+
 1. `src/schema/mutation.rs` - **3,966 lines, 0 tests** 🚨
 2. `src/schema/query.rs` - **1,693 lines, 0 tests** 🚨
 3. `src/schema/mutations/task.rs` - 693 lines, 0 tests
@@ -254,9 +284,11 @@
 ### Week 1: Critical Security Tests (Immediate Actions)
 
 #### 1. Authentication Backend Testing
+
 **File:** `src/auth/backend.rs` (531 lines)
 
 **Required Tests:**
+
 ```rust
 #[cfg(test)]
 mod tests {
@@ -296,9 +328,11 @@ mod tests {
 ---
 
 #### 2. RBAC Resolver Testing
+
 **File:** `src/schema/mutations/rbac.rs` (663 lines)
 
 **Required Tests:**
+
 ```rust
 #[cfg(test)]
 mod tests {
@@ -335,9 +369,11 @@ mod tests {
 ---
 
 #### 3. CSRF Protection Testing
+
 **File:** `src/middleware/csrf.rs` (210 lines)
 
 **Required Tests:**
+
 ```rust
 #[cfg(test)]
 mod tests {
@@ -364,9 +400,11 @@ mod tests {
 ---
 
 #### 4. RLS Integration Testing
+
 **Files:** Integration tests across `src/db/rls*.rs` and schema
 
 **Required Tests:**
+
 ```rust
 // Integration test file: tests/rls_integration_test.rs
 #[tokio::test]
@@ -393,9 +431,11 @@ async fn test_rls_enforced_on_mutations() {}
 ### Month 1: Core Business Logic (60% Coverage Target)
 
 #### 5. GraphQL Query Resolvers
+
 **File:** `src/schema/query.rs` (1,693 lines)
 
 **Focus Areas:**
+
 - Pagination edge cases (empty results, large offsets)
 - Filter validation (SQL injection attempts)
 - Search functionality (special characters, Unicode)
@@ -407,9 +447,11 @@ async fn test_rls_enforced_on_mutations() {}
 ---
 
 #### 6. GraphQL Mutation Resolvers
+
 **File:** `src/schema/mutation.rs` (3,966 lines)
 
 **Critical Mutations to Test:**
+
 1. User creation/updates (employee_builder.rs patterns)
 2. Role assignments (RBAC critical)
 3. Leave request approvals (workflow validation)
@@ -422,9 +464,11 @@ async fn test_rls_enforced_on_mutations() {}
 ---
 
 #### 7. Model Validation Logic
+
 **Files:** 54 untested model files
 
 **Priority Models:**
+
 1. `src/models/role.rs` - RBAC hierarchy
 2. `src/models/permission.rs` - Permission validation
 3. `src/models/department.rs` - Org structure
@@ -439,9 +483,11 @@ async fn test_rls_enforced_on_mutations() {}
 ### Month 2-3: Comprehensive Coverage (80%+ Target)
 
 #### 8. Request Handlers
+
 **File:** `src/handlers.rs` (397 lines)
 
 **Test Coverage:**
+
 - HTTP request parsing and validation
 - Error response formatting
 - File upload limits and validation
@@ -453,9 +499,11 @@ async fn test_rls_enforced_on_mutations() {}
 ---
 
 #### 9. Edge Case & Error Handling
+
 **Across all modules**
 
 **Focus Areas:**
+
 - Boundary conditions (max/min values)
 - Concurrent operations (race conditions)
 - Database connection failures
@@ -467,9 +515,11 @@ async fn test_rls_enforced_on_mutations() {}
 ---
 
 #### 10. Performance & Load Testing
+
 **Files:** `src/testing/load_testing/*.rs`
 
 **Test Scenarios:**
+
 - 1000 concurrent GraphQL queries
 - Large pagination (10,000+ results)
 - Complex nested queries (10+ levels)
@@ -485,12 +535,14 @@ async fn test_rls_enforced_on_mutations() {}
 ### 1. Pure Function Tests (1-2 hours each)
 
 **Candidates:**
+
 - `src/utils/query_debugger.rs` - Query parsing (currently 2 tests, needs 5+)
 - `src/utils/schema_validator.rs` - Schema validation (currently 1 test, needs 5+)
 - `src/db/filters.rs` - Filter logic (currently 5 tests, needs 10+)
 - `src/services/pagination.rs` - Cursor logic (currently 6 tests, needs 10+)
 
 **Why Quick Wins:**
+
 - No database required (pure logic)
 - No authentication setup needed
 - Clear inputs and expected outputs
@@ -501,6 +553,7 @@ async fn test_rls_enforced_on_mutations() {}
 ### 2. Model Validation Tests (1-2 hours per model)
 
 **Template:**
+
 ```rust
 #[cfg(test)]
 mod tests {
@@ -537,6 +590,7 @@ mod tests {
 **File:** `src/error.rs` (currently 2 tests)
 
 **Add Tests:**
+
 - Error type conversions (AppError variants)
 - Error message formatting
 - HTTP status code mapping
@@ -549,9 +603,11 @@ mod tests {
 ### Missing Test Utilities
 
 #### 1. GraphQL Test Harness
+
 **Status:** MISSING
 
 **Needed:**
+
 ```rust
 // tests/helpers/graphql_harness.rs
 pub struct GraphQLTestHarness {
@@ -578,14 +634,17 @@ impl GraphQLTestHarness {
 ---
 
 #### 2. Test Data Factories
+
 **Status:** PARTIAL (seed data builders exist, not used in tests)
 
 **Leverage Existing:**
+
 - `src/seed_data/builders/user_builder.rs` (252 lines)
 - `src/seed_data/builders/employee_builder.rs` (325 lines)
 - `src/seed_data/builders/role_builder.rs` (58 lines)
 
 **Create Test Wrappers:**
+
 ```rust
 // tests/helpers/factories.rs
 pub mod factories {
@@ -605,9 +664,11 @@ pub mod factories {
 ---
 
 #### 3. Integration Test Database
+
 **Status:** PARTIAL (database.rs has test pool creation)
 
 **Enhance:**
+
 ```rust
 // tests/helpers/test_db.rs
 pub async fn create_test_database() -> DatabaseConnection {
@@ -631,9 +692,11 @@ pub async fn seed_minimal_data(db: &DatabaseConnection) {
 ## Coverage Goals & Timeline
 
 ### Phase 1: Critical Security (Weeks 1-2)
+
 **Target:** 40% overall coverage
 
 **Focus:**
+
 - Authentication backend: 80% coverage
 - RBAC mutations: 70% coverage
 - CSRF protection: 90% coverage
@@ -644,9 +707,11 @@ pub async fn seed_minimal_data(db: &DatabaseConnection) {
 ---
 
 ### Phase 2: Core Business Logic (Weeks 3-6)
+
 **Target:** 60% overall coverage
 
 **Focus:**
+
 - GraphQL queries: 50% coverage
 - GraphQL mutations (top 10): 60% coverage
 - Models (RBAC + core): 70% coverage
@@ -657,9 +722,11 @@ pub async fn seed_minimal_data(db: &DatabaseConnection) {
 ---
 
 ### Phase 3: Comprehensive Coverage (Weeks 7-12)
+
 **Target:** 80% overall coverage
 
 **Focus:**
+
 - All GraphQL resolvers: 70% coverage
 - All models: 60% coverage
 - Edge cases and error paths: 70% coverage
@@ -672,17 +739,20 @@ pub async fn seed_minimal_data(db: &DatabaseConnection) {
 ## Test Metrics to Track
 
 ### Code Coverage Metrics
+
 - **Line Coverage:** Target 80%
 - **Branch Coverage:** Target 75%
 - **Function Coverage:** Target 80%
 
 ### Test Quality Metrics
+
 - **Test-to-Code Ratio:** Target 1:3 (1 line test for 3 lines code)
 - **Assertion Density:** Target 2-3 assertions per test
 - **Test Execution Time:** Target <5 minutes for full suite
 - **Flaky Tests:** Target 0% failure rate
 
 ### Business Metrics
+
 - **Security Vulnerabilities:** Target 0 critical, 0 high
 - **Production Bugs from Untested Code:** Track and trend to 0
 - **Code Review Rejection Rate:** Reduce by 50% with test coverage
@@ -692,6 +762,7 @@ pub async fn seed_minimal_data(db: &DatabaseConnection) {
 ## Tools & Commands
 
 ### Running Tests
+
 ```bash
 # Run all tests
 cargo test
@@ -710,6 +781,7 @@ cargo test -- --nocapture
 ```
 
 ### Continuous Integration
+
 ```bash
 # CI pipeline should run:
 cargo test --all-features
@@ -722,6 +794,7 @@ cargo tarpaulin --lib --all-features --out Xml
 ## Appendix A: Test File Organization
 
 ### Current Structure
+
 ```
 src/
 ├── auth/
@@ -739,6 +812,7 @@ src/
 ```
 
 ### Recommended Structure
+
 ```
 tests/
 ├── integration/
@@ -762,6 +836,7 @@ tests/
 Based on file-level analysis and test distribution:
 
 **Weighted Coverage Estimate:**
+
 ```
 Category                    Weight  Coverage  Contribution
 ─────────────────────────────────────────────────────────
@@ -783,10 +858,12 @@ TOTAL ESTIMATED COVERAGE:                     34.4%
 ## Appendix C: Tarpaulin Coverage (Pending)
 
 Tarpaulin is currently running in the background to generate precise line-level coverage metrics. Results will be available in:
+
 - `coverage/index.html` - HTML coverage report
 - `coverage/cobertura.xml` - XML coverage data for CI/CD
 
 **Command Used:**
+
 ```bash
 cargo tarpaulin --lib --all-features --out Xml --out Html --output-dir coverage/ --timeout 300
 ```
@@ -794,6 +871,7 @@ cargo tarpaulin --lib --all-features --out Xml --out Html --output-dir coverage/
 **Expected Completion:** ~10-15 minutes (large codebase with many dependencies)
 
 Once complete, update this report with:
+
 - Exact line coverage percentage
 - Uncovered line ranges per file
 - Branch coverage analysis
@@ -804,12 +882,14 @@ Once complete, update this report with:
 ## Conclusion
 
 The SvelteHR Rust GraphQL server has significant test coverage gaps, particularly in:
+
 1. **GraphQL Schema Layer** (5,000+ lines untested) - CRITICAL
 2. **Authentication Backend** (531 lines untested) - CRITICAL
 3. **RBAC Mutations** (663 lines untested) - HIGH PRIORITY
 4. **Request Handlers** (397 lines untested) - HIGH PRIORITY
 
 **Immediate Actions Required:**
+
 1. Add authentication backend tests (Week 1)
 2. Add RBAC resolver tests (Week 1)
 3. Add RLS integration tests (Week 1)

@@ -1,26 +1,37 @@
 <script lang="ts">
-	import { Sidebar } from '$lib/components/ui/sidebar';
+	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
-	import {
-		Bell,
-		Building2,
-		Calendar,
-		Home,
-		Menu,
-		Search,
-		Settings,
-		User,
-		Users
-	} from '@lucide/svelte';
+	import { Bell, Building2, Calendar, Home, Search, Settings, User, Users } from '@lucide/svelte';
 	import { page } from '$app/stores';
+	import { resolve } from '$app/paths';
 	import { auth } from '$lib/stores/auth.svelte';
+
+	interface NavigationItem {
+		id: string;
+		label: string;
+		href: string;
+		icon: any;
+		active: boolean;
+		children?: Array<{
+			id: string;
+			label: string;
+			href: string;
+			active?: boolean;
+		}>;
+	}
+
+	interface Breadcrumb {
+		label: string;
+		href: string;
+		current: boolean;
+	}
 
 	const { children } = $props();
 
 	// Navigation items based on user role and permissions
-	const navigationItems = [
+	const navigationItems: NavigationItem[] = [
 		{
 			id: 'dashboard',
 			label: 'Dashboard',
@@ -66,11 +77,11 @@
 	];
 
 	// Admin navigation
-	const adminNavigation = [
+	const adminNavigation: NavigationItem[] = [
 		{
 			id: 'admin',
 			label: 'Administration',
-			href: '/dashboard/admin',
+			href: '/admin',
 			icon: Settings,
 			active: false
 		}
@@ -93,19 +104,19 @@
 	];
 
 	// Calculate unread notifications
-	const unreadNotifications = $derived(() => notifications.filter((n) => !n.read).length);
+	const unreadNotifications = $derived(notifications.filter((n) => !n.read).length);
+
+	// Get current path first (used by multiple derived values)
+	const currentPath = $derived($page.url.pathname);
 
 	// Add admin navigation if user has admin role
-	const visibleNavigation = $derived(() => {
-		const nav = [...navigationItems];
+	const visibleNavigation = $derived.by(() => {
+		const nav: NavigationItem[] = [...navigationItems];
 		if (auth.user?.role === 'admin' || auth.user?.role === 'hr_admin') {
 			nav.push(...adminNavigation);
 		}
 		return nav;
 	});
-
-	// Update navigation active states based on current path
-	const currentPath = $derived($page.url.pathname);
 
 	// Update active states
 	$effect(() => {
@@ -120,9 +131,9 @@
 	});
 
 	// Generate breadcrumbs based on current path
-	const breadcrumbs = $derived(() => {
+	const breadcrumbs: Breadcrumb[] = $derived.by(() => {
 		const parts = currentPath.split('/').filter((part) => part);
-		const breadcrumbs = [];
+		const breadcrumbs: Breadcrumb[] = [];
 
 		const labelMap: Record<string, string> = {
 			dashboard: 'Dashboard',
@@ -136,12 +147,12 @@
 			directory: 'Directory'
 		};
 
-		let currentPath = '';
+		let currentHref = '';
 		parts.forEach((part, index) => {
-			currentPath += `/${part}`;
+			currentHref += `/${part}`;
 			breadcrumbs.push({
 				label: labelMap[part] || part.charAt(0).toUpperCase() + part.slice(1),
-				href: currentPath,
+				href: currentHref,
 				current: index === parts.length - 1
 			});
 		});
@@ -174,39 +185,47 @@
 					<Sidebar.Group>
 						<Sidebar.GroupLabel>Navigation</Sidebar.GroupLabel>
 						<Sidebar.Menu>
-							{#each visibleNavigation as item}
-								{@const ItemIcon = item.icon}
+							{#each visibleNavigation as item (item.id)}
+								{@const typedItem = item as NavigationItem}
+								{@const ItemIcon = typedItem.icon}
 								<Sidebar.MenuItem>
-									{#if item.children && item.children.length > 0}
-										<Sidebar.MenuSub>
-											<Sidebar.MenuSubButton asChild>
+									{#if typedItem.children && typedItem.children.length > 0}
+										<Sidebar.MenuButton isActive={typedItem.active}>
+											{#snippet child({ props })}
 												<a
-													href={item.href}
+													{...props}
+													href={resolve(typedItem.href as any)}
 													class="flex items-center gap-2"
-													data-active={item.active}
 												>
 													<ItemIcon class="h-4 w-4" />
-													<span>{item.label}</span>
+													<span>{typedItem.label}</span>
 												</a>
-											</Sidebar.MenuSubButton>
-											<Sidebar.MenuSubContent>
-												{#each item.children as child}
-													<Sidebar.MenuSubItem>
-														<Sidebar.MenuSubButton asChild>
-															<a href={child.href} data-active={child.active}>
-																{child.label}
+											{/snippet}
+										</Sidebar.MenuButton>
+										<Sidebar.MenuSub>
+											{#each typedItem.children as childItem (childItem.id)}
+												<Sidebar.MenuSubItem>
+													<Sidebar.MenuSubButton isActive={childItem.active}>
+														{#snippet child({ props })}
+															<a {...props} href={resolve(childItem.href as any)}>
+																{childItem.label}
 															</a>
-														</Sidebar.MenuSubButton>
-													</Sidebar.MenuSubItem>
-												{/each}
-											</Sidebar.MenuSubContent>
+														{/snippet}
+													</Sidebar.MenuSubButton>
+												</Sidebar.MenuSubItem>
+											{/each}
 										</Sidebar.MenuSub>
-									{:else}
-										<Sidebar.MenuButton asChild>
-											<a href={item.href} class="flex items-center gap-2" data-active={item.active}>
-												<ItemIcon class="h-4 w-4" />
-												<span>{item.label}</span>
-											</a>
+																{:else}
+																	<Sidebar.MenuButton isActive={typedItem.active}>
+																		{#snippet child({ props })}
+																			<a
+																				{...props}
+																				href={resolve(typedItem.href as any)}													class="flex items-center gap-2"
+												>
+													<ItemIcon class="h-4 w-4" />
+													<span>{typedItem.label}</span>
+												</a>
+											{/snippet}
 										</Sidebar.MenuButton>
 									{/if}
 								</Sidebar.MenuItem>
@@ -221,7 +240,9 @@
 							<User class="h-4 w-4" />
 						</div>
 						<div class="flex flex-col">
-							<span class="text-sm font-medium">{auth.user.name || 'User'}</span>
+							<span class="text-sm font-medium"
+								>{auth.user.display_name || auth.user.email || 'User'}</span
+							>
 							<span class="text-xs text-muted-foreground">{auth.user.role || 'Employee'}</span>
 						</div>
 					</div>
@@ -240,14 +261,14 @@
 							<!-- Breadcrumbs -->
 							{#if breadcrumbs.length > 0}
 								<nav class="flex items-center space-x-1 text-sm text-muted-foreground">
-									{#each breadcrumbs as crumb, index}
+									{#each breadcrumbs as crumb, index (crumb.href)}
 										{#if index > 0}
 											<span>/</span>
 										{/if}
 										{#if crumb.current}
 											<span class="font-medium text-foreground">{crumb.label}</span>
 										{:else}
-											<a href={crumb.href} class="transition-colors hover:text-foreground">
+											<a href={resolve(crumb.href as any)} class="transition-colors hover:text-foreground">
 												{crumb.label}
 											</a>
 										{/if}
@@ -285,7 +306,9 @@
 									<User class="h-4 w-4" />
 								</div>
 								<div class="flex flex-col">
-									<span class="text-sm font-medium">{auth.user.name || 'User'}</span>
+									<span class="text-sm font-medium"
+										>{auth.user.display_name || auth.user.email || 'User'}</span
+									>
 									<span class="text-xs text-muted-foreground">{auth.user.email || ''}</span>
 								</div>
 							</div>

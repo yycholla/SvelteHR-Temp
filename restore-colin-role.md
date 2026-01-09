@@ -6,20 +6,21 @@ This document contains GraphQL queries to restore Colin Hanway's Admin role afte
 
 ```graphql
 query FindColinHanway {
-  users(filter: { email: { eq: "chanway@mtncarerx.net" } }) {
-    id
-    email
-    firstName
-    lastName
-    roles {
-      id
-      name
-    }
-  }
+	users(filter: { email: { eq: "chanway@mtncarerx.net" } }) {
+		id
+		email
+		firstName
+		lastName
+		roles {
+			id
+			name
+		}
+	}
 }
 ```
 
 Expected result:
+
 - If Colin has roles, they will show in the `roles` array
 - If Colin has NO roles (likely the case), the array will be empty: `roles: []`
 - Copy the `id` value from the result
@@ -28,16 +29,17 @@ Expected result:
 
 ```graphql
 query FindAdminRole {
-  roles(filter: { name: { eq: "Admin" } }) {
-    id
-    name
-    description
-    level
-  }
+	roles(filter: { name: { eq: "Admin" } }) {
+		id
+		name
+		description
+		level
+	}
 }
 ```
 
 Expected result:
+
 - Should return the Admin role with its UUID
 - Copy the `id` value from the result
 
@@ -47,14 +49,14 @@ Expected result:
 
 ```graphql
 mutation RestoreColinAdminRole($input: AssignRoleInput!) {
-  rbac {
-    assignRoleToUser(input: $input) {
-      id
-      userId
-      roleId
-      createdAt
-    }
-  }
+	rbac {
+		assignRoleToUser(input: $input) {
+			id
+			userId
+			roleId
+			createdAt
+		}
+	}
 }
 ```
 
@@ -62,20 +64,21 @@ mutation RestoreColinAdminRole($input: AssignRoleInput!) {
 
 ```json
 {
-  "input": {
-    "userId": "<COLIN_USER_ID_FROM_STEP_1>",
-    "roleId": "<ADMIN_ROLE_ID_FROM_STEP_2>"
-  }
+	"input": {
+		"userId": "<COLIN_USER_ID_FROM_STEP_1>",
+		"roleId": "<ADMIN_ROLE_ID_FROM_STEP_2>"
+	}
 }
 ```
 
 Example with placeholder UUIDs:
+
 ```json
 {
-  "input": {
-    "userId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-    "roleId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-  }
+	"input": {
+		"userId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+		"roleId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+	}
 }
 ```
 
@@ -85,44 +88,46 @@ Run the query from Step 1 again to verify Colin now has the Admin role:
 
 ```graphql
 query VerifyColinRole {
-  users(filter: { email: { eq: "chanway@mtncarerx.net" } }) {
-    id
-    email
-    firstName
-    lastName
-    roles {
-      id
-      name
-    }
-  }
+	users(filter: { email: { eq: "chanway@mtncarerx.net" } }) {
+		id
+		email
+		firstName
+		lastName
+		roles {
+			id
+			name
+		}
+	}
 }
 ```
 
 Expected result:
+
 ```json
 {
-  "data": {
-    "users": [
-      {
-        "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-        "email": "chanway@mtncarerx.net",
-        "firstName": "Colin",
-        "lastName": "Hanway",
-        "roles": [
-          {
-            "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-            "name": "Admin"
-          }
-        ]
-      }
-    ]
-  }
+	"data": {
+		"users": [
+			{
+				"id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+				"email": "chanway@mtncarerx.net",
+				"firstName": "Colin",
+				"lastName": "Hanway",
+				"roles": [
+					{
+						"id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+						"name": "Admin"
+					}
+				]
+			}
+		]
+	}
 }
 ```
 
 ## How to Run These Queries
 
 ### Option 1: GraphQL Playground (Recommended)
+
 1. Navigate to your GraphQL endpoint (usually `http://localhost:4000/graphql` or similar)
 2. Paste each query into the left panel
 3. Click the "Play" button to execute
@@ -153,16 +158,19 @@ curl -X POST http://localhost:4000/graphql \
 ## Troubleshooting
 
 **If you get "permission denied" error:**
+
 - Make sure you're logged in as an Admin user
 - Check that your session token is valid
 - Verify RBAC permissions allow you to assign roles
 
 **If you get "role already assigned" error:**
+
 - This means Colin already has the Admin role
 - Check the employees table to see if it's displaying correctly
 - The issue might be with the frontend display, not the database
 
 **If the employee table still shows "N/A":**
+
 - Refresh the page (hard refresh: Ctrl+Shift+R or Cmd+Shift+R)
 - Clear the session cache (the backend caches sessions for 60 seconds)
 - Check browser console for errors

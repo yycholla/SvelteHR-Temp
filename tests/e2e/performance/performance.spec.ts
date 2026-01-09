@@ -13,7 +13,7 @@
  * and validate against strict performance budgets.
  */
 
-import { test, expect, type Page } from '@playwright/test';
+import { type Page, expect, test } from '@playwright/test';
 
 // Performance budgets aligned with requirements
 const PERFORMANCE_BUDGETS = {

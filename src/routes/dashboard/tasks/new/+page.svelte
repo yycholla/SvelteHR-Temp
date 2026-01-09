@@ -10,6 +10,7 @@
 
 <script lang="ts">
 	import type { ActionData, PageData } from './$types';
+	import { logger } from '$lib/utils/logger';
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
@@ -21,7 +22,7 @@
 
 	// Debug logging
 	$effect(() => {
-		console.log('[Task Create Page] Data received:', {
+		logger.info('[Task Create Page] Data received:', {
 			assignees: data.assignees?.length || 0,
 			departments: data.departments?.length || 0,
 			taskTypes: data.taskTypes?.length || 0,
@@ -29,8 +30,8 @@
 			parentTask: data.parentTask,
 			parentTaskId: data.parentTaskId
 		});
-		console.log('[Task Create Page] Full assignees data:', data.assignees);
-		console.log('[Task Create Page] Full departments data:', data.departments);
+		logger.info('[Task Create Page] Full assignees data:', data.assignees);
+		logger.info('[Task Create Page] Full departments data:', data.departments);
 	});
 
 	// Handle cancel

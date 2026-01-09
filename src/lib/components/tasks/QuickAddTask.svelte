@@ -14,21 +14,21 @@
 	import { Calendar as CalendarComponent } from '$lib/components/ui/calendar';
 	import LoadingSpinner from '$lib/components/ui/loading-spinner.svelte';
 	import {
-		Plus,
-		Calendar,
-		Flag,
-		User,
-		Send,
 		Briefcase,
+		Calendar,
 		Check,
 		ChevronsUpDown,
+		Flag,
+		Plus,
+		Send,
+		User,
 		X
 	} from '@lucide/svelte';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
 	import { format } from 'date-fns';
 
 	// Props
-	let {
+	const {
 		currentUser,
 		assignees = [],
 		taskTypes = [],
@@ -41,7 +41,17 @@
 		triggerSize = 'default',
 		onSuccess
 	}: {
-		currentUser: { id: string; displayName: string; role: string };
+		currentUser?: {
+			id: string;
+			email?: string;
+			displayName?: string;
+			display_name?: string;
+			role?: string;
+			firstName?: string;
+			first_name?: string;
+			lastName?: string;
+			last_name?: string;
+		};
 		assignees: Array<{ id: string; displayName: string }>;
 		taskTypes: Array<{ id: string; name: string; colorCode: string }>;
 		canAssign?: boolean;
@@ -60,7 +70,7 @@
 	let quickAddDescription = $state('');
 	let quickAddPriority = $state('MEDIUM');
 	let quickAddDueDate = $state<DateValue | undefined>(undefined);
-	let quickAddAssigneeId = $state(currentUser.id); // Default to current user
+	let quickAddAssigneeId = $state(currentUser?.id || ''); // Default to current user
 	let quickAddTaskTypeId = $state('');
 	let isDatePickerOpen = $state(false);
 	let isAssigneeComboboxOpen = $state(false);
@@ -75,22 +85,23 @@
 	const TriggerIcon = triggerIcon;
 
 	// Selected assignee display name
-	let selectedAssigneeName = $derived(
+	const selectedAssigneeName = $derived(
 		assignees.find((a) => a.id === quickAddAssigneeId)?.displayName ||
-		currentUser.displayName ||
-		currentUser.email ||
-		'User'
+			currentUser?.displayName ||
+			currentUser?.display_name ||
+			currentUser?.email ||
+			'User'
 	);
 
 	// Get first name from display name
-	let selectedAssigneeFirstName = $derived(
+	const selectedAssigneeFirstName = $derived(
 		selectedAssigneeName ? selectedAssigneeName.split(' ')[0] : 'User'
 	);
 
 	// Selected task type name and color
-	let selectedTaskType = $derived(taskTypes.find((t) => t.id === quickAddTaskTypeId));
-	let selectedTaskTypeName = $derived(selectedTaskType?.name || 'Type');
-	let selectedTaskTypeColor = $derived(selectedTaskType?.colorCode || '#6b7280'); // Default to gray
+	const selectedTaskType = $derived(taskTypes.find((t) => t.id === quickAddTaskTypeId));
+	const selectedTaskTypeName = $derived(selectedTaskType?.name || 'Type');
+	const selectedTaskTypeColor = $derived(selectedTaskType?.colorCode || '#6b7280'); // Default to gray
 
 	// Priority options with colors
 	const priorityOptions = [
@@ -101,14 +112,14 @@
 	];
 
 	// Selected priority label and color
-	let selectedPriority = $derived(
+	const selectedPriority = $derived(
 		priorityOptions.find((p) => p.value === quickAddPriority) || priorityOptions[1]
 	);
-	let selectedPriorityLabel = $derived(selectedPriority.label);
-	let selectedPriorityColor = $derived(selectedPriority.color);
+	const selectedPriorityLabel = $derived(selectedPriority.label);
+	const selectedPriorityColor = $derived(selectedPriority.color);
 
 	// Format date for badge display
-	let formattedDateBadge = $derived(
+	const formattedDateBadge = $derived(
 		quickAddDueDate
 			? format(
 					new Date(quickAddDueDate.year, quickAddDueDate.month - 1, quickAddDueDate.day),
@@ -159,7 +170,12 @@
 
 <Popover.Root bind:open={isQuickAddOpen}>
 	<Popover.Trigger>
-		<Button class="flex-shrink-0" data-testid="tasks-create-button" variant={triggerVariant} size={triggerSize}>
+		<Button
+			class="flex-shrink-0"
+			data-testid="tasks-create-button"
+			variant={triggerVariant}
+			size={triggerSize}
+		>
 			<TriggerIcon class="mr-2 h-4 w-4" />
 			{triggerLabel}
 		</Button>
@@ -182,7 +198,7 @@
 						quickAddDescription = '';
 						quickAddPriority = 'MEDIUM';
 						quickAddDueDate = undefined;
-						quickAddAssigneeId = currentUser.id;
+						quickAddAssigneeId = currentUser?.id || '';
 						quickAddTaskTypeId = '';
 						isQuickAddOpen = false;
 					} else if (result.type === 'failure') {
@@ -207,7 +223,11 @@
 			<div class="space-y-3">
 				<div>
 					<h3 class="font-semibold text-base">{parentTaskId ? 'Add Subtask' : 'Quick Add Task'}</h3>
-					<p class="text-xs text-muted-foreground">{parentTaskId ? 'Break down this task into smaller steps' : 'Create a new task with inline controls'}</p>
+					<p class="text-xs text-muted-foreground">
+						{parentTaskId
+							? 'Break down this task into smaller steps'
+							: 'Create a new task with inline controls'}
+					</p>
 				</div>
 
 				<!-- Title Input -->
@@ -296,9 +316,7 @@
 													}}
 												>
 													<Check
-														class={quickAddPriority !== priority.value
-															? 'text-transparent'
-															: ''}
+														class={quickAddPriority !== priority.value ? 'text-transparent' : ''}
 													/>
 													<span
 														class="mr-2 h-2 w-2 rounded-full"
@@ -356,9 +374,7 @@
 													}}
 												>
 													<Check
-														class={quickAddTaskTypeId !== taskType.id
-															? 'text-transparent'
-															: ''}
+														class={quickAddTaskTypeId !== taskType.id ? 'text-transparent' : ''}
 													/>
 													<span
 														class="mr-2 h-2 w-2 rounded-full"
@@ -406,9 +422,7 @@
 														}}
 													>
 														<Check
-															class={quickAddAssigneeId !== assignee.id
-																? 'text-transparent'
-																: ''}
+															class={quickAddAssigneeId !== assignee.id ? 'text-transparent' : ''}
 														/>
 														{assignee.displayName}
 													</Command.Item>

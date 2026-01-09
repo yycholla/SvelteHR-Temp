@@ -12,9 +12,9 @@
  * 5. Production safety (FR-026)
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { spawn } from 'child_process';
-import { existsSync, readFileSync, mkdirSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
 const CLI_PATH = join(process.cwd(), 'scripts/db/generate-migration.ts');
@@ -93,12 +93,7 @@ describe('generate-migration CLI Contract', () => {
 		});
 
 		it('should accept --dry-run flag', async () => {
-			const result = await runCLI([
-				'--diff-source',
-				TEST_DIFF_PATH,
-				'--dry-run',
-				'true'
-			]);
+			const result = await runCLI(['--diff-source', TEST_DIFF_PATH, '--dry-run', 'true']);
 
 			expect([0, 1, 2]).toContain(result.exitCode);
 		});
@@ -344,12 +339,7 @@ describe('generate-migration CLI Contract', () => {
 		});
 
 		it('should output SQL preview in dry-run mode', async () => {
-			const result = await runCLI([
-				'--diff-source',
-				TEST_DIFF_PATH,
-				'--dry-run',
-				'true'
-			]);
+			const result = await runCLI(['--diff-source', TEST_DIFF_PATH, '--dry-run', 'true']);
 
 			const jsonOutput = JSON.parse(result.stdout);
 

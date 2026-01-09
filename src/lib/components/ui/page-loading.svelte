@@ -10,7 +10,7 @@
 		class?: string;
 	}
 
-	let {
+	const {
 		title = 'Loading',
 		description = 'Please wait while we load your data...',
 		fullScreen = false,
@@ -30,11 +30,11 @@
 	aria-label={`${title} - ${description}`}
 >
 	{#if variant === 'minimal'}
-		<LoadingSpinner size="lg" variant="primary" label={title} />
+		<LoadingSpinner size="lg" variant="default" label={title} />
 	{:else if variant === 'detailed'}
 		<div class="flex flex-col items-center space-y-6 text-center">
 			<div class="rounded-full bg-primary/10 p-4">
-				<LoadingSpinner size="xl" variant="primary" label={title} />
+				<LoadingSpinner size="xl" variant="default" label={title} />
 			</div>
 			<div class="space-y-2">
 				<h2 class="text-lg font-semibold text-foreground">{title}</h2>
@@ -53,7 +53,7 @@
 	{:else}
 		<!-- Default variant -->
 		<div class="flex flex-col items-center space-y-4 text-center">
-			<LoadingSpinner size="lg" variant="primary" label={title} />
+			<LoadingSpinner size="lg" variant="default" label={title} />
 			<div class="space-y-1">
 				<h3 class="text-base font-medium text-foreground">{title}</h3>
 				<p class="text-sm text-muted-foreground">{description}</p>

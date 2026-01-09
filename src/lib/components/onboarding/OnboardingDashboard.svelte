@@ -1,19 +1,19 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import {
-		onboardingService,
-		onboardingInstances,
 		activeOnboardingInstances,
 		completedOnboardingInstances,
 		isLoadingOnboarding,
-		onboardingError
+		onboardingError,
+		onboardingInstances,
+		onboardingService
 	} from '$lib/services/onboardingService';
 	import { currentUser, hasPermission } from '$lib/services/auth';
 	import Button from '../base/Button.svelte';
 	import Card from '../base/Card.svelte';
 	import Badge from '../base/Badge.svelte';
-	import type { OnboardingInstance } from '$lib/services/onboardingService';
 
 	// Internal state
 	let selectedTab: 'active' | 'completed' | 'all' = 'active';
@@ -29,16 +29,16 @@
 
 	function getStatusVariant(
 		status: string
-	): 'default' | 'secondary' | 'success' | 'warning' | 'danger' {
+	): 'default' | 'secondary' | 'default' | 'outline' | 'destructive' {
 		switch (status) {
 			case 'PreHire':
 				return 'secondary';
 			case 'Onboarding':
-				return 'warning';
+				return 'outline';
 			case 'Active':
-				return 'success';
+				return 'default';
 			case 'Terminated':
-				return 'danger';
+				return 'destructive';
 			default:
 				return 'default';
 		}
@@ -80,9 +80,12 @@
 		</div>
 
 		<div class="header-actions">
-			{#if auth.user && auth.hasPermission('onboarding:create')}
-				<Button variant="primary" leftIcon="user-plus" on:click={() => goto('/onboarding/new')}>
-					Start Onboarding
+			{#if $currentUser && hasPermission('onboarding:create')}
+				<Button
+					variant="primary"
+					leftIcon="user-plus"
+					                    onclick={() => goto(resolve('/onboarding/new' as any))}
+					                >					Start Onboarding
 				</Button>
 			{/if}
 		</div>
@@ -150,21 +153,21 @@
 			<button
 				class="tab-button"
 				class:active={selectedTab === 'active'}
-				on:click={() => (selectedTab = 'active')}
+				onclick={() => (selectedTab = 'active')}
 			>
 				Active ({$activeOnboardingInstances.length})
 			</button>
 			<button
 				class="tab-button"
 				class:active={selectedTab === 'completed'}
-				on:click={() => (selectedTab = 'completed')}
+				onclick={() => (selectedTab = 'completed')}
 			>
 				Completed ({$completedOnboardingInstances.length})
 			</button>
 			<button
 				class="tab-button"
 				class:active={selectedTab === 'all'}
-				on:click={() => (selectedTab = 'all')}
+				onclick={() => (selectedTab = 'all')}
 			>
 				All ({$onboardingInstances.length})
 			</button>
@@ -173,7 +176,7 @@
 
 	<!-- Content -->
 	<div class="dashboard-content">
-		{#if auth.isLoadingOnboarding}
+		{#if $isLoadingOnboarding}
 			<div class="loading-state">
 				<div class="loading-spinner"></div>
 				<span class="text-sm text-gray-600">Loading onboarding data...</span>
@@ -189,7 +192,7 @@
 							variant="secondary"
 							size="sm"
 							leftIcon="refresh-cw"
-							on:click={() => onboardingService.loadInstances({ reset: true })}
+							onclick={() => onboardingService.loadInstances({ reset: true })}
 							class="mt-2"
 						>
 							Retry
@@ -215,12 +218,12 @@
 								? 'No employees have completed onboarding recently.'
 								: 'Get started by creating your first onboarding process.'}
 					</p>
-					{#if auth.user && auth.hasPermission('onboarding:create')}
+					{#if $currentUser && hasPermission('onboarding:create')}
 						<Button
 							variant="primary"
 							size="md"
 							leftIcon="user-plus"
-							on:click={() => goto('/onboarding/new')}
+							onclick={() => goto(resolve('/onboarding/new' as any))}
 							class="mt-4"
 						>
 							Start Onboarding
@@ -291,17 +294,17 @@
 								variant="secondary"
 								size="sm"
 								leftIcon="eye"
-								on:click={() => goto(`/onboarding/${instance.id}`)}
+								onclick={() => goto(resolve(`/onboarding/${instance.id}` as any))}
 							>
 								View Details
 							</Button>
 
-							{#if auth.user && auth.hasPermission('onboarding:update') && instance.status === 'Onboarding'}
+							{#if $currentUser && hasPermission('onboarding:update') && instance.status === 'Onboarding'}
 								<Button
 									variant="primary"
 									size="sm"
 									leftIcon="check"
-									on:click={() => goto(`/onboarding/${instance.id}/tasks`)}
+									onclick={() => goto(resolve(`/onboarding/${instance.id}/tasks` as any))}
 								>
 									Manage Tasks
 								</Button>
@@ -313,5 +316,3 @@
 		{/if}
 	</div>
 </div>
-
-

@@ -1,10 +1,11 @@
 // User Attendance - Server-Side Data Loading
 // Implements proper PostGraphile GraphQL queries with backend initialization
-import type { PageServerLoad} from './$types';
+import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, params, url, cookies } = event;
@@ -19,8 +20,10 @@ export const load: PageServerLoad = async (event) => {
 
 	// If not viewing self, check for team or all scope
 	if (!isViewingSelf) {
-		const hasTeamScope = userPermissions.includes('attendance:read:team') || userPermissions.includes('attendance:read:all');
-		if (!hasTeamScope && !userPermissions.includes('*') || userPermissions.includes('*:*')) {
+		const hasTeamScope =
+			userPermissions.includes('attendance:read:team') ||
+			userPermissions.includes('attendance:read:all');
+		if ((!hasTeamScope && !userPermissions.includes('*')) || userPermissions.includes('*:*')) {
 			error(403, 'Access denied: You can only view your own attendance records');
 		}
 
@@ -34,7 +37,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// If backend is not ready, return error state but don't crash
 		if (!backendReady) {
-			console.warn('Backend not ready for user attendance page');
+			logger.warn('Backend not ready for user attendance page');
 			return {
 				user: null,
 				userId,
@@ -111,9 +114,11 @@ export const load: PageServerLoad = async (event) => {
 			offset: 0
 		});
 
-		console.log('[Attendance] GraphQL response:', JSON.stringify(attendanceData, null, 2));
-		console.log('[Attendance] Employee ID:', userId);
-		console.log('[Attendance] Records found:', attendanceData.data?.attendanceRecords?.length);
+		logger.info('[Attendance] GraphQL response:', {
+			response: JSON.stringify(attendanceData, null, 2)
+		});
+		logger.info(`[Attendance] Employee ID: ${userId}`);
+		logger.info('[Attendance] Records found:', attendanceData.data?.attendanceRecords?.length);
 
 		const attendanceRecords = (attendanceData.data?.attendanceRecords || []).map((record: any) => ({
 			id: record.id,
@@ -128,9 +133,11 @@ export const load: PageServerLoad = async (event) => {
 
 		// Calculate attendance statistics
 		const totalDays = attendanceRecords.length;
-		const presentDays = attendanceRecords.filter(r => r.status === 'present').length;
-		const partialDays = attendanceRecords.filter(r => r.status === 'partial' || r.status === 'half_day').length;
-		const totalHours = attendanceRecords.reduce((sum, r) => sum + r.hoursWorked, 0);
+		const presentDays = attendanceRecords.filter((r: any) => r.status === 'present').length;
+		const partialDays = attendanceRecords.filter(
+			(r: any) => r.status === 'partial' || r.status === 'half_day'
+		).length;
+		const totalHours = attendanceRecords.reduce((sum: number, r: any) => sum + r.hoursWorked, 0);
 		const averageHours = totalDays > 0 ? totalHours / totalDays : 0;
 
 		const attendanceStats = {
@@ -142,19 +149,25 @@ export const load: PageServerLoad = async (event) => {
 			averageHours: Math.round(averageHours * 100) / 100
 		};
 
+		// Determine if user can manage this attendance record
+		const canManageAttendance =
+			!isViewingSelf &&
+			(userPermissions.includes('attendance:write:team') ||
+				userPermissions.includes('attendance:write:all') ||
+				userPermissions.includes('*'));
+
 		return {
 			user,
 			userId,
 			attendanceRecords,
 			attendanceStats,
-			canManageAttendance: canViewOthers,
+			canManageAttendance,
 			isOwnAttendance: locals.user?.id === userId,
 			permissions: locals.permissions || [],
 			loadedAt: new Date().toISOString()
 		};
-
 	} catch (err) {
-		console.error('Error loading user attendance data:', err);
+		logger.error('Error loading user attendance data:', err as Error);
 
 		// Return error state instead of throwing to prevent page crash
 		return {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { logger } from '$lib/utils/logger';
 	/**
 	 * Rollback Requests Page - UI
 	 * Feature: 020-we-need-to (Comprehensive Audit Logging with Rollback)
@@ -130,7 +131,7 @@
 				toast.error(result.error || 'Bulk approval failed');
 			}
 		} catch (error) {
-			console.error('[RollbackRequests] Bulk approve error:', error);
+			logger.error('[RollbackRequests] Bulk approve error:', error as Error);
 			toast.error('Failed to approve requests');
 		}
 	}
@@ -158,7 +159,7 @@
 				toast.error(result.error || 'Bulk rejection failed');
 			}
 		} catch (error) {
-			console.error('[RollbackRequests] Bulk reject error:', error);
+			logger.error('[RollbackRequests] Bulk reject error:', error as Error);
 			toast.error('Failed to reject requests');
 		}
 	}
@@ -166,6 +167,32 @@
 	async function handleRequestAction() {
 		// Refresh after individual request action
 		await handleRefresh();
+	}
+
+	async function handleApprove(requestId: string, reason: string) {
+		const response = await fetch('/api/rollback-requests/approve', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ requestId, reviewNotes: reason })
+		});
+		const result = await response.json();
+		if (!result.success) {
+			throw new Error(result.error || 'Approval failed');
+		}
+		await handleRequestAction();
+	}
+
+	async function handleReject(requestId: string, reason: string) {
+		const response = await fetch('/api/rollback-requests/reject', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ requestId, reviewNotes: reason })
+		});
+		const result = await response.json();
+		if (!result.success) {
+			throw new Error(result.error || 'Rejection failed');
+		}
+		await handleRequestAction();
 	}
 </script>
 
@@ -353,40 +380,33 @@
 						<RollbackRequestCard
 							request={{
 								id: request.id,
-								activityLogId: request.activity_log_id,
-								requesterId: request.requester_id,
+								requestedAt: request.created_at || request.requested_at,
 								reason: request.reason,
 								status: request.status,
-								reviewerId: request.reviewer_id,
-								reviewNotes: request.review_notes,
-								createdAt: request.created_at,
+								reviewedBy: request.reviewer_id
+									? {
+											id: request.reviewer_id,
+											fullName: request.reviewer_name || 'Unknown'
+										}
+									: undefined,
+								reviewReason: request.review_notes,
 								reviewedAt: request.reviewed_at,
-								requester: {
+								requestedBy: {
 									fullName: request.requester_name,
 									email: request.requester_email,
-									role: request.requester_role
+									department: request.requester_department || 'Unknown'
 								},
-								reviewer: request.reviewer_name
-									? {
-											fullName: request.reviewer_name,
-											role: request.reviewer_role
-										}
-									: null,
 								activityLog: {
 									action: request.action,
 									resourceType: request.resource_type,
 									resourceId: request.resource_id,
 									beforeSnapshot: request.before_snapshot,
-									afterSnapshot: request.after_snapshot,
-									createdAt: request.log_created_at,
-									employee: {
-										fullName: request.log_employee_name
-									}
+									afterSnapshot: request.after_snapshot
 								}
 							}}
 							userRole={data.userRole}
-							onSuccess={handleRequestAction}
-							onError={(error) => toast.error(error)}
+							onApprove={handleApprove}
+							onReject={handleReject}
 						/>
 					</div>
 				</div>

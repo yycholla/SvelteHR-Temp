@@ -7,7 +7,7 @@
  * MUST FAIL until drag-drop functionality is implemented.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Drag-and-Drop Reschedule', () => {
 	test.beforeEach(async ({ page }) => {
@@ -34,13 +34,17 @@ test.describe('Drag-and-Drop Reschedule', () => {
 			await page.waitForTimeout(500);
 
 			// Event should now be in new date cell
-			const movedEvent = page.locator(`.fc-daygrid-day[data-date="${targetDate}"] .fc-event`).first();
+			const movedEvent = page
+				.locator(`.fc-daygrid-day[data-date="${targetDate}"] .fc-event`)
+				.first();
 			await expect(movedEvent).toBeVisible();
 		}
 	});
 
 	test('should show scope selection for dragging recurring event', async ({ page }) => {
-		const recurringEvent = page.locator('.fc-event[data-is-recurring="true"][data-can-edit="true"]').first();
+		const recurringEvent = page
+			.locator('.fc-event[data-is-recurring="true"][data-can-edit="true"]')
+			.first();
 
 		if ((await recurringEvent.count()) > 0) {
 			const targetCell = page.locator('.fc-daygrid-day').nth(15);
@@ -60,7 +64,9 @@ test.describe('Drag-and-Drop Reschedule', () => {
 	});
 
 	test('should reschedule "This occurrence only" for recurring event', async ({ page }) => {
-		const recurringEvent = page.locator('.fc-event[data-is-recurring="true"][data-can-edit="true"]').first();
+		const recurringEvent = page
+			.locator('.fc-event[data-is-recurring="true"][data-can-edit="true"]')
+			.first();
 
 		if ((await recurringEvent.count()) > 0) {
 			const targetCell = page.locator('.fc-daygrid-day').nth(15);
@@ -72,9 +78,9 @@ test.describe('Drag-and-Drop Reschedule', () => {
 			await page.click('button:has-text("This occurrence only")');
 
 			// Verify confirmation
-			await expect(
-				page.locator('.toast:has-text("Event rescheduled")')
-			).toBeVisible({ timeout: 3000 });
+			await expect(page.locator('.toast:has-text("Event rescheduled")')).toBeVisible({
+				timeout: 3000
+			});
 		}
 	});
 
@@ -120,9 +126,9 @@ test.describe('Drag-and-Drop Reschedule', () => {
 				await confirmButton.click();
 
 				// Verify success
-				await expect(
-					page.locator('.toast:has-text("Event rescheduled")')
-				).toBeVisible({ timeout: 3000 });
+				await expect(page.locator('.toast:has-text("Event rescheduled")')).toBeVisible({
+					timeout: 3000
+				});
 			}
 		}
 	});
@@ -146,9 +152,9 @@ test.describe('Drag-and-Drop Reschedule', () => {
 
 				// Verify event returns to original date
 				await page.waitForTimeout(500);
-				const eventInOriginalDate = page.locator(
-					`.fc-daygrid-day[data-date="${originalParent}"] .fc-event`
-				).first();
+				const eventInOriginalDate = page
+					.locator(`.fc-daygrid-day[data-date="${originalParent}"] .fc-event`)
+					.first();
 
 				await expect(eventInOriginalDate).toBeVisible();
 			}
@@ -261,7 +267,9 @@ test.describe('Drag-and-Drop Reschedule', () => {
 	});
 
 	test('should reschedule all future occurrences of recurring event', async ({ page }) => {
-		const recurringEvent = page.locator('.fc-event[data-is-recurring="true"][data-can-edit="true"]').first();
+		const recurringEvent = page
+			.locator('.fc-event[data-is-recurring="true"][data-can-edit="true"]')
+			.first();
 
 		if ((await recurringEvent.count()) > 0) {
 			const targetCell = page.locator('.fc-daygrid-day').nth(15);
@@ -310,14 +318,14 @@ test.describe('Drag-and-Drop Reschedule', () => {
 			await page.waitForTimeout(1000);
 
 			// Verify error toast
-			await expect(
-				page.locator('.toast:has-text("Failed to reschedule")')
-			).toBeVisible({ timeout: 3000 });
+			await expect(page.locator('.toast:has-text("Failed to reschedule")')).toBeVisible({
+				timeout: 3000
+			});
 
 			// Verify event reverted to original position
-			const eventInOriginalDate = page.locator(
-				`.fc-daygrid-day[data-date="${originalParent}"] .fc-event`
-			).first();
+			const eventInOriginalDate = page
+				.locator(`.fc-daygrid-day[data-date="${originalParent}"] .fc-event`)
+				.first();
 
 			await expect(eventInOriginalDate).toBeVisible();
 		}

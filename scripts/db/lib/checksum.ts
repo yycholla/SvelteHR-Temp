@@ -49,9 +49,7 @@ export async function verifyChecksum(filePath: string, expectedChecksum: string)
  * @param filePaths - Array of file paths
  * @returns Promise resolving to Map of filePath → checksum
  */
-export async function calculateChecksums(
-	filePaths: string[]
-): Promise<Map<string, string>> {
+export async function calculateChecksums(filePaths: string[]): Promise<Map<string, string>> {
 	const checksumPromises = filePaths.map(async (path) => {
 		const checksum = await calculateChecksum(path);
 		return [path, checksum] as [string, string];
@@ -67,9 +65,7 @@ export async function calculateChecksums(
  * @param files - Map of filePath → expectedChecksum
  * @returns Promise resolving to validation results
  */
-export async function validateChecksums(
-	files: Map<string, string>
-): Promise<{
+export async function validateChecksums(files: Map<string, string>): Promise<{
 	valid: boolean;
 	mismatches: Array<{
 		filePath: string;

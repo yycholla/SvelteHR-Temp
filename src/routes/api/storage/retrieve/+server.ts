@@ -1,21 +1,33 @@
+import { logger } from '$lib/utils/logger';
 // Storage retrieve API endpoint (Feature 024)
 // GET /api/storage/retrieve?path=... - Retrieve encrypted file data
 
-import { json, error } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { requireAuth } from '$lib/server/rbac-utils';
 
-export const GET: RequestHandler = async ({ url, locals }) => {
+export const GET: RequestHandler = async (event) => {
+	const { url } = event;
+
 	// Step 1: Validate authentication
-	if (!locals.user) {
-		error(401, { message: 'Authentication required' });
-	}
+	requireAuth(event, {
+		requiredPermissions: [
+			'documents:read',
+			'documents:read:self',
+			'documents:read:team',
+			'documents:read:all'
+		]
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	try {
 		// Step 2: Get storage path from query param
 		const storagePath = url.searchParams.get('path');
 
 		if (!storagePath) {
-			error(400, { message: 'Missing required parameter: path' });
+			throw error(400, { message: 'Missing required parameter: path' });
 		}
 
 		// Step 3: Retrieve encrypted data from PostgreSQL
@@ -40,17 +52,19 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 			const row = queryResult.rows[0];
 
 			// Verify ownership or admin access
-			if (row.uploaded_by !== locals.user.id &&
-			    locals.user.role !== 'super_admin' &&
-			    locals.user.role !== 'admin') {
-				error(403, { message: 'Access denied to this file' });
+			if (
+				row.uploaded_by !== locals.user.id &&
+				locals.user.role !== 'super_admin' &&
+				locals.user.role !== 'admin'
+			) {
+				throw error(403, { message: 'Access denied to this file' });
 			}
 
 			return row;
 		});
 
 		if (!result) {
-			error(404, { message: 'File not found' });
+			throw error(404, { message: 'File not found' });
 		}
 
 		// Convert BYTEA to base64
@@ -64,9 +78,8 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 				fileSize: result.file_size
 			}
 		});
-
 	} catch (err) {
-		console.error('File retrieval error:', err);
+		logger.error('File retrieval error:', err as Error);
 
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err;

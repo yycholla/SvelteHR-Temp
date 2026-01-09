@@ -6,7 +6,7 @@
  * This test MUST FAIL initially with "query not defined" error.
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { buildSchema, parse, validate } from 'graphql';
 
 const schemaSDL = `
@@ -71,49 +71,49 @@ const schemaSDL = `
 `;
 
 describe('T009: activeReviewsForEmployee query schema contract', () => {
-  const schema = buildSchema(schemaSDL);
+	const schema = buildSchema(schemaSDL);
 
-  test('query should be defined in schema', () => {
-    const queryType = schema.getQueryType();
-    expect(queryType).toBeDefined();
+	test('query should be defined in schema', () => {
+		const queryType = schema.getQueryType();
+		expect(queryType).toBeDefined();
 
-    const fields = queryType?.getFields();
-    expect(fields).toHaveProperty('activeReviewsForEmployee');
-  });
+		const fields = queryType?.getFields();
+		expect(fields).toHaveProperty('activeReviewsForEmployee');
+	});
 
-  test('query should require employeeId parameter', () => {
-    const queryType = schema.getQueryType();
-    const fields = queryType?.getFields();
-    const query = fields?.['activeReviewsForEmployee'];
+	test('query should require employeeId parameter', () => {
+		const queryType = schema.getQueryType();
+		const fields = queryType?.getFields();
+		const query = fields?.['activeReviewsForEmployee'];
 
-    expect(query).toBeDefined();
+		expect(query).toBeDefined();
 
-    const employeeIdArg = query?.args.find(arg => arg.name === 'employeeId');
-    expect(employeeIdArg).toBeDefined();
-    expect(employeeIdArg?.type.toString()).toBe('ID!');
-  });
+		const employeeIdArg = query?.args.find((arg) => arg.name === 'employeeId');
+		expect(employeeIdArg).toBeDefined();
+		expect(employeeIdArg?.type.toString()).toBe('ID!');
+	});
 
-  test('query should have optional reviewType filter', () => {
-    const queryType = schema.getQueryType();
-    const fields = queryType?.getFields();
-    const query = fields?.['activeReviewsForEmployee'];
+	test('query should have optional reviewType filter', () => {
+		const queryType = schema.getQueryType();
+		const fields = queryType?.getFields();
+		const query = fields?.['activeReviewsForEmployee'];
 
-    const reviewTypeArg = query?.args.find(arg => arg.name === 'reviewType');
-    expect(reviewTypeArg).toBeDefined();
-    expect(reviewTypeArg?.type.toString()).toBe('ReviewType');
-  });
+		const reviewTypeArg = query?.args.find((arg) => arg.name === 'reviewType');
+		expect(reviewTypeArg).toBeDefined();
+		expect(reviewTypeArg?.type.toString()).toBe('ReviewType');
+	});
 
-  test('query should return array of PerformanceReview', () => {
-    const queryType = schema.getQueryType();
-    const fields = queryType?.getFields();
-    const query = fields?.['activeReviewsForEmployee'];
+	test('query should return array of PerformanceReview', () => {
+		const queryType = schema.getQueryType();
+		const fields = queryType?.getFields();
+		const query = fields?.['activeReviewsForEmployee'];
 
-    expect(query).toBeDefined();
-    expect(query?.type.toString()).toBe('[PerformanceReview!]!');
-  });
+		expect(query).toBeDefined();
+		expect(query?.type.toString()).toBe('[PerformanceReview!]!');
+	});
 
-  test('query should validate with required employeeId', () => {
-    const query = parse(`
+	test('query should validate with required employeeId', () => {
+		const query = parse(`
       query GetActiveReviews($employeeId: ID!) {
         activeReviewsForEmployee(employeeId: $employeeId) {
           id
@@ -124,12 +124,12 @@ describe('T009: activeReviewsForEmployee query schema contract', () => {
       }
     `);
 
-    const errors = validate(schema, query);
-    expect(errors).toHaveLength(0);
-  });
+		const errors = validate(schema, query);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('query should validate with optional reviewType filter', () => {
-    const query = parse(`
+	test('query should validate with optional reviewType filter', () => {
+		const query = parse(`
       query GetActiveAnnualReviews($employeeId: ID!, $reviewType: ReviewType) {
         activeReviewsForEmployee(
           employeeId: $employeeId
@@ -142,12 +142,12 @@ describe('T009: activeReviewsForEmployee query schema contract', () => {
       }
     `);
 
-    const errors = validate(schema, query);
-    expect(errors).toHaveLength(0);
-  });
+		const errors = validate(schema, query);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('query should allow selecting nested employee data', () => {
-    const query = parse(`
+	test('query should allow selecting nested employee data', () => {
+		const query = parse(`
       query GetActiveReviewsWithEmployee($employeeId: ID!) {
         activeReviewsForEmployee(employeeId: $employeeId) {
           id
@@ -161,12 +161,12 @@ describe('T009: activeReviewsForEmployee query schema contract', () => {
       }
     `);
 
-    const errors = validate(schema, query);
-    expect(errors).toHaveLength(0);
-  });
+		const errors = validate(schema, query);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('query should allow selecting goals', () => {
-    const query = parse(`
+	test('query should allow selecting goals', () => {
+		const query = parse(`
       query GetActiveReviewsWithGoals($employeeId: ID!) {
         activeReviewsForEmployee(employeeId: $employeeId) {
           id
@@ -180,12 +180,12 @@ describe('T009: activeReviewsForEmployee query schema contract', () => {
       }
     `);
 
-    const errors = validate(schema, query);
-    expect(errors).toHaveLength(0);
-  });
+		const errors = validate(schema, query);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('query should fail without required employeeId', () => {
-    const query = parse(`
+	test('query should fail without required employeeId', () => {
+		const query = parse(`
       query InvalidQuery {
         activeReviewsForEmployee {
           id
@@ -193,7 +193,7 @@ describe('T009: activeReviewsForEmployee query schema contract', () => {
       }
     `);
 
-    const errors = validate(schema, query);
-    expect(errors.length).toBeGreaterThan(0);
-  });
+		const errors = validate(schema, query);
+		expect(errors.length).toBeGreaterThan(0);
+	});
 });

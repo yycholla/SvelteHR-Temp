@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 	import { goto, replaceState } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
@@ -71,7 +72,7 @@
 
 		try {
 			// Wait for auth state to fully load (including roles)
-			console.log('Waiting for auth state to complete...');
+			logger.info('Waiting for auth state to complete...');
 
 			// Poll until loading is complete and user has full data
 			let attempts = 0;
@@ -84,7 +85,7 @@
 				const authenticated = auth.isAuthenticated;
 
 				if (!loading && user && authenticated) {
-					console.log('Auth state loaded, user:', user);
+					logger.info(`Auth state loaded, user: ${user}`);
 					break;
 				}
 				await new Promise((resolve) => setTimeout(resolve, 100));
@@ -92,7 +93,7 @@
 			}
 
 			if (attempts >= maxAttempts) {
-				console.warn('Auth state loading timeout, proceeding with current state');
+				logger.warn('Auth state loading timeout, proceeding with current state');
 			}
 
 			// Check if user is admin
@@ -103,7 +104,7 @@
 			if (!redirectTo && browser) {
 				const savedReturnUrl = localStorage.getItem('hr_return_url');
 				if (savedReturnUrl) {
-					console.log('Found saved return URL:', savedReturnUrl);
+					logger.info(`Found saved return URL: ${savedReturnUrl}`);
 					redirectTo = savedReturnUrl;
 					// Clear the saved URL after using it
 					localStorage.removeItem('hr_return_url');
@@ -113,21 +114,21 @@
 			// Only use role-based defaults if no URL was saved or provided
 			if (!redirectTo) {
 				// Redirect to dashboard for all users for now
-				console.log('No saved URL, redirecting to /dashboard');
+				logger.info('No saved URL, redirecting to /dashboard');
 				redirectTo = '/dashboard';
 			}
 
-			console.log('Redirecting to:', redirectTo);
+			logger.info(`Redirecting to: ${redirectTo}`);
 			// Use replaceState to prevent navigation conflicts
 			await goto(redirectTo, { replaceState: true });
 		} catch (error) {
-			console.error('Error during redirect:', error);
+			logger.error('Error during redirect:', error as Error);
 		}
 	};
 
 	// Handle login error
 	const handleLoginError = (event: CustomEvent) => {
-		console.error('Login error:', event.detail.message);
+		logger.error('Login error:', event.detail.message);
 		// Error is already handled by the auth store and displayed in the form
 	};
 </script>

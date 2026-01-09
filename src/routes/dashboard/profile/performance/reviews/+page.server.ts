@@ -1,10 +1,83 @@
-// User Performance Reviews - Server-Side Data Loading
-// Implements proper PostGraphile GraphQL queries with backend initialization
+/**
+ * User Performance Reviews Page - Server Load
+ * Feature: 023-reviews-creation-it
+ * Task: T039
+ *
+ * Server-side data loading for user's own performance reviews
+ * Refactored: Phase 2 - Using Phase 1 Foundation utilities
+ */
+
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { GraphQLClient } from '$lib/server/graphql-client';
-import { PermissionChecks } from '$lib/server/rbac-utils';
-import { ensureBackendReady } from '$lib/server/backend-init';
+import { RBACDataLoader } from '$lib/server/route-loaders';
+import { logger } from '$lib/utils/logger';
+
+// Type definitions for GraphQL query responses
+interface UserInfo {
+	id: string;
+	displayName: string;
+	email: string;
+	firstName: string;
+	lastName: string;
+}
+
+interface ReviewCycleInfo {
+	id: string;
+	name: string;
+	reviewType: string;
+	startDate: string;
+	endDate: string;
+}
+
+interface PerformanceReviewResponse {
+	id: string;
+	employeeId: string;
+	reviewerId: string;
+	cycleId: string;
+	templateId: string;
+	status: string;
+	overallRating: number | null;
+	submittedAt: string | null;
+	createdAt: string;
+	updatedAt: string;
+	employee: UserInfo;
+	reviewer: UserInfo;
+	cycle: ReviewCycleInfo;
+}
+
+interface TransformedReview {
+	id: string;
+	type: {
+		id: string;
+		name: string;
+		frequency: string;
+		color: string;
+	};
+	status: string;
+	reviewPeriod: {
+		start: string;
+		end: string;
+	};
+	scheduledDate: string;
+	completedDate: string | null;
+	reviewer: {
+		id: string;
+		displayName: string;
+		email: string;
+	} | null;
+	overallRating: number | null;
+	competencies: never[];
+	goals: never[];
+	feedback: {
+		strengths: never[];
+		improvements: never[];
+		managerComments: null;
+		employeeComments: null;
+	};
+	developmentPlan: never[];
+	createdAt: string;
+	lastUpdated: string;
+}
 
 // Helper functions for review type mapping
 function getReviewTypeName(reviewType: string): string {
@@ -54,51 +127,15 @@ function mapReviewStatus(status: string): string {
 }
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, url, cookies } = event;
+	const loader = new RBACDataLoader(event, [
+		'performance:read',
+		'performance:read:self',
+		'performance:read:team',
+		'performance:read:all'
+	]);
 
-	// Check authentication and permissions
-	PermissionChecks.performanceRead(event);
-
-	// Use authenticated user's ID
-	const userId = locals.user.id;
-
-	try {
-		// Check backend services are ready before proceeding
-		const backendReady = await ensureBackendReady();
-
-		// If backend is not ready, return error state but don't crash
-		if (!backendReady) {
-			console.warn('Backend not ready for user performance reviews page');
-			return {
-				user: null,
-				userId,
-				reviews: [],
-				reviewTypes: [],
-				competencyAreas: [],
-				reviewStats: {
-					total: 0,
-					completed: 0,
-					inProgress: 0,
-					scheduled: 0,
-					overdue: 0,
-					averageRating: 0,
-					lastReviewDate: null,
-					nextReviewDate: null
-				},
-				canManageReviews: false,
-				isOwnReviews: true,
-				permissions: locals.permissions || [],
-				loadedAt: new Date().toISOString(),
-				error: {
-					message: 'Backend services are initializing. Please try again in a moment.',
-					details: 'Backend initialization in progress',
-					retryable: true
-				}
-			};
-		}
-
-		// Create GraphQL client with authentication
-		const graphqlClient = GraphQLClient.fromCookies(cookies);
+	return loader.loadWithClient(async (client) => {
+		const userId = loader.getUserId();
 
 		// Load user details using new GraphQL client
 		// Migration: ✅ Use idiomatic Rust pattern (user with id parameter)
@@ -120,10 +157,15 @@ export const load: PageServerLoad = async (event) => {
 			}
 		`;
 
-		const userData = await graphqlClient.query(userQuery, { id: userId });
-		const user = userData.data?.user;
+		// UnifiedGraphQLClient returns data directly, not wrapped in { data }
+		const user = await client.query(userQuery, { id: userId }, {
+			operationName: 'GetUser',
+			dataPath: 'user',
+			errorMessage: 'Failed to load user data'
+		});
 
 		if (!user) {
+			logger.error('[Reviews] User not found', new Error('User not found'), { userId });
 			error(404, 'User not found');
 		}
 
@@ -168,65 +210,79 @@ export const load: PageServerLoad = async (event) => {
 			}
 		`;
 
-		const reviewsData = await graphqlClient.query(reviewsQuery, {
+		// UnifiedGraphQLClient returns data directly with dataPath extraction
+		const performanceReviews = await client.query(reviewsQuery, {
 			employeeId: userId,
 			limit: 50,
 			offset: 0
+		}, {
+			operationName: 'GetPerformanceReviewsByEmployee',
+			dataPath: 'performanceReviews',
+			errorMessage: 'Failed to load performance reviews'
 		});
 
 		// Transform database reviews to frontend format
 		// Note: Using placeholder data for fields that exist in separate tables (review_feedback, review_goal, review_cycle)
-		const reviews = (reviewsData.data?.performanceReviews || []).map((review) => {
-			// Map status enum to string
-			const statusStr = typeof review.status === 'string' ? review.status : review.status?.toLowerCase() || 'draft';
-			const mappedStatus = mapReviewStatus(statusStr);
+		const reviews: TransformedReview[] = (performanceReviews || []).map(
+			(review: PerformanceReviewResponse): TransformedReview => {
+				// Map status enum to string
+				const statusStr =
+					typeof review.status === 'string'
+						? review.status
+						: (review.status as string)?.toLowerCase() || 'draft';
+				const mappedStatus = mapReviewStatus(statusStr);
 
-			// Infer review type from cycleId existence (would need to query review_cycle for actual type)
-			const inferredType = 'annual'; // Default - actual type is in review_cycle table
+				// Infer review type from cycleId existence (would need to query review_cycle for actual type)
+				const inferredType = 'annual'; // Default - actual type is in review_cycle table
 
-			// Calculate review period from creation/submission dates (approximation until we query review_cycle)
-			const createdDate = new Date(review.createdAt);
-			const yearStart = new Date(createdDate.getFullYear(), 0, 1);
-			const yearEnd = new Date(createdDate.getFullYear(), 11, 31);
+				// Calculate review period from creation/submission dates (approximation until we query review_cycle)
+				const createdDate = new Date(review.createdAt);
+				const yearStart = new Date(createdDate.getFullYear(), 0, 1);
+				const yearEnd = new Date(createdDate.getFullYear(), 11, 31);
 
-			return {
-				id: review.id,
-				type: {
-					id: inferredType,
-					name: getReviewTypeName(inferredType),
-					frequency: getReviewTypeFrequency(inferredType),
-					color: getReviewTypeColor(inferredType)
-				},
-				status: mappedStatus,
-				reviewPeriod: {
-					start: yearStart.toISOString().split('T')[0],
-					end: yearEnd.toISOString().split('T')[0]
-				},
-				scheduledDate: review.createdAt.split('T')[0],
-				completedDate: review.submittedAt ? review.submittedAt.split('T')[0] : (mappedStatus === 'completed' ? review.updatedAt.split('T')[0] : null),
-				reviewer: review.reviewer
-					? {
-							id: review.reviewer.id,
-							displayName:
-								review.reviewer.displayName ||
-								`${review.reviewer.firstName} ${review.reviewer.lastName}`,
-							email: review.reviewer.email
-						}
-					: null,
-				overallRating: review.overallRating || null,
-				competencies: [], // Would need to query review_template or review_feedback for competencies
-				goals: [], // Would need to query review_goals table
-				feedback: {
-					strengths: [], // Would need to query review_feedback table with feedback_type='manager'
-					improvements: [], // Would need to query review_feedback table
-					managerComments: null, // Would need to query review_feedback table
-					employeeComments: null // Would need to query review_feedback table with feedback_type='self_review'
-				},
-				developmentPlan: [], // Would need to query review_goals table
-				createdAt: review.createdAt,
-				lastUpdated: review.updatedAt
-			};
-		});
+				return {
+					id: review.id,
+					type: {
+						id: inferredType,
+						name: getReviewTypeName(inferredType),
+						frequency: getReviewTypeFrequency(inferredType),
+						color: getReviewTypeColor(inferredType)
+					},
+					status: mappedStatus,
+					reviewPeriod: {
+						start: yearStart.toISOString().split('T')[0],
+						end: yearEnd.toISOString().split('T')[0]
+					},
+					scheduledDate: review.createdAt.split('T')[0],
+					completedDate: review.submittedAt
+						? review.submittedAt.split('T')[0]
+						: mappedStatus === 'completed'
+							? review.updatedAt.split('T')[0]
+							: null,
+					reviewer: review.reviewer
+						? {
+								id: review.reviewer.id,
+								displayName:
+									review.reviewer.displayName ||
+									`${review.reviewer.firstName} ${review.reviewer.lastName}`,
+								email: review.reviewer.email
+							}
+						: null,
+					overallRating: review.overallRating || null,
+					competencies: [], // Would need to query review_template or review_feedback for competencies
+					goals: [], // Would need to query review_goals table
+					feedback: {
+						strengths: [], // Would need to query review_feedback table with feedback_type='manager'
+						improvements: [], // Would need to query review_feedback table
+						managerComments: null, // Would need to query review_feedback table
+						employeeComments: null // Would need to query review_feedback table with feedback_type='self_review'
+					},
+					developmentPlan: [], // Would need to query review_goals table
+					createdAt: review.createdAt,
+					lastUpdated: review.updatedAt
+				};
+			}
+		);
 
 		// Static review types (could be loaded from database in future)
 		const reviewTypes = [
@@ -259,13 +315,17 @@ export const load: PageServerLoad = async (event) => {
 		// Calculate review statistics from actual data
 		const reviewStats = {
 			total: reviews.length,
-			completed: reviews.filter((r) => r.status === 'completed').length,
-			inProgress: reviews.filter((r) => r.status === 'in_progress').length,
-			scheduled: reviews.filter((r) => r.status === 'scheduled').length,
-			overdue: reviews.filter((r) => r.status === 'overdue').length,
+			completed: reviews.filter((r: TransformedReview) => r.status === 'completed').length,
+			inProgress: reviews.filter((r: TransformedReview) => r.status === 'in_progress').length,
+			scheduled: reviews.filter((r: TransformedReview) => r.status === 'scheduled').length,
+			overdue: reviews.filter((r: TransformedReview) => r.status === 'overdue').length,
 			averageRating: reviews
-				.filter((r) => r.status === 'completed' && r.overallRating)
-				.reduce((sum, r, _, arr) => sum + (r.overallRating || 0) / arr.length, 0),
+				.filter((r: TransformedReview) => r.status === 'completed' && r.overallRating)
+				.reduce(
+					(sum: number, r: TransformedReview, _: number, arr: TransformedReview[]) =>
+						sum + (r.overallRating || 0) / arr.length,
+					0
+				),
 			lastReviewDate: reviews
 				.filter((r) => r.status === 'completed')
 				.sort(
@@ -290,39 +350,7 @@ export const load: PageServerLoad = async (event) => {
 			competencyAreas,
 			reviewStats,
 			canManageReviews: false,
-			isOwnReviews: true,
-			permissions: locals.permissions || [],
-			loadedAt: new Date().toISOString()
+			isOwnReviews: true
 		};
-	} catch (err) {
-		console.error('Error loading user performance reviews:', err);
-
-		// Return error state instead of throwing to prevent page crash
-		return {
-			user: null,
-			userId,
-			reviews: [],
-			reviewTypes: [],
-			competencyAreas: [],
-			reviewStats: {
-				total: 0,
-				completed: 0,
-				inProgress: 0,
-				scheduled: 0,
-				overdue: 0,
-				averageRating: 0,
-				lastReviewDate: null,
-				nextReviewDate: null
-			},
-			canManageReviews: false,
-			isOwnReviews: true,
-			permissions: locals.permissions || [],
-			loadedAt: new Date().toISOString(),
-			error: {
-				message: 'Unable to load performance reviews. Please try again later.',
-				details: err instanceof Error ? err.message : 'Unknown error',
-				retryable: true
-			}
-		};
-	}
+	});
 };

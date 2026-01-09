@@ -4,7 +4,8 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { PermissionChecks } from '$lib/server/rbac-utils';
-import { transaction, setJWTClaims } from '$lib/server/db';
+import { setJWTClaims, transaction } from '$lib/server/db';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 	// Check authentication and permissions
@@ -86,8 +87,8 @@ export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 
 		if (!canAccess) {
 			error(403, {
-            				message: 'Access denied. You do not have permission to view this document.'
-            			});
+				message: 'Access denied. You do not have permission to view this document.'
+			});
 		}
 
 		// Step 3: Fetch document assignments
@@ -206,7 +207,7 @@ export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 				teams = teamsData;
 			} catch (err) {
 				// Teams table might not exist yet
-				console.log('Teams table not found or query failed:', err);
+				logger.info(`Teams table not found or query failed: ${err}`);
 				teams = [];
 			}
 		}
@@ -224,9 +225,8 @@ export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 			canDownload,
 			user: locals.user
 		};
-
 	} catch (err) {
-		console.error('Document detail load error:', err);
+		logger.error('Document detail load error:', err as Error);
 
 		// Re-throw redirects and errors
 		if (err && typeof err === 'object' && ('status' in err || 'location' in err)) {
@@ -235,7 +235,7 @@ export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 
 		// Generic error fallback
 		error(500, {
-        			message: 'Failed to load document details. Please try again later.'
-        		});
+			message: 'Failed to load document details. Please try again later.'
+		});
 	}
 };

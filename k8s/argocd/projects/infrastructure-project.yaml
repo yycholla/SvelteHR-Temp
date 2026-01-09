@@ -13,7 +13,7 @@ spec:
   sourceRepos:
     - https://github.com/Mountain-Care-Rx/SvelteHR.git
     - https://prometheus-community.github.io/helm-charts
-    - https://grafana.github.io/helm-charts  # Grafana Loki stack
+    - https://grafana.github.io/helm-charts # Grafana Loki stack
     - https://cloudnative-pg.github.io/charts
     - https://traefik.github.io/charts
     - https://charts.jetstack.io
@@ -22,7 +22,7 @@ spec:
     - https://charts.bitnami.com/bitnami
     - https://charts.min.io/
     - https://vmware-tanzu.github.io/helm-charts
-    - https://argoproj.github.io/argo-helm  # ArgoCD Image Updater
+    - https://argoproj.github.io/argo-helm # ArgoCD Image Updater
 
   # Destination clusters and namespaces
   destinations:

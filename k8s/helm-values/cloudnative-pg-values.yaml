@@ -10,9 +10,9 @@ crds:
 
 # Monitoring (enabled with Prometheus Operator)
 monitoring:
-  podMonitorEnabled: true  # Creates PodMonitor for Prometheus
+  podMonitorEnabled: true # Creates PodMonitor for Prometheus
   grafanaDashboard:
-    create: true  # Create Grafana dashboard ConfigMap
+    create: true # Create Grafana dashboard ConfigMap
 
 # Resources
 resources:

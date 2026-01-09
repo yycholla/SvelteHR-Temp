@@ -35,12 +35,14 @@ Tilt is a Kubernetes development tool that provides:
 **Why Tilt for SvelteHR?**
 
 Without Tilt:
+
 ```
 Edit code → Rebuild container (60-120s) → Push image → K8s rollout → Test
 Total: 2-3 minutes per change
 ```
 
 With Tilt:
+
 ```
 Edit code → File sync (<500ms) → Vite HMR (<1s) → Browser updates
 Total: <2 seconds per change
@@ -94,6 +96,7 @@ tilt up
 ```
 
 This will:
+
 1. Build Docker images with development target
 2. Deploy to Kubernetes using Helm charts
 3. Set up file synchronization
@@ -104,11 +107,11 @@ This will:
 
 Once Tilt is running, access your services:
 
-| Service | URL | Description |
-|---------|-----|-------------|
-| **Tilt UI** | http://localhost:10350 | Dashboard for all services |
-| **Frontend** | http://localhost:5173 | SvelteKit app with HMR |
-| **Backend** | http://localhost:4000 | Rust GraphQL API |
+| Service      | URL                    | Description                |
+| ------------ | ---------------------- | -------------------------- |
+| **Tilt UI**  | http://localhost:10350 | Dashboard for all services |
+| **Frontend** | http://localhost:5173  | SvelteKit app with HMR     |
+| **Backend**  | http://localhost:4000  | Rust GraphQL API           |
 
 ### 3. Start Developing
 
@@ -197,11 +200,13 @@ live_update=[
 ```
 
 **What gets synced:**
+
 - ✅ `src/` directory (all source code)
 - ✅ `static/` directory (assets)
 - ✅ Config files (vite.config.ts, svelte.config.js, etc.)
 
 **What does NOT get synced (triggers rebuild):**
+
 - ❌ `Dockerfile` changes
 - ❌ `node_modules/` changes (only package.json triggers npm install)
 - ❌ Build artifacts (`.svelte-kit/`, `build/`, etc.)
@@ -231,6 +236,7 @@ code .
 ### During Development
 
 **Edit source files:**
+
 ```bash
 # Edit any file - changes sync automatically
 vim src/routes/+page.svelte
@@ -239,11 +245,13 @@ vim src/lib/stores/auth.ts
 ```
 
 **Run tests (manual trigger in Tilt UI):**
+
 - Click **"typecheck"** button in Tilt UI
 - Click **"lint"** button
 - Click **"test-unit"** button
 
 Or use CLI:
+
 ```bash
 tilt trigger typecheck
 tilt trigger lint
@@ -251,6 +259,7 @@ tilt trigger test-unit
 ```
 
 **View logs:**
+
 ```bash
 # In Tilt UI - click on any resource to see logs
 # Or use CLI:
@@ -259,6 +268,7 @@ npm run dev:k8s:logs sveltehr-dev-backend
 ```
 
 **Install new dependencies:**
+
 ```bash
 # Edit package.json (add new dependency)
 vim package.json
@@ -283,27 +293,27 @@ npm run dev:k8s:clean
 
 ### NPM Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev:k8s` | Start Tilt and begin development |
-| `npm run dev:k8s:down` | Stop Tilt (keep K8s resources) |
-| `npm run dev:k8s:clean` | Stop Tilt and delete all K8s resources |
-| `npm run dev:k8s:logs` | View logs for a resource |
-| `npm run dev:k8s:ci` | Run Tilt in CI mode (wait for success) |
-| `npm run dev:k8s:trigger` | Manually trigger a resource rebuild |
+| Command                   | Description                            |
+| ------------------------- | -------------------------------------- |
+| `npm run dev:k8s`         | Start Tilt and begin development       |
+| `npm run dev:k8s:down`    | Stop Tilt (keep K8s resources)         |
+| `npm run dev:k8s:clean`   | Stop Tilt and delete all K8s resources |
+| `npm run dev:k8s:logs`    | View logs for a resource               |
+| `npm run dev:k8s:ci`      | Run Tilt in CI mode (wait for success) |
+| `npm run dev:k8s:trigger` | Manually trigger a resource rebuild    |
 
 ### Tilt CLI Commands
 
-| Command | Description |
-|---------|-------------|
-| `tilt up` | Start Tilt |
-| `tilt down` | Stop Tilt (keep resources) |
-| `tilt down --delete-namespaces` | Stop and delete everything |
-| `tilt logs <resource>` | View logs for specific resource |
-| `tilt trigger <resource>` | Manually rebuild a resource |
-| `tilt get resources` | List all resources |
-| `tilt describe <resource>` | Get detailed info about resource |
-| `tilt ci` | Run in CI mode (non-interactive) |
+| Command                         | Description                      |
+| ------------------------------- | -------------------------------- |
+| `tilt up`                       | Start Tilt                       |
+| `tilt down`                     | Stop Tilt (keep resources)       |
+| `tilt down --delete-namespaces` | Stop and delete everything       |
+| `tilt logs <resource>`          | View logs for specific resource  |
+| `tilt trigger <resource>`       | Manually rebuild a resource      |
+| `tilt get resources`            | List all resources               |
+| `tilt describe <resource>`      | Get detailed info about resource |
+| `tilt ci`                       | Run in CI mode (non-interactive) |
 
 ---
 
@@ -334,21 +344,25 @@ Access the Tilt UI at **http://localhost:10350**
 ### Features
 
 **1. Resource Status**
+
 - 🟢 Green = Running successfully
 - 🟡 Yellow = Building or updating
 - 🔴 Red = Error (click for details)
 - ⚪ Gray = Not started (manual resources)
 
 **2. Logs Viewer**
+
 - Click any resource to see live logs
 - Auto-scroll to latest
 - Search/filter logs
 
 **3. Manual Triggers**
+
 - Click button next to manual resources to run them
 - Examples: typecheck, lint, test-unit
 
 **4. Build History**
+
 - See past builds and their status
 - Click to see build logs
 
@@ -363,6 +377,7 @@ Access the Tilt UI at **http://localhost:10350**
 **Problem:** Tilt can't reach your K8s cluster
 
 **Solution:**
+
 ```bash
 # Verify kubectl is configured
 kubectl cluster-info
@@ -383,6 +398,7 @@ kubectl config use-context <your-context>
 **Problem:** Docker build is failing
 
 **Solution:**
+
 ```bash
 # Test Docker build manually
 docker build --target development -t test:dev .
@@ -399,6 +415,7 @@ docker builder prune
 **Problem:** File changes not triggering browser updates
 
 **Solution:**
+
 ```bash
 # 1. Check Tilt is detecting file changes (watch Tilt UI)
 # 2. Check browser console for WebSocket errors
@@ -417,6 +434,7 @@ tilt logs sveltehr-dev-frontend
 **Problem:** Frontend pod in CrashLoopBackOff
 
 **Solution:**
+
 ```bash
 # Check pod status
 kubectl get pods -n sveltehr-dev
@@ -440,6 +458,7 @@ kubectl logs -n sveltehr-dev <pod-name>
 **Problem:** Can't access http://localhost:5173
 
 **Solution:**
+
 ```bash
 # Check if port is already in use
 lsof -i :5173
@@ -457,6 +476,7 @@ tilt down && tilt up
 **Problem:** Dependencies not updating after package.json change
 
 **Solution:**
+
 ```bash
 # Manually trigger rebuild
 tilt trigger sveltehr-dev-frontend
@@ -482,6 +502,7 @@ namespace = 'my-custom-dev'
 ### Multiple Developers
 
 **Option 1: Separate namespaces**
+
 ```bash
 # Alice
 tilt up -- --namespace=sveltehr-dev-alice
@@ -491,6 +512,7 @@ tilt up -- --namespace=sveltehr-dev-bob
 ```
 
 **Option 2: Local K3s clusters**
+
 ```bash
 # Each developer runs own K3s
 k3d cluster create sveltehr-dev-alice
@@ -528,6 +550,7 @@ tilt analytics
 ### 1. Optimize .tiltignore
 
 Exclude unnecessary files to speed up sync:
+
 ```bash
 # Add to .tiltignore
 large-dataset/
@@ -544,6 +567,7 @@ For development, emptyDir is faster but non-persistent.
 ### 3. Limit Resource Watching
 
 Only watch files you're actively working on:
+
 ```python
 # In Tiltfile
 only=[
@@ -556,6 +580,7 @@ only=[
 ### 4. Disable Unnecessary Services
 
 Comment out services you're not using:
+
 ```python
 # In Tiltfile
 # k8s_resource('sveltehr-dev-redis', ...)  # Comment if not needed
@@ -568,6 +593,7 @@ Comment out services you're not using:
 ### Q: Do I need to run Tilt all the time?
 
 **A:** No! You can still use `npm run dev` locally for pure frontend work. Use Tilt when you need:
+
 - Full K8s environment (backend, database, etc.)
 - Testing production-like setup
 - Working on features that need all services
@@ -579,6 +605,7 @@ Comment out services you're not using:
 ### Q: Can I use Tilt in CI/CD?
 
 **A:** Yes! Use `tilt ci` mode for automated testing:
+
 ```bash
 tilt ci  # Runs until all resources are ready, then exits
 ```
@@ -586,6 +613,7 @@ tilt ci  # Runs until all resources are ready, then exits
 ### Q: How do I update Tilt?
 
 **A:** Reinstall with the same command:
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
 ```
@@ -593,6 +621,7 @@ curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/instal
 ### Q: Does Tilt replace ArgoCD?
 
 **A:** No! Tilt is for **development only**. ArgoCD still manages production deployments.
+
 - Tilt: Dev environment (namespace: sveltehr-dev)
 - ArgoCD: Production (namespace: sveltehr-prod)
 
@@ -624,4 +653,4 @@ If you encounter issues:
 
 **Happy Developing! 🚀**
 
-*Last updated: 2025-11-02*
+_Last updated: 2025-11-02_

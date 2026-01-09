@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 /**
  * E2E test for error retry functionality
@@ -8,7 +8,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Error Retry Functionality', () => {
 	test('should show retry button on data loading failure', async ({ page }) => {
 		// Mock GraphQL failure
-		await page.route('**/graphql', route => {
+		await page.route('**/graphql', (route) => {
 			route.fulfill({
 				status: 503,
 				body: JSON.stringify({
@@ -39,7 +39,7 @@ test.describe('Error Retry Functionality', () => {
 		let requestCount = 0;
 
 		// Mock: fail first request, succeed on retry
-		await page.route('**/graphql', route => {
+		await page.route('**/graphql', (route) => {
 			requestCount++;
 
 			if (requestCount === 1) {
@@ -83,7 +83,7 @@ test.describe('Error Retry Functionality', () => {
 	});
 
 	test('should show loading state during retry', async ({ page }) => {
-		await page.route('**/graphql', route => {
+		await page.route('**/graphql', (route) => {
 			route.fulfill({
 				status: 503,
 				body: JSON.stringify({
@@ -99,8 +99,8 @@ test.describe('Error Retry Functionality', () => {
 
 		// Mock slow response for retry
 		await page.unroute('**/graphql');
-		await page.route('**/graphql', async route => {
-			await new Promise(resolve => setTimeout(resolve, 2000));
+		await page.route('**/graphql', async (route) => {
+			await new Promise((resolve) => setTimeout(resolve, 2000));
 			route.continue();
 		});
 
@@ -133,7 +133,7 @@ test.describe('Error Retry Functionality', () => {
 	test('should handle multiple retry attempts gracefully', async ({ page }) => {
 		let requestCount = 0;
 
-		await page.route('**/graphql', route => {
+		await page.route('**/graphql', (route) => {
 			requestCount++;
 
 			// Fail first 3 requests
@@ -177,7 +177,7 @@ test.describe('Error Retry Functionality', () => {
 		await page.goto('/dashboard');
 
 		// Mock failure for specific data request
-		await page.route('**/graphql', route => {
+		await page.route('**/graphql', (route) => {
 			if (route.request().postData()?.includes('getDashboardData')) {
 				route.fulfill({
 					status: 503,
@@ -229,7 +229,7 @@ test.describe('Error Retry Functionality', () => {
 		];
 
 		for (const scenario of errorScenarios) {
-			await page.route('**/graphql', route => {
+			await page.route('**/graphql', (route) => {
 				route.fulfill({
 					status: scenario.status,
 					body: JSON.stringify(scenario.body)
@@ -257,7 +257,7 @@ test.describe('Error Retry Functionality', () => {
 	});
 
 	test('should show contextual error messages', async ({ page }) => {
-		await page.route('**/graphql', route => {
+		await page.route('**/graphql', (route) => {
 			const postData = route.request().postData() || '';
 
 			if (postData.includes('getEmployees')) {
@@ -285,7 +285,7 @@ test.describe('Error Retry Functionality', () => {
 	test('should clear error state on successful retry', async ({ page }) => {
 		let failRequest = true;
 
-		await page.route('**/graphql', route => {
+		await page.route('**/graphql', (route) => {
 			if (failRequest) {
 				route.fulfill({
 					status: 503,

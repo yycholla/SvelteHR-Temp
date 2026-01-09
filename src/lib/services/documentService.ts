@@ -1,19 +1,20 @@
+import { logger } from '$lib/utils/logger';
 // Document operations service (Feature 024)
 // High-level service coordinating encryption, storage, and metadata management
 
 import type {
-	DocumentMetadata,
-	UploadResult,
-	Document,
 	AssignmentPayload,
+	Document,
 	DocumentFilter,
+	DocumentMetadata,
 	PaginatedDocuments,
-	UploadProgress
+	UploadProgress,
+	UploadResult
 } from '$lib/types/document';
-import { encryptFileChunked, generateEncryptionKey, exportKey } from './encryption';
+import { encryptFileChunked, exportKey, generateEncryptionKey } from './encryption';
 import { registerKey } from './keyManagement';
 import { storeFile } from './storageService';
-import { logSuccessfulAccess, createAccessMetadata } from './auditService';
+import { createAccessMetadata, logSuccessfulAccess } from './auditService';
 
 // Prepare document for upload with client-side encryption
 // Returns encrypted data and metadata ready for server-side GraphQL upload
@@ -87,7 +88,7 @@ export async function prepareDocumentUpload(
 			uploadInput
 		};
 	} catch (error) {
-		console.error('Document preparation failed:', error);
+		logger.error('Catch failed', error as Error);
 		throw error;
 	}
 }
@@ -99,7 +100,7 @@ export async function uploadDocument(
 	metadata: DocumentMetadata,
 	onProgress?: (progress: UploadProgress) => void
 ): Promise<UploadResult> {
-	console.warn(
+	logger.warn(
 		'[documentService] uploadDocument is deprecated. Use prepareDocumentUpload + server-side GraphQL.'
 	);
 
@@ -170,7 +171,10 @@ export async function listDocuments(filters: DocumentFilter): Promise<PaginatedD
 }
 
 // Download document (encrypted)
-export async function downloadDocument(documentId: string, fetchFn: typeof fetch = fetch): Promise<Blob> {
+export async function downloadDocument(
+	documentId: string,
+	fetchFn: typeof fetch = fetch
+): Promise<Blob> {
 	const response = await fetchFn(`/api/documents/${documentId}/download`, {
 		method: 'GET',
 		credentials: 'include' // Include cookies for authentication
@@ -182,7 +186,13 @@ export async function downloadDocument(documentId: string, fetchFn: typeof fetch
 	}
 
 	// Log successful download
-	await logSuccessfulAccess(documentId, 'current_user', 'download', createAccessMetadata(), fetchFn);
+	await logSuccessfulAccess(
+		documentId,
+		'current_user',
+		'download',
+		createAccessMetadata(),
+		fetchFn
+	);
 
 	return await response.blob();
 }

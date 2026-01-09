@@ -3,12 +3,7 @@
  * Helper functions for aligning fields across GraphQL, Database, and API layers
  */
 
-import type {
-  FieldAlignment,
-  FieldReference,
-  DatabaseColumn,
-  ApiField,
-} from '../types/models.js';
+import type { ApiField, DatabaseColumn, FieldAlignment, FieldReference } from '../types/models.js';
 import { AlignmentStatus } from '../types/enums.js';
 import { TypeComparator } from './type-comparator.js';
 
@@ -25,15 +20,17 @@ export function alignField(
   sourceColumn: number,
   typeComparator: TypeComparator
 ): FieldAlignment {
-  const status = computeAlignmentStatus(
+  const status = computeAlignmentStatus(graphqlField, dbColumn, apiField, typeComparator);
+
+  const error = generateErrorMessage(status, fieldPath, graphqlField, dbColumn, apiField);
+  const suggestion = generateSuggestion(
+    status,
+    fieldPath,
     graphqlField,
     dbColumn,
     apiField,
     typeComparator
   );
-
-  const error = generateErrorMessage(status, fieldPath, graphqlField, dbColumn, apiField);
-  const suggestion = generateSuggestion(status, fieldPath, graphqlField, dbColumn, apiField, typeComparator);
 
   return {
     fieldPath,

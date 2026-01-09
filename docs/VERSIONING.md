@@ -18,6 +18,7 @@ Docker builds **only** run for:
 2. **Semantic version tags** (e.g., `1.2.3`) → Creates versioned images
 
 Builds **do NOT** run for:
+
 - ❌ Pull requests
 - ❌ Other branches (develop, feature branches)
 - ❌ Non-semantic tags
@@ -44,6 +45,7 @@ Builds **do NOT** run for:
 ```
 
 The script will:
+
 1. Show recent commits since last release
 2. Ask for confirmation
 3. Create and push the tag
@@ -92,11 +94,13 @@ When you push tag `1.2.3`, the following image tags are created:
 ## Development vs Production
 
 ### Development (main branch pushes)
+
 - Trigger: Push to `main`
 - Image tag: `latest`
 - Use case: Continuous deployment to dev environment
 
 ### Production (version tags)
+
 - Trigger: Push version tag (e.g., `1.2.3`)
 - Image tags: `1.2.3`, `1.2`, `1`, `latest`
 - Use case: Stable releases for production

@@ -5,12 +5,14 @@
 The database schema management has been migrated from SQL files to **type-safe Rust code** using SeaORM's migration framework.
 
 ### Before (SQL-based)
+
 ```bash
 # Old approach: Manual SQL scripts
 ./scripts/init-db.sh  # Runs SQL files from db/migrations/
 ```
 
 ### After (Rust-based)
+
 ```bash
 # New approach: Type-safe Rust migrations
 cargo run --bin migration up  # Runs Rust migration code
@@ -44,6 +46,7 @@ docker-compose up -d
 ### Container Startup Logs
 
 You'll see:
+
 ```
 🚀 Starting SvelteHR GraphQL Rust Server...
 ⏳ Waiting for PostgreSQL to be ready...
@@ -80,11 +83,13 @@ cargo run --bin migration fresh
 ### Environment Setup
 
 Make sure `DATABASE_URL` is set:
+
 ```bash
 export DATABASE_URL=postgresql://postgres:postgres123@localhost:5433/hr_system
 ```
 
 Or use `.env` file in `graphql-rust-server/`:
+
 ```env
 DATABASE_URL=postgresql://postgres:postgres123@localhost:5433/hr_system
 ```
@@ -93,19 +98,19 @@ DATABASE_URL=postgresql://postgres:postgres123@localhost:5433/hr_system
 
 All 12 migration modules in `/migration/`:
 
-| Order | Module | Tables Created |
-|-------|--------|----------------|
-| 1 | `m20251017_001_schemas` | Schema setup (hr_public + pgcrypto) |
-| 2 | `m20251017_002_enums` | PostgreSQL enums |
-| 3 | `m20251017_003_auth` | Authentication & RBAC (7 tables) |
-| 4 | `m20251017_004_hr_core` | Departments, leave types, policies |
-| 5 | `m20251017_005_tasks` | Task management (5 tables) |
-| 6 | `m20251017_006_events` | Event system (5 tables) |
-| 7 | `m20251017_007_documents` | Document management (6 tables) |
-| 8 | `m20251017_008_reviews` | Performance reviews (5 tables) |
-| 9 | `m20251017_009_employee` | Employee details (5 tables) |
-| 10 | `m20251017_010_time` | Time tracking (2 tables) |
-| 11 | `m20251017_011_system` | System tables (11 tables) |
+| Order | Module                    | Tables Created                      |
+| ----- | ------------------------- | ----------------------------------- |
+| 1     | `m20251017_001_schemas`   | Schema setup (hr_public + pgcrypto) |
+| 2     | `m20251017_002_enums`     | PostgreSQL enums                    |
+| 3     | `m20251017_003_auth`      | Authentication & RBAC (7 tables)    |
+| 4     | `m20251017_004_hr_core`   | Departments, leave types, policies  |
+| 5     | `m20251017_005_tasks`     | Task management (5 tables)          |
+| 6     | `m20251017_006_events`    | Event system (5 tables)             |
+| 7     | `m20251017_007_documents` | Document management (6 tables)      |
+| 8     | `m20251017_008_reviews`   | Performance reviews (5 tables)      |
+| 9     | `m20251017_009_employee`  | Employee details (5 tables)         |
+| 10    | `m20251017_010_time`      | Time tracking (2 tables)            |
+| 11    | `m20251017_011_system`    | System tables (11 tables)           |
 
 **Total: 47+ tables** across all modules
 
@@ -136,6 +141,7 @@ If you previously ran SQL migrations, SeaORM will detect existing tables and ski
 ### "Connection refused"
 
 Make sure PostgreSQL is running:
+
 ```bash
 docker-compose ps
 # Should show sveltehr-postgres-dev as "healthy"
@@ -144,6 +150,7 @@ docker-compose ps
 ### "Migration failed"
 
 Check the error message and container logs:
+
 ```bash
 docker logs hr-graphql-rust
 ```

@@ -21,39 +21,40 @@ Implemented comprehensive RBAC (Role-Based Access Control) mutation tests for th
 
 ### 1. Role Assignment Authorization Tests (7 tests)
 
-| Test | Purpose | Security Concern |
-|------|---------|------------------|
-| `test_admin_can_assign_any_role` | Verify admins have full role assignment privileges | Ensure legitimate admin operations work |
-| `test_hr_manager_cannot_assign_admin_role` | Prevent HR managers from creating high-privilege roles | Privilege escalation prevention |
-| `test_employee_cannot_assign_roles` | Block employees from any role assignments | Unauthorized role manipulation |
-| `test_user_cannot_elevate_own_role` | Prevent users from self-assigning higher roles | Self-privilege escalation |
-| `test_role_assignment_to_nonexistent_user_fails` | Validate user existence before role assignment | Data integrity and error handling |
-| `test_role_assignment_preserves_permissions` | Ensure role changes don't break user access | Permission continuity |
+| Test                                             | Purpose                                                | Security Concern                        |
+| ------------------------------------------------ | ------------------------------------------------------ | --------------------------------------- |
+| `test_admin_can_assign_any_role`                 | Verify admins have full role assignment privileges     | Ensure legitimate admin operations work |
+| `test_hr_manager_cannot_assign_admin_role`       | Prevent HR managers from creating high-privilege roles | Privilege escalation prevention         |
+| `test_employee_cannot_assign_roles`              | Block employees from any role assignments              | Unauthorized role manipulation          |
+| `test_user_cannot_elevate_own_role`              | Prevent users from self-assigning higher roles         | Self-privilege escalation               |
+| `test_role_assignment_to_nonexistent_user_fails` | Validate user existence before role assignment         | Data integrity and error handling       |
+| `test_role_assignment_preserves_permissions`     | Ensure role changes don't break user access            | Permission continuity                   |
 
 **Critical Security Gap Identified**: Current implementation may not enforce hierarchical role assignment restrictions. Tests document expected behavior for future hardening.
 
 ### 2. Permission Checks Tests (6 tests)
 
-| Test | Purpose | Security Concern |
-|------|---------|------------------|
-| `test_employee_can_update_own_profile` | Validate self-service permissions | User autonomy |
+| Test                                         | Purpose                                       | Security Concern             |
+| -------------------------------------------- | --------------------------------------------- | ---------------------------- |
+| `test_employee_can_update_own_profile`       | Validate self-service permissions             | User autonomy                |
 | `test_employee_cannot_update_other_profiles` | Prevent unauthorized cross-user modifications | Lateral privilege escalation |
-| `test_hr_manager_can_update_all_employees` | Verify HR manager elevated permissions | Proper role hierarchy |
-| `test_admin_unrestricted_access` | Confirm admin full system access | Administrative control |
-| `test_permission_inheritance` | Validate role hierarchy inheritance | Proper RBAC model |
-| `test_resource_based_permissions` | Test resource-level access control | Granular permissions |
+| `test_hr_manager_can_update_all_employees`   | Verify HR manager elevated permissions        | Proper role hierarchy        |
+| `test_admin_unrestricted_access`             | Confirm admin full system access              | Administrative control       |
+| `test_permission_inheritance`                | Validate role hierarchy inheritance           | Proper RBAC model            |
+| `test_resource_based_permissions`            | Test resource-level access control            | Granular permissions         |
 
 **Architecture Pattern Validated**: Role hierarchy follows Admin > HR_Manager > Manager > Employee with proper permission inheritance.
 
 ### 3. Security Attack Prevention Tests (3 tests)
 
-| Test | Purpose | Security Concern |
-|------|---------|------------------|
-| `test_unauthenticated_requests_denied` | Block requests without authentication | Unauthorized access |
+| Test                                      | Purpose                               | Security Concern       |
+| ----------------------------------------- | ------------------------------------- | ---------------------- |
+| `test_unauthenticated_requests_denied`    | Block requests without authentication | Unauthorized access    |
 | `test_insufficient_permissions_forbidden` | Return 403 for inadequate permissions | Proper error responses |
-| `test_sql_injection_sanitized` | Prevent SQL injection via role names | Input sanitization |
+| `test_sql_injection_sanitized`            | Prevent SQL injection via role names  | Input sanitization     |
 
 **SQL Injection Test Coverage**: Validates 4 malicious payloads including:
+
 - `'; DROP TABLE users; --`
 - `admin' OR '1'='1`
 - `test"; DELETE FROM roles; --`
@@ -79,11 +80,11 @@ const USERS_QUERY: &str = "...";           // User fetching
 async fn test_admin_can_assign_any_role() {
     // 1. Setup test context with isolated database
     let ctx = TestContext::new().await.expect("Failed to create test context");
-    
+
     // 2. Get authenticated test users
     let admin = ctx.user(TestUserRole::Admin);
     let target_user = ctx.user(TestUserRole::Employee);
-    
+
     // 3. Execute GraphQL mutation with variables
     let variables = Variables::from_json(json!({
         "input": {
@@ -91,9 +92,9 @@ async fn test_admin_can_assign_any_role() {
             "roleId": role_id.to_string()
         }
     }));
-    
+
     let response = ctx.execute_with_variables_as(ASSIGN_ROLE_MUTATION, variables, admin).await;
-    
+
     // 4. Assert expected security behavior
     assert!(response.is_ok(), "Admin should be able to assign roles");
 }
@@ -116,8 +117,8 @@ async fn test_admin_can_assign_any_role() {
 **Resolution Required**: Rename one of the conflicting types or consolidate into a single definition
 
 ```
-Error: `hr_graphql_server::schema::mutation::LoginInput` and 
-       `hr_graphql_server::schema::mutations::auth::LoginInput` 
+Error: `hr_graphql_server::schema::mutation::LoginInput` and
+       `hr_graphql_server::schema::mutations::auth::LoginInput`
        have the same GraphQL name `LoginInput`
 ```
 
@@ -132,14 +133,14 @@ Error: `hr_graphql_server::schema::mutation::LoginInput` and
 
 ## Security Vulnerabilities Prevented
 
-| Vulnerability | OWASP Category | Test Coverage |
-|---------------|----------------|---------------|
-| Privilege Escalation | A01:2021 - Broken Access Control | ✅ Multiple tests |
-| Unauthorized Data Access | A01:2021 - Broken Access Control | ✅ Cross-profile tests |
-| SQL Injection | A03:2021 - Injection | ✅ 4 malicious payloads |
-| Missing Authorization | A01:2021 - Broken Access Control | ✅ Unauthenticated tests |
-| Insecure Direct Object Reference | A01:2021 - Broken Access Control | ✅ Non-existent user tests |
-| Broken Authentication | A07:2021 - Identification and Authentication Failures | ✅ Session tests |
+| Vulnerability                    | OWASP Category                                        | Test Coverage              |
+| -------------------------------- | ----------------------------------------------------- | -------------------------- |
+| Privilege Escalation             | A01:2021 - Broken Access Control                      | ✅ Multiple tests          |
+| Unauthorized Data Access         | A01:2021 - Broken Access Control                      | ✅ Cross-profile tests     |
+| SQL Injection                    | A03:2021 - Injection                                  | ✅ 4 malicious payloads    |
+| Missing Authorization            | A01:2021 - Broken Access Control                      | ✅ Unauthenticated tests   |
+| Insecure Direct Object Reference | A01:2021 - Broken Access Control                      | ✅ Non-existent user tests |
+| Broken Authentication            | A07:2021 - Identification and Authentication Failures | ✅ Session tests           |
 
 ## Test Execution Instructions
 
@@ -192,6 +193,7 @@ cargo test --test rbac_mutation_tests test_rbac_security_coverage_summary -- --n
 Implement the security behaviors documented by these tests:
 
 1. **Hierarchical Role Assignment Guards**
+
    ```rust
    // Example: Prevent HR Manager from assigning Admin role
    if assigner_role_level < target_role_level {
@@ -200,6 +202,7 @@ Implement the security behaviors documented by these tests:
    ```
 
 2. **Self-Elevation Prevention**
+
    ```rust
    // Example: Block self-role changes
    if assigner_id == target_user_id && new_role_level > current_role_level {

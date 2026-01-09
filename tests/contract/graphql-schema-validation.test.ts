@@ -5,20 +5,35 @@
  * Uses introspection data to ensure schema changes don't break existing clients.
  */
 
-import { describe, test, expect, beforeAll, afterAll } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import {
 	buildSchema,
 	getIntrospectionQuery,
 	introspectionFromSchema,
 	validateSchema
 } from 'graphql';
-import type { IntrospectionQuery, IntrospectionSchema } from 'graphql';
+import type { IntrospectionOutputTypeRef, IntrospectionQuery, IntrospectionSchema } from 'graphql';
+import { gql } from '@urql/core';
 import { createUrqlClient } from '$lib/graphql/client';
 import type { Client } from '@urql/core';
 
 // Import generated types for validation
 import introspectionResult from '$lib/generated/introspection.json';
-import type { SchemaContract, DeprecatedField } from '../generated/test-types';
+import type { DeprecatedField, SchemaContract } from '../generated/test-types';
+
+/**
+ * Helper function to safely extract the name from an IntrospectionOutputTypeRef.
+ * Unwraps LIST and NON_NULL wrappers to get to the named type.
+ */
+function getTypeName(type: IntrospectionOutputTypeRef): string | null {
+	if ('name' in type) {
+		return type.name;
+	}
+	if ('ofType' in type && type.ofType) {
+		return getTypeName(type.ofType as IntrospectionOutputTypeRef);
+	}
+	return null;
+}
 
 interface SchemaValidationConfig {
 	endpoint: string;
@@ -80,7 +95,9 @@ describeOrSkip('GraphQL Schema Contract Testing', () => {
 
 		// Fetch live schema introspection
 		try {
-			const result = await client.query(getIntrospectionQuery(), {}).toPromise();
+			// Convert introspection query string to TypedDocumentNode
+			const introspectionQuery = gql(getIntrospectionQuery());
+			const result = await client.query(introspectionQuery, {}).toPromise();
 
 			if (result.error) {
 				throw new Error(`Failed to introspect schema: ${result.error.message}`);
@@ -89,7 +106,7 @@ describeOrSkip('GraphQL Schema Contract Testing', () => {
 			liveSchema = result.data as IntrospectionQuery;
 		} catch (error) {
 			console.warn('Could not fetch live schema, using cached version');
-			liveSchema = introspectionResult as IntrospectionQuery;
+			liveSchema = introspectionResult as unknown as IntrospectionQuery;
 		}
 	});
 
@@ -188,9 +205,10 @@ describeOrSkip('GraphQL Schema Contract Testing', () => {
 			const queryType = schema.types.find((type) => type.name === 'Query');
 
 			if (queryType && 'fields' in queryType && queryType.fields) {
-				const listQueries = queryType.fields.filter(
-					(field) => field.type.kind === 'OBJECT' && field.type.name?.endsWith('Connection')
-				);
+				const listQueries = queryType.fields.filter((field) => {
+					const typeName = getTypeName(field.type);
+					return field.type.kind === 'OBJECT' && typeName?.endsWith('Connection');
+				});
 
 				listQueries.forEach((query) => {
 					const argNames = query.args.map((arg) => arg.name);
@@ -244,7 +262,8 @@ describeOrSkip('GraphQL Schema Contract Testing', () => {
 					}
 
 					// Return type should be a payload type
-					expect(mutation.type.name).toMatch(/Payload$/);
+					const mutationTypeName = getTypeName(mutation.type);
+					expect(mutationTypeName).toMatch(/Payload$/);
 				});
 			}
 		});
@@ -258,9 +277,10 @@ describeOrSkip('GraphQL Schema Contract Testing', () => {
 				const type = schema.types.find((t) => t.name === typeName);
 
 				if (type && 'fields' in type && type.fields) {
-					const hasIdField = type.fields.some(
-						(field) => field.name === 'id' && field.type.name === 'ID'
-					);
+					const hasIdField = type.fields.some((field) => {
+						const fieldTypeName = getTypeName(field.type);
+						return field.name === 'id' && fieldTypeName === 'ID';
+					});
 
 					expect(hasIdField, `Type ${typeName} should have an ID field`).toBe(true);
 				}
@@ -429,7 +449,8 @@ describeOrSkip('GraphQL Schema Contract Testing', () => {
 				if ('fields' in type && type.fields) {
 					return type.fields.some((field) => {
 						// Check if field type references create deep nesting
-						return field.type.name?.includes('Connection') && field.type.name.length > 50; // Arbitrary complexity indicator
+						const typeName = getTypeName(field.type);
+						return typeName?.includes('Connection') && typeName.length > 50;
 					});
 				}
 				return false;

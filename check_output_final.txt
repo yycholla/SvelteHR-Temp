@@ -1,0 +1,1577 @@
+
+> sveltehr@0.0.1 check
+> svelte-kit sync && svelte-check --tsconfig ./tsconfig.json src/
+
+Loading svelte-check in workspace: /home/chanway/Projects/SvelteHR
+Getting Svelte diagnostics...
+
+/home/chanway/Projects/SvelteHR/src/lib/components/tables/DataTable.svelte:254:11
+Warn: Using `<slot>` to render parent content is deprecated. Use `{@render ...}` tags instead
+https://svelte.dev/e/slot_element_deprecated (svelte)
+									{#if column.type === 'custom'}
+										<slot name="cell" {column} value={row[column.key]} {row}>
+											{formatCellValue(column, row[column.key], row)}
+										</slot>
+									{:else if column.type === 'badge'}
+
+/home/chanway/Projects/SvelteHR/src/lib/components/data-table/hr-data-table.svelte:8:12
+Error: Object literal may only specify known properties, and 'children' does not exist in type '$$ComponentProps'. (ts)
+
+<DataTable {...props}>
+	<!--
+
+/home/chanway/Projects/SvelteHR/src/lib/components/departments/DepartmentForm.svelte:92:6
+Error: Object literal may only specify known properties, and 'name' does not exist in type 'CreateDepartmentInput'. (ts)
+				const input: CreateDepartmentInput = {
+					name: formData.name.trim(),
+					description: formData.description.trim() || undefined,
+
+/home/chanway/Projects/SvelteHR/src/lib/components/departments/DepartmentForm.svelte:101:6
+Error: Object literal may only specify known properties, and 'name' does not exist in type 'UpdateDepartmentInput'. (ts)
+				const input: UpdateDepartmentInput = {
+					name: formData.name.trim(),
+					description: formData.description.trim() || undefined,
+
+/home/chanway/Projects/SvelteHR/src/lib/components/departments/DepartmentHierarchy.svelte:179:8
+Error: Type 'boolean | null' is not assignable to type 'boolean | undefined'.
+  Type 'null' is not assignable to type 'boolean | undefined'. (ts)
+							isSelected={selectedDepartment?.id === node.department.id}
+							canEdit={$currentUser && hasPermission('department:update')}
+							{expandAll}
+
+/home/chanway/Projects/SvelteHR/src/lib/components/departments/DepartmentHierarchy.svelte:248:44
+Error: 'selectedDepartment' is possibly 'null'. (ts)
+							leftIcon="eye"
+							onclick={() => goto(`/departments/${selectedDepartment.id}`)}
+						>
+
+/home/chanway/Projects/SvelteHR/src/lib/components/departments/DepartmentHierarchy.svelte:258:45
+Error: 'selectedDepartment' is possibly 'null'. (ts)
+								leftIcon="edit"
+								onclick={() => goto(`/departments/${selectedDepartment.id}/edit`)}
+							>
+
+/home/chanway/Projects/SvelteHR/src/lib/components/departments/DepartmentList.svelte:339:4
+Error: Type '(event: CustomEvent<any>) => void' is not assignable to type '(detail: { key: string; direction: "asc" | "desc"; }) => void'.
+  Types of parameters 'event' and 'detail' are incompatible.
+    Type '{ key: string; direction: "asc" | "desc"; }' is missing the following properties from type 'CustomEvent<any>': detail, initCustomEvent, bubbles, cancelBubble, and 20 more. (ts)
+			emptyMessage="No departments found"
+			onsort={handleSort}
+			onrowClick={handleRowClick}
+
+/home/chanway/Projects/SvelteHR/src/lib/components/departments/DepartmentList.svelte:340:4
+Error: Type '(event: CustomEvent<any>) => void' is not assignable to type '(detail: { row: TableData; index: number; }) => void'.
+  Types of parameters 'event' and 'detail' are incompatible.
+    Type '{ row: TableData; index: number; }' is missing the following properties from type 'CustomEvent<any>': detail, initCustomEvent, bubbles, cancelBubble, and 20 more. (ts)
+			onsort={handleSort}
+			onrowClick={handleRowClick}
+			onselectionChange={handleSelectionChange}
+
+/home/chanway/Projects/SvelteHR/src/lib/components/departments/DepartmentList.svelte:341:4
+Error: Type '(event: CustomEvent<any>) => void' is not assignable to type '(detail: any[]) => void'.
+  Types of parameters 'event' and 'detail' are incompatible.
+    Type 'any[]' is missing the following properties from type 'CustomEvent<any>': detail, initCustomEvent, bubbles, cancelBubble, and 20 more. (ts)
+			onrowClick={handleRowClick}
+			onselectionChange={handleSelectionChange}
+		>
+
+/home/chanway/Projects/SvelteHR/src/lib/components/departments/DepartmentList.svelte:387:33
+Error: Argument of type 'TableData' is not assignable to parameter of type 'Department'.
+  Type 'TableData' is missing the following properties from type 'Department': id, name, code, childDepartments, and 5 more. (ts)
+									e.stopPropagation();
+									handleDeleteDepartment(row);
+								}}
+
+/home/chanway/Projects/SvelteHR/src/lib/components/documents/DocumentAssignmentModal.svelte:5:16
+Error: Module '"$lib/types/document"' has no exported member 'AssignmentType'. (ts)
+
+	import type { AssignmentType, DocumentAssignment } from '$lib/types/document';
+
+/home/chanway/Projects/SvelteHR/src/lib/components/documents/DocumentAssignmentModal.svelte:81:36
+Error: Property 'team_id' does not exist on type 'DocumentAssignment'. (ts)
+				(type === 'department' && assignment.department_id === entityId) ||
+				(type === 'team' && assignment.team_id === entityId)
+		);
+
+/home/chanway/Projects/SvelteHR/src/lib/components/documents/DocumentAssignmentModal.svelte:117:5
+Error: Object literal may only specify known properties, and 'assignment_type' does not exist in type 'Partial<DocumentAssignment>'. (ts)
+				employee_id: employeeId,
+				assignment_type: 'employee',
+				assignment_status: 'active'
+
+/home/chanway/Projects/SvelteHR/src/lib/components/documents/DocumentAssignmentModal.svelte:127:5
+Error: Object literal may only specify known properties, and 'assignment_type' does not exist in type 'Partial<DocumentAssignment>'. (ts)
+				department_id: departmentId,
+				assignment_type: 'department',
+				assignment_status: 'active'
+
+/home/chanway/Projects/SvelteHR/src/lib/components/documents/DocumentAssignmentModal.svelte:136:5
+Error: Object literal may only specify known properties, and 'team_id' does not exist in type 'Partial<DocumentAssignment>'. (ts)
+				document_id: documentId,
+				team_id: teamId,
+				assignment_type: 'team',
+
+/home/chanway/Projects/SvelteHR/src/lib/components/documents/DocumentCard.svelte:142:16
+Error: Property 'description' does not exist on type 'Document'. (ts)
+	<!-- Additional metadata (optional) -->
+	{#if document.description}
+		<div class="description">
+
+/home/chanway/Projects/SvelteHR/src/lib/components/documents/DocumentCard.svelte:144:17
+Error: Property 'description' does not exist on type 'Document'. (ts)
+		<div class="description">
+			<p>{document.description}</p>
+		</div>
+
+/home/chanway/Projects/SvelteHR/src/lib/components/documents/DocumentMetadataForm.svelte:392:2
+Warn: Unused CSS selector ".field-input.error"
+https://svelte.dev/e/css_unused_selector (svelte)
+
+	.field-input.error {
+		border-color: #f56565;
+
+/home/chanway/Projects/SvelteHR/src/lib/components/documents/DocumentTable.svelte:217:13
+Error: This comparison appears to be unintentional because the types 'SortField' and '"file_size_bytes"' have no overlap. (ts)
+		<Button
+			variant={sortBy === 'file_size_bytes' ? 'default' : 'outline'}
+			size="sm"
+
+/home/chanway/Projects/SvelteHR/src/lib/components/documents/DocumentTable.svelte:219:30
+Error: Argument of type '"file_size_bytes"' is not assignable to parameter of type 'SortField'. (ts)
+			size="sm"
+			onclick={() => handleSort('file_size_bytes')}
+		>
+
+/home/chanway/Projects/SvelteHR/src/lib/components/documents/DocumentTable.svelte:222:15
+Error: This comparison appears to be unintentional because the types 'SortField' and '"file_size_bytes"' have no overlap. (ts)
+			<ArrowUpDown class="mr-2 h-3 w-3" />
+			File Size {sortBy === 'file_size_bytes' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
+		</Button>
+
+/home/chanway/Projects/SvelteHR/src/lib/components/documents/FileUploader.svelte:127:5
+Error: Cannot find name 'fileInput'. (ts)
+				e.preventDefault();
+				fileInput?.click();
+			}
+
+/home/chanway/Projects/SvelteHR/src/lib/components/documents/PreviewModal.svelte:90:25
+Error: Argument of type 'KeyboardEvent & { currentTarget: EventTarget & HTMLDivElement; }' is not assignable to parameter of type 'MouseEvent'.
+  Type 'KeyboardEvent & { currentTarget: EventTarget & HTMLDivElement; }' is missing the following properties from type 'MouseEvent': button, buttons, clientX, clientY, and 14 more. (ts)
+			if (e.key === 'Escape' || e.key === 'Enter') {
+				handleBackdropClick(e);
+			}
+
+/home/chanway/Projects/SvelteHR/src/lib/components/employees/EmployeeFormShadcn.svelte:210:11
+Error: Conversion of type '{ firstName: string; lastName: string; jobTitle: string; departmentId: string; phoneNumber: string | undefined; addressStreet: string | undefined; addressCity: string | undefined; addressState: string | undefined; ... 4 more ...; managerId: string | undefined; }' to type 'UpdateUserInput' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ firstName: string; lastName: string; jobTitle: string; departmentId: string; phoneNumber: string | undefined; addressStreet: string | undefined; addressCity: string | undefined; addressState: string | undefined; ... 4 more ...; managerId: string | undefined; }' is missing the following properties from type 'UpdateUserInput': nodeId, userPatch (ts)
+		if (isEditing) {
+			return baseData as UpdateUserInput;
+		} else {
+
+/home/chanway/Projects/SvelteHR/src/lib/components/employees/EmployeeFormShadcn.svelte:212:11
+Error: Conversion of type '{ email: string; username: string; password: string; hireDate: string; employmentType: string; isRemote: boolean; roleIds: string[]; salary: number | undefined; payType: string; firstName: string; ... 11 more ...; managerId: string | undefined; }' to type 'CreateUserInput' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'user' is missing in type '{ email: string; username: string; password: string; hireDate: string; employmentType: string; isRemote: boolean; roleIds: string[]; salary: number | undefined; payType: string; firstName: string; ... 11 more ...; managerId: string | undefined; }' but required in type 'CreateUserInput'. (ts)
+		} else {
+			return {
+				...baseData,
+				email: formData.email,
+				username: formData.username,
+				password: formData.password,
+				hireDate: formData.hireDate,
+				employmentType: formData.employmentType,
+				isRemote: formData.isRemote,
+				roleIds: formData.roleIds,
+				salary: formData.salary ? parseFloat(formData.salary) : undefined,
+				payType: formData.payType
+			} as CreateUserInput;
+		}
+
+/home/chanway/Projects/SvelteHR/src/lib/components/employees/EmployeeProfileShadcn.svelte:3:24
+Error: Module '"$lib/services/userService"' has no exported member 'currentUser'. (ts)
+	import { createEventDispatcher, onMount } from 'svelte';
+	import { userService, currentUser as userServiceCurrentUser } from '$lib/services/userService';
+	import { auth } from '$lib/stores/auth.svelte';
+
+/home/chanway/Projects/SvelteHR/src/lib/components/employees/EmployeeProfileShadcn.svelte:53:43
+Error: Property 'is_active' does not exist on type 'never'. (ts)
+	const canDeactivate = $derived(auth.user && auth.hasPermission('user:delete') && !isOwnProfile);
+	const statusVariant = $derived(employee?.is_active ? 'default' : 'secondary');
+	const statusText = $derived(employee?.is_active ? 'Active' : 'Inactive');
+
+/home/chanway/Projects/SvelteHR/src/lib/components/employees/EmployeeProfileShadcn.svelte:54:40
+Error: Property 'is_active' does not exist on type 'never'. (ts)
+	const statusVariant = $derived(employee?.is_active ? 'default' : 'secondary');
+	const statusText = $derived(employee?.is_active ? 'Active' : 'Inactive');
+
+/home/chanway/Projects/SvelteHR/src/lib/components/events/AttendeeListView.svelte:78:10
+Error: Element implicitly has an 'any' type because expression of type 'RsvpStatus' can't be used to index type '{ accepted: { label: string; variant: "default"; }; declined: { label: string; variant: "destructive"; }; tentative: { label: string; variant: "secondary"; }; pending: { label: string; variant: "outline"; }; }'.
+  Property 'no_response' does not exist on type '{ accepted: { label: string; variant: "default"; }; declined: { label: string; variant: "destructive"; }; tentative: { label: string; variant: "secondary"; }; pending: { label: string; variant: "outline"; }; }'. (ts)
+		};
+		return badges[status];
+	}
+
+/home/chanway/Projects/SvelteHR/src/lib/components/events/EventCalendar.svelte:140:9
+Error: Argument of type '{ id: string; startDate: Date; endDate: Date; }' is not assignable to parameter of type 'CalendarEvent'.
+  Type '{ id: string; startDate: Date; endDate: Date; }' is missing the following properties from type 'CalendarEvent': title, allDay, type, visibility, and 16 more. (ts)
+							const conflict = detectConflict(
+								{
+									id: info.event.id,
+									startDate: info.event.start || new Date(),
+									endDate: info.event.end || new Date()
+								},
+								{
+
+/home/chanway/Projects/SvelteHR/src/lib/components/events/EventCard.svelte:207:15
+Error: Property 'userByOrganizerId' does not exist on type 'Event'. (ts)
+					>Organized by <span class="font-medium text-foreground"
+						>{event.userByOrganizerId?.displayName || 'Unknown'}</span
+					></span
+
+/home/chanway/Projects/SvelteHR/src/lib/components/events/ImageUploadWidget.svelte:284:19
+Error: 'fileInput' is possibly 'undefined'. (ts)
+			ondrop={handleDrop}
+			onclick={() => fileInput.click()}
+			role="button"
+
+/home/chanway/Projects/SvelteHR/src/lib/components/events/ImageUploadWidget.svelte:287:43
+Error: 'fileInput' is possibly 'undefined'. (ts)
+			tabindex={0}
+			onkeydown={(e) => e.key === 'Enter' && fileInput.click()}
+		>
+
+/home/chanway/Projects/SvelteHR/src/lib/components/events/EventCreateDialog.svelte:20:16
+Error: '"$lib/utils/rrule"' has no exported member named 'RecurrencePattern'. Did you mean 'parseRecurrencePattern'? (ts)
+	import { generateRRule, validate5YearLimit } from '$lib/utils/rrule';
+	import type { RecurrencePattern } from '$lib/utils/rrule';
+
+/home/chanway/Projects/SvelteHR/src/lib/components/events/EventCreateDialog.svelte:295:21
+Error: Argument of type '{}' is not assignable to parameter of type 'string | AnyComponent'. (ts)
+								const errorMsg = result.data?.error || 'Failed to create event';
+								toast.error(errorMsg);
+							} else if (result.type === 'error') {
+
+/home/chanway/Projects/SvelteHR/src/lib/components/events/EventDetailsView.svelte:386:62
+Error: Argument of type 'boolean | undefined' is not assignable to parameter of type 'boolean'.
+  Type 'undefined' is not assignable to type 'boolean'. (ts)
+						<div class="text-sm text-muted-foreground">
+							{formatEventTimeRange(event.startTime, event.endTime, event.isAllDay)}
+						</div>
+
+/home/chanway/Projects/SvelteHR/src/lib/components/events/EventDetailsView.svelte:456:19
+Error: Type 'RsvpStatus | "no_response"' is not assignable to type 'RsvpStatus'.
+  Type '"no_response"' is not assignable to type 'RsvpStatus'. (ts)
+					<div>
+						<RSVPButton currentStatus={userRsvpStatus} onChange={onRsvpUpdate || (() => {})} />
+					</div>
+
+/home/chanway/Projects/SvelteHR/src/lib/components/events/EventDetailsView.svelte:456:50
+Error: Type '(eventId: string, newStatus: RsvpStatus) => void' is not assignable to type '(newStatus: RsvpStatus) => void | Promise<void>'.
+  Target signature provides too few arguments. Expected 2 or more, but got 1. (ts)
+					<div>
+						<RSVPButton currentStatus={userRsvpStatus} onChange={onRsvpUpdate || (() => {})} />
+					</div>
+
+/home/chanway/Projects/SvelteHR/src/lib/components/events/EventDetailsView.svelte:641:5
+Error: Type 'EventComment[]' is not assignable to type 'Comment[]'.
+  Type 'EventComment' is missing the following properties from type 'Comment': content, author, mentions (ts)
+				eventId={event.id}
+				comments={eventComments}
+				currentUserId={userId}
+
+/home/chanway/Projects/SvelteHR/src/lib/components/events/EventDetailsView.svelte:660:5
+Error: Type 'EventHistoryEntry[]' is not assignable to type 'HistoryEntry[]'.
+  Property 'changedAt' is missing in type 'EventHistoryEntry' but required in type 'HistoryEntry'. (ts)
+			<EventHistoryView
+				history={eventHistory}
+				onLoadMore={onLoadMoreHistory}
+
+/home/chanway/Projects/SvelteHR/src/lib/components/events/EventDetailsDialog.svelte:18:16
+Error: '"$lib/utils/calendar"' has no exported member named 'ConflictingEvent'. Did you mean 'findConflictingEvents'? (ts)
+	import EventDetailsView from './EventDetailsView.svelte';
+	import { type ConflictingEvent, findConflictingEvents } from '$lib/utils/calendar';
+	import type { RsvpStatus } from '$lib/graphql/types';
+
+/home/chanway/Projects/SvelteHR/src/lib/components/events/EventDetailsDialog.svelte:213:68
+Error: Expected 2 arguments, but got 3. (ts)
+
+			const conflicts = findConflictingEvents(targetEvent, allEvents, userId);
+
+/home/chanway/Projects/SvelteHR/src/lib/components/events/EventDetailsDialog.svelte:387:8
+Error: Type '(newStatus: RsvpStatus) => Promise<void>' is not assignable to type '(eventId: string, newStatus: RsvpStatus) => void'.
+  Types of parameters 'newStatus' and 'eventId' are incompatible.
+    Type 'string' is not assignable to type 'RsvpStatus'. (ts)
+							{hasMoreHistory}
+							onRsvpUpdate={handleRsvpChange}
+							{onAddComment}
+
+/home/chanway/Projects/SvelteHR/src/lib/components/events/EventDetailsDialog.svelte:409:4
+Error: Type '"RSVP update"' is not assignable to type '"delete" | "update" | "rsvp"'. (ts)
+			eventTitle={event.title}
+			action="RSVP update"
+			onConfirm={handleScopeConfirm}
+
+/home/chanway/Projects/SvelteHR/src/lib/components/layout/ShadcnLayout.svelte:145:17
+Error: Block-scoped variable 'currentPath' used before its declaration. (ts)
+	const breadcrumbs: Breadcrumb[] = $derived.by(() => {
+		const parts = currentPath.split('/').filter((part) => part);
+		const breadcrumbs: Breadcrumb[] = [];
+
+/home/chanway/Projects/SvelteHR/src/lib/components/layout/ShadcnLayout.svelte:145:17
+Error: Variable 'currentPath' is used before being assigned. (ts)
+	const breadcrumbs: Breadcrumb[] = $derived.by(() => {
+		const parts = currentPath.split('/').filter((part) => part);
+		const breadcrumbs: Breadcrumb[] = [];
+
+/home/chanway/Projects/SvelteHR/src/lib/components/layout/ShadcnLayout.svelte:198:15
+Error: Argument of type '() => NavigationItem[]' is not assignable to parameter of type 'ArrayLike<unknown> | Iterable<unknown> | null | undefined'. (ts)
+						<Sidebar.Menu>
+							{#each visibleNavigation as item}
+								{@const typedItem = item as NavigationItem}
+
+/home/chanway/Projects/SvelteHR/src/lib/components/layout/ShadcnLayout.svelte:203:31
+Error: Object literal may only specify known properties, and '"asChild"' does not exist in type 'HTMLAttributes<HTMLButtonElement> & { ref?: HTMLButtonElement | null | undefined; } & { isActive?: boolean | undefined; ... 4 more ...; child?: Snippet<...> | undefined; }'. (ts)
+									{#if typedItem.children && typedItem.children.length > 0}
+										<Sidebar.MenuButton asChild>
+											<a
+
+/home/chanway/Projects/SvelteHR/src/lib/components/layout/ShadcnLayout.svelte:216:37
+Error: Object literal may only specify known properties, and '"asChild"' does not exist in type 'HTMLAnchorAttributes & { ref?: HTMLElement | null | undefined; } & { child?: Snippet<[{ props: Record<string, unknown>; }]> | undefined; size?: "sm" | ... 1 more ... | undefined; isActive?: boolean | undefined; }'. (ts)
+												<Sidebar.MenuSubItem>
+													<Sidebar.MenuSubButton asChild>
+														<a href={child.href} data-active={child.active}>
+
+/home/chanway/Projects/SvelteHR/src/lib/components/layout/ShadcnLayout.svelte:225:31
+Error: Object literal may only specify known properties, and '"asChild"' does not exist in type 'HTMLAttributes<HTMLButtonElement> & { ref?: HTMLButtonElement | null | undefined; } & { isActive?: boolean | undefined; ... 4 more ...; child?: Snippet<...> | undefined; }'. (ts)
+									{:else}
+										<Sidebar.MenuButton asChild>
+											<a
+
+/home/chanway/Projects/SvelteHR/src/lib/components/layout/ShadcnLayout.svelte:299:14
+Error: Operator '>' cannot be applied to types '() => number' and 'number'. (ts)
+								</Button>
+								{#if unreadNotifications > 0}
+									<Badge variant="destructive" class="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs">
+
+/home/chanway/Projects/SvelteHR/src/lib/components/notifications/NotificationBell.svelte:291:3
+Warn: Also define the standard property 'line-clamp' for compatibility (css)
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+
+/home/chanway/Projects/SvelteHR/src/lib/components/workflow/CreateWorkflowDefinition.svelte:110:59
+Error: Argument of type '{ workflowDefinition: { name: string; description: string; category: string | null; triggerType: string; triggerConditions: any; definition: any; isTemplate: boolean; timeoutMinutes: number; ... 5 more ...; version: number; }; }' is not assignable to parameter of type '{ workflowDefinition: Partial<WorkflowDefinitionWithStats>; }'.
+  The types of 'workflowDefinition.triggerType' are incompatible between these types.
+    Type 'string' is not assignable to type '"event" | "scheduled" | "manual" | "webhook" | undefined'. (ts)
+
+			const success = await workflowActions.createDefinition(input);
+
+/home/chanway/Projects/SvelteHR/src/lib/components/workflow/WorkflowInstanceCard.svelte:18:46
+Error: Argument of type 'string | undefined' is not assignable to parameter of type 'string | null'.
+  Type 'undefined' is not assignable to type 'string | null'. (ts)
+	);
+	const duration = $derived(calculateDuration(instance.startedAt, instance.completedAt));
+
+/home/chanway/Projects/SvelteHR/src/lib/components/workflow/WorkflowInstanceDetails.svelte:15:46
+Error: Argument of type 'string | undefined' is not assignable to parameter of type 'string | null'.
+  Type 'undefined' is not assignable to type 'string | null'. (ts)
+	const statusColor = $derived(getStatusColor(instance.status));
+	const duration = $derived(calculateDuration(instance.startedAt, instance.completedAt));
+
+/home/chanway/Projects/SvelteHR/src/lib/components/workflow/WorkflowInstanceList.svelte:57:33
+Error: Argument of type 'number' is not assignable to parameter of type 'string'. (ts)
+	onMount(() => {
+		workflowActions.loadInstances(limit);
+	});
+
+/home/chanway/Projects/SvelteHR/src/lib/components/workflow/WorkflowInstanceList.svelte:66:33
+Error: Argument of type 'number' is not assignable to parameter of type 'string'. (ts)
+	function handleRefresh() {
+		workflowActions.loadInstances(limit);
+	}
+
+/home/chanway/Projects/SvelteHR/src/lib/components/workflow/WorkflowTaskCard.svelte:83:61
+Error: Argument of type '{ status: string; completedAt: string | null; }' is not assignable to parameter of type 'Partial<WorkflowTask>'.
+  Types of property 'status' are incompatible.
+    Type 'string' is not assignable to type '"pending" | "in_progress" | "cancelled" | "completed" | "failed" | "running" | "skipped" | undefined'. (ts)
+
+		const success = await workflowActions.updateTask(task.id, patch);
+
+/home/chanway/Projects/SvelteHR/src/lib/components/workflow/WorkflowTaskList.svelte:53:5
+Error: 'task.title' is possibly 'undefined'. (ts)
+				!searchTerm ||
+				task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+				task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+
+/home/chanway/Projects/SvelteHR/src/routes/+error.svelte:39:67
+Error: Property 'user' does not exist on type '(PageData & Record<string, any>) | {}'.
+  Property 'user' does not exist on type '{}'. (ts)
+	const status = $derived.by(() => safeGet(() => pageData?.status, 500));
+	const userData = $derived.by(() => safeGet(() => pageData?.data?.user, null));
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/+page.svelte:281:22
+Error: Property 'location' does not exist on type '{ id: any; title: any; date: string; time: string; type: any; rsvpStatus: any; }'. (ts)
+										<p class="text-xs text-muted-foreground">{event.time}</p>
+										{#if event.location}
+											<div class="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/+page.svelte:284:57
+Error: Property 'location' does not exist on type '{ id: any; title: any; date: string; time: string; type: any; rsvpStatus: any; }'. (ts)
+												<MapPin class="h-3 w-3" />
+												<span class="truncate max-w-[120px]">{event.location}</span>
+											</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/activities/audit/+page.svelte:16:54
+Error: Argument of type 'string' is not assignable to parameter of type 'ActivityAction | "all"'. (ts)
+	let selectedEmployee = $state(data.filters.employeeId || '');
+	let selectedAction = $state<ActivityAction | 'all'>(data.filters.action || 'all');
+	let selectedResourceType = $state<ResourceType | 'all'>(data.filters.resourceType || 'all');
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/activities/audit/+page.svelte:17:58
+Error: Argument of type 'string' is not assignable to parameter of type 'ResourceType | "all"'. (ts)
+	let selectedAction = $state<ActivityAction | 'all'>(data.filters.action || 'all');
+	let selectedResourceType = $state<ResourceType | 'all'>(data.filters.resourceType || 'all');
+	let selectedDaysBack = $state(data.filters.daysBack || 7);
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/activities/bulk-rollback/+page.svelte:393:3
+Error: Object literal may only specify known properties, and '"selectedLogs"' does not exist in type 'Props'. (ts)
+	<BulkRollbackDialog
+		selectedLogs={Array.from(selectedLogs)}
+		onComplete={handleBatchComplete}
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/activities/rollback-requests/+page.svelte:381:10
+Error: Object literal may only specify known properties, and 'createdAt' does not exist in type '{ action: "CREATE" | "DELETE" | "UPDATE"; resourceType: string; resourceId: string; beforeSnapshot: Record<string, any>; afterSnapshot: Record<string, any>; }'. (ts)
+									afterSnapshot: request.after_snapshot,
+									createdAt: request.log_created_at,
+									employee: {
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/audit/+page.svelte:26:10
+Error: Property 'ipAddress' does not exist on type '{ action?: string | undefined; resourceType?: string | undefined; userByUserId?: { email?: string | undefined; } | undefined; }'. (ts)
+					log.userByUserId?.email?.toLowerCase().includes(query) ||
+					log.ipAddress?.includes(query)
+				);
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/documents/+page.svelte:84:7
+Error: Cannot find name 'roles'. (ts)
+		if (role && adminRoles.includes(role)) return true;
+		if (roles.some((r: string) => adminRoles.includes(r))) return true;
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/documents/upload/+page.svelte:225:27
+Error: Argument of type 'unknown' is not assignable to parameter of type 'UploadResult'. (ts)
+					if (result.type === 'success' && result.data?.success) {
+						handleUploadSuccess(result.data.result);
+					} else if (result.type === 'failure') {
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/documents/upload/+page.svelte:257:10
+Error: Object literal may only specify known properties, and '"onUpload"' does not exist in type 'Props'. (ts)
+									bind:hasFile
+									onUpload={handleUploadSuccess}
+									onError={handleUploadError}
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/forms/[id]/+page.svelte:472:12
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+											<Checkbox disabled />
+											<label class="text-sm">{item}</label>
+										</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/onboarding/create/+page.svelte:145:7
+Warn: Self-closing HTML tags for non-void elements are ambiguous — use `<div ...></div>` rather than `<div ... />`
+https://svelte.dev/e/element_invalid_self_closing_tag (svelte)
+
+						<div class="h-px bg-border" />
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/onboarding/create/+page.svelte:165:7
+Warn: Self-closing HTML tags for non-void elements are ambiguous — use `<div ...></div>` rather than `<div ... />`
+https://svelte.dev/e/element_invalid_self_closing_tag (svelte)
+
+						<div class="h-px bg-border" />
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/permissions/[roleId]/+page.svelte:334:5
+Error: Type 'Map<string, ResourcePermissions>' is not assignable to type 'Map<string, ResourcePermissions>'. Two different types with this name exist, but they are unrelated.
+  Type 'ResourcePermissions' is not assignable to type 'ResourcePermissions'. Two different types with this name exist, but they are unrelated.
+    Types of property 'special' are incompatible.
+      Type '{ action: string; enabled: boolean; }[]' is not assignable to type '{ action: string; id: string; enabled: boolean; }[]'.
+        Property 'id' is missing in type '{ action: string; enabled: boolean; }' but required in type '{ action: string; id: string; enabled: boolean; }'. (ts)
+			permissions={data.permissions}
+			{permissionsState}
+			onPermissionChange={handlePermissionChange}
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/trainings/+page.svelte:199:31
+Error: Object literal may only specify known properties, and '"href"' does not exist in type 'Omit<{ disabled?: boolean | undefined; textValue?: string | undefined; onSelect?: ((event: Event) => void) | undefined; closeOnSelect?: boolean | undefined; }, "child" | "children"> & { ...; } & Without<...> & { ...; }'. (ts)
+											<DropdownMenu.Label>Actions</DropdownMenu.Label>
+											<DropdownMenu.Item href="/dashboard/admin/trainings/{training.id}">
+												<Edit class="mr-2 h-4 w-4" />
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/trainings/+page.svelte:203:31
+Error: Object literal may only specify known properties, and '"href"' does not exist in type 'Omit<{ disabled?: boolean | undefined; textValue?: string | undefined; onSelect?: ((event: Event) => void) | undefined; closeOnSelect?: boolean | undefined; }, "child" | "children"> & { ...; } & Without<...> & { ...; }'. (ts)
+											</DropdownMenu.Item>
+											<DropdownMenu.Item href="/dashboard/admin/trainings/{training.id}/content">
+												<GraduationCap class="mr-2 h-4 w-4" />
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/trainings/[id]/+page.svelte:48:6
+Error: Unexpected token
+https://svelte.dev/e/js_parse_error
+
+If you expect this syntax to work, here are some suggestions: 
+If you use typescript with `svelte-preprocess`, did you add `lang="ts"` to your `script` tag? 
+Did you setup a `svelte.config.js`? 
+See https://github.com/sveltejs/language-tools/tree/master/docs#using-with-preprocessors for more info. (svelte)
+		training.rrule
+			? {
+					frequency: 'weekly',
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/trainings/[id]/+page.svelte:53:13
+Error: ':' expected. (ts)
+					rruleString: training.rrule
+				} as any)
+			: null
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/trainings/[id]/+page.svelte:54:4
+Error: Declaration or statement expected. (ts)
+				} as any)
+			: null
+	);
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/trainings/[id]/+page.svelte:55:2
+Error: Declaration or statement expected. (ts)
+			: null
+	);
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/trainings/create/+page.svelte:172:7
+Warn: Self-closing HTML tags for non-void elements are ambiguous — use `<div ...></div>` rather than `<div ... />`
+https://svelte.dev/e/element_invalid_self_closing_tag (svelte)
+
+						<div class="h-px bg-border" />
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/users/+page.svelte:40:10
+Error: Property 'displayName' does not exist on type '{ email?: string | undefined; display_name?: string | undefined; full_name?: string | undefined; }'. Did you mean 'display_name'? (ts)
+				user.email?.toLowerCase().includes(query) ||
+				user.displayName?.toLowerCase().includes(query) ||
+				user.department?.name?.toLowerCase().includes(query)
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/admin/users/+page.svelte:41:10
+Error: Property 'department' does not exist on type '{ email?: string | undefined; display_name?: string | undefined; full_name?: string | undefined; }'. (ts)
+				user.displayName?.toLowerCase().includes(query) ||
+				user.department?.name?.toLowerCase().includes(query)
+			);
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/departments/+page.svelte:663:66
+Error: Property 'users' does not exist on type '{ user: any; userSession: any; departments: any[]; totalDepartments: number; hierarchy: any[]; filters: { searchTerm: string; parentFilter: string; hasHeadFilter: string; page: number; limit: number; }; permissions: string[]; canManageDepartments: boolean; canViewEmployees: boolean; loadedAt: string; }'. Did you mean 'user'? (ts)
+<!-- Department Create Dialog -->
+<DepartmentCreateDialog bind:open={showCreateDialog} users={data.users || []} {departments} />
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/documents/upload/+page.svelte:225:27
+Error: Argument of type 'unknown' is not assignable to parameter of type 'UploadResult'. (ts)
+					if (result.type === 'success' && result.data?.success) {
+						handleUploadSuccess(result.data.result);
+					} else if (result.type === 'failure') {
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/documents/upload/+page.svelte:257:10
+Error: Object literal may only specify known properties, and '"onUpload"' does not exist in type 'Props'. (ts)
+									bind:hasFile
+									onUpload={handleUploadSuccess}
+									onError={handleUploadError}
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/employees/+page.svelte:93:30
+Error: Property 'validRoles' does not exist on type '{ user: any; userSession: any; employees: any[]; totalEmployees: number; totalActiveEmployees: number; totalInactiveEmployees: number; departments: any[]; employeeAutocompleteOptions: { value: string; label: string; email?: string | undefined; }[]; ... 9 more ...; loadedAt: string; }'. (ts)
+	const departments = $derived(data.departments);
+	const roles = $derived(data.validRoles);
+	const filters = $derived(data.filters);
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/employees/+page.svelte:480:37
+Error: Object literal may only specify known properties, and '"collapsible"' does not exist in type 'Omit<AccordionRootSinglePropsWithoutHTML, "child" | "children"> & { child?: Snippet<[{ props: Record<string, unknown>; }]> | undefined; children?: Snippet<...> | undefined; style?: any; ref?: HTMLElement | ... 1 more ... | undefined; } & Without<...>'. (ts)
+					{#if !isHistoricalDataLoading && hasHistoricalData}
+						<Accordion.Root type="single" collapsible>
+							<Accordion.Item value="trend-chart">
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/employees/+page.svelte:599:17
+Error: Type '{ value: number[]; min: number; max: number; step: number; class: string; }' is not assignable to type 'WithoutChildrenOrChild<SliderRootProps> | undefined'.
+  Property 'type' is missing in type '{ value: number[]; min: number; max: number; step: number; class: string; }' but required in type 'Omit<Omit<Omit<SliderMultiRootPropsWithoutHTML, "child" | "children"> & { child?: Snippet<[SliderRootSnippetProps & { ...; }]> | undefined; children?: Snippet<...> | undefined; style?: any; ref?: HTMLElement | ... 1 more ... | undefined; } & Without<...>, "child">, "children">'. (ts)
+										</div>
+										<Slider
+											bind:value={dateRangeSlider}
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/employees/+page.svelte:1155:14
+Error: Property 'validRoles' does not exist on type '{ user: any; userSession: any; employees: any[]; totalEmployees: number; totalActiveEmployees: number; totalInactiveEmployees: number; departments: any[]; employeeAutocompleteOptions: { value: string; label: string; email?: string | undefined; }[]; ... 9 more ...; loadedAt: string; }'. (ts)
+	departments={departments.map((d) => ({ id: d.id, name: d.name }))}
+	roles={data.validRoles || []}
+	onSuccess={handleEmployeeCreated}
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/employees2/[id]/+page.svelte:97:20
+Error: Type 'unknown' is not assignable to type 'string | null | undefined'. (ts)
+				<Avatar.Root class="h-32 w-32 border-4 border-background shadow-xl">
+					<Avatar.Image src={employee.avatarUrl} alt={employee.displayName} />
+					<Avatar.Fallback class="text-3xl font-bold bg-primary/10 text-primary">
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/employees2/[id]/+page.svelte:97:45
+Error: Type 'unknown' is not assignable to type 'string | null | undefined'. (ts)
+				<Avatar.Root class="h-32 w-32 border-4 border-background shadow-xl">
+					<Avatar.Image src={employee.avatarUrl} alt={employee.displayName} />
+					<Avatar.Fallback class="text-3xl font-bold bg-primary/10 text-primary">
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/employees2/[id]/+page.svelte:114:30
+Error: Property 'name' does not exist on type '{}'. (ts)
+							<Building2 class="h-4 w-4" />
+							{employee.department?.name ?? 'No Department'}
+						</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/employees2/[id]/+page.svelte:199:52
+Error: Property 'slice' does not exist on type '{}'. (ts)
+					<span class="text-muted-foreground">Employee ID</span>
+					<span class="font-mono text-xs">{employee.id?.slice(0, 8)}...</span>
+				</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/employees2/[id]/+page.svelte:204:44
+Error: Argument of type 'unknown' is not assignable to parameter of type 'string | null'. (ts)
+					<span class="text-muted-foreground">Date of Hire</span>
+					<span class="font-medium">{formatDate(employee.hireDate)}</span>
+				</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/employees2/[id]/+page.svelte:209:32
+Error: Property 'manager' does not exist on type '{}'. (ts)
+					<span class="text-muted-foreground text-xs">Manager</span>
+					{#if employee.department?.manager}
+						<div class="flex items-center gap-2 font-medium">
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/employees2/[id]/+page.svelte:214:35
+Error: Property 'manager' does not exist on type '{}'. (ts)
+							</Avatar.Root>
+							<span>{employee.department.manager.displayName}</span>
+						</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/employees2/[id]/+page.svelte:77:29
+Error: Element implicitly has an 'any' type because expression of type '0' can't be used to index type '{}'.
+  Property '0' does not exist on type '{}'. (ts)
+	// Helpers
+	const initials = $derived((employee.firstName?.[0] ?? '') + (employee.lastName?.[0] ?? ''));
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/employees2/[id]/+page.svelte:77:63
+Error: Element implicitly has an 'any' type because expression of type '0' can't be used to index type '{}'.
+  Property '0' does not exist on type '{}'. (ts)
+	// Helpers
+	const initials = $derived((employee.firstName?.[0] ?? '') + (employee.lastName?.[0] ?? ''));
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/events/+page.svelte:69:4
+Error: Object literal may only specify known properties, but 'allDay' does not exist in type 'EventData'. Did you mean to write 'isAllDay'? (ts)
+			endTime: event.endTime,
+			allDay: event.isAllDay,
+			location: event.location,
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/events/[id]/+page.svelte:167:27
+Error: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'. (ts)
+					<span class="rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+						{getVisibilityLabel(data.event.visibilityType)}
+					</span>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/events/[id]/+page.svelte:290:19
+Error: Property 'userByOrganizerId' does not exist on type 'Event'. (ts)
+					<div class="text-sm text-muted-foreground">
+						{data.event.userByOrganizerId?.displayName || 'Unknown'}
+					</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/events/[id]/+page.svelte:364:74
+Error: Property 'noResponse' does not exist on type '{ accepted: number; declined: number; tentative: number; pending: number; total: number; }'. (ts)
+		<div class="rounded-lg border bg-card p-4 text-center shadow-sm">
+			<div class="text-2xl font-bold text-muted-foreground">{data.rsvpStats.noResponse}</div>
+			<div class="text-sm text-muted-foreground">No Response</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/events/[id]/+page.svelte:434:21
+Error: Property 'userByEmployeeId' does not exist on type '{ id: string; employeeId: string; responseStatus: string; employee?: { id: string; displayName: string; email: string; } | undefined; }'. (ts)
+									<span class="text-sm font-medium text-muted-foreground">
+										{attendee.userByEmployeeId?.displayName?.charAt(0)?.toUpperCase() || '?'}
+									</span>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/events/[id]/+page.svelte:439:21
+Error: Property 'userByEmployeeId' does not exist on type '{ id: string; employeeId: string; responseStatus: string; employee?: { id: string; displayName: string; email: string; } | undefined; }'. (ts)
+									<div class="text-sm font-medium text-foreground">
+										{attendee.userByEmployeeId?.displayName || 'Unknown'}
+										{#if attendee.employeeId === data.user.id}
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/events/[id]/+page.svelte:453:10
+Error: Argument of type 'string' is not assignable to parameter of type 'RsvpStatus'. (ts)
+								class="rounded-md px-2 py-1 text-xs font-medium {getRsvpStatusColor(
+									attendee.responseStatus
+								)}"
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/events/[id]/edit/+page.svelte:20:51
+Error: Argument of type 'EventVisibilityType | undefined' is not assignable to parameter of type 'EventVisibilityType'.
+  Type 'undefined' is not assignable to type 'EventVisibilityType'. (ts)
+	let eventType = $state<EventType>(data.event.eventType);
+	let visibilityType = $state<EventVisibilityType>(data.event.visibilityType);
+	let isSubmitting = $state(false);
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/events/settings/+page.svelte:48:20
+Error: Property 'error' does not exist on type '{ success: boolean; }'. (ts)
+			isSaving = false;
+		} else if (form?.error) {
+			toast.error(form.error);
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/events/settings/+page.svelte:49:21
+Error: Property 'error' does not exist on type '{ success: boolean; }'. (ts)
+		} else if (form?.error) {
+			toast.error(form.error);
+			isSaving = false;
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/management/leave-approvals/+page.svelte:558:13
+Error: Type '{ children: () => any; value: any; onValueChange: (status: string | string[]) => void; }' is not assignable to type 'SelectRootPropsWithoutHTML | undefined'.
+  Type '{ children: () => any; value: any; onValueChange: (status: string | string[]) => void; }' is not assignable to type '{ disabled?: boolean | undefined; required?: boolean | undefined; name?: string | undefined; open?: boolean | undefined; onOpenChange?: OnChangeFn<boolean> | undefined; ... 5 more ...; autocomplete?: FullAutoFill | ... 1 more ... | undefined; } & { ...; } & SelectMultipleRootPropsWithoutHTML'.
+    Property 'type' is missing in type '{ children: () => any; value: any; onValueChange: (status: string | string[]) => void; }' but required in type 'SelectMultipleRootPropsWithoutHTML'. (ts)
+						<Label>Status</Label>
+						<Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+							<SelectTrigger placeholder="All Statuses" />
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/management/leave-approvals/+page.svelte:572:39
+Error: Type '(type: string) => void' is not assignable to type 'OnChangeFn<string[]>'.
+  Types of parameters 'type' and 'value' are incompatible.
+    Type 'string[]' is not assignable to type 'string'. (ts)
+						<Label>Leave Type</Label>
+						<Select value={leaveTypeFilter} onValueChange={handleLeaveTypeFilterChange}>
+							<SelectTrigger placeholder="All Types" />
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/management/reports/+page.svelte:19:16
+Error: '"$lib/graphql/reports-operations"' has no exported member named 'HRReport'. Did you mean 'HrReport'? (ts)
+	import * as Tabs from '$lib/components/ui/tabs';
+	import type { HRReport, ReportAnalytics } from '$lib/graphql/reports-operations';
+	import {
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/management/reports/+page.svelte:591:45
+Error: Property 'avgExecutionTime' does not exist on type '{ successRate: number; errorRate: number; }'. (ts)
+							<div class="text-2xl font-bold text-blue-600">
+								{reportAnalytics.performanceMetrics.avgExecutionTime}s
+							</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/management/reports/+page.svelte:597:45
+Error: Property 'totalExecutionTime' does not exist on type '{ successRate: number; errorRate: number; }'. (ts)
+							<div class="text-2xl font-bold text-purple-600">
+								{reportAnalytics.performanceMetrics.totalExecutionTime}s
+							</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/management/reports/+page.svelte:629:30
+Error: Property 'popularReports' does not exist on type 'ReportAnalytics'. (ts)
+					<div class="space-y-4">
+						{#each reportAnalytics.popularReports as report}
+							<div class="flex items-center justify-between rounded-lg bg-muted p-4 dark:bg-muted">
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/management/reports/+page.svelte:650:30
+Error: Property 'departmentUsage' does not exist on type 'ReportAnalytics'. (ts)
+					<div class="space-y-4">
+						{#each reportAnalytics.departmentUsage as dept}
+							<div class="flex items-center justify-between">
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/management/reviews/+page.svelte:250:25
+Error: Property 'deletePerformanceReview' does not exist on type '{ updateReview(params: { id: string; status?: string | undefined; overallRating?: number | undefined; goals?: string | undefined; achievements?: string | undefined; areasForImprovement?: string | undefined; managerFeedback?: string | undefined; }): Promise<...>; submitReview(params: { ...; }): Promise<...>; }'. (ts)
+
+			await performanceOps.deletePerformanceReview({
+				id: review.id,
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/management/reviews/+page.svelte:484:36
+Error: Type '(status: string) => void' is not assignable to type 'OnChangeFn<string[]>'.
+  Types of parameters 'status' and 'value' are incompatible.
+    Type 'string[]' is not assignable to type 'string'. (ts)
+						<Label>Status</Label>
+						<Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+							<SelectTrigger placeholder="All Statuses" />
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/management/reviews/+page.svelte:498:36
+Error: Type '(period: string) => void' is not assignable to type 'OnChangeFn<string[]>'.
+  Types of parameters 'period' and 'value' are incompatible.
+    Type 'string[]' is not assignable to type 'string'. (ts)
+						<Label>Review Period</Label>
+						<Select value={periodFilter} onValueChange={handlePeriodFilterChange}>
+							<SelectTrigger placeholder="All Periods" />
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/notifications/+page.svelte:16:62
+Error: Argument of type 'string' is not assignable to parameter of type 'NotificationCategory | "all"'. (ts)
+	// Filter state
+	let selectedCategory = $state<NotificationCategory | 'all'>(data.filters.category || 'all');
+	let selectedType = $state<NotificationType | 'all'>(data.filters.type || 'all');
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/notifications/+page.svelte:17:54
+Error: Argument of type 'string' is not assignable to parameter of type 'NotificationType | "all"'. (ts)
+	let selectedCategory = $state<NotificationCategory | 'all'>(data.filters.category || 'all');
+	let selectedType = $state<NotificationType | 'all'>(data.filters.type || 'all');
+	let selectedReadStatus = $state<string>(data.filters.readStatus || 'all');
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/notifications/+page.svelte:306:35
+Error: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type 'Record<NotificationCategory, string>'. (ts)
+								<span>•</span>
+								<span class="capitalize">{NOTIFICATION_CATEGORY_LABELS[notification.category]}</span
+								>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/onboarding/[id]/+page.svelte:339:25
+Error: Property 'fields' does not exist on type '{}'. (ts)
+									{@const template = getFormTemplate(block.formTemplateId)}
+									{#if template?.fields}
+										<div class="space-y-4" data-testid="block-FORM_FIELDS-{block.id}">
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/onboarding/[id]/+page.svelte:341:28
+Error: Property 'fields' does not exist on type '{}'. (ts)
+										<div class="space-y-4" data-testid="block-FORM_FIELDS-{block.id}">
+											{#each template.fields as field}
+												{@const fieldInfo = renderFormField(field, block.id)}
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/reviews/+page.svelte:242:3
+Error: Type 'never[] | { value: string; label: string; description: string; displayOrder: number; }[]' is not assignable to type '{ value: "ANNUAL_REVIEW" | "MID_YEAR_REVIEW" | "QUARTERLY_REVIEW" | "PROBATIONARY_REVIEW" | "PERFORMANCE_IMPROVEMENT_PLAN" | "NINETY_DAY_REVIEW" | "PROJECT_BASED_REVIEW" | "PROMOTION_REVIEW" | "EXIT_REVIEW" | "SELF_REVIEW"; label: string; description: string; displayOrder: number; icon?: string | undefined; }[] | un...'.
+  Type '{ value: string; label: string; description: string; displayOrder: number; }[]' is not assignable to type '{ value: "ANNUAL_REVIEW" | "MID_YEAR_REVIEW" | "QUARTERLY_REVIEW" | "PROBATIONARY_REVIEW" | "PERFORMANCE_IMPROVEMENT_PLAN" | "NINETY_DAY_REVIEW" | "PROJECT_BASED_REVIEW" | "PROMOTION_REVIEW" | "EXIT_REVIEW" | "SELF_REVIEW"; label: string; description: string; displayOrder: number; icon?: string | undefined; }[]'.
+    Type '{ value: string; label: string; description: string; displayOrder: number; }' is not assignable to type '{ value: "ANNUAL_REVIEW" | "MID_YEAR_REVIEW" | "QUARTERLY_REVIEW" | "PROBATIONARY_REVIEW" | "PERFORMANCE_IMPROVEMENT_PLAN" | "NINETY_DAY_REVIEW" | "PROJECT_BASED_REVIEW" | "PROMOTION_REVIEW" | "EXIT_REVIEW" | "SELF_REVIEW"; label: string; description: string; displayOrder: number; icon?: string | undefined; }'.
+      Types of property 'value' are incompatible.
+        Type 'string' is not assignable to type '"ANNUAL_REVIEW" | "MID_YEAR_REVIEW" | "QUARTERLY_REVIEW" | "PROBATIONARY_REVIEW" | "PERFORMANCE_IMPROVEMENT_PLAN" | "NINETY_DAY_REVIEW" | "PROJECT_BASED_REVIEW" | "PROMOTION_REVIEW" | "EXIT_REVIEW" | "SELF_REVIEW"'. (ts)
+		availableGoals={[]}
+		reviewTypesMetadata={data.reviewTypesMetadata}
+		loading={false}
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/tasks/+page.svelte:101:27
+Error: Property 'deferred' does not exist on type '{ total: any; notStarted: any; inProgress: any; blocked: any; review: any; completed: any; } | { total: number; notStarted: number; inProgress: number; blocked: number; review: number; completed: number; }'.
+  Property 'deferred' does not exist on type '{ total: any; notStarted: any; inProgress: any; blocked: any; review: any; completed: any; }'. (ts)
+			label: 'Deferred',
+			value: data.taskStats?.deferred || 0,
+			icon: XCircle,
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/tasks/+page.svelte:279:5
+Error: Object literal may only specify known properties, and '"showProgress"' does not exist in type '$$ComponentProps'. (ts)
+				onTaskClick={handleTaskClick}
+				showProgress={true}
+				compact={false}
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/tasks/[id]/+page.svelte:85:42
+Error: This comparison appears to be unintentional because the types '"IN_PROGRESS" | "BLOCKED" | "CANCELLED" | "TODO" | "REVIEW"' and '"COMPLETED"' have no overlap. (ts)
+		const completed = task.subtasks.filter(
+			(st: Task) => st.status === 'DONE' || st.status === 'COMPLETED'
+		).length;
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/tasks/[id]/+page.svelte:92:69
+Error: This comparison appears to be unintentional because the types '"IN_PROGRESS" | "BLOCKED" | "CANCELLED" | "TODO" | "REVIEW"' and '"COMPLETED"' have no overlap. (ts)
+		if (!task?.subtasks) return 0;
+		return task.subtasks.filter((st: Task) => st.status === 'DONE' || st.status === 'COMPLETED')
+			.length;
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/tasks/department/+page.svelte:194:17
+Error: Property 'pending' does not exist on type '{ total: number; todo: number; inProgress: number; completed: number; cancelled: number; overdue: number; dueSoon: number; completionRate: number; }'. (ts)
+			<div class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+				{statistics.pending}
+			</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/tasks/department/+page.svelte:212:65
+Error: Property 'urgent' does not exist on type '{ total: number; todo: number; inProgress: number; completed: number; cancelled: number; overdue: number; dueSoon: number; completionRate: number; }'. (ts)
+		<div class="rounded-lg border border-border bg-card p-4 shadow-sm">
+			<div class="text-2xl font-bold text-destructive">{statistics.urgent}</div>
+			<div class="text-sm text-muted-foreground">Urgent</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/tasks/department/+page.svelte:217:85
+Error: Property 'high' does not exist on type '{ total: number; todo: number; inProgress: number; completed: number; cancelled: number; overdue: number; dueSoon: number; completionRate: number; }'. (ts)
+		<div class="rounded-lg border border-border bg-card p-4 shadow-sm">
+			<div class="text-2xl font-bold text-orange-600 dark:text-orange-400">{statistics.high}</div>
+			<div class="text-sm text-muted-foreground">High</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/tasks/department/+page.svelte:232:4
+Error: Type '(taskId: string, newStatus: TaskStatus) => Promise<void>' is not assignable to type '(taskId: string, newStatus: TaskStatus) => void'.
+  Types of parameters 'newStatus' and 'newStatus' are incompatible.
+    Type 'import("/home/chanway/Projects/SvelteHR/src/lib/types/task").TaskStatus' is not assignable to type 'import("/home/chanway/Projects/SvelteHR/src/lib/graphql/types").TaskStatus'.
+      Type '"IN_PROGRESS"' is not assignable to type 'TaskStatus'. Did you mean '"in_progress"'? (ts)
+			onTaskClick={handleTaskClick}
+			onStatusChange={handleStatusChange}
+			sortBy={selectedSort}
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/tasks/department/+page.svelte:233:4
+Error: Type 'string' is not assignable to type '"title" | "created_at" | "due_date" | "priority" | "smart" | undefined'. (ts)
+			onStatusChange={handleStatusChange}
+			sortBy={selectedSort}
+			filterStatus={selectedStatus}
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/tasks/my-tasks/+page.svelte:57:3
+Error: Argument of type 'string' is not assignable to parameter of type 'TaskStatus | "all"'. (ts)
+	let selectedStatus = $state<TaskStatus | 'all'>(
+		data && data.filters && data.filters.statusFilter ? data.filters.statusFilter : 'all'
+	);
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/tasks/my-tasks/+page.svelte:60:3
+Error: Argument of type 'string' is not assignable to parameter of type 'TaskPriority | "all"'. (ts)
+	let selectedPriority = $state<TaskPriority | 'all'>(
+		data && data.filters && data.filters.priorityFilter ? data.filters.priorityFilter : 'all'
+	);
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/tasks/new/+page.svelte:137:5
+Error: Object literal may only specify known properties, and '"initialValues"' does not exist in type 'Props'. (ts)
+				onCancel={handleCancel}
+				initialValues={initialValues()}
+			/>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/tasks/team-tasks/+page.svelte:350:5
+Error: Object literal may only specify known properties, and '"showProgress"' does not exist in type '$$ComponentProps'. (ts)
+				onStatusChange={handleStatusChange}
+				showProgress={true}
+				compact={false}
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/attendance/+page.svelte:198:20
+Error: Property 'clockIn' does not exist on type 'never'. (ts)
+					<p class="text-lg font-semibold text-foreground">
+						{todayRecord.clockIn ? formatTime(todayRecord.clockIn) : 'Not clocked in'}
+					</p>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/attendance/+page.svelte:198:53
+Error: Property 'clockIn' does not exist on type 'never'. (ts)
+					<p class="text-lg font-semibold text-foreground">
+						{todayRecord.clockIn ? formatTime(todayRecord.clockIn) : 'Not clocked in'}
+					</p>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/attendance/+page.svelte:204:20
+Error: Property 'clockOut' does not exist on type 'never'. (ts)
+					<p class="text-lg font-semibold text-foreground">
+						{todayRecord.clockOut ? formatTime(todayRecord.clockOut) : 'Not clocked out'}
+					</p>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/attendance/+page.svelte:204:54
+Error: Property 'clockOut' does not exist on type 'never'. (ts)
+					<p class="text-lg font-semibold text-foreground">
+						{todayRecord.clockOut ? formatTime(todayRecord.clockOut) : 'Not clocked out'}
+					</p>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/attendance/+page.svelte:210:20
+Error: Property 'hoursWorked' does not exist on type 'never'. (ts)
+					<p class="text-lg font-semibold text-foreground">
+						{todayRecord.hoursWorked ? `${todayRecord.hoursWorked}h` : '0h'}
+					</p>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/attendance/+page.svelte:210:49
+Error: Property 'hoursWorked' does not exist on type 'never'. (ts)
+					<p class="text-lg font-semibold text-foreground">
+						{todayRecord.hoursWorked ? `${todayRecord.hoursWorked}h` : '0h'}
+					</p>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/performance/+page.svelte:431:21
+Error: Property 'description' does not exist on type '{ id: string; title: string; progress: number; }'. (ts)
+									<div class="flex items-center justify-between">
+										<span>{kr.description}</span>
+										<span>{kr.current}/{kr.target} {kr.unit}</span>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/performance/+page.svelte:432:21
+Error: Property 'current' does not exist on type '{ id: string; title: string; progress: number; }'. (ts)
+										<span>{kr.description}</span>
+										<span>{kr.current}/{kr.target} {kr.unit}</span>
+									</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/performance/+page.svelte:432:34
+Error: Property 'target' does not exist on type '{ id: string; title: string; progress: number; }'. (ts)
+										<span>{kr.description}</span>
+										<span>{kr.current}/{kr.target} {kr.unit}</span>
+									</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/performance/+page.svelte:432:46
+Error: Property 'unit' does not exist on type '{ id: string; title: string; progress: number; }'. (ts)
+										<span>{kr.description}</span>
+										<span>{kr.current}/{kr.target} {kr.unit}</span>
+									</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/performance/+page.svelte:437:40
+Error: Property 'current' does not exist on type '{ id: string; title: string; progress: number; }'. (ts)
+											class="h-1 rounded-full bg-purple-500"
+											style="width: {Math.min((kr.current / kr.target) * 100, 100)}%"
+										></div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/performance/+page.svelte:437:53
+Error: Property 'target' does not exist on type '{ id: string; title: string; progress: number; }'. (ts)
+											class="h-1 rounded-full bg-purple-500"
+											style="width: {Math.min((kr.current / kr.target) * 100, 100)}%"
+										></div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/performance/+page.svelte:450:30
+Error: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'. (ts)
+						<Calendar class="h-3 w-3" />
+						<span>Due: {formatDate(goal.targetDate)}</span>
+					</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/performance/+page.svelte:452:38
+Error: Property 'lastUpdated' does not exist on type '{ category: { id: string; name: string; color: string; }; priority: string; progress: number; keyResults: { id: string; title: string; progress: number; }[]; id: string; title: string; description: string | null; ... 4 more ...; updatedAt: string; }'. (ts)
+					</div>
+					<span>Updated: {formatDate(goal.lastUpdated)}</span>
+				</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/performance/+page.svelte:455:15
+Error: Property 'assignedBy' does not exist on type '{ category: { id: string; name: string; color: string; }; priority: string; progress: number; keyResults: { id: string; title: string; progress: number; }[]; id: string; title: string; description: string | null; ... 4 more ...; updatedAt: string; }'. (ts)
+
+				{#if goal.assignedBy}
+					<div class="mt-2 text-xs text-muted-foreground">
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/performance/+page.svelte:459:33
+Error: Property 'assignedBy' does not exist on type '{ category: { id: string; name: string; color: string; }; priority: string; progress: number; keyResults: { id: string; title: string; progress: number; }[]; id: string; title: string; description: string | null; ... 4 more ...; updatedAt: string; }'. (ts)
+							<User class="h-3 w-3" />
+							<span>Assigned by: {goal.assignedBy.displayName}</span>
+						</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/performance/reviews/+page.svelte:100:3
+Error: Type 'string | null' is not assignable to type 'null'.
+  Type 'string' is not assignable to type 'null'. (ts)
+	function toggleReviewExpansion(reviewId: string) {
+		expandedReview = expandedReview === reviewId ? null : reviewId;
+	}
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/performance/reviews/+page.svelte:300:25
+Error: 'review.reviewer' is possibly 'null'. (ts)
+							<User class="h-4 w-4" />
+							<span>Reviewer: {review.reviewer.displayName}</span>
+						</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/performance/reviews/+page.svelte:323:73
+Error: Property 'rating' does not exist on type 'never'. (ts)
+								{#each review.competencies as competency}
+									{@const { fullStars, hasHalfStar } = getRatingStars(competency.rating)}
+									<div class="bg-muted dark:bg-muted p-4 rounded-lg">
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/performance/reviews/+page.svelte:326:66
+Error: Property 'name' does not exist on type 'never'. (ts)
+										<div class="flex items-center justify-between mb-2">
+											<span class="font-medium text-foreground">{competency.name}</span>
+											<div class="flex items-center gap-1">
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/performance/reviews/+page.svelte:337:74
+Error: Property 'rating' does not exist on type 'never'. (ts)
+												{/each}
+												<span class="ml-1 text-xs text-muted-foreground">{competency.rating}</span>
+											</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/performance/reviews/+page.svelte:340:64
+Error: Property 'feedback' does not exist on type 'never'. (ts)
+										</div>
+										<p class="text-xs text-muted-foreground">{competency.feedback}</p>
+									</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/performance/reviews/+page.svelte:358:71
+Error: Property 'status' does not exist on type 'GoalInfo'. (ts)
+												<span class="font-medium text-foreground">{goal.title}</span>
+												<span class="text-sm font-medium {getGoalStatusColor(goal.status)}">
+													{goal.status
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/performance/reviews/+page.svelte:359:20
+Error: Property 'status' does not exist on type 'GoalInfo'. (ts)
+												<span class="text-sm font-medium {getGoalStatusColor(goal.status)}">
+													{goal.status
+														.replace('_', ' ')
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/performance/reviews/+page.svelte:368:34
+Error: Property 'progress' does not exist on type 'GoalInfo'. (ts)
+													class="h-2 rounded-full bg-blue-500"
+													style="width: {goal.progress}%"
+												></div>
+
+/home/chanway/Projects/SvelteHR/src/routes/dashboard/users/[id]/performance/reviews/+page.svelte:371:62
+Error: Property 'progress' does not exist on type 'GoalInfo'. (ts)
+											</div>
+											<span class="text-xs text-muted-foreground">{goal.progress}% complete</span>
+										</div>
+
+/home/chanway/Projects/SvelteHR/src/routes/sentry-example-page/+page.svelte:215:2
+Warn: Unused CSS selector ".connectivity-error a"
+https://svelte.dev/e/css_unused_selector (svelte)
+
+	.connectivity-error a {
+		color: #ffffff;
+
+/home/chanway/Projects/SvelteHR/src/routes/tasks/+page.svelte:119:3
+Error: Type '{ assigneeId?: string | undefined; priority?: TaskPriority[] | undefined; status?: TaskStatus[] | undefined; searchQuery?: string | undefined; }' is not assignable to type 'TaskFilter'.
+  Types of property 'status' are incompatible.
+    Type 'TaskStatus[] | undefined' is not assignable to type 'TaskStatus | undefined'.
+      Type 'TaskStatus[]' is not assignable to type 'TaskStatus | undefined'. (ts)
+	function buildFilters(): TaskFilter {
+		return {
+			...(searchQuery && { searchQuery }),
+
+/home/chanway/Projects/SvelteHR/src/routes/tasks/+page.svelte:142:10
+Error: Element implicitly has an 'any' type because expression of type 'TaskPriority' can't be used to index type '{ LOW: string; NORMAL: string; HIGH: string; URGENT: string; }'.
+  Property 'MEDIUM' does not exist on type '{ LOW: string; NORMAL: string; HIGH: string; URGENT: string; }'. (ts)
+		};
+		return variants[priority] || 'secondary';
+	}
+
+/home/chanway/Projects/SvelteHR/src/routes/tasks/+page.svelte:242:9
+Error: Argument of type '"input"' is not assignable to parameter of type 'never'. (ts)
+					bind:value={searchQuery}
+					on:input={loadTasks}
+				/>
+
+/home/chanway/Projects/SvelteHR/src/routes/tasks/+page.svelte:307:8
+Error: Type '"destructive"' is not assignable to type '"success" | "warning" | "primary" | "secondary" | "tertiary" | "danger" | "ghost" | undefined'. (ts)
+						<Button
+							variant="destructive"
+							size="sm"
+
+/home/chanway/Projects/SvelteHR/src/routes/tasks/+page.svelte:325:18
+Error: Property 'isLoadingTasks' does not exist on type 'AuthStore'. (ts)
+			{columns}
+			loading={auth.isLoadingTasks}
+			selectable={true}
+
+/home/chanway/Projects/SvelteHR/tests/contract/audit-logs-approve-rollback-request-mutation.test.ts:45:42
+Error: Type 'Promise<ApproveRollbackRequestResponse>' does not satisfy the constraint 'Procedure'.
+  Type 'Promise<ApproveRollbackRequestResponse>' provides no match for the signature '(...args: any[]): any'. 
+
+const mockApproveRollbackRequest = vi.fn<Promise<ApproveRollbackRequestResponse>>();
+
+/home/chanway/Projects/SvelteHR/tests/contract/audit-logs-create-bulk-rollback-batch-mutation.test.ts:43:43
+Error: Type 'Promise<CreateBulkRollbackBatchResponse>' does not satisfy the constraint 'Procedure'.
+  Type 'Promise<CreateBulkRollbackBatchResponse>' provides no match for the signature '(...args: any[]): any'. 
+
+const mockCreateBulkRollbackBatch = vi.fn<Promise<CreateBulkRollbackBatchResponse>>();
+
+/home/chanway/Projects/SvelteHR/tests/contract/audit-logs-execute-rollback-mutation.test.ts:46:35
+Error: Type 'Promise<ExecuteRollbackResponse>' does not satisfy the constraint 'Procedure'.
+  Type 'Promise<ExecuteRollbackResponse>' provides no match for the signature '(...args: any[]): any'. 
+
+const mockExecuteRollback = vi.fn<Promise<ExecuteRollbackResponse>>();
+
+/home/chanway/Projects/SvelteHR/tests/contract/audit-logs-get-activity-log-detail.test.ts:59:34
+Error: Type 'Promise<GetActivityLogResponse>' does not satisfy the constraint 'Procedure'.
+  Type 'Promise<GetActivityLogResponse>' provides no match for the signature '(...args: any[]): any'. 
+
+const mockGetActivityLog = vi.fn<Promise<GetActivityLogResponse>>();
+
+/home/chanway/Projects/SvelteHR/tests/contract/audit-logs-get-activity-logs.test.ts:70:35
+Error: Type 'Promise<GetActivityLogsResponse>' does not satisfy the constraint 'Procedure'.
+  Type 'Promise<GetActivityLogsResponse>' provides no match for the signature '(...args: any[]): any'. 
+// Mock implementation (will be replaced in T044)
+const mockGetActivityLogs = vi.fn<Promise<GetActivityLogsResponse>>();
+
+/home/chanway/Projects/SvelteHR/tests/contract/audit-logs-get-my-rollback-requests.test.ts:54:41
+Error: Type 'Promise<GetMyRollbackRequestsResponse>' does not satisfy the constraint 'Procedure'.
+  Type 'Promise<GetMyRollbackRequestsResponse>' provides no match for the signature '(...args: any[]): any'. 
+
+const mockGetMyRollbackRequests = vi.fn<Promise<GetMyRollbackRequestsResponse>>();
+
+/home/chanway/Projects/SvelteHR/tests/contract/audit-logs-get-pending-rollback-requests.test.ts:61:46
+Error: Type 'Promise<GetPendingRollbackRequestsResponse>' does not satisfy the constraint 'Procedure'.
+  Type 'Promise<GetPendingRollbackRequestsResponse>' provides no match for the signature '(...args: any[]): any'. 
+
+const mockGetPendingRollbackRequests = vi.fn<Promise<GetPendingRollbackRequestsResponse>>();
+
+/home/chanway/Projects/SvelteHR/tests/contract/audit-logs-request-rollback-mutation.test.ts:42:35
+Error: Type 'Promise<RequestRollbackResponse>' does not satisfy the constraint 'Procedure'.
+  Type 'Promise<RequestRollbackResponse>' provides no match for the signature '(...args: any[]): any'. 
+
+const mockRequestRollback = vi.fn<Promise<RequestRollbackResponse>>();
+
+/home/chanway/Projects/SvelteHR/tests/contract/departments-operations.test.ts:150:8
+Error: Object literal may only specify known properties, and 'profileImage' does not exist in type '{ id: string; displayName: string; email: string; }'. 
+							email: 'jane.smith@company.com',
+							profileImage: 'https://example.com/avatars/jane.jpg'
+						},
+
+/home/chanway/Projects/SvelteHR/tests/contract/departments-operations.test.ts:220:8
+Error: Object literal may only specify known properties, and 'profileImage' does not exist in type '{ id: string; displayName: string; email: string; }'. 
+							email: 'mike.johnson@company.com',
+							profileImage: 'https://example.com/avatars/mike.jpg'
+						},
+
+/home/chanway/Projects/SvelteHR/tests/contract/departments-operations.test.ts:594:3
+Error: Type 'null' is not assignable to type '{ startDate: string; endDate: string; } | undefined'. 
+		includeFinancialStats,
+		statsDateRange,
+		sortBy,
+
+/home/chanway/Projects/SvelteHR/tests/contract/departments-operations.test.ts:596:3
+Error: Type 'string' is not assignable to type '"asc" | "desc" | undefined'. 
+		sortBy,
+		sortDirection
+	}),
+
+/home/chanway/Projects/SvelteHR/tests/contract/employees-operations.test.ts:142:7
+Error: Object literal may only specify known properties, and 'employeeNumber' does not exist in type 'Employee'. 
+						id: 'emp_123',
+						employeeNumber: 'EMP001',
+						personalInfo: {
+
+/home/chanway/Projects/SvelteHR/tests/contract/employees-operations.test.ts:202:6
+Error: Object literal may only specify known properties, and 'totalCount' does not exist in type 'PaginationInfo'. 
+					totalPages: 5,
+					totalCount: 97,
+					hasNextPage: true,
+
+/home/chanway/Projects/SvelteHR/tests/contract/employees-operations.test.ts:275:6
+Error: Object literal may only specify known properties, and 'totalCount' does not exist in type 'PaginationInfo'. 
+					totalPages: 0,
+					totalCount: 0,
+					hasNextPage: false,
+
+/home/chanway/Projects/SvelteHR/tests/contract/employees-operations.test.ts:302:44
+Error: Property 'totalCount' does not exist on type 'PaginationInfo'. 
+			expect(expectedEmptyResponse.employees).toHaveLength(0);
+			expect(expectedEmptyResponse.pagination.totalCount).toBe(0);
+		});
+
+/home/chanway/Projects/SvelteHR/tests/contract/graphql-schema.contract.ts:197:6
+Error: Property 'describe' does not exist on type 'TestAPI'. 
+
+test.describe('GraphQL Schema Contract Tests', () => {
+	test('should validate employee queries structure', () => {
+
+/home/chanway/Projects/SvelteHR/tests/contract/retry-operations.test.ts:154:5
+Error: Property 'retryInfo' is missing in type '{ success: false; finalError: { id: string; type: "graphql"; originalError: Error; userMessage: string; technicalDetails: string; suggestedActions: { label: string; action: string; isPrimary: true; }[]; timestamp: Date; isRetryable: false; severity: "high"; operationId: string; }; attemptCount: number; totalDuration...' but required in type '{ success: boolean; data?: any; error?: ErrorResponse | undefined; finalError?: ErrorResponse | undefined; attemptCount?: number | undefined; totalDuration?: number | undefined; retryHistory?: { ...; }[] | undefined; retryInfo: { ...; }; }'. 
+			const expectedResponse: RetryOperationResponse = {
+				retryResult: {
+					success: false,
+
+/home/chanway/Projects/SvelteHR/tests/utils/graphql-test-client.ts:269:39
+Error: Property 'extractOperationName' is private and only accessible within class 'GraphQLTestClient'. 
+	static assertResponseTime(response: GraphQLResponse, maxDuration: number = 200): void {
+		const operationName = defaultClient.extractOperationName('') || 'unknown';
+		const metrics = defaultClient.getPerformanceMetrics();
+
+/home/chanway/Projects/SvelteHR/tests/utils/puppeteer-helpers.ts:151:28
+Error: Argument of type 'string' is not assignable to parameter of type 'KeyInput'. 
+	const page = getPage();
+	await page.keyboard.press(key);
+}
+
+/home/chanway/Projects/SvelteHR/tests/utils/puppeteer-helpers.ts:406:14
+Error: This comparison appears to be unintentional because the types '"debug" | "info" | "warn" | "error" | "profile" | "dir" | "count" | "table" | "clear" | "dirxml" | "trace" | "startGroup" | "startGroupCollapsed" | "endGroup" | "assert" | "profileEnd" | "timeEnd" | "verbose"' and '"warning"' have no overlap. 
+			logs.push({ type, text });
+		} else if (type === 'warning') {
+			warnings.push({ type, text });
+
+/home/chanway/Projects/SvelteHR/tests/utils/stagehand-helpers.ts:5:23
+Error: Cannot find module '@browserbasehq/stagehand' or its corresponding type declarations. 
+
+import Stagehand from '@browserbasehq/stagehand';
+import { z } from 'zod';
+
+/home/chanway/Projects/SvelteHR/tests/e2e/form-interactions.browser.test.ts:139:34
+Error: Argument of type '{ index: number; }' is not assignable to parameter of type 'string'. 
+			if (hasSelect) {
+				await selectOption('select', { index: 1 });
+			}
+
+/home/chanway/Projects/SvelteHR/tests/e2e/form-interactions.browser.test.ts:188:34
+Error: Property 'locator' does not exist on type 'BrowserPage'. 
+			// Field should be cleared
+			const inputValue = await page.locator('input[type="text"]').inputValue();
+			expect(inputValue).toBe('');
+
+/home/chanway/Projects/SvelteHR/tests/integration/dashboard-page.test.ts:96:6
+Error: Object literal may only specify known properties, and 'includeMetrics' does not exist in type 'GetCompleteDashboardDataVariables'. 
+					userId: 'user-123',
+					includeMetrics: true,
+					dateRange: '30d'
+
+/home/chanway/Projects/SvelteHR/tests/integration/dashboard-page.test.ts:229:7
+Error: Object literal may only specify known properties, and 'userId' does not exist in type 'DashboardUser'. 
+					user: {
+						userId: 'user-123',
+						userName: 'Admin User',
+
+/home/chanway/Projects/SvelteHR/tests/integration/dashboard-page.test.ts:236:8
+Error: Object literal may only specify known properties, and 'activityId' does not exist in type 'ActivityItem'. 
+						{
+							activityId: 'activity-1',
+							activityType: 'employee_hired',
+
+/home/chanway/Projects/SvelteHR/tests/integration/dashboard-page.test.ts:336:7
+Error: Object literal may only specify known properties, and 'userId' does not exist in type 'DashboardUser'. 
+					user: {
+						userId: 'user-123',
+						userName: 'Admin User',
+
+/home/chanway/Projects/SvelteHR/tests/integration/dashboard-page.test.ts:356:7
+Error: Object literal may only specify known properties, and 'userId' does not exist in type 'DashboardUser'. 
+					user: {
+						userId: 'user-123',
+						userName: 'Admin User',
+
+/home/chanway/Projects/SvelteHR/tests/integration/dashboard-page.test.ts:448:6
+Error: Object literal may only specify known properties, and 'includeMetrics' does not exist in type 'GetCompleteDashboardDataVariables'. 
+					userId: 'user-123',
+					includeMetrics: true,
+					dateRange: '30d'
+
+/home/chanway/Projects/SvelteHR/tests/integration/departments-page.test.ts:133:6
+Error: Object literal may only specify known properties, and 'includeStatistics' does not exist in type 'GetDepartmentsWithStatsVariables'. 
+				variables: {
+					includeStatistics: true,
+					includeInactive: false,
+
+/home/chanway/Projects/SvelteHR/tests/integration/departments-page.test.ts:199:24
+Error: Type 'string' is not assignable to type 'ActionOption'. 
+				isRetryable: true,
+				suggestedActions: ['show_basic_view'],
+				type: 'GRAPHQL_ERROR',
+
+/home/chanway/Projects/SvelteHR/tests/integration/departments-page.test.ts:235:5
+Error: Object literal may only specify known properties, and 'success' does not exist in type 'GetDepartmentsWithStatsResponse'. 
+			const hierarchicalDepartments: GetDepartmentsWithStatsResponse = {
+				success: true,
+				data: {
+
+/home/chanway/Projects/SvelteHR/tests/integration/departments-page.test.ts:280:43
+Error: Property 'data' does not exist on type 'GetDepartmentsWithStatsResponse'. 
+				data: {
+					departments: hierarchicalDepartments.data.departments,
+					userPermissions: ['departments:write', 'hierarchy:modify'],
+
+/home/chanway/Projects/SvelteHR/tests/integration/departments-page.test.ts:293:29
+Error: Property 'data' does not exist on type 'GetDepartmentsWithStatsResponse'. 
+			expect(mockHierarchyHandler.buildDepartmentTree).not.toHaveBeenCalledWith(
+				hierarchicalDepartments.data.departments
+			);
+
+/home/chanway/Projects/SvelteHR/tests/integration/departments-page.test.ts:340:5
+Error: Object literal may only specify known properties, and 'message' does not exist in type 'ErrorResponse'. 
+				type: 'VALIDATION_ERROR',
+				message: 'Invalid hierarchy: Creating circular department reference',
+				severity: 'high',
+
+/home/chanway/Projects/SvelteHR/tests/integration/departments-page.test.ts:796:6
+Error: Object literal may only specify known properties, and 'includeStatistics' does not exist in type 'GetDepartmentsWithStatsVariables'. 
+				variables: {
+					includeStatistics: true,
+					statisticsDepth: 'comprehensive',
+
+/home/chanway/Projects/SvelteHR/tests/integration/departments-page.test.ts:834:6
+Error: Object literal may only specify known properties, and 'includeStatistics' does not exist in type 'GetDepartmentsWithStatsVariables'. 
+				variables: {
+					includeStatistics: true,
+					includeBudgetData: true
+
+/home/chanway/Projects/SvelteHR/tests/integration/document-lifecycle.e2e.spec.ts:60:27
+Error: Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'BlobPart'.
+  Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'ArrayBufferView<ArrayBuffer>'.
+    Types of property 'buffer' are incompatible.
+      Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
+        Type 'SharedArrayBuffer' is missing the following properties from type 'ArrayBuffer': resizable, resize, detached, transfer, transferToFixedLength 
+
+			const blob = new Blob([originalFileContent], { type: 'application/pdf' });
+			const file = new File([blob], 'employee-contract.pdf', { type: 'application/pdf' });
+
+/home/chanway/Projects/SvelteHR/tests/integration/document-lifecycle.e2e.spec.ts:199:61
+Error: Property 'arrayBuffer' does not exist on type 'DecryptionResult'. 
+			const decryptedBlob = await decryptFile(encryptedDownloadData, encryptionKey, iv);
+			const decryptedData = new Uint8Array(await decryptedBlob.arrayBuffer());
+
+/home/chanway/Projects/SvelteHR/tests/integration/employee-management.integration.ts:8:2
+Error: 'TestEmployeeData' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled. 
+	TestEmployee,
+	TestEmployeeData,
+	TestUser,
+
+/home/chanway/Projects/SvelteHR/tests/integration/employee-management.integration.ts:10:2
+Error: 'TestContext' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled. 
+	TestUser,
+	TestContext,
+	UserRole,
+
+/home/chanway/Projects/SvelteHR/tests/integration/employee-management.integration.ts:20:2
+Error: Cannot find name 'beforeAll'. 
+
+	beforeAll(async () => {
+		testContext = await createTestContext();
+
+/home/chanway/Projects/SvelteHR/tests/integration/employee-management.integration.ts:24:2
+Error: Cannot find name 'afterAll'. 
+
+	afterAll(async () => {
+		await cleanupTestData(testContext);
+
+/home/chanway/Projects/SvelteHR/tests/integration/employee-management.integration.ts:168:3
+Error: Cannot find name 'beforeAll'. 
+
+		beforeAll(async () => {
+			testEmployee = await TestEmployee.create({
+
+/home/chanway/Projects/SvelteHR/tests/integration/employee-management.integration.ts:364:3
+Error: Cannot find name 'beforeAll'. 
+
+		beforeAll(async () => {
+			testEmployee = await TestEmployee.create({
+
+/home/chanway/Projects/SvelteHR/tests/integration/employee-management.integration.ts:475:3
+Error: Cannot find name 'beforeEach'. 
+
+		beforeEach(async () => {
+			testEmployee = await TestEmployee.create({
+
+/home/chanway/Projects/SvelteHR/tests/integration/employee-page.test.ts:122:7
+Error: Object literal may only specify known properties, but 'department' does not exist in type '{ departmentIds?: string[] | undefined; roleIds?: string[] | undefined; isActive?: boolean | undefined; searchTerm?: string | undefined; hiredDateRange?: { startDate: string; endDate: string; } | undefined; }'. Did you mean to write 'departmentIds'? 
+					filters: {
+						department: 'Engineering',
+						status: 'active'
+
+/home/chanway/Projects/SvelteHR/tests/integration/employee-page.test.ts:719:5
+Error: Object literal may only specify known properties, and 'operation' does not exist in type 'DataRequest<GetEmployeesWithFilteringVariables, any>'. 
+			const employeeRequest: GetEmployeesWithFilteringRequest = {
+				operation: 'GetEmployeesWithFiltering',
+				variables: {
+
+/home/chanway/Projects/SvelteHR/tests/integration/login-page.test.ts:305:6
+Error: Object literal may only specify known properties, and 'token' does not exist in type 'AuthData'. 
+				authData: {
+					token: 'jwt-token-12345',
+					refreshToken: 'refresh-token-67890',
+
+/home/chanway/Projects/SvelteHR/tests/integration/login-page.test.ts:373:6
+Error: Object literal may only specify known properties, and 'token' does not exist in type 'AuthData'. 
+				authData: {
+					token: 'new-jwt-token-54321',
+					refreshToken: 'new-refresh-token-09876',
+
+/home/chanway/Projects/SvelteHR/tests/integration/login-page.test.ts:414:5
+Error: Object literal may only specify known properties, and 'token' does not exist in type 'AuthData'. 
+			authData: {
+				token: 'secure-jwt-token',
+				refreshToken: 'secure-refresh-token',
+
+/home/chanway/Projects/SvelteHR/tests/integration/login-page.test.ts:424:3
+Error: 'await' expressions are only allowed within async functions and at the top levels of modules. 
+		// Act & Assert - Should throw until implementation exists
+		await expect(async () => {
+			await mockLoginUser({
+
+/home/chanway/Projects/SvelteHR/tests/integration/login-page.test.ts:549:23
+Error: Cannot find name 'VerifyUserAuthenticationRequest'. Did you mean 'VerifyUserAuthenticationResponse'? 
+		// Arrange
+		const loginRequest: VerifyUserAuthenticationRequest = {
+			operation: 'VerifyUserAuthentication',
+
+/home/chanway/Projects/SvelteHR/tests/integration/performance-integration.test.ts:48:17
+Error: Property 'url' does not exist on type 'Client'. 
+		// This is verified by the exchange being added in the client configuration
+		expect(client.url).toBe('http://localhost:4000/graphql');
+	});
+
+/home/chanway/Projects/SvelteHR/tests/integration/performance-integration.test.ts:88:38
+Error: Property 'getEntries' does not exist on type 'ClientPerformanceMonitor'. 
+		// Check that the metric was recorded
+		const entries = performanceMonitor.getEntries?.() || [];
+		const testEntry = entries.find((e: any) => e.name.includes('TestOperation'));
+
+/home/chanway/Projects/SvelteHR/tests/integration/performance-integration.test.ts:125:55
+Error: Argument of type '"api"' is not assignable to parameter of type '"page-load" | "graphql" | "component" | "real-time" | "export" | "memory" | "navigation"'. 
+		try {
+			await performanceMonitor.timeFunction('ErrorTest', 'api', errorOperation, ['error-test']);
+		} catch (error) {
+
+/home/chanway/Projects/SvelteHR/tests/integration/performance-integration.test.ts:130:38
+Error: Property 'getEntries' does not exist on type 'ClientPerformanceMonitor'. 
+
+		const entries = performanceMonitor.getEntries?.() || [];
+		const errorEntry = entries.find((e: any) => e.name === 'ErrorTest');
+
+/home/chanway/Projects/SvelteHR/tests/utils/db-trigger-helpers.ts:100:24
+Error: Type 'T' does not satisfy the constraint 'QueryResultRow'. 
+		query: async <T = any>(sql: string, params: any[] = []): Promise<QueryResult<any>> => {
+			return client.query<T>(sql, params);
+		},
+
+/home/chanway/Projects/SvelteHR/tests/setup/vitest-browser-setup.ts:54:17
+Error: Property 'clearCookies' does not exist on type 'BrowserContext'. 
+		const context = puppeteerPage.browserContext() as BrowserContext; // Explicitly cast to BrowserContext
+		await context.clearCookies();
+
+/home/chanway/Projects/SvelteHR/tests/setup/vitest-setup.ts:79:36
+Error: Cannot find name 'GlobalThis'. 
+// Add global test utilities
+interface CustomGlobalThis extends GlobalThis {
+	testUtils: {
+
+/home/chanway/Projects/SvelteHR/tests/setup/vitest-setup.ts:85:2
+Error: Conversion of type 'typeof globalThis' to type 'CustomGlobalThis' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'testUtils' is missing in type 'typeof globalThis' but required in type 'CustomGlobalThis'. 
+}
+(globalThis as CustomGlobalThis).testUtils = {
+	waitForNextTick: () => new Promise((resolve) => process.nextTick(resolve)),
+
+/home/chanway/Projects/SvelteHR/tests/setup/vitest-setup-performance.ts:23:60
+Error: Property 'averageResponseTime' does not exist on type 'PerformanceReport'. 
+	console.log(`- Total operations: ${report.totalTests}`);
+	console.log(`- Average response time: ${Math.round(report.averageResponseTime)}ms`);
+	console.log(
+
+/home/chanway/Projects/SvelteHR/tests/setup/vitest-setup-security.ts:7:56
+Error: Module '"puppeteer"' has no exported member 'chromium'. Did you mean to use 'import chromium from "puppeteer"' instead? 
+import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
+import { type Browser, type BrowserContext, type Page, chromium } from 'puppeteer';
+
+/home/chanway/Projects/SvelteHR/tests/unit/dashboard-component-syntax.test.ts:29:46
+Error: Type '{ metrics: { title: string; value: string; icon: Mock<() => null>; }[]; activities: { type: string; icon: Mock<() => null>; description: string; }[]; }' is not assignable to type 'PageData'. 
+		try {
+			const component = render(DashboardPage, { data: mockData });
+
+/home/chanway/Projects/SvelteHR/tests/unit/dashboard-component-syntax.test.ts:62:28
+Error: Type '{ metrics: { title: string; value: string; icon: Mock<() => null>; }[]; activities: never[]; }' is not assignable to type 'PageData'. 
+		try {
+			render(DashboardPage, { data: mockData });
+
+/home/chanway/Projects/SvelteHR/tests/unit/components/events/AttendeeListView.contract.spec.ts:26:4
+Error: Type '"ACCEPTED"' is not assignable to type 'RsvpStatus'. Did you mean '"accepted"'? 
+			},
+			responseStatus: 'ACCEPTED',
+			isOrganizer: true,
+
+/home/chanway/Projects/SvelteHR/tests/unit/components/events/AttendeeListView.contract.spec.ts:39:4
+Error: Type '"PENDING"' is not assignable to type 'RsvpStatus'. Did you mean '"pending"'? 
+			},
+			responseStatus: 'PENDING',
+			isOrganizer: false
+
+/home/chanway/Projects/SvelteHR/tests/unit/components/events/EventCalendar.contract.spec.ts:66:3
+Error: Cannot invoke an object which is possibly 'undefined'. 
+		// Simulate callback invocation
+		props.onEventClick('test-event-123');
+		expect(receivedEventId).toBe('test-event-123');
+
+/home/chanway/Projects/SvelteHR/tests/unit/components/events/EventCalendar.contract.spec.ts:86:3
+Error: Cannot invoke an object which is possibly 'undefined'. 
+		const testDate = new Date('2025-10-15');
+		props.onDateSelect(testDate);
+		expect(receivedDate).toBe(testDate);
+
+/home/chanway/Projects/SvelteHR/tests/unit/components/events/EventCalendar.contract.spec.ts:86:9
+Error: Expected 3 arguments, but got 1. 
+		const testDate = new Date('2025-10-15');
+		props.onDateSelect(testDate);
+		expect(receivedDate).toBe(testDate);
+
+/home/chanway/Projects/SvelteHR/tests/unit/components/events/ImageUploadWidget.contract.spec.ts:91:3
+Error: Unused '@ts-expect-error' directive. 
+		// Type system should prevent invalid values
+		// @ts-expect-error - Invalid aspect ratio
+		const invalidProps: ImageUploadWidgetProps = {
+
+/home/chanway/Projects/SvelteHR/tests/unit/routes/management-page-state-reactivity.test.ts:51:46
+Error: Type '{ user: { id: string; email: string; displayName: string; role: string; }; userSession: { userId: string; userEmail: string; role: string; accessToken: string; }; dashboardAnalytics: { leaveRequests: { ...; }; performanceReviews: { ...; }; teamGoals: { ...; }; reports: { ...; }; teamStats: { ...; }; }; ... 11 more ....' is missing the following properties from type '{ user: any; userSession: any; dashboardAnalytics: { leaveRequests: { pending: number; approved: number; rejected: number; totalThisMonth: number; }; performanceReviews: { pending: number; overdue: number; completed: number; avgRating: number; }; teamGoals: { ...; }; reports: { ...; }; teamStats: { ...; }; }; ... 10...': canManageLeave, canManageReviews, canManageGoals, canGenerateReports 
+
+		const component = render(ManagementPage, { data: mockData });
+
+/home/chanway/Projects/SvelteHR/tests/unit/routes/management-page-state-reactivity.test.ts:69:5
+Error: Type '{ filters: { selectedPeriod: string; selectedTeamId: string; }; user: { id: string; email: string; displayName: string; role: string; }; userSession: { userId: string; userEmail: string; role: string; accessToken: string; }; ... 11 more ...; loadedAt: string; }' is missing the following properties from type '{ user: any; userSession: any; dashboardAnalytics: { leaveRequests: { pending: number; approved: number; rejected: number; totalThisMonth: number; }; performanceReviews: { pending: number; overdue: number; completed: number; avgRating: number; }; teamGoals: { ...; }; reports: { ...; }; teamStats: { ...; }; }; ... 10...': canManageLeave, canManageReviews, canManageGoals, canGenerateReports 
+			const updatedComponent = render(ManagementPage, {
+				data: { ...mockData, filters: updatedFilters }
+			});
+
+/home/chanway/Projects/SvelteHR/tests/unit/routes/management-page-state-reactivity.test.ts:120:46
+Error: Type '{ user: { id: string; email: string; displayName: string; role: string; }; userSession: { userId: string; userEmail: string; role: string; accessToken: string; }; dashboardAnalytics: { leaveRequests: { ...; }; performanceReviews: { ...; }; teamGoals: { ...; }; reports: { ...; }; teamStats: { ...; }; }; ... 11 more ....' is missing the following properties from type '{ user: any; userSession: any; dashboardAnalytics: { leaveRequests: { pending: number; approved: number; rejected: number; totalThisMonth: number; }; performanceReviews: { pending: number; overdue: number; completed: number; avgRating: number; }; teamGoals: { ...; }; reports: { ...; }; teamStats: { ...; }; }; ... 10...': canManageLeave, canManageReviews, canManageGoals, canGenerateReports 
+
+		const component = render(ManagementPage, { data: mockData });
+
+/home/chanway/Projects/SvelteHR/tests/unit/routes/management-page-state-reactivity.test.ts:133:54
+Error: Type '{ filters: { selectedTeamId: string; selectedPeriod: string; }; user: { id: string; email: string; displayName: string; role: string; }; userSession: { userId: string; userEmail: string; role: string; accessToken: string; }; ... 11 more ...; loadedAt: string; }' is missing the following properties from type '{ user: any; userSession: any; dashboardAnalytics: { leaveRequests: { pending: number; approved: number; rejected: number; totalThisMonth: number; }; performanceReviews: { pending: number; overdue: number; completed: number; avgRating: number; }; teamGoals: { ...; }; reports: { ...; }; teamStats: { ...; }; }; ... 10...': canManageLeave, canManageReviews, canManageGoals, canGenerateReports 
+		expect(() => {
+			const updatedComponent = render(ManagementPage, { data: updatedData });
+			expect(updatedComponent.container.innerHTML).toContain('team-456');
+
+/home/chanway/Projects/SvelteHR/tests/unit/routes/dashboard/admin/trainings/create/page.test.ts:21:38
+Error: Argument of type '{ form: null; }' is not assignable to parameter of type 'SvelteComponentOptions<Component<$$ComponentProps, {}, "">> | undefined'.
+  Property 'data' is missing in type '{ form: null; }' but required in type '$$ComponentProps'. 
+	it('renders the create training form correctly', () => {
+		const { container } = render(Page, { form: null });
+
+/home/chanway/Projects/SvelteHR/tests/unit/routes/dashboard/admin/trainings/create/page.test.ts:33:54
+Error: Type '{}' is missing the following properties from type '{ title: string | undefined; description: string | undefined; startDate: string | undefined; endDate: string | undefined; isActive: boolean; metaTitle: string | undefined; metaDescription: string | undefined; }': title, description, startDate, endDate, and 3 more. 
+	it('displays error message when form has error', () => {
+		render(Page, { form: { error: 'Submission failed', values: {} } });
+		expect(screen.getByText('Submission failed')).toBeTruthy();
+
+/home/chanway/Projects/SvelteHR/tests/unit/routes/dashboard/admin/trainings/create/page.test.ts:45:47
+Error: Type '{ title: string; description: string; startDate: string; endDate: string; }' is missing the following properties from type '{ title: string | undefined; description: string | undefined; startDate: string | undefined; endDate: string | undefined; isActive: boolean; metaTitle: string | undefined; metaDescription: string | undefined; }': isActive, metaTitle, metaDescription 
+
+		render(Page, { form: { error: 'Some error', values } });
+
+====================================
+svelte-check found 242 errors and 8 warnings in 102 files

@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Event Notification Preferences Store
  * Feature: 027-we-need-to - Task T058
@@ -59,7 +60,7 @@ class EventNotificationPrefsStore {
 			this.isLoading = false;
 			this.error = null;
 		} catch (error) {
-			console.error('Failed to load notification preferences:', error);
+			logger.error('Catch failed', error as Error);
 			this.isLoading = false;
 			this.error = error instanceof Error ? error.message : 'Unknown error';
 		}
@@ -96,7 +97,7 @@ class EventNotificationPrefsStore {
 
 			return true;
 		} catch (error) {
-			console.error('Failed to save notification preferences:', error);
+			logger.error('Catch failed', error as Error);
 
 			// Revert optimistic update on error - would need to store previous state
 			this.isSaving = false;
@@ -127,7 +128,7 @@ class EventNotificationPrefsStore {
 			...this.preferences,
 			reminderDefaults: {
 				enabled,
-				minutesBefore: minutesBefore ?? this.preferences.reminderDefaults.minutesBefore
+				minutesBefore: minutesBefore ?? this.preferences.reminderDefaults?.minutesBefore ?? 15
 			}
 		};
 	}

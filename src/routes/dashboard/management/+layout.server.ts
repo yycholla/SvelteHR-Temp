@@ -3,6 +3,7 @@
 
 import type { LayoutServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
+import { logger } from '$lib/utils/logger';
 
 export const load: LayoutServerLoad = async ({ locals }) => {
 	// Check if user is authenticated
@@ -30,7 +31,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 
 	if (!hasManagerAccess) {
 		// Log access denial for audit purposes
-		console.warn('[MANAGEMENT ACCESS DENIED]', {
+		logger.warn('[MANAGEMENT ACCESS DENIED]', {
 			userId: locals.user.id,
 			userEmail: locals.user.email,
 			roles: userRoles,
@@ -42,7 +43,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	}
 
 	// Log successful management access
-	console.info('[MANAGEMENT ACCESS GRANTED]', {
+	logger.info('[MANAGEMENT ACCESS GRANTED]', {
 		userId: locals.user.id,
 		userEmail: locals.user.email,
 		roles: locals.roles,

@@ -12,7 +12,7 @@
  * - Input validation for recurrence rules
  */
 
-import { test, expect, describe, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 interface RecurringEventInput {
 	title: string;

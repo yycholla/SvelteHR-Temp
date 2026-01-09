@@ -458,9 +458,7 @@ describe('Operation Utilities', () => {
     it('should detect variable usage', () => {
       const operationWithVar: GraphQLOperation = {
         ...mockOperation,
-        variables: [
-          { name: 'userId', type: 'ID!', nullable: false },
-        ],
+        variables: [{ name: 'userId', type: 'ID!', nullable: false }],
       };
 
       expect(usesVariable(operationWithVar, 'userId')).toBe(true);

@@ -1,7 +1,8 @@
+import { logger } from '$lib/utils/logger';
 // Access logging and audit service (Feature 024)
 // Comprehensive audit trail for compliance and security
 
-import type { AccessType, AccessOutcome, AccessMetadata } from '$lib/types/document';
+import type { AccessMetadata, AccessOutcome, AccessType } from '$lib/types/document';
 
 export interface AccessLogEntry {
 	documentId: string;
@@ -42,10 +43,11 @@ export async function logAccess(
 		});
 
 		if (!response.ok) {
-			console.error('Failed to log access attempt:', await response.text());
+			const errorText = await response.text();
+			logger.error('Failed to log access attempt', new Error(errorText));
 		}
 	} catch (error) {
-		console.error('Failed to log access attempt:', error);
+		logger.error('Failed to log access', error as Error);
 	}
 }
 
@@ -69,10 +71,17 @@ export async function logDeniedAccess(
 	metadata?: AccessMetadata,
 	fetchFn: typeof fetch = fetch
 ): Promise<void> {
-	return logAccess(documentId, userId, accessType, 'denied', {
-		...metadata,
-		denialReason
-	}, fetchFn);
+	return logAccess(
+		documentId,
+		userId,
+		accessType,
+		'denied',
+		{
+			...metadata,
+			denialReason
+		},
+		fetchFn
+	);
 }
 
 // Get access logs for a document
@@ -87,12 +96,9 @@ export async function getDocumentAccessLogs(
 	page: number;
 	limit: number;
 }> {
-	const response = await fetchFn(
-		`/api/audit/logs/${documentId}?page=${page}&limit=${limit}`,
-		{
-			method: 'GET'
-		}
-	);
+	const response = await fetchFn(`/api/audit/logs/${documentId}?page=${page}&limit=${limit}`, {
+		method: 'GET'
+	});
 
 	if (!response.ok) {
 		const error = await response.json();
@@ -114,12 +120,9 @@ export async function getUserAccessLogs(
 	page: number;
 	limit: number;
 }> {
-	const response = await fetchFn(
-		`/api/audit/user/${userId}?page=${page}&limit=${limit}`,
-		{
-			method: 'GET'
-		}
-	);
+	const response = await fetchFn(`/api/audit/user/${userId}?page=${page}&limit=${limit}`, {
+		method: 'GET'
+	});
 
 	if (!response.ok) {
 		const error = await response.json();

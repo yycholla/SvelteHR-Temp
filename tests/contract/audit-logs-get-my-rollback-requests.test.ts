@@ -14,7 +14,7 @@
  * - RLS enforces user can only see own requests
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface GetMyRollbackRequestsVariables {
 	userId: string; // UUID
@@ -51,10 +51,7 @@ interface GetMyRollbackRequestsResponse {
 	};
 }
 
-const mockGetMyRollbackRequests = vi.fn<
-	[GetMyRollbackRequestsVariables],
-	Promise<GetMyRollbackRequestsResponse>
->();
+const mockGetMyRollbackRequests = vi.fn<() => Promise<GetMyRollbackRequestsResponse>>();
 
 describe('GetMyRollbackRequests Query Contract (TDD RED - should fail)', () => {
 	beforeEach(() => {

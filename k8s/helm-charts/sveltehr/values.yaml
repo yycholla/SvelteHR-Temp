@@ -14,32 +14,32 @@ frontend:
   image:
     repository: localhost:5000/sveltehr-frontend
     pullPolicy: Always
-    tag: "1.0.0"  # Must match production tag for ArgoCD Image Updater
-    target: development  # Use development Dockerfile target
+    tag: '1.0.0' # Must match production tag for ArgoCD Image Updater
+    target: development # Use development Dockerfile target
 
   service:
     type: ClusterIP
-    port: 5173  # Development uses Vite dev server
+    port: 5173 # Development uses Vite dev server
     targetPort: 5173
     annotations: {}
 
   resources:
     requests:
-      memory: "64Mi"
-      cpu: "50m"
+      memory: '64Mi'
+      cpu: '50m'
     limits:
-      memory: "128Mi"
-      cpu: "100m"
+      memory: '128Mi'
+      cpu: '100m'
 
   env:
-    PUBLIC_API_URL: "http://sveltehr-backend:4000"
-    DB_HOST: "sveltehr-postgres-rw"
-    DB_PORT: "5432"
+    PUBLIC_API_URL: 'http://sveltehr-backend:4000'
+    DB_HOST: 'sveltehr-postgres-rw'
+    DB_PORT: '5432'
 
   # Tailscale configuration (disabled by default)
   tailscale:
     enabled: false
-    hostname: "sveltehr-frontend-dev"
+    hostname: 'sveltehr-frontend-dev'
 
 # Backend configuration
 backend:
@@ -50,7 +50,7 @@ backend:
   image:
     repository: localhost:5000/sveltehr-backend
     pullPolicy: Always
-    tag: "1.0.0"  # Must match production tag for ArgoCD Image Updater
+    tag: '1.0.0' # Must match production tag for ArgoCD Image Updater
     target: development
 
   service:
@@ -61,62 +61,73 @@ backend:
 
   resources:
     requests:
-      memory: "128Mi"
-      cpu: "100m"
+      memory: '128Mi'
+      cpu: '100m'
     limits:
-      memory: "256Mi"
-      cpu: "200m"
+      memory: '256Mi'
+      cpu: '200m'
 
   env:
-    DB_HOST: "sveltehr-postgres-rw"
-    DB_PORT: "5432"
-    DB_NAME: "hr_system"
-    DB_USER: "hr_user"
-    REDIS_URL: "redis://redis:6379"
+    DB_HOST: 'sveltehr-postgres-rw'
+    DB_PORT: '5432'
+    DB_NAME: 'hr_system'
+    DB_USER: 'hr_user'
+    REDIS_URL: 'redis://redis:6379'
 
 # ConfigMap data
 config:
-  POSTGRES_DB: "hr_system"
-  POSTGRES_USER: "hr_user"
-  NODE_ENV: "development"
-  LOG_LEVEL: "debug"
+  POSTGRES_DB: 'hr_system'
+  POSTGRES_USER: 'hr_user'
+  NODE_ENV: 'development'
+  LOG_LEVEL: 'debug'
 
 # Secrets (these should be overridden or created separately)
 # DEPRECATED: Use externalSecrets with Doppler instead
 secrets:
-  postgresPassword: "changeme"
-  jwtSecret: "changeme"
-  jwtRefreshSecret: "changeme"
-  serviceAuthKey: "changeme"
+  postgresPassword: 'changeme'
+  jwtSecret: 'changeme'
+  jwtRefreshSecret: 'changeme'
+  serviceAuthKey: 'changeme'
+  # Intuit QuickBooks OAuth (dev only - use Doppler in prod)
+  intuitClientId: 'your_dev_client_id'
+  intuitClientSecret: 'your_dev_client_secret'
+  intuitWebhookVerifierToken: 'generate_random_token'
 
 # External Secrets Operator integration with Doppler
 externalSecrets:
-  enabled: false  # Disabled by default for dev (use hardcoded secrets)
-  refreshInterval: 1h  # How often to sync from Doppler
+  enabled: false # Disabled by default for dev (use hardcoded secrets)
+  refreshInterval: 1h # How often to sync from Doppler
 
   doppler:
     # Get service token from: https://dashboard.doppler.com/
     # Create a read-only service token for the project/config
-    serviceToken: ""  # REQUIRED when enabled: Doppler service token (dp.st.xxxx)
-    project: ""       # REQUIRED when enabled: Doppler project name (e.g., "sveltehr")
-    config: ""        # REQUIRED when enabled: Doppler config name (e.g., "dev", "prod")
+    serviceToken: '' # REQUIRED when enabled: Doppler service token (dp.st.xxxx)
+    project: '' # REQUIRED when enabled: Doppler project name (e.g., "sveltehr")
+    config: '' # REQUIRED when enabled: Doppler config name (e.g., "dev", "prod")
+
+# Intuit QuickBooks Integration
+intuit:
+  environment: sandbox # sandbox or production
+  redirectUri: 'http://localhost:3000/api/intuit/callback'
+  webhookUrl: 'https://your-ngrok-url.ngrok.io/api/intuit/webhook'
+  scopes: 'com.intuit.quickbooks.accounting com.intuit.quickbooks.payment'
 
 # Pod Disruption Budgets for high availability
 podDisruptionBudget:
-  enabled: false  # Disabled by default for dev
+  enabled: false # Disabled by default for dev
 
   frontend:
     # Use minAvailable OR maxUnavailable (not both)
-    minAvailable: 1      # Minimum pods that must be available during disruptions
+    minAvailable: 1 # Minimum pods that must be available during disruptions
     # maxUnavailable: 1  # Maximum pods that can be unavailable during disruptions
 
   backend:
-    minAvailable: 2      # Keep at least 2 backend pods during disruptions
+    minAvailable: 2 # Keep at least 2 backend pods during disruptions
     # maxUnavailable: 1
 
 # Ingress configuration (Traefik)
 ingress:
-  enabled: false  # Disabled for dev by default
+  enabled: false # Disabled for dev by default
   className: traefik
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web
@@ -137,9 +148,9 @@ monitoring:
 
 # pgAdmin configuration
 pgadmin:
-  enabled: false  # Disabled by default for dev
-  email: "admin@sveltehr.dev"
-  password: "admin"
+  enabled: false # Disabled by default for dev
+  email: 'admin@sveltehr.dev'
+  password: 'admin'
 
   image:
     repository: dpage/pgadmin4
@@ -148,12 +159,12 @@ pgadmin:
 
   resources:
     requests:
-      memory: "256Mi"
-      cpu: "100m"
+      memory: '256Mi'
+      cpu: '100m'
     limits:
-      memory: "512Mi"
-      cpu: "500m"
+      memory: '512Mi'
+      cpu: '500m'
 
   tailscale:
     enabled: false
-    hostname: "pgadmin-dev"
+    hostname: 'pgadmin-dev'

@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Performance Monitoring API Endpoint
  *
@@ -12,10 +13,10 @@
  * - GET /api/performance/budgets - Performance budget validation
  */
 
-import { json, error } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
 import { serverPerformanceMonitor } from '$lib/performance/server-monitor.js';
-import { budgetValidator, PERFORMANCE_BUDGETS } from '$lib/performance/performance-budgets.js';
+import { PERFORMANCE_BUDGETS, budgetValidator } from '$lib/performance/performance-budgets.js';
 
 // GET /api/performance/stats
 export const GET: RequestHandler = async ({ url, request }) => {
@@ -131,12 +132,9 @@ export const GET: RequestHandler = async ({ url, request }) => {
 				});
 		}
 	} catch (err) {
-		console.error('Performance API error:', err);
+		logger.error('Performance API error:', err as Error);
 
-		error(500, {
-        			message: 'Failed to retrieve performance data',
-        			error: err instanceof Error ? err.message : 'Unknown error'
-        		});
+		error(500, 'Failed to retrieve performance data');
 	}
 };
 
@@ -234,16 +232,13 @@ export const POST: RequestHandler = async ({ request, url }) => {
 				error(400, 'Invalid action specified');
 		}
 	} catch (err) {
-		console.error('Performance API POST error:', err);
+		logger.error('Performance API POST error:', err as Error);
 
 		if (err instanceof Error && err.message.includes('JSON')) {
 			error(400, 'Invalid JSON in request body');
 		}
 
-		error(500, {
-        			message: 'Failed to process performance action',
-        			error: err instanceof Error ? err.message : 'Unknown error'
-        		});
+		error(500, 'Failed to process performance action');
 	}
 };
 
@@ -271,12 +266,9 @@ export const PUT: RequestHandler = async ({ request }) => {
 			timestamp: new Date().toISOString()
 		});
 	} catch (err) {
-		console.error('Performance config update error:', err);
+		logger.error('Performance config update error:', err as Error);
 
-		error(500, {
-        			message: 'Failed to update performance configuration',
-        			error: err instanceof Error ? err.message : 'Unknown error'
-        		});
+		error(500, 'Failed to update performance configuration');
 	}
 };
 
@@ -301,12 +293,9 @@ export const DELETE: RequestHandler = async ({ url }) => {
 			timestamp: new Date().toISOString()
 		});
 	} catch (err) {
-		console.error('Performance metrics deletion error:', err);
+		logger.error('Performance metrics deletion error:', err as Error);
 
-		error(500, {
-        			message: 'Failed to delete performance metrics',
-        			error: err instanceof Error ? err.message : 'Unknown error'
-        		});
+		error(500, 'Failed to delete performance metrics');
 	}
 };
 

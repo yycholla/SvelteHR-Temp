@@ -11,6 +11,7 @@ Successfully migrated core document API routes from direct PostgreSQL access to 
 ## ✅ Completed Migrations
 
 ### 1. Document Listing (`/api/documents/+server.ts`)
+
 - **Before:** Direct SQL queries with RLS policies
 - **After:** GraphQL `documents` query with offset-based pagination
 - **Status:** ✅ Migrated
@@ -18,6 +19,7 @@ Successfully migrated core document API routes from direct PostgreSQL access to 
 - **Removed:** `transaction`, `setJWTClaims` from `$lib/server/db`
 
 ### 2. Document Detail/Delete (`/api/documents/[id]/+server.ts`)
+
 - **Before:** Direct SQL queries for fetch and soft delete
 - **After:**
   - GET: GraphQL `document` query
@@ -27,6 +29,7 @@ Successfully migrated core document API routes from direct PostgreSQL access to 
 - **Removed:** All direct DB access
 
 ### 3. Document Upload (`/api/documents/upload/+server.ts`)
+
 - **Before:** Direct SQL INSERT for document metadata and assignments
 - **After:** GraphQL `uploadDocument` mutation with encrypted data handling
 - **Status:** ✅ Migrated
@@ -36,6 +39,7 @@ Successfully migrated core document API routes from direct PostgreSQL access to 
 - **Removed:** All direct DB access
 
 ### 4. Document Preview (`/api/documents/[id]/preview/view/+server.ts`)
+
 - **Before:** Direct SQL queries for metadata and encrypted file retrieval
 - **After:**
   - Metadata: GraphQL `document` query with `encryptedFileStorage` relationship
@@ -51,11 +55,13 @@ Successfully migrated core document API routes from direct PostgreSQL access to 
 Created `/src/lib/graphql/operations/documents.graphql` with:
 
 **Queries:**
+
 - `GetDocuments(limit, offset)` - List documents with pagination
 - `GetDocument(id)` - Single document by ID
 - `GetDocumentForPreview(id)` - Document metadata for preview
 
 **Mutations:**
+
 - `CreateDocument(input)` - Create new document
 - `UpdateDocument(id, input)` - Update document
 - `DeleteDocument(id)` - Soft delete document
@@ -102,27 +108,30 @@ async fn encrypted_file_storage(
 ### Frontend Integration - COMPLETED
 
 **GraphQL Query:**
+
 ```graphql
 query GetDocumentForPreview($id: UUID!) {
-  document(id: $id) {
-    id
-    title
-    mimeType
-    isEncrypted
-    encryptedFileStorage {
-      encryptedData  # Base64
-      iv             # Base64
-      encryptionKeyId
-    }
-  }
+	document(id: $id) {
+		id
+		title
+		mimeType
+		isEncrypted
+		encryptedFileStorage {
+			encryptedData # Base64
+			iv # Base64
+			encryptionKeyId
+		}
+	}
 }
 ```
 
 **Decryption Utilities Added:**
+
 - `decryptFileFromGraphQL()` - Decrypts base64 GraphQL data
 - `getDecryptionKey()` - Retrieves decryption key from encrypted storage
 
 **Implementation:**
+
 ```typescript
 // Get encrypted data from GraphQL
 const storage = document.encryptedFileStorage;
@@ -131,16 +140,13 @@ const storage = document.encryptedFileStorage;
 const encryptionKey = await getDecryptionKey(client, storage.encryptionKeyId);
 
 // Decrypt file
-const decryptedData = decryptFileFromGraphQL(
-  storage.encryptedData,
-  storage.iv,
-  encryptionKey
-);
+const decryptedData = decryptFileFromGraphQL(storage.encryptedData, storage.iv, encryptionKey);
 ```
 
 ## ✅ Additional Routes Migrated (Phase 3)
 
 ### 5. Document Download Route
+
 **File:** `/api/documents/[id]/download/+server.ts`
 **Current:** GraphQL `document` query with `encryptedFileStorage` relationship
 **Status:** ✅ Migrated
@@ -148,6 +154,7 @@ const decryptedData = decryptFileFromGraphQL(
 **Removed:** All direct DB access except encryption key retrieval
 
 ### 6. Document Assignment Route
+
 **File:** `/api/employees/[id]/assign-documents/+server.ts`
 **Current:** GraphQL `createDocumentAssignment` mutation
 **Status:** ✅ Migrated
@@ -157,11 +164,13 @@ const decryptedData = decryptFileFromGraphQL(
 ## ⚠️ Routes Still Using Direct DB Access
 
 ### Document Pages (Lower Priority):
+
 - `/dashboard/documents/[id]/+page.server.ts` - Document detail page (can use existing GraphQL queries)
 - `/dashboard/documents/+page.server.ts` - Document listing page (can use existing GraphQL queries)
 - `/dashboard/documents/audit/+page.server.ts` - Audit logs page (needs `activityLogs` query)
 
 ### Storage Routes (General Purpose - NOT Document Specific):
+
 - `/api/storage/upload/+server.ts` - General file storage (not deprecated, used by storageService)
 - `/api/storage/retrieve/+server.ts` - General file retrieval (not deprecated)
 - `/api/storage/delete/+server.ts` - General file deletion
@@ -171,6 +180,7 @@ const decryptedData = decryptFileFromGraphQL(
 **Note:** Storage routes provide general file storage capabilities beyond documents and are actively used by `storageService.ts`
 
 ### Audit/Rollback Services (Backend Handling Now):
+
 - `src/lib/services/audit-logging.service.ts` - ✅ Replaced by AuditExtension middleware
 - `src/lib/services/rollback-*.service.ts` - ✅ Replaced by GraphQL mutations
 - `src/lib/utils/cascade-snapshot.ts` - ✅ Replaced by GraphQL queries
@@ -192,16 +202,19 @@ const decryptedData = decryptFileFromGraphQL(
 ## 🎯 Next Steps
 
 ### Immediate (Optional Enhancements)
+
 1. **Migrate download route** (similar pattern to preview)
 2. **Add encryption key caching** to reduce DB queries for repeated downloads
 3. **Consider exposing encryption keys via GraphQL** (if security requirements allow)
 
 ### Short Term (Clean Up)
+
 1. **Migrate document detail page** (`/dashboard/documents/[id]/+page.server.ts`)
 2. **Migrate audit logs page** (`/dashboard/documents/audit/+page.server.ts`)
 3. **Implement server-side RBAC filtering** in Rust GraphQL `documents` query
 
 ### Long Term (Full GraphQL Migration)
+
 1. **Evaluate audit-logging service** - Can it use GraphQL mutations?
 2. **Evaluate rollback services** - Do they need direct DB access?
 3. **Consider snapshot utilities** - Architecture decision needed
@@ -224,6 +237,7 @@ Before considering migration complete, test:
 ## 📊 Migration Metrics
 
 **Document Routes:**
+
 - **API Routes Migrated:** 6/6 (100%)
   - Document listing ✅
   - Document detail/delete ✅
@@ -237,6 +251,7 @@ Before considering migration complete, test:
 - **RBAC Security:** ✅ Implemented (client-side, server-side refinement recommended)
 
 **Audit & Rollback Infrastructure:**
+
 - **Audit Middleware:** ✅ Created (automatic mutation logging)
 - **Rollback Mutations:** 2 (executeRollback, captureSnapshot)
 - **Snapshot Queries:** 2 (snapshots, compareSnapshots)
@@ -245,15 +260,18 @@ Before considering migration complete, test:
 ## 🚀 Deployment Notes
 
 ### Database Password Sync (Phase 1 - DONE)
+
 The immediate authentication issue is already resolved. Frontend can connect to GraphQL backend with session cookies.
 
 ### Phase 2 Deployment (This Migration)
+
 1. Deploy Rust GraphQL backend with `uploadDocument` mutation
 2. Deploy frontend with migrated routes
 3. Verify document upload/listing/delete works via GraphQL
 4. Monitor logs for any DB connection errors
 
 ### Phase 3 Deployment (After encrypted_file_storage Query Added)
+
 1. Add `encryptedFileStorage` resolver to Rust backend
 2. Update preview/download routes to use GraphQL
 3. Remove final DB connection dependencies

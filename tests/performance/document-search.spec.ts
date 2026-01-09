@@ -1,7 +1,7 @@
 // Performance test: Document search and filtering (T049)
 // Tests search performance with large dataset
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 /**
  * Performance Test: Document Search and Filtering
@@ -26,7 +26,7 @@ describe('Document Search Performance Tests', () => {
 	let employeeToken: string;
 
 	const DATASET_SIZE = 10000;
-	let testDocumentIds: string[] = [];
+	const testDocumentIds: string[] = [];
 
 	beforeAll(async () => {
 		adminToken = 'test-admin-token';
@@ -485,7 +485,10 @@ describe('Document Search Performance Tests', () => {
 		it('should baseline search performance for monitoring', async () => {
 			const testCases = [
 				{ name: 'Simple category filter', url: '/api/documents?category=Contract' },
-				{ name: 'Combined filters', url: '/api/documents?category=Contract&sensitivityLevel=Confidential' },
+				{
+					name: 'Combined filters',
+					url: '/api/documents?category=Contract&sensitivityLevel=Confidential'
+				},
 				{ name: 'Full-text search', url: '/api/documents?search=document' },
 				{ name: 'Deep pagination', url: '/api/documents?page=100' },
 				{ name: 'Sort by date', url: '/api/documents?sortBy=uploaded_at&sortOrder=desc' }

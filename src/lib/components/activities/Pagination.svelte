@@ -23,7 +23,7 @@
 		maxVisiblePages?: number;
 	}
 
-	let {
+	const {
 		currentPage,
 		pageSize,
 		totalCount,
@@ -144,7 +144,7 @@
 					onchange={handlePageSizeChange}
 					class="page-size-select"
 				>
-					{#each pageSizeOptions as option}
+					{#each pageSizeOptions as option (option)}
 						<option value={option}>{option}</option>
 					{/each}
 				</select>
@@ -188,7 +188,7 @@
 
 			<!-- Page Numbers -->
 			<div class="page-numbers">
-				{#each visiblePages() as page}
+				{#each visiblePages() as page (page)}
 					{#if page === -1}
 						<span class="ellipsis">...</span>
 					{:else}
@@ -298,10 +298,8 @@
 	}
 
 	.page-size-select:focus {
-		outline: none;
+		outline: 2px solid rgba(59, 130, 246, 0.5);
 		border-color: #3b82f6;
-		ring: 2px;
-		ring-color: rgba(59, 130, 246, 0.5);
 	}
 
 	.pagination-info {
@@ -414,10 +412,8 @@
 	}
 
 	.jump-input:focus {
-		outline: none;
+		outline: 2px solid rgba(59, 130, 246, 0.5);
 		border-color: #3b82f6;
-		ring: 2px;
-		ring-color: rgba(59, 130, 246, 0.5);
 	}
 
 	/* Remove spinner arrows from number input */
@@ -428,6 +424,7 @@
 	}
 
 	.jump-input[type='number'] {
+		appearance: textfield;
 		-moz-appearance: textfield;
 	}
 

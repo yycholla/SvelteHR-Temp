@@ -16,10 +16,7 @@ import { introspectFunctions, introspectTriggers } from './introspect/triggers';
  * @param schemaName - Schema name to introspect (e.g., "hr_public")
  * @returns Complete SchemaMetadata object
  */
-export async function captureSchema(
-	dbUrl: string,
-	schemaName: string
-): Promise<SchemaMetadata> {
+export async function captureSchema(dbUrl: string, schemaName: string): Promise<SchemaMetadata> {
 	const client = new Client({ connectionString: dbUrl });
 
 	try {

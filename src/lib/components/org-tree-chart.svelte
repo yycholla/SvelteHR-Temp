@@ -1,21 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
-	import {
-		Users,
-		Mail,
-		Phone,
-		ChevronDown,
-		ChevronRight,
-		Crown,
-		User,
-		Building2
-	} from '@lucide/svelte';
+	import { Building2, ChevronDown, ChevronRight, Crown, Mail, User } from '@lucide/svelte';
+	import { SvelteSet } from 'svelte/reactivity';
 
 	// Props
-	let {
+	const {
 		departmentData
 	}: {
 		departmentData: {
@@ -39,7 +30,7 @@
 	}
 
 	// State for expanded nodes
-	let expandedNodes = $state(new Set<string>());
+	const expandedNodes = new SvelteSet<string>();
 
 	// Build hierarchical tree structure
 	function buildTreeStructure(): TreeNode {
@@ -48,7 +39,7 @@
 		// Create root node (department)
 		const rootNode: TreeNode = {
 			id: `dept-${name}`,
-			name: name,
+			name,
 			role: 'Department',
 			email: '',
 			level: 0,
@@ -85,8 +76,8 @@
 			([a], [b]) => parseInt(b) - parseInt(a)
 		);
 
-		sortedRoleGroups.forEach(([roleLevel, roleEmployees]) => {
-			roleEmployees.forEach((emp) => {
+		(sortedRoleGroups as any[]).forEach(([, roleEmployees]) => {
+			(roleEmployees as any[]).forEach((emp: any) => {
 				const empNode: TreeNode = {
 					id: emp.id,
 					name: emp.displayName || emp.email,
@@ -136,7 +127,6 @@
 		} else {
 			expandedNodes.add(nodeId);
 		}
-		expandedNodes = new Set(expandedNodes); // Trigger reactivity
 	}
 
 	function getNodeIcon(node: TreeNode) {
@@ -172,11 +162,6 @@
 			}
 		}
 	});
-
-	// Render tree nodes recursively using Svelte components
-	function renderTreeNodes(nodes: TreeNode[], depth: number = 0): TreeNode[] {
-		return nodes;
-	}
 </script>
 
 <div class="space-y-4">
@@ -196,13 +181,12 @@
 				onclick={() => {
 					// Expand all
 					if (treeData) {
-						const allIds = new Set<string>();
+						expandedNodes.clear();
 						function collectIds(node: TreeNode) {
-							allIds.add(node.id);
+							expandedNodes.add(node.id);
 							node.children.forEach(collectIds);
 						}
 						collectIds(treeData);
-						expandedNodes = allIds;
 					}
 				}}
 			>
@@ -212,7 +196,7 @@
 				variant="outline"
 				size="sm"
 				onclick={() => {
-					expandedNodes = new Set();
+					expandedNodes.clear();
 				}}
 			>
 				Collapse All
@@ -323,7 +307,7 @@
 		<!-- Children -->
 		{#if node.children.length > 0 && expandedNodes.has(node.id)}
 			<div class="ml-12 space-y-2">
-				{#each node.children as child}
+				{#each node.children as child (child.id)}
 					{@render TreeNode(child, depth + 1)}
 				{/each}
 			</div>

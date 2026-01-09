@@ -19,13 +19,5 @@ export type ButtonVariant =
 export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 export type InputVariant = 'default' | 'error' | 'success';
 export type InputSize = 'sm' | 'md' | 'lg';
-export type BadgeVariant =
-	| 'primary'
-	| 'secondary'
-	| 'success'
-	| 'warning'
-	| 'danger'
-	| 'info'
-	| 'light'
-	| 'dark';
+export type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline';
 export type BadgeSize = 'xs' | 'sm' | 'md' | 'lg';

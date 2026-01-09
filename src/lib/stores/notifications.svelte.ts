@@ -83,7 +83,7 @@ class NotificationStore {
 
 		// Check if we've exceeded max retries
 		if (this.retryCount >= this.MAX_RETRIES) {
-			console.error(`[NotificationStore] Max retries (${this.MAX_RETRIES}) exceeded. Giving up.`);
+			logger.error(`[NotificationStore] Max retries (${this.MAX_RETRIES}) exceeded. Giving up.`);
 			this.error = 'Failed to connect after multiple attempts. Please refresh the page.';
 			return;
 		}
@@ -92,7 +92,7 @@ class NotificationStore {
 		const delay = this.getRetryDelay();
 		this.retryCount++;
 
-		console.log(
+		logger.info(
 			`[NotificationStore] Reconnecting in ${delay}ms (attempt ${this.retryCount}/${this.MAX_RETRIES})...`
 		);
 
@@ -137,13 +137,13 @@ class NotificationStore {
 			this.retryTimeoutId = null;
 		}
 
-		console.log('[NotificationStore] Connecting to notification stream...');
+		logger.info('[NotificationStore] Connecting to notification stream...');
 
 		// Create new SSE connection
 		this.eventSource = new EventSource('/api/notifications/stream');
 
 		this.eventSource.onopen = () => {
-			console.log('[NotificationStore] ✅ Connected to notification stream');
+			logger.info('[NotificationStore] ✅ Connected to notification stream');
 			this.isConnecting = false; // Reset connection guard
 			this.resetRetryState();
 			this.connected = true;
@@ -162,17 +162,17 @@ class NotificationStore {
 					this.error = data.message;
 				}
 			} catch (err) {
-				console.error('[NotificationStore] Failed to parse SSE message:', err);
+				logger.error('[NotificationStore] Failed to parse SSE message:', err as Error);
 			}
 		};
 
 		this.eventSource.onerror = (err) => {
-			console.error('[NotificationStore] SSE error:', err);
+			logger.error('[NotificationStore] SSE error', new Error('EventSource error'), { event: err });
 			this.isConnecting = false; // Reset connection guard on error
 
 			// Check if it's an auth error (readyState 2 = CLOSED)
 			if (this.eventSource?.readyState === 2) {
-				console.error('[NotificationStore] ❌ Authentication failed');
+				logger.error('[NotificationStore] ❌ Authentication failed');
 				this.connected = false;
 				this.error = 'Authentication failed';
 				// Don't reconnect on auth errors
@@ -196,7 +196,7 @@ class NotificationStore {
 	 * Disconnect from notification stream
 	 */
 	disconnect(): void {
-		console.log('[NotificationStore] Disconnecting from notification stream');
+		logger.info('[NotificationStore] Disconnecting from notification stream');
 		this.isConnecting = false; // Reset connection guard
 		this.resetRetryState();
 		if (this.eventSource) {

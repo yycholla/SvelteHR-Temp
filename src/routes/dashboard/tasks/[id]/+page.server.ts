@@ -2,16 +2,22 @@
 // Feature: 028-task-system-expansion - Task T037
 // Load single task with full relationships
 
-import type { PageServerLoad } from './$types';
-import { error } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import type { Actions, PageServerLoad, RequestEvent } from './$types';
+import { error, fail } from '@sveltejs/kit';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies, params } = event;
+	const { cookies, params } = event;
 	const { id: taskId } = params;
 
 	// Check authentication and permissions
-	PermissionChecks.tasksRead(event);
+	requireAuth(event, {
+		requiredPermissions: ['tasks:read', 'tasks:read:self', 'tasks:read:team', 'tasks:read:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Import required models
 	const { createDataRequest } = await import('$lib/models/data-request');
@@ -37,22 +43,20 @@ export const load: PageServerLoad = async (event) => {
 		variables: { taskId },
 		userCredentials: {
 			userId: userSession.userId,
-			userEmail: userSession.metadata.userEmail as string,
 			roles: userSession.roles,
 			permissions: userSession.permissions,
 			// jwtToken omitted for session-based auth
-			isAuthenticated: Boolean(userSession.isAuthenticated)
+			isAuthenticated: Boolean(userSession.isAuthenticated),
+			expiresAt: userSession.expiresAt
 		},
-		timeoutMs: 5000,
-		retryAttempts: 0,
-		maxRetries: 3
+		timeoutMs: 5000
 	});
 
 	try {
 		const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
-		console.log('[Task Details] Loading task:', taskId);
+		logger.info('[Task Details] Loading task', { taskId });
 
 		// Load task with full relationships
 		// NOTE: Using Rust GraphQL schema - singular query for ID lookup
@@ -135,11 +139,16 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		const taskData = await taskResponse.json();
-		console.log('[Task Details] Task response:', taskData);
+		logger.info('[Task Details] Task response received', {
+			hasTask: !!taskData?.data?.task
+		});
 
 		if (taskData.errors) {
-			console.error('[Task Details] GraphQL errors:', taskData.errors);
-			throw new Error(taskData.errors[0]?.message || 'Failed to load task');
+			const errorMsg = taskData.errors[0]?.message || 'Failed to load task';
+			logger.error('[Task Details] GraphQL errors', new Error(errorMsg), {
+				errors: taskData.errors
+			});
+			throw new Error(errorMsg);
 		}
 
 		const task = taskData?.data?.task || null;
@@ -250,7 +259,6 @@ export const load: PageServerLoad = async (event) => {
 
 		// Return server-side loaded data
 		return {
-			user: userPermissions.user,
 			userSession: userSession.toJSON(),
 			task,
 			auditTrail,
@@ -260,11 +268,12 @@ export const load: PageServerLoad = async (event) => {
 			taskTypes: taskTypesData?.data?.taskTypes || [],
 			availableTasks: allTasksData?.data?.tasks || [],
 			availableResources,
+			// RBAC: Standardized permission checks (includes user property)
 			...userPermissions,
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[Task Details Load Error]', err);
+		logger.error('[Task Details Load Error]', err as Error);
 
 		const errorResponse = createErrorResponse(
 			err instanceof Error ? err : new Error('Task details load failed'),
@@ -274,14 +283,13 @@ export const load: PageServerLoad = async (event) => {
 			}
 		);
 
-		console.error('[Task Details Error Details]', {
+		logger.error('[Task Details Error Details]', undefined, {
 			userId: locals.user?.id,
 			taskId,
-			error: errorResponse
+			errorMessage: errorResponse.userMessage
 		});
 
 		return {
-			user: locals.user || { id: '', role: 'guest' },
 			userSession: userSession.toJSON(),
 			task: null,
 			auditTrail: [],
@@ -291,6 +299,7 @@ export const load: PageServerLoad = async (event) => {
 			taskTypes: [],
 			availableTasks: [],
 			availableResources: [],
+			// Default permissions if loading failed (includes user property)
 			...getUserPermissions(locals),
 			loadedAt: new Date().toISOString(),
 			error: errorResponse.userMessage
@@ -314,15 +323,19 @@ const CREATE_LINKED_RESOURCE = `
 // Additional form actions for task details
 export const actions: Actions = {
 	// Upload file and link to task
-	uploadFile: async (event) => {
-		const { request, locals, params } = event;
+	uploadFile: async (event: RequestEvent) => {
+		const { request, params } = event;
 		const { id: taskId } = params;
 
 		// Check authentication and permissions
 		// Using document write permission since we're creating a document
 		// AND task write permission since we're modifying a task
-		PermissionChecks.documentsWrite(event as any);
-		PermissionChecks.tasksWrite(event);
+		requireAuth(event, {
+			requiredPermissions: ['documents:write', 'tasks:write']
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		try {
 			const formData = await request.formData();
@@ -342,11 +355,13 @@ export const actions: Actions = {
 
 			// Server-side encryption logic (reused from document upload)
 			const fileBuffer = Buffer.from(await file.arrayBuffer());
-			const { encryptFileWithNewKey, packageEncryptedData } = await import('$lib/server/encryption');
+			const { encryptFileWithNewKey, packageEncryptedData } =
+				await import('$lib/server/encryption');
 			const encryptionResult = encryptFileWithNewKey(fileBuffer);
 
 			// Register encryption key
-			const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import('$lib/server/api-url');
+			const { getGraphQLEndpoint, authenticatedGraphQLRequest } =
+				await import('$lib/server/api-url');
 			const graphqlEndpoint = getGraphQLEndpoint();
 
 			const keyInput = {
@@ -385,7 +400,7 @@ export const actions: Actions = {
 
 			// Upload document
 			const { UPLOAD_DOCUMENT } = await import('$lib/graphql/document-operations');
-			
+
 			const uploadInput = {
 				filename: file.name,
 				fileType: file.name.split('.').pop()?.toUpperCase() || 'UNKNOWN',
@@ -429,24 +444,38 @@ export const actions: Actions = {
 			const linkData = await linkResponse.json();
 
 			if (linkData.errors) {
-				console.error('Failed to link document:', linkData.errors);
+				const errorMsg = linkData.errors[0]?.message || 'Failed to link document';
+				logger.error('Failed to link document', new Error(errorMsg), {
+					errors: linkData.errors,
+					taskId
+				});
 				// Note: Document is uploaded but not linked. Could delete it, but simpler to leave it for now.
 				return fail(500, { error: 'Document uploaded but failed to link to task' });
 			}
 
 			return { success: true };
 		} catch (err) {
-			console.error('Task file upload error:', err);
+			logger.error('Task file upload error', err instanceof Error ? err : new Error(String(err)));
 			return fail(500, { error: 'Failed to upload file' });
 		}
 	},
 
 	// Update task tags
-	updateTags: async (event) => {
-		const { request, locals, params } = event;
+	updateTags: async (event: RequestEvent) => {
+		const { request, params } = event;
 		const { id: taskId } = params;
 
-		PermissionChecks.tasksWrite(event);
+		requireAuth(event, {
+			requiredPermissions: [
+				'tasks:write',
+				'tasks:write:self',
+				'tasks:write:team',
+				'tasks:write:all'
+			]
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		try {
 			const formData = await request.formData();
@@ -459,7 +488,8 @@ export const actions: Actions = {
 				return fail(400, { error: 'Invalid tags format' });
 			}
 
-			const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import('$lib/server/api-url');
+			const { getGraphQLEndpoint, authenticatedGraphQLRequest } =
+				await import('$lib/server/api-url');
 			const graphqlEndpoint = getGraphQLEndpoint();
 
 			const { UPDATE_TASK } = await import('$lib/graphql/tasks-operations');
@@ -482,13 +512,13 @@ export const actions: Actions = {
 
 			return { success: true };
 		} catch (err) {
-			console.error('Update tags error:', err);
+			logger.error('Update tags error', err instanceof Error ? err : new Error(String(err)));
 			return fail(500, { error: 'Failed to update tags' });
 		}
 	},
 
 	// Add comment (Placeholder)
-	addComment: async (event) => {
+	addComment: async (event: RequestEvent) => {
 		// Backend support pending
 		return fail(501, { error: 'Comments are not yet supported by the backend' });
 	}

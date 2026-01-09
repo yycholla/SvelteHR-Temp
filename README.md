@@ -261,6 +261,7 @@ tests/
 - **Security Event Logging**: Comprehensive audit trail for all authentication activities
 
 **Key Security Improvements**:
+
 - ✅ No localStorage/sessionStorage token exposure
 - ✅ HTTP-only cookies prevent JavaScript access
 - ✅ SameSite cookie attributes provide CSRF protection
@@ -268,6 +269,7 @@ tests/
 - ✅ Secure session management with database persistence
 
 **Authentication Flow**:
+
 1. User logs in → Backend creates session → HTTP-only cookie set
 2. Browser automatically sends cookie with each request
 3. SvelteKit hooks forward cookie to backend for validation

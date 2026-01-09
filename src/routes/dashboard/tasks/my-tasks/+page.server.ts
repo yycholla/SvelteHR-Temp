@@ -2,15 +2,21 @@
 // Feature: 028-task-system-expansion - Task T043
 // Load tasks assigned to current user
 
-import type { PageServerLoad, Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
-import { getUserPermissions, PermissionChecks } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies, url } = event;
+	const { cookies, url } = event;
 
 	// Check authentication and permissions
-	PermissionChecks.tasksRead(event);
+	requireAuth(event, {
+		requiredPermissions: ['tasks:read', 'tasks:read:self', 'tasks:read:team', 'tasks:read:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Import required models
 	const { createUserSession } = await import('$lib/models/user-session');
@@ -38,7 +44,9 @@ export const load: PageServerLoad = async (event) => {
 		const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
-		console.log('[My Tasks] Loading tasks for user:', locals.user.id);
+		logger.info('[My Tasks] Loading tasks for user', {
+			userId: locals.user.id
+		});
 
 		// Load user's tasks with authenticated request (forwards session cookies)
 		// NOTE: Rust GraphQL schema uses TaskFilter input object
@@ -94,11 +102,16 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		const tasksData = await tasksResponse.json();
-		console.log('[My Tasks] Tasks response:', tasksData);
+		logger.info('[My Tasks] Tasks response received', {
+			tasksCount: tasksData?.data?.tasks?.length || 0
+		});
 
 		if (tasksData.errors) {
-			console.error('[My Tasks] GraphQL errors:', tasksData.errors);
-			throw new Error(tasksData.errors[0]?.message || 'Failed to load tasks');
+			const errorMsg = tasksData.errors[0]?.message || 'Failed to load tasks';
+			logger.error('[My Tasks] GraphQL errors', new Error(errorMsg), {
+				errors: tasksData.errors
+			});
+			throw new Error(errorMsg);
 		}
 
 		let tasks = tasksData?.data?.tasks || [];
@@ -191,8 +204,20 @@ export const load: PageServerLoad = async (event) => {
 
 		// Load today's events with RSVP status filtering
 		const today = new Date();
-		const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
-		const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).toISOString();
+		const startOfDay = new Date(
+			today.getFullYear(),
+			today.getMonth(),
+			today.getDate()
+		).toISOString();
+		const endOfDay = new Date(
+			today.getFullYear(),
+			today.getMonth(),
+			today.getDate(),
+			23,
+			59,
+			59,
+			999
+		).toISOString();
 
 		const eventsResponse = await authenticatedGraphQLRequest(
 			graphqlEndpoint,
@@ -236,7 +261,11 @@ export const load: PageServerLoad = async (event) => {
 
 				// Check if event is today
 				const eventStart = new Date(evt.startTime);
-				const eventDay = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate());
+				const eventDay = new Date(
+					eventStart.getFullYear(),
+					eventStart.getMonth(),
+					eventStart.getDate()
+				);
 				const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 				return eventDay.getTime() === todayDay.getTime();
 			})
@@ -259,7 +288,6 @@ export const load: PageServerLoad = async (event) => {
 		const userPermissions = getUserPermissions(locals);
 
 		return {
-			user: userPermissions.user,
 			userSession: userSession.toJSON(),
 			tasks,
 			totalTasks: tasks.length,
@@ -272,11 +300,12 @@ export const load: PageServerLoad = async (event) => {
 				statusFilter,
 				priorityFilter
 			},
+			// RBAC: Standardized permission checks (includes user property)
 			...userPermissions,
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[My Tasks Load Error]', err);
+		logger.error('[My Tasks Load Error]', err as Error);
 
 		const errorResponse = createErrorResponse(
 			err instanceof Error ? err : new Error('My tasks load failed'),
@@ -286,15 +315,14 @@ export const load: PageServerLoad = async (event) => {
 			}
 		);
 
-		console.error('[My Tasks Error Details]', {
+		logger.error('[My Tasks Error Details]', undefined, {
 			userId: locals.user?.id,
-			error: errorResponse
+			errorMessage: errorResponse.userMessage
 		});
 
 		// Return safe fallback data instead of crashing the page
 		// This prevents the "white screen of death" or hydration errors if data is missing
 		return {
-			user: locals.user,
 			userSession: userSession.toJSON(),
 			tasks: [],
 			totalTasks: 0,
@@ -315,6 +343,7 @@ export const load: PageServerLoad = async (event) => {
 				statusFilter,
 				priorityFilter
 			},
+			// Default permissions if loading failed (includes user property)
 			...getUserPermissions(locals),
 			loadedAt: new Date().toISOString(),
 			error: errorResponse.userMessage
@@ -324,16 +353,25 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
 	default: async (event) => {
-		const { request, locals } = event;
+		const { request } = event;
 
 		// Check authentication and permissions
-		PermissionChecks.tasksWrite(event);
+		requireAuth(event, {
+			requiredPermissions: [
+				'tasks:write',
+				'tasks:write:self',
+				'tasks:write:team',
+				'tasks:write:all'
+			]
+		});
+
+		// After permission check, re-destructure locals with guaranteed user
+		const { locals } = event;
 
 		try {
 			const formData = await request.formData();
-			const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import(
-				'$lib/server/api-url'
-			);
+			const { getGraphQLEndpoint, authenticatedGraphQLRequest } =
+				await import('$lib/server/api-url');
 			const graphqlEndpoint = getGraphQLEndpoint();
 
 			// Extract form data
@@ -344,7 +382,7 @@ export const actions: Actions = {
 			const taskTypeId = formData.get('taskTypeId') as string | null;
 			const dueDate = formData.get('dueDate') as string | null;
 
-			console.log('[My Tasks - Quick Add] Creating task:', {
+			logger.info('[My Tasks - Quick Add] Creating task', {
 				title,
 				priority,
 				assigneeId,
@@ -395,9 +433,12 @@ export const actions: Actions = {
 			const createData = await createResponse.json();
 
 			if (createData.errors) {
-				console.error('[My Tasks - Quick Add] Create errors:', createData.errors);
+				const errorMsg = createData.errors[0]?.message || 'Failed to create task';
+				logger.error('[My Tasks - Quick Add] Create errors', new Error(errorMsg), {
+					errors: createData.errors
+				});
 				return fail(400, {
-					error: createData.errors[0]?.message || 'Failed to create task'
+					error: errorMsg
 				});
 			}
 
@@ -409,14 +450,19 @@ export const actions: Actions = {
 				});
 			}
 
-			console.log('[My Tasks - Quick Add] Task created successfully:', newTask.id);
+			logger.info('[My Tasks - Quick Add] Task created successfully', {
+				taskId: newTask.id
+			});
 
 			return {
 				success: true,
 				taskId: newTask.id
 			};
 		} catch (err) {
-			console.error('[My Tasks - Quick Add] Create error:', err);
+			logger.error(
+				'[My Tasks - Quick Add] Create error',
+				err instanceof Error ? err : new Error(String(err))
+			);
 
 			return fail(500, {
 				error: err instanceof Error ? err.message : 'Failed to create task'

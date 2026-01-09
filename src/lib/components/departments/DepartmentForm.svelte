@@ -1,16 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { departments, departmentService } from '$lib/services/departmentService';
+	import { departmentService, departments } from '$lib/services/departmentService';
 	import { userService, users } from '$lib/services/userService';
 	import Button from '../base/Button.svelte';
 	import Input from '../base/Input.svelte';
 	import Textarea from '../base/Textarea.svelte';
 	import Select from '../base/Select.svelte';
 	import Card from '../base/Card.svelte';
-	import type { Department, CreateDepartmentInput, UpdateDepartmentInput } from '$lib/types';
+	import type { CreateDepartmentInput, Department, UpdateDepartmentInput } from '$lib/types';
 
 	// Props
-	let {
+	const {
 		department = null,
 		mode = 'create',
 		showCancel = true,
@@ -25,13 +25,13 @@
 	} = $props();
 
 	// Form data
-	let formData = $state({
+	const formData = $state({
 		name: department?.name || '',
 		code: department?.code || '',
 		description: department?.description || '',
 		parentDepartmentId: department?.parentDepartment?.id || '',
 		managerId: department?.manager?.id || '',
-		budgetLimit: department?.budgetLimit || null,
+		budgetLimit: department?.budgetLimit || undefined,
 		costCenter: department?.costCenter || '',
 		location: department?.location || '',
 		isRemoteEnabled: department?.isRemoteEnabled || false
@@ -41,22 +41,21 @@
 	let errors = $state<Record<string, string>>({});
 
 	// Options for dropdowns
-	let parentOptions = $derived([
+	const parentOptions = $derived([
 		{ value: '', label: 'No Parent (Root Department)' },
 		...$departments
 			.filter((dept) => dept.id !== department?.id) // Don't include self as parent
 			.map((dept) => ({ value: dept.id, label: dept.name }))
 	]);
 
-	let managerOptions = $derived([
+	const managerOptions = $derived([
 		{ value: '', label: 'No Manager Assigned' },
-		...$users.map((user) => ({
-			value: user.id,
-			label:
-				user.display_name ||
-				user.displayName ||
-				`${user.firstName || ''} ${user.lastName || ''}`.trim()
-		}))
+		...$users.map(
+			(user: { id: string; display_name?: string; firstName?: string; lastName?: string }) => ({
+				value: user.id,
+				label: user.display_name || `${user.firstName || ''} ${user.lastName || ''}`.trim()
+			})
+		)
 	]);
 
 	function validateForm(): boolean {
@@ -89,31 +88,21 @@
 			let result: Department;
 
 			if (mode === 'create') {
-				const input: CreateDepartmentInput = {
+				const input = {
 					name: formData.name.trim(),
-					code: formData.code.trim().toUpperCase(),
 					description: formData.description.trim() || undefined,
 					parentDepartmentId: formData.parentDepartmentId || undefined,
-					managerId: formData.managerId || undefined,
-					budgetLimit: formData.budgetLimit || undefined,
-					costCenter: formData.costCenter.trim() || undefined,
-					location: formData.location.trim() || undefined,
-					isRemoteEnabled: formData.isRemoteEnabled
-				};
+					managerId: formData.managerId || undefined
+				} as CreateDepartmentInput;
 
 				result = await departmentService.createDepartment(input);
 			} else {
-				const input: UpdateDepartmentInput = {
+				const input = {
 					name: formData.name.trim(),
-					code: formData.code.trim().toUpperCase(),
 					description: formData.description.trim() || undefined,
 					parentDepartmentId: formData.parentDepartmentId || undefined,
-					managerId: formData.managerId || undefined,
-					budgetLimit: formData.budgetLimit || undefined,
-					costCenter: formData.costCenter.trim() || undefined,
-					location: formData.location.trim() || undefined,
-					isRemoteEnabled: formData.isRemoteEnabled
-				};
+					managerId: formData.managerId || undefined
+				} as UpdateDepartmentInput;
 
 				result = await departmentService.updateDepartment(department!.id, input);
 			}
@@ -132,7 +121,7 @@
 
 	// Load data on mount
 	onMount(() => {
-		departmentService.loadDepartments({ reset: true });
+		departmentService.loadDepartments();
 		userService.loadUsers({ reset: true });
 	});
 </script>
@@ -159,7 +148,7 @@
 					<Input
 						label="Department Name"
 						bind:value={formData.name}
-						error={errors.name}
+						errorText={errors.name}
 						placeholder="e.g., Engineering, Marketing"
 						required
 					/>
@@ -169,9 +158,9 @@
 					<Input
 						label="Department Code"
 						bind:value={formData.code}
-						error={errors.code}
+						errorText={errors.code}
 						placeholder="e.g., ENG, MKT"
-						help="Unique identifier for the department"
+						helperText="Unique identifier for the department"
 						required
 					/>
 				</div>
@@ -181,7 +170,7 @@
 						label="Description"
 						bind:value={formData.description}
 						placeholder="Brief description of the department's purpose and responsibilities"
-						rows="3"
+						rows={3}
 					/>
 				</div>
 			</div>
@@ -196,7 +185,7 @@
 						options={parentOptions}
 						bind:value={formData.parentDepartmentId}
 						placeholder="Select parent department"
-						help="Choose the parent department in the organizational hierarchy"
+						helperText="Choose the parent department in the organizational hierarchy"
 					/>
 				</div>
 
@@ -206,7 +195,7 @@
 						options={managerOptions}
 						bind:value={formData.managerId}
 						placeholder="Select department manager"
-						help="Employee responsible for managing this department"
+						helperText="Employee responsible for managing this department"
 					/>
 				</div>
 			</div>
@@ -220,9 +209,9 @@
 						type="number"
 						label="Budget Limit"
 						bind:value={formData.budgetLimit}
-						error={errors.budgetLimit}
+						errorText={errors.budgetLimit}
 						placeholder="0"
-						help="Annual budget limit in dollars"
+						helperText="Annual budget limit in dollars"
 						step="1000"
 					/>
 				</div>
@@ -232,7 +221,7 @@
 						label="Cost Center"
 						bind:value={formData.costCenter}
 						placeholder="e.g., CC-001"
-						help="Cost center code for financial tracking"
+						helperText="Cost center code for financial tracking"
 					/>
 				</div>
 
@@ -241,7 +230,7 @@
 						label="Location"
 						bind:value={formData.location}
 						placeholder="e.g., New York Office, Remote"
-						help="Primary location or office for this department"
+						helperText="Primary location or office for this department"
 					/>
 				</div>
 
@@ -287,5 +276,3 @@
 		</div>
 	</form>
 </Card>
-
-

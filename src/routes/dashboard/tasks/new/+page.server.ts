@@ -2,15 +2,21 @@
 // Feature: 028-task-system-expansion - Task T041
 // Load form options for task creation
 
-import type { PageServerLoad, Actions } from './$types';
-import { error, redirect, fail } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import type { Actions, PageServerLoad } from './$types';
+import { error, fail, redirect } from '@sveltejs/kit';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies, url } = event;
+	const { cookies, url } = event;
 
 	// Check authentication and permissions
-	PermissionChecks.tasksWrite(event);
+	requireAuth(event, {
+		requiredPermissions: ['tasks:write', 'tasks:write:self', 'tasks:write:team', 'tasks:write:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Import required models
 	const { createDataRequest } = await import('$lib/models/data-request');
@@ -34,7 +40,7 @@ export const load: PageServerLoad = async (event) => {
 	const parentTaskId = url.searchParams.get('parent') || null;
 
 	try {
-		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+		const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
 		// Get JWT token from cookies for Rust GraphQL server authentication
@@ -44,7 +50,7 @@ export const load: PageServerLoad = async (event) => {
 			'Content-Type': 'application/json'
 		};
 
-		console.log('[Task Create] Loading form options, parentTaskId:', parentTaskId);
+		logger.info('[Task Create] Loading form options', { parentTaskId });
 
 		// Load assignees
 		const assigneesResponse = await authenticatedGraphQLRequest(
@@ -68,7 +74,7 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		const assigneesData = await assigneesResponse.json();
-		console.log('[Task Create] Assignees GraphQL response:', {
+		logger.info('[Task Create] Assignees GraphQL response:', {
 			hasData: !!assigneesData.data,
 			hasUsers: !!assigneesData.data?.users,
 			usersLength: assigneesData.data?.users?.length || 0,
@@ -92,7 +98,7 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		const departmentsData = await departmentsResponse.json();
-		console.log('[Task Create] Departments GraphQL response:', {
+		logger.info('[Task Create] Departments GraphQL response:', {
 			hasData: !!departmentsData.data,
 			nodesLength: departmentsData.data?.departments?.length || 0,
 			errors: departmentsData.errors
@@ -118,7 +124,7 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		const taskTypesData = await taskTypesResponse.json();
-		console.log('[Task Create] Task types GraphQL response:', {
+		logger.info('[Task Create] Task types GraphQL response:', {
 			hasData: !!taskTypesData.data,
 			typesLength: taskTypesData.data?.taskTypes?.length || 0,
 			errors: taskTypesData.errors
@@ -180,7 +186,7 @@ export const load: PageServerLoad = async (event) => {
 		const taskTypes = taskTypesData?.data?.taskTypes || [];
 		const parentTasks = parentTasksData?.data?.tasks || [];
 
-		console.log('[Task Create] Returning data:', {
+		logger.info('[Task Create] Returning data:', {
 			totalUsers: allUsers.length,
 			activeUsers: assignees.length,
 			assigneesCount: assignees.length,
@@ -191,7 +197,6 @@ export const load: PageServerLoad = async (event) => {
 
 		// Return server-side loaded data
 		return {
-			user: userPermissions.user,
 			userSession: userSession.toJSON(),
 			assignees,
 			departments,
@@ -199,11 +204,12 @@ export const load: PageServerLoad = async (event) => {
 			parentTasks,
 			parentTask,
 			parentTaskId,
+			// RBAC: Standardized permission checks (includes user property)
 			...userPermissions,
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[Task Create Load Error]', err);
+		logger.error('[Task Create Load Error]', err as Error);
 
 		const errorResponse = createErrorResponse(
 			err instanceof Error ? err : new Error('Task create load failed'),
@@ -214,32 +220,40 @@ export const load: PageServerLoad = async (event) => {
 			}
 		);
 
-		console.error('[Task Create Error Details]', {
+		logger.error('[Task Create Error Details]', undefined, {
 			userId: locals.user?.id,
 			error: errorResponse
 		});
 
-		error(500, {
-        			message: 'Task creation temporarily unavailable',
-        			details: errorResponse.userMessage
-        		});
+		error(500, 'Task creation temporarily unavailable');
 	}
 };
 
 // Form actions for task creation
 export const actions: Actions = {
 	default: async (event) => {
-		const { request, locals } = event;
+		const { request } = event;
 
 		// Check authentication and permissions
-		PermissionChecks.tasksWrite(event);
+		requireAuth(event, {
+			requiredPermissions: [
+				'tasks:write',
+				'tasks:write:self',
+				'tasks:write:team',
+				'tasks:write:all'
+			]
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
+
+		let formDataEntries: Record<string, any> = {};
 
 		try {
 			const formData = await request.formData();
-			const formDataEntries = Object.fromEntries(formData);
-			const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import(
-				'$lib/server/api-url'
-			);
+			formDataEntries = Object.fromEntries(formData);
+			const { getGraphQLEndpoint, authenticatedGraphQLRequest } =
+				await import('$lib/server/api-url');
 			const graphqlEndpoint = getGraphQLEndpoint();
 
 			// Extract form data
@@ -265,7 +279,7 @@ export const actions: Actions = {
 				}
 			}
 
-			console.log('[Task Create] Creating new task:', {
+			logger.info('[Task Create] Creating new task:', {
 				title,
 				status,
 				priority,
@@ -324,9 +338,12 @@ export const actions: Actions = {
 			const createData = await createResponse.json();
 
 			if (createData.errors) {
-				console.error('[Task Create] Create errors:', createData.errors);
+				const errorMsg = createData.errors[0]?.message || 'Failed to create task';
+				logger.error('[Task Create] Create errors', new Error(errorMsg), {
+					errors: createData.errors
+				});
 				return fail(400, {
-					error: createData.errors[0]?.message || 'Failed to create task',
+					error: errorMsg,
 					values: formDataEntries
 				});
 			}
@@ -340,7 +357,9 @@ export const actions: Actions = {
 				});
 			}
 
-			console.log('[Task Create] Task created successfully:', newTask.id);
+			logger.info('[Task Create] Task created successfully', {
+				taskId: newTask.id
+			});
 
 			// Redirect to new task details page
 			redirect(303, `/dashboard/tasks/${newTask.id}`);
@@ -350,7 +369,10 @@ export const actions: Actions = {
 				throw err;
 			}
 
-			console.error('[Task Create] Create error:', err);
+			logger.error(
+				'[Task Create] Create error',
+				err instanceof Error ? err : new Error(String(err))
+			);
 
 			return fail(500, {
 				error: err instanceof Error ? err.message : 'Failed to create task',

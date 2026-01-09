@@ -5,7 +5,7 @@
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import type { Icon } from '@tabler/icons-svelte';
 
-	let { items }: { items: { title: string; url: string; icon?: Icon }[] } = $props();
+	const { items }: { items: { title: string; url: string; icon?: Icon }[] } = $props();
 </script>
 
 <Sidebar.Group>

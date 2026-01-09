@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // API Route: Get developer debug settings
 // Returns the developer settings category for system_admin users
 
@@ -32,15 +33,16 @@ export const GET: RequestHandler = async ({ cookies }) => {
 		};
 
 		if (result.data?.systemSettingsByCategory) {
-			const parsed = typeof result.data.systemSettingsByCategory.settings === 'string'
-				? JSON.parse(result.data.systemSettingsByCategory.settings)
-				: result.data.systemSettingsByCategory.settings;
+			const parsed =
+				typeof result.data.systemSettingsByCategory.settings === 'string'
+					? JSON.parse(result.data.systemSettingsByCategory.settings)
+					: result.data.systemSettingsByCategory.settings;
 			settings = { ...settings, ...parsed };
 		}
 
 		return json({ settings });
 	} catch (err: any) {
-		console.error('[DEBUG SETTINGS] Error:', err);
+		logger.error('[DEBUG SETTINGS] Error:', err as Error);
 
 		// Return default settings on error
 		return json({

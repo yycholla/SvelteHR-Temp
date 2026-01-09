@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { PageData } from './$types';
+	import { logger } from '$lib/utils/logger';
 	import { page } from '$app/stores';
 	import {
 		AlertTriangle,
@@ -15,17 +17,17 @@
 	} from '@lucide/svelte';
 	import { format, parseISO } from 'date-fns';
 
-	const { data } = $props();
+	let { data }: { data: PageData } = $props();
 
 	// Svelte 5 runes - use $derived for reactive data
-	const user = $derived(data.user);
+	const user = $derived(data.user ?? null);
 	const userId = $derived(data.userId);
-	const goals = $derived(data.goals);
-	const goalCategories = $derived(data.goalCategories);
+	const goals = $derived(data.goals ?? []);
+	const goalCategories = $derived(data.goalCategories ?? []);
 	const goalStats = $derived(data.goalStats);
 	const currentQuarter = $derived(data.currentQuarter);
-	const canManageGoals = $derived(data.canManageGoals);
-	const isOwnGoals = $derived(data.isOwnGoals);
+	const canManageGoals = $derived(data.canManageGoals ?? false);
+	const isOwnGoals = $derived(data.isOwnGoals ?? false);
 
 	let showNewGoalForm = $state(false);
 	let selectedCategory = $state('all');
@@ -34,14 +36,14 @@
 		title: '',
 		description: '',
 		categoryId: '',
-		priority: 'medium',
-		targetDate: data.currentQuarter.end
+		priority: 'medium' as 'low' | 'medium' | 'high',
+		targetDate: data.currentQuarter?.end || ''
 	});
 
 	// Filter goals based on selected filters
 	const filteredGoals = $derived(
 		goals.filter((goal) => {
-			const categoryMatch = selectedCategory === 'all' || goal.category.id === selectedCategory;
+			const categoryMatch = selectedCategory === 'all' || goal.category?.id === selectedCategory;
 			const statusMatch = selectedStatus === 'all' || goal.status === selectedStatus;
 			return categoryMatch && statusMatch;
 		})
@@ -125,20 +127,20 @@
 	async function handleSubmitGoal(event: SubmitEvent) {
 		event.preventDefault();
 		// TODO: Implement actual goal creation
-		console.log('Creating new goal:', newGoal);
+		logger.info('Creating new goal', { newGoal });
 		showNewGoalForm = false;
 		newGoal = {
 			title: '',
 			description: '',
 			categoryId: '',
-			priority: 'medium',
-			targetDate: data.currentQuarter.end
+			priority: 'medium' as 'low' | 'medium' | 'high',
+			targetDate: data.currentQuarter?.end || ''
 		};
 	}
 
 	async function handleUpdateProgress(goalId: string, newProgress: number) {
 		// TODO: Implement goal progress update
-		console.log('Updating goal progress:', goalId, newProgress);
+		logger.info('Updating goal progress', { goalId, newProgress });
 	}
 </script>
 
@@ -158,7 +160,7 @@
 					{isOwnGoals ? 'My Goals' : `${user?.displayName} - Goals`}
 				</h1>
 				<p class="text-muted-foreground">
-					{user?.departmentByDepartmentId?.name || 'No Department'} • {user?.role} • {currentQuarter.name}
+					{user?.department?.name || 'No Department'} • {currentQuarter.name}
 				</p>
 			</div>
 		</div>
@@ -375,27 +377,33 @@
 					<div class="flex-1">
 						<div class="mb-2 flex items-center gap-2">
 							<h3 class="text-lg font-semibold text-foreground">{goal.title}</h3>
-							<span
-								class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getPriorityColor(
-									goal.priority
-								)}"
-							>
-								{goal.priority}
-							</span>
+							{#if goal.priority}
+								<span
+									class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getPriorityColor(
+										goal.priority
+									)}"
+								>
+									{goal.priority}
+								</span>
+							{/if}
 						</div>
-						<p class="mb-3 text-sm text-muted-foreground">{goal.description}</p>
+						{#if goal.description}
+							<p class="mb-3 text-sm text-muted-foreground">{goal.description}</p>
+						{/if}
 					</div>
 				</div>
 
 				<!-- Goal Metadata -->
 				<div class="mb-4 flex items-center gap-4">
-					<span
-						class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getCategoryColor(
-							goal.category.color
-						)}"
-					>
-						{goal.category.name}
-					</span>
+					{#if goal.category}
+						<span
+							class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getCategoryColor(
+								goal.category.color
+							)}"
+						>
+							{goal.category.name}
+						</span>
+					{/if}
 					<span
 						class="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium {getStatusColor(
 							goal.status
@@ -410,12 +418,14 @@
 				<div class="mb-4">
 					<div class="mb-1 flex items-center justify-between text-sm text-muted-foreground">
 						<span>Progress</span>
-						<span>{goal.progress}%</span>
+						<span>{goal.progress ?? 0}%</span>
 					</div>
 					<div class="h-2 w-full rounded-full bg-gray-200">
 						<div
-							class="h-2 rounded-full transition-all duration-300 {getProgressColor(goal.progress)}"
-							style="width: {goal.progress}%"
+							class="h-2 rounded-full transition-all duration-300 {getProgressColor(
+								goal.progress ?? 0
+							)}"
+							style="width: {goal.progress ?? 0}%"
 						></div>
 					</div>
 				</div>
@@ -428,13 +438,13 @@
 							{#each goal.keyResults as kr}
 								<div class="text-xs text-muted-foreground">
 									<div class="flex items-center justify-between">
-										<span>{kr.description}</span>
-										<span>{kr.current}/{kr.target} {kr.unit}</span>
+										<span>{kr.title}</span>
+										<span>{kr.progress}%</span>
 									</div>
 									<div class="mt-1 h-1 w-full rounded-full bg-gray-200">
 										<div
 											class="h-1 rounded-full bg-purple-500"
-											style="width: {Math.min((kr.current / kr.target) * 100, 100)}%"
+											style="width: {Math.min(kr.progress, 100)}%"
 										></div>
 									</div>
 								</div>
@@ -445,11 +455,13 @@
 
 				<!-- Goal Footer -->
 				<div class="flex items-center justify-between text-xs text-muted-foreground">
-					<div class="flex items-center gap-2">
-						<Calendar class="h-3 w-3" />
-						<span>Due: {formatDate(goal.targetDate)}</span>
-					</div>
-					<span>Updated: {formatDate(goal.lastUpdated)}</span>
+					{#if goal.targetDate}
+						<div class="flex items-center gap-2">
+							<Calendar class="h-3 w-3" />
+							<span>Due: {formatDate(goal.targetDate)}</span>
+						</div>
+					{/if}
+					<span>Updated: {formatDate(goal.updatedAt)}</span>
 				</div>
 
 				{#if goal.assignedBy}
@@ -487,4 +499,3 @@
 		{/each}
 	</div>
 </div>
-

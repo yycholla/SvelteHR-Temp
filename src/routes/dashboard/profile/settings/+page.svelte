@@ -1,32 +1,24 @@
 <script lang="ts">
+	import { logger } from '$lib/utils/logger';
 	/**
 	 * Profile Settings Page
 	 * Allows users to manage their profile settings, notification preferences, and theme
 	 */
 
 	import { onMount } from 'svelte';
-	import { enhance } from '$app/forms';
 	import { toast } from 'svelte-sonner';
-	import * as Card from '$lib/components/ui/card';
 	import * as Tabs from '$lib/components/ui/tabs';
-	import { Button } from '$lib/components/ui/button';
-	import { Label } from '$lib/components/ui/label';
-	import { Input } from '$lib/components/ui/input';
-	import { Textarea } from '$lib/components/ui/textarea';
-	import { Switch } from '$lib/components/ui/switch';
 	import { setMode, userPrefersMode } from 'mode-watcher';
 	import {
-		AlertCircle,
 		Bell,
-		Briefcase,
-		Loader2,
-		Mail,
-		MapPin,
 		Palette,
-		Phone,
-		Save,
 		User
 	} from '@lucide/svelte';
+
+	// Import decomposed components
+	import ProfileGeneralSettings from './components/ProfileGeneralSettings.svelte';
+	import ProfileNotificationSettings from './components/ProfileNotificationSettings.svelte';
+	import ProfileAppearanceSettings from './components/ProfileAppearanceSettings.svelte';
 
 	interface Props {
 		data: {
@@ -41,10 +33,9 @@
 	const { data, form }: Props = $props();
 
 	let activeTab = $state('general');
-	const isSubmitting = $state(false);
 
 	// Form states for profile edit
-	const profileChanges = $state({
+	let profileChanges = $state({
 		firstName: data.profile.firstName || '',
 		lastName: data.profile.lastName || '',
 		displayName: data.profile.displayName || '',
@@ -61,7 +52,7 @@
 	});
 
 	// Notification preferences state
-	const notificationPrefs = $state({ ...data.notificationPreferences });
+	let notificationPrefs = $state({ ...data.notificationPreferences });
 	let selectedTheme = $state(data.themePreference);
 
 	// Initialize theme with database value on mount
@@ -72,22 +63,6 @@
 		}
 	});
 
-	// Check if there are any changes
-	const hasChanges = $derived(
-		profileChanges.firstName !== (data.profile.firstName || '') ||
-			profileChanges.lastName !== (data.profile.lastName || '') ||
-			profileChanges.displayName !== (data.profile.displayName || '') ||
-			profileChanges.email !== (data.profile.email || '') ||
-			profileChanges.phoneNumber !== (data.profile.phoneNumber || '') ||
-			profileChanges.mobileNumber !== (data.profile.mobileNumber || '') ||
-			profileChanges.addressLine1 !== (data.profile.addressLine1 || '') ||
-			profileChanges.addressLine2 !== (data.profile.addressLine2 || '') ||
-			profileChanges.city !== (data.profile.city || '') ||
-			profileChanges.stateProvince !== (data.profile.stateProvince || '') ||
-			profileChanges.postalCode !== (data.profile.postalCode || '') ||
-			profileChanges.country !== (data.profile.country || 'United States')
-	);
-
 	// Handle theme update manually to avoid infinite loops
 	async function handleThemeSubmit(event: Event) {
 		event.preventDefault();
@@ -96,7 +71,7 @@
 		const formData = new FormData(form);
 		const theme = formData.get('theme') as string;
 
-		console.log('[Settings] Submitting theme:', theme);
+		logger.info(`[Settings] Submitting theme: ${theme}`);
 
 		try {
 			const response = await fetch(form.action, {
@@ -109,22 +84,22 @@
 
 			// SvelteKit form actions return JSON with type and data properties
 			const result = await response.json();
-			console.log('[Settings] Server response:', result);
+			logger.info(`[Settings] Server response: ${result}`);
 
 			if (result.type === 'success' || (response.ok && result.data?.success)) {
-				console.log('[Settings] Theme update successful');
+				logger.info('[Settings] Theme update successful');
 				toast.success(`Theme updated to ${theme}`);
 
 				// Apply theme immediately via mode-watcher
 				setMode(theme as 'light' | 'dark' | 'system');
-				console.log('[Settings] Theme applied:', theme);
+				logger.info(`[Settings] Theme applied: ${theme}`);
 			} else {
 				const errorMsg = result.data?.error || result.error || 'Failed to update theme';
-				console.error('[Settings] Theme update failed:', result);
+				logger.error('[Settings] Theme update failed:', result);
 				toast.error(errorMsg);
 			}
 		} catch (error) {
-			console.error('[Settings] Theme update error:', error);
+			logger.error('[Settings] Theme update error:', error as Error);
 			toast.error('Failed to update theme preference');
 		}
 	}
@@ -161,473 +136,25 @@
 
 		<!-- General Settings Tab -->
 		<Tabs.Content value="general">
-			<div class="space-y-6">
-				<!-- Info Notice -->
-				<Card.Root class="border-blue-200 bg-blue-50">
-					<Card.Content class="flex items-start gap-3 pt-6">
-						<AlertCircle class="h-5 w-5 text-blue-600" />
-						<div class="flex-1">
-							<p class="text-sm text-blue-900">
-								To update your profile information, make the desired changes below and provide a
-								reason. Your request will be reviewed by an administrator.
-							</p>
-						</div>
-					</Card.Content>
-				</Card.Root>
-
-				<!-- Profile Information Edit Form -->
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Profile Information</Card.Title>
-						<Card.Description>
-							Update your personal information. Changes require administrator approval.
-						</Card.Description>
-					</Card.Header>
-					<Card.Content>
-						<form method="POST" action="?/requestInfoChange" use:enhance>
-							<div class="space-y-6">
-								<!-- Personal Information Section -->
-								<div class="space-y-4">
-									<h4 class="flex items-center gap-2 text-sm font-semibold">
-										<User class="h-4 w-4" />
-										Personal Information
-									</h4>
-
-									<div class="grid gap-4 md:grid-cols-2">
-										<!-- First Name -->
-										<div class="grid gap-2">
-											<Label for="firstName">First Name *</Label>
-											<Input
-												id="firstName"
-												name="firstName"
-												bind:value={profileChanges.firstName}
-												required
-											/>
-											<input
-												type="hidden"
-												name="current_firstName"
-												value={data.profile.firstName || ''}
-											/>
-										</div>
-
-										<!-- Last Name -->
-										<div class="grid gap-2">
-											<Label for="lastName">Last Name *</Label>
-											<Input
-												id="lastName"
-												name="lastName"
-												bind:value={profileChanges.lastName}
-												required
-											/>
-											<input
-												type="hidden"
-												name="current_lastName"
-												value={data.profile.lastName || ''}
-											/>
-										</div>
-									</div>
-
-									<!-- Display Name -->
-									<div class="grid gap-2">
-										<Label for="displayName">Display Name</Label>
-										<Input
-											id="displayName"
-											name="displayName"
-											bind:value={profileChanges.displayName}
-											placeholder="How you'd like to be addressed"
-										/>
-										<input
-											type="hidden"
-											name="current_displayName"
-											value={data.profile.displayName || ''}
-										/>
-									</div>
-								</div>
-
-								<!-- Contact Information Section -->
-								<div class="space-y-4 border-t pt-4">
-									<h4 class="flex items-center gap-2 text-sm font-semibold">
-										<Mail class="h-4 w-4" />
-										Contact Information
-									</h4>
-
-									<div class="grid gap-4">
-										<!-- Email -->
-										<div class="grid gap-2">
-											<Label for="email">Email Address *</Label>
-											<Input
-												id="email"
-												name="email"
-												type="email"
-												bind:value={profileChanges.email}
-												required
-											/>
-											<input type="hidden" name="current_email" value={data.profile.email || ''} />
-										</div>
-
-										<!-- Phone Numbers -->
-										<div class="grid gap-4 md:grid-cols-2">
-											<div class="grid gap-2">
-												<Label for="phoneNumber">Phone Number</Label>
-												<Input
-													id="phoneNumber"
-													name="phoneNumber"
-													type="tel"
-													bind:value={profileChanges.phoneNumber}
-													placeholder="(555) 123-4567"
-												/>
-												<input
-													type="hidden"
-													name="current_phoneNumber"
-													value={data.profile.phoneNumber || ''}
-												/>
-											</div>
-
-											<div class="grid gap-2">
-												<Label for="mobileNumber">Mobile Number</Label>
-												<Input
-													id="mobileNumber"
-													name="mobileNumber"
-													type="tel"
-													bind:value={profileChanges.mobileNumber}
-													placeholder="(555) 987-6543"
-												/>
-												<input
-													type="hidden"
-													name="current_mobileNumber"
-													value={data.profile.mobileNumber || ''}
-												/>
-											</div>
-										</div>
-									</div>
-								</div>
-
-								<!-- Address Section -->
-								<div class="space-y-4 border-t pt-4">
-									<h4 class="flex items-center gap-2 text-sm font-semibold">
-										<MapPin class="h-4 w-4" />
-										Address
-									</h4>
-
-									<div class="grid gap-4">
-										<!-- Address Line 1 -->
-										<div class="grid gap-2">
-											<Label for="addressLine1">Address Line 1</Label>
-											<Input
-												id="addressLine1"
-												name="addressLine1"
-												bind:value={profileChanges.addressLine1}
-												placeholder="123 Main Street"
-											/>
-											<input
-												type="hidden"
-												name="current_addressLine1"
-												value={data.profile.addressLine1 || ''}
-											/>
-										</div>
-
-										<!-- Address Line 2 -->
-										<div class="grid gap-2">
-											<Label for="addressLine2">Address Line 2</Label>
-											<Input
-												id="addressLine2"
-												name="addressLine2"
-												bind:value={profileChanges.addressLine2}
-												placeholder="Apt, Suite, etc. (optional)"
-											/>
-											<input
-												type="hidden"
-												name="current_addressLine2"
-												value={data.profile.addressLine2 || ''}
-											/>
-										</div>
-
-										<!-- City, State, Postal Code -->
-										<div class="grid gap-4 md:grid-cols-3">
-											<div class="grid gap-2">
-												<Label for="city">City</Label>
-												<Input id="city" name="city" bind:value={profileChanges.city} />
-												<input type="hidden" name="current_city" value={data.profile.city || ''} />
-											</div>
-
-											<div class="grid gap-2">
-												<Label for="stateProvince">State/Province</Label>
-												<Input
-													id="stateProvince"
-													name="stateProvince"
-													bind:value={profileChanges.stateProvince}
-												/>
-												<input
-													type="hidden"
-													name="current_stateProvince"
-													value={data.profile.stateProvince || ''}
-												/>
-											</div>
-
-											<div class="grid gap-2">
-												<Label for="postalCode">Postal Code</Label>
-												<Input
-													id="postalCode"
-													name="postalCode"
-													bind:value={profileChanges.postalCode}
-												/>
-												<input
-													type="hidden"
-													name="current_postalCode"
-													value={data.profile.postalCode || ''}
-												/>
-											</div>
-										</div>
-
-										<!-- Country -->
-										<div class="grid gap-2">
-											<Label for="country">Country</Label>
-											<Input id="country" name="country" bind:value={profileChanges.country} />
-											<input
-												type="hidden"
-												name="current_country"
-												value={data.profile.country || ''}
-											/>
-										</div>
-									</div>
-								</div>
-
-								<!-- HR-Managed Fields (Read-Only) -->
-								<div class="space-y-4 border-t pt-4">
-									<h4 class="flex items-center gap-2 text-sm font-semibold">
-										<Briefcase class="h-4 w-4" />
-										Company Information (Managed by HR)
-									</h4>
-
-									<div class="grid gap-4 md:grid-cols-2">
-										<div class="rounded-lg border bg-muted/50 p-3">
-											<Label class="text-xs text-muted-foreground">Department</Label>
-											<p class="text-sm font-medium">
-												{data.profile.department?.name || 'Not assigned'}
-											</p>
-										</div>
-
-										<div class="rounded-lg border bg-muted/50 p-3">
-											<Label class="text-xs text-muted-foreground">Hire Date</Label>
-											<p class="text-sm font-medium">
-												{data.profile.hireDate
-													? new Date(data.profile.hireDate).toLocaleDateString()
-													: 'Not set'}
-											</p>
-										</div>
-
-										<div class="rounded-lg border bg-muted/50 p-3">
-											<Label class="text-xs text-muted-foreground">Role</Label>
-											<p class="text-sm font-medium capitalize">
-												{data.profile.role?.replace(/_/g, ' ') || 'Employee'}
-											</p>
-										</div>
-
-										<div class="rounded-lg border bg-muted/50 p-3">
-											<Label class="text-xs text-muted-foreground">Status</Label>
-											<p class="text-sm font-medium">
-												{data.profile.isActive ? 'Active' : 'Inactive'}
-											</p>
-										</div>
-									</div>
-								</div>
-
-								<!-- Reason for Changes -->
-								{#if hasChanges}
-									<div class="space-y-4 border-t pt-4">
-										<div class="grid gap-2">
-											<Label for="reason" class="text-base font-semibold">
-												Reason for Changes * (minimum 10 characters)
-											</Label>
-											<Textarea
-												id="reason"
-												name="reason"
-												bind:value={profileChanges.reason}
-												placeholder="Explain why you need to update your profile information"
-												rows={4}
-												required
-											/>
-											<p class="text-xs text-muted-foreground">
-												{profileChanges.reason.length}/10 minimum characters
-											</p>
-										</div>
-									</div>
-								{/if}
-
-								<!-- Submit Button -->
-								<div class="flex justify-end gap-2 border-t pt-4">
-									{#if hasChanges}
-										<Button
-											type="submit"
-											disabled={!hasChanges || profileChanges.reason.length < 10}
-										>
-											<Save class="mr-2 h-4 w-4" />
-											Submit Change Request
-										</Button>
-									{:else}
-										<p class="text-sm text-muted-foreground italic">
-											Make changes to your profile to request an update
-										</p>
-									{/if}
-								</div>
-							</div>
-						</form>
-					</Card.Content>
-				</Card.Root>
-			</div>
+			<ProfileGeneralSettings
+				bind:profileChanges
+				originalProfile={data.profile}
+			/>
 		</Tabs.Content>
 
 		<!-- Notifications Settings Tab -->
 		<Tabs.Content value="notifications">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Notification Preferences</Card.Title>
-					<Card.Description>
-						Manage how you receive notifications about updates and activities
-					</Card.Description>
-				</Card.Header>
-				<Card.Content>
-					<form method="POST" action="?/updateNotifications" use:enhance>
-						<div class="space-y-6">
-							<!-- Email Notifications -->
-							<div class="flex items-center justify-between">
-								<div class="space-y-0.5">
-									<Label>Email Notifications</Label>
-									<p class="text-sm text-muted-foreground">Receive notifications via email</p>
-								</div>
-								<Switch
-									name="emailNotifications"
-									bind:checked={notificationPrefs.emailNotifications}
-								/>
-							</div>
-
-							<div class="border-t pt-6">
-								<h4 class="mb-4 text-sm font-medium">Notification Types</h4>
-								<div class="space-y-4">
-									<div class="flex items-center justify-between">
-										<div class="space-y-0.5">
-											<Label>Leave Request Updates</Label>
-											<p class="text-sm text-muted-foreground">
-												Status changes on your leave requests
-											</p>
-										</div>
-										<Switch
-											name="leaveRequestUpdates"
-											bind:checked={notificationPrefs.leaveRequestUpdates}
-										/>
-									</div>
-
-									<div class="flex items-center justify-between">
-										<div class="space-y-0.5">
-											<Label>Task Assignments</Label>
-											<p class="text-sm text-muted-foreground">
-												When you're assigned to a new task
-											</p>
-										</div>
-										<Switch
-											name="taskAssignments"
-											bind:checked={notificationPrefs.taskAssignments}
-										/>
-									</div>
-
-									<div class="flex items-center justify-between">
-										<div class="space-y-0.5">
-											<Label>Performance Reviews</Label>
-											<p class="text-sm text-muted-foreground">
-												Reminders and updates about performance reviews
-											</p>
-										</div>
-										<Switch
-											name="performanceReviews"
-											bind:checked={notificationPrefs.performanceReviews}
-										/>
-									</div>
-
-									<div class="flex items-center justify-between">
-										<div class="space-y-0.5">
-											<Label>System Announcements</Label>
-											<p class="text-sm text-muted-foreground">
-												Important system-wide announcements
-											</p>
-										</div>
-										<Switch
-											name="systemAnnouncements"
-											bind:checked={notificationPrefs.systemAnnouncements}
-										/>
-									</div>
-
-									<div class="flex items-center justify-between">
-										<div class="space-y-0.5">
-											<Label>Team Updates</Label>
-											<p class="text-sm text-muted-foreground">
-												Updates from your team and department
-											</p>
-										</div>
-										<Switch name="teamUpdates" bind:checked={notificationPrefs.teamUpdates} />
-									</div>
-
-									<div class="flex items-center justify-between">
-										<div class="space-y-0.5">
-											<Label>Weekly Digest</Label>
-											<p class="text-sm text-muted-foreground">
-												Summary of weekly activities and updates
-											</p>
-										</div>
-										<Switch name="weeklyDigest" bind:checked={notificationPrefs.weeklyDigest} />
-									</div>
-								</div>
-							</div>
-
-							<div class="flex justify-end">
-								<Button type="submit">
-									<Save class="mr-2 h-4 w-4" />
-									Save Preferences
-								</Button>
-							</div>
-						</div>
-					</form>
-				</Card.Content>
-			</Card.Root>
+			<ProfileNotificationSettings
+				bind:notificationPrefs
+			/>
 		</Tabs.Content>
 
 		<!-- Appearance Settings Tab -->
 		<Tabs.Content value="appearance">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Appearance</Card.Title>
-					<Card.Description>Customize the look and feel of the application</Card.Description>
-				</Card.Header>
-				<Card.Content>
-					<form method="POST" action="?/updateTheme" onsubmit={handleThemeSubmit}>
-						<div class="space-y-6">
-							<div class="space-y-4">
-								<Label for="theme">Theme</Label>
-								<select
-									id="theme"
-									name="theme"
-									bind:value={selectedTheme}
-									class="flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base shadow-xs ring-offset-background transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/80"
-								>
-									<option value="light">Light</option>
-									<option value="dark">Dark</option>
-									<option value="system">System</option>
-								</select>
-								<p class="text-sm text-muted-foreground">
-									Choose your preferred color theme. System will match your operating system's
-									theme.
-								</p>
-							</div>
-
-							<div class="flex justify-end">
-								<Button type="submit">
-									<Save class="mr-2 h-4 w-4" />
-									Save Theme
-								</Button>
-							</div>
-						</div>
-					</form>
-				</Card.Content>
-			</Card.Root>
+			<ProfileAppearanceSettings
+				bind:selectedTheme
+				onThemeSubmit={handleThemeSubmit}
+			/>
 		</Tabs.Content>
 	</Tabs.Root>
 </div>

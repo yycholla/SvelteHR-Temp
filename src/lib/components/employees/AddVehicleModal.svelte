@@ -1,18 +1,10 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
+	import { logger } from '$lib/utils/logger';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Car } from '@lucide/svelte';
-
-	interface Props {
-		isOpen: boolean;
-		employeeId: string;
-		employeeName: string;
-		onSave: (vehicle: VehicleInput) => Promise<void>;
-		onClose: () => void;
-		isSubmitting?: boolean;
-	}
 
 	export interface VehicleInput {
 		employeeId: string;
@@ -39,7 +31,7 @@
 		isSubmitting?: boolean;
 	}
 
-	let {
+	const {
 		isOpen,
 		employeeId,
 		employeeName,
@@ -132,7 +124,7 @@
 			if (!initialData) resetForm(); // Only full reset on success if it was add mode, or let parent handle closing
 			onClose();
 		} catch (error) {
-			console.error('Failed to save vehicle:', error);
+			logger.error('Catch failed', error as Error);
 		}
 	}
 

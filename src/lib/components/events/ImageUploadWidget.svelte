@@ -20,10 +20,11 @@
 -->
 
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 	import { browser } from '$app/environment';
 	import { validateImageFile } from '$lib/utils/image-validation';
-	import { Upload, X, Image as ImageIcon } from '@lucide/svelte';
+	import { Image as ImageIcon, Upload, X } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 
@@ -52,8 +53,8 @@
 	let showCropper = $state(false);
 
 	// Derived
-	let hasImage = $derived(!!currentImageUrl || !!previewUrl);
-	let displayUrl = $derived(previewUrl || currentImageUrl);
+	const hasImage = $derived(!!currentImageUrl || !!previewUrl);
+	const displayUrl = $derived(previewUrl || currentImageUrl);
 
 	// Handle file selection
 	async function handleFileSelect(file: File) {
@@ -89,7 +90,7 @@
 			const Cropper = (await import('cropperjs')).default;
 
 			// Wait for image to load
-			await new Promise(resolve => setTimeout(resolve, 100));
+			await new Promise((resolve) => setTimeout(resolve, 100));
 
 			const img = cropperContainer?.querySelector('img');
 			if (!img) return;
@@ -110,7 +111,7 @@
 				toggleDragModeOnDblclick: false
 			});
 		} catch (error) {
-			console.error('Failed to initialize cropper:', error);
+			logger.error('Catch failed', error as Error);
 			errors = ['Failed to initialize image cropper'];
 		}
 	}
@@ -128,31 +129,35 @@
 			});
 
 			// Convert canvas to blob
-			canvas.toBlob((blob: Blob | null) => {
-				if (!blob) {
-					errors = ['Failed to process image'];
-					return;
-				}
+			canvas.toBlob(
+				(blob: Blob | null) => {
+					if (!blob) {
+						errors = ['Failed to process image'];
+						return;
+					}
 
-				// Create File from blob
-				const file = new File([blob], 'cropped-image.jpg', {
-					type: 'image/jpeg',
-					lastModified: Date.now()
-				});
+					// Create File from blob
+					const file = new File([blob], 'cropped-image.jpg', {
+						type: 'image/jpeg',
+						lastModified: Date.now()
+					});
 
-				// Update preview URL
-				previewUrl = canvas.toDataURL('image/jpeg', 0.9);
-				showCropper = false;
+					// Update preview URL
+					previewUrl = canvas.toDataURL('image/jpeg', 0.9);
+					showCropper = false;
 
-				// Destroy cropper
-				cropper.destroy();
-				cropper = null;
+					// Destroy cropper
+					cropper.destroy();
+					cropper = null;
 
-				// Notify parent
-				onImageSelected(file);
-			}, 'image/jpeg', 0.9);
+					// Notify parent
+					onImageSelected(file);
+				},
+				'image/jpeg',
+				0.9
+			);
 		} catch (error) {
-			console.error('Failed to crop image:', error);
+			logger.error('Catch failed', error as Error);
 			errors = ['Failed to crop image'];
 		}
 	}
@@ -240,12 +245,8 @@
 					</div>
 				</Card.Content>
 				<Card.Footer class="flex justify-end gap-2">
-					<Button variant="outline" onclick={handleCropCancel}>
-						Cancel
-					</Button>
-					<Button onclick={handleCropConfirm}>
-						Confirm Crop
-					</Button>
+					<Button variant="outline" onclick={handleCropCancel}>Cancel</Button>
+					<Button onclick={handleCropConfirm}>Confirm Crop</Button>
 				</Card.Footer>
 			</Card.Root>
 		</div>
@@ -281,10 +282,10 @@
 			ondragleave={handleDragLeave}
 			ondragover={handleDragOver}
 			ondrop={handleDrop}
-			onclick={() => fileInput.click()}
+			onclick={() => fileInput?.click()}
 			role="button"
 			tabindex={0}
-			onkeydown={(e) => e.key === 'Enter' && fileInput.click()}
+			onkeydown={(e) => e.key === 'Enter' && fileInput?.click()}
 		>
 			<div class="flex flex-col items-center justify-center gap-4 py-12">
 				{#if isProcessing}
@@ -295,9 +296,7 @@
 				{:else}
 					<Upload class="h-12 w-12 text-muted-foreground" />
 					<div class="text-center">
-						<p class="text-sm font-medium">
-							Drag and drop an image, or click to browse
-						</p>
+						<p class="text-sm font-medium">Drag and drop an image, or click to browse</p>
 						<p class="text-xs text-muted-foreground mt-1">
 							JPEG, PNG, or WebP • Max 10MB • {aspectRatio} aspect ratio
 						</p>
@@ -317,7 +316,7 @@
 
 	{#if errors.length > 0}
 		<div class="mt-2 space-y-1">
-			{#each errors as error}
+			{#each errors as error, i (i)}
 				<p class="text-sm text-destructive">{error}</p>
 			{/each}
 		</div>

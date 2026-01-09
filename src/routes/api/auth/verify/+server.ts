@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Authentication endpoint - Verify session with Rust GraphQL API
 import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
@@ -19,9 +20,11 @@ export const GET: RequestHandler = async ({ request }) => {
 
 		if (!verifyResponse.ok) {
 			// Only log on failure
-			console.error('[Verify] === SESSION VERIFICATION FAILED ===');
-			console.error('[Verify] API response status:', verifyResponse.status);
-			console.error('[Verify] Verify URL:', verifyUrl);
+			logger.error('[Verify] === SESSION VERIFICATION FAILED ===');
+			logger.error('[Verify] API response status', new Error('Verification failed'), {
+				status: verifyResponse.status
+			});
+			logger.error('[Verify] Verify URL', new Error('Verification failed'), { verifyUrl });
 			return json(
 				{
 					success: false,
@@ -40,9 +43,11 @@ export const GET: RequestHandler = async ({ request }) => {
 		});
 	} catch (error) {
 		// Only log on error
-		console.error('[Verify] === SESSION VERIFICATION FAILED ===');
-		console.error('[Verify] FATAL ERROR:', error);
-		console.error('[Verify] Verify URL:', `${getApiBaseUrl()}/auth/me`);
+		logger.error('[Verify] === SESSION VERIFICATION FAILED ===');
+		logger.error('[Verify] FATAL ERROR', error as Error);
+		logger.error('[Verify] Verify URL', new Error('Verification failed'), {
+			verifyUrl: `${getApiBaseUrl()}/auth/me`
+		});
 		return json(
 			{
 				success: false,

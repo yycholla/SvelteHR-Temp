@@ -11,11 +11,13 @@
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story. P1 stories (US1-US3) are security-critical and must be completed first.
 
 ## Format: `[ID] [P?] [Story] Description`
+
 - **[P]**: Can run in parallel (different files, no dependencies)
 - **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
 - Include exact file paths in descriptions
 
 ## Path Conventions
+
 - **SvelteKit project**: `src/`, `tests/` at repository root
 - All routes in `src/routes/`
 - Components in `src/lib/components/`
@@ -578,6 +580,7 @@ Task: "Update CLAUDE.md" [T054]
 ### Critical Path: Security First (MVP = US1 + US2 + US3)
 
 **Priority order**:
+
 1. **Phase 1 Setup (T001-T005)** → ~4-6 hours
 2. **Phase 2 US1 (T006-T015)** → ~8-12 hours (CRITICAL - all routes protected)
 3. **Phase 3 US2 (T016-T021)** → ~4-6 hours (write buttons hidden)
@@ -597,22 +600,27 @@ Task: "Update CLAUDE.md" [T054]
 ### Incremental Delivery
 
 **Iteration 1**: Setup + US1 → Deploy → Test
+
 - Users can't access pages they don't have permission for
 - **Value**: Security-critical foundation
 
 **Iteration 2**: US2 + US3 → Deploy → Test
+
 - Users don't see buttons they can't use
 - **Value**: Improved UX, fewer error messages
 
 **Iteration 3**: US4 + US5 → Deploy → Test
+
 - Navigation and columns filtered
 - **Value**: Cleaner interface, less confusion
 
 **Iteration 4**: US6 + US7 → Deploy → Test
+
 - Hierarchy verified, forms disabled
 - **Value**: Complete permission system
 
 **Iteration 5**: US8 (Optional) + Polish → Deploy → Final QA
+
 - Real-time updates, documentation
 - **Value**: Production-ready feature
 
@@ -621,21 +629,25 @@ Task: "Update CLAUDE.md" [T054]
 If you have 3 developers:
 
 **Week 1**:
+
 - Developer A: Setup (T001-T005) → Everyone waits for this
 - Developer B: Read documentation, plan test scenarios
 - Developer C: Set up test accounts at each role level
 
 **Week 2** (After Setup complete):
+
 - Developer A: US1 route auditing (T008-T015) - sequential work
 - Developer B: US1 E2E tests (T006-T007)
 - Developer C: US2 E2E tests (T016)
 
 **Week 3** (After US1 complete):
+
 - Developer A: US2 component updates (T017-T021)
 - Developer B: US3 delete buttons (T022-T027)
 - Developer C: US4 navigation (T028-T031)
 
 **Week 4** (Final integration):
+
 - Developer A: US5 granular permissions (T032-T037)
 - Developer B: US7 form fields (T041-T045)
 - Developer C: Polish and documentation (T050-T057)

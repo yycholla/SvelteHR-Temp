@@ -1,14 +1,15 @@
+import { logger } from '$lib/utils/logger';
 // Department service for managing department operations
 // Provides CRUD operations and department management functionality
 
-import type { Department, CreateDepartmentInput, UpdateDepartmentInput } from '$lib/types';
+import type { CreateDepartmentInput, Department, UpdateDepartmentInput } from '$lib/types';
 import { createUrqlClient } from '$lib/graphql/client';
 import {
+	CREATE_DEPARTMENT_MUTATION,
+	DELETE_DEPARTMENT_MUTATION,
 	GET_DEPARTMENTS_QUERY,
 	GET_DEPARTMENT_BY_ID_QUERY,
-	CREATE_DEPARTMENT_MUTATION,
-	UPDATE_DEPARTMENT_MUTATION,
-	DELETE_DEPARTMENT_MUTATION
+	UPDATE_DEPARTMENT_MUTATION
 } from '$lib/graphql/department-operations';
 
 /**
@@ -47,7 +48,7 @@ export async function getDepartments(filters?: {
 			totalCount: result.data?.departments_aggregate?.aggregate?.count || 0
 		};
 	} catch (error) {
-		console.error('Error fetching departments:', error);
+		logger.error('Catch failed', error as Error);
 		throw error;
 	}
 }
@@ -67,7 +68,7 @@ export async function getDepartment(id: string): Promise<Department | null> {
 
 		return result.data?.department || null;
 	} catch (error) {
-		console.error('Error fetching department:', error);
+		logger.error('Catch failed', error as Error);
 		throw error;
 	}
 }
@@ -91,7 +92,7 @@ export async function createDepartment(input: CreateDepartmentInput): Promise<De
 
 		return result.data.createDepartment.department;
 	} catch (error) {
-		console.error('Error creating department:', error);
+		logger.error('Catch failed', error as Error);
 		throw error;
 	}
 }
@@ -121,7 +122,7 @@ export async function updateDepartment(
 
 		return result.data.updateDepartment.department;
 	} catch (error) {
-		console.error('Error updating department:', error);
+		logger.error('Catch failed', error as Error);
 		throw error;
 	}
 }
@@ -141,7 +142,7 @@ export async function deleteDepartment(id: string): Promise<boolean> {
 
 		return result.data?.deleteDepartment?.deletedDepartmentId !== null;
 	} catch (error) {
-		console.error('Error deleting department:', error);
+		logger.error('Catch failed', error as Error);
 		throw error;
 	}
 }
@@ -168,14 +169,21 @@ import { writable } from 'svelte/store';
 export const departments = writable<Department[]>([]);
 
 /**
+ * Store for department loading errors
+ */
+export const departmentError = writable<string | null>(null);
+
+/**
  * Load departments into the store
  */
 export async function loadDepartments(): Promise<void> {
+	departmentError.set(null);
 	try {
 		const result = await getDepartments();
 		departments.set(result.departments);
-	} catch (error) {
-		console.error('Error loading departments:', error);
+	} catch (error: any) {
+		logger.error('Catch failed', error as Error);
+		departmentError.set(error.message || 'Failed to load departments');
 	}
 }
 
@@ -189,5 +197,6 @@ export const departmentService = {
 	getDepartmentsByManager,
 	searchDepartments,
 	departments,
+	departmentError,
 	loadDepartments
 };

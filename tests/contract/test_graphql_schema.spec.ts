@@ -13,26 +13,26 @@
  * Created: 2025-09-24
  */
 
-import { describe, test, expect, beforeAll, afterAll } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import {
+	type GraphQLEnumType,
+	type GraphQLField,
+	type GraphQLInputField,
+	type GraphQLInputObjectType,
+	type GraphQLObjectType,
+	type GraphQLSchema,
+	type IntrospectionQuery,
 	buildClientSchema,
 	getIntrospectionQuery,
-	IntrospectionQuery,
-	GraphQLSchema,
-	GraphQLObjectType,
-	GraphQLEnumType,
-	GraphQLInputObjectType,
-	isObjectType,
 	isEnumType,
 	isInputObjectType,
-	isScalarType,
-	GraphQLField,
-	GraphQLInputField
+	isObjectType,
+	isScalarType
 } from 'graphql';
 import {
-	GraphQLTestClient,
 	GraphQLAssertions,
-	GraphQLPerformanceMonitor
+	GraphQLPerformanceMonitor,
+	GraphQLTestClient
 } from '../utils/graphql-test-client';
 
 // Test configuration
@@ -91,12 +91,14 @@ describeOrSkip('Testing Framework GraphQL Schema Introspection', () => {
 		expect(response.data).toBeDefined();
 		expect(response.data!.__schema).toBeDefined();
 
+		// Store for subsequent tests
+		if (response.data) {
+			introspectionResult = response.data;
+			schema = buildClientSchema(introspectionResult);
+		}
+
 		// Performance validation - must be under 200ms
 		expect(duration).toBeLessThan(PERFORMANCE_TARGET_MS);
-
-		// Store for subsequent tests
-		introspectionResult = response.data!;
-		schema = buildClientSchema(introspectionResult);
 
 		console.log(`✅ Schema introspection completed in ${duration}ms`);
 	});

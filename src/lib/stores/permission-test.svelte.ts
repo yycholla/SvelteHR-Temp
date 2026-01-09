@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Permission Test Mode State (Svelte 5 Runes)
  * Allows administrators to temporarily test permissions by viewing the system as if they had a specific role
@@ -45,7 +46,7 @@ function loadFromStorage(): PermissionTestState {
 
 		// Validate storage version
 		if (parsed.version !== STORAGE_VERSION) {
-			console.warn('Permission test mode storage version mismatch, clearing');
+			logger.warn('Permission test mode storage version mismatch, clearing');
 			localStorage.removeItem(STORAGE_KEY);
 			return initialState;
 		}
@@ -53,14 +54,14 @@ function loadFromStorage(): PermissionTestState {
 		// Check if test mode is stale (> 24 hours old)
 		const MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours
 		if (Date.now() - parsed.timestamp > MAX_AGE) {
-			console.warn('Permission test mode is stale, clearing');
+			logger.warn('Permission test mode is stale, clearing');
 			localStorage.removeItem(STORAGE_KEY);
 			return initialState;
 		}
 
 		return parsed;
 	} catch (error) {
-		console.error('Error loading permission test mode from storage:', error);
+		logger.error('Catch failed', error as Error);
 		return initialState;
 	}
 }
@@ -76,7 +77,7 @@ function saveToStorage(state: PermissionTestState): void {
 			localStorage.removeItem(STORAGE_KEY);
 		}
 	} catch (error) {
-		console.error('Error saving permission test mode to storage:', error);
+		logger.error('Catch failed', error as Error);
 	}
 }
 
@@ -109,7 +110,7 @@ export const permissionTestActions = {
 			version: STORAGE_VERSION
 		};
 
-		console.log(`🧪 Started testing permissions as "${roleName}"`, {
+		logger.info(`🧪 Started testing permissions as "${roleName}"`, {
 			testPermissions: rolePermissions.length,
 			originalPermissions: currentPermissions.length
 		});
@@ -126,7 +127,7 @@ export const permissionTestActions = {
 	endTestMode(): void {
 		if (!permissionTestState.isActive) return;
 
-		console.log(`✓ Ended test mode for "${permissionTestState.testRoleName}"`);
+		logger.info(`✓ Ended test mode for "${permissionTestState.testRoleName}"`);
 
 		permissionTestState = { ...initialState };
 
@@ -181,9 +182,7 @@ export function getPermissionTestState() {
 
 // Export utility functions
 export function getEffectivePermissions(originalPermissions: string[]): string[] {
-	return permissionTestState.isActive
-		? permissionTestState.testPermissions
-		: originalPermissions;
+	return permissionTestState.isActive ? permissionTestState.testPermissions : originalPermissions;
 }
 
 export function clearTestModeOnLogout(): void {

@@ -473,26 +473,31 @@ Deployment is considered successful when:
 ### Common Issues
 
 **Issue**: Pods stuck in Pending
+
 - **Check**: `kubectl describe pod <pod-name> -n <namespace>`
 - **Common Cause**: Insufficient resources, PVC not bound
 - **Fix**: Check `kubectl get pvc` and node resources
 
 **Issue**: Velero restore fails
+
 - **Check**: `velero restore logs <restore-name>`
 - **Common Cause**: MinIO not accessible, storage incompatibility
 - **Fix**: Verify MinIO connectivity and storage class
 
 **Issue**: External Secrets not syncing
+
 - **Check**: `kubectl get externalsecret --all-namespaces`
 - **Common Cause**: Doppler token invalid or missing
 - **Fix**: Recreate doppler-token-secret
 
 **Issue**: PostgreSQL cluster not starting
+
 - **Check**: `kubectl logs -n sveltehr-prod <postgres-pod>`
 - **Common Cause**: PVC restore incomplete, insufficient resources
 - **Fix**: Check PVC status, verify disk space
 
 **Issue**: HTTPS not working
+
 - **Check**: `kubectl get certificate -n sveltehr-prod`
 - **Common Cause**: DNS not propagated, cert-manager issues
 - **Fix**: Wait for DNS, check cert-manager logs

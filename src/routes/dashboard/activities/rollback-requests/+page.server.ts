@@ -12,21 +12,25 @@ import type { PageServerLoad } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { ensureBackendReady } from '$lib/server/backend-init';
 import { requireAuth } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, url, cookies } = event;
+	const { url, cookies } = event;
 
 	// Check authentication and permissions
 	requireAuth(event, {
 		requiredPermissions: ['activities:write']
 	});
 
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
+
 	try {
 		// Check backend services are ready before proceeding
 		const backendReady = await ensureBackendReady();
 
 		if (!backendReady) {
-			console.warn('Backend not ready for rollback requests page');
+			logger.warn('Backend not ready for rollback requests page');
 			return {
 				requests: [],
 				totalCount: 0,
@@ -94,8 +98,8 @@ export const load: PageServerLoad = async (event) => {
 		let allRequests = requestsData.data?.rollbackRequests || [];
 
 		// Sort by createdAt DESC (client-side since Rust schema doesn't support orderBy)
-		allRequests = allRequests.sort((a: any, b: any) =>
-			new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+		allRequests = allRequests.sort(
+			(a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
 		);
 
 		// Client-side filtering for status
@@ -174,14 +178,14 @@ export const load: PageServerLoad = async (event) => {
 			userId: locals.user.id
 		};
 	} catch (err) {
-		console.error('[RollbackRequestsPage] Error loading rollback requests:', err);
+		logger.error('[RollbackRequestsPage] Error loading rollback requests:', err as Error);
 
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err; // Re-throw SvelteKit errors
 		}
 
 		error(500, {
-        			message: 'Failed to load rollback requests'
-        		});
+			message: 'Failed to load rollback requests'
+		});
 	}
 };

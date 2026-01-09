@@ -9,6 +9,7 @@
 ## Overview
 
 This guide provides step-by-step instructions to deploy the SvelteHR application to production with:
+
 - ✅ **Automatic HTTPS** via Caddy (localhost self-signed OR production Let's Encrypt)
 - ✅ **5 production services**: PostgreSQL, Redis, Rust GraphQL, SvelteKit, Caddy
 - ✅ **Health monitoring** for all services
@@ -96,6 +97,7 @@ Choose your deployment path:
 ### Path A: Manual Local Deployment (Localhost Mode)
 
 **Use for**:
+
 - Local development testing of production builds
 - Internal testing before production
 - Learning the deployment system
@@ -107,6 +109,7 @@ Choose your deployment path:
 ### Path B: CI/CD Automated Deployment (Production Mode)
 
 **Use for**:
+
 - Production deployments to real domain
 - Automated deployments on git push
 - Team workflows with continuous delivery
@@ -134,6 +137,7 @@ ls -la docker-compose.prod.yml Caddyfile .env.example
 ```
 
 **Expected output**:
+
 ```
 -rw-r--r-- 1 user user  9234 Oct 28 12:00 docker-compose.prod.yml
 -rw-r--r-- 1 user user  5432 Oct 28 12:00 Caddyfile
@@ -221,6 +225,7 @@ nano .env
 ```
 
 **Required changes**:
+
 ```bash
 # Change DOMAIN to your actual domain
 DOMAIN=hr.example.com  # Replace with YOUR domain
@@ -243,6 +248,7 @@ CORS_ALLOWED_ORIGINS=https://hr.example.com
 ```
 
 **Verify DNS** (production mode only):
+
 ```bash
 # Check domain points to server
 dig +short hr.example.com
@@ -279,6 +285,7 @@ docker compose -f docker-compose.prod.yml logs -f
 ```
 
 **Expected output**:
+
 ```
 [+] Running 10/10
  ✔ Network sveltehr-network               Created     0.1s
@@ -294,6 +301,7 @@ docker compose -f docker-compose.prod.yml logs -f
 ```
 
 **Startup timeline**:
+
 - **PostgreSQL**: ~10-15 seconds (database initialization)
 - **Redis**: ~5 seconds (cache ready)
 - **Backend (Rust GraphQL)**: ~30-60 seconds (includes database migrations)
@@ -301,6 +309,7 @@ docker compose -f docker-compose.prod.yml logs -f
 - **Caddy**: ~5-10 seconds (localhost) OR ~30-60 seconds (Let's Encrypt)
 
 **Watch for migration messages**:
+
 ```
 hr-graphql-rust  | Running database migrations...
 hr-graphql-rust  | Applying migration: m20231201_000001_create_users
@@ -318,6 +327,7 @@ docker compose -f docker-compose.prod.yml ps
 ```
 
 **Expected output** (all services should show "Up (healthy)"):
+
 ```
 NAME                           STATUS              PORTS
 sveltehr-caddy-prod            Up (healthy)        0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp, 0.0.0.0:2019->2019/tcp
@@ -328,6 +338,7 @@ sveltehr-redis-prod            Up (healthy)        6379/tcp
 ```
 
 **If any service shows "starting" or "unhealthy"**:
+
 ```bash
 # Wait 30 seconds and check again
 sleep 30
@@ -340,6 +351,7 @@ docker compose -f docker-compose.prod.yml logs <service-name>
 #### Test Application Access
 
 **Localhost mode**:
+
 ```bash
 # Test HTTPS (self-signed certificate, -k flag ignores cert warning)
 curl -k https://localhost/health
@@ -357,6 +369,7 @@ curl -k https://localhost/graphql \
 ```
 
 **Production mode**:
+
 ```bash
 # Test HTTPS (Let's Encrypt certificate, no -k flag needed)
 curl https://hr.example.com/health
@@ -393,18 +406,21 @@ docker compose -f docker-compose.prod.yml logs -f --tail=100
 #### Localhost Mode
 
 Open browser and navigate to:
+
 - **Application**: https://localhost
 - **GraphQL Playground** (if enabled): https://localhost/graphql
 
 **Browser warning**: You'll see "Your connection is not private" - this is **expected** for self-signed certificates.
 
 **To proceed**:
+
 - **Chrome/Edge**: Click "Advanced" → "Proceed to localhost (unsafe)"
 - **Firefox**: Click "Advanced" → "Accept the Risk and Continue"
 
 #### Production Mode
 
 Open browser and navigate to:
+
 - **Application**: https://hr.example.com
 - **GraphQL API**: https://hr.example.com/graphql
 
@@ -444,6 +460,7 @@ docker stats --no-stream
 ### Overview
 
 The CI/CD pipeline automatically:
+
 1. ✅ Runs linters (Prettier, ESLint, TypeScript check)
 2. ✅ Runs all tests (frontend unit tests, backend tests)
 3. ✅ Builds Docker images (multi-stage optimized builds)
@@ -483,6 +500,7 @@ The CI/CD pipeline automatically:
    - Token format: `glpat-xxxxxxxxxxxxxxxxxxxxx`
 
 **Save token securely**:
+
 ```bash
 # Save to encrypted file (or use password manager)
 echo "glpat-xxxxxxxxxxxxxxxxxxxxx" > gitlab-token.txt
@@ -503,6 +521,7 @@ ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/deploy_key
 ```
 
 **Add public key to production server**:
+
 ```bash
 # Copy public key to server
 ssh-copy-id -i ~/.ssh/deploy_key.pub deploy@hr.example.com
@@ -513,6 +532,7 @@ cat ~/.ssh/deploy_key.pub | ssh deploy@hr.example.com \
 ```
 
 **Verify SSH key works**:
+
 ```bash
 # Test connection with private key
 ssh -i ~/.ssh/deploy_key deploy@hr.example.com
@@ -521,6 +541,7 @@ ssh -i ~/.ssh/deploy_key deploy@hr.example.com
 ```
 
 **Base64 encode private key** for GitHub Secrets:
+
 ```bash
 # Encode private key (Linux/macOS)
 cat ~/.ssh/deploy_key | base64 -w 0 > ~/deploy_key.b64
@@ -530,6 +551,7 @@ cat ~/deploy_key.b64
 ```
 
 **Security**: Delete local private key after encoding:
+
 ```bash
 # AFTER adding to GitHub Secrets
 rm ~/.ssh/deploy_key
@@ -547,6 +569,7 @@ nano .env.production
 ```
 
 **Critical production values**:
+
 ```bash
 # Domain Configuration
 DOMAIN=hr.example.com  # Your actual domain
@@ -571,6 +594,7 @@ IMAGE_TAG=latest  # Will be overridden by CI/CD with commit SHA
 ```
 
 **Validate configuration**:
+
 ```bash
 ./scripts/validate-env.sh .env.production
 
@@ -578,6 +602,7 @@ IMAGE_TAG=latest  # Will be overridden by CI/CD with commit SHA
 ```
 
 **Base64 encode .env.production** for GitHub Secrets:
+
 ```bash
 # Encode entire .env.production file
 cat .env.production | base64 -w 0 > .env.production.b64
@@ -587,6 +612,7 @@ cat .env.production.b64
 ```
 
 **Security**: Delete files after adding to GitHub Secrets:
+
 ```bash
 # AFTER adding to GitHub Secrets
 rm .env.production
@@ -602,15 +628,15 @@ rm .env.production.b64
 3. Click **New repository secret**
 4. Add each secret:
 
-| Secret Name | Description | Value |
-|-------------|-------------|-------|
-| `GITLAB_USERNAME` | Your GitLab username | `john_doe` |
-| `GITLAB_TOKEN` | GitLab personal access token | `glpat-xxxxxxxxxxxxx` |
-| `DEPLOY_HOST` | Production server hostname/IP | `hr.example.com` or `192.168.1.100` |
-| `DEPLOY_USER` | SSH deployment user | `deploy` |
-| `SSH_PRIVATE_KEY` | Base64-encoded private key | Contents of `deploy_key.b64` |
-| `PRODUCTION_ENV` | Base64-encoded .env file | Contents of `.env.production.b64` |
-| `PRODUCTION_DOMAIN` | Production domain | `hr.example.com` |
+| Secret Name         | Description                   | Value                               |
+| ------------------- | ----------------------------- | ----------------------------------- |
+| `GITLAB_USERNAME`   | Your GitLab username          | `john_doe`                          |
+| `GITLAB_TOKEN`      | GitLab personal access token  | `glpat-xxxxxxxxxxxxx`               |
+| `DEPLOY_HOST`       | Production server hostname/IP | `hr.example.com` or `192.168.1.100` |
+| `DEPLOY_USER`       | SSH deployment user           | `deploy`                            |
+| `SSH_PRIVATE_KEY`   | Base64-encoded private key    | Contents of `deploy_key.b64`        |
+| `PRODUCTION_ENV`    | Base64-encoded .env file      | Contents of `.env.production.b64`   |
+| `PRODUCTION_DOMAIN` | Production domain             | `hr.example.com`                    |
 
 ### Step 5: Configure Production Server
 
@@ -639,6 +665,7 @@ sudo -u deploy docker ps
 ### Step 6: Test CI/CD Pipeline
 
 **Trigger pipeline**:
+
 ```bash
 # Make a small change and push to main
 echo "# Test CI/CD deployment" >> README.md
@@ -648,6 +675,7 @@ git push origin main
 ```
 
 **Monitor pipeline**:
+
 1. Go to GitHub repository → **Actions**
 2. Click on the latest workflow run: **Deploy to Production**
 3. Watch progress:
@@ -660,6 +688,7 @@ git push origin main
 **Expected total time**: ~15 minutes
 
 **Pipeline success**:
+
 ```
 ✅ All jobs completed successfully
 ✅ Images pushed to GitLab Container Registry
@@ -727,6 +756,7 @@ docker compose -f docker-compose.prod.yml up -d --force-recreate frontend
 ### Update Deployment
 
 **Manual update**:
+
 ```bash
 # Pull latest images from GitLab registry
 docker compose -f docker-compose.prod.yml pull
@@ -740,12 +770,14 @@ docker images | grep sveltehr
 ```
 
 **Automatic update** (CI/CD):
+
 - Push code to `main` branch
 - GitHub Actions automatically deploys
 
 ### Backup Database
 
 **Manual backup**:
+
 ```bash
 # Create backup
 docker exec sveltehr-postgres-prod pg_dump -U postgres hr_system > \
@@ -759,6 +791,7 @@ mv backup_*.sql /var/backups/postgresql/
 ```
 
 **Automated backups**:
+
 - CI/CD pipeline automatically backs up before deployment
 - Location: `/var/backups/postgresql/backup_YYYYMMDD_HHMMSS.sql`
 - Retention: 7 days (older backups auto-deleted)
@@ -1006,6 +1039,7 @@ After successful deployment:
 ## Support & Resources
 
 **Documentation**:
+
 - Container Registry: `docs/deployment/container-registry.md`
 - Local Testing: `docs/deployment/local-testing.md`
 - Rollback Procedures: `docs/deployment/rollback.md`
@@ -1016,11 +1050,13 @@ After successful deployment:
 - Security: `docs/deployment/production-security.md`
 
 **Technical Specifications**:
+
 - Contracts: `/specs/040-it-is-now/contracts/`
 - Architecture: `/specs/040-it-is-now/plan.md`
 - Requirements: `/specs/040-it-is-now/spec.md`
 
 **Emergency Contact**:
+
 - On-Call Engineer: [PHONE NUMBER]
 - DevOps Team: [EMAIL/SLACK]
 
@@ -1040,10 +1076,12 @@ Your SvelteHR application is now running in production with:
 ✅ **Rollback capability** within 5 minutes
 
 **Access your application**:
+
 - Localhost: https://localhost
 - Production: https://hr.example.com
 
 **Next deployment**:
+
 - Manual: `docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d --no-build`
 - Automatic: `git push origin main` (CI/CD handles everything)
 

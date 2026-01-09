@@ -315,6 +315,13 @@ impl Model {
     }
 }
 
+/// Input for updating a notification
+#[derive(async_graphql::InputObject, Debug)]
+pub struct UpdateNotificationInput {
+    /// Mark notification as read/unread
+    pub read_status: Option<bool>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

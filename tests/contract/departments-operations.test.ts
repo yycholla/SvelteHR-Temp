@@ -13,11 +13,11 @@
  * - RBAC integration for department data access
  */
 
-import { test, expect, describe, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type {
-	GetDepartmentsWithStatsVariables,
+	ErrorResponse,
 	GetDepartmentsWithStatsResponse,
-	ErrorResponse
+	GetDepartmentsWithStatsVariables
 } from '$lib/types/graphql-contracts';
 import { GRAPHQL_OPERATION_CONSTANTS } from '$lib/types/graphql-contracts';
 
@@ -134,144 +134,138 @@ describe('GetDepartmentsWithStats Contract', () => {
 		test('should return complete department data structure with stats', async () => {
 			// Arrange - Expected response structure
 			const expectedResponse: GetDepartmentsWithStatsResponse = {
-				departmentsData: {
-					departments: [
-						{
-							id: 'dept_123',
-							name: 'Engineering',
-							code: 'ENG',
-							description: 'Software engineering and development',
-							isActive: true,
-							parentDepartmentId: null,
-							managerId: 'emp_456',
-							manager: {
-								id: 'emp_456',
-								displayName: 'Jane Smith',
-								email: 'jane.smith@company.com',
-								profileImage: 'https://example.com/avatars/jane.jpg'
-							},
-							location: {
-								office: 'San Francisco HQ',
-								floor: '3rd Floor',
-								address: {
-									street: '123 Tech Blvd',
-									city: 'San Francisco',
-									state: 'CA',
-									zipCode: '94105',
-									country: 'USA'
-								}
-							},
-							budget: {
-								totalBudget: 2500000.0,
-								spentBudget: 1875000.0,
-								remainingBudget: 625000.0,
-								currency: 'USD',
-								fiscalYear: 2024
-							},
-							employeeStats: {
-								totalEmployees: 23,
-								activeEmployees: 22,
-								inactiveEmployees: 1,
-								newHiresThisMonth: 2,
-								terminationsThisMonth: 0,
-								averageTenure: 3.2,
-								headcountTrend: [
-									{ month: '2024-01', count: 20 },
-									{ month: '2024-02', count: 21 },
-									{ month: '2024-03', count: 23 }
-								]
-							},
-							performanceStats: {
-								averagePerformanceRating: 4.2,
-								topPerformers: 8,
-								improvementNeeded: 2,
-								completedGoals: 89,
-								totalGoals: 95,
-								goalCompletionRate: 93.7
-							},
-							financialStats: {
-								totalSalaryExpense: 1650000.0,
-								averageSalary: 71739.13,
-								medianSalary: 68000.0,
-								salaryRange: {
-									min: 45000.0,
-									max: 120000.0
-								},
-								benefitsExpense: 225000.0,
-								totalCompensation: 1875000.0
-							},
-							systemInfo: {
-								createdAt: '2023-01-15T10:00:00Z',
-								updatedAt: '2025-09-24T14:30:00Z',
-								lastStatsUpdate: '2025-09-25T02:00:00Z'
+				departments: [
+					{
+						id: 'dept_123',
+						name: 'Engineering',
+						description: 'Software engineering and development',
+						isActive: true,
+						parentDepartmentId: null,
+						managerId: 'emp_456',
+						manager: {
+							id: 'emp_456',
+							displayName: 'Jane Smith',
+							email: 'jane.smith@company.com'
+						},
+						location: {
+							office: 'San Francisco HQ',
+							floor: '3rd Floor',
+							address: {
+								street: '123 Tech Blvd',
+								city: 'San Francisco',
+								state: 'CA',
+								zipCode: '94105',
+								country: 'USA'
 							}
 						},
-						{
-							id: 'dept_456',
-							name: 'Sales',
-							code: 'SALES',
-							description: 'Sales and business development',
-							isActive: true,
-							parentDepartmentId: null,
-							managerId: 'emp_789',
-							manager: {
-								id: 'emp_789',
-								displayName: 'Mike Johnson',
-								email: 'mike.johnson@company.com',
-								profileImage: 'https://example.com/avatars/mike.jpg'
+						budget: {
+							totalBudget: 2500000.0,
+							spentBudget: 1875000.0,
+							remainingBudget: 625000.0,
+							currency: 'USD',
+							fiscalYear: 2024
+						},
+						employeeStats: {
+							totalEmployees: 23,
+							activeEmployees: 22,
+							inactiveEmployees: 1,
+							newHiresThisMonth: 2,
+							terminationsThisMonth: 0,
+							averageTenure: 3.2,
+							headcountTrend: [
+								{ month: '2024-01', count: 20 },
+								{ month: '2024-02', count: 21 },
+								{ month: '2024-03', count: 23 }
+							]
+						},
+						performanceStats: {
+							averagePerformanceRating: 4.2,
+							topPerformers: 8,
+							improvementNeeded: 2,
+							completedGoals: 89,
+							totalGoals: 95,
+							goalCompletionRate: 93.7
+						},
+						financialStats: {
+							totalSalaryExpense: 1650000.0,
+							averageSalary: 71739.13,
+							medianSalary: 68000.0,
+							salaryRange: {
+								min: 45000.0,
+								max: 120000.0
 							},
-							// Similar structure for other departments...
-							employeeStats: {
-								totalEmployees: 18,
-								activeEmployees: 17,
-								inactiveEmployees: 1,
-								newHiresThisMonth: 1,
-								terminationsThisMonth: 0,
-								averageTenure: 2.8
-							}
+							benefitsExpense: 225000.0,
+							totalCompensation: 1875000.0
+						},
+						systemInfo: {
+							createdAt: '2023-01-15T10:00:00Z',
+							updatedAt: '2025-09-24T14:30:00Z',
+							lastStatsUpdate: '2025-09-25T02:00:00Z'
 						}
-					],
-					summary: {
-						totalDepartments: 8,
-						activeDepartments: 7,
-						inactiveDepartments: 1,
-						totalEmployeesAcrossAllDepts: 97,
-						totalBudgetAcrossAllDepts: 12500000.0,
-						averageDepartmentSize: 12.1,
-						largestDepartment: {
-							name: 'Engineering',
-							employeeCount: 23
+					} as any,
+					{
+						id: 'dept_456',
+						name: 'Sales',
+						description: 'Sales and business development',
+						isActive: true,
+						parentDepartmentId: null,
+						managerId: 'emp_789',
+						manager: {
+							id: 'emp_789',
+							displayName: 'Mike Johnson',
+							email: 'mike.johnson@company.com'
 						},
-						smallestDepartment: {
-							name: 'Legal',
-							employeeCount: 3
+						// Similar structure for other departments...
+						employeeStats: {
+							totalEmployees: 18,
+							activeEmployees: 17,
+							inactiveEmployees: 1,
+							newHiresThisMonth: 1,
+							terminationsThisMonth: 0,
+							averageTenure: 2.8
 						}
+					} as any
+				],
+				summary: {
+					totalDepartments: 8,
+					activeDepartments: 7,
+					inactiveDepartments: 1,
+					totalEmployeesAcrossAllDepts: 97,
+					totalBudgetAcrossAllDepts: 12500000.0,
+					averageDepartmentSize: 12.1,
+					largestDepartment: {
+						name: 'Engineering',
+						employeeCount: 23
 					},
-					aggregatedStats: {
-						companyWideMetrics: {
-							totalHeadcount: 97,
-							averagePerformanceRating: 4.0,
-							totalSalaryExpense: 6850000.0,
-							averageCompanySalary: 70567.01,
-							totalTurnoverRate: 8.2,
-							averageTenure: 3.1
-						},
-						departmentComparisons: [
-							{
-								departmentId: 'dept_123',
-								departmentName: 'Engineering',
-								performanceVsAverage: 5.0, // % above company average
-								salaryVsAverage: 12.3,
-								turnoverVsAverage: -3.2 // 3.2% below company average (better)
-							}
-						]
-					},
-					metadata: {
-						lastCalculated: '2025-09-25T02:00:00Z',
-						calculationDuration: 1247, // ms
-						dataFreshness: 'current', // current, stale, calculating
-						nextUpdateScheduled: '2025-09-26T02:00:00Z'
+					smallestDepartment: {
+						name: 'Legal',
+						employeeCount: 3
 					}
+				},
+				aggregatedStats: {
+					companyWideMetrics: {
+						totalHeadcount: 97,
+						averagePerformanceRating: 4.0,
+						totalSalaryExpense: 6850000.0,
+						averageCompanySalary: 70567.01,
+						totalTurnoverRate: 8.2,
+						averageTenure: 3.1
+					},
+					departmentComparisons: [
+						{
+							departmentId: 'dept_123',
+							departmentName: 'Engineering',
+							performanceVsAverage: 5.0, // % above company average
+							salaryVsAverage: 12.3,
+							turnoverVsAverage: -3.2 // 3.2% below company average (better)
+						}
+					]
+				},
+				metadata: {
+					lastCalculated: '2025-09-25T02:00:00Z',
+					calculationDuration: 1247, // ms
+					dataFreshness: 'current', // current, stale, calculating
+					nextUpdateScheduled: '2025-09-26T02:00:00Z'
 				}
 			};
 
@@ -286,23 +280,22 @@ describe('GetDepartmentsWithStats Contract', () => {
 			);
 
 			// Verify the expected structure is valid TypeScript
-			expect(expectedResponse.departmentsData).toBeDefined();
-			expect(expectedResponse.departmentsData.departments).toBeDefined();
-			expect(Array.isArray(expectedResponse.departmentsData.departments)).toBe(true);
-			expect(expectedResponse.departmentsData.summary).toBeDefined();
-			expect(expectedResponse.departmentsData.aggregatedStats).toBeDefined();
+			expect(expectedResponse.departments).toBeDefined();
+			expect(Array.isArray(expectedResponse.departments)).toBe(true);
+			expect(expectedResponse.summary).toBeDefined();
+			expect(expectedResponse.aggregatedStats).toBeDefined();
 		});
 
 		test('should validate required fields in department response', async () => {
 			// Test that all required fields are present
 			const requiredFields = [
-				'departmentsData.departments[0].id',
-				'departmentsData.departments[0].name',
-				'departmentsData.departments[0].code',
-				'departmentsData.departments[0].isActive',
-				'departmentsData.summary.totalDepartments',
-				'departmentsData.summary.totalEmployeesAcrossAllDepts',
-				'departmentsData.aggregatedStats.companyWideMetrics.totalHeadcount'
+				'departments[0].id',
+				'departments[0].name',
+				'departments[0].code',
+				'departments[0].isActive',
+				'summary.totalDepartments',
+				'summary.totalEmployeesAcrossAllDepts',
+				'aggregatedStats.companyWideMetrics.totalHeadcount'
 			];
 
 			// Expected to FAIL - field validation not implemented
@@ -587,9 +580,14 @@ export const departmentsTestHelpers = {
 		includeInactive = false,
 		includeEmployeeStats = true,
 		includeFinancialStats = false,
-		statsDateRange = null,
-		sortBy = 'name',
-		sortDirection = 'asc'
+		statsDateRange:
+			| {
+					startDate: string;
+					endDate: string;
+			  }
+			| undefined = undefined,
+		sortBy: string = 'name',
+		sortDirection: 'asc' | 'desc' = 'asc'
 	): GetDepartmentsWithStatsVariables => ({
 		includeInactive,
 		includeEmployeeStats,
@@ -601,10 +599,10 @@ export const departmentsTestHelpers = {
 
 	validateDepartmentsResponse: (response: any): boolean => {
 		return (
-			response?.departmentsData?.departments &&
-			Array.isArray(response.departmentsData.departments) &&
-			response?.departmentsData?.summary &&
-			typeof response.departmentsData.summary.totalDepartments === 'number'
+			response?.departments &&
+			Array.isArray(response.departments) &&
+			response?.summary &&
+			typeof response.summary.totalDepartments === 'number'
 		);
 	},
 

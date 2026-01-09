@@ -3,27 +3,89 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { PermissionChecks } from '$lib/server/rbac-utils';
+import { requireAuth } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
+import { logger } from '$lib/utils/logger';
+
+// Type definitions for GraphQL query responses
+interface ReviewerInfo {
+	id: string;
+	displayName: string;
+}
+
+interface CycleInfo {
+	name: string;
+}
+
+interface PerformanceReviewFromGraphQL {
+	id: string;
+	cycle: CycleInfo | null;
+	overallRating: number | null;
+	status: string;
+	createdAt: string;
+	reviewer: ReviewerInfo;
+}
+
+interface TransformedReview {
+	id: string;
+	cycle: CycleInfo | null;
+	overallRating: number | null;
+	status: string;
+	createdAt: string;
+	reviewer: ReviewerInfo;
+	reviewPeriod: string;
+}
+
+interface EmployeeGoalRawFromGraphQL {
+	id: string;
+	goalTitle: string;
+	goalDescription: string | null;
+	status: string | null;
+	progressPercentage: number | null;
+	targetDate: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
+interface TransformedGoal {
+	id: string;
+	title: string;
+	description: string | null;
+	status: string;
+	progressPercentage: number | null;
+	targetDate: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, url, cookies } = event;
+	const { url, cookies } = event;
 
 	// Check authentication and permissions
-	PermissionChecks.performanceRead(event);
+	requireAuth(event, {
+		requiredPermissions: [
+			'performance:read',
+			'performance:read:self',
+			'performance:read:team',
+			'performance:read:all'
+		]
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Use authenticated user's ID
 	const userId = locals.user.id;
 
 	try {
-		console.log('[Performance Page] Loading performance data for user:', userId);
+		logger.info('[Performance Page] Loading performance data for user', { userId });
 
 		// Ensure backend is ready before proceeding
 		await ensureBackendReady();
 
 		// Create GraphQL client with authentication
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
-		console.log('[Performance Page] GraphQL client created');
+		logger.info('[Performance Page] GraphQL client created');
 
 		// Load user details using new GraphQL client
 		// NOTE: Using Rust GraphQL schema - singular query for ID lookup
@@ -44,19 +106,19 @@ export const load: PageServerLoad = async (event) => {
 			}
 		`;
 
-		console.log('[Performance Page] Fetching user data...');
+		logger.info('[Performance Page] Fetching user data...');
 		const userData = await graphqlClient.query(userQuery, { id: userId });
 		const user = userData.data?.user || null;
-		console.log('[Performance Page] User data:', user ? 'Found' : 'Not found');
+		logger.info('[Performance Page] User data', { found: !!user });
 
 		if (!user) {
-			console.error('[Performance Page] User not found:', userId);
+			logger.error('[Performance Page] User not found', undefined, { userId });
 			error(404, 'User not found');
 		}
 
 		// Load actual goals for this specific user
 		// NOTE: Using Rust GraphQL schema - direct parameter instead of filter
-		console.log('[Performance Page] Fetching goals...');
+		logger.info('[Performance Page] Fetching goals...');
 		const userGoalsQuery = `
 			query GetUserGoals($employeeId: UUID!, $limit: Int!) {
 				employeeGoals(employeeId: $employeeId, limit: $limit) {
@@ -76,7 +138,10 @@ export const load: PageServerLoad = async (event) => {
 			employeeId: userId,
 			limit: 100
 		});
-		console.log('[Performance Page] Goals result:', goalsResult.data ? `Found ${goalsResult.data.employeeGoals?.length || 0} goals` : 'No data');
+		logger.info('[Performance Page] Goals result', {
+			goalsFound: goalsResult.data ? goalsResult.data.employeeGoals?.length || 0 : 0,
+			hasData: !!goalsResult.data
+		});
 
 		// Fetch performance reviews for history and rating
 		const reviewsQuery = `
@@ -100,37 +165,53 @@ export const load: PageServerLoad = async (event) => {
 			employeeId: userId,
 			limit: 20
 		});
-		
-		const rawReviews = reviewsResult.data?.performanceReviews || [];
-		const reviews = rawReviews.map((r: any) => ({
-			...r,
-			reviewPeriod: r.cycle?.name || 'Performance Review'
-		}));
+
+		const rawReviews: PerformanceReviewFromGraphQL[] = reviewsResult.data?.performanceReviews || [];
+		const reviews: TransformedReview[] = rawReviews.map(
+			(r: PerformanceReviewFromGraphQL): TransformedReview => ({
+				...r,
+				reviewPeriod: r.cycle?.name || 'Performance Review'
+			})
+		);
 
 		// Calculate overall rating (average of completed reviews)
-		const completedReviews = reviews.filter((r: any) => r.status === 'COMPLETED' && r.overallRating);
-		const averageRating = completedReviews.length > 0
-			? (completedReviews.reduce((sum: number, r: any) => sum + r.overallRating, 0) / completedReviews.length).toFixed(1)
-			: 'N/A';
+		const completedReviews: TransformedReview[] = reviews.filter(
+			(r: TransformedReview) => r.status === 'COMPLETED' && r.overallRating
+		);
+		const averageRating =
+			completedReviews.length > 0
+				? (
+						completedReviews.reduce(
+							(sum: number, r: TransformedReview) => sum + (r.overallRating || 0),
+							0
+						) / completedReviews.length
+					).toFixed(1)
+				: 'N/A';
 
 		// Transform employeeGoals to match expected format
-		const rawGoals = goalsResult.data?.employeeGoals || [];
-		console.log('[Performance Page] Raw goals:', rawGoals.length);
-		const goals = rawGoals.map((goal: any) => ({
-			id: goal.id,
-			title: goal.goalTitle,
-			description: goal.goalDescription,
-			// Convert GraphQL enum (NOT_STARTED) to frontend format (not_started)
-			status: goal.status?.toLowerCase() || 'not_started',
-			progressPercentage: goal.progressPercentage,
-			targetDate: goal.targetDate,
-			createdAt: goal.createdAt,
-			updatedAt: goal.updatedAt
-		}));
+		const rawGoals: EmployeeGoalRawFromGraphQL[] = goalsResult.data?.employeeGoals || [];
+		logger.info('[Performance Page] Raw goals', { goalsCount: rawGoals.length });
+		const goals: TransformedGoal[] = rawGoals.map(
+			(goal: EmployeeGoalRawFromGraphQL): TransformedGoal => ({
+				id: goal.id,
+				title: goal.goalTitle,
+				description: goal.goalDescription,
+				// Convert GraphQL enum (NOT_STARTED) to frontend format (not_started)
+				status: goal.status?.toLowerCase() || 'not_started',
+				progressPercentage: goal.progressPercentage,
+				targetDate: goal.targetDate,
+				createdAt: goal.createdAt,
+				updatedAt: goal.updatedAt
+			})
+		);
 
 		// Calculate date ranges for current quarter
 		const currentDate = new Date();
-		const quarterStart = new Date(currentDate.getFullYear(), Math.floor(currentDate.getMonth() / 3) * 3, 1);
+		const quarterStart = new Date(
+			currentDate.getFullYear(),
+			Math.floor(currentDate.getMonth() / 3) * 3,
+			1
+		);
 		const quarterEnd = new Date(quarterStart);
 		quarterEnd.setMonth(quarterEnd.getMonth() + 3);
 		quarterEnd.setDate(0); // Last day of quarter
@@ -147,20 +228,38 @@ export const load: PageServerLoad = async (event) => {
 		// Calculate goal statistics from real data
 		const goalStats = {
 			total: goals.length,
-			completed: goals.filter(g => g.status === 'completed').length,
-			inProgress: goals.filter(g => g.status === 'in_progress').length,
-			atRisk: goals.filter(g => g.status === 'at_risk').length,
-			notStarted: goals.filter(g => g.status === 'not_started').length,
-			blocked: goals.filter(g => g.status === 'blocked').length,
-			averageProgress: goals.length > 0 ? Math.round(goals.reduce((sum, g) => sum + (g.progressPercentage || 0), 0) / goals.length) : 0,
-			completionRate: goals.length > 0 ? Math.round((goals.filter(g => g.status === 'completed').length / goals.length) * 100) : 0
+			completed: goals.filter((g: TransformedGoal) => g.status === 'completed').length,
+			inProgress: goals.filter((g: TransformedGoal) => g.status === 'in_progress').length,
+			atRisk: goals.filter((g: TransformedGoal) => g.status === 'at_risk').length,
+			notStarted: goals.filter((g: TransformedGoal) => g.status === 'not_started').length,
+			blocked: goals.filter((g: TransformedGoal) => g.status === 'blocked').length,
+			averageProgress:
+				goals.length > 0
+					? Math.round(
+							goals.reduce(
+								(sum: number, g: TransformedGoal) => sum + (g.progressPercentage || 0),
+								0
+							) / goals.length
+						)
+					: 0,
+			completionRate:
+				goals.length > 0
+					? Math.round(
+							(goals.filter((g: TransformedGoal) => g.status === 'completed').length /
+								goals.length) *
+								100
+						)
+					: 0
 		};
 
-		console.log('[Performance Page] Preparing return data...');
+		logger.info('[Performance Page] Preparing return data...');
 		const returnData = {
 			user,
 			userId,
-			goals: goals.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+			goals: goals.sort(
+				(a: TransformedGoal, b: TransformedGoal) =>
+					new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+			),
 			reviews,
 			averageRating,
 			goalCategories,
@@ -175,14 +274,13 @@ export const load: PageServerLoad = async (event) => {
 			permissions: locals.permissions || [],
 			loadedAt: new Date().toISOString()
 		};
-		console.log('[Performance Page] Successfully loaded data:', {
+		logger.info('[Performance Page] Successfully loaded data:', {
 			goalsCount: returnData.goals.length,
 			user: returnData.user.displayName
 		});
 		return returnData;
-
 	} catch (err) {
-		console.error('Error loading user performance data:', err);
+		logger.error('Error loading user performance data:', err as Error);
 
 		// Return error state instead of throwing to prevent page crash
 		return {

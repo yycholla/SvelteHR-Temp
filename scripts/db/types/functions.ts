@@ -55,9 +55,7 @@ export function validateFunctionDefinition(func: FunctionDefinition): string[] {
 	const errors: string[] = [];
 
 	if (!validateFunctionLanguage(func.language)) {
-		errors.push(
-			`language must be one of: ${VALID_FUNCTION_LANGUAGES.join(', ')}`
-		);
+		errors.push(`language must be one of: ${VALID_FUNCTION_LANGUAGES.join(', ')}`);
 	}
 
 	if (!func.functionDefinition || func.functionDefinition.trim().length === 0) {
@@ -103,15 +101,11 @@ export function validateTriggerDefinition(trigger: TriggerDefinition): string[] 
 	}
 
 	if (!validateTriggerTiming(trigger.timing)) {
-		errors.push(
-			`timing must be one of: ${VALID_TRIGGER_TIMINGS.join(', ')}`
-		);
+		errors.push(`timing must be one of: ${VALID_TRIGGER_TIMINGS.join(', ')}`);
 	}
 
 	if (!validateTriggerLevel(trigger.level)) {
-		errors.push(
-			`level must be one of: ${VALID_TRIGGER_LEVELS.join(', ')}`
-		);
+		errors.push(`level must be one of: ${VALID_TRIGGER_LEVELS.join(', ')}`);
 	}
 
 	if (!trigger.functionName || trigger.functionName.trim().length === 0) {

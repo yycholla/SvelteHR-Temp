@@ -4,6 +4,7 @@
 import type { LayoutServerLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
+import { logger } from '$lib/utils/logger';
 
 export const load: LayoutServerLoad = async ({ locals, cookies, url, parent }) => {
 	// Require authentication for all dashboard routes
@@ -62,7 +63,7 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, parent }) =
 				systemName = parsed.systemName || systemName;
 			}
 		} catch (err) {
-			console.error('Error parsing system settings:', err);
+			logger.error('Error parsing system settings:', err as Error);
 		}
 
 		return {
@@ -84,7 +85,7 @@ export const load: LayoutServerLoad = async ({ locals, cookies, url, parent }) =
 			systemName
 		};
 	} catch (err) {
-		console.error('Error loading dashboard data:', err);
+		logger.error('Error loading dashboard data:', err as Error);
 		// Return parent data with empty notifications and default system name on error
 		return {
 			...parentData,

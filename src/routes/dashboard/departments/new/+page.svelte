@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { logger } from '$lib/utils/logger';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import { Input } from '$lib/components/ui/input';
@@ -56,7 +57,7 @@
 				formErrors = { submit: 'Failed to create department. Please try again.' };
 			}
 		} catch (error) {
-			console.error('Error submitting form:', error);
+			logger.error('Error submitting form:', error as Error);
 			formErrors = { submit: 'An unexpected error occurred. Please try again.' };
 		} finally {
 			isSubmitting = false;

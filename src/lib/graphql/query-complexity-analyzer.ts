@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * GraphQL Query Complexity Analyzer for SvelteHR
  *
@@ -12,26 +13,59 @@
  * - Security validation
  */
 
+import type { DocumentNode } from 'graphql';
 import {
-	DocumentNode,
-	visit,
-	TypeInfo,
-	visitWithTypeInfo,
+	GraphQLError,
 	GraphQLSchema,
+	Kind,
+	TypeInfo,
+	getNamedType,
+	isInterfaceType,
 	isListType,
 	isNonNullType,
-	getNamedType,
 	isObjectType,
-	isInterfaceType,
-	GraphQLError,
-	Kind
+	visit,
+	visitWithTypeInfo
 } from 'graphql';
-import type {
-	QueryComplexityConfig,
-	GraphQLPerformanceMetrics,
-	QueryAnalysis,
-	ResolverCall
-} from '../../tests/generated/test-types';
+
+// Type definitions for query complexity analysis
+export interface GraphQLPerformanceMetrics {
+	operationName?: string;
+	operationType: 'query' | 'mutation' | 'subscription';
+	executionTime: number;
+	complexity: number;
+	depth: number;
+	fieldCount: number;
+	errorCount: number;
+	cacheHitRatio: number;
+	timestamp?: number;
+	queryHash?: string;
+}
+
+export interface QueryAnalysis {
+	operationName?: string;
+	resolverCalls: ResolverCall[];
+	potentialNPlusOne: boolean;
+	duplicateQueries: string[];
+	recommendations: string[];
+}
+
+export interface ResolverCall {
+	fieldName: string;
+	parentType: string;
+	returnType: string;
+	executionTime: number;
+	callCount: number;
+}
+
+export interface QueryComplexityConfig {
+	maximumComplexity: number;
+	depthLimit: number;
+	scalarCost: number;
+	objectCost: number;
+	listFactor: number;
+	introspectionCost: number;
+}
 
 /**
  * Default complexity configuration optimized for PostGraphile HR system
@@ -168,7 +202,7 @@ export class QueryComplexityAnalyzer {
 			}
 		} catch (error) {
 			errorCount++;
-			console.warn('Query complexity analysis error:', error);
+			logger.warn(`Query complexity analysis error: ${error}`);
 		}
 
 		const executionTime = performance.now() - startTime;
@@ -197,12 +231,15 @@ export class QueryComplexityAnalyzer {
 			errors.push(
 				new GraphQLError(
 					`Query complexity ${metrics.complexity} exceeds maximum allowed complexity ${this.config.maximumComplexity}`,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
 					{
-						extensions: {
-							code: 'QUERY_COMPLEXITY_TOO_HIGH',
-							complexity: metrics.complexity,
-							maxComplexity: this.config.maximumComplexity
-						}
+						code: 'QUERY_COMPLEXITY_TOO_HIGH',
+						complexity: metrics.complexity,
+						maxComplexity: this.config.maximumComplexity
 					}
 				)
 			);
@@ -212,12 +249,15 @@ export class QueryComplexityAnalyzer {
 			errors.push(
 				new GraphQLError(
 					`Query depth ${metrics.depth} exceeds maximum allowed depth ${this.config.depthLimit}`,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
 					{
-						extensions: {
-							code: 'QUERY_DEPTH_TOO_HIGH',
-							depth: metrics.depth,
-							maxDepth: this.config.depthLimit
-						}
+						code: 'QUERY_DEPTH_TOO_HIGH',
+						depth: metrics.depth,
+						maxDepth: this.config.depthLimit
 					}
 				)
 			);
@@ -476,7 +516,7 @@ export class QueryComplexityAnalyzer {
  */
 export function createComplexityMiddleware(analyzer: QueryComplexityAnalyzer) {
 	return (req: any, res: any, next: any) => {
-		if (req.body && req.body.query) {
+		if (req.body?.query) {
 			try {
 				const document = req.body.query; // Would need proper parsing in real implementation
 				const errors = analyzer.validateComplexity(document, req.body.variables);
@@ -490,7 +530,7 @@ export function createComplexityMiddleware(analyzer: QueryComplexityAnalyzer) {
 					});
 				}
 			} catch (error) {
-				console.warn('Complexity validation error:', error);
+				logger.warn(`Complexity validation error: ${error}`);
 			}
 		}
 

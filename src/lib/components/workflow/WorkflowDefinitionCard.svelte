@@ -4,7 +4,7 @@
 	import type { WorkflowDefinitionWithStats } from '$lib/stores/workflow';
 
 	// Props
-	let {
+	const {
 		definition,
 		onview = undefined,
 		onedit = undefined,
@@ -15,12 +15,14 @@
 		onview?: ((detail: WorkflowDefinitionWithStats) => void) | undefined;
 		onedit?: ((detail: WorkflowDefinitionWithStats) => void) | undefined;
 		onstart?: ((detail: WorkflowDefinitionWithStats) => void) | undefined;
-		onstatusChanged?: ((detail: { definition: WorkflowDefinitionWithStats; newStatus: string }) => void) | undefined;
+		onstatusChanged?:
+			| ((detail: { definition: WorkflowDefinitionWithStats; newStatus: string }) => void)
+			| undefined;
 	} = $props();
 
 	// Derived values
-	const statusColor = $derived(getStatusColor(definition.status));
-	const categoryColor = $derived(getCategoryColor(definition.category));
+	const statusColor = $derived(getStatusColor(definition.status ?? ''));
+	const categoryColor = $derived(getCategoryColor(definition.category ?? ''));
 
 	function getStatusColor(status: string) {
 		switch (status) {
@@ -173,7 +175,7 @@
 					View Details
 				</button>
 
-				{#if $canManageWorkflows}
+				{#if auth.canManageWorkflows}
 					<button
 						onclick={handleEdit}
 						class="text-sm font-medium text-gray-600 hover:text-gray-800"
@@ -188,7 +190,7 @@
 					<button onclick={handleStartInstance} class="btn btn-primary btn-sm"> Start </button>
 				{/if}
 
-				{#if $canManageWorkflows}
+				{#if auth.canManageWorkflows}
 					<button
 						onclick={handleToggleStatus}
 						class={`btn btn-sm ${definition.status === 'active' ? 'btn-secondary' : 'btn-primary'}`}

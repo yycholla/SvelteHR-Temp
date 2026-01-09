@@ -400,7 +400,9 @@ describe('Field Aligner Utilities', () => {
       expect(getRequiredAction(AlignmentStatus.MissingDb)).toBe('Add database column');
       expect(getRequiredAction(AlignmentStatus.MissingApi)).toBe('Add API resolver');
       expect(getRequiredAction(AlignmentStatus.TypeMismatch)).toBe('Fix type mismatch');
-      expect(getRequiredAction(AlignmentStatus.NullabilityMismatch)).toBe('Fix nullability mismatch');
+      expect(getRequiredAction(AlignmentStatus.NullabilityMismatch)).toBe(
+        'Fix nullability mismatch'
+      );
     });
   });
 

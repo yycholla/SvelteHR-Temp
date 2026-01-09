@@ -8,6 +8,7 @@
 import { gql } from '@urql/svelte';
 import type { Client } from '@urql/core';
 import type { UserCredentials } from '$lib/models/data-request';
+import { BaseOperations } from './base-operations';
 
 // ============================================================================
 // QUERIES
@@ -157,11 +158,9 @@ export interface UpdateDepartmentInput {
 /**
  * Department Operations with Idiomatic Rust GraphQL Patterns
  */
-export class DepartmentOperations {
-	private client: Client;
-
+export class DepartmentOperations extends BaseOperations {
 	constructor(client: Client) {
-		this.client = client;
+		super(client);
 	}
 
 	/**
@@ -177,62 +176,33 @@ export class DepartmentOperations {
 		totalCount: number;
 		hasNextPage: boolean;
 	}> {
-		const { createDataRequest } = await import('$lib/models/data-request');
-		const { createErrorResponse } = await import('$lib/models/error-response');
-
 		const limit = params.limit || 100;
-		const dataRequest = createDataRequest({
-			operationName: 'GetDepartments',
-			variables: {
+
+		const result = await this.executeQuery(
+			GET_DEPARTMENTS_QUERY,
+			{
 				limit,
 				offset: params.offset || 0
 			},
-			userCredentials: params.userCredentials,
-			timeoutMs: 5000
-		});
-
-		try {
-			const result = await this.client
-				.query(GET_DEPARTMENTS_QUERY, dataRequest.variables)
-				.toPromise();
-
-			if (result.error) {
-				const errorResponse = createErrorResponse(result.error, {
-					type: 'graphql',
-					userMessage: 'Unable to load department list. Please check your permissions and try again.'
-				});
-				throw errorResponse;
+			{
+				operationName: 'GetDepartments',
+				errorMessage: 'Unable to load department list. Please try again.'
 			}
+		);
 
-			if (!result.data?.departments) {
-				throw createErrorResponse(new Error('No data returned'), {
-					type: 'graphql',
-					userMessage: 'No department data returned. Please try again.'
-				});
-			}
+		const departments = result.departments;
 
-			const departments = result.data.departments;
-
-			// Apply client-side filtering if needed
-			let filteredDepartments = departments;
-			if (params.filter) {
-				filteredDepartments = this.applyClientFilter(departments, params.filter);
-			}
-
-			return {
-				departments: filteredDepartments,
-				totalCount: filteredDepartments.length,
-				hasNextPage: departments.length === limit
-			};
-		} catch (error: any) {
-			if (error.userMessage) {
-				throw error;
-			}
-			throw createErrorResponse(error, {
-				type: 'graphql',
-				userMessage: 'Failed to load departments. Please try again.'
-			});
+		// Apply client-side filtering if needed
+		let filteredDepartments = departments;
+		if (params.filter) {
+			filteredDepartments = this.applyClientFilter(departments, params.filter);
 		}
+
+		return {
+			departments: filteredDepartments,
+			totalCount: filteredDepartments.length,
+			hasNextPage: departments.length === limit
+		};
 	}
 
 	/**
@@ -242,46 +212,16 @@ export class DepartmentOperations {
 		id: string;
 		userCredentials: UserCredentials;
 	}): Promise<Department> {
-		const { createDataRequest } = await import('$lib/models/data-request');
-		const { createErrorResponse } = await import('$lib/models/error-response');
-
-		const dataRequest = createDataRequest({
-			operationName: 'GetDepartmentById',
-			variables: { id: params.id },
-			userCredentials: params.userCredentials,
-			timeoutMs: 4000
-		});
-
-		try {
-			const result = await this.client
-				.query(GET_DEPARTMENT_BY_ID_QUERY, dataRequest.variables)
-				.toPromise();
-
-			if (result.error) {
-				const errorResponse = createErrorResponse(result.error, {
-					type: 'graphql',
-					userMessage: 'Unable to load department details. Please check the department ID and try again.'
-				});
-				throw errorResponse;
+		const result = await this.executeQuery(
+			GET_DEPARTMENT_BY_ID_QUERY,
+			{ id: params.id },
+			{
+				operationName: 'GetDepartmentById',
+				errorMessage: 'Unable to load department details. Please try again.'
 			}
+		);
 
-			if (!result.data?.department) {
-				throw createErrorResponse(new Error('Department not found'), {
-					type: 'validation',
-					userMessage: 'Department not found. Please check the department ID.'
-				});
-			}
-
-			return result.data.department;
-		} catch (error: any) {
-			if (error.userMessage) {
-				throw error;
-			}
-			throw createErrorResponse(error, {
-				type: 'graphql',
-				userMessage: 'Failed to load department details. Please try again.'
-			});
-		}
+		return result.department;
 	}
 
 	/**
@@ -291,46 +231,16 @@ export class DepartmentOperations {
 		input: CreateDepartmentInput;
 		userCredentials: UserCredentials;
 	}): Promise<Department> {
-		const { createDataRequest } = await import('$lib/models/data-request');
-		const { createErrorResponse } = await import('$lib/models/error-response');
-
-		const dataRequest = createDataRequest({
-			operationName: 'CreateDepartment',
-			variables: { input: params.input },
-			userCredentials: params.userCredentials,
-			timeoutMs: 8000
-		});
-
-		try {
-			const result = await this.client
-				.mutation(CREATE_DEPARTMENT_MUTATION, dataRequest.variables)
-				.toPromise();
-
-			if (result.error) {
-				const errorResponse = createErrorResponse(result.error, {
-					type: 'validation',
-					userMessage: 'Unable to create department. Please check the information and try again.'
-				});
-				throw errorResponse;
+		const result = await this.executeMutation(
+			CREATE_DEPARTMENT_MUTATION,
+			{ input: params.input },
+			{
+				operationName: 'CreateDepartment',
+				errorMessage: 'Unable to create department. Please try again.'
 			}
+		);
 
-			if (!result.data?.createDepartment) {
-				throw createErrorResponse(new Error('No data returned'), {
-					type: 'graphql',
-					userMessage: 'No department data returned. Please try again.'
-				});
-			}
-
-			return result.data.createDepartment;
-		} catch (error: any) {
-			if (error.userMessage) {
-				throw error;
-			}
-			throw createErrorResponse(error, {
-				type: 'graphql',
-				userMessage: 'Failed to create department. Please try again.'
-			});
-		}
+		return result.createDepartment;
 	}
 
 	/**
@@ -341,46 +251,16 @@ export class DepartmentOperations {
 		input: UpdateDepartmentInput;
 		userCredentials: UserCredentials;
 	}): Promise<Department> {
-		const { createDataRequest } = await import('$lib/models/data-request');
-		const { createErrorResponse } = await import('$lib/models/error-response');
-
-		const dataRequest = createDataRequest({
-			operationName: 'UpdateDepartment',
-			variables: { id: params.id, input: params.input },
-			userCredentials: params.userCredentials,
-			timeoutMs: 6000
-		});
-
-		try {
-			const result = await this.client
-				.mutation(UPDATE_DEPARTMENT_MUTATION, dataRequest.variables)
-				.toPromise();
-
-			if (result.error) {
-				const errorResponse = createErrorResponse(result.error, {
-					type: 'validation',
-					userMessage: 'Unable to update department. Please check the information and try again.'
-				});
-				throw errorResponse;
+		const result = await this.executeMutation(
+			UPDATE_DEPARTMENT_MUTATION,
+			{ id: params.id, input: params.input },
+			{
+				operationName: 'UpdateDepartment',
+				errorMessage: 'Unable to update department. Please try again.'
 			}
+		);
 
-			if (!result.data?.updateDepartment) {
-				throw createErrorResponse(new Error('No data returned'), {
-					type: 'graphql',
-					userMessage: 'No department data returned. Please try again.'
-				});
-			}
-
-			return result.data.updateDepartment;
-		} catch (error: any) {
-			if (error.userMessage) {
-				throw error;
-			}
-			throw createErrorResponse(error, {
-				type: 'graphql',
-				userMessage: 'Failed to update department. Please try again.'
-			});
-		}
+		return result.updateDepartment;
 	}
 
 	/**
@@ -391,40 +271,16 @@ export class DepartmentOperations {
 		id: string;
 		userCredentials: UserCredentials;
 	}): Promise<boolean> {
-		const { createDataRequest } = await import('$lib/models/data-request');
-		const { createErrorResponse } = await import('$lib/models/error-response');
-
-		const dataRequest = createDataRequest({
-			operationName: 'DeleteDepartment',
-			variables: { id: params.id },
-			userCredentials: params.userCredentials,
-			timeoutMs: 10000
-		});
-
-		try {
-			const result = await this.client
-				.mutation(DELETE_DEPARTMENT_MUTATION, dataRequest.variables)
-				.toPromise();
-
-			if (result.error) {
-				const errorResponse = createErrorResponse(result.error, {
-					type: 'permission',
-					userMessage:
-						'Unable to delete department. Please check your permissions and ensure all employees are reassigned.'
-				});
-				throw errorResponse;
+		const result = await this.executeMutation(
+			DELETE_DEPARTMENT_MUTATION,
+			{ id: params.id },
+			{
+				operationName: 'DeleteDepartment',
+				errorMessage: 'Unable to delete department. Please try again.'
 			}
+		);
 
-			return result.data?.deleteDepartment || false;
-		} catch (error: any) {
-			if (error.userMessage) {
-				throw error;
-			}
-			throw createErrorResponse(error, {
-				type: 'graphql',
-				userMessage: 'Failed to delete department. Please try again.'
-			});
-		}
+		return result.deleteDepartment || false;
 	}
 
 	/**
@@ -470,7 +326,8 @@ export function canManageDepartment(
 ): boolean {
 	// Admin can manage all departments
 	if (
-		userCredentials.permissions.includes('*') || userCredentials.permissions.includes('*:*') ||
+		userCredentials.permissions.includes('*') ||
+		userCredentials.permissions.includes('*:*') ||
 		userCredentials.permissions.includes('departments:write')
 	) {
 		return true;

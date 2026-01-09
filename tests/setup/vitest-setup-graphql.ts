@@ -5,7 +5,7 @@
  * query complexity analysis, and authorization testing.
  */
 
-import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 import { createUrqlClient } from '$lib/graphql/client';
 import { QueryComplexityAnalyzer } from '$lib/graphql/query-complexity-analyzer';
 import { FieldAuthorizationValidator } from '$lib/graphql/field-authorization-validator';

@@ -2,7 +2,7 @@
 // Browser environment and DOM testing configuration
 // Created: 2025-09-24
 
-import { beforeAll, afterEach, beforeEach, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/svelte';
 import { tick } from 'svelte';
@@ -210,8 +210,14 @@ beforeAll(() => {
 			keys = vi.fn();
 			values = vi.fn();
 			sort = vi.fn();
-			toString = vi.fn(() => Array.from(this.params.entries()).map(([k, v]) => `${k}=${v}`).join('&'));
-			get size() { return this.params.size; }
+			toString = vi.fn(() =>
+				Array.from(this.params.entries())
+					.map(([k, v]) => `${k}=${v}`)
+					.join('&')
+			);
+			get size() {
+				return this.params.size;
+			}
 			getAll = vi.fn();
 		} as any; // Cast to any
 

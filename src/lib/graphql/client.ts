@@ -1,4 +1,5 @@
-import { Client, cacheExchange, fetchExchange, errorExchange } from '@urql/core';
+import { logger } from '$lib/utils/logger';
+import { Client, cacheExchange, errorExchange, fetchExchange } from '@urql/core';
 import { authExchange } from '@urql/exchange-auth';
 import { retryExchange } from '@urql/exchange-retry';
 import { goto } from '$app/navigation';
@@ -19,9 +20,7 @@ import { createPerformanceExchange } from '$lib/performance/graphql-performance-
 // Browser: Use relative path (proxied by Caddy) or PUBLIC_API_URL if set
 // Server: Use PUBLIC_API_URL from environment or fallback to localhost
 const DEFAULT_GRAPHQL_URL =
-	typeof browser !== 'undefined' && browser
-		? '/api/graphql'
-		: 'http://localhost:4000/graphql';
+	typeof browser !== 'undefined' && browser ? '/api/graphql' : 'http://localhost:4000/graphql';
 const GRAPHQL_WS_URL = 'ws://localhost:4000/graphql'; // WebSocket endpoint for subscriptions
 
 // Rust GraphQL server uses session-based authorization with HTTP-only cookies
@@ -94,11 +93,16 @@ const customErrorExchange = errorExchange({
 					e.message?.includes('invalid')
 			)
 		) {
-			console.warn('GraphQL authentication error (session expired/invalid):', error.graphQLErrors);
+			logger.warn('GraphQL authentication error (session expired/invalid)', {
+				errors: error.graphQLErrors.map((e) => ({
+					message: e.message,
+					code: e.extensions?.code
+				}))
+			});
 
 			// Session authentication - redirect to login (server hooks will handle session cleanup)
 			if (browser) {
-				console.log('🔴 REDIRECT: Session expired/invalid, redirecting to login');
+				logger.info('🔴 REDIRECT: Session expired/invalid, redirecting to login');
 
 				// Only redirect if we're not already on a login/auth related page
 				if (!window.location.pathname.includes('/login')) {
@@ -109,12 +113,14 @@ const customErrorExchange = errorExchange({
 
 		// Handle rate limiting
 		if (error.graphQLErrors.some((e) => e.extensions?.code === 'RATE_LIMIT_EXCEEDED')) {
-			console.warn('Rate limit exceeded for operation:', operation.key);
+			logger.warn('Rate limit exceeded for operation', {
+				operationKey: operation.key
+			});
 		}
 
 		// Handle network errors
 		if (error.networkError) {
-			console.error('Network error:', error.networkError);
+			logger.error('Network error:', error.networkError);
 
 			// Dispatch custom event for offline handling
 			if (browser) {
@@ -128,7 +134,7 @@ const customErrorExchange = errorExchange({
 
 		// Log other GraphQL errors
 		error.graphQLErrors.forEach(({ message, extensions }) => {
-			console.error('GraphQL error:', message, extensions);
+			logger.error('GraphQL error', new Error(message), { extensions });
 		});
 	}
 });
@@ -151,7 +157,7 @@ const createAuthExchange = (serverSideToken?: string) => {
 				// Session authentication - if auth fails, redirect to login
 				// Session cookies will be cleared by the server hooks
 				if (browser) {
-					console.log('🔴 REDIRECT: Session authentication failed, redirecting to login');
+					logger.info('🔴 REDIRECT: Session authentication failed, redirecting to login');
 					goto('/login');
 				}
 			},
@@ -183,7 +189,12 @@ const retryConfig = retryExchange({
 });
 
 // Create the main GraphQL client
-export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string, url?: string, cookies?: string) => {
+export const createUrqlClient = (
+	fetchFn?: typeof fetch,
+	authToken?: string,
+	url?: string,
+	cookies?: string
+) => {
 	// Override auth token if provided (for browser)
 	if (authToken && browser) {
 		setAuthState({ token: authToken });
@@ -249,9 +260,11 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string, url
 			// For server-side requests, explicitly forward cookies
 			if (!browser && cookies) {
 				headers['Cookie'] = cookies;
-				console.log('[GraphQL Client] Forwarding session cookies to backend:', cookies.substring(0, 50) + '...');
+				logger.info('[GraphQL Client] Forwarding session cookies to backend', {
+					cookiePreview: cookies.substring(0, 50)
+				});
 			} else if (!browser) {
-				console.warn('[GraphQL Client] WARNING: No cookies to forward! Authentication may fail.');
+				logger.warn('[GraphQL Client] WARNING: No cookies to forward! Authentication may fail.');
 			}
 
 			return {
@@ -271,7 +284,7 @@ export const client = createUrqlClient();
 export const setJwtToken = (jwtToken: string) => {
 	// Session-based auth doesn't use client-side tokens
 	// This function is kept for backwards compatibility
-	console.warn('setJwtToken called - session-based auth does not use client-side tokens');
+	logger.warn('setJwtToken called - session-based auth does not use client-side tokens');
 };
 
 export const clearAuthTokens = () => {
@@ -348,24 +361,53 @@ export function serializeCookies(cookies: any): string {
 }
 
 // Export types for TypeScript support
-export type { Client, CombinedError, Operation, OperationResult } from '@urql/core';
+export type {
+	Client,
+	CombinedError,
+	Operation,
+	OperationResult,
+	TypedDocumentNode,
+	AnyVariables
+} from '@urql/core';
 
 // Export common query/mutation helpers
-export const executeQuery = async (client: Client, query: string, variables?: any) => {
-	const result = await client.query(query, variables).toPromise();
+export const executeQuery = async <
+	Data = any,
+	Variables extends import('@urql/core').AnyVariables = import('@urql/core').AnyVariables
+>(
+	client: Client,
+	query: import('@urql/core').TypedDocumentNode<Data, Variables> | string,
+	variables?: Variables
+): Promise<Data> => {
+	const result = await client.query(query, variables as Variables).toPromise();
 
 	if (result.error) {
 		throw result.error;
 	}
 
+	if (!result.data) {
+		throw new Error('No data returned from query');
+	}
+
 	return result.data;
 };
 
-export const executeMutation = async (client: Client, mutation: string, variables?: any) => {
-	const result = await client.mutation(mutation, variables).toPromise();
+export const executeMutation = async <
+	Data = any,
+	Variables extends import('@urql/core').AnyVariables = import('@urql/core').AnyVariables
+>(
+	client: Client,
+	mutation: import('@urql/core').TypedDocumentNode<Data, Variables> | string,
+	variables?: Variables
+): Promise<Data> => {
+	const result = await client.mutation(mutation, variables as Variables).toPromise();
 
 	if (result.error) {
 		throw result.error;
+	}
+
+	if (!result.data) {
+		throw new Error('No data returned from mutation');
 	}
 
 	return result.data;

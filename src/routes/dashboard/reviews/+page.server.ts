@@ -5,43 +5,45 @@
  *
  * Server-side data loading for reviews management page
  * Implements permission-based access control
+ * Refactored: Phase 2 - Using Phase 1 Foundation utilities
  */
 
 import type { PageServerLoad } from './$types';
-import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { PermissionChecks } from '$lib/server/rbac-utils';
+import { RBACDataLoader } from '$lib/server/route-loaders';
+import { QueryParamExtractor } from '$lib/server/route-helpers';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, url, cookies } = event;
+	const loader = new RBACDataLoader(event, [
+		'performance:read',
+		'performance:read:self',
+		'performance:read:team',
+		'performance:read:all'
+	]);
 
-	// Check authentication and permissions
-	PermissionChecks.performanceRead(event);
+	return loader.loadWithClient(async () => {
+		const { url, cookies } = event;
+		const params = new QueryParamExtractor(url);
 
-	const userId = locals.user.id;
-	const userRole = locals.user.role || 'employee';
-	const userPermissions = locals.permissions || [];
+		const userId = loader.getUserId();
+		const userRole = loader.getUserRole();
 
-	// Check if user can create reviews (write permission)
-	const canCreate =
-		userPermissions.includes('*') || userPermissions.includes('*:*') ||
-		userPermissions.includes('performance:write');
+		// Check if user can create reviews (write permission)
+		const canCreate = loader.hasPermission('performance:write');
 
-	// Extract search parameters
-	const page = parseInt(url.searchParams.get('page') || '1', 10);
-	const limit = parseInt(url.searchParams.get('limit') || '20', 10);
-	const offset = (page - 1) * limit;
-	const searchQuery = url.searchParams.get('search') || '';
-	const statusFilter = url.searchParams.get('status');
-	const typeFilter = url.searchParams.get('type');
-	const employeeId = url.searchParams.get('employee');
+		// Extract search parameters using QueryParamExtractor
+		const { page, limit } = params.getPagination(20);
+		const searchQuery = params.getString('search');
+		const statusFilter = params.getString('status');
+		const typeFilter = params.getString('type');
+		const employeeId = params.getString('employee');
 
-	try {
 		// Create server-side GraphQL client with Docker-aware endpoint
 		const client = GraphQLClient.fromCookies(cookies);
 
 		// Build filter condition based on user role
-		let condition: any = {};
+		const condition: any = {};
 
 		// RBAC: Filter reviews based on role
 		if (userRole === 'admin' || userRole === 'super_admin' || userRole === 'hr_manager') {
@@ -56,7 +58,10 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Apply status filter
-		if (statusFilter && ['DRAFT', 'IN_PROGRESS', 'COMPLETED'].includes(statusFilter.toUpperCase())) {
+		if (
+			statusFilter &&
+			['DRAFT', 'IN_PROGRESS', 'COMPLETED'].includes(statusFilter.toUpperCase())
+		) {
 			condition.status = statusFilter.toUpperCase();
 		}
 
@@ -125,9 +130,9 @@ export const load: PageServerLoad = async (event) => {
 
 		// Log any GraphQL errors
 		if (reviewsResponse.errors && reviewsResponse.errors.length > 0) {
-			console.error('❌ GraphQL Errors in GetPerformanceReviews:');
+			logger.error('❌ GraphQL Errors in GetPerformanceReviews:');
 			reviewsResponse.errors.forEach((err, idx) => {
-				console.error(`  Error ${idx + 1}:`, {
+				logger.error(`  Error ${idx + 1}:`, undefined, {
 					message: err.message,
 					path: err.path,
 					extensions: err.extensions
@@ -138,7 +143,7 @@ export const load: PageServerLoad = async (event) => {
 		const reviewsData = reviewsResponse.data;
 
 		// Debug logging
-		console.log('📊 Reviews query response:', {
+		logger.info('📊 Reviews query response:', {
 			hasData: !!reviewsData,
 			reviewsCount: reviewsData?.performanceReviews?.length || 0,
 			firstReview: reviewsData?.performanceReviews?.[0] || null
@@ -156,16 +161,19 @@ export const load: PageServerLoad = async (event) => {
 		}));
 
 		// Debug logging after transformation
-		console.log('📊 After transformation:', {
+		logger.info('📊 After transformation:', {
 			mappedReviewsCount: mappedReviews.length,
 			firstMappedReview: mappedReviews[0] || null,
-			statusValues: [...new Set(mappedReviews.map(r => r.status))]
+			statusValues: [...new Set(mappedReviews.map((r) => r.status))]
 		});
 
 		// Client-side filtering for status (Rust backend doesn't support filter parameter)
-		if (statusFilter && ['DRAFT', 'IN_PROGRESS', 'COMPLETED'].includes(statusFilter.toUpperCase())) {
-			mappedReviews = mappedReviews.filter(r => r.status === statusFilter.toUpperCase());
-			console.log('📊 After status filter:', {
+		if (
+			statusFilter &&
+			['DRAFT', 'IN_PROGRESS', 'COMPLETED'].includes(statusFilter.toUpperCase())
+		) {
+			mappedReviews = mappedReviews.filter((r) => r.status === statusFilter.toUpperCase());
+			logger.info('📊 After status filter:', {
 				statusFilter,
 				remainingCount: mappedReviews.length
 			});
@@ -173,7 +181,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// Client-side filtering for type (using cycle.reviewType)
 		if (typeFilter) {
-			mappedReviews = mappedReviews.filter(r => r.cycle?.reviewType === typeFilter.toUpperCase());
+			mappedReviews = mappedReviews.filter((r) => r.cycle?.reviewType === typeFilter.toUpperCase());
 		}
 
 		// Query 2: Get review types metadata
@@ -199,7 +207,7 @@ export const load: PageServerLoad = async (event) => {
 			{ limit: 100 }
 		);
 
-		const metadataData = reviewsResponse.data;
+		const metadataData = metadataResponse.data;
 
 		// Query 3: Get all employees for employee selector (if user can create reviews)
 		let employees = [];
@@ -215,7 +223,7 @@ export const load: PageServerLoad = async (event) => {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
-						'Cookie': cookieHeader
+						Cookie: cookieHeader
 					},
 					body: JSON.stringify({
 						query: `
@@ -241,9 +249,9 @@ export const load: PageServerLoad = async (event) => {
 				const employeesData = await employeesResponse.json();
 
 				if (employeesData.errors && employeesData.errors.length > 0) {
-					console.error('❌ GraphQL Errors in GetEmployeesForSelector:');
+					logger.error('❌ GraphQL Errors in GetEmployeesForSelector:');
 					employeesData.errors.forEach((err: any, idx: number) => {
-						console.error(`  Error ${idx + 1}:`, {
+						logger.error(`  Error ${idx + 1}:`, undefined, {
 							message: err.message,
 							path: err.path,
 							extensions: err.extensions
@@ -253,7 +261,10 @@ export const load: PageServerLoad = async (event) => {
 
 				employees = employeesData.data?.users || [];
 			} catch (empError) {
-				console.error('❌ Error loading employees:', empError);
+				logger.error(
+					'❌ Error loading employees:',
+					empError instanceof Error ? empError : new Error(String(empError))
+				);
 				employees = [];
 			}
 		}
@@ -290,9 +301,9 @@ export const load: PageServerLoad = async (event) => {
 				);
 
 				if (employeeResponse.errors && employeeResponse.errors.length > 0) {
-					console.error('❌ GraphQL Errors in GetEmployee:');
+					logger.error('❌ GraphQL Errors in GetEmployee:');
 					employeeResponse.errors.forEach((err, idx) => {
-						console.error(`  Error ${idx + 1}:`, {
+						logger.error(`  Error ${idx + 1}:`, undefined, {
 							message: err.message,
 							path: err.path,
 							extensions: err.extensions
@@ -302,7 +313,10 @@ export const load: PageServerLoad = async (event) => {
 
 				selectedEmployee = employeeResponse.data?.user || null;
 			} catch (empError) {
-				console.error('❌ Error loading employee:', empError);
+				logger.error(
+					'❌ Error loading employee:',
+					empError instanceof Error ? empError : new Error(String(empError))
+				);
 			}
 		}
 
@@ -323,17 +337,18 @@ export const load: PageServerLoad = async (event) => {
 
 		// Calculate statistics
 		const totalReviews = mappedReviews.length;
-		const draftCount = reviews.filter((r) => r.status === 'draft').length;
-		const inProgressCount = reviews.filter((r) => r.status === 'in_progress').length;
-		const completedCount = reviews.filter((r) => r.status === 'completed').length;
+		const stats = {
+			total: totalReviews,
+			draft: reviews.filter((r) => r.status === 'draft').length,
+			inProgress: reviews.filter((r) => r.status === 'in_progress').length,
+			completed: reviews.filter((r) => r.status === 'completed').length
+		};
 
 		// Debug logging final results
-		console.log('📊 Final results:', {
+		logger.info('📊 Final results:', {
 			totalReviews,
 			reviewsCount: reviews.length,
-			draftCount,
-			inProgressCount,
-			completedCount,
+			stats,
 			firstReview: reviews[0] || null
 		});
 
@@ -341,22 +356,11 @@ export const load: PageServerLoad = async (event) => {
 		const totalPages = Math.ceil(totalReviews / limit);
 
 		return {
-			user: {
-				id: userId,
-				email: locals.user.email || '',
-				displayName: locals.user.display_name || 'User',
-				role: userRole
-			},
 			reviews,
 			employees,
 			reviewTypesMetadata: metadataData?.reviewTypesMetadata || [],
 			selectedEmployee,
-			stats: {
-				total: totalReviews,
-				draft: draftCount,
-				inProgress: inProgressCount,
-				completed: completedCount
-			},
+			stats,
 			filters: {
 				search: searchQuery,
 				status: statusFilter,
@@ -375,44 +379,5 @@ export const load: PageServerLoad = async (event) => {
 				canViewAll: userRole === 'admin' || userRole === 'super_admin' || userRole === 'hr_manager'
 			}
 		};
-	} catch (err) {
-		console.error('Error loading reviews:', err);
-
-		return {
-			user: {
-				id: userId,
-				email: locals.user.email || '',
-				displayName: locals.user.display_name || 'User',
-				role: userRole
-			},
-			reviews: [],
-			employees: [],
-			reviewTypesMetadata: [],
-			selectedEmployee: null,
-			stats: {
-				total: 0,
-				draft: 0,
-				inProgress: 0,
-				completed: 0
-			},
-			filters: {
-				search: searchQuery,
-				status: statusFilter,
-				type: typeFilter
-			},
-			pagination: {
-				page,
-				limit,
-				total: 0,
-				totalPages: 0,
-				hasNextPage: false,
-				hasPreviousPage: false
-			},
-			permissions: {
-				canCreate: false,
-				canViewAll: false
-			},
-			error: `Failed to load reviews: ${err instanceof Error ? err.message : 'Unknown error'}`
-		};
-	}
+	});
 };

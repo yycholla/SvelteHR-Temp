@@ -5,7 +5,7 @@ metadata:
   name: loki-stack
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "3"  # After MinIO (requires MinIO buckets and credentials)
+    argocd.argoproj.io/sync-wave: '3' # After MinIO (requires MinIO buckets and credentials)
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -20,7 +20,7 @@ spec:
     # Source 2: Helm chart from Grafana official repo
     - repoURL: https://grafana.github.io/helm-charts
       chart: loki-stack
-      targetRevision: 2.10.x  # Stable loki-stack chart version
+      targetRevision: 2.10.x # Stable loki-stack chart version
       helm:
         releaseName: loki-stack
         valueFiles:
@@ -28,13 +28,13 @@ spec:
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: monitoring  # Deploy to monitoring namespace with Prometheus/Grafana
+    namespace: monitoring # Deploy to monitoring namespace with Prometheus/Grafana
 
   syncPolicy:
     # Automated GitOps sync enabled
     automated:
-      prune: true  # Remove resources deleted from Git
-      selfHeal: true  # Auto-correct cluster drift
+      prune: true # Remove resources deleted from Git
+      selfHeal: true # Auto-correct cluster drift
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true

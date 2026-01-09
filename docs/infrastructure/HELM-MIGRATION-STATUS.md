@@ -9,6 +9,7 @@ The Helm chart migration with container optimizations is well underway. Core inf
 ## ✅ Completed Work (Phases 1-3)
 
 ### Phase 1: Chart Dependencies ✅ COMPLETE
+
 **File:** `k8s/helm-charts/sveltehr/Chart.yaml`
 
 - ✅ Chart version bumped to 2.0.0
@@ -20,6 +21,7 @@ The Helm chart migration with container optimizations is well underway. Core inf
 ### Phase 2: Core Templates ✅ COMPLETE
 
 #### 1. PostgreSQL Cluster Template
+
 **File:** `k8s/helm-charts/sveltehr/templates/postgres-cluster.yaml`
 
 - ✅ CloudNativePG Cluster resource
@@ -31,6 +33,7 @@ The Helm chart migration with container optimizations is well underway. Core inf
 - ✅ High availability configuration for prod
 
 #### 2. Migration Job Template
+
 **File:** `k8s/helm-charts/sveltehr/templates/migration-job.yaml`
 
 - ✅ **Helm pre-install/pre-upgrade hook** (guaranteed execution order)
@@ -41,6 +44,7 @@ The Helm chart migration with container optimizations is well underway. Core inf
 - ✅ Security context hardening
 
 #### 3. Seed Job Template
+
 **File:** `k8s/helm-charts/sveltehr/templates/seed-job.yaml`
 
 - ✅ Helm test hook (manual execution)
@@ -53,9 +57,11 @@ The Helm chart migration with container optimizations is well underway. Core inf
 ### Phase 3: Container Optimizations ✅ COMPLETE
 
 #### 4. Backend Deployment Update
+
 **File:** `k8s/helm-charts/sveltehr/templates/backend-deployment.yaml`
 
 **Key Changes:**
+
 - ✅ **Direct server execution** (no entrypoint script)
   ```yaml
   command: exec ./hr-graphql-server
@@ -71,9 +77,11 @@ The Helm chart migration with container optimizations is well underway. Core inf
 - ✅ Health probe configuration
 
 #### 5. Frontend Deployment Update
+
 **File:** `k8s/helm-charts/sveltehr/templates/frontend-deployment.yaml`
 
 **Key Changes:**
+
 - ✅ BuildKit annotations for optimization tracking
 - ✅ Support for dev (port 5173) vs prod (port 3000)
 - ✅ Template helper functions
@@ -91,9 +99,11 @@ The Helm chart migration with container optimizations is well underway. Core inf
 ### Phase 4: Values Files (NEXT PRIORITY)
 
 #### 4.1 Complete `values-dev.yaml`
+
 **Status:** Template exists, needs full configuration
 
 **Required Sections:**
+
 ```yaml
 global:
   namespace: sveltehr-dev
@@ -102,16 +112,16 @@ global:
 postgresql:
   enabled: true
   instances: 1
-  storage: {size: 5Gi, storageClass: local-path}
+  storage: { size: 5Gi, storageClass: local-path }
   database: hr_system
   username: hr_user
-  password: "dev-password"
-  backup: {enabled: false}
+  password: 'dev-password'
+  backup: { enabled: false }
 
 redis:
   enabled: true
   architecture: standalone
-  auth: {enabled: false}
+  auth: { enabled: false }
 
 backend:
   enabled: true
@@ -123,23 +133,23 @@ backend:
     port: 4000
     targetPort: 4000
   resources:
-    requests: {memory: 128Mi, cpu: 100m}
-    limits: {memory: 256Mi, cpu: 200m}
+    requests: { memory: 128Mi, cpu: 100m }
+    limits: { memory: 256Mi, cpu: 200m }
 
 frontend:
   enabled: true
   replicaCount: 1
   service:
-    port: 5173  # Vite dev server
+    port: 5173 # Vite dev server
     targetPort: 5173
   image:
     repository: ghcr.io/mountain-care-rx/sveltehr/frontend
     tag: latest
   securityContext:
-    runAsNonRoot: false  # Dev convenience
+    runAsNonRoot: false # Dev convenience
   resources:
-    requests: {memory: 64Mi, cpu: 50m}
-    limits: {memory: 128Mi, cpu: 100m}
+    requests: { memory: 64Mi, cpu: 50m }
+    limits: { memory: 128Mi, cpu: 100m }
 
 migration:
   enabled: true
@@ -148,50 +158,52 @@ migration:
     tag: latest
 
 seed:
-  enabled: false  # Manual only
+  enabled: false # Manual only
 ```
 
 #### 4.2 Complete `values-prod.yaml`
+
 **Status:** Template exists, needs production overrides
 
 **Required Overrides:**
+
 ```yaml
 global:
   namespace: sveltehr-prod
   environment: production
 
 postgresql:
-  instances: 3  # High availability
-  storage: {size: 100Gi, storageClass: fast-ssd}
+  instances: 3 # High availability
+  storage: { size: 100Gi, storageClass: fast-ssd }
   backup:
     enabled: true
-    destinationPath: "s3://sveltehr-backups/"
-    retentionPolicy: "30d"
-    schedule: "0 2 * * *"
+    destinationPath: 's3://sveltehr-backups/'
+    retentionPolicy: '30d'
+    schedule: '0 2 * * *'
 
 redis:
   architecture: replication
-  replica: {replicaCount: 3}
-  sentinel: {enabled: true, quorum: 2}
+  replica: { replicaCount: 3 }
+  sentinel: { enabled: true, quorum: 2 }
 
 backend:
   replicaCount: 3
   resources:
-    requests: {memory: 512Mi, cpu: 250m}
-    limits: {memory: 1Gi, cpu: 500m}
+    requests: { memory: 512Mi, cpu: 250m }
+    limits: { memory: 1Gi, cpu: 500m }
 
 frontend:
   replicaCount: 2
-  service: {port: 3000, targetPort: 3000}  # Production build
-  securityContext: {runAsNonRoot: true}
+  service: { port: 3000, targetPort: 3000 } # Production build
+  securityContext: { runAsNonRoot: true }
 
 externalSecrets:
   enabled: true
-  doppler: {project: "sveltehr", config: "prod"}
+  doppler: { project: 'sveltehr', config: 'prod' }
 
 ingress:
   enabled: true
-  host: "hr.yycholla.com"
+  host: 'hr.yycholla.com'
 
 podDisruptionBudget:
   enabled: true
@@ -200,9 +212,11 @@ podDisruptionBudget:
 ### Phase 5: Build Scripts
 
 #### 5.1 Update Build Script
+
 **File:** `k8s/scripts/build-and-push.sh` (rename from build-and-push-local.sh)
 
 **Changes Needed:**
+
 - Support GitHub Container Registry (ghcr.io)
 - GitHub token authentication
 - Multi-target builds with correct naming:
@@ -214,9 +228,11 @@ podDisruptionBudget:
 ### Phase 6: GitHub Actions
 
 #### 6.1 Update Workflow
+
 **File:** `.github/workflows/docker-build.yml`
 
 **Changes Needed:**
+
 - Push to GHCR instead of GitLab registry
 - Update image repository references
 - Add proper tagging (latest, sha, version)
@@ -225,13 +241,16 @@ podDisruptionBudget:
 ### Phase 7: ArgoCD
 
 #### 7.1 Update Production App
+
 **File:** `k8s/argocd/sveltehr-application.yaml`
 
 **Changes Needed:**
+
 - Update values file paths
 - Add dependency sync configuration
 
 #### 7.2 Create Dev App
+
 **New File:** `k8s/argocd/sveltehr-dev-application.yaml`
 
 - Same structure as prod
@@ -241,9 +260,11 @@ podDisruptionBudget:
 ### Phase 8: Deploy Script
 
 #### 8.1 Refactor deploy.sh
+
 **File:** `k8s/deploy.sh`
 
 **Changes Needed:**
+
 - Replace Kustomize with Helm commands
 - Add helm dependency update step
 - Streamline deployment workflow
@@ -252,42 +273,47 @@ podDisruptionBudget:
 
 ## 📊 Progress Metrics
 
-| Category | Complete | Remaining | Progress |
-|----------|----------|-----------|----------|
-| Chart Setup | 100% | 0% | ✅✅✅✅✅ |
-| Core Templates | 100% | 0% | ✅✅✅✅✅ |
-| App Templates | 100% | 0% | ✅✅✅✅✅ |
-| Values Files | 0% | 100% | ⬜⬜⬜⬜⬜ |
-| Scripts | 0% | 100% | ⬜⬜⬜⬜⬜ |
-| CI/CD | 0% | 100% | ⬜⬜⬜⬜⬜ |
-| **Overall** | **60%** | **40%** | **✅✅✅⬜⬜** |
+| Category       | Complete | Remaining | Progress       |
+| -------------- | -------- | --------- | -------------- |
+| Chart Setup    | 100%     | 0%        | ✅✅✅✅✅     |
+| Core Templates | 100%     | 0%        | ✅✅✅✅✅     |
+| App Templates  | 100%     | 0%        | ✅✅✅✅✅     |
+| Values Files   | 0%       | 100%      | ⬜⬜⬜⬜⬜     |
+| Scripts        | 0%       | 100%      | ⬜⬜⬜⬜⬜     |
+| CI/CD          | 0%       | 100%      | ⬜⬜⬜⬜⬜     |
+| **Overall**    | **60%**  | **40%**   | **✅✅✅⬜⬜** |
 
 ---
 
 ## 🎯 Key Achievements
 
 ### 1. Migration Timing Guaranteed
+
 - **Helm pre-install hooks** ensure migrations run before backend every time
 - No more race conditions or manual intervention
 
 ### 2. Container Optimization Applied
+
 - Direct binary execution (no entrypoint scripts)
 - Multi-target Docker builds
 - BuildKit cache annotations
 - Smaller image sizes
 
 ### 3. Dependency Management
+
 - PostgreSQL and Redis managed as Helm dependencies
 - Single `helm install` deploys entire stack
 - Version pinning for stability
 
 ### 4. Template Best Practices
+
 - Comprehensive use of template helpers
 - Flexible value-driven configuration
 - Security context hardening
 - Resource limit configuration
 
 ### 5. Production-Ready Features
+
 - High availability configurations
 - Backup support
 - Pod disruption budgets (in values)
@@ -310,6 +336,7 @@ podDisruptionBudget:
    - External secrets setup
 
 3. **Test Dependency Management** (~10 minutes)
+
    ```bash
    cd k8s/helm-charts/sveltehr
    helm dependency update
@@ -339,6 +366,7 @@ podDisruptionBudget:
 ## 📁 Files Summary
 
 ### Created (5):
+
 1. ✅ `k8s/helm-charts/sveltehr/templates/postgres-cluster.yaml`
 2. ✅ `k8s/helm-charts/sveltehr/templates/migration-job.yaml`
 3. ✅ `k8s/helm-charts/sveltehr/templates/seed-job.yaml`
@@ -346,11 +374,13 @@ podDisruptionBudget:
 5. ✅ `HELM-MIGRATION-STATUS.md` (this file)
 
 ### Modified (3):
+
 1. ✅ `k8s/helm-charts/sveltehr/Chart.yaml`
 2. ✅ `k8s/helm-charts/sveltehr/templates/backend-deployment.yaml`
 3. ✅ `k8s/helm-charts/sveltehr/templates/frontend-deployment.yaml`
 
 ### Remaining to Create/Modify (11):
+
 1. ⏳ `k8s/helm-charts/sveltehr/templates/rbac.yaml` (optional)
 2. ⏳ `k8s/helm-charts/sveltehr/templates/_helpers.tpl` (optional)
 3. ⏳ `k8s/helm-charts/sveltehr/values-dev.yaml` (CRITICAL)
@@ -367,25 +397,27 @@ podDisruptionBudget:
 
 ## 💡 Architecture Decisions Made
 
-| Decision | Rationale | Impact |
-|----------|-----------|--------|
-| Helm dependencies for PostgreSQL/Redis | Single source of truth, version control | Simplified deployment |
-| Helm hooks for migrations | Guaranteed execution order | No race conditions |
-| Multi-target Docker builds | Smaller images, better separation | Faster deployments |
-| Direct binary execution | Remove unnecessary scripts | Cleaner architecture |
-| Template helpers | DRY principle, easier maintenance | Reduced duplication |
-| Environment-driven config | Single chart, multiple values files | Consistent deployments |
+| Decision                               | Rationale                               | Impact                 |
+| -------------------------------------- | --------------------------------------- | ---------------------- |
+| Helm dependencies for PostgreSQL/Redis | Single source of truth, version control | Simplified deployment  |
+| Helm hooks for migrations              | Guaranteed execution order              | No race conditions     |
+| Multi-target Docker builds             | Smaller images, better separation       | Faster deployments     |
+| Direct binary execution                | Remove unnecessary scripts              | Cleaner architecture   |
+| Template helpers                       | DRY principle, easier maintenance       | Reduced duplication    |
+| Environment-driven config              | Single chart, multiple values files     | Consistent deployments |
 
 ---
 
 ## ✨ Benefits Realized
 
 ### Build Performance (from Container Optimization):
+
 - **Rust builds:** 60-80% faster with cargo-chef + BuildKit
 - **Frontend builds:** 50-70% faster with npm/Vite cache mounts
 - **CI/CD:** Expected 70-85% faster with GitHub Actions cache
 
 ### Deployment Benefits:
+
 - **Single command deployment:** `helm install sveltehr ./chart`
 - **Automatic migrations:** Pre-install hooks guarantee order
 - **Version control:** Entire stack versioned together
@@ -393,6 +425,7 @@ podDisruptionBudget:
 - **GitOps ready:** ArgoCD compatible from day one
 
 ### Operational Benefits:
+
 - **Consistent workflow:** Same process for dev and prod
 - **Better observability:** Helm release tracking
 - **Dependency management:** Automatic PostgreSQL/Redis setup

@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Employee document assignment endpoint (Feature 024)
 // POST /api/employees/[id]/assign-documents - Assign documents to an employee
 // ✅ Migrated to GraphQL backend (Phase 3 - Document API Migration)
@@ -41,8 +42,8 @@ export const POST: RequestHandler = async ({ params, locals, request, cookies, f
 	// Step 2: Check if user has assign permissions (admin only)
 	if (userRole !== 'super_admin' && userRole !== 'admin') {
 		error(403, {
-        			message: 'Insufficient permissions. Only administrators can assign documents to employees.'
-        		});
+			message: 'Insufficient permissions. Only administrators can assign documents to employees.'
+		});
 	}
 
 	try {
@@ -54,15 +55,15 @@ export const POST: RequestHandler = async ({ params, locals, request, cookies, f
 			error(400, { message: 'Invalid request: documentIds must be a non-empty array' });
 		}
 
-		console.log(`[ASSIGN DOCS] User ${userId} assigning ${documentIds.length} documents to employee ${employeeId}`);
+		logger.info(
+			`[ASSIGN DOCS] User ${userId} assigning ${documentIds.length} documents to employee ${employeeId}`
+		);
 
 		// Step 4: Create GraphQL client
 		const urqlClient = createUrqlClient(fetch, undefined, undefined, cookies.get('hr_session'));
 
 		// Verify employee exists via GraphQL
-		const employeeResult = await urqlClient
-			.query(GET_USER_QUERY, { id: employeeId })
-			.toPromise();
+		const employeeResult = await urqlClient.query(GET_USER_QUERY, { id: employeeId }).toPromise();
 
 		if (employeeResult.error || !employeeResult.data?.user) {
 			error(404, { message: 'Employee not found' });
@@ -92,33 +93,43 @@ export const POST: RequestHandler = async ({ params, locals, request, cookies, f
 					const errorMsg = assignmentResult.error.message || '';
 					if (errorMsg.includes('duplicate') || errorMsg.includes('already assigned')) {
 						skippedCount++;
-						console.log(`[ASSIGN DOCS] Document ${documentId} already assigned to employee ${employeeId}`);
+						logger.info(
+							`[ASSIGN DOCS] Document ${documentId} already assigned to employee ${employeeId}`
+						);
 					} else {
 						errors.push(`Document ${documentId}: ${errorMsg}`);
-						console.error(`[ASSIGN DOCS] Error assigning document ${documentId}:`, assignmentResult.error);
+						logger.error(
+							`[ASSIGN DOCS] Error assigning document ${documentId}:`,
+							assignmentResult.error
+						);
 					}
 				} else {
 					assignedCount++;
-					console.log(`[ASSIGN DOCS] Document ${documentId} assigned to employee ${employeeId}`);
+					logger.info(`[ASSIGN DOCS] Document ${documentId} assigned to employee ${employeeId}`);
 				}
 			} catch (err) {
-				errors.push(`Document ${documentId}: ${err instanceof Error ? err.message : 'Unknown error'}`);
-				console.error(`[ASSIGN DOCS] Exception assigning document ${documentId}:`, err);
+				errors.push(
+					`Document ${documentId}: ${err instanceof Error ? err.message : 'Unknown error'}`
+				);
+				logger.error(`[ASSIGN DOCS] Exception assigning document ${documentId}:`, err as Error);
 			}
 		}
 
 		// Step 6: Return results
 		if (errors.length > 0 && assignedCount === 0) {
 			error(400, {
-            				message: `Failed to assign any documents. Errors: ${errors.join('; ')}`
-            			});
+				message: `Failed to assign any documents. Errors: ${errors.join('; ')}`
+			});
 		}
 
-		const message = errors.length > 0
-			? `Assigned ${assignedCount} document(s), skipped ${skippedCount}, ${errors.length} errors`
-			: `Successfully assigned ${assignedCount} document(s) to ${employee.email}`;
+		const message =
+			errors.length > 0
+				? `Assigned ${assignedCount} document(s), skipped ${skippedCount}, ${errors.length} errors`
+				: `Successfully assigned ${assignedCount} document(s) to ${employee.email}`;
 
-		console.log(`[ASSIGN DOCS] Completed: ${assignedCount} assigned, ${skippedCount} skipped, ${errors.length} errors`);
+		logger.info(
+			`[ASSIGN DOCS] Completed: ${assignedCount} assigned, ${skippedCount} skipped, ${errors.length} errors`
+		);
 
 		return json({
 			success: true,
@@ -129,7 +140,7 @@ export const POST: RequestHandler = async ({ params, locals, request, cookies, f
 			errors: errors.length > 0 ? errors : undefined
 		});
 	} catch (err) {
-		console.error('[ASSIGN DOCS] Error:', err);
+		logger.error('[ASSIGN DOCS] Error:', err as Error);
 
 		// Re-throw SvelteKit errors
 		if (err && typeof err === 'object' && 'status' in err) {
@@ -138,7 +149,7 @@ export const POST: RequestHandler = async ({ params, locals, request, cookies, f
 
 		// Generic error fallback
 		error(500, {
-        			message: 'Failed to assign documents. Please try again later.'
-        		});
+			message: 'Failed to assign documents. Please try again later.'
+		});
 	}
 };

@@ -1,7 +1,8 @@
+import { logger } from '$lib/utils/logger';
 // Document preview API endpoint (Feature 024)
 // GET /api/documents/[id]/preview - Generate document preview (with decryption if encrypted)
 
-import { json, error } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { SERVICE_AUTH_KEY } from '$env/static/private';
 import { retrieveAndDecryptFile } from '$lib/server/encryption';
@@ -67,8 +68,10 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 
 		if (!canAccess) {
 			// Log denied access
-			console.log(`Access denied for user ${userId} to document ${documentId}`);
-			error(403, { message: 'Access denied. You do not have permission to preview this document.' });
+			logger.info(`Access denied for user ${userId} to document ${documentId}`);
+			error(403, {
+				message: 'Access denied. You do not have permission to preview this document.'
+			});
 		}
 
 		// Step 4: Determine preview format
@@ -76,7 +79,10 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 		let requiresConversion = false;
 
 		const imageTypes = ['image/jpeg', 'image/png', 'image/gif'];
-		const officeTypes = ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+		const officeTypes = [
+			'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+		];
 
 		if (document.mime_type === 'application/pdf') {
 			previewFormat = 'PDF';
@@ -101,7 +107,7 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 			// - Convert to PDF using LibreOffice headless
 			// - Re-encrypt PDF
 			// - Store converted version
-			console.log(`Office document conversion queued for ${documentId}`);
+			logger.info(`Office document conversion queued for ${documentId}`);
 		}
 
 		// Step 7: Return preview metadata
@@ -114,9 +120,8 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 			conversionStatus: requiresConversion ? 'pending' : 'ready',
 			mimeType: document.mime_type
 		});
-
 	} catch (err) {
-		console.error('Document preview error:', err);
+		logger.error('Document preview error:', err as Error);
 
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err;

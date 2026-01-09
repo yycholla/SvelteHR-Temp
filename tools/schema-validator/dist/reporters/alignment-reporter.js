@@ -8,119 +8,121 @@ import chalk from 'chalk';
  * Generates reports in various formats
  */
 export class AlignmentReporter {
-    /**
-     * Generate report in specified format
-     */
-    generate(result, format, options = {}) {
-        switch (format) {
-            case 'markdown':
-                return this.generateMarkdown(result, options);
-            case 'json':
-                return this.generateJSON(result, options);
-            case 'html':
-                return this.generateHTML(result, options);
-            case 'terminal':
-                return this.generateTerminal(result, options);
-            default:
-                throw new Error(`Unsupported format: ${format}`);
-        }
+  /**
+   * Generate report in specified format
+   */
+  generate(result, format, options = {}) {
+    switch (format) {
+      case 'markdown':
+        return this.generateMarkdown(result, options);
+      case 'json':
+        return this.generateJSON(result, options);
+      case 'html':
+        return this.generateHTML(result, options);
+      case 'terminal':
+        return this.generateTerminal(result, options);
+      default:
+        throw new Error(`Unsupported format: ${format}`);
     }
-    /**
-     * Generate markdown format report
-     */
-    generateMarkdown(result, options = {}) {
-        const lines = [];
-        // Header
-        lines.push('# Schema Alignment Report');
-        lines.push('');
-        lines.push(`**Generated:** ${result.timestamp.toISOString()}`);
-        lines.push(`**Duration:** ${result.durationMs}ms`);
-        lines.push(`**Status:** ${result.passed ? '✅ PASSED' : '❌ FAILED'}`);
-        lines.push('');
-        // Summary
-        lines.push('## Summary');
-        lines.push('');
-        lines.push('| Metric | Count |');
-        lines.push('|--------|-------|');
-        lines.push(`| Total Fields | ${result.summary.totalFields} |`);
-        lines.push(`| Aligned | ${result.summary.alignedCount} |`);
-        lines.push(`| Misaligned | ${result.summary.misalignedCount} |`);
-        lines.push(`| Missing DB | ${result.summary.byStatus.missing_db} |`);
-        lines.push(`| Missing API | ${result.summary.byStatus.missing_api} |`);
-        lines.push(`| Type Mismatch | ${result.summary.byStatus.type_mismatch} |`);
-        lines.push(`| Nullability Mismatch | ${result.summary.byStatus.nullability_mismatch} |`);
-        lines.push('');
-        // Filter alignments
-        const alignments = this.filterAlignments(result.alignments, options);
-        if (alignments.length === 0) {
-            lines.push('*No alignments to display with current filters.*');
-            lines.push('');
-            return lines.join('\n');
-        }
-        // Misalignments
-        const misaligned = alignments.filter((a) => a.status !== 'aligned');
-        if (misaligned.length > 0) {
-            lines.push('## Misalignments');
-            lines.push('');
-            for (const alignment of misaligned) {
-                lines.push(`### ${alignment.fieldPath}`);
-                lines.push('');
-                lines.push(`**Status:** \`${alignment.status}\``);
-                lines.push(`**Location:** ${alignment.sourceLocation.file}:${alignment.sourceLocation.line}`);
-                lines.push('');
-                if (alignment.error) {
-                    lines.push(`**Error:** ${alignment.error}`);
-                    lines.push('');
-                }
-                if (options.includeSuggestions && alignment.suggestion) {
-                    lines.push('**Suggestion:**');
-                    lines.push('```sql');
-                    lines.push(alignment.suggestion);
-                    lines.push('```');
-                    lines.push('');
-                }
-            }
-        }
-        return lines.join('\n');
+  }
+  /**
+   * Generate markdown format report
+   */
+  generateMarkdown(result, options = {}) {
+    const lines = [];
+    // Header
+    lines.push('# Schema Alignment Report');
+    lines.push('');
+    lines.push(`**Generated:** ${result.timestamp.toISOString()}`);
+    lines.push(`**Duration:** ${result.durationMs}ms`);
+    lines.push(`**Status:** ${result.passed ? '✅ PASSED' : '❌ FAILED'}`);
+    lines.push('');
+    // Summary
+    lines.push('## Summary');
+    lines.push('');
+    lines.push('| Metric | Count |');
+    lines.push('|--------|-------|');
+    lines.push(`| Total Fields | ${result.summary.totalFields} |`);
+    lines.push(`| Aligned | ${result.summary.alignedCount} |`);
+    lines.push(`| Misaligned | ${result.summary.misalignedCount} |`);
+    lines.push(`| Missing DB | ${result.summary.byStatus.missing_db} |`);
+    lines.push(`| Missing API | ${result.summary.byStatus.missing_api} |`);
+    lines.push(`| Type Mismatch | ${result.summary.byStatus.type_mismatch} |`);
+    lines.push(`| Nullability Mismatch | ${result.summary.byStatus.nullability_mismatch} |`);
+    lines.push('');
+    // Filter alignments
+    const alignments = this.filterAlignments(result.alignments, options);
+    if (alignments.length === 0) {
+      lines.push('*No alignments to display with current filters.*');
+      lines.push('');
+      return lines.join('\n');
     }
-    /**
-     * Generate JSON format report
-     */
-    generateJSON(result, options = {}) {
-        const alignments = this.filterAlignments(result.alignments, options);
-        const report = {
-            summary: {
-                passed: result.passed,
-                timestamp: result.timestamp.toISOString(),
-                durationMs: result.durationMs,
-                totalFields: result.summary.totalFields,
-                alignedCount: result.summary.alignedCount,
-                misalignedCount: result.summary.misalignedCount,
-                byStatus: result.summary.byStatus,
-            },
-            alignments: alignments.map((a) => ({
-                fieldPath: a.fieldPath,
-                status: a.status,
-                error: a.error,
-                suggestion: options.includeSuggestions ? a.suggestion : undefined,
-                sourceLocation: a.sourceLocation,
-                graphqlType: a.graphqlField.graphqlType,
-                dbType: a.dbColumn?.pgType,
-                apiType: a.apiField?.graphqlType,
-            })),
-            errors: result.errors,
-            warnings: result.warnings,
-            cacheInfo: result.cacheInfo,
-        };
-        return JSON.stringify(report, null, 2);
+    // Misalignments
+    const misaligned = alignments.filter((a) => a.status !== 'aligned');
+    if (misaligned.length > 0) {
+      lines.push('## Misalignments');
+      lines.push('');
+      for (const alignment of misaligned) {
+        lines.push(`### ${alignment.fieldPath}`);
+        lines.push('');
+        lines.push(`**Status:** \`${alignment.status}\``);
+        lines.push(
+          `**Location:** ${alignment.sourceLocation.file}:${alignment.sourceLocation.line}`
+        );
+        lines.push('');
+        if (alignment.error) {
+          lines.push(`**Error:** ${alignment.error}`);
+          lines.push('');
+        }
+        if (options.includeSuggestions && alignment.suggestion) {
+          lines.push('**Suggestion:**');
+          lines.push('```sql');
+          lines.push(alignment.suggestion);
+          lines.push('```');
+          lines.push('');
+        }
+      }
     }
-    /**
-     * Generate HTML format report
-     */
-    generateHTML(result, options = {}) {
-        const alignments = this.filterAlignments(result.alignments, options);
-        const statusColor = result.passed ? '#22c55e' : '#ef4444';
-        const html = `
+    return lines.join('\n');
+  }
+  /**
+   * Generate JSON format report
+   */
+  generateJSON(result, options = {}) {
+    const alignments = this.filterAlignments(result.alignments, options);
+    const report = {
+      summary: {
+        passed: result.passed,
+        timestamp: result.timestamp.toISOString(),
+        durationMs: result.durationMs,
+        totalFields: result.summary.totalFields,
+        alignedCount: result.summary.alignedCount,
+        misalignedCount: result.summary.misalignedCount,
+        byStatus: result.summary.byStatus,
+      },
+      alignments: alignments.map((a) => ({
+        fieldPath: a.fieldPath,
+        status: a.status,
+        error: a.error,
+        suggestion: options.includeSuggestions ? a.suggestion : undefined,
+        sourceLocation: a.sourceLocation,
+        graphqlType: a.graphqlField.graphqlType,
+        dbType: a.dbColumn?.pgType,
+        apiType: a.apiField?.graphqlType,
+      })),
+      errors: result.errors,
+      warnings: result.warnings,
+      cacheInfo: result.cacheInfo,
+    };
+    return JSON.stringify(report, null, 2);
+  }
+  /**
+   * Generate HTML format report
+   */
+  generateHTML(result, options = {}) {
+    const alignments = this.filterAlignments(result.alignments, options);
+    const statusColor = result.passed ? '#22c55e' : '#ef4444';
+    const html = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -239,8 +241,9 @@ export class AlignmentReporter {
   </div>
 
   ${alignments
-            .filter((a) => a.status !== 'aligned')
-            .map((a) => `
+    .filter((a) => a.status !== 'aligned')
+    .map(
+      (a) => `
     <div class="alignment">
       <h3>${a.fieldPath}</h3>
       <p>
@@ -250,112 +253,119 @@ export class AlignmentReporter {
       ${a.error ? `<div class="error-message">${a.error}</div>` : ''}
       ${options.includeSuggestions && a.suggestion ? `<div class="suggestion">${this.escapeHtml(a.suggestion)}</div>` : ''}
     </div>
-  `)
-            .join('\n')}
+  `
+    )
+    .join('\n')}
 </body>
 </html>`;
-        return html;
+    return html;
+  }
+  /**
+   * Generate terminal format report with colors
+   */
+  generateTerminal(result, options = {}) {
+    const lines = [];
+    // Header
+    lines.push(chalk.bold.underline('\n📋 Schema Alignment Report'));
+    lines.push('');
+    lines.push(`${chalk.gray('Generated:')} ${result.timestamp.toISOString()}`);
+    lines.push(`${chalk.gray('Duration:')} ${result.durationMs}ms`);
+    lines.push(
+      `${chalk.gray('Status:')} ${result.passed ? chalk.green.bold('✅ PASSED') : chalk.red.bold('❌ FAILED')}`
+    );
+    lines.push('');
+    // Summary
+    lines.push(chalk.bold('📊 Summary'));
+    lines.push('');
+    lines.push(`  ${chalk.cyan('Total Fields:')} ${result.summary.totalFields}`);
+    lines.push(`  ${chalk.green('Aligned:')} ${result.summary.alignedCount}`);
+    lines.push(`  ${chalk.red('Misaligned:')} ${result.summary.misalignedCount}`);
+    lines.push('');
+    lines.push(`  ${chalk.yellow('Missing DB:')} ${result.summary.byStatus.missing_db}`);
+    lines.push(`  ${chalk.yellow('Missing API:')} ${result.summary.byStatus.missing_api}`);
+    lines.push(`  ${chalk.yellow('Type Mismatch:')} ${result.summary.byStatus.type_mismatch}`);
+    lines.push(
+      `  ${chalk.yellow('Nullability Mismatch:')} ${result.summary.byStatus.nullability_mismatch}`
+    );
+    lines.push('');
+    // Filter alignments
+    const alignments = this.filterAlignments(result.alignments, options);
+    const misaligned = alignments.filter((a) => a.status !== 'aligned');
+    if (misaligned.length === 0) {
+      lines.push(chalk.green('✨ All fields are properly aligned!'));
+      lines.push('');
+      return lines.join('\n');
     }
-    /**
-     * Generate terminal format report with colors
-     */
-    generateTerminal(result, options = {}) {
-        const lines = [];
-        // Header
-        lines.push(chalk.bold.underline('\n📋 Schema Alignment Report'));
-        lines.push('');
-        lines.push(`${chalk.gray('Generated:')} ${result.timestamp.toISOString()}`);
-        lines.push(`${chalk.gray('Duration:')} ${result.durationMs}ms`);
-        lines.push(`${chalk.gray('Status:')} ${result.passed ? chalk.green.bold('✅ PASSED') : chalk.red.bold('❌ FAILED')}`);
-        lines.push('');
-        // Summary
-        lines.push(chalk.bold('📊 Summary'));
-        lines.push('');
-        lines.push(`  ${chalk.cyan('Total Fields:')} ${result.summary.totalFields}`);
-        lines.push(`  ${chalk.green('Aligned:')} ${result.summary.alignedCount}`);
-        lines.push(`  ${chalk.red('Misaligned:')} ${result.summary.misalignedCount}`);
-        lines.push('');
-        lines.push(`  ${chalk.yellow('Missing DB:')} ${result.summary.byStatus.missing_db}`);
-        lines.push(`  ${chalk.yellow('Missing API:')} ${result.summary.byStatus.missing_api}`);
-        lines.push(`  ${chalk.yellow('Type Mismatch:')} ${result.summary.byStatus.type_mismatch}`);
-        lines.push(`  ${chalk.yellow('Nullability Mismatch:')} ${result.summary.byStatus.nullability_mismatch}`);
-        lines.push('');
-        // Filter alignments
-        const alignments = this.filterAlignments(result.alignments, options);
-        const misaligned = alignments.filter((a) => a.status !== 'aligned');
-        if (misaligned.length === 0) {
-            lines.push(chalk.green('✨ All fields are properly aligned!'));
-            lines.push('');
-            return lines.join('\n');
-        }
-        // Misalignments
-        lines.push(chalk.bold.red('🚨 Misalignments'));
-        lines.push('');
-        for (const alignment of misaligned) {
-            lines.push(chalk.bold(`  ${alignment.fieldPath}`));
-            lines.push(`    ${chalk.gray('Status:')} ${this.colorizeStatus(alignment.status)}`);
-            lines.push(`    ${chalk.gray('Location:')} ${alignment.sourceLocation.file}:${alignment.sourceLocation.line}`);
-            if (alignment.error) {
-                lines.push(`    ${chalk.red('Error:')} ${alignment.error}`);
-            }
-            if (options.includeSuggestions && alignment.suggestion) {
-                lines.push(`    ${chalk.blue('Suggestion:')}`);
-                alignment.suggestion.split('\n').forEach((line) => {
-                    lines.push(`      ${chalk.dim(line)}`);
-                });
-            }
-            lines.push('');
-        }
-        return lines.join('\n');
+    // Misalignments
+    lines.push(chalk.bold.red('🚨 Misalignments'));
+    lines.push('');
+    for (const alignment of misaligned) {
+      lines.push(chalk.bold(`  ${alignment.fieldPath}`));
+      lines.push(`    ${chalk.gray('Status:')} ${this.colorizeStatus(alignment.status)}`);
+      lines.push(
+        `    ${chalk.gray('Location:')} ${alignment.sourceLocation.file}:${alignment.sourceLocation.line}`
+      );
+      if (alignment.error) {
+        lines.push(`    ${chalk.red('Error:')} ${alignment.error}`);
+      }
+      if (options.includeSuggestions && alignment.suggestion) {
+        lines.push(`    ${chalk.blue('Suggestion:')}`);
+        alignment.suggestion.split('\n').forEach((line) => {
+          lines.push(`      ${chalk.dim(line)}`);
+        });
+      }
+      lines.push('');
     }
-    /**
-     * Filter alignments based on options
-     * @private
-     */
-    filterAlignments(alignments, options) {
-        if (!options.filter) {
-            return alignments;
-        }
-        switch (options.filter) {
-            case 'aligned':
-                return alignments.filter((a) => a.status === 'aligned');
-            case 'misaligned':
-                return alignments.filter((a) => a.status !== 'aligned');
-            case 'errors-only':
-                return alignments.filter((a) => a.status !== 'aligned' && a.error);
-            default:
-                return alignments;
-        }
+    return lines.join('\n');
+  }
+  /**
+   * Filter alignments based on options
+   * @private
+   */
+  filterAlignments(alignments, options) {
+    if (!options.filter) {
+      return alignments;
     }
-    /**
-     * Colorize alignment status for terminal output
-     * @private
-     */
-    colorizeStatus(status) {
-        switch (status) {
-            case 'aligned':
-                return chalk.green(status);
-            case 'missing_db':
-            case 'missing_api':
-                return chalk.red(status);
-            case 'type_mismatch':
-            case 'nullability_mismatch':
-                return chalk.yellow(status);
-            default:
-                return chalk.gray(status);
-        }
+    switch (options.filter) {
+      case 'aligned':
+        return alignments.filter((a) => a.status === 'aligned');
+      case 'misaligned':
+        return alignments.filter((a) => a.status !== 'aligned');
+      case 'errors-only':
+        return alignments.filter((a) => a.status !== 'aligned' && a.error);
+      default:
+        return alignments;
     }
-    /**
-     * Escape HTML special characters
-     * @private
-     */
-    escapeHtml(text) {
-        return text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
+  }
+  /**
+   * Colorize alignment status for terminal output
+   * @private
+   */
+  colorizeStatus(status) {
+    switch (status) {
+      case 'aligned':
+        return chalk.green(status);
+      case 'missing_db':
+      case 'missing_api':
+        return chalk.red(status);
+      case 'type_mismatch':
+      case 'nullability_mismatch':
+        return chalk.yellow(status);
+      default:
+        return chalk.gray(status);
     }
+  }
+  /**
+   * Escape HTML special characters
+   * @private
+   */
+  escapeHtml(text) {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
 }
 //# sourceMappingURL=alignment-reporter.js.map

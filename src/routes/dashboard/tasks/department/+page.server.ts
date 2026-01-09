@@ -7,7 +7,8 @@ import { error, redirect } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { ensureBackendReady } from '$lib/server/backend-init';
 import { PermissionChecks } from '$lib/server/rbac-utils';
-import type { TaskStatus, TaskPriority } from '$lib/graphql/types';
+import type { TaskPriority, TaskStatus } from '$lib/graphql/types';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	// Check authentication and permissions
@@ -41,14 +42,15 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		// Check if user has broad scope permissions (can view all departments)
 		const userPermissions = locals.permissions || [];
 		const isAdmin =
-			userPermissions.includes('*') || userPermissions.includes('*:*') ||
+			userPermissions.includes('*') ||
+			userPermissions.includes('*:*') ||
 			userPermissions.includes('tasks:read:all');
 
 		if (!selectedDepartmentId && !isAdmin) {
 			error(400, {
-            				message:
-            					'No department selected. Please select a department from the dropdown or ensure your profile has a department assigned.'
-            			});
+				message:
+					'No department selected. Please select a department from the dropdown or ensure your profile has a department assigned.'
+			});
 		}
 
 		// NOTE: Using Rust GraphQL schema - fetch all and filter client-side
@@ -108,7 +110,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			// Client-side sorting (since Rust schema doesn't support orderBy)
 			const sortFunctions: Record<string, (a: any, b: any) => number> = {
 				priority: (a, b) => {
-					const priorityOrder = { HIGH: 3, MEDIUM: 2, LOW: 1 };
+					const priorityOrder: Record<string, number> = { HIGH: 3, MEDIUM: 2, LOW: 1 };
 					return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
 				},
 				dueDate: (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
@@ -151,7 +153,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 					);
 				}
 			} catch (err) {
-				console.error('Error fetching departments for admin:', err);
+				logger.error('Error fetching departments for admin:', err as Error);
 				// Fallback to user's department if query fails
 				if (locals.user.department_id) {
 					managedDepartments = [
@@ -205,7 +207,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			user: locals.user
 		};
 	} catch (err: any) {
-		console.error('Error loading department tasks:', err);
+		logger.error('Error loading department tasks:', err as Error);
 
 		// Handle specific error cases
 		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {
@@ -218,8 +220,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		}
 
 		error(500, {
-        			message: 'Failed to load department tasks. Please try again later.'
-        		});
+			message: 'Failed to load department tasks. Please try again later.'
+		});
 	}
 };
 

@@ -3,7 +3,7 @@
 // Task: T010 - E2E test Teams administration page
 // CRITICAL: This test MUST FAIL initially as per TDD approach
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Admin Teams Administration Page', () => {
 	test.beforeEach(async ({ page }) => {
@@ -19,7 +19,7 @@ test.describe('Admin Teams Administration Page', () => {
 
 	test('should display teams and departments data table', async ({ page }) => {
 		// Navigate to teams administration page
-		await page.goto('/dashboard/admin/teams');
+		await page.goto('/admin/teams');
 
 		// Wait for page to load
 		await expect(page.locator('h1')).toContainText('Teams & Departments');
@@ -38,7 +38,7 @@ test.describe('Admin Teams Administration Page', () => {
 		]);
 
 		// Should have at least one team/department row
-		await expect(page.locator('[data-testid="team-row"]')).toHaveCount({ min: 1 });
+		expect(await page.locator('[data-testid="team-row"]').count()).toBeGreaterThanOrEqual(1);
 
 		// Each row should have department details and action buttons
 		const firstRow = page.locator('[data-testid="team-row"]').first();
@@ -53,7 +53,7 @@ test.describe('Admin Teams Administration Page', () => {
 	});
 
 	test('should create new department with team structure', async ({ page }) => {
-		await page.goto('/dashboard/admin/teams');
+		await page.goto('/admin/teams');
 
 		// Click create new department button
 		await page.click('[data-testid="create-department"]');
@@ -104,7 +104,7 @@ test.describe('Admin Teams Administration Page', () => {
 	});
 
 	test('should edit existing department and update team members', async ({ page }) => {
-		await page.goto('/dashboard/admin/teams');
+		await page.goto('/admin/teams');
 
 		// Click edit button for first department
 		const firstRow = page.locator('[data-testid="team-row"]').first();
@@ -150,7 +150,7 @@ test.describe('Admin Teams Administration Page', () => {
 	});
 
 	test('should view department details and org chart', async ({ page }) => {
-		await page.goto('/dashboard/admin/teams');
+		await page.goto('/admin/teams');
 
 		// Click view button for first department
 		const firstRow = page.locator('[data-testid="team-row"]').first();
@@ -168,7 +168,7 @@ test.describe('Admin Teams Administration Page', () => {
 
 		// Should show team members list
 		await expect(page.locator('[data-testid="team-members-list"]')).toBeVisible();
-		await expect(page.locator('[data-testid="member-item"]')).toHaveCount({ min: 1 });
+		expect(await page.locator('[data-testid="member-item"]').count()).toBeGreaterThanOrEqual(1);
 
 		// Each team member should show details
 		const firstMember = page.locator('[data-testid="member-item"]').first();
@@ -180,7 +180,9 @@ test.describe('Admin Teams Administration Page', () => {
 		// Should show organizational chart
 		await expect(page.locator('[data-testid="org-chart"]')).toBeVisible();
 		await expect(page.locator('[data-testid="dept-head-node"]')).toBeVisible();
-		await expect(page.locator('[data-testid="team-member-node"]')).toHaveCount({ min: 1 });
+		expect(await page.locator('[data-testid="team-member-node"]').count()).toBeGreaterThanOrEqual(
+			1
+		);
 
 		// Should show department metrics
 		await expect(page.locator('[data-testid="dept-metrics"]')).toBeVisible();
@@ -190,7 +192,7 @@ test.describe('Admin Teams Administration Page', () => {
 	});
 
 	test('should validate required fields in department creation', async ({ page }) => {
-		await page.goto('/dashboard/admin/teams');
+		await page.goto('/admin/teams');
 
 		// Click create new department
 		await page.click('[data-testid="create-department"]');
@@ -229,7 +231,7 @@ test.describe('Admin Teams Administration Page', () => {
 	});
 
 	test('should transfer department head with proper authorization', async ({ page }) => {
-		await page.goto('/dashboard/admin/teams');
+		await page.goto('/admin/teams');
 
 		// Click edit button for department
 		const firstRow = page.locator('[data-testid="team-row"]').first();
@@ -266,7 +268,7 @@ test.describe('Admin Teams Administration Page', () => {
 	});
 
 	test('should filter departments by status', async ({ page }) => {
-		await page.goto('/dashboard/admin/teams');
+		await page.goto('/admin/teams');
 
 		// Should have status filter
 		await expect(page.locator('[data-testid="status-filter"]')).toBeVisible();
@@ -286,7 +288,7 @@ test.describe('Admin Teams Administration Page', () => {
 	});
 
 	test('should search departments by name or head', async ({ page }) => {
-		await page.goto('/dashboard/admin/teams');
+		await page.goto('/admin/teams');
 
 		// Should have search input
 		await expect(page.locator('[data-testid="department-search"]')).toBeVisible();
@@ -306,7 +308,7 @@ test.describe('Admin Teams Administration Page', () => {
 	});
 
 	test('should sort departments by team size', async ({ page }) => {
-		await page.goto('/dashboard/admin/teams');
+		await page.goto('/admin/teams');
 
 		// Click team size column header to sort
 		await page.click('[data-testid="team-size-header"]');
@@ -325,7 +327,7 @@ test.describe('Admin Teams Administration Page', () => {
 	});
 
 	test('should handle pagination for large datasets', async ({ page }) => {
-		await page.goto('/dashboard/admin/teams');
+		await page.goto('/admin/teams');
 
 		// Should have pagination controls if more than page size
 		if (await page.locator('[data-testid="pagination-next"]').isVisible()) {
@@ -337,7 +339,7 @@ test.describe('Admin Teams Administration Page', () => {
 
 			// Should load new page of results
 			await expect(page.locator('[data-testid="loading-indicator"]')).not.toBeVisible();
-			await expect(page.locator('[data-testid="team-row"]')).toHaveCount({ min: 1 });
+			expect(await page.locator('[data-testid="team-row"]').count()).toBeGreaterThanOrEqual(1);
 
 			// Previous button should be enabled
 			await expect(page.locator('[data-testid="pagination-prev"]')).toBeEnabled();
@@ -345,7 +347,7 @@ test.describe('Admin Teams Administration Page', () => {
 	});
 
 	test('should export departments data to CSV', async ({ page }) => {
-		await page.goto('/dashboard/admin/teams');
+		await page.goto('/admin/teams');
 
 		// Should have export button
 		await expect(page.locator('[data-testid="export-csv"]')).toBeVisible();
@@ -360,7 +362,7 @@ test.describe('Admin Teams Administration Page', () => {
 	});
 
 	test('should delete department with confirmation and data validation', async ({ page }) => {
-		await page.goto('/dashboard/admin/teams');
+		await page.goto('/admin/teams');
 
 		// Click delete button for department
 		const departmentRow = page
@@ -406,7 +408,7 @@ test.describe('Admin Teams Administration Page', () => {
 	});
 
 	test('should bulk assign employees to departments', async ({ page }) => {
-		await page.goto('/dashboard/admin/teams');
+		await page.goto('/admin/teams');
 
 		// Should have bulk actions button
 		await expect(page.locator('[data-testid="bulk-actions"]')).toBeVisible();
@@ -448,7 +450,7 @@ test.describe('Admin Teams Administration Page', () => {
 
 	test('should handle empty state when no departments exist', async ({ page }) => {
 		// Apply filters that will return no results
-		await page.goto('/dashboard/admin/teams');
+		await page.goto('/admin/teams');
 		await page.selectOption('[data-testid="status-filter"]', 'archived');
 		await page.click('[data-testid="apply-filters"]');
 
@@ -462,7 +464,7 @@ test.describe('Admin Teams Administration Page', () => {
 	});
 
 	test('should display department budget and cost analysis', async ({ page }) => {
-		await page.goto('/dashboard/admin/teams');
+		await page.goto('/admin/teams');
 
 		// Should have budget overview section
 		await expect(page.locator('[data-testid="budget-overview"]')).toBeVisible();
@@ -489,7 +491,7 @@ test.describe('Admin Teams Administration Page', () => {
 		await page.click('[data-testid="login-submit"]');
 
 		// Try to access teams administration page
-		await page.goto('/dashboard/admin/teams');
+		await page.goto('/admin/teams');
 
 		// Should redirect to unauthorized or show access denied
 		await expect(page).toHaveURL(/\/(unauthorized|403)/);

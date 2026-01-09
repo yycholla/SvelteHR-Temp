@@ -187,6 +187,31 @@ spec:
                   name: {{ include "sveltehr.fullname" . }}-secrets
                   key: service-auth-key
 
+            # Intuit QuickBooks OAuth configuration
+            - name: INTUIT_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sveltehr.fullname" . }}-secrets
+                  key: intuit-client-id
+            - name: INTUIT_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sveltehr.fullname" . }}-secrets
+                  key: intuit-client-secret
+            - name: INTUIT_WEBHOOK_VERIFIER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sveltehr.fullname" . }}-secrets
+                  key: intuit-webhook-verifier-token
+            - name: INTUIT_REDIRECT_URI
+              value: {{ .Values.intuit.redirectUri | quote }}
+            - name: INTUIT_ENVIRONMENT
+              value: {{ .Values.intuit.environment | default "sandbox" | quote }}
+            - name: INTUIT_SCOPES
+              value: {{ .Values.intuit.scopes | default "com.intuit.quickbooks.accounting com.intuit.quickbooks.payment" | quote }}
+            - name: INTUIT_WEBHOOK_URL
+              value: {{ .Values.intuit.webhookUrl | quote }}
+
             # Server configuration
             - name: HOST
               value: {{ .Values.backend.host | default "0.0.0.0" | quote }}

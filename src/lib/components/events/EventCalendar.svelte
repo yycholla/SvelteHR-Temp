@@ -1,60 +1,14 @@
-<!--
-  EventCalendar Component
-  Feature: 019-we-need-to - Phase 4
-  Feature: 027-we-need-to - RRULE Support
-
-  Full-featured calendar view for events with FullCalendar integration
-
-  Features:
-  - Month, week, and day views
-  - Event creation via date click (manager/admin only)
-  - Event editing via drag-and-drop
-  - RSVP status color-coding
-  - Event filtering by visibility type
-  - Responsive design for mobile
-  - Interactive event details
-  - Recurring events with RRULE (RFC 5545) support
-  - Reminder indicators
-
-  Props:
-  - events: Array of event objects (supports RRULE for recurring events)
-  - userId: Current user ID for RSVP status
-  - canManageEvents: Whether user can create/edit events
-  - localRsvpStatuses: Local RSVP status map for optimistic UI updates
-  - onEventClick: Callback when event is clicked
-  - onDateClick: Callback when date is clicked (for event creation)
-  - onDateSelect: Callback when date range is selected
-  - onEventDrop: Callback when event is dragged to new date
-  - visibilityFilter?: Filter events by visibility type
--->
-
-<svelte:head>
-	<link href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.19/index.global.min.css" rel="stylesheet" />
-	<link href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.19/index.global.min.css" rel="stylesheet" />
-	<link href="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.19/index.global.min.css" rel="stylesheet" />
-</svelte:head>
-
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 	import { browser } from '$app/environment';
 	import type { EventInput } from '@fullcalendar/core';
-	import { Bell } from '@lucide/svelte';
 
 	// Feature 027: Import conflict detection utility
 	import { detectConflict } from '$lib/utils/calendar';
 
-	// Props with Svelte 5 runes syntax
-	let {
-		events = [],
-		userId,
-		canManageEvents = false,
-		localRsvpStatuses,
-		onEventClick,
-		onDateClick,
-		onDateSelect,
-		onEventDrop,
-		visibilityFilter = 'all'
-	}: {
+	// Export type definitions for test imports
+	export interface EventCalendarProps {
 		events: any[];
 		userId: string;
 		canManageEvents?: boolean;
@@ -64,31 +18,50 @@
 		onDateSelect?: (start: Date, end: Date, allDay: boolean) => void;
 		onEventDrop?: (eventId: string, newStart: Date, newEnd: Date) => void;
 		visibilityFilter?: 'all' | 'company' | 'department' | 'specific';
-	} = $props();
+	}
+
+	// Props with Svelte 5 runes syntax
+	const {
+		events = [],
+		userId,
+		canManageEvents = false,
+		localRsvpStatuses,
+		onEventClick,
+		onDateClick,
+		onDateSelect,
+		onEventDrop,
+		visibilityFilter = 'all'
+	}: EventCalendarProps = $props();
 
 	// State
 	let calendarEl: HTMLElement;
 	let calendar: any = null;
 
 	// Derived: Filter events by visibility
-	let filteredEvents = $derived(
+	const filteredEvents = $derived(
 		visibilityFilter === 'all'
 			? events
 			: events.filter((e: any) => e.visibilityType === visibilityFilter)
 	);
 
 	// Derived: Convert events to FullCalendar format
-	let calendarEvents = $derived(
+	const calendarEvents = $derived(
 		filteredEvents.map((event: any) => {
 			const rsvpStatus = localRsvpStatuses[event.id] || 'pending';
+			const now = new Date();
+			const eventEnd = new Date(event.endTime);
+			const isPastEvent = eventEnd < now;
 
 			// RSVP status-based colors (4 distinct colors)
 			const colorMap: Record<string, string> = {
-				accepted: '#22c55e',   // Green
-				declined: '#ef4444',   // Red
-				tentative: '#f59e0b',  // Amber/Orange
-				pending: '#3b82f6'     // Blue
+				accepted: '#22c55e', // Green
+				declined: '#ef4444', // Red
+				tentative: '#f59e0b', // Amber/Orange
+				pending: '#3b82f6' // Blue
 			};
+
+			// Gray out past events
+			const eventColor = isPastEvent ? '#9ca3af' : colorMap[rsvpStatus];
 
 			const userAttendee = event.eventAttendeesByEventId?.nodes?.find(
 				(a: any) => a.employeeId === userId
@@ -97,22 +70,26 @@
 
 			const calendarEvent: any = {
 				id: event.id,
-				title: event.title,
-				backgroundColor: colorMap[rsvpStatus],
-				borderColor: colorMap[rsvpStatus],
-				allDay: event.allDay,
+				title: isPastEvent ? `[Past] ${event.title}` : event.title,
+				backgroundColor: eventColor,
+				borderColor: eventColor,
+				allDay: event.isAllDay,
+				classNames: isPastEvent ? ['past-event'] : [],
+				editable: !isPastEvent && canManageEvents, // Past events are not editable
 				extendedProps: {
 					...event,
 					rsvpStatus,
-					hasReminder
+					hasReminder,
+					isPastEvent
 				}
 			};
 
 			if (event.rrule) {
 				calendarEvent.rrule = event.rrule;
-				const duration = event.endTime && event.startTime
-					? new Date(event.endTime).getTime() - new Date(event.startTime).getTime()
-					: 3600000;
+				const duration =
+					event.endTime && event.startTime
+						? new Date(event.endTime).getTime() - new Date(event.startTime).getTime()
+						: 3600000;
 				calendarEvent.duration = duration;
 			} else {
 				calendarEvent.start = event.startTime;
@@ -172,13 +149,17 @@
 								{
 									id: info.event.id,
 									startDate: info.event.start || new Date(),
-									endDate: info.event.end || new Date()
-								},
+									endDate: info.event.end || new Date(),
+									title: info.event.title,
+									allDay: info.event.allDay
+								} as any,
 								{
 									id: otherEvent.id,
 									startDate: new Date(otherEvent.startTime),
-									endDate: new Date(otherEvent.endTime)
-								}
+									endDate: new Date(otherEvent.endTime),
+									title: otherEvent.title,
+									allDay: otherEvent.isAllDay
+								} as any
 							);
 
 							if (conflict) {
@@ -232,7 +213,10 @@
 							conflictIcon.setAttribute('title', 'Schedule conflict detected');
 
 							const triangle = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-							triangle.setAttribute('d', 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z');
+							triangle.setAttribute(
+								'd',
+								'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'
+							);
 							conflictIcon.appendChild(triangle);
 
 							const exclamation = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -251,7 +235,8 @@
 
 							titleEl.appendChild(conflictIcon);
 
-							info.el.style.backgroundImage = 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(239, 68, 68, 0.1) 10px, rgba(239, 68, 68, 0.1) 20px)';
+							info.el.style.backgroundImage =
+								'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(239, 68, 68, 0.1) 10px, rgba(239, 68, 68, 0.1) 20px)';
 						}
 					}
 				},
@@ -267,7 +252,11 @@
 				eventDrop: async (info) => {
 					if (canManageEvents && onEventDrop) {
 						try {
-							await onEventDrop(info.event.id, info.event.start || new Date(), info.event.end || new Date());
+							await onEventDrop(
+								info.event.id,
+								info.event.start || new Date(),
+								info.event.end || new Date()
+							);
 						} catch (error) {
 							info.revert();
 						}
@@ -276,7 +265,11 @@
 				eventResize: async (info) => {
 					if (canManageEvents && onEventDrop) {
 						try {
-							await onEventDrop(info.event.id, info.event.start || new Date(), info.event.end || new Date());
+							await onEventDrop(
+								info.event.id,
+								info.event.start || new Date(),
+								info.event.end || new Date()
+							);
 						} catch (error) {
 							info.revert();
 						}
@@ -287,7 +280,7 @@
 			calendar.render();
 			calendar.addEventSource(calendarEvents);
 		} catch (error) {
-			console.error('[EventCalendar] Error initializing calendar:', error);
+			logger.error('Catch failed', error as Error);
 		}
 	});
 
@@ -295,7 +288,7 @@
 	$effect(() => {
 		if (calendar && calendarEvents.length > 0) {
 			// Remove all existing event sources
-			calendar.getEventSources().forEach(source => source.remove());
+			calendar.getEventSources().forEach((source: { remove: () => void }) => source.remove());
 			// Add updated events
 			calendar.addEventSource(calendarEvents);
 			// Refetch to ensure calendar is updated
@@ -308,6 +301,51 @@
 	});
 </script>
 
+<!--
+  EventCalendar Component
+  Feature: 019-we-need-to - Phase 4
+  Feature: 027-we-need-to - RRULE Support
+
+  Full-featured calendar view for events with FullCalendar integration
+
+  Features:
+  - Month, week, and day views
+  - Event creation via date click (manager/admin only)
+  - Event editing via drag-and-drop
+  - RSVP status color-coding
+  - Event filtering by visibility type
+  - Responsive design for mobile
+  - Interactive event details
+  - Recurring events with RRULE (RFC 5545) support
+  - Reminder indicators
+
+  Props:
+  - events: Array of event objects (supports RRULE for recurring events)
+  - userId: Current user ID for RSVP status
+  - canManageEvents: Whether user can create/edit events
+  - localRsvpStatuses: Local RSVP status map for optimistic UI updates
+  - onEventClick: Callback when event is clicked
+  - onDateClick: Callback when date is clicked (for event creation)
+  - onDateSelect: Callback when date range is selected
+  - onEventDrop: Callback when event is dragged to new date
+  - visibilityFilter?: Filter events by visibility type
+-->
+
+<svelte:head>
+	<link
+		href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.19/index.global.min.css"
+		rel="stylesheet"
+	/>
+	<link
+		href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.19/index.global.min.css"
+		rel="stylesheet"
+	/>
+	<link
+		href="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.19/index.global.min.css"
+		rel="stylesheet"
+	/>
+</svelte:head>
+
 <div class="event-calendar-wrapper">
 	<div bind:this={calendarEl} class="event-calendar">
 		{#if !browser}
@@ -315,12 +353,12 @@
 				<div class="animate-pulse">
 					<div class="h-8 bg-muted rounded mb-4"></div>
 					<div class="grid grid-cols-7 gap-2 mb-2">
-						{#each Array(7) as _}
+						{#each Array(7) as _, i (i)}
 							<div class="h-6 bg-muted rounded"></div>
 						{/each}
 					</div>
 					<div class="grid grid-cols-7 gap-2">
-						{#each Array(35) as _}
+						{#each Array(35) as _, i (i)}
 							<div class="h-20 bg-muted rounded"></div>
 						{/each}
 					</div>
@@ -367,7 +405,7 @@
 		border: none !important;
 	}
 
-	:global(.fc-theme-standard td), 
+	:global(.fc-theme-standard td),
 	:global(.fc-theme-standard th) {
 		border-color: hsl(var(--border));
 	}
@@ -380,7 +418,7 @@
 		border-right: none !important;
 		padding: 0.75rem 0;
 	}
-	
+
 	:global(.fc-col-header-cell-cushion) {
 		color: hsl(var(--muted-foreground));
 		font-weight: 600;
@@ -477,15 +515,32 @@
 		min-height: 100%;
 	}
 
-    /* Time Grid Alternating Rows (Zebra Stripe) */
-    /* Target the ROW (tr), then the LANE (td) inside it */
-    :global(.fc-timegrid-slots tr:nth-child(odd) .fc-timegrid-slot-lane) {
-        background-color: hsl(var(--muted) / 0.5); 
-    }
+	/* Time Grid Alternating Rows (Zebra Stripe) */
+	/* Target the ROW (tr), then the LANE (td) inside it */
+	:global(.fc-timegrid-slots tr:nth-child(odd) .fc-timegrid-slot-lane) {
+		background-color: hsl(var(--muted) / 0.5);
+	}
 
-    /* Today Highlight (Darker/Distinct) */
-    /* Use secondary color which usually contrasts well with card background */
+	/* Today Highlight (Darker/Distinct) */
+	/* Use secondary color which usually contrasts well with card background */
 	:global(.fc-day-today) {
 		background-color: hsl(var(--secondary) / 0.5) !important;
+	}
+
+	/* Past Event Styling - Make them visually distinct and indicate they're read-only */
+	:global(.past-event) {
+		opacity: 0.6;
+		cursor: not-allowed !important;
+	}
+
+	:global(.past-event .fc-event-title) {
+		font-style: italic;
+		text-decoration: line-through;
+	}
+
+	/* Prevent hover effects on past events */
+	:global(.past-event:hover) {
+		opacity: 0.6 !important;
+		filter: none !important;
 	}
 </style>

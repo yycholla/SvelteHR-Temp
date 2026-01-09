@@ -1,7 +1,7 @@
 // Contract test: Document download API (T013)
 // Tests GET /api/documents/{id}/download endpoint
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
  * Contract Test: Document Download API
@@ -18,7 +18,8 @@ import { describe, it, expect, beforeAll } from 'vitest';
  */
 
 // API base URL for tests
-const API_BASE_URL = process.env.PUBLIC_API_URL || 'http://localhost:8080';
+const API_BASE_URL =
+	process.env.API_BASE_URL || process.env.PUBLIC_API_URL || 'http://localhost:5173';
 
 // Skip these tests in CI (no backend available)
 const describeOrSkip = process.env.CI ? describe.skip : describe;
@@ -48,7 +49,7 @@ describeOrSkip('GET /api/documents/{id}/download - Contract Tests', () => {
 		const response = await fetch(`${API_BASE_URL}/api/documents/${userDocumentId}/download`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${userToken}`
+				Authorization: `Bearer ${userToken}`
 			}
 		});
 
@@ -57,7 +58,9 @@ describeOrSkip('GET /api/documents/{id}/download - Contract Tests', () => {
 
 		// Validate headers
 		expect(response.headers.get('Content-Type')).toBe('application/octet-stream');
-		expect(response.headers.get('Content-Disposition')).toMatch(/^attachment; filename=".+\.encrypted"$/);
+		expect(response.headers.get('Content-Disposition')).toMatch(
+			/^attachment; filename=".+\.encrypted"$/
+		);
 		expect(response.headers.get('Content-Length')).toBeTruthy();
 
 		// Validate custom headers
@@ -76,7 +79,7 @@ describeOrSkip('GET /api/documents/{id}/download - Contract Tests', () => {
 		const response = await fetch(`${API_BASE_URL}/api/documents/${otherUserDocumentId}/download`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${userToken}`
+				Authorization: `Bearer ${userToken}`
 			}
 		});
 
@@ -93,7 +96,7 @@ describeOrSkip('GET /api/documents/{id}/download - Contract Tests', () => {
 		const response = await fetch(`${API_BASE_URL}/api/documents/${nonExistentDocId}/download`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${userToken}`
+				Authorization: `Bearer ${userToken}`
 			}
 		});
 
@@ -124,7 +127,7 @@ describeOrSkip('GET /api/documents/{id}/download - Contract Tests', () => {
 		const response = await fetch(`${API_BASE_URL}/api/documents/${otherUserDocumentId}/download`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			}
 		});
 
@@ -138,7 +141,7 @@ describeOrSkip('GET /api/documents/{id}/download - Contract Tests', () => {
 		const response = await fetch(`${API_BASE_URL}/api/documents/${userDocumentId}/download`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${userToken}`
+				Authorization: `Bearer ${userToken}`
 			}
 		});
 
@@ -159,7 +162,7 @@ describeOrSkip('GET /api/documents/{id}/download - Contract Tests', () => {
 		const response = await fetch(`${API_BASE_URL}/api/documents/${otherUserDocumentId}/download`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${userToken}`
+				Authorization: `Bearer ${userToken}`
 			}
 		});
 
@@ -177,7 +180,7 @@ describeOrSkip('GET /api/documents/{id}/download - Contract Tests', () => {
 		const response = await fetch(`${API_BASE_URL}/api/documents/${deletedDocId}/download`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${userToken}`
+				Authorization: `Bearer ${userToken}`
 			}
 		});
 
@@ -193,7 +196,7 @@ describeOrSkip('GET /api/documents/{id}/download - Contract Tests', () => {
 		const response = await fetch(`${API_BASE_URL}/api/documents/${deletedDocId}/download`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${adminToken}`
+				Authorization: `Bearer ${adminToken}`
 			}
 		});
 
@@ -209,7 +212,7 @@ describeOrSkip('GET /api/documents/{id}/download - Contract Tests', () => {
 		const response = await fetch(`${API_BASE_URL}/api/documents/${userDocumentId}/download`, {
 			method: 'GET',
 			headers: {
-				'Authorization': `Bearer ${userToken}`
+				Authorization: `Bearer ${userToken}`
 			}
 		});
 

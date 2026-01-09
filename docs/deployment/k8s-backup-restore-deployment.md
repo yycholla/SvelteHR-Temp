@@ -14,22 +14,24 @@ This guide provides a **streamlined deployment approach** using existing Velero 
 ### When to Use This Method
 
 ✅ **Use backup-first deployment when**:
+
 - You have recent Velero backups available
 - Setting up a new production server to replace existing one
 - Performing disaster recovery after complete server failure
 - Migrating cluster to new hardware
 
 ❌ **Don't use backup-first when**:
+
 - No backups exist yet (use full deployment guide)
 - Backups are older than 7 days (data may be stale)
 - Major Kubernetes version upgrade (incompatibility risk)
 
 ### Time Comparison
 
-| Method | Total Time | When to Use |
-|--------|------------|-------------|
-| **Backup-First** | **1h 30min** | Existing backups available |
-| Full Deployment | 2h 40min | First-time setup, no backups |
+| Method           | Total Time   | When to Use                  |
+| ---------------- | ------------ | ---------------------------- |
+| **Backup-First** | **1h 30min** | Existing backups available   |
+| Full Deployment  | 2h 40min     | First-time setup, no backups |
 
 ---
 
@@ -58,6 +60,7 @@ VELERO_BUCKET="velero"  # Default bucket name
 ### Server Requirements
 
 Same as full deployment:
+
 - 4+ CPU cores (8 recommended)
 - 16+ GB RAM (32 GB recommended)
 - 100+ GB SSD (250 GB recommended)
@@ -627,18 +630,18 @@ kubectl apply -f k8s/argocd/applications/<app-definition>.yaml
 
 ## Summary: Backup-First vs Full Deployment
 
-| Step | Backup-First | Full Deployment |
-|------|--------------|-----------------|
-| System Setup | ✅ Required (10 min) | ✅ Required (10 min) |
-| Kubernetes Install | ✅ Required (15 min) | ✅ Required (15 min) |
-| Helm Install | ✅ Required (2 min) | ✅ Required (2 min) |
-| ArgoCD Install | ⚠️ Optional (5 min) | ✅ Required (10 min) |
-| Secret Configuration | ✅ Minimal (5 min) | ✅ Full (10 min) |
+| Step                      | Backup-First                    | Full Deployment            |
+| ------------------------- | ------------------------------- | -------------------------- |
+| System Setup              | ✅ Required (10 min)            | ✅ Required (10 min)       |
+| Kubernetes Install        | ✅ Required (15 min)            | ✅ Required (15 min)       |
+| Helm Install              | ✅ Required (2 min)             | ✅ Required (2 min)        |
+| ArgoCD Install            | ⚠️ Optional (5 min)             | ✅ Required (10 min)       |
+| Secret Configuration      | ✅ Minimal (5 min)              | ✅ Full (10 min)           |
 | Infrastructure Deployment | ✅ MinIO + Velero only (15 min) | ✅ All components (40 min) |
-| Data Restore | ✅ Velero restore (20 min) | ✅ Velero restore (30 min) |
-| Application Deployment | ❌ Restored from backup | ✅ ArgoCD sync (15 min) |
-| Verification | ✅ Required (10 min) | ✅ Required (10 min) |
-| **TOTAL** | **~1h 30min** | **~2h 40min** |
+| Data Restore              | ✅ Velero restore (20 min)      | ✅ Velero restore (30 min) |
+| Application Deployment    | ❌ Restored from backup         | ✅ ArgoCD sync (15 min)    |
+| Verification              | ✅ Required (10 min)            | ✅ Required (10 min)       |
+| **TOTAL**                 | **~1h 30min**                   | **~2h 40min**              |
 
 ---
 

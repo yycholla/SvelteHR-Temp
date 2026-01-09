@@ -2,23 +2,16 @@
 // Tests complete workflows for employee CRUD operations
 // Created: 2025-09-24
 
-import { test, expect, describe } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import {
-	createTestContext,
-	cleanupTestData,
-	TestUser,
 	TestEmployee,
-	TestEmployeeData
+	TestUser,
+	UserRole,
+	cleanupTestData,
+	createTestContext
 } from '../utils/test-helpers';
-import { performGraphQLQuery, performGraphQLMutation } from '../utils/graphql-test-client';
-
-interface TestContext {
-	departments: any[];
-	users: any[];
-	createdEmployees: TestEmployeeData[];
-	authTokens: Record<string, string>;
-	cleanup?: () => Promise<void>;
-}
+import type { TestContext, TestEmployeeData } from '../utils/test-helpers';
+import { performGraphQLMutation, performGraphQLQuery } from '../utils/graphql-test-client';
 
 describe('Employee Management Integration Tests', () => {
 	let testContext: TestContext;
@@ -34,13 +27,13 @@ describe('Employee Management Integration Tests', () => {
 	describe('Employee Creation Workflow', () => {
 		test('should create employee with complete workflow', async () => {
 			// Arrange: HR Manager user
-			const hrManager = await TestUser.createHRManager();
+			const hrManager = await TestUser.createManager();
 
 			const newEmployeeData = {
 				firstName: 'Jane',
 				lastName: 'Smith',
 				email: 'jane.smith@company.com',
-				role: 'EMPLOYEE',
+				role: UserRole.EMPLOYEE,
 				departmentId: testContext.departments.engineering.id,
 				hireDate: '2024-09-24T08:00:00Z',
 				managerId: testContext.users.manager.id
@@ -84,7 +77,7 @@ describe('Employee Management Integration Tests', () => {
 				firstName: 'Jane',
 				lastName: 'Smith',
 				email: 'jane.smith@company.com',
-				role: 'EMPLOYEE',
+				role: UserRole.EMPLOYEE,
 				department: {
 					id: testContext.departments.engineering.id,
 					name: 'Engineering'
@@ -105,7 +98,7 @@ describe('Employee Management Integration Tests', () => {
 		});
 
 		test('should reject employee creation with invalid data', async () => {
-			const hrManager = await TestUser.createHRManager();
+			const hrManager = await TestUser.createManager();
 
 			const invalidEmployeeData = {
 				firstName: '', // Empty first name
@@ -132,7 +125,7 @@ describe('Employee Management Integration Tests', () => {
 
 			// Assert: Should return validation errors
 			expect(response.errors).toBeDefined();
-			expect(response.errors.length).toBeGreaterThan(0);
+			expect(response.errors?.length).toBeGreaterThan(0);
 			expect(response.data?.createEmployee).toBeNull();
 		});
 
@@ -143,7 +136,7 @@ describe('Employee Management Integration Tests', () => {
 				firstName: 'Test',
 				lastName: 'Employee',
 				email: 'test.employee@company.com',
-				role: 'EMPLOYEE',
+				role: UserRole.EMPLOYEE,
 				departmentId: testContext.departments.engineering.id,
 				hireDate: '2024-09-24T08:00:00Z'
 			};
@@ -164,7 +157,7 @@ describe('Employee Management Integration Tests', () => {
 
 			// Assert: Access denied for regular employee
 			expect(response.errors).toBeDefined();
-			expect(response.errors[0].message).toMatch(/access denied|forbidden|unauthorized/i);
+			expect(response.errors?.[0]?.message).toMatch(/access denied|forbidden|unauthorized/i);
 		});
 	});
 
@@ -176,13 +169,13 @@ describe('Employee Management Integration Tests', () => {
 				firstName: 'Test',
 				lastName: 'Employee',
 				email: 'test.query@company.com',
-				role: 'EMPLOYEE',
+				role: UserRole.EMPLOYEE,
 				departmentId: testContext.departments.engineering.id
 			});
 		});
 
 		test('should retrieve employee list with pagination', async () => {
-			const hrManager = await TestUser.createHRManager();
+			const hrManager = await TestUser.createManager();
 
 			const employeesQuery = `
         query GetEmployees($page: Int!, $limit: Int!) {
@@ -242,7 +235,7 @@ describe('Employee Management Integration Tests', () => {
 		});
 
 		test('should retrieve single employee with full details', async () => {
-			const hrManager = await TestUser.createHRManager();
+			const hrManager = await TestUser.createManager();
 
 			const employeeQuery = `
         query GetEmployee($id: ID!) {
@@ -294,7 +287,7 @@ describe('Employee Management Integration Tests', () => {
 				firstName: 'Test',
 				lastName: 'Employee',
 				email: 'test.query@company.com',
-				role: 'EMPLOYEE',
+				role: UserRole.EMPLOYEE,
 				status: 'ACTIVE'
 			});
 
@@ -360,25 +353,25 @@ describe('Employee Management Integration Tests', () => {
 
 			// Assert: Regular employees should have limited access
 			expect(response.errors).toBeDefined();
-			expect(response.errors[0].message).toMatch(/access denied|forbidden|unauthorized/i);
+			expect(response.errors?.[0]?.message).toMatch(/access denied|forbidden|unauthorized/i);
 		});
 	});
 
 	describe('Employee Update Operations', () => {
-		let testEmployee: any;
+		let testEmployee: TestEmployeeData;
 
 		beforeAll(async () => {
 			testEmployee = await TestEmployee.create({
 				firstName: 'Update',
 				lastName: 'Test',
 				email: 'update.test@company.com',
-				role: 'EMPLOYEE',
+				role: UserRole.EMPLOYEE,
 				departmentId: testContext.departments.engineering.id
 			});
 		});
 
 		test('should update employee information', async () => {
-			const hrManager = await TestUser.createHRManager();
+			const hrManager = await TestUser.createManager();
 
 			const updateData = {
 				firstName: 'Updated',
@@ -431,7 +424,7 @@ describe('Employee Management Integration Tests', () => {
 		});
 
 		test('should update employee status', async () => {
-			const hrManager = await TestUser.createHRManager();
+			const hrManager = await TestUser.createManager();
 
 			const statusUpdateMutation = `
         mutation UpdateEmployeeStatus($id: ID!, $input: UpdateEmployeeInput!) {
@@ -471,19 +464,19 @@ describe('Employee Management Integration Tests', () => {
 			);
 
 			expect(response.errors).toBeDefined();
-			expect(response.errors[0].message).toMatch(/access denied|forbidden|unauthorized/i);
+			expect(response.errors?.[0]?.message).toMatch(/access denied|forbidden|unauthorized/i);
 		});
 	});
 
 	describe('Employee Deletion Operations', () => {
-		let testEmployee: any;
+		let testEmployee: TestEmployeeData;
 
 		beforeEach(async () => {
 			testEmployee = await TestEmployee.create({
 				firstName: 'Delete',
 				lastName: 'Test',
 				email: 'delete.test@company.com',
-				role: 'EMPLOYEE',
+				role: UserRole.EMPLOYEE,
 				departmentId: testContext.departments.engineering.id
 			});
 		});
@@ -526,7 +519,7 @@ describe('Employee Management Integration Tests', () => {
 		});
 
 		test('should prevent deletion by non-admin users', async () => {
-			const hrManager = await TestUser.createHRManager();
+			const hrManager = await TestUser.createManager();
 
 			const deleteEmployeeMutation = `
         mutation DeleteEmployee($id: ID!) {
@@ -541,13 +534,13 @@ describe('Employee Management Integration Tests', () => {
 			);
 
 			expect(response.errors).toBeDefined();
-			expect(response.errors[0].message).toMatch(/access denied|forbidden|unauthorized/i);
+			expect(response.errors?.[0]?.message).toMatch(/access denied|forbidden|unauthorized/i);
 		});
 	});
 
 	describe('Performance and Load Testing', () => {
 		test('should handle bulk employee operations within performance targets', async () => {
-			const hrManager = await TestUser.createHRManager();
+			const hrManager = await TestUser.createManager();
 			const startTime = Date.now();
 
 			// Create 50 employees in parallel
@@ -569,7 +562,7 @@ describe('Employee Management Integration Tests', () => {
 								firstName: `Bulk${index}`,
 								lastName: 'Test',
 								email: `bulk${index}@company.com`,
-								role: 'EMPLOYEE',
+								role: UserRole.EMPLOYEE,
 								departmentId: testContext.departments.engineering.id,
 								hireDate: '2024-09-24T08:00:00Z'
 							}
@@ -595,7 +588,7 @@ describe('Employee Management Integration Tests', () => {
 		});
 
 		test('should handle large employee list queries efficiently', async () => {
-			const hrManager = await TestUser.createHRManager();
+			const hrManager = await TestUser.createManager();
 			const startTime = Date.now();
 
 			const employeesQuery = `

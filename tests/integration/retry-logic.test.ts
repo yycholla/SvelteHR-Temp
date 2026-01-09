@@ -13,7 +13,7 @@
  * - Performance impact and resource management during retries
  */
 
-import { test, expect, describe, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { ErrorResponse } from '$lib/types/graphql-contracts';
 import { GRAPHQL_OPERATION_CONSTANTS } from '$lib/types/graphql-contracts';
 

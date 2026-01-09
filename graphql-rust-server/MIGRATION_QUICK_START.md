@@ -13,6 +13,7 @@ docker logs -f hr-graphql-rust
 ```
 
 You should see:
+
 ```
 📦 Running SeaORM database migrations...
 Applying migration 'm20251017_001_schemas'
@@ -60,12 +61,12 @@ graphql-rust-server/
 
 ## Key Changes
 
-| Before (SQL) | After (Rust) |
-|-------------|-------------|
+| Before (SQL)           | After (Rust)                   |
+| ---------------------- | ------------------------------ |
 | `./scripts/init-db.sh` | `cargo run --bin migration up` |
-| Manual SQL files | Type-safe Rust code |
-| No rollback | Built-in `down()` migrations |
-| Bash script | Docker entrypoint automation |
+| Manual SQL files       | Type-safe Rust code            |
+| No rollback            | Built-in `down()` migrations   |
+| Bash script            | Docker entrypoint automation   |
 
 ---
 
@@ -89,6 +90,7 @@ docker-compose down && docker-compose up -d  # Restart with fresh migrations
 ## Troubleshooting
 
 **Problem: Migration failed**
+
 ```bash
 # Check logs
 docker logs hr-graphql-rust
@@ -98,6 +100,7 @@ cargo run --bin migration up
 ```
 
 **Problem: Need fresh database**
+
 ```bash
 # ⚠️ This deletes ALL data!
 docker-compose down
@@ -119,6 +122,7 @@ docker-compose up -d
 ## ✅ You're All Set!
 
 The new migration system is:
+
 - ✅ Type-safe (compile-time validation)
 - ✅ Automatic (runs on Docker startup)
 - ✅ Reversible (rollback support)

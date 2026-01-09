@@ -1,7 +1,8 @@
+import { logger } from '$lib/utils/logger';
 // Storage statistics API endpoint (Feature 024)
 // GET /api/storage/stats - Get storage statistics
 
-import { json, error } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ locals }) => {
@@ -26,9 +27,8 @@ export const GET: RequestHandler = async ({ locals }) => {
 			userFiles: 0,
 			userBytes: 0
 		});
-
 	} catch (err) {
-		console.error('Storage stats error:', err);
+		logger.error('Storage stats error:', err as Error);
 
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err;

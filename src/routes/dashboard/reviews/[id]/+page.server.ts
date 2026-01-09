@@ -5,25 +5,30 @@
  *
  * Server-side data loading for individual review detail page
  * Implements permission-based access control
+ * Refactored: Phase 2 - Using Phase 1 Foundation utilities
  */
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { PermissionChecks } from '$lib/server/rbac-utils';
-import { canViewReview, canEditReview } from '$lib/utils/rbac';
+import { RBACDataLoader } from '$lib/server/route-loaders';
+import { canEditReview, canViewReview } from '$lib/utils/rbac';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
-	const { params, locals, cookies, fetch: fetchFn } = event;
-	const reviewId = params.id;
+	const loader = new RBACDataLoader(event, [
+		'performance:read',
+		'performance:read:self',
+		'performance:read:team',
+		'performance:read:all'
+	]);
 
-	// Check authentication and permissions
-	PermissionChecks.performanceRead(event);
+	return loader.loadWithClient(async () => {
+		const { params, cookies } = event;
+		const reviewId = params.id;
 
-	const userId = locals.user.id;
-	const userRole = locals.user.role || 'employee';
-	const userPermissions = locals.permissions || [];
+		const userId = loader.getUserId();
+		const userRole = loader.getUserRole();
 
-	try {
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
@@ -32,7 +37,7 @@ export const load: PageServerLoad = async (event) => {
 
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
-			'Cookie': cookieHeader
+			Cookie: cookieHeader
 		};
 
 		// Query: Get performance review by ID
@@ -81,7 +86,7 @@ export const load: PageServerLoad = async (event) => {
 		const reviewData = await reviewResponse.json();
 
 		if (reviewData.errors) {
-			console.error('[Review Detail] GraphQL errors:', reviewData.errors);
+			logger.error('[Review Detail] GraphQL errors:', reviewData.errors);
 			throw new Error(reviewData.errors[0]?.message || 'Failed to load review');
 		}
 
@@ -97,8 +102,7 @@ export const load: PageServerLoad = async (event) => {
 			userRole,
 			review.employeeId,
 			review.reviewerId,
-			undefined, // Session-based auth, no JWT token
-			fetchFn
+			cookies
 		);
 
 		if (!hasViewPermission) {
@@ -167,12 +171,6 @@ export const load: PageServerLoad = async (event) => {
 		};
 
 		return {
-			user: {
-				id: userId,
-				email: locals.user.email || '',
-				displayName: locals.user.display_name || 'User',
-				role: userRole
-			},
 			review: transformedReview,
 			availableGoals,
 			permissions: {
@@ -182,13 +180,5 @@ export const load: PageServerLoad = async (event) => {
 					userRole === 'admin' || userRole === 'super_admin' || userId === review.reviewerId
 			}
 		};
-	} catch (err) {
-		// Handle specific errors
-		if (err instanceof Error && 'status' in err) {
-			throw err; // Re-throw SvelteKit errors (401, 403, 404)
-		}
-
-		console.error('Error loading review detail:', err);
-		error(500, 'Failed to load review details');
-	}
+	});
 };

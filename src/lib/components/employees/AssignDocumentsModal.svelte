@@ -21,7 +21,7 @@
 		isSubmitting?: boolean;
 	}
 
-	let {
+	const {
 		isOpen = false,
 		employeeId,
 		employeeName,
@@ -36,15 +36,16 @@
 	let searchQuery = $state('');
 
 	// Derived state
-	let filteredDocuments = $derived(
-		availableDocuments.filter((doc) =>
-			doc.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			doc.category.toLowerCase().includes(searchQuery.toLowerCase())
+	const filteredDocuments = $derived(
+		availableDocuments.filter(
+			(doc) =>
+				doc.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				doc.category.toLowerCase().includes(searchQuery.toLowerCase())
 		)
 	);
 
-	let hasSelections = $derived(selectedDocuments.length > 0);
-	let canSubmit = $derived(hasSelections && !isSubmitting);
+	const hasSelections = $derived(selectedDocuments.length > 0);
+	const canSubmit = $derived(hasSelections && !isSubmitting);
 
 	// Handle selection toggle
 	function toggleSelection(documentId: string) {
@@ -97,9 +98,7 @@
 					<h2 class="modal-title">Assign Documents to Employee</h2>
 					<p class="employee-name">{employeeName}</p>
 				</div>
-				<button class="close-button" onclick={handleClose} title="Close">
-					✕
-				</button>
+				<button class="close-button" onclick={handleClose} title="Close"> ✕ </button>
 			</div>
 
 			<!-- Search -->
@@ -132,7 +131,9 @@
 							<div class="item-details">
 								<span class="item-detail">Category: {document.category}</span>
 								<span class="item-separator">•</span>
-								<span class="item-detail">Uploaded: {new Date(document.uploadedAt).toLocaleDateString()}</span>
+								<span class="item-detail"
+									>Uploaded: {new Date(document.uploadedAt).toLocaleDateString()}</span
+								>
 								{#if document.uploadedByEmail}
 									<span class="item-separator">•</span>
 									<span class="item-detail">By: {document.uploadedByEmail}</span>

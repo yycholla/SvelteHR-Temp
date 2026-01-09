@@ -47,7 +47,7 @@ class BackendInitializer {
 
 	private async initialize(): Promise<boolean> {
 		if (dev) {
-			console.log('🔄 Waiting for backend services to initialize...');
+			logger.info('🔄 Waiting for backend services to initialize...');
 		}
 
 		while (this.status.retryCount < MAX_RETRIES) {
@@ -58,7 +58,7 @@ class BackendInitializer {
 					this.status.isReady = true;
 					this.status.lastCheck = new Date();
 					if (dev) {
-						console.log('✅ Backend services are ready');
+						logger.info('✅ Backend services are ready');
 					}
 					return true;
 				}
@@ -66,7 +66,7 @@ class BackendInitializer {
 				// Not ready yet, wait and retry
 				this.status.retryCount++;
 				if (dev && this.status.retryCount % 5 === 0) {
-					console.log(
+					logger.info(
 						`⏳ Backend initializing... (attempt ${this.status.retryCount}/${MAX_RETRIES})`
 					);
 				}
@@ -77,7 +77,7 @@ class BackendInitializer {
 				this.status.errors.push(errorMessage);
 
 				if (dev) {
-					console.error('❌ Health check error:', errorMessage);
+					logger.error('❌ Health check error', new Error(errorMessage));
 				}
 
 				this.status.retryCount++;
@@ -87,8 +87,8 @@ class BackendInitializer {
 
 		// Max retries reached
 		if (dev) {
-			console.error('❌ Backend initialization timeout after', MAX_RETRIES, 'attempts');
-			console.error('Errors:', this.status.errors);
+			logger.error(`❌ Backend initialization timeout after ${MAX_RETRIES} attempts`);
+			logger.error(`Errors: ${this.status.errors.join(', ')}`);
 		}
 
 		return false;

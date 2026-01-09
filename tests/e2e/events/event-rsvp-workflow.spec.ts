@@ -2,7 +2,7 @@
 // Feature: 019-we-need-to - Phase 6
 // Purpose: Test complete RSVP workflow for events
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Event RSVP Workflow', () => {
 	// Setup: Login before each test
@@ -46,9 +46,7 @@ test.describe('Event RSVP Workflow', () => {
 			await expect(page.locator('text=/Event Details|Event Information/i')).toBeVisible();
 		} else {
 			// If no events, verify empty state
-			await expect(
-				page.locator('text=/No events found|No upcoming events/i')
-			).toBeVisible();
+			await expect(page.locator('text=/No events found|No upcoming events/i')).toBeVisible();
 		}
 	});
 
@@ -72,15 +70,15 @@ test.describe('Event RSVP Workflow', () => {
 
 			if (!isPastEvent) {
 				// Look for RSVP buttons
-				const acceptButton = page.locator('button:has-text("Accept")').or(
-					page.locator('button:has-text("Going")')
-				);
-				const declineButton = page.locator('button:has-text("Decline")').or(
-					page.locator('button:has-text("Not Going")')
-				);
-				const tentativeButton = page.locator('button:has-text("Tentative")').or(
-					page.locator('button:has-text("Maybe")')
-				);
+				const acceptButton = page
+					.locator('button:has-text("Accept")')
+					.or(page.locator('button:has-text("Going")'));
+				const declineButton = page
+					.locator('button:has-text("Decline")')
+					.or(page.locator('button:has-text("Not Going")'));
+				const tentativeButton = page
+					.locator('button:has-text("Tentative")')
+					.or(page.locator('button:has-text("Maybe")'));
 
 				// Try to click Accept if available
 				if (await acceptButton.isVisible()) {
@@ -130,9 +128,9 @@ test.describe('Event RSVP Workflow', () => {
 
 			if (!isPastEvent) {
 				// Set RSVP to Accepted
-				const acceptButton = page.locator('button:has-text("Accept")').or(
-					page.locator('button:has-text("Going")')
-				);
+				const acceptButton = page
+					.locator('button:has-text("Accept")')
+					.or(page.locator('button:has-text("Going")'));
 
 				if (await acceptButton.isVisible()) {
 					await acceptButton.click();
@@ -162,9 +160,9 @@ test.describe('Event RSVP Workflow', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Test visibility filter
-		const visibilityFilter = page.locator('select[name="visibility"]').or(
-			page.locator('select:has(option:has-text("Company-Wide"))')
-		);
+		const visibilityFilter = page
+			.locator('select[name="visibility"]')
+			.or(page.locator('select:has(option:has-text("Company-Wide"))'));
 
 		if (await visibilityFilter.isVisible()) {
 			// Select "Company-Wide"
@@ -176,9 +174,9 @@ test.describe('Event RSVP Workflow', () => {
 		}
 
 		// Test status filter
-		const statusFilter = page.locator('select[name="status"]').or(
-			page.locator('select:has(option:has-text("Upcoming"))')
-		);
+		const statusFilter = page
+			.locator('select[name="status"]')
+			.or(page.locator('select:has(option:has-text("Upcoming"))'));
 
 		if (await statusFilter.isVisible()) {
 			// Select "Upcoming"
@@ -190,9 +188,9 @@ test.describe('Event RSVP Workflow', () => {
 		}
 
 		// Test event type filter
-		const typeFilter = page.locator('select[name="eventType"]').or(
-			page.locator('select:has(option:has-text("Meeting"))')
-		);
+		const typeFilter = page
+			.locator('select[name="eventType"]')
+			.or(page.locator('select:has(option:has-text("Meeting"))'));
 
 		if (await typeFilter.isVisible()) {
 			// Select "Meeting"
@@ -214,9 +212,9 @@ test.describe('Event RSVP Workflow', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Look for "Create Event" button (manager-only)
-		const createButton = page.locator('a:has-text("Create Event")').or(
-			page.locator('button:has-text("Create Event")')
-		);
+		const createButton = page
+			.locator('a:has-text("Create Event")')
+			.or(page.locator('button:has-text("Create Event")'));
 
 		const hasCreateAccess = await createButton.isVisible();
 

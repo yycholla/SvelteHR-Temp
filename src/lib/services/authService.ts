@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Authentication service for session-based authentication
 // Session management using axum-login backend with HTTP-only cookies
 
@@ -35,7 +36,8 @@ export interface AuthUser {
 
 // Auth service configuration for session-based authentication
 const AUTH_CONFIG = {
-	apiBaseUrl: browser && typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4000',
+	apiBaseUrl:
+		browser && typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4000',
 	endpoints: {
 		login: '/api/auth/login',
 		logout: '/api/auth/logout',
@@ -48,7 +50,7 @@ const AUTH_CONFIG = {
  */
 export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
 	try {
-		console.log('🔐 AuthService: Attempting login for', credentials.email);
+		logger.info('🔐 AuthService: Attempting login for', { email: credentials.email });
 
 		if (!credentials.email || !credentials.password) {
 			return {
@@ -84,7 +86,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
 				message: 'Login successful'
 			};
 		} catch (apiError) {
-			console.error('Authentication API error:', apiError);
+			logger.error('Authentication API error:', apiError as Error);
 			return {
 				success: false,
 				error: 'Unable to connect to authentication service',
@@ -92,7 +94,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
 			};
 		}
 	} catch (error) {
-		console.error('🔴 AuthService: Login error:', error);
+		logger.error('Login failed', error as Error);
 		return {
 			success: false,
 			error: error instanceof Error ? error.message : 'Login failed',
@@ -106,20 +108,24 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
  */
 export async function logout(): Promise<{ success: boolean; message?: string }> {
 	try {
-		console.log('🔓 AuthService: Logging out');
+		logger.info('🔓 AuthService: Logging out');
 
 		// Call backend logout endpoint to clear session
 		await fetch(AUTH_CONFIG.endpoints.logout, {
 			method: 'POST',
 			credentials: 'include' // Include session cookies for server-side session clearing
-		}).catch((err) => console.warn('Logout endpoint failed:', err));
+		}).catch((err) =>
+			logger.warn('Logout endpoint failed', {
+				error: err instanceof Error ? err.message : String(err)
+			})
+		);
 
 		return {
 			success: true,
 			message: 'Logout successful'
 		};
 	} catch (error) {
-		console.error('🔴 AuthService: Logout error:', error);
+		logger.error('Logout failed', error as Error);
 		return {
 			success: false,
 			message: 'An error occurred during logout'
@@ -136,7 +142,7 @@ export async function verifySession(): Promise<{
 	error?: string;
 }> {
 	try {
-		console.log('🔍 AuthService: Verifying session');
+		logger.info('🔍 AuthService: Verifying session');
 
 		const response = await fetch(AUTH_CONFIG.endpoints.verify, {
 			method: 'GET',
@@ -172,7 +178,7 @@ export async function verifySession(): Promise<{
 			error: 'No user data in response'
 		};
 	} catch (error) {
-		console.error('🔴 AuthService: Session verification error:', error);
+		logger.error('Session verification failed', error as Error);
 		return {
 			valid: false,
 			error: error instanceof Error ? error.message : 'Session verification failed'
@@ -192,7 +198,7 @@ export async function isAuthenticated(): Promise<boolean> {
  * Handle authentication errors and redirect to login if needed
  */
 export function handleAuthError(error: any, redirectToLogin = true): void {
-	console.error('🔴 AuthService: Authentication error:', error);
+	logger.error('Authentication error occurred', error as Error);
 
 	// Redirect to login page if requested and in browser
 	if (redirectToLogin && browser) {
@@ -211,7 +217,10 @@ export async function initializeAuth(): Promise<{
 }> {
 	const result = await verifySession();
 
-	console.log('🔧 AuthService: Initialized', { authenticated: result.valid, user: result.user });
+	logger.info('🔧 AuthService: Initialized', {
+		authenticated: result.valid,
+		user: result.user
+	});
 
 	return {
 		isAuthenticated: result.valid,

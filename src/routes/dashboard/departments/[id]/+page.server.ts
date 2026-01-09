@@ -3,23 +3,29 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
-	const { params, locals, cookies } = event;
+	const { params, cookies } = event;
 	const departmentId = params.id;
 
 	// Handle "new" department creation route
 	if (departmentId === 'new') {
 		// RBAC: Check department write permissions for creating new department
-		PermissionChecks.departmentWrite(event);
+		requireAuth(event, {
+			requiredPermissions: [
+				'departments:write',
+				'departments:write:self',
+				'departments:write:team',
+				'departments:write:all'
+			]
+		});
 
-		if (!locals.user) {
-			error(401, 'Authentication required');
-		}
+		// After permission check, re-destructure locals with guaranteed user
+		const { locals } = event;
 
 		// Get standardized user permissions
-		const { getUserPermissions } = await import('$lib/server/rbac-utils');
 		const userPermissions = getUserPermissions(locals);
 
 		// Return empty department data for new department form
@@ -43,15 +49,20 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	// RBAC: Check department read permissions
-	PermissionChecks.departmentRead(event);
+	requireAuth(event, {
+		requiredPermissions: [
+			'departments:read',
+			'departments:read:self',
+			'departments:read:team',
+			'departments:read:all'
+		]
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Import required models for standardized error handling
 	const { createErrorResponse } = await import('$lib/models/error-response');
-
-	// Ensure user is authenticated
-	if (!locals.user) {
-		error(401, 'Authentication required');
-	}
 
 	// Create simple user session object (session-based auth doesn't use JWT)
 	const userSession = {
@@ -87,13 +98,12 @@ export const load: PageServerLoad = async (event) => {
 		const cookieHeader = event.request.headers.get('cookie') || '';
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
-			'Cookie': cookieHeader // Forward all cookies for session authentication
+			Cookie: cookieHeader // Forward all cookies for session authentication
 		};
 
-		console.log(
-			'[Department Detail] Using Rust GraphQL with session-based auth, user role:',
-			locals.user?.role
-		);
+		logger.info('[Department Detail] Using Rust GraphQL with session-based auth', {
+			userRole: locals.user?.role
+		});
 
 		// Load department data with Rust GraphQL schema
 		// NOTE: Using Rust GraphQL schema - use singular department query with ID
@@ -121,7 +131,9 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		const departmentData = await departmentResponse.json();
-		console.log('[Department Detail] Department data:', departmentData);
+		logger.info('[Department Detail] Department data loaded', {
+			hasDepartment: !!departmentData?.data?.department
+		});
 
 		// Check if department exists
 		const department = departmentData?.data?.department;
@@ -208,8 +220,8 @@ export const load: PageServerLoad = async (event) => {
 				parentDepartmentId: department.parentDepartmentId,
 				createdAt: department.createdAt,
 				updatedAt: department.updatedAt,
-				manager: manager,
-				employees: employees,
+				manager,
+				employees,
 				employeeCount: employees.length
 			},
 			// RBAC: Standardized permission checks
@@ -217,7 +229,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[Department Detail Load Error]', err);
+		logger.error('[Department Detail Load Error]', err as Error);
 
 		// If it's already a SvelteKit error, rethrow it
 		if (err && typeof err === 'object' && 'status' in err) {
@@ -229,14 +241,12 @@ export const load: PageServerLoad = async (event) => {
 			err instanceof Error ? err : new Error('Department detail load failed'),
 			{
 				type: 'DATA_LOAD_ERROR',
-				userMessage: 'Unable to load department details. Please refresh the page or try again later.'
+				userMessage:
+					'Unable to load department details. Please refresh the page or try again later.'
 			}
 		);
 
 		// Throw SvelteKit error with user-friendly message
-		error(500, {
-        			message: 'Department details temporarily unavailable',
-        			details: errorResponse.userMessage
-        		});
+		error(500, 'Department details temporarily unavailable');
 	}
 };

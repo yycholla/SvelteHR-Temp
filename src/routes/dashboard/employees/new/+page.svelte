@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { logger } from '$lib/utils/logger';
 	import { goto } from '$app/navigation';
-	import type { PageData, ActionData } from './$types';
+	import type { ActionData, PageData } from './$types';
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	const { data, form }: { data: PageData; form: ActionData } = $props();
 
 	// Form state
 	let firstName = $state('');
@@ -87,24 +88,24 @@
 
 			isSubmitting = true;
 			return async ({ result, update }) => {
-				console.log('[Employee Form] Result type:', result.type);
-				console.log('[Employee Form] Full result:', result);
+				logger.info('[Employee Form] Result type', { resultType: result.type });
+				logger.info('[Employee Form] Full result', { result: JSON.stringify(result) });
 				isSubmitting = false;
 
 				// Handle different result types
 				if (result.type === 'redirect') {
-					console.log('[Employee Form] Redirecting to:', result.location);
+					logger.info('[Employee Form] Redirecting to', { location: result.location });
 					// Let the redirect happen naturally
 					await update();
 				} else if (result.type === 'failure') {
-					console.log('[Employee Form] Failure:', result.data);
+					logger.info('[Employee Form] Failure', { data: result.data });
 					// Show error message
 					await update();
 				} else if (result.type === 'error') {
-					console.log('[Employee Form] Error:', result.error);
+					logger.info('[Employee Form] Error', { error: result.error });
 					await update();
 				} else {
-					console.log('[Employee Form] Other result type:', result.type);
+					logger.info('[Employee Form] Other result type', { resultType: result.type });
 					// For any other result type, update normally
 					await update();
 				}

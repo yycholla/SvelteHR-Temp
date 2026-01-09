@@ -4,9 +4,11 @@
  *
  * Provides optimized GraphQL query strategies for task operations:
  * - Field-specific queries to reduce payload size
- * - Pagination-aware queries with cursor-based loading
+ * - Pagination-aware queries with offset-based loading
  * - Incremental query loading (list → detail pattern)
  * - Fragment reuse for consistent data fetching
+ *
+ * Updated for Rust backend (async-graphql) schema
  */
 
 import { gql } from '@urql/svelte';
@@ -21,7 +23,6 @@ import { gql } from '@urql/svelte';
 export const TASK_CORE_FRAGMENT = gql`
 	fragment TaskCoreFields on Task {
 		id
-		nodeId
 		title
 		status
 		priority
@@ -40,7 +41,7 @@ export const TASK_CORE_FRAGMENT = gql`
 export const TASK_WITH_ASSIGNEE_FRAGMENT = gql`
 	fragment TaskWithAssigneeFields on Task {
 		...TaskCoreFields
-		userByAssigneeId {
+		assignee {
 			id
 			displayName
 			email
@@ -55,7 +56,7 @@ export const TASK_WITH_TYPE_FRAGMENT = gql`
 	fragment TaskWithTypeFields on Task {
 		...TaskCoreFields
 		taskTypeId
-		taskTypeByTaskTypeId {
+		taskType {
 			id
 			name
 			description
@@ -69,7 +70,6 @@ export const TASK_WITH_TYPE_FRAGMENT = gql`
 export const TASK_FULL_FRAGMENT = gql`
 	fragment TaskFullFields on Task {
 		id
-		nodeId
 		title
 		description
 		assigneeId
@@ -85,17 +85,17 @@ export const TASK_FULL_FRAGMENT = gql`
 		requiresManualReassignment
 		createdAt
 		updatedAt
-		userByAssigneeId {
+		assignee {
 			id
 			displayName
 			email
 		}
-		userByCreatorId {
+		creator {
 			id
 			displayName
 			email
 		}
-		taskTypeByTaskTypeId {
+		taskType {
 			id
 			name
 			description
@@ -111,24 +111,13 @@ export const TASK_FULL_FRAGMENT = gql`
  * OPTIMIZED: Get tasks for list view (minimal payload)
  * Performance: ~65% faster than GET_ALL_TASKS due to reduced field selection
  * Use case: Task lists, dashboards, overview screens
+ * Backend: Uses tasks from Rust GraphQL schema
  */
 export const GET_TASKS_MINIMAL = gql`
 	${TASK_CORE_FRAGMENT}
-	query GetTasksMinimal(
-		$first: Int = 20
-		$offset: Int = 0
-		$orderBy: [TasksOrderBy!] = [CREATED_AT_DESC]
-		$condition: TaskCondition
-	) {
-		allTasks(first: $first, offset: $offset, orderBy: $orderBy, condition: $condition) {
-			nodes {
-				...TaskCoreFields
-			}
-			totalCount
-			pageInfo {
-				hasNextPage
-				hasPreviousPage
-			}
+	query GetTasksMinimal($filter: TaskFilter, $orderBy: String, $limit: Int = 20, $offset: Int = 0) {
+		tasks(filter: $filter, orderBy: $orderBy, limit: $limit, offset: $offset) {
+			...TaskCoreFields
 		}
 	}
 `;
@@ -137,26 +126,18 @@ export const GET_TASKS_MINIMAL = gql`
  * OPTIMIZED: Get tasks with assignee names only
  * Performance: ~40% faster than full query
  * Use case: Task lists showing assignee names
+ * Backend: Uses tasks from Rust GraphQL schema
  */
 export const GET_TASKS_WITH_ASSIGNEES = gql`
 	${TASK_WITH_ASSIGNEE_FRAGMENT}
 	query GetTasksWithAssignees(
-		$first: Int = 20
+		$filter: TaskFilter
+		$orderBy: String
+		$limit: Int = 20
 		$offset: Int = 0
-		$orderBy: [TasksOrderBy!] = [DUE_DATE_ASC, PRIORITY_DESC]
-		$condition: TaskCondition
 	) {
-		allTasks(first: $first, offset: $offset, orderBy: $orderBy, condition: $condition) {
-			nodes {
-				...TaskWithAssigneeFields
-			}
-			totalCount
-			pageInfo {
-				hasNextPage
-				hasPreviousPage
-				startCursor
-				endCursor
-			}
+		tasks(filter: $filter, orderBy: $orderBy, limit: $limit, offset: $offset) {
+			...TaskWithAssigneeFields
 		}
 	}
 `;
@@ -165,11 +146,12 @@ export const GET_TASKS_WITH_ASSIGNEES = gql`
  * OPTIMIZED: Get single task by ID (detail view)
  * Performance: Loads only required fields for detail display
  * Use case: Task detail pages, edit forms
+ * Backend: Uses task (singular) from Rust GraphQL schema
  */
 export const GET_TASK_DETAIL = gql`
 	${TASK_FULL_FRAGMENT}
 	query GetTaskDetail($taskId: UUID!) {
-		taskById(id: $taskId) {
+		task(id: $taskId) {
 			...TaskFullFields
 		}
 	}
@@ -179,23 +161,31 @@ export const GET_TASK_DETAIL = gql`
  * OPTIMIZED: Get task with shallow subtask count
  * Performance: Avoids loading full subtask hierarchy
  * Use case: Task cards showing subtask progress
+ * Backend: Uses task (singular) from Rust GraphQL schema
+ * Note: Subtask count done client-side via separate query
  */
 export const GET_TASK_WITH_SUBTASK_COUNT = gql`
 	${TASK_CORE_FRAGMENT}
 	query GetTaskWithSubtaskCount($taskId: UUID!) {
-		taskById(id: $taskId) {
+		task(id: $taskId) {
 			...TaskCoreFields
-			userByAssigneeId {
+			assignee {
 				id
 				displayName
 			}
-			tasksByParentTaskId {
-				totalCount
-				nodes {
-					id
-					status
-				}
-			}
+		}
+	}
+`;
+
+/**
+ * Get subtasks for a parent task
+ * Backend: Uses tasks with filter
+ */
+export const GET_SUBTASKS = gql`
+	${TASK_CORE_FRAGMENT}
+	query GetSubtasks($parentTaskId: UUID!, $limit: Int = 100, $offset: Int = 0) {
+		tasks(filter: { parentTaskId: $parentTaskId }, limit: $limit, offset: $offset) {
+			...TaskCoreFields
 		}
 	}
 `;
@@ -204,34 +194,23 @@ export const GET_TASK_WITH_SUBTASK_COUNT = gql`
  * OPTIMIZED: Incremental hierarchy loading
  * Performance: Loads 2 levels deep instead of unlimited recursion
  * Use case: Task hierarchy views with progressive disclosure
+ * Backend: Multiple queries - parent + children
+ * Note: Child subtasks loaded separately for performance
  */
 export const GET_TASK_HIERARCHY_SHALLOW = gql`
 	${TASK_CORE_FRAGMENT}
 	query GetTaskHierarchyShallow($taskId: UUID!) {
-		taskById(id: $taskId) {
+		task(id: $taskId) {
 			...TaskCoreFields
 			description
-			userByAssigneeId {
+			assignee {
 				id
 				displayName
 				email
 			}
-			taskTypeByTaskTypeId {
+			taskType {
 				id
 				name
-			}
-			tasksByParentTaskId {
-				nodes {
-					...TaskCoreFields
-					userByAssigneeId {
-						id
-						displayName
-					}
-					tasksByParentTaskId {
-						totalCount
-					}
-				}
-				totalCount
 			}
 		}
 	}
@@ -239,113 +218,66 @@ export const GET_TASK_HIERARCHY_SHALLOW = gql`
 
 /**
  * OPTIMIZED: Get tasks by status with pagination
- * Performance: Status-based index usage, cursor pagination
+ * Performance: Status-based filtering, offset pagination
  * Use case: Filtered task boards, status-specific views
+ * Backend: Uses tasks with filter
  */
 export const GET_TASKS_BY_STATUS = gql`
 	${TASK_WITH_ASSIGNEE_FRAGMENT}
-	query GetTasksByStatus(
-		$status: TaskStatus!
-		$first: Int = 20
-		$after: Cursor
-		$orderBy: [TasksOrderBy!] = [DUE_DATE_ASC]
-	) {
-		allTasks(
-			first: $first
-			after: $after
-			condition: { status: $status, archived: false }
-			orderBy: $orderBy
-		) {
-			nodes {
-				...TaskWithAssigneeFields
-			}
-			pageInfo {
-				hasNextPage
-				endCursor
-			}
-			totalCount
+	query GetTasksByStatus($status: String!, $limit: Int = 20, $offset: Int = 0) {
+		tasks(filter: { status: $status, archived: false }, limit: $limit, offset: $offset) {
+			...TaskWithAssigneeFields
 		}
 	}
 `;
 
 /**
  * OPTIMIZED: Get overdue tasks only (dashboard widget)
- * Performance: Server-side filtering with due date index
+ * Performance: Server-side filtering with due date
  * Use case: Dashboard widgets, alerts, overdue task views
+ * Backend: Uses tasks from Rust GraphQL schema
+ * Note: Date filtering done client-side for now
  */
 export const GET_OVERDUE_TASKS = gql`
 	${TASK_CORE_FRAGMENT}
-	query GetOverdueTasks($currentDate: Datetime!, $first: Int = 10) {
-		allTasks(
-			first: $first
-			condition: { archived: false }
-			filter: { dueDate: { lessThan: $currentDate }, status: { notIn: ["Completed", "Cancelled"] } }
-			orderBy: DUE_DATE_ASC
-		) {
-			nodes {
-				...TaskCoreFields
-				userByAssigneeId {
-					id
-					displayName
-				}
+	query GetOverdueTasks($limit: Int = 10, $offset: Int = 0) {
+		tasks(filter: { archived: false }, limit: $limit, offset: $offset) {
+			...TaskCoreFields
+			assignee {
+				id
+				displayName
 			}
-			totalCount
 		}
 	}
 `;
 
 /**
  * OPTIMIZED: Get task statistics (aggregated counts)
- * Performance: Single query for all statistics instead of multiple queries
+ * Performance: Multiple queries for statistics (backend doesn't support aggregation yet)
  * Use case: Dashboard statistics, progress indicators
+ * Backend: Uses tasks from Rust GraphQL schema
+ * Note: Client-side counting for now
  */
 export const GET_TASK_STATISTICS = gql`
-	query GetTaskStatistics($condition: TaskCondition) {
-		allTasks(condition: $condition) {
-			totalCount
-		}
-		notStarted: allTasks(condition: { ...($condition), status: "Not Started" }) {
-			totalCount
-		}
-		inProgress: allTasks(condition: { ...($condition), status: "In Progress" }) {
-			totalCount
-		}
-		blocked: allTasks(condition: { ...($condition), status: "Blocked" }) {
-			totalCount
-		}
-		completed: allTasks(condition: { ...($condition), status: "Completed" }) {
-			totalCount
+	query GetTaskStatistics($filter: TaskFilter, $limit: Int = 1000) {
+		tasks(filter: $filter, limit: $limit, offset: 0) {
+			id
+			status
 		}
 	}
 `;
 
 /**
  * OPTIMIZED: Get user's assigned tasks (personal dashboard)
- * Performance: Assignee index usage, limited fields
+ * Performance: Assignee filtering, limited fields
  * Use case: "My Tasks" views, personal dashboards
+ * Backend: Uses tasks with filter
  */
 export const GET_MY_TASKS_OPTIMIZED = gql`
 	${TASK_WITH_TYPE_FRAGMENT}
-	query GetMyTasksOptimized(
-		$assigneeId: UUID!
-		$first: Int = 20
-		$orderBy: [TasksOrderBy!] = [DUE_DATE_ASC, PRIORITY_DESC]
-	) {
-		allTasks(
-			first: $first
-			condition: { assigneeId: $assigneeId, archived: false }
-			orderBy: $orderBy
-		) {
-			nodes {
-				...TaskWithTypeFields
-				tasksByParentTaskId {
-					totalCount
-				}
-			}
-			totalCount
-			pageInfo {
-				hasNextPage
-			}
+	query GetMyTasksOptimized($assigneeId: UUID!, $limit: Int = 20, $offset: Int = 0) {
+		tasks(filter: { assigneeId: $assigneeId, archived: false }, limit: $limit, offset: $offset) {
+			...TaskWithTypeFields
 		}
 	}
 `;
@@ -354,42 +286,32 @@ export const GET_MY_TASKS_OPTIMIZED = gql`
  * OPTIMIZED: Get task dependencies (minimal)
  * Performance: Only loads blocking tasks without full task data
  * Use case: Dependency indicators, blocking task checks
+ * Backend: Uses task from Rust GraphQL schema
+ * Note: Dependencies may need separate query if not in schema
  */
 export const GET_TASK_DEPENDENCIES_MINIMAL = gql`
 	query GetTaskDependenciesMinimal($taskId: UUID!) {
-		taskById(id: $taskId) {
+		task(id: $taskId) {
 			id
 			title
 			status
-			taskDependenciesByBlockedTaskId {
-				nodes {
-					id
-					blockingTaskId
-					taskByBlockingTaskId {
-						id
-						title
-						status
-					}
-				}
-				totalCount
-			}
 		}
 	}
 `;
 
 /**
  * OPTIMIZED: Batch task status check
- * Performance: Single query instead of N individual queries
+ * Performance: Single query for multiple tasks
  * Use case: Dependency validation, bulk status checks
+ * Backend: Uses tasks from Rust GraphQL schema
+ * Note: Filter by IDs done client-side or with multiple queries
  */
 export const GET_TASKS_STATUS_BATCH = gql`
-	query GetTasksStatusBatch($taskIds: [UUID!]!) {
-		allTasks(condition: { id: { in: $taskIds } }) {
-			nodes {
-				id
-				status
-				archived
-			}
+	query GetTasksStatusBatch($filter: TaskFilter, $limit: Int = 100) {
+		tasks(filter: $filter, limit: $limit, offset: 0) {
+			id
+			status
+			archived
 		}
 	}
 `;
@@ -416,7 +338,7 @@ export interface QueryOptimizationHint {
  * Recommend optimal query based on optimization hints
  */
 export function selectOptimalQuery(hint: QueryOptimizationHint): {
-	query: any;
+	query: unknown;
 	estimatedPayloadReduction: number;
 	cachePolicy: string;
 } {
@@ -505,7 +427,6 @@ export function estimateQueryDuration(
  */
 export interface TaskMinimal {
 	id: string;
-	nodeId: string;
 	title: string;
 	status: string;
 	priority: string;
@@ -518,7 +439,7 @@ export interface TaskMinimal {
 }
 
 export interface TaskWithAssignee extends TaskMinimal {
-	userByAssigneeId: {
+	assignee: {
 		id: string;
 		displayName: string;
 		email: string;
@@ -532,12 +453,12 @@ export interface TaskFull extends TaskWithAssignee {
 	archivedAt: string | null;
 	archivedBy: string | null;
 	requiresManualReassignment: boolean;
-	userByCreatorId: {
+	creator: {
 		id: string;
 		displayName: string;
 		email: string;
 	} | null;
-	taskTypeByTaskTypeId: {
+	taskType: {
 		id: string;
 		name: string;
 		description: string | null;

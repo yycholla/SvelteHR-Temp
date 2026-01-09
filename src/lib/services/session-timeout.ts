@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Session Timeout Management Service
  *
@@ -75,11 +76,11 @@ export class SessionTimeoutManager {
 	 */
 	public start(): void {
 		if (!browser || !this.config.enabled) {
-			console.log('⏱️ Session timeout: Disabled (not in browser or disabled in config)');
+			logger.info('⏱️ Session timeout: Disabled (not in browser or disabled in config)');
 			return;
 		}
 
-		console.log('⏱️ Session timeout: Starting monitor', {
+		logger.info('⏱️ Session timeout: Starting monitor', {
 			inactivityTimeout: this.config.inactivityTimeout,
 			warningTime: this.config.warningTime,
 			refreshInterval: this.config.refreshInterval
@@ -103,7 +104,7 @@ export class SessionTimeoutManager {
 	 * Stop session timeout monitoring
 	 */
 	public stop(): void {
-		console.log('⏱️ Session timeout: Stopping monitor');
+		logger.info('⏱️ Session timeout: Stopping monitor');
 
 		this.isActive = false;
 		this.clearAllTimers();
@@ -135,16 +136,16 @@ export class SessionTimeoutManager {
 			});
 
 			if (response.ok) {
-				console.log('⏱️ Session refreshed successfully');
+				logger.info('⏱️ Session refreshed successfully');
 				this.callbacks.onSessionRefreshed?.();
 				this.resetActivity();
 				return true;
 			} else {
-				console.warn('⏱️ Session refresh failed:', response.status);
+				logger.warn('⏱️ Session refresh failed:', { status: response.status });
 				return false;
 			}
 		} catch (error) {
-			console.error('⏱️ Session refresh error:', error);
+			logger.error('⏱️ Session refresh error:', error as Error);
 			return false;
 		}
 	}
@@ -221,7 +222,7 @@ export class SessionTimeoutManager {
 	private showWarning(): void {
 		if (this.warningShown) return;
 
-		console.warn('⏱️ Session timeout warning: Session will expire soon');
+		logger.warn('⏱️ Session timeout warning: Session will expire soon');
 		this.warningShown = true;
 
 		// Start countdown for warning callback
@@ -254,7 +255,7 @@ export class SessionTimeoutManager {
 	}
 
 	private async handleTimeout(): Promise<void> {
-		console.warn('⏱️ Session timeout: Logging out due to inactivity');
+		logger.warn('⏱️ Session timeout: Logging out due to inactivity');
 
 		this.stopWarning();
 		this.callbacks.onTimeout?.();
@@ -283,7 +284,7 @@ export class SessionTimeoutManager {
 			const inactivityMs = this.config.inactivityTimeout * 60 * 1000;
 
 			// Don't refresh if already past warning threshold
-			if (timeSinceActivity < inactivityMs - (this.config.warningTime * 60 * 1000)) {
+			if (timeSinceActivity < inactivityMs - this.config.warningTime * 60 * 1000) {
 				this.refreshSession();
 			}
 		}, refreshMs);

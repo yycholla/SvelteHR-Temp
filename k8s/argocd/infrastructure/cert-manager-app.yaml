@@ -5,7 +5,7 @@ metadata:
   name: cert-manager
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "1"  # After monitoring
+    argocd.argoproj.io/sync-wave: '1' # After monitoring
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -15,7 +15,7 @@ spec:
     # Source 1: Helm chart from jetstack
     - repoURL: https://charts.jetstack.io
       chart: cert-manager
-      targetRevision: v1.19.1  # Pin specific version
+      targetRevision: v1.19.1 # Pin specific version
       helm:
         valueFiles:
           - $values/k8s/helm-values/cert-manager-values.yaml
@@ -31,12 +31,12 @@ spec:
   syncPolicy:
     # Automated GitOps sync enabled
     automated:
-      prune: true  # Remove resources deleted from Git
-      selfHeal: true  # Auto-correct cluster drift
+      prune: true # Remove resources deleted from Git
+      selfHeal: true # Auto-correct cluster drift
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
-      - Replace=false  # Important for CRDs
+      - Replace=false # Important for CRDs
     retry:
       limit: 3
       backoff:

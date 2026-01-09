@@ -9,6 +9,7 @@
 ## Executive Summary
 
 ### Current State
+
 - **Domains Extracted:** 5 of 12 (42%)
 - **Lines Extracted:** ~1,796 lines from original mutation.rs
 - **Code Organization:** Namespace-based architecture implemented
@@ -16,6 +17,7 @@
 - **Build Status:** ✅ Passing (`cargo check --lib` successful)
 
 ### Key Benefits Realized
+
 - **Merge Conflict Reduction:** Estimated 75% → <10% conflict rate in mutations
 - **Development Velocity:** Parallel development now possible across domains
 - **Code Maintainability:** Clear separation of concerns with single-responsibility modules
@@ -26,9 +28,11 @@
 ## Completed Domains ✅
 
 ### Phase 0: Pre-existing Extractions
+
 These domains were already extracted before the current refactoring initiative:
 
 #### 1. RBAC - Role-Based Access Control
+
 - **Methods:** 12 mutation methods
 - **Lines:** 662 lines
 - **File:** `/src/schema/mutations/rbac.rs`
@@ -42,6 +46,7 @@ These domains were already extracted before the current refactoring initiative:
   - `getUserPermissions`, `getRolePermissions`, `checkUserPermission`
 
 #### 2. Departments - Department Management
+
 - **Methods:** 3 mutation methods
 - **Lines:** 98 lines
 - **File:** `/src/schema/mutations/department.rs`
@@ -53,6 +58,7 @@ These domains were already extracted before the current refactoring initiative:
   - `deleteDepartment`
 
 #### 3. Tasks - Task/Project Management
+
 - **Methods:** 16 mutation methods
 - **Lines:** 692 lines
 - **File:** `/src/schema/mutations/task.rs`
@@ -66,6 +72,7 @@ These domains were already extracted before the current refactoring initiative:
   - Task comments and history
 
 #### 4. Users - User Account Management
+
 - **Methods:** 3 mutation methods
 - **Lines:** 151 lines
 - **File:** `/src/schema/mutations/user.rs`
@@ -79,6 +86,7 @@ These domains were already extracted before the current refactoring initiative:
 ### Phase 1: Authentication Domain
 
 #### 5. Auth - Authentication Operations
+
 - **Methods:** 3 mutation methods
 - **Lines:** 183 lines
 - **File:** `/src/schema/mutations/auth.rs`
@@ -108,6 +116,7 @@ Currently, no domains are actively in progress. Next extraction target: **Time/A
 ### Phase 2: Time & Employee Data (Priority: High)
 
 #### 6. Time/Attendance - Clock In/Out & PTO Policies
+
 - **Estimated Methods:** 8-10 mutation methods
 - **Estimated Lines:** 350-400 lines
 - **Target File:** `/src/schema/mutations/time.rs`
@@ -122,6 +131,7 @@ Currently, no domains are actively in progress. Next extraction target: **Time/A
 - **Namespace:** `mutation { time { ... } }`
 
 #### 7. Employee Data - Certifications, Goals, Skills, Contacts
+
 - **Estimated Methods:** 10-12 mutation methods
 - **Estimated Lines:** 400-450 lines
 - **Target File:** `/src/schema/mutations/employee.rs`
@@ -138,6 +148,7 @@ Currently, no domains are actively in progress. Next extraction target: **Time/A
 ### Phase 3: Events & Leave Management (Priority: High)
 
 #### 8. Events - Calendar Events, RSVP, Attendance
+
 - **Estimated Methods:** 12-15 mutation methods
 - **Estimated Lines:** 550-650 lines
 - **Target File:** `/src/schema/mutations/events.rs`
@@ -158,6 +169,7 @@ Currently, no domains are actively in progress. Next extraction target: **Time/A
 - **Namespace:** `mutation { events { ... } }`
 
 #### 9. Leave Management - PTO Requests, Approvals, Balances
+
 - **Estimated Methods:** 15-18 mutation methods
 - **Estimated Lines:** 650-750 lines
 - **Target File:** `/src/schema/mutations/leave.rs`
@@ -181,6 +193,7 @@ Currently, no domains are actively in progress. Next extraction target: **Time/A
 ### Phase 4: Content & Performance (Priority: Medium)
 
 #### 10. Documents - Document Management, Uploads, Permissions
+
 - **Estimated Methods:** 12-14 mutation methods
 - **Estimated Lines:** 500-600 lines
 - **Target File:** `/src/schema/mutations/documents.rs`
@@ -201,6 +214,7 @@ Currently, no domains are actively in progress. Next extraction target: **Time/A
 - **Namespace:** `mutation { documents { ... } }`
 
 #### 11. Reviews/Performance - Performance Reviews, Feedback, Goals
+
 - **Estimated Methods:** 18-20 mutation methods
 - **Estimated Lines:** 750-850 lines
 - **Target File:** `/src/schema/mutations/reviews.rs`
@@ -224,6 +238,7 @@ Currently, no domains are actively in progress. Next extraction target: **Time/A
 ### Phase 5: System Administration (Priority: Low)
 
 #### 12. System/Admin - System Settings, Admin Operations
+
 - **Estimated Methods:** 15-20 mutation methods
 - **Estimated Lines:** 450-550 lines
 - **Target File:** `/src/schema/mutations/system.rs`
@@ -250,11 +265,13 @@ Currently, no domains are actively in progress. Next extraction target: **Time/A
 ## Migration Metrics
 
 ### Code Distribution
+
 - **Original mutation.rs (estimated):** ~3,960 lines (pre-refactoring baseline)
 - **Extracted so far:** 1,796 lines (45% of estimated original)
 - **Remaining to extract:** ~2,164 lines (55%)
 
 ### Current File Sizes
+
 ```
 183 lines  - auth.rs         (3 methods)
  98 lines  - department.rs   (3 methods)
@@ -266,6 +283,7 @@ Currently, no domains are actively in progress. Next extraction target: **Time/A
 ```
 
 ### Projected Final Distribution
+
 ```
 Domain               Lines    Methods   Priority
 ----------------------------------------
@@ -286,6 +304,7 @@ TOTAL               5,736      136
 ```
 
 ### Progress by Week
+
 - **Week 0 (Pre-existing):** 4 domains (RBAC, Departments, Tasks, Users) - 1,603 lines
 - **Week 1 (Current - 2025-11-02):** 1 domain (Auth) - 183 lines ✅
 - **Week 2 (2025-11-04 - 2025-11-08):** 2 domains (Time, Employee) - ~800 lines 🎯
@@ -302,79 +321,99 @@ TOTAL               5,736      136
 ```graphql
 # Authentication operations
 mutation {
-  auth {
-    login(email: "admin@example.com", password: "secret") {
-      ... on AuthSuccess {
-        user { id email role }
-        session { id expiresAt }
-      }
-      ... on AuthError {
-        code
-        message
-        retryAfter
-      }
-    }
+	auth {
+		login(email: "admin@example.com", password: "secret") {
+			... on AuthSuccess {
+				user {
+					id
+					email
+					role
+				}
+				session {
+					id
+					expiresAt
+				}
+			}
+			... on AuthError {
+				code
+				message
+				retryAfter
+			}
+		}
 
-    logout(sessionId: "abc123") {
-      ... on LogoutSuccess { message }
-      ... on LogoutError { code message }
-    }
+		logout(sessionId: "abc123") {
+			... on LogoutSuccess {
+				message
+			}
+			... on LogoutError {
+				code
+				message
+			}
+		}
 
-    refreshSession(sessionId: "abc123") {
-      ... on AuthSuccess { session { id expiresAt } }
-      ... on AuthError { code message }
-    }
-  }
+		refreshSession(sessionId: "abc123") {
+			... on AuthSuccess {
+				session {
+					id
+					expiresAt
+				}
+			}
+			... on AuthError {
+				code
+				message
+			}
+		}
+	}
 }
 
 # RBAC operations
 mutation {
-  rbac {
-    createRole(name: "Manager", permissions: ["read:employees"]) {
-      id
-      name
-    }
+	rbac {
+		createRole(name: "Manager", permissions: ["read:employees"]) {
+			id
+			name
+		}
 
-    assignRoleToUser(userId: "123", roleId: "456") {
-      success
-    }
-  }
+		assignRoleToUser(userId: "123", roleId: "456") {
+			success
+		}
+	}
 }
 
 # Task operations
 mutation {
-  task {
-    createTask(title: "Review PR", assigneeId: "789") {
-      id
-      title
-      status
-    }
+	task {
+		createTask(title: "Review PR", assigneeId: "789") {
+			id
+			title
+			status
+		}
 
-    updateTaskStatus(taskId: "task-1", status: COMPLETED) {
-      id
-      status
-    }
-  }
+		updateTaskStatus(taskId: "task-1", status: COMPLETED) {
+			id
+			status
+		}
+	}
 }
 
 # Department operations
 mutation {
-  department {
-    createDepartment(name: "Engineering", managerId: "user-1") {
-      id
-      name
-    }
-  }
+	department {
+		createDepartment(name: "Engineering", managerId: "user-1") {
+			id
+			name
+		}
+	}
 }
 
 # User operations
 mutation {
-  user {
-    createUser(email: "new@example.com", name: "Jane Doe") {
-      id
-      email
-    }
-  }
+	user {
+		createUser(email: "new@example.com", name: "Jane Doe") {
+			id
+			email
+		}
+	}
 }
 ```
 
@@ -405,6 +444,7 @@ mutation {
 ```
 
 **Migration Strategy:**
+
 1. ✅ New namespace APIs are preferred for new client code
 2. ✅ Old APIs remain functional for backward compatibility
 3. 📅 Deprecation notices will be added in schema (target: Q2 2025)
@@ -417,6 +457,7 @@ mutation {
 ### Immediate Actions (This Week - 2025-11-04 to 2025-11-08)
 
 #### High Priority
+
 - [ ] **Extract Time domain** (6-8 hours)
   - Create `/src/schema/mutations/time.rs`
   - Implement `TimeMutations` struct
@@ -499,6 +540,7 @@ mutation {
 ## Benefits Realized
 
 ### Development Velocity
+
 - ✅ **Parallel Development:** Multiple developers can work on different domains without conflicts
 - ✅ **Faster Builds:** Incremental compilation benefits from smaller module units
   - Before: ~4.5s average rebuild time
@@ -507,6 +549,7 @@ mutation {
 - ✅ **Easier Onboarding:** New developers can understand one domain at a time
 
 ### Code Quality
+
 - ✅ **Single Responsibility:** Each module focuses on one domain
   - Before: 3,960 lines in one file
   - After: Average 250 lines per domain file
@@ -515,11 +558,13 @@ mutation {
 - ✅ **Better Documentation:** Each domain has dedicated documentation comments
 
 ### Merge Conflict Reduction
+
 - ✅ **Before:** 75% of PRs had conflicts in mutation.rs
 - ✅ **After:** <10% conflict rate (estimated based on current data)
 - ✅ **Conflict Resolution Time:** Average 15 minutes → 3 minutes (80% reduction)
 
 ### Operational Improvements
+
 - ✅ **Faster Code Reviews:** Reviewers can focus on specific domain changes
 - ✅ **Easier Rollbacks:** Domain-specific changes can be reverted independently
 - ✅ **Better Git Blame:** Clear history for each domain's evolution
@@ -530,12 +575,14 @@ mutation {
 ## Risk Mitigation
 
 ### Backward Compatibility
+
 - ✅ All old API paths still work (100% compatibility maintained)
 - ✅ No breaking changes to GraphQL schema
 - ✅ Clients can migrate gradually at their own pace
 - ✅ Old and new APIs can coexist indefinitely
 
 ### Testing Strategy
+
 - ✅ Keep original methods until tests pass
 - ✅ Integration tests for each domain
 - ✅ Smoke tests for both old and new APIs
@@ -543,13 +590,16 @@ mutation {
 - 🔄 Load testing for high-traffic domains (planned)
 
 ### Rollback Plan
+
 - ✅ Old methods still present in codebase
 - ✅ Can revert to old API by removing delegation
 - ✅ No permanent deletions until full verification
 - ✅ Git tags mark each domain extraction milestone
 
 ### Quality Gates
+
 Before marking any domain as "complete":
+
 1. ✅ `cargo check --lib` must pass
 2. ✅ All unit tests must pass
 3. ✅ Integration tests must pass
@@ -563,17 +613,20 @@ Before marking any domain as "complete":
 ## Lessons Learned
 
 ### What Went Well
+
 1. **Namespace Pattern:** GraphQL `#[Object]` namespacing provides excellent organization
 2. **Incremental Migration:** Small, focused extractions minimize risk
 3. **Union Types:** Rust enums for GraphQL unions provide excellent error handling
 4. **Build Verification:** `cargo check --lib` catches issues immediately
 
 ### Challenges Encountered
+
 1. **Initial Extraction Complexity:** Understanding original mutation.rs took significant time
 2. **Dependency Mapping:** Identifying cross-domain dependencies required careful analysis
 3. **Test Coverage Gaps:** Some original code lacked tests, making extraction riskier
 
 ### Best Practices Established
+
 1. **Always verify compilation after each extraction**
 2. **Create domain file with just struct first, then extract methods incrementally**
 3. **Update mod.rs exports immediately after creating new domain**
@@ -585,6 +638,7 @@ Before marking any domain as "complete":
 ## Performance Metrics
 
 ### Compilation Times
+
 ```
 Before domain extraction:
 - Clean build: ~18.5s
@@ -602,12 +656,14 @@ Projected (all domains extracted):
 ```
 
 ### Bundle Size Impact
+
 ```
 Before: libhr_graphql_server.rlib = 12.4 MB
 After (5 domains): libhr_graphql_server.rlib = 12.3 MB (negligible)
 ```
 
 ### Memory Usage
+
 ```
 Peak compilation memory:
 - Before: ~2.8 GB
@@ -619,11 +675,13 @@ Peak compilation memory:
 ## References & Documentation
 
 ### Related Documents
+
 - **Architecture Decision Record (ADR):** `/docs/adr/0001-mutation-domain-extraction.md` (planned)
 - **Migration Guide for Clients:** `/docs/guides/graphql-namespace-migration.md` (planned)
 - **API Documentation:** Generated via `cargo doc --no-deps`
 
 ### Code References
+
 - **Mutation Module:** `/src/schema/mutations/mod.rs`
 - **Auth Domain:** `/src/schema/mutations/auth.rs`
 - **RBAC Domain:** `/src/schema/mutations/rbac.rs`
@@ -632,6 +690,7 @@ Peak compilation memory:
 - **User Domain:** `/src/schema/mutations/user.rs`
 
 ### External Resources
+
 - async-graphql Object documentation: https://async-graphql.github.io/async-graphql/en/object.html
 - GraphQL best practices: https://graphql.org/learn/best-practices/
 - Rust module system: https://doc.rust-lang.org/book/ch07-00-managing-growing-projects-with-packages-crates-and-modules.html
@@ -664,6 +723,7 @@ graph TD
 ```
 
 **Key Insights:**
+
 - **User** and **RBAC** are foundational domains (most dependencies)
 - **Time** and **Employee** should be extracted next (moderate dependencies)
 - **Events**, **Leave**, **Documents**, **Reviews** depend on earlier domains
@@ -673,20 +733,20 @@ graph TD
 
 ## Status Dashboard
 
-| Domain | Status | Methods | Lines | Est. Effort | Priority | Target Week |
-|--------|--------|---------|-------|-------------|----------|-------------|
-| Auth | ✅ Complete | 3 | 183 | - | High | Week 1 ✅ |
-| RBAC | ✅ Complete | 12 | 662 | - | High | Week 0 ✅ |
-| Department | ✅ Complete | 3 | 98 | - | High | Week 0 ✅ |
-| Task | ✅ Complete | 16 | 692 | - | High | Week 0 ✅ |
-| User | ✅ Complete | 3 | 151 | - | High | Week 0 ✅ |
-| Time | 🔜 Next | 9 | 375 | 6-8h | High | Week 2 |
-| Employee | 🔜 Next | 11 | 425 | 8-10h | High | Week 2 |
-| Events | ⏳ Planned | 14 | 600 | 10-12h | High | Week 3 |
-| Leave | ⏳ Planned | 17 | 700 | 12-14h | High | Week 3 |
-| Documents | ⏳ Planned | 13 | 550 | 8-10h | Medium | Week 4 |
-| Reviews | ⏳ Planned | 19 | 800 | 14-16h | Medium | Week 4 |
-| System | ⏳ Planned | 16 | 500 | 8-10h | Low | Week 5 |
+| Domain     | Status      | Methods | Lines | Est. Effort | Priority | Target Week |
+| ---------- | ----------- | ------- | ----- | ----------- | -------- | ----------- |
+| Auth       | ✅ Complete | 3       | 183   | -           | High     | Week 1 ✅   |
+| RBAC       | ✅ Complete | 12      | 662   | -           | High     | Week 0 ✅   |
+| Department | ✅ Complete | 3       | 98    | -           | High     | Week 0 ✅   |
+| Task       | ✅ Complete | 16      | 692   | -           | High     | Week 0 ✅   |
+| User       | ✅ Complete | 3       | 151   | -           | High     | Week 0 ✅   |
+| Time       | 🔜 Next     | 9       | 375   | 6-8h        | High     | Week 2      |
+| Employee   | 🔜 Next     | 11      | 425   | 8-10h       | High     | Week 2      |
+| Events     | ⏳ Planned  | 14      | 600   | 10-12h      | High     | Week 3      |
+| Leave      | ⏳ Planned  | 17      | 700   | 12-14h      | High     | Week 3      |
+| Documents  | ⏳ Planned  | 13      | 550   | 8-10h       | Medium   | Week 4      |
+| Reviews    | ⏳ Planned  | 19      | 800   | 14-16h      | Medium   | Week 4      |
+| System     | ⏳ Planned  | 16      | 500   | 8-10h       | Low      | Week 5      |
 
 **Overall Progress:** 5/12 domains (42%) | 1,796/5,736 lines (31%)
 

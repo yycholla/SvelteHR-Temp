@@ -5,21 +5,25 @@
 This development setup includes several optimizations for **significantly faster compilation and hot-reloading**:
 
 ### 1. Mold Linker (5-10x Faster Linking)
+
 - **What**: Modern, high-performance linker that replaces the default GNU linker
 - **Benefit**: Linking phase is 5-10x faster, reducing compile times from minutes to seconds
 - **Config**: Automatically enabled via `.cargo/config.toml`
 
 ### 2. Separate Target Directory (3-5x Faster I/O)
+
 - **What**: Docker volume for `target/` directory instead of bind-mounting
 - **Benefit**: Eliminates bind-mount I/O overhead, dramatically speeds up compilation
 - **Implementation**: Configured in `docker-compose.dev.yml`
 
 ### 3. cargo-chef (10x Faster Rebuilds)
+
 - **What**: Smart Docker layer caching for Rust dependencies
 - **Benefit**: Dependencies only rebuild when `Cargo.toml` changes
 - **Implementation**: Multi-stage Dockerfile with recipe.json
 
 ### 4. Hot-Reloading with cargo-watch or bacon
+
 - **What**: Automatic recompilation on file changes
 - **Benefit**: No need to manually restart the server during development
 - **Options**: Choose between `cargo-watch` (simple) or `bacon` (advanced)
@@ -29,6 +33,7 @@ This development setup includes several optimizations for **significantly faster
 ### Option 1: cargo-watch (Recommended for Beginners)
 
 **Setup:**
+
 ```bash
 # Use the default dev setup
 cd dev-containers
@@ -36,6 +41,7 @@ docker-compose -f docker-compose.dev.yml up hr-graphql-rust
 ```
 
 **Features:**
+
 - Simple and straightforward
 - Watches `src/`, `Cargo.toml`, `.cargo/` for changes
 - Automatically recompiles and restarts on save
@@ -44,6 +50,7 @@ docker-compose -f docker-compose.dev.yml up hr-graphql-rust
 **Dockerfile:** `Dockerfile.dev`
 
 **Watching Behavior:**
+
 - Monitors: `src/`, `Cargo.toml`, `.cargo/config.toml`
 - Ignores: `target/`, `.git/`, `*.log`
 - Delay: 1 second to batch multiple saves
@@ -51,6 +58,7 @@ docker-compose -f docker-compose.dev.yml up hr-graphql-rust
 ### Option 2: bacon (Advanced Features)
 
 **Setup:**
+
 ```bash
 # Update docker-compose.dev.yml to use Dockerfile.dev.bacon
 # Then start the service
@@ -59,6 +67,7 @@ docker-compose -f docker-compose.dev.yml up hr-graphql-rust
 ```
 
 **Features:**
+
 - Beautiful terminal output with syntax highlighting
 - Smarter rebuild detection (only rebuilds what changed)
 - Built-in support for different modes:
@@ -72,6 +81,7 @@ docker-compose -f docker-compose.dev.yml up hr-graphql-rust
 **Dockerfile:** `Dockerfile.dev.bacon`
 
 **Switching Modes:**
+
 ```bash
 # Edit docker-compose.dev.yml and change:
 dockerfile: Dockerfile.dev.bacon
@@ -85,6 +95,7 @@ docker-compose -f docker-compose.dev.yml up --build hr-graphql-rust
 ### First-Time Setup
 
 1. **Build the development container:**
+
    ```bash
    cd dev-containers
    docker-compose -f docker-compose.dev.yml build hr-graphql-rust
@@ -97,11 +108,13 @@ docker-compose -f docker-compose.dev.yml up --build hr-graphql-rust
    - Compiles all dependencies
 
 2. **Start the development server:**
+
    ```bash
    docker-compose -f docker-compose.dev.yml up hr-graphql-rust
    ```
 
    You should see:
+
    ```
    [Running 'cargo run']
    Compiling hr-graphql-server v0.1.0 (/app)
@@ -143,6 +156,7 @@ After the initial build, subsequent code changes will compile **much faster**:
 ## Performance Comparison
 
 ### Without Optimizations (Old Setup)
+
 ```
 Initial build:        8-12 minutes
 Code change rebuild:  45-90 seconds
@@ -150,6 +164,7 @@ Dependency change:    8-12 minutes
 ```
 
 ### With All Optimizations (New Setup)
+
 ```
 Initial build:        5-7 minutes   (cargo-chef + parallel jobs)
 Code change rebuild:  3-10 seconds  (mold + incremental + volume)
@@ -161,6 +176,7 @@ Dependency change:    1-2 minutes   (cargo-chef caching)
 ## Configuration Files
 
 ### `.cargo/config.toml`
+
 ```toml
 [target.x86_64-unknown-linux-gnu]
 rustflags = ["-C", "link-arg=-fuse-ld=mold"]
@@ -171,6 +187,7 @@ jobs = 0  # Use all CPU cores
 ```
 
 ### `docker-compose.dev.yml` (Key Sections)
+
 ```yaml
 volumes:
   # Source code (mounted for hot-reloading)
@@ -188,13 +205,17 @@ volumes:
 ## Troubleshooting
 
 ### Issue: "mold: command not found"
+
 **Solution:** Rebuild the Docker image to install mold:
+
 ```bash
 docker-compose -f docker-compose.dev.yml build --no-cache hr-graphql-rust
 ```
 
 ### Issue: Compilation is still slow
+
 **Checks:**
+
 1. Verify target directory is using Docker volume (not bind-mounted):
    ```bash
    docker inspect sveltehr-graphql-rust | grep rust_target_cache
@@ -209,7 +230,9 @@ docker-compose -f docker-compose.dev.yml build --no-cache hr-graphql-rust
    ```
 
 ### Issue: Hot-reload not detecting changes
+
 **Solutions:**
+
 1. Check file permissions (files should be readable)
 2. Verify volumes are mounted correctly:
    ```bash
@@ -218,7 +241,9 @@ docker-compose -f docker-compose.dev.yml build --no-cache hr-graphql-rust
 3. Increase delay in cargo-watch command (edit Dockerfile.dev)
 
 ### Issue: Out of memory during compilation
+
 **Solutions:**
+
 1. Reduce parallel jobs in `.cargo/config.toml`:
    ```toml
    [build]
@@ -230,7 +255,9 @@ docker-compose -f docker-compose.dev.yml build --no-cache hr-graphql-rust
    ```
 
 ### Issue: Container keeps restarting
+
 **Debug:**
+
 ```bash
 # Check logs
 docker logs sveltehr-graphql-rust
@@ -246,16 +273,19 @@ docker logs sveltehr-graphql-rust
 ### Running Different Commands
 
 **Check only (no run):**
+
 ```bash
 docker exec sveltehr-graphql-rust cargo watch -x check
 ```
 
 **Run tests on change:**
+
 ```bash
 docker exec sveltehr-graphql-rust cargo watch -x test
 ```
 
 **Run clippy lints:**
+
 ```bash
 docker exec sveltehr-graphql-rust cargo watch -x clippy
 ```
@@ -313,6 +343,7 @@ A: Just add it to `Cargo.toml` and save. cargo-watch will detect the change and 
 
 **Q: How do I disable hot-reloading temporarily?**
 A: Stop the container and run a one-time build:
+
 ```bash
 docker-compose -f docker-compose.dev.yml stop hr-graphql-rust
 docker-compose -f docker-compose.dev.yml run --rm hr-graphql-rust cargo build

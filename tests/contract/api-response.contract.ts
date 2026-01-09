@@ -2,7 +2,7 @@
 // Tests API response structure and data integrity
 // Created: 2025-09-24
 
-import { test, expect, describe } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { z } from 'zod';
 
 // Response Schema Definitions
@@ -113,7 +113,7 @@ const GraphQLResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
 					message: z.string(),
 					locations: z.array(z.object({ line: z.number(), column: z.number() })).optional(),
 					path: z.array(z.union([z.string(), z.number()])).optional(),
-					extensions: z.record(z.any()).optional()
+					extensions: z.record(z.string(), z.any()).optional()
 				})
 			)
 			.optional()
@@ -123,7 +123,7 @@ const ErrorResponseSchema = z.object({
 	error: z.object({
 		message: z.string(),
 		code: z.string(),
-		details: z.record(z.any()).optional(),
+		details: z.record(z.string(), z.any()).optional(),
 		timestamp: z.string().datetime()
 	})
 });

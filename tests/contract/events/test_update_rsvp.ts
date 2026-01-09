@@ -12,7 +12,7 @@
  * - Auto-create attendee if not exists
  */
 
-import { test, expect, describe, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 type RsvpStatus = 'pending' | 'accepted' | 'declined' | 'tentative';
 type RsvpScope = 'this_event' | 'this_and_future' | 'all_events';

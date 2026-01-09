@@ -49,7 +49,11 @@ program
 	)
 	.option('--validate', 'Validate that init script equals migrations', false)
 	.option('--clean-database', 'Drop temporary database after completion', true)
-	.option('--database-url <url>', 'PostgreSQL connection URL for validation', process.env.DATABASE_URL)
+	.option(
+		'--database-url <url>',
+		'PostgreSQL connection URL for validation',
+		process.env.DATABASE_URL
+	)
 	.parse();
 
 const options = program.opts<RebuildOptions>();
@@ -269,7 +273,10 @@ async function validateInitScript(
 		await runPsql(validationDbUrl, initScriptPath);
 
 		// Capture schemas from both databases
-		const migrationsSchema = await captureSchema(`postgresql://localhost/${tempDbName}`, 'hr_public');
+		const migrationsSchema = await captureSchema(
+			`postgresql://localhost/${tempDbName}`,
+			'hr_public'
+		);
 		const initScriptSchema = await captureSchema(validationDbUrl, 'hr_public');
 
 		// Compare schemas

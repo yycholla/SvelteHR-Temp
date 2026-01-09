@@ -1,11 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 /**
  * Visual Regression Tests for Dashboard
- * 
+ *
  * These tests capture screenshots of key pages and compare them against
  * baseline images to detect unintended visual changes.
- * 
+ *
  * To update baselines: npm run test:visual -- --update-snapshots
  */
 
@@ -13,7 +13,7 @@ test.describe('Dashboard Visual Regression', () => {
 	test.beforeEach(async ({ page }) => {
 		// Navigate to dashboard
 		await page.goto('/dashboard');
-		
+
 		// Wait for page to be fully loaded
 		await page.waitForLoadState('networkidle');
 	});
@@ -21,7 +21,7 @@ test.describe('Dashboard Visual Regression', () => {
 	test('dashboard page matches snapshot', async ({ page }) => {
 		// Wait for critical elements
 		await page.waitForSelector('[data-testid="dashboard-container"]');
-		
+
 		// Take full page screenshot
 		await expect(page).toHaveScreenshot('dashboard-full.png', {
 			fullPage: true
@@ -42,7 +42,7 @@ test.describe('Dashboard Visual Regression', () => {
 		// Toggle dark mode
 		await page.click('[data-testid="theme-toggle"]');
 		await page.waitForTimeout(500); // Wait for theme transition
-		
+
 		await expect(page).toHaveScreenshot('dashboard-dark-mode.png', {
 			fullPage: true
 		});
@@ -94,13 +94,13 @@ test.describe('HR Portal Visual Regression', () => {
 test.describe('Component Visual Regression', () => {
 	test('modal dialog matches snapshot', async ({ page }) => {
 		await page.goto('/dashboard');
-		
+
 		// Open a modal (adjust selector as needed)
 		const openModalButton = page.locator('[data-testid="open-modal"]');
 		if (await openModalButton.isVisible()) {
 			await openModalButton.click();
 			await page.waitForSelector('[role="dialog"]');
-			
+
 			const modal = page.locator('[role="dialog"]');
 			await expect(modal).toHaveScreenshot('modal-dialog.png');
 		}
@@ -108,13 +108,13 @@ test.describe('Component Visual Regression', () => {
 
 	test('notification toast matches snapshot', async ({ page }) => {
 		await page.goto('/dashboard');
-		
+
 		// Trigger a notification (adjust as needed)
 		const triggerButton = page.locator('[data-testid="trigger-toast"]');
 		if (await triggerButton.isVisible()) {
 			await triggerButton.click();
 			await page.waitForSelector('[data-testid="toast"]');
-			
+
 			const toast = page.locator('[data-testid="toast"]');
 			await expect(toast).toHaveScreenshot('notification-toast.png');
 		}

@@ -11,11 +11,12 @@ use crate::{
     database::get_db_from_context,
     error::AppError,
     schema::mutations::{
-        AuthMutations, UserMutations, DepartmentMutations, TaskMutations, RbacMutations, TimeMutations, EmployeeMutations, EmployeeImportMutations, TrainingMutations,
+        AuthMutations, UserMutations, DepartmentMutations, TaskMutations, RbacMutations, TimeMutations, EmployeeMutations, EmployeeImportMutations, TrainingMutations, OnboardingMutations, IntuitMutations, WebhookMutations, TimeEntryMutations, PayrollMutations, DigestMutations, ComplianceMutations,
         // Import auth types to avoid naming conflicts
         auth::{LoginInput, AuthResponse, LogoutResult, RefreshSessionResponse},
     },
     models::{
+        Notification, UpdateNotificationInput,
         ApproveLeaveRequestInput, AssignRoleInput, AssignTaskInput,
         ChangeTaskStatusInput, CreateEventAttendeeInput, CreateEventInput,
         CreateLeaveBalanceInput, CreateLeaveRequestInput, CreateLeaveTypeInput,
@@ -4142,6 +4143,46 @@ impl MutationRoot {
         TrainingMutations
     }
 
+    /// Onboarding mutations
+    async fn onboarding(&self) -> OnboardingMutations {
+        OnboardingMutations
+    }
+
+    /// Intuit QuickBooks integration mutations
+    async fn intuit(&self) -> IntuitMutations {
+        IntuitMutations
+    }
+
+    /// Webhook mutations for QuickBooks webhook management
+    async fn webhooks(&self) -> WebhookMutations {
+        WebhookMutations
+    }
+
+    /// Time entry mutations for time tracking CRUD and QuickBooks sync
+    async fn time_entries(&self) -> TimeEntryMutations {
+        TimeEntryMutations
+    }
+
+    /// Sync health monitoring mutations for alert management
+    async fn sync_health(&self) -> crate::schema::mutations::SyncHealthMutations {
+        crate::schema::mutations::SyncHealthMutations
+    }
+
+    /// Payroll mutations for compensation management and QuickBooks payroll sync
+    async fn payroll(&self) -> PayrollMutations {
+        PayrollMutations
+    }
+
+    /// Email digest mutations for automated summary email configuration
+    async fn digests(&self) -> DigestMutations {
+        DigestMutations
+    }
+
+    /// Compliance report mutations for regulatory reporting
+    async fn compliance(&self) -> ComplianceMutations {
+        ComplianceMutations
+    }
+
     /// User mutations (existing)
     async fn users(&self) -> UserMutations {
         UserMutations
@@ -4180,5 +4221,133 @@ impl MutationRoot {
     /// Employee import operations (CSV upload, mapping, commit)
     async fn employee_import(&self) -> EmployeeImportMutations {
         EmployeeImportMutations
+    }
+
+    /// Validation rule management and failure resolution
+    async fn validation(&self) -> crate::schema::mutations::ValidationMutation {
+        crate::schema::mutations::ValidationMutation
+    }
+
+    /// Sync schedule management for automated sync operations
+    async fn sync_schedule(&self) -> crate::schema::mutations::SyncScheduleMutation {
+        crate::schema::mutations::SyncScheduleMutation
+    }
+
+    /// Sync preview/dry run for previewing changes before execution
+    async fn sync_preview(&self) -> crate::schema::mutations::SyncPreviewMutation {
+        crate::schema::mutations::SyncPreviewMutation
+    }
+
+    /// Selective sync for syncing specific entities
+    async fn selective_sync(&self) -> crate::schema::mutations::SelectiveSyncMutation {
+        crate::schema::mutations::SelectiveSyncMutation
+    }
+
+    /// Field mapping configuration for QuickBooks sync
+    async fn field_mapping(&self) -> crate::schema::mutations::FieldMappingMutation {
+        crate::schema::mutations::FieldMappingMutation
+    }
+
+    /// Per-employee sync management and history
+    async fn employee_sync(&self) -> crate::schema::mutations::EmployeeSyncMutation {
+        crate::schema::mutations::EmployeeSyncMutation
+    }
+
+    /// Incremental sync toggle and configuration
+    async fn incremental_sync(&self) -> crate::schema::mutations::IncrementalSyncMutation {
+        crate::schema::mutations::IncrementalSyncMutation
+    }
+
+    // ==================================================================================
+    // Notification Mutations
+    // ==================================================================================
+
+    /// Update a notification (primarily for marking as read/unread)
+    async fn update_notification(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+        input: UpdateNotificationInput,
+    ) -> Result<Notification> {
+        use crate::models::notification::{ActiveModel, Column, Entity};
+
+        let db = get_db_from_context(ctx)?;
+
+        // Get user context for authorization
+        let user_context = ctx
+            .data_opt::<UserContext>()
+            .ok_or("User context not found - authentication required")?;
+
+        // Find existing notification and verify ownership
+        let existing = Entity::find_by_id(id)
+            .filter(Column::DeletedAt.is_null())
+            .one(&db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Notification not found".to_string()))?;
+
+        // Verify the notification belongs to the current user
+        if existing.recipient_id != user_context.user_id {
+            return Err(AppError::Authorization(
+                "You can only update your own notifications".to_string(),
+            )
+            .into());
+        }
+
+        // Build active model with updates
+        let mut notification: ActiveModel = existing.into();
+
+        if let Some(read_status) = input.read_status {
+            notification.read_status = Set(read_status);
+            if read_status {
+                notification.read_at = Set(Some(Utc::now()));
+            } else {
+                notification.read_at = Set(None);
+            }
+        }
+
+        // Save updates
+        let updated = notification.update(&db).await?;
+
+        Ok(updated)
+    }
+
+    /// Delete a notification (soft delete)
+    async fn delete_notification(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
+        use crate::models::notification::{ActiveModel, Column, Entity};
+
+        let db = get_db_from_context(ctx)?;
+
+        // Get user context for authorization
+        let user_context = ctx
+            .data_opt::<UserContext>()
+            .ok_or("User context not found - authentication required")?;
+
+        // Find the notification and verify ownership
+        let notification = Entity::find_by_id(id)
+            .filter(Column::DeletedAt.is_null())
+            .one(&db)
+            .await?;
+
+        if notification.is_none() {
+            return Ok(false);
+        }
+
+        let notification = notification.unwrap();
+
+        // Verify the notification belongs to the current user
+        if notification.recipient_id != user_context.user_id {
+            return Err(AppError::Authorization(
+                "You can only delete your own notifications".to_string(),
+            )
+            .into());
+        }
+
+        // Soft delete by setting deleted_at
+        let mut notification: ActiveModel = notification.into();
+        notification.deleted_at = Set(Some(Utc::now()));
+
+        notification.update(&db).await?;
+
+        Ok(true)
     }
 }

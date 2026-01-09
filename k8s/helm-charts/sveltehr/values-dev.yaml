@@ -24,42 +24,42 @@ postgresql:
   # PostgreSQL image
   image:
     repository: ghcr.io/cloudnative-pg/postgresql
-    tag: "15.6"
+    tag: '15.6'
 
   # Database configuration
   database: hr_system
   username: hr_user
-  password: "dev_password_change_me"  # Override with secret in production
-  superuserPassword: "dev_superuser_change_me"
+  password: 'dev_password_change_me' # Override with secret in production
+  superuserPassword: 'dev_superuser_change_me'
 
   # Storage configuration
   storage:
     size: 5Gi
-    storageClass: local-path  # k3s default
+    storageClass: local-path # k3s default
     pvcTemplate: {}
 
   # PostgreSQL server parameters
   config:
-    maxConnections: "100"
-    sharedBuffers: "256MB"
-    workMem: "4MB"
-    maintenanceWorkMem: "64MB"
-    maxWalSenders: "10"
-    maxReplicationSlots: "10"
+    maxConnections: '100'
+    sharedBuffers: '256MB'
+    workMem: '4MB'
+    maintenanceWorkMem: '64MB'
+    maxWalSenders: '10'
+    maxReplicationSlots: '10'
     additionalParameters: {}
 
   # Service configuration
   service:
-    name: ""  # Will default to sveltehr-postgres-rw
+    name: '' # Will default to sveltehr-postgres-rw
     port: 5432
 
   # Backup configuration (disabled for dev)
   backup:
     enabled: false
-    destinationPath: ""
-    endpointURL: ""
-    retentionPolicy: "7d"
-    schedule: ""
+    destinationPath: ''
+    endpointURL: ''
+    retentionPolicy: '7d'
+    schedule: ''
     s3Credentials: {}
 
   # Monitoring
@@ -93,7 +93,7 @@ redis:
   # Authentication disabled for dev convenience
   auth:
     enabled: false
-    password: ""
+    password: ''
 
   # Master configuration
   master:
@@ -118,7 +118,7 @@ redis:
     enabled: false
 
   # Service configuration
-  url: ""  # Will default to redis://sveltehr-redis-master:6379
+  url: '' # Will default to redis://sveltehr-redis-master:6379
 
 # -----------------------------------------------------------------------------
 # Backend Configuration (Rust GraphQL Server)
@@ -143,8 +143,8 @@ backend:
     annotations: {}
 
   # Server configuration
-  host: "0.0.0.0"
-  rustLog: "info,hr_graphql_server=debug"
+  host: '0.0.0.0'
+  rustLog: 'info,hr_graphql_server=debug'
 
   # Environment variables
   extraEnv: []
@@ -219,16 +219,16 @@ frontend:
   # Service configuration
   service:
     type: ClusterIP
-    port: 5173  # Vite dev server
+    port: 5173 # Vite dev server
     targetPort: 5173
     annotations: {}
 
   # Backend URL configuration
-  backendUrl: ""  # Will default to http://sveltehr-backend:4000
-  waitForBackend: true  # Enable init container
+  backendUrl: '' # Will default to http://sveltehr-backend:4000
+  waitForBackend: true # Enable init container
 
   # Server configuration
-  host: "0.0.0.0"
+  host: '0.0.0.0'
 
   # Environment variables
   extraEnv: []
@@ -263,7 +263,7 @@ frontend:
   # Security context (allow root for dev convenience)
   securityContext:
     runAsUser: 1001
-    runAsNonRoot: false  # Dev mode: allow root for npm operations
+    runAsNonRoot: false # Dev mode: allow root for npm operations
 
   podSecurityContext:
     fsGroup: 1001
@@ -298,11 +298,11 @@ migration:
     pullPolicy: Always
 
   # Job configuration
-  ttlSecondsAfterFinished: 300  # Cleanup after 5 minutes
-  backoffLimit: 3  # Retry up to 3 times
+  ttlSecondsAfterFinished: 300 # Cleanup after 5 minutes
+  backoffLimit: 3 # Retry up to 3 times
 
   # Logging
-  rustLog: "info,migration=debug"
+  rustLog: 'info,migration=debug'
 
   # Environment variables
   extraEnv: []
@@ -332,7 +332,7 @@ migration:
 # Seed Job Configuration (Helm test hook - manual execution)
 # -----------------------------------------------------------------------------
 seed:
-  enabled: false  # Manual execution only in dev
+  enabled: false # Manual execution only in dev
 
   # Image configuration (multi-target build - seed)
   image:
@@ -342,14 +342,14 @@ seed:
 
   # Job configuration
   ttlSecondsAfterFinished: 300
-  backoffLimit: 1  # Only retry once
+  backoffLimit: 1 # Only retry once
 
   # Admin credentials (optional - will use defaults if not provided)
-  adminEmail: "admin@sveltehr.dev"
-  adminPassword: "admin"  # Change in production!
+  adminEmail: 'admin@sveltehr.dev'
+  adminPassword: 'admin' # Change in production!
 
   # Logging
-  rustLog: "info,seed_data=debug"
+  rustLog: 'info,seed_data=debug'
 
   # Environment variables
   extraEnv: []
@@ -387,25 +387,33 @@ serviceAccount:
 # RBAC Configuration
 # -----------------------------------------------------------------------------
 rbac:
-  enabled: false  # Optional RBAC template (not critical for dev)
+  enabled: false # Optional RBAC template (not critical for dev)
 
 # -----------------------------------------------------------------------------
 # External Secrets Operator (Doppler Integration)
 # -----------------------------------------------------------------------------
 externalSecrets:
-  enabled: false  # Disabled for dev (use hardcoded secrets)
+  enabled: false # Disabled for dev (use hardcoded secrets)
   refreshInterval: 1h
 
   doppler:
-    serviceToken: ""
-    project: ""
-    config: ""
+    serviceToken: ''
+    project: ''
+    config: ''
+
+# -----------------------------------------------------------------------------
+# Intuit QuickBooks Integration (Development)
+# -----------------------------------------------------------------------------
+intuit:
+  environment: sandbox
+  redirectUri: 'https://dev.sveltehr.com/api/intuit/callback'
+  webhookUrl: 'https://dev.sveltehr.com/api/intuit/webhook'
 
 # -----------------------------------------------------------------------------
 # Ingress Configuration
 # -----------------------------------------------------------------------------
 ingress:
-  enabled: false  # Use port-forwarding for dev
+  enabled: false # Use port-forwarding for dev
   className: traefik
   annotations: {}
   host: localhost
@@ -416,7 +424,7 @@ ingress:
 # Pod Disruption Budgets
 # -----------------------------------------------------------------------------
 podDisruptionBudget:
-  enabled: false  # Not needed for single-replica dev
+  enabled: false # Not needed for single-replica dev
 
 # -----------------------------------------------------------------------------
 # Monitoring Configuration
@@ -430,9 +438,9 @@ monitoring:
 # pgAdmin Configuration
 # -----------------------------------------------------------------------------
 pgadmin:
-  enabled: false  # Optional for dev
-  email: "admin@sveltehr.dev"
-  password: "admin"
+  enabled: false # Optional for dev
+  email: 'admin@sveltehr.dev'
+  password: 'admin'
 
   image:
     repository: dpage/pgadmin4
@@ -449,13 +457,14 @@ pgadmin:
 
   tailscale:
     enabled: false
-    hostname: "pgadmin-dev"
+    hostname: 'pgadmin-dev'
 
 # -----------------------------------------------------------------------------
 # Tailscale Configuration
 # -----------------------------------------------------------------------------
 tailscale:
-  enabled: false  # Disabled by default for dev
+  enabled: false # Disabled by default for dev
+
 
 # =============================================================================
 # Development Notes

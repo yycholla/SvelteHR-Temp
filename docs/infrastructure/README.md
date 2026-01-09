@@ -55,6 +55,7 @@ k8s/
 ```
 
 **📋 Prerequisites:**
+
 - Proxmox VM with K3s installed
 - Docker and local registry running
 - kubectl configured
@@ -73,6 +74,7 @@ k8s/
 ```
 
 This installs:
+
 - CloudNativePG (PostgreSQL operator)
 - Redis operator (Spotahome)
 
@@ -240,14 +242,14 @@ kubectl port-forward -n monitoring svc/grafana 3000:3000
 
 ### Deployment Scripts
 
-| Script | Purpose |
-|--------|---------|
-| `./k8s/proxmox-quickstart.sh` | One-command deployment for Proxmox K3s |
-| `./k8s/deploy.sh dev install` | Install operators (PostgreSQL, Redis) |
-| `./k8s/deploy.sh dev deploy` | Deploy development environment |
-| `./k8s/deploy.sh prod deploy` | Deploy production environment |
-| `./k8s/scripts/build-and-push-local.sh` | Build and push Docker images |
-| `./k8s/setup-k3s.sh` | Configure kubectl for K3s |
+| Script                                  | Purpose                                |
+| --------------------------------------- | -------------------------------------- |
+| `./k8s/proxmox-quickstart.sh`           | One-command deployment for Proxmox K3s |
+| `./k8s/deploy.sh dev install`           | Install operators (PostgreSQL, Redis)  |
+| `./k8s/deploy.sh dev deploy`            | Deploy development environment         |
+| `./k8s/deploy.sh prod deploy`           | Deploy production environment          |
+| `./k8s/scripts/build-and-push-local.sh` | Build and push Docker images           |
+| `./k8s/setup-k3s.sh`                    | Configure kubectl for K3s              |
 
 ### Common Commands
 

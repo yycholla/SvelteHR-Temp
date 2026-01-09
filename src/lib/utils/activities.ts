@@ -2,7 +2,7 @@
 // Feature: 019-we-need-to - Task T018
 // Purpose: Business logic helpers for activity log operations
 
-import type { ActivityLog, ActivityAction, ResourceType } from '$lib/graphql/types';
+import type { ActivityAction, ActivityLog, ResourceType } from '$lib/graphql/types';
 
 /**
  * Group activities by date for chronological display
@@ -15,7 +15,8 @@ export function groupActivitiesByDate(activities: ActivityLog[]): Map<string, Ac
 		const date = new Date(activity.createdAt).toLocaleDateString('en-US', {
 			year: 'numeric',
 			month: 'long',
-			day: 'numeric'
+			day: 'numeric',
+			timeZone: 'UTC'
 		});
 
 		if (!grouped.has(date)) {
@@ -170,28 +171,41 @@ export function formatActivityMessage(activity: ActivityLog): string {
 	let itemName: string | null = null;
 
 	// Try to get name from appropriate snapshot based on action
-	const snapshot = activity.action === 'delete'
-		? activity.beforeSnapshot
-		: (activity.afterSnapshot || activity.beforeSnapshot);
+	const snapshot =
+		activity.action === 'delete'
+			? activity.beforeSnapshot
+			: activity.afterSnapshot || activity.beforeSnapshot;
 
 	// Check snapshot for common name fields
 	if (snapshot) {
-		itemName = snapshot.title
-			|| snapshot.name
-			|| snapshot.displayName
-			|| snapshot.display_name
-			|| snapshot.full_name
-			|| snapshot.event_title
-			|| snapshot.task_name
-			|| null;
+		const s = snapshot as Record<string, unknown>;
+		const title = typeof s.title === 'string' ? s.title : undefined;
+		const name = typeof s.name === 'string' ? s.name : undefined;
+		const displayNameProp = typeof s.displayName === 'string' ? s.displayName : undefined;
+		const display_name = typeof s.display_name === 'string' ? s.display_name : undefined;
+		const full_name = typeof s.full_name === 'string' ? s.full_name : undefined;
+		const event_title = typeof s.event_title === 'string' ? s.event_title : undefined;
+		const task_name = typeof s.task_name === 'string' ? s.task_name : undefined;
+
+		itemName =
+			title ||
+			name ||
+			displayNameProp ||
+			display_name ||
+			full_name ||
+			event_title ||
+			task_name ||
+			null;
 	}
 
 	// Fallback to details if no snapshot name found
 	if (!itemName && activity.details) {
-		itemName = activity.details.title
-			|| activity.details.name
-			|| activity.details.displayName
-			|| null;
+		const d = activity.details as Record<string, unknown>;
+		const title = typeof d.title === 'string' ? d.title : undefined;
+		const name = typeof d.name === 'string' ? d.name : undefined;
+		const displayNameProp = typeof d.displayName === 'string' ? d.displayName : undefined;
+
+		itemName = title || name || displayNameProp || null;
 	}
 
 	// Build display name
@@ -421,7 +435,7 @@ export function getActivityStatistics(activities: ActivityLog[]): {
 /**
  * Format activity details for display
  */
-export function formatActivityDetails(details: Record<string, any> | undefined): string {
+export function formatActivityDetails(details: Record<string, unknown> | undefined): string {
 	if (!details || Object.keys(details).length === 0) {
 		return '';
 	}

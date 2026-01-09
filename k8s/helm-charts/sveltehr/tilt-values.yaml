@@ -27,34 +27,34 @@ frontend:
   image:
     repository: sveltehr-frontend
     tag: latest
-    pullPolicy: IfNotPresent  # Use locally built images
+    pullPolicy: IfNotPresent # Use locally built images
 
   # Service configuration - NodePort for direct access
   service:
-    type: NodePort  # Changed from ClusterIP for direct browser access
+    type: NodePort # Changed from ClusterIP for direct browser access
     port: 5173
     targetPort: 5173
-    nodePort: 30173  # Fixed NodePort for consistent localhost access
+    nodePort: 30173 # Fixed NodePort for consistent localhost access
 
   # Backend URL (includes /health for init container health check)
-  backendUrl: "http://sveltehr-backend:4000/health"
+  backendUrl: 'http://sveltehr-backend:4000/health'
   waitForBackend: true
 
   # Server configuration
-  host: "0.0.0.0"
+  host: '0.0.0.0'
 
   # Environment variables for K8s HMR
   extraEnv:
     - name: VITE_K8S_MODE
-      value: "true"
+      value: 'true'
     - name: VITE_HMR_HOST
-      value: "localhost"
+      value: 'localhost'
     - name: VITE_HMR_PORT
-      value: "5173"
+      value: '5173'
     - name: VITE_HMR_CLIENT_PORT
-      value: "5173"
+      value: '5173'
     - name: VITE_USE_POLLING
-      value: "true"  # Enable polling to avoid inotify limits in K8s
+      value: 'true' # Enable polling to avoid inotify limits in K8s
 
   # Resources - Increased for Vite dev server with HMR
   resources:
@@ -62,20 +62,20 @@ frontend:
       memory: 256Mi
       cpu: 100m
     limits:
-      memory: 2Gi  # Vite dev server needs substantial memory for HMR
+      memory: 2Gi # Vite dev server needs substantial memory for HMR
       cpu: 1000m
 
   # Probes - Disabled for Tilt development (Vite dev mode first request is too slow)
-  livenessProbe: {}  # Disabled - Tilt handles container lifecycle
+  livenessProbe: {} # Disabled - Tilt handles container lifecycle
 
-  readinessProbe: {}  # Disabled - Vite on-demand compilation makes first request too slow
+  readinessProbe: {} # Disabled - Vite on-demand compilation makes first request too slow
 
-  startupProbe: {}  # Disabled for faster startup
+  startupProbe: {} # Disabled for faster startup
 
   # Security context - Relaxed for Tilt file sync
   securityContext:
     runAsUser: 1001
-    runAsNonRoot: false  # Allow Tilt to sync files as needed
+    runAsNonRoot: false # Allow Tilt to sync files as needed
 
   podSecurityContext:
     fsGroup: 1001
@@ -94,21 +94,21 @@ frontend:
 
   # Annotations
   annotations:
-    tilt.dev/live-update: "true"
-    tilt.dev/environment: "development"
+    tilt.dev/live-update: 'true'
+    tilt.dev/environment: 'development'
 
   podAnnotations:
-    tilt.dev/live-update: "true"
+    tilt.dev/live-update: 'true'
 
   podLabels:
-    tilt.dev/managed: "true"
+    tilt.dev/managed: 'true'
 
 # -----------------------------------------------------------------------------
 # Backend Configuration - Standard Development Settings
 # -----------------------------------------------------------------------------
 backend:
   enabled: true
-  name: sveltehr-dev-backend  # Match release name for service discovery
+  name: sveltehr-dev-backend # Match release name for service discovery
   replicaCount: 1
 
   # Image configuration
@@ -125,8 +125,8 @@ backend:
     nodePort: 30400
 
   # Server configuration
-  host: "0.0.0.0"
-  rustLog: "info,hr_graphql_server=debug,sqlx=warn"
+  host: '0.0.0.0'
+  rustLog: 'info,hr_graphql_server=debug,sqlx=warn'
 
   # Resources
   resources:
@@ -161,19 +161,19 @@ backend:
     fsGroup: 1001
 
   annotations:
-    tilt.dev/managed: "true"
+    tilt.dev/managed: 'true'
 
 # -----------------------------------------------------------------------------
 # PostgreSQL Configuration - Minimal Development Setup
 # -----------------------------------------------------------------------------
 postgresql:
   enabled: true
-  instances: 1  # Single instance for dev
+  instances: 1 # Single instance for dev
 
   # Image
   image:
     repository: ghcr.io/cloudnative-pg/postgresql
-    tag: "15.6"
+    tag: '15.6'
 
   # Database config
   database: hr_system
@@ -182,14 +182,14 @@ postgresql:
   # Storage
   storage:
     size: 5Gi
-    storageClass: local-path  # K3s default
+    storageClass: local-path # K3s default
 
   # Server parameters - Optimized for development
   config:
-    maxConnections: "100"
-    sharedBuffers: "256MB"
-    workMem: "4MB"
-    maintenanceWorkMem: "64MB"
+    maxConnections: '100'
+    sharedBuffers: '256MB'
+    workMem: '4MB'
+    maintenanceWorkMem: '64MB'
 
   # Resources - Minimal
   resources:
@@ -215,7 +215,7 @@ redis:
   image:
     registry: docker.io
     repository: bitnami/redis
-    tag: latest  # Use latest stable build
+    tag: latest # Use latest stable build
 
   # No auth for dev convenience
   auth:
@@ -250,7 +250,7 @@ migration:
   ttlSecondsAfterFinished: 300
   backoffLimit: 3
 
-  rustLog: "info,migration=debug"
+  rustLog: 'info,migration=debug'
 
   resources:
     requests:
@@ -264,7 +264,7 @@ migration:
 # Seed Job - Disabled (Run Manually)
 # -----------------------------------------------------------------------------
 seed:
-  enabled: false  # Run manually via helm test
+  enabled: false # Run manually via helm test
 
 # -----------------------------------------------------------------------------
 # Service Account
@@ -277,25 +277,25 @@ serviceAccount:
 # RBAC
 # -----------------------------------------------------------------------------
 rbac:
-  enabled: false  # Not needed for local dev
+  enabled: false # Not needed for local dev
 
 # -----------------------------------------------------------------------------
 # External Secrets - Disabled for Dev
 # -----------------------------------------------------------------------------
 externalSecrets:
-  enabled: false  # Use hardcoded secrets in dev
+  enabled: false # Use hardcoded secrets in dev
 
 # -----------------------------------------------------------------------------
 # Ingress - Disabled (Use Port Forwarding)
 # -----------------------------------------------------------------------------
 ingress:
-  enabled: false  # Use NodePort and port-forward instead
+  enabled: false # Use NodePort and port-forward instead
 
 # -----------------------------------------------------------------------------
 # Pod Disruption Budgets - Disabled
 # -----------------------------------------------------------------------------
 podDisruptionBudget:
-  enabled: false  # Not needed for single-replica dev
+  enabled: false # Not needed for single-replica dev
 
 # -----------------------------------------------------------------------------
 # Monitoring
@@ -309,7 +309,7 @@ monitoring:
 # pgAdmin - Disabled
 # -----------------------------------------------------------------------------
 pgadmin:
-  enabled: false  # Use kubectl port-forward if needed
+  enabled: false # Use kubectl port-forward if needed
 
 # -----------------------------------------------------------------------------
 # Tailscale - Disabled

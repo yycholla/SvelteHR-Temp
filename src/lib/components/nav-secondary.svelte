@@ -4,7 +4,7 @@
 	import type { ComponentProps } from 'svelte';
 	import type { Icon } from '@tabler/icons-svelte';
 
-	let {
+	const {
 		items,
 		...restProps
 	}: { items: { title: string; url: string; icon: Icon }[] } & WithoutChildren<

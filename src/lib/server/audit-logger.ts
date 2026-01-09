@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Audit Logging for Management Actions
  * Feature: 016-repair-management-pages - Task T039
@@ -109,18 +110,18 @@ export async function logAction(
 		});
 
 		if (!response.ok) {
-			console.error('[AUDIT LOGGER] GraphQL mutation failed:', response.statusText);
+			logger.error('[AUDIT LOGGER] GraphQL mutation failed', new Error(response.statusText));
 			return false;
 		}
 
 		const result = await response.json();
 
 		if (result.errors) {
-			console.error('[AUDIT LOGGER] GraphQL errors:', result.errors);
+			logger.error('[AUDIT LOGGER] GraphQL errors:', result.errors);
 			return false;
 		}
 
-		console.info('[AUDIT LOGGER] Logged action:', {
+		logger.info('[AUDIT LOGGER] Logged action:', {
 			action: entry.action,
 			resourceType: entry.resourceType,
 			resourceId: entry.resourceId,
@@ -129,7 +130,7 @@ export async function logAction(
 
 		return true;
 	} catch (error) {
-		console.error('[AUDIT LOGGER] Error logging action:', error);
+		logger.error('Audit log action failed', error as Error);
 		return false;
 	}
 }
@@ -428,7 +429,7 @@ export async function getAuditLogsForResource(
 		const data = await response.json();
 		return data?.data?.auditLogs?.nodes || [];
 	} catch (error) {
-		console.error('[AUDIT LOGGER] Error fetching audit logs:', error);
+		logger.error('Failed to get audit logs for resource', error as Error);
 		return [];
 	}
 }
@@ -436,10 +437,7 @@ export async function getAuditLogsForResource(
 /**
  * Get audit logs for a specific user's actions
  */
-export async function getAuditLogsForUser(
-	userId: string,
-	limit: number = 50
-): Promise<any[]> {
+export async function getAuditLogsForUser(userId: string, limit: number = 50): Promise<any[]> {
 	try {
 		const graphqlEndpoint = getGraphQLEndpoint();
 
@@ -479,7 +477,7 @@ export async function getAuditLogsForUser(
 		const data = await response.json();
 		return data?.data?.auditLogs?.nodes || [];
 	} catch (error) {
-		console.error('[AUDIT LOGGER] Error fetching user audit logs:', error);
+		logger.error('Failed to get audit logs for user', error as Error);
 		return [];
 	}
 }

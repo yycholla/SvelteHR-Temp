@@ -3,7 +3,7 @@
 // Task: T006 - E2E test Performance Reviews management page
 // CRITICAL: This test MUST FAIL initially as per TDD approach
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Management Performance Reviews Page', () => {
 	test.beforeEach(async ({ page }) => {
@@ -39,7 +39,7 @@ test.describe('Management Performance Reviews Page', () => {
 		]);
 
 		// Should have at least one review row
-		await expect(page.locator('[data-testid="review-row"]')).toHaveCount({ min: 1 });
+		expect(await page.locator('[data-testid="review-row"]').count()).toBeGreaterThanOrEqual(1);
 
 		// Each row should have employee name, review details, and action buttons
 		const firstRow = page.locator('[data-testid="review-row"]').first();
@@ -295,7 +295,7 @@ test.describe('Management Performance Reviews Page', () => {
 
 			// Should load new page of results
 			await expect(page.locator('[data-testid="loading-indicator"]')).not.toBeVisible();
-			await expect(page.locator('[data-testid="review-row"]')).toHaveCount({ min: 1 });
+			expect(await page.locator('[data-testid="review-row"]').count()).toBeGreaterThanOrEqual(1);
 
 			// Previous button should be enabled
 			await expect(page.locator('[data-testid="pagination-prev"]')).toBeEnabled();

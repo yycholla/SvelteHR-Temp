@@ -180,7 +180,7 @@
 								id="address"
 								bind:value={editableData.address}
 								readonly={!isEditing}
-								rows="2"
+								rows={2}
 							/>
 						</div>
 					</div>
@@ -309,9 +309,7 @@
 					</div>
 				</Card.Content>
 				<Card.Footer>
-					<Button variant="outline" href="/dashboard/profile/performance"
-						>View Performance</Button
-					>
+					<Button variant="outline" href="/dashboard/profile/performance">View Performance</Button>
 				</Card.Footer>
 			</Card.Root>
 		</Tabs.Content>

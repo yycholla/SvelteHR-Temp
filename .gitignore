@@ -113,3 +113,6 @@ graphql-rust-server/target
 
 # Sentry Config File
 .env.sentry-build-plugin
+recover-files.sh
+!src/routes/dashboard/activities/logs/
+!src/routes/dashboard/activities/logs/**

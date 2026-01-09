@@ -211,9 +211,4 @@ Feel free to delete this file and the entire sentry route.
 		text-align: center;
 		margin: 0;
 	}
-
-	.connectivity-error a {
-		color: #ffffff;
-		text-decoration: underline;
-	}
 </style>

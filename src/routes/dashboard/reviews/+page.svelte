@@ -8,23 +8,21 @@
 	 */
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
+	import { logger } from '$lib/utils/logger';
 	import type { PageData } from './$types';
 	import * as Card from '$lib/components/ui/card';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Input } from '$lib/components/ui/input';
-	import { Plus, FileText, TrendingUp, Clock, CheckCircle, Search, User } from '@lucide/svelte';
-	import {
-		ReviewListWithFilters,
-		ReviewCreationDialog
-	} from '$lib/components/reviews';
+	import { CheckCircle, Clock, FileText, Plus, Search, TrendingUp, User } from '@lucide/svelte';
+	import { ReviewCreationDialog, ReviewListWithFilters } from '$lib/components/reviews';
 
-	let { data }: { data: PageData } = $props();
+	const { data }: { data: PageData } = $props();
 
 	// Debug logging
 	$effect(() => {
-		console.log('📊 Client-side data:', {
+		logger.info('📊 Client-side data:', {
 			reviewsCount: data.reviews?.length || 0,
 			firstReview: data.reviews?.[0] || null,
 			stats: data.stats
@@ -79,20 +77,20 @@
 	function handleDeleteDraft(event: CustomEvent) {
 		const { draft } = event.detail;
 		// TODO: Implement draft deletion with confirmation
-		console.log('Delete draft:', draft.id);
+		logger.info('Delete draft:', draft.id);
 	}
 
 	// Handle create review
 	function handleCreateReview(event: CustomEvent) {
 		const { data: reviewData } = event.detail;
 		// TODO: Call GraphQL mutation
-		console.log('Create review:', reviewData);
+		logger.info(`Create review: ${reviewData}`);
 	}
 
 	function handleSaveAsDraft(event: CustomEvent) {
 		const { data: draftData } = event.detail;
 		// TODO: Call GraphQL mutation to save draft
-		console.log('Save draft:', draftData);
+		logger.info(`Save draft: ${draftData}`);
 	}
 
 	// Open create dialog
@@ -118,9 +116,7 @@
 	<div class="flex items-center justify-between">
 		<div>
 			<h1 class="text-3xl font-bold tracking-tight">Performance Reviews</h1>
-			<p class="text-muted-foreground mt-1">
-				Manage and track employee performance reviews
-			</p>
+			<p class="text-muted-foreground mt-1">Manage and track employee performance reviews</p>
 		</div>
 
 		{#if data.permissions.canCreate}
@@ -174,9 +170,8 @@
 			<Card.Content>
 				<div class="text-2xl font-bold">{data.stats.completed}</div>
 				<p class="text-xs text-muted-foreground mt-1">
-					{data.stats.total > 0
-						? Math.round((data.stats.completed / data.stats.total) * 100)
-						: 0}% completion rate
+					{data.stats.total > 0 ? Math.round((data.stats.completed / data.stats.total) * 100) : 0}%
+					completion rate
 				</p>
 			</Card.Content>
 		</Card.Root>
@@ -245,7 +240,7 @@
 		bind:open={createDialogOpen}
 		employee={selectedEmployee}
 		availableGoals={[]}
-		reviewTypesMetadata={data.reviewTypesMetadata}
+		reviewTypesMetadata={data.reviewTypesMetadata as any}
 		loading={false}
 		on:createReview={handleCreateReview}
 		on:saveAsDraft={handleSaveAsDraft}
@@ -300,7 +295,8 @@
 										<div class="text-sm text-muted-foreground">{employee.email}</div>
 									</div>
 									<Badge variant="outline">
-										{employee.firstName} {employee.lastName}
+										{employee.firstName}
+										{employee.lastName}
 									</Badge>
 								</button>
 							{/each}
@@ -310,9 +306,7 @@
 			</div>
 
 			<Dialog.Footer>
-				<Button variant="outline" onclick={() => (showEmployeeSelector = false)}>
-					Cancel
-				</Button>
+				<Button variant="outline" onclick={() => (showEmployeeSelector = false)}>Cancel</Button>
 			</Dialog.Footer>
 		</Dialog.Content>
 	</Dialog.Portal>

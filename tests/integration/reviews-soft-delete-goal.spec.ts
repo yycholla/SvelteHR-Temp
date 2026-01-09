@@ -6,12 +6,8 @@
  * This test MUST FAIL initially because soft delete functionality is not implemented.
  */
 
-import { test, expect, describe, beforeAll, afterAll } from 'vitest';
-import {
-	createTestContext,
-	cleanupTestData,
-	TestUser
-} from '../utils/test-helpers';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { TestUser, cleanupTestData, createTestContext } from '../utils/test-helpers';
 import { performGraphQLMutation, performGraphQLQuery } from '../utils/graphql-test-client';
 
 interface TestContext {
@@ -42,7 +38,7 @@ describe('T017: Soft delete goal preservation in reviews', () => {
 			authTokens: {
 				admin: admin.token
 			},
-			users: { admin: admin, hrManager: null, manager: null, employee: employee },
+			users: { admin, hrManager: null, manager: null, employee },
 			departments: { engineering: null, marketing: null, hr: null },
 			createdEmployees: [],
 			createdUsers: [],
@@ -191,7 +187,9 @@ describe('T017: Soft delete goal preservation in reviews', () => {
 		);
 
 		// Goal should not be in active goals list
-		const deletedGoalInList = activeGoalsResponse.data.employeeGoals.find((g: { id: string }) => g.id === goalId);
+		const deletedGoalInList = activeGoalsResponse.data.employeeGoals.find(
+			(g: { id: string }) => g.id === goalId
+		);
 		expect(deletedGoalInList).toBeUndefined();
 
 		// Step 6: Query with includeDeleted=true - goal should appear
@@ -201,7 +199,9 @@ describe('T017: Soft delete goal preservation in reviews', () => {
 			testContext.authTokens.admin
 		);
 
-		const deletedGoalIncluded = allGoalsResponse.data.employeeGoals.find((g: { id: string }) => g.id === goalId);
+		const deletedGoalIncluded = allGoalsResponse.data.employeeGoals.find(
+			(g: { id: string }) => g.id === goalId
+		);
 		expect(deletedGoalIncluded).toBeDefined();
 		expect(deletedGoalIncluded.deleted).toBe(true);
 	});

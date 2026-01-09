@@ -7,11 +7,11 @@
  * MUST FAIL until implementation in src/lib/utils/calendar.ts
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-	detectConflict,
 	calculateOverlap,
 	classifySeverity,
+	detectConflict,
 	findConflictingEvents
 } from '$lib/utils/calendar';
 import type { CalendarEvent } from '$lib/types/events';
@@ -22,6 +22,7 @@ describe('Conflict Detection Algorithm', () => {
 		title: 'Meeting A',
 		startDate: new Date('2025-10-10T10:00:00'),
 		endDate: new Date('2025-10-10T11:00:00'),
+		isAllDay: false,
 		allDay: false,
 		type: 'meeting',
 		visibility: 'public',
@@ -36,6 +37,7 @@ describe('Conflict Detection Algorithm', () => {
 		userWaitlistPosition: null,
 		imageUrl: null,
 		imageAspectRatio: null,
+		organizerId: 'user-1',
 		createdBy: 'user-1',
 		canEdit: false,
 		canDelete: false,

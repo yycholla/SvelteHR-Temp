@@ -1,10 +1,12 @@
 <script lang="ts">
 	/**
+	import { logger } from '$lib/utils/logger';
 	 * NotificationDropdown Component
 	 * Displays unread notifications with badge counter and dropdown list
 	 */
 
-	import { Bell, Check, Clock, AlertCircle } from '@lucide/svelte';
+	import { logger } from '$lib/utils/logger';
+	import { AlertCircle, Bell, Check, Clock } from '@lucide/svelte';
 	import { formatDistanceToNow } from 'date-fns';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { Badge } from '$lib/components/ui/badge';
@@ -24,7 +26,7 @@
 		notifications?: Notification[];
 	}
 
-	let { notifications = [] }: Props = $props();
+	const { notifications = [] }: Props = $props();
 
 	// Calculate unread count
 	const unreadCount = $derived(notifications.filter((n) => !n.isRead).length);
@@ -74,7 +76,7 @@
 					body: JSON.stringify({ notificationIds: [notification.id] })
 				});
 			} catch (err) {
-				console.error('Failed to mark notification as read:', err);
+				logger.error('Failed to mark notification as read:', err as Error);
 			}
 		}
 
@@ -98,13 +100,15 @@
 
 			// SSE stream will automatically update notifications, no reload needed
 		} catch (err) {
-			console.error('Failed to mark all as read:', err);
+			logger.error('Failed to mark all as read:', err as Error);
 		}
 	}
 </script>
 
 <DropdownMenu.Root>
-	<DropdownMenu.Trigger class="relative inline-flex h-9 w-9 items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
+	<DropdownMenu.Trigger
+		class="relative inline-flex h-9 w-9 items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+	>
 		<Bell class="h-5 w-5" />
 		{#if unreadCount > 0}
 			<span

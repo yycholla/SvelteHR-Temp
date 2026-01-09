@@ -8,18 +8,11 @@
  -->
 
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
-	import {
-		FileText,
-		User,
-		Clock,
-		GitBranch,
-		ChevronRight,
-		Activity,
-		AlertCircle
-	} from '@lucide/svelte';
+	import { Activity, ChevronRight, Clock, FileText, GitBranch } from '@lucide/svelte';
 
 	interface ActivityLog {
 		id: string;
@@ -38,7 +31,7 @@
 		compactMode?: boolean;
 	}
 
-	let {
+	const {
 		logs = [],
 		maxItems = 5,
 		showRollbackIndicators = true,
@@ -113,14 +106,18 @@
 			</div>
 		{:else}
 			<div class="space-y-3">
-				{#each displayLogs as log}
+				{#each displayLogs as log (log.id)}
 					<a
-						href="/dashboard/activities/logs/{log.id}"
+						href={resolve(`/dashboard/activities/logs/${log.id}`)}
 						class="block rounded-lg border p-3 transition-colors hover:bg-accent"
 					>
 						<div class="flex items-start gap-3">
 							<!-- Action Indicator -->
-							<div class="flex h-8 w-8 items-center justify-center rounded-full {getActionColor(log.action)}">
+							<div
+								class="flex h-8 w-8 items-center justify-center rounded-full {getActionColor(
+									log.action
+								)}"
+							>
 								{#if log.isRollback && showRollbackIndicators}
 									<GitBranch class="h-4 w-4" />
 								{:else if log.action === 'CREATE'}

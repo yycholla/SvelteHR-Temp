@@ -11,6 +11,7 @@ make init
 ```
 
 This single command will:
+
 - ✅ Check all prerequisites (Node.js, Docker, npm)
 - ✅ Install frontend and backend dependencies
 - ✅ Start Docker containers (PostgreSQL, Redis)
@@ -139,13 +140,13 @@ make db-health
 
 When containers are running:
 
-| Service | URL/Port | Credentials |
-|---------|----------|-------------|
-| **Frontend** | http://localhost:5173 | N/A |
-| **PostgreSQL** | localhost:5433 | postgres/postgres123 |
-| **Redis** | localhost:6380 | N/A |
-| **Backend SSH** | localhost:2222 | dev/dev |
-| **Frontend SSH** | localhost:2223 | dev/dev |
+| Service          | URL/Port              | Credentials          |
+| ---------------- | --------------------- | -------------------- |
+| **Frontend**     | http://localhost:5173 | N/A                  |
+| **PostgreSQL**   | localhost:5433        | postgres/postgres123 |
+| **Redis**        | localhost:6380        | N/A                  |
+| **Backend SSH**  | localhost:2222        | dev/dev              |
+| **Frontend SSH** | localhost:2223        | dev/dev              |
 
 ## 🛠️ Common Commands
 
@@ -306,6 +307,7 @@ lsof -i :5433
 ## 💡 Best Practices
 
 1. **Always pull before starting work**
+
    ```bash
    git pull
    npm install

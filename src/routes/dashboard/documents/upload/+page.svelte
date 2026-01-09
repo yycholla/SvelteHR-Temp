@@ -1,5 +1,6 @@
 <script lang="ts">
 	// Document upload page (Feature 024)
+	import { logger } from '$lib/utils/logger';
 	// Upload page with file selection and metadata form
 
 	import { goto } from '$app/navigation';
@@ -9,11 +10,11 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import * as Alert from '$lib/components/ui/alert';
-	import { X, CheckCircle2, Lock, Upload } from '@lucide/svelte';
-	import type { PageData, ActionData } from './$types';
+	import { CheckCircle2, Lock, Upload, X } from '@lucide/svelte';
+	import type { ActionData, PageData } from './$types';
 	import type { DocumentMetadata, UploadResult } from '$lib/types/document';
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	const { data, form }: { data: PageData; form: ActionData } = $props();
 
 	// Component references and reactive state
 	let fileUploader = $state<FileUploader>();
@@ -40,10 +41,10 @@
 
 	// Derive metadata validation directly from metadata object
 	// Note: filename is set automatically when file is selected, so we only check the user-entered fields
-	let hasRequiredMetadata = $derived(metadata.category !== '' && metadata.sensitivityLevel !== '');
+	const hasRequiredMetadata = $derived(!!metadata.category && !!metadata.sensitivityLevel);
 
 	// Derived state for upload button
-	let canUpload = $derived(hasFile && hasRequiredMetadata && !isUploading && !uploadComplete);
+	const canUpload = $derived(hasFile && hasRequiredMetadata && !isUploading && !uploadComplete);
 
 	// Handle form action results
 	$effect(() => {
@@ -54,29 +55,21 @@
 
 	// Debug logging
 	$effect(() => {
-		console.log(
-			'[Parent] State update - hasFile:',
+		logger.info('[Parent] State update', {
 			hasFile,
-			'metadata.filename:',
-			metadata.filename,
-			'metadata.category:',
-			metadata.category,
-			'metadata.sensitivityLevel:',
-			metadata.sensitivityLevel,
-			'hasRequiredMetadata:',
+			'metadata.filename': metadata.filename,
+			'metadata.category': metadata.category,
+			'metadata.sensitivityLevel': metadata.sensitivityLevel,
 			hasRequiredMetadata,
-			'isUploading:',
 			isUploading,
-			'uploadComplete:',
 			uploadComplete,
-			'canUpload:',
 			canUpload
-		);
+		});
 	});
 
 	// Handle successful upload
 	function handleUploadSuccess(result: UploadResult) {
-		console.log('Upload successful:', result);
+		logger.info('Upload successful', { documentId: result.documentId });
 		uploadComplete = true;
 		uploadedDocumentId = result.documentId;
 
@@ -88,7 +81,7 @@
 
 	// Handle upload error
 	function handleUploadError(error: Error) {
-		console.error('Upload failed:', error);
+		logger.error('Upload failed:', error as Error);
 		uploadError = error.message;
 		isUploading = false;
 	}
@@ -103,14 +96,14 @@
 		uploadError = null;
 
 		// Validate metadata
-		if (!metadataForm.validateMetadata()) {
+		if (!metadataForm?.validateMetadata()) {
 			uploadError = 'Please fill in all required metadata fields';
 			event.preventDefault();
 			return;
 		}
 
 		// Get selected file
-		const file = fileUploader.getSelectedFile();
+		const file = fileUploader?.getSelectedFile();
 		if (!file) {
 			uploadError = 'Please select a file';
 			event.preventDefault();
@@ -143,7 +136,8 @@
 	<div class="space-y-1">
 		<h1 class="text-3xl font-bold tracking-tight">Upload Document</h1>
 		<p class="text-muted-foreground">
-			Upload a new document with server-side encryption. The document will be automatically assigned to you.
+			Upload a new document with server-side encryption. The document will be automatically assigned
+			to you.
 		</p>
 	</div>
 
@@ -168,19 +162,25 @@
 				uploadError = null;
 
 				// Get selected file and add to FormData
-				const file = fileUploader.getSelectedFile();
+				const file = fileUploader?.getSelectedFile();
 				if (!file) {
 					uploadError = 'Please select a file';
 					cancel();
 					return;
 				}
 
-				console.log('[Upload] About to validate metadata, metadataForm:', metadataForm);
-				console.log('[Upload] metadataForm.validateMetadata exists?', typeof metadataForm?.validateMetadata);
-				console.log('[Upload] Current metadata:', metadata);
+				logger.info('[Upload] About to validate metadata', {
+					hasMetadataForm: !!metadataForm,
+					hasValidateMethod: typeof metadataForm?.validateMetadata === 'function'
+				});
+				logger.info('[Upload] Current metadata', {
+					category: metadata.category,
+					sensitivityLevel: metadata.sensitivityLevel,
+					hasExpirationDate: !!metadata.expirationDate
+				});
 
 				// Validate metadata before submission
-				if (!metadataForm.validateMetadata()) {
+				if (!metadataForm?.validateMetadata()) {
 					uploadError = 'Please fill in all required metadata fields';
 					cancel();
 					return;
@@ -203,7 +203,7 @@
 				// Send employee assignments as JSON string - automatically assign to current user
 				formData.set('assignToEmployees', JSON.stringify([data.user?.id].filter(Boolean)));
 
-				console.log('[Upload] Starting upload...', {
+				logger.info('[Upload] Starting upload...', {
 					filename: file.name,
 					size: file.size,
 					type: file.type,
@@ -215,12 +215,16 @@
 				isUploading = true;
 
 				return async ({ result, update }) => {
-					console.log('[Upload] Form submission result:', result);
+					logger.info('[Upload] Form submission result', {
+						type: result.type,
+						hasData: result.type === 'success' && 'data' in result ? !!result.data : false
+					});
 
 					if (result.type === 'success' && result.data?.success) {
-						handleUploadSuccess(result.data.result);
+						handleUploadSuccess(result.data.result as UploadResult);
 					} else if (result.type === 'failure') {
-						uploadError = result.data?.error || 'Upload failed';
+						uploadError =
+							typeof result.data?.error === 'string' ? result.data.error : 'Upload failed';
 						isUploading = false;
 					} else if (result.type === 'error') {
 						uploadError = 'Upload failed. Please try again.';
@@ -249,8 +253,6 @@
 									bind:this={fileUploader}
 									bind:metadata
 									bind:hasFile
-									onUpload={handleUploadSuccess}
-									onError={handleUploadError}
 									maxSizeMB={50}
 									allowedTypes={['PDF', 'JPEG', 'PNG', 'GIF', 'DOCX', 'XLSX', 'TXT', 'CSV']}
 								/>

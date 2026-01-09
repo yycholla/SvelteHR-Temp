@@ -10,9 +10,10 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
-	import { MessageSquare, Edit2, Trash2, Send } from '@lucide/svelte';
+	import { Edit2, MessageSquare, Send, Trash2 } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import { formatDistanceToNow } from 'date-fns';
+	import DOMPurify from 'dompurify';
 
 	interface Comment {
 		id: string;
@@ -41,8 +42,7 @@
 		onLoadMore?: () => Promise<void>;
 	}
 
-	let {
-		eventId,
+	const {
 		comments = [],
 		currentUserId,
 		currentUserRole,
@@ -50,9 +50,7 @@
 		onAddComment,
 		onUpdateComment,
 		onDeleteComment,
-		readonly = false,
-		hasMore = false,
-		onLoadMore
+		readonly = false
 	}: Props = $props();
 
 	let newCommentContent = $state('');
@@ -101,7 +99,8 @@
 
 	function parseContent(content: string): string {
 		// Convert @mentions to highlighted spans
-		return content.replace(/@(\w+)/g, '<span class="mention">@$1</span>');
+		const html = content.replace(/@(\w+)/g, '<span class="mention">@$1</span>');
+		return DOMPurify.sanitize(html);
 	}
 
 	function extractMentions(content: string): string[] {
@@ -258,12 +257,7 @@
 									>
 										Save
 									</Button>
-									<Button
-										variant="outline"
-										size="sm"
-										onclick={cancelEditing}
-										disabled={loading}
-									>
+									<Button variant="outline" size="sm" onclick={cancelEditing} disabled={loading}>
 										Cancel
 									</Button>
 								</div>
@@ -277,7 +271,7 @@
 						{#if comment.mentions.length > 0}
 							<div class="flex gap-2 items-center text-xs text-muted-foreground">
 								<span>Mentioned:</span>
-								{#each comment.mentions as mention}
+								{#each comment.mentions as mention (mention.id)}
 									<span class="bg-muted px-2 py-1 rounded">{mention.name}</span>
 								{/each}
 							</div>
@@ -305,9 +299,7 @@
 					disabled={loading}
 				/>
 				<div class="flex justify-between items-center">
-					<p class="text-xs text-muted-foreground">
-						Tip: Use @username to mention someone
-					</p>
+					<p class="text-xs text-muted-foreground">Tip: Use @username to mention someone</p>
 					<Button
 						onclick={handleAddComment}
 						disabled={loading || !newCommentContent.trim()}
@@ -321,5 +313,3 @@
 		</div>
 	{/if}
 </div>
-
-

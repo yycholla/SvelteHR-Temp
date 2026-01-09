@@ -7,6 +7,7 @@
 ## Scenario: Fresh Installation on Server with Existing K8s
 
 If you see this error:
+
 ```
 [ERROR Port-6443]: Port 6443 is in use
 [ERROR Port-10259]: Port 10259 is in use
@@ -34,6 +35,7 @@ bash scripts/k8s-cleanup.sh
 ```
 
 **What this does:**
+
 - Resets kubeadm completely
 - Removes all Kubernetes data
 - Cleans up network interfaces
@@ -156,6 +158,7 @@ kubectl get pods --all-namespaces
 ### Issue: Cleanup script fails
 
 **Solution**: Reboot the server
+
 ```bash
 reboot
 # Wait 2 minutes, then SSH back in
@@ -165,6 +168,7 @@ reboot
 ### Issue: Ports still in use after cleanup
 
 **Check what's using the port:**
+
 ```bash
 lsof -i :6443
 # Kill the process
@@ -174,6 +178,7 @@ kill -9 <PID>
 ### Issue: CNI interfaces won't delete
 
 **Force remove:**
+
 ```bash
 ip link set cni0 down
 ip link delete cni0
@@ -182,6 +187,7 @@ ip link delete cni0
 ### Issue: containerd won't start after cleanup
 
 **Reconfigure containerd:**
+
 ```bash
 rm /etc/containerd/config.toml
 containerd config default > /etc/containerd/config.toml
@@ -194,23 +200,27 @@ systemctl restart containerd
 ## Next Steps After Successful Deployment
 
 1. **Test Application Access**
+
    ```bash
    curl -I https://hr.example.com
    ```
 
 2. **Verify Database**
+
    ```bash
    kubectl exec -it -n sveltehr-prod sveltehr-prod-postgres-cluster-1 -- \
      psql -U postgres -d hr_system -c "\dt"
    ```
 
 3. **Check Backups**
+
    ```bash
    velero backup get
    velero schedule get
    ```
 
 4. **Access Monitoring**
+
    ```bash
    # Prometheus
    kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090 &

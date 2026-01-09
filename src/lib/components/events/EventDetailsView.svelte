@@ -1,19 +1,26 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import { logger } from '$lib/utils/logger';
 	import { toast } from 'svelte-sonner';
-	import { Calendar as CalendarIcon, MapPin, User, Users, Bell } from '@lucide/svelte';
-	import RSVPButton from './RSVPButton.svelte';
-	import EventCapacityIndicator from './EventCapacityIndicator.svelte';
-	import WaitlistButton from './WaitlistButton.svelte';
 	import EventCommentThread from './EventCommentThread.svelte';
 	import EventHistoryView from './EventHistoryView.svelte';
-	import { Tabs, TabsList, TabsTrigger, TabsContent } from '$lib/components/ui/tabs';
+	import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
 	import { Badge } from '$lib/components/ui/badge';
-	import { formatEventTimeRange } from '$lib/utils/events';
-	import { sanitizeCommentContent, extractMentions } from '$lib/utils/sanitize';
+	import { extractMentions, sanitizeCommentContent } from '$lib/utils/sanitize';
 	import type { RsvpStatus } from '$lib/graphql/types';
-	import type { EventComment, EventHistoryEntry, UserWaitlistStatus } from '$lib/graphql/events-operations';
+	import type {
+		EventComment,
+		EventHistoryEntry,
+		UserWaitlistStatus
+	} from '$lib/graphql/events-operations';
 	import type { EventData } from './types';
+
+	// Import decomposed components
+	import EventDetailsHeader from './details/EventDetailsHeader.svelte';
+	import EventInfoGrid from './details/EventInfoGrid.svelte';
+	import EventRsvpSection from './details/EventRsvpSection.svelte';
+	import EventWaitlistSection from './details/EventWaitlistSection.svelte';
+	import EventAttendeeList from './details/EventAttendeeList.svelte';
 
 	interface Props {
 		event: EventData;
@@ -32,7 +39,7 @@
 		userWaitlistStatus?: UserWaitlistStatus;
 		hasMoreComments?: boolean;
 		hasMoreHistory?: boolean;
-		onRsvpUpdate?: (eventId: string, newStatus: RsvpStatus) => void;
+		onRsvpUpdate?: (newStatus: RsvpStatus) => void;
 		onAddComment?: (content: string, mentions: string[]) => Promise<void>;
 		onUpdateComment?: (commentId: string, content: string) => Promise<void>;
 		onDeleteComment?: (commentId: string) => Promise<void>;
@@ -42,7 +49,7 @@
 		onLeaveWaitlist?: (eventId: string) => Promise<void>;
 	}
 
-	let {
+	const {
 		event,
 		userId,
 		userRole,
@@ -80,11 +87,8 @@
 	let waitlistError = $state<string | null>(null);
 
 	// Initialize reminder from event prop
-	// Since this component is remounted when event changes (keyed in parent), init logic runs once
 	{
-		const userAttendee = event.attendees?.find(
-			(a: any) => a.employeeId === userId
-		);
+		const userAttendee = event.attendees?.find((a: any) => a.employeeId === userId);
 
 		if (userAttendee?.reminderTime) {
 			const minutes = userAttendee.reminderTime;
@@ -99,7 +103,7 @@
 	}
 
 	// Derived values
-	let displayRsvpStats = $derived.by(() => {
+	const displayRsvpStats = $derived.by(() => {
 		if (!event?.attendees) {
 			return rsvpStats || { total: 0, accepted: 0, declined: 0, tentative: 0, pending: 0 };
 		}
@@ -113,63 +117,62 @@
 		};
 	});
 
-	let filteredAttendees = $derived(
+	const filteredAttendees = $derived(
 		activeAttendeeTab === 'all'
 			? event?.attendees || []
-			: (event?.attendees || []).filter(
-				(a: any) => a.responseStatus === activeAttendeeTab
-			)
+			: (event?.attendees || []).filter((a: any) => a.responseStatus === activeAttendeeTab)
 	);
 
-	const userRsvpStatus: RsvpStatus = $derived(
-		!event || !event.attendees
+	const userRsvpStatus = $derived(
+		!event?.attendees
 			? 'no_response'
-			: (event.attendees.find(
-					(a) => a.employeeId === userId
-			  )?.responseStatus || 'no_response')
+			: event.attendees.find((a) => a.employeeId === userId)?.responseStatus || 'no_response'
 	);
 
 	const showCapacityIndicator = $derived(
 		event?.maxCapacity !== null && event?.maxCapacity !== undefined && event.maxCapacity > 0
 	);
 
-	const showWaitlistButton = $derived(
-		event?.isFull === true && event?.waitlistEnabled === true
+	const showWaitlistButton = $derived(event?.isFull === true && event?.waitlistEnabled === true);
+
+	// Mappers for child components
+	const mappedComments = $derived(
+		eventComments.map((c) => ({
+			id: c.id,
+			content: c.content || c.commentText || '',
+			author: {
+				id: c.author?.id || c.user?.id || 'unknown',
+				name: c.author?.name || c.user?.displayName || 'Unknown',
+				avatarUrl: c.author?.avatarUrl
+			},
+			mentions: c.mentions || [],
+			createdAt: c.createdAt,
+			updatedAt: c.updatedAt
+		}))
 	);
 
-    const isRecurringEvent = $derived(
-		event?.rrule !== null && event?.rrule !== undefined && event.rrule !== ''
+	const mappedHistory = $derived(
+		eventHistory.map((h) => ({
+			id: h.id,
+			changedBy: {
+				id: h.changedBy?.id || 'unknown',
+				name: h.changedBy?.name || h.changedBy?.displayName || 'System'
+			},
+			changeType: h.changeType as any,
+			fieldName: h.fieldName,
+			oldValue: h.oldValue || h.oldValues,
+			newValue: h.newValue || h.newValues,
+			changedAt: h.changedAt || h.createdAt
+		}))
 	);
 
 	// Handlers
 	async function handleRsvpChange(newStatus: RsvpStatus) {
-		// Bubbles up to parent which handles the logic (including recursion check)
-        // Actually, the recursion/conflict logic is in the parent (Dialog). 
-        // The parent passes `onRsvpUpdate` but that might be just the callback after update.
-        // Wait, the logic for "Show Scope Dialog" was in the Dialog.
-        // If I move this View, the Dialog still holds the "Scope Dialog" and "Conflict Dialog".
-        // So I should emit an event or call a prop to request RSVP change.
-        
-        // The parent (Dialog) expects `onRsvpUpdate` to be a callback *after* update in the original code?
-        // No, `onRsvpUpdate` in original props was `onRsvpUpdate?: (eventId: string, newStatus: RsvpStatus) => void;`
-        // But the `handleRsvpChange` logic in Dialog was complex.
-        
-        // I should pass a prop `onRequestRsvpChange` to this View, which calls back to parent.
-        // The parent will handle scope/conflict checks and then call API.
-        if (onRsvpUpdate) {
-             onRsvpUpdate(event.id, newStatus);
-        }
+		if (onRsvpUpdate) {
+			onRsvpUpdate(newStatus);
+		}
 	}
 
-    // Wait! The `onRsvpUpdate` prop in `EventDetailsDialog` was for *external* notification (optimistic UI).
-    // The *internal* `handleRsvpChange` did the heavy lifting.
-    // I need to expose that heavy lifting capability to this child.
-    // OR I keep the `RSVPButton` here but pass the `onChange` handler from the parent.
-    // Let's change the props of `EventDetailsView` to accept `onRsvpChangeRequest`.
-    
-    // But `EventDetailsDialog` has `handleRsvpChange` which takes `newStatus`.
-    // So I'll pass that as a prop `handleRsvpChange`.
-    
 	async function handleReminderChange(preset: ReminderPreset) {
 		if (!event) return;
 
@@ -210,7 +213,7 @@
 					selectedReminder = 'none';
 				}
 			} catch (error) {
-				console.error('Error setting reminder:', error);
+				logger.error('Catch failed', error as Error);
 				toast.error('Failed to set reminder. Please try again.');
 				selectedReminder = 'none';
 			} finally {
@@ -237,7 +240,7 @@
 					toast.error('Failed to disable reminder');
 				}
 			} catch (error) {
-				console.error('Error disabling reminder:', error);
+				logger.error('Catch failed', error as Error);
 				toast.error('Failed to disable reminder');
 			} finally {
 				isSavingReminder = false;
@@ -298,41 +301,13 @@
 			waitlistError = error.message || 'Failed to leave waitlist. Please try again.';
 		}
 	}
-
-	// Helpers
-	function getStatusBadgeColor(status: string): string {
-		const colors: Record<string, string> = {
-			draft: 'bg-muted text-muted-foreground',
-			scheduled: 'bg-primary/10 text-primary',
-			ongoing: 'bg-accent text-accent-foreground',
-			completed: 'bg-accent text-accent-foreground',
-			cancelled: 'bg-destructive/10 text-destructive'
-		};
-		return colors[status] || 'bg-muted text-muted-foreground';
-	}
-
-	function getVisibilityLabel(type: string): string {
-		const labels: Record<string, string> = {
-			company: 'Company-Wide',
-			department: 'Department',
-			specific: 'Specific People'
-		};
-		return labels[type] || type;
-	}
-
-	function getRsvpStatusColor(status: string): string {
-		const colors: Record<string, string> = {
-			accepted: 'bg-primary/10 text-primary',
-			declined: 'bg-destructive/10 text-destructive',
-			tentative: 'bg-accent text-accent-foreground',
-			pending: 'bg-primary/10 text-primary',
-			no_response: 'bg-muted text-muted-foreground'
-		};
-		return colors[status] || 'bg-muted text-muted-foreground';
-	}
 </script>
 
-<Tabs value={activeTab} onValueChange={(v) => (activeTab = v as any)} class="flex flex-col flex-1 overflow-hidden">
+<Tabs
+	value={activeTab}
+	onValueChange={(v) => (activeTab = v as any)}
+	class="flex flex-col flex-1 overflow-hidden"
+>
 	<TabsList class="mx-6 mt-4">
 		<TabsTrigger value="details">Details</TabsTrigger>
 		<TabsTrigger value="comments" class="relative">
@@ -347,96 +322,15 @@
 	<div class="flex-1 overflow-y-auto">
 		<TabsContent value="details" class="p-6">
 			<!-- Event Header -->
-			<div class="mb-6">
-				<h1 class="text-2xl font-bold text-foreground mb-3">{event.title}</h1>
-				<div class="flex flex-wrap items-center gap-2">
-					<span class="rounded-md px-2 py-1 text-xs font-medium {getStatusBadgeColor(event.status)}">
-						{event.status.charAt(0).toUpperCase() + event.status.slice(1)}
-					</span>
-					<span class="rounded-md px-2 py-1 text-xs font-medium bg-accent text-accent-foreground">
-						{event.eventType.charAt(0).toUpperCase() + event.eventType.slice(1)}
-					</span>
-					{#if event.visibilityType}
-						<span class="rounded-md px-2 py-1 text-xs font-medium bg-primary/10 text-primary">
-							{getVisibilityLabel(event.visibilityType)}
-						</span>
-					{/if}
-				</div>
-			</div>
+			<EventDetailsHeader
+				{event}
+				{showCapacityIndicator}
+			/>
 
-			{#if showCapacityIndicator}
-				<div class="mb-6">
-					<EventCapacityIndicator
-						acceptedCount={event.acceptedCount || 0}
-						maxCapacity={event.maxCapacity || 0}
-						waitlistCount={event.waitlistCount || 0}
-						isFull={event.isFull || false}
-					/>
-				</div>
-			{/if}
-
-			<div class="grid gap-4 sm:grid-cols-2 mb-6">
-				<div class="flex items-start gap-3">
-					<CalendarIcon class="h-5 w-5 text-muted-foreground mt-0.5" />
-					<div>
-						<div class="text-sm font-medium text-foreground mb-1">Date & Time</div>
-						<div class="text-sm text-muted-foreground">
-							{formatEventTimeRange(event.startTime, event.endTime, event.allDay)}
-						</div>
-						{#if event.allDay}
-							<span class="mt-1 inline-block rounded-md bg-primary/10 px-2 py-0.5 text-xs text-primary">
-								All Day
-							</span>
-						{/if}
-					</div>
-				</div>
-
-				{#if event.location}
-					<div class="flex items-start gap-3">
-						<MapPin class="h-5 w-5 text-muted-foreground mt-0.5" />
-						<div>
-							<div class="text-sm font-medium text-foreground mb-1">Location</div>
-							<div class="text-sm text-muted-foreground">{event.location}</div>
-						</div>
-					</div>
-				{/if}
-
-				<div class="flex items-start gap-3">
-					<User class="h-5 w-5 text-muted-foreground mt-0.5" />
-					<div>
-						<div class="text-sm font-medium text-foreground mb-1">Organizer</div>
-						<div class="text-sm text-muted-foreground">
-							{event.organizer?.displayName || 'Unknown'}
-						</div>
-					</div>
-				</div>
-
-				{#if displayRsvpStats}
-					<div class="flex items-start gap-3">
-						<Users class="h-5 w-5 text-muted-foreground mt-0.5" />
-						<div class="flex-1">
-							<div class="text-sm font-medium text-foreground mb-1">Attendees</div>
-							<div class="text-sm text-muted-foreground space-y-0.5">
-								{#if displayRsvpStats.accepted > 0}
-									<div>{displayRsvpStats.accepted} Accepted</div>
-								{/if}
-								{#if displayRsvpStats.tentative > 0}
-									<div>{displayRsvpStats.tentative} Tentative</div>
-								{/if}
-								{#if displayRsvpStats.declined > 0}
-									<div>{displayRsvpStats.declined} Declined</div>
-								{/if}
-								{#if displayRsvpStats.pending > 0}
-									<div>{displayRsvpStats.pending} Pending</div>
-								{/if}
-								{#if displayRsvpStats.total === 0}
-									<div class="text-muted-foreground">No attendees yet</div>
-								{/if}
-							</div>
-						</div>
-					</div>
-				{/if}
-			</div>
+			<EventInfoGrid
+				{event}
+				{displayRsvpStats}
+			/>
 
 			{#if event.description}
 				<div class="mb-6 border-t pt-6">
@@ -445,151 +339,38 @@
 				</div>
 			{/if}
 
-			<div class="border-t pt-6">
-				<h3 class="text-sm font-medium text-foreground mb-3">Your RSVP</h3>
-				<div class="flex flex-col sm:flex-row gap-3 items-start">
-					<div>
-						<RSVPButton
-							currentStatus={userRsvpStatus}
-							onChange={onRsvpUpdate || (() => {})}
-						/>
-					</div>
-
-					{#if userRsvpStatus === 'accepted' || userRsvpStatus === 'tentative'}
-						<div class="flex items-center gap-2">
-							{#if isSavingReminder}
-								<svg class="h-4 w-4 animate-spin text-muted-foreground flex-shrink-0" fill="none" viewBox="0 0 24 24">
-									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-								</svg>
-							{:else}
-								<Bell class="h-4 w-4 text-muted-foreground flex-shrink-0" />
-							{/if}
-							<select
-								bind:value={selectedReminder}
-								onchange={(e) => handleReminderChange(e.currentTarget.value as ReminderPreset)}
-								disabled={isSavingReminder}
-								class="inline-flex items-center gap-2 rounded-lg font-medium transition-all px-3 py-2 text-sm border border-input bg-background hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-							>
-								<option value="none">No reminder</option>
-								<option value="15min">15 min before</option>
-								<option value="1hour">1 hour before</option>
-								<option value="1day">1 day before</option>
-								<option value="1week">1 week before</option>
-							</select>
-						</div>
-					{/if}
-				</div>
-			</div>
+			<EventRsvpSection
+				{userRsvpStatus}
+				bind:selectedReminder
+				{isSavingReminder}
+				onRsvpChange={handleRsvpChange}
+				onReminderChange={handleReminderChange}
+			/>
 
 			{#if showWaitlistButton}
-				<div class="border-t pt-6">
-					<h3 class="text-sm font-medium text-foreground mb-3">Waitlist</h3>
-					<WaitlistButton
-						eventId={event.id}
-						isOnWaitlist={userWaitlistStatus?.isOnWaitlist || false}
-						waitlistPosition={userWaitlistStatus?.position || null}
-						onJoin={handleJoinWaitlistWrapper}
-						onLeave={handleLeaveWaitlistWrapper}
-					/>
-					{#if waitlistError}
-						<div class="text-sm text-destructive mt-2">
-							{waitlistError}
-						</div>
-					{/if}
-				</div>
+				<EventWaitlistSection
+					eventId={event.id}
+					{userWaitlistStatus}
+					{waitlistError}
+					onJoinWaitlist={handleJoinWaitlistWrapper}
+					onLeaveWaitlist={handleLeaveWaitlistWrapper}
+				/>
 			{/if}
 
 			{#if event.attendees && event.attendees.length > 0}
-				<div class="border-t pt-6">
-					<h3 class="text-sm font-medium text-foreground mb-4">Attendee List ({displayRsvpStats?.total || 0})</h3>
-
-					<div class="flex flex-wrap gap-2 mb-4">
-						<button
-							class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab === 'all' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-							onclick={() => activeAttendeeTab = 'all'}
-						>
-							All ({displayRsvpStats?.total || 0})
-						</button>
-                        <!-- Only show tabs with count > 0 -->
-						{#if (displayRsvpStats?.accepted || 0) > 0}
-							<button
-								class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab === 'accepted' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-								onclick={() => activeAttendeeTab = 'accepted'}
-							>
-								Accepted ({displayRsvpStats?.accepted || 0})
-							</button>
-						{/if}
-						{#if (displayRsvpStats?.tentative || 0) > 0}
-							<button
-								class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab === 'tentative' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-								onclick={() => activeAttendeeTab = 'tentative'}
-							>
-								Tentative ({displayRsvpStats?.tentative || 0})
-							</button>
-						{/if}
-						{#if (displayRsvpStats?.declined || 0) > 0}
-							<button
-								class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab === 'declined' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-								onclick={() => activeAttendeeTab = 'declined'}
-							>
-								Declined ({displayRsvpStats?.declined || 0})
-							</button>
-						{/if}
-						{#if (displayRsvpStats?.pending || 0) > 0}
-							<button
-								class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab === 'pending' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-								onclick={() => activeAttendeeTab = 'pending'}
-							>
-								Pending ({displayRsvpStats?.pending || 0})
-							</button>
-						{/if}
-						{#if displayRsvpStats && (displayRsvpStats.total - displayRsvpStats.accepted - displayRsvpStats.declined - displayRsvpStats.tentative - displayRsvpStats.pending) > 0}
-							<button
-								class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab === 'no_response' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-								onclick={() => activeAttendeeTab = 'no_response'}
-							>
-								No Response ({displayRsvpStats.total - displayRsvpStats.accepted - displayRsvpStats.declined - displayRsvpStats.tentative - displayRsvpStats.pending})
-							</button>
-						{/if}
-					</div>
-
-					<div class="space-y-2 max-h-60 overflow-y-auto">
-						{#if filteredAttendees.length > 0}
-							{#each filteredAttendees as attendee (attendee.id)}
-								<div class="flex items-center justify-between py-2 px-3 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors">
-									<div class="flex items-center gap-2">
-										<div class="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-											<span class="text-xs font-medium text-muted-foreground">
-												{attendee.employee?.displayName?.charAt(0)?.toUpperCase() || '?'}
-											</span>
-										</div>
-										<div class="text-sm font-medium text-foreground">
-											{attendee.employee?.displayName || 'Unknown'}
-											{#if attendee.employeeId === userId}
-												<span class="ml-1.5 text-xs text-primary">(You)</span>
-											{/if}
-										</div>
-									</div>
-									<span class="rounded-md px-2 py-1 text-xs font-medium {getRsvpStatusColor(attendee.responseStatus)}">
-										{attendee.responseStatus.replace('_', ' ').charAt(0).toUpperCase() + attendee.responseStatus.slice(1).replace('_', ' ')}
-									</span>
-								</div>
-							{/each}
-						{:else}
-							<p class="text-sm text-muted-foreground py-4 text-center">
-								{activeAttendeeTab === 'all' ? 'No attendees yet.' : `No attendees with ${activeAttendeeTab.replace('_', ' ')} status.`}
-							</p>
-						{/if}
-					</div>
-				</div>
+				<EventAttendeeList
+					bind:activeAttendeeTab
+					{displayRsvpStats}
+					{filteredAttendees}
+					{userId}
+				/>
 			{/if}
 		</TabsContent>
 
 		<TabsContent value="comments" class="p-6">
 			<EventCommentThread
 				eventId={event.id}
-				comments={eventComments}
+				comments={mappedComments}
 				currentUserId={userId}
 				currentUserRole={userRole}
 				eventOrganizerId={event.organizerId}
@@ -608,7 +389,7 @@
 
 		<TabsContent value="history" class="p-6">
 			<EventHistoryView
-				history={eventHistory}
+				history={mappedHistory}
 				onLoadMore={onLoadMoreHistory}
 				hasMore={hasMoreHistory}
 			/>

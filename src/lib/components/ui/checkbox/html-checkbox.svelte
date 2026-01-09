@@ -17,7 +17,7 @@
 		disabled?: boolean;
 		class?: string;
 		onCheckedChange?: (value: boolean | 'indeterminate') => void;
-		[key: string]: any;
+		[key: string]: unknown;
 	} = $props();
 
 	let inputElement: HTMLInputElement;

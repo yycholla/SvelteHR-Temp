@@ -9,7 +9,7 @@
  * Covers: FR-001, FR-002, FR-008, FR-009
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Manager Leave Approvals Journey', () => {
 	test.beforeEach(async ({ page }) => {
@@ -168,9 +168,9 @@ test.describe('Manager Leave Approvals Journey', () => {
 		);
 
 		// Statistics should be department-scoped (no organization-wide data)
-		await expect(statsContainer.locator('[data-testid="department-scope-indicator"]')).toContainText(
-			'My Department'
-		);
+		await expect(
+			statsContainer.locator('[data-testid="department-scope-indicator"]')
+		).toContainText('My Department');
 	});
 
 	test('manager can filter leave requests by status', async ({ page }) => {

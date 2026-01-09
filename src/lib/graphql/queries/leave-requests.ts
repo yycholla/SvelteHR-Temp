@@ -1,245 +1,154 @@
+import { gql } from '@urql/svelte';
+import { logger } from '$lib/utils/logger';
+
 /**
- * PostGraphile GraphQL Queries for Leave Requests
+ * GraphQL Queries for Leave Requests
  *
- * This file contains all GraphQL queries for leave request management
- * using PostGraphile's auto-generated schema.
+ * Updated for Rust backend (async-graphql) schema
  */
 
 /**
- * Get all leave requests with filtering, pagination, and user relationships
+ * Get all leave requests with filtering and pagination
+ * Backend: Uses leaveRequests from Rust GraphQL schema
  */
-export const GET_LEAVE_REQUESTS = `
-  query GetLeaveRequests(
-    $first: Int
-    $offset: Int
-    $orderBy: [LeaveRequestsOrderBy!]
-    $condition: LeaveRequestCondition
-  ) {
-    allLeaveRequests(
-      first: $first
-      offset: $offset
-      orderBy: $orderBy
-      condition: $condition
-    ) {
-      totalCount
-      nodes {
-        id
-        nodeId
-        employeeId
-        managerId
-        leaveType
-        startDate
-        endDate
-        daysRequested
-        status
-        reason
-        managerComments
-        createdAt
-        updatedAt
-        userByEmployeeId {
-          id
-          email
-          displayName
-          departmentId
-          departmentByDepartmentId {
-            id
-            name
-          }
-        }
-        userByManagerId {
-          id
-          email
-          displayName
-        }
-      }
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        startCursor
-        endCursor
-      }
-    }
-  }
+export const GET_LEAVE_REQUESTS = gql`
+	query GetLeaveRequests($employeeId: UUID, $limit: Int = 50, $offset: Int = 0) {
+		leaveRequests(employeeId: $employeeId, limit: $limit, offset: $offset) {
+			id
+			employeeId
+			managerId
+			leaveType
+			startDate
+			endDate
+			daysRequested
+			status
+			reason
+			managerComments
+			createdAt
+			updatedAt
+			employee {
+				id
+				email
+				displayName
+				departmentId
+				department {
+					id
+					name
+				}
+			}
+			manager {
+				id
+				email
+				displayName
+			}
+		}
+	}
 `;
 
 /**
  * Get a single leave request by ID with full details
+ * Backend: Uses leaveRequest (singular) from Rust GraphQL schema
  */
-export const GET_LEAVE_REQUEST_BY_ID = `
-  query GetLeaveRequestById($id: UUID!) {
-    leaveRequestById(id: $id) {
-      id
-      nodeId
-      employeeId
-      managerId
-      leaveType
-      startDate
-      endDate
-      daysRequested
-      status
-      reason
-      managerComments
-      createdAt
-      updatedAt
-      userByEmployeeId {
-        id
-        email
-        displayName
-        departmentId
-        departmentByDepartmentId {
-          id
-          name
-        }
-      }
-      userByManagerId {
-        id
-        email
-        displayName
-      }
-    }
-  }
+export const GET_LEAVE_REQUEST_BY_ID = gql`
+	query GetLeaveRequestById($id: UUID!) {
+		leaveRequest(id: $id) {
+			id
+			employeeId
+			managerId
+			leaveType
+			startDate
+			endDate
+			daysRequested
+			status
+			reason
+			managerComments
+			createdAt
+			updatedAt
+			employee {
+				id
+				email
+				displayName
+				departmentId
+				department {
+					id
+					name
+				}
+			}
+			manager {
+				id
+				email
+				displayName
+			}
+		}
+	}
 `;
 
 /**
  * Get leave request statistics for a manager
- * Note: PostGraphile uses UPPERCASE enum values for status
+ * Backend: Uses leaveRequests from Rust GraphQL schema
+ * Note: Statistics calculated client-side for now
  */
-export const GET_LEAVE_REQUEST_STATS = `
-  query GetLeaveRequestStats(
-    $managerId: UUID
-    $startDate: Date
-    $endDate: Date
-  ) {
-    pending: allLeaveRequests(
-      condition: { status: PENDING, managerId: $managerId }
-    ) {
-      totalCount
-    }
-    approved: allLeaveRequests(
-      condition: { status: APPROVED, managerId: $managerId }
-    ) {
-      totalCount
-    }
-    rejected: allLeaveRequests(
-      condition: { status: REJECTED, managerId: $managerId }
-    ) {
-      totalCount
-    }
-    allRequests: allLeaveRequests(
-      condition: { managerId: $managerId }
-    ) {
-      totalCount
-      nodes {
-        daysRequested
-        status
-      }
-    }
-  }
+export const GET_LEAVE_REQUEST_STATS = gql`
+	query GetLeaveRequestStats($employeeId: UUID, $limit: Int = 1000) {
+		leaveRequests(employeeId: $employeeId, limit: $limit, offset: 0) {
+			id
+			status
+			daysRequested
+		}
+	}
 `;
 
 /**
  * Update leave request status (approve/deny)
- * Note: Status must be uppercase ENUM value (PENDING, APPROVED, REJECTED, CANCELLED)
+ * Backend: Uses updateLeaveRequest mutation from Rust GraphQL schema
  */
-export const UPDATE_LEAVE_REQUEST_STATUS = `
-  mutation UpdateLeaveRequestStatus(
-    $id: UUID!
-    $status: LeaveStatus!
-    $managerComments: String
-  ) {
-    updateLeaveRequestById(
-      input: {
-        id: $id
-        leaveRequestPatch: {
-          status: $status
-          managerComments: $managerComments
-          updatedAt: "now()"
-        }
-      }
-    ) {
-      leaveRequest {
-        id
-        status
-        managerComments
-        updatedAt
-      }
-    }
-  }
+export const UPDATE_LEAVE_REQUEST_STATUS = gql`
+	mutation UpdateLeaveRequestStatus($input: UpdateLeaveRequestInput!) {
+		updateLeaveRequest(input: $input) {
+			id
+			status
+			managerComments
+			updatedAt
+		}
+	}
 `;
 
 /**
  * Create a new leave request
- * Note: Status is set to PENDING (uppercase) by default
+ * Backend: Uses createLeaveRequest mutation from Rust GraphQL schema
  */
-export const CREATE_LEAVE_REQUEST = `
-  mutation CreateLeaveRequest(
-    $employeeId: UUID!
-    $managerId: UUID
-    $leaveType: String!
-    $startDate: Date!
-    $endDate: Date!
-    $daysRequested: Float!
-    $reason: String
-  ) {
-    createLeaveRequest(
-      input: {
-        leaveRequest: {
-          employeeId: $employeeId
-          managerId: $managerId
-          leaveType: $leaveType
-          startDate: $startDate
-          endDate: $endDate
-          daysRequested: $daysRequested
-          status: PENDING
-          reason: $reason
-        }
-      }
-    ) {
-      leaveRequest {
-        id
-        nodeId
-        employeeId
-        managerId
-        leaveType
-        startDate
-        endDate
-        daysRequested
-        status
-        reason
-        createdAt
-      }
-    }
-  }
+export const CREATE_LEAVE_REQUEST = gql`
+	mutation CreateLeaveRequest($input: CreateLeaveRequestInput!) {
+		createLeaveRequest(input: $input) {
+			id
+			employeeId
+			managerId
+			leaveType
+			startDate
+			endDate
+			daysRequested
+			status
+			reason
+			createdAt
+		}
+	}
 `;
 
 /**
  * Delete a leave request
+ * Backend: Uses deleteLeaveRequest mutation from Rust GraphQL schema
  */
-export const DELETE_LEAVE_REQUEST = `
-  mutation DeleteLeaveRequest($id: UUID!) {
-    deleteLeaveRequestById(input: { id: $id }) {
-      leaveRequest {
-        id
-      }
-    }
-  }
+export const DELETE_LEAVE_REQUEST = gql`
+	mutation DeleteLeaveRequest($id: UUID!) {
+		deleteLeaveRequest(id: $id)
+	}
 `;
 
 // TypeScript types for query variables
 export interface GetLeaveRequestsVariables {
-	first?: number;
-	offset?: number;
-	orderBy?: string[];
-	condition?: LeaveRequestCondition;
-}
-
-export interface LeaveRequestCondition {
 	employeeId?: string;
-	managerId?: string;
-	leaveType?: string;
-	status?: string;
-	startDate?: string;
-	endDate?: string;
+	limit?: number;
+	offset?: number;
 }
 
 export interface GetLeaveRequestByIdVariables {
@@ -247,18 +156,21 @@ export interface GetLeaveRequestByIdVariables {
 }
 
 export interface GetLeaveRequestStatsVariables {
-	managerId?: string;
-	startDate?: string;
-	endDate?: string;
+	employeeId?: string;
+	limit?: number;
 }
 
-export interface UpdateLeaveRequestStatusVariables {
+export interface UpdateLeaveRequestInput {
 	id: string;
-	status: string;
+	status?: string;
 	managerComments?: string;
 }
 
-export interface CreateLeaveRequestVariables {
+export interface UpdateLeaveRequestStatusVariables {
+	input: UpdateLeaveRequestInput;
+}
+
+export interface CreateLeaveRequestInput {
 	employeeId: string;
 	managerId?: string;
 	leaveType: string;
@@ -266,6 +178,11 @@ export interface CreateLeaveRequestVariables {
 	endDate: string;
 	daysRequested: number;
 	reason?: string;
+	status?: string;
+}
+
+export interface CreateLeaveRequestVariables {
+	input: CreateLeaveRequestInput;
 }
 
 export interface DeleteLeaveRequestVariables {
@@ -275,7 +192,6 @@ export interface DeleteLeaveRequestVariables {
 // Response types
 export interface LeaveRequest {
 	id: string;
-	nodeId: string;
 	employeeId: string;
 	managerId: string | null;
 	leaveType: string;
@@ -287,17 +203,17 @@ export interface LeaveRequest {
 	managerComments: string | null;
 	createdAt: string;
 	updatedAt: string;
-	userByEmployeeId?: {
+	employee?: {
 		id: string;
 		email: string;
 		displayName: string;
 		departmentId: string | null;
-		departmentByDepartmentId?: {
+		department?: {
 			id: string;
 			name: string;
 		} | null;
 	};
-	userByManagerId?: {
+	manager?: {
 		id: string;
 		email: string;
 		displayName: string;
@@ -305,49 +221,57 @@ export interface LeaveRequest {
 }
 
 export interface LeaveRequestsResponse {
-	allLeaveRequests: {
-		totalCount: number;
-		nodes: LeaveRequest[];
-		pageInfo: {
-			hasNextPage: boolean;
-			hasPreviousPage: boolean;
-			startCursor: string | null;
-			endCursor: string | null;
-		};
-	};
+	leaveRequests: LeaveRequest[];
 }
 
 export interface LeaveRequestStatsResponse {
-	pending: { totalCount: number };
-	approved: { totalCount: number };
-	rejected: { totalCount: number };
-	allRequests: {
-		totalCount: number;
-		nodes: Array<{
-			daysRequested: number;
-			status: string;
-		}>;
+	pending: number;
+	approved: number;
+	rejected: number;
+	cancelled: number;
+	totalCount: number;
+	totalDaysRequested: number;
+}
+
+// Helper functions for status normalization
+
+/**
+ * Normalize status to consistent format
+ * @param status - Status from backend or UI
+ * @returns Normalized lowercase status
+ */
+export function normalizeStatus(status: string): string {
+	return status.toLowerCase().replace(/_/g, '-');
+}
+
+/**
+ * Convert to backend status format
+ * @param status - Status from UI
+ * @returns Backend status format (may be uppercase enum)
+ */
+export function toBackendStatus(status: string): string {
+	return status.toUpperCase().replace(/-/g, '_');
+}
+
+/**
+ * Calculate statistics from leave request data (client-side)
+ */
+export function calculateLeaveStats(requests: LeaveRequest[]): LeaveRequestStatsResponse {
+	const pending = requests.filter((r) => normalizeStatus(r.status) === 'pending').length;
+	const approved = requests.filter((r) => normalizeStatus(r.status) === 'approved').length;
+	const rejected = requests.filter((r) => normalizeStatus(r.status) === 'rejected').length;
+	const cancelled = requests.filter((r) => normalizeStatus(r.status) === 'cancelled').length;
+
+	const totalDaysRequested = requests.reduce((sum, r) => sum + (r.daysRequested || 0), 0);
+
+	return {
+		pending,
+		approved,
+		rejected,
+		cancelled,
+		totalCount: requests.length,
+		totalDaysRequested
 	};
-}
-
-// Helper functions for status conversion between UI (lowercase) and PostGraphile (uppercase)
-
-/**
- * Convert UI status (lowercase) to PostGraphile enum (uppercase)
- * @param status - Status from UI ('pending', 'approved', 'rejected', 'cancelled')
- * @returns Uppercase status for PostGraphile ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED')
- */
-export function toPostGraphileStatus(status: string): string {
-	return status.toUpperCase();
-}
-
-/**
- * Convert PostGraphile enum status (uppercase) to UI format (lowercase)
- * @param status - Status from PostGraphile ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED')
- * @returns Lowercase status for UI ('pending', 'approved', 'rejected', 'cancelled')
- */
-export function fromPostGraphileStatus(status: string): string {
-	return status.toLowerCase();
 }
 
 // UI Helper Functions for Leave Management
@@ -400,6 +324,29 @@ export function getLeaveTypeColor(leaveType: string): string {
 }
 
 /**
+ * Get status information including color and variant
+ */
+export function getStatusInfo(status: string): {
+	label: string;
+	color: string;
+	variant: 'default' | 'secondary' | 'destructive' | 'outline';
+} {
+	const statusLower = normalizeStatus(status);
+	switch (statusLower) {
+		case 'pending':
+			return { label: 'Pending', color: 'yellow', variant: 'secondary' };
+		case 'approved':
+			return { label: 'Approved', color: 'green', variant: 'default' };
+		case 'rejected':
+			return { label: 'Rejected', color: 'red', variant: 'destructive' };
+		case 'cancelled':
+			return { label: 'Cancelled', color: 'gray', variant: 'outline' };
+		default:
+			return { label: 'Unknown', color: 'gray', variant: 'outline' };
+	}
+}
+
+/**
  * Leave type options for UI selects
  */
 export const leaveTypeOptions = [
@@ -434,7 +381,7 @@ export function createLeaveManagementOperations(client: any) {
 		}) {
 			// In a real implementation, this would use the UPDATE_LEAVE_REQUEST_STATUS mutation
 			// For now, return a mock response
-			console.log('Approve leave request:', params);
+			logger.info(`Approve leave request: ${params}`);
 			return { success: true };
 		},
 
@@ -445,7 +392,7 @@ export function createLeaveManagementOperations(client: any) {
 		}) {
 			// In a real implementation, this would use the UPDATE_LEAVE_REQUEST_STATUS mutation
 			// For now, return a mock response
-			console.log('Deny leave request:', params);
+			logger.info(`Deny leave request: ${params}`);
 			return { success: true };
 		}
 	};

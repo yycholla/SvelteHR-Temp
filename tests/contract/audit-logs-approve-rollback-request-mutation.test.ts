@@ -15,7 +15,7 @@
  * - Notifies requester and affected user
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface ApproveRollbackRequestInput {
 	requestId: string; // UUID
@@ -42,10 +42,7 @@ interface ApproveRollbackRequestResponse {
 	};
 }
 
-const mockApproveRollbackRequest = vi.fn<
-	[ApproveRollbackRequestVariables],
-	Promise<ApproveRollbackRequestResponse>
->();
+const mockApproveRollbackRequest = vi.fn<() => Promise<ApproveRollbackRequestResponse>>();
 
 describe('ApproveRollbackRequest Mutation Contract (TDD RED - should fail)', () => {
 	beforeEach(() => {

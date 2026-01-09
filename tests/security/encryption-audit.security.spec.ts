@@ -1,8 +1,8 @@
 // Security audit: End-to-end encryption validation (T047)
 // Validates encryption implementation and security best practices
 
-import { describe, it, expect, beforeAll } from 'vitest';
-import { generateEncryptionKey, encryptFile } from '$lib/services/encryption';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { encryptFile, generateEncryptionKey } from '$lib/services/encryption';
 
 /**
  * Security Audit: End-to-End Encryption Validation

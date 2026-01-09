@@ -1,9 +1,10 @@
+import { logger } from '$lib/utils/logger';
 // Document upload API endpoint (Feature 024)
 // POST /api/documents/upload
 // Handles encrypted document upload with metadata and assignments
 // Migrated to GraphQL backend (Phase 2 - Document API Migration)
 
-import { json, error } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { z } from 'zod';
 import { createUrqlClient } from '$lib/graphql/client';
@@ -44,7 +45,7 @@ const CREATE_ACCESS_LOG_MUTATION = gql`
 export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
-		error(401, { message: 'Authentication required' });
+		error(401, 'Authentication required');
 	}
 
 	// Step 2: Check authorization using permission-based RBAC
@@ -54,16 +55,14 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 	);
 
 	if (!canUploadDocuments) {
-		console.error('[Upload API] Permission denied:', {
+		logger.error('[Upload API] Permission denied', new Error('Permission denied'), {
 			userId: locals.user?.id,
 			permissions: userPermissions
 		});
-		error(403, {
-			message: 'Insufficient permissions. documents:write permission required.'
-		});
+		error(403, 'Insufficient permissions. documents:write permission required.');
 	}
 
-	console.log('[Upload API] Authorization passed:', {
+	logger.info('[Upload API] Authorization passed:', {
 		userId: locals.user.id,
 		permissions: userPermissions
 	});
@@ -71,22 +70,25 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 	try {
 		// Step 3: Parse request body
 		const body = await request.json();
-		console.log('[Upload API] Received request body:', JSON.stringify(body, null, 2));
+		logger.info('[Upload API] Received request body', { body: JSON.stringify(body, null, 2) });
 
 		// Step 4: Validate upload data
 		if (!body.filename || !body.fileSizeBytes || !body.encryptedData || !body.encryptionKeyId) {
-			error(400, { message: 'Missing required fields (filename, fileSizeBytes, encryptedData, encryptionKeyId)' });
+			error(
+				400,
+				'Missing required fields (filename, fileSizeBytes, encryptedData, encryptionKeyId)'
+			);
 		}
 
 		// Validate file size (50MB max)
 		if (body.fileSizeBytes > 52428800) {
-			error(413, { message: 'File size exceeds 50MB limit' });
+			error(413, 'File size exceeds 50MB limit');
 		}
 
 		// Validate file type
 		const allowedTypes = ['PDF', 'JPEG', 'PNG', 'GIF', 'DOCX', 'XLSX', 'TXT', 'CSV'];
 		if (!allowedTypes.includes(body.fileType.toUpperCase())) {
-			error(400, { message: `Invalid file type. Allowed: ${allowedTypes.join(', ')}` });
+			error(400, `Invalid file type. Allowed: ${allowedTypes.join(', ')}`);
 		}
 
 		// Step 5: Create GraphQL client with session cookies
@@ -104,7 +106,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 			expirationDate: body.expirationDate || null
 		};
 
-		console.log('[Upload API] Uploading to GraphQL backend');
+		logger.info('[Upload API] Uploading to GraphQL backend');
 		const uploadResult = await urqlClient
 			.mutation(UPLOAD_DOCUMENT_MUTATION, {
 				input: uploadInput
@@ -112,29 +114,28 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 			.toPromise();
 
 		if (uploadResult.error) {
-			console.error('[Upload API] GraphQL upload error:', uploadResult.error);
-			error(500, {
-            				message: 'Failed to upload document to GraphQL backend',
-            				details: uploadResult.error.message
-            			});
+			logger.error('[Upload API] GraphQL upload errors', uploadResult.error);
+			error(500, 'Failed to upload document to GraphQL backend');
 		}
 
 		const document = uploadResult.data?.uploadDocument;
 		if (!document) {
-			error(500, { message: 'Upload succeeded but no document returned' });
+			error(500, 'Upload succeeded but no document returned');
 		}
 
-		console.log('[Upload API] Document uploaded successfully:', document.id);
+		logger.info('[Upload API] Document uploaded successfully', { documentId: document.id });
 
 		// Step 7: Create document assignments (if provided)
 		if (body.assignToEmployees && body.assignToEmployees.length > 0) {
-			console.log('[Upload API] Creating employee assignments:', body.assignToEmployees.length);
+			logger.info('[Upload API] Creating employee assignments', {
+				assignmentCount: body.assignToEmployees.length
+			});
 			for (const employeeId of body.assignToEmployees) {
 				await urqlClient
 					.mutation(CREATE_DOCUMENT_ASSIGNMENT_MUTATION, {
 						input: {
 							documentId: document.id,
-							employeeId: employeeId,
+							employeeId,
 							assignedBy: locals.user.id,
 							accessLevel: 'read' // Default access level
 						}
@@ -144,7 +145,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 		}
 
 		// Step 8: Log upload in audit trail
-		console.log('[Upload API] Logging document access');
+		logger.info('[Upload API] Logging document access');
 		await urqlClient
 			.mutation(CREATE_ACCESS_LOG_MUTATION, {
 				input: {
@@ -166,14 +167,17 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 			},
 			{ status: 201 }
 		);
-
 	} catch (err) {
-		console.error('Document upload error:', err);
-		console.error('Error stack:', err instanceof Error ? err.stack : 'No stack trace');
-		console.error('Error details:', JSON.stringify(err, null, 2));
+		logger.error('Document upload error', err as Error);
+		logger.error('Error stack', new Error('Stack trace'), {
+			stack: err instanceof Error ? err.stack : 'No stack trace'
+		});
+		logger.error('Error details', new Error('Error details'), {
+			details: JSON.stringify(err, null, 2)
+		});
 
 		if (err instanceof z.ZodError) {
-			error(400, { message: 'Invalid upload data', errors: err.errors });
+			error(400, 'Invalid upload data');
 		}
 
 		if (err && typeof err === 'object' && 'status' in err) {
@@ -182,7 +186,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies, fetch }) 
 
 		// Return more detailed error message
 		const errorMessage = err instanceof Error ? err.message : 'Internal server error during upload';
-		console.error('Throwing error with message:', errorMessage);
-		error(500, { message: errorMessage });
+		logger.error('Throwing error with message', new Error('Upload failed'), { errorMessage });
+		error(500, errorMessage);
 	}
 };

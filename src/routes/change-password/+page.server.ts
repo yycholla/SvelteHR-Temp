@@ -1,8 +1,9 @@
+import { logger } from '$lib/utils/logger';
 // Server-side password change handling
 // Requires authentication and handles force_password_change flag
 
-import type { PageServerLoad, Actions } from './$types';
-import { error, redirect, fail } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
+import { error, fail, redirect } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	// Check if user is authenticated
@@ -67,10 +68,12 @@ export const actions: Actions = {
 			const cookieHeader = event.request.headers.get('cookie') || '';
 			const headers: Record<string, string> = {
 				'Content-Type': 'application/json',
-				'Cookie': cookieHeader
+				Cookie: cookieHeader
 			};
 
-			console.log('[Change Password] Submitting password change for user:', locals.user.email);
+			logger.info('[Change Password] Submitting password change for user', {
+				userEmail: locals.user.email
+			});
 
 			const response = await fetch(graphqlEndpoint, {
 				method: 'POST',
@@ -97,7 +100,11 @@ export const actions: Actions = {
 			});
 
 			if (!response.ok) {
-				console.error('[Change Password] GraphQL request failed:', response.statusText);
+				logger.error(
+					'[Change Password] GraphQL request failed',
+					new Error('GraphQL request failed'),
+					{ statusText: response.statusText }
+				);
 				return fail(500, {
 					error: `Password change failed: ${response.statusText}`,
 					success: false
@@ -107,7 +114,9 @@ export const actions: Actions = {
 			const result = await response.json();
 
 			if (result.errors && result.errors.length > 0) {
-				console.error('[Change Password] GraphQL errors:', result.errors);
+				logger.error('[Change Password] GraphQL errors', new Error('GraphQL errors'), {
+					errors: result.errors
+				});
 				const errorMessage = result.errors[0]?.message || 'Password change failed';
 				return fail(400, {
 					error: errorMessage,
@@ -117,14 +126,16 @@ export const actions: Actions = {
 
 			const changePasswordResult = result.data?.users?.changePassword;
 
-			if (!changePasswordResult || !changePasswordResult.success) {
+			if (!changePasswordResult?.success) {
 				return fail(400, {
 					error: changePasswordResult?.message || 'Password change failed',
 					success: false
 				});
 			}
 
-			console.log('[Change Password] Password changed successfully for user:', locals.user.email);
+			logger.info('[Change Password] Password changed successfully for user', {
+				userEmail: locals.user.email
+			});
 
 			// Redirect to dashboard after successful password change
 			throw redirect(303, '/dashboard');
@@ -134,7 +145,7 @@ export const actions: Actions = {
 				throw err;
 			}
 
-			console.error('[Change Password] Error during password change:', err);
+			logger.error('[Change Password] Error during password change', err as Error);
 			return fail(500, {
 				error: err.message || 'An unexpected error occurred',
 				success: false

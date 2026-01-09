@@ -2,7 +2,7 @@
 // Feature: 028-task-system-expansion - T048
 // Purpose: Test task editing workflow and updates
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Task Editing Flow', () => {
 	let testTaskId: string;
@@ -22,11 +22,11 @@ test.describe('Task Editing Flow', () => {
 		await page.waitForLoadState('networkidle');
 		await page.fill('input[name="title"]', 'Task for Editing Test');
 		await page.fill('textarea[name="description"]', 'Original description');
-		
+
 		const submitButton = page.locator('button[type="submit"]:has-text("Create Task")');
 		await submitButton.click();
 		await page.waitForURL('**/tasks/*', { timeout: 10000 });
-		
+
 		testTaskId = page.url().split('/').pop()!;
 	});
 
@@ -80,7 +80,10 @@ test.describe('Task Editing Flow', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Update description
-		await page.fill('textarea[name="description"]', 'This is the updated description with more details.');
+		await page.fill(
+			'textarea[name="description"]',
+			'This is the updated description with more details.'
+		);
 
 		// Submit form
 		const submitButton = page.locator('button[type="submit"]:has-text("Update Task")');
@@ -91,7 +94,9 @@ test.describe('Task Editing Flow', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Verify updated description
-		await expect(page.locator('text=This is the updated description with more details.')).toBeVisible();
+		await expect(
+			page.locator('text=This is the updated description with more details.')
+		).toBeVisible();
 	});
 
 	test('can change task priority', async ({ page }) => {
@@ -171,9 +176,9 @@ test.describe('Task Editing Flow', () => {
 		await page.waitForTimeout(500);
 
 		// Verify validation error
-		const titleError = page.locator('text=/title.*required/i').or(
-			page.locator('[data-error="title"]')
-		);
+		const titleError = page
+			.locator('text=/title.*required/i')
+			.or(page.locator('[data-error="title"]'));
 		await expect(titleError).toBeVisible();
 	});
 
@@ -190,7 +195,7 @@ test.describe('Task Editing Flow', () => {
 
 		// Verify navigation back to task details
 		await page.waitForURL(`**/tasks/${testTaskId}`);
-		
+
 		// Verify original title still shows
 		await expect(page.locator('text=Task for Editing Test')).toBeVisible();
 		await expect(page.locator('text=This change will be discarded')).not.toBeVisible();
@@ -205,14 +210,12 @@ test.describe('Task Editing Flow', () => {
 
 		// Note: This would require mock/intercept to simulate error
 		// For now, just verify the error display container exists
-		const errorContainer = page.locator('[role="alert"]').or(
-			page.locator('.error-message')
-		);
-		
+		const errorContainer = page.locator('[role="alert"]').or(page.locator('.error-message'));
+
 		// Submit and check error handling exists
 		const submitButton = page.locator('button[type="submit"]:has-text("Update Task")');
 		await submitButton.click();
-		
+
 		// In case of error, error container should appear
 		// (will pass if no error occurs)
 	});

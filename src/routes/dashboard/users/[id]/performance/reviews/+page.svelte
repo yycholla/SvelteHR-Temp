@@ -1,58 +1,140 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { FileText, Star, Clock, CheckCircle, Calendar, User, TrendingUp, MessageSquare, Target, Award, BookOpen } from '@lucide/svelte';
+	import {
+		Award,
+		BookOpen,
+		Calendar,
+		CheckCircle,
+		Clock,
+		FileText,
+		MessageSquare,
+		Star,
+		Target,
+		TrendingUp,
+		User
+	} from '@lucide/svelte';
 	import { format, parseISO } from 'date-fns';
+	import type { ComponentType } from 'svelte';
 
-	let { data } = $props();
+	interface ReviewType {
+		id: string;
+		name: string;
+		frequency: string;
+		color: string;
+	}
 
-	let user = $derived(data.user);
-	let userId = $derived(data.userId);
-	let reviews = $derived(data.reviews);
-	let reviewTypes = $derived(data.reviewTypes);
-	let competencyAreas = $derived(data.competencyAreas);
-	let reviewStats = $derived(data.reviewStats);
-	let canManageReviews = $derived(data.canManageReviews);
-	let isOwnReviews = $derived(data.isOwnReviews);
+	interface Competency {
+		name: string;
+		rating: number;
+		feedback: string;
+	}
+
+	interface Goal {
+		id: string;
+		title: string;
+		description: string;
+		completionStatus: string;
+	}
+
+	interface Feedback {
+		strengths: string[];
+		improvements: string[];
+		managerComments: string | null;
+		employeeComments: string | null;
+	}
+
+	interface Review {
+		id: string;
+		type: ReviewType;
+		status: string;
+		reviewPeriod: {
+			start: string;
+			end: string;
+		};
+		scheduledDate: string;
+		completedDate: string | null;
+		reviewer: {
+			id: string;
+			displayName: string;
+			email: string;
+		} | null;
+		overallRating: number;
+		competencies: Competency[];
+		goals: Goal[];
+		feedback: Feedback;
+		developmentPlan: string[];
+		createdAt: string;
+		lastUpdated: string;
+	}
+
+	const { data } = $props();
+
+	const user = $derived(data.user);
+	const userId = $derived(data.userId);
+	const reviews = $derived(data.reviews as Review[]);
+	const reviewTypes = $derived(data.reviewTypes as ReviewType[]);
+	const competencyAreas = $derived(data.competencyAreas);
+	const reviewStats = $derived(data.reviewStats);
+	const canManageReviews = $derived(data.canManageReviews);
+	const isOwnReviews = $derived(data.isOwnReviews);
 
 	let selectedStatus = $state('all');
 	let selectedType = $state('all');
-	let expandedReview = $state(null);
+	let expandedReview = $state<string | null>(null);
 
 	// Filter reviews based on selected filters
-	let filteredReviews = $derived(reviews.filter(review => {
-		const statusMatch = selectedStatus === 'all' || review.status === selectedStatus;
-		const typeMatch = selectedType === 'all' || review.type.id === selectedType;
-		return statusMatch && typeMatch;
-	}));
+	const filteredReviews = $derived(
+		reviews.filter((review) => {
+			const statusMatch = selectedStatus === 'all' || review.status === selectedStatus;
+			const typeMatch = selectedType === 'all' || review.type.id.toString() === selectedType;
+			return statusMatch && typeMatch;
+		})
+	);
 
-	function getStatusIcon(status: string) {
+	function getStatusIcon(status: string): any {
 		switch (status) {
-			case 'completed': return CheckCircle;
-			case 'in_progress': return Clock;
-			case 'scheduled': return Calendar;
-			case 'overdue': return Clock;
-			default: return Clock;
+			case 'completed':
+				return CheckCircle;
+			case 'in_progress':
+				return Clock;
+			case 'scheduled':
+				return Calendar;
+			case 'overdue':
+				return Clock;
+			default:
+				return Clock;
 		}
 	}
 
 	function getStatusColor(status: string) {
 		switch (status) {
-			case 'completed': return 'text-green-600 bg-green-50 border-green-200';
-			case 'in_progress': return 'text-blue-600 bg-blue-50 border-blue-200';
-			case 'scheduled': return 'text-muted-foreground bg-muted dark:bg-muted border';
-			case 'overdue': return 'text-red-600 bg-red-50 border-red-200';
-			default: return 'text-muted-foreground bg-muted dark:bg-muted border';
+			case 'completed':
+				return 'text-green-600 bg-green-50 border-green-200';
+			case 'in_progress':
+				return 'text-blue-600 bg-blue-50 border-blue-200';
+			case 'scheduled':
+				return 'text-muted-foreground bg-muted dark:bg-muted border';
+			case 'overdue':
+				return 'text-red-600 bg-red-50 border-red-200';
+			default:
+				return 'text-muted-foreground bg-muted dark:bg-muted border';
 		}
 	}
 
 	function getTypeColor(color: string) {
 		switch (color) {
-			case 'blue': return 'bg-blue-100 text-blue-800';
-			case 'green': return 'bg-green-100 text-green-800';
-			case 'purple': return 'bg-purple-100 text-purple-800';
-			case 'orange': return 'bg-orange-100 text-orange-800';
-			case 'red': return 'bg-red-100 text-red-800';
-			default: return 'bg-gray-100 text-foreground';
+			case 'blue':
+				return 'bg-blue-100 text-blue-800';
+			case 'green':
+				return 'bg-green-100 text-green-800';
+			case 'purple':
+				return 'bg-purple-100 text-purple-800';
+			case 'orange':
+				return 'bg-orange-100 text-orange-800';
+			case 'red':
+				return 'bg-red-100 text-red-800';
+			default:
+				return 'bg-gray-100 text-foreground';
 		}
 	}
 
@@ -72,10 +154,14 @@
 
 	function getGoalStatusColor(status: string) {
 		switch (status) {
-			case 'achieved': return 'text-green-600';
-			case 'partially_achieved': return 'text-yellow-600';
-			case 'not_achieved': return 'text-red-600';
-			default: return 'text-muted-foreground';
+			case 'achieved':
+				return 'text-green-600';
+			case 'partially_achieved':
+				return 'text-yellow-600';
+			case 'not_achieved':
+				return 'text-red-600';
+			default:
+				return 'text-muted-foreground';
 		}
 	}
 </script>
@@ -93,10 +179,12 @@
 			</div>
 			<div>
 				<h1 class="text-2xl font-bold text-foreground">
-					{isOwnReviews ? 'My Performance Reviews' : `${user?.displayName} - Performance Reviews`}
+					{isOwnReviews
+						? 'My Performance Reviews'
+						: `${user?.displayName ?? 'User'} - Performance Reviews`}
 				</h1>
 				<p class="text-muted-foreground">
-					{user?.departmentByDepartmentId?.name || 'No Department'} • {user?.role}
+					{user?.department?.name ?? 'No Department'}
 				</p>
 			</div>
 		</div>
@@ -188,7 +276,7 @@
 				>
 					<option value="all">All Types</option>
 					{#each reviewTypes as type}
-						<option value={type.id}>{type.name}</option>
+						<option value={type.id.toString()}>{type.name}</option>
 					{/each}
 				</select>
 			</div>
@@ -207,35 +295,47 @@
 							<div>
 								<div class="flex items-center gap-2 mb-1">
 									<h3 class="text-lg font-semibold text-foreground">{review.type.name}</h3>
-									<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getTypeColor(review.type.color)}">
+									<span
+										class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getTypeColor(
+											review.type.color
+										)}"
+									>
 										{review.type.frequency}
 									</span>
 								</div>
 								<p class="text-sm text-muted-foreground">
-									Review Period: {formatDate(review.reviewPeriod.start)} - {formatDate(review.reviewPeriod.end)}
+									Review Period: {formatDate(review.reviewPeriod.start)} - {formatDate(
+										review.reviewPeriod.end
+									)}
 								</p>
 							</div>
 						</div>
 
 						<div class="flex items-center gap-4">
-							<span class="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium {getStatusColor(review.status)}">
+							<span
+								class="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium {getStatusColor(
+									review.status
+								)}"
+							>
 								<StatusIcon class="h-3 w-3" />
-								{review.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+								{review.status.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
 							</span>
 
 							{#if review.status === 'completed' && review.overallRating}
 								{@const { fullStars, hasHalfStar } = getRatingStars(review.overallRating)}
 								<div class="flex items-center gap-1">
-									{#each Array(fullStars) as _}
+									{#each Array.from({ length: fullStars }) as _}
 										<Star class="h-4 w-4 fill-yellow-400 text-yellow-400" />
 									{/each}
 									{#if hasHalfStar}
 										<Star class="h-4 w-4 fill-yellow-200 text-yellow-400" />
 									{/if}
-									{#each Array(5 - fullStars - (hasHalfStar ? 1 : 0)) as _}
+									{#each Array.from({ length: 5 - fullStars - (hasHalfStar ? 1 : 0) }) as _}
 										<Star class="h-4 w-4 text-muted-foreground" />
 									{/each}
-									<span class="ml-1 text-sm font-medium text-foreground">{review.overallRating}</span>
+									<span class="ml-1 text-sm font-medium text-foreground"
+										>{review.overallRating}</span
+									>
 								</div>
 							{/if}
 
@@ -249,15 +349,19 @@
 					</div>
 
 					<div class="mt-4 flex items-center gap-6 text-sm text-muted-foreground">
-						<div class="flex items-center gap-1">
-							<User class="h-4 w-4" />
-							<span>Reviewer: {review.reviewer.displayName}</span>
-						</div>
+						{#if review.reviewer}
+							<div class="flex items-center gap-1">
+								<User class="h-4 w-4" />
+								<span>Reviewer: {review.reviewer.displayName}</span>
+							</div>
+						{/if}
 						<div class="flex items-center gap-1">
 							<Calendar class="h-4 w-4" />
 							<span>
 								{review.status === 'completed' ? 'Completed' : 'Scheduled'}:
-								{formatDate(review.completedDate || review.scheduledDate)}
+								{review.completedDate
+									? formatDate(review.completedDate)
+									: formatDate(review.scheduledDate)}
 							</span>
 						</div>
 					</div>
@@ -279,13 +383,13 @@
 										<div class="flex items-center justify-between mb-2">
 											<span class="font-medium text-foreground">{competency.name}</span>
 											<div class="flex items-center gap-1">
-												{#each Array(fullStars) as _}
+												{#each Array.from({ length: fullStars }) as _}
 													<Star class="h-3 w-3 fill-yellow-400 text-yellow-400" />
 												{/each}
 												{#if hasHalfStar}
 													<Star class="h-3 w-3 fill-yellow-200 text-yellow-400" />
 												{/if}
-												{#each Array(5 - fullStars - (hasHalfStar ? 1 : 0)) as _}
+												{#each Array.from({ length: 5 - fullStars - (hasHalfStar ? 1 : 0) }) as _}
 													<Star class="h-3 w-3 text-muted-foreground" />
 												{/each}
 												<span class="ml-1 text-xs text-muted-foreground">{competency.rating}</span>
@@ -309,18 +413,31 @@
 										<div class="bg-muted dark:bg-muted p-4 rounded-lg">
 											<div class="flex items-center justify-between mb-2">
 												<span class="font-medium text-foreground">{goal.title}</span>
-												<span class="text-sm font-medium {getGoalStatusColor(goal.status)}">
-													{goal.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+												<span
+													class="text-sm font-medium {getGoalStatusColor(goal.completionStatus)}"
+												>
+													{goal.completionStatus
+														.replace('_', ' ')
+														.replace(/\b\w/g, (l: string) => l.toUpperCase())}
 												</span>
 											</div>
 											<p class="text-sm text-muted-foreground mb-2">{goal.description}</p>
-											<div class="w-full bg-gray-200 rounded-full h-2">
-												<div
-													class="h-2 rounded-full bg-blue-500"
-													style="width: {goal.progress}%"
-												></div>
-											</div>
-											<span class="text-xs text-muted-foreground">{goal.progress}% complete</span>
+											{#if goal.completionStatus === 'achieved'}
+												<div class="w-full bg-gray-200 rounded-full h-2">
+													<div class="h-2 rounded-full bg-blue-500" style="width: 100%"></div>
+												</div>
+												<span class="text-xs text-muted-foreground">100% complete</span>
+											{:else if goal.completionStatus === 'partially_achieved'}
+												<div class="w-full bg-gray-200 rounded-full h-2">
+													<div class="h-2 rounded-full bg-blue-500" style="width: 50%"></div>
+												</div>
+												<span class="text-xs text-muted-foreground">50% complete</span>
+											{:else}
+												<div class="w-full bg-gray-200 rounded-full h-2">
+													<div class="h-2 rounded-full bg-blue-500" style="width: 0%"></div>
+												</div>
+												<span class="text-xs text-muted-foreground">0% complete</span>
+											{/if}
 										</div>
 									{/each}
 								</div>
@@ -355,12 +472,16 @@
 							<div class="mt-4 space-y-4">
 								<div>
 									<h5 class="font-medium text-foreground mb-2">Manager's Comments</h5>
-									<p class="text-sm text-muted-foreground bg-muted dark:bg-muted p-3 rounded">{review.feedback.managerComments}</p>
+									<p class="text-sm text-muted-foreground bg-muted dark:bg-muted p-3 rounded">
+										{review.feedback.managerComments}
+									</p>
 								</div>
 								{#if review.feedback.employeeComments}
 									<div>
 										<h5 class="font-medium text-foreground mb-2">Employee's Response</h5>
-										<p class="text-sm text-muted-foreground bg-blue-50 p-3 rounded">{review.feedback.employeeComments}</p>
+										<p class="text-sm text-muted-foreground bg-blue-50 p-3 rounded">
+											{review.feedback.employeeComments}
+										</p>
 									</div>
 								{/if}
 							</div>
@@ -407,8 +528,8 @@
 							<h4 class="font-medium text-foreground">Scheduled Review</h4>
 						</div>
 						<p class="text-sm text-foreground">
-							This review is scheduled for {formatDate(review.scheduledDate)}.
-							You will receive a notification when it's time to begin.
+							This review is scheduled for {formatDate(review.scheduledDate)}. You will receive a
+							notification when it's time to begin.
 						</p>
 					</div>
 				{/if}
@@ -421,8 +542,8 @@
 					{selectedStatus !== 'all' || selectedType !== 'all'
 						? 'No reviews match your current filters.'
 						: isOwnReviews
-						? 'You have no performance reviews yet.'
-						: 'This user has no performance reviews yet.'}
+							? 'You have no performance reviews yet.'
+							: 'This user has no performance reviews yet.'}
 				</p>
 			</div>
 		{/each}

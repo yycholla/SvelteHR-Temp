@@ -1,237 +1,170 @@
+import { gql } from '@urql/svelte';
+import { logger } from '$lib/utils/logger';
+
 /**
- * PostGraphile GraphQL Queries for Performance Reviews
+ * GraphQL Queries for Performance Reviews
  *
- * This file contains all GraphQL queries for performance review management
- * using PostGraphile's auto-generated schema.
+ * Updated for Rust backend (async-graphql) schema
  */
 
 /**
- * Get all performance reviews with filtering, pagination, and user relationships
+ * Get all performance reviews with filtering and pagination
+ * Backend: Uses performanceReviews from Rust GraphQL schema
  */
-export const GET_PERFORMANCE_REVIEWS = `
-  query GetPerformanceReviews(
-    $first: Int
-    $offset: Int
-    $orderBy: [PerformanceReviewsOrderBy!]
-    $condition: PerformanceReviewCondition
-  ) {
-    allPerformanceReviews(
-      first: $first
-      offset: $offset
-      orderBy: $orderBy
-      condition: $condition
-    ) {
-      totalCount
-      nodes {
-        id
-        nodeId
-        employeeId
-        reviewerId
-        reviewPeriod
-        status
-        overallRating
-        goals
-        achievements
-        areasForImprovement
-        managerFeedback
-        createdAt
-        updatedAt
-        userByEmployeeId {
-          id
-          email
-          displayName
-          departmentId
-          departmentByDepartmentId {
-            id
-            name
-          }
-        }
-        userByReviewerId {
-          id
-          email
-          displayName
-        }
-      }
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        startCursor
-        endCursor
-      }
-    }
-  }
+export const GET_PERFORMANCE_REVIEWS = gql`
+	query GetPerformanceReviews($employeeId: UUID, $limit: Int = 50, $offset: Int = 0) {
+		performanceReviews(employeeId: $employeeId, limit: $limit, offset: $offset) {
+			id
+			employeeId
+			reviewerId
+			reviewPeriod
+			status
+			overallRating
+			goals
+			achievements
+			areasForImprovement
+			managerFeedback
+			createdAt
+			updatedAt
+			employee {
+				id
+				email
+				displayName
+				departmentId
+				department {
+					id
+					name
+				}
+			}
+			reviewer {
+				id
+				email
+				displayName
+			}
+		}
+	}
 `;
 
 /**
  * Get a single performance review by ID
+ * Backend: Uses performanceReview (singular) from Rust GraphQL schema
  */
-export const GET_PERFORMANCE_REVIEW_BY_ID = `
-  query GetPerformanceReviewById($id: UUID!) {
-    performanceReviewById(id: $id) {
-      id
-      nodeId
-      employeeId
-      reviewerId
-      reviewPeriod
-      status
-      overallRating
-      goals
-      achievements
-      areasForImprovement
-      managerFeedback
-      createdAt
-      updatedAt
-      userByEmployeeId {
-        id
-        email
-        displayName
-        departmentId
-        departmentByDepartmentId {
-          id
-          name
-        }
-      }
-      userByReviewerId {
-        id
-        email
-        displayName
-      }
-    }
-  }
+export const GET_PERFORMANCE_REVIEW_BY_ID = gql`
+	query GetPerformanceReviewById($id: UUID!) {
+		performanceReview(id: $id) {
+			id
+			employeeId
+			reviewerId
+			reviewPeriod
+			status
+			overallRating
+			goals
+			achievements
+			areasForImprovement
+			managerFeedback
+			createdAt
+			updatedAt
+			employee {
+				id
+				email
+				displayName
+				departmentId
+				department {
+					id
+					name
+				}
+			}
+			reviewer {
+				id
+				email
+				displayName
+			}
+		}
+	}
 `;
 
 /**
  * Get performance review statistics
+ * Backend: Uses performanceReviews from Rust GraphQL schema
+ * Note: Statistics calculated client-side for now
  */
-export const GET_PERFORMANCE_REVIEW_STATS = `
-  query GetPerformanceReviewStats(
-    $reviewerId: UUID
-  ) {
-    notStarted: allPerformanceReviews(
-      condition: { status: NOT_STARTED, reviewerId: $reviewerId }
-    ) {
-      totalCount
-    }
-    inProgress: allPerformanceReviews(
-      condition: { status: IN_PROGRESS, reviewerId: $reviewerId }
-    ) {
-      totalCount
-    }
-    completed: allPerformanceReviews(
-      condition: { status: COMPLETED, reviewerId: $reviewerId }
-    ) {
-      totalCount
-    }
-    allReviews: allPerformanceReviews(
-      condition: { reviewerId: $reviewerId }
-    ) {
-      totalCount
-      nodes {
-        overallRating
-        status
-      }
-    }
-  }
+export const GET_PERFORMANCE_REVIEW_STATS = gql`
+	query GetPerformanceReviewStats($employeeId: UUID, $limit: Int = 1000) {
+		performanceReviews(employeeId: $employeeId, limit: $limit, offset: 0) {
+			id
+			status
+			overallRating
+			reviewerId
+		}
+	}
+`;
+
+/**
+ * Check for active reviews for an employee
+ * Backend: Uses performanceReviews from Rust GraphQL schema
+ * Note: Status filtering done client-side
+ */
+export const GET_ACTIVE_REVIEWS_FOR_EMPLOYEE = gql`
+	query GetActiveReviewsForEmployee($employeeId: UUID!, $limit: Int = 100) {
+		performanceReviews(employeeId: $employeeId, limit: $limit, offset: 0) {
+			id
+			status
+			reviewPeriod
+		}
+	}
 `;
 
 /**
  * Update performance review
+ * Backend: Uses updatePerformanceReview mutation from Rust GraphQL schema
  */
-export const UPDATE_PERFORMANCE_REVIEW = `
-  mutation UpdatePerformanceReview(
-    $id: UUID!
-    $status: ReviewStatus
-    $overallRating: BigFloat
-    $goals: String
-    $achievements: String
-    $areasForImprovement: String
-    $managerFeedback: String
-  ) {
-    updatePerformanceReviewById(
-      input: {
-        id: $id
-        performanceReviewPatch: {
-          status: $status
-          overallRating: $overallRating
-          goals: $goals
-          achievements: $achievements
-          areasForImprovement: $areasForImprovement
-          managerFeedback: $managerFeedback
-          updatedAt: "now()"
-        }
-      }
-    ) {
-      performanceReview {
-        id
-        status
-        overallRating
-        updatedAt
-      }
-    }
-  }
+export const UPDATE_PERFORMANCE_REVIEW = gql`
+	mutation UpdatePerformanceReview($input: UpdatePerformanceReviewInput!) {
+		updatePerformanceReview(input: $input) {
+			id
+			status
+			overallRating
+			goals
+			achievements
+			areasForImprovement
+			managerFeedback
+			updatedAt
+		}
+	}
 `;
 
 /**
  * Create a new performance review
+ * Backend: Uses createPerformanceReview mutation from Rust GraphQL schema
  */
-export const CREATE_PERFORMANCE_REVIEW = `
-  mutation CreatePerformanceReview(
-    $employeeId: UUID!
-    $reviewerId: UUID!
-    $reviewPeriod: String!
-    $goals: String
-  ) {
-    createPerformanceReview(
-      input: {
-        performanceReview: {
-          employeeId: $employeeId
-          reviewerId: $reviewerId
-          reviewPeriod: $reviewPeriod
-          status: NOT_STARTED
-          goals: $goals
-          overallRating: "0"
-        }
-      }
-    ) {
-      performanceReview {
-        id
-        nodeId
-        employeeId
-        reviewerId
-        reviewPeriod
-        status
-        createdAt
-      }
-    }
-  }
+export const CREATE_PERFORMANCE_REVIEW = gql`
+	mutation CreatePerformanceReview($input: CreatePerformanceReviewInput!) {
+		createPerformanceReview(input: $input) {
+			id
+			employeeId
+			reviewerId
+			reviewPeriod
+			status
+			createdAt
+		}
+	}
 `;
 
 /**
  * Delete a performance review
+ * Backend: Uses deletePerformanceReview mutation from Rust GraphQL schema
  */
-export const DELETE_PERFORMANCE_REVIEW = `
-  mutation DeletePerformanceReview($id: UUID!) {
-    deletePerformanceReviewById(input: { id: $id }) {
-      performanceReview {
-        id
-      }
-    }
-  }
+export const DELETE_PERFORMANCE_REVIEW = gql`
+	mutation DeletePerformanceReview($id: UUID!) {
+		deletePerformanceReview(id: $id)
+	}
 `;
 
 // TypeScript types for query variables
 export interface GetPerformanceReviewsVariables {
-	first?: number;
-	offset?: number;
-	orderBy?: string[];
-	condition?: PerformanceReviewCondition;
-}
-
-export interface PerformanceReviewCondition {
 	employeeId?: string;
-	reviewerId?: string;
-	reviewPeriod?: string;
-	status?: string;
+	limit?: number;
+	offset?: number;
 }
 
 export interface GetPerformanceReviewByIdVariables {
@@ -239,10 +172,11 @@ export interface GetPerformanceReviewByIdVariables {
 }
 
 export interface GetPerformanceReviewStatsVariables {
-	reviewerId?: string;
+	employeeId?: string;
+	limit?: number;
 }
 
-export interface UpdatePerformanceReviewVariables {
+export interface UpdatePerformanceReviewInput {
 	id: string;
 	status?: string;
 	overallRating?: number;
@@ -252,11 +186,20 @@ export interface UpdatePerformanceReviewVariables {
 	managerFeedback?: string;
 }
 
-export interface CreatePerformanceReviewVariables {
+export interface UpdatePerformanceReviewVariables {
+	input: UpdatePerformanceReviewInput;
+}
+
+export interface CreatePerformanceReviewInput {
 	employeeId: string;
 	reviewerId: string;
 	reviewPeriod: string;
 	goals?: string;
+	status?: string;
+}
+
+export interface CreatePerformanceReviewVariables {
+	input: CreatePerformanceReviewInput;
 }
 
 export interface DeletePerformanceReviewVariables {
@@ -266,7 +209,6 @@ export interface DeletePerformanceReviewVariables {
 // Response types
 export interface PerformanceReview {
 	id: string;
-	nodeId: string;
 	employeeId: string;
 	reviewerId: string;
 	reviewPeriod: string;
@@ -278,17 +220,17 @@ export interface PerformanceReview {
 	managerFeedback: string | null;
 	createdAt: string;
 	updatedAt: string;
-	userByEmployeeId?: {
+	employee?: {
 		id: string;
 		email: string;
 		displayName: string;
 		departmentId: string | null;
-		departmentByDepartmentId?: {
+		department?: {
 			id: string;
 			name: string;
 		} | null;
 	};
-	userByReviewerId?: {
+	reviewer?: {
 		id: string;
 		email: string;
 		displayName: string;
@@ -296,38 +238,25 @@ export interface PerformanceReview {
 }
 
 export interface PerformanceReviewsResponse {
-	allPerformanceReviews: {
-		totalCount: number;
-		nodes: PerformanceReview[];
-		pageInfo: {
-			hasNextPage: boolean;
-			hasPreviousPage: boolean;
-			startCursor: string | null;
-			endCursor: string | null;
-		};
-	};
+	performanceReviews: PerformanceReview[];
 }
 
 export interface PerformanceReviewStatsResponse {
-	notStarted: { totalCount: number };
-	inProgress: { totalCount: number };
-	completed: { totalCount: number };
-	allReviews: {
-		totalCount: number;
-		nodes: Array<{
-			overallRating: number;
-			status: string;
-		}>;
-	};
+	notStarted: number;
+	inProgress: number;
+	completed: number;
+	totalCount: number;
+	averageRating: number;
 }
 
 // Helper functions for status conversion
-export function toPostGraphileStatus(status: string): string {
-	return status.toUpperCase().replace(/-/g, '_');
+export function normalizeStatus(status: string): string {
+	return status.toLowerCase().replace(/_/g, '-');
 }
 
-export function fromPostGraphileStatus(status: string): string {
-	return status.toLowerCase().replace(/_/g, '-');
+export function toBackendStatus(status: string): string {
+	// Backend may expect specific enum values
+	return status.toUpperCase().replace(/-/g, '_');
 }
 
 // UI Helper Functions
@@ -410,7 +339,7 @@ export function formatReviewPeriod(startDate?: string | null, endDate?: string |
 /**
  * Check if review is overdue based on period
  */
-export function isReviewOverdue(review: any): boolean {
+export function isReviewOverdue(review: PerformanceReview): boolean {
 	// If no review or already completed, not overdue
 	if (!review || review.status?.toLowerCase() === 'completed') return false;
 
@@ -430,6 +359,33 @@ export function isReviewOverdue(review: any): boolean {
 }
 
 /**
+ * Calculate statistics from review data (client-side)
+ */
+export function calculateReviewStats(reviews: PerformanceReview[]): PerformanceReviewStatsResponse {
+	const notStarted = reviews.filter((r) => normalizeStatus(r.status) === 'not-started').length;
+	const inProgress = reviews.filter((r) => normalizeStatus(r.status) === 'in-progress').length;
+	const completed = reviews.filter((r) => normalizeStatus(r.status) === 'completed').length;
+
+	const ratingsSum = reviews.reduce((sum, r) => sum + (r.overallRating || 0), 0);
+	const averageRating = reviews.length > 0 ? ratingsSum / reviews.length : 0;
+
+	return {
+		notStarted,
+		inProgress,
+		completed,
+		totalCount: reviews.length,
+		averageRating: Math.round(averageRating * 10) / 10 // Round to 1 decimal
+	};
+}
+
+/**
+ * Filter active reviews (client-side)
+ */
+export function filterActiveReviews(reviews: PerformanceReview[]): PerformanceReview[] {
+	return reviews.filter((r) => normalizeStatus(r.status) !== 'completed');
+}
+
+/**
  * Create performance management operations
  */
 export function createPerformanceOperations(client: any) {
@@ -443,12 +399,12 @@ export function createPerformanceOperations(client: any) {
 			areasForImprovement?: string;
 			managerFeedback?: string;
 		}) {
-			console.log('Update performance review:', params);
+			logger.info(`Update performance review: ${params}`);
 			return { success: true };
 		},
 
 		async submitReview(params: { id: string; overallRating: number; managerFeedback: string }) {
-			console.log('Submit performance review:', params);
+			logger.info(`Submit performance review: ${params}`);
 			return { success: true };
 		}
 	};

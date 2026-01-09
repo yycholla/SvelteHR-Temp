@@ -11,7 +11,7 @@
 		actions?: Snippet;
 	}
 
-	let {
+	const {
 		title = 'No data available',
 		description = 'There are no items to display at this time.',
 		icon = InboxIcon,

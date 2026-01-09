@@ -2,15 +2,9 @@
 	import Badge from '../base/Badge.svelte';
 	import TreeNode from './TreeNode.svelte';
 	import type { Department } from '$lib/types';
+	import type { TreeNodeData } from './types';
 
-	// Define the node structure
-	interface TreeNodeData {
-		department: Department;
-		children: TreeNodeData[];
-		level: number;
-	}
-
-	let {
+	const {
 		node,
 		isExpanded = false,
 		isSelected = false,
@@ -43,7 +37,7 @@
 
 	function getManagerInfo(department: Department): string {
 		if (!department.manager) return 'No manager assigned';
-		return department.manager.display_name || department.manager.displayName || 'Unknown';
+		return department.manager.display_name || 'Unknown';
 	}
 
 	function getDepartmentStats(department: Department): string {
@@ -74,7 +68,7 @@
 	}
 
 	// Check if this node should be expanded (either explicitly or via expandAll)
-	let shouldExpand = $derived(isExpanded || expandAll);
+	const shouldExpand = $derived(isExpanded || expandAll);
 </script>
 
 <div class="tree-node" class:selected={isSelected}>
@@ -110,7 +104,7 @@
 				{#if node.department.code}
 					<span class="node-code">({node.department.code})</span>
 				{/if}
-				<Badge variant={node.department.isActive ? 'success' : 'secondary'} size="xs">
+				<Badge variant={node.department.isActive ? 'default' : 'secondary'} size="xs">
 					{node.department.isActive ? 'Active' : 'Inactive'}
 				</Badge>
 			</div>
@@ -162,5 +156,3 @@
 		</div>
 	{/if}
 </div>
-
-

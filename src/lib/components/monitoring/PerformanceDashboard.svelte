@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
-	import { metricsService } from '$lib/services/metricsService';
+	import { onDestroy, onMount } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 	import Card from '../base/Card.svelte';
 	import Button from '../base/Button.svelte';
 	import Badge from '../base/Badge.svelte';
@@ -35,7 +35,7 @@
 			metrics = await response.json();
 		} catch (err: any) {
 			error = err.message;
-			console.error('Failed to load performance metrics:', err);
+			logger.error('Failed to load performance metrics:', err as Error);
 		} finally {
 			loading = false;
 		}
@@ -53,14 +53,14 @@
 	}
 
 	// Get badge variant for performance status
-	function getStatusVariant(status: string): string {
+	function getStatusVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
 		switch (status) {
 			case 'good':
-				return 'success';
+				return 'default';
 			case 'needs-improvement':
-				return 'warning';
+				return 'outline';
 			case 'poor':
-				return 'danger';
+				return 'destructive';
 			default:
 				return 'secondary';
 		}
@@ -131,12 +131,12 @@
 				variant={autoRefresh ? 'primary' : 'secondary'}
 				size="sm"
 				leftIcon={autoRefresh ? 'pause' : 'play'}
-				on:click={toggleAutoRefresh}
+				onclick={toggleAutoRefresh}
 			>
 				{autoRefresh ? 'Pause' : 'Start'} Auto-refresh
 			</Button>
 
-			<Button variant="ghost" size="sm" leftIcon="refresh-cw" on:click={loadMetrics} {loading}>
+			<Button variant="ghost" size="sm" leftIcon="refresh-cw" onclick={loadMetrics} {loading}>
 				Refresh
 			</Button>
 		</div>
@@ -154,7 +154,7 @@
 				<div>
 					<h3>Failed to Load Metrics</h3>
 					<p>{error}</p>
-					<Button variant="secondary" size="sm" on:click={loadMetrics}>Try Again</Button>
+					<Button variant="secondary" size="sm" onclick={loadMetrics}>Try Again</Button>
 				</div>
 			</div>
 		</Card>
@@ -350,12 +350,12 @@
 						<div class="metric-stats">
 							<div class="metric-row">
 								<span>Total Errors:</span>
-								<Badge variant="danger">{metrics.errors.total}</Badge>
+								<Badge variant="destructive">{metrics.errors.total}</Badge>
 							</div>
 
 							<div class="error-breakdown">
 								<h4>By Type:</h4>
-								{#each Object.entries(metrics.errors.byType).slice(0, 3) as [type, count]}
+								{#each Object.entries(metrics.errors.byType).slice(0, 3) as [type, count] (`${type}-${count}`)}
 									<div class="error-item">
 										<span class="error-type">{type}</span>
 										<Badge variant="secondary" size="sm">{count}</Badge>
@@ -383,11 +383,11 @@
 					</h3>
 
 					<div class="routes-list">
-						{#each metrics.business.topRoutes.slice(0, 5) as route}
+						{#each metrics.business.topRoutes.slice(0, 5) as route (route.route)}
 							<div class="route-item">
 								<div class="route-path">{route.route}</div>
 								<div class="route-stats">
-									<Badge variant="primary" size="sm">{route.count} visits</Badge>
+									<Badge variant="default" size="sm">{route.count} visits</Badge>
 									<Badge variant="secondary" size="sm">
 										{formatDuration(route.avgDuration)} avg
 									</Badge>
@@ -409,13 +409,13 @@
 					</h3>
 
 					<div class="operations-list">
-						{#each metrics.business.slowestOperations.slice(0, 5) as operation}
+						{#each metrics.business.slowestOperations.slice(0, 5) as operation (operation.operation)}
 							<div class="operation-item">
 								<div class="operation-info">
 									<div class="operation-name">{operation.operation}</div>
 									<div class="operation-type">{operation.type}</div>
 								</div>
-								<Badge variant="warning">
+								<Badge variant="outline">
 									{formatDuration(operation.duration)}
 								</Badge>
 							</div>
@@ -426,5 +426,3 @@
 		{/if}
 	{/if}
 </div>
-
-

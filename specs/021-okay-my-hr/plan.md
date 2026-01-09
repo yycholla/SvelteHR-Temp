@@ -15,6 +15,7 @@ This feature implements a comprehensive system settings management interface all
 - **Developer Settings**: Log level configuration triggering container restarts in Kubernetes/Docker
 
 **Technical Approach**:
+
 - Backend: Rust GraphQL API with SeaORM migrations, singleton settings table, encrypted credentials
 - Frontend: SvelteKit + Svelte 5 with reactive stores, dynamic system name replacement, timezone-aware date formatting
 - Deployment: Rolling container restarts via Kubernetes/Docker API for log level changes
@@ -22,33 +23,39 @@ This feature implements a comprehensive system settings management interface all
 ## Technical Context
 
 **Language/Version**:
+
 - Backend: Rust 1.75+ with async-graphql, SeaORM, actix-web
 - Frontend: TypeScript 5.0, SvelteKit 2.22.0, Svelte 5.0
 
 **Primary Dependencies**:
+
 - Backend: async-graphql 7.0+, sea-orm 0.12+, chrono-tz 0.8+, kube 0.87+ (Kubernetes API), bollard 0.15+ (Docker API), argon2 0.5+ (password hashing)
 - Frontend: @urql/svelte 4.0+, zod 4.0+, @internationalized/date 3.5+, svelte-sonner (toast notifications)
 
 **Storage**: PostgreSQL 14+ with pgcrypto extension for credential encryption
 
 **Testing**:
+
 - Backend: cargo test with tokio test runtime
 - Frontend: Vitest 3.2+ for unit tests, Playwright 1.49+ for E2E tests
 - Contract tests for GraphQL schema validation
 
 **Target Platform**:
+
 - Backend: Linux server (Kubernetes or Docker deployment)
 - Frontend: Modern browsers (Chrome 90+, Firefox 88+, Safari 14+)
 
 **Project Type**: Web application (full-stack with separate frontend/backend repositories)
 
 **Performance Goals**:
+
 - Settings queries: <50ms p95 (singleton table lookup)
 - Settings updates: <200ms p95 (with validation)
 - System name replacement: No perceived latency (reactive store updates)
 - Container restarts: <2 minutes for log level propagation (rolling restart)
 
 **Constraints**:
+
 - Session timeout: Enforced within 60 seconds of configured duration
 - Password validation: Client-side + server-side validation required
 - HTTPS enforcement: Redirect within one round-trip
@@ -56,6 +63,7 @@ This feature implements a comprehensive system settings management interface all
 - RBAC: Admin-only mutations enforced via GraphQL guards
 
 **Scale/Scope**:
+
 - Settings: Singleton table (1 row) with <10 QPS (admin-only operations)
 - Notification channels: Expected <5 channels total
 - Users: Existing users table extended with 4 new columns (indexed)
@@ -64,11 +72,12 @@ This feature implements a comprehensive system settings management interface all
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
 **Status**: ✅ Passed (constitution is template placeholder - no violations)
 
 **Notes**:
+
 - No project constitution defined in `.specify/memory/constitution.md` (template only)
 - Following existing MountainHR/SvelteHR project patterns
 - Maintains consistency with existing RBAC system
@@ -95,6 +104,7 @@ specs/021-okay-my-hr/
 This feature spans two repositories:
 
 **Backend Repository** (`../MountainHR-Backend/`):
+
 ```
 MountainHR-Backend/
 ├── migration/
@@ -131,6 +141,7 @@ MountainHR-Backend/
 ```
 
 **Frontend Repository** (`./`):
+
 ```
 SvelteHR/
 ├── src/
@@ -173,6 +184,7 @@ SvelteHR/
 ```
 
 **Structure Decision**:
+
 - **Web application pattern** (separate backend and frontend repositories)
 - Backend: Rust GraphQL API in adjacent `MountainHR-Backend` directory
 - Frontend: SvelteKit app in current directory
@@ -182,29 +194,29 @@ SvelteHR/
 
 ## Complexity Tracking
 
-*No violations - constitution is template only, no rules defined.*
+_No violations - constitution is template only, no rules defined._
 
 **Architectural Decisions**:
 
-| Decision | Rationale | Trade-offs |
-|----------|-----------|------------|
-| Singleton SystemSettings table | Single source of truth, simple queries | Cannot support multi-tenant settings in future without migration |
-| UTC timestamp storage | Timezone-independent data, avoid DST issues | Conversion overhead on every display (acceptable for low QPS) |
-| GraphQL API (not REST) | Matches existing backend architecture | Learning curve for developers unfamiliar with GraphQL |
-| Best-effort webhook delivery | Simplifies implementation, aligns with notification priority (P2) | No retry logic means notifications may be lost |
-| Container restart for log levels | Reliable environment variable propagation | Brief service interruption (~2 min rolling restart) |
-| pgcrypto encryption | Database-level security, no application key management | Performance overhead for config reads (acceptable for low QPS) |
+| Decision                         | Rationale                                                         | Trade-offs                                                       |
+| -------------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Singleton SystemSettings table   | Single source of truth, simple queries                            | Cannot support multi-tenant settings in future without migration |
+| UTC timestamp storage            | Timezone-independent data, avoid DST issues                       | Conversion overhead on every display (acceptable for low QPS)    |
+| GraphQL API (not REST)           | Matches existing backend architecture                             | Learning curve for developers unfamiliar with GraphQL            |
+| Best-effort webhook delivery     | Simplifies implementation, aligns with notification priority (P2) | No retry logic means notifications may be lost                   |
+| Container restart for log levels | Reliable environment variable propagation                         | Brief service interruption (~2 min rolling restart)              |
+| pgcrypto encryption              | Database-level security, no application key management            | Performance overhead for config reads (acceptable for low QPS)   |
 
 ## Progress Tracking
 
-| Phase | Status | Artifacts Generated | Date Completed |
-|-------|--------|---------------------|----------------|
-| **Phase 0: Research** | ✅ Complete | research.md | 2025-11-11 |
-| **Phase 1: Design** | ✅ Complete | data-model.md, contracts/graphql-api.md, quickstart.md | 2025-11-11 |
-| **Phase 2: Tasks** | ⏸️ Pending | tasks.md (via /tasks command) | - |
-| **Phase 3: Implementation** | ⏸️ Pending | Source code | - |
-| **Phase 4: Testing** | ⏸️ Pending | Test results, E2E coverage | - |
-| **Phase 5: Deployment** | ⏸️ Pending | Production deployment | - |
+| Phase                       | Status      | Artifacts Generated                                    | Date Completed |
+| --------------------------- | ----------- | ------------------------------------------------------ | -------------- |
+| **Phase 0: Research**       | ✅ Complete | research.md                                            | 2025-11-11     |
+| **Phase 1: Design**         | ✅ Complete | data-model.md, contracts/graphql-api.md, quickstart.md | 2025-11-11     |
+| **Phase 2: Tasks**          | ⏸️ Pending  | tasks.md (via /tasks command)                          | -              |
+| **Phase 3: Implementation** | ⏸️ Pending  | Source code                                            | -              |
+| **Phase 4: Testing**        | ⏸️ Pending  | Test results, E2E coverage                             | -              |
+| **Phase 5: Deployment**     | ⏸️ Pending  | Production deployment                                  | -              |
 
 ## Implementation Phases
 
@@ -213,6 +225,7 @@ SvelteHR/
 **Estimated Duration**: 1.5 days
 
 **Tasks**:
+
 1. Create SeaORM migrations (system_settings, notification_channels, users extensions)
 2. Run migrations and verify database schema
 3. Generate SeaORM entities
@@ -223,6 +236,7 @@ SvelteHR/
 8. Test GraphQL API via Playground
 
 **Deliverables**:
+
 - 3 migration files
 - 3 entity files (1 new, 2 updated)
 - GraphQL schema with queries/mutations
@@ -237,6 +251,7 @@ SvelteHR/
 **Estimated Duration**: 1 day
 
 **Tasks**:
+
 1. Create system-settings store with urql query
 2. Create SystemSettings GraphQL operations (queries/mutations)
 3. Create Zod validation schemas
@@ -249,6 +264,7 @@ SvelteHR/
 10. Write component unit tests
 
 **Deliverables**:
+
 - Settings store
 - 7 Svelte components
 - GraphQL operations
@@ -263,6 +279,7 @@ SvelteHR/
 **Estimated Duration**: 0.5 days
 
 **Tasks**:
+
 1. Scan codebase for hardcoded "MountainHR" and "SvelteHR" instances
 2. Replace with reactive `$systemName` store subscriptions
 3. Update app.html title with dynamic meta tag
@@ -271,6 +288,7 @@ SvelteHR/
 6. Write E2E test for system name update
 
 **Deliverables**:
+
 - All hardcoded instances replaced
 - E2E test for branding
 
@@ -283,6 +301,7 @@ SvelteHR/
 **Estimated Duration**: 0.5 days
 
 **Tasks**:
+
 1. Implement timezone conversion utilities (UTC → display time)
 2. Update date formatting functions to use systemTimezone
 3. Verify all existing timestamps use UTC storage (database audit)
@@ -291,6 +310,7 @@ SvelteHR/
 6. Write unit tests for timezone conversion
 
 **Deliverables**:
+
 - Timezone utility functions
 - Updated date formatters
 - Unit tests
@@ -304,6 +324,7 @@ SvelteHR/
 **Estimated Duration**: 1 day
 
 **Tasks**:
+
 1. Implement session timeout manager (activity tracking + auto-logout)
 2. Integrate session timeout with JWT expiration
 3. Implement password validation utility (dynamic min length)
@@ -316,6 +337,7 @@ SvelteHR/
 10. Write E2E test for session timeout and account lockout
 
 **Deliverables**:
+
 - Session manager
 - Password validator
 - Account lockout backend logic
@@ -331,6 +353,7 @@ SvelteHR/
 **Estimated Duration**: 1.5 days
 
 **Tasks**:
+
 1. Implement createNotificationChannel mutation
 2. Implement SMTP credential validation (test connection)
 3. Implement credential encryption/decryption (pgcrypto wrapper)
@@ -343,6 +366,7 @@ SvelteHR/
 10. Write E2E test for email channel configuration
 
 **Deliverables**:
+
 - Notification channel mutations
 - SMTP/webhook services
 - Encryption utilities
@@ -358,6 +382,7 @@ SvelteHR/
 **Estimated Duration**: 0.5 days
 
 **Tasks**:
+
 1. Implement HTTPS enforcement middleware
 2. Implement CORS configuration middleware
 3. Implement security headers middleware (CSP, X-Frame-Options, HSTS)
@@ -366,6 +391,7 @@ SvelteHR/
 6. Write unit tests for middleware
 
 **Deliverables**:
+
 - 3 middleware modules
 - SecuritySettings component
 - Unit tests
@@ -379,6 +405,7 @@ SvelteHR/
 **Estimated Duration**: 1 day
 
 **Tasks**:
+
 1. Implement Kubernetes API client integration (kube crate)
 2. Implement Docker API client integration (bollard crate)
 3. Implement container restart service (detect K8s vs Docker)
@@ -388,6 +415,7 @@ SvelteHR/
 7. Write integration test for restart trigger
 
 **Deliverables**:
+
 - Container restart service
 - K8s/Docker API integration
 - Integration tests
@@ -401,6 +429,7 @@ SvelteHR/
 **Estimated Duration**: 1 day
 
 **Tasks**:
+
 1. Write comprehensive E2E test suite (all user stories)
 2. Test system name replacement across all pages
 3. Test timezone changes with existing data
@@ -413,6 +442,7 @@ SvelteHR/
 10. Fix any bugs discovered during testing
 
 **Deliverables**:
+
 - Complete E2E test suite
 - Bug fixes
 - Test coverage report
@@ -426,6 +456,7 @@ SvelteHR/
 **Estimated Duration**: 0.5 days
 
 **Tasks**:
+
 1. Update README with new settings feature
 2. Document environment variables (SETTINGS_ENCRYPTION_KEY, etc.)
 3. Create deployment runbook for production
@@ -436,6 +467,7 @@ SvelteHR/
 8. Monitor for errors in first 24 hours
 
 **Deliverables**:
+
 - Updated documentation
 - Deployment runbook
 - Production deployment
@@ -444,22 +476,23 @@ SvelteHR/
 
 ## Risk Mitigation
 
-| Risk | Probability | Impact | Mitigation Strategy |
-|------|-------------|--------|---------------------|
-| Container restart causes downtime | Medium | High | Use Kubernetes rolling restart, warn users in UI |
-| Encryption key compromise | Low | Critical | Store key in K8s secrets, implement key rotation script |
-| Invalid timezone breaks app | Low | High | Validate against IANA database, fallback to UTC |
-| SMTP credentials leak in logs | Medium | High | Never log config_json, encrypt at rest, mask in errors |
-| Singleton constraint violated | Low | Medium | Database CHECK constraint enforces, test in CI |
-| System name XSS attack | Low | High | Sanitize input, escape in Svelte templates (automatic) |
-| Session timeout race condition | Medium | Low | Use atomic token refresh, graceful logout modal |
-| Password grandfathering allows weak passwords | Low | Medium | Document policy, allow admin to force password reset |
+| Risk                                          | Probability | Impact   | Mitigation Strategy                                     |
+| --------------------------------------------- | ----------- | -------- | ------------------------------------------------------- |
+| Container restart causes downtime             | Medium      | High     | Use Kubernetes rolling restart, warn users in UI        |
+| Encryption key compromise                     | Low         | Critical | Store key in K8s secrets, implement key rotation script |
+| Invalid timezone breaks app                   | Low         | High     | Validate against IANA database, fallback to UTC         |
+| SMTP credentials leak in logs                 | Medium      | High     | Never log config_json, encrypt at rest, mask in errors  |
+| Singleton constraint violated                 | Low         | Medium   | Database CHECK constraint enforces, test in CI          |
+| System name XSS attack                        | Low         | High     | Sanitize input, escape in Svelte templates (automatic)  |
+| Session timeout race condition                | Medium      | Low      | Use atomic token refresh, graceful logout modal         |
+| Password grandfathering allows weak passwords | Low         | Medium   | Document policy, allow admin to force password reset    |
 
 ## Testing Strategy
 
 ### Unit Tests
 
 **Backend**:
+
 - SeaORM entity CRUD operations
 - GraphQL resolver validation logic
 - Timezone conversion utilities
@@ -468,6 +501,7 @@ SvelteHR/
 - Encryption/decryption utilities
 
 **Frontend**:
+
 - Settings store behavior
 - Form validation with Zod schemas
 - Date formatting utilities
@@ -476,12 +510,14 @@ SvelteHR/
 ### Integration Tests
 
 **Backend**:
+
 - GraphQL API end-to-end (query → mutation → database)
 - Container restart integration (K8s/Docker API calls)
 - SMTP connection testing
 - Webhook delivery testing
 
 **Frontend**:
+
 - Server-side data loading
 - GraphQL client integration
 - Form submission flow
@@ -506,22 +542,23 @@ SvelteHR/
 
 ## Success Criteria
 
-| Criteria | Measurement | Target |
-|----------|-------------|--------|
-| System name update latency | Time from save to UI update | <5 seconds |
+| Criteria                     | Measurement                          | Target              |
+| ---------------------------- | ------------------------------------ | ------------------- |
+| System name update latency   | Time from save to UI update          | <5 seconds          |
 | Timezone conversion accuracy | Data integrity after timezone change | 100% (no data loss) |
-| Session timeout precision | Logout within configured duration | ±60 seconds |
-| Password validation accuracy | Rejection of short passwords | 100% |
-| Account lockout enforcement | Lock after max attempts exceeded | Immediate |
-| Email delivery rate | SMTP send success | >95% |
-| Webhook delivery rate | HTTP POST success | >95% |
-| Log level propagation time | Container restart completion | <2 minutes |
-| HTTPS redirect speed | HTTP→HTTPS round trip | <1 round trip |
-| Admin configuration success | First-attempt completion | >90% |
+| Session timeout precision    | Logout within configured duration    | ±60 seconds         |
+| Password validation accuracy | Rejection of short passwords         | 100%                |
+| Account lockout enforcement  | Lock after max attempts exceeded     | Immediate           |
+| Email delivery rate          | SMTP send success                    | >95%                |
+| Webhook delivery rate        | HTTP POST success                    | >95%                |
+| Log level propagation time   | Container restart completion         | <2 minutes          |
+| HTTPS redirect speed         | HTTP→HTTPS round trip                | <1 round trip       |
+| Admin configuration success  | First-attempt completion             | >90%                |
 
 ## Post-Launch Monitoring
 
 **Key Metrics**:
+
 - Settings update frequency (QPS)
 - Session timeout events per day
 - Account lockout events per day
@@ -530,6 +567,7 @@ SvelteHR/
 - Settings query latency (p50, p95, p99)
 
 **Alerts**:
+
 - Settings query latency > 100ms
 - SMTP authentication failure rate > 10%
 - Webhook delivery failure rate > 20%
@@ -557,6 +595,7 @@ SvelteHR/
 - Quick Start Guide: [quickstart.md](./quickstart.md)
 
 **External Documentation**:
+
 - SeaORM Migration Guide: https://www.sea-ql.org/SeaORM/docs/migration/writing-migration/
 - async-graphql Authorization: https://async-graphql.github.io/async-graphql/en/context_and_data_loaders.html
 - Kubernetes Client Rust: https://github.com/kube-rs/kube

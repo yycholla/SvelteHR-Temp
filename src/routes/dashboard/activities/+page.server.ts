@@ -6,14 +6,18 @@
 import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
 import { requireAuth } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, url, cookies } = event;
+	const { url, cookies } = event;
 
 	// Check authentication and permissions
 	requireAuth(event, {
 		requiredPermissions: ['activities:read:self']
 	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	try {
 		// Get GraphQL endpoint
@@ -29,7 +33,7 @@ export const load: PageServerLoad = async (event) => {
 			'Content-Type': 'application/json'
 		};
 
-		console.log('[Activities] Loading activities for user:', locals.user.id);
+		logger.info('[Activities] Loading activities for user', { userId: locals.user.id });
 
 		// Fetch user's activity logs using Rust GraphQL backend
 		// Migration: ✅ Use idiomatic Rust pattern (activityLogs with userId parameter)
@@ -58,17 +62,19 @@ export const load: PageServerLoad = async (event) => {
 				`,
 				variables: {
 					userId: locals.user.id,
-					limit: limit,
+					limit,
 					offset: (page - 1) * limit
 				}
 			})
 		});
 
 		const activitiesData = await activitiesResponse.json();
-		console.log('[Activities] Response:', activitiesData);
+		logger.info('[Activities] Response', { activitiesData });
 
 		if (activitiesData.errors) {
-			console.error('[Activities] GraphQL errors:', activitiesData.errors);
+			logger.error('[Activities] GraphQL errors', new Error('GraphQL errors'), {
+				errors: activitiesData.errors
+			});
 			throw new Error(activitiesData.errors[0]?.message || 'Failed to load activities');
 		}
 
@@ -88,7 +94,7 @@ export const load: PageServerLoad = async (event) => {
 			user: locals.user
 		};
 	} catch (err: any) {
-		console.error('[Activities] Error loading activities:', err);
+		logger.error('[Activities] Error loading activities', err as Error);
 
 		// Handle specific error cases
 		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {
@@ -96,7 +102,7 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		error(500, {
-        			message: 'Failed to load activity logs. Please try again later.'
-        		});
+			message: 'Failed to load activity logs. Please try again later.'
+		});
 	}
 };

@@ -9,7 +9,7 @@
  * Covers: FR-025, FR-042, FR-043, FR-044, FR-045, FR-046, FR-047, FR-048
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Theme Consistency', () => {
 	test.beforeEach(async ({ page }) => {
@@ -68,9 +68,7 @@ test.describe('Theme Consistency', () => {
 
 			// Check page background is light
 			const body = page.locator('body');
-			const bgColor = await body.evaluate((el) =>
-				window.getComputedStyle(el).backgroundColor
-			);
+			const bgColor = await body.evaluate((el) => window.getComputedStyle(el).backgroundColor);
 			// Light mode should have light background (rgb values > 200)
 			expect(bgColor).toMatch(/rgb\((2[5-9]\d|2[0-4]\d|1\d{2})/);
 
@@ -80,8 +78,8 @@ test.describe('Theme Consistency', () => {
 
 			if (cardCount > 0) {
 				const firstCard = cards.first();
-				const cardBg = await firstCard.evaluate((el) =>
-					window.getComputedStyle(el).backgroundColor
+				const cardBg = await firstCard.evaluate(
+					(el) => window.getComputedStyle(el).backgroundColor
 				);
 				// Card background should be light
 				expect(cardBg).toMatch(/rgb\((2[5-9]\d|2[0-4]\d|1\d{2})/);
@@ -89,9 +87,7 @@ test.describe('Theme Consistency', () => {
 				// Check text contrast (WCAG AA: 4.5:1)
 				const text = firstCard.locator('p, span, h1, h2, h3').first();
 				if ((await text.count()) > 0) {
-					const textColor = await text.evaluate((el) =>
-						window.getComputedStyle(el).color
-					);
+					const textColor = await text.evaluate((el) => window.getComputedStyle(el).color);
 					// Text should be dark in light mode (rgb values < 100)
 					expect(textColor).toMatch(/rgb\((\d{1,2}|[0-9]\d)/);
 				}
@@ -119,9 +115,7 @@ test.describe('Theme Consistency', () => {
 
 			// Check page background is dark
 			const body = page.locator('body');
-			const bgColor = await body.evaluate((el) =>
-				window.getComputedStyle(el).backgroundColor
-			);
+			const bgColor = await body.evaluate((el) => window.getComputedStyle(el).backgroundColor);
 			// Dark mode should have dark background (rgb values < 100)
 			expect(bgColor).toMatch(/rgb\((\d{1,2}|[0-9]\d|1\d{2})/);
 
@@ -131,8 +125,8 @@ test.describe('Theme Consistency', () => {
 
 			if (cardCount > 0) {
 				const firstCard = cards.first();
-				const cardBg = await firstCard.evaluate((el) =>
-					window.getComputedStyle(el).backgroundColor
+				const cardBg = await firstCard.evaluate(
+					(el) => window.getComputedStyle(el).backgroundColor
 				);
 				// Card background should be dark
 				expect(cardBg).toMatch(/rgb\((\d{1,2}|[0-9]\d|1\d{2})/);
@@ -140,9 +134,7 @@ test.describe('Theme Consistency', () => {
 				// Check text contrast (WCAG AA: 4.5:1)
 				const text = firstCard.locator('p, span, h1, h2, h3').first();
 				if ((await text.count()) > 0) {
-					const textColor = await text.evaluate((el) =>
-						window.getComputedStyle(el).color
-					);
+					const textColor = await text.evaluate((el) => window.getComputedStyle(el).color);
 					// Text should be light in dark mode (rgb values > 200)
 					expect(textColor).toMatch(/rgb\((2[0-9]\d|1[8-9]\d)/);
 				}
@@ -152,11 +144,11 @@ test.describe('Theme Consistency', () => {
 
 	test('admin pages respect light and dark mode styling', async ({ page }) => {
 		const adminPages = [
-			'/dashboard/admin/user-management',
-			'/dashboard/admin/system-settings',
-			'/dashboard/admin/audit-logs',
-			'/dashboard/admin/analytics',
-			'/dashboard/admin/compliance'
+			'/admin/user-management',
+			'/admin/system-settings',
+			'/admin/audit-logs',
+			'/admin/analytics',
+			'/admin/compliance'
 		];
 
 		for (const pagePath of adminPages) {
@@ -197,12 +189,10 @@ test.describe('Theme Consistency', () => {
 		const card = page.locator('[data-testid^="card-"]').first();
 		const badge = page.locator('[data-testid="status-badge"]').first();
 
-		const initialButtonBg = await button.evaluate((el) =>
-			window.getComputedStyle(el).backgroundColor
+		const initialButtonBg = await button.evaluate(
+			(el) => window.getComputedStyle(el).backgroundColor
 		);
-		const initialCardBg = await card.evaluate((el) =>
-			window.getComputedStyle(el).backgroundColor
-		);
+		const initialCardBg = await card.evaluate((el) => window.getComputedStyle(el).backgroundColor);
 
 		// Toggle theme
 		await page.locator('[data-testid="theme-toggle"]').click();
@@ -214,9 +204,7 @@ test.describe('Theme Consistency', () => {
 
 		// Verify all elements updated WITHOUT page refresh
 		// (If page refreshed, this test would fail)
-		const newButtonBg = await button.evaluate((el) =>
-			window.getComputedStyle(el).backgroundColor
-		);
+		const newButtonBg = await button.evaluate((el) => window.getComputedStyle(el).backgroundColor);
 		const newCardBg = await card.evaluate((el) => window.getComputedStyle(el).backgroundColor);
 
 		// Colors should have changed
@@ -312,9 +300,7 @@ test.describe('Theme Consistency', () => {
 		});
 		await page.waitForTimeout(200);
 
-		const lightInputBg = await input.evaluate((el) =>
-			window.getComputedStyle(el).backgroundColor
-		);
+		const lightInputBg = await input.evaluate((el) => window.getComputedStyle(el).backgroundColor);
 		const lightInputText = await input.evaluate((el) => window.getComputedStyle(el).color);
 
 		// Toggle to dark mode
@@ -345,9 +331,7 @@ test.describe('Theme Consistency', () => {
 		});
 		await page.waitForTimeout(200);
 
-		const lightModalBg = await modal.evaluate((el) =>
-			window.getComputedStyle(el).backgroundColor
-		);
+		const lightModalBg = await modal.evaluate((el) => window.getComputedStyle(el).backgroundColor);
 
 		// Toggle to dark mode
 		await page.locator('[data-testid="theme-toggle"]').click();

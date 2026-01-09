@@ -2,16 +2,16 @@
 // Feature: 021-i-have-setup (Comprehensive Audit Logging)
 // Tests differentiation between user-initiated and system-automated actions
 
-import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
-	createTestDatabase,
+	type TestDatabase,
 	cleanupTestDatabase,
-	queryActivityLogs,
-	generateTestEmployee,
 	cleanupTestRecords,
-	initializeTestPool,
 	closeTestPool,
-	type TestDatabase
+	createTestDatabase,
+	generateTestEmployee,
+	initializeTestPool,
+	queryActivityLogs
 } from '../../utils/db-trigger-helpers';
 import { nanoid } from 'nanoid';
 

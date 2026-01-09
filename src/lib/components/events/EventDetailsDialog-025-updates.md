@@ -8,13 +8,13 @@ The existing EventDetailsDialog.svelte needs the following enhancements for the 
 
 ```svelte
 {#if event.rrule}
-  <RecurrenceScopeDialog
-    bind:open={showScopeDialog}
-    eventTitle={event.title}
-    action="rsvp"
-    onConfirm={handleRsvpWithScope}
-    onCancel={() => showScopeDialog = false}
-  />
+	<RecurrenceScopeDialog
+		bind:open={showScopeDialog}
+		eventTitle={event.title}
+		action="rsvp"
+		onConfirm={handleRsvpWithScope}
+		onCancel={() => (showScopeDialog = false)}
+	/>
 {/if}
 ```
 
@@ -22,10 +22,10 @@ The existing EventDetailsDialog.svelte needs the following enhancements for the 
 
 ```svelte
 <EventCapacityIndicator
-  acceptedCount={rsvpStats.accepted}
-  maxCapacity={event.maxCapacity}
-  waitlistCount={event.waitlistCount}
-  isFull={event.isFull}
+	acceptedCount={rsvpStats.accepted}
+	maxCapacity={event.maxCapacity}
+	waitlistCount={event.waitlistCount}
+	isFull={event.isFull}
 />
 ```
 
@@ -33,13 +33,13 @@ The existing EventDetailsDialog.svelte needs the following enhancements for the 
 
 ```svelte
 {#if event.isFull && event.waitlistEnabled}
-  <WaitlistButton
-    eventId={event.id}
-    isOnWaitlist={userWaitlistStatus.isOnWaitlist}
-    waitlistPosition={userWaitlistStatus.position}
-    onJoin={handleJoinWaitlist}
-    onLeave={handleLeaveWaitlist}
-  />
+	<WaitlistButton
+		eventId={event.id}
+		isOnWaitlist={userWaitlistStatus.isOnWaitlist}
+		waitlistPosition={userWaitlistStatus.position}
+		onJoin={handleJoinWaitlist}
+		onLeave={handleLeaveWaitlist}
+	/>
 {/if}
 ```
 
@@ -47,35 +47,35 @@ The existing EventDetailsDialog.svelte needs the following enhancements for the 
 
 ```svelte
 <Tabs defaultValue="details">
-  <TabsList>
-    <TabsTrigger value="details">Details</TabsTrigger>
-    <TabsTrigger value="comments">
-      Comments
-      {#if commentCount > 0}
-        <Badge variant="secondary" class="ml-2">{commentCount}</Badge>
-      {/if}
-    </TabsTrigger>
-    <TabsTrigger value="history">History</TabsTrigger>
-  </TabsList>
+	<TabsList>
+		<TabsTrigger value="details">Details</TabsTrigger>
+		<TabsTrigger value="comments">
+			Comments
+			{#if commentCount > 0}
+				<Badge variant="secondary" class="ml-2">{commentCount}</Badge>
+			{/if}
+		</TabsTrigger>
+		<TabsTrigger value="history">History</TabsTrigger>
+	</TabsList>
 
-  <TabsContent value="details">
-    <!-- Existing event details -->
-  </TabsContent>
+	<TabsContent value="details">
+		<!-- Existing event details -->
+	</TabsContent>
 
-  <TabsContent value="comments">
-    <EventCommentThread
-      eventId={event.id}
-      comments={eventComments}
-      currentUserId={userId}
-      onAddComment={handleAddComment}
-      onUpdateComment={handleUpdateComment}
-      onDeleteComment={handleDeleteComment}
-    />
-  </TabsContent>
+	<TabsContent value="comments">
+		<EventCommentThread
+			eventId={event.id}
+			comments={eventComments}
+			currentUserId={userId}
+			onAddComment={handleAddComment}
+			onUpdateComment={handleUpdateComment}
+			onDeleteComment={handleDeleteComment}
+		/>
+	</TabsContent>
 
-  <TabsContent value="history">
-    <EventHistoryView history={eventHistory} />
-  </TabsContent>
+	<TabsContent value="history">
+		<EventHistoryView history={eventHistory} />
+	</TabsContent>
 </Tabs>
 ```
 
@@ -83,19 +83,19 @@ The existing EventDetailsDialog.svelte needs the following enhancements for the 
 
 ```typescript
 interface Props {
-  // ... existing props
-  eventComments?: Comment[];
-  eventHistory?: HistoryEntry[];
-  commentCount?: number;
-  userWaitlistStatus?: {
-    isOnWaitlist: boolean;
-    position: number | null;
-  };
-  onJoinWaitlist?: (eventId: string) => Promise<void>;
-  onLeaveWaitlist?: (eventId: string) => Promise<void>;
-  onAddComment?: (content: string, mentions: string[]) => Promise<void>;
-  onUpdateComment?: (commentId: string, content: string) => Promise<void>;
-  onDeleteComment?: (commentId: string) => Promise<void>;
+	// ... existing props
+	eventComments?: Comment[];
+	eventHistory?: HistoryEntry[];
+	commentCount?: number;
+	userWaitlistStatus?: {
+		isOnWaitlist: boolean;
+		position: number | null;
+	};
+	onJoinWaitlist?: (eventId: string) => Promise<void>;
+	onLeaveWaitlist?: (eventId: string) => Promise<void>;
+	onAddComment?: (content: string, mentions: string[]) => Promise<void>;
+	onUpdateComment?: (commentId: string, content: string) => Promise<void>;
+	onDeleteComment?: (commentId: string) => Promise<void>;
 }
 ```
 

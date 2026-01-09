@@ -7,7 +7,7 @@
  * MUST FAIL until notification preferences are implemented.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Configure Notification Preferences', () => {
 	test.beforeEach(async ({ page }) => {
@@ -53,7 +53,9 @@ test.describe('Configure Notification Preferences', () => {
 
 	test('should select reminder times (up to 3)', async ({ page }) => {
 		// Find reminder time checkboxes or select
-		const reminderSection = page.locator('section:has-text("Reminder Times"), [data-reminder-times]');
+		const reminderSection = page.locator(
+			'section:has-text("Reminder Times"), [data-reminder-times]'
+		);
 
 		// Select "15 minutes before"
 		const fifteenMinCheckbox = page.locator('input[value="15min"]');
@@ -181,7 +183,9 @@ test.describe('Configure Notification Preferences', () => {
 
 		if ((await selectedEvents.count()) > 0) {
 			const firstEvent = selectedEvents.first();
-			const removeButton = firstEvent.locator('button:has-text("Remove"), button[aria-label="Remove"]');
+			const removeButton = firstEvent.locator(
+				'button:has-text("Remove"), button[aria-label="Remove"]'
+			);
 
 			await removeButton.click();
 
@@ -208,9 +212,9 @@ test.describe('Configure Notification Preferences', () => {
 		await saveButton.click();
 
 		// Verify success toast
-		await expect(
-			page.locator('.toast:has-text("Preferences saved")')
-		).toBeVisible({ timeout: 3000 });
+		await expect(page.locator('.toast:has-text("Preferences saved")')).toBeVisible({
+			timeout: 3000
+		});
 	});
 
 	test('should show validation error for invalid preferences', async ({ page }) => {
@@ -240,7 +244,9 @@ test.describe('Configure Notification Preferences', () => {
 		await page.check('input[value="15min"]');
 
 		// Click reset button
-		const resetButton = page.locator('button:has-text("Reset"), button:has-text("Reset to Default")');
+		const resetButton = page.locator(
+			'button:has-text("Reset"), button:has-text("Reset to Default")'
+		);
 
 		if ((await resetButton.count()) > 0) {
 			await resetButton.click();
@@ -252,9 +258,9 @@ test.describe('Configure Notification Preferences', () => {
 				await page.click('button:has-text("Confirm")');
 
 				// Verify toast
-				await expect(
-					page.locator('.toast:has-text("Reset to default")')
-				).toBeVisible({ timeout: 3000 });
+				await expect(page.locator('.toast:has-text("Reset to default")')).toBeVisible({
+					timeout: 3000
+				});
 			}
 		}
 	});

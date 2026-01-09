@@ -17,7 +17,7 @@
 		maxDisplayed?: number;
 	}
 
-	let {
+	const {
 		notifications,
 		unreadCount,
 		onMarkAsRead,
@@ -33,7 +33,7 @@
 	let buttonRef: HTMLButtonElement | undefined = $state();
 
 	// Displayed notifications (limited)
-	let displayedNotifications = $derived(notifications.slice(0, maxDisplayed));
+	const displayedNotifications = $derived(notifications.slice(0, maxDisplayed));
 
 	// Category icons
 	function getCategoryIcon(category: Notification['category']): string {
@@ -137,7 +137,9 @@
 
 		<!-- Unread Badge -->
 		{#if unreadCount > 0}
-			<span class="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white">
+			<span
+				class="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white"
+			>
 				{unreadCount > 9 ? '9+' : unreadCount}
 			</span>
 		{/if}
@@ -217,7 +219,11 @@
 										aria-label="Mark as read"
 									>
 										<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-											<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+											<path
+												fill-rule="evenodd"
+												d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+												clip-rule="evenodd"
+											/>
 										</svg>
 									</button>
 								{/if}
@@ -231,7 +237,11 @@
 										aria-label="Delete notification"
 									>
 										<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-											<path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+											<path
+												fill-rule="evenodd"
+												d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+												clip-rule="evenodd"
+											/>
 										</svg>
 									</button>
 								{/if}
@@ -241,8 +251,18 @@
 				{:else}
 					<!-- Empty State -->
 					<div class="flex flex-col items-center justify-center py-12">
-						<svg class="mb-3 h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+						<svg
+							class="mb-3 h-12 w-12 text-gray-400"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+							/>
 						</svg>
 						<p class="text-sm text-gray-600">No notifications</p>
 					</div>
@@ -269,6 +289,7 @@
 	.line-clamp-2 {
 		display: -webkit-box;
 		-webkit-line-clamp: 2;
+		line-clamp: 2;
 		-webkit-box-orient: vertical;
 		overflow: hidden;
 	}

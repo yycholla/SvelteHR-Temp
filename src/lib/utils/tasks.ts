@@ -2,7 +2,7 @@
 // Feature: 019-we-need-to - Task T018
 // Purpose: Business logic helpers for task operations
 
-import type { Task, TaskStatus, TaskPriority } from '$lib/graphql/types';
+import type { Task, TaskPriority, TaskStatus } from '$lib/graphql/types';
 
 /**
  * Check if a user can view a task based on assignment rules
@@ -168,10 +168,7 @@ export function isTaskDepartmentAssigned(task: Task): boolean {
 /**
  * Filter tasks by department
  */
-export function filterTasksByDepartment(
-	tasks: Task[],
-	departmentId: string | undefined
-): Task[] {
+export function filterTasksByDepartment(tasks: Task[], departmentId: string | undefined): Task[] {
 	if (!departmentId) {
 		// Return tasks with no department assignment
 		return tasks.filter((task) => !task.assignedToDepartmentId);

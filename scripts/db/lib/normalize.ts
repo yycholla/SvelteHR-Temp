@@ -73,7 +73,7 @@ const TYPE_NORMALIZATION_MAP: Record<string, string> = {
 	uuid: 'uuid',
 
 	// Bytea (binary)
-	bytea: 'bytea',
+	bytea: 'bytea'
 
 	// Arrays (handled separately)
 	// User-defined types pass through unchanged

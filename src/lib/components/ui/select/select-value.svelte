@@ -6,7 +6,7 @@
 		class?: string;
 	}
 
-	let { placeholder = 'Select...', class: className = '' }: Props = $props();
+	const { placeholder = 'Select...', class: className = '' }: Props = $props();
 
 	// Get the select value from context (set by Select.Root)
 	const value = getContext<any>('select-value');

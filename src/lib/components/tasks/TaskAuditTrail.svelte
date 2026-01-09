@@ -14,7 +14,7 @@
 <script lang="ts">
 	import type { TaskAuditEntry } from '$lib/types/task';
 	import type { AuditActionType } from '$lib/utils/audit';
-	import { formatAuditAction, getAuditActionIcon, getAuditActionColor } from '$lib/utils/audit';
+	import { formatAuditAction, getAuditActionColor, getAuditActionIcon } from '$lib/utils/audit';
 
 	// Convert old action types to new ones for backward compatibility
 	function convertAuditActionType(actionType: string): AuditActionType {
@@ -31,23 +31,23 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import {
-		History,
-		Plus,
-		Edit,
-		UserCog,
-		Trash2,
-		CheckCircle,
-		Building,
-		Clock,
-		ChevronDown,
 		AlertTriangle,
-		Link,
-		Unlink,
-		Paperclip,
-		MessageCircle,
+		Building,
 		Calendar,
+		CheckCircle,
+		ChevronDown,
+		Clock,
+		Edit,
 		FileText,
-		GitBranch
+		GitBranch,
+		History,
+		Link,
+		MessageCircle,
+		Paperclip,
+		Plus,
+		Trash2,
+		Unlink,
+		UserCog
 	} from '@lucide/svelte';
 	import { formatDistance } from 'date-fns';
 
@@ -59,7 +59,7 @@
 		loading?: boolean;
 	}
 
-	let { entries, totalCount, hasMore, onLoadMore, loading = false }: Props = $props();
+	const { entries, totalCount, hasMore, onLoadMore, loading = false }: Props = $props();
 
 	// State
 	let expandedEntries = $state<Set<string>>(new Set());
@@ -224,7 +224,7 @@
 										</Badge>
 										{#if entry.user}
 											<span class="text-sm text-muted-foreground">by</span>
-											<span class="text-sm font-medium">{entry.user.displayName}</span>
+											<span class="text-sm font-medium">{entry.user.display_name}</span>
 										{/if}
 									</div>
 									<div class="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
@@ -316,5 +316,3 @@
 		{/if}
 	{/if}
 </div>
-
-

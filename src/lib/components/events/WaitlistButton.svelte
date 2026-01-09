@@ -22,7 +22,7 @@
 		size?: 'default' | 'sm' | 'lg' | 'icon';
 	}
 
-	let {
+	const {
 		eventId,
 		isOnWaitlist = false,
 		waitlistPosition = null,
@@ -73,9 +73,7 @@
 		if (loading) return 'Loading...';
 
 		if (isOnWaitlist) {
-			return waitlistPosition
-				? `On waitlist (#${waitlistPosition})`
-				: 'On waitlist';
+			return waitlistPosition ? `On waitlist (#${waitlistPosition})` : 'On waitlist';
 		}
 
 		return 'Join waitlist';

@@ -6,20 +6,20 @@
  */
 
 import { reviewTypes } from '$lib/schemas/reviews';
-import type { ReviewType, ReviewStatus } from '$lib/schemas/reviews';
+import type { ReviewStatus, ReviewType } from '$lib/schemas/reviews';
 import {
-	Calendar,
-	TrendingUp,
-	Target,
 	AlertTriangle,
 	Award,
-	UserCheck,
-	FileText,
-	UserX,
-	User,
+	Calendar,
+	CheckCircle,
 	Clock,
+	FileText,
 	Play,
-	CheckCircle
+	Target,
+	TrendingUp,
+	User,
+	UserCheck,
+	UserX
 } from '@lucide/svelte';
 
 /**

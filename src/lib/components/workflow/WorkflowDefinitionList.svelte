@@ -2,8 +2,8 @@
 	import { onMount } from 'svelte';
 	import {
 		filteredDefinitions,
-		workflowActions,
 		isWorkflowLoading,
+		workflowActions,
 		workflowError,
 		workflowStats
 	} from '$lib/stores/workflow';
@@ -13,7 +13,7 @@
 	import WorkflowStatsCards from './WorkflowStatsCards.svelte';
 
 	// Props
-	let {
+	const {
 		showCreateButton = true,
 		showStats = true,
 		limit = 50
@@ -30,16 +30,20 @@
 	let searchTerm = $state('');
 
 	// Derived values
-	const categories = $derived([...new Set($filteredDefinitions.map((def) => def.category).filter(Boolean))]);
+	const categories = $derived([
+		...new Set($filteredDefinitions.map((def) => def.category).filter(Boolean))
+	]);
 
-	const filteredBySearch = $derived($filteredDefinitions.filter((definition) => {
-		const matchesSearch =
-			!searchTerm ||
-			definition.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			definition.description?.toLowerCase().includes(searchTerm.toLowerCase());
+	const filteredBySearch = $derived(
+		$filteredDefinitions.filter((definition) => {
+			const matchesSearch =
+				!searchTerm ||
+				definition.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+				definition.description?.toLowerCase().includes(searchTerm.toLowerCase());
 
-		return matchesSearch;
-	}));
+			return matchesSearch;
+		})
+	);
 
 	onMount(() => {
 		workflowActions.loadDefinitions(limit);
@@ -86,7 +90,7 @@
 				Refresh
 			</button>
 
-			{#if showCreateButton && $canManageWorkflows}
+			{#if showCreateButton && auth.canManageWorkflows}
 				<button onclick={() => (showCreateDialog = true)} class="btn btn-primary">
 					<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
@@ -243,7 +247,7 @@
 						Get started by creating your first workflow definition.
 					{/if}
 				</p>
-				{#if $canManageWorkflows && !searchTerm && !statusFilter && !categoryFilter}
+				{#if auth.canManageWorkflows && !searchTerm && !statusFilter && !categoryFilter}
 					<div class="mt-6">
 						<button onclick={() => (showCreateDialog = true)} class="btn btn-primary">
 							<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

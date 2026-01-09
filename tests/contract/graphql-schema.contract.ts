@@ -2,8 +2,8 @@
 // Tests GraphQL schema contracts and API consistency
 // Created: 2025-09-24
 
-import { test, expect } from 'vitest';
-import { graphql, buildSchema, validate, parse } from 'graphql';
+import { describe, expect, test } from 'vitest';
+import { buildSchema, graphql, parse, validate } from 'graphql';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -194,7 +194,7 @@ const mockSchema = buildSchema(`
   }
 `);
 
-test.describe('GraphQL Schema Contract Tests', () => {
+describe('GraphQL Schema Contract Tests', () => {
 	test('should validate employee queries structure', () => {
 		const query = `
       query GetEmployees {

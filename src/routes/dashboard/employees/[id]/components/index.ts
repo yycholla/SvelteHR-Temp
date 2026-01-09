@@ -1,0 +1,9 @@
+export { default as EmployeePersonalInfoCard } from './EmployeePersonalInfoCard.svelte';
+export { default as EmployeeContactCard } from './EmployeeContactCard.svelte';
+export { default as EmployeePerformanceCard } from './EmployeePerformanceCard.svelte';
+export { default as EmployeeEmergencyContactsCard } from './EmployeeEmergencyContactsCard.svelte';
+export { default as EmployeeDocumentsCard } from './EmployeeDocumentsCard.svelte';
+export { default as EmployeeHistoryCard } from './EmployeeHistoryCard.svelte';
+export { default as EmployeeVehicleCard } from './EmployeeVehicleCard.svelte';
+export { default as EmployeeDependentsCard } from './EmployeeDependentsCard.svelte';
+export { default as EmployeeActivityCard } from './EmployeeActivityCard.svelte';

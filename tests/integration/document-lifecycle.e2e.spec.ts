@@ -1,8 +1,12 @@
 // Integration test: E2E document lifecycle (T046)
 // Tests complete document workflow from upload to audit
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { generateEncryptionKey, encryptFile, decryptFile } from '$lib/services/encryption';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import {
+	decryptFile,
+	encryptFile,
+	generateEncryptionKey
+} from '../../src/lib/services/encryption.js';
 
 /**
  * End-to-End Integration Test: Complete Document Lifecycle
@@ -50,14 +54,15 @@ describe('Document Lifecycle - E2E Integration Tests', () => {
 
 			// Step 1: Create test document
 			const fileSize = 2 * 1024 * 1024; // 2MB
-			originalFileContent = new Uint8Array(fileSize);
+			const buffer = new ArrayBuffer(fileSize);
+			originalFileContent = new Uint8Array(buffer);
 
 			// Fill with recognizable pattern for verification
 			for (let i = 0; i < originalFileContent.length; i++) {
-				originalFileContent[i] = (i % 256);
+				originalFileContent[i] = i % 256;
 			}
 
-			const blob = new Blob([originalFileContent], { type: 'application/pdf' });
+			const blob = new Blob([buffer], { type: 'application/pdf' });
 			const file = new File([blob], 'employee-contract.pdf', { type: 'application/pdf' });
 
 			// Step 2: Client-side encryption
@@ -75,7 +80,7 @@ describe('Document Lifecycle - E2E Integration Tests', () => {
 				},
 				body: JSON.stringify({
 					keyIdentifier,
-					encryptedKeyData: btoa(String.fromCharCode(...new Uint8Array(encryptedData))),
+					encryptedKeyData: btoa(String.fromCharCode(...Array.from(new Uint8Array(encryptedData)))),
 					keyAlgorithm: 'AES-GCM-256'
 				})
 			});
@@ -131,7 +136,7 @@ describe('Document Lifecycle - E2E Integration Tests', () => {
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					employeeId: employeeId,
+					employeeId,
 					assignmentType: 'individual'
 				})
 			});
@@ -195,7 +200,11 @@ describe('Document Lifecycle - E2E Integration Tests', () => {
 			console.log(`Downloaded ${encryptedDownloadData.byteLength} bytes (encrypted)`);
 
 			// Step 9: Client-side decryption
-			const decryptedBlob = await decryptFile(encryptedDownloadData, encryptionKey, iv);
+			const { decryptedData: decryptedBlob } = await decryptFile(
+				encryptedDownloadData,
+				encryptionKey,
+				iv
+			);
 			const decryptedData = new Uint8Array(await decryptedBlob.arrayBuffer());
 
 			// Step 10: Verify decrypted content matches original
@@ -509,7 +518,7 @@ describe('Document Lifecycle - E2E Integration Tests', () => {
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					employeeId: employeeId,
+					employeeId,
 					assignmentType: 'individual'
 				})
 			});

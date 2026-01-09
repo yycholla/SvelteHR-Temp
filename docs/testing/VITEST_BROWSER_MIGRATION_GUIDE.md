@@ -22,6 +22,7 @@
 This project has migrated E2E browser tests from **Playwright** to **Vitest Browser Mode** with **WebDriverIO provider**, solving compatibility issues on Arch Linux while maintaining test coverage.
 
 **Key Changes:**
+
 - ✅ Replaced Playwright provider with WebDriverIO
 - ✅ Migrated 3 test files (21 tests total)
 - ✅ Created helper utility library
@@ -54,18 +55,21 @@ This project has migrated E2E browser tests from **Playwright** to **Vitest Brow
 ### Migrated Test Files
 
 **1. `dashboard-data.browser.test.ts`** (8 tests)
+
 - Dashboard metrics extraction
 - Placeholder content detection
 - Data consistency validation
 - Navigation testing
 
 **2. `form-interactions.browser.test.ts`** (8 tests)
+
 - Form filling and submission
 - Validation error handling
 - Console warning detection
 - Accessibility testing
 
 **3. `events/event-rsvp-workflow.browser.test.ts`** (7 tests)
+
 - Event listing and navigation
 - RSVP status management
 - Event filtering
@@ -82,9 +86,9 @@ This project has migrated E2E browser tests from **Playwright** to **Vitest Brow
 
 ```json
 {
-  "@vitest/browser": "^3.2.4",
-  "vitest-browser-svelte": "^0.1.0",
-  "webdriverio": "^9.20.0"
+	"@vitest/browser": "^3.2.4",
+	"vitest-browser-svelte": "^0.1.0",
+	"webdriverio": "^9.20.0"
 }
 ```
 
@@ -171,29 +175,29 @@ vitest --project=e2e-browser --coverage
 ```typescript
 import { test, expect, describe } from 'vitest';
 import {
-  gotoPage,
-  login,
-  clickElement,
-  fillInput,
-  waitForElement,
-  getElementText
+	gotoPage,
+	login,
+	clickElement,
+	fillInput,
+	waitForElement,
+	getElementText
 } from '../utils/vitest-browser-helpers';
 
 describe('Feature Name', () => {
-  test('should do something', async () => {
-    // Navigate to page
-    await gotoPage('/dashboard');
+	test('should do something', async () => {
+		// Navigate to page
+		await gotoPage('/dashboard');
 
-    // Wait for elements
-    await waitForElement('[data-testid="content"]');
+		// Wait for elements
+		await waitForElement('[data-testid="content"]');
 
-    // Interact with page
-    await clickElement('[data-testid="button"]');
+		// Interact with page
+		await clickElement('[data-testid="button"]');
 
-    // Verify results
-    const text = await getElementText('[data-testid="result"]');
-    expect(text).toContain('Success');
-  });
+		// Verify results
+		const text = await getElementText('[data-testid="result"]');
+		expect(text).toContain('Success');
+	});
 });
 ```
 
@@ -203,11 +207,11 @@ describe('Feature Name', () => {
 import { login } from '../utils/vitest-browser-helpers';
 
 test('authenticated test', async () => {
-  // Login automatically navigates to dashboard
-  await login('admin', 'admin');
+	// Login automatically navigates to dashboard
+	await login('admin', 'admin');
 
-  // Continue with test...
-  await gotoPage('/protected-page');
+	// Continue with test...
+	await gotoPage('/protected-page');
 });
 ```
 
@@ -215,18 +219,18 @@ test('authenticated test', async () => {
 
 ```typescript
 test('should submit form', async () => {
-  await gotoPage('/form-page');
+	await gotoPage('/form-page');
 
-  // Fill form fields
-  await fillInput('[name="email"]', 'test@example.com');
-  await fillInput('[name="password"]', 'password123');
-  await selectOption('[name="role"]', 'admin');
+	// Fill form fields
+	await fillInput('[name="email"]', 'test@example.com');
+	await fillInput('[name="password"]', 'password123');
+	await selectOption('[name="role"]', 'admin');
 
-  // Submit
-  await clickElement('button[type="submit"]');
+	// Submit
+	await clickElement('button[type="submit"]');
 
-  // Verify
-  await expectURLMatch('**/success**');
+	// Verify
+	await expectURLMatch('**/success**');
 });
 ```
 
@@ -234,13 +238,13 @@ test('should submit form', async () => {
 
 ```typescript
 test('should not have console errors', async () => {
-  const console = captureConsole();
+	const console = captureConsole();
 
-  await gotoPage('/dashboard');
-  await waitFor(1000);
+	await gotoPage('/dashboard');
+	await waitFor(1000);
 
-  // Verify no errors
-  expect(console.errors).toHaveLength(0);
+	// Verify no errors
+	expect(console.errors).toHaveLength(0);
 });
 ```
 
@@ -370,26 +374,29 @@ const { logs, warnings, errors } = captureConsole();
 ### From Playwright to Vitest Browser
 
 **Before (Playwright):**
+
 ```typescript
 test('example', async ({ page }) => {
-  await page.goto('/dashboard');
-  await page.waitForSelector('[data-testid="content"]');
-  const text = await page.locator('[data-testid="count"]').textContent();
-  expect(text).toContain('45');
+	await page.goto('/dashboard');
+	await page.waitForSelector('[data-testid="content"]');
+	const text = await page.locator('[data-testid="count"]').textContent();
+	expect(text).toContain('45');
 });
 ```
 
 **After (Vitest Browser):**
+
 ```typescript
 test('example', async () => {
-  await gotoPage('/dashboard');
-  await waitForElement('[data-testid="content"]');
-  const text = await getElementText('[data-testid="count"]');
-  expect(text).toContain('45');
+	await gotoPage('/dashboard');
+	await waitForElement('[data-testid="content"]');
+	const text = await getElementText('[data-testid="count"]');
+	expect(text).toContain('45');
 });
 ```
 
 **Key Differences:**
+
 - No `{ page }` parameter (uses global `page` from `@vitest/browser/context`)
 - Helper functions instead of page methods
 - Same assertions (standard Vitest `expect`)
@@ -401,30 +408,34 @@ test('example', async () => {
 ### Test Timeout
 
 **Error:**
+
 ```
 Test timed out after 60000ms
 ```
 
 **Solution:**
+
 ```typescript
 // Increase timeout for specific test
 test('slow test', async () => {
-  test.setTimeout(120000); // 2 minutes
-  // ... test code
+	test.setTimeout(120000); // 2 minutes
+	// ... test code
 });
 
 // Or in config (vitest.config.ts)
-testTimeout: 120000
+testTimeout: 120000;
 ```
 
 ### Element Not Found
 
 **Error:**
+
 ```
 Element [data-testid="button"] not found
 ```
 
 **Solution:**
+
 ```typescript
 // Add explicit wait
 await waitForElement('[data-testid="button"]');
@@ -437,12 +448,15 @@ await waitForElement('[data-testid="button"]', { timeout: 10000 });
 ### WebDriverIO Connection Error
 
 **Error:**
+
 ```
 Could not connect to WebDriver
 ```
 
 **Solution:**
+
 1. Ensure Chrome/Chromium is installed:
+
    ```bash
    google-chrome --version
    ```
@@ -455,6 +469,7 @@ Could not connect to WebDriver
 ### Headed Mode Not Working
 
 **Solution:**
+
 ```bash
 # Set HEADED environment variable
 HEADED=true npm run test:browser
@@ -467,6 +482,7 @@ npm run test:browser
 ### Tests Pass Locally But Fail in CI
 
 **Solution:**
+
 ```typescript
 // In vitest.config.ts, adjust for CI
 browser: {
@@ -500,6 +516,7 @@ browser: {
 If results are positive, consider migrating more tests:
 
 **Recommended next migrations:**
+
 - `tests/e2e/management/` - Manager workflows
 - `tests/e2e/tasks/` - Task assignment tests
 - `tests/e2e/notifications/` - Notification tests
@@ -507,6 +524,7 @@ If results are positive, consider migrating more tests:
 ### Phase 3: Remove Old Tests (Optional)
 
 Once confident in Vitest Browser tests:
+
 1. Keep `.browser.test.ts` files
 2. Archive or remove `.spec.ts` Playwright files
 3. Remove Stagehand test files (`.stagehand.spec.ts`)
@@ -516,17 +534,17 @@ Once confident in Vitest Browser tests:
 
 ## Comparison: Playwright vs Vitest Browser
 
-| Feature | Playwright | Vitest Browser |
-|---------|-----------|----------------|
-| **OS Compatibility** | ❌ Issues on Arch | ✅ Works on Arch |
-| **Test Runner** | Playwright Test | Vitest |
-| **Browser Provider** | Built-in | WebDriverIO |
-| **Setup Complexity** | High | Low (already have Vitest) |
-| **Execution Speed** | Fast | Fast |
-| **Multi-browser** | ✅ Chrome, Firefox, Safari | ✅ Chrome, Firefox, Safari |
-| **Debugging** | Good | ✅ Better (Vitest UI) |
-| **Integration** | Separate | ✅ Unified with unit tests |
-| **Learning Curve** | Moderate | Low (if using Vitest) |
+| Feature              | Playwright                 | Vitest Browser             |
+| -------------------- | -------------------------- | -------------------------- |
+| **OS Compatibility** | ❌ Issues on Arch          | ✅ Works on Arch           |
+| **Test Runner**      | Playwright Test            | Vitest                     |
+| **Browser Provider** | Built-in                   | WebDriverIO                |
+| **Setup Complexity** | High                       | Low (already have Vitest)  |
+| **Execution Speed**  | Fast                       | Fast                       |
+| **Multi-browser**    | ✅ Chrome, Firefox, Safari | ✅ Chrome, Firefox, Safari |
+| **Debugging**        | Good                       | ✅ Better (Vitest UI)      |
+| **Integration**      | Separate                   | ✅ Unified with unit tests |
+| **Learning Curve**   | Moderate                   | Low (if using Vitest)      |
 
 ---
 
@@ -542,6 +560,7 @@ Once confident in Vitest Browser tests:
 ## Summary
 
 **✅ Migration Complete:**
+
 - Vitest Browser Mode configured with WebDriverIO provider
 - 3 test files migrated (23 tests total)
 - Helper utilities for common test operations
@@ -549,6 +568,7 @@ Once confident in Vitest Browser tests:
 - Full documentation
 
 **🎯 Key Benefits:**
+
 1. Works reliably on Arch Linux
 2. Unified test framework (Vitest for everything)
 3. Faster execution than Playwright
@@ -556,6 +576,7 @@ Once confident in Vitest Browser tests:
 5. Simpler setup and maintenance
 
 **🚀 Next Action:**
+
 ```bash
 # Run all E2E browser tests
 npm run test:browser
@@ -569,5 +590,5 @@ npm run test:browser:ui
 
 ---
 
-*Generated: 2025-10-27*
-*Migration Status: Complete and Ready for Testing*
+_Generated: 2025-10-27_
+_Migration Status: Complete and Ready for Testing_

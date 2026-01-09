@@ -1,0 +1,214 @@
+<script lang="ts">
+	// Temporary stub Icon component until proper icon system is integrated
+	const Icon = ({ icon, class: className }: { icon: string; class?: string }) => {
+		return `<span class="${className || ''}"></span>`;
+	};
+
+	interface ValidationError {
+		id: string;
+		ruleName: string;
+		entityType: string;
+		entityId: string | null;
+		fieldName: string;
+		invalidValue: string | null;
+		errorMessage: string;
+		severity: 'ERROR' | 'WARNING' | 'INFO';
+		detectedAt: string;
+		resolvedAt: string | null;
+		resolution: string | null;
+	}
+
+	interface Props {
+		errors: ValidationError[];
+		onResolve?: (errorId: string, resolution: string) => Promise<void>;
+	}
+
+	let { errors = [], onResolve }: Props = $props();
+
+	// Group errors by severity
+	let errorsBySeverity = $derived({
+		errors: errors.filter(e => e.severity === 'ERROR' && !e.resolvedAt),
+		warnings: errors.filter(e => e.severity === 'WARNING' && !e.resolvedAt),
+		info: errors.filter(e => e.severity === 'INFO' && !e.resolvedAt),
+		resolved: errors.filter(e => e.resolvedAt !== null)
+	});
+
+	function getSeverityColor(severity: string): string {
+		switch (severity) {
+			case 'ERROR': return 'text-red-600 bg-red-50 border-red-200';
+			case 'WARNING': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+			case 'INFO': return 'text-blue-600 bg-blue-50 border-blue-200';
+			default: return 'text-gray-600 bg-gray-50 border-gray-200';
+		}
+	}
+
+	function getSeverityIcon(severity: string): string {
+		switch (severity) {
+			case 'ERROR': return 'mdi:alert-circle';
+			case 'WARNING': return 'mdi:alert';
+			case 'INFO': return 'mdi:information';
+			default: return 'mdi:help-circle';
+		}
+	}
+
+	async function handleResolve(errorId: string, resolution: string) {
+		if (onResolve) {
+			await onResolve(errorId, resolution);
+		}
+	}
+</script>
+
+<div class="validation-errors-panel">
+	<!-- Summary Header -->
+	<div class="p-4 bg-white border-b">
+		<h3 class="text-lg font-semibold text-gray-900">Validation Errors</h3>
+		<div class="mt-2 grid grid-cols-3 gap-4">
+			<div class="flex items-center gap-2">
+				<Icon icon="mdi:alert-circle" class="w-5 h-5 text-red-500" />
+				<div>
+					<div class="text-2xl font-bold text-red-600">{errorsBySeverity.errors.length}</div>
+					<div class="text-sm text-gray-600">Errors</div>
+				</div>
+			</div>
+			<div class="flex items-center gap-2">
+				<Icon icon="mdi:alert" class="w-5 h-5 text-yellow-500" />
+				<div>
+					<div class="text-2xl font-bold text-yellow-600">{errorsBySeverity.warnings.length}</div>
+					<div class="text-sm text-gray-600">Warnings</div>
+				</div>
+			</div>
+			<div class="flex items-center gap-2">
+				<Icon icon="mdi:information" class="w-5 h-5 text-blue-500" />
+				<div>
+					<div class="text-2xl font-bold text-blue-600">{errorsBySeverity.info.length}</div>
+					<div class="text-sm text-gray-600">Info</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Error List -->
+	<div class="divide-y">
+		<!-- Critical Errors -->
+		{#if errorsBySeverity.errors.length > 0}
+			<div class="p-4">
+				<h4 class="text-sm font-medium text-red-900 mb-3">Critical Errors (Blocking Sync)</h4>
+				<div class="space-y-2">
+					{#each errorsBySeverity.errors as error}
+						<div class="p-3 border rounded-lg {getSeverityColor(error.severity)}">
+							<div class="flex items-start gap-3">
+								<Icon icon={getSeverityIcon(error.severity)} class="w-5 h-5 flex-shrink-0 mt-0.5" />
+								<div class="flex-1 min-w-0">
+									<div class="flex items-center justify-between gap-2">
+										<h5 class="font-medium">{error.ruleName}</h5>
+										<span class="text-xs px-2 py-1 bg-white rounded border">
+											{error.entityType}
+										</span>
+									</div>
+									<p class="text-sm mt-1">{error.errorMessage}</p>
+									<div class="mt-2 text-xs space-y-1">
+										<div><strong>Field:</strong> {error.fieldName}</div>
+										{#if error.invalidValue}
+											<div><strong>Invalid Value:</strong> <code class="px-1 bg-white rounded">{error.invalidValue}</code></div>
+										{/if}
+										{#if error.entityId}
+											<div><strong>Entity ID:</strong> <code class="px-1 bg-white rounded text-xs">{error.entityId}</code></div>
+										{/if}
+										<div><strong>Detected:</strong> {new Date(error.detectedAt).toLocaleString()}</div>
+									</div>
+									{#if onResolve && !error.resolvedAt}
+										<div class="mt-3 flex gap-2">
+											<button
+												type="button"
+												class="text-xs px-3 py-1 bg-white border rounded hover:bg-gray-50"
+												onclick={() => handleResolve(error.id, 'MANUALLY_FIXED')}
+											>
+												Mark as Fixed
+											</button>
+											<button
+												type="button"
+												class="text-xs px-3 py-1 bg-white border rounded hover:bg-gray-50"
+												onclick={() => handleResolve(error.id, 'IGNORED')}
+											>
+												Ignore
+											</button>
+										</div>
+									{/if}
+								</div>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		<!-- Warnings -->
+		{#if errorsBySeverity.warnings.length > 0}
+			<div class="p-4">
+				<h4 class="text-sm font-medium text-yellow-900 mb-3">Warnings (Non-Blocking)</h4>
+				<div class="space-y-2">
+					{#each errorsBySeverity.warnings as error}
+						<div class="p-3 border rounded-lg {getSeverityColor(error.severity)}">
+							<div class="flex items-start gap-3">
+								<Icon icon={getSeverityIcon(error.severity)} class="w-5 h-5 flex-shrink-0 mt-0.5" />
+								<div class="flex-1 min-w-0">
+									<div class="flex items-center justify-between gap-2">
+										<h5 class="font-medium">{error.ruleName}</h5>
+										<span class="text-xs px-2 py-1 bg-white rounded border">
+											{error.entityType}
+										</span>
+									</div>
+									<p class="text-sm mt-1">{error.errorMessage}</p>
+									<div class="mt-2 text-xs">
+										<strong>Field:</strong> {error.fieldName}
+									</div>
+								</div>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		<!-- Info Messages -->
+		{#if errorsBySeverity.info.length > 0}
+			<div class="p-4">
+				<h4 class="text-sm font-medium text-blue-900 mb-3">Informational</h4>
+				<div class="space-y-2">
+					{#each errorsBySeverity.info as error}
+						<div class="p-3 border rounded-lg {getSeverityColor(error.severity)}">
+							<div class="flex items-start gap-3">
+								<Icon icon={getSeverityIcon(error.severity)} class="w-5 h-5 flex-shrink-0 mt-0.5" />
+								<div class="flex-1 min-w-0">
+									<h5 class="font-medium">{error.ruleName}</h5>
+									<p class="text-sm mt-1">{error.errorMessage}</p>
+								</div>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		<!-- No Errors -->
+		{#if errors.length === 0}
+			<div class="p-8 text-center">
+				<Icon icon="mdi:check-circle" class="w-16 h-16 text-green-500 mx-auto mb-3" />
+				<h4 class="text-lg font-medium text-gray-900">No Validation Errors</h4>
+				<p class="text-sm text-gray-600 mt-1">All data quality checks passed successfully.</p>
+			</div>
+		{:else if errorsBySeverity.errors.length === 0 && errorsBySeverity.warnings.length === 0 && errorsBySeverity.info.length === 0}
+			<div class="p-8 text-center">
+				<Icon icon="mdi:check-circle" class="w-16 h-16 text-green-500 mx-auto mb-3" />
+				<h4 class="text-lg font-medium text-gray-900">All Issues Resolved</h4>
+				<p class="text-sm text-gray-600 mt-1">All validation errors have been addressed.</p>
+			</div>
+		{/if}
+	</div>
+</div>
+
+<style>
+	.validation-errors-panel {
+		@apply bg-white border rounded-lg shadow-sm;
+	}
+</style>

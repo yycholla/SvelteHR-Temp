@@ -3,14 +3,25 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { PermissionChecks } from '$lib/server/rbac-utils';
+import { requireAuth } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, url, cookies } = event;
+	const { url, cookies } = event;
 
 	// Check authentication and permissions
-	PermissionChecks.attendanceRead(event);
+	requireAuth(event, {
+		requiredPermissions: [
+			'attendance:read',
+			'attendance:read:self',
+			'attendance:read:team',
+			'attendance:read:all'
+		]
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Use authenticated user's ID
 	const userId = locals.user.id;
@@ -21,7 +32,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// If backend is not ready, return error state but don't crash
 		if (!backendReady) {
-			console.warn('Backend not ready for user attendance page');
+			logger.warn('Backend not ready for user attendance page');
 			return {
 				user: null,
 				userId,
@@ -98,9 +109,13 @@ export const load: PageServerLoad = async (event) => {
 			offset: 0
 		});
 
-		console.log('[Attendance] GraphQL response:', JSON.stringify(attendanceData, null, 2));
-		console.log('[Attendance] Employee ID:', userId);
-		console.log('[Attendance] Records found:', attendanceData.data?.attendanceRecords?.length);
+		logger.info('[Attendance] GraphQL response', {
+			response: JSON.stringify(attendanceData, null, 2)
+		});
+		logger.info('[Attendance] Employee ID', { employeeId: userId });
+		logger.info('[Attendance] Records found', {
+			recordsCount: attendanceData.data?.attendanceRecords?.length
+		});
 
 		const attendanceRecords = (attendanceData.data?.attendanceRecords || []).map((record: any) => ({
 			id: record.id,
@@ -152,9 +167,11 @@ export const load: PageServerLoad = async (event) => {
 
 		// Calculate attendance statistics
 		const totalDays = attendanceRecords.length;
-		const presentDays = attendanceRecords.filter(r => r.status === 'present').length;
-		const partialDays = attendanceRecords.filter(r => r.status === 'partial' || r.status === 'half_day').length;
-		const totalHours = attendanceRecords.reduce((sum, r) => sum + r.hoursWorked, 0);
+		const presentDays = attendanceRecords.filter((r: any) => r.status === 'present').length;
+		const partialDays = attendanceRecords.filter(
+			(r: any) => r.status === 'partial' || r.status === 'half_day'
+		).length;
+		const totalHours = attendanceRecords.reduce((sum: number, r: any) => sum + r.hoursWorked, 0);
 		const averageHours = totalDays > 0 ? totalHours / totalDays : 0;
 
 		const attendanceStats = {
@@ -178,9 +195,8 @@ export const load: PageServerLoad = async (event) => {
 			permissions: locals.permissions || [],
 			loadedAt: new Date().toISOString()
 		};
-
 	} catch (err) {
-		console.error('Error loading user attendance data:', err);
+		logger.error('Error loading user attendance data:', err as Error);
 
 		// Return error state instead of throwing to prevent page crash
 		return {

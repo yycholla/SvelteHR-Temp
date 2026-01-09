@@ -1,9 +1,13 @@
 // Vitest Browser E2E Test Helper Utilities for SvelteHR
-// Helper functions for E2E testing with Vitest Browser Mode and WebDriverIO
+// Helper functions for E2E testing with Vitest Browser Mode and Puppeteer
 // Created: 2025-10-27
 
-import { page } from '@vitest/browser/context';
+import { page as vitestPage } from '@vitest/browser/context';
 import { expect } from 'vitest';
+import type { Page as PuppeteerPage } from 'puppeteer';
+
+// Cast Vitest page to Puppeteer page for full API access
+const page = vitestPage as unknown as PuppeteerPage;
 
 // Configuration
 export const BROWSER_CONFIG = {
@@ -22,16 +26,9 @@ export const BROWSER_CONFIG = {
 export async function gotoPage(path: string, options?: { waitUntil?: 'load' | 'networkidle' }) {
 	const url = path.startsWith('http') ? path : `${BROWSER_CONFIG.BASE_URL}${path}`;
 
-	await page.goto(url);
-
-	// Wait for page to be ready
-	if (options?.waitUntil === 'networkidle') {
-		// Wait for network to be idle
-		await page.waitForLoadState('networkidle');
-	} else {
-		// Default: wait for load event
-		await page.waitForLoadState('load');
-	}
+	// Puppeteer's goto with waitUntil option
+	const waitUntil = options?.waitUntil === 'networkidle' ? 'networkidle2' : 'load';
+	await page.goto(url, { waitUntil });
 }
 
 /**
@@ -39,11 +36,11 @@ export async function gotoPage(path: string, options?: { waitUntil?: 'load' | 'n
  *
  * @example
  * await clickElement('[data-testid="submit-btn"]');
- * await clickElement('button:has-text("Submit")');
+ * await clickElement('button');
  */
 export async function clickElement(selector: string) {
-	const element = await page.locator(selector);
-	await element.click();
+	await page.waitForSelector(selector, { visible: true });
+	await page.click(selector);
 }
 
 /**
@@ -53,8 +50,8 @@ export async function clickElement(selector: string) {
  * await fillInput('[name="email"]', 'test@example.com');
  */
 export async function fillInput(selector: string, value: string) {
-	const element = await page.locator(selector);
-	await element.fill(value);
+	await page.waitForSelector(selector, { visible: true });
+	await page.type(selector, value);
 }
 
 /**
@@ -64,8 +61,8 @@ export async function fillInput(selector: string, value: string) {
  * await selectOption('[name="department"]', 'Engineering');
  */
 export async function selectOption(selector: string, value: string) {
-	const element = await page.locator(selector);
-	await element.selectOption(value);
+	await page.waitForSelector(selector, { visible: true });
+	await page.select(selector, value);
 }
 
 /**
@@ -76,8 +73,9 @@ export async function selectOption(selector: string, value: string) {
  */
 export async function isElementVisible(selector: string): Promise<boolean> {
 	try {
-		const element = await page.locator(selector);
-		return await element.isVisible();
+		const element = await page.$(selector);
+		if (!element) return false;
+		return await element.isIntersectingViewport();
 	} catch {
 		return false;
 	}
@@ -93,11 +91,12 @@ export async function waitForElement(
 	selector: string,
 	options?: { timeout?: number; state?: 'visible' | 'hidden' }
 ) {
-	const element = await page.locator(selector);
-	await element.waitFor({
-		state: options?.state || 'visible',
-		timeout: options?.timeout || BROWSER_CONFIG.DEFAULT_TIMEOUT
-	});
+	const timeout = options?.timeout || BROWSER_CONFIG.DEFAULT_TIMEOUT;
+	if (options?.state === 'hidden') {
+		await page.waitForSelector(selector, { hidden: true, timeout });
+	} else {
+		await page.waitForSelector(selector, { visible: true, timeout });
+	}
 }
 
 /**
@@ -107,8 +106,7 @@ export async function waitForElement(
  * const text = await getElementText('[data-testid="employee-count"]');
  */
 export async function getElementText(selector: string): Promise<string> {
-	const element = await page.locator(selector);
-	const text = await element.textContent();
+	const text = await page.$eval(selector, (el) => el.textContent);
 	return text || '';
 }
 
@@ -119,8 +117,7 @@ export async function getElementText(selector: string): Promise<string> {
  * const href = await getElementAttribute('a.link', 'href');
  */
 export async function getElementAttribute(selector: string, attribute: string): Promise<string> {
-	const element = await page.locator(selector);
-	const value = await element.getAttribute(attribute);
+	const value = await page.$eval(selector, (el, attr) => el.getAttribute(attr), attribute);
 	return value || '';
 }
 
@@ -131,8 +128,8 @@ export async function getElementAttribute(selector: string, attribute: string): 
  * const count = await countElements('[data-testid="event-card"]');
  */
 export async function countElements(selector: string): Promise<number> {
-	const elements = await page.locator(selector);
-	return await elements.count();
+	const elements = await page.$$(selector);
+	return elements.length;
 }
 
 /**
@@ -142,7 +139,7 @@ export async function countElements(selector: string): Promise<number> {
  * const hasError = await pageContainsText('Error: Invalid credentials');
  */
 export async function pageContainsText(text: string): Promise<boolean> {
-	const bodyText = await page.locator('body').textContent();
+	const bodyText = await page.$eval('body', (el) => el.textContent);
 	return bodyText?.includes(text) || false;
 }
 
@@ -165,7 +162,7 @@ export async function login(username: string, password: string) {
 	await clickElement('button[type="submit"]');
 
 	// Wait for redirect to dashboard
-	await page.waitForURL('**/dashboard**', { timeout: BROWSER_CONFIG.NAVIGATION_TIMEOUT });
+	await page.waitForNavigation({ timeout: BROWSER_CONFIG.NAVIGATION_TIMEOUT });
 }
 
 /**
@@ -175,7 +172,7 @@ export async function login(username: string, password: string) {
  * await waitForNetworkIdle();
  */
 export async function waitForNetworkIdle(timeout: number = BROWSER_CONFIG.NETWORK_IDLE_TIMEOUT) {
-	await page.waitForLoadState('networkidle', { timeout });
+	await page.waitForNetworkIdle({ timeout });
 }
 
 /**
@@ -185,7 +182,7 @@ export async function waitForNetworkIdle(timeout: number = BROWSER_CONFIG.NETWOR
  * await takeScreenshot('dashboard-view');
  */
 export async function takeScreenshot(name: string) {
-	await page.screenshot({ path: `test-results/screenshots/${name}.png`, fullPage: true });
+	await page.screenshot({ path: `test-results/screenshots/${name}.png` });
 }
 
 /**
@@ -195,8 +192,7 @@ export async function takeScreenshot(name: string) {
  * await reloadPage();
  */
 export async function reloadPage() {
-	await page.reload();
-	await page.waitForLoadState('load');
+	await page.reload({ waitUntil: 'load' });
 }
 
 /**
@@ -206,7 +202,7 @@ export async function reloadPage() {
  * await waitFor(1000); // Wait 1 second
  */
 export async function waitFor(ms: number) {
-	await page.waitForTimeout(ms);
+	await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -216,7 +212,7 @@ export async function waitFor(ms: number) {
  * const cards = await getAllElements('[data-testid="event-card"]');
  */
 export async function getAllElements(selector: string) {
-	return await page.locator(selector).all();
+	return await page.$$(selector);
 }
 
 /**
@@ -226,8 +222,7 @@ export async function getAllElements(selector: string) {
  * const isActive = await elementHasClass('[data-testid="tab"]', 'active');
  */
 export async function elementHasClass(selector: string, className: string): Promise<boolean> {
-	const element = await page.locator(selector);
-	const classes = await element.getAttribute('class');
+	const classes = await page.$eval(selector, (el) => el.getAttribute('class'));
 	return classes?.split(' ').includes(className) || false;
 }
 
@@ -238,7 +233,7 @@ export async function elementHasClass(selector: string, className: string): Prom
  * await pressKey('Enter');
  */
 export async function pressKey(key: string) {
-	await page.keyboard.press(key);
+	await page.keyboard.press(key as any);
 }
 
 /**
@@ -248,8 +243,7 @@ export async function pressKey(key: string) {
  * await hoverElement('[data-testid="dropdown-trigger"]');
  */
 export async function hoverElement(selector: string) {
-	const element = await page.locator(selector);
-	await element.hover();
+	await page.hover(selector);
 }
 
 /**
@@ -257,23 +251,22 @@ export async function hoverElement(selector: string) {
  */
 
 export async function expectElementVisible(selector: string) {
-	const element = await page.locator(selector);
-	await expect.element(element).toBeVisible();
+	const isVisible = await isElementVisible(selector);
+	expect(isVisible).toBe(true);
 }
 
 export async function expectElementHidden(selector: string) {
-	const element = await page.locator(selector);
-	await expect.element(element).not.toBeVisible();
+	const isVisible = await isElementVisible(selector);
+	expect(isVisible).toBe(false);
 }
 
 export async function expectElementToHaveText(selector: string, text: string) {
-	const element = await page.locator(selector);
-	await expect.element(element).toHaveText(text);
+	const content = await getElementText(selector);
+	expect(content?.trim()).toBe(text.trim());
 }
 
 export async function expectElementToContainText(selector: string, text: string) {
-	const element = await page.locator(selector);
-	const content = await element.textContent();
+	const content = await getElementText(selector);
 	expect(content).toContain(text);
 }
 
@@ -287,26 +280,24 @@ export async function expectElementCount(selector: string, expectedCount: number
  */
 
 export async function submitForm(formSelector: string) {
-	const form = await page.locator(formSelector);
-	await form.evaluate((f: HTMLFormElement) => f.submit());
+	await page.$eval(formSelector, (form: Element) => (form as HTMLFormElement).submit());
 }
 
 export async function clearInput(selector: string) {
-	const element = await page.locator(selector);
-	await element.clear();
+	await page.$eval(selector, (el: Element) => ((el as HTMLInputElement).value = ''));
 }
 
 export async function checkCheckbox(selector: string) {
-	const element = await page.locator(selector);
-	if (!(await element.isChecked())) {
-		await element.check();
+	const isChecked = await page.$eval(selector, (el: Element) => (el as HTMLInputElement).checked);
+	if (!isChecked) {
+		await page.click(selector);
 	}
 }
 
 export async function uncheckCheckbox(selector: string) {
-	const element = await page.locator(selector);
-	if (await element.isChecked()) {
-		await element.uncheck();
+	const isChecked = await page.$eval(selector, (el: Element) => (el as HTMLInputElement).checked);
+	if (isChecked) {
+		await page.click(selector);
 	}
 }
 
@@ -328,7 +319,7 @@ export function extractNumber(text: string): number {
  * await expectURLMatch('/dashboard');
  */
 export async function expectURLMatch(pattern: string) {
-	const url = page.url();
+	const url = window.location.href;
 	const regex = new RegExp(pattern.replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*'));
 	expect(url).toMatch(regex);
 }
@@ -351,7 +342,7 @@ export function captureConsole(): {
 	const warnings: ConsoleMessage[] = [];
 	const errors: ConsoleMessage[] = [];
 
-	page.on('console', (msg) => {
+	page.on('console', (msg: any) => {
 		const message: ConsoleMessage = {
 			type: msg.type() as ConsoleMessage['type'],
 			text: msg.text()

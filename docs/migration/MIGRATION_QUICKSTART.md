@@ -178,6 +178,7 @@ Migrations only run once. If already applied, they're skipped:
 ### Automatic Sync
 
 When you:
+
 1. Pull new migrations from Git
 2. Restart the container (or wait 10s)
 3. Migrations auto-apply
@@ -225,6 +226,7 @@ No manual intervention required!
 ## Complete Documentation
 
 For detailed information, see:
+
 - [AUTOMATIC_MIGRATIONS.md](./AUTOMATIC_MIGRATIONS.md) - Complete system documentation
 - [README.md](./README.md) - Database overview
 - [WORKFLOW.md](./WORKFLOW.md) - Development workflow

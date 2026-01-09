@@ -1,12 +1,12 @@
 // Unit test: Encryption service (T052)
 // Tests Web Crypto API wrapper functions
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-	generateEncryptionKey,
-	encryptFile,
 	decryptFile,
-	encryptFileChunked
+	encryptFile,
+	encryptFileChunked,
+	generateEncryptionKey
 } from '$lib/services/encryption';
 
 /**
@@ -130,11 +130,7 @@ describe('Encryption Service - Unit Tests', () => {
 			const encrypted = await encryptFile(file, key);
 
 			// Act: Decrypt the encrypted data
-			const decryptedBlob = await decryptFile(
-				encrypted.encryptedData,
-				key,
-				encrypted.iv
-			);
+			const decryptedBlob = await decryptFile(encrypted.encryptedData, key, encrypted.iv);
 
 			// Assert: Decrypted content matches original
 			const decryptedText = await decryptedBlob.decryptedData.text();
@@ -153,9 +149,7 @@ describe('Encryption Service - Unit Tests', () => {
 			const encrypted = await encryptFile(file, correctKey);
 
 			// Act & Assert: Decryption with wrong key should fail
-			await expect(
-				decryptFile(encrypted.encryptedData, wrongKey, encrypted.iv)
-			).rejects.toThrow();
+			await expect(decryptFile(encrypted.encryptedData, wrongKey, encrypted.iv)).rejects.toThrow();
 		});
 
 		it('should fail with wrong IV', async () => {
@@ -171,9 +165,7 @@ describe('Encryption Service - Unit Tests', () => {
 			const wrongIv = crypto.getRandomValues(new Uint8Array(12));
 
 			// Act & Assert: Decryption with wrong IV should fail
-			await expect(
-				decryptFile(encrypted.encryptedData, key, wrongIv)
-			).rejects.toThrow();
+			await expect(decryptFile(encrypted.encryptedData, key, wrongIv)).rejects.toThrow();
 		});
 
 		it('should handle binary files correctly', async () => {
@@ -189,11 +181,7 @@ describe('Encryption Service - Unit Tests', () => {
 			const encrypted = await encryptFile(file, key);
 
 			// Act
-			const decryptedBlob = await decryptFile(
-				encrypted.encryptedData,
-				key,
-				encrypted.iv
-			);
+			const decryptedBlob = await decryptFile(encrypted.encryptedData, key, encrypted.iv);
 
 			// Assert: Binary content matches
 			const decryptedData = new Uint8Array(await decryptedBlob.decryptedData.arrayBuffer());
@@ -277,11 +265,7 @@ describe('Encryption Service - Unit Tests', () => {
 			const encrypted = await encryptFileChunked(file, key);
 
 			// Act: Decrypt
-			const decryptedBlob = await decryptFile(
-				encrypted.encryptedData,
-				key,
-				encrypted.iv
-			);
+			const decryptedBlob = await decryptFile(encrypted.encryptedData, key, encrypted.iv);
 
 			// Assert: Content matches
 			const decryptedData = new Uint8Array(await decryptedBlob.decryptedData.arrayBuffer());

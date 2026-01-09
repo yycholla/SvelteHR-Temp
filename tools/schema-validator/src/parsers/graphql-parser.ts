@@ -4,9 +4,9 @@
  */
 
 import { gqlPluckFromCodeString } from '@graphql-tools/graphql-tag-pluck';
-import { parse, DocumentNode, OperationDefinitionNode, SelectionSetNode, FieldNode } from 'graphql';
+import { DocumentNode, FieldNode, OperationDefinitionNode, SelectionSetNode, parse } from 'graphql';
 import { readFile } from 'fs/promises';
-import type { GraphQLOperation, FieldReference, VariableDefinition } from '../types/models.js';
+import type { FieldReference, GraphQLOperation, VariableDefinition } from '../types/models.js';
 import { GraphQLOperationSchema } from '../types/schemas.js';
 
 /**
@@ -61,7 +61,9 @@ export class GraphQLParser {
       // Validate with Zod schema
       return operations.map((op) => GraphQLOperationSchema.parse(op));
     } catch (error) {
-      throw new Error(`Failed to parse file ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to parse file ${filePath}: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -117,7 +119,10 @@ export class GraphQLParser {
    * Extract operations from a parsed GraphQL document
    * @private
    */
-  private extractOperationsFromDocument(document: DocumentNode, filePath: string): GraphQLOperation[] {
+  private extractOperationsFromDocument(
+    document: DocumentNode,
+    filePath: string
+  ): GraphQLOperation[] {
     const operations: GraphQLOperation[] = [];
 
     for (const definition of document.definitions) {
@@ -136,7 +141,10 @@ export class GraphQLParser {
    * Extract a single operation from an OperationDefinitionNode
    * @private
    */
-  private extractOperation(node: OperationDefinitionNode, filePath: string): GraphQLOperation | null {
+  private extractOperation(
+    node: OperationDefinitionNode,
+    filePath: string
+  ): GraphQLOperation | null {
     const operationType = node.operation;
     const name = node.name?.value;
 
@@ -153,7 +161,9 @@ export class GraphQLParser {
           name: varDef.variable.name.value,
           type: this.getTypeString(varDef.type),
           nullable: this.isNullableType(varDef.type),
-          defaultValue: varDef.defaultValue ? this.extractDefaultValue(varDef.defaultValue) : undefined,
+          defaultValue: varDef.defaultValue
+            ? this.extractDefaultValue(varDef.defaultValue)
+            : undefined,
         });
       }
     }

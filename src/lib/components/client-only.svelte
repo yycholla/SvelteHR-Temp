@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 
-	let { children }: { children: any } = $props();
+	const { children }: { children: any } = $props();
 
 	// Track if component has mounted on client side
 	let mounted = $state(false);

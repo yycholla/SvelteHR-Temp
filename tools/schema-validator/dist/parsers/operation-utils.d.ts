@@ -8,33 +8,37 @@ import type { GraphQLOperation, FieldReference } from '../types/models.js';
  * Fragment registry for resolving fragment spreads
  */
 export declare class FragmentRegistry {
-    private fragments;
-    /**
-     * Register fragments from a GraphQL document
-     */
-    registerFragments(document: DocumentNode): void;
-    /**
-     * Get fragment by name
-     */
-    getFragment(name: string): FragmentDefinitionNode | undefined;
-    /**
-     * Clear all registered fragments
-     */
-    clear(): void;
+  private fragments;
+  /**
+   * Register fragments from a GraphQL document
+   */
+  registerFragments(document: DocumentNode): void;
+  /**
+   * Get fragment by name
+   */
+  getFragment(name: string): FragmentDefinitionNode | undefined;
+  /**
+   * Clear all registered fragments
+   */
+  clear(): void;
 }
 /**
  * AST traversal visitor pattern
  */
 export interface ASTVisitor {
-    enterField?(node: FieldNode, path: string[]): void;
-    leaveField?(node: FieldNode, path: string[]): void;
-    enterSelectionSet?(node: SelectionSetNode, path: string[]): void;
-    leaveSelectionSet?(node: SelectionSetNode, path: string[]): void;
+  enterField?(node: FieldNode, path: string[]): void;
+  leaveField?(node: FieldNode, path: string[]): void;
+  enterSelectionSet?(node: SelectionSetNode, path: string[]): void;
+  leaveSelectionSet?(node: SelectionSetNode, path: string[]): void;
 }
 /**
  * Traverse GraphQL AST with visitor pattern
  */
-export declare function traverseAST(selectionSet: SelectionSetNode, visitor: ASTVisitor, path?: string[]): void;
+export declare function traverseAST(
+  selectionSet: SelectionSetNode,
+  visitor: ASTVisitor,
+  path?: string[]
+): void;
 /**
  * Extract all field paths from an operation
  * Example: ["users", "users.email", "users.profile", "users.profile.avatar"]
@@ -44,7 +48,10 @@ export declare function extractFieldPaths(operation: GraphQLOperation): string[]
  * Find a specific field by path in an operation
  * Example: findFieldByPath(operation, "users.profile.avatar")
  */
-export declare function findFieldByPath(operation: GraphQLOperation, targetPath: string): FieldReference | null;
+export declare function findFieldByPath(
+  operation: GraphQLOperation,
+  targetPath: string
+): FieldReference | null;
 /**
  * Extract argument values from a field node
  */

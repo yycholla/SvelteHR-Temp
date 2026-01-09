@@ -9,7 +9,7 @@
  * Covers: FR-003, FR-014
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Manager Performance Reviews Journey', () => {
 	test.beforeEach(async ({ page }) => {

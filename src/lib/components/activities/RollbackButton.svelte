@@ -11,12 +11,11 @@
 	 */
 
 	import { createEventDispatcher } from 'svelte';
-	import { Undo2, Loader2 } from '@lucide/svelte';
+	import { Loader2, Undo2 } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
 	interface Props {
 		logId: string;
-		resourceType?: string;
 		action: string;
 		canDirectRollback: boolean;
 		canRequestRollback?: boolean;
@@ -25,9 +24,8 @@
 		onError?: (error: string) => void;
 	}
 
-	let {
+	const {
 		logId,
-		resourceType,
 		action,
 		canDirectRollback,
 		canRequestRollback = false,
@@ -45,9 +43,7 @@
 	// Computed properties with $derived
 	const isVisible = $derived(canDirectRollback || canRequestRollback);
 	const isRequestMode = $derived(!canDirectRollback && canRequestRollback);
-	const isDisabled = $derived(
-		isRollback || action.toUpperCase() === 'VIEW' || isLoading
-	);
+	const isDisabled = $derived(isRollback || action.toUpperCase() === 'VIEW' || isLoading);
 
 	const disabledReason = $derived(() => {
 		if (isRollback) return 'Cannot rollback a rollback operation';
@@ -165,9 +161,9 @@
 			throw new Error(result.errors[0].message);
 		}
 
-		const data = result.data.executeRollback.results[0];
+		const data = result.data?.executeRollback?.results?.[0];
 
-		if (!data || !data.success) {
+		if (!data?.success) {
 			throw new Error(data?.error || 'Rollback failed');
 		}
 
@@ -181,7 +177,6 @@
 
 		dispatch('success', { newLogId: data.newLogId });
 	}
-
 </script>
 
 {#if isVisible}
@@ -217,7 +212,7 @@
 			<div
 				class="modal-dialog"
 				role="dialog"
-			tabindex="-1"
+				tabindex="-1"
 				aria-modal="true"
 				onclick={(e) => e.stopPropagation()}
 				onkeydown={(e) => e.stopPropagation()}
@@ -229,11 +224,11 @@
 				<div class="modal-body">
 					<p class="warning-text">
 						{#if isRequestMode}
-							You are requesting a rollback for a <strong>{action.toUpperCase()}</strong> operation.
-							A super admin will need to approve this request.
+							You are requesting a rollback for a <strong>{action.toUpperCase()}</strong> operation. A
+							super admin will need to approve this request.
 						{:else}
-							You are about to rollback a <strong>{action.toUpperCase()}</strong> operation.
-							This will restore the resource to its previous state.
+							You are about to rollback a <strong>{action.toUpperCase()}</strong> operation. This will
+							restore the resource to its previous state.
 						{/if}
 					</p>
 
@@ -251,12 +246,7 @@
 				</div>
 
 				<div class="modal-footer">
-					<button
-						type="button"
-						class="btn-secondary"
-						onclick={handleCancel}
-						disabled={isLoading}
-					>
+					<button type="button" class="btn-secondary" onclick={handleCancel} disabled={isLoading}>
 						Cancel
 					</button>
 					<button
@@ -377,10 +367,8 @@
 	}
 
 	.form-group textarea:focus {
-		outline: none;
+		outline: 2px solid rgba(59, 130, 246, 0.5);
 		border-color: #3b82f6;
-		ring: 2px;
-		ring-color: rgba(59, 130, 246, 0.5);
 	}
 
 	.char-count {

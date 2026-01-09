@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Preview Service (Feature 024)
 // Document preview generation with Office document conversion
 
@@ -70,7 +71,7 @@ export async function generatePreview(
 		// Trigger async conversion job
 		// In production, this would queue a job in a background worker
 		queueOfficeConversion(documentId, storagePath, fileType).catch((error) => {
-			console.error(`Office conversion failed for document ${documentId}:`, error);
+			logger.error('Office conversion failed for document', error as Error, { documentId });
 		});
 	}
 
@@ -113,13 +114,20 @@ export async function convertOfficeToPDF(
 		// }
 
 		// Extract filename and construct output path
-		const filename = filePath.split('/').pop()?.replace(/\.[^.]+$/, '.pdf');
+		const filename = filePath
+			.split('/')
+			.pop()
+			?.replace(/\.[^.]+$/, '.pdf');
 		const convertedPath = `${outputDir}/${filename}`;
 
 		const conversionTime = Date.now() - startTime;
 
 		// Log conversion metrics
-		console.log(`Office document converted in ${conversionTime}ms: ${filePath} -> ${convertedPath}`);
+		logger.info('Office document converted', {
+			conversionTime: `${conversionTime}ms`,
+			filePath,
+			convertedPath
+		});
 
 		return {
 			convertedPath,
@@ -130,7 +138,9 @@ export async function convertOfficeToPDF(
 		const conversionTime = Date.now() - startTime;
 		const errorMessage = error instanceof Error ? error.message : 'Unknown conversion error';
 
-		console.error(`Office conversion failed after ${conversionTime}ms:`, errorMessage);
+		logger.error('Office conversion failed', new Error(errorMessage), {
+			conversionTime: `${conversionTime}ms`
+		});
 
 		return {
 			convertedPath: '',
@@ -160,7 +170,7 @@ async function queueOfficeConversion(
 	// 4. Store converted version
 	// 5. Update conversion status
 
-	console.log(`Queuing Office conversion for document ${documentId} (${fileType})`);
+	logger.info('Queuing Office conversion for document', { documentId, fileType });
 
 	// Example job queue structure:
 	// await jobQueue.add('convert-office-document', {
@@ -221,7 +231,7 @@ export async function cleanupExpiredTokens(): Promise<void> {
 	// TODO: Delete expired tokens
 	// DELETE FROM preview_tokens WHERE expires_at < NOW()
 
-	console.log('Cleaned up expired preview tokens');
+	logger.info('Cleaned up expired preview tokens');
 }
 
 /**

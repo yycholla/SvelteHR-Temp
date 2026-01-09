@@ -21,10 +21,10 @@ spec:
 
     # Redis configuration
     customConfig:
-      - "maxmemory 256mb"
-      - "maxmemory-policy allkeys-lru"
-      - "appendonly yes"
-      - "appendfsync everysec"
+      - 'maxmemory 256mb'
+      - 'maxmemory-policy allkeys-lru'
+      - 'appendonly yes'
+      - 'appendfsync everysec'
 
     storage:
       persistentVolumeClaim:

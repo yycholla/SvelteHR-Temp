@@ -12,6 +12,7 @@ The SvelteKit frontend is making **direct PostgreSQL queries** for document oper
 ## Current State
 
 ### Frontend Direct DB Access Files
+
 ```
 src/routes/api/documents/+server.ts                    → List documents
 src/routes/api/documents/[id]/+server.ts              → Get/Update/Delete document
@@ -28,10 +29,12 @@ src/lib/services/*rollback*.service.ts                → Rollback operations
 ### GraphQL Backend (COMPLETE Coverage)
 
 **Queries:**
+
 - `documents(limit: Int, offset: Int)` - List with pagination
 - `document(id: UUID!)` - Single document with full relationships
 
 **Mutations:**
+
 - `uploadDocument(input: UploadDocumentInput!)` - Complete upload with encryption
 - `createDocument(input: CreateDocumentInput!)`
 - `updateDocument(id: UUID!, input: UpdateDocumentInput!)`
@@ -46,6 +49,7 @@ src/lib/services/*rollback*.service.ts                → Rollback operations
 ### Phase 1: Immediate Fix (For Current Deployment)
 
 **Option A: Sync Passwords (Quick Fix)** ⏱️ 5 minutes
+
 ```bash
 # Get CloudNativePG password
 kubectl get secret sveltehr-postgres-app-secret -n sveltehr-prod \
@@ -60,6 +64,7 @@ kubectl rollout restart deployment/sveltehr-frontend -n sveltehr-prod
 ```
 
 **Option B: Use Doppler/External Secrets** ⏱️ 10 minutes
+
 - Sync both secrets from Doppler with same password
 - Let External Secrets Operator manage sync
 
@@ -68,28 +73,31 @@ kubectl rollout restart deployment/sveltehr-frontend -n sveltehr-prod
 #### Step 1: Migrate Document Routes to GraphQL ⏱️ 2-4 hours
 
 **Replace:**
+
 ```typescript
 // ❌ OLD: Direct DB query in +page.server.ts
 import { transaction, setJWTClaims } from '$lib/server/db';
 const result = await transaction(async (client) => {
-  await setJWTClaims(client, userId, userRole);
-  return await client.query('SELECT...');
+	await setJWTClaims(client, userId, userRole);
+	return await client.query('SELECT...');
 });
 ```
 
 **With:**
+
 ```typescript
 // ✅ NEW: GraphQL query via urql
 import { urqlClient } from '$lib/graphql/client';
 import { DOCUMENTS_QUERY } from '$lib/graphql/queries';
 
 const result = await urqlClient.query(DOCUMENTS_QUERY, {
-  limit: 20,
-  offset: 0
+	limit: 20,
+	offset: 0
 });
 ```
 
 **Files to Update:**
+
 1. `src/routes/api/documents/+server.ts` → Use GraphQL `documents` query
 2. `src/routes/api/documents/[id]/+server.ts` → Use GraphQL `document` query + mutations
 3. `src/routes/api/documents/upload/+server.ts` → Use GraphQL `uploadDocument` mutation
@@ -117,6 +125,7 @@ Remove DB credentials from frontend:
 ```
 
 Update ArgoCD:
+
 ```bash
 git add k8s/base/frontend-deployment.yaml
 git commit -m "security: remove direct DB access from frontend"
@@ -127,6 +136,7 @@ git push origin main
 #### Step 4: Testing ⏱️ 1 hour
 
 **Test Checklist:**
+
 - [ ] Document listing with filters (`/dashboard/documents`)
 - [ ] Document detail page (`/dashboard/documents/[id]`)
 - [ ] Document upload with encryption
@@ -137,6 +147,7 @@ git push origin main
 - [ ] Soft delete functionality
 
 **Test Commands:**
+
 ```bash
 # Port-forward to test in K8s
 kubectl port-forward -n sveltehr-prod svc/sveltehr-frontend 3000:3000
@@ -148,41 +159,46 @@ npm run test:documents
 ### Phase 3: Audit Other Direct DB Usage ⏱️ 2-4 hours
 
 **Other services using direct DB:**
+
 - `src/lib/services/audit-logging.service.ts` → Move to GraphQL mutations
 - `src/lib/services/rollback-*.service.ts` → Check if backend has rollback API
 - `src/lib/utils/cascade-snapshot.ts` → May need backend support
 - `src/lib/utils/snapshot-capture.ts` → May need backend support
 
 **Decision:** Keep or migrate based on:
+
 - Does GraphQL backend have equivalent API?
 - Is this admin-only functionality that needs direct DB access?
 - Can we add GraphQL mutations if needed?
 
 ## Timeline Estimate
 
-| Phase | Task | Duration | Priority |
-|-------|------|----------|----------|
-| **Phase 1** | Sync passwords (Option A) | 5 min | 🔴 Critical |
-| **Phase 2** | Migrate document routes | 2-4 hours | 🟠 High |
-| **Phase 2** | Remove DB credentials | 15 min | 🟠 High |
-| **Phase 2** | Testing | 1 hour | 🟠 High |
-| **Phase 3** | Audit other services | 2-4 hours | 🟡 Medium |
+| Phase       | Task                      | Duration  | Priority    |
+| ----------- | ------------------------- | --------- | ----------- |
+| **Phase 1** | Sync passwords (Option A) | 5 min     | 🔴 Critical |
+| **Phase 2** | Migrate document routes   | 2-4 hours | 🟠 High     |
+| **Phase 2** | Remove DB credentials     | 15 min    | 🟠 High     |
+| **Phase 2** | Testing                   | 1 hour    | 🟠 High     |
+| **Phase 3** | Audit other services      | 2-4 hours | 🟡 Medium   |
 
 **Total: ~6-10 hours** for complete migration
 
 ## Deployment Plan
 
 ### Immediate (Today)
+
 1. ✅ **Phase 1** - Sync passwords to unblock deployment
 2. 📋 Create detailed migration tasks
 3. 📝 Document current GraphQL schema
 
 ### Sprint 1 (This Week)
+
 1. 🔨 **Phase 2** - Migrate document routes to GraphQL
 2. 🧪 Test document functionality end-to-end
 3. 🚀 Deploy to dev environment
 
 ### Sprint 2 (Next Week)
+
 1. 🔍 **Phase 3** - Audit and migrate remaining direct DB usage
 2. 🔐 Remove DB credentials from frontend completely
 3. 🚀 Deploy to production
@@ -192,11 +208,13 @@ npm run test:documents
 If GraphQL migration causes issues:
 
 1. **Revert frontend deployment:**
+
    ```bash
    kubectl rollout undo deployment/sveltehr-frontend -n sveltehr-prod
    ```
 
 2. **Re-add DB credentials temporarily:**
+
    ```bash
    kubectl patch deployment sveltehr-frontend -n sveltehr-prod \
      --type='json' -p='[{"op":"add","path":"/spec/template/spec/containers/0/env/-","value":{"name":"DB_USER","value":"hr_user"}}]'
@@ -210,6 +228,7 @@ If GraphQL migration causes issues:
 ## Security Benefits
 
 After migration:
+
 - ✅ Frontend has **zero** database credentials
 - ✅ All data access goes through **RBAC-enforced** GraphQL API
 - ✅ **Centralized** audit logging in backend
@@ -222,6 +241,7 @@ After migration:
 **Now:** Choose Phase 1 option (A or B) to unblock deployment
 
 **Ask:**
+
 1. Do you want to sync passwords now (Option A)?
 2. Should I start Phase 2 migration immediately after?
 3. Are there other features besides documents using direct DB that I should check?

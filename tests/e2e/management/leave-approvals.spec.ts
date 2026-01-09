@@ -3,7 +3,7 @@
 // Task: T005 - E2E test Management Leave Approvals page
 // CRITICAL: This test MUST FAIL initially as per TDD approach
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Management Leave Approvals Page', () => {
 	test.beforeEach(async ({ page }) => {
@@ -38,7 +38,9 @@ test.describe('Management Leave Approvals Page', () => {
 		]);
 
 		// Should have at least one pending request row
-		await expect(page.locator('[data-testid="pending-request-row"]')).toHaveCount({ min: 1 });
+		expect(
+			await page.locator('[data-testid="pending-request-row"]').count()
+		).toBeGreaterThanOrEqual(1);
 
 		// Each row should have employee name, leave details, and action buttons
 		const firstRow = page.locator('[data-testid="pending-request-row"]').first();
@@ -192,7 +194,9 @@ test.describe('Management Leave Approvals Page', () => {
 
 			// Should load new page of results
 			await expect(page.locator('[data-testid="loading-indicator"]')).not.toBeVisible();
-			await expect(page.locator('[data-testid="pending-request-row"]')).toHaveCount({ min: 1 });
+			expect(
+				await page.locator('[data-testid="pending-request-row"]').count()
+			).toBeGreaterThanOrEqual(1);
 
 			// Previous button should be enabled
 			await expect(page.locator('[data-testid="pagination-prev"]')).toBeEnabled();

@@ -7,7 +7,7 @@
  * MUST FAIL until EventCreateDialog component is implemented.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import path from 'path';
 
 test.describe('Create New Event', () => {
@@ -260,9 +260,7 @@ test.describe('Create New Event', () => {
 		await page.click('button:has-text("Create Event")');
 
 		// Verify validation error
-		await expect(
-			page.locator('text=/Recurring events cannot exceed.*5 years/')
-		).toBeVisible();
+		await expect(page.locator('text=/Recurring events cannot exceed.*5 years/')).toBeVisible();
 	});
 
 	test('should close dialog without creating event when clicking cancel', async ({ page }) => {

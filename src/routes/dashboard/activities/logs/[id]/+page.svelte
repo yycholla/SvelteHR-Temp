@@ -165,7 +165,6 @@
 			{:else}
 				<RollbackButton
 					logId={data.log.id}
-					resourceType={data.log.resource_type}
 					action={data.log.action}
 					canDirectRollback={data.canRollback}
 					canRequestRollback={data.canRequestRollback}

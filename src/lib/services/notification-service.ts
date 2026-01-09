@@ -1,3 +1,5 @@
+import { logger } from '$lib/utils/logger';
+
 /**
  * Notification Service
  * Feature: 025-events-flesh-out
@@ -88,7 +90,7 @@ export class NotificationService {
 				notificationId
 			};
 		} catch (error) {
-			console.error('Error creating notification:', error);
+			logger.error('Error creating notification:', error as Error);
 			return {
 				success: false,
 				error: error instanceof Error ? error.message : 'Unknown notification error'
@@ -117,9 +119,9 @@ export class NotificationService {
 			// const channel = `notifications:${userId}`;
 			// websocketServer.send(channel, notification);
 
-			console.log(`[WebSocket] Sending notification to user ${userId}:`, notification);
+			logger.info(`[WebSocket] Sending notification to user ${userId}: ${notification}`);
 		} catch (error) {
-			console.error('Error sending WebSocket notification:', error);
+			logger.error('Error sending WebSocket notification:', error as Error);
 		}
 	}
 
@@ -157,7 +159,7 @@ export class NotificationService {
 			// Default to true (notify)
 			return true;
 		} catch (error) {
-			console.error('Error checking notification preferences:', error);
+			logger.error('Error checking notification preferences:', error as Error);
 			return true; // Default to notifying on error
 		}
 	}
@@ -192,7 +194,7 @@ export class NotificationService {
 				count: successCount
 			};
 		} catch (error) {
-			console.error('Error creating bulk notifications:', error);
+			logger.error('Error creating bulk notifications:', error as Error);
 			return {
 				success: false,
 				count: 0
@@ -323,7 +325,7 @@ export class NotificationService {
 		// to send reminders at specified times before the event
 
 		// Placeholder implementation
-		console.log(
+		logger.info(
 			`[Scheduler] Scheduling reminders for event ${eventId} at ${reminderTimes.join(', ')} minutes before`
 		);
 	}
@@ -340,7 +342,7 @@ export class NotificationService {
 
 			return true;
 		} catch (error) {
-			console.error('Error marking notification as read:', error);
+			logger.error('Error marking notification as read:', error as Error);
 			return false;
 		}
 	}
@@ -357,7 +359,7 @@ export class NotificationService {
 
 			return true;
 		} catch (error) {
-			console.error('Error marking all notifications as read:', error);
+			logger.error('Error marking all notifications as read:', error as Error);
 			return false;
 		}
 	}
@@ -376,7 +378,7 @@ export class NotificationService {
 
 			return 0; // Placeholder
 		} catch (error) {
-			console.error('Error getting unread count:', error);
+			logger.error('Error getting unread count:', error as Error);
 			return 0;
 		}
 	}

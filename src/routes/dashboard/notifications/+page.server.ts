@@ -6,12 +6,16 @@
 import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
 import { requireAuth } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, url, cookies } = event;
+	const { url, cookies } = event;
 
 	// Check authentication (users can always view their own notifications)
 	requireAuth(event, {});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	try {
 		// Get GraphQL endpoint
@@ -30,7 +34,7 @@ export const load: PageServerLoad = async (event) => {
 			'Content-Type': 'application/json'
 		};
 
-		console.log('[Notifications] Loading notifications for user:', locals.user.id);
+		logger.info('[Notifications] Loading notifications for user', { userId: locals.user.id });
 
 		// Fetch user's notifications using Rust GraphQL backend
 		// Migration: ✅ Use idiomatic Rust pattern (fetch all, filter client-side)
@@ -66,14 +70,21 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		const notificationsData = await notificationsResponse.json();
-		console.log('[Notifications] Response:', notificationsData);
+		logger.info('[Notifications] Response received', { hasData: !!notificationsData });
 
 		if (notificationsData.errors) {
-			console.error('[Notifications] GraphQL errors:', notificationsData.errors);
+			logger.error(
+				'[Notifications] GraphQL errors',
+				new Error(notificationsData.errors[0]?.message || 'GraphQL error'),
+				{ errors: notificationsData.errors.map((e: any) => ({ message: e.message })) }
+			);
 			throw new Error(notificationsData.errors[0]?.message || 'Failed to load notifications');
 		}
 
 		let notifications = notificationsData?.data?.notifications || [];
+
+		// Calculate unread count from all notifications (before filtering)
+		const unreadCount = notifications.filter((n: any) => !n.readStatus).length;
 
 		// Client-side filtering for category
 		if (categoryFilter) {
@@ -98,25 +109,6 @@ export const load: PageServerLoad = async (event) => {
 		const endIndex = startIndex + limit;
 		notifications = notifications.slice(startIndex, endIndex);
 
-		// Fetch unread count
-		const unreadCountResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetUnreadCount($recipientId: UUID) {
-						unreadNotificationsCount(recipientId: $recipientId)
-					}
-				`,
-				variables: {
-					recipientId: locals.user.id
-				}
-			})
-		});
-
-		const unreadCountData = await unreadCountResponse.json();
-		const unreadCount = unreadCountData?.data?.unreadNotificationsCount || 0;
-
 		return {
 			notifications,
 			totalCount, // Total after filtering, before pagination
@@ -132,7 +124,7 @@ export const load: PageServerLoad = async (event) => {
 			user: locals.user
 		};
 	} catch (err: any) {
-		console.error('[Notifications] Error loading notifications:', err);
+		logger.error('[Notifications] Error loading notifications:', err as Error);
 
 		// Handle specific error cases
 		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {
@@ -140,7 +132,7 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		error(500, {
-        			message: 'Failed to load notifications. Please try again later.'
-        		});
+			message: 'Failed to load notifications. Please try again later.'
+		});
 	}
 };

@@ -15,7 +15,7 @@
  * Covers: FR-001, FR-002, FR-008, FR-009
  */
 
-import { test, expect, describe, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 // Mock GraphQL client
 const mockGraphQLClient = {

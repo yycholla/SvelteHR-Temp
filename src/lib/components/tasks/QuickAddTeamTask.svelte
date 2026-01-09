@@ -13,27 +13,37 @@
 	import { Calendar as CalendarComponent } from '$lib/components/ui/calendar';
 	import LoadingSpinner from '$lib/components/ui/loading-spinner.svelte';
 	import {
-		Plus,
-		Calendar,
-		Flag,
-		Users,
-		Send,
 		Briefcase,
+		Calendar,
 		Check,
 		ChevronsUpDown,
+		Flag,
+		Plus,
+		Send,
+		Users,
 		X
 	} from '@lucide/svelte';
 	import type { DateValue } from '@internationalized/date';
 	import { format } from 'date-fns';
 
 	// Props
-	let {
+	const {
 		currentUser,
 		departments = [],
 		taskTypes = [],
 		onSuccess
 	}: {
-		currentUser: { id: string; displayName: string; role: string };
+		currentUser?: {
+			id: string;
+			email?: string;
+			displayName?: string;
+			display_name?: string;
+			role?: string;
+			firstName?: string;
+			first_name?: string;
+			lastName?: string;
+			last_name?: string;
+		};
 		departments: Array<{ id: string; name: string; description?: string }>;
 		taskTypes: Array<{ id: string; name: string; colorCode: string }>;
 		onSuccess?: () => void;
@@ -57,14 +67,14 @@
 	let isSubmitting = $state(false);
 
 	// Selected department display name
-	let selectedDepartmentName = $derived(
+	const selectedDepartmentName = $derived(
 		departments.find((d) => d.id === quickAddDepartmentId)?.name || 'Department'
 	);
 
 	// Selected task type name and color
-	let selectedTaskType = $derived(taskTypes.find((t) => t.id === quickAddTaskTypeId));
-	let selectedTaskTypeName = $derived(selectedTaskType?.name || 'Type');
-	let selectedTaskTypeColor = $derived(selectedTaskType?.colorCode || '#6b7280'); // Default to gray
+	const selectedTaskType = $derived(taskTypes.find((t) => t.id === quickAddTaskTypeId));
+	const selectedTaskTypeName = $derived(selectedTaskType?.name || 'Type');
+	const selectedTaskTypeColor = $derived(selectedTaskType?.colorCode || '#6b7280'); // Default to gray
 
 	// Priority options with colors
 	const priorityOptions = [
@@ -75,14 +85,14 @@
 	];
 
 	// Selected priority label and color
-	let selectedPriority = $derived(
+	const selectedPriority = $derived(
 		priorityOptions.find((p) => p.value === quickAddPriority) || priorityOptions[1]
 	);
-	let selectedPriorityLabel = $derived(selectedPriority.label);
-	let selectedPriorityColor = $derived(selectedPriority.color);
+	const selectedPriorityLabel = $derived(selectedPriority.label);
+	const selectedPriorityColor = $derived(selectedPriority.color);
 
 	// Format date for badge display
-	let formattedDateBadge = $derived(
+	const formattedDateBadge = $derived(
 		quickAddDueDate
 			? format(
 					new Date(quickAddDueDate.year, quickAddDueDate.month - 1, quickAddDueDate.day),
@@ -266,9 +276,7 @@
 													}}
 												>
 													<Check
-														class={quickAddPriority !== priority.value
-															? 'text-transparent'
-															: ''}
+														class={quickAddPriority !== priority.value ? 'text-transparent' : ''}
 													/>
 													<span
 														class="mr-2 h-2 w-2 rounded-full"
@@ -326,9 +334,7 @@
 													}}
 												>
 													<Check
-														class={quickAddTaskTypeId !== taskType.id
-															? 'text-transparent'
-															: ''}
+														class={quickAddTaskTypeId !== taskType.id ? 'text-transparent' : ''}
 													/>
 													<span
 														class="mr-2 h-2 w-2 rounded-full"
@@ -375,9 +381,7 @@
 													}}
 												>
 													<Check
-														class={quickAddDepartmentId !== department.id
-															? 'text-transparent'
-															: ''}
+														class={quickAddDepartmentId !== department.id ? 'text-transparent' : ''}
 													/>
 													{department.name}
 												</Command.Item>

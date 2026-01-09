@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Server-Side Permission Refresh
  * Feature: 016-repair-management-pages - Task T038
@@ -48,7 +49,7 @@ async function queryUserData(userId: string): Promise<{
 		});
 
 		if (!response.ok) {
-			console.error('[PERMISSION REFRESH] GraphQL query failed:', response.statusText);
+			logger.error('[PERMISSION REFRESH] GraphQL query failed', new Error(response.statusText));
 			return null;
 		}
 
@@ -56,7 +57,7 @@ async function queryUserData(userId: string): Promise<{
 		const user = data?.data?.userById;
 
 		if (!user) {
-			console.warn('[PERMISSION REFRESH] User not found:', userId);
+			logger.warn(`[PERMISSION REFRESH] User not found: ${userId}`);
 			return null;
 		}
 
@@ -66,9 +67,8 @@ async function queryUserData(userId: string): Promise<{
 			roles.push(user.role);
 		}
 
-		const permissions = user.userRolesByUserId?.nodes?.flatMap(
-			(ur: any) => ur.roleByRoleId?.permissions || []
-		) || [];
+		const permissions =
+			user.userRolesByUserId?.nodes?.flatMap((ur: any) => ur.roleByRoleId?.permissions || []) || [];
 
 		return {
 			departmentId: user.departmentId,
@@ -76,7 +76,7 @@ async function queryUserData(userId: string): Promise<{
 			permissions
 		};
 	} catch (error) {
-		console.error('[PERMISSION REFRESH] Error querying user data:', error);
+		logger.error('Failed to query user data', error as Error);
 		return null;
 	}
 }
@@ -103,12 +103,12 @@ export async function refreshUserPermissions(
 	permissions: string[];
 	departmentChanged: boolean;
 } | null> {
-	console.info('[PERMISSION REFRESH] Refreshing permissions for user:', userId);
+	logger.info(`[PERMISSION REFRESH] Refreshing permissions for user: ${userId}`);
 
 	// Query current user data
 	const userData = await queryUserData(userId);
 	if (!userData) {
-		console.error('[PERMISSION REFRESH] Failed to query user data');
+		logger.error('[PERMISSION REFRESH] Failed to query user data');
 		return null;
 	}
 
@@ -116,7 +116,7 @@ export async function refreshUserPermissions(
 	const departmentChanged = userData.departmentId !== currentDepartmentId;
 
 	if (departmentChanged) {
-		console.info('[PERMISSION REFRESH] Department change detected:', {
+		logger.info('[PERMISSION REFRESH] Department change detected:', {
 			userId,
 			oldDepartmentId: currentDepartmentId,
 			newDepartmentId: userData.departmentId
@@ -151,21 +151,21 @@ export async function updateSessionPermissions(
 
 		// Update locals with new data
 		if (event.locals.user) {
-			event.locals.user.departmentId = refreshed.departmentId;
+			event.locals.user.departmentId = refreshed.departmentId ?? undefined;
 		}
 		event.locals.roles = refreshed.roles;
 		event.locals.permissions = refreshed.permissions;
 
 		// If department changed, invalidate any cached data
 		if (refreshed.departmentChanged) {
-			console.info('[PERMISSION REFRESH] Department changed, invalidating cache');
+			logger.info('[PERMISSION REFRESH] Department changed, invalidating cache');
 			// Could add Redis cache invalidation here if needed
 			// await invalidateUserCache(userId);
 		}
 
 		return true;
 	} catch (error) {
-		console.error('[PERMISSION REFRESH] Error updating session:', error);
+		logger.error('Failed to update session permissions', error as Error);
 		return false;
 	}
 }
@@ -184,7 +184,7 @@ export async function checkPermissionsNeedRefresh(
 
 	// If permissions are older than maxAge, refresh
 	if (age > maxAgeMs) {
-		console.info('[PERMISSION REFRESH] Permissions expired (age: %dms)', age);
+		logger.info(`[PERMISSION REFRESH] Permissions expired (age: ${age}ms)`);
 		return true;
 	}
 
@@ -236,9 +236,9 @@ async function logDepartmentTransfer(
 			})
 		});
 
-		console.info('[PERMISSION REFRESH] Logged department transfer to audit log');
+		logger.info('[PERMISSION REFRESH] Logged department transfer to audit log');
 	} catch (error) {
-		console.error('[PERMISSION REFRESH] Failed to log department transfer:', error);
+		logger.error('Failed to log department transfer', error as Error);
 		// Don't throw - audit logging failure shouldn't break permission refresh
 	}
 }
@@ -259,9 +259,9 @@ export async function invalidateUserCache(userId: string): Promise<void> {
 		// await redis.del(`user:${userId}:department`);
 		// await redis.del(`user:${userId}:roles`);
 
-		console.info('[PERMISSION REFRESH] Cache invalidation called for user:', userId);
+		logger.info(`[PERMISSION REFRESH] Cache invalidation called for user: ${userId}`);
 	} catch (error) {
-		console.error('[PERMISSION REFRESH] Cache invalidation error:', error);
+		logger.error('Failed to invalidate user cache', error as Error);
 	}
 }
 
@@ -273,7 +273,7 @@ export async function refreshDepartmentScopedData(
 	userId: string,
 	newDepartmentId: string
 ): Promise<void> {
-	console.info('[PERMISSION REFRESH] Refreshing department-scoped data:', {
+	logger.info('[PERMISSION REFRESH] Refreshing department-scoped data:', {
 		userId,
 		newDepartmentId
 	});
@@ -317,5 +317,5 @@ export function setLastRefreshTimestamp(event: RequestEvent): void {
  */
 export function forcePermissionRefresh(event: RequestEvent): void {
 	event.cookies.delete('permissions_refreshed_at', { path: '/' });
-	console.info('[PERMISSION REFRESH] Forced permission refresh on next request');
+	logger.info('[PERMISSION REFRESH] Forced permission refresh on next request');
 }

@@ -11,7 +11,7 @@
 		class?: string;
 	}
 
-	let {
+	const {
 		loading = false,
 		disabled = false,
 		variant = 'outline',

@@ -1,3 +1,5 @@
+import { logger } from '$lib/utils/logger';
+
 /**
  * Task Cache Store (Svelte 5 Runes)
  * Feature: 028-task-system-expansion - T064
@@ -167,11 +169,7 @@ class TaskCacheManager {
 	/**
 	 * Schedule background refresh for stale data
 	 */
-	private scheduleRefresh<T>(
-		key: string,
-		fetchFn: () => Promise<T>,
-		config: CacheConfig
-	): void {
+	private scheduleRefresh<T>(key: string, fetchFn: () => Promise<T>, config: CacheConfig): void {
 		if (!config.backgroundRefresh) return;
 
 		this.clearRefreshTimer(key);
@@ -185,7 +183,7 @@ class TaskCacheManager {
 				const data = await fetchFn();
 				this.set(key, data, config);
 			} catch (error) {
-				console.error(`Background refresh failed for ${key}:`, error);
+				logger.error('Catch failed', error as Error);
 				entry.error = error instanceof Error ? error : new Error(String(error));
 			} finally {
 				entry.isRefreshing = false;
@@ -237,7 +235,7 @@ class TaskCacheManager {
 				this.pendingRequests.delete(key);
 				// If we have stale data, return it on error
 				if (entry) {
-					console.warn(`Fetch failed for ${key}, returning stale data:`, error);
+					logger.warn(`Fetch failed for ${key}, returning stale data: ${error}`);
 					entry.error = error instanceof Error ? error : new Error(String(error));
 					return entry.data as T;
 				}
@@ -337,7 +335,7 @@ class TaskCacheManager {
 			const data = await fetchFn();
 			this.set(key, data, config);
 		} catch (error) {
-			console.warn(`Cache warming failed for ${operation}:`, error);
+			logger.warn(`Cache warming failed for ${operation}: ${error}`);
 		}
 	}
 }

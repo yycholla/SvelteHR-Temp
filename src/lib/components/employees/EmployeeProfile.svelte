@@ -9,7 +9,7 @@
 	import type { User } from '$lib/types';
 
 	// Props
-	let {
+	const {
 		employeeId,
 		showActions = true,
 		onedit = undefined,
@@ -30,11 +30,13 @@
 	let deactivating = $state(false);
 
 	// Computed values
-	let isOwnProfile = $derived(employee?.id === auth.user?.id);
-	let canEdit = $derived(auth.user && (isOwnProfile || auth.hasPermission('user:update')));
-	let canDeactivate = $derived(auth.user && auth.hasPermission('user:delete') && !isOwnProfile);
-	let statusVariant = $derived(employee?.is_active ? 'success' : 'secondary') as 'success' | 'secondary';
-	let statusText = $derived(employee?.is_active ? 'Active' : 'Inactive');
+	const isOwnProfile = $derived(employee?.id === auth.user?.id);
+	const canEdit = $derived(auth.user && (isOwnProfile || auth.hasPermission('user:update')));
+	const canDeactivate = $derived(auth.user && auth.hasPermission('user:delete') && !isOwnProfile);
+	const statusVariant = $derived(employee?.is_active ? 'default' : 'secondary') as
+		| 'default'
+		| 'secondary';
+	const statusText = $derived(employee?.is_active ? 'Active' : 'Inactive');
 
 	async function loadEmployee() {
 		try {
@@ -340,7 +342,7 @@
 					<div class="roles-list">
 						{#if employee.role_assignments && employee.role_assignments.length > 0}
 							{#each employee.role_assignments as assignment}
-								<Badge variant="primary" size="sm">
+								<Badge variant="default" size="sm">
 									{assignment.role.name}
 								</Badge>
 							{/each}
@@ -390,5 +392,3 @@
 		</Button>
 	{/snippet}
 </Modal>
-
-

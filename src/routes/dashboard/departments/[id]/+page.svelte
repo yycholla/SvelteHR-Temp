@@ -284,7 +284,11 @@
 							<Card.Description>All employees in this department</Card.Description>
 						</div>
 						{#if canManageDepartments}
-							<Button size="sm" variant="outline" href="/dashboard/employees?department={department.id}">
+							<Button
+								size="sm"
+								variant="outline"
+								href="/dashboard/employees?department={department.id}"
+							>
 								<Users class="mr-2 h-4 w-4" />
 								Manage Employees
 							</Button>

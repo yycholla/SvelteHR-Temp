@@ -22,10 +22,10 @@
 		onPermissionChange: (resource: string, changes: Partial<ResourcePermissions>) => void;
 	}
 
-	let { permissions, permissionsState, onPermissionChange }: Props = $props();
+	const { permissions, permissionsState, onPermissionChange }: Props = $props();
 
 	// Group permissions by resource with state
-	let permissionsByResource = $derived.by(() => {
+	const permissionsByResource = $derived.by(() => {
 		const grouped: Record<string, ResourcePermissions & { allPermissions: Permission[] }> = {};
 
 		// First, organize all permissions by resource
@@ -53,7 +53,19 @@
 		// Ensure special permissions are properly populated
 		Object.entries(grouped).forEach(([resource, data]) => {
 			const allSpecialActions = data.allPermissions
-				.filter((p) => !['read', 'read:self', 'read:team', 'read:all', 'write', 'create', 'update', 'delete'].includes(p.action))
+				.filter(
+					(p) =>
+						![
+							'read',
+							'read:self',
+							'read:team',
+							'read:all',
+							'write',
+							'create',
+							'update',
+							'delete'
+						].includes(p.action)
+				)
 				.map((p) => {
 					const existingSpecial = data.special.find((s) => s.action === p.action);
 					return {
@@ -135,7 +147,11 @@
 	}
 
 	// Handle special permission change
-	function handleSpecialPermissionChange(resource: string, specialAction: string, enabled: boolean) {
+	function handleSpecialPermissionChange(
+		resource: string,
+		specialAction: string,
+		enabled: boolean
+	) {
 		onPermissionChange(resource, {
 			special: permissionsByResource[resource].special.map((s) =>
 				s.action === specialAction ? { ...s, enabled } : s
@@ -144,7 +160,7 @@
 	}
 
 	// Sort resources alphabetically
-	let sortedResources = $derived(Object.keys(permissionsByResource).sort());
+	const sortedResources = $derived(Object.keys(permissionsByResource).sort());
 </script>
 
 <div class="overflow-x-auto">

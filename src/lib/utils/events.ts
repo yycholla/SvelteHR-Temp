@@ -2,12 +2,9 @@
 // Feature: 019-we-need-to - Task T018
 // Purpose: Business logic helpers for event operations
 
-import type { Event } from '$lib/graphql/events-operations';
-import type {
-	EventVisibilityType,
-	RsvpStatus,
-	EventStatus
-} from '$lib/graphql/types';
+import type { Event } from '$lib/types/domain-extensions';
+import type { EventAttendee } from '$lib/graphql/events-operations';
+import type { EventStatus, EventVisibilityType, RsvpStatus } from '$lib/graphql/types';
 
 /**
  * Check if a user can view an event based on visibility rules
@@ -106,7 +103,9 @@ export function getRsvpStatusColor(status: RsvpStatus): string {
 		accepted: 'bg-green-500/10 text-green-600 dark:text-green-400',
 		declined: 'bg-red-500/10 text-red-600 dark:text-red-400',
 		tentative: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-		pending: 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+		pending: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+		no_response: 'bg-gray-500/10 text-gray-600 dark:text-gray-400',
+		waitlisted: 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
 	};
 	return colorMap[status] || 'bg-muted text-muted-foreground';
 }
@@ -129,7 +128,7 @@ export function getEventStatusColor(status: EventStatus): string {
  * Get icon for RSVP status
  */
 export function getRsvpStatusIcon(status: RsvpStatus): string {
-	const iconMap: Record<RsvpStatus, string> = {
+	const iconMap: Record<string, string> = {
 		accepted: '✓',
 		declined: '✗',
 		tentative: '?',
@@ -142,11 +141,7 @@ export function getRsvpStatusIcon(status: RsvpStatus): string {
 /**
  * Filter events by date range
  */
-export function filterEventsByDateRange(
-	events: Event[],
-	startDate: Date,
-	endDate: Date
-): Event[] {
+export function filterEventsByDateRange(events: Event[], startDate: Date, endDate: Date): Event[] {
 	return events.filter((event) => {
 		const eventStart = new Date(event.startTime);
 		return eventStart >= startDate && eventStart <= endDate;
@@ -156,10 +151,7 @@ export function filterEventsByDateRange(
 /**
  * Filter events by visibility type
  */
-export function filterEventsByVisibility(
-	events: Event[],
-	visibilityType: string
-): Event[] {
+export function filterEventsByVisibility(events: Event[], visibilityType: string): Event[] {
 	// Handle both isPublic boolean and visibilityType string
 	if (visibilityType === 'company') {
 		return events.filter((event) => event.isPublic === true);
@@ -225,7 +217,7 @@ export function getUserRsvpStatus(event: Event, userId: string): RsvpStatus | nu
 	if (!event.eventAttendeesByEventId) return null;
 
 	const attendee = event.eventAttendeesByEventId.nodes.find((a) => a.employeeId === userId);
-	return attendee ? attendee.responseStatus : null;
+	return attendee ? (attendee.responseStatus as RsvpStatus) : null;
 }
 
 /**
@@ -237,13 +229,17 @@ export function countRsvpStatuses(event: Event): Record<RsvpStatus, number> {
 		declined: 0,
 		tentative: 0,
 		pending: 0,
-		no_response: 0
+		no_response: 0,
+		waitlisted: 0
 	};
 
 	if (!event.eventAttendeesByEventId) return counts;
 
 	event.eventAttendeesByEventId.nodes.forEach((attendee) => {
-		counts[attendee.responseStatus]++;
+		const status = attendee.responseStatus as RsvpStatus;
+		if (status in counts) {
+			counts[status]++;
+		}
 	});
 
 	return counts;

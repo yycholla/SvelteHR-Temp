@@ -1,7 +1,8 @@
+import { logger } from '$lib/utils/logger';
 // Standardized error handling utilities for consistent error responses
 // T055: Error Handling Standardization - CRITICAL
 
-import { error, type HttpError } from '@sveltejs/kit';
+import { type HttpError, error } from '@sveltejs/kit';
 import { ZodError } from 'zod';
 
 // Standardized error response interface
@@ -143,15 +144,21 @@ export function createStandardError(
 	};
 
 	// Log error for debugging (exclude sensitive information)
-	console.error(`[${timestamp}] ${type.toUpperCase()} Error:`, {
+	const errorInfo = {
 		type,
 		message: standardError.message,
 		statusCode,
 		userId: context?.userId,
 		path: context?.path,
 		operation: context?.operation,
-		requestId: standardError.requestId
-	});
+		requestId: standardError.requestId,
+		timestamp
+	};
+	logger.error(
+		`${type.toUpperCase()} Error`,
+		originalError instanceof Error ? originalError : new Error(standardError.message),
+		errorInfo
+	);
 
 	return standardError;
 }
@@ -306,10 +313,12 @@ export async function withRetry<T>(
 			// Calculate delay with exponential backoff
 			const delay = Math.min(baseDelay * Math.pow(2, attempt - 1), maxDelay);
 
-			console.warn(
-				`Operation failed (attempt ${attempt}/${maxRetries + 1}), retrying in ${delay}ms:`,
-				error
-			);
+			logger.warn('Operation failed, retrying', {
+				attempt,
+				maxRetries: maxRetries + 1,
+				delay,
+				error: error instanceof Error ? error.message : String(error)
+			});
 
 			await new Promise((resolve) => setTimeout(resolve, delay));
 		}

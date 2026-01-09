@@ -49,16 +49,16 @@ export async function GET({ locals }: RequestEvent) {
 
 			'# HELP http_request_duration_seconds HTTP request duration in seconds',
 			'# TYPE http_request_duration_seconds summary',
-			`http_request_duration_seconds{quantile="0.5"} ${stats.medianResponseTime / 1000}`,
-			`http_request_duration_seconds{quantile="0.95"} ${stats.percentile95 / 1000}`,
-			`http_request_duration_seconds{quantile="0.99"} ${stats.percentile99 / 1000}`,
-			`http_request_duration_seconds_sum ${(stats.totalRequests * stats.avgResponseTime) / 1000}`,
+			`http_request_duration_seconds{quantile="0.5"} ${stats.averageResponseTime / 1000}`,
+			`http_request_duration_seconds{quantile="0.95"} ${stats.p95ResponseTime / 1000}`,
+			`http_request_duration_seconds{quantile="0.99"} ${stats.p95ResponseTime / 1000}`,
+			`http_request_duration_seconds_sum ${(stats.totalRequests * stats.averageResponseTime) / 1000}`,
 			`http_request_duration_seconds_count ${stats.totalRequests}`,
 			'',
 
 			'# HELP http_errors_total Total HTTP errors',
 			'# TYPE http_errors_total counter',
-			`http_errors_total ${stats.errorCount}`,
+			`http_errors_total ${Math.round(stats.totalRequests * stats.errorRate)}`,
 			'',
 
 			'# HELP http_error_rate Error rate (errors per request)',

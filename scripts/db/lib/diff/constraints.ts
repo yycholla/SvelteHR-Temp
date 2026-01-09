@@ -13,7 +13,12 @@ import type {
 	CheckConstraint,
 	IndexDefinition
 } from '../../types/constraints';
-import type { ConstraintDiff, IndexDiff, ConstraintDiffType, IndexDiffType } from '../../types/diff';
+import type {
+	ConstraintDiff,
+	IndexDiff,
+	ConstraintDiffType,
+	IndexDiffType
+} from '../../types/diff';
 
 /**
  * Compares all constraints between source and target tables.
@@ -167,12 +172,8 @@ function compareUniqueConstraints(
 	sourceTable: TableDefinition,
 	targetTable: TableDefinition
 ): ConstraintDiff[] {
-	const sourceUniques = new Map(
-		sourceTable.uniqueConstraints.map((u) => [u.constraintName, u])
-	);
-	const targetUniques = new Map(
-		targetTable.uniqueConstraints.map((u) => [u.constraintName, u])
-	);
+	const sourceUniques = new Map(sourceTable.uniqueConstraints.map((u) => [u.constraintName, u]));
+	const targetUniques = new Map(targetTable.uniqueConstraints.map((u) => [u.constraintName, u]));
 
 	const diffs: ConstraintDiff[] = [];
 

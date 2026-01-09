@@ -7,7 +7,7 @@
  * Migration: 20251010_008_add_users_profile_fields.sql
  */
 
-import { test, expect, describe, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 const mockGraphQLClient = {
 	query: vi.fn(),
@@ -32,13 +32,11 @@ describe('Users Profile Fields Contract (P1 Core)', () => {
 				}
 			`;
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('Profile fields not found in User type')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('Profile fields not found in User type'));
 
-			await expect(
-				mockGraphQLClient.query(query, { userId: 'user_123' })
-			).rejects.toThrow('Profile fields not found');
+			await expect(mockGraphQLClient.query(query, { userId: 'user_123' })).rejects.toThrow(
+				'Profile fields not found'
+			);
 		});
 
 		test('should allow null values for all profile fields', async () => {
@@ -64,13 +62,11 @@ describe('Users Profile Fields Contract (P1 Core)', () => {
 				}
 			};
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('Schema regeneration required')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('Schema regeneration required'));
 
-			await expect(
-				mockGraphQLClient.query(query, { userId: 'user_123' })
-			).rejects.toThrow('Schema regeneration required');
+			await expect(mockGraphQLClient.query(query, { userId: 'user_123' })).rejects.toThrow(
+				'Schema regeneration required'
+			);
 		});
 	});
 
@@ -117,9 +113,7 @@ describe('Users Profile Fields Contract (P1 Core)', () => {
 				}
 			`;
 
-			mockGraphQLClient.mutation.mockRejectedValue(
-				new Error('avatar_url update not implemented')
-			);
+			mockGraphQLClient.mutation.mockRejectedValue(new Error('avatar_url update not implemented'));
 
 			await expect(
 				mockGraphQLClient.mutation(mutation, {
@@ -208,13 +202,11 @@ describe('Users Profile Fields Contract (P1 Core)', () => {
 				}
 			`;
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('Job title search not implemented')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('Job title search not implemented'));
 
-			await expect(
-				mockGraphQLClient.query(query, { searchTerm: 'engineer' })
-			).rejects.toThrow('Job title search not implemented');
+			await expect(mockGraphQLClient.query(query, { searchTerm: 'engineer' })).rejects.toThrow(
+				'Job title search not implemented'
+			);
 		});
 
 		test('should verify GIN index usage for job_title search', async () => {
@@ -225,9 +217,9 @@ describe('Users Profile Fields Contract (P1 Core)', () => {
 				AND indexdef LIKE '%to_tsvector%job_title%';
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Index verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Index verification requires live connection'));
 
 			await expect(mockDbQuery(dbQuery)).rejects.toThrow(
 				'Index verification requires live connection'
@@ -237,16 +229,10 @@ describe('Users Profile Fields Contract (P1 Core)', () => {
 
 	describe('Data Validation Contract', () => {
 		test('should validate avatar_url format', async () => {
-			const invalidUrls = [
-				'not-a-url',
-				'ftp://invalid-protocol.com',
-				'javascript:alert(1)'
-			];
+			const invalidUrls = ['not-a-url', 'ftp://invalid-protocol.com', 'javascript:alert(1)'];
 
 			for (const invalidUrl of invalidUrls) {
-				mockGraphQLClient.mutation.mockRejectedValue(
-					new Error('URL validation not implemented')
-				);
+				mockGraphQLClient.mutation.mockRejectedValue(new Error('URL validation not implemented'));
 
 				await expect(
 					mockGraphQLClient.mutation(`mutation { }`, {
@@ -261,9 +247,7 @@ describe('Users Profile Fields Contract (P1 Core)', () => {
 			const invalidDates = ['invalid-date', '2025-13-32', 'not-a-date'];
 
 			for (const invalidDate of invalidDates) {
-				mockGraphQLClient.mutation.mockRejectedValue(
-					new Error('Date validation not implemented')
-				);
+				mockGraphQLClient.mutation.mockRejectedValue(new Error('Date validation not implemented'));
 
 				await expect(
 					mockGraphQLClient.mutation(`mutation { }`, {
@@ -286,9 +270,9 @@ describe('Users Profile Fields Contract (P1 Core)', () => {
 
 			const expectedComment = 'PII field requiring application-level encryption';
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Comment verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Comment verification requires live connection'));
 
 			await expect(mockDbQuery(dbQuery)).rejects.toThrow(
 				'Comment verification requires live connection'

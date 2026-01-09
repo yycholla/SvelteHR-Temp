@@ -3,6 +3,7 @@
 	// Individual document card display with RBAC-aware actions
 
 	import { goto } from '$app/navigation';
+	import { resolveRoute } from '$app/paths';
 	import type { Document } from '$lib/types/document';
 
 	interface Props {
@@ -13,7 +14,7 @@
 		onDownload?: (documentId: string) => void;
 	}
 
-	let {
+	const {
 		document,
 		canPreview = false,
 		canDownload = false,
@@ -23,7 +24,7 @@
 
 	// Navigate to document detail page
 	function handleCardClick() {
-		goto(`/dashboard/documents/${document.id}`);
+		goto(resolveRoute(`/dashboard/documents/${document.id}`));
 	}
 
 	// File type icons mapping
@@ -47,12 +48,12 @@
 	};
 
 	// Derived state
-	let fileIcon = $derived(fileIcons[document.file_type] || '📎');
-	let sensitivityClass = $derived(
+	const fileIcon = $derived(fileIcons[document.file_type] || '📎');
+	const sensitivityClass = $derived(
 		sensitivityColors[document.sensitivity_level] || 'bg-gray-100 text-gray-800'
 	);
-	let uploadDate = $derived(new Date(document.uploaded_at).toLocaleDateString());
-	let fileSize = $derived(formatFileSize(document.file_size_bytes));
+	const uploadDate = $derived(new Date(document.uploaded_at).toLocaleDateString());
+	const fileSize = $derived(formatFileSize(document.file_size_bytes));
 
 	// Format file size
 	function formatFileSize(bytes: number): string {
@@ -78,7 +79,13 @@
 	}
 </script>
 
-<div class="document-card" onclick={handleCardClick} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && handleCardClick()}>
+<div
+	class="document-card"
+	onclick={handleCardClick}
+	role="button"
+	tabindex="0"
+	onkeydown={(e) => e.key === 'Enter' && handleCardClick()}
+>
 	<!-- File icon and metadata -->
 	<div class="card-header">
 		<div class="file-icon">{fileIcon}</div>
@@ -101,7 +108,7 @@
 		</div>
 
 		{#if document.assigned_users && Array.isArray(document.assigned_users) && document.assigned_users.length > 0}
-			{#each document.assigned_users as assignedUser}
+			{#each document.assigned_users as assignedUser (assignedUser.id)}
 				<div class="assigned-user-badge" title="Assigned to {assignedUser.email}">
 					👤 {assignedUser.email}
 				</div>

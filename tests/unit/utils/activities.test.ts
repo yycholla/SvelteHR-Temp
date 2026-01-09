@@ -5,33 +5,33 @@
  * Tests all activity log formatting, grouping, and display utility functions.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
-	groupActivitiesByDate,
-	groupActivitiesByResourceType,
-	groupActivitiesByAction,
-	getActivityIcon,
-	getActivityActionColor,
-	getResourceTypeColor,
-	formatActivityMessage,
-	formatResourceTypeName,
-	filterActivitiesByResourceType,
 	filterActivitiesByAction,
 	filterActivitiesByDateRange,
 	filterActivitiesByEmployee,
-	getRelativeTime,
-	sortActivitiesByTimestamp,
-	getRecentActivities,
-	getTodayActivities,
-	getWeekActivities,
-	getActivityStatistics,
+	filterActivitiesByResourceType,
 	formatActivityDetails,
-	isCriticalActivity,
+	formatActivityMessage,
+	formatResourceTypeName,
+	getActivityActionColor,
+	getActivityIcon,
+	getActivityStatistics,
 	getMostActiveUsers,
 	getMostCommonActions,
-	getMostCommonResourceTypes
+	getMostCommonResourceTypes,
+	getRecentActivities,
+	getRelativeTime,
+	getResourceTypeColor,
+	getTodayActivities,
+	getWeekActivities,
+	groupActivitiesByAction,
+	groupActivitiesByDate,
+	groupActivitiesByResourceType,
+	isCriticalActivity,
+	sortActivitiesByTimestamp
 } from '$lib/utils/activities';
-import type { ActivityLog, ActivityAction, ResourceType } from '$lib/graphql/types';
+import type { ActivityAction, ActivityLog, ResourceType } from '$lib/graphql/types';
 
 // Mock activity factory
 function createMockActivity(overrides: Partial<ActivityLog> = {}): ActivityLog {
@@ -44,7 +44,7 @@ function createMockActivity(overrides: Partial<ActivityLog> = {}): ActivityLog {
 		employee: { displayName: 'John Doe' } as any,
 		createdAt: new Date().toISOString(),
 		beforeSnapshot: undefined, // Changed from null to undefined
-		afterSnapshot: undefined,  // Changed from null to undefined
+		afterSnapshot: undefined, // Changed from null to undefined
 		details: undefined, // Changed from null to undefined
 		...overrides
 	} as ActivityLog;
@@ -456,7 +456,7 @@ describe('Time and Date Functions', () => {
 	});
 
 	describe('getTodayActivities', () => {
-		it('should return only today\'s activities', () => {
+		it("should return only today's activities", () => {
 			const now = new Date();
 			const yesterday = new Date(now);
 			yesterday.setDate(yesterday.getDate() - 1);

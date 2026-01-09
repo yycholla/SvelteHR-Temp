@@ -24,7 +24,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: default  # Root app uses default project (unrestricted)
+  project: default # Root app uses default project (unrestricted)
 
   # Source: All app-of-apps manifests from Git
   source:
@@ -42,10 +42,10 @@ spec:
 
   # Sync policy: MANUAL (critical - never auto-sync the root!)
   syncPolicy:
-    automated: null  # NEVER enable automated sync for root app
+    automated: null # NEVER enable automated sync for root app
 
     syncOptions:
-      - CreateNamespace=false  # argocd namespace already exists
+      - CreateNamespace=false # argocd namespace already exists
 
     retry:
       limit: 2

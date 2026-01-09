@@ -1,16 +1,27 @@
 // Profile settings page - server-side data loading
 // Loads current user's profile, notification preferences, and theme settings
 
-import type { PageServerLoad, Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { PermissionChecks } from '$lib/server/rbac-utils';
+import { requireAuth } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies } = event;
+	const { cookies } = event;
 
 	// Check authentication and permissions
-	PermissionChecks.employeeRead(event);
+	requireAuth(event, {
+		requiredPermissions: [
+			'employees:read',
+			'employees:read:self',
+			'employees:read:team',
+			'employees:read:all'
+		]
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	const userId = locals.user.id;
 
@@ -137,17 +148,22 @@ export const load: PageServerLoad = async (event) => {
 			themePreference
 		};
 	} catch (err) {
-		console.error('[Settings Load Error]', err);
+		logger.error('[Settings Load Error]', err as Error);
 		error(500, 'Failed to load profile settings');
 	}
 };
 
 export const actions: Actions = {
 	// Update notification preferences
-	updateNotifications: async ({ request, locals, cookies }) => {
-		if (!locals.user?.id) {
-			return fail(401, { error: 'Authentication required' });
-		}
+	updateNotifications: async (event) => {
+		const { request, cookies } = event;
+
+		requireAuth(event, {
+			requiredPermissions: ['employees:write', 'employees:write:self']
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		try {
 			const formData = await request.formData();
@@ -166,22 +182,27 @@ export const actions: Actions = {
 			// For now, just return success
 			return { success: true, message: 'Notification preferences updated successfully' };
 		} catch (err) {
-			console.error('[Update Notifications Error]', err);
+			logger.error('[Update Notifications Error]', err as Error);
 			return fail(500, { error: 'Failed to update notification preferences' });
 		}
 	},
 
 	// Update theme preference
-	updateTheme: async ({ request, locals, cookies }) => {
-		if (!locals.user?.id) {
-			return fail(401, { error: 'Authentication required' });
-		}
+	updateTheme: async (event) => {
+		const { request, cookies } = event;
+
+		requireAuth(event, {
+			requiredPermissions: ['employees:write', 'employees:write:self']
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		try {
 			const formData = await request.formData();
 			const theme = formData.get('theme') as string;
 
-			console.log('[Update Theme] User:', locals.user.id, 'Theme:', theme);
+			logger.info('[Update Theme] User and theme', { userId: locals.user.id, theme });
 
 			if (!['light', 'dark', 'system'].includes(theme)) {
 				return fail(400, { error: 'Invalid theme selection' });
@@ -201,7 +222,7 @@ export const actions: Actions = {
 				}
 			`;
 
-			console.log('[Update Theme] Calling GraphQL with userId:', locals.user.id, 'theme:', theme);
+			logger.info('[Update Theme] Calling GraphQL', { userId: locals.user.id, theme });
 
 			const result = await graphqlClient.query(updateMutation, {
 				userId: locals.user.id,
@@ -210,11 +231,11 @@ export const actions: Actions = {
 				}
 			});
 
-			console.log('[Update Theme] GraphQL result:', JSON.stringify(result, null, 2));
+			logger.info('[Update Theme] GraphQL result', { result: JSON.stringify(result, null, 2) });
 
 			// Check for GraphQL errors
 			if (result.errors && result.errors.length > 0) {
-				console.error('[Update Theme] GraphQL errors found:', result.errors);
+				logger.error('[Update Theme] GraphQL errors found', undefined, { errors: result.errors });
 				// Don't fail here - still set the cookie for client-side consistency
 			}
 
@@ -226,20 +247,25 @@ export const actions: Actions = {
 				sameSite: 'lax'
 			});
 
-			console.log('[Update Theme] Success! Theme updated to:', theme);
+			logger.info('[Update Theme] Success! Theme updated', { theme });
 
 			return { success: true, message: `Theme updated to ${theme}` };
 		} catch (err) {
-			console.error('[Update Theme Error]', err);
+			logger.error('[Update Theme Error]', err as Error);
 			return fail(500, { error: 'Failed to update theme preference' });
 		}
 	},
 
 	// Request information changes (requires admin approval)
-	requestInfoChange: async ({ request, locals, cookies }) => {
-		if (!locals.user?.id) {
-			return fail(401, { error: 'Authentication required' });
-		}
+	requestInfoChange: async (event) => {
+		const { request, cookies } = event;
+
+		requireAuth(event, {
+			requiredPermissions: ['employees:write', 'employees:write:self']
+		});
+
+		// After permission check, re-destructure locals
+		const { locals } = event;
 
 		try {
 			const formData = await request.formData();
@@ -312,7 +338,7 @@ export const actions: Actions = {
 				message: `Profile change request submitted with ${Object.keys(changes).length} field(s). An administrator will review your request.`
 			};
 		} catch (err) {
-			console.error('[Request Info Change Error]', err);
+			logger.error('[Request Info Change Error]', err as Error);
 			return fail(500, { error: 'Failed to submit change request' });
 		}
 	}

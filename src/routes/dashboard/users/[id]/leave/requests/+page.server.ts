@@ -5,6 +5,7 @@ import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, params, url, cookies } = event;
@@ -19,8 +20,9 @@ export const load: PageServerLoad = async (event) => {
 
 	// If not viewing self, check for team or all scope
 	if (!isViewingSelf) {
-		const hasTeamScope = userPermissions.includes('leave:read:team') || userPermissions.includes('leave:read:all');
-		if (!hasTeamScope && !userPermissions.includes('*') || userPermissions.includes('*:*')) {
+		const hasTeamScope =
+			userPermissions.includes('leave:read:team') || userPermissions.includes('leave:read:all');
+		if ((!hasTeamScope && !userPermissions.includes('*')) || userPermissions.includes('*:*')) {
 			error(403, 'Access denied: You can only view your own leave requests');
 		}
 
@@ -34,7 +36,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// If backend is not ready, return error state but don't crash
 		if (!backendReady) {
-			console.warn('Backend not ready for user leave requests page');
+			logger.warn('Backend not ready for user leave requests page');
 			return {
 				user: null,
 				userId,
@@ -105,7 +107,10 @@ export const load: PageServerLoad = async (event) => {
 			}
 		`;
 
-		const leaveRequestsData = await graphqlClient.query(leaveRequestsQuery, { employeeId: userId, limit: 100 });
+		const leaveRequestsData = await graphqlClient.query(leaveRequestsQuery, {
+			employeeId: userId,
+			limit: 100
+		});
 		const leaveRequests = leaveRequestsData.data?.leaveRequests || [];
 
 		// Load leave balances - migrated to Rust GraphQL backend
@@ -160,10 +165,7 @@ export const load: PageServerLoad = async (event) => {
 		// Calculate leave balances with pending requests - updated for Rust backend
 		const formattedLeaveBalances = currentYearBalances.map((balance: any) => {
 			const pending = leaveRequests
-				.filter((req: any) =>
-					req.status === 'pending' &&
-					balance.leaveType?.id === req.leaveTypeId
-				)
+				.filter((req: any) => req.status === 'pending' && balance.leaveType?.id === req.leaveTypeId)
 				.reduce((sum: number, req: any) => sum + (req.daysRequested || 0), 0);
 
 			return {
@@ -181,7 +183,7 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		// Map leave requests to match the expected format
-		const formattedLeaveRequests = leaveRequests.map(req => ({
+		const formattedLeaveRequests = leaveRequests.map((req: any) => ({
 			id: req.id,
 			startDate: req.startDate,
 			endDate: req.endDate,
@@ -194,13 +196,24 @@ export const load: PageServerLoad = async (event) => {
 			reason: req.reason || '',
 			status: req.status,
 			requestedAt: req.createdAt,
-			approvedBy: req.manager ? {
-				id: req.manager.id,
-				name: req.manager.displayName
-			} : null,
+			approvedBy: req.manager
+				? {
+						id: req.manager.id,
+						name: req.manager.displayName
+					}
+				: null,
 			comments: req.managerComments,
 			totalDays: req.daysRequested || 0
 		}));
+
+		// Determine if user can manage leave for this user
+		const canManageLeave =
+			!isViewingSelf &&
+			(userPermissions.includes('leave:write:team') ||
+				userPermissions.includes('leave:write:all') ||
+				userPermissions.includes('leave:approve:team') ||
+				userPermissions.includes('leave:approve:all') ||
+				userPermissions.includes('*'));
 
 		return {
 			user,
@@ -213,14 +226,13 @@ export const load: PageServerLoad = async (event) => {
 				code: type.name,
 				color: type.color || getLeaveTypeColor(type.name)
 			})),
-			canManageLeave: canViewOthers,
+			canManageLeave,
 			isOwnLeave: locals.user?.id === userId,
 			permissions: locals.permissions || [],
 			loadedAt: new Date().toISOString()
 		};
-
 	} catch (err) {
-		console.error('Error loading user leave requests:', err);
+		logger.error('Error loading user leave requests:', err as Error);
 
 		// Return error state instead of throwing to prevent page crash
 		return {

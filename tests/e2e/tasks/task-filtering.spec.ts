@@ -2,7 +2,7 @@
 // Feature: 028-task-system-expansion - T050
 // Purpose: Test advanced task filtering functionality
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Task Filtering', () => {
 	test.beforeEach(async ({ page }) => {
@@ -26,7 +26,7 @@ test.describe('Task Filtering', () => {
 			await page.goto('/dashboard/tasks/new');
 			await page.waitForLoadState('networkidle');
 			await page.fill('input[name="title"]', task.title);
-			
+
 			const submitButton = page.locator('button[type="submit"]:has-text("Create Task")');
 			await submitButton.click();
 			await page.waitForURL('**/tasks/*', { timeout: 10000 });
@@ -46,9 +46,10 @@ test.describe('Task Filtering', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Find search input
-		const searchInput = page.locator('input[type="text"]').filter({ hasText: '' }).or(
-			page.locator('input[placeholder*="Search"]')
-		);
+		const searchInput = page
+			.locator('input[type="text"]')
+			.filter({ hasText: '' })
+			.or(page.locator('input[placeholder*="Search"]'));
 
 		if (await searchInput.isVisible()) {
 			// Type search query
@@ -68,9 +69,10 @@ test.describe('Task Filtering', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Find status checkboxes or select
-		const inProgressCheckbox = page.locator('input[type="checkbox"]').filter({ hasText: 'In Progress' }).or(
-			page.locator('label:has-text("In Progress") input')
-		);
+		const inProgressCheckbox = page
+			.locator('input[type="checkbox"]')
+			.filter({ hasText: 'In Progress' })
+			.or(page.locator('label:has-text("In Progress") input'));
 
 		if (await inProgressCheckbox.isVisible()) {
 			await inProgressCheckbox.check();
@@ -89,9 +91,10 @@ test.describe('Task Filtering', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Find priority checkboxes
-		const urgentCheckbox = page.locator('input[type="checkbox"]').filter({ hasText: 'Urgent' }).or(
-			page.locator('label:has-text("Urgent") input')
-		);
+		const urgentCheckbox = page
+			.locator('input[type="checkbox"]')
+			.filter({ hasText: 'Urgent' })
+			.or(page.locator('label:has-text("Urgent") input'));
 
 		if (await urgentCheckbox.isVisible()) {
 			await urgentCheckbox.check();

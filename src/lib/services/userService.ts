@@ -1,15 +1,20 @@
+import { logger } from '$lib/utils/logger';
 // User service for managing user operations
 // Provides CRUD operations and user management functionality
 
-import type { User, CreateUserInput, UpdateUserInput } from '$lib/types';
+import type { CreateUserInput, UpdateUserInput, User } from '$lib/types';
 import { createUrqlClient } from '$lib/graphql/client';
 import {
+	CREATE_USER_MUTATION,
+	DELETE_USER_MUTATION,
 	GET_USERS_QUERY,
 	GET_USER_QUERY,
-	CREATE_USER_MUTATION,
-	UPDATE_USER_MUTATION,
-	DELETE_USER_MUTATION
+	UPDATE_USER_MUTATION
 } from '$lib/graphql/user-operations';
+import { writable } from 'svelte/store';
+
+// Store for users list
+export const users = writable<User[]>([]);
 
 /**
  * Get all users with optional filtering
@@ -51,7 +56,7 @@ export async function getUsers(filters?: {
 			totalCount: result.data?.users_aggregate?.aggregate?.count || 0
 		};
 	} catch (error) {
-		console.error('Error fetching users:', error);
+		logger.error('Error fetching users:', error as Error);
 		throw error;
 	}
 }
@@ -71,7 +76,7 @@ export async function getUser(id: string): Promise<User | null> {
 
 		return result.data?.user || null;
 	} catch (error) {
-		console.error('Error fetching user:', error);
+		logger.error('Error fetching user:', error as Error);
 		throw error;
 	}
 }
@@ -95,7 +100,7 @@ export async function createUser(input: CreateUserInput): Promise<User> {
 
 		return result.data.createUser.user;
 	} catch (error) {
-		console.error('Error creating user:', error);
+		logger.error('Error creating user:', error as Error);
 		throw error;
 	}
 }
@@ -122,7 +127,7 @@ export async function updateUser(id: string, input: UpdateUserInput): Promise<Us
 
 		return result.data.updateUser.user;
 	} catch (error) {
-		console.error('Error updating user:', error);
+		logger.error('Error updating user:', error as Error);
 		throw error;
 	}
 }
@@ -142,7 +147,7 @@ export async function deleteUser(id: string): Promise<boolean> {
 
 		return result.data?.deleteUser?.deletedUserId !== null;
 	} catch (error) {
-		console.error('Error deleting user:', error);
+		logger.error('Error deleting user:', error as Error);
 		throw error;
 	}
 }
@@ -168,6 +173,18 @@ export async function getActiveUsers(): Promise<User[]> {
 	return (await getUsers({ isActive: true })).users;
 }
 
+/**
+ * Load users with optional reset flag (for backward compatibility)
+ */
+export async function loadUsers(options?: {
+	reset?: boolean;
+}): Promise<{ users: User[]; totalCount: number }> {
+	// Reset flag is ignored as we always fetch fresh data
+	const result = await getUsers();
+	users.set(result.users);
+	return result;
+}
+
 // Export the service object for consistency with other services
 export const userService = {
 	getUsers,
@@ -177,5 +194,8 @@ export const userService = {
 	deleteUser,
 	searchUsers,
 	getUsersByDepartment,
-	getActiveUsers
+	getActiveUsers,
+	loadUsers,
+	getUserDetails: getUser,
+	deactivateUser: (id: string, reason?: string) => updateUser(id, { isActive: false } as any) // reason handling needs backend support
 };

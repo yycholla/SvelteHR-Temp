@@ -1,9 +1,10 @@
 <script lang="ts">
 	// FileUploader component (Feature 024)
+	import { logger } from '$lib/utils/logger';
 	// Simple drag-and-drop file selection for server-side encryption
 	// Encryption happens on SvelteKit server, not in browser
 
-	import { validateFileType, validateFileSize, MIME_TYPE_MAP } from '$lib/schemas/documentSchemas';
+	import { MIME_TYPE_MAP, validateFileSize, validateFileType } from '$lib/schemas/documentSchemas';
 	import type { DocumentMetadata } from '$lib/types/document';
 
 	interface Props {
@@ -26,12 +27,14 @@
 	let selectedFile = $state<File | null>(null);
 	let isDragging = $state(false);
 	let errorMessage = $state<string | null>(null);
+	let fileInput = $state<HTMLInputElement | undefined>(undefined);
 
 	// Update bindable props when file changes
 	$effect(() => {
 		hasFile = selectedFile !== null;
 		fileName = selectedFile?.name || null;
-		console.log('[FileUploader] hasFile updated:', hasFile, 'selectedFile:', selectedFile?.name);
+		logger.info(`[FileUploader] hasFile updated: ${hasFile}`);
+		logger.info(`selectedFile: ${selectedFile?.name}`);
 	});
 
 	// Handle file selection from input
@@ -66,29 +69,29 @@
 
 	// Validate and set selected file
 	function validateAndSetFile(file: File) {
-		console.log('[FileUploader] validateAndSetFile called with:', file.name, 'size:', file.size);
+		logger.info(`[FileUploader] validateAndSetFile called with: ${file.name} size:, ${file.size}`);
 		errorMessage = null;
 
 		// Validate file size
 		if (!validateFileSize(file.size)) {
 			errorMessage = `File size exceeds ${maxSizeMB}MB limit`;
-			console.log('[FileUploader] File size validation failed');
+			logger.info('[FileUploader] File size validation failed');
 			return;
 		}
 
 		// Validate file type
 		if (!validateFileType(file.name)) {
 			errorMessage = `Invalid file type. Allowed: ${allowedTypes.join(', ')}`;
-			console.log('[FileUploader] File type validation failed');
+			logger.info('[FileUploader] File type validation failed');
 			return;
 		}
 
-		console.log('[FileUploader] Validation passed, setting selectedFile');
+		logger.info('[FileUploader] Validation passed, setting selectedFile');
 		selectedFile = file;
 
 		// Update metadata with filename immediately
 		metadata.filename = file.name;
-		console.log('[FileUploader] metadata.filename set to:', metadata.filename);
+		logger.info(`[FileUploader] metadata.filename set to: ${metadata.filename}`);
 	}
 
 	// Expose function to get selected file for parent form submission
@@ -147,6 +150,7 @@
 				<label class="file-select-button">
 					Choose File
 					<input
+						bind:this={fileInput}
 						type="file"
 						accept={allowedTypes.map((t) => MIME_TYPE_MAP[t] || '').join(',')}
 						onchange={handleFileSelect}

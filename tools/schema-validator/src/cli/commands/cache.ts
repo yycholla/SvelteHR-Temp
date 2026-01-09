@@ -37,11 +37,16 @@ async function clearCache(options: CacheClearOptions): Promise<void> {
       }
 
       if (!options.database && !options.api && !options.operations) {
-        console.log(chalk.yellow('⚠️  No cache type specified. Use --all, --database, --api, or --operations'));
+        console.log(
+          chalk.yellow('⚠️  No cache type specified. Use --all, --database, --api, or --operations')
+        );
       }
     }
   } catch (error) {
-    console.error(chalk.red('❌ Cache clear failed:'), error instanceof Error ? error.message : String(error));
+    console.error(
+      chalk.red('❌ Cache clear failed:'),
+      error instanceof Error ? error.message : String(error)
+    );
     process.exit(1);
   }
 }
@@ -61,12 +66,21 @@ async function showCacheStats(options: { config?: string }): Promise<void> {
       return `${(age / 3600).toFixed(1)}h`;
     };
 
-    console.log(`  ${chalk.cyan('Database:')} ${stats.database.valid ? chalk.green('✓') : chalk.red('✗')} (age: ${formatAge(stats.database.age)})`);
-    console.log(`  ${chalk.cyan('API:')} ${stats.api.valid ? chalk.green('✓') : chalk.red('✗')} (age: ${formatAge(stats.api.age)})`);
-    console.log(`  ${chalk.cyan('Operations:')} ${stats.operations.valid ? chalk.green('✓') : chalk.red('✗')} (age: ${formatAge(stats.operations.age)})`);
+    console.log(
+      `  ${chalk.cyan('Database:')} ${stats.database.valid ? chalk.green('✓') : chalk.red('✗')} (age: ${formatAge(stats.database.age)})`
+    );
+    console.log(
+      `  ${chalk.cyan('API:')} ${stats.api.valid ? chalk.green('✓') : chalk.red('✗')} (age: ${formatAge(stats.api.age)})`
+    );
+    console.log(
+      `  ${chalk.cyan('Operations:')} ${stats.operations.valid ? chalk.green('✓') : chalk.red('✗')} (age: ${formatAge(stats.operations.age)})`
+    );
     console.log('');
   } catch (error) {
-    console.error(chalk.red('❌ Failed to get cache stats:'), error instanceof Error ? error.message : String(error));
+    console.error(
+      chalk.red('❌ Failed to get cache stats:'),
+      error instanceof Error ? error.message : String(error)
+    );
     process.exit(1);
   }
 }

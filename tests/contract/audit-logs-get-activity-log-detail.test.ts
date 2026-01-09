@@ -15,7 +15,7 @@
  * - Snapshots (before/after) included in response
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface GetActivityLogVariables {
 	id: string; // UUID
@@ -53,10 +53,10 @@ interface ActivityLogDetail {
 }
 
 interface GetActivityLogResponse {
-	activityLogById: ActivityLogDetail | null;
+	activityLog: ActivityLogDetail | null;
 }
 
-const mockGetActivityLog = vi.fn<[GetActivityLogVariables], Promise<GetActivityLogResponse>>();
+const mockGetActivityLog = vi.fn<() => Promise<GetActivityLogResponse>>();
 
 describe('GetActivityLog Query Contract (TDD RED - should fail)', () => {
 	beforeEach(() => {

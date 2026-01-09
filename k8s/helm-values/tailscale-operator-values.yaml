@@ -16,14 +16,14 @@ oauth: {}
 # Operator configuration
 operatorConfig:
   # Hostname for the operator itself
-  hostname: "tailscale-operator"
+  hostname: 'tailscale-operator'
 
   # ACL tags that the operator will be tagged with
   defaultTags:
-    - "tag:k8s"
+    - 'tag:k8s'
 
   # Logging level (info, debug, dev)
-  logging: "info"
+  logging: 'info'
 
   # Resource limits for the operator pod
   resources:

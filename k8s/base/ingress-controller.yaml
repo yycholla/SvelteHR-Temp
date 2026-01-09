@@ -143,8 +143,6 @@ rules:
   - ""
   resources:
   - configmaps
-  resources:
-  - "configmaps"
   verbs:
   - get
   - update

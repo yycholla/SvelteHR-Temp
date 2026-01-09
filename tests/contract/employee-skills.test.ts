@@ -7,7 +7,7 @@
  * Migration: 20251010_010_create_employee_skills.sql
  */
 
-import { test, expect, describe, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 const mockGraphQLClient = {
 	query: vi.fn(),
@@ -41,9 +41,9 @@ describe('Employee Skills Contract (P2 Feature)', () => {
 				new Error('Type "EmployeeSkill" not found in schema')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { userId: 'user_123' })
-			).rejects.toThrow('Type "EmployeeSkill" not found');
+			await expect(mockGraphQLClient.query(query, { userId: 'user_123' })).rejects.toThrow(
+				'Type "EmployeeSkill" not found'
+			);
 		});
 
 		test('should expose endorsedBy as UUID array field', async () => {
@@ -66,9 +66,9 @@ describe('Employee Skills Contract (P2 Feature)', () => {
 				new Error('Field "endorsedBy" not found in type "EmployeeSkill"')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { skillId: 'skill_123' })
-			).rejects.toThrow('Field "endorsedBy" not found');
+			await expect(mockGraphQLClient.query(query, { skillId: 'skill_123' })).rejects.toThrow(
+				'Field "endorsedBy" not found'
+			);
 		});
 
 		test('should expose endorsers relationship (resolved from endorsedBy)', async () => {
@@ -92,9 +92,9 @@ describe('Employee Skills Contract (P2 Feature)', () => {
 				new Error('Relationship "endorsers" not implemented')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { skillId: 'skill_123' })
-			).rejects.toThrow('Relationship "endorsers" not implemented');
+			await expect(mockGraphQLClient.query(query, { skillId: 'skill_123' })).rejects.toThrow(
+				'Relationship "endorsers" not implemented'
+			);
 		});
 	});
 
@@ -125,9 +125,9 @@ describe('Employee Skills Contract (P2 Feature)', () => {
 				new Error('createEmployeeSkill mutation not implemented')
 			);
 
-			await expect(
-				mockGraphQLClient.mutation(mutation, variables)
-			).rejects.toThrow('createEmployeeSkill mutation not implemented');
+			await expect(mockGraphQLClient.mutation(mutation, variables)).rejects.toThrow(
+				'createEmployeeSkill mutation not implemented'
+			);
 		});
 
 		test('should update proficiency level', async () => {
@@ -173,9 +173,9 @@ describe('Employee Skills Contract (P2 Feature)', () => {
 				new Error('deleteEmployeeSkill mutation not implemented')
 			);
 
-			await expect(
-				mockGraphQLClient.mutation(mutation, { skillId: 'skill_123' })
-			).rejects.toThrow('deleteEmployeeSkill mutation not implemented');
+			await expect(mockGraphQLClient.mutation(mutation, { skillId: 'skill_123' })).rejects.toThrow(
+				'deleteEmployeeSkill mutation not implemented'
+			);
 		});
 	});
 
@@ -261,9 +261,9 @@ describe('Employee Skills Contract (P2 Feature)', () => {
 				new Error('Array containment filter not implemented')
 			);
 
-			await expect(
-				mockGraphQLClient.query(query, { endorserId: 'user_endorser' })
-			).rejects.toThrow('Array containment filter not implemented');
+			await expect(mockGraphQLClient.query(query, { endorserId: 'user_endorser' })).rejects.toThrow(
+				'Array containment filter not implemented'
+			);
 		});
 	});
 
@@ -315,9 +315,7 @@ describe('Employee Skills Contract (P2 Feature)', () => {
 				`;
 
 				// Expected to fail until schema regenerated
-				mockGraphQLClient.mutation.mockRejectedValue(
-					new Error('Schema regeneration required')
-				);
+				mockGraphQLClient.mutation.mockRejectedValue(new Error('Schema regeneration required'));
 
 				await expect(
 					mockGraphQLClient.mutation(mutation, {
@@ -351,13 +349,11 @@ describe('Employee Skills Contract (P2 Feature)', () => {
 				}
 			`;
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('Full-text search not implemented')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('Full-text search not implemented'));
 
-			await expect(
-				mockGraphQLClient.query(query, { searchTerm: 'script' })
-			).rejects.toThrow('Full-text search not implemented');
+			await expect(mockGraphQLClient.query(query, { searchTerm: 'script' })).rejects.toThrow(
+				'Full-text search not implemented'
+			);
 		});
 
 		test('should verify GIN index for full-text search', async () => {
@@ -368,9 +364,9 @@ describe('Employee Skills Contract (P2 Feature)', () => {
 				AND indexdef LIKE '%to_tsvector%skill_name%';
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Index verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Index verification requires live connection'));
 
 			await expect(mockDbQuery(dbQuery)).rejects.toThrow(
 				'Index verification requires live connection'
@@ -395,13 +391,11 @@ describe('Employee Skills Contract (P2 Feature)', () => {
 				}
 			`;
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('Aggregation not implemented')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('Aggregation not implemented'));
 
-			await expect(
-				mockGraphQLClient.query(query, { userId: 'user_123' })
-			).rejects.toThrow('Aggregation not implemented');
+			await expect(mockGraphQLClient.query(query, { userId: 'user_123' })).rejects.toThrow(
+				'Aggregation not implemented'
+			);
 		});
 
 		test('should count total skills per user', async () => {
@@ -413,13 +407,11 @@ describe('Employee Skills Contract (P2 Feature)', () => {
 				}
 			`;
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('Count aggregation not implemented')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('Count aggregation not implemented'));
 
-			await expect(
-				mockGraphQLClient.query(query, { userId: 'user_123' })
-			).rejects.toThrow('Count aggregation not implemented');
+			await expect(mockGraphQLClient.query(query, { userId: 'user_123' })).rejects.toThrow(
+				'Count aggregation not implemented'
+			);
 		});
 	});
 
@@ -477,9 +469,7 @@ describe('Employee Skills Contract (P2 Feature)', () => {
 				}
 			`;
 
-			mockGraphQLClient.query.mockRejectedValue(
-				new Error('RLS read policy not implemented')
-			);
+			mockGraphQLClient.query.mockRejectedValue(new Error('RLS read policy not implemented'));
 
 			await expect(mockGraphQLClient.query(query)).rejects.toThrow(
 				'RLS read policy not implemented'
@@ -496,9 +486,9 @@ describe('Employee Skills Contract (P2 Feature)', () => {
 				AND table_name = 'employee_skills';
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Database verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Database verification requires live connection'));
 
 			await expect(mockDbQuery(dbQuery)).rejects.toThrow(
 				'Database verification requires live connection'
@@ -513,9 +503,9 @@ describe('Employee Skills Contract (P2 Feature)', () => {
 				AND conname = 'chk_employee_skills_proficiency_level';
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Constraint verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Constraint verification requires live connection'));
 
 			await expect(mockDbQuery(constraintQuery)).rejects.toThrow(
 				'Constraint verification requires live connection'
@@ -530,9 +520,9 @@ describe('Employee Skills Contract (P2 Feature)', () => {
 				AND indexname = 'idx_employee_skills_endorsed_by';
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('Index verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('Index verification requires live connection'));
 
 			await expect(mockDbQuery(indexQuery)).rejects.toThrow(
 				'Index verification requires live connection'
@@ -548,9 +538,9 @@ describe('Employee Skills Contract (P2 Feature)', () => {
 				AND conname LIKE '%user_id%';
 			`;
 
-			const mockDbQuery = vi.fn().mockRejectedValue(
-				new Error('FK verification requires live connection')
-			);
+			const mockDbQuery = vi
+				.fn()
+				.mockRejectedValue(new Error('FK verification requires live connection'));
 
 			await expect(mockDbQuery(fkQuery)).rejects.toThrow(
 				'FK verification requires live connection'

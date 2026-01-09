@@ -9,6 +9,7 @@ pub mod database;
 pub mod dataloader;
 pub mod error;
 pub mod handlers;
+pub mod integrations;
 pub mod middleware;
 pub mod models;
 pub mod seed_data;

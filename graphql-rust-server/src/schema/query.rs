@@ -40,6 +40,8 @@ use crate::{
     },
 };
 
+use crate::models::{AssignmentWithModule, AssignmentWithUser};
+
 /// Task filter input for advanced querying
 #[derive(async_graphql::InputObject)]
 pub struct TaskFilter {
@@ -77,7 +79,7 @@ pub struct SessionInfo {
 ///
 /// # Security Critical
 /// This function MUST be applied to ALL user queries to prevent cross-tenant data leaks.
-fn apply_user_rls_filter(
+pub fn apply_user_rls_filter(
     query: sea_orm::Select<UserEntity>,
     _user_context: &UserContext,
 ) -> sea_orm::Select<UserEntity> {
@@ -1138,6 +1140,9 @@ impl QueryRoot {
 
         let mut query = NotificationEntity::find();
 
+        // Filter out soft-deleted notifications
+        query = query.filter(NotificationColumn::DeletedAt.is_null());
+
         // Add user filter if provided
         if let Some(uid) = user_id {
             query = query.filter(NotificationColumn::RecipientId.eq(uid));
@@ -1416,6 +1421,309 @@ impl QueryRoot {
     }
 
     // =========================================================================
+    // Onboarding Queries
+    // =========================================================================
+
+    /// Get all onboarding modules
+    async fn onboarding_modules(&self, ctx: &Context<'_>) -> Result<Vec<crate::models::OnboardingModule>> {
+        let db = get_db_from_context(ctx)?;
+        // TODO: RLS filtering?
+        let modules = crate::models::onboarding::onboarding_module::Entity::find().all(&db).await?;
+        Ok(modules)
+    }
+
+    /// Get single onboarding module
+    async fn onboarding_module(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<crate::models::OnboardingModule>> {
+        let db = get_db_from_context(ctx)?;
+        let module = crate::models::onboarding::onboarding_module::Entity::find_by_id(id).one(&db).await?;
+        Ok(module)
+    }
+
+    /// Get onboarding modules assigned to current user
+    async fn my_onboarding_modules(&self, ctx: &Context<'_>) -> Result<Vec<crate::models::OnboardingModule>> {
+        let db = get_db_from_context(ctx)?;
+        let user_context = ctx.data::<UserContext>()?;
+
+        let assignments = crate::models::onboarding::assignment::Entity::find()
+            .filter(crate::models::onboarding::assignment::Column::UserId.eq(user_context.user_id))
+            .all(&db)
+            .await?;
+
+        let module_ids: Vec<Uuid> = assignments.iter().map(|a| a.onboarding_module_id).collect();
+
+        let modules = crate::models::onboarding::onboarding_module::Entity::find()
+            .filter(crate::models::onboarding::onboarding_module::Column::Id.is_in(module_ids))
+            .all(&db)
+            .await?;
+
+        Ok(modules)
+    }
+
+    /// Get onboarding assignments for current user (with module details)
+    async fn my_onboarding_assignments(&self, ctx: &Context<'_>) -> Result<Vec<crate::models::AssignmentWithModule>> {
+        use sea_orm::ModelTrait;
+
+        let db = get_db_from_context(ctx)?;
+        let user_context = ctx.data::<UserContext>()?;
+
+        let assignments = crate::models::onboarding::assignment::Entity::find()
+            .filter(crate::models::onboarding::assignment::Column::UserId.eq(user_context.user_id))
+            .all(&db)
+            .await?;
+
+        // Load the onboarding module for each assignment
+        let mut result = Vec::new();
+        for assignment in assignments {
+            let module = assignment
+                .find_related(crate::models::onboarding::onboarding_module::Entity)
+                .one(&db)
+                .await?;
+
+            result.push(AssignmentWithModule {
+                id: assignment.id,
+                user_id: assignment.user_id,
+                onboarding_module_id: assignment.onboarding_module_id,
+                assigned_by_id: assignment.assigned_by_id,
+                assigned_at: assignment.assigned_at,
+                due_date: assignment.due_date,
+                completed_at: assignment.completed_at,
+                onboarding_module: module,
+            });
+        }
+
+        Ok(result)
+    }
+
+    /// Get all onboarding assignments (admin/HR view)
+    async fn all_onboarding_assignments(&self, ctx: &Context<'_>) -> Result<Vec<crate::models::AssignmentWithUser>> {
+        let db = get_db_from_context(ctx)?;
+
+        // Find all assignments and load related users
+        let assignments = crate::models::onboarding::assignment::Entity::find()
+            .find_also_related(crate::models::user::Entity)
+            .all(&db)
+            .await?;
+
+        // Map to AssignmentWithUser
+        let result = assignments.into_iter().map(|(assignment, user)| {
+            AssignmentWithUser {
+                id: assignment.id,
+                user_id: assignment.user_id,
+                onboarding_module_id: assignment.onboarding_module_id,
+                assigned_by_id: assignment.assigned_by_id,
+                assigned_at: assignment.assigned_at,
+                due_date: assignment.due_date,
+                completed_at: assignment.completed_at,
+                user,
+            }
+        }).collect();
+
+        Ok(result)
+    }
+
+    /// Get all form templates
+    async fn form_templates(&self, ctx: &Context<'_>) -> Result<Vec<crate::models::FormTemplate>> {
+        let db = get_db_from_context(ctx)?;
+        let templates = crate::models::onboarding::form_template::Entity::find().all(&db).await?;
+        Ok(templates)
+    }
+
+    /// Get single form template
+    async fn form_template(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<crate::models::FormTemplate>> {
+        let db = get_db_from_context(ctx)?;
+        let template = crate::models::onboarding::form_template::Entity::find_by_id(id).one(&db).await?;
+        Ok(template)
+    }
+
+    /// Get content blocks for an onboarding module
+    async fn onboarding_content_blocks(&self, ctx: &Context<'_>, onboarding_module_id: Uuid) -> Result<Vec<crate::models::ContentBlockGraphQL>> {
+        let db = get_db_from_context(ctx)?;
+        let blocks = crate::models::onboarding::content_block::Entity::find()
+            .filter(crate::models::onboarding::content_block::Column::OnboardingModuleId.eq(onboarding_module_id))
+            .order_by_asc(crate::models::onboarding::content_block::Column::SequenceOrder)
+            .all(&db)
+            .await?;
+        Ok(blocks.into_iter().map(|b| crate::models::ContentBlockGraphQL::from(b)).collect())
+    }
+
+    /// Get assignments for an onboarding module
+    async fn onboarding_assignments(&self, ctx: &Context<'_>, onboarding_module_id: Uuid) -> Result<Vec<AssignmentWithUser>> {
+        let db = get_db_from_context(ctx)?;
+        let assignments = crate::models::onboarding::assignment::Entity::find()
+            .filter(crate::models::onboarding::assignment::Column::OnboardingModuleId.eq(onboarding_module_id))
+            .find_also_related(crate::models::user::Entity)
+            .all(&db)
+            .await?;
+        let result = assignments.into_iter().map(|(assignment, user)| {
+            AssignmentWithUser {
+                id: assignment.id,
+                user_id: assignment.user_id,
+                onboarding_module_id: assignment.onboarding_module_id,
+                assigned_by_id: assignment.assigned_by_id,
+                assigned_at: assignment.assigned_at,
+                due_date: assignment.due_date,
+                completed_at: assignment.completed_at,
+                user,
+            }
+        }).collect();
+        Ok(result)
+    }
+
+    /// Get progress for a specific onboarding module for the current user
+    async fn my_onboarding_progress(
+        &self,
+        ctx: &Context<'_>,
+        onboarding_module_id: Uuid,
+    ) -> Result<Vec<crate::models::ProgressGraphQL>> {
+        let db = get_db_from_context(ctx)?;
+        let user_context = ctx.data::<UserContext>()?;
+
+        // Get all content blocks for this module
+        let blocks = crate::models::onboarding::content_block::Entity::find()
+            .filter(crate::models::onboarding::content_block::Column::OnboardingModuleId.eq(onboarding_module_id))
+            .all(&db)
+            .await?;
+
+        let block_ids: Vec<Uuid> = blocks.iter().map(|b| b.id).collect();
+
+        if block_ids.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // Find progress for these blocks and this user
+        let progress = crate::models::onboarding::progress::Entity::find()
+            .filter(crate::models::onboarding::progress::Column::UserId.eq(user_context.user_id))
+            .filter(crate::models::onboarding::progress::Column::ContentBlockId.is_in(block_ids))
+            .all(&db)
+            .await?;
+
+        Ok(progress.into_iter().map(|p| crate::models::ProgressGraphQL::from(p)).collect())
+    }
+
+    /// Get form submission for a content block (current user)
+    async fn my_form_submission(
+        &self,
+        ctx: &Context<'_>,
+        content_block_id: Uuid,
+    ) -> Result<Option<crate::models::FormSubmission>> {
+        let db = get_db_from_context(ctx)?;
+        let user_context = ctx.data::<UserContext>()?;
+
+        let submission = crate::models::onboarding::form_submission::Entity::find()
+            .filter(crate::models::onboarding::form_submission::Column::UserId.eq(user_context.user_id))
+            .filter(crate::models::onboarding::form_submission::Column::ContentBlockId.eq(content_block_id))
+            .one(&db)
+            .await?;
+
+        Ok(submission)
+    }
+
+    /// Get document uploads for a content block (current user)
+    async fn my_document_uploads(
+        &self,
+        ctx: &Context<'_>,
+        content_block_id: Uuid,
+    ) -> Result<Vec<crate::models::DocumentUpload>> {
+        let db = get_db_from_context(ctx)?;
+        let user_context = ctx.data::<UserContext>()?;
+
+        let uploads = crate::models::onboarding::document_upload::Entity::find()
+            .filter(crate::models::onboarding::document_upload::Column::UserId.eq(user_context.user_id))
+            .filter(crate::models::onboarding::document_upload::Column::ContentBlockId.eq(content_block_id))
+            .all(&db)
+            .await?;
+
+        Ok(uploads)
+    }
+
+    // =========================================================================
+    // Onboarding Forms Queries (New Forms Architecture)
+    // =========================================================================
+
+    /// Get a single onboarding form by ID with its blocks
+    async fn onboarding_form(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+    ) -> Result<Option<crate::models::OnboardingFormGraphQL>> {
+        let db = get_db_from_context(ctx)?;
+
+        let form = crate::models::onboarding::form::Entity::find_by_id(id)
+            .one(&db)
+            .await?;
+
+        Ok(form.map(crate::models::OnboardingFormGraphQL::from))
+    }
+
+    /// Get all forms for an onboarding module
+    async fn onboarding_forms_by_module(
+        &self,
+        ctx: &Context<'_>,
+        onboarding_module_id: Uuid,
+    ) -> Result<Vec<crate::models::OnboardingFormGraphQL>> {
+        let db = get_db_from_context(ctx)?;
+
+        let forms = crate::models::onboarding::form::Entity::find()
+            .filter(crate::models::onboarding::form::Column::OnboardingModuleId.eq(onboarding_module_id))
+            .order_by_asc(crate::models::onboarding::form::Column::SequenceOrder)
+            .all(&db)
+            .await?;
+
+        Ok(forms.into_iter().map(crate::models::OnboardingFormGraphQL::from).collect())
+    }
+
+    /// Get form blocks for a specific onboarding form
+    async fn form_blocks(
+        &self,
+        ctx: &Context<'_>,
+        onboarding_form_id: Uuid,
+    ) -> Result<Vec<crate::models::FormBlockGraphQL>> {
+        let db = get_db_from_context(ctx)?;
+
+        let blocks = crate::models::onboarding::form_block::Entity::find()
+            .filter(crate::models::onboarding::form_block::Column::OnboardingFormId.eq(onboarding_form_id))
+            .order_by_asc(crate::models::onboarding::form_block::Column::SequenceOrder)
+            .all(&db)
+            .await?;
+
+        Ok(blocks.into_iter().map(crate::models::FormBlockGraphQL::from).collect())
+    }
+
+    /// Get form progress for a specific user and form
+    async fn form_progress(
+        &self,
+        ctx: &Context<'_>,
+        user_id: Uuid,
+        onboarding_form_id: Uuid,
+    ) -> Result<Option<crate::models::FormProgressGraphQL>> {
+        let db = get_db_from_context(ctx)?;
+
+        let progress = crate::models::onboarding::form_progress::Entity::find()
+            .filter(crate::models::onboarding::form_progress::Column::UserId.eq(user_id))
+            .filter(crate::models::onboarding::form_progress::Column::OnboardingFormId.eq(onboarding_form_id))
+            .one(&db)
+            .await?;
+
+        Ok(progress.map(crate::models::FormProgressGraphQL::from))
+    }
+
+    /// Get all form progress for the current user
+    async fn user_form_progress_list(
+        &self,
+        ctx: &Context<'_>,
+        user_id: Uuid,
+    ) -> Result<Vec<crate::models::FormProgressGraphQL>> {
+        let db = get_db_from_context(ctx)?;
+
+        let progress_list = crate::models::onboarding::form_progress::Entity::find()
+            .filter(crate::models::onboarding::form_progress::Column::UserId.eq(user_id))
+            .all(&db)
+            .await?;
+
+        Ok(progress_list.into_iter().map(crate::models::FormProgressGraphQL::from).collect())
+    }
+
+    // =========================================================================
     // System Settings Queries (Permission-based access)
     // =========================================================================
 
@@ -1585,6 +1893,31 @@ impl QueryRoot {
         let latest = EmployeeStatisticEntity::get_latest(&db).await?;
 
         Ok(latest)
+    }
+
+    // =========================================================================
+    // Media Asset Queries
+    // =========================================================================
+
+    /// Get media assets with optional filtering
+    async fn media_assets(
+        &self,
+        ctx: &Context<'_>,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<crate::models::media_asset::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(50).clamp(1, 100);
+        let offset = offset.unwrap_or(0).max(0);
+
+        let assets = crate::models::media_asset::Entity::find()
+            .order_by_desc(crate::models::media_asset::Column::CreatedAt)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(&db)
+            .await?;
+
+        Ok(assets)
     }
 
     // =========================================================================
@@ -1815,12 +2148,82 @@ impl QueryRoot {
     async fn rollback(&self) -> crate::schema::mutations::RollbackQueries {
         crate::schema::mutations::RollbackQueries
     }
+
+    /// Intuit QuickBooks integration queries
+    async fn intuit(&self) -> crate::schema::mutations::IntuitQueries {
+        crate::schema::mutations::IntuitQueries
+    }
+
+    /// Intuit QuickBooks sync preview queries
+    async fn intuit_preview(&self) -> crate::schema::queries::IntuitPreviewQueries {
+        crate::schema::queries::IntuitPreviewQueries
+    }
+
+    /// Intuit QuickBooks sync health monitoring queries
+    async fn intuit_health(&self) -> crate::schema::queries::IntuitHealthQueries {
+        crate::schema::queries::IntuitHealthQueries
+    }
+
+    /// Reconciliation queries for data consistency verification
+    async fn reconciliation(&self) -> crate::schema::queries::ReconciliationQueries {
+        crate::schema::queries::ReconciliationQueries
+    }
+
+    /// Compliance report queries for regulatory requirements
+    async fn compliance(&self) -> crate::schema::queries::ComplianceQueries {
+        crate::schema::queries::ComplianceQueries
+    }
+
+    /// Audit trail queries for security and compliance monitoring
+    async fn audit(&self) -> crate::schema::queries::AuditQueries {
+        crate::schema::queries::AuditQueries
+    }
+
+    /// Batch operations queries for sync batching monitoring
+    async fn batch_operations(&self) -> crate::schema::queries::BatchOperationsQueries {
+        crate::schema::queries::BatchOperationsQueries
+    }
+
+    /// Webhook queries for QuickBooks webhook monitoring
+    async fn webhooks(&self) -> crate::schema::queries::WebhookQueries {
+        crate::schema::queries::WebhookQueries
+    }
+
+    /// Time entry queries for time tracking and QuickBooks sync
+    async fn time_entries(&self) -> crate::schema::queries::TimeEntryQueries {
+        crate::schema::queries::TimeEntryQueries
+    }
+
+    /// Validation queries for data quality checks
+    async fn validation(&self) -> crate::schema::queries::ValidationQuery {
+        crate::schema::queries::ValidationQuery
+    }
+
+    /// Sync schedule queries for automated sync scheduling
+    async fn sync_schedule(&self) -> crate::schema::queries::SyncScheduleQuery {
+        crate::schema::queries::SyncScheduleQuery
+    }
+
+    /// Sync health monitoring queries for sync performance and alerts
+    async fn sync_health(&self) -> crate::schema::queries::SyncHealthQueries {
+        crate::schema::queries::SyncHealthQueries
+    }
+
+    /// Payroll queries for compensation data and sync status
+    async fn payroll(&self) -> crate::schema::queries::PayrollQueries {
+        crate::schema::queries::PayrollQueries
+    }
+
+    /// Email digest queries for automated summary emails
+    async fn digests(&self) -> crate::schema::queries::DigestQueries {
+        crate::schema::queries::DigestQueries
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hr_graphql_server::testing::{TestContext, TestUserRole};
+    use crate::testing::{TestContext, TestUserRole};
 
     /// T017 Pattern: Test not found error with random UUID
     #[tokio::test]

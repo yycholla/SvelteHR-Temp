@@ -27,28 +27,26 @@
 	import { AlertTriangle, Calendar, Clock } from '@lucide/svelte';
 	import { formatDate, formatTime } from '$lib/utils/date-formatting';
 
-	// Props with Svelte 5 runes
-	let {
-		open = $bindable(),
-		conflicts,
-		targetEvent,
-		onConfirm,
-		onCancel
-	}: {
+	// Export type definitions for test imports
+	export interface CalendarEvent {
+		id: string;
+		title: string;
+		startDate: Date;
+		endDate: Date;
+		location?: string;
+	}
+
+	export interface ConflictingEvent {
+		id: string;
+		event: CalendarEvent;
+		overlapDuration: number; // minutes
+		overlapPercentage: number;
+		severity: 'minor' | 'major';
+	}
+
+	export interface ConflictWarningDialogProps {
 		open: boolean;
-		conflicts: Array<{
-			id: string;
-			event: {
-				id: string;
-				title: string;
-				startDate: Date;
-				endDate: Date;
-				location?: string;
-			};
-			overlapDuration: number; // minutes
-			overlapPercentage: number;
-			severity: 'minor' | 'major';
-		}>;
+		conflicts: Array<ConflictingEvent>;
 		targetEvent: {
 			title: string;
 			startDate: Date;
@@ -56,13 +54,21 @@
 		};
 		onConfirm: () => void;
 		onCancel: () => void;
-	} = $props();
+	}
+
+	// Props with Svelte 5 runes
+	let {
+		open = $bindable(),
+		conflicts,
+		targetEvent,
+		onConfirm,
+		onCancel
+	}: ConflictWarningDialogProps = $props();
 
 	// Derived
-	let hasConflicts = $derived(conflicts.length > 0);
-	let hasMajorConflicts = $derived(conflicts.some(c => c.severity === 'major'));
-	let minorConflicts = $derived(conflicts.filter(c => c.severity === 'minor'));
-	let majorConflicts = $derived(conflicts.filter(c => c.severity === 'major'));
+	const hasMajorConflicts = $derived(conflicts.some((c) => c.severity === 'major'));
+	const minorConflicts = $derived(conflicts.filter((c) => c.severity === 'minor'));
+	const majorConflicts = $derived(conflicts.filter((c) => c.severity === 'major'));
 
 	// Format overlap duration
 	function formatOverlap(minutes: number): string {
@@ -113,7 +119,7 @@
 						Major Conflicts (≥30% overlap)
 					</h3>
 					<div class="space-y-2">
-						{#each majorConflicts as conflict}
+						{#each majorConflicts as conflict (conflict.event.id)}
 							<div class="rounded-lg border border-destructive/50 bg-destructive/10 p-3">
 								<div class="flex items-start justify-between">
 									<div class="flex-1">
@@ -125,7 +131,9 @@
 											</span>
 											<span class="flex items-center gap-1">
 												<Clock class="h-3 w-3" />
-												{formatTime(conflict.event.startDate)} - {formatTime(conflict.event.endDate)}
+												{formatTime(conflict.event.startDate)} - {formatTime(
+													conflict.event.endDate
+												)}
 											</span>
 										</div>
 										{#if conflict.event.location}
@@ -159,7 +167,7 @@
 						Minor Conflicts (&lt;30% overlap)
 					</h3>
 					<div class="space-y-2">
-						{#each minorConflicts as conflict}
+						{#each minorConflicts as conflict (conflict.event.id)}
 							<div class="rounded-lg border bg-muted/50 p-3">
 								<div class="flex items-start justify-between">
 									<div class="flex-1">
@@ -171,7 +179,9 @@
 											</span>
 											<span class="flex items-center gap-1">
 												<Clock class="h-3 w-3" />
-												{formatTime(conflict.event.startDate)} - {formatTime(conflict.event.endDate)}
+												{formatTime(conflict.event.startDate)} - {formatTime(
+													conflict.event.endDate
+												)}
 											</span>
 										</div>
 										{#if conflict.event.location}
@@ -204,17 +214,15 @@
 					<AlertTriangle class="h-4 w-4" />
 					<Alert.Title>Warning</Alert.Title>
 					<Alert.Description>
-						You have major scheduling conflicts. Accepting this event may cause significant
-						overlaps with your existing commitments.
+						You have major scheduling conflicts. Accepting this event may cause significant overlaps
+						with your existing commitments.
 					</Alert.Description>
 				</Alert.Root>
 			{/if}
 		</div>
 
 		<Dialog.Footer>
-			<Button variant="outline" onclick={onCancel}>
-				Cancel
-			</Button>
+			<Button variant="outline" onclick={onCancel}>Cancel</Button>
 			<Button
 				variant={hasMajorConflicts ? 'destructive' : 'default'}
 				onclick={() => {

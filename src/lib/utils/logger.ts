@@ -1,7 +1,7 @@
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LogMeta {
-	[key: string]: any;
+	[key: string]: unknown;
 }
 
 class Logger {
@@ -13,10 +13,6 @@ class Logger {
 		const isProduction = typeof process !== 'undefined' && process.env?.NODE_ENV === 'production';
 		this.level = isProduction ? 'warn' : 'info';
 		this.format = 'json'; // Always use JSON format for structured logging
-
-		console.log(
-			`🔧 Logger initialized: level=${this.level}, format=${this.format}, isProduction=${isProduction}`
-		);
 
 		// Try to override with environment variables if available
 		try {
@@ -37,9 +33,8 @@ class Logger {
 					this.format = envFormat;
 				}
 			}
-		} catch (error) {
+		} catch {
 			// Ignore environment variable errors in SSR context
-			console.warn('Logger: Could not read environment variables, using defaults');
 		}
 	}
 
@@ -87,6 +82,7 @@ class Logger {
 						...meta
 					}
 				: meta;
+
 			console.error(this.formatMessage('error', message, errorMeta || {}));
 		}
 	}

@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * RBAC Validation Utility Functions
  * Feature: 023-reviews-creation-it
@@ -10,10 +11,7 @@ import { GraphQLClient } from '$lib/server/graphql-client';
 import type { Cookies } from '@sveltejs/kit';
 
 // Cache for direct reports (5-minute TTL)
-const directReportsCache = new Map<
-	string,
-	{ reports: string[]; timestamp: number }
->();
+const directReportsCache = new Map<string, { reports: string[]; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
@@ -70,7 +68,7 @@ export async function isDirectReport(
 
 		return reportIds.includes(employeeId);
 	} catch (error) {
-		console.error('Error checking direct report relationship:', error);
+		logger.error('Error checking direct report relationship:', error as Error);
 		return false;
 	}
 }

@@ -1,173 +1,183 @@
 /**
  * Type Comparator - Validates type compatibility between GraphQL, PostgreSQL, and Rust
  */
-import { areTypesCompatible as checkCompatibility, suggestGraphQLType, getCompatibilityNotes, normalizeGraphQLType, normalizePgType, isListType, isNullableType, extractBaseType, TYPE_MAPPINGS, } from '../types/type-mappings.js';
+import {
+  areTypesCompatible as checkCompatibility,
+  suggestGraphQLType,
+  getCompatibilityNotes,
+  normalizeGraphQLType,
+  normalizePgType,
+  isListType,
+  isNullableType,
+  extractBaseType,
+  TYPE_MAPPINGS,
+} from '../types/type-mappings.js';
 /**
  * Type Comparator class
  * Handles type compatibility checking between schema layers
  */
 export class TypeComparator {
-    customMappings;
-    // @ts-expect-error - Reserved for future strict mode validation
-    _strict;
-    constructor(config = {}) {
-        this.customMappings = config.customMappings ?? new Map();
-        this._strict = config.strict ?? false;
+  customMappings;
+  // @ts-expect-error - Reserved for future strict mode validation
+  _strict;
+  constructor(config = {}) {
+    this.customMappings = config.customMappings ?? new Map();
+    this._strict = config.strict ?? false;
+  }
+  /**
+   * Check if GraphQL type and database type are compatible
+   */
+  areTypesCompatible(graphqlType, dbType) {
+    // Check custom mappings first
+    const normalizedPg = normalizePgType(dbType);
+    if (this.customMappings.has(normalizedPg)) {
+      const expectedGraphQL = this.customMappings.get(normalizedPg);
+      return normalizeGraphQLType(graphqlType) === normalizeGraphQLType(expectedGraphQL);
     }
-    /**
-     * Check if GraphQL type and database type are compatible
-     */
-    areTypesCompatible(graphqlType, dbType) {
-        // Check custom mappings first
-        const normalizedPg = normalizePgType(dbType);
-        if (this.customMappings.has(normalizedPg)) {
-            const expectedGraphQL = this.customMappings.get(normalizedPg);
-            return normalizeGraphQLType(graphqlType) === normalizeGraphQLType(expectedGraphQL);
-        }
-        // Use default compatibility check
-        return checkCompatibility(graphqlType, dbType);
+    // Use default compatibility check
+    return checkCompatibility(graphqlType, dbType);
+  }
+  /**
+   * Check if nullability is compatible
+   */
+  isNullabilityCompatible(graphqlNullable, dbNullable) {
+    // GraphQL non-null (!!) must match DB non-null
+    if (!graphqlNullable && dbNullable) {
+      // GraphQL requires non-null but DB allows null - INCOMPATIBLE
+      return false;
     }
-    /**
-     * Check if nullability is compatible
-     */
-    isNullabilityCompatible(graphqlNullable, dbNullable) {
-        // GraphQL non-null (!!) must match DB non-null
-        if (!graphqlNullable && dbNullable) {
-            // GraphQL requires non-null but DB allows null - INCOMPATIBLE
-            return false;
-        }
-        // GraphQL nullable can match either DB nullable or non-null
-        // This is safe because GraphQL will just return null if DB value is null
-        return true;
+    // GraphQL nullable can match either DB nullable or non-null
+    // This is safe because GraphQL will just return null if DB value is null
+    return true;
+  }
+  /**
+   * Compare types and return detailed result
+   */
+  compareTypes(graphqlType, dbType, apiType) {
+    const baseGraphQL = extractBaseType(graphqlType);
+    const basePg = normalizePgType(dbType);
+    // @ts-expect-error - Reserved for future API type validation
+    const _baseApi = extractBaseType(apiType);
+    // Check if list types match (check this FIRST before type compatibility)
+    const graphqlIsList = isListType(graphqlType);
+    const pgIsList = dbType.includes('[]');
+    const apiIsList = isListType(apiType);
+    const listTypesMatch = graphqlIsList === pgIsList && graphqlIsList === apiIsList;
+    // Check type compatibility
+    const typesCompatible = this.areTypesCompatible(graphqlType, dbType);
+    // Check nullability
+    const graphqlNullable = isNullableType(graphqlType);
+    const apiNullable = isNullableType(apiType);
+    const nullabilityMatches = graphqlNullable === apiNullable;
+    // Determine compatibility and reason
+    let compatible = typesCompatible && listTypesMatch && nullabilityMatches;
+    let reason;
+    // Check list type mismatch FIRST (most specific error)
+    if (!listTypesMatch) {
+      reason = `List type mismatch: GraphQL ${graphqlIsList ? 'expects list' : 'is scalar'} but database ${pgIsList ? 'is array' : 'is scalar'}`;
+    } else if (!typesCompatible) {
+      const suggestion = suggestGraphQLType(dbType);
+      reason = `Type mismatch: GraphQL type '${baseGraphQL}' is not compatible with PostgreSQL type '${basePg}'. ${suggestion ? `Suggested GraphQL type: '${suggestion}'` : ''}`;
+      const notes = getCompatibilityNotes(baseGraphQL, basePg);
+      if (notes) {
+        reason += ` (${notes})`;
+      }
+    } else if (!nullabilityMatches) {
+      reason = `Nullability mismatch: GraphQL field is ${graphqlNullable ? 'nullable' : 'non-null'} but API field is ${apiNullable ? 'nullable' : 'non-null'}`;
     }
-    /**
-     * Compare types and return detailed result
-     */
-    compareTypes(graphqlType, dbType, apiType) {
-        const baseGraphQL = extractBaseType(graphqlType);
-        const basePg = normalizePgType(dbType);
-        // @ts-expect-error - Reserved for future API type validation
-        const _baseApi = extractBaseType(apiType);
-        // Check if list types match (check this FIRST before type compatibility)
-        const graphqlIsList = isListType(graphqlType);
-        const pgIsList = dbType.includes('[]');
-        const apiIsList = isListType(apiType);
-        const listTypesMatch = graphqlIsList === pgIsList && graphqlIsList === apiIsList;
-        // Check type compatibility
-        const typesCompatible = this.areTypesCompatible(graphqlType, dbType);
-        // Check nullability
-        const graphqlNullable = isNullableType(graphqlType);
-        const apiNullable = isNullableType(apiType);
-        const nullabilityMatches = graphqlNullable === apiNullable;
-        // Determine compatibility and reason
-        let compatible = typesCompatible && listTypesMatch && nullabilityMatches;
-        let reason;
-        // Check list type mismatch FIRST (most specific error)
-        if (!listTypesMatch) {
-            reason = `List type mismatch: GraphQL ${graphqlIsList ? 'expects list' : 'is scalar'} but database ${pgIsList ? 'is array' : 'is scalar'}`;
-        }
-        else if (!typesCompatible) {
-            const suggestion = suggestGraphQLType(dbType);
-            reason = `Type mismatch: GraphQL type '${baseGraphQL}' is not compatible with PostgreSQL type '${basePg}'. ${suggestion ? `Suggested GraphQL type: '${suggestion}'` : ''}`;
-            const notes = getCompatibilityNotes(baseGraphQL, basePg);
-            if (notes) {
-                reason += ` (${notes})`;
-            }
-        }
-        else if (!nullabilityMatches) {
-            reason = `Nullability mismatch: GraphQL field is ${graphqlNullable ? 'nullable' : 'non-null'} but API field is ${apiNullable ? 'nullable' : 'non-null'}`;
-        }
-        return {
-            compatible,
-            graphqlType,
-            dbType,
-            apiType,
-            ...(reason ? { reason } : {}),
-            nullabilityMatches,
-            listTypesMatch,
-        };
+    return {
+      compatible,
+      graphqlType,
+      dbType,
+      apiType,
+      ...(reason ? { reason } : {}),
+      nullabilityMatches,
+      listTypesMatch,
+    };
+  }
+  /**
+   * Get human-readable type mapping explanation
+   */
+  getTypeMapping(graphqlType, dbType) {
+    const baseGraphQL = extractBaseType(graphqlType);
+    const basePg = normalizePgType(dbType);
+    const mapping = TYPE_MAPPINGS.find(
+      (m) => m.graphql === baseGraphQL && m.postgresql.some((pg) => normalizePgType(pg) === basePg)
+    );
+    if (mapping) {
+      return `${graphqlType} (GraphQL) ↔ ${dbType} (PostgreSQL) ↔ ${mapping.rust} (Rust)${mapping.notes ? ` - ${mapping.notes}` : ''}`;
     }
-    /**
-     * Get human-readable type mapping explanation
-     */
-    getTypeMapping(graphqlType, dbType) {
-        const baseGraphQL = extractBaseType(graphqlType);
-        const basePg = normalizePgType(dbType);
-        const mapping = TYPE_MAPPINGS.find((m) => m.graphql === baseGraphQL &&
-            m.postgresql.some((pg) => normalizePgType(pg) === basePg));
-        if (mapping) {
-            return `${graphqlType} (GraphQL) ↔ ${dbType} (PostgreSQL) ↔ ${mapping.rust} (Rust)${mapping.notes ? ` - ${mapping.notes}` : ''}`;
-        }
-        return `${graphqlType} (GraphQL) ↔ ${dbType} (PostgreSQL) - No standard mapping found`;
+    return `${graphqlType} (GraphQL) ↔ ${dbType} (PostgreSQL) - No standard mapping found`;
+  }
+  /**
+   * Validate enum values between database and API
+   */
+  validateEnumValues(dbValues, apiValues) {
+    const dbSet = new Set(dbValues);
+    const apiSet = new Set(apiValues);
+    const missingInDb = apiValues.filter((v) => !dbSet.has(v));
+    const extraInDb = dbValues.filter((v) => !apiSet.has(v));
+    const missingInApi = dbValues.filter((v) => !apiSet.has(v));
+    const extraInApi = apiValues.filter((v) => !dbSet.has(v));
+    const valid =
+      missingInDb.length === 0 &&
+      extraInDb.length === 0 &&
+      missingInApi.length === 0 &&
+      extraInApi.length === 0;
+    return {
+      valid,
+      missingInDb,
+      extraInDb,
+      missingInApi,
+      extraInApi,
+    };
+  }
+  /**
+   * Check if precision is compatible (for numeric types)
+   */
+  isPrecisionCompatible(graphqlType, dbType) {
+    const baseGraphQL = extractBaseType(graphqlType);
+    const basePg = normalizePgType(dbType);
+    // Int can safely represent int2, int4
+    if (baseGraphQL === 'Int') {
+      return ['int2', 'int4', 'smallint', 'integer'].includes(basePg);
     }
-    /**
-     * Validate enum values between database and API
-     */
-    validateEnumValues(dbValues, apiValues) {
-        const dbSet = new Set(dbValues);
-        const apiSet = new Set(apiValues);
-        const missingInDb = apiValues.filter((v) => !dbSet.has(v));
-        const extraInDb = dbValues.filter((v) => !apiSet.has(v));
-        const missingInApi = dbValues.filter((v) => !apiSet.has(v));
-        const extraInApi = apiValues.filter((v) => !dbSet.has(v));
-        const valid = missingInDb.length === 0 &&
-            extraInDb.length === 0 &&
-            missingInApi.length === 0 &&
-            extraInApi.length === 0;
-        return {
-            valid,
-            missingInDb,
-            extraInDb,
-            missingInApi,
-            extraInApi,
-        };
+    // Float can represent float4, float8
+    if (baseGraphQL === 'Float') {
+      return ['float4', 'float8', 'real', 'double precision'].includes(basePg);
     }
-    /**
-     * Check if precision is compatible (for numeric types)
-     */
-    isPrecisionCompatible(graphqlType, dbType) {
-        const baseGraphQL = extractBaseType(graphqlType);
-        const basePg = normalizePgType(dbType);
-        // Int can safely represent int2, int4
-        if (baseGraphQL === 'Int') {
-            return ['int2', 'int4', 'smallint', 'integer'].includes(basePg);
-        }
-        // Float can represent float4, float8
-        if (baseGraphQL === 'Float') {
-            return ['float4', 'float8', 'real', 'double precision'].includes(basePg);
-        }
-        // For other types, no precision concerns
-        return true;
+    // For other types, no precision concerns
+    return true;
+  }
+  /**
+   * Suggest fix for type mismatch
+   */
+  suggestFix(graphqlType, dbType) {
+    const suggested = suggestGraphQLType(dbType);
+    if (suggested) {
+      return `Change GraphQL type from '${extractBaseType(graphqlType)}' to '${suggested}' to match database type '${dbType}'`;
     }
-    /**
-     * Suggest fix for type mismatch
-     */
-    suggestFix(graphqlType, dbType) {
-        const suggested = suggestGraphQLType(dbType);
-        if (suggested) {
-            return `Change GraphQL type from '${extractBaseType(graphqlType)}' to '${suggested}' to match database type '${dbType}'`;
-        }
-        return `Review type mapping for PostgreSQL type '${dbType}'. Consider adding custom mapping.`;
-    }
-    /**
-     * Check if type requires custom scalar definition
-     */
-    requiresCustomScalar(graphqlType) {
-        const baseType = extractBaseType(graphqlType);
-        const customScalars = ['DateTime', 'Date', 'Time', 'JSON', 'UUID', 'BigInt'];
-        return customScalars.includes(baseType);
-    }
-    /**
-     * Add custom type mapping
-     */
-    addCustomMapping(pgType, graphqlType) {
-        this.customMappings.set(normalizePgType(pgType), graphqlType);
-    }
-    /**
-     * Clear all custom mappings
-     */
-    clearCustomMappings() {
-        this.customMappings.clear();
-    }
+    return `Review type mapping for PostgreSQL type '${dbType}'. Consider adding custom mapping.`;
+  }
+  /**
+   * Check if type requires custom scalar definition
+   */
+  requiresCustomScalar(graphqlType) {
+    const baseType = extractBaseType(graphqlType);
+    const customScalars = ['DateTime', 'Date', 'Time', 'JSON', 'UUID', 'BigInt'];
+    return customScalars.includes(baseType);
+  }
+  /**
+   * Add custom type mapping
+   */
+  addCustomMapping(pgType, graphqlType) {
+    this.customMappings.set(normalizePgType(pgType), graphqlType);
+  }
+  /**
+   * Clear all custom mappings
+   */
+  clearCustomMappings() {
+    this.customMappings.clear();
+  }
 }
 //# sourceMappingURL=type-comparator.js.map

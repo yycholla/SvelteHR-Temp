@@ -11,14 +11,14 @@
 		onSuccess?: () => void;
 	}
 
-	let { event, onClose, onSuccess }: Props = $props();
+	const { event, onClose, onSuccess }: Props = $props();
 
 	// Form state initialized from props
 	let title = $state(event.title);
 	let description = $state(event.description || '');
 	let startTime = $state(event.startTime.slice(0, 16));
 	let endTime = $state(event.endTime.slice(0, 16));
-	let isAllDay = $state(event.allDay || false);
+	let isAllDay = $state(event.isAllDay || false);
 	let location = $state(event.location || '');
 	let eventType = $state<EventType>(event.eventType);
 	let visibilityType = $state<EventVisibilityType>(event.visibilityType || 'company');
@@ -152,9 +152,7 @@
 
 	<!-- Location -->
 	<div class="mb-4">
-		<label for="location" class="block text-sm font-medium text-foreground mb-2">
-			Location
-		</label>
+		<label for="location" class="block text-sm font-medium text-foreground mb-2"> Location </label>
 		<input
 			type="text"
 			id="location"
@@ -223,8 +221,13 @@
 		>
 			{#if isSubmitting}
 				<svg class="mr-2 h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
+					></circle>
+					<path
+						class="opacity-75"
+						fill="currentColor"
+						d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+					></path>
 				</svg>
 				Saving...
 			{:else}

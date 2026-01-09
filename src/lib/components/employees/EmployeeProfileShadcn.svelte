@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { onMount, createEventDispatcher } from 'svelte';
-	import { userService, currentUser as userServiceCurrentUser } from '$lib/services/userService';
+	import { createEventDispatcher, onMount } from 'svelte';
+	import { userService } from '$lib/services/userService';
+	import { currentUser as userServiceCurrentUser } from '$lib/services/auth';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
@@ -11,27 +12,28 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
 	import {
-		Mail,
-		Phone,
-		MapPin,
+		AlertCircle,
+		Building,
 		Calendar,
 		DollarSign,
-		Building,
-		UserCheck,
-		UserX,
 		Edit,
-		AlertCircle,
+		Mail,
+		MapPin,
+		Phone,
 		RefreshCw,
+		Shield,
+		UserCheck,
 		User as UserIcon,
-		Users,
-		Shield
+		UserX,
+		Users
 	} from '@lucide/svelte';
 	import type { User as UserType } from '$lib/types';
 
 	const dispatch = createEventDispatcher();
 
 	// Props
-	let { employeeId, showActions = true }: { employeeId: string; showActions?: boolean } = $props();
+	const { employeeId, showActions = true }: { employeeId: string; showActions?: boolean } =
+		$props();
 
 	// State
 	let employee: UserType | null = $state(null);
@@ -41,12 +43,20 @@
 	let deactivateReason = $state('');
 	let deactivating = $state(false);
 
-	// Computed values
-	const isOwnProfile = $derived(employee?.id === auth.user?.id);
+	// Computed values - add type guards for never type narrowing
+	const isOwnProfile = $derived.by(() => {
+		const currentUser = auth.user;
+		if (!employee || !currentUser) return false;
+		return employee.id === currentUser.id;
+	});
 	const canEdit = $derived(auth.user && (isOwnProfile || auth.hasPermission('user:update')));
 	const canDeactivate = $derived(auth.user && auth.hasPermission('user:delete') && !isOwnProfile);
-	const statusVariant = $derived(employee?.isActive ? 'default' : 'secondary');
-	const statusText = $derived(employee?.isActive ? 'Active' : 'Inactive');
+	const statusVariant = $derived.by((): 'default' | 'secondary' =>
+		(employee?.isActive ?? employee?.is_active) ? 'default' : 'secondary'
+	);
+	const statusText = $derived.by((): string =>
+		(employee?.isActive ?? employee?.is_active) ? 'Active' : 'Inactive'
+	);
 
 	async function loadEmployee() {
 		try {
@@ -86,7 +96,7 @@
 	}
 
 	function getEmployeeInitials(employee: UserType): string {
-		return `${employee.firstName?.charAt(0) || ''}${employee.lastName?.charAt(0) || ''}`;
+		return `${employee.first_name?.charAt(0) || ''}${employee.last_name?.charAt(0) || ''}`;
 	}
 
 	function formatDate(dateString: string | null | undefined): string {
@@ -154,7 +164,7 @@
 					<div class="flex justify-center lg:justify-start">
 						<Avatar.Root class="h-24 w-24">
 							{#if employee.profileImage}
-								<Avatar.Image src={employee.profileImage} alt={employee.displayName} />
+								<Avatar.Image src={employee.profileImage} alt={employee.display_name} />
 							{/if}
 							<Avatar.Fallback class="text-lg font-semibold">
 								{getEmployeeInitials(employee)}
@@ -166,13 +176,13 @@
 					<div class="flex-1 space-y-4 text-center lg:text-left">
 						<div class="space-y-2">
 							<div class="flex flex-col gap-3 lg:flex-row lg:items-center">
-								<h1 class="text-3xl font-bold">{employee.displayName}</h1>
+								<h1 class="text-3xl font-bold">{employee.display_name}</h1>
 								<Badge variant={statusVariant}>
 									{statusText}
 								</Badge>
 							</div>
 							<p class="text-lg text-muted-foreground">
-								{employee.jobTitle || 'No title assigned'}
+								{employee.job_title || 'No title assigned'}
 							</p>
 							<p class="text-muted-foreground">
 								{employee.department?.name || 'No department assigned'}
@@ -188,11 +198,11 @@
 								</a>
 							</div>
 
-							{#if employee.phoneNumber}
+							{#if employee.phone_number}
 								<div class="flex items-center justify-center gap-2 lg:justify-start">
 									<Phone class="h-4 w-4 text-muted-foreground" />
-									<a href="tel:{employee.phoneNumber}" class="text-primary hover:underline">
-										{formatPhoneNumber(employee.phoneNumber)}
+									<a href="tel:{employee.phone_number}" class="text-primary hover:underline">
+										{formatPhoneNumber(employee.phone_number)}
 									</a>
 								</div>
 							{/if}
@@ -209,7 +219,7 @@
 								</Button>
 							{/if}
 
-							{#if canDeactivate && employee.isActive}
+							{#if canDeactivate && (employee.isActive ?? employee.is_active)}
 								<Button variant="destructive" onclick={() => (showDeactivateModal = true)}>
 									<UserX class="mr-2 h-4 w-4" />
 									Deactivate
@@ -246,7 +256,7 @@
 							</Label>
 							<div class="flex items-center gap-2">
 								<Calendar class="h-4 w-4 text-muted-foreground" />
-								<p class="text-sm">{formatDate(employee.jobInfo?.hireDate)}</p>
+								<p class="text-sm">{formatDate(employee.job_info?.hireDate)}</p>
 							</div>
 						</div>
 
@@ -254,7 +264,7 @@
 							<Label class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
 								Employment Type
 							</Label>
-							<p class="text-sm">{employee.jobInfo?.employmentType || 'N/A'}</p>
+							<p class="text-sm">{employee.job_info?.employmentType || 'N/A'}</p>
 						</div>
 
 						<div class="space-y-2">
@@ -263,7 +273,7 @@
 							</Label>
 							<div class="flex items-center gap-2">
 								<UserIcon class="h-4 w-4 text-muted-foreground" />
-								<p class="text-sm">{employee.manager?.displayName || 'No manager assigned'}</p>
+								<p class="text-sm">{employee.manager?.display_name || 'No manager assigned'}</p>
 							</div>
 						</div>
 
@@ -273,11 +283,11 @@
 							</Label>
 							<div class="flex items-center gap-2">
 								<MapPin class="h-4 w-4 text-muted-foreground" />
-								<p class="text-sm">{employee.jobInfo?.isRemote ? 'Remote' : 'On-site'}</p>
+								<p class="text-sm">{employee.job_info?.isRemote ? 'Remote' : 'On-site'}</p>
 							</div>
 						</div>
 
-						{#if employee.jobInfo?.salary && (isOwnProfile || auth.hasPermission('user:view_salary'))}
+						{#if employee.job_info?.salary && (isOwnProfile || auth.hasPermission('user:view_salary'))}
 							<div class="space-y-2">
 								<Label class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
 									Salary
@@ -285,9 +295,9 @@
 								<div class="flex items-center gap-2">
 									<DollarSign class="h-4 w-4 text-muted-foreground" />
 									<p class="text-sm">
-										{formatCurrency(employee.jobInfo.salary)}
+										{formatCurrency(employee.job_info.salary)}
 										<span class="ml-1 text-xs text-muted-foreground">
-											{employee.jobInfo.payType?.toLowerCase() || 'annually'}
+											{employee.job_info.payType?.toLowerCase() || 'annually'}
 										</span>
 									</p>
 								</div>
@@ -311,10 +321,11 @@
 							<Label class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
 								Full Name
 							</Label>
-							<p class="text-sm">{employee.firstName} {employee.lastName}</p>
+							<p class="text-sm">{employee.first_name} {employee.last_name}</p>
 						</div>
 
-						{#if employee.address}
+						{#if employee.addresses && employee.addresses.length > 0}
+							{@const address = employee.addresses[0]}
 							<div class="space-y-2">
 								<Label class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
 									Address
@@ -322,14 +333,14 @@
 								<div class="flex items-start gap-2">
 									<MapPin class="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
 									<div class="text-sm">
-										{#if employee.address.street}
-											<div>{employee.address.street}</div>
+										{#if address.address_line_1}
+											<div>{address.address_line_1}</div>
 										{/if}
 										<div>
-											{employee.address.city || ''}{employee.address.city && employee.address.state
+											{address.city || ''}{address.city && address.state_province
 												? ', '
-												: ''}{employee.address.state || ''}
-											{employee.address.zipCode || ''}
+												: ''}{address.state_province || ''}
+											{address.postal_code || ''}
 										</div>
 									</div>
 								</div>
@@ -340,7 +351,7 @@
 			</Card.Root>
 
 			<!-- Emergency Contact -->
-			{#if employee.emergencyContact}
+			{#if employee.emergency_contact}
 				<Card.Root>
 					<Card.Header>
 						<Card.Title class="flex items-center gap-2">
@@ -354,21 +365,21 @@
 								<Label class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
 									Name
 								</Label>
-								<p class="text-sm">{employee.emergencyContact.name || 'N/A'}</p>
+								<p class="text-sm">{employee.emergency_contact.name || 'N/A'}</p>
 							</div>
 
 							<div class="space-y-2">
 								<Label class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
 									Phone
 								</Label>
-								<p class="text-sm">{formatPhoneNumber(employee.emergencyContact.phone)}</p>
+								<p class="text-sm">{formatPhoneNumber(employee.emergency_contact.phone)}</p>
 							</div>
 
 							<div class="space-y-2 sm:col-span-2">
 								<Label class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
 									Relationship
 								</Label>
-								<p class="text-sm">{employee.emergencyContact.relationship || 'N/A'}</p>
+								<p class="text-sm">{employee.emergency_contact.relationship || 'N/A'}</p>
 							</div>
 						</div>
 					</Card.Content>
@@ -389,12 +400,10 @@
 							Assigned Roles
 						</Label>
 						<div class="flex flex-wrap gap-2">
-							{#if employee.roles && employee.roles.length > 0}
-								{#each employee.roles as role}
-									<Badge variant="outline">
-										{role.displayName || role.name}
-									</Badge>
-								{/each}
+							{#if employee.role}
+								<Badge variant="outline">
+									{employee.role}
+								</Badge>
 							{:else}
 								<p class="text-sm text-muted-foreground">No roles assigned</p>
 							{/if}
@@ -412,7 +421,7 @@
 		<Dialog.Header>
 			<Dialog.Title>Deactivate Employee</Dialog.Title>
 			<Dialog.Description>
-				Are you sure you want to deactivate <strong>{employee?.displayName}</strong>? This will
+				Are you sure you want to deactivate <strong>{employee?.display_name}</strong>? This will
 				prevent them from accessing the system.
 			</Dialog.Description>
 		</Dialog.Header>

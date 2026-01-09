@@ -7,6 +7,7 @@
 	 * Filterable list of performance reviews with sorting and search
 	 */
 	import { createEventDispatcher } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 	import * as Card from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -15,32 +16,32 @@
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Separator } from '$lib/components/ui/separator';
 	import {
-		Search,
-		Filter,
-		Eye,
-		Edit,
 		Calendar,
-		User,
-		FileText,
 		ChevronDown,
 		ChevronUp,
+		Edit,
+		Eye,
+		FileText,
+		Filter,
+		Search,
 		SortAsc,
-		SortDesc
+		SortDesc,
+		User
 	} from '@lucide/svelte';
 	import {
-		getReviewTypeInfo,
-		getReviewStatusInfo,
 		formatReviewPeriod,
-		reviewTypesForFilter as reviewTypes,
-		reviewStatuses
+		getReviewStatusInfo,
+		getReviewTypeInfo,
+		reviewStatuses,
+		reviewTypesForFilter as reviewTypes
 	} from '$lib/graphql/reviews-operations';
-	import type { ReviewType, ReviewStatus } from '$lib/schemas/reviews';
+	import type { ReviewStatus, ReviewType } from '$lib/schemas/reviews';
 	import DraftReviewIndicator from './DraftReviewIndicator.svelte';
 
 	const dispatch = createEventDispatcher();
 
 	// Props
-	let {
+	const {
 		reviews = [],
 		loading = false,
 		showFilters = true,
@@ -66,7 +67,7 @@
 
 	// Debug logging
 	$effect(() => {
-		console.log('🔍 ReviewListWithFilters - Input reviews:', {
+		logger.info('🔍 ReviewListWithFilters - Input reviews:', {
 			reviewsCount: reviews.length,
 			firstReview: reviews[0] || null,
 			searchQuery,
@@ -79,7 +80,7 @@
 	const filteredReviews = $derived.by(() => {
 		let filtered = reviews;
 
-		console.log('🔍 Starting filter - reviews:', filtered.length);
+		logger.info('🔍 Starting filter - reviews:', { count: filtered.length });
 
 		// Apply search
 		if (searchQuery) {
@@ -95,16 +96,19 @@
 
 		// Apply type filters
 		if (selectedTypes.length > 0) {
-			console.log('🔍 Type filter - before:', filtered.length, 'selectedTypes:', selectedTypes);
+			logger.info('🔍 Type filter - before:', { filteredLength: filtered.length, selectedTypes });
 			filtered = filtered.filter((review) => selectedTypes.includes(review.reviewType));
-			console.log('🔍 Type filter - after:', filtered.length);
+			logger.info('🔍 Type filter - after:', { filteredLength: filtered.length });
 		}
 
 		// Apply status filters
 		if (selectedStatuses.length > 0) {
-			console.log('🔍 Status filter - before:', filtered.length, 'selectedStatuses:', selectedStatuses);
+			logger.info('🔍 Status filter - before:', {
+				filteredLength: filtered.length,
+				selectedStatuses
+			});
 			filtered = filtered.filter((review) => selectedStatuses.includes(review.status));
-			console.log('🔍 Status filter - after:', filtered.length);
+			logger.info('🔍 Status filter - after:', { filteredLength: filtered.length });
 		}
 
 		// Apply sorting
@@ -124,7 +128,7 @@
 			return sortOrder === 'asc' ? comparison : -comparison;
 		});
 
-		console.log('🔍 Final filtered result:', {
+		logger.info('🔍 Final filtered result:', {
 			filteredCount: filtered.length,
 			firstFiltered: filtered[0] || null
 		});
@@ -315,7 +319,7 @@
 
 	<!-- Results Count -->
 	<div class="text-sm text-muted-foreground">
-		Showing {filteredReviews().length} of {reviews.length} reviews
+		Showing {filteredReviews.length} of {reviews.length} reviews
 	</div>
 
 	<!-- Reviews List -->
@@ -332,7 +336,7 @@
 				</Card.Root>
 			{/each}
 		</div>
-	{:else if filteredReviews().length === 0}
+	{:else if filteredReviews.length === 0}
 		<Card.Root>
 			<Card.Content class="pt-12 pb-12 text-center">
 				<FileText class="mx-auto mb-4 h-12 w-12 text-muted-foreground opacity-20" />
@@ -346,7 +350,7 @@
 		</Card.Root>
 	{:else}
 		<div class="space-y-4">
-			{#each filteredReviews() as review (review.id)}
+			{#each filteredReviews as review (review.id)}
 				{#if review.status === 'DRAFT'}
 					<DraftReviewIndicator
 						draft={review}

@@ -13,9 +13,10 @@
  */
 
 import type { Exchange, Operation, OperationResult } from '@urql/core';
-import { pipe, tap, map } from 'wonka';
-import { trackGraphQL, performanceMonitor } from './client-monitor.js';
+import { map, pipe, tap } from 'wonka';
+import { performanceMonitor, trackGraphQL } from './client-monitor.js';
 import type { PerformanceMetric } from './client-monitor.js';
+import { logger } from '$lib/utils/logger';
 
 export interface GraphQLOperationContext {
 	operationName?: string;
@@ -191,7 +192,7 @@ export function createPerformanceExchange(
 
 					// Log performance warnings
 					if (duration > mergedConfig.slowQueryThreshold) {
-						console.warn(
+						logger.warn(
 							`🐌 Slow GraphQL operation: ${context.operationName} took ${Math.round(duration)}ms`,
 							{
 								operation: context.operationName,
@@ -209,7 +210,7 @@ export function createPerformanceExchange(
 						context.complexity &&
 						context.complexity > mergedConfig.complexityThreshold
 					) {
-						console.warn(
+						logger.warn(
 							`🔍 Complex GraphQL operation detected: ${context.operationName} has complexity ${context.complexity}`,
 							{
 								operation: context.operationName,
@@ -322,20 +323,20 @@ export class GraphQLPerformanceTester {
 		let errorCount = 0;
 
 		// Warmup runs
-		console.log(`🔄 Warming up ${name} with ${warmupIterations} iterations...`);
+		logger.info(`🔄 Warming up ${name} with ${warmupIterations} iterations...`);
 		for (let i = 0; i < warmupIterations; i++) {
 			try {
 				const start = performance.now();
 				await operationFn();
 				const duration = performance.now() - start;
-				console.log(`  Warmup ${i + 1}: ${Math.round(duration)}ms`);
+				logger.info(`  Warmup ${i + 1}: ${Math.round(duration)}ms`);
 			} catch (error) {
-				console.warn(`  Warmup ${i + 1} failed:`, error);
+				logger.warn(`  Warmup ${i + 1} failed: ${error}`);
 			}
 		}
 
 		// Performance test runs
-		console.log(`🚀 Running performance test for ${name} with ${iterations} iterations...`);
+		logger.info(`🚀 Running performance test for ${name} with ${iterations} iterations...`);
 
 		for (let i = 0; i < iterations; i++) {
 			try {
@@ -346,11 +347,11 @@ export class GraphQLPerformanceTester {
 
 				if (logResults) {
 					const status = duration > maxDuration ? '❌' : duration > maxDuration * 0.8 ? '⚠️' : '✅';
-					console.log(`  ${status} Iteration ${i + 1}: ${Math.round(duration)}ms`);
+					logger.info(`  ${status} Iteration ${i + 1}: ${Math.round(duration)}ms`);
 				}
 			} catch (error) {
 				errorCount++;
-				console.error(`  ❌ Iteration ${i + 1} failed:`, error);
+				logger.error('Catch failed', error as Error);
 			}
 		}
 
@@ -385,24 +386,24 @@ export class GraphQLPerformanceTester {
 		});
 
 		// Log summary
-		console.log(`📊 Performance Test Results for ${name}:`);
-		console.log(`  Average: ${testResult.averageDuration}ms`);
-		console.log(`  Min: ${testResult.minDuration}ms`);
-		console.log(`  Max: ${testResult.maxDuration}ms`);
-		console.log(`  P95: ${testResult.p95Duration}ms`);
-		console.log(`  Success Rate: ${testResult.successRate}%`);
+		logger.info(`📊 Performance Test Results for ${name}:`);
+		logger.info(`  Average: ${testResult.averageDuration}ms`);
+		logger.info(`  Min: ${testResult.minDuration}ms`);
+		logger.info(`  Max: ${testResult.maxDuration}ms`);
+		logger.info(`  P95: ${testResult.p95Duration}ms`);
+		logger.info(`  Success Rate: ${testResult.successRate}%`);
 
 		// Performance warnings
 		if (testResult.averageDuration > maxDuration) {
-			console.warn(
+			logger.warn(
 				`⚠️ Average duration (${testResult.averageDuration}ms) exceeds target (${maxDuration}ms)`
 			);
 		}
 		if (testResult.p95Duration > maxDuration * 1.5) {
-			console.warn(`⚠️ P95 duration (${testResult.p95Duration}ms) significantly exceeds target`);
+			logger.warn(`⚠️ P95 duration (${testResult.p95Duration}ms) significantly exceeds target`);
 		}
 		if (testResult.successRate < 95) {
-			console.warn(`⚠️ Success rate (${testResult.successRate}%) is below acceptable threshold`);
+			logger.warn(`⚠️ Success rate (${testResult.successRate}%) is below acceptable threshold`);
 		}
 
 		return testResult;

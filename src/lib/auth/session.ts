@@ -1,3 +1,5 @@
+import { logger } from '$lib/utils/logger';
+
 /**
  * Session Cookie Utilities
  * Helper functions for managing session cookies in the browser
@@ -166,7 +168,7 @@ class SessionExpirationManager {
 			this.options.checkInterval * 60 * 1000
 		); // Convert minutes to milliseconds
 
-		console.log(
+		logger.info(
 			`⏰ Session expiration monitoring started (check every ${this.options.checkInterval} minutes)`
 		);
 	}
@@ -178,7 +180,7 @@ class SessionExpirationManager {
 		if (this.checkInterval) {
 			clearInterval(this.checkInterval);
 			this.checkInterval = null;
-			console.log('⏰ Session expiration monitoring stopped');
+			logger.info('⏰ Session expiration monitoring stopped');
 		}
 	}
 
@@ -195,15 +197,15 @@ class SessionExpirationManager {
 			}
 
 			if (minutesLeft <= 0) {
-				console.log('⏰ Session has expired');
+				logger.info('⏰ Session has expired');
 				this.options.onExpired();
 				this.stop();
 			} else if (minutesLeft <= this.options.warningThreshold) {
-				console.log(`⏰ Session expires in ${minutesLeft} minutes`);
+				logger.info(`⏰ Session expires in ${minutesLeft} minutes`);
 				this.options.onExpirationWarning(minutesLeft);
 			}
 		} catch (error) {
-			console.error('Error checking session expiration:', error);
+			logger.error('Failed to check session expiration', error as Error);
 		}
 	}
 
@@ -232,7 +234,7 @@ class SessionExpirationManager {
 			const minutesLeft = Math.floor((sessionTimeoutMs - timeSinceActivity) / (1000 * 60));
 			return Math.max(0, minutesLeft);
 		} catch (error) {
-			console.error('Error calculating session expiry:', error);
+			logger.error('Failed to get session expiry time', error as Error);
 			return null;
 		}
 	}
@@ -273,14 +275,14 @@ class SessionExpirationManager {
 
 			if (response.ok) {
 				this.updateActivity();
-				console.log('✅ Session refreshed successfully');
+				logger.info('✅ Session refreshed successfully');
 				return true;
 			} else {
-				console.log('❌ Session refresh failed');
+				logger.info('❌ Session refresh failed');
 				return false;
 			}
 		} catch (error) {
-			console.error('Error refreshing session:', error);
+			logger.error('Failed to refresh session', error as Error);
 			return false;
 		}
 	}

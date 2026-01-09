@@ -90,6 +90,14 @@ export default defineConfig({
 						'src/**/*.svelte.{test,spec}.{js,ts}',
 						'tests/unit/**/*.svelte.{test,spec}.{js,ts}',
 						'src/lib/server/**/*.svelte.{test,spec}.{js,ts}',
+						'tests/unit/components/**/*.{test,spec}.{js,ts}', // Component tests run in unit-client
+						'src/lib/components/**/*.{test,spec}.{js,ts}', // Component co-located tests run in unit-client
+						'tests/unit/routes/**/*.{test,spec}.{js,ts}', // Route/page tests (Svelte components)
+						'tests/unit/stores/auth.spec.ts', // Browser-dependent store test
+						'tests/unit/dashboard-component-syntax.test.ts', // Component test, needs browser
+						'tests/unit/encryption.spec.ts', // Web Crypto API (browser only)
+						'tests/unit/documentValidation.spec.ts', // File/Blob APIs (browser only)
+						'src/**/__tests__/**/*.{test,spec}.{js,ts}', // Component co-located tests (Playwright)
 						'tests/integration/**',
 						'tests/contract/**',
 						'tests/e2e/**'
@@ -109,8 +117,9 @@ export default defineConfig({
 					name: 'unit-client',
 					environment: 'jsdom',
 					include: [
-						'src/**/*.svelte.{test,spec}.{js,ts}',
-						'tests/unit/**/*.svelte.{test,spec}.{js,ts}',
+						'tests/unit/components/**/*.{test,spec}.{js,ts}',
+						'tests/unit/routes/**/*.{test,spec}.{js,ts}',
+						'tests/unit/stores/auth.spec.ts', // Browser-dependent store test
 						'src/lib/components/**/*.{test,spec}.{js,ts}'
 					],
 					exclude: [
@@ -141,7 +150,7 @@ export default defineConfig({
 						instances: [{ browser: 'chromium' }, { browser: 'firefox' }, { browser: 'webkit' }]
 					},
 					include: [
-						'tests/unit/components/**/*.browser.{test,spec}.{js,ts}',
+						'tests/e2e/**/*.browser.{test,spec}.{js,ts}',
 						'src/lib/components/**/*.browser.{test,spec}.{js,ts}'
 					],
 					setupFiles: ['./tests/setup/vitest-browser-setup.ts']
@@ -248,8 +257,7 @@ export default defineConfig({
 					environment: 'node',
 					include: [
 						'tests/contract/graphql-schema-validation.test.ts',
-						'tests/contract/test_graphql_schema.spec.ts',
-						'tests/contract/graphql/**/*.{test,spec}.{js,ts}'
+						'tests/contract/test_graphql_schema.spec.ts'
 					],
 					exclude: [
 						'tests/unit/**',
@@ -282,10 +290,7 @@ export default defineConfig({
 				test: {
 					name: 'graphql-performance',
 					environment: 'node',
-					include: [
-						'tests/performance/graphql/**/*.{test,spec}.{js,ts}',
-						'tests/unit/graphql/**/*performance*.{test,spec}.{js,ts}'
-					],
+					include: ['tests/performance/**/*graphql*.{test,spec}.{js,ts}'],
 					exclude: ['tests/unit/components/**', 'tests/contract/**', 'tests/e2e/**'],
 					setupFiles: ['./tests/setup/vitest-setup-graphql-performance.ts'],
 					testTimeout: 180000, // 3 minutes for performance tests
@@ -373,7 +378,6 @@ export default defineConfig({
 					environment: 'node',
 					include: ['tests/e2e/**/*.puppeteer.{test,spec}.{js,ts}'],
 					exclude: [
-						'tests/e2e/**/*.stagehand.spec.ts',
 						'tests/e2e/**/*.browser.{test,spec}.{js,ts}',
 						'tests/unit/**',
 						'tests/integration/**',
@@ -391,6 +395,59 @@ export default defineConfig({
 						VITEST: 'true',
 						BASE_URL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173',
 						BROWSER_HEADLESS: process.env.HEADED ? 'false' : 'true'
+					}
+				}
+			},
+
+			// E2E Playwright Tests (main E2E test suite)
+			{
+				name: 'e2e-playwright',
+				test: {
+					name: 'e2e-playwright',
+					globals: true,
+					environment: 'node',
+					include: ['tests/e2e/**/*.spec.ts'],
+					exclude: [
+						'tests/e2e/**/*.puppeteer.{test,spec}.{js,ts}',
+						'tests/e2e/**/*.browser.{test,spec}.{js,ts}',
+						'tests/unit/**',
+						'tests/integration/**',
+						'tests/contract/**'
+					],
+					setupFiles: ['./tests/setup/vitest-setup-e2e-playwright.ts'],
+					testTimeout: 60000,
+					hookTimeout: 30000,
+					coverage: {
+						enabled: false
+					},
+					env: {
+						NODE_ENV: 'test',
+						VITEST: 'true',
+						BASE_URL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173',
+						BROWSER_HEADLESS: process.env.HEADED ? 'false' : 'true'
+					}
+				}
+			},
+
+			// Security Tests
+			{
+				name: 'security',
+				extends: './vitest.config.ts',
+				test: {
+					name: 'security',
+					environment: 'node',
+					include: ['tests/security/**/*.{test,spec}.{js,ts}'],
+					exclude: ['tests/unit/**', 'tests/integration/**', 'tests/contract/**', 'tests/e2e/**'],
+					setupFiles: ['./tests/setup/vitest-setup-security.ts'],
+					testTimeout: 30000,
+					hookTimeout: 15000,
+					coverage: {
+						enabled: false
+					},
+					env: {
+						NODE_ENV: 'test',
+						VITEST: 'true',
+						BASE_URL: process.env.BASE_URL || 'http://localhost:5173'
 					}
 				}
 			}
@@ -443,7 +500,8 @@ export default defineConfig({
 			$stores: resolve('./src/lib/stores'),
 			$types: resolve('./src/lib/types'),
 			$graphql: resolve('./src/lib/graphql'),
-			$tests: resolve('./tests')
+			$tests: resolve('./tests'),
+			$routes: resolve('./src/routes')
 		}
 	},
 

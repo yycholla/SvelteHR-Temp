@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { logger } from '$lib/utils/logger';
 	import {
 		AlertCircle,
 		Calendar,
@@ -92,10 +93,10 @@
 		return `${format(start, 'MMM dd')} - ${format(end, 'MMM dd, yyyy')}`;
 	}
 
-	async function handleSubmitRequest(event) {
+	async function handleSubmitRequest(event: Event) {
 		event.preventDefault();
 		// TODO: Implement actual leave request submission
-		console.log('Submitting leave request:', newRequest);
+		logger.info(`Submitting leave request: ${newRequest}`);
 		showNewRequestForm = false;
 		newRequest = {
 			leaveTypeId: '',
@@ -107,7 +108,7 @@
 
 	async function handleCancelRequest(requestId: string) {
 		// TODO: Implement request cancellation
-		console.log('Cancelling request:', requestId);
+		logger.info(`Cancelling request: ${requestId}`);
 	}
 </script>
 
@@ -380,7 +381,7 @@
 						{:else}
 							<tr>
 								<td
-									colspan={isOwnLeave ? '7' : '6'}
+									colspan={isOwnLeave ? 7 : 6}
 									class="px-6 py-8 text-center text-sm text-muted-foreground"
 								>
 									No leave requests found.
@@ -393,4 +394,3 @@
 		</div>
 	</div>
 </div>
-

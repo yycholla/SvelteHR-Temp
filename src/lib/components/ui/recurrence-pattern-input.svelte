@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Label } from '$lib/components/ui/label';
+	import { logger } from '$lib/utils/logger';
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
 	import * as Select from '$lib/components/ui/select';
@@ -7,7 +8,7 @@
 	import { Calendar } from '$lib/components/ui/calendar';
 	import { Popover, PopoverContent, PopoverTrigger } from '$lib/components/ui/popover';
 	import { CalendarIcon, X } from '@lucide/svelte';
-	import { DateFormatter, getLocalTimeZone } from '@internationalized/date';
+	import { DateFormatter, getLocalTimeZone, parseDate } from '@internationalized/date';
 	import { cn } from '$lib/utils';
 	import { generateRRule, validate5YearLimit } from '$lib/utils/rrule';
 
@@ -32,7 +33,9 @@
 	let isRecurring = $state(!!pattern);
 	let frequency = $state<'daily' | 'weekly' | 'monthly' | 'yearly'>(pattern?.frequency || 'weekly');
 	let interval = $state(pattern?.interval || 1);
-	let endDate = $state<string | undefined>(pattern?.endDate ? pattern.endDate.toISOString() : undefined);
+	let endDate = $state<string | undefined>(
+		pattern?.endDate ? pattern.endDate.toISOString() : undefined
+	);
 	let selectedDays = $state<number[]>(pattern?.daysOfWeek || []);
 	let endDateError = $state<string | null>(null);
 
@@ -101,11 +104,11 @@
 
 		// Generate RRULE string
 		try {
-			const rruleString = generateRRule(recurrencePattern, startDate);
+			const rruleString = generateRRule(recurrencePattern as any, startDate);
 			recurrencePattern.rruleString = rruleString;
 			pattern = recurrencePattern;
 		} catch (error) {
-			console.error('Error generating RRULE:', error);
+			logger.error('Catch failed', error as Error);
 		}
 	}
 
@@ -130,7 +133,7 @@
 			<Label class="text-base">Recurring Training</Label>
 			<p class="text-xs text-muted-foreground">Schedule this training to repeat automatically</p>
 		</div>
-		<Switch bind:checked={isRecurring} disabled={disabled} />
+		<Switch bind:checked={isRecurring} {disabled} />
 	</div>
 
 	{#if isRecurring}
@@ -139,19 +142,12 @@
 			<div class="grid grid-cols-2 gap-3">
 				<div class="space-y-2">
 					<Label>Repeat Every</Label>
-					<Input
-						type="number"
-						min="1"
-						max="365"
-						bind:value={interval}
-						disabled={disabled}
-						class="w-full"
-					/>
+					<Input type="number" min="1" max="365" bind:value={interval} {disabled} class="w-full" />
 				</div>
 
 				<div class="space-y-2">
 					<Label>Frequency</Label>
-					<Select.Root bind:selected={frequency} disabled={disabled}>
+					<Select.Root type="single" bind:value={frequency} {disabled}>
 						<Select.Trigger class="w-full">
 							<Select.Value />
 						</Select.Trigger>
@@ -176,7 +172,7 @@
 								size="sm"
 								class="w-12"
 								onclick={() => toggleDay(day.value)}
-								disabled={disabled}
+								{disabled}
 							>
 								{day.label}
 							</Button>
@@ -201,7 +197,7 @@
 									!endDate && 'text-muted-foreground'
 								)}
 								{...props}
-								disabled={disabled}
+								{disabled}
 							>
 								<CalendarIcon class="mr-2 h-4 w-4" />
 								{endDate ? df.format(new Date(endDate)) : 'Pick an end date'}
@@ -211,7 +207,7 @@
 					<PopoverContent class="w-auto p-0">
 						<Calendar
 							type="single"
-							value={endDate ? new Date(endDate) : undefined}
+							value={endDate ? parseDate(endDate.split('T')[0]) : undefined}
 							onValueChange={(v) => {
 								if (v) {
 									const dateObj = v.toDate(getLocalTimeZone());

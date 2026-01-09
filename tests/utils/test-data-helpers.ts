@@ -216,10 +216,7 @@ export async function elementExists(page: Page, selector: string): Promise<boole
 /**
  * Wait for loading spinner to disappear
  */
-export async function waitForLoadingComplete(
-	page: Page,
-	timeout: number = 10000
-): Promise<void> {
+export async function waitForLoadingComplete(page: Page, timeout: number = 10000): Promise<void> {
 	try {
 		// Wait for loading spinner to appear (if it does)
 		await page.waitForSelector('[data-testid="loading-spinner"]', { timeout: 1000 });

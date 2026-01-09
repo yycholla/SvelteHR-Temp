@@ -10,48 +10,48 @@ import { PG_TO_GRAPHQL } from '../types/type-mappings.js';
  * Connects to PostgreSQL and introspects table/column metadata
  */
 export class DatabaseIntrospector {
-    // @ts-expect-error - Reserved for production pg library integration
-    connectionString;
-    connected = false;
-    constructor(connectionString) {
-        this.connectionString = connectionString;
-    }
-    /**
-     * Connect to database
-     * Note: Using dynamic import to avoid bundling pg in browser environments
-     */
-    async connect() {
-        // Connection will be established on-demand
-        this.connected = true;
-    }
-    /**
-     * Disconnect from database
-     */
-    async disconnect() {
-        this.connected = false;
-    }
-    /**
-     * Get all tables in public schema
-     */
-    async getTables() {
-        this.ensureConnected();
-        const query = `
+  // @ts-expect-error - Reserved for production pg library integration
+  connectionString;
+  connected = false;
+  constructor(connectionString) {
+    this.connectionString = connectionString;
+  }
+  /**
+   * Connect to database
+   * Note: Using dynamic import to avoid bundling pg in browser environments
+   */
+  async connect() {
+    // Connection will be established on-demand
+    this.connected = true;
+  }
+  /**
+   * Disconnect from database
+   */
+  async disconnect() {
+    this.connected = false;
+  }
+  /**
+   * Get all tables in public schema
+   */
+  async getTables() {
+    this.ensureConnected();
+    const query = `
       SELECT table_name
       FROM information_schema.tables
       WHERE table_schema = 'public'
         AND table_type = 'BASE TABLE'
       ORDER BY table_name;
     `;
-        const result = await this.executeQuery(query);
-        return result.rows.map((row) => row.table_name);
-    }
-    /**
-     * Get all columns for specified tables (or all tables if not specified)
-     */
-    async getColumns(tableFilter) {
-        this.ensureConnected();
-        // Query column information
-        const columnsQuery = `
+    const result = await this.executeQuery(query);
+    return result.rows.map((row) => row.table_name);
+  }
+  /**
+   * Get all columns for specified tables (or all tables if not specified)
+   */
+  async getColumns(tableFilter) {
+    this.ensureConnected();
+    // Query column information
+    const columnsQuery = `
       SELECT
         c.table_name,
         c.column_name,
@@ -64,9 +64,12 @@ export class DatabaseIntrospector {
         ${tableFilter ? `AND c.table_name = ANY($1)` : ''}
       ORDER BY c.table_name, c.ordinal_position;
     `;
-        const columnsResult = await this.executeQuery(columnsQuery, tableFilter ? [tableFilter] : undefined);
-        // Query constraints (primary keys, foreign keys)
-        const constraintsQuery = `
+    const columnsResult = await this.executeQuery(
+      columnsQuery,
+      tableFilter ? [tableFilter] : undefined
+    );
+    // Query constraints (primary keys, foreign keys)
+    const constraintsQuery = `
       SELECT
         tc.table_name,
         kcu.column_name,
@@ -85,58 +88,62 @@ export class DatabaseIntrospector {
         ${tableFilter ? `AND tc.table_name = ANY($1)` : ''}
       ORDER BY tc.table_name, kcu.column_name;
     `;
-        const constraintsResult = await this.executeQuery(constraintsQuery, tableFilter ? [tableFilter] : undefined);
-        // Build constraint map
-        const primaryKeys = new Set();
-        const foreignKeys = new Map();
-        for (const constraint of constraintsResult.rows) {
-            const key = `${constraint.table_name}.${constraint.column_name}`;
-            if (constraint.constraint_type === 'PRIMARY KEY') {
-                primaryKeys.add(key);
-            }
-            else if (constraint.constraint_type === 'FOREIGN KEY' &&
-                constraint.foreign_table_name &&
-                constraint.foreign_column_name) {
-                foreignKeys.set(key, {
-                    table: constraint.foreign_table_name,
-                    column: constraint.foreign_column_name,
-                });
-            }
-        }
-        // Map columns to DatabaseColumn type
-        const columns = columnsResult.rows.map((col) => {
-            const key = `${col.table_name}.${col.column_name}`;
-            const isArray = col.data_type === 'ARRAY';
-            const baseType = isArray ? col.udt_name.substring(1) : col.udt_name; // Remove leading underscore for arrays
-            const foreignKey = foreignKeys.get(key);
-            const defaultValue = col.column_default;
-            // Build column object explicitly to avoid undefined assignment with exactOptionalPropertyTypes
-            const columnData = {
-                tableName: col.table_name,
-                columnName: col.column_name,
-                pgType: isArray ? `${baseType}[]` : baseType,
-                graphqlType: this.mapPgTypeToGraphQL(isArray ? `${baseType}[]` : baseType),
-                nullable: col.is_nullable === 'YES',
-                isArray,
-                isPrimaryKey: primaryKeys.has(key),
-            };
-            // Only add optional properties if they have values
-            if (foreignKey) {
-                columnData.foreignKey = foreignKey;
-            }
-            if (defaultValue) {
-                columnData.defaultValue = defaultValue;
-            }
-            return DatabaseColumnSchema.parse(columnData);
+    const constraintsResult = await this.executeQuery(
+      constraintsQuery,
+      tableFilter ? [tableFilter] : undefined
+    );
+    // Build constraint map
+    const primaryKeys = new Set();
+    const foreignKeys = new Map();
+    for (const constraint of constraintsResult.rows) {
+      const key = `${constraint.table_name}.${constraint.column_name}`;
+      if (constraint.constraint_type === 'PRIMARY KEY') {
+        primaryKeys.add(key);
+      } else if (
+        constraint.constraint_type === 'FOREIGN KEY' &&
+        constraint.foreign_table_name &&
+        constraint.foreign_column_name
+      ) {
+        foreignKeys.set(key, {
+          table: constraint.foreign_table_name,
+          column: constraint.foreign_column_name,
         });
-        return columns;
+      }
     }
-    /**
-     * Get enum types from database
-     */
-    async getEnumTypes() {
-        this.ensureConnected();
-        const query = `
+    // Map columns to DatabaseColumn type
+    const columns = columnsResult.rows.map((col) => {
+      const key = `${col.table_name}.${col.column_name}`;
+      const isArray = col.data_type === 'ARRAY';
+      const baseType = isArray ? col.udt_name.substring(1) : col.udt_name; // Remove leading underscore for arrays
+      const foreignKey = foreignKeys.get(key);
+      const defaultValue = col.column_default;
+      // Build column object explicitly to avoid undefined assignment with exactOptionalPropertyTypes
+      const columnData = {
+        tableName: col.table_name,
+        columnName: col.column_name,
+        pgType: isArray ? `${baseType}[]` : baseType,
+        graphqlType: this.mapPgTypeToGraphQL(isArray ? `${baseType}[]` : baseType),
+        nullable: col.is_nullable === 'YES',
+        isArray,
+        isPrimaryKey: primaryKeys.has(key),
+      };
+      // Only add optional properties if they have values
+      if (foreignKey) {
+        columnData.foreignKey = foreignKey;
+      }
+      if (defaultValue) {
+        columnData.defaultValue = defaultValue;
+      }
+      return DatabaseColumnSchema.parse(columnData);
+    });
+    return columns;
+  }
+  /**
+   * Get enum types from database
+   */
+  async getEnumTypes() {
+    this.ensureConnected();
+    const query = `
       SELECT
         t.typname AS enum_name,
         e.enumlabel AS enum_value
@@ -146,54 +153,56 @@ export class DatabaseIntrospector {
       WHERE n.nspname = 'public'
       ORDER BY t.typname, e.enumsortorder;
     `;
-        const result = await this.executeQuery(query);
-        const enumMap = new Map();
-        for (const row of result.rows) {
-            if (!enumMap.has(row.enum_name)) {
-                enumMap.set(row.enum_name, []);
-            }
-            enumMap.get(row.enum_name).push(row.enum_value);
-        }
-        return enumMap;
+    const result = await this.executeQuery(query);
+    const enumMap = new Map();
+    for (const row of result.rows) {
+      if (!enumMap.has(row.enum_name)) {
+        enumMap.set(row.enum_name, []);
+      }
+      enumMap.get(row.enum_name).push(row.enum_value);
     }
-    /**
-     * Introspect full database schema
-     */
-    async introspectSchema(tableFilter) {
-        await this.connect();
-        const columns = await this.getColumns(tableFilter);
-        return columns;
+    return enumMap;
+  }
+  /**
+   * Introspect full database schema
+   */
+  async introspectSchema(tableFilter) {
+    await this.connect();
+    const columns = await this.getColumns(tableFilter);
+    return columns;
+  }
+  /**
+   * Map PostgreSQL type to GraphQL type
+   * @private
+   */
+  mapPgTypeToGraphQL(pgType) {
+    const normalized = pgType.toLowerCase();
+    return PG_TO_GRAPHQL[normalized] ?? 'String'; // Default to String for unknown types
+  }
+  /**
+   * Execute a query against the database
+   * @private
+   */
+  async executeQuery(_query, _params) {
+    // Mock implementation for now - in production this would use pg library
+    // Example: const client = new pg.Client(this.connectionString)
+    //          await client.connect()
+    //          const result = await client.query(_query, _params)
+    //          await client.end()
+    // For now, return empty result to allow tests to run
+    console.warn(
+      'DatabaseIntrospector: Using mock implementation. Connect to real DB in production.'
+    );
+    return { rows: [] };
+  }
+  /**
+   * Ensure database is connected
+   * @private
+   */
+  ensureConnected() {
+    if (!this.connected) {
+      throw new Error('Database not connected. Call connect() first.');
     }
-    /**
-     * Map PostgreSQL type to GraphQL type
-     * @private
-     */
-    mapPgTypeToGraphQL(pgType) {
-        const normalized = pgType.toLowerCase();
-        return PG_TO_GRAPHQL[normalized] ?? 'String'; // Default to String for unknown types
-    }
-    /**
-     * Execute a query against the database
-     * @private
-     */
-    async executeQuery(_query, _params) {
-        // Mock implementation for now - in production this would use pg library
-        // Example: const client = new pg.Client(this.connectionString)
-        //          await client.connect()
-        //          const result = await client.query(_query, _params)
-        //          await client.end()
-        // For now, return empty result to allow tests to run
-        console.warn('DatabaseIntrospector: Using mock implementation. Connect to real DB in production.');
-        return { rows: [] };
-    }
-    /**
-     * Ensure database is connected
-     * @private
-     */
-    ensureConnected() {
-        if (!this.connected) {
-            throw new Error('Database not connected. Call connect() first.');
-        }
-    }
+  }
 }
 //# sourceMappingURL=database-introspector.js.map

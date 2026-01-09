@@ -12,7 +12,7 @@
  * - Auto-promotion when capacity opens
  */
 
-import { test, expect, describe, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 interface JoinWaitlistInput {
 	eventId: string;

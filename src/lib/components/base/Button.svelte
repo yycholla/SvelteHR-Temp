@@ -1,7 +1,8 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import type { Snippet } from 'svelte';
 
-	let {
+	const {
 		variant = 'primary',
 		size = 'md',
 		type = 'button',
@@ -15,6 +16,7 @@
 		leftIcon = null,
 		rightIcon = null,
 		iconOnly = false,
+		class: className = '',
 		onclick = undefined,
 		children
 	}: {
@@ -31,12 +33,13 @@
 		leftIcon?: string | null;
 		rightIcon?: string | null;
 		iconOnly?: boolean;
+		class?: string;
 		onclick?: ((event: MouseEvent) => void) | undefined;
 		children?: Snippet;
 	} = $props();
 
 	// Class computation
-	let buttonClasses = $derived(
+	const buttonClasses = $derived(
 		[
 			'btn',
 			`btn--${variant}`,
@@ -45,7 +48,8 @@
 			rounded && 'btn--rounded',
 			iconOnly && 'btn--icon-only',
 			disabled && 'btn--disabled',
-			loading && 'btn--loading'
+			loading && 'btn--loading',
+			className
 		]
 			.filter(Boolean)
 			.join(' ')
@@ -63,13 +67,7 @@
 </script>
 
 {#if href && !disabled && !loading}
-	<a
-		{href}
-		{target}
-		{rel}
-		class={buttonClasses}
-		role="button"
-	>
+	<a href={resolve(href as any)} {target} {rel} class={buttonClasses} role="button">
 		{#if leftIcon && !iconOnly}
 			<span class="btn__icon btn__icon--left">
 				<i class="icon-{leftIcon}"></i>
@@ -114,12 +112,7 @@
 		{/if}
 	</a>
 {:else}
-	<button
-		{type}
-		{disabled}
-		class={buttonClasses}
-		onclick={handleClick}
-	>
+	<button {type} {disabled} class={buttonClasses} onclick={handleClick}>
 		{#if leftIcon && !iconOnly}
 			<span class="btn__icon btn__icon--left">
 				<i class="icon-{leftIcon}"></i>
@@ -164,5 +157,3 @@
 		{/if}
 	</button>
 {/if}
-
-

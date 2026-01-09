@@ -2,8 +2,8 @@
 	// T004: PermissionGuard Svelte 5 component for permission-based conditional rendering
 	// UX-only component - server-side enforcement is MANDATORY for security
 
-	import type { PermissionString, PermissionContext } from '$lib/types/permissions';
-	import { hasPermission, hasAnyPermission, hasAllPermissions } from '$lib/utils/permissions';
+	import type { PermissionContext, PermissionString } from '$lib/types/permissions';
+	import { hasAllPermissions, hasAnyPermission, hasPermission } from '$lib/utils/permissions';
 	import type { Snippet } from 'svelte';
 
 	interface Props {
@@ -63,7 +63,7 @@
 		[key: string]: unknown;
 	}
 
-	let {
+	const {
 		permissions,
 		requires,
 		requireAll = false,
@@ -82,7 +82,7 @@
 
 	// Check if user has required permissions
 	const hasRequiredPermissions = $derived.by(() => {
-		if (!requires) {
+		if (!requires || (Array.isArray(requires) && requires.length === 0)) {
 			// No permission requirement - always show
 			return true;
 		}
@@ -95,7 +95,7 @@
 		}
 
 		// Single permission
-		return auth.hasPermission(permissionArray, requires);
+		return hasPermission(permissionArray, requires);
 	});
 
 	// Determine if content should be shown based on inverse flag

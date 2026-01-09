@@ -12,26 +12,32 @@
 **Three comprehensive reports have been generated:**
 
 1. **Executive Summary**
+
    ```bash
    cat /home/chanway/SvelteHR/graphql-rust-server/docs/test-coverage-summary.md
    ```
+
    - High-level overview
    - Critical findings
    - Action plan with timelines
 
 2. **Detailed Coverage Analysis**
+
    ```bash
    cat /home/chanway/SvelteHR/graphql-rust-server/docs/test-coverage-report.md
    ```
+
    - Module-by-module breakdown
    - Security gap analysis
    - Test recommendations with code examples
    - 12-week improvement roadmap
 
 3. **Quick Wins Guide**
+
    ```bash
    cat /home/chanway/SvelteHR/graphql-rust-server/docs/test-quick-wins.md
    ```
+
    - Easy tests to implement (1-2 hours each)
    - 11 categories of quick wins
    - Test templates and patterns
@@ -46,6 +52,7 @@
 Tarpaulin is currently running to generate line-level coverage data. This process typically takes 15-20 minutes for a large codebase.
 
 **Command Used:**
+
 ```bash
 cargo tarpaulin --lib --all-features --out Xml --out Html --output-dir coverage/ --timeout 300
 ```
@@ -63,10 +70,12 @@ tail -f /tmp/tarpaulin-output.log  # (if logged)
 ### When Complete
 
 **Output Files:**
+
 - `coverage/index.html` - Interactive HTML report
 - `coverage/cobertura.xml` - XML data for CI/CD
 
 **View HTML Report:**
+
 ```bash
 # Open in browser
 xdg-open coverage/index.html
@@ -77,6 +86,7 @@ google-chrome coverage/index.html
 ```
 
 **Expected Results:**
+
 - Exact line coverage percentage
 - Uncovered line ranges per file
 - Branch coverage metrics
@@ -148,11 +158,13 @@ cargo watch -x "test test_name -- --nocapture"
 ### Current Coverage: 25-30%
 
 **What's Tested:**
+
 - ✅ Database & RLS (83% file coverage) - STRONG
 - ✅ Business Logic Services (75% file coverage) - GOOD
 - ✅ JWT Middleware (6 tests) - MODERATE
 
 **Critical Gaps:**
+
 - 🚨 GraphQL Schema: 5,000+ lines, 0 tests
 - 🚨 Auth Backend: 531 lines, 0 tests
 - 🚨 RBAC Mutations: 663 lines, 0 tests
@@ -180,6 +192,7 @@ cargo watch -x "test test_name -- --nocapture"
 **Priority: Prevent authentication/authorization bypass**
 
 #### 1. Auth Backend Tests (4-6 hours)
+
 File: `src/auth/backend.rs` (531 lines)
 
 ```bash
@@ -202,6 +215,7 @@ mod tests {
 ```
 
 #### 2. RBAC Mutation Tests (6-8 hours)
+
 File: `src/schema/mutations/rbac.rs` (663 lines)
 
 ```bash
@@ -211,9 +225,11 @@ File: `src/schema/mutations/rbac.rs` (663 lines)
 ```
 
 #### 3. CSRF Protection Tests (3-4 hours)
+
 File: `src/middleware/csrf.rs` (210 lines)
 
 #### 4. RLS Integration Tests (4-6 hours)
+
 New file: `tests/rls_integration_test.rs`
 
 ```bash
@@ -233,6 +249,7 @@ New file: `tests/rls_integration_test.rs`
 See `docs/test-quick-wins.md` for details.
 
 **Focus:**
+
 - Pure logic functions (no database)
 - Model validation
 - Middleware edge cases
@@ -248,6 +265,7 @@ See `docs/test-quick-wins.md` for details.
 **Priority: Test all GraphQL resolvers**
 
 **Focus:**
+
 1. GraphQL query resolvers (12-16 hours)
 2. GraphQL mutation resolvers (20-30 hours)
 3. Model validation (10-15 hours)
@@ -262,6 +280,7 @@ See `docs/test-quick-wins.md` for details.
 **Priority: Comprehensive coverage**
 
 **Focus:**
+
 - Edge cases and error paths
 - Performance tests
 - Load tests
@@ -305,6 +324,7 @@ cargo run --bin migrate
 ### Create Test Helpers
 
 The project already has test infrastructure in `src/testing/`:
+
 - `database.rs` - Test database setup
 - `auth.rs` - Auth test utilities
 - `context.rs` - Test context creation
@@ -432,23 +452,23 @@ jobs:
 
 ### Phase Targets
 
-| Phase | Timeline | Coverage Target | Focus |
-|-------|----------|-----------------|-------|
-| Current | Now | 25-30% | Existing tests |
-| Phase 1 | Week 1 | 30-35% | Critical security |
-| Phase 2 | Week 2 | 40% | Quick wins |
-| Phase 3 | Week 6 | 60% | GraphQL resolvers |
-| Phase 4 | Week 12 | 80%+ | Comprehensive |
+| Phase   | Timeline | Coverage Target | Focus             |
+| ------- | -------- | --------------- | ----------------- |
+| Current | Now      | 25-30%          | Existing tests    |
+| Phase 1 | Week 1   | 30-35%          | Critical security |
+| Phase 2 | Week 2   | 40%             | Quick wins        |
+| Phase 3 | Week 6   | 60%             | GraphQL resolvers |
+| Phase 4 | Week 12  | 80%+            | Comprehensive     |
 
 ### Module Targets
 
-| Module | Current | Target |
-|--------|---------|--------|
-| Database & RLS | 83% | 90% |
-| Auth & Security | 47% | 80% |
-| GraphQL Schema | 11% | 70% |
-| Business Logic | 75% | 85% |
-| Models | 26% | 60% |
+| Module          | Current | Target |
+| --------------- | ------- | ------ |
+| Database & RLS  | 83%     | 90%    |
+| Auth & Security | 47%     | 80%    |
+| GraphQL Schema  | 11%     | 70%    |
+| Business Logic  | 75%     | 85%    |
+| Models          | 26%     | 60%    |
 
 ---
 
@@ -508,17 +528,20 @@ docker-compose -f docker-compose.test.yml up -d
 ## Additional Resources
 
 ### Project Documentation
+
 - Main Report: `docs/test-coverage-report.md`
 - Quick Wins: `docs/test-quick-wins.md`
 - This File: `docs/TESTING-INSTRUCTIONS.md`
 
 ### Rust Testing Resources
+
 - [Rust Book - Testing](https://doc.rust-lang.org/book/ch11-00-testing.html)
 - [Cargo Tarpaulin](https://github.com/xd009642/tarpaulin)
 - [Tokio Testing](https://tokio.rs/tokio/topics/testing)
 - [async-graphql Testing](https://async-graphql.github.io/async-graphql/en/testing.html)
 
 ### Testing Best Practices
+
 - AAA Pattern (Arrange, Act, Assert)
 - One assertion per test
 - Descriptive test names
@@ -532,6 +555,7 @@ docker-compose -f docker-compose.test.yml up -d
 **Expected Completion:** 15-20 minutes from 18:11 UTC (estimated: 18:26-18:31 UTC)
 
 **To check if tarpaulin is complete:**
+
 ```bash
 ls -lh coverage/
 # If you see index.html and cobertura.xml, it's done!

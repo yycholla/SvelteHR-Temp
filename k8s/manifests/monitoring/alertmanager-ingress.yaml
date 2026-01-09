@@ -6,8 +6,8 @@ metadata:
   namespace: monitoring
   annotations:
     # Tailscale ingress configuration
-    tailscale.com/funnel: "false"  # Private Tailnet access only
-    tailscale.com/hostname: "alertmanager"  # Will be alertmanager.your-tailnet.ts.net
+    tailscale.com/funnel: 'false' # Private Tailnet access only
+    tailscale.com/hostname: 'alertmanager' # Will be alertmanager.your-tailnet.ts.net
 spec:
   ingressClassName: tailscale
   defaultBackend:

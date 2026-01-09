@@ -75,7 +75,9 @@ async function main() {
 
 		// Validate database URL
 		if (!options.databaseUrl) {
-			spinner.fail(chalk.red('Database URL is required. Provide --database-url or set DATABASE_URL'));
+			spinner.fail(
+				chalk.red('Database URL is required. Provide --database-url or set DATABASE_URL')
+			);
 			process.exit(2);
 		}
 

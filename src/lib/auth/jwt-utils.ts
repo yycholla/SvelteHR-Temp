@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * ⚠️ DEPRECATED: JWT Utility Functions
  *
@@ -68,7 +69,7 @@ export async function verifyJWTToken(token: string): Promise<TokenValidationResu
 		const payload = jwt.verify(token, JWT_SECRET, {
 			issuer: authConfig.jwt.issuer,
 			audience: authConfig.jwt.audience,
-			algorithms: [authConfig.jwt.algorithm as any]
+			algorithms: [authConfig.jwt.algorithm as import('jsonwebtoken').Algorithm]
 		}) as JWTPayload;
 
 		// Check if token needs refresh (within refresh threshold)
@@ -139,7 +140,9 @@ export async function decodeJWTTokenUnsafe(token: string): Promise<JWTPayload | 
 			const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
 			return payload as JWTPayload;
 		} catch (error) {
-			console.warn('Failed to decode JWT token on client:', error);
+			logger.warn('Failed to decode JWT token on client:', {
+				error: error as Error
+			});
 			return null;
 		}
 	}
@@ -148,16 +151,21 @@ export async function decodeJWTTokenUnsafe(token: string): Promise<JWTPayload | 
 		// Server-side: Try simple base64 decode first (for our custom tokens)
 		const parts = token.split('.');
 		if (parts.length !== 3) {
-			console.warn('Invalid JWT format: expected 3 parts, got', parts.length);
+			logger.warn('Invalid JWT format: expected 3 parts', {
+				actualParts: parts.length,
+				tokenPreview: token.substring(0, 20) + '...'
+			});
 			return null;
 		}
 
 		// Decode the payload part (index 1)
 		const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-		console.log('🔍 Server decoded payload:', payload);
+		logger.info(`🔍 Server decoded payload:: ${payload}`);
 		return payload as JWTPayload;
 	} catch (error) {
-		console.warn('Failed to decode JWT token on server:', error);
+		logger.warn('Failed to decode JWT token on server:', {
+			error: error as Error
+		});
 		return null;
 	}
 }
@@ -175,7 +183,6 @@ export async function generateJWTToken(payload: Partial<JWTPayload>): Promise<st
 	}
 
 	const jwt = (await import('jsonwebtoken')).default;
-	const now = Math.floor(Date.now() / 1000);
 	const expirationTime = authConfig.jwt.expirationTime;
 
 	// Convert expiration time to seconds
@@ -188,19 +195,18 @@ export async function generateJWTToken(payload: Partial<JWTPayload>): Promise<st
 		expiresInSeconds = parseInt(expirationTime);
 	}
 
-	const tokenPayload: JWTPayload = {
+	const tokenPayload = {
 		user_id: payload.user_id || '',
 		email: payload.email || '',
 		role: payload.role || 'employee',
-		permissions: payload.permissions || [],
-		iat: now,
-		exp: now + expiresInSeconds,
-		iss: authConfig.jwt.issuer,
-		aud: authConfig.jwt.audience
+		permissions: payload.permissions || []
 	};
 
 	return jwt.sign(tokenPayload, JWT_SECRET, {
-		algorithm: authConfig.jwt.algorithm as any
+		algorithm: authConfig.jwt.algorithm as import('jsonwebtoken').Algorithm,
+		expiresIn: expiresInSeconds,
+		issuer: authConfig.jwt.issuer,
+		audience: authConfig.jwt.audience
 	});
 }
 
@@ -291,18 +297,26 @@ export function createMockJWTPayload(overrides: Partial<JWTPayload> = {}): JWTPa
 /**
  * Validate JWT payload structure
  */
-export function validateJWTPayloadStructure(payload: any): payload is JWTPayload {
+export function validateJWTPayloadStructure(payload: unknown): payload is JWTPayload {
 	return (
 		typeof payload === 'object' &&
 		payload !== null &&
-		typeof payload.user_id === 'string' &&
-		typeof payload.email === 'string' &&
-		typeof payload.exp === 'number' &&
-		typeof payload.iat === 'number' &&
-		typeof payload.iss === 'string' &&
-		typeof payload.aud === 'string' &&
-		(payload.role === undefined || typeof payload.role === 'string') &&
-		(payload.roles === undefined || Array.isArray(payload.roles)) &&
-		(payload.permissions === undefined || Array.isArray(payload.permissions))
+		'user_id' in payload &&
+		typeof (payload as JWTPayload).user_id === 'string' &&
+		'email' in payload &&
+		typeof (payload as JWTPayload).email === 'string' &&
+		'exp' in payload &&
+		typeof (payload as JWTPayload).exp === 'number' &&
+		'iat' in payload &&
+		typeof (payload as JWTPayload).iat === 'number' &&
+		'iss' in payload &&
+		typeof (payload as JWTPayload).iss === 'string' &&
+		'aud' in payload &&
+		typeof (payload as JWTPayload).aud === 'string' &&
+		((payload as JWTPayload).role === undefined ||
+			typeof (payload as JWTPayload).role === 'string') &&
+		((payload as JWTPayload).roles === undefined || Array.isArray((payload as JWTPayload).roles)) &&
+		((payload as JWTPayload).permissions === undefined ||
+			Array.isArray((payload as JWTPayload).permissions))
 	);
 }

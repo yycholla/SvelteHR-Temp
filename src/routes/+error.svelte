@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { logger } from '$lib/utils/logger';
 	import { goto } from '$app/navigation';
 	import { untrack } from 'svelte';
 	import ErrorBoundary from '$lib/components/ui/error-boundary.svelte';
@@ -10,7 +11,7 @@
 			const result = fn();
 			return result ?? fallback;
 		} catch (e) {
-			console.warn('Safe getter caught error:', e);
+			logger.warn('Safe getter caught error:', { error: String(e) });
 			return fallback;
 		}
 	}
@@ -36,7 +37,12 @@
 
 	const error = $derived.by(() => safeGet(() => pageData?.error, null));
 	const status = $derived.by(() => safeGet(() => pageData?.status, 500));
-	const userData = $derived.by(() => safeGet(() => pageData?.data?.user, null));
+	const userData = $derived.by(() =>
+		safeGet(() => {
+			const data = pageData?.data as any;
+			return data?.user ?? null;
+		}, null)
+	);
 
 	// Create a proper Error object from SvelteKit error
 	const errorObject = $derived.by(() => {
@@ -99,9 +105,12 @@
 			if (typeof window !== 'undefined' && import.meta.env.DEV) {
 				const errorToLog = safeGet(() => error, null);
 				if (errorToLog) {
-					console.error('SvelteKit Error Page:', {
+					const errorObj =
+						errorToLog instanceof Error
+							? errorToLog
+							: new Error(errorToLog?.message || String(errorToLog));
+					logger.error('SvelteKit Error Page:', errorObj, {
 						status: safeGet(() => status, 500),
-						error: errorToLog,
 						url: safeGet(() => pageData?.url?.pathname, 'unknown')
 					});
 				}
@@ -109,7 +118,7 @@
 		} catch (e) {
 			// Silently ignore logging errors to prevent cascading failures
 			try {
-				console.error('Error logging failed:', e);
+				logger.error('Error logging failed:', e as Error);
 			} catch {
 				// Really can't log, give up
 			}
@@ -144,14 +153,23 @@
 			<div class="border-warning bg-warning/5 rounded-lg border p-4 text-sm">
 				<p class="text-warning-foreground font-medium">Current User Information:</p>
 				<div class="mt-2 space-y-1 text-muted-foreground">
-					<p>
-						<span class="font-medium">Email:</span>
-						{userData.email}
-					</p>
-					<p>
-						<span class="font-medium">Role:</span>
-						{userData.role || 'Not assigned'}
-					</p>
+					{#if userData.email}
+						<p>
+							<span class="font-medium">Email:</span>
+							{userData.email}
+						</p>
+					{/if}
+					{#if userData.role}
+						<p>
+							<span class="font-medium">Role:</span>
+							{userData.role}
+						</p>
+					{:else}
+						<p>
+							<span class="font-medium">Role:</span>
+							Not assigned
+						</p>
+					{/if}
 					{#if userData.display_name}
 						<p>
 							<span class="font-medium">Display Name:</span>

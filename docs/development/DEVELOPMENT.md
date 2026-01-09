@@ -23,15 +23,15 @@ make dev-down
 
 ## 📋 Common Commands
 
-| Command | Description |
-|---------|-------------|
-| `make dev` | Start ALL containers (recommended) |
-| `make backend` | Start only backend containers (db + redis + API) |
-| `make frontend` | Start only frontend container |
-| `make dev-down` | Stop all containers |
-| `make dev-logs` | View container logs (live tail) |
-| `make dev-rebuild` | Rebuild containers (when Dockerfile changes) |
-| `make help` | Show all available commands |
+| Command            | Description                                      |
+| ------------------ | ------------------------------------------------ |
+| `make dev`         | Start ALL containers (recommended)               |
+| `make backend`     | Start only backend containers (db + redis + API) |
+| `make frontend`    | Start only frontend container                    |
+| `make dev-down`    | Stop all containers                              |
+| `make dev-logs`    | View container logs (live tail)                  |
+| `make dev-rebuild` | Rebuild containers (when Dockerfile changes)     |
+| `make help`        | Show all available commands                      |
 
 ## 🗄️ Database Operations
 
@@ -87,6 +87,7 @@ make ssh-frontend
 ```
 
 Inside the container, you can:
+
 - Edit files with `nvim` (your host ~/.config/nvim is mounted)
 - Restart services manually
 - Run `npm` commands
@@ -99,6 +100,7 @@ Inside the container, you can:
 **Problem**: Containers won't start due to port conflicts
 
 **Solution**:
+
 ```bash
 # Check what's using the ports
 docker ps
@@ -115,6 +117,7 @@ make dev
 **Problem**: Docker build errors
 
 **Solution**:
+
 ```bash
 # Rebuild from scratch (no cache)
 make dev-rebuild
@@ -129,6 +132,7 @@ make dev
 **Problem**: Frontend shows "Cannot find module 'xyz'" error
 
 **Solution**:
+
 ```bash
 # Install dependencies inside container
 docker exec sveltehr-frontend-dev bash -c "cd /home/dev/frontend && npm install"
@@ -143,6 +147,7 @@ make dev
 **Problem**: Backend can't connect to database
 
 **Solution**:
+
 ```bash
 # Check database health
 docker ps | grep postgres
@@ -159,6 +164,7 @@ make db-reset
 **Problem**: Frontend loads but shows errors
 
 **Solution**:
+
 ```bash
 # Check frontend logs
 docker logs sveltehr-frontend-dev --tail 50
@@ -209,22 +215,24 @@ make dev-logs
 ### Why `make dev` Works Differently
 
 **Old Setup** (your other computer):
+
 - ❌ Frontend ran on **host** (not containerized)
 - ❌ Confusing Makefile with 88 commands
 - ❌ Port conflicts between host and containers
 
 **New Setup** (this machine):
+
 - ✅ Frontend runs in **container** (fully containerized)
 - ✅ Clean Makefile with 17 focused commands
 - ✅ No port conflicts, everything isolated
 
 ### What Changed in the Makefile?
 
-| Old Command | New Command | What It Does |
-|-------------|-------------|--------------|
-| `make server-dev` ❌ | `make dev` ✅ | Start all containers |
-| `npm run dev` ❌ | Built-in to container | Frontend auto-starts |
-| 88 total commands | 17 total commands | Removed bloat |
+| Old Command          | New Command           | What It Does         |
+| -------------------- | --------------------- | -------------------- |
+| `make server-dev` ❌ | `make dev` ✅         | Start all containers |
+| `npm run dev` ❌     | Built-in to container | Frontend auto-starts |
+| 88 total commands    | 17 total commands     | Removed bloat        |
 
 ## 🎯 Container Details
 

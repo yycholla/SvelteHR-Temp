@@ -1,10 +1,11 @@
 <script lang="ts">
 	// Notifications Center Page
+	import { logger } from '$lib/utils/logger';
 	// Feature: 019-we-need-to - Task T032
 	// Purpose: Display and manage user notifications
 
 	import type { PageData } from './$types';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
 	import type { Notification, NotificationCategory, NotificationType } from '$lib/graphql/types';
 	import { getRelativeTime } from '$lib/utils/activities';
@@ -13,8 +14,12 @@
 	const { data }: { data: PageData } = $props();
 
 	// Filter state
-	let selectedCategory = $state<NotificationCategory | 'all'>(data.filters.category || 'all');
-	let selectedType = $state<NotificationType | 'all'>(data.filters.type || 'all');
+	let selectedCategory = $state<NotificationCategory | 'all'>(
+		(data.filters.category as NotificationCategory) || 'all'
+	);
+	let selectedType = $state<NotificationType | 'all'>(
+		(data.filters.type as NotificationType) || 'all'
+	);
 	let selectedReadStatus = $state<string>(data.filters.readStatus || 'all');
 
 	// Get notification category icon
@@ -69,17 +74,19 @@
 				throw new Error('Failed to mark as read');
 			}
 
-			// Reload page to show updated state
-			window.location.reload();
+			// Refresh data without full page reload
+			await invalidateAll();
 		} catch (err) {
-			console.error('Failed to mark as read:', err);
+			logger.error('Failed to mark as read:', err as Error);
 		}
 	}
 
 	// Mark all as read
 	async function markAllAsRead() {
 		try {
-			const unreadIds = data.notifications.filter((n) => !n.readStatus).map((n) => n.id);
+			const unreadIds = data.notifications
+				.filter((n: Notification) => !n.readStatus)
+				.map((n: Notification) => n.id);
 
 			if (unreadIds.length === 0) return;
 
@@ -93,10 +100,10 @@
 				throw new Error('Failed to mark all as read');
 			}
 
-			// Reload page to show updated state
-			window.location.reload();
+			// Refresh data without full page reload
+			await invalidateAll();
 		} catch (err) {
-			console.error('Failed to mark all as read:', err);
+			logger.error('Failed to mark all as read:', err as Error);
 		}
 	}
 
@@ -113,10 +120,10 @@
 				throw new Error('Failed to delete notification');
 			}
 
-			// Reload page to show updated list
-			window.location.reload();
+			// Refresh data without full page reload
+			await invalidateAll();
 		} catch (err) {
-			console.error('Failed to delete notification:', err);
+			logger.error('Failed to delete notification:', err as Error);
 			alert('Failed to delete notification. Please try again.');
 		}
 	}
@@ -301,7 +308,10 @@
 							<div class="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
 								<span>{getRelativeTime(notification.createdAt)}</span>
 								<span>•</span>
-								<span class="capitalize">{NOTIFICATION_CATEGORY_LABELS[notification.category]}</span
+								<span class="capitalize"
+									>{NOTIFICATION_CATEGORY_LABELS[
+										notification.category as NotificationCategory
+									]}</span
 								>
 								{#if notification.type === 'email'}
 									<span>•</span>

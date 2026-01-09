@@ -27,6 +27,7 @@ This document summarizes the container build optimizations implemented for Svelt
   - Smaller individual images (~50MB server, ~30MB migration/seed)
 
 **Build Commands:**
+
 ```bash
 # Server image
 DOCKER_BUILDKIT=1 docker build --target server -t sveltehr-backend:latest -f Dockerfile.prod .
@@ -63,6 +64,7 @@ DOCKER_BUILDKIT=1 docker build --target seed -t sveltehr-seed:latest -f Dockerfi
   - Cleaner builder stage
 
 **Build Command:**
+
 ```bash
 DOCKER_BUILDKIT=1 docker build --target runtime -t sveltehr-frontend:latest .
 ```
@@ -85,6 +87,7 @@ DOCKER_BUILDKIT=1 docker build --target runtime -t sveltehr-frontend:latest .
 - **Improved logging** with color-coded output
 
 **Usage:**
+
 ```bash
 # Build and push all images
 ./k8s/scripts/build-and-push-local.sh
@@ -109,12 +112,14 @@ DOCKER_BUILDKIT=1 docker build --target runtime -t sveltehr-frontend:latest .
 - **Optional seed Job** for initial admin user (manual execution)
 
 **Benefits:**
+
 - Cleaner separation of concerns
 - Server doesn't need migration binaries
 - Faster server startup (no migration delay)
 - Can retry migrations independently
 
 **Manual seed execution:**
+
 ```bash
 kubectl create -f k8s/base/migration-job.yaml
 ```
@@ -130,6 +135,7 @@ kubectl create -f k8s/base/migration-job.yaml
 - **DATABASE_URL** still constructed from env vars
 
 **Changes:**
+
 ```yaml
 # OLD: Used entrypoint script with migration logic
 exec ./docker-entrypoint-prod.sh
@@ -154,11 +160,13 @@ exec ./hr-graphql-server
 - **Conditional push** - PR builds don't push to registry
 
 **Triggers:**
+
 - Push to `main` or `develop`
 - Pull requests
 - Manual workflow dispatch
 
 **Image tags:**
+
 - `latest` - Latest from default branch
 - `<branch>-<sha>` - Commit-specific tags
 - `pr-<number>` - PR-specific tags
@@ -182,23 +190,23 @@ exec ./hr-graphql-server
 
 ### Build Times (with warm cache):
 
-| Component | Before | After | Improvement |
-|-----------|--------|-------|-------------|
-| Rust Server | ~5-8 min | ~1-2 min | **60-80%** |
-| Rust Migration | N/A (bundled) | ~1 min | N/A |
-| Rust Seed | N/A (bundled) | ~1 min | N/A |
-| Frontend | ~3-5 min | ~1-2 min | **50-70%** |
-| CI/CD Total | ~10-15 min | ~2-4 min | **70-85%** |
+| Component      | Before        | After    | Improvement |
+| -------------- | ------------- | -------- | ----------- |
+| Rust Server    | ~5-8 min      | ~1-2 min | **60-80%**  |
+| Rust Migration | N/A (bundled) | ~1 min   | N/A         |
+| Rust Seed      | N/A (bundled) | ~1 min   | N/A         |
+| Frontend       | ~3-5 min      | ~1-2 min | **50-70%**  |
+| CI/CD Total    | ~10-15 min    | ~2-4 min | **70-85%**  |
 
 ### Image Sizes:
 
-| Image | Before | After | Reduction |
-|-------|--------|-------|-----------|
-| Backend (all binaries) | ~150MB | N/A | - |
-| Backend (server only) | N/A | ~50MB | - |
-| Migration | N/A | ~30MB | - |
-| Seed | N/A | ~30MB | - |
-| Frontend | ~150MB | ~150MB | No change |
+| Image                  | Before | After  | Reduction |
+| ---------------------- | ------ | ------ | --------- |
+| Backend (all binaries) | ~150MB | N/A    | -         |
+| Backend (server only)  | N/A    | ~50MB  | -         |
+| Migration              | N/A    | ~30MB  | -         |
+| Seed                   | N/A    | ~30MB  | -         |
+| Frontend               | ~150MB | ~150MB | No change |
 
 ---
 
@@ -207,12 +215,14 @@ exec ./hr-graphql-server
 ### Local Development
 
 1. **Build all images:**
+
    ```bash
    cd k8s/scripts
    ./build-and-push-local.sh
    ```
 
 2. **Deploy to Kubernetes:**
+
    ```bash
    cd k8s
    ./deploy.sh dev deploy
@@ -233,6 +243,7 @@ exec ./hr-graphql-server
 ### Production Deployment
 
 1. **Images pushed to GHCR:**
+
    ```
    ghcr.io/<org>/<repo>/backend-server:latest
    ghcr.io/<org>/<repo>/backend-migration:latest
@@ -251,6 +262,7 @@ exec ./hr-graphql-server
 ### Build fails with "buildkit not enabled"
 
 **Solution:** Set `DOCKER_BUILDKIT=1` environment variable:
+
 ```bash
 export DOCKER_BUILDKIT=1
 docker build ...
@@ -259,11 +271,13 @@ docker build ...
 ### Migration Job fails
 
 **Check logs:**
+
 ```bash
 kubectl logs job/sveltehr-migration -n sveltehr-dev
 ```
 
 **Common issues:**
+
 - PostgreSQL not ready - increase init container timeout
 - Database credentials incorrect - check secrets
 - Migration already applied - check migration status
@@ -271,12 +285,14 @@ kubectl logs job/sveltehr-migration -n sveltehr-dev
 ### Cache not working in CI/CD
 
 **Verify cache is being used:**
+
 ```yaml
 cache-from: type=gha,scope=backend-server
 cache-to: type=gha,mode=max,scope=backend-server
 ```
 
 **Check GitHub Actions cache:**
+
 - Go to repository → Actions → Caches
 - Verify cache entries exist for each target
 
@@ -296,6 +312,7 @@ cache-to: type=gha,mode=max,scope=backend-server
 ## Files Modified
 
 ### Modified (7):
+
 1. `graphql-rust-server/Dockerfile.prod` - Multi-target builds
 2. `Dockerfile` - Frontend BuildKit optimization
 3. `k8s/base/backend-deployment.yaml` - Direct server execution
@@ -305,6 +322,7 @@ cache-to: type=gha,mode=max,scope=backend-server
 7. `k8s/base/kustomization.yaml` - Migration job resource
 
 ### Created (2):
+
 1. `k8s/base/migration-job.yaml` - Migration + Seed Jobs
 2. `.github/workflows/docker-build.yml` - Optimized CI/CD
 

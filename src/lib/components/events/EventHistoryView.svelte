@@ -7,12 +7,23 @@
 	 * Shows who made changes, what changed, and when.
 	 */
 
-	import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '$lib/components/ui/accordion';
+	import {
+		Accordion,
+		AccordionContent,
+		AccordionItem,
+		AccordionTrigger
+	} from '$lib/components/ui/accordion';
 	import { Badge } from '$lib/components/ui/badge';
-	import { History, User, Calendar, MapPin, Users } from '@lucide/svelte';
-	import { formatDistanceToNow, format } from 'date-fns';
+	import { Calendar, History, User, Users } from '@lucide/svelte';
+	import { format, formatDistanceToNow } from 'date-fns';
 
-	type ChangeType = 'created' | 'updated' | 'deleted' | 'ownership_transfer' | 'attendee_added' | 'attendee_removed';
+	type ChangeType =
+		| 'created'
+		| 'updated'
+		| 'deleted'
+		| 'ownership_transfer'
+		| 'attendee_added'
+		| 'attendee_removed';
 
 	interface HistoryEntry {
 		id: string;
@@ -30,9 +41,23 @@
 	interface Props {
 		history: HistoryEntry[];
 		variant?: 'default' | 'compact';
+		onLoadMore?: () => Promise<void>;
+		hasMore?: boolean;
 	}
 
-	let { history = [], variant = 'default' }: Props = $props();
+	const { history = [], variant = 'default', onLoadMore, hasMore = false }: Props = $props();
+
+	let isLoadingMore = $state(false);
+
+	async function handleLoadMore() {
+		if (!onLoadMore) return;
+		isLoadingMore = true;
+		try {
+			await onLoadMore();
+		} finally {
+			isLoadingMore = false;
+		}
+	}
 
 	function getChangeIcon(changeType: ChangeType) {
 		switch (changeType) {
@@ -48,14 +73,16 @@
 		}
 	}
 
-	function getChangeColor(changeType: ChangeType): string {
+	function getChangeColor(
+		changeType: ChangeType
+	): 'default' | 'destructive' | 'outline' | 'secondary' {
 		switch (changeType) {
 			case 'created':
-				return 'success';
+				return 'default';
 			case 'deleted':
 				return 'destructive';
 			case 'ownership_transfer':
-				return 'warning';
+				return 'outline';
 			case 'attendee_added':
 				return 'default';
 			case 'attendee_removed':
@@ -109,7 +136,7 @@
 	}
 
 	function getChangeDescription(entry: HistoryEntry): string {
-		const { changeType, fieldName, oldValue, newValue, changedBy } = entry;
+		const { changeType, fieldName, changedBy } = entry;
 
 		if (changeType === 'created') {
 			return `${changedBy.name} created this event`;
@@ -139,9 +166,7 @@
 	}
 
 	const sortedHistory = $derived(
-		[...history].sort((a, b) =>
-			new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime()
-		)
+		[...history].sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime())
 	);
 </script>
 
@@ -154,9 +179,7 @@
 	</div>
 
 	{#if sortedHistory.length === 0}
-		<p class="text-center text-muted-foreground py-8">
-			No change history available
-		</p>
+		<p class="text-center text-muted-foreground py-8">No change history available</p>
 	{:else if variant === 'compact'}
 		<div class="space-y-2">
 			{#each sortedHistory as entry (entry.id)}
@@ -229,5 +252,17 @@
 				</AccordionItem>
 			{/each}
 		</Accordion>
+	{/if}
+
+	{#if hasMore && onLoadMore && variant !== 'compact'}
+		<div class="mt-4 flex justify-center">
+			<button
+				onclick={handleLoadMore}
+				disabled={isLoadingMore}
+				class="text-sm text-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+			>
+				{isLoadingMore ? 'Loading...' : 'Load older history'}
+			</button>
+		</div>
 	{/if}
 </div>

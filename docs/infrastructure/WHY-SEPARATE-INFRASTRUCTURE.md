@@ -9,6 +9,7 @@
 ## 🏗️ The Problem with Bundling
 
 ### Old Approach (Kustomize - Everything Together)
+
 ```yaml
 k8s/base/
 ├── backend-deployment.yaml      # Your app
@@ -21,6 +22,7 @@ k8s/base/
 ```
 
 **Problems:**
+
 1. ❌ Deleting your app deletes cert-manager (breaks other apps!)
 2. ❌ Upgrading your app might upgrade ingress-nginx (risky!)
 3. ❌ Can't share monitoring across multiple apps
@@ -33,6 +35,7 @@ k8s/base/
 ## ✅ The Solution: Layered Architecture
 
 ### 1. Infrastructure Layer (Cluster-Wide)
+
 ```bash
 # Install once per cluster
 helm install cert-manager jetstack/cert-manager --namespace cert-manager
@@ -41,12 +44,14 @@ helm install prometheus prometheus-community/kube-prometheus-stack --namespace m
 ```
 
 ### 2. Operators Layer (Cluster-Wide or Namespace-Scoped)
+
 ```bash
 # Install once per cluster (or namespace)
 helm install cloudnative-pg cloudnative-pg/cloudnative-pg --namespace cnpg-system
 ```
 
 ### 3. Application Layer (Your App)
+
 ```bash
 # Deploy per application
 helm install sveltehr ./chart -f values-dev.yaml --namespace sveltehr-dev
@@ -60,18 +65,21 @@ helm install otherapp ./chart -f values.yaml --namespace otherapp-prod
 ### 1. **Different Lifecycles** ⏰
 
 **Infrastructure:**
+
 - Updated **infrequently** (quarterly, annually)
 - Breaking changes affect **entire cluster**
 - Requires **careful planning** and **maintenance windows**
 - Upgrades need **cluster-wide testing**
 
 **Applications:**
+
 - Updated **frequently** (daily, weekly)
 - Breaking changes affect **only that app**
 - Can be **rolled back independently**
 - Upgrades are **fast and isolated**
 
 **Example:**
+
 ```bash
 # Infrastructure upgrade (rare, risky)
 helm upgrade cert-manager jetstack/cert-manager --version 1.14.0
@@ -89,24 +97,28 @@ helm upgrade sveltehr ./chart -f values-dev.yaml
 ### 2. **Team Ownership & Responsibilities** 👥
 
 #### Platform/Infrastructure Team
+
 - **Owns:** Ingress controllers, cert-manager, monitoring, operators
 - **Scope:** Cluster-wide resources
 - **Skills:** Deep Kubernetes, networking, security
 - **Focus:** Stability, performance, security
 
 #### Application Team
+
 - **Owns:** Application deployments, databases, caches
 - **Scope:** Application namespaces
 - **Skills:** Application code, business logic
 - **Focus:** Features, user experience
 
 **Without Separation:**
+
 - ❌ App developers need cluster admin access
 - ❌ App developers can break infrastructure
 - ❌ Platform team can't upgrade without coordinating with all apps
 - ❌ No clear ownership boundaries
 
 **With Separation:**
+
 - ✅ App developers only need namespace access
 - ✅ Platform team controls infrastructure
 - ✅ Independent upgrade cycles
@@ -127,18 +139,21 @@ Cluster:
 ```
 
 **If infrastructure is bundled:**
+
 - ❌ Each app tries to install its own ingress-nginx → **CONFLICT**
 - ❌ Each app tries to install cert-manager → **CONFLICT**
 - ❌ 4 copies of Prometheus running → **WASTE**
 - ❌ ClusterRole conflicts → **FAILURE**
 
 **With separated infrastructure:**
+
 - ✅ **ONE** ingress-nginx serves all apps
 - ✅ **ONE** cert-manager issues certs for all apps
 - ✅ **ONE** Prometheus monitors all apps
 - ✅ Efficient resource usage
 
 **Cost Savings:**
+
 ```
 Bundled Approach:
 - 4 apps × 1 ingress-nginx (1 pod each) = 4 pods
@@ -162,6 +177,7 @@ Savings: 75% reduction in infrastructure overhead
 #### Cluster-Scoped Resources
 
 Infrastructure components create **cluster-wide resources**:
+
 - **CustomResourceDefinitions (CRDs)** - Cluster-wide
 - **ClusterRoles** - Cluster-wide permissions
 - **ClusterRoleBindings** - Cluster-wide access
@@ -169,6 +185,7 @@ Infrastructure components create **cluster-wide resources**:
 - **MutatingWebhookConfigurations** - Cluster-wide mutation
 
 **Problem if bundled with app:**
+
 ```bash
 # Deploy app in namespace sveltehr-dev
 helm install sveltehr ./chart -n sveltehr-dev
@@ -190,6 +207,7 @@ helm uninstall sveltehr -n sveltehr-dev
 ```
 
 **With separation:**
+
 - ✅ Infrastructure CRDs persist when app is deleted
 - ✅ ClusterRoles remain for other apps
 - ✅ Safe to delete/redeploy applications
@@ -201,17 +219,20 @@ helm uninstall sveltehr -n sveltehr-dev
 #### Blast Radius = Impact of Failure
 
 **Bundled Approach:**
+
 ```
 Application Bug → Helm Upgrade Fails → Infrastructure Rollback → Entire Cluster Affected
 ```
 
 **Separated Approach:**
+
 ```
 Application Bug → App Upgrade Fails → App Rollback → Only App Affected ✅
 Infrastructure Bug → Infra Upgrade Fails → Infra Rollback → All Apps Unaffected During Rollback
 ```
 
 **Real-World Scenario:**
+
 ```bash
 # Scenario: App developer makes a mistake
 
@@ -237,22 +258,26 @@ helm upgrade sveltehr ./chart
 #### Infrastructure Dependencies
 
 **cert-manager:**
+
 - Requires specific Kubernetes versions
 - Has its own API versions
 - Breaking changes between releases
 - Should be upgraded carefully with testing
 
 **ingress-nginx:**
+
 - Tied to Kubernetes API versions
 - Configuration changes between versions
 - Affects all ingress resources
 
 **Prometheus:**
+
 - CRD versions change
 - ServiceMonitor API evolves
 - Breaking changes in queries
 
 **Problem if bundled:**
+
 ```yaml
 # Your app's Chart.yaml
 dependencies:
@@ -272,11 +297,11 @@ dependencies:
 ```
 
 **With separation:**
+
 ```yaml
 # Infrastructure team decides (once)
 helm install cert-manager --version 1.13.0
 helm install ingress-nginx --version 4.8.0
-
 # All apps use the same versions
 # App teams don't need to know/care
 # Infrastructure team controls upgrades
@@ -289,6 +314,7 @@ helm install ingress-nginx --version 4.8.0
 #### Independent Upgrade Paths
 
 **Separated Architecture:**
+
 ```bash
 # Upgrade infrastructure (Platform Team)
 # During maintenance window
@@ -307,6 +333,7 @@ helm upgrade sveltehr ./chart -f values-dev.yaml
 ```
 
 **Bundled Architecture:**
+
 ```bash
 # Upgrade application (includes infrastructure)
 helm upgrade sveltehr ./chart
@@ -324,6 +351,7 @@ helm upgrade sveltehr ./chart
 #### Separation Enables Better GitOps
 
 **Infrastructure Repository (Platform Team):**
+
 ```
 infra-gitops/
 ├── cert-manager/
@@ -341,6 +369,7 @@ infra-gitops/
 ```
 
 **Application Repository (App Team):**
+
 ```
 sveltehr-gitops/
 ├── helm-chart/
@@ -358,6 +387,7 @@ sveltehr-gitops/
 ```
 
 **Benefits:**
+
 - ✅ **Separate Git repos** = Separate access control
 - ✅ **Different review processes** = Appropriate rigor
 - ✅ **Independent CI/CD pipelines** = Faster deployments
@@ -370,6 +400,7 @@ sveltehr-gitops/
 #### RBAC Boundaries
 
 **Infrastructure Namespace (Restricted):**
+
 ```yaml
 # Only platform team has access
 apiVersion: rbac.authorization.k8s.io/v1
@@ -377,12 +408,13 @@ kind: ClusterRole
 metadata:
   name: infrastructure-admin
 rules:
-  - apiGroups: ["*"]
-    resources: ["*"]
-    verbs: ["*"]
+  - apiGroups: ['*']
+    resources: ['*']
+    verbs: ['*']
 ```
 
 **Application Namespace (Developer Access):**
+
 ```yaml
 # App team has limited access
 apiVersion: rbac.authorization.k8s.io/v1
@@ -391,19 +423,21 @@ metadata:
   name: app-developer
   namespace: sveltehr-dev
 rules:
-  - apiGroups: ["apps"]
-    resources: ["deployments", "statefulsets"]
-    verbs: ["get", "list", "create", "update", "delete"]
+  - apiGroups: ['apps']
+    resources: ['deployments', 'statefulsets']
+    verbs: ['get', 'list', 'create', 'update', 'delete']
   # No access to ClusterRoles, CRDs, etc.
 ```
 
 **With Separation:**
+
 - ✅ App developers can't modify infrastructure
 - ✅ App developers can't see other apps
 - ✅ Infrastructure team controls cluster resources
 - ✅ Clear security boundaries
 
 **Without Separation:**
+
 - ❌ App developers need cluster-admin to deploy
 - ❌ Security risk - app team can break cluster
 - ❌ Compliance issues - no separation of duties
@@ -415,6 +449,7 @@ rules:
 #### Resource Consolidation
 
 **Bundled (4 applications):**
+
 ```
 Application 1:
 - ingress-nginx: 1 pod (256MB) = 256MB
@@ -430,6 +465,7 @@ Total Infrastructure: 7680MB RAM
 ```
 
 **Separated:**
+
 ```
 Infrastructure (shared):
 - ingress-nginx: 1 pod (256MB) = 256MB
@@ -468,19 +504,19 @@ Cloud Native Computing Foundation guidelines:
 
 ## 📊 Comparison Table
 
-| Aspect | Bundled | Separated | Winner |
-|--------|---------|-----------|--------|
-| **Lifecycle Management** | Coupled - risky | Independent - safe | ✅ Separated |
-| **Team Ownership** | Unclear boundaries | Clear responsibilities | ✅ Separated |
-| **Multi-Tenancy** | Conflicts, waste | Shared, efficient | ✅ Separated |
-| **Resource Scope** | Mixed namespaced/cluster | Clear boundaries | ✅ Separated |
-| **Failure Isolation** | High blast radius | Low blast radius | ✅ Separated |
-| **Version Control** | Version conflicts | Controlled versions | ✅ Separated |
-| **Upgrade Flexibility** | Risky, coordinated | Safe, independent | ✅ Separated |
-| **GitOps** | Single repo issues | Clean separation | ✅ Separated |
-| **Security/RBAC** | Too much access | Least privilege | ✅ Separated |
-| **Cost Efficiency** | Wasteful duplication | Resource sharing | ✅ Separated |
-| **Simplicity** | ✅ One command | Multiple installs | ❌ Bundled |
+| Aspect                   | Bundled                  | Separated              | Winner       |
+| ------------------------ | ------------------------ | ---------------------- | ------------ |
+| **Lifecycle Management** | Coupled - risky          | Independent - safe     | ✅ Separated |
+| **Team Ownership**       | Unclear boundaries       | Clear responsibilities | ✅ Separated |
+| **Multi-Tenancy**        | Conflicts, waste         | Shared, efficient      | ✅ Separated |
+| **Resource Scope**       | Mixed namespaced/cluster | Clear boundaries       | ✅ Separated |
+| **Failure Isolation**    | High blast radius        | Low blast radius       | ✅ Separated |
+| **Version Control**      | Version conflicts        | Controlled versions    | ✅ Separated |
+| **Upgrade Flexibility**  | Risky, coordinated       | Safe, independent      | ✅ Separated |
+| **GitOps**               | Single repo issues       | Clean separation       | ✅ Separated |
+| **Security/RBAC**        | Too much access          | Least privilege        | ✅ Separated |
+| **Cost Efficiency**      | Wasteful duplication     | Resource sharing       | ✅ Separated |
+| **Simplicity**           | ✅ One command           | Multiple installs      | ❌ Bundled   |
 
 **Score:** Separated wins 9/10 categories
 
@@ -491,6 +527,7 @@ Cloud Native Computing Foundation guidelines:
 ### If You Have Bundled Infrastructure
 
 **Step 1: Identify Infrastructure Components**
+
 ```bash
 # List all resources in your app
 kubectl get all -n sveltehr-dev
@@ -501,6 +538,7 @@ kubectl get crds | grep cert-manager
 ```
 
 **Step 2: Extract Infrastructure**
+
 ```bash
 # Install infrastructure separately
 helm install cert-manager jetstack/cert-manager \
@@ -513,6 +551,7 @@ helm install ingress-nginx ingress-nginx/ingress-nginx \
 ```
 
 **Step 3: Remove from Application Chart**
+
 ```bash
 # Delete infrastructure from app chart
 rm templates/cert-manager.yaml
@@ -521,6 +560,7 @@ rm templates/monitoring.yaml
 ```
 
 **Step 4: Deploy Application**
+
 ```bash
 # Deploy application (now smaller, cleaner)
 helm install sveltehr ./chart \
@@ -533,6 +573,7 @@ helm install sveltehr ./chart \
 ## 💡 When to Bundle vs Separate
 
 ### ✅ Keep in Application Chart
+
 - **Application deployments** (backend, frontend)
 - **Application databases** (PostgreSQL, Redis) - via dependencies
 - **Application-specific configuration** (ConfigMaps, Secrets)
@@ -541,6 +582,7 @@ helm install sveltehr ./chart \
 - **Application RBAC** (Roles, not ClusterRoles)
 
 ### ⚠️ Install Separately (Infrastructure)
+
 - **Ingress controllers** (ingress-nginx, Traefik)
 - **Certificate managers** (cert-manager)
 - **Monitoring stacks** (Prometheus, Grafana)

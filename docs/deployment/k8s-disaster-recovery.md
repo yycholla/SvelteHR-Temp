@@ -336,17 +336,17 @@ kubectl get pods -n monitoring | grep prometheus
 
 ### Total Recovery Time Estimate
 
-| Phase | Time | Description |
-|-------|------|-------------|
-| System Setup | 30 min | OS configuration, containerd |
-| Kubernetes Install | 20 min | kubeadm, CNI, Helm |
-| ArgoCD Install | 10 min | ArgoCD deployment and CLI |
-| Secrets Configuration | 5 min | Critical secrets creation |
-| Infrastructure Deployment | 40 min | All platform components |
-| Data Restore | 30 min | Velero backup restore |
-| Application Deployment | 15 min | Dev/prod apps |
-| Verification | 10 min | Health checks |
-| **Total** | **2h 40min** | **Complete cluster rebuild** |
+| Phase                     | Time         | Description                  |
+| ------------------------- | ------------ | ---------------------------- |
+| System Setup              | 30 min       | OS configuration, containerd |
+| Kubernetes Install        | 20 min       | kubeadm, CNI, Helm           |
+| ArgoCD Install            | 10 min       | ArgoCD deployment and CLI    |
+| Secrets Configuration     | 5 min        | Critical secrets creation    |
+| Infrastructure Deployment | 40 min       | All platform components      |
+| Data Restore              | 30 min       | Velero backup restore        |
+| Application Deployment    | 15 min       | Dev/prod apps                |
+| Verification              | 10 min       | Health checks                |
+| **Total**                 | **2h 40min** | **Complete cluster rebuild** |
 
 ---
 
@@ -599,6 +599,7 @@ argocd app set sveltehr-prod --sync-policy automated --self-heal --auto-prune=fa
 **Security Team**: [Email] - [Phone]
 
 **Vendor Support**:
+
 - Kubernetes: https://kubernetes.io/docs/tasks/debug/
 - ArgoCD: https://argo-cd.readthedocs.io/
 - Velero: https://velero.io/docs/

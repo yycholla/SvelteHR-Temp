@@ -6,7 +6,7 @@
  * This test MUST FAIL initially with "mutation not defined" error.
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { buildSchema, parse, validate } from 'graphql';
 
 const schemaSDL = `
@@ -82,47 +82,47 @@ const schemaSDL = `
 `;
 
 describe('T008: updateReviewDraft mutation schema contract', () => {
-  const schema = buildSchema(schemaSDL);
+	const schema = buildSchema(schemaSDL);
 
-  test('mutation should be defined in schema', () => {
-    const mutationType = schema.getMutationType();
-    expect(mutationType).toBeDefined();
+	test('mutation should be defined in schema', () => {
+		const mutationType = schema.getMutationType();
+		expect(mutationType).toBeDefined();
 
-    const fields = mutationType?.getFields();
-    expect(fields).toHaveProperty('updateReviewDraft');
-  });
+		const fields = mutationType?.getFields();
+		expect(fields).toHaveProperty('updateReviewDraft');
+	});
 
-  test('UpdateReviewDraftInput should be defined', () => {
-    const inputType = schema.getType('UpdateReviewDraftInput');
-    expect(inputType).toBeDefined();
-  });
+	test('UpdateReviewDraftInput should be defined', () => {
+		const inputType = schema.getType('UpdateReviewDraftInput');
+		expect(inputType).toBeDefined();
+	});
 
-  test('UpdateReviewDraftInput should require id field', () => {
-    const inputType = schema.getType('UpdateReviewDraftInput');
+	test('UpdateReviewDraftInput should require id field', () => {
+		const inputType = schema.getType('UpdateReviewDraftInput');
 
-    if (inputType && 'getFields' in inputType) {
-      const fields = inputType.getFields();
-      const idField = fields['id'];
+		if (inputType && 'getFields' in inputType) {
+			const fields = inputType.getFields();
+			const idField = fields['id'];
 
-      expect(idField).toBeDefined();
-      expect(idField.type.toString()).toBe('ID!');
-    }
-  });
+			expect(idField).toBeDefined();
+			expect(idField.type.toString()).toBe('ID!');
+		}
+	});
 
-  test('UpdateReviewDraftInput should have optional reviewType', () => {
-    const inputType = schema.getType('UpdateReviewDraftInput');
+	test('UpdateReviewDraftInput should have optional reviewType', () => {
+		const inputType = schema.getType('UpdateReviewDraftInput');
 
-    if (inputType && 'getFields' in inputType) {
-      const fields = inputType.getFields();
-      const reviewTypeField = fields['reviewType'];
+		if (inputType && 'getFields' in inputType) {
+			const fields = inputType.getFields();
+			const reviewTypeField = fields['reviewType'];
 
-      expect(reviewTypeField).toBeDefined();
-      expect(reviewTypeField.type.toString()).toBe('ReviewType');
-    }
-  });
+			expect(reviewTypeField).toBeDefined();
+			expect(reviewTypeField.type.toString()).toBe('ReviewType');
+		}
+	});
 
-  test('UpdateReviewDraftInput should support partial updates', () => {
-    const mutation = parse(`
+	test('UpdateReviewDraftInput should support partial updates', () => {
+		const mutation = parse(`
       mutation UpdateDraft($input: UpdateReviewDraftInput!) {
         updateReviewDraft(input: $input) {
           success
@@ -135,57 +135,57 @@ describe('T008: updateReviewDraft mutation schema contract', () => {
       }
     `);
 
-    const errors = validate(schema, mutation);
-    expect(errors).toHaveLength(0);
-  });
+		const errors = validate(schema, mutation);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('UpdateReviewDraftInput should accept reviewPeriodStart', () => {
-    const inputType = schema.getType('UpdateReviewDraftInput');
+	test('UpdateReviewDraftInput should accept reviewPeriodStart', () => {
+		const inputType = schema.getType('UpdateReviewDraftInput');
 
-    if (inputType && 'getFields' in inputType) {
-      const fields = inputType.getFields();
-      const startField = fields['reviewPeriodStart'];
+		if (inputType && 'getFields' in inputType) {
+			const fields = inputType.getFields();
+			const startField = fields['reviewPeriodStart'];
 
-      expect(startField).toBeDefined();
-      expect(startField.type.toString()).toBe('Date');
-    }
-  });
+			expect(startField).toBeDefined();
+			expect(startField.type.toString()).toBe('Date');
+		}
+	});
 
-  test('UpdateReviewDraftInput should accept reviewPeriodEnd', () => {
-    const inputType = schema.getType('UpdateReviewDraftInput');
+	test('UpdateReviewDraftInput should accept reviewPeriodEnd', () => {
+		const inputType = schema.getType('UpdateReviewDraftInput');
 
-    if (inputType && 'getFields' in inputType) {
-      const fields = inputType.getFields();
-      const endField = fields['reviewPeriodEnd'];
+		if (inputType && 'getFields' in inputType) {
+			const fields = inputType.getFields();
+			const endField = fields['reviewPeriodEnd'];
 
-      expect(endField).toBeDefined();
-      expect(endField.type.toString()).toBe('Date');
-    }
-  });
+			expect(endField).toBeDefined();
+			expect(endField.type.toString()).toBe('Date');
+		}
+	});
 
-  test('UpdateReviewDraftInput should accept notes', () => {
-    const inputType = schema.getType('UpdateReviewDraftInput');
+	test('UpdateReviewDraftInput should accept notes', () => {
+		const inputType = schema.getType('UpdateReviewDraftInput');
 
-    if (inputType && 'getFields' in inputType) {
-      const fields = inputType.getFields();
-      const notesField = fields['notes'];
+		if (inputType && 'getFields' in inputType) {
+			const fields = inputType.getFields();
+			const notesField = fields['notes'];
 
-      expect(notesField).toBeDefined();
-      expect(notesField.type.toString()).toBe('String');
-    }
-  });
+			expect(notesField).toBeDefined();
+			expect(notesField.type.toString()).toBe('String');
+		}
+	});
 
-  test('mutation should return ReviewMutationResponse', () => {
-    const mutationType = schema.getMutationType();
-    const fields = mutationType?.getFields();
-    const mutation = fields?.['updateReviewDraft'];
+	test('mutation should return ReviewMutationResponse', () => {
+		const mutationType = schema.getMutationType();
+		const fields = mutationType?.getFields();
+		const mutation = fields?.['updateReviewDraft'];
 
-    expect(mutation).toBeDefined();
-    expect(mutation?.type.toString()).toBe('ReviewMutationResponse!');
-  });
+		expect(mutation).toBeDefined();
+		expect(mutation?.type.toString()).toBe('ReviewMutationResponse!');
+	});
 
-  test('mutation should accept valid input variables', () => {
-    const mutation = parse(`
+	test('mutation should accept valid input variables', () => {
+		const mutation = parse(`
       mutation UpdateNotes($input: UpdateReviewDraftInput!) {
         updateReviewDraft(input: $input) {
           success
@@ -199,7 +199,7 @@ describe('T008: updateReviewDraft mutation schema contract', () => {
       }
     `);
 
-    const errors = validate(schema, mutation);
-    expect(errors).toHaveLength(0);
-  });
+		const errors = validate(schema, mutation);
+		expect(errors).toHaveLength(0);
+	});
 });

@@ -2,17 +2,9 @@
 	import { createEventDispatcher, onMount } from 'svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/stores';
-	import {
-		User,
-		Settings,
-		LogOut,
-		ChevronDown,
-		Bell,
-		Shield,
-		UserCog,
-		Building
-	} from '@lucide/svelte';
+	import { Building, ChevronDown, LogOut, Settings, Shield, User } from '@lucide/svelte';
 
 	/**
 	 * User Menu Component
@@ -43,26 +35,26 @@
 	});
 
 	// Menu actions
-	const handleProfileClick = () => {
+	const handleProfileClick = async () => {
 		dispatch('profileClick');
-		goto('/profile');
 		isOpen = false;
+		await goto(resolve('/profile'));
 	};
 
-	const handleSettingsClick = () => {
+	const handleSettingsClick = async () => {
 		dispatch('settingsClick');
-		goto('/settings');
 		isOpen = false;
+		await goto(resolve('/settings'));
 	};
 
-	const handleAdminClick = () => {
-		goto('/dashboard/admin');
+	const handleAdminClick = async () => {
 		isOpen = false;
+		await goto(resolve('/admin'));
 	};
 
-	const handleHRClick = () => {
-		goto('/hr');
+	const handleHRClick = async () => {
 		isOpen = false;
+		await goto(resolve('/hr' as any));
 	};
 
 	const handleLogout = async () => {
@@ -70,7 +62,7 @@
 		// Pass current URL to logout for redirect after login
 		await auth.logout($page.url.pathname + $page.url.search);
 		dispatch('logout');
-		goto('/login');
+		await goto(resolve('/login'));
 	};
 
 	// Get user initials for avatar
@@ -133,7 +125,7 @@
 					{auth.user.displayName}
 				</p>
 				<p class="max-w-32 truncate text-xs text-gray-500">
-					{auth.user.jobTitle || 'Employee'}
+					{auth.user.job_title || auth.user.display_name || 'Employee'}
 				</p>
 			</div>
 
@@ -167,26 +159,24 @@
 							<p class="truncate text-sm text-gray-500">
 								{auth.user.email}
 							</p>
-							{#if auth.user.jobTitle}
+							{#if auth.user.job_title}
 								<p class="truncate text-xs text-gray-400">
-									{auth.user.jobTitle}
+									{auth.user.job_title}
 								</p>
 							{/if}
 						</div>
 					</div>
 
-					<!-- Role Badges -->
-					{#if auth.user.roles && auth.user.roles.length > 0}
+					<!-- Role Badge -->
+					{#if auth.user.role}
 						<div class="mt-2 flex flex-wrap gap-1">
-							{#each auth.user.roles as role}
-								<span
-									class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {getRoleBadgeColor(
-										role
-									)}"
-								>
-									{role.replace('_', ' ').toUpperCase()}
-								</span>
-							{/each}
+							<span
+								class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {getRoleBadgeColor(
+									auth.user.role
+								)}"
+							>
+								{auth.user.role.replace('_', ' ').toUpperCase()}
+							</span>
 						</div>
 					{/if}
 				</div>
@@ -216,7 +206,7 @@
 					</button>
 
 					<!-- HR Section (if has access) -->
-					{#if hasHRAccess(auth.user.roles)}
+					{#if auth.user.role && hasHRAccess([auth.user.role])}
 						<div class="mt-1 border-t border-gray-100 pt-1">
 							<button
 								type="button"
@@ -231,7 +221,7 @@
 					{/if}
 
 					<!-- Admin Section (if has access) -->
-					{#if hasAdminAccess(auth.user.roles)}
+					{#if auth.user.role && hasAdminAccess([auth.user.role])}
 						<div class="mt-1 border-t border-gray-100 pt-1">
 							<button
 								type="button"
@@ -285,10 +275,5 @@
 	/* Role badge animations */
 	span {
 		transition: all 0.15s ease-in-out;
-	}
-
-	/* Hover effects for better UX */
-	button:hover .text-gray-400 {
-		color: #6b7280;
 	}
 </style>

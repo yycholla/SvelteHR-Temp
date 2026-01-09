@@ -2,7 +2,7 @@
 // Database mocking and server-side utilities
 // Created: 2025-09-24
 
-import { vi, beforeAll, afterEach, beforeEach } from 'vitest';
+import { afterEach, beforeAll, beforeEach, vi } from 'vitest';
 import './vitest-setup'; // Import base setup
 
 // Node.js environment setup

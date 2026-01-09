@@ -2,7 +2,7 @@
 // These tests should FAIL initially - routes don't have permission checks yet
 // SECURITY CRITICAL: Ensures unauthorized users cannot access protected pages
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 // Test helper to create a session with specific permissions
 async function loginWithPermissions(
@@ -119,11 +119,7 @@ test.describe('Employee Page Access Control (US1)', () => {
 		await loginWithPermissions(page, ['profile:read', 'employees:read']);
 
 		// Test multiple admin routes
-		const adminRoutes = [
-			'/admin/departments',
-			'/dashboard/admin/analytics',
-			'/admin/system'
-		];
+		const adminRoutes = ['/admin/departments', '/admin/analytics', '/admin/system'];
 
 		for (const route of adminRoutes) {
 			await page.goto(route);
@@ -152,11 +148,7 @@ test.describe('Employee Page Access Control (US1)', () => {
 		await loginWithPermissions(page, ['*'], ['Admin']);
 
 		// Test that admin can access all protected routes
-		const protectedRoutes = [
-			'/hr/employees',
-			'/admin/departments',
-			'/dashboard/admin/analytics'
-		];
+		const protectedRoutes = ['/hr/employees', '/admin/departments', '/admin/analytics'];
 
 		for (const route of protectedRoutes) {
 			await page.goto(route);

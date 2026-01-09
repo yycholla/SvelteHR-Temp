@@ -1,6 +1,7 @@
 # Local Native Development Setup
 
 This guide explains how to run the Rust GraphQL server **natively on your host machine** instead of in Docker, which provides:
+
 - ✅ **Instant hot-reloading** with bacon (no Docker file-watching issues)
 - ✅ **Faster compilation** (no Docker I/O overhead)
 - ✅ **Better debugging** with native tools
@@ -9,16 +10,19 @@ This guide explains how to run the Rust GraphQL server **natively on your host m
 ## Prerequisites
 
 1. **Rust toolchain** (1.90 or later)
+
    ```bash
    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
    ```
 
 2. **Bacon** (hot-reload tool)
+
    ```bash
    cargo install bacon
    ```
 
 3. **PostgreSQL client tools** (for migrations)
+
    ```bash
    # Ubuntu/Debian
    sudo apt install postgresql-client
@@ -31,6 +35,7 @@ This guide explains how to run the Rust GraphQL server **natively on your host m
    ```
 
 4. **Mold linker** (optional but HIGHLY recommended for 5-10x faster linking)
+
    ```bash
    # Ubuntu/Debian
    sudo apt install mold
@@ -62,6 +67,7 @@ docker rm sveltehr-graphql-rust
 ```
 
 Verify PostgreSQL is accessible:
+
 ```bash
 psql postgresql://postgres:postgres123@localhost:5433/hr_system -c "SELECT 1;"
 ```
@@ -108,17 +114,20 @@ cargo build --release --bin seed-data
 ### 5. Start Development Server
 
 **Option A: Using Bacon (Recommended - Hot Reload)**
+
 ```bash
 bacon run
 ```
 
 Bacon will:
+
 - ✅ Watch for file changes in `src/`, `Cargo.toml`, `migration/`
 - ✅ Automatically recompile and restart the server
 - ✅ Show beautiful colored output with error highlighting
 - ✅ Support interactive commands (press `h` for help)
 
 **Option B: Using Cargo Directly (No Hot Reload)**
+
 ```bash
 cargo run --bin hr-graphql-server
 ```
@@ -150,6 +159,7 @@ PUBLIC_API_URL=http://localhost:4000
 ### Database Changes
 
 When you modify migrations:
+
 ```bash
 # Stop the server (Ctrl+C in bacon)
 cargo build --release --bin migration
@@ -172,6 +182,7 @@ docker-compose -f docker-compose.dev.yml up -d hr-graphql-rust
 ## Troubleshooting
 
 ### Port Already in Use
+
 ```bash
 # Find process using port 4000
 lsof -i :4000
@@ -181,6 +192,7 @@ kill -9 <PID>
 ```
 
 ### Database Connection Failed
+
 ```bash
 # Verify PostgreSQL is running
 docker ps | grep postgres
@@ -193,6 +205,7 @@ psql postgresql://postgres:postgres123@localhost:5433/hr_system -c "SELECT 1;"
 ```
 
 ### Compilation Errors
+
 ```bash
 # Clean build artifacts
 cargo clean
@@ -205,6 +218,7 @@ cargo build
 ```
 
 ### Slow Compilation
+
 Make sure you have **mold linker** installed and configured:
 
 ```bash
@@ -217,13 +231,13 @@ cat .cargo/config.toml
 
 ## Performance Comparison
 
-| Metric | Docker | Native |
-|--------|--------|--------|
-| **First compilation** | ~40s | ~25s (with mold) |
-| **Hot reload time** | N/A (broken) | ~2-5s |
-| **File change detection** | ❌ Broken | ✅ Instant |
-| **Debugging experience** | 😐 OK | ✅ Excellent |
-| **Log access** | Docker logs | Direct stdout |
+| Metric                    | Docker       | Native           |
+| ------------------------- | ------------ | ---------------- |
+| **First compilation**     | ~40s         | ~25s (with mold) |
+| **Hot reload time**       | N/A (broken) | ~2-5s            |
+| **File change detection** | ❌ Broken    | ✅ Instant       |
+| **Debugging experience**  | 😐 OK        | ✅ Excellent     |
+| **Log access**            | Docker logs  | Direct stdout    |
 
 ## Best Practices
 
@@ -235,12 +249,12 @@ cat .cargo/config.toml
 
 ## Environment Variables Reference
 
-| Variable | Native (.env) | Docker (docker-compose) |
-|----------|---------------|-------------------------|
-| `DATABASE_URL` | `localhost:5433` | `postgres-dev:5432` |
-| `HOST` | `127.0.0.1` | `0.0.0.0` |
+| Variable               | Native (.env)    | Docker (docker-compose)                |
+| ---------------------- | ---------------- | -------------------------------------- |
+| `DATABASE_URL`         | `localhost:5433` | `postgres-dev:5432`                    |
+| `HOST`                 | `127.0.0.1`      | `0.0.0.0`                              |
 | `CORS_ALLOWED_ORIGINS` | `localhost:5173` | `localhost:5173` + `frontend-dev:5173` |
-| `ENABLE_SEED_DATA` | `false` | `true` |
+| `ENABLE_SEED_DATA`     | `false`          | `true`                                 |
 
 ## Additional Resources
 

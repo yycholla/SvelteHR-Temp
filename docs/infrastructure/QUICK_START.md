@@ -72,27 +72,35 @@ kubectl logs -f deployment/sveltehr-frontend -n sveltehr-dev
 ## Common Issues
 
 ### Issue: Pods stuck in Pending
+
 **Solution:** Check if images are built
+
 ```bash
 eval $(minikube docker-env)
 docker images | grep sveltehr
 ```
 
 ### Issue: PostgreSQL cluster not ready
+
 **Solution:** Check cluster status
+
 ```bash
 kubectl get cluster -n sveltehr-dev
 kubectl describe cluster sveltehr-postgres -n sveltehr-dev
 ```
 
 ### Issue: Backend CrashLoopBackOff
+
 **Solution:** Check if database is ready first
+
 ```bash
 kubectl wait --for=condition=ready --timeout=600s cluster/sveltehr-postgres -n sveltehr-dev
 ```
 
 ### Issue: Port-forward connection refused
+
 **Solution:** Ensure pods are running first
+
 ```bash
 kubectl get pods -n sveltehr-dev
 kubectl logs deployment/sveltehr-frontend -n sveltehr-dev
@@ -113,6 +121,7 @@ minikube delete
 Your Arch Linux kernel (6.17.3-arch2-1) is missing the `xt_comment` iptables module that Kubernetes networking requires. This prevents the ingress controller from working.
 
 **Solutions:**
+
 1. **Use port-forwarding** (works great for local dev) ✅
 2. **Install linux kernel**: `sudo pacman -S linux && sudo reboot`
 3. **Use K3s instead**: Lighter weight, fewer kernel requirements

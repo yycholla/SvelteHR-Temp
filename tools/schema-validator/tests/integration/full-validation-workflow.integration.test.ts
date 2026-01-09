@@ -20,7 +20,9 @@ describe('Full validation workflow integration', () => {
   it('should complete full validation workflow from init to report', async () => {
     // Create test GraphQL file
     const graphqlFile = join(testProjectDir, 'test-query.ts');
-    writeFileSync(graphqlFile, `
+    writeFileSync(
+      graphqlFile,
+      `
       import { gql } from '@urql/svelte';
       export const GET_USERS = gql\`
         query GetUsers {
@@ -31,7 +33,8 @@ describe('Full validation workflow integration', () => {
           }
         }
       \`;
-    `);
+    `
+    );
 
     // Run validation
     const validateResult = execSync(`node ${cliPath} validate --full`, {

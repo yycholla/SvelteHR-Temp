@@ -7,17 +7,16 @@
 
 <script lang="ts">
 	import TaskCard from './TaskCard.svelte';
-	import type { Task, TaskStatus, TaskPriority } from '$lib/types/task';
+	import type { Task, TaskPriority, TaskStatus } from '$lib/types/task';
 	import * as NativeSelect from '$lib/components/ui/native-select';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
-	import { CheckSquare, List, GitBranch, Columns, Filter, SortAsc } from '@lucide/svelte';
-	import { dndzone, type DndEvent } from 'svelte-dnd-action';
+	import { CheckSquare, Columns, Filter, GitBranch, List, SortAsc } from '@lucide/svelte';
+	import { type DndEvent, dndzone } from 'svelte-dnd-action';
 	import { flip } from 'svelte/animate';
 
 	let {
 		tasks,
-		userId,
 		showFilters = true,
 		viewMode = $bindable('list'),
 		onTaskClick,
@@ -30,7 +29,6 @@
 		priorityFilter = $bindable('all')
 	}: {
 		tasks: Task[];
-		userId?: string;
 		showFilters?: boolean;
 		viewMode?: 'list' | 'hierarchy' | 'kanban';
 		onTaskClick?: (taskId: string) => void;
@@ -46,17 +44,17 @@
 	// If not passed, they default to internal state initialization values above.
 
 	// Derived value for filtered tasks
-	let filteredTasks = $derived.by(() => {
+	const filteredTasks = $derived.by(() => {
 		let result = tasks;
 		// Only apply internal filters if we are using them.
 		// If parent passes already filtered tasks, these might be redundant but harmless if 'all'.
-		if (statusFilter !== 'all') result = result.filter(t => t.status === statusFilter);
-		if (priorityFilter !== 'all') result = result.filter(t => t.priority === priorityFilter);
+		if (statusFilter !== 'all') result = result.filter((t) => t.status === statusFilter);
+		if (priorityFilter !== 'all') result = result.filter((t) => t.priority === priorityFilter);
 		return result;
 	});
 
 	// Derived value for sorted tasks
-	let sortedTasks = $derived.by(() => {
+	const sortedTasks = $derived.by(() => {
 		const sorted = [...filteredTasks];
 		sorted.sort((a, b) => {
 			let comparison = 0;
@@ -71,7 +69,7 @@
 					else comparison = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
 					break;
 				case 'priority':
-					const priorityOrder = { 'URGENT': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
+					const priorityOrder = { URGENT: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
 					comparison = (priorityOrder[a.priority] || 0) - (priorityOrder[b.priority] || 0);
 					break;
 				case 'title':
@@ -80,15 +78,15 @@
 				case 'smart':
 					// Smart sort: Priority > Due Date > Title
 					// Urgent (4) > Low (1).
-					const valA = { 'URGENT': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 }[a.priority] || 0;
-					const valB = { 'URGENT': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 }[b.priority] || 0;
+					const valA = { URGENT: 4, HIGH: 3, MEDIUM: 2, LOW: 1 }[a.priority] || 0;
+					const valB = { URGENT: 4, HIGH: 3, MEDIUM: 2, LOW: 1 }[b.priority] || 0;
 					comparison = valA - valB;
-					
+
 					if (comparison === 0) {
 						// Secondary: Due Date (Soonest first -> Ascending)
 						const dueA = a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_VALUE;
 						const dueB = b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_VALUE;
-						return (valA - valB) || (dueB - dueA); 
+						return valA - valB || dueB - dueA;
 					}
 					break;
 			}
@@ -98,29 +96,29 @@
 	});
 
 	// Derived status counts
-	let statusCounts = $derived.by(() => ({
+	const statusCounts = $derived.by(() => ({
 		all: tasks.length,
-		'TODO': tasks.filter(t => t.status === 'TODO').length,
-		'IN_PROGRESS': tasks.filter(t => t.status === 'IN_PROGRESS').length,
-		'BLOCKED': tasks.filter(t => t.status === 'BLOCKED').length,
-		'REVIEW': tasks.filter(t => t.status === 'REVIEW').length,
-		'DONE': tasks.filter(t => t.status === 'DONE').length
+		TODO: tasks.filter((t) => t.status === 'TODO').length,
+		IN_PROGRESS: tasks.filter((t) => t.status === 'IN_PROGRESS').length,
+		BLOCKED: tasks.filter((t) => t.status === 'BLOCKED').length,
+		REVIEW: tasks.filter((t) => t.status === 'REVIEW').length,
+		DONE: tasks.filter((t) => t.status === 'DONE').length
 	}));
 
 	// Derived tasks by status (for unused feature? or debugging?)
 	// Keeping it as it was in original code
-	let tasksByStatus = $derived.by(() => ({
-		'TODO': sortedTasks.filter(t => t.status === 'TODO'),
-		'IN_PROGRESS': sortedTasks.filter(t => t.status === 'IN_PROGRESS'),
-		'BLOCKED': sortedTasks.filter(t => t.status === 'BLOCKED'),
-		'REVIEW': sortedTasks.filter(t => t.status === 'REVIEW'),
-		'DONE': sortedTasks.filter(t => t.status === 'DONE')
+	const tasksByStatus = $derived.by(() => ({
+		TODO: sortedTasks.filter((t) => t.status === 'TODO'),
+		IN_PROGRESS: sortedTasks.filter((t) => t.status === 'IN_PROGRESS'),
+		BLOCKED: sortedTasks.filter((t) => t.status === 'BLOCKED'),
+		REVIEW: sortedTasks.filter((t) => t.status === 'REVIEW'),
+		DONE: sortedTasks.filter((t) => t.status === 'DONE')
 	}));
 
 	// Derived top level tasks for hierarchy view
-	let topLevelTasks = $derived.by(() => {
+	const topLevelTasks = $derived.by(() => {
 		if (viewMode !== 'hierarchy') return sortedTasks;
-		return sortedTasks.filter(t => !t.parentTaskId);
+		return sortedTasks.filter((t) => !t.parentTaskId);
 	});
 
 	function handleTaskClick(taskId: string) {
@@ -155,11 +153,11 @@
 	$effect(() => {
 		if (!isDragging) {
 			columns = [
-				{ status: 'TODO', tasks: sortedTasks.filter(t => t.status === 'TODO') },
-				{ status: 'IN_PROGRESS', tasks: sortedTasks.filter(t => t.status === 'IN_PROGRESS') },
-				{ status: 'BLOCKED', tasks: sortedTasks.filter(t => t.status === 'BLOCKED') },
-				{ status: 'REVIEW', tasks: sortedTasks.filter(t => t.status === 'REVIEW') },
-				{ status: 'DONE', tasks: sortedTasks.filter(t => t.status === 'DONE') }
+				{ status: 'TODO', tasks: sortedTasks.filter((t) => t.status === 'TODO') },
+				{ status: 'IN_PROGRESS', tasks: sortedTasks.filter((t) => t.status === 'IN_PROGRESS') },
+				{ status: 'BLOCKED', tasks: sortedTasks.filter((t) => t.status === 'BLOCKED') },
+				{ status: 'REVIEW', tasks: sortedTasks.filter((t) => t.status === 'REVIEW') },
+				{ status: 'DONE', tasks: sortedTasks.filter((t) => t.status === 'DONE') }
 			];
 		}
 	});
@@ -187,10 +185,18 @@
 				<NativeSelect.Root bind:value={statusFilter}>
 					<NativeSelect.Option value="all">All Status ({statusCounts.all})</NativeSelect.Option>
 					<NativeSelect.Option value="TO_DO">To Do ({statusCounts['TODO']})</NativeSelect.Option>
-					<NativeSelect.Option value="IN_PROGRESS">In Progress ({statusCounts['IN_PROGRESS']})</NativeSelect.Option>
-					<NativeSelect.Option value="BLOCKED">Blocked ({statusCounts['BLOCKED']})</NativeSelect.Option>
-					<NativeSelect.Option value="COMPLETED">Completed ({statusCounts['DONE']})</NativeSelect.Option>
-					<NativeSelect.Option value="DEFERRED">Deferred ({statusCounts['REVIEW']})</NativeSelect.Option>
+					<NativeSelect.Option value="IN_PROGRESS"
+						>In Progress ({statusCounts['IN_PROGRESS']})</NativeSelect.Option
+					>
+					<NativeSelect.Option value="BLOCKED"
+						>Blocked ({statusCounts['BLOCKED']})</NativeSelect.Option
+					>
+					<NativeSelect.Option value="COMPLETED"
+						>Completed ({statusCounts['DONE']})</NativeSelect.Option
+					>
+					<NativeSelect.Option value="DEFERRED"
+						>Deferred ({statusCounts['REVIEW']})</NativeSelect.Option
+					>
 				</NativeSelect.Root>
 				<NativeSelect.Root bind:value={priorityFilter}>
 					<NativeSelect.Option value="all">All Priority</NativeSelect.Option>
@@ -206,11 +212,15 @@
 					<NativeSelect.Option value="title">Title</NativeSelect.Option>
 				</NativeSelect.Root>
 				<Button variant="outline" size="sm" onclick={toggleSortOrder}>
-					{sortOrder === 'asc' ? '↑' : '↓'} {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+					{sortOrder === 'asc' ? '↑' : '↓'}
+					{sortOrder === 'asc' ? 'Ascending' : 'Descending'}
 				</Button>
 				{#if statusFilter !== 'all' || priorityFilter !== 'all'}
 					<Badge variant="secondary">
-						{[statusFilter !== 'all' ? 1 : 0, priorityFilter !== 'all' ? 1 : 0].reduce((a, b) => a + b, 0)} filter{(statusFilter !== 'all' || priorityFilter !== 'all') ? 's' : ''} active
+						{[statusFilter !== 'all' ? 1 : 0, priorityFilter !== 'all' ? 1 : 0].reduce(
+							(a, b) => a + b,
+							0
+						)} filter{statusFilter !== 'all' || priorityFilter !== 'all' ? 's' : ''} active
 					</Badge>
 				{/if}
 			</div>
@@ -218,24 +228,30 @@
 				<Button
 					variant={viewMode === 'list' ? 'secondary' : 'ghost'}
 					size="sm"
-					onclick={() => viewMode = 'list'}
-					class={viewMode === 'list' ? 'bg-primary/15 dark:bg-primary/25 shadow-sm hover:bg-primary/15 dark:hover:bg-primary/25' : 'hover:bg-accent hover:text-accent-foreground'}
+					onclick={() => (viewMode = 'list')}
+					class={viewMode === 'list'
+						? 'bg-primary/15 dark:bg-primary/25 shadow-sm hover:bg-primary/15 dark:hover:bg-primary/25'
+						: 'hover:bg-accent hover:text-accent-foreground'}
 				>
 					<List class="h-4 w-4 text-foreground" />
 				</Button>
 				<Button
 					variant={viewMode === 'hierarchy' ? 'secondary' : 'ghost'}
 					size="sm"
-					onclick={() => viewMode = 'hierarchy'}
-					class={viewMode === 'hierarchy' ? 'bg-primary/15 dark:bg-primary/25 shadow-sm hover:bg-primary/15 dark:hover:bg-primary/25' : 'hover:bg-accent hover:text-accent-foreground'}
+					onclick={() => (viewMode = 'hierarchy')}
+					class={viewMode === 'hierarchy'
+						? 'bg-primary/15 dark:bg-primary/25 shadow-sm hover:bg-primary/15 dark:hover:bg-primary/25'
+						: 'hover:bg-accent hover:text-accent-foreground'}
 				>
 					<GitBranch class="h-4 w-4 text-foreground" />
 				</Button>
 				<Button
 					variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
 					size="sm"
-					onclick={() => viewMode = 'kanban'}
-					class={viewMode === 'kanban' ? 'bg-primary/15 dark:bg-primary/25 shadow-sm hover:bg-primary/15 dark:hover:bg-primary/25' : 'hover:bg-accent hover:text-accent-foreground'}
+					onclick={() => (viewMode = 'kanban')}
+					class={viewMode === 'kanban'
+						? 'bg-primary/15 dark:bg-primary/25 shadow-sm hover:bg-primary/15 dark:hover:bg-primary/25'
+						: 'hover:bg-accent hover:text-accent-foreground'}
 				>
 					<Columns class="h-4 w-4 text-foreground" />
 				</Button>
@@ -253,22 +269,38 @@
 			<CheckSquare class="mb-4 h-16 w-16 text-muted-foreground" />
 			<p class="text-lg font-medium mb-1">No tasks found</p>
 			<p class="text-sm text-muted-foreground">
-				{statusFilter !== 'all' || priorityFilter !== 'all' ? 'Try adjusting your filters' : 'Create your first task to get started'}
+				{statusFilter !== 'all' || priorityFilter !== 'all'
+					? 'Try adjusting your filters'
+					: 'Create your first task to get started'}
 			</p>
 		</div>
 	{:else if viewMode === 'list'}
 		<div class="space-y-3">
 			{#each sortedTasks as task (task.id)}
-				<TaskCard {task} {userId} onClick={() => handleTaskClick(task.id)} onStatusChange={(newStatus) => handleStatusChange(task.id, newStatus)} showProgress={true} />
+				<TaskCard
+					{task}
+					onClick={() => handleTaskClick(task.id)}
+					onStatusChange={(newStatus) => handleStatusChange(task.id, newStatus)}
+				/>
 			{/each}
 		</div>
 	{:else if viewMode === 'hierarchy'}
 		<div class="space-y-3">
 			{#each topLevelTasks as task (task.id)}
-				<TaskCard {task} {userId} onClick={() => handleTaskClick(task.id)} onStatusChange={(newStatus) => handleStatusChange(task.id, newStatus)} showProgress={true} level={0} />
+				<TaskCard
+					{task}
+					onClick={() => handleTaskClick(task.id)}
+					onStatusChange={(newStatus) => handleStatusChange(task.id, newStatus)}
+					level={0}
+				/>
 				{#if task.subtasks && task.subtasks.length > 0}
 					{#each task.subtasks as subtask (subtask.id)}
-						<TaskCard task={subtask} {userId} onClick={() => handleTaskClick(subtask.id)} onStatusChange={(newStatus) => handleStatusChange(subtask.id, newStatus)} compact={true} level={1} />
+						<TaskCard
+							task={subtask}
+							onClick={() => handleTaskClick(subtask.id)}
+							onStatusChange={(newStatus) => handleStatusChange(subtask.id, newStatus)}
+							level={1}
+						/>
 					{/each}
 				{/if}
 			{/each}
@@ -296,17 +328,13 @@
 							<div animate:flip={{ duration: flipDurationMs }}>
 								<TaskCard
 									{task}
-									{userId}
 									onClick={() => handleTaskClick(task.id)}
 									onStatusChange={(newStatus) => handleStatusChange(task.id, newStatus)}
-									compact={true}
 								/>
 							</div>
 						{/each}
 						{#if column.tasks.length === 0}
-							<div class="p-4 text-center text-sm text-muted-foreground">
-								Drop tasks here
-							</div>
+							<div class="p-4 text-center text-sm text-muted-foreground">Drop tasks here</div>
 						{/if}
 					</div>
 				</div>

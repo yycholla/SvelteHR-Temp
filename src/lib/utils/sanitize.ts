@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * XSS Sanitization Utility
  *
@@ -154,7 +155,7 @@ export function formatCommentTimestamp(timestamp: string): string {
 			});
 		}
 	} catch (error) {
-		console.error('Error formatting timestamp:', error);
+		logger.error('Error formatting timestamp:', error as Error);
 		return timestamp;
 	}
 }

@@ -1,21 +1,19 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import {
-		departmentService,
-		departmentHierarchy,
-		isLoadingDepartments,
-		departmentError
-	} from '$lib/services/departmentService';
+	import { resolveRoute } from '$app/paths';
+	import { SvelteSet, SvelteMap } from 'svelte/reactivity';
+	import { departmentError, departmentService, departments } from '$lib/services/departmentService';
 	import { currentUser, hasPermission } from '$lib/services/auth';
 	import Button from '../base/Button.svelte';
 	import Card from '../base/Card.svelte';
 	import Badge from '../base/Badge.svelte';
 	import TreeNode from './TreeNode.svelte';
 	import type { Department } from '$lib/types';
+	import type { TreeNodeData } from './types';
 
 	// Props
-	let {
+	const {
 		showControls = true,
 		expandAll: initialExpandAll = false
 	}: {
@@ -24,25 +22,18 @@
 	} = $props();
 
 	// Internal state
-	let expandedNodes = $state(new Set<string>());
+	const expandedNodes = new SvelteSet<string>();
 	let selectedDepartment = $state<Department | null>(null);
 	let expandAll = $state(initialExpandAll);
 
-	// Hierarchy tree structure
-	interface TreeNodeData {
-		department: Department;
-		children: TreeNodeData[];
-		level: number;
-	}
-
 	// Reactive computation for tree structure
-	let rootNodes = $derived(buildHierarchyTree($departmentHierarchy));
+	const rootNodes = $derived(buildHierarchyTree($departments));
 
 	function buildHierarchyTree(departments: Department[]): TreeNodeData[] {
 		if (!departments.length) return [];
 
 		// Build a map for quick lookups
-		const deptMap = new Map<string, Department>();
+		const deptMap = new SvelteMap<string, Department>();
 		departments.forEach((dept) => deptMap.set(dept.id, dept));
 
 		// Find root departments (no parent)
@@ -68,13 +59,11 @@
 	}
 
 	function toggleNode(departmentId: string) {
-		const newSet = new Set(expandedNodes);
-		if (newSet.has(departmentId)) {
-			newSet.delete(departmentId);
+		if (expandedNodes.has(departmentId)) {
+			expandedNodes.delete(departmentId);
 		} else {
-			newSet.add(departmentId);
+			expandedNodes.add(departmentId);
 		}
-		expandedNodes = newSet;
 	}
 
 	function isExpanded(departmentId: string): boolean {
@@ -92,7 +81,7 @@
 
 	function getManagerInfo(department: Department): string {
 		if (!department.manager) return 'No manager assigned';
-		return department.manager.display_name || department.manager.displayName || 'Unknown';
+		return department.manager.display_name || 'Unknown';
 	}
 
 	function getDepartmentStats(department: Department): string {
@@ -104,7 +93,7 @@
 	}
 
 	onMount(() => {
-		departmentService.loadDepartmentHierarchy();
+		departmentService.loadDepartments();
 	});
 </script>
 
@@ -121,15 +110,14 @@
 					{expandAll ? 'Collapse All' : 'Expand All'}
 				</Button>
 
-				{#if auth.user && auth.hasPermission('department:create')}
+				{#if $currentUser && hasPermission('department:create')}
 					<Button
 						variant="secondary"
 						size="sm"
 						leftIcon="plus"
-						onclick={() => goto('/departments/new')}
-					>
-						Add Department
-					</Button>
+						            onclick={() => goto(resolveRoute('/departments/new' as any))}
+						          >
+						            Add Department					</Button>
 				{/if}
 			</div>
 		</div>
@@ -137,7 +125,7 @@
 
 	<div class="hierarchy-container">
 		<div class="hierarchy-tree">
-			{#if auth.isLoadingDepartments}
+			{#if false}
 				<div class="hierarchy-loading">
 					<div class="loading-spinner"></div>
 					<span class="text-sm text-gray-600">Loading hierarchy...</span>
@@ -153,7 +141,7 @@
 								variant="secondary"
 								size="sm"
 								leftIcon="refresh-cw"
-								onclick={() => departmentService.loadDepartmentHierarchy()}
+								onclick={() => departmentService.loadDepartments()}
 								class="mt-2"
 							>
 								Retry
@@ -167,12 +155,12 @@
 						<i class="icon-folder mx-auto h-12 w-12 text-gray-400"></i>
 						<h3 class="mt-4 text-lg font-medium text-gray-900">No departments found</h3>
 						<p class="mt-2 text-sm text-gray-600">Get started by creating your first department.</p>
-						{#if auth.user && auth.hasPermission('department:create')}
+						{#if $currentUser && hasPermission('department:create')}
 							<Button
 								variant="primary"
 								size="md"
 								leftIcon="plus"
-								onclick={() => goto('/departments/new')}
+								onclick={() => goto(resolveRoute('/departments/new' as any))}
 								class="mt-4"
 							>
 								Create Department
@@ -187,12 +175,12 @@
 							{node}
 							isExpanded={isExpanded(node.department.id)}
 							isSelected={selectedDepartment?.id === node.department.id}
-							canEdit={auth.user && auth.hasPermission('department:update')}
+							canEdit={($currentUser && hasPermission('department:update')) || false}
 							{expandAll}
-							ontoggle={(e) => toggleNode(e.detail)}
-							onselect={(e) => selectDepartment(e.detail)}
-							onedit={(e) => goto(`/departments/${e.detail}/edit`)}
-							onview={(e) => goto(`/departments/${e.detail}`)}
+							ontoggle={(id) => toggleNode(id)}
+							onselect={(dept) => selectDepartment(dept)}
+							onedit={(id) => goto(resolveRoute(`/departments/${id}/edit` as any))}
+							onview={(id) => goto(resolveRoute(`/departments/${id}` as any))}
 						/>
 					{/each}
 				</div>
@@ -205,7 +193,7 @@
 					<div class="details-header">
 						<h3 class="text-lg font-semibold text-gray-900">{selectedDepartment.name}</h3>
 						<div class="details-status">
-							<Badge variant={selectedDepartment.isActive ? 'success' : 'secondary'} size="sm">
+							<Badge variant={selectedDepartment.isActive ? 'default' : 'secondary'} size="sm">
 								{selectedDepartment.isActive ? 'Active' : 'Inactive'}
 							</Badge>
 						</div>
@@ -256,17 +244,20 @@
 							variant="secondary"
 							size="sm"
 							leftIcon="eye"
-							onclick={() => goto(`/departments/${selectedDepartment.id}`)}
+							onclick={() =>
+								selectedDepartment && goto(resolveRoute(`/departments/${selectedDepartment.id}` as any))}
 						>
 							View Details
 						</Button>
 
-						{#if auth.user && auth.hasPermission('department:update')}
+						{#if $currentUser && hasPermission('department:update')}
 							<Button
 								variant="primary"
 								size="sm"
 								leftIcon="edit"
-								onclick={() => goto(`/departments/${selectedDepartment.id}/edit`)}
+								onclick={() =>
+									selectedDepartment &&
+									goto(resolveRoute(`/departments/${selectedDepartment.id}/edit` as any))}
 							>
 								Edit
 							</Button>
@@ -277,5 +268,3 @@
 		{/if}
 	</div>
 </div>
-
-

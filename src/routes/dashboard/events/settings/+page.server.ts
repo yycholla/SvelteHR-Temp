@@ -2,42 +2,49 @@
  * Notification Settings Page Server Load
  * Feature: 027-we-need-to - Task T062
  * Purpose: Load user's event notification preferences from backend
+ * Refactored: Phase 2 - Using Phase 1 Foundation utilities
  */
 
-import type { PageServerLoad, Actions } from './$types';
-import { error, redirect, fail } from '@sveltejs/kit';
-import { PermissionChecks } from '$lib/server/rbac-utils';
+import type { Actions, PageServerLoad } from './$types';
+import { logger } from '$lib/utils/logger';
+import { RBACDataLoader } from '$lib/server/route-loaders';
 
-// TODO: Implement once GraphQL operations are defined and token handling is fixed
-// import { createUrqlClient } from '$lib/graphql/client';
+// TODO: Implement once GraphQL operations are defined
 // import { GET_NOTIFICATION_PREFERENCES, UPDATE_NOTIFICATION_PREFERENCES } from '$lib/graphql/events-operations';
 // import type { EventNotificationPreferences } from '$lib/graphql/events-operations';
 
-export const load: PageServerLoad = async ({ locals, url }) => {
-	// Check authentication and permissions
-	if (!locals.user) {
-		redirect(303, `/login?redirectTo=${url.pathname}`);
-	}
+export const load: PageServerLoad = async (event) => {
+	const loader = new RBACDataLoader(event, [
+		'events:read',
+		'events:read:self',
+		'events:read:team',
+		'events:read:all'
+	]);
 
-	PermissionChecks.eventsRead({ locals, url } as any);
+	return loader.loadWithClient(async (client) => {
+		// TODO: Implement notification preferences loading
+		// const preferences = await client.query(
+		//   GET_NOTIFICATION_PREFERENCES,
+		//   { userId: loader.getUserId() },
+		//   { operationName: 'GetNotificationPreferences', dataPath: 'preferences' }
+		// );
 
-	// TODO: Implement notification preferences loading
-	console.warn('[EventSettings] Notification preferences temporarily disabled - returning defaults');
+		logger.warn('[EventSettings] Notification preferences temporarily disabled - returning defaults');
 
-	return {
-		user: locals.user,
-		preferences: {
-			emailNotifications: true,
-			pushNotifications: false,
-			reminderDefaults: {
-				enabled: true,
-				minutesBefore: 15
-			},
-			commentMentions: true,
-			waitlistPromotions: true,
-			eventUpdates: true
-		}
-	};
+		return {
+			preferences: {
+				emailNotifications: true,
+				pushNotifications: false,
+				reminderDefaults: {
+					enabled: true,
+					minutesBefore: 15
+				},
+				commentMentions: true,
+				waitlistPromotions: true,
+				eventUpdates: true
+			}
+		};
+	});
 };
 
 export const actions = {
@@ -45,13 +52,23 @@ export const actions = {
 	 * Update notification preferences
 	 */
 	updatePreferences: async (event) => {
-		const { locals } = event;
-
-		// Check authentication and permissions
-		PermissionChecks.eventsWrite(event);
+		const loader = new RBACDataLoader(event, [
+			'events:write',
+			'events:write:self',
+			'events:write:team',
+			'events:write:all'
+		]);
 
 		// TODO: Implement notification preferences update
-		console.warn('[EventSettings] Notification preferences update temporarily disabled');
+		// const { request } = event;
+		// const formData = await request.formData();
+		// await client.mutate(
+		//   UPDATE_NOTIFICATION_PREFERENCES,
+		//   { userId: loader.getUserId(), preferences: {...} },
+		//   { operationName: 'UpdateNotificationPreferences' }
+		// );
+
+		logger.warn('[EventSettings] Notification preferences update temporarily disabled');
 
 		return { success: true };
 	}

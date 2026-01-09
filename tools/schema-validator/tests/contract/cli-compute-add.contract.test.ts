@@ -7,7 +7,10 @@ describe('CLI compute add command contract', () => {
 
   it('should add computed field to config', () => {
     try {
-      execSync(`node ${cliPath} compute add User.fullName --source-columns users.first_name,users.last_name --resolver user.rs:10 --description "test"`, { stdio: 'pipe' });
+      execSync(
+        `node ${cliPath} compute add User.fullName --source-columns users.first_name,users.last_name --resolver user.rs:10 --description "test"`,
+        { stdio: 'pipe' }
+      );
       expect(true).toBe(true);
     } catch (error) {
       // Expected

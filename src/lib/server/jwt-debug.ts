@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * DEPRECATED: JWT Debugging Utilities
  *
@@ -33,10 +34,14 @@ export function debugJWTToken(cookies: Cookies): JWTDebugInfo {
 	const postgraphileToken = cookies.get('postgraphile-jwt-token');
 	const authToken = cookies.get('auth-token');
 
-	let token = hrToken || postgraphileToken || authToken;
-	let tokenSource = hrToken ? 'hr_token' :
-					  postgraphileToken ? 'postgraphile-jwt-token' :
-					  authToken ? 'auth-token' : 'none';
+	const token = hrToken || postgraphileToken || authToken;
+	const tokenSource = hrToken
+		? 'hr_token'
+		: postgraphileToken
+			? 'postgraphile-jwt-token'
+			: authToken
+				? 'auth-token'
+				: 'none';
 
 	const debugInfo: JWTDebugInfo = {
 		hasToken: !!token,
@@ -70,7 +75,7 @@ export function debugJWTToken(cookies: Cookies): JWTDebugInfo {
 	}
 
 	if (dev) {
-		console.log('🔐 JWT Debug Info:', debugInfo);
+		logger.info(`🔐 JWT Debug Info: ${debugInfo}`);
 	}
 
 	return debugInfo;
@@ -78,6 +83,6 @@ export function debugJWTToken(cookies: Cookies): JWTDebugInfo {
 
 /** @deprecated Session-based auth doesn't use JWT tokens */
 export function createTestJWT(): string {
-	console.warn('createTestJWT is deprecated - use session-based authentication');
+	logger.warn('createTestJWT is deprecated - use session-based authentication');
 	return '';
 }

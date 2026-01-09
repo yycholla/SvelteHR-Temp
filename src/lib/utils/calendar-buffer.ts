@@ -71,12 +71,18 @@ export function shouldPrefetch(
 	const bufferEndMonth = currentBuffer.bufferEnd.getUTCMonth();
 
 	// Check if target month is before buffer start month
-	if (targetYear < bufferStartYear || (targetYear === bufferStartYear && targetMonth < bufferStartMonth)) {
+	if (
+		targetYear < bufferStartYear ||
+		(targetYear === bufferStartYear && targetMonth < bufferStartMonth)
+	) {
 		return true;
 	}
 
 	// Check if target month is after buffer end month
-	if (targetYear > bufferEndYear || (targetYear === bufferEndYear && targetMonth > bufferEndMonth)) {
+	if (
+		targetYear > bufferEndYear ||
+		(targetYear === bufferEndYear && targetMonth > bufferEndMonth)
+	) {
 		return true;
 	}
 

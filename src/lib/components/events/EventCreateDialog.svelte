@@ -13,13 +13,20 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
-	import { X, Repeat, Users as UsersIcon, Image as ImageIcon } from '@lucide/svelte';
-	import ImageUploadWidget from './ImageUploadWidget.svelte';
-	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
+	import { X } from '@lucide/svelte';
 	import { generateRRule, validate5YearLimit } from '$lib/utils/rrule';
-	import type { RecurrencePattern } from '$lib/utils/rrule';
+	import type { DayOfWeek } from '$lib/types/events';
 
-	interface Props {
+	// Import decomposed components
+	import EventBasicDetails from './create/EventBasicDetails.svelte';
+	import EventDateTime from './create/EventDateTime.svelte';
+	import EventRecurrence from './create/EventRecurrence.svelte';
+	import EventCapacity from './create/EventCapacity.svelte';
+	import EventImageUpload from './create/EventImageUpload.svelte';
+	import EventVisibility from './create/EventVisibility.svelte';
+
+	// Export type definitions for test imports
+	export interface EventCreateDialogProps {
 		isOpen: boolean;
 		defaultStartTime?: string;
 		defaultEndTime?: string;
@@ -36,7 +43,7 @@
 		onSuccess?: () => void;
 	}
 
-	let {
+	const {
 		isOpen = false,
 		defaultStartTime,
 		defaultEndTime,
@@ -45,7 +52,7 @@
 		employees = [],
 		onClose,
 		onSuccess
-	}: Props = $props();
+	}: EventCreateDialogProps = $props();
 
 	// Form state
 	let startTime = $state(defaultStartTime || '');
@@ -58,7 +65,7 @@
 	let isRecurring = $state(false);
 	let recurrenceFrequency = $state<'daily' | 'weekly' | 'monthly' | 'yearly'>('weekly');
 	let recurrenceInterval = $state(1);
-	let recurrenceDaysOfWeek = $state<number[]>([]);
+	let recurrenceDaysOfWeek = $state<DayOfWeek[]>([]);
 	let recurrenceEndDate = $state('');
 
 	// Feature 027: Image upload state
@@ -74,11 +81,11 @@
 	let selectedAttendeeIds = $state<string[]>([]);
 
 	// Derived
-	let showAttendeeButton = $derived(visibilityType === 'specific');
+	const showAttendeeButton = $derived(visibilityType === 'specific');
 
 	// Convert employees to SearchOption format for MultiSearchInput
-	let attendeeOptions = $derived(
-		employees.map(e => ({
+	const attendeeOptions = $derived(
+		employees.map((e) => ({
 			value: e.id,
 			label: e.displayName
 		}))
@@ -86,17 +93,6 @@
 
 	// Get user's timezone offset in minutes
 	const timezoneOffset = new Date().getTimezoneOffset();
-
-	// Weekday options for weekly recurrence
-	const WEEKDAYS = [
-		{ value: 0, label: 'Sun' },
-		{ value: 1, label: 'Mon' },
-		{ value: 2, label: 'Tue' },
-		{ value: 3, label: 'Wed' },
-		{ value: 4, label: 'Thu' },
-		{ value: 5, label: 'Fri' },
-		{ value: 6, label: 'Sat' }
-	];
 
 	// Handle all-day toggle
 	function handleAllDayToggle() {
@@ -119,15 +115,6 @@
 		// Clear attendees if switching away from specific
 		if (visibilityType !== 'specific') {
 			selectedAttendeeIds = [];
-		}
-	}
-
-	// Toggle weekday selection
-	function toggleWeekday(day: number) {
-		if (recurrenceDaysOfWeek.includes(day)) {
-			recurrenceDaysOfWeek = recurrenceDaysOfWeek.filter(d => d !== day);
-		} else {
-			recurrenceDaysOfWeek = [...recurrenceDaysOfWeek, day].sort();
 		}
 	}
 
@@ -182,7 +169,7 @@
 
 		// Add RRULE to form data if recurring
 		if (isRecurring && recurrenceEndDate) {
-			const pattern: RecurrencePattern = {
+			const pattern = {
 				frequency: recurrenceFrequency,
 				interval: recurrenceInterval,
 				daysOfWeek: recurrenceDaysOfWeek,
@@ -262,9 +249,7 @@
 			>
 				<!-- Header -->
 				<div class="sticky top-0 z-10 flex items-center justify-between border-b bg-card px-6 py-4">
-					<h2 id="dialog-title" class="text-xl font-semibold text-foreground">
-						Create Event
-					</h2>
+					<h2 id="dialog-title" class="text-xl font-semibold text-foreground">Create Event</h2>
 					<button
 						type="button"
 						onclick={onClose}
@@ -292,7 +277,10 @@
 								onClose();
 								onSuccess?.();
 							} else if (result.type === 'failure') {
-								const errorMsg = result.data?.error || 'Failed to create event';
+								const errorMsg =
+									typeof result.data?.error === 'string'
+										? result.data.error
+										: 'Failed to create event';
 								toast.error(errorMsg);
 							} else if (result.type === 'error') {
 								toast.error('An unexpected error occurred');
@@ -309,363 +297,55 @@
 					<input type="hidden" name="hasCapacityLimit" value={hasCapacityLimit} />
 					<input type="hidden" name="hasWaitlist" value={hasWaitlist && hasCapacityLimit} />
 
-					<!-- Title -->
-					<div>
-						<label for="title" class="block text-sm font-medium text-foreground mb-2">
-							Event Title <span class="text-destructive">*</span>
-						</label>
-						<input
-							type="text"
-							id="title"
-							name="title"
-							required
-							maxlength="200"
-							disabled={isSubmitting}
-							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-							placeholder="Enter event title"
-						/>
-					</div>
+					<!-- Basic Details -->
+					<EventBasicDetails {isSubmitting} />
 
-					<!-- Description -->
-					<div>
-						<label for="description" class="block text-sm font-medium text-foreground mb-2">
-							Description
-						</label>
-						<textarea
-							id="description"
-							name="description"
-							rows="4"
-							maxlength="5000"
-							disabled={isSubmitting}
-							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-							placeholder="Enter event description"
-						></textarea>
-					</div>
+					<!-- Date and Time -->
+					<EventDateTime
+						bind:startTime
+						bind:endTime
+						bind:isAllDay
+						{isSubmitting}
+						{minDate}
+						onAllDayToggle={handleAllDayToggle}
+					/>
 
-					<!-- Date and Time Row -->
-					<div class="grid gap-4 sm:grid-cols-2">
-						<!-- Start Time -->
-						<div>
-							<label for="startTime" class="block text-sm font-medium text-foreground mb-2">
-								Start Time <span class="text-destructive">*</span>
-							</label>
-							<input
-								type="datetime-local"
-								id="startTime"
-								name="startTime"
-								bind:value={startTime}
-								required
-								min={minDate}
-								disabled={isSubmitting}
-								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-							/>
-						</div>
+					<!-- Recurrence -->
+					<EventRecurrence
+						bind:isRecurring
+						bind:recurrenceFrequency
+						bind:recurrenceInterval
+						bind:recurrenceDaysOfWeek
+						bind:recurrenceEndDate
+						{isSubmitting}
+						{startTime}
+					/>
 
-						<!-- End Time -->
-						<div>
-							<label for="endTime" class="block text-sm font-medium text-foreground mb-2">
-								End Time <span class="text-destructive">*</span>
-							</label>
-							<input
-								type="datetime-local"
-								id="endTime"
-								name="endTime"
-								bind:value={endTime}
-								required
-								min={startTime}
-								disabled={isSubmitting}
-								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-							/>
-						</div>
-					</div>
+					<!-- Visibility -->
+					<EventVisibility
+						bind:visibilityType
+						bind:selectedAttendeeIds
+						{isSubmitting}
+						{attendeeOptions}
+						{showAttendeeButton}
+						onVisibilityChange={handleVisibilityChange}
+					/>
 
-					<!-- All Day Checkbox -->
-					<div>
-						<label class="flex items-center cursor-pointer">
-							<input
-								type="checkbox"
-								name="isAllDay"
-								bind:checked={isAllDay}
-								onchange={handleAllDayToggle}
-								disabled={isSubmitting}
-								class="h-4 w-4 rounded border-input text-primary focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-							/>
-							<span class="ml-2 text-sm text-foreground">All-day event</span>
-						</label>
-					</div>
+					<!-- Capacity -->
+					<EventCapacity
+						bind:hasCapacityLimit
+						bind:capacityLimit
+						bind:hasWaitlist
+						{isSubmitting}
+					/>
 
-					<!-- Feature 027: Recurring Event Section -->
-					<div class="rounded-lg border bg-muted/50 p-4">
-						<label class="flex items-center cursor-pointer mb-3">
-							<input
-								type="checkbox"
-								bind:checked={isRecurring}
-								disabled={isSubmitting}
-								class="h-4 w-4 rounded border-input text-primary focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-							/>
-							<span class="ml-2 text-sm font-medium text-foreground flex items-center gap-2">
-								<Repeat class="h-4 w-4" />
-								Make this a recurring event
-							</span>
-						</label>
-
-						{#if isRecurring}
-							<div class="space-y-4 mt-4">
-								<!-- Recurrence Pattern -->
-								<div class="grid gap-4 sm:grid-cols-2">
-									<div>
-										<label for="recurrenceFrequency" class="block text-sm font-medium text-foreground mb-2">
-											Frequency <span class="text-destructive">*</span>
-										</label>
-										<select
-											id="recurrenceFrequency"
-											name="recurrenceFrequency"
-											bind:value={recurrenceFrequency}
-											required={isRecurring}
-											disabled={isSubmitting}
-											class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-										>
-											<option value="daily">Daily</option>
-											<option value="weekly">Weekly</option>
-											<option value="monthly">Monthly</option>
-											<option value="yearly">Yearly</option>
-										</select>
-									</div>
-
-									<div>
-										<label for="recurrenceInterval" class="block text-sm font-medium text-foreground mb-2">
-											Every
-										</label>
-										<input
-											type="number"
-											id="recurrenceInterval"
-											name="recurrenceInterval"
-											bind:value={recurrenceInterval}
-											min="1"
-											max="52"
-											required={isRecurring}
-											disabled={isSubmitting}
-											class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-										/>
-									</div>
-								</div>
-
-								<!-- Weekly: Day Selection -->
-								{#if recurrenceFrequency === 'weekly'}
-									<div>
-										<div class="block text-sm font-medium text-foreground mb-2">
-											Repeat on <span class="text-destructive">*</span>
-										</div>
-										<div class="flex flex-wrap gap-2">
-											{#each WEEKDAYS as day}
-												<button
-													type="button"
-													onclick={() => toggleWeekday(day.value)}
-													disabled={isSubmitting}
-													class="px-3 py-1 rounded-md text-sm font-medium transition-colors {recurrenceDaysOfWeek.includes(day.value)
-														? 'bg-primary text-primary-foreground'
-														: 'bg-background border border-input text-foreground hover:bg-accent'} disabled:opacity-50 disabled:cursor-not-allowed"
-												>
-													{day.label}
-												</button>
-											{/each}
-										</div>
-										<input type="hidden" name="recurrenceDaysOfWeek" value={JSON.stringify(recurrenceDaysOfWeek)} />
-									</div>
-								{/if}
-
-								<!-- End Date -->
-								<div>
-									<label for="recurrenceEndDate" class="block text-sm font-medium text-foreground mb-2">
-										End Date <span class="text-destructive">*</span>
-									</label>
-									<input
-										type="date"
-										id="recurrenceEndDate"
-										name="recurrenceEndDate"
-										bind:value={recurrenceEndDate}
-										min={startTime?.slice(0, 10)}
-										required={isRecurring}
-										disabled={isSubmitting}
-										class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-									/>
-									<p class="mt-1 text-xs text-muted-foreground">
-										Maximum 5 years from start date
-									</p>
-								</div>
-							</div>
-						{/if}
-					</div>
-
-					<!-- Location -->
-					<div>
-						<label for="location" class="block text-sm font-medium text-foreground mb-2">
-							Location
-						</label>
-						<input
-							type="text"
-							id="location"
-							name="location"
-							disabled={isSubmitting}
-							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-							placeholder="Enter event location"
-						/>
-					</div>
-
-					<!-- Event Type and Visibility Row -->
-					<div class="grid gap-4 sm:grid-cols-2">
-						<!-- Event Type -->
-						<div>
-							<label for="eventType" class="block text-sm font-medium text-foreground mb-2">
-								Event Type <span class="text-destructive">*</span>
-							</label>
-							<select
-								id="eventType"
-								name="eventType"
-								required
-								disabled={isSubmitting}
-								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-							>
-								<option value="meeting">Meeting</option>
-								<option value="training">Training</option>
-								<option value="social">Social</option>
-								<option value="conference">Conference</option>
-								<option value="other">Other</option>
-							</select>
-						</div>
-
-						<!-- Visibility Type -->
-						<div>
-							<label for="visibilityType" class="block text-sm font-medium text-foreground mb-2">
-								Visibility <span class="text-destructive">*</span>
-							</label>
-							<select
-								id="visibilityType"
-								name="visibilityType"
-								bind:value={visibilityType}
-								onchange={handleVisibilityChange}
-								required
-								disabled={isSubmitting}
-								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-							>
-								<option value="company">Company-Wide</option>
-								<option value="department">Department Only</option>
-								<option value="specific">Specific People</option>
-							</select>
-						</div>
-					</div>
-
-					<!-- Feature 027: Attendee Picker for Specific Visibility (Tagged Search) -->
-					{#if showAttendeeButton}
-						<div class="space-y-2">
-							<label class="text-sm font-medium text-foreground flex items-center gap-2">
-								<UsersIcon class="h-4 w-4" />
-								Attendees <span class="text-destructive">*</span>
-							</label>
-							<MultiSearchInput
-								bind:searchTerms={selectedAttendeeIds}
-								options={attendeeOptions}
-								placeholder="Search and select attendees..."
-								disabled={isSubmitting}
-								allowCustomTerms={false}
-							/>
-							{#if selectedAttendeeIds.length === 0}
-								<p class="text-xs text-muted-foreground">
-									Start typing to search for employees to invite
-								</p>
-							{:else}
-								<p class="text-xs text-muted-foreground">
-									{selectedAttendeeIds.length} {selectedAttendeeIds.length === 1 ? 'attendee' : 'attendees'} selected
-								</p>
-							{/if}
-						</div>
-					{/if}
-
-					<!-- Feature 027: Capacity and Waitlist -->
-					<div class="rounded-lg border bg-muted/50 p-4 space-y-4">
-						<label class="flex items-center cursor-pointer">
-							<input
-								type="checkbox"
-								bind:checked={hasCapacityLimit}
-								disabled={isSubmitting}
-								class="h-4 w-4 rounded border-input text-primary focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-							/>
-							<span class="ml-2 text-sm font-medium text-foreground">
-								Set capacity limit
-							</span>
-						</label>
-
-						{#if hasCapacityLimit}
-							<div class="space-y-4">
-								<div>
-									<label for="capacityLimit" class="block text-sm font-medium text-foreground mb-2">
-										Maximum Attendees
-									</label>
-									<input
-										type="number"
-										id="capacityLimit"
-										name="capacityLimit"
-										bind:value={capacityLimit}
-										min="1"
-										max="1000"
-										required={hasCapacityLimit}
-										disabled={isSubmitting}
-										class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-									/>
-								</div>
-
-								<label class="flex items-center cursor-pointer">
-									<input
-										type="checkbox"
-										bind:checked={hasWaitlist}
-										disabled={isSubmitting}
-										class="h-4 w-4 rounded border-input text-primary focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-									/>
-									<span class="ml-2 text-sm font-medium text-foreground">
-										Enable waitlist when full
-									</span>
-								</label>
-							</div>
-						{/if}
-					</div>
-
-					<!-- Feature 027: Image Upload -->
-					<div>
-						<label class="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
-							<ImageIcon class="h-4 w-4" />
-							Event Image (Optional)
-						</label>
-
-						<div class="mb-4">
-							<span class="text-sm text-muted-foreground mr-4">Aspect Ratio:</span>
-							<label class="inline-flex items-center mr-4">
-								<input
-									type="radio"
-									bind:group={imageAspectRatio}
-									value="16:9"
-									disabled={isSubmitting}
-									class="h-4 w-4 text-primary focus:ring-ring"
-								/>
-								<span class="ml-2 text-sm">16:9 (Horizontal)</span>
-							</label>
-							<label class="inline-flex items-center">
-								<input
-									type="radio"
-									bind:group={imageAspectRatio}
-									value="9:16"
-									disabled={isSubmitting}
-									class="h-4 w-4 text-primary focus:ring-ring"
-								/>
-								<span class="ml-2 text-sm">9:16 (Vertical)</span>
-							</label>
-						</div>
-
-						<ImageUploadWidget
-							aspectRatio={imageAspectRatio}
-							onImageSelected={handleImageSelected}
-							onImageRemoved={handleImageRemoved}
-						/>
-					</div>
+					<!-- Image Upload -->
+					<EventImageUpload
+						bind:imageAspectRatio
+						{isSubmitting}
+						onImageSelected={handleImageSelected}
+						onImageRemoved={handleImageRemoved}
+					/>
 
 					<!-- Form Actions -->
 					<div class="flex items-center justify-end gap-4 border-t pt-6">
@@ -684,8 +364,19 @@
 						>
 							{#if isSubmitting}
 								<svg class="mr-2 h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+									<circle
+										class="opacity-25"
+										cx="12"
+										cy="12"
+										r="10"
+										stroke="currentColor"
+										stroke-width="4"
+									></circle>
+									<path
+										class="opacity-75"
+										fill="currentColor"
+										d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+									></path>
 								</svg>
 								Creating...
 							{:else}

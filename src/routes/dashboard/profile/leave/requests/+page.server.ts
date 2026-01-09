@@ -3,9 +3,10 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { PermissionChecks } from '$lib/server/rbac-utils';
+import { requireAuth } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 import { getLeaveTypeColor } from '$lib/graphql/queries/leave-requests';
+import { logger } from '$lib/utils/logger';
 
 // Helper function to get human-readable leave type name
 function getLeaveTypeName(typeCode: string): string {
@@ -33,10 +34,15 @@ function getLeaveTypeCodeFromPolicy(policyName: string): string {
 }
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, url, cookies } = event;
+	const { url, cookies } = event;
 
 	// Check authentication and permissions
-	PermissionChecks.leaveRead(event);
+	requireAuth(event, {
+		requiredPermissions: ['leave:read', 'leave:read:self', 'leave:read:team', 'leave:read:all']
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Use authenticated user's ID
 	const userId = locals.user.id;
@@ -47,7 +53,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// If backend is not ready, return error state but don't crash
 		if (!backendReady) {
-			console.warn('Backend not ready for user leave requests page');
+			logger.warn('Backend not ready for user leave requests page');
 			return {
 				user: null,
 				userId,
@@ -243,9 +249,15 @@ export const load: PageServerLoad = async (event) => {
 			endDate: req.endDate,
 			leaveType: {
 				id: req.leaveType?.id || req.leaveType,
-				name: req.leaveType?.name || (typeof req.leaveType === 'string' ? getLeaveTypeName(req.leaveType) : 'Unknown'),
-				code: typeof req.leaveType === 'string' ? req.leaveType.toLowerCase() : (req.leaveType?.name?.toLowerCase().replace(/\s+/g, '_') || 'annual'),
-				color: req.leaveType?.color || getLeaveTypeColor(req.leaveType?.name?.toLowerCase() || 'annual')
+				name:
+					req.leaveType?.name ||
+					(typeof req.leaveType === 'string' ? getLeaveTypeName(req.leaveType) : 'Unknown'),
+				code:
+					typeof req.leaveType === 'string'
+						? req.leaveType.toLowerCase()
+						: req.leaveType?.name?.toLowerCase().replace(/\s+/g, '_') || 'annual',
+				color:
+					req.leaveType?.color || getLeaveTypeColor(req.leaveType?.name?.toLowerCase() || 'annual')
 			},
 			reason: req.reason || '',
 			status: req.status.toString().toLowerCase(),
@@ -279,7 +291,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('Error loading user leave requests:', err);
+		logger.error('Error loading user leave requests:', err as Error);
 
 		// Return error state instead of throwing to prevent page crash
 		return {

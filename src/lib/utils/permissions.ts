@@ -3,13 +3,13 @@
 // NEVER rely on client-side permission checks for security - always validate server-side.
 
 import type {
-	PermissionString,
-	PermissionContext,
-	PermissionCheckResult,
-	ResourceType,
 	ActionType,
-	ScopeType,
-	RoleName
+	PermissionCheckResult,
+	PermissionContext,
+	PermissionString,
+	ResourceType,
+	RoleName,
+	ScopeType
 } from '$lib/types/permissions';
 import { RoleHierarchy } from '$lib/types/permissions';
 
@@ -70,7 +70,7 @@ export function hasAnyPermission(
 	userPermissions: PermissionString[],
 	requiredPermissions: PermissionString[]
 ): boolean {
-	return requiredPermissions.some((perm) => auth.hasPermission(userPermissions, perm));
+	return requiredPermissions.some((perm) => hasPermission(userPermissions, perm));
 }
 
 /**
@@ -90,7 +90,7 @@ export function hasAllPermissions(
 	userPermissions: PermissionString[],
 	requiredPermissions: PermissionString[]
 ): boolean {
-	return requiredPermissions.every((perm) => auth.hasPermission(userPermissions, perm));
+	return requiredPermissions.every((perm) => hasPermission(userPermissions, perm));
 }
 
 /**
@@ -140,9 +140,7 @@ export function hasRoleLevel(
  * @param userRoles - Array of role objects from backend
  * @returns Highest role level (0 if no roles)
  */
-export function getHighestRoleLevel(
-	userRoles: Array<{ name: RoleName; level: number }>
-): number {
+export function getHighestRoleLevel(userRoles: Array<{ name: RoleName; level: number }>): number {
 	return Math.max(...userRoles.map((role) => role.level), 0);
 }
 
@@ -157,7 +155,7 @@ export function getHighestRoleLevel(
  * ```ts
  * const result = checkPermissionDetailed(user.permissions, 'employees:read');
  * if (!result.allowed) {
- *   console.log(`Access denied: ${result.reason}`);
+ *   logger.info(`Access denied: ${result.reason}`);
  * }
  * ```
  */
@@ -236,16 +234,16 @@ export function buildPermissionContext(
 		roles: rolesWithLevel,
 		userId,
 		flags: {
-			isAdmin: auth.hasRole(rolesWithLevel, 'Admin'),
-			isHRManager: auth.hasRole(rolesWithLevel, 'HR Manager'),
-			isManager: auth.hasRole(rolesWithLevel, 'Manager'),
-			canReadEmployees: auth.hasPermission(permissions, 'employees:read'),
-			canWriteEmployees: auth.hasPermission(permissions, 'employees:write'),
-			canDeleteEmployees: auth.hasPermission(permissions, 'employees:delete'),
-			canReadDepartments: auth.hasPermission(permissions, 'departments:read'),
-			canWriteDepartments: auth.hasPermission(permissions, 'departments:write'),
-			canDeleteDepartments: auth.hasPermission(permissions, 'departments:delete'),
-			canAccessAdmin: auth.hasPermission(permissions, 'admin:read'),
+			isAdmin: hasRole(rolesWithLevel, 'Admin'),
+			isHRManager: hasRole(rolesWithLevel, 'HR Manager'),
+			isManager: hasRole(rolesWithLevel, 'Manager'),
+			canReadEmployees: hasPermission(permissions, 'employees:read'),
+			canWriteEmployees: hasPermission(permissions, 'employees:write'),
+			canDeleteEmployees: hasPermission(permissions, 'employees:delete'),
+			canReadDepartments: hasPermission(permissions, 'departments:read'),
+			canWriteDepartments: hasPermission(permissions, 'departments:write'),
+			canDeleteDepartments: hasPermission(permissions, 'departments:delete'),
+			canAccessAdmin: hasPermission(permissions, 'admin:read'),
 			canAccessHR: hasAnyPermission(permissions, [
 				'employees:read',
 				'employees:write',
@@ -337,6 +335,6 @@ export function filterByPermission<T>(
 		if (Array.isArray(required)) {
 			return hasAnyPermission(userPermissions, required);
 		}
-		return auth.hasPermission(userPermissions, required);
+		return hasPermission(userPermissions, required);
 	});
 }

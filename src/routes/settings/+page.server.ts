@@ -3,15 +3,19 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 import { createSettingsOperations } from '$lib/graphql/settings-operations';
-import { createUrqlClient } from '$lib/graphql/client';
+import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies, url } = event;
+	const { cookies, url } = event;
 
 	// RBAC: Settings pages are accessible to all authenticated users (profile management)
 	requireAuth(event);
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	// Import required models for standardized error handling
 	const { createDataRequest } = await import('$lib/models/data-request');
@@ -43,70 +47,60 @@ export const load: PageServerLoad = async (event) => {
 		},
 		userCredentials: {
 			userId: userSession.userId,
-			userEmail: userSession.metadata.userEmail as string,
 			roles: userSession.roles,
 			permissions: userSession.permissions,
 			// jwtToken omitted for session-based auth
-			isAuthenticated: Boolean(userSession.isAuthenticated)
+			isAuthenticated: Boolean(userSession.isAuthenticated),
+			expiresAt: userSession.expiresAt
 		},
-		timeoutMs: 5000,
-		retryAttempts: 0,
-		maxRetries: 3
+		timeoutMs: 5000
 	});
 
 	try {
 		// Create GraphQL client for server-side operations
-		const graphqlClient = createUrqlClient(fetch, undefined, undefined, cookies.getAll());
+		const graphqlClient = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
 
 		// Create settings operations instance
 		const settingsOps = createSettingsOperations(graphqlClient);
 
 		// Fetch user settings from GraphQL backend
 		const userSettings = await settingsOps.getUserSettings({
-			userId: userSession.userId,
 			userCredentials: {
 				userId: userSession.userId,
-				userEmail: userSession.metadata.userEmail as string,
 				roles: userSession.roles,
 				permissions: userSession.permissions,
-				isAuthenticated: Boolean(userSession.isAuthenticated)
+				isAuthenticated: Boolean(userSession.isAuthenticated),
+				expiresAt: userSession.expiresAt
 			}
 		});
 
-		// Fetch activity log
-		const activityLog = await settingsOps.getUserActivityLog({
-			userId: userSession.userId,
-			userCredentials: {
-				userId: userSession.userId,
-				userEmail: userSession.metadata.userEmail as string,
-				roles: userSession.roles,
-				permissions: userSession.permissions,
-				isAuthenticated: Boolean(userSession.isAuthenticated)
-			}
-		});
+		// TODO: Fetch activity log from activity-logs operations
+		// getUserActivityLog was removed from SettingsOperations during migration
+		// Activity logs should be fetched from ActivityLogsOperations instead
+		const activityLog: any[] = [];
 
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
 
 		// Return server-side loaded data with GraphQL-fetched settings
 		return {
-			user: userPermissions.user,
 			userSession: userSession.toJSON(), // Convert UserSession to serializable object
 			userSettings,
 			activityLog,
 			activeTab,
-			// RBAC: Standardized permission checks with profile-specific permissions
+			// RBAC: Standardized permission checks with profile-specific permissions (includes user property)
 			...userPermissions,
 			canUpdateProfile: true, // All users can update their own profile
 			canChangePassword: true, // All users can change their password
 			canExportData:
 				locals.permissions?.includes('data:export') ||
 				locals.permissions?.includes('*') ||
-				['hr_manager', 'hr_admin', 'hr_super_admin'].includes(locals.user.role),
+				(locals.user.role &&
+					['hr_manager', 'hr_admin', 'hr_super_admin'].includes(locals.user.role)),
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[Settings Load Error]', err);
+		logger.error('[Settings Load Error]', err as Error);
 
 		// Create standardized error response
 		const errorResponse = createErrorResponse(
@@ -118,7 +112,7 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		// Log error details for debugging
-		console.error('[Settings Error Details]', {
+		logger.error('[Settings Error Details]', undefined, {
 			userId: locals.user?.id,
 			userRole: locals.user?.role,
 			activeTab,
@@ -126,9 +120,6 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		// Throw SvelteKit error with user-friendly message
-		error(500, {
-			message: 'Settings temporarily unavailable',
-			details: errorResponse.userMessage
-		});
+		error(500, 'Settings temporarily unavailable');
 	}
 };

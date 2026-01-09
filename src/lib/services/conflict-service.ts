@@ -1,3 +1,5 @@
+import { logger } from '$lib/utils/logger';
+
 /**
  * Conflict Detection Service
  * Feature: 025-events-flesh-out
@@ -36,9 +38,7 @@ export class ConflictService {
 	/**
 	 * Check for scheduling conflicts for a user
 	 */
-	static async checkConflicts(
-		options: ConflictCheckOptions
-	): Promise<ConflictCheckResult> {
+	static async checkConflicts(options: ConflictCheckOptions): Promise<ConflictCheckResult> {
 		try {
 			const { userId, startTime, endTime, excludeEventId, includeRsvpStatuses } = options;
 
@@ -65,7 +65,7 @@ export class ConflictService {
 				conflictCount: conflicts.length
 			};
 		} catch (error) {
-			console.error('Error checking conflicts:', error);
+			logger.error('Catch failed', error as Error);
 			return {
 				hasConflicts: false,
 				conflicts: [],
@@ -77,12 +77,7 @@ export class ConflictService {
 	/**
 	 * Check if two time ranges overlap
 	 */
-	static timeRangesOverlap(
-		start1: Date,
-		end1: Date,
-		start2: Date,
-		end2: Date
-	): boolean {
+	static timeRangesOverlap(start1: Date, end1: Date, start2: Date, end2: Date): boolean {
 		// Two ranges overlap if:
 		// - start1 < end2 AND end1 > start2
 		return start1 < end2 && end1 > start2;
@@ -105,7 +100,7 @@ export class ConflictService {
 
 			return conflictMap;
 		} catch (error) {
-			console.error('Error getting user conflicts:', error);
+			logger.error('Catch failed', error as Error);
 			return new Map();
 		}
 	}
@@ -132,7 +127,7 @@ export class ConflictService {
 			// Placeholder implementation
 			return null;
 		} catch (error) {
-			console.error('Error finding available slot:', error);
+			logger.error('Catch failed', error as Error);
 			return null;
 		}
 	}
@@ -140,13 +135,15 @@ export class ConflictService {
 	/**
 	 * Calculate conflict severity
 	 */
-	static calculateConflictSeverity(conflicts: ConflictingEvent[]): 'none' | 'low' | 'medium' | 'high' {
+	static calculateConflictSeverity(
+		conflicts: ConflictingEvent[]
+	): 'none' | 'low' | 'medium' | 'high' {
 		if (conflicts.length === 0) {
 			return 'none';
 		}
 
 		// Count accepted vs tentative
-		const acceptedConflicts = conflicts.filter(c => c.rsvpStatus === 'accepted').length;
+		const acceptedConflicts = conflicts.filter((c) => c.rsvpStatus === 'accepted').length;
 
 		if (acceptedConflicts === 0) {
 			return 'low'; // Only tentative conflicts
@@ -165,11 +162,11 @@ export class ConflictService {
 			return '';
 		}
 
-		const acceptedConflicts = conflicts.filter(c => c.rsvpStatus === 'accepted');
-		const tentativeConflicts = conflicts.filter(c => c.rsvpStatus === 'tentative');
+		const acceptedConflicts = conflicts.filter((c) => c.rsvpStatus === 'accepted');
+		const tentativeConflicts = conflicts.filter((c) => c.rsvpStatus === 'tentative');
 
 		if (acceptedConflicts.length > 0) {
-			const eventTitles = acceptedConflicts.map(c => `"${c.title}"`).join(', ');
+			const eventTitles = acceptedConflicts.map((c) => `"${c.title}"`).join(', ');
 			return `This time conflicts with ${acceptedConflicts.length} accepted event${acceptedConflicts.length > 1 ? 's' : ''}: ${eventTitles}`;
 		} else {
 			return `This time may conflict with ${tentativeConflicts.length} tentative event${tentativeConflicts.length > 1 ? 's' : ''}`;
@@ -208,8 +205,8 @@ export class ConflictService {
 
 		// Suggest time before first conflict
 		if (conflicts.length > 0) {
-			const firstConflict = conflicts.sort((a, b) =>
-				a.startTime.getTime() - b.startTime.getTime()
+			const firstConflict = conflicts.sort(
+				(a, b) => a.startTime.getTime() - b.startTime.getTime()
 			)[0];
 
 			const suggestedEnd = new Date(firstConflict.startTime);
@@ -220,9 +217,7 @@ export class ConflictService {
 
 		// Suggest time after last conflict
 		if (conflicts.length > 0) {
-			const lastConflict = conflicts.sort((a, b) =>
-				b.endTime.getTime() - a.endTime.getTime()
-			)[0];
+			const lastConflict = conflicts.sort((a, b) => b.endTime.getTime() - a.endTime.getTime())[0];
 
 			const suggestedStart = new Date(lastConflict.endTime);
 			suggestions.push(suggestedStart);

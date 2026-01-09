@@ -1,7 +1,7 @@
 // Security test: Comprehensive RBAC validation (T050)
 // Tests all permission scenarios across 4 roles and 10 operations
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
  * Security Test: Comprehensive RBAC Validation
@@ -27,9 +27,9 @@ describe('RBAC Validation - Security Tests', () => {
 	let managerToken: string;
 	let employeeToken: string;
 
-	let testDocumentId: string = 'doc-test-123'; // Initialize with dummy values
-	let assignedDocumentId: string = 'doc-assigned-456';
-	let unassignedDocumentId: string = 'doc-unassigned-789';
+	const testDocumentId: string = 'doc-test-123'; // Initialize with dummy values
+	const assignedDocumentId: string = 'doc-assigned-456';
+	const unassignedDocumentId: string = 'doc-unassigned-789';
 
 	beforeAll(async () => {
 		// TODO: Set up test users with proper roles
@@ -638,7 +638,9 @@ describe('RBAC Validation - Security Tests', () => {
 			];
 
 			operations.forEach((op) => {
-				const superAdmin = testMatrix.super_admin[op as keyof typeof testMatrix.super_admin] ? '✅' : '❌';
+				const superAdmin = testMatrix.super_admin[op as keyof typeof testMatrix.super_admin]
+					? '✅'
+					: '❌';
 				const admin = testMatrix.admin[op as keyof typeof testMatrix.admin] ? '✅' : '❌';
 				const manager = testMatrix.manager[op as keyof typeof testMatrix.manager] ? '✅' : '❌';
 				const employee = testMatrix.employee[op as keyof typeof testMatrix.employee] ? '✅' : '❌';

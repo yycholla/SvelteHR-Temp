@@ -9,6 +9,7 @@ This directory contains CI/CD workflows for automated testing, benchmarking, and
 **Triggers**: Push to main/develop, Pull Requests
 
 **Jobs**:
+
 - **test**: Unit and integration tests with PostgreSQL service
   - Formatting check (`cargo fmt`)
   - Linting (`cargo clippy`)
@@ -29,6 +30,7 @@ This directory contains CI/CD workflows for automated testing, benchmarking, and
   - Uploads to Codecov (requires `CODECOV_TOKEN` secret)
 
 **Cache Strategy**:
+
 - Cargo registry: `~/.cargo/registry`
 - Cargo git: `~/.cargo/git`
 - Build artifacts: `target/`
@@ -42,6 +44,7 @@ This directory contains CI/CD workflows for automated testing, benchmarking, and
 **Triggers**: Push to main, Pull Requests, Manual dispatch
 
 **Jobs**:
+
 - **benchmark**: Run Criterion benchmarks
   - Executes all resolver benchmarks
   - Stores results for historical tracking
@@ -54,6 +57,7 @@ This directory contains CI/CD workflows for automated testing, benchmarking, and
   - Helps identify performance regressions before merge
 
 **Benchmark Tracking**:
+
 - Uses `benchmark-action/github-action-benchmark` for trend analysis
 - Auto-pushes results to `gh-pages` branch (requires setup)
 - Alerts via commit comments on regression
@@ -67,6 +71,7 @@ This directory contains CI/CD workflows for automated testing, benchmarking, and
 **Triggers**: Daily at 2 AM UTC, Manual dispatch
 
 **Jobs**:
+
 - **comprehensive-tests**: Full test suite
   - All unit tests with all features
   - All integration tests
@@ -157,11 +162,13 @@ All workflows use GitHub Actions cache to speed up builds:
 ## Performance
 
 **Typical CI Run Times**:
+
 - PR CI check: ~10 minutes (cached)
 - Full nightly: ~45 minutes
 - Benchmark comparison: ~15 minutes
 
 **Cache Hit Rates**:
+
 - Cold start (no cache): ~8-10 minutes compile time
 - Warm cache: ~2-3 minutes compile time
 - Cache invalidation: Only on `Cargo.lock` changes
@@ -171,6 +178,7 @@ All workflows use GitHub Actions cache to speed up builds:
 ### Enable Debug Logging
 
 Add to workflow environment:
+
 ```yaml
 env:
   RUST_LOG: debug
@@ -199,6 +207,7 @@ act -P ubuntu-latest=ghcr.io/catthehacker/ubuntu:rust-latest
 ### Updating Workflow Actions
 
 Check for action updates quarterly:
+
 - `actions/checkout@v4` → [latest](https://github.com/actions/checkout/releases)
 - `actions/cache@v4` → [latest](https://github.com/actions/cache/releases)
 - `dtolnay/rust-toolchain@stable` → [latest](https://github.com/dtolnay/rust-toolchain)
@@ -214,15 +223,19 @@ Check for action updates quarterly:
 ### Common Issues
 
 **Issue**: Tests timeout
+
 - **Solution**: Increase timeout in workflow or reduce test scope
 
 **Issue**: Cache misses
+
 - **Solution**: Check if `Cargo.lock` is committed, review cache keys
 
 **Issue**: PostgreSQL connection failures
+
 - **Solution**: Verify service health checks, ensure ports are correct
 
 **Issue**: Benchmark comparison fails
+
 - **Solution**: Ensure both branches compile, check for breaking changes
 
 ## Related Documentation

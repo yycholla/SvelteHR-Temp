@@ -2,16 +2,16 @@
 // Feature: 021-i-have-setup (Comprehensive Audit Logging)
 // Tests that multiple operations with same batch_id are properly tracked
 
-import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
-	createTestDatabase,
+	type TestDatabase,
 	cleanupTestDatabase,
-	queryActivityLogsByBatch,
-	generateTestEmployee,
 	cleanupTestRecords,
-	initializeTestPool,
 	closeTestPool,
-	type TestDatabase
+	createTestDatabase,
+	generateTestEmployee,
+	initializeTestPool,
+	queryActivityLogsByBatch
 } from '../../utils/db-trigger-helpers';
 import { nanoid } from 'nanoid';
 
@@ -67,7 +67,13 @@ describe('Batch operation tracking (FR-020)', () => {
         INSERT INTO employees (id, first_name, last_name, email, department_id)
         VALUES ($1, $2, $3, $4, $5)
       `,
-				[employee.id, employee.first_name, employee.last_name, employee.email, employee.department_id]
+				[
+					employee.id,
+					employee.first_name,
+					employee.last_name,
+					employee.email,
+					employee.department_id
+				]
 			);
 		}
 
@@ -183,10 +189,9 @@ describe('Batch operation tracking (FR-020)', () => {
 			[employeeId, 'Standalone', 'User', 'standalone@test.com', departmentId]
 		);
 
-		const allLogs = await db.query(
-			`SELECT * FROM activity_logs WHERE resource_id = $1`,
-			[employeeId]
-		);
+		const allLogs = await db.query(`SELECT * FROM activity_logs WHERE resource_id = $1`, [
+			employeeId
+		]);
 
 		expect(allLogs.rows).toHaveLength(1);
 		expect(allLogs.rows[0].batch_id).toBeNull();

@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Debug Settings Store (Svelte 5 Runes)
  * Manages developer debug information display settings (system_admin only)
@@ -42,7 +43,7 @@ class DebugSettingsStore {
 				this.log_level = settings.log_level;
 			}
 		} catch (error) {
-			console.error('[DEBUG SETTINGS] Failed to load:', error);
+			logger.error('Catch failed', error as Error);
 		}
 	}
 

@@ -1,9 +1,9 @@
 <script lang="ts">
 	// Test wrapper component for PermissionGuard testing
 	import PermissionGuard from './PermissionGuard.svelte';
-	import type { PermissionString, PermissionContext } from '$lib/types/permissions';
+	import type { PermissionContext, PermissionString } from '$lib/types/permissions';
 
-	let {
+	const {
 		permissions,
 		requires,
 		requireAll = false,
@@ -26,13 +26,22 @@
 	} = $props();
 </script>
 
-<PermissionGuard {permissions} {requires} {requireAll} {inverse} {as} class={className} {...restProps}>
-	{#snippet children()}
-		<span data-testid="children">{childrenText}</span>
-	{/snippet}
-	{#if fallbackText}
-		{#snippet fallback()}
-			<span data-testid="fallback">{fallbackText}</span>
-		{/snippet}
-	{/if}
-</PermissionGuard>
+{#snippet childrenSnippet()}
+	<span data-testid="children">{childrenText}</span>
+{/snippet}
+
+{#snippet fallbackSnippet()}
+	<span data-testid="fallback">{fallbackText}</span>
+{/snippet}
+
+<PermissionGuard
+	{permissions}
+	{requires}
+	{requireAll}
+	{inverse}
+	{as}
+	class={className}
+	children={childrenSnippet}
+	fallback={fallbackText ? fallbackSnippet : undefined}
+	{...restProps}
+/>

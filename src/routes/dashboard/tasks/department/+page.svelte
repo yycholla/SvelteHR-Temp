@@ -7,17 +7,31 @@
 	import TaskList from '$lib/components/tasks/TaskList.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import type { TaskPriority, TaskStatus } from '$lib/graphql/types';
+	import type { TaskPriority } from '$lib/graphql/types';
+	import type { TaskStatus } from '$lib/types/task';
 	import { getTaskStatistics } from '$lib/utils/tasks';
 
 	const { data }: { data: PageData } = $props();
 
-	// Derived statistics
-	const statistics = $derived(getTaskStatistics(data.allTasks));
+	// Derived statistics - compute from allTasks with proper calculations
+	const statistics = $derived.by(() => {
+		const baseStats = getTaskStatistics(data.allTasks);
+		const priorityCounts = {
+			urgent: data.allTasks.filter((t) => t.priority === 'urgent').length,
+			high: data.allTasks.filter((t) => t.priority === 'high').length
+		};
+		// Add 'pending' as alias for 'todo' since UI expects 'pending'
+		return {
+			...baseStats,
+			pending: baseStats.todo,
+			urgent: priorityCounts.urgent,
+			high: priorityCounts.high
+		};
+	});
 
 	// Filter state
-	let selectedStatus = $state<TaskStatus | 'all'>(data.filters.status || 'all');
-	let selectedPriority = $state<TaskPriority | 'all'>(data.filters.priority || 'all');
+	let selectedStatus = $state<string>(data.filters.status || 'all');
+	let selectedPriority = $state<string>(data.filters.priority || 'all');
 	let selectedSort = $state(data.filters.sortBy || 'priority');
 	let selectedDepartment = $state(data.filters.departmentId || '');
 
@@ -228,14 +242,9 @@
 	<div class="mb-6">
 		<TaskList
 			tasks={data.tasks}
-			onTaskClick={handleTaskClick}
+			showFilters={false}
+			onTaskClick={(taskId) => handleTaskClick({ id: taskId })}
 			onStatusChange={handleStatusChange}
-			sortBy={selectedSort}
-			filterStatus={selectedStatus}
-			filterPriority={selectedPriority}
-			compact={false}
-			showStatistics={false}
-			emptyMessage="No department tasks found"
 		/>
 	</div>
 

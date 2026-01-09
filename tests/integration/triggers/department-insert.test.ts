@@ -3,16 +3,16 @@
 // Tests that INSERT operations on departments table create audit log entries
 // Pattern: Same as employee-insert.test.ts but for departments table
 
-import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
-	createTestDatabase,
+	type TestDatabase,
 	cleanupTestDatabase,
-	queryActivityLogs,
-	generateTestDepartment,
 	cleanupTestRecords,
-	initializeTestPool,
 	closeTestPool,
-	type TestDatabase
+	createTestDatabase,
+	generateTestDepartment,
+	initializeTestPool,
+	queryActivityLogs
 } from '../../utils/db-trigger-helpers';
 import { nanoid } from 'nanoid';
 

@@ -3,14 +3,25 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import { logger } from '$lib/utils/logger';
+import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, url, cookies } = event;
+	const { url, cookies } = event;
 
 	// Check authentication and permissions (managers and above)
-	PermissionChecks.management(event);
+	requireAuth(event, {
+		requiredPermissions: [
+			'management:read',
+			'management:read:self',
+			'management:read:team',
+			'management:read:all'
+		]
+	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	try {
 		// Check backend services are ready before proceeding
@@ -18,7 +29,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// If backend is not ready, return error state but don't crash
 		if (!backendReady) {
-			console.warn('Backend not ready for management dashboard');
+			logger.warn('Backend not ready for management dashboard');
 			return {
 				user: {
 					id: locals.user.id,
@@ -150,7 +161,7 @@ export const load: PageServerLoad = async (event) => {
 		// Determine user's managed department
 		let managedDepartmentId: number | null = null;
 		if (!isAdmin && isManager) {
-			const userDept = departments.find((d) => d.managerId === locals.user.id);
+			const userDept = departments.find((d: any) => d.managerId === locals.user.id);
 			managedDepartmentId = userDept?.id || null;
 		}
 
@@ -160,7 +171,9 @@ export const load: PageServerLoad = async (event) => {
 		// Filter employees for managers (admins see all)
 		const filteredUsers = isAdmin
 			? users
-			: users.filter((u) => (managedDepartmentId ? u.departmentId === managedDepartmentId : false));
+			: users.filter((u: any) =>
+					managedDepartmentId ? u.departmentId === managedDepartmentId : false
+				);
 
 		// Generate mock dashboard analytics from real user data
 		const dashboardAnalytics = {
@@ -191,7 +204,7 @@ export const load: PageServerLoad = async (event) => {
 			},
 			teamStats: {
 				totalEmployees: filteredUsers.length,
-				activeEmployees: filteredUsers.filter((u) => u.isActive).length,
+				activeEmployees: filteredUsers.filter((u: any) => u.isActive).length,
 				departmentCount: isAdmin ? departments.length : 1,
 				avgTenure: '2.5 years'
 			}
@@ -200,10 +213,24 @@ export const load: PageServerLoad = async (event) => {
 		// Generate recent activities based on team size
 		const recentActivities = Array.from({ length: Math.min(8, filteredUsers.length) }, (_, i) => {
 			const user = filteredUsers[Math.floor(Math.random() * filteredUsers.length)];
-			const types = ['leave_request', 'performance_review', 'goal_update', 'report_generated'];
+			const types = [
+				'leave_request',
+				'performance_review',
+				'goal_update',
+				'report_generated'
+			] as const;
 			const type = types[i % types.length];
 
-			const activities = {
+			const activities: Record<
+				(typeof types)[number],
+				{
+					title: string;
+					description: string;
+					icon: string;
+					color: string;
+					href: string;
+				}
+			> = {
 				leave_request: {
 					title: `${user?.firstName || 'Employee'} ${user?.lastName || ''} requested vacation leave`,
 					description: `${new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toLocaleDateString()} - 5 days`,
@@ -392,7 +419,7 @@ export const load: PageServerLoad = async (event) => {
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('Error loading management dashboard:', err);
+		logger.error('Error loading management dashboard:', err as Error);
 
 		// Extract search parameters for error response
 		const selectedPeriod = url.searchParams.get('period') || 'this-month';

@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 // Document preview view endpoint (Feature 024)
 // GET /api/documents/[id]/preview/view - Serve document content for preview
 // This endpoint serves the document content inline for preview in the browser
@@ -9,7 +10,7 @@ import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { createUrqlClient } from '$lib/graphql/client';
 import { gql } from '@urql/core';
-import { transaction, setJWTClaims } from '$lib/server/db';
+import { setJWTClaims, transaction } from '$lib/server/db';
 import { decryptFileFromGraphQL, getDecryptionKey } from '$lib/server/encryption';
 
 const GET_DOCUMENT_FOR_PREVIEW_QUERY = gql`
@@ -64,7 +65,7 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 			.toPromise();
 
 		if (docResult.error) {
-			console.error('GraphQL error fetching document:', docResult.error);
+			logger.error('GraphQL error fetching document:', docResult.error);
 			error(500, { message: 'Failed to fetch document metadata' });
 		}
 
@@ -84,10 +85,10 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 		// TODO: Check document assignments via GraphQL when available
 
 		if (!canAccess) {
-			console.log(`Preview access denied for user ${userId} to document ${documentId}`);
+			logger.info(`Preview access denied for user ${userId} to document ${documentId}`);
 			error(403, {
-            				message: 'Access denied. You do not have permission to preview this document.'
-            			});
+				message: 'Access denied. You do not have permission to preview this document.'
+			});
 		}
 
 		// Step 4: Retrieve and decrypt file via GraphQL
@@ -107,13 +108,9 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 			});
 
 			// Decrypt file using GraphQL data
-			decryptedData = decryptFileFromGraphQL(
-				storage.encryptedData,
-				storage.iv,
-				encryptionKey
-			);
+			decryptedData = decryptFileFromGraphQL(storage.encryptedData, storage.iv, encryptionKey);
 
-			console.log(
+			logger.info(
 				`Encrypted document ${documentId} decrypted for preview - ${decryptedData.length} bytes`
 			);
 		} else {
@@ -126,22 +123,21 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 		await urqlClient
 			.mutation(CREATE_ACCESS_LOG_MUTATION, {
 				input: {
-					documentId: documentId,
-					userId: userId,
+					documentId,
+					userId,
 					accessType: 'preview',
-					ipAddress:
-						url.searchParams.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown',
+					ipAddress: url.searchParams.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown',
 					userAgent: url.searchParams.get('user-agent') || 'unknown'
 				}
 			})
 			.toPromise();
 
-		console.log(
+		logger.info(
 			`Document ${documentId} previewed by user ${userId} - decrypted ${decryptedData.length} bytes`
 		);
 
 		// Step 6: Serve decrypted file content inline (not as download)
-		return new Response(decryptedData, {
+		return new Response(new Uint8Array(decryptedData), {
 			status: 200,
 			headers: {
 				'Content-Type': document.mimeType,
@@ -155,9 +151,8 @@ export const GET: RequestHandler = async ({ params, locals, url, cookies, fetch 
 				'Content-Security-Policy': "frame-ancestors 'self'"
 			}
 		});
-
 	} catch (err) {
-		console.error('Document preview view error:', err);
+		logger.error('Document preview view error:', err as Error);
 
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err;

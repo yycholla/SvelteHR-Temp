@@ -76,10 +76,7 @@ Edit `schema-validator.config.json`:
   "validation": {
     "strict": true,
     "allowComputedFields": true,
-    "computedFields": [
-      "User.fullName",
-      "Employee.displayName"
-    ]
+    "computedFields": ["User.fullName", "Employee.displayName"]
   },
   "output": {
     "format": "terminal",
@@ -391,22 +388,22 @@ Override default type mappings:
 
 ### Default Type Mappings
 
-| GraphQL Type | PostgreSQL Types | Rust Type (async-graphql) | Notes |
-|--------------|------------------|---------------------------|-------|
-| `String` | `text`, `varchar`, `char` | `String` | Standard text types |
-| `String` | `uuid` | `Uuid` | UUID as GraphQL string |
-| `Int` | `int4`, `int2`, `integer`, `smallint` | `i32` | 32-bit integers |
-| `Int` | `int8`, `bigint` | `i64` | ⚠️ BigInt may overflow |
-| `Float` | `float4`, `float8`, `real`, `double precision` | `f64` | Floating point |
-| `Float` | `numeric`, `decimal` | `BigDecimal` | ⚠️ Precision loss possible |
-| `Boolean` | `bool`, `boolean` | `bool` | Boolean values |
-| `ID` | `uuid`, `int4`, `int8`, `text` | `ID` | Flexible ID type |
-| `DateTime` | `timestamp`, `timestamptz` | `DateTime<Utc>` | Requires DateTime scalar |
-| `Date` | `date` | `NaiveDate` | Requires Date scalar |
-| `Time` | `time`, `timetz` | `NaiveTime` | Requires Time scalar |
-| `JSON` | `json`, `jsonb` | `serde_json::Value` | Requires JSON scalar |
-| `[String]` | `text[]`, `varchar[]` | `Vec<String>` | Array types |
-| `[Int]` | `int4[]`, `integer[]` | `Vec<i32>` | Array types |
+| GraphQL Type | PostgreSQL Types                               | Rust Type (async-graphql) | Notes                      |
+| ------------ | ---------------------------------------------- | ------------------------- | -------------------------- |
+| `String`     | `text`, `varchar`, `char`                      | `String`                  | Standard text types        |
+| `String`     | `uuid`                                         | `Uuid`                    | UUID as GraphQL string     |
+| `Int`        | `int4`, `int2`, `integer`, `smallint`          | `i32`                     | 32-bit integers            |
+| `Int`        | `int8`, `bigint`                               | `i64`                     | ⚠️ BigInt may overflow     |
+| `Float`      | `float4`, `float8`, `real`, `double precision` | `f64`                     | Floating point             |
+| `Float`      | `numeric`, `decimal`                           | `BigDecimal`              | ⚠️ Precision loss possible |
+| `Boolean`    | `bool`, `boolean`                              | `bool`                    | Boolean values             |
+| `ID`         | `uuid`, `int4`, `int8`, `text`                 | `ID`                      | Flexible ID type           |
+| `DateTime`   | `timestamp`, `timestamptz`                     | `DateTime<Utc>`           | Requires DateTime scalar   |
+| `Date`       | `date`                                         | `NaiveDate`               | Requires Date scalar       |
+| `Time`       | `time`, `timetz`                               | `NaiveTime`               | Requires Time scalar       |
+| `JSON`       | `json`, `jsonb`                                | `serde_json::Value`       | Requires JSON scalar       |
+| `[String]`   | `text[]`, `varchar[]`                          | `Vec<String>`             | Array types                |
+| `[Int]`      | `int4[]`, `integer[]`                          | `Vec<i32>`                | Array types                |
 
 ### Custom Scalars
 
@@ -428,20 +425,25 @@ If your schema uses custom scalar types, configure them:
 The validator reports the following alignment statuses:
 
 ### ✅ Aligned
+
 All three layers (GraphQL, Database, API) are in sync.
 
 ### ❌ Missing Database Column
+
 Field exists in GraphQL query but no corresponding database column found.
 
 **Suggested Fix**: SQL migration
+
 ```sql
 ALTER TABLE users ADD COLUMN email text NOT NULL;
 ```
 
 ### ❌ Missing API Resolver
+
 Database column exists but not exposed by the API.
 
 **Suggested Fix**: Add Rust resolver
+
 ```rust
 #[graphql(name = "email")]
 async fn email(&self) -> &str {
@@ -450,14 +452,17 @@ async fn email(&self) -> &str {
 ```
 
 ### ❌ Type Mismatch
+
 Types are incompatible across layers (e.g., GraphQL `String` vs DB `int4`).
 
 **Suggested Fix**: Update GraphQL type or database column type.
 
 ### ⚠️ Nullability Mismatch
+
 Nullability constraints don't match (e.g., GraphQL requires non-null but DB allows null).
 
 **Suggested Fix**:
+
 ```sql
 ALTER TABLE users ALTER COLUMN email SET NOT NULL;
 ```
@@ -474,11 +479,7 @@ Computed fields are derived values that don't map directly to database columns.
 {
   "validation": {
     "allowComputedFields": true,
-    "computedFields": [
-      "User.fullName",
-      "Employee.displayName",
-      "Order.total"
-    ]
+    "computedFields": ["User.fullName", "Employee.displayName", "Order.total"]
   }
 }
 ```
@@ -583,6 +584,7 @@ The validator uses intelligent caching to speed up validation:
 ### Cache Invalidation
 
 Cache is automatically invalidated when:
+
 - Database schema changes (detected via introspection hash)
 - API schema changes (detected via schema hash)
 - Source files are modified (detected via file modification time)
@@ -607,6 +609,7 @@ schema-validator cache clear --all
 **Problem**: "Failed to connect to database"
 
 **Solutions**:
+
 1. Verify `connectionString` in config
 2. Check database is running and accessible
 3. Verify credentials and permissions
@@ -615,6 +618,7 @@ schema-validator cache clear --all
 **Problem**: "GraphQL introspection failed"
 
 **Solutions**:
+
 1. Verify `api.endpoint` URL is correct
 2. Check API server is running
 3. Verify authentication headers
@@ -625,6 +629,7 @@ schema-validator cache clear --all
 **Problem**: "Type mismatch: GraphQL String vs DB int4"
 
 **Solutions**:
+
 1. Update GraphQL query to use `Int` type
 2. Change database column type with migration
 3. Add custom type mapping in config
@@ -634,6 +639,7 @@ schema-validator cache clear --all
 **Problem**: "GraphQL requires non-null but DB allows null"
 
 **Solutions**:
+
 1. Make database column NOT NULL:
    ```sql
    ALTER TABLE users ALTER COLUMN email SET NOT NULL;
@@ -645,6 +651,7 @@ schema-validator cache clear --all
 **Problem**: Validation is slow
 
 **Solutions**:
+
 1. Enable caching: `"introspectionCache": true`
 2. Increase cache TTL: `"cacheTTL": 7200`
 3. Use `check` command instead of `validate` for quick checks
@@ -655,6 +662,7 @@ schema-validator cache clear --all
 **Problem**: Computed fields flagged as missing
 
 **Solutions**:
+
 1. Add to computed fields list:
    ```bash
    schema-validator compute add User.fullName \
@@ -770,6 +778,7 @@ MIT License - see LICENSE file for details
 ## Acknowledgments
 
 Built with:
+
 - [Commander.js](https://github.com/tj/commander.js) - CLI framework
 - [GraphQL.js](https://github.com/graphql/graphql-js) - GraphQL parser
 - [Zod](https://github.com/colinhacks/zod) - Schema validation

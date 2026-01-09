@@ -7,7 +7,7 @@
  * MUST FAIL until iCal export is implemented.
  */
 
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Export Calendar to iCal', () => {
 	test.beforeEach(async ({ page }) => {
@@ -57,7 +57,9 @@ test.describe('Export Calendar to iCal', () => {
 		const exportModal = page.locator('[role="dialog"]:has-text("Export Calendar")');
 
 		// Select "Current month"
-		const currentMonthRadio = exportModal.locator('input[name="exportScope"][value="current-month"]');
+		const currentMonthRadio = exportModal.locator(
+			'input[name="exportScope"][value="current-month"]'
+		);
 		await currentMonthRadio.check();
 
 		// Download
@@ -101,7 +103,9 @@ test.describe('Export Calendar to iCal', () => {
 		const dialog = page.locator('[role="dialog"]').first();
 
 		// Find export button in dialog
-		const exportButton = dialog.locator('button:has-text("Export"), button[aria-label="Export event"]');
+		const exportButton = dialog.locator(
+			'button:has-text("Export"), button[aria-label="Export event"]'
+		);
 
 		if ((await exportButton.count()) > 0) {
 			const downloadPromise = page.waitForEvent('download');

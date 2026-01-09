@@ -5,6 +5,24 @@ import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { PermissionChecks } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
+import { logger } from '$lib/utils/logger';
+
+// Type definitions for GraphQL query responses
+interface EmployeeGoalFromGraphQL {
+	id: string;
+	title: string;
+	description: string | null;
+	status: string;
+	progressPercentage: number | null;
+	progress?: number;
+	targetDate: string | null;
+	createdAt: string;
+	updatedAt: string;
+	category?: { id: string; name: string; color: string };
+	priority?: string;
+	keyResults?: Array<{ id: string; title: string; progress: number }>;
+	assignedBy?: { id: string; displayName: string; email: string } | null;
+}
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, params, url, cookies } = event;
@@ -19,8 +37,10 @@ export const load: PageServerLoad = async (event) => {
 
 	// If not viewing self, check for team or all scope
 	if (!isViewingSelf) {
-		const hasTeamScope = userPermissions.includes('performance:read:team') || userPermissions.includes('performance:read:all');
-		if (!hasTeamScope && !userPermissions.includes('*') || userPermissions.includes('*:*')) {
+		const hasTeamScope =
+			userPermissions.includes('performance:read:team') ||
+			userPermissions.includes('performance:read:all');
+		if ((!hasTeamScope && !userPermissions.includes('*')) || userPermissions.includes('*:*')) {
 			error(403, 'Access denied: You can only view your own performance data');
 		}
 
@@ -74,6 +94,11 @@ export const load: PageServerLoad = async (event) => {
 					targetDate
 					createdAt
 					updatedAt
+					assignedBy {
+						id
+						displayName
+						email
+					}
 				}
 			}
 		`;
@@ -83,13 +108,17 @@ export const load: PageServerLoad = async (event) => {
 			limit: 100
 		});
 
-		const goals = goalsResult.data?.employeeGoals || [];
+		const goals: EmployeeGoalFromGraphQL[] = goalsResult.data?.employeeGoals || [];
 		// NOTE: Rust backend doesn't provide count query, use array length
 		const goalsCount = goals.length;
 
 		// Calculate date ranges for current quarter
 		const currentDate = new Date();
-		const quarterStart = new Date(currentDate.getFullYear(), Math.floor(currentDate.getMonth() / 3) * 3, 1);
+		const quarterStart = new Date(
+			currentDate.getFullYear(),
+			Math.floor(currentDate.getMonth() / 3) * 3,
+			1
+		);
 		const quarterEnd = new Date(quarterStart);
 		quarterEnd.setMonth(quarterEnd.getMonth() + 3);
 		quarterEnd.setDate(0); // Last day of quarter
@@ -103,22 +132,55 @@ export const load: PageServerLoad = async (event) => {
 			{ id: '5', name: 'Team Collaboration', color: 'pink' }
 		];
 
+		// Determine if user can manage goals (based on permissions)
+		const canViewOthers =
+			userPermissions.includes('performance:read:team') ||
+			userPermissions.includes('performance:read:all') ||
+			userPermissions.includes('*');
+
 		// Calculate goal statistics from real data
 		const goalStats = {
 			total: goals.length,
-			completed: goals.filter(g => g.status === 'completed').length,
-			inProgress: goals.filter(g => g.status === 'in_progress').length,
-			atRisk: goals.filter(g => g.status === 'at_risk').length,
-			notStarted: goals.filter(g => g.status === 'not_started').length,
-			blocked: goals.filter(g => g.status === 'blocked').length,
-			averageProgress: goals.length > 0 ? Math.round(goals.reduce((sum, g) => sum + (g.progressPercentage || 0), 0) / goals.length) : 0,
-			completionRate: goals.length > 0 ? Math.round((goals.filter(g => g.status === 'completed').length / goals.length) * 100) : 0
+			completed: goals.filter((g: EmployeeGoalFromGraphQL) => g.status === 'completed').length,
+			inProgress: goals.filter((g: EmployeeGoalFromGraphQL) => g.status === 'in_progress').length,
+			atRisk: goals.filter((g: EmployeeGoalFromGraphQL) => g.status === 'at_risk').length,
+			notStarted: goals.filter((g: EmployeeGoalFromGraphQL) => g.status === 'not_started').length,
+			blocked: goals.filter((g: EmployeeGoalFromGraphQL) => g.status === 'blocked').length,
+			averageProgress:
+				goals.length > 0
+					? Math.round(
+							goals.reduce(
+								(sum: number, g: EmployeeGoalFromGraphQL) => sum + (g.progressPercentage || 0),
+								0
+							) / goals.length
+						)
+					: 0,
+			completionRate:
+				goals.length > 0
+					? Math.round(
+							(goals.filter((g: EmployeeGoalFromGraphQL) => g.status === 'completed').length /
+								goals.length) *
+								100
+						)
+					: 0
 		};
+
+		// Enrich goals with category, priority, progress, and keyResults
+		const enrichedGoals = goals.map((goal: EmployeeGoalFromGraphQL, index: number) => ({
+			...goal,
+			category: goal.category || goalCategories[index % goalCategories.length],
+			priority: goal.priority || 'medium',
+			progress: goal.progress ?? goal.progressPercentage ?? 0,
+			keyResults: goal.keyResults || []
+		}));
 
 		return {
 			user,
 			userId,
-			goals: goals.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+			goals: enrichedGoals.sort(
+				(a: EmployeeGoalFromGraphQL, b: EmployeeGoalFromGraphQL) =>
+					new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+			),
 			goalCategories,
 			goalStats,
 			currentQuarter: {
@@ -131,9 +193,8 @@ export const load: PageServerLoad = async (event) => {
 			permissions: locals.permissions || [],
 			loadedAt: new Date().toISOString()
 		};
-
 	} catch (err) {
-		console.error('Error loading user performance data:', err);
+		logger.error('Error loading user performance data:', err as Error);
 
 		// Return error state instead of throwing to prevent page crash
 		return {

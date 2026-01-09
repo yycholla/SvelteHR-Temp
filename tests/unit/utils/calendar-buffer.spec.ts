@@ -6,13 +6,13 @@
  * MUST FAIL until implementation in src/lib/utils/calendar-buffer.ts
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
 	calculate3MonthBuffer,
 	getAdjacentMonth,
-	shouldPrefetch,
+	normalizeToMonthEnd,
 	normalizeToMonthStart,
-	normalizeToMonthEnd
+	shouldPrefetch
 } from '$lib/utils/calendar-buffer';
 
 describe('Calendar Buffer Calculation', () => {

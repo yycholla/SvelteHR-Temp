@@ -8,6 +8,7 @@
 	 * Includes draft auto-save functionality with 3-second debounce
 	 */
 	import { createEventDispatcher } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -15,14 +16,14 @@
 	import { Label } from '$lib/components/ui/label';
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Save, FileText, Calendar, Target, AlertCircle } from '@lucide/svelte';
+	import { AlertCircle, Calendar, FileText, Save, Target } from '@lucide/svelte';
 	import ReviewTypeDropdown from './ReviewTypeDropdown.svelte';
 	import GoalAssociationTabs from './GoalAssociationTabs.svelte';
 	import {
-		CreateReviewSchema,
-		type CreateReviewInput,
-		type ReviewType,
 		type CreateGoalInput,
+		type CreateReviewInput,
+		CreateReviewSchema,
+		type ReviewType,
 		type ReviewTypeMetadata
 	} from '$lib/schemas/reviews';
 	import { tick } from 'svelte';
@@ -90,7 +91,7 @@
 		const result = CreateReviewSchema.safeParse(formData);
 		if (!result.success) {
 			const errors: Record<string, string> = {};
-			result.error?.errors?.forEach((err) => {
+			result.error?.issues?.forEach((err) => {
 				if (err.path[0]) {
 					errors[err.path[0] as string] = err.message;
 				}
@@ -146,7 +147,7 @@
 			// Simulate save delay
 			await tick();
 		} catch (error) {
-			console.error('Failed to save draft:', error);
+			logger.error('Catch failed', error as Error);
 		} finally {
 			isDraftSaving = false;
 		}
@@ -190,7 +191,8 @@
 		<Dialog.Header>
 			<Dialog.Title>Create Performance Review</Dialog.Title>
 			<Dialog.Description>
-				Create a new performance review for {employee.displayName || employee.firstName + ' ' + employee.lastName}
+				Create a new performance review for {employee.displayName ||
+					employee.firstName + ' ' + employee.lastName}
 			</Dialog.Description>
 		</Dialog.Header>
 
@@ -301,7 +303,9 @@
 						<div class="flex items-start gap-3">
 							<AlertCircle class="w-5 h-5 text-destructive mt-0.5" />
 							<div>
-								<h4 class="font-medium text-sm text-destructive mb-2">Please fix the following errors:</h4>
+								<h4 class="font-medium text-sm text-destructive mb-2">
+									Please fix the following errors:
+								</h4>
 								<ul class="list-disc list-inside space-y-1 text-sm text-muted-foreground">
 									{#each Object.entries(formErrors) as [field, error]}
 										<li>{error}</li>
@@ -318,7 +322,9 @@
 			<div class="flex-1">
 				{#if isDraftSaving}
 					<div class="flex items-center gap-2 text-sm text-muted-foreground">
-						<div class="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+						<div
+							class="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"
+						></div>
 						<span>Saving draft...</span>
 					</div>
 				{:else if lastDraftSaveTime}
@@ -330,9 +336,7 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				<Button variant="outline" onclick={handleCancel} disabled={loading}>
-					Cancel
-				</Button>
+				<Button variant="outline" onclick={handleCancel} disabled={loading}>Cancel</Button>
 				<Button variant="secondary" onclick={handleSaveAsDraft} disabled={loading || !isValid}>
 					<Save class="w-4 h-4 mr-2" />
 					Save as Draft

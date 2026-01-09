@@ -1,3 +1,4 @@
+import { logger } from '$lib/utils/logger';
 /**
  * Activity Log Detail Page - Server
  * Feature: 020-we-need-to (Comprehensive Audit Logging with Rollback)
@@ -12,12 +13,15 @@ import type { PageServerLoad } from './$types';
 import { requireAuth } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, params, url, cookies } = event;
+	const { params, url, cookies } = event;
 
 	// Check authentication and permissions
 	requireAuth(event, {
 		requiredPermissions: ['audit:read']
 	});
+
+	// After permission check, re-destructure locals with guaranteed user
+	const { locals } = event;
 
 	const logId = params.id;
 
@@ -137,7 +141,7 @@ export const load: PageServerLoad = async (event) => {
 							new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
 					);
 			} catch (timelineError) {
-				console.error('[ActivityLogDetail] Error loading timeline:', timelineError);
+				logger.error('[ActivityLogDetail] Error loading timeline', timelineError as Error);
 				// Continue without timeline if query fails
 			}
 		}
@@ -156,6 +160,9 @@ export const load: PageServerLoad = async (event) => {
 			transformedLog.after_snapshot
 		);
 
+		// Get user role from locals
+		const userRole = locals.user.role || 'employee';
+
 		return {
 			log: transformedLog,
 			timelineLogs,
@@ -173,7 +180,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 		};
 	} catch (err) {
-		console.error('[ActivityLogDetail] Error loading activity log:', err);
+		logger.error('[ActivityLogDetail] Error loading activity log', err as Error);
 
 		// Handle specific error cases
 		if (err && typeof err === 'object' && 'message' in err) {

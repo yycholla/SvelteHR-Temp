@@ -37,6 +37,7 @@ npm run db:verify
 ```
 
 This will:
+
 - Load the baseline from `baseline-schema.json`
 - Capture the current database schema
 - Compare them and report differences
@@ -62,6 +63,7 @@ Update the baseline snapshot when:
 **Critical:** All developers must use the SAME baseline snapshot. This is why `baseline-schema.json` is committed to git.
 
 If you pull changes that include a new baseline:
+
 ```bash
 git pull
 npm run db:verify  # Check if your local DB matches the new baseline
@@ -80,6 +82,7 @@ schema-snapshots/
 ### "Baseline schema snapshot not found!"
 
 **Solution:** Create the baseline:
+
 ```bash
 npm run db:snapshot
 git add schema-snapshots/baseline-schema.json
@@ -91,6 +94,7 @@ git commit -m "feat: add baseline schema snapshot"
 **Cause:** Your local database is out of sync with the new baseline.
 
 **Solution:** Apply missing migrations or rebuild your database:
+
 ```bash
 # Option 1: Apply migrations
 npm run db:migrate  # If you have this script
@@ -105,6 +109,7 @@ npm run db:init
 **Cause:** Baseline not committed to git or different branches.
 
 **Solution:** Ensure baseline is committed and pulled on all machines:
+
 ```bash
 git pull origin main
 npm run db:verify

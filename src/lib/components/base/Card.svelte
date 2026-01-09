@@ -1,5 +1,5 @@
 <script lang="ts">
-	let {
+	const {
 		padding = 'md',
 		shadow = 'sm',
 		rounded = 'md',
@@ -7,6 +7,7 @@
 		hoverable = false,
 		clickable = false,
 		onclick = undefined,
+		class: className = '',
 		children
 	}: {
 		padding?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
@@ -16,11 +17,12 @@
 		hoverable?: boolean;
 		clickable?: boolean;
 		onclick?: ((event: MouseEvent | KeyboardEvent) => void) | undefined;
+		class?: string;
 		children?: import('svelte').Snippet;
 	} = $props();
 
 	// Computed classes
-	let cardClasses = $derived(
+	const cardClasses = $derived(
 		[
 			'card',
 			`card--padding-${padding}`,
@@ -28,7 +30,8 @@
 			`card--rounded-${rounded}`,
 			border && 'card--border',
 			hoverable && 'card--hoverable',
-			clickable && 'card--clickable'
+			clickable && 'card--clickable',
+			className
 		]
 			.filter(Boolean)
 			.join(' ')
@@ -64,5 +67,3 @@
 		{@render children?.()}
 	</div>
 {/if}
-
-

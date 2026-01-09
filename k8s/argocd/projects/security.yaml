@@ -26,7 +26,7 @@ spec:
   # Cluster-scoped resources (External Secrets needs CRDs, webhooks, etc.)
   clusterResourceWhitelist:
     - group: '*'
-      kind: '*'  # Allow all cluster resources for operators
+      kind: '*' # Allow all cluster resources for operators
 
   # Namespace-scoped resources
   namespaceResourceWhitelist:

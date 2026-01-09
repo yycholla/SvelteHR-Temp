@@ -8,10 +8,11 @@
  -->
 
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Clock, CheckSquare, XSquare, ChevronRight, AlertCircle } from '@lucide/svelte';
+	import { CheckSquare, ChevronRight, Clock } from '@lucide/svelte';
 
 	interface RollbackRequest {
 		id: string;
@@ -32,7 +33,7 @@
 		maxItems?: number;
 	}
 
-	let {
+	const {
 		requests = [],
 		statistics = { pendingCount: 0, approvedCount: 0, rejectedCount: 0 },
 		maxItems = 3
@@ -116,9 +117,9 @@
 			</div>
 		{:else}
 			<div class="space-y-2">
-				{#each displayRequests as request}
+				{#each displayRequests as request (request.id)}
 					<a
-						href="/dashboard/activities/rollback-requests"
+						href={resolve('/dashboard/activities/rollback-requests')}
 						class="block rounded-lg border p-3 transition-colors hover:bg-accent"
 					>
 						<div class="flex items-start justify-between gap-2">
@@ -162,7 +163,12 @@
 		<!-- Quick Actions (for pending requests) -->
 		{#if statistics.pendingCount > 0}
 			<div class="mt-4 flex gap-2">
-				<Button size="sm" variant="default" href="/dashboard/activities/rollback-requests" class="flex-1">
+				<Button
+					size="sm"
+					variant="default"
+					href="/dashboard/activities/rollback-requests"
+					class="flex-1"
+				>
 					<CheckSquare class="mr-2 h-4 w-4" />
 					Review Pending
 				</Button>

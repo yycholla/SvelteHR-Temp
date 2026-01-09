@@ -5,7 +5,7 @@ metadata:
   name: minio
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "2"  # After operators (used for backup storage)
+    argocd.argoproj.io/sync-wave: '2' # After operators (used for backup storage)
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -20,7 +20,7 @@ spec:
     # Source 2: Helm chart from MinIO official repo
     - repoURL: https://charts.min.io/
       chart: minio
-      targetRevision: 5.4.0  # Official MinIO chart
+      targetRevision: 5.4.0 # Official MinIO chart
       helm:
         releaseName: minio
         valueFiles:
@@ -38,13 +38,13 @@ spec:
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: backup-system  # Correct namespace
+    namespace: backup-system # Correct namespace
 
   syncPolicy:
     # Automated GitOps sync enabled
     automated:
-      prune: true  # Remove resources deleted from Git
-      selfHeal: true  # Auto-correct cluster drift
+      prune: true # Remove resources deleted from Git
+      selfHeal: true # Auto-correct cluster drift
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true

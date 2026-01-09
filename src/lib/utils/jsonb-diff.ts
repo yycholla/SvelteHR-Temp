@@ -80,10 +80,7 @@ export function detectConflicts(
 	}
 
 	// Get all unique field names from both states
-	const allFields = new Set([
-		...Object.keys(currentState),
-		...Object.keys(snapshotState)
-	]);
+	const allFields = new Set([...Object.keys(currentState), ...Object.keys(snapshotState)]);
 
 	// Compare each field
 	for (const field of allFields) {
@@ -218,17 +215,12 @@ function deepEqual(a: any, b: any): boolean {
  * @param fields Array of field names to include
  * @returns Filtered diff result
  */
-export function filterConflictsByFields(
-	diffResult: DiffResult,
-	fields: string[]
-): DiffResult {
+export function filterConflictsByFields(diffResult: DiffResult, fields: string[]): DiffResult {
 	const filteredConflicts = diffResult.conflicts.filter((conflict) =>
 		fields.includes(conflict.field)
 	);
 
-	const filteredFields = diffResult.conflictFields.filter((field) =>
-		fields.includes(field)
-	);
+	const filteredFields = diffResult.conflictFields.filter((field) => fields.includes(field));
 
 	return {
 		hasConflicts: filteredConflicts.length > 0,
@@ -245,9 +237,7 @@ export function filterConflictsByFields(
  * @param diffResult Diff result
  * @returns Map of conflict type to conflicts
  */
-export function groupConflictsByType(
-	diffResult: DiffResult
-): Map<string, ConflictDetail[]> {
+export function groupConflictsByType(diffResult: DiffResult): Map<string, ConflictDetail[]> {
 	const grouped = new Map<string, ConflictDetail[]>();
 
 	for (const conflict of diffResult.conflicts) {
@@ -287,9 +277,7 @@ export function formatConflictSummary(diffResult: DiffResult): string {
 			const currentValueStr = JSON.stringify(conflict.currentValue);
 			const targetValueStr = JSON.stringify(conflict.targetValue);
 
-			lines.push(
-				`  - ${conflict.field}: current=${currentValueStr}, target=${targetValueStr}`
-			);
+			lines.push(`  - ${conflict.field}: current=${currentValueStr}, target=${targetValueStr}`);
 		}
 	}
 
@@ -327,10 +315,7 @@ export function mergeStates(
  * @param fields Array of field names to check
  * @returns True if any specified field has conflicts
  */
-export function hasConflictsInFields(
-	diffResult: DiffResult,
-	fields: string[]
-): boolean {
+export function hasConflictsInFields(diffResult: DiffResult, fields: string[]): boolean {
 	return fields.some((field) => diffResult.conflictFields.includes(field));
 }
 
@@ -379,9 +364,8 @@ export function compareNestedField(
 			currentValue,
 			targetValue: snapshotValue,
 			snapshotValue,
-			conflictType: typeof currentValue !== typeof snapshotValue
-				? 'type_mismatch'
-				: 'value_mismatch'
+			conflictType:
+				typeof currentValue !== typeof snapshotValue ? 'type_mismatch' : 'value_mismatch'
 		};
 	}
 

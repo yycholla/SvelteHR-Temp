@@ -7,17 +7,35 @@
  * Following TDD methodology - these tests MUST FAIL until implementation exists.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi, type MockedFunction } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
+import { type MockedFunction, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import type { LoadEvent } from '@sveltejs/kit';
 import type {
-	GetEmployeesWithFilteringRequest,
 	DataRequest,
-	ErrorResponse
+	ErrorResponse,
+	GetEmployeesWithFilteringRequest
 } from '$lib/types/graphql-contracts';
-import type { RetryHandler } from '$lib/utils/retry-handler';
-import type { CacheInvalidator } from '$lib/utils/cache-management';
+
+// Mock RetryHandler interface for testing
+interface RetryHandler {
+	execute<T>(operation: () => Promise<T>, operationName?: string): Promise<T>;
+	scheduleRetry<T>(
+		operation: () => Promise<T>,
+		error: ErrorResponse,
+		operationName?: string
+	): Promise<T> | null;
+	cancel(): void;
+	reset(): void;
+	getState(): any;
+	updateConfig(updates: any): void;
+}
+
+// Mock CacheInvalidator interface for testing
+interface CacheInvalidator {
+	invalidate: ReturnType<typeof vi.fn>;
+	warmCache: ReturnType<typeof vi.fn>;
+}
 
 // Mock the employee page load function - MUST throw until implementation exists
 const mockEmployeePageLoad = vi.fn().mockImplementation(() => {
@@ -69,7 +87,7 @@ const mockEmployeeRetryHandler: Partial<RetryHandler> = {
 };
 
 // Mock cache invalidator
-const mockEmployeeCacheInvalidator: Partial<CacheInvalidator> = {
+const mockEmployeeCacheInvalidator: CacheInvalidator = {
 	invalidate: vi.fn(),
 	warmCache: vi.fn()
 };
@@ -95,7 +113,7 @@ describe('Employee Page Integration (T019)', () => {
 	describe('Page Load Integration', () => {
 		it('should integrate with GraphQL operations for employee data loading with filtering', async () => {
 			// Arrange - HR Manager with full permissions
-			const mockLoadEvent: Partial<LoadEvent> = {
+			const mockLoadEvent = {
 				params: {},
 				url: new URL(
 					'http://localhost:5173/employees?department=Engineering&status=active&page=1&limit=20'
@@ -107,14 +125,15 @@ describe('Employee Page Integration (T019)', () => {
 					user: { id: 'user-123', role: 'HR_Manager', departmentId: null },
 					permissions: ['employees:read', 'employees:write', 'employees:delete', 'salary:read']
 				}
-			};
+			} as unknown as LoadEvent;
 
 			const employeeRequest: GetEmployeesWithFilteringRequest = {
-				operation: 'GetEmployeesWithFiltering',
+				id: 'req-123',
+				operationName: 'GetEmployeesWithFiltering',
 				variables: {
 					filters: {
-						department: 'Engineering',
-						status: 'active'
+						departmentIds: ['Engineering'],
+						isActive: true
 					},
 					pagination: {
 						page: 1,
@@ -123,11 +142,23 @@ describe('Employee Page Integration (T019)', () => {
 					sorting: {
 						field: 'lastName',
 						direction: 'asc'
-					},
-					includeSalaryData: true // HR Manager can see salary data
+					}
 				},
+				userCredentials: {
+					id: 'session-123',
+					userId: 'user-123',
+					jwtToken: 'hr-manager-token',
+					permissions: ['employees:read', 'employees:write', 'employees:delete', 'salary:read'],
+					roles: ['HR_Manager'],
+					isAuthenticated: true,
+					expiresAt: new Date(Date.now() + 3600000),
+					lastActivity: new Date()
+				},
+				status: 'pending',
+				retryAttempts: 0,
+				createdAt: new Date(),
+				completedAt: null,
 				timeoutMs: 5000,
-				maxRetries: 3,
 				cachePolicy: 'cache-first',
 				cacheTtlMinutes: 15 // Employee data cached for 15 minutes
 			};
@@ -140,12 +171,12 @@ describe('Employee Page Integration (T019)', () => {
 			// Verify integration contract requirements
 			expect(mockGetEmployeesWithFiltering).not.toHaveBeenCalled();
 			expect(mockEmployeeRetryHandler.execute).not.toHaveBeenCalled();
-			expect(mockEmployeeCacheInvalidator.invalidate!).not.toHaveBeenCalled();
+			expect(mockEmployeeCacheInvalidator.invalidate).not.toHaveBeenCalled();
 		});
 
 		it('should handle department-restricted access for managers', async () => {
 			// Arrange - Department Manager with limited access
-			const mockLoadEvent: Partial<LoadEvent> = {
+			const mockLoadEvent = {
 				params: {},
 				url: new URL('http://localhost:5173/employees'),
 				cookies: {
@@ -155,7 +186,7 @@ describe('Employee Page Integration (T019)', () => {
 					user: { id: 'user-456', role: 'Manager', departmentId: 'dept-engineering' },
 					permissions: ['employees:read', 'department_employees:read', 'department_employees:write']
 				}
-			};
+			} as unknown as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -174,16 +205,23 @@ describe('Employee Page Integration (T019)', () => {
 		it('should handle permission errors with graceful degradation', async () => {
 			// Arrange - Employee with minimal permissions
 			const permissionError: ErrorResponse = {
+				id: 'error-permission',
+				operationId: 'op-permission',
+				originalError: null,
+				technicalDetails: 'Permission denied',
+				timestamp: new Date(),
+				isRetryable: false,
+				suggestedActions: [
+					{ label: 'View Limited Data', action: 'show_limited_view', isPrimary: true }
+				],
 				type: 'PERMISSION_ERROR',
-				message: 'Insufficient permissions to view employee salary data',
-				severity: 'medium',
-				suggestedAction: 'show_limited_view',
-				retryable: false
+				userMessage: 'Insufficient permissions to view employee salary data',
+				severity: 'medium'
 			};
 
 			mockGetEmployeesWithFiltering.mockRejectedValueOnce(permissionError);
 
-			const mockLoadEvent: Partial<LoadEvent> = {
+			const mockLoadEvent = {
 				params: {},
 				url: new URL('http://localhost:5173/employees'),
 				cookies: {
@@ -193,7 +231,7 @@ describe('Employee Page Integration (T019)', () => {
 					user: { id: 'user-789', role: 'Employee', departmentId: 'dept-marketing' },
 					permissions: ['profile:read', 'colleagues:read'] // Limited permissions
 				}
-			};
+			} as unknown as LoadEvent;
 
 			// Act & Assert - Should throw until implementation exists
 			await expect(async () => {
@@ -399,7 +437,7 @@ describe('Employee Page Integration (T019)', () => {
 				data: {
 					employees: [],
 					filters: complexFilters,
-					sorting: sorting,
+					sorting,
 					userPermissions: ['employees:read', 'salary:read'],
 					user: { id: 'user-123', role: 'HR_Manager' }
 				}
@@ -415,7 +453,7 @@ describe('Employee Page Integration (T019)', () => {
 				expect.objectContaining({
 					variables: {
 						filters: complexFilters,
-						sorting: sorting
+						sorting
 					}
 				})
 			);
@@ -477,7 +515,7 @@ describe('Employee Page Integration (T019)', () => {
 			const mockProps = {
 				data: {
 					employees: [],
-					columnPreferences: columnPreferences,
+					columnPreferences,
 					userPermissions: ['employees:read'], // No salary permission
 					user: { id: 'user-456', role: 'Manager' }
 				}
@@ -533,7 +571,7 @@ describe('Employee Page Integration (T019)', () => {
 			}).toThrow('Employee page component not implemented - TDD compliance');
 
 			// Verify real-time update integration
-			expect(mockEmployeeCacheInvalidator.invalidate!).not.toHaveBeenCalledWith('employees-list');
+			expect(mockEmployeeCacheInvalidator.invalidate).not.toHaveBeenCalledWith('employees-list');
 		});
 
 		it('should handle concurrent edit conflicts with user-friendly resolution', async () => {
@@ -548,7 +586,7 @@ describe('Employee Page Integration (T019)', () => {
 				suggestedActions: [],
 				type: 'VALIDATION_ERROR',
 				userMessage: 'Employee data has been modified by another user', // Changed message to userMessage
-				severity: 'medium',
+				severity: 'medium'
 				// suggestedAction: 'merge_changes', // This property doesn't exist in ErrorResponse
 				// retryable: true // This property doesn't exist in ErrorResponse, use isRetryable
 			};
@@ -591,7 +629,7 @@ describe('Employee Page Integration (T019)', () => {
 			expect(mockEmployeeErrorHandler.handleEmployeeError).not.toHaveBeenCalledWith(
 				expect.objectContaining({
 					type: 'VALIDATION_ERROR',
-					conflictData: conflictData
+					conflictData
 				})
 			);
 		});
@@ -703,13 +741,27 @@ describe('Employee Page Integration (T019)', () => {
 			// Arrange
 			const startTime = performance.now();
 			const employeeRequest: GetEmployeesWithFilteringRequest = {
-				operation: 'GetEmployeesWithFiltering',
+				id: 'req-perf-123',
+				operationName: 'GetEmployeesWithFiltering',
 				variables: {
 					filters: {},
 					pagination: { page: 1, limit: 50 }
 				},
+				userCredentials: {
+					id: 'session-123',
+					userId: 'user-123',
+					jwtToken: 'hr-manager-token',
+					permissions: ['employees:read'],
+					roles: ['HR_Manager'],
+					isAuthenticated: true,
+					expiresAt: new Date(Date.now() + 3600000),
+					lastActivity: new Date()
+				},
+				status: 'pending',
+				retryAttempts: 0,
+				createdAt: new Date(),
+				completedAt: null,
 				timeoutMs: 5000,
-				maxRetries: 3,
 				cachePolicy: 'cache-first',
 				cacheTtlMinutes: 15 // Employee data cached for performance
 			};

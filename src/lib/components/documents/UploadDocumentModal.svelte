@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import { logger } from '$lib/utils/logger';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Label } from '$lib/components/ui/label';
 	import { Button } from '$lib/components/ui/button';
-	import { FileText, Upload, Calendar as CalendarIcon } from '@lucide/svelte';
+	import { Calendar as CalendarIcon, FileText, Upload } from '@lucide/svelte';
 	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
 
 	interface Props {
@@ -14,13 +15,7 @@
 		employees?: { id: string; displayName: string }[]; // List of all employees for selection
 	}
 
-	const { 
-		isOpen, 
-		onClose, 
-		onSuccess, 
-		assignToEmployees = [], 
-		employees = [] 
-	}: Props = $props();
+	const { isOpen, onClose, onSuccess, assignToEmployees = [], employees = [] }: Props = $props();
 
 	let isUploading = $state(false);
 	let file = $state<File | null>(null);
@@ -50,17 +45,14 @@
 	});
 
 	// Prepare options for MultiSearchInput
-	const employeeOptions = $derived(
-		employees.map(e => ({ value: e.id, label: e.displayName }))
-	);
+	const employeeOptions = $derived(employees.map((e) => ({ value: e.id, label: e.displayName })));
 
 	// Handle file selection and base64 encoding
 	async function handleFileSelected(selectedFile: File) {
 		file = selectedFile;
-		isUploading = true; 
+		isUploading = true;
 		try {
-			// Read file as ArrayBuffer for encryption/base64
-			const arrayBuffer = await file.arrayBuffer();
+			// Read file as base64
 			const base64String = await new Promise<string>((resolve, reject) => {
 				const reader = new FileReader();
 				reader.onload = () => {
@@ -73,12 +65,12 @@
 			fileContentBase64 = base64String;
 			iv = Array.from({ length: 12 }, () => Math.floor(Math.random() * 256)); // Mock IV
 		} catch (error) {
-			console.error('Error processing file:', error);
+			logger.error('Catch failed', error as Error);
 			toast.error('File processing failed');
 			file = null;
 			fileContentBase64 = null;
 		} finally {
-			isUploading = false; 
+			isUploading = false;
 		}
 	}
 
@@ -102,7 +94,7 @@
 
 	function handleFileSelect(e: Event) {
 		const target = e.target as HTMLInputElement;
-		if (target.files && target.files[0]) {
+		if (target.files?.[0]) {
 			handleFileSelected(target.files[0]);
 		}
 	}
@@ -150,7 +142,7 @@
 			onSuccess?.();
 			onClose();
 		} catch (error) {
-			console.error('Upload error:', error);
+			logger.error('Catch failed', error as Error);
 			toast.error('Upload failed', {
 				description: error instanceof Error ? error.message : 'An unexpected error occurred.'
 			});
@@ -295,7 +287,9 @@
 							bind:value={expirationDate}
 							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
 						/>
-						<CalendarIcon class="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+						<CalendarIcon
+							class="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none"
+						/>
 					</div>
 				</div>
 			</div>

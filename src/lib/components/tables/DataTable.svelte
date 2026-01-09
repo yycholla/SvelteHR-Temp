@@ -34,7 +34,8 @@
 		selectedRows = $bindable([]),
 		onsort = undefined,
 		onrowClick = undefined,
-		onselectionChange = undefined
+		onselectionChange = undefined,
+		cellRenderer
 	}: {
 		data?: TableData[];
 		columns?: Column[];
@@ -51,15 +52,21 @@
 		onsort?: ((detail: { key: string; direction: 'asc' | 'desc' }) => void) | undefined;
 		onrowClick?: ((detail: { row: TableData; index: number }) => void) | undefined;
 		onselectionChange?: ((detail: any[]) => void) | undefined;
+		cellRenderer?: import('svelte').Snippet<[{ column: Column; value: any; row: TableData }]>;
 	} = $props();
 
 	// Computed selection states
-	let allSelected = $derived(data.length > 0 && selectedRows.length === data.length);
-	let someSelected = $derived(selectedRows.length > 0 && selectedRows.length < data.length);
+	const allSelected = $derived(data.length > 0 && selectedRows.length === data.length);
+	const someSelected = $derived(selectedRows.length > 0 && selectedRows.length < data.length);
 
 	// Computed classes
-	let tableClasses = $derived(
-		['data-table', hoverable && 'data-table--hoverable', striped && 'data-table--striped', compact && 'data-table--compact']
+	const tableClasses = $derived(
+		[
+			'data-table',
+			hoverable && 'data-table--hoverable',
+			striped && 'data-table--striped',
+			compact && 'data-table--compact'
+		]
 			.filter(Boolean)
 			.join(' ')
 	);
@@ -120,7 +127,11 @@
 		}
 	}
 
-	function getBadgeVariant(column: Column, value: any, row: TableData): 'info' | 'success' | 'warning' | 'light' | 'dark' | 'primary' | 'secondary' | 'danger' {
+	function getBadgeVariant(
+		column: Column,
+		value: any,
+		row: TableData
+	): 'default' | 'secondary' | 'destructive' | 'outline' {
 		if (column.badgeVariant) {
 			return column.badgeVariant(value, row) as any;
 		}
@@ -241,7 +252,13 @@
 									class:data-table__body-cell--center={column.align === 'center'}
 									class:data-table__body-cell--right={column.align === 'right'}
 								>
-									{#if column.type === 'badge'}
+									{#if column.type === 'custom' && cellRenderer}
+										{@render cellRenderer({ column, value: row[column.key], row })}
+									{:else if column.type === 'custom'}
+										<span class="data-table__cell-content">
+											{formatCellValue(column, row[column.key], row)}
+										</span>
+									{:else if column.type === 'badge'}
 										<Badge variant={getBadgeVariant(column, row[column.key], row)} size="sm">
 											{formatCellValue(column, row[column.key], row)}
 										</Badge>
@@ -262,5 +279,3 @@
 		</table>
 	</div>
 </div>
-
-

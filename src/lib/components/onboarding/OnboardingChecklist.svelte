@@ -3,7 +3,6 @@
 	import Button from '../base/Button.svelte';
 	import Card from '../base/Card.svelte';
 	import Badge from '../base/Badge.svelte';
-	import Input from '../base/Input.svelte';
 	import Textarea from '../base/Textarea.svelte';
 	import type { OnboardingTask } from '$lib/services/onboardingService';
 
@@ -29,7 +28,7 @@
 		{} as Record<string, OnboardingTask[]>
 	);
 
-	$: categoryOrder = ['HR', 'IT', 'Security', 'Training', 'Equipment', 'Documentation', 'Other'];
+	const categoryOrder = ['HR', 'IT', 'Security', 'Training', 'Equipment', 'Documentation', 'Other'];
 
 	let selectedTask: OnboardingTask | null = null;
 	let taskNotes = '';
@@ -142,7 +141,7 @@
 <div class="onboarding-checklist">
 	{#if showCategories}
 		<!-- Categorized View -->
-		{#each categoryOrder as category}
+		{#each categoryOrder as category (category)}
 			{#if tasksByCategory[category]?.length > 0}
 				<Card padding="md" class="category-section">
 					<div class="category-header">
@@ -160,8 +159,8 @@
 								<div class="task-main">
 									<div class="task-status">
 										<i
-											class="icon-{getStatusIcon(task.status)} h-5 w-5 {getStatusColor(
-												task.status
+											class="icon-{getStatusIcon(task.status ?? 'Pending')} h-5 w-5 {getStatusColor(
+												task.status ?? 'Pending'
 											)}"
 										></i>
 									</div>
@@ -172,17 +171,19 @@
 												<span class="task-title">{task.title}</span>
 												<div class="task-badges">
 													{#if task.is_required}
-														<Badge variant="danger" size="xs">Required</Badge>
+														<Badge variant="destructive" size="xs">Required</Badge>
 													{/if}
 													{#if getPriorityLevel(task) === 'high'}
-														<Badge variant="danger" size="xs">Urgent</Badge>
+														<Badge variant="destructive" size="xs">Urgent</Badge>
 													{/if}
 												</div>
 											</div>
 
 											<div class="task-meta">
 												<span class="task-type">
-													<i class="icon-{getTaskTypeIcon(task.task_type)} h-4 w-4"></i>
+													<i
+														class="icon-{getTaskTypeIcon(task.task_type ?? 'check-square')} h-4 w-4"
+													></i>
 													{task.task_type}
 												</span>
 
@@ -223,7 +224,7 @@
 													variant="secondary"
 													size="sm"
 													leftIcon="play"
-													on:click={() => handleTaskAction(task, 'start')}
+													onclick={() => handleTaskAction(task, 'start')}
 												>
 													Start
 												</Button>
@@ -232,7 +233,7 @@
 													variant="primary"
 													size="sm"
 													leftIcon="check"
-													on:click={() => handleTaskAction(task, 'complete')}
+													onclick={() => handleTaskAction(task, 'complete')}
 												>
 													Complete
 												</Button>
@@ -278,7 +279,7 @@
 		<div class="modal-content">
 			<div class="modal-header">
 				<h3 class="modal-title">Complete Task</h3>
-				<button class="modal-close" on:click={cancelCompletion} aria-label="Close modal">
+				<button class="modal-close" onclick={cancelCompletion} aria-label="Close modal">
 					<i class="icon-x h-5 w-5"></i>
 				</button>
 			</div>
@@ -296,19 +297,17 @@
 						label="Completion Notes (Optional)"
 						bind:value={taskNotes}
 						placeholder="Add any notes about completing this task..."
-						rows="4"
+						rows={4}
 					/>
 				</div>
 			</div>
 
 			<div class="modal-footer">
-				<Button variant="secondary" on:click={cancelCompletion}>Cancel</Button>
-				<Button variant="primary" leftIcon="check" on:click={handleCompleteWithNotes}>
+				<Button variant="secondary" onclick={cancelCompletion}>Cancel</Button>
+				<Button variant="primary" leftIcon="check" onclick={handleCompleteWithNotes}>
 					Mark Complete
 				</Button>
 			</div>
 		</div>
 	</div>
 {/if}
-
-

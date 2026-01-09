@@ -6,39 +6,43 @@
  * This test MUST FAIL initially because the schema is not yet defined.
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { z } from 'zod';
 
 // Temporary local schema for testing structure (remove when actual schema is implemented)
-const UpdateReviewDraftSchema = z.object({
-	id: z.string().uuid('Review ID must be a valid UUID'),
-	reviewType: z.enum([
-		'ANNUAL_REVIEW',
-		'MID_YEAR_REVIEW',
-		'QUARTERLY_REVIEW',
-		'PROBATIONARY_REVIEW',
-		'PERFORMANCE_IMPROVEMENT_PLAN',
-		'NINETY_DAY_REVIEW',
-		'PROJECT_BASED_REVIEW',
-		'PROMOTION_REVIEW',
-		'EXIT_REVIEW',
-		'SELF_REVIEW'
-	]).optional(),
-	reviewPeriodStart: z.string().date().optional(),
-	reviewPeriodEnd: z.string().date().optional(),
-	notes: z.string().optional()
-}).refine(
-	(data) => {
-		if (data.reviewPeriodStart && data.reviewPeriodEnd) {
-			return new Date(data.reviewPeriodStart) < new Date(data.reviewPeriodEnd);
+const UpdateReviewDraftSchema = z
+	.object({
+		id: z.string().uuid('Review ID must be a valid UUID'),
+		reviewType: z
+			.enum([
+				'ANNUAL_REVIEW',
+				'MID_YEAR_REVIEW',
+				'QUARTERLY_REVIEW',
+				'PROBATIONARY_REVIEW',
+				'PERFORMANCE_IMPROVEMENT_PLAN',
+				'NINETY_DAY_REVIEW',
+				'PROJECT_BASED_REVIEW',
+				'PROMOTION_REVIEW',
+				'EXIT_REVIEW',
+				'SELF_REVIEW'
+			])
+			.optional(),
+		reviewPeriodStart: z.string().date().optional(),
+		reviewPeriodEnd: z.string().date().optional(),
+		notes: z.string().optional()
+	})
+	.refine(
+		(data) => {
+			if (data.reviewPeriodStart && data.reviewPeriodEnd) {
+				return new Date(data.reviewPeriodStart) < new Date(data.reviewPeriodEnd);
+			}
+			return true;
+		},
+		{
+			message: 'reviewPeriodEnd must be after reviewPeriodStart',
+			path: ['reviewPeriodEnd']
 		}
-		return true;
-	},
-	{
-		message: 'reviewPeriodEnd must be after reviewPeriodStart',
-		path: ['reviewPeriodEnd']
-	}
-);
+	);
 
 describe('T020: UpdateReviewDraftSchema validation', () => {
 	test('should pass validation with valid full update', () => {
@@ -127,9 +131,7 @@ describe('T020: UpdateReviewDraftSchema validation', () => {
 		expect(result.success).toBe(false);
 
 		if (!result.success) {
-			const dateError = result.error.issues.find(
-				(issue) => issue.path[0] === 'reviewPeriodEnd'
-			);
+			const dateError = result.error.issues.find((issue) => issue.path[0] === 'reviewPeriodEnd');
 			expect(dateError).toBeDefined();
 			expect(dateError?.message).toContain('after');
 		}
