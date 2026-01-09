@@ -102,7 +102,7 @@ hive-mind-prompt-*.txt
 backend/logs/combined.log
 backend/logs/error.log
 *.log
-logs/
+/logs/
 backend/logs/
 
 # Alternative package managers (we use npm with package-lock.json)
