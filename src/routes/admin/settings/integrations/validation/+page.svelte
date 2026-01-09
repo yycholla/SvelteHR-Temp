@@ -1,392 +1,326 @@
 <script lang="ts">
-	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
-	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
-	import { Alert, AlertDescription } from '$lib/components/ui/alert';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+	import { Badge } from '$lib/components/ui/badge';
+	import { toast } from 'svelte-sonner';
 	import {
-		Select,
-		SelectContent,
-		SelectItem,
-		SelectTrigger,
-		SelectValue
-	} from '$lib/components/ui/select';
-	import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
-	import {
-		AlertCircle,
+		AlertTriangle,
 		CheckCircle2,
 		RefreshCw,
-		Filter,
-		ShieldAlert,
-		ShieldCheck,
-		AlertTriangle,
-		Info,
-		Settings
+		AlertCircle,
+		Database
 	} from '@lucide/svelte';
-	import { invalidate, goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import type { PageData } from './$types';
 
-	let { data } = $props();
-	let rules = $derived(data.rules);
-	let failures = $derived(data.failures);
-	let summary = $derived(data.summary);
-	let filters = $derived(data.filters || {});
+	let { data }: { data: PageData } = $props();
 
-	let refreshing = $state(false);
-	let selectedEntityType = $state('all');
-	let selectedEnabled = $state('all');
-	let includeResolved = $state(false);
+	let validationErrors = $state(data.validationErrors || []);
+	let editingEmail = $state<{ [key: string]: string }>({});
+	let loading = $state<{ [key: string]: boolean }>({});
 
-	$effect(() => {
-		if ((filters as any).entityType) selectedEntityType = (filters as any).entityType;
-		if ((filters as any).enabled === 'true') selectedEnabled = 'true';
-		else if ((filters as any).enabled === 'false') selectedEnabled = 'false';
-		if ((filters as any).includeResolved) includeResolved = (filters as any).includeResolved;
-	});
+	async function importWithEmail(error: ValidationError) {
+		const email = editingEmail[error.id];
+		if (!email || !email.includes('@')) {
+			toast.error('Please enter a valid email address');
+			return;
+		}
 
-	const entityTypes = [
-		{ value: 'all', label: 'All Entity Types' },
-		{ value: 'employee', label: 'Employee' },
-		{ value: 'department', label: 'Department' },
-		{ value: 'user', label: 'User' }
-	];
+		loading[error.id] = true;
 
-	const enabledOptions = [
-		{ value: 'all', label: 'All Rules' },
-		{ value: 'true', label: 'Enabled Only' },
-		{ value: 'false', label: 'Disabled Only' }
-	];
+		try {
+			const response = await fetch('/api/graphql', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					query: `
+						mutation ImportEmployeeWithEmail($quickbooksId: String!, $email: String!) {
+							employeeImport {
+								importEmployeeWithEmail(quickbooksId: $quickbooksId, email: $email) {
+									success
+									message
+									employeeId
+									employeeName
+								}
+							}
+						}
+					`,
+					variables: {
+						quickbooksId: error.entityId,
+						email: email
+					}
+				})
+			});
 
-	async function refreshData() {
-		refreshing = true;
-		await invalidate('app:validation');
-		refreshing = false;
-	}
+			const result = await response.json();
 
-	function applyFilters() {
-		const params = new URLSearchParams();
-		if (selectedEntityType !== 'all') params.set('entityType', selectedEntityType);
-		if (selectedEnabled !== 'all') params.set('enabled', selectedEnabled);
-		if (includeResolved) params.set('includeResolved', 'true');
-		goto(`?${params.toString()}`);
-	}
-
-	function getSeverityVariant(severity: string): 'default' | 'outline' | 'secondary' | 'destructive' {
-		switch (severity.toUpperCase()) {
-			case 'ERROR':
-				return 'destructive';
-			case 'WARNING':
-				return 'secondary';
-			case 'INFO':
-				return 'outline';
-			default:
-				return 'outline';
+			if (result.data?.employeeImport?.importEmployeeWithEmail?.success) {
+				toast.success(result.data.employeeImport.importEmployeeWithEmail.message);
+				validationErrors = validationErrors.filter((e: ValidationError) => e.id !== error.id);
+				delete editingEmail[error.id];
+			} else {
+				toast.error(result.data?.employeeImport?.importEmployeeWithEmail?.message || 'Failed to import employee');
+			}
+		} catch (err) {
+			toast.error('Failed to import employee: ' + err);
+		} finally {
+			loading[error.id] = false;
 		}
 	}
 
-	function formatDate(dateStr: string): string {
-		const date = new Date(dateStr);
-		return date.toLocaleString();
+	function getSeverityColor(
+		severity: string
+	): 'default' | 'secondary' | 'destructive' | 'outline' {
+		switch (severity.toLowerCase()) {
+			case 'error':
+			case 'critical':
+				return 'destructive';
+			case 'warning':
+				return 'secondary';
+			case 'info':
+				return 'outline';
+			default:
+				return 'default';
+		}
+	}
+
+	interface ValidationError {
+		id: string;
+		ruleId: string;
+		entityType: string;
+		entityId: string;
+		fieldName: string;
+		invalidValue?: string;
+		errorMessage: string;
+		severity: string;
+		detectedAt: string;
+		resolvedAt?: string;
+		resolution?: string;
+	}
+
+	function getEmployeeName(error: ValidationError): string {
+		// Employee name is stored in invalidValue field
+		return error.invalidValue || 'Unknown Employee';
 	}
 </script>
 
-<div class="container mx-auto py-8 px-4">
-	<!-- Header -->
-	<div class="mb-6 flex items-center justify-between">
-		<div>
-			<h1 class="text-2xl font-bold flex items-center gap-2">
-				<ShieldAlert class="h-6 w-6" />
-				Validation Management
-			</h1>
-			<p class="text-sm text-muted-foreground mt-1">
-				Data quality rules and validation failure monitoring
-			</p>
+<div class="flex flex-col h-full overflow-hidden bg-background">
+	<!-- Toolbar -->
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
+		<div class="flex items-center gap-4">
+			<h1 class="text-sm font-semibold tracking-tight">Validation Errors</h1>
+			<div class="h-4 w-px bg-border"></div>
+			<div class="flex items-center gap-2 text-xs text-muted-foreground">
+				<AlertTriangle class="h-3.5 w-3.5" />
+				<span>QuickBooks Data Quality</span>
+			</div>
 		</div>
-		<Button onclick={refreshData} disabled={refreshing} variant="outline" size="sm">
-			<RefreshCw class="h-4 w-4 mr-2 {refreshing ? 'animate-spin' : ''}" />
-			Refresh
-		</Button>
-	</div>
-
-	{#if data.error}
-		<Alert variant="destructive" class="mb-6">
-			<AlertCircle class="h-4 w-4" />
-			<AlertDescription>{data.error}</AlertDescription>
-		</Alert>
-	{/if}
-
-	<!-- Summary Statistics -->
-	{#if summary}
-		<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-			<Card>
-				<CardHeader class="pb-2">
-					<CardDescription>Total Failures</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<div class="flex items-center gap-2">
-						<AlertCircle class="h-8 w-8 text-orange-500" />
-						<p class="text-3xl font-bold">{summary.total}</p>
-					</div>
-				</CardContent>
-			</Card>
-
-			<Card>
-				<CardHeader class="pb-2">
-					<CardDescription>Errors</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<div class="flex items-center gap-2">
-						<ShieldAlert class="h-8 w-8 text-red-500" />
-						<p class="text-3xl font-bold">{summary.errorCount}</p>
-					</div>
-				</CardContent>
-			</Card>
-
-			<Card>
-				<CardHeader class="pb-2">
-					<CardDescription>Warnings</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<div class="flex items-center gap-2">
-						<AlertTriangle class="h-8 w-8 text-yellow-500" />
-						<p class="text-3xl font-bold">{summary.warningCount}</p>
-					</div>
-				</CardContent>
-			</Card>
-
-			<Card>
-				<CardHeader class="pb-2">
-					<CardDescription>Info</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<div class="flex items-center gap-2">
-						<Info class="h-8 w-8 text-blue-500" />
-						<p class="text-3xl font-bold">{summary.infoCount}</p>
-					</div>
-				</CardContent>
-			</Card>
+		<div class="flex gap-2">
+			<button
+				onclick={() => (validationErrors = data.validationErrors || [])}
+				class="flex items-center gap-1.5 h-8 px-3 rounded-sm border border-input bg-background text-xs hover:bg-accent transition-colors"
+			>
+				<RefreshCw class="h-3.5 w-3.5" />
+				Refresh
+			</button>
 		</div>
-	{/if}
+	</header>
 
-	<!-- Filters -->
-	<Card class="mb-6">
-		<CardHeader>
-			<CardTitle class="flex items-center gap-2">
-				<Filter class="h-5 w-5" />
-				Filters
-			</CardTitle>
-		</CardHeader>
-		<CardContent>
-			<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-				<Select
-					type="single"
-					value={selectedEntityType as any}
-					onValueChange={(value: any) => {
-						selectedEntityType = value;
-						applyFilters();
-					}}
-				>
-					<SelectTrigger>
-						<SelectValue placeholder="Select entity type" />
-					</SelectTrigger>
-					<SelectContent>
-						{#each entityTypes as type}
-							<SelectItem value={type.value}>{type.label}</SelectItem>
-						{/each}
-					</SelectContent>
-				</Select>
-
-				<Select
-					type="single"
-					value={selectedEnabled as any}
-					onValueChange={(value: any) => {
-						selectedEnabled = value;
-						applyFilters();
-					}}
-				>
-					<SelectTrigger>
-						<SelectValue placeholder="Filter by status" />
-					</SelectTrigger>
-					<SelectContent>
-						{#each enabledOptions as option}
-							<SelectItem value={option.value}>{option.label}</SelectItem>
-						{/each}
-					</SelectContent>
-				</Select>
-
-				<div class="flex items-center gap-2">
-					<input
-						type="checkbox"
-						id="include-resolved"
-						bind:checked={includeResolved}
-						onchange={applyFilters}
-						class="h-4 w-4"
-					/>
-					<label for="include-resolved" class="text-sm cursor-pointer">
-						Include resolved failures
-					</label>
+	<div class="flex-1 overflow-auto bg-muted/5">
+		<!-- KPI Grid -->
+		<div class="grid grid-cols-1 md:grid-cols-3 border-b">
+			<!-- Total Errors -->
+			<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
+				<div class="flex items-center justify-between">
+					<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+						>Total Errors</span
+					>
+					<AlertTriangle class="h-4 w-4 text-muted-foreground" />
+				</div>
+				<div>
+					<div class="text-3xl font-bold tracking-tight {validationErrors.length > 0 ? 'text-red-600' : 'text-green-600'}">
+						{validationErrors.length}
+					</div>
+					<div class="mt-1 text-xs text-muted-foreground">Validation issues</div>
 				</div>
 			</div>
-		</CardContent>
-	</Card>
 
-	<!-- Tabs for Rules and Failures -->
-	<Tabs value="failures" class="w-full">
-		<TabsList class="grid w-full grid-cols-2">
-			<TabsTrigger value="failures">
-				Validation Failures ({failures.length})
-			</TabsTrigger>
-			<TabsTrigger value="rules">
-				Validation Rules ({rules.length})
-			</TabsTrigger>
-		</TabsList>
+			<!-- Unresolved -->
+			<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
+				<div class="flex items-center justify-between">
+					<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+						>Unresolved</span
+					>
+					<AlertCircle class="h-4 w-4 text-muted-foreground" />
+				</div>
+				<div>
+					<div class="text-3xl font-bold tracking-tight text-orange-600">
+						{validationErrors.filter((e: ValidationError) => !e.resolvedAt).length}
+					</div>
+					<div class="mt-1 text-xs text-muted-foreground">Require attention</div>
+				</div>
+			</div>
 
-		<!-- Validation Failures Tab -->
-		<TabsContent value="failures">
-			<Card>
-				<CardHeader>
-					<CardTitle>Validation Failures</CardTitle>
-					<CardDescription>Data quality issues detected during sync operations</CardDescription>
-				</CardHeader>
-				<CardContent>
-					{#if failures.length === 0}
-						<div class="text-center py-12 text-muted-foreground">
-							<ShieldCheck class="h-12 w-12 mx-auto mb-3 text-green-500" />
-							<p class="font-medium">No validation failures</p>
-							<p class="text-sm">All data is passing validation rules</p>
-						</div>
-					{:else}
-						<div class="space-y-3">
-							{#each failures as failure}
-								<div class="border rounded-lg p-4 {failure.resolvedAt ? 'bg-muted/30' : 'bg-background'}">
-									<div class="flex items-start justify-between mb-2">
-										<div class="flex-1">
-											<div class="flex items-center gap-2 mb-1">
-												<Badge variant={getSeverityVariant(failure.severity)}>
-													{#if failure.severity === 'ERROR'}
-														<ShieldAlert class="h-3 w-3 mr-1" />
-													{:else if failure.severity === 'WARNING'}
-														<AlertTriangle class="h-3 w-3 mr-1" />
-													{:else}
-														<Info class="h-3 w-3 mr-1" />
-													{/if}
-													{failure.severity}
-												</Badge>
-												<Badge variant="outline" class="capitalize">
-													{failure.entityType}
-												</Badge>
-												{#if failure.resolvedAt}
-													<Badge variant="default" class="bg-green-600">
-														<CheckCircle2 class="h-3 w-3 mr-1" />
-														Resolved
-													</Badge>
-												{/if}
-											</div>
-											<p class="text-sm font-medium">{failure.errorMessage}</p>
-											<p class="text-xs text-muted-foreground mt-1">
-												Field: {failure.fieldName}
-												{#if failure.entityId}
-													• Entity: {failure.entityId}
-												{/if}
-											</p>
+			<!-- Resolved -->
+			<div class="p-6 bg-background flex flex-col justify-between h-32">
+				<div class="flex items-center justify-between">
+					<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+						>Resolved</span
+					>
+					<CheckCircle2 class="h-4 w-4 text-muted-foreground" />
+				</div>
+				<div>
+					<div class="text-3xl font-bold tracking-tight text-green-600">
+						{validationErrors.filter((e: ValidationError) => e.resolvedAt).length}
+					</div>
+					<div class="mt-1 text-xs text-muted-foreground">Successfully fixed</div>
+				</div>
+			</div>
+		</div>
+
+		{#if validationErrors.length === 0}
+			<!-- Empty State -->
+			<div class="bg-background border-t">
+				<div class="px-4 py-12 text-center text-muted-foreground">
+					<CheckCircle2 class="h-12 w-12 mx-auto mb-3 text-green-500/50" />
+					<p class="font-medium text-xs">No validation errors</p>
+					<p class="text-[10px] mt-1">All employees have valid data</p>
+				</div>
+			</div>
+		{:else}
+			<!-- Errors Table -->
+			<div class="bg-background border-t">
+				<div class="px-4 py-3 border-b">
+					<h2 class="text-sm font-semibold">Validation Issues</h2>
+					<p class="text-xs text-muted-foreground mt-0.5">
+						Resolve data quality issues to enable employee import
+					</p>
+				</div>
+				<div class="relative">
+					<table class="w-full text-sm text-left border-collapse">
+						<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
+							<tr>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+									>Employee</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+									>Severity</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+									>Issue</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+									>Field</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+									>Detected</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground text-right"
+									>Actions</th
+								>
+							</tr>
+						</thead>
+						<tbody class="divide-y">
+							{#each validationErrors as error (error.id)}
+								<tr class="hover:bg-muted/30 group {error.resolvedAt ? 'bg-muted/20' : ''}">
+									<td class="px-3 py-2 border-r last:border-r-0">
+										<div class="font-medium text-xs">{getEmployeeName(error)}</div>
+										<div class="text-[10px] text-muted-foreground">
+											{error.fieldName} • QuickBooks
 										</div>
-									</div>
-
-									{#if failure.invalidValue}
-										<div class="mt-3">
-											<span class="text-xs text-muted-foreground">Invalid Value:</span>
-											<p class="font-mono text-xs mt-1 p-2 bg-red-50 border border-red-200 rounded">
-												{failure.invalidValue}
-											</p>
+									</td>
+									<td class="px-3 py-2 border-r last:border-r-0">
+										<Badge variant={getSeverityColor(error.severity)} class="text-[10px]">
+											{error.severity}
+										</Badge>
+									</td>
+									<td class="px-3 py-2 border-r last:border-r-0">
+										<div class="max-w-md">
+											<p class="text-xs">{error.errorMessage}</p>
 										</div>
-									{/if}
-
-									<div class="mt-3 text-xs text-muted-foreground">
-										<p>Detected: {formatDate(failure.detectedAt)}</p>
-										{#if failure.resolvedAt}
-											<p class="text-green-600">
-												Resolved: {formatDate(failure.resolvedAt)}
-												{#if failure.resolution}
-													• {failure.resolution}
-												{/if}
-											</p>
-										{/if}
-									</div>
-								</div>
-							{/each}
-						</div>
-					{/if}
-				</CardContent>
-			</Card>
-		</TabsContent>
-
-		<!-- Validation Rules Tab -->
-		<TabsContent value="rules">
-			<Card>
-				<CardHeader>
-					<CardTitle>Validation Rules</CardTitle>
-					<CardDescription>Active data quality validation rules</CardDescription>
-				</CardHeader>
-				<CardContent>
-					{#if rules.length === 0}
-						<div class="text-center py-12 text-muted-foreground">
-							<Settings class="h-12 w-12 mx-auto mb-3" />
-							<p class="font-medium">No validation rules</p>
-							<p class="text-sm">No validation rules configured</p>
-						</div>
-					{:else}
-						<div class="space-y-3">
-							{#each rules as rule}
-								<div class="border rounded-lg p-4">
-									<div class="flex items-start justify-between mb-2">
-										<div class="flex-1">
-											<div class="flex items-center gap-2 mb-1">
-												<p class="font-medium">{rule.name}</p>
-												<Badge variant={rule.enabled ? 'default' : 'secondary'}>
-													{rule.enabled ? 'Enabled' : 'Disabled'}
-												</Badge>
-												<Badge variant={getSeverityVariant(rule.severity)}>
-													{rule.severity}
-												</Badge>
-											</div>
-											{#if rule.description}
-												<p class="text-sm text-muted-foreground">{rule.description}</p>
+									</td>
+									<td class="px-3 py-2 border-r last:border-r-0">
+										<span class="text-xs font-medium">{error.fieldName}</span>
+									</td>
+									<td class="px-3 py-2 border-r last:border-r-0">
+										<div class="text-xs text-muted-foreground">
+											{new Date(error.detectedAt).toLocaleDateString()}
+										</div>
+										<div class="text-[10px] text-muted-foreground">
+											{new Date(error.detectedAt).toLocaleTimeString()}
+										</div>
+									</td>
+									<td class="px-3 py-2 text-right">
+										<div class="flex gap-1 justify-end items-center">
+											{#if error.resolvedAt}
+												<span
+													class="text-[10px] text-green-600 font-medium flex items-center mr-2"
+												>
+													<CheckCircle2 class="h-3 w-3 mr-0.5" />
+													Resolved
+												</span>
+											{:else if error.fieldName === 'email'}
+												<div class="flex gap-2 items-center">
+													<Input
+														id="email-{error.id}"
+														type="email"
+														placeholder="email@company.com"
+														bind:value={editingEmail[error.id]}
+														disabled={loading[error.id]}
+														class="h-7 w-48 text-xs"
+													/>
+													<button
+														onclick={() => importWithEmail(error)}
+														disabled={loading[error.id] || !editingEmail[error.id]}
+														class="flex items-center gap-1.5 h-7 px-2.5 rounded-sm border border-input bg-primary text-primary-foreground text-xs hover:bg-primary/90 transition-colors disabled:opacity-50"
+													>
+														{#if loading[error.id]}
+															<RefreshCw class="h-3 w-3 animate-spin" />
+															Importing...
+														{:else}
+															Import
+														{/if}
+													</button>
+												</div>
 											{/if}
 										</div>
-									</div>
-
-									<div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-										<div>
-											<span class="text-muted-foreground">Entity Type:</span>
-											<p class="font-medium capitalize">{rule.entityType}</p>
-										</div>
-										<div>
-											<span class="text-muted-foreground">Field:</span>
-											<p class="font-medium">{rule.fieldName}</p>
-										</div>
-										<div>
-											<span class="text-muted-foreground">Rule Type:</span>
-											<p class="font-medium capitalize">{rule.ruleType.replace(/_/g, ' ')}</p>
-										</div>
-										<div>
-											<span class="text-muted-foreground">Auto-Fix:</span>
-											<p class="font-medium capitalize">{rule.autoFixStrategy.replace(/_/g, ' ')}</p>
-										</div>
-									</div>
-
-									<div class="mt-3 p-3 bg-muted rounded text-sm">
-										<span class="text-muted-foreground">Condition:</span>
-										<p class="font-mono text-xs mt-1">{rule.condition}</p>
-									</div>
-
-									<div class="mt-3 text-xs text-muted-foreground">
-										Created: {formatDate(rule.createdAt)}
-									</div>
-								</div>
+									</td>
+								</tr>
+								{#if error.fieldName === 'email' && !error.resolvedAt}
+									<tr class="bg-muted/10">
+										<td colspan="6" class="px-3 py-2">
+											<p class="text-[10px] text-muted-foreground">
+												<AlertCircle class="h-3 w-3 inline mr-1" />
+												This will create the employee account with the provided email and link them to
+												QuickBooks
+											</p>
+										</td>
+									</tr>
+								{/if}
+								{#if error.resolvedAt}
+									<tr class="bg-green-50/50">
+										<td colspan="6" class="px-3 py-2">
+											<p class="text-[10px] text-green-600">
+												<CheckCircle2 class="h-3 w-3 inline mr-1" />
+												Resolved on {new Date(error.resolvedAt).toLocaleString()}
+												{#if error.resolution}- {error.resolution}{/if}
+											</p>
+										</td>
+									</tr>
+								{/if}
 							{/each}
-						</div>
-					{/if}
-				</CardContent>
-			</Card>
-		</TabsContent>
-	</Tabs>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		{/if}
+	</div>
 </div>

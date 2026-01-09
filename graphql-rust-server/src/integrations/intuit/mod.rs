@@ -7,10 +7,12 @@
 // - API requests with automatic token refresh
 
 mod client;
+mod client_manager;
 mod models;
 mod oauth;
 
 pub use client::IntuitClient;
+pub use client_manager::IntuitClientManager;
 pub use models::*;
 pub use oauth::{exchange_code_for_tokens, get_authorization_url, refresh_access_token};
 

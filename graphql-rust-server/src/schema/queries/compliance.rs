@@ -105,7 +105,7 @@ pub enum ComplianceReportType {
 }
 
 impl ComplianceReportType {
-    fn as_str(&self) -> &str {
+    pub fn as_str(&self) -> &str {
         match self {
             ComplianceReportType::Sox => "sox",
             ComplianceReportType::Gdpr => "gdpr",

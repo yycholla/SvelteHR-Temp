@@ -26,39 +26,30 @@ export interface HrReportFilter {
 	};
 }
 
+// Rust backend input types (flat, no clientMutationId)
 export interface CreateHrReportInput {
-	clientMutationId?: string;
-	hrReport: {
-		creatorId: string;
-		departmentId: string;
-		title: string;
-		reportType: string;
-		category: string;
-		filters?: Record<string, any>;
-		data?: Record<string, any>;
-		status?: 'draft' | 'active' | 'scheduled';
-		scheduledAt?: string;
-	};
+	creatorId: string;
+	departmentId: string;
+	title: string;
+	reportType: string;
+	category: string;
+	filters?: Record<string, any>;
+	data?: Record<string, any>;
+	status?: 'draft' | 'active' | 'scheduled';
+	scheduledAt?: string;
 }
 
 export interface UpdateHrReportInput {
-	clientMutationId?: string;
-	id: string;
-	patch: {
-		title?: string;
-		reportType?: string;
-		category?: string;
-		filters?: Record<string, any>;
-		data?: Record<string, any>;
-		status?: 'draft' | 'active' | 'scheduled' | 'completed' | 'failed';
-		scheduledAt?: string;
-	};
+	title?: string;
+	reportType?: string;
+	category?: string;
+	filters?: Record<string, any>;
+	data?: Record<string, any>;
+	status?: 'draft' | 'active' | 'scheduled' | 'completed' | 'failed';
+	scheduledAt?: string;
 }
 
-export interface DeleteHrReportInput {
-	clientMutationId?: string;
-	id: string;
-}
+// DeleteHrReportInput not needed - uses string id directly
 
 export interface HrReport {
 	id: string;

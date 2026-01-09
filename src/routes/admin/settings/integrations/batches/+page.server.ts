@@ -2,7 +2,7 @@ import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 import type { PageServerLoad } from './$types';
 
 const BATCH_OPERATIONS_QUERY = `
-	query GetBatchOperations($entityType: String, $limit: Int, $batchId: String) {
+	query GetBatchOperations($entityType: String, $limit: Int) {
 		batchOperations {
 			batchOperations(entityType: $entityType, limit: $limit) {
 				id

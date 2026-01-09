@@ -20,7 +20,7 @@ use crate::{
         ApproveTimeEntryInput, CreateProjectInput, UpdateProjectInput,
     },
     services::time_tracking_sync::TimeTrackingSync,
-    integrations::intuit::IntuitClient,
+    integrations::intuit::IntuitClientManager,
 };
 
 /// Result of a sync operation
@@ -363,16 +363,18 @@ impl TimeEntryMutations {
             return Err("Permission denied: You need time_sync:trigger permission".into());
         }
 
-        // Get QuickBooks credentials
-        let client_id = std::env::var("INTUIT_CLIENT_ID")
-            .map_err(|_| "INTUIT_CLIENT_ID not configured")?;
-        let client_secret = std::env::var("INTUIT_CLIENT_SECRET")
-            .map_err(|_| "INTUIT_CLIENT_SECRET not configured")?;
-        let realm_id = std::env::var("INTUIT_REALM_ID")
-            .map_err(|_| "INTUIT_REALM_ID not configured")?;
-
-        let intuit_client = IntuitClient::new(client_id, client_secret)
+        // Get QuickBooks client with automatic token refresh
+        let client_manager = IntuitClientManager::new(db.clone());
+        let intuit_client = client_manager
+            .get_client()
+            .await
             .map_err(|e| format!("Failed to create Intuit client: {}", e))?;
+
+        // Get realm ID from the active connection
+        let realm_id = client_manager
+            .get_realm_id()
+            .await
+            .map_err(|e| format!("Failed to get realm ID: {}", e))?;
 
         let sync_service = TimeTrackingSync::new(Arc::new(db.clone()));
         let result = sync_service
@@ -408,16 +410,18 @@ impl TimeEntryMutations {
             return Err("Permission denied: You need time_sync:trigger permission".into());
         }
 
-        // Get QuickBooks credentials
-        let client_id = std::env::var("INTUIT_CLIENT_ID")
-            .map_err(|_| "INTUIT_CLIENT_ID not configured")?;
-        let client_secret = std::env::var("INTUIT_CLIENT_SECRET")
-            .map_err(|_| "INTUIT_CLIENT_SECRET not configured")?;
-        let realm_id = std::env::var("INTUIT_REALM_ID")
-            .map_err(|_| "INTUIT_REALM_ID not configured")?;
-
-        let intuit_client = IntuitClient::new(client_id, client_secret)
+        // Get QuickBooks client with automatic token refresh
+        let client_manager = IntuitClientManager::new(db.clone());
+        let intuit_client = client_manager
+            .get_client()
+            .await
             .map_err(|e| format!("Failed to create Intuit client: {}", e))?;
+
+        // Get realm ID from the active connection
+        let realm_id = client_manager
+            .get_realm_id()
+            .await
+            .map_err(|e| format!("Failed to get realm ID: {}", e))?;
 
         let sync_service = TimeTrackingSync::new(Arc::new(db.clone()));
         let result = sync_service

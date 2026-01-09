@@ -3,7 +3,7 @@
 use async_graphql::{Context, Object, Result};
 
 use crate::auth::UserContext;
-use crate::integrations::intuit::IntuitClient;
+use crate::integrations::intuit::IntuitClientManager;
 use crate::services::reconciliation::ReconciliationService;
 use crate::services::permission_checker::{PermissionChecker, SyncPermission};
 
@@ -19,7 +19,6 @@ impl ReconciliationMutations {
     async fn reconcile_employees(&self, ctx: &Context<'_>) -> Result<ReconciliationResult> {
         let user_ctx = ctx.data::<UserContext>()?;
         let db = ctx.data::<sea_orm::DatabaseConnection>()?;
-        let intuit_client = ctx.data::<IntuitClient>()?;
 
         // Check permission
         let permission_checker = PermissionChecker::new(db.clone());
@@ -27,10 +26,17 @@ impl ReconciliationMutations {
             .require(user_ctx, SyncPermission::TriggerEmployeeSync)
             .await?;
 
+        // Get QuickBooks client with automatic token refresh
+        let client_manager = IntuitClientManager::new(db.clone());
+        let intuit_client = client_manager
+            .get_client()
+            .await
+            .map_err(|e| async_graphql::Error::new(e.to_string()))?;
+
         let service = ReconciliationService::new(Arc::new(db.clone()));
         let result = service
             .reconcile_employees(
-                intuit_client,
+                &intuit_client,
                 Some(user_ctx.user_id),
                 user_ctx.email.clone(),
             )
@@ -57,12 +63,31 @@ impl ReconciliationMutations {
             .await?;
 
         let service = ReconciliationService::new(Arc::new(db.clone()));
+        let discrepancy_uuid = Uuid::parse_str(&discrepancy_id)?;
+
+        // Get the report_id before resolving (to check for auto-deletion later)
+        use crate::models::reconciliation_discrepancies::{Entity as DiscrepancyEntity};
+        use sea_orm::EntityTrait;
+
+        let discrepancy = DiscrepancyEntity::find_by_id(discrepancy_uuid)
+            .one(db)
+            .await?
+            .ok_or_else(|| async_graphql::Error::new("Discrepancy not found"))?;
+
+        let report_id = discrepancy.report_id;
+
+        // Resolve the discrepancy
         service
             .resolve_discrepancy(
-                Uuid::parse_str(&discrepancy_id)?,
+                discrepancy_uuid,
                 user_ctx.user_id,
                 resolution_notes,
             )
+            .await?;
+
+        // Check if all discrepancies in the report are now resolved, and delete if so
+        service
+            .check_and_delete_resolved_report(report_id)
             .await?;
 
         Ok(true)

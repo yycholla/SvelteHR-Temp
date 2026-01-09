@@ -12,7 +12,10 @@ import {
 	type ResolveHealthAlertMutationData
 } from '$lib/graphql/sync-health-operations';
 
-export const load: PageServerLoad = async ({ fetch, cookies }) => {
+export const load: PageServerLoad = async ({ fetch, cookies, depends }) => {
+	// Declare dependency for invalidation
+	depends('app:sync-health');
+
 	// Create authenticated GraphQL client
 	const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
 
@@ -39,10 +42,10 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
 			throw error(500, 'Failed to load sync health metrics');
 		}
 
-		// Fetch active alerts
+		// Fetch active (unresolved) alerts only
 		const alertsResult = await client
 			.query<SyncHealthAlertsQueryData>(SYNC_HEALTH_ALERTS_QUERY, {
-				status: null, // Get all alerts
+				status: 'active', // Only get unresolved alerts
 				limit: 50
 			})
 			.toPromise();

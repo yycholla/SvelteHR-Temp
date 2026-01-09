@@ -93,6 +93,8 @@ services:
       INTUIT_REDIRECT_URI: http://localhost:5173/api/intuit/callback
       INTUIT_ENVIRONMENT: sandbox
       INTUIT_SCOPES: com.intuit.quickbooks.accounting com.intuit.quickbooks.payment
+      INTUIT_WEBHOOK_URL: https://your-domain.com/api/intuit/webhook
+      INTUIT_WEBHOOK_VERIFIER_TOKEN: <generate_a_random_token>
     networks:
       - sveltehr-dev
     depends_on:

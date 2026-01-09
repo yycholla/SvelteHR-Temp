@@ -1,14 +1,60 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
-	import { AlertCircle, CheckCircle2, RefreshCw, Link as LinkIcon, Unlink, Upload, Download, RotateCcw, Lock } from '@lucide/svelte';
+	import { AlertCircle, AlertTriangle, CheckCircle2, RefreshCw, Link as LinkIcon, Unlink, Clock, RotateCcw, Lock, TrendingUp, TrendingDown } from '@lucide/svelte';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
 	import { invalidate } from '$app/navigation';
 	import { errorStore, showSuccess } from '$lib/stores/error.svelte';
 	import * as Dialog from '$lib/components/ui/dialog';
+	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
+	import { getIntuitAuthUrl, disconnectIntuit } from '$lib/graphql/intuit-oauth/operations';
 
 	const { data } = $props();
+
+	// Check for OAuth callback success/error
+	onMount(() => {
+		const urlParams = new URLSearchParams(window.location.search);
+		const success = urlParams.get('success');
+		const error = urlParams.get('error');
+
+		if (success === 'connected') {
+			showSuccess('Successfully connected to QuickBooks!');
+			// Clear query params
+			window.history.replaceState({}, '', window.location.pathname);
+			// Refresh data
+			invalidate('app:integrations');
+		} else if (success === 'reconnected') {
+			showSuccess('Successfully reconnected to QuickBooks!');
+			window.history.replaceState({}, '', window.location.pathname);
+			invalidate('app:integrations');
+		} else if (error) {
+			errorStore.add({
+				message: decodeURIComponent(error),
+				type: 'error'
+			});
+			window.history.replaceState({}, '', window.location.pathname);
+		}
+	});
+
+	// Derive metrics with safe defaults
+	const metrics = $derived(data.metrics || {
+		uptimePercentage: 0,
+		totalSyncs24h: 0,
+		successRate: 0,
+		errorRate: 0,
+		activeAlertsCount: 0,
+	});
+
+	const alerts = $derived(data.alerts || []);
+
+	// Compute derived metrics
+	const hasErrors = $derived(metrics.errorRate > 5);
+	const hasAlerts = $derived(metrics.activeAlertsCount > 0);
+	const healthStatus = $derived(
+		metrics.successRate >= 95 ? 'healthy' :
+		metrics.successRate >= 80 ? 'warning' : 'critical'
+	);
 
 	// Sync permissions from server
 	const perms = $derived(data.syncPermissions || {
@@ -29,14 +75,6 @@
 		canManagePermissions: false,
 	});
 
-	let syncing = $state(false);
-	let pushingDepartments = $state(false);
-	let pushingEmployees = $state(false);
-	let pushingAll = $state(false);
-	let updatingEmployeeDepartments = $state(false);
-	let pullingDepartments = $state(false);
-	let pullingEmployees = $state(false);
-	let pullingAll = $state(false);
 	let disconnecting = $state(false);
 	let resettingForTest = $state(false);
 
@@ -44,274 +82,18 @@
 	let bidirectionalSyncDialogOpen = $state(false);
 	let resetTestDialogOpen = $state(false);
 	let disconnectDialogOpen = $state(false);
-	let pendingBidirectionalSync = $state<'EMPLOYEE' | 'DEPARTMENT' | null>(null);
+	let pendingBidirectionalSync = $state<'EMPLOYEE' | 'DEPARTMENT' | 'ALL' | null>(null);
 
 	// Two-way sync state
 	let syncingBidirectional = $state(false);
 	let selectedConflictStrategy = $state('LAST_WRITE_WINS');
 	let selectedSyncMode = $state('AUTO');
-	let selectedEntityType = $state<'EMPLOYEE' | 'DEPARTMENT' | null>(null);
+	let selectedEntityType = $state<'EMPLOYEE' | 'DEPARTMENT' | 'ALL' | null>(null);
 
 	// Check if we're in development mode
 	const isDev = import.meta.env.DEV;
 
-	async function syncNow() {
-		syncing = true;
-		
-		try {
-			const response = await fetch('/api/intuit/sync', { method: 'POST' });
-			const result = await response.json();
-
-			if (!response.ok) {
-				errorStore.add({
-				message: result.message || result.error || 'Failed to sync',
-				type: 'error',
-				details: result
-			});
-			} else {
-				showSuccess(result.message || 'Sync completed');
-				if (result.errors && result.errors.length > 0) {
-					console.log('Sync warnings:', result.errors);
-				}
-				// Reload page after a delay to show the message
-				await invalidate('app:integrations');
-			}
-		} catch (error: any) {
-			errorStore.add({
-				message: 'Failed to sync with QuickBooks',
-				type: 'error',
-				details: error
-			});
-		} finally {
-			syncing = false;
-		}
-	}
-
-	async function pushDepartments() {
-		pushingDepartments = true;
-		
-		try {
-			const response = await fetch('/api/intuit/push?type=departments', { method: 'POST' });
-			const result = await response.json();
-
-			if (!response.ok) {
-				errorStore.add({
-				message: result.message || result.error || 'Failed to push departments',
-				type: 'error',
-				details: result
-			});
-			} else {
-				showSuccess(result.message || 'Departments pushed successfully');
-				if (result.errors && result.errors.length > 0) {
-					console.log('Push warnings:', result.errors);
-				}
-				// Reload page after a delay to show the message
-				await invalidate('app:integrations');
-			}
-		} catch (error: any) {
-			errorStore.add({
-				message: 'Failed to push departments to QuickBooks',
-				type: 'error',
-				details: error
-			});
-		} finally {
-			pushingDepartments = false;
-		}
-	}
-
-	async function pushEmployees() {
-		pushingEmployees = true;
-		
-		try {
-			const response = await fetch('/api/intuit/push?type=employees', { method: 'POST' });
-			const result = await response.json();
-
-			if (!response.ok) {
-				errorStore.add({
-				message: result.message || result.error || 'Failed to push employees',
-				type: 'error',
-				details: result
-			});
-			} else {
-				showSuccess(result.message || 'Employees pushed successfully');
-				if (result.errors && result.errors.length > 0) {
-					console.log('Push warnings:', result.errors);
-				}
-				// Reload page after a delay to show the message
-				await invalidate('app:integrations');
-			}
-		} catch (error: any) {
-			errorStore.add({
-				message: 'Failed to push employees to QuickBooks',
-				type: 'error',
-				details: error
-			});
-		} finally {
-			pushingEmployees = false;
-		}
-	}
-
-	async function pushAll() {
-		pushingAll = true;
-		
-		try {
-			const response = await fetch('/api/intuit/push?type=all', { method: 'POST' });
-			const result = await response.json();
-
-			if (!response.ok) {
-				errorStore.add({
-				message: result.message || result.error || 'Failed to push data',
-				type: 'error',
-				details: result
-			});
-			} else {
-				showSuccess(result.message || 'Push completed successfully');
-				if (result.errors && result.errors.length > 0) {
-					console.log('Push warnings:', result.errors);
-				}
-				// Reload page after a delay to show the message
-				await invalidate('app:integrations');
-			}
-		} catch (error: any) {
-			errorStore.add({
-				message: 'Failed to push data to QuickBooks',
-				type: 'error',
-				details: error
-			});
-		} finally {
-			pushingAll = false;
-		}
-	}
-
-	async function updateEmployeeDepartments() {
-		updatingEmployeeDepartments = true;
-		
-		try {
-			const response = await fetch('/api/intuit/push?type=employee-departments', { method: 'POST' });
-			const result = await response.json();
-
-			if (!response.ok) {
-				errorStore.add({
-				message: result.message || result.error || 'Failed to update employee departments',
-				type: 'error',
-				details: result
-			});
-			} else {
-				showSuccess(result.message || 'Employee departments updated successfully');
-				if (result.errors && result.errors.length > 0) {
-					console.log('Update warnings:', result.errors);
-				}
-				// Reload page after a delay to show the message
-				await invalidate('app:integrations');
-			}
-		} catch (error: any) {
-			errorStore.add({
-				message: 'Failed to update employee departments in QuickBooks',
-				type: 'error',
-				details: error
-			});
-		} finally {
-			updatingEmployeeDepartments = false;
-		}
-	}
-
-	async function pullDepartments() {
-		pullingDepartments = true;
-		
-		try {
-			const response = await fetch('/api/intuit/pull?type=departments', { method: 'POST' });
-			const result = await response.json();
-
-			if (!response.ok) {
-				errorStore.add({
-				message: result.message || result.error || 'Failed to pull departments',
-				type: 'error',
-				details: result
-			});
-			} else {
-				showSuccess(result.message || 'Departments pulled successfully');
-				if (result.errors && result.errors.length > 0) {
-					console.log('Pull warnings:', result.errors);
-				}
-				// Reload page after a delay to show the message
-				await invalidate('app:integrations');
-			}
-		} catch (error: any) {
-			errorStore.add({
-				message: 'Failed to pull departments from QuickBooks',
-				type: 'error',
-				details: error
-			});
-		} finally {
-			pullingDepartments = false;
-		}
-	}
-
-	async function pullEmployees() {
-		pullingEmployees = true;
-		
-		try {
-			const response = await fetch('/api/intuit/pull?type=employees', { method: 'POST' });
-			const result = await response.json();
-
-			if (!response.ok) {
-				errorStore.add({
-				message: result.message || result.error || 'Failed to pull employees',
-				type: 'error',
-				details: result
-			});
-			} else {
-				showSuccess(result.message || 'Employees pulled successfully');
-				if (result.errors && result.errors.length > 0) {
-					console.log('Pull warnings:', result.errors);
-				}
-				// Reload page after a delay to show the message
-				await invalidate('app:integrations');
-			}
-		} catch (error: any) {
-			errorStore.add({
-				message: 'Failed to pull employees from QuickBooks',
-				type: 'error',
-				details: error
-			});
-		} finally {
-			pullingEmployees = false;
-		}
-	}
-
-	async function pullAll() {
-		pullingAll = true;
-		
-		try {
-			const response = await fetch('/api/intuit/pull?type=all', { method: 'POST' });
-			const result = await response.json();
-
-			if (!response.ok) {
-				errorStore.add({
-				message: result.message || result.error || 'Failed to pull data',
-				type: 'error',
-				details: result
-			});
-			} else {
-				showSuccess(result.message || 'Pull completed successfully');
-				if (result.errors && result.errors.length > 0) {
-					console.log('Pull warnings:', result.errors);
-				}
-				// Reload page after a delay to show the message
-				await invalidate('app:integrations');
-			}
-		} catch (error: any) {
-			errorStore.add({
-				message: 'Failed to pull data from QuickBooks',
-				type: 'error',
-				details: error
-			});
-		} finally {
-			pullingAll = false;
-		}
-	}
-
-	function openBidirectionalSyncDialog(entityType: 'EMPLOYEE' | 'DEPARTMENT') {
+	function openBidirectionalSyncDialog(entityType: 'EMPLOYEE' | 'DEPARTMENT' | 'ALL') {
 		pendingBidirectionalSync = entityType;
 		bidirectionalSyncDialogOpen = true;
 	}
@@ -325,41 +107,115 @@
 
 		syncingBidirectional = true;
 		selectedEntityType = entityType;
-		
+
 		try {
-			const response = await fetch('/api/intuit/sync-bidirectional', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					entityType,
-					conflictStrategy: selectedConflictStrategy,
-					syncMode: selectedSyncMode
-				})
-			});
+			if (entityType === 'ALL') {
+				// Sync both employees and departments sequentially
+				let totalPushed = 0;
+				let totalPulled = 0;
+				let totalConflicts = 0;
+				let totalDetected = 0;
+				let totalProcessed = 0;
+				let allErrors: any[] = [];
 
-			const result = await response.json();
-
-			if (!response.ok) {
-				errorStore.add({
-					message: result.message || result.error || 'Failed to perform bidirectional sync',
-					type: 'error',
-					details: result
+				// Sync employees first
+				const employeeResponse = await fetch('/api/intuit/sync-bidirectional', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						entityType: 'EMPLOYEE',
+						conflictStrategy: selectedConflictStrategy,
+						syncMode: selectedSyncMode
+					})
 				});
-			} else {
-				const { pushed_count = 0, pulled_count = 0, conflicts_resolved = 0, errors = [], sync_mode = 'unknown', changes_detected = 0, changes_processed = 0 } = result;
-				showSuccess(`${sync_mode.toUpperCase()} sync completed: ${changes_detected} detected, ${changes_processed} processed (${pushed_count} pushed, ${pulled_count} pulled, ${conflicts_resolved} conflicts resolved)`);
 
-				if (errors.length > 0) {
-					console.warn('Sync errors:', errors);
-					errorStore.add({
-						message: `Completed with ${errors.length} error(s). Check console for details.`,
-						type: 'error',
-						details: errors
-					});
+				const employeeResult = await employeeResponse.json();
+				if (employeeResponse.ok) {
+					totalPushed += employeeResult.pushed_count || 0;
+					totalPulled += employeeResult.pulled_count || 0;
+					totalConflicts += employeeResult.conflicts_resolved || 0;
+					totalDetected += employeeResult.changes_detected || 0;
+					totalProcessed += employeeResult.changes_processed || 0;
+					allErrors = [...allErrors, ...(employeeResult.errors || [])];
 				}
 
-				// Reload page after a delay to show the message
-				await invalidate('app:integrations');
+				// Sync departments
+				const deptResponse = await fetch('/api/intuit/sync-bidirectional', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						entityType: 'DEPARTMENT',
+						conflictStrategy: selectedConflictStrategy,
+						syncMode: selectedSyncMode
+					})
+				});
+
+				const deptResult = await deptResponse.json();
+				if (deptResponse.ok) {
+					totalPushed += deptResult.pushed_count || 0;
+					totalPulled += deptResult.pulled_count || 0;
+					totalConflicts += deptResult.conflicts_resolved || 0;
+					totalDetected += deptResult.changes_detected || 0;
+					totalProcessed += deptResult.changes_processed || 0;
+					allErrors = [...allErrors, ...(deptResult.errors || [])];
+				}
+
+				if (!employeeResponse.ok || !deptResponse.ok) {
+					errorStore.add({
+						message: 'Some syncs failed. Check the results below.',
+						type: 'error',
+						details: { employeeResult, deptResult }
+					});
+				} else {
+					showSuccess(`Sync completed: ${totalDetected} detected, ${totalProcessed} processed (${totalPushed} pushed, ${totalPulled} pulled, ${totalConflicts} conflicts resolved)`);
+
+					if (allErrors.length > 0) {
+						console.warn('Sync errors:', allErrors);
+						errorStore.add({
+							message: `Completed with ${allErrors.length} error(s). Check console for details.`,
+							type: 'error',
+							details: allErrors
+						});
+					}
+
+					await invalidate('app:integrations');
+				}
+			} else {
+				// Single entity type sync
+				const response = await fetch('/api/intuit/sync-bidirectional', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						entityType,
+						conflictStrategy: selectedConflictStrategy,
+						syncMode: selectedSyncMode
+					})
+				});
+
+				const result = await response.json();
+
+				if (!response.ok) {
+					errorStore.add({
+						message: result.message || result.error || 'Failed to perform bidirectional sync',
+						type: 'error',
+						details: result
+					});
+				} else {
+					const { pushed_count = 0, pulled_count = 0, conflicts_resolved = 0, errors = [], sync_mode = 'unknown', changes_detected = 0, changes_processed = 0 } = result;
+					showSuccess(`${sync_mode.toUpperCase()} sync completed: ${changes_detected} detected, ${changes_processed} processed (${pushed_count} pushed, ${pulled_count} pulled, ${conflicts_resolved} conflicts resolved)`);
+
+					if (errors.length > 0) {
+						console.warn('Sync errors:', errors);
+						errorStore.add({
+							message: `Completed with ${errors.length} error(s). Check console for details.`,
+							type: 'error',
+							details: errors
+						});
+					}
+
+					// Reload page after a delay to show the message
+					await invalidate('app:integrations');
+				}
 			}
 		} catch (error: any) {
 			errorStore.add({
@@ -380,7 +236,7 @@
 	async function confirmResetTest() {
 		resetTestDialogOpen = false;
 		resettingForTest = true;
-		
+
 		try {
 			const response = await fetch('/api/intuit/reset-test', { method: 'POST' });
 			const result = await response.json();
@@ -405,6 +261,20 @@
 		}
 	}
 
+	async function handleConnectClick() {
+		try {
+			const { url } = await getIntuitAuthUrl();
+			// Redirect to QuickBooks authorization
+			window.location.href = url;
+		} catch (error: any) {
+			errorStore.add({
+				message: 'Failed to get authorization URL',
+				type: 'error',
+				details: error
+			});
+		}
+	}
+
 	function openDisconnectDialog() {
 		disconnectDialogOpen = true;
 	}
@@ -412,19 +282,18 @@
 	async function confirmDisconnect() {
 		disconnectDialogOpen = false;
 		disconnecting = true;
-	
-		try {
-			const response = await fetch('/api/intuit/disconnect', { method: 'POST' });
 
-			if (!response.ok) {
-				const result = await response.json();
+		try {
+			const result = await disconnectIntuit();
+
+			if (!result.success) {
 				errorStore.add({
 					message: result.error || 'Failed to disconnect',
-					type: 'error',
-					details: result
+					type: 'error'
 				});
 			} else {
-				window.location.reload();
+				showSuccess('Successfully disconnected from QuickBooks');
+				await invalidate('app:integrations');
 			}
 		} catch (error: any) {
 			errorStore.add({
@@ -438,528 +307,479 @@
 	}
 </script>
 
-<div class="container mx-auto p-6 max-w-4xl">
-	<div class="mb-6">
-		<h1 class="text-2xl font-bold">Integrations</h1>
-		<p class="text-sm text-muted-foreground mt-1">
-			Connect external services to sync data and automate workflows
-		</p>
-	</div>
-
-	{#if data.error}
-		<Alert variant="destructive" class="mb-6">
-			<AlertCircle class="h-4 w-4" />
-			<AlertDescription>{data.error}</AlertDescription>
-		</Alert>
-	{/if}
-
-	<!-- QuickBooks Integration -->
-	<Card>
-		<CardHeader>
-			<div class="flex items-start justify-between">
-				<div>
-					<CardTitle class="flex items-center gap-2">
-						<svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-							<rect width="24" height="24" rx="4" fill="#2CA01C"/>
-							<path d="M8 6h8v12H8V6z" fill="white"/>
-						</svg>
-						QuickBooks / Intuit Workforce
-					</CardTitle>
-					<CardDescription class="mt-1.5">
-						Sync employee data and payroll information with QuickBooks
-					</CardDescription>
-				</div>
-				<div class="flex flex-col items-end gap-2">
-					{#if data.intuitConnected}
-						<Badge variant="default" class="bg-green-600">
-							<CheckCircle2 class="h-3 w-3 mr-1" />
-							Connected
-						</Badge>
-						<div class="flex flex-col gap-1 items-end">
-							<a
-								href="/admin/settings/integrations/sync-status"
-								class="text-xs text-blue-600 hover:text-blue-800 underline"
-							>
-								📊 View Sync Dashboard
-							</a>
-							<a
-								href="/admin/settings/integrations/health"
-								class="text-xs text-green-600 hover:text-green-800 underline"
-							>
-								💚 Health Monitoring
-							</a>
-							<a
-								href="/admin/settings/integrations/conflicts"
-								class="text-xs text-orange-600 hover:text-orange-800 underline"
-							>
-								⚠️ View Conflicts
-							</a>
-						<a
-							href="/admin/settings/integrations/audit"
-							class="text-xs text-purple-600 hover:text-purple-800 underline"
-						>
-							📋 Audit Trail
-						</a>
-						<a
-							href="/admin/settings/integrations/reconciliation"
-							class="text-xs text-indigo-600 hover:text-indigo-800 underline"
-						>
-							🔄 Reconciliation
-						</a>
-						<a
-							href="/admin/settings/integrations/webhooks"
-							class="text-xs text-pink-600 hover:text-pink-800 underline"
-						>
-							🪝 Webhooks
-						</a>
-						<a
-							href="/admin/settings/integrations/validation"
-							class="text-xs text-teal-600 hover:text-teal-800 underline"
-						>
-							✓ Validation Rules
-						</a>
-						<a
-							href="/admin/settings/integrations/errors"
-							class="text-xs text-rose-600 hover:text-rose-800 underline"
-						>
-							🔄 Error Recovery
-						</a>
-						<a
-							href="/admin/settings/integrations/batches"
-							class="text-xs text-cyan-600 hover:text-cyan-800 underline"
-						>
-							📦 Batch Operations
-						</a>
-						<a
-							href="/admin/settings/integrations/compliance"
-							class="text-xs text-amber-600 hover:text-amber-800 underline"
-						>
-							🛡️ Compliance Reports
-						</a>
-						<a
-							href="/admin/settings/integrations/rollback"
-							class="text-xs text-violet-600 hover:text-violet-800 underline"
-						>
-							↩️ Sync Rollback
-						</a>
-						</div>
-					{:else}
-						<Badge variant="secondary">
-							Not Connected
-						</Badge>
-					{/if}
+{#if data.intuitConnected}
+	<div class="flex flex-col h-full overflow-hidden bg-background">
+		<!-- Toolbar Header -->
+		<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+			<div class="flex items-center gap-4">
+				<h1 class="text-sm font-semibold tracking-tight">QuickBooks Integration</h1>
+				<div class="h-4 w-px bg-border"></div>
+				<div class="flex items-center gap-2 text-xs text-muted-foreground">
+					<CheckCircle2 class="h-3.5 w-3.5 text-green-600" />
+					<span>Connected to {data.intuitCompanyName || 'QuickBooks'}</span>
 				</div>
 			</div>
-		</CardHeader>
-		<CardContent>
-			{#if data.intuitConnected}
-				<div class="space-y-4">
-					<!-- Connection Details -->
-					<div class="rounded-lg border bg-muted/50 p-4 space-y-2">
-						<div class="flex justify-between text-sm">
-							<span class="text-muted-foreground">Company</span>
-							<span class="font-medium">{data.intuitCompanyName || 'QuickBooks Company'}</span>
-						</div>
-						{#if data.intuitLastSync}
-							<div class="flex justify-between text-sm">
-								<span class="text-muted-foreground">Last Synced</span>
-								<span class="font-medium">
-									{new Date(data.intuitLastSync).toLocaleString()}
-								</span>
-							</div>
-						{/if}
-						{#if data.intuitRealmId}
-							<div class="flex justify-between text-sm">
-								<span class="text-muted-foreground">Realm ID</span>
-								<span class="font-mono text-xs">{data.intuitRealmId}</span>
-							</div>
-						{/if}
-					</div>
-
-					<!-- Features -->
-					<div class="space-y-2">
-						<p class="text-sm font-medium">Active Features:</p>
-						<ul class="space-y-1 text-sm text-muted-foreground">
-							<li class="flex items-center gap-2">
-								<CheckCircle2 class="h-4 w-4 text-green-600" />
-								Employee data synchronization
-							</li>
-							<li class="flex items-center gap-2">
-								<CheckCircle2 class="h-4 w-4 text-green-600" />
-								Automatic payroll updates
-							</li>
-							<li class="flex items-center gap-2">
-								<CheckCircle2 class="h-4 w-4 text-green-600" />
-								New hire onboarding → QuickBooks
-							</li>
-						</ul>
-					</div>
-
-					<!-- Actions -->
-					<div class="space-y-3">
-						{#if perms.canPushToQuickBooks}
-						<div>
-							<p class="text-sm font-medium mb-2">Push to QuickBooks:</p>
-							<div class="flex flex-wrap gap-2">
-								<Button onclick={pushDepartments} disabled={pushingDepartments || pushingAll} variant="default" size="sm">
-									{#if pushingDepartments}
-										<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
-										Pushing...
-									{:else}
-										<Upload class="h-4 w-4 mr-2" />
-										Departments
-									{/if}
-								</Button>
-								<Button onclick={pushEmployees} disabled={pushingEmployees || pushingAll} variant="default" size="sm">
-									{#if pushingEmployees}
-										<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
-										Pushing...
-									{:else}
-										<Upload class="h-4 w-4 mr-2" />
-										Employees
-									{/if}
-								</Button>
-								<Button onclick={pushAll} disabled={pushingAll || pushingDepartments || pushingEmployees} variant="default" size="sm">
-									{#if pushingAll}
-										<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
-										Pushing All...
-									{:else}
-										<Upload class="h-4 w-4 mr-2" />
-										All Data
-									{/if}
-								</Button>
-							</div>
-							<p class="text-xs text-muted-foreground mt-1">
-								Note: Employees are created without department assignments due to QuickBooks API limitations.
-							</p>
-						</div>
+			<div class="flex items-center gap-2">
+				{#if perms.canManageIntegrations}
+					<Button variant="ghost" size="sm" onclick={openDisconnectDialog} disabled={disconnecting} class="h-8 text-xs">
+						{#if disconnecting}
+							<RefreshCw class="h-3.5 w-3.5 mr-1.5 animate-spin" />
+							Disconnecting...
 						{:else}
-						<div class="p-3 bg-muted/50 rounded-md">
-							<p class="text-sm text-muted-foreground flex items-center gap-2">
-								<Lock class="h-4 w-4" />
-								Push operations require additional permissions
-							</p>
+							<Unlink class="h-3.5 w-3.5 mr-1.5" />
+							Disconnect
+						{/if}
+					</Button>
+				{/if}
+			</div>
+		</header>
+
+		{#if data.error}
+			<div class="flex-shrink-0 p-2 border-b bg-destructive/10">
+				<div class="flex items-center gap-2 text-xs text-destructive">
+					<AlertCircle class="h-3.5 w-3.5" />
+					<span>{data.error}</span>
+				</div>
+			</div>
+		{/if}
+
+		<div class="flex-1 overflow-auto bg-muted/5">
+			<!-- Metrics Overview -->
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 border-b">
+				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
+					<div class="flex items-center justify-between">
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Success Rate</span>
+						{#if healthStatus === 'healthy'}
+							<CheckCircle2 class="h-4 w-4 text-green-600" />
+						{:else if healthStatus === 'warning'}
+							<AlertTriangle class="h-4 w-4 text-yellow-600" />
+						{:else}
+							<AlertCircle class="h-4 w-4 text-red-600" />
+						{/if}
+					</div>
+					<div>
+						<div class="text-3xl font-bold tracking-tight" class:text-green-600={healthStatus === 'healthy'} class:text-yellow-600={healthStatus === 'warning'} class:text-red-600={healthStatus === 'critical'}>
+							{Math.round(metrics.successRate)}%
 						</div>
-						{/if}
-						{#if perms.canPushToQuickBooks}
-						<div>
-							<p class="text-sm font-medium mb-2">Update in QuickBooks:</p>
-							<div class="flex flex-wrap gap-2">
-								<Button onclick={updateEmployeeDepartments} disabled={updatingEmployeeDepartments} variant="secondary" size="sm">
-									{#if updatingEmployeeDepartments}
-										<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
-										Updating...
-									{:else}
-										<RefreshCw class="h-4 w-4 mr-2" />
-										Employee Departments
-									{/if}
-								</Button>
-							</div>
-							<p class="text-xs text-muted-foreground mt-1">
-								Updates existing QuickBooks employees with their department assignments.
-							</p>
+						<div class="mt-1 text-xs text-muted-foreground flex items-center gap-1">
+							{#if metrics.totalSyncs24h > 0}
+								<span>{metrics.totalSyncs24h} syncs / 24h</span>
+							{:else}
+								<span>No recent syncs</span>
+							{/if}
 						</div>
-						{/if}
-						{#if perms.canTriggerEmployeeSync || perms.canTriggerDepartmentSync}
-						<div>
-							<p class="text-sm font-medium mb-2">Pull from QuickBooks:</p>
-							<div class="flex flex-wrap gap-2">
-								{#if perms.canTriggerDepartmentSync}
-								<Button onclick={pullDepartments} disabled={pullingDepartments || pullingAll} variant="secondary" size="sm">
-									{#if pullingDepartments}
-										<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
-										Pulling...
-									{:else}
-										<Download class="h-4 w-4 mr-2" />
-										Departments
-									{/if}
-								</Button>
-								{/if}
-								{#if perms.canTriggerEmployeeSync}
-								<Button onclick={pullEmployees} disabled={pullingEmployees || pullingAll} variant="secondary" size="sm">
-									{#if pullingEmployees}
-										<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
-										Pulling...
-									{:else}
-										<Download class="h-4 w-4 mr-2" />
-										Employees
-									{/if}
-								</Button>
-								{/if}
-								{#if perms.canTriggerEmployeeSync && perms.canTriggerDepartmentSync}
-								<Button onclick={pullAll} disabled={pullingAll || pullingDepartments || pullingEmployees} variant="secondary" size="sm">
-									{#if pullingAll}
-										<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
-										Pulling All...
-									{:else}
-										<Download class="h-4 w-4 mr-2" />
-										All Data
-									{/if}
-								</Button>
-								{/if}
-							</div>
-							<p class="text-xs text-muted-foreground mt-1">
-								Import data from QuickBooks into the HR system. Existing records will be updated, new ones will be created.
-							</p>
-						</div>
-						{/if}
-
-						<!-- Two-Way Sync Section -->
-						{#if perms.canTriggerBidirectionalSync}
-						<div class="border-t pt-4 mt-4">
-							<p class="text-sm font-medium mb-2 flex items-center gap-2">
-								<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-								</svg>
-								Two-Way Sync (with Conflict Resolution):
-							</p>
-
-							<!-- Conflict Strategy Selector -->
-							<div class="mb-3">
-								<div class="flex items-center justify-between mb-1">
-									<label for="conflict-strategy" class="text-xs font-medium text-muted-foreground">Conflict Strategy:</label>
-									{#if perms.canViewConflicts}
-									<a
-										href="/admin/settings/integrations/conflicts"
-										class="text-xs text-blue-600 hover:text-blue-800 underline"
-									>
-										View Conflicts →
-									</a>
-									{/if}
-								</div>
-								<select
-									id="conflict-strategy"
-									bind:value={selectedConflictStrategy}
-									class="w-full max-w-md text-sm border rounded-md px-3 py-1.5 bg-background"
-									disabled={syncingBidirectional}
-								>
-									<option value="LAST_WRITE_WINS">Last Write Wins (Recommended) - Use most recent change</option>
-									<option value="LOCAL_WINS">Local Wins - Keep HR system changes</option>
-									<option value="REMOTE_WINS">QuickBooks Wins - Keep QuickBooks changes</option>
-									<option value="MANUAL_REVIEW">Manual Review - Mark conflicts for review</option>
-								</select>
-								<p class="text-xs text-muted-foreground mt-1">
-									{#if selectedConflictStrategy === 'LAST_WRITE_WINS'}
-										When conflicts occur, the most recently modified version will be kept based on timestamps.
-									{:else if selectedConflictStrategy === 'LOCAL_WINS'}
-										Local changes will always override QuickBooks changes.
-									{:else if selectedConflictStrategy === 'REMOTE_WINS'}
-										QuickBooks changes will always override local changes.
-									{:else}
-										Conflicts will be marked for manual review and not automatically resolved.
-									{/if}
-								</p>
-							</div>
-
-							<!-- Sync Mode Selector (Feature 3: Incremental Sync) -->
-							<div class="mb-3">
-								<label for="sync-mode" class="text-xs font-medium text-muted-foreground">Sync Mode:</label>
-								<select
-									id="sync-mode"
-									bind:value={selectedSyncMode}
-									class="w-full max-w-md text-sm border rounded-md px-3 py-1.5 bg-background mt-1"
-									disabled={syncingBidirectional}
-								>
-									<option value="AUTO">Auto (Recommended) - System decides based on conditions</option>
-									<option value="INCREMENTAL">Incremental - Only sync changes since last sync</option>
-									<option value="FULL">Full - Sync all entities (integrity check)</option>
-								</select>
-								<p class="text-xs text-muted-foreground mt-1">
-									{#if selectedSyncMode === 'AUTO'}
-										System automatically chooses between incremental and full sync based on last sync time and data integrity checks.
-									{:else if selectedSyncMode === 'INCREMENTAL'}
-										Only entities modified since the last sync will be processed. Faster but requires previous successful sync.
-									{:else}
-										All entities will be synced regardless of modification time. Slower but ensures complete data integrity.
-									{/if}
-								</p>
-							</div>
-
-							<!-- Sync Buttons -->
-							<div class="flex flex-wrap gap-2">
-								<Button
-									onclick={() => openBidirectionalSyncDialog('EMPLOYEE')}
-									disabled={syncingBidirectional}
-									variant="default"
-									size="sm"
-									class="bg-blue-600 hover:bg-blue-700"
-								>
-									{#if syncingBidirectional && selectedEntityType === 'EMPLOYEE'}
-										<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
-										Syncing...
-									{:else}
-										<svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-										</svg>
-										Employees
-									{/if}
-								</Button>
-
-								<Button
-									onclick={() => openBidirectionalSyncDialog('DEPARTMENT')}
-									disabled={syncingBidirectional}
-									variant="default"
-									size="sm"
-									class="bg-blue-600 hover:bg-blue-700"
-								>
-									{#if syncingBidirectional && selectedEntityType === 'DEPARTMENT'}
-										<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
-										Syncing...
-									{:else}
-										<svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-										</svg>
-										Departments
-									{/if}
-								</Button>
-							</div>
-
-							<div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-								<p class="text-xs text-blue-900">
-									<strong>Two-way sync</strong> detects changes on both sides and synchronizes them bidirectionally.
-									Changes made locally will be pushed to QuickBooks, and changes made in QuickBooks will be pulled here.
-									Conflicts are resolved using the selected strategy.
-								</p>
-							</div>
-						</div>
-						{/if}
-
-						{#if isDev && perms.canManageIntegrations}
-							<div>
-								<p class="text-sm font-medium mb-2 text-orange-600">Development Tools:</p>
-								<Button onclick={openResetTestDialog} disabled={resettingForTest} variant="outline" size="sm" class="border-orange-300 text-orange-700 hover:bg-orange-50">
-									{#if resettingForTest}
-										<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
-										Resetting...
-									{:else}
-										<RotateCcw class="h-4 w-4 mr-2" />
-										Reset Departments & Employees
-									{/if}
-								</Button>
-								<p class="text-xs text-muted-foreground mt-1">Clears QuickBooks IDs from all departments and 5 employees to re-test sync</p>
-							</div>
-						{/if}
-						{#if perms.canManageIntegrations}
-						<div class="flex gap-2">
-							<Button onclick={openDisconnectDialog} disabled={disconnecting} variant="destructive">
-								{#if disconnecting}
-									<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
-									Disconnecting...
-								{:else}
-									<Unlink class="h-4 w-4 mr-2" />
-									Disconnect
-								{/if}
-							</Button>
-						</div>
-						{/if}
 					</div>
 				</div>
-			{:else}
-				<div class="space-y-4">
-					<!-- Benefits -->
-					<div class="space-y-2">
-						<p class="text-sm font-medium">Connect QuickBooks to:</p>
-						<ul class="space-y-1 text-sm text-muted-foreground">
-							<li class="flex items-center gap-2">
-								<div class="h-1.5 w-1.5 rounded-full bg-primary"></div>
-								Automatically sync employee data to payroll
-							</li>
-							<li class="flex items-center gap-2">
-								<div class="h-1.5 w-1.5 rounded-full bg-primary"></div>
-								New hires auto-created in QuickBooks
-							</li>
-							<li class="flex items-center gap-2">
-								<div class="h-1.5 w-1.5 rounded-full bg-primary"></div>
-								PTO requests sync to payroll
-							</li>
-							<li class="flex items-center gap-2">
-								<div class="h-1.5 w-1.5 rounded-full bg-primary"></div>
-								Employees can view pay stubs in HR portal
-							</li>
-						</ul>
-					</div>
 
-					<!-- Connect Button -->
-					{#if perms.canManageIntegrations}
-					<a href="/api/intuit/connect" class="inline-flex items-center justify-center rounded-md bg-primary px-8 py-3 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
+				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
+					<div class="flex items-center justify-between">
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Uptime</span>
+						<TrendingUp class="h-4 w-4 text-muted-foreground" />
+					</div>
+					<div>
+						<div class="text-3xl font-bold tracking-tight">{Math.round(metrics.uptimePercentage)}%</div>
+						<div class="mt-1 text-xs text-muted-foreground">
+							Last 24 hours
+						</div>
+					</div>
+				</div>
+
+				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
+					<div class="flex items-center justify-between">
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Errors</span>
+						{#if hasErrors}
+							<AlertCircle class="h-4 w-4 text-red-600" />
+						{:else}
+							<CheckCircle2 class="h-4 w-4 text-green-600" />
+						{/if}
+					</div>
+					<div>
+						<div class="text-3xl font-bold tracking-tight" class:text-red-600={hasErrors}>
+							{Math.round(metrics.errorRate)}%
+						</div>
+						<div class="mt-1 text-xs text-muted-foreground">
+							Error rate
+						</div>
+					</div>
+				</div>
+
+				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
+					<div class="flex items-center justify-between">
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Active Alerts</span>
+						{#if hasAlerts}
+							<AlertTriangle class="h-4 w-4 text-orange-600" />
+						{:else}
+							<CheckCircle2 class="h-4 w-4 text-green-600" />
+						{/if}
+					</div>
+					<div>
+						<div class="text-3xl font-bold tracking-tight" class:text-orange-600={hasAlerts}>
+							{metrics.activeAlertsCount}
+						</div>
+						<div class="mt-1 text-xs text-muted-foreground">
+							Require attention
+						</div>
+					</div>
+				</div>
+
+				<div class="p-6 bg-background flex flex-col justify-between h-32">
+					<div class="flex items-center justify-between">
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Last Sync</span>
+						<Clock class="h-4 w-4 text-muted-foreground" />
+					</div>
+					<div>
+						<div class="text-2xl font-bold tracking-tight">
+							{#if data.intuitLastSync}
+								{new Date(data.intuitLastSync).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+							{:else}
+								Never
+							{/if}
+						</div>
+						<div class="mt-1 text-xs text-muted-foreground">
+							{#if data.intuitLastSync}
+								{new Date(data.intuitLastSync).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+							{:else}
+								Run a sync
+							{/if}
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Primary Sync Actions -->
+			{#if perms.canTriggerBidirectionalSync}
+			<div class="border-b bg-background p-6">
+				<div class="flex items-center justify-between mb-4">
+					<div>
+						<h2 class="text-sm font-semibold flex items-center gap-2">
+							<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+							</svg>
+							Sync Data
+						</h2>
+						<p class="text-xs text-muted-foreground mt-1">
+							Two-way synchronization between HR system and QuickBooks
+						</p>
+					</div>
+				</div>
+
+				<div class="flex flex-wrap gap-3">
+					<Button
+						onclick={() => openBidirectionalSyncDialog('ALL')}
+						disabled={syncingBidirectional}
+						size="sm"
+						class="bg-blue-600 hover:bg-blue-700 h-9"
+					>
+						{#if syncingBidirectional && selectedEntityType === 'ALL'}
+							<RefreshCw class="h-3.5 w-3.5 mr-1.5 animate-spin" />
+							Syncing All...
+						{:else}
+							<RefreshCw class="h-3.5 w-3.5 mr-1.5" />
+							Sync All
+						{/if}
+					</Button>
+
+					<Button
+						onclick={() => openBidirectionalSyncDialog('EMPLOYEE')}
+						disabled={syncingBidirectional}
+						size="sm"
+						variant="outline"
+						class="h-9"
+					>
+						{#if syncingBidirectional && selectedEntityType === 'EMPLOYEE'}
+							<RefreshCw class="h-3.5 w-3.5 mr-1.5 animate-spin" />
+							Syncing Employees...
+						{:else}
+							<RefreshCw class="h-3.5 w-3.5 mr-1.5" />
+							Sync Employees
+						{/if}
+					</Button>
+
+					<Button
+						onclick={() => openBidirectionalSyncDialog('DEPARTMENT')}
+						disabled={syncingBidirectional}
+						size="sm"
+						variant="outline"
+						class="h-9"
+					>
+						{#if syncingBidirectional && selectedEntityType === 'DEPARTMENT'}
+							<RefreshCw class="h-3.5 w-3.5 mr-1.5 animate-spin" />
+							Syncing Departments...
+						{:else}
+							<RefreshCw class="h-3.5 w-3.5 mr-1.5" />
+							Sync Departments
+						{/if}
+					</Button>
+
+					{#if isDev}
+						<Button
+							onclick={openResetTestDialog}
+							disabled={resettingForTest}
+							variant="outline"
+							size="sm"
+							class="h-9 border-orange-300 text-orange-700"
+						>
+							{#if resettingForTest}
+								<RefreshCw class="h-3.5 w-3.5 mr-1.5 animate-spin" />
+								Resetting...
+							{:else}
+								<RotateCcw class="h-3.5 w-3.5 mr-1.5" />
+								Reset Test Data
+							{/if}
+						</Button>
+					{/if}
+				</div>
+
+				<div class="mt-4 text-xs text-muted-foreground bg-muted/50 p-3 rounded border">
+					<strong>Note:</strong> Automatically detects changes on both sides and resolves conflicts using the most recent change.
+				</div>
+			</div>
+			{/if}
+
+			<!-- Feature Grid -->
+			<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 border-b">
+				<!-- Monitoring & Health -->
+				<div class="border-r border-b md:border-b-0 bg-muted/20 p-4">
+					<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Monitoring</h3>
+					<div class="space-y-2">
+						<a href="/admin/settings/integrations/sync-status" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+							<div class="flex items-center gap-2 mb-1">
+								<svg class="h-3.5 w-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+								</svg>
+								<span class="text-xs font-medium">Sync Dashboard</span>
+							</div>
+							<p class="text-xs text-muted-foreground">View history & stats</p>
+						</a>
+
+						<a href="/admin/settings/integrations/health" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+							<div class="flex items-center gap-2 mb-1">
+								<svg class="h-3.5 w-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+								</svg>
+								<span class="text-xs font-medium">Health Monitor</span>
+								{#if hasAlerts}
+									<Badge variant="destructive" class="h-4 px-1 text-[10px] ml-auto">{metrics.activeAlertsCount}</Badge>
+								{/if}
+							</div>
+							<p class="text-xs text-muted-foreground">System health & alerts</p>
+						</a>
+
+						<a href="/admin/settings/integrations/audit" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+							<div class="flex items-center gap-2 mb-1">
+								<svg class="h-3.5 w-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+								</svg>
+								<span class="text-xs font-medium">Audit Trail</span>
+							</div>
+							<p class="text-xs text-muted-foreground">Integration activities</p>
+						</a>
+					</div>
+				</div>
+
+				<!-- Data Operations -->
+				<div class="border-r border-b md:border-b-0 bg-muted/20 p-4">
+					<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Data Operations</h3>
+					<div class="space-y-2">
+						<a href="/admin/settings/integrations/reconciliation" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+							<div class="flex items-center gap-2 mb-1">
+								<RefreshCw class="h-3.5 w-3.5 text-primary" />
+								<span class="text-xs font-medium">Reconciliation</span>
+							</div>
+							<p class="text-xs text-muted-foreground">Compare & resolve differences</p>
+						</a>
+
+						<a href="/admin/settings/integrations/validation" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+							<div class="flex items-center gap-2 mb-1">
+								<CheckCircle2 class="h-3.5 w-3.5 text-primary" />
+								<span class="text-xs font-medium">Validation</span>
+							</div>
+							<p class="text-xs text-muted-foreground">Data quality rules</p>
+						</a>
+
+						<a href="/admin/settings/integrations/batches" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+							<div class="flex items-center gap-2 mb-1">
+								<svg class="h-3.5 w-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+								</svg>
+								<span class="text-xs font-medium">Batch Operations</span>
+							</div>
+							<p class="text-xs text-muted-foreground">Bulk processing</p>
+						</a>
+					</div>
+				</div>
+
+				<!-- Error Management -->
+				<div class="border-r border-b md:border-b-0 lg:border-b-0 bg-muted/20 p-4">
+					<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Error Management</h3>
+					<div class="space-y-2">
+						<a href="/admin/settings/integrations/errors" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+							<div class="flex items-center gap-2 mb-1">
+								<AlertCircle class="h-3.5 w-3.5 text-primary" />
+								<span class="text-xs font-medium">Error Recovery</span>
+								{#if hasErrors}
+									<Badge variant="destructive" class="h-4 px-1 text-[10px] ml-auto">
+										{Math.round(metrics.errorRate)}%
+									</Badge>
+								{/if}
+							</div>
+							<p class="text-xs text-muted-foreground">Retry failed operations</p>
+						</a>
+
+						<a href="/admin/settings/integrations/conflicts" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+							<div class="flex items-center gap-2 mb-1">
+								<AlertTriangle class="h-3.5 w-3.5 text-primary" />
+								<span class="text-xs font-medium">Conflicts</span>
+							</div>
+							<p class="text-xs text-muted-foreground">Resolve sync conflicts</p>
+						</a>
+
+						<a href="/admin/settings/integrations/rollback" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+							<div class="flex items-center gap-2 mb-1">
+								<svg class="h-3.5 w-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+								</svg>
+								<span class="text-xs font-medium">Rollback</span>
+							</div>
+							<p class="text-xs text-muted-foreground">Undo sync operations</p>
+						</a>
+					</div>
+				</div>
+
+				<!-- Advanced Features -->
+				<div class="bg-muted/20 p-4">
+					<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Advanced</h3>
+					<div class="space-y-2">
+						<a href="/admin/settings/integrations/webhooks" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+							<div class="flex items-center gap-2 mb-1">
+								<svg class="h-3.5 w-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+								</svg>
+								<span class="text-xs font-medium">Webhooks</span>
+							</div>
+							<p class="text-xs text-muted-foreground">Event notifications</p>
+						</a>
+
+						<a href="/admin/settings/integrations/compliance" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+							<div class="flex items-center gap-2 mb-1">
+								<svg class="h-3.5 w-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+								</svg>
+								<span class="text-xs font-medium">Compliance</span>
+							</div>
+							<p class="text-xs text-muted-foreground">Reports & audits</p>
+						</a>
+
+						<a href="/admin/settings/integrations/schedules" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+							<div class="flex items-center gap-2 mb-1">
+								<Clock class="h-3.5 w-3.5 text-primary" />
+								<span class="text-xs font-medium">Schedules</span>
+							</div>
+							<p class="text-xs text-muted-foreground">Automated sync</p>
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+{:else}
+	<!-- Not Connected State -->
+	<div class="flex flex-col h-full overflow-hidden bg-background">
+		<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+			<div class="flex items-center gap-4">
+				<h1 class="text-sm font-semibold tracking-tight">QuickBooks Integration</h1>
+				<div class="h-4 w-px bg-border"></div>
+				<div class="flex items-center gap-2 text-xs text-muted-foreground">
+					<AlertCircle class="h-3.5 w-3.5 text-orange-600" />
+					<span>Not Connected</span>
+				</div>
+			</div>
+		</header>
+
+		<div class="flex-1 overflow-auto bg-muted/5 flex items-center justify-center p-6">
+			<div class="max-w-2xl w-full bg-background border rounded-lg p-8">
+				<div class="flex items-center gap-3 mb-4">
+					<svg class="h-8 w-8" viewBox="0 0 24 24" fill="none">
+						<rect width="24" height="24" rx="4" fill="#2CA01C"/>
+						<path d="M8 6h8v12H8V6z" fill="white"/>
+					</svg>
+					<div>
+						<h2 class="text-xl font-semibold">Connect to QuickBooks</h2>
+						<p class="text-sm text-muted-foreground">Sync employee data and payroll information</p>
+					</div>
+				</div>
+
+				<div class="space-y-4 mb-6">
+					<p class="text-sm font-medium">Connect QuickBooks to:</p>
+					<ul class="space-y-2 text-sm text-muted-foreground">
+						<li class="flex items-center gap-2">
+							<div class="h-1.5 w-1.5 rounded-full bg-primary"></div>
+							Automatically sync employee data to payroll
+						</li>
+						<li class="flex items-center gap-2">
+							<div class="h-1.5 w-1.5 rounded-full bg-primary"></div>
+							New hires auto-created in QuickBooks
+						</li>
+						<li class="flex items-center gap-2">
+							<div class="h-1.5 w-1.5 rounded-full bg-primary"></div>
+							PTO requests sync to payroll
+						</li>
+						<li class="flex items-center gap-2">
+							<div class="h-1.5 w-1.5 rounded-full bg-primary"></div>
+							Employees can view pay stubs in HR portal
+						</li>
+					</ul>
+				</div>
+
+				{#if perms.canManageIntegrations}
+					<Button onclick={handleConnectClick} class="px-6 py-2.5">
 						<LinkIcon class="h-4 w-4 mr-2" />
 						Connect to QuickBooks
-					</a>
-					{:else}
-					<div class="p-4 bg-muted/50 rounded-md">
+					</Button>
+				{:else}
+					<div class="p-4 bg-muted/50 rounded-md border">
 						<p class="text-sm text-muted-foreground flex items-center gap-2">
 							<Lock class="h-4 w-4" />
 							You do not have permission to connect integrations. Contact your administrator.
 						</p>
 					</div>
-					{/if}
+				{/if}
 
-					<!-- Note -->
-					<Alert>
-						<AlertCircle class="h-4 w-4" />
-						<AlertDescription>
-							You'll be redirected to QuickBooks to authorize access. This is secure and you can revoke access at any time.
-						</AlertDescription>
-					</Alert>
-				</div>
-			{/if}
-		</CardContent>
-	</Card>
-
-	<!-- Future Integrations -->
-	<div class="mt-6">
-		<h2 class="text-lg font-semibold mb-4">Coming Soon</h2>
-		<div class="grid gap-4 md:grid-cols-2">
-			<!-- Slack -->
-			<Card class="opacity-60">
-				<CardHeader>
-					<CardTitle class="text-base flex items-center gap-2">
-						<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
-							<path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#E01E5A"/>
-						</svg>
-						Slack
-						<Badge variant="outline" class="ml-auto">Coming Soon</Badge>
-					</CardTitle>
-					<CardDescription>Notifications and team communication</CardDescription>
-				</CardHeader>
-			</Card>
-
-			<!-- Google Workspace -->
-			<Card class="opacity-60">
-				<CardHeader>
-					<CardTitle class="text-base flex items-center gap-2">
-						<svg class="h-5 w-5" viewBox="0 0 24 24">
-							<path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-							<path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-							<path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-							<path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-						</svg>
-						Google Workspace
-						<Badge variant="outline" class="ml-auto">Coming Soon</Badge>
-					</CardTitle>
-					<CardDescription>SSO and calendar integration</CardDescription>
-				</CardHeader>
-			</Card>
+				<Alert class="mt-4">
+					<AlertCircle class="h-4 w-4" />
+					<AlertDescription class="text-xs">
+						You'll be redirected to QuickBooks to authorize access. This is secure and you can revoke access at any time.
+					</AlertDescription>
+				</Alert>
+			</div>
 		</div>
 	</div>
-</div>
+{/if}
 
 <!-- Bidirectional Sync Confirmation Dialog -->
 <Dialog.Root bind:open={bidirectionalSyncDialogOpen}>
 	<Dialog.Content class="sm:max-w-md">
 		<Dialog.Header>
-			<Dialog.Title>Confirm Bidirectional Sync</Dialog.Title>
+			<Dialog.Title>Confirm Sync</Dialog.Title>
 			<Dialog.Description>
 				{#if pendingBidirectionalSync}
-					This will sync <strong>{pendingBidirectionalSync.toLowerCase()}s</strong> in both directions, applying
-					the <strong>{selectedConflictStrategy.replace(/_/g, ' ').toLowerCase()}</strong> strategy for
-					conflicts.
-					<div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
-						<p class="text-yellow-900 font-medium mb-1">⚠️ Warning</p>
-						<p class="text-yellow-800">
-							This operation will modify data in both your local database and QuickBooks. Make sure
-							you understand the conflict resolution strategy before proceeding.
+					<p class="mb-3">
+						{#if pendingBidirectionalSync === 'ALL'}
+							This will synchronize <strong>all employees and departments</strong> between your HR system and QuickBooks.
+						{:else}
+							This will synchronize <strong>{pendingBidirectionalSync.toLowerCase()}s</strong> between your HR system and QuickBooks.
+						{/if}
+					</p>
+					<div class="p-3 bg-blue-50 border border-blue-200 rounded text-sm">
+						<p class="text-blue-900">
+							<strong>Two-way sync</strong> detects changes on both sides and automatically resolves conflicts using the most recent change.
 						</p>
+						{#if pendingBidirectionalSync === 'ALL'}
+							<p class="text-blue-900 mt-2">
+								Employees will be synced first, followed by departments.
+							</p>
+						{/if}
 					</div>
 				{/if}
 			</Dialog.Description>
@@ -968,7 +788,7 @@
 			<Button variant="outline" onclick={() => (bidirectionalSyncDialogOpen = false)}>
 				Cancel
 			</Button>
-			<Button onclick={confirmBidirectionalSync}>Continue Sync</Button>
+			<Button onclick={confirmBidirectionalSync} class="bg-blue-600 hover:bg-blue-700">Start Sync</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>

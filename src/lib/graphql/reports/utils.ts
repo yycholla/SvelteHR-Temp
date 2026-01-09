@@ -106,7 +106,10 @@ export function buildHrReportFilter({
 
 /**
  * Helper: Calculate report analytics from raw data
+ * NOTE: This PostGraphile version is deprecated.
+ * Use calculateReportAnalytics from queries.ts for Rust backend
  */
+/*
 export function calculateReportAnalytics(data: {
 	totalReports: { totalCount: number };
 	activeReports: { totalCount: number };
@@ -199,6 +202,7 @@ export function calculateReportAnalytics(data: {
 		}
 	};
 }
+*/
 
 /**
  * Helper: Validate report input

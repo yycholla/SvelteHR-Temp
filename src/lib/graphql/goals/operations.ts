@@ -8,7 +8,6 @@ import type {
 	EmployeeGoalFilter,
 	CreateEmployeeGoalInput,
 	UpdateEmployeeGoalInput,
-	DeleteEmployeeGoalInput,
 	EmployeeGoal,
 	GoalStatistics
 } from './types';
@@ -27,6 +26,7 @@ export class GoalsOKROperations {
 	/**
 	 * Get employee goals for manager's department
 	 * RLS automatically filters to department only via JWT claims
+	 * Backend: Uses employeeGoals from Rust GraphQL schema
 	 */
 	async getEmployeeGoals(params: {
 		first?: number;
@@ -38,12 +38,16 @@ export class GoalsOKROperations {
 		totalCount: number;
 		hasNextPage: boolean;
 	}> {
+		const limit = params.first || 20;
+		const offset = params.offset || 0;
+
 		const dataRequest = createDataRequest({
 			operationName: 'GetEmployeeGoals',
 			variables: {
-				first: params.first || 20,
-				offset: params.offset || 0,
-				filter: params.filter || {}
+				employeeId: params.filter?.employeeId || undefined,
+				status: params.filter?.status || undefined,
+				limit,
+				offset
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
@@ -68,10 +72,13 @@ export class GoalsOKROperations {
 				});
 			}
 
+			const goals = result.data.employeeGoals || [];
+			const hasMore = goals.length === limit;
+
 			return {
-				goals: result.data.employeeGoals.nodes,
-				totalCount: result.data.employeeGoals.totalCount,
-				hasNextPage: result.data.employeeGoals.pageInfo.hasNextPage
+				goals,
+				totalCount: hasMore ? offset + limit + 1 : offset + goals.length,
+				hasNextPage: hasMore
 			};
 		} catch (error: any) {
 			if (error.userMessage) {
@@ -93,7 +100,7 @@ export class GoalsOKROperations {
 	}): Promise<GoalStatistics> {
 		const dataRequest = createDataRequest({
 			operationName: 'GetGoalStatistics',
-			variables: { departmentId: params.departmentId },
+			variables: { limit: 1000 },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
@@ -119,7 +126,8 @@ export class GoalsOKROperations {
 				});
 			}
 
-			const stats = calculateGoalStatistics(result.data);
+			const goals = result.data.employeeGoals || [];
+			const stats = calculateGoalStatistics(goals);
 			return stats;
 		} catch (error: any) {
 			if (error.userMessage) {
@@ -157,7 +165,7 @@ export class GoalsOKROperations {
 		});
 
 		try {
-			// Server-side query using toPromise()
+			// Server-side mutation using toPromise()
 			const result = await this.client
 				.mutation(CREATE_EMPLOYEE_GOAL, dataRequest.variables)
 				.toPromise();
@@ -170,14 +178,14 @@ export class GoalsOKROperations {
 				throw errorResponse;
 			}
 
-			if (!result.data) {
+			if (!result.data?.createEmployeeGoal) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No goal data returned. Please try again.'
 				});
 			}
 
-			return result.data.createEmployeeGoal.employeeGoal;
+			return result.data.createEmployeeGoal;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error
@@ -222,7 +230,7 @@ export class GoalsOKROperations {
 		});
 
 		try {
-			// Server-side query using toPromise()
+			// Server-side mutation using toPromise()
 			const result = await this.client
 				.mutation(UPDATE_EMPLOYEE_GOAL, dataRequest.variables)
 				.toPromise();
@@ -235,14 +243,14 @@ export class GoalsOKROperations {
 				throw errorResponse;
 			}
 
-			if (!result.data) {
+			if (!result.data?.updateEmployeeGoal) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No goal data returned. Please try again.'
 				});
 			}
 
-			return result.data.updateEmployeeGoal.employeeGoal;
+			return result.data.updateEmployeeGoal;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error
@@ -257,24 +265,21 @@ export class GoalsOKROperations {
 	/**
 	 * Delete employee goal (manager department-scoped)
 	 * RLS policy enforces department membership
+	 * Backend: Uses deleteEmployeeGoal mutation from Rust GraphQL schema
 	 */
 	async deleteEmployeeGoal(params: {
 		goalId: string;
 		userCredentials: UserCredentials;
-	}): Promise<string> {
-		const input: DeleteEmployeeGoalInput = {
-			id: params.goalId
-		};
-
+	}): Promise<boolean> {
 		const dataRequest = createDataRequest({
 			operationName: 'DeleteEmployeeGoal',
-			variables: { input },
+			variables: { id: params.goalId },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
 
 		try {
-			// Server-side query using toPromise()
+			// Server-side mutation using toPromise()
 			const result = await this.client
 				.mutation(DELETE_EMPLOYEE_GOAL, dataRequest.variables)
 				.toPromise();
@@ -294,7 +299,7 @@ export class GoalsOKROperations {
 				});
 			}
 
-			return result.data.deleteEmployeeGoal.deletedEmployeeGoalId;
+			return result.data.deleteEmployeeGoal || false;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error

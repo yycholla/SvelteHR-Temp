@@ -24,7 +24,7 @@ export class ActivityLogsOperations extends BaseOperations {
 	/**
 	 * Get user's own activities ("My Activities" tab)
 	 * RLS ensures user only sees their own activities
-	 * PostGraphile: Uses condition instead of filter
+	 * Backend: Uses activityLogs from Rust GraphQL schema
 	 */
 	async getUserActivities(params: {
 		employeeId: string;
@@ -37,15 +37,15 @@ export class ActivityLogsOperations extends BaseOperations {
 		totalCount: number;
 		hasNextPage: boolean;
 	}> {
-		// Merge employeeId with filter for condition
-		const condition = { ...params.filter, employeeId: params.employeeId };
+		const limit = params.first || 50;
+		const offset = params.offset || 0;
 
 		const result = await this.executeQuery(
 			GET_USER_ACTIVITIES,
 			{
-				first: params.first || 50,
-				offset: params.offset || 0,
-				condition
+				userId: params.employeeId as any,
+				limit,
+				offset
 			},
 			{
 				operationName: 'GetUserActivities',
@@ -53,17 +53,21 @@ export class ActivityLogsOperations extends BaseOperations {
 			}
 		);
 
+		const activities = result.activityLogs || [];
+		// Note: We don't have a count query here, estimate from results
+		const hasMore = activities.length === limit;
+
 		return {
-			activities: result.allActivityLogs.nodes,
-			totalCount: result.allActivityLogs.totalCount,
-			hasNextPage: result.allActivityLogs.pageInfo.hasNextPage
+			activities,
+			totalCount: hasMore ? offset + limit + 1 : offset + activities.length,
+			hasNextPage: hasMore
 		};
 	}
 
 	/**
 	 * Get all system activities ("Audit Logs" tab - admin only)
 	 * RLS ensures only admins can access this
-	 * PostGraphile: Uses condition instead of filter
+	 * Backend: Uses activityLogs from Rust GraphQL schema
 	 */
 	async getAuditLogs(params: {
 		first?: number;
@@ -75,12 +79,15 @@ export class ActivityLogsOperations extends BaseOperations {
 		totalCount: number;
 		hasNextPage: boolean;
 	}> {
+		const limit = params.first || 100;
+		const offset = params.offset || 0;
+
 		const result = await this.executeQuery(
 			GET_AUDIT_LOGS,
 			{
-				first: params.first || 100,
-				offset: params.offset || 0,
-				condition: params.filter || {}
+				userId: undefined, // undefined = all users (admin only)
+				limit,
+				offset
 			},
 			{
 				operationName: 'GetAuditLogs',
@@ -88,15 +95,20 @@ export class ActivityLogsOperations extends BaseOperations {
 			}
 		);
 
+		const activities = result.activityLogs || [];
+		const totalCount = result.activityLogsCount || 0;
+
 		return {
-			activities: result.allActivityLogs.nodes,
-			totalCount: result.allActivityLogs.totalCount,
-			hasNextPage: result.allActivityLogs.pageInfo.hasNextPage
+			activities,
+			totalCount,
+			hasNextPage: offset + limit < totalCount
 		};
 	}
 
 	/**
 	 * Get activity history for specific resource
+	 * Backend: Uses activityLogs from Rust GraphQL schema
+	 * Note: Filtering by resourceType/resourceId done client-side
 	 */
 	async getResourceActivityHistory(params: {
 		resourceType: ResourceType;
@@ -107,9 +119,9 @@ export class ActivityLogsOperations extends BaseOperations {
 		const result = await this.executeQuery(
 			GET_RESOURCE_ACTIVITY_HISTORY,
 			{
-				resourceType: params.resourceType,
-				resourceId: params.resourceId,
-				first: params.first || 20
+				userId: undefined, // Get all users' activities for this resource
+				limit: params.first || 20,
+				offset: 0
 			},
 			{
 				operationName: 'GetResourceActivityHistory',
@@ -117,11 +129,19 @@ export class ActivityLogsOperations extends BaseOperations {
 			}
 		);
 
-		return result.allActivityLogs.nodes;
+		const activities = result.activityLogs || [];
+
+		// Client-side filtering by resourceType and resourceId
+		return activities.filter(
+			(log: ActivityLog) =>
+				log.resourceType === params.resourceType && log.resourceId === params.resourceId
+		);
 	}
 
 	/**
 	 * Get activities by date range
+	 * Backend: Uses activityLogs from Rust GraphQL schema
+	 * Note: Date filtering done client-side
 	 */
 	async getActivitiesByDateRange(params: {
 		employeeId?: string;
@@ -133,10 +153,9 @@ export class ActivityLogsOperations extends BaseOperations {
 		const result = await this.executeQuery(
 			GET_ACTIVITIES_BY_DATE_RANGE,
 			{
-				employeeId: params.employeeId,
-				startDate: params.startDate,
-				endDate: params.endDate,
-				first: params.first || 50
+				userId: (params.employeeId || undefined) as any,
+				limit: params.first || 50,
+				offset: 0
 			},
 			{
 				operationName: 'GetActivitiesByDateRange',
@@ -144,11 +163,20 @@ export class ActivityLogsOperations extends BaseOperations {
 			}
 		);
 
-		return result.allActivityLogs.nodes;
+		const activities = result.activityLogs || [];
+		const startDate = new Date(params.startDate);
+		const endDate = new Date(params.endDate);
+
+		// Client-side filtering by date range
+		return activities.filter((log: ActivityLog) => {
+			const logDate = new Date(log.createdAt);
+			return logDate >= startDate && logDate <= endDate;
+		});
 	}
 
 	/**
 	 * Get single activity log by ID
+	 * Backend: Uses activityLog (singular) from Rust GraphQL schema
 	 */
 	async getActivityLogById(params: {
 		logId: string;
@@ -163,37 +191,24 @@ export class ActivityLogsOperations extends BaseOperations {
 			}
 		);
 
-		if (!result?.allActivityLogs?.nodes || result.allActivityLogs.nodes.length === 0) {
+		if (!result?.activityLog) {
 			return null;
 		}
 
-		const log = result.allActivityLogs.nodes[0];
+		const log = result.activityLog;
 
 		// Transform to ActivityLog interface
 		return {
 			id: log.id,
-			employeeId: log.employeeId,
-			employee: log.userByEmployeeId
-				? {
-						id: log.userByEmployeeId.id,
-						displayName: log.userByEmployeeId.displayName,
-						email: log.userByEmployeeId.email,
-						departmentId: log.userByEmployeeId.departmentId,
-						department: log.userByEmployeeId.departmentByDepartmentId
-							? {
-									id: log.userByEmployeeId.departmentByDepartmentId.id,
-									name: log.userByEmployeeId.departmentByDepartmentId.name
-								}
-							: undefined
-					}
-				: undefined,
+			employeeId: log.userId, // Backend uses userId field
+			employee: undefined, // Not available in simple query
 			action: log.action,
 			resourceType: log.resourceType,
 			resourceId: log.resourceId,
-			beforeSnapshot: log.beforeSnapshot,
-			afterSnapshot: log.afterSnapshot,
-			isRollback: log.isRollback,
-			rolledBackLogId: log.rolledBackLogId,
+			beforeSnapshot: undefined, // Not available in current backend schema
+			afterSnapshot: undefined, // Not available in current backend schema
+			isRollback: false, // Not available in current backend schema
+			rolledBackLogId: undefined, // Not available in current backend schema
 			ipAddress: log.ipAddress,
 			userAgent: log.userAgent,
 			createdAt: log.createdAt

@@ -1,30 +1,30 @@
 <script lang="ts">
-	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
-	import { Alert, AlertDescription } from '$lib/components/ui/alert';
-	import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '$lib/components/ui/dialog';
-	import { Label } from '$lib/components/ui/label';
-	import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
 	import { Checkbox } from '$lib/components/ui/checkbox';
+	import {
+		Dialog,
+		DialogContent,
+		DialogDescription,
+		DialogFooter,
+		DialogHeader,
+		DialogTitle
+	} from '$lib/components/ui/dialog';
+	import { Label } from '$lib/components/ui/label';
 	import {
 		AlertCircle,
 		CheckCircle2,
 		RefreshCw,
 		ArrowLeft,
-		Clock,
-		Database,
-		AlertTriangle,
 		FileText,
 		XCircle,
-		TrendingUp,
 		Play,
-		CheckSquare,
 		Eye,
-		Trash2
+		TrendingUp,
+		Database,
+		AlertTriangle
 	} from '@lucide/svelte';
 	import { invalidate, goto } from '$app/navigation';
-	import { page } from '$app/stores';
 	import { createUrqlClient } from '$lib/graphql/client';
 
 	let { data } = $props();
@@ -95,18 +95,42 @@
 			const result = await client.mutation(RECONCILE_MUTATION, {}).toPromise();
 
 			if (result.error) {
+				const errorMessage = result.error.message;
 				console.error('Reconciliation failed:', result.error);
-				alert('Failed to run reconciliation: ' + result.error.message);
+
+				// Show user-friendly error messages
+				if (errorMessage.includes('No active Intuit connection')) {
+					alert('Please configure your QuickBooks connection first in the Integration Settings.');
+				} else if (errorMessage.includes('Failed to fetch QuickBooks')) {
+					alert('Unable to connect to QuickBooks. Please check your connection and try again.');
+				} else if (errorMessage.includes('permission')) {
+					alert('You do not have permission to run reconciliation.');
+				} else {
+					alert('Failed to run reconciliation: ' + errorMessage);
+				}
 			} else {
-				const reportId = result.data?.intuit?.reconciliation?.reconcileEmployees?.reportId;
+				const reportData = result.data?.intuit?.reconciliation?.reconcileEmployees;
+				const reportId = reportData?.reportId;
+
 				if (reportId) {
+					console.log('Reconciliation report created:', {
+						reportId,
+						totalLocal: reportData.totalLocal,
+						totalRemote: reportData.totalRemote,
+						totalMatched: reportData.totalMatched,
+						totalDiscrepancies: reportData.totalDiscrepancies
+					});
+
 					await invalidate('app:reconciliation');
 					goto(`?reportId=${reportId}`);
+				} else {
+					console.error('No report ID returned from mutation');
+					alert('Reconciliation completed but no report was generated. Please check the server logs.');
 				}
 			}
 		} catch (error) {
 			console.error('Error running reconciliation:', error);
-			alert('Failed to run reconciliation');
+			alert('An unexpected error occurred while running reconciliation. Please try again.');
 		} finally {
 			runningReconciliation = false;
 		}
@@ -155,7 +179,11 @@
 			return;
 		}
 
-		if (!confirm(`Are you sure you want to mark ${selectedDiscrepancies.size} discrepancies as resolved?`)) {
+		if (
+			!confirm(
+				`Are you sure you want to mark ${selectedDiscrepancies.size} discrepancies as resolved?`
+			)
+		) {
 			return;
 		}
 
@@ -164,10 +192,12 @@
 
 		for (const discrepancyId of selectedDiscrepancies) {
 			try {
-				await client.mutation(RESOLVE_MUTATION, {
-					discrepancyId,
-					resolutionNotes: 'Batch resolved from reconciliation dashboard'
-				}).toPromise();
+				await client
+					.mutation(RESOLVE_MUTATION, {
+						discrepancyId,
+						resolutionNotes: 'Batch resolved from reconciliation dashboard'
+					})
+					.toPromise();
 			} catch (error) {
 				console.error(`Failed to resolve ${discrepancyId}:`, error);
 			}
@@ -182,10 +212,12 @@
 		resolvingDiscrepancy = true;
 		try {
 			const client = createUrqlClient(fetch);
-			await client.mutation(RESOLVE_MUTATION, {
-				discrepancyId,
-				resolutionNotes: notes
-			}).toPromise();
+			await client
+				.mutation(RESOLVE_MUTATION, {
+					discrepancyId,
+					resolutionNotes: notes
+				})
+				.toPromise();
 
 			showDetailModal = false;
 			await invalidate('app:reconciliation');
@@ -200,14 +232,14 @@
 	function getStatusColor(status: string): string {
 		switch (status.toLowerCase()) {
 			case 'completed':
-				return 'text-green-600 bg-green-50 border-green-200';
+				return 'bg-green-100 text-green-700';
 			case 'running':
 			case 'in_progress':
-				return 'text-blue-600 bg-blue-50 border-blue-200';
+				return 'bg-blue-100 text-blue-700';
 			case 'failed':
-				return 'text-red-600 bg-red-50 border-red-200';
+				return 'bg-red-100 text-red-700';
 			default:
-				return 'text-gray-600 bg-gray-50 border-gray-200';
+				return 'bg-gray-100 text-gray-700';
 		}
 	}
 
@@ -243,519 +275,527 @@
 		return `${minutes}m ${remainingSeconds}s`;
 	}
 
-	function calculateMatchRate(matched: number, total: number): number {
-		if (total === 0) return 0;
-		return (matched / total) * 100;
-	}
-
-	function calculateConsistencyScore(report: { totalMatched: number; totalLocal: number; totalRemote: number }): number {
+	function calculateConsistencyScore(report: {
+		totalMatched: number;
+		totalLocal: number;
+		totalRemote: number;
+	}): number {
 		const total = Math.max(report.totalLocal, report.totalRemote);
 		if (total === 0) return 100;
 		return (report.totalMatched / total) * 100;
 	}
 </script>
 
-<div class="container mx-auto py-8 px-4">
-	<!-- Header -->
-	<div class="mb-6 flex items-center justify-between">
+<div class="flex flex-col h-full overflow-hidden bg-background">
+	<!-- Toolbar -->
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
 		<div class="flex items-center gap-4">
 			{#if selectedReport}
-				<Button onclick={backToList} variant="outline" size="sm">
-					<ArrowLeft class="h-4 w-4 mr-2" />
-					Back to Reports
-				</Button>
+				<button
+					onclick={backToList}
+					class="flex items-center gap-1.5 h-8 px-3 rounded-sm border border-input bg-background text-xs hover:bg-accent transition-colors"
+				>
+					<ArrowLeft class="h-3.5 w-3.5" />
+					Back
+				</button>
+				<div class="h-4 w-px bg-border"></div>
 			{/if}
-			<div>
-				<h1 class="text-2xl font-bold">
-					{selectedReport ? 'Reconciliation Report Details' : 'Data Reconciliation'}
-				</h1>
-				<p class="text-sm text-muted-foreground mt-1">
-					{selectedReport
-						? 'Detailed discrepancy analysis and resolution'
-						: 'Compare local and remote data for consistency'}
-				</p>
+			<h1 class="text-sm font-semibold tracking-tight">
+				{selectedReport ? 'Report Details' : 'Data Reconciliation'}
+			</h1>
+			<div class="h-4 w-px bg-border"></div>
+			<div class="flex items-center gap-2 text-xs text-muted-foreground">
+				<Database class="h-3.5 w-3.5" />
+				<span>QuickBooks Sync Validation</span>
 			</div>
 		</div>
 		<div class="flex gap-2">
 			{#if !selectedReport}
-				<Button onclick={runReconciliation} disabled={runningReconciliation}>
+				<button
+					onclick={runReconciliation}
+					disabled={runningReconciliation}
+					class="flex items-center gap-1.5 h-8 px-3 rounded-sm border border-input bg-primary text-primary-foreground text-xs hover:bg-primary/90 transition-colors disabled:opacity-50"
+				>
 					{#if runningReconciliation}
-						<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
+						<RefreshCw class="h-3.5 w-3.5 animate-spin" />
 						Running...
 					{:else}
-						<Play class="h-4 w-4 mr-2" />
+						<Play class="h-3.5 w-3.5" />
 						Run Reconciliation
 					{/if}
-				</Button>
+				</button>
 			{/if}
-			<Button onclick={refreshData} disabled={refreshing} variant="outline" size="sm">
-				<RefreshCw class="h-4 w-4 mr-2 {refreshing ? 'animate-spin' : ''}" />
+			<button
+				onclick={refreshData}
+				disabled={refreshing}
+				class="flex items-center gap-1.5 h-8 px-3 rounded-sm border border-input bg-background text-xs hover:bg-accent transition-colors"
+			>
+				<RefreshCw class="h-3.5 w-3.5 {refreshing ? 'animate-spin' : ''}" />
 				Refresh
-			</Button>
+			</button>
 		</div>
-	</div>
+	</header>
 
 	{#if data.error}
-		<Alert variant="destructive" class="mb-6">
-			<AlertCircle class="h-4 w-4" />
-			<AlertDescription>{data.error}</AlertDescription>
-		</Alert>
-	{/if}
-
-	{#if !selectedReport}
-		<!-- Summary Cards -->
-		<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-			<Card>
-				<CardHeader class="pb-2">
-					<CardDescription>Consistency Score</CardDescription>
-				</CardHeader>
-				<CardContent>
-					{#if reports.length > 0}
-						{@const latestReport = reports[0]}
-						{@const score = calculateConsistencyScore(latestReport)}
-						<p class="text-3xl font-bold {score >= 90 ? 'text-green-600' : score >= 70 ? 'text-yellow-600' : 'text-red-600'}">
-							{score.toFixed(1)}%
-						</p>
-						<p class="text-xs text-muted-foreground mt-1">
-							Based on latest report
-						</p>
-					{:else}
-						<p class="text-3xl font-bold text-muted-foreground">--</p>
-						<p class="text-xs text-muted-foreground mt-1">No data</p>
-					{/if}
-				</CardContent>
-			</Card>
-
-			<Card>
-				<CardHeader class="pb-2">
-					<CardDescription>Active Discrepancies</CardDescription>
-				</CardHeader>
-				<CardContent>
-					{#if reports.length > 0}
-						<p class="text-3xl font-bold text-red-600">
-							{reports[0].totalDiscrepancies}
-						</p>
-						<p class="text-xs text-muted-foreground mt-1">
-							Requires attention
-						</p>
-					{:else}
-						<p class="text-3xl font-bold text-muted-foreground">--</p>
-						<p class="text-xs text-muted-foreground mt-1">No data</p>
-					{/if}
-				</CardContent>
-			</Card>
-
-			<Card>
-				<CardHeader class="pb-2">
-					<CardDescription>Last Check</CardDescription>
-				</CardHeader>
-				<CardContent>
-					{#if reports.length > 0}
-						<p class="text-sm font-medium">
-							{new Date(reports[0].createdAt).toLocaleDateString()}
-						</p>
-						<p class="text-xs text-muted-foreground mt-1">
-							{new Date(reports[0].createdAt).toLocaleTimeString()}
-						</p>
-					{:else}
-						<p class="text-sm font-medium text-muted-foreground">Never</p>
-						<p class="text-xs text-muted-foreground mt-1">Run first check</p>
-					{/if}
-				</CardContent>
-			</Card>
-
-			<Card>
-				<CardHeader class="pb-2">
-					<CardDescription>Total Records</CardDescription>
-				</CardHeader>
-				<CardContent>
-					{#if reports.length > 0}
-						<p class="text-3xl font-bold">
-							{reports[0].totalLocal}
-						</p>
-						<p class="text-xs text-muted-foreground mt-1">
-							Local • {reports[0].totalRemote} Remote
-						</p>
-					{:else}
-						<p class="text-3xl font-bold text-muted-foreground">--</p>
-						<p class="text-xs text-muted-foreground mt-1">No data</p>
-					{/if}
-				</CardContent>
-			</Card>
+		<div class="flex-shrink-0 p-4 pb-0">
+			<div
+				class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20"
+			>
+				{data.error}
+			</div>
 		</div>
 	{/if}
 
-	{#if selectedReport}
-		<!-- Report Details View -->
-		<div class="space-y-6">
-			<!-- Report Summary -->
-			<Card>
-				<CardHeader>
-					<div class="flex items-start justify-between">
-						<div>
-							<CardTitle>Report Summary</CardTitle>
-							<CardDescription>
-								{formatDate(selectedReport.createdAt)}
-							</CardDescription>
-						</div>
-						<div
-							class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border {getStatusColor(
-								selectedReport.status
-							)}"
+	<div class="flex-1 overflow-auto bg-muted/5">
+		{#if !selectedReport}
+			<!-- KPI Grid -->
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 border-b">
+				<!-- Consistency Score -->
+				<div
+					class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32"
+				>
+					<div class="flex items-center justify-between">
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+							>Consistency Score</span
 						>
-							{selectedReport.status}
-						</div>
+						<TrendingUp class="h-4 w-4 text-muted-foreground" />
 					</div>
-				</CardHeader>
-				<CardContent>
-					<div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-						<div>
-							<p class="text-sm text-muted-foreground">Entity Type</p>
-							<p class="text-2xl font-bold capitalize">{selectedReport.entityType}</p>
-						</div>
-						<div>
-							<p class="text-sm text-muted-foreground">Local Records</p>
-							<p class="text-2xl font-bold">{selectedReport.totalLocal}</p>
-						</div>
-						<div>
-							<p class="text-sm text-muted-foreground">Remote Records</p>
-							<p class="text-2xl font-bold">{selectedReport.totalRemote}</p>
-						</div>
-						<div>
-							<p class="text-sm text-muted-foreground">Consistency Score</p>
-							{#if selectedReport}
-								{@const score = calculateConsistencyScore(selectedReport)}
-								<p class="text-2xl font-bold {score >= 90 ? 'text-green-600' : score >= 70 ? 'text-yellow-600' : 'text-red-600'}">
+					{#if reports.length > 0}
+						{#each [calculateConsistencyScore(reports[0])] as score}
+							<div>
+								<div
+									class="text-3xl font-bold tracking-tight {score >= 90
+										? 'text-green-600'
+										: score >= 70
+											? 'text-yellow-600'
+											: 'text-red-600'}"
+								>
 									{score.toFixed(1)}%
-								</p>
-							{/if}
-						</div>
-					</div>
-
-					<div class="mt-6 pt-6 border-t">
-						<div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-							<div>
-								<span class="text-muted-foreground">Matched:</span>
-								<span class="ml-2 font-medium text-green-600"
-									>{selectedReport.totalMatched}</span
-								>
+								</div>
+								<div class="mt-1 text-xs text-muted-foreground">Based on latest report</div>
 							</div>
-							<div>
-								<span class="text-muted-foreground">Discrepancies:</span>
-								<span class="ml-2 font-medium text-red-600"
-									>{selectedReport.totalDiscrepancies}</span
-								>
-							</div>
-							<div>
-								<span class="text-muted-foreground">Missing Locally:</span>
-								<span class="ml-2 font-medium text-orange-600"
-									>{selectedReport.missingInLocal}</span
-								>
-							</div>
-							<div>
-								<span class="text-muted-foreground">Missing Remotely:</span>
-								<span class="ml-2 font-medium text-orange-600"
-									>{selectedReport.missingInRemote}</span
-								>
-							</div>
-						</div>
-					</div>
-
-					{#if selectedReport.triggeredByEmail}
-						<div class="mt-4 text-sm text-muted-foreground">
-							Triggered by: {selectedReport.triggeredByEmail}
-							• Duration: {formatDuration(selectedReport.durationMs)}
+						{/each}
+					{:else}
+						<div>
+							<div class="text-3xl font-bold tracking-tight text-muted-foreground">—</div>
+							<div class="mt-1 text-xs text-muted-foreground">No data</div>
 						</div>
 					{/if}
-
-					{#if selectedReport.errorMessage}
-						<Alert variant="destructive" class="mt-4">
-							<AlertCircle class="h-4 w-4" />
-							<AlertDescription>{selectedReport.errorMessage}</AlertDescription>
-						</Alert>
-					{/if}
-				</CardContent>
-			</Card>
-
-			<!-- Discrepancy Statistics -->
-			{#if stats}
-				<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-					<Card>
-						<CardHeader class="pb-2">
-							<CardDescription>Total Discrepancies</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<p class="text-3xl font-bold">{stats.total}</p>
-							<p class="text-sm text-muted-foreground mt-1">
-								{stats.resolved} resolved • {stats.unresolved} pending
-							</p>
-						</CardContent>
-					</Card>
-
-					<Card>
-						<CardHeader class="pb-2">
-							<CardDescription>By Type</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<div class="space-y-2">
-								{#each stats.byType.slice(0, 3) as typeCount}
-									<div class="flex justify-between text-sm">
-										<span class="capitalize">{typeCount.typeName.replace(/_/g, ' ')}</span>
-										<span class="font-medium">{typeCount.count}</span>
-									</div>
-								{/each}
-							</div>
-						</CardContent>
-					</Card>
-
-					<Card>
-						<CardHeader class="pb-2">
-							<CardDescription>By Severity</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<div class="space-y-2">
-								{#each stats.bySeverity as sevCount}
-									<div class="flex justify-between text-sm">
-										<Badge variant={getSeverityVariant(sevCount.severity)}>
-											{sevCount.severity}
-										</Badge>
-										<span class="font-medium">{sevCount.count}</span>
-									</div>
-								{/each}
-							</div>
-						</CardContent>
-					</Card>
 				</div>
-			{/if}
 
-			<!-- Batch Actions -->
-			{#if discrepancies.length > 0 && discrepancies.some((d: { isResolved: boolean }) => !d.isResolved)}
-				<Card>
-					<CardContent class="pt-6">
-						<div class="flex items-center justify-between">
-							<div class="flex items-center gap-3">
-								<Button onclick={selectAll} variant="outline" size="sm">
-									<CheckSquare class="h-4 w-4 mr-2" />
-									Select All
-								</Button>
-								<Button onclick={deselectAll} variant="outline" size="sm">
-									<XCircle class="h-4 w-4 mr-2" />
-									Deselect All
-								</Button>
-								{#if selectedDiscrepancies.size > 0}
-									<span class="text-sm text-muted-foreground">
-										{selectedDiscrepancies.size} selected
-									</span>
-								{/if}
+				<!-- Active Discrepancies -->
+				<div
+					class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32"
+				>
+					<div class="flex items-center justify-between">
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+							>Discrepancies</span
+						>
+						<AlertTriangle class="h-4 w-4 text-muted-foreground" />
+					</div>
+					<div>
+						{#if reports.length > 0}
+							<div class="text-3xl font-bold tracking-tight text-red-600">
+								{reports[0].totalDiscrepancies}
 							</div>
-							{#if selectedDiscrepancies.size > 0}
-								<Button onclick={resolveSelected} disabled={resolvingDiscrepancy}>
-									{#if resolvingDiscrepancy}
-										<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
-										Resolving...
-									{:else}
-										<CheckCircle2 class="h-4 w-4 mr-2" />
-										Mark Selected as Resolved
-									{/if}
-								</Button>
-							{/if}
-						</div>
-					</CardContent>
-				</Card>
-			{/if}
+							<div class="mt-1 text-xs text-muted-foreground">Require attention</div>
+						{:else}
+							<div class="text-3xl font-bold tracking-tight text-muted-foreground">—</div>
+							<div class="mt-1 text-xs text-muted-foreground">No data</div>
+						{/if}
+					</div>
+				</div>
 
-			<!-- Discrepancies List -->
-			<Card>
-				<CardHeader>
-					<CardTitle>Discrepancies</CardTitle>
-					<CardDescription>Detailed list of data mismatches and missing records</CardDescription>
-				</CardHeader>
-				<CardContent>
-					{#if discrepancies.length === 0}
-						<div class="text-center py-12 text-muted-foreground">
-							<CheckCircle2 class="h-12 w-12 mx-auto mb-3 text-green-500" />
-							<p class="font-medium">No discrepancies found</p>
-							<p class="text-sm">All data is in sync</p>
+				<!-- Last Check -->
+				<div
+					class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32"
+				>
+					<div class="flex items-center justify-between">
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+							>Last Check</span
+						>
+						<FileText class="h-4 w-4 text-muted-foreground" />
+					</div>
+					<div>
+						{#if reports.length > 0}
+							<div class="text-lg font-bold tracking-tight">
+								{new Date(reports[0].createdAt).toLocaleDateString()}
+							</div>
+							<div class="mt-1 text-xs text-muted-foreground">
+								{new Date(reports[0].createdAt).toLocaleTimeString()}
+							</div>
+						{:else}
+							<div class="text-lg font-bold tracking-tight text-muted-foreground">Never</div>
+							<div class="mt-1 text-xs text-muted-foreground">Run first check</div>
+						{/if}
+					</div>
+				</div>
+
+				<!-- Total Records -->
+				<div class="p-6 bg-background flex flex-col justify-between h-32">
+					<div class="flex items-center justify-between">
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+							>Total Records</span
+						>
+						<Database class="h-4 w-4 text-muted-foreground" />
+					</div>
+					<div>
+						{#if reports.length > 0}
+							<div class="text-3xl font-bold tracking-tight">{reports[0].totalLocal}</div>
+							<div class="mt-1 text-xs text-muted-foreground">
+								Local • {reports[0].totalRemote} Remote
+							</div>
+						{:else}
+							<div class="text-3xl font-bold tracking-tight text-muted-foreground">—</div>
+							<div class="mt-1 text-xs text-muted-foreground">No data</div>
+						{/if}
+					</div>
+				</div>
+			</div>
+
+			<!-- Reports Table -->
+			<div class="bg-background border-t">
+				<div class="px-4 py-3 border-b">
+					<h2 class="text-sm font-semibold">Recent Reports</h2>
+					<p class="text-xs text-muted-foreground mt-0.5">
+						Historical data consistency checks
+					</p>
+				</div>
+				<div class="relative">
+					{#if reports.length === 0}
+						<div class="px-4 py-12 text-center text-muted-foreground">
+							<FileText class="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+							<p class="font-medium text-xs">No reconciliation reports</p>
+							<p class="text-[10px] mt-1">Click "Run Reconciliation" to start</p>
 						</div>
 					{:else}
-						<div class="space-y-3">
-							{#each discrepancies as discrepancy}
-								<div
-									class="border rounded-lg p-4 {discrepancy.isResolved
-										? 'bg-muted/30'
-										: 'bg-background'}"
-								>
-									<div class="flex items-start gap-3">
-										{#if !discrepancy.isResolved}
-											<Checkbox
-												checked={selectedDiscrepancies.has(discrepancy.id)}
-												onCheckedChange={() => toggleDiscrepancy(discrepancy.id)}
-												class="mt-1"
-											/>
-										{/if}
-										<div class="flex-1">
-											<div class="flex items-center gap-2 mb-1">
-												<Badge variant={getSeverityVariant(discrepancy.severity)}>
-													{discrepancy.severity}
-												</Badge>
-												<Badge variant="outline" class="capitalize">
-													{discrepancy.discrepancyType.replace(/_/g, ' ')}
-												</Badge>
-												{#if discrepancy.isResolved}
-													<Badge variant="default" class="bg-green-600">
-														<CheckCircle2 class="h-3 w-3 mr-1" />
-														Resolved
-													</Badge>
-												{/if}
+						<table class="w-full text-sm text-left border-collapse">
+							<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
+								<tr>
+									<th
+										class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+										>Entity</th
+									>
+									<th
+										class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+										>Date</th
+									>
+									<th
+										class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+										>Status</th
+									>
+									<th
+										class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 text-right"
+										>Consistency</th
+									>
+									<th
+										class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 text-right"
+										>Matched</th
+									>
+									<th
+										class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 text-right"
+										>Issues</th
+									>
+									<th
+										class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 text-right"
+										>Missing</th
+									>
+									<th
+										class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground text-right"
+										>Actions</th
+									>
+								</tr>
+							</thead>
+							<tbody class="divide-y">
+								{#each reports as report}
+									<tr
+										class="hover:bg-muted/30 cursor-pointer transition-colors group"
+										onclick={() => viewReport(report.id)}
+									>
+										<td class="px-3 py-1.5 border-r last:border-r-0">
+											<span
+												class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground capitalize"
+											>
+												{report.entityType}
+											</span>
+										</td>
+										<td class="px-3 py-1.5 border-r last:border-r-0 text-xs text-muted-foreground">
+											<div>{new Date(report.createdAt).toLocaleDateString()}</div>
+											<div class="text-[10px]">
+												{new Date(report.createdAt).toLocaleTimeString()}
 											</div>
-											<p class="text-sm font-medium">{discrepancy.description}</p>
-											<p class="text-xs text-muted-foreground mt-1">
-												{discrepancy.entityType} • {discrepancy.entityId}
-												{#if discrepancy.fieldName}
-													• Field: {discrepancy.fieldName}
-												{/if}
-											</p>
-										</div>
-										<Button
-											onclick={() => openDetailModal(discrepancy)}
-											variant="outline"
-											size="sm"
-										>
-											<Eye class="h-4 w-4 mr-2" />
-											Details
-										</Button>
-									</div>
-
-									{#if discrepancy.localValue || discrepancy.remoteValue}
-										<div class="grid grid-cols-2 gap-4 mt-3 text-sm">
-											{#if discrepancy.localValue}
-												<div>
-													<span class="text-muted-foreground text-xs">Local Value:</span>
-													<p class="font-mono text-xs mt-1 p-2 bg-muted rounded">
-														{discrepancy.localValue}
-													</p>
-												</div>
-											{/if}
-											{#if discrepancy.remoteValue}
-												<div>
-													<span class="text-muted-foreground text-xs">Remote Value:</span>
-													<p class="font-mono text-xs mt-1 p-2 bg-muted rounded">
-														{discrepancy.remoteValue}
-													</p>
-												</div>
-											{/if}
-										</div>
-									{/if}
-
-									{#if discrepancy.suggestedAction}
-										<div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
-											<p class="font-medium text-blue-900">Suggested Action:</p>
-											<p class="text-blue-800 mt-1">{discrepancy.suggestedAction}</p>
-										</div>
-									{/if}
-
-									{#if discrepancy.isResolved && discrepancy.resolutionNotes}
-										<div class="mt-3 text-xs text-muted-foreground">
-											<p>
-												Resolved by: {discrepancy.resolvedBy || 'System'}
-												• {formatDate(discrepancy.resolvedAt)}
-											</p>
-											<p class="mt-1">{discrepancy.resolutionNotes}</p>
-										</div>
-									{/if}
-								</div>
-							{/each}
-						</div>
-					{/if}
-				</CardContent>
-			</Card>
-		</div>
-	{:else}
-		<!-- Reports List View -->
-		<Card>
-			<CardHeader>
-				<CardTitle>Recent Reconciliation Reports</CardTitle>
-				<CardDescription>Historical data consistency checks</CardDescription>
-			</CardHeader>
-			<CardContent>
-				{#if reports.length === 0}
-					<div class="text-center py-12 text-muted-foreground">
-						<FileText class="h-12 w-12 mx-auto mb-3" />
-						<p class="font-medium">No reconciliation reports</p>
-						<p class="text-sm">Click "Run Reconciliation" to start your first data consistency check</p>
-					</div>
-				{:else}
-					<div class="space-y-3">
-						{#each reports as report}
-							<button
-								onclick={() => viewReport(report.id)}
-								class="w-full text-left border rounded-lg p-4 hover:bg-muted/30 transition-colors"
-							>
-								<div class="flex items-start justify-between mb-2">
-									<div class="flex-1">
-										<div class="flex items-center gap-2 mb-1">
-											<p class="font-medium capitalize">{report.entityType} Reconciliation</p>
-											<div
-												class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border {getStatusColor(
+										</td>
+										<td class="px-3 py-1.5 border-r last:border-r-0">
+											<span
+												class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getStatusColor(
 													report.status
 												)}"
 											>
 												{report.status}
-											</div>
-										</div>
-										<p class="text-sm text-muted-foreground">
-											{formatDate(report.createdAt)}
-											{#if report.triggeredByEmail}
-												• Triggered by {report.triggeredByEmail}
-											{/if}
-										</p>
-									</div>
-									<div class="text-right">
+											</span>
+										</td>
 										{#each [calculateConsistencyScore(report)] as score}
-											<p class="text-2xl font-bold {score >= 90 ? 'text-green-600' : score >= 70 ? 'text-yellow-600' : 'text-red-600'}">
-												{score.toFixed(0)}%
-											</p>
+											<td class="px-3 py-1.5 border-r last:border-r-0 text-right">
+												<span
+													class="font-bold text-xs {score >= 90
+														? 'text-green-600'
+														: score >= 70
+															? 'text-yellow-600'
+															: 'text-red-600'}"
+												>
+													{score.toFixed(0)}%
+												</span>
+											</td>
 										{/each}
-										<p class="text-xs text-muted-foreground">Consistency</p>
-									</div>
-								</div>
-
-								<div class="grid grid-cols-4 gap-4 mt-3 text-sm">
-									<div>
-										<span class="text-muted-foreground">Matched:</span>
-										<span class="ml-1 font-medium text-green-600">{report.totalMatched}</span>
-									</div>
-									<div>
-										<span class="text-muted-foreground">Discrepancies:</span>
-										<span class="ml-1 font-medium text-red-600"
-											>{report.totalDiscrepancies}</span
-										>
-									</div>
-									<div>
-										<span class="text-muted-foreground">Missing Local:</span>
-										<span class="ml-1 font-medium text-orange-600">{report.missingInLocal}</span>
-									</div>
-									<div>
-										<span class="text-muted-foreground">Missing Remote:</span>
-										<span class="ml-1 font-medium text-orange-600"
-											>{report.missingInRemote}</span
-										>
-									</div>
-								</div>
-
-								{#if report.errorMessage}
-									<div class="mt-3 flex items-center gap-2 text-sm text-red-600">
-										<XCircle class="h-4 w-4" />
-										<span>{report.errorMessage}</span>
-									</div>
-								{/if}
-							</button>
-						{/each}
+										<td class="px-3 py-1.5 border-r last:border-r-0 text-right">
+											<span class="font-medium text-xs text-green-600">{report.totalMatched}</span
+											>
+										</td>
+										<td class="px-3 py-1.5 border-r last:border-r-0 text-right">
+											<span class="font-medium text-xs text-red-600"
+												>{report.totalDiscrepancies}</span
+											>
+										</td>
+										<td class="px-3 py-1.5 border-r last:border-r-0 text-right text-xs">
+											{report.missingInLocal + report.missingInRemote}
+										</td>
+										<td class="px-3 py-1.5 text-right">
+											<button
+												onclick={(e) => {
+													e.stopPropagation();
+													viewReport(report.id);
+												}}
+												class="p-1 rounded hover:bg-background border border-transparent hover:border-border text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+												title="View Details"
+											>
+												<Eye class="h-3.5 w-3.5" />
+											</button>
+										</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					{/if}
+				</div>
+			</div>
+		{:else}
+			<!-- Report Details View -->
+			<div class="bg-background p-6 border-b">
+				<div class="flex items-center justify-between mb-4">
+					<div>
+						<h2 class="text-sm font-semibold">Report Summary</h2>
+						<p class="text-xs text-muted-foreground mt-0.5">
+							{formatDate(selectedReport.createdAt)}
+						</p>
 					</div>
+					<span
+						class="inline-flex items-center px-2 py-1 rounded text-[10px] font-medium {getStatusColor(
+							selectedReport.status
+						)}"
+					>
+						{selectedReport.status}
+					</span>
+				</div>
+
+				<div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+					<div>
+						<p class="text-xs text-muted-foreground uppercase tracking-wider">Entity Type</p>
+						<p class="text-lg font-bold capitalize mt-1">{selectedReport.entityType}</p>
+					</div>
+					<div>
+						<p class="text-xs text-muted-foreground uppercase tracking-wider">Matched</p>
+						<p class="text-lg font-bold text-green-600 mt-1">{selectedReport.totalMatched}</p>
+					</div>
+					<div>
+						<p class="text-xs text-muted-foreground uppercase tracking-wider">Discrepancies</p>
+						<p class="text-lg font-bold text-red-600 mt-1">
+							{selectedReport.totalDiscrepancies}
+						</p>
+					</div>
+					{#each [calculateConsistencyScore(selectedReport)] as score}
+						<div>
+							<p class="text-xs text-muted-foreground uppercase tracking-wider">Consistency</p>
+							<p
+								class="text-lg font-bold mt-1 {score >= 90
+									? 'text-green-600'
+									: score >= 70
+										? 'text-yellow-600'
+										: 'text-red-600'}"
+							>
+								{score.toFixed(1)}%
+							</p>
+						</div>
+					{/each}
+				</div>
+			</div>
+
+			<!-- Batch Actions Bar -->
+			{#if discrepancies.length > 0 && discrepancies.some((d: { isResolved: boolean }) => !d.isResolved)}
+				<div class="p-2 border-b bg-muted/5 flex items-center gap-2">
+					<button
+						onclick={selectAll}
+						class="h-8 px-3 rounded-sm border border-input bg-background text-xs hover:bg-accent transition-colors"
+					>
+						Select All
+					</button>
+					<button
+						onclick={deselectAll}
+						class="h-8 px-3 rounded-sm border border-input bg-background text-xs hover:bg-accent transition-colors"
+					>
+						Deselect All
+					</button>
+					{#if selectedDiscrepancies.size > 0}
+						<span class="text-xs text-muted-foreground"
+							>{selectedDiscrepancies.size} selected</span
+						>
+						<button
+							onclick={resolveSelected}
+							disabled={resolvingDiscrepancy}
+							class="h-8 px-3 rounded-sm border border-input bg-primary text-primary-foreground text-xs hover:bg-primary/90 transition-colors ml-auto disabled:opacity-50"
+						>
+							{#if resolvingDiscrepancy}
+								<RefreshCw class="h-3.5 w-3.5 animate-spin inline mr-1" />
+								Resolving...
+							{:else}
+								<CheckCircle2 class="h-3.5 w-3.5 inline mr-1" />
+								Mark Resolved
+							{/if}
+						</button>
+					{/if}
+				</div>
+			{/if}
+
+			<!-- Discrepancies Table -->
+			<div class="relative">
+				{#if discrepancies.length === 0}
+					<div class="px-4 py-12 text-center text-muted-foreground">
+						<CheckCircle2 class="h-12 w-12 mx-auto mb-3 text-green-500/50" />
+						<p class="font-medium text-xs">No discrepancies found</p>
+						<p class="text-[10px] mt-1">All data is in sync</p>
+					</div>
+				{:else}
+					<table class="w-full text-sm text-left border-collapse">
+						<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
+							<tr>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-12"
+								></th>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+									>Severity</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+									>Type</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+									>Description</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+									>Entity</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+									>Values</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground text-right"
+									>Actions</th
+								>
+							</tr>
+						</thead>
+						<tbody class="divide-y">
+							{#each discrepancies as discrepancy}
+								<tr class="hover:bg-muted/30 group {discrepancy.isResolved ? 'bg-muted/20' : ''}">
+									<td class="px-3 py-1.5">
+										{#if !discrepancy.isResolved}
+											<Checkbox
+												checked={selectedDiscrepancies.has(discrepancy.id)}
+												onCheckedChange={() => toggleDiscrepancy(discrepancy.id)}
+											/>
+										{/if}
+									</td>
+									<td class="px-3 py-1.5 border-r last:border-r-0">
+										<Badge variant={getSeverityVariant(discrepancy.severity)} class="text-[10px]">
+											{discrepancy.severity}
+										</Badge>
+									</td>
+									<td class="px-3 py-1.5 border-r last:border-r-0">
+										<span class="text-xs capitalize"
+											>{discrepancy.discrepancyType.replace(/_/g, ' ')}</span
+										>
+									</td>
+									<td class="px-3 py-1.5 border-r last:border-r-0">
+										<div class="max-w-md">
+											<p class="text-xs font-medium">{discrepancy.description}</p>
+											{#if discrepancy.fieldName}
+												<p class="text-[10px] text-muted-foreground mt-0.5">
+													Field: {discrepancy.fieldName}
+												</p>
+											{/if}
+										</div>
+									</td>
+									<td class="px-3 py-1.5 border-r last:border-r-0">
+										<div class="capitalize text-xs">{discrepancy.entityType}</div>
+										<div class="text-[10px] text-muted-foreground font-mono">
+											{discrepancy.entityId.slice(0, 8)}...
+										</div>
+									</td>
+									<td class="px-3 py-1.5 border-r last:border-r-0">
+										{#if discrepancy.localValue || discrepancy.remoteValue}
+											<div class="text-[10px] space-y-0.5 max-w-xs">
+												{#if discrepancy.localValue}
+													<div class="truncate">
+														<span class="text-muted-foreground">L:</span>
+														<code class="ml-1 bg-muted px-1 rounded"
+															>{discrepancy.localValue.slice(0, 15)}</code
+														>
+													</div>
+												{/if}
+												{#if discrepancy.remoteValue}
+													<div class="truncate">
+														<span class="text-muted-foreground">R:</span>
+														<code class="ml-1 bg-muted px-1 rounded"
+															>{discrepancy.remoteValue.slice(0, 15)}</code
+														>
+													</div>
+												{/if}
+											</div>
+										{:else}
+											<span class="text-[10px] text-muted-foreground">—</span>
+										{/if}
+									</td>
+									<td class="px-3 py-1.5 text-right">
+										<div class="flex gap-1 justify-end items-center">
+											{#if discrepancy.isResolved}
+												<span
+													class="text-[10px] text-green-600 font-medium flex items-center mr-2"
+												>
+													<CheckCircle2 class="h-3 w-3 mr-0.5" />
+													Resolved
+												</span>
+											{/if}
+											<button
+												onclick={() => openDetailModal(discrepancy)}
+												class="p-1 rounded hover:bg-background border border-transparent hover:border-border text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+												title="View Details"
+											>
+												<Eye class="h-3.5 w-3.5" />
+											</button>
+										</div>
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
 				{/if}
-			</CardContent>
-		</Card>
-	{/if}
+			</div>
+		{/if}
+	</div>
 </div>
 
 <!-- Discrepancy Detail Modal -->
@@ -768,7 +808,6 @@
 
 		{#if detailDiscrepancy}
 			<div class="space-y-4">
-				<!-- Severity and Type -->
 				<div class="flex items-center gap-2">
 					<Badge variant={getSeverityVariant(detailDiscrepancy.severity)}>
 						{detailDiscrepancy.severity}
@@ -778,13 +817,11 @@
 					</Badge>
 				</div>
 
-				<!-- Description -->
 				<div>
 					<Label class="text-sm font-medium">Description</Label>
 					<p class="text-sm mt-1">{detailDiscrepancy.description}</p>
 				</div>
 
-				<!-- Entity Info -->
 				<div class="grid grid-cols-2 gap-4">
 					<div>
 						<Label class="text-sm font-medium">Entity Type</Label>
@@ -803,7 +840,6 @@
 					</div>
 				{/if}
 
-				<!-- Value Comparison -->
 				{#if detailDiscrepancy.localValue || detailDiscrepancy.remoteValue}
 					<div class="border-t pt-4">
 						<Label class="text-sm font-medium mb-2 block">Value Comparison</Label>
@@ -824,7 +860,6 @@
 					</div>
 				{/if}
 
-				<!-- Suggested Action -->
 				{#if detailDiscrepancy.suggestedAction}
 					<div class="p-4 bg-blue-50 border border-blue-200 rounded">
 						<Label class="text-sm font-medium text-blue-900">Suggested Action</Label>
@@ -832,7 +867,6 @@
 					</div>
 				{/if}
 
-				<!-- Resolution Status -->
 				{#if detailDiscrepancy.isResolved}
 					<div class="p-4 bg-green-50 border border-green-200 rounded">
 						<div class="flex items-center gap-2 mb-2">
@@ -841,7 +875,8 @@
 						</div>
 						<p class="text-sm text-green-800">
 							{#if detailDiscrepancy.resolvedAt}
-								Resolved {formatDate(detailDiscrepancy.resolvedAt)} by {detailDiscrepancy.resolvedBy || 'System'}
+								Resolved {formatDate(detailDiscrepancy.resolvedAt)} by {detailDiscrepancy.resolvedBy ||
+									'System'}
 							{/if}
 						</p>
 						{#if detailDiscrepancy.resolutionNotes}
@@ -854,7 +889,9 @@
 			<DialogFooter>
 				{#if detailDiscrepancy && !detailDiscrepancy.isResolved}
 					<Button
-						onclick={() => detailDiscrepancy && resolveDiscrepancy(detailDiscrepancy.id, 'Manually resolved from detail view')}
+						onclick={() =>
+							detailDiscrepancy &&
+							resolveDiscrepancy(detailDiscrepancy.id, 'Manually resolved from detail view')}
 						disabled={resolvingDiscrepancy}
 					>
 						{#if resolvingDiscrepancy}

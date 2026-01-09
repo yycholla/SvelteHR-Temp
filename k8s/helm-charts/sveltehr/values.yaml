@@ -88,6 +88,10 @@ secrets:
   jwtSecret: 'changeme'
   jwtRefreshSecret: 'changeme'
   serviceAuthKey: 'changeme'
+  # Intuit QuickBooks OAuth (dev only - use Doppler in prod)
+  intuitClientId: 'your_dev_client_id'
+  intuitClientSecret: 'your_dev_client_secret'
+  intuitWebhookVerifierToken: 'generate_random_token'
 
 # External Secrets Operator integration with Doppler
 externalSecrets:
@@ -100,6 +104,13 @@ externalSecrets:
     serviceToken: '' # REQUIRED when enabled: Doppler service token (dp.st.xxxx)
     project: '' # REQUIRED when enabled: Doppler project name (e.g., "sveltehr")
     config: '' # REQUIRED when enabled: Doppler config name (e.g., "dev", "prod")
+
+# Intuit QuickBooks Integration
+intuit:
+  environment: sandbox # sandbox or production
+  redirectUri: 'http://localhost:3000/api/intuit/callback'
+  webhookUrl: 'https://your-ngrok-url.ngrok.io/api/intuit/webhook'
+  scopes: 'com.intuit.quickbooks.accounting com.intuit.quickbooks.payment'
 
 # Pod Disruption Budgets for high availability
 podDisruptionBudget:

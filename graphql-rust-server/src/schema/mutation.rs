@@ -11,7 +11,7 @@ use crate::{
     database::get_db_from_context,
     error::AppError,
     schema::mutations::{
-        AuthMutations, UserMutations, DepartmentMutations, TaskMutations, RbacMutations, TimeMutations, EmployeeMutations, EmployeeImportMutations, TrainingMutations, OnboardingMutations, IntuitMutations, WebhookMutations, TimeEntryMutations, PayrollMutations,
+        AuthMutations, UserMutations, DepartmentMutations, TaskMutations, RbacMutations, TimeMutations, EmployeeMutations, EmployeeImportMutations, TrainingMutations, OnboardingMutations, IntuitMutations, WebhookMutations, TimeEntryMutations, PayrollMutations, DigestMutations, ComplianceMutations,
         // Import auth types to avoid naming conflicts
         auth::{LoginInput, AuthResponse, LogoutResult, RefreshSessionResponse},
     },
@@ -4171,6 +4171,16 @@ impl MutationRoot {
     /// Payroll mutations for compensation management and QuickBooks payroll sync
     async fn payroll(&self) -> PayrollMutations {
         PayrollMutations
+    }
+
+    /// Email digest mutations for automated summary email configuration
+    async fn digests(&self) -> DigestMutations {
+        DigestMutations
+    }
+
+    /// Compliance report mutations for regulatory reporting
+    async fn compliance(&self) -> ComplianceMutations {
+        ComplianceMutations
     }
 
     /// User mutations (existing)

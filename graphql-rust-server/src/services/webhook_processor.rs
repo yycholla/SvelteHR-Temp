@@ -417,7 +417,7 @@ impl WebhookProcessor {
         &self,
         event_id: Uuid,
     ) -> Result<RetryResult, anyhow::Error> {
-        use crate::integrations::intuit::IntuitClient;
+        use crate::integrations::intuit::IntuitClientManager;
 
         // Get the event
         let event = webhook_events::Entity::find_by_id(event_id)
@@ -434,11 +434,11 @@ impl WebhookProcessor {
             });
         }
 
-        // Create Intuit client
-        let intuit_client = IntuitClient::new(
-            std::env::var("INTUIT_CLIENT_ID").unwrap_or_default(),
-            std::env::var("INTUIT_CLIENT_SECRET").unwrap_or_default(),
-        )?;
+        // Get QuickBooks client with automatic token refresh
+        let client_manager = IntuitClientManager::new((*self.db).clone());
+        let intuit_client = client_manager
+            .get_client()
+            .await?;
 
         // Mark as retrying
         let mut active_event: webhook_events::ActiveModel = event.clone().into();

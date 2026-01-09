@@ -5,16 +5,20 @@ import { createErrorResponse } from '$lib/models/error-response';
 import {
 	GET_USER_NOTIFICATIONS,
 	GET_UNREAD_COUNT,
-	GET_NOTIFICATION_BY_ID
+	GET_NOTIFICATION_BY_ID,
+	findNotificationById,
+	type Notification
 } from './queries';
 import {
 	MARK_NOTIFICATION_READ,
-	DELETE_NOTIFICATION
+	DELETE_NOTIFICATION,
+	CREATE_NOTIFICATION
 } from './mutations';
-import type { Notification, UpdateNotificationInput } from './types';
+import type { UpdateNotificationInput, CreateNotificationInput } from './types';
 
 /**
  * T016: Notifications Operations with Read/Unread Tracking
+ * Updated for Rust backend (async-graphql) schema
  */
 export class NotificationsOperations {
 	private client: Client;
@@ -25,31 +29,29 @@ export class NotificationsOperations {
 
 	/**
 	 * Get user notifications with filtering
-	 * PostGraphile: Uses condition parameter with direct values
+	 * Backend: Uses notifications from Rust GraphQL schema
 	 */
 	async getUserNotifications(params: {
-		recipientId: string;
+		userId: string;
 		first?: number;
 		offset?: number;
-		filter?: any;
+		unreadOnly?: boolean;
 		userCredentials: UserCredentials;
 	}): Promise<{
 		notifications: Notification[];
 		totalCount: number;
 		hasNextPage: boolean;
 	}> {
-		// Build condition with recipientId and any additional filters
-		const condition = {
-			recipientId: params.recipientId,
-			...(params.filter || {})
-		};
+		const limit = params.first || 50;
+		const offset = params.offset || 0;
 
 		const dataRequest = createDataRequest({
 			operationName: 'GetUserNotifications',
 			variables: {
-				first: params.first || 50,
-				offset: params.offset || 0,
-				condition
+				userId: params.userId,
+				unreadOnly: params.unreadOnly || false,
+				limit,
+				offset
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
@@ -76,10 +78,13 @@ export class NotificationsOperations {
 				});
 			}
 
+			const notifications = result.data.notifications || [];
+			const hasMore = notifications.length === limit;
+
 			return {
-				notifications: result.data.allNotifications.nodes,
-				totalCount: result.data.allNotifications.totalCount,
-				hasNextPage: result.data.allNotifications.pageInfo.hasNextPage
+				notifications,
+				totalCount: hasMore ? offset + limit + 1 : offset + notifications.length,
+				hasNextPage: hasMore
 			};
 		} catch (error: any) {
 			if (error.userMessage) {
@@ -94,20 +99,18 @@ export class NotificationsOperations {
 
 	/**
 	 * Get unread notification count
-	 * PostGraphile: Uses condition parameter with direct values
+	 * Backend: Uses notifications with unreadOnly filter, count client-side
 	 */
 	async getUnreadCount(params: {
-		recipientId: string;
+		userId: string;
 		userCredentials: UserCredentials;
 	}): Promise<number> {
-		const condition = {
-			recipientId: params.recipientId,
-			readStatus: false
-		};
-
 		const dataRequest = createDataRequest({
 			operationName: 'GetUnreadCount',
-			variables: { condition },
+			variables: {
+				userId: params.userId,
+				limit: 1000
+			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
@@ -131,7 +134,9 @@ export class NotificationsOperations {
 				});
 			}
 
-			return result.data.allNotifications.totalCount;
+			// Count client-side
+			const notifications = result.data.notifications || [];
+			return notifications.length;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error
@@ -145,15 +150,19 @@ export class NotificationsOperations {
 
 	/**
 	 * Get notification by ID
-	 * PostGraphile: Uses notificationById(id)
+	 * Backend: Uses notifications query with client-side filtering
 	 */
 	async getNotificationById(params: {
+		userId: string;
 		notificationId: string;
 		userCredentials: UserCredentials;
 	}): Promise<Notification> {
 		const dataRequest = createDataRequest({
 			operationName: 'GetNotificationById',
-			variables: { id: params.notificationId },
+			variables: {
+				userId: params.userId,
+				notificationId: params.notificationId
+			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
@@ -179,7 +188,18 @@ export class NotificationsOperations {
 				});
 			}
 
-			return result.data.notificationById;
+			// Find notification by ID client-side
+			const notifications = result.data.notifications || [];
+			const notification = findNotificationById(notifications, params.notificationId);
+
+			if (!notification) {
+				throw createErrorResponse(new Error('Notification not found'), {
+					type: 'graphql',
+					userMessage: 'Notification not found.'
+				});
+			}
+
+			return notification;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error
@@ -193,14 +213,14 @@ export class NotificationsOperations {
 
 	/**
 	 * Mark notification as read
-	 * Rust GraphQL Schema: updateNotification(id: UUID!, input: UpdateNotificationInput!)
+	 * Backend: Uses updateNotification from Rust GraphQL schema
 	 */
 	async markNotificationRead(params: {
 		notificationId: string;
 		userCredentials: UserCredentials;
 	}): Promise<Notification> {
 		const input: UpdateNotificationInput = {
-			readStatus: true
+			isRead: true
 		};
 
 		const dataRequest = createDataRequest({
@@ -214,9 +234,9 @@ export class NotificationsOperations {
 		});
 
 		try {
-			// Server-side query using toPromise()
+			// Server-side mutation using toPromise()
 			const result = await this.client
-				.query(MARK_NOTIFICATION_READ, dataRequest.variables)
+				.mutation(MARK_NOTIFICATION_READ, dataRequest.variables)
 				.toPromise();
 
 			if (result.error) {
@@ -248,19 +268,45 @@ export class NotificationsOperations {
 
 	/**
 	 * Mark all user notifications as read
-	 * TODO: Implement bulk update mutation in Rust backend
-	 * For now, this can be done by calling markNotificationRead for each notification
+	 * Backend: Uses updateNotification for each notification individually
 	 */
 	async markAllRead(params: {
-		recipientId: string;
+		userId: string;
 		userCredentials: UserCredentials;
 	}): Promise<boolean> {
-		throw new Error('markAllRead not yet implemented in Rust backend. Use markNotificationRead for individual notifications.');
+		try {
+			// Get all unread notifications
+			const { notifications } = await this.getUserNotifications({
+				userId: params.userId,
+				unreadOnly: true,
+				first: 1000,
+				userCredentials: params.userCredentials
+			});
+
+			// Mark each as read
+			const promises = notifications.map((notification) =>
+				this.markNotificationRead({
+					notificationId: notification.id,
+					userCredentials: params.userCredentials
+				})
+			);
+
+			await Promise.all(promises);
+			return true;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to mark all notifications as read. Please try again.'
+			});
+		}
 	}
 
 	/**
 	 * Delete notification
-	 * Rust GraphQL Schema: deleteNotification(id: UUID!)
+	 * Backend: Uses deleteNotification from Rust GraphQL schema
 	 */
 	async deleteNotification(params: {
 		notificationId: string;
@@ -274,9 +320,9 @@ export class NotificationsOperations {
 		});
 
 		try {
-			// Server-side query using toPromise()
+			// Server-side mutation using toPromise()
 			const result = await this.client
-				.query(DELETE_NOTIFICATION, dataRequest.variables)
+				.mutation(DELETE_NOTIFICATION, dataRequest.variables)
 				.toPromise();
 
 			if (result.error) {
@@ -294,7 +340,7 @@ export class NotificationsOperations {
 				});
 			}
 
-			return result.data.deleteNotification;
+			return result.data.deleteNotification || false;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error
@@ -302,6 +348,54 @@ export class NotificationsOperations {
 			throw createErrorResponse(error, {
 				type: 'graphql',
 				userMessage: 'Failed to delete notification. Please try again.'
+			});
+		}
+	}
+
+	/**
+	 * Create notification
+	 * Backend: Uses createNotification from Rust GraphQL schema
+	 */
+	async createNotification(params: {
+		input: CreateNotificationInput;
+		userCredentials: UserCredentials;
+	}): Promise<Notification> {
+		const dataRequest = createDataRequest({
+			operationName: 'CreateNotification',
+			variables: { input: params.input },
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000
+		});
+
+		try {
+			// Server-side mutation using toPromise()
+			const result = await this.client
+				.mutation(CREATE_NOTIFICATION, dataRequest.variables)
+				.toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to create notification. Please try again.'
+				});
+				throw errorResponse;
+			}
+
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No notification data returned. Please try again.'
+				});
+			}
+
+			return result.data.createNotification;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to create notification. Please try again.'
 			});
 		}
 	}

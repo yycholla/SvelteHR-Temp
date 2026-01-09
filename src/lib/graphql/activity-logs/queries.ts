@@ -2,14 +2,13 @@ import { gql } from '@urql/svelte';
 
 /**
  * Query: Get user's own activities ("My Activities" tab)
- * RLS Policy: activity_user_own_access (employee sees only their own activities)
- * PostGraphile: Uses allActivityLogs and ActivityLogCondition
+ * RLS Policy: Applied in Rust backend - user sees only their own activities
+ * Backend: Uses activityLogs from Rust GraphQL schema
  */
 export const GET_USER_ACTIVITIES = gql`
 	query GetUserActivities($userId: UUID, $limit: Int = 50, $offset: Int = 0) {
 		activityLogs(userId: $userId, limit: $limit, offset: $offset) {
 			id
-			employeeId
 			userId
 			action
 			resourceType
@@ -24,142 +23,81 @@ export const GET_USER_ACTIVITIES = gql`
 
 /**
  * Query: Get all system activities ("Audit Logs" tab - admin only)
- * RLS Policy: activity_admin_audit_access (admin sees all activities)
- * PostGraphile: Uses allActivityLogs and ActivityLogCondition
+ * RLS Policy: Applied in Rust backend - only admins can see all activities
+ * Backend: Uses activityLogs and activityLogsCount from Rust GraphQL schema
  */
 export const GET_AUDIT_LOGS = gql`
-	query GetAuditLogs(
-		$first: Int = 100
-		$offset: Int = 0
-		$orderBy: [ActivityLogsOrderBy!] = [CREATED_AT_DESC]
-		$condition: ActivityLogCondition
-	) {
-		allActivityLogs(first: $first, offset: $offset, orderBy: $orderBy, condition: $condition) {
-			nodes {
-				id
-				employeeId
-				userId
-				userByEmployeeId {
-					id
-					displayName
-					email
-					departmentId
-					departmentByDepartmentId {
-						id
-						name
-					}
-				}
-				action
-				resourceType
-				resourceId
-				details
-				beforeSnapshot
-				afterSnapshot
-				isRollback
-				rolledBackLogId
-				ipAddress
-				userAgent
-				createdAt
-			}
-			totalCount
-			pageInfo {
-				hasNextPage
-				hasPreviousPage
-			}
+	query GetAuditLogs($userId: UUID, $limit: Int = 100, $offset: Int = 0) {
+		activityLogs(userId: $userId, limit: $limit, offset: $offset) {
+			id
+			userId
+			action
+			resourceType
+			resourceId
+			details
+			ipAddress
+			userAgent
+			createdAt
 		}
+		activityLogsCount(userId: $userId)
 	}
 `;
 
 /**
  * Query: Get activity history for specific resource
- * PostGraphile: Uses allActivityLogs and condition parameter
+ * Backend: Uses activityLogs from Rust GraphQL schema
+ * Note: Filtering by resourceType/resourceId done client-side
  */
 export const GET_RESOURCE_ACTIVITY_HISTORY = gql`
-	query GetResourceActivityHistory($resourceType: String!, $resourceId: UUID!, $first: Int = 20) {
-		allActivityLogs(
-			first: $first
-			condition: { resourceType: $resourceType, resourceId: $resourceId }
-			orderBy: [CREATED_AT_DESC]
-		) {
-			nodes {
-				id
-				employeeId
-				userId
-				userByEmployeeId {
-					id
-					displayName
-					email
-				}
-				action
-				resourceType
-				resourceId
-				details
-				createdAt
-			}
-			totalCount
+	query GetResourceActivityHistory($userId: UUID, $limit: Int = 20, $offset: Int = 0) {
+		activityLogs(userId: $userId, limit: $limit, offset: $offset) {
+			id
+			userId
+			action
+			resourceType
+			resourceId
+			details
+			createdAt
 		}
 	}
 `;
 
 /**
  * Query: Get activities by date range
- * PostGraphile: Uses allActivityLogs, date filtering done server-side
+ * Backend: Uses activityLogs from Rust GraphQL schema
+ * Note: Date filtering done client-side, user filtering by userId
  */
 export const GET_ACTIVITIES_BY_DATE_RANGE = gql`
-	query GetActivitiesByDateRange($employeeId: UUID, $first: Int = 1000) {
-		allActivityLogs(
-			first: $first
-			condition: { employeeId: $employeeId }
-			orderBy: [CREATED_AT_DESC]
-		) {
-			nodes {
-				id
-				employeeId
-				userId
-				action
-				resourceType
-				resourceId
-				details
-				createdAt
-			}
-			totalCount
+	query GetActivitiesByDateRange($userId: UUID, $limit: Int = 1000, $offset: Int = 0) {
+		activityLogs(userId: $userId, limit: $limit, offset: $offset) {
+			id
+			userId
+			action
+			resourceType
+			resourceId
+			details
+			createdAt
 		}
+		activityLogsCount(userId: $userId)
 	}
 `;
 
 /**
  * Query: Get single activity log by ID
- * PostGraphile: Uses allActivityLogs with condition filter
+ * Backend: Uses activityLog (singular) from Rust GraphQL schema
  */
 export const GET_ACTIVITY_LOG_BY_ID = gql`
 	query GetActivityLogById($id: UUID!) {
-		allActivityLogs(condition: { id: $id }, first: 1) {
-			nodes {
-				id
-				employeeId
-				userId
-				action
-				resourceType
-				resourceId
-				beforeSnapshot
-				afterSnapshot
-				isRollback
-				rolledBackLogId
-				details
-				createdAt
-				ipAddress
-				userAgent
-				userByEmployeeId {
-					id
-					displayName
-					email
-					departmentId
-					departmentByDepartmentId {
-						id
-						name
-					}
-				}
-			}
+		activityLog(id: $id) {
+			id
+			userId
+			action
+			resourceType
+			resourceId
+			details
+			createdAt
+			ipAddress
+			userAgent
 		}
 	}
 `;

@@ -2,7 +2,8 @@ import type { Client } from '@urql/core';
 import type { UserCredentials } from '$lib/models/data-request';
 import { createDataRequest } from '$lib/models/data-request';
 import { createErrorResponse } from '$lib/models/error-response';
-import { GET_AVAILABLE_REPORTS } from './queries';
+// GET_AVAILABLE_REPORTS not implemented in Rust backend yet
+// import { GET_AVAILABLE_REPORTS } from './queries';
 import { GENERATE_TEAM_REPORT } from './mutations';
 import type { ReportType } from '$lib/types/graphql';
 
@@ -16,6 +17,10 @@ export class TeamReportsOperations {
 		this.client = client;
 	}
 
+	/**
+	 * Generate/Create a new team report
+	 * Backend: Uses createHrReport mutation from Rust GraphQL schema
+	 */
 	async generateTeamReport(params: {
 		type: string;
 		departmentId?: string;
@@ -26,10 +31,14 @@ export class TeamReportsOperations {
 			operationName: 'GenerateTeamReport',
 			variables: {
 				input: {
-					type: params.type,
+					reportType: params.type,
 					departmentId: params.departmentId,
-					startDate: params.dateRange.start,
-					endDate: params.dateRange.end
+					title: `${params.type} Report`,
+					filters: {
+						startDate: params.dateRange.start,
+						endDate: params.dateRange.end
+					},
+					status: 'active'
 				}
 			},
 			userCredentials: params.userCredentials,
@@ -37,16 +46,9 @@ export class TeamReportsOperations {
 		});
 
 		try {
-			// Server-side query using toPromise()
+			// Server-side mutation using toPromise()
 			const result = await this.client
-				.query(GENERATE_TEAM_REPORT, {
-					input: {
-						type: params.type,
-						departmentId: params.departmentId,
-						startDate: params.dateRange.start,
-						endDate: params.dateRange.end
-					}
-				})
+				.mutation(GENERATE_TEAM_REPORT, dataRequest.variables)
 				.toPromise();
 
 			if (result.error) {
@@ -57,14 +59,14 @@ export class TeamReportsOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data) {
+			if (!result.data?.createHrReport) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No report data returned. Please try again.'
 				});
 			}
 
-			return result.data;
+			return result.data.createHrReport;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error
@@ -77,6 +79,11 @@ export class TeamReportsOperations {
 	}
 
 	async getAvailableReports(params: { userCredentials: UserCredentials }): Promise<any> {
+		// TODO: GET_AVAILABLE_REPORTS query not implemented in Rust backend yet
+		// Return empty array for now
+		return [];
+
+		/* Original implementation - requires backend support
 		const dataRequest = createDataRequest({
 			operationName: 'GetAvailableReports',
 			variables: {},
@@ -113,6 +120,7 @@ export class TeamReportsOperations {
 				userMessage: 'Failed to load available reports. Please try again.'
 			});
 		}
+		*/
 	}
 }
 

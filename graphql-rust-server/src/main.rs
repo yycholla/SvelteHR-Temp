@@ -25,7 +25,7 @@ use hr_graphql_server::{
     auth::AuthBackend,
     database::create_db_connection,
     dataloader::DataLoaderContext,
-    handlers::{graphql_handler, graphql_playground, login_handler, logout_handler, me_handler, refresh_handler, sessions_handler, events::delete_event_handler, roles::get_roles_handler, users::get_users_handler, intuit_webhook::intuit_webhook_handler, AppState},
+    handlers::{graphql_handler, graphql_playground, login_handler, logout_handler, me_handler, refresh_handler, sessions_handler, events::delete_event_handler, roles::get_roles_handler, users::get_users_handler, intuit_webhook::intuit_webhook_handler, intuit_oauth::intuit_oauth_callback_handler, AppState},
     middleware::{optional_session_auth_middleware, security_headers_middleware, session_auth_middleware},
     schema::create_schema,
     logging,
@@ -143,6 +143,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .layer(axum_middleware::from_fn_with_state(app_state.clone(), session_auth_middleware)))
         .route("/api/upload", post(hr_graphql_server::handlers::upload::upload_handler)
             .layer(axum_middleware::from_fn_with_state(app_state.clone(), session_auth_middleware)))
+        // QuickBooks OAuth callback (no auth - public callback from QuickBooks)
+        .route("/api/intuit/callback", get(intuit_oauth_callback_handler))
         // QuickBooks webhook endpoint (no auth - uses HMAC signature verification)
         .route("/api/intuit/webhook", post(intuit_webhook_handler))
         .nest_service("/uploads", ServeDir::new("uploads"))
@@ -198,6 +200,50 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Start employee statistics scheduler (captures daily snapshots)
     scheduler::start_employee_statistics_scheduler(db.clone()).await;
     tracing::info!("📊 Employee statistics scheduler started");
+
+    // Initialize email service (optional - only if SMTP credentials are configured)
+    let email_service = match hr_graphql_server::services::EmailConfig::from_env() {
+        Ok(email_config) => {
+            match hr_graphql_server::services::EmailService::new(email_config) {
+                Ok(service) => {
+                    tracing::info!("📧 Email service initialized successfully");
+                    Some(std::sync::Arc::new(service))
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to initialize email service: {}. Email digests will not be sent.", e);
+                    None
+                }
+            }
+        }
+        Err(e) => {
+            tracing::warn!("Email configuration not found: {}. Email digests will not be sent.", e);
+            None
+        }
+    };
+
+    // Start digest scheduler
+    match hr_graphql_server::services::DigestScheduler::new(
+        std::sync::Arc::new(db.clone()),
+        email_service,
+    ).await {
+        Ok(scheduler) => {
+            if let Err(e) = scheduler.start().await {
+                tracing::error!("Failed to start digest scheduler: {}", e);
+            } else {
+                tracing::info!("📬 Email digest scheduler started");
+                // Keep the scheduler alive by moving it into a background task
+                tokio::spawn(async move {
+                    let _keep_alive = scheduler;
+                    loop {
+                        tokio::time::sleep(tokio::time::Duration::from_secs(3600)).await;
+                    }
+                });
+            }
+        }
+        Err(e) => {
+            tracing::error!("Failed to initialize digest scheduler: {}", e);
+        }
+    }
 
     tracing::info!("🚀 Server starting on http://{}", addr);
     tracing::info!("📊 GraphQL playground: http://{}", addr);

@@ -151,7 +151,7 @@
 
 <!-- Command Palette (Cmd+K / Ctrl+K) -->
 {#if mounted && data?.user}
-	<CommandPalette userPermissions={[]} />
+	<CommandPalette userPermissions={data?.permissions || []} />
 {/if}
 
 <!-- Global toast notifications -->

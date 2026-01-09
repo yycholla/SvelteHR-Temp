@@ -7,10 +7,10 @@ export const GET_SYNC_SCHEDULES = gql`
 		$limit: Int
 		$offset: Int
 	) {
-		sync_schedule {
-			sync_schedules(
-				enabled_only: $enabledOnly
-				entity_type: $entityType
+		syncSchedule {
+			syncSchedules(
+				enabledOnly: $enabledOnly
+				entityType: $entityType
 				limit: $limit
 				offset: $offset
 			) {
@@ -40,8 +40,8 @@ export const GET_SYNC_SCHEDULES = gql`
 
 export const GET_SYNC_SCHEDULE = gql`
 	query GetSyncSchedule($scheduleId: String!) {
-		sync_schedule {
-			sync_schedule(schedule_id: $scheduleId) {
+		syncSchedule {
+			syncSchedule(scheduleId: $scheduleId) {
 				id
 				name
 				description
@@ -65,8 +65,8 @@ export const GET_SYNC_SCHEDULE = gql`
 
 export const GET_SYNC_SCHEDULE_HISTORY = gql`
 	query GetSyncScheduleHistory($scheduleId: String!, $limit: Int) {
-		sync_schedule {
-			sync_schedule_history(schedule_id: $scheduleId, limit: $limit) {
+		syncSchedule {
+			syncScheduleHistory(scheduleId: $scheduleId, limit: $limit) {
 				id
 				scheduleId
 				startedAt
@@ -86,8 +86,8 @@ export const GET_SYNC_SCHEDULE_HISTORY = gql`
 
 export const CREATE_SYNC_SCHEDULE = gql`
 	mutation CreateSyncSchedule($input: CreateSyncScheduleInput!) {
-		sync_schedule {
-			create_sync_schedule(input: $input) {
+		syncSchedule {
+			createSyncSchedule(input: $input) {
 				success
 				message
 				scheduleId
@@ -98,8 +98,8 @@ export const CREATE_SYNC_SCHEDULE = gql`
 
 export const UPDATE_SYNC_SCHEDULE = gql`
 	mutation UpdateSyncSchedule($input: UpdateSyncScheduleInput!) {
-		sync_schedule {
-			update_sync_schedule(input: $input) {
+		syncSchedule {
+			updateSyncSchedule(input: $input) {
 				success
 				message
 				scheduleId
@@ -110,8 +110,8 @@ export const UPDATE_SYNC_SCHEDULE = gql`
 
 export const DELETE_SYNC_SCHEDULE = gql`
 	mutation DeleteSyncSchedule($scheduleId: String!) {
-		sync_schedule {
-			delete_sync_schedule(schedule_id: $scheduleId) {
+		syncSchedule {
+			deleteSyncSchedule(scheduleId: $scheduleId) {
 				success
 				message
 				scheduleId
@@ -122,8 +122,8 @@ export const DELETE_SYNC_SCHEDULE = gql`
 
 export const TOGGLE_SYNC_SCHEDULE = gql`
 	mutation ToggleSyncSchedule($scheduleId: String!, $enabled: Boolean!) {
-		sync_schedule {
-			toggle_sync_schedule(schedule_id: $scheduleId, enabled: $enabled) {
+		syncSchedule {
+			toggleSyncSchedule(scheduleId: $scheduleId, enabled: $enabled) {
 				success
 				message
 				scheduleId

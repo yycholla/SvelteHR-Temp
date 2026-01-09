@@ -4,7 +4,6 @@ import { createDataRequest } from '$lib/models/data-request';
 import { createErrorResponse } from '$lib/models/error-response';
 import type {
 	CreatePerformanceReviewInput,
-	DeletePerformanceReviewInput,
 	PerformanceReview,
 	PerformanceReviewFilter,
 	PerformanceStatistics,
@@ -17,7 +16,7 @@ import {
 } from '$lib/utils/performance';
 import {
 	GET_PERFORMANCE_REVIEWS,
-	GET_PERFORMANCE_STATISTICS
+	GET_PERFORMANCE_REVIEWS_FOR_STATS
 } from './queries';
 import {
 	CREATE_PERFORMANCE_REVIEW,
@@ -40,6 +39,7 @@ export class PerformanceManagementOperations {
 	/**
 	 * Get performance reviews for manager's department
 	 * RLS automatically filters to department only via JWT claims
+	 * Backend: Uses performanceReviews from Rust GraphQL schema
 	 */
 	async getPerformanceReviews(params: {
 		first?: number;
@@ -51,12 +51,15 @@ export class PerformanceManagementOperations {
 		totalCount: number;
 		hasNextPage: boolean;
 	}> {
+		const limit = params.first || 20;
+		const offset = params.offset || 0;
+
 		const dataRequest = createDataRequest({
 			operationName: 'GetPerformanceReviews',
 			variables: {
-				first: params.first || 20,
-				offset: params.offset || 0,
-				filter: params.filter || {}
+				employeeId: params.filter?.employeeId || undefined,
+				limit,
+				offset
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
@@ -83,10 +86,13 @@ export class PerformanceManagementOperations {
 				});
 			}
 
+			const reviews = result.data.performanceReviews || [];
+			const hasMore = reviews.length === limit;
+
 			return {
-				reviews: result.data.performanceReviews.nodes,
-				totalCount: result.data.performanceReviews.totalCount,
-				hasNextPage: result.data.performanceReviews.pageInfo.hasNextPage
+				reviews,
+				totalCount: hasMore ? offset + limit + 1 : offset + reviews.length,
+				hasNextPage: hasMore
 			};
 		} catch (error: unknown) {
 			if (error && typeof error === 'object' && 'userMessage' in error) {
@@ -116,7 +122,7 @@ export class PerformanceManagementOperations {
 		try {
 			// Server-side query using toPromise()
 			const result = await this.client
-				.query(GET_PERFORMANCE_STATISTICS, dataRequest.variables)
+				.query(GET_PERFORMANCE_REVIEWS_FOR_STATS, dataRequest.variables)
 				.toPromise();
 
 			if (result.error) {
@@ -150,13 +156,14 @@ export class PerformanceManagementOperations {
 	/**
 	 * Create performance review (manager department-scoped)
 	 * RLS policy enforces department membership
+	 * Backend: Uses createPerformanceReview mutation from Rust GraphQL schema
 	 */
 	async createPerformanceReview(params: {
 		input: CreatePerformanceReviewInput;
 		userCredentials: UserCredentials;
 	}): Promise<PerformanceReview> {
 		// Validate input
-		const validation = validatePerformanceReviewInput(params.input.performanceReview);
+		const validation = validatePerformanceReviewInput(params.input);
 		if (!validation.valid) {
 			throw createErrorResponse(new Error(validation.errors.join(', ')), {
 				type: 'validation',
@@ -172,9 +179,9 @@ export class PerformanceManagementOperations {
 		});
 
 		try {
-			// Server-side query using toPromise()
+			// Server-side mutation using toPromise()
 			const result = await this.client
-				.query(CREATE_PERFORMANCE_REVIEW, dataRequest.variables)
+				.mutation(CREATE_PERFORMANCE_REVIEW, dataRequest.variables)
 				.toPromise();
 
 			if (result.error) {
@@ -185,14 +192,14 @@ export class PerformanceManagementOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data) {
+			if (!result.data?.createPerformanceReview) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No performance review data returned. Please try again.'
 				});
 			}
 
-			return result.data.createPerformanceReview.performanceReview;
+			return result.data.createPerformanceReview;
 		} catch (error: unknown) {
 			if (error && typeof error === 'object' && 'userMessage' in error) {
 				throw error; // Already formatted error
@@ -207,42 +214,17 @@ export class PerformanceManagementOperations {
 	/**
 	 * Update performance review (manager department-scoped)
 	 * RLS policy enforces department membership
+	 * Backend: Uses updatePerformanceReview mutation from Rust GraphQL schema
 	 */
 	async updatePerformanceReview(params: {
 		input: UpdatePerformanceReviewInput;
 		userCredentials: UserCredentials;
 	}): Promise<PerformanceReview> {
 		// Validate ratings if provided
-		const patch = params.input.patch;
 		const errors: string[] = [];
 
-		if (patch.overallRating !== undefined) {
-			const validation = validateRating('Overall Rating', patch.overallRating);
-			if (!validation.valid) errors.push(validation.error!);
-		}
-
-		if (patch.goalsAchievement !== undefined) {
-			const validation = validateRating('Goals Achievement', patch.goalsAchievement);
-			if (!validation.valid) errors.push(validation.error!);
-		}
-
-		if (patch.collaboration !== undefined) {
-			const validation = validateRating('Collaboration', patch.collaboration);
-			if (!validation.valid) errors.push(validation.error!);
-		}
-
-		if (patch.communication !== undefined) {
-			const validation = validateRating('Communication', patch.communication);
-			if (!validation.valid) errors.push(validation.error!);
-		}
-
-		if (patch.leadership !== undefined) {
-			const validation = validateRating('Leadership', patch.leadership);
-			if (!validation.valid) errors.push(validation.error!);
-		}
-
-		if (patch.technicalSkills !== undefined) {
-			const validation = validateRating('Technical Skills', patch.technicalSkills);
+		if (params.input.overallRating !== undefined) {
+			const validation = validateRating('Overall Rating', params.input.overallRating);
 			if (!validation.valid) errors.push(validation.error!);
 		}
 
@@ -261,9 +243,9 @@ export class PerformanceManagementOperations {
 		});
 
 		try {
-			// Server-side query using toPromise()
+			// Server-side mutation using toPromise()
 			const result = await this.client
-				.query(UPDATE_PERFORMANCE_REVIEW, dataRequest.variables)
+				.mutation(UPDATE_PERFORMANCE_REVIEW, dataRequest.variables)
 				.toPromise();
 
 			if (result.error) {
@@ -274,14 +256,14 @@ export class PerformanceManagementOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data) {
+			if (!result.data?.updatePerformanceReview) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No performance review data returned. Please try again.'
 				});
 			}
 
-			return result.data.updatePerformanceReview.performanceReview;
+			return result.data.updatePerformanceReview;
 		} catch (error: unknown) {
 			if (error && typeof error === 'object' && 'userMessage' in error) {
 				throw error; // Already formatted error
@@ -296,26 +278,23 @@ export class PerformanceManagementOperations {
 	/**
 	 * Delete performance review (manager department-scoped)
 	 * RLS policy enforces department membership
+	 * Backend: Uses deletePerformanceReview mutation from Rust GraphQL schema
 	 */
 	async deletePerformanceReview(params: {
 		reviewId: string;
 		userCredentials: UserCredentials;
-	}): Promise<string> {
-		const input: DeletePerformanceReviewInput = {
-			id: params.reviewId
-		};
-
+	}): Promise<boolean> {
 		const dataRequest = createDataRequest({
 			operationName: 'DeletePerformanceReview',
-			variables: { input },
+			variables: { id: params.reviewId },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
 
 		try {
-			// Server-side query using toPromise()
+			// Server-side mutation using toPromise()
 			const result = await this.client
-				.query(DELETE_PERFORMANCE_REVIEW, dataRequest.variables)
+				.mutation(DELETE_PERFORMANCE_REVIEW, dataRequest.variables)
 				.toPromise();
 
 			if (result.error) {
@@ -333,7 +312,7 @@ export class PerformanceManagementOperations {
 				});
 			}
 
-			return result.data.deletePerformanceReview.deletedPerformanceReviewId;
+			return result.data.deletePerformanceReview || false;
 		} catch (error: unknown) {
 			if (error && typeof error === 'object' && 'userMessage' in error) {
 				throw error; // Already formatted error

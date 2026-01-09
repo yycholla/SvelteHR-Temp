@@ -2,7 +2,7 @@ import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 import type { PageServerLoad } from './$types';
 
 const RECONCILIATION_QUERY = `
-	query GetReconciliationData($reportId: String) {
+	query GetReconciliationData {
 		intuit {
 			reconciliation {
 				reconciliationReports(entityType: ALL, limit: 20) {

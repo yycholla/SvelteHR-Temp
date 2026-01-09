@@ -2174,6 +2174,11 @@ impl QueryRoot {
         crate::schema::queries::ComplianceQueries
     }
 
+    /// Audit trail queries for security and compliance monitoring
+    async fn audit(&self) -> crate::schema::queries::AuditQueries {
+        crate::schema::queries::AuditQueries
+    }
+
     /// Batch operations queries for sync batching monitoring
     async fn batch_operations(&self) -> crate::schema::queries::BatchOperationsQueries {
         crate::schema::queries::BatchOperationsQueries
@@ -2207,6 +2212,11 @@ impl QueryRoot {
     /// Payroll queries for compensation data and sync status
     async fn payroll(&self) -> crate::schema::queries::PayrollQueries {
         crate::schema::queries::PayrollQueries
+    }
+
+    /// Email digest queries for automated summary emails
+    async fn digests(&self) -> crate::schema::queries::DigestQueries {
+        crate::schema::queries::DigestQueries
     }
 }
 

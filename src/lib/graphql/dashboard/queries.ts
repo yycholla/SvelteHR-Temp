@@ -1,13 +1,283 @@
 import { gql } from '@urql/core';
-import { GET_EMPLOYEES_QUERY as GET_EMPLOYEES, GET_DEPARTMENTS_QUERY as GET_DEPARTMENTS } from '../employees/queries';
-
-// Re-export with aliases expected by dashboard service
-export const GET_USERS_QUERY = GET_EMPLOYEES;
-export const GET_DEPARTMENTS_QUERY = GET_DEPARTMENTS;
 
 /**
- * Get dashboard overview statistics
+ * GraphQL Queries for Dashboard
+ *
+ * Updated for Rust backend (async-graphql) schema
+ * Note: Many dashboard-specific aggregation queries need backend implementation
+ * For now, using basic queries with client-side calculations
  */
+
+// =============================================================================
+// BASIC QUERIES - Using Rust Backend
+// =============================================================================
+
+/**
+ * Get users for dashboard
+ * Backend: Uses users from Rust GraphQL schema
+ */
+export const GET_USERS_QUERY = gql`
+	query GetUsers($limit: Int = 100, $offset: Int = 0) {
+		users(limit: $limit, offset: $offset) {
+			id
+			email
+			displayName
+			firstName
+			lastName
+			jobTitle
+			departmentId
+			department {
+				id
+				name
+			}
+			role
+			createdAt
+			updatedAt
+		}
+	}
+`;
+
+export const GET_EMPLOYEES_QUERY = GET_USERS_QUERY; // Alias for compatibility
+
+/**
+ * Get departments for dashboard
+ * Backend: Uses departments from Rust GraphQL schema
+ */
+export const GET_DEPARTMENTS_QUERY = gql`
+	query GetDepartments($limit: Int = 100, $offset: Int = 0) {
+		departments(limit: $limit, offset: $offset) {
+			id
+			name
+			description
+			createdAt
+			updatedAt
+		}
+	}
+`;
+
+/**
+ * Get recent activities for dashboard
+ * Backend: Uses activityLogs from Rust GraphQL schema
+ */
+export const GET_RECENT_ACTIVITIES = gql`
+	query GetRecentActivities($limit: Int = 10, $offset: Int = 0) {
+		activityLogs(limit: $limit, offset: $offset) {
+			id
+			action
+			resourceType
+			resourceId
+			userId
+			ipAddress
+			userAgent
+			createdAt
+			metadata
+		}
+	}
+`;
+export const GET_RECENT_ACTIVITIES_QUERY = GET_RECENT_ACTIVITIES;
+
+/**
+ * Get user attendance records
+ * Backend: Uses attendanceRecords from Rust GraphQL schema
+ */
+export const GET_USER_ATTENDANCE_QUERY = gql`
+	query GetUserAttendance($employeeId: UUID!, $startDate: String, $endDate: String, $limit: Int = 30) {
+		attendanceRecords(
+			employeeId: $employeeId
+			startDate: $startDate
+			endDate: $endDate
+			limit: $limit
+			offset: 0
+		) {
+			id
+			employeeId
+			date
+			status
+			clockInTime
+			clockOutTime
+			totalHours
+			notes
+			createdAt
+			updatedAt
+		}
+	}
+`;
+
+/**
+ * Get user leave requests
+ * Backend: Uses leaveRequests from Rust GraphQL schema
+ */
+export const GET_USER_LEAVE_REQUESTS_QUERY = gql`
+	query GetUserLeaveRequests($employeeId: UUID, $limit: Int = 50) {
+		leaveRequests(employeeId: $employeeId, limit: $limit, offset: 0) {
+			id
+			employeeId
+			managerId
+			leaveType
+			startDate
+			endDate
+			daysRequested
+			status
+			reason
+			managerComments
+			createdAt
+			updatedAt
+		}
+	}
+`;
+
+/**
+ * Get user goals
+ * Backend: Uses employeeGoals from Rust GraphQL schema
+ */
+export const GET_USER_GOALS_QUERY = gql`
+	query GetUserGoals($employeeId: UUID!, $limit: Int = 50) {
+		employeeGoals(employeeId: $employeeId, limit: $limit, offset: 0) {
+			id
+			employeeId
+			title
+			description
+			targetDate
+			progress
+			status
+			priority
+			quarter
+			year
+			createdAt
+			updatedAt
+			completedAt
+		}
+	}
+`;
+
+/**
+ * Get user tasks
+ * Backend: Uses tasks from Rust GraphQL schema
+ */
+export const GET_USER_TASKS_QUERY = gql`
+	query GetUserTasks($filter: TaskFilter, $limit: Int = 10) {
+		tasks(filter: $filter, limit: $limit, offset: 0) {
+			id
+			title
+			description
+			status
+			priority
+			dueDate
+			assigneeId
+			createdAt
+			updatedAt
+		}
+	}
+`;
+
+/**
+ * Get system audit logs
+ * Backend: Uses activityLogs from Rust GraphQL schema
+ */
+export const GET_SYSTEM_AUDIT_LOGS_QUERY = gql`
+	query GetSystemAuditLogs($limit: Int = 20) {
+		activityLogs(limit: $limit, offset: 0) {
+			id
+			action
+			resourceType
+			resourceId
+			userId
+			ipAddress
+			userAgent
+			metadata
+			createdAt
+		}
+	}
+`;
+
+/**
+ * Get rollback requests
+ * Backend: Uses rollbackRequests from Rust GraphQL schema
+ */
+export const GET_ROLLBACK_REQUESTS_QUERY = gql`
+	query GetRollbackRequests($limit: Int = 50) {
+		rollbackRequests(limit: $limit, offset: 0) {
+			id
+			entityType
+			entityId
+			status
+			requestedBy
+			approvedBy
+			reason
+			snapshotData
+			createdAt
+			updatedAt
+			approvedAt
+		}
+	}
+`;
+
+/**
+ * Get rollback request count
+ * Backend: Uses rollbackRequestsCount from Rust GraphQL schema
+ */
+export const GET_ROLLBACK_STATS_QUERY = gql`
+	query GetRollbackStats {
+		rollbackRequestsCount
+	}
+`;
+
+/**
+ * Get events for dashboard
+ * Backend: Uses events from Rust GraphQL schema
+ */
+export const GET_UPCOMING_EVENTS = gql`
+	query GetDashboardUpcomingEvents($limit: Int = 10) {
+		events(limit: $limit, offset: 0) {
+			id
+			title
+			description
+			eventType
+			startDate
+			endDate
+			location
+			isAllDay
+			organizerId
+			createdAt
+		}
+	}
+`;
+export const GET_UPCOMING_EVENTS_QUERY = GET_UPCOMING_EVENTS;
+
+/**
+ * Get notifications summary
+ * Backend: Uses notifications from Rust GraphQL schema
+ */
+export const GET_NOTIFICATIONS_SUMMARY = gql`
+	query GetNotificationsSummary($userId: UUID!, $limit: Int = 5) {
+		notifications(userId: $userId, unreadOnly: false, limit: $limit, offset: 0) {
+			id
+			userId
+			title
+			message
+			type
+			priority
+			isRead
+			actionUrl
+			createdAt
+		}
+	}
+`;
+
+// =============================================================================
+// DASHBOARD-SPECIFIC QUERIES - NEED BACKEND IMPLEMENTATION
+// =============================================================================
+
+/**
+ * NOTE: The following queries use custom backend endpoints that don't exist
+ * in the current Rust GraphQL schema. These need to be:
+ * 1. Implemented in the Rust backend, OR
+ * 2. Calculated client-side from basic queries above
+ *
+ * For now, these are commented out and marked for future implementation.
+ */
+
+/*
 export const GET_DASHBOARD_STATS = gql`
 	query GetDashboardStats {
 		dashboardStats {
@@ -22,9 +292,6 @@ export const GET_DASHBOARD_STATS = gql`
 	}
 `;
 
-/**
- * Get dashboard analytics data
- */
 export const GET_DASHBOARD_ANALYTICS = gql`
 	query GetDashboardAnalytics($period: String = "30d") {
 		analytics(period: $period) {
@@ -53,54 +320,6 @@ export const GET_DASHBOARD_ANALYTICS = gql`
 	}
 `;
 
-/**
- * Get recent activities for dashboard
- */
-export const GET_RECENT_ACTIVITIES = gql`
-	query GetRecentActivities($limit: Int = 10) {
-		recentActivities(first: $limit, orderBy: CREATED_AT_DESC) {
-			nodes {
-				id
-				activityType
-				description
-				userId
-				userName
-				createdAt
-				metadata
-				severity
-			}
-			totalCount
-		}
-	}
-`;
-export const GET_RECENT_ACTIVITIES_QUERY = GET_RECENT_ACTIVITIES;
-
-/**
- * Get upcoming events and deadlines
- */
-export const GET_UPCOMING_EVENTS = gql`
-	query GetDashboardUpcomingEvents($days: Int = 30) {
-		upcomingEvents(daysAhead: $days) {
-			nodes {
-				id
-				eventType
-				title
-				description
-				scheduledDate
-				priority
-				assignedTo
-				department
-				isCompleted
-			}
-			totalCount
-		}
-	}
-`;
-export const GET_UPCOMING_EVENTS_QUERY = GET_UPCOMING_EVENTS;
-
-/**
- * Get employee quick stats for dashboard
- */
 export const GET_EMPLOYEE_QUICK_STATS = gql`
 	query GetEmployeeQuickStats {
 		employeeStats {
@@ -113,32 +332,16 @@ export const GET_EMPLOYEE_QUICK_STATS = gql`
 	}
 `;
 
-/**
- * Get department performance summary
- */
 export const GET_DEPARTMENT_PERFORMANCE = gql`
 	query GetDepartmentPerformance {
-		allDepartments(orderBy: NAME_ASC) {
-			nodes {
-				id
-				name
-				employeeCount
-				averageRating
-				budgetUtilization
-				activeProjects
-				recentPerformance {
-					month
-					rating
-					productivity
-				}
-			}
+		departments(limit: 100, offset: 0) {
+			id
+			name
+			# Need backend fields: employeeCount, averageRating, budgetUtilization, activeProjects
 		}
 	}
 `;
 
-/**
- * Get pending approvals for managers/HR
- */
 export const GET_PENDING_APPROVALS = gql`
 	query GetPendingApprovals($userId: UUID!) {
 		pendingApprovals(managerId: $userId) {
@@ -169,9 +372,6 @@ export const GET_PENDING_APPROVALS = gql`
 	}
 `;
 
-/**
- * Get my dashboard data (employee view)
- */
 export const GET_MY_DASHBOARD = gql`
 	query GetMyDashboard($userId: UUID!) {
 		myDashboard(userId: $userId) {
@@ -212,9 +412,6 @@ export const GET_MY_DASHBOARD = gql`
 	}
 `;
 
-/**
- * Get team dashboard data (manager view)
- */
 export const GET_TEAM_DASHBOARD = gql`
 	query GetTeamDashboard($managerId: UUID!) {
 		teamDashboard(managerId: $managerId) {
@@ -250,9 +447,6 @@ export const GET_TEAM_DASHBOARD = gql`
 	}
 `;
 
-/**
- * Get system health metrics (admin view)
- */
 export const GET_SYSTEM_HEALTH = gql`
 	query GetSystemHealth {
 		systemHealth {
@@ -281,36 +475,6 @@ export const GET_SYSTEM_HEALTH = gql`
 	}
 `;
 
-/**
- * Get notifications summary
- */
-export const GET_NOTIFICATIONS_SUMMARY = gql`
-	query GetNotificationsSummary($userId: UUID!) {
-		notificationsSummary(userId: $userId) {
-			unreadCount
-			categories {
-				type
-				count
-				lastReceived
-			}
-			recent(first: 5) {
-				nodes {
-					id
-					title
-					message
-					type
-					isRead
-					createdAt
-					actionUrl
-				}
-			}
-		}
-	}
-`;
-
-/**
- * Get dashboard configuration
- */
 export const GET_DASHBOARD_CONFIG = gql`
 	query GetDashboardConfig($userId: UUID!) {
 		dashboardConfig(userId: $userId) {
@@ -338,110 +502,231 @@ export const GET_DASHBOARD_CONFIG = gql`
 		}
 	}
 `;
+*/
 
 // =============================================================================
-// Restored/Missing Queries for Dashboard Service
+// CLIENT-SIDE HELPER FUNCTIONS
 // =============================================================================
 
-export const GET_USER_ATTENDANCE_QUERY = gql`
-	query GetUserAttendance($userId: UUID!) {
-		attendanceRecords(condition: { employeeId: $userId }, orderBy: DATE_DESC, first: 30) {
-			nodes {
-				id
-				date
-				status
-				clockInTime
-				clockOutTime
-				totalHours
-			}
-		}
-	}
-`;
+/**
+ * Response types for basic queries
+ */
+export interface User {
+	id: string;
+	email: string;
+	displayName: string;
+	firstName: string;
+	lastName: string;
+	jobTitle: string | null;
+	departmentId: string | null;
+	department?: {
+		id: string;
+		name: string;
+	} | null;
+	role: string;
+	createdAt: string;
+	updatedAt: string;
+}
 
-export const GET_USER_LEAVE_REQUESTS_QUERY = gql`
-	query GetUserLeaveRequests($userId: UUID) {
-		leaveRequests(condition: { employeeId: $userId }, orderBy: START_DATE_DESC) {
-			nodes {
-				id
-				leaveType {
-					name
-				}
-				startDate
-				endDate
-				status
-				reason
-			}
-		}
-	}
-`;
+export interface Department {
+	id: string;
+	name: string;
+	description: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
 
-export const GET_USER_GOALS_QUERY = gql`
-	query GetUserGoals($userId: UUID!) {
-		employeeGoals(condition: { employeeId: $userId }) {
-			nodes {
-				id
-				goalTitle
-				status
-				progress
-				dueDate
-			}
-		}
-	}
-`;
+export interface DashboardStats {
+	totalEmployees: number;
+	activeEmployees: number;
+	totalDepartments: number;
+	pendingLeaveRequests: number;
+	recentHires: number;
+	upcomingReviews: number;
+	lastUpdated: string;
+}
 
-export const GET_USER_TASKS_QUERY = gql`
-	query GetUserTasks($filter: TaskFilter) {
-		tasks(filter: $filter, orderBy: DUE_DATE_ASC, first: 10) {
-			nodes {
-				id
-				title
-				status
-				priority
-				dueDate
-			}
-		}
-	}
-`;
+/**
+ * Calculate dashboard statistics from basic queries (client-side)
+ */
+export function calculateDashboardStats(data: {
+	users: User[];
+	departments: Department[];
+	leaveRequests: any[];
+	performanceReviews: any[];
+}): DashboardStats {
+	const now = new Date();
+	const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-export const GET_SYSTEM_AUDIT_LOGS_QUERY = gql`
-	query GetSystemAuditLogs {
-		activityLogs(orderBy: CREATED_AT_DESC, first: 20) {
-			nodes {
-				id
-				action
-				resourceType
-				resourceId
-				createdAt
-				userByEmployeeId {
-					id
-					displayName
-				}
-			}
-		}
-	}
-`;
+	const totalEmployees = data.users.length;
+	const activeEmployees = data.users.filter((u) => u.role !== 'inactive').length;
+	const totalDepartments = data.departments.length;
 
-export const GET_ROLLBACK_REQUESTS_QUERY = gql`
-	query GetRollbackRequests {
-		rollbackRequests(orderBy: CREATED_AT_DESC) {
-			nodes {
-				id
-				entityType
-				status
-				reason
-				createdAt
-				requester {
-					id
-					firstName
-					lastName
-				}
-			}
-		}
-	}
-`;
+	const pendingLeaveRequests = data.leaveRequests.filter(
+		(lr) => lr.status.toLowerCase() === 'pending'
+	).length;
 
-export const GET_ROLLBACK_STATS_QUERY = gql`
-	query GetRollbackStats {
-		rollbackRequestsCount
-	}
-`;
+	const recentHires = data.users.filter(
+		(u) => new Date(u.createdAt) >= thirtyDaysAgo
+	).length;
+
+	const upcomingReviews = data.performanceReviews.filter((pr) => {
+		const status = pr.status.toLowerCase();
+		return status === 'scheduled' || status === 'in_progress';
+	}).length;
+
+	return {
+		totalEmployees,
+		activeEmployees,
+		totalDepartments,
+		pendingLeaveRequests,
+		recentHires,
+		upcomingReviews,
+		lastUpdated: now.toISOString()
+	};
+}
+
+/**
+ * Calculate department distribution (client-side)
+ */
+export function calculateDepartmentDistribution(users: User[]): {
+	department: string;
+	count: number;
+	percentage: number;
+}[] {
+	const total = users.length;
+	const deptCounts: Record<string, number> = {};
+
+	users.forEach((user) => {
+		const deptName = user.department?.name || 'Unassigned';
+		deptCounts[deptName] = (deptCounts[deptName] || 0) + 1;
+	});
+
+	return Object.entries(deptCounts).map(([department, count]) => ({
+		department,
+		count,
+		percentage: total > 0 ? Math.round((count / total) * 100) : 0
+	}));
+}
+
+/**
+ * Calculate leave analytics (client-side)
+ */
+export function calculateLeaveAnalytics(leaveRequests: any[]): {
+	approved: number;
+	pending: number;
+	rejected: number;
+	total: number;
+} {
+	const approved = leaveRequests.filter(
+		(lr) => lr.status.toLowerCase() === 'approved'
+	).length;
+	const pending = leaveRequests.filter((lr) => lr.status.toLowerCase() === 'pending').length;
+	const rejected = leaveRequests.filter(
+		(lr) => lr.status.toLowerCase() === 'rejected'
+	).length;
+
+	return {
+		approved,
+		pending,
+		rejected,
+		total: leaveRequests.length
+	};
+}
+
+/**
+ * Calculate performance metrics (client-side)
+ */
+export function calculatePerformanceMetrics(performanceReviews: any[]): {
+	averageRating: number;
+	completedReviews: number;
+	pendingReviews: number;
+} {
+	const completedReviews = performanceReviews.filter(
+		(pr) => pr.status.toLowerCase() === 'completed'
+	);
+
+	const ratingsSum = completedReviews.reduce((sum, pr) => sum + (pr.overallRating || 0), 0);
+	const averageRating =
+		completedReviews.length > 0 ? ratingsSum / completedReviews.length : 0;
+
+	const pendingReviews = performanceReviews.filter((pr) => {
+		const status = pr.status.toLowerCase();
+		return status === 'pending' || status === 'in_progress' || status === 'scheduled';
+	}).length;
+
+	return {
+		averageRating: Math.round(averageRating * 10) / 10,
+		completedReviews: completedReviews.length,
+		pendingReviews
+	};
+}
+
+/**
+ * Get employee quick stats (client-side)
+ */
+export function calculateEmployeeQuickStats(users: User[]): {
+	newThisMonth: number;
+	birthdaysThisMonth: number;
+	workAnniversaries: number;
+	onLeaveToday: number;
+	remoteWorkingToday: number;
+} {
+	const now = new Date();
+	const currentMonth = now.getMonth();
+	const currentYear = now.getFullYear();
+	const firstOfMonth = new Date(currentYear, currentMonth, 1);
+
+	const newThisMonth = users.filter((u) => {
+		const createdDate = new Date(u.createdAt);
+		return createdDate >= firstOfMonth;
+	}).length;
+
+	// Note: birthdaysThisMonth, workAnniversaries, onLeaveToday, remoteWorkingToday
+	// require additional data not available in basic user query
+	// These should be calculated with additional queries or backend support
+
+	return {
+		newThisMonth,
+		birthdaysThisMonth: 0, // Requires birthday field
+		workAnniversaries: 0, // Requires hire date field
+		onLeaveToday: 0, // Requires leave request cross-reference
+		remoteWorkingToday: 0 // Requires attendance/location data
+	};
+}
+
+/**
+ * Filter pending approvals for a manager (client-side)
+ */
+export function filterPendingApprovals(
+	leaveRequests: any[],
+	performanceReviews: any[],
+	managerId: string
+) {
+	const pendingLeaveRequests = leaveRequests.filter(
+		(lr) => lr.managerId === managerId && lr.status.toLowerCase() === 'pending'
+	);
+
+	const pendingPerformanceReviews = performanceReviews.filter((pr) => {
+		const status = pr.status.toLowerCase();
+		return (
+			pr.reviewerId === managerId &&
+			(status === 'pending' || status === 'in_progress' || status === 'scheduled')
+		);
+	});
+
+	return {
+		leaveRequests: pendingLeaveRequests,
+		performanceReviews: pendingPerformanceReviews,
+		expenseReports: [] // Not implemented in current backend
+	};
+}
+
+/**
+ * Sort activities by date (newest first)
+ */
+export function sortActivitiesByDate<T extends { createdAt: string }>(activities: T[]): T[] {
+	return [...activities].sort((a, b) => {
+		return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+	});
+}

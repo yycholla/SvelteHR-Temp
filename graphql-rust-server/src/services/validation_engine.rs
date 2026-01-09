@@ -13,6 +13,15 @@ use uuid::Uuid;
 use crate::integrations::intuit::{EmployeeExtended as QBEmployeeExtended, Department as QBDepartment};
 use crate::models::{user, department, validation_failure, validation_rule};
 
+/// Sync direction context for validation
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SyncContext {
+    /// Pushing data TO QuickBooks (strict validation)
+    Push,
+    /// Pulling data FROM QuickBooks (lenient validation)
+    Pull,
+}
+
 /// Entity type being validated
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EntityType {
@@ -174,6 +183,20 @@ impl ValidationEngine {
         }
     }
 
+    /// Adjust rule severity based on sync context
+    fn adjust_severity_for_context(rule: &ValidationRule, context: SyncContext) -> Severity {
+        // For Pull operations, downgrade email validation errors to warnings
+        // This allows employees without emails to be imported from QuickBooks
+        if context == SyncContext::Pull && rule.field_name == "email" {
+            match rule.severity {
+                Severity::Error => Severity::Warning,
+                other => other,
+            }
+        } else {
+            rule.severity
+        }
+    }
+
     /// Create built-in validation rules
     fn create_builtin_rules() -> Vec<ValidationRule> {
         let mut rules = Vec::new();
@@ -295,8 +318,8 @@ impl ValidationEngine {
         rules
     }
 
-    /// Validate a local employee before pushing to QuickBooks
-    pub fn validate_local_employee(&self, employee: &user::Model) -> ValidationResult {
+    /// Validate a local employee (context-aware)
+    pub fn validate_local_employee_with_context(&self, employee: &user::Model, context: SyncContext) -> ValidationResult {
         let mut result = ValidationResult::pass();
 
         for rule in &self.rules {
@@ -304,33 +327,37 @@ impl ValidationEngine {
                 continue;
             }
 
+            // Adjust severity based on sync context
+            let mut adjusted_rule = rule.clone();
+            adjusted_rule.severity = Self::adjust_severity_for_context(rule, context);
+
             let validation_error = match rule.field_name.as_str() {
                 "email" => self.validate_field(
-                    rule,
+                    &adjusted_rule,
                     &employee.email,
                     Some(employee.id.to_string()),
                 ),
                 "first_name" => self.validate_field(
-                    rule,
+                    &adjusted_rule,
                     &employee.first_name,
                     Some(employee.id.to_string()),
                 ),
                 "last_name" => self.validate_field(
-                    rule,
+                    &adjusted_rule,
                     &employee.last_name,
                     Some(employee.id.to_string()),
                 ),
                 "first_name,last_name" => {
                     // Validate both first and last name with the same rule
                     if let Some(err) = self.validate_field(
-                        rule,
+                        &adjusted_rule,
                         &employee.first_name,
                         Some(employee.id.to_string()),
                     ) {
                         Some(err)
                     } else {
                         self.validate_field(
-                            rule,
+                            &adjusted_rule,
                             &employee.last_name,
                             Some(employee.id.to_string()),
                         )
@@ -347,14 +374,23 @@ impl ValidationEngine {
         result
     }
 
-    /// Validate a QuickBooks employee before pulling to local DB
-    pub fn validate_quickbooks_employee(&self, employee: &QBEmployeeExtended, qb_id: &str) -> ValidationResult {
+    /// Validate a local employee (backward compatible - uses Push context)
+    pub fn validate_local_employee(&self, employee: &user::Model) -> ValidationResult {
+        self.validate_local_employee_with_context(employee, SyncContext::Push)
+    }
+
+    /// Validate a QuickBooks employee (context-aware)
+    pub fn validate_quickbooks_employee_with_context(&self, employee: &QBEmployeeExtended, qb_id: &str, context: SyncContext) -> ValidationResult {
         let mut result = ValidationResult::pass();
 
         for rule in &self.rules {
             if !rule.enabled || rule.entity_type != EntityType::Employee {
                 continue;
             }
+
+            // Adjust severity based on sync context
+            let mut adjusted_rule = rule.clone();
+            adjusted_rule.severity = Self::adjust_severity_for_context(rule, context);
 
             let validation_error = match rule.field_name.as_str() {
                 "email" => {
@@ -363,24 +399,24 @@ impl ValidationEngine {
                         .and_then(|e| e.address.as_ref())
                         .map(|s| s.as_str())
                         .unwrap_or("");
-                    self.validate_field(rule, email, Some(qb_id.to_string()))
+                    self.validate_field(&adjusted_rule, email, Some(qb_id.to_string()))
                 }
                 "first_name" => {
                     let first_name = employee.base.given_name.as_deref().unwrap_or("");
-                    self.validate_field(rule, first_name, Some(qb_id.to_string()))
+                    self.validate_field(&adjusted_rule, first_name, Some(qb_id.to_string()))
                 }
                 "last_name" => {
                     let last_name = employee.base.family_name.as_deref().unwrap_or("");
-                    self.validate_field(rule, last_name, Some(qb_id.to_string()))
+                    self.validate_field(&adjusted_rule, last_name, Some(qb_id.to_string()))
                 }
                 "first_name,last_name" => {
                     let first_name = employee.base.given_name.as_deref().unwrap_or("");
                     let last_name = employee.base.family_name.as_deref().unwrap_or("");
 
-                    if let Some(err) = self.validate_field(rule, first_name, Some(qb_id.to_string())) {
+                    if let Some(err) = self.validate_field(&adjusted_rule, first_name, Some(qb_id.to_string())) {
                         Some(err)
                     } else {
-                        self.validate_field(rule, last_name, Some(qb_id.to_string()))
+                        self.validate_field(&adjusted_rule, last_name, Some(qb_id.to_string()))
                     }
                 }
                 _ => None,
@@ -392,6 +428,11 @@ impl ValidationEngine {
         }
 
         result
+    }
+
+    /// Validate a QuickBooks employee (backward compatible - uses Pull context)
+    pub fn validate_quickbooks_employee(&self, employee: &QBEmployeeExtended, qb_id: &str) -> ValidationResult {
+        self.validate_quickbooks_employee_with_context(employee, qb_id, SyncContext::Pull)
     }
 
     /// Validate a local department before pushing to QuickBooks
@@ -628,6 +669,36 @@ impl ValidationEngine {
     /// Load custom validation rules from database
     pub async fn load_custom_rules(&mut self, _db: &DatabaseConnection) -> Result<()> {
         // TODO: Load rules from validation_rules table once entity is generated
+        Ok(())
+    }
+
+    /// Clear validation errors for a specific entity (used when manually resolving)
+    pub async fn clear_errors_for_entity(
+        &self,
+        db: &DatabaseConnection,
+        entity_id: &str,
+    ) -> Result<()> {
+        use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+
+        // Find and resolve all validation failures for this entity
+        let failures = validation_failure::Entity::find()
+            .filter(validation_failure::Column::EntityId.eq(Some(entity_id.to_string())))
+            .filter(validation_failure::Column::ResolvedAt.is_null())
+            .all(db)
+            .await?;
+
+        for failure in failures {
+            let mut active_failure: validation_failure::ActiveModel = failure.into();
+            active_failure.resolved_at = Set(Some(Utc::now()));
+            active_failure.resolution = Set(Some("Manually imported with provided information".to_string()));
+            active_failure.update(db).await?;
+        }
+
+        tracing::info!(
+            "Cleared validation errors for entity: {}",
+            entity_id
+        );
+
         Ok(())
     }
 }

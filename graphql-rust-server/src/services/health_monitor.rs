@@ -247,6 +247,13 @@ impl HealthMonitor {
             triggered_alerts.push(alert_id);
         }
 
+        // Cleanup old resolved alerts (older than 7 days)
+        if let Ok(deleted_count) = self.cleanup_old_resolved_alerts().await {
+            if deleted_count > 0 {
+                tracing::info!("Cleaned up {} old resolved alerts", deleted_count);
+            }
+        }
+
         Ok(triggered_alerts)
     }
 
@@ -302,6 +309,30 @@ impl HealthMonitor {
         }
 
         Ok(())
+    }
+
+    /// Delete an alert
+    pub async fn delete_alert(&self, alert_id: Uuid) -> Result<(), sea_orm::DbErr> {
+        sync_health_alerts::Entity::delete_by_id(alert_id)
+            .exec(&*self.db)
+            .await?;
+
+        Ok(())
+    }
+
+    /// Clean up old resolved alerts (older than 7 days)
+    pub async fn cleanup_old_resolved_alerts(&self) -> Result<u64, sea_orm::DbErr> {
+        use sea_orm::QueryFilter;
+
+        let cutoff_date = Utc::now() - chrono::Duration::days(7);
+
+        let result = sync_health_alerts::Entity::delete_many()
+            .filter(sync_health_alerts::Column::ResolvedAt.is_not_null())
+            .filter(sync_health_alerts::Column::ResolvedAt.lt(cutoff_date))
+            .exec(&*self.db)
+            .await?;
+
+        Ok(result.rows_affected)
     }
 
     /// Count consecutive sync failures

@@ -8,36 +8,38 @@ import { gql } from '@urql/svelte';
  * Mutation: Create employee goal
  * RLS Policy: manager_create_department_goals
  * Covers: FR-004
+ * Backend: Uses createEmployeeGoal from Rust GraphQL schema
  */
 export const CREATE_EMPLOYEE_GOAL = gql`
 	mutation CreateEmployeeGoal($input: CreateEmployeeGoalInput!) {
 		createEmployeeGoal(input: $input) {
-			employeeGoal {
+			id
+			employeeId
+			employee {
 				id
-				employeeId
-				employee {
+				displayName
+				email
+				jobTitle
+				department {
 					id
-					displayName
-					email
-					jobTitle
+					name
 				}
-				title
-				description
-				targetDate
-				progress
-				status
-				priority
-				quarter
-				year
-				createdBy
-				creator {
-					id
-					displayName
-					email
-				}
-				createdAt
 			}
-			clientMutationId
+			title
+			description
+			targetDate
+			progress
+			status
+			priority
+			quarter
+			year
+			createdBy
+			creator {
+				id
+				displayName
+				email
+			}
+			createdAt
 		}
 	}
 `;
@@ -47,30 +49,32 @@ export const CREATE_EMPLOYEE_GOAL = gql`
  * RLS Policy: manager_update_department_goals
  * Covers: FR-004
  * Note: Progress at 100% auto-sets status to 'completed'
+ * Backend: Uses updateEmployeeGoal from Rust GraphQL schema
  */
 export const UPDATE_EMPLOYEE_GOAL = gql`
 	mutation UpdateEmployeeGoal($input: UpdateEmployeeGoalInput!) {
 		updateEmployeeGoal(input: $input) {
-			employeeGoal {
+			id
+			employeeId
+			employee {
 				id
-				employeeId
-				employee {
+				displayName
+				email
+				department {
 					id
-					displayName
-					email
+					name
 				}
-				title
-				description
-				targetDate
-				progress
-				status
-				priority
-				quarter
-				year
-				updatedAt
-				completedAt
 			}
-			clientMutationId
+			title
+			description
+			targetDate
+			progress
+			status
+			priority
+			quarter
+			year
+			updatedAt
+			completedAt
 		}
 	}
 `;
@@ -79,12 +83,10 @@ export const UPDATE_EMPLOYEE_GOAL = gql`
  * Mutation: Delete employee goal
  * RLS Policy: manager_delete_department_goals
  * Covers: FR-004
+ * Backend: Uses deleteEmployeeGoal from Rust GraphQL schema
  */
 export const DELETE_EMPLOYEE_GOAL = gql`
-	mutation DeleteEmployeeGoal($input: DeleteEmployeeGoalInput!) {
-		deleteEmployeeGoal(input: $input) {
-			deletedEmployeeGoalId
-			clientMutationId
-		}
+	mutation DeleteEmployeeGoal($id: UUID!) {
+		deleteEmployeeGoal(id: $id)
 	}
 `;

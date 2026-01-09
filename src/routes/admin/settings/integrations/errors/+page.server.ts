@@ -2,7 +2,7 @@ import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 import type { PageServerLoad } from './$types';
 
 const ERROR_RECOVERY_QUERY = `
-	query GetErrorRecoveryData($operationId: String) {
+	query GetErrorRecoveryData {
 		intuit {
 			errorRecovery {
 				retryStatistics {

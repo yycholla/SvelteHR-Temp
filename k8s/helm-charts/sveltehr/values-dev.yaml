@@ -402,6 +402,14 @@ externalSecrets:
     config: ''
 
 # -----------------------------------------------------------------------------
+# Intuit QuickBooks Integration (Development)
+# -----------------------------------------------------------------------------
+intuit:
+  environment: sandbox
+  redirectUri: 'https://dev.sveltehr.com/api/intuit/callback'
+  webhookUrl: 'https://dev.sveltehr.com/api/intuit/webhook'
+
+# -----------------------------------------------------------------------------
 # Ingress Configuration
 # -----------------------------------------------------------------------------
 ingress:

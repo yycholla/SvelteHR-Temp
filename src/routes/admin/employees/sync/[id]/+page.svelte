@@ -62,8 +62,8 @@
 	let syncDialogOpen = $state(false);
 
 	// Form states
-	let autoSyncEnabled = $state(syncStatus?.autoSyncEnabled ?? true);
-	let syncDirection = $state(syncStatus?.syncDirection ?? 'Bidirectional');
+	let autoSyncEnabled = $state(true);
+	let syncDirection = $state<string>('Bidirectional');
 	let selectedSyncDirection = $state('Pull');
 
 	// UI states

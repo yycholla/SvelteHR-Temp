@@ -1,338 +1,331 @@
 import type { Client } from '@urql/core';
-import { client as defaultClient } from '$lib/graphql/client';
 import type { UserCredentials } from '$lib/models/data-request';
 import { createDataRequest } from '$lib/models/data-request';
 import { createErrorResponse } from '$lib/models/error-response';
-import { logger } from '$lib/utils/logger';
-import { GET_USER_SETTINGS } from './queries';
-import { GET_USER_ACTIVITIES } from '../activity-logs-operations';
-import type { UpdateUserProfileInput, UpdateUserPreferencesInput } from './types';
+import {
+	GET_USER_SETTINGS,
+	GET_USER_PROFILE,
+	loadUserPreferences,
+	saveUserPreferences,
+	loadNotificationPreferences,
+	saveNotificationPreferences,
+	loadPrivacyPreferences,
+	savePrivacyPreferences,
+	clearUserPreferences,
+	type UserSettings,
+	type UserPreferences,
+	type NotificationPreferences,
+	type PrivacyPreferences
+} from './queries';
+import { UPDATE_USER_PROFILE } from './mutations';
 
 /**
- * T041: Standardized Settings Operations with Error Handling
+ * Settings Operations with Hybrid Storage Strategy
  *
- * Implements standardized user settings operations with comprehensive error handling,
- * timeout enforcement, and retry logic following the T021-T024 entity model patterns.
+ * Updated for Rust backend (async-graphql) schema
+ *
+ * Strategy:
+ * - User Profile Data: Fetched from Rust backend via GraphQL `me` query
+ * - User Preferences: Stored in browser localStorage (theme, timezone, display settings)
+ * - Notification Preferences: Stored in browser localStorage
+ * - Privacy Preferences: Stored in browser localStorage
+ *
+ * This approach provides:
+ * - Instant preference updates without network latency
+ * - No backend changes required for preferences
+ * - Profile data remains server-authoritative
  */
 export class SettingsOperations {
-	private client: Client | null;
+	private client: Client;
 
-	constructor(client: Client | null) {
+	constructor(client: Client) {
 		this.client = client;
 	}
 
 	/**
-	 * Get user settings with standardized error handling
-	 *
-	 * Currently uses a hybrid approach:
-	 * - Fetches actual user data from GraphQL backend
-	 * - Supplements with mock settings data until full backend schema is implemented
+	 * Get user settings (profile + preferences)
+	 * Backend: Uses me from Rust GraphQL schema
+	 * Preferences: Loaded from localStorage
 	 */
 	async getUserSettings(params: {
-		userId: string;
 		userCredentials: UserCredentials;
-	}): Promise<any> {
-		// Create data request with standard timeout
+	}): Promise<{
+		profile: UserSettings;
+		preferences: UserPreferences;
+		notificationPreferences: NotificationPreferences;
+		privacyPreferences: PrivacyPreferences;
+	}> {
 		const dataRequest = createDataRequest({
 			operationName: 'GetUserSettings',
-			variables: {
-				userId: params.userId
-			},
+			variables: {},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
 
 		try {
-			// Fetch actual user data from GraphQL backend
-			const activeClient = this.client || defaultClient;
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_USER_SETTINGS, dataRequest.variables).toPromise();
 
-			const userResult = await activeClient.query(GET_USER_SETTINGS, {});
-
-			if (userResult.error) {
-				throw userResult.error;
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load settings. Please try again.'
+				});
+				throw errorResponse;
 			}
 
-			const userData = userResult.data?.me;
-			const systemSettings = userResult.data?.systemSettings;
-
-			if (!userData) {
-				throw new Error('User not found');
+			if (!result.data || !result.data.me) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No settings data returned. Please try again.'
+				});
 			}
 
-			// Parse system settings by category
-			const settingsByCategory =
-				systemSettings?.reduce((acc: any, setting: any) => {
-					try {
-						acc[setting.category] = JSON.parse(setting.settings);
-					} catch {
-						acc[setting.category] = setting.settings;
-					}
-					return acc;
-				}, {}) || {};
+			const profile = result.data.me;
+			const userId = profile.id;
 
-			// Structure settings data
-			const settingsData = {
-				profile: {
-					id: `profile-${userData.id}`,
-					bio: settingsByCategory.profile?.bio || '',
-					avatar: settingsByCategory.profile?.avatar || null,
-					timezone: settingsByCategory.profile?.timezone || 'America/Los_Angeles',
-					locale: settingsByCategory.profile?.locale || 'en-US',
-					dateFormat: settingsByCategory.profile?.dateFormat || 'MM/dd/yyyy',
-					timeFormat: settingsByCategory.profile?.timeFormat || '12h'
-				},
-				preferences: {
-					id: `pref-${userData.id}`,
-					theme: userData.themePreference || 'light',
-					compactView: settingsByCategory.preferences?.compactView || false,
-					language: settingsByCategory.preferences?.language || 'en',
-					notifications: settingsByCategory.notifications || {
-						email: true,
-						push: false,
-						sms: false,
-						leaveReminders: true,
-						performanceUpdates: true,
-						systemAlerts: true,
-						teamUpdates: false
-					},
-					privacy: settingsByCategory.privacy || {
-						profileVisibility: 'team',
-						showOnlineStatus: true,
-						allowDirectMessages: true,
-						dataSharing: false,
-						analyticsOptOut: false
-					},
-					appearance: {
-						darkMode: userData.themePreference === 'dark',
-						fontSize: settingsByCategory.appearance?.fontSize || 'medium',
-						colorScheme: settingsByCategory.appearance?.colorScheme || 'blue',
-						sidebarCollapsed: settingsByCategory.appearance?.sidebarCollapsed || false
-					}
-				}
+			// Load preferences from localStorage
+			const preferences = loadUserPreferences(userId);
+			const notificationPreferences = loadNotificationPreferences(userId);
+			const privacyPreferences = loadPrivacyPreferences(userId);
+
+			return {
+				profile,
+				preferences,
+				notificationPreferences,
+				privacyPreferences
 			};
-
-			// Combine actual user data with mock settings
-			const userSettings = {
-				...userData,
-				department: userData.department
-					? {
-							id: userData.department.id,
-							name: userData.department.name
-						}
-					: null,
-				...settingsData,
-				createdAt: userData.createdAt,
-				updatedAt: userData.updatedAt
-			};
-
-			logger.info(`Loaded settings for user: ${params.userId} (hybrid: GraphQL + mock)`);
-			return userSettings;
-		} catch (error) {
-			logger.error('Catch failed', error as Error);
-
-			// Fallback to mock data if GraphQL fails
-			logger.warn('Falling back to mock user settings data');
-			const mockUserSettings = {
-				id: params.userId,
-				email: 'user@company.com',
-				displayName: 'John Doe',
-				firstName: 'John',
-				lastName: 'Doe',
-				phoneNumber: '+1 (555) 123-4567',
-				jobTitle: 'Software Engineer',
-				department: {
-					id: 'dept-1',
-					name: 'Engineering'
-				},
-				profile: {
-					id: 'profile-1',
-					bio: 'Software engineer with 5 years of experience',
-					avatar: null,
-					timezone: 'America/Los_Angeles',
-					locale: 'en-US',
-					dateFormat: 'MM/dd/yyyy',
-					timeFormat: '12h'
-				},
-				preferences: {
-					id: 'pref-1',
-					theme: 'light',
-					compactView: false,
-					language: 'en',
-					notifications: {
-						email: true,
-						push: false,
-						sms: false,
-						leaveReminders: true,
-						performanceUpdates: true,
-						systemAlerts: true,
-						teamUpdates: false
-					},
-					privacy: {
-						profileVisibility: 'team',
-						showOnlineStatus: true,
-						allowDirectMessages: true,
-						dataSharing: false,
-						analyticsOptOut: false
-					},
-					appearance: {
-						darkMode: false,
-						fontSize: 'medium',
-						colorScheme: 'blue',
-						sidebarCollapsed: false
-					}
-				},
-				createdAt: '2024-01-15T08:00:00Z',
-				updatedAt: '2024-12-18T10:30:00Z'
-			};
-
-			return mockUserSettings;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load settings. Please try again.'
+			});
 		}
 	}
 
 	/**
-	 * Update user profile with error handling
+	 * Get user profile only
+	 * Backend: Uses me from Rust GraphQL schema
 	 */
-	async updateUserProfile(params: {
-		input: UpdateUserProfileInput;
+	async getUserProfile(params: {
 		userCredentials: UserCredentials;
-	}): Promise<any> {
+	}): Promise<UserSettings> {
 		const dataRequest = createDataRequest({
-			operationName: 'UpdateUserProfile',
-			variables: { input: params.input },
+			operationName: 'GetUserProfile',
+			variables: {},
 			userCredentials: params.userCredentials,
-			timeoutMs: 8000
+			timeoutMs: 5000
 		});
 
-		return new Promise<any>((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Profile update timeout'), {
-					type: 'timeout',
-					userMessage:
-						'Profile update is taking longer than expected. Please check if changes were saved.'
-				});
-				reject(errorResponse);
-			}, dataRequest.timeoutMs);
-
-			// Mock profile update - in real implementation, this would execute GraphQL mutation
-			setTimeout(() => {
-				clearTimeout(timeoutId);
-				logger.info(`Updated profile for user: ${params.input.userId}`);
-				resolve({
-					user: {
-						...params.input.profile,
-						id: params.input.userId,
-						updatedAt: new Date().toISOString()
-					}
-				});
-			}, 1000);
-		});
-	}
-
-	/**
-	 * Update user preferences with error handling
-	 */
-	async updateUserPreferences(params: {
-		input: UpdateUserPreferencesInput;
-		userCredentials: UserCredentials;
-	}): Promise<any> {
-		const dataRequest = createDataRequest({
-			operationName: 'UpdateUserPreferences',
-			variables: { input: params.input },
-			userCredentials: params.userCredentials,
-			timeoutMs: 8000
-		});
-
-		return new Promise<any>((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Preferences update timeout'), {
-					type: 'timeout',
-					userMessage:
-						'Preferences update is taking longer than expected. Please verify changes were saved.'
-				});
-				reject(errorResponse);
-			}, dataRequest.timeoutMs);
-
-			// Mock preferences update
-			setTimeout(() => {
-				clearTimeout(timeoutId);
-				logger.info(`Updated preferences for user: ${params.input.userId}`);
-				resolve({
-					userPreferences: {
-						...params.input.preferences,
-						id: 'pref-1',
-						updatedAt: new Date().toISOString()
-					}
-				});
-			}, 1000);
-		});
-	}
-
-	/**
-	 * Get user activity log for settings page
-	 */
-	async getUserActivityLog(params: {
-		userId: string;
-		limit?: number;
-		userCredentials: UserCredentials;
-	}): Promise<any[]> {
 		try {
-			// Fetch actual activity logs from GraphQL backend
-			const activeClient = this.client || defaultClient;
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_USER_PROFILE, dataRequest.variables).toPromise();
 
-			const activityResult = await activeClient.query(GET_USER_ACTIVITIES, {
-				userId: params.userId,
-				limit: params.limit || 10
-			});
-
-			if (activityResult.error) {
-				throw activityResult.error;
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load profile. Please try again.'
+				});
+				throw errorResponse;
 			}
 
-			const activities = activityResult.data?.activityLogs || [];
+			if (!result.data || !result.data.me) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No profile data returned. Please try again.'
+				});
+			}
 
-			// Transform to expected format
-			return activities.map((activity: any) => ({
-				id: activity.id,
-				action: activity.action,
-				description: `${activity.action} on ${activity.resourceType}`,
-				timestamp: activity.createdAt,
-				ipAddress: activity.ipAddress,
-				userAgent: activity.userAgent
-			}));
+			return result.data.me;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load profile. Please try again.'
+			});
+		}
+	}
+
+	/**
+	 * Update user profile
+	 * Backend: Uses updateUser from Rust GraphQL schema
+	 */
+	async updateUserProfile(params: {
+		id: string;
+		input: {
+			email?: string;
+			displayName?: string;
+			firstName?: string;
+			lastName?: string;
+			phone?: string;
+			jobTitle?: string;
+			departmentId?: string;
+			managerId?: string;
+			hireDate?: string;
+			isActive?: boolean;
+			status?: string;
+		};
+		userCredentials: UserCredentials;
+	}): Promise<UserSettings> {
+		const dataRequest = createDataRequest({
+			operationName: 'UpdateUserProfile',
+			variables: {
+				id: params.id,
+				input: params.input
+			},
+			userCredentials: params.userCredentials,
+			timeoutMs: 8000
+		});
+
+		try {
+			// Server-side mutation using toPromise()
+			const result = await this.client
+				.mutation(UPDATE_USER_PROFILE, dataRequest.variables)
+				.toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to update profile. Please try again.'
+				});
+				throw errorResponse;
+			}
+
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No profile data returned. Please try again.'
+				});
+			}
+
+			return result.data.updateUser;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to update profile. Please try again.'
+			});
+		}
+	}
+
+	/**
+	 * Update user preferences (client-side)
+	 * Uses localStorage - no backend call
+	 */
+	async updateUserPreferences(params: {
+		userId: string;
+		preferences: Partial<UserPreferences>;
+	}): Promise<UserPreferences> {
+		try {
+			saveUserPreferences(params.userId, params.preferences);
+			return loadUserPreferences(params.userId);
 		} catch (error) {
-			logger.error('Catch failed', error as Error);
+			throw createErrorResponse(error as Error, {
+				type: 'validation',
+				userMessage: 'Failed to update preferences. Please try again.'
+			});
+		}
+	}
 
-			// Fallback to mock data if GraphQL fails
-			logger.warn('Falling back to mock activity log data');
-			const mockActivityLog = [
-				{
-					id: '1',
-					action: 'profile_updated',
-					description: 'Updated profile information',
-					timestamp: '2024-12-18T10:30:00Z',
-					ipAddress: '192.168.1.100',
-					userAgent: 'Mozilla/5.0...'
-				},
-				{
-					id: '2',
-					action: 'password_changed',
-					description: 'Changed account password',
-					timestamp: '2024-12-15T14:20:00Z',
-					ipAddress: '192.168.1.100',
-					userAgent: 'Mozilla/5.0...'
-				},
-				{
-					id: '3',
-					action: 'notifications_updated',
-					description: 'Updated notification preferences',
-					timestamp: '2024-12-10T09:15:00Z',
-					ipAddress: '192.168.1.100',
-					userAgent: 'Mozilla/5.0...'
-				}
-			];
+	/**
+	 * Update notification preferences (client-side)
+	 * Uses localStorage - no backend call
+	 */
+	async updateNotificationPreferences(params: {
+		userId: string;
+		preferences: Partial<NotificationPreferences>;
+	}): Promise<NotificationPreferences> {
+		try {
+			saveNotificationPreferences(params.userId, params.preferences);
+			return loadNotificationPreferences(params.userId);
+		} catch (error) {
+			throw createErrorResponse(error as Error, {
+				type: 'validation',
+				userMessage: 'Failed to update notification preferences. Please try again.'
+			});
+		}
+	}
 
-			logger.info(`Loaded activity log for user: ${params.userId} (fallback to mock)`);
-			return mockActivityLog;
+	/**
+	 * Update privacy preferences (client-side)
+	 * Uses localStorage - no backend call
+	 */
+	async updatePrivacyPreferences(params: {
+		userId: string;
+		preferences: Partial<PrivacyPreferences>;
+	}): Promise<PrivacyPreferences> {
+		try {
+			savePrivacyPreferences(params.userId, params.preferences);
+			return loadPrivacyPreferences(params.userId);
+		} catch (error) {
+			throw createErrorResponse(error as Error, {
+				type: 'validation',
+				userMessage: 'Failed to update privacy preferences. Please try again.'
+			});
+		}
+	}
+
+	/**
+	 * Load user preferences (client-side)
+	 * Uses localStorage - no backend call
+	 */
+	getUserPreferences(userId: string): UserPreferences {
+		return loadUserPreferences(userId);
+	}
+
+	/**
+	 * Load notification preferences (client-side)
+	 * Uses localStorage - no backend call
+	 */
+	getNotificationPreferences(userId: string): NotificationPreferences {
+		return loadNotificationPreferences(userId);
+	}
+
+	/**
+	 * Load privacy preferences (client-side)
+	 * Uses localStorage - no backend call
+	 */
+	getPrivacyPreferences(userId: string): PrivacyPreferences {
+		return loadPrivacyPreferences(userId);
+	}
+
+	/**
+	 * Clear all user preferences (client-side)
+	 * Uses localStorage - no backend call
+	 */
+	clearAllPreferences(userId: string): void {
+		clearUserPreferences(userId);
+	}
+
+	/**
+	 * Reset preferences to defaults (client-side)
+	 * Uses localStorage - no backend call
+	 */
+	async resetPreferencesToDefaults(userId: string): Promise<{
+		preferences: UserPreferences;
+		notificationPreferences: NotificationPreferences;
+		privacyPreferences: PrivacyPreferences;
+	}> {
+		try {
+			clearUserPreferences(userId);
+
+			return {
+				preferences: loadUserPreferences(userId),
+				notificationPreferences: loadNotificationPreferences(userId),
+				privacyPreferences: loadPrivacyPreferences(userId)
+			};
+		} catch (error) {
+			throw createErrorResponse(error as Error, {
+				type: 'validation',
+				userMessage: 'Failed to reset preferences. Please try again.'
+			});
 		}
 	}
 }
@@ -340,6 +333,6 @@ export class SettingsOperations {
 /**
  * Factory function to create SettingsOperations instance
  */
-export function createSettingsOperations(client: Client | null): SettingsOperations {
+export function createSettingsOperations(client: Client): SettingsOperations {
 	return new SettingsOperations(client);
 }

@@ -1,19 +1,4 @@
 <script lang="ts">
-	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
-	import { Badge } from '$lib/components/ui/badge';
-	import { Button } from '$lib/components/ui/button';
-	import { Alert, AlertDescription } from '$lib/components/ui/alert';
-	import {
-		Select,
-		SelectContent,
-		SelectItem,
-		SelectTrigger,
-		SelectValue
-	} from '$lib/components/ui/select';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
-	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { Switch } from '$lib/components/ui/switch';
 	import {
 		AlertCircle,
 		CheckCircle2,
@@ -67,13 +52,6 @@
 			return matchesSearch && matchesSynced;
 		})
 	);
-
-	// Sync directions
-	const syncDirections = [
-		{ value: 'Pull', label: 'Pull from QuickBooks', icon: ArrowLeft },
-		{ value: 'Push', label: 'Push to QuickBooks', icon: ArrowRight },
-		{ value: 'Bidirectional', label: 'Bidirectional Sync', icon: ArrowLeftRight }
-	];
 
 	function toggleEmployee(id: string) {
 		if (selectedEmployees.has(id)) {
@@ -161,274 +139,344 @@
 		const date = new Date(dateStr);
 		return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
 	}
+
+	function getSyncedColor(hasQbId: boolean): string {
+		return hasQbId ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700';
+	}
 </script>
 
-<div class="container mx-auto py-8 px-4">
-	<!-- Header -->
-	<div class="mb-6">
-		<div class="flex items-center gap-3 mb-2">
-			<Filter class="h-6 w-6" />
-			<h1 class="text-2xl font-bold">Selective Sync</h1>
+<div class="flex flex-col h-full overflow-hidden bg-background">
+	<!-- Toolbar -->
+	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+		<div class="flex items-center gap-4 flex-1">
+			<h1 class="text-sm font-semibold tracking-tight">Selective Sync</h1>
+			<div class="h-4 w-px bg-border"></div>
+
+			<!-- Search -->
+			<div class="relative w-64">
+				<Search class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+				<input
+					type="text"
+					bind:value={searchTerm}
+					placeholder="Search entities..."
+					class="w-full h-8 rounded-sm border border-input bg-background pl-8 pr-3 text-xs focus:border-primary focus:outline-none transition-colors"
+				/>
+			</div>
+
+			<!-- Synced Only Filter -->
+			<label class="flex items-center gap-1.5 cursor-pointer">
+				<input
+					type="checkbox"
+					bind:checked={showSyncedOnly}
+					class="h-3.5 w-3.5 rounded border-input"
+				/>
+				<span class="text-xs text-muted-foreground">Synced only</span>
+			</label>
 		</div>
-		<p class="text-sm text-muted-foreground">
-			Choose specific employees or departments to synchronize with QuickBooks
-		</p>
+	</header>
+
+	<!-- Error message -->
+	{#if data.error || error}
+		<div class="flex-shrink-0 p-4 pb-0">
+			<div class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20">
+				{data.error || error}
+			</div>
+		</div>
+	{/if}
+
+	<!-- Success message -->
+	{#if syncResult}
+		<div class="flex-shrink-0 p-4 pb-0">
+			<div class="rounded-md bg-green-50 p-3 text-sm text-green-700 font-medium border border-green-200">
+				<div class="flex items-start gap-2">
+					<CheckCircle2 class="h-4 w-4 mt-0.5" />
+					<div>
+						<p class="font-semibold">{syncResult.message}</p>
+						<p class="text-xs mt-1">Job ID: <code class="bg-white px-1 rounded">{syncResult.jobId}</code></p>
+						<p class="text-xs">{syncResult.summary.totalEmployees} employees, {syncResult.summary.totalDepartments} departments</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- KPI Grid -->
+	<div class="flex-shrink-0 p-4">
+		<div class="grid grid-cols-4 gap-3">
+			<!-- Selected Employees -->
+			<div class="bg-muted/30 border rounded-sm p-3 h-32 flex flex-col justify-between">
+				<div>
+					<div class="flex items-center gap-1.5 text-muted-foreground mb-1">
+						<Users class="h-3.5 w-3.5" />
+						<span class="text-[10px] uppercase tracking-wider font-semibold">Selected Employees</span>
+					</div>
+					<div class="text-2xl font-bold tabular-nums">{selectedEmployees.size}</div>
+				</div>
+				<div class="flex gap-1">
+					<button
+						onclick={selectAllEmployees}
+						class="flex-1 h-6 px-2 rounded-sm border border-input bg-background text-[10px] hover:bg-accent transition-colors"
+					>
+						Select All
+					</button>
+					<button
+						onclick={deselectAllEmployees}
+						class="flex-1 h-6 px-2 rounded-sm border border-input bg-background text-[10px] hover:bg-accent transition-colors"
+					>
+						Clear
+					</button>
+				</div>
+			</div>
+
+			<!-- Selected Departments -->
+			<div class="bg-muted/30 border rounded-sm p-3 h-32 flex flex-col justify-between">
+				<div>
+					<div class="flex items-center gap-1.5 text-muted-foreground mb-1">
+						<Building2 class="h-3.5 w-3.5" />
+						<span class="text-[10px] uppercase tracking-wider font-semibold">Selected Departments</span>
+					</div>
+					<div class="text-2xl font-bold tabular-nums">{selectedDepartments.size}</div>
+				</div>
+				<div class="flex gap-1">
+					<button
+						onclick={selectAllDepartments}
+						class="flex-1 h-6 px-2 rounded-sm border border-input bg-background text-[10px] hover:bg-accent transition-colors"
+					>
+						Select All
+					</button>
+					<button
+						onclick={deselectAllDepartments}
+						class="flex-1 h-6 px-2 rounded-sm border border-input bg-background text-[10px] hover:bg-accent transition-colors"
+					>
+						Clear
+					</button>
+				</div>
+			</div>
+
+			<!-- Sync Direction -->
+			<div class="bg-muted/30 border rounded-sm p-3 h-32 flex flex-col justify-between">
+				<div>
+					<div class="flex items-center gap-1.5 text-muted-foreground mb-1">
+						<ArrowLeftRight class="h-3.5 w-3.5" />
+						<span class="text-[10px] uppercase tracking-wider font-semibold">Sync Direction</span>
+					</div>
+					<select
+						bind:value={syncDirection}
+						class="w-full h-8 rounded-sm border border-input bg-background px-2 text-xs focus:border-primary focus:outline-none mt-2"
+					>
+						<option value="Pull">
+							← Pull from QB
+						</option>
+						<option value="Push">
+							→ Push to QB
+						</option>
+						<option value="Bidirectional">
+							↔ Bidirectional
+						</option>
+					</select>
+				</div>
+				<label class="flex items-center gap-1.5 cursor-pointer">
+					<input
+						type="checkbox"
+						bind:checked={forceFullSync}
+						class="h-3 w-3 rounded border-input"
+					/>
+					<span class="text-[10px] text-muted-foreground">Force full sync</span>
+				</label>
+			</div>
+
+			<!-- Trigger Sync -->
+			<div class="bg-muted/30 border rounded-sm p-3 h-32 flex flex-col justify-between">
+				<div>
+					<div class="flex items-center gap-1.5 text-muted-foreground mb-1">
+						<Zap class="h-3.5 w-3.5" />
+						<span class="text-[10px] uppercase tracking-wider font-semibold">Execute</span>
+					</div>
+					<div class="text-xs text-muted-foreground mt-2">
+						{selectedEmployees.size + selectedDepartments.size} entities selected
+					</div>
+				</div>
+				<button
+					onclick={triggerSync}
+					disabled={submitting || (selectedEmployees.size === 0 && selectedDepartments.size === 0)}
+					class="w-full h-8 px-3 rounded-sm border border-input bg-primary text-primary-foreground text-xs hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+				>
+					{#if submitting}
+						<RefreshCw class="h-3.5 w-3.5 mr-1 animate-spin inline" />
+						Triggering...
+					{:else}
+						<Zap class="h-3.5 w-3.5 mr-1 inline" />
+						Trigger Sync
+					{/if}
+				</button>
+			</div>
+		</div>
 	</div>
 
-	{#if data.error}
-		<Alert variant="destructive" class="mb-6">
-			<AlertCircle class="h-4 w-4" />
-			<AlertDescription>{data.error}</AlertDescription>
-		</Alert>
-	{/if}
-
-	{#if error}
-		<Alert variant="destructive" class="mb-6">
-			<AlertCircle class="h-4 w-4" />
-			<AlertDescription>{error}</AlertDescription>
-		</Alert>
-	{/if}
-
-	{#if syncResult}
-		<Alert class="mb-6">
-			<CheckCircle2 class="h-4 w-4" />
-			<AlertDescription>
-				<p class="font-medium">{syncResult.message}</p>
-				<p class="text-sm mt-1">
-					Job ID: <code class="bg-muted px-1 rounded">{syncResult.jobId}</code>
-				</p>
-				<p class="text-sm">
-					{syncResult.summary.totalEmployees} employees, {syncResult.summary.totalDepartments} departments
-				</p>
-			</AlertDescription>
-		</Alert>
-	{/if}
-
-	<!-- Configuration Panel -->
-	<Card class="mb-6">
-		<CardHeader>
-			<CardTitle>Sync Configuration</CardTitle>
-			<CardDescription>Configure how the selected entities will be synced</CardDescription>
-		</CardHeader>
-		<CardContent>
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-				<div>
-					<Label for="syncDirection">Sync Direction</Label>
-					<Select
-						type="single"
-						value={syncDirection as any}
-						onValueChange={(value: any) => {
-							syncDirection = value;
-						}}
-					>
-						<SelectTrigger id="syncDirection">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							{#each syncDirections as direction}
-								<SelectItem value={direction.value}>
-									<div class="flex items-center gap-2">
-										<direction.icon class="h-4 w-4" />
-										{direction.label}
-									</div>
-								</SelectItem>
-							{/each}
-						</SelectContent>
-					</Select>
-				</div>
-
-				<div class="flex items-center gap-2 mt-8">
-					<Switch id="forceFullSync" bind:checked={forceFullSync} />
-					<Label for="forceFullSync">Force full sync (ignore sync tokens)</Label>
-				</div>
-			</div>
-
-			<!-- Selection Summary -->
-			<div class="mt-6 pt-6 border-t">
-				<div class="grid grid-cols-2 gap-4">
-					<div>
-						<p class="text-sm text-muted-foreground">Selected Employees</p>
-						<p class="text-2xl font-bold">{selectedEmployees.size}</p>
-					</div>
-					<div>
-						<p class="text-sm text-muted-foreground">Selected Departments</p>
-						<p class="text-2xl font-bold">{selectedDepartments.size}</p>
-					</div>
-				</div>
-
-				<Button onclick={triggerSync} disabled={submitting || (selectedEmployees.size === 0 && selectedDepartments.size === 0)} class="w-full mt-4">
-					{#if submitting}
-						<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
-						Triggering Sync...
-					{:else}
-						<Zap class="h-4 w-4 mr-2" />
-						Trigger Selective Sync
-					{/if}
-				</Button>
-			</div>
-		</CardContent>
-	</Card>
-
-	<!-- Search and Filters -->
-	<Card class="mb-6">
-		<CardContent class="pt-6">
-			<div class="flex gap-4">
-				<div class="flex-1">
-					<div class="relative">
-						<Search class="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-						<Input
-							bind:value={searchTerm}
-							placeholder="Search employees or departments..."
-							class="pl-10"
-						/>
-					</div>
-				</div>
-				<div class="flex items-center gap-2">
-					<Checkbox id="showSynced" bind:checked={showSyncedOnly} />
-					<Label for="showSynced" class="text-sm">Synced only</Label>
-				</div>
-			</div>
-		</CardContent>
-	</Card>
-
-	<!-- Selection Grid -->
-	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-		<!-- Employees Section -->
-		<Card>
-			<CardHeader>
-				<div class="flex items-center justify-between">
-					<div class="flex items-center gap-2">
-						<Users class="h-5 w-5" />
-						<CardTitle>Employees</CardTitle>
-					</div>
-					<div class="flex gap-2">
-						<Button onclick={selectAllEmployees} variant="outline" size="sm">
-							Select All
-						</Button>
-						<Button onclick={deselectAllEmployees} variant="outline" size="sm">
-							Clear
-						</Button>
-					</div>
-				</div>
-				<CardDescription>
-					{filteredEmployees.length} employees available
-				</CardDescription>
-			</CardHeader>
-			<CardContent>
-				<div class="space-y-2 max-h-96 overflow-y-auto">
-					{#if filteredEmployees.length === 0}
-						<div class="text-center py-12 text-muted-foreground">
-							<Users class="h-12 w-12 mx-auto mb-3" />
-							<p class="font-medium">No employees found</p>
-							<p class="text-sm">Try adjusting your filters</p>
+	<!-- Tables Container -->
+	<div class="flex-1 overflow-auto min-h-0 relative bg-background">
+		<div class="grid grid-cols-2 gap-4 p-4">
+			<!-- Employees Table -->
+			<div class="border rounded-sm overflow-hidden">
+				<div class="bg-muted/40 px-3 py-2 border-b">
+					<div class="flex items-center justify-between">
+						<div class="flex items-center gap-2">
+							<Users class="h-4 w-4" />
+							<span class="text-xs font-semibold">Employees</span>
 						</div>
-					{:else}
-						{#each filteredEmployees as employee}
-							<button
-								onclick={() => toggleEmployee(employee.id)}
-								class="w-full text-left border rounded-lg p-3 hover:bg-muted/50 transition-colors {selectedEmployees.has(
-									employee.id
-								)
-									? 'bg-primary/10 border-primary'
-									: ''}"
-							>
-								<div class="flex items-start justify-between">
-									<div class="flex-1">
-										<div class="flex items-center gap-2 mb-1">
-											<Checkbox checked={selectedEmployees.has(employee.id)} />
-											<p class="font-medium">{employee.name}</p>
+						<span class="text-[10px] text-muted-foreground">{filteredEmployees.length} available</span>
+					</div>
+				</div>
+				<div class="max-h-[600px] overflow-y-auto">
+					<table class="w-full text-sm text-left border-collapse">
+						<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
+							<tr>
+								<th class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground w-8">
+									<input
+										type="checkbox"
+										checked={selectedEmployees.size === filteredEmployees.length && filteredEmployees.length > 0}
+										onchange={(e) => {
+											if ((e.target as HTMLInputElement).checked) {
+												selectAllEmployees();
+											} else {
+												deselectAllEmployees();
+											}
+										}}
+										class="h-3 w-3 rounded border-input"
+									/>
+								</th>
+								<th class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground">Name</th>
+								<th class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground">Status</th>
+								<th class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground">Last Sync</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y">
+							{#if filteredEmployees.length === 0}
+								<tr>
+									<td colspan="4" class="px-4 py-12 text-center text-muted-foreground text-xs">
+										No employees found
+									</td>
+								</tr>
+							{:else}
+								{#each filteredEmployees as employee}
+									<tr
+										class="hover:bg-muted/30 cursor-pointer transition-colors group"
+										onclick={() => toggleEmployee(employee.id)}
+									>
+										<td class="px-2 py-1.5 border-r">
+											<input
+												type="checkbox"
+												checked={selectedEmployees.has(employee.id)}
+												class="h-3 w-3 rounded border-input"
+											/>
+										</td>
+										<td class="px-2 py-1.5 border-r">
+											<div class="text-xs font-medium truncate">{employee.name}</div>
 											{#if employee.quickbooksId}
-												<Badge variant="outline" class="text-xs">
-													QB: {employee.quickbooksId.slice(0, 8)}
-												</Badge>
+												<div class="text-[10px] text-muted-foreground font-mono truncate">QB: {employee.quickbooksId.slice(0, 8)}</div>
 											{/if}
+										</td>
+										<td class="px-2 py-1.5 border-r">
+											<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getSyncedColor(!!employee.quickbooksId)}">
+												{employee.quickbooksId ? 'Synced' : 'Not Synced'}
+											</span>
 											{#if employee.hasLocalChanges}
-												<Badge variant="secondary" class="text-xs">Local changes</Badge>
+												<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 ml-1">
+													Modified
+												</span>
 											{/if}
-										</div>
-										{#if employee.lastSyncedAt}
-											<p class="text-xs text-muted-foreground">
-												Last synced: {formatDate(employee.lastSyncedAt)}
-											</p>
-										{:else}
-											<p class="text-xs text-muted-foreground">Never synced</p>
-										{/if}
-									</div>
-								</div>
-							</button>
-						{/each}
-					{/if}
+										</td>
+										<td class="px-2 py-1.5 text-[10px] text-muted-foreground">
+											{formatDate(employee.lastSyncedAt)}
+										</td>
+									</tr>
+								{/each}
+							{/if}
+						</tbody>
+					</table>
 				</div>
-			</CardContent>
-		</Card>
+			</div>
 
-		<!-- Departments Section -->
-		<Card>
-			<CardHeader>
-				<div class="flex items-center justify-between">
-					<div class="flex items-center gap-2">
-						<Building2 class="h-5 w-5" />
-						<CardTitle>Departments</CardTitle>
-					</div>
-					<div class="flex gap-2">
-						<Button onclick={selectAllDepartments} variant="outline" size="sm">
-							Select All
-						</Button>
-						<Button onclick={deselectAllDepartments} variant="outline" size="sm">
-							Clear
-						</Button>
-					</div>
-				</div>
-				<CardDescription>
-					{filteredDepartments.length} departments available
-				</CardDescription>
-			</CardHeader>
-			<CardContent>
-				<div class="space-y-2 max-h-96 overflow-y-auto">
-					{#if filteredDepartments.length === 0}
-						<div class="text-center py-12 text-muted-foreground">
-							<Building2 class="h-12 w-12 mx-auto mb-3" />
-							<p class="font-medium">No departments found</p>
-							<p class="text-sm">Try adjusting your filters</p>
+			<!-- Departments Table -->
+			<div class="border rounded-sm overflow-hidden">
+				<div class="bg-muted/40 px-3 py-2 border-b">
+					<div class="flex items-center justify-between">
+						<div class="flex items-center gap-2">
+							<Building2 class="h-4 w-4" />
+							<span class="text-xs font-semibold">Departments</span>
 						</div>
-					{:else}
-						{#each filteredDepartments as department}
-							<button
-								onclick={() => toggleDepartment(department.id)}
-								class="w-full text-left border rounded-lg p-3 hover:bg-muted/50 transition-colors {selectedDepartments.has(
-									department.id
-								)
-									? 'bg-primary/10 border-primary'
-									: ''}"
-							>
-								<div class="flex items-start justify-between">
-									<div class="flex-1">
-										<div class="flex items-center gap-2 mb-1">
-											<Checkbox checked={selectedDepartments.has(department.id)} />
-											<p class="font-medium">{department.name}</p>
-											{#if department.quickbooksId}
-												<Badge variant="outline" class="text-xs">
-													QB: {department.quickbooksId.slice(0, 8)}
-												</Badge>
-											{/if}
-											{#if department.hasLocalChanges}
-												<Badge variant="secondary" class="text-xs">Local changes</Badge>
-											{/if}
-										</div>
-										{#if department.lastSyncedAt}
-											<p class="text-xs text-muted-foreground">
-												Last synced: {formatDate(department.lastSyncedAt)}
-											</p>
-										{:else}
-											<p class="text-xs text-muted-foreground">Never synced</p>
-										{/if}
-									</div>
-								</div>
-							</button>
-						{/each}
-					{/if}
+						<span class="text-[10px] text-muted-foreground">{filteredDepartments.length} available</span>
+					</div>
 				</div>
-			</CardContent>
-		</Card>
+				<div class="max-h-[600px] overflow-y-auto">
+					<table class="w-full text-sm text-left border-collapse">
+						<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
+							<tr>
+								<th class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground w-8">
+									<input
+										type="checkbox"
+										checked={selectedDepartments.size === filteredDepartments.length && filteredDepartments.length > 0}
+										onchange={(e) => {
+											if ((e.target as HTMLInputElement).checked) {
+												selectAllDepartments();
+											} else {
+												deselectAllDepartments();
+											}
+										}}
+										class="h-3 w-3 rounded border-input"
+									/>
+								</th>
+								<th class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground">Name</th>
+								<th class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground">Status</th>
+								<th class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground">Last Sync</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y">
+							{#if filteredDepartments.length === 0}
+								<tr>
+									<td colspan="4" class="px-4 py-12 text-center text-muted-foreground text-xs">
+										No departments found
+									</td>
+								</tr>
+							{:else}
+								{#each filteredDepartments as department}
+									<tr
+										class="hover:bg-muted/30 cursor-pointer transition-colors group"
+										onclick={() => toggleDepartment(department.id)}
+									>
+										<td class="px-2 py-1.5 border-r">
+											<input
+												type="checkbox"
+												checked={selectedDepartments.has(department.id)}
+												class="h-3 w-3 rounded border-input"
+											/>
+										</td>
+										<td class="px-2 py-1.5 border-r">
+											<div class="text-xs font-medium truncate">{department.name}</div>
+											{#if department.quickbooksId}
+												<div class="text-[10px] text-muted-foreground font-mono truncate">QB: {department.quickbooksId.slice(0, 8)}</div>
+											{/if}
+										</td>
+										<td class="px-2 py-1.5 border-r">
+											<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getSyncedColor(!!department.quickbooksId)}">
+												{department.quickbooksId ? 'Synced' : 'Not Synced'}
+											</span>
+											{#if department.hasLocalChanges}
+												<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 ml-1">
+													Modified
+												</span>
+											{/if}
+										</td>
+										<td class="px-2 py-1.5 text-[10px] text-muted-foreground">
+											{formatDate(department.lastSyncedAt)}
+										</td>
+									</tr>
+								{/each}
+							{/if}
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
 	</div>
 </div>

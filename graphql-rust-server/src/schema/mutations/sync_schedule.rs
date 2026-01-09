@@ -1,11 +1,59 @@
 use async_graphql::*;
 use sea_orm::*;
-use chrono::Utc;
+use chrono::{Utc, Datelike, Timelike};
 use uuid::Uuid;
+use std::str::FromStr;
+use chrono_tz::Tz;
 
 use crate::models::sync_schedule;
 use crate::services::permission_checker::{PermissionChecker, SyncPermission};
 use crate::auth::context::UserContext;
+
+/// Calculate the next run time for a cron expression in a specific timezone
+fn calculate_next_run(cron_expression: &str, timezone: &str) -> Result<chrono::DateTime<chrono::FixedOffset>> {
+    use chrono::TimeZone;
+
+    // Parse the cron expression
+    let cron = croner::Cron::from_str(cron_expression)
+        .map_err(|e| Error::new(format!("Invalid cron expression: {}", e)))?;
+
+    // Parse the timezone
+    let tz: Tz = timezone.parse()
+        .map_err(|_| Error::new(format!("Invalid timezone: {}", timezone)))?;
+
+    // Get current time in UTC
+    let now_utc = Utc::now();
+
+    // Find next occurrence - croner works with the timestamp, not timezone-aware
+    // So we need to work in UTC and then interpret the result in the target timezone
+    let next_run_naive = cron.find_next_occurrence(&now_utc, false)
+        .map_err(|e| Error::new(format!("Could not calculate next run time: {}", e)))?;
+
+    // Get the naive date/time components from the result
+    let naive_dt = chrono::NaiveDateTime::new(
+        chrono::NaiveDate::from_ymd_opt(
+            next_run_naive.year(),
+            next_run_naive.month(),
+            next_run_naive.day()
+        ).ok_or_else(|| Error::new("Invalid date"))?,
+        chrono::NaiveTime::from_hms_opt(
+            next_run_naive.hour(),
+            next_run_naive.minute(),
+            next_run_naive.second()
+        ).ok_or_else(|| Error::new("Invalid time"))?
+    );
+
+    // Interpret these components as being in the SCHEDULE's timezone
+    let next_run_in_tz = tz.from_local_datetime(&naive_dt)
+        .single()
+        .ok_or_else(|| Error::new("Ambiguous datetime in timezone"))?;
+
+    // Convert to UTC
+    let next_run_utc = next_run_in_tz.with_timezone(&Utc);
+
+    // Convert to FixedOffset for database
+    Ok(next_run_utc.fixed_offset())
+}
 
 #[derive(Default)]
 pub struct SyncScheduleMutation;
@@ -14,23 +62,32 @@ pub struct SyncScheduleMutation;
 pub struct CreateSyncScheduleInput {
     pub name: String,
     pub description: Option<String>,
+    #[graphql(name = "cronExpression")]
     pub cron_expression: String,
+    #[graphql(name = "entityType")]
     pub entity_type: String, // 'Employee', 'Department', 'Both'
+    #[graphql(name = "syncDirection")]
     pub sync_direction: String, // 'Push', 'Pull', 'Bidirectional'
     pub enabled: Option<bool>,
+    #[graphql(name = "businessHoursOnly")]
     pub business_hours_only: Option<bool>,
     pub timezone: Option<String>,
 }
 
 #[derive(InputObject)]
 pub struct UpdateSyncScheduleInput {
+    #[graphql(name = "scheduleId")]
     pub schedule_id: String,
     pub name: Option<String>,
     pub description: Option<String>,
+    #[graphql(name = "cronExpression")]
     pub cron_expression: Option<String>,
+    #[graphql(name = "entityType")]
     pub entity_type: Option<String>,
+    #[graphql(name = "syncDirection")]
     pub sync_direction: Option<String>,
     pub enabled: Option<bool>,
+    #[graphql(name = "businessHoursOnly")]
     pub business_hours_only: Option<bool>,
     pub timezone: Option<String>,
 }
@@ -74,7 +131,10 @@ impl SyncScheduleMutation {
             return Err(Error::new("Invalid sync direction. Must be 'Push', 'Pull', or 'Bidirectional'"));
         }
 
-        // Next run time will be calculated by the scheduler service
+        // Calculate next run time from cron expression in the schedule's timezone
+        let timezone = input.timezone.clone().unwrap_or_else(|| "UTC".to_string());
+        let next_run = calculate_next_run(&input.cron_expression, &timezone)?;
+
         let new_schedule = sync_schedule::ActiveModel {
             id: ActiveValue::NotSet,
             name: ActiveValue::Set(input.name.clone()),
@@ -86,7 +146,7 @@ impl SyncScheduleMutation {
             business_hours_only: ActiveValue::Set(input.business_hours_only.unwrap_or(false)),
             timezone: ActiveValue::Set(input.timezone.unwrap_or_else(|| "UTC".to_string())),
             last_run_at: ActiveValue::NotSet,
-            next_run_at: ActiveValue::NotSet,
+            next_run_at: ActiveValue::Set(Some(next_run)),
             last_run_status: ActiveValue::NotSet,
             last_run_error: ActiveValue::NotSet,
             created_by: ActiveValue::Set(Some(user_ctx.user_id)),
@@ -136,6 +196,10 @@ impl SyncScheduleMutation {
             active_schedule.description = ActiveValue::Set(Some(description));
         }
 
+        // Track if we need to recalculate next_run_at
+        let mut cron_updated = false;
+        let mut timezone_updated = false;
+
         if let Some(cron) = input.cron_expression {
             // Validate cron expression format (basic check)
             if cron.split_whitespace().count() != 6 {
@@ -143,7 +207,7 @@ impl SyncScheduleMutation {
             }
 
             active_schedule.cron_expression = ActiveValue::Set(cron);
-            // Next run time will be recalculated by the scheduler service
+            cron_updated = true;
         }
 
         if let Some(entity_type) = input.entity_type {
@@ -170,6 +234,25 @@ impl SyncScheduleMutation {
 
         if let Some(timezone) = input.timezone {
             active_schedule.timezone = ActiveValue::Set(timezone);
+            timezone_updated = true;
+        }
+
+        // Recalculate next_run_at if cron or timezone changed
+        if cron_updated || timezone_updated {
+            // Get current values from active_schedule
+            let cron_expr = match &active_schedule.cron_expression {
+                ActiveValue::Set(expr) => expr.clone(),
+                ActiveValue::Unchanged(expr) => expr.clone(),
+                _ => return Err(Error::new("Missing cron expression")),
+            };
+            let tz = match &active_schedule.timezone {
+                ActiveValue::Set(tz) => tz.clone(),
+                ActiveValue::Unchanged(tz) => tz.clone(),
+                _ => "UTC".to_string(),
+            };
+
+            let next_run = calculate_next_run(&cron_expr, &tz)?;
+            active_schedule.next_run_at = ActiveValue::Set(Some(next_run));
         }
 
         active_schedule.updated_at = ActiveValue::Set(Utc::now().fixed_offset());

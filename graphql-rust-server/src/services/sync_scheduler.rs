@@ -15,8 +15,7 @@ use tokio_cron_scheduler::{Job, JobScheduler};
 use uuid::Uuid;
 
 use crate::{
-    integrations::intuit::IntuitClient,
-    models::intuit_connection,
+    integrations::intuit::IntuitClientManager,
     services::{ConflictStrategy, EntityType, SyncOrchestrator},
 };
 
@@ -277,29 +276,11 @@ impl SyncScheduler {
             }
         }
 
-        // Get active QuickBooks connection
-        let connection = intuit_connection::Entity::find()
-            .filter(intuit_connection::Column::DeletedAt.is_null())
-            .filter(intuit_connection::Column::IsActive.eq(true))
-            .order_by_desc(intuit_connection::Column::CreatedAt)
-            .one(&db)
+        // Get QuickBooks client with automatic token refresh
+        let client_manager = IntuitClientManager::new(db.clone());
+        let client = client_manager
+            .get_client()
             .await
-            .context("Failed to query connections")?
-            .ok_or_else(|| anyhow::anyhow!("No active QuickBooks connection"))?;
-
-        // Ensure token is valid (refresh if needed)
-        let access_token = if connection.token_expires_at
-            <= Utc::now() + chrono::Duration::minutes(5)
-        {
-            // Token expired or expiring soon - would need refresh logic here
-            tracing::warn!("QuickBooks token expired, skipping sync");
-            return Err(anyhow::anyhow!("QuickBooks token expired"));
-        } else {
-            connection.access_token.clone()
-        };
-
-        // Create QuickBooks client
-        let client = IntuitClient::new(access_token, connection.realm_id.clone())
             .context("Failed to create QuickBooks client")?;
 
         // Parse entity type and sync direction

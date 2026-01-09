@@ -329,6 +329,13 @@ externalSecrets:
     project: 'sveltehr'
     config: 'prod'
 # -----------------------------------------------------------------------------
+# Intuit QuickBooks Integration (Production)
+# -----------------------------------------------------------------------------
+intuit:
+  environment: production
+  redirectUri: 'https://hr.mtncarerx.com/api/intuit/callback'
+  webhookUrl: 'https://hr.mtncarerx.com/api/intuit/webhook'
+# -----------------------------------------------------------------------------
 # Ingress Configuration (Cloudflare Tunnel)
 # -----------------------------------------------------------------------------
 ingress:

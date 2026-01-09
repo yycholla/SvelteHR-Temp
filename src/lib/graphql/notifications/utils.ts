@@ -100,10 +100,13 @@ export function groupNotificationsByCategory(
 	const grouped = new Map<NotificationCategory, Notification[]>();
 
 	notifications.forEach((notification) => {
-		if (!grouped.has(notification.category)) {
-			grouped.set(notification.category, []);
+		// Skip notifications without category (shouldn't happen with proper backend data)
+		if (!notification.category) return;
+
+		if (!grouped.has(notification.category as NotificationCategory)) {
+			grouped.set(notification.category as NotificationCategory, []);
 		}
-		grouped.get(notification.category)!.push(notification);
+		grouped.get(notification.category as NotificationCategory)!.push(notification);
 	});
 
 	return grouped;
@@ -132,8 +135,10 @@ export function getNotificationPriority(category: NotificationCategory): number 
  */
 export function sortNotificationsByPriority(notifications: Notification[]): Notification[] {
 	return [...notifications].sort((a, b) => {
-		// First by priority
-		const priorityDiff = getNotificationPriority(b.category) - getNotificationPriority(a.category);
+		// First by priority (use default category if undefined)
+		const aCat = (a.category || 'system_announcement') as NotificationCategory;
+		const bCat = (b.category || 'system_announcement') as NotificationCategory;
+		const priorityDiff = getNotificationPriority(bCat) - getNotificationPriority(aCat);
 		if (priorityDiff !== 0) {
 			return priorityDiff;
 		}

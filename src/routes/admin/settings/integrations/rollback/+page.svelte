@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { Card } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
@@ -145,7 +144,7 @@
 	<!-- Statistics -->
 	{#if statistics && !selectedRequest}
 		<div class="grid gap-4 md:grid-cols-4">
-			<Card class="p-4">
+			<div class="p-4 border rounded-lg bg-background">
 				<div class="flex items-center justify-between">
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">Total Requests</p>
@@ -153,9 +152,9 @@
 					</div>
 					<RotateCcw class="h-8 w-8 text-muted-foreground" />
 				</div>
-			</Card>
+			</div>
 
-			<Card class="p-4">
+			<div class="p-4 border rounded-lg bg-background">
 				<div class="flex items-center justify-between">
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">Pending</p>
@@ -163,9 +162,9 @@
 					</div>
 					<Clock class="h-8 w-8 text-yellow-500" />
 				</div>
-			</Card>
+			</div>
 
-			<Card class="p-4">
+			<div class="p-4 border rounded-lg bg-background">
 				<div class="flex items-center justify-between">
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">Success Rate</p>
@@ -173,9 +172,9 @@
 					</div>
 					<TrendingUp class="h-8 w-8 text-green-500" />
 				</div>
-			</Card>
+			</div>
 
-			<Card class="p-4">
+			<div class="p-4 border rounded-lg bg-background">
 				<div class="flex items-center justify-between">
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">Avg Execution</p>
@@ -183,13 +182,13 @@
 					</div>
 					<Clock class="h-8 w-8 text-blue-500" />
 				</div>
-			</Card>
+			</div>
 		</div>
 	{/if}
 
 	<!-- Single Request Detail View -->
 	{#if selectedRequest}
-		<Card class="p-6">
+		<div class="p-6 border rounded-lg bg-background">
 			<div class="space-y-6">
 				<div class="flex items-start justify-between">
 					<div>
@@ -318,10 +317,10 @@
 					</div>
 				{/if}
 			</div>
-		</Card>
+		</div>
 	{:else}
 		<!-- Overview: Request List -->
-		<Card class="p-4">
+		<div class="p-4 border rounded-lg bg-background">
 			<div class="flex items-center gap-4">
 				<div class="flex-1">
 					<Select
@@ -340,20 +339,20 @@
 					</Select>
 				</div>
 			</div>
-		</Card>
+		</div>
 
 		{#if requests.length === 0}
-			<Card class="p-8">
+			<div class="p-8 border rounded-lg bg-background">
 				<div class="text-center text-muted-foreground">
 					<RotateCcw class="h-12 w-12 mx-auto mb-3 opacity-50" />
 					<p>No rollback requests found</p>
 				</div>
-			</Card>
+			</div>
 		{:else}
 			<div class="space-y-3">
 				{#each requests as request}
 					{@const isExpanded = expandedRequests.has(request.id)}
-					<Card class="p-4">
+					<div class="p-4 border rounded-lg bg-background">
 						<div class="space-y-4">
 							<!-- Summary Row -->
 							<div class="flex items-start justify-between gap-4">
@@ -484,7 +483,7 @@
 								</div>
 							{/if}
 						</div>
-					</Card>
+					</div>
 				{/each}
 			</div>
 		{/if}

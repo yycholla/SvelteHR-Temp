@@ -50,6 +50,8 @@ pub mod sync_sessions;
 pub mod compliance_reports;
 pub mod report_schedules;
 pub mod payroll_sync_history;
+pub mod email_digests;
+pub mod email_digest_log;
 
 // Re-export generated entities for easy access
 pub use generated::*;

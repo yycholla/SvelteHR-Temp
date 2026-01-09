@@ -2,17 +2,21 @@ import type { Client } from '@urql/core';
 import type { UserCredentials } from '$lib/models/data-request';
 import { createDataRequest } from '$lib/models/data-request';
 import { createErrorResponse } from '$lib/models/error-response';
-import { GET_HR_REPORTS, GET_REPORT_ANALYTICS } from './queries';
+import {
+	GET_HR_REPORTS,
+	GET_REPORT_ANALYTICS,
+	calculateReportAnalytics,
+	type ReportAnalyticsResponse
+} from './queries';
 import { CREATE_HR_REPORT, UPDATE_HR_REPORT, DELETE_HR_REPORT } from './mutations';
 import type {
 	HrReportFilter,
 	CreateHrReportInput,
 	UpdateHrReportInput,
-	DeleteHrReportInput,
 	HrReport,
 	ReportAnalytics
 } from './types';
-import { validateReportInput, calculateReportAnalytics } from './utils';
+import { validateReportInput } from './utils';
 
 /**
  * T018: Manager HR Reports Operations with Department-Scoped Access
@@ -29,6 +33,7 @@ export class ReportsOperations {
 	/**
 	 * Get HR reports for manager's department
 	 * Department filtering applied based on manager's scope
+	 * Backend: Uses hrReports from Rust GraphQL schema
 	 */
 	async getHRReports(params: {
 		first?: number;
@@ -40,12 +45,14 @@ export class ReportsOperations {
 		totalCount: number;
 		hasNextPage: boolean;
 	}> {
+		const limit = params.first || 20;
+		const offset = params.offset || 0;
+
 		const dataRequest = createDataRequest({
 			operationName: 'GetHRReports',
 			variables: {
-				first: params.first || 20,
-				offset: params.offset || 0,
-				filter: params.filter || {}
+				limit,
+				offset
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
@@ -70,10 +77,13 @@ export class ReportsOperations {
 				});
 			}
 
+			const reports = result.data.hrReports || [];
+			const hasMore = reports.length === limit;
+
 			return {
-				reports: result.data.hrReports.nodes,
-				totalCount: result.data.hrReports.totalCount,
-				hasNextPage: result.data.hrReports.pageInfo.hasNextPage
+				reports,
+				totalCount: hasMore ? offset + limit + 1 : offset + reports.length,
+				hasNextPage: hasMore
 			};
 		} catch (error: any) {
 			if (error.userMessage) {
@@ -88,14 +98,15 @@ export class ReportsOperations {
 
 	/**
 	 * Get report analytics for manager's department
+	 * Backend: Uses hrReports from Rust GraphQL schema
 	 */
 	async getReportAnalytics(params: {
 		departmentId: string;
 		userCredentials: UserCredentials;
-	}): Promise<ReportAnalytics> {
+	}): Promise<ReportAnalyticsResponse> {
 		const dataRequest = createDataRequest({
 			operationName: 'GetReportAnalytics',
-			variables: { departmentId: params.departmentId },
+			variables: { limit: 1000 },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
@@ -121,7 +132,8 @@ export class ReportsOperations {
 				});
 			}
 
-			const analytics = calculateReportAnalytics(result.data);
+			const reports = result.data.hrReports || [];
+			const analytics = calculateReportAnalytics(reports);
 			return analytics;
 		} catch (error: any) {
 			if (error.userMessage) {
@@ -136,13 +148,14 @@ export class ReportsOperations {
 
 	/**
 	 * Create HR report (manager department-scoped)
+	 * Backend: Uses createHrReport mutation from Rust GraphQL schema
 	 */
 	async createHRReport(params: {
 		input: CreateHrReportInput;
 		userCredentials: UserCredentials;
 	}): Promise<HrReport> {
 		// Validate input
-		const validation = validateReportInput(params.input.hrReport);
+		const validation = validateReportInput(params.input);
 		if (!validation.valid) {
 			throw createErrorResponse(new Error(validation.errors.join(', ')), {
 				type: 'validation',
@@ -158,8 +171,10 @@ export class ReportsOperations {
 		});
 
 		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(CREATE_HR_REPORT, dataRequest.variables).toPromise();
+			// Server-side mutation using toPromise()
+			const result = await this.client
+				.mutation(CREATE_HR_REPORT, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -169,14 +184,14 @@ export class ReportsOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data) {
+			if (!result.data?.createHrReport) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No report data returned. Please try again.'
 				});
 			}
 
-			return result.data.createHrReport.hrReport;
+			return result.data.createHrReport;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error
@@ -190,6 +205,7 @@ export class ReportsOperations {
 
 	/**
 	 * Update HR report (manager department-scoped)
+	 * Backend: Uses updateHrReport mutation from Rust GraphQL schema
 	 */
 	async updateHRReport(params: {
 		input: UpdateHrReportInput;
@@ -203,8 +219,10 @@ export class ReportsOperations {
 		});
 
 		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(UPDATE_HR_REPORT, dataRequest.variables).toPromise();
+			// Server-side mutation using toPromise()
+			const result = await this.client
+				.mutation(UPDATE_HR_REPORT, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -214,14 +232,14 @@ export class ReportsOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data) {
+			if (!result.data?.updateHrReport) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No report data returned. Please try again.'
 				});
 			}
 
-			return result.data.updateHrReport.hrReport;
+			return result.data.updateHrReport;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error
@@ -235,25 +253,24 @@ export class ReportsOperations {
 
 	/**
 	 * Delete HR report (manager department-scoped)
+	 * Backend: Uses deleteHrReport mutation from Rust GraphQL schema
 	 */
 	async deleteHRReport(params: {
 		reportId: string;
 		userCredentials: UserCredentials;
-	}): Promise<string> {
-		const input: DeleteHrReportInput = {
-			id: params.reportId
-		};
-
+	}): Promise<boolean> {
 		const dataRequest = createDataRequest({
 			operationName: 'DeleteHRReport',
-			variables: { input },
+			variables: { id: params.reportId },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
 
 		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(DELETE_HR_REPORT, dataRequest.variables).toPromise();
+			// Server-side mutation using toPromise()
+			const result = await this.client
+				.mutation(DELETE_HR_REPORT, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -270,7 +287,7 @@ export class ReportsOperations {
 				});
 			}
 
-			return result.data.deleteHrReport.deletedHrReportId;
+			return result.data.deleteHrReport || false;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error

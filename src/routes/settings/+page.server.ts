@@ -65,7 +65,6 @@ export const load: PageServerLoad = async (event) => {
 
 		// Fetch user settings from GraphQL backend
 		const userSettings = await settingsOps.getUserSettings({
-			userId: userSession.userId,
 			userCredentials: {
 				userId: userSession.userId,
 				roles: userSession.roles,
@@ -75,17 +74,10 @@ export const load: PageServerLoad = async (event) => {
 			}
 		});
 
-		// Fetch activity log
-		const activityLog = await settingsOps.getUserActivityLog({
-			userId: userSession.userId,
-			userCredentials: {
-				userId: userSession.userId,
-				roles: userSession.roles,
-				permissions: userSession.permissions,
-				isAuthenticated: Boolean(userSession.isAuthenticated),
-				expiresAt: userSession.expiresAt
-			}
-		});
+		// TODO: Fetch activity log from activity-logs operations
+		// getUserActivityLog was removed from SettingsOperations during migration
+		// Activity logs should be fetched from ActivityLogsOperations instead
+		const activityLog: any[] = [];
 
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);

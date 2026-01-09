@@ -24,6 +24,8 @@ pub mod incremental_sync;
 pub mod time_entry;
 pub mod sync_health;
 pub mod payroll;
+pub mod digest;
+pub mod compliance;
 
 pub use auth::AuthMutations;
 pub use department::DepartmentMutations;
@@ -51,3 +53,5 @@ pub use incremental_sync::IncrementalSyncMutation;
 pub use time_entry::TimeEntryMutations;
 pub use sync_health::SyncHealthMutations;
 pub use payroll::PayrollMutations;
+pub use digest::DigestMutations;
+pub use compliance::ComplianceMutations;

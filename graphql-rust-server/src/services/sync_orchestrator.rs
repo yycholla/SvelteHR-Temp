@@ -22,7 +22,7 @@ use crate::models::{user, department};
 use super::{
     sync_tracker::{ChangeRecord, EntityType, SyncTracker},
     conflict_resolver::{ConflictResolver, ConflictStrategy, ConflictRecord},
-    validation_engine::ValidationEngine,
+    validation_engine::{ValidationEngine, SyncContext},
     incremental_sync::{IncrementalSyncService, SyncMode},
     health_monitor::HealthMonitor,
 };
@@ -828,8 +828,9 @@ impl SyncOrchestrator {
         };
 
         // 2a. VALIDATION: Validate employee data before pushing to QuickBooks
+        // Use strict Push context since we're sending data TO QuickBooks
         let validation_engine = ValidationEngine::new();
-        let validation_result = validation_engine.validate_local_employee(&employee);
+        let validation_result = validation_engine.validate_local_employee_with_context(&employee, SyncContext::Push);
 
         if validation_result.has_errors() {
             // Log validation errors
@@ -884,25 +885,92 @@ impl SyncOrchestrator {
             }
         } else {
             // CREATE new QuickBooks employee
-            let new_emp = Employee {
-                given_name: Some(employee.first_name.clone()),
-                family_name: Some(employee.last_name.clone()),
-                display_name: Some(format!("{} {}", employee.first_name, employee.last_name)),
-                primary_email_addr: if !employee.email.is_empty() {
-                    Some(Email {
-                        address: Some(employee.email.clone()),
-                    })
-                } else {
-                    None
-                },
-                active: Some(employee.is_active),
-                ..Default::default()
-            };
+            // First, check if an employee with the same display name already exists
+            let display_name = format!("{} {}", employee.first_name, employee.last_name);
 
-            let mut emp_extended: EmployeeExtended = new_emp.into();
-            emp_extended.employee_number = employee.employee_number.clone();
+            // Try to find existing QB employee by name to enable auto-linking
+            match client.list_employees().await {
+                Ok(all_employees) => {
+                    // Filter for employees with matching display name
+                    let matching: Vec<_> = all_employees
+                        .iter()
+                        .filter(|emp| {
+                            emp.base.display_name.as_ref().map(|n| n.trim().eq_ignore_ascii_case(display_name.trim())).unwrap_or(false)
+                        })
+                        .collect();
 
-            client.create_employee(emp_extended).await
+                    if !matching.is_empty() {
+                        // Found existing employee with same name - auto-link instead of creating duplicate
+                        let existing = matching[0];
+                        let existing_id = existing.base.id.as_ref().map(|s| s.to_string()).unwrap_or_default();
+
+                        tracing::info!(
+                            "Auto-linking local employee '{}' (ID: {}) to existing QuickBooks employee (QB ID: {})",
+                            display_name,
+                            user_id,
+                            existing_id
+                        );
+
+                        // Return the existing employee as if we just created it
+                        // This will trigger the normal sync update flow below
+                        Ok(Employee {
+                            id: Some(existing_id),
+                            sync_token: existing.base.sync_token.clone(),
+                            given_name: existing.base.given_name.clone(),
+                            family_name: existing.base.family_name.clone(),
+                            display_name: existing.base.display_name.clone(),
+                            primary_email_addr: existing.base.primary_email_addr.clone(),
+                            active: existing.base.active,
+                            ..Default::default()
+                        })
+                    } else {
+                        // No duplicate found, safe to create
+                        let new_emp = Employee {
+                            given_name: Some(employee.first_name.clone()),
+                            family_name: Some(employee.last_name.clone()),
+                            display_name: Some(display_name),
+                            primary_email_addr: if !employee.email.is_empty() {
+                                Some(Email {
+                                    address: Some(employee.email.clone()),
+                                })
+                            } else {
+                                None
+                            },
+                            active: Some(employee.is_active),
+                            ..Default::default()
+                        };
+
+                        let mut emp_extended: EmployeeExtended = new_emp.into();
+                        emp_extended.employee_number = employee.employee_number.clone();
+
+                        client.create_employee(emp_extended).await
+                    }
+                }
+                Err(e) => {
+                    // List failed - log warning but proceed with create attempt
+                    tracing::warn!("Failed to check for duplicate employee name '{}': {}", display_name, e);
+
+                    let new_emp = Employee {
+                        given_name: Some(employee.first_name.clone()),
+                        family_name: Some(employee.last_name.clone()),
+                        display_name: Some(display_name),
+                        primary_email_addr: if !employee.email.is_empty() {
+                            Some(Email {
+                                address: Some(employee.email.clone()),
+                            })
+                        } else {
+                            None
+                        },
+                        active: Some(employee.is_active),
+                        ..Default::default()
+                    };
+
+                    let mut emp_extended: EmployeeExtended = new_emp.into();
+                    emp_extended.employee_number = employee.employee_number.clone();
+
+                    client.create_employee(emp_extended).await
+                }
+            }
         };
 
         // 4. Handle result and update local sync fields
@@ -933,14 +1001,29 @@ impl SyncOrchestrator {
 
                 // Detect EMPLOYEE_NOT_FOUND error - employee was deleted from QuickBooks
                 if error_msg.contains("EMPLOYEE_NOT_FOUND") || error_msg.contains("does not exist") {
-                    SyncResult {
-                        entity_id: change.entity_id.clone(),
-                        success: false,
-                        error_message: Some(format!(
-                            "CONFLICT: Local employee has QB ID '{}' that no longer exists in QuickBooks (likely deleted). \
-                             Please review and either unlink this employee or delete them locally.",
-                            employee.intuit_employee_id.as_ref().unwrap_or(&"unknown".to_string())
-                        )),
+                    // Automatically mark employee as inactive since they were deleted from QuickBooks
+                    tracing::info!(
+                        "Employee {} (QB ID: {}) no longer exists in QuickBooks - marking as inactive",
+                        format!("{} {}", employee.first_name, employee.last_name),
+                        employee.intuit_employee_id.as_ref().unwrap_or(&"unknown".to_string())
+                    );
+
+                    let mut active_model: user::ActiveModel = employee.into();
+                    active_model.is_active = Set(false);
+                    active_model.sync_status = Set("inactive_in_quickbooks".to_string());
+                    active_model.last_synced_at = Set(Some(Utc::now()));
+
+                    match active_model.update(db).await {
+                        Ok(_) => SyncResult {
+                            entity_id: change.entity_id.clone(),
+                            success: true,
+                            error_message: None,
+                        },
+                        Err(e) => SyncResult {
+                            entity_id: change.entity_id.clone(),
+                            success: false,
+                            error_message: Some(format!("Failed to mark employee as inactive: {}", e)),
+                        },
                     }
                 } else {
                     SyncResult {
@@ -1110,15 +1193,55 @@ impl SyncOrchestrator {
 
                 // Detect EMPLOYEE_NOT_FOUND error - employee was deleted from QuickBooks
                 if error_msg.contains("EMPLOYEE_NOT_FOUND") || error_msg.contains("does not exist") {
-                    return SyncResult {
-                        entity_id: change.entity_id.clone(),
-                        success: false,
-                        error_message: Some(format!(
-                            "CONFLICT: Employee with QB ID '{}' no longer exists in QuickBooks (likely deleted). \
-                             Please review and either unlink this employee or delete them locally.",
-                            qb_id
-                        )),
-                    };
+                    // Check if we have a local employee with this QB ID
+                    let local_employee = user::Entity::find()
+                        .filter(user::Column::IntuitEmployeeId.eq(Some(qb_id.clone())))
+                        .one(db)
+                        .await;
+
+                    match local_employee {
+                        Ok(Some(employee)) => {
+                            // Mark the local employee as inactive since they were deleted from QB
+                            tracing::info!(
+                                "Employee {} (QB ID: {}) no longer exists in QuickBooks - marking as inactive",
+                                format!("{} {}", employee.first_name, employee.last_name),
+                                qb_id
+                            );
+
+                            let mut active_model: user::ActiveModel = employee.into();
+                            active_model.is_active = Set(false);
+                            active_model.sync_status = Set("inactive_in_quickbooks".to_string());
+                            active_model.last_synced_at = Set(Some(Utc::now()));
+
+                            match active_model.update(db).await {
+                                Ok(_) => return SyncResult {
+                                    entity_id: change.entity_id.clone(),
+                                    success: true,
+                                    error_message: None,
+                                },
+                                Err(e) => return SyncResult {
+                                    entity_id: change.entity_id.clone(),
+                                    success: false,
+                                    error_message: Some(format!("Failed to mark employee as inactive: {}", e)),
+                                },
+                            }
+                        },
+                        Ok(None) => {
+                            // No local employee with this QB ID - nothing to do
+                            return SyncResult {
+                                entity_id: change.entity_id.clone(),
+                                success: true,
+                                error_message: None,
+                            };
+                        },
+                        Err(e) => {
+                            return SyncResult {
+                                entity_id: change.entity_id.clone(),
+                                success: false,
+                                error_message: Some(format!("Database error: {}", e)),
+                            };
+                        }
+                    }
                 }
 
                 return SyncResult {
@@ -1130,8 +1253,10 @@ impl SyncOrchestrator {
         };
 
         // 1a. VALIDATION: Validate QuickBooks employee data before pulling
+        // Use lenient Pull context since we're receiving data FROM QuickBooks
+        // This allows employees without emails to be imported (emails become warnings instead of errors)
         let validation_engine = ValidationEngine::new();
-        let validation_result = validation_engine.validate_quickbooks_employee(&qb_employee, qb_id);
+        let validation_result = validation_engine.validate_quickbooks_employee_with_context(&qb_employee, qb_id, SyncContext::Pull);
 
         if validation_result.has_errors() {
             // Log validation errors
@@ -1227,20 +1352,58 @@ impl SyncOrchestrator {
             }
             Ok(None) => {
                 // CREATE new local employee
-                // Validate that employee has an email (required by database constraint)
+                // Check if employee has an email (required for user accounts)
                 let email = qb_employee.base.primary_email_addr
                     .as_ref()
                     .and_then(|e| e.address.clone())
                     .unwrap_or_default();
 
                 if email.trim().is_empty() {
+                    // Employee missing email - cannot create user account without email
+                    use super::validation_engine::{ValidationError, Severity, EntityType as ValidationEntityType};
+                    // Get employee name for display
+                    let employee_name = format!(
+                        "{} {}",
+                        qb_employee.base.given_name.as_ref().unwrap_or(&"Unknown".to_string()),
+                        qb_employee.base.family_name.as_ref().unwrap_or(&"".to_string())
+                    ).trim().to_string();
+                    // Log this as a data quality issue for admin to resolve
+                    tracing::warn!(
+                        "Cannot import QuickBooks employee (QB ID: {}, Name: {} {}) - missing email address. \
+                         This employee will remain in QuickBooks only until an email is added.",
+                        qb_id,
+                        employee_name.clone(),
+                        qb_employee.base.family_name.as_ref().unwrap_or(&"".to_string())
+                    );
+
+                    // Save validation error for tracking and reporting
+
+                    let validation_error = ValidationError {
+                        rule_id: Uuid::new_v4(),
+                        rule_name: "employee_email_required".to_string(),
+                        entity_type: ValidationEntityType::Employee,
+                        entity_id: Some(qb_id.to_string()), // Use QB ID since no local ID yet
+                        field_name: "email".to_string(),
+                        invalid_value: employee_name.clone(), // Store employee name so UI can display it
+                        error_message: "Missing required email address. This employee cannot be imported until an email is added in QuickBooks.".to_string(),
+                        severity: Severity::Error,
+                        auto_fix_available: false,
+                        detected_at: Utc::now(),
+                    };
+
+                    // Save the validation error to database for admin review
+                    let validation_engine = ValidationEngine::new();
+                    if let Err(e) = validation_engine.save_errors(db, &[validation_error]).await {
+                        tracing::error!("Failed to save validation error: {}", e);
+                    }
+
                     return SyncResult {
                         entity_id: change.entity_id.clone(),
                         success: false,
                         error_message: Some(format!(
-                            "CONFLICT: QuickBooks employee (QB ID: {}) has no email address. \
-                             Cannot create local record without a valid email. \
-                             Please add an email in QuickBooks and sync again.",
+                            "DATA QUALITY ISSUE: QuickBooks employee '{}' (QB ID: {}) cannot be imported - missing email address. \
+                             This has been logged for admin review. Add an email in QuickBooks and sync again to import this employee.",
+                            employee_name,
                             qb_id
                         )),
                     };

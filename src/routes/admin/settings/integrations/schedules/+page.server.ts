@@ -35,8 +35,8 @@ export const load: PageServerLoad = async ({ fetch, cookies, url }) => {
 			};
 		}
 
-		const schedules = schedulesResult.data?.sync_schedule?.sync_schedules?.schedules || [];
-		const total = schedulesResult.data?.sync_schedule?.sync_schedules?.total || 0;
+		const schedules = schedulesResult.data?.syncSchedule?.syncSchedules?.schedules || [];
+		const total = schedulesResult.data?.syncSchedule?.syncSchedules?.total || 0;
 
 		// If a schedule is selected, fetch its history
 		let history = [];
@@ -51,7 +51,7 @@ export const load: PageServerLoad = async ({ fetch, cookies, url }) => {
 				.toPromise();
 
 			if (!historyResult.error) {
-				history = historyResult.data?.sync_schedule?.sync_schedule_history || [];
+				history = historyResult.data?.syncSchedule?.syncScheduleHistory || [];
 				selectedSchedule = schedules.find((s: { id: string }) => s.id === scheduleId) || null;
 			}
 		}

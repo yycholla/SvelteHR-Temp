@@ -53,9 +53,18 @@ impl IntuitClient {
 
     /// Query all employees
     pub async fn list_employees(&self) -> Result<Vec<EmployeeExtended>> {
+        let query = "select * from Employee MAXRESULTS 1000";
         let url = format!(
-            "{}/v3/company/{}/query?query=select * from Employee MAXRESULTS 1000",
-            self.base_url, self.realm_id
+            "{}/v3/company/{}/query?query={}",
+            self.base_url,
+            self.realm_id,
+            utf8_percent_encode(query, NON_ALPHANUMERIC)
+        );
+
+        tracing::info!(
+            realm_id = %self.realm_id,
+            query = query,
+            "Querying employees from QuickBooks"
         );
 
         let response = self
@@ -65,28 +74,76 @@ impl IntuitClient {
             .header("Accept", "application/json")
             .send()
             .await
-            .context("Failed to query employees from QuickBooks")?;
+            .context("Failed to send employee query to QuickBooks")?;
 
-        let qb_response: QuickBooksResponse<Employee> = response
-            .json()
-            .await
-            .context("Failed to parse QuickBooks response")?;
+        let status = response.status();
+        tracing::info!(status = %status, "QuickBooks employee query response status");
 
-        if let Some(fault) = qb_response.fault {
-            return Err(anyhow::anyhow!(
-                "QuickBooks API error: {}",
-                fault
-                    .errors
-                    .first()
-                    .map(|e| e.message.clone())
-                    .unwrap_or_else(|| "Unknown error".to_string())
-            ));
+        if status == StatusCode::UNAUTHORIZED {
+            return Err(anyhow::anyhow!("Unauthorized: Access token may be expired or invalid"));
         }
 
-        Ok(qb_response
-            .query_response
-            .and_then(|qr| qr.employees)
-            .unwrap_or_default()
+        // Get response text for debugging BEFORE parsing
+        let response_text = response
+            .text()
+            .await
+            .context("Failed to get response text")?;
+
+        tracing::debug!(
+            response_length = response_text.len(),
+            "QuickBooks employee query raw response received"
+        );
+
+        // Log first 500 chars of response for debugging
+        if response_text.len() > 500 {
+            tracing::debug!(response_preview = &response_text[..500], "Response preview (first 500 chars)");
+        } else {
+            tracing::debug!(response_full = &response_text, "Full response");
+        }
+
+        // Parse the response
+        let qb_response: QuickBooksResponse<Employee> = serde_json::from_str(&response_text)
+            .context(format!("Failed to parse QuickBooks response: {}", response_text))?;
+
+        // Check for API-level errors
+        if let Some(fault) = qb_response.fault {
+            let error_msg = fault
+                .errors
+                .first()
+                .map(|e| format!("{} ({})", e.message, e.detail))
+                .unwrap_or_else(|| "Unknown error".to_string());
+
+            tracing::error!(error = %error_msg, "QuickBooks API returned fault");
+
+            return Err(anyhow::anyhow!("QuickBooks API error: {}", error_msg));
+        }
+
+        // Extract employees with detailed logging
+        let employees = match qb_response.query_response {
+            Some(query_response) => match query_response.employees {
+                Some(emp_list) => {
+                    tracing::info!(
+                        count = emp_list.len(),
+                        "Successfully retrieved employees from QuickBooks"
+                    );
+                    emp_list
+                }
+                None => {
+                    tracing::warn!(
+                        "QuickBooks returned QueryResponse but employees field is None - this usually means the company has no employees"
+                    );
+                    Vec::new()
+                }
+            },
+            None => {
+                tracing::error!(
+                    "QuickBooks response missing QueryResponse field - unexpected response structure"
+                );
+                Vec::new()
+            }
+        };
+
+        Ok(employees
             .into_iter()
             .map(|emp| emp.into())
             .collect())

@@ -124,7 +124,8 @@ const environmentConfig: Partial<AuthConfig> = {
 	...(process.env.NODE_ENV === 'test' && {
 		sessionCookies: {
 			...defaultConfig.sessionCookies,
-			timeout: 5 // Short timeout for tests
+			timeout: 5, // Short timeout for tests (minutes)
+			renewalThreshold: 2 // Renew 2 minutes before expiry in tests
 		},
 		security: {
 			...defaultConfig.security,

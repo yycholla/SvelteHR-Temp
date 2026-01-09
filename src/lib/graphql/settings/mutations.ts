@@ -1,97 +1,137 @@
 import { gql } from '@urql/svelte';
 
-// Mutation: Update user profile
+/**
+ * GraphQL Mutations for Settings
+ *
+ * Updated for Rust backend (async-graphql) schema
+ * Note: User preferences (theme, notifications, privacy) are handled client-side via localStorage
+ * Only user profile updates use backend mutations
+ */
+
+/**
+ * Mutation: Update user profile
+ * Backend: Uses updateUser from Rust GraphQL schema
+ */
 export const UPDATE_USER_PROFILE = gql`
 	mutation UpdateUserProfile($id: UUID!, $input: UpdateUserInput!) {
-		users {
-			updateUser(id: $id, input: $input) {
+		updateUser(id: $id, input: $input) {
+			id
+			email
+			displayName
+			firstName
+			lastName
+			fullName
+			phone
+			jobTitle
+			departmentId
+			managerId
+			hireDate
+			isActive
+			status
+			department {
 				id
-				email
+				name
+				description
+			}
+			manager {
+				id
+				fullName
 				displayName
-				firstName
-				lastName
-				phone
-				jobTitle
-				themePreference
 			}
+			createdAt
+			updatedAt
 		}
 	}
 `;
 
-// Mutation: Update user preferences (theme)
+// =============================================================================
+// CLIENT-SIDE PREFERENCE MUTATIONS - NOT USING BACKEND
+// =============================================================================
+
+/**
+ * Note: The following mutations are handled client-side using localStorage
+ * See queries.ts for preference management functions:
+ * - saveUserPreferences(userId, preferences)
+ * - saveNotificationPreferences(userId, preferences)
+ * - savePrivacyPreferences(userId, preferences)
+ *
+ * This approach avoids the need for backend implementation of user preferences
+ * and provides instant updates without network latency.
+ */
+
+/*
+// These mutations would require backend implementation:
+
 export const UPDATE_USER_PREFERENCES = gql`
-	mutation UpdateUserPreferences($id: UUID!, $input: UpdateUserInput!) {
-		users {
-			updateUser(id: $id, input: $input) {
-				id
-				themePreference
-			}
-		}
-	}
-`;
-
-// Mutation: Update system settings
-export const UPDATE_SYSTEM_SETTINGS = gql`
-	mutation UpdateSystemSettings($input: UpdateSystemSettingsInput!) {
-		updateSystemSettings(input: $input) {
+	mutation UpdateUserPreferences($userId: UUID!, $input: UpdateUserPreferencesInput!) {
+		updateUserPreferences(userId: $userId, input: $input) {
 			id
-			category
-			settings
+			userId
+			theme
+			language
+			timezone
+			dateFormat
+			timeFormat
+			compactView
+			sidebarCollapsed
+			fontSize
+			colorScheme
+			updatedAt
 		}
 	}
 `;
 
-// Mutation: Update notification settings
-export const UPDATE_NOTIFICATION_SETTINGS = gql`
-	mutation UpdateNotificationSettings($input: UpdateSystemSettingsInput!) {
-		updateSystemSettings(input: $input) {
+export const UPDATE_NOTIFICATION_PREFERENCES = gql`
+	mutation UpdateNotificationPreferences($userId: UUID!, $input: UpdateNotificationPreferencesInput!) {
+		updateNotificationPreferences(userId: $userId, input: $input) {
 			id
-			category
-			settings
+			userId
+			email
+			push
+			sms
+			leaveReminders
+			performanceUpdates
+			systemAlerts
+			teamUpdates
+			eventReminders
+			taskReminders
+			updatedAt
 		}
 	}
 `;
 
-// Mutation: Update privacy settings
-export const UPDATE_PRIVACY_SETTINGS = gql`
-	mutation UpdatePrivacySettings($input: UpdateSystemSettingsInput!) {
-		updateSystemSettings(input: $input) {
+export const UPDATE_PRIVACY_PREFERENCES = gql`
+	mutation UpdatePrivacyPreferences($userId: UUID!, $input: UpdatePrivacyPreferencesInput!) {
+		updatePrivacyPreferences(userId: $userId, input: $input) {
 			id
-			category
-			settings
+			userId
+			profileVisibility
+			showOnlineStatus
+			allowDirectMessages
+			dataSharing
+			analyticsOptOut
+			updatedAt
 		}
 	}
 `;
 
-// Mutation: Update appearance settings
-export const UPDATE_APPEARANCE_SETTINGS = gql`
-	mutation UpdateAppearanceSettings($input: UpdateSystemSettingsInput!) {
-		updateSystemSettings(input: $input) {
-			id
-			category
-			settings
-		}
-	}
-`;
-
-// Mutation: Change password (placeholder - may not be implemented in Rust backend yet)
+// Password change mutation - would require backend implementation
 export const CHANGE_PASSWORD = gql`
-	mutation ChangePassword($input: UpdateSystemSettingsInput!) {
-		updateSystemSettings(input: $input) {
-			id
-			category
-			settings
+	mutation ChangePassword($currentPassword: String!, $newPassword: String!) {
+		changePassword(currentPassword: $currentPassword, newPassword: $newPassword) {
+			success
+			message
 		}
 	}
 `;
 
-// Mutation: Export user data (placeholder - may not be implemented in Rust backend yet)
+// Data export mutation - would require backend implementation
 export const EXPORT_USER_DATA = gql`
-	mutation ExportUserData($input: UpdateSystemSettingsInput!) {
-		updateSystemSettings(input: $input) {
-			id
-			category
-			settings
+	mutation ExportUserData($userId: UUID!, $format: String!) {
+		exportUserData(userId: $userId, format: $format) {
+			downloadUrl
+			expiresAt
 		}
 	}
 `;
+*/

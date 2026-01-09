@@ -1,15 +1,6 @@
 <script lang="ts">
-	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
-	import { Alert, AlertDescription } from '$lib/components/ui/alert';
-	import {
-		Select,
-		SelectContent,
-		SelectItem,
-		SelectTrigger,
-		SelectValue
-	} from '$lib/components/ui/select';
 	import {
 		AlertCircle,
 		CheckCircle2,
@@ -20,8 +11,7 @@
 		Zap,
 		XCircle,
 		RotateCw,
-		Webhook,
-		Filter
+		Webhook
 	} from '@lucide/svelte';
 	import { invalidate, goto } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -35,16 +25,13 @@
 	let filters = $derived(data.filters || {});
 
 	let refreshing = $state(false);
-	let selectedStatus = $state('all');
-	let selectedEventType = $state('all');
 	let showRegisterDialog = $state(false);
 	let selectedEntities = $state(['Employee', 'Department']);
 	let isSubmitting = $state(false);
 
-	$effect(() => {
-		if ((filters as any).status) selectedStatus = (filters as any).status;
-		if ((filters as any).eventType) selectedEventType = (filters as any).eventType;
-	});
+	// Derived filter values from URL params
+	let selectedStatus = $derived((filters as any).status || 'all');
+	let selectedEventType = $derived((filters as any).eventType || 'all');
 
 	// Event types for filter
 	const eventTypes = [
@@ -83,38 +70,28 @@
 		goto('/admin/settings/integrations/webhooks');
 	}
 
-	function applyFilters() {
+	function applyFilters(status?: string, eventType?: string) {
 		const params = new URLSearchParams();
-		if (selectedStatus !== 'all') params.set('status', selectedStatus);
-		if (selectedEventType !== 'all') params.set('eventType', selectedEventType);
+		const newStatus = status !== undefined ? status : selectedStatus;
+		const newEventType = eventType !== undefined ? eventType : selectedEventType;
+
+		if (newStatus !== 'all') params.set('status', newStatus);
+		if (newEventType !== 'all') params.set('eventType', newEventType);
 		goto(`?${params.toString()}`);
 	}
 
-	function getStatusColor(status: string): string {
+	function getActionBadgeColor(status: string): string {
 		switch (status.toLowerCase()) {
 			case 'completed':
-				return 'text-green-600 bg-green-50 border-green-200';
+				return 'bg-green-100 text-green-700';
 			case 'processing':
-				return 'text-blue-600 bg-blue-50 border-blue-200';
+				return 'bg-blue-100 text-blue-700';
 			case 'pending':
-				return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+				return 'bg-yellow-100 text-yellow-700';
 			case 'failed':
-				return 'text-red-600 bg-red-50 border-red-200';
+				return 'bg-red-100 text-red-700';
 			default:
-				return 'text-gray-600 bg-gray-50 border-gray-200';
-		}
-	}
-
-	function getStatusVariant(status: string): 'default' | 'outline' | 'secondary' | 'destructive' {
-		switch (status.toLowerCase()) {
-			case 'completed':
-				return 'default';
-			case 'failed':
-				return 'destructive';
-			case 'processing':
-				return 'secondary';
-			default:
-				return 'outline';
+				return 'bg-gray-100 text-gray-700';
 		}
 	}
 
@@ -134,499 +111,435 @@
 	}
 </script>
 
-<div class="container mx-auto py-8 px-4">
-	<!-- Header -->
-	<div class="mb-6 flex items-center justify-between">
-		<div class="flex items-center gap-4">
+<div class="flex flex-col h-full overflow-hidden bg-background">
+	<!-- Toolbar -->
+	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+		<div class="flex items-center gap-4 flex-1">
 			{#if selectedEvent}
-				<Button onclick={backToList} variant="outline" size="sm">
-					<ArrowLeft class="h-4 w-4 mr-2" />
-					Back to Events
-				</Button>
+				<button
+					onclick={backToList}
+					class="flex items-center gap-1.5 h-8 px-3 rounded-sm border border-input bg-background text-xs hover:bg-accent transition-colors"
+				>
+					<ArrowLeft class="h-3.5 w-3.5" />
+					Back
+				</button>
 			{/if}
-			<div>
-				<h1 class="text-2xl font-bold flex items-center gap-2">
-					<Webhook class="h-6 w-6" />
-					{selectedEvent ? 'Webhook Event Details' : 'Webhook Monitoring'}
-				</h1>
-				<p class="text-sm text-muted-foreground mt-1">
-					{selectedEvent
-						? 'Real-time webhook event processing details'
-						: 'QuickBooks webhook events and processing status'}
-				</p>
+			<h1 class="text-sm font-semibold tracking-tight flex items-center gap-2">
+				<Webhook class="h-4 w-4" />
+				{selectedEvent ? 'Webhook Event Details' : 'Webhook Monitoring'}
+			</h1>
+		</div>
+		<button
+			onclick={refreshData}
+			disabled={refreshing}
+			class="flex items-center gap-1.5 h-8 px-3 rounded-sm border border-input bg-background text-xs hover:bg-accent transition-colors disabled:opacity-50"
+		>
+			<RefreshCw class="h-3.5 w-3.5 {refreshing ? 'animate-spin' : ''}" />
+			Refresh
+		</button>
+	</header>
+
+	<!-- Error/Success Messages -->
+	{#if data.error}
+		<div class="flex-shrink-0 p-4 pb-0">
+			<div class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20 flex items-center gap-2">
+				<AlertCircle class="h-4 w-4" />
+				{data.error}
 			</div>
 		</div>
-		<Button onclick={refreshData} disabled={refreshing} variant="outline" size="sm">
-			<RefreshCw class="h-4 w-4 mr-2 {refreshing ? 'animate-spin' : ''}" />
-			Refresh
-		</Button>
-	</div>
-
-	{#if data.error}
-		<Alert variant="destructive" class="mb-6">
-			<AlertCircle class="h-4 w-4" />
-			<AlertDescription>{data.error}</AlertDescription>
-		</Alert>
 	{/if}
 
 	{#if form?.error}
-		<Alert variant="destructive" class="mb-6">
-			<AlertCircle class="h-4 w-4" />
-			<AlertDescription>{form.error}</AlertDescription>
-		</Alert>
+		<div class="flex-shrink-0 p-4 pb-0">
+			<div class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20 flex items-center gap-2">
+				<AlertCircle class="h-4 w-4" />
+				{form.error}
+			</div>
+		</div>
 	{/if}
 
 	{#if form?.success}
-		<Alert class="mb-6 border-green-200 bg-green-50">
-			<CheckCircle2 class="h-4 w-4 text-green-600" />
-			<AlertDescription class="text-green-800">{form.message}</AlertDescription>
-		</Alert>
+		<div class="flex-shrink-0 p-4 pb-0">
+			<div class="rounded-md bg-green-50 p-3 text-sm text-green-700 font-medium border border-green-200 flex items-center gap-2">
+				<CheckCircle2 class="h-4 w-4" />
+				{form.message}
+			</div>
+		</div>
 	{/if}
 
-	<!-- Webhook Status Card (only show when not viewing event details) -->
+	<!-- Webhook Status Section -->
 	{#if !selectedEvent && webhookStatus}
-		<Card class="mb-6">
-			<CardHeader>
-				<div class="flex items-center justify-between">
+		<div class="flex-shrink-0 border-b bg-background p-4">
+			<div class="flex items-center justify-between mb-3">
+				<div class="flex items-center gap-2">
+					<Webhook class="h-4 w-4" />
+					<h2 class="text-xs font-semibold uppercase tracking-wide">Subscription Status</h2>
+				</div>
+				<div>
+					{#if webhookStatus.isActive}
+						<form method="POST" action="?/unregister" use:enhance>
+							<button
+								type="submit"
+								disabled={isSubmitting}
+								class="h-8 px-3 rounded-sm border border-destructive bg-destructive text-destructive-foreground text-xs hover:bg-destructive/90 transition-colors disabled:opacity-50"
+							>
+								{isSubmitting ? 'Unregistering...' : 'Unregister'}
+							</button>
+						</form>
+					{:else}
+						<button
+							onclick={() => (showRegisterDialog = !showRegisterDialog)}
+							class="h-8 px-3 rounded-sm border border-input bg-primary text-primary-foreground text-xs hover:bg-primary/90 transition-colors"
+						>
+							Register Webhook
+						</button>
+					{/if}
+				</div>
+			</div>
+
+			{#if webhookStatus.isActive}
+				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
 					<div>
-						<CardTitle class="flex items-center gap-2">
-							<Webhook class="h-5 w-5" />
-							Webhook Subscription Status
-						</CardTitle>
-						<CardDescription>
-							{webhookStatus.isActive
-								? 'Real-time event notifications are active'
-								: 'Configure webhooks to receive instant notifications'}
-						</CardDescription>
+						<div class="text-muted-foreground mb-1">Status</div>
+						<div class="flex items-center gap-2">
+							<div class="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+							<span class="font-medium text-green-600">Active</span>
+						</div>
 					</div>
 					<div>
-						{#if webhookStatus.isActive}
-							<form method="POST" action="?/unregister" use:enhance>
-								<Button type="submit" variant="destructive" size="sm" disabled={isSubmitting}>
-									{isSubmitting ? 'Unregistering...' : 'Unregister Webhook'}
-								</Button>
-							</form>
-						{:else}
-							<Button onclick={() => (showRegisterDialog = !showRegisterDialog)} size="sm">
-								Register Webhook
-							</Button>
-						{/if}
+						<div class="text-muted-foreground mb-1">Webhook ID</div>
+						<div class="font-mono text-xs">{webhookStatus.webhookId || 'N/A'}</div>
+					</div>
+					<div>
+						<div class="text-muted-foreground mb-1">Subscribed Entities</div>
+						<div class="flex flex-wrap gap-1">
+							{#each webhookStatus.entityNames as entity (entity)}
+								<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground">{entity}</span>
+							{/each}
+						</div>
+					</div>
+					<div>
+						<div class="text-muted-foreground mb-1">Last Delivery</div>
+						<div class="text-xs">
+							{webhookStatus.lastDeliveredAt ? formatDate(webhookStatus.lastDeliveredAt) : 'Never'}
+						</div>
 					</div>
 				</div>
-			</CardHeader>
-			<CardContent>
-				{#if webhookStatus.isActive}
-					<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-						<div>
-							<p class="text-sm text-muted-foreground">Status</p>
-							<div class="flex items-center gap-2 mt-1">
-								<div class="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
-								<p class="font-medium text-green-600">Active</p>
-							</div>
-						</div>
-						<div>
-							<p class="text-sm text-muted-foreground">Webhook ID</p>
-							<p class="font-mono text-sm mt-1">
-								{webhookStatus.webhookId || 'N/A'}
-							</p>
-						</div>
-						<div>
-							<p class="text-sm text-muted-foreground">Subscribed Entities</p>
-							<div class="flex flex-wrap gap-1 mt-1">
-								{#each webhookStatus.entityNames as entity}
-									<Badge variant="secondary" class="text-xs">{entity}</Badge>
-								{/each}
-							</div>
-						</div>
-						<div>
-							<p class="text-sm text-muted-foreground">Last Delivery</p>
-							<p class="text-sm mt-1">
-								{webhookStatus.lastDeliveredAt
-									? formatDate(webhookStatus.lastDeliveredAt)
-									: 'Never'}
-							</p>
+
+				{#if webhookStatus.failureCount > 0}
+					<div class="mt-3 rounded-md bg-destructive/10 p-2 text-xs text-destructive flex items-center gap-2">
+						<AlertCircle class="h-3.5 w-3.5" />
+						{webhookStatus.failureCount} delivery failure(s) recorded
+					</div>
+				{/if}
+			{:else if showRegisterDialog}
+				<form method="POST" action="?/register" use:enhance class="space-y-3 mt-3">
+					<div>
+						<div class="text-xs font-medium mb-2">Select entity types to subscribe to:</div>
+						<div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+							{#each ['Employee', 'Department', 'Customer'] as entity (entity)}
+								<label class="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-muted/30 text-xs">
+									<input
+										type="checkbox"
+										name="entityNames"
+										value={entity}
+										checked={selectedEntities.includes(entity)}
+										onchange={(e) => {
+											if (e.currentTarget.checked) {
+												selectedEntities = [...selectedEntities, entity];
+											} else {
+												selectedEntities = selectedEntities.filter((en) => en !== entity);
+											}
+										}}
+										class="rounded"
+									/>
+									<span class="font-medium">{entity}</span>
+								</label>
+							{/each}
 						</div>
 					</div>
-
-					{#if webhookStatus.failureCount > 0}
-						<Alert variant="destructive" class="mt-4">
-							<AlertCircle class="h-4 w-4" />
-							<AlertDescription>
-								{webhookStatus.failureCount} delivery failure(s) recorded
-							</AlertDescription>
-						</Alert>
-					{/if}
-				{:else if showRegisterDialog}
-					<form method="POST" action="?/register" use:enhance class="space-y-4 mt-4">
-						<div>
-							<p class="text-sm font-medium mb-3">Select entity types to subscribe to:</p>
-							<div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-								{#each ['Employee', 'Department', 'Customer'] as entity}
-									<label class="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/30">
-										<input
-											type="checkbox"
-											name="entityNames"
-											value={entity}
-											checked={selectedEntities.includes(entity)}
-											onchange={(e) => {
-												if (e.currentTarget.checked) {
-													selectedEntities = [...selectedEntities, entity];
-												} else {
-													selectedEntities = selectedEntities.filter((e) => e !== entity);
-												}
-											}}
-											class="rounded"
-										/>
-										<span class="text-sm font-medium">{entity}</span>
-									</label>
-								{/each}
-							</div>
-						</div>
-						<div class="flex gap-3">
-							<Button type="submit" disabled={isSubmitting || selectedEntities.length === 0}>
-								{isSubmitting ? 'Registering...' : 'Register Webhook'}
-							</Button>
-							<Button
-								type="button"
-								variant="outline"
-								onclick={() => (showRegisterDialog = false)}
-								disabled={isSubmitting}
-							>
-								Cancel
-							</Button>
-						</div>
-					</form>
-				{/if}
-			</CardContent>
-		</Card>
+					<div class="flex gap-2">
+						<button
+							type="submit"
+							disabled={isSubmitting || selectedEntities.length === 0}
+							class="h-8 px-3 rounded-sm border border-input bg-primary text-primary-foreground text-xs hover:bg-primary/90 transition-colors disabled:opacity-50"
+						>
+							{isSubmitting ? 'Registering...' : 'Register'}
+						</button>
+						<button
+							type="button"
+							onclick={() => (showRegisterDialog = false)}
+							disabled={isSubmitting}
+							class="h-8 px-3 rounded-sm border border-input bg-background text-xs hover:bg-accent transition-colors disabled:opacity-50"
+						>
+							Cancel
+						</button>
+					</div>
+				</form>
+			{/if}
+		</div>
 	{/if}
 
 	{#if selectedEvent}
 		<!-- Event Detail View -->
-		<div class="space-y-6">
+		<div class="flex-1 overflow-auto min-h-0 relative bg-background p-4">
 			<!-- Event Summary -->
-			<Card>
-				<CardHeader>
-					<div class="flex items-start justify-between">
-						<div>
-							<CardTitle>Event Details</CardTitle>
-							<CardDescription>{formatDate(selectedEvent.receivedAt)}</CardDescription>
-						</div>
-						<div
-							class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border {getStatusColor(
-								selectedEvent.status
-							)}"
-						>
-							{#if selectedEvent.status === 'completed'}
-								<CheckCircle2 class="h-4 w-4 mr-2" />
-							{:else if selectedEvent.status === 'failed'}
-								<XCircle class="h-4 w-4 mr-2" />
-							{:else if selectedEvent.status === 'processing'}
-								<Activity class="h-4 w-4 mr-2 animate-pulse" />
-							{:else}
-								<Clock class="h-4 w-4 mr-2" />
-							{/if}
-							{selectedEvent.status}
-						</div>
+			<div class="mb-4 p-4 border rounded-sm bg-background">
+				<div class="flex items-start justify-between mb-4">
+					<div>
+						<h3 class="text-xs font-semibold uppercase tracking-wide mb-1">Event Details</h3>
+						<div class="text-xs text-muted-foreground">{formatDate(selectedEvent.receivedAt)}</div>
 					</div>
-				</CardHeader>
-				<CardContent>
-					<div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-						<div>
-							<p class="text-sm text-muted-foreground">Event Type</p>
-							<p class="text-lg font-medium">{selectedEvent.eventType}</p>
-						</div>
-						<div>
-							<p class="text-sm text-muted-foreground">Entity</p>
-							<p class="text-lg font-medium">{selectedEvent.entityName}</p>
-						</div>
-						<div>
-							<p class="text-sm text-muted-foreground">Realm ID</p>
-							<p class="text-lg font-mono text-sm">{selectedEvent.realmId}</p>
-						</div>
-						<div>
-							<p class="text-sm text-muted-foreground">Processing Attempts</p>
-							<p class="text-lg font-bold">
-								{selectedEvent.processingAttempts}
-								{#if selectedEvent.processingAttempts > 1}
-									<RotateCw class="inline h-4 w-4 ml-1 text-orange-500" />
-								{/if}
-							</p>
-						</div>
-					</div>
+					<span
+						class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium {getActionBadgeColor(selectedEvent.status)}"
+					>
+						{#if selectedEvent.status === 'completed'}
+							<CheckCircle2 class="h-3 w-3 mr-1" />
+						{:else if selectedEvent.status === 'failed'}
+							<XCircle class="h-3 w-3 mr-1" />
+						{:else if selectedEvent.status === 'processing'}
+							<Activity class="h-3 w-3 mr-1 animate-pulse" />
+						{:else}
+							<Clock class="h-3 w-3 mr-1" />
+						{/if}
+						{selectedEvent.status}
+					</span>
+				</div>
 
-					<div class="mt-6 pt-6 border-t">
-						<div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-							<div>
-								<span class="text-muted-foreground">Received:</span>
-								<span class="ml-2 font-medium">{formatDate(selectedEvent.receivedAt)}</span>
-							</div>
-							{#if selectedEvent.processedAt}
-								<div>
-									<span class="text-muted-foreground">Processed:</span>
-									<span class="ml-2 font-medium">{formatDate(selectedEvent.processedAt)}</span>
-								</div>
+				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+					<div>
+						<div class="text-muted-foreground mb-1">Event Type</div>
+						<div class="font-medium">{selectedEvent.eventType}</div>
+					</div>
+					<div>
+						<div class="text-muted-foreground mb-1">Entity</div>
+						<div class="font-medium">{selectedEvent.entityName}</div>
+					</div>
+					<div>
+						<div class="text-muted-foreground mb-1">Realm ID</div>
+						<div class="font-mono">{selectedEvent.realmId}</div>
+					</div>
+					<div>
+						<div class="text-muted-foreground mb-1">Processing Attempts</div>
+						<div class="font-bold flex items-center gap-1">
+							{selectedEvent.processingAttempts}
+							{#if selectedEvent.processingAttempts > 1}
+								<RotateCw class="h-3 w-3 text-orange-500" />
 							{/if}
-							<div>
-								<span class="text-muted-foreground">Event ID:</span>
-								<span class="ml-2 font-mono text-xs">{selectedEvent.id}</span>
-							</div>
 						</div>
 					</div>
+				</div>
 
-					{#if selectedEvent.lastError}
-						<Alert variant="destructive" class="mt-4">
-							<AlertCircle class="h-4 w-4" />
-							<AlertDescription>
-								<div class="flex items-center justify-between">
-									<div>
-										<span class="font-medium">Processing Error:</span>
-										{selectedEvent.lastError}
-									</div>
-									{#if selectedEvent.status === 'failed'}
-										<form method="POST" action="?/retry" use:enhance>
-											<input type="hidden" name="eventId" value={selectedEvent.id} />
-											<Button type="submit" size="sm" variant="outline" disabled={isSubmitting}>
-												<RotateCw class="h-4 w-4 mr-2" />
-												Retry
-											</Button>
-										</form>
-									{/if}
-								</div>
-							</AlertDescription>
-						</Alert>
+				<div class="mt-4 pt-4 border-t grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+					<div>
+						<span class="text-muted-foreground">Received:</span>
+						<span class="ml-2 font-medium">{formatDate(selectedEvent.receivedAt)}</span>
+					</div>
+					{#if selectedEvent.processedAt}
+						<div>
+							<span class="text-muted-foreground">Processed:</span>
+							<span class="ml-2 font-medium">{formatDate(selectedEvent.processedAt)}</span>
+						</div>
 					{/if}
-				</CardContent>
-			</Card>
+					<div>
+						<span class="text-muted-foreground">Event ID:</span>
+						<span class="ml-2 font-mono">{selectedEvent.id}</span>
+					</div>
+				</div>
+
+				{#if selectedEvent.lastError}
+					<div class="mt-4 rounded-md bg-destructive/10 p-3 text-xs text-destructive border border-destructive/20">
+						<div class="flex items-start justify-between gap-4">
+							<div class="flex items-start gap-2">
+								<AlertCircle class="h-3.5 w-3.5 mt-0.5" />
+								<div>
+									<span class="font-medium">Processing Error:</span>
+									<div class="mt-1">{selectedEvent.lastError}</div>
+								</div>
+							</div>
+							{#if selectedEvent.status === 'failed'}
+								<form method="POST" action="?/retry" use:enhance>
+									<input type="hidden" name="eventId" value={selectedEvent.id} />
+									<button
+										type="submit"
+										disabled={isSubmitting}
+										class="flex items-center gap-1.5 h-8 px-3 rounded-sm border border-input bg-background text-xs hover:bg-accent transition-colors disabled:opacity-50"
+									>
+										<RotateCw class="h-3 w-3" />
+										Retry
+									</button>
+								</form>
+							{/if}
+						</div>
+					</div>
+				{/if}
+			</div>
 
 			<!-- Event Payload -->
-			<Card>
-				<CardHeader>
-					<CardTitle>Event Payload</CardTitle>
-					<CardDescription>Raw webhook data from QuickBooks</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<pre
-						class="text-xs bg-muted border rounded p-4 overflow-auto max-h-96">{JSON.stringify(
-							selectedEvent.payload,
-							null,
-							2
-						)}</pre>
-				</CardContent>
-			</Card>
+			<div class="p-4 border rounded-sm bg-background">
+				<h3 class="text-xs font-semibold uppercase tracking-wide mb-2">Event Payload</h3>
+				<div class="text-[10px] text-muted-foreground mb-3">Raw webhook data from QuickBooks</div>
+				<pre class="text-[10px] bg-muted border rounded p-3 overflow-auto max-h-96 font-mono">{JSON.stringify(selectedEvent.payload, null, 2)}</pre>
+			</div>
 		</div>
 	{:else}
-		<!-- Events List View -->
-		<div class="space-y-6">
-			<!-- Statistics Overview -->
-			{#if statistics}
-				<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-					<Card>
-						<CardHeader class="pb-2">
-							<CardDescription>Total Events</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<p class="text-3xl font-bold">{statistics.totalEvents}</p>
-						</CardContent>
-					</Card>
+		<!-- KPI Grid -->
+		{#if statistics}
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 border-b h-32">
+				<div class="flex flex-col justify-center px-4 py-3 border-r last:border-r-0">
+					<div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Total Events</div>
+					<div class="text-2xl font-bold">{statistics.totalEvents}</div>
+				</div>
 
-					<Card>
-						<CardHeader class="pb-2">
-							<CardDescription>Pending</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<div class="flex items-center gap-2">
-								<Clock class="h-8 w-8 text-yellow-500" />
-								<p class="text-3xl font-bold">{statistics.pendingEvents}</p>
-							</div>
-						</CardContent>
-					</Card>
+				<div class="flex flex-col justify-center px-4 py-3 border-r last:border-r-0">
+					<div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Pending</div>
+					<div class="flex items-center gap-2">
+						<Clock class="h-5 w-5 text-yellow-500" />
+						<div class="text-2xl font-bold">{statistics.pendingEvents}</div>
+					</div>
+				</div>
 
-					<Card>
-						<CardHeader class="pb-2">
-							<CardDescription>Processing</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<div class="flex items-center gap-2">
-								<Activity class="h-8 w-8 text-blue-500 animate-pulse" />
-								<p class="text-3xl font-bold">{statistics.processingEvents}</p>
-							</div>
-						</CardContent>
-					</Card>
+				<div class="flex flex-col justify-center px-4 py-3 border-r last:border-r-0">
+					<div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Processing</div>
+					<div class="flex items-center gap-2">
+						<Activity class="h-5 w-5 text-blue-500 animate-pulse" />
+						<div class="text-2xl font-bold">{statistics.processingEvents}</div>
+					</div>
+				</div>
 
-					<Card>
-						<CardHeader class="pb-2">
-							<CardDescription>Completed</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<div class="flex items-center gap-2">
-								<CheckCircle2 class="h-8 w-8 text-green-500" />
-								<p class="text-3xl font-bold">{statistics.completedEvents}</p>
-							</div>
-						</CardContent>
-					</Card>
+				<div class="flex flex-col justify-center px-4 py-3 border-r last:border-r-0">
+					<div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Completed</div>
+					<div class="flex items-center gap-2">
+						<CheckCircle2 class="h-5 w-5 text-green-500" />
+						<div class="text-2xl font-bold">{statistics.completedEvents}</div>
+					</div>
+				</div>
 
-					<Card>
-						<CardHeader class="pb-2">
-							<CardDescription>Failed</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<div class="flex items-center gap-2">
-								<XCircle class="h-8 w-8 text-red-500" />
-								<p class="text-3xl font-bold">{statistics.failedEvents}</p>
-							</div>
-						</CardContent>
-					</Card>
+				<div class="flex flex-col justify-center px-4 py-3 border-r last:border-r-0">
+					<div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Failed</div>
+					<div class="flex items-center gap-2">
+						<XCircle class="h-5 w-5 text-red-500" />
+						<div class="text-2xl font-bold">{statistics.failedEvents}</div>
+					</div>
+				</div>
 
-					<Card>
-						<CardHeader class="pb-2">
-							<CardDescription>Avg Processing</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<div class="flex items-center gap-2">
-								<Zap class="h-8 w-8 text-purple-500" />
-								<p class="text-2xl font-bold">
-									{formatDuration(statistics.avgProcessingTimeMs)}
-								</p>
-							</div>
-						</CardContent>
-					</Card>
+				<div class="flex flex-col justify-center px-4 py-3 border-r last:border-r-0">
+					<div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Avg Processing</div>
+					<div class="flex items-center gap-2">
+						<Zap class="h-5 w-5 text-purple-500" />
+						<div class="text-xl font-bold">
+							{formatDuration(statistics.avgProcessingTimeMs)}
+						</div>
+					</div>
+				</div>
+			</div>
+		{/if}
+
+		<!-- Filters Bar -->
+		<div class="flex-shrink-0 p-2 border-b bg-muted/5 flex items-center gap-2 overflow-x-auto">
+			<select
+				value={selectedStatus}
+				onchange={(e) => applyFilters(e.currentTarget.value, selectedEventType)}
+				class="h-8 rounded-sm border border-input bg-background px-2 text-xs focus:border-primary focus:outline-none min-w-[120px]"
+			>
+				{#each statusOptions as option (option.value)}
+					<option value={option.value}>{option.label}</option>
+				{/each}
+			</select>
+
+			<select
+				value={selectedEventType}
+				onchange={(e) => applyFilters(selectedStatus, e.currentTarget.value)}
+				class="h-8 rounded-sm border border-input bg-background px-2 text-xs focus:border-primary focus:outline-none min-w-[150px]"
+			>
+				{#each eventTypes as type (type.value)}
+					<option value={type.value}>{type.label}</option>
+				{/each}
+			</select>
+
+			{#if selectedStatus !== 'all' || selectedEventType !== 'all'}
+				<div class="text-xs text-muted-foreground ml-auto">
+					Showing {events.length} filtered events
 				</div>
 			{/if}
+		</div>
 
-			<!-- Filters -->
-			<Card>
-				<CardHeader>
-					<CardTitle class="flex items-center gap-2">
-						<Filter class="h-5 w-5" />
-						Filters
-					</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-						<Select
-							type="single"
-							value={selectedStatus as any}
-							onValueChange={(value: any) => {
-								selectedStatus = value;
-								applyFilters();
-							}}
+		<!-- Events Table -->
+		<div class="flex-1 overflow-auto min-h-0 relative bg-background">
+			<table class="w-full text-sm text-left border-collapse">
+				<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
+					<tr>
+						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-40">Event Type</th>
+						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32">Entity</th>
+						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-24">Status</th>
+						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32">Received</th>
+						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32">Processed</th>
+						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-20">Attempts</th>
+						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Error</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y">
+					{#each events as event (event.id)}
+						<tr
+							class="hover:bg-muted/30 cursor-pointer transition-colors group"
+							onclick={() => viewEvent(event.id)}
 						>
-							<SelectTrigger>
-								<SelectValue placeholder="Select status" />
-							</SelectTrigger>
-							<SelectContent>
-								{#each statusOptions as option}
-									<SelectItem value={option.value}>{option.label}</SelectItem>
-								{/each}
-							</SelectContent>
-						</Select>
-
-						<Select
-							type="single"
-							value={selectedEventType as any}
-							onValueChange={(value: any) => {
-								selectedEventType = value;
-								applyFilters();
-							}}
-						>
-							<SelectTrigger>
-								<SelectValue placeholder="Select event type" />
-							</SelectTrigger>
-							<SelectContent>
-								{#each eventTypes as type}
-									<SelectItem value={type.value}>{type.label}</SelectItem>
-								{/each}
-							</SelectContent>
-						</Select>
-					</div>
-
-					{#if selectedStatus !== 'all' || selectedEventType !== 'all'}
-						<div class="mt-4 text-sm text-muted-foreground">
-							Showing {events.length} filtered events
-						</div>
-					{/if}
-				</CardContent>
-			</Card>
-
-			<!-- Events List -->
-			<Card>
-				<CardHeader>
-					<CardTitle>Recent Webhook Events</CardTitle>
-					<CardDescription>Incoming QuickBooks webhook notifications</CardDescription>
-				</CardHeader>
-				<CardContent>
-					{#if events.length === 0}
-						<div class="text-center py-12 text-muted-foreground">
-							<Webhook class="h-12 w-12 mx-auto mb-3" />
-							<p class="font-medium">No webhook events</p>
-							<p class="text-sm">Webhook events will appear here when received from QuickBooks</p>
-						</div>
-					{:else}
-						<div class="space-y-3">
-							{#each events as event}
-								<button
-									onclick={() => viewEvent(event.id)}
-									class="w-full text-left border rounded-lg p-4 hover:bg-muted/30 transition-colors"
+							<td class="px-3 py-1.5 border-r last:border-r-0 text-xs font-medium">
+								{event.eventType}
+							</td>
+							<td class="px-3 py-1.5 border-r last:border-r-0 text-xs">
+								{event.entityName}
+							</td>
+							<td class="px-3 py-1.5 border-r last:border-r-0">
+								<span
+									class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getActionBadgeColor(event.status)}"
 								>
-									<div class="flex items-start justify-between mb-2">
-										<div class="flex-1">
-											<div class="flex items-center gap-2 mb-1">
-												<p class="font-medium">{event.eventType}</p>
-												<Badge variant={getStatusVariant(event.status)}>
-													{event.status}
-												</Badge>
-												{#if event.processingAttempts > 1}
-													<Badge variant="secondary">
-														<RotateCw class="h-3 w-3 mr-1" />
-														{event.processingAttempts} attempts
-													</Badge>
-												{/if}
-											</div>
-											<p class="text-sm text-muted-foreground">
-												{event.entityName} • Received {formatDate(event.receivedAt)}
-											</p>
-										</div>
-										<div class="text-right">
-											{#if event.processedAt}
-												<p class="text-sm text-green-600">
-													<CheckCircle2 class="inline h-4 w-4 mr-1" />
-													Processed
-												</p>
-												<p class="text-xs text-muted-foreground">
-													{formatDate(event.processedAt)}
-												</p>
-											{:else if event.status === 'failed'}
-												<p class="text-sm text-red-600">
-													<XCircle class="inline h-4 w-4 mr-1" />
-													Failed
-												</p>
-											{:else if event.status === 'processing'}
-												<p class="text-sm text-blue-600">
-													<Activity class="inline h-4 w-4 mr-1 animate-pulse" />
-													Processing
-												</p>
-											{:else}
-												<p class="text-sm text-yellow-600">
-													<Clock class="inline h-4 w-4 mr-1" />
-													Pending
-												</p>
-											{/if}
-										</div>
-									</div>
-
-									{#if event.lastError}
-										<div class="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-800">
-											<AlertCircle class="inline h-4 w-4 mr-1" />
-											{event.lastError}
-										</div>
+									{#if event.status === 'completed'}
+										<CheckCircle2 class="h-3 w-3 mr-1" />
+									{:else if event.status === 'failed'}
+										<XCircle class="h-3 w-3 mr-1" />
+									{:else if event.status === 'processing'}
+										<Activity class="h-3 w-3 mr-1 animate-pulse" />
+									{:else}
+										<Clock class="h-3 w-3 mr-1" />
 									{/if}
-								</button>
-							{/each}
-						</div>
-					{/if}
-				</CardContent>
-			</Card>
+									{event.status}
+								</span>
+							</td>
+							<td class="px-3 py-1.5 border-r last:border-r-0 text-xs text-muted-foreground whitespace-nowrap">
+								{formatDate(event.receivedAt)}
+							</td>
+							<td class="px-3 py-1.5 border-r last:border-r-0 text-xs text-muted-foreground whitespace-nowrap">
+								{event.processedAt ? formatDate(event.processedAt) : '—'}
+							</td>
+							<td class="px-3 py-1.5 border-r last:border-r-0 text-xs font-semibold text-center">
+								{event.processingAttempts}
+								{#if event.processingAttempts > 1}
+									<RotateCw class="inline h-3 w-3 ml-0.5 text-orange-500" />
+								{/if}
+							</td>
+							<td class="px-3 py-1.5 text-xs truncate max-w-xs" title={event.lastError || ''}>
+								{#if event.lastError}
+									<div class="flex items-center gap-1 text-destructive">
+										<AlertCircle class="h-3 w-3 flex-shrink-0" />
+										<span class="truncate">{event.lastError}</span>
+									</div>
+								{:else}
+									—
+								{/if}
+							</td>
+						</tr>
+					{:else}
+						<tr>
+							<td colspan="7" class="px-4 py-12 text-center text-muted-foreground text-xs">
+								<Webhook class="h-10 w-10 mx-auto mb-2 opacity-50" />
+								<div class="font-medium">No webhook events</div>
+								<div class="text-[10px] mt-1">Webhook events will appear here when received from QuickBooks</div>
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
 		</div>
 	{/if}
 </div>

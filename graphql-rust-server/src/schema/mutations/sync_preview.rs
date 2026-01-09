@@ -5,8 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::auth::context::UserContext;
 use crate::services::permission_checker::{PermissionChecker, SyncPermission};
-use crate::integrations::intuit::IntuitClient;
-use crate::models::intuit_connection;
+use crate::integrations::intuit::IntuitClientManager;
 
 #[derive(Default)]
 pub struct SyncPreviewMutation;
@@ -122,19 +121,12 @@ impl SyncPreviewMutation {
         }
 
         // Get QuickBooks connection
-        let connection = intuit_connection::Entity::find()
-            .filter(intuit_connection::Column::DeletedAt.is_null())
-            .filter(intuit_connection::Column::IsActive.eq(true))
-            .one(db)
-            .await?
-            .ok_or_else(|| Error::new("No active QuickBooks connection found"))?;
-
-        // Initialize QuickBooks client
-        let _intuit_client = IntuitClient::new(
-            connection.access_token.clone(),
-            connection.realm_id.clone(),
-        )
-        .map_err(|e| Error::new(format!("Failed to create Intuit client: {}", e)))?;
+        // Get QuickBooks client with automatic token refresh
+        let client_manager = IntuitClientManager::new(db.clone());
+        let _intuit_client = client_manager
+            .get_client()
+            .await
+            .map_err(|e| Error::new(format!("Failed to create Intuit client: {}", e)))?;
 
         // Perform dry run analysis
         let mut creates = Vec::new();

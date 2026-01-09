@@ -60,7 +60,7 @@ impl ReconciliationService {
             missing_in_remote: Set(0),
             data_mismatches: Set(0),
             triggered_by: Set(user_id),
-            triggered_by_email: Set(user_email),
+            triggered_by_email: Set(user_email.clone()),
             duration_ms: Set(None),
             error_message: Set(None),
             summary: Set(None),
@@ -70,17 +70,68 @@ impl ReconciliationService {
             created_at: Set(Utc::now().into()),
         };
 
-        let report_model = report.insert(&*self.db).await?;
+        let report_model = match report.insert(&*self.db).await {
+            Ok(model) => {
+                tracing::info!(
+                    report_id = %model.id,
+                    user_email = ?user_email,
+                    "Created reconciliation report"
+                );
+                model
+            }
+            Err(e) => {
+                tracing::error!(error = %e, "Failed to create reconciliation report");
+                return Err(Box::new(e));
+            }
+        };
         let report_id = report_model.id;
 
         // Fetch local employees
-        let local_employees = user::Entity::find()
+        let local_employees = match user::Entity::find()
             .filter(user::Column::DeletedAt.is_null())
             .all(&*self.db)
-            .await?;
+            .await
+        {
+            Ok(employees) => {
+                tracing::info!(
+                    report_id = %report_id,
+                    count = employees.len(),
+                    "Fetched local employees"
+                );
+                employees
+            }
+            Err(e) => {
+                tracing::error!(report_id = %report_id, error = %e, "Failed to fetch local employees");
+                return Err(Box::new(e));
+            }
+        };
 
         // Fetch remote employees
-        let remote_employees = client.list_employees().await?;
+        let remote_employees = match client.list_employees().await {
+            Ok(employees) => {
+                tracing::info!(
+                    report_id = %report_id,
+                    count = employees.len(),
+                    "Fetched remote employees from QuickBooks"
+                );
+                employees
+            }
+            Err(e) => {
+                let error_msg = format!("Failed to fetch QuickBooks data: {}", e);
+                tracing::error!(
+                    report_id = %report_id,
+                    error = %e,
+                    "Failed to fetch remote employees from QuickBooks"
+                );
+                // Update report with failed status
+                let mut failed_report: reconciliation_reports::ActiveModel = report_model.into();
+                failed_report.status = Set("failed".to_string());
+                failed_report.error_message = Set(Some(error_msg.clone()));
+                failed_report.completed_at = Set(Some(Utc::now().into()));
+                let _ = failed_report.update(&*self.db).await;
+                return Err(error_msg.into());
+            }
+        };
 
         let total_local = local_employees.len() as i32;
         let total_remote = remote_employees.len() as i32;
@@ -194,7 +245,23 @@ impl ReconciliationService {
             "discrepancy_percentage": if total_local > 0 { (total_discrepancies as f64 / total_local as f64) * 100.0 } else { 0.0 },
         })));
 
-        report_update.update(&*self.db).await?;
+        match report_update.update(&*self.db).await {
+            Ok(_) => {
+                tracing::info!(
+                    report_id = %report_id,
+                    total_local = total_local,
+                    total_remote = total_remote,
+                    total_matched = matched_count,
+                    total_discrepancies = total_discrepancies,
+                    duration_ms = duration_ms,
+                    "Reconciliation completed successfully"
+                );
+            }
+            Err(e) => {
+                tracing::error!(report_id = %report_id, error = %e, "Failed to update reconciliation report");
+                return Err(Box::new(e));
+            }
+        }
 
         Ok(ReconciliationResult {
             report_id,
@@ -308,8 +375,11 @@ impl ReconciliationService {
     ) -> Result<Vec<reconciliation_reports::Model>, sea_orm::DbErr> {
         let mut query = reconciliation_reports::Entity::find();
 
+        // Only filter by entity_type if it's specified and not "all"
         if let Some(et) = entity_type {
-            query = query.filter(reconciliation_reports::Column::EntityType.eq(et));
+            if et != "all" {
+                query = query.filter(reconciliation_reports::Column::EntityType.eq(et));
+            }
         }
 
         query
@@ -389,6 +459,67 @@ impl ReconciliationService {
             by_type,
             by_severity,
         })
+    }
+
+    /// Check if all discrepancies in a report are resolved and delete the report if so
+    pub async fn check_and_delete_resolved_report(
+        &self,
+        report_id: Uuid,
+    ) -> Result<bool, sea_orm::DbErr> {
+        // Get all discrepancies for this report
+        let all_discrepancies = self.get_report_discrepancies(report_id, false).await?;
+
+        // If there are no discrepancies, or all are resolved, delete the report
+        if !all_discrepancies.is_empty() && all_discrepancies.iter().all(|d| d.is_resolved) {
+            tracing::info!(
+                report_id = %report_id,
+                discrepancy_count = all_discrepancies.len(),
+                "All discrepancies resolved, deleting report"
+            );
+
+            // Delete all discrepancies first (due to foreign key constraint)
+            for discrepancy in all_discrepancies {
+                reconciliation_discrepancies::Entity::delete_by_id(discrepancy.id)
+                    .exec(&*self.db)
+                    .await?;
+            }
+
+            // Delete the report
+            reconciliation_reports::Entity::delete_by_id(report_id)
+                .exec(&*self.db)
+                .await?;
+
+            tracing::info!(report_id = %report_id, "Report deleted successfully");
+            Ok(true)
+        } else {
+            let resolved_count = all_discrepancies.iter().filter(|d| d.is_resolved).count();
+            tracing::debug!(
+                report_id = %report_id,
+                total_discrepancies = all_discrepancies.len(),
+                resolved = resolved_count,
+                "Not all discrepancies resolved yet"
+            );
+            Ok(false)
+        }
+    }
+
+    /// Delete a specific reconciliation report and all its discrepancies
+    pub async fn delete_report(
+        &self,
+        report_id: Uuid,
+    ) -> Result<(), sea_orm::DbErr> {
+        // Delete all discrepancies first (due to foreign key constraint)
+        reconciliation_discrepancies::Entity::delete_many()
+            .filter(reconciliation_discrepancies::Column::ReportId.eq(report_id))
+            .exec(&*self.db)
+            .await?;
+
+        // Delete the report
+        reconciliation_reports::Entity::delete_by_id(report_id)
+            .exec(&*self.db)
+            .await?;
+
+        Ok(())
     }
 }
 

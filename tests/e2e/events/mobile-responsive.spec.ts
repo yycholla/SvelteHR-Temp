@@ -9,8 +9,10 @@
 
 import { devices, expect, test } from '@playwright/test';
 
+// Configure mobile device at top level
+test.use({ ...devices['iPhone 12'] });
+
 test.describe('Mobile Responsive Calendar', () => {
-	test.use({ ...devices['iPhone 12'] });
 
 	test.beforeEach(async ({ page }) => {
 		await page.goto('/dashboard/events');

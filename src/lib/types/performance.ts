@@ -31,49 +31,40 @@ export interface PerformanceReviewFilter {
 	};
 }
 
+// Rust backend input types (flat, no clientMutationId)
 export interface CreatePerformanceReviewInput {
-	clientMutationId?: string;
-	performanceReview: {
-		employeeId: string;
-		reviewerId: string;
-		reviewPeriod: string;
-		reviewDate: string;
-		overallRating: number;
-		goalsAchievement: number;
-		collaboration: number;
-		communication: number;
-		leadership: number;
-		technicalSkills?: number;
-		strengths: string;
-		areasForImprovement: string;
-		comments?: string;
-		status?: 'draft' | 'in_progress' | 'completed';
-	};
+	employeeId: string;
+	reviewerId: string;
+	reviewPeriod: string;
+	reviewDate: string;
+	overallRating: number;
+	goalsAchievement: number;
+	collaboration: number;
+	communication: number;
+	leadership: number;
+	technicalSkills?: number;
+	strengths: string;
+	areasForImprovement: string;
+	comments?: string;
+	status?: 'draft' | 'in_progress' | 'completed';
 }
 
 export interface UpdatePerformanceReviewInput {
-	clientMutationId?: string;
-	id: string;
-	patch: {
-		reviewPeriod?: string;
-		reviewDate?: string;
-		overallRating?: number;
-		goalsAchievement?: number;
-		collaboration?: number;
-		communication?: number;
-		leadership?: number;
-		technicalSkills?: number;
-		strengths?: string;
-		areasForImprovement?: string;
-		comments?: string;
-		status?: 'draft' | 'in_progress' | 'completed';
-	};
+	reviewPeriod?: string;
+	reviewDate?: string;
+	overallRating?: number;
+	goalsAchievement?: number;
+	collaboration?: number;
+	communication?: number;
+	leadership?: number;
+	technicalSkills?: number;
+	strengths?: string;
+	areasForImprovement?: string;
+	comments?: string;
+	status?: 'draft' | 'in_progress' | 'completed';
 }
 
-export interface DeletePerformanceReviewInput {
-	clientMutationId?: string;
-	id: string;
-}
+// DeletePerformanceReviewInput not needed - uses string id directly
 
 export interface PerformanceReview {
 	id: string;

@@ -93,6 +93,7 @@ export default defineConfig({
 						'tests/unit/components/**/*.{test,spec}.{js,ts}', // Component tests run in unit-client
 						'src/lib/components/**/*.{test,spec}.{js,ts}', // Component co-located tests run in unit-client
 						'tests/unit/routes/**/*.{test,spec}.{js,ts}', // Route/page tests (Svelte components)
+						'tests/unit/stores/auth.spec.ts', // Browser-dependent store test
 						'tests/unit/dashboard-component-syntax.test.ts', // Component test, needs browser
 						'tests/unit/encryption.spec.ts', // Web Crypto API (browser only)
 						'tests/unit/documentValidation.spec.ts', // File/Blob APIs (browser only)
@@ -118,6 +119,7 @@ export default defineConfig({
 					include: [
 						'tests/unit/components/**/*.{test,spec}.{js,ts}',
 						'tests/unit/routes/**/*.{test,spec}.{js,ts}',
+						'tests/unit/stores/auth.spec.ts', // Browser-dependent store test
 						'src/lib/components/**/*.{test,spec}.{js,ts}'
 					],
 					exclude: [

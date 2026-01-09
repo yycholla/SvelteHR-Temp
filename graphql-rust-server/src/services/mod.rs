@@ -20,6 +20,9 @@ pub mod compliance_reports;
 pub mod batching_engine;
 pub mod time_tracking_sync;
 pub mod payroll_service;
+pub mod digest_service;
+pub mod email_service;
+pub mod digest_scheduler;
 
 pub use pagination::{
     paginate, paginate_cursor, encode_cursor, decode_cursor,
@@ -94,4 +97,13 @@ pub use time_tracking_sync::{
 pub use payroll_service::{
     PayrollService, CompensationType, PaySchedule, SyncDirection as PayrollSyncDirection,
     UpdateCompensationInput, PayrollItem, CompensationHistoryRecord, PayrollSyncStatus,
+};
+pub use digest_service::{
+    DigestService, DigestContent, DigestResult,
+};
+pub use email_service::{
+    EmailService, EmailConfig, DigestEmailData, EmployeeInfo, SendResult,
+};
+pub use digest_scheduler::{
+    DigestScheduler,
 };

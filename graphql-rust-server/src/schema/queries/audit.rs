@@ -111,13 +111,13 @@ impl AuditQueries {
         Ok(AuditVerificationResult::from(verification))
     }
 
-    /// Generate compliance report
-    async fn compliance_report(
+    /// Generate compliance summary from audit logs
+    async fn audit_compliance_summary(
         &self,
         ctx: &Context<'_>,
         from: DateTime<Utc>,
         to: DateTime<Utc>,
-    ) -> Result<ComplianceReportResult> {
+    ) -> Result<AuditComplianceSummary> {
         let user_ctx = ctx.data::<UserContext>()?;
         let db = ctx.data::<sea_orm::DatabaseConnection>()?;
 
@@ -130,7 +130,7 @@ impl AuditQueries {
         let audit_logger = AuditLogger::new(Arc::new(db.clone()));
         let report = audit_logger.generate_compliance_report(from, to).await?;
 
-        Ok(ComplianceReportResult::from(report))
+        Ok(AuditComplianceSummary::from(report))
     }
 }
 
@@ -350,9 +350,9 @@ impl From<crate::services::audit_logger::AuditVerification> for AuditVerificatio
     }
 }
 
-/// Compliance report result
+/// Audit compliance summary from audit logs
 #[derive(Debug, Clone)]
-pub struct ComplianceReportResult {
+pub struct AuditComplianceSummary {
     pub start_date: DateTime<Utc>,
     pub end_date: DateTime<Utc>,
     pub total_actions: i32,
@@ -362,7 +362,7 @@ pub struct ComplianceReportResult {
 }
 
 #[Object]
-impl ComplianceReportResult {
+impl AuditComplianceSummary {
     async fn start_date(&self) -> DateTime<Utc> {
         self.start_date
     }
@@ -388,7 +388,7 @@ impl ComplianceReportResult {
     }
 }
 
-impl From<crate::services::audit_logger::ComplianceReport> for ComplianceReportResult {
+impl From<crate::services::audit_logger::ComplianceReport> for AuditComplianceSummary {
     fn from(report: crate::services::audit_logger::ComplianceReport) -> Self {
         Self {
             start_date: report.start_date,

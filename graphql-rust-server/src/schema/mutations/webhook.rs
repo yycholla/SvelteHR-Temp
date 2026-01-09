@@ -19,7 +19,7 @@ impl WebhookMutations {
         ctx: &Context<'_>,
         entity_names: Vec<String>,
     ) -> Result<RegisterWebhookResult> {
-        use crate::integrations::intuit::IntuitClient;
+        use crate::integrations::intuit::IntuitClientManager;
         use crate::models::{intuit_connection, webhook_subscriptions};
         use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, Set};
 
@@ -48,8 +48,11 @@ impl WebhookMutations {
         let webhook_url = std::env::var("INTUIT_WEBHOOK_URL")
             .map_err(|_| "INTUIT_WEBHOOK_URL not configured")?;
 
-        // Create Intuit client (currently not used - actual webhook registration would happen here)
-        let _client = IntuitClient::new(connection.access_token.clone(), connection.realm_id.clone())
+        // Get QuickBooks client with automatic token refresh (currently not used - actual webhook registration would happen here)
+        let client_manager = IntuitClientManager::new(db.clone());
+        let _client = client_manager
+            .get_client()
+            .await
             .map_err(|e| format!("Failed to create Intuit client: {}", e))?;
 
         // Register webhook with QuickBooks API
@@ -164,7 +167,7 @@ impl WebhookMutations {
         ctx: &Context<'_>,
         limit: Option<i32>,
     ) -> Result<ProcessPendingWebhookEventsResult> {
-        use crate::integrations::intuit::IntuitClient;
+        use crate::integrations::intuit::IntuitClientManager;
 
         let user_ctx = ctx.data::<UserContext>()?;
         let db = ctx.data::<sea_orm::DatabaseConnection>()?;
@@ -175,11 +178,12 @@ impl WebhookMutations {
             .require(user_ctx, SyncPermission::ManageIntegrations)
             .await?;
 
-        // Create Intuit client
-        let intuit_client = IntuitClient::new(
-            std::env::var("INTUIT_CLIENT_ID").unwrap_or_default(),
-            std::env::var("INTUIT_CLIENT_SECRET").unwrap_or_default(),
-        ).map_err(|e| format!("Failed to create Intuit client: {}", e))?;
+        // Get QuickBooks client with automatic token refresh
+        let client_manager = IntuitClientManager::new(db.clone());
+        let intuit_client = client_manager
+            .get_client()
+            .await
+            .map_err(|e| format!("Failed to create Intuit client: {}", e))?;
 
         let processor = WebhookProcessor::new(Arc::new(db.clone()));
         let events_processed = processor

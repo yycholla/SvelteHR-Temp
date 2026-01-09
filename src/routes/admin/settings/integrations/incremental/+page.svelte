@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
@@ -80,14 +79,14 @@
 			if (result.error) {
 				error = result.error.message;
 			} else {
-				const data = enable
+				const responseData = enable
 					? result.data?.incremental_sync?.enable_incremental_sync
 					: result.data?.incremental_sync?.disable_incremental_sync;
-				success = data?.message || 'Settings updated successfully';
+				success = responseData?.message || 'Settings updated successfully';
 				await invalidate('app:incremental-sync');
 			}
-		} catch (e: any) {
-			error = e.message || 'An error occurred while updating settings';
+		} catch (e: unknown) {
+			error = (e as Error).message || 'An error occurred while updating settings';
 		} finally {
 			toggling = false;
 		}
@@ -125,8 +124,8 @@
 				clearTokensDialogOpen = false;
 				await invalidate('app:incremental-sync');
 			}
-		} catch (e: any) {
-			error = e.message || 'An error occurred while clearing tokens';
+		} catch (e: unknown) {
+			error = (e as Error).message || 'An error occurred while clearing tokens';
 		} finally {
 			clearing = false;
 		}
@@ -154,8 +153,8 @@
 				forceFullSyncDialogOpen = false;
 				await invalidate('app:incremental-sync');
 			}
-		} catch (e: any) {
-			error = e.message || 'An error occurred while queuing full sync';
+		} catch (e: unknown) {
+			error = (e as Error).message || 'An error occurred while queuing full sync';
 		} finally {
 			forcing = false;
 		}
@@ -166,141 +165,208 @@
 		const date = new Date(dateStr);
 		return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
 	}
+
+	function refresh() {
+		invalidate('app:incremental-sync');
+	}
 </script>
 
-<div class="container mx-auto py-8 px-4">
-	<!-- Header -->
-	<div class="mb-6">
-		<div class="flex items-center gap-3 mb-2">
-			<Zap class="h-6 w-6" />
-			<h1 class="text-2xl font-bold">Incremental Sync Configuration</h1>
+<svelte:head>
+	<title>Incremental Sync - MountainHR Admin</title>
+</svelte:head>
+
+<div class="flex flex-col h-full overflow-hidden bg-background">
+	<!-- Toolbar -->
+	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+		<div class="flex items-center gap-4">
+			<h1 class="text-sm font-semibold tracking-tight">Incremental Sync Configuration</h1>
+			<div class="h-4 w-px bg-border"></div>
+			<div class="flex items-center gap-2 text-xs text-muted-foreground">
+				<Zap class="h-3.5 w-3.5" />
+				<span>Optimize sync performance with incremental mode</span>
+			</div>
 		</div>
-		<p class="text-sm text-muted-foreground">
-			Toggle between full sync and incremental sync modes to optimize performance
-		</p>
-	</div>
+		<Button variant="ghost" size="sm" onclick={refresh} class="h-8 w-8 p-0">
+			<RefreshCw class="h-4 w-4" />
+		</Button>
+	</header>
 
-	{#if data.error}
-		<Alert variant="destructive" class="mb-6">
-			<AlertCircle class="h-4 w-4" />
-			<AlertDescription>{data.error}</AlertDescription>
-		</Alert>
-	{/if}
+	<div class="flex-1 overflow-auto bg-muted/5">
+		<!-- Alerts -->
+		{#if data.error}
+			<div class="p-4 border-b bg-background">
+				<Alert variant="destructive">
+					<AlertCircle class="h-4 w-4" />
+					<AlertDescription>{data.error}</AlertDescription>
+				</Alert>
+			</div>
+		{/if}
 
-	{#if error}
-		<Alert variant="destructive" class="mb-6">
-			<AlertCircle class="h-4 w-4" />
-			<AlertDescription>{error}</AlertDescription>
-		</Alert>
-	{/if}
+		{#if error}
+			<div class="p-4 border-b bg-background">
+				<Alert variant="destructive">
+					<AlertCircle class="h-4 w-4" />
+					<AlertDescription>{error}</AlertDescription>
+				</Alert>
+			</div>
+		{/if}
 
-	{#if success}
-		<Alert class="mb-6">
-			<CheckCircle2 class="h-4 w-4" />
-			<AlertDescription>{success}</AlertDescription>
-		</Alert>
-	{/if}
+		{#if success}
+			<div class="p-4 border-b bg-background">
+				<Alert>
+					<CheckCircle2 class="h-4 w-4" />
+					<AlertDescription>{success}</AlertDescription>
+				</Alert>
+			</div>
+		{/if}
 
-	{#if settings}
-		<!-- Info Alert -->
-		<Alert class="mb-6">
-			<Info class="h-4 w-4" />
-			<AlertDescription>
-				{settings.description}
-			</AlertDescription>
-		</Alert>
-
-		<!-- Main Settings Card -->
-		<Card class="mb-6">
-			<CardHeader>
-				<CardTitle>Sync Mode</CardTitle>
-				<CardDescription>
-					Choose between incremental and full sync modes
-				</CardDescription>
-			</CardHeader>
-			<CardContent>
-				<div class="space-y-6">
-					<div class="flex items-center justify-between p-4 border rounded-lg">
-						<div class="flex-1">
-							<div class="flex items-center gap-3 mb-2">
-								<Zap class="h-5 w-5" />
-								<h3 class="font-semibold">Incremental Sync Mode</h3>
-								<Badge variant={settings.enabled ? 'default' : 'secondary'}>
-									{settings.enabled ? 'Enabled' : 'Disabled'}
-								</Badge>
-							</div>
-							<p class="text-sm text-muted-foreground">
-								{#if settings.enabled}
-									Syncing only changes since last sync. Reduces API calls and improves performance.
-								{:else}
-									Full sync mode active. All entities are synced on every operation.
-								{/if}
-							</p>
-						</div>
-						<Switch
-							checked={settings.enabled}
-							onCheckedChange={(checked) => toggleIncrementalSync(checked)}
-							disabled={toggling}
-						/>
-					</div>
-
-					{#if settings.enabled}
-						<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-							<div class="p-4 border rounded-lg">
-								<div class="flex items-center gap-2 mb-2">
-									<Clock class="h-4 w-4 text-muted-foreground" />
-									<p class="text-sm font-medium">Last Full Sync</p>
-								</div>
-								<p class="text-lg font-semibold">{formatDate(settings.lastFullSyncAt)}</p>
-							</div>
-
-							<div class="p-4 border rounded-lg">
-								<div class="flex items-center gap-2 mb-2">
-									<Database class="h-4 w-4 text-muted-foreground" />
-									<p class="text-sm font-medium">Employee Token</p>
-								</div>
-								{#if settings.employeeSyncToken}
-									<code class="text-xs bg-muted px-2 py-1 rounded">
-										{settings.employeeSyncToken.slice(0, 20)}...
-									</code>
-								{:else}
-									<p class="text-sm text-muted-foreground">No token</p>
-								{/if}
-							</div>
-
-							<div class="p-4 border rounded-lg">
-								<div class="flex items-center gap-2 mb-2">
-									<Database class="h-4 w-4 text-muted-foreground" />
-									<p class="text-sm font-medium">Department Token</p>
-								</div>
-								{#if settings.departmentSyncToken}
-									<code class="text-xs bg-muted px-2 py-1 rounded">
-										{settings.departmentSyncToken.slice(0, 20)}...
-									</code>
-								{:else}
-									<p class="text-sm text-muted-foreground">No token</p>
-								{/if}
-							</div>
-						</div>
-					{/if}
+		{#if settings}
+			{#if settings.description}
+				<div class="p-4 border-b bg-background">
+					<Alert>
+						<Info class="h-4 w-4" />
+						<AlertDescription>
+							{settings.description}
+						</AlertDescription>
+					</Alert>
 				</div>
-			</CardContent>
-		</Card>
+			{/if}
 
-		<!-- Actions Card -->
-		<Card>
-			<CardHeader>
-				<CardTitle>Sync Actions</CardTitle>
-				<CardDescription>
-					Advanced sync operations and token management
-				</CardDescription>
-			</CardHeader>
-			<CardContent>
+			<!-- KPI Metrics -->
+			<div class="grid grid-cols-1 md:grid-cols-3 border-b">
+				<!-- Sync Status -->
+				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
+					<div class="flex items-center justify-between">
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sync Mode</span>
+						<Zap class="h-4 w-4 text-muted-foreground" />
+					</div>
+					<div>
+						<div class="flex items-center gap-2">
+							<Badge variant={settings.enabled ? 'default' : 'secondary'} class="text-sm">
+								{settings.enabled ? 'Incremental' : 'Full Sync'}
+							</Badge>
+							<Switch
+								checked={settings.enabled}
+								onCheckedChange={(checked) => toggleIncrementalSync(checked)}
+								disabled={toggling}
+							/>
+						</div>
+						<div class="mt-1 text-xs text-muted-foreground">
+							{#if settings.enabled}
+								Syncing only changes
+							{:else}
+								Full sync on every operation
+							{/if}
+						</div>
+					</div>
+				</div>
+
+				<!-- Last Full Sync -->
+				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
+					<div class="flex items-center justify-between">
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Last Full Sync</span>
+						<Clock class="h-4 w-4 text-muted-foreground" />
+					</div>
+					<div>
+						<div class="text-lg font-bold tracking-tight truncate" title={formatDate(settings.lastFullSyncAt)}>
+							{formatDate(settings.lastFullSyncAt)}
+						</div>
+						<div class="mt-1 text-xs text-muted-foreground">
+							Baseline for incremental
+						</div>
+					</div>
+				</div>
+
+				<!-- Active Tokens -->
+				<div class="p-6 bg-background flex flex-col justify-between h-32">
+					<div class="flex items-center justify-between">
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Active Tokens</span>
+						<Database class="h-4 w-4 text-muted-foreground" />
+					</div>
+					<div>
+						<div class="text-3xl font-bold tracking-tight">
+							{[settings.employeeSyncToken, settings.departmentSyncToken].filter(Boolean).length}
+						</div>
+						<div class="mt-1 text-xs text-muted-foreground">
+							of 2 entity types tracked
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Sync Tokens Table -->
+			{#if settings.enabled}
+				<div class="border-b bg-background p-6">
+					<h3 class="text-sm font-semibold mb-4 flex items-center gap-2">
+						<Database class="h-4 w-4 text-primary" />
+						Sync Token Status
+					</h3>
+					<div class="border rounded-lg overflow-hidden">
+						<table class="w-full text-sm text-left">
+							<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm text-xs uppercase text-muted-foreground">
+								<tr>
+									<th class="px-4 py-3 font-medium">Entity Type</th>
+									<th class="px-4 py-3 font-medium">Sync Token</th>
+									<th class="px-4 py-3 font-medium">Status</th>
+								</tr>
+							</thead>
+							<tbody class="divide-y">
+								<tr class="hover:bg-muted/10">
+									<td class="px-4 py-3 font-medium">Employees</td>
+									<td class="px-4 py-3">
+										{#if settings.employeeSyncToken}
+											<code class="text-xs bg-muted px-2 py-1 rounded">
+												{settings.employeeSyncToken.slice(0, 32)}...
+											</code>
+										{:else}
+											<span class="text-muted-foreground text-xs">No token</span>
+										{/if}
+									</td>
+									<td class="px-4 py-3">
+										{#if settings.employeeSyncToken}
+											<Badge variant="default" class="text-xs">Active</Badge>
+										{:else}
+											<Badge variant="secondary" class="text-xs">Inactive</Badge>
+										{/if}
+									</td>
+								</tr>
+								<tr class="hover:bg-muted/10">
+									<td class="px-4 py-3 font-medium">Departments</td>
+									<td class="px-4 py-3">
+										{#if settings.departmentSyncToken}
+											<code class="text-xs bg-muted px-2 py-1 rounded">
+												{settings.departmentSyncToken.slice(0, 32)}...
+											</code>
+										{:else}
+											<span class="text-muted-foreground text-xs">No token</span>
+										{/if}
+									</td>
+									<td class="px-4 py-3">
+										{#if settings.departmentSyncToken}
+											<Badge variant="default" class="text-xs">Active</Badge>
+										{:else}
+											<Badge variant="secondary" class="text-xs">Inactive</Badge>
+										{/if}
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			{/if}
+
+			<!-- Sync Actions -->
+			<div class="border-b bg-background p-6">
+				<h3 class="text-sm font-semibold mb-4 flex items-center gap-2">
+					<RefreshCw class="h-4 w-4 text-primary" />
+					Sync Actions
+				</h3>
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<!-- Force Full Sync Action -->
 					<div class="p-4 border rounded-lg">
 						<div class="flex items-center gap-2 mb-3">
 							<RefreshCw class="h-5 w-5" />
-							<h3 class="font-semibold">Force Full Sync (One-Time)</h3>
+							<h4 class="font-semibold">Force Full Sync (One-Time)</h4>
 						</div>
 						<p class="text-sm text-muted-foreground mb-4">
 							Queue a one-time full sync without disabling incremental mode. Useful for verifying data integrity.
@@ -311,10 +377,11 @@
 						</Button>
 					</div>
 
+					<!-- Clear Tokens Action -->
 					<div class="p-4 border rounded-lg">
 						<div class="flex items-center gap-2 mb-3">
 							<Trash2 class="h-5 w-5" />
-							<h3 class="font-semibold">Clear Sync Tokens</h3>
+							<h4 class="font-semibold">Clear Sync Tokens</h4>
 						</div>
 						<p class="text-sm text-muted-foreground mb-4">
 							Clear sync tokens to force a full sync on the next scheduled sync operation. This resets incremental tracking.
@@ -325,14 +392,16 @@
 						</Button>
 					</div>
 				</div>
-			</CardContent>
-		</Card>
-	{:else}
-		<Alert variant="destructive">
-			<AlertCircle class="h-4 w-4" />
-			<AlertDescription>Failed to load incremental sync settings</AlertDescription>
-		</Alert>
-	{/if}
+			</div>
+		{:else}
+			<div class="p-4 border-b bg-background">
+				<Alert variant="destructive">
+					<AlertCircle class="h-4 w-4" />
+					<AlertDescription>Failed to load incremental sync settings</AlertDescription>
+				</Alert>
+			</div>
+		{/if}
+	</div>
 </div>
 
 <!-- Clear Tokens Dialog -->

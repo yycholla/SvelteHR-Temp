@@ -15,11 +15,10 @@ use uuid::Uuid;
 use crate::{
     auth::UserContext,
     database::get_db_from_context,
-    integrations::intuit::IntuitClient,
-    models::intuit_connection,
+    integrations::intuit::{IntuitClient, IntuitClientManager},
     services::payroll_service::PayrollService,
 };
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::EntityTrait;
 
 /// Employee compensation details
 #[derive(Debug, Clone, SimpleObject)]
@@ -217,15 +216,11 @@ impl PayrollQueries {
     }
 }
 
-/// Helper to get IntuitClient from database
+/// Helper to get IntuitClient from database with automatic token refresh
 async fn get_intuit_client(db: &DatabaseConnection) -> Result<IntuitClient> {
-    let connection = intuit_connection::Entity::find()
-        .filter(intuit_connection::Column::IsActive.eq(true))
-        .filter(intuit_connection::Column::DeletedAt.is_null())
-        .one(db)
-        .await?
-        .ok_or_else(|| "No active Intuit connection found")?;
-
-    IntuitClient::new(connection.access_token, connection.realm_id)
+    let client_manager = IntuitClientManager::new(db.clone());
+    client_manager
+        .get_client()
+        .await
         .map_err(|e| format!("Failed to create Intuit client: {}", e).into())
 }

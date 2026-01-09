@@ -14,6 +14,7 @@ pub mod sync_schedule;
 pub mod time_entry;
 pub mod sync_health;
 pub mod payroll;
+pub mod digest;
 
 pub use validation::ValidationQuery;
 pub use intuit_health::IntuitHealthQueries;
@@ -29,3 +30,4 @@ pub use sync_schedule::SyncScheduleQuery;
 pub use time_entry::TimeEntryQueries;
 pub use sync_health::SyncHealthQueries;
 pub use payroll::PayrollQueries;
+pub use digest::DigestQueries;

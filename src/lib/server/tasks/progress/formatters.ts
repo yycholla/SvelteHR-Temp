@@ -46,9 +46,26 @@ export function isTaskOnTrack(
 		return { onTrack: false, reason: 'Task overdue' };
 	}
 
-	// Simple heuristic: if completion % is less than expected based on time elapsed
-	// For example, if 50% of time has passed, we expect at least 40% completion
-	const expectedProgress = 100 - (daysRemaining / 7) * 10; // Rough estimate
+	// Heuristic: Use a more reasonable expectation based on days remaining
+	// With 30+ days: expect at least 10% progress
+	// With 14-29 days: expect at least 30% progress
+	// With 7-13 days: expect at least 50% progress
+	// With 3-6 days: expect at least 70% progress
+	// With 1-2 days: expect at least 85% progress
+	let expectedProgress = 0;
+	if (daysRemaining >= 30) {
+		expectedProgress = 10;
+	} else if (daysRemaining >= 14) {
+		expectedProgress = 30;
+	} else if (daysRemaining >= 7) {
+		expectedProgress = 50;
+	} else if (daysRemaining >= 3) {
+		expectedProgress = 70;
+	} else {
+		expectedProgress = 85;
+	}
+
+	// Allow 20% tolerance below expected progress
 	if (completionPercentage < expectedProgress - 20) {
 		return { onTrack: false, reason: 'Progress behind schedule' };
 	}

@@ -19,21 +19,29 @@ export interface NotificationCondition {
 }
 
 // Rust GraphQL Schema input types
+export interface CreateNotificationInput {
+	userId: string;
+	title: string;
+	message: string;
+	type?: string;
+	priority?: string;
+	actionUrl?: string;
+}
+
 export interface UpdateNotificationInput {
-	readStatus?: boolean;
+	isRead?: boolean;
 }
 
 export interface Notification {
 	id: string;
-	recipientId: string;
-	type: NotificationType;
-	category: NotificationCategory;
+	userId: string;
+	type: string;
+	priority: string;
+	category?: string;
 	title: string;
 	message: string;
-	relatedResourceType?: string;
-	relatedResourceId?: string;
-	readStatus: boolean;
-	deliveredAt?: string;
-	readAt?: string;
+	actionUrl?: string;
+	isRead: boolean;
 	createdAt: string;
+	updatedAt?: string;
 }

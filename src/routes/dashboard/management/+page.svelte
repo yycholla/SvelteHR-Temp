@@ -129,7 +129,9 @@ Modern Svelte 5 implementation with server-side data loading and comprehensive m
 		if (selectedTeamId) searchParams.set('team', selectedTeamId);
 		else searchParams.delete('team');
 
-		goto(`${$page.url.pathname}?${searchParams.toString()}`, { invalidateAll: true });
+		const queryString = searchParams.toString();
+		const url = queryString ? `${$page.url.pathname}?${queryString}` : $page.url.pathname;
+		goto(url, { invalidateAll: true });
 	}
 </script>
 

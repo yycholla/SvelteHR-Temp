@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { Building2, PanelLeftClose, PanelLeftOpen } from '@lucide/svelte';
+	import { Building2, PanelLeftClose, PanelLeftOpen, Search } from '@lucide/svelte';
 	import NotificationDropdown from '$lib/components/notifications/NotificationDropdown.svelte';
+	import CommandPaletteTrigger from '$lib/components/CommandPaletteTrigger.svelte';
 
 	interface Props {
 		systemName: string;
@@ -23,6 +24,7 @@
 			<span class="text-base">{systemName}</span>
 		</a>
 		<div class="flex items-center gap-1">
+			<CommandPaletteTrigger />
 			<NotificationDropdown {notifications} />
 			<button
 				onclick={onToggle}
@@ -36,6 +38,7 @@
 		<a href="/dashboard" title={systemName}>
 			<Building2 class="h-5 w-5 text-primary" />
 		</a>
+		<CommandPaletteTrigger />
 		<button
 			onclick={onToggle}
 			class="rounded-md p-1 hover:bg-sidebar-accent"

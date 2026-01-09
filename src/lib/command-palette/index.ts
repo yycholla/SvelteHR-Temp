@@ -10,6 +10,7 @@ export type { Command, CommandCategory, CommandPaletteState, RecentCommand } fro
 // Import command sets
 import { quickbooksCommands } from './commands/quickbooks';
 import { navigationCommands } from './commands/navigation';
+import { digestCommands } from './commands/digests';
 import { CommandRegistry } from './registry';
 
 /**
@@ -21,6 +22,9 @@ export function initializeCommands(): void {
 
 	// Register navigation commands
 	CommandRegistry.registerMany(navigationCommands);
+
+	// Register email digest commands
+	CommandRegistry.registerMany(digestCommands);
 }
 
 /**

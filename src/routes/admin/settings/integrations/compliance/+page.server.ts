@@ -2,7 +2,7 @@ import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 import type { PageServerLoad } from './$types';
 
 const COMPLIANCE_QUERY = `
-	query GetComplianceReports($reportType: ComplianceReportType, $limit: Int, $reportId: String) {
+	query GetComplianceReports($reportType: ComplianceReportType, $limit: Int) {
 		compliance {
 			complianceReports(reportType: $reportType, limit: $limit) {
 				id

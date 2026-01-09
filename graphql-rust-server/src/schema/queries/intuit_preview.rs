@@ -13,8 +13,6 @@ use crate::services::sync_preview::{
     PreviewEntityType as ServicePreviewEntityType, ChangeType as ServiceChangeType,
 };
 
-use std::sync::Arc;
-
 #[derive(Default)]
 pub struct IntuitPreviewQueries;
 

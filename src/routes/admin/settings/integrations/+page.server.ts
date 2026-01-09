@@ -104,15 +104,29 @@ export const load: PageServerLoad = async ({ fetch, cookies, depends, parent }) 
 
 	const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
 
-	// Query to check Intuit connection status
+	// Query to check Intuit connection status and fetch health metrics
 	const query = `
-		query GetIntuitConnection {
+		query GetIntuitConnectionAndMetrics {
 			intuit {
 				connection {
 					isConnected
 					companyName
 					lastSyncAt
 					realmId
+				}
+			}
+			syncHealth {
+				syncHealthStatus {
+					uptimePercentage
+					totalSyncs24H
+					successRate
+					errorRate
+					activeAlertsCount
+				}
+				syncHealthAlerts(status: "active", limit: 10) {
+					id
+					severity
+					message
 				}
 			}
 		}
@@ -148,10 +162,21 @@ export const load: PageServerLoad = async ({ fetch, cookies, depends, parent }) 
 				intuitLastSync: null,
 				error: 'Failed to load integration status',
 				syncPermissions,
+				metrics: {
+					uptimePercentage: 0,
+					totalSyncs24h: 0,
+					successRate: 0,
+					errorRate: 0,
+					activeAlertsCount: 0,
+				},
+				alerts: [],
 			};
 		}
 
 		const connection = result.data?.intuit?.connection;
+		const syncHealth = result.data?.syncHealth;
+		const healthStatus = syncHealth?.syncHealthStatus;
+		const alerts = syncHealth?.syncHealthAlerts || [];
 
 		return {
 			intuitConnected: connection?.isConnected || false,
@@ -159,6 +184,18 @@ export const load: PageServerLoad = async ({ fetch, cookies, depends, parent }) 
 			intuitLastSync: connection?.lastSyncAt,
 			intuitRealmId: connection?.realmId,
 			syncPermissions,
+			metrics: {
+				uptimePercentage: healthStatus?.uptimePercentage || 0,
+				totalSyncs24h: healthStatus?.totalSyncs24H || 0,
+				successRate: healthStatus?.successRate || 0,
+				errorRate: healthStatus?.errorRate || 0,
+				activeAlertsCount: healthStatus?.activeAlertsCount || 0,
+			},
+			alerts: alerts.map((alert: any) => ({
+				id: alert.id,
+				severity: alert.severity,
+				message: alert.message,
+			})),
 		};
 	} catch (error) {
 		console.error('Error loading integrations page:', error);
@@ -168,6 +205,14 @@ export const load: PageServerLoad = async ({ fetch, cookies, depends, parent }) 
 			intuitLastSync: null,
 			error: 'Failed to load integration status',
 			syncPermissions,
+			metrics: {
+				uptimePercentage: 0,
+				totalSyncs24h: 0,
+				successRate: 0,
+				errorRate: 0,
+				activeAlertsCount: 0,
+			},
+			alerts: [],
 		};
 	}
 };

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
@@ -22,14 +21,6 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Switch } from '$lib/components/ui/switch';
 	import {
-		Table,
-		TableBody,
-		TableCell,
-		TableHead,
-		TableHeader,
-		TableRow
-	} from '$lib/components/ui/table';
-	import {
 		AlertCircle,
 		CheckCircle2,
 		Pencil,
@@ -38,7 +29,10 @@
 		ArrowRight,
 		ArrowLeft,
 		ArrowLeftRight,
-		Sparkles
+		Sparkles,
+		Database,
+		Activity,
+		TrendingUp
 	} from '@lucide/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
 	import {
@@ -100,6 +94,17 @@
 		entityTypeFilter
 			? mappings.filter((m: any) => m.entityType === entityTypeFilter)
 			: mappings
+	);
+
+	// Calculated KPIs
+	let activeMappings = $derived(
+		filteredMappings.filter((m: any) => m.isActive).length
+	);
+	let inactiveMappings = $derived(
+		filteredMappings.filter((m: any) => !m.isActive).length
+	);
+	let bidirectionalCount = $derived(
+		filteredMappings.filter((m: any) => m.direction === 'Bidirectional').length
 	);
 
 	async function loadAvailableFields(entityType: string) {
@@ -334,81 +339,118 @@
 		</Alert>
 	{/if}
 
-	<!-- Filter Card -->
-	<Card class="mb-6">
-		<CardContent class="pt-6">
-			<div class="flex gap-4 items-center">
-				<Label for="entityFilter">Filter by Entity Type</Label>
-				<Select
-					type="single"
-					value={entityTypeFilter as any}
-					onValueChange={(value: any) => {
-						entityTypeFilter = value === 'All' ? null : value;
-					}}
-				>
-					<SelectTrigger id="entityFilter" class="w-48">
-						<SelectValue />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="All">All Entity Types</SelectItem>
-						{#each entityTypes as type}
-							<SelectItem value={type.value}>{type.label}</SelectItem>
-						{/each}
-					</SelectContent>
-				</Select>
-				<div class="text-sm text-muted-foreground ml-auto">
-					{filteredMappings.length} of {total} mappings
+	<!-- KPI Grid -->
+	<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+		<div class="border rounded-lg p-4 h-32 flex flex-col justify-between">
+			<div class="flex items-center justify-between">
+				<div class="flex items-center gap-2">
+					<Database class="h-4 w-4 text-muted-foreground" />
+					<span class="text-sm font-medium text-muted-foreground">Total Mappings</span>
 				</div>
 			</div>
-		</CardContent>
-	</Card>
+			<div class="flex items-end justify-between">
+				<div class="text-3xl font-bold">{filteredMappings.length}</div>
+				<div class="text-xs text-muted-foreground">of {total} total</div>
+			</div>
+		</div>
+
+		<div class="border rounded-lg p-4 h-32 flex flex-col justify-between">
+			<div class="flex items-center justify-between">
+				<div class="flex items-center gap-2">
+					<Activity class="h-4 w-4 text-green-600" />
+					<span class="text-sm font-medium text-muted-foreground">Active Mappings</span>
+				</div>
+			</div>
+			<div class="flex items-end justify-between">
+				<div class="text-3xl font-bold text-green-600">{activeMappings}</div>
+				<div class="text-xs text-muted-foreground">{inactiveMappings} inactive</div>
+			</div>
+		</div>
+
+		<div class="border rounded-lg p-4 h-32 flex flex-col justify-between">
+			<div class="flex items-center justify-between">
+				<div class="flex items-center gap-2">
+					<TrendingUp class="h-4 w-4 text-blue-600" />
+					<span class="text-sm font-medium text-muted-foreground">Bidirectional Sync</span>
+				</div>
+			</div>
+			<div class="flex items-end justify-between">
+				<div class="text-3xl font-bold text-blue-600">{bidirectionalCount}</div>
+				<div class="text-xs text-muted-foreground">two-way sync</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Toolbar -->
+	<div class="h-14 px-4 border-b flex items-center justify-between bg-background mb-6">
+		<div class="flex items-center gap-4">
+			<Label for="entityFilter" class="text-sm font-medium">Filter:</Label>
+			<Select
+				type="single"
+				value={entityTypeFilter as any}
+				onValueChange={(value: any) => {
+					entityTypeFilter = value === 'All' ? null : value;
+				}}
+			>
+				<SelectTrigger id="entityFilter" class="w-48">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					<SelectItem value="All">All Entity Types</SelectItem>
+					{#each entityTypes as type}
+						<SelectItem value={type.value}>{type.label}</SelectItem>
+					{/each}
+				</SelectContent>
+			</Select>
+		</div>
+		<div class="text-sm text-muted-foreground">
+			{filteredMappings.length} of {total} mappings
+		</div>
+	</div>
 
 	<!-- Mappings Table -->
-	<Card>
-		<CardHeader>
-			<CardTitle>Field Mappings</CardTitle>
-			<CardDescription>Manage field mappings between local and QuickBooks fields</CardDescription>
-		</CardHeader>
-		<CardContent>
-			{#if filteredMappings.length === 0}
-				<div class="text-center py-12 text-muted-foreground">
-					<Sparkles class="h-12 w-12 mx-auto mb-3" />
-					<p class="font-medium">No field mappings found</p>
-					<p class="text-sm">Create a mapping to get started</p>
-					<Button onclick={openCreateDialog} variant="outline" class="mt-4">
-						<Plus class="h-4 w-4 mr-2" />
-						Create First Mapping
-					</Button>
-				</div>
-			{:else}
-				<Table>
-					<TableHeader>
-						<TableRow>
-							<TableHead>Entity Type</TableHead>
-							<TableHead>Local Field</TableHead>
-							<TableHead>QuickBooks Field</TableHead>
-							<TableHead>Direction</TableHead>
-							<TableHead>Transformation</TableHead>
-							<TableHead>Status</TableHead>
-							<TableHead class="text-right">Actions</TableHead>
-						</TableRow>
-					</TableHeader>
-					<TableBody>
+	{#if filteredMappings.length === 0}
+		<div class="text-center py-12 text-muted-foreground border rounded-lg">
+			<Sparkles class="h-12 w-12 mx-auto mb-3" />
+			<p class="font-medium">No field mappings found</p>
+			<p class="text-sm">Create a mapping to get started</p>
+			<Button onclick={openCreateDialog} variant="outline" class="mt-4">
+				<Plus class="h-4 w-4 mr-2" />
+				Create First Mapping
+			</Button>
+		</div>
+	{:else}
+		<div class="border rounded-lg overflow-hidden">
+			<div class="overflow-x-auto">
+				<table class="w-full">
+					<thead class="bg-muted/40 backdrop-blur-sm sticky top-0 z-10">
+						<tr>
+							<th class="text-left px-4 py-3 text-sm font-medium">Entity Type</th>
+							<th class="text-left px-4 py-3 text-sm font-medium">Local Field</th>
+							<th class="text-left px-4 py-3 text-sm font-medium">QuickBooks Field</th>
+							<th class="text-left px-4 py-3 text-sm font-medium">Direction</th>
+							<th class="text-left px-4 py-3 text-sm font-medium">Transformation</th>
+							<th class="text-left px-4 py-3 text-sm font-medium">Status</th>
+							<th class="text-right px-4 py-3 text-sm font-medium">Actions</th>
+						</tr>
+					</thead>
+					<tbody>
 						{#each filteredMappings as mapping}
-							<TableRow>
-								<TableCell>
+							<tr class="border-t hover:bg-muted/30 transition-colors">
+								<td class="px-4 py-3">
 									<Badge variant="outline">{mapping.entityType}</Badge>
-								</TableCell>
-								<TableCell class="font-mono text-sm">{mapping.localField}</TableCell>
-								<TableCell class="font-mono text-sm">{mapping.quickbooksField}</TableCell>
-								<TableCell>
-									{@const DirectionIcon = getDirectionIcon(mapping.direction)}
-									<Badge variant={getDirectionBadgeVariant(mapping.direction)}>
-										<DirectionIcon class="h-3 w-3 mr-1" />
-										{mapping.direction}
-									</Badge>
-								</TableCell>
-								<TableCell>
+								</td>
+								<td class="px-4 py-3 font-mono text-sm">{mapping.localField}</td>
+								<td class="px-4 py-3 font-mono text-sm">{mapping.quickbooksField}</td>
+								{#each [getDirectionIcon(mapping.direction)] as DirectionIcon}
+									<td class="px-4 py-3">
+										<Badge variant={getDirectionBadgeVariant(mapping.direction)}>
+											<DirectionIcon class="h-3 w-3 mr-1" />
+											{mapping.direction}
+										</Badge>
+									</td>
+								{/each}
+								<td class="px-4 py-3">
 									{#if mapping.transformation}
 										<code class="bg-muted px-2 py-1 rounded text-xs">
 											{mapping.transformation.slice(0, 30)}{mapping.transformation.length > 30 ? '...' : ''}
@@ -416,15 +458,15 @@
 									{:else}
 										<span class="text-muted-foreground text-sm">None</span>
 									{/if}
-								</TableCell>
-								<TableCell>
+								</td>
+								<td class="px-4 py-3">
 									{#if mapping.isActive}
 										<Badge variant="default">Active</Badge>
 									{:else}
 										<Badge variant="secondary">Inactive</Badge>
 									{/if}
-								</TableCell>
-								<TableCell class="text-right">
+								</td>
+								<td class="px-4 py-3 text-right">
 									<div class="flex gap-2 justify-end">
 										<Button onclick={() => openEditDialog(mapping)} variant="ghost" size="sm">
 											<Pencil class="h-4 w-4" />
@@ -433,14 +475,14 @@
 											<Trash2 class="h-4 w-4" />
 										</Button>
 									</div>
-								</TableCell>
-							</TableRow>
+								</td>
+							</tr>
 						{/each}
-					</TableBody>
-				</Table>
-			{/if}
-		</CardContent>
-	</Card>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	{/if}
 </div>
 
 <!-- Create Dialog -->

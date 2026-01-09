@@ -25,7 +25,14 @@ export default defineConfig({
 	// Test directories with granular control
 	testDir: './tests',
 	testMatch: ['**/e2e/**/*.spec.ts', '**/e2e/**/*.spec.js'],
-	testIgnore: ['**/contract/**/*', '**/integration/**/*', '**/unit/**/*'],
+	testIgnore: [
+		'**/contract/**/*',
+		'**/integration/**/*',
+		'**/unit/**/*',
+		'**/*.puppeteer.test.ts',
+		'**/*.browser.test.ts',
+		'**/*.test.ts'
+	],
 
 	// Performance-optimized timeouts
 	timeout: process.env.CI ? 60 * 1000 : 30 * 1000,

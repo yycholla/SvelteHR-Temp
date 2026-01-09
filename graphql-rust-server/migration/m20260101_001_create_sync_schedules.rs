@@ -147,14 +147,21 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .extra("DEFAULT NOW()".to_string()),
                     )
-                    .foreign_key(
-                        ForeignKey::create()
-                            .name("fk_sync_schedule_history_schedule_id")
-                            .from(SyncScheduleHistory::Table, SyncScheduleHistory::ScheduleId)
-                            .to(SyncSchedules::Table, SyncSchedules::Id)
-                            .on_delete(ForeignKeyAction::Cascade),
-                    )
                     .to_owned(),
+            )
+            .await?;
+
+        // Add foreign key constraint using raw SQL to specify hr_public schema
+        manager
+            .get_connection()
+            .execute_unprepared(
+                r#"
+                ALTER TABLE hr_public.sync_schedule_history
+                ADD CONSTRAINT fk_sync_schedule_history_schedule_id
+                FOREIGN KEY (schedule_id)
+                REFERENCES hr_public.sync_schedules(id)
+                ON DELETE CASCADE
+                "#,
             )
             .await?;
 
@@ -170,14 +177,14 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Add constraint to validate cron expression format (basic validation)
+        // Add constraint to validate cron expression format (6 fields: second minute hour day month day_of_week)
         manager
             .get_connection()
             .execute_unprepared(
                 r#"
                 ALTER TABLE hr_public.sync_schedules
                 ADD CONSTRAINT valid_cron_expression
-                CHECK (cron_expression ~ '^[0-9\*\/\,\-]+ [0-9\*\/\,\-]+ [0-9\*\/\,\-]+ [0-9\*\/\,\-]+ [0-9\*\/\,\-]+$')
+                CHECK (cron_expression ~ '^[0-9\*\/\,\-]+ [0-9\*\/\,\-]+ [0-9\*\/\,\-]+ [0-9\*\/\,\-]+ [0-9\*\/\,\-]+ [0-9\*\/\,\-]+$')
                 "#,
             )
             .await?;
@@ -265,10 +272,4 @@ enum SyncScheduleHistory {
     ErrorMessage,
     ExecutionTimeMs,
     CreatedAt,
-}
-
-#[derive(DeriveIden)]
-enum Users {
-    Table,
-    Id,
 }
