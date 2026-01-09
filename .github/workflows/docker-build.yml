@@ -12,11 +12,13 @@ env:
   REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
   # Docker registry names must be lowercase
   REPO_LOWERCASE: ${{ github.repository }}
+  # Runner selection: Defaults to GitHub runners, can use Blacksmith via vars.USE_BLACKSMITH=true
+  RUNNER: ${{ vars.USE_BLACKSMITH == 'true' && 'blacksmith-4vcpu-ubuntu-2404' || 'ubuntu-latest' }}
 
 jobs:
   # Detect which services have changed
   detect-changes:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ${{ vars.USE_BLACKSMITH == 'true' && 'blacksmith-4vcpu-ubuntu-2404' || 'ubuntu-latest' }}
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
@@ -40,7 +42,7 @@ jobs:
   build-backend:
     needs: detect-changes
     if: needs.detect-changes.outputs.backend == 'true' || startsWith(github.ref, 'refs/tags/')
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ${{ vars.USE_BLACKSMITH == 'true' && 'blacksmith-4vcpu-ubuntu-2404' || 'ubuntu-latest' }}
     permissions:
       contents: read
       packages: write
@@ -54,9 +56,11 @@ jobs:
         run: echo "lowercase=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: Setup Blacksmith Builder
+        if: vars.USE_BLACKSMITH == 'true'
         uses: useblacksmith/setup-docker-builder@v1
 
       - name: Clean BuildKit cache if corrupted
+        if: vars.USE_BLACKSMITH == 'true'
         continue-on-error: true
         run: |
           echo "Checking BuildKit cache health..."
@@ -141,7 +145,7 @@ jobs:
   build-frontend:
     needs: detect-changes
     if: needs.detect-changes.outputs.frontend == 'true' || startsWith(github.ref, 'refs/tags/')
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ${{ vars.USE_BLACKSMITH == 'true' && 'blacksmith-4vcpu-ubuntu-2404' || 'ubuntu-latest' }}
     permissions:
       contents: read
       packages: write
@@ -170,9 +174,11 @@ jobs:
           fi
 
       - name: Setup Blacksmith Builder
+        if: vars.USE_BLACKSMITH == 'true'
         uses: useblacksmith/setup-docker-builder@v1
 
       - name: Clean BuildKit cache if corrupted
+        if: vars.USE_BLACKSMITH == 'true'
         continue-on-error: true
         run: |
           echo "Checking BuildKit cache health..."
@@ -257,7 +263,7 @@ jobs:
 
   # Helm chart validation and linting
   helm-lint:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ${{ vars.USE_BLACKSMITH == 'true' && 'blacksmith-4vcpu-ubuntu-2404' || 'ubuntu-latest' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -306,7 +312,7 @@ jobs:
   build-summary:
     needs: [detect-changes, build-backend, build-frontend, helm-lint]
     if: always()
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ${{ vars.USE_BLACKSMITH == 'true' && 'blacksmith-4vcpu-ubuntu-2404' || 'ubuntu-latest' }}
     steps:
       - name: Build summary
         run: |
