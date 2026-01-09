@@ -59,7 +59,7 @@ COPY . .
 
 # Build arguments
 ARG NODE_ENV=production
-ARG PUBLIC_API_URL=http://hr-graphql-rust:4000
+ARG PUBLIC_API_URL=https://hr.mtncarerx.com/graphql
 
 # Set environment variables for build
 ENV NODE_ENV=${NODE_ENV}
