@@ -4,6 +4,16 @@
 // WARN!!!: Ensure to add migrations to main.rs as well.
 pub use sea_orm_migration::prelude::*;
 
+// Migration helper utilities for safe, idempotent migrations
+pub mod migration_helpers;
+pub mod migration_validator;
+
+// Re-export commonly used items for convenience
+pub use migration_helpers::MigrationHelpers;
+pub use migration_validator::{
+    IssueSeverity, MigrationValidator, ValidationIssue, ValidationReport, ValidationWarning,
+};
+
 // Migration modules - order determines execution sequence
 mod m20251017_001_schemas;
 mod m20251017_002_enums;

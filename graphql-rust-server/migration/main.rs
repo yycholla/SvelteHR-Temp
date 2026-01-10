@@ -8,8 +8,14 @@
 //!   - refresh: Rollback all and re-run migrations
 //!   - reset: Rollback all migrations
 //!   - status: Check migration status
+//!   - validate: Validate migration files for idempotency issues
 
 use sea_orm_migration::prelude::*;
+use std::env;
+
+// Migration helper utilities for safe, idempotent migrations
+pub mod migration_helpers;
+pub mod migration_validator;
 
 // Include the migration module
 mod m20251017_001_schemas;
@@ -170,5 +176,27 @@ impl MigratorTrait for Migrator {
 
 #[tokio::main]
 async fn main() {
+    let args: Vec<String> = env::args().collect();
+
+    // Check if the first argument is "validate"
+    if args.len() > 1 && args[1] == "validate" {
+        use migration_validator::MigrationValidator;
+
+        println!("🔍 Validating migration files...\n");
+
+        let validator = MigrationValidator::new("./migration");
+        let report = validator.validate();
+
+        report.print_report();
+
+        // Exit with error code if there are critical issues
+        if report.critical_count() > 0 || report.high_count() > 0 {
+            std::process::exit(1);
+        } else {
+            std::process::exit(0);
+        }
+    }
+
+    // Otherwise, run the normal migration CLI
     cli::run_cli(Migrator).await;
 }

@@ -145,7 +145,7 @@ impl MigrationTrait for Migration {
         // Partial index for active users
         manager
             .get_connection()
-            .execute_unprepared("CREATE INDEX idx_users_active ON hr_public.users(is_active) WHERE deleted_at IS NULL")
+            .execute_unprepared("CREATE INDEX IF NOT EXISTS idx_users_active ON hr_public.users(is_active) WHERE deleted_at IS NULL")
             .await?;
 
         // Create roles table

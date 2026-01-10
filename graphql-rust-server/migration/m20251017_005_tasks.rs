@@ -200,7 +200,7 @@ impl MigrationTrait for Migration {
         // Partial index for active tasks
         manager
             .get_connection()
-            .execute_unprepared("CREATE INDEX idx_tasks_active ON hr_public.tasks(status) WHERE deleted_at IS NULL AND archived = false")
+            .execute_unprepared("CREATE INDEX IF NOT EXISTS idx_tasks_active ON hr_public.tasks(status) WHERE deleted_at IS NULL AND archived = false")
             .await?;
 
         // Create task_assignees table (many-to-many)
