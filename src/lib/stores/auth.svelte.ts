@@ -196,7 +196,7 @@ class AuthStore {
 
 		try {
 			const { createSettingsOperations } = await import('$lib/graphql/settings-operations');
-			const { userPrefersMode } = await import('mode-watcher');
+			const { setMode } = await import('mode-watcher');
 
 			const urqlClient = createUrqlClient();
 			const settingsOps = createSettingsOperations(urqlClient);
@@ -212,7 +212,7 @@ class AuthStore {
 			});
 
 			if (userSettings?.preferences?.theme) {
-				(userPrefersMode as any).set(userSettings.preferences.theme as 'light' | 'dark' | 'system');
+				setMode(userSettings.preferences.theme as 'light' | 'dark' | 'system');
 				logger.info(`✓ Applied user theme on login: ${userSettings.preferences.theme}`);
 			} else {
 				logger.info('ℹ No theme preference found, using system default');

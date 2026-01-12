@@ -26,8 +26,16 @@
 	}
 
 	// Detect OS for correct keyboard shortcut display
-	const isMac = browser && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-	const shortcutKey = isMac ? '⌘' : 'Ctrl';
+	// Use $state to ensure reactivity and proper hydration
+	let shortcutKey = $state('Ctrl');
+
+	// Run platform detection only in browser after mount
+	$effect(() => {
+		if (browser && typeof navigator !== 'undefined' && navigator.platform) {
+			const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+			shortcutKey = isMac ? '⌘' : 'Ctrl';
+		}
+	});
 </script>
 
 <button
