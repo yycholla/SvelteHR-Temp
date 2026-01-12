@@ -13,7 +13,8 @@ export const PUBLIC_ROUTES = new Set([
 	'/api/auth/login',
 	'/api/health',
 	'/api/metrics',
-	'/api/auth/verify'
+	'/api/auth/verify',
+	'/api/intuit/disconnect' // Intuit webhook for app disconnection
 ]);
 
 // Static file extensions to skip authentication for

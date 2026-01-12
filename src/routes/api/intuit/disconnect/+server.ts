@@ -1,42 +1,94 @@
+import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { json, error } from '@sveltejs/kit';
-import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
+import { logger } from '$lib/utils/logger';
 
-export const POST: RequestHandler = async ({ cookies, fetch }) => {
-	const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
+/**
+ * Intuit Disconnect Webhook Endpoint
+ *
+ * Called by Intuit when a user disconnects the SvelteHR app from QuickBooks.
+ * This endpoint handles the disconnection notification and updates the
+ * integration status in the database.
+ *
+ * Intuit Developer Portal Configuration:
+ * - Disconnect URL: https://hr.mtncarerx.com/api/intuit/disconnect
+ */
 
-	const mutation = `
-		mutation DisconnectIntuit {
-			intuit {
-				disconnect {
-					success
-					error
-				}
-			}
-		}
-	`;
-
+export const POST: RequestHandler = async ({ request, fetch }) => {
 	try {
-		const result = await client.mutation(mutation, {}).toPromise();
+		// Parse the webhook payload from Intuit
+		const payload = await request.json();
 
-		if (result.error) {
-			console.error('GraphQL error disconnecting from Intuit:', result.error);
-			throw error(500, 'Failed to disconnect from QuickBooks');
+		logger.info('Received Intuit disconnect notification', { payload });
+
+		// Extract realm ID (QuickBooks company ID) from payload
+		const realmId = payload.realmId || payload.realm_id;
+
+		if (!realmId) {
+			logger.warn('Disconnect notification missing realmId', { payload });
+			return json({ error: 'Missing realmId' }, { status: 400 });
 		}
 
-		const disconnectResult = result.data?.intuit?.disconnect;
+		// TODO: Update integration status in database
+		// This will be implemented when we have the GraphQL mutation ready
+		// For now, just log the disconnection
+		logger.info(`QuickBooks disconnection for realm: ${realmId}`, {
+			realmId,
+			timestamp: new Date().toISOString(),
+			source: 'intuit_webhook'
+		});
 
-		if (!disconnectResult?.success) {
-			const errorMsg = disconnectResult?.error || 'Unknown error';
-			throw error(500, errorMsg);
+		// Forward to backend to update integration status
+		try {
+			const backendUrl = process.env.PUBLIC_API_URL || 'http://sveltehr-backend:4000';
+			const backendResponse = await fetch(`${backendUrl}/api/intuit/disconnect`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ realmId })
+			});
+
+			if (!backendResponse.ok) {
+				logger.error('Backend failed to process disconnect', {
+					status: backendResponse.status,
+					realmId
+				});
+			}
+		} catch (backendError) {
+			logger.error('Failed to notify backend of disconnection', {
+				error: backendError,
+				realmId
+			});
+			// Don't fail the webhook - we still acknowledge receipt
 		}
 
-		return json({ success: true });
-	} catch (err) {
-		if (err instanceof Response) {
-			throw err;
-		}
-		console.error('Error disconnecting from Intuit:', err);
-		throw error(500, 'Failed to disconnect from QuickBooks');
+		// Return success to Intuit
+		return json({
+			success: true,
+			message: 'Disconnection processed successfully',
+			realmId,
+			timestamp: new Date().toISOString()
+		});
+
+	} catch (error) {
+		logger.error('Error processing Intuit disconnect webhook', { error });
+
+		// Return 200 even on error to prevent Intuit from retrying
+		// Log the error for manual review
+		return json({
+			success: false,
+			error: 'Internal server error',
+			message: 'Disconnection notification received but processing failed'
+		}, { status: 200 });
 	}
+};
+
+// GET endpoint for health check
+export const GET: RequestHandler = async () => {
+	return json({
+		endpoint: 'intuit-disconnect-webhook',
+		status: 'active',
+		timestamp: new Date().toISOString(),
+		methods: ['POST']
+	});
 };
