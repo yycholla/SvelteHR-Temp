@@ -134,7 +134,7 @@ backend:
   # Image configuration
   image:
     repository: ghcr.io/mountain-care-rx/sveltehr/backend-server
-    tag: '2.0.2' # Semantic versioning without v-prefix (ArgoCD Image Updater requirement)
+    tag: '2.0.3' # Semantic versioning without v-prefix (ArgoCD Image Updater requirement)
     pullPolicy: Always
     target: production
   # Image pull secrets for private GHCR registry
