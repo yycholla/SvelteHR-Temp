@@ -77,6 +77,11 @@ impl IntuitClient {
             .context("Failed to send employee query to QuickBooks")?;
 
         let status = response.status();
+
+        // Extract intuit_tid BEFORE consuming response
+        let intuit_tid = self.extract_intuit_tid(&response);
+        self.log_intuit_tid(intuit_tid.as_deref(), "list_employees");
+
         tracing::info!(status = %status, "QuickBooks employee query response status");
 
         if status == StatusCode::UNAUTHORIZED {
@@ -188,6 +193,11 @@ impl IntuitClient {
             .context("Failed to update employee in QuickBooks")?;
 
         let status = response.status();
+
+        // Extract intuit_tid BEFORE consuming response
+        let intuit_tid = self.extract_intuit_tid(&response);
+        self.log_intuit_tid(intuit_tid.as_deref(), "update_employee");
+
         tracing::debug!("QuickBooks employee update response status: {}", status);
 
         // Get response text for debugging
@@ -290,6 +300,11 @@ impl IntuitClient {
                 .context("Failed to send batch request to QuickBooks")?;
 
             let status = response.status();
+
+            // Extract intuit_tid BEFORE consuming response
+            let intuit_tid = self.extract_intuit_tid(&response);
+            self.log_intuit_tid(intuit_tid.as_deref(), "batch_create_employees");
+
             tracing::info!("QuickBooks employee batch response status: {}", status);
 
             if status == StatusCode::UNAUTHORIZED {
@@ -352,6 +367,11 @@ impl IntuitClient {
             .context("Failed to query departments from QuickBooks")?;
 
         let status = response.status();
+
+        // Extract intuit_tid BEFORE consuming response
+        let intuit_tid = self.extract_intuit_tid(&response);
+        self.log_intuit_tid(intuit_tid.as_deref(), "query_departments");
+
         tracing::info!("QuickBooks department query response status: {}", status);
 
         if status == StatusCode::UNAUTHORIZED {
@@ -432,6 +452,11 @@ impl IntuitClient {
                 .context("Failed to send batch request to QuickBooks")?;
 
             let status = response.status();
+
+            // Extract intuit_tid BEFORE consuming response
+            let intuit_tid = self.extract_intuit_tid(&response);
+            self.log_intuit_tid(intuit_tid.as_deref(), "batch_create_departments");
+
             tracing::info!("QuickBooks batch response status: {}", status);
 
             if status == StatusCode::UNAUTHORIZED {
@@ -482,6 +507,11 @@ impl IntuitClient {
             .context("Failed to get department from QuickBooks")?;
 
         let status = response.status();
+
+        // Extract intuit_tid BEFORE consuming response
+        let intuit_tid = self.extract_intuit_tid(&response);
+        self.log_intuit_tid(intuit_tid.as_deref(), "get_department");
+
         tracing::debug!("QuickBooks get department response status: {}", status);
 
         if status == StatusCode::UNAUTHORIZED {
@@ -537,6 +567,11 @@ impl IntuitClient {
             .context("Failed to update department in QuickBooks")?;
 
         let status = response.status();
+
+        // Extract intuit_tid BEFORE consuming response
+        let intuit_tid = self.extract_intuit_tid(&response);
+        self.log_intuit_tid(intuit_tid.as_deref(), "update_department");
+
         tracing::debug!("QuickBooks department update response status: {}", status);
 
         if status == StatusCode::UNAUTHORIZED {
@@ -602,6 +637,10 @@ impl IntuitClient {
             .await
             .context("Failed to query incremental employees from QuickBooks")?;
 
+        // Extract intuit_tid BEFORE consuming response
+        let intuit_tid = self.extract_intuit_tid(&response);
+        self.log_intuit_tid(intuit_tid.as_deref(), "list_employees_since");
+
         let qb_response: QuickBooksResponse<Employee> = response
             .json()
             .await
@@ -662,6 +701,10 @@ impl IntuitClient {
             .await
             .context("Failed to query incremental departments from QuickBooks")?;
 
+        // Extract intuit_tid BEFORE consuming response
+        let intuit_tid = self.extract_intuit_tid(&response);
+        self.log_intuit_tid(intuit_tid.as_deref(), "query_departments_since");
+
         // Parse response - departments use a custom wrapper
         #[derive(Debug, serde::Deserialize)]
         struct DepartmentQueryResponse {
@@ -721,6 +764,10 @@ impl IntuitClient {
 
         let status = response.status();
 
+        // Extract intuit_tid BEFORE consuming response
+        let intuit_tid = self.extract_intuit_tid(&response);
+        self.log_intuit_tid(intuit_tid.as_deref(), "get_company_info");
+
         if status == StatusCode::UNAUTHORIZED {
             return Err(anyhow::anyhow!(
                 "Unauthorized: Access token may be expired or invalid"
@@ -750,12 +797,42 @@ impl IntuitClient {
             .ok_or_else(|| anyhow::anyhow!("No company info in response"))
     }
 
+    /// Extract and log intuit_tid from response headers
+    /// This header helps Intuit support troubleshoot integration issues
+    fn extract_intuit_tid(&self, response: &reqwest::Response) -> Option<String> {
+        response
+            .headers()
+            .get("intuit_tid")
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string())
+    }
+
+    /// Log intuit_tid for troubleshooting
+    fn log_intuit_tid(&self, intuit_tid: Option<&str>, context: &str) {
+        if let Some(tid) = intuit_tid {
+            tracing::info!(
+                intuit_tid = %tid,
+                context = context,
+                "QuickBooks API transaction ID"
+            );
+        } else {
+            tracing::debug!(
+                context = context,
+                "No intuit_tid in response headers"
+            );
+        }
+    }
+
     /// Handle QuickBooks API response
     async fn handle_response(
         &self,
         response: reqwest::Response,
     ) -> Result<Employee> {
         let status = response.status();
+
+        // Extract intuit_tid BEFORE consuming response
+        let intuit_tid = self.extract_intuit_tid(&response);
+        self.log_intuit_tid(intuit_tid.as_deref(), "handle_response");
 
         if status == StatusCode::UNAUTHORIZED {
             return Err(anyhow::anyhow!(
