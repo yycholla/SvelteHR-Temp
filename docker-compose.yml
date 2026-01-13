@@ -128,6 +128,15 @@ services:
       # Admin User Seeding (set to 'true' for first deployment only)
       SEED_ADMIN_USER: ${SEED_ADMIN_USER:-false}
 
+      # SMTP Email Configuration
+      SMTP_HOST: ${SMTP_HOST:-mail.smtp2go.com}
+      SMTP_PORT: ${SMTP_PORT:-2525}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@${DOMAIN}}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-SvelteHR System}
+      APP_BASE_URL: ${APP_BASE_URL:-https://${DOMAIN}}
+
     networks:
       - sveltehr-network
 
