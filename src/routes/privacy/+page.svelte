@@ -3,8 +3,8 @@
 </script>
 
 <svelte:head>
-	<title>Privacy Policy - SvelteHR</title>
-	<meta name="description" content="Privacy Policy for SvelteHR by Mountain Care Rx" />
+	<title>Privacy Policy - MountainHR</title>
+	<meta name="description" content="Privacy Policy for MountainHR by Mountain Care Rx" />
 </svelte:head>
 
 <div class="min-h-screen bg-background">
@@ -13,7 +13,7 @@
 		<div class="mx-auto max-w-4xl px-4 py-6">
 			<a href="/" class="flex items-center gap-2 font-semibold text-xl">
 				<Building2 class="h-6 w-6 text-primary" />
-				<span>SvelteHR</span>
+				<span>MountainHR</span>
 			</a>
 		</div>
 	</header>
@@ -29,9 +29,10 @@
 
 			<h2>1. Introduction</h2>
 			<p>
-				Mountain Care Rx ("we," "our," or "us") operates SvelteHR, a human resources management system.
-				This Privacy Policy explains how we collect, use, disclose, and safeguard your information when
-				you use our application and services, including our integration with QuickBooks.
+				Mountain Care Rx ("we," "our," or "us") operates MountainHR, a human resources management
+				system. This Privacy Policy explains how we collect, use, disclose, and safeguard your
+				information when you use our application and services, including our integration with
+				QuickBooks.
 			</p>
 
 			<h2>2. Information We Collect</h2>
@@ -47,7 +48,7 @@
 			</ul>
 
 			<h3>2.2 QuickBooks Integration Data</h3>
-			<p>When you connect SvelteHR with QuickBooks, we access and store:</p>
+			<p>When you connect MountainHR with QuickBooks, we access and store:</p>
 			<ul>
 				<li>Employee records synchronized from QuickBooks</li>
 				<li>Department and organization structure</li>
@@ -78,8 +79,8 @@
 
 			<h3>4.1 QuickBooks Integration</h3>
 			<p>
-				When you authorize the QuickBooks integration, we share employee data with Intuit Inc.
-				in accordance with their privacy policy and terms of service. This includes bidirectional
+				When you authorize the QuickBooks integration, we share employee data with Intuit Inc. in
+				accordance with their privacy policy and terms of service. This includes bidirectional
 				synchronization of employee information, compensation data, and time entries.
 			</p>
 
@@ -93,8 +94,8 @@
 
 			<h3>4.3 Legal Requirements</h3>
 			<p>
-				We may disclose your information if required to do so by law or in response to valid requests
-				by public authorities (e.g., employment law compliance, tax reporting).
+				We may disclose your information if required to do so by law or in response to valid
+				requests by public authorities (e.g., employment law compliance, tax reporting).
 			</p>
 
 			<h2>5. Data Security</h2>
@@ -128,8 +129,8 @@
 
 			<h2>8. QuickBooks Integration Disconnection</h2>
 			<p>
-				You may disconnect the QuickBooks integration at any time through your admin settings.
-				Upon disconnection, we will:
+				You may disconnect the QuickBooks integration at any time through your admin settings. Upon
+				disconnection, we will:
 			</p>
 			<ul>
 				<li>Stop synchronizing data with QuickBooks</li>
@@ -139,7 +140,7 @@
 
 			<h2>9. Children's Privacy</h2>
 			<p>
-				SvelteHR is not intended for use by individuals under the age of 18. We do not knowingly
+				MountainHR is not intended for use by individuals under the age of 18. We do not knowingly
 				collect personal information from children.
 			</p>
 
@@ -160,8 +161,9 @@
 			<hr class="my-8" />
 
 			<p class="text-sm text-muted-foreground">
-				This privacy policy governs the use of SvelteHR and its integration with third-party services
-				including QuickBooks by Intuit Inc. For QuickBooks-specific privacy practices, please refer to
+				This privacy policy governs the use of MountainHR and its integration with third-party
+				services including QuickBooks by Intuit Inc. For QuickBooks-specific privacy practices,
+				please refer to
 				<a href="https://www.intuit.com/privacy/" target="_blank" rel="noopener noreferrer">
 					Intuit's Privacy Statement
 				</a>.

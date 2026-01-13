@@ -54,15 +54,16 @@ pub async fn security_headers_middleware(request: axum::http::Request<axum::body
     );
 
     // Content Security Policy (restrict resource loading)
-    // Note: Adjust this based on your frontend requirements
+    // Note: Adjusted to allow GraphiQL and Swagger UI CDN resources
+    // In development, we allow unpkg.com and cdn.jsdelivr.net for GraphiQL/Swagger UI
     headers.insert(
         "Content-Security-Policy",
         HeaderValue::from_static(
             "default-src 'self'; \
-             script-src 'self' 'unsafe-inline'; \
-             style-src 'self' 'unsafe-inline'; \
+             script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net; \
+             style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://fonts.googleapis.com; \
              img-src 'self' data: https:; \
-             font-src 'self'; \
+             font-src 'self' https://fonts.gstatic.com; \
              connect-src 'self'; \
              frame-ancestors 'none';"
         ),

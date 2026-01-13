@@ -33,41 +33,64 @@ pub struct AppState {
     pub dataloaders: DataLoaderContext,
 }
 
-/// GraphQL playground handler
+/// GraphQL playground handler (using GraphiQL - no external CDN dependencies)
 pub async fn graphql_playground() -> Html<String> {
-    Html(async_graphql::http::playground_source(
-        async_graphql::http::GraphQLPlaygroundConfig::new("/graphql"),
+    Html(async_graphql::http::graphiql_source(
+        "/graphql",
+        None,  // Subscriptions endpoint (optional)
     ))
 }
 
 /// Login request payload
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct LoginRequest {
+    #[schema(example = "user@example.com")]
     pub email: String,
+    #[schema(example = "password123")]
     pub password: String,
 }
 
 /// Login response
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct LoginResponse {
     pub user: UserInfo,
+    #[schema(example = "2026-01-13T12:00:00Z")]
     pub session_expires: String,
 }
 
 /// User information in responses
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct UserInfo {
+    #[schema(example = "123e4567-e89b-12d3-a456-426614174000")]
     pub id: String,
+    #[schema(example = "user@example.com")]
     pub email: String,
+    #[schema(example = "John")]
     pub first_name: Option<String>,
+    #[schema(example = "Doe")]
     pub last_name: Option<String>,
+    #[schema(example = "John Doe")]
     pub display_name: Option<String>,
+    #[schema(example = "Employee")]
     pub role: String,       // Legacy single role field for backward compatibility
+    #[schema(example = json!(["Employee", "Manager"]))]
     pub roles: Vec<String>, // RBAC roles array
+    #[schema(example = json!(["users:read", "departments:read"]))]
     pub permissions: Vec<String>,
 }
 
 /// Login handler
+#[utoipa::path(
+    post,
+    path = "/auth/login",
+    tag = "Authentication",
+    request_body = LoginRequest,
+    responses(
+        (status = 200, description = "Login successful", body = LoginResponse),
+        (status = 401, description = "Invalid credentials"),
+        (status = 429, description = "Too many failed login attempts"),
+    )
+)]
 pub async fn login_handler(
     mut auth_session: AuthSession<AuthBackend>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
@@ -173,6 +196,18 @@ pub async fn login_handler(
 }
 
 /// Logout handler
+#[utoipa::path(
+    post,
+    path = "/auth/logout",
+    tag = "Authentication",
+    responses(
+        (status = 303, description = "Logout successful, redirecting to login"),
+        (status = 500, description = "Internal server error"),
+    ),
+    security(
+        ("session_cookie" = [])
+    )
+)]
 pub async fn logout_handler(
     mut auth_session: AuthSession<AuthBackend>,
     State(app_state): State<AppState>,
@@ -201,6 +236,18 @@ pub async fn logout_handler(
 }
 
 /// Get current user info handler
+#[utoipa::path(
+    get,
+    path = "/auth/me",
+    tag = "Authentication",
+    responses(
+        (status = 200, description = "Current user information", body = UserInfo),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(
+        ("session_cookie" = [])
+    )
+)]
 pub async fn me_handler(
     auth_session: AuthSession<AuthBackend>,
     State(app_state): State<AppState>,
@@ -242,6 +289,17 @@ pub async fn me_handler(
 }
 
 /// Session refresh handler
+#[utoipa::path(
+    post,
+    path = "/auth/refresh",
+    tag = "Authentication",
+    responses(
+        (status = 200, description = "Session refresh response", body = RefreshResponse),
+    ),
+    security(
+        ("session_cookie" = [])
+    )
+)]
 pub async fn refresh_handler(
     auth_session: AuthSession<AuthBackend>,
     State(app_state): State<AppState>,
@@ -303,32 +361,49 @@ pub async fn refresh_handler(
 }
 
 /// Refresh response
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct RefreshResponse {
     pub success: bool,
+    #[schema(example = "2026-01-13T12:00:00Z")]
     pub session_expires: String,
+    #[schema(example = "Session refreshed successfully")]
     pub message: String,
 }
 
 /// Session information for REST responses
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct SessionInfoResponse {
+    #[schema(example = "123e4567-e89b-12d3-a456-426614174000")]
     pub id: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub expires_at: chrono::DateTime<chrono::Utc>,
     pub last_activity: chrono::DateTime<chrono::Utc>,
+    #[schema(example = "192.168.1.1")]
     pub ip_address: Option<String>,
+    #[schema(example = "Mozilla/5.0...")]
     pub user_agent: Option<String>,
     pub is_current_session: bool,
 }
 
 /// Sessions list response
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct SessionsResponse {
     pub sessions: Vec<SessionInfoResponse>,
 }
 
 /// List active sessions handler
+#[utoipa::path(
+    get,
+    path = "/auth/sessions",
+    tag = "Authentication",
+    responses(
+        (status = 200, description = "List of active sessions", body = SessionsResponse),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(
+        ("session_cookie" = [])
+    )
+)]
 pub async fn sessions_handler(
     auth_session: AuthSession<AuthBackend>,
     State(app_state): State<AppState>,

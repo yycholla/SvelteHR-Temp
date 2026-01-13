@@ -3,8 +3,11 @@
 </script>
 
 <svelte:head>
-	<title>Terms of Service - SvelteHR</title>
-	<meta name="description" content="Terms of Service and End User License Agreement for SvelteHR" />
+	<title>Terms of Service - MountainHR</title>
+	<meta
+		name="description"
+		content="Terms of Service and End User License Agreement for MountainHR"
+	/>
 </svelte:head>
 
 <div class="min-h-screen bg-background">
@@ -13,7 +16,7 @@
 		<div class="mx-auto max-w-4xl px-4 py-6">
 			<a href="/" class="flex items-center gap-2 font-semibold text-xl">
 				<Building2 class="h-6 w-6 text-primary" />
-				<span>SvelteHR</span>
+				<span>MountainHR</span>
 			</a>
 		</div>
 	</header>
@@ -29,24 +32,23 @@
 
 			<h2>1. Acceptance of Terms</h2>
 			<p>
-				By accessing and using SvelteHR ("the Service"), provided by Mountain Care Rx ("we," "our,"
-				or "us"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to
-				these Terms, you may not use the Service.
+				By accessing and using MountainHR ("the Service"), provided by Mountain Care Rx ("we,"
+				"our," or "us"), you agree to be bound by these Terms of Service ("Terms"). If you do not
+				agree to these Terms, you may not use the Service.
 			</p>
 
 			<h2>2. Description of Service</h2>
 			<p>
-				SvelteHR is a cloud-based human resources management system that provides employee management,
-				time tracking, payroll integration, performance reviews, and other HR-related functionality.
-				The Service includes integration with QuickBooks for payroll and accounting synchronization.
+				MountainHR is a cloud-based human resources management system that provides employee
+				management, time tracking, payroll integration, performance reviews, and other HR-related
+				functionality. The Service includes integration with QuickBooks for payroll and accounting
+				synchronization.
 			</p>
 
 			<h2>3. User Accounts and Access</h2>
 
 			<h3>3.1 Account Creation</h3>
-			<p>
-				To use the Service, your organization must create an account. You are responsible for:
-			</p>
+			<p>To use the Service, your organization must create an account. You are responsible for:</p>
 			<ul>
 				<li>Maintaining the confidentiality of account credentials</li>
 				<li>All activities that occur under your account</li>
@@ -67,7 +69,7 @@
 
 			<h3>4.1 Authorization</h3>
 			<p>
-				By connecting SvelteHR to QuickBooks, you authorize us to access and synchronize employee
+				By connecting MountainHR to QuickBooks, you authorize us to access and synchronize employee
 				data, payroll information, and related records between the systems. You must have the
 				necessary permissions in QuickBooks to authorize this integration.
 			</p>
@@ -83,9 +85,9 @@
 
 			<h3>4.3 Disconnection</h3>
 			<p>
-				You may disconnect the QuickBooks integration at any time through the admin settings.
-				Upon disconnection, synchronization will stop, but historical data will be retained for
-				audit and compliance purposes.
+				You may disconnect the QuickBooks integration at any time through the admin settings. Upon
+				disconnection, synchronization will stop, but historical data will be retained for audit and
+				compliance purposes.
 			</p>
 
 			<h2>5. Acceptable Use</h2>
@@ -104,15 +106,15 @@
 
 			<h3>6.1 Your Data</h3>
 			<p>
-				You retain all rights to the data you input into the Service. We do not claim ownership
-				of employee records, payroll data, or other information you provide.
+				You retain all rights to the data you input into the Service. We do not claim ownership of
+				employee records, payroll data, or other information you provide.
 			</p>
 
 			<h3>6.2 Data Processing</h3>
 			<p>
-				We process your data as outlined in our <a href="/privacy">Privacy Policy</a>. By using
-				the Service, you consent to such processing and warrant that all data provided complies
-				with applicable laws and regulations.
+				We process your data as outlined in our <a href="/privacy">Privacy Policy</a>. By using the
+				Service, you consent to such processing and warrant that all data provided complies with
+				applicable laws and regulations.
 			</p>
 
 			<h3>6.3 Data Security</h3>
@@ -145,25 +147,25 @@
 
 			<h2>9. Intellectual Property</h2>
 			<p>
-				The Service, including its software, design, content, and trademarks, is owned by
-				Mountain Care Rx and protected by copyright and other intellectual property laws.
-				These Terms grant you a limited, non-exclusive, non-transferable license to use the
-				Service for your internal business purposes.
+				The Service, including its software, design, content, and trademarks, is owned by Mountain
+				Care Rx and protected by copyright and other intellectual property laws. These Terms grant
+				you a limited, non-exclusive, non-transferable license to use the Service for your internal
+				business purposes.
 			</p>
 
 			<h2>10. Third-Party Services</h2>
 			<p>
-				The Service integrates with third-party services, including QuickBooks by Intuit Inc.
-				Your use of third-party services is subject to their respective terms of service and
-				privacy policies. We are not responsible for third-party services or their practices.
+				The Service integrates with third-party services, including QuickBooks by Intuit Inc. Your
+				use of third-party services is subject to their respective terms of service and privacy
+				policies. We are not responsible for third-party services or their practices.
 			</p>
 
 			<h2>11. Limitation of Liability</h2>
 			<p>
 				TO THE MAXIMUM EXTENT PERMITTED BY LAW, MOUNTAIN CARE RX SHALL NOT BE LIABLE FOR ANY
-				INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS
-				OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, USE, GOODWILL,
-				OR OTHER INTANGIBLE LOSSES RESULTING FROM:
+				INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR
+				REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, USE, GOODWILL, OR
+				OTHER INTANGIBLE LOSSES RESULTING FROM:
 			</p>
 			<ul>
 				<li>Your use or inability to use the Service</li>
@@ -174,36 +176,36 @@
 
 			<h2>12. Disclaimer of Warranties</h2>
 			<p>
-				THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND,
-				EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY,
-				FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT.
+				THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER
+				EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR
+				A PARTICULAR PURPOSE, OR NON-INFRINGEMENT.
 			</p>
 
 			<h2>13. Indemnification</h2>
 			<p>
 				You agree to indemnify and hold harmless Mountain Care Rx from any claims, damages, losses,
-				liabilities, and expenses arising from your use of the Service, violation of these Terms,
-				or infringement of any rights of another.
+				liabilities, and expenses arising from your use of the Service, violation of these Terms, or
+				infringement of any rights of another.
 			</p>
 
 			<h2>14. Termination</h2>
 
 			<h3>14.1 By You</h3>
 			<p>
-				You may terminate your use of the Service at any time by discontinuing access and
-				requesting account deletion.
+				You may terminate your use of the Service at any time by discontinuing access and requesting
+				account deletion.
 			</p>
 
 			<h3>14.2 By Us</h3>
 			<p>
-				We may suspend or terminate your access to the Service if you violate these Terms,
-				engage in fraudulent activity, or for other legitimate business reasons.
+				We may suspend or terminate your access to the Service if you violate these Terms, engage in
+				fraudulent activity, or for other legitimate business reasons.
 			</p>
 
 			<h3>14.3 Effect of Termination</h3>
 			<p>
-				Upon termination, your right to use the Service will immediately cease. We will provide
-				you with access to export your data for a reasonable period following termination.
+				Upon termination, your right to use the Service will immediately cease. We will provide you
+				with access to export your data for a reasonable period following termination.
 			</p>
 
 			<h2>15. Compliance and Employment Law</h2>
@@ -222,8 +224,9 @@
 
 			<h2>17. Governing Law</h2>
 			<p>
-				These Terms shall be governed by and construed in accordance with the laws of the jurisdiction
-				in which Mountain Care Rx operates, without regard to conflict of law principles.
+				These Terms shall be governed by and construed in accordance with the laws of the
+				jurisdiction in which Mountain Care Rx operates, without regard to conflict of law
+				principles.
 			</p>
 
 			<h2>18. Dispute Resolution</h2>
@@ -239,9 +242,7 @@
 			</p>
 
 			<h2>20. Contact Information</h2>
-			<p>
-				For questions about these Terms, please contact us at:
-			</p>
+			<p>For questions about these Terms, please contact us at:</p>
 			<p>
 				<strong>Mountain Care Rx</strong><br />
 				Email: <a href="mailto:legal@mountaincarerx.com">legal@mountaincarerx.com</a><br />
@@ -251,7 +252,7 @@
 			<hr class="my-8" />
 
 			<p class="text-sm text-muted-foreground">
-				By using SvelteHR and its QuickBooks integration, you acknowledge that you have read,
+				By using MountainHR and its QuickBooks integration, you acknowledge that you have read,
 				understood, and agree to be bound by these Terms of Service and our
 				<a href="/privacy">Privacy Policy</a>.
 			</p>

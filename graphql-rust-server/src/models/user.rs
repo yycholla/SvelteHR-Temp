@@ -105,12 +105,14 @@ impl async_graphql::ScalarType for UserStatus {
 }
 
 /// User entity - maps to hr_public.users table
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize, utoipa::ToSchema)]
 #[sea_orm(table_name = "users", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub email: String,
+    #[serde(skip_serializing)]
+    #[schema(value_type = String)]  // Present in schema but never serialized
     pub password_hash: String,
     pub first_name: String,
     pub last_name: String,
@@ -142,9 +144,12 @@ pub struct Model {
     pub sync_status: String,
     // Payroll/Compensation fields
     pub compensation_type: Option<String>,
+    #[schema(value_type = Option<String>)]  // Represented as string in OpenAPI
     pub annual_salary: Option<rust_decimal::Decimal>,
+    #[schema(value_type = Option<String>)]  // Represented as string in OpenAPI
     pub hourly_rate: Option<rust_decimal::Decimal>,
     pub pay_schedule: Option<String>,
+    #[schema(value_type = Option<String>)]  // Represented as string in OpenAPI
     pub commission_rate: Option<rust_decimal::Decimal>,
     pub bonus_eligible: bool,
     pub quickbooks_payroll_item_id: Option<String>,

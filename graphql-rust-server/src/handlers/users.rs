@@ -15,13 +15,15 @@ use crate::{
 };
 
 /// Query parameters for the users endpoint
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::IntoParams)]
 pub struct GetUsersQuery {
     /// Maximum number of users to return (defaults to 1000, max 1000)
     #[serde(default = "default_limit")]
+    #[param(example = 100, maximum = 1000)]
     pub limit: i64,
     /// Offset for pagination
     #[serde(default)]
+    #[param(example = 0)]
     pub offset: i64,
 }
 
@@ -34,6 +36,21 @@ fn default_limit() -> i64 {
 ///
 /// # Security: RLS Enforced
 /// This endpoint applies Row-Level Security based on the user's department and role.
+#[utoipa::path(
+    get,
+    path = "/api/users",
+    tag = "Users",
+    params(
+        GetUsersQuery
+    ),
+    responses(
+        (status = 200, description = "List of users with RLS applied", body = Vec<crate::models::user::Model>),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(
+        ("session_cookie" = [])
+    )
+)]
 pub async fn get_users_handler(
     State(state): State<AppState>,
     Extension(user_context): Extension<UserContext>, // Require authentication

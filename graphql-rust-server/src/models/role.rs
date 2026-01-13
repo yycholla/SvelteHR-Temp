@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::database::get_db_from_context;
 
 /// Role entity - maps to hr_public.roles table
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize, utoipa::ToSchema)]
 #[sea_orm(table_name = "roles", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]

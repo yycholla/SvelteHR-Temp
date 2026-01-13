@@ -14,6 +14,18 @@ use crate::{
 
 /// Handler to get all roles
 /// Returns a list of roles ordered by level and name
+#[utoipa::path(
+    get,
+    path = "/api/roles",
+    tag = "Roles",
+    responses(
+        (status = 200, description = "List of all roles", body = Vec<crate::models::role::Model>),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(
+        ("session_cookie" = [])
+    )
+)]
 pub async fn get_roles_handler(
     State(state): State<AppState>,
     Extension(_user_context): Extension<UserContext>, // Require authentication

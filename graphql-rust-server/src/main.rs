@@ -32,7 +32,10 @@ use hr_graphql_server::{
     scheduler,
     auth,
     config::Config,
+    openapi::ApiDoc,
 };
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -128,6 +131,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Build the application
     let app = Router::new()
+        // Swagger UI for REST API documentation
+        .merge(SwaggerUi::new("/swagger-ui")
+            .url("/api-docs/openapi.json", ApiDoc::openapi()))
         // Authentication endpoints
         .route("/auth/login", post(login_handler))
         .route("/auth/logout", post(logout_handler))
@@ -246,7 +252,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     tracing::info!("🚀 Server starting on http://{}", addr);
-    tracing::info!("📊 GraphQL playground: http://{}", addr);
+    tracing::info!("📊 GraphQL playground: http://{}/graphql", addr);
+    tracing::info!("📚 Swagger UI (REST API docs): http://{}/swagger-ui", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await?;

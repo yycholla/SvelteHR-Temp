@@ -18,6 +18,7 @@ pub mod schema;
 pub mod utils;
 pub mod logging;
 pub mod scheduler;
+pub mod openapi;
 
 // Migration module (from ../migration/lib.rs)
 #[path = "../migration/lib.rs"]

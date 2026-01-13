@@ -18,6 +18,24 @@ use crate::{
 use crate::services::events::EventService;
 
 /// Handler to delete an event
+#[utoipa::path(
+    delete,
+    path = "/api/events/{id}",
+    tag = "Events",
+    params(
+        ("id" = uuid::Uuid, Path, description = "Event UUID to delete")
+    ),
+    responses(
+        (status = 200, description = "Event deleted successfully", body = serde_json::Value,
+            example = json!({"success": true, "message": "Event deleted successfully"})),
+        (status = 404, description = "Event not found"),
+        (status = 403, description = "Not authorized to delete this event"),
+        (status = 401, description = "Not authenticated"),
+    ),
+    security(
+        ("session_cookie" = [])
+    )
+)]
 pub async fn delete_event_handler(
     State(state): State<AppState>,
     Extension(user_context): Extension<UserContext>,
