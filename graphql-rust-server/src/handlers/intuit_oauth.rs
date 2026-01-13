@@ -12,8 +12,14 @@ use uuid::Uuid;
 
 use crate::{
     handlers::AppState,
-    integrations::intuit::{exchange_code_for_tokens, IntuitClient},
+    integrations::intuit::{exchange_code_for_tokens, IntuitClient, IntuitClientManager},
     models::intuit_connection,
+    services::{
+        sync_orchestrator::SyncOrchestrator,
+        conflict_resolver::ConflictStrategy,
+        sync_tracker::EntityType,
+        incremental_sync::SyncMode,
+    },
 };
 
 /// OAuth callback query parameters
@@ -106,6 +112,14 @@ pub async fn intuit_oauth_callback_handler(
             match active_model.update(&state.db).await {
                 Ok(_) => {
                     tracing::info!(realm_id = %realm_id, "Updated existing QuickBooks connection");
+
+                    // Spawn background task to sync initial data from QuickBooks
+                    let db_clone = state.db.clone();
+                    let realm_id_clone = realm_id.clone();
+                    tokio::spawn(async move {
+                        trigger_initial_sync(db_clone, realm_id_clone).await;
+                    });
+
                     Redirect::to("/admin/settings/integrations?success=reconnected")
                 }
                 Err(e) => {
@@ -140,6 +154,14 @@ pub async fn intuit_oauth_callback_handler(
             match new_connection.insert(&state.db).await {
                 Ok(_) => {
                     tracing::info!(realm_id = %realm_id, "Created new QuickBooks connection");
+
+                    // Spawn background task to sync initial data from QuickBooks
+                    let db_clone = state.db.clone();
+                    let realm_id_clone = realm_id.clone();
+                    tokio::spawn(async move {
+                        trigger_initial_sync(db_clone, realm_id_clone).await;
+                    });
+
                     Redirect::to("/admin/settings/integrations?success=connected")
                 }
                 Err(e) => {
@@ -171,4 +193,90 @@ async fn get_company_name(access_token: &str, realm_id: &str) -> anyhow::Result<
     company_info
         .company_name
         .ok_or_else(|| anyhow::anyhow!("Company name not found"))
+}
+
+/// Trigger initial sync after OAuth connection is established
+/// This runs in the background to avoid blocking the OAuth callback response
+async fn trigger_initial_sync(db: sea_orm::DatabaseConnection, realm_id: String) {
+    tracing::info!(
+        realm_id = %realm_id,
+        "Starting initial QuickBooks data sync after OAuth connection"
+    );
+
+    // Get QuickBooks client with automatic token refresh
+    let client_manager = IntuitClientManager::new(db.clone());
+    let client = match client_manager.get_client().await {
+        Ok(c) => c,
+        Err(e) => {
+            tracing::error!(
+                realm_id = %realm_id,
+                error = %e,
+                "Failed to create Intuit client for initial sync"
+            );
+            return;
+        }
+    };
+
+    // Sync employees first (most critical data)
+    tracing::info!("Syncing employees from QuickBooks...");
+    let employee_result = SyncOrchestrator::sync_bidirectional_intelligent(
+        &db,
+        &client,
+        EntityType::Employee,
+        ConflictStrategy::RemoteWins, // On initial sync, QuickBooks data wins
+        SyncMode::Full, // Force full sync on first connection
+    )
+    .await;
+
+    match employee_result {
+        Ok(report) => {
+            tracing::info!(
+                realm_id = %realm_id,
+                pulled = report.pulled_count,
+                errors = report.errors.len(),
+                "Initial employee sync completed"
+            );
+        }
+        Err(e) => {
+            tracing::error!(
+                realm_id = %realm_id,
+                error = %e,
+                "Initial employee sync failed"
+            );
+        }
+    }
+
+    // Sync departments
+    tracing::info!("Syncing departments from QuickBooks...");
+    let department_result = SyncOrchestrator::sync_bidirectional_intelligent(
+        &db,
+        &client,
+        EntityType::Department,
+        ConflictStrategy::RemoteWins,
+        SyncMode::Full,
+    )
+    .await;
+
+    match department_result {
+        Ok(report) => {
+            tracing::info!(
+                realm_id = %realm_id,
+                pulled = report.pulled_count,
+                errors = report.errors.len(),
+                "Initial department sync completed"
+            );
+        }
+        Err(e) => {
+            tracing::error!(
+                realm_id = %realm_id,
+                error = %e,
+                "Initial department sync failed"
+            );
+        }
+    }
+
+    tracing::info!(
+        realm_id = %realm_id,
+        "Initial QuickBooks sync completed. Users can now see their QuickBooks data in SvelteHR."
+    );
 }
