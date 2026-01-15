@@ -30,11 +30,7 @@
 	<Card.Content class="space-y-4">
 		<div class="space-y-2">
 			<Label for="addressStreet">Street Address</Label>
-			<Input
-				id="addressStreet"
-				bind:value={addressStreet}
-				placeholder="Enter street address"
-			/>
+			<Input id="addressStreet" bind:value={addressStreet} placeholder="Enter street address" />
 		</div>
 
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -50,11 +46,7 @@
 
 			<div class="space-y-2">
 				<Label for="addressZipCode">ZIP Code</Label>
-				<Input
-					id="addressZipCode"
-					bind:value={addressZipCode}
-					placeholder="Enter ZIP code"
-				/>
+				<Input id="addressZipCode" bind:value={addressZipCode} placeholder="Enter ZIP code" />
 			</div>
 		</div>
 	</Card.Content>

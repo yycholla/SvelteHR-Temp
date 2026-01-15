@@ -6,10 +6,18 @@ import { createStandardError } from '$lib/utils/error-handling.js';
 import { redirect } from '@sveltejs/kit';
 import { authConfig } from '$lib/auth/config.js';
 import { logger } from '$lib/utils/logger.js';
-import { PUBLIC_ROUTES, STATIC_EXTENSIONS, SESSION_CACHE_TTL } from '$lib/server/hooks/constants.js';
+import {
+	PUBLIC_ROUTES,
+	STATIC_EXTENSIONS,
+	SESSION_CACHE_TTL
+} from '$lib/server/hooks/constants.js';
 import { authenticateUser } from '$lib/server/hooks/authentication.js';
 import { detectSuspiciousParams, applySecurityHeaders } from '$lib/server/hooks/security.js';
-import { MAX_LOGIN_ATTEMPTS, RATE_LIMIT_WINDOW, BLOCK_DURATION } from '$lib/server/hooks/rate-limiter.js';
+import {
+	MAX_LOGIN_ATTEMPTS,
+	RATE_LIMIT_WINDOW,
+	BLOCK_DURATION
+} from '$lib/server/hooks/rate-limiter.js';
 
 // Initialize event reminder scheduler with backend health check
 import { ReminderScheduler } from '$lib/server/reminder-scheduler';

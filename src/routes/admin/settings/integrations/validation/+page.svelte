@@ -4,13 +4,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Badge } from '$lib/components/ui/badge';
 	import { toast } from 'svelte-sonner';
-	import {
-		AlertTriangle,
-		CheckCircle2,
-		RefreshCw,
-		AlertCircle,
-		Database
-	} from '@lucide/svelte';
+	import { AlertTriangle, CheckCircle2, RefreshCw, AlertCircle, Database } from '@lucide/svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -47,7 +41,7 @@
 					`,
 					variables: {
 						quickbooksId: error.entityId,
-						email: email
+						email
 					}
 				})
 			});
@@ -59,7 +53,10 @@
 				validationErrors = validationErrors.filter((e: ValidationError) => e.id !== error.id);
 				delete editingEmail[error.id];
 			} else {
-				toast.error(result.data?.employeeImport?.importEmployeeWithEmail?.message || 'Failed to import employee');
+				toast.error(
+					result.data?.employeeImport?.importEmployeeWithEmail?.message ||
+						'Failed to import employee'
+				);
 			}
 		} catch (err) {
 			toast.error('Failed to import employee: ' + err);
@@ -68,9 +65,7 @@
 		}
 	}
 
-	function getSeverityColor(
-		severity: string
-	): 'default' | 'secondary' | 'destructive' | 'outline' {
+	function getSeverityColor(severity: string): 'default' | 'secondary' | 'destructive' | 'outline' {
 		switch (severity.toLowerCase()) {
 			case 'error':
 			case 'critical':
@@ -140,7 +135,11 @@
 					<AlertTriangle class="h-4 w-4 text-muted-foreground" />
 				</div>
 				<div>
-					<div class="text-3xl font-bold tracking-tight {validationErrors.length > 0 ? 'text-red-600' : 'text-green-600'}">
+					<div
+						class="text-3xl font-bold tracking-tight {validationErrors.length > 0
+							? 'text-red-600'
+							: 'text-green-600'}"
+					>
 						{validationErrors.length}
 					</div>
 					<div class="mt-1 text-xs text-muted-foreground">Validation issues</div>
@@ -261,9 +260,7 @@
 									<td class="px-3 py-2 text-right">
 										<div class="flex gap-1 justify-end items-center">
 											{#if error.resolvedAt}
-												<span
-													class="text-[10px] text-green-600 font-medium flex items-center mr-2"
-												>
+												<span class="text-[10px] text-green-600 font-medium flex items-center mr-2">
 													<CheckCircle2 class="h-3 w-3 mr-0.5" />
 													Resolved
 												</span>

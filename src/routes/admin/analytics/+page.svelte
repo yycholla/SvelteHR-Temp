@@ -26,7 +26,9 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-background">
 	<!-- Toolbar -->
-	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
 		<div class="flex items-center gap-4">
 			<h1 class="text-sm font-semibold tracking-tight">Analytics Dashboard</h1>
 			<div class="h-4 w-px bg-border"></div>
@@ -46,7 +48,9 @@
 			<!-- Total Users -->
 			<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 				<div class="flex items-center justify-between">
-					<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Users</span>
+					<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+						>Total Users</span
+					>
 					<Users class="h-4 w-4 text-muted-foreground" />
 				</div>
 				<div>
@@ -64,13 +68,16 @@
 			<!-- Active Users -->
 			<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 				<div class="flex items-center justify-between">
-					<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Active</span>
+					<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+						>Active</span
+					>
 					<UserCheck class="h-4 w-4 text-muted-foreground" />
 				</div>
 				<div>
 					<div class="text-3xl font-bold tracking-tight">{analytics.overview.activeUsers}</div>
 					<div class="mt-1 text-xs text-muted-foreground">
-						{Math.round((analytics.overview.activeUsers / analytics.overview.totalUsers) * 100)}% usage rate
+						{Math.round((analytics.overview.activeUsers / analytics.overview.totalUsers) * 100)}%
+						usage rate
 					</div>
 				</div>
 			</div>
@@ -78,7 +85,9 @@
 			<!-- Departments -->
 			<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 				<div class="flex items-center justify-between">
-					<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Departments</span>
+					<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+						>Departments</span
+					>
 					<Building2 class="h-4 w-4 text-muted-foreground" />
 				</div>
 				<div>
@@ -92,14 +101,14 @@
 			<!-- Roles -->
 			<div class="p-6 bg-background flex flex-col justify-between h-32">
 				<div class="flex items-center justify-between">
-					<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Roles</span>
+					<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+						>Roles</span
+					>
 					<Shield class="h-4 w-4 text-muted-foreground" />
 				</div>
 				<div>
 					<div class="text-3xl font-bold tracking-tight">{analytics.overview.totalRoles}</div>
-					<div class="mt-1 text-xs text-muted-foreground">
-						Permission levels
-					</div>
+					<div class="mt-1 text-xs text-muted-foreground">Permission levels</div>
 				</div>
 			</div>
 		</div>
@@ -119,7 +128,12 @@
 							<span class="font-medium">{analytics.activity.dailyActiveUsers}</span>
 						</div>
 						<div class="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-							<div class="h-full bg-primary" style="width: {(analytics.activity.dailyActiveUsers / analytics.overview.totalUsers) * 100}%"></div>
+							<div
+								class="h-full bg-primary"
+								style="width: {(analytics.activity.dailyActiveUsers /
+									analytics.overview.totalUsers) *
+									100}%"
+							></div>
 						</div>
 					</div>
 					<div>
@@ -128,7 +142,12 @@
 							<span class="font-medium">{analytics.activity.weeklyActiveUsers}</span>
 						</div>
 						<div class="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-							<div class="h-full bg-primary" style="width: {(analytics.activity.weeklyActiveUsers / analytics.overview.totalUsers) * 100}%"></div>
+							<div
+								class="h-full bg-primary"
+								style="width: {(analytics.activity.weeklyActiveUsers /
+									analytics.overview.totalUsers) *
+									100}%"
+							></div>
 						</div>
 					</div>
 					<div>
@@ -137,7 +156,12 @@
 							<span class="font-medium">{analytics.activity.monthlyActiveUsers}</span>
 						</div>
 						<div class="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-							<div class="h-full bg-primary" style="width: {(analytics.activity.monthlyActiveUsers / analytics.overview.totalUsers) * 100}%"></div>
+							<div
+								class="h-full bg-primary"
+								style="width: {(analytics.activity.monthlyActiveUsers /
+									analytics.overview.totalUsers) *
+									100}%"
+							></div>
 						</div>
 					</div>
 				</div>
@@ -152,13 +176,22 @@
 				<div class="grid grid-cols-2 gap-4 h-full">
 					<div class="flex flex-col justify-center p-4 bg-muted/10 rounded border border-dashed">
 						<span class="text-xs text-muted-foreground uppercase tracking-wider mb-1">Largest</span>
-						<span class="text-lg font-bold truncate" title={analytics.departments.largest.name}>{analytics.departments.largest.name}</span>
-						<span class="text-sm text-primary font-medium">{analytics.departments.largest.count} members</span>
+						<span class="text-lg font-bold truncate" title={analytics.departments.largest.name}
+							>{analytics.departments.largest.name}</span
+						>
+						<span class="text-sm text-primary font-medium"
+							>{analytics.departments.largest.count} members</span
+						>
 					</div>
 					<div class="flex flex-col justify-center p-4 bg-muted/10 rounded border border-dashed">
-						<span class="text-xs text-muted-foreground uppercase tracking-wider mb-1">Smallest</span>
-						<span class="text-lg font-bold truncate" title={analytics.departments.smallest.name}>{analytics.departments.smallest.name}</span>
-						<span class="text-sm text-muted-foreground font-medium">{analytics.departments.smallest.count} members</span>
+						<span class="text-xs text-muted-foreground uppercase tracking-wider mb-1">Smallest</span
+						>
+						<span class="text-lg font-bold truncate" title={analytics.departments.smallest.name}
+							>{analytics.departments.smallest.name}</span
+						>
+						<span class="text-sm text-muted-foreground font-medium"
+							>{analytics.departments.smallest.count} members</span
+						>
 					</div>
 				</div>
 			</div>
@@ -202,13 +235,16 @@
 				<div class="flex items-end justify-between h-64 gap-2 pt-4 px-2">
 					{#each chartData.userGrowth as dataPoint}
 						{@const maxUsers = Math.max(...chartData.userGrowth.map((d) => d.users))}
-						{@const heightPercent = (dataPoint.users / (maxUsers * 1.1)) * 100} <!-- Scale to max + 10% -->
+						{@const heightPercent = (dataPoint.users / (maxUsers * 1.1)) * 100}
+						<!-- Scale to max + 10% -->
 						<div class="flex flex-col items-center flex-1 gap-2 group">
 							<div class="relative w-full flex justify-center">
-								<span class="absolute bottom-full mb-1 text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+								<span
+									class="absolute bottom-full mb-1 text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity"
+								>
 									{dataPoint.users}
 								</span>
-								<div 
+								<div
 									class="w-full max-w-[40px] bg-primary/80 group-hover:bg-primary transition-colors rounded-t-sm"
 									style="height: {heightPercent}%"
 								></div>
@@ -236,7 +272,10 @@
 						</thead>
 						<tbody class="divide-y">
 							{#each chartData.departmentDistribution as dept}
-								{@const totalDeptUsers = chartData.departmentDistribution.reduce((sum, d) => sum + d.count, 0)}
+								{@const totalDeptUsers = chartData.departmentDistribution.reduce(
+									(sum, d) => sum + d.count,
+									0
+								)}
 								{@const percentage = (dept.count / totalDeptUsers) * 100}
 								<tr class="hover:bg-muted/10">
 									<td class="px-3 py-2 font-medium">{dept.department}</td>
@@ -246,7 +285,9 @@
 											<div class="h-1.5 flex-1 bg-muted rounded-full overflow-hidden">
 												<div class="h-full bg-slate-500" style="width: {percentage}%"></div>
 											</div>
-											<span class="text-[10px] text-muted-foreground w-8 text-right">{Math.round(percentage)}%</span>
+											<span class="text-[10px] text-muted-foreground w-8 text-right"
+												>{Math.round(percentage)}%</span
+											>
 										</div>
 									</td>
 								</tr>

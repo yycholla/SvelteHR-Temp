@@ -47,16 +47,9 @@
 				onblur={() => onValidate('password', password)}
 				placeholder="Leave blank to auto-generate"
 				disabled={submitting}
-				class="flex-1 {fieldErrors.password
-					? 'border-red-500 focus-visible:ring-red-500'
-					: ''}"
+				class="flex-1 {fieldErrors.password ? 'border-red-500 focus-visible:ring-red-500' : ''}"
 			/>
-			<Button
-				type="button"
-				variant="outline"
-				onclick={onGeneratePassword}
-				disabled={submitting}
-			>
+			<Button type="button" variant="outline" onclick={onGeneratePassword} disabled={submitting}>
 				Generate
 			</Button>
 		</div>

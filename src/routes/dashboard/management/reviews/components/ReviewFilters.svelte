@@ -1,19 +1,11 @@
 <script lang="ts">
 	import { Filter, Search } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
-	import {
-		Card,
-		CardContent,
-		CardHeader,
-		CardTitle
-	} from '$lib/components/ui/card';
+	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import * as Select from '$lib/components/ui/select';
-	import {
-		reviewPeriods,
-		reviewStatusOptions
-	} from '$lib/graphql/queries/performance-reviews';
+	import { reviewPeriods, reviewStatusOptions } from '$lib/graphql/queries/performance-reviews';
 
 	interface Props {
 		searchQuery: string;
@@ -68,11 +60,7 @@
 			<!-- Status Filter -->
 			<div class="w-full md:w-48">
 				<Label>Status</Label>
-				<Select.Root
-					type="single"
-					value={statusFilter}
-					onValueChange={onStatusChange}
-				>
+				<Select.Root type="single" value={statusFilter} onValueChange={onStatusChange}>
 					<Select.Trigger>
 						<Select.Value placeholder="All Statuses" />
 					</Select.Trigger>
@@ -88,11 +76,7 @@
 			<!-- Period Filter -->
 			<div class="w-full md:w-48">
 				<Label>Review Period</Label>
-				<Select.Root
-					type="single"
-					value={periodFilter}
-					onValueChange={onPeriodChange}
-				>
+				<Select.Root type="single" value={periodFilter} onValueChange={onPeriodChange}>
 					<Select.Trigger>
 						<Select.Value placeholder="All Periods" />
 					</Select.Trigger>

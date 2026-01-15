@@ -7,9 +7,7 @@ export const load: PageServerLoad = async ({ fetch, cookies, url }) => {
 	const entityType = url.searchParams.get('entityType') || undefined;
 
 	try {
-		const result = await client
-			.query(GET_FIELD_MAPPINGS, { entityType })
-			.toPromise();
+		const result = await client.query(GET_FIELD_MAPPINGS, { entityType }).toPromise();
 
 		if (result.error) {
 			console.error('Error fetching field mappings:', result.error);

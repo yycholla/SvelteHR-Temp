@@ -77,7 +77,9 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-background">
 	<!-- Toolbar -->
-	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
 		<div class="flex items-center gap-4 flex-1">
 			{#if selectedOperation}
 				<button
@@ -106,7 +108,9 @@
 	<!-- Error message -->
 	{#if data.error}
 		<div class="flex-shrink-0 p-4 pb-0">
-			<div class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20">
+			<div
+				class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20"
+			>
 				{data.error}
 			</div>
 		</div>
@@ -120,7 +124,9 @@
 				<div class="flex items-start justify-between p-3 border-b">
 					<div>
 						<h2 class="text-xs font-semibold">Operation Summary</h2>
-						<p class="text-[10px] text-muted-foreground mt-0.5">{formatDate(selectedOperation.createdAt)}</p>
+						<p class="text-[10px] text-muted-foreground mt-0.5">
+							{formatDate(selectedOperation.createdAt)}
+						</p>
 					</div>
 					<span
 						class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getStatusColor(
@@ -159,7 +165,11 @@
 						</div>
 						<div>
 							<p class="text-[10px] text-muted-foreground">Priority</p>
-							<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium mt-0.5 {getPriorityColor(selectedOperation.priority)}">
+							<span
+								class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium mt-0.5 {getPriorityColor(
+									selectedOperation.priority
+								)}"
+							>
 								{selectedOperation.priority}
 							</span>
 						</div>
@@ -198,7 +208,9 @@
 
 					<!-- Error Details -->
 					<div class="mt-3">
-						<div class="rounded-md bg-destructive/10 p-2 text-xs text-destructive border border-destructive/20">
+						<div
+							class="rounded-md bg-destructive/10 p-2 text-xs text-destructive border border-destructive/20"
+						>
 							<div class="flex items-start gap-2">
 								<AlertCircle class="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
 								<div>
@@ -302,7 +314,9 @@
 
 									{#if retry.errorDetails}
 										<details class="mt-1">
-											<summary class="text-[10px] cursor-pointer text-muted-foreground hover:text-foreground">
+											<summary
+												class="text-[10px] cursor-pointer text-muted-foreground hover:text-foreground"
+											>
 												View error details
 											</summary>
 											<pre
@@ -332,7 +346,9 @@
 					</div>
 
 					<div class="border rounded-sm bg-background p-3 h-32 flex flex-col justify-between">
-						<p class="text-[10px] text-muted-foreground uppercase tracking-wider">Pending Retries</p>
+						<p class="text-[10px] text-muted-foreground uppercase tracking-wider">
+							Pending Retries
+						</p>
 						<div class="flex items-end gap-2">
 							<Clock class="h-6 w-6 text-yellow-500" />
 							<p class="text-2xl font-bold">{statistics.pendingRetries}</p>
@@ -340,7 +356,9 @@
 					</div>
 
 					<div class="border rounded-sm bg-background p-3 h-32 flex flex-col justify-between">
-						<p class="text-[10px] text-muted-foreground uppercase tracking-wider">Currently Retrying</p>
+						<p class="text-[10px] text-muted-foreground uppercase tracking-wider">
+							Currently Retrying
+						</p>
 						<div class="flex items-end gap-2">
 							<Activity class="h-6 w-6 text-blue-500 animate-pulse" />
 							<p class="text-2xl font-bold">{statistics.currentlyRetrying}</p>
@@ -374,7 +392,7 @@
 			</div>
 		{/if}
 
-			<!-- Tab Bar -->
+		<!-- Tab Bar -->
 		<div class="flex-shrink-0 border-b bg-muted/5">
 			<div class="flex">
 				<button
@@ -387,7 +405,8 @@
 				</button>
 				<button
 					onclick={() => (activeTab = 'dead-letter')}
-					class="px-4 py-2 text-xs font-medium border-b-2 transition-colors {activeTab === 'dead-letter'
+					class="px-4 py-2 text-xs font-medium border-b-2 transition-colors {activeTab ===
+					'dead-letter'
 						? 'border-primary text-foreground'
 						: 'border-transparent text-muted-foreground hover:text-foreground'}"
 				>
@@ -403,11 +422,26 @@
 				<table class="w-full text-sm text-left border-collapse">
 					<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
 						<tr>
-							<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0">Operation</th>
-							<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0">Error</th>
-							<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0">Retries</th>
-							<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0">Priority</th>
-							<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Next Retry</th>
+							<th
+								class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+								>Operation</th
+							>
+							<th
+								class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+								>Error</th
+							>
+							<th
+								class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+								>Retries</th
+							>
+							<th
+								class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+								>Priority</th
+							>
+							<th
+								class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground"
+								>Next Retry</th
+							>
 						</tr>
 					</thead>
 					<tbody class="divide-y">
@@ -416,7 +450,9 @@
 								<td colspan="5" class="px-4 py-12 text-center">
 									<CheckCircle2 class="h-10 w-10 mx-auto mb-2 text-green-500" />
 									<p class="text-xs font-medium">No pending retries</p>
-									<p class="text-[10px] text-muted-foreground mt-0.5">All operations are being processed successfully</p>
+									<p class="text-[10px] text-muted-foreground mt-0.5">
+										All operations are being processed successfully
+									</p>
 								</td>
 							</tr>
 						{:else}
@@ -450,7 +486,11 @@
 										{operation.retryCount} / {operation.maxRetries}
 									</td>
 									<td class="px-3 py-1.5 border-r last:border-r-0">
-										<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getPriorityColor(operation.priority)}">
+										<span
+											class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getPriorityColor(
+												operation.priority
+											)}"
+										>
 											{operation.priority}
 										</span>
 									</td>
@@ -467,11 +507,26 @@
 				<table class="w-full text-sm text-left border-collapse">
 					<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
 						<tr>
-							<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0">Operation</th>
-							<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0">Error</th>
-							<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0">Attempts</th>
-							<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0">Reason</th>
-							<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Status</th>
+							<th
+								class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+								>Operation</th
+							>
+							<th
+								class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+								>Error</th
+							>
+							<th
+								class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+								>Attempts</th
+							>
+							<th
+								class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+								>Reason</th
+							>
+							<th
+								class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground"
+								>Status</th
+							>
 						</tr>
 					</thead>
 					<tbody class="divide-y">
@@ -480,7 +535,9 @@
 								<td colspan="5" class="px-4 py-12 text-center">
 									<CheckCircle2 class="h-10 w-10 mx-auto mb-2 text-green-500" />
 									<p class="text-xs font-medium">No dead letter operations</p>
-									<p class="text-[10px] text-muted-foreground mt-0.5">No operations have been moved to dead letter queue</p>
+									<p class="text-[10px] text-muted-foreground mt-0.5">
+										No operations have been moved to dead letter queue
+									</p>
 								</td>
 							</tr>
 						{:else}
@@ -523,7 +580,9 @@
 									</td>
 									<td class="px-3 py-1.5 text-xs">
 										{#if operation.resolvedAt}
-											<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700">
+											<span
+												class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700"
+											>
 												Resolved
 											</span>
 										{:else}

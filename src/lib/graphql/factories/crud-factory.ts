@@ -35,7 +35,11 @@ import { BaseOperations } from '../base-operations';
 /**
  * Configuration for CRUD operations factory
  */
-export interface CRUDOperationsConfig<TEntity = any, TCreateInput = Partial<TEntity>, TUpdateInput = Partial<TEntity>> {
+export interface CRUDOperationsConfig<
+	TEntity = any,
+	TCreateInput = Partial<TEntity>,
+	TUpdateInput = Partial<TEntity>
+> {
 	/**
 	 * urql GraphQL client instance
 	 */
@@ -97,7 +101,11 @@ export interface CRUDOperationsConfig<TEntity = any, TCreateInput = Partial<TEnt
 /**
  * Standard CRUD operations interface
  */
-export interface CRUDOperations<TEntity = any, TCreateInput = Partial<TEntity>, TUpdateInput = Partial<TEntity>> {
+export interface CRUDOperations<
+	TEntity = any,
+	TCreateInput = Partial<TEntity>,
+	TUpdateInput = Partial<TEntity>
+> {
 	/**
 	 * Get all entities with optional filters and pagination
 	 */
@@ -160,7 +168,11 @@ export interface CRUDOperations<TEntity = any, TCreateInput = Partial<TEntity>, 
  * const employee = await employeeOps.getById('emp-456');
  * ```
  */
-export function createCRUDOperations<TEntity = any, TCreateInput = Partial<TEntity>, TUpdateInput = Partial<TEntity>>(
+export function createCRUDOperations<
+	TEntity = any,
+	TCreateInput = Partial<TEntity>,
+	TUpdateInput = Partial<TEntity>
+>(
 	config: CRUDOperationsConfig<TEntity, TCreateInput, TUpdateInput>
 ): CRUDOperations<TEntity, TCreateInput, TUpdateInput> {
 	const { client, entityName, queries, mutations, dataPaths } = config;

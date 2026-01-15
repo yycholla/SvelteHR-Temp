@@ -22,7 +22,7 @@
 	}: Props = $props();
 </script>
 
-<Dialog.Root bind:open={open}>
+<Dialog.Root bind:open>
 	<Dialog.Content>
 		<Dialog.Header>
 			<Dialog.Title>Create New Role</Dialog.Title>

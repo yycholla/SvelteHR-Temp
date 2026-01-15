@@ -29,7 +29,9 @@ export const load: PageServerLoad = async (event) => {
 		//   { operationName: 'GetNotificationPreferences', dataPath: 'preferences' }
 		// );
 
-		logger.warn('[EventSettings] Notification preferences temporarily disabled - returning defaults');
+		logger.warn(
+			'[EventSettings] Notification preferences temporarily disabled - returning defaults'
+		);
 
 		return {
 			preferences: {

@@ -140,7 +140,8 @@
 	}
 
 	async function moveForm(index: number, direction: 'up' | 'down') {
-		if ((direction === 'up' && index === 0) || (direction === 'down' && index === forms.length - 1)) return;
+		if ((direction === 'up' && index === 0) || (direction === 'down' && index === forms.length - 1))
+			return;
 		const newForms = [...forms];
 		const swapIndex = direction === 'up' ? index - 1 : index + 1;
 		[newForms[index], newForms[swapIndex]] = [newForms[swapIndex], newForms[index]];
@@ -168,9 +169,16 @@
 
 <div class="flex flex-col h-full bg-background overflow-hidden">
 	<!-- Sticky Header -->
-	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
 		<div class="flex items-center gap-4">
-			<Button variant="ghost" size="icon" href={`/admin/onboarding/${data.module.id}`} title="Back to Module">
+			<Button
+				variant="ghost"
+				size="icon"
+				href={`/admin/onboarding/${data.module.id}`}
+				title="Back to Module"
+			>
 				<ArrowLeft class="h-4 w-4" />
 			</Button>
 			<div>
@@ -220,21 +228,50 @@
 							{/if}
 						</div>
 
-						<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-							<Button variant="ghost" size="icon" class="h-8 w-8" onclick={() => moveForm(index, 'up')} disabled={index === 0}>
+						<div
+							class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+						>
+							<Button
+								variant="ghost"
+								size="icon"
+								class="h-8 w-8"
+								onclick={() => moveForm(index, 'up')}
+								disabled={index === 0}
+							>
 								<ChevronUp class="w-4 h-4" />
 							</Button>
-							<Button variant="ghost" size="icon" class="h-8 w-8" onclick={() => moveForm(index, 'down')} disabled={index === forms.length - 1}>
+							<Button
+								variant="ghost"
+								size="icon"
+								class="h-8 w-8"
+								onclick={() => moveForm(index, 'down')}
+								disabled={index === forms.length - 1}
+							>
 								<ChevronDown class="w-4 h-4" />
 							</Button>
 							<div class="w-px h-4 bg-border mx-1"></div>
-							<Button variant="ghost" size="sm" class="h-8 text-xs" onclick={() => editFormBlocks(form.id)}>
+							<Button
+								variant="ghost"
+								size="sm"
+								class="h-8 text-xs"
+								onclick={() => editFormBlocks(form.id)}
+							>
 								<ExternalLink class="w-3.5 h-3.5 mr-1.5" /> Builder
 							</Button>
-							<Button variant="ghost" size="icon" class="h-8 w-8" onclick={() => openFormDialog(form)}>
+							<Button
+								variant="ghost"
+								size="icon"
+								class="h-8 w-8"
+								onclick={() => openFormDialog(form)}
+							>
 								<Edit class="w-4 h-4" />
 							</Button>
-							<Button variant="ghost" size="icon" class="h-8 w-8 text-destructive hover:bg-destructive/10" onclick={() => confirmDeleteForm(form.id)}>
+							<Button
+								variant="ghost"
+								size="icon"
+								class="h-8 w-8 text-destructive hover:bg-destructive/10"
+								onclick={() => confirmDeleteForm(form.id)}
+							>
 								<Trash2 class="w-4 h-4" />
 							</Button>
 						</div>
@@ -250,7 +287,9 @@
 	<DialogContent>
 		<DialogHeader>
 			<DialogTitle>{editingForm ? 'Edit Form' : 'Create New Form'}</DialogTitle>
-			<DialogDescription>{editingForm ? 'Update details below' : 'Create a new form'}</DialogDescription>
+			<DialogDescription
+				>{editingForm ? 'Update details below' : 'Create a new form'}</DialogDescription
+			>
 		</DialogHeader>
 		<div class="space-y-4">
 			<div class="space-y-2">
@@ -259,7 +298,12 @@
 			</div>
 			<div class="space-y-2">
 				<Label for="form-description">Description</Label>
-				<Textarea id="form-description" bind:value={formDescription} placeholder="Enter description" rows={3} />
+				<Textarea
+					id="form-description"
+					bind:value={formDescription}
+					placeholder="Enter description"
+					rows={3}
+				/>
 			</div>
 			<div class="flex items-center space-x-2">
 				<Checkbox id="form-required" bind:checked={formIsRequired} />
@@ -281,7 +325,9 @@
 		</AlertDialogHeader>
 		<AlertDialogFooter>
 			<AlertDialogCancel onclick={() => (showDeleteDialog = false)}>Cancel</AlertDialogCancel>
-			<AlertDialogAction onclick={deleteForm} class="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+			<AlertDialogAction onclick={deleteForm} class="bg-destructive hover:bg-destructive/90"
+				>Delete</AlertDialogAction
+			>
 		</AlertDialogFooter>
 	</AlertDialogContent>
 </AlertDialog>

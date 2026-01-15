@@ -39,11 +39,7 @@
 			</div>
 
 			<div class="form-field">
-				<Input
-					label="ZIP Code"
-					bind:value={addressZipCode}
-					placeholder="Enter ZIP code"
-				/>
+				<Input label="ZIP Code" bind:value={addressZipCode} placeholder="Enter ZIP code" />
 			</div>
 		</div>
 	</div>

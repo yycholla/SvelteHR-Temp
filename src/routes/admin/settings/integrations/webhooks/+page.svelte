@@ -113,7 +113,9 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-background">
 	<!-- Toolbar -->
-	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
 		<div class="flex items-center gap-4 flex-1">
 			{#if selectedEvent}
 				<button
@@ -142,7 +144,9 @@
 	<!-- Error/Success Messages -->
 	{#if data.error}
 		<div class="flex-shrink-0 p-4 pb-0">
-			<div class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20 flex items-center gap-2">
+			<div
+				class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20 flex items-center gap-2"
+			>
 				<AlertCircle class="h-4 w-4" />
 				{data.error}
 			</div>
@@ -151,7 +155,9 @@
 
 	{#if form?.error}
 		<div class="flex-shrink-0 p-4 pb-0">
-			<div class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20 flex items-center gap-2">
+			<div
+				class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20 flex items-center gap-2"
+			>
 				<AlertCircle class="h-4 w-4" />
 				{form.error}
 			</div>
@@ -160,7 +166,9 @@
 
 	{#if form?.success}
 		<div class="flex-shrink-0 p-4 pb-0">
-			<div class="rounded-md bg-green-50 p-3 text-sm text-green-700 font-medium border border-green-200 flex items-center gap-2">
+			<div
+				class="rounded-md bg-green-50 p-3 text-sm text-green-700 font-medium border border-green-200 flex items-center gap-2"
+			>
 				<CheckCircle2 class="h-4 w-4" />
 				{form.message}
 			</div>
@@ -214,7 +222,10 @@
 						<div class="text-muted-foreground mb-1">Subscribed Entities</div>
 						<div class="flex flex-wrap gap-1">
 							{#each webhookStatus.entityNames as entity (entity)}
-								<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground">{entity}</span>
+								<span
+									class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground"
+									>{entity}</span
+								>
 							{/each}
 						</div>
 					</div>
@@ -227,7 +238,9 @@
 				</div>
 
 				{#if webhookStatus.failureCount > 0}
-					<div class="mt-3 rounded-md bg-destructive/10 p-2 text-xs text-destructive flex items-center gap-2">
+					<div
+						class="mt-3 rounded-md bg-destructive/10 p-2 text-xs text-destructive flex items-center gap-2"
+					>
 						<AlertCircle class="h-3.5 w-3.5" />
 						{webhookStatus.failureCount} delivery failure(s) recorded
 					</div>
@@ -238,7 +251,9 @@
 						<div class="text-xs font-medium mb-2">Select entity types to subscribe to:</div>
 						<div class="grid grid-cols-2 md:grid-cols-3 gap-2">
 							{#each ['Employee', 'Department', 'Customer'] as entity (entity)}
-								<label class="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-muted/30 text-xs">
+								<label
+									class="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-muted/30 text-xs"
+								>
 									<input
 										type="checkbox"
 										name="entityNames"
@@ -291,7 +306,9 @@
 						<div class="text-xs text-muted-foreground">{formatDate(selectedEvent.receivedAt)}</div>
 					</div>
 					<span
-						class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium {getActionBadgeColor(selectedEvent.status)}"
+						class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium {getActionBadgeColor(
+							selectedEvent.status
+						)}"
 					>
 						{#if selectedEvent.status === 'completed'}
 							<CheckCircle2 class="h-3 w-3 mr-1" />
@@ -348,7 +365,9 @@
 				</div>
 
 				{#if selectedEvent.lastError}
-					<div class="mt-4 rounded-md bg-destructive/10 p-3 text-xs text-destructive border border-destructive/20">
+					<div
+						class="mt-4 rounded-md bg-destructive/10 p-3 text-xs text-destructive border border-destructive/20"
+					>
 						<div class="flex items-start justify-between gap-4">
 							<div class="flex items-start gap-2">
 								<AlertCircle class="h-3.5 w-3.5 mt-0.5" />
@@ -379,7 +398,12 @@
 			<div class="p-4 border rounded-sm bg-background">
 				<h3 class="text-xs font-semibold uppercase tracking-wide mb-2">Event Payload</h3>
 				<div class="text-[10px] text-muted-foreground mb-3">Raw webhook data from QuickBooks</div>
-				<pre class="text-[10px] bg-muted border rounded p-3 overflow-auto max-h-96 font-mono">{JSON.stringify(selectedEvent.payload, null, 2)}</pre>
+				<pre
+					class="text-[10px] bg-muted border rounded p-3 overflow-auto max-h-96 font-mono">{JSON.stringify(
+						selectedEvent.payload,
+						null,
+						2
+					)}</pre>
 			</div>
 		</div>
 	{:else}
@@ -387,7 +411,9 @@
 		{#if statistics}
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 border-b h-32">
 				<div class="flex flex-col justify-center px-4 py-3 border-r last:border-r-0">
-					<div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Total Events</div>
+					<div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
+						Total Events
+					</div>
 					<div class="text-2xl font-bold">{statistics.totalEvents}</div>
 				</div>
 
@@ -400,7 +426,9 @@
 				</div>
 
 				<div class="flex flex-col justify-center px-4 py-3 border-r last:border-r-0">
-					<div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Processing</div>
+					<div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
+						Processing
+					</div>
 					<div class="flex items-center gap-2">
 						<Activity class="h-5 w-5 text-blue-500 animate-pulse" />
 						<div class="text-2xl font-bold">{statistics.processingEvents}</div>
@@ -408,7 +436,9 @@
 				</div>
 
 				<div class="flex flex-col justify-center px-4 py-3 border-r last:border-r-0">
-					<div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Completed</div>
+					<div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
+						Completed
+					</div>
 					<div class="flex items-center gap-2">
 						<CheckCircle2 class="h-5 w-5 text-green-500" />
 						<div class="text-2xl font-bold">{statistics.completedEvents}</div>
@@ -424,7 +454,9 @@
 				</div>
 
 				<div class="flex flex-col justify-center px-4 py-3 border-r last:border-r-0">
-					<div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Avg Processing</div>
+					<div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
+						Avg Processing
+					</div>
 					<div class="flex items-center gap-2">
 						<Zap class="h-5 w-5 text-purple-500" />
 						<div class="text-xl font-bold">
@@ -469,13 +501,34 @@
 			<table class="w-full text-sm text-left border-collapse">
 				<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
 					<tr>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-40">Event Type</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32">Entity</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-24">Status</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32">Received</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32">Processed</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-20">Attempts</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Error</th>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-40"
+							>Event Type</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32"
+							>Entity</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-24"
+							>Status</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32"
+							>Received</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32"
+							>Processed</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-20"
+							>Attempts</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground"
+							>Error</th
+						>
 					</tr>
 				</thead>
 				<tbody class="divide-y">
@@ -492,7 +545,9 @@
 							</td>
 							<td class="px-3 py-1.5 border-r last:border-r-0">
 								<span
-									class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getActionBadgeColor(event.status)}"
+									class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getActionBadgeColor(
+										event.status
+									)}"
 								>
 									{#if event.status === 'completed'}
 										<CheckCircle2 class="h-3 w-3 mr-1" />
@@ -506,10 +561,14 @@
 									{event.status}
 								</span>
 							</td>
-							<td class="px-3 py-1.5 border-r last:border-r-0 text-xs text-muted-foreground whitespace-nowrap">
+							<td
+								class="px-3 py-1.5 border-r last:border-r-0 text-xs text-muted-foreground whitespace-nowrap"
+							>
 								{formatDate(event.receivedAt)}
 							</td>
-							<td class="px-3 py-1.5 border-r last:border-r-0 text-xs text-muted-foreground whitespace-nowrap">
+							<td
+								class="px-3 py-1.5 border-r last:border-r-0 text-xs text-muted-foreground whitespace-nowrap"
+							>
 								{event.processedAt ? formatDate(event.processedAt) : '—'}
 							</td>
 							<td class="px-3 py-1.5 border-r last:border-r-0 text-xs font-semibold text-center">
@@ -534,7 +593,9 @@
 							<td colspan="7" class="px-4 py-12 text-center text-muted-foreground text-xs">
 								<Webhook class="h-10 w-10 mx-auto mb-2 opacity-50" />
 								<div class="font-medium">No webhook events</div>
-								<div class="text-[10px] mt-1">Webhook events will appear here when received from QuickBooks</div>
+								<div class="text-[10px] mt-1">
+									Webhook events will appear here when received from QuickBooks
+								</div>
 							</td>
 						</tr>
 					{/each}

@@ -2,12 +2,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
-	import {
-		Select,
-		SelectContent,
-		SelectItem,
-		SelectTrigger
-	} from '$lib/components/ui/select';
+	import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Textarea } from '$lib/components/ui/textarea';
@@ -104,9 +99,21 @@
 	const scheduleTypes = [
 		{ value: 'daily', label: 'Daily', description: 'Run once per day at a specific time' },
 		{ value: 'every6h', label: 'Every 6 hours', description: 'Run four times per day' },
-		{ value: 'weekdays', label: 'Weekdays only', description: 'Run Monday-Friday at a specific time' },
-		{ value: 'weekly', label: 'Weekly', description: 'Run once per week on a specific day and time' },
-		{ value: 'custom', label: 'Custom cron expression', description: 'Enter a custom cron expression' }
+		{
+			value: 'weekdays',
+			label: 'Weekdays only',
+			description: 'Run Monday-Friday at a specific time'
+		},
+		{
+			value: 'weekly',
+			label: 'Weekly',
+			description: 'Run once per week on a specific day and time'
+		},
+		{
+			value: 'custom',
+			label: 'Custom cron expression',
+			description: 'Enter a custom cron expression'
+		}
 	];
 
 	// Hours (0-23)
@@ -193,7 +200,11 @@
 		timezones.find((tz) => tz.value === formData.timezone)?.label || 'Select timezone'
 	);
 	const statusFilterLabel = $derived(
-		selectedEnabled === 'all' ? 'All Statuses' : selectedEnabled === 'true' ? 'Enabled Only' : 'Filter by status'
+		selectedEnabled === 'all'
+			? 'All Statuses'
+			: selectedEnabled === 'true'
+				? 'Enabled Only'
+				: 'Filter by status'
 	);
 	const entityTypeFilterLabel = $derived(
 		entityTypes.find((t) => t.value === selectedEntityType)?.label || 'Filter by entity type'
@@ -332,12 +343,23 @@
 					input: {
 						scheduleId: scheduleToEdit.id,
 						name: formData.name !== scheduleToEdit.name ? formData.name : null,
-						description: formData.description !== scheduleToEdit.description ? formData.description : null,
-						cronExpression: formData.cronExpression !== scheduleToEdit.cronExpression ? formData.cronExpression : null,
-						entityType: formData.entityType !== scheduleToEdit.entityType ? formData.entityType : null,
-						syncDirection: formData.syncDirection !== scheduleToEdit.syncDirection ? formData.syncDirection : null,
+						description:
+							formData.description !== scheduleToEdit.description ? formData.description : null,
+						cronExpression:
+							formData.cronExpression !== scheduleToEdit.cronExpression
+								? formData.cronExpression
+								: null,
+						entityType:
+							formData.entityType !== scheduleToEdit.entityType ? formData.entityType : null,
+						syncDirection:
+							formData.syncDirection !== scheduleToEdit.syncDirection
+								? formData.syncDirection
+								: null,
 						enabled: formData.enabled !== scheduleToEdit.enabled ? formData.enabled : null,
-						businessHoursOnly: formData.businessHoursOnly !== scheduleToEdit.businessHoursOnly ? formData.businessHoursOnly : null,
+						businessHoursOnly:
+							formData.businessHoursOnly !== scheduleToEdit.businessHoursOnly
+								? formData.businessHoursOnly
+								: null,
 						timezone: formData.timezone !== scheduleToEdit.timezone ? formData.timezone : null
 					}
 				})
@@ -492,11 +514,19 @@
 					<div class="px-4 py-3 border-b bg-muted/5">
 						<div class="flex items-start justify-between">
 							<div>
-								<h2 class="text-xs font-semibold uppercase tracking-wider">{selectedSchedule.name}</h2>
-								<p class="text-xs text-muted-foreground mt-0.5">{selectedSchedule.description || 'No description'}</p>
+								<h2 class="text-xs font-semibold uppercase tracking-wider">
+									{selectedSchedule.name}
+								</h2>
+								<p class="text-xs text-muted-foreground mt-0.5">
+									{selectedSchedule.description || 'No description'}
+								</p>
 							</div>
 							<div class="flex gap-2">
-								<Button onclick={() => toggleSchedule(selectedSchedule)} variant="outline" size="sm">
+								<Button
+									onclick={() => toggleSchedule(selectedSchedule)}
+									variant="outline"
+									size="sm"
+								>
 									{#if selectedSchedule.enabled}
 										<PowerOff class="h-3 w-3 mr-1" />
 										Disable
@@ -505,11 +535,19 @@
 										Enable
 									{/if}
 								</Button>
-								<Button onclick={() => openEditDialog(selectedSchedule)} variant="outline" size="sm">
+								<Button
+									onclick={() => openEditDialog(selectedSchedule)}
+									variant="outline"
+									size="sm"
+								>
 									<Edit class="h-3 w-3 mr-1" />
 									Edit
 								</Button>
-								<Button onclick={() => openDeleteDialog(selectedSchedule)} variant="destructive" size="sm">
+								<Button
+									onclick={() => openDeleteDialog(selectedSchedule)}
+									variant="destructive"
+									size="sm"
+								>
 									<Trash2 class="h-3 w-3 mr-1" />
 									Delete
 								</Button>
@@ -542,11 +580,15 @@
 							<div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
 								<div>
 									<span class="text-muted-foreground">Cron Expression:</span>
-									<code class="ml-2 px-2 py-1 bg-muted rounded font-mono">{selectedSchedule.cronExpression}</code>
+									<code class="ml-2 px-2 py-1 bg-muted rounded font-mono"
+										>{selectedSchedule.cronExpression}</code
+									>
 								</div>
 								<div>
 									<span class="text-muted-foreground">Business Hours Only:</span>
-									<span class="ml-2 font-medium">{selectedSchedule.businessHoursOnly ? 'Yes' : 'No'}</span>
+									<span class="ml-2 font-medium"
+										>{selectedSchedule.businessHoursOnly ? 'Yes' : 'No'}</span
+									>
 								</div>
 								{#if selectedSchedule.lastRunAt}
 									<div>
@@ -620,7 +662,9 @@
 										</div>
 
 										{#if run.errorMessage}
-											<div class="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-800">
+											<div
+												class="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-800"
+											>
 												<AlertCircle class="inline h-3 w-3 mr-1" />
 												{run.errorMessage}
 											</div>
@@ -648,13 +692,21 @@
 			<div class="space-y-0">
 				<!-- KPI Metrics -->
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 border-b">
-					<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
-						<p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Schedules</p>
+					<div
+						class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32"
+					>
+						<p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+							Total Schedules
+						</p>
 						<p class="text-3xl font-bold tracking-tight">{data.total}</p>
 					</div>
 
-					<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
-						<p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Enabled</p>
+					<div
+						class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32"
+					>
+						<p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+							Enabled
+						</p>
 						<div class="flex items-center gap-2">
 							<CheckCircle2 class="h-6 w-6 text-green-600" />
 							<p class="text-3xl font-bold tracking-tight">
@@ -663,8 +715,12 @@
 						</div>
 					</div>
 
-					<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
-						<p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Disabled</p>
+					<div
+						class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32"
+					>
+						<p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+							Disabled
+						</p>
 						<div class="flex items-center gap-2">
 							<PowerOff class="h-6 w-6 text-muted-foreground" />
 							<p class="text-3xl font-bold tracking-tight">
@@ -673,13 +729,24 @@
 						</div>
 					</div>
 
-					<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
-						<p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Next Run</p>
+					<div
+						class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32"
+					>
+						<p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+							Next Run
+						</p>
 						<div class="flex items-center gap-2">
 							<Zap class="h-6 w-6 text-purple-600" />
 							<p class="text-xs font-medium">
 								{#if schedules.filter((s: any) => s.enabled && s.nextRunAt).length > 0}
-									{formatDate(schedules.filter((s: any) => s.enabled && s.nextRunAt).sort((a: any, b: any) => new Date(a.nextRunAt).getTime() - new Date(b.nextRunAt).getTime())[0]?.nextRunAt).split(',')[0]}
+									{formatDate(
+										schedules
+											.filter((s: any) => s.enabled && s.nextRunAt)
+											.sort(
+												(a: any, b: any) =>
+													new Date(a.nextRunAt).getTime() - new Date(b.nextRunAt).getTime()
+											)[0]?.nextRunAt
+									).split(',')[0]}
 								{:else}
 									None scheduled
 								{/if}
@@ -740,7 +807,9 @@
 				<div class="bg-background overflow-hidden">
 					<div class="px-4 py-3 border-b bg-muted/5">
 						<h3 class="text-xs font-semibold uppercase tracking-wider">Sync Schedules</h3>
-						<p class="text-xs text-muted-foreground mt-0.5">Manage automated synchronization schedules</p>
+						<p class="text-xs text-muted-foreground mt-0.5">
+							Manage automated synchronization schedules
+						</p>
 					</div>
 
 					{#if schedules.length === 0}
@@ -920,7 +989,9 @@
 						</SelectTrigger>
 						<SelectContent>
 							{#each syncDirections as direction}
-								<SelectItem value={direction.value} label={direction.label}>{direction.label}</SelectItem>
+								<SelectItem value={direction.value} label={direction.label}
+									>{direction.label}</SelectItem
+								>
 							{/each}
 						</SelectContent>
 					</Select>
@@ -1184,7 +1255,9 @@
 						</SelectTrigger>
 						<SelectContent>
 							{#each syncDirections as direction}
-								<SelectItem value={direction.value} label={direction.label}>{direction.label}</SelectItem>
+								<SelectItem value={direction.value} label={direction.label}
+									>{direction.label}</SelectItem
+								>
 							{/each}
 						</SelectContent>
 					</Select>

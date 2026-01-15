@@ -1,7 +1,19 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
-	import { AlertCircle, AlertTriangle, CheckCircle2, RefreshCw, Link as LinkIcon, Unlink, Clock, RotateCcw, Lock, TrendingUp, TrendingDown } from '@lucide/svelte';
+	import {
+		AlertCircle,
+		AlertTriangle,
+		CheckCircle2,
+		RefreshCw,
+		Link as LinkIcon,
+		Unlink,
+		Clock,
+		RotateCcw,
+		Lock,
+		TrendingUp,
+		TrendingDown
+	} from '@lucide/svelte';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
 	import { invalidate } from '$app/navigation';
 	import { errorStore, showSuccess } from '$lib/stores/error.svelte';
@@ -38,13 +50,15 @@
 	});
 
 	// Derive metrics with safe defaults
-	const metrics = $derived(data.metrics || {
-		uptimePercentage: 0,
-		totalSyncs24h: 0,
-		successRate: 0,
-		errorRate: 0,
-		activeAlertsCount: 0,
-	});
+	const metrics = $derived(
+		data.metrics || {
+			uptimePercentage: 0,
+			totalSyncs24h: 0,
+			successRate: 0,
+			errorRate: 0,
+			activeAlertsCount: 0
+		}
+	);
 
 	const alerts = $derived(data.alerts || []);
 
@@ -52,28 +66,29 @@
 	const hasErrors = $derived(metrics.errorRate > 5);
 	const hasAlerts = $derived(metrics.activeAlertsCount > 0);
 	const healthStatus = $derived(
-		metrics.successRate >= 95 ? 'healthy' :
-		metrics.successRate >= 80 ? 'warning' : 'critical'
+		metrics.successRate >= 95 ? 'healthy' : metrics.successRate >= 80 ? 'warning' : 'critical'
 	);
 
 	// Sync permissions from server
-	const perms = $derived(data.syncPermissions || {
-		canTriggerEmployeeSync: false,
-		canTriggerDepartmentSync: false,
-		canPushToQuickBooks: false,
-		canTriggerBidirectionalSync: false,
-		canForceFullSync: false,
-		canCancelSync: false,
-		canViewConflicts: false,
-		canResolveConflicts: false,
-		canBulkResolveConflicts: false,
-		canViewHistory: false,
-		canViewMetrics: false,
-		canViewAuditTrail: false,
-		canExportData: false,
-		canManageIntegrations: false,
-		canManagePermissions: false,
-	});
+	const perms = $derived(
+		data.syncPermissions || {
+			canTriggerEmployeeSync: false,
+			canTriggerDepartmentSync: false,
+			canPushToQuickBooks: false,
+			canTriggerBidirectionalSync: false,
+			canForceFullSync: false,
+			canCancelSync: false,
+			canViewConflicts: false,
+			canResolveConflicts: false,
+			canBulkResolveConflicts: false,
+			canViewHistory: false,
+			canViewMetrics: false,
+			canViewAuditTrail: false,
+			canExportData: false,
+			canManageIntegrations: false,
+			canManagePermissions: false
+		}
+	);
 
 	let disconnecting = $state(false);
 	let resettingForTest = $state(false);
@@ -167,7 +182,9 @@
 						details: { employeeResult, deptResult }
 					});
 				} else {
-					showSuccess(`Sync completed: ${totalDetected} detected, ${totalProcessed} processed (${totalPushed} pushed, ${totalPulled} pulled, ${totalConflicts} conflicts resolved)`);
+					showSuccess(
+						`Sync completed: ${totalDetected} detected, ${totalProcessed} processed (${totalPushed} pushed, ${totalPulled} pulled, ${totalConflicts} conflicts resolved)`
+					);
 
 					if (allErrors.length > 0) {
 						console.warn('Sync errors:', allErrors);
@@ -201,8 +218,18 @@
 						details: result
 					});
 				} else {
-					const { pushed_count = 0, pulled_count = 0, conflicts_resolved = 0, errors = [], sync_mode = 'unknown', changes_detected = 0, changes_processed = 0 } = result;
-					showSuccess(`${sync_mode.toUpperCase()} sync completed: ${changes_detected} detected, ${changes_processed} processed (${pushed_count} pushed, ${pulled_count} pulled, ${conflicts_resolved} conflicts resolved)`);
+					const {
+						pushed_count = 0,
+						pulled_count = 0,
+						conflicts_resolved = 0,
+						errors = [],
+						sync_mode = 'unknown',
+						changes_detected = 0,
+						changes_processed = 0
+					} = result;
+					showSuccess(
+						`${sync_mode.toUpperCase()} sync completed: ${changes_detected} detected, ${changes_processed} processed (${pushed_count} pushed, ${pulled_count} pulled, ${conflicts_resolved} conflicts resolved)`
+					);
 
 					if (errors.length > 0) {
 						console.warn('Sync errors:', errors);
@@ -248,7 +275,10 @@
 					details: result
 				});
 			} else {
-				showSuccess(result.message || `Reset ${result.resetCount || 0} item(s) for testing. You can now re-push them.`);
+				showSuccess(
+					result.message ||
+						`Reset ${result.resetCount || 0} item(s) for testing. You can now re-push them.`
+				);
 			}
 		} catch (error: any) {
 			errorStore.add({
@@ -310,7 +340,9 @@
 {#if data.intuitConnected}
 	<div class="flex flex-col h-full overflow-hidden bg-background">
 		<!-- Toolbar Header -->
-		<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+		<header
+			class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+		>
 			<div class="flex items-center gap-4">
 				<h1 class="text-sm font-semibold tracking-tight">QuickBooks Integration</h1>
 				<div class="h-4 w-px bg-border"></div>
@@ -321,7 +353,13 @@
 			</div>
 			<div class="flex items-center gap-2">
 				{#if perms.canManageIntegrations}
-					<Button variant="ghost" size="sm" onclick={openDisconnectDialog} disabled={disconnecting} class="h-8 text-xs">
+					<Button
+						variant="ghost"
+						size="sm"
+						onclick={openDisconnectDialog}
+						disabled={disconnecting}
+						class="h-8 text-xs"
+					>
 						{#if disconnecting}
 							<RefreshCw class="h-3.5 w-3.5 mr-1.5 animate-spin" />
 							Disconnecting...
@@ -348,7 +386,9 @@
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 border-b">
 				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 					<div class="flex items-center justify-between">
-						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Success Rate</span>
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+							>Success Rate</span
+						>
 						{#if healthStatus === 'healthy'}
 							<CheckCircle2 class="h-4 w-4 text-green-600" />
 						{:else if healthStatus === 'warning'}
@@ -358,7 +398,12 @@
 						{/if}
 					</div>
 					<div>
-						<div class="text-3xl font-bold tracking-tight" class:text-green-600={healthStatus === 'healthy'} class:text-yellow-600={healthStatus === 'warning'} class:text-red-600={healthStatus === 'critical'}>
+						<div
+							class="text-3xl font-bold tracking-tight"
+							class:text-green-600={healthStatus === 'healthy'}
+							class:text-yellow-600={healthStatus === 'warning'}
+							class:text-red-600={healthStatus === 'critical'}
+						>
 							{Math.round(metrics.successRate)}%
 						</div>
 						<div class="mt-1 text-xs text-muted-foreground flex items-center gap-1">
@@ -373,20 +418,24 @@
 
 				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 					<div class="flex items-center justify-between">
-						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Uptime</span>
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+							>Uptime</span
+						>
 						<TrendingUp class="h-4 w-4 text-muted-foreground" />
 					</div>
 					<div>
-						<div class="text-3xl font-bold tracking-tight">{Math.round(metrics.uptimePercentage)}%</div>
-						<div class="mt-1 text-xs text-muted-foreground">
-							Last 24 hours
+						<div class="text-3xl font-bold tracking-tight">
+							{Math.round(metrics.uptimePercentage)}%
 						</div>
+						<div class="mt-1 text-xs text-muted-foreground">Last 24 hours</div>
 					</div>
 				</div>
 
 				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 					<div class="flex items-center justify-between">
-						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Errors</span>
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+							>Errors</span
+						>
 						{#if hasErrors}
 							<AlertCircle class="h-4 w-4 text-red-600" />
 						{:else}
@@ -397,15 +446,15 @@
 						<div class="text-3xl font-bold tracking-tight" class:text-red-600={hasErrors}>
 							{Math.round(metrics.errorRate)}%
 						</div>
-						<div class="mt-1 text-xs text-muted-foreground">
-							Error rate
-						</div>
+						<div class="mt-1 text-xs text-muted-foreground">Error rate</div>
 					</div>
 				</div>
 
 				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 					<div class="flex items-center justify-between">
-						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Active Alerts</span>
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+							>Active Alerts</span
+						>
 						{#if hasAlerts}
 							<AlertTriangle class="h-4 w-4 text-orange-600" />
 						{:else}
@@ -416,28 +465,34 @@
 						<div class="text-3xl font-bold tracking-tight" class:text-orange-600={hasAlerts}>
 							{metrics.activeAlertsCount}
 						</div>
-						<div class="mt-1 text-xs text-muted-foreground">
-							Require attention
-						</div>
+						<div class="mt-1 text-xs text-muted-foreground">Require attention</div>
 					</div>
 				</div>
 
 				<div class="p-6 bg-background flex flex-col justify-between h-32">
 					<div class="flex items-center justify-between">
-						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Last Sync</span>
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+							>Last Sync</span
+						>
 						<Clock class="h-4 w-4 text-muted-foreground" />
 					</div>
 					<div>
 						<div class="text-2xl font-bold tracking-tight">
 							{#if data.intuitLastSync}
-								{new Date(data.intuitLastSync).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+								{new Date(data.intuitLastSync).toLocaleDateString('en-US', {
+									month: 'short',
+									day: 'numeric'
+								})}
 							{:else}
 								Never
 							{/if}
 						</div>
 						<div class="mt-1 text-xs text-muted-foreground">
 							{#if data.intuitLastSync}
-								{new Date(data.intuitLastSync).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+								{new Date(data.intuitLastSync).toLocaleTimeString('en-US', {
+									hour: 'numeric',
+									minute: '2-digit'
+								})}
 							{:else}
 								Run a sync
 							{/if}
@@ -448,127 +503,176 @@
 
 			<!-- Primary Sync Actions -->
 			{#if perms.canTriggerBidirectionalSync}
-			<div class="border-b bg-background p-6">
-				<div class="flex items-center justify-between mb-4">
-					<div>
-						<h2 class="text-sm font-semibold flex items-center gap-2">
-							<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-							</svg>
-							Sync Data
-						</h2>
-						<p class="text-xs text-muted-foreground mt-1">
-							Two-way synchronization between HR system and QuickBooks
-						</p>
+				<div class="border-b bg-background p-6">
+					<div class="flex items-center justify-between mb-4">
+						<div>
+							<h2 class="text-sm font-semibold flex items-center gap-2">
+								<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+									/>
+								</svg>
+								Sync Data
+							</h2>
+							<p class="text-xs text-muted-foreground mt-1">
+								Two-way synchronization between HR system and QuickBooks
+							</p>
+						</div>
 					</div>
-				</div>
 
-				<div class="flex flex-wrap gap-3">
-					<Button
-						onclick={() => openBidirectionalSyncDialog('ALL')}
-						disabled={syncingBidirectional}
-						size="sm"
-						class="bg-blue-600 hover:bg-blue-700 h-9"
-					>
-						{#if syncingBidirectional && selectedEntityType === 'ALL'}
-							<RefreshCw class="h-3.5 w-3.5 mr-1.5 animate-spin" />
-							Syncing All...
-						{:else}
-							<RefreshCw class="h-3.5 w-3.5 mr-1.5" />
-							Sync All
-						{/if}
-					</Button>
-
-					<Button
-						onclick={() => openBidirectionalSyncDialog('EMPLOYEE')}
-						disabled={syncingBidirectional}
-						size="sm"
-						variant="outline"
-						class="h-9"
-					>
-						{#if syncingBidirectional && selectedEntityType === 'EMPLOYEE'}
-							<RefreshCw class="h-3.5 w-3.5 mr-1.5 animate-spin" />
-							Syncing Employees...
-						{:else}
-							<RefreshCw class="h-3.5 w-3.5 mr-1.5" />
-							Sync Employees
-						{/if}
-					</Button>
-
-					<Button
-						onclick={() => openBidirectionalSyncDialog('DEPARTMENT')}
-						disabled={syncingBidirectional}
-						size="sm"
-						variant="outline"
-						class="h-9"
-					>
-						{#if syncingBidirectional && selectedEntityType === 'DEPARTMENT'}
-							<RefreshCw class="h-3.5 w-3.5 mr-1.5 animate-spin" />
-							Syncing Departments...
-						{:else}
-							<RefreshCw class="h-3.5 w-3.5 mr-1.5" />
-							Sync Departments
-						{/if}
-					</Button>
-
-					{#if isDev}
+					<div class="flex flex-wrap gap-3">
 						<Button
-							onclick={openResetTestDialog}
-							disabled={resettingForTest}
-							variant="outline"
+							onclick={() => openBidirectionalSyncDialog('ALL')}
+							disabled={syncingBidirectional}
 							size="sm"
-							class="h-9 border-orange-300 text-orange-700"
+							class="bg-blue-600 hover:bg-blue-700 h-9"
 						>
-							{#if resettingForTest}
+							{#if syncingBidirectional && selectedEntityType === 'ALL'}
 								<RefreshCw class="h-3.5 w-3.5 mr-1.5 animate-spin" />
-								Resetting...
+								Syncing All...
 							{:else}
-								<RotateCcw class="h-3.5 w-3.5 mr-1.5" />
-								Reset Test Data
+								<RefreshCw class="h-3.5 w-3.5 mr-1.5" />
+								Sync All
 							{/if}
 						</Button>
-					{/if}
-				</div>
 
-				<div class="mt-4 text-xs text-muted-foreground bg-muted/50 p-3 rounded border">
-					<strong>Note:</strong> Automatically detects changes on both sides and resolves conflicts using the most recent change.
+						<Button
+							onclick={() => openBidirectionalSyncDialog('EMPLOYEE')}
+							disabled={syncingBidirectional}
+							size="sm"
+							variant="outline"
+							class="h-9"
+						>
+							{#if syncingBidirectional && selectedEntityType === 'EMPLOYEE'}
+								<RefreshCw class="h-3.5 w-3.5 mr-1.5 animate-spin" />
+								Syncing Employees...
+							{:else}
+								<RefreshCw class="h-3.5 w-3.5 mr-1.5" />
+								Sync Employees
+							{/if}
+						</Button>
+
+						<Button
+							onclick={() => openBidirectionalSyncDialog('DEPARTMENT')}
+							disabled={syncingBidirectional}
+							size="sm"
+							variant="outline"
+							class="h-9"
+						>
+							{#if syncingBidirectional && selectedEntityType === 'DEPARTMENT'}
+								<RefreshCw class="h-3.5 w-3.5 mr-1.5 animate-spin" />
+								Syncing Departments...
+							{:else}
+								<RefreshCw class="h-3.5 w-3.5 mr-1.5" />
+								Sync Departments
+							{/if}
+						</Button>
+
+						{#if isDev}
+							<Button
+								onclick={openResetTestDialog}
+								disabled={resettingForTest}
+								variant="outline"
+								size="sm"
+								class="h-9 border-orange-300 text-orange-700"
+							>
+								{#if resettingForTest}
+									<RefreshCw class="h-3.5 w-3.5 mr-1.5 animate-spin" />
+									Resetting...
+								{:else}
+									<RotateCcw class="h-3.5 w-3.5 mr-1.5" />
+									Reset Test Data
+								{/if}
+							</Button>
+						{/if}
+					</div>
+
+					<div class="mt-4 text-xs text-muted-foreground bg-muted/50 p-3 rounded border">
+						<strong>Note:</strong> Automatically detects changes on both sides and resolves conflicts
+						using the most recent change.
+					</div>
 				</div>
-			</div>
 			{/if}
 
 			<!-- Feature Grid -->
 			<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 border-b">
 				<!-- Monitoring & Health -->
 				<div class="border-r border-b md:border-b-0 bg-muted/20 p-4">
-					<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Monitoring</h3>
+					<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+						Monitoring
+					</h3>
 					<div class="space-y-2">
-						<a href="/admin/settings/integrations/sync-status" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+						<a
+							href="/admin/settings/integrations/sync-status"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
 							<div class="flex items-center gap-2 mb-1">
-								<svg class="h-3.5 w-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+								<svg
+									class="h-3.5 w-3.5 text-primary"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+									/>
 								</svg>
 								<span class="text-xs font-medium">Sync Dashboard</span>
 							</div>
 							<p class="text-xs text-muted-foreground">View history & stats</p>
 						</a>
 
-						<a href="/admin/settings/integrations/health" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+						<a
+							href="/admin/settings/integrations/health"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
 							<div class="flex items-center gap-2 mb-1">
-								<svg class="h-3.5 w-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+								<svg
+									class="h-3.5 w-3.5 text-primary"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+									/>
 								</svg>
 								<span class="text-xs font-medium">Health Monitor</span>
 								{#if hasAlerts}
-									<Badge variant="destructive" class="h-4 px-1 text-[10px] ml-auto">{metrics.activeAlertsCount}</Badge>
+									<Badge variant="destructive" class="h-4 px-1 text-[10px] ml-auto"
+										>{metrics.activeAlertsCount}</Badge
+									>
 								{/if}
 							</div>
 							<p class="text-xs text-muted-foreground">System health & alerts</p>
 						</a>
 
-						<a href="/admin/settings/integrations/audit" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+						<a
+							href="/admin/settings/integrations/audit"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
 							<div class="flex items-center gap-2 mb-1">
-								<svg class="h-3.5 w-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+								<svg
+									class="h-3.5 w-3.5 text-primary"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+									/>
 								</svg>
 								<span class="text-xs font-medium">Audit Trail</span>
 							</div>
@@ -579,9 +683,14 @@
 
 				<!-- Data Operations -->
 				<div class="border-r border-b md:border-b-0 bg-muted/20 p-4">
-					<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Data Operations</h3>
+					<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+						Data Operations
+					</h3>
 					<div class="space-y-2">
-						<a href="/admin/settings/integrations/reconciliation" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+						<a
+							href="/admin/settings/integrations/reconciliation"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
 							<div class="flex items-center gap-2 mb-1">
 								<RefreshCw class="h-3.5 w-3.5 text-primary" />
 								<span class="text-xs font-medium">Reconciliation</span>
@@ -589,7 +698,10 @@
 							<p class="text-xs text-muted-foreground">Compare & resolve differences</p>
 						</a>
 
-						<a href="/admin/settings/integrations/validation" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+						<a
+							href="/admin/settings/integrations/validation"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
 							<div class="flex items-center gap-2 mb-1">
 								<CheckCircle2 class="h-3.5 w-3.5 text-primary" />
 								<span class="text-xs font-medium">Validation</span>
@@ -597,10 +709,23 @@
 							<p class="text-xs text-muted-foreground">Data quality rules</p>
 						</a>
 
-						<a href="/admin/settings/integrations/batches" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+						<a
+							href="/admin/settings/integrations/batches"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
 							<div class="flex items-center gap-2 mb-1">
-								<svg class="h-3.5 w-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+								<svg
+									class="h-3.5 w-3.5 text-primary"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+									/>
 								</svg>
 								<span class="text-xs font-medium">Batch Operations</span>
 							</div>
@@ -611,9 +736,14 @@
 
 				<!-- Error Management -->
 				<div class="border-r border-b md:border-b-0 lg:border-b-0 bg-muted/20 p-4">
-					<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Error Management</h3>
+					<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+						Error Management
+					</h3>
 					<div class="space-y-2">
-						<a href="/admin/settings/integrations/errors" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+						<a
+							href="/admin/settings/integrations/errors"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
 							<div class="flex items-center gap-2 mb-1">
 								<AlertCircle class="h-3.5 w-3.5 text-primary" />
 								<span class="text-xs font-medium">Error Recovery</span>
@@ -626,7 +756,10 @@
 							<p class="text-xs text-muted-foreground">Retry failed operations</p>
 						</a>
 
-						<a href="/admin/settings/integrations/conflicts" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+						<a
+							href="/admin/settings/integrations/conflicts"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
 							<div class="flex items-center gap-2 mb-1">
 								<AlertTriangle class="h-3.5 w-3.5 text-primary" />
 								<span class="text-xs font-medium">Conflicts</span>
@@ -634,10 +767,23 @@
 							<p class="text-xs text-muted-foreground">Resolve sync conflicts</p>
 						</a>
 
-						<a href="/admin/settings/integrations/rollback" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+						<a
+							href="/admin/settings/integrations/rollback"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
 							<div class="flex items-center gap-2 mb-1">
-								<svg class="h-3.5 w-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+								<svg
+									class="h-3.5 w-3.5 text-primary"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+									/>
 								</svg>
 								<span class="text-xs font-medium">Rollback</span>
 							</div>
@@ -648,29 +794,60 @@
 
 				<!-- Advanced Features -->
 				<div class="bg-muted/20 p-4">
-					<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Advanced</h3>
+					<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+						Advanced
+					</h3>
 					<div class="space-y-2">
-						<a href="/admin/settings/integrations/webhooks" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+						<a
+							href="/admin/settings/integrations/webhooks"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
 							<div class="flex items-center gap-2 mb-1">
-								<svg class="h-3.5 w-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+								<svg
+									class="h-3.5 w-3.5 text-primary"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M13 10V3L4 14h7v7l9-11h-7z"
+									/>
 								</svg>
 								<span class="text-xs font-medium">Webhooks</span>
 							</div>
 							<p class="text-xs text-muted-foreground">Event notifications</p>
 						</a>
 
-						<a href="/admin/settings/integrations/compliance" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+						<a
+							href="/admin/settings/integrations/compliance"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
 							<div class="flex items-center gap-2 mb-1">
-								<svg class="h-3.5 w-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+								<svg
+									class="h-3.5 w-3.5 text-primary"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+									/>
 								</svg>
 								<span class="text-xs font-medium">Compliance</span>
 							</div>
 							<p class="text-xs text-muted-foreground">Reports & audits</p>
 						</a>
 
-						<a href="/admin/settings/integrations/schedules" class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors">
+						<a
+							href="/admin/settings/integrations/schedules"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
 							<div class="flex items-center gap-2 mb-1">
 								<Clock class="h-3.5 w-3.5 text-primary" />
 								<span class="text-xs font-medium">Schedules</span>
@@ -682,11 +859,12 @@
 			</div>
 		</div>
 	</div>
-
 {:else}
 	<!-- Not Connected State -->
 	<div class="flex flex-col h-full overflow-hidden bg-background">
-		<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+		<header
+			class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+		>
 			<div class="flex items-center gap-4">
 				<h1 class="text-sm font-semibold tracking-tight">QuickBooks Integration</h1>
 				<div class="h-4 w-px bg-border"></div>
@@ -701,8 +879,8 @@
 			<div class="max-w-2xl w-full bg-background border rounded-lg p-8">
 				<div class="flex items-center gap-3 mb-4">
 					<svg class="h-8 w-8" viewBox="0 0 24 24" fill="none">
-						<rect width="24" height="24" rx="4" fill="#2CA01C"/>
-						<path d="M8 6h8v12H8V6z" fill="white"/>
+						<rect width="24" height="24" rx="4" fill="#2CA01C" />
+						<path d="M8 6h8v12H8V6z" fill="white" />
 					</svg>
 					<div>
 						<h2 class="text-xl font-semibold">Connect to QuickBooks</h2>
@@ -749,7 +927,8 @@
 				<Alert class="mt-4">
 					<AlertCircle class="h-4 w-4" />
 					<AlertDescription class="text-xs">
-						You'll be redirected to QuickBooks to authorize access. This is secure and you can revoke access at any time.
+						You'll be redirected to QuickBooks to authorize access. This is secure and you can
+						revoke access at any time.
 					</AlertDescription>
 				</Alert>
 			</div>
@@ -766,14 +945,17 @@
 				{#if pendingBidirectionalSync}
 					<p class="mb-3">
 						{#if pendingBidirectionalSync === 'ALL'}
-							This will synchronize <strong>all employees and departments</strong> between your HR system and QuickBooks.
+							This will synchronize <strong>all employees and departments</strong> between your HR system
+							and QuickBooks.
 						{:else}
-							This will synchronize <strong>{pendingBidirectionalSync.toLowerCase()}s</strong> between your HR system and QuickBooks.
+							This will synchronize <strong>{pendingBidirectionalSync.toLowerCase()}s</strong> between
+							your HR system and QuickBooks.
 						{/if}
 					</p>
 					<div class="p-3 bg-blue-50 border border-blue-200 rounded text-sm">
 						<p class="text-blue-900">
-							<strong>Two-way sync</strong> detects changes on both sides and automatically resolves conflicts using the most recent change.
+							<strong>Two-way sync</strong> detects changes on both sides and automatically resolves conflicts
+							using the most recent change.
 						</p>
 						{#if pendingBidirectionalSync === 'ALL'}
 							<p class="text-blue-900 mt-2">
@@ -788,7 +970,9 @@
 			<Button variant="outline" onclick={() => (bidirectionalSyncDialogOpen = false)}>
 				Cancel
 			</Button>
-			<Button onclick={confirmBidirectionalSync} class="bg-blue-600 hover:bg-blue-700">Start Sync</Button>
+			<Button onclick={confirmBidirectionalSync} class="bg-blue-600 hover:bg-blue-700"
+				>Start Sync</Button
+			>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
@@ -806,15 +990,19 @@
 				<div class="mt-3 p-3 bg-orange-50 border border-orange-200 rounded text-sm">
 					<p class="text-orange-900 font-medium mb-1">🔧 Development Tool</p>
 					<p class="text-orange-800">
-						This is a testing utility. The affected records will be marked as "not synced" and can be
-						pushed to QuickBooks again.
+						This is a testing utility. The affected records will be marked as "not synced" and can
+						be pushed to QuickBooks again.
 					</p>
 				</div>
 			</Dialog.Description>
 		</Dialog.Header>
 		<Dialog.Footer class="gap-2">
 			<Button variant="outline" onclick={() => (resetTestDialogOpen = false)}>Cancel</Button>
-			<Button onclick={confirmResetTest} variant="outline" class="border-orange-300 text-orange-700">
+			<Button
+				onclick={confirmResetTest}
+				variant="outline"
+				class="border-orange-300 text-orange-700"
+			>
 				Reset for Testing
 			</Button>
 		</Dialog.Footer>
@@ -831,8 +1019,8 @@
 				<div class="mt-3 p-3 bg-red-50 border border-red-200 rounded text-sm">
 					<p class="text-red-900 font-medium mb-1">⚠️ Warning</p>
 					<p class="text-red-800">
-						This will stop all data synchronization between your system and QuickBooks. You'll need to
-						reconnect and re-authorize to resume syncing.
+						This will stop all data synchronization between your system and QuickBooks. You'll need
+						to reconnect and re-authorize to resume syncing.
 					</p>
 				</div>
 			</Dialog.Description>

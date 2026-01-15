@@ -186,7 +186,10 @@ export async function getHierarchicalProgress(
 		// Calculate overall completion across entire hierarchy
 		const totalDescendants = countAllDescendants(task);
 		const completedDescendants = countCompletedDescendants(task);
-		const overallCompletionPercentage = calculateCompletionPercentage(completedDescendants, totalDescendants);
+		const overallCompletionPercentage = calculateCompletionPercentage(
+			completedDescendants,
+			totalDescendants
+		);
 
 		return {
 			parentTask: parentProgress,

@@ -25,7 +25,9 @@
 
 <!-- Description -->
 <div>
-	<label for="description" class="block text-sm font-medium text-foreground mb-2"> Description </label>
+	<label for="description" class="block text-sm font-medium text-foreground mb-2">
+		Description
+	</label>
 	<textarea
 		id="description"
 		name="description"

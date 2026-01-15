@@ -141,10 +141,7 @@
 				</div>
 
 				<!-- Strategy Selection -->
-				<ConflictStrategySelector
-					bind:selectedStrategy
-					onStrategyChange={handleStrategyChange}
-				/>
+				<ConflictStrategySelector bind:selectedStrategy onStrategyChange={handleStrategyChange} />
 
 				<!-- Field Selection (for merge strategy) -->
 				{#if selectedStrategy === 'merge'}

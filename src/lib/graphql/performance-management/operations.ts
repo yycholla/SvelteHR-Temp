@@ -14,10 +14,7 @@ import {
 	validatePerformanceReviewInput,
 	validateRating
 } from '$lib/utils/performance';
-import {
-	GET_PERFORMANCE_REVIEWS,
-	GET_PERFORMANCE_REVIEWS_FOR_STATS
-} from './queries';
+import { GET_PERFORMANCE_REVIEWS, GET_PERFORMANCE_REVIEWS_FOR_STATS } from './queries';
 import {
 	CREATE_PERFORMANCE_REVIEW,
 	UPDATE_PERFORMANCE_REVIEW,

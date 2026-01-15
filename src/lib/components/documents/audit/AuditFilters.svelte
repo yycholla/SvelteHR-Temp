@@ -36,12 +36,7 @@
 
 		<div class="filter-group">
 			<label for="userId">User ID</label>
-			<input
-				id="userId"
-				type="text"
-				placeholder="Filter by user ID..."
-				bind:value={filterUserId}
-			/>
+			<input id="userId" type="text" placeholder="Filter by user ID..." bind:value={filterUserId} />
 		</div>
 
 		<div class="filter-group">

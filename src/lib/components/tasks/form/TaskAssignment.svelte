@@ -134,9 +134,7 @@
 							</div>
 						{:else}
 							{#each filteredParentTaskOptions as parent}
-								<Select.Item value={parent.value} label={parent.label}
-									>{parent.label}</Select.Item
-								>
+								<Select.Item value={parent.value} label={parent.label}>{parent.label}</Select.Item>
 							{/each}
 						{/if}
 					</div>

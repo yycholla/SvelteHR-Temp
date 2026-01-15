@@ -311,8 +311,8 @@ export interface OnboardingFormBlock {
 	textContent: string | null;
 	documentUrl: string | null;
 	formTemplateId: string | null;
-	inlineFormFields: FormFieldDefinition[] | null;  // DEPRECATED: Use inlineFormElements instead
-	inlineFormElements: FormElement[] | null;  // NEW: Inline form elements (fields + text blocks)
+	inlineFormFields: FormFieldDefinition[] | null; // DEPRECATED: Use inlineFormElements instead
+	inlineFormElements: FormElement[] | null; // NEW: Inline form elements (fields + text blocks)
 	fileUploadRequirements: Record<string, unknown> | null;
 	signatureRequirements: Record<string, unknown> | null;
 	checkboxItems: string[] | null;
@@ -366,8 +366,8 @@ export interface CreateFormBlockInput {
 	textContent?: string | null;
 	documentUrl?: string | null;
 	formTemplateId?: string | null;
-	inlineFormFields?: FormFieldDefinition[] | null;  // DEPRECATED: Use inlineFormElements
-	inlineFormElements?: FormElement[] | null;  // NEW: Inline form elements (fields + text blocks)
+	inlineFormFields?: FormFieldDefinition[] | null; // DEPRECATED: Use inlineFormElements
+	inlineFormElements?: FormElement[] | null; // NEW: Inline form elements (fields + text blocks)
 	fileUploadRequirements?: Record<string, unknown> | null;
 	signatureRequirements?: Record<string, unknown> | null;
 	checkboxItems?: string[] | null;
@@ -379,8 +379,8 @@ export interface UpdateFormBlockInput {
 	textContent?: string | null;
 	documentUrl?: string | null;
 	formTemplateId?: string | null;
-	inlineFormFields?: FormFieldDefinition[] | null;  // DEPRECATED: Use inlineFormElements
-	inlineFormElements?: FormElement[] | null;  // NEW: Inline form elements (fields + text blocks)
+	inlineFormFields?: FormFieldDefinition[] | null; // DEPRECATED: Use inlineFormElements
+	inlineFormElements?: FormElement[] | null; // NEW: Inline form elements (fields + text blocks)
 	fileUploadRequirements?: Record<string, unknown> | null;
 	signatureRequirements?: Record<string, unknown> | null;
 	checkboxItems?: string[] | null;

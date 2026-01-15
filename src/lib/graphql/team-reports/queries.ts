@@ -306,10 +306,7 @@ export function filterByReportType<T extends { reportType: string }>(
 /**
  * Filter reports by status (client-side)
  */
-export function filterByStatus<T extends { status: string }>(
-	reports: T[],
-	status: string
-): T[] {
+export function filterByStatus<T extends { status: string }>(reports: T[], status: string): T[] {
 	const normalizedStatus = normalizeStatus(status);
 	return reports.filter((report) => normalizeStatus(report.status) === normalizedStatus);
 }
@@ -317,9 +314,7 @@ export function filterByStatus<T extends { status: string }>(
 /**
  * Filter scheduled reports (client-side)
  */
-export function filterScheduled<T extends { scheduledAt: string | null }>(
-	reports: T[]
-): T[] {
+export function filterScheduled<T extends { scheduledAt: string | null }>(reports: T[]): T[] {
 	return reports.filter((report) => report.scheduledAt !== null);
 }
 
@@ -386,10 +381,7 @@ export function filterByCreator<T extends { creatorId: string }>(
 /**
  * Search reports by title (client-side)
  */
-export function searchByTitle<T extends { title: string }>(
-	reports: T[],
-	searchTerm: string
-): T[] {
+export function searchByTitle<T extends { title: string }>(reports: T[], searchTerm: string): T[] {
 	const lowerSearch = searchTerm.toLowerCase();
 	return reports.filter((report) => report.title.toLowerCase().includes(lowerSearch));
 }
@@ -400,9 +392,7 @@ export function searchByTitle<T extends { title: string }>(
 export function calculateDashboardStats(reports: TeamReport[]): ReportsDashboardStats {
 	const totalReports = reports.length;
 
-	const completedReports = reports.filter(
-		(r) => normalizeStatus(r.status) === 'completed'
-	).length;
+	const completedReports = reports.filter((r) => normalizeStatus(r.status) === 'completed').length;
 	const scheduledReports = reports.filter((r) => r.scheduledAt !== null).length;
 	const failedReports = reports.filter((r) => normalizeStatus(r.status) === 'failed').length;
 

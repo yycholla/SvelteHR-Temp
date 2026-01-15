@@ -428,7 +428,16 @@ describe('Aggregators', () => {
 
 	describe('standardDeviation()', () => {
 		it('should calculate standard deviation', () => {
-			const items = [{ value: 2 }, { value: 4 }, { value: 4 }, { value: 4 }, { value: 5 }, { value: 5 }, { value: 7 }, { value: 9 }];
+			const items = [
+				{ value: 2 },
+				{ value: 4 },
+				{ value: 4 },
+				{ value: 4 },
+				{ value: 5 },
+				{ value: 5 },
+				{ value: 7 },
+				{ value: 9 }
+			];
 
 			const result = Aggregators.standardDeviation(items, 'value');
 
@@ -515,7 +524,11 @@ describe('Aggregators', () => {
 		});
 
 		it('should handle null and undefined', () => {
-			const items = [{ department: 'Engineering' }, { department: null }, { department: undefined }];
+			const items = [
+				{ department: 'Engineering' },
+				{ department: null },
+				{ department: undefined }
+			];
 
 			const result = Aggregators.countDistinct(items, 'department');
 
@@ -554,12 +567,7 @@ describe('Aggregators', () => {
 		it('should handle single group', () => {
 			const items = [{ department: 'Engineering', salary: 100000 }];
 
-			const result = Aggregators.groupAndAggregate(
-				items,
-				'department',
-				'salary',
-				Aggregators.sum
-			);
+			const result = Aggregators.groupAndAggregate(items, 'department', 'salary', Aggregators.sum);
 
 			expect(result).toEqual({
 				Engineering: 100000
@@ -573,12 +581,7 @@ describe('Aggregators', () => {
 				{ department: undefined, salary: 60000 }
 			];
 
-			const result = Aggregators.groupAndAggregate(
-				items,
-				'department',
-				'salary',
-				Aggregators.sum
-			);
+			const result = Aggregators.groupAndAggregate(items, 'department', 'salary', Aggregators.sum);
 
 			expect(result).toHaveProperty('Engineering', 100000);
 			expect(result).toHaveProperty('unknown', 110000);

@@ -1,8 +1,5 @@
 <script lang="ts">
-	import {
-		Search,
-		User
-	} from '@lucide/svelte';
+	import { Search, User } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
@@ -25,7 +22,7 @@
 	}: Props = $props();
 </script>
 
-<Dialog.Root bind:open={open}>
+<Dialog.Root bind:open>
 	<Dialog.Portal>
 		<Dialog.Overlay />
 		<Dialog.Content class="max-h-[80vh] max-w-2xl">

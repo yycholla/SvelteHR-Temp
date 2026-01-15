@@ -96,10 +96,10 @@ export const actions: Actions = {
 		const contentType = data.get('contentType')?.toString();
 		const sequenceOrder = parseInt(data.get('sequenceOrder')?.toString() || '0');
 		const isRequired = data.get('isRequired') === 'true';
-		
+
 		const textContent = data.get('textContent')?.toString();
 		const documentUrl = data.get('documentUrl')?.toString();
-		
+
 		const formTemplateId = data.get('formTemplateId')?.toString();
 		const inlineFormElementsStr = data.get('inlineFormElements')?.toString();
 
@@ -118,7 +118,12 @@ export const actions: Actions = {
 		}
 
 		// Validate mutual exclusivity for FORM type blocks
-		if (contentType === 'FORM' && formTemplateId && inlineFormElements && inlineFormElements.length > 0) {
+		if (
+			contentType === 'FORM' &&
+			formTemplateId &&
+			inlineFormElements &&
+			inlineFormElements.length > 0
+		) {
 			return fail(400, { error: 'Cannot specify both template and inline elements' });
 		}
 
@@ -156,10 +161,10 @@ export const actions: Actions = {
 		const id = data.get('id')?.toString();
 		const title = data.get('title')?.toString();
 		const isRequired = data.has('isRequired') ? data.get('isRequired') === 'true' : undefined;
-		
+
 		const textContent = data.get('textContent')?.toString();
 		const documentUrl = data.get('documentUrl')?.toString();
-		
+
 		const formTemplateId = data.get('formTemplateId')?.toString();
 		const inlineFormElementsStr = data.get('inlineFormElements')?.toString();
 
@@ -187,7 +192,9 @@ export const actions: Actions = {
 				...(textContent !== undefined && { textContent: textContent || null }),
 				...(documentUrl !== undefined && { documentUrl: documentUrl || null }),
 				...(formTemplateId !== undefined && { formTemplateId: formTemplateId || null }),
-				...(inlineFormElements !== undefined && { inlineFormElements: inlineFormElements.length > 0 ? inlineFormElements : null })
+				...(inlineFormElements !== undefined && {
+					inlineFormElements: inlineFormElements.length > 0 ? inlineFormElements : null
+				})
 			}
 		};
 

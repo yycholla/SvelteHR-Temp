@@ -204,8 +204,6 @@ async fn assign_permission_to_role(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[tokio::test]
     async fn test_seed_roles_idempotent() {
         // This test would require a test database connection

@@ -13,7 +13,6 @@ import { devices, expect, test } from '@playwright/test';
 test.use({ ...devices['iPhone 12'] });
 
 test.describe('Mobile Responsive Calendar', () => {
-
 	test.beforeEach(async ({ page }) => {
 		await page.goto('/dashboard/events');
 		await page.waitForSelector('.fc-daygrid-body');

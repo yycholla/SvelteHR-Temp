@@ -78,31 +78,33 @@ graphql-rust-server/
 ### Next Steps
 
 1. **Add GraphQL Mutations:**
+
 ```graphql
 mutation SyncEmployees($mode: SyncMode!) {
-  syncEmployees(mode: $mode) {
-    syncMode
-    changesDetected
-    changesProcessed
-    pushedCount
-    pulledCount
-    errors {
-      entityId
-      errorMessage
-    }
-  }
+	syncEmployees(mode: $mode) {
+		syncMode
+		changesDetected
+		changesProcessed
+		pushedCount
+		pulledCount
+		errors {
+			entityId
+			errorMessage
+		}
+	}
 }
 ```
 
 2. **Add GraphQL Queries:**
+
 ```graphql
 query SyncMetadata($entityType: EntityType!) {
-  syncMetadata(entityType: $entityType) {
-    lastSyncAt
-    syncToken
-    shouldUseIncremental
-    reason
-  }
+	syncMetadata(entityType: $entityType) {
+		lastSyncAt
+		syncToken
+		shouldUseIncremental
+		reason
+	}
 }
 ```
 
@@ -126,11 +128,13 @@ query SyncMetadata($entityType: EntityType!) {
 ## Performance Expectations
 
 ### Before (Full Sync):
+
 - **170 employees:** 15-20 seconds
 - **API calls:** 220+
 - **Database queries:** High volume
 
 ### After (Incremental Sync):
+
 - **5-10 changed employees:** 2-3 seconds
 - **API calls:** 10-15
 - **Database queries:** 90%+ reduction
@@ -138,12 +142,14 @@ query SyncMetadata($entityType: EntityType!) {
 ## Testing
 
 ### Unit Tests:
+
 ```bash
 cd graphql-rust-server
 cargo test incremental_sync
 ```
 
 ### Integration Testing:
+
 1. Create test employees in QuickBooks sandbox
 2. Run full sync
 3. Modify 2-3 employees in QuickBooks
@@ -153,18 +159,22 @@ cargo test incremental_sync
 ## Monitoring
 
 ### Key Metrics to Track:
+
 - Sync mode distribution (incremental vs full ratio)
 - Average sync duration by mode
 - Changes detected vs processed
 - Fallback frequency (incremental → full)
 
 ### Logging:
+
 All sync operations log to:
+
 - Level: INFO for normal operations
 - Level: WARN for fallbacks
 - Level: ERROR for failures
 
 Search logs for:
+
 ```
 "Sync mode decision"
 "Incremental sync completed"
@@ -174,17 +184,22 @@ Search logs for:
 ## Troubleshooting
 
 ### Issue: Always using full sync
+
 **Check:**
+
 1. Last sync timestamp in intuit_connections table
 2. Sync age (forces full if > 7 days)
 3. Error logs for incremental sync failures
 
 ### Issue: Missing changes
+
 **Cause:** Clock skew between systems
 **Solution:** System already has 5-minute buffer built in
 
 ### Issue: Performance not improved
+
 **Check:**
+
 1. Verify incremental mode is actually being used
 2. Check number of changes detected
 3. If many changes, incremental may be slower (rare)
@@ -192,12 +207,14 @@ Search logs for:
 ## Database Schema
 
 ### New Fields in `intuit_sync_log`:
+
 - `sync_mode`: "full" | "incremental" | "full_fallback"
 - `changes_detected`: Total changes found
 - `changes_processed`: Successfully synced changes
 - `sync_duration_ms`: Duration in milliseconds
 
 ### New Fields in `intuit_connections`:
+
 - `employee_sync_token`: Last employee sync state
 - `department_sync_token`: Last department sync state
 - `last_employee_sync_at`: Last employee sync timestamp
@@ -206,6 +223,7 @@ Search logs for:
 ## Advanced Usage
 
 ### Manual Sync Metadata Update:
+
 ```rust
 IncrementalSyncService::update_sync_metadata(
     &db,
@@ -216,12 +234,14 @@ IncrementalSyncService::update_sync_metadata(
 ```
 
 ### Custom Timestamp Calculation:
+
 ```rust
 let since = IncrementalSyncService::calculate_since_timestamp(last_sync);
 // Subtracts 5 minutes for clock skew buffer
 ```
 
 ### Check Sync Viability:
+
 ```rust
 let metadata = IncrementalSyncService::get_sync_metadata(
     &db,

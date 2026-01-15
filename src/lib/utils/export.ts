@@ -9,16 +9,14 @@ export function prepareExportData<T>(
 	includeHidden: boolean = false
 ): unknown[][] {
 	// Filter visible columns (or all if includeHidden is true)
-	const exportColumns = includeHidden
-		? columns
-		: columns.filter(col => col.visible !== false);
+	const exportColumns = includeHidden ? columns : columns.filter((col) => col.visible !== false);
 
 	// Create header row
-	const headers = exportColumns.map(col => col.label);
+	const headers = exportColumns.map((col) => col.label);
 
 	// Create data rows
-	const dataRows = rows.map(row =>
-		exportColumns.map(col => {
+	const dataRows = rows.map((row) =>
+		exportColumns.map((col) => {
 			const value = col.getValue(row);
 
 			// Handle null/undefined
@@ -80,9 +78,7 @@ export function exportToCSV<T>(
 	const exportData = prepareExportData(data, columns, includeHidden);
 
 	// Convert to CSV string
-	const csvContent = exportData
-		.map(row => row.map(escapeCSVValue).join(','))
-		.join('\n');
+	const csvContent = exportData.map((row) => row.map(escapeCSVValue).join(',')).join('\n');
 
 	// Create blob and download
 	const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -112,7 +108,7 @@ export async function exportToExcel<T>(
 		// Auto-size columns (approximate)
 		const colWidths = exportData[0].map((_, colIndex) => {
 			const maxLength = Math.max(
-				...exportData.map(row => {
+				...exportData.map((row) => {
 					const value = row[colIndex];
 					return value ? String(value).length : 0;
 				})

@@ -29,7 +29,7 @@
 	}
 </script>
 
-<Dialog.Root bind:open={open}>
+<Dialog.Root bind:open>
 	<Dialog.Content>
 		<Dialog.Header>
 			<Dialog.Title>Manage Roles for {selectedUser?.email}</Dialog.Title>

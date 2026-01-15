@@ -13,6 +13,7 @@ I've added powerful spreadsheet-like features to your admin tables:
 ## What Was Created
 
 ### Core Components
+
 Located in `src/lib/components/ui/spreadsheet/`:
 
 - **`SpreadsheetTable.svelte`** - Main table component with all features
@@ -42,26 +43,26 @@ Located in `src/lib/components/ui/spreadsheet/`:
 
 ```typescript
 const columns: ColumnDefinition<YourType>[] = [
-  {
-    id: 'name',
-    label: 'Name',
-    type: 'text',
-    visible: true,      // Show by default
-    hideable: false,    // Cannot be hidden
-    editable: true,     // Allow inline editing
-    getValue: (row) => row.name,
-    getEditValue: (row) => row.name,
-    field: 'name'       // Backend field name
-  },
-  {
-    id: 'optional',
-    label: 'Optional Info',
-    type: 'text',
-    visible: false,     // Hidden by default
-    hideable: true,     // Can be shown by user
-    editable: false,
-    getValue: (row) => row.optional
-  }
+	{
+		id: 'name',
+		label: 'Name',
+		type: 'text',
+		visible: true, // Show by default
+		hideable: false, // Cannot be hidden
+		editable: true, // Allow inline editing
+		getValue: (row) => row.name,
+		getEditValue: (row) => row.name,
+		field: 'name' // Backend field name
+	},
+	{
+		id: 'optional',
+		label: 'Optional Info',
+		type: 'text',
+		visible: false, // Hidden by default
+		hideable: true, // Can be shown by user
+		editable: false,
+		getValue: (row) => row.optional
+	}
 ];
 ```
 
@@ -69,19 +70,19 @@ const columns: ColumnDefinition<YourType>[] = [
 
 ```typescript
 const config: SpreadsheetConfig<YourType> = {
-  columns,
-  getRowId: (row) => row.id,
-  editMode: 'inline',
-  showColumnControls: true,
-  showSaveButton: true,
-  onSave: async (edits) => {
-    // Handle saving edits to backend
-    for (const edit of edits) {
-      await updateRecord(edit.rowId, {
-        [edit.field]: edit.value
-      });
-    }
-  }
+	columns,
+	getRowId: (row) => row.id,
+	editMode: 'inline',
+	showColumnControls: true,
+	showSaveButton: true,
+	onSave: async (edits) => {
+		// Handle saving edits to backend
+		for (const edit of edits) {
+			await updateRecord(edit.rowId, {
+				[edit.field]: edit.value
+			});
+		}
+	}
 };
 ```
 
@@ -89,13 +90,13 @@ const config: SpreadsheetConfig<YourType> = {
 
 ```svelte
 <SpreadsheetTable {config} data={yourData}>
-  {#snippet customCell({ column, row, value })}
-    {#if column.id === 'actions'}
-      <!-- Custom action buttons -->
-      <button onclick={() => edit(row)}>Edit</button>
-      <button onclick={() => delete(row.id)}>Delete</button>
-    {/if}
-  {/snippet}
+	{#snippet customCell({ column, row, value })}
+		{#if column.id === 'actions'}
+			<!-- Custom action buttons -->
+			<button onclick={() => edit(row)}>Edit</button>
+			<button onclick={() => delete row.id}>Delete</button>
+		{/if}
+	{/snippet}
 </SpreadsheetTable>
 ```
 
@@ -125,6 +126,7 @@ Replace your existing table component with `SpreadsheetTable`:
 ### Option 2: Gradual Migration
 
 To test before fully committing:
+
 1. Create a component like `UserSpreadsheet.svelte`
 2. Import it conditionally in your page
 3. Toggle between old and new with a flag
@@ -133,12 +135,15 @@ To test before fully committing:
 ## Features in Action
 
 ### Column Visibility
+
 Click the "Columns" button in the table header to:
+
 - Toggle individual columns on/off
 - See count of visible columns (e.g., "5/7")
 - Use "Show All" or "Hide All" quick actions
 
 ### Inline Editing
+
 1. Double-click any editable cell
 2. Edit the value
 3. Press `Enter` to confirm or `Escape` to cancel
@@ -146,6 +151,7 @@ Click the "Columns" button in the table header to:
 5. Click "Save Changes" to commit all edits at once
 
 ### Batch Saving
+
 - Make multiple edits across different rows
 - See count of unsaved changes in header
 - Click "Save Changes" to commit all at once
@@ -175,17 +181,20 @@ Click the "Columns" button in the table header to:
 ## Files Reference
 
 ### Core Components
+
 - `src/lib/components/ui/spreadsheet/SpreadsheetTable.svelte`
 - `src/lib/components/ui/spreadsheet/ColumnVisibilityControl.svelte`
 - `src/lib/components/ui/spreadsheet/types.ts`
 - `src/lib/components/ui/spreadsheet/index.ts`
 
 ### Examples
+
 - `src/routes/admin/users/components/UserSpreadsheet.svelte`
 - `src/routes/admin/users/+page-enhanced.svelte`
 - `src/routes/admin/trainings/components/TrainingSpreadsheet.svelte`
 
 ### Documentation
+
 - `src/lib/components/ui/spreadsheet/README.md` - Full documentation
 - This file - Quick reference guide
 

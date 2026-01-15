@@ -140,7 +140,9 @@
 						>
 							<!-- Department indicator -->
 							<div
-								class="mb-2 h-1 w-full rounded-t {getDepartmentColor(node.department).split(' ')[0]}"
+								class="mb-2 h-1 w-full rounded-t {getDepartmentColor(node.department).split(
+									' '
+								)[0]}"
 							></div>
 
 							<!-- Header -->
@@ -187,16 +189,12 @@
 			</div>
 
 			<!-- Fixed UI indicators (outside draggable content) -->
-			<div
-				class="absolute bottom-4 left-4 rounded bg-white/90 px-3 py-2 text-sm backdrop-blur-sm"
-			>
+			<div class="absolute bottom-4 left-4 rounded bg-white/90 px-3 py-2 text-sm backdrop-blur-sm">
 				Showing {filteredNodes.length} of {orgNodes.length} employees
 			</div>
 
 			<!-- Zoom indicator -->
-			<div
-				class="absolute bottom-4 right-4 rounded bg-white/90 px-2 py-1 text-xs backdrop-blur-sm"
-			>
+			<div class="absolute bottom-4 right-4 rounded bg-white/90 px-2 py-1 text-xs backdrop-blur-sm">
 				Zoom: {Math.round(zoom * 100)}%
 			</div>
 		</div>

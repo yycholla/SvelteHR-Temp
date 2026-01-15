@@ -20,6 +20,7 @@ Implemented bidirectional synchronization of employee compensation data with Qui
 **File:** `/home/chanway/Projects/SvelteHR/graphql-rust-server/migration/m20251230_002_payroll_integration.rs`
 
 #### Features:
+
 - **Enums Created:**
   - `compensation_type`: SALARY, HOURLY, COMMISSION, CONTRACT
   - `pay_schedule`: WEEKLY, BIWEEKLY, SEMIMONTHLY, MONTHLY
@@ -51,6 +52,7 @@ Implemented bidirectional synchronization of employee compensation data with Qui
 **File:** `/home/chanway/Projects/SvelteHR/graphql-rust-server/src/models/payroll_sync_history.rs`
 
 #### Models:
+
 - `Model` - Main payroll sync history record
 - `CreatePayrollSyncHistoryInput` - Input for creating history records
 - `CompensationData` - Structured compensation data for change tracking
@@ -103,6 +105,7 @@ pub async fn get_payroll_sync_status() -> Result<PayrollSyncStatus>
 ```
 
 #### Features:
+
 - Comprehensive validation of compensation data
 - Automatic audit trail logging
 - Support for all compensation types
@@ -130,12 +133,14 @@ syncAllCompensation(input: SyncAllCompensationInput!): BulkCompensationSyncResul
 ```
 
 #### Input Types:
+
 - `SyncCompensationInput` - Employee ID + direction
 - `UpdateEmployeeCompensationInput` - Full compensation details
 - `MapPayrollItemInput` - Type + QB item ID mapping
 - `SyncAllCompensationInput` - Direction for bulk sync
 
 #### Result Types:
+
 - `CompensationSyncResult` - Sync operation outcome
 - `CompensationUpdateResult` - Update operation outcome
 - `PayrollItemMappingResult` - Mapping operation outcome
@@ -162,6 +167,7 @@ payrollSyncStatus: PayrollSyncStatusResponse!
 ```
 
 #### Response Types:
+
 - `EmployeeCompensation` - Full compensation details
 - `QuickBooksPayrollItem` - QB payroll item info
 - `CompensationHistory` - Historical change record
@@ -170,17 +176,23 @@ payrollSyncStatus: PayrollSyncStatusResponse!
 ### 6. Integration Points
 
 #### Mutation Root
+
 **File:** `/home/chanway/Projects/SvelteHR/graphql-rust-server/src/schema/mutation.rs`
+
 - Added `payroll()` field returning `PayrollMutations`
 - Integrated with existing mutation structure
 
 #### Query Root
+
 **File:** `/home/chanway/Projects/SvelteHR/graphql-rust-server/src/schema/query.rs`
+
 - Added `payroll()` field returning `PayrollQueries`
 - Integrated with existing query structure
 
 #### Services Module
+
 **File:** `/home/chanway/Projects/SvelteHR/graphql-rust-server/src/services/mod.rs`
+
 - Exported `PayrollService` and related types
 
 ### 7. Security & Permissions
@@ -188,6 +200,7 @@ payrollSyncStatus: PayrollSyncStatusResponse!
 **Required Permission:** `manage_compensation`
 
 **Access Control:**
+
 - `syncCompensation` - Requires `manage_compensation`
 - `updateCompensation` - Requires `manage_compensation`
 - `mapPayrollItem` - Requires `manage_compensation`
@@ -204,9 +217,11 @@ payrollSyncStatus: PayrollSyncStatusResponse!
 ### Required Components
 
 #### 1. Compensation Management Page
+
 **Path:** `/home/chanway/Projects/SvelteHR/src/routes/admin/employees/[id]/compensation/+page.svelte`
 
 **Features Needed:**
+
 - Compensation type selector (Salary, Hourly, Commission, Contract)
 - Amount input with validation
 - Pay schedule dropdown
@@ -220,34 +235,40 @@ payrollSyncStatus: PayrollSyncStatusResponse!
 
 ```typescript
 export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
-  const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
+	const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
 
-  // Fetch employee compensation
-  const compensationResult = await client.query(EMPLOYEE_COMPENSATION_QUERY, {
-    employeeId: params.id
-  }).toPromise();
+	// Fetch employee compensation
+	const compensationResult = await client
+		.query(EMPLOYEE_COMPENSATION_QUERY, {
+			employeeId: params.id
+		})
+		.toPromise();
 
-  // Fetch compensation history
-  const historyResult = await client.query(COMPENSATION_HISTORY_QUERY, {
-    employeeId: params.id,
-    limit: 20
-  }).toPromise();
+	// Fetch compensation history
+	const historyResult = await client
+		.query(COMPENSATION_HISTORY_QUERY, {
+			employeeId: params.id,
+			limit: 20
+		})
+		.toPromise();
 
-  // Fetch QB payroll items
-  const itemsResult = await client.query(PAYROLL_ITEMS_QUERY).toPromise();
+	// Fetch QB payroll items
+	const itemsResult = await client.query(PAYROLL_ITEMS_QUERY).toPromise();
 
-  return {
-    employee: compensationResult.data?.employeeCompensation,
-    history: historyResult.data?.compensationHistory || [],
-    payrollItems: itemsResult.data?.payrollItems || []
-  };
+	return {
+		employee: compensationResult.data?.employeeCompensation,
+		history: historyResult.data?.compensationHistory || [],
+		payrollItems: itemsResult.data?.payrollItems || []
+	};
 };
 ```
 
 #### 2. Payroll Settings Page
+
 **Path:** `/home/chanway/Projects/SvelteHR/src/routes/admin/settings/integrations/payroll/+page.svelte`
 
 **Features Needed:**
+
 - Payroll item mappings table (Local Type → QB Item)
 - Bulk sync controls with progress indicator
 - Sync schedule configuration
@@ -260,134 +281,136 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 
 ```typescript
 export const load: PageServerLoad = async ({ fetch, cookies }) => {
-  const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
+	const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
 
-  // Fetch overall sync status
-  const statusResult = await client.query(PAYROLL_SYNC_STATUS_QUERY).toPromise();
+	// Fetch overall sync status
+	const statusResult = await client.query(PAYROLL_SYNC_STATUS_QUERY).toPromise();
 
-  // Fetch QB payroll items
-  const itemsResult = await client.query(PAYROLL_ITEMS_QUERY).toPromise();
+	// Fetch QB payroll items
+	const itemsResult = await client.query(PAYROLL_ITEMS_QUERY).toPromise();
 
-  return {
-    syncStatus: statusResult.data?.payrollSyncStatus,
-    payrollItems: itemsResult.data?.payrollItems || []
-  };
+	return {
+		syncStatus: statusResult.data?.payrollSyncStatus,
+		payrollItems: itemsResult.data?.payrollItems || []
+	};
 };
 ```
 
 ### GraphQL Operations to Create
 
 #### Queries
+
 **File:** `/home/chanway/Projects/SvelteHR/src/lib/graphql/queries/payroll.ts`
 
 ```graphql
 query EmployeeCompensation($employeeId: UUID!) {
-  payroll {
-    employeeCompensation(employeeId: $employeeId) {
-      employeeId
-      compensationType
-      annualSalary
-      hourlyRate
-      paySchedule
-      commissionRate
-      bonusEligible
-      quickbooksPayrollItemId
-    }
-  }
+	payroll {
+		employeeCompensation(employeeId: $employeeId) {
+			employeeId
+			compensationType
+			annualSalary
+			hourlyRate
+			paySchedule
+			commissionRate
+			bonusEligible
+			quickbooksPayrollItemId
+		}
+	}
 }
 
 query CompensationHistory($employeeId: UUID!, $limit: Int) {
-  payroll {
-    compensationHistory(employeeId: $employeeId, limit: $limit) {
-      id
-      employeeId
-      changeType
-      oldCompensationType
-      newCompensationType
-      oldAmount
-      newAmount
-      changedBy
-      effectiveDate
-      createdAt
-    }
-  }
+	payroll {
+		compensationHistory(employeeId: $employeeId, limit: $limit) {
+			id
+			employeeId
+			changeType
+			oldCompensationType
+			newCompensationType
+			oldAmount
+			newAmount
+			changedBy
+			effectiveDate
+			createdAt
+		}
+	}
 }
 
 query PayrollItems {
-  payroll {
-    payrollItems {
-      id
-      name
-      itemType
-      description
-    }
-  }
+	payroll {
+		payrollItems {
+			id
+			name
+			itemType
+			description
+		}
+	}
 }
 
 query PayrollSyncStatus {
-  payroll {
-    payrollSyncStatus {
-      totalEmployees
-      syncedCount
-      pendingCount
-      failedCount
-      lastSyncAt
-    }
-  }
+	payroll {
+		payrollSyncStatus {
+			totalEmployees
+			syncedCount
+			pendingCount
+			failedCount
+			lastSyncAt
+		}
+	}
 }
 ```
 
 #### Mutations
+
 **File:** `/home/chanway/Projects/SvelteHR/src/lib/graphql/mutations/payroll.ts`
 
 ```graphql
 mutation SyncCompensation($input: SyncCompensationInput!) {
-  payroll {
-    syncCompensation(input: $input) {
-      success
-      message
-      compensationType
-      annualSalary
-      hourlyRate
-      paySchedule
-    }
-  }
+	payroll {
+		syncCompensation(input: $input) {
+			success
+			message
+			compensationType
+			annualSalary
+			hourlyRate
+			paySchedule
+		}
+	}
 }
 
 mutation UpdateCompensation($input: UpdateEmployeeCompensationInput!) {
-  payroll {
-    updateCompensation(input: $input) {
-      success
-      message
-      employeeId
-      compensationType
-      amount
-      effectiveDate
-    }
-  }
+	payroll {
+		updateCompensation(input: $input) {
+			success
+			message
+			employeeId
+			compensationType
+			amount
+			effectiveDate
+		}
+	}
 }
 
 mutation MapPayrollItem($input: MapPayrollItemInput!) {
-  payroll {
-    mapPayrollItem(input: $input) {
-      success
-      message
-      compensationType
-      quickbooksItemId
-    }
-  }
+	payroll {
+		mapPayrollItem(input: $input) {
+			success
+			message
+			compensationType
+			quickbooksItemId
+		}
+	}
 }
 
 mutation SyncAllCompensation($input: SyncAllCompensationInput!) {
-  payroll {
-    syncAllCompensation(input: $input) {
-      success
-      message
-      totalEmployees
-      syncedCount
-      failedCount
-    }
-  }
+	payroll {
+		syncAllCompensation(input: $input) {
+			success
+			message
+			totalEmployees
+			syncedCount
+			failedCount
+		}
+	}
 }
 ```
 
@@ -402,6 +425,7 @@ The backend code **will not compile** until the migration has been run and the S
 #### Setup Sequence (MUST follow this order):
 
 1. **Run the Migration:**
+
    ```bash
    cd graphql-rust-server
    cargo run --bin migration up
@@ -409,6 +433,7 @@ The backend code **will not compile** until the migration has been run and the S
 
 2. **Regenerate SeaORM Entities:**
    The user model needs to be regenerated to include the new compensation fields. This typically happens automatically, but if you encounter compilation errors about missing fields (`compensation_type`, `annual_salary`, etc.), you may need to regenerate entities:
+
    ```bash
    # Check if sea-orm-cli is installed
    sea-orm-cli --version
@@ -423,6 +448,7 @@ The backend code **will not compile** until the migration has been run and the S
    ```
 
 3. **Verify Compilation:**
+
    ```bash
    cd graphql-rust-server
    cargo check
@@ -435,10 +461,13 @@ The backend code **will not compile** until the migration has been run and the S
 ## Next Steps
 
 ### 1. Run Migration (CRITICAL FIRST STEP)
+
 See "Setup Instructions" above.
 
 ### 2. Add Permissions to Database
+
 Create a migration to add the compensation permissions:
+
 ```sql
 INSERT INTO hr_public.permissions (id, name, description, resource, action, created_at, updated_at)
 VALUES
@@ -453,11 +482,13 @@ VALUES
 ```
 
 ### 3. Implement Frontend Pages
+
 - Create compensation management page
 - Create payroll settings page
 - Add navigation links in employee detail and admin settings
 
 ### 4. Testing
+
 - Test compensation CRUD operations
 - Test sync to/from QuickBooks
 - Test bulk sync operations
@@ -466,6 +497,7 @@ VALUES
 - Test validation constraints
 
 ### 5. Documentation
+
 - Add API documentation for GraphQL operations
 - Create user guide for compensation management
 - Document QB payroll item mapping process
@@ -478,6 +510,7 @@ VALUES
 ### Backend Files
 
 **Created:**
+
 1. `/home/chanway/Projects/SvelteHR/graphql-rust-server/migration/m20251230_002_payroll_integration.rs`
 2. `/home/chanway/Projects/SvelteHR/graphql-rust-server/src/models/payroll_sync_history.rs`
 3. `/home/chanway/Projects/SvelteHR/graphql-rust-server/src/services/payroll_service.rs`
@@ -485,6 +518,7 @@ VALUES
 5. `/home/chanway/Projects/SvelteHR/graphql-rust-server/src/schema/queries/payroll.rs`
 
 **Modified:**
+
 1. `/home/chanway/Projects/SvelteHR/graphql-rust-server/migration/lib.rs` - Added migration module
 2. `/home/chanway/Projects/SvelteHR/graphql-rust-server/migration/main.rs` - Added migration to list
 3. `/home/chanway/Projects/SvelteHR/graphql-rust-server/src/models/mod.rs` - Exported payroll_sync_history
@@ -495,6 +529,7 @@ VALUES
 8. `/home/chanway/Projects/SvelteHR/graphql-rust-server/src/schema/query.rs` - Added payroll field
 
 ### Frontend Files (To Be Created)
+
 1. `/home/chanway/Projects/SvelteHR/src/routes/admin/employees/[id]/compensation/+page.svelte`
 2. `/home/chanway/Projects/SvelteHR/src/routes/admin/employees/[id]/compensation/+page.server.ts`
 3. `/home/chanway/Projects/SvelteHR/src/routes/admin/settings/integrations/payroll/+page.svelte`
@@ -507,26 +542,31 @@ VALUES
 ## Architecture Decisions
 
 ### 1. Compensation Data Storage
+
 - **Decision:** Store compensation fields directly in users table
 - **Rationale:** Direct access, simpler queries, matches QB's employee-centric model
 - **Trade-off:** Less flexible for complex compensation structures, but sufficient for current requirements
 
 ### 2. Audit Trail
+
 - **Decision:** Separate payroll_sync_history table with JSON old/new values
 - **Rationale:** Flexible schema, complete change history, supports compliance requirements
 - **Trade-off:** Requires JSON queries for detailed analysis, but provides maximum flexibility
 
 ### 3. Sync Direction
+
 - **Decision:** Support bidirectional sync with explicit direction parameter
 - **Rationale:** Gives users control, supports both push and pull scenarios
 - **Trade-off:** More complex UX, but provides necessary flexibility
 
 ### 4. Validation
+
 - **Decision:** Database constraints + service-level validation
 - **Rationale:** Defense in depth, ensures data integrity at multiple levels
 - **Trade-off:** Duplication of rules, but provides robust protection
 
 ### 5. Permission Model
+
 - **Decision:** Separate manage/view_all/view_own permissions
 - **Rationale:** Granular access control, privacy protection for sensitive data
 - **Trade-off:** More complex permission management, but essential for security
@@ -536,9 +576,11 @@ VALUES
 ## Integration with QuickBooks
 
 ### Current Implementation
+
 The PayrollService includes placeholder methods for QuickBooks integration. The actual API calls need to be implemented in the IntuitClient.
 
 ### Required IntuitClient Methods
+
 ```rust
 // To be added to IntuitClient
 impl IntuitClient {
@@ -557,6 +599,7 @@ impl IntuitClient {
 ```
 
 ### QuickBooks API Endpoints
+
 - `GET /v3/company/{realmId}/employee/{employeeId}` - Get employee (includes compensation)
 - `POST /v3/company/{realmId}/employee` - Update employee compensation
 - `GET /v3/company/{realmId}/query?query=SELECT * FROM PayrollItem` - List payroll items
@@ -566,6 +609,7 @@ impl IntuitClient {
 ## Testing Checklist
 
 ### Backend Tests
+
 - [ ] Migration runs successfully
 - [ ] Compensation validation constraints work
 - [ ] PayrollService creates audit trail entries
@@ -575,6 +619,7 @@ impl IntuitClient {
 - [ ] Compensation history is tracked correctly
 
 ### Frontend Tests (When Implemented)
+
 - [ ] Compensation form validates input
 - [ ] Sync buttons trigger correct direction
 - [ ] History table displays changes
@@ -583,6 +628,7 @@ impl IntuitClient {
 - [ ] Error messages display clearly
 
 ### Integration Tests
+
 - [ ] End-to-end sync to QuickBooks
 - [ ] End-to-end sync from QuickBooks
 - [ ] Bulk sync with mixed success/failure

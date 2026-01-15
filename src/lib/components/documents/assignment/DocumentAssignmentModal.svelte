@@ -1,14 +1,14 @@
 <script lang="ts">
 	import type { AssignmentType, DocumentAssignment } from '$lib/types/document';
 	import type { AssignmentModalProps } from './types';
-	
+
 	// Import sub-components
 	import AssignmentTabs from './AssignmentTabs.svelte';
 	import SelectionList from './SelectionList.svelte';
 	import ModalFooter from './ModalFooter.svelte';
 
 	const props: AssignmentModalProps = $props();
-	
+
 	// Default values
 	const {
 		isOpen = false,
@@ -51,19 +51,27 @@
 
 	const currentItems = $derived.by(() => {
 		switch (assignmentType) {
-			case 'employee': return filteredEmployees;
-			case 'department': return filteredDepartments;
-			case 'team': return filteredTeams;
-			default: return [];
+			case 'employee':
+				return filteredEmployees;
+			case 'department':
+				return filteredDepartments;
+			case 'team':
+				return filteredTeams;
+			default:
+				return [];
 		}
 	});
 
 	const currentSelectedIds = $derived.by(() => {
 		switch (assignmentType) {
-			case 'employee': return selectedEmployees;
-			case 'department': return selectedDepartments;
-			case 'team': return selectedTeams;
-			default: return [];
+			case 'employee':
+				return selectedEmployees;
+			case 'department':
+				return selectedDepartments;
+			case 'team':
+				return selectedTeams;
+			default:
+				return [];
 		}
 	});
 

@@ -1,13 +1,5 @@
 <script lang="ts">
-	import {
-		Building2,
-		Grid,
-		Maximize,
-		RotateCcw,
-		Search,
-		ZoomIn,
-		ZoomOut
-	} from '@lucide/svelte';
+	import { Building2, Grid, Maximize, RotateCcw, Search, ZoomIn, ZoomOut } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Card from '$lib/components/ui/card';

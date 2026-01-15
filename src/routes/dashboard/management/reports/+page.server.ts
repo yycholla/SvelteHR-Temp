@@ -97,11 +97,13 @@ export const load: PageServerLoad = async (event) => {
 				canRunReports: hasManagerAccess,
 				canViewAnalytics: locals.roles?.includes('admin') || hasManagerAccess,
 				loadedAt: new Date().toISOString(),
-				error: errorMsg ? {
-					message: errorMsg,
-					details: errorDetails || 'Unknown error',
-					retryable: true
-				} : undefined
+				error: errorMsg
+					? {
+							message: errorMsg,
+							details: errorDetails || 'Unknown error',
+							retryable: true
+						}
+					: undefined
 			};
 		};
 
@@ -227,7 +229,7 @@ export const load: PageServerLoad = async (event) => {
 			// Group by type
 			const typeGroups = calc.groupBy('type');
 			const uniqueTypes = Object.keys(typeGroups);
-			
+
 			// Find most popular type
 			let mostPopularType = 'general';
 			let maxCount = 0;

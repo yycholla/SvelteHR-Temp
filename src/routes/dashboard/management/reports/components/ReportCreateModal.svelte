@@ -1,8 +1,5 @@
 <script lang="ts">
-	import {
-		REPORT_CATEGORIES,
-		REPORT_TYPES
-	} from '$lib/graphql/reports-operations';
+	import { REPORT_CATEGORIES, REPORT_TYPES } from '$lib/graphql/reports-operations';
 
 	interface Props {
 		open: boolean;
@@ -11,12 +8,7 @@
 		onSave: () => void;
 	}
 
-	let {
-		open = $bindable(),
-		createForm = $bindable(),
-		onClose,
-		onSave
-	}: Props = $props();
+	let { open = $bindable(), createForm = $bindable(), onClose, onSave }: Props = $props();
 </script>
 
 {#if open}

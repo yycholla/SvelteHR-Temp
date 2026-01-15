@@ -103,8 +103,7 @@
 							type="checkbox"
 							class="rounded border-input text-primary focus:outline-none"
 							checked={selectedReports.length === reports.length && reports.length > 0}
-							indeterminate={selectedReports.length > 0 &&
-								selectedReports.length < reports.length}
+							indeterminate={selectedReports.length > 0 && selectedReports.length < reports.length}
 							onchange={selectAllReports}
 						/>
 					</th>
@@ -192,10 +191,7 @@
 									<Download class="h-4 w-4" />
 								</button>
 								{#if canEditReports}
-									<button
-										class="rounded p-1 text-red-600 hover:bg-red-100"
-										title="Delete Report"
-									>
+									<button class="rounded p-1 text-red-600 hover:bg-red-100" title="Delete Report">
 										<Trash2 class="h-4 w-4" />
 									</button>
 								{/if}

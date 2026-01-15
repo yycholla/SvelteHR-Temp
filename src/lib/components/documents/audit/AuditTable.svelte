@@ -64,11 +64,7 @@
 					<button class="page-button" onclick={() => onPageChange(1)} disabled={page === 1}>
 						««
 					</button>
-					<button
-						class="page-button"
-						onclick={() => onPageChange(page - 1)}
-						disabled={page === 1}
-					>
+					<button class="page-button" onclick={() => onPageChange(page - 1)} disabled={page === 1}>
 						«
 					</button>
 
@@ -76,11 +72,7 @@
 						const startPage = Math.max(1, page - 2);
 						return startPage + i;
 					}).filter((p) => p <= totalPages) as p}
-						<button
-							class="page-button"
-							class:active={p === page}
-							onclick={() => onPageChange(p)}
-						>
+						<button class="page-button" class:active={p === page} onclick={() => onPageChange(p)}>
 							{p}
 						</button>
 					{/each}

@@ -14,12 +14,7 @@
 		placeholder?: string;
 	}
 
-	let {
-		name,
-		label,
-		required = false,
-		placeholder = '(555) 123-4567'
-	}: Props = $props();
+	let { name, label, required = false, placeholder = '(555) 123-4567' }: Props = $props();
 
 	// Get form from context
 	const form = getContext<SuperForm<Record<string, unknown>>>('form');
@@ -38,12 +33,7 @@
 					</FormLabel>
 				{/if}
 
-				<Input
-					{...props}
-					type="tel"
-					{placeholder}
-					autocomplete="tel"
-				/>
+				<Input {...props} type="tel" {placeholder} autocomplete="tel" />
 
 				<FieldErrors />
 			</div>

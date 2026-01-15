@@ -1,14 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import {
-		Calendar as CalendarIcon,
-		Check,
-		Copy,
-		Download,
-		Plus,
-		RefreshCw
-	} from '@lucide/svelte';
+	import { Calendar as CalendarIcon, Check, Copy, Download, Plus, RefreshCw } from '@lucide/svelte';
 	import * as Card from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
 	import { Label } from '$lib/components/ui/label';
@@ -87,11 +80,7 @@
 						{#if iCalLinkCopied}<Check class="h-3 w-3" />{:else}<Copy class="h-3 w-3" />{/if}
 					</Button>
 				</div>
-				<a
-					href={iCalLink}
-					download
-					class="text-xs text-primary hover:underline flex items-center"
-				>
+				<a href={iCalLink} download class="text-xs text-primary hover:underline flex items-center">
 					Download .ics file <CalendarIcon class="ml-1 h-3 w-3" />
 				</a>
 			</Card.Content>

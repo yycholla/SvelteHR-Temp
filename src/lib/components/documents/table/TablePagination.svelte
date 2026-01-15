@@ -13,12 +13,12 @@
 
 {#if totalPages > 1}
 	<div
-		class={dense 
-			? "flex items-center justify-between text-xs w-full"
-			: "flex items-center justify-between border-t bg-card px-6 py-4 text-card-foreground"}
+		class={dense
+			? 'flex items-center justify-between text-xs w-full'
+			: 'flex items-center justify-between border-t bg-card px-6 py-4 text-card-foreground'}
 		data-testid="document-pagination"
 	>
-		<div class={dense ? "text-muted-foreground" : "text-sm text-muted-foreground"}>
+		<div class={dense ? 'text-muted-foreground' : 'text-sm text-muted-foreground'}>
 			Page {currentPage} of {totalPages}
 		</div>
 		<div class="flex gap-2">
@@ -27,7 +27,7 @@
 				size="sm"
 				disabled={currentPage <= 1}
 				onclick={() => onPageChange(currentPage - 1)}
-				class={dense ? "h-6 px-2 text-xs" : ""}
+				class={dense ? 'h-6 px-2 text-xs' : ''}
 			>
 				Previous
 			</Button>
@@ -89,7 +89,7 @@
 				size="sm"
 				disabled={currentPage >= totalPages}
 				onclick={() => onPageChange(currentPage + 1)}
-				class={dense ? "h-6 px-2 text-xs" : ""}
+				class={dense ? 'h-6 px-2 text-xs' : ''}
 			>
 				Next
 			</Button>

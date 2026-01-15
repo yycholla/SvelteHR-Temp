@@ -32,18 +32,6 @@
 		],
 		"deny": ["Bash(rm -rf /)"]
 	},
-	"hooks": {
-		"Stop": [
-			{
-				"hooks": [
-					{
-						"type": "prompt",
-						"prompt": "Evaluate if Claude should stop: $ARGUMENTS. Check if all tasks are complete, npm run check and cargo check return 0 errors or warnings. Ensure builds complete successfully"
-					}
-				]
-			}
-		]
-	},
 	"includeCoAuthoredBy": false,
 	"statusLine": {
 		"type": "command",

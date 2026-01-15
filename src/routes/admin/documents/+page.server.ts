@@ -36,8 +36,7 @@ export const load: PageServerLoad = async (event) => {
 				await import('$lib/server/db');
 
 			// Step 6: Get total count from database and load assignee data
-			const allAssignments =
-				data?.documents?.flatMap((doc: any) => doc.assignments || []) || [];
+			const allAssignments = data?.documents?.flatMap((doc: any) => doc.assignments || []) || [];
 			const uniqueUserIds = [...new Set(allAssignments.map((a: any) => a.userId))];
 
 			const transactionResult = await dbTransaction(async (dbClient) => {

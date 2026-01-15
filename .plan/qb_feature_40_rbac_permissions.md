@@ -1,15 +1,18 @@
 # Feature 40: Role-Based Sync Permissions
 
 ## Overview
+
 Granular permission system controlling who can perform sync operations, resolve conflicts, view sync history, and modify sync configurations based on user roles.
 
 ## Current System Integration
+
 - Basic admin/user roles exist
 - No sync-specific permissions
 - All users can trigger syncs
 - No audit of permission usage
 
 ## Key Components
+
 - Sync permission matrix
 - Role-based access control
 - Permission inheritance
@@ -19,7 +22,9 @@ Granular permission system controlling who can perform sync operations, resolve 
 - Just-in-time (JIT) access
 
 ## Technical Requirements
+
 ### Permission System
+
 ```rust
 pub enum SyncPermission {
     // Sync Operations
@@ -28,23 +33,23 @@ pub enum SyncPermission {
     TriggerBidirectionalSync,
     ForceFullSync,
     CancelSync,
-    
+
     // Conflict Management
     ViewConflicts,
     ResolveConflicts,
     BulkResolveConflicts,
-    
+
     // Configuration
     ManageSyncSchedules,
     ConfigureFieldMapping,
     ManageValidationRules,
-    
+
     // Viewing
     ViewSyncHistory,
     ViewAuditTrail,
     ViewMetrics,
     ExportData,
-    
+
     // Administration
     ManageIntegrations,
     ManagePermissions,
@@ -56,11 +61,11 @@ pub struct PermissionChecker {
 }
 
 impl PermissionChecker {
-    pub async fn check(&self, user_id: Uuid, permission: SyncPermission) 
+    pub async fn check(&self, user_id: Uuid, permission: SyncPermission)
         -> Result<bool> {
         // Get user's roles
         let roles = self.get_user_roles(user_id).await?;
-        
+
         // Check role permissions
         for role in roles {
             if role.has_permission(&permission) {
@@ -68,7 +73,7 @@ impl PermissionChecker {
                 return Ok(true);
             }
         }
-        
+
         self.audit_permission_check(user_id, permission, false).await?;
         Ok(false)
     }
@@ -76,6 +81,7 @@ impl PermissionChecker {
 ```
 
 ### Database Schema
+
 ```sql
 CREATE TABLE hr_public.sync_permissions (
     id UUID PRIMARY KEY,
@@ -116,37 +122,44 @@ CREATE TABLE hr_public.permission_audit (
 ```
 
 ### Permission Matrix
-| Role | Trigger Sync | Resolve Conflicts | View History | Configure | Admin |
-|------|-------------|-------------------|--------------|-----------|-------|
-| Admin | ✅ | ✅ | ✅ | ✅ | ✅ |
-| HR Manager | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Manager | ❌ | ✅ (own dept) | ✅ (own dept) | ❌ | ❌ |
-| Employee | ❌ | ❌ | ✅ (self only) | ❌ | ❌ |
+
+| Role       | Trigger Sync | Resolve Conflicts | View History   | Configure | Admin |
+| ---------- | ------------ | ----------------- | -------------- | --------- | ----- |
+| Admin      | ✅           | ✅                | ✅             | ✅        | ✅    |
+| HR Manager | ✅           | ✅                | ✅             | ❌        | ❌    |
+| Manager    | ❌           | ✅ (own dept)     | ✅ (own dept)  | ❌        | ❌    |
+| Employee   | ❌           | ❌                | ✅ (self only) | ❌        | ❌    |
 
 ## Dependencies
+
 - Existing role system
 - Permission middleware
 - Audit logging
 - UI for permission management
 
 ## Implementation Phases
+
 ### Phase 1: Basic Permissions
+
 - Define core permissions
 - Add permission checks to sync endpoints
 - Block unauthorized access
 
 ### Phase 2: Role Management
+
 - UI for assigning permissions to roles
 - Permission inheritance
 - Default role permissions
 
 ### Phase 3: Advanced Features
+
 - Temporary permission grants
 - Approval workflows
 - Self-service requests
 - JIT access
 
 ## Research Notes
+
 - [ ] Principle of least privilege application
 - [ ] Separation of duties requirements
 - [ ] Delegation models (can managers delegate?)
@@ -154,10 +167,12 @@ CREATE TABLE hr_public.permission_audit (
 - [ ] Compliance requirements (SOX)
 
 ## Success Metrics
+
 - Zero unauthorized sync operations
 - Permission denial rate < 5%
 - Audit trail completeness: 100%
 - User satisfaction with access control
 
 ## Notes
+
 _Research findings and implementation decisions_

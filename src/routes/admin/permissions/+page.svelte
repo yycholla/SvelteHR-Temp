@@ -150,23 +150,31 @@
 
 <div class="flex flex-col h-full bg-background overflow-hidden">
 	<!-- Toolbar & Header -->
-	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
 		<div class="flex items-center gap-4">
 			<h1 class="text-sm font-semibold tracking-tight">Permissions</h1>
 			<div class="h-4 w-px bg-border"></div>
-			
+
 			<!-- Tabs -->
 			<div class="flex items-center gap-1 bg-muted/50 p-1 rounded-md">
 				<button
 					onclick={() => (activeTab = 'roles')}
-					class="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all {activeTab === 'roles' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}"
+					class="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all {activeTab ===
+					'roles'
+						? 'bg-background shadow-sm text-foreground'
+						: 'text-muted-foreground hover:text-foreground'}"
 				>
 					<Shield class="h-3.5 w-3.5" />
 					Roles
 				</button>
 				<button
 					onclick={() => (activeTab = 'users')}
-					class="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all {activeTab === 'users' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}"
+					class="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all {activeTab ===
+					'users'
+						? 'bg-background shadow-sm text-foreground'
+						: 'text-muted-foreground hover:text-foreground'}"
 				>
 					<Users class="h-3.5 w-3.5" />
 					Assignments
@@ -177,7 +185,9 @@
 		<div class="flex items-center gap-2">
 			<!-- Search -->
 			<div class="relative w-64">
-				<Search class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+				<Search
+					class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+				/>
 				<input
 					type="text"
 					bind:value={searchQuery}
@@ -217,24 +227,19 @@
 	<!-- Content -->
 	<div class="flex-1 overflow-auto bg-muted/5">
 		{#if actionResult?.error || data.error}
-			<div class="m-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive flex items-center gap-2">
+			<div
+				class="m-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive flex items-center gap-2"
+			>
 				{actionResult?.error || data.error}
 			</div>
 		{/if}
 
 		{#if activeTab === 'roles'}
-			<RoleList
-				{filteredRoles}
-				bind:expandedRoles
-				onEditRole={openEditRoleDialog}
-			/>
+			<RoleList {filteredRoles} bind:expandedRoles onEditRole={openEditRoleDialog} />
 		{/if}
 
 		{#if activeTab === 'users'}
-			<UserRoleList
-				{filteredUsers}
-				onManageRoles={openUserRoleDialog}
-			/>
+			<UserRoleList {filteredUsers} onManageRoles={openUserRoleDialog} />
 		{/if}
 	</div>
 </div>

@@ -1,14 +1,17 @@
 # Feature 15: Compliance Reports
 
 ## Overview
+
 Automated generation of compliance-ready reports for SOX, GDPR, SOC 2, and other regulatory requirements, leveraging the comprehensive audit trail.
 
 ## Current System Integration
+
 - Basic audit trail exists
 - No pre-built compliance reports
 - Manual report generation required
 
 ## Key Components
+
 - Pre-built report templates (SOX, GDPR, SOC 2)
 - Customizable report builder
 - Scheduled report generation
@@ -19,7 +22,9 @@ Automated generation of compliance-ready reports for SOX, GDPR, SOC 2, and other
 - Exception reporting
 
 ## Technical Requirements
+
 ### Report Templates
+
 ```rust
 pub enum ComplianceReportType {
     SOX,           // Sarbanes-Oxley controls
@@ -45,6 +50,7 @@ pub struct ComplianceReport {
 ```
 
 ### Database Schema
+
 ```sql
 CREATE TABLE hr_public.compliance_reports (
     id UUID PRIMARY KEY,
@@ -70,7 +76,9 @@ CREATE TABLE hr_public.report_schedules (
 ```
 
 ### Report Content
+
 **SOX Report:**
+
 - All financial data changes
 - User access controls
 - Separation of duties verification
@@ -78,6 +86,7 @@ CREATE TABLE hr_public.report_schedules (
 - System access logs
 
 **GDPR Report:**
+
 - Personal data access logs
 - Data modification history
 - Data deletion requests
@@ -86,6 +95,7 @@ CREATE TABLE hr_public.report_schedules (
 - Third-party data sharing
 
 **SOC 2 Report:**
+
 - Security controls
 - Access management
 - Change management
@@ -93,6 +103,7 @@ CREATE TABLE hr_public.report_schedules (
 - Availability metrics
 
 ## Dependencies
+
 - PDF generation library (wkhtmltopdf, WeasyPrint)
 - Report templating engine
 - CSV export utilities
@@ -100,6 +111,7 @@ CREATE TABLE hr_public.report_schedules (
 - Secure storage for reports (encrypted)
 
 ## Research Notes
+
 - [ ] SOX requirements for payroll systems
 - [ ] GDPR data subject rights reporting
 - [ ] SOC 2 Type II evidence requirements
@@ -107,6 +119,7 @@ CREATE TABLE hr_public.report_schedules (
 - [ ] Report retention requirements
 
 ## Report Delivery
+
 - Email with secure download link
 - SFTP push to auditor
 - Encrypted archive
@@ -114,10 +127,12 @@ CREATE TABLE hr_public.report_schedules (
 - Print-ready PDF format
 
 ## Success Metrics
+
 - Reports generate in < 30 seconds
 - 100% accuracy vs manual audit
 - Auditor satisfaction score > 9/10
 - Zero compliance violations
 
 ## Notes
+
 _Research findings and implementation decisions_

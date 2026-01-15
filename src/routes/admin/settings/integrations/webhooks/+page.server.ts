@@ -174,9 +174,7 @@ export const actions: Actions = {
 		const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
 
 		try {
-			const result = await client
-				.mutation(REGISTER_WEBHOOK_MUTATION, { entityNames })
-				.toPromise();
+			const result = await client.mutation(REGISTER_WEBHOOK_MUTATION, { entityNames }).toPromise();
 
 			if (result.error) {
 				console.error('Failed to register webhook:', result.error);

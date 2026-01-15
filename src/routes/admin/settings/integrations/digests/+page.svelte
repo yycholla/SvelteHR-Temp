@@ -171,9 +171,7 @@
 		error = null;
 
 		try {
-			const result = await client
-				.mutation(DELETE_EMAIL_DIGEST_MUTATION, { digestId })
-				.toPromise();
+			const result = await client.mutation(DELETE_EMAIL_DIGEST_MUTATION, { digestId }).toPromise();
 
 			if (result.error) {
 				error = result.error.message;

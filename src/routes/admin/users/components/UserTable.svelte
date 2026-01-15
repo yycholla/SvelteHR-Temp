@@ -16,21 +16,43 @@
 	<table class="w-full text-sm text-left border-collapse" data-testid="admin-users-table">
 		<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
 			<tr>
-				<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0">Email</th>
-				<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0">Display Name</th>
-				<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0">Role</th>
-				<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0">Department</th>
-				<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0">Status</th>
-				<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground text-right">Actions</th>
+				<th
+					class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+					>Email</th
+				>
+				<th
+					class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+					>Display Name</th
+				>
+				<th
+					class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+					>Role</th
+				>
+				<th
+					class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+					>Department</th
+				>
+				<th
+					class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+					>Status</th
+				>
+				<th
+					class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground text-right"
+					>Actions</th
+				>
 			</tr>
 		</thead>
 		<tbody class="divide-y">
 			{#each filteredUsers as user (user.id)}
 				<tr class="hover:bg-muted/30 group">
 					<td class="px-3 py-1.5 border-r last:border-r-0 truncate max-w-[200px]">{user.email}</td>
-					<td class="px-3 py-1.5 border-r last:border-r-0 truncate max-w-[150px]">{user.displayName || '—'}</td>
+					<td class="px-3 py-1.5 border-r last:border-r-0 truncate max-w-[150px]"
+						>{user.displayName || '—'}</td
+					>
 					<td class="px-3 py-1.5 border-r last:border-r-0">
-						<span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-secondary text-secondary-foreground">
+						<span
+							class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-secondary text-secondary-foreground"
+						>
 							{user.role || 'employee'}
 						</span>
 					</td>
@@ -53,7 +75,9 @@
 						</button>
 					</td>
 					<td class="px-3 py-1.5 text-right">
-						<div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+						<div
+							class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+						>
 							<button
 								onclick={() => onEditUser(user)}
 								disabled={loading}

@@ -51,7 +51,9 @@
 
 <div class={layout === 'vertical' ? 'space-y-4' : 'flex items-end justify-between gap-3'}>
 	<!-- Filters Group -->
-	<div class={layout === 'vertical' ? 'grid grid-cols-1 gap-4 md:grid-cols-3' : 'flex items-end gap-3'}>
+	<div
+		class={layout === 'vertical' ? 'grid grid-cols-1 gap-4 md:grid-cols-3' : 'flex items-end gap-3'}
+	>
 		<!-- Search Input -->
 		<div class={layout === 'vertical' ? 'space-y-2' : 'w-96 space-y-2'}>
 			<label for="search-filter" class="text-sm font-medium">Search</label>
@@ -140,7 +142,12 @@
 			{#if layout === 'horizontal'}
 				<div class="invisible text-sm font-medium">Clear</div>
 			{/if}
-			<Button type="button" variant="outline" size={layout === 'horizontal' ? 'sm' : 'default'} onclick={onClear}>Clear</Button>
+			<Button
+				type="button"
+				variant="outline"
+				size={layout === 'horizontal' ? 'sm' : 'default'}
+				onclick={onClear}>Clear</Button
+			>
 		</div>
 	</div>
 
@@ -211,7 +218,8 @@
 							<DropdownMenu.CheckboxItem
 								checked={columnVisibility.displayName}
 								onCheckedChange={(value) => {
-									if (columnVisibility) columnVisibility = { ...columnVisibility, displayName: !!value };
+									if (columnVisibility)
+										columnVisibility = { ...columnVisibility, displayName: !!value };
 								}}
 							>
 								Name
@@ -227,7 +235,8 @@
 							<DropdownMenu.CheckboxItem
 								checked={columnVisibility.departmentId}
 								onCheckedChange={(value) => {
-									if (columnVisibility) columnVisibility = { ...columnVisibility, departmentId: !!value };
+									if (columnVisibility)
+										columnVisibility = { ...columnVisibility, departmentId: !!value };
 								}}
 							>
 								Department
@@ -244,7 +253,8 @@
 								<DropdownMenu.CheckboxItem
 									checked={columnVisibility.hireDate}
 									onCheckedChange={(value) => {
-										if (columnVisibility) columnVisibility = { ...columnVisibility, hireDate: !!value };
+										if (columnVisibility)
+											columnVisibility = { ...columnVisibility, hireDate: !!value };
 									}}
 								>
 									Hire Date
@@ -252,7 +262,8 @@
 								<DropdownMenu.CheckboxItem
 									checked={columnVisibility.isActive}
 									onCheckedChange={(value) => {
-										if (columnVisibility) columnVisibility = { ...columnVisibility, isActive: !!value };
+										if (columnVisibility)
+											columnVisibility = { ...columnVisibility, isActive: !!value };
 									}}
 								>
 									Status

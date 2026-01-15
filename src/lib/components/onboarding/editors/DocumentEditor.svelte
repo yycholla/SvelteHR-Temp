@@ -13,7 +13,9 @@
 </script>
 
 <div class="space-y-6 max-w-3xl mx-auto py-8">
-	<div class="p-8 border-2 border-dashed rounded-lg flex flex-col items-center justify-center bg-muted/30 hover:bg-muted/50 transition-colors">
+	<div
+		class="p-8 border-2 border-dashed rounded-lg flex flex-col items-center justify-center bg-muted/30 hover:bg-muted/50 transition-colors"
+	>
 		<div class="bg-background p-4 rounded-full mb-4 shadow-sm">
 			<FileText class="h-8 w-8 text-muted-foreground" />
 		</div>
@@ -21,7 +23,7 @@
 		<p class="text-sm text-muted-foreground text-center max-w-md mb-6">
 			Provide a URL to a document (PDF, Google Doc, etc.) that the employee must read.
 		</p>
-		
+
 		<div class="w-full max-w-md flex gap-2">
 			<div class="relative flex-1">
 				<Link class="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />

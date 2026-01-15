@@ -1,13 +1,16 @@
 # Feature 10: Time Tracking Integration
 
 ## Overview
+
 Sync employee time entries between the HR system and QuickBooks for accurate payroll processing, billing, and project cost tracking.
 
 ## Current System Integration
+
 - No current time tracking system
 - Need to decide: build native or integrate existing?
 
 ## Key Components
+
 - Time entry creation/editing
 - Approval workflows
 - Project/job allocation
@@ -17,7 +20,9 @@ Sync employee time entries between the HR system and QuickBooks for accurate pay
 - Sync to QB Time Activities
 
 ## Technical Requirements
+
 ### New Tables
+
 ```sql
 CREATE TABLE hr_public.time_entries (
     id UUID PRIMARY KEY,
@@ -35,18 +40,21 @@ CREATE TABLE hr_public.time_entries (
 ```
 
 ### QuickBooks Integration
+
 - Map time entries to QB Time Activities
 - Link to QB Customers (projects)
 - Handle QB Service Items
 - Support timesheet approval workflows
 
 ## Dependencies
+
 - QuickBooks Time Activities API
 - Project/job management system
 - Approval workflow engine
 - Mobile time entry app (optional)
 
 ## Research Notes
+
 - [ ] QB Time Activities data model
 - [ ] Timesheet approval requirements
 - [ ] Integration with existing time tracking tools (Toggl, Harvest)
@@ -54,10 +62,12 @@ CREATE TABLE hr_public.time_entries (
 - [ ] GPS/geofencing for field workers
 
 ## Use Cases
+
 1. Service professionals billing clients
 2. Project cost tracking
 3. Payroll time submission
 4. Compliance reporting (DCAA, etc.)
 
 ## Notes
+
 _Research findings and implementation decisions_

@@ -269,11 +269,12 @@
 					<Card.Content class="space-y-8">
 						<!-- Render all blocks in the form using the new renderer -->
 						{#each currentForm.blocks as block}
-							<FormBlockRenderer 
-								{block} 
-								bind:checkboxStates 
-								bind:signatureData 
-								formTemplates={data.formTemplates as Map<string, any>} 
+							<!-- prettier-ignore -->
+							<FormBlockRenderer
+								{block}
+								bind:checkboxStates
+								bind:signatureData
+							formTemplates={data.formTemplates as Map<string, FormTemplate>}
 							/>
 						{/each}
 

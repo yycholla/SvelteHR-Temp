@@ -17,8 +17,14 @@
 			{#each headerGroup.headers as header (header.id)}
 				<Table.Head
 					class={(header.column.getCanSort() ? 'cursor-pointer select-none' : '') +
-						(header.column.id === 'select' ? ' pr-2 pl-6' : header.column.id === 'filename' ? ' pl-2' : '') +
-						(dense ? ' py-2 text-xs uppercase tracking-wider font-semibold border-r last:border-r-0' : '')}
+						(header.column.id === 'select'
+							? ' pr-2 pl-6'
+							: header.column.id === 'filename'
+								? ' pl-2'
+								: '') +
+						(dense
+							? ' py-2 text-xs uppercase tracking-wider font-semibold border-r last:border-r-0'
+							: '')}
 					style={header.column.columnDef.size
 						? `width: ${header.column.columnDef.size}px; min-width: ${header.column.columnDef.size}px;`
 						: ''}

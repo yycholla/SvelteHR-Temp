@@ -11,10 +11,7 @@
 	import { createSvelteTable } from '$lib/components/ui/data-table/data-table.svelte.js';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { Button } from '$lib/components/ui/button';
-	import {
-		ChevronDown,
-		Settings2,
-	} from '@lucide/svelte';
+	import { ChevronDown, Settings2 } from '@lucide/svelte';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { writable } from 'svelte/store';
@@ -538,10 +535,6 @@
 
 	<!-- Pagination -->
 	{#if totalPages > 1}
-		<EmployeeTablePagination
-			{currentPage}
-			{totalPages}
-			onPageChange={onPageChange}
-		/>
+		<EmployeeTablePagination {currentPage} {totalPages} {onPageChange} />
 	{/if}
 </div>

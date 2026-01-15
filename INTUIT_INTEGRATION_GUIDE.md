@@ -14,11 +14,13 @@ This guide walks you through integrating Intuit QuickBooks/Workforce with your H
 ### Step 1: Configure Your Environment
 
 1. Copy `.env.example` to `.env` (if not already done):
+
    ```bash
    cp .env.example .env
    ```
 
 2. Add your Intuit credentials to `.env`:
+
    ```bash
    # Get these from https://developer.intuit.com/app/developer/myapps
    INTUIT_CLIENT_ID=your_client_id_here
@@ -41,6 +43,7 @@ cargo run --bin migration up
 ```
 
 This will create the following tables:
+
 - `intuit_connections` - Stores OAuth tokens and connection info
 - `intuit_sync_log` - Logs all sync operations for debugging
 - Adds `intuit_employee_id` column to `users` table
@@ -67,6 +70,7 @@ url = "2.5"
 ```
 
 Then run:
+
 ```bash
 cd graphql-rust-server
 cargo build
@@ -78,59 +82,55 @@ Create the OAuth connection page at `src/routes/admin/settings/integrations/+pag
 
 ```svelte
 <script lang="ts">
-  import { Button } from '$lib/components/ui/button';
-  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+	import { Button } from '$lib/components/ui/button';
+	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 
-  const { data } = $props();
+	const { data } = $props();
 
-  async function connectIntuit() {
-    // Redirect to backend OAuth endpoint
-    window.location.href = '/api/intuit/connect';
-  }
+	async function connectIntuit() {
+		// Redirect to backend OAuth endpoint
+		window.location.href = '/api/intuit/connect';
+	}
 
-  async function disconnectIntuit() {
-    await fetch('/api/intuit/disconnect', { method: 'POST' });
-    window.location.reload();
-  }
+	async function disconnectIntuit() {
+		await fetch('/api/intuit/disconnect', { method: 'POST' });
+		window.location.reload();
+	}
 </script>
 
 <div class="container mx-auto p-6">
-  <h1 class="text-2xl font-bold mb-6">Integrations</h1>
+	<h1 class="text-2xl font-bold mb-6">Integrations</h1>
 
-  <Card>
-    <CardHeader>
-      <CardTitle>QuickBooks / Intuit Workforce</CardTitle>
-    </CardHeader>
-    <CardContent>
-      {#if data.intuitConnected}
-        <div class="space-y-4">
-          <p class="text-sm text-green-600">
-            ✓ Connected to {data.intuitCompanyName || 'QuickBooks'}
-          </p>
-          <p class="text-sm text-muted-foreground">
-            Last synced: {data.intuitLastSync ? new Date(data.intuitLastSync).toLocaleString() : 'Never'}
-          </p>
-          <div class="flex gap-2">
-            <Button variant="outline" onclick={disconnectIntuit}>
-              Disconnect
-            </Button>
-            <Button onclick={() => window.location.href = '/api/intuit/sync'}>
-              Sync Now
-            </Button>
-          </div>
-        </div>
-      {:else}
-        <div class="space-y-4">
-          <p class="text-sm text-muted-foreground">
-            Connect your QuickBooks account to sync employee data and payroll information.
-          </p>
-          <Button onclick={connectIntuit}>
-            Connect to QuickBooks
-          </Button>
-        </div>
-      {/if}
-    </CardContent>
-  </Card>
+	<Card>
+		<CardHeader>
+			<CardTitle>QuickBooks / Intuit Workforce</CardTitle>
+		</CardHeader>
+		<CardContent>
+			{#if data.intuitConnected}
+				<div class="space-y-4">
+					<p class="text-sm text-green-600">
+						✓ Connected to {data.intuitCompanyName || 'QuickBooks'}
+					</p>
+					<p class="text-sm text-muted-foreground">
+						Last synced: {data.intuitLastSync
+							? new Date(data.intuitLastSync).toLocaleString()
+							: 'Never'}
+					</p>
+					<div class="flex gap-2">
+						<Button variant="outline" onclick={disconnectIntuit}>Disconnect</Button>
+						<Button onclick={() => (window.location.href = '/api/intuit/sync')}>Sync Now</Button>
+					</div>
+				</div>
+			{:else}
+				<div class="space-y-4">
+					<p class="text-sm text-muted-foreground">
+						Connect your QuickBooks account to sync employee data and payroll information.
+					</p>
+					<Button onclick={connectIntuit}>Connect to QuickBooks</Button>
+				</div>
+			{/if}
+		</CardContent>
+	</Card>
 </div>
 ```
 
@@ -143,27 +143,28 @@ import type { RequestHandler } from './$types';
 import { redirect } from '@sveltejs/kit';
 
 export const GET: RequestHandler = async ({ url }) => {
-  const clientId = process.env.INTUIT_CLIENT_ID;
-  const redirectUri = process.env.INTUIT_REDIRECT_URI;
-  const scopes = process.env.INTUIT_SCOPES || 'com.intuit.quickbooks.accounting';
-  const environment = process.env.INTUIT_ENVIRONMENT || 'sandbox';
+	const clientId = process.env.INTUIT_CLIENT_ID;
+	const redirectUri = process.env.INTUIT_REDIRECT_URI;
+	const scopes = process.env.INTUIT_SCOPES || 'com.intuit.quickbooks.accounting';
+	const environment = process.env.INTUIT_ENVIRONMENT || 'sandbox';
 
-  const authUrl = environment === 'production'
-    ? 'https://appcenter.intuit.com/connect/oauth2'
-    : 'https://appcenter.intuit.com/connect/oauth2';
+	const authUrl =
+		environment === 'production'
+			? 'https://appcenter.intuit.com/connect/oauth2'
+			: 'https://appcenter.intuit.com/connect/oauth2';
 
-  // Generate random state for CSRF protection
-  const state = crypto.randomUUID();
+	// Generate random state for CSRF protection
+	const state = crypto.randomUUID();
 
-  // Store state in session/cookie for validation
-  const authorizationUrl = new URL(authUrl);
-  authorizationUrl.searchParams.set('client_id', clientId!);
-  authorizationUrl.searchParams.set('redirect_uri', redirectUri!);
-  authorizationUrl.searchParams.set('response_type', 'code');
-  authorizationUrl.searchParams.set('scope', scopes);
-  authorizationUrl.searchParams.set('state', state);
+	// Store state in session/cookie for validation
+	const authorizationUrl = new URL(authUrl);
+	authorizationUrl.searchParams.set('client_id', clientId!);
+	authorizationUrl.searchParams.set('redirect_uri', redirectUri!);
+	authorizationUrl.searchParams.set('response_type', 'code');
+	authorizationUrl.searchParams.set('scope', scopes);
+	authorizationUrl.searchParams.set('state', state);
 
-  throw redirect(302, authorizationUrl.toString());
+	throw redirect(302, authorizationUrl.toString());
 };
 ```
 
@@ -175,17 +176,17 @@ import { redirect, error } from '@sveltejs/kit';
 import { createUrqlClient } from '$lib/graphql/client';
 
 export const GET: RequestHandler = async ({ url, fetch, cookies }) => {
-  const code = url.searchParams.get('code');
-  const state = url.searchParams.get('state');
-  const realmId = url.searchParams.get('realmId');
+	const code = url.searchParams.get('code');
+	const state = url.searchParams.get('state');
+	const realmId = url.searchParams.get('realmId');
 
-  if (!code || !realmId) {
-    throw error(400, 'Missing authorization code or realm ID');
-  }
+	if (!code || !realmId) {
+		throw error(400, 'Missing authorization code or realm ID');
+	}
 
-  // Exchange code for tokens via GraphQL mutation
-  const client = createUrqlClient(fetch);
-  const mutation = `
+	// Exchange code for tokens via GraphQL mutation
+	const client = createUrqlClient(fetch);
+	const mutation = `
     mutation ExchangeIntuitCode($code: String!, $realmId: String!) {
       intuit {
         connect(code: $code, realmId: $realmId) {
@@ -196,13 +197,13 @@ export const GET: RequestHandler = async ({ url, fetch, cookies }) => {
     }
   `;
 
-  const result = await client.mutation(mutation, { code, realmId });
+	const result = await client.mutation(mutation, { code, realmId });
 
-  if (result.error) {
-    throw error(500, 'Failed to connect to QuickBooks');
-  }
+	if (result.error) {
+		throw error(500, 'Failed to connect to QuickBooks');
+	}
 
-  throw redirect(302, '/admin/settings/integrations?connected=true');
+	throw redirect(302, '/admin/settings/integrations?connected=true');
 };
 ```
 
@@ -480,12 +481,14 @@ impl SyncResult {
 ### Step 8: Test the Integration
 
 1. Start your backend:
+
    ```bash
    cd graphql-rust-server
    cargo run
    ```
 
 2. Start your frontend:
+
    ```bash
    npm run dev
    ```
@@ -517,7 +520,9 @@ impl SyncResult {
 ## 🐛 Troubleshooting
 
 ### Token Expired
+
 Tokens expire after 1 hour. Implement token refresh:
+
 ```rust
 pub async fn refresh_access_token(refresh_token: &str) -> Result<TokenResponse> {
     // Use refresh token to get new access token
@@ -525,13 +530,17 @@ pub async fn refresh_access_token(refresh_token: &str) -> Result<TokenResponse> 
 ```
 
 ### API Rate Limits
+
 QuickBooks has rate limits (500 requests per minute). Implement:
+
 - Request queuing
 - Exponential backoff
 - Rate limit headers checking
 
 ### Sync Conflicts
+
 When data changes in both systems:
+
 1. Log conflict in `intuit_sync_log`
 2. Notify admin
 3. Let admin choose which version to keep

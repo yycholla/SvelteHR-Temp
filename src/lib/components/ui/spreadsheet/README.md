@@ -152,7 +152,9 @@ For columns with complex rendering needs (like action buttons), use the `customC
 ## Column Types
 
 ### Text
+
 Basic text display and editing:
+
 ```typescript
 {
 	id: 'name',
@@ -165,7 +167,9 @@ Basic text display and editing:
 ```
 
 ### Number
+
 Numeric values with number input:
+
 ```typescript
 {
 	id: 'age',
@@ -178,7 +182,9 @@ Numeric values with number input:
 ```
 
 ### Date
+
 Date values with date input:
+
 ```typescript
 {
 	id: 'createdAt',
@@ -191,7 +197,9 @@ Date values with date input:
 ```
 
 ### Select
+
 Dropdown selection:
+
 ```typescript
 {
 	id: 'status',
@@ -208,7 +216,9 @@ Dropdown selection:
 ```
 
 ### Badge
+
 Read-only badge display:
+
 ```typescript
 {
 	id: 'role',
@@ -218,7 +228,9 @@ Read-only badge display:
 ```
 
 ### Custom
+
 For complex rendering with custom snippets:
+
 ```typescript
 {
 	id: 'actions',
@@ -230,29 +242,33 @@ For complex rendering with custom snippets:
 ## Editing Features
 
 ### Inline Editing
+
 - Double-click any editable cell to start editing
 - Press `Enter` to save
 - Press `Escape` to cancel
 - Edited cells are highlighted in yellow
 
 ### Batch Save
+
 - All edits are tracked in pending state
 - Click "Save Changes" to commit all edits at once
 - The `onSave` callback receives an array of all edits
 
 ### Edit Structure
+
 ```typescript
 interface RowEdit<T> {
-	rowId: string;        // Unique row identifier
-	field: string;        // Field name being edited
-	value: unknown;       // New value
-	originalRow: T;       // Original row data
+	rowId: string; // Unique row identifier
+	field: string; // Field name being edited
+	value: unknown; // New value
+	originalRow: T; // Original row data
 }
 ```
 
 ## Bulk Operations
 
 ### Row Selection
+
 Enable row selection to allow users to select multiple rows and perform batch operations:
 
 ```typescript
@@ -267,12 +283,14 @@ const config: SpreadsheetConfig<User> = {
 ```
 
 When enabled:
+
 - A checkbox column appears as the first column
 - Click checkboxes to select/deselect rows
 - Click the header checkbox to select/deselect all visible rows
 - Selected rows are highlighted with a blue background
 
 ### Bulk Actions
+
 Define bulk actions that appear when rows are selected:
 
 ```typescript
@@ -309,6 +327,7 @@ const config: SpreadsheetConfig<User> = {
 ```
 
 ### Bulk Action Configuration
+
 ```typescript
 interface BulkAction<T> {
 	/** Unique identifier */
@@ -332,23 +351,29 @@ interface BulkAction<T> {
 ```
 
 ### Bulk Actions Toolbar
+
 When rows are selected, a toolbar appears showing:
+
 - Count of selected items
 - Bulk action buttons
 - "Deselect All" button
 
 The toolbar automatically:
+
 - Shows confirmation dialogs for destructive actions
 - Handles async operations
 - Displays error states
 - Deselects rows after successful operations
 
 ### Selection Modes
+
 - **`multiple`** (default): Select any number of rows
 - **`single`**: Only one row can be selected at a time
 
 ### Selection State
+
 Access selection state programmatically:
+
 ```typescript
 const config: SpreadsheetConfig<User> = {
 	// ... other config
@@ -362,12 +387,15 @@ const config: SpreadsheetConfig<User> = {
 ## Column Visibility
 
 ### Show/Hide Columns
+
 Users can show or hide columns using the "Columns" dropdown:
+
 - Shows count of visible/total columns
 - Quick "Show All" / "Hide All" buttons
 - Individual column toggles
 
 ### Column Configuration
+
 ```typescript
 {
 	id: 'optional-field',
@@ -434,12 +462,14 @@ interface SpreadsheetConfig<T> {
 ## Complete Examples
 
 See these files for complete working examples:
+
 - `src/routes/admin/users/components/UserSpreadsheet.svelte` - User management with inline editing and save functionality
 - `src/routes/admin/trainings/components/TrainingSpreadsheet.svelte` - Training modules with custom cells
 
 ## Styling
 
 The component uses Tailwind CSS and follows the existing design system:
+
 - Sticky headers with backdrop blur
 - Bordered cells (spreadsheet-like)
 - Hover effects on rows and cells

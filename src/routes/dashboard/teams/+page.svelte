@@ -4,13 +4,8 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
-	import {
-		Building,
-		Building2,
-		Plus,
-		TreePine,
-	} from '@lucide/svelte';
-	
+	import { Building, Building2, Plus, TreePine } from '@lucide/svelte';
+
 	// Import decomposed components
 	import PageHeader from '$lib/components/teams/page/PageHeader.svelte';
 	import TeamStats from '$lib/components/teams/page/TeamStats.svelte';

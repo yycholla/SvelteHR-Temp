@@ -149,13 +149,23 @@ export const load: PageServerLoad = async (event) => {
 			// Use ClientSideFilter for fluent filtering API
 			const filteredTasks = new ClientSideFilter(tasksData || [])
 				// Status filter (GraphQL returns SCREAMING_SNAKE_CASE)
-				.where('status', filters.statusFilter ? filters.statusFilter.toUpperCase().replace('-', '_') : undefined)
+				.where(
+					'status',
+					filters.statusFilter ? filters.statusFilter.toUpperCase().replace('-', '_') : undefined
+				)
 				// Priority filter
-				.where('priority', filters.priorityFilter ? filters.priorityFilter.toUpperCase() : undefined)
+				.where(
+					'priority',
+					filters.priorityFilter ? filters.priorityFilter.toUpperCase() : undefined
+				)
 				// Assignee filter
-				.filter((task: any) => !filters.assigneeFilter || task.assignee?.id === filters.assigneeFilter)
+				.filter(
+					(task: any) => !filters.assigneeFilter || task.assignee?.id === filters.assigneeFilter
+				)
 				// Task type filter
-				.filter((task: any) => !filters.taskTypeFilter || task.taskType?.id === filters.taskTypeFilter)
+				.filter(
+					(task: any) => !filters.taskTypeFilter || task.taskType?.id === filters.taskTypeFilter
+				)
 				// Search filter (title + description)
 				.search(filters.searchTerm, ['title', 'description'])
 				// Due date range filter

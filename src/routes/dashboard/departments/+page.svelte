@@ -132,11 +132,7 @@
 
 <!-- Page Header -->
 <div class="space-y-6">
-	<PageHeader
-		{canManageDepartments}
-		bind:viewMode
-		bind:showCreateDialog
-	/>
+	<PageHeader {canManageDepartments} bind:viewMode bind:showCreateDialog />
 
 	<PageFilters
 		{viewMode}
@@ -153,17 +149,9 @@
 
 	<!-- Content -->
 	{#if viewMode === 'grid'}
-		<DepartmentGrid
-			{departments}
-			{canViewEmployees}
-			{canManageDepartments}
-		/>
+		<DepartmentGrid {departments} {canViewEmployees} {canManageDepartments} />
 	{:else}
-		<DepartmentTable
-			{departments}
-			{canViewEmployees}
-			{canManageDepartments}
-		/>
+		<DepartmentTable {departments} {canViewEmployees} {canManageDepartments} />
 	{/if}
 
 	<!-- Empty State -->

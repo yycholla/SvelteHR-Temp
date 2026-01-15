@@ -462,7 +462,8 @@
 											<span class="text-sm font-medium">{batch.totalItems}</span>
 										</td>
 										<td class="px-4 py-3 text-right">
-											<span class="text-sm font-medium text-green-600">{batch.successfulItems}</span>
+											<span class="text-sm font-medium text-green-600">{batch.successfulItems}</span
+											>
 										</td>
 										<td class="px-4 py-3 text-right">
 											<span class="text-sm font-medium text-red-600">{batch.failedItems}</span>

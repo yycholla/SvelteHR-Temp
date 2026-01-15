@@ -79,9 +79,7 @@
 			allowCustomTerms={false}
 		/>
 		{#if selectedAttendeeIds.length === 0}
-			<p class="text-xs text-muted-foreground">
-				Start typing to search for employees to invite
-			</p>
+			<p class="text-xs text-muted-foreground">Start typing to search for employees to invite</p>
 		{:else}
 			<p class="text-xs text-muted-foreground">
 				{selectedAttendeeIds.length}

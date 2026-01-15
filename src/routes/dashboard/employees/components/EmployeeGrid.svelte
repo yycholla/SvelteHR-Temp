@@ -50,9 +50,7 @@
 				<Card.Header class="pb-3">
 					<div class="flex items-start justify-between">
 						<div class="flex items-center space-x-3">
-							<div
-								class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10"
-							>
+							<div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
 								<Users class="h-6 w-6 text-primary" />
 							</div>
 							<div>
@@ -117,21 +115,13 @@
 							</Button>
 						{/if}
 						{#if canEditEmployees}
-							<Button
-								variant="outline"
-								size="sm"
-								href="/dashboard/employees/{employee.id}/edit"
-							>
+							<Button variant="outline" size="sm" href="/dashboard/employees/{employee.id}/edit">
 								<Edit class="mr-2 h-4 w-4" />
 								Edit
 							</Button>
 						{/if}
 						{#if canCreateReviews}
-							<Button
-								variant="outline"
-								size="sm"
-								href="/dashboard/reviews?employee={employee.id}"
-							>
+							<Button variant="outline" size="sm" href="/dashboard/reviews?employee={employee.id}">
 								<FileBarChart class="mr-2 h-4 w-4" />
 								Start Review
 							</Button>

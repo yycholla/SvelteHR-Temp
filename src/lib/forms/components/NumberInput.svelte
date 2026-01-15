@@ -17,15 +17,7 @@
 		step?: number;
 	}
 
-	let {
-		name,
-		label,
-		required = false,
-		placeholder,
-		min,
-		max,
-		step = 1
-	}: Props = $props();
+	let { name, label, required = false, placeholder, min, max, step = 1 }: Props = $props();
 
 	// Get form from context
 	const form = getContext<SuperForm<Record<string, unknown>>>('form');
@@ -44,14 +36,7 @@
 					</FormLabel>
 				{/if}
 
-				<Input
-					{...props}
-					type="number"
-					{placeholder}
-					{min}
-					{max}
-					{step}
-				/>
+				<Input {...props} type="number" {placeholder} {min} {max} {step} />
 
 				<FieldErrors />
 			</div>

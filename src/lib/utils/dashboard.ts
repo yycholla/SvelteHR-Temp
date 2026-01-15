@@ -174,14 +174,13 @@ export function generateRecentActivitiesFromLogs(
 		leaveRequests.slice(0, Math.min(3, limit - activities.length)).forEach((leave) => {
 			// Cast status to string to avoid Enum type conflict with literals
 			const status = leave.status as string;
-			
+
 			activities.push({
 				id: `leave-${leave.id}`,
 				title: `Leave request ${status}`,
 				description: `${leave.leaveType?.name || 'Unknown'} leave from ${leave.startDate} to ${leave.endDate}`,
 				icon: 'Calendar',
-				color:
-					status === 'approved' ? 'green' : status === 'pending' ? 'orange' : 'red',
+				color: status === 'approved' ? 'green' : status === 'pending' ? 'orange' : 'red',
 				type: 'leave_request',
 				timestamp: leave.createdAt || leave.submittedAt || new Date().toISOString(),
 				user: { id: 'user', name: 'You' }

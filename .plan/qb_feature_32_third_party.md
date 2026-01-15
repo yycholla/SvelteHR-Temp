@@ -1,42 +1,51 @@
 # Feature 32: Third-Party App Integrations
 
 ## Overview
+
 Extensible integration framework connecting QuickBooks sync with other HR and business tools like Slack, Stripe, ADP, BambooHR, and more.
 
 ## Current System Integration
+
 - QuickBooks only
 - No integration framework
 - Custom code for each integration
 
 ## Key Components
+
 ### Notification Integrations
+
 - **Slack**: Sync notifications, conflict alerts
 - **Microsoft Teams**: Similar to Slack
 - **Email**: Digest emails, alerts
 
 ### Payment Integrations
+
 - **Stripe**: Payment processing sync
 - **PayPal**: Payment tracking
 - **Square**: POS integration
 
 ### HR System Integrations
+
 - **ADP**: Payroll system bidirectional sync
 - **Workday**: Enterprise HR sync
 - **BambooHR**: HRIS integration
 - **Greenhouse/Lever**: Applicant tracking
 
 ### Productivity Integrations
+
 - **Google Workspace**: SSO, Calendar
 - **Microsoft 365**: SSO, Teams
 - **Zapier**: No-code automation
 
 ## Technical Requirements
+
 ### Integration Framework
+
 ```rust
 pub trait Integration: Send + Sync {
     fn name(&self) -> &str;
     fn is_enabled(&self) -> bool;
-    
+
     async fn notify(&self, event: SyncEvent) -> Result<()>;
     async fn fetch_data(&self) -> Result<Vec<IntegrationData>>;
     async fn push_data(&self, data: Vec<IntegrationData>) -> Result<()>;
@@ -58,6 +67,7 @@ impl IntegrationManager {
 ```
 
 ### Database Schema
+
 ```sql
 CREATE TABLE hr_public.integrations (
     id UUID PRIMARY KEY,
@@ -82,6 +92,7 @@ CREATE TABLE hr_public.integration_events (
 ```
 
 ### Slack Integration Example
+
 ```rust
 pub struct SlackIntegration {
     webhook_url: String,
@@ -92,7 +103,7 @@ impl Integration for SlackIntegration {
     async fn notify(&self, event: SyncEvent) -> Result<()> {
         let message = match event.event_type {
             EventType::SyncComplete => {
-                format!("✅ QuickBooks sync completed: {} employees synced", 
+                format!("✅ QuickBooks sync completed: {} employees synced",
                     event.records_synced)
             },
             EventType::ConflictDetected => {
@@ -100,19 +111,21 @@ impl Integration for SlackIntegration {
             },
             _ => return Ok(()),
         };
-        
+
         self.send_message(&message).await
     }
 }
 ```
 
 ## Dependencies
+
 - Integration-specific SDKs
 - OAuth2 library for auth
 - Webhook handling
 - Secret management (encrypted credentials)
 
 ## Research Notes
+
 - [ ] Most requested integrations (survey users)
 - [ ] OAuth2 flow implementation
 - [ ] Rate limiting for each integration
@@ -120,10 +133,12 @@ impl Integration for SlackIntegration {
 - [ ] Integration marketplace (install from catalog)
 
 ## Success Metrics
+
 - 3+ active integrations per customer
 - 99% notification delivery rate
 - Zero credential leaks
 - Integration setup time < 5 minutes
 
 ## Notes
+
 _Research findings and implementation decisions_

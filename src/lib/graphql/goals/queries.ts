@@ -11,12 +11,7 @@ import { gql } from '@urql/svelte';
  * Backend: Uses employeeGoals from Rust GraphQL schema
  */
 export const GET_EMPLOYEE_GOALS = gql`
-	query GetEmployeeGoals(
-		$employeeId: UUID
-		$status: String
-		$limit: Int = 20
-		$offset: Int = 0
-	) {
+	query GetEmployeeGoals($employeeId: UUID, $status: String, $limit: Int = 20, $offset: Int = 0) {
 		employeeGoals(employeeId: $employeeId, status: $status, limit: $limit, offset: $offset) {
 			id
 			employeeId
@@ -248,9 +243,10 @@ export function calculateGoalStats(
 /**
  * Filter goals by department (client-side)
  */
-export function filterGoalsByDepartment<
-	T extends { employee?: { department?: { id: string } } }
->(goals: T[], departmentId: string): T[] {
+export function filterGoalsByDepartment<T extends { employee?: { department?: { id: string } } }>(
+	goals: T[],
+	departmentId: string
+): T[] {
 	return goals.filter((goal) => goal.employee?.department?.id === departmentId);
 }
 

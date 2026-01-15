@@ -3,9 +3,11 @@
 ## Current State Analysis
 
 ### Existing Infrastructure
+
 From `graphql-rust-server/src/models/intuit_sync_log.rs`:
 
 **Current Fields:**
+
 ```rust
 pub struct Model {
     pub id: Uuid,
@@ -35,6 +37,7 @@ pub struct Model {
 ### Gaps for Comprehensive Audit
 
 **Missing Critical Features:**
+
 1. ❌ Before/after snapshots of data
 2. ❌ Field-level change tracking
 3. ❌ Entity-specific audit trails (per employee/department)
@@ -49,9 +52,11 @@ pub struct Model {
 ## Enhancement Strategy
 
 ### Approach: Additive Architecture
+
 **DO NOT replace `intuit_sync_log`** - it serves its purpose well for sync operations.
 
 **ADD NEW TABLES** for comprehensive audit:
+
 1. `sync_audit_snapshots` - Before/after entity state
 2. `field_change_audit` - Field-level change tracking
 3. `sync_sessions` - Group related operations
@@ -63,6 +68,7 @@ pub struct Model {
 ### Phase 1: Snapshot System
 
 #### 1.1 Database Migration
+
 ```sql
 -- Snapshot storage for before/after states
 CREATE TABLE hr_public.sync_audit_snapshots (
@@ -119,6 +125,7 @@ CREATE INDEX idx_audit_date ON hr_public.sync_audit_trail(occurred_at DESC);
 ```
 
 #### 1.2 Rust Service: SnapshotService
+
 **File**: `graphql-rust-server/src/services/snapshot_service.rs`
 
 ```rust
@@ -259,6 +266,7 @@ fn create_json_diff(before: &JsonValue, after: &JsonValue) -> JsonValue {
 #### 1.3 Integration Points
 
 **Update `sync_orchestrator.rs`**:
+
 ```rust
 use crate::services::snapshot_service::SnapshotService;
 
@@ -302,6 +310,7 @@ impl SyncOrchestrator {
 ### Phase 2: Field-Level Change Tracking
 
 #### 2.1 Database Migration
+
 ```sql
 CREATE TABLE hr_public.field_change_audit (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -324,6 +333,7 @@ CREATE INDEX idx_field_changes_log ON hr_public.field_change_audit(sync_log_id);
 ```
 
 #### 2.2 Field Change Extractor
+
 ```rust
 pub fn extract_field_changes(
     before: &JsonValue,
@@ -453,67 +463,73 @@ impl QueryRoot {
 ### Phase 4: Frontend Components
 
 #### Audit Trail Viewer
+
 **File**: `src/lib/components/sync/AuditTrailViewer.svelte`
 
 ```svelte
 <script lang="ts">
-    import { formatDate } from '$lib/utils/date';
-    import { Badge } from '$lib/components/ui/badge';
-    import { Card } from '$lib/components/ui/card';
+	import { formatDate } from '$lib/utils/date';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Card } from '$lib/components/ui/card';
 
-    let { auditLogs = [] } = $props();
+	let { auditLogs = [] } = $props();
 
-    function getActionColor(action: string) {
-        switch(action) {
-            case 'CREATE': return 'green';
-            case 'UPDATE': return 'blue';
-            case 'DELETE': return 'red';
-            case 'SYNC': return 'purple';
-            default: return 'gray';
-        }
-    }
+	function getActionColor(action: string) {
+		switch (action) {
+			case 'CREATE':
+				return 'green';
+			case 'UPDATE':
+				return 'blue';
+			case 'DELETE':
+				return 'red';
+			case 'SYNC':
+				return 'purple';
+			default:
+				return 'gray';
+		}
+	}
 </script>
 
 <div class="audit-trail">
-    <h2>Audit Trail</h2>
+	<h2>Audit Trail</h2>
 
-    {#each auditLogs as log}
-        <Card class="mb-4">
-            <div class="flex justify-between items-start">
-                <div>
-                    <Badge variant={getActionColor(log.action)}>
-                        {log.action}
-                    </Badge>
-                    <span class="text-sm ml-2">{log.entityType}</span>
-                </div>
-                <span class="text-xs text-gray-500">
-                    {formatDate(log.occurredAt)}
-                </span>
-            </div>
+	{#each auditLogs as log}
+		<Card class="mb-4">
+			<div class="flex justify-between items-start">
+				<div>
+					<Badge variant={getActionColor(log.action)}>
+						{log.action}
+					</Badge>
+					<span class="text-sm ml-2">{log.entityType}</span>
+				</div>
+				<span class="text-xs text-gray-500">
+					{formatDate(log.occurredAt)}
+				</span>
+			</div>
 
-            {#if log.changes.length > 0}
-                <div class="mt-3">
-                    <strong class="text-sm">Changes:</strong>
-                    <ul class="mt-2 space-y-1">
-                        {#each log.changes as change}
-                            <li class="text-sm">
-                                <span class="font-medium">{change.fieldName}:</span>
-                                <span class="text-red-600 line-through">{change.oldValue || 'null'}</span>
-                                →
-                                <span class="text-green-600">{change.newValue || 'null'}</span>
-                            </li>
-                        {/each}
-                    </ul>
-                </div>
-            {/if}
+			{#if log.changes.length > 0}
+				<div class="mt-3">
+					<strong class="text-sm">Changes:</strong>
+					<ul class="mt-2 space-y-1">
+						{#each log.changes as change}
+							<li class="text-sm">
+								<span class="font-medium">{change.fieldName}:</span>
+								<span class="text-red-600 line-through">{change.oldValue || 'null'}</span>
+								→
+								<span class="text-green-600">{change.newValue || 'null'}</span>
+							</li>
+						{/each}
+					</ul>
+				</div>
+			{/if}
 
-            {#if log.user}
-                <div class="mt-2 text-xs text-gray-600">
-                    by {log.user.email}
-                </div>
-            {/if}
-        </Card>
-    {/each}
+			{#if log.user}
+				<div class="mt-2 text-xs text-gray-600">
+					by {log.user.email}
+				</div>
+			{/if}
+		</Card>
+	{/each}
 </div>
 ```
 

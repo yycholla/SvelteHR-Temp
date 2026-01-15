@@ -15,7 +15,7 @@
 		UserPlus
 	} from '@lucide/svelte';
 	import type { PageData } from './$types';
-	
+
 	// Import decomposed components
 	import LogHeader from '$lib/components/activities/logs/LogHeader.svelte';
 	import StatsCards from '$lib/components/activities/logs/StatsCards.svelte';
@@ -175,10 +175,7 @@
 </svelte:head>
 
 <div class="space-y-6" data-testid="audit-logs-page">
-	<LogHeader
-		onRefresh={handleRefresh}
-		onExport={handleExport}
-	/>
+	<LogHeader onRefresh={handleRefresh} onExport={handleExport} />
 
 	<StatsCards {statsCards} />
 
@@ -194,9 +191,5 @@
 		onClear={clearFilters}
 	/>
 
-	<LogTable
-		logs={data.logs}
-		totalLogs={data.totalLogs}
-		onLogClick={handleLogClick}
-	/>
+	<LogTable logs={data.logs} totalLogs={data.totalLogs} onLogClick={handleLogClick} />
 </div>

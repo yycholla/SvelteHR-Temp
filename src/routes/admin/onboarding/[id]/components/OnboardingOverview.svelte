@@ -144,11 +144,7 @@
 				<Card.Title>Quick Actions</Card.Title>
 			</Card.Header>
 			<Card.Content class="space-y-2">
-				<Button
-					href={`/admin/onboarding/${module.id}/content`}
-					class="w-full"
-					variant="outline"
-				>
+				<Button href={`/admin/onboarding/${module.id}/content`} class="w-full" variant="outline">
 					<FileText class="mr-2 h-4 w-4" /> Manage Content
 				</Button>
 			</Card.Content>

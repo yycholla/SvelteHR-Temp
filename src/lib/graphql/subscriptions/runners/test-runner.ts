@@ -1,6 +1,10 @@
 import type { Client, OperationResult } from '@urql/core';
 import { logger } from '$lib/utils/logger';
-import type { SubscriptionScenario, SubscriptionTestConfig, SubscriptionTestResult } from '../types';
+import type {
+	SubscriptionScenario,
+	SubscriptionTestConfig,
+	SubscriptionTestResult
+} from '../types';
 
 /**
  * Individual subscription test runner

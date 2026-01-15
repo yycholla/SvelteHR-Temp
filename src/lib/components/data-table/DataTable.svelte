@@ -46,7 +46,7 @@
 	import ChevronLeftIcon from '@tabler/icons-svelte/icons/chevron-left';
 	import ChevronRightIcon from '@tabler/icons-svelte/icons/chevron-right';
 	import ChevronsRightIcon from '@tabler/icons-svelte/icons/chevrons-right';
-	
+
 	import { columns } from './columns';
 	import DraggableRow from './DraggableRow.svelte';
 

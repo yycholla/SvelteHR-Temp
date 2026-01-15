@@ -1,12 +1,7 @@
 import { gql } from '@urql/svelte';
 
 export const GET_SYNC_SCHEDULES = gql`
-	query GetSyncSchedules(
-		$enabledOnly: Boolean
-		$entityType: String
-		$limit: Int
-		$offset: Int
-	) {
+	query GetSyncSchedules($enabledOnly: Boolean, $entityType: String, $limit: Int, $offset: Int) {
 		syncSchedule {
 			syncSchedules(
 				enabledOnly: $enabledOnly

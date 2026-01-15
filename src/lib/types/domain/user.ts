@@ -37,7 +37,7 @@ export interface User {
 	avatarUrl?: string;
 	jobTitle?: string;
 	departmentId?: string; // Added alias
-	managerId?: string;    // Added alias
+	managerId?: string; // Added alias
 	// Nested objects from related tables
 	job_info?: JobInfo;
 	contact_info?: ContactInfo;

@@ -83,9 +83,7 @@ export async function fetchDashboardData({
 		}),
 		client.query(activityLogsQuery, { userId }),
 		...(isAdmin ? [client.query(systemAuditLogsQuery)] : []),
-		...(isSuperAdmin
-			? [client.query(rollbackRequestsQuery), client.query(rollbackStatsQuery)]
-			: [])
+		...(isSuperAdmin ? [client.query(rollbackRequestsQuery), client.query(rollbackStatsQuery)] : [])
 	]).then((results) => {
 		const queryDuration = Date.now() - startQueryTime;
 		logger.info('Dashboard: All queries completed', { duration: queryDuration });
@@ -105,8 +103,7 @@ export async function fetchDashboardData({
 			(leaveResult.status === 'fulfilled' && leaveResult.value?.leaveRequests) || [];
 		const goals: EmployeeGoal[] =
 			(goalsResult.status === 'fulfilled' && goalsResult.value?.employeeGoals) || [];
-		const tasks: Task[] =
-			(tasksResult.status === 'fulfilled' && tasksResult.value?.tasks) || [];
+		const tasks: Task[] = (tasksResult.status === 'fulfilled' && tasksResult.value?.tasks) || [];
 		const events = ((eventsResult.status === 'fulfilled' && eventsResult.value?.events) ||
 			[]) as ApiEvent[];
 		const activityLogs = ((activityLogsResult.status === 'fulfilled' &&

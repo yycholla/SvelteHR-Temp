@@ -6,6 +6,8 @@ declare global {
 			message: string;
 			required?: string;
 			current?: string;
+			status?: number;
+			error?: string;
 		}
 		interface Locals {
 			user?: {

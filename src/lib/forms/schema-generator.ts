@@ -53,12 +53,7 @@ function generateFieldSchema(field: FormFieldDefinition): z.ZodTypeAny {
 
 		case 'PHONE':
 			// US phone number pattern (flexible format)
-			schema = z
-				.string()
-				.regex(
-					/^[\d\s()+-]+$/,
-					'Please enter a valid phone number'
-				);
+			schema = z.string().regex(/^[\d\s()+-]+$/, 'Please enter a valid phone number');
 			break;
 
 		case 'NUMBER':
@@ -68,18 +63,21 @@ function generateFieldSchema(field: FormFieldDefinition): z.ZodTypeAny {
 
 			// Apply min/max constraints if provided
 			if (field.validation?.min !== undefined) {
-				schema = (schema as z.ZodNumber).min(field.validation.min, `Minimum value is ${field.validation.min}`);
+				schema = (schema as z.ZodNumber).min(
+					field.validation.min,
+					`Minimum value is ${field.validation.min}`
+				);
 			}
 			if (field.validation?.max !== undefined) {
-				schema = (schema as z.ZodNumber).max(field.validation.max, `Maximum value is ${field.validation.max}`);
+				schema = (schema as z.ZodNumber).max(
+					field.validation.max,
+					`Maximum value is ${field.validation.max}`
+				);
 			}
 			break;
 
 		case 'DATE':
-			schema = z.string().regex(
-				/^\d{4}-\d{2}-\d{2}$/,
-				'Please enter a valid date (YYYY-MM-DD)'
-			);
+			schema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Please enter a valid date (YYYY-MM-DD)');
 			break;
 
 		case 'TEXT':
@@ -131,9 +129,7 @@ export function generateFormSchema(template: FormTemplate, blockId?: string): z.
 
 	for (const field of template.fields) {
 		// Generate unique field key (same pattern as in component)
-		const fieldKey = blockId
-			? `${blockId}-${field.name}`
-			: field.name;
+		const fieldKey = blockId ? `${blockId}-${field.name}` : field.name;
 
 		schemaShape[fieldKey] = generateFieldSchema(field);
 	}
@@ -206,13 +202,8 @@ export function generateCheckboxSchema(
  * @param required - Whether signature is required
  * @returns Zod schema for signature
  */
-export function generateSignatureSchema(
-	blockId: string,
-	required = false
-): z.ZodObject<any> {
-	const schema = required
-		? z.string().min(1, 'Signature is required')
-		: z.string().optional();
+export function generateSignatureSchema(blockId: string, required = false): z.ZodObject<any> {
+	const schema = required ? z.string().min(1, 'Signature is required') : z.string().optional();
 
 	return z.object({
 		[blockId]: schema

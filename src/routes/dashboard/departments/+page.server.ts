@@ -79,11 +79,15 @@ export const load: PageServerLoad = async (event) => {
 			}
 		);
 
-		const users = await client.query(GET_USERS_QUERY, {}, {
-			operationName: 'GetUsers',
-			errorMessage: 'Failed to load users',
-			dataPath: 'users'
-		});
+		const users = await client.query(
+			GET_USERS_QUERY,
+			{},
+			{
+				operationName: 'GetUsers',
+				errorMessage: 'Failed to load users',
+				dataPath: 'users'
+			}
+		);
 
 		logger.info('[Departments] Departments data loaded', {
 			count: departments?.length || 0

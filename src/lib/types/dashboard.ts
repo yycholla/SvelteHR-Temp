@@ -7,7 +7,17 @@ import type { Task } from './domain/task';
 import type { ActivityType, NotificationType, NotificationPriority } from './domain/enums';
 
 // Re-export domain types used in dashboard
-export type { User, Department, AttendanceRecord, LeaveRequest, LeaveType, Task, ActivityType, NotificationType, NotificationPriority };
+export type {
+	User,
+	Department,
+	AttendanceRecord,
+	LeaveRequest,
+	LeaveType,
+	Task,
+	ActivityType,
+	NotificationType,
+	NotificationPriority
+};
 
 // Re-export for convenience (Legacy aliases)
 export type DashboardUser = User;

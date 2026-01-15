@@ -34,7 +34,8 @@
 
 	<div class="flex flex-wrap gap-2 mb-4">
 		<button
-			class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab === 'all'
+			class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab ===
+			'all'
 				? 'bg-primary text-primary-foreground'
 				: 'bg-muted text-muted-foreground hover:bg-muted/80'}"
 			onclick={() => (activeAttendeeTab = 'all')}

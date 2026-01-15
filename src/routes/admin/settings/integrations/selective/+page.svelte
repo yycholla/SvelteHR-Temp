@@ -36,8 +36,8 @@
 	// Filter employees based on search and filters
 	let filteredEmployees = $derived(
 		employees.filter((emp: any) => {
-			const matchesSearch = searchTerm === '' ||
-				emp.name.toLowerCase().includes(searchTerm.toLowerCase());
+			const matchesSearch =
+				searchTerm === '' || emp.name.toLowerCase().includes(searchTerm.toLowerCase());
 			const matchesSynced = !showSyncedOnly || emp.quickbooksId;
 			return matchesSearch && matchesSynced;
 		})
@@ -46,8 +46,8 @@
 	// Filter departments based on search
 	let filteredDepartments = $derived(
 		departments.filter((dept: any) => {
-			const matchesSearch = searchTerm === '' ||
-				dept.name.toLowerCase().includes(searchTerm.toLowerCase());
+			const matchesSearch =
+				searchTerm === '' || dept.name.toLowerCase().includes(searchTerm.toLowerCase());
 			const matchesSynced = !showSyncedOnly || dept.quickbooksId;
 			return matchesSearch && matchesSynced;
 		})
@@ -147,14 +147,18 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-background">
 	<!-- Toolbar -->
-	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
 		<div class="flex items-center gap-4 flex-1">
 			<h1 class="text-sm font-semibold tracking-tight">Selective Sync</h1>
 			<div class="h-4 w-px bg-border"></div>
 
 			<!-- Search -->
 			<div class="relative w-64">
-				<Search class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+				<Search
+					class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+				/>
 				<input
 					type="text"
 					bind:value={searchTerm}
@@ -178,7 +182,9 @@
 	<!-- Error message -->
 	{#if data.error || error}
 		<div class="flex-shrink-0 p-4 pb-0">
-			<div class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20">
+			<div
+				class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20"
+			>
 				{data.error || error}
 			</div>
 		</div>
@@ -187,13 +193,19 @@
 	<!-- Success message -->
 	{#if syncResult}
 		<div class="flex-shrink-0 p-4 pb-0">
-			<div class="rounded-md bg-green-50 p-3 text-sm text-green-700 font-medium border border-green-200">
+			<div
+				class="rounded-md bg-green-50 p-3 text-sm text-green-700 font-medium border border-green-200"
+			>
 				<div class="flex items-start gap-2">
 					<CheckCircle2 class="h-4 w-4 mt-0.5" />
 					<div>
 						<p class="font-semibold">{syncResult.message}</p>
-						<p class="text-xs mt-1">Job ID: <code class="bg-white px-1 rounded">{syncResult.jobId}</code></p>
-						<p class="text-xs">{syncResult.summary.totalEmployees} employees, {syncResult.summary.totalDepartments} departments</p>
+						<p class="text-xs mt-1">
+							Job ID: <code class="bg-white px-1 rounded">{syncResult.jobId}</code>
+						</p>
+						<p class="text-xs">
+							{syncResult.summary.totalEmployees} employees, {syncResult.summary.totalDepartments} departments
+						</p>
 					</div>
 				</div>
 			</div>
@@ -208,7 +220,9 @@
 				<div>
 					<div class="flex items-center gap-1.5 text-muted-foreground mb-1">
 						<Users class="h-3.5 w-3.5" />
-						<span class="text-[10px] uppercase tracking-wider font-semibold">Selected Employees</span>
+						<span class="text-[10px] uppercase tracking-wider font-semibold"
+							>Selected Employees</span
+						>
 					</div>
 					<div class="text-2xl font-bold tabular-nums">{selectedEmployees.size}</div>
 				</div>
@@ -233,7 +247,9 @@
 				<div>
 					<div class="flex items-center gap-1.5 text-muted-foreground mb-1">
 						<Building2 class="h-3.5 w-3.5" />
-						<span class="text-[10px] uppercase tracking-wider font-semibold">Selected Departments</span>
+						<span class="text-[10px] uppercase tracking-wider font-semibold"
+							>Selected Departments</span
+						>
 					</div>
 					<div class="text-2xl font-bold tabular-nums">{selectedDepartments.size}</div>
 				</div>
@@ -264,15 +280,9 @@
 						bind:value={syncDirection}
 						class="w-full h-8 rounded-sm border border-input bg-background px-2 text-xs focus:border-primary focus:outline-none mt-2"
 					>
-						<option value="Pull">
-							← Pull from QB
-						</option>
-						<option value="Push">
-							→ Push to QB
-						</option>
-						<option value="Bidirectional">
-							↔ Bidirectional
-						</option>
+						<option value="Pull"> ← Pull from QB </option>
+						<option value="Push"> → Push to QB </option>
+						<option value="Bidirectional"> ↔ Bidirectional </option>
 					</select>
 				</div>
 				<label class="flex items-center gap-1.5 cursor-pointer">
@@ -324,17 +334,22 @@
 							<Users class="h-4 w-4" />
 							<span class="text-xs font-semibold">Employees</span>
 						</div>
-						<span class="text-[10px] text-muted-foreground">{filteredEmployees.length} available</span>
+						<span class="text-[10px] text-muted-foreground"
+							>{filteredEmployees.length} available</span
+						>
 					</div>
 				</div>
 				<div class="max-h-[600px] overflow-y-auto">
 					<table class="w-full text-sm text-left border-collapse">
 						<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
 							<tr>
-								<th class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground w-8">
+								<th
+									class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground w-8"
+								>
 									<input
 										type="checkbox"
-										checked={selectedEmployees.size === filteredEmployees.length && filteredEmployees.length > 0}
+										checked={selectedEmployees.size === filteredEmployees.length &&
+											filteredEmployees.length > 0}
 										onchange={(e) => {
 											if ((e.target as HTMLInputElement).checked) {
 												selectAllEmployees();
@@ -345,9 +360,18 @@
 										class="h-3 w-3 rounded border-input"
 									/>
 								</th>
-								<th class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground">Name</th>
-								<th class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground">Status</th>
-								<th class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground">Last Sync</th>
+								<th
+									class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground"
+									>Name</th
+								>
+								<th
+									class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground"
+									>Status</th
+								>
+								<th
+									class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground"
+									>Last Sync</th
+								>
 							</tr>
 						</thead>
 						<tbody class="divide-y">
@@ -373,15 +397,23 @@
 										<td class="px-2 py-1.5 border-r">
 											<div class="text-xs font-medium truncate">{employee.name}</div>
 											{#if employee.quickbooksId}
-												<div class="text-[10px] text-muted-foreground font-mono truncate">QB: {employee.quickbooksId.slice(0, 8)}</div>
+												<div class="text-[10px] text-muted-foreground font-mono truncate">
+													QB: {employee.quickbooksId.slice(0, 8)}
+												</div>
 											{/if}
 										</td>
 										<td class="px-2 py-1.5 border-r">
-											<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getSyncedColor(!!employee.quickbooksId)}">
+											<span
+												class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getSyncedColor(
+													!!employee.quickbooksId
+												)}"
+											>
 												{employee.quickbooksId ? 'Synced' : 'Not Synced'}
 											</span>
 											{#if employee.hasLocalChanges}
-												<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 ml-1">
+												<span
+													class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 ml-1"
+												>
 													Modified
 												</span>
 											{/if}
@@ -405,17 +437,22 @@
 							<Building2 class="h-4 w-4" />
 							<span class="text-xs font-semibold">Departments</span>
 						</div>
-						<span class="text-[10px] text-muted-foreground">{filteredDepartments.length} available</span>
+						<span class="text-[10px] text-muted-foreground"
+							>{filteredDepartments.length} available</span
+						>
 					</div>
 				</div>
 				<div class="max-h-[600px] overflow-y-auto">
 					<table class="w-full text-sm text-left border-collapse">
 						<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
 							<tr>
-								<th class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground w-8">
+								<th
+									class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground w-8"
+								>
 									<input
 										type="checkbox"
-										checked={selectedDepartments.size === filteredDepartments.length && filteredDepartments.length > 0}
+										checked={selectedDepartments.size === filteredDepartments.length &&
+											filteredDepartments.length > 0}
 										onchange={(e) => {
 											if ((e.target as HTMLInputElement).checked) {
 												selectAllDepartments();
@@ -426,9 +463,18 @@
 										class="h-3 w-3 rounded border-input"
 									/>
 								</th>
-								<th class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground">Name</th>
-								<th class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground">Status</th>
-								<th class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground">Last Sync</th>
+								<th
+									class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground"
+									>Name</th
+								>
+								<th
+									class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground"
+									>Status</th
+								>
+								<th
+									class="px-2 py-1.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground"
+									>Last Sync</th
+								>
 							</tr>
 						</thead>
 						<tbody class="divide-y">
@@ -454,15 +500,23 @@
 										<td class="px-2 py-1.5 border-r">
 											<div class="text-xs font-medium truncate">{department.name}</div>
 											{#if department.quickbooksId}
-												<div class="text-[10px] text-muted-foreground font-mono truncate">QB: {department.quickbooksId.slice(0, 8)}</div>
+												<div class="text-[10px] text-muted-foreground font-mono truncate">
+													QB: {department.quickbooksId.slice(0, 8)}
+												</div>
 											{/if}
 										</td>
 										<td class="px-2 py-1.5 border-r">
-											<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getSyncedColor(!!department.quickbooksId)}">
+											<span
+												class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getSyncedColor(
+													!!department.quickbooksId
+												)}"
+											>
 												{department.quickbooksId ? 'Synced' : 'Not Synced'}
 											</span>
 											{#if department.hasLocalChanges}
-												<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 ml-1">
+												<span
+													class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 ml-1"
+												>
 													Modified
 												</span>
 											{/if}

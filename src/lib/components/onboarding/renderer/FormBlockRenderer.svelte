@@ -14,7 +14,12 @@
 		formTemplates: Map<string, any>;
 	}
 
-	let { block, checkboxStates = $bindable(), signatureData = $bindable(), formTemplates }: Props = $props();
+	let {
+		block,
+		checkboxStates = $bindable(),
+		signatureData = $bindable(),
+		formTemplates
+	}: Props = $props();
 
 	function getBlockIcon(type: string) {
 		const icons: Record<string, any> = {
@@ -88,7 +93,7 @@
 						<!-- Interactive Field -->
 						{@const fieldConfig = mapFieldToComponent(element, block.id)}
 						{@const FieldComponent = fieldConfig.component}
-						<FieldComponent {...(fieldConfig.props as any)} />
+						<FieldComponent {...fieldConfig.props as any} />
 					{:else}
 						<!-- Static Element (Header, Media, etc.) -->
 						<FormElementPreview {element} {index} readonly={true} />
@@ -104,7 +109,7 @@
 						{#each template.fields as field, fieldIndex}
 							{@const fieldConfig = mapFieldToComponent(field, block.id)}
 							{@const FieldComponent = fieldConfig.component}
-							<FieldComponent {...(fieldConfig.props as any)} />
+							<FieldComponent {...fieldConfig.props as any} />
 						{/each}
 					</div>
 				{/if}

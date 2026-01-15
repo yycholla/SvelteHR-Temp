@@ -25,17 +25,17 @@
 	let placeholder = $state('');
 	let required = $state(false);
 	let fieldType = $state<FormFieldType>('TEXT');
-	
+
 	// Content blocks
 	let content = $state('');
 	let style = $state<'plain' | 'info' | 'warning' | 'contract'>('plain');
 	let level = $state<1 | 2 | 3>(2);
-	
+
 	// Media
 	let mediaUrl = $state('');
 	let mediaAlt = $state('');
 	let mediaCaption = $state('');
-	
+
 	// Validation
 	let minLength = $state<number | undefined>(undefined);
 	let maxLength = $state<number | undefined>(undefined);
@@ -55,7 +55,7 @@
 			placeholder = element.placeholder || '';
 			required = element.required || false;
 			fieldType = element.type;
-			
+
 			minLength = element.validation?.minLength;
 			maxLength = element.validation?.maxLength;
 			min = element.validation?.min;
@@ -101,8 +101,8 @@
 		} else if (element.elementType === 'QUOTE') {
 			onChange({ ...element, content });
 		} else if (element.elementType === 'MEDIA') {
-			onChange({ 
-				...element, 
+			onChange({
+				...element,
 				url: mediaUrl,
 				altText: mediaAlt || undefined,
 				caption: mediaCaption || undefined
@@ -140,7 +140,6 @@
 	const isNumberType = $derived(fieldType === 'NUMBER');
 	const isDateType = $derived(fieldType === 'DATE');
 	const isSelectType = $derived(fieldType === 'SELECT');
-
 </script>
 
 <div class="space-y-6">
@@ -157,30 +156,56 @@
 			</div>
 
 			<div class="flex items-center space-x-2 pt-2">
-				<Checkbox id="req-check" bind:checked={required} onCheckedChange={(v) => { required = !!v; handleChange(); }} />
+				<Checkbox
+					id="req-check"
+					bind:checked={required}
+					onCheckedChange={(v) => {
+						required = !!v;
+						handleChange();
+					}}
+				/>
 				<Label for="req-check" class="font-normal cursor-pointer">Required Field</Label>
 			</div>
 
 			<Separator />
 
 			<div class="space-y-4">
-				<h4 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Validation</h4>
-				
+				<h4 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+					Validation
+				</h4>
+
 				{#if isTextType}
 					<div class="grid grid-cols-2 gap-4">
 						<div class="space-y-2">
 							<Label class="text-xs">Min Length</Label>
-							<Input type="number" bind:value={minLength} oninput={handleChange} class="h-8" placeholder="0" />
+							<Input
+								type="number"
+								bind:value={minLength}
+								oninput={handleChange}
+								class="h-8"
+								placeholder="0"
+							/>
 						</div>
 						<div class="space-y-2">
 							<Label class="text-xs">Max Length</Label>
-							<Input type="number" bind:value={maxLength} oninput={handleChange} class="h-8" placeholder="∞" />
+							<Input
+								type="number"
+								bind:value={maxLength}
+								oninput={handleChange}
+								class="h-8"
+								placeholder="∞"
+							/>
 						</div>
 					</div>
 					{#if fieldType === 'TEXT'}
 						<div class="space-y-2">
 							<Label class="text-xs">Regex Pattern</Label>
-							<Input bind:value={pattern} oninput={handleChange} class="h-8 font-mono text-xs" placeholder="^[A-Z].*" />
+							<Input
+								bind:value={pattern}
+								oninput={handleChange}
+								class="h-8 font-mono text-xs"
+								placeholder="^[A-Z].*"
+							/>
 						</div>
 					{/if}
 				{/if}
@@ -189,11 +214,21 @@
 					<div class="grid grid-cols-2 gap-4">
 						<div class="space-y-2">
 							<Label class="text-xs">Min</Label>
-							<Input type={isNumberType ? 'number' : 'date'} bind:value={min} oninput={handleChange} class="h-8" />
+							<Input
+								type={isNumberType ? 'number' : 'date'}
+								bind:value={min}
+								oninput={handleChange}
+								class="h-8"
+							/>
 						</div>
 						<div class="space-y-2">
 							<Label class="text-xs">Max</Label>
-							<Input type={isNumberType ? 'number' : 'date'} bind:value={max} oninput={handleChange} class="h-8" />
+							<Input
+								type={isNumberType ? 'number' : 'date'}
+								bind:value={max}
+								oninput={handleChange}
+								class="h-8"
+							/>
 						</div>
 					</div>
 				{/if}
@@ -205,17 +240,22 @@
 							{#each options as option, i}
 								<div class="flex items-center gap-2">
 									<div class="flex-1 text-sm bg-muted/50 px-2 py-1 rounded border">{option}</div>
-									<Button variant="ghost" size="icon" class="h-6 w-6" onclick={() => removeOption(i)}>
+									<Button
+										variant="ghost"
+										size="icon"
+										class="h-6 w-6"
+										onclick={() => removeOption(i)}
+									>
 										<X class="h-3 w-3" />
 									</Button>
 								</div>
 							{/each}
 						</div>
 						<div class="flex gap-2">
-							<Input 
-								bind:value={newOption} 
-								class="h-8 text-sm" 
-								placeholder="New option" 
+							<Input
+								bind:value={newOption}
+								class="h-8 text-sm"
+								placeholder="New option"
 								onkeydown={(e) => e.key === 'Enter' && (e.preventDefault(), addOption())}
 							/>
 							<Button size="sm" class="h-8" onclick={addOption}>
@@ -226,30 +266,38 @@
 				{/if}
 			</div>
 		</div>
-
 	{:else if element.elementType === 'HEADER'}
 		<div class="space-y-4">
 			<div class="space-y-2">
 				<Label>Heading Level</Label>
 				<div class="flex gap-2">
-					<Button 
-						variant={level === 1 ? "default" : "outline"} 
-						size="sm" 
+					<Button
+						variant={level === 1 ? 'default' : 'outline'}
+						size="sm"
 						class="flex-1"
-						onclick={() => { level = 1; handleChange(); }}
-					>H1</Button>
-					<Button 
-						variant={level === 2 ? "default" : "outline"} 
-						size="sm" 
+						onclick={() => {
+							level = 1;
+							handleChange();
+						}}>H1</Button
+					>
+					<Button
+						variant={level === 2 ? 'default' : 'outline'}
+						size="sm"
 						class="flex-1"
-						onclick={() => { level = 2; handleChange(); }}
-					>H2</Button>
-					<Button 
-						variant={level === 3 ? "default" : "outline"} 
-						size="sm" 
+						onclick={() => {
+							level = 2;
+							handleChange();
+						}}>H2</Button
+					>
+					<Button
+						variant={level === 3 ? 'default' : 'outline'}
+						size="sm"
 						class="flex-1"
-						onclick={() => { level = 3; handleChange(); }}
-					>H3</Button>
+						onclick={() => {
+							level = 3;
+							handleChange();
+						}}>H3</Button
+					>
 				</div>
 			</div>
 
@@ -258,20 +306,18 @@
 				<Input bind:value={content} oninput={handleChange} placeholder="Heading text" />
 			</div>
 		</div>
-
 	{:else if element.elementType === 'QUOTE'}
 		<div class="space-y-4">
 			<div class="space-y-2">
 				<Label>Quote Text</Label>
-				<Textarea 
-					bind:value={content} 
-					oninput={handleChange} 
-					rows={4} 
-					placeholder="Enter quote..." 
+				<Textarea
+					bind:value={content}
+					oninput={handleChange}
+					rows={4}
+					placeholder="Enter quote..."
 				/>
 			</div>
 		</div>
-
 	{:else if element.elementType === 'MEDIA'}
 		<div class="space-y-4">
 			<div class="space-y-2">
@@ -284,7 +330,12 @@
 				</Label>
 				<div class="flex gap-2">
 					<Input bind:value={mediaUrl} oninput={handleChange} placeholder="https://..." />
-					<Button variant="outline" size="icon" onclick={() => showMediaLibrary = true} title="Browse Library">
+					<Button
+						variant="outline"
+						size="icon"
+						onclick={() => (showMediaLibrary = true)}
+						title="Browse Library"
+					>
 						<ImageIcon class="h-4 w-4" />
 					</Button>
 				</div>
@@ -303,26 +354,28 @@
 					<Input bind:value={mediaAlt} oninput={handleChange} placeholder="Image description" />
 				</div>
 			{/if}
-			
+
 			<div class="space-y-2">
 				<Label>Caption (Optional)</Label>
-				<Input bind:value={mediaCaption} oninput={handleChange} placeholder="Caption displayed below media" />
+				<Input
+					bind:value={mediaCaption}
+					oninput={handleChange}
+					placeholder="Caption displayed below media"
+				/>
 			</div>
 		</div>
-
 	{:else if element.elementType === 'DIVIDER'}
 		<div class="text-sm text-muted-foreground italic text-center py-8">
 			Dividers have no properties.
 		</div>
-
 	{:else}
 		<!-- Text Block Properties -->
 		<div class="space-y-4">
 			<div class="space-y-2">
 				<Label>Display Style</Label>
-				<select 
+				<select
 					class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-					bind:value={style} 
+					bind:value={style}
 					onchange={handleChange}
 				>
 					<option value="plain">Plain Text</option>
@@ -334,11 +387,11 @@
 
 			<div class="space-y-2">
 				<Label>Content</Label>
-				<Textarea 
-					bind:value={content} 
-					oninput={handleChange} 
-					rows={10} 
-					placeholder="Enter the text content here..." 
+				<Textarea
+					bind:value={content}
+					oninput={handleChange}
+					rows={10}
+					placeholder="Enter the text content here..."
 				/>
 				<p class="text-xs text-muted-foreground">Markdown formatting supported.</p>
 			</div>
@@ -346,9 +399,9 @@
 	{/if}
 </div>
 
-<MediaLibraryModal 
-	bind:open={showMediaLibrary} 
+<MediaLibraryModal
+	bind:open={showMediaLibrary}
 	onSelect={handleMediaSelect}
-	onOpenChange={(v) => showMediaLibrary = v}
+	onOpenChange={(v) => (showMediaLibrary = v)}
 	acceptedTypes={element.elementType === 'MEDIA' ? element.mediaType : 'all'}
 />

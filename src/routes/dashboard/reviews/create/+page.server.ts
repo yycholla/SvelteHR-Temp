@@ -419,8 +419,7 @@ export const actions: Actions = {
 				);
 
 				return fail(500, {
-					error:
-						(result.errors[0] as { message?: string })?.message || 'Failed to create review',
+					error: (result.errors[0] as { message?: string })?.message || 'Failed to create review',
 					success: false
 				});
 			}

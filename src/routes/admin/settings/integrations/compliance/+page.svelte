@@ -55,7 +55,9 @@
 	let generateSuccess = $state('');
 
 	// Form state for report generation
-	let formReportType = $state<'SOX' | 'GDPR' | 'SOC2' | 'DataChanges' | 'UserActivity' | 'AccessLog'>('SOX');
+	let formReportType = $state<
+		'SOX' | 'GDPR' | 'SOC2' | 'DataChanges' | 'UserActivity' | 'AccessLog'
+	>('SOX');
 	let formPeriodStart = $state('');
 	let formPeriodEnd = $state('');
 	let formIncludePdf = $state(true);
@@ -67,21 +69,18 @@
 
 	// Filtered reports based on search query
 	const filteredReports = $derived(
-		reports.filter((report: {
-			reportType: string;
-			status: string;
-			id: string;
-			generatedBy?: string;
-		}) => {
-			if (!searchQuery) return true;
-			const query = searchQuery.toLowerCase();
-			return (
-				report.reportType?.toLowerCase().includes(query) ||
-				report.status?.toLowerCase().includes(query) ||
-				report.id?.toLowerCase().includes(query) ||
-				report.generatedBy?.toLowerCase().includes(query)
-			);
-		})
+		reports.filter(
+			(report: { reportType: string; status: string; id: string; generatedBy?: string }) => {
+				if (!searchQuery) return true;
+				const query = searchQuery.toLowerCase();
+				return (
+					report.reportType?.toLowerCase().includes(query) ||
+					report.status?.toLowerCase().includes(query) ||
+					report.id?.toLowerCase().includes(query) ||
+					report.generatedBy?.toLowerCase().includes(query)
+				);
+			}
+		)
 	);
 
 	const reportTypes = [
@@ -174,15 +173,17 @@
 			const client = createUrqlClient(fetch);
 
 			// Execute mutation
-			const result = await client.mutation(GENERATE_REPORT_MUTATION, {
-				input: {
-					reportType: formReportType,
-					periodStart: new Date(formPeriodStart + 'T00:00:00Z').toISOString(),
-					periodEnd: new Date(formPeriodEnd + 'T23:59:59Z').toISOString(),
-					includePdf: formIncludePdf,
-					includeCsv: formIncludeCsv
-				}
-			}).toPromise();
+			const result = await client
+				.mutation(GENERATE_REPORT_MUTATION, {
+					input: {
+						reportType: formReportType,
+						periodStart: new Date(formPeriodStart + 'T00:00:00Z').toISOString(),
+						periodEnd: new Date(formPeriodEnd + 'T23:59:59Z').toISOString(),
+						includePdf: formIncludePdf,
+						includeCsv: formIncludeCsv
+					}
+				})
+				.toPromise();
 
 			if (result.error) {
 				throw new Error(result.error.message || 'Failed to generate report');
@@ -201,7 +202,6 @@
 				// Refresh data
 				invalidate('app:compliance');
 			}, 1500);
-
 		} catch (error) {
 			console.error('Error generating report:', error);
 			generateError = error instanceof Error ? error.message : 'Failed to generate report';
@@ -260,14 +260,18 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-background">
 	<!-- Toolbar -->
-	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
 		<div class="flex items-center gap-4 flex-1">
 			<h1 class="text-sm font-semibold tracking-tight">Compliance Reports</h1>
 			<div class="h-4 w-px bg-border"></div>
 
 			<!-- Search -->
 			<div class="relative w-64">
-				<Search class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+				<Search
+					class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+				/>
 				<input
 					type="text"
 					bind:value={searchQuery}
@@ -310,14 +314,18 @@
 		<!-- Tab Selector -->
 		<div class="flex gap-1 ml-auto">
 			<button
-				onclick={() => selectedTab = 'reports'}
-				class="h-8 px-3 rounded-sm text-xs transition-colors {selectedTab === 'reports' ? 'bg-accent font-medium' : 'hover:bg-accent/50'}"
+				onclick={() => (selectedTab = 'reports')}
+				class="h-8 px-3 rounded-sm text-xs transition-colors {selectedTab === 'reports'
+					? 'bg-accent font-medium'
+					: 'hover:bg-accent/50'}"
 			>
 				Reports
 			</button>
 			<button
-				onclick={() => selectedTab = 'schedules'}
-				class="h-8 px-3 rounded-sm text-xs transition-colors {selectedTab === 'schedules' ? 'bg-accent font-medium' : 'hover:bg-accent/50'}"
+				onclick={() => (selectedTab = 'schedules')}
+				class="h-8 px-3 rounded-sm text-xs transition-colors {selectedTab === 'schedules'
+					? 'bg-accent font-medium'
+					: 'hover:bg-accent/50'}"
 			>
 				Schedules
 			</button>
@@ -327,7 +335,9 @@
 	<!-- Error message -->
 	{#if data.error}
 		<div class="flex-shrink-0 p-4 pb-0">
-			<div class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20">
+			<div
+				class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20"
+			>
 				{data.error}
 			</div>
 		</div>
@@ -342,22 +352,33 @@
 					<div class="flex items-start justify-between mb-4">
 						<div>
 							<div class="flex items-center gap-2 mb-2">
-								<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getReportTypeBadgeColor(selectedReport.reportType)}">
+								<span
+									class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getReportTypeBadgeColor(
+										selectedReport.reportType
+									)}"
+								>
 									{selectedReport.reportType}
 								</span>
-								<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getStatusBadgeColor(selectedReport.status)}">
+								<span
+									class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getStatusBadgeColor(
+										selectedReport.status
+									)}"
+								>
 									{selectedReport.status}
 								</span>
 							</div>
 							<h2 class="text-lg font-semibold">Report #{selectedReport.id.slice(0, 8)}</h2>
 							<p class="text-xs text-muted-foreground mt-1">
-								Period: {formatDateShort(selectedReport.periodStart)} - {formatDateShort(selectedReport.periodEnd)}
+								Period: {formatDateShort(selectedReport.periodStart)} - {formatDateShort(
+									selectedReport.periodEnd
+								)}
 							</p>
 						</div>
 						<div class="flex gap-2">
 							{#if selectedReport.pdfPath}
 								<button
-									onclick={() => handleDownloadFile(selectedReport.pdfPath, `report-${selectedReport.id}.pdf`)}
+									onclick={() =>
+										handleDownloadFile(selectedReport.pdfPath, `report-${selectedReport.id}.pdf`)}
 									class="flex items-center gap-1.5 h-8 px-3 rounded-sm border border-input bg-background text-xs hover:bg-accent transition-colors"
 								>
 									<FileText class="h-3.5 w-3.5" />
@@ -366,7 +387,8 @@
 							{/if}
 							{#if selectedReport.csvPath}
 								<button
-									onclick={() => handleDownloadFile(selectedReport.csvPath, `report-${selectedReport.id}.csv`)}
+									onclick={() =>
+										handleDownloadFile(selectedReport.csvPath, `report-${selectedReport.id}.csv`)}
 									class="flex items-center gap-1.5 h-8 px-3 rounded-sm border border-input bg-background text-xs hover:bg-accent transition-colors"
 								>
 									<FileSpreadsheet class="h-3.5 w-3.5" />
@@ -399,7 +421,9 @@
 
 				<!-- Error Message -->
 				{#if selectedReport.errorMessage}
-					<div class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20">
+					<div
+						class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20"
+					>
 						<div class="flex items-center gap-2">
 							<AlertCircle class="h-4 w-4" />
 							{selectedReport.errorMessage}
@@ -428,7 +452,12 @@
 				{#if selectedReport.reportData}
 					<div class="bg-background border rounded-sm p-4">
 						<h3 class="text-sm font-semibold mb-3">Report Data</h3>
-						<pre class="bg-muted/20 p-4 rounded-sm overflow-auto text-[10px] font-mono border">{JSON.stringify(selectedReport.reportData, null, 2)}</pre>
+						<pre
+							class="bg-muted/20 p-4 rounded-sm overflow-auto text-[10px] font-mono border">{JSON.stringify(
+								selectedReport.reportData,
+								null,
+								2
+							)}</pre>
 					</div>
 				{/if}
 			</div>
@@ -439,14 +468,38 @@
 			<table class="w-full text-sm text-left border-collapse">
 				<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
 					<tr>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-24">ID</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32">Type</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-28">Status</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0">Period</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-40">Generated</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32">Generated By</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground text-center w-24">Findings</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground text-center w-24">Actions</th>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-24"
+							>ID</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32"
+							>Type</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-28"
+							>Status</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+							>Period</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-40"
+							>Generated</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32"
+							>Generated By</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground text-center w-24"
+							>Findings</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground text-center w-24"
+							>Actions</th
+						>
 					</tr>
 				</thead>
 				<tbody class="divide-y">
@@ -455,23 +508,35 @@
 							class="hover:bg-muted/30 cursor-pointer transition-colors group"
 							onclick={() => goto(`?reportId=${report.id}`)}
 						>
-							<td class="px-3 py-1.5 border-r last:border-r-0 text-xs font-mono text-muted-foreground">
+							<td
+								class="px-3 py-1.5 border-r last:border-r-0 text-xs font-mono text-muted-foreground"
+							>
 								#{report.id.slice(0, 8)}
 							</td>
 							<td class="px-3 py-1.5 border-r last:border-r-0">
-								<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getReportTypeBadgeColor(report.reportType)}">
+								<span
+									class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getReportTypeBadgeColor(
+										report.reportType
+									)}"
+								>
 									{report.reportType}
 								</span>
 							</td>
 							<td class="px-3 py-1.5 border-r last:border-r-0">
-								<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getStatusBadgeColor(report.status)}">
+								<span
+									class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getStatusBadgeColor(
+										report.status
+									)}"
+								>
 									{report.status}
 								</span>
 							</td>
 							<td class="px-3 py-1.5 border-r last:border-r-0 text-xs whitespace-nowrap">
 								{formatDateShort(report.periodStart)} - {formatDateShort(report.periodEnd)}
 							</td>
-							<td class="px-3 py-1.5 border-r last:border-r-0 text-xs text-muted-foreground whitespace-nowrap">
+							<td
+								class="px-3 py-1.5 border-r last:border-r-0 text-xs text-muted-foreground whitespace-nowrap"
+							>
 								{formatDate(report.generatedAt)}
 							</td>
 							<td class="px-3 py-1.5 border-r last:border-r-0 text-xs">
@@ -479,7 +544,9 @@
 							</td>
 							<td class="px-3 py-1.5 border-r last:border-r-0 text-xs text-center">
 								{#if report.findings && report.findings.length > 0}
-									<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-700">
+									<span
+										class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-700"
+									>
 										<AlertCircle class="h-3 w-3" />
 										{report.findings.length}
 									</span>
@@ -533,35 +600,68 @@
 			<table class="w-full text-sm text-left border-collapse">
 				<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
 					<tr>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32">Type</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-24">Status</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32">Cron Schedule</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-40">Last Run</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-40">Next Run</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32">Created By</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Recipients</th>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32"
+							>Type</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-24"
+							>Status</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32"
+							>Cron Schedule</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-40"
+							>Last Run</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-40"
+							>Next Run</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32"
+							>Created By</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground"
+							>Recipients</th
+						>
 					</tr>
 				</thead>
 				<tbody class="divide-y">
 					{#each schedules as schedule (schedule.id)}
 						<tr class="hover:bg-muted/30 transition-colors">
 							<td class="px-3 py-1.5 border-r last:border-r-0">
-								<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getReportTypeBadgeColor(schedule.reportType)}">
+								<span
+									class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getReportTypeBadgeColor(
+										schedule.reportType
+									)}"
+								>
 									{schedule.reportType}
 								</span>
 							</td>
 							<td class="px-3 py-1.5 border-r last:border-r-0">
-								<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {schedule.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}">
+								<span
+									class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {schedule.enabled
+										? 'bg-green-100 text-green-700'
+										: 'bg-gray-100 text-gray-700'}"
+								>
 									{schedule.enabled ? 'Enabled' : 'Disabled'}
 								</span>
 							</td>
 							<td class="px-3 py-1.5 border-r last:border-r-0 text-xs font-mono">
 								{schedule.scheduleCron}
 							</td>
-							<td class="px-3 py-1.5 border-r last:border-r-0 text-xs text-muted-foreground whitespace-nowrap">
+							<td
+								class="px-3 py-1.5 border-r last:border-r-0 text-xs text-muted-foreground whitespace-nowrap"
+							>
 								{schedule.lastRunAt ? formatDate(schedule.lastRunAt) : 'Never'}
 							</td>
-							<td class="px-3 py-1.5 border-r last:border-r-0 text-xs text-muted-foreground whitespace-nowrap">
+							<td
+								class="px-3 py-1.5 border-r last:border-r-0 text-xs text-muted-foreground whitespace-nowrap"
+							>
 								{schedule.nextRunAt ? formatDate(schedule.nextRunAt) : 'N/A'}
 							</td>
 							<td class="px-3 py-1.5 border-r last:border-r-0 text-xs">
@@ -571,12 +671,16 @@
 								{#if schedule.recipients && schedule.recipients.length > 0}
 									<div class="flex flex-wrap gap-1">
 										{#each schedule.recipients.slice(0, 3) as recipient}
-											<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-muted border">
+											<span
+												class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-muted border"
+											>
 												{recipient}
 											</span>
 										{/each}
 										{#if schedule.recipients.length > 3}
-											<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-muted border text-muted-foreground">
+											<span
+												class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-muted border text-muted-foreground"
+											>
 												+{schedule.recipients.length - 3}
 											</span>
 										{/if}
@@ -615,9 +719,7 @@
 			<div class="space-y-4 py-4">
 				<!-- Report Type -->
 				<div class="space-y-2">
-					<label for="report-type" class="text-xs font-medium text-foreground">
-						Report Type
-					</label>
+					<label for="report-type" class="text-xs font-medium text-foreground"> Report Type </label>
 					<select
 						id="report-type"
 						bind:value={formReportType}
@@ -646,9 +748,7 @@
 						/>
 					</div>
 					<div class="space-y-2">
-						<label for="period-end" class="text-xs font-medium text-foreground">
-							Period End
-						</label>
+						<label for="period-end" class="text-xs font-medium text-foreground"> Period End </label>
 						<input
 							id="period-end"
 							type="date"
@@ -683,7 +783,9 @@
 
 				<!-- Error Message -->
 				{#if generateError}
-					<div class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20">
+					<div
+						class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20"
+					>
 						<div class="flex items-center gap-2">
 							<AlertCircle class="h-4 w-4" />
 							{generateError}
@@ -693,7 +795,9 @@
 
 				<!-- Success Message -->
 				{#if generateSuccess}
-					<div class="rounded-md bg-green-50 p-3 text-sm text-green-700 font-medium border border-green-200">
+					<div
+						class="rounded-md bg-green-50 p-3 text-sm text-green-700 font-medium border border-green-200"
+					>
 						<div class="flex items-center gap-2">
 							<CheckCircle class="h-4 w-4" />
 							{generateSuccess}
@@ -705,7 +809,7 @@
 			<Dialog.Footer>
 				<button
 					type="button"
-					onclick={() => generateDialogOpen = false}
+					onclick={() => (generateDialogOpen = false)}
 					disabled={generating}
 					class="h-9 px-4 rounded-sm border border-input bg-background text-sm hover:bg-accent transition-colors disabled:opacity-50"
 				>
@@ -714,7 +818,7 @@
 				<button
 					type="button"
 					onclick={handleGenerateReport}
-					disabled={generating || !formIncludePdf && !formIncludeCsv}
+					disabled={generating || (!formIncludePdf && !formIncludeCsv)}
 					class="h-9 px-4 rounded-sm bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
 				>
 					{#if generating}

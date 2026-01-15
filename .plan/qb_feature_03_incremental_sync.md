@@ -1,17 +1,20 @@
 # Feature 03: Incremental Sync
 
 ## Overview
+
 Optimize synchronization performance by only syncing entities that have changed since the last successful sync, rather than processing the entire dataset every time.
 
 ## Current System Integration
 
 ### Existing Components
+
 - **Sync Orchestrator**: `graphql-rust-server/src/services/sync_orchestrator.rs`
   - Currently uses `get_all_employees()` and `get_all_departments()` (full syncs)
 - **Sync Log**: `intuit_sync_log` table tracks sync history
 - **Change Tracking**: `last_synced_at` and `quickbooks_sync_token` fields exist
 
 ### Current Behavior
+
 - Every sync fetches ALL employees/departments from QuickBooks
 - Compares all records against local database
 - Inefficient for large datasets (170 employees = 170 API calls)
@@ -22,20 +25,23 @@ Optimize synchronization performance by only syncing entities that have changed 
 ### QuickBooks Change Data Capture (CDC)
 
 #### Using SyncToken
+
 QuickBooks provides a `SyncToken` field that increments on every entity update:
+
 ```json
 {
-  "Employee": {
-    "Id": "123",
-    "SyncToken": "5",  // Increments with each change
-    "MetaData": {
-      "LastUpdatedTime": "2025-12-29T10:30:00-08:00"
-    }
-  }
+	"Employee": {
+		"Id": "123",
+		"SyncToken": "5", // Increments with each change
+		"MetaData": {
+			"LastUpdatedTime": "2025-12-29T10:30:00-08:00"
+		}
+	}
 }
 ```
 
 #### Query API with Filtering
+
 ```sql
 -- QuickBooks Query API supports filtering by LastUpdatedTime
 SELECT * FROM Employee WHERE Metadata.LastUpdatedTime > '2025-12-28T00:00:00'
@@ -44,6 +50,7 @@ SELECT * FROM Employee WHERE Metadata.LastUpdatedTime > '2025-12-28T00:00:00'
 ### Database Schema Updates
 
 #### Sync Metadata Table
+
 ```sql
 CREATE TABLE hr_public.sync_metadata (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -68,6 +75,7 @@ CREATE TABLE hr_public.entity_sync_state (
 ```
 
 #### Enhanced Sync Log
+
 ```sql
 ALTER TABLE hr_public.intuit_sync_log
 ADD COLUMN sync_mode VARCHAR(20), -- 'full' or 'incremental'
@@ -79,6 +87,7 @@ ADD COLUMN sync_duration_ms INTEGER;
 ### Backend Implementation (Rust)
 
 #### Change Detection Service
+
 ```rust
 pub struct ChangeDetector {
     db: DatabaseConnection,
@@ -117,6 +126,7 @@ pub struct SyncDelta {
 ```
 
 #### Optimized Sync Flow
+
 ```rust
 pub async fn incremental_sync_employees(&self) -> Result<SyncResult> {
     // 1. Get last successful sync timestamp
@@ -141,12 +151,14 @@ pub async fn incremental_sync_employees(&self) -> Result<SyncResult> {
 ```
 
 ### Frontend Updates
+
 - Display "Incremental" vs "Full" sync mode
 - Show change counts: "15 employees changed since last sync"
 - Option to force full sync (fallback)
 - Sync performance metrics (time saved)
 
 ## Dependencies
+
 - [ ] QuickBooks Query API documentation review
 - [ ] SyncToken field availability for all entities
 - [ ] Date filtering support in QB API
@@ -155,24 +167,28 @@ pub async fn incremental_sync_employees(&self) -> Result<SyncResult> {
 ## Implementation Phases
 
 ### Phase 1: Change Detection Infrastructure
+
 - [ ] Create sync_metadata table
 - [ ] Create entity_sync_state table
 - [ ] Implement last sync timestamp tracking
 - [ ] Build change detection queries
 
 ### Phase 2: Incremental Pull (QB → Local)
+
 - [ ] Modify `get_changed_employees()` to use timestamp filter
 - [ ] Update sync orchestrator to use incremental logic
 - [ ] Test with various change scenarios
 - [ ] Fallback to full sync on errors
 
 ### Phase 3: Incremental Push (Local → QB)
+
 - [ ] Track local modifications (updated_at timestamps)
 - [ ] Only push changed local records
 - [ ] SyncToken conflict handling
 - [ ] Optimistic concurrency control
 
 ### Phase 4: Optimization & Monitoring
+
 - [ ] Performance metrics collection
 - [ ] Sync mode selection UI (auto/incremental/full)
 - [ ] Change count displays
@@ -181,25 +197,31 @@ pub async fn incremental_sync_employees(&self) -> Result<SyncResult> {
 ## Research Notes
 
 ### QuickBooks API Capabilities
+
 - [ ] Test date filtering: `WHERE Metadata.LastUpdatedTime > 'X'`
 - [ ] Verify SyncToken increments reliably
 - [ ] Check deleted entity handling (soft delete tracking)
 - [ ] Rate limit implications (fewer calls = better)
 
 ### Change Detection Strategies
+
 **Option 1: Timestamp-based**
+
 - Pro: Simple, widely supported
 - Con: Clock skew issues, timezone handling
 
 **Option 2: SyncToken-based**
+
 - Pro: Atomic, reliable
 - Con: Requires storing all tokens
 
 **Option 3: Hybrid**
+
 - Use timestamps for initial filter
 - Verify with SyncToken for safety
 
 ### Local Change Tracking
+
 ```sql
 -- Track local modifications
 ALTER TABLE hr_public.users
@@ -214,6 +236,7 @@ EXECUTE FUNCTION mark_for_sync();
 ```
 
 ### Deleted Entity Handling
+
 - QuickBooks doesn't always provide deleted entity notifications
 - Need periodic full sync to catch deletions
 - Or use webhook notifications for deletes
@@ -221,23 +244,27 @@ EXECUTE FUNCTION mark_for_sync();
 ## Performance Benchmarks
 
 ### Current (Full Sync)
+
 - 170 employees: ~15-20 seconds
 - 50 departments: ~5 seconds
 - Total API calls: 220+
 
 ### Target (Incremental)
+
 - Average changes: 5-10 employees/day
 - Expected sync time: ~2-3 seconds
 - API calls: 10-15
 - **~85% reduction in sync time**
 
 ## Security Considerations
+
 - [ ] Prevent sync metadata manipulation
 - [ ] Audit trail for sync mode changes
 - [ ] Rate limiting still applies (but less pressure)
 - [ ] Handle clock skew/timezone attacks
 
 ## Testing Strategy
+
 - [ ] Test incremental sync with no changes
 - [ ] Test with only remote changes
 - [ ] Test with only local changes
@@ -247,12 +274,14 @@ EXECUTE FUNCTION mark_for_sync();
 - [ ] Test fallback to full sync
 
 ## Success Metrics
+
 - 80%+ reduction in sync time for routine syncs
 - 90%+ reduction in API calls
 - Zero missed changes (validate against full sync)
 - User satisfaction with speed
 
 ## Open Questions
+
 - [ ] How often should we force a full sync? (weekly?)
 - [ ] How to handle entities deleted in QB?
 - [ ] Should we track individual field changes?
@@ -261,6 +290,7 @@ EXECUTE FUNCTION mark_for_sync();
 - [ ] Do we need a "verify integrity" full sync option?
 
 ## Edge Cases
+
 - [ ] **First sync**: No previous sync metadata → full sync
 - [ ] **Clock skew**: User changes QB timezone → potential missed changes
 - [ ] **Bulk import in QB**: Large change set might overwhelm incremental
@@ -270,28 +300,33 @@ EXECUTE FUNCTION mark_for_sync();
 ## Cost/Benefit Analysis
 
 ### Benefits
+
 - Faster sync operations (happier users)
 - Reduced API costs (fewer calls)
 - Lower server load
 - Better scalability
 
 ### Costs
+
 - Development time: ~1-2 weeks
 - Additional database storage (sync metadata)
 - Complexity in sync logic
 - Testing overhead
 
 ### ROI
+
 - With 170 employees, ~5 changes/day:
   - Current: 170 API calls/sync
   - Incremental: ~10 API calls/sync
   - **Savings: 94% per sync**
 
 ## Related Features
+
 - #1 Real-Time Webhooks (provides change notifications)
 - #2 Sync Scheduling (makes scheduled syncs efficient)
 - #41 Sync Batching Intelligence (batch incremental changes)
 - #14 Sync Health Monitoring (track incremental vs full sync ratio)
 
 ## Notes
+
 _Add research findings, implementation decisions, and learnings here as you explore this feature._

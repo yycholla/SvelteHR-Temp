@@ -91,18 +91,12 @@
 
 	// Filter mappings by entity type
 	let filteredMappings = $derived(
-		entityTypeFilter
-			? mappings.filter((m: any) => m.entityType === entityTypeFilter)
-			: mappings
+		entityTypeFilter ? mappings.filter((m: any) => m.entityType === entityTypeFilter) : mappings
 	);
 
 	// Calculated KPIs
-	let activeMappings = $derived(
-		filteredMappings.filter((m: any) => m.isActive).length
-	);
-	let inactiveMappings = $derived(
-		filteredMappings.filter((m: any) => !m.isActive).length
-	);
+	let activeMappings = $derived(filteredMappings.filter((m: any) => m.isActive).length);
+	let inactiveMappings = $derived(filteredMappings.filter((m: any) => !m.isActive).length);
 	let bidirectionalCount = $derived(
 		filteredMappings.filter((m: any) => m.direction === 'Bidirectional').length
 	);
@@ -113,9 +107,7 @@
 		loadingFields = true;
 		try {
 			const client = createUrqlClient(fetch);
-			const result = await client
-				.query(GET_AVAILABLE_FIELDS, { entityType })
-				.toPromise();
+			const result = await client.query(GET_AVAILABLE_FIELDS, { entityType }).toPromise();
 
 			if (result.error) {
 				error = result.error.message;
@@ -195,7 +187,9 @@
 			if (result.error) {
 				error = result.error.message;
 			} else {
-				success = result.data?.field_mapping?.create_field_mapping?.message || 'Mapping created successfully';
+				success =
+					result.data?.field_mapping?.create_field_mapping?.message ||
+					'Mapping created successfully';
 				createDialogOpen = false;
 				resetForm();
 				await invalidate('app:field-mappings');
@@ -231,7 +225,9 @@
 			if (result.error) {
 				error = result.error.message;
 			} else {
-				success = result.data?.field_mapping?.update_field_mapping?.message || 'Mapping updated successfully';
+				success =
+					result.data?.field_mapping?.update_field_mapping?.message ||
+					'Mapping updated successfully';
 				editDialogOpen = false;
 				resetForm();
 				await invalidate('app:field-mappings');
@@ -261,7 +257,9 @@
 			if (result.error) {
 				error = result.error.message;
 			} else {
-				success = result.data?.field_mapping?.delete_field_mapping?.message || 'Mapping deleted successfully';
+				success =
+					result.data?.field_mapping?.delete_field_mapping?.message ||
+					'Mapping deleted successfully';
 				deleteDialogOpen = false;
 				deletingMappingId = null;
 				await invalidate('app:field-mappings');
@@ -453,7 +451,9 @@
 								<td class="px-4 py-3">
 									{#if mapping.transformation}
 										<code class="bg-muted px-2 py-1 rounded text-xs">
-											{mapping.transformation.slice(0, 30)}{mapping.transformation.length > 30 ? '...' : ''}
+											{mapping.transformation.slice(0, 30)}{mapping.transformation.length > 30
+												? '...'
+												: ''}
 										</code>
 									{:else}
 										<span class="text-muted-foreground text-sm">None</span>
@@ -490,9 +490,7 @@
 	<DialogContent class="max-w-2xl">
 		<DialogHeader>
 			<DialogTitle>Create Field Mapping</DialogTitle>
-			<DialogDescription>
-				Define how a local field maps to a QuickBooks field
-			</DialogDescription>
+			<DialogDescription>Define how a local field maps to a QuickBooks field</DialogDescription>
 		</DialogHeader>
 
 		<div class="space-y-4">
@@ -616,10 +614,19 @@
 		</div>
 
 		<DialogFooter>
-			<Button variant="outline" onclick={() => { createDialogOpen = false; resetForm(); }}>
+			<Button
+				variant="outline"
+				onclick={() => {
+					createDialogOpen = false;
+					resetForm();
+				}}
+			>
 				Cancel
 			</Button>
-			<Button onclick={createMapping} disabled={submitting || !selectedLocalField || !selectedQuickbooksField}>
+			<Button
+				onclick={createMapping}
+				disabled={submitting || !selectedLocalField || !selectedQuickbooksField}
+			>
 				{submitting ? 'Creating...' : 'Create Mapping'}
 			</Button>
 		</DialogFooter>
@@ -631,9 +638,7 @@
 	<DialogContent class="max-w-2xl">
 		<DialogHeader>
 			<DialogTitle>Edit Field Mapping</DialogTitle>
-			<DialogDescription>
-				Update field mapping configuration
-			</DialogDescription>
+			<DialogDescription>Update field mapping configuration</DialogDescription>
 		</DialogHeader>
 
 		<div class="space-y-4">
@@ -718,7 +723,13 @@
 		</div>
 
 		<DialogFooter>
-			<Button variant="outline" onclick={() => { editDialogOpen = false; resetForm(); }}>
+			<Button
+				variant="outline"
+				onclick={() => {
+					editDialogOpen = false;
+					resetForm();
+				}}
+			>
 				Cancel
 			</Button>
 			<Button onclick={updateMapping} disabled={submitting}>
@@ -739,7 +750,13 @@
 		</DialogHeader>
 
 		<DialogFooter>
-			<Button variant="outline" onclick={() => { deleteDialogOpen = false; deletingMappingId = null; }}>
+			<Button
+				variant="outline"
+				onclick={() => {
+					deleteDialogOpen = false;
+					deletingMappingId = null;
+				}}
+			>
 				Cancel
 			</Button>
 			<Button variant="destructive" onclick={deleteMapping} disabled={submitting}>

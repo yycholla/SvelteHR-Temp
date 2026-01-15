@@ -20,7 +20,12 @@
 	let { open = $bindable(false), textBlock = null, onSave, onCancel }: Props = $props();
 
 	// Style options with descriptions
-	const styleOptions: { value: TextBlockStyle; label: string; description: string; icon: typeof Info }[] = [
+	const styleOptions: {
+		value: TextBlockStyle;
+		label: string;
+		description: string;
+		icon: typeof Info;
+	}[] = [
 		{
 			value: 'plain',
 			label: 'Plain',
@@ -144,9 +149,7 @@
 						</option>
 					{/each}
 				</select>
-				<p class="text-sm text-muted-foreground">
-					Choose how this text block should be displayed
-				</p>
+				<p class="text-sm text-muted-foreground">Choose how this text block should be displayed</p>
 			</div>
 
 			<!-- Content -->

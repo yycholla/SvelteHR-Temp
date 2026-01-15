@@ -1,10 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import {
-		BarChart3,
-		Plus,
-		Target,
-	} from '@lucide/svelte';
+	import { BarChart3, Plus, Target } from '@lucide/svelte';
 
 	// Import decomposed components
 	import GoalStats from './components/GoalStats.svelte';
@@ -112,7 +108,7 @@
 		// If `showEditModal` logic was missing, I'll leave it as a TODO or implement a basic edit using the create form.
 		// I'll assume `showEditModal` opens the same form but we'll need to handle the action.
 		// For now, I'll just open the create modal populated.
-		showCreateModal = true; 
+		showCreateModal = true;
 	}
 
 	function openViewModal(goal: any) {
@@ -245,11 +241,7 @@
 </div>
 
 <!-- Modals -->
-<GoalCreateModal
-	bind:open={showCreateModal}
-	onClose={closeModals}
-	bind:goalForm={goalForm}
-/>
+<GoalCreateModal bind:open={showCreateModal} onClose={closeModals} bind:goalForm />
 
 <GoalViewModal
 	bind:open={showViewModal}
@@ -266,6 +258,6 @@
 <GoalProgressModal
 	bind:open={showProgressModal}
 	{currentGoal}
-	bind:progressForm={progressForm}
+	bind:progressForm
 	onClose={closeModals}
 />

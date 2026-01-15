@@ -29,10 +29,7 @@
 						<Label>Email Notifications</Label>
 						<p class="text-sm text-muted-foreground">Receive notifications via email</p>
 					</div>
-					<Switch
-						name="emailNotifications"
-						bind:checked={notificationPrefs.emailNotifications}
-					/>
+					<Switch name="emailNotifications" bind:checked={notificationPrefs.emailNotifications} />
 				</div>
 
 				<div class="border-t pt-6">
@@ -41,9 +38,7 @@
 						<div class="flex items-center justify-between">
 							<div class="space-y-0.5">
 								<Label>Leave Request Updates</Label>
-								<p class="text-sm text-muted-foreground">
-									Status changes on your leave requests
-								</p>
+								<p class="text-sm text-muted-foreground">Status changes on your leave requests</p>
 							</div>
 							<Switch
 								name="leaveRequestUpdates"
@@ -54,14 +49,9 @@
 						<div class="flex items-center justify-between">
 							<div class="space-y-0.5">
 								<Label>Task Assignments</Label>
-								<p class="text-sm text-muted-foreground">
-									When you're assigned to a new task
-								</p>
+								<p class="text-sm text-muted-foreground">When you're assigned to a new task</p>
 							</div>
-							<Switch
-								name="taskAssignments"
-								bind:checked={notificationPrefs.taskAssignments}
-							/>
+							<Switch name="taskAssignments" bind:checked={notificationPrefs.taskAssignments} />
 						</div>
 
 						<div class="flex items-center justify-between">
@@ -80,9 +70,7 @@
 						<div class="flex items-center justify-between">
 							<div class="space-y-0.5">
 								<Label>System Announcements</Label>
-								<p class="text-sm text-muted-foreground">
-									Important system-wide announcements
-								</p>
+								<p class="text-sm text-muted-foreground">Important system-wide announcements</p>
 							</div>
 							<Switch
 								name="systemAnnouncements"
@@ -93,9 +81,7 @@
 						<div class="flex items-center justify-between">
 							<div class="space-y-0.5">
 								<Label>Team Updates</Label>
-								<p class="text-sm text-muted-foreground">
-									Updates from your team and department
-								</p>
+								<p class="text-sm text-muted-foreground">Updates from your team and department</p>
 							</div>
 							<Switch name="teamUpdates" bind:checked={notificationPrefs.teamUpdates} />
 						</div>

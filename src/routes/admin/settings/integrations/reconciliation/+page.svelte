@@ -125,7 +125,9 @@
 					goto(`?reportId=${reportId}`);
 				} else {
 					console.error('No report ID returned from mutation');
-					alert('Reconciliation completed but no report was generated. Please check the server logs.');
+					alert(
+						'Reconciliation completed but no report was generated. Please check the server logs.'
+					);
 				}
 			}
 		} catch (error) {
@@ -353,9 +355,7 @@
 			<!-- KPI Grid -->
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 border-b">
 				<!-- Consistency Score -->
-				<div
-					class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32"
-				>
+				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 					<div class="flex items-center justify-between">
 						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
 							>Consistency Score</span
@@ -386,9 +386,7 @@
 				</div>
 
 				<!-- Active Discrepancies -->
-				<div
-					class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32"
-				>
+				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 					<div class="flex items-center justify-between">
 						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
 							>Discrepancies</span
@@ -409,9 +407,7 @@
 				</div>
 
 				<!-- Last Check -->
-				<div
-					class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32"
-				>
+				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 					<div class="flex items-center justify-between">
 						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
 							>Last Check</span
@@ -459,9 +455,7 @@
 			<div class="bg-background border-t">
 				<div class="px-4 py-3 border-b">
 					<h2 class="text-sm font-semibold">Recent Reports</h2>
-					<p class="text-xs text-muted-foreground mt-0.5">
-						Historical data consistency checks
-					</p>
+					<p class="text-xs text-muted-foreground mt-0.5">Historical data consistency checks</p>
 				</div>
 				<div class="relative">
 					{#if reports.length === 0}
@@ -550,8 +544,7 @@
 											</td>
 										{/each}
 										<td class="px-3 py-1.5 border-r last:border-r-0 text-right">
-											<span class="font-medium text-xs text-green-600">{report.totalMatched}</span
-											>
+											<span class="font-medium text-xs text-green-600">{report.totalMatched}</span>
 										</td>
 										<td class="px-3 py-1.5 border-r last:border-r-0 text-right">
 											<span class="font-medium text-xs text-red-600"
@@ -647,9 +640,7 @@
 						Deselect All
 					</button>
 					{#if selectedDiscrepancies.size > 0}
-						<span class="text-xs text-muted-foreground"
-							>{selectedDiscrepancies.size} selected</span
-						>
+						<span class="text-xs text-muted-foreground">{selectedDiscrepancies.size} selected</span>
 						<button
 							onclick={resolveSelected}
 							disabled={resolvingDiscrepancy}
@@ -772,9 +763,7 @@
 									<td class="px-3 py-1.5 text-right">
 										<div class="flex gap-1 justify-end items-center">
 											{#if discrepancy.isResolved}
-												<span
-													class="text-[10px] text-green-600 font-medium flex items-center mr-2"
-												>
+												<span class="text-[10px] text-green-600 font-medium flex items-center mr-2">
 													<CheckCircle2 class="h-3 w-3 mr-0.5" />
 													Resolved
 												</span>

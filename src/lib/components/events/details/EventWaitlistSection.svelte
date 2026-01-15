@@ -10,13 +10,8 @@
 		onLeaveWaitlist: () => Promise<void>;
 	}
 
-	const {
-		eventId,
-		userWaitlistStatus,
-		waitlistError,
-		onJoinWaitlist,
-		onLeaveWaitlist
-	}: Props = $props();
+	const { eventId, userWaitlistStatus, waitlistError, onJoinWaitlist, onLeaveWaitlist }: Props =
+		$props();
 </script>
 
 <div class="border-t pt-6">

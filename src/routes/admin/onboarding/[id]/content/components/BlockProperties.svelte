@@ -5,7 +5,7 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Save, ArrowLeft, Trash2, FileText, Link } from '@lucide/svelte';
-	
+
 	interface Props {
 		block: any;
 		onUpdate: (data: any) => void;
@@ -44,7 +44,13 @@
 <div class="flex flex-col h-full bg-muted/5 border-l">
 	<!-- Header -->
 	<div class="p-4 border-b flex items-center gap-3 bg-background shrink-0">
-		<Button variant="ghost" size="icon" class="h-8 w-8 -ml-2" onclick={onBack} title="Back to Structure">
+		<Button
+			variant="ghost"
+			size="icon"
+			class="h-8 w-8 -ml-2"
+			onclick={onBack}
+			title="Back to Structure"
+		>
 			<ArrowLeft class="h-4 w-4" />
 		</Button>
 		<span class="font-semibold text-sm">Edit Properties</span>
@@ -56,10 +62,13 @@
 		<div class="space-y-4">
 			<div class="space-y-2">
 				<Label for="block-title">Block Title</Label>
-				<Input 
+				<Input
 					id="block-title"
-					value={title} 
-					oninput={(e) => { title = e.currentTarget.value; triggerUpdate(); }}
+					value={title}
+					oninput={(e) => {
+						title = e.currentTarget.value;
+						triggerUpdate();
+					}}
 					placeholder="e.g. Introduction"
 				/>
 			</div>
@@ -69,9 +78,12 @@
 					<Label class="text-base">Required</Label>
 					<p class="text-xs text-muted-foreground">User must complete this</p>
 				</div>
-				<Switch 
-					checked={isRequired} 
-					onCheckedChange={(v) => { isRequired = v; triggerUpdate(); }}
+				<Switch
+					checked={isRequired}
+					onCheckedChange={(v) => {
+						isRequired = v;
+						triggerUpdate();
+					}}
 				/>
 			</div>
 		</div>
@@ -82,10 +94,13 @@
 		{#if block.type === 'TEXT'}
 			<div class="space-y-2">
 				<Label for="text-content">Content</Label>
-				<Textarea 
+				<Textarea
 					id="text-content"
 					value={textContent}
-					oninput={(e) => { textContent = e.currentTarget.value; triggerUpdate(); }}
+					oninput={(e) => {
+						textContent = e.currentTarget.value;
+						triggerUpdate();
+					}}
 					rows={15}
 					class="font-mono text-sm"
 					placeholder="Enter markdown or text content..."
@@ -97,10 +112,13 @@
 				<Label for="doc-url">Document URL</Label>
 				<div class="relative">
 					<Link class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-					<Input 
+					<Input
 						id="doc-url"
 						value={documentUrl}
-						oninput={(e) => { documentUrl = e.currentTarget.value; triggerUpdate(); }}
+						oninput={(e) => {
+							documentUrl = e.currentTarget.value;
+							triggerUpdate();
+						}}
 						class="pl-9"
 						placeholder="https://..."
 					/>
@@ -108,7 +126,9 @@
 				<p class="text-xs text-muted-foreground">Direct link to PDF or file.</p>
 			</div>
 		{:else if block.type === 'FORM'}
-			<div class="p-4 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/20 text-sm text-blue-800 dark:text-blue-300">
+			<div
+				class="p-4 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/20 text-sm text-blue-800 dark:text-blue-300"
+			>
 				Form builder is active in the main view.
 			</div>
 		{/if}
@@ -124,7 +144,11 @@
 			{/if}
 		</Button>
 
-		<Button variant="ghost" onclick={onDelete} class="w-full text-destructive hover:text-destructive hover:bg-destructive/10">
+		<Button
+			variant="ghost"
+			onclick={onDelete}
+			class="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+		>
 			<Trash2 class="mr-2 h-4 w-4" /> Delete Block
 		</Button>
 	</div>

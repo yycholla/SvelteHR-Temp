@@ -60,9 +60,7 @@
 									>
 								</div>
 								<div class="flex flex-col">
-									<span class="text-sm font-medium"
-										>{department.departmentHead.displayName}</span
-									>
+									<span class="text-sm font-medium">{department.departmentHead.displayName}</span>
 									<span class="text-xs text-muted-foreground"
 										>{department.departmentHead.jobTitle || 'Head'}</span
 									>
@@ -89,11 +87,7 @@
 					<Table.Cell class="text-right">
 						<div class="flex justify-end gap-2">
 							{#if canViewEmployees}
-								<Button
-									variant="ghost"
-									size="icon"
-									href="/dashboard/departments/{department.id}"
-								>
+								<Button variant="ghost" size="icon" href="/dashboard/departments/{department.id}">
 									<Eye class="h-4 w-4" />
 								</Button>
 							{/if}

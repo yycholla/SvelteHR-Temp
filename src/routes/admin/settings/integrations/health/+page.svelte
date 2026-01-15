@@ -115,7 +115,6 @@
 		}
 	}
 
-
 	function getStatusColor(status: string): string {
 		switch (status.toLowerCase()) {
 			case 'healthy':
@@ -129,9 +128,7 @@
 		}
 	}
 
-	function getSeverityColor(
-		severity: string
-	): 'default' | 'outline' | 'secondary' | 'destructive' {
+	function getSeverityColor(severity: string): 'default' | 'outline' | 'secondary' | 'destructive' {
 		switch (severity.toLowerCase()) {
 			case 'critical':
 				return 'destructive';
@@ -172,7 +169,9 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-background">
 	<!-- Toolbar -->
-	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
 		<div class="flex items-center gap-4">
 			<h1 class="text-sm font-semibold tracking-tight">Sync Health Monitoring</h1>
 			<div class="h-4 w-px bg-border"></div>
@@ -203,7 +202,13 @@
 				<AlertTriangle class="h-3.5 w-3.5 {runningHealthCheck ? 'animate-pulse' : ''}" />
 				<span class="text-xs">{runningHealthCheck ? 'Checking...' : 'Test Alerts'}</span>
 			</Button>
-			<Button variant="ghost" size="sm" onclick={refreshHealth} disabled={refreshing} class="h-8 w-8 p-0">
+			<Button
+				variant="ghost"
+				size="sm"
+				onclick={refreshHealth}
+				disabled={refreshing}
+				class="h-8 w-8 p-0"
+			>
 				<RefreshCw class="h-4 w-4 {refreshing ? 'animate-spin' : ''}" />
 			</Button>
 		</div>
@@ -216,7 +221,9 @@
 				<!-- Current Status -->
 				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 					<div class="flex items-center justify-between">
-						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Current Status</span>
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+							>Current Status</span
+						>
 						<Activity class="h-4 w-4 text-muted-foreground" />
 					</div>
 					<div>
@@ -238,11 +245,15 @@
 				<!-- Success Rate -->
 				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 					<div class="flex items-center justify-between">
-						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Success Rate (24h)</span>
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+							>Success Rate (24h)</span
+						>
 						<CheckCircle2 class="h-4 w-4 text-muted-foreground" />
 					</div>
 					<div>
-						<div class="text-3xl font-bold tracking-tight">{formatPercentage(health.successRate)}</div>
+						<div class="text-3xl font-bold tracking-tight">
+							{formatPercentage(health.successRate)}
+						</div>
 						<div class="mt-1 text-xs text-muted-foreground">
 							{health.totalSyncs24H} syncs
 						</div>
@@ -252,11 +263,15 @@
 				<!-- Average Duration -->
 				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 					<div class="flex items-center justify-between">
-						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Avg Sync Duration</span>
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+							>Avg Sync Duration</span
+						>
 						<Clock class="h-4 w-4 text-muted-foreground" />
 					</div>
 					<div>
-						<div class="text-3xl font-bold tracking-tight">{formatDuration(health.avgSyncDurationMs)}</div>
+						<div class="text-3xl font-bold tracking-tight">
+							{formatDuration(health.avgSyncDurationMs)}
+						</div>
 						<div class="mt-1 text-xs text-muted-foreground">
 							Last: {formatDate(health.lastSuccessfulSync)}
 						</div>
@@ -266,7 +281,9 @@
 				<!-- Active Alerts -->
 				<div class="p-6 bg-background flex flex-col justify-between h-32">
 					<div class="flex items-center justify-between">
-						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Active Alerts</span>
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+							>Active Alerts</span
+						>
 						{#if health.activeAlertsCount > 0}
 							<AlertTriangle class="h-4 w-4 text-muted-foreground" />
 						{:else}
@@ -302,11 +319,25 @@
 								<table class="w-full text-sm">
 									<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
 										<tr>
-											<th class="px-3 py-1.5 border-r last:border-r-0 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground w-20">Severity</th>
-											<th class="px-3 py-1.5 border-r last:border-r-0 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Message</th>
-											<th class="px-3 py-1.5 border-r last:border-r-0 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground w-32">Type</th>
-											<th class="px-3 py-1.5 border-r last:border-r-0 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground w-40">Time</th>
-											<th class="px-3 py-1.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground w-16"></th>
+											<th
+												class="px-3 py-1.5 border-r last:border-r-0 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground w-20"
+												>Severity</th
+											>
+											<th
+												class="px-3 py-1.5 border-r last:border-r-0 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+												>Message</th
+											>
+											<th
+												class="px-3 py-1.5 border-r last:border-r-0 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground w-32"
+												>Type</th
+											>
+											<th
+												class="px-3 py-1.5 border-r last:border-r-0 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground w-40"
+												>Time</th
+											>
+											<th
+												class="px-3 py-1.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground w-16"
+											></th>
 										</tr>
 									</thead>
 									<tbody class="divide-y">
@@ -330,13 +361,17 @@
 														<span class="text-xs font-medium">{alert.message}</span>
 													</div>
 												</td>
-												<td class="px-3 py-1.5 border-r last:border-r-0 text-xs text-muted-foreground">
+												<td
+													class="px-3 py-1.5 border-r last:border-r-0 text-xs text-muted-foreground"
+												>
 													{alert.alertType.replace(/_/g, ' ')}
 													{#if alert.entityType}
 														<br /><span class="text-xs">• {alert.entityType}</span>
 													{/if}
 												</td>
-												<td class="px-3 py-1.5 border-r last:border-r-0 text-xs text-muted-foreground">
+												<td
+													class="px-3 py-1.5 border-r last:border-r-0 text-xs text-muted-foreground"
+												>
 													{new Date(alert.triggeredAt).toLocaleTimeString()}
 												</td>
 												<td class="px-3 py-1.5 text-center">
@@ -391,11 +426,26 @@
 								<table class="w-full text-sm">
 									<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
 										<tr>
-											<th class="px-3 py-1.5 border-r last:border-r-0 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Time</th>
-											<th class="px-3 py-1.5 border-r last:border-r-0 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
-											<th class="px-3 py-1.5 border-r last:border-r-0 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Duration</th>
-											<th class="px-3 py-1.5 border-r last:border-r-0 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Records</th>
-											<th class="px-3 py-1.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Errors</th>
+											<th
+												class="px-3 py-1.5 border-r last:border-r-0 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+												>Time</th
+											>
+											<th
+												class="px-3 py-1.5 border-r last:border-r-0 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+												>Status</th
+											>
+											<th
+												class="px-3 py-1.5 border-r last:border-r-0 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+												>Duration</th
+											>
+											<th
+												class="px-3 py-1.5 border-r last:border-r-0 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+												>Records</th
+											>
+											<th
+												class="px-3 py-1.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+												>Errors</th
+											>
 										</tr>
 									</thead>
 									<tbody class="divide-y">
@@ -405,17 +455,30 @@
 													{new Date(metric.recordedAt).toLocaleTimeString()}
 												</td>
 												<td class="px-3 py-1.5 border-r last:border-r-0 text-xs">
-													<Badge variant={metric.connectionStatus === 'healthy' ? 'outline' : 'secondary'} class="text-xs">
+													<Badge
+														variant={metric.connectionStatus === 'healthy'
+															? 'outline'
+															: 'secondary'}
+														class="text-xs"
+													>
 														{metric.connectionStatus}
 													</Badge>
 												</td>
-												<td class="px-3 py-1.5 border-r last:border-r-0 text-xs text-right font-mono">
+												<td
+													class="px-3 py-1.5 border-r last:border-r-0 text-xs text-right font-mono"
+												>
 													{formatDuration(metric.syncDurationMs || 0)}
 												</td>
-												<td class="px-3 py-1.5 border-r last:border-r-0 text-xs text-right font-mono">
+												<td
+													class="px-3 py-1.5 border-r last:border-r-0 text-xs text-right font-mono"
+												>
 													{metric.recordsProcessed || 0}
 												</td>
-												<td class="px-3 py-1.5 text-xs text-right font-mono {metric.errorsCount > 0 ? 'text-red-600 font-medium' : ''}">
+												<td
+													class="px-3 py-1.5 text-xs text-right font-mono {metric.errorsCount > 0
+														? 'text-red-600 font-medium'
+														: ''}"
+												>
 													{metric.errorsCount}
 												</td>
 											</tr>
@@ -457,15 +520,23 @@
 							<!-- Summary Stats -->
 							<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
 								<div class="bg-muted/30 rounded-lg p-4">
-									<div class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Total Processed</div>
+									<div
+										class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2"
+									>
+										Total Processed
+									</div>
 									<div class="text-2xl font-bold">{diagnosticResults.total}</div>
 								</div>
 								<div class="bg-green-50 rounded-lg p-4">
-									<div class="text-xs font-semibold uppercase tracking-wider text-green-700 mb-2">Succeeded</div>
+									<div class="text-xs font-semibold uppercase tracking-wider text-green-700 mb-2">
+										Succeeded
+									</div>
 									<div class="text-2xl font-bold text-green-700">{diagnosticResults.succeeded}</div>
 								</div>
 								<div class="bg-red-50 rounded-lg p-4">
-									<div class="text-xs font-semibold uppercase tracking-wider text-red-700 mb-2">Failed</div>
+									<div class="text-xs font-semibold uppercase tracking-wider text-red-700 mb-2">
+										Failed
+									</div>
 									<div class="text-2xl font-bold text-red-700">{diagnosticResults.failed}</div>
 								</div>
 							</div>
@@ -481,12 +552,30 @@
 									<table class="w-full text-sm">
 										<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
 											<tr>
-												<th class="px-3 py-2 border-r text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground w-16">#</th>
-												<th class="px-3 py-2 border-r text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</th>
-												<th class="px-3 py-2 border-r text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email</th>
-												<th class="px-3 py-2 border-r text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">QB ID</th>
-												<th class="px-3 py-2 border-r text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground w-24">Status</th>
-												<th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Error</th>
+												<th
+													class="px-3 py-2 border-r text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground w-16"
+													>#</th
+												>
+												<th
+													class="px-3 py-2 border-r text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+													>Name</th
+												>
+												<th
+													class="px-3 py-2 border-r text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+													>Email</th
+												>
+												<th
+													class="px-3 py-2 border-r text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+													>QB ID</th
+												>
+												<th
+													class="px-3 py-2 border-r text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground w-24"
+													>Status</th
+												>
+												<th
+													class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+													>Error</th
+												>
 											</tr>
 										</thead>
 										<tbody class="divide-y">
@@ -534,7 +623,6 @@
 					</div>
 				</div>
 			{/if}
-
 		{:else}
 			<div class="bg-background p-12">
 				<div class="text-center text-muted-foreground">

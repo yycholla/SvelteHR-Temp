@@ -7,21 +7,25 @@ This document provides the required URLs and settings for configuring the Svelte
 ### Application URLs
 
 **Host Domain:**
+
 ```
 hr.mtncarerx.com
 ```
 
 **Launch URL (OAuth Redirect URI):**
+
 ```
 https://hr.mtncarerx.com/api/intuit/callback
 ```
 
 **Disconnect URL:**
+
 ```
 https://hr.mtncarerx.com/api/intuit/disconnect
 ```
 
 **Webhook URL (for sync notifications):**
+
 ```
 https://hr.mtncarerx.com/api/intuit/webhook
 ```
@@ -29,11 +33,13 @@ https://hr.mtncarerx.com/api/intuit/webhook
 ### Legal Pages
 
 **End User License Agreement (EULA):**
+
 ```
 https://hr.mtncarerx.com/terms
 ```
 
 **Privacy Policy:**
+
 ```
 https://hr.mtncarerx.com/privacy
 ```
@@ -68,9 +74,11 @@ The following environment variables are already configured in Kubernetes (via Do
 ### 2. Configure OAuth Settings
 
 **Redirect URIs:**
+
 - Production: `https://hr.mtncarerx.com/api/intuit/callback`
 
 **Scopes:**
+
 - ✅ com.intuit.quickbooks.accounting
 - ✅ com.intuit.quickbooks.payment (if needed)
 
@@ -79,6 +87,7 @@ The following environment variables are already configured in Kubernetes (via Do
 **App Name:** SvelteHR
 
 **Description:**
+
 ```
 Enterprise HR management system with QuickBooks integration for seamless
 employee data synchronization, payroll management, and time tracking.
@@ -93,16 +102,19 @@ employee data synchronization, payroll management, and time tracking.
 ### 4. Legal and Compliance
 
 **Terms of Service URL:**
+
 ```
 https://hr.mtncarerx.com/terms
 ```
 
 **Privacy Policy URL:**
+
 ```
 https://hr.mtncarerx.com/privacy
 ```
 
 **EULA URL:**
+
 ```
 https://hr.mtncarerx.com/terms
 ```
@@ -110,17 +122,20 @@ https://hr.mtncarerx.com/terms
 ### 5. Webhooks Configuration
 
 **Webhook URL:**
+
 ```
 https://hr.mtncarerx.com/api/intuit/webhook
 ```
 
 **Webhook Events to Subscribe:**
+
 - Customer created/updated/deleted
-- Employee created/updated/deleted  
+- Employee created/updated/deleted
 - Department created/updated/deleted
 - Vendor created/updated/deleted
 
 **Verifier Token:**
+
 - Generate a secure token: `openssl rand -hex 32`
 - Add to Doppler as `INTUIT_WEBHOOK_VERIFIER_TOKEN`
 - Configure in Intuit Developer Portal
@@ -128,6 +143,7 @@ https://hr.mtncarerx.com/api/intuit/webhook
 ### 6. Disconnect URL
 
 **Disconnect Callback URL:**
+
 ```
 https://hr.mtncarerx.com/api/intuit/disconnect
 ```
@@ -143,12 +159,13 @@ curl -X GET https://hr.mtncarerx.com/api/intuit/disconnect
 ```
 
 Expected response:
+
 ```json
 {
-  "endpoint": "intuit-disconnect-webhook",
-  "status": "active",
-  "timestamp": "2026-01-12T...",
-  "methods": ["POST"]
+	"endpoint": "intuit-disconnect-webhook",
+	"status": "active",
+	"timestamp": "2026-01-12T...",
+	"methods": ["POST"]
 }
 ```
 
@@ -164,6 +181,7 @@ Both pages should be publicly accessible without authentication.
 The legal pages and disconnect endpoint are included in the `2.0.3` release.
 
 **Deployment Status:**
+
 - ✅ Privacy policy page created
 - ✅ Terms of service / EULA created
 - ✅ Disconnect webhook endpoint created
@@ -180,6 +198,7 @@ The legal pages and disconnect endpoint are included in the `2.0.3` release.
 ## Support
 
 For questions or issues:
+
 - Technical Support: support@mountaincarerx.com
 - Privacy Inquiries: privacy@mountaincarerx.com
 - Legal Inquiries: legal@mountaincarerx.com

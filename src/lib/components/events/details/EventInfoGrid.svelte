@@ -26,9 +26,7 @@
 				{formatEventTimeRange(event.startTime, event.endTime, event.isAllDay ?? false)}
 			</div>
 			{#if event.isAllDay}
-				<span
-					class="mt-1 inline-block rounded-md bg-primary/10 px-2 py-0.5 text-xs text-primary"
-				>
+				<span class="mt-1 inline-block rounded-md bg-primary/10 px-2 py-0.5 text-xs text-primary">
 					All Day
 				</span>
 			{/if}

@@ -335,10 +335,7 @@
 		</div>
 
 		<!-- Statistics Section -->
-		<LeaveStats
-			totalRequests={data.totalRequests}
-			leaveStats={data.leaveStats}
-		/>
+		<LeaveStats totalRequests={data.totalRequests} leaveStats={data.leaveStats} />
 
 		<!-- Error Display -->
 		{#if data.error}

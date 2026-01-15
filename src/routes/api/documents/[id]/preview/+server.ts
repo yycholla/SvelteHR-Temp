@@ -4,7 +4,7 @@ import { logger } from '$lib/utils/logger';
 
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { SERVICE_AUTH_KEY } from '$env/static/private';
+// import { SERVICE_AUTH_KEY } from '$env/static/private';
 import { retrieveAndDecryptFile } from '$lib/server/encryption';
 
 export const GET: RequestHandler = async ({ params, locals, url }) => {

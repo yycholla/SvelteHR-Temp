@@ -62,9 +62,7 @@
 				<div class="space-y-2">
 					<Label for="metaTitle">Meta Title</Label>
 					<Input id="metaTitle" name="metaTitle" value={training.metaTitle || ''} />
-					<p class="text-[0.8rem] text-muted-foreground">
-						Recommended length: 50-60 characters.
-					</p>
+					<p class="text-[0.8rem] text-muted-foreground">Recommended length: 50-60 characters.</p>
 				</div>
 
 				<div class="space-y-2">
@@ -75,9 +73,7 @@
 						rows={3}
 						value={training.metaDescription || ''}
 					/>
-					<p class="text-[0.8rem] text-muted-foreground">
-						Recommended length: 150-160 characters.
-					</p>
+					<p class="text-[0.8rem] text-muted-foreground">Recommended length: 150-160 characters.</p>
 				</div>
 			</Card.Content>
 		</Card.Root>

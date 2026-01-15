@@ -115,11 +115,7 @@
 						</Button>
 					{/if}
 					{#if canManageDepartments}
-						<Button
-							variant="outline"
-							size="sm"
-							href="/dashboard/departments/{department.id}/edit"
-						>
+						<Button variant="outline" size="sm" href="/dashboard/departments/{department.id}/edit">
 							<Edit class="mr-2 h-4 w-4" />
 							Edit
 						</Button>

@@ -183,7 +183,7 @@ export const actions: Actions = {
 
 		// Check permissions
 		if (!locals.user) throw error(401, 'Unauthorized');
-		
+
 		requireAuth(event, {
 			requiredPermissions: [
 				'tasks:write',

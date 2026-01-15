@@ -2,12 +2,7 @@ import { browser } from '$app/environment';
 import { derived, readonly, writable } from 'svelte/store';
 import type { Readable, Writable } from 'svelte/store';
 import { logger } from '$lib/utils/logger';
-import type {
-	CoreWebVitals,
-	MemoryUsage,
-	PerformanceAlert,
-	PerformanceMetric
-} from './types';
+import type { CoreWebVitals, MemoryUsage, PerformanceAlert, PerformanceMetric } from './types';
 import { PERFORMANCE_BUDGET } from './config';
 import { generateUUID, getRecommendations } from './utils';
 import { initializeCoreWebVitalsTracking, initializePerformanceObservers } from './observers';
@@ -64,7 +59,7 @@ class ClientPerformanceMonitor {
 		// Start monitoring various performance aspects
 		this.monitorPageLoad();
 		this.monitorNavigationTiming();
-		
+
 		// Memory monitoring already started in constructor if browser, but interval might need reset if stopped
 		if (!this.memoryMonitoringInterval) {
 			this.memoryMonitoringInterval = startMemoryMonitoring(

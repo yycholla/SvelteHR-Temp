@@ -9,7 +9,11 @@ import type {
 } from './types';
 import { DEFAULT_CONFIG, HR_FIELD_PERMISSION_RULES } from './rules';
 import { evaluateAccessConditions } from './evaluators';
-import { calculateSecurityLevel, checkDefaultAccess, checkSensitivityViolation } from './sensitivity';
+import {
+	calculateSecurityLevel,
+	checkDefaultAccess,
+	checkSensitivityViolation
+} from './sensitivity';
 
 export class FieldAuthorizationValidator {
 	private config: FieldAuthorizationConfig;

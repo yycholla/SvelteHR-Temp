@@ -19,12 +19,7 @@
 	import type { CreateTaskInput, UpdateTaskInput } from '$lib/graphql/tasks-operations';
 	import { validateTaskInput } from '$lib/graphql/tasks-operations';
 	import { Button } from '$lib/components/ui/button';
-	import {
-		AlertCircle,
-		Building2,
-		CheckSquare,
-		User as UserIcon
-	} from '@lucide/svelte';
+	import { AlertCircle, Building2, CheckSquare, User as UserIcon } from '@lucide/svelte';
 	import { format } from 'date-fns';
 
 	// Import decomposed components
@@ -407,12 +402,12 @@
 			bind:assignees={formData.assignees}
 			bind:taskTypeId={formData.taskTypeId}
 			bind:parentTaskId={formData.parentTaskId}
-			combinedAssigneeOptions={combinedAssigneeOptions}
+			{combinedAssigneeOptions}
 			{availableUsers}
 			{departments}
 			{taskTypes}
 			{parentTaskOptions}
-			filteredParentTaskOptions={filteredParentTaskOptions}
+			{filteredParentTaskOptions}
 			{selectedParentTask}
 			bind:parentTaskSearchTerm
 			filteredParentTasksCount={filteredParentTasks.length}
@@ -438,9 +433,7 @@
 			{fieldErrors}
 		/>
 
-		<TaskAdvancedOptions
-			bind:requiresManualReassignment={formData.requiresManualReassignment}
-		/>
+		<TaskAdvancedOptions bind:requiresManualReassignment={formData.requiresManualReassignment} />
 
 		<!-- Form Actions -->
 		<div class="flex items-center justify-between border-t pt-6">

@@ -14,12 +14,7 @@
 		placeholder?: string;
 	}
 
-	let {
-		name,
-		label,
-		required = false,
-		placeholder = 'email@example.com'
-	}: Props = $props();
+	let { name, label, required = false, placeholder = 'email@example.com' }: Props = $props();
 
 	// Get form from context
 	const form = getContext<SuperForm<Record<string, unknown>>>('form');
@@ -38,12 +33,7 @@
 					</FormLabel>
 				{/if}
 
-				<Input
-					{...props}
-					type="email"
-					{placeholder}
-					autocomplete="email"
-				/>
+				<Input {...props} type="email" {placeholder} autocomplete="email" />
 
 				<FieldErrors />
 			</div>

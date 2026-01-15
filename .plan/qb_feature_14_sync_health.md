@@ -1,15 +1,18 @@
 # Feature 14: Sync Health Monitoring
 
 ## Overview
+
 Comprehensive monitoring dashboard for QuickBooks sync operations, tracking uptime, performance metrics, error rates, and API usage to ensure reliable synchronization.
 
 ## Current System Integration
+
 - Basic sync logging in `intuit_sync_log`
 - No aggregated metrics
 - No alerting system
 - No performance tracking
 
 ## Key Components
+
 - Uptime monitoring (is QB connection healthy?)
 - Sync performance metrics (duration, throughput)
 - Error rate tracking and trending
@@ -19,7 +22,9 @@ Comprehensive monitoring dashboard for QuickBooks sync operations, tracking upti
 - Historical trend analysis
 
 ## Technical Requirements
+
 ### Metrics Collection
+
 ```rust
 pub struct SyncHealthMetrics {
     pub uptime_percentage: f64,
@@ -41,6 +46,7 @@ pub enum HealthStatus {
 ```
 
 ### Database Tables
+
 ```sql
 CREATE TABLE hr_public.sync_health_metrics (
     id UUID PRIMARY KEY,
@@ -65,6 +71,7 @@ CREATE TABLE hr_public.sync_health_alerts (
 ```
 
 ### Dashboard Components
+
 - Real-time status indicator (green/yellow/red)
 - Performance charts (sync duration over time)
 - Error rate graph
@@ -73,12 +80,14 @@ CREATE TABLE hr_public.sync_health_alerts (
 - Alert history
 
 ## Dependencies
+
 - Time-series database (optional: TimescaleDB extension)
 - Charting library (Chart.js, Recharts)
 - Alerting system (email, Slack, PagerDuty)
 - Anomaly detection algorithm
 
 ## Research Notes
+
 - [ ] Metrics retention period
 - [ ] Alert thresholds (what's "degraded" vs "down"?)
 - [ ] Integration with external monitoring (DataDog, New Relic)
@@ -86,6 +95,7 @@ CREATE TABLE hr_public.sync_health_alerts (
 - [ ] Historical data aggregation strategy
 
 ## Alert Triggers
+
 - Sync failure rate > 5% in 1 hour
 - Sync duration > 2x average
 - QB connection down for > 5 minutes
@@ -93,10 +103,12 @@ CREATE TABLE hr_public.sync_health_alerts (
 - 3+ consecutive sync failures
 
 ## Success Metrics
+
 - 99.9% uptime detection accuracy
 - Alert response time < 2 minutes
 - Zero false positives for critical alerts
 - Dashboard load time < 1 second
 
 ## Notes
+
 _Research findings and implementation decisions_

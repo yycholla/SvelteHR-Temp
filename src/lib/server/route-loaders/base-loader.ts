@@ -114,7 +114,10 @@ export abstract class BaseRouteLoader {
 
 			// Otherwise, wrap it in a generic 500 error
 			const message = err instanceof Error ? err.message : 'Failed to load page data';
-			throw error(500, `Unable to load data: ${message}. Please refresh the page or try again later.`);
+			throw error(
+				500,
+				`Unable to load data: ${message}. Please refresh the page or try again later.`
+			);
 		}
 	}
 

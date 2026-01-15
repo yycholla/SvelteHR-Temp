@@ -325,8 +325,5 @@
 	/>
 
 	<!-- Legend -->
-	<OrgMapLegend
-		{departments}
-		{orgNodes}
-	/>
+	<OrgMapLegend {departments} {orgNodes} />
 </div>

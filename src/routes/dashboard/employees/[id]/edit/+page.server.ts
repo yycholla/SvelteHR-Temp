@@ -294,7 +294,14 @@ export const actions: Actions = {
 
 				if (currentRoleName !== role) {
 					// Fetch roles to find ID
-					const GET_ROLES = gql`query GetAllRoles { roles(limit: 100) { id name } }`;
+					const GET_ROLES = gql`
+						query GetAllRoles {
+							roles(limit: 100) {
+								id
+								name
+							}
+						}
+					`;
 					const rolesResult = await client.query(GET_ROLES);
 					const newRole = rolesResult?.roles?.find((r: any) => r.name === role);
 
@@ -345,16 +352,20 @@ export const actions: Actions = {
 
 			const UPDATE_CONTACT = gql`
 				mutation UpdateEmergencyContact($id: UUID!, $input: UpdateEmergencyContactInput!) {
-					updateEmergencyContact(id: $id, input: $input) { id }
+					updateEmergencyContact(id: $id, input: $input) {
+						id
+					}
 				}
 			`;
 			const CREATE_CONTACT = gql`
 				mutation CreateEmergencyContact($input: CreateEmergencyContactInput!) {
-					createEmergencyContact(input: $input) { id }
+					createEmergencyContact(input: $input) {
+						id
+					}
 				}
 			`;
 
-			for (const contact of emergencyContacts.filter(c => c)) {
+			for (const contact of emergencyContacts.filter((c) => c)) {
 				const contactInput = {
 					name: contact.name || contact.fullName,
 					relationship: contact.relationship || null,
@@ -384,16 +395,20 @@ export const actions: Actions = {
 
 			const UPDATE_VEHICLE = gql`
 				mutation UpdateVehicle($id: UUID!, $input: UpdateEmployeeVehicleInput!) {
-					updateEmployeeVehicle(id: $id, input: $input) { id }
+					updateEmployeeVehicle(id: $id, input: $input) {
+						id
+					}
 				}
 			`;
 			const CREATE_VEHICLE = gql`
 				mutation CreateVehicle($input: CreateEmployeeVehicleInput!) {
-					createEmployeeVehicle(input: $input) { id }
+					createEmployeeVehicle(input: $input) {
+						id
+					}
 				}
 			`;
 
-			for (const vehicle of vehicles.filter(v => v)) {
+			for (const vehicle of vehicles.filter((v) => v)) {
 				const vehicleInput = {
 					make: vehicle.make || null,
 					model: vehicle.model || null,

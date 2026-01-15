@@ -154,30 +154,21 @@ export function buildDepartmentHierarchy(
 /**
  * Get all sub-departments for a department (client-side)
  */
-export function getSubDepartments(
-	departments: Department[],
-	parentId: string
-): Department[] {
+export function getSubDepartments(departments: Department[], parentId: string): Department[] {
 	return departments.filter((dept) => dept.parentDepartmentId === parentId);
 }
 
 /**
  * Get department employees (client-side)
  */
-export function getDepartmentEmployees(
-	users: TeamUser[],
-	departmentId: string
-): TeamUser[] {
+export function getDepartmentEmployees(users: TeamUser[], departmentId: string): TeamUser[] {
 	return users.filter((user) => user.departmentId === departmentId);
 }
 
 /**
  * Get active employees for department (client-side)
  */
-export function getActiveDepartmentEmployees(
-	users: TeamUser[],
-	departmentId: string
-): TeamUser[] {
+export function getActiveDepartmentEmployees(users: TeamUser[], departmentId: string): TeamUser[] {
 	return users.filter((user) => user.departmentId === departmentId && user.isActive);
 }
 
@@ -185,10 +176,7 @@ export function getActiveDepartmentEmployees(
  * Find department head (client-side)
  * Assumes department head is the user with no manager in the department
  */
-export function findDepartmentHead(
-	users: TeamUser[],
-	departmentId: string
-): TeamUser | null {
+export function findDepartmentHead(users: TeamUser[], departmentId: string): TeamUser | null {
 	const deptUsers = getDepartmentEmployees(users, departmentId);
 	// Find user with no manager or manager not in same department
 	const head = deptUsers.find(
@@ -224,10 +212,7 @@ export function calculateDepartmentStats(
 /**
  * Search departments by name (client-side)
  */
-export function searchDepartmentsByName(
-	departments: Department[],
-	query: string
-): Department[] {
+export function searchDepartmentsByName(departments: Department[], query: string): Department[] {
 	const lowerQuery = query.toLowerCase();
 	return departments.filter((dept) => dept.name.toLowerCase().includes(lowerQuery));
 }
@@ -245,10 +230,7 @@ export function filterDepartmentsByParent(
 /**
  * Get department path (breadcrumb) (client-side)
  */
-export function getDepartmentPath(
-	departments: Department[],
-	departmentId: string
-): Department[] {
+export function getDepartmentPath(departments: Department[], departmentId: string): Department[] {
 	const path: Department[] = [];
 	let currentId: string | null = departmentId;
 

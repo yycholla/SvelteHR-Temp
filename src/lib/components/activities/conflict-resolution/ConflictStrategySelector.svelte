@@ -39,8 +39,8 @@
 					<span class="badge badge-danger">Destructive</span>
 				</div>
 				<p class="strategy-description">
-					Overwrite all current values with snapshot values. This will discard any changes made after
-					the snapshot.
+					Overwrite all current values with snapshot values. This will discard any changes made
+					after the snapshot.
 				</p>
 			</div>
 		</label>
@@ -79,9 +79,7 @@
 					<strong>Cancel Rollback</strong>
 					<span class="badge badge-secondary">Safe</span>
 				</div>
-				<p class="strategy-description">
-					Abort the rollback operation. No changes will be made.
-				</p>
+				<p class="strategy-description">Abort the rollback operation. No changes will be made.</p>
 			</div>
 		</label>
 	</div>

@@ -43,9 +43,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// Check if user is system admin
 		const isSystemAdmin =
-			loader.hasPermission('*') ||
-			loader.hasPermission('*:*') ||
-			loader.hasRole('system_admin');
+			loader.hasPermission('*') || loader.hasPermission('*:*') || loader.hasRole('system_admin');
 
 		// Load employees for assignment
 		let employeeOptions: Array<{ value: string; label: string }> = [];
@@ -69,10 +67,12 @@ export const load: PageServerLoad = async (event) => {
 			});
 
 			if (employeesResponse?.users) {
-				employeeOptions = employeesResponse.users.map((user: { id: string; fullName?: string; displayName?: string; email: string }) => ({
-					value: user.id,
-					label: user.fullName || user.displayName || user.email
-				}));
+				employeeOptions = employeesResponse.users.map(
+					(user: { id: string; fullName?: string; displayName?: string; email: string }) => ({
+						value: user.id,
+						label: user.fullName || user.displayName || user.email
+					})
+				);
 
 				logger.info('[UPLOAD PAGE] Loaded employee options', { count: employeeOptions.length });
 			}

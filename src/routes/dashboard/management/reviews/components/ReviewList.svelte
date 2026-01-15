@@ -1,14 +1,7 @@
 <script lang="ts">
-	import {
-		Award,
-		Clock,
-		Star
-	} from '@lucide/svelte';
+	import { Award, Clock, Star } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
-	import {
-		Card,
-		CardContent
-	} from '$lib/components/ui/card';
+	import { Card, CardContent } from '$lib/components/ui/card';
 	import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Avatar, AvatarFallback } from '$lib/components/ui/avatar';
@@ -210,13 +203,7 @@
 										View Details
 									</Button>
 									{#if canEditReviews && review.status !== 'completed'}
-										<Button
-											size="sm"
-											variant="outline"
-											onclick={() => onEdit(review)}
-										>
-											Edit
-										</Button>
+										<Button size="sm" variant="outline" onclick={() => onEdit(review)}>Edit</Button>
 									{/if}
 									{#if canCreateReviews}
 										<Button

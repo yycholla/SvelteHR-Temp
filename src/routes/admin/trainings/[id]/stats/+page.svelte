@@ -46,9 +46,7 @@
 			</div>
 		</div>
 		<div class="flex gap-2">
-			<Button variant="outline" href="/admin/trainings/{training.id}">
-				Edit Training
-			</Button>
+			<Button variant="outline" href="/admin/trainings/{training.id}">Edit Training</Button>
 			<Button variant="outline" href="/admin/trainings/{training.id}/content">
 				Manage Content
 			</Button>

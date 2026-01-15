@@ -86,14 +86,14 @@ export const load: PageServerLoad = async (event) => {
 		let filteredLogs = logs;
 
 		if (action) {
-			filteredLogs = filteredLogs.filter((log: any) =>
-				log.action.toLowerCase() === action.toLowerCase()
+			filteredLogs = filteredLogs.filter(
+				(log: any) => log.action.toLowerCase() === action.toLowerCase()
 			);
 		}
 
 		if (resourceType) {
-			filteredLogs = filteredLogs.filter((log: any) =>
-				log.resourceType.toLowerCase() === resourceType.toLowerCase()
+			filteredLogs = filteredLogs.filter(
+				(log: any) => log.resourceType.toLowerCase() === resourceType.toLowerCase()
 			);
 		}
 
@@ -102,8 +102,9 @@ export const load: PageServerLoad = async (event) => {
 			filteredLogs = filteredLogs.filter((log: any) => {
 				const actionMatch = log.action?.toLowerCase().includes(searchLower);
 				const resourceTypeMatch = log.resourceType?.toLowerCase().includes(searchLower);
-				const userMatch = log.user?.displayName?.toLowerCase().includes(searchLower) ||
-				                 log.user?.email?.toLowerCase().includes(searchLower);
+				const userMatch =
+					log.user?.displayName?.toLowerCase().includes(searchLower) ||
+					log.user?.email?.toLowerCase().includes(searchLower);
 				const ipMatch = log.ipAddress?.includes(searchLower);
 				return actionMatch || resourceTypeMatch || userMatch || ipMatch;
 			});
@@ -111,11 +112,14 @@ export const load: PageServerLoad = async (event) => {
 
 		// Step 6.5: Group logs by resource ID and resource type
 		// Keep only the most recent log per resource, but track total count
-		const groupedLogsMap = new Map<string, {
-			log: any;
-			totalEdits: number;
-			allLogIds: string[];
-		}>();
+		const groupedLogsMap = new Map<
+			string,
+			{
+				log: any;
+				totalEdits: number;
+				allLogIds: string[];
+			}
+		>();
 
 		for (const log of filteredLogs) {
 			// Create a composite key from resource type and resource ID
@@ -180,7 +184,9 @@ export const load: PageServerLoad = async (event) => {
 
 		// Step 8: Get unique values for filter dropdowns
 		const uniqueActions = [...new Set(logs.map((log: any) => log.action))].filter(Boolean).sort();
-		const uniqueResourceTypes = [...new Set(logs.map((log: any) => log.resourceType))].filter(Boolean).sort();
+		const uniqueResourceTypes = [...new Set(logs.map((log: any) => log.resourceType))]
+			.filter(Boolean)
+			.sort();
 
 		interface LogUser {
 			id: string;
@@ -189,11 +195,11 @@ export const load: PageServerLoad = async (event) => {
 			fullName: string;
 		}
 
-		const uniqueUsers: LogUser[] = [...new Map(
-			logs
-				.filter((log: any) => log.user)
-				.map((log: any) => [log.user.id, log.user])
-		).values()] as LogUser[];
+		const uniqueUsers: LogUser[] = [
+			...new Map(
+				logs.filter((log: any) => log.user).map((log: any) => [log.user.id, log.user])
+			).values()
+		] as LogUser[];
 
 		// Step 9: Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
@@ -234,7 +240,7 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		error(500, {
-        			message: 'Failed to load audit logs. Please try again later.'
-        		});
+			message: 'Failed to load audit logs. Please try again later.'
+		});
 	}
 };

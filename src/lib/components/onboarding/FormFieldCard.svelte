@@ -61,7 +61,10 @@
 	data-field-id={field.name}
 >
 	<!-- Drag Handle -->
-	<button type="button" class="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground">
+	<button
+		type="button"
+		class="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+	>
 		<GripVertical class="h-5 w-5" />
 	</button>
 

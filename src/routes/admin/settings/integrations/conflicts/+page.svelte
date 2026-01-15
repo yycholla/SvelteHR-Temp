@@ -10,16 +10,19 @@
 	let conflicts = $derived(data.conflicts);
 	let resolving = $state<string | null>(null);
 	let confirmDialogOpen = $state(false);
-	let pendingResolution = $state<{ conflict: any; resolution: 'KEEP_LOCAL' | 'KEEP_REMOTE' } | null>(
-		null
-	);
+	let pendingResolution = $state<{
+		conflict: any;
+		resolution: 'KEEP_LOCAL' | 'KEEP_REMOTE';
+	} | null>(null);
 
 	// Conflict permissions from server
-	const perms = $derived(data.conflictPermissions || {
-		canViewConflicts: false,
-		canResolveConflicts: false,
-		canBulkResolveConflicts: false,
-	});
+	const perms = $derived(
+		data.conflictPermissions || {
+			canViewConflicts: false,
+			canResolveConflicts: false,
+			canBulkResolveConflicts: false
+		}
+	);
 
 	function openConfirmDialog(conflict: any, resolution: 'KEEP_LOCAL' | 'KEEP_REMOTE') {
 		pendingResolution = { conflict, resolution };
@@ -60,7 +63,9 @@
 			if (result.success) {
 				// Show success toast
 				const action = resolution === 'KEEP_LOCAL' ? 'local data' : 'QuickBooks data';
-				showSuccess(`Conflict resolved: Kept ${action} for ${conflict.employeeName || conflict.entityType}`);
+				showSuccess(
+					`Conflict resolved: Kept ${action} for ${conflict.employeeName || conflict.entityType}`
+				);
 
 				// Invalidate data to trigger reactive refresh
 				await invalidate('app:conflicts');
@@ -113,7 +118,9 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-background">
 	<!-- Toolbar -->
-	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
 		<div class="flex items-center gap-3">
 			<button
 				onclick={() => goto('/admin/settings/integrations')}
@@ -132,7 +139,9 @@
 		<div class="flex-shrink-0 grid grid-cols-3 gap-3 p-3 border-b bg-muted/5">
 			<div class="flex flex-col justify-between h-32 rounded-sm border bg-background p-3">
 				<div class="flex items-center justify-between">
-					<span class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total Conflicts</span>
+					<span class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider"
+						>Total Conflicts</span
+					>
 					<AlertTriangle class="h-3.5 w-3.5 text-red-500" />
 				</div>
 				<div>
@@ -143,7 +152,9 @@
 
 			<div class="flex flex-col justify-between h-32 rounded-sm border bg-background p-3">
 				<div class="flex items-center justify-between">
-					<span class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Resolvable</span>
+					<span class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider"
+						>Resolvable</span
+					>
 					<CheckCircle2 class="h-3.5 w-3.5 text-blue-500" />
 				</div>
 				<div>
@@ -154,7 +165,9 @@
 
 			<div class="flex flex-col justify-between h-32 rounded-sm border bg-background p-3">
 				<div class="flex items-center justify-between">
-					<span class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Action Required</span>
+					<span class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider"
+						>Action Required</span
+					>
 					<AlertTriangle class="h-3.5 w-3.5 text-yellow-500" />
 				</div>
 				<div>
@@ -203,7 +216,9 @@
 						<!-- Action Buttons or Instructions -->
 						<div class="flex gap-1.5 ml-4">
 							{#if conflict.description.includes('has no email address') || conflict.description.includes('has no name')}
-								<div class="text-[10px] bg-yellow-50 border border-yellow-200 rounded px-2 py-1.5 max-w-[200px]">
+								<div
+									class="text-[10px] bg-yellow-50 border border-yellow-200 rounded px-2 py-1.5 max-w-[200px]"
+								>
 									<p class="font-semibold text-yellow-900 mb-0.5">Action Required</p>
 									<p class="text-yellow-800">
 										{#if conflict.description.includes('has no email address')}
@@ -214,7 +229,9 @@
 									</p>
 								</div>
 							{:else if conflict.description.includes('no longer exists in QuickBooks')}
-								<div class="text-[10px] bg-yellow-50 border border-yellow-200 rounded px-2 py-1.5 max-w-[200px]">
+								<div
+									class="text-[10px] bg-yellow-50 border border-yellow-200 rounded px-2 py-1.5 max-w-[200px]"
+								>
 									<p class="font-semibold text-yellow-900 mb-0.5">Action Required</p>
 									<p class="text-yellow-800">Manually unlink or deactivate</p>
 								</div>
@@ -264,20 +281,36 @@
 						<div class="grid grid-cols-3 gap-3">
 							{#if conflict.quickbooksId && conflict.quickbooksId !== 'unknown'}
 								<div>
-									<div class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">QuickBooks ID</div>
+									<div
+										class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1"
+									>
+										QuickBooks ID
+									</div>
 									<div class="text-xs font-mono">{conflict.quickbooksId}</div>
 								</div>
 							{/if}
 							<div>
-								<div class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Entity ID</div>
+								<div
+									class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1"
+								>
+									Entity ID
+								</div>
 								<div class="text-xs font-mono">{conflict.entityId}</div>
 							</div>
 							<div>
-								<div class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Detected At</div>
+								<div
+									class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1"
+								>
+									Detected At
+								</div>
 								<div class="text-xs">{formatDate(conflict.localModifiedAt)}</div>
 							</div>
 							<div>
-								<div class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Last Synced</div>
+								<div
+									class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1"
+								>
+									Last Synced
+								</div>
 								<div class="text-xs">{formatDate(conflict.lastSyncedAt)}</div>
 							</div>
 						</div>
@@ -310,8 +343,7 @@
 					<strong>{getResolutionLabel(pendingResolution.resolution)}</strong>
 					for
 					<strong>
-						{pendingResolution.conflict.employeeName ||
-							pendingResolution.conflict.entityType}
+						{pendingResolution.conflict.employeeName || pendingResolution.conflict.entityType}
 					</strong>?
 					<div class="mt-3 p-2.5 bg-yellow-50 border border-yellow-200 rounded-sm">
 						<p class="text-[10px] text-yellow-900 font-semibold mb-1">Warning</p>

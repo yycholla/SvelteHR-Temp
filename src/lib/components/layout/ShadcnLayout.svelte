@@ -215,12 +215,13 @@
 												</Sidebar.MenuSubItem>
 											{/each}
 										</Sidebar.MenuSub>
-																{:else}
-																	<Sidebar.MenuButton isActive={typedItem.active}>
-																		{#snippet child({ props })}
-																			<a
-																				{...props}
-																				href={resolve(typedItem.href as any)}													class="flex items-center gap-2"
+									{:else}
+										<Sidebar.MenuButton isActive={typedItem.active}>
+											{#snippet child({ props })}
+												<a
+													{...props}
+													href={resolve(typedItem.href as any)}
+													class="flex items-center gap-2"
 												>
 													<ItemIcon class="h-4 w-4" />
 													<span>{typedItem.label}</span>
@@ -268,7 +269,10 @@
 										{#if crumb.current}
 											<span class="font-medium text-foreground">{crumb.label}</span>
 										{:else}
-											<a href={resolve(crumb.href as any)} class="transition-colors hover:text-foreground">
+											<a
+												href={resolve(crumb.href as any)}
+												class="transition-colors hover:text-foreground"
+											>
 												{crumb.label}
 											</a>
 										{/if}

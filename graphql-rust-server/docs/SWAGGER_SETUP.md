@@ -16,11 +16,13 @@ The GraphQL Rust server now has **Swagger UI** for documenting REST API endpoint
 ## Accessing Swagger UI
 
 Once the server is running, visit:
+
 ```
 http://localhost:4000/swagger-ui
 ```
 
 The OpenAPI JSON spec is available at:
+
 ```
 http://localhost:4000/api-docs/openapi.json
 ```
@@ -30,6 +32,7 @@ http://localhost:4000/api-docs/openapi.json
 The following REST endpoints are documented:
 
 ### Authentication (`/auth/`)
+
 - `POST /auth/login` - User login with email/password
 - `POST /auth/logout` - User logout
 - `GET /auth/me` - Get current user info
@@ -37,12 +40,15 @@ The following REST endpoints are documented:
 - `GET /auth/sessions` - List active sessions
 
 ### Events (`/api/events/`)
+
 - `DELETE /api/events/{id}` - Delete an event
 
 ### Roles (`/api/roles/`)
+
 - `GET /api/roles` - Get all roles
 
 ### Users (`/api/users/`)
+
 - `GET /api/users` - Get users with pagination (RLS enforced)
 
 ## Implementation Details
@@ -64,6 +70,7 @@ src/
 To document a new REST endpoint:
 
 1. **Annotate the handler function:**
+
 ```rust
 #[utoipa::path(
     get,
@@ -83,6 +90,7 @@ pub async fn my_handler(...) -> Result<...> {
 ```
 
 2. **Add ToSchema to request/response types:**
+
 ```rust
 #[derive(Serialize, Deserialize, utoipa::ToSchema)]
 pub struct MyResponse {
@@ -92,6 +100,7 @@ pub struct MyResponse {
 ```
 
 3. **Register in `src/openapi.rs`:**
+
 ```rust
 paths(
     // ... existing paths
@@ -108,6 +117,7 @@ components(
 ### Security Considerations
 
 **Sensitive fields are excluded from documentation:**
+
 - `password_hash` - Never exposed in API docs
 - `annual_salary`, `hourly_rate`, `commission_rate` - Represented as strings in schema but are sensitive fields
 
@@ -139,15 +149,18 @@ GraphQL has built-in introspection, so it doesn't need OpenAPI documentation. Ke
 ## Troubleshooting
 
 ### Types not compiling
+
 - Ensure the type has `#[derive(utoipa::ToSchema)]`
 - For external types (Uuid, DateTime), ensure the feature is enabled in Cargo.toml
 - For types that don't support ToSchema, use `#[schema(value_type = SomeOtherType)]`
 
 ### Endpoint not showing up
+
 - Check that the handler is registered in `src/openapi.rs` under `paths()`
 - Verify the handler has the `#[utoipa::path(...)]` annotation
 - Restart the server after making changes
 
 ### Example values not showing
+
 - Add `#[schema(example = "value")]` to struct fields
 - For complex types, use `example = json!({...})`

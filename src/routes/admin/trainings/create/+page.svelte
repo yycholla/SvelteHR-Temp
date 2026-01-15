@@ -242,9 +242,7 @@
 		</div>
 
 		<div class="mt-8 flex justify-end gap-2">
-			<Button variant="ghost" href="/admin/trainings" disabled={submitting}>
-				Cancel
-			</Button>
+			<Button variant="ghost" href="/admin/trainings" disabled={submitting}>Cancel</Button>
 			<Button type="submit" disabled={submitting}>
 				{#if submitting}
 					<Loader2 class="mr-2 h-4 w-4 animate-spin" />

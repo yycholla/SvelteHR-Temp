@@ -109,14 +109,18 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-background">
 	<!-- Toolbar -->
-	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
 		<div class="flex items-center gap-4 flex-1">
 			<h1 class="text-sm font-semibold tracking-tight">Audit Logs</h1>
 			<div class="h-4 w-px bg-border"></div>
-			
+
 			<!-- Search -->
 			<div class="relative w-64">
-				<Search class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+				<Search
+					class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+				/>
 				<input
 					type="text"
 					bind:value={searchQuery}
@@ -185,7 +189,9 @@
 	<!-- Error message -->
 	{#if data.error}
 		<div class="flex-shrink-0 p-4 pb-0">
-			<div class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20">
+			<div
+				class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20"
+			>
 				{data.error}
 			</div>
 		</div>
@@ -196,12 +202,30 @@
 		<table class="w-full text-sm text-left border-collapse">
 			<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
 				<tr>
-					<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-40">Timestamp</th>
-					<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-48">User</th>
-					<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32">Action</th>
-					<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-48">Resource</th>
-					<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0">Changes</th>
-					<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground text-right w-32">IP Address</th>
+					<th
+						class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-40"
+						>Timestamp</th
+					>
+					<th
+						class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-48"
+						>User</th
+					>
+					<th
+						class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32"
+						>Action</th
+					>
+					<th
+						class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-48"
+						>Resource</th
+					>
+					<th
+						class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+						>Changes</th
+					>
+					<th
+						class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground text-right w-32"
+						>IP Address</th
+					>
 				</tr>
 			</thead>
 			<tbody class="divide-y">
@@ -210,18 +234,26 @@
 						class="hover:bg-muted/30 cursor-pointer transition-colors group"
 						onclick={() => goto(`/admin/audit/${log.id}`)}
 					>
-						<td class="px-3 py-1.5 border-r last:border-r-0 text-xs text-muted-foreground whitespace-nowrap">
+						<td
+							class="px-3 py-1.5 border-r last:border-r-0 text-xs text-muted-foreground whitespace-nowrap"
+						>
 							{new Date(log.createdAt).toLocaleString()}
 						</td>
 						<td class="px-3 py-1.5 border-r last:border-r-0">
 							<div class="truncate max-w-[180px]">
-								<span class="font-medium text-xs block">{log.userByUserId?.displayName || 'Unknown'}</span>
-								<span class="text-[10px] text-muted-foreground block truncate">{log.userByUserId?.email || '—'}</span>
+								<span class="font-medium text-xs block"
+									>{log.userByUserId?.displayName || 'Unknown'}</span
+								>
+								<span class="text-[10px] text-muted-foreground block truncate"
+									>{log.userByUserId?.email || '—'}</span
+								>
 							</div>
 						</td>
 						<td class="px-3 py-1.5 border-r last:border-r-0">
 							<span
-								class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getActionBadgeColor(log.action)}"
+								class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium {getActionBadgeColor(
+									log.action
+								)}"
 							>
 								{log.action}
 							</span>
@@ -229,10 +261,15 @@
 						<td class="px-3 py-1.5 border-r last:border-r-0">
 							<div class="truncate max-w-[180px]">
 								<span class="font-medium text-xs block">{log.resourceType}</span>
-								<span class="text-[10px] text-muted-foreground block font-mono">{log.resourceId}</span>
+								<span class="text-[10px] text-muted-foreground block font-mono"
+									>{log.resourceId}</span
+								>
 							</div>
 						</td>
-						<td class="px-3 py-1.5 border-r last:border-r-0 text-xs truncate max-w-xs" title={formatChanges(log.changes)}>
+						<td
+							class="px-3 py-1.5 border-r last:border-r-0 text-xs truncate max-w-xs"
+							title={formatChanges(log.changes)}
+						>
 							{formatChanges(log.changes)}
 						</td>
 						<td class="px-3 py-1.5 text-xs font-mono text-right text-muted-foreground">
@@ -252,7 +289,9 @@
 
 	<!-- Pagination -->
 	{#if data.pagination.totalPages > 1}
-		<footer class="flex-shrink-0 border-t bg-muted/20 px-3 py-1.5 flex items-center justify-between text-xs">
+		<footer
+			class="flex-shrink-0 border-t bg-muted/20 px-3 py-1.5 flex items-center justify-between text-xs"
+		>
 			<div class="text-muted-foreground">
 				Page {data.pagination.page} of {data.pagination.totalPages} ({data.totalCount} logs)
 			</div>

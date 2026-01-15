@@ -6,10 +6,7 @@ import {
 	handleEmployeeTermination,
 	handleDepartmentDissolution
 } from './handlers';
-import {
-	getTasksAssignedToUser,
-	flagTaskForManualReassignment
-} from './data-access';
+import { getTasksAssignedToUser, flagTaskForManualReassignment } from './data-access';
 
 /**
  * Process organizational change event

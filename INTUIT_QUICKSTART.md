@@ -47,6 +47,7 @@
 ### Step 1: Wait for Container Rebuild
 
 Your dev container is rebuilding with:
+
 - New Rust dependencies installed
 - Database migrations running
 - Fresh compilation of all code
@@ -56,6 +57,7 @@ Your dev container is rebuilding with:
 Once the container is ready:
 
 1. **Navigate to Integrations Page**:
+
    ```
    http://localhost:3000/admin/settings/integrations
    ```
@@ -106,6 +108,7 @@ println!("Access Token: {}", tokens.access_token);
 - `POST /api/intuit/sync` - Manual sync trigger
 
 GraphQL:
+
 - `mutation { intuit { connect(code: String, realmId: String) } }`
 - `mutation { intuit { syncUser(userId: UUID) } }`
 - `query { intuit { connection { isActive } } }`
@@ -113,11 +116,13 @@ GraphQL:
 ## 🐛 Debugging
 
 Check container logs:
+
 ```bash
 docker-compose logs -f backend
 ```
 
 Verify migration ran:
+
 ```bash
 # In container
 psql $DATABASE_URL -c "SELECT table_name FROM information_schema.tables WHERE table_name LIKE 'intuit%';"
@@ -130,6 +135,7 @@ See `INTUIT_INTEGRATION_GUIDE.md` for complete implementation details.
 ## Next: Build the UI
 
 Would you like me to:
+
 1. Create the frontend OAuth connection page?
 2. Build the GraphQL mutations?
 3. Implement employee sync logic?

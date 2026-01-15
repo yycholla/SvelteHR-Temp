@@ -172,12 +172,8 @@ export function calculateReportAnalytics(reports: HRReport[]): ReportAnalyticsRe
 	const totalReports = reports.length;
 
 	const activeReports = reports.filter((r) => normalizeStatus(r.status) === 'active').length;
-	const scheduledReports = reports.filter(
-		(r) => normalizeStatus(r.status) === 'scheduled'
-	).length;
-	const completedReports = reports.filter(
-		(r) => normalizeStatus(r.status) === 'completed'
-	).length;
+	const scheduledReports = reports.filter((r) => normalizeStatus(r.status) === 'scheduled').length;
+	const completedReports = reports.filter((r) => normalizeStatus(r.status) === 'completed').length;
 
 	// Count by report type
 	const byType: Record<string, number> = {};

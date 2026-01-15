@@ -300,10 +300,7 @@
 	</div>
 
 	<!-- Warning: Task is blocked -->
-	{#if blockedByDependencies.some(
-			(dep: import('$lib/types/domain-extensions').TaskDependencyNode) =>
-				dep.taskByBlockingTaskId?.status !== 'DONE'
-		)}
+	{#if blockedByDependencies.some((dep: import('$lib/types/domain-extensions').TaskDependencyNode) => dep.taskByBlockingTaskId?.status !== 'DONE')}
 		<div class="rounded-lg border border-warning bg-warning/10 p-4">
 			<div class="flex items-start gap-3">
 				<AlertTriangle class="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />

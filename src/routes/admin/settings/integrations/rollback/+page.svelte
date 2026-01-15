@@ -45,9 +45,7 @@
 		{ value: 'failed', label: 'Failed' }
 	];
 
-	function getStatusVariant(
-		status: string
-	): 'default' | 'outline' | 'secondary' | 'destructive' {
+	function getStatusVariant(status: string): 'default' | 'outline' | 'secondary' | 'destructive' {
 		switch (status?.toLowerCase()) {
 			case 'completed':
 				return 'default';
@@ -226,13 +224,17 @@
 					{#if selectedRequest.approvedBy}
 						<div>
 							<p class="text-sm text-muted-foreground">Approved By</p>
-							<p class="font-medium">{selectedRequest.approvedByEmail || selectedRequest.approvedBy}</p>
+							<p class="font-medium">
+								{selectedRequest.approvedByEmail || selectedRequest.approvedBy}
+							</p>
 						</div>
 					{/if}
 					{#if selectedRequest.rejectedBy}
 						<div>
 							<p class="text-sm text-muted-foreground">Rejected By</p>
-							<p class="font-medium">{selectedRequest.rejectedByEmail || selectedRequest.rejectedBy}</p>
+							<p class="font-medium">
+								{selectedRequest.rejectedByEmail || selectedRequest.rejectedBy}
+							</p>
 						</div>
 					{/if}
 					{#if selectedRequest.executedAt}
@@ -296,8 +298,7 @@
 				{#if selectedRequest.rollbackPlan}
 					<div>
 						<h3 class="text-lg font-semibold mb-3">Rollback Plan</h3>
-						<pre
-							class="bg-muted p-4 rounded-lg overflow-auto text-xs">{JSON.stringify(
+						<pre class="bg-muted p-4 rounded-lg overflow-auto text-xs">{JSON.stringify(
 								selectedRequest.rollbackPlan,
 								null,
 								2
@@ -308,8 +309,7 @@
 				{#if selectedRequest.rollbackSnapshot}
 					<div>
 						<h3 class="text-lg font-semibold mb-3">Rollback Snapshot</h3>
-						<pre
-							class="bg-muted p-4 rounded-lg overflow-auto text-xs">{JSON.stringify(
+						<pre class="bg-muted p-4 rounded-lg overflow-auto text-xs">{JSON.stringify(
 								selectedRequest.rollbackSnapshot,
 								null,
 								2

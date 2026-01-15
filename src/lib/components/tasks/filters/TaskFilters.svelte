@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { TaskPriority, TaskStatus } from '$lib/types/task';
 	import type { TaskFilterState } from './types';
-	
+
 	// Import sub-components
 	import FilterHeader from './FilterHeader.svelte';
 	import SearchFilter from './SearchFilter.svelte';
@@ -163,10 +163,7 @@
 	{#if isExpanded}
 		<div class="space-y-4">
 			<!-- Search - Full Width -->
-			<SearchFilter
-				search={filters.search}
-				onSearchChange={updateSearch}
-			/>
+			<SearchFilter search={filters.search} onSearchChange={updateSearch} />
 
 			<!-- Status and Priority in Grid -->
 			<StatusPriorityFilter

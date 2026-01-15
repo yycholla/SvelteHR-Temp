@@ -1,12 +1,28 @@
 <script lang="ts" generics="T">
-	import { Check, X, Save, ArrowUp, ArrowDown, ArrowUpDown, X as XIcon, Filter } from '@lucide/svelte';
+	import {
+		Check,
+		X,
+		Save,
+		ArrowUp,
+		ArrowDown,
+		ArrowUpDown,
+		X as XIcon,
+		Filter
+	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import ColumnVisibilityControl from './ColumnVisibilityControl.svelte';
 	import BulkActionsToolbar from './BulkActionsToolbar.svelte';
 	import ExportDropdown from './ExportDropdown.svelte';
-	import type { SpreadsheetConfig, ColumnVisibility, RowEdit, ColumnSort, ColumnFilters, SortDirection } from './types';
+	import type {
+		SpreadsheetConfig,
+		ColumnVisibility,
+		RowEdit,
+		ColumnSort,
+		ColumnFilters,
+		SortDirection
+	} from './types';
 	import type { Snippet } from 'svelte';
 
 	interface Props {
@@ -20,20 +36,17 @@
 		class?: string;
 
 		/** Custom cell renderer snippet */
-		customCell?: Snippet<[{ column: typeof config.columns[0]; row: T; value: unknown }]>;
+		customCell?: Snippet<[{ column: (typeof config.columns)[0]; row: T; value: unknown }]>;
 	}
 
 	const { config, data, class: className, customCell }: Props = $props();
 
 	// Column visibility state
 	let columnVisibility = $state<ColumnVisibility>(
-		config.columns.reduce(
-			(acc, col) => {
-				acc[col.id] = col.visible !== false;
-				return acc;
-			},
-			{} as ColumnVisibility
-		)
+		config.columns.reduce((acc, col) => {
+			acc[col.id] = col.visible !== false;
+			return acc;
+		}, {} as ColumnVisibility)
 	);
 
 	// Sorting state
@@ -83,7 +96,7 @@
 
 		// Apply sorting
 		if (config.enableSorting && currentSort && currentSort.direction) {
-			const sortColumn = currentSort;  // Store in const to satisfy TypeScript
+			const sortColumn = currentSort; // Store in const to satisfy TypeScript
 			const column = config.columns.find((col) => col.id === sortColumn.columnId);
 			if (column) {
 				result.sort((a, b) => {
@@ -116,17 +129,17 @@
 
 	// Get selected row data
 	const selectedRowData = $derived(
-		processedData.filter(row => selectedRows.has(config.getRowId(row)))
+		processedData.filter((row) => selectedRows.has(config.getRowId(row)))
 	);
 
 	// Check if all visible rows are selected
 	const allSelected = $derived(
-		processedData.length > 0 && processedData.every(row => selectedRows.has(config.getRowId(row)))
+		processedData.length > 0 && processedData.every((row) => selectedRows.has(config.getRowId(row)))
 	);
 
 	// Check if some (but not all) rows are selected
 	const someSelected = $derived(
-		processedData.some(row => selectedRows.has(config.getRowId(row))) && !allSelected
+		processedData.some((row) => selectedRows.has(config.getRowId(row))) && !allSelected
 	);
 
 	// Check if a cell is being edited
@@ -220,7 +233,7 @@
 	}
 
 	// Render cell value
-	function renderCell(column: typeof config.columns[0], row: T): string {
+	function renderCell(column: (typeof config.columns)[0], row: T): string {
 		const value = column.getValue(row);
 		if (column.render) {
 			return column.render(value, row);
@@ -289,7 +302,8 @@
 	}
 
 	function getActiveFilterCount(): number {
-		return Object.values(columnFilters).filter(v => v !== null && v !== '' && v !== undefined).length;
+		return Object.values(columnFilters).filter((v) => v !== null && v !== '' && v !== undefined)
+			.length;
 	}
 
 	// Selection handlers
@@ -322,7 +336,7 @@
 			selectedRows = new Set();
 		} else {
 			// Select all visible rows
-			selectedRows = new Set(processedData.map(row => config.getRowId(row)));
+			selectedRows = new Set(processedData.map((row) => config.getRowId(row)));
 		}
 
 		// Notify callback
@@ -374,12 +388,7 @@
 					/>
 				{/if}
 				{#if config.enableFiltering && getActiveFilterCount() > 0}
-					<Button
-						onclick={clearAllFilters}
-						variant="outline"
-						size="sm"
-						class="gap-1.5 h-7 text-xs"
-					>
+					<Button onclick={clearAllFilters} variant="outline" size="sm" class="gap-1.5 h-7 text-xs">
 						<XIcon class="h-3.5 w-3.5" />
 						Clear Filters ({getActiveFilterCount()})
 					</Button>
@@ -428,7 +437,8 @@
 						{@const sortState = getSortState(column.id)}
 						{@const hasFilter = hasActiveFilter(column.id)}
 						<th
-							class="px-3 py-2 border-r last:border-r-0 {column.width || ''} {column.headerClass || ''}"
+							class="px-3 py-2 border-r last:border-r-0 {column.width || ''} {column.headerClass ||
+								''}"
 							class:text-right={column.align === 'right'}
 							class:text-center={column.align === 'center'}
 						>
@@ -478,7 +488,9 @@
 													{#if column.filterConfig?.type === 'select' && column.filterConfig.options}
 														<div class="space-y-1">
 															{#each column.filterConfig.options as option}
-																<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded cursor-pointer">
+																<label
+																	class="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded cursor-pointer"
+																>
 																	<input
 																		type="radio"
 																		name="filter-{column.id}"
@@ -490,7 +502,9 @@
 																	<span class="text-sm">{option.label}</span>
 																</label>
 															{/each}
-															<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded cursor-pointer">
+															<label
+																class="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded cursor-pointer"
+															>
 																<input
 																	type="radio"
 																	name="filter-{column.id}"
@@ -504,9 +518,11 @@
 													{:else}
 														<input
 															type="text"
-															placeholder={column.filterConfig?.placeholder || `Filter by ${column.label}...`}
+															placeholder={column.filterConfig?.placeholder ||
+																`Filter by ${column.label}...`}
 															value={columnFilters[column.id] || ''}
-															oninput={(e) => updateFilter(column.id, (e.target as HTMLInputElement).value)}
+															oninput={(e) =>
+																updateFilter(column.id, (e.target as HTMLInputElement).value)}
 															class="w-full h-8 rounded border border-input bg-background px-3 text-sm focus:border-primary focus:outline-none transition-colors"
 														/>
 													{/if}
@@ -543,7 +559,9 @@
 							{@const hasEdit = column.field && pendingEdits.has(`${rowId}-${column.field}`)}
 
 							<td
-								class="px-3 py-1.5 border-r last:border-r-0 {column.cellClass || ''} {hasEdit ? 'bg-yellow-50 dark:bg-yellow-900/10' : ''}"
+								class="px-3 py-1.5 border-r last:border-r-0 {column.cellClass || ''} {hasEdit
+									? 'bg-yellow-50 dark:bg-yellow-900/10'
+									: ''}"
 								class:truncate={column.truncate}
 								class:align-top={!editing}
 								class:text-right={column.align === 'right'}
@@ -604,7 +622,9 @@
 											class="cursor-pointer"
 											class:hover:bg-muted={column.editable && config.editMode === 'inline'}
 											ondblclick={() =>
-												config.editMode === 'inline' && column.editable && startEdit(row, column.id)}
+												config.editMode === 'inline' &&
+												column.editable &&
+												startEdit(row, column.id)}
 											role="button"
 											tabindex={column.editable && config.editMode === 'inline' ? 0 : -1}
 										>
@@ -623,9 +643,15 @@
 					</tr>
 				{:else}
 					<tr>
-						<td colspan={visibleColumns.length + (config.enableRowSelection ? 1 : 0)} class="px-4 py-12 text-center text-muted-foreground text-xs">
+						<td
+							colspan={visibleColumns.length + (config.enableRowSelection ? 1 : 0)}
+							class="px-4 py-12 text-center text-muted-foreground text-xs"
+						>
 							{#if Object.keys(columnFilters).length > 0}
-								No results match your filters. <button onclick={clearAllFilters} class="underline hover:text-foreground">Clear filters</button>
+								No results match your filters. <button
+									onclick={clearAllFilters}
+									class="underline hover:text-foreground">Clear filters</button
+								>
 							{:else}
 								{config.emptyMessage || 'No data available'}
 							{/if}

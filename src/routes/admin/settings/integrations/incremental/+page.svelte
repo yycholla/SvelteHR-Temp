@@ -120,7 +120,9 @@
 			if (result.error) {
 				error = result.error.message;
 			} else {
-				success = result.data?.incremental_sync?.clear_sync_tokens?.message || 'Sync tokens cleared successfully';
+				success =
+					result.data?.incremental_sync?.clear_sync_tokens?.message ||
+					'Sync tokens cleared successfully';
 				clearTokensDialogOpen = false;
 				await invalidate('app:incremental-sync');
 			}
@@ -149,7 +151,9 @@
 			if (result.error) {
 				error = result.error.message;
 			} else {
-				success = result.data?.incremental_sync?.force_full_sync_once?.message || 'Full sync queued successfully';
+				success =
+					result.data?.incremental_sync?.force_full_sync_once?.message ||
+					'Full sync queued successfully';
 				forceFullSyncDialogOpen = false;
 				await invalidate('app:incremental-sync');
 			}
@@ -177,7 +181,9 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-background">
 	<!-- Toolbar -->
-	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
 		<div class="flex items-center gap-4">
 			<h1 class="text-sm font-semibold tracking-tight">Incremental Sync Configuration</h1>
 			<div class="h-4 w-px bg-border"></div>
@@ -237,7 +243,9 @@
 				<!-- Sync Status -->
 				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 					<div class="flex items-center justify-between">
-						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sync Mode</span>
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+							>Sync Mode</span
+						>
 						<Zap class="h-4 w-4 text-muted-foreground" />
 					</div>
 					<div>
@@ -264,32 +272,35 @@
 				<!-- Last Full Sync -->
 				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 					<div class="flex items-center justify-between">
-						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Last Full Sync</span>
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+							>Last Full Sync</span
+						>
 						<Clock class="h-4 w-4 text-muted-foreground" />
 					</div>
 					<div>
-						<div class="text-lg font-bold tracking-tight truncate" title={formatDate(settings.lastFullSyncAt)}>
+						<div
+							class="text-lg font-bold tracking-tight truncate"
+							title={formatDate(settings.lastFullSyncAt)}
+						>
 							{formatDate(settings.lastFullSyncAt)}
 						</div>
-						<div class="mt-1 text-xs text-muted-foreground">
-							Baseline for incremental
-						</div>
+						<div class="mt-1 text-xs text-muted-foreground">Baseline for incremental</div>
 					</div>
 				</div>
 
 				<!-- Active Tokens -->
 				<div class="p-6 bg-background flex flex-col justify-between h-32">
 					<div class="flex items-center justify-between">
-						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Active Tokens</span>
+						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+							>Active Tokens</span
+						>
 						<Database class="h-4 w-4 text-muted-foreground" />
 					</div>
 					<div>
 						<div class="text-3xl font-bold tracking-tight">
 							{[settings.employeeSyncToken, settings.departmentSyncToken].filter(Boolean).length}
 						</div>
-						<div class="mt-1 text-xs text-muted-foreground">
-							of 2 entity types tracked
-						</div>
+						<div class="mt-1 text-xs text-muted-foreground">of 2 entity types tracked</div>
 					</div>
 				</div>
 			</div>
@@ -303,7 +314,9 @@
 					</h3>
 					<div class="border rounded-lg overflow-hidden">
 						<table class="w-full text-sm text-left">
-							<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm text-xs uppercase text-muted-foreground">
+							<thead
+								class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm text-xs uppercase text-muted-foreground"
+							>
 								<tr>
 									<th class="px-4 py-3 font-medium">Entity Type</th>
 									<th class="px-4 py-3 font-medium">Sync Token</th>
@@ -369,7 +382,8 @@
 							<h4 class="font-semibold">Force Full Sync (One-Time)</h4>
 						</div>
 						<p class="text-sm text-muted-foreground mb-4">
-							Queue a one-time full sync without disabling incremental mode. Useful for verifying data integrity.
+							Queue a one-time full sync without disabling incremental mode. Useful for verifying
+							data integrity.
 						</p>
 						<Button onclick={openForceFullSyncDialog} variant="outline" class="w-full">
 							<RefreshCw class="h-4 w-4 mr-2" />
@@ -384,7 +398,8 @@
 							<h4 class="font-semibold">Clear Sync Tokens</h4>
 						</div>
 						<p class="text-sm text-muted-foreground mb-4">
-							Clear sync tokens to force a full sync on the next scheduled sync operation. This resets incremental tracking.
+							Clear sync tokens to force a full sync on the next scheduled sync operation. This
+							resets incremental tracking.
 						</p>
 						<Button onclick={openClearTokensDialog} variant="outline" class="w-full">
 							<Trash2 class="h-4 w-4 mr-2" />
@@ -438,13 +453,19 @@
 			<Alert>
 				<AlertCircle class="h-4 w-4" />
 				<AlertDescription>
-					Clearing tokens will cause the next sync to process all entities, which may take longer and use more API calls.
+					Clearing tokens will cause the next sync to process all entities, which may take longer
+					and use more API calls.
 				</AlertDescription>
 			</Alert>
 		</div>
 
 		<DialogFooter>
-			<Button variant="outline" onclick={() => { clearTokensDialogOpen = false; }}>
+			<Button
+				variant="outline"
+				onclick={() => {
+					clearTokensDialogOpen = false;
+				}}
+			>
 				Cancel
 			</Button>
 			<Button variant="destructive" onclick={clearTokens} disabled={clearing}>
@@ -488,13 +509,19 @@
 			<Alert>
 				<Info class="h-4 w-4" />
 				<AlertDescription>
-					This will queue a full sync job for immediate execution. Incremental sync will automatically resume after completion.
+					This will queue a full sync job for immediate execution. Incremental sync will
+					automatically resume after completion.
 				</AlertDescription>
 			</Alert>
 		</div>
 
 		<DialogFooter>
-			<Button variant="outline" onclick={() => { forceFullSyncDialogOpen = false; }}>
+			<Button
+				variant="outline"
+				onclick={() => {
+					forceFullSyncDialogOpen = false;
+				}}
+			>
 				Cancel
 			</Button>
 			<Button onclick={forceFullSync} disabled={forcing}>

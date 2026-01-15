@@ -5,7 +5,7 @@ import type { PageServerLoad } from './$types';
 const SYNC_PERMISSIONS = {
 	VIEW_CONFLICTS: 'sync:view_conflicts',
 	RESOLVE_CONFLICTS: 'sync:resolve_conflicts',
-	BULK_RESOLVE_CONFLICTS: 'sync:bulk_resolve_conflicts',
+	BULK_RESOLVE_CONFLICTS: 'sync:bulk_resolve_conflicts'
 } as const;
 
 /**
@@ -44,7 +44,7 @@ function hasSyncPermission(
 	if (userRoles.includes('Manager')) {
 		const managerPermissions = [
 			SYNC_PERMISSIONS.VIEW_CONFLICTS,
-			SYNC_PERMISSIONS.RESOLVE_CONFLICTS,
+			SYNC_PERMISSIONS.RESOLVE_CONFLICTS
 		];
 		if (managerPermissions.includes(permission as (typeof managerPermissions)[number])) {
 			return true;
@@ -83,9 +83,21 @@ export const load: PageServerLoad = async ({ fetch, cookies, depends, parent }) 
 
 	// Compute conflict-related permissions
 	const conflictPermissions = {
-		canViewConflicts: hasSyncPermission(userPermissions, userRoles, SYNC_PERMISSIONS.VIEW_CONFLICTS),
-		canResolveConflicts: hasSyncPermission(userPermissions, userRoles, SYNC_PERMISSIONS.RESOLVE_CONFLICTS),
-		canBulkResolveConflicts: hasSyncPermission(userPermissions, userRoles, SYNC_PERMISSIONS.BULK_RESOLVE_CONFLICTS),
+		canViewConflicts: hasSyncPermission(
+			userPermissions,
+			userRoles,
+			SYNC_PERMISSIONS.VIEW_CONFLICTS
+		),
+		canResolveConflicts: hasSyncPermission(
+			userPermissions,
+			userRoles,
+			SYNC_PERMISSIONS.RESOLVE_CONFLICTS
+		),
+		canBulkResolveConflicts: hasSyncPermission(
+			userPermissions,
+			userRoles,
+			SYNC_PERMISSIONS.BULK_RESOLVE_CONFLICTS
+		)
 	};
 
 	const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
@@ -96,12 +108,12 @@ export const load: PageServerLoad = async ({ fetch, cookies, depends, parent }) 
 		console.error('GraphQL error:', result.error);
 		return {
 			conflicts: [],
-			conflictPermissions,
+			conflictPermissions
 		};
 	}
 
 	return {
 		conflicts: result.data?.intuit?.conflicts ?? [],
-		conflictPermissions,
+		conflictPermissions
 	};
 };

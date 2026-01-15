@@ -116,3 +116,7 @@ graphql-rust-server/target
 recover-files.sh
 !src/routes/dashboard/activities/logs/
 !src/routes/dashboard/activities/logs/**
+eslint_output.json
+
+# Husky config (ignore runtime, track hooks)
+.husky/_

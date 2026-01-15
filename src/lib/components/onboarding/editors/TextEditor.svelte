@@ -20,8 +20,6 @@
 			placeholder="Enter the instructional text or content here..."
 			class="min-h-[400px] font-mono text-sm resize-none p-6 shadow-sm"
 		/>
-		<p class="text-xs text-muted-foreground">
-			Markdown is supported for formatting.
-		</p>
+		<p class="text-xs text-muted-foreground">Markdown is supported for formatting.</p>
 	</div>
 </div>

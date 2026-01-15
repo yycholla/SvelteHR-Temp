@@ -15,9 +15,7 @@ export type {
 } from './progress/types';
 
 // Export calculators
-export {
-	calculateSubtaskProgress
-} from './progress/calculators';
+export { calculateSubtaskProgress } from './progress/calculators';
 
 // Export fetchers
 export {
@@ -29,8 +27,4 @@ export {
 } from './progress/fetchers';
 
 // Export formatters
-export {
-	formatProgressPercentage,
-	getProgressColor,
-	isTaskOnTrack
-} from './progress/formatters';
+export { formatProgressPercentage, getProgressColor, isTaskOnTrack } from './progress/formatters';

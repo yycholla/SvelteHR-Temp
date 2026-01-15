@@ -75,9 +75,7 @@
 							style={header.column.columnDef.size
 								? `width: ${header.column.columnDef.size}px; min-width: ${header.column.columnDef.size}px;`
 								: ''}
-							onclick={header.column.getCanSort()
-								? () => header.column.toggleSorting()
-								: undefined}
+							onclick={header.column.getCanSort() ? () => header.column.toggleSorting() : undefined}
 						>
 							{#if !header.isPlaceholder}
 								<div class="flex items-center gap-2">

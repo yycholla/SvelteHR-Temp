@@ -1,15 +1,18 @@
 # Feature 16: Data Validation Rules
 
 ## Overview
+
 Comprehensive data validation system that checks data quality before syncing, preventing invalid, incomplete, or malformed data from entering either system.
 
 ## Current System Integration
+
 - Basic email/name validation exists
 - Enforced via database constraints
 - No configurable rules engine
 - Validation happens at sync time (too late)
 
 ## Key Components
+
 - Pre-sync validation checks
 - Configurable validation rules
 - Custom business rules
@@ -19,7 +22,9 @@ Comprehensive data validation system that checks data quality before syncing, pr
 - Validation rule templates
 
 ## Technical Requirements
+
 ### Validation Rules Engine
+
 ```rust
 pub struct ValidationRule {
     pub id: Uuid,
@@ -57,6 +62,7 @@ pub struct ValidationResult {
 ```
 
 ### Database Schema
+
 ```sql
 CREATE TABLE hr_public.validation_rules (
     id UUID PRIMARY KEY,
@@ -88,6 +94,7 @@ CREATE TABLE hr_public.validation_failures (
 ```
 
 ### Built-in Validation Rules
+
 1. **Email Format**: Valid email address
 2. **Phone Format**: Valid phone number
 3. **Required Fields**: Non-empty, non-null
@@ -100,6 +107,7 @@ CREATE TABLE hr_public.validation_failures (
 10. **Address Completeness**: Street, city, state, zip
 
 ## Dependencies
+
 - Regex validation library
 - Phone number validation (libphonenumber)
 - Email validation
@@ -107,27 +115,33 @@ CREATE TABLE hr_public.validation_failures (
 - Auto-fix algorithms
 
 ## Implementation Phases
+
 ### Phase 1: Core Validation
+
 - Built-in rules for critical fields
 - Validation on sync
 - Block invalid data
 
 ### Phase 2: Configurable Rules
+
 - UI for rule management
 - Custom rule builder
 - Severity levels
 
 ### Phase 3: Auto-Fix
+
 - Safe auto-corrections
 - Suggestions for manual fix
 - Validation dashboard
 
 ### Phase 4: Advanced
+
 - ML-powered data quality scoring
 - Predictive validation
 - Data enrichment
 
 ## Research Notes
+
 - [ ] Common data quality issues in HR systems
 - [ ] Industry-standard validation rules
 - [ ] Balance between strict and flexible
@@ -135,6 +149,7 @@ CREATE TABLE hr_public.validation_failures (
 - [ ] Auto-fix safety boundaries
 
 ## Auto-Fix Strategies
+
 - Trim whitespace
 - Proper case names (John Smith)
 - Format phone numbers (555-123-4567)
@@ -143,10 +158,12 @@ CREATE TABLE hr_public.validation_failures (
 - Merge duplicates
 
 ## Success Metrics
+
 - Data quality score > 95%
 - Sync failures due to validation < 1%
 - Auto-fix success rate > 90%
 - User satisfaction with validation
 
 ## Notes
+
 _Research findings and implementation decisions_

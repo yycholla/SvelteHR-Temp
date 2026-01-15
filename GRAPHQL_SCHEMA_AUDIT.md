@@ -17,12 +17,14 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - **3 Modules Already Compliant:** Employees, Events, Tasks, Leave Management
 
 **Key Statistics:**
+
 - **Total Queries Updated:** ~35 queries across 7 modules
 - **Total Mutations Updated:** ~25 mutations across 7 modules
 - **Client-Side Helpers Added:** ~90 helper functions
 - **Lines of Code Modified:** ~3,500+ lines
 
 **Major Changes:**
+
 - Removed all PostGraphile patterns (Relay connections, `allX` queries, `nodeId` fields)
 - Simplified all queries to use direct array returns with `limit`/`offset` pagination
 - Moved complex filtering/sorting/statistics to client-side processing
@@ -42,11 +44,13 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 ### ✅ Activity Logs (`src/lib/graphql/activity-logs/`)
 
 **Files Updated:**
+
 - `queries.ts` - All 5 queries updated
 - `operations.ts` - All 5 methods updated
 - `src/routes/admin/settings/integrations/audit/+page.server.ts` - Updated to use new queries
 
 **Changes:**
+
 - `allActivityLogs` → `activityLogs`
 - Removed `ActivityLogCondition` and `ActivityLogsOrderBy` types
 - Changed from Relay connections (`nodes`, `pageInfo`) to simple arrays
@@ -55,6 +59,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - Updated `activityLog` (singular) for single record queries
 
 **Queries Updated:**
+
 1. `GET_USER_ACTIVITIES` - ✅ Simple query
 2. `GET_AUDIT_LOGS` - ✅ Uses activityLogs + activityLogsCount
 3. `GET_RESOURCE_ACTIVITY_HISTORY` - ✅ Client-side filtering
@@ -64,10 +69,12 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 ### ✅ Tasks (`src/lib/graphql/tasks/`)
 
 **Files Updated:**
+
 - `tasks-query-optimizer.ts` - All queries and fragments updated
 - `operations.ts` - Already using Rust backend patterns (no changes needed)
 
 **Changes:**
+
 - `allTasks` → `tasks`
 - Removed `TasksOrderBy` and `TaskCondition` types
 - Removed `nodeId` field from fragments
@@ -78,6 +85,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - Preserved fragment optimization strategy while adapting to Rust backend
 
 **Queries Updated:**
+
 1. `GET_TASKS_MINIMAL` - ✅ Uses tasks with filter, orderBy, limit, offset
 2. `GET_TASKS_WITH_ASSIGNEES` - ✅ Simple array return
 3. `GET_TASK_DETAIL` - ✅ Uses singular task query
@@ -94,10 +102,12 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 ### ✅ Performance Reviews (`src/lib/graphql/queries/performance-reviews.ts` & `src/lib/graphql/performance-management/`)
 
 **Files Updated:**
+
 - `queries/performance-reviews.ts` - All queries and mutations updated
 - `performance-management/operations.ts` - All 5 methods updated
 
 **Changes:**
+
 - `allPerformanceReviews` → `performanceReviews`
 - Removed `PerformanceReviewsOrderBy` and `PerformanceReviewCondition` types
 - Removed `nodeId` field
@@ -112,12 +122,14 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - Updated TypeScript interfaces to match Rust backend types
 
 **Queries Updated:**
+
 1. `GET_PERFORMANCE_REVIEWS` - ✅ Uses performanceReviews(employeeId, limit, offset)
 2. `GET_PERFORMANCE_REVIEW_BY_ID` - ✅ Uses singular performanceReview
 3. `GET_PERFORMANCE_REVIEW_STATS` - ✅ Client-side statistics
 4. `GET_ACTIVE_REVIEWS_FOR_EMPLOYEE` - ✅ Client-side filtering
 
 **Mutations Updated:**
+
 1. `UPDATE_PERFORMANCE_REVIEW` - ✅ Simplified input structure
 2. `CREATE_PERFORMANCE_REVIEW` - ✅ Direct input object
 3. `DELETE_PERFORMANCE_REVIEW` - ✅ Returns boolean
@@ -125,10 +137,12 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 ### ✅ Leave Requests (`src/lib/graphql/queries/leave-requests.ts` & `src/lib/graphql/leave-management/`)
 
 **Files Updated:**
+
 - `queries/leave-requests.ts` - All queries and mutations updated
 - `leave-management/operations.ts` - Already using Rust backend patterns (no changes needed)
 
 **Changes:**
+
 - `allLeaveRequests` → `leaveRequests`
 - Removed `LeaveRequestsOrderBy` and `LeaveRequestCondition` types
 - Removed `nodeId` field
@@ -143,11 +157,13 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - Updated TypeScript interfaces to match Rust backend types
 
 **Queries Updated:**
+
 1. `GET_LEAVE_REQUESTS` - ✅ Uses leaveRequests(employeeId, limit, offset)
 2. `GET_LEAVE_REQUEST_BY_ID` - ✅ Uses singular leaveRequest
 3. `GET_LEAVE_REQUEST_STATS` - ✅ Client-side statistics
 
 **Mutations Updated:**
+
 1. `UPDATE_LEAVE_REQUEST_STATUS` - ✅ Simplified input structure
 2. `CREATE_LEAVE_REQUEST` - ✅ Direct input object
 3. `DELETE_LEAVE_REQUEST` - ✅ Returns boolean
@@ -155,11 +171,13 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 ### ✅ Goals (`src/lib/graphql/goals/`)
 
 **Files Updated:**
+
 - `queries.ts` - All 3 queries updated
 - `mutations.ts` - All 3 mutations updated
 - `operations.ts` - All 5 methods updated
 
 **Changes:**
+
 - Removed `EmployeeGoalsOrderBy` enum type
 - Removed complex `EmployeeGoalFilter` objects with nested conditions
 - Changed to direct parameters: `employeeId`, `status`, `limit`, `offset`
@@ -171,11 +189,13 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - Updated TypeScript interfaces to match Rust backend types
 
 **Queries Updated:**
+
 1. `GET_EMPLOYEE_GOALS` - ✅ Uses employeeGoals(employeeId, status, limit, offset)
 2. `GET_EMPLOYEE_GOAL_BY_ID` - ✅ Uses singular employeeGoal
 3. `GET_GOAL_STATISTICS` - ✅ Client-side statistics with calculateGoalStats()
 
 **Mutations Updated:**
+
 1. `CREATE_EMPLOYEE_GOAL` - ✅ Simplified input, direct return
 2. `UPDATE_EMPLOYEE_GOAL` - ✅ Simplified input, direct return
 3. `DELETE_EMPLOYEE_GOAL` - ✅ Direct id parameter, boolean return
@@ -183,11 +203,13 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 ### ✅ Reports (`src/lib/graphql/reports/`)
 
 **Files Updated:**
+
 - `queries.ts` - All 3 queries updated
 - `mutations.ts` - All 3 mutations updated
 - `operations.ts` - All 5 methods updated
 
 **Changes:**
+
 - Removed `HrReportsOrderBy` enum type
 - Removed `HrReportFilter` objects with nested conditions like `{ departmentId: { equalTo: $id } }`
 - Changed to direct parameters: `limit`, `offset`
@@ -200,11 +222,13 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - Updated TypeScript interfaces to match Rust backend types
 
 **Queries Updated:**
+
 1. `GET_HR_REPORTS` - ✅ Uses hrReports(limit, offset)
 2. `GET_HR_REPORT_BY_ID` - ✅ Uses singular hrReport
 3. `GET_REPORT_ANALYTICS` - ✅ Client-side analytics with calculateReportAnalytics()
 
 **Mutations Updated:**
+
 1. `CREATE_HR_REPORT` - ✅ Simplified input, direct return
 2. `UPDATE_HR_REPORT` - ✅ Simplified input, direct return
 3. `DELETE_HR_REPORT` - ✅ Direct id parameter, boolean return
@@ -212,11 +236,13 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 ### ✅ Team Reports (`src/lib/graphql/team-reports/`)
 
 **Files Updated:**
+
 - `queries.ts` - All 6 queries updated
 - `mutations.ts` - All 5 mutations updated
 - `operations.ts` - 1 method updated (generateTeamReport)
 
 **Changes:**
+
 - Removed `TeamReportsOrderBy` enum type
 - Removed `TeamReportFilter` objects with complex nested conditions
 - Changed to use `hrReports` backend query (team reports are department-filtered HR reports)
@@ -232,6 +258,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - Note: `GET_AVAILABLE_REPORTS` query uses `availableReports` which doesn't exist in Rust backend - may need backend implementation
 
 **Queries Updated:**
+
 1. `GET_TEAM_REPORTS` - ✅ Uses hrReports(limit, offset)
 2. `GET_TEAM_REPORT` - ✅ Uses singular hrReport
 3. `GET_REPORTS_BY_TEAM` - ✅ Uses hrReports with client-side team filtering
@@ -240,6 +267,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 6. `SEARCH_REPORTS` - ✅ Uses hrReports with client-side search/filtering
 
 **Mutations Updated:**
+
 1. `GENERATE_TEAM_REPORT` - ✅ Uses createHrReport, direct return
 2. `UPDATE_TEAM_REPORT` - ✅ Uses updateHrReport, direct return
 3. `SCHEDULE_REPORT` - ✅ Uses updateHrReport with scheduledAt
@@ -249,9 +277,11 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 ### ✅ Dashboard (`src/lib/graphql/dashboard/`)
 
 **Files Updated:**
+
 - `queries.ts` - Restructured: 11 working queries + 9 queries commented out + 7 client-side helper functions
 
 **Changes:**
+
 - Removed all PostGraphile patterns (`allUsers` → `users`, etc.)
 - Removed Relay connections from all queries
 - Split queries into two categories:
@@ -261,6 +291,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - No operations file exists (dashboard queries used directly in page load functions)
 
 **Working Queries (Using Rust Backend):**
+
 1. `GET_USERS_QUERY` / `GET_EMPLOYEES_QUERY` - ✅ Uses users(limit, offset)
 2. `GET_DEPARTMENTS_QUERY` - ✅ Uses departments(limit, offset)
 3. `GET_RECENT_ACTIVITIES` - ✅ Uses activityLogs(limit, offset)
@@ -275,6 +306,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 12. `GET_NOTIFICATIONS_SUMMARY` - ✅ Uses notifications(userId, limit)
 
 **Queries Needing Backend Implementation (Commented Out):**
+
 1. `GET_DASHBOARD_STATS` - Aggregated dashboard statistics
 2. `GET_DASHBOARD_ANALYTICS` - Time-series analytics data
 3. `GET_EMPLOYEE_QUICK_STATS` - Employee quick stats (birthdays, anniversaries, etc.)
@@ -286,6 +318,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 9. `GET_DASHBOARD_CONFIG` - Dashboard configuration
 
 **Client-Side Helper Functions Added:**
+
 1. `calculateDashboardStats()` - Calculate overview statistics from users, departments, leave requests, performance reviews
 2. `calculateDepartmentDistribution()` - Calculate department employee distribution
 3. `calculateLeaveAnalytics()` - Calculate leave request analytics (approved, pending, rejected)
@@ -295,10 +328,12 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 7. `sortActivitiesByDate()` - Sort activities by date (newest first)
 
 **TypeScript Interfaces:**
+
 - Updated `User`, `Department` interfaces to match Rust backend
 - Added `DashboardStats` interface for client-side statistics
 
 **Notes:**
+
 - Dashboard queries split between working (use directly) and needs-backend-implementation (commented out)
 - Client-side calculations provide interim solution for dashboard statistics
 - Some statistics require additional backend fields not in current schema (birthdays, anniversaries, remote working status)
@@ -307,6 +342,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 ### ✅ Employees (`src/lib/graphql/employees/`)
 
 **Files Audited:**
+
 - `queries.ts` - Already compliant with Rust backend ✅
 - `mutations.ts` - Already compliant with Rust backend ✅
 - `operations.ts` - Already compliant with Rust backend ✅
@@ -314,6 +350,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 **Status:** No changes needed - already fully migrated to Rust backend patterns
 
 **Queries (All Compliant):**
+
 1. `GET_EMPLOYEES_QUERY` - ✅ Uses users(limit, offset) - direct array return
 2. `GET_EMPLOYEE_BY_ID_QUERY` - ✅ Uses user(id) - direct object return
 3. `GET_CURRENT_USER_QUERY` - ✅ Uses me - authenticated user
@@ -322,17 +359,20 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 6. `GET_LATEST_EMPLOYEE_STATISTICS_QUERY` - ✅ Uses latestEmployeeStatistics() - backend implemented
 
 **Mutations (All Compliant):**
+
 1. `CREATE_EMPLOYEE_MUTATION` - ✅ Uses createUser(input) - direct return
 2. `UPDATE_EMPLOYEE_MUTATION` - ✅ Uses updateUser(id, input) - direct return
 3. `DELETE_EMPLOYEE_MUTATION` - ✅ Uses deleteUser(id) - boolean return
 
 **Operations (All Compliant):**
+
 - All 7 methods using correct Rust backend patterns
 - Client-side filtering implemented for complex filters
 - Direct returns without PostGraphile wrappers
 - Uses BaseOperations for standardized error handling
 
 **Notes:**
+
 - Employees module was already properly migrated before this audit
 - Employee statistics queries are backend-implemented (scheduler captures daily snapshots)
 - Client-side filtering applied for complex employee filters not yet supported by backend
@@ -341,6 +381,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 ### ✅ Events (`src/lib/graphql/events/`)
 
 **Files Audited:**
+
 - `queries.ts` - Already compliant with Rust backend ✅
 - `mutations.ts` - Already compliant with Rust backend ✅
 - `service.ts` - Already compliant with Rust backend ✅
@@ -348,6 +389,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 **Status:** No changes needed - already fully migrated to Rust backend patterns
 
 **Queries (All Compliant):**
+
 1. `GET_ALL_EVENTS` - ✅ Uses events(limit, offset, upcomingOnly) - direct array return
 2. `GET_EVENT_BY_ID` - ✅ Uses event(id) - direct object return with attendees
 3. `GET_USER_EVENTS` - ✅ Uses events(limit, offset) - client-side employee filtering
@@ -358,6 +400,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 8. `GET_USER_WAITLIST_STATUS` - ✅ Uses eventWaitlists(eventId, userId, limit) - direct array return
 
 **Mutations (All Compliant):**
+
 1. `CREATE_EVENT` - ✅ Uses createEvent(input) - direct return
 2. `UPDATE_EVENT` - ✅ Uses updateEvent(id, input) - direct return
 3. `DELETE_EVENT` - ✅ Uses deleteEvent(id) - boolean return
@@ -372,6 +415,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 12. `LEAVE_EVENT_WAITLIST` - ✅ Uses deleteEventWaitlist(id) - boolean return
 
 **Operations (All Compliant):**
+
 - All 13 methods using correct Rust backend patterns
 - Uses BaseOperations for standardized error handling
 - Direct array access (no `.nodes`)
@@ -381,6 +425,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - Input validation for event creation
 
 **Key Methods:**
+
 - `getAllEvents()` - RLS-filtered visibility
 - `getEventById()` - Single event with attendees
 - `getUserEvents()` - Client-side filtering by employeeId
@@ -395,6 +440,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - `createEventNotification()` - Event notifications
 
 **Notes:**
+
 - Events module was already properly migrated before this audit
 - RLS policies enforced for multi-tier visibility (company/department/specific)
 - Client-side filtering applied for user events and reminder status (backend gaps)
@@ -404,11 +450,13 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 ### ✅ Notifications (`src/lib/graphql/notifications/`)
 
 **Files Updated:**
+
 - `queries.ts` - All 3 queries updated + 2 new queries + 17 client-side helper functions
 - `mutations.ts` - Updated field names + added new mutations
 - `operations.ts` - All 6 methods updated
 
 **Changes:**
+
 - Removed `allNotifications` → `notifications(userId, unreadOnly, limit, offset)`
 - Removed `NotificationsOrderBy` and `NotificationCondition` types
 - Removed Relay connections (`nodes`, `pageInfo`, `totalCount`) - queries now return simple arrays
@@ -422,6 +470,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - Added extensive client-side helpers (17 functions)
 
 **Queries Updated:**
+
 1. `GET_USER_NOTIFICATIONS` - ✅ Uses notifications(userId, unreadOnly, limit, offset)
 2. `GET_UNREAD_COUNT` - ✅ Uses notifications with client-side count
 3. `GET_NOTIFICATION_BY_ID` - ✅ Uses notifications with client-side filtering
@@ -429,6 +478,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 5. `GET_RECENT_NOTIFICATIONS` - ✅ New query for recent notifications
 
 **Mutations Updated:**
+
 1. `MARK_NOTIFICATION_READ` - ✅ Uses updateNotification(id, input) with isRead field
 2. `MARK_NOTIFICATION_UNREAD` - ✅ New mutation
 3. `MARK_ALL_NOTIFICATIONS_READ` - ✅ New mutation (batch operation)
@@ -436,6 +486,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 5. `CREATE_NOTIFICATION` - ✅ New mutation for creating notifications
 
 **Operations (All Updated):**
+
 - All 6 methods using correct Rust backend patterns
 - Direct array access (no `.allNotifications.nodes`)
 - Uses `.mutation()` for mutations (not `.query()`)
@@ -446,6 +497,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - Proper error handling
 
 **Client-Side Helper Functions (17 functions):**
+
 - `findNotificationById()` - Find by ID
 - `filterUnreadNotifications()` - Filter unread
 - `filterReadNotifications()` - Filter read
@@ -463,6 +515,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - `isRecentNotification()` - Check if recent
 
 **Notes:**
+
 - Backend doesn't provide separate count query, counting done client-side
 - Backend doesn't have singular notification query, using notifications with client-side filtering
 - `markAllRead()` implemented as batch individual `updateNotification` calls
@@ -471,11 +524,13 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 ### ✅ Settings (`src/lib/graphql/settings/`)
 
 **Files Updated:**
+
 - `queries.ts` - Completely restructured to use backend `me` query + localStorage for preferences (370 lines)
 - `mutations.ts` - Updated to remove nested wrappers and use localStorage strategy (138 lines)
 - `operations.ts` - Completely rewritten to integrate localStorage preference system (339 lines)
 
 **Changes:**
+
 - Simplified to 2 main queries using backend `me` query
 - Removed nested `users` wrapper from `UPDATE_USER_PROFILE` mutation
 - Commented out system settings queries (not implemented in backend yet)
@@ -491,14 +546,17 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - Updated operations to use real backend calls for profile, localStorage for preferences
 
 **Queries Updated:**
+
 1. `GET_USER_SETTINGS` - ✅ Uses me query for profile
 2. `GET_USER_PROFILE` - ✅ Uses me query with full user fields
 
 **Mutations Updated:**
+
 1. `UPDATE_USER_PROFILE` - ✅ Uses updateUser(id, input) directly (removed nested wrapper)
 2. All preference mutations - ✅ Commented out, handled client-side via localStorage
 
 **Operations (All Updated):**
+
 - `getUserSettings()` - ✅ Fetches profile from backend, preferences from localStorage
 - `getUserProfile()` - ✅ Uses me query with real backend call
 - `updateUserProfile()` - ✅ Uses updateUser mutation with real backend call
@@ -512,18 +570,21 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - `resetPreferencesToDefaults()` - ✅ Resets to default values
 
 **TypeScript Interfaces Added:**
+
 - `UserSettings` - User profile data from backend
 - `UserPreferences` - Client-side preferences (theme, language, timezone, dateFormat, etc.)
 - `NotificationPreferences` - Notification settings (email, push, sms, reminders, etc.)
 - `PrivacyPreferences` - Privacy settings (visibility, status, messages, data sharing, etc.)
 
 **Default Constants Added:**
+
 - `DEFAULT_USER_PREFERENCES` - Default theme, language, timezone, etc.
 - `DEFAULT_NOTIFICATION_PREFERENCES` - Default notification settings
 - `DEFAULT_PRIVACY_PREFERENCES` - Default privacy settings
 - `STORAGE_KEYS` - localStorage key constants
 
 **LocalStorage Helper Functions (8 functions):**
+
 - `loadUserPreferences()` - Load preferences from localStorage with defaults
 - `saveUserPreferences()` - Save preferences to localStorage
 - `loadNotificationPreferences()` - Load notification preferences
@@ -534,6 +595,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - SSR-safe: All functions check for `typeof window === 'undefined'`
 
 **Strategy Benefits:**
+
 - ✅ Instant preference updates without network latency
 - ✅ No backend changes required for preferences
 - ✅ Profile data remains server-authoritative
@@ -541,6 +603,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - ✅ Per-user preferences with userId-scoped keys
 
 **Notes:**
+
 - Backend `me` query provides user profile data
 - Backend doesn't have comprehensive settings tables, so localStorage is used for preferences
 - Profile updates still use backend mutation for server-authoritative data
@@ -552,11 +615,13 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 ### ✅ Performance Management (`src/lib/graphql/performance-management/`)
 
 **Files Updated:**
+
 - `queries.ts` - Updated to remove PostGraphile patterns + added 15 client-side helper functions (406 lines)
 - `mutations.ts` - Updated to remove nested returns and clientMutationId (100 lines)
 - `operations.ts` - Already compliant (verified - no changes needed)
 
 **Changes:**
+
 - Removed `PerformanceReviewsOrderBy` enum type
 - Removed `PerformanceReviewFilter` with complex nested conditions
 - Changed `GET_PERFORMANCE_REVIEWS` from Relay connections to direct array
@@ -570,16 +635,19 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - Added comprehensive client-side helpers for filtering, sorting, statistics, and UI display
 
 **Queries Updated:**
+
 1. `GET_PERFORMANCE_REVIEWS` - ✅ Uses performanceReviews(employeeId, limit, offset)
 2. `GET_PERFORMANCE_REVIEW_BY_ID` - ✅ Uses singular performanceReview(id)
 3. `GET_PERFORMANCE_REVIEWS_FOR_STATS` - ✅ New query for loading data for statistics calculation
 
 **Mutations Updated:**
+
 1. `CREATE_PERFORMANCE_REVIEW` - ✅ Direct return (removed nested wrapper + clientMutationId)
 2. `UPDATE_PERFORMANCE_REVIEW` - ✅ Uses id + input parameters, direct return
 3. `DELETE_PERFORMANCE_REVIEW` - ✅ Direct id parameter, boolean return
 
 **Operations (All Compliant):**
+
 - All 5 methods using correct Rust backend patterns
 - Direct array access (`result.data.performanceReviews`)
 - Client-side pagination calculation
@@ -588,6 +656,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - No changes needed (already migrated in previous session)
 
 **Client-Side Helper Functions (15 functions):**
+
 - `filterByDepartment()` - Filter reviews by department
 - `filterByStatus()` - Filter by status
 - `filterByEmployee()` - Filter by employee
@@ -604,10 +673,12 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - `formatReviewPeriod()` - Format period for display
 
 **TypeScript Interfaces:**
+
 - `PerformanceReview` - Review data structure
 - `PerformanceStatistics` - Statistics data structure
 
 **Notes:**
+
 - RLS policy `manager_view_department_performance_reviews` automatically filters reviews to manager's department
 - Statistics calculation moved entirely to client-side (no complex backend query needed)
 - All filtering and sorting done client-side for flexibility
@@ -616,12 +687,14 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 ### ✅ Performance (`src/lib/graphql/performance/`)
 
 **Files Updated:**
+
 - `queries.ts` - Updated to remove PostGraphile patterns (141 lines)
 - `mutations.ts` - Updated to remove nested returns and clientMutationId (107 lines)
 
 **Status:** Duplicate of performance-management module - updated for consistency
 
 **Changes:**
+
 - Same changes as performance-management module
 - Removed `PerformanceReviewsOrderBy`, `PerformanceReviewFilter`, Relay connections
 - Simplified parameters: `employeeId`, `limit`, `offset`
@@ -630,17 +703,20 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - Added note about potential file consolidation
 
 **Queries Updated:**
+
 1. `GET_PERFORMANCE_REVIEWS` - ✅ Uses performanceReviews(employeeId, limit, offset)
 2. `GET_PERFORMANCE_REVIEW_BY_ID` - ✅ Uses singular performanceReview(id)
 3. `GET_PERFORMANCE_REVIEWS_FOR_STATS` - ✅ For statistics calculation
 4. `GET_PERFORMANCE_STATISTICS` - ✅ Deprecated alias
 
 **Mutations Updated:**
+
 1. `CREATE_PERFORMANCE_REVIEW` - ✅ Direct return
 2. `UPDATE_PERFORMANCE_REVIEW` - ✅ Uses id + input parameters
 3. `DELETE_PERFORMANCE_REVIEW` - ✅ Direct id parameter
 
 **Notes:**
+
 - This file appears to be a duplicate of performance-management/queries.ts
 - Consider consolidating these files in future refactoring
 - Both files now use identical Rust backend patterns
@@ -648,6 +724,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 ### ✅ Tasks (`src/lib/graphql/tasks/`)
 
 **Files Audited:**
+
 - `queries.ts` - Already compliant with Rust backend ✅
 - `mutations.ts` - Not audited (assumed compliant)
 - `operations.ts` - Not audited (assumed compliant)
@@ -655,6 +732,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 **Status:** No changes needed - already fully migrated to Rust backend patterns
 
 **Queries (All Compliant):**
+
 1. `GET_ALL_TASKS` - ✅ Uses tasks(filter, limit, offset) with TaskFilter input object
 2. `GET_TASK` - ✅ Uses singular task(id)
 3. `GET_MY_TASKS` - ✅ Uses tasks with filter parameter
@@ -662,6 +740,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 5. `GET_TASK_TYPE` - ✅ Uses singular taskType(id)
 
 **Notes:**
+
 - Tasks module was already properly migrated before this audit
 - Uses TaskFilter input object which is supported by Rust backend
 - No PostGraphile patterns found
@@ -670,10 +749,12 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 ### ✅ Team Management (`src/lib/graphql/team-management/`)
 
 **Files Updated:**
+
 - `queries.ts` - Updated to remove PostGraphile patterns + added 13 client-side helper functions (331 lines)
 - `mutations.ts` - Updated to remove nested returns and clientMutationId (81 lines)
 
 **Changes:**
+
 - Removed `DepartmentsOrderBy` enum type
 - Removed `DepartmentFilter` with complex nested conditions
 - Removed Relay connections (`nodes`, `pageInfo`, `totalCount`)
@@ -686,6 +767,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - Added comprehensive client-side helpers for hierarchy, statistics, and filtering
 
 **Queries Updated:**
+
 1. `GET_ALL_TEAMS` - ✅ Uses departments(limit, offset)
 2. `GET_TEAM_DETAILS` - ✅ Uses singular department(id)
 3. `GET_TEAM_HIERARCHY` - ✅ Uses departments, hierarchy built client-side
@@ -693,6 +775,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 5. `GET_TEAM_USERS` - ✅ New query for getting users to calculate stats
 
 **Mutations Updated:**
+
 1. `CREATE_TEAM` - ✅ Direct return (removed nested wrapper + clientMutationId)
 2. `UPDATE_TEAM` - ✅ Uses id + input parameters, direct return
 3. `DELETE_TEAM` - ✅ Direct id parameter, boolean return
@@ -700,6 +783,7 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 5. `MOVE_EMPLOYEE_TO_TEAM` - ✅ Uses updateUser, direct return
 
 **Client-Side Helper Functions (13 functions):**
+
 - `buildDepartmentHierarchy()` - Build hierarchy tree
 - `getSubDepartments()` - Get child departments
 - `getDepartmentEmployees()` - Get employees for department
@@ -716,11 +800,13 @@ All 10 GraphQL query modules have been successfully audited and migrated from Po
 - `getTotalEmployeesRecursive()` - Count employees including sub-departments
 
 **TypeScript Interfaces:**
+
 - `Department` - Department data structure
 - `TeamUser` - User data for team management
 - `DepartmentWithStats` - Department with calculated statistics
 
 **Notes:**
+
 - Complex nested PostGraphile queries replaced with client-side calculations
 - Department hierarchy is built client-side from flat department list
 - Employee counts calculated client-side by filtering users array
@@ -764,114 +850,123 @@ Once queries are updated, their corresponding operations files need updates:
 
 ```graphql
 type Query {
-  # Users
-  users(limit: Int, offset: Int): [User!]!
-  user(id: UUID!): User
-  me: User
+	# Users
+	users(limit: Int, offset: Int): [User!]!
+	user(id: UUID!): User
+	me: User
 
-  # Departments
-  departments(limit: Int, offset: Int): [Department!]!
-  department(id: UUID!): Department
+	# Departments
+	departments(limit: Int, offset: Int): [Department!]!
+	department(id: UUID!): Department
 
-  # Tasks
-  tasks(filter: TaskFilter, orderBy: String, limit: Int, offset: Int): [Task!]!
-  task(id: UUID!): Task
-  taskTypes(isActive: Boolean): [TaskType!]!
-  taskType(id: UUID!): TaskType
+	# Tasks
+	tasks(filter: TaskFilter, orderBy: String, limit: Int, offset: Int): [Task!]!
+	task(id: UUID!): Task
+	taskTypes(isActive: Boolean): [TaskType!]!
+	taskType(id: UUID!): TaskType
 
-  # Leave Management
-  leaveRequests(employeeId: UUID, limit: Int, offset: Int): [LeaveRequest!]!
-  leaveRequest(id: UUID!): LeaveRequest
-  leaveBalances(employeeId: UUID, limit: Int, offset: Int): [LeaveBalance!]!
-  leaveTypes(limit: Int, offset: Int): [LeaveType!]!
-  leaveType(id: UUID!): LeaveType
+	# Leave Management
+	leaveRequests(employeeId: UUID, limit: Int, offset: Int): [LeaveRequest!]!
+	leaveRequest(id: UUID!): LeaveRequest
+	leaveBalances(employeeId: UUID, limit: Int, offset: Int): [LeaveBalance!]!
+	leaveTypes(limit: Int, offset: Int): [LeaveType!]!
+	leaveType(id: UUID!): LeaveType
 
-  # Performance
-  performanceReviews(employeeId: UUID, limit: Int, offset: Int): [PerformanceReview!]!
-  performanceReview(id: UUID!): PerformanceReview
+	# Performance
+	performanceReviews(employeeId: UUID, limit: Int, offset: Int): [PerformanceReview!]!
+	performanceReview(id: UUID!): PerformanceReview
 
-  # Activity Logs
-  activityLogs(userId: UUID, limit: Int, offset: Int): [ActivityLog!]!
-  activityLogsCount(userId: UUID): Int!
-  activityLog(id: UUID!): ActivityLog
+	# Activity Logs
+	activityLogs(userId: UUID, limit: Int, offset: Int): [ActivityLog!]!
+	activityLogsCount(userId: UUID): Int!
+	activityLog(id: UUID!): ActivityLog
 
-  # Events
-  events(limit: Int, offset: Int): [Event!]!
-  event(id: UUID!): Event
-  eventAttendees(eventId: UUID, limit: Int, offset: Int): [EventAttendee!]!
-  eventComments(eventId: UUID, limit: Int, offset: Int): [EventComment!]!
-  eventHistories(eventId: UUID, limit: Int, offset: Int): [EventHistory!]!
-  eventWaitlists(eventId: UUID, limit: Int, offset: Int): [EventWaitlist!]!
+	# Events
+	events(limit: Int, offset: Int): [Event!]!
+	event(id: UUID!): Event
+	eventAttendees(eventId: UUID, limit: Int, offset: Int): [EventAttendee!]!
+	eventComments(eventId: UUID, limit: Int, offset: Int): [EventComment!]!
+	eventHistories(eventId: UUID, limit: Int, offset: Int): [EventHistory!]!
+	eventWaitlists(eventId: UUID, limit: Int, offset: Int): [EventWaitlist!]!
 
-  # Notifications
-  notifications(userId: UUID, unreadOnly: Boolean, limit: Int, offset: Int): [Notification!]!
+	# Notifications
+	notifications(userId: UUID, unreadOnly: Boolean, limit: Int, offset: Int): [Notification!]!
 
-  # Attendance
-  attendanceRecords(employeeId: UUID, startDate: String, endDate: String, limit: Int, offset: Int): [AttendanceRecord!]!
+	# Attendance
+	attendanceRecords(
+		employeeId: UUID
+		startDate: String
+		endDate: String
+		limit: Int
+		offset: Int
+	): [AttendanceRecord!]!
 
-  # Goals
-  employeeGoals(employeeId: UUID, status: String, limit: Int, offset: Int): [EmployeeGoal!]!
+	# Goals
+	employeeGoals(employeeId: UUID, status: String, limit: Int, offset: Int): [EmployeeGoal!]!
 
-  # Reports
-  hrReports(limit: Int, offset: Int): [HRReport!]!
-  hrReport(id: UUID!): HRReport
+	# Reports
+	hrReports(limit: Int, offset: Int): [HRReport!]!
+	hrReport(id: UUID!): HRReport
 
-  # Rollback
-  rollbackRequests(limit: Int, offset: Int): [RollbackRequest!]!
-  rollbackRequestsCount: Int!
+	# Rollback
+	rollbackRequests(limit: Int, offset: Int): [RollbackRequest!]!
+	rollbackRequestsCount: Int!
 
-  # Emergency Contacts
-  emergencyContacts(employeeId: UUID, limit: Int, offset: Int): [EmergencyContact!]!
+	# Emergency Contacts
+	emergencyContacts(employeeId: UUID, limit: Int, offset: Int): [EmergencyContact!]!
 
-  # Vehicles
-  employeeVehicles(employeeId: UUID, limit: Int, offset: Int): [EmployeeVehicle!]!
+	# Vehicles
+	employeeVehicles(employeeId: UUID, limit: Int, offset: Int): [EmployeeVehicle!]!
 
-  # Training
-  trainings: [Training!]!
-  training(id: UUID!): Training
+	# Training
+	trainings: [Training!]!
+	training(id: UUID!): Training
 
-  # Sessions
-  mySessions: [SessionInfo!]!
-  sessions: [SessionInfo!]!
-  authStatus: Boolean!
-  csrfToken: String!
+	# Sessions
+	mySessions: [SessionInfo!]!
+	sessions: [SessionInfo!]!
+	authStatus: Boolean!
+	csrfToken: String!
 }
 ```
 
 ## Migration Guidelines
 
 ### Before (PostGraphile Style)
+
 ```graphql
 query GetItems($condition: ItemCondition, $orderBy: [ItemsOrderBy!]) {
-  allItems(condition: $condition, orderBy: $orderBy, first: 50) {
-    nodes {
-      id
-      name
-      relatedItemByRelatedId {
-        id
-        name
-      }
-    }
-    totalCount
-    pageInfo {
-      hasNextPage
-    }
-  }
+	allItems(condition: $condition, orderBy: $orderBy, first: 50) {
+		nodes {
+			id
+			name
+			relatedItemByRelatedId {
+				id
+				name
+			}
+		}
+		totalCount
+		pageInfo {
+			hasNextPage
+		}
+	}
 }
 ```
 
 ### After (Rust Backend Style)
+
 ```graphql
 query GetItems($limit: Int, $offset: Int) {
-  items(limit: $limit, offset: $offset) {
-    id
-    name
-  }
-  itemsCount
+	items(limit: $limit, offset: $offset) {
+		id
+		name
+	}
+	itemsCount
 }
 ```
 
 **Operation Changes:**
+
 - Client-side filtering for complex conditions
 - Client-side joins for related data (or separate queries)
 - Calculate `hasNextPage` from `offset + limit < totalCount`

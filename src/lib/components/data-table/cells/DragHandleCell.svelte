@@ -4,7 +4,7 @@
 	import GripVerticalIcon from '@tabler/icons-svelte/icons/grip-vertical';
 
 	let { id }: { id: number } = $props();
-	
+
 	const { attributes, listeners } = useSortable({ id: () => id });
 </script>
 

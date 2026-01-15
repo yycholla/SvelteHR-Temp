@@ -62,7 +62,9 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-background">
 	<!-- Toolbar -->
-	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
 		<div class="flex items-center gap-4 flex-1">
 			<h1 class="text-sm font-semibold tracking-tight">QuickBooks Sync Status</h1>
 			<div class="h-4 w-px bg-border"></div>
@@ -98,7 +100,9 @@
 			<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
 				<!-- Last Sync -->
 				<div class="rounded-sm border bg-background h-32 p-3 flex flex-col">
-					<div class="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Last Sync</div>
+					<div class="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+						Last Sync
+					</div>
 					<div class="text-xl font-bold flex-1">
 						{formatRelativeTime(syncStatus.lastSyncAt)}
 					</div>
@@ -116,7 +120,9 @@
 
 				<!-- Pending Changes -->
 				<div class="rounded-sm border bg-yellow-50 border-yellow-200 h-32 p-3 flex flex-col">
-					<div class="text-[10px] uppercase tracking-wider text-yellow-700 mb-2">Pending Changes</div>
+					<div class="text-[10px] uppercase tracking-wider text-yellow-700 mb-2">
+						Pending Changes
+					</div>
 					<div class="text-xl font-bold text-yellow-900 flex-1">{syncStatus.totalPending}</div>
 					<div class="text-[10px] text-yellow-600 mt-auto">Awaiting sync</div>
 				</div>
@@ -227,15 +233,42 @@
 					<table class="w-full text-xs border-collapse">
 						<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
 							<tr>
-								<th class="px-3 py-2 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground text-left border-r last:border-r-0">Time</th>
-								<th class="px-3 py-2 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground text-left border-r last:border-r-0">Type</th>
-								<th class="px-3 py-2 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground text-center border-r last:border-r-0">Dir</th>
-								<th class="px-3 py-2 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground text-right border-r last:border-r-0">Pushed</th>
-								<th class="px-3 py-2 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground text-right border-r last:border-r-0">Pulled</th>
-								<th class="px-3 py-2 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground text-right border-r last:border-r-0">Updated</th>
-								<th class="px-3 py-2 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground text-right border-r last:border-r-0">Skipped</th>
-								<th class="px-3 py-2 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground text-center border-r last:border-r-0">Conflicts</th>
-								<th class="px-3 py-2 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground text-left">Status</th>
+								<th
+									class="px-3 py-2 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground text-left border-r last:border-r-0"
+									>Time</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground text-left border-r last:border-r-0"
+									>Type</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground text-center border-r last:border-r-0"
+									>Dir</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground text-right border-r last:border-r-0"
+									>Pushed</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground text-right border-r last:border-r-0"
+									>Pulled</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground text-right border-r last:border-r-0"
+									>Updated</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground text-right border-r last:border-r-0"
+									>Skipped</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground text-center border-r last:border-r-0"
+									>Conflicts</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground text-left"
+									>Status</th
+								>
 							</tr>
 						</thead>
 						<tbody class="divide-y">
@@ -260,10 +293,18 @@
 										<td class="px-3 py-1.5 border-r last:border-r-0 text-center text-sm">
 											{getDirectionIcon(log.changeDirection || log.direction)}
 										</td>
-										<td class="px-3 py-1.5 border-r last:border-r-0 text-right font-mono">{log.pushedCount || 0}</td>
-										<td class="px-3 py-1.5 border-r last:border-r-0 text-right font-mono">{log.pulledCount || 0}</td>
-										<td class="px-3 py-1.5 border-r last:border-r-0 text-right font-mono">{log.updatedCount || 0}</td>
-										<td class="px-3 py-1.5 border-r last:border-r-0 text-right font-mono">{log.skippedCount || 0}</td>
+										<td class="px-3 py-1.5 border-r last:border-r-0 text-right font-mono"
+											>{log.pushedCount || 0}</td
+										>
+										<td class="px-3 py-1.5 border-r last:border-r-0 text-right font-mono"
+											>{log.pulledCount || 0}</td
+										>
+										<td class="px-3 py-1.5 border-r last:border-r-0 text-right font-mono"
+											>{log.updatedCount || 0}</td
+										>
+										<td class="px-3 py-1.5 border-r last:border-r-0 text-right font-mono"
+											>{log.skippedCount || 0}</td
+										>
 										<td class="px-3 py-1.5 border-r last:border-r-0 text-center">
 											{#if log.conflictDetected}
 												<span class="text-red-600 font-semibold">✓</span>
@@ -280,7 +321,10 @@
 												{log.status || 'Unknown'}
 											</span>
 											{#if log.errorMessage}
-												<div class="text-[10px] text-red-600 mt-0.5 truncate max-w-xs" title={log.errorMessage}>
+												<div
+													class="text-[10px] text-red-600 mt-0.5 truncate max-w-xs"
+													title={log.errorMessage}
+												>
 													{log.errorMessage}
 												</div>
 											{/if}

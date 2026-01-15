@@ -235,11 +235,7 @@
 
 								<div class="grid gap-2">
 									<Label for="postalCode">Postal Code</Label>
-									<Input
-										id="postalCode"
-										name="postalCode"
-										bind:value={profileChanges.postalCode}
-									/>
+									<Input id="postalCode" name="postalCode" bind:value={profileChanges.postalCode} />
 									<input
 										type="hidden"
 										name="current_postalCode"
@@ -252,11 +248,7 @@
 							<div class="grid gap-2">
 								<Label for="country">Country</Label>
 								<Input id="country" name="country" bind:value={profileChanges.country} />
-								<input
-									type="hidden"
-									name="current_country"
-									value={originalProfile.country || ''}
-								/>
+								<input type="hidden" name="current_country" value={originalProfile.country || ''} />
 							</div>
 						</div>
 					</div>
@@ -326,10 +318,7 @@
 					<!-- Submit Button -->
 					<div class="flex justify-end gap-2 border-t pt-4">
 						{#if hasChanges}
-							<Button
-								type="submit"
-								disabled={!hasChanges || profileChanges.reason.length < 10}
-							>
+							<Button type="submit" disabled={!hasChanges || profileChanges.reason.length < 10}>
 								<Save class="mr-2 h-4 w-4" />
 								Submit Change Request
 							</Button>

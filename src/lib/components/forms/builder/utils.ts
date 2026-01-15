@@ -1,11 +1,4 @@
-import {
-	CheckSquare,
-	FileIcon,
-	FileText,
-	FormInput,
-	PenTool,
-	Upload
-} from '@lucide/svelte';
+import { CheckSquare, FileIcon, FileText, FormInput, PenTool, Upload } from '@lucide/svelte';
 import type { OnboardingFormBlockType } from '$lib/graphql/form-operations';
 import type { BlockTypeOption } from './types';
 

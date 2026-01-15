@@ -19,7 +19,15 @@
 		dense?: boolean;
 	}
 
-	let { table, columns, canPreview, canDownload, onPreview, onDownload, dense = false }: Props = $props();
+	let {
+		table,
+		columns,
+		canPreview,
+		canDownload,
+		onPreview,
+		onDownload,
+		dense = false
+	}: Props = $props();
 
 	// Handle row click
 	function handleRowClick(documentId: string) {
@@ -36,8 +44,11 @@
 			>
 				{#each row.getVisibleCells() as cell (cell.id)}
 					<Table.Cell
-						class={(cell.column.id === 'select' ? 'pr-2 pl-6' : cell.column.id === 'filename' ? 'pl-2' : '') +
-							(dense ? ' py-1.5 px-3 border-r last:border-r-0 text-xs' : '')}
+						class={(cell.column.id === 'select'
+							? 'pr-2 pl-6'
+							: cell.column.id === 'filename'
+								? 'pl-2'
+								: '') + (dense ? ' py-1.5 px-3 border-r last:border-r-0 text-xs' : '')}
 						style={cell.column.columnDef.size
 							? `width: ${cell.column.columnDef.size}px; min-width: ${cell.column.columnDef.size}px;`
 							: ''}
@@ -112,7 +123,11 @@
 								<span class="text-sm text-muted-foreground">—</span>
 							{/if}
 						{:else if cell.column.id === 'actions'}
-							<div class={dense ? "flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" : "flex justify-end gap-1"}>
+							<div
+								class={dense
+									? 'flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity'
+									: 'flex justify-end gap-1'}
+							>
 								{#if canPreview(row.original)}
 									<Tooltip.Root>
 										<Tooltip.Trigger>

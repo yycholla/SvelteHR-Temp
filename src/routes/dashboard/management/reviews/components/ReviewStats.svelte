@@ -1,14 +1,6 @@
 <script lang="ts">
-	import {
-		AlertTriangle,
-		CheckCircle,
-		TrendingUp,
-		Users
-	} from '@lucide/svelte';
-	import {
-		Card,
-		CardContent
-	} from '$lib/components/ui/card';
+	import { AlertTriangle, CheckCircle, TrendingUp, Users } from '@lucide/svelte';
+	import { Card, CardContent } from '$lib/components/ui/card';
 
 	interface Props {
 		reviewAnalytics: {

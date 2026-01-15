@@ -9,7 +9,11 @@
 		showCreateDialog: boolean;
 	}
 
-	let { canManageDepartments, viewMode = $bindable(), showCreateDialog = $bindable() }: Props = $props();
+	let {
+		canManageDepartments,
+		viewMode = $bindable(),
+		showCreateDialog = $bindable()
+	}: Props = $props();
 </script>
 
 <div class="flex items-center justify-between">

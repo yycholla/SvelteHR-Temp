@@ -7,14 +7,7 @@
 	import EmployeeDataTable from '$lib/components/ui/employee-datatable.svelte';
 	import EmployeeCreateDialog from '$lib/components/employees/EmployeeCreateDialog.svelte';
 	import EmployeeStatistics from '$lib/components/employees/EmployeeStatistics.svelte';
-	import {
-		Download,
-		Grid,
-		List,
-		Upload,
-		UserPlus,
-		Users
-	} from '@lucide/svelte';
+	import { Download, Grid, List, Upload, UserPlus, Users } from '@lucide/svelte';
 
 	// Import decomposed components
 	import EmployeeFilters from './components/EmployeeFilters.svelte';
@@ -117,7 +110,10 @@
 	$effect(() => {
 		const searchParam = data.filters.searchTerm || '';
 		searchTerms = searchParam
-			? searchParam.split(',').map((t) => t.trim()).filter(Boolean)
+			? searchParam
+					.split(',')
+					.map((t) => t.trim())
+					.filter(Boolean)
 			: [];
 	});
 	$effect(() => {
@@ -305,7 +301,10 @@
 						{canViewInactiveEmployees}
 						onSearch={handleSearch}
 						onClear={clearFilters}
-						onPageSizeChange={(size) => { pageSize = size; handleSearch(); }}
+						onPageSizeChange={(size) => {
+							pageSize = size;
+							handleSearch();
+						}}
 					/>
 				</div>
 			</Card.Content>
@@ -348,7 +347,10 @@
 				{canViewInactiveEmployees}
 				onSearch={handleSearch}
 				onClear={clearFilters}
-				onPageSizeChange={(size) => { pageSize = size; handleSearch(); }}
+				onPageSizeChange={(size) => {
+					pageSize = size;
+					handleSearch();
+				}}
 			/>
 
 			<EmployeeDataTable

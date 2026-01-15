@@ -119,9 +119,7 @@
 				{#if formErrors.name}
 					<p class="text-sm text-destructive">{formErrors.name}</p>
 				{:else}
-					<p class="text-sm text-muted-foreground">
-						A descriptive name to identify this template
-					</p>
+					<p class="text-sm text-muted-foreground">A descriptive name to identify this template</p>
 				{/if}
 			</div>
 
@@ -163,7 +161,11 @@
 			<div class="rounded-lg bg-muted p-4">
 				<h4 class="text-sm font-medium mb-2">What happens next?</h4>
 				<ul class="text-sm text-muted-foreground space-y-1">
-					<li>• The template will be saved with all {fieldCount} configured field{fieldCount !== 1 ? 's' : ''}</li>
+					<li>
+						• The template will be saved with all {fieldCount} configured field{fieldCount !== 1
+							? 's'
+							: ''}
+					</li>
 					<li>• You can reuse this template in future forms</li>
 					<li>• The current form will continue to use the custom fields (not the template)</li>
 					<li>• Templates can be edited from the template management page</li>

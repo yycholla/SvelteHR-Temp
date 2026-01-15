@@ -93,7 +93,9 @@
 								</div>
 							</div>
 							<div class="flex items-center gap-3">
-								<span class="text-sm text-muted-foreground">Used {executionCount} time{executionCount === 1 ? '' : 's'}</span>
+								<span class="text-sm text-muted-foreground"
+									>Used {executionCount} time{executionCount === 1 ? '' : 's'}</span
+								>
 								{#if command.shortcut}
 									<kbd class="px-2 py-1 bg-background rounded border text-sm">
 										{command.shortcut}
@@ -140,10 +142,7 @@
 									</div>
 									<div class="flex items-center gap-3">
 										{#if command.permission}
-											<span
-												class="text-xs px-2 py-1 bg-muted rounded"
-												title="Required permission"
-											>
+											<span class="text-xs px-2 py-1 bg-muted rounded" title="Required permission">
 												🔒 {command.permission}
 											</span>
 										{/if}
@@ -162,7 +161,9 @@
 		</div>
 
 		<!-- Tips & Tricks -->
-		<div class="mt-8 p-6 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
+		<div
+			class="mt-8 p-6 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900"
+		>
 			<h3 class="text-lg font-semibold mb-3">💡 Tips & Tricks</h3>
 			<ul class="space-y-2 text-sm">
 				<li class="flex items-start gap-2">
@@ -170,14 +171,16 @@
 					<span
 						>Use <kbd class="px-1 py-0.5 bg-white dark:bg-gray-800 rounded border text-xs"
 							>Cmd+K</kbd
-						> or <kbd class="px-1 py-0.5 bg-white dark:bg-gray-800 rounded border text-xs"
-							>Ctrl+K</kbd
-						> to quickly open the command palette from anywhere</span
+						>
+						or
+						<kbd class="px-1 py-0.5 bg-white dark:bg-gray-800 rounded border text-xs">Ctrl+K</kbd> to
+						quickly open the command palette from anywhere</span
 					>
 				</li>
 				<li class="flex items-start gap-2">
 					<span class="text-blue-600 dark:text-blue-400">•</span>
-					<span>Type to search through all available commands - no need to remember exact names</span
+					<span
+						>Type to search through all available commands - no need to remember exact names</span
 					>
 				</li>
 				<li class="flex items-start gap-2">

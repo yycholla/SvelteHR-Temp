@@ -122,9 +122,7 @@ export const load: PageServerLoad = async ({ fetch, cookies, depends, url }) => 
 	try {
 		// If viewing a specific operation
 		if (operationId) {
-			const detailResult = await client
-				.query(OPERATION_DETAIL_QUERY, { operationId })
-				.toPromise();
+			const detailResult = await client.query(OPERATION_DETAIL_QUERY, { operationId }).toPromise();
 
 			if (detailResult.error) {
 				console.error('Failed to fetch operation details:', detailResult.error);

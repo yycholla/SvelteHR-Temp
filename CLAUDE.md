@@ -61,22 +61,22 @@ import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 import { GET_EMPLOYEES } from '$lib/graphql/queries';
 
 export const load: PageServerLoad = async ({ fetch, cookies }) => {
- // 1. Create authenticated client
- const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
+	// 1. Create authenticated client
+	const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
 
- // 2. Fetch data
- const result = await client.query(GET_EMPLOYEES, { limit: 20 }).toPromise();
+	// 2. Fetch data
+	const result = await client.query(GET_EMPLOYEES, { limit: 20 }).toPromise();
 
- if (result.error) {
-  // Handle error
-  console.error(result.error);
-  return { employees: [] };
- }
+	if (result.error) {
+		// Handle error
+		console.error(result.error);
+		return { employees: [] };
+	}
 
- // 3. Return data to component
- return {
-  employees: result.data.employees
- };
+	// 3. Return data to component
+	return {
+		employees: result.data.employees
+	};
 };
 ```
 
@@ -84,12 +84,12 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
 
 ```svelte
 <script lang="ts">
- let { data } = $props(); // Receive data from load function
- let employees = $derived(data.employees);
+	let { data } = $props(); // Receive data from load function
+	let employees = $derived(data.employees);
 </script>
 
 {#each employees as employee}
- <p>{employee.name}</p>
+	<p>{employee.name}</p>
 {/each}
 ```
 
@@ -112,4 +112,3 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
 - **E2E (Playwright):** `tests/e2e/` - Focus on critical flows (auth, dashboard, forms).
 - **Unit (Vitest):** `src/**/*.test.ts` - Logic, utils, and component rendering.
 - **Browser Tests:** `vitest-browser-svelte` is configured for component testing.
-

@@ -9,7 +9,7 @@
 	} from '@tanstack/table-core';
 	import { createSvelteTable } from '$lib/components/ui/data-table/data-table.svelte.js';
 	import type { Document } from './types';
-	
+
 	// Import sub-components
 	import TableControls from './TableControls.svelte';
 	import TableHeader from './TableHeader.svelte';
@@ -200,41 +200,24 @@
 
 	<!-- DataTable -->
 	<div
-		class={dense 
-			? 'flex-1 overflow-auto border-t bg-background' 
+		class={dense
+			? 'flex-1 overflow-auto border-t bg-background'
 			: 'overflow-auto rounded-md border bg-card text-card-foreground'}
 		data-testid="document-datatable"
 	>
 		<div class="w-full table-auto">
 			<TableHeader {table} {dense} />
-			<TableBody
-				{table}
-				{columns}
-				{canPreview}
-				{canDownload}
-				{onPreview}
-				{onDownload}
-				{dense}
-			/>
+			<TableBody {table} {columns} {canPreview} {canDownload} {onPreview} {onDownload} {dense} />
 		</div>
 
 		{#if !dense}
-			<TablePagination
-				{currentPage}
-				{totalPages}
-				{onPageChange}
-			/>
+			<TablePagination {currentPage} {totalPages} {onPageChange} />
 		{/if}
 	</div>
-	
+
 	{#if dense}
 		<div class="border-t p-2 bg-background flex-shrink-0">
-			<TablePagination
-				{currentPage}
-				{totalPages}
-				{onPageChange}
-				dense={true}
-			/>
+			<TablePagination {currentPage} {totalPages} {onPageChange} dense={true} />
 		</div>
 	{/if}
 </div>

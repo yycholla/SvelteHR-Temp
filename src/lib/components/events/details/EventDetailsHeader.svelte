@@ -33,9 +33,7 @@
 <div class="mb-6">
 	<h1 class="text-2xl font-bold text-foreground mb-3">{event.title}</h1>
 	<div class="flex flex-wrap items-center gap-2">
-		<span
-			class="rounded-md px-2 py-1 text-xs font-medium {getStatusBadgeColor(event.status)}"
-		>
+		<span class="rounded-md px-2 py-1 text-xs font-medium {getStatusBadgeColor(event.status)}">
 			{event.status.charAt(0).toUpperCase() + event.status.slice(1)}
 		</span>
 		<span class="rounded-md px-2 py-1 text-xs font-medium bg-accent text-accent-foreground">

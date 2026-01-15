@@ -32,9 +32,11 @@ export function getTopCachedOperations(profiles: QueryPerformanceProfile[]): str
 		.filter((name) => name !== 'Anonymous');
 }
 
-export function calculatePercentiles(
-	metrics: GraphQLPerformanceMetrics[]
-): { p50: number; p95: number; p99: number } {
+export function calculatePercentiles(metrics: GraphQLPerformanceMetrics[]): {
+	p50: number;
+	p95: number;
+	p99: number;
+} {
 	const times = metrics.map((m) => m.executionTime).sort((a, b) => a - b);
 
 	if (times.length === 0) return { p50: 0, p95: 0, p99: 0 };

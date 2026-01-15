@@ -11,10 +11,7 @@
 	} from '$lib/components/ui/dialog';
 	import { Label } from '$lib/components/ui/label';
 	import { Textarea } from '$lib/components/ui/textarea';
-	import {
-		formatDateRange,
-		leaveTypeOptions
-	} from '$lib/graphql/queries/leave-requests';
+	import { formatDateRange, leaveTypeOptions } from '$lib/graphql/queries/leave-requests';
 
 	interface Props {
 		open: boolean;
@@ -35,7 +32,7 @@
 	}: Props = $props();
 </script>
 
-<Dialog bind:open={open}>
+<Dialog bind:open>
 	<DialogContent>
 		<DialogHeader>
 			<DialogTitle>Deny Leave Request</DialogTitle>
@@ -82,10 +79,7 @@
 		{/if}
 
 		<DialogFooter>
-			<Button
-				variant="outline"
-				onclick={onClose}>Cancel</Button
-			>
+			<Button variant="outline" onclick={onClose}>Cancel</Button>
 			<Button
 				variant="destructive"
 				onclick={onConfirm}

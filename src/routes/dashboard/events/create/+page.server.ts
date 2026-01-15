@@ -266,7 +266,10 @@ export const actions: Actions = {
 
 			return fail(500, {
 				error:
-					(err && typeof err === 'object' && 'userMessage' in err && typeof err.userMessage === 'string'
+					(err &&
+					typeof err === 'object' &&
+					'userMessage' in err &&
+					typeof err.userMessage === 'string'
 						? err.userMessage
 						: null) || 'Failed to create event. Please try again.'
 			});

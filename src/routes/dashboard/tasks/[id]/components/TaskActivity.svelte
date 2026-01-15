@@ -15,14 +15,8 @@
 		formatDistanceToNow: (date: Date) => string;
 	}
 
-	const {
-		auditTrail,
-		taskCreatedAt,
-		user,
-		formatDate,
-		getInitials,
-		formatDistanceToNow
-	}: Props = $props();
+	const { auditTrail, taskCreatedAt, user, formatDate, getInitials, formatDistanceToNow }: Props =
+		$props();
 
 	let commentText = $state('');
 	let isPostingComment = $state(false);
@@ -86,9 +80,7 @@
 							<div class="h-2 w-2 rounded-full bg-muted-foreground"></div>
 						</div>
 						<div class="text-sm text-muted-foreground">
-							<span class="font-medium text-foreground"
-								>{entry.user?.displayName || 'System'}</span
-							>
+							<span class="font-medium text-foreground">{entry.user?.displayName || 'System'}</span>
 							{entry.action}
 							<div class="mt-1 text-xs">
 								{formatDistanceToNow(new Date(entry.createdAt))} ago

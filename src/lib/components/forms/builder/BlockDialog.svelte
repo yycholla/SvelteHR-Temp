@@ -56,31 +56,31 @@
 				// However, if editingBlock changes while open (unlikely), we should update.
 				// We can just rely on the parent to reset or set editingBlock correctly before opening.
 				// But to be safe, if editingBlock is null, we set defaults.
-                // Wait, if I type in new block, then close and reopen, it should be empty? Yes.
+				// Wait, if I type in new block, then close and reopen, it should be empty? Yes.
 			}
 		}
 	});
-    
-    // We need to initialize state when open changes to true
-    $effect(() => {
-        if (open) {
-             if (editingBlock) {
+
+	// We need to initialize state when open changes to true
+	$effect(() => {
+		if (open) {
+			if (editingBlock) {
 				blockType = editingBlock.type;
 				blockTitle = editingBlock.title || '';
 				blockTextContent = editingBlock.textContent || '';
 				blockDocumentUrl = editingBlock.documentUrl || '';
 				blockFormTemplateId = editingBlock.formTemplateId || '';
 				blockCheckboxItemsString = (editingBlock.checkboxItems || []).join('\n');
-            } else {
-                blockType = 'TEXT';
-                blockTitle = '';
-                blockTextContent = '';
-                blockDocumentUrl = '';
-                blockFormTemplateId = '';
-                blockCheckboxItemsString = '';
-            }
-        }
-    });
+			} else {
+				blockType = 'TEXT';
+				blockTitle = '';
+				blockTextContent = '';
+				blockDocumentUrl = '';
+				blockFormTemplateId = '';
+				blockCheckboxItemsString = '';
+			}
+		}
+	});
 
 	function handleSave() {
 		const data = {

@@ -81,6 +81,7 @@ cargo run --bin migration validate
 ```
 
 This will check for:
+
 - Non-idempotent `ADD COLUMN` statements
 - Non-idempotent `CREATE INDEX` statements
 - Non-idempotent `CREATE TABLE` statements
@@ -93,6 +94,7 @@ This will check for:
 Every migration MUST be safely runnable multiple times. If a migration fails midway and is re-run, it should not error.
 
 ❌ **BAD - Will fail on second run:**
+
 ```rust
 manager.get_connection().execute_unprepared(
     "ALTER TABLE users ADD COLUMN email VARCHAR(255)"
@@ -101,6 +103,7 @@ manager.get_connection().execute_unprepared(
 ```
 
 ✅ **GOOD - Safe to re-run:**
+
 ```rust
 MigrationHelpers::add_column_if_not_exists(
     manager,
@@ -125,11 +128,13 @@ Always prefer `MigrationHelpers` over raw SQL for common operations:
 Never propagate errors immediately without checking if they're recoverable:
 
 ❌ **BAD - Immediate error propagation:**
+
 ```rust
 manager.get_connection().execute_unprepared(sql).await?;
 ```
 
 ✅ **GOOD - Graceful handling:**
+
 ```rust
 MigrationHelpers::execute_idempotent(
     manager,
@@ -164,6 +169,7 @@ cargo run --bin migration up
 ### Adding Columns
 
 #### Single Column
+
 ```rust
 MigrationHelpers::add_column_if_not_exists(
     manager,
@@ -173,6 +179,7 @@ MigrationHelpers::add_column_if_not_exists(
 ```
 
 #### Multiple Columns (Recommended for 3+ columns)
+
 ```rust
 MigrationHelpers::add_columns_if_not_exist(
     manager,
@@ -188,6 +195,7 @@ MigrationHelpers::add_columns_if_not_exist(
 ### Creating Indexes
 
 #### Standard Index
+
 ```rust
 MigrationHelpers::create_index_if_not_exists(
     manager,
@@ -198,6 +206,7 @@ MigrationHelpers::create_index_if_not_exists(
 ```
 
 #### Composite Index
+
 ```rust
 MigrationHelpers::create_index_if_not_exists(
     manager,
@@ -208,6 +217,7 @@ MigrationHelpers::create_index_if_not_exists(
 ```
 
 #### Partial/Conditional Index
+
 ```rust
 MigrationHelpers::execute_idempotent(
     manager,
@@ -219,6 +229,7 @@ MigrationHelpers::execute_idempotent(
 ```
 
 ### Dropping Indexes
+
 ```rust
 MigrationHelpers::drop_index_if_exists(
     manager,
@@ -227,6 +238,7 @@ MigrationHelpers::drop_index_if_exists(
 ```
 
 ### Custom SQL Operations
+
 ```rust
 MigrationHelpers::execute_idempotent(
     manager,
@@ -392,6 +404,7 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
 ### Local Testing
 
 1. **Fresh Database Test:**
+
    ```bash
    # Drop and recreate database
    cargo run --bin migration fresh
@@ -401,6 +414,7 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
    ```
 
 2. **Idempotency Test:**
+
    ```bash
    # Run migrations
    cargo run --bin migration up
@@ -410,6 +424,7 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
    ```
 
 3. **Rollback Test:**
+
    ```bash
    # Run migration
    cargo run --bin migration up
@@ -440,6 +455,7 @@ Before committing a migration:
 **Problem:** Migration tried to add a column that already exists.
 
 **Solution:**
+
 ```rust
 // Instead of:
 manager.execute_unprepared("ALTER TABLE users ADD COLUMN email VARCHAR(255)").await?;
@@ -457,6 +473,7 @@ MigrationHelpers::add_column_if_not_exists(
 **Problem:** Migration tried to create an index that already exists.
 
 **Solution:**
+
 ```rust
 // Instead of:
 manager.execute_unprepared("CREATE INDEX idx_users_email ON users(email)").await?;
@@ -475,6 +492,7 @@ MigrationHelpers::create_index_if_not_exists(
 **Problem:** Migration failed midway, leaving database in inconsistent state.
 
 **Symptoms:**
+
 - Migration marked as "complete" in `seaql_migrations` table
 - Some columns/indexes created, others missing
 - Application queries fail with "column does not exist"
@@ -482,6 +500,7 @@ MigrationHelpers::create_index_if_not_exists(
 **Solution:**
 
 1. **Manually fix the database:**
+
    ```bash
    # Connect to database
    kubectl exec -n sveltehr-prod sveltehr-postgres-1 -- psql -U postgres -d hr_system
@@ -497,14 +516,17 @@ MigrationHelpers::create_index_if_not_exists(
 ### Validation Failures
 
 **Critical Issues:** Must fix before deploying
+
 - Non-idempotent ADD COLUMN
 - Non-idempotent CREATE INDEX
 - Non-idempotent CREATE TABLE
 
 **High Priority Issues:** Should fix before deploying
+
 - Missing IF NOT EXISTS on indexes
 
 **Medium Priority Issues:** Can fix gradually
+
 - Direct error propagation (use MigrationHelpers for better logging)
 
 ## Migration Review Checklist

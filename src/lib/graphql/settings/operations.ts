@@ -47,9 +47,7 @@ export class SettingsOperations {
 	 * Backend: Uses me from Rust GraphQL schema
 	 * Preferences: Loaded from localStorage
 	 */
-	async getUserSettings(params: {
-		userCredentials: UserCredentials;
-	}): Promise<{
+	async getUserSettings(params: { userCredentials: UserCredentials }): Promise<{
 		profile: UserSettings;
 		preferences: UserPreferences;
 		notificationPreferences: NotificationPreferences;
@@ -110,9 +108,7 @@ export class SettingsOperations {
 	 * Get user profile only
 	 * Backend: Uses me from Rust GraphQL schema
 	 */
-	async getUserProfile(params: {
-		userCredentials: UserCredentials;
-	}): Promise<UserSettings> {
+	async getUserProfile(params: { userCredentials: UserCredentials }): Promise<UserSettings> {
 		const dataRequest = createDataRequest({
 			operationName: 'GetUserProfile',
 			variables: {},

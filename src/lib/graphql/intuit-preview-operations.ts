@@ -154,7 +154,14 @@ export async function previewSync(
 	direction: PreviewDirection,
 	entityType: PreviewEntityType
 ): Promise<SyncPreview> {
-	const result = await (client as { query: (query: unknown, variables: unknown) => Promise<{ data?: { intuitPreview?: { previewSync?: SyncPreview } }; error?: unknown }> }).query(PREVIEW_SYNC_QUERY, {
+	const result = await (
+		client as {
+			query: (
+				query: unknown,
+				variables: unknown
+			) => Promise<{ data?: { intuitPreview?: { previewSync?: SyncPreview } }; error?: unknown }>;
+		}
+	).query(PREVIEW_SYNC_QUERY, {
 		direction,
 		entityType
 	});
@@ -176,9 +183,7 @@ export async function previewSync(
 export function getPreviewStats(preview: SyncPreview) {
 	return {
 		totalChanges:
-			preview.summary.totalCreates +
-			preview.summary.totalUpdates +
-			preview.summary.totalDeletes,
+			preview.summary.totalCreates + preview.summary.totalUpdates + preview.summary.totalDeletes,
 		hasConflicts: preview.summary.totalConflicts > 0,
 		canProceed: preview.summary.safeToProceed,
 		estimatedMinutes: Math.ceil(preview.summary.estimatedDurationSec / 60)

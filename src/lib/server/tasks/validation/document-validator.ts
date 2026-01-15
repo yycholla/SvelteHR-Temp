@@ -5,7 +5,9 @@ import type { ResourceValidationResult } from './types';
 /**
  * Validate a document resource
  */
-export async function validateDocumentResource(documentId: string): Promise<ResourceValidationResult> {
+export async function validateDocumentResource(
+	documentId: string
+): Promise<ResourceValidationResult> {
 	try {
 		const graphqlEndpoint = getGraphQLEndpoint();
 

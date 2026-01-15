@@ -1,6 +1,9 @@
 import type { PageServerLoad } from './$types';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
-import { GET_EMPLOYEE_SYNC_STATUS, GET_EMPLOYEE_SYNC_HISTORY } from '$lib/graphql/operations/employee-sync';
+import {
+	GET_EMPLOYEE_SYNC_STATUS,
+	GET_EMPLOYEE_SYNC_HISTORY
+} from '$lib/graphql/operations/employee-sync';
 
 export const load: PageServerLoad = async ({ fetch, cookies, params }) => {
 	const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
@@ -8,9 +11,7 @@ export const load: PageServerLoad = async ({ fetch, cookies, params }) => {
 
 	try {
 		// Fetch sync status
-		const statusResult = await client
-			.query(GET_EMPLOYEE_SYNC_STATUS, { employeeId })
-			.toPromise();
+		const statusResult = await client.query(GET_EMPLOYEE_SYNC_STATUS, { employeeId }).toPromise();
 
 		// Fetch sync history (last 50 entries)
 		const historyResult = await client
@@ -18,7 +19,10 @@ export const load: PageServerLoad = async ({ fetch, cookies, params }) => {
 			.toPromise();
 
 		if (statusResult.error || historyResult.error) {
-			console.error('Error fetching employee sync data:', statusResult.error || historyResult.error);
+			console.error(
+				'Error fetching employee sync data:',
+				statusResult.error || historyResult.error
+			);
 			return {
 				syncStatus: null,
 				syncHistory: [],

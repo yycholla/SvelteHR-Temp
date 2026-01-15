@@ -3,7 +3,9 @@
 ## Setup (5 minutes)
 
 ### 1. Environment Variables
+
 Add to your `.env` file:
+
 ```bash
 # Webhook Configuration
 INTUIT_WEBHOOK_URL=https://your-domain.com/api/intuit/webhook
@@ -11,6 +13,7 @@ INTUIT_WEBHOOK_VERIFIER_TOKEN=your_webhook_verifier_token_from_quickbooks
 ```
 
 ### 2. QuickBooks Developer Portal Setup
+
 1. Log in to https://developer.intuit.com
 2. Go to your app → Settings → Webhooks
 3. Click "Create Subscription"
@@ -20,7 +23,9 @@ INTUIT_WEBHOOK_VERIFIER_TOKEN=your_webhook_verifier_token_from_quickbooks
 7. Save and activate
 
 ### 3. Database Migration
+
 The migration should already be applied, but verify:
+
 ```bash
 cd graphql-rust-server
 cargo run --bin migrate
@@ -29,23 +34,28 @@ cargo run --bin migrate
 ## Usage
 
 ### Admin Dashboard
+
 Navigate to: **Settings → Integrations → Webhooks**
 
 **URL**: `/admin/settings/integrations/webhooks`
 
 ### Register Webhook (First Time)
+
 1. Click **"Register Webhook"**
 2. Select entity types (Employee, Department recommended)
 3. Click **"Register Webhook"**
 4. Verify status shows **"Active"** with green indicator
 
 ### View Webhook Events
+
 The dashboard shows:
+
 - **Statistics Cards**: Total, Pending, Processing, Completed, Failed events
 - **Event List**: Recent webhook deliveries with status
 - **Filters**: Filter by status or event type
 
 ### Handle Failed Events
+
 1. Look for events with **"Failed"** status (red badge)
 2. Click on the event to view details
 3. Review the error message
@@ -53,6 +63,7 @@ The dashboard shows:
 5. Check if status changes to "Completed"
 
 ### Unregister Webhook
+
 1. Click **"Unregister Webhook"** (red button)
 2. Confirm action
 3. Status changes to "Inactive"
@@ -60,81 +71,87 @@ The dashboard shows:
 ## GraphQL Examples
 
 ### Check Webhook Status
+
 ```graphql
 query {
-  webhooks {
-    webhookStatus {
-      isActive
-      webhookId
-      entityNames
-      lastDeliveredAt
-      failureCount
-    }
-  }
+	webhooks {
+		webhookStatus {
+			isActive
+			webhookId
+			entityNames
+			lastDeliveredAt
+			failureCount
+		}
+	}
 }
 ```
 
 ### Get Recent Events
+
 ```graphql
 query {
-  webhooks {
-    webhookEvents(limit: 20) {
-      id
-      eventType
-      entityName
-      status
-      receivedAt
-      processedAt
-      lastError
-    }
-  }
+	webhooks {
+		webhookEvents(limit: 20) {
+			id
+			eventType
+			entityName
+			status
+			receivedAt
+			processedAt
+			lastError
+		}
+	}
 }
 ```
 
 ### Get Statistics
+
 ```graphql
 query {
-  webhooks {
-    webhookStatistics {
-      totalEvents
-      pendingEvents
-      completedEvents
-      failedEvents
-      avgProcessingTimeMs
-    }
-  }
+	webhooks {
+		webhookStatistics {
+			totalEvents
+			pendingEvents
+			completedEvents
+			failedEvents
+			avgProcessingTimeMs
+		}
+	}
 }
 ```
 
 ### Register Webhook
+
 ```graphql
 mutation {
-  webhooks {
-    registerWebhook(entityNames: ["Employee", "Department"]) {
-      success
-      message
-      webhookId
-    }
-  }
+	webhooks {
+		registerWebhook(entityNames: ["Employee", "Department"]) {
+			success
+			message
+			webhookId
+		}
+	}
 }
 ```
 
 ### Retry Failed Event
+
 ```graphql
 mutation {
-  webhooks {
-    retryWebhookEvent(eventId: "uuid-here") {
-      success
-      message
-      eventsProcessed
-    }
-  }
+	webhooks {
+		retryWebhookEvent(eventId: "uuid-here") {
+			success
+			message
+			eventsProcessed
+		}
+	}
 }
 ```
 
 ## Testing
 
 ### Test Webhook Delivery
+
 1. **Using QuickBooks Sandbox**:
    - Create or update an employee in QuickBooks sandbox
    - Wait 1-2 seconds
@@ -147,6 +164,7 @@ mutation {
    - Check webhook dashboard
 
 ### Verify Event Processing
+
 ```sql
 -- Check recent events
 SELECT
@@ -163,12 +181,14 @@ LIMIT 10;
 ## Troubleshooting
 
 ### Webhook Not Receiving Events
+
 1. **Check QuickBooks Configuration**:
    - Verify webhook URL is correct in QuickBooks portal
    - Ensure URL is publicly accessible (not localhost)
    - Check entity types are selected
 
 2. **Check Server Logs**:
+
    ```bash
    # Look for webhook-related logs
    grep "webhook" /var/log/hr-server.log
@@ -181,25 +201,28 @@ LIMIT 10;
    ```
 
 ### Signature Verification Fails
+
 - **Error**: "Invalid webhook signature"
 - **Solution**: Verify `INTUIT_WEBHOOK_VERIFIER_TOKEN` matches QuickBooks portal
 
 ### Events Stuck in "Pending"
+
 - **Issue**: Events not processing
 - **Solution**:
   ```graphql
   mutation {
-    webhooks {
-      processPendingWebhookEvents(limit: 10) {
-        success
-        message
-        eventsProcessed
-      }
-    }
+  	webhooks {
+  		processPendingWebhookEvents(limit: 10) {
+  			success
+  			message
+  			eventsProcessed
+  		}
+  	}
   }
   ```
 
 ### High Failure Rate
+
 1. Check error messages in failed events
 2. Verify QuickBooks API credentials are valid
 3. Check network connectivity to QuickBooks API
@@ -208,12 +231,14 @@ LIMIT 10;
 ## API Endpoints
 
 ### Webhook Receiver (Public)
+
 - **URL**: `POST /api/intuit/webhook`
 - **Auth**: HMAC signature verification
 - **Headers**: `intuit-signature`
 - **Body**: QuickBooks webhook payload (JSON)
 
 ### GraphQL API (Authenticated)
+
 - **URL**: `POST /graphql`
 - **Auth**: Session cookie
 - **Operations**: See GraphQL Examples above
@@ -221,6 +246,7 @@ LIMIT 10;
 ## Permissions Required
 
 To use webhook management features, users need:
+
 - **View Statistics**: `ViewSyncHistory` permission
 - **Register/Unregister**: `ManageIntegrations` permission
 - **Retry Events**: `ManageIntegrations` permission
@@ -245,6 +271,7 @@ Assign these permissions via the RBAC system in admin settings.
 ## Support
 
 For issues or questions:
+
 1. Check this guide first
 2. Review `/WEBHOOK_IMPLEMENTATION_SUMMARY.md` for technical details
 3. Check server logs for detailed error messages
@@ -254,6 +281,7 @@ For issues or questions:
 ## Next Steps
 
 After successful setup:
+
 1. ✅ Test webhook delivery with QuickBooks sandbox
 2. ✅ Monitor events for 24 hours
 3. ✅ Review statistics and failure rates

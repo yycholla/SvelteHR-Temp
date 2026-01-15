@@ -43,20 +43,19 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 			const backendResponse = await fetch(`${backendUrl}/api/intuit/disconnect`, {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json',
+					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({ realmId })
 			});
 
 			if (!backendResponse.ok) {
-				logger.error('Backend failed to process disconnect', {
+				logger.error('Backend failed to process disconnect', undefined, {
 					status: backendResponse.status,
 					realmId
 				});
 			}
 		} catch (backendError) {
-			logger.error('Failed to notify backend of disconnection', {
-				error: backendError,
+			logger.error('Failed to notify backend of disconnection', backendError as Error, {
 				realmId
 			});
 			// Don't fail the webhook - we still acknowledge receipt
@@ -69,17 +68,19 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 			realmId,
 			timestamp: new Date().toISOString()
 		});
-
 	} catch (error) {
-		logger.error('Error processing Intuit disconnect webhook', { error });
+		logger.error('Error processing Intuit disconnect webhook', error as Error);
 
 		// Return 200 even on error to prevent Intuit from retrying
 		// Log the error for manual review
-		return json({
-			success: false,
-			error: 'Internal server error',
-			message: 'Disconnection notification received but processing failed'
-		}, { status: 200 });
+		return json(
+			{
+				success: false,
+				error: 'Internal server error',
+				message: 'Disconnection notification received but processing failed'
+			},
+			{ status: 200 }
+		);
 	}
 };
 

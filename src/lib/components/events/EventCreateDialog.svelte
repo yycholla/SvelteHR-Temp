@@ -332,12 +332,7 @@
 					/>
 
 					<!-- Capacity -->
-					<EventCapacity
-						bind:hasCapacityLimit
-						bind:capacityLimit
-						bind:hasWaitlist
-						{isSubmitting}
-					/>
+					<EventCapacity bind:hasCapacityLimit bind:capacityLimit bind:hasWaitlist {isSubmitting} />
 
 					<!-- Image Upload -->
 					<EventImageUpload

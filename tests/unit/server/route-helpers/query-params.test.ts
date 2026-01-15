@@ -421,11 +421,7 @@ describe('ClientSideFilter', () => {
 
 	describe('filter()', () => {
 		it('should filter by custom predicate', () => {
-			const items = [
-				{ value: 10 },
-				{ value: 20 },
-				{ value: 30 }
-			];
+			const items = [{ value: 10 }, { value: 20 }, { value: 30 }];
 			const filter = new ClientSideFilter(items);
 
 			const result = filter.filter((item) => item.value > 15).get();
@@ -449,11 +445,7 @@ describe('ClientSideFilter', () => {
 		});
 
 		it('should be case insensitive', () => {
-			const items = [
-				{ title: 'URGENT' },
-				{ title: 'urgent' },
-				{ title: 'Urgent' }
-			];
+			const items = [{ title: 'URGENT' }, { title: 'urgent' }, { title: 'Urgent' }];
 			const filter = new ClientSideFilter(items);
 
 			const result = filter.search('URGENT', ['title']).get();
@@ -489,10 +481,7 @@ describe('ClientSideFilter', () => {
 		});
 
 		it('should support partial ranges', () => {
-			const items = [
-				{ createdAt: '2024-01-01' },
-				{ createdAt: '2024-06-15' }
-			];
+			const items = [{ createdAt: '2024-01-01' }, { createdAt: '2024-06-15' }];
 			const filter = new ClientSideFilter(items);
 
 			const start = new Date('2024-03-01');
@@ -502,11 +491,7 @@ describe('ClientSideFilter', () => {
 		});
 
 		it('should exclude null dates', () => {
-			const items = [
-				{ createdAt: '2024-01-01' },
-				{ createdAt: null },
-				{ createdAt: undefined }
-			];
+			const items = [{ createdAt: '2024-01-01' }, { createdAt: null }, { createdAt: undefined }];
 			const filter = new ClientSideFilter(items);
 
 			const start = new Date('2024-01-01');
@@ -540,11 +525,7 @@ describe('ClientSideFilter', () => {
 
 	describe('sortBy()', () => {
 		it('should sort ascending by default', () => {
-			const items = [
-				{ value: 30 },
-				{ value: 10 },
-				{ value: 20 }
-			];
+			const items = [{ value: 30 }, { value: 10 }, { value: 20 }];
 			const filter = new ClientSideFilter(items);
 
 			const result = filter.sortBy('value').get();
@@ -554,11 +535,7 @@ describe('ClientSideFilter', () => {
 		});
 
 		it('should sort descending', () => {
-			const items = [
-				{ value: 30 },
-				{ value: 10 },
-				{ value: 20 }
-			];
+			const items = [{ value: 30 }, { value: 10 }, { value: 20 }];
 			const filter = new ClientSideFilter(items);
 
 			const result = filter.sortBy('value', 'desc').get();
@@ -568,11 +545,7 @@ describe('ClientSideFilter', () => {
 		});
 
 		it('should handle null values', () => {
-			const items = [
-				{ value: 20 },
-				{ value: null },
-				{ value: 10 }
-			];
+			const items = [{ value: 20 }, { value: null }, { value: 10 }];
 			const filter = new ClientSideFilter(items);
 
 			const result = filter.sortBy('value').get();
@@ -632,11 +605,7 @@ describe('ClientSideFilter', () => {
 
 	describe('count()', () => {
 		it('should return count of filtered items', () => {
-			const items = [
-				{ status: 'ACTIVE' },
-				{ status: 'ACTIVE' },
-				{ status: 'INACTIVE' }
-			];
+			const items = [{ status: 'ACTIVE' }, { status: 'ACTIVE' }, { status: 'INACTIVE' }];
 			const filter = new ClientSideFilter(items);
 
 			const count = filter.where('status', 'ACTIVE').count();

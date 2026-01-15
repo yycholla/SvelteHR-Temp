@@ -1,5 +1,11 @@
 <script lang="ts">
-	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+	import {
+		Card,
+		CardContent,
+		CardDescription,
+		CardHeader,
+		CardTitle
+	} from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
@@ -114,7 +120,9 @@
 			if (result.error) {
 				error = result.error.message;
 			} else {
-				success = result.data?.employee_sync?.update_employee_sync_settings?.message || 'Settings updated successfully';
+				success =
+					result.data?.employee_sync?.update_employee_sync_settings?.message ||
+					'Settings updated successfully';
 				settingsDialogOpen = false;
 				await invalidate('app:employee-sync');
 			}
@@ -144,7 +152,9 @@
 			if (result.error) {
 				error = result.error.message;
 			} else {
-				success = result.data?.employee_sync?.trigger_employee_sync?.message || 'Sync triggered successfully';
+				success =
+					result.data?.employee_sync?.trigger_employee_sync?.message ||
+					'Sync triggered successfully';
 				syncDialogOpen = false;
 				await invalidate('app:employee-sync');
 			}
@@ -457,7 +467,12 @@
 		</div>
 
 		<DialogFooter>
-			<Button variant="outline" onclick={() => { settingsDialogOpen = false; }}>
+			<Button
+				variant="outline"
+				onclick={() => {
+					settingsDialogOpen = false;
+				}}
+			>
 				Cancel
 			</Button>
 			<Button onclick={updateSettings} disabled={submitting}>
@@ -513,7 +528,12 @@
 		</div>
 
 		<DialogFooter>
-			<Button variant="outline" onclick={() => { syncDialogOpen = false; }}>
+			<Button
+				variant="outline"
+				onclick={() => {
+					syncDialogOpen = false;
+				}}
+			>
 				Cancel
 			</Button>
 			<Button onclick={triggerSync} disabled={syncing}>

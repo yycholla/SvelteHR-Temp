@@ -115,9 +115,10 @@
 						variant="secondary"
 						size="sm"
 						leftIcon="plus"
-						            onclick={() => goto(resolveRoute('/departments/new' as any))}
-						          >
-						            Add Department					</Button>
+						onclick={() => goto(resolveRoute('/departments/new' as any))}
+					>
+						Add Department
+					</Button>
 				{/if}
 			</div>
 		</div>
@@ -245,7 +246,8 @@
 							size="sm"
 							leftIcon="eye"
 							onclick={() =>
-								selectedDepartment && goto(resolveRoute(`/departments/${selectedDepartment.id}` as any))}
+								selectedDepartment &&
+								goto(resolveRoute(`/departments/${selectedDepartment.id}` as any))}
 						>
 							View Details
 						</Button>

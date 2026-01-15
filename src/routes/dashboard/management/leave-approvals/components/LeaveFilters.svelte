@@ -1,19 +1,11 @@
 <script lang="ts">
 	import { Filter, Search } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
-	import {
-		Card,
-		CardContent,
-		CardHeader,
-		CardTitle
-	} from '$lib/components/ui/card';
+	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
-	import {
-		leaveStatusOptions,
-		leaveTypeOptions
-	} from '$lib/graphql/queries/leave-requests';
+	import { leaveStatusOptions, leaveTypeOptions } from '$lib/graphql/queries/leave-requests';
 
 	interface Props {
 		searchQuery: string;
@@ -82,11 +74,7 @@
 			<!-- Leave Type Filter -->
 			<div class="w-full md:w-48">
 				<Label>Leave Type</Label>
-				<Select
-					type="single"
-					value={leaveTypeFilter}
-					onValueChange={onLeaveTypeChange}
-				>
+				<Select type="single" value={leaveTypeFilter} onValueChange={onLeaveTypeChange}>
 					<SelectTrigger placeholder="All Types" />
 					<SelectContent>
 						<SelectItem value="">All Types</SelectItem>

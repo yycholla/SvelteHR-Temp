@@ -6,7 +6,7 @@ import { logger } from '$lib/utils/logger.js';
 export function detectSuspiciousParams(event: RequestEvent, requestId: string): void {
 	const pathname = event.url.pathname;
 	const userAgent = event.request.headers.get('user-agent');
-	
+
 	// SECURITY: Detect potential credential leakage in URLs
 	const suspiciousParams = ['password', 'pass', 'pwd', 'token', 'secret', 'key'];
 	for (const param of suspiciousParams) {

@@ -1,296 +1,311 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{digest_name}} - {{period_label}}</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            background-color: #ffffff;
-            border-radius: 8px;
-            padding: 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .header {
-            border-bottom: 3px solid #3b82f6;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-        }
-        .header h1 {
-            margin: 0;
-            color: #1e40af;
-            font-size: 24px;
-        }
-        .header .period {
-            color: #6b7280;
-            font-size: 14px;
-            margin-top: 5px;
-        }
-        .section {
-            margin-bottom: 30px;
-        }
-        .section h2 {
-            color: #1f2937;
-            font-size: 18px;
-            margin-bottom: 15px;
-            border-left: 4px solid #3b82f6;
-            padding-left: 12px;
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .stat-card {
-            background-color: #f9fafb;
-            border-radius: 6px;
-            padding: 15px;
-            text-align: center;
-            border: 1px solid #e5e7eb;
-        }
-        .stat-value {
-            font-size: 28px;
-            font-weight: bold;
-            color: #1e40af;
-            margin-bottom: 5px;
-        }
-        .stat-label {
-            font-size: 12px;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .stat-card.success .stat-value { color: #059669; }
-        .stat-card.warning .stat-value { color: #d97706; }
-        .stat-card.error .stat-value { color: #dc2626; }
-        .metric-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .metric-row:last-child {
-            border-bottom: none;
-        }
-        .metric-label {
-            color: #4b5563;
-            font-weight: 500;
-        }
-        .metric-value {
-            color: #1f2937;
-            font-weight: 600;
-        }
-        .progress-bar {
-            background-color: #e5e7eb;
-            border-radius: 4px;
-            height: 8px;
-            margin-top: 5px;
-            overflow: hidden;
-        }
-        .progress-fill {
-            background-color: #3b82f6;
-            height: 100%;
-            border-radius: 4px;
-            transition: width 0.3s ease;
-        }
-        .progress-fill.success { background-color: #059669; }
-        .progress-fill.warning { background-color: #d97706; }
-        .employee-list {
-            background-color: #f9fafb;
-            border-radius: 6px;
-            padding: 15px;
-            margin-top: 15px;
-        }
-        .employee-item {
-            padding: 8px 0;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .employee-item:last-child {
-            border-bottom: none;
-        }
-        .employee-name {
-            font-weight: 600;
-            color: #1f2937;
-        }
-        .employee-email {
-            color: #6b7280;
-            font-size: 14px;
-        }
-        .footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #e5e7eb;
-            text-align: center;
-            color: #6b7280;
-            font-size: 12px;
-        }
-        .footer a {
-            color: #3b82f6;
-            text-decoration: none;
-        }
-        .alert {
-            background-color: #fef2f2;
-            border-left: 4px solid #dc2626;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 6px;
-        }
-        .alert.warning {
-            background-color: #fffbeb;
-            border-left-color: #d97706;
-        }
-        .alert.info {
-            background-color: #eff6ff;
-            border-left-color: #3b82f6;
-        }
-        .alert-title {
-            font-weight: 600;
-            margin-bottom: 5px;
-            color: #1f2937;
-        }
-        .alert-text {
-            color: #4b5563;
-            font-size: 14px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>{{digest_name}}</h1>
-            <div class="period">{{period_label}}</div>
-        </div>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>{{digest_name}} - {{period_label}}</title>
+		<style>
+			body {
+				font-family:
+					-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+				line-height: 1.6;
+				color: #333;
+				max-width: 600px;
+				margin: 0 auto;
+				padding: 20px;
+				background-color: #f5f5f5;
+			}
+			.container {
+				background-color: #ffffff;
+				border-radius: 8px;
+				padding: 30px;
+				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+			}
+			.header {
+				border-bottom: 3px solid #3b82f6;
+				padding-bottom: 20px;
+				margin-bottom: 30px;
+			}
+			.header h1 {
+				margin: 0;
+				color: #1e40af;
+				font-size: 24px;
+			}
+			.header .period {
+				color: #6b7280;
+				font-size: 14px;
+				margin-top: 5px;
+			}
+			.section {
+				margin-bottom: 30px;
+			}
+			.section h2 {
+				color: #1f2937;
+				font-size: 18px;
+				margin-bottom: 15px;
+				border-left: 4px solid #3b82f6;
+				padding-left: 12px;
+			}
+			.stats-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+				gap: 15px;
+				margin-bottom: 20px;
+			}
+			.stat-card {
+				background-color: #f9fafb;
+				border-radius: 6px;
+				padding: 15px;
+				text-align: center;
+				border: 1px solid #e5e7eb;
+			}
+			.stat-value {
+				font-size: 28px;
+				font-weight: bold;
+				color: #1e40af;
+				margin-bottom: 5px;
+			}
+			.stat-label {
+				font-size: 12px;
+				color: #6b7280;
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+			}
+			.stat-card.success .stat-value {
+				color: #059669;
+			}
+			.stat-card.warning .stat-value {
+				color: #d97706;
+			}
+			.stat-card.error .stat-value {
+				color: #dc2626;
+			}
+			.metric-row {
+				display: flex;
+				justify-content: space-between;
+				padding: 10px 0;
+				border-bottom: 1px solid #e5e7eb;
+			}
+			.metric-row:last-child {
+				border-bottom: none;
+			}
+			.metric-label {
+				color: #4b5563;
+				font-weight: 500;
+			}
+			.metric-value {
+				color: #1f2937;
+				font-weight: 600;
+			}
+			.progress-bar {
+				background-color: #e5e7eb;
+				border-radius: 4px;
+				height: 8px;
+				margin-top: 5px;
+				overflow: hidden;
+			}
+			.progress-fill {
+				background-color: #3b82f6;
+				height: 100%;
+				border-radius: 4px;
+				transition: width 0.3s ease;
+			}
+			.progress-fill.success {
+				background-color: #059669;
+			}
+			.progress-fill.warning {
+				background-color: #d97706;
+			}
+			.employee-list {
+				background-color: #f9fafb;
+				border-radius: 6px;
+				padding: 15px;
+				margin-top: 15px;
+			}
+			.employee-item {
+				padding: 8px 0;
+				border-bottom: 1px solid #e5e7eb;
+			}
+			.employee-item:last-child {
+				border-bottom: none;
+			}
+			.employee-name {
+				font-weight: 600;
+				color: #1f2937;
+			}
+			.employee-email {
+				color: #6b7280;
+				font-size: 14px;
+			}
+			.footer {
+				margin-top: 40px;
+				padding-top: 20px;
+				border-top: 1px solid #e5e7eb;
+				text-align: center;
+				color: #6b7280;
+				font-size: 12px;
+			}
+			.footer a {
+				color: #3b82f6;
+				text-decoration: none;
+			}
+			.alert {
+				background-color: #fef2f2;
+				border-left: 4px solid #dc2626;
+				padding: 15px;
+				margin-bottom: 20px;
+				border-radius: 6px;
+			}
+			.alert.warning {
+				background-color: #fffbeb;
+				border-left-color: #d97706;
+			}
+			.alert.info {
+				background-color: #eff6ff;
+				border-left-color: #3b82f6;
+			}
+			.alert-title {
+				font-weight: 600;
+				margin-bottom: 5px;
+				color: #1f2937;
+			}
+			.alert-text {
+				color: #4b5563;
+				font-size: 14px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<div class="header">
+				<h1>{{digest_name}}</h1>
+				<div class="period">{{period_label}}</div>
+			</div>
 
-        {{#if show_sync_summary}}
-        <div class="section">
-            <h2>Sync Activity Summary</h2>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value">{{total_syncs}}</div>
-                    <div class="stat-label">Total Syncs</div>
-                </div>
-                <div class="stat-card success">
-                    <div class="stat-value">{{successful_syncs}}</div>
-                    <div class="stat-label">Successful</div>
-                </div>
-                <div class="stat-card error">
-                    <div class="stat-value">{{failed_syncs}}</div>
-                    <div class="stat-label">Failed</div>
-                </div>
-            </div>
+			{{#if show_sync_summary}}
+			<div class="section">
+				<h2>Sync Activity Summary</h2>
+				<div class="stats-grid">
+					<div class="stat-card">
+						<div class="stat-value">{{total_syncs}}</div>
+						<div class="stat-label">Total Syncs</div>
+					</div>
+					<div class="stat-card success">
+						<div class="stat-value">{{successful_syncs}}</div>
+						<div class="stat-label">Successful</div>
+					</div>
+					<div class="stat-card error">
+						<div class="stat-value">{{failed_syncs}}</div>
+						<div class="stat-label">Failed</div>
+					</div>
+				</div>
 
-            {{#if has_failed_syncs}}
-            <div class="alert">
-                <div class="alert-title">⚠️ Sync Failures Detected</div>
-                <div class="alert-text">{{failed_syncs}} sync operations failed during this period. Please review the sync logs for details.</div>
-            </div>
-            {{/if}}
-        </div>
-        {{/if}}
+				{{#if has_failed_syncs}}
+				<div class="alert">
+					<div class="alert-title">⚠️ Sync Failures Detected</div>
+					<div class="alert-text">
+						{{failed_syncs}} sync operations failed during this period. Please review the sync logs
+						for details.
+					</div>
+				</div>
+				{{/if}}
+			</div>
+			{{/if}} {{#if show_conflicts}}
+			<div class="section">
+				<h2>Conflict Management</h2>
+				<div class="stats-grid">
+					<div class="stat-card warning">
+						<div class="stat-value">{{conflicts_detected}}</div>
+						<div class="stat-label">Detected</div>
+					</div>
+					<div class="stat-card success">
+						<div class="stat-value">{{conflicts_resolved}}</div>
+						<div class="stat-label">Resolved</div>
+					</div>
+					<div class="stat-card {{#if has_pending_conflicts}}error{{else}}success{{/if}}">
+						<div class="stat-value">{{pending_conflicts}}</div>
+						<div class="stat-label">Pending</div>
+					</div>
+				</div>
 
-        {{#if show_conflicts}}
-        <div class="section">
-            <h2>Conflict Management</h2>
-            <div class="stats-grid">
-                <div class="stat-card warning">
-                    <div class="stat-value">{{conflicts_detected}}</div>
-                    <div class="stat-label">Detected</div>
-                </div>
-                <div class="stat-card success">
-                    <div class="stat-value">{{conflicts_resolved}}</div>
-                    <div class="stat-label">Resolved</div>
-                </div>
-                <div class="stat-card {{#if has_pending_conflicts}}error{{else}}success{{/if}}">
-                    <div class="stat-value">{{pending_conflicts}}</div>
-                    <div class="stat-label">Pending</div>
-                </div>
-            </div>
+				{{#if has_pending_conflicts}}
+				<div class="alert warning">
+					<div class="alert-title">🔔 Action Required</div>
+					<div class="alert-text">
+						{{pending_conflicts}} conflicts require manual resolution. Please review the
+						reconciliation dashboard.
+					</div>
+				</div>
+				{{/if}}
+			</div>
+			{{/if}} {{#if show_health_metrics}}
+			<div class="section">
+				<h2>System Health</h2>
+				<div class="metric-row">
+					<span class="metric-label">System Uptime</span>
+					<span class="metric-value">{{uptime_percentage}}%</span>
+				</div>
+				<div class="progress-bar">
+					<div class="progress-fill {{uptime_class}}" style="width: {{uptime_percentage}}%;"></div>
+				</div>
 
-            {{#if has_pending_conflicts}}
-            <div class="alert warning">
-                <div class="alert-title">🔔 Action Required</div>
-                <div class="alert-text">{{pending_conflicts}} conflicts require manual resolution. Please review the reconciliation dashboard.</div>
-            </div>
-            {{/if}}
-        </div>
-        {{/if}}
+				<div class="metric-row" style="margin-top: 15px">
+					<span class="metric-label">Data Quality Score</span>
+					<span class="metric-value">{{data_quality_score}}%</span>
+				</div>
+				<div class="progress-bar">
+					<div
+						class="progress-fill {{quality_class}}"
+						style="width: {{data_quality_score}}%;"
+					></div>
+				</div>
 
-        {{#if show_health_metrics}}
-        <div class="section">
-            <h2>System Health</h2>
-            <div class="metric-row">
-                <span class="metric-label">System Uptime</span>
-                <span class="metric-value">{{uptime_percentage}}%</span>
-            </div>
-            <div class="progress-bar">
-                <div class="progress-fill {{uptime_class}}" style="width: {{uptime_percentage}}%;"></div>
-            </div>
+				{{#if has_health_issues}}
+				<div class="alert warning" style="margin-top: 20px">
+					<div class="alert-title">⚠️ Performance Notice</div>
+					<div class="alert-text">
+						System health metrics are below optimal levels. Please check the health dashboard for
+						details.
+					</div>
+				</div>
+				{{/if}}
+			</div>
+			{{/if}} {{#if show_new_employees}}
+			<div class="section">
+				<h2>Employee Updates</h2>
+				<div class="stats-grid">
+					<div class="stat-card">
+						<div class="stat-value">{{new_employees}}</div>
+						<div class="stat-label">New Employees</div>
+					</div>
+					<div class="stat-card">
+						<div class="stat-value">{{updated_employees}}</div>
+						<div class="stat-label">Updated Records</div>
+					</div>
+				</div>
 
-            <div class="metric-row" style="margin-top: 15px;">
-                <span class="metric-label">Data Quality Score</span>
-                <span class="metric-value">{{data_quality_score}}%</span>
-            </div>
-            <div class="progress-bar">
-                <div class="progress-fill {{quality_class}}" style="width: {{data_quality_score}}%;"></div>
-            </div>
+				{{#if has_new_employees}}
+				<div class="employee-list">
+					<div style="font-weight: 600; margin-bottom: 10px; color: #1f2937">Recently Added:</div>
+					{{#each new_employee_list}}
+					<div class="employee-item">
+						<div class="employee-name">{{this.name}}</div>
+						<div class="employee-email">{{this.email}}</div>
+					</div>
+					{{/each}}
+				</div>
+				{{/if}}
+			</div>
+			{{/if}}
 
-            {{#if has_health_issues}}
-            <div class="alert warning" style="margin-top: 20px;">
-                <div class="alert-title">⚠️ Performance Notice</div>
-                <div class="alert-text">System health metrics are below optimal levels. Please check the health dashboard for details.</div>
-            </div>
-            {{/if}}
-        </div>
-        {{/if}}
-
-        {{#if show_new_employees}}
-        <div class="section">
-            <h2>Employee Updates</h2>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value">{{new_employees}}</div>
-                    <div class="stat-label">New Employees</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">{{updated_employees}}</div>
-                    <div class="stat-label">Updated Records</div>
-                </div>
-            </div>
-
-            {{#if has_new_employees}}
-            <div class="employee-list">
-                <div style="font-weight: 600; margin-bottom: 10px; color: #1f2937;">Recently Added:</div>
-                {{#each new_employee_list}}
-                <div class="employee-item">
-                    <div class="employee-name">{{this.name}}</div>
-                    <div class="employee-email">{{this.email}}</div>
-                </div>
-                {{/each}}
-            </div>
-            {{/if}}
-        </div>
-        {{/if}}
-
-        <div class="footer">
-            <p>
-                You're receiving this email as part of the "{{digest_name}}" digest.<br>
-                <a href="{{unsubscribe_url}}">Manage your email preferences</a> |
-                <a href="{{dashboard_url}}">View Dashboard</a>
-            </p>
-            <p style="margin-top: 10px;">
-                © {{current_year}} SvelteHR. All rights reserved.
-            </p>
-        </div>
-    </div>
-</body>
+			<div class="footer">
+				<p>
+					You're receiving this email as part of the "{{digest_name}}" digest.<br />
+					<a href="{{unsubscribe_url}}">Manage your email preferences</a> |
+					<a href="{{dashboard_url}}">View Dashboard</a>
+				</p>
+				<p style="margin-top: 10px">© {{current_year}} SvelteHR. All rights reserved.</p>
+			</div>
+		</div>
+	</body>
 </html>

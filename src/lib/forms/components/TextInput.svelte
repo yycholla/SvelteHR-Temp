@@ -17,14 +17,7 @@
 		rows?: number;
 	}
 
-	let {
-		name,
-		label,
-		required = false,
-		placeholder,
-		multiline = false,
-		rows = 4
-	}: Props = $props();
+	let { name, label, required = false, placeholder, multiline = false, rows = 4 }: Props = $props();
 
 	// Get form from context
 	const form = getContext<SuperForm<Record<string, unknown>>>('form');
@@ -44,18 +37,9 @@
 				{/if}
 
 				{#if multiline}
-					<Textarea
-						{...props}
-						{placeholder}
-						{rows}
-						class="resize-none"
-					/>
+					<Textarea {...props} {placeholder} {rows} class="resize-none" />
 				{:else}
-					<Input
-						{...props}
-						type="text"
-						{placeholder}
-					/>
+					<Input {...props} type="text" {placeholder} />
 				{/if}
 
 				<FieldErrors />

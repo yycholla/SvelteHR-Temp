@@ -95,7 +95,8 @@
 		if (!name.trim()) {
 			errors.name = 'Field name is required';
 		} else if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(name)) {
-			errors.name = 'Field name must start with a letter and contain only letters, numbers, and underscores';
+			errors.name =
+				'Field name must start with a letter and contain only letters, numbers, and underscores';
 		} else if (existingFieldNames.includes(name) && name !== field?.name) {
 			errors.name = 'A field with this name already exists';
 		}
@@ -289,7 +290,11 @@
 				<!-- Placeholder -->
 				<div class="space-y-2">
 					<Label for="fieldPlaceholder">Placeholder</Label>
-					<Input id="fieldPlaceholder" bind:value={placeholder} placeholder="e.g., Enter your name" />
+					<Input
+						id="fieldPlaceholder"
+						bind:value={placeholder}
+						placeholder="e.g., Enter your name"
+					/>
 					<p class="text-sm text-muted-foreground">Optional hint text shown in the field</p>
 				</div>
 

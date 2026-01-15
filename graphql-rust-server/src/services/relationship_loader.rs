@@ -327,11 +327,8 @@ impl<'a> BatchLoader<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn test_batch_loader_creation() {
-        use sea_orm::Database;
-        
+        // Placeholder for actual test implementation
     }
 }

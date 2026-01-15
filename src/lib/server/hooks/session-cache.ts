@@ -30,12 +30,12 @@ export function getCachedSession(sessionId: string, pathname: string): CachedSes
 	if (cached && cached.expiresAt > Date.now()) {
 		return cached;
 	}
-	
+
 	if (cached) {
 		// Clean up expired
 		SESSION_CACHE.delete(cacheKey);
 	}
-	
+
 	return undefined;
 }
 

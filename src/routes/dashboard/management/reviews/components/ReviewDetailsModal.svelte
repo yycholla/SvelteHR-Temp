@@ -1,9 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
-	import {
-		formatReviewPeriod
-	} from '$lib/graphql/queries/performance-reviews';
+	import { formatReviewPeriod } from '$lib/graphql/queries/performance-reviews';
 
 	interface Props {
 		open: boolean;
@@ -13,13 +11,7 @@
 		onEdit: (review: any) => void;
 	}
 
-	let {
-		open = $bindable(),
-		currentReview,
-		canEditReviews,
-		onClose,
-		onEdit
-	}: Props = $props();
+	let { open = $bindable(), currentReview, canEditReviews, onClose, onEdit }: Props = $props();
 
 	// Get rating stars
 	function renderRatingStars(rating: number): string {
@@ -29,7 +21,7 @@
 	}
 </script>
 
-<Dialog.Root bind:open={open}>
+<Dialog.Root bind:open>
 	<Dialog.Portal>
 		<Dialog.Overlay />
 		<Dialog.Content class="max-w-4xl">
@@ -146,10 +138,7 @@
 			{/if}
 
 			<Dialog.Footer>
-				<Button
-					variant="outline"
-					onclick={onClose}>Close</Button
-				>
+				<Button variant="outline" onclick={onClose}>Close</Button>
 				{#if canEditReviews && currentReview && currentReview.status !== 'completed'}
 					<Button
 						onclick={() => {

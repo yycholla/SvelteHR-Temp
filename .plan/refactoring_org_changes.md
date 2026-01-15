@@ -3,11 +3,12 @@
 **Goal:** Decompose the large `organizational-change-handlers.ts` file (739 lines) into smaller, testable modules.
 
 ## Current State
+
 - **File:** `src/lib/server/tasks/organizational-change-handlers.ts`
 - **Issues:**
-    - High complexity in `handleManagerChange`, `handleEmployeeDepartmentChange`, etc.
-    - Mixing of GraphQL data fetching, business logic, and logging.
-    - Large file size makes it hard to maintain.
+  - High complexity in `handleManagerChange`, `handleEmployeeDepartmentChange`, etc.
+  - Mixing of GraphQL data fetching, business logic, and logging.
+  - Large file size makes it hard to maintain.
 
 ## Proposed Structure (`src/lib/server/tasks/org-changes/`)
 
@@ -31,7 +32,7 @@ Create a new directory `src/lib/server/tasks/org-changes/` to organize the code.
     - `handleEmployeeDepartmentChange`
     - `handleEmployeeTermination`
     - `handleDepartmentDissolution`
-    - *These will use functions from `data-access.ts`*
+    - _These will use functions from `data-access.ts`_
 
 4.  **`processor.ts`**
     - `processOrganizationalChange` (Switch statement logic)
@@ -49,9 +50,11 @@ Create a new directory `src/lib/server/tasks/org-changes/` to organize the code.
 6.  **Update Original File:** `src/lib/server/tasks/organizational-change-handlers.ts` will simply export `*` from the new modules.
 
 ## Key Improvements
+
 - **Separation of Concerns:** Business logic (handlers) is separate from Data Access.
 - **Testability:** Handlers can be tested by mocking the data access layer.
 - **Maintainability:** Smaller files are easier to read and understand.
 
 ## Verification
+
 - Run `npm run check` to ensure no broken imports or type errors.

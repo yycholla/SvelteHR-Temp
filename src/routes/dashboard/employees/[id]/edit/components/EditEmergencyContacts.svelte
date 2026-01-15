@@ -80,8 +80,7 @@
 					</div>
 
 					<div class="space-y-1.5">
-						<Label for="emergencyContacts[{index}].relationship" class="text-sm"
-							>Relationship</Label
+						<Label for="emergencyContacts[{index}].relationship" class="text-sm">Relationship</Label
 						>
 						<Input
 							id="emergencyContacts[{index}].relationship"

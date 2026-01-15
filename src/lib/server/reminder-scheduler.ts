@@ -208,11 +208,12 @@ export class ReminderScheduler {
 				}));
 
 			return pendingReminders;
-		        } catch (error) {
-		            logger.error('Error fetching pending reminders', error as Error);
-		            // Return empty array instead of throwing - scheduler will try again next minute
-		            return [];
-		        }	}
+		} catch (error) {
+			logger.error('Error fetching pending reminders', error as Error);
+			// Return empty array instead of throwing - scheduler will try again next minute
+			return [];
+		}
+	}
 
 	/**
 	 * Send a reminder notification
@@ -267,10 +268,10 @@ export class ReminderScheduler {
 			logger.info(
 				`[ReminderScheduler] Sent reminder to ${reminder.userName} for event "${reminder.eventTitle}"`
 			);
-		        } catch (error) {
-		            logger.error('Error sending reminder', error as Error);
-		        }
-		    }
+		} catch (error) {
+			logger.error('Error sending reminder', error as Error);
+		}
+	}
 	/**
 	 * Create a notification record in the database using Rust GraphQL backend
 	 */

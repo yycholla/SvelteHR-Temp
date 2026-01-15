@@ -1,15 +1,18 @@
 # Feature 45: Data Lineage Tracking
 
 ## Overview
+
 Complete provenance tracking showing the full history and origin of every data field, answering "where did this value come from?" and "who changed it when?"
 
 ## Current System Integration
+
 - Basic sync logging exists
 - No field-level provenance
 - Can't trace data origins
 - No change attribution
 
 ## Key Components
+
 - Field-level change tracking
 - Source attribution (local, QB, API)
 - Change timeline per field
@@ -19,7 +22,9 @@ Complete provenance tracking showing the full history and origin of every data f
 - Compliance-ready provenance
 
 ## Technical Requirements
+
 ### Lineage Tracking System
+
 ```rust
 pub struct DataLineageService {
     db: DatabaseConnection,
@@ -64,7 +69,7 @@ pub enum LineageEventType {
 
 impl DataLineageService {
     // Track every field change
-    pub async fn record_change(&self, change: FieldChange) 
+    pub async fn record_change(&self, change: FieldChange)
         -> Result<()> {
         let event = LineageEvent {
             event_id: Uuid::new_v4(),
@@ -77,15 +82,15 @@ impl DataLineageService {
             transformation: change.transformation,
             metadata: change.metadata,
         };
-        
+
         // Store in lineage table
         self.insert_lineage_event(event).await?;
-        
+
         Ok(())
     }
-    
+
     // Get complete history of a field
-    pub async fn get_field_lineage(&self, entity_id: &str, field: &str) 
+    pub async fn get_field_lineage(&self, entity_id: &str, field: &str)
         -> Result<FieldLineage> {
         let events = field_lineage::Entity::find()
             .filter(field_lineage::Column::EntityId.eq(entity_id))
@@ -93,7 +98,7 @@ impl DataLineageService {
             .order_by_asc(field_lineage::Column::OccurredAt)
             .all(&self.db)
             .await?;
-        
+
         Ok(FieldLineage {
             entity_id: entity_id.to_string(),
             field_name: field.to_string(),
@@ -101,9 +106,9 @@ impl DataLineageService {
             lineage_chain: events.into_iter().map(Into::into).collect(),
         })
     }
-    
+
     // Visualize data flow
-    pub async fn generate_lineage_graph(&self, entity_id: &str) 
+    pub async fn generate_lineage_graph(&self, entity_id: &str)
         -> Result<LineageGraph> {
         // Create visual graph showing data flow
         // Nodes: Sources, transformations, destinations
@@ -113,6 +118,7 @@ impl DataLineageService {
 ```
 
 ### Database Schema
+
 ```sql
 CREATE TABLE hr_public.field_lineage (
     id UUID PRIMARY KEY,
@@ -146,25 +152,26 @@ ORDER BY entity_id, field_name, occurred_at DESC;
 ```
 
 ### Lineage Visualization
+
 ```typescript
 interface LineageNode {
-  id: string;
-  label: string;
-  type: 'source' | 'transformation' | 'field';
-  timestamp: Date;
-  metadata: Record<string, any>;
+	id: string;
+	label: string;
+	type: 'source' | 'transformation' | 'field';
+	timestamp: Date;
+	metadata: Record<string, any>;
 }
 
 interface LineageEdge {
-  from: string;
-  to: string;
-  label: string;
-  value?: string;
+	from: string;
+	to: string;
+	label: string;
+	value?: string;
 }
 
 interface LineageGraph {
-  nodes: LineageNode[];
-  edges: LineageEdge[];
+	nodes: LineageNode[];
+	edges: LineageEdge[];
 }
 
 // Example graph for email field:
@@ -176,29 +183,35 @@ interface LineageGraph {
 ```
 
 ## Dependencies
+
 - Graph visualization library (D3.js, Cytoscape.js)
 - Efficient time-series queries
 - Large storage for lineage data
 - Data retention policies
 
 ## Implementation Phases
+
 ### Phase 1: Basic Tracking
+
 - Track field changes
 - Store source attribution
 - Simple history view
 
 ### Phase 2: Visualization
+
 - Timeline view per field
 - Source breakdown
 - Change attribution
 
 ### Phase 3: Advanced
+
 - Cross-system lineage
 - Graph visualization
 - Transformation tracking
 - Compliance reports
 
 ## Research Notes
+
 - [ ] Storage requirements (10x audit log size?)
 - [ ] Query performance at scale
 - [ ] Data retention policy
@@ -206,41 +219,44 @@ interface LineageGraph {
 - [ ] Visualization best practices
 
 ## UI Components
+
 ```svelte
 <!-- Field lineage viewer -->
 <div class="lineage-viewer">
-  <h3>Email Field History</h3>
-  
-  <div class="timeline">
-    {#each lineage.lineageChain as event}
-      <div class="event">
-        <div class="timestamp">{formatDate(event.occurredAt)}</div>
-        <div class="change">
-          <Badge variant={getSourceColor(event.source)}>
-            {event.source}
-          </Badge>
-          {#if event.previousValue}
-            <span class="old-value">{event.previousValue}</span>
-            <Arrow />
-          {/if}
-          <span class="new-value">{event.newValue}</span>
-        </div>
-        {#if event.userId}
-          <div class="user">by {getUserName(event.userId)}</div>
-        {/if}
-      </div>
-    {/each}
-  </div>
-  
-  <Button onclick={viewGraph}>View Data Flow Graph</Button>
+	<h3>Email Field History</h3>
+
+	<div class="timeline">
+		{#each lineage.lineageChain as event}
+			<div class="event">
+				<div class="timestamp">{formatDate(event.occurredAt)}</div>
+				<div class="change">
+					<Badge variant={getSourceColor(event.source)}>
+						{event.source}
+					</Badge>
+					{#if event.previousValue}
+						<span class="old-value">{event.previousValue}</span>
+						<Arrow />
+					{/if}
+					<span class="new-value">{event.newValue}</span>
+				</div>
+				{#if event.userId}
+					<div class="user">by {getUserName(event.userId)}</div>
+				{/if}
+			</div>
+		{/each}
+	</div>
+
+	<Button onclick={viewGraph}>View Data Flow Graph</Button>
 </div>
 ```
 
 ## Success Metrics
+
 - Lineage completeness: 100%
 - Query performance: < 1 second
 - User understanding: > 90% find value
 - Compliance audit pass rate: 100%
 
 ## Notes
+
 _Research findings and implementation decisions_

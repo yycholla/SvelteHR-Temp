@@ -45,9 +45,7 @@
 
 	// Truncate content for display
 	const truncatedContent = $derived(
-		textBlock.content.length > 100
-			? textBlock.content.substring(0, 100) + '...'
-			: textBlock.content
+		textBlock.content.length > 100 ? textBlock.content.substring(0, 100) + '...' : textBlock.content
 	);
 </script>
 
@@ -61,7 +59,10 @@
 				: 'bg-card'} hover:shadow-sm transition-all"
 >
 	<!-- Drag Handle -->
-	<button type="button" class="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground">
+	<button
+		type="button"
+		class="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+	>
 		<GripVertical class="h-5 w-5" />
 	</button>
 

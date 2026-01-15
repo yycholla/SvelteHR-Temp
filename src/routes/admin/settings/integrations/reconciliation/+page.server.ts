@@ -98,9 +98,7 @@ export const load: PageServerLoad = async ({ fetch, cookies, depends, url }) => 
 	try {
 		// If a specific report is selected, fetch its details
 		if (reportId) {
-			const detailsResult = await client
-				.query(REPORT_DETAILS_QUERY, { reportId })
-				.toPromise();
+			const detailsResult = await client.query(REPORT_DETAILS_QUERY, { reportId }).toPromise();
 
 			if (detailsResult.error) {
 				console.error('Failed to fetch report details:', detailsResult.error);

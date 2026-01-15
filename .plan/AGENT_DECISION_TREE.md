@@ -52,34 +52,40 @@ For .plan/ implementation:
 ### ✅ SPAWN AGENT
 
 #### Example 1: Multi-file Backend Feature
+
 **Situation**: Implement webhook receiver (new endpoint, validation, DB storage)
 **Decision**: Spawn `rust-pro` agent
 **Reason**:
+
 - Multiple new files (webhook.rs, tests)
 - Complex logic (HMAC verification, async processing)
 - Needs to follow existing patterns
 
 ```typescript
 Task({
-  subagent_type: "rust-pro",
-  model: "sonnet",
-  description: "Implement webhook receiver",
-  prompt: `[Specific scoped prompt]`
-})
+	subagent_type: 'rust-pro',
+	model: 'sonnet',
+	description: 'Implement webhook receiver',
+	prompt: `[Specific scoped prompt]`
+});
 ```
 
 #### Example 2: Complex UI Component
+
 **Situation**: Real-time sync status dashboard with WebSocket
 **Decision**: Spawn `frontend-developer` agent
 **Reason**:
+
 - Svelte 5 runes complexity
 - WebSocket/SSE integration
 - Real-time state management
 
 #### Example 3: Multiple Independent Changes
+
 **Situation**: Feature requires backend API + frontend UI + database migration
 **Decision**: Spawn 3 agents in parallel
 **Reason**:
+
 - Independent workstreams
 - Different expertise needed
 - Faster completion
@@ -92,124 +98,138 @@ Task({ subagent_type: "database-architect", model: "haiku", ... })
 ```
 
 #### Example 4: Architecture Survey
+
 **Situation**: Need to understand how existing sync system works before adding webhooks
 **Decision**: Spawn `Explore` agent
 **Reason**:
+
 - Multiple files to analyze
 - Pattern extraction needed
 - Scoped to specific directory
 
 ```typescript
 Task({
-  subagent_type: "Explore",
-  model: "sonnet",
-  description: "Survey sync architecture",
-  prompt: `Survey graphql-rust-server/src/services/sync_orchestrator.rs
+	subagent_type: 'Explore',
+	model: 'sonnet',
+	description: 'Survey sync architecture',
+	prompt: `Survey graphql-rust-server/src/services/sync_orchestrator.rs
   Use get_symbols_overview, don't read full file.
   Goal: Understand sync flow for webhook integration.`
-})
+});
 ```
 
 ### ❌ DO IT YOURSELF
 
 #### Example 1: Simple File Edit
+
 **Situation**: Add one new function to existing file
 **Decision**: Do it yourself
 **Reason**:
+
 - Single file
 - Clear requirement
 - Simple addition
 
 ```typescript
 // Read existing file
-Read({ file_path: "src/lib/utils/formatters.ts" })
+Read({ file_path: 'src/lib/utils/formatters.ts' });
 
 // Add function
 Edit({
-  file_path: "src/lib/utils/formatters.ts",
-  old_string: "export { formatDate }",
-  new_string: "export { formatDate, formatCurrency }\n\nexport function formatCurrency(amount: number): string { ... }"
-})
+	file_path: 'src/lib/utils/formatters.ts',
+	old_string: 'export { formatDate }',
+	new_string:
+		'export { formatDate, formatCurrency }\n\nexport function formatCurrency(amount: number): string { ... }'
+});
 ```
 
 #### Example 2: Finding Specific Code
+
 **Situation**: Find where user permissions are checked
 **Decision**: Do it yourself with Grep
 **Reason**:
+
 - Targeted search
 - Known keyword ("permissions")
 - Quick lookup
 
 ```typescript
 Grep({
-  pattern: "permissions",
-  relative_path: "src/routes/admin",
-  output_mode: "files_with_matches"
-})
+	pattern: 'permissions',
+	relative_path: 'src/routes/admin',
+	output_mode: 'files_with_matches'
+});
 ```
 
 #### Example 3: Reading Configuration
+
 **Situation**: Check environment variables used
 **Decision**: Do it yourself
 **Reason**:
+
 - Simple file read
 - No modification needed
 
 ```typescript
-Read({ file_path: ".env.example" })
+Read({ file_path: '.env.example' });
 ```
 
 #### Example 4: Small Refactor
+
 **Situation**: Rename variable in single file
 **Decision**: Do it yourself
 **Reason**:
+
 - Mechanical change
 - Single file scope
 
 ```typescript
-Read({ file_path: "src/lib/stores/auth.ts" })
+Read({ file_path: 'src/lib/stores/auth.ts' });
 
 Edit({
-  file_path: "src/lib/stores/auth.ts",
-  old_string: "let currentUser = $state(null);",
-  new_string: "let user = $state(null);",
-  replace_all: true
-})
+	file_path: 'src/lib/stores/auth.ts',
+	old_string: 'let currentUser = $state(null);',
+	new_string: 'let user = $state(null);',
+	replace_all: true
+});
 ```
 
 #### Example 5: Adding Import
+
 **Situation**: Add missing import statement
 **Decision**: Do it yourself
 **Reason**:
+
 - Trivial change
 - No exploration needed
 
 ```typescript
 Edit({
-  file_path: "src/routes/admin/+page.svelte",
-  old_string: "<script lang=\"ts\">",
-  new_string: "<script lang=\"ts\">\n  import { logger } from '$lib/utils/logger';"
-})
+	file_path: 'src/routes/admin/+page.svelte',
+	old_string: '<script lang="ts">',
+	new_string: '<script lang="ts">\n  import { logger } from \'$lib/utils/logger\';'
+});
 ```
 
 ## Complexity Scoring
 
 Use this to decide if task warrants an agent:
 
-| Factor | Points |
-|--------|--------|
-| Multiple files (3+) | +2 |
-| New file creation | +1 |
-| Complex logic (auth, security, async) | +2 |
-| Need to study existing patterns | +2 |
-| Cross-cutting (backend + frontend) | +3 |
-| Database schema changes | +1 |
-| Needs testing | +1 |
-| Simple CRUD operation | -1 |
-| Single file edit | -2 |
-| Configuration change | -1 |
+| Factor                                | Points |
+| ------------------------------------- | ------ |
+| Multiple files (3+)                   | +2     |
+| New file creation                     | +1     |
+| Complex logic (auth, security, async) | +2     |
+| Need to study existing patterns       | +2     |
+| Cross-cutting (backend + frontend)    | +3     |
+| Database schema changes               | +1     |
+| Needs testing                         | +1     |
+| Simple CRUD operation                 | -1     |
+| Single file edit                      | -2     |
+| Configuration change                  | -1     |
 
 **Score:**
+
 - **0-2**: Do it yourself
 - **3-4**: Consider agent if unfamiliar with area
 - **5+**: Spawn agent
@@ -217,13 +237,16 @@ Use this to decide if task warrants an agent:
 ## Real Examples from SvelteHR
 
 ### Scenario A: Add Logger Import to 450 Files
+
 **Complexity**: 0 points (mechanical)
+
 - Multiple files (+2)
 - Simple CRUD (-1)
 - Single line change (-1)
 
 **Decision**: Do it yourself with script or batch Edit
 **Approach**:
+
 ```bash
 # Find files needing import
 Grep({ pattern: "logger\\.(info|error|warn)", output_mode: "files_with_matches" })
@@ -233,7 +256,9 @@ Grep({ pattern: "logger\\.(info|error|warn)", output_mode: "files_with_matches" 
 ```
 
 ### Scenario B: Implement QuickBooks Webhook Receiver
+
 **Complexity**: 9 points (agent worthy!)
+
 - Multiple files (+2)
 - New file creation (+1)
 - Complex logic (HMAC, async) (+2)
@@ -245,13 +270,16 @@ Grep({ pattern: "logger\\.(info|error|warn)", output_mode: "files_with_matches" 
 **Approach**: See AGENT_SPAWNING_TEMPLATE.md
 
 ### Scenario C: Fix Type Error in Form Component
+
 **Complexity**: 1 point (do yourself)
+
 - Single file edit (-2)
 - Need to study pattern (+2)
 - Simple fix (+1)
 
 **Decision**: Do it yourself
 **Approach**:
+
 ```typescript
 Read({ file_path: "src/components/forms/TaskForm.svelte" })
 // Read error, fix type annotation
@@ -259,7 +287,9 @@ Edit({ ... })
 ```
 
 ### Scenario D: Create Database Migration
+
 **Complexity**: 2 points (borderline)
+
 - Single file edit (-2)
 - New file creation (+1)
 - Database schema (+1)
@@ -268,13 +298,14 @@ Edit({ ... })
 **Decision**: Spawn `database-architect` with haiku (simple, structured)
 **Reason**: Follows template, but DB migrations are critical
 **Approach**:
+
 ```typescript
 Task({
-  subagent_type: "database-architect",
-  model: "haiku",  // Simple task
-  description: "Create webhook_events migration",
-  prompt: "[Schema spec from plan]"
-})
+	subagent_type: 'database-architect',
+	model: 'haiku', // Simple task
+	description: 'Create webhook_events migration',
+	prompt: '[Schema spec from plan]'
+});
 ```
 
 ## Time-Based Decision
@@ -282,6 +313,7 @@ Task({
 If you can complete the task in **<5 minutes**, do it yourself.
 
 Examples of <5 min tasks:
+
 - Add import statement
 - Fix typo
 - Update configuration value
@@ -291,12 +323,14 @@ Examples of <5 min tasks:
 If task will take **>15 minutes**, consider spawning agent.
 
 Examples of >15 min tasks:
+
 - Multi-file refactoring
 - New feature implementation
 - Complex bug investigation
 - Integration with external API
 
 **Gray area (5-15 min)**:
+
 - Use complexity scoring
 - If unfamiliar with codebase area → agent
 - If familiar → do yourself
@@ -306,6 +340,7 @@ Examples of >15 min tasks:
 **Rule**: If you've already explored the codebase and understand the patterns, do it yourself. Don't spawn an agent to re-discover what you already know.
 
 **Example**:
+
 ```
 ✅ You've read sync_orchestrator.rs and understand the pattern
     → Implement webhook integration yourself
@@ -319,6 +354,7 @@ Examples of >15 min tasks:
 For large features from `.plan/`, budget agents wisely:
 
 **Recommended allocation for multi-phase feature:**
+
 1. **Architecture Survey**: 1 Explore agent (sonnet)
 2. **Backend Implementation**: 1 rust-pro agent (sonnet)
 3. **Frontend Implementation**: 1 frontend-developer agent (sonnet)
@@ -329,6 +365,7 @@ For large features from `.plan/`, budget agents wisely:
 **Total**: 6 agents max per feature
 
 If you need more than 6 agents for a feature, you're probably:
+
 - Not scoping agents narrowly enough
 - Doing work that you should do yourself
 - Breaking down phases incorrectly
@@ -359,27 +396,27 @@ If you need more than 6 agents for a feature, you're probably:
 
 ## Summary Table
 
-| Task Type | Agent? | Agent Type | Model |
-|-----------|--------|------------|-------|
-| Read plan file | No | N/A | N/A |
-| Architecture survey (multi-file) | Yes | Explore | sonnet |
-| Architecture survey (single file) | No | N/A | N/A |
-| Backend feature (complex) | Yes | rust-pro | sonnet |
-| Backend feature (simple) | No | N/A | N/A |
-| Frontend feature (complex) | Yes | frontend-developer | sonnet |
-| Frontend feature (simple) | No | N/A | N/A |
-| Database migration | Yes | database-architect | haiku |
-| Simple config change | No | N/A | N/A |
-| Add imports (<10 files) | No | N/A | N/A |
-| Add imports (50+ files) | Script | N/A | N/A |
-| Testing (comprehensive) | Yes | test-automator | sonnet |
-| Testing (single unit test) | No | N/A | N/A |
-| Code review (full feature) | Yes | code-reviewer | sonnet |
-| Code review (small change) | No | N/A | N/A |
-| Bug fix (simple) | No | N/A | N/A |
-| Bug fix (complex, multi-file) | Yes | debugger or specific agent | sonnet |
-| Refactor (single file) | No | N/A | N/A |
-| Refactor (multiple files) | Yes | Appropriate specialist | sonnet |
+| Task Type                         | Agent? | Agent Type                 | Model  |
+| --------------------------------- | ------ | -------------------------- | ------ |
+| Read plan file                    | No     | N/A                        | N/A    |
+| Architecture survey (multi-file)  | Yes    | Explore                    | sonnet |
+| Architecture survey (single file) | No     | N/A                        | N/A    |
+| Backend feature (complex)         | Yes    | rust-pro                   | sonnet |
+| Backend feature (simple)          | No     | N/A                        | N/A    |
+| Frontend feature (complex)        | Yes    | frontend-developer         | sonnet |
+| Frontend feature (simple)         | No     | N/A                        | N/A    |
+| Database migration                | Yes    | database-architect         | haiku  |
+| Simple config change              | No     | N/A                        | N/A    |
+| Add imports (<10 files)           | No     | N/A                        | N/A    |
+| Add imports (50+ files)           | Script | N/A                        | N/A    |
+| Testing (comprehensive)           | Yes    | test-automator             | sonnet |
+| Testing (single unit test)        | No     | N/A                        | N/A    |
+| Code review (full feature)        | Yes    | code-reviewer              | sonnet |
+| Code review (small change)        | No     | N/A                        | N/A    |
+| Bug fix (simple)                  | No     | N/A                        | N/A    |
+| Bug fix (complex, multi-file)     | Yes    | debugger or specific agent | sonnet |
+| Refactor (single file)            | No     | N/A                        | N/A    |
+| Refactor (multiple files)         | Yes    | Appropriate specialist     | sonnet |
 
 ---
 

@@ -132,11 +132,15 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-background">
 	<!-- Toolbar -->
-	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
 		<div class="flex items-center gap-4 flex-1">
 			<h1 class="text-sm font-semibold tracking-tight">Sync Preview / Dry Run</h1>
 			<div class="h-4 w-px bg-border"></div>
-			<span class="text-xs text-muted-foreground">Preview synchronization changes before executing them</span>
+			<span class="text-xs text-muted-foreground"
+				>Preview synchronization changes before executing them</span
+			>
 		</div>
 		<button
 			onclick={runPreview}
@@ -156,7 +160,9 @@
 	<!-- Configuration Bar -->
 	<div class="flex-shrink-0 p-2 border-b bg-muted/5 flex items-center gap-2 overflow-x-auto">
 		<div class="flex items-center gap-2">
-			<label for="entityType" class="text-xs text-muted-foreground whitespace-nowrap">Entity Type:</label>
+			<label for="entityType" class="text-xs text-muted-foreground whitespace-nowrap"
+				>Entity Type:</label
+			>
 			<select
 				id="entityType"
 				bind:value={entityType}
@@ -169,7 +175,9 @@
 		</div>
 
 		<div class="flex items-center gap-2">
-			<label for="syncDirection" class="text-xs text-muted-foreground whitespace-nowrap">Sync Direction:</label>
+			<label for="syncDirection" class="text-xs text-muted-foreground whitespace-nowrap"
+				>Sync Direction:</label
+			>
 			<select
 				id="syncDirection"
 				bind:value={syncDirection}
@@ -187,14 +195,18 @@
 				bind:checked={includeFieldChanges}
 				class="h-4 w-4 rounded border-input text-primary focus:ring-primary"
 			/>
-			<span class="text-xs text-muted-foreground whitespace-nowrap">Include field-level changes</span>
+			<span class="text-xs text-muted-foreground whitespace-nowrap"
+				>Include field-level changes</span
+			>
 		</label>
 	</div>
 
 	<!-- Error message -->
 	{#if error}
 		<div class="flex-shrink-0 p-4 pb-0">
-			<div class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20 flex items-center gap-2">
+			<div
+				class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20 flex items-center gap-2"
+			>
 				<AlertCircle class="h-4 w-4 flex-shrink-0" />
 				{error}
 			</div>
@@ -207,7 +219,10 @@
 			<div class="grid grid-cols-5 gap-4">
 				<!-- Total Changes -->
 				<div class="flex flex-col h-32 p-4 bg-background border rounded-sm">
-					<span class="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-auto">Total Changes</span>
+					<span
+						class="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-auto"
+						>Total Changes</span
+					>
 					<div class="flex items-end justify-between">
 						<span class="text-3xl font-bold tabular-nums">{previewData.totalChanges}</span>
 					</div>
@@ -215,7 +230,10 @@
 
 				<!-- Creates -->
 				<div class="flex flex-col h-32 p-4 bg-background border rounded-sm">
-					<span class="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-auto">Creates</span>
+					<span
+						class="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-auto"
+						>Creates</span
+					>
 					<div class="flex items-end justify-between">
 						<span class="text-3xl font-bold tabular-nums">{previewData.summary.totalCreates}</span>
 						<Plus class="h-8 w-8 text-green-500 mb-1" />
@@ -224,7 +242,10 @@
 
 				<!-- Updates -->
 				<div class="flex flex-col h-32 p-4 bg-background border rounded-sm">
-					<span class="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-auto">Updates</span>
+					<span
+						class="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-auto"
+						>Updates</span
+					>
 					<div class="flex items-end justify-between">
 						<span class="text-3xl font-bold tabular-nums">{previewData.summary.totalUpdates}</span>
 						<Edit class="h-8 w-8 text-blue-500 mb-1" />
@@ -233,7 +254,10 @@
 
 				<!-- Deletes -->
 				<div class="flex flex-col h-32 p-4 bg-background border rounded-sm">
-					<span class="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-auto">Deletes</span>
+					<span
+						class="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-auto"
+						>Deletes</span
+					>
 					<div class="flex items-end justify-between">
 						<span class="text-3xl font-bold tabular-nums">{previewData.summary.totalDeletes}</span>
 						<Trash2 class="h-8 w-8 text-red-500 mb-1" />
@@ -242,9 +266,13 @@
 
 				<!-- Conflicts -->
 				<div class="flex flex-col h-32 p-4 bg-background border rounded-sm">
-					<span class="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-auto">Conflicts</span>
+					<span
+						class="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-auto"
+						>Conflicts</span
+					>
 					<div class="flex items-end justify-between">
-						<span class="text-3xl font-bold tabular-nums">{previewData.summary.totalConflicts}</span>
+						<span class="text-3xl font-bold tabular-nums">{previewData.summary.totalConflicts}</span
+						>
 						<AlertTriangle class="h-8 w-8 text-orange-500 mb-1" />
 					</div>
 				</div>
@@ -255,7 +283,11 @@
 				{#if previewData.summary.totalWarnings > 0}
 					<div class="flex items-center gap-2 text-xs text-orange-600">
 						<FileWarning class="h-4 w-4" />
-						<span>{previewData.summary.totalWarnings} warning{previewData.summary.totalWarnings > 1 ? 's' : ''} detected</span>
+						<span
+							>{previewData.summary.totalWarnings} warning{previewData.summary.totalWarnings > 1
+								? 's'
+								: ''} detected</span
+						>
 					</div>
 				{:else}
 					<div></div>
@@ -273,7 +305,9 @@
 		<div class="flex-shrink-0 border-b bg-background">
 			<div class="flex gap-0 px-4">
 				<button
-					onclick={() => { selectedTab = 'creates'; }}
+					onclick={() => {
+						selectedTab = 'creates';
+					}}
 					class="px-4 py-3 text-xs font-medium transition-colors {selectedTab === 'creates'
 						? 'border-b-2 border-primary text-foreground'
 						: 'text-muted-foreground hover:text-foreground'}"
@@ -281,7 +315,9 @@
 					Creates ({previewData.creates.length})
 				</button>
 				<button
-					onclick={() => { selectedTab = 'updates'; }}
+					onclick={() => {
+						selectedTab = 'updates';
+					}}
 					class="px-4 py-3 text-xs font-medium transition-colors {selectedTab === 'updates'
 						? 'border-b-2 border-primary text-foreground'
 						: 'text-muted-foreground hover:text-foreground'}"
@@ -289,7 +325,9 @@
 					Updates ({previewData.updates.length})
 				</button>
 				<button
-					onclick={() => { selectedTab = 'deletes'; }}
+					onclick={() => {
+						selectedTab = 'deletes';
+					}}
 					class="px-4 py-3 text-xs font-medium transition-colors {selectedTab === 'deletes'
 						? 'border-b-2 border-primary text-foreground'
 						: 'text-muted-foreground hover:text-foreground'}"
@@ -311,11 +349,25 @@
 					<table class="w-full text-sm text-left border-collapse">
 						<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
 							<tr>
-								<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r w-12"></th>
-								<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r">Display Name</th>
-								<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r w-32">Entity Type</th>
-								<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r w-48">QuickBooks ID</th>
-								<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-24">Fields</th>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r w-12"
+								></th>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r"
+									>Display Name</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r w-32"
+									>Entity Type</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r w-48"
+									>QuickBooks ID</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-24"
+									>Fields</th
+								>
 							</tr>
 						</thead>
 						<tbody class="divide-y">
@@ -335,7 +387,9 @@
 										{/if}
 									</td>
 									<td class="px-3 py-1.5 border-r">
-										<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700">
+										<span
+											class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700"
+										>
 											{change.entityType}
 										</span>
 									</td>
@@ -352,7 +406,8 @@
 												onclick={() => toggleExpanded(changeId)}
 												class="text-xs text-primary hover:underline"
 											>
-												{expandedChanges.has(changeId) ? 'Hide' : 'Show'} ({change.fieldChanges.length})
+												{expandedChanges.has(changeId) ? 'Hide' : 'Show'} ({change.fieldChanges
+													.length})
 											</button>
 										{:else}
 											<span class="text-xs text-muted-foreground">—</span>
@@ -387,12 +442,29 @@
 					<table class="w-full text-sm text-left border-collapse">
 						<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
 							<tr>
-								<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r w-12"></th>
-								<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r">Display Name</th>
-								<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r w-32">Entity Type</th>
-								<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r w-32">Local ID</th>
-								<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r w-32">QB ID</th>
-								<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-24">Fields</th>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r w-12"
+								></th>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r"
+									>Display Name</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r w-32"
+									>Entity Type</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r w-32"
+									>Local ID</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r w-32"
+									>QB ID</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-24"
+									>Fields</th
+								>
 							</tr>
 						</thead>
 						<tbody class="divide-y">
@@ -412,7 +484,9 @@
 										{/if}
 									</td>
 									<td class="px-3 py-1.5 border-r">
-										<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700">
+										<span
+											class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700"
+										>
 											{change.entityType}
 										</span>
 									</td>
@@ -436,7 +510,8 @@
 												onclick={() => toggleExpanded(changeId)}
 												class="text-xs text-primary hover:underline"
 											>
-												{expandedChanges.has(changeId) ? 'Hide' : 'Show'} ({change.fieldChanges.length})
+												{expandedChanges.has(changeId) ? 'Hide' : 'Show'} ({change.fieldChanges
+													.length})
 											</button>
 										{:else}
 											<span class="text-xs text-muted-foreground">—</span>
@@ -452,11 +527,16 @@
 														<span class="font-medium min-w-32 flex items-center gap-2">
 															{field.fieldName}:
 															{#if field.hasConflict}
-																<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700">Conflict</span>
+																<span
+																	class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700"
+																	>Conflict</span
+																>
 															{/if}
 														</span>
 														<div class="flex items-center gap-2">
-															<span class="text-red-600 line-through">{field.currentValue || '(empty)'}</span>
+															<span class="text-red-600 line-through"
+																>{field.currentValue || '(empty)'}</span
+															>
 															<ArrowRight class="h-3 w-3" />
 															<span class="text-green-600">{field.newValue || '(empty)'}</span>
 														</div>
@@ -480,10 +560,21 @@
 					<table class="w-full text-sm text-left border-collapse">
 						<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
 							<tr>
-								<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r w-12"></th>
-								<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r">Display Name</th>
-								<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r w-32">Entity Type</th>
-								<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Status</th>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r w-12"
+								></th>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r"
+									>Display Name</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r w-32"
+									>Entity Type</th
+								>
+								<th
+									class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground"
+									>Status</th
+								>
 							</tr>
 						</thead>
 						<tbody class="divide-y">
@@ -502,7 +593,9 @@
 										{/if}
 									</td>
 									<td class="px-3 py-1.5 border-r">
-										<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700">
+										<span
+											class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700"
+										>
 											{change.entityType}
 										</span>
 									</td>

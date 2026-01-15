@@ -1,13 +1,5 @@
 <script lang="ts">
-	import {
-		Building,
-		Calendar,
-		Loader2,
-		Search,
-		UserMinus,
-		UserPlus,
-		Users
-	} from '@lucide/svelte';
+	import { Building, Calendar, Loader2, Search, UserMinus, UserPlus, Users } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Label } from '$lib/components/ui/label';
 	import * as Card from '$lib/components/ui/card';

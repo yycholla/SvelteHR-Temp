@@ -6,7 +6,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { validateForm } from '$lib/utils/validation';
 	import type { CreateUserInput, UpdateUserInput, User } from '$lib/types';
-	
+
 	// Import decomposed components
 	import BasicInfo from './form-legacy/BasicInfo.svelte';
 	import JobInfo from './form-legacy/JobInfo.svelte';

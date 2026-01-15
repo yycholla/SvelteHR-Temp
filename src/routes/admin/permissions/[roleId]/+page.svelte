@@ -176,7 +176,9 @@
 
 <div class="flex flex-col h-full bg-background overflow-hidden">
 	<!-- Sticky Header -->
-	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
 		<div class="flex items-center gap-4">
 			<Button variant="ghost" size="icon" class="h-8 w-8 -ml-2" onclick={goBack} title="Back">
 				<ArrowLeft class="h-4 w-4" />
@@ -184,7 +186,9 @@
 			<div>
 				<h1 class="text-sm font-semibold tracking-tight">{data.role?.name}</h1>
 				<div class="text-[10px] text-muted-foreground flex items-center gap-1">
-					<span class={stats.percentage > 0 ? "text-primary font-medium" : ""}>{stats.assigned}</span>
+					<span class={stats.percentage > 0 ? 'text-primary font-medium' : ''}
+						>{stats.assigned}</span
+					>
 					<span>/</span>
 					<span>{stats.total} permissions</span>
 				</div>
@@ -198,18 +202,34 @@
 					<Zap class="mr-2 h-3.5 w-3.5" />
 					Actions
 				</Button>
-				<div class="absolute right-0 top-full mt-1 w-48 rounded-md shadow-lg bg-popover border text-popover-foreground opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 p-1">
-					<button class="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-sm" onclick={() => grantAllReadScope('self')}>Grant Read: Self</button>
-					<button class="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-sm" onclick={() => grantAllReadScope('team')}>Grant Read: Team</button>
-					<button class="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-sm" onclick={() => grantAllReadScope('all')}>Grant Read: All</button>
+				<div
+					class="absolute right-0 top-full mt-1 w-48 rounded-md shadow-lg bg-popover border text-popover-foreground opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 p-1"
+				>
+					<button
+						class="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-sm"
+						onclick={() => grantAllReadScope('self')}>Grant Read: Self</button
+					>
+					<button
+						class="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-sm"
+						onclick={() => grantAllReadScope('team')}>Grant Read: Team</button
+					>
+					<button
+						class="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded-sm"
+						onclick={() => grantAllReadScope('all')}>Grant Read: All</button
+					>
 					<div class="h-px bg-border my-1"></div>
-					<button class="w-full text-left px-2 py-1.5 text-xs text-destructive hover:bg-destructive/10 rounded-sm" onclick={() => revokeAllRead()}>Revoke All Read</button>
+					<button
+						class="w-full text-left px-2 py-1.5 text-xs text-destructive hover:bg-destructive/10 rounded-sm"
+						onclick={() => revokeAllRead()}>Revoke All Read</button
+					>
 				</div>
 			</div>
 
 			<!-- Search -->
 			<div class="relative w-48">
-				<Search class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+				<Search
+					class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+				/>
 				<input
 					type="text"
 					bind:value={searchQuery}
@@ -231,12 +251,7 @@
 				}}
 			>
 				<input type="hidden" name="permissionIds" value={JSON.stringify(selectedPermissionIds)} />
-				<Button
-					type="submit"
-					size="sm"
-					class="h-8 min-w-[100px]"
-					disabled={loading || !hasChanges}
-				>
+				<Button type="submit" size="sm" class="h-8 min-w-[100px]" disabled={loading || !hasChanges}>
 					{#if loading}
 						Saving...
 					{:else if hasChanges}
@@ -252,8 +267,11 @@
 	<!-- Content -->
 	<div class="flex-1 overflow-auto bg-muted/5">
 		{#if form?.error}
-			<div class="m-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive flex items-center gap-2">
-				<X class="h-4 w-4" /> {form.error}
+			<div
+				class="m-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive flex items-center gap-2"
+			>
+				<X class="h-4 w-4" />
+				{form.error}
 			</div>
 		{/if}
 

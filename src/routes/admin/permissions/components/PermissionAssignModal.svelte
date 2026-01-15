@@ -40,7 +40,7 @@
 	}
 </script>
 
-<Dialog.Root bind:open={open}>
+<Dialog.Root bind:open>
 	<Dialog.Content class="max-w-2xl max-h-[80vh] overflow-y-auto">
 		<Dialog.Header>
 			<Dialog.Title>Manage Permissions for {selectedRole?.name}</Dialog.Title>

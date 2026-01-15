@@ -15,13 +15,7 @@
 		max?: string;
 	}
 
-	let {
-		name,
-		label,
-		required = false,
-		min,
-		max
-	}: Props = $props();
+	let { name, label, required = false, min, max }: Props = $props();
 
 	// Get form from context
 	const form = getContext<SuperForm<Record<string, unknown>>>('form');
@@ -40,12 +34,7 @@
 					</FormLabel>
 				{/if}
 
-				<Input
-					{...props}
-					type="date"
-					{min}
-					{max}
-				/>
+				<Input {...props} type="date" {min} {max} />
 
 				<FieldErrors />
 			</div>

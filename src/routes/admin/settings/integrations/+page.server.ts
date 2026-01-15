@@ -17,7 +17,7 @@ const SYNC_PERMISSIONS = {
 	VIEW_AUDIT_TRAIL: 'sync:view_audit_trail',
 	EXPORT_DATA: 'sync:export_data',
 	MANAGE_INTEGRATIONS: 'integrations:manage',
-	MANAGE_PERMISSIONS: 'sync:manage_permissions',
+	MANAGE_PERMISSIONS: 'sync:manage_permissions'
 } as const;
 
 /**
@@ -52,9 +52,11 @@ function hasSyncPermission(
 			SYNC_PERMISSIONS.VIEW_HISTORY,
 			SYNC_PERMISSIONS.VIEW_CONFLICTS,
 			SYNC_PERMISSIONS.RESOLVE_CONFLICTS,
-			SYNC_PERMISSIONS.MANAGE_INTEGRATIONS,
+			SYNC_PERMISSIONS.MANAGE_INTEGRATIONS
 		];
-		if (legacyGrantedPermissions.includes(permission as (typeof legacyGrantedPermissions)[number])) {
+		if (
+			legacyGrantedPermissions.includes(permission as (typeof legacyGrantedPermissions)[number])
+		) {
 			return true;
 		}
 	}
@@ -71,7 +73,7 @@ function hasSyncPermission(
 			SYNC_PERMISSIONS.VIEW_METRICS,
 			SYNC_PERMISSIONS.VIEW_AUDIT_TRAIL,
 			SYNC_PERMISSIONS.RESOLVE_CONFLICTS,
-			SYNC_PERMISSIONS.EXPORT_DATA,
+			SYNC_PERMISSIONS.EXPORT_DATA
 		];
 		if (hrManagerPermissions.includes(permission as (typeof hrManagerPermissions)[number])) {
 			return true;
@@ -83,7 +85,7 @@ function hasSyncPermission(
 		const managerPermissions = [
 			SYNC_PERMISSIONS.VIEW_HISTORY,
 			SYNC_PERMISSIONS.VIEW_CONFLICTS,
-			SYNC_PERMISSIONS.RESOLVE_CONFLICTS,
+			SYNC_PERMISSIONS.RESOLVE_CONFLICTS
 		];
 		if (managerPermissions.includes(permission as (typeof managerPermissions)[number])) {
 			return true;
@@ -134,21 +136,57 @@ export const load: PageServerLoad = async ({ fetch, cookies, depends, parent }) 
 
 	// Compute sync permissions for UI
 	const syncPermissions = {
-		canTriggerEmployeeSync: hasSyncPermission(userPermissions, userRoles, SYNC_PERMISSIONS.TRIGGER_EMPLOYEE),
-		canTriggerDepartmentSync: hasSyncPermission(userPermissions, userRoles, SYNC_PERMISSIONS.TRIGGER_DEPARTMENT),
+		canTriggerEmployeeSync: hasSyncPermission(
+			userPermissions,
+			userRoles,
+			SYNC_PERMISSIONS.TRIGGER_EMPLOYEE
+		),
+		canTriggerDepartmentSync: hasSyncPermission(
+			userPermissions,
+			userRoles,
+			SYNC_PERMISSIONS.TRIGGER_DEPARTMENT
+		),
 		canPushToQuickBooks: hasSyncPermission(userPermissions, userRoles, SYNC_PERMISSIONS.PUSH),
-		canTriggerBidirectionalSync: hasSyncPermission(userPermissions, userRoles, SYNC_PERMISSIONS.TRIGGER_BIDIRECTIONAL),
+		canTriggerBidirectionalSync: hasSyncPermission(
+			userPermissions,
+			userRoles,
+			SYNC_PERMISSIONS.TRIGGER_BIDIRECTIONAL
+		),
 		canForceFullSync: hasSyncPermission(userPermissions, userRoles, SYNC_PERMISSIONS.FORCE_FULL),
 		canCancelSync: hasSyncPermission(userPermissions, userRoles, SYNC_PERMISSIONS.CANCEL),
-		canViewConflicts: hasSyncPermission(userPermissions, userRoles, SYNC_PERMISSIONS.VIEW_CONFLICTS),
-		canResolveConflicts: hasSyncPermission(userPermissions, userRoles, SYNC_PERMISSIONS.RESOLVE_CONFLICTS),
-		canBulkResolveConflicts: hasSyncPermission(userPermissions, userRoles, SYNC_PERMISSIONS.BULK_RESOLVE_CONFLICTS),
+		canViewConflicts: hasSyncPermission(
+			userPermissions,
+			userRoles,
+			SYNC_PERMISSIONS.VIEW_CONFLICTS
+		),
+		canResolveConflicts: hasSyncPermission(
+			userPermissions,
+			userRoles,
+			SYNC_PERMISSIONS.RESOLVE_CONFLICTS
+		),
+		canBulkResolveConflicts: hasSyncPermission(
+			userPermissions,
+			userRoles,
+			SYNC_PERMISSIONS.BULK_RESOLVE_CONFLICTS
+		),
 		canViewHistory: hasSyncPermission(userPermissions, userRoles, SYNC_PERMISSIONS.VIEW_HISTORY),
 		canViewMetrics: hasSyncPermission(userPermissions, userRoles, SYNC_PERMISSIONS.VIEW_METRICS),
-		canViewAuditTrail: hasSyncPermission(userPermissions, userRoles, SYNC_PERMISSIONS.VIEW_AUDIT_TRAIL),
+		canViewAuditTrail: hasSyncPermission(
+			userPermissions,
+			userRoles,
+			SYNC_PERMISSIONS.VIEW_AUDIT_TRAIL
+		),
 		canExportData: hasSyncPermission(userPermissions, userRoles, SYNC_PERMISSIONS.EXPORT_DATA),
-		canManageIntegrations: hasSyncPermission(userPermissions, userRoles, SYNC_PERMISSIONS.MANAGE_INTEGRATIONS),
-		canManagePermissions: hasSyncPermission(userPermissions, userRoles, SYNC_PERMISSIONS.MANAGE_PERMISSIONS),
+		canManageIntegrations: hasSyncPermission(
+			userPermissions,
+			userRoles,
+			SYNC_PERMISSIONS.MANAGE_INTEGRATIONS
+		),
+		canManagePermissions: hasSyncPermission(
+			userPermissions,
+			userRoles,
+			SYNC_PERMISSIONS.MANAGE_PERMISSIONS
+		)
 	};
 
 	try {
@@ -167,9 +205,9 @@ export const load: PageServerLoad = async ({ fetch, cookies, depends, parent }) 
 					totalSyncs24h: 0,
 					successRate: 0,
 					errorRate: 0,
-					activeAlertsCount: 0,
+					activeAlertsCount: 0
 				},
-				alerts: [],
+				alerts: []
 			};
 		}
 
@@ -189,13 +227,13 @@ export const load: PageServerLoad = async ({ fetch, cookies, depends, parent }) 
 				totalSyncs24h: healthStatus?.totalSyncs24H || 0,
 				successRate: healthStatus?.successRate || 0,
 				errorRate: healthStatus?.errorRate || 0,
-				activeAlertsCount: healthStatus?.activeAlertsCount || 0,
+				activeAlertsCount: healthStatus?.activeAlertsCount || 0
 			},
 			alerts: alerts.map((alert: any) => ({
 				id: alert.id,
 				severity: alert.severity,
-				message: alert.message,
-			})),
+				message: alert.message
+			}))
 		};
 	} catch (error) {
 		console.error('Error loading integrations page:', error);
@@ -210,9 +248,9 @@ export const load: PageServerLoad = async ({ fetch, cookies, depends, parent }) 
 				totalSyncs24h: 0,
 				successRate: 0,
 				errorRate: 0,
-				activeAlertsCount: 0,
+				activeAlertsCount: 0
 			},
-			alerts: [],
+			alerts: []
 		};
 	}
 };

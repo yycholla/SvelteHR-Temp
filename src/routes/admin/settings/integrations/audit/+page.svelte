@@ -141,7 +141,10 @@
 		successCount: logs.filter((l: any) => l.status === 'success').length,
 		failedCount: logs.filter((l: any) => l.status === 'failed').length,
 		partialCount: logs.filter((l: any) => l.status === 'partial').length,
-		successRate: total > 0 ? ((logs.filter((l: any) => l.status === 'success').length / total) * 100).toFixed(1) : '0.0'
+		successRate:
+			total > 0
+				? ((logs.filter((l: any) => l.status === 'success').length / total) * 100).toFixed(1)
+				: '0.0'
 	});
 
 	async function refreshAuditLogs() {
@@ -325,7 +328,9 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-background">
 	<!-- Toolbar -->
-	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
 		<div class="flex items-center gap-4">
 			<h1 class="text-sm font-semibold tracking-tight">Audit Trail</h1>
 			<div class="h-4 w-px bg-border"></div>
@@ -364,7 +369,9 @@
 
 	{#if data.error}
 		<div class="flex-shrink-0 p-4 pb-0">
-			<div class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20">
+			<div
+				class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20"
+			>
 				{data.error}
 			</div>
 		</div>
@@ -376,7 +383,9 @@
 			<!-- Total Logs -->
 			<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 				<div class="flex items-center justify-between">
-					<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Logs</span>
+					<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+						>Total Logs</span
+					>
 					<FileText class="h-4 w-4 text-muted-foreground" />
 				</div>
 				<div>
@@ -388,7 +397,9 @@
 			<!-- Success Rate -->
 			<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 				<div class="flex items-center justify-between">
-					<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Success Rate</span>
+					<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+						>Success Rate</span
+					>
 					<CheckCircle2 class="h-4 w-4 text-muted-foreground" />
 				</div>
 				<div>
@@ -400,7 +411,9 @@
 			<!-- Failed Operations -->
 			<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 				<div class="flex items-center justify-between">
-					<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Failed</span>
+					<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+						>Failed</span
+					>
 					<XCircle class="h-4 w-4 text-muted-foreground" />
 				</div>
 				<div>
@@ -414,7 +427,9 @@
 			<!-- Active Filters -->
 			<div class="p-6 bg-background flex flex-col justify-between h-32">
 				<div class="flex items-center justify-between">
-					<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Filters</span>
+					<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+						>Filters</span
+					>
 					<Filter class="h-4 w-4 text-muted-foreground" />
 				</div>
 				<div>
@@ -435,7 +450,9 @@
 			<div class="grid grid-cols-1 md:grid-cols-3 gap-3">
 				<!-- Search -->
 				<div class="relative">
-					<Search class="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+					<Search
+						class="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
+					/>
 					<input
 						type="text"
 						placeholder="Search logs..."
@@ -709,9 +726,7 @@
 					Audit Chain Issues Detected
 				{/if}
 			</DialogTitle>
-			<DialogDescription>
-				Integrity check for last 30 days
-			</DialogDescription>
+			<DialogDescription>Integrity check for last 30 days</DialogDescription>
 		</DialogHeader>
 
 		{#if verificationResult}
@@ -723,7 +738,11 @@
 					</div>
 					<div class="p-4 border rounded">
 						<p class="text-xs text-muted-foreground mb-1">Issues Found</p>
-						<p class="text-2xl font-bold {verificationResult.issuesFound > 0 ? 'text-red-600' : 'text-green-600'}">
+						<p
+							class="text-2xl font-bold {verificationResult.issuesFound > 0
+								? 'text-red-600'
+								: 'text-green-600'}"
+						>
 							{verificationResult.issuesFound}
 						</p>
 					</div>
@@ -761,9 +780,7 @@
 		{/if}
 
 		<DialogFooter>
-			<Button variant="ghost" onclick={() => (showVerificationModal = false)}>
-				Close
-			</Button>
+			<Button variant="ghost" onclick={() => (showVerificationModal = false)}>Close</Button>
 		</DialogFooter>
 	</DialogContent>
 </Dialog>
@@ -775,7 +792,9 @@
 			<DialogTitle>Compliance Report</DialogTitle>
 			<DialogDescription>
 				{#if complianceReport}
-					{new Date(complianceReport.startDate).toLocaleDateString()} - {new Date(complianceReport.endDate).toLocaleDateString()}
+					{new Date(complianceReport.startDate).toLocaleDateString()} - {new Date(
+						complianceReport.endDate
+					).toLocaleDateString()}
 				{/if}
 			</DialogDescription>
 		</DialogHeader>
@@ -817,7 +836,11 @@
 										<tr>
 											<td class="px-3 py-2 text-xs">{activity.userEmail}</td>
 											<td class="px-3 py-2 text-xs text-right">{activity.totalActions}</td>
-											<td class="px-3 py-2 text-xs text-right {activity.failedActions > 0 ? 'text-red-600 font-medium' : ''}">
+											<td
+												class="px-3 py-2 text-xs text-right {activity.failedActions > 0
+													? 'text-red-600 font-medium'
+													: ''}"
+											>
 												{activity.failedActions}
 											</td>
 											<td class="px-3 py-2 text-xs text-right">{activity.dataChanges}</td>
@@ -844,9 +867,7 @@
 		{/if}
 
 		<DialogFooter>
-			<Button variant="ghost" onclick={() => (showComplianceModal = false)}>
-				Close
-			</Button>
+			<Button variant="ghost" onclick={() => (showComplianceModal = false)}>Close</Button>
 		</DialogFooter>
 	</DialogContent>
 </Dialog>

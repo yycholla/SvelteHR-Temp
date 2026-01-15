@@ -113,9 +113,7 @@ test.describe('Admin Analytics Access Control (US1)', () => {
 		expect(pageContent).not.toContain('Access Denied');
 	});
 
-	test('should allow Admin with wildcard (*) to access /admin/analytics', async ({
-		page
-	}) => {
+	test('should allow Admin with wildcard (*) to access /admin/analytics', async ({ page }) => {
 		// Login as Admin with wildcard permission
 		await loginWithPermissions(page, ['*'], ['Admin']);
 
@@ -160,12 +158,7 @@ test.describe('Admin System Routes Access Control (US1)', () => {
 		await loginWithPermissions(page, ['profile:read', 'profile:write'], ['Employee']);
 
 		// Attempt to access various admin routes
-		const adminRoutes = [
-			'/admin/departments',
-			'/admin/users',
-			'/admin/analytics',
-			'/admin/system'
-		];
+		const adminRoutes = ['/admin/departments', '/admin/users', '/admin/analytics', '/admin/system'];
 
 		for (const route of adminRoutes) {
 			await page.goto(route);

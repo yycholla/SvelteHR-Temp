@@ -7,6 +7,7 @@
 -->
 
 <script module lang="ts">
+	// eslint-disable-next-line no-import-assign
 	export type { TaskFilterState } from './filters/types';
 </script>
 

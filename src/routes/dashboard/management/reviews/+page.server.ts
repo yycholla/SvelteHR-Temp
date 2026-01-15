@@ -237,9 +237,7 @@ export const load: PageServerLoad = async (event) => {
 		// Calculate average rating across all completed reviews (filtered set)
 		const completedReviews = filteredReviews.filter((r) => r.status === 'completed');
 		const averageRating =
-			completedReviews.length > 0
-				? Aggregators.average(completedReviews, 'overallRating')
-				: 0;
+			completedReviews.length > 0 ? Aggregators.average(completedReviews, 'overallRating') : 0;
 
 		// Calculate completion rate
 		const completionRate =

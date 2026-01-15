@@ -269,10 +269,7 @@
 					/>
 				{:else}
 					<!-- Processing Phase -->
-					<RollbackProgress
-						{progress}
-						{progressPercentage}
-					/>
+					<RollbackProgress {progress} {progressPercentage} />
 				{/if}
 			</div>
 

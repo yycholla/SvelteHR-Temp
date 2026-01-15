@@ -195,10 +195,7 @@ export function filterByDepartment(
 /**
  * Filter reviews by status (client-side)
  */
-export function filterByStatus(
-	reviews: PerformanceReview[],
-	status: string
-): PerformanceReview[] {
+export function filterByStatus(reviews: PerformanceReview[], status: string): PerformanceReview[] {
 	return reviews.filter((review) => review.status === status);
 }
 

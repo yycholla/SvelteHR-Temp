@@ -28,11 +28,7 @@ export {
 } from './org-changes/handlers';
 
 // Export data access utilities
-export {
-	getTasksRequiringManualReassignment
-} from './org-changes/data-access';
+export { getTasksRequiringManualReassignment } from './org-changes/data-access';
 
 // Export main processor
-export {
-	processOrganizationalChange
-} from './org-changes/processor';
+export { processOrganizationalChange } from './org-changes/processor';

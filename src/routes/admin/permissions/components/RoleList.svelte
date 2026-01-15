@@ -30,7 +30,9 @@
 </script>
 
 <div class="border rounded-none">
-	<div class="grid grid-cols-[auto_1fr_1fr_auto] gap-4 px-4 py-3 bg-muted/40 border-b text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0 z-10">
+	<div
+		class="grid grid-cols-[auto_1fr_1fr_auto] gap-4 px-4 py-3 bg-muted/40 border-b text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0 z-10"
+	>
 		<div class="w-8"></div>
 		<div>Role Name</div>
 		<div>Description</div>
@@ -51,19 +53,23 @@
 							<ChevronRight class="h-4 w-4" />
 						{/if}
 					</button>
-					
+
 					<div class="font-medium text-sm text-foreground">
 						{role.name}
-						<span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground">
+						<span
+							class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground"
+						>
 							{role.permissions?.length || 0} perms
 						</span>
 					</div>
-					
+
 					<div class="text-sm text-muted-foreground truncate">
 						{role.description || '-'}
 					</div>
 
-					<div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+					<div
+						class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
+					>
 						<Button
 							variant="ghost"
 							size="sm"
@@ -73,7 +79,13 @@
 						>
 							<Shield class="h-4 w-4 text-muted-foreground hover:text-primary" />
 						</Button>
-						<Button variant="ghost" size="sm" class="h-8 px-2" onclick={() => onEditRole(role)} title="Edit Role">
+						<Button
+							variant="ghost"
+							size="sm"
+							class="h-8 px-2"
+							onclick={() => onEditRole(role)}
+							title="Edit Role"
+						>
 							<Edit class="h-4 w-4 text-muted-foreground hover:text-primary" />
 						</Button>
 						<form method="POST" action="?/deleteRole" use:enhance class="inline-block">
@@ -99,11 +111,16 @@
 				{#if expandedRoles.has(role.id)}
 					<div class="px-4 pb-4 pt-0 pl-16">
 						<div class="p-4 bg-muted/30 rounded-md border border-dashed">
-							<h4 class="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Assigned Permissions</h4>
+							<h4 class="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">
+								Assigned Permissions
+							</h4>
 							{#if role.permissions && role.permissions.length > 0}
 								<div class="flex flex-wrap gap-2">
 									{#each role.permissions as permission (permission.id)}
-										<Badge variant={getPermissionBadgeVariant(permission.action)} class="text-[10px] px-1.5 py-0.5 h-5">
+										<Badge
+											variant={getPermissionBadgeVariant(permission.action)}
+											class="text-[10px] px-1.5 py-0.5 h-5"
+										>
 											{permission.resource}:{permission.action}
 										</Badge>
 									{/each}
@@ -116,9 +133,7 @@
 				{/if}
 			</div>
 		{:else}
-			<div class="py-12 text-center text-sm text-muted-foreground">
-				No roles found
-			</div>
+			<div class="py-12 text-center text-sm text-muted-foreground">No roles found</div>
 		{/each}
 	</div>
 </div>

@@ -18,11 +18,7 @@ import {
 	updateCacheStats
 } from './metrics';
 import { checkPerformanceAlerts } from './alerts';
-import {
-	analyzeTrends,
-	generateRecommendations,
-	identifyCacheOptimizations
-} from './reports';
+import { analyzeTrends, generateRecommendations, identifyCacheOptimizations } from './reports';
 
 export class GraphQLPerformanceMonitor {
 	private config: PerformanceMonitorConfig;

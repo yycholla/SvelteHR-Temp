@@ -3,7 +3,11 @@
 	import { goto } from '$app/navigation';
 	import { Badge } from '$lib/components/ui/badge';
 	import { SpreadsheetTable } from '$lib/components/ui/spreadsheet';
-	import type { SpreadsheetConfig, ColumnDefinition, RowEdit } from '$lib/components/ui/spreadsheet';
+	import type {
+		SpreadsheetConfig,
+		ColumnDefinition,
+		RowEdit
+	} from '$lib/components/ui/spreadsheet';
 
 	interface Training {
 		id: string;
@@ -142,10 +146,21 @@
 </script>
 
 <SpreadsheetTable {config} data={trainings}>
-	{#snippet customCell({ column, row }: { column: ColumnDefinition<Training>; row: Training; value: unknown })}
+	<!-- prettier-ignore -->
+	{#snippet customCell({
+		column,
+		row
+	}: {
+		column: ColumnDefinition<Training>;
+		row: Training;
+		value: unknown;
+	})}
 		{#if column.id === 'status'}
 			{#if row.isActive}
-				<Badge variant="default" class="bg-green-500/10 text-green-700 border-green-200 text-[10px] h-5">
+				<Badge
+					variant="default"
+					class="bg-green-500/10 text-green-700 border-green-200 text-[10px] h-5"
+				>
 					Active
 				</Badge>
 			{:else}
@@ -160,7 +175,10 @@
 				{#if row.assignments && row.assignments.length > 0}
 					<span class="text-xs text-muted-foreground truncate max-w-[200px]">
 						{row.assignments
-							.map((a: { user?: { displayName: string; email: string } }) => a.user?.displayName || a.user?.email)
+							.map(
+								(a: { user?: { displayName: string; email: string } }) =>
+									a.user?.displayName || a.user?.email
+							)
 							.slice(0, 2)
 							.join(', ')}
 						{#if row.assignmentCount > 2}

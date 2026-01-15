@@ -40,13 +40,9 @@
 	let showSaveTemplateDialog = $state(false);
 
 	// Derived state
-	const selectedTemplate = $derived(
-		formTemplates.find((t) => t.id === selectedTemplateId) || null
-	);
+	const selectedTemplate = $derived(formTemplates.find((t) => t.id === selectedTemplateId) || null);
 
-	const fieldCount = $derived(
-		inlineElements.filter((el) => el.elementType === 'FIELD').length
-	);
+	const fieldCount = $derived(inlineElements.filter((el) => el.elementType === 'FIELD').length);
 
 	const canSaveAsTemplate = $derived(formMode === 'custom' && inlineElements.length > 0);
 
@@ -82,11 +78,7 @@
 		notifySave();
 	}
 
-	function handleSaveAsTemplate(
-		name: string,
-		description: string | null,
-		category: string | null
-	) {
+	function handleSaveAsTemplate(name: string, description: string | null, category: string | null) {
 		console.log('Save as template:', { name, description, category, elements: inlineElements });
 		showSaveTemplateDialog = false;
 	}
@@ -100,16 +92,16 @@
 	<!-- Toolbar for Mode Selection (Top) -->
 	<div class="px-4 py-2 border-b bg-background flex items-center justify-between shrink-0">
 		<div class="flex items-center gap-2">
-			<Button 
-				variant={formMode === 'template' ? 'secondary' : 'ghost'} 
+			<Button
+				variant={formMode === 'template' ? 'secondary' : 'ghost'}
 				size="sm"
 				class="text-xs h-7"
 				onclick={() => handleModeChange('template')}
 			>
 				<LayoutTemplate class="mr-2 h-3.5 w-3.5" /> Use Template
 			</Button>
-			<Button 
-				variant={formMode === 'custom' ? 'secondary' : 'ghost'} 
+			<Button
+				variant={formMode === 'custom' ? 'secondary' : 'ghost'}
 				size="sm"
 				class="text-xs h-7"
 				onclick={() => handleModeChange('custom')}
@@ -119,7 +111,12 @@
 		</div>
 
 		{#if canSaveAsTemplate}
-			<Button variant="outline" size="sm" class="h-7 text-xs" onclick={() => showSaveTemplateDialog = true}>
+			<Button
+				variant="outline"
+				size="sm"
+				class="h-7 text-xs"
+				onclick={() => (showSaveTemplateDialog = true)}
+			>
 				<Save class="mr-2 h-3.5 w-3.5" /> Save as Template
 			</Button>
 		{/if}
@@ -135,7 +132,9 @@
 						{#if formTemplates.length === 0}
 							<div class="border rounded-md p-8 text-center text-muted-foreground bg-muted/10">
 								<p>No form templates available.</p>
-								<Button variant="link" class="mt-2" onclick={() => handleModeChange('custom')}>Start from scratch</Button>
+								<Button variant="link" class="mt-2" onclick={() => handleModeChange('custom')}
+									>Start from scratch</Button
+								>
 							</div>
 						{:else}
 							<select
@@ -148,7 +147,8 @@
 								{#each formTemplates as template}
 									<option value={template.id}>
 										{template.name}
-										{#if template.category} ({template.category}){/if}
+										{#if template.category}
+											({template.category}){/if}
 									</option>
 								{/each}
 							</select>
@@ -161,9 +161,13 @@
 								<h4 class="text-sm font-semibold mb-4">Template Preview</h4>
 								<div class="space-y-3">
 									{#each selectedTemplate.fields as field}
-										<div class="flex items-center justify-between text-sm py-2 border-b last:border-0">
+										<div
+											class="flex items-center justify-between text-sm py-2 border-b last:border-0"
+										>
 											<span class="font-medium">{field.label}</span>
-											<span class="text-muted-foreground bg-muted px-2 py-0.5 rounded text-xs">{field.type}</span>
+											<span class="text-muted-foreground bg-muted px-2 py-0.5 rounded text-xs"
+												>{field.type}</span
+											>
 										</div>
 									{/each}
 								</div>
@@ -173,10 +177,7 @@
 				</div>
 			</div>
 		{:else}
-			<FormDesigner
-				bind:elements={inlineElements}
-				onElementsChange={handleElementsChange}
-			/>
+			<FormDesigner bind:elements={inlineElements} onElementsChange={handleElementsChange} />
 		{/if}
 	</div>
 </div>
@@ -184,7 +185,7 @@
 <!-- Save as Template Dialog -->
 <SaveAsTemplateDialog
 	bind:open={showSaveTemplateDialog}
-	fieldCount={fieldCount}
+	{fieldCount}
 	onSave={handleSaveAsTemplate}
 	onCancel={handleCancelSaveTemplate}
 />

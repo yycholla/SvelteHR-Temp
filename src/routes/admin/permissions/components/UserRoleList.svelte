@@ -41,13 +41,26 @@
 					</Table.TableCell>
 					<Table.TableCell class="py-2">
 						{#if user.isActive}
-							<div class="inline-flex items-center text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-full ring-1 ring-inset ring-green-600/20">Active</div>
+							<div
+								class="inline-flex items-center text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-full ring-1 ring-inset ring-green-600/20"
+							>
+								Active
+							</div>
 						{:else}
-							<div class="inline-flex items-center text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Inactive</div>
+							<div
+								class="inline-flex items-center text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full"
+							>
+								Inactive
+							</div>
 						{/if}
 					</Table.TableCell>
 					<Table.TableCell class="text-right py-2">
-						<Button variant="ghost" size="sm" class="h-8 px-2 opacity-0 group-hover:opacity-100 transition-opacity" onclick={() => onManageRoles(user)}>
+						<Button
+							variant="ghost"
+							size="sm"
+							class="h-8 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
+							onclick={() => onManageRoles(user)}
+						>
 							<Shield class="mr-2 h-3.5 w-3.5" />
 							Manage
 						</Button>

@@ -12,7 +12,12 @@ import DateInput from './components/DateInput.svelte';
 import type { FormFieldDefinition } from './schema-generator';
 
 export interface FieldComponentConfig {
-	component: typeof TextInput | typeof EmailInput | typeof PhoneInput | typeof NumberInput | typeof DateInput;
+	component:
+		| typeof TextInput
+		| typeof EmailInput
+		| typeof PhoneInput
+		| typeof NumberInput
+		| typeof DateInput;
 	props: Record<string, unknown>;
 }
 

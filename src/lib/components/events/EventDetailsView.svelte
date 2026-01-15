@@ -322,15 +322,9 @@
 	<div class="flex-1 overflow-y-auto">
 		<TabsContent value="details" class="p-6">
 			<!-- Event Header -->
-			<EventDetailsHeader
-				{event}
-				{showCapacityIndicator}
-			/>
+			<EventDetailsHeader {event} {showCapacityIndicator} />
 
-			<EventInfoGrid
-				{event}
-				{displayRsvpStats}
-			/>
+			<EventInfoGrid {event} {displayRsvpStats} />
 
 			{#if event.description}
 				<div class="mb-6 border-t pt-6">
@@ -358,12 +352,7 @@
 			{/if}
 
 			{#if event.attendees && event.attendees.length > 0}
-				<EventAttendeeList
-					bind:activeAttendeeTab
-					{displayRsvpStats}
-					{filteredAttendees}
-					{userId}
-				/>
+				<EventAttendeeList bind:activeAttendeeTab {displayRsvpStats} {filteredAttendees} {userId} />
 			{/if}
 		</TabsContent>
 

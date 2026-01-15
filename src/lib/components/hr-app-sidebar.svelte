@@ -337,10 +337,7 @@
 		onToggle={() => sidebarState.toggle()}
 	/>
 
-	<SidebarNav
-		items={filteredNavMain}
-		isCollapsed={sidebarState.isCollapsed}
-	/>
+	<SidebarNav items={filteredNavMain} isCollapsed={sidebarState.isCollapsed} />
 
 	{#if canAccessManagement}
 		<SidebarSection

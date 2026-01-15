@@ -81,7 +81,12 @@ export const GET_RECENT_ACTIVITIES_QUERY = GET_RECENT_ACTIVITIES;
  * Backend: Uses attendanceRecords from Rust GraphQL schema
  */
 export const GET_USER_ATTENDANCE_QUERY = gql`
-	query GetUserAttendance($employeeId: UUID!, $startDate: String, $endDate: String, $limit: Int = 30) {
+	query GetUserAttendance(
+		$employeeId: UUID!
+		$startDate: String
+		$endDate: String
+		$limit: Int = 30
+	) {
 		attendanceRecords(
 			employeeId: $employeeId
 			startDate: $startDate
@@ -566,9 +571,7 @@ export function calculateDashboardStats(data: {
 		(lr) => lr.status.toLowerCase() === 'pending'
 	).length;
 
-	const recentHires = data.users.filter(
-		(u) => new Date(u.createdAt) >= thirtyDaysAgo
-	).length;
+	const recentHires = data.users.filter((u) => new Date(u.createdAt) >= thirtyDaysAgo).length;
 
 	const upcomingReviews = data.performanceReviews.filter((pr) => {
 		const status = pr.status.toLowerCase();
@@ -618,13 +621,9 @@ export function calculateLeaveAnalytics(leaveRequests: any[]): {
 	rejected: number;
 	total: number;
 } {
-	const approved = leaveRequests.filter(
-		(lr) => lr.status.toLowerCase() === 'approved'
-	).length;
+	const approved = leaveRequests.filter((lr) => lr.status.toLowerCase() === 'approved').length;
 	const pending = leaveRequests.filter((lr) => lr.status.toLowerCase() === 'pending').length;
-	const rejected = leaveRequests.filter(
-		(lr) => lr.status.toLowerCase() === 'rejected'
-	).length;
+	const rejected = leaveRequests.filter((lr) => lr.status.toLowerCase() === 'rejected').length;
 
 	return {
 		approved,
@@ -647,8 +646,7 @@ export function calculatePerformanceMetrics(performanceReviews: any[]): {
 	);
 
 	const ratingsSum = completedReviews.reduce((sum, pr) => sum + (pr.overallRating || 0), 0);
-	const averageRating =
-		completedReviews.length > 0 ? ratingsSum / completedReviews.length : 0;
+	const averageRating = completedReviews.length > 0 ? ratingsSum / completedReviews.length : 0;
 
 	const pendingReviews = performanceReviews.filter((pr) => {
 		const status = pr.status.toLowerCase();

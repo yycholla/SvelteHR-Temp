@@ -31,9 +31,8 @@ export async function loadEventsData(event: RequestEvent) {
 
 		// For calendar view, fetch all events (no pagination)
 		// For list view, use pagination
-		const { page, limit, offset } = view === 'calendar'
-			? { page: 1, limit: 500, offset: 0 }
-			: params.getPagination(50);
+		const { page, limit, offset } =
+			view === 'calendar' ? { page: 1, limit: 500, offset: 0 } : params.getPagination(50);
 
 		// Determine sort order for GraphQL
 		const orderByMap: Record<string, string> = {
@@ -101,15 +100,15 @@ export async function loadEventsData(event: RequestEvent) {
 		// For calendar view, filter to events within a few months of current date
 		// This reduces the dataset while ensuring all visible months have data
 		if (view === 'calendar') {
-		const now = new Date();
-		const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, 1);
-		const threeMonthsAhead = new Date(now.getFullYear(), now.getMonth() + 4, 0);
+			const now = new Date();
+			const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+			const threeMonthsAhead = new Date(now.getFullYear(), now.getMonth() + 4, 0);
 
-		events = events.filter((e: any) => {
-			const eventStart = new Date(e.startTime);
-			return eventStart >= twoMonthsAgo && eventStart <= threeMonthsAhead;
-		});
-	}
+			events = events.filter((e: any) => {
+				const eventStart = new Date(e.startTime);
+				return eventStart >= twoMonthsAgo && eventStart <= threeMonthsAhead;
+			});
+		}
 
 		// Apply client-side filtering since backend doesn't support it yet
 		if (statusFilter) {
@@ -121,17 +120,15 @@ export async function loadEventsData(event: RequestEvent) {
 
 		// Apply client-side sorting
 		if (sortBy === 'date') {
-			events = events.sort((a: any, b: any) =>
-				new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+			events = events.sort(
+				(a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
 			);
 		} else if (sortBy === 'created') {
-			events = events.sort((a: any, b: any) =>
-				new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+			events = events.sort(
+				(a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
 			);
 		} else if (sortBy === 'title') {
-			events = events.sort((a: any, b: any) =>
-				a.title.localeCompare(b.title)
-			);
+			events = events.sort((a: any, b: any) => a.title.localeCompare(b.title));
 		}
 
 		const totalCount = events.length;

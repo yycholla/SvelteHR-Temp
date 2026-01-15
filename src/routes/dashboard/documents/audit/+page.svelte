@@ -5,7 +5,7 @@
 
 	import { goto } from '$app/navigation';
 	import type { PageData } from './$types';
-	
+
 	// Import decomposed components
 	import AuditHeader from '$lib/components/documents/audit/AuditHeader.svelte';
 	import AuditFilters from '$lib/components/documents/audit/AuditFilters.svelte';

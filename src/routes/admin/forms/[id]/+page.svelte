@@ -12,7 +12,7 @@
 	} from '$lib/components/ui/alert-dialog';
 	import type { OnboardingForm, OnboardingFormBlock } from '$lib/graphql/form-operations';
 	import { toast } from 'svelte-sonner';
-	
+
 	// Import decomposed components
 	import FormBuilderHeader from '$lib/components/forms/builder/FormBuilderHeader.svelte';
 	import FormMetadataEditor from '$lib/components/forms/builder/FormMetadataEditor.svelte';
@@ -194,10 +194,7 @@
 </script>
 
 <div class="container mx-auto p-6 max-w-6xl">
-	<FormBuilderHeader
-		{previewMode}
-		onTogglePreview={() => (previewMode = !previewMode)}
-	/>
+	<FormBuilderHeader {previewMode} onTogglePreview={() => (previewMode = !previewMode)} />
 
 	{#if !previewMode}
 		<FormMetadataEditor
@@ -217,10 +214,7 @@
 			onMoveBlock={moveBlock}
 		/>
 	{:else}
-		<FormPreview
-			{form}
-			{blocks}
-		/>
+		<FormPreview {form} {blocks} />
 	{/if}
 </div>
 

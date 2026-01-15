@@ -87,7 +87,8 @@ export const eventActions = {
 		if (!locals.user) return fail(401, { error: 'Unauthorized' });
 		const userId = locals.user.id;
 
-		requireAuth(event, {			requiredPermissions: [
+		requireAuth(event, {
+			requiredPermissions: [
 				'events:write',
 				'events:write:self',
 				'events:write:team',
@@ -393,9 +394,11 @@ export const eventActions = {
 							userCredentials
 						});
 
-						const existingAttendee = (existingEvent.eventAttendees || existingEvent.attendees || []).find(
-							(a: AttendeeSubset) => a.employeeId === userId
-						);
+						const existingAttendee = (
+							existingEvent.eventAttendees ||
+							existingEvent.attendees ||
+							[]
+						).find((a: AttendeeSubset) => a.employeeId === userId);
 
 						if (existingAttendee) {
 							await eventsOps.updateRsvpStatus({

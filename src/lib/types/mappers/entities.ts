@@ -1,9 +1,4 @@
-import type {
-	UserGraphQL,
-	UserClient,
-	DepartmentGraphQL,
-	DepartmentClient
-} from './types';
+import type { UserGraphQL, UserClient, DepartmentGraphQL, DepartmentClient } from './types';
 import { mapJobInfoFromGraphQL, mapJobInfoToGraphQL } from './job-info';
 import {
 	mapContactInfoFromGraphQL,

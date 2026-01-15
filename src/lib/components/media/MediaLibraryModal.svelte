@@ -4,7 +4,7 @@
 	import { Upload, FileText, Image as ImageIcon, Video, Loader2 } from '@lucide/svelte';
 	import { gql } from '@urql/core';
 	import { client } from '$lib/graphql/client';
-	import { PUBLIC_API_URL } from '$env/static/public';
+	import { env } from '$env/dynamic/public';
 
 	interface Props {
 		open: boolean;
@@ -18,7 +18,7 @@
 	let uploading = $state(false);
 	let loading = $state(false);
 	let assets = $state<any[]>([]);
-	
+
 	const MEDIA_ASSETS_QUERY = gql`
 		query GetMediaAssets {
 			mediaAssets {
@@ -56,7 +56,7 @@
 
 		try {
 			// Usually PUBLIC_API_URL is set, if not use fallback relative path or default
-			const apiUrl = PUBLIC_API_URL || 'http://localhost:4000';
+			const apiUrl = env.PUBLIC_API_URL || 'http://localhost:4000';
 			const res = await fetch(`${apiUrl}/api/upload`, {
 				method: 'POST',
 				body: formData,
@@ -89,17 +89,16 @@
 		if (mimeType.startsWith('video/')) return 'video';
 		return 'document';
 	}
-	
+
 	function getUrl(path: string) {
 		if (path.startsWith('http')) return path;
-		const apiUrl = PUBLIC_API_URL || 'http://localhost:4000';
+		const apiUrl = env.PUBLIC_API_URL || 'http://localhost:4000';
 		const cleanPath = path.startsWith('/') ? path.substring(1) : path;
 		return `${apiUrl}/${cleanPath}`;
 	}
-
 </script>
 
-<Dialog.Root bind:open onOpenChange={onOpenChange}>
+<Dialog.Root bind:open {onOpenChange}>
 	<Dialog.Content class="max-w-3xl h-[600px] flex flex-col p-0 gap-0">
 		<Dialog.Header class="p-6 border-b pb-4">
 			<Dialog.Title>Media Library</Dialog.Title>
@@ -115,11 +114,15 @@
 						{:else}
 							<Upload class="mr-2 h-4 w-4" /> Upload New
 						{/if}
-						<input 
-							type="file" 
-							class="absolute inset-0 opacity-0 cursor-pointer" 
-							onchange={handleUpload} 
-							accept={acceptedTypes === 'image' ? 'image/*' : acceptedTypes === 'video' ? 'video/*' : '*/*'}
+						<input
+							type="file"
+							class="absolute inset-0 opacity-0 cursor-pointer"
+							onchange={handleUpload}
+							accept={acceptedTypes === 'image'
+								? 'image/*'
+								: acceptedTypes === 'video'
+									? 'video/*'
+									: '*/*'}
 							disabled={uploading}
 						/>
 					</Button>
@@ -135,18 +138,24 @@
 					<div class="grid grid-cols-4 gap-4">
 						{#each assets as asset}
 							{@const Icon = getIcon(asset.mimeType)}
-							<button 
+							<button
 								class="group relative border rounded-lg overflow-hidden aspect-square hover:ring-2 hover:ring-primary focus:outline-none focus:ring-2 focus:ring-primary flex flex-col items-center justify-center bg-muted/10 transition-all hover:bg-muted/20"
 								onclick={() => onSelect(getUrl(asset.storagePath), getType(asset.mimeType))}
 							>
 								{#if getType(asset.mimeType) === 'image'}
-									<img src={getUrl(asset.storagePath)} alt={asset.filename} class="w-full h-full object-cover" />
+									<img
+										src={getUrl(asset.storagePath)}
+										alt={asset.filename}
+										class="w-full h-full object-cover"
+									/>
 								{:else}
 									<div class="flex flex-col items-center gap-2 text-muted-foreground">
 										<Icon class="h-10 w-10" />
 									</div>
 								{/if}
-								<div class="absolute bottom-0 left-0 right-0 bg-background/90 backdrop-blur p-2 text-xs truncate border-t opacity-0 group-hover:opacity-100 transition-opacity">
+								<div
+									class="absolute bottom-0 left-0 right-0 bg-background/90 backdrop-blur p-2 text-xs truncate border-t opacity-0 group-hover:opacity-100 transition-opacity"
+								>
 									{asset.filename}
 								</div>
 							</button>

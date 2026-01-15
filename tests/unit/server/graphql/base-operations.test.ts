@@ -8,7 +8,10 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BaseOperations } from '$lib/graphql/base-operations';
-import { createCRUDOperations, createCRUDOperationsWithCustomNames } from '$lib/graphql/factories/crud-factory';
+import {
+	createCRUDOperations,
+	createCRUDOperationsWithCustomNames
+} from '$lib/graphql/factories/crud-factory';
 import type { Client } from '@urql/core';
 
 // Mock dependencies
@@ -16,7 +19,7 @@ vi.mock('$lib/utils/logger', () => ({
 	logger: {
 		error: vi.fn()
 	}
-})) as unknown as Client["mutation"];
+})) as unknown as Client['mutation'];
 
 vi.mock('$lib/models/error-response', () => ({
 	createErrorResponse: vi.fn((error, options) => ({
@@ -24,7 +27,7 @@ vi.mock('$lib/models/error-response', () => ({
 		userMessage: options.userMessage,
 		type: options.type
 	}))
-})) as unknown as Client["mutation"];
+})) as unknown as Client['mutation'];
 
 describe('BaseOperations', () => {
 	let mockClient: Partial<Client>;
@@ -60,10 +63,9 @@ describe('BaseOperations', () => {
 
 	describe('executeQuery()', () => {
 		it('should execute query successfully', async () => {
-			const result = await baseOps['executeQuery'](
-				'query GetTasks { tasks { id title } }',
-				{ limit: 20 }
-			);
+			const result = await baseOps['executeQuery']('query GetTasks { tasks { id title } }', {
+				limit: 20
+			});
 
 			expect(result).toBeDefined();
 			expect(mockClient.query).toHaveBeenCalled();
@@ -96,7 +98,7 @@ describe('BaseOperations', () => {
 					data: null,
 					error: { message: 'GraphQL error', graphQLErrors: [] }
 				})
-			})) as unknown as Client["mutation"];
+			})) as unknown as Client['mutation'];
 
 			await expect(
 				baseOps['executeQuery'](
@@ -121,7 +123,7 @@ describe('BaseOperations', () => {
 					data: null,
 					error: { message: 'GraphQL error', graphQLErrors: [] }
 				})
-			})) as unknown as Client["mutation"];
+			})) as unknown as Client['mutation'];
 
 			await expect(
 				baseOps['executeQuery'](
@@ -143,7 +145,7 @@ describe('BaseOperations', () => {
 					data: null,
 					error: null
 				})
-			})) as unknown as Client["mutation"];
+			})) as unknown as Client['mutation'];
 
 			await expect(baseOps['executeQuery']('query GetTasks { tasks { id } }')).rejects.toThrow();
 		});
@@ -156,7 +158,7 @@ describe('BaseOperations', () => {
 					data: null,
 					error: { message: 'GraphQL error', graphQLErrors: [] }
 				})
-			})) as unknown as Client["mutation"];
+			})) as unknown as Client['mutation'];
 
 			await expect(
 				baseOps['executeQuery'](
@@ -188,7 +190,7 @@ describe('BaseOperations', () => {
 				toPromise: async () => {
 					throw { userMessage: 'Custom error', type: 'graphql' };
 				}
-			})) as unknown as Client["mutation"];
+			})) as unknown as Client['mutation'];
 
 			await expect(baseOps['executeQuery']('query GetTasks { tasks { id } }')).rejects.toEqual(
 				expect.objectContaining({ userMessage: 'Custom error' })
@@ -198,9 +200,12 @@ describe('BaseOperations', () => {
 
 	describe('executeMutation()', () => {
 		it('should execute mutation successfully', async () => {
-			const result = await baseOps['executeMutation']('mutation CreateTask($input: CreateTaskInput!) { ... }', {
-				input: { title: 'New Task' }
-			});
+			const result = await baseOps['executeMutation'](
+				'mutation CreateTask($input: CreateTaskInput!) { ... }',
+				{
+					input: { title: 'New Task' }
+				}
+			);
 
 			expect(result).toBeDefined();
 			expect(mockClient.mutation).toHaveBeenCalled();
@@ -233,10 +238,14 @@ describe('BaseOperations', () => {
 					data: null,
 					error: { message: 'Mutation error', graphQLErrors: [] }
 				})
-			})) as unknown as Client["mutation"];
+			})) as unknown as Client['mutation'];
 
 			await expect(
-				baseOps['executeMutation']('mutation CreateTask { ... }', {}, { operationName: 'CreateTask' })
+				baseOps['executeMutation'](
+					'mutation CreateTask { ... }',
+					{},
+					{ operationName: 'CreateTask' }
+				)
 			).rejects.toThrow();
 
 			expect(logger.error).toHaveBeenCalled();
@@ -254,7 +263,7 @@ describe('BaseOperations', () => {
 					data: null,
 					error: { message: 'Mutation error', graphQLErrors: [] }
 				})
-			})) as unknown as Client["mutation"];
+			})) as unknown as Client['mutation'];
 
 			await expect(
 				baseOps['executeMutation'](
@@ -276,7 +285,7 @@ describe('BaseOperations', () => {
 					data: null,
 					error: null
 				})
-			})) as unknown as Client["mutation"];
+			})) as unknown as Client['mutation'];
 
 			await expect(baseOps['executeMutation']('mutation CreateTask { ... }')).rejects.toThrow();
 		});
@@ -289,7 +298,7 @@ describe('BaseOperations', () => {
 					data: null,
 					error: { message: 'Mutation error', graphQLErrors: [] }
 				})
-			})) as unknown as Client["mutation"];
+			})) as unknown as Client['mutation'];
 
 			await expect(
 				baseOps['executeMutation'](
@@ -321,7 +330,7 @@ describe('BaseOperations', () => {
 				toPromise: async () => {
 					throw { userMessage: 'Custom error', type: 'graphql' };
 				}
-			})) as unknown as Client["mutation"];
+			})) as unknown as Client['mutation'];
 
 			await expect(baseOps['executeMutation']('mutation CreateTask { ... }')).rejects.toEqual(
 				expect.objectContaining({ userMessage: 'Custom error' })
@@ -334,8 +343,10 @@ describe('createCRUDOperations', () => {
 	let mockClient: Partial<Client>;
 	const GET_ALL_QUERY = 'query GetAllTasks { tasks { id title } }';
 	const GET_BY_ID_QUERY = 'query GetTaskById($id: ID!) { taskById(id: $id) { id title } }';
-	const CREATE_MUTATION = 'mutation CreateTask($input: CreateTaskInput!) { createTask(input: $input) { id title } }';
-	const UPDATE_MUTATION = 'mutation UpdateTask($id: ID!, $input: UpdateTaskInput!) { updateTask(id: $id, input: $input) { id title } }';
+	const CREATE_MUTATION =
+		'mutation CreateTask($input: CreateTaskInput!) { createTask(input: $input) { id title } }';
+	const UPDATE_MUTATION =
+		'mutation UpdateTask($id: ID!, $input: UpdateTaskInput!) { updateTask(id: $id, input: $input) { id title } }';
 	const DELETE_MUTATION = 'mutation DeleteTask($id: ID!) { deleteTask(id: $id) }';
 
 	beforeEach(() => {
@@ -346,7 +357,12 @@ describe('createCRUDOperations', () => {
 				toPromise: async () => {
 					if (query.includes('GetAllTasks')) {
 						return {
-							data: { tasks: [{ id: '1', title: 'Task 1' }, { id: '2', title: 'Task 2' }] },
+							data: {
+								tasks: [
+									{ id: '1', title: 'Task 1' },
+									{ id: '2', title: 'Task 2' }
+								]
+							},
 							error: null
 						};
 					}
@@ -610,8 +626,10 @@ describe('createCRUDOperationsWithCustomNames', () => {
 	let mockClient: Partial<Client>;
 	const GET_ALL_QUERY = 'query GetAllTasks { tasks { id title } }';
 	const GET_BY_ID_QUERY = 'query GetTaskById($id: ID!) { taskById(id: $id) { id title } }';
-	const CREATE_MUTATION = 'mutation CreateTask($input: CreateTaskInput!) { createTask(input: $input) { id title } }';
-	const UPDATE_MUTATION = 'mutation UpdateTask($id: ID!, $input: UpdateTaskInput!) { updateTask(id: $id, input: $input) { id title } }';
+	const CREATE_MUTATION =
+		'mutation CreateTask($input: CreateTaskInput!) { createTask(input: $input) { id title } }';
+	const UPDATE_MUTATION =
+		'mutation UpdateTask($id: ID!, $input: UpdateTaskInput!) { updateTask(id: $id, input: $input) { id title } }';
 	const DELETE_MUTATION = 'mutation DeleteTask($id: ID!) { deleteTask(id: $id) }';
 
 	beforeEach(() => {

@@ -20,7 +20,13 @@
 		onDeselectAll: () => void;
 	}
 
-	const { selectedCount, selectedIds, selectedRows, bulkActions = [], onDeselectAll }: Props = $props();
+	const {
+		selectedCount,
+		selectedIds,
+		selectedRows,
+		bulkActions = [],
+		onDeselectAll
+	}: Props = $props();
 
 	// State for confirmation dialog
 	let confirmDialogOpen = $state(false);
@@ -56,14 +62,18 @@
 		if (typeof action.confirmationMessage === 'function') {
 			return action.confirmationMessage(selectedCount);
 		}
-		return action.confirmationMessage || `Are you sure you want to perform this action on ${selectedCount} item(s)?`;
+		return (
+			action.confirmationMessage ||
+			`Are you sure you want to perform this action on ${selectedCount} item(s)?`
+		);
 	}
 </script>
 
 <div class="flex items-center justify-between border-b bg-muted/50 px-4 py-2">
 	<div class="flex items-center gap-4">
 		<span class="text-sm font-medium">
-			{selectedCount} {selectedCount === 1 ? 'item' : 'items'} selected
+			{selectedCount}
+			{selectedCount === 1 ? 'item' : 'items'} selected
 		</span>
 
 		<div class="flex items-center gap-2">
@@ -79,9 +89,7 @@
 		</div>
 	</div>
 
-	<Button variant="ghost" size="sm" onclick={onDeselectAll}>
-		Deselect All
-	</Button>
+	<Button variant="ghost" size="sm" onclick={onDeselectAll}>Deselect All</Button>
 </div>
 
 <!-- Confirmation Dialog -->

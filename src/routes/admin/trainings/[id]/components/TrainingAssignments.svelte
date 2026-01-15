@@ -191,7 +191,9 @@
 								<PopoverContent class="w-auto p-0">
 									<Calendar
 										type="single"
-										value={assignmentDueDate ? parseDate(assignmentDueDate.split('T')[0]) : undefined}
+										value={assignmentDueDate
+											? parseDate(assignmentDueDate.split('T')[0])
+											: undefined}
 										onValueChange={(v) => {
 											if (v) {
 												const dateObj = v.toDate(getLocalTimeZone());

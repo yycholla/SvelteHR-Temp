@@ -11,9 +11,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { ReviewCreationDialog } from '$lib/components/reviews';
 
-	import {
-		isReviewOverdue
-	} from '$lib/graphql/queries/performance-reviews';
+	import { isReviewOverdue } from '$lib/graphql/queries/performance-reviews';
 
 	// Import new decomposed components
 	import ReviewStats from './components/ReviewStats.svelte';

@@ -105,8 +105,9 @@ export const load: PageServerLoad = async (event) => {
 			});
 
 			// Calculate statistics from ALL employees BEFORE filtering
-			const totalActiveEmployees = (allEmployees || []).filter((emp: any) => emp.isActive === true)
-				.length;
+			const totalActiveEmployees = (allEmployees || []).filter(
+				(emp: any) => emp.isActive === true
+			).length;
 			const totalInactiveEmployees = (allEmployees || []).filter(
 				(emp: any) => emp.isActive === false
 			).length;

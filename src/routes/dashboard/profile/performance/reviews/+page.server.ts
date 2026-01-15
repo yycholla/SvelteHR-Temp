@@ -158,11 +158,15 @@ export const load: PageServerLoad = async (event) => {
 		`;
 
 		// UnifiedGraphQLClient returns data directly, not wrapped in { data }
-		const user = await client.query(userQuery, { id: userId }, {
-			operationName: 'GetUser',
-			dataPath: 'user',
-			errorMessage: 'Failed to load user data'
-		});
+		const user = await client.query(
+			userQuery,
+			{ id: userId },
+			{
+				operationName: 'GetUser',
+				dataPath: 'user',
+				errorMessage: 'Failed to load user data'
+			}
+		);
 
 		if (!user) {
 			logger.error('[Reviews] User not found', new Error('User not found'), { userId });
@@ -211,15 +215,19 @@ export const load: PageServerLoad = async (event) => {
 		`;
 
 		// UnifiedGraphQLClient returns data directly with dataPath extraction
-		const performanceReviews = await client.query(reviewsQuery, {
-			employeeId: userId,
-			limit: 50,
-			offset: 0
-		}, {
-			operationName: 'GetPerformanceReviewsByEmployee',
-			dataPath: 'performanceReviews',
-			errorMessage: 'Failed to load performance reviews'
-		});
+		const performanceReviews = await client.query(
+			reviewsQuery,
+			{
+				employeeId: userId,
+				limit: 50,
+				offset: 0
+			},
+			{
+				operationName: 'GetPerformanceReviewsByEmployee',
+				dataPath: 'performanceReviews',
+				errorMessage: 'Failed to load performance reviews'
+			}
+		);
 
 		// Transform database reviews to frontend format
 		// Note: Using placeholder data for fields that exist in separate tables (review_feedback, review_goal, review_cycle)

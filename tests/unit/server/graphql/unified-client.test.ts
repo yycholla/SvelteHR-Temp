@@ -149,7 +149,11 @@ describe('UnifiedGraphQLClient', () => {
 			const client = new UnifiedGraphQLClient(mockEvent as RequestEvent);
 
 			await expect(
-				client.query('query GetTasks { tasks { id } }', {}, { errorMessage: 'Failed to load tasks' })
+				client.query(
+					'query GetTasks { tasks { id } }',
+					{},
+					{ errorMessage: 'Failed to load tasks' }
+				)
 			).rejects.toThrow('Failed to load tasks');
 		});
 
@@ -383,7 +387,9 @@ describe('GraphQLQueryBuilder', () => {
 		});
 
 		it('should overwrite duplicate filter keys', () => {
-			const builder = new GraphQLQueryBuilder().where('status', 'ACTIVE').where('status', 'INACTIVE');
+			const builder = new GraphQLQueryBuilder()
+				.where('status', 'ACTIVE')
+				.where('status', 'INACTIVE');
 
 			expect(builder['filters']).toEqual({ status: 'INACTIVE' });
 		});

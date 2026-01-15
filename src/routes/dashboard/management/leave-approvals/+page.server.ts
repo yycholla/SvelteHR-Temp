@@ -219,28 +219,30 @@ export const load: PageServerLoad = async (event) => {
 			if (searchTerm) {
 				filter.search(searchTerm, ['reason']);
 				// Custom search for nested fields
-				filter.filter((req: any) =>
-					req.employee.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-					req.leaveType.toLowerCase().includes(searchTerm.toLowerCase())
+				filter.filter(
+					(req: any) =>
+						req.employee.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+						req.leaveType.toLowerCase().includes(searchTerm.toLowerCase())
 				);
 			}
 
 			const totalFilteredRequests = filter.count();
 			const paginatedRequests = filter.paginate(page, limit).get();
 
-					return {
-						user: {
-							id: user.id,
-							email: user.email || '',
-							displayName: user.display_name || 'User',
-							role: user.role || 'employee'
-						},
-						userSession: {
-							userId: user.id,
-							userEmail: user.email || '',
-							role: user.role || 'employee',
-							accessToken: '' // Session-based auth doesn't use access tokens
-						},				leaveRequests: paginatedRequests,
+			return {
+				user: {
+					id: user.id,
+					email: user.email || '',
+					displayName: user.display_name || 'User',
+					role: user.role || 'employee'
+				},
+				userSession: {
+					userId: user.id,
+					userEmail: user.email || '',
+					role: user.role || 'employee',
+					accessToken: '' // Session-based auth doesn't use access tokens
+				},
+				leaveRequests: paginatedRequests,
 				totalRequests,
 				leaveStats: {
 					// All-time statistics
@@ -266,7 +268,7 @@ export const load: PageServerLoad = async (event) => {
 					limit,
 					total: totalFilteredRequests,
 					totalPages: Math.ceil(totalFilteredRequests / limit),
-					hasNextPage: (page * limit) < totalFilteredRequests,
+					hasNextPage: page * limit < totalFilteredRequests,
 					hasPreviousPage: page > 1
 				},
 				canApproveLeave: hasManagerAccess,

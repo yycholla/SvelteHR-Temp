@@ -63,8 +63,8 @@ export const load: PageServerLoad = async (event) => {
 
 		if (!log) {
 			error(404, {
-            				message: 'Activity log not found or you do not have permission to view it.'
-            			});
+				message: 'Activity log not found or you do not have permission to view it.'
+			});
 		}
 
 		// Transform log to match expected format
@@ -137,8 +137,7 @@ export const load: PageServerLoad = async (event) => {
 						is_current: tlog.id === logId
 					}))
 					.sort(
-						(a: any, b: any) =>
-							new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+						(a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
 					);
 			} catch (timelineError) {
 				logger.error('[ActivityLogDetail] Error loading timeline', timelineError as Error);
@@ -195,8 +194,8 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		error(500, {
-        			message: 'Failed to load activity log'
-        		});
+			message: 'Failed to load activity log'
+		});
 	}
 };
 

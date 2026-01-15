@@ -12,13 +12,8 @@
 		onClearFilter: (key: keyof TaskFilterState) => void;
 	}
 
-	let {
-		filters,
-		hasActiveFilters,
-		availableAssignees,
-		availableTaskTypes,
-		onClearFilter
-	}: Props = $props();
+	let { filters, hasActiveFilters, availableAssignees, availableTaskTypes, onClearFilter }: Props =
+		$props();
 
 	// Get assignee display name
 	function getAssigneeName(id: string): string {

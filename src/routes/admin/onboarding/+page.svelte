@@ -65,14 +65,18 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-background">
 	<!-- Toolbar -->
-	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
 		<div class="flex items-center gap-4 flex-1">
 			<h1 class="text-sm font-semibold tracking-tight whitespace-nowrap">Onboarding</h1>
 			<div class="h-4 w-px bg-border"></div>
-			
+
 			<!-- Search -->
 			<div class="relative w-64">
-				<Search class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+				<Search
+					class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+				/>
 				<input
 					type="text"
 					placeholder="Search modules..."
@@ -84,7 +88,9 @@
 
 		<div class="flex items-center gap-4">
 			<!-- Stats Summary -->
-			<div class="hidden lg:flex items-center gap-4 text-xs text-muted-foreground border-r pr-4 h-8">
+			<div
+				class="hidden lg:flex items-center gap-4 text-xs text-muted-foreground border-r pr-4 h-8"
+			>
 				<div class="flex items-center gap-1.5" title="Total Modules">
 					<BookOpen class="h-3.5 w-3.5" />
 					<span>{totalModules}</span>
@@ -113,7 +119,9 @@
 				<BookOpen class="h-12 w-12 mb-4 opacity-20" />
 				<h3 class="text-lg font-medium">No onboarding modules found</h3>
 				<p class="text-sm mt-1 max-w-sm text-center">
-					{searchQuery ? 'Try adjusting your search query.' : 'Get started by creating your first onboarding workflow.'}
+					{searchQuery
+						? 'Try adjusting your search query.'
+						: 'Get started by creating your first onboarding workflow.'}
 				</p>
 				{#if !searchQuery}
 					<Button href="/admin/onboarding/create" class="mt-4 gap-2">
@@ -126,12 +134,30 @@
 			<table class="w-full text-sm text-left border-collapse">
 				<thead class="sticky top-0 z-10 bg-muted/40 backdrop-blur-sm border-b">
 					<tr>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-1/3">Title</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32">Category</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-24">Status</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0">Assignments</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32">Created</th>
-						<th class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground text-right w-16">Actions</th>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-1/3"
+							>Title</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32"
+							>Category</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-24"
+							>Status</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0"
+							>Assignments</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r last:border-r-0 w-32"
+							>Created</th
+						>
+						<th
+							class="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground text-right w-16"
+							>Actions</th
+						>
 					</tr>
 				</thead>
 				<tbody class="divide-y">
@@ -154,14 +180,20 @@
 							</td>
 							<td class="px-3 py-2 border-r last:border-r-0 align-top text-xs">
 								{#if module.category}
-									<Badge variant="outline" class="font-normal text-[10px] h-5">{module.category}</Badge>
+									<Badge variant="outline" class="font-normal text-[10px] h-5"
+										>{module.category}</Badge
+									>
 								{:else}
 									<span class="text-muted-foreground italic">Uncategorized</span>
 								{/if}
 							</td>
 							<td class="px-3 py-2 border-r last:border-r-0 align-top">
 								{#if module.isActive}
-									<Badge variant="default" class="bg-green-500/10 text-green-700 hover:bg-green-500/20 border-green-200 text-[10px] h-5">Active</Badge>
+									<Badge
+										variant="default"
+										class="bg-green-500/10 text-green-700 hover:bg-green-500/20 border-green-200 text-[10px] h-5"
+										>Active</Badge
+									>
 								{:else}
 									<Badge variant="secondary" class="text-[10px] h-5">Inactive</Badge>
 								{/if}
@@ -179,14 +211,21 @@
 									{/if}
 								</div>
 							</td>
-							<td class="px-3 py-2 border-r last:border-r-0 align-top text-xs text-muted-foreground whitespace-nowrap">
+							<td
+								class="px-3 py-2 border-r last:border-r-0 align-top text-xs text-muted-foreground whitespace-nowrap"
+							>
 								{formatDate(module.createdAt)}
 							</td>
 							<td class="px-3 py-2 text-right align-top">
 								<DropdownMenu.Root>
 									<DropdownMenu.Trigger>
 										{#snippet child({ props })}
-											<Button {...props} variant="ghost" size="icon" class="h-6 w-6 p-0 hover:bg-muted">
+											<Button
+												{...props}
+												variant="ghost"
+												size="icon"
+												class="h-6 w-6 p-0 hover:bg-muted"
+											>
 												<MoreHorizontal class="h-4 w-4" />
 												<span class="sr-only">Actions</span>
 											</Button>
@@ -197,16 +236,23 @@
 											<Edit class="mr-2 h-4 w-4" />
 											Edit Details
 										</DropdownMenu.Item>
-										<DropdownMenu.Item onclick={() => goto(`/admin/onboarding/${module.id}/content`)}>
+										<DropdownMenu.Item
+											onclick={() => goto(`/admin/onboarding/${module.id}/content`)}
+										>
 											<FileText class="mr-2 h-4 w-4" />
 											Manage Content
 										</DropdownMenu.Item>
-										<DropdownMenu.Item onclick={() => goto(`/admin/onboarding/${module.id}/assignments`)}>
+										<DropdownMenu.Item
+											onclick={() => goto(`/admin/onboarding/${module.id}/assignments`)}
+										>
 											<Users class="mr-2 h-4 w-4" />
 											Assignments
 										</DropdownMenu.Item>
 										<DropdownMenu.Separator />
-										<DropdownMenu.Item class="text-destructive" onclick={() => confirmDelete(module)}>
+										<DropdownMenu.Item
+											class="text-destructive"
+											onclick={() => confirmDelete(module)}
+										>
 											<Trash2 class="mr-2 h-4 w-4" />
 											Delete
 										</DropdownMenu.Item>
@@ -228,7 +274,8 @@
 			<AlertDialog.Header>
 				<AlertDialog.Title>Delete Onboarding Module</AlertDialog.Title>
 				<AlertDialog.Description>
-					Are you sure you want to delete <strong>"{moduleToDelete.title}"</strong>? This action cannot be undone.
+					Are you sure you want to delete <strong>"{moduleToDelete.title}"</strong>? This action
+					cannot be undone.
 				</AlertDialog.Description>
 			</AlertDialog.Header>
 			<AlertDialog.Footer>

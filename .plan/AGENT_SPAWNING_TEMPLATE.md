@@ -16,7 +16,7 @@ Quick reference for spawning context-efficient agents from `.plan/` feature file
 
 ```typescript
 // Just read the plan directly
-Read({ file_path: ".plan/qb_feature_01_realtime_webhooks.md" })
+Read({ file_path: '.plan/qb_feature_01_realtime_webhooks.md' });
 
 // Extract:
 // - Phase breakdown
@@ -28,10 +28,10 @@ Read({ file_path: ".plan/qb_feature_01_realtime_webhooks.md" })
 
 ```typescript
 Task({
-  subagent_type: "Explore",
-  model: "sonnet",
-  description: "Survey existing integration patterns",
-  prompt: `Survey the [SUBSYSTEM] architecture to understand existing patterns.
+	subagent_type: 'Explore',
+	model: 'sonnet',
+	description: 'Survey existing integration patterns',
+	prompt: `Survey the [SUBSYSTEM] architecture to understand existing patterns.
 
 SCOPE: [SPECIFIC_DIRECTORY_PATH]
 FILES: [LIST_SPECIFIC_FILES_FROM_PLAN]
@@ -41,16 +41,17 @@ DO NOT read full file contents unless necessary.
 
 Goal: Identify patterns for [SPECIFIC_CONCERN] that we should follow.
 Focus: [SPECIFIC_QUESTIONS]`
-})
+});
 ```
 
 **Example:**
+
 ```typescript
 Task({
-  subagent_type: "Explore",
-  model: "sonnet",
-  description: "Survey Intuit integration patterns",
-  prompt: `Survey the Intuit integration architecture to understand webhook handling.
+	subagent_type: 'Explore',
+	model: 'sonnet',
+	description: 'Survey Intuit integration patterns',
+	prompt: `Survey the Intuit integration architecture to understand webhook handling.
 
 SCOPE: graphql-rust-server/src/integrations/intuit/
 FILES:
@@ -62,17 +63,17 @@ DO NOT read full contents.
 
 Goal: Identify patterns for auth, error handling, async processing.
 Focus: How are API calls made? How are errors handled? Any existing webhook code?`
-})
+});
 ```
 
 ### 3. Backend Implementation (Rust)
 
 ```typescript
 Task({
-  subagent_type: "rust-pro",
-  model: "sonnet",
-  description: "Implement [FEATURE] backend",
-  prompt: `Implement [FEATURE_DESCRIPTION] in the Rust backend.
+	subagent_type: 'rust-pro',
+	model: 'sonnet',
+	description: 'Implement [FEATURE] backend',
+	prompt: `Implement [FEATURE_DESCRIPTION] in the Rust backend.
 
 SCOPE RESTRICTIONS:
 - ONLY work in: [BACKEND_DIRECTORY]
@@ -87,16 +88,17 @@ Requirements from plan (.plan/[PLAN_FILE]):
 Follow existing patterns in [REFERENCE_FILE] for [PATTERN_TYPE].
 
 Use mcp__serena__ tools with relative_path for all searches.`
-})
+});
 ```
 
 **Example:**
+
 ```typescript
 Task({
-  subagent_type: "rust-pro",
-  model: "sonnet",
-  description: "Implement webhook receiver endpoint",
-  prompt: `Implement QuickBooks webhook receiver in the Rust backend.
+	subagent_type: 'rust-pro',
+	model: 'sonnet',
+	description: 'Implement webhook receiver endpoint',
+	prompt: `Implement QuickBooks webhook receiver in the Rust backend.
 
 SCOPE RESTRICTIONS:
 - ONLY work in: graphql-rust-server/src/integrations/intuit/
@@ -112,17 +114,17 @@ Requirements from plan (.plan/qb_feature_01_realtime_webhooks.md):
 Follow existing patterns in client.rs for error handling and authentication.
 
 Use mcp__serena__find_symbol with relative_path for all searches.`
-})
+});
 ```
 
 ### 4. Frontend Implementation (SvelteKit)
 
 ```typescript
 Task({
-  subagent_type: "frontend-developer",
-  model: "sonnet",
-  description: "Implement [FEATURE] UI",
-  prompt: `Implement [FEATURE_DESCRIPTION] in SvelteKit frontend.
+	subagent_type: 'frontend-developer',
+	model: 'sonnet',
+	description: 'Implement [FEATURE] UI',
+	prompt: `Implement [FEATURE_DESCRIPTION] in SvelteKit frontend.
 
 SCOPE RESTRICTIONS:
 - ONLY work in: [FRONTEND_DIRECTORY]
@@ -137,16 +139,17 @@ Use Svelte 5 runes ($state, $derived, $props).
 MUST use svelte-autofixer before finalizing.
 
 Data fetching: ALL in +page.server.ts (see CLAUDE.md).`
-})
+});
 ```
 
 **Example:**
+
 ```typescript
 Task({
-  subagent_type: "frontend-developer",
-  model: "sonnet",
-  description: "Add real-time sync notifications",
-  prompt: `Implement real-time sync notifications in Intuit settings page.
+	subagent_type: 'frontend-developer',
+	model: 'sonnet',
+	description: 'Add real-time sync notifications',
+	prompt: `Implement real-time sync notifications in Intuit settings page.
 
 SCOPE RESTRICTIONS:
 - ONLY work in: src/routes/admin/settings/integrations/
@@ -162,17 +165,17 @@ Use Svelte 5 runes ($state, $derived for reactive status).
 MUST use svelte-autofixer before finalizing.
 
 Data fetching: Connection setup in +page.server.ts (see CLAUDE.md).`
-})
+});
 ```
 
 ### 5. Database Migration (SeaORM)
 
 ```typescript
 Task({
-  subagent_type: "database-architect",
-  model: "haiku",  // Simple, structured task
-  description: "Create [TABLE_NAME] migration",
-  prompt: `Create SeaORM migration for [TABLE_NAME] table.
+	subagent_type: 'database-architect',
+	model: 'haiku', // Simple, structured task
+	description: 'Create [TABLE_NAME] migration',
+	prompt: `Create SeaORM migration for [TABLE_NAME] table.
 
 SCOPE RESTRICTIONS:
 - ONLY work in: graphql-rust-server/migration/
@@ -183,16 +186,17 @@ Schema from plan (.plan/[PLAN_FILE]):
 
 Follow naming convention: m[YYYYMMDD]_[NNN]_[descriptive_name].rs
 Use existing migration as template.`
-})
+});
 ```
 
 **Example:**
+
 ```typescript
 Task({
-  subagent_type: "database-architect",
-  model: "haiku",
-  description: "Create webhook_events migration",
-  prompt: `Create SeaORM migration for intuit_webhook_events table.
+	subagent_type: 'database-architect',
+	model: 'haiku',
+	description: 'Create webhook_events migration',
+	prompt: `Create SeaORM migration for intuit_webhook_events table.
 
 SCOPE RESTRICTIONS:
 - ONLY work in: graphql-rust-server/migration/
@@ -213,17 +217,17 @@ Schema from plan (.plan/qb_feature_01_realtime_webhooks.md):
 
 Follow naming convention: m20251229_004_intuit_webhook_events.rs
 Use existing migration as template.`
-})
+});
 ```
 
 ### 6. Testing (Unit/Integration)
 
 ```typescript
 Task({
-  subagent_type: "test-automator",
-  model: "sonnet",
-  description: "Create tests for [FEATURE]",
-  prompt: `Create tests for [FEATURE_DESCRIPTION].
+	subagent_type: 'test-automator',
+	model: 'sonnet',
+	description: 'Create tests for [FEATURE]',
+	prompt: `Create tests for [FEATURE_DESCRIPTION].
 
 SCOPE RESTRICTIONS:
 - Backend tests: [BACKEND_TEST_DIR]
@@ -236,16 +240,17 @@ Test coverage needed:
 
 Follow existing test patterns in [REFERENCE_TEST_FILE].
 Use Vitest for unit tests, Playwright for E2E.`
-})
+});
 ```
 
 **Example:**
+
 ```typescript
 Task({
-  subagent_type: "test-automator",
-  model: "sonnet",
-  description: "Create webhook receiver tests",
-  prompt: `Create tests for QuickBooks webhook receiver.
+	subagent_type: 'test-automator',
+	model: 'sonnet',
+	description: 'Create webhook receiver tests',
+	prompt: `Create tests for QuickBooks webhook receiver.
 
 SCOPE RESTRICTIONS:
 - Backend tests: graphql-rust-server/tests/integrations/intuit/
@@ -259,17 +264,17 @@ Test coverage needed:
 
 Follow existing test patterns in graphql-rust-server/tests/integrations/intuit/sync_test.rs.
 Use cargo test for backend, Vitest for frontend.`
-})
+});
 ```
 
 ### 7. Code Review (Quality Check)
 
 ```typescript
 Task({
-  subagent_type: "code-reviewer",
-  model: "sonnet",
-  description: "Review [FEATURE] implementation",
-  prompt: `Review [FEATURE] implementation for quality and compliance.
+	subagent_type: 'code-reviewer',
+	model: 'sonnet',
+	description: 'Review [FEATURE] implementation',
+	prompt: `Review [FEATURE] implementation for quality and compliance.
 
 FILES TO REVIEW:
 - [FILE_1]
@@ -286,16 +291,17 @@ Review criteria:
 Check against:
 - CLAUDE.md (project standards)
 - code_style_conventions memory`
-})
+});
 ```
 
 **Example:**
+
 ```typescript
 Task({
-  subagent_type: "code-reviewer",
-  model: "sonnet",
-  description: "Review webhook implementation",
-  prompt: `Review QuickBooks webhook implementation for quality and security.
+	subagent_type: 'code-reviewer',
+	model: 'sonnet',
+	description: 'Review webhook implementation',
+	prompt: `Review QuickBooks webhook implementation for quality and security.
 
 FILES TO REVIEW:
 - graphql-rust-server/src/integrations/intuit/webhook.rs
@@ -312,7 +318,7 @@ Review criteria:
 Check against:
 - CLAUDE.md (Svelte 5 runes, server-side data fetching)
 - code_style_conventions memory`
-})
+});
 ```
 
 ## Parallel Agent Spawning (Multiple Features)
@@ -323,41 +329,41 @@ When implementing multiple independent parts, spawn in parallel:
 // Single message with multiple Task calls
 // Agent 1: Backend
 Task({
-  subagent_type: "rust-pro",
-  model: "sonnet",
-  description: "Backend webhook receiver",
-  prompt: "..."
-})
+	subagent_type: 'rust-pro',
+	model: 'sonnet',
+	description: 'Backend webhook receiver',
+	prompt: '...'
+});
 
 // Agent 2: Frontend (independent from backend)
 Task({
-  subagent_type: "frontend-developer",
-  model: "sonnet",
-  description: "Frontend notifications UI",
-  prompt: "..."
-})
+	subagent_type: 'frontend-developer',
+	model: 'sonnet',
+	description: 'Frontend notifications UI',
+	prompt: '...'
+});
 
 // Agent 3: Database (independent)
 Task({
-  subagent_type: "database-architect",
-  model: "haiku",
-  description: "Migration for webhook events",
-  prompt: "..."
-})
+	subagent_type: 'database-architect',
+	model: 'haiku',
+	description: 'Migration for webhook events',
+	prompt: '...'
+});
 ```
 
 ## Model Selection Guide
 
-| Task Type | Model | Reason |
-|-----------|-------|--------|
-| Reading plans | N/A (do yourself) | No agent needed |
-| Architecture survey | sonnet | Complex understanding |
-| Backend implementation | sonnet | Complex logic |
-| Frontend implementation | sonnet | Complex reactivity |
-| Database migration | haiku | Simple, structured |
-| Simple refactoring | haiku | Mechanical changes |
-| Code review | sonnet | Nuanced judgment |
-| Testing | sonnet | Edge cases |
+| Task Type               | Model             | Reason                |
+| ----------------------- | ----------------- | --------------------- |
+| Reading plans           | N/A (do yourself) | No agent needed       |
+| Architecture survey     | sonnet            | Complex understanding |
+| Backend implementation  | sonnet            | Complex logic         |
+| Frontend implementation | sonnet            | Complex reactivity    |
+| Database migration      | haiku             | Simple, structured    |
+| Simple refactoring      | haiku             | Mechanical changes    |
+| Code review             | sonnet            | Nuanced judgment      |
+| Testing                 | sonnet            | Edge cases            |
 
 ## Context Optimization Checklist
 
@@ -386,6 +392,7 @@ Task({
 ## Quick Start Workflow
 
 1. **Read plan yourself** (no agent)
+
    ```
    Read({ file_path: ".plan/qb_feature_XX.md" })
    ```
@@ -396,6 +403,7 @@ Task({
    - Note dependencies
 
 3. **Check memories** (do yourself)
+
    ```
    mcp__serena__read_memory({ memory_file_name: "codebase_architecture" })
    ```

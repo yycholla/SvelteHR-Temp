@@ -11,6 +11,7 @@ Feature 13: Data Reconciliation Dashboard for QuickBooks integration has been fu
 All backend components were already in place:
 
 #### 1. Database Migration
+
 - **File**: `graphql-rust-server/migration/m20251229_007_create_reconciliation.rs`
 - **Status**: ✅ Registered in `lib.rs` and `main.rs`
 - **Tables**:
@@ -18,6 +19,7 @@ All backend components were already in place:
   - `reconciliation_discrepancies`: Individual discrepancies found
 
 #### 2. Service Layer
+
 - **File**: `graphql-rust-server/src/services/reconciliation.rs`
 - **Features**:
   - `reconcile_employees()`: Compares local vs QB employee data
@@ -30,6 +32,7 @@ All backend components were already in place:
   - `get_discrepancy_stats()`: Statistical breakdown
 
 #### 3. GraphQL Schema
+
 - **Mutations** (`graphql-rust-server/src/schema/mutations/reconciliation.rs`):
   - `reconcileEmployees`: Trigger reconciliation check
   - `resolveDiscrepancy`: Manual fix discrepancies
@@ -130,6 +133,7 @@ Enhanced the existing reconciliation dashboard with all requested features:
 ## Discrepancy Types & Severity
 
 ### Types
+
 - **missing_in_local**: Record exists in QB but not locally
 - **missing_in_remote**: Record exists locally but not in QB
 - **data_mismatch**: Field value differs
@@ -138,18 +142,22 @@ Enhanced the existing reconciliation dashboard with all requested features:
 - **orphaned_record**: Orphaned reference
 
 ### Severity Levels
+
 - **Critical**: Missing records, name/ID mismatches
 - **High**: Important field mismatches
 - **Medium**: Non-critical field differences, stale data
 - **Low**: Formatting differences, minor discrepancies
 
 ### Auto-Fix Rules (Safe to auto-reconcile)
+
 Currently **not implemented** but the service supports:
+
 - Whitespace differences
 - Case differences
 - Formatting differences (phone, email)
 
 **DO NOT auto-fix**:
+
 - Compensation data
 - Names
 - IDs
@@ -158,6 +166,7 @@ Currently **not implemented** but the service supports:
 ## Field Comparison Logic
 
 Current implementation compares:
+
 - **first_name**: Local vs QB given_name
 - **last_name**: Local vs QB family_name
 - **email**: Local vs QB primary_email_addr (case-insensitive)
@@ -228,35 +237,33 @@ query GetReportDetails($reportId: String!) {
 
 ```graphql
 mutation RunReconciliation {
-  intuit {
-    reconciliation {
-      reconcileEmployees {
-        reportId
-        totalLocal
-        totalRemote
-        totalMatched
-        totalDiscrepancies
-        durationMs
-      }
-    }
-  }
+	intuit {
+		reconciliation {
+			reconcileEmployees {
+				reportId
+				totalLocal
+				totalRemote
+				totalMatched
+				totalDiscrepancies
+				durationMs
+			}
+		}
+	}
 }
 
 mutation ResolveDiscrepancy($discrepancyId: String!, $resolutionNotes: String!) {
-  intuit {
-    reconciliation {
-      resolveDiscrepancy(
-        discrepancyId: $discrepancyId
-        resolutionNotes: $resolutionNotes
-      )
-    }
-  }
+	intuit {
+		reconciliation {
+			resolveDiscrepancy(discrepancyId: $discrepancyId, resolutionNotes: $resolutionNotes)
+		}
+	}
 }
 ```
 
 ## Permissions
 
 Uses existing QuickBooks sync permissions:
+
 - **View Reports**: `SyncPermission::ViewSyncHistory`
 - **Trigger Reconciliation**: `SyncPermission::TriggerEmployeeSync`
 - **Resolve Discrepancies**: `SyncPermission::ResolveConflicts`
@@ -275,6 +282,7 @@ Uses existing QuickBooks sync permissions:
 ## Testing Recommendations
 
 ### Manual Testing
+
 1. Navigate to `/admin/settings/integrations/reconciliation`
 2. Click "Run Reconciliation" button
 3. Verify report is created and displayed
@@ -286,12 +294,14 @@ Uses existing QuickBooks sync permissions:
 9. Verify resolved discrepancies show correctly
 
 ### Integration Testing
+
 1. Create test employees with known differences
 2. Run reconciliation
 3. Verify correct discrepancy detection
 4. Test resolution workflow end-to-end
 
 ### Performance Testing
+
 1. Test with large employee datasets (100+)
 2. Measure reconciliation duration
 3. Verify pagination works correctly
@@ -329,6 +339,7 @@ Uses existing QuickBooks sync permissions:
 ## File Locations
 
 ### Backend
+
 - Migration: `/graphql-rust-server/migration/m20251229_007_create_reconciliation.rs`
 - Service: `/graphql-rust-server/src/services/reconciliation.rs`
 - Models:
@@ -338,6 +349,7 @@ Uses existing QuickBooks sync permissions:
 - GraphQL Queries: `/graphql-rust-server/src/schema/queries/reconciliation.rs`
 
 ### Frontend
+
 - Page: `/src/routes/admin/settings/integrations/reconciliation/+page.svelte`
 - Server Load: `/src/routes/admin/settings/integrations/reconciliation/+page.server.ts`
 
@@ -364,6 +376,7 @@ Uses existing QuickBooks sync permissions:
 ## TypeScript Compliance
 
 All TypeScript errors have been fixed:
+
 - Proper interface definitions for `Discrepancy` type
 - Null safety checks for optional properties
 - Correct `{@const}` usage in Svelte templates

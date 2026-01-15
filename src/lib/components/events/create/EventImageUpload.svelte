@@ -47,9 +47,5 @@
 		</label>
 	</div>
 
-	<ImageUploadWidget
-		aspectRatio={imageAspectRatio}
-		{onImageSelected}
-		{onImageRemoved}
-	/>
+	<ImageUploadWidget aspectRatio={imageAspectRatio} {onImageSelected} {onImageRemoved} />
 </div>

@@ -1,7 +1,16 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { logger } from '$lib/utils/logger';
-	import { AlertCircle, CheckCircle2, Loader2, ArrowLeft, Settings, Users, Calendar, Save } from '@lucide/svelte';
+	import {
+		AlertCircle,
+		CheckCircle2,
+		Loader2,
+		ArrowLeft,
+		Settings,
+		Users,
+		Calendar,
+		Save
+	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -11,8 +20,8 @@
 	import * as Alert from '$lib/components/ui/alert';
 	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
 	import RecurrencePatternInput from '$lib/components/ui/recurrence-pattern-input.svelte';
-	
-	// Reuse existing assignment component but wrap it or ideally inline it if possible. 
+
+	// Reuse existing assignment component but wrap it or ideally inline it if possible.
 	// For now, I will use the component but stripped of cards if I can, or just keep it as is if it's complex.
 	// Actually, TrainingAssignments uses Cards. I should probably rewrite it inline to be flush.
 	// To save time/risk, I will use the existing component for now but place it in a tab.
@@ -25,7 +34,7 @@
 	let activeTab = $state<'details' | 'assignments'>('details');
 	let isActive = $state(training.isActive);
 	let tags = $state<string[]>(training.tags || []);
-	
+
 	// Assignment state
 	let selectedUsersToAssign = $state<string[]>([]);
 	let selectedDepartmentsToAssign = $state<string[]>([]);
@@ -69,7 +78,7 @@
 		// Wait, the component emitted events. I need to handle them.
 		// I'll copy the handlers.
 	}
-	
+
 	// ... Copy handlers ...
 	// To avoid massive code duplication without verifying the component internals again,
 	// I will just implement the handlers needed by TrainingAssignments.
@@ -78,7 +87,9 @@
 
 <div class="flex flex-col h-full bg-background overflow-hidden">
 	<!-- Sticky Header -->
-	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
 		<div class="flex items-center gap-4">
 			<Button variant="ghost" size="icon" href="/admin/trainings" title="Back">
 				<ArrowLeft class="h-4 w-4" />
@@ -99,14 +110,20 @@
 		<div class="flex items-center bg-muted/50 p-1 rounded-md">
 			<button
 				onclick={() => (activeTab = 'details')}
-				class="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all {activeTab === 'details' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}"
+				class="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all {activeTab ===
+				'details'
+					? 'bg-background shadow-sm text-foreground'
+					: 'text-muted-foreground hover:text-foreground'}"
 			>
 				<Settings class="h-3.5 w-3.5" />
 				Details
 			</button>
 			<button
 				onclick={() => (activeTab = 'assignments')}
-				class="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all {activeTab === 'assignments' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}"
+				class="flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-sm transition-all {activeTab ===
+				'assignments'
+					? 'bg-background shadow-sm text-foreground'
+					: 'text-muted-foreground hover:text-foreground'}"
 			>
 				<Users class="h-3.5 w-3.5" />
 				Assignments
@@ -114,7 +131,12 @@
 		</div>
 
 		<div class="flex items-center gap-2">
-			<Button variant="outline" size="sm" href={`/admin/trainings/${training.id}/content`} class="h-8">
+			<Button
+				variant="outline"
+				size="sm"
+				href={`/admin/trainings/${training.id}/content`}
+				class="h-8"
+			>
 				<Settings class="mr-2 h-3.5 w-3.5" /> Builder
 			</Button>
 			<Button type="submit" form="editForm" disabled={submitting} size="sm" class="h-8">
@@ -130,12 +152,17 @@
 	<!-- Content -->
 	<div class="flex-1 overflow-auto bg-muted/5">
 		{#if form?.error}
-			<div class="m-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive flex items-center gap-2">
-				<AlertCircle class="h-4 w-4" /> {form.error}
+			<div
+				class="m-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive flex items-center gap-2"
+			>
+				<AlertCircle class="h-4 w-4" />
+				{form.error}
 			</div>
 		{/if}
 		{#if form?.success}
-			<div class="m-4 rounded-md bg-green-50/50 p-3 text-sm text-green-700 flex items-center gap-2 border border-green-200">
+			<div
+				class="m-4 rounded-md bg-green-50/50 p-3 text-sm text-green-700 flex items-center gap-2 border border-green-200"
+			>
 				<CheckCircle2 class="h-4 w-4" /> Training updated successfully!
 			</div>
 		{/if}
@@ -168,7 +195,12 @@
 						</div>
 						<div class="space-y-2">
 							<Label for="description">Description</Label>
-							<Textarea id="description" name="description" rows={4} value={training.description || ''} />
+							<Textarea
+								id="description"
+								name="description"
+								rows={4}
+								value={training.description || ''}
+							/>
 						</div>
 					</div>
 				</div>
@@ -183,11 +215,19 @@
 						</div>
 						<div class="space-y-2">
 							<Label>Start Date</Label>
-							<Input type="datetime-local" name="startDate" value={toDatetimeLocal(training.startDate)} />
+							<Input
+								type="datetime-local"
+								name="startDate"
+								value={toDatetimeLocal(training.startDate)}
+							/>
 						</div>
 						<div class="space-y-2">
 							<Label>End Date</Label>
-							<Input type="datetime-local" name="endDate" value={toDatetimeLocal(training.endDate)} />
+							<Input
+								type="datetime-local"
+								name="endDate"
+								value={toDatetimeLocal(training.endDate)}
+							/>
 						</div>
 					</div>
 
@@ -195,15 +235,22 @@
 						<h3 class="text-sm font-semibold mb-4">Organization</h3>
 						<div class="space-y-2">
 							<Label>Tags</Label>
-							<MultiSearchInput bind:searchTerms={tags} placeholder="Add tag..." allowCustomTerms={true} />
+							<MultiSearchInput
+								bind:searchTerms={tags}
+								placeholder="Add tag..."
+								allowCustomTerms={true}
+							/>
 						</div>
 						<div class="space-y-2">
 							<Label>Recurrence</Label>
-							<RecurrencePatternInput bind:pattern={recurrencePattern} startDate={training.startDate ? new Date(training.startDate) : new Date()} />
+							<RecurrencePatternInput
+								bind:pattern={recurrencePattern}
+								startDate={training.startDate ? new Date(training.startDate) : new Date()}
+							/>
 						</div>
 					</div>
 				</div>
-				
+
 				<!-- SEO -->
 				<div class="bg-background rounded-lg border p-6 space-y-4">
 					<h3 class="text-sm font-semibold mb-4">SEO</h3>
@@ -233,7 +280,7 @@
 					bind:searchTerms
 					{isAssigning}
 					onAssign={handleAssign}
-					onUnassign={() => {}} 
+					onUnassign={() => {}}
 				/>
 			</div>
 		{/if}

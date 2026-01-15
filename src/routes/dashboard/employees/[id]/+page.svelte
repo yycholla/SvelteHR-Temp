@@ -2,7 +2,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { logger } from '$lib/utils/logger';
 	import { ChevronRight, Pencil } from '@lucide/svelte';
-	
+
 	// Import decomposed components and logic
 	import EmployeeModals from '$lib/components/employees/detail/EmployeeModals.svelte';
 	import EmployeeProfile from '$lib/components/employees/detail/EmployeeProfile.svelte';
@@ -15,7 +15,7 @@
 		saveVehicle,
 		deleteVehicle
 	} from '$lib/components/employees/detail/actions';
-	
+
 	import type { EmergencyContactInput } from '$lib/components/employees/AddEmergencyContactModal.svelte';
 	import type { VehicleInput } from '$lib/components/employees/AddVehicleModal.svelte';
 
@@ -60,7 +60,7 @@
 	}
 
 	async function handleUnassignDocument(assignmentId: string) {
-		// Confirm service logic should be here or inside action? 
+		// Confirm service logic should be here or inside action?
 		// Original file imported confirmService.
 		// For simplicity, I'll assume confirmService is handled or I'll re-import it here.
 		// Wait, I didn't import confirmService in actions.ts.

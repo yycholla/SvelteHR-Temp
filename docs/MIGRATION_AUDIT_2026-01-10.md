@@ -13,11 +13,13 @@
 **Impact**: If a migration partially fails, re-running causes "column already exists" errors and prevents completing the migration.
 
 **Files Affected**:
+
 - `m20251222_003_fix_display_name_add_preferred_name.rs` (2 columns)
 - `m20251226_001_add_sync_tracking.rs` (**CRITICAL** - caused production failure) (9 columns)
 - `m20251226_002_enhance_sync_log.rs` (10 columns)
 
 **Common Pattern**:
+
 ```rust
 // ❌ NOT IDEMPOTENT
 manager.get_connection().execute_unprepared(
@@ -37,10 +39,12 @@ manager.get_connection().execute_unprepared(
 ### 2. Non-Idempotent CREATE INDEX Statements (8 occurrences)
 
 **Files Affected**:
+
 - `m20251226_001_add_sync_tracking.rs` (6 indexes)
 - `m20251017_004_hr_core.rs` (2 indexes - partial/conditional indexes)
 
 **Common Pattern**:
+
 ```rust
 // ❌ NOT IDEMPOTENT
 "CREATE INDEX idx_users_sync_status ON hr_public.users (sync_status)"
@@ -54,6 +58,7 @@ manager.get_connection().execute_unprepared(
 **Impact**: Errors are propagated immediately with `?`, causing partial migrations to be marked as "complete" even when they fail midway.
 
 **Pattern**:
+
 ```rust
 // ❌ POOR ERROR HANDLING - marks migration as complete even on partial failure
 manager.get_connection().execute_unprepared(sql).await?;
@@ -74,6 +79,7 @@ match manager.get_connection().execute_unprepared(sql).await {
 ### m20251226_001_add_sync_tracking.rs Failure
 
 **What Happened**:
+
 1. Migration attempted to add `employee_number` column
 2. Column already existed from `m20251222_002_add_quickbooks_employee_fields.rs`
 3. PostgreSQL error: `column "employee_number" already exists`
@@ -84,6 +90,7 @@ match manager.get_connection().execute_unprepared(sql).await {
 8. Production login failures: `column users.last_synced_at does not exist`
 
 **Manual Fix Required**:
+
 ```sql
 ALTER TABLE hr_public.users ADD COLUMN IF NOT EXISTS last_synced_at TIMESTAMP WITH TIME ZONE;
 ALTER TABLE hr_public.users ADD COLUMN IF NOT EXISTS last_modified_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL;
@@ -168,6 +175,7 @@ cargo run --bin migration up
 ### 4. Avoid Column Duplication
 
 Check previous migrations before adding columns:
+
 ```bash
 rg "ADD COLUMN employee_number" graphql-rust-server/migration/
 ```
@@ -195,13 +203,16 @@ If a migration has many steps, consider splitting into multiple migrations for e
 ## Files to Fix
 
 ### Priority 1 (Broke Production)
+
 - [ ] `graphql-rust-server/migration/m20251226_001_add_sync_tracking.rs`
 
 ### Priority 2 (Same Pattern, High Risk)
+
 - [ ] `graphql-rust-server/migration/m20251226_002_enhance_sync_log.rs`
 - [ ] `graphql-rust-server/migration/m20251222_003_fix_display_name_add_preferred_name.rs`
 
 ### Priority 3 (All Others)
+
 - [ ] All migrations with non-idempotent CREATE INDEX
 - [ ] All migrations with direct `.await?` error handling
 
@@ -210,12 +221,14 @@ If a migration has many steps, consider splitting into multiple migrations for e
 The migration system needs systematic improvements to prevent production incidents. The immediate fix has been applied, but architectural changes are needed to prevent recurrence.
 
 **Estimated Effort**:
+
 - Fix critical migrations: 2-4 hours
 - Complete audit and fixes: 1-2 days
 - CI validation: 1 day
 - Documentation: 2-3 hours
 
 **Risk if Not Fixed**:
+
 - Future partial migration failures
 - Production database inconsistencies
 - Difficult debugging and manual repairs

@@ -51,7 +51,7 @@
 			// Search Query
 			if (searchQuery) {
 				const query = searchQuery.toLowerCase();
-				const matchesSearch = 
+				const matchesSearch =
 					user.email?.toLowerCase().includes(query) ||
 					user.displayName?.toLowerCase().includes(query) ||
 					user.department?.name?.toLowerCase().includes(query);
@@ -156,8 +156,8 @@
 			await client.mutation(mutation, {
 				input: {
 					email: formData.email,
-					firstName: firstName,
-					lastName: lastName,
+					firstName,
+					lastName,
 					password: formData.password,
 					status: formData.isActive ? 'active' : 'inactive', // Backend expects lowercase
 					departmentId: formData.departmentId || null,
@@ -330,7 +330,9 @@
 
 				// Handle displayName - convert to firstName/lastName
 				if (edit.field === 'displayName') {
-					const nameParts = String(edit.value || '').trim().split(' ');
+					const nameParts = String(edit.value || '')
+						.trim()
+						.split(' ');
 					const firstName = nameParts[0] || '';
 					const lastName = nameParts.slice(1).join(' ') || '';
 
@@ -447,7 +449,9 @@
 					const newRoleName = String(inputValue);
 
 					// Find the role ID from the role name
-					const newRole = data.roles.find((r: { id: string; name: string }) => r.name === newRoleName);
+					const newRole = data.roles.find(
+						(r: { id: string; name: string }) => r.name === newRoleName
+					);
 					if (!newRole) {
 						logger.error(`Role not found: ${newRoleName}`);
 						continue;
@@ -521,7 +525,9 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-background">
 	<!-- Toolbar -->
-	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
 		<div class="flex items-center gap-4">
 			<h1 class="text-sm font-semibold tracking-tight">Users</h1>
 			<div class="h-4 w-px bg-border"></div>
@@ -553,12 +559,16 @@
 	{#if data.error || errorMessage}
 		<div class="flex-shrink-0 p-4 pb-0">
 			{#if data.error}
-				<div class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20">
+				<div
+					class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20"
+				>
 					{data.error}
 				</div>
 			{/if}
 			{#if errorMessage}
-				<div class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20 mt-2">
+				<div
+					class="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20 mt-2"
+				>
 					{errorMessage}
 				</div>
 			{/if}
@@ -581,12 +591,16 @@
 	</div>
 
 	<!-- Footer status -->
-	<footer class="flex-shrink-0 border-t bg-muted/20 px-3 py-1.5 flex items-center justify-between text-xs">
+	<footer
+		class="flex-shrink-0 border-t bg-muted/20 px-3 py-1.5 flex items-center justify-between text-xs"
+	>
 		<div class="text-muted-foreground">
 			{filteredUsers.length} users found
 		</div>
 		<div class="text-muted-foreground">
-			💡 <span class="font-medium">Tip:</span> Double-click cells to edit • Click <Filter class="inline h-3 w-3" /> to filter • Click sort arrows to sort
+			💡 <span class="font-medium">Tip:</span> Double-click cells to edit • Click <Filter
+				class="inline h-3 w-3"
+			/> to filter • Click sort arrows to sort
 		</div>
 	</footer>
 </div>

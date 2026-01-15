@@ -1,7 +1,11 @@
 <script lang="ts">
 	import { Edit, Trash2 } from '@lucide/svelte';
 	import { SpreadsheetTable } from '$lib/components/ui/spreadsheet';
-	import type { SpreadsheetConfig, ColumnDefinition, RowEdit } from '$lib/components/ui/spreadsheet';
+	import type {
+		SpreadsheetConfig,
+		ColumnDefinition,
+		RowEdit
+	} from '$lib/components/ui/spreadsheet';
 
 	interface User {
 		id: string;
@@ -50,8 +54,17 @@
 		onSaveEdits?: (edits: RowEdit<User>[]) => Promise<void>;
 	}
 
-	const { filteredUsers, allUsers, loading, roles, departments, onToggleStatus, onEditUser, onDeleteUser, onSaveEdits }: Props =
-		$props();
+	const {
+		filteredUsers,
+		allUsers,
+		loading,
+		roles,
+		departments,
+		onToggleStatus,
+		onEditUser,
+		onDeleteUser,
+		onSaveEdits
+	}: Props = $props();
 
 	// Define columns for the user table
 	const columns: ColumnDefinition<User>[] = [
@@ -148,10 +161,10 @@
 			getEditValue: (user) => user.roles?.[0]?.name || user.role || 'Employee',
 			getSortValue: (user) => user.roles?.[0]?.name || user.role || 'Employee',
 			field: 'role',
-			options: roles.map(r => ({ value: r.name, label: r.name })),
+			options: roles.map((r) => ({ value: r.name, label: r.name })),
 			filterConfig: {
 				type: 'select',
-				options: roles.map(r => ({ value: r.name, label: r.name }))
+				options: roles.map((r) => ({ value: r.name, label: r.name }))
 			}
 		},
 		{
@@ -169,13 +182,13 @@
 			field: 'departmentId',
 			options: [
 				{ value: '', label: '—' },
-				...departments.map(d => ({ value: d.id, label: d.name }))
+				...departments.map((d) => ({ value: d.id, label: d.name }))
 			],
 			filterConfig: {
 				type: 'select',
 				options: [
 					{ value: '', label: 'All' },
-					...departments.map(d => ({ value: d.name, label: d.name }))
+					...departments.map((d) => ({ value: d.name, label: d.name }))
 				]
 			}
 		},
@@ -194,13 +207,21 @@
 			field: 'managerId',
 			options: [
 				{ value: '', label: '—' },
-				...(allUsers || filteredUsers).map(u => ({ value: u.id, label: u.displayName || u.email }))
+				...(allUsers || filteredUsers).map((u) => ({
+					value: u.id,
+					label: u.displayName || u.email
+				}))
 			],
 			filterConfig: {
 				type: 'select',
 				options: [
 					{ value: '', label: 'All' },
-					...(allUsers || filteredUsers).map(u => ({ value: u.manager?.displayName || '', label: u.manager?.displayName || '' })).filter(o => o.value)
+					...(allUsers || filteredUsers)
+						.map((u) => ({
+							value: u.manager?.displayName || '',
+							label: u.manager?.displayName || ''
+						}))
+						.filter((o) => o.value)
 				]
 			}
 		},
@@ -420,7 +441,8 @@
 				label: 'Delete Selected',
 				variant: 'destructive',
 				requiresConfirmation: true,
-				confirmationMessage: (count) => `Are you sure you want to delete ${count} user${count === 1 ? '' : 's'}? This action cannot be undone.`,
+				confirmationMessage: (count) =>
+					`Are you sure you want to delete ${count} user${count === 1 ? '' : 's'}? This action cannot be undone.`,
 				handler: async (selectedUsers, selectedIds) => {
 					// Call onDeleteUser for each selected user
 					for (const userId of selectedIds) {
@@ -461,6 +483,7 @@
 </script>
 
 <SpreadsheetTable {config} data={filteredUsers}>
+	<!-- prettier-ignore -->
 	{#snippet customCell({ column, row }: { column: ColumnDefinition<User>; row: User; value: unknown })}
 		{#if column.id === 'actions'}
 			<div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

@@ -13,14 +13,17 @@ import type { RequestEvent } from '@sveltejs/kit';
 // Mock dependencies
 vi.mock('$lib/server/rbac-utils', () => ({
 	requireAuth: vi.fn(),
-	getUserPermissions: vi.fn(() => ({
-		canViewEmployees: true,
-		canEditEmployees: false,
-		canViewDepartments: true,
-		permissions: ['employees:read', 'departments:read'],
-		roles: ['employee'],
-		user: { id: 'test-user-id', email: 'test@example.com' }
-	}) as unknown) // Type assertion to avoid mocking all 50+ permission properties
+	getUserPermissions: vi.fn(
+		() =>
+			({
+				canViewEmployees: true,
+				canEditEmployees: false,
+				canViewDepartments: true,
+				permissions: ['employees:read', 'departments:read'],
+				roles: ['employee'],
+				user: { id: 'test-user-id', email: 'test@example.com' }
+			}) as unknown
+	) // Type assertion to avoid mocking all 50+ permission properties
 }));
 
 vi.mock('$lib/utils/logger', () => ({
@@ -209,41 +212,41 @@ describe('BaseRouteLoader', () => {
 			await expect(loader.execute()).rejects.toEqual(svelteKitError);
 		});
 
-	it('should wrap generic errors in 500 error', async () => {
-		const loader = new TestLoader(mockEvent as RequestEvent, []);
+		it('should wrap generic errors in 500 error', async () => {
+			const loader = new TestLoader(mockEvent as RequestEvent, []);
 
-		loader['load'] = async () => {
-			throw new Error('Database connection failed');
-		};
+			loader['load'] = async () => {
+				throw new Error('Database connection failed');
+			};
 
-		try {
-			await loader.execute();
-			expect.fail('Should have thrown an error');
-		} catch (err: any) {
-			expect(err).toHaveProperty('status', 500);
-			expect(err.body).toMatchObject({
-				message: expect.stringContaining('Unable to load data: Database connection failed')
-			});
-		}
-	});
+			try {
+				await loader.execute();
+				expect.fail('Should have thrown an error');
+			} catch (err: any) {
+				expect(err).toHaveProperty('status', 500);
+				expect(err.body).toMatchObject({
+					message: expect.stringContaining('Unable to load data: Database connection failed')
+				});
+			}
+		});
 
-	it('should handle non-Error exceptions', async () => {
-		const loader = new TestLoader(mockEvent as RequestEvent, []);
+		it('should handle non-Error exceptions', async () => {
+			const loader = new TestLoader(mockEvent as RequestEvent, []);
 
-		loader['load'] = async () => {
-			throw 'String error';
-		};
+			loader['load'] = async () => {
+				throw 'String error';
+			};
 
-		try {
-			await loader.execute();
-			expect.fail('Should have thrown an error');
-		} catch (err: any) {
-			expect(err).toHaveProperty('status', 500);
-			expect(err.body).toMatchObject({
-				message: expect.stringContaining('Unable to load data: Failed to load page data')
-			});
-		}
-	});
+			try {
+				await loader.execute();
+				expect.fail('Should have thrown an error');
+			} catch (err: any) {
+				expect(err).toHaveProperty('status', 500);
+				expect(err.body).toMatchObject({
+					message: expect.stringContaining('Unable to load data: Failed to load page data')
+				});
+			}
+		});
 	});
 
 	describe('Helper Methods', () => {

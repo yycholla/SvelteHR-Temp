@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import {
-		BarChart3,
-		FileText,
-		Plus,
-	} from '@lucide/svelte';
+	import { BarChart3, FileText, Plus } from '@lucide/svelte';
 	import * as Tabs from '$lib/components/ui/tabs';
-	import type { HrReport, ReportAnalytics as ReportAnalyticsType } from '$lib/graphql/reports-operations';
+	import type {
+		HrReport,
+		ReportAnalytics as ReportAnalyticsType
+	} from '$lib/graphql/reports-operations';
 	import {
 		REPORT_CATEGORIES,
 		REPORT_STATUSES,
@@ -325,7 +324,7 @@
 <!-- Create Report Modal -->
 <ReportCreateModal
 	bind:open={showCreateModal}
-	bind:createForm={createForm}
+	bind:createForm
 	onClose={closeModals}
 	onSave={handleSaveReport}
 />

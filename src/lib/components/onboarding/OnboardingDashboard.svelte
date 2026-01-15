@@ -84,8 +84,9 @@
 				<Button
 					variant="primary"
 					leftIcon="user-plus"
-					                    onclick={() => goto(resolve('/onboarding/new' as any))}
-					                >					Start Onboarding
+					onclick={() => goto(resolve('/onboarding/new' as any))}
+				>
+					Start Onboarding
 				</Button>
 			{/if}
 		</div>

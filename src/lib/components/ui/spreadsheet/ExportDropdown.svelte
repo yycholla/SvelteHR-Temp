@@ -57,7 +57,13 @@
 <DropdownMenu.Root>
 	<DropdownMenu.Trigger>
 		{#snippet child({ props })}
-			<Button {...props} variant="outline" size="sm" disabled={exporting || data.length === 0} class="gap-1.5 h-7 text-xs">
+			<Button
+				{...props}
+				variant="outline"
+				size="sm"
+				disabled={exporting || data.length === 0}
+				class="gap-1.5 h-7 text-xs"
+			>
 				<Download class="h-3.5 w-3.5" />
 				Export
 			</Button>

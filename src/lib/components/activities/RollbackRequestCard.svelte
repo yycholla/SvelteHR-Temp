@@ -146,10 +146,7 @@
 		onToggleExpanded={toggleExpanded}
 	/>
 
-	<RollbackRequestBody
-		{request}
-		{isExpanded}
-	/>
+	<RollbackRequestBody {request} {isExpanded} />
 
 	{#if canTakeAction}
 		<div class="card-footer">

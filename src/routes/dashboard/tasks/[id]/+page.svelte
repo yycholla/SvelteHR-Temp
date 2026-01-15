@@ -236,9 +236,7 @@
 <div class="min-h-screen bg-background p-4 md:p-8">
 	{#if !task}
 		<div class="mx-auto max-w-md space-y-4 py-12 text-center">
-			<div
-				class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted"
-			>
+			<div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
 				<AlertCircle class="h-8 w-8 text-muted-foreground" />
 			</div>
 			<h1 class="text-2xl font-bold">Task Not Found</h1>
@@ -252,21 +250,13 @@
 	{:else}
 		<div class="mx-auto max-w-7xl space-y-8">
 			<!-- Breadcrumb / Header Area -->
-			<TaskHeader
-				taskId={task.id}
-				title={task.title}
-				onEdit={handleEditClick}
-			/>
+			<TaskHeader taskId={task.id} title={task.title} onEdit={handleEditClick} />
 
 			<div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
 				<!-- Main Content Column (Left/Center) -->
 				<div class="space-y-6 lg:col-span-2">
 					<!-- Status and Priority Header -->
-					<TaskStatusBanner
-						{currentStatus}
-						{currentPriority}
-						taskType={task.taskType}
-					/>
+					<TaskStatusBanner {currentStatus} {currentPriority} taskType={task.taskType} />
 
 					<!-- Description -->
 					<TaskDescription description={task.description} />
@@ -286,10 +276,7 @@
 					/>
 
 					<!-- Attachments -->
-					<TaskAttachments
-						linkedResources={task.linkedResources}
-						{formatDate}
-					/>
+					<TaskAttachments linkedResources={task.linkedResources} {formatDate} />
 
 					<!-- Comments / Activity -->
 					<TaskActivity
@@ -305,18 +292,10 @@
 				<!-- Sidebar Column (Right) -->
 				<div class="space-y-6">
 					<!-- Details Card -->
-					<TaskSidebarDetails
-						{task}
-						{getInitials}
-						{formatDate}
-					/>
+					<TaskSidebarDetails {task} {getInitials} {formatDate} />
 
 					<!-- Tags -->
-					<TaskTags
-						bind:tags
-						taskType={task.taskType}
-						onUpdateTags={updateTags}
-					/>
+					<TaskTags bind:tags taskType={task.taskType} onUpdateTags={updateTags} />
 				</div>
 			</div>
 		</div>

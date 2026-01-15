@@ -220,11 +220,13 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-background">
 	<!-- Toolbar -->
-	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
 		<div class="flex items-center gap-4 flex-1">
 			<h1 class="text-sm font-semibold tracking-tight whitespace-nowrap">Documents</h1>
 			<div class="h-4 w-px bg-border"></div>
-			
+
 			<!-- Search & Filters -->
 			<div class="flex items-center gap-2 flex-1 max-w-2xl">
 				<div class="flex-1 max-w-md">
@@ -250,9 +252,19 @@
 					<DropdownMenu.Content align="start">
 						<DropdownMenu.Label>Category</DropdownMenu.Label>
 						<DropdownMenu.Separator />
-						<DropdownMenu.Item onclick={() => { selectedCategory = 'all'; applyFilters(); }}>All</DropdownMenu.Item>
+						<DropdownMenu.Item
+							onclick={() => {
+								selectedCategory = 'all';
+								applyFilters();
+							}}>All</DropdownMenu.Item
+						>
 						{#each categories as category}
-							<DropdownMenu.Item onclick={() => { selectedCategory = category; applyFilters(); }}>{category}</DropdownMenu.Item>
+							<DropdownMenu.Item
+								onclick={() => {
+									selectedCategory = category;
+									applyFilters();
+								}}>{category}</DropdownMenu.Item
+							>
 						{/each}
 					</DropdownMenu.Content>
 				</DropdownMenu.Root>
@@ -269,9 +281,19 @@
 					<DropdownMenu.Content align="start">
 						<DropdownMenu.Label>Sensitivity</DropdownMenu.Label>
 						<DropdownMenu.Separator />
-						<DropdownMenu.Item onclick={() => { selectedSensitivity = 'all'; applyFilters(); }}>All</DropdownMenu.Item>
+						<DropdownMenu.Item
+							onclick={() => {
+								selectedSensitivity = 'all';
+								applyFilters();
+							}}>All</DropdownMenu.Item
+						>
 						{#each sensitivityLevels as level}
-							<DropdownMenu.Item onclick={() => { selectedSensitivity = level; applyFilters(); }}>{level}</DropdownMenu.Item>
+							<DropdownMenu.Item
+								onclick={() => {
+									selectedSensitivity = level;
+									applyFilters();
+								}}>{level}</DropdownMenu.Item
+							>
 						{/each}
 					</DropdownMenu.Content>
 				</DropdownMenu.Root>
@@ -286,7 +308,9 @@
 
 		<div class="flex items-center gap-2">
 			<!-- Stats Summary in Toolbar -->
-			<div class="hidden lg:flex items-center gap-4 mr-4 text-xs text-muted-foreground border-r pr-4 h-8">
+			<div
+				class="hidden lg:flex items-center gap-4 mr-4 text-xs text-muted-foreground border-r pr-4 h-8"
+			>
 				<div class="flex items-center gap-1.5">
 					<FileText class="h-3.5 w-3.5" />
 					<span>{totalDocuments}</span>
@@ -321,7 +345,7 @@
 					totalPages={data.totalPages}
 					onPageChange={handlePageChange}
 					onPageSizeChange={handlePerPageChange}
-					showPerPageControl={false} 
+					showPerPageControl={false}
 					columnVisibilityState={columnVisibility}
 					onColumnVisibilityChange={(v) => (columnVisibility = v)}
 					onPreview={handlePreview}
@@ -332,7 +356,9 @@
 		{:else}
 			<div class="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3 overflow-auto h-full">
 				{#each data.documents as doc}
-					<div class="flex flex-col rounded-md border bg-background p-3 shadow-sm hover:border-primary/50 transition-colors">
+					<div
+						class="flex flex-col rounded-md border bg-background p-3 shadow-sm hover:border-primary/50 transition-colors"
+					>
 						<div class="mb-2 flex items-start justify-between">
 							<div class="flex h-8 w-8 items-center justify-center rounded bg-muted text-lg">
 								<FileText class="h-4 w-4 text-muted-foreground" />
@@ -341,11 +367,23 @@
 						</div>
 						<h3 class="mb-1 text-sm font-medium truncate" title={doc.filename}>{doc.filename}</h3>
 						<p class="text-[10px] text-muted-foreground">
-							{formatFileSize(doc.file_size_bytes)} • {new Date(doc.uploaded_at).toLocaleDateString()}
+							{formatFileSize(doc.file_size_bytes)} • {new Date(
+								doc.uploaded_at
+							).toLocaleDateString()}
 						</p>
 						<div class="mt-3 flex gap-2">
-							<Button variant="secondary" size="sm" class="w-full h-7 text-xs" onclick={() => handlePreview(doc.id)}>Preview</Button>
-							<Button variant="ghost" size="icon" class="h-7 w-7 shrink-0" onclick={() => handleDownload(doc.id)}>
+							<Button
+								variant="secondary"
+								size="sm"
+								class="w-full h-7 text-xs"
+								onclick={() => handlePreview(doc.id)}>Preview</Button
+							>
+							<Button
+								variant="ghost"
+								size="icon"
+								class="h-7 w-7 shrink-0"
+								onclick={() => handleDownload(doc.id)}
+							>
 								<Download class="h-3.5 w-3.5" />
 							</Button>
 						</div>

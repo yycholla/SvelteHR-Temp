@@ -9,11 +9,7 @@
 	import { toast } from 'svelte-sonner';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import { setMode, userPrefersMode } from 'mode-watcher';
-	import {
-		Bell,
-		Palette,
-		User
-	} from '@lucide/svelte';
+	import { Bell, Palette, User } from '@lucide/svelte';
 
 	// Import decomposed components
 	import ProfileGeneralSettings from './components/ProfileGeneralSettings.svelte';
@@ -136,25 +132,17 @@
 
 		<!-- General Settings Tab -->
 		<Tabs.Content value="general">
-			<ProfileGeneralSettings
-				bind:profileChanges
-				originalProfile={data.profile}
-			/>
+			<ProfileGeneralSettings bind:profileChanges originalProfile={data.profile} />
 		</Tabs.Content>
 
 		<!-- Notifications Settings Tab -->
 		<Tabs.Content value="notifications">
-			<ProfileNotificationSettings
-				bind:notificationPrefs
-			/>
+			<ProfileNotificationSettings bind:notificationPrefs />
 		</Tabs.Content>
 
 		<!-- Appearance Settings Tab -->
 		<Tabs.Content value="appearance">
-			<ProfileAppearanceSettings
-				bind:selectedTheme
-				onThemeSubmit={handleThemeSubmit}
-			/>
+			<ProfileAppearanceSettings bind:selectedTheme onThemeSubmit={handleThemeSubmit} />
 		</Tabs.Content>
 	</Tabs.Root>
 </div>

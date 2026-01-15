@@ -121,11 +121,14 @@
 	</div>
 
 	<!-- Main Content Grid -->
-	<div class="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x">
-		
+	<div
+		class="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x"
+	>
 		<!-- Left Pane: Quick Actions -->
 		<div class="lg:col-span-2 flex flex-col bg-background">
-			<div class="p-3 border-b bg-muted/5 font-medium text-xs uppercase tracking-wider text-muted-foreground">
+			<div
+				class="p-3 border-b bg-muted/5 font-medium text-xs uppercase tracking-wider text-muted-foreground"
+			>
 				Tools & Configuration
 			</div>
 			<div class="flex-1 overflow-auto p-4">
@@ -141,8 +144,12 @@
 							</div>
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center justify-between mb-1">
-									<span class="text-sm font-medium group-hover:text-primary transition-colors">{action.title}</span>
-									<ArrowRight class="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+									<span class="text-sm font-medium group-hover:text-primary transition-colors"
+										>{action.title}</span
+									>
+									<ArrowRight
+										class="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+									/>
 								</div>
 								<p class="text-xs text-muted-foreground line-clamp-2">{action.description}</p>
 							</div>
@@ -154,7 +161,9 @@
 
 		<!-- Right Pane: Activity & Health -->
 		<div class="flex flex-col bg-background">
-			<div class="p-3 border-b bg-muted/5 font-medium text-xs uppercase tracking-wider text-muted-foreground">
+			<div
+				class="p-3 border-b bg-muted/5 font-medium text-xs uppercase tracking-wider text-muted-foreground"
+			>
 				System Activity
 			</div>
 			<div class="flex-1 overflow-auto">
@@ -192,7 +201,9 @@
 					</div>
 				</div>
 
-				<div class="p-3 border-t border-b bg-muted/5 font-medium text-xs uppercase tracking-wider text-muted-foreground mt-4">
+				<div
+					class="p-3 border-t border-b bg-muted/5 font-medium text-xs uppercase tracking-wider text-muted-foreground mt-4"
+				>
 					Health Metrics
 				</div>
 				<div class="p-4 space-y-4">

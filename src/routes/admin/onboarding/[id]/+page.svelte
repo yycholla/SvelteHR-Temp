@@ -4,7 +4,17 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
-	import { ArrowLeft, Calendar, FileText, UserPlus, Building, UserMinus, Search, Edit, Users } from '@lucide/svelte';
+	import {
+		ArrowLeft,
+		Calendar,
+		FileText,
+		UserPlus,
+		Building,
+		UserMinus,
+		Search,
+		Edit,
+		Users
+	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
@@ -21,7 +31,9 @@
 	// Stats
 	const completedAssignments = $derived(data.assignments.filter((a: any) => a.completedAt).length);
 	const totalAssignments = $derived(data.assignments.length);
-	const completionRate = $derived(totalAssignments > 0 ? Math.round((completedAssignments / totalAssignments) * 100) : 0);
+	const completionRate = $derived(
+		totalAssignments > 0 ? Math.round((completedAssignments / totalAssignments) * 100) : 0
+	);
 
 	// Assignment state
 	let selectedUsersToAssign = $state<string[]>([]);
@@ -41,7 +53,8 @@
 		const lastName = user.lastName || user.last_name || '';
 		const email = user.email || '';
 		const primaryName = displayName || `${firstName} ${lastName}`.trim() || email;
-		const label = displayName || `${firstName} ${lastName}`.trim() ? `${primaryName} (${email})` : email;
+		const label =
+			displayName || `${firstName} ${lastName}`.trim() ? `${primaryName} (${email})` : email;
 		return { value: user.id, label };
 	});
 
@@ -63,17 +76,21 @@
 				for (const userId of selectedUsersToAssign) {
 					const formData = new FormData();
 					formData.append('userId', userId);
-					if (assignmentDueDate) formData.append('dueDate', new Date(assignmentDueDate).toISOString());
+					if (assignmentDueDate)
+						formData.append('dueDate', new Date(assignmentDueDate).toISOString());
 					const response = await fetch('?/assign', { method: 'POST', body: formData });
-					if (response.ok && (await response.json()).type === 'success') successCount++; else failCount++;
+					if (response.ok && (await response.json()).type === 'success') successCount++;
+					else failCount++;
 				}
 			} else if (assignmentType === 'department') {
 				for (const departmentId of selectedDepartmentsToAssign) {
 					const formData = new FormData();
 					formData.append('departmentId', departmentId);
-					if (assignmentDueDate) formData.append('dueDate', new Date(assignmentDueDate).toISOString());
+					if (assignmentDueDate)
+						formData.append('dueDate', new Date(assignmentDueDate).toISOString());
 					const response = await fetch('?/assignToDepartment', { method: 'POST', body: formData });
-					if (response.ok && (await response.json()).type === 'success') successCount++; else failCount++;
+					if (response.ok && (await response.json()).type === 'success') successCount++;
+					else failCount++;
 				}
 			}
 
@@ -92,7 +109,7 @@
 	}
 
 	async function handleUnassignUser(assignmentId: string) {
-		if(!confirm('Are you sure you want to unassign this user?')) return;
+		if (!confirm('Are you sure you want to unassign this user?')) return;
 		isAssigning = true;
 		const formData = new FormData();
 		formData.append('assignmentId', assignmentId);
@@ -125,7 +142,9 @@
 
 <div class="flex flex-col h-full bg-background overflow-hidden">
 	<!-- Sticky Header -->
-	<header class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20">
+	<header
+		class="flex-shrink-0 flex items-center justify-between h-14 px-4 border-b bg-background z-20"
+	>
 		<div class="flex items-center gap-4">
 			<Button variant="ghost" size="icon" href="/admin/onboarding" title="Back">
 				<ArrowLeft class="h-4 w-4" />
@@ -146,10 +165,20 @@
 			</div>
 		</div>
 		<div class="flex items-center gap-2">
-			<Button variant="outline" size="sm" href={`/admin/onboarding/${data.module.id}/forms`} class="h-8">
+			<Button
+				variant="outline"
+				size="sm"
+				href={`/admin/onboarding/${data.module.id}/forms`}
+				class="h-8"
+			>
 				<FileText class="mr-2 h-3.5 w-3.5" /> Forms
 			</Button>
-			<Button variant="default" size="sm" href={`/admin/onboarding/${data.module.id}/content`} class="h-8">
+			<Button
+				variant="default"
+				size="sm"
+				href={`/admin/onboarding/${data.module.id}/content`}
+				class="h-8"
+			>
 				<Edit class="mr-2 h-3.5 w-3.5" /> Builder
 			</Button>
 		</div>
@@ -162,14 +191,20 @@
 			<div class="p-4 space-y-6">
 				<!-- Module Info -->
 				<div class="space-y-2">
-					<h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Details</h3>
+					<h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+						Details
+					</h3>
 					<div class="rounded-md border bg-background p-3 space-y-2 text-sm">
 						{#if data.module.description}
 							<p class="text-muted-foreground">{data.module.description}</p>
 						{/if}
 						<div class="flex items-center gap-2 text-xs text-muted-foreground">
 							<Calendar class="h-3 w-3" />
-							<span>Created {formatDistanceToNow(new Date(data.module.createdAt), { addSuffix: true })}</span>
+							<span
+								>Created {formatDistanceToNow(new Date(data.module.createdAt), {
+									addSuffix: true
+								})}</span
+							>
 						</div>
 						{#if data.module.tags && data.module.tags.length > 0}
 							<div class="flex flex-wrap gap-1 pt-1">
@@ -184,7 +219,9 @@
 				<!-- Content Blocks Summary -->
 				<div class="space-y-2">
 					<div class="flex items-center justify-between">
-						<h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Content</h3>
+						<h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+							Content
+						</h3>
 						<span class="text-xs text-muted-foreground">{data.contentBlocks.length} blocks</span>
 					</div>
 					<div class="rounded-md border bg-background divide-y">
@@ -193,9 +230,13 @@
 						{:else}
 							{#each data.contentBlocks as block}
 								<div class="p-2 flex items-center gap-2 text-xs hover:bg-muted/50">
-									<span class="font-mono text-muted-foreground w-4 text-center">{block.sequenceOrder + 1}</span>
+									<span class="font-mono text-muted-foreground w-4 text-center"
+										>{block.sequenceOrder + 1}</span
+									>
 									<span class="truncate flex-1">{block.title}</span>
-									<Badge variant="outline" class="text-[9px] h-4 px-1">{block.type.replace('_', ' ').toLowerCase()}</Badge>
+									<Badge variant="outline" class="text-[9px] h-4 px-1"
+										>{block.type.replace('_', ' ').toLowerCase()}</Badge
+									>
 								</div>
 							{/each}
 						{/if}
@@ -204,19 +245,25 @@
 
 				<!-- Assign Form -->
 				<div class="space-y-3 pt-4 border-t">
-					<h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+					<h3
+						class="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2"
+					>
 						<UserPlus class="h-3 w-3" /> Assign To
 					</h3>
-					
+
 					<div class="grid grid-cols-2 gap-1 rounded-md bg-muted p-1">
 						<button
-							class="rounded text-xs font-medium py-1 {assignmentType === 'user' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}"
+							class="rounded text-xs font-medium py-1 {assignmentType === 'user'
+								? 'bg-background shadow-sm'
+								: 'text-muted-foreground hover:text-foreground'}"
 							onclick={() => (assignmentType = 'user')}
 						>
 							User
 						</button>
 						<button
-							class="rounded text-xs font-medium py-1 {assignmentType === 'department' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}"
+							class="rounded text-xs font-medium py-1 {assignmentType === 'department'
+								? 'bg-background shadow-sm'
+								: 'text-muted-foreground hover:text-foreground'}"
 							onclick={() => (assignmentType = 'department')}
 						>
 							Department
@@ -246,11 +293,16 @@
 									<Button
 										variant="outline"
 										size="sm"
-										class={cn('w-full justify-start text-left font-normal h-8', !assignmentDueDate && 'text-muted-foreground')}
+										class={cn(
+											'w-full justify-start text-left font-normal h-8',
+											!assignmentDueDate && 'text-muted-foreground'
+										)}
 										{...props}
 									>
 										<Calendar class="mr-2 h-3.5 w-3.5" />
-										{assignmentDueDate ? df.format(new Date(assignmentDueDate)) : 'Due Date (Optional)'}
+										{assignmentDueDate
+											? df.format(new Date(assignmentDueDate))
+											: 'Due Date (Optional)'}
 									</Button>
 								{/snippet}
 							</PopoverTrigger>
@@ -269,11 +321,13 @@
 							</PopoverContent>
 						</Popover>
 
-						<Button 
-							size="sm" 
+						<Button
+							size="sm"
 							class="w-full h-8"
 							onclick={handleAssign}
-							disabled={isAssigning || (assignmentType === 'user' && !selectedUsersToAssign.length) || (assignmentType === 'department' && !selectedDepartmentsToAssign.length)}
+							disabled={isAssigning ||
+								(assignmentType === 'user' && !selectedUsersToAssign.length) ||
+								(assignmentType === 'department' && !selectedDepartmentsToAssign.length)}
 						>
 							{isAssigning ? 'Assigning...' : 'Assign'}
 						</Button>
@@ -290,12 +344,13 @@
 					Current Assignments
 				</div>
 				<div class="relative w-64">
-					<Search class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+					<Search
+						class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+					/>
 					<MultiSearchInput
 						bind:searchTerms
 						placeholder="Filter assignments..."
 						allowCustomTerms={true}
-						
 					/>
 				</div>
 			</div>
@@ -309,10 +364,16 @@
 				{:else}
 					<div class="divide-y">
 						{#each filteredAssignments as assignment (assignment.id)}
-							<div class="flex items-center justify-between p-3 hover:bg-muted/5 group transition-colors">
+							<div
+								class="flex items-center justify-between p-3 hover:bg-muted/5 group transition-colors"
+							>
 								<div class="flex items-center gap-3 min-w-0">
-									<div class="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
-										{(assignment.user?.displayName || assignment.user?.email || '?').charAt(0).toUpperCase()}
+									<div
+										class="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0"
+									>
+										{(assignment.user?.displayName || assignment.user?.email || '?')
+											.charAt(0)
+											.toUpperCase()}
 									</div>
 									<div class="min-w-0">
 										<div class="text-sm font-medium truncate">

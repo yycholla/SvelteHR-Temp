@@ -320,7 +320,9 @@ export class StatisticsCalculator<T = any> {
 			overdue: (r) => {
 				if (r.status === 'completed' || r.submittedAt) return false;
 				const createdDate = new Date(r.createdAt);
-				const daysDiff = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+				const daysDiff = Math.floor(
+					(now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24)
+				);
 				return daysDiff > 30;
 			}
 		}) as any;

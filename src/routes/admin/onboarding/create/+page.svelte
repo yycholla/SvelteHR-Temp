@@ -188,12 +188,7 @@
 								Create Module
 							{/if}
 						</Button>
-						<Button
-							type="button"
-							variant="outline"
-							class="w-full"
-							href="/admin/onboarding"
-						>
+						<Button type="button" variant="outline" class="w-full" href="/admin/onboarding">
 							Cancel
 						</Button>
 					</Card.Content>

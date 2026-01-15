@@ -113,7 +113,9 @@
 						>Terms of Service</a
 					>
 					<span>•</span>
-					<a href={resolve('/support' as any)} class="transition-colors hover:text-foreground">Support</a>
+					<a href={resolve('/support' as any)} class="transition-colors hover:text-foreground"
+						>Support</a
+					>
 				</div>
 			</div>
 		{/if}

@@ -9,11 +9,7 @@ import {
 	findNotificationById,
 	type Notification
 } from './queries';
-import {
-	MARK_NOTIFICATION_READ,
-	DELETE_NOTIFICATION,
-	CREATE_NOTIFICATION
-} from './mutations';
+import { MARK_NOTIFICATION_READ, DELETE_NOTIFICATION, CREATE_NOTIFICATION } from './mutations';
 import type { UpdateNotificationInput, CreateNotificationInput } from './types';
 
 /**
