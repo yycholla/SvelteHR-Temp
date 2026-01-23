@@ -47,34 +47,29 @@ export default defineConfig({
 	},
 
 	// Enhanced web server configuration
-	webServer: [
-		{
-			command: 'npm run dev',
-			port: 5174,
-			reuseExistingServer: !process.env.CI,
-			timeout: 120 * 1000,
-			env: {
-				NODE_ENV: 'test',
-				DATABASE_URL: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL
-			}
-		}
-		// PostGraphile backend server (enable for backend integration tests)
-		// {
-		//   command: 'npm run backend:test',
-		//   port: 4000,
-		//   reuseExistingServer: !process.env.CI,
-		//   timeout: 60 * 1000,
-		//   env: {
-		//     NODE_ENV: 'test',
-		//     DATABASE_URL: process.env.TEST_DATABASE_URL,
-		//     JWT_SECRET: 'test-secret-key'
-		//   }
-		// }
-	],
+	// NOTE: webServer disabled when using Docker containers
+	// Docker services (frontend-dev on 5173, graphql on 4000) should be running via docker-compose
+	webServer: process.env.CI
+		? [
+				{
+					command: 'npm run dev',
+					port: 5174,
+					reuseExistingServer: false,
+					timeout: 120 * 1000,
+					env: {
+						NODE_ENV: 'test',
+						DATABASE_URL: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL
+					}
+				}
+			]
+		: undefined,
 
 	use: {
 		// Base URL for tests
-		baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5174',
+		// Use port 5173 for local Docker development, 5174 for CI
+		baseURL:
+			process.env.PLAYWRIGHT_BASE_URL ||
+			(process.env.CI ? 'http://localhost:5174' : 'http://localhost:5173'),
 
 		// Enhanced debugging capabilities
 		trace: process.env.CI ? 'retain-on-failure' : 'on-first-retry',

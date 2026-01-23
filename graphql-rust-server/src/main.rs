@@ -25,7 +25,7 @@ use hr_graphql_server::{
     auth::AuthBackend,
     database::create_db_connection,
     dataloader::DataLoaderContext,
-    handlers::{graphql_handler, graphql_playground, login_handler, logout_handler, me_handler, refresh_handler, sessions_handler, events::delete_event_handler, roles::get_roles_handler, users::get_users_handler, intuit_webhook::intuit_webhook_handler, intuit_oauth::intuit_oauth_callback_handler, AppState},
+    handlers::{graphql_handler, graphql_playground, login_handler, logout_handler, me_handler, refresh_handler, sessions_handler, events::delete_event_handler, roles::get_roles_handler, users::get_users_handler, intuit_webhook::intuit_webhook_handler, intuit_oauth::intuit_oauth_callback_handler, webhook_progress::webhook_progress_stream, AppState},
     middleware::{optional_session_auth_middleware, security_headers_middleware, session_auth_middleware},
     schema::create_schema,
     logging,
@@ -87,11 +87,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create DataLoader context
     let dataloaders = DataLoaderContext::new(db.clone());
 
+    // Initialize email service (optional - only if SMTP credentials are configured)
+    let email_service = match hr_graphql_server::services::EmailConfig::from_env() {
+        Ok(email_config) => {
+            match hr_graphql_server::services::EmailService::new(email_config) {
+                Ok(service) => {
+                    tracing::info!("📧 Email service initialized successfully");
+                    Some(std::sync::Arc::new(service))
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to initialize email service: {}. Email features will not be available.", e);
+                    None
+                }
+            }
+        }
+        Err(e) => {
+            tracing::warn!("Email configuration not found: {}. Email features will not be available.", e);
+            None
+        }
+    };
+
     // Create application state
     let app_state = AppState {
         db: db.clone(),
         schema,
         dataloaders,
+        email_service: email_service.clone(),
     };
 
     // Create SeaORM session store for persistent sessions
@@ -140,6 +161,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/auth/me", get(me_handler))
         .route("/auth/refresh", post(refresh_handler))
         .route("/auth/sessions", get(sessions_handler))
+        // Password reset endpoints (PUBLIC - no auth required)
+        .route("/api/auth/request-reset", post(hr_graphql_server::handlers::password_reset::request_password_reset_handler))
+        .route("/api/auth/reset-password", post(hr_graphql_server::handlers::password_reset::reset_password_handler))
         // REST API endpoints
         .route("/api/events/{id}", axum::routing::delete(delete_event_handler)
             .layer(axum_middleware::from_fn_with_state(app_state.clone(), session_auth_middleware)))
@@ -153,6 +177,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/intuit/callback", get(intuit_oauth_callback_handler))
         // QuickBooks webhook endpoint (no auth - uses HMAC signature verification)
         .route("/api/intuit/webhook", post(intuit_webhook_handler))
+        // Webhook progress SSE endpoint (requires auth)
+        .route("/api/webhooks/process/{batch_id}/progress", get(webhook_progress_stream)
+            .layer(axum_middleware::from_fn_with_state(app_state.clone(), session_auth_middleware)))
         .nest_service("/uploads", ServeDir::new("uploads"))
         // GraphQL endpoints with optional session auth
         .route("/graphql",
@@ -206,26 +233,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Start employee statistics scheduler (captures daily snapshots)
     scheduler::start_employee_statistics_scheduler(db.clone()).await;
     tracing::info!("📊 Employee statistics scheduler started");
-
-    // Initialize email service (optional - only if SMTP credentials are configured)
-    let email_service = match hr_graphql_server::services::EmailConfig::from_env() {
-        Ok(email_config) => {
-            match hr_graphql_server::services::EmailService::new(email_config) {
-                Ok(service) => {
-                    tracing::info!("📧 Email service initialized successfully");
-                    Some(std::sync::Arc::new(service))
-                }
-                Err(e) => {
-                    tracing::warn!("Failed to initialize email service: {}. Email digests will not be sent.", e);
-                    None
-                }
-            }
-        }
-        Err(e) => {
-            tracing::warn!("Email configuration not found: {}. Email digests will not be sent.", e);
-            None
-        }
-    };
 
     // Start digest scheduler
     match hr_graphql_server::services::DigestScheduler::new(

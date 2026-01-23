@@ -279,4 +279,95 @@ async fn trigger_initial_sync(db: sea_orm::DatabaseConnection, realm_id: String)
         realm_id = %realm_id,
         "Initial QuickBooks sync completed. Users can now see their QuickBooks data in SvelteHR."
     );
+
+    // Auto-register webhook subscription after successful OAuth
+    tracing::info!("Auto-registering webhook subscription...");
+
+    let webhook_result = auto_register_webhook(&db, &realm_id).await;
+
+    match webhook_result {
+        Ok(webhook_id) => {
+            tracing::info!(
+                realm_id = %realm_id,
+                webhook_id = %webhook_id,
+                "Successfully auto-registered webhook subscription"
+            );
+        }
+        Err(e) => {
+            tracing::error!(
+                realm_id = %realm_id,
+                error = %e,
+                "Failed to auto-register webhook - webhooks disabled"
+            );
+            // Don't fail OAuth flow if webhook registration fails
+            // Users can manually register later via GraphQL mutation
+        }
+    }
+}
+
+/// Auto-register webhook subscription after OAuth connection
+async fn auto_register_webhook(
+    db: &sea_orm::DatabaseConnection,
+    realm_id: &str,
+) -> anyhow::Result<String> {
+    use crate::integrations::intuit::WebhookApiClient;
+    use crate::models::{intuit_connection, webhook_subscriptions};
+    use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+
+    // Get fresh connection with valid token
+    let connection = intuit_connection::Entity::find()
+        .filter(intuit_connection::Column::RealmId.eq(realm_id))
+        .filter(intuit_connection::Column::IsActive.eq(true))
+        .filter(intuit_connection::Column::DeletedAt.is_null())
+        .one(db)
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("No active connection found for realm {}", realm_id))?;
+
+    // Get webhook URL for current environment (auto-detected)
+    let webhook_url = WebhookApiClient::get_webhook_url();
+
+    // Get verifier token from environment (must match QuickBooks Developer Portal)
+    let verifier_token = std::env::var("INTUIT_WEBHOOK_VERIFIER_TOKEN")?;
+
+    // Default event types to subscribe to
+    let event_types = vec![
+        "Employee.Create".to_string(),
+        "Employee.Update".to_string(),
+        "Employee.Delete".to_string(),
+        "Department.Create".to_string(),
+        "Department.Update".to_string(),
+        "Department.Delete".to_string(),
+    ];
+
+    // Register with QuickBooks Webhooks API
+    let webhook_client = WebhookApiClient::new(connection.access_token.clone());
+    let registration = webhook_client
+        .register_webhook(webhook_url.clone(), event_types.clone(), verifier_token.clone())
+        .await?;
+
+    // Store subscription in database
+    let subscription = webhook_subscriptions::ActiveModel {
+        id: Set(uuid::Uuid::new_v4()),
+        webhook_id: Set(registration.webhook_id.clone()),
+        realm_id: Set(realm_id.to_string()),
+        event_types: Set(serde_json::json!(event_types)),
+        entity_names: Set(serde_json::json!(["Employee", "Department"])),
+        verifier_token: Set(verifier_token),
+        is_active: Set(true),
+        last_delivered_at: Set(None),
+        failure_count: Set(0),
+        metadata: Set(Some(serde_json::json!({
+            "webhook_url": webhook_url,
+            "registered_at": chrono::Utc::now().to_rfc3339(),
+            "status": registration.status,
+            "auto_registered": true,
+        }))),
+        created_at: Set(chrono::Utc::now().into()),
+        updated_at: Set(chrono::Utc::now().into()),
+        deleted_at: Set(None),
+    };
+
+    subscription.insert(db).await?;
+
+    Ok(registration.webhook_id)
 }

@@ -272,6 +272,61 @@ impl MutationRoot {
         }
     }
 
+    /// Save OAuth state in session for CSRF protection
+    /// Used during QuickBooks OAuth flow to work around browser cookie blocking
+    async fn save_oauth_state(&self, ctx: &Context<'_>, state: String) -> Result<bool> {
+        // Get session from context
+        let session = ctx.data::<tower_sessions::Session>()?;
+
+        // Store OAuth state in session with 30 minute expiry
+        session
+            .insert("oauth_state", state.clone())
+            .await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to save OAuth state: {}", e)))?;
+
+        tracing::debug!(state = %state, "OAuth state saved to session");
+
+        Ok(true)
+    }
+
+    /// Verify OAuth state from session
+    /// Returns true if state matches, false otherwise
+    async fn verify_oauth_state(&self, ctx: &Context<'_>, state: String) -> Result<bool> {
+        // Get session from context
+        let session = ctx.data::<tower_sessions::Session>()?;
+
+        // Get saved state from session
+        let saved_state: Option<String> = session
+            .get("oauth_state")
+            .await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to read OAuth state: {}", e)))?;
+
+        match saved_state {
+            Some(saved) if saved == state => {
+                // Valid state - remove from session
+                session
+                    .remove::<String>("oauth_state")
+                    .await
+                    .map_err(|e| async_graphql::Error::new(format!("Failed to clear OAuth state: {}", e)))?;
+
+                tracing::debug!(state = %state, "OAuth state verified and cleared from session");
+                Ok(true)
+            }
+            Some(saved) => {
+                tracing::warn!(
+                    expected = %saved,
+                    received = %state,
+                    "OAuth state mismatch"
+                );
+                Ok(false)
+            }
+            None => {
+                tracing::warn!(state = %state, "No OAuth state found in session");
+                Ok(false)
+            }
+        }
+    }
+
     /// Create a new event attendee
     async fn create_event_attendee(
         &self,

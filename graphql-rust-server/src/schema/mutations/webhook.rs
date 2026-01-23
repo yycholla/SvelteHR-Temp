@@ -32,7 +32,15 @@ impl WebhookMutations {
             .require(user_ctx, SyncPermission::ManageIntegrations)
             .await?;
 
-        // Get active Intuit connection
+        // Get active Intuit connection with fresh token
+        // Using IntuitClientManager ensures token is refreshed if expired
+        let client_manager = IntuitClientManager::new(db.clone());
+        let _ = client_manager
+            .get_client()
+            .await
+            .map_err(|e| format!("Failed to ensure fresh token: {}", e))?;
+
+        // Re-fetch connection to get the potentially refreshed access token
         let connection = intuit_connection::Entity::find()
             .filter(intuit_connection::Column::IsActive.eq(true))
             .filter(intuit_connection::Column::DeletedAt.is_null())
@@ -41,30 +49,44 @@ impl WebhookMutations {
             .map_err(|e| format!("Database error: {}", e))?
             .ok_or("No active QuickBooks connection found")?;
 
-        // Generate webhook verifier token
-        let verifier_token = uuid::Uuid::new_v4().to_string();
+        // Get webhook verifier token from environment (use dev token in dev, prod token in prod)
+        let verifier_token = std::env::var("INTUIT_WEBHOOK_VERIFIER_TOKEN")
+            .map_err(|_| "INTUIT_WEBHOOK_VERIFIER_TOKEN not configured. This must match the token in QuickBooks Developer Portal.")?;
 
-        // Get webhook URL from environment
-        let webhook_url = std::env::var("INTUIT_WEBHOOK_URL")
-            .map_err(|_| "INTUIT_WEBHOOK_URL not configured")?;
+        // Get webhook URL from environment variable
+        let webhook_url = std::env::var("WEBHOOK_URL")
+            .unwrap_or_else(|_| "http://localhost:3001/api/webhooks/intuit".to_string());
 
-        // Get QuickBooks client with automatic token refresh (currently not used - actual webhook registration would happen here)
-        let client_manager = IntuitClientManager::new(db.clone());
-        let _client = client_manager
-            .get_client()
-            .await
-            .map_err(|e| format!("Failed to create Intuit client: {}", e))?;
+        // Build event types for QuickBooks webhooks
+        let mut event_types = Vec::new();
+        for entity_name in &entity_names {
+            event_types.push(format!("{}.Create", entity_name));
+            event_types.push(format!("{}.Update", entity_name));
+            event_types.push(format!("{}.Delete", entity_name));
+        }
 
-        // Register webhook with QuickBooks API
-        // Note: This is a simplified version - actual API call implementation needed
+        // NOTE: QuickBooks webhooks must be manually configured in the Intuit Developer Portal.
+        // There is no programmatic API to register webhooks.
+        // This mutation creates a local database record to track the webhook subscription
+        // that has already been configured in the portal.
+
+        // Generate a local webhook ID for tracking
         let webhook_id = format!("webhook_{}", uuid::Uuid::new_v4());
+
+        tracing::info!(
+            webhook_id = %webhook_id,
+            realm_id = %connection.realm_id,
+            webhook_url = %webhook_url,
+            entity_names = ?entity_names,
+            "Creating local webhook subscription record (webhooks must be manually configured in Intuit portal)"
+        );
 
         // Store subscription in database
         let subscription = webhook_subscriptions::ActiveModel {
             id: Set(uuid::Uuid::new_v4()),
             webhook_id: Set(webhook_id.clone()),
             realm_id: Set(connection.realm_id.clone()),
-            event_types: Set(serde_json::json!(["Create", "Update", "Delete"])),
+            event_types: Set(serde_json::json!(event_types)),
             entity_names: Set(serde_json::json!(entity_names)),
             verifier_token: Set(verifier_token),
             is_active: Set(true),
@@ -73,6 +95,8 @@ impl WebhookMutations {
             metadata: Set(Some(serde_json::json!({
                 "webhook_url": webhook_url,
                 "registered_at": chrono::Utc::now().to_rfc3339(),
+                "status": "local_record",
+                "note": "Webhook must be configured in Intuit Developer Portal"
             }))),
             created_at: Set(chrono::Utc::now().into()),
             updated_at: Set(chrono::Utc::now().into()),

@@ -1,10 +1,112 @@
 // Server-side data loading for employee detail page
 // Follows RBAC patterns with server-side API calls only
+// Migrated to use EmployeeService for core employee data
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { logger } from '$lib/utils/logger';
 import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { createEmployeeService } from '$lib/server/services';
+
+// Type definitions for GraphQL responses
+interface GraphQLEmergencyContact {
+	id: string;
+	name: string;
+	relationship: string;
+	phoneNumber: string;
+	email?: string;
+	isPrimary: boolean;
+	createdAt: string;
+	updatedAt: string;
+}
+
+interface GraphQLVehicle {
+	id: string;
+	make: string;
+	model: string;
+	year: number;
+	color?: string;
+	licensePlate: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+interface GraphQLLeaveType {
+	id: string;
+	name: string;
+	color?: string;
+	defaultDays?: number;
+}
+
+interface GraphQLLeaveRequest {
+	id: string;
+	leaveType: GraphQLLeaveType;
+	startDate: string;
+	endDate: string;
+	status: string;
+	reason?: string;
+	createdAt: string;
+}
+
+interface GraphQLReviewer {
+	id: string;
+	displayName: string;
+}
+
+interface GraphQLPerformanceReview {
+	id: string;
+	reviewPeriod?: string;
+	overallRating: number;
+	status: string;
+	createdAt: string;
+	reviewer?: GraphQLReviewer;
+}
+
+interface GraphQLLeaveBalance {
+	id: string;
+	year: number;
+	totalDays: number;
+	usedDays: number;
+	remainingDays: number;
+	leaveTypeId: string;
+	leaveType?: GraphQLLeaveType;
+}
+
+interface GraphQLActivityLog {
+	id: string;
+	action: string;
+	resourceType: string;
+	details?: string;
+	createdAt: string;
+}
+
+// Type definitions for database documents
+interface AssignedDocument {
+	id: string;
+	assignment_id: string;
+	filename: string;
+	file_type: string;
+	file_size_bytes: number;
+	category?: string;
+	sensitivity_level?: string;
+	uploaded_at: string;
+	uploaded_by?: string;
+	uploaded_by_email?: string;
+	assigned_at: string;
+	assignment_reason?: string;
+}
+
+interface AvailableDocument {
+	id: string;
+	filename: string;
+	file_type: string;
+	file_size_bytes: number;
+	category?: string;
+	sensitivity_level?: string;
+	uploaded_at: string;
+	uploaded_by?: string;
+	uploaded_by_email?: string;
+}
 
 export const load: PageServerLoad = async (event) => {
 	const { params, cookies } = event;
@@ -48,19 +150,33 @@ export const load: PageServerLoad = async (event) => {
 	};
 
 	try {
-		// Make direct GraphQL calls to Rust GraphQL backend
-		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
-		const graphqlEndpoint = getGraphQLEndpoint();
+		// Create EmployeeService with authentication context
+		const employeeService = createEmployeeService(event);
 
-		// Headers for session-based authentication
-		// Forward session cookies to Rust GraphQL backend
-		const cookieHeader = event.request.headers.get('cookie') || '';
-		const headers: Record<string, string> = {
-			'Content-Type': 'application/json',
-			Cookie: cookieHeader
-		};
+		// Load core employee data using service layer
+		const employeeResult = await employeeService.getEmployeeById(employeeId);
 
-		logger.info('[Employee Detail] Using Rust GraphQL backend with session-based auth', {
+		// Handle employee not found
+		if (employeeResult.isError) {
+			if (employeeResult.error.code === 'EMPLOYEE_NOT_FOUND') {
+				logger.warn('[Employee Detail] Employee not found', { employeeId });
+				error(404, 'Employee not found');
+			}
+			logger.error(
+				'[Employee Detail] Failed to load employee',
+				new Error(employeeResult.error.message),
+				{
+					employeeId,
+					errorCode: employeeResult.error.code
+				}
+			);
+			error(500, 'Failed to load employee details');
+		}
+
+		const employeeEntity = employeeResult.value;
+
+		logger.info('[Employee Detail] Loaded employee via EmployeeService', {
+			employeeId: employeeEntity.id,
 			userRoles: locals.roles
 		});
 
@@ -70,32 +186,30 @@ export const load: PageServerLoad = async (event) => {
 		const isAdmin = userRoles.includes('Admin') || userRoles.includes('HR Manager');
 		const isViewingSelf = locals.user.id === employeeId;
 
-		// Load employee data with all related information
-		// NOTE: Using Rust GraphQL schema (filter pattern, direct arrays)
-		const employeeResponse = await fetch(graphqlEndpoint, {
+		// Headers for GraphQL requests to fetch related entities
+		// Forward session cookies to Rust GraphQL backend
+		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+		const graphqlEndpoint = getGraphQLEndpoint();
+		const cookieHeader = event.request.headers.get('cookie') || '';
+		const headers: Record<string, string> = {
+			'Content-Type': 'application/json',
+			Cookie: cookieHeader
+		};
+
+		// Fetch additional GraphQL data for department and address (not yet in domain model)
+		// TODO: Move this to service layer when Department and Address domains are implemented
+		const additionalDataResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetEmployeeById($id: UUID!) {
+					query GetEmployeeAdditionalData($id: UUID!) {
 						user(id: $id) {
-							id
-							firstName
-							lastName
-							displayName
-							fullName
-							email
 							roles {
 								id
 								name
 							}
-							phone
 							alternatePhone
-							jobTitle
-							status
-							hireDate
-							isActive
-							departmentId
 							createdAt
 							updatedAt
 							department {
@@ -115,19 +229,12 @@ export const load: PageServerLoad = async (event) => {
 						}
 					}
 				`,
-				variables: {
-					id: employeeId
-				}
+				variables: { id: employeeId }
 			})
 		});
 
-		const employeeData = await employeeResponse.json();
-
-		// Check if employee exists
-		const employee = employeeData?.data?.user;
-		if (!employee) {
-			error(404, 'Employee not found');
-		}
+		const additionalData = await additionalDataResponse.json();
+		const additionalEmployeeData = additionalData?.data?.user;
 
 		// Load additional related data separately
 		// Emergency contacts - migrated to Rust GraphQL backend
@@ -284,7 +391,7 @@ export const load: PageServerLoad = async (event) => {
 		const activityLogs = activityLogsData?.data?.activityLogs || [];
 
 		// Check if user is the employee's manager
-		const isEmployeeManager = employee.department?.managerId === locals.user.id;
+		const isEmployeeManager = additionalEmployeeData?.department?.managerId === locals.user.id;
 
 		// Determine access permissions
 		const canViewContactInfo = isViewingSelf || isEmployeeManager || isAdmin;
@@ -305,8 +412,8 @@ export const load: PageServerLoad = async (event) => {
 
 		// Fetch documents assigned to this employee (only if authorized)
 		const { transaction, setJWTClaims } = await import('$lib/server/db');
-		let assignedDocuments: any[] = [];
-		let availableDocuments: any[] = [];
+		let assignedDocuments: AssignedDocument[] = [];
+		let availableDocuments: AvailableDocument[] = [];
 
 		// Only load documents if user has permission to view them
 		if (canViewDocuments) {
@@ -420,32 +527,43 @@ export const load: PageServerLoad = async (event) => {
 		return {
 			userSession: userSession.toJSON(),
 			employee: {
-				id: employee.id,
-				firstName: employee.firstName,
-				lastName: employee.lastName,
-				displayName: employee.displayName,
-				fullName: employee.fullName,
-				email: employee.email,
-				role: employee.roles && employee.roles.length > 0 ? employee.roles[0].name : 'Employee',
-				roles: employee.roles || [],
-				jobTitle: employee.jobTitle,
-				status: employee.status,
-				hireDate: employee.hireDate,
-				isActive: employee.isActive,
-				departmentId: employee.departmentId,
-				// Contact information - only if authorized
-				phoneNumber: canViewContactInfo ? employee.phone : null,
-				mobileNumber: canViewContactInfo ? employee.alternatePhone : null,
-				addressLine1: canViewContactInfo ? employee.primaryAddress?.addressLine1 : null,
-				addressLine2: canViewContactInfo ? employee.primaryAddress?.addressLine2 : null,
-				city: canViewContactInfo ? employee.primaryAddress?.city : null,
-				stateProvince: canViewContactInfo ? employee.primaryAddress?.stateProvince : null,
-				postalCode: canViewContactInfo ? employee.primaryAddress?.postalCode : null,
-				country: canViewContactInfo ? employee.primaryAddress?.country : null,
-				createdAt: employee.createdAt,
-				updatedAt: employee.updatedAt,
+				// Core employee data from domain entity
+				id: employeeEntity.id,
+				firstName: employeeEntity.name.first,
+				lastName: employeeEntity.name.last,
+				displayName: employeeEntity.displayName,
+				fullName: employeeEntity.fullName,
+				email: employeeEntity.email.value,
+				jobTitle: employeeEntity.jobTitle,
+				status: employeeEntity.status,
+				hireDate: employeeEntity.hireDate.value.toISOString(),
+				isActive: employeeEntity.isActive,
+				departmentId: employeeEntity.departmentId,
+				// Additional data from GraphQL (not yet in domain model)
+				role:
+					additionalEmployeeData?.roles && additionalEmployeeData.roles.length > 0
+						? additionalEmployeeData.roles[0].name
+						: 'Employee',
+				roles: additionalEmployeeData?.roles || [],
+				createdAt: additionalEmployeeData?.createdAt,
+				updatedAt: additionalEmployeeData?.updatedAt,
 				lastLogin: null, // Not in current GraphQL schema
-				department: employee.department,
+				department: additionalEmployeeData?.department,
+				// Contact information - only if authorized
+				phoneNumber: canViewContactInfo ? employeeEntity.phone : null,
+				mobileNumber: canViewContactInfo ? additionalEmployeeData?.alternatePhone : null,
+				addressLine1: canViewContactInfo
+					? additionalEmployeeData?.primaryAddress?.addressLine1
+					: null,
+				addressLine2: canViewContactInfo
+					? additionalEmployeeData?.primaryAddress?.addressLine2
+					: null,
+				city: canViewContactInfo ? additionalEmployeeData?.primaryAddress?.city : null,
+				stateProvince: canViewContactInfo
+					? additionalEmployeeData?.primaryAddress?.stateProvince
+					: null,
+				postalCode: canViewContactInfo ? additionalEmployeeData?.primaryAddress?.postalCode : null,
+				country: canViewContactInfo ? additionalEmployeeData?.primaryAddress?.country : null,
 				// Emergency contacts - only if authorized
 				emergencyContacts: canViewEmergencyContacts ? emergencyContacts : [],
 				// Vehicles - only if authorized
@@ -454,7 +572,7 @@ export const load: PageServerLoad = async (event) => {
 				activityLogs,
 				leaveRequests,
 				leaveRequestCount: leaveRequests.length,
-				performanceReviews: performanceReviews.map((review: any) => ({
+				performanceReviews: performanceReviews.map((review: GraphQLPerformanceReview) => ({
 					id: review.id,
 					reviewPeriod: review.reviewPeriod,
 					overallRating: review.overallRating,
@@ -463,7 +581,7 @@ export const load: PageServerLoad = async (event) => {
 					reviewer: review.reviewer
 				})),
 				performanceReviewCount: performanceReviews.length,
-				leaveBalances: leaveBalances.map((balance: any) => ({
+				leaveBalances: leaveBalances.map((balance: GraphQLLeaveBalance) => ({
 					id: balance.id,
 					year: balance.year,
 					totalDays: balance.totalDays,
@@ -473,7 +591,7 @@ export const load: PageServerLoad = async (event) => {
 					leaveTypeDefaultDays: balance.leaveType?.defaultDays || balance.totalDays
 				})),
 				// Assigned documents
-				assignedDocuments: assignedDocuments.map((doc: any) => ({
+				assignedDocuments: assignedDocuments.map((doc: AssignedDocument) => ({
 					id: doc.id,
 					assignmentId: doc.assignment_id,
 					filename: doc.filename,
@@ -489,7 +607,7 @@ export const load: PageServerLoad = async (event) => {
 				documentsCount: assignedDocuments.length
 			},
 			// Available documents for assignment (admins only)
-			availableDocuments: availableDocuments.map((doc: any) => ({
+			availableDocuments: availableDocuments.map((doc: AvailableDocument) => ({
 				id: doc.id,
 				filename: doc.filename,
 				fileType: doc.file_type,

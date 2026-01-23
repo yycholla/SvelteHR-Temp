@@ -130,3 +130,25 @@ export const TEST_CONSTANTS = {
 	JWT_SECRET: process.env.JWT_SECRET || 'test-jwt-secret-key-for-testing-only',
 	GRAPHQL_ENDPOINT: process.env.GRAPHQL_ENDPOINT || 'http://localhost:4000/graphql'
 } as const;
+
+// Make test helpers available globally
+import * as factories from '../helpers/factories';
+import * as testContainer from '../helpers/test-container';
+
+declare global {
+	var EmployeeFactory: typeof factories.EmployeeFactory;
+	var DepartmentFactory: typeof factories.DepartmentFactory;
+	var RoleFactory: typeof factories.RoleFactory;
+	var createTestContainer: typeof testContainer.createTestContainer;
+	var createMockGraphQL: typeof testContainer.createMockGraphQL;
+	var createMockAuth: typeof testContainer.createMockAuth;
+	var createMockStorage: typeof testContainer.createMockStorage;
+}
+
+global.EmployeeFactory = factories.EmployeeFactory;
+global.DepartmentFactory = factories.DepartmentFactory;
+global.RoleFactory = factories.RoleFactory;
+global.createTestContainer = testContainer.createTestContainer;
+global.createMockGraphQL = testContainer.createMockGraphQL;
+global.createMockAuth = testContainer.createMockAuth;
+global.createMockStorage = testContainer.createMockStorage;

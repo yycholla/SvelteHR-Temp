@@ -61,10 +61,15 @@ export const GET: RequestHandler = async ({ url, cookies, fetch }) => {
 		// Success! Redirect to integrations page
 		throw redirect(302, '/admin/settings/integrations?connected=true');
 	} catch (err) {
+		// Re-throw redirects (success or error redirects)
 		if (err instanceof Response) {
-			throw err; // Re-throw redirects
+			throw err;
 		}
-		console.error('Error in OAuth callback:', err);
+		// Only log actual unexpected errors
+		if (err && typeof err === 'object' && 'location' in err) {
+			throw err; // SvelteKit redirect object
+		}
+		console.error('Unexpected error in OAuth callback:', err);
 		throw redirect(302, '/admin/settings/integrations?error=callback_failed');
 	}
 };

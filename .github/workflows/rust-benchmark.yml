@@ -116,7 +116,7 @@ jobs:
         with:
           name: benchmark-results
           path: graphql-rust-server/target/criterion/
-          retention-days: 30
+          retention-days: 7  # Reduced from 30 to save storage
 
   benchmark-comparison:
     name: Benchmark Comparison

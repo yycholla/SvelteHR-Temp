@@ -22,6 +22,8 @@ pub mod users;
 pub mod upload;
 pub mod intuit_webhook;
 pub mod intuit_oauth;
+pub mod password_reset;
+pub mod webhook_progress;
 
 use crate::models::user::Entity as UserEntity; // Import UserEntity
 
@@ -31,6 +33,7 @@ pub struct AppState {
     pub db: DatabaseConnection,
     pub schema: GraphQLSchema,
     pub dataloaders: DataLoaderContext,
+    pub email_service: Option<std::sync::Arc<crate::services::EmailService>>,
 }
 
 /// GraphQL playground handler (using GraphiQL - no external CDN dependencies)
@@ -490,6 +493,11 @@ pub async fn graphql_handler(
 
     // Add DataLoaders to request context
     request = request.data(app_state.dataloaders.clone());
+
+    // Add email service to request context (if configured)
+    if let Some(email_service) = &app_state.email_service {
+        request = request.data(email_service.clone());
+    }
 
     // Use UserContext from middleware (which has correct roles/permissions from database)
     if let Some(Extension(user_context)) = user_context_ext {

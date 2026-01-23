@@ -211,6 +211,67 @@ export default ts.config(
 			// legitimate utility functions like isRateLimited, getCacheKey, etc.
 		}
 	},
+	// Architecture enforcement rules
+	{
+		files: ['src/domain/**/*.ts'],
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				{
+					patterns: [
+						{
+							group: ['$lib/*', '../lib/*', '../../lib/*'],
+							message: 'Domain layer cannot import from lib (breaks separation of concerns)'
+						},
+						{
+							group: ['$routes/*', '../routes/*', '../../routes/*'],
+							message: 'Domain layer cannot import from routes (breaks separation of concerns)'
+						},
+						{
+							group: ['$services/*', '../services/*', '../../services/*'],
+							message: 'Domain layer cannot import from services (breaks dependency direction)'
+						},
+						{
+							group: ['$adapters/*', '../adapters/*', '../../adapters/*'],
+							message: 'Domain layer cannot import from adapters (breaks dependency direction)'
+						},
+						{
+							group: ['svelte', 'svelte/*'],
+							message: 'Domain layer cannot use Svelte (must be framework-agnostic)'
+						},
+						{
+							group: ['@sveltejs/*'],
+							message: 'Domain layer cannot use SvelteKit (must be framework-agnostic)'
+						}
+					]
+				}
+			]
+		}
+	},
+	{
+		files: ['src/services/**/*.ts'],
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				{
+					patterns: [
+						{
+							group: ['$lib/*', '../lib/*', '../../lib/*'],
+							message: 'Services should gradually migrate away from lib (use domain and adapters)'
+						},
+						{
+							group: ['$adapters/*', '../adapters/*', '../../adapters/*'],
+							message: 'Services should depend on Ports (interfaces), not concrete Adapters'
+						},
+						{
+							group: ['svelte', 'svelte/*'],
+							message: 'Services layer cannot use Svelte (must be framework-agnostic)'
+						}
+					]
+				}
+			]
+		}
+	},
 	{
 		files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js', '**/*.ts'],
 		languageOptions: {

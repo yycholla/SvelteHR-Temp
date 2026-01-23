@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
@@ -6,12 +7,18 @@
 	import * as ButtonGroup from '$lib/components/ui/button-group';
 	import EmployeeDataTable from '$lib/components/ui/employee-datatable.svelte';
 	import EmployeeCreateDialog from '$lib/components/employees/EmployeeCreateDialog.svelte';
-	import EmployeeStatistics from '$lib/components/employees/EmployeeStatistics.svelte';
 	import { Download, Grid, List, Upload, UserPlus, Users } from '@lucide/svelte';
 
 	// Import decomposed components
 	import EmployeeFilters from './components/EmployeeFilters.svelte';
 	import EmployeeGrid from './components/EmployeeGrid.svelte';
+
+	// Lazy-load EmployeeStatistics component (includes chart library)
+	let EmployeeStatistics: any = $state(null);
+	onMount(async () => {
+		const module = await import('$lib/components/employees/EmployeeStatistics.svelte');
+		EmployeeStatistics = module.default;
+	});
 
 	// Subscribe to page store at top level
 	const currentUrl = $derived($page.url);
@@ -279,13 +286,19 @@
 				<Card.Description>View statistics and search employees</Card.Description>
 			</Card.Header>
 			<Card.Content>
-				<EmployeeStatistics
-					{totalActiveEmployees}
-					{totalInactiveEmployees}
-					{totalEmployees}
-					departmentCount={departments.length}
-					{canViewInactiveEmployees}
-				/>
+				{#if EmployeeStatistics}
+					<svelte:component
+						this={EmployeeStatistics}
+						{totalActiveEmployees}
+						{totalInactiveEmployees}
+						{totalEmployees}
+						departmentCount={departments.length}
+						{canViewInactiveEmployees}
+					/>
+				{:else}
+					<!-- Loading placeholder for statistics -->
+					<div class="h-24 animate-pulse bg-gray-100 dark:bg-gray-800 rounded"></div>
+				{/if}
 
 				<div class="space-y-4 mt-4">
 					<EmployeeFilters

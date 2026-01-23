@@ -1,17 +1,82 @@
 // Server-side data loading for employee directory page
-// T035: Fix employee management pages implementation with standardized error handling
-// REFACTORED: Phase 1 Foundation - Integration Proof-of-Concept #2
-// Demonstrates: RBACDataLoader, UnifiedGraphQLClient, QueryParamExtractor, ClientSideFilter
+// Migrated to use EmployeeService with advanced filtering capabilities (Task 21)
+// Preserves RBACDataLoader for non-employee queries (departments, roles)
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { validateRoles } from '$lib/schemas/role';
 import { logger } from '$lib/utils/logger';
+import { createEmployeeService } from '$lib/server/services';
+import type { EmployeeListFilters, EmployeeSortField, SortOrder } from '$domain';
 
-// Phase 1 Foundation Utilities
+// Phase 1 Foundation Utilities (for non-employee data)
 import { RBACDataLoader } from '$lib/server/route-loaders';
-import { QueryParamExtractor } from '$lib/server/route-helpers/query-params';
-import { ClientSideFilter } from '$lib/server/route-helpers/client-filter';
+
+// Pagination constants
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 100;
+
+/**
+ * Temporary limit for statistics queries until dedicated count endpoint is available
+ * WARNING: Creates hard ceiling - orgs with >10000 employees will have incorrect stats
+ * TODO: Replace with dedicated statistics endpoint (ticket: TASK-XXX)
+ */
+const STATS_QUERY_LIMIT = 10000;
+
+/**
+ * Helper: Build EmployeeListFilters from URL search parameters
+ */
+function buildEmployeeFilters(url: URL): EmployeeListFilters {
+	const searchParams = url.searchParams;
+	const filters: EmployeeListFilters = {};
+
+	// Search term
+	const search = searchParams.get('search');
+	if (search) {
+		filters.searchTerm = search;
+	}
+
+	// Department filter
+	const department = searchParams.get('department');
+	if (department) {
+		filters.departmentId = department;
+	}
+
+	// Status filter (active/inactive/all)
+	const status = searchParams.get('status');
+	if (status === 'active') {
+		filters.isActive = true;
+	} else if (status === 'inactive') {
+		filters.isActive = false;
+	}
+	// If status is empty or 'all', don't set isActive filter
+
+	// Sorting
+	const sortBy = searchParams.get('sortBy');
+	const validSortFields: EmployeeSortField[] = ['name', 'email', 'hireDate', 'jobTitle'];
+	if (sortBy && validSortFields.includes(sortBy as EmployeeSortField)) {
+		filters.sortBy = sortBy as EmployeeSortField;
+	}
+
+	const sortOrder = searchParams.get('sortOrder');
+	if (sortOrder && ['asc', 'desc'].includes(sortOrder)) {
+		filters.sortOrder = sortOrder as SortOrder;
+	}
+
+	// Pagination with validation and safe defaults
+	const pageParam = parseInt(searchParams.get('page') || String(DEFAULT_PAGE), 10);
+	const limitParam = parseInt(searchParams.get('limit') || String(DEFAULT_LIMIT), 10);
+
+	// Validate and clamp values to safe ranges
+	const page = Math.max(1, isNaN(pageParam) ? DEFAULT_PAGE : pageParam);
+	const limit = Math.max(1, Math.min(MAX_LIMIT, isNaN(limitParam) ? DEFAULT_LIMIT : limitParam));
+
+	filters.limit = limit;
+	filters.offset = (page - 1) * limit;
+
+	return filters;
+}
 
 export const load: PageServerLoad = async (event) => {
 	const { url } = event;
@@ -25,45 +90,77 @@ export const load: PageServerLoad = async (event) => {
 	]);
 
 	return loader.loadWithClient(async (client) => {
-		// Use QueryParamExtractor for type-safe URL parameter extraction
-		const params = new QueryParamExtractor(url);
-		const { page, limit } = params.getPagination(20);
+		// Build filters from URL parameters
+		const filters = buildEmployeeFilters(url);
+		const page = Math.floor((filters.offset || 0) / (filters.limit || DEFAULT_LIMIT)) + 1;
+		const limit = filters.limit || DEFAULT_LIMIT;
 
-		// Extract all filter parameters
-		const filters = {
-			searchTerm: params.getString('search'),
-			departmentFilter: params.getString('department'),
-			roleFilter: params.getString('role'),
-			statusFilter: params.getString('status', 'active') // Default to 'active'
-		};
-
-		logger.debug('[Employee Directory] Filters', filters);
+		logger.debug('[Employee Directory] Filters', {
+			searchTerm: filters.searchTerm,
+			departmentId: filters.departmentId,
+			isActive: filters.isActive,
+			sortBy: filters.sortBy,
+			sortOrder: filters.sortOrder,
+			limit: filters.limit,
+			offset: filters.offset
+		});
 
 		try {
-			// GraphQL query definitions
-			const GET_EMPLOYEES_QUERY = `
-				query GetAllEmployees($limit: Int, $offset: Int) {
-					users(limit: $limit, offset: $offset) {
-						id
-						email
-						firstName
-						lastName
-						displayName
-						roles {
-							id
-							name
-						}
-						phone
-						departmentId
-						managerId
-						hireDate
-						isActive
-						createdAt
-						updatedAt
-					}
-				}
-			`;
+			// Create EmployeeService with authentication context
+			const employeeService = createEmployeeService(event);
 
+			// Load employees using service with advanced filtering
+			const employeesResult = await employeeService.getEmployees(filters);
+
+			if (employeesResult.isError) {
+				// Extract the underlying error for structured logging
+				const underlyingError =
+					employeesResult.error.context?.originalError || employeesResult.error;
+
+				// Convert domain error to Error if needed
+				const errorObj =
+					underlyingError instanceof Error
+						? underlyingError
+						: new Error(employeesResult.error.message);
+
+				logger.error('[Employee Directory] Failed to load employees via service', errorObj, {
+					domainErrorCode: employeesResult.error.code,
+					domainErrorMessage: employeesResult.error.message,
+					filters: {
+						searchTerm: filters.searchTerm,
+						departmentId: filters.departmentId,
+						isActive: filters.isActive
+					}
+				});
+				throw error(500, 'Failed to load employees. Please try again.');
+			}
+
+			const { employees: employeeEntities, total, offset } = employeesResult.value;
+
+			logger.debug('[Employee Directory] Employees loaded via service', {
+				count: employeeEntities.length,
+				total,
+				offset,
+				limit
+			});
+
+			// Map domain Employee entities to page data format
+			const employees = employeeEntities.map((emp) => ({
+				id: emp.id,
+				email: emp.email.value,
+				firstName: emp.name.first,
+				lastName: emp.name.last,
+				displayName: emp.fullName,
+				hireDate: emp.hireDate.value.toISOString(),
+				departmentId: emp.departmentId,
+				jobTitle: emp.jobTitle,
+				phone: emp.phone,
+				isActive: emp.isActive,
+				// Note: roles will need to be fetched separately if needed for display
+				role: null
+			}));
+
+			// Load departments via GraphQL (needed for filter dropdown)
 			const GET_DEPARTMENTS_QUERY = `
 				query GetDepartments($limit: Int, $offset: Int) {
 					departments(limit: $limit, offset: $offset) {
@@ -78,118 +175,49 @@ export const load: PageServerLoad = async (event) => {
 				}
 			`;
 
-			// Use UnifiedGraphQLClient to execute all queries
-			// Fetch large dataset for client-side filtering (backend doesn't support filters yet)
-			const allEmployees = await client.query(
-				GET_EMPLOYEES_QUERY,
-				{ limit: 10000, offset: 0 },
-				{
-					operationName: 'GetAllEmployees',
-					errorMessage: 'Failed to load employees',
-					dataPath: 'users'
-				}
-			);
+			// Parallel execution - saves ~1600ms by running independent queries concurrently
+			const [departments, allActiveResult, allInactiveResult, autocompleteResult] =
+				await Promise.all([
+					client
+						.query(
+							GET_DEPARTMENTS_QUERY,
+							{ limit: 100, offset: 0 },
+							{
+								operationName: 'GetDepartments',
+								errorMessage: 'Failed to load departments',
+								dataPath: 'departments'
+							}
+						)
+						.catch((err) => {
+							logger.error('[Employee Directory] Failed to load departments', err);
+							return [];
+						}),
 
-			const departments = await client.query(
-				GET_DEPARTMENTS_QUERY,
-				{ limit: 100, offset: 0 },
-				{
-					operationName: 'GetDepartments',
-					errorMessage: 'Failed to load departments',
-					dataPath: 'departments'
-				}
-			);
+					employeeService.getEmployees({ isActive: true, limit: STATS_QUERY_LIMIT }),
+					employeeService.getEmployees({ isActive: false, limit: STATS_QUERY_LIMIT }),
+					employeeService.getEmployees({ limit: STATS_QUERY_LIMIT })
+				]);
 
-			logger.debug('[Employee Directory] Employees loaded', {
-				count: allEmployees?.length || 0
-			});
-
-			// Calculate statistics from ALL employees BEFORE filtering
-			const totalActiveEmployees = (allEmployees || []).filter(
-				(emp: any) => emp.isActive === true
-			).length;
-			const totalInactiveEmployees = (allEmployees || []).filter(
-				(emp: any) => emp.isActive === false
-			).length;
+			// Handle statistics results
+			const totalActiveEmployees = allActiveResult.isError ? 0 : allActiveResult.value.total;
+			const totalInactiveEmployees = allInactiveResult.isError ? 0 : allInactiveResult.value.total;
 
 			logger.debug('[Employee Directory] Employee stats', {
-				total: allEmployees?.length || 0,
+				total,
 				active: totalActiveEmployees,
 				inactive: totalInactiveEmployees
 			});
 
-			// Create autocomplete suggestions from ALL employees (before filtering)
-			const employeeAutocompleteOptions = (allEmployees || []).map((emp: any) => ({
-				value: emp.displayName || emp.email,
-				label: emp.displayName || emp.email,
-				email: emp.email
-			}));
-
-			// Use ClientSideFilter for fluent filtering API
-			const filteredEmployees = new ClientSideFilter(allEmployees || [])
-				// Status filter (active/inactive)
-				.filter((emp: any) => {
-					if (filters.statusFilter === 'active') return emp.isActive === true;
-					if (filters.statusFilter === 'inactive') return emp.isActive === false;
-					return true; // Empty string shows all
-				})
-				// Department filter
-				.where('departmentId', filters.departmentFilter || undefined)
-				// Role filter (roles is array of {id, name} objects)
-				.filter((emp: any) =>
-					!filters.roleFilter
-						? true
-						: emp.roles?.some((role: any) => role.name === filters.roleFilter)
-				)
-				// Multi-term search filter (comma-separated)
-				.filter((emp: any) => {
-					if (!filters.searchTerm) return true;
-
-					const searchTerms = filters.searchTerm
-						.split(',')
-						.map((term) => term.trim().toLowerCase())
-						.filter(Boolean);
-
-					const displayName = emp.displayName?.toLowerCase() || '';
-					const firstName = emp.firstName?.toLowerCase() || '';
-					const lastName = emp.lastName?.toLowerCase() || '';
-					const email = emp.email?.toLowerCase() || '';
-					const role = emp.roles
-						? emp.roles
-								.map((r: any) => r.name)
-								.join(' ')
-								.toLowerCase()
-						: '';
-
-					// Employee must match ANY search term (OR logic)
-					return searchTerms.some((searchLower) => {
-						return (
-							displayName.includes(searchLower) ||
-							firstName.includes(searchLower) ||
-							lastName.includes(searchLower) ||
-							email.includes(searchLower) ||
-							role.includes(searchLower)
-						);
-					});
-				})
-				.get();
-
-			const totalEmployees = filteredEmployees.length;
-
-			logger.debug('[Employee Directory] Pagination info', {
-				totalEmployees,
-				page,
-				limit
-			});
-
-			// Apply pagination to filtered results
-			const startIndex = (page - 1) * limit;
-			const endIndex = startIndex + limit;
-			const employees = filteredEmployees.slice(startIndex, endIndex).map((emp: any) => ({
-				...emp,
-				// Transform roles array to single role string for consistent display
-				role: emp.roles && emp.roles.length > 0 ? emp.roles[0].name : null
-			}));
+			// Handle autocomplete result
+			const employeeAutocompleteOptions = autocompleteResult.isError
+				? []
+				: autocompleteResult.value.employees.map(
+						(emp: { fullName: string; email: { value: string } }) => ({
+							value: emp.fullName,
+							label: emp.fullName,
+							email: emp.email.value
+						})
+					);
 
 			// Load roles data via REST API
 			const { getApiBaseUrl } = await import('$lib/server/api-url');
@@ -204,7 +232,7 @@ export const load: PageServerLoad = async (event) => {
 				}
 			});
 
-			let rolesData: any[] = [];
+			let rolesData: unknown[] = [];
 			if (rolesResponse.ok) {
 				rolesData = await rolesResponse.json();
 			} else {
@@ -228,20 +256,31 @@ export const load: PageServerLoad = async (event) => {
 				['Admin', 'HR Manager', 'Manager'].includes(role)
 			);
 
+			// Calculate pagination metadata
+			const totalPages = Math.ceil(total / limit);
+
 			// Return standardized data structure
 			// RBACDataLoader already includes userSession and permissions
 			return {
 				employees,
-				totalEmployees, // Total count after all filters, before pagination
+				totalEmployees: total, // Total count after all filters
 				totalActiveEmployees, // Total active count from ALL employees
 				totalInactiveEmployees, // Total inactive count from ALL employees
 				departments: departments || [],
 				validRoles, // Use filtered roles with valid names only
 				employeeAutocompleteOptions, // All employee names for search autocomplete
 				filters: {
-					...filters,
+					search: filters.searchTerm || '',
+					department: filters.departmentId || '',
+					role: url.searchParams.get('role') || '', // Preserve role filter from URL
+					status: url.searchParams.get('status') || 'active'
+				},
+				pagination: {
 					page,
-					limit
+					limit,
+					offset,
+					total,
+					totalPages
 				},
 				canCreateReviews
 			};

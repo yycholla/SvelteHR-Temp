@@ -3,20 +3,23 @@
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
+import { randomUUID } from 'crypto';
 import { logger } from '$lib/utils/logger';
 import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { createEmployeeService } from '$lib/server/services';
+import type { CreateEmployeeData } from '$domain';
+
+// Constants for routing and success messages
+const EMPLOYEE_LIST_ROUTE = '/dashboard/employees';
+const SUCCESS_CREATED = 'created';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies } = event;
 
 	// Check authentication and permissions
+	// Only users with full employee write access can create new employees
 	requireAuth(event, {
-		requiredPermissions: [
-			'employees:write',
-			'employees:write:self',
-			'employees:write:team',
-			'employees:write:all'
-		]
+		requiredPermissions: ['employees:write:all']
 	});
 
 	// After permission check, re-destructure locals with guaranteed user
@@ -89,11 +92,11 @@ export const load: PageServerLoad = async (event) => {
 				isManager: userPermissions.isManager
 			}
 		};
-	} catch (err: any) {
+	} catch (err: unknown) {
 		logger.error('[Employee New] Error loading data:', err as Error);
 
 		// If it's already a SvelteKit error, rethrow it
-		if (err.status) {
+		if (err && typeof err === 'object' && 'status' in err) {
 			throw err;
 		}
 
@@ -105,20 +108,13 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
 	default: async (event) => {
-		const { request, cookies } = event;
+		const { request } = event;
 
 		// Check authentication and permissions
+		// Only users with full employee write access can create new employees
 		requireAuth(event, {
-			requiredPermissions: [
-				'employees:write',
-				'employees:write:self',
-				'employees:write:team',
-				'employees:write:all'
-			]
+			requiredPermissions: ['employees:write:all']
 		});
-
-		// After permission check, re-destructure locals with guaranteed user
-		const { locals } = event;
 
 		try {
 			const formData = await request.formData();
@@ -129,8 +125,6 @@ export const actions: Actions = {
 			const jobTitle = formData.get('jobTitle')?.toString();
 			const departmentId = formData.get('departmentId')?.toString();
 			const hireDate = formData.get('hireDate')?.toString();
-			const role = formData.get('role')?.toString();
-			const password = formData.get('password')?.toString();
 
 			// Validate required fields
 			if (!firstName || !lastName || !email) {
@@ -139,177 +133,98 @@ export const actions: Actions = {
 				});
 			}
 
-			// Make GraphQL mutation to create employee with session-based authentication
-			const { getGraphQLEndpoint } = await import('$lib/server/api-url');
-			const graphqlEndpoint = getGraphQLEndpoint();
+			if (!hireDate) {
+				return fail(400, {
+					error: 'Hire date is required'
+				});
+			}
 
-			// Headers for session-based authentication
-			const cookieHeader = request.headers.get('cookie') || '';
-			const headers: Record<string, string> = {
-				'Content-Type': 'application/json',
-				Cookie: cookieHeader
-			};
+			// Create EmployeeService with authentication context
+			const employeeService = createEmployeeService(event);
 
-			// Create user via GraphQL mutation
-			// Build input object, only including fields that have values
-			// NOTE: GraphQL schema uses camelCase
-			const input: any = {
+			// Map form data to CreateEmployeeData interface
+			const createData: CreateEmployeeData = {
+				id: randomUUID(),
 				email,
 				firstName,
 				lastName,
-				status: 'active'
+				hireDate,
+				departmentId: departmentId || null,
+				jobTitle: jobTitle || null,
+				phone: phone || null
 			};
 
-			// Only add optional fields if they have values
-			if (phone) input.phone = phone;
-			if (jobTitle) input.jobTitle = jobTitle;
-			if (departmentId) input.departmentId = departmentId;
-			if (password) input.password = password;
+			// Call EmployeeService to create employee
+			const result = await employeeService.createEmployee(createData);
 
-			// Pass role name directly (frontend sends exact name like "HR Manager")
-			if (role) {
-				input.roleName = role;
-			}
+			// Handle Result type
+			if (result.isError) {
+				// Map domain errors to form validation errors
+				logger.error('[Employee New] Employee creation failed', result.error, {
+					errorCode: result.error.code,
+					errorMessage: result.error.message
+				});
 
-			if (hireDate) {
-				// Ensure hire date is in ISO 8601 format
-				input.hireDate = new Date(hireDate).toISOString();
-			}
+				// Map specific error codes to user-friendly messages
+				switch (result.error.code) {
+					case 'EMPLOYEE_ALREADY_EXISTS':
+						return fail(400, {
+							error:
+								'An employee with this email address already exists. Please use a different email address.',
+							field: 'email'
+						});
 
-			const createResponse = await fetch(graphqlEndpoint, {
-				method: 'POST',
-				headers,
-				body: JSON.stringify({
-					query: `
-						mutation CreateEmployee($input: CreateUserInput!) {
-							users {
-								createUser(input: $input) {
-									id
-									firstName
-									lastName
-									email
-									roles {
-										id
-										name
-									}
-									hireDate
-									departmentId
-								}
-							}
+					case 'INVALID_EMAIL':
+						return fail(400, {
+							error: 'The email address format is invalid. Please enter a valid email address.',
+							field: 'email'
+						});
+
+					case 'INVALID_HIRE_DATE':
+						return fail(400, {
+							error: 'Invalid hire date. Please select a valid date.',
+							field: 'hireDate'
+						});
+
+					case 'VALIDATION_ERROR': {
+						// Type-safe field extraction
+						const context = result.error.context;
+						let field: string | undefined = undefined;
+
+						if (context && 'field' in context && typeof context.field === 'string') {
+							field = context.field;
 						}
-					`,
-					variables: { input }
-				})
-			});
 
-			logger.info('[Employee New] User creation request sent');
-
-			// Always parse JSON response to check for GraphQL errors
-			// GraphQL can return errors even with HTTP 200, or have detailed errors with HTTP 400/500
-			const createData = await createResponse.json();
-			logger.info('[Employee New] Full response:', {
-				response: JSON.stringify(createData, null, 2)
-			});
-
-			if (createData.errors && createData.errors.length > 0) {
-				const errorMsg = createData.errors[0]?.message || 'Failed to create employee';
-				logger.error('[Employee New] GraphQL errors', new Error(errorMsg), {
-					errors: createData.errors
-				});
-				logger.error('[Employee New] Full error object', undefined, {
-					errorsJson: JSON.stringify(createData.errors, null, 2)
-				});
-
-				// Parse GraphQL error to provide user-friendly message
-				const errorMessage = createData.errors[0].message || 'Failed to create employee';
-				logger.error('[Employee New] Error message to parse', undefined, {
-					errorMessage
-				});
-				let userFriendlyError = errorMessage;
-
-				// Handle common validation errors
-				if (
-					errorMessage.toLowerCase().includes('string length') &&
-					errorMessage.includes('greater than or equal to')
-				) {
-					// Password length validation error - extract the minimum length if possible
-					const match = errorMessage.match(/greater than or equal to (\d+)/);
-					const minLength = match ? match[1] : '8';
-					userFriendlyError = `Password must be at least ${minLength} characters long when provided. Please use a stronger password or leave the field blank.`;
-				} else if (errorMessage.toLowerCase().includes('failed to parse')) {
-					// Generic parsing error - try to extract useful info
-					if (errorMessage.includes('String') && errorMessage.includes('length')) {
-						userFriendlyError =
-							'Password must be at least 8 characters long when provided. Please use a stronger password or leave the field blank.';
-					} else {
-						userFriendlyError = `Invalid input format: ${errorMessage}`;
+						return fail(400, {
+							error: result.error.message,
+							field
+						});
 					}
-				} else if (
-					errorMessage.toLowerCase().includes('duplicate') ||
-					errorMessage.toLowerCase().includes('unique') ||
-					errorMessage.toLowerCase().includes('already exists')
-				) {
-					// Duplicate email or other unique constraint violation
-					userFriendlyError =
-						'An employee with this email address already exists. Please use a different email address.';
-				} else if (
-					errorMessage.toLowerCase().includes('invalid') &&
-					errorMessage.toLowerCase().includes('email')
-				) {
-					// Email validation error
-					userFriendlyError =
-						'The email address format is invalid. Please enter a valid email address.';
-				} else if (
-					errorMessage.toLowerCase().includes('required') ||
-					errorMessage.toLowerCase().includes('cannot be null')
-				) {
-					// Missing required fields
-					userFriendlyError =
-						'Please fill in all required fields (first name, last name, and email address).';
-				} else if (
-					errorMessage.toLowerCase().includes('unauthorized') ||
-					errorMessage.toLowerCase().includes('permission')
-				) {
-					// Permission errors
-					userFriendlyError =
-						'You do not have permission to create employees. Please contact your administrator.';
-				} else {
-					// If we don't recognize the error, show the backend message directly
-					// This is better than showing a generic "Failed to create employee" message
-					logger.error('[Employee New] Unhandled error pattern, showing raw message');
-				}
 
-				return fail(400, {
-					error: userFriendlyError
-				});
+					default:
+						return fail(500, {
+							error: 'Failed to create employee. Please try again.'
+						});
+				}
 			}
 
-			// Check if we got valid data back
-			const newEmployeeId = createData.data?.users?.createUser?.id;
+			// Success - redirect to employees list
+			const employee = result.value;
+			logger.info('[Employee New] Successfully created employee via EmployeeService', {
+				employeeId: employee.id,
+				email: employee.email.value
+			});
 
-			if (!newEmployeeId) {
-				// No errors array but also no data - check HTTP response status
-				if (!createResponse.ok) {
-					return fail(400, {
-						error: `Failed to create employee: ${createResponse.statusText || 'Unknown server error'}`
-					});
-				}
-				return fail(500, {
-					error: 'Employee created but ID not returned from server'
-				});
-			}
-
-			logger.info(`[Employee New] Successfully created employee with ID: ${newEmployeeId}`);
-
-			// SvelteKit automatically serializes redirects to JSON for fetch requests
-			// and performs actual redirects for traditional form submissions
-			throw redirect(303, `/dashboard/employees?success=created`);
-		} catch (err: any) {
+			throw redirect(303, `${EMPLOYEE_LIST_ROUTE}?success=${SUCCESS_CREATED}`);
+		} catch (err) {
 			logger.error('[Employee New] Error creating employee:', err as Error);
 
 			// If it's a redirect, rethrow it (this is the successful case)
-			if (err.status === 303 || err.status === 302 || err.status === 301) {
-				throw err;
+			if (err && typeof err === 'object' && 'status' in err) {
+				const status = (err as { status: number }).status;
+				if (status === 303 || status === 302 || status === 301) {
+					throw err;
+				}
 			}
 
 			return fail(500, {

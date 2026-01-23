@@ -28,23 +28,28 @@ async function globalSetup(config: FullConfig) {
 		// Pre-authenticate test users and store auth states
 		const users = testContext.users;
 
+		// Determine base URL (use Docker port 5173 for local, 5174 for CI)
+		const baseURL =
+			process.env.PLAYWRIGHT_BASE_URL ||
+			(process.env.CI ? 'http://localhost:5174' : 'http://localhost:5173');
+
 		// Admin authentication
-		await page.goto(process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5174');
+		await page.goto(baseURL);
 		await authenticateUser(page, users.admin.email, 'admin123');
 		await page.context().storageState({ path: 'tests/.auth/admin-auth.json' });
 
 		// HR Manager authentication
-		await page.goto(process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5174');
+		await page.goto(baseURL);
 		await authenticateUser(page, users.hrManager.email, 'admin123');
 		await page.context().storageState({ path: 'tests/.auth/hr-manager-auth.json' });
 
 		// Manager authentication
-		await page.goto(process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5174');
+		await page.goto(baseURL);
 		await authenticateUser(page, users.manager.email, 'admin123');
 		await page.context().storageState({ path: 'tests/.auth/manager-auth.json' });
 
 		// Employee authentication
-		await page.goto(process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5174');
+		await page.goto(baseURL);
 		await authenticateUser(page, users.employee.email, 'admin123');
 		await page.context().storageState({ path: 'tests/.auth/employee-auth.json' });
 

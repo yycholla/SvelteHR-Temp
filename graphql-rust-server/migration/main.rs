@@ -91,6 +91,9 @@ mod m20251230_002_payroll_integration;
 mod m20251231_001_email_digests;
 mod m20260101_001_create_sync_schedules;
 mod m20260107_001_fix_cron_constraint;
+mod m20260113_001_password_reset_tokens;
+mod m20260120_001_clean_invalid_phone_numbers;
+mod m20260120_002_clean_invalid_hire_dates;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -170,6 +173,9 @@ impl MigratorTrait for Migrator {
             Box::new(m20251231_001_email_digests::Migration),
             Box::new(m20260101_001_create_sync_schedules::Migration),
             Box::new(m20260107_001_fix_cron_constraint::Migration),
+            Box::new(m20260113_001_password_reset_tokens::Migration),
+            Box::new(m20260120_001_clean_invalid_phone_numbers::Migration),
+            Box::new(m20260120_002_clean_invalid_hire_dates::Migration),
         ]
     }
 }

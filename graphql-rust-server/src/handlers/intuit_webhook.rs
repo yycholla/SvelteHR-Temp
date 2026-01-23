@@ -45,6 +45,14 @@ pub async fn intuit_webhook_handler(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
+    tracing::debug!(
+        verifier_token = %verifier_token,
+        signature = %signature,
+        body_length = body.len(),
+        body_preview = %&body[..body.len().min(200)],
+        "Webhook received - verifying signature"
+    );
+
     // Create webhook processor
     let processor = WebhookProcessor::new(Arc::new(app_state.db.clone()));
 
@@ -65,25 +73,30 @@ pub async fn intuit_webhook_handler(
         }
     }
 
-    // Parse the webhook payload
-    let payload: crate::services::webhook_processor::QuickBooksWebhookPayload =
-        serde_json::from_str(&body).map_err(|e| {
-            tracing::error!("Failed to parse webhook payload: {}", e);
-            StatusCode::BAD_REQUEST
-        })?;
+    // Parse the webhook payload (try CloudEvents first, then legacy format)
+    let payload = if body.trim_start().starts_with('[') {
+        // CloudEvents format (array)
+        let cloud_events: Vec<crate::services::webhook_processor::CloudEvent> =
+            serde_json::from_str(&body).map_err(|e| {
+                tracing::error!("Failed to parse CloudEvents webhook payload: {}", e);
+                StatusCode::BAD_REQUEST
+            })?;
 
-    // Extract realm_id from first event notification (all should be for same realm)
-    let realm_id = payload
-        .event_notifications
-        .first()
-        .map(|n| n.realm_id.clone())
-        .ok_or_else(|| {
-            tracing::error!("Webhook payload contains no event notifications");
-            StatusCode::BAD_REQUEST
-        })?;
+        crate::services::webhook_processor::WebhookPayload::CloudEvents(cloud_events)
+    } else {
+        // Legacy format (object)
+        let legacy_payload: crate::services::webhook_processor::QuickBooksWebhookPayload =
+            serde_json::from_str(&body).map_err(|e| {
+                tracing::error!("Failed to parse legacy webhook payload: {}", e);
+                StatusCode::BAD_REQUEST
+            })?;
+
+        crate::services::webhook_processor::WebhookPayload::Legacy(legacy_payload)
+    };
 
     // Process webhook asynchronously
-    match processor.process_webhook(&realm_id, payload, signature).await {
+    // Pass verifier_token so processor can look up subscription
+    match processor.process_webhook_with_token(payload, signature, &verifier_token).await {
         Ok(result) => {
             tracing::info!(
                 "Webhook processed successfully: {} events processed, {} events failed",

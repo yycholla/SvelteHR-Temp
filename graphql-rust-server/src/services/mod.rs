@@ -14,6 +14,7 @@ pub mod sync_preview;
 pub mod audit_logger;
 pub mod reconciliation;
 pub mod webhook_processor;
+pub mod webhook_batch_processor;
 pub mod rollback;
 pub mod retry_service;
 pub mod compliance_reports;
@@ -75,6 +76,9 @@ pub use reconciliation::{
 pub use webhook_processor::{
     WebhookProcessor, WebhookProcessingResult, WebhookEventStats,
     QuickBooksWebhookPayload, EventNotification, DataChangeEvent, EntityChange,
+};
+pub use webhook_batch_processor::{
+    WebhookBatchProcessor, BatchProgress, BatchStatus, EventProgress, EventStatus,
 };
 pub use rollback::{
     RollbackService, CreateSnapshotInput, ExecuteRollbackInput, RollbackValidation,

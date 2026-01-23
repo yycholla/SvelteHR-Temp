@@ -1,0 +1,528 @@
+import { expect, test } from '@playwright/test';
+
+/**
+ * E2E Tests: Employee CRUD Operations
+ *
+ * Tests the employee module migrated to domain architecture:
+ * - Employee list view with filtering and sorting
+ * - Employee detail view
+ * - Employee create form with domain validation
+ *
+ * These tests verify the EmployeeService integration end-to-end.
+ */
+
+test.describe('Employee List View', () => {
+	test.beforeEach(async ({ page }) => {
+		// Login as admin (has full employee access)
+		await page.goto('/login');
+		await page.fill('[data-testid="login-username-input"]', 'admin@mountainhr.dev');
+		await page.fill('[data-testid="login-password-input"]', 'admin123');
+		await page.click('[data-testid="login-submit-button"]');
+
+		// Wait for either dashboard URL or any navigation away from login
+		await page.waitForURL(/\/dashboard|\/employees/, { timeout: 15000 }).catch(async () => {
+			// If redirect fails, manually navigate
+			await page.goto('/dashboard');
+		});
+
+		// Navigate to employee list
+		await page.goto('/dashboard/employees');
+		await page.waitForLoadState('domcontentloaded');
+	});
+
+	test('should display employee list with data', async ({ page }) => {
+		// Verify we're on the employee page by checking for "Add Employee" button
+		await expect(page.locator('button, a').filter({ hasText: /Add Employee/i })).toBeVisible();
+
+		// Wait for employee data to load
+		await page.waitForTimeout(2000);
+
+		// Verify at least one employee is displayed (check for various possible selectors)
+		const employeeRows = page.locator(
+			'tr:has(td), [data-testid^="employee-row-"], [data-testid^="employee-card-"], [class*="employee-card"], [class*="employee-item"]'
+		);
+		const count = await employeeRows.count();
+		expect(count).toBeGreaterThan(0);
+	});
+
+	test('should filter employees by search term', async ({ page }) => {
+		// Find search input
+		const searchInput = page
+			.locator(
+				'[data-testid="employee-search"], input[type="search"], input[placeholder*="search" i]'
+			)
+			.first();
+
+		if (await searchInput.isVisible()) {
+			// Enter search term
+			await searchInput.fill('admin');
+			await page.waitForTimeout(500); // Allow for debounce
+
+			// Verify URL contains search parameter
+			await page.waitForURL(/search=admin/i, { timeout: 3000 }).catch(() => {
+				// If URL doesn't update, that's okay - some implementations use client-side filtering
+			});
+
+			// Verify employee list is filtered (should show fewer results)
+			const visibleEmployees = page.locator(
+				'tr:has(td):visible, [data-testid^="employee-row-"]:visible'
+			);
+			const filteredCount = await visibleEmployees.count();
+			expect(filteredCount).toBeGreaterThan(0);
+
+			// At least one visible employee should contain "admin" in text
+			const hasAdminText = await page.locator('text=/admin/i').first().isVisible();
+			expect(hasAdminText).toBe(true);
+		}
+	});
+
+	test('should filter employees by department', async ({ page }) => {
+		// Find department filter dropdown
+		const deptFilter = page
+			.locator('[data-testid="department-filter"], select[name*="department" i]')
+			.first();
+
+		if (await deptFilter.isVisible()) {
+			// Get available options
+			const options = await deptFilter.locator('option').all();
+
+			if (options.length > 1) {
+				// Select second option (first is usually "All")
+				const optionValue = await options[1].getAttribute('value');
+				await deptFilter.selectOption(optionValue || '');
+				await page.waitForTimeout(500);
+
+				// Verify URL or results updated
+				const employeeCount = await page
+					.locator('tr:has(td), [data-testid^="employee-row-"]')
+					.count();
+				expect(employeeCount).toBeGreaterThan(0);
+			}
+		}
+	});
+
+	test('should filter employees by status (active/inactive)', async ({ page }) => {
+		// Find status filter
+		const statusFilter = page
+			.locator('[data-testid="status-filter"], select[name*="status" i], [role="radiogroup"]')
+			.first();
+
+		if (await statusFilter.isVisible()) {
+			// If it's a select dropdown
+			if (await statusFilter.evaluate((el) => el.tagName === 'SELECT')) {
+				await statusFilter.selectOption('active');
+				await page.waitForTimeout(500);
+			} else {
+				// If it's radio buttons or tabs
+				const activeOption = page
+					.locator(
+						'label:has-text("Active"), button:has-text("Active"), [role="radio"]:has-text("Active")'
+					)
+					.first();
+				if (await activeOption.isVisible()) {
+					await activeOption.click();
+					await page.waitForTimeout(500);
+				}
+			}
+
+			// Verify active employees are shown
+			const employeeCount = await page
+				.locator('tr:has(td), [data-testid^="employee-row-"]')
+				.count();
+			expect(employeeCount).toBeGreaterThan(0);
+		}
+	});
+
+	test('should navigate to employee detail page when clicking employee', async ({ page }) => {
+		// Find first employee link/row
+		const firstEmployee = page
+			.locator(
+				'a[href*="/employees/"]:not([href*="/new"]), tr:has(td) a, [data-testid^="employee-link-"]'
+			)
+			.first();
+
+		await expect(firstEmployee).toBeVisible();
+		await firstEmployee.click();
+
+		// Verify navigation to detail page
+		await page.waitForURL(/\/employees\/[a-f0-9-]+/i, { timeout: 5000 });
+
+		// Verify detail page loaded
+		await expect(page.locator('h1, h2').first()).toBeVisible();
+	});
+
+	test('should display statistics (total, active, inactive counts)', async ({ page }) => {
+		// Look for statistics display
+		const stats = page.locator(
+			'[data-testid="employee-stats"], [data-testid*="count"], .stat, .metric'
+		);
+
+		if (await stats.first().isVisible()) {
+			const statsText = await page.textContent('body');
+
+			// Should show some form of count
+			expect(statsText).toMatch(/\d+/);
+		}
+	});
+});
+
+test.describe('Employee Detail View', () => {
+	let employeeId: string;
+
+	test.beforeEach(async ({ page }) => {
+		// Login as admin
+		await page.goto('/login');
+		await page.fill('[data-testid="login-username-input"]', 'admin@mountainhr.dev');
+		await page.fill('[data-testid="login-password-input"]', 'admin123');
+		await page.click('[data-testid="login-submit-button"]');
+
+		// Wait for either dashboard URL or any navigation away from login
+		await page.waitForURL(/\/dashboard|\/employees/, { timeout: 15000 }).catch(async () => {
+			// If redirect fails, manually navigate
+			await page.goto('/dashboard');
+		});
+
+		// Navigate to employee list and get first employee ID
+		await page.goto('/dashboard/employees');
+		await page.waitForLoadState('networkidle');
+
+		// Extract employee ID from first employee link
+		const firstEmployeeLink = page.locator('a[href*="/employees/"]:not([href*="/new"])').first();
+		const href = await firstEmployeeLink.getAttribute('href');
+		employeeId = href?.split('/').pop() || '';
+
+		// Navigate to detail page
+		await page.goto(`/dashboard/employees/${employeeId}`);
+		await page.waitForLoadState('networkidle');
+	});
+
+	test('should display employee personal information', async ({ page }) => {
+		// Verify employee name is displayed
+		const nameHeading = page.locator('h1, h2, [data-testid="employee-name"]').first();
+		await expect(nameHeading).toBeVisible();
+
+		const nameText = await nameHeading.textContent();
+		expect(nameText).toBeTruthy();
+		expect(nameText?.length).toBeGreaterThan(0);
+
+		// Verify email is displayed
+		const emailPattern = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i;
+		await expect(page.locator(`text=${emailPattern}`).first()).toBeVisible();
+	});
+
+	test('should display employee hire date', async ({ page }) => {
+		// Look for hire date field
+		const hireDateLabel = page.locator('text=/hire\\s*date/i').first();
+
+		if (await hireDateLabel.isVisible()) {
+			// Should have a date value nearby (various formats: YYYY-MM-DD, Jan 1, 2024, etc.)
+			const datePattern = /\d{4}-\d{2}-\d{2}|\w+ \d{1,2},? \d{4}|\d{1,2}\/\d{1,2}\/\d{4}/;
+			await expect(page.locator(`text=${datePattern}`).first()).toBeVisible();
+		}
+	});
+
+	test('should display employee status (active/inactive)', async ({ page }) => {
+		// Look for status indicator
+		const statusText = await page.textContent('body');
+
+		// Should show either "Active" or "Inactive"
+		expect(statusText).toMatch(/active|inactive/i);
+	});
+
+	test('should display employee department if assigned', async ({ page }) => {
+		// Look for department label or field
+		const deptLabel = page.locator('text=/department/i').first();
+
+		if (await deptLabel.isVisible()) {
+			// Department value should be visible nearby
+			const deptValue = page.locator('[data-testid="employee-department"]').first();
+
+			if (await deptValue.isVisible()) {
+				const deptText = await deptValue.textContent();
+				expect(deptText).toBeTruthy();
+			}
+		}
+	});
+
+	test('should display employee job title if assigned', async ({ page }) => {
+		// Look for job title
+		const jobTitleText = await page.textContent('body');
+
+		// Job title field might be present
+		if (jobTitleText?.match(/job\s*title|position|role/i)) {
+			expect(jobTitleText.length).toBeGreaterThan(0);
+		}
+	});
+
+	test('should return 404 for non-existent employee ID', async ({ page }) => {
+		// Navigate to non-existent employee
+		const fakeId = '00000000-0000-0000-0000-000000000000';
+		const response = await page.goto(`/dashboard/employees/${fakeId}`);
+
+		// Should get 404 response (domain error: EmployeeNotFoundError)
+		expect(response?.status()).toBe(404);
+	});
+});
+
+test.describe('Employee Create Form', () => {
+	test.beforeEach(async ({ page }) => {
+		// Login as admin (has create employee permission)
+		await page.goto('/login');
+		await page.fill('[data-testid="login-username-input"]', 'admin@mountainhr.dev');
+		await page.fill('[data-testid="login-password-input"]', 'admin123');
+		await page.click('[data-testid="login-submit-button"]');
+
+		// Wait for either dashboard URL or any navigation away from login
+		await page.waitForURL(/\/dashboard|\/employees/, { timeout: 15000 }).catch(async () => {
+			// If redirect fails, manually navigate
+			await page.goto('/dashboard');
+		});
+
+		// Navigate to create form
+		await page.goto('/dashboard/employees/new');
+		await page.waitForLoadState('networkidle');
+	});
+
+	test('should display create employee form', async ({ page }) => {
+		// Verify form is visible
+		await expect(page.locator('form, [data-testid="employee-form"]').first()).toBeVisible();
+
+		// Verify required fields are present
+		await expect(
+			page
+				.locator('input[name="firstName"], input[name="first_name"], #firstName, #first_name')
+				.first()
+		).toBeVisible();
+		await expect(
+			page.locator('input[name="lastName"], input[name="last_name"], #lastName, #last_name').first()
+		).toBeVisible();
+		await expect(
+			page.locator('input[name="email"], input[type="email"], #email').first()
+		).toBeVisible();
+		await expect(
+			page
+				.locator(
+					'input[name="hireDate"], input[name="hire_date"], input[type="date"], #hireDate, #hire_date'
+				)
+				.first()
+		).toBeVisible();
+	});
+
+	test('should create employee with valid data', async ({ page }) => {
+		// Generate unique email to avoid duplicates
+		const timestamp = Date.now();
+		const uniqueEmail = `test.employee.${timestamp}@example.com`;
+
+		// Fill form with valid data
+		await page.fill(
+			'input[name="firstName"], input[name="first_name"], #firstName, #first_name',
+			'Test'
+		);
+		await page.fill(
+			'input[name="lastName"], input[name="last_name"], #lastName, #last_name',
+			'Employee'
+		);
+		await page.fill('input[name="email"], input[type="email"], #email', uniqueEmail);
+
+		// Set hire date to today (valid: not in future)
+		const today = new Date().toISOString().split('T')[0];
+		await page.fill(
+			'input[name="hireDate"], input[name="hire_date"], input[type="date"], #hireDate, #hire_date',
+			today
+		);
+
+		// Optional: fill job title
+		const jobTitleInput = page
+			.locator('input[name="jobTitle"], input[name="job_title"], #jobTitle, #job_title')
+			.first();
+		if (await jobTitleInput.isVisible()) {
+			await jobTitleInput.fill('Software Engineer');
+		}
+
+		// Submit form
+		await page.click('button[type="submit"], [data-testid="submit-button"]');
+
+		// Verify redirect to employee list (success)
+		await page.waitForURL(/\/employees(?:\/)?$/i, { timeout: 10000 });
+
+		// Verify new employee appears in list
+		await expect(page.locator(`text=${uniqueEmail}`)).toBeVisible({ timeout: 5000 });
+	});
+
+	test('should show validation error for invalid email', async ({ page }) => {
+		// Fill form with invalid email
+		await page.fill(
+			'input[name="firstName"], input[name="first_name"], #firstName, #first_name',
+			'Test'
+		);
+		await page.fill(
+			'input[name="lastName"], input[name="last_name"], #lastName, #last_name',
+			'Employee'
+		);
+		await page.fill('input[name="email"], input[type="email"], #email', 'not-an-email');
+
+		const today = new Date().toISOString().split('T')[0];
+		await page.fill(
+			'input[name="hireDate"], input[name="hire_date"], input[type="date"], #hireDate, #hire_date',
+			today
+		);
+
+		// Submit form
+		await page.click('button[type="submit"], [data-testid="submit-button"]');
+
+		// Wait a bit for validation
+		await page.waitForTimeout(1000);
+
+		// Verify error message appears (domain validation: InvalidEmailError)
+		const errorText = await page.textContent('body');
+		expect(errorText).toMatch(/email.*invalid|invalid.*email|valid email/i);
+	});
+
+	test('should show validation error for future hire date', async ({ page }) => {
+		const timestamp = Date.now();
+		const uniqueEmail = `test.employee.${timestamp}@example.com`;
+
+		// Fill form with future hire date
+		await page.fill(
+			'input[name="firstName"], input[name="first_name"], #firstName, #first_name',
+			'Test'
+		);
+		await page.fill(
+			'input[name="lastName"], input[name="last_name"], #lastName, #last_name',
+			'Employee'
+		);
+		await page.fill('input[name="email"], input[type="email"], #email', uniqueEmail);
+
+		// Set hire date to tomorrow (invalid: future date)
+		const tomorrow = new Date();
+		tomorrow.setDate(tomorrow.getDate() + 1);
+		const futureDate = tomorrow.toISOString().split('T')[0];
+		await page.fill(
+			'input[name="hireDate"], input[name="hire_date"], input[type="date"], #hireDate, #hire_date',
+			futureDate
+		);
+
+		// Submit form
+		await page.click('button[type="submit"], [data-testid="submit-button"]');
+
+		// Wait for validation
+		await page.waitForTimeout(1000);
+
+		// Verify error message appears (domain validation: InvalidHireDateError)
+		const errorText = await page.textContent('body');
+		expect(errorText).toMatch(/hire date.*future|future.*hire date|cannot be in the future/i);
+	});
+
+	test('should show validation error for empty required fields', async ({ page }) => {
+		// Submit form without filling required fields
+		await page.click('button[type="submit"], [data-testid="submit-button"]');
+
+		// Wait for validation
+		await page.waitForTimeout(1000);
+
+		// Verify error messages appear (domain validation: ValidationError)
+		const errorText = await page.textContent('body');
+		expect(errorText).toMatch(/required|cannot be empty/i);
+	});
+
+	test('should show error for duplicate email', async ({ page }) => {
+		// Use existing admin email (guaranteed to exist)
+		const duplicateEmail = 'admin@example.com';
+
+		// Fill form with duplicate email
+		await page.fill(
+			'input[name="firstName"], input[name="first_name"], #firstName, #first_name',
+			'Test'
+		);
+		await page.fill(
+			'input[name="lastName"], input[name="last_name"], #lastName, #last_name',
+			'Employee'
+		);
+		await page.fill('input[name="email"], input[type="email"], #email', duplicateEmail);
+
+		const today = new Date().toISOString().split('T')[0];
+		await page.fill(
+			'input[name="hireDate"], input[name="hire_date"], input[type="date"], #hireDate, #hire_date',
+			today
+		);
+
+		// Submit form
+		await page.click('button[type="submit"], [data-testid="submit-button"]');
+
+		// Wait for error
+		await page.waitForTimeout(1000);
+
+		// Verify error message appears (domain error: EmployeeAlreadyExistsError)
+		const errorText = await page.textContent('body');
+		expect(errorText).toMatch(/already exists|duplicate/i);
+	});
+
+	test('should not allow regular employee to access create form', async ({ page }) => {
+		// Logout and login as regular employee
+		await page.goto('/logout');
+		await page.goto('/login');
+		await page.fill('[data-testid="login-username-input"]', 'omari.hane@mountainhr.dev');
+		await page.fill('[data-testid="login-password-input"]', 'admin123');
+		await page.click('[data-testid="login-submit-button"]');
+
+		// Wait for either dashboard URL or any navigation away from login
+		await page.waitForURL(/\/dashboard|\/employees/, { timeout: 15000 }).catch(async () => {
+			// If redirect fails, manually navigate
+			await page.goto('/dashboard');
+		});
+
+		// Try to navigate to create form
+		const response = await page.goto('/dashboard/employees/new');
+
+		// Should get 403 Forbidden or redirect to dashboard/employees
+		const status = response?.status();
+		const currentUrl = page.url();
+
+		expect(
+			status === 403 ||
+				(currentUrl.includes('/dashboard/employees') && !currentUrl.includes('/new'))
+		).toBe(true);
+	});
+});
+
+test.describe('Employee Permissions', () => {
+	test('admin should have full access to employee list', async ({ page }) => {
+		// Login as admin
+		await page.goto('/login');
+		await page.fill('[data-testid="login-username-input"]', 'admin@mountainhr.dev');
+		await page.fill('[data-testid="login-password-input"]', 'admin123');
+		await page.click('[data-testid="login-submit-button"]');
+		await page.waitForURL('/dashboard', { timeout: 10000 });
+
+		// Navigate to employee list
+		await page.goto('/dashboard/employees');
+		await page.waitForLoadState('domcontentloaded');
+
+		// Verify access granted (200 response)
+		const employeeList = page
+			.locator('[data-testid="employee-list"], table, [role="table"]')
+			.first();
+		await expect(employeeList).toBeVisible();
+	});
+
+	test('regular employee should see employee list (may be restricted)', async ({ page }) => {
+		// Login as regular employee
+		await page.goto('/login');
+		await page.fill('[data-testid="login-username-input"]', 'omari.hane@mountainhr.dev');
+		await page.fill('[data-testid="login-password-input"]', 'admin123');
+		await page.click('[data-testid="login-submit-button"]');
+
+		// Wait for either dashboard URL or any navigation away from login
+		await page.waitForURL(/\/dashboard|\/employees/, { timeout: 15000 }).catch(async () => {
+			// If redirect fails, manually navigate
+			await page.goto('/dashboard');
+		});
+
+		// Navigate to employee list
+		const response = await page.goto('/dashboard/employees');
+
+		// Should either see list (200) or be restricted (403)
+		const status = response?.status();
+		expect([200, 403]).toContain(status);
+	});
+});

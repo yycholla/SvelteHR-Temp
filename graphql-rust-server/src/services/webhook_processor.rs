@@ -4,6 +4,10 @@
 
 use crate::integrations::intuit::IntuitClient;
 use crate::models::{webhook_events, webhook_subscriptions};
+use crate::services::conflict_resolver::ConflictStrategy;
+use crate::services::incremental_sync::SyncMode;
+use crate::services::sync_orchestrator::SyncOrchestrator;
+use crate::services::sync_tracker::EntityType;
 use chrono::Utc;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect, Set,
@@ -17,7 +21,7 @@ pub struct WebhookProcessor {
     db: Arc<DatabaseConnection>,
 }
 
-/// Webhook payload from QuickBooks
+/// Webhook payload from QuickBooks (Legacy format)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QuickBooksWebhookPayload {
     #[serde(rename = "eventNotifications")]
@@ -46,6 +50,27 @@ pub struct EntityChange {
     pub last_updated: Option<String>,
 }
 
+/// CloudEvents format webhook payload (v1.0)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CloudEvent {
+    pub specversion: String,
+    pub id: String,
+    pub source: String,
+    #[serde(rename = "type")]
+    pub event_type: String,
+    pub datacontenttype: String,
+    pub subject: Option<String>,
+    pub time: Option<String>,
+    pub data: serde_json::Value,
+}
+
+/// Unified webhook payload that supports both formats
+#[derive(Debug, Clone)]
+pub enum WebhookPayload {
+    Legacy(QuickBooksWebhookPayload),
+    CloudEvents(Vec<CloudEvent>),
+}
+
 /// Webhook processing result
 #[derive(Debug, Clone)]
 pub struct WebhookProcessingResult {
@@ -68,6 +93,7 @@ impl WebhookProcessor {
     ) -> Result<bool, Box<dyn std::error::Error>> {
         use hmac::{Hmac, Mac};
         use sha2::Sha256;
+        use base64::{Engine as _, engine::general_purpose};
 
         type HmacSha256 = Hmac<Sha256>;
 
@@ -78,18 +104,116 @@ impl WebhookProcessor {
         // Update with payload
         mac.update(payload.as_bytes());
 
-        // Verify signature
-        let expected_signature = hex::encode(mac.finalize().into_bytes());
+        // QuickBooks sends signature as base64-encoded HMAC-SHA256
+        let expected_signature = general_purpose::STANDARD.encode(mac.finalize().into_bytes());
 
-        Ok(expected_signature.eq_ignore_ascii_case(signature))
+        tracing::debug!(
+            received_signature = %signature,
+            expected_signature = %expected_signature,
+            verifier_token = %verifier_token,
+            payload_length = payload.len(),
+            payload_preview = %&payload[..payload.len().min(200)],
+            "Webhook signature verification"
+        );
+
+        Ok(expected_signature == signature)
     }
 
-    /// Process incoming webhook payload
+    /// Process incoming webhook payload using verifier token to find subscription
+    pub async fn process_webhook_with_token(
+        &self,
+        payload: WebhookPayload,
+        _signature: &str,
+        verifier_token: &str,
+    ) -> Result<WebhookProcessingResult, Box<dyn std::error::Error>> {
+        // Find subscription by verifier token (already verified in handler)
+        let subscription = webhook_subscriptions::Entity::find()
+            .filter(webhook_subscriptions::Column::VerifierToken.eq(verifier_token))
+            .filter(webhook_subscriptions::Column::IsActive.eq(true))
+            .filter(webhook_subscriptions::Column::DeletedAt.is_null())
+            .one(&*self.db)
+            .await?
+            .ok_or("No active webhook subscription found for this verifier token")?;
+
+        let realm_id = &subscription.realm_id;
+
+        let mut events_processed = 0;
+        let mut events_failed = 0;
+        let mut sync_triggered = false;
+
+        // Process based on payload format
+        match payload {
+            WebhookPayload::Legacy(legacy_payload) => {
+                // Process legacy format
+                for notification in legacy_payload.event_notifications {
+                    for entity in notification.data_change_event.entities {
+                        match self.process_entity_change(
+                            &subscription,
+                            &notification.realm_id,
+                            &entity,
+                        ).await {
+                            Ok(_) => {
+                                events_processed += 1;
+                                if matches!(entity.name.as_str(), "Employee" | "Department") {
+                                    sync_triggered = true;
+                                }
+                            }
+                            Err(e) => {
+                                tracing::error!(
+                                    "Failed to process webhook event for {} {}: {}",
+                                    entity.name,
+                                    entity.id,
+                                    e
+                                );
+                                events_failed += 1;
+                            }
+                        }
+                    }
+                }
+            }
+            WebhookPayload::CloudEvents(cloud_events) => {
+                // Process CloudEvents format
+                for event in cloud_events {
+                    match self.process_cloud_event(&subscription, realm_id, &event).await {
+                        Ok(_) => {
+                            events_processed += 1;
+                            // Check if it's an employee or department event
+                            if event.event_type.contains("employee") || event.event_type.contains("department") {
+                                sync_triggered = true;
+                            }
+                        }
+                        Err(e) => {
+                            tracing::error!(
+                                "Failed to process CloudEvent {}: {}",
+                                event.id,
+                                e
+                            );
+                            events_failed += 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Update subscription last delivered
+        let mut active_sub: webhook_subscriptions::ActiveModel = subscription.into();
+        active_sub.last_delivered_at = Set(Some(Utc::now().into()));
+        active_sub.update(&*self.db).await?;
+
+        Ok(WebhookProcessingResult {
+            events_processed,
+            events_failed,
+            sync_triggered,
+        })
+    }
+
+    /// Process incoming webhook payload (legacy method for backward compatibility)
+    #[allow(dead_code)]
     pub async fn process_webhook(
         &self,
         realm_id: &str,
-        payload: QuickBooksWebhookPayload,
-        signature: &str,
+        payload: WebhookPayload,
+        _signature: &str,
     ) -> Result<WebhookProcessingResult, Box<dyn std::error::Error>> {
         // Find subscription for this realm
         let subscription = webhook_subscriptions::Entity::find()
@@ -100,40 +224,59 @@ impl WebhookProcessor {
             .await?
             .ok_or("No active webhook subscription found for realm")?;
 
-        // Verify signature
-        let payload_json = serde_json::to_string(&payload)?;
-        if !self.verify_signature(&payload_json, signature, &subscription.verifier_token)? {
-            return Err("Invalid webhook signature".into());
-        }
-
         let mut events_processed = 0;
         let mut events_failed = 0;
         let mut sync_triggered = false;
 
-        // Process each event notification
-        for notification in payload.event_notifications {
-            for entity in notification.data_change_event.entities {
-                match self.process_entity_change(
-                    &subscription,
-                    &notification.realm_id,
-                    &entity,
-                ).await {
-                    Ok(_) => {
-                        events_processed += 1;
-
-                        // Trigger sync for employee or department changes
-                        if matches!(entity.name.as_str(), "Employee" | "Department") {
-                            sync_triggered = true;
+        // Process based on payload format
+        match payload {
+            WebhookPayload::Legacy(legacy_payload) => {
+                // Process legacy format
+                for notification in legacy_payload.event_notifications {
+                    for entity in notification.data_change_event.entities {
+                        match self.process_entity_change(
+                            &subscription,
+                            &notification.realm_id,
+                            &entity,
+                        ).await {
+                            Ok(_) => {
+                                events_processed += 1;
+                                if matches!(entity.name.as_str(), "Employee" | "Department") {
+                                    sync_triggered = true;
+                                }
+                            }
+                            Err(e) => {
+                                tracing::error!(
+                                    "Failed to process webhook event for {} {}: {}",
+                                    entity.name,
+                                    entity.id,
+                                    e
+                                );
+                                events_failed += 1;
+                            }
                         }
                     }
-                    Err(e) => {
-                        tracing::error!(
-                            "Failed to process webhook event for {} {}: {}",
-                            entity.name,
-                            entity.id,
-                            e
-                        );
-                        events_failed += 1;
+                }
+            }
+            WebhookPayload::CloudEvents(cloud_events) => {
+                // Process CloudEvents format
+                for event in cloud_events {
+                    match self.process_cloud_event(&subscription, realm_id, &event).await {
+                        Ok(_) => {
+                            events_processed += 1;
+                            // Check if it's an employee or department event
+                            if event.event_type.contains("employee") || event.event_type.contains("department") {
+                                sync_triggered = true;
+                            }
+                        }
+                        Err(e) => {
+                            tracing::error!(
+                                "Failed to process CloudEvent {}: {}",
+                                event.id,
+                                e
+                            );
+                            events_failed += 1;
+                        }
                     }
                 }
             }
@@ -179,6 +322,85 @@ impl WebhookProcessor {
         let event = webhook_event.insert(&*self.db).await?;
 
         Ok(event.id)
+    }
+
+    /// Process a CloudEvent webhook
+    async fn process_cloud_event(
+        &self,
+        subscription: &webhook_subscriptions::Model,
+        realm_id: &str,
+        event: &CloudEvent,
+    ) -> Result<Uuid, Box<dyn std::error::Error>> {
+        // Parse event type (e.g., "qbo.employee.created.v1" -> entity="employee", operation="Create")
+        let parts: Vec<&str> = event.event_type.split('.').collect();
+        let entity_name = if parts.len() >= 2 {
+            // Capitalize first letter: "employee" -> "Employee"
+            let name = parts[1];
+            let mut chars = name.chars();
+            match chars.next() {
+                None => "Unknown".to_string(),
+                Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+            }
+        } else {
+            "Unknown".to_string()
+        };
+        let operation = if parts.len() >= 3 {
+            // Map CloudEvents past tense to database present tense
+            // "created" -> "create", "updated" -> "update", "deleted" -> "delete"
+            let op = parts[2];
+            match op {
+                "created" => "create".to_string(),
+                "updated" => "update".to_string(),
+                "deleted" => "delete".to_string(),
+                "merged" => "merge".to_string(),
+                "voided" => "void".to_string(),
+                _ => op.to_string(), // Keep original if unknown
+            }
+        } else {
+            "unknown".to_string()
+        };
+
+        // Extract entity ID from data
+        let entity_id = event.data.get("id")
+            .or_else(|| event.data.get("entityId"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+            .to_string();
+
+        // Create webhook event record
+        let webhook_event = webhook_events::ActiveModel {
+            id: Set(Uuid::new_v4()),
+            subscription_id: Set(subscription.id),
+            realm_id: Set(realm_id.to_string()),
+            event_type: Set(operation),
+            entity_name: Set(entity_name.to_string()),
+            entity_id: Set(entity_id.clone()),
+            payload: Set(event.data.clone()),
+            status: Set("pending".to_string()),
+            processed_at: Set(None),
+            processing_attempts: Set(0),
+            last_error: Set(None),
+            metadata: Set(Some(serde_json::json!({
+                "cloudevents_id": event.id,
+                "cloudevents_source": event.source,
+                "cloudevents_type": event.event_type,
+                "cloudevents_time": event.time,
+            }))),
+            received_at: Set(Utc::now().into()),
+            created_at: Set(Utc::now().into()),
+        };
+
+        let db_event = webhook_event.insert(&*self.db).await?;
+
+        tracing::info!(
+            event_id = %event.id,
+            event_type = %event.event_type,
+            entity_name = %entity_name,
+            entity_id = %entity_id,
+            "CloudEvent webhook stored successfully"
+        );
+
+        Ok(db_event.id)
     }
 
     /// Process pending webhook events
@@ -227,7 +449,7 @@ impl WebhookProcessor {
     }
 
     /// Process a single webhook event
-    async fn process_event(
+    pub async fn process_event(
         &self,
         event: &webhook_events::Model,
         intuit_client: &IntuitClient,
@@ -250,27 +472,71 @@ impl WebhookProcessor {
         Ok(())
     }
 
-    /// Sync a single employee from QuickBooks
+    /// Sync employees from QuickBooks (triggered by webhook)
     async fn sync_employee(
         &self,
         employee_id: &str,
-        _intuit_client: &IntuitClient,
+        intuit_client: &IntuitClient,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // Note: Actual sync should be triggered by a background job or manual trigger
-        // This webhook processor just records the event for later processing
-        tracing::info!("Employee {} changed in QuickBooks - sync recommended", employee_id);
+        tracing::info!(
+            employee_id = employee_id,
+            "Webhook triggered - syncing employees from QuickBooks"
+        );
+
+        // Trigger incremental sync for employees
+        // Use RemoteWins strategy since QuickBooks is the source of truth for webhook events
+        let sync_result = SyncOrchestrator::sync_bidirectional_intelligent(
+            &*self.db,
+            intuit_client,
+            EntityType::Employee,
+            ConflictStrategy::RemoteWins,
+            SyncMode::Incremental, // Efficient - only fetch changed entities
+        )
+        .await
+        .map_err(|e| format!("Webhook sync failed for employees: {}", e))?;
+
+        tracing::info!(
+            employee_id = employee_id,
+            pulled = sync_result.pulled_count,
+            pushed = sync_result.pushed_count,
+            conflicts_resolved = sync_result.conflicts_resolved,
+            "Webhook-triggered employee sync completed"
+        );
+
         Ok(())
     }
 
-    /// Sync a single department from QuickBooks
+    /// Sync departments from QuickBooks (triggered by webhook)
     async fn sync_department(
         &self,
         department_id: &str,
-        _intuit_client: &IntuitClient,
+        intuit_client: &IntuitClient,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // Note: Actual sync should be triggered by a background job or manual trigger
-        // This webhook processor just records the event for later processing
-        tracing::info!("Department {} changed in QuickBooks - sync recommended", department_id);
+        tracing::info!(
+            department_id = department_id,
+            "Webhook triggered - syncing departments from QuickBooks"
+        );
+
+        // Trigger incremental sync for departments
+        // Use RemoteWins strategy since QuickBooks is the source of truth for webhook events
+        let sync_result = SyncOrchestrator::sync_bidirectional_intelligent(
+            &*self.db,
+            intuit_client,
+            EntityType::Department,
+            ConflictStrategy::RemoteWins,
+            SyncMode::Incremental, // Efficient - only fetch changed entities
+        )
+        .await
+        .map_err(|e| format!("Webhook sync failed for departments: {}", e))?;
+
+        tracing::info!(
+            department_id = department_id,
+            pulled = sync_result.pulled_count,
+            pushed = sync_result.pushed_count,
+            conflicts_resolved = sync_result.conflicts_resolved,
+            "Webhook-triggered department sync completed"
+        );
+
         Ok(())
     }
 

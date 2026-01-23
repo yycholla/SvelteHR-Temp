@@ -52,15 +52,22 @@ export default defineConfig({
 	// Performance optimizations
 	build: {
 		target: 'esnext',
-		minify: false,
+		minify: 'esbuild', // Enable minification for production
 		sourcemap: true,
 		rollupOptions: {
-			output: {
-				// Manual chunk splitting for optimal loading (simplified for SvelteKit compatibility)
-				manualChunks: {
-					// Only include packages that are not treated as external by SvelteKit
-					vendor: ['svelte']
+			// Suppress warnings about missing source files in dependencies
+			onwarn(warning, warn) {
+				// Ignore sourcemap warnings for node_modules
+				if (warning.code === 'SOURCEMAP_ERROR' && warning.message.includes('node_modules')) {
+					return;
 				}
+				warn(warning);
+			},
+
+			output: {
+				// Let SvelteKit handle chunk splitting automatically
+				// Manual chunking causes circular dependencies or build errors
+				// Performance optimization should focus on lazy loading via dynamic imports
 				// Note: chunkFileNames and assetFileNames are managed by SvelteKit
 				// and should not be overridden here to avoid conflicts
 			},

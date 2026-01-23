@@ -758,6 +758,17 @@ impl IntuitMutations {
 
         match connection {
             Some(conn) => {
+                // Delete webhook subscriptions from QuickBooks before disconnecting
+                if let Err(e) = delete_webhook_subscriptions(&db, &conn).await {
+                    tracing::error!(
+                        realm_id = %conn.realm_id,
+                        error = %e,
+                        "Failed to delete webhook subscriptions - continuing with disconnect"
+                    );
+                    // Don't fail disconnect if webhook deletion fails
+                }
+
+                // Soft delete the connection
                 let mut active_model: IntuitConnectionActiveModel = conn.into();
                 active_model.deleted_at = Set(Some(Utc::now().into()));
                 active_model.is_active = Set(false);
@@ -2542,6 +2553,78 @@ async fn update_last_sync_time(db: &DatabaseConnection, connection_id: Uuid) -> 
     active_model.last_sync_at = Set(Some(Utc::now().into()));
     active_model.updated_at = Set(Utc::now().into());
     active_model.update(db).await?;
+
+    Ok(())
+}
+
+/// Delete all webhook subscriptions for a connection from QuickBooks
+async fn delete_webhook_subscriptions(
+    db: &DatabaseConnection,
+    connection: &crate::models::intuit_connection::Model,
+) -> anyhow::Result<()> {
+    use crate::integrations::intuit::WebhookApiClient;
+    use crate::models::webhook_subscriptions::{
+        Column as WebhookSubscriptionColumn, Entity as WebhookSubscriptionEntity,
+        ActiveModel as WebhookSubscriptionActiveModel,
+    };
+
+    // Find all active subscriptions for this realm
+    let subscriptions = WebhookSubscriptionEntity::find()
+        .filter(WebhookSubscriptionColumn::RealmId.eq(&connection.realm_id))
+        .filter(WebhookSubscriptionColumn::IsActive.eq(true))
+        .filter(WebhookSubscriptionColumn::DeletedAt.is_null())
+        .all(db)
+        .await?;
+
+    if subscriptions.is_empty() {
+        tracing::info!("No webhook subscriptions to delete");
+        return Ok(());
+    }
+
+    tracing::info!(
+        count = subscriptions.len(),
+        "Deleting webhook subscriptions from QuickBooks"
+    );
+
+    // Create webhook API client
+    let webhook_client = WebhookApiClient::new(connection.access_token.clone());
+
+    for subscription in subscriptions {
+        // Delete from QuickBooks
+        let delete_result = webhook_client
+            .delete_webhook(&subscription.webhook_id)
+            .await;
+
+        match delete_result {
+            Ok(_) => {
+                tracing::info!(
+                    webhook_id = %subscription.webhook_id,
+                    "Deleted webhook subscription from QuickBooks"
+                );
+
+                // Soft delete from database
+                let mut active_model: WebhookSubscriptionActiveModel = subscription.into();
+                active_model.is_active = Set(false);
+                active_model.deleted_at = Set(Some(Utc::now().into()));
+                active_model.updated_at = Set(Utc::now().into());
+                active_model.update(db).await?;
+            }
+            Err(e) => {
+                tracing::error!(
+                    webhook_id = %subscription.webhook_id,
+                    error = %e,
+                    "Failed to delete webhook from QuickBooks - marking as inactive in database"
+                );
+
+                // Still mark as inactive in database even if QuickBooks deletion fails
+                let mut active_model: WebhookSubscriptionActiveModel = subscription.into();
+                active_model.is_active = Set(false);
+                active_model.deleted_at = Set(Some(Utc::now().into()));
+                active_model.updated_at = Set(Utc::now().into());
+                active_model.update(db).await?;
+            }
+        }
+    }
 
     Ok(())
 }

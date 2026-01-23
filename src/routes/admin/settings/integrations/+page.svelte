@@ -20,7 +20,7 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
-	import { getIntuitAuthUrl, disconnectIntuit } from '$lib/graphql/intuit-oauth/operations';
+	import { disconnectIntuit } from '$lib/graphql/intuit-oauth/operations';
 
 	const { data } = $props();
 
@@ -288,20 +288,6 @@
 			});
 		} finally {
 			resettingForTest = false;
-		}
-	}
-
-	async function handleConnectClick() {
-		try {
-			const { url } = await getIntuitAuthUrl();
-			// Redirect to QuickBooks authorization
-			window.location.href = url;
-		} catch (error: any) {
-			errorStore.add({
-				message: 'Failed to get authorization URL',
-				type: 'error',
-				details: error
-			});
 		}
 	}
 
@@ -911,10 +897,13 @@
 				</div>
 
 				{#if perms.canManageIntegrations}
-					<Button onclick={handleConnectClick} class="px-6 py-2.5">
+					<a
+						href="/api/intuit/connect"
+						class="inline-flex items-center justify-center rounded-md bg-primary px-8 py-3 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+					>
 						<LinkIcon class="h-4 w-4 mr-2" />
 						Connect to QuickBooks
-					</Button>
+					</a>
 				{:else}
 					<div class="p-4 bg-muted/50 rounded-md border">
 						<p class="text-sm text-muted-foreground flex items-center gap-2">

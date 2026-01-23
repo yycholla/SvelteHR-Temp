@@ -23,6 +23,10 @@ use utoipa::OpenApi;
         crate::handlers::refresh_handler,
         crate::handlers::sessions_handler,
 
+        // Password reset endpoints (PUBLIC)
+        crate::handlers::password_reset::request_password_reset_handler,
+        crate::handlers::password_reset::reset_password_handler,
+
         // REST API endpoints
         crate::handlers::events::delete_event_handler,
         crate::handlers::roles::get_roles_handler,
@@ -37,6 +41,12 @@ use utoipa::OpenApi;
             crate::handlers::RefreshResponse,
             crate::handlers::SessionInfoResponse,
             crate::handlers::SessionsResponse,
+
+            // Password reset types
+            crate::handlers::password_reset::RequestPasswordResetRequest,
+            crate::handlers::password_reset::RequestPasswordResetResponse,
+            crate::handlers::password_reset::ResetPasswordRequest,
+            crate::handlers::password_reset::ResetPasswordResponse,
 
             // Models (add as needed)
             crate::models::role::Model,

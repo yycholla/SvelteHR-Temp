@@ -567,7 +567,9 @@ describe('Formatting Functions', () => {
 		});
 
 		it('should return "Due tomorrow" for tomorrow', () => {
-			const tomorrow = new Date(Date.now() + 86400000);
+			// Use 25 hours from now to ensure Math.floor(25/24) = 1 day
+			// This matches the function's logic of counting 24-hour periods
+			const tomorrow = new Date(Date.now() + 25 * 60 * 60 * 1000);
 			expect(formatTaskDueDate(tomorrow.toISOString())).toBe('Due tomorrow');
 		});
 
@@ -577,8 +579,13 @@ describe('Formatting Functions', () => {
 		});
 
 		it('should return "Overdue by X days" for past dates', () => {
-			const threeDaysAgo = new Date(Date.now() - 259200000);
+			// Use fixed time to avoid flaky timezone issues
+			const fixedNow = new Date('2026-01-22T12:00:00Z');
+			vi.setSystemTime(fixedNow);
+
+			const threeDaysAgo = new Date('2026-01-19T12:00:00Z');
 			expect(formatTaskDueDate(threeDaysAgo.toISOString())).toBe('Overdue by 3 days');
+			vi.useRealTimers();
 		});
 
 		it('should return formatted date for distant future', () => {

@@ -12,6 +12,8 @@ use std::sync::Arc;
 
 const HTML_TEMPLATE: &str = include_str!("../templates/digest_email.html");
 const TEXT_TEMPLATE: &str = include_str!("../templates/digest_email.txt");
+const PASSWORD_RESET_HTML: &str = include_str!("../templates/password_reset_email.html");
+const PASSWORD_RESET_TEXT: &str = include_str!("../templates/password_reset_email.txt");
 
 #[derive(Debug, Clone)]
 pub struct EmailConfig {
@@ -105,6 +107,8 @@ impl EmailService {
         // Register templates
         handlebars.register_template_string("digest_html", HTML_TEMPLATE)?;
         handlebars.register_template_string("digest_text", TEXT_TEMPLATE)?;
+        handlebars.register_template_string("password_reset_html", PASSWORD_RESET_HTML)?;
+        handlebars.register_template_string("password_reset_text", PASSWORD_RESET_TEXT)?;
 
         Ok(Self {
             config: Arc::new(config),
@@ -260,6 +264,60 @@ impl EmailService {
             "error".to_string()
         }
     }
+
+    /// Send password reset email
+    pub async fn send_password_reset(
+        &self,
+        recipient_email: String,
+        reset_token: String,
+        expires_in_minutes: i32,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        // Create reset URL
+        let reset_url = format!("{}/auth/reset-password?token={}", self.config.base_url, reset_token);
+
+        // Create email data
+        let data = PasswordResetEmailData {
+            reset_url,
+            expires_in_minutes,
+            current_year: chrono::Utc::now().year(),
+        };
+
+        // Render templates
+        let html_body = self.handlebars.render("password_reset_html", &data)?;
+        let text_body = self.handlebars.render("password_reset_text", &data)?;
+
+        // Create SMTP transport
+        let creds = Credentials::new(
+            self.config.smtp_username.clone(),
+            self.config.smtp_password.clone(),
+        );
+
+        let mailer = AsyncSmtpTransport::<Tokio1Executor>::relay(&self.config.smtp_host)?
+            .credentials(creds)
+            .port(self.config.smtp_port)
+            .build();
+
+        // Send email
+        self.send_to_recipient(
+            &mailer,
+            &recipient_email,
+            "Reset Your Password - SvelteHR",
+            &html_body,
+            &text_body,
+        ).await?;
+
+        tracing::info!("Password reset email sent to {}", recipient_email);
+
+        Ok(())
+    }
+}
+
+/// Password reset email data
+#[derive(Debug, Serialize)]
+pub struct PasswordResetEmailData {
+    pub reset_url: String,
+    pub expires_in_minutes: i32,
+    pub current_year: i32,
 }
 
 #[derive(Debug)]

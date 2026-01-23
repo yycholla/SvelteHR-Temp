@@ -94,7 +94,7 @@ services:
       INTUIT_ENVIRONMENT: sandbox
       INTUIT_SCOPES: com.intuit.quickbooks.accounting com.intuit.quickbooks.payment
       INTUIT_WEBHOOK_URL: https://your-domain.com/api/intuit/webhook
-      INTUIT_WEBHOOK_VERIFIER_TOKEN: <generate_a_random_token>
+      INTUIT_WEBHOOK_VERIFIER_TOKEN: ef64f0f4-9508-45b4-9fab-f2a98e5f2bc2
       # SMTP2go Email Configuration
       SMTP_HOST: mail.smtp2go.com
       SMTP_PORT: 2525

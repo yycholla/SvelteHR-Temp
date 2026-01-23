@@ -4,7 +4,6 @@
 
 use chrono::{Duration, Utc};
 use fake::faker::name::en::{FirstName, LastName};
-use fake::faker::phone_number::en::PhoneNumber;
 use fake::Fake;
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Set};
 use uuid::Uuid;
@@ -19,6 +18,32 @@ use crate::seed_data::Result;
 /// All seeded users will use this password for easy testing
 const DEFAULT_PASSWORD_HASH: &str =
     "$2b$10$RAc0JwycgH8Hpq8lRmmb.OXArEiS5Pklvzm5j4RqdQAw5zsNlH8JG";
+
+/// Generates a valid phone number in international format for seed data
+///
+/// IMPORTANT: We don't use fake::PhoneNumber().fake() because it intentionally generates
+/// varied/problematic data (including addresses) to test validation logic. While this is
+/// useful for fuzzing/testing, seed data should contain clean, valid data for better DX.
+///
+/// The fake crate may return:
+/// - Addresses: "1805 E Overland Rd Apt 3224, Meridian, ID 83642-6891"
+/// - Extensions: "280.766.3038 x335"
+/// - Various formats: "555-123-4567", "(555) 123-4567"
+///
+/// This custom generator ensures seed data has consistent, valid phone numbers:
+/// - Format: +1XXXXXXXXXX (US format with country code)
+/// - Pattern: /^\+?[1-9]\d{9,14}$/
+/// - Example: "+12085551234"
+///
+/// **Note**: The adapter layer (GraphQLEmployeeAdapter) validates and flags invalid phone
+/// data, so the system remains resilient even if bad data reaches the database.
+fn generate_valid_phone() -> String {
+    // Generate valid US phone number: +1 + area code (200-999) + exchange (200-999) + subscriber (0000-9999)
+    let area_code = 200 + (rand::random::<u16>() % 800); // 200-999
+    let exchange = 200 + (rand::random::<u16>() % 800);   // 200-999
+    let subscriber = rand::random::<u16>() % 10000;        // 0000-9999
+    format!("+1{:03}{:03}{:04}", area_code, exchange, subscriber)
+}
 
 /// Seed users with realistic data
 ///
@@ -83,8 +108,10 @@ pub async fn seed_users(
 
         let user_id = Uuid::new_v4();
         let now = Utc::now();
-        let hire_date = now - Duration::days(rand::random::<i64>() % 1095); // Random hire date within last 3 years
-        let phone: String = PhoneNumber().fake();
+        // Generate hire date within last 3 years (always in the past)
+        // Use u32 to ensure positive values, preventing future dates
+        let hire_date = now - Duration::days((rand::random::<u32>() % 1095) as i64);
+        let phone: String = generate_valid_phone(); // Use custom generator instead of fake::PhoneNumber
 
         // Assign to random department
         let dept_index = i % departments.len();

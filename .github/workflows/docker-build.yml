@@ -136,7 +136,7 @@ jobs:
         with:
           name: build-metrics-backend-${{ matrix.target }}
           path: build-metrics/
-          retention-days: 30
+          retention-days: 7  # Reduced from 30 to save storage
 
       - name: Image digest
         run: echo ${{ steps.meta.outputs.digest }}
@@ -256,7 +256,7 @@ jobs:
         with:
           name: build-metrics-frontend
           path: build-metrics/
-          retention-days: 30
+          retention-days: 7  # Reduced from 30 to save storage
 
       - name: Image digest
         run: echo ${{ steps.meta.outputs.digest }}

@@ -1,4 +1,4 @@
-.PHONY: backend clean db-entities db-migrate db-reset db-shell db-status dev-down dev-logs dev-rebuild-full frontend help install prod-down prod-frontend-rebuild prod-frontend-rebuild-full prod-logs prod-rebuild-full rust-build rust-check rust-clippy rust-logs rust-shell rust-test ssh-backend ssh-frontend test test-e2e test-unit
+.PHONY: backend clean db-entities db-migrate db-reset db-shell db-status dev dev-down dev-logs dev-rebuild dev-rebuild-full dev-webhook frontend help install prod-down prod-frontend-rebuild prod-frontend-rebuild-full prod-logs prod-rebuild-full rust-build rust-check rust-clippy rust-logs rust-shell rust-test ssh-backend ssh-frontend test test-e2e test-unit
 
 # SvelteHR Development Commands - Streamlined Makefile
 SHELL := /bin/bash
@@ -25,6 +25,10 @@ help: ## Show available commands
 	@echo "  make dev-down           - Stop all containers"
 	@echo "  make dev-rebuild        - Fast rebuild with cargo-chef caching (~1 min)"
 	@echo "  make dev-rebuild-full   - Full rebuild without cache (~10 min, for Dockerfile/deps changes)"
+	@echo ""
+	@echo "🔔 QuickBooks Webhook Development:"
+	@echo "  make dev-webhook             - Start ngrok tunnel (URL changes on restart)"
+	@echo "  make dev-webhook-tailscale   - Start Tailscale Funnel (stable URL, recommended)"
 	@echo ""
 	@echo "🔌 SSH Access (Optional):"
 	@echo "  make ssh-backend   - SSH into backend container (user: dev, pass: dev)"
@@ -185,7 +189,7 @@ dev-down: ## Stop all development containers
 	@echo "✅ Containers stopped"
 
 dev-logs: ## View container logs (Ctrl+C to exit)
-	@cd dev-containers && docker-compose -f docker-compose.dev.yml logs -f
+	@cd dev-containers && docker-compose -f docker-compose.dev.yml logs -f --no-log-prefix
 
 dev-rebuild: ## Rebuild containers (leverages cargo-chef dependency caching)
 	@echo "🔨 Rebuilding development containers with cargo-chef caching..."
@@ -197,6 +201,47 @@ dev-rebuild-full: ## Full rebuild without caching (use when Dockerfile or depend
 	@echo "🔨 Full rebuild (no cache) - this will take 8-12 minutes..."
 	@cd dev-containers && docker-compose -f docker-compose.dev.yml build --no-cache
 	@echo "✅ Full rebuild complete. Run 'make dev' to start."
+
+# =============================================================================
+# QuickBooks Webhook Development
+# =============================================================================
+
+dev-webhook: ## Start ngrok tunnel for QuickBooks webhook testing (URL changes on restart)
+	@echo "🌐 Starting ngrok tunnel for QuickBooks webhooks..."
+	@echo ""
+	@if ! command -v ngrok &> /dev/null; then \
+		echo "❌ ngrok is not installed"; \
+		echo ""; \
+		echo "Install ngrok:"; \
+		echo "  macOS:  brew install ngrok"; \
+		echo "  Linux:  See https://ngrok.com/download"; \
+		echo ""; \
+		echo "After installation, sign up and authenticate:"; \
+		echo "  ngrok config add-authtoken <your_token>"; \
+		echo ""; \
+		echo "💡 For a stable URL, use: make dev-webhook-tailscale"; \
+		exit 1; \
+	fi
+	@./scripts/dev-webhook-tunnel.sh
+
+dev-webhook-tailscale: ## Start Tailscale Funnel for QuickBooks webhook testing (stable URL)
+	@echo "🔐 Starting Tailscale Funnel for QuickBooks webhooks..."
+	@echo ""
+	@if ! command -v tailscale &> /dev/null; then \
+		echo "❌ Tailscale is not installed"; \
+		echo ""; \
+		echo "Install Tailscale:"; \
+		echo "  macOS:  brew install tailscale"; \
+		echo "  Linux:  curl -fsSL https://tailscale.com/install.sh | sh"; \
+		echo ""; \
+		echo "After installation, authenticate:"; \
+		echo "  sudo tailscale up"; \
+		echo ""; \
+		echo "Enable Funnel in admin console:"; \
+		echo "  https://login.tailscale.com/admin/settings/funnel"; \
+		exit 1; \
+	fi
+	@./scripts/dev-webhook-tunnel-tailscale.sh
 
 # =============================================================================
 # SSH Access to Containers

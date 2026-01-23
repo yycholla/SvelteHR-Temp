@@ -162,6 +162,20 @@ const RETRY_EVENT_MUTATION = `
 	}
 `;
 
+const PROCESS_PENDING_MUTATION = `
+	mutation ProcessPendingEvents($limit: Int) {
+		webhooks {
+			processPendingWebhookEvents(limit: $limit) {
+				success
+				message
+				eventsProcessed
+				eventsSucceeded
+				eventsFailed
+			}
+		}
+	}
+`;
+
 export const actions: Actions = {
 	register: async ({ fetch, cookies, request }) => {
 		const formData = await request.formData();
@@ -243,6 +257,36 @@ export const actions: Actions = {
 		} catch (error) {
 			console.error('Error retrying event:', error);
 			return fail(500, { error: 'Failed to retry webhook event' });
+		}
+	},
+
+	processPending: async ({ fetch, cookies, request }) => {
+		const formData = await request.formData();
+		const limit = parseInt(formData.get('limit') as string) || 10;
+
+		const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
+
+		try {
+			const result = await client.mutation(PROCESS_PENDING_MUTATION, { limit }).toPromise();
+
+			if (result.error) {
+				console.error('Failed to process pending events:', result.error);
+				return fail(500, { error: 'Failed to process pending events' });
+			}
+
+			const response = result.data?.webhooks?.processPendingWebhookEvents;
+			if (!response?.success) {
+				return fail(500, { error: response?.message || 'Failed to process events' });
+			}
+
+			return {
+				success: true,
+				message: response.message,
+				eventsProcessed: response.eventsProcessed
+			};
+		} catch (error) {
+			console.error('Error processing pending events:', error);
+			return fail(500, { error: 'Failed to process pending webhook events' });
 		}
 	}
 };

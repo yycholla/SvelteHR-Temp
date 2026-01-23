@@ -10,11 +10,13 @@ mod client;
 mod client_manager;
 mod models;
 mod oauth;
+mod webhook_api;
 
 pub use client::IntuitClient;
 pub use client_manager::IntuitClientManager;
 pub use models::*;
 pub use oauth::{exchange_code_for_tokens, get_authorization_url, refresh_access_token};
+pub use webhook_api::WebhookApiClient;
 
 use anyhow::Result;
 

@@ -56,4 +56,4 @@ echo "   Watching: src/, migration/, Cargo.toml"
 echo "   GraphQL API will be available at http://0.0.0.0:$PORT"
 echo ""
 
-exec cargo watch -x 'run --bin hr-graphql-server'
+exec cargo watch -x 'run --bin hr-graphql-server --message-format json --quiet'

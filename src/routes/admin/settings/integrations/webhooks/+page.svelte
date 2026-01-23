@@ -16,6 +16,8 @@
 	import { invalidate, goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { enhance } from '$app/forms';
+	import { toast } from 'svelte-sonner';
+	import WebhookSyncModal from '$lib/components/webhooks/WebhookSyncModal.svelte';
 
 	let { data, form } = $props();
 	let webhookStatus = $derived(data.webhookStatus);
@@ -28,6 +30,8 @@
 	let showRegisterDialog = $state(false);
 	let selectedEntities = $state(['Employee', 'Department']);
 	let isSubmitting = $state(false);
+	let showSyncModal = $state(false);
+	let currentBatchId = $state('');
 
 	// Derived filter values from URL params
 	let selectedStatus = $derived((filters as any).status || 'all');
@@ -60,6 +64,28 @@
 		refreshing = true;
 		await invalidate('app:webhooks');
 		refreshing = false;
+	}
+
+	function handleProcessPending() {
+		// Generate batch ID
+		currentBatchId = `batch_${Date.now()}`;
+
+		// Show toast with "View Details" action
+		toast.success('Processing webhook events', {
+			description: 'Click "View Details" to see progress',
+			duration: 5000,
+			action: {
+				label: 'View Details',
+				onClick: () => {
+					showSyncModal = true;
+				}
+			}
+		});
+
+		// Auto-open modal after 1 second
+		setTimeout(() => {
+			showSyncModal = true;
+		}, 1000);
 	}
 
 	function viewEvent(eventId: string) {
@@ -131,14 +157,24 @@
 				{selectedEvent ? 'Webhook Event Details' : 'Webhook Monitoring'}
 			</h1>
 		</div>
-		<button
-			onclick={refreshData}
-			disabled={refreshing}
-			class="flex items-center gap-1.5 h-8 px-3 rounded-sm border border-input bg-background text-xs hover:bg-accent transition-colors disabled:opacity-50"
-		>
-			<RefreshCw class="h-3.5 w-3.5 {refreshing ? 'animate-spin' : ''}" />
-			Refresh
-		</button>
+		<div class="flex items-center gap-2">
+			<button
+				onclick={handleProcessPending}
+				disabled={isSubmitting || refreshing}
+				class="flex items-center gap-1.5 h-8 px-3 rounded-sm border border-input bg-background text-xs hover:bg-accent transition-colors disabled:opacity-50"
+			>
+				<Zap class="h-3.5 w-3.5 {isSubmitting ? 'animate-pulse' : ''}" />
+				Process Pending
+			</button>
+			<button
+				onclick={refreshData}
+				disabled={refreshing}
+				class="flex items-center gap-1.5 h-8 px-3 rounded-sm border border-input bg-background text-xs hover:bg-accent transition-colors disabled:opacity-50"
+			>
+				<RefreshCw class="h-3.5 w-3.5 {refreshing ? 'animate-spin' : ''}" />
+				Refresh
+			</button>
+		</div>
 	</header>
 
 	<!-- Error/Success Messages -->
@@ -149,6 +185,20 @@
 			>
 				<AlertCircle class="h-4 w-4" />
 				{data.error}
+			</div>
+		</div>
+	{/if}
+
+	{#if form?.success}
+		<div class="flex-shrink-0 p-4 pb-0">
+			<div
+				class="rounded-md bg-green-100 p-3 text-sm text-green-700 font-medium border border-green-200 flex items-center gap-2"
+			>
+				<CheckCircle2 class="h-4 w-4" />
+				{form.message || 'Events processed successfully'}
+				{#if form.eventsProcessed}
+					<span class="text-xs opacity-80">({form.eventsProcessed} events)</span>
+				{/if}
 			</div>
 		</div>
 	{/if}
@@ -604,3 +654,18 @@
 		</div>
 	{/if}
 </div>
+
+<!-- Webhook Sync Modal -->
+<WebhookSyncModal
+	bind:open={showSyncModal}
+	batchId={currentBatchId}
+	onOpenChange={(open) => {
+		showSyncModal = open;
+	}}
+	onComplete={async () => {
+		await refreshData();
+		toast.success('Webhook sync completed', {
+			description: 'All pending events have been processed'
+		});
+	}}
+/>

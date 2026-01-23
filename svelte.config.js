@@ -13,7 +13,13 @@ const config = {
 		adapter: adapter(),
 
 		alias: {
-			$routes: './src/routes'
+			$routes: './src/routes',
+			$domain: './src/domain',
+			'$domain/*': './src/domain/*',
+			$services: './src/services',
+			'$services/*': './src/services/*',
+			$adapters: './src/adapters',
+			'$adapters/*': './src/adapters/*'
 		},
 
 		experimental: {

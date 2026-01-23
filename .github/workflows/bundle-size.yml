@@ -100,7 +100,7 @@ jobs:
         with:
           name: size-metrics
           path: size-metrics/
-          retention-days: 30
+          retention-days: 7  # Reduced from 30 to save storage
 
       - name: Compare with base branch
         if: github.event_name == 'pull_request'
