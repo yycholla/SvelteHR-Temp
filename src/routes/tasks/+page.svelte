@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { logger } from '$lib/utils/logger';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { auth } from '$lib/stores/auth.svelte';
 	// TODO: These services need to be implemented
 	// import { taskService, tasks, isLoadingTasks, taskError } from '$lib/services/taskService';
@@ -17,31 +18,36 @@
 	const users = writable<User[]>([]);
 	const taskService = {
 		loadTasks: async () => {},
-		createTask: async (task: any) => {},
-		updateTask: async (id: string, updates: any) => {},
+		createTask: async (task: unknown) => {},
+		updateTask: async (id: string, updates: unknown) => {},
 		deleteTask: async (id: string) => {},
-		bulkUpdateTasks: async (ids: string[], updates: any) => {}
+		bulkUpdateTasks: async (ids: string[], updates: unknown) => {}
 	};
 	const userService = {
 		loadUsers: async () => {}
 	};
+
+	// Shadcn UI components
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import * as Card from '$lib/components/ui/card';
+	import * as Select from '$lib/components/ui/select';
+
+	// Lucide icons
+	import { Plus, Search, X, Check, UserIcon, Trash2, RefreshCw, AlertCircle } from '@lucide/svelte';
+
 	import DataTable from '$lib/components/tables/DataTable.svelte';
-	import Button from '$lib/components/base/Button.svelte';
-	import Input from '$lib/components/base/Input.svelte';
-	import Select from '$lib/components/base/Select.svelte';
-	import Badge from '$lib/components/base/Badge.svelte';
-	import Card from '$lib/components/base/Card.svelte';
 	import type { Column } from '$lib/components/tables/DataTable.svelte';
 	import type { Task, TaskFilter, TaskPriority, TaskStatus } from '$lib/types/task';
 
 	// Filter state
-	let searchQuery = '';
-	let statusFilter = '';
-	let priorityFilter = '';
-	let assigneeFilter = '';
-	let sortField = 'createdAt';
-	let sortDirection: 'asc' | 'desc' = 'desc';
-	let selectedTasks: TaskType[] = [];
+	let searchQuery = $state('');
+	let statusFilter = $state('');
+	let priorityFilter = $state('');
+	let assigneeFilter = $state('');
+	let sortField = $state('createdAt');
+	let sortDirection = $state<'asc' | 'desc'>('desc');
+	let selectedTasks = $state<TaskType[]>([]);
 
 	// Filter options
 	const statusOptions = [
@@ -75,21 +81,21 @@
 			label: 'Assignee',
 			sortable: true,
 			type: 'text',
-			format: (value: any) => value?.display_name || 'Unassigned'
+			format: (value: unknown) => (value as { display_name?: string })?.display_name || 'Unassigned'
 		},
 		{
 			key: 'priority',
 			label: 'Priority',
 			sortable: true,
 			type: 'badge',
-			badgeVariant: (value: any) => getPriorityVariant(value as TaskPriority)
+			badgeVariant: (value: unknown) => getPriorityVariant(value as TaskPriority)
 		},
 		{
 			key: 'status',
 			label: 'Status',
 			sortable: true,
 			type: 'badge',
-			badgeVariant: (value: any) => getStatusVariant(value as TaskStatus)
+			badgeVariant: (value: unknown) => getStatusVariant(value as TaskStatus)
 		},
 		{
 			key: 'dueDate',
@@ -100,16 +106,16 @@
 	];
 
 	// Computed values
-	$: assigneeOptions = [
+	let assigneeOptions = $derived([
 		{ value: '', label: 'All Assignees' },
 		...$users.map((user) => ({
 			value: user.id,
 			label: user.display_name
 		}))
-	];
+	]);
 
-	$: filters = buildFilters();
-	$: hasFiltersApplied = searchQuery || statusFilter || priorityFilter || assigneeFilter;
+	let filters = $derived(buildFilters());
+	let hasFiltersApplied = $derived(searchQuery || statusFilter || priorityFilter || assigneeFilter);
 
 	function buildFilters(): TaskFilter {
 		return {
@@ -156,11 +162,11 @@
 		loadTasks();
 	}
 
-	function handleRowClick(detail: { row: Record<string, any>; index: number }) {
-		goto(`/tasks/${detail.row.id}`);
+	function handleRowClick(detail: { row: Record<string, unknown>; index: number }) {
+		goto(resolve(`/tasks/${detail.row.id}`));
 	}
 
-	function handleSelectionChange(detail: any[]) {
+	function handleSelectionChange(detail: TaskType[]) {
 		selectedTasks = detail;
 	}
 
@@ -191,9 +197,11 @@
 	}
 
 	// Load data when filters change
-	$: if (filters) {
-		loadTasks();
-	}
+	$effect(() => {
+		if (filters) {
+			loadTasks();
+		}
+	});
 
 	onMount(() => {
 		// Load users for assignee dropdown
@@ -207,17 +215,18 @@
 	<meta name="description" content="View and manage all tasks in your organization" />
 </svelte:head>
 
-<div class="tasks-page">
+<div class="container mx-auto space-y-6 px-4 py-8">
 	<!-- Page Header -->
-	<div class="page-header">
-		<div class="page-header__content">
-			<h1 class="page-header__title">Tasks</h1>
-			<p class="page-header__subtitle">Manage and track tasks across your organization.</p>
+	<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+		<div>
+			<h1 class="text-3xl font-bold text-foreground">Tasks</h1>
+			<p class="mt-1 text-muted-foreground">Manage and track tasks across your organization.</p>
 		</div>
 
-		<div class="page-header__actions">
+		<div>
 			{#if auth.user && auth.hasPermission('task:create')}
-				<Button variant="primary" leftIcon="plus" onclick={() => goto('/tasks/new')}>
+				<Button variant="default" onclick={() => goto(resolve('/tasks/new'))}>
+					<Plus class="mr-2 h-4 w-4" />
 					Create Task
 				</Button>
 			{/if}
@@ -225,94 +234,114 @@
 	</div>
 
 	<!-- Filters -->
-	<Card padding="md" class="filters-card">
-		<div class="filters-grid">
-			<div class="filter-item">
-				<Input
-					type="search"
-					placeholder="Search tasks..."
-					leftIcon="search"
-					bind:value={searchQuery}
-					oninput={loadTasks}
-				/>
-			</div>
+	<Card.Root>
+		<Card.Content class="pt-6">
+			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+				<div class="relative">
+					<Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+					<Input
+						type="search"
+						placeholder="Search tasks..."
+						bind:value={searchQuery}
+						oninput={() => loadTasks()}
+						class="pl-9"
+					/>
+				</div>
 
-			<div class="filter-item">
-				<Select options={statusOptions} bind:value={statusFilter} placeholder="Filter by status" />
-			</div>
+				<Select.Root
+					type="single"
+					onValueChange={(v) => {
+						statusFilter = v ?? '';
+					}}
+				>
+					<Select.Trigger class="w-full">
+						<Select.Value placeholder="Filter by status" />
+					</Select.Trigger>
+					<Select.Content>
+						{#each statusOptions as option (option.value)}
+							<Select.Item value={option.value} label={option.label} />
+						{/each}
+					</Select.Content>
+				</Select.Root>
 
-			<div class="filter-item">
-				<Select
-					options={priorityOptions}
-					bind:value={priorityFilter}
-					placeholder="Filter by priority"
-				/>
-			</div>
+				<Select.Root
+					type="single"
+					onValueChange={(v) => {
+						priorityFilter = v ?? '';
+					}}
+				>
+					<Select.Trigger class="w-full">
+						<Select.Value placeholder="Filter by priority" />
+					</Select.Trigger>
+					<Select.Content>
+						{#each priorityOptions as option (option.value)}
+							<Select.Item value={option.value} label={option.label} />
+						{/each}
+					</Select.Content>
+				</Select.Root>
 
-			<div class="filter-item">
-				<Select
-					options={assigneeOptions}
-					bind:value={assigneeFilter}
-					placeholder="Filter by assignee"
-				/>
-			</div>
+				<Select.Root
+					type="single"
+					onValueChange={(v) => {
+						assigneeFilter = v ?? '';
+					}}
+				>
+					<Select.Trigger class="w-full">
+						<Select.Value placeholder="Filter by assignee" />
+					</Select.Trigger>
+					<Select.Content>
+						{#each assigneeOptions as option (option.value)}
+							<Select.Item value={option.value} label={option.label} />
+						{/each}
+					</Select.Content>
+				</Select.Root>
 
-			{#if hasFiltersApplied}
-				<div class="filter-item">
-					<Button variant="ghost" size="sm" leftIcon="x" onclick={clearFilters}>
+				{#if hasFiltersApplied}
+					<Button variant="ghost" size="sm" onclick={clearFilters}>
+						<X class="mr-2 h-4 w-4" />
 						Clear Filters
 					</Button>
-				</div>
-			{/if}
-		</div>
-	</Card>
+				{/if}
+			</div>
+		</Card.Content>
+	</Card.Root>
 
 	<!-- Bulk Actions -->
 	{#if selectedTasks.length > 0}
-		<Card padding="sm" class="bulk-actions-card">
-			<div class="bulk-actions">
-				<span class="bulk-actions__count">
-					{selectedTasks.length} task{selectedTasks.length === 1 ? '' : 's'} selected
-				</span>
+		<Card.Root>
+			<Card.Content class="py-3">
+				<div class="flex items-center justify-between">
+					<span class="text-sm text-muted-foreground">
+						{selectedTasks.length} task{selectedTasks.length === 1 ? '' : 's'} selected
+					</span>
 
-				<div class="bulk-actions__buttons">
-					{#if auth.user && auth.hasPermission('task:update')}
-						<Button
-							variant="secondary"
-							size="sm"
-							leftIcon="check"
-							onclick={() => handleBulkAction('complete')}
-						>
-							Mark Complete
-						</Button>
+					<div class="flex gap-2">
+						{#if auth.user && auth.hasPermission('task:update')}
+							<Button variant="secondary" size="sm" onclick={() => handleBulkAction('complete')}>
+								<Check class="mr-2 h-4 w-4" />
+								Mark Complete
+							</Button>
 
-						<Button
-							variant="secondary"
-							size="sm"
-							leftIcon="user"
-							onclick={() => handleBulkAction('assign')}
-						>
-							Assign
-						</Button>
-					{/if}
+							<Button variant="secondary" size="sm" onclick={() => handleBulkAction('assign')}>
+								<UserIcon class="mr-2 h-4 w-4" />
+								Assign
+							</Button>
+						{/if}
 
-					{#if auth.user && auth.hasPermission('task:delete')}
-						<Button
-							variant="danger"
-							size="sm"
-							leftIcon="trash-2"
-							onclick={() => handleBulkAction('delete')}
-						>
-							Delete
-						</Button>
-					{/if}
+						{#if auth.user && auth.hasPermission('task:delete')}
+							<Button variant="destructive" size="sm" onclick={() => handleBulkAction('delete')}>
+								<Trash2 class="mr-2 h-4 w-4" />
+								Delete
+							</Button>
+						{/if}
+					</div>
 				</div>
-			</div>
-		</Card>
+			</Card.Content>
+		</Card.Root>
 	{/if}
 
 	<!-- Tasks Table -->
-	<Card padding="none" class="tasks-table">
+	<Card.Root class="overflow-hidden">
 		<DataTable
 			data={$tasks}
 			{columns}
@@ -326,23 +355,24 @@
 			onrowClick={handleRowClick}
 			onselectionChange={handleSelectionChange}
 		/>
-	</Card>
+	</Card.Root>
 
 	<!-- Error State -->
 	{#if $taskError}
-		<Card padding="md" class="error-card">
-			<div class="error-message">
-				<div class="error-icon">
-					<i class="icon-alert-circle"></i>
+		<Card.Root class="border-destructive/50 bg-destructive/10">
+			<Card.Content class="py-6">
+				<div class="flex items-start gap-4">
+					<AlertCircle class="h-5 w-5 text-destructive" />
+					<div class="flex-1">
+						<h3 class="font-semibold text-destructive">Error Loading Tasks</h3>
+						<p class="mt-1 text-sm text-destructive/80">{$taskError}</p>
+						<Button variant="secondary" size="sm" onclick={loadTasks} class="mt-3">
+							<RefreshCw class="mr-2 h-4 w-4" />
+							Retry
+						</Button>
+					</div>
 				</div>
-				<div class="error-content">
-					<h3 class="error-title">Error Loading Tasks</h3>
-					<p class="error-description">{$taskError}</p>
-					<Button variant="secondary" size="sm" leftIcon="refresh-cw" onclick={loadTasks}>
-						Retry
-					</Button>
-				</div>
-			</div>
-		</Card>
+			</Card.Content>
+		</Card.Root>
 	{/if}
 </div>
