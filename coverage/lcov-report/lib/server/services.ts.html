@@ -22,27 +22,27 @@
 				</h1>
 				<div class="clearfix">
 					<div class="fl pad1y space-right2">
-						<span class="strong">0% </span>
+						<span class="strong">100% </span>
 						<span class="quiet">Statements</span>
-						<span class="fraction">0/17</span>
+						<span class="fraction">17/17</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
 						<span class="strong">100% </span>
 						<span class="quiet">Branches</span>
-						<span class="fraction">1/1</span>
+						<span class="fraction">6/6</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
 						<span class="strong">100% </span>
 						<span class="quiet">Functions</span>
-						<span class="fraction">1/1</span>
+						<span class="fraction">5/5</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
-						<span class="strong">0% </span>
+						<span class="strong">100% </span>
 						<span class="quiet">Lines</span>
-						<span class="fraction">0/17</span>
+						<span class="fraction">17/17</span>
 					</div>
 				</div>
 				<p class="quiet">
@@ -56,7 +56,7 @@
 					</div>
 				</template>
 			</div>
-			<div class="status-line low"></div>
+			<div class="status-line high"></div>
 			<pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -165,7 +165,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -174,10 +174,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -185,13 +185,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -218,9 +218,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -249,9 +249,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
  * Server-side service factory utilities
  *
@@ -262,7 +262,7 @@
  */
 &nbsp;
 import type { RequestEvent } from '@sveltejs/kit';
-<span class="cstat-no" title="statement not covered" >import { createEmployeeService as createEmployeeServiceFactory } from '$lib/services/employeeServiceFactory';</span>
+import { createEmployeeService as createEmployeeServiceFactory } from '$lib/services/employeeServiceFactory';
 import type { EmployeeService } from '$services/EmployeeService';
 &nbsp;
 /**
@@ -271,10 +271,10 @@ import type { EmployeeService } from '$services/EmployeeService';
  * Services are created lazily when accessed, ensuring proper
  * authentication context from the request event.
  */
-<span class="cstat-no" title="statement not covered" >export class ServiceContainer {</span>
-<span class="cstat-no" title="statement not covered" >	private _employeeService?: EmployeeService;</span>
+export class ServiceContainer {
+	private _employeeService?: EmployeeService;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >	constructor(private readonly event: RequestEvent) {}</span>
+	constructor(private readonly event: RequestEvent) {}
 &nbsp;
 	/**
 	 * Get the EmployeeService instance
@@ -282,13 +282,13 @@ import type { EmployeeService } from '$services/EmployeeService';
 	 * Creates and caches the service on first access.
 	 * The service is configured with authentication from the request cookies.
 	 */
-<span class="cstat-no" title="statement not covered" >	get employeeService(): EmployeeService {</span>
-<span class="cstat-no" title="statement not covered" >		if (!this._employeeService) {</span>
-<span class="cstat-no" title="statement not covered" >			this._employeeService = createEmployeeServiceFactory(this.event);</span>
-<span class="cstat-no" title="statement not covered" >		}</span>
-<span class="cstat-no" title="statement not covered" >		return this._employeeService;</span>
-<span class="cstat-no" title="statement not covered" >	}</span>
-<span class="cstat-no" title="statement not covered" >}</span>
+	get employeeService(): EmployeeService {
+		if (!this._employeeService) {
+			this._employeeService = createEmployeeServiceFactory(this.event);
+		}
+		return this._employeeService;
+	}
+}
 &nbsp;
 /**
  * Create a service container for the current request
@@ -315,9 +315,9 @@ import type { EmployeeService } from '$services/EmployeeService';
  * };
  * ```
  */
-<span class="cstat-no" title="statement not covered" >export function createServices(event: RequestEvent): ServiceContainer {</span>
-<span class="cstat-no" title="statement not covered" >	return new ServiceContainer(event);</span>
-<span class="cstat-no" title="statement not covered" >}</span>
+export function createServices(event: RequestEvent): ServiceContainer {
+	return new ServiceContainer(event);
+}
 &nbsp;
 /**
  * Create just the EmployeeService
@@ -346,9 +346,9 @@ import type { EmployeeService } from '$services/EmployeeService';
  * };
  * ```
  */
-<span class="cstat-no" title="statement not covered" >export function createEmployeeService(event: RequestEvent): EmployeeService {</span>
-<span class="cstat-no" title="statement not covered" >	return createEmployeeServiceFactory(event);</span>
-<span class="cstat-no" title="statement not covered" >}</span>
+export function createEmployeeService(event: RequestEvent): EmployeeService {
+	return createEmployeeServiceFactory(event);
+}
 &nbsp;</pre></td></tr></table></pre>
 
 			<div class="push"></div>
@@ -358,7 +358,7 @@ import type { EmployeeService } from '$services/EmployeeService';
 		<div class="footer quiet pad2 space-top1 center small">
 			Code coverage generated by
 			<a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-			at 2026-01-23T15:19:25.608Z
+			at 2026-02-04T17:36:18.096Z
 		</div>
 		<script src="../../prettify.js"></script>
 		<script>

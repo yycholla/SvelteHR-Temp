@@ -23,27 +23,27 @@
 				</h1>
 				<div class="clearfix">
 					<div class="fl pad1y space-right2">
-						<span class="strong">0% </span>
+						<span class="strong">100% </span>
 						<span class="quiet">Statements</span>
-						<span class="fraction">0/6</span>
+						<span class="fraction">6/6</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
 						<span class="strong">100% </span>
 						<span class="quiet">Branches</span>
-						<span class="fraction">1/1</span>
+						<span class="fraction">0/0</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
 						<span class="strong">100% </span>
 						<span class="quiet">Functions</span>
-						<span class="fraction">1/1</span>
+						<span class="fraction">0/0</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
-						<span class="strong">0% </span>
+						<span class="strong">100% </span>
 						<span class="quiet">Lines</span>
-						<span class="fraction">0/6</span>
+						<span class="fraction">6/6</span>
 					</div>
 				</div>
 				<p class="quiet">
@@ -57,7 +57,7 @@
 					</div>
 				</template>
 			</div>
-			<div class="status-line low"></div>
+			<div class="status-line high"></div>
 			<pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -183,14 +183,14 @@
 <a name='L122'></a><a href='#L122'>122</a>
 <a name='L123'></a><a href='#L123'>123</a>
 <a name='L124'></a><a href='#L124'>124</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -219,7 +219,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -249,7 +249,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -272,7 +272,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -291,7 +291,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -306,14 +306,14 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// Task Queries
-<span class="cstat-no" title="statement not covered" >import { gql } from '@urql/svelte';</span>
+import { gql } from '@urql/svelte';
 &nbsp;
 /**
  * Query: Get all tasks with filtering, sorting, and pagination
  * Backend: Rust idiomatic pattern - uses TaskFilter input object
  * RLS: Automatic RBAC filtering
  */
-<span class="cstat-no" title="statement not covered" >export const GET_ALL_TASKS = gql`</span>
+export const GET_ALL_TASKS = gql`
 	query GetAllTasks($filter: TaskFilter, $limit: Int = 20, $offset: Int = 0) {
 		tasks(filter: $filter, limit: $limit, offset: $offset) {
 			id
@@ -342,7 +342,7 @@
  * Query: Get single task by ID
  * Backend: Rust idiomatic pattern - task(id) not taskById
  */
-<span class="cstat-no" title="statement not covered" >export const GET_TASK = gql`</span>
+export const GET_TASK = gql`
 	query GetTask($id: UUID!) {
 		task(id: $id) {
 			id
@@ -372,7 +372,7 @@
  * Query: Get current user's tasks
  * Note: Use filter object with assigneeId field
  */
-<span class="cstat-no" title="statement not covered" >export const GET_MY_TASKS = gql`</span>
+export const GET_MY_TASKS = gql`
 	query GetMyTasks($filter: TaskFilter!, $limit: Int = 20, $offset: Int = 0) {
 		tasks(filter: $filter, limit: $limit, offset: $offset) {
 			id
@@ -395,7 +395,7 @@
  * Backend: Rust idiomatic pattern - direct array return
  * RLS: Automatic RBAC filtering
  */
-<span class="cstat-no" title="statement not covered" >export const GET_TASK_TYPES = gql`</span>
+export const GET_TASK_TYPES = gql`
 	query GetTaskTypes($isActive: Boolean) {
 		taskTypes(isActive: $isActive) {
 			id
@@ -414,7 +414,7 @@
  * Query: Get single task type by ID
  * Backend: Rust idiomatic pattern - taskType(id) not taskTypeById
  */
-<span class="cstat-no" title="statement not covered" >export const GET_TASK_TYPE = gql`</span>
+export const GET_TASK_TYPE = gql`
 	query GetTaskType($id: UUID!) {
 		taskType(id: $id) {
 			id
@@ -437,7 +437,7 @@
 		<div class="footer quiet pad2 space-top1 center small">
 			Code coverage generated by
 			<a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-			at 2026-01-23T15:19:25.608Z
+			at 2026-02-04T17:36:18.096Z
 		</div>
 		<script src="../../../prettify.js"></script>
 		<script>

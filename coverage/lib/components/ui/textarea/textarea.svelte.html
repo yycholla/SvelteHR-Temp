@@ -23,27 +23,27 @@
 				</h1>
 				<div class="clearfix">
 					<div class="fl pad1y space-right2">
-						<span class="strong">0% </span>
+						<span class="strong">100% </span>
 						<span class="quiet">Statements</span>
-						<span class="fraction">0/10</span>
+						<span class="fraction">10/10</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
-						<span class="strong">0% </span>
+						<span class="strong">100% </span>
 						<span class="quiet">Branches</span>
-						<span class="fraction">0/1</span>
+						<span class="fraction">4/4</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
-						<span class="strong">0% </span>
+						<span class="strong">100% </span>
 						<span class="quiet">Functions</span>
-						<span class="fraction">0/1</span>
+						<span class="fraction">0/0</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
-						<span class="strong">0% </span>
+						<span class="strong">100% </span>
 						<span class="quiet">Lines</span>
-						<span class="fraction">0/10</span>
+						<span class="fraction">10/10</span>
 					</div>
 				</div>
 				<p class="quiet">
@@ -57,7 +57,7 @@
 					</div>
 				</template>
 			</div>
-			<div class="status-line low"></div>
+			<div class="status-line high"></div>
 			<pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -82,51 +82,51 @@
 <a name='L21'></a><a href='#L21'>21</a>
 <a name='L22'></a><a href='#L22'>22</a>
 <a name='L23'></a><a href='#L23'>23</a>
-<a name='L24'></a><a href='#L24'>24</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L24'></a><a href='#L24'>24</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >&lt;script lang="ts"&gt;<span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" ></span></span></span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">&lt;script lang="ts"&gt;
 	import { type WithElementRef, type WithoutChildren, cn } from '$lib/utils.js';
 	import type { HTMLTextareaAttributes } from 'svelte/elements';
 &nbsp;
 	let {
-<span class="cstat-no" title="statement not covered" >		ref = $bindable(null),</span>
-<span class="cstat-no" title="statement not covered" >		value = $bindable(),</span>
+		ref = $bindable(null),
+		value = $bindable(),
 		class: className,
-<span class="cstat-no" title="statement not covered" >		'data-slot': dataSlot = 'textarea',</span>
-<span class="cstat-no" title="statement not covered" >		...restProps</span>
+		'data-slot': dataSlot = 'textarea',
+		...restProps
 	}: WithoutChildren&lt;WithElementRef&lt;HTMLTextareaAttributes&gt;&gt; = $props();
 &lt;/script&gt;
 &nbsp;
 &lt;textarea
-<span class="cstat-no" title="statement not covered" >	bind:this={ref}</span>
-<span class="cstat-no" title="statement not covered" >	data-slot={dataSlot}</span>
-<span class="cstat-no" title="statement not covered" >	class={cn(</span>
-<span class="cstat-no" title="statement not covered" >		'border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 field-sizing-content shadow-xs flex min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-base outline-none transition-[color,box-shadow] focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',</span>
+	bind:this={ref}
+	data-slot={dataSlot}
+	class={cn(
+		'border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 field-sizing-content shadow-xs flex min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-base outline-none transition-[color,box-shadow] focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
 		className
 	)}
 	bind:value
-<span class="cstat-no" title="statement not covered" >	{...restProps}</span>
+	{...restProps}
 &gt;&lt;/textarea&gt;
 &nbsp;</pre></td></tr></table></pre>
 
@@ -137,7 +137,7 @@
 		<div class="footer quiet pad2 space-top1 center small">
 			Code coverage generated by
 			<a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-			at 2026-01-23T15:19:23.551Z
+			at 2026-02-04T17:36:17.381Z
 		</div>
 		<script src="../../../../prettify.js"></script>
 		<script>

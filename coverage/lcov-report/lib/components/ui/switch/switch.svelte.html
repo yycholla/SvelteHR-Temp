@@ -23,27 +23,27 @@
 				</h1>
 				<div class="clearfix">
 					<div class="fl pad1y space-right2">
-						<span class="strong">0% </span>
+						<span class="strong">100% </span>
 						<span class="quiet">Statements</span>
-						<span class="fraction">0/9</span>
+						<span class="fraction">9/9</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
-						<span class="strong">0% </span>
+						<span class="strong">100% </span>
 						<span class="quiet">Branches</span>
-						<span class="fraction">0/1</span>
+						<span class="fraction">3/3</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
-						<span class="strong">0% </span>
+						<span class="strong">100% </span>
 						<span class="quiet">Functions</span>
-						<span class="fraction">0/1</span>
+						<span class="fraction">0/0</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
-						<span class="strong">0% </span>
+						<span class="strong">100% </span>
 						<span class="quiet">Lines</span>
-						<span class="fraction">0/9</span>
+						<span class="fraction">9/9</span>
 					</div>
 				</div>
 				<p class="quiet">
@@ -57,7 +57,7 @@
 					</div>
 				</template>
 			</div>
-			<div class="status-line low"></div>
+			<div class="status-line high"></div>
 			<pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -88,44 +88,44 @@
 <a name='L27'></a><a href='#L27'>27</a>
 <a name='L28'></a><a href='#L28'>28</a>
 <a name='L29'></a><a href='#L29'>29</a>
-<a name='L30'></a><a href='#L30'>30</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L30'></a><a href='#L30'>30</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">19x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >&lt;script lang="ts"&gt;<span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" ></span></span></span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">&lt;script lang="ts"&gt;
 	import { Switch as SwitchPrimitive } from 'bits-ui';
 	import { type WithoutChildrenOrChild, cn } from '$lib/utils.js';
 &nbsp;
 	let {
-<span class="cstat-no" title="statement not covered" >		ref = $bindable(null),</span>
+		ref = $bindable(null),
 		class: className,
-<span class="cstat-no" title="statement not covered" >		checked = $bindable(false),</span>
-<span class="cstat-no" title="statement not covered" >		...restProps</span>
+		checked = $bindable(false),
+		...restProps
 	}: WithoutChildrenOrChild&lt;SwitchPrimitive.RootProps&gt; = $props();
 &lt;/script&gt;
 &nbsp;
@@ -133,16 +133,16 @@
 	bind:ref
 	bind:checked
 	data-slot="switch"
-<span class="cstat-no" title="statement not covered" >	class={cn(</span>
-<span class="cstat-no" title="statement not covered" >		'data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:border-ring focus-visible:ring-ring/50 dark:data-[state=unchecked]:bg-input/80 shadow-xs peer inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent outline-none transition-all focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50',</span>
+	class={cn(
+		'data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:border-ring focus-visible:ring-ring/50 dark:data-[state=unchecked]:bg-input/80 shadow-xs peer inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent outline-none transition-all focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50',
 		className
 	)}
-<span class="cstat-no" title="statement not covered" >	{...restProps}</span>
+	{...restProps}
 &gt;
 	&lt;SwitchPrimitive.Thumb
 		data-slot="switch-thumb"
-<span class="cstat-no" title="statement not covered" >		class={cn(</span>
-<span class="cstat-no" title="statement not covered" >			'bg-background dark:data-[state=unchecked]:bg-foreground dark:data-[state=checked]:bg-primary-foreground pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0'</span>
+		class={cn(
+			'bg-background dark:data-[state=unchecked]:bg-foreground dark:data-[state=checked]:bg-primary-foreground pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0'
 		)}
 	/&gt;
 &lt;/SwitchPrimitive.Root&gt;
@@ -155,7 +155,7 @@
 		<div class="footer quiet pad2 space-top1 center small">
 			Code coverage generated by
 			<a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-			at 2026-01-23T15:19:25.608Z
+			at 2026-02-04T17:36:18.096Z
 		</div>
 		<script src="../../../../prettify.js"></script>
 		<script>

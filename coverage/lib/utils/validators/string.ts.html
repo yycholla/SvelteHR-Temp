@@ -23,27 +23,27 @@
 				</h1>
 				<div class="clearfix">
 					<div class="fl pad1y space-right2">
-						<span class="strong">0% </span>
+						<span class="strong">100% </span>
 						<span class="quiet">Statements</span>
-						<span class="fraction">0/15</span>
+						<span class="fraction">15/15</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
 						<span class="strong">100% </span>
 						<span class="quiet">Branches</span>
-						<span class="fraction">1/1</span>
+						<span class="fraction">7/7</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
 						<span class="strong">100% </span>
 						<span class="quiet">Functions</span>
-						<span class="fraction">1/1</span>
+						<span class="fraction">4/4</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
-						<span class="strong">0% </span>
+						<span class="strong">100% </span>
 						<span class="quiet">Lines</span>
-						<span class="fraction">0/15</span>
+						<span class="fraction">15/15</span>
 					</div>
 				</div>
 				<p class="quiet">
@@ -57,7 +57,7 @@
 					</div>
 				</template>
 			</div>
-			<div class="status-line low"></div>
+			<div class="status-line high"></div>
 			<pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -115,10 +115,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -126,10 +126,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -137,10 +137,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -148,9 +148,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
  * String validation utilities
  * Pure functions with no Svelte dependencies
@@ -161,10 +161,10 @@
  * @param value - The string to check
  * @returns true if non-empty, false otherwise
  */
-<span class="cstat-no" title="statement not covered" >export function isNonEmpty(value: string | null | undefined): boolean {</span>
-<span class="cstat-no" title="statement not covered" >	if (!value) return false;</span>
-<span class="cstat-no" title="statement not covered" >	return value.trim().length &gt; 0;</span>
-<span class="cstat-no" title="statement not covered" >}</span>
+export function isNonEmpty(value: string | null | undefined): boolean {
+	if (!value) return false;
+	return value.trim().length &gt; 0;
+}
 &nbsp;
 /**
  * Checks if a string meets a minimum length requirement
@@ -172,10 +172,10 @@
  * @param minLength - The minimum length required
  * @returns true if string meets minimum length, false otherwise
  */
-<span class="cstat-no" title="statement not covered" >export function hasMinLength(value: string | null | undefined, minLength: number): boolean {</span>
-<span class="cstat-no" title="statement not covered" >	if (!value) return false;</span>
-<span class="cstat-no" title="statement not covered" >	return value.length &gt;= minLength;</span>
-<span class="cstat-no" title="statement not covered" >}</span>
+export function hasMinLength(value: string | null | undefined, minLength: number): boolean {
+	if (!value) return false;
+	return value.length &gt;= minLength;
+}
 &nbsp;
 /**
  * Checks if a string is within a maximum length
@@ -183,10 +183,10 @@
  * @param maxLength - The maximum length allowed
  * @returns true if string is within maximum length, false otherwise
  */
-<span class="cstat-no" title="statement not covered" >export function hasMaxLength(value: string | null | undefined, maxLength: number): boolean {</span>
-<span class="cstat-no" title="statement not covered" >	if (!value) return true; // null/undefined has no length, so within max</span>
-<span class="cstat-no" title="statement not covered" >	return value.length &lt;= maxLength;</span>
-<span class="cstat-no" title="statement not covered" >}</span>
+export function hasMaxLength(value: string | null | undefined, maxLength: number): boolean {
+	if (!value) return true; // null/undefined has no length, so within max
+	return value.length &lt;= maxLength;
+}
 &nbsp;
 /**
  * Checks if a string matches a regular expression pattern
@@ -194,9 +194,9 @@
  * @param pattern - The regular expression pattern to match
  * @returns true if string matches pattern, false otherwise
  */
-<span class="cstat-no" title="statement not covered" >export function matchesPattern(value: string, pattern: RegExp): boolean {</span>
-<span class="cstat-no" title="statement not covered" >	return pattern.test(value);</span>
-<span class="cstat-no" title="statement not covered" >}</span>
+export function matchesPattern(value: string, pattern: RegExp): boolean {
+	return pattern.test(value);
+}
 &nbsp;</pre></td></tr></table></pre>
 
 			<div class="push"></div>
@@ -206,7 +206,7 @@
 		<div class="footer quiet pad2 space-top1 center small">
 			Code coverage generated by
 			<a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-			at 2026-01-23T15:19:23.551Z
+			at 2026-02-04T17:36:17.381Z
 		</div>
 		<script src="../../../prettify.js"></script>
 		<script>
