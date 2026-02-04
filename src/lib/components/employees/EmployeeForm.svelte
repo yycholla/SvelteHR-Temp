@@ -1,62 +1,35 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { logger } from '$lib/utils/logger';
+	import { createEventDispatcher, onMount } from 'svelte';
 	import { userService } from '$lib/services/userService';
 	import { departmentService, departments } from '$lib/services/departmentService';
 	import { Button } from '$lib/components/ui/button';
+	import * as Card from '$lib/components/ui/card';
 	import { validateForm } from '$lib/utils/validation';
+	import { RotateCcw, Save, X } from '@lucide/svelte';
 	import type { CreateUserInput, UpdateUserInput, User } from '$lib/types';
 
 	// Import decomposed components
-	import BasicInfo from './form-legacy/BasicInfo.svelte';
-	import JobInfo from './form-legacy/JobInfo.svelte';
-	import AddressInfo from './form-legacy/AddressInfo.svelte';
-	import ContactInfo from './form-legacy/ContactInfo.svelte';
-	import AccountInfo from './form-legacy/AccountInfo.svelte';
+	import EmployeeFormBasic from './form/EmployeeFormBasic.svelte';
+	import EmployeeFormEmployment from './form/EmployeeFormEmployment.svelte';
+	import EmployeeFormAddress from './form/EmployeeFormAddress.svelte';
+	import EmployeeFormContact from './form/EmployeeFormContact.svelte';
+	import EmployeeFormCredentials from './form/EmployeeFormCredentials.svelte';
 
+	const dispatch = createEventDispatcher();
+
+	// Props
 	const {
 		employee = null,
 		isEditing = false,
-		loading = false,
-		onsuccess = undefined,
-		onerror = undefined,
-		oncancel = undefined
+		loading = false
 	}: {
-		employee?: User | null;
+		employee: User | null;
 		isEditing?: boolean;
 		loading?: boolean;
-		onsuccess?: ((detail: { employee: User; action: 'create' | 'update' }) => void) | undefined;
-		onerror?: ((detail: { message: string }) => void) | undefined;
-		oncancel?: (() => void) | undefined;
 	} = $props();
 
 	// Form data
-	let formData = $state<{
-		firstName: string;
-		lastName: string;
-		email: string;
-		phoneNumber: string;
-		jobTitle: string;
-		departmentId: string;
-		employmentType: string;
-		hireDate: string;
-		managerId: string;
-		salary: string;
-		payType: string;
-		isRemote: boolean;
-		addressStreet: string;
-		addressCity: string;
-		addressState: string;
-		addressZipCode: string;
-		emergencyContactName: string;
-		emergencyContactPhone: string;
-		emergencyContactRelationship: string;
-		username?: string;
-		password?: string;
-		confirmPassword?: string;
-		roleIds: string[];
-		[key: string]: any;
-	}>({
+	let formData = $state({
 		// Basic Information
 		firstName: '',
 		lastName: '',
@@ -88,11 +61,11 @@
 		username: '',
 		password: '',
 		confirmPassword: '',
-		roleIds: []
+		roleIds: [] as string[]
 	});
 
 	// Validation
-	let validationErrors = $state<Record<string, string>>({});
+	let validationErrors: Record<string, string> = $state({});
 	let isValid = $state(false);
 
 	// Options
@@ -126,7 +99,7 @@
 
 	// Computed values
 	const departmentOptions = $derived(
-		$departments.map((dept: any) => ({
+		$departments.map((dept) => ({
 			value: dept.id,
 			label: dept.name
 		}))
@@ -138,7 +111,7 @@
 	]);
 
 	// Validation rules
-	const validationRules = {
+	const validationRules = $derived({
 		firstName: { required: true },
 		lastName: { required: true },
 		email: { required: true, email: true },
@@ -150,7 +123,7 @@
 			password: { required: true, minLength: 8 },
 			confirmPassword: { required: true, matches: 'password' }
 		})
-	};
+	});
 
 	// Load form data if editing
 	$effect(() => {
@@ -165,8 +138,8 @@
 		for (const key in formData) {
 			fields[key] = {
 				name: key,
-				label: key, // Simplification
-				value: formData[key],
+				label: key,
+				value: (formData as any)[key],
 				rules: (validationRules as any)[key]
 			};
 		}
@@ -184,13 +157,13 @@
 			email: employee.email || '',
 			phoneNumber: employee.phone_number || '',
 			jobTitle: employee.job_title || '',
-			departmentId: employee.department_id || '',
-			employmentType: (employee.job_info as any)?.employmentType || 'FULL_TIME',
-			hireDate: (employee.job_info as any)?.hireDate || '',
-			managerId: employee.manager_id || '',
-			salary: (employee.job_info as any)?.annualSalary?.toString() || '',
-			payType: (employee.job_info as any)?.payType || 'SALARY',
-			isRemote: (employee.job_info as any)?.isRemote || false,
+			departmentId: employee.department?.id || '',
+			employmentType: employee.job_info?.employmentType || 'FULL_TIME',
+			hireDate: employee.job_info?.hireDate || '',
+			managerId: employee.manager?.id || '',
+			salary: employee.job_info?.salary?.toString() || '',
+			payType: employee.job_info?.payType || 'SALARY',
+			isRemote: employee.job_info?.isRemote || false,
 			addressStreet: employee.addresses?.[0]?.address_line_1 || '',
 			addressCity: employee.addresses?.[0]?.city || '',
 			addressState: employee.addresses?.[0]?.state_province || '',
@@ -198,9 +171,10 @@
 			emergencyContactName: employee.emergency_contact?.name || '',
 			emergencyContactPhone: employee.emergency_contact?.phone || '',
 			emergencyContactRelationship: employee.emergency_contact?.relationship || '',
+			username: employee.username || '',
 			password: '',
 			confirmPassword: '',
-			roleIds: employee.role_assignments?.map((assignment) => assignment.role.id) || []
+			roleIds: employee.role ? [employee.role] : []
 		};
 	}
 
@@ -222,7 +196,7 @@
 		};
 
 		if (isEditing) {
-			return baseData as any as UpdateUserInput;
+			return baseData as unknown as UpdateUserInput;
 		} else {
 			return {
 				...baseData,
@@ -235,31 +209,33 @@
 				roleIds: formData.roleIds,
 				salary: formData.salary ? parseFloat(formData.salary) : undefined,
 				payType: formData.payType
-			} as any as CreateUserInput;
+			} as unknown as CreateUserInput;
 		}
 	}
 
-	async function handleSubmit(event: Event) {
-		event.preventDefault();
+	async function handleSubmit() {
 		if (!isValid) return;
 
 		try {
 			const submissionData = prepareSubmissionData();
 
 			if (isEditing && employee) {
-				const updatedEmployee = await userService.updateUser(employee.id, submissionData as any);
-				onsuccess?.({ employee: updatedEmployee, action: 'update' });
+				const updatedEmployee = await userService.updateUser(
+					employee.id,
+					submissionData as UpdateUserInput
+				);
+				dispatch('success', { employee: updatedEmployee, action: 'update' });
 			} else {
-				const newEmployee = await userService.createUser(submissionData as any);
-				onsuccess?.({ employee: newEmployee, action: 'create' });
+				const newEmployee = await userService.createUser(submissionData as CreateUserInput);
+				dispatch('success', { employee: newEmployee, action: 'create' });
 			}
 		} catch (error: any) {
-			onerror?.({ message: error.message });
+			dispatch('error', { message: error.message });
 		}
 	}
 
 	function handleCancel() {
-		oncancel?.();
+		dispatch('cancel');
 	}
 
 	function handleReset() {
@@ -267,33 +243,73 @@
 			populateFormData();
 		} else {
 			// Reset to empty form
-			Object.keys(formData).forEach((key) => {
-				if (key === 'roleIds') {
-					formData[key] = [];
-				} else if (key === 'isRemote') {
-					formData[key] = false;
-				} else {
-					formData[key] = '';
-				}
-			});
+			formData = {
+				firstName: '',
+				lastName: '',
+				email: '',
+				phoneNumber: '',
+				jobTitle: '',
+				departmentId: '',
+				employmentType: 'FULL_TIME',
+				hireDate: '',
+				managerId: '',
+				salary: '',
+				payType: 'SALARY',
+				isRemote: false,
+				addressStreet: '',
+				addressCity: '',
+				addressState: '',
+				addressZipCode: '',
+				emergencyContactName: '',
+				emergencyContactPhone: '',
+				emergencyContactRelationship: '',
+				username: '',
+				password: '',
+				confirmPassword: '',
+				roleIds: []
+			};
 		}
 		validationErrors = {};
 	}
 
+	// Helper for basic info validation (passed to child)
+	function clearFieldError(field: string) {
+		if (validationErrors[field]) {
+			const { [field]: _, ...rest } = validationErrors;
+			validationErrors = rest;
+		}
+	}
+
+	function validateField(field: string, value: string) {
+		// This uses the reactive effect to validate, but we can trigger it or just rely on reactivity
+		// Since validationRules is derived, we can manually check specific field if needed
+		// but the effect should handle it.
+		// However, for onblur, we might want immediate feedback if not dirty?
+		// The effect runs on every change.
+	}
+
+	// Helper for phone input (passed to child)
+	function handlePhoneInput(event: Event) {
+		const inputElement = event.target as HTMLInputElement;
+		// Simple update, formatting logic could be moved here if needed
+		formData.phoneNumber = inputElement.value;
+	}
+
 	onMount(() => {
 		// Load departments for the dropdown
-		if (departmentService.loadDepartments) {
-			departmentService.loadDepartments();
-		} else {
-			// Fallback if loadDepartments is not available (e.g. mock)
-			logger.warn('loadDepartments not available');
-		}
+		departmentService.loadDepartments();
 	});
 </script>
 
-<form onsubmit={handleSubmit} class="employee-form">
+<form
+	onsubmit={(e) => {
+		e.preventDefault();
+		handleSubmit();
+	}}
+	class="space-y-6"
+>
 	<!-- Basic Information -->
-	<BasicInfo
+	<EmployeeFormBasic
 		bind:firstName={formData.firstName}
 		bind:lastName={formData.lastName}
 		bind:email={formData.email}
@@ -303,25 +319,25 @@
 	/>
 
 	<!-- Employment Information -->
-	<JobInfo
+	<EmployeeFormEmployment
 		bind:jobTitle={formData.jobTitle}
 		bind:departmentId={formData.departmentId}
 		bind:employmentType={formData.employmentType}
 		bind:hireDate={formData.hireDate}
 		bind:managerId={formData.managerId}
-		bind:payType={formData.payType}
-		bind:salary={formData.salary}
 		bind:isRemote={formData.isRemote}
+		bind:salary={formData.salary}
+		bind:payType={formData.payType}
 		{validationErrors}
 		{isEditing}
 		{departmentOptions}
-		{employmentTypeOptions}
 		{managerOptions}
+		{employmentTypeOptions}
 		{payTypeOptions}
 	/>
 
 	<!-- Address Information -->
-	<AddressInfo
+	<EmployeeFormAddress
 		bind:addressStreet={formData.addressStreet}
 		bind:addressCity={formData.addressCity}
 		bind:addressState={formData.addressState}
@@ -329,38 +345,42 @@
 	/>
 
 	<!-- Emergency Contact -->
-	<ContactInfo
+	<EmployeeFormContact
 		bind:emergencyContactName={formData.emergencyContactName}
 		bind:emergencyContactPhone={formData.emergencyContactPhone}
 		bind:emergencyContactRelationship={formData.emergencyContactRelationship}
 		{relationshipOptions}
 	/>
 
-	<!-- Authentication (for new employees only) -->
-	<AccountInfo
-		bind:username={formData.username}
-		bind:password={formData.password}
-		bind:confirmPassword={formData.confirmPassword}
-		bind:roleIds={formData.roleIds}
-		{validationErrors}
-		{roleOptions}
-		{isEditing}
-	/>
+	<!-- Authentication (only for new employees) -->
+	{#if !isEditing}
+		<EmployeeFormCredentials
+			bind:username={formData.username}
+			bind:password={formData.password}
+			bind:confirmPassword={formData.confirmPassword}
+			bind:roleIds={formData.roleIds}
+			{validationErrors}
+			{roleOptions}
+		/>
+	{/if}
 
 	<!-- Form Actions -->
-	<div class="form-actions">
-		<div class="form-actions__left">
-			<Button type="button" variant="ghost" onclick={handleReset} disabled={loading}>Reset</Button>
-		</div>
-
-		<div class="form-actions__right">
-			<Button type="button" variant="outline" onclick={handleCancel} disabled={loading}>
-				Cancel
-			</Button>
-
-			<Button type="submit" variant="default" disabled={!isValid || loading}>
-				{isEditing ? 'Update Employee' : 'Create Employee'}
-			</Button>
-		</div>
-	</div>
+	<Card.Root>
+		<Card.Content class="pt-6">
+			<div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+				<Button type="button" variant="outline" onclick={handleReset}>
+					<RotateCcw class="mr-2 h-4 w-4" />
+					Reset
+				</Button>
+				<Button type="button" variant="outline" onclick={handleCancel}>
+					<X class="mr-2 h-4 w-4" />
+					Cancel
+				</Button>
+				<Button type="submit" disabled={!isValid || loading}>
+					<Save class="mr-2 h-4 w-4" />
+					{isEditing ? 'Update Employee' : 'Create Employee'}
+				</Button>
+			</div>
+		</Card.Content>
+	</Card.Root>
 </form>
