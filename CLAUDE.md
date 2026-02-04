@@ -52,28 +52,43 @@ A modern HR management system built with **SvelteKit 2.43+**, **Svelte 5 (Runes)
 - `src/routes/` - SvelteKit file-based routing
 - `src/routes/api/` - Server-side API endpoints
 
-### Data Fetching Pattern (CRITICAL)
+### Data Fetching Patterns
 
-**1. Server-Side Load (`+page.server.ts`):**
+**1. Preferred (New Code) - Direct Client:**
+
+```typescript
+import { client } from '$lib/graphql/client';
+import { GET_DATA } from '$lib/graphql/queries';
+
+export const load: PageServerLoad = async () => {
+	const result = await client.query(GET_DATA, { limit: 20 });
+
+	if (result.error) {
+		console.error(result.error);
+		return { data: [] };
+	}
+
+	return { data: result.data?.items ?? [] };
+};
+```
+
+**2. With Authentication (Server-Side):**
 
 ```typescript
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 import { GET_EMPLOYEES } from '$lib/graphql/queries';
 
 export const load: PageServerLoad = async ({ fetch, cookies }) => {
-	// 1. Create authenticated client
+	// Create authenticated client with cookies
 	const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
 
-	// 2. Fetch data
 	const result = await client.query(GET_EMPLOYEES, { limit: 20 }).toPromise();
 
 	if (result.error) {
-		// Handle error
 		console.error(result.error);
 		return { employees: [] };
 	}
 
-	// 3. Return data to component
 	return {
 		employees: result.data.employees
 	};
