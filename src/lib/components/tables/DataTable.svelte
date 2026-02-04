@@ -1,6 +1,5 @@
 <script lang="ts">
-	import Button from '../base/Button.svelte';
-	import Badge from '../base/Badge.svelte';
+	import { Badge } from '$lib/components/ui/badge';
 
 	// Generic type for table data
 	type TableData = Record<string, any>;
