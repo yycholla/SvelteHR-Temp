@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { urqlClient } from '$lib/api/urql-client';
+import { client as urqlClient } from '$lib/graphql/client';
 import {
 	CREATE_FORM_BLOCK,
 	DELETE_FORM_BLOCK,

@@ -2,7 +2,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { requireAuth } from '$lib/server/rbac-utils';
-import { urqlClient } from '$lib/api/urql-client';
+import { client as urqlClient } from '$lib/graphql/client';
 import { GET_ONBOARDING_MODULE_QUERY } from '$lib/graphql/onboarding-operations';
 import {
 	COMPLETE_FORM,
