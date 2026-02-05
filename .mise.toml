@@ -359,3 +359,52 @@ run = "docker logs sveltehr-postgres-dev 2>&1 | grep -A50 'Starting Database Ini
 description = "Check database schema status"
 depends = ["_db_running"]
 run = """docker exec sveltehr-postgres-dev psql -U postgres -d hr_system -c "SELECT count(*) FROM pg_tables WHERE schemaname = 'hr_public'" """
+
+# =============================================================================
+# Rust GraphQL Server Tasks
+# =============================================================================
+
+[tasks."rust:check"]
+description = "Run cargo check on Rust GraphQL server"
+depends = ["_backend_running"]
+run = """
+#!/usr/bin/env bash
+echo "🔍 Running cargo check..."
+docker exec sveltehr-graphql-rust cargo check
+"""
+
+[tasks."rust:clippy"]
+description = "Run clippy lints on Rust GraphQL server"
+depends = ["_backend_running"]
+run = """
+#!/usr/bin/env bash
+echo "🔧 Running cargo clippy..."
+docker exec sveltehr-graphql-rust cargo clippy -- -D warnings
+"""
+
+[tasks."rust:test"]
+description = "Run Rust tests"
+depends = ["_backend_running"]
+run = """
+#!/usr/bin/env bash
+echo "🧪 Running cargo test..."
+docker exec sveltehr-graphql-rust cargo test
+"""
+
+[tasks."rust:build"]
+description = "Build Rust GraphQL server in release mode"
+depends = ["_backend_running"]
+run = """
+#!/usr/bin/env bash
+echo "🔨 Building Rust GraphQL server..."
+docker exec sveltehr-graphql-rust cargo build --release
+"""
+
+[tasks."rust:logs"]
+description = "View Rust GraphQL server logs"
+run = "docker logs -f sveltehr-graphql-rust"
+
+[tasks."rust:shell"]
+description = "Open shell in Rust GraphQL container"
+depends = ["_backend_running"]
+run = "docker exec -it sveltehr-graphql-rust bash"
