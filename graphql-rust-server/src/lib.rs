@@ -3,6 +3,7 @@
 #![warn(unused_variables)]
 #![warn(unused_mut)]
 
+pub mod application;
 pub mod auth;
 pub mod config;
 pub mod database;
