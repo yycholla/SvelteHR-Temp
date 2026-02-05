@@ -408,3 +408,95 @@ run = "docker logs -f sveltehr-graphql-rust"
 description = "Open shell in Rust GraphQL container"
 depends = ["_backend_running"]
 run = "docker exec -it sveltehr-graphql-rust bash"
+
+# =============================================================================
+# Production Tasks
+# =============================================================================
+
+[tasks."prod:start"]
+alias = "prod"
+description = "Start all production containers"
+depends = ["_docker_check"]
+run = """
+#!/usr/bin/env bash
+echo "🚀 Starting ALL SvelteHR Production Containers..."
+docker compose up -d
+echo ""
+echo "✅ All containers started!"
+echo ""
+echo "📍 Services available:"
+echo "   🔹 Frontend:     http://localhost"
+echo "   🔹 Backend API:  http://localhost:4000/graphql"
+echo "   🔹 PostgreSQL:   localhost:5433"
+echo "   🔹 Redis:        localhost:6380"
+echo ""
+echo "💡 View logs: mise run prod:logs"
+echo "💡 Stop all:  mise run prod:stop"
+"""
+
+[tasks."prod:stop"]
+description = "Stop all production containers"
+run = """
+#!/usr/bin/env bash
+echo "⏹️ Stopping Production containers..."
+docker compose down
+echo "✅ Containers stopped"
+"""
+
+[tasks."prod:logs"]
+description = "View production container logs"
+run = "docker compose logs -f"
+
+[tasks."prod:rebuild"]
+description = "Rebuild production containers with caching"
+depends = ["_docker_check"]
+run = """
+#!/usr/bin/env bash
+echo "🔨 Rebuilding Production containers with cargo-chef caching..."
+docker compose build
+echo "✅ Rebuild complete. Run 'mise run prod' to start."
+"""
+
+[tasks."prod:rebuild-full"]
+description = "Full production rebuild without caching"
+depends = ["_docker_check"]
+run = """
+#!/usr/bin/env bash
+echo "🔨 Full rebuild (no cache) - this will take 8-12 minutes..."
+docker compose build --no-cache
+echo "✅ Full rebuild complete. Run 'mise run prod' to start."
+"""
+
+[tasks."prod:frontend-rebuild"]
+description = "Rebuild and restart frontend container only"
+depends = ["_docker_check"]
+run = """
+#!/usr/bin/env bash
+echo "🎨 Rebuilding Frontend Container..."
+if ! docker ps | grep -q registry.gitlab.com/chanway/sveltehr/backend; then
+    echo "❌ Backend not running. Start it first with 'mise run prod'"
+    exit 1
+fi
+docker compose build frontend
+docker compose up -d frontend
+echo ""
+echo "✅ Frontend container rebuilt and started!"
+echo "🌐 Frontend available at: http://localhost"
+"""
+
+[tasks."prod:frontend-rebuild-full"]
+description = "Full frontend rebuild without caching"
+depends = ["_docker_check"]
+run = """
+#!/usr/bin/env bash
+echo "🎨 Rebuilding Frontend Container (no cache)..."
+if ! docker ps | grep -q registry.gitlab.com/chanway/sveltehr/backend; then
+    echo "❌ Backend not running. Start it first with 'mise run prod'"
+    exit 1
+fi
+docker compose build frontend --no-cache
+docker compose up -d frontend
+echo ""
+echo "✅ Frontend container rebuilt and started!"
+echo "🌐 Frontend available at: http://localhost"
+"""
