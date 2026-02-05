@@ -2,8 +2,8 @@
 // Follows RBAC patterns with server-side API calls only
 // Migrated to use EmployeeService for core employee data
 
-import type { PageServerLoad } from './$types';
-import { error } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { logger } from '$lib/utils/logger';
 import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
 import { createEmployeeService } from '$lib/server/services';
@@ -644,5 +644,51 @@ export const load: PageServerLoad = async (event) => {
 
 		// Throw SvelteKit error with user-friendly message
 		error(500, 'Unable to load employee details');
+	}
+};
+
+export const actions: Actions = {
+	delete: async (event) => {
+		const { params, locals } = event;
+		const employeeId = params.id;
+
+		// Permission check - require authentication
+		if (!locals.user) {
+			error(401, 'Unauthorized');
+		}
+
+		// Permission check - require Admin or HR Manager role
+		const userRoles = locals.roles || [];
+		const canDelete = userRoles.includes('Admin') || userRoles.includes('HR Manager');
+		if (!canDelete) {
+			error(403, 'You do not have permission to delete employees');
+		}
+
+		// Prevent self-deletion
+		if (locals.user.id === employeeId) {
+			return fail(400, { error: 'You cannot delete your own account' });
+		}
+
+		const employeeService = createEmployeeService(event);
+		const result = await employeeService.deleteEmployee(employeeId);
+
+		if (result.isError) {
+			if (result.error.code === 'EMPLOYEE_NOT_FOUND') {
+				error(404, 'Employee not found');
+			}
+			logger.error('[Employee Delete] Failed to delete employee', result.error, {
+				employeeId,
+				errorCode: result.error.code
+			});
+			return fail(500, { error: result.error.message });
+		}
+
+		logger.info('[Employee Delete] Employee deleted successfully', {
+			employeeId,
+			deletedBy: locals.user.id
+		});
+
+		// Redirect to employee list with success message
+		redirect(303, '/dashboard/employees?deleted=true');
 	}
 };
