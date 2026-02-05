@@ -44,7 +44,7 @@ impl Violation {
 }
 
 /// Domain errors for sync operations
-#[derive(Debug, Error)]
+#[derive(Debug, Clone, Error)]
 pub enum SyncError {
     #[error("Authentication token expired for realm {realm_id}")]
     TokenExpired { realm_id: String },
