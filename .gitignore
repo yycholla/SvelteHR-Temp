@@ -19,6 +19,10 @@ Thumbs.db
 # Env
 .env
 
+# mise local overrides
+.mise.local.toml
+.mise.*.local.toml
+
 # Secrets and credentials (NEVER commit these!)
 **/secrets.yaml
 k8s/secrets/
