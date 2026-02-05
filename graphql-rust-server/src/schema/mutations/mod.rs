@@ -26,6 +26,7 @@ pub mod sync_health;
 pub mod payroll;
 pub mod digest;
 pub mod compliance;
+pub mod sync_v2;
 
 pub use auth::AuthMutations;
 pub use department::DepartmentMutations;
@@ -55,3 +56,4 @@ pub use sync_health::SyncHealthMutations;
 pub use payroll::PayrollMutations;
 pub use digest::DigestMutations;
 pub use compliance::ComplianceMutations;
+pub use sync_v2::SyncMutationsV2;

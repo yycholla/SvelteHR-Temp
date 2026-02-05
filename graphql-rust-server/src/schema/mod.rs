@@ -2,6 +2,7 @@ mod query;
 mod mutation;
 mod mutations;
 mod queries;
+pub mod types;
 
 pub use query::{QueryRoot, apply_user_rls_filter};
 pub use mutation::MutationRoot;

@@ -4313,6 +4313,11 @@ impl MutationRoot {
         crate::schema::mutations::IncrementalSyncMutation
     }
 
+    /// New sync architecture (hexagonal architecture v2)
+    async fn sync_v2(&self) -> crate::schema::mutations::SyncMutationsV2 {
+        crate::schema::mutations::SyncMutationsV2
+    }
+
     // ==================================================================================
     // Notification Mutations
     // ==================================================================================
