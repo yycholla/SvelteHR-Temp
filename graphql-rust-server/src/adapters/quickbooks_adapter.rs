@@ -1,8 +1,9 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use std::time::Duration;
 
 use crate::domain::sync::{EntityType, QuickBooksId, SyncError};
-use crate::integrations::intuit::{Department, Employee, EmployeeExtended, IntuitClient};
+use crate::integrations::intuit::{Department, EmailAddress, Employee, EmployeeExtended, IntuitClient, NtRef, PhoneNumber};
 use crate::ports::quickbooks::{
     DepartmentData, EmployeeData, QuickBooksPort, RemoteDepartment, RemoteEmployee,
 };
@@ -31,7 +32,7 @@ impl QuickBooksAdapter {
             sync_token: base.sync_token.unwrap_or_else(|| "0".to_string()),
             last_modified: base
                 .meta_data
-                .and_then(|m| m.last_updated_time)
+                .map(|m| m.last_updated_time)
                 .unwrap_or_else(Utc::now),
             active: base.active.unwrap_or(true),
         }
@@ -39,8 +40,6 @@ impl QuickBooksAdapter {
 
     /// Map our EmployeeData to IntuitClient EmployeeExtended
     fn map_employee_data_to_extended(&self, data: EmployeeData) -> EmployeeExtended {
-        use crate::integrations::intuit::models::{EmailAddress, NtRef, PhoneNumber};
-
         let employee = Employee {
             given_name: Some(data.given_name),
             family_name: Some(data.family_name),
@@ -58,6 +57,7 @@ impl QuickBooksAdapter {
             department_ref: data.department_id.map(|id| NtRef {
                 value: Some(id),
                 name: None,
+                entity_ref_type: Some("Department".to_string()),
             }),
             parent_ref: None,
             sparse: None,
@@ -73,7 +73,7 @@ impl QuickBooksAdapter {
             sync_token: dept.sync_token.unwrap_or_else(|| "0".to_string()),
             last_modified: dept
                 .meta_data
-                .and_then(|m| m.last_updated_time)
+                .map(|m| m.last_updated_time)
                 .unwrap_or_else(Utc::now),
             active: dept.active.unwrap_or(true),
         }
@@ -81,8 +81,6 @@ impl QuickBooksAdapter {
 
     /// Map our DepartmentData to IntuitClient Department
     fn map_department_data(&self, data: DepartmentData) -> Department {
-        use crate::integrations::intuit::models::NtRef;
-
         Department {
             id: None,
             name: Some(data.name),
@@ -91,6 +89,7 @@ impl QuickBooksAdapter {
             parent_ref: data.parent_id.map(|id| NtRef {
                 value: Some(id),
                 name: None,
+                entity_ref_type: Some("Department".to_string()),
             }),
             sync_token: data.sync_token,
             meta_data: None,
@@ -106,9 +105,13 @@ impl QuickBooksAdapter {
 
         // Check for specific error patterns
         if error_str.contains("unauthorized") || error_str.contains("token") {
-            SyncError::TokenExpired
+            SyncError::TokenExpired {
+                realm_id: "unknown".to_string(),
+            }
         } else if error_str.contains("rate limit") || error_str.contains("429") {
-            SyncError::RateLimited
+            SyncError::RateLimited {
+                retry_after: Duration::from_secs(60),
+            }
         } else if error_str.contains("not found") || error_str.contains("404") {
             // Extract entity type from error if possible
             SyncError::EntityNotFound {
@@ -120,7 +123,9 @@ impl QuickBooksAdapter {
             let retryable = error_str.contains("500") || error_str.contains("503");
             SyncError::quickbooks_api("unknown", &error.to_string(), retryable)
         } else {
-            SyncError::Internal(error.to_string())
+            SyncError::Internal {
+                message: error.to_string(),
+            }
         }
     }
 }
@@ -241,8 +246,8 @@ impl QuickBooksPort for QuickBooksAdapter {
         let created = result
             .into_iter()
             .next()
-            .ok_or_else(|| {
-                SyncError::Internal("No department returned from batch create".to_string())
+            .ok_or_else(|| SyncError::Internal {
+                message: "No department returned from batch create".to_string(),
             })?
             .map_err(|e| self.map_error(e))?;
 
