@@ -232,7 +232,7 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
 	default: async (event) => {
-		const { request, params, cookies } = event;
+		const { request, params } = event;
 		const employeeId = params.id;
 
 		// Initialize RBAC loader for permission checks (actions can also use it for consistency)
@@ -241,9 +241,12 @@ export const actions: Actions = {
 		// Check employee write permissions
 		if (!locals.user) throw error(401, 'Unauthorized');
 
-		// Import UnifiedGraphQLClient dynamically to avoid circular dependencies if any
+		// Import UnifiedGraphQLClient dynamically for related entities not yet in EmployeeService
 		const { UnifiedGraphQLClient } = await import('$lib/server/graphql/unified-client');
 		const client = new UnifiedGraphQLClient(event);
+
+		// Create EmployeeService for core employee data
+		const employeeService = createEmployeeService(event);
 
 		try {
 			const formData = await request.formData();
@@ -252,82 +255,81 @@ export const actions: Actions = {
 			const lastName = formData.get('lastName')?.toString();
 			const email = formData.get('email')?.toString();
 			const role = formData.get('role')?.toString();
-			const hireDate = formData.get('hireDate')?.toString();
 			const departmentId = formData.get('departmentId')?.toString();
-			// const isActive = formData.get('isActive') === 'true'; // Not used in update input currently
+			const jobTitle = formData.get('jobTitle')?.toString();
 
 			// Contact info
 			const phoneNumber = formData.get('phoneNumber')?.toString();
-			const mobileNumber = formData.get('mobileNumber')?.toString();
-			// Address fields not in top-level update currently? They seem to be on user object directly or primaryAddress relation
-			// The original code didn't update address fields? Wait, let's check the original code.
-			// It extracted addressLine1 etc but didn't seem to put them into updateInput?
-			// Ah, `updateInput` only had firstName, lastName, email, phone, alternatePhone, departmentId, hireDate.
-			// Address fields were ignored in the mutation! I should probably fix that if I can, or keep it consistent.
-			// Let's stick to the previous logic for safety unless I see address input in schema.
-			// The previous mutation: updateUser(id, input: UpdateUserInput) -> UpdateUserInput usually matches User fields.
-			// If address is nested, it might need a separate mutation or nested input.
-			// Let's assume address updates were missed or handled elsewhere? No, they were extracted.
-			// Re-reading: "Contact information fields" were extracted but NOT used in `updateInput`.
-			// I will faithfully reproduce the logic, but maybe add a TODO or log.
+			// Note: mobileNumber (alternatePhone) is not yet supported by EmployeeService
+			// TODO: Add alternatePhone to domain model or use separate GraphQL mutation
 
 			if (!firstName || !lastName || !email) {
 				return fail(400, { error: 'First name, last name, and email are required' });
 			}
 
-			// Build update input
-			const updateInput: any = {};
-			if (firstName) updateInput.firstName = firstName;
-			if (lastName) updateInput.lastName = lastName;
-			if (email) updateInput.email = email;
-			if (phoneNumber) updateInput.phone = phoneNumber;
-			if (mobileNumber) updateInput.alternatePhone = mobileNumber;
-			if (departmentId) updateInput.departmentId = departmentId;
-			if (hireDate) updateInput.hireDate = new Date(hireDate).toISOString();
+			// Use EmployeeService for core employee data update
+			const updateResult = await employeeService.updateEmployee(employeeId, {
+				firstName,
+				lastName,
+				email,
+				phone: phoneNumber || null,
+				departmentId: departmentId || null,
+				jobTitle: jobTitle || null
+			});
 
-			// Define mutations
-			const UPDATE_EMPLOYEE = gql`
-				mutation UpdateEmployee($id: UUID!, $input: UpdateUserInput!) {
-					users {
-						updateUser(id: $id, input: $input) {
-							id
-							firstName
-							lastName
-							email
+			if (updateResult.isError) {
+				const err = updateResult.error;
+
+				if (err.code === 'EMPLOYEE_NOT_FOUND') {
+					return fail(404, { error: 'Employee not found' });
+				}
+				if (err.code === 'EMPLOYEE_ALREADY_EXISTS') {
+					return fail(400, { error: 'Email already in use', field: 'email' });
+				}
+				if (err.code === 'INVALID_EMAIL') {
+					return fail(400, { error: 'Invalid email format', field: 'email' });
+				}
+				if (err.code === 'VALIDATION_ERROR') {
+					// Handle name validation errors
+					const field = err.context?.field as string | undefined;
+					if (field === 'first') {
+						return fail(400, { error: 'Invalid first name', field: 'firstName' });
+					}
+					if (field === 'last') {
+						return fail(400, { error: 'Invalid last name', field: 'lastName' });
+					}
+					return fail(400, { error: err.message, field });
+				}
+
+				return fail(500, { error: err.message });
+			}
+
+			logger.info('[Employee Update] User profile updated successfully via EmployeeService');
+
+			// Handle Role Assignment (roles not yet in Employee domain model)
+			if (role) {
+				// Fetch current roles and available roles via GraphQL
+				const GET_USER_AND_ROLES = gql`
+					query GetUserAndRoles($userId: UUID!) {
+						user(id: $userId) {
 							roles {
 								id
 								name
 							}
 						}
+						roles(limit: 100) {
+							id
+							name
+						}
 					}
-				}
-			`;
-
-			const updateResult = await client.mutate(UPDATE_EMPLOYEE, {
-				id: employeeId,
-				input: updateInput
-			});
-
-			logger.info('[Employee Update] User profile updated successfully');
-
-			// Handle Role Assignment
-			if (role) {
-				const updatedEmployee = updateResult?.users?.updateUser;
-				const currentRoles = updatedEmployee?.roles || [];
+				`;
+				const rolesData = await client.query(GET_USER_AND_ROLES, { userId: employeeId });
+				const currentRoles = rolesData?.user?.roles || [];
+				const allRoles = rolesData?.roles || [];
 				const currentRoleName = currentRoles[0]?.name;
 
 				if (currentRoleName !== role) {
-					// Fetch roles to find ID
-					const GET_ROLES = gql`
-						query GetAllRoles {
-							roles(limit: 100) {
-								id
-								name
-							}
-						}
-					`;
-					const rolesResult = await client.query(GET_ROLES);
-					const newRole = rolesResult?.roles?.find((r: any) => r.name === role);
+					const newRole = allRoles.find((r: { id: string; name: string }) => r.name === role);
 
 					if (newRole) {
 						// Remove old roles
@@ -341,7 +343,10 @@ export const actions: Actions = {
 							}
 						`;
 						for (const r of currentRoles) {
-							await client.mutate(REMOVE_ROLE, { userId: employeeId, roleId: r.id });
+							await client.mutate(REMOVE_ROLE, {
+								userId: employeeId,
+								roleId: (r as { id: string; name: string }).id
+							});
 						}
 
 						// Assign new role
@@ -363,14 +368,23 @@ export const actions: Actions = {
 			}
 
 			// Handle Emergency Contacts
-			const emergencyContacts: any[] = [];
+			interface EmergencyContactFormData {
+				id?: string;
+				name?: string;
+				fullName?: string;
+				relationship?: string;
+				phoneNumber?: string;
+				email?: string;
+				isPrimary?: string;
+			}
+			const emergencyContacts: (EmergencyContactFormData | undefined)[] = [];
 			for (const [key, value] of formData.entries()) {
 				const match = key.match(/emergencyContacts\[(\d+)\]\.(.+)/);
 				if (match) {
 					const index = parseInt(match[1]);
-					const field = match[2];
+					const field = match[2] as keyof EmergencyContactFormData;
 					if (!emergencyContacts[index]) emergencyContacts[index] = {};
-					emergencyContacts[index][field] = value.toString();
+					(emergencyContacts[index] as EmergencyContactFormData)[field] = value.toString();
 				}
 			}
 
@@ -389,7 +403,9 @@ export const actions: Actions = {
 				}
 			`;
 
-			for (const contact of emergencyContacts.filter((c) => c)) {
+			for (const contact of emergencyContacts.filter(
+				(c): c is EmergencyContactFormData => c !== undefined
+			)) {
 				const contactInput = {
 					name: contact.name || contact.fullName,
 					relationship: contact.relationship || null,
@@ -406,14 +422,22 @@ export const actions: Actions = {
 			}
 
 			// Handle Vehicles
-			const vehicles: any[] = [];
+			interface VehicleFormData {
+				id?: string;
+				make?: string;
+				model?: string;
+				year?: string;
+				color?: string;
+				licensePlate?: string;
+			}
+			const vehicles: (VehicleFormData | undefined)[] = [];
 			for (const [key, value] of formData.entries()) {
 				const match = key.match(/vehicles\[(\d+)\]\.(.+)/);
 				if (match) {
 					const index = parseInt(match[1]);
-					const field = match[2];
+					const field = match[2] as keyof VehicleFormData;
 					if (!vehicles[index]) vehicles[index] = {};
-					vehicles[index][field] = value.toString();
+					(vehicles[index] as VehicleFormData)[field] = value.toString();
 				}
 			}
 
@@ -432,7 +456,7 @@ export const actions: Actions = {
 				}
 			`;
 
-			for (const vehicle of vehicles.filter((v) => v)) {
+			for (const vehicle of vehicles.filter((v): v is VehicleFormData => v !== undefined)) {
 				const vehicleInput = {
 					make: vehicle.make || null,
 					model: vehicle.model || null,
@@ -450,8 +474,12 @@ export const actions: Actions = {
 
 			throw redirect(303, `/dashboard/employees/${employeeId}`);
 		} catch (err) {
-			if (err && typeof err === 'object' && 'status' in err && (err as any).status === 303) {
-				throw err;
+			// Re-throw SvelteKit redirect/error responses
+			if (err && typeof err === 'object' && 'status' in err) {
+				const httpErr = err as { status: number };
+				if (httpErr.status === 303 || httpErr.status >= 400) {
+					throw err;
+				}
 			}
 			logger.error('[Employee Update Action Error]', err as Error);
 			return fail(500, { error: 'Failed to update employee' });
