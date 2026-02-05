@@ -76,18 +76,13 @@ pub enum ChangeType {
 }
 
 /// Strategy for resolving conflicts
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ConflictStrategy {
     LocalWins,
     RemoteWins,
     LastWriteWins,
+    #[default]
     Manual,
-}
-
-impl Default for ConflictStrategy {
-    fn default() -> Self {
-        ConflictStrategy::Manual
-    }
 }
 
 /// Winner of a conflict resolution
