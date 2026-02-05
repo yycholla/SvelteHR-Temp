@@ -70,7 +70,7 @@ pub mod reviews;       // Performance review extensions
 pub mod training;      // Training module
 pub mod onboarding;    // Onboarding module
 
-pub use department::{CreateDepartmentInput, Model as Department, DepartmentsOrderBy, UpdateDepartmentInput};
+pub use department::{BulkUpdateDepartmentInput, CreateDepartmentInput, Model as Department, DepartmentsOrderBy, UpdateDepartmentInput};
 pub use event::{CreateEventInput, Model as Event, EventCondition, EventsOrderBy, EventStatus, UpdateEventInput};
 pub use event_attendee::{
     CreateEventAttendeeInput, Model as EventAttendee, EventAttendeeFilter, RsvpScope, RsvpStatus,

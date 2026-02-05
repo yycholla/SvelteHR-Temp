@@ -203,6 +203,16 @@ pub struct UpdateDepartmentInput {
     pub manager_id: Option<Uuid>,
 }
 
+/// Bulk department update input (includes ID)
+#[derive(Debug, Clone, InputObject)]
+pub struct BulkUpdateDepartmentInput {
+    pub id: Uuid,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub manager_id: Option<Uuid>,
+    pub parent_department_id: Option<Uuid>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
