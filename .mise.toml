@@ -585,3 +585,53 @@ echo "   Frontend code: /home/dev/frontend"
 echo ""
 ssh -o StrictHostKeyChecking=no dev@localhost -p 2223
 """
+
+# =============================================================================
+# Utility Tasks
+# =============================================================================
+
+[tasks.install]
+description = "Install all dependencies"
+run = """
+#!/usr/bin/env bash
+echo "📦 Installing dependencies..."
+npm install
+echo "✅ All dependencies installed"
+"""
+
+[tasks.clean]
+description = "Stop containers and clean build artifacts"
+depends = ["_docker_check"]
+run = """
+#!/usr/bin/env bash
+echo "🧹 Cleaning up..."
+cd dev-containers && docker compose -f docker-compose.dev.yml down -v 2>/dev/null || true
+docker system prune -f
+rm -rf .svelte-kit build dist node_modules/.vite
+rm -rf backend/dist backend/logs 2>/dev/null || true
+echo "✅ Cleanup complete"
+"""
+
+[tasks.check]
+description = "Run TypeScript/Svelte type checking"
+run = "npm run check"
+
+[tasks.lint]
+description = "Run linting"
+run = "npm run lint"
+
+[tasks.format]
+description = "Format code with Prettier"
+run = "npm run format"
+
+[tasks.build]
+description = "Production build"
+run = "npm run build"
+
+[tasks.codegen]
+description = "Generate GraphQL types"
+run = "npm run codegen:types"
+
+[tasks."schema:validate"]
+description = "Validate GraphQL schema"
+run = "npm run schema:validate"
