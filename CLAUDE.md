@@ -24,6 +24,17 @@ A modern HR management system built with **SvelteKit 2.43+**, **Svelte 5 (Runes)
 
 ## Development Commands
 
+**Setup (first time):**
+
+```bash
+# Install mise (one-time)
+curl https://mise.run | sh
+
+# Install tools and dependencies
+mise install
+cp .env.example .env  # Fill in secrets
+```
+
 **Svelte 5 MCP:**
 
 - Use `list-sections` to discover docs.
@@ -31,15 +42,43 @@ A modern HR management system built with **SvelteKit 2.43+**, **Svelte 5 (Runes)
 - Use `svelte-autofixer` before finalizing Svelte code.
 - Use `playground-link` only upon request.
 
-**Core:**
+**Daily development:**
 
-- `npm run dev` - Start dev server (use `npm run dev:local` for local backend)
-- `npm run build` - Production build
-- `npm run check` - TypeScript/Svelte check (CRITICAL before commits)
-- `npm run lint` / `npm run format` - Linting and formatting
-- `npm run test` - Run all tests
-- `npm run test:unit` - Run unit tests
-- `npm run test:e2e` - Run E2E tests
+```bash
+mise run dev          # Start hybrid mode (native frontend + Docker backend)
+mise run dev:docker   # Start full Docker mode
+mise run dev:stop     # Stop all containers
+mise run dev:logs     # View container logs
+```
+
+**Testing:**
+
+```bash
+mise run test         # Run all tests
+mise run test:unit    # Run unit tests
+mise run test:e2e     # Run E2E tests
+mise run check        # TypeScript/Svelte check (CRITICAL before commits)
+```
+
+**Database:**
+
+```bash
+mise run db           # Open PostgreSQL shell
+mise run db:status    # Show migration status
+mise run db:migrate   # Run migrations
+mise run db:reset     # Reset database (WARNING: deletes data)
+```
+
+**Rust backend:**
+
+```bash
+mise run rust:check   # cargo check
+mise run rust:clippy  # cargo clippy
+mise run rust:test    # cargo test
+mise run rust:logs    # View Rust server logs
+```
+
+**All available commands:** `mise tasks`
 
 ## Architecture & Data Flow
 
