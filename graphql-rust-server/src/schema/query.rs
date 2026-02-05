@@ -2494,4 +2494,94 @@ mod tests {
         assert!(data_str.contains(&test_user.id.to_string()),
             "Response should contain requested user ID");
     }
+
+
+    /// Test count_employees_by_department query
+    #[tokio::test]
+    async fn test_count_employees_by_department() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+
+        // First, get all departments to find one with employees
+        let departments_query = r#"
+            query {
+                departments(limit: 10) {
+                    id
+                }
+            }
+        "#;
+
+        let dept_response = ctx.execute_query(departments_query).await;
+        let dept_data = ctx.extract_data(&dept_response);
+        let dept_str = dept_data.to_string();
+
+        // Extract first department ID from response
+        // Response format: {departments: [{id: "uuid-here"}, ...]}
+        let department_id = dept_str
+            .split("id: \"")
+            .nth(1)
+            .and_then(|s| s.split('"').next())
+            .expect("Should have at least one department");
+
+        let query = format!(
+            r#"
+            query {{
+                countEmployeesByDepartment(departmentId: "{}") 
+            }}
+            "#,
+            department_id
+        );
+
+        // Act
+        let response = ctx.execute_query(&query).await;
+
+        // Assert - No errors
+        let errors = ctx.extract_errors(&response);
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+        // Assert - Count is returned (may be 0 or more)
+        let data = ctx.extract_data(&response);
+        let data_str = data.to_string();
+        
+        // Should contain countEmployeesByDepartment field with a number
+        assert!(data_str.contains("countEmployeesByDepartment"),
+            "Response should contain countEmployeesByDepartment field");
+    }
+
+    /// Test count_employees_by_department with empty department
+    #[tokio::test]
+    async fn test_count_employees_empty_department() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+
+        // Use a random UUID that doesn't exist
+        let empty_department_id = uuid::Uuid::new_v4();
+
+        let query = format!(
+            r#"
+            query {{
+                countEmployeesByDepartment(departmentId: "{}")
+            }}
+            "#,
+            empty_department_id
+        );
+
+        // Act
+        let response = ctx.execute_query(&query).await;
+
+        // Assert - No errors
+        let errors = ctx.extract_errors(&response);
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+        // Assert - Count is 0 for non-existent/empty department
+        let data = ctx.extract_data(&response);
+        let data_str = data.to_string();
+        
+        assert!(data_str.contains("countEmployeesByDepartment: 0"),
+            "Empty department should return count of 0");
+    }
 }
