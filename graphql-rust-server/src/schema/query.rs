@@ -430,6 +430,79 @@ impl QueryRoot {
         Ok(descendants)
     }
 
+    /// Check if a department name is unique
+    ///
+    /// # Arguments
+    /// * `name` - Department name to check
+    /// * `parent_department_id` - Optional parent department ID to scope uniqueness check
+    /// * `exclude_department_id` - Optional department ID to exclude from check (for updates)
+    ///
+    /// # Returns
+    /// `true` if name is unique, `false` if name already exists
+    ///
+    /// # Uniqueness Rules
+    /// - If `parent_department_id` is provided, checks uniqueness only among siblings
+    /// - If `parent_department_id` is None, checks uniqueness only among root departments
+    /// - `exclude_department_id` is useful when updating existing department
+    ///
+    /// # Security: RLS Enforced
+    /// Applies user RLS filter to visible departments
+    async fn is_department_name_unique(
+        &self,
+        ctx: &Context<'_>,
+        name: String,
+        parent_department_id: Option<Uuid>,
+        exclude_department_id: Option<Uuid>,
+    ) -> Result<bool> {
+        let db = get_db_from_context(ctx)?;
+
+        // Extract UserContext for RLS filtering
+        let user_context = ctx.data::<UserContext>()
+            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+
+        // Normalize name for comparison (trim and case-insensitive)
+        let normalized_name = name.trim().to_lowercase();
+
+        // Build query to find departments with matching name
+        let mut query = DepartmentEntity::find()
+            .filter(DepartmentColumn::DeletedAt.is_null());
+
+        // Apply parent scope
+        match parent_department_id {
+            Some(parent_id) => {
+                // Check uniqueness among siblings (same parent)
+                query = query.filter(DepartmentColumn::ParentDepartmentId.eq(parent_id));
+            }
+            None => {
+                // Check uniqueness among root departments (no parent)
+                query = query.filter(DepartmentColumn::ParentDepartmentId.is_null());
+            }
+        }
+
+        // Apply RLS filter
+        query = apply_department_rls_filter(query, user_context);
+
+        // Fetch all candidates and check names (case-insensitive)
+        let candidates = query.all(&db).await?;
+
+        // Check if any matching department exists
+        for dept in candidates {
+            // Skip the department being updated
+            if let Some(exclude_id) = exclude_department_id {
+                if dept.id == exclude_id {
+                    continue;
+                }
+            }
+
+            // Case-insensitive name comparison
+            if dept.name.trim().to_lowercase() == normalized_name {
+                return Ok(false); // Name already exists
+            }
+        }
+
+        Ok(true) // Name is unique
+    }
+
     // =========================================================================
     // Task Queries
     // =========================================================================
@@ -2949,5 +3022,222 @@ mod tests {
         
         assert!(data_str.contains("getDepartmentDescendants: []"),
             "Non-existent department should return empty descendant list");
+    }
+
+    /// Test isDepartmentNameUnique with existing name
+    #[tokio::test]
+    async fn test_is_department_name_unique_duplicate() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+
+        // Get an existing department name
+        let departments_query = r#"
+            query {
+                departments(limit: 1) {
+                    id
+                    name
+                    parentDepartmentId
+                }
+            }
+        "#;
+
+        let dept_response = ctx.execute_query(departments_query).await;
+        let dept_data = ctx.extract_data(&dept_response);
+        let dept_str = dept_data.to_string();
+
+        let existing_name = dept_str
+            .split("name: \"")
+            .nth(1)
+            .and_then(|s| s.split('"').next())
+            .expect("Should have at least one department");
+
+        let query = format!(
+            r#"
+            query {{
+                isDepartmentNameUnique(
+                    name: "{}",
+                    parentDepartmentId: null,
+                    excludeDepartmentId: null
+                )
+            }}
+            "#,
+            existing_name
+        );
+
+        // Act
+        let response = ctx.execute_query(&query).await;
+
+        // Assert - No errors
+        let errors = ctx.extract_errors(&response);
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+        // Assert - Returns false for duplicate name
+        let data = ctx.extract_data(&response);
+        let data_str = data.to_string();
+        
+        assert!(data_str.contains("isDepartmentNameUnique: false"),
+            "Existing department name should not be unique");
+    }
+
+    /// Test isDepartmentNameUnique with new unique name
+    #[tokio::test]
+    async fn test_is_department_name_unique_new_name() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+
+        // Use a random name that doesn't exist
+        let unique_name = format!("Test Department {}", uuid::Uuid::new_v4());
+
+        let query = format!(
+            r#"
+            query {{
+                isDepartmentNameUnique(
+                    name: "{}",
+                    parentDepartmentId: null,
+                    excludeDepartmentId: null
+                )
+            }}
+            "#,
+            unique_name
+        );
+
+        // Act
+        let response = ctx.execute_query(&query).await;
+
+        // Assert - No errors
+        let errors = ctx.extract_errors(&response);
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+        // Assert - Returns true for unique name
+        let data = ctx.extract_data(&response);
+        let data_str = data.to_string();
+        
+        assert!(data_str.contains("isDepartmentNameUnique: true"),
+            "New department name should be unique");
+    }
+
+    /// Test isDepartmentNameUnique with exclude_department_id (update scenario)
+    #[tokio::test]
+    async fn test_is_department_name_unique_with_exclusion() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+
+        // Get an existing department
+        let departments_query = r#"
+            query {
+                departments(limit: 1) {
+                    id
+                    name
+                }
+            }
+        "#;
+
+        let dept_response = ctx.execute_query(departments_query).await;
+        let dept_data = ctx.extract_data(&dept_response);
+        let dept_str = dept_data.to_string();
+
+        let dept_id = dept_str
+            .split("id: \"")
+            .nth(1)
+            .and_then(|s| s.split('"').next())
+            .expect("Should have at least one department");
+
+        let dept_name = dept_str
+            .split("name: \"")
+            .nth(1)
+            .and_then(|s| s.split('"').next())
+            .expect("Should have name");
+
+        // Check uniqueness with exclusion (simulates updating same department)
+        let query = format!(
+            r#"
+            query {{
+                isDepartmentNameUnique(
+                    name: "{}",
+                    parentDepartmentId: null,
+                    excludeDepartmentId: "{}"
+                )
+            }}
+            "#,
+            dept_name, dept_id
+        );
+
+        // Act
+        let response = ctx.execute_query(&query).await;
+
+        // Assert - No errors
+        let errors = ctx.extract_errors(&response);
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+        // Assert - Returns true when excluding self
+        let data = ctx.extract_data(&response);
+        let data_str = data.to_string();
+        
+        assert!(data_str.contains("isDepartmentNameUnique: true"),
+            "Department name should be unique when excluding itself");
+    }
+
+    /// Test isDepartmentNameUnique case-insensitive matching
+    #[tokio::test]
+    async fn test_is_department_name_unique_case_insensitive() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+
+        // Get an existing department name
+        let departments_query = r#"
+            query {
+                departments(limit: 1) {
+                    name
+                }
+            }
+        "#;
+
+        let dept_response = ctx.execute_query(departments_query).await;
+        let dept_data = ctx.extract_data(&dept_response);
+        let dept_str = dept_data.to_string();
+
+        let existing_name = dept_str
+            .split("name: \"")
+            .nth(1)
+            .and_then(|s| s.split('"').next())
+            .expect("Should have at least one department");
+
+        // Test with uppercase version of existing name
+        let uppercase_name = existing_name.to_uppercase();
+
+        let query = format!(
+            r#"
+            query {{
+                isDepartmentNameUnique(
+                    name: "{}",
+                    parentDepartmentId: null,
+                    excludeDepartmentId: null
+                )
+            }}
+            "#,
+            uppercase_name
+        );
+
+        // Act
+        let response = ctx.execute_query(&query).await;
+
+        // Assert - No errors
+        let errors = ctx.extract_errors(&response);
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+        // Assert - Returns false (case-insensitive match)
+        let data = ctx.extract_data(&response);
+        let data_str = data.to_string();
+        
+        assert!(data_str.contains("isDepartmentNameUnique: false"),
+            "Name should not be unique (case-insensitive comparison)");
     }
 }
