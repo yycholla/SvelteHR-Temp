@@ -234,3 +234,50 @@ echo "🔨 Full rebuild (no cache) - this may take 8-12 minutes..."
 cd dev-containers && docker compose -f docker-compose.dev.yml build --no-cache
 echo "✅ Full rebuild complete. Run 'mise run dev' to start."
 """
+
+# =============================================================================
+# Backend / Frontend Tasks
+# =============================================================================
+
+[tasks."backend:start"]
+alias = "backend"
+description = "Start backend containers only (database + redis + backend API)"
+depends = ["_docker_check"]
+run = """
+#!/usr/bin/env bash
+echo "🚀 Starting Backend Containers..."
+cd dev-containers && docker compose -f docker-compose.dev.yml up -d postgres-dev redis-dev backend-dev
+echo ""
+echo "✅ Backend containers started!"
+echo ""
+echo "📍 Services available:"
+echo "   🔹 Backend API:  http://localhost:4000/graphql"
+echo "   🔹 PostgreSQL:   localhost:5433"
+echo "   🔹 Redis:        localhost:6380"
+echo ""
+echo "💡 Start frontend: mise run frontend"
+"""
+
+[tasks."frontend:start"]
+alias = "frontend"
+description = "Start frontend container (Docker mode)"
+depends = ["_backend_running"]
+run = """
+#!/usr/bin/env bash
+echo "🎨 Starting Frontend Container..."
+cd dev-containers && docker compose -f docker-compose.dev.yml up -d frontend-dev
+echo ""
+echo "✅ Frontend container started!"
+echo "🌐 Frontend available at: http://localhost:5173"
+"""
+
+[tasks."frontend:native"]
+description = "Start frontend natively (faster HMR, requires backend running)"
+depends = ["_backend_running"]
+run = """
+#!/usr/bin/env bash
+echo "🎨 Starting native frontend with hot reload..."
+echo "   Press Ctrl+C to stop"
+echo ""
+npm run dev
+"""
