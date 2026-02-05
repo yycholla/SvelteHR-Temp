@@ -13,6 +13,9 @@ export interface CreateEmployeeData {
 }
 
 export interface UpdateEmployeeData {
+	firstName?: string;
+	lastName?: string;
+	email?: string;
 	departmentId?: string | null;
 	jobTitle?: string | null;
 	phone?: string | null;
