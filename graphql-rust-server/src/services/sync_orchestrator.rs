@@ -97,38 +97,54 @@ impl SyncOrchestrator {
         // Execute appropriate sync
         let mut report = match decision.sync_mode {
             SyncMode::Incremental => {
-                Self::sync_bidirectional_incremental(db, client, entity_type, strategy, &decision.metadata)
-                    .await
-                    .unwrap_or_else(|e| {
+                // Try incremental sync first
+                match Self::sync_bidirectional_incremental(
+                    db,
+                    client,
+                    entity_type,
+                    strategy,
+                    &decision.metadata,
+                )
+                .await
+                {
+                    Ok(report) => report,
+                    Err(e) => {
                         tracing::warn!(
                             "Incremental sync failed, falling back to full sync: {}",
                             e
                         );
-                        // Fallback to full sync on incremental failure
-                        let full_result = futures::executor::block_on(
-                            Self::sync_bidirectional(db, client, entity_type, strategy)
-                        );
-                        full_result.unwrap_or_else(|e| SyncReport {
-                            pushed_count: 0,
-                            pulled_count: 0,
-                            updated_count: 0,
-                            skipped_count: 0,
-                            conflicts_resolved: 0,
-                            errors: vec![SyncError {
-                                entity_type: format!("{:?}", entity_type),
-                                entity_id: None,
-                                quickbooks_id: None,
-                                error_message: format!("Both incremental and full sync failed: {}", e),
-                                error_code: Some("SYNC_FAILED".to_string()),
-                                is_retryable: true,
-                            }],
-                            started_at,
-                            completed_at: Utc::now(),
-                            sync_mode: "full_fallback".to_string(),
-                            changes_detected: 0,
-                            changes_processed: 0,
-                        })
-                    })
+                        // Fallback to full sync - now properly awaited
+                        match Self::sync_bidirectional(db, client, entity_type, strategy).await {
+                            Ok(report) => report,
+                            Err(full_error) => {
+                                // Both failed - return error report
+                                SyncReport {
+                                    pushed_count: 0,
+                                    pulled_count: 0,
+                                    updated_count: 0,
+                                    skipped_count: 0,
+                                    conflicts_resolved: 0,
+                                    errors: vec![SyncError {
+                                        entity_type: format!("{:?}", entity_type),
+                                        entity_id: None,
+                                        quickbooks_id: None,
+                                        error_message: format!(
+                                            "Both incremental and full sync failed: {}",
+                                            full_error
+                                        ),
+                                        error_code: Some("SYNC_FAILED".to_string()),
+                                        is_retryable: true,
+                                    }],
+                                    started_at,
+                                    completed_at: Utc::now(),
+                                    sync_mode: "full_fallback".to_string(),
+                                    changes_detected: 0,
+                                    changes_processed: 0,
+                                }
+                            }
+                        }
+                    }
+                }
             }
             SyncMode::Full | SyncMode::Auto => {
                 Self::sync_bidirectional(db, client, entity_type, strategy).await?
