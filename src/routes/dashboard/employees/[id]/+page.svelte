@@ -1,7 +1,9 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { Button } from '$lib/components/ui/button';
 	import { logger } from '$lib/utils/logger';
-	import { ChevronRight, Pencil } from '@lucide/svelte';
+	import { ChevronRight, Pencil, Trash2 } from '@lucide/svelte';
+	import { confirmService } from '$lib/stores/confirm.svelte';
 
 	// Import decomposed components and logic
 	import EmployeeModals from '$lib/components/employees/detail/EmployeeModals.svelte';
@@ -193,6 +195,27 @@
 						<Pencil class="h-4 w-4" />
 						Edit Profile
 					</Button>
+
+					<form method="POST" action="?/delete" use:enhance>
+						<Button
+							type="submit"
+							variant="destructive"
+							size="sm"
+							class="gap-2"
+							onclick={(e) => {
+								if (
+									!confirm(
+										`Are you sure you want to delete ${employee.displayName}? This action will deactivate the employee account and cannot be undone.`
+									)
+								) {
+									e.preventDefault();
+								}
+							}}
+						>
+							<Trash2 class="h-4 w-4" />
+							Delete
+						</Button>
+					</form>
 				{/if}
 			</div>
 		</div>
