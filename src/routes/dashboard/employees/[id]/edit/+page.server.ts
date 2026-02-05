@@ -1,10 +1,12 @@
 // Server-side data loading and form handling for employee edit page
 // Follows RBAC patterns with server-side API calls only
+// Migrated to use EmployeeService for core employee data
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { logger } from '$lib/utils/logger';
 import { RBACDataLoader } from '$lib/server/route-loaders';
+import { createEmployeeService } from '$lib/server/services';
 import { gql } from '@urql/svelte';
 
 export const load: PageServerLoad = async (event) => {
@@ -35,27 +37,43 @@ export const load: PageServerLoad = async (event) => {
 			const isAdmin = userRoles.includes('Admin') || userRoles.includes('HR Manager');
 			const isViewingSelf = userId === employeeId;
 
-			// Define GraphQL queries
-			const GET_EMPLOYEE = gql`
-				query GetEmployeeById($id: UUID!) {
+			// Use EmployeeService for core employee data
+			const employeeService = createEmployeeService(event);
+			const employeeResult = await employeeService.getEmployeeById(employeeId);
+
+			// Handle employee not found or errors
+			if (employeeResult.isError) {
+				if (employeeResult.error.code === 'EMPLOYEE_NOT_FOUND') {
+					logger.warn('[Employee Edit] Employee not found', { employeeId });
+					throw error(404, 'Employee not found');
+				}
+				logger.error(
+					'[Employee Edit] Failed to load employee',
+					new Error(employeeResult.error.message),
+					{
+						employeeId,
+						errorCode: employeeResult.error.code
+					}
+				);
+				throw error(500, employeeResult.error.message);
+			}
+
+			const employeeEntity = employeeResult.value;
+
+			logger.info('[Employee Edit] Loaded employee via EmployeeService', {
+				employeeId: employeeEntity.id,
+				userRoles: locals.roles
+			});
+
+			// Define GraphQL queries for additional data not in domain model
+			const GET_ADDITIONAL_EMPLOYEE_DATA = gql`
+				query GetAdditionalEmployeeData($id: UUID!) {
 					user(id: $id) {
-						id
-						firstName
-						lastName
-						displayName
-						fullName
-						email
 						roles {
 							id
 							name
 						}
-						phone
 						alternatePhone
-						jobTitle
-						status
-						hireDate
-						isActive
-						departmentId
 						department {
 							id
 							name
@@ -94,18 +112,6 @@ export const load: PageServerLoad = async (event) => {
 				}
 			`;
 
-			// Execute parallel queries
-			const [employeeResult, departmentsResult, rolesResult] = await Promise.all([
-				client.query(GET_EMPLOYEE, { id: employeeId }),
-				client.query(GET_DEPARTMENTS),
-				client.query(GET_ROLES)
-			]);
-
-			const employee = employeeResult?.user;
-			if (!employee) {
-				throw error(404, 'Employee not found');
-			}
-
 			// Load related data (emergency contacts and vehicles)
 			const GET_RELATED_DATA = gql`
 				query GetEmployeeRelatedData($employeeId: UUID!, $limit: Int!) {
@@ -132,16 +138,21 @@ export const load: PageServerLoad = async (event) => {
 				}
 			`;
 
-			const relatedDataResult = await client.query(GET_RELATED_DATA, {
-				employeeId,
-				limit: 50
-			});
+			// Execute parallel queries for additional data
+			const [additionalDataResult, departmentsResult, rolesResult, relatedDataResult] =
+				await Promise.all([
+					client.query(GET_ADDITIONAL_EMPLOYEE_DATA, { id: employeeId }),
+					client.query(GET_DEPARTMENTS),
+					client.query(GET_ROLES),
+					client.query(GET_RELATED_DATA, { employeeId, limit: 50 })
+				]);
 
+			const additionalEmployeeData = additionalDataResult?.user;
 			const emergencyContacts = relatedDataResult?.emergencyContacts || [];
 			const vehicles = relatedDataResult?.employeeVehicles || [];
 
 			// Check if user is the employee's manager
-			const isEmployeeManager = employee.department?.managerId === userId;
+			const isEmployeeManager = additionalEmployeeData?.department?.managerId === userId;
 
 			// Determine edit permissions
 			const canEditContactInfo = isViewingSelf || isEmployeeManager || isAdmin;
@@ -153,29 +164,42 @@ export const load: PageServerLoad = async (event) => {
 			return {
 				roles: rolesResult?.roles || [],
 				employee: {
-					id: employee.id,
-					firstName: employee.firstName,
-					lastName: employee.lastName,
-					displayName: employee.displayName,
-					fullName: employee.fullName,
-					email: employee.email,
-					role: employee.roles && employee.roles.length > 0 ? employee.roles[0].name : 'Employee',
-					roles: employee.roles || [],
-					jobTitle: employee.jobTitle,
-					status: employee.status,
-					hireDate: employee.hireDate,
-					isActive: employee.isActive,
-					departmentId: employee.departmentId,
+					// Core employee data from domain entity
+					id: employeeEntity.id,
+					firstName: employeeEntity.name.first,
+					lastName: employeeEntity.name.last,
+					displayName: employeeEntity.displayName,
+					fullName: employeeEntity.fullName,
+					email: employeeEntity.email.value,
+					jobTitle: employeeEntity.jobTitle,
+					status: employeeEntity.status,
+					hireDate: employeeEntity.hireDate.value.toISOString(),
+					isActive: employeeEntity.isActive,
+					departmentId: employeeEntity.departmentId,
+					// Additional data from GraphQL (not yet in domain model)
+					role:
+						additionalEmployeeData?.roles && additionalEmployeeData.roles.length > 0
+							? additionalEmployeeData.roles[0].name
+							: 'Employee',
+					roles: additionalEmployeeData?.roles || [],
+					department: additionalEmployeeData?.department,
 					// Contact information - only if authorized
-					phoneNumber: canEditContactInfo ? employee.phone : null,
-					mobileNumber: canEditContactInfo ? employee.alternatePhone : null,
-					addressLine1: canEditContactInfo ? employee.primaryAddress?.addressLine1 : null,
-					addressLine2: canEditContactInfo ? employee.primaryAddress?.addressLine2 : null,
-					city: canEditContactInfo ? employee.primaryAddress?.city : null,
-					stateProvince: canEditContactInfo ? employee.primaryAddress?.stateProvince : null,
-					postalCode: canEditContactInfo ? employee.primaryAddress?.postalCode : null,
-					country: canEditContactInfo ? employee.primaryAddress?.country : null,
-					department: employee.department,
+					phoneNumber: canEditContactInfo ? employeeEntity.phone : null,
+					mobileNumber: canEditContactInfo ? additionalEmployeeData?.alternatePhone : null,
+					addressLine1: canEditContactInfo
+						? additionalEmployeeData?.primaryAddress?.addressLine1
+						: null,
+					addressLine2: canEditContactInfo
+						? additionalEmployeeData?.primaryAddress?.addressLine2
+						: null,
+					city: canEditContactInfo ? additionalEmployeeData?.primaryAddress?.city : null,
+					stateProvince: canEditContactInfo
+						? additionalEmployeeData?.primaryAddress?.stateProvince
+						: null,
+					postalCode: canEditContactInfo
+						? additionalEmployeeData?.primaryAddress?.postalCode
+						: null,
+					country: canEditContactInfo ? additionalEmployeeData?.primaryAddress?.country : null,
 					// Emergency contacts - only if authorized
 					emergencyContacts: canEditEmergencyContacts ? emergencyContacts : [],
 					// Vehicles - only if authorized
