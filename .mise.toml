@@ -32,3 +32,28 @@ env_file = ".env"
 task_output = "prefix"
 # Quiet mode for cleaner output
 quiet = true
+
+# =============================================================================
+# Environment Variables (non-secrets only)
+# =============================================================================
+# Secrets (passwords, API keys) stay in .env file (gitignored).
+# mise loads .env automatically via env_file setting above.
+
+[env]
+# Database (non-secret parts)
+POSTGRES_DB = "hr_system"
+POSTGRES_USER = "postgres"
+
+# Server defaults
+HOST = "127.0.0.1"
+
+# Rust logging
+RUST_LOG = "info,hr_graphql_server=debug,sea_orm=warn,sqlx=warn"
+RUST_BACKTRACE = "1"
+
+# SeaORM
+SEA_ORM_LOG_QUERIES = "false"
+SEA_ORM_LOG_LEVEL = "warn"
+
+# Development defaults
+ENVIRONMENT = "development"
