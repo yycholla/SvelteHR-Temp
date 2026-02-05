@@ -500,3 +500,48 @@ echo ""
 echo "✅ Frontend container rebuilt and started!"
 echo "🌐 Frontend available at: http://localhost"
 """
+
+# =============================================================================
+# Testing Tasks
+# =============================================================================
+
+[tasks."test"]
+alias = "test:all"
+description = "Run all tests"
+run = "npm run test"
+
+[tasks."test:unit"]
+description = "Run unit tests"
+run = "npm run test:unit"
+
+[tasks."test:unit:server"]
+description = "Run server-side unit tests"
+run = "npm run test:unit:server"
+
+[tasks."test:unit:client"]
+description = "Run client-side unit tests"
+run = "npm run test:unit:client"
+
+[tasks."test:integration"]
+description = "Run integration tests"
+run = "npm run test:integration"
+
+[tasks."test:e2e"]
+description = "Run E2E tests"
+run = "npm run test:e2e"
+
+[tasks."test:e2e:ui"]
+description = "Run E2E tests with UI"
+run = "npm run test:e2e:ui"
+
+[tasks."test:e2e:headed"]
+description = "Run E2E tests in headed browser"
+run = "npm run test:e2e:headed"
+
+[tasks."test:watch"]
+description = "Run tests in watch mode"
+run = "npm run test:watch"
+
+[tasks."test:coverage"]
+description = "Run tests with coverage"
+run = "npm run test:coverage"
