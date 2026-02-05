@@ -137,9 +137,32 @@ export class EmployeeService {
 				}
 			}
 
-			// Note: email, firstName, lastName updates would require recreating the entity
-			// or adding domain methods for those operations. For now, we only support
-			// the fields that have domain methods available.
+			// Update name fields
+			if (data.firstName !== undefined) {
+				const result = employee.updateFirstName(data.firstName);
+				if (result.isError) {
+					return Result.error(result.error);
+				}
+			}
+
+			if (data.lastName !== undefined) {
+				const result = employee.updateLastName(data.lastName);
+				if (result.isError) {
+					return Result.error(result.error);
+				}
+			}
+
+			// Update email with duplicate check
+			if (data.email !== undefined && data.email !== employee.email.value) {
+				const existing = await this.employeeRepository.findByEmail(data.email);
+				if (existing && existing.id !== id) {
+					return Result.error(new EmployeeAlreadyExistsError(data.email));
+				}
+				const result = employee.updateEmail(data.email);
+				if (result.isError) {
+					return Result.error(result.error);
+				}
+			}
 
 			// Save updated employee
 			const updatedEmployee = await this.employeeRepository.update(id, employee);

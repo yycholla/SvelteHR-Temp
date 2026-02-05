@@ -502,6 +502,228 @@ describe('EmployeeService - CRUD Operations', () => {
 		});
 	});
 
+	describe('updateEmployee - expanded fields', () => {
+		it('should update firstName', async () => {
+			// Arrange - Create employee with firstName 'John'
+			const employeeData: CreateEmployeeData = {
+				id: '123e4567-e89b-12d3-a456-426614174000',
+				email: 'john.doe@example.com',
+				firstName: 'John',
+				lastName: 'Doe',
+				hireDate: '2024-01-01',
+				departmentId: '123e4567-e89b-12d3-a456-426614174001',
+				jobTitle: 'Software Engineer',
+				phone: '+12345678901'
+			};
+			const employee = Employee.create(employeeData).value;
+			await repository.save(employee);
+
+			// Act - Call updateEmployee with firstName: 'Jane'
+			const result = await service.updateEmployee('123e4567-e89b-12d3-a456-426614174000', {
+				firstName: 'Jane'
+			});
+
+			// Assert - Verify result.isOk and name.first is 'Jane'
+			expect(result.isOk).toBe(true);
+			expect(result.value.name.first).toBe('Jane');
+			expect(result.value.name.last).toBe('Doe'); // unchanged
+		});
+
+		it('should update lastName', async () => {
+			// Arrange - Create employee with lastName 'Doe'
+			const employeeData: CreateEmployeeData = {
+				id: '123e4567-e89b-12d3-a456-426614174000',
+				email: 'john.doe@example.com',
+				firstName: 'John',
+				lastName: 'Doe',
+				hireDate: '2024-01-01',
+				departmentId: '123e4567-e89b-12d3-a456-426614174001',
+				jobTitle: 'Software Engineer',
+				phone: '+12345678901'
+			};
+			const employee = Employee.create(employeeData).value;
+			await repository.save(employee);
+
+			// Act - Call updateEmployee with lastName: 'Smith'
+			const result = await service.updateEmployee('123e4567-e89b-12d3-a456-426614174000', {
+				lastName: 'Smith'
+			});
+
+			// Assert - Verify result.isOk and name.last is 'Smith'
+			expect(result.isOk).toBe(true);
+			expect(result.value.name.last).toBe('Smith');
+			expect(result.value.name.first).toBe('John'); // unchanged
+		});
+
+		it('should update email', async () => {
+			// Arrange - Create employee with email 'old@example.com'
+			const employeeData: CreateEmployeeData = {
+				id: '123e4567-e89b-12d3-a456-426614174000',
+				email: 'old@example.com',
+				firstName: 'John',
+				lastName: 'Doe',
+				hireDate: '2024-01-01',
+				departmentId: '123e4567-e89b-12d3-a456-426614174001',
+				jobTitle: 'Software Engineer',
+				phone: '+12345678901'
+			};
+			const employee = Employee.create(employeeData).value;
+			await repository.save(employee);
+
+			// Act - Call updateEmployee with new email
+			const result = await service.updateEmployee('123e4567-e89b-12d3-a456-426614174000', {
+				email: 'new@example.com'
+			});
+
+			// Assert - Verify result.isOk and email is updated
+			expect(result.isOk).toBe(true);
+			expect(result.value.email.value).toBe('new@example.com');
+		});
+
+		it('should reject updating email to an existing email (duplicate check)', async () => {
+			// Arrange - Create two employees
+			const employee1Data: CreateEmployeeData = {
+				id: '123e4567-e89b-12d3-a456-426614174000',
+				email: 'first@example.com',
+				firstName: 'John',
+				lastName: 'Doe',
+				hireDate: '2024-01-01',
+				departmentId: '123e4567-e89b-12d3-a456-426614174001',
+				jobTitle: 'Software Engineer',
+				phone: '+12345678901'
+			};
+			const employee2Data: CreateEmployeeData = {
+				id: '123e4567-e89b-12d3-a456-426614174002',
+				email: 'second@example.com',
+				firstName: 'Jane',
+				lastName: 'Smith',
+				hireDate: '2024-02-01',
+				departmentId: '123e4567-e89b-12d3-a456-426614174001',
+				jobTitle: 'Product Manager',
+				phone: '+12345678902'
+			};
+			const employee1 = Employee.create(employee1Data).value;
+			const employee2 = Employee.create(employee2Data).value;
+			await repository.save(employee1);
+			await repository.save(employee2);
+
+			// Act - Try to update second employee's email to first employee's email
+			const result = await service.updateEmployee('123e4567-e89b-12d3-a456-426614174002', {
+				email: 'first@example.com'
+			});
+
+			// Assert - Verify error with EMPLOYEE_ALREADY_EXISTS code
+			expect(result.isError).toBe(true);
+			expect(result.error).toBeInstanceOf(EmployeeAlreadyExistsError);
+			expect(result.error.code).toBe('EMPLOYEE_ALREADY_EXISTS');
+		});
+
+		it('should allow keeping same email (no duplicate error for own email)', async () => {
+			// Arrange - Create employee with email 'same@example.com'
+			const employeeData: CreateEmployeeData = {
+				id: '123e4567-e89b-12d3-a456-426614174000',
+				email: 'same@example.com',
+				firstName: 'John',
+				lastName: 'Doe',
+				hireDate: '2024-01-01',
+				departmentId: '123e4567-e89b-12d3-a456-426614174001',
+				jobTitle: 'Software Engineer',
+				phone: '+12345678901'
+			};
+			const employee = Employee.create(employeeData).value;
+			await repository.save(employee);
+
+			// Act - Call updateEmployee with same email + firstName change
+			const result = await service.updateEmployee('123e4567-e89b-12d3-a456-426614174000', {
+				email: 'same@example.com',
+				firstName: 'Jane'
+			});
+
+			// Assert - Verify success (no duplicate error for own email)
+			expect(result.isOk).toBe(true);
+			expect(result.value.email.value).toBe('same@example.com');
+			expect(result.value.name.first).toBe('Jane');
+		});
+
+		it('should reject invalid firstName update', async () => {
+			// Arrange - Create employee
+			const employeeData: CreateEmployeeData = {
+				id: '123e4567-e89b-12d3-a456-426614174000',
+				email: 'john.doe@example.com',
+				firstName: 'John',
+				lastName: 'Doe',
+				hireDate: '2024-01-01',
+				departmentId: '123e4567-e89b-12d3-a456-426614174001',
+				jobTitle: 'Software Engineer',
+				phone: '+12345678901'
+			};
+			const employee = Employee.create(employeeData).value;
+			await repository.save(employee);
+
+			// Act - Try to update with empty firstName
+			const result = await service.updateEmployee('123e4567-e89b-12d3-a456-426614174000', {
+				firstName: ''
+			});
+
+			// Assert - Verify domain validation error
+			expect(result.isError).toBe(true);
+			expect(result.error).toBeInstanceOf(DomainError);
+		});
+
+		it('should reject invalid email update', async () => {
+			// Arrange - Create employee
+			const employeeData: CreateEmployeeData = {
+				id: '123e4567-e89b-12d3-a456-426614174000',
+				email: 'john.doe@example.com',
+				firstName: 'John',
+				lastName: 'Doe',
+				hireDate: '2024-01-01',
+				departmentId: '123e4567-e89b-12d3-a456-426614174001',
+				jobTitle: 'Software Engineer',
+				phone: '+12345678901'
+			};
+			const employee = Employee.create(employeeData).value;
+			await repository.save(employee);
+
+			// Act - Try to update with invalid email format
+			const result = await service.updateEmployee('123e4567-e89b-12d3-a456-426614174000', {
+				email: 'not-an-email'
+			});
+
+			// Assert - Verify domain validation error
+			expect(result.isError).toBe(true);
+			expect(result.error).toBeInstanceOf(DomainError);
+		});
+
+		it('should update firstName and lastName together', async () => {
+			// Arrange
+			const employeeData: CreateEmployeeData = {
+				id: '123e4567-e89b-12d3-a456-426614174000',
+				email: 'john.doe@example.com',
+				firstName: 'John',
+				lastName: 'Doe',
+				hireDate: '2024-01-01',
+				departmentId: '123e4567-e89b-12d3-a456-426614174001',
+				jobTitle: 'Software Engineer',
+				phone: '+12345678901'
+			};
+			const employee = Employee.create(employeeData).value;
+			await repository.save(employee);
+
+			// Act
+			const result = await service.updateEmployee('123e4567-e89b-12d3-a456-426614174000', {
+				firstName: 'Jane',
+				lastName: 'Smith'
+			});
+
+			// Assert
+			expect(result.isOk).toBe(true);
+			expect(result.value.name.first).toBe('Jane');
+			expect(result.value.name.last).toBe('Smith');
+			expect(result.value.fullName).toBe('Jane Smith');
+		});
+	});
+
 	describe('Business Workflows', () => {
 		it('createEmployee checks for duplicate email before creating', async () => {
 			// Arrange - Create first employee
