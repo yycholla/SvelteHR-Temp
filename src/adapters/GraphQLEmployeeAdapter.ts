@@ -21,7 +21,6 @@ import { logger } from '$lib/utils/logger';
  * implements filtering (see docs/hotfixes/2026-01-20-graphql-schema-mismatch.md)
  *
  * TODO: Remove this when backend implements:
- * - userByEmail(email: String!) query
  * - users() query with filtering parameters (departmentId, isActive, searchTerm, etc.)
  */
 const CLIENT_SIDE_FILTER_LIMIT = 1000;
@@ -68,12 +67,9 @@ export class GraphQLEmployeeAdapter implements EmployeeRepository {
 	}
 
 	async findByEmail(email: string): Promise<Employee | null> {
-		// NOTE: Backend doesn't have userByEmail query yet
-		// This implementation fetches all users and filters client-side
-		// TODO: Add userByEmail(email: String!) query to backend for better performance
 		const query = gql`
-			query GetAllUsersForEmailLookup($limit: Int!) {
-				users(limit: $limit, offset: 0) {
+			query GetUserByEmail($email: String!) {
+				userByEmail(email: $email) {
 					id
 					email
 					firstName
@@ -87,37 +83,25 @@ export class GraphQLEmployeeAdapter implements EmployeeRepository {
 			}
 		`;
 
-		// Use configured limit to prevent timeouts
-		// This is inefficient but necessary until backend adds userByEmail query
-		logger.warn(
-			'[GraphQLEmployeeAdapter] Using client-side email lookup - add userByEmail query to backend',
-			{
-				email,
-				limit: CLIENT_SIDE_FILTER_LIMIT,
-				warning:
-					'Organizations with >1000 employees may not find all users. Add userByEmail(email: String!) to backend.'
+		try {
+			const result = await this.graphql.query<{ userByEmail: GraphQLEmployee | null }>(query, {
+				email: email.toLowerCase()
+			});
+
+			const userData = result?.userByEmail;
+			if (!userData) {
+				return null;
 			}
-		);
 
-		const result = await this.graphql.query<{ users: GraphQLEmployee[] }>(query, {
-			limit: CLIENT_SIDE_FILTER_LIMIT
-		});
-
-		if (!result?.users) {
+			return this.mapToEmployee(userData);
+		} catch (error) {
+			logger.error(
+				'[GraphQLEmployeeAdapter] Exception in findByEmail',
+				error instanceof Error ? error : undefined,
+				{ email }
+			);
 			return null;
 		}
-
-		// Client-side filtering by email (case-insensitive)
-		const normalizedEmail = email.trim().toLowerCase();
-		const found = result.users.find(
-			(user: GraphQLEmployee) => user.email.trim().toLowerCase() === normalizedEmail
-		);
-
-		if (!found) {
-			return null;
-		}
-
-		return this.mapToEmployee(found);
 	}
 
 	async findAll(filters?: EmployeeListFilters): Promise<EmployeeListResult> {
