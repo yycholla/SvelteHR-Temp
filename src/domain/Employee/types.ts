@@ -1,6 +1,11 @@
 // src/domain/Employee/types.ts
 import type { Employee } from './Employee';
 
+export interface EmployeeRole {
+	readonly id: string;
+	readonly name: string;
+}
+
 export interface CreateEmployeeData {
 	id: string;
 	email: string;
@@ -10,6 +15,7 @@ export interface CreateEmployeeData {
 	departmentId: string | null;
 	jobTitle: string | null;
 	phone: string | null;
+	roles?: EmployeeRole[];
 }
 
 export interface UpdateEmployeeData {

@@ -5,9 +5,11 @@ import { Email } from './Email';
 import { PersonName } from './PersonName';
 import { HireDate } from './HireDate';
 import { EmployeeStatus } from './EmployeeStatus';
-import type { CreateEmployeeData } from './types';
+import type { CreateEmployeeData, EmployeeRole } from './types';
 
 export class Employee {
+	private readonly _roles: ReadonlyArray<EmployeeRole>;
+
 	private constructor(
 		public readonly id: string,
 		private _email: Email,
@@ -16,8 +18,11 @@ export class Employee {
 		private _status: EmployeeStatus,
 		private _departmentId: string | null,
 		private _jobTitle: string | null,
-		private _phone: string | null
-	) {}
+		private _phone: string | null,
+		roles: ReadonlyArray<EmployeeRole> = []
+	) {
+		this._roles = roles;
+	}
 
 	get email(): Email {
 		return this._email;
@@ -98,6 +103,8 @@ export class Employee {
 			}
 		}
 
+		const roles = data.roles ?? [];
+
 		return Result.ok(
 			new Employee(
 				data.id,
@@ -107,7 +114,8 @@ export class Employee {
 				EmployeeStatus.Active,
 				departmentId,
 				jobTitle,
-				phone
+				phone,
+				roles
 			)
 		);
 	}
@@ -139,6 +147,14 @@ export class Employee {
 
 	get displayName(): string {
 		return this.name.displayName;
+	}
+
+	get roles(): ReadonlyArray<EmployeeRole> {
+		return this._roles;
+	}
+
+	get primaryRole(): string {
+		return this._roles[0]?.name ?? 'Employee';
 	}
 
 	// Business methods
