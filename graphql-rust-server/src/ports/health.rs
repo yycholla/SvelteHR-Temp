@@ -46,3 +46,33 @@ pub trait HealthPort: Send + Sync {
     /// Get current health status
     async fn get_health_status(&self) -> Result<HealthStatus, SyncError>;
 }
+
+/// Mock implementation for testing
+#[cfg(test)]
+pub mod mock {
+    use super::*;
+    use std::sync::{Arc, Mutex};
+
+    #[derive(Default)]
+    pub struct MockHealthPort {
+        pub recorded_reports: Arc<Mutex<Vec<SyncReport>>>,
+    }
+
+    impl MockHealthPort {
+        pub fn new() -> Self {
+            Self::default()
+        }
+    }
+
+    #[async_trait]
+    impl HealthPort for MockHealthPort {
+        async fn record_sync_completed(&self, report: &SyncReport) -> Result<(), SyncError> {
+            self.recorded_reports.lock().unwrap().push(report.clone());
+            Ok(())
+        }
+
+        async fn get_health_status(&self) -> Result<HealthStatus, SyncError> {
+            Ok(HealthStatus::healthy())
+        }
+    }
+}
