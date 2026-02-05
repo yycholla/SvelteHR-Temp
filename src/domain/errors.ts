@@ -118,6 +118,75 @@ export class DepartmentNotFoundError extends DomainError {
 }
 
 /**
+ * Error thrown when attempting to create a department with duplicate name.
+ */
+export class DepartmentAlreadyExistsError extends DomainError {
+	constructor(name: string, parentId: string | null) {
+		const location = parentId ? `under parent ${parentId}` : 'at root level';
+		super(
+			`Department with name "${name}" already exists ${location}`,
+			'DEPARTMENT_ALREADY_EXISTS',
+			{ name, parentId }
+		);
+		this.name = 'DepartmentAlreadyExistsError';
+	}
+}
+
+/**
+ * Error thrown when department name validation fails.
+ */
+export class InvalidDepartmentNameError extends DomainError {
+	constructor(reason: string, name?: string) {
+		super(`Invalid department name: ${reason}`, 'INVALID_DEPARTMENT_NAME', { reason, name });
+		this.name = 'InvalidDepartmentNameError';
+	}
+}
+
+/**
+ * Error thrown when a circular reference is detected in department hierarchy.
+ */
+export class CircularDepartmentReferenceError extends DomainError {
+	constructor(departmentId: string, parentId: string) {
+		super(
+			`Circular reference detected: Department ${departmentId} cannot have parent ${parentId}`,
+			'CIRCULAR_DEPARTMENT_REFERENCE',
+			{ departmentId, parentId }
+		);
+		this.name = 'CircularDepartmentReferenceError';
+	}
+}
+
+/**
+ * Error thrown when department hierarchy operations fail.
+ */
+export class DepartmentHierarchyError extends DomainError {
+	constructor(operation: string, reason: string) {
+		super(
+			`Department hierarchy error during ${operation}: ${reason}`,
+			'DEPARTMENT_HIERARCHY_ERROR',
+			{
+				operation,
+				reason
+			}
+		);
+		this.name = 'DepartmentHierarchyError';
+	}
+}
+
+/**
+ * Error thrown when department deletion fails due to constraints.
+ */
+export class DepartmentDeletionError extends DomainError {
+	constructor(departmentId: string, reason: string) {
+		super(`Cannot delete department ${departmentId}: ${reason}`, 'DEPARTMENT_DELETION_FAILED', {
+			departmentId,
+			reason
+		});
+		this.name = 'DepartmentDeletionError';
+	}
+}
+
+/**
  * Error thrown when a service is unavailable.
  */
 export class ServiceUnavailableError extends DomainError {
