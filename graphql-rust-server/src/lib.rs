@@ -13,6 +13,7 @@ pub mod handlers;
 pub mod integrations;
 pub mod middleware;
 pub mod models;
+pub mod ports;
 pub mod seed_data;
 pub mod services;
 pub mod schema;
