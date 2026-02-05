@@ -1,5 +1,5 @@
-use async_graphql::{Context, InputObject, Object, Result};
-use sea_orm::{EntityTrait, QueryFilter, QueryOrder, QuerySelect, ColumnTrait};
+use async_graphql::{Context, InputObject, Object, Result, SimpleObject};
+use sea_orm::{EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, ColumnTrait};
 use uuid::Uuid;
 
 use crate::{
@@ -30,6 +30,25 @@ pub struct UserSort {
     pub direction: Option<String>,
 }
 
+#[derive(Debug, Clone, SimpleObject)]
+pub struct EmployeeStatistics {
+    /// Total number of employees (excluding soft-deleted)
+    pub total: i64,
+    /// Number of active employees
+    pub active: i64,
+    /// Number of inactive employees
+    pub inactive: i64,
+    /// Count by department (optional, can be empty for now)
+    pub by_department: Vec<DepartmentCount>,
+}
+
+#[derive(Debug, Clone, SimpleObject)]
+pub struct DepartmentCount {
+    pub department_id: Option<Uuid>,
+    pub department_name: Option<String>,
+    pub count: i64,
+}
+
 #[derive(Default)]
 #[allow(dead_code)]
 pub struct UserQueries;
@@ -37,13 +56,15 @@ pub struct UserQueries;
 #[Object]
 #[allow(dead_code)]
 impl UserQueries {
-    /// Get all users with optional filtering and pagination
+    /// Get all users with optional filtering, sorting, and pagination
     ///
     /// # Security: RLS Enforced
     /// This query applies Row-Level Security based on the user's department and role.
     async fn users(
         &self,
         ctx: &Context<'_>,
+        filter: Option<UserFilter>,
+        sort: Option<UserSort>,
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<User>> {
@@ -62,8 +83,53 @@ impl UserQueries {
         // Apply RLS filter based on user context
         query = UserEntity::apply_rls(query, user_context);
 
+        // Apply filters
+        if let Some(f) = &filter {
+            if let Some(search) = &f.search_term {
+                let pattern = format!("%{}%", search.to_lowercase());
+                query = query.filter(
+                    sea_orm::Condition::any()
+                        .add(UserColumn::Email.contains(&pattern))
+                        .add(UserColumn::FirstName.contains(&pattern))
+                        .add(UserColumn::LastName.contains(&pattern))
+                );
+            }
+            if let Some(dept_id) = f.department_id {
+                query = query.filter(UserColumn::DepartmentId.eq(dept_id));
+            }
+            if let Some(is_active) = f.is_active {
+                query = query.filter(UserColumn::IsActive.eq(is_active));
+            }
+            if let Some(status) = &f.status {
+                query = query.filter(UserColumn::Status.eq(status));
+            }
+            if let Some(manager_id) = f.manager_id {
+                query = query.filter(UserColumn::ManagerId.eq(manager_id));
+            }
+        }
+
+        // Apply sorting
+        query = if let Some(s) = &sort {
+            let direction = s.direction.as_deref().unwrap_or("asc");
+            let field = s.field.as_deref().unwrap_or("lastName");
+
+            match (field, direction) {
+                ("firstName", "desc") => query.order_by_desc(UserColumn::FirstName),
+                ("firstName", _) => query.order_by_asc(UserColumn::FirstName),
+                ("lastName", "desc") => query.order_by_desc(UserColumn::LastName),
+                ("lastName", _) => query.order_by_asc(UserColumn::LastName),
+                ("email", "desc") => query.order_by_desc(UserColumn::Email),
+                ("email", _) => query.order_by_asc(UserColumn::Email),
+                ("hireDate", "desc") => query.order_by_desc(UserColumn::HireDate),
+                ("hireDate", _) => query.order_by_asc(UserColumn::HireDate),
+                (_, _) => query.order_by_asc(UserColumn::LastName),
+            }
+        } else {
+            // Default sort
+            query.order_by_desc(UserColumn::CreatedAt)
+        };
+
         let users = query
-            .order_by_desc(UserColumn::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
@@ -121,6 +187,33 @@ impl UserQueries {
 
         let user = query.one(&db).await?;
         Ok(user)
+    }
+
+    /// Get employee statistics for dashboard
+    ///
+    /// Returns counts of total, active, and inactive employees
+    async fn employee_statistics(&self, ctx: &Context<'_>) -> Result<EmployeeStatistics> {
+        let db = get_db_from_context(ctx)?;
+
+        // Count total (excluding soft-deleted)
+        let total = UserEntity::find()
+            .filter(UserColumn::DeletedAt.is_null())
+            .count(&db).await? as i64;
+
+        // Count active
+        let active = UserEntity::find()
+            .filter(UserColumn::DeletedAt.is_null())
+            .filter(UserColumn::IsActive.eq(true))
+            .count(&db).await? as i64;
+
+        let inactive = total - active;
+
+        Ok(EmployeeStatistics {
+            total,
+            active,
+            inactive,
+            by_department: vec![], // Simplified for now
+        })
     }
 }
 
