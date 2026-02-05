@@ -10,7 +10,7 @@ import type { CreateEmployeeData } from './types';
 export class Employee {
 	private constructor(
 		public readonly id: string,
-		public readonly email: Email,
+		private _email: Email,
 		private _name: PersonName,
 		public readonly hireDate: HireDate,
 		private _status: EmployeeStatus,
@@ -18,6 +18,10 @@ export class Employee {
 		private _jobTitle: string | null,
 		private _phone: string | null
 	) {}
+
+	get email(): Email {
+		return this._email;
+	}
 
 	get name(): PersonName {
 		return this._name;
@@ -231,6 +235,15 @@ export class Employee {
 			return Result.error(nameResult.error);
 		}
 		this._name = nameResult.value;
+		return Result.ok(undefined);
+	}
+
+	updateEmail(email: string): Result<void, DomainError> {
+		const emailResult = Email.create(email);
+		if (emailResult.isError) {
+			return Result.error(emailResult.error);
+		}
+		this._email = emailResult.value;
 		return Result.ok(undefined);
 	}
 }

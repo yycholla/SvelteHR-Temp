@@ -297,4 +297,21 @@ describe('Employee', () => {
 			expect(result.isError).toBe(true);
 		});
 	});
+
+	describe('updateEmail', () => {
+		it('should update email with valid value', () => {
+			const employee = EmployeeFactory.create({ email: 'old@example.com' });
+			const result = employee.updateEmail('new@example.com');
+
+			expect(result.isOk).toBe(true);
+			expect(employee.email.value).toBe('new@example.com');
+		});
+
+		it('should reject invalid email format', () => {
+			const employee = EmployeeFactory.create();
+			const result = employee.updateEmail('not-an-email');
+
+			expect(result.isError).toBe(true);
+		});
+	});
 });
