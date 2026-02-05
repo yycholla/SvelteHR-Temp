@@ -281,3 +281,81 @@ echo "   Press Ctrl+C to stop"
 echo ""
 npm run dev
 """
+
+# =============================================================================
+# Database Tasks
+# =============================================================================
+
+[tasks."db:shell"]
+alias = "db"
+description = "Open PostgreSQL shell"
+depends = ["_db_running"]
+run = """
+#!/usr/bin/env bash
+echo "🔧 Opening PostgreSQL shell..."
+docker exec -it sveltehr-postgres-dev psql -U postgres -d hr_system
+"""
+
+[tasks."db:status"]
+description = "Show database migration status"
+depends = ["_db_running"]
+run = """
+#!/usr/bin/env bash
+echo "📊 Database Migration Status:"
+echo ""
+docker exec sveltehr-postgres-dev psql -U postgres -d hr_system -c \
+    "SELECT id, name, applied_at FROM migrations ORDER BY applied_at DESC LIMIT 10;" \
+    2>/dev/null || echo "Migrations table not found."
+"""
+
+[tasks."db:migrate"]
+description = "Run database migrations"
+depends = ["_db_running"]
+run = """
+#!/usr/bin/env bash
+echo "📋 Running database migrations..."
+if [ -f "scripts/init-db.sh" ]; then
+    bash scripts/init-db.sh
+else
+    echo "⚠️  Migration script not found"
+    echo "Migrations in /migrations will auto-apply on container start"
+fi
+"""
+
+[tasks."db:reset"]
+description = "Reset database (WARNING: deletes all data)"
+depends = ["_docker_check"]
+confirm = "⚠️  This will DELETE ALL DATA. Are you sure?"
+run = """
+#!/usr/bin/env bash
+echo "🔄 Resetting database..."
+cd dev-containers && docker compose -f docker-compose.dev.yml down -v
+docker volume rm sveltehr_postgres_dev_data sveltehr_redis_dev_data 2>/dev/null || true
+echo "⏳ Restarting containers..."
+cd dev-containers && docker compose -f docker-compose.dev.yml up -d postgres-dev redis-dev backend-dev
+echo "⏳ Waiting for database initialization..."
+sleep 10
+echo "✅ Database reset complete"
+"""
+
+[tasks."db:entities"]
+description = "Regenerate SeaORM entities from database schema"
+depends = ["_db_running"]
+run = """
+#!/usr/bin/env bash
+echo "🔄 Regenerating SeaORM entities..."
+docker exec sveltehr-graphql-rust sea-orm-cli generate entity \
+    --database-url postgresql://postgres:postgres123@postgres-dev:5432/hr_system \
+    --output-dir models/generated \
+    --with-serde both
+echo "✅ SeaORM entities regenerated"
+"""
+
+[tasks."db:logs"]
+description = "View PostgreSQL initialization logs"
+run = "docker logs sveltehr-postgres-dev 2>&1 | grep -A50 'Starting Database Initialization'"
+
+[tasks."db:check"]
+description = "Check database schema status"
+depends = ["_db_running"]
+run = """docker exec sveltehr-postgres-dev psql -U postgres -d hr_system -c "SELECT count(*) FROM pg_tables WHERE schemaname = 'hr_public'" """
