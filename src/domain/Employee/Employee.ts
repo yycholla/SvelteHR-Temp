@@ -11,13 +11,17 @@ export class Employee {
 	private constructor(
 		public readonly id: string,
 		public readonly email: Email,
-		public readonly name: PersonName,
+		private _name: PersonName,
 		public readonly hireDate: HireDate,
 		private _status: EmployeeStatus,
 		private _departmentId: string | null,
 		private _jobTitle: string | null,
 		private _phone: string | null
 	) {}
+
+	get name(): PersonName {
+		return this._name;
+	}
 
 	static create(data: CreateEmployeeData): Result<Employee, DomainError> {
 		// Validate ID format (must be UUID)
@@ -209,6 +213,15 @@ export class Employee {
 		} else {
 			this._phone = null;
 		}
+		return Result.ok(undefined);
+	}
+
+	updateFirstName(firstName: string): Result<void, DomainError> {
+		const nameResult = PersonName.create(firstName, this._name.last);
+		if (nameResult.isError) {
+			return Result.error(nameResult.error);
+		}
+		this._name = nameResult.value;
 		return Result.ok(undefined);
 	}
 }

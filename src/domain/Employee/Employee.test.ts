@@ -261,4 +261,22 @@ describe('Employee', () => {
 			expect(employee.isActive).toBe(false);
 		});
 	});
+
+	describe('updateFirstName', () => {
+		it('should update first name with valid value', () => {
+			const employee = EmployeeFactory.create({ firstName: 'John', lastName: 'Doe' });
+			const result = employee.updateFirstName('Jane');
+
+			expect(result.isOk).toBe(true);
+			expect(employee.name.first).toBe('Jane');
+			expect(employee.name.last).toBe('Doe'); // unchanged
+		});
+
+		it('should reject invalid first name (too short)', () => {
+			const employee = EmployeeFactory.create();
+			const result = employee.updateFirstName('');
+
+			expect(result.isError).toBe(true);
+		});
+	});
 });
