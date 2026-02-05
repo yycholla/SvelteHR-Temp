@@ -432,7 +432,10 @@ export interface DepartmentRepository {
 
 ```typescript
 export class DepartmentService {
-  constructor(private readonly repository: DepartmentRepository)
+  constructor(
+    private readonly repository: DepartmentRepository,
+    private readonly employeeRepository?: EmployeeRepository // Optional for manager validation
+  )
 
   // CRUD
   async createDepartment(input: CreateDepartmentInput): Promise<Result<Department, DomainError>>
@@ -458,8 +461,8 @@ export class DepartmentService {
 1. Validate name format (value object)
 2. Check name uniqueness (repository)
 3. Validate parent exists (if specified)
-4. Build hierarchy with depth check
-5. Validate manager exists (TODO: requires EmployeeRepository)
+4. Build hierarchy with depth check (adapter fetches ancestor chain recursively)
+5. Validate manager exists (requires EmployeeRepository injection)
 6. Create entity
 7. Persist via repository
 
@@ -1165,3 +1168,47 @@ describe('Department Routes', () => {
 - Service layer for workflows
 - Result<T, E> over exceptions
 - Client-side filtering (backend limitation)
+
+#### Implementation Decisions (2026-02-05)
+
+**Manager Validation:**
+
+- DepartmentService accepts optional EmployeeRepository for validation
+- Manager existence checked before assignment
+- Manager ideally in same department (warning, not error)
+
+**Ancestor Chain Computation:**
+
+- Adapter fetches parent departments recursively to build full chain
+- Accept N+1 query cost for correctness
+- Future: Consider denormalized ancestor_ids column
+
+**Bulk Operations:**
+
+- Wrap in database transaction when backend supports it
+- Document partial update limitation in Phase 1
+- Service returns error on first failure (stops bulk operation)
+
+**Employee Count:**
+
+- Backend should add aggregation query `countEmployeesByDepartment(departmentId)`
+- Fall back to client-side counting if not available
+- Cache with 30-second TTL
+
+**Permissions:**
+
+- Leave in route layer (RBACDataLoader pattern)
+- Domain layer stays permission-agnostic
+- Follows Employee module pattern
+
+**QuickBooks Sync:**
+
+- App is source of truth, not imperative for QB to match
+- Track sync status, handle conflicts in Phase 3/4
+- Sync failures don't block app operations
+
+**Error Mapping:**
+
+- Comprehensive GraphQL error to domain error mapping in adapter
+- Handle constraint violations, foreign key errors, not found errors
+- Log unexpected errors, return generic DomainError
