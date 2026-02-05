@@ -57,3 +57,104 @@ SEA_ORM_LOG_LEVEL = "warn"
 
 # Development defaults
 ENVIRONMENT = "development"
+
+# =============================================================================
+# Utility Tasks (hidden)
+# =============================================================================
+# These are helper tasks used as dependencies. Not shown in `mise tasks`.
+
+[tasks._docker_check]
+description = "Verify Docker is running"
+hide = true
+run = """
+#!/usr/bin/env bash
+if ! docker info > /dev/null 2>&1; then
+    echo "❌ Docker is not running. Please start Docker Desktop or the Docker daemon."
+    exit 1
+fi
+"""
+
+[tasks._db_running]
+description = "Verify PostgreSQL container is healthy"
+hide = true
+run = """
+#!/usr/bin/env bash
+if ! docker ps --format '{{.Names}}' | grep -q 'sveltehr-postgres-dev'; then
+    echo "❌ PostgreSQL container is not running."
+    echo "   Run: mise run backend:start"
+    exit 1
+fi
+# Check if PostgreSQL is accepting connections
+if ! docker exec sveltehr-postgres-dev pg_isready -U postgres > /dev/null 2>&1; then
+    echo "❌ PostgreSQL is not ready to accept connections."
+    exit 1
+fi
+"""
+
+[tasks._backend_running]
+description = "Verify backend container is healthy"
+hide = true
+run = """
+#!/usr/bin/env bash
+if ! docker ps --format '{{.Names}}' | grep -qE 'sveltehr-graphql-rust|sveltehr-backend-dev'; then
+    echo "❌ Backend container is not running."
+    echo "   Run: mise run backend:start"
+    exit 1
+fi
+"""
+
+[tasks._backend_wait]
+description = "Wait for backend to become healthy"
+hide = true
+run = """
+#!/usr/bin/env bash
+echo "⏳ Waiting for backend to be ready..."
+max_attempts=30
+attempt=0
+while [ $attempt -lt $max_attempts ]; do
+    if curl -s http://localhost:4000/graphql -o /dev/null 2>&1; then
+        echo "✅ Backend is ready!"
+        exit 0
+    fi
+    attempt=$((attempt + 1))
+    sleep 1
+done
+echo "❌ Backend did not become ready in time"
+exit 1
+"""
+
+[tasks._ngrok_check]
+description = "Verify ngrok is installed"
+hide = true
+run = """
+#!/usr/bin/env bash
+if ! command -v ngrok &> /dev/null; then
+    echo "❌ ngrok is not installed"
+    echo ""
+    echo "Install ngrok:"
+    echo "  macOS:  brew install ngrok"
+    echo "  Linux:  See https://ngrok.com/download"
+    echo ""
+    echo "After installation, authenticate:"
+    echo "  ngrok config add-authtoken <your_token>"
+    exit 1
+fi
+"""
+
+[tasks._tailscale_check]
+description = "Verify Tailscale is installed"
+hide = true
+run = """
+#!/usr/bin/env bash
+if ! command -v tailscale &> /dev/null; then
+    echo "❌ Tailscale is not installed"
+    echo ""
+    echo "Install Tailscale:"
+    echo "  macOS:  brew install tailscale"
+    echo "  Linux:  curl -fsSL https://tailscale.com/install.sh | sh"
+    echo ""
+    echo "After installation, authenticate:"
+    echo "  sudo tailscale up"
+    exit 1
+fi
+"""
