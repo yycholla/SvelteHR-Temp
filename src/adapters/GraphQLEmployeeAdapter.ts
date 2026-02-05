@@ -1,29 +1,31 @@
 // src/adapters/GraphQLEmployeeAdapter.ts
-import type { EmployeeRepository } from '$services';
+import type { EmployeeRepository, EmployeeStatistics } from '$services';
 import { Employee, type EmployeeListFilters, type EmployeeListResult } from '$domain';
 import type { GraphQLPort } from '$services/ports/GraphQLPort';
 import { gql } from '@urql/core';
 import { logger } from '$lib/utils/logger';
 
 /**
- * Maximum number of users to fetch for client-side filtering operations
- *
- * IMPORTANT: This is a workaround limit until backend implements server-side filtering.
- * - Higher values = more complete data but slower queries and potential timeouts
- * - Lower values = faster queries but may miss users in large organizations
- *
- * Current limit: 1000 users
- * - Covers 95%+ of organizations
- * - Query completes in ~1-2 seconds (safe margin before timeout)
- * - Total payload: ~200KB (reasonable for network transfer)
- *
- * Organizations with >1000 employees will see incomplete results until backend
- * implements filtering (see docs/hotfixes/2026-01-20-graphql-schema-mismatch.md)
- *
- * TODO: Remove this when backend implements:
- * - users() query with filtering parameters (departmentId, isActive, searchTerm, etc.)
+ * Backend filter input for the users query
  */
-const CLIENT_SIDE_FILTER_LIMIT = 1000;
+interface UserFilter {
+	searchTerm?: string;
+	departmentId?: string;
+	isActive?: boolean;
+}
+
+/**
+ * Backend sort input for the users query
+ */
+interface UserSort {
+	field: string;
+	direction: 'asc' | 'desc';
+}
+
+interface GraphQLRole {
+	id: string;
+	name: string;
+}
 
 interface GraphQLEmployee {
 	id: string;
@@ -35,6 +37,7 @@ interface GraphQLEmployee {
 	jobTitle: string | null;
 	phone: string | null;
 	isActive: boolean;
+	roles?: GraphQLRole[];
 }
 
 export class GraphQLEmployeeAdapter implements EmployeeRepository {
@@ -53,6 +56,10 @@ export class GraphQLEmployeeAdapter implements EmployeeRepository {
 					jobTitle
 					phone
 					isActive
+					roles {
+						id
+						name
+					}
 				}
 			}
 		`;
@@ -79,6 +86,10 @@ export class GraphQLEmployeeAdapter implements EmployeeRepository {
 					jobTitle
 					phone
 					isActive
+					roles {
+						id
+						name
+					}
 				}
 			}
 		`;
@@ -105,12 +116,9 @@ export class GraphQLEmployeeAdapter implements EmployeeRepository {
 	}
 
 	async findAll(filters?: EmployeeListFilters): Promise<EmployeeListResult> {
-		// NOTE: Backend users query doesn't support filtering/sorting parameters
-		// We fetch all users and apply filters client-side
-		// TODO: Add filtering parameters to backend users query for better performance
 		const query = gql`
-			query GetEmployees($limit: Int!, $offset: Int!) {
-				users(limit: $limit, offset: $offset) {
+			query GetEmployees($filter: UserFilter, $sort: UserSort, $limit: Int!, $offset: Int!) {
+				users(filter: $filter, sort: $sort, limit: $limit, offset: $offset) {
 					id
 					email
 					firstName
@@ -120,102 +128,74 @@ export class GraphQLEmployeeAdapter implements EmployeeRepository {
 					jobTitle
 					phone
 					isActive
+					roles {
+						id
+						name
+					}
 				}
 			}
 		`;
 
-		// Use configured limit to prevent timeouts
-		// This is inefficient but necessary until backend supports filtering
-		logger.debug('[GraphQLEmployeeAdapter] Fetching users for client-side filtering', {
-			limit: CLIENT_SIDE_FILTER_LIMIT,
-			filters,
-			note: 'Backend filtering not available - fetching fixed limit and filtering client-side'
+		// Build filter object for backend
+		const filter: UserFilter = {};
+		if (filters?.searchTerm) filter.searchTerm = filters.searchTerm;
+		if (filters?.departmentId) filter.departmentId = filters.departmentId;
+		if (filters?.isActive !== undefined) filter.isActive = filters.isActive;
+
+		// Build sort object for backend
+		// Map frontend sort field names to backend field names
+		const sortFieldMap: Record<string, string> = {
+			name: 'name',
+			email: 'email',
+			hireDate: 'hireDate',
+			jobTitle: 'jobTitle'
+		};
+
+		const sort: UserSort | undefined = filters?.sortBy
+			? {
+					field: sortFieldMap[filters.sortBy] ?? filters.sortBy,
+					direction: filters.sortOrder ?? 'asc'
+				}
+			: undefined;
+
+		const limit = filters?.limit ?? 20;
+		const offset = filters?.offset ?? 0;
+
+		logger.debug('[GraphQLEmployeeAdapter] Fetching users with server-side filtering', {
+			filter,
+			sort,
+			limit,
+			offset
 		});
 
 		const result = await this.graphql.query<{ users: GraphQLEmployee[] }>(query, {
-			limit: CLIENT_SIDE_FILTER_LIMIT,
-			offset: 0
+			filter: Object.keys(filter).length > 0 ? filter : undefined,
+			sort,
+			limit,
+			offset
 		});
 
 		if (!result?.users) {
 			return {
 				employees: [],
 				total: 0,
-				limit: filters?.limit ?? 0,
-				offset: filters?.offset ?? 0
+				limit,
+				offset
 			};
 		}
 
 		// Map all users to employees, filtering out invalid records
 		// Note: mapToEmployee returns null for invalid data (logs warnings internally)
-		let employees = result.users
+		const employees = result.users
 			.map((emp: GraphQLEmployee) => this.mapToEmployee(emp))
 			.filter((emp: Employee | null): emp is Employee => emp !== null);
 
-		// Apply filters client-side
-		if (filters?.searchTerm) {
-			const term = filters.searchTerm.toLowerCase();
-			employees = employees.filter(
-				(emp: Employee) =>
-					emp.fullName.toLowerCase().includes(term) || emp.email.value.toLowerCase().includes(term)
-			);
-		}
-
-		if (filters?.departmentId) {
-			employees = employees.filter((emp: Employee) => emp.departmentId === filters.departmentId);
-		}
-
-		if (filters?.isActive !== undefined) {
-			employees = employees.filter((emp: Employee) => emp.isActive === filters.isActive);
-		}
-
-		// Apply sorting
-		if (filters?.sortBy) {
-			const sortBy = filters.sortBy;
-			const sortOrder = filters.sortOrder || 'asc';
-
-			employees.sort((a: Employee, b: Employee) => {
-				let compareValue = 0;
-
-				switch (sortBy) {
-					case 'name':
-						compareValue = a.fullName.localeCompare(b.fullName);
-						return sortOrder === 'asc' ? compareValue : -compareValue;
-					case 'email':
-						compareValue = a.email.value.localeCompare(b.email.value);
-						return sortOrder === 'asc' ? compareValue : -compareValue;
-					case 'hireDate':
-						compareValue = a.hireDate.value.getTime() - b.hireDate.value.getTime();
-						return sortOrder === 'asc' ? compareValue : -compareValue;
-					case 'jobTitle':
-						// Handle null values - nulls always appear last
-						if (a.jobTitle === null && b.jobTitle === null) {
-							compareValue = 0;
-						} else if (a.jobTitle === null) {
-							compareValue = 1; // a (null) always comes after b
-						} else if (b.jobTitle === null) {
-							compareValue = -1; // b (null) always comes after a
-						} else {
-							// Only apply sortOrder to non-null comparisons
-							compareValue = a.jobTitle.localeCompare(b.jobTitle);
-							compareValue = sortOrder === 'asc' ? compareValue : -compareValue;
-						}
-						return compareValue;
-					default:
-						return 0;
-				}
-			});
-		}
-
-		// Apply pagination
-		const total = employees.length;
-		const offset = filters?.offset ?? 0;
-		const limit = filters?.limit ?? total;
-
-		const paginated = employees.slice(offset, offset + limit);
+		// TODO: Backend should return total count for pagination
+		// For now, we estimate based on returned results
+		const total = employees.length < limit ? offset + employees.length : offset + limit + 1;
 
 		return {
-			employees: paginated,
+			employees,
 			total,
 			limit,
 			offset
@@ -331,6 +311,38 @@ export class GraphQLEmployeeAdapter implements EmployeeRepository {
 	async exists(id: string): Promise<boolean> {
 		const employee = await this.findById(id);
 		return employee !== null;
+	}
+
+	async getStatistics(): Promise<EmployeeStatistics> {
+		const query = gql`
+			query GetEmployeeStatistics {
+				employeeStatistics {
+					total
+					active
+					inactive
+					byDepartment {
+						departmentId
+						departmentName
+						count
+					}
+				}
+			}
+		`;
+
+		try {
+			const result = await this.graphql.query<{ employeeStatistics: EmployeeStatistics }>(
+				query,
+				{}
+			);
+
+			return result?.employeeStatistics ?? { total: 0, active: 0, inactive: 0, byDepartment: [] };
+		} catch (error) {
+			logger.error(
+				'[GraphQLEmployeeAdapter] Error in getStatistics',
+				error instanceof Error ? error : undefined
+			);
+			return { total: 0, active: 0, inactive: 0, byDepartment: [] };
+		}
 	}
 
 	/**
@@ -460,6 +472,9 @@ export class GraphQLEmployeeAdapter implements EmployeeRepository {
 			return null;
 		}
 
+		// Map roles from GraphQL response
+		const roles = (data.roles ?? []).map((r) => ({ id: r.id, name: r.name }));
+
 		const result = Employee.create({
 			id: data.id,
 			email: data.email,
@@ -468,7 +483,8 @@ export class GraphQLEmployeeAdapter implements EmployeeRepository {
 			hireDate: sanitizedHireDate,
 			departmentId: data.departmentId,
 			jobTitle: data.jobTitle,
-			phone: sanitizedPhone
+			phone: sanitizedPhone,
+			roles
 		});
 
 		if (result.isError) {
