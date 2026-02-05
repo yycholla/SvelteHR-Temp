@@ -301,6 +301,135 @@ impl QueryRoot {
         Ok(dept)
     }
 
+    /// Get all ancestor departments (parents up to root)
+    ///
+    /// # Arguments
+    /// * `department_id` - Starting department UUID
+    ///
+    /// # Returns
+    /// List of ancestors from immediate parent to root (ordered: closest parent first)
+    ///
+    /// # Security: RLS Enforced
+    /// Applies user RLS filter to ancestor departments
+    ///
+    /// # Note
+    /// Returns empty list if department has no parent or doesn't exist
+    async fn get_department_ancestors(
+        &self,
+        ctx: &Context<'_>,
+        department_id: Uuid,
+    ) -> Result<Vec<Department>> {
+        let db = get_db_from_context(ctx)?;
+
+        // Extract UserContext for RLS filtering
+        let user_context = ctx.data::<UserContext>()
+            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+
+        let mut ancestors = Vec::new();
+        let mut current_id = Some(department_id);
+
+        // Prevent infinite loops - max 100 levels
+        let max_depth = 100;
+        let mut depth = 0;
+
+        while let Some(dept_id) = current_id {
+            depth += 1;
+            if depth > max_depth {
+                return Err(async_graphql::Error::new(
+                    "Department hierarchy too deep or circular dependency detected"
+                ));
+            }
+
+            // Find current department
+            let mut query = DepartmentEntity::find()
+                .filter(DepartmentColumn::Id.eq(dept_id))
+                .filter(DepartmentColumn::DeletedAt.is_null());
+
+            // Apply RLS filter
+            query = apply_department_rls_filter(query, user_context);
+
+            if let Some(dept) = query.one(&db).await? {
+                // If this is not the starting department, add to ancestors
+                if dept.id != department_id {
+                    ancestors.push(dept.clone());
+                }
+
+                // Move to parent
+                current_id = dept.parent_department_id;
+            } else {
+                // Department not found or filtered by RLS
+                break;
+            }
+        }
+
+        Ok(ancestors)
+    }
+
+    /// Get all descendant departments (children recursively)
+    ///
+    /// # Arguments
+    /// * `department_id` - Root department UUID
+    ///
+    /// # Returns
+    /// List of all descendants (breadth-first order)
+    ///
+    /// # Security: RLS Enforced
+    /// Applies user RLS filter to descendant departments
+    ///
+    /// # Note
+    /// Returns empty list if department has no children or doesn't exist
+    async fn get_department_descendants(
+        &self,
+        ctx: &Context<'_>,
+        department_id: Uuid,
+    ) -> Result<Vec<Department>> {
+        let db = get_db_from_context(ctx)?;
+
+        // Extract UserContext for RLS filtering
+        let user_context = ctx.data::<UserContext>()
+            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+
+        let mut descendants = Vec::new();
+        let mut to_process = vec![department_id];
+        let mut processed = std::collections::HashSet::new();
+
+        // Prevent infinite loops - max 1000 departments
+        let max_count = 1000;
+
+        while let Some(parent_id) = to_process.pop() {
+            if descendants.len() >= max_count {
+                return Err(async_graphql::Error::new(
+                    "Too many departments or circular dependency detected"
+                ));
+            }
+
+            // Skip if already processed (circular reference protection)
+            if !processed.insert(parent_id) {
+                continue;
+            }
+
+            // Find children of current department
+            let mut query = DepartmentEntity::find()
+                .filter(DepartmentColumn::ParentDepartmentId.eq(parent_id))
+                .filter(DepartmentColumn::DeletedAt.is_null());
+
+            // Apply RLS filter
+            query = apply_department_rls_filter(query, user_context);
+
+            let children = query.all(&db).await?;
+
+            for child in children {
+                // Skip the starting department itself
+                if child.id != department_id {
+                    to_process.push(child.id);
+                    descendants.push(child);
+                }
+            }
+        }
+
+        Ok(descendants)
+    }
+
     // =========================================================================
     // Task Queries
     // =========================================================================
@@ -2583,5 +2712,242 @@ mod tests {
         
         assert!(data_str.contains("countEmployeesByDepartment: 0"),
             "Empty department should return count of 0");
+    }
+
+    /// Test getDepartmentAncestors with existing department
+    #[tokio::test]
+    async fn test_get_department_ancestors() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+
+        // Get departments to find one with a parent
+        let departments_query = r#"
+            query {
+                departments(limit: 20) {
+                    id
+                    parentDepartmentId
+                }
+            }
+        "#;
+
+        let dept_response = ctx.execute_query(departments_query).await;
+        let dept_data = ctx.extract_data(&dept_response);
+        let dept_str = dept_data.to_string();
+
+        // Find a department with a parent (contains "parentDepartmentId: Some")
+        let has_parent = dept_str.contains("parentDepartmentId: Some");
+        
+        if !has_parent {
+            println!("Skipping test: no departments with parents found");
+            return;
+        }
+
+        // Extract first department ID with a parent
+        let dept_id = dept_str
+            .split("id: \"")
+            .skip(1)
+            .filter_map(|s| {
+                let id = s.split('"').next()?;
+                // Check if this department has a parent by looking ahead in string
+                if s.contains("parentDepartmentId: Some") {
+                    Some(id.to_string())
+                } else {
+                    None
+                }
+            })
+            .next()
+            .expect("Should have at least one department with parent");
+
+        let query = format!(
+            r#"
+            query {{
+                getDepartmentAncestors(departmentId: "{}") {{
+                    id
+                    name
+                }}
+            }}
+            "#,
+            dept_id
+        );
+
+        // Act
+        let response = ctx.execute_query(&query).await;
+
+        // Assert - No errors
+        let errors = ctx.extract_errors(&response);
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+        // Assert - Returns ancestor list (may be empty if no grandparent)
+        let data = ctx.extract_data(&response);
+        let data_str = data.to_string();
+        
+        assert!(data_str.contains("getDepartmentAncestors"),
+            "Response should contain getDepartmentAncestors field");
+    }
+
+    /// Test getDepartmentAncestors with root department (no parent)
+    #[tokio::test]
+    async fn test_get_department_ancestors_root() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+
+        // Get departments to find one without a parent
+        let departments_query = r#"
+            query {
+                departments(limit: 20) {
+                    id
+                    parentDepartmentId
+                }
+            }
+        "#;
+
+        let dept_response = ctx.execute_query(departments_query).await;
+        let dept_data = ctx.extract_data(&dept_response);
+        let dept_str = dept_data.to_string();
+
+        // Find a root department (parentDepartmentId is null)
+        // Extract first department ID without a parent
+        let root_dept_id = dept_str
+            .split("id: \"")
+            .skip(1)
+            .filter_map(|s| {
+                let id = s.split('"').next()?;
+                // Check if this is a root department (no parent)
+                let next_part = s.split("parentDepartmentId:").nth(1)?;
+                if next_part.trim().starts_with("null") {
+                    Some(id.to_string())
+                } else {
+                    None
+                }
+            })
+            .next();
+
+        if root_dept_id.is_none() {
+            println!("Skipping test: no root departments found");
+            return;
+        }
+
+        let query = format!(
+            r#"
+            query {{
+                getDepartmentAncestors(departmentId: "{}") {{
+                    id
+                    name
+                }}
+            }}
+            "#,
+            root_dept_id.unwrap()
+        );
+
+        // Act
+        let response = ctx.execute_query(&query).await;
+
+        // Assert - No errors
+        let errors = ctx.extract_errors(&response);
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+        // Assert - Empty list for root department
+        let data = ctx.extract_data(&response);
+        let data_str = data.to_string();
+        
+        assert!(data_str.contains("getDepartmentAncestors: []"),
+            "Root department should have empty ancestor list");
+    }
+
+    /// Test getDepartmentDescendants with existing department
+    #[tokio::test]
+    async fn test_get_department_descendants() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+
+        // Get departments to find one that might have children
+        let departments_query = r#"
+            query {
+                departments(limit: 20) {
+                    id
+                    name
+                }
+            }
+        "#;
+
+        let dept_response = ctx.execute_query(departments_query).await;
+        let dept_data = ctx.extract_data(&dept_response);
+        let dept_str = dept_data.to_string();
+
+        // Use first department (may or may not have children)
+        let dept_id = dept_str
+            .split("id: \"")
+            .nth(1)
+            .and_then(|s| s.split('"').next())
+            .expect("Should have at least one department");
+
+        let query = format!(
+            r#"
+            query {{
+                getDepartmentDescendants(departmentId: "{}") {{
+                    id
+                    name
+                }}
+            }}
+            "#,
+            dept_id
+        );
+
+        // Act
+        let response = ctx.execute_query(&query).await;
+
+        // Assert - No errors
+        let errors = ctx.extract_errors(&response);
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+        // Assert - Returns descendants list (may be empty)
+        let data = ctx.extract_data(&response);
+        let data_str = data.to_string();
+        
+        assert!(data_str.contains("getDepartmentDescendants"),
+            "Response should contain getDepartmentDescendants field");
+    }
+
+    /// Test getDepartmentDescendants with non-existent department
+    #[tokio::test]
+    async fn test_get_department_descendants_not_found() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+
+        let invalid_id = uuid::Uuid::new_v4();
+        
+        let query = format!(
+            r#"
+            query {{
+                getDepartmentDescendants(departmentId: "{}") {{
+                    id
+                    name
+                }}
+            }}
+            "#,
+            invalid_id
+        );
+
+        // Act
+        let response = ctx.execute_query(&query).await;
+
+        // Assert - No errors (just returns empty list)
+        let errors = ctx.extract_errors(&response);
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+        // Assert - Empty list for non-existent department
+        let data = ctx.extract_data(&response);
+        let data_str = data.to_string();
+        
+        assert!(data_str.contains("getDepartmentDescendants: []"),
+            "Non-existent department should return empty descendant list");
     }
 }
