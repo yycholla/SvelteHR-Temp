@@ -1,4 +1,4 @@
-use async_graphql::{Context, Object, Result};
+use async_graphql::{Context, InputObject, Object, Result};
 use sea_orm::{EntityTrait, QueryFilter, QueryOrder, QuerySelect, ColumnTrait};
 use uuid::Uuid;
 
@@ -7,6 +7,28 @@ use crate::{
     database::get_db_from_context,
     models::user::{Model as User, Entity as UserEntity, Column as UserColumn},
 };
+
+#[derive(Debug, Clone, InputObject, Default)]
+pub struct UserFilter {
+    /// Search term to match against email, firstName, or lastName
+    pub search_term: Option<String>,
+    /// Filter by department ID
+    pub department_id: Option<Uuid>,
+    /// Filter by active status
+    pub is_active: Option<bool>,
+    /// Filter by status string (e.g., "active", "inactive")
+    pub status: Option<String>,
+    /// Filter by manager ID
+    pub manager_id: Option<Uuid>,
+}
+
+#[derive(Debug, Clone, InputObject, Default)]
+pub struct UserSort {
+    /// Field to sort by (e.g., "firstName", "lastName", "email", "hireDate")
+    pub field: Option<String>,
+    /// Sort direction ("asc" or "desc")
+    pub direction: Option<String>,
+}
 
 #[derive(Default)]
 #[allow(dead_code)]
