@@ -18,13 +18,6 @@ const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
 /**
- * Temporary limit for statistics queries until dedicated count endpoint is available
- * WARNING: Creates hard ceiling - orgs with >10000 employees will have incorrect stats
- * TODO: Replace with dedicated statistics endpoint (ticket: TASK-XXX)
- */
-const STATS_QUERY_LIMIT = 10000;
-
-/**
  * Helper: Build EmployeeListFilters from URL search parameters
  */
 function buildEmployeeFilters(url: URL): EmployeeListFilters {
@@ -176,34 +169,34 @@ export const load: PageServerLoad = async (event) => {
 			`;
 
 			// Parallel execution - saves ~1600ms by running independent queries concurrently
-			const [departments, allActiveResult, allInactiveResult, autocompleteResult] =
-				await Promise.all([
-					client
-						.query(
-							GET_DEPARTMENTS_QUERY,
-							{ limit: 100, offset: 0 },
-							{
-								operationName: 'GetDepartments',
-								errorMessage: 'Failed to load departments',
-								dataPath: 'departments'
-							}
-						)
-						.catch((err) => {
-							logger.error('[Employee Directory] Failed to load departments', err);
-							return [];
-						}),
+			const [departments, statsResult, autocompleteResult] = await Promise.all([
+				client
+					.query(
+						GET_DEPARTMENTS_QUERY,
+						{ limit: 100, offset: 0 },
+						{
+							operationName: 'GetDepartments',
+							errorMessage: 'Failed to load departments',
+							dataPath: 'departments'
+						}
+					)
+					.catch((err) => {
+						logger.error('[Employee Directory] Failed to load departments', err);
+						return [];
+					}),
 
-					employeeService.getEmployees({ isActive: true, limit: STATS_QUERY_LIMIT }),
-					employeeService.getEmployees({ isActive: false, limit: STATS_QUERY_LIMIT }),
-					employeeService.getEmployees({ limit: STATS_QUERY_LIMIT })
-				]);
+				employeeService.getStatistics(),
+				employeeService.getEmployees({ limit: 10000 }) // For autocomplete
+			]);
 
-			// Handle statistics results
-			const totalActiveEmployees = allActiveResult.isError ? 0 : allActiveResult.value.total;
-			const totalInactiveEmployees = allInactiveResult.isError ? 0 : allInactiveResult.value.total;
+			// Handle statistics results - single optimized query replaces 3 separate queries
+			const stats = statsResult.isOk ? statsResult.value : { total: 0, active: 0, inactive: 0 };
 
-			logger.debug('[Employee Directory] Employee stats', {
-				total,
+			const totalActiveEmployees = stats.active;
+			const totalInactiveEmployees = stats.inactive;
+
+			logger.debug('[Employee Directory] Employee stats via getStatistics()', {
+				total: stats.total,
 				active: totalActiveEmployees,
 				inactive: totalInactiveEmployees
 			});
