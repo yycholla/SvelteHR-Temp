@@ -12,7 +12,7 @@ import {
 	Result,
 	type UpdateEmployeeData
 } from '$domain';
-import type { EmployeeRepository } from '$services';
+import type { EmployeeRepository, EmployeeStatistics } from '$services';
 
 /**
  * Application service for managing employees.
@@ -60,6 +60,23 @@ export class EmployeeService {
 			return Result.error(
 				new DomainError('Failed to fetch employees', 'EMPLOYEES_FETCH_FAILED', {
 					filters,
+					originalError: error
+				})
+			);
+		}
+	}
+
+	/**
+	 * Get employee statistics (total, active, inactive counts and department breakdown)
+	 * @returns Result containing EmployeeStatistics or an error
+	 */
+	async getStatistics(): Promise<Result<EmployeeStatistics, DomainError>> {
+		try {
+			const stats = await this.employeeRepository.getStatistics();
+			return Result.ok(stats);
+		} catch (error) {
+			return Result.error(
+				new DomainError('Failed to fetch statistics', 'STATISTICS_FETCH_FAILED', {
 					originalError: error
 				})
 			);

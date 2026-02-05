@@ -25,7 +25,7 @@
 					<div class="fl pad1y space-right2">
 						<span class="strong">0% </span>
 						<span class="quiet">Statements</span>
-						<span class="fraction">0/202</span>
+						<span class="fraction">0/200</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
@@ -43,7 +43,7 @@
 					<div class="fl pad1y space-right2">
 						<span class="strong">0% </span>
 						<span class="quiet">Lines</span>
-						<span class="fraction">0/202</span>
+						<span class="fraction">0/200</span>
 					</div>
 				</div>
 				<p class="quiet">
@@ -349,14 +349,7 @@
 <a name='L288'></a><a href='#L288'>288</a>
 <a name='L289'></a><a href='#L289'>289</a>
 <a name='L290'></a><a href='#L290'>290</a>
-<a name='L291'></a><a href='#L291'>291</a>
-<a name='L292'></a><a href='#L292'>292</a>
-<a name='L293'></a><a href='#L293'>293</a>
-<a name='L294'></a><a href='#L294'>294</a>
-<a name='L295'></a><a href='#L295'>295</a>
-<a name='L296'></a><a href='#L296'>296</a>
-<a name='L297'></a><a href='#L297'>297</a>
-<a name='L298'></a><a href='#L298'>298</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L291'></a><a href='#L291'>291</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -378,13 +371,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -534,7 +520,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -554,8 +539,9 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -671,13 +657,6 @@ import type { EmployeeListFilters, EmployeeSortField, SortOrder } from '$domain'
 <span class="cstat-no" title="statement not covered" >const DEFAULT_PAGE = 1;</span>
 <span class="cstat-no" title="statement not covered" >const DEFAULT_LIMIT = 20;</span>
 <span class="cstat-no" title="statement not covered" >const MAX_LIMIT = 100;</span>
-&nbsp;
-/**
- * Temporary limit for statistics queries until dedicated count endpoint is available
- * WARNING: Creates hard ceiling - orgs with &gt;10000 employees will have incorrect stats
- * TODO: Replace with dedicated statistics endpoint (ticket: TASK-XXX)
- */
-<span class="cstat-no" title="statement not covered" >const STATS_QUERY_LIMIT = 10000;</span>
 &nbsp;
 /**
  * Helper: Build EmployeeListFilters from URL search parameters
@@ -831,34 +810,34 @@ import type { EmployeeListFilters, EmployeeSortField, SortOrder } from '$domain'
 			`;
 &nbsp;
 			// Parallel execution - saves ~1600ms by running independent queries concurrently
-<span class="cstat-no" title="statement not covered" >			const [departments, allActiveResult, allInactiveResult, autocompleteResult] =</span>
-<span class="cstat-no" title="statement not covered" >				await Promise.all([</span>
-<span class="cstat-no" title="statement not covered" >					client</span>
-<span class="cstat-no" title="statement not covered" >						.query(</span>
-<span class="cstat-no" title="statement not covered" >							GET_DEPARTMENTS_QUERY,</span>
-<span class="cstat-no" title="statement not covered" >							{ limit: 100, offset: 0 },</span>
-<span class="cstat-no" title="statement not covered" >							{</span>
-<span class="cstat-no" title="statement not covered" >								operationName: 'GetDepartments',</span>
-<span class="cstat-no" title="statement not covered" >								errorMessage: 'Failed to load departments',</span>
-<span class="cstat-no" title="statement not covered" >								dataPath: 'departments'</span>
-<span class="cstat-no" title="statement not covered" >							}</span>
-<span class="cstat-no" title="statement not covered" >						)</span>
-<span class="cstat-no" title="statement not covered" >						.catch((err) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >							logger.error('[Employee Directory] Failed to load departments', err);</span>
-<span class="cstat-no" title="statement not covered" >							return [];</span>
-<span class="cstat-no" title="statement not covered" >						}),</span>
+<span class="cstat-no" title="statement not covered" >			const [departments, statsResult, autocompleteResult] = await Promise.all([</span>
+<span class="cstat-no" title="statement not covered" >				client</span>
+<span class="cstat-no" title="statement not covered" >					.query(</span>
+<span class="cstat-no" title="statement not covered" >						GET_DEPARTMENTS_QUERY,</span>
+<span class="cstat-no" title="statement not covered" >						{ limit: 100, offset: 0 },</span>
+<span class="cstat-no" title="statement not covered" >						{</span>
+<span class="cstat-no" title="statement not covered" >							operationName: 'GetDepartments',</span>
+<span class="cstat-no" title="statement not covered" >							errorMessage: 'Failed to load departments',</span>
+<span class="cstat-no" title="statement not covered" >							dataPath: 'departments'</span>
+<span class="cstat-no" title="statement not covered" >						}</span>
+<span class="cstat-no" title="statement not covered" >					)</span>
+<span class="cstat-no" title="statement not covered" >					.catch((err) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >						logger.error('[Employee Directory] Failed to load departments', err);</span>
+<span class="cstat-no" title="statement not covered" >						return [];</span>
+<span class="cstat-no" title="statement not covered" >					}),</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >					employeeService.getEmployees({ isActive: true, limit: STATS_QUERY_LIMIT }),</span>
-<span class="cstat-no" title="statement not covered" >					employeeService.getEmployees({ isActive: false, limit: STATS_QUERY_LIMIT }),</span>
-<span class="cstat-no" title="statement not covered" >					employeeService.getEmployees({ limit: STATS_QUERY_LIMIT })</span>
-<span class="cstat-no" title="statement not covered" >				]);</span>
+<span class="cstat-no" title="statement not covered" >				employeeService.getStatistics(),</span>
+<span class="cstat-no" title="statement not covered" >				employeeService.getEmployees({ limit: 10000 }) // For autocomplete</span>
+<span class="cstat-no" title="statement not covered" >			]);</span>
 &nbsp;
-			// Handle statistics results
-<span class="cstat-no" title="statement not covered" >			const totalActiveEmployees = allActiveResult.isError ? 0 : allActiveResult.value.total;</span>
-<span class="cstat-no" title="statement not covered" >			const totalInactiveEmployees = allInactiveResult.isError ? 0 : allInactiveResult.value.total;</span>
+			// Handle statistics results - single optimized query replaces 3 separate queries
+<span class="cstat-no" title="statement not covered" >			const stats = statsResult.isOk ? statsResult.value : { total: 0, active: 0, inactive: 0 };</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >			logger.debug('[Employee Directory] Employee stats', {</span>
-<span class="cstat-no" title="statement not covered" >				total,</span>
+<span class="cstat-no" title="statement not covered" >			const totalActiveEmployees = stats.active;</span>
+<span class="cstat-no" title="statement not covered" >			const totalInactiveEmployees = stats.inactive;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >			logger.debug('[Employee Directory] Employee stats via getStatistics()', {</span>
+<span class="cstat-no" title="statement not covered" >				total: stats.total,</span>
 <span class="cstat-no" title="statement not covered" >				active: totalActiveEmployees,</span>
 <span class="cstat-no" title="statement not covered" >				inactive: totalInactiveEmployees</span>
 <span class="cstat-no" title="statement not covered" >			});</span>
@@ -959,7 +938,7 @@ import type { EmployeeListFilters, EmployeeSortField, SortOrder } from '$domain'
 		<div class="footer quiet pad2 space-top1 center small">
 			Code coverage generated by
 			<a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-			at 2026-02-04T17:36:17.381Z
+			at 2026-02-05T02:19:55.288Z
 		</div>
 		<script src="../../../prettify.js"></script>
 		<script>

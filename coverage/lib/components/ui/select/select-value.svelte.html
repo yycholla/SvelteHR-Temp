@@ -23,27 +23,27 @@
 				</h1>
 				<div class="clearfix">
 					<div class="fl pad1y space-right2">
-						<span class="strong">100% </span>
+						<span class="strong">0% </span>
 						<span class="quiet">Statements</span>
-						<span class="fraction">8/8</span>
+						<span class="fraction">0/8</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
-						<span class="strong">100% </span>
+						<span class="strong">0% </span>
 						<span class="quiet">Branches</span>
-						<span class="fraction">0/0</span>
+						<span class="fraction">0/1</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
-						<span class="strong">100% </span>
+						<span class="strong">0% </span>
 						<span class="quiet">Functions</span>
-						<span class="fraction">0/0</span>
+						<span class="fraction">0/1</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
-						<span class="strong">100% </span>
+						<span class="strong">0% </span>
 						<span class="quiet">Lines</span>
-						<span class="fraction">8/8</span>
+						<span class="fraction">0/8</span>
 					</div>
 				</div>
 				<p class="quiet">
@@ -57,7 +57,7 @@
 					</div>
 				</template>
 			</div>
-			<div class="status-line high"></div>
+			<div class="status-line low"></div>
 			<pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -81,7 +81,7 @@
 <a name='L20'></a><a href='#L20'>20</a>
 <a name='L21'></a><a href='#L21'>21</a>
 <a name='L22'></a><a href='#L22'>22</a>
-<a name='L23'></a><a href='#L23'>23</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L23'></a><a href='#L23'>23</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -89,21 +89,21 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">&lt;script lang="ts"&gt;
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >&lt;script lang="ts"&gt;<span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" ></span></span></span>
 	import { getContext } from 'svelte';
 &nbsp;
 	interface Props {
@@ -111,18 +111,18 @@
 		class?: string;
 	}
 &nbsp;
-	const { placeholder = 'Select...', class: className = '' }: Props = $props();
+<span class="cstat-no" title="statement not covered" >	const { placeholder = 'Select...', class: className = '' }: Props = $props();</span>
 &nbsp;
 	// Get the select value from context (set by Select.Root)
-	const value = getContext&lt;any&gt;('select-value');
-	const label = getContext&lt;any&gt;('select-label');
+<span class="cstat-no" title="statement not covered" >	const value = getContext&lt;any&gt;('select-value');</span>
+<span class="cstat-no" title="statement not covered" >	const label = getContext&lt;any&gt;('select-label');</span>
 &lt;/script&gt;
 &nbsp;
-&lt;span data-slot="select-value" class="pointer-events-none {className}"&gt;
-	{#if label || value}
-		{label || value}
+<span class="cstat-no" title="statement not covered" >&lt;span data-slot="select-value" class="pointer-events-none {className}"&gt;</span>
+<span class="cstat-no" title="statement not covered" >	{#if label || value}</span>
+<span class="cstat-no" title="statement not covered" >		{label || value}</span>
 	{:else}
-		&lt;span data-placeholder class="text-muted-foreground"&gt;{placeholder}&lt;/span&gt;
+<span class="cstat-no" title="statement not covered" >		&lt;span data-placeholder class="text-muted-foreground"&gt;{placeholder}&lt;/span&gt;</span>
 	{/if}
 &lt;/span&gt;
 &nbsp;</pre></td></tr></table></pre>
@@ -134,7 +134,7 @@
 		<div class="footer quiet pad2 space-top1 center small">
 			Code coverage generated by
 			<a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-			at 2026-02-04T17:36:17.381Z
+			at 2026-02-05T02:19:55.288Z
 		</div>
 		<script src="../../../../prettify.js"></script>
 		<script>

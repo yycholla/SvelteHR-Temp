@@ -23,27 +23,27 @@
 				</h1>
 				<div class="clearfix">
 					<div class="fl pad1y space-right2">
-						<span class="strong">22.22% </span>
+						<span class="strong">0% </span>
 						<span class="quiet">Statements</span>
-						<span class="fraction">8/36</span>
+						<span class="fraction">0/36</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
 						<span class="strong">100% </span>
 						<span class="quiet">Branches</span>
-						<span class="fraction">4/4</span>
+						<span class="fraction">1/1</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
-						<span class="strong">25% </span>
+						<span class="strong">100% </span>
 						<span class="quiet">Functions</span>
-						<span class="fraction">1/4</span>
+						<span class="fraction">1/1</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
-						<span class="strong">22.22% </span>
+						<span class="strong">0% </span>
 						<span class="quiet">Lines</span>
-						<span class="fraction">8/36</span>
+						<span class="fraction">0/36</span>
 					</div>
 				</div>
 				<p class="quiet">
@@ -128,19 +128,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">11x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">10x</span>
-<span class="cline-any cline-yes">10x</span>
-<span class="cline-any cline-yes">10x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -148,19 +135,10 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -182,7 +160,29 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import type { Task } from '$lib/types/task';
@@ -191,17 +191,17 @@ import type { TaskWithSubtasks } from './types';
 /**
  * Calculate basic subtask completion progress
  */
-export function calculateSubtaskProgress(subtasks: Task[]): number {
-	if (subtasks.length === 0) return 0;
+<span class="cstat-no" title="statement not covered" >export function calculateSubtaskProgress(subtasks: Task[]): number {</span>
+<span class="cstat-no" title="statement not covered" >	if (subtasks.length === 0) return 0;</span>
 &nbsp;
-	const completedCount = subtasks.filter((t) =&gt; t.status === 'DONE').length;
-	return Math.round((completedCount / subtasks.length) * 10000) / 100; // Round to 2 decimal places
-}
+<span class="cstat-no" title="statement not covered" >	const completedCount = subtasks.filter((t) =&gt; t.status === 'DONE').length;</span>
+<span class="cstat-no" title="statement not covered" >	return Math.round((completedCount / subtasks.length) * 10000) / 100; // Round to 2 decimal places</span>
+<span class="cstat-no" title="statement not covered" >}</span>
 &nbsp;
 /**
  * Count all descendants (subtasks at all levels)
  */
-export <span class="fstat-no" title="function not covered" >function countAllDescendants(task: TaskWithSubtasks): number {</span>
+<span class="cstat-no" title="statement not covered" >export function countAllDescendants(task: TaskWithSubtasks): number {</span>
 <span class="cstat-no" title="statement not covered" >	let count = 0;</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >	const level1 = task.tasksByParentTaskId?.nodes || [];</span>
@@ -223,7 +223,7 @@ export <span class="fstat-no" title="function not covered" >function countAllDes
 /**
  * Count completed descendants at all levels
  */
-export <span class="fstat-no" title="function not covered" >function countCompletedDescendants(task: TaskWithSubtasks): number {</span>
+<span class="cstat-no" title="statement not covered" >export function countCompletedDescendants(task: TaskWithSubtasks): number {</span>
 <span class="cstat-no" title="statement not covered" >	let count = 0;</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >	const level1 = task.tasksByParentTaskId?.nodes || [];</span>
@@ -245,7 +245,7 @@ export <span class="fstat-no" title="function not covered" >function countComple
 /**
  * Helper to calculate completion percentage safely
  */
-export <span class="fstat-no" title="function not covered" >function calculateCompletionPercentage(completed: number, total: number): number {</span>
+<span class="cstat-no" title="statement not covered" >export function calculateCompletionPercentage(completed: number, total: number): number {</span>
 <span class="cstat-no" title="statement not covered" >	return total &gt; 0 ? Math.round((completed / total) * 10000) / 100 : 0;</span>
 <span class="cstat-no" title="statement not covered" >}</span>
 &nbsp;</pre></td></tr></table></pre>
@@ -257,7 +257,7 @@ export <span class="fstat-no" title="function not covered" >function calculateCo
 		<div class="footer quiet pad2 space-top1 center small">
 			Code coverage generated by
 			<a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-			at 2026-02-04T17:36:17.381Z
+			at 2026-02-05T02:19:55.288Z
 		</div>
 		<script src="../../../../prettify.js"></script>
 		<script>

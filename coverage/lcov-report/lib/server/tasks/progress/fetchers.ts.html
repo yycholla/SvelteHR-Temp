@@ -23,27 +23,27 @@
 				</h1>
 				<div class="clearfix">
 					<div class="fl pad1y space-right2">
-						<span class="strong">1.07% </span>
+						<span class="strong">0% </span>
 						<span class="quiet">Statements</span>
-						<span class="fraction">3/279</span>
+						<span class="fraction">0/279</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
-						<span class="strong">100% </span>
+						<span class="strong">0% </span>
 						<span class="quiet">Branches</span>
-						<span class="fraction">0/0</span>
+						<span class="fraction">0/1</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
 						<span class="strong">0% </span>
 						<span class="quiet">Functions</span>
-						<span class="fraction">0/6</span>
+						<span class="fraction">0/1</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
-						<span class="strong">1.07% </span>
+						<span class="strong">0% </span>
 						<span class="quiet">Lines</span>
-						<span class="fraction">3/279</span>
+						<span class="fraction">0/279</span>
 					</div>
 				</div>
 				<p class="quiet">
@@ -532,8 +532,8 @@
 <a name='L471'></a><a href='#L471'>471</a>
 <a name='L472'></a><a href='#L472'>472</a>
 <a name='L473'></a><a href='#L473'>473</a>
-<a name='L474'></a><a href='#L474'>474</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<a name='L474'></a><a href='#L474'>474</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -544,7 +544,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1005,8 +1005,8 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { logger } from '$lib/utils/logger';
-import { getGraphQLEndpoint } from '$lib/server/api-url';
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import { logger } from '$lib/utils/logger';<span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" ></span></span></span>
+<span class="cstat-no" title="statement not covered" >import { getGraphQLEndpoint } from '$lib/server/api-url';</span>
 import type { ApiResponse } from '$lib/types/index';
 import type {
 	TaskProgress,
@@ -1017,7 +1017,7 @@ import type {
 	DepartmentUsersResponse,
 	TopLevelTasksResponse
 } from './types';
-import {
+<span class="cstat-no" title="statement not covered" >import {</span>
 	countAllDescendants,
 	countCompletedDescendants,
 	calculateCompletionPercentage
@@ -1026,7 +1026,7 @@ import {
 /**
  * Get detailed progress for a task including all subtasks
  */
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >export async function getTaskProgress(taskId: string): Promise&lt;TaskProgress | null&gt; {</span></span>
+<span class="cstat-no" title="statement not covered" >export async function getTaskProgress(taskId: string): Promise&lt;TaskProgress | null&gt; {</span>
 <span class="cstat-no" title="statement not covered" >	try {</span>
 <span class="cstat-no" title="statement not covered" >		const graphqlEndpoint = getGraphQLEndpoint();</span>
 &nbsp;
@@ -1098,7 +1098,7 @@ import {
 /**
  * Get hierarchical progress summary including nested subtasks
  */
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >export async function getHierarchicalProgress(</span></span>
+<span class="cstat-no" title="statement not covered" >export async function getHierarchicalProgress(</span>
 <span class="cstat-no" title="statement not covered" >	taskId: string</span>
 <span class="cstat-no" title="statement not covered" >): Promise&lt;HierarchicalProgressSummary | null&gt; {</span>
 <span class="cstat-no" title="statement not covered" >	try {</span>
@@ -1214,7 +1214,7 @@ import {
 /**
  * Get progress statistics for a user's tasks
  */
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >export async function getUserTaskStatistics(userId: string): Promise&lt;ProgressStatistics | null&gt; {</span></span>
+<span class="cstat-no" title="statement not covered" >export async function getUserTaskStatistics(userId: string): Promise&lt;ProgressStatistics | null&gt; {</span>
 <span class="cstat-no" title="statement not covered" >	try {</span>
 <span class="cstat-no" title="statement not covered" >		const graphqlEndpoint = getGraphQLEndpoint();</span>
 &nbsp;
@@ -1271,7 +1271,7 @@ import {
 /**
  * Get progress statistics for a department
  */
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >export async function getDepartmentTaskStatistics(</span></span>
+<span class="cstat-no" title="statement not covered" >export async function getDepartmentTaskStatistics(</span>
 <span class="cstat-no" title="statement not covered" >	departmentId: string</span>
 <span class="cstat-no" title="statement not covered" >): Promise&lt;ProgressStatistics | null&gt; {</span>
 <span class="cstat-no" title="statement not covered" >	try {</span>
@@ -1365,7 +1365,7 @@ import {
 /**
  * Get progress summary for all top-level tasks (no parent)
  */
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >export async function getTopLevelTasksProgress(): Promise&lt;{</span></span>
+<span class="cstat-no" title="statement not covered" >export async function getTopLevelTasksProgress(): Promise&lt;{</span>
 	tasks: TaskProgress[];
 	overallProgress: ProgressStatistics;
 <span class="cstat-no" title="statement not covered" >}&gt; {</span>
@@ -1467,7 +1467,7 @@ import {
 /**
  * Helper: Get empty progress statistics
  */
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >function getEmptyProgressStats(): ProgressStatistics {</span></span>
+<span class="cstat-no" title="statement not covered" >function getEmptyProgressStats(): ProgressStatistics {</span>
 <span class="cstat-no" title="statement not covered" >	return {</span>
 <span class="cstat-no" title="statement not covered" >		total: 0,</span>
 <span class="cstat-no" title="statement not covered" >		completed: 0,</span>
@@ -1487,7 +1487,7 @@ import {
 		<div class="footer quiet pad2 space-top1 center small">
 			Code coverage generated by
 			<a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-			at 2026-02-04T17:36:18.096Z
+			at 2026-02-05T02:19:56.070Z
 		</div>
 		<script src="../../../../prettify.js"></script>
 		<script>

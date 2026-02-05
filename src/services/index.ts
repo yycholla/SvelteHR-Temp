@@ -12,7 +12,11 @@ export { EmployeeService } from './EmployeeService';
 export type { SessionPort, SessionData } from './auth/ports/SessionPort';
 
 // Repository Ports
-export type { EmployeeRepository, EmployeeFilters } from './ports/EmployeeRepository';
+export type {
+	EmployeeRepository,
+	EmployeeFilters,
+	EmployeeStatistics
+} from './ports/EmployeeRepository';
 
 // GraphQL Ports
 export type { GraphQLPort } from './ports/GraphQLPort';

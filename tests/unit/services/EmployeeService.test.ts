@@ -441,7 +441,8 @@ describe('EmployeeService - CRUD Operations', () => {
 				save: vi.fn(),
 				update: vi.fn(),
 				delete: vi.fn(),
-				exists: vi.fn()
+				exists: vi.fn(),
+				getStatistics: vi.fn()
 			};
 
 			// Act

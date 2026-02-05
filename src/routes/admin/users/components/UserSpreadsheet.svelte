@@ -52,6 +52,7 @@
 		onEditUser: (user: User) => void;
 		onDeleteUser: (userId: string) => void;
 		onSaveEdits?: (edits: RowEdit<User>[]) => Promise<void>;
+		onSelectionChange?: (selectedIds: Set<string>) => void;
 	}
 
 	const {
@@ -63,7 +64,8 @@
 		onToggleStatus,
 		onEditUser,
 		onDeleteUser,
-		onSaveEdits
+		onSaveEdits,
+		onSelectionChange
 	}: Props = $props();
 
 	// Define columns for the user table
@@ -429,6 +431,7 @@
 		},
 		enableRowSelection: true,
 		selectionMode: 'multiple',
+		onSelectionChange,
 		exportConfig: {
 			enabled: true,
 			formats: ['csv', 'excel'],

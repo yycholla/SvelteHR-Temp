@@ -23,27 +23,27 @@
 				</h1>
 				<div class="clearfix">
 					<div class="fl pad1y space-right2">
-						<span class="strong">100% </span>
+						<span class="strong">0% </span>
 						<span class="quiet">Statements</span>
-						<span class="fraction">18/18</span>
+						<span class="fraction">0/18</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
 						<span class="strong">100% </span>
 						<span class="quiet">Branches</span>
-						<span class="fraction">22/22</span>
+						<span class="fraction">1/1</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
 						<span class="strong">100% </span>
 						<span class="quiet">Functions</span>
-						<span class="fraction">2/2</span>
+						<span class="fraction">1/1</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
-						<span class="strong">100% </span>
+						<span class="strong">0% </span>
 						<span class="quiet">Lines</span>
-						<span class="fraction">18/18</span>
+						<span class="fraction">0/18</span>
 					</div>
 				</div>
 				<p class="quiet">
@@ -57,7 +57,7 @@
 					</div>
 				</template>
 			</div>
-			<div class="status-line high"></div>
+			<div class="status-line low"></div>
 			<pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -119,50 +119,50 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">24x</span>
-<span class="cline-any cline-yes">21x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">17x</span>
-<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">15x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">24x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">9x</span>
-<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
  * Email validation utilities
  * Pure functions with no Svelte dependencies
@@ -171,50 +171,50 @@
 // Stricter email regex that prevents malformed emails
 // Local part: starts/ends with alphanumeric, can contain ._+- in between
 // Domain: starts/ends with alphanumeric, can contain .- in between, requires at least one dot for TLD
-const EMAIL_REGEX = /^[a-zA-Z0-9]([a-zA-Z0-9._+-]*[a-zA-Z0-9])?@[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$/;
+<span class="cstat-no" title="statement not covered" >const EMAIL_REGEX = /^[a-zA-Z0-9]([a-zA-Z0-9._+-]*[a-zA-Z0-9])?@[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$/;</span>
 &nbsp;
 /**
  * Validates if a string is a valid email address
  * @param email - The email address to validate
  * @returns true if valid, false otherwise
  */
-export function isValidEmail(email: string | null | undefined): boolean {
-	if (!email) return false;
-	const trimmed = email.trim();
+<span class="cstat-no" title="statement not covered" >export function isValidEmail(email: string | null | undefined): boolean {</span>
+<span class="cstat-no" title="statement not covered" >	if (!email) return false;</span>
+<span class="cstat-no" title="statement not covered" >	const trimmed = email.trim();</span>
 &nbsp;
 	// Check for consecutive dots (invalid in both local and domain parts)
-	if (trimmed.includes('..')) return false;
+<span class="cstat-no" title="statement not covered" >	if (trimmed.includes('..')) return false;</span>
 &nbsp;
 	// Split and validate local and domain parts
-	const parts = trimmed.split('@');
-	if (parts.length !== 2) return false;
+<span class="cstat-no" title="statement not covered" >	const parts = trimmed.split('@');</span>
+<span class="cstat-no" title="statement not covered" >	if (parts.length !== 2) return false;</span>
 &nbsp;
-	const [localPart, domainPart] = parts;
+<span class="cstat-no" title="statement not covered" >	const [localPart, domainPart] = parts;</span>
 &nbsp;
 	// Local part: cannot start or end with dot
-	if (localPart.startsWith('.') || localPart.endsWith('.')) return false;
+<span class="cstat-no" title="statement not covered" >	if (localPart.startsWith('.') || localPart.endsWith('.')) return false;</span>
 &nbsp;
 	// Domain part: cannot start or end with dot
-	if (domainPart.startsWith('.') || domainPart.endsWith('.')) return false;
+<span class="cstat-no" title="statement not covered" >	if (domainPart.startsWith('.') || domainPart.endsWith('.')) return false;</span>
 &nbsp;
 	// Domain must contain at least one dot for TLD
-	if (!domainPart.includes('.')) return false;
+<span class="cstat-no" title="statement not covered" >	if (!domainPart.includes('.')) return false;</span>
 &nbsp;
 	// Basic format check
-	if (!EMAIL_REGEX.test(trimmed)) return false;
+<span class="cstat-no" title="statement not covered" >	if (!EMAIL_REGEX.test(trimmed)) return false;</span>
 &nbsp;
-	return true;
-}
+<span class="cstat-no" title="statement not covered" >	return true;</span>
+<span class="cstat-no" title="statement not covered" >}</span>
 &nbsp;
 /**
  * Normalizes an email address by trimming and converting to lowercase
  * @param email - The email address to normalize
  * @returns Normalized email address
  */
-export function normalizeEmail(email: string | null | undefined): string {
-	if (!email) return '';
-	return email.trim().toLowerCase();
-}
+<span class="cstat-no" title="statement not covered" >export function normalizeEmail(email: string | null | undefined): string {</span>
+<span class="cstat-no" title="statement not covered" >	if (!email) return '';</span>
+<span class="cstat-no" title="statement not covered" >	return email.trim().toLowerCase();</span>
+<span class="cstat-no" title="statement not covered" >}</span>
 &nbsp;</pre></td></tr></table></pre>
 
 			<div class="push"></div>
@@ -224,7 +224,7 @@ export function normalizeEmail(email: string | null | undefined): string {
 		<div class="footer quiet pad2 space-top1 center small">
 			Code coverage generated by
 			<a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-			at 2026-02-04T17:36:17.381Z
+			at 2026-02-05T02:19:55.288Z
 		</div>
 		<script src="../../../prettify.js"></script>
 		<script>

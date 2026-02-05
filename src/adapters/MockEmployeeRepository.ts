@@ -1,6 +1,6 @@
 // src/adapters/MockEmployeeRepository.ts
 import type { Employee, EmployeeListFilters, EmployeeListResult } from '$domain';
-import type { EmployeeRepository } from '$services';
+import type { EmployeeRepository, EmployeeStatistics } from '$services';
 
 export class MockEmployeeRepository implements EmployeeRepository {
 	private employees = new Map<string, Employee>();
@@ -118,6 +118,16 @@ export class MockEmployeeRepository implements EmployeeRepository {
 
 	async exists(id: string): Promise<boolean> {
 		return this.employees.has(id);
+	}
+
+	async getStatistics(): Promise<EmployeeStatistics> {
+		const employees = Array.from(this.employees.values());
+		return {
+			total: employees.length,
+			active: employees.filter((e) => e.isActive).length,
+			inactive: employees.filter((e) => !e.isActive).length,
+			byDepartment: []
+		};
 	}
 
 	// Test helpers

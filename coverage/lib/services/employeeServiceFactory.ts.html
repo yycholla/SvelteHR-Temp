@@ -23,27 +23,27 @@
 				</h1>
 				<div class="clearfix">
 					<div class="fl pad1y space-right2">
-						<span class="strong">100% </span>
+						<span class="strong">0% </span>
 						<span class="quiet">Statements</span>
-						<span class="fraction">13/13</span>
+						<span class="fraction">0/13</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
 						<span class="strong">100% </span>
 						<span class="quiet">Branches</span>
-						<span class="fraction">3/3</span>
+						<span class="fraction">1/1</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
 						<span class="strong">100% </span>
 						<span class="quiet">Functions</span>
-						<span class="fraction">2/2</span>
+						<span class="fraction">1/1</span>
 					</div>
 
 					<div class="fl pad1y space-right2">
-						<span class="strong">100% </span>
+						<span class="strong">0% </span>
 						<span class="quiet">Lines</span>
-						<span class="fraction">13/13</span>
+						<span class="fraction">0/13</span>
 					</div>
 				</div>
 				<p class="quiet">
@@ -57,7 +57,7 @@
 					</div>
 				</template>
 			</div>
-			<div class="status-line high"></div>
+			<div class="status-line low"></div>
 			<pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -126,9 +126,9 @@
 <a name='L65'></a><a href='#L65'>65</a>
 <a name='L66'></a><a href='#L66'>66</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -156,21 +156,19 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -185,15 +183,17 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// src/lib/services/employeeServiceFactory.ts
 import type { RequestEvent } from '@sveltejs/kit';
-import { EmployeeService } from '$services/EmployeeService';
-import { GraphQLEmployeeAdapter } from '$adapters/GraphQLEmployeeAdapter';
-import { createUrqlClient } from '$lib/graphql/client';
+<span class="cstat-no" title="statement not covered" >import { EmployeeService } from '$services/EmployeeService';</span>
+<span class="cstat-no" title="statement not covered" >import { GraphQLEmployeeAdapter } from '$adapters/GraphQLEmployeeAdapter';</span>
+<span class="cstat-no" title="statement not covered" >import { createUrqlClient } from '$lib/graphql/client';</span>
 import type { Client } from '@urql/core';
 &nbsp;
 /**
@@ -221,19 +221,19 @@ import type { Client } from '@urql/core';
  * };
  * ```
  */
-export function createEmployeeService(event: RequestEvent): EmployeeService {
+<span class="cstat-no" title="statement not covered" >export function createEmployeeService(event: RequestEvent): EmployeeService {</span>
 	// Extract cookies from request for server-side authentication
-	const cookieHeader = event.request.headers.get('cookie') || '';
+<span class="cstat-no" title="statement not covered" >	const cookieHeader = event.request.headers.get('cookie') || '';</span>
 &nbsp;
 	// Create urql client with session cookies for authentication
-	const client = createUrqlClient(undefined, undefined, undefined, cookieHeader);
+<span class="cstat-no" title="statement not covered" >	const client = createUrqlClient(undefined, undefined, undefined, cookieHeader);</span>
 &nbsp;
 	// Create GraphQL repository adapter
-	const repository = new GraphQLEmployeeAdapter(client);
+<span class="cstat-no" title="statement not covered" >	const repository = new GraphQLEmployeeAdapter(client);</span>
 &nbsp;
 	// Return configured service
-	return new EmployeeService(repository);
-}
+<span class="cstat-no" title="statement not covered" >	return new EmployeeService(repository);</span>
+<span class="cstat-no" title="statement not covered" >}</span>
 &nbsp;
 /**
  * Factory function to create an EmployeeService with a custom urql Client
@@ -250,10 +250,10 @@ export function createEmployeeService(event: RequestEvent): EmployeeService {
  * const service = createEmployeeServiceWithClient(mockClient);
  * ```
  */
-export function createEmployeeServiceWithClient(client: Client): EmployeeService {
-	const repository = new GraphQLEmployeeAdapter(client);
-	return new EmployeeService(repository);
-}
+<span class="cstat-no" title="statement not covered" >export function createEmployeeServiceWithClient(client: Client): EmployeeService {</span>
+<span class="cstat-no" title="statement not covered" >	const repository = new GraphQLEmployeeAdapter(client);</span>
+<span class="cstat-no" title="statement not covered" >	return new EmployeeService(repository);</span>
+<span class="cstat-no" title="statement not covered" >}</span>
 &nbsp;</pre></td></tr></table></pre>
 
 			<div class="push"></div>
@@ -263,7 +263,7 @@ export function createEmployeeServiceWithClient(client: Client): EmployeeService
 		<div class="footer quiet pad2 space-top1 center small">
 			Code coverage generated by
 			<a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-			at 2026-02-04T17:36:17.381Z
+			at 2026-02-05T02:19:55.288Z
 		</div>
 		<script src="../../prettify.js"></script>
 		<script>

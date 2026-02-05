@@ -11,6 +11,7 @@
 	import UserSpreadsheet from './components/UserSpreadsheet.svelte';
 	import UserCreateModal from './components/UserCreateModal.svelte';
 	import UserEditModal from './components/UserEditModal.svelte';
+	import BulkActionsToolbar from '$lib/components/admin/BulkActionsToolbar.svelte';
 	import type { RowEdit } from '$lib/components/ui/spreadsheet';
 
 	const { data } = $props();
@@ -21,6 +22,7 @@
 	let searchQuery = $state('');
 	let loading = $state(false);
 	let errorMessage = $state('');
+	let selectedEmployees = $state<Array<{ id: string; displayName: string; isActive: boolean }>>([]);
 
 	// Form state for create/edit
 	let formData = $state({
@@ -44,6 +46,26 @@
 		department: '',
 		status: ''
 	});
+
+	// Selection management
+	function handleSelectionChange(selectedIds: Set<string>) {
+		// Convert Set<string> of IDs to array of employee objects
+		selectedEmployees = Array.from(selectedIds)
+			.map((id) => {
+				const user = data.users.find((u: any) => u.id === id);
+				if (!user) return null;
+				return {
+					id: user.id,
+					displayName: user.displayName || user.email,
+					isActive: user.isActive
+				};
+			})
+			.filter((u): u is { id: string; displayName: string; isActive: boolean } => u !== null);
+	}
+
+	function clearSelection() {
+		selectedEmployees = [];
+	}
 
 	// Filtered users based on search query AND filters (Client-side)
 	const filteredUsers = $derived(
@@ -575,6 +597,13 @@
 		</div>
 	{/if}
 
+	<!-- Bulk Actions Toolbar -->
+	{#if selectedEmployees.length > 0}
+		<div class="flex-shrink-0 p-4 pb-0">
+			<BulkActionsToolbar {selectedEmployees} onClearSelection={clearSelection} />
+		</div>
+	{/if}
+
 	<!-- Table Area - Enhanced Spreadsheet -->
 	<div class="flex-1 overflow-hidden min-h-0 relative">
 		<UserSpreadsheet
@@ -587,6 +616,7 @@
 			onEditUser={openEditModal}
 			onDeleteUser={handleDeleteUser}
 			onSaveEdits={handleSaveEdits}
+			onSelectionChange={handleSelectionChange}
 		/>
 	</div>
 
