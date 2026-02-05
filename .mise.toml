@@ -158,3 +158,79 @@ if ! command -v tailscale &> /dev/null; then
     exit 1
 fi
 """
+
+# =============================================================================
+# Development Tasks
+# =============================================================================
+
+[tasks."dev"]
+alias = "dev:start"
+description = "Start development environment (native frontend + Docker backend)"
+depends = ["_docker_check"]
+run = """
+#!/usr/bin/env bash
+echo "🚀 Starting Docker services (PostgreSQL, Redis, Backend)..."
+cd dev-containers && docker compose -f docker-compose.dev.yml up -d postgres-dev redis-dev backend-dev
+
+echo ""
+mise run _backend_wait
+
+echo ""
+echo "🎨 Starting native frontend with hot reload..."
+echo "   Press Ctrl+C to stop"
+echo ""
+npm run dev
+"""
+
+[tasks."dev:docker"]
+description = "Start ALL dev containers (full Docker mode)"
+depends = ["_docker_check"]
+run = """
+#!/usr/bin/env bash
+echo "🚀 Starting ALL SvelteHR Development Containers..."
+cd dev-containers && docker compose -f docker-compose.dev.yml up -d
+echo ""
+echo "✅ All containers started!"
+echo ""
+echo "📍 Services available:"
+echo "   🔹 Frontend:     http://localhost:5173"
+echo "   🔹 Backend API:  http://localhost:4000/graphql"
+echo "   🔹 PostgreSQL:   localhost:5433"
+echo "   🔹 Redis:        localhost:6380"
+echo ""
+echo "💡 View logs: mise run dev:logs"
+echo "💡 Stop all:  mise run dev:stop"
+"""
+
+[tasks."dev:stop"]
+description = "Stop all development containers"
+run = """
+#!/usr/bin/env bash
+echo "⏹️ Stopping development containers..."
+cd dev-containers && docker compose -f docker-compose.dev.yml down
+echo "✅ Containers stopped"
+"""
+
+[tasks."dev:logs"]
+description = "View container logs (Ctrl+C to exit)"
+run = "cd dev-containers && docker compose -f docker-compose.dev.yml logs -f --no-log-prefix"
+
+[tasks."dev:rebuild"]
+description = "Rebuild containers with cargo-chef caching"
+depends = ["_docker_check"]
+run = """
+#!/usr/bin/env bash
+echo "🔨 Rebuilding development containers with cargo-chef caching..."
+cd dev-containers && docker compose -f docker-compose.dev.yml build
+echo "✅ Rebuild complete. Run 'mise run dev' to start."
+"""
+
+[tasks."dev:rebuild-full"]
+description = "Full rebuild without caching"
+depends = ["_docker_check"]
+run = """
+#!/usr/bin/env bash
+echo "🔨 Full rebuild (no cache) - this may take 8-12 minutes..."
+cd dev-containers && docker compose -f docker-compose.dev.yml build --no-cache
+echo "✅ Full rebuild complete. Run 'mise run dev' to start."
+"""
