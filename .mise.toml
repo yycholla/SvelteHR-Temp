@@ -545,3 +545,43 @@ run = "npm run test:watch"
 [tasks."test:coverage"]
 description = "Run tests with coverage"
 run = "npm run test:coverage"
+
+# =============================================================================
+# Webhook Development Tasks
+# =============================================================================
+
+[tasks."webhook:ngrok"]
+description = "Start ngrok tunnel for QuickBooks webhook testing"
+depends = ["_ngrok_check", "_backend_running"]
+run = "./scripts/dev-webhook-tunnel.sh"
+
+[tasks."webhook:tailscale"]
+description = "Start Tailscale Funnel for QuickBooks webhooks (stable URL)"
+depends = ["_tailscale_check", "_backend_running"]
+run = "./scripts/dev-webhook-tunnel-tailscale.sh"
+
+# =============================================================================
+# SSH Access Tasks
+# =============================================================================
+
+[tasks."ssh:backend"]
+description = "SSH into backend container (user: dev, pass: dev)"
+run = """
+#!/usr/bin/env bash
+echo "🔌 Connecting to Backend Container..."
+echo "   User: dev | Password: dev"
+echo "   Backend code: /home/dev/backend"
+echo ""
+ssh -o StrictHostKeyChecking=no dev@localhost -p 2222
+"""
+
+[tasks."ssh:frontend"]
+description = "SSH into frontend container (user: dev, pass: dev)"
+run = """
+#!/usr/bin/env bash
+echo "🔌 Connecting to Frontend Container..."
+echo "   User: dev | Password: dev"
+echo "   Frontend code: /home/dev/frontend"
+echo ""
+ssh -o StrictHostKeyChecking=no dev@localhost -p 2223
+"""
