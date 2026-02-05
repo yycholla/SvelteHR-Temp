@@ -1,0 +1,34 @@
+# =============================================================================
+# SvelteHR Development Environment Configuration
+# =============================================================================
+# This file manages tool versions, environment variables, and tasks.
+# Run `mise install` to set up your development environment.
+# Run `mise tasks` to see available commands.
+# =============================================================================
+
+min_version = "2024.1.0"
+
+# =============================================================================
+# Tool Versions
+# =============================================================================
+# These ensure consistent tooling across all team members and CI/CD.
+
+[tools]
+node = "22"
+rust = "stable"
+
+# Cargo tools installed via mise
+"cargo:sea-orm-cli" = "0.12"
+"cargo:cargo-watch" = "latest"
+
+# =============================================================================
+# Settings
+# =============================================================================
+
+[settings]
+# Load .env file automatically
+env_file = ".env"
+# Show task prefix in output
+task_output = "prefix"
+# Quiet mode for cleaner output
+quiet = true
