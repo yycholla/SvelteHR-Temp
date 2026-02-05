@@ -7,6 +7,7 @@ import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { createUrqlClient } from '$lib/graphql/client';
 import { gql } from '@urql/core';
+import { createEmployeeService } from '$lib/server/services';
 
 const CREATE_DOCUMENT_ASSIGNMENT_MUTATION = gql`
 	mutation CreateDocumentAssignment($input: CreateDocumentAssignmentInput!) {
@@ -20,16 +21,9 @@ const CREATE_DOCUMENT_ASSIGNMENT_MUTATION = gql`
 	}
 `;
 
-const GET_USER_QUERY = gql`
-	query GetUser($id: UUID!) {
-		user(id: $id) {
-			id
-			email
-		}
-	}
-`;
+export const POST: RequestHandler = async (event) => {
+	const { params, locals, request, cookies, fetch } = event;
 
-export const POST: RequestHandler = async ({ params, locals, request, cookies, fetch }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
 		error(401, { message: 'Authentication required' });
@@ -59,19 +53,23 @@ export const POST: RequestHandler = async ({ params, locals, request, cookies, f
 			`[ASSIGN DOCS] User ${userId} assigning ${documentIds.length} documents to employee ${employeeId}`
 		);
 
-		// Step 4: Create GraphQL client
-		const urqlClient = createUrqlClient(fetch, undefined, undefined, cookies.get('hr_session'));
+		// Step 4: Verify employee exists using EmployeeService
+		const employeeService = createEmployeeService(event);
+		const employeeResult = await employeeService.getEmployeeById(employeeId);
 
-		// Verify employee exists via GraphQL
-		const employeeResult = await urqlClient.query(GET_USER_QUERY, { id: employeeId }).toPromise();
-
-		if (employeeResult.error || !employeeResult.data?.user) {
-			error(404, { message: 'Employee not found' });
+		if (employeeResult.isError) {
+			if (employeeResult.error.code === 'EMPLOYEE_NOT_FOUND') {
+				error(404, { message: 'Employee not found' });
+			}
+			error(500, { message: employeeResult.error.message });
 		}
 
-		const employee = employeeResult.data.user;
+		const employee = employeeResult.value;
 
-		// Step 5: Perform bulk assignment via GraphQL
+		// Step 5: Create GraphQL client for document assignments
+		const urqlClient = createUrqlClient(fetch, undefined, undefined, cookies.get('hr_session'));
+
+		// Step 6: Perform bulk assignment via GraphQL
 		let assignedCount = 0;
 		let skippedCount = 0;
 		const errors: string[] = [];
@@ -115,7 +113,7 @@ export const POST: RequestHandler = async ({ params, locals, request, cookies, f
 			}
 		}
 
-		// Step 6: Return results
+		// Step 7: Return results
 		if (errors.length > 0 && assignedCount === 0) {
 			error(400, {
 				message: `Failed to assign any documents. Errors: ${errors.join('; ')}`
@@ -125,7 +123,7 @@ export const POST: RequestHandler = async ({ params, locals, request, cookies, f
 		const message =
 			errors.length > 0
 				? `Assigned ${assignedCount} document(s), skipped ${skippedCount}, ${errors.length} errors`
-				: `Successfully assigned ${assignedCount} document(s) to ${employee.email}`;
+				: `Successfully assigned ${assignedCount} document(s) to ${employee.email.value}`;
 
 		logger.info(
 			`[ASSIGN DOCS] Completed: ${assignedCount} assigned, ${skippedCount} skipped, ${errors.length} errors`
