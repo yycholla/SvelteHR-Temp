@@ -73,5 +73,32 @@ impl UserQueries {
         let user = query.one(&db).await?;
         Ok(user)
     }
+
+    /// Get a single user by email address
+    ///
+    /// # Security: RLS Enforced
+    /// This query applies Row-Level Security - users can only access employees from their department.
+    /// Email lookups are normalized to lowercase for case-insensitive matching.
+    async fn user_by_email(&self, ctx: &Context<'_>, email: String) -> Result<Option<User>> {
+        let db = get_db_from_context(ctx)?;
+
+        // Extract UserContext for RLS filtering
+        let user_context = ctx.data::<UserContext>()
+            .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+
+        // Normalize email to lowercase for case-insensitive lookup
+        let normalized_email = email.to_lowercase();
+
+        // Build query with RLS filter
+        let mut query = UserEntity::find()
+            .filter(UserColumn::Email.eq(&normalized_email))
+            .filter(UserColumn::DeletedAt.is_null());
+
+        // Apply RLS filter to prevent cross-tenant access
+        query = UserEntity::apply_rls(query, user_context);
+
+        let user = query.one(&db).await?;
+        Ok(user)
+    }
 }
 
