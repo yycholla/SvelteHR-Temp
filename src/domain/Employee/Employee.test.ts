@@ -279,4 +279,22 @@ describe('Employee', () => {
 			expect(result.isError).toBe(true);
 		});
 	});
+
+	describe('updateLastName', () => {
+		it('should update last name with valid value', () => {
+			const employee = EmployeeFactory.create({ firstName: 'John', lastName: 'Doe' });
+			const result = employee.updateLastName('Smith');
+
+			expect(result.isOk).toBe(true);
+			expect(employee.name.last).toBe('Smith');
+			expect(employee.name.first).toBe('John'); // unchanged
+		});
+
+		it('should reject empty last name', () => {
+			const employee = EmployeeFactory.create();
+			const result = employee.updateLastName('');
+
+			expect(result.isError).toBe(true);
+		});
+	});
 });

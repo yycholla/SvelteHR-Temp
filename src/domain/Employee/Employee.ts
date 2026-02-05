@@ -224,4 +224,13 @@ export class Employee {
 		this._name = nameResult.value;
 		return Result.ok(undefined);
 	}
+
+	updateLastName(lastName: string): Result<void, DomainError> {
+		const nameResult = PersonName.create(this._name.first, lastName);
+		if (nameResult.isError) {
+			return Result.error(nameResult.error);
+		}
+		this._name = nameResult.value;
+		return Result.ok(undefined);
+	}
 }
