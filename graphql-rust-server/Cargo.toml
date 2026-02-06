@@ -90,6 +90,11 @@ name = "test_m20260101_001_create_sync_schedules"
 required-features = ["test-utils"]
 
 [[test]]
+path = "migration/tests/test_m20260113_001_password_reset_tokens.rs"
+name = "test_m20260113_001_password_reset_tokens"
+required-features = ["test-utils"]
+
+[[test]]
 path = "migration/tests/test_m20251222_create_intuit_integration.rs"
 name = "test_m20251222_create_intuit_integration"
 required-features = ["test-utils"]
