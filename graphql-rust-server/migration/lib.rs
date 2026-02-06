@@ -52,7 +52,7 @@ pub mod m20251125_001_employee_import_improvements;
 pub mod m20251125_002_add_phone_fields;
 pub mod m20251125_003_add_nickname_social;
 pub mod m20251201_001_create_training_module;
-mod m20251201_002_add_training_permissions;
+pub mod m20251201_002_add_training_permissions;
 mod m20251202_001_enhance_training_schema;
 mod m20251202_003_add_training_recurrence;
 mod m20251202_004_create_onboarding_module;
