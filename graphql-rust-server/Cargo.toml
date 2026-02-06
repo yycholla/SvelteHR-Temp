@@ -85,6 +85,11 @@ name = "test_m20251222_002_add_quickbooks_employee_fields"
 required-features = ["test-utils"]
 
 [[test]]
+path = "migration/tests/test_m20251222_003_fix_display_name_add_preferred_name.rs"
+name = "test_m20251222_003_fix_display_name_add_preferred_name"
+required-features = ["test-utils"]
+
+[[test]]
 path = "migration/tests/test_m20251202_006_onboarding_documents.rs"
 name = "test_m20251202_006_onboarding_documents"
 required-features = ["test-utils"]
