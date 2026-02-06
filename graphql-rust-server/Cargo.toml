@@ -167,6 +167,11 @@ required-features = ["test-utils"]
 [[test]]
 path = "migration/tests/m20251229_011_create_error_recovery_test.rs"
 name = "test_m20251229_011_create_error_recovery"
+
+[[test]]
+path = "migration/tests/m20251229_012_enhance_audit_trail_test.rs"
+name = "test_m20251229_012_enhance_audit_trail"
+required-features = ["test-utils"]
 required-features = ["test-utils"]
 
 [[test]]
