@@ -57,7 +57,7 @@ mod m20251202_001_enhance_training_schema;
 mod m20251202_003_add_training_recurrence;
 mod m20251202_004_create_onboarding_module;
 mod m20251202_005_seed_w4_form_template;
-mod m20251202_006_integrate_onboarding_documents;
+pub mod m20251202_006_integrate_onboarding_documents;
 mod m20251202_007_create_onboarding_forms;
 mod m20251203_001_migrate_content_blocks_to_forms;
 pub mod m20251217_001_add_inline_form_elements;
