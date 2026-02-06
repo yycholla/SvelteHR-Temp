@@ -1,3 +1,46 @@
+//! Migration: Add sidebar view permissions
+//!
+//! Seeds permission data for sidebar menu item visibility control.
+//!
+//! ## SeaORM Builder Usage: Not Applicable (Data Migration)
+//!
+//! ### Why This Migration Uses Raw SQL
+//!
+//! This is a **data migration** that inserts and deletes permission records.
+//! SeaORM's builder API is designed for DDL (Data Definition Language) schema operations:
+//! - CREATE/ALTER/DROP TABLE
+//! - CREATE/DROP INDEX
+//! - ADD/DROP FOREIGN KEY
+//!
+//! It intentionally does NOT provide builders for DML (Data Manipulation Language):
+//! - INSERT (data seeding)
+//! - DELETE (data cleanup)
+//! - UPDATE (data modification)
+//! - SELECT (data queries)
+//!
+//! **For data operations, raw SQL is the correct and idiomatic approach.**
+//!
+//! ### Operations (Raw SQL - 2 operations):
+//!
+//! **Up Migration:**
+//! 1. INSERT 22 permission records with ON CONFLICT DO NOTHING (idempotent)
+//!    - Dashboard, Events, Notifications, Activities
+//!    - Attendance, Tasks (5 permissions), Performance
+//!    - Goals, Reports (2 permissions), Admin
+//!
+//! **Down Migration:**
+//! 2. DELETE the 22 permission records added by this migration
+//!
+//! ### Idempotency
+//!
+//! The INSERT uses `ON CONFLICT (resource, action) DO NOTHING` to ensure
+//! the migration can be run multiple times safely without creating duplicates.
+//!
+//! ## Migration Type: Seed Data
+//!
+//! This migration populates the permissions table with predefined permission
+//! records for sidebar menu visibility and access control.
+
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
@@ -7,6 +50,7 @@ pub struct Migration;
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Add permissions for sidebar menu item visibility
+        // Data seeding operation - intentionally raw SQL
         manager.get_connection().execute_unprepared(
             "INSERT INTO hr_public.permissions (resource, action, description) VALUES
             -- Dashboard
@@ -57,6 +101,7 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Remove the added permissions
+        // Data cleanup operation - intentionally raw SQL
         manager.get_connection().execute_unprepared(
             "DELETE FROM hr_public.permissions WHERE (resource, action) IN (
                 ('dashboard', 'read'),

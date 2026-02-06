@@ -84,6 +84,11 @@ path = "migration/tests/test_m20251106_003_remove_sidebar_management.rs"
 name = "test_m20251106_003_remove_sidebar_management"
 required-features = ["test-utils"]
 
+[[test]]
+path = "migration/tests/test_m20251106_004_add_sidebar_view_permissions.rs"
+name = "test_m20251106_004_add_sidebar_view_permissions"
+required-features = ["test-utils"]
+
 [package]
 name = "hr-graphql-server"
 edition = "2021"
