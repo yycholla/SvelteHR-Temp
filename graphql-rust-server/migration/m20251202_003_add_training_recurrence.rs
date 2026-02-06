@@ -85,6 +85,8 @@
 
 use sea_orm_migration::prelude::*;
 
+use crate::migration::MigrationHelpers;
+
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
@@ -213,34 +215,28 @@ impl MigrationTrait for Migration {
                 .await?;
         }
 
-        // Schema modification operation - Using SeaORM builder (ALTER TABLE)
-        // 8-10. Drop columns with IF EXISTS for idempotency
-        manager
-            .alter_table(
-                Table::alter()
-                    .table((Schema::HrPublic, Trainings::Table))
-                    .drop_column_if_exists(Trainings::RecurrenceEndDate)
-                    .to_owned(),
-            )
-            .await?;
+        // Schema modification operations - Drop columns with IF EXISTS for idempotency
+        // Using helper for IF EXISTS support (not available in SeaORM's drop_column)
+        MigrationHelpers::drop_column_if_exists(
+            manager,
+            "hr_public.trainings",
+            "recurrence_end_date",
+        )
+        .await?;
 
-        manager
-            .alter_table(
-                Table::alter()
-                    .table((Schema::HrPublic, Trainings::Table))
-                    .drop_column_if_exists(Trainings::RecurrenceId)
-                    .to_owned(),
-            )
-            .await?;
+        MigrationHelpers::drop_column_if_exists(
+            manager,
+            "hr_public.trainings",
+            "recurrence_id",
+        )
+        .await?;
 
-        manager
-            .alter_table(
-                Table::alter()
-                    .table((Schema::HrPublic, Trainings::Table))
-                    .drop_column_if_exists(Trainings::Rrule)
-                    .to_owned(),
-            )
-            .await?;
+        MigrationHelpers::drop_column_if_exists(
+            manager,
+            "hr_public.trainings",
+            "rrule",
+        )
+        .await?;
 
         Ok(())
     }

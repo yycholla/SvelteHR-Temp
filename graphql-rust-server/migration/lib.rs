@@ -56,7 +56,7 @@ pub mod m20251201_002_add_training_permissions;
 pub mod m20251202_001_enhance_training_schema;
 pub mod m20251202_003_add_training_recurrence;
 pub mod m20251202_004_create_onboarding_module;
-mod m20251202_005_seed_w4_form_template;
+pub mod m20251202_005_seed_w4_form_template;
 pub mod m20251202_006_integrate_onboarding_documents;
 mod m20251202_007_create_onboarding_forms;
 mod m20251203_001_migrate_content_blocks_to_forms;

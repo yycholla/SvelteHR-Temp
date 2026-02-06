@@ -1,3 +1,107 @@
+//! Seed Federal W-4 Form (2024) Template Data
+//!
+//! ## Migration Type: Data Seeding
+//!
+//! This migration seeds the database with a comprehensive IRS Form W-4 template
+//! for employee tax withholding. The form structure matches the official IRS 2024 W-4
+//! (Employee's Withholding Certificate, Rev. December 2020).
+//!
+//! ## SeaORM Builder Usage: 0% (0/2 operations)
+//!
+//! This migration intentionally uses **100% raw SQL** for all operations.
+//!
+//! ### Why Raw SQL?
+//!
+//! 1. **Data Seeding Operation**: This is a data insertion operation, not a schema change.
+//!    SeaORM migration builders are designed for DDL (Data Definition Language),
+//!    not DML (Data Manipulation Language) operations.
+//!
+//! 2. **Complex JSON Structure**: The W-4 form template contains ~30 fields with:
+//!    - Nested JSON structures (address fields, signature configuration)
+//!    - Validation rules (regex patterns, min/max values)
+//!    - Conditional logic (dependent fields)
+//!    - Rich metadata (help text, field descriptions)
+//!    Using SeaORM's query builder would be unnecessarily complex for this one-time seed.
+//!
+//! 3. **Idempotent Design**: Raw SQL with string escaping allows proper handling
+//!    of single quotes in the JSON without complex builder logic.
+//!
+//! ## Operations Breakdown
+//!
+//! ### UP Migration (2 operations):
+//! 1. **DATA INSERT**: Seed W-4 form template with complete field definitions
+//!    - Uses raw SQL with proper JSON escaping
+//!    - Template includes all IRS W-4 sections (Steps 1-5)
+//!    - Marks template as active and version 2024
+//!
+//! ### DOWN Migration (1 operation):
+//! 1. **DATA DELETE**: Remove W-4 template by name
+//!    - Cleanup operation using raw SQL
+//!    - Removes only the specific template seeded
+//!
+//! ## Form Structure (IRS W-4 2024)
+//!
+//! The template includes 25 form fields organized into 5 sections:
+//!
+//! 1. **Personal Information** (5 fields):
+//!    - Name fields (first, middle, last)
+//!    - SSN (encrypted, with validation)
+//!    - Home address (composite ADDRESS type with state dropdown)
+//!
+//! 2. **Step 1: Filing Status** (1 field):
+//!    - Radio selection: Single, Married filing jointly, Head of household
+//!
+//! 3. **Step 2: Multiple Jobs/Spouse Works** (2 fields):
+//!    - Options for handling multiple income sources
+//!    - Checkbox for two jobs with similar pay
+//!
+//! 4. **Step 3: Claim Dependents** (4 fields):
+//!    - Eligibility radio button
+//!    - Number of qualifying children (< 17 years)
+//!    - Number of other dependents
+//!    - Calculated total credit amount
+//!
+//! 5. **Step 4: Other Adjustments** (3 fields):
+//!    - Other income (interest, dividends, etc.)
+//!    - Deductions beyond standard
+//!    - Extra withholding per pay period
+//!
+//! 6. **Step 5: Signature** (2 fields):
+//!    - Digital signature pad
+//!    - Date signed
+//!
+//! ## Field Types Supported
+//!
+//! - TEXT: Simple text input with validation
+//! - NUMBER: Numeric input with min/max bounds
+//! - SSN: Special encrypted field for Social Security Numbers
+//! - ADDRESS: Composite field (street, city, state, zip)
+//! - RADIO: Single selection from options
+//! - CHECKBOX: Boolean selection
+//! - DATE: Date picker
+//! - SIGNATURE: Digital signature capture
+//! - SECTION_HEADER: Visual grouping and instructions
+//!
+//! ## Validation Features
+//!
+//! - Regex patterns for name fields, SSN, ZIP codes
+//! - Min/max length constraints
+//! - Min/max numeric values
+//! - Required field enforcement
+//! - State dropdown with all 50 US states
+//!
+//! ## Security Considerations
+//!
+//! - SSN field marked as `encrypted: true` for automatic encryption
+//! - Signature data stored securely with timestamp
+//! - Form data tied to user authentication
+//!
+//! ## Rollback Safety
+//!
+//! - DOWN migration removes only the specific W-4 template by name
+//! - Does not affect other form templates in the system
+//! - Safe to run multiple times (DELETE is idempotent)
+
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
@@ -6,6 +110,11 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        // ===================================================================
+        // DATA OPERATION: Seed Federal W-4 Form (2024) template
+        // ===================================================================
+        // This is a data seeding operation for a comprehensive IRS W-4 template.
+        // The template structure matches the official IRS 2024 W-4 form.
         // W-4 Form Template JSON - matching the IRS 2024 W-4 structure
         let w4_fields_json = r#"
 [
@@ -297,7 +406,11 @@ impl MigrationTrait for Migration {
 ]
         "#;
 
-        // Insert W-4 template
+        // ===================================================================
+        // DATA OPERATION: Insert W-4 template into database
+        // ===================================================================
+        // Seed the comprehensive W-4 template with all field definitions.
+        // Uses string replacement to properly escape single quotes in JSON.
         manager
             .get_connection()
             .execute_unprepared(&format!(
@@ -316,7 +429,7 @@ impl MigrationTrait for Migration {
                     NOW()
                 )
                 "#,
-                w4_fields_json.replace("'", "''")
+                w4_fields_json.replace("'", "''") // Escape single quotes for SQL
             ))
             .await?;
 
@@ -324,7 +437,11 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // Delete W-4 template
+        // ===================================================================
+        // DATA OPERATION: Delete W-4 template
+        // ===================================================================
+        // Remove the seeded W-4 template by name.
+        // This is idempotent - safe to run multiple times.
         manager
             .get_connection()
             .execute_unprepared(

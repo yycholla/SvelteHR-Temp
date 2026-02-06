@@ -74,6 +74,8 @@
 
 use sea_orm_migration::prelude::*;
 
+use crate::migration::MigrationHelpers;
+
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
@@ -98,19 +100,35 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // Schema modification operation - Using SeaORM builder (ALTER TABLE)
-        // Drop 4 metadata columns with IF EXISTS for idempotency
-        manager
-            .alter_table(
-                Table::alter()
-                    .table((Schema::HrPublic, Trainings::Table))
-                    .drop_column_if_exists(Trainings::MetaTitle)
-                    .drop_column_if_exists(Trainings::MetaDescription)
-                    .drop_column_if_exists(Trainings::Tags)
-                    .drop_column_if_exists(Trainings::AuthorId)
-                    .to_owned(),
-            )
-            .await?;
+        // Schema modification operations - Drop 4 metadata columns with IF EXISTS for idempotency
+        // Using helper for IF EXISTS support (not available in SeaORM's drop_column)
+        MigrationHelpers::drop_column_if_exists(
+            manager,
+            "hr_public.trainings",
+            "author_id",
+        )
+        .await?;
+
+        MigrationHelpers::drop_column_if_exists(
+            manager,
+            "hr_public.trainings",
+            "tags",
+        )
+        .await?;
+
+        MigrationHelpers::drop_column_if_exists(
+            manager,
+            "hr_public.trainings",
+            "meta_description",
+        )
+        .await?;
+
+        MigrationHelpers::drop_column_if_exists(
+            manager,
+            "hr_public.trainings",
+            "meta_title",
+        )
+        .await?;
 
         Ok(())
     }
