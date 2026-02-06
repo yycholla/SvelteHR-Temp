@@ -120,6 +120,11 @@ name = "test_m20251229_001_create_validation_tables"
 required-features = ["test-utils"]
 
 [[test]]
+path = "migration/tests/m20251229_002_add_sync_permissions_test.rs"
+name = "test_m20251229_002_add_sync_permissions"
+required-features = ["test-utils"]
+
+[[test]]
 path = "migration/tests/test_m20251202_006_onboarding_documents.rs"
 name = "test_m20251202_006_onboarding_documents"
 required-features = ["test-utils"]
