@@ -177,11 +177,11 @@ required-features = ["test-utils"]
 [[test]]
 path = "migration/tests/m20251229_013_create_compliance_reports_test.rs"
 name = "test_m20251229_013_create_compliance_reports"
+required-features = ["test-utils"]
 
 [[test]]
 path = "migration/tests/m20251230_001_create_time_entries_test.rs"
 name = "test_m20251230_001_create_time_entries"
-required-features = ["test-utils"]
 required-features = ["test-utils"]
 
 [[test]]

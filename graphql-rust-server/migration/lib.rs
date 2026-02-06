@@ -84,7 +84,6 @@ pub mod m20251229_011_create_error_recovery;
 pub mod m20251229_012_enhance_audit_trail;
 pub mod m20251229_013_create_compliance_reports;
 pub mod m20251230_001_create_time_entries;
-mod m20251230_001_create_time_entries;
 mod m20251230_002_payroll_integration;
 mod m20251231_001_email_digests;
 mod m20260101_001_create_sync_schedules;
