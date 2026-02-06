@@ -159,6 +159,11 @@ path = "migration/tests/test_m20251201_002_add_training_permissions.rs"
 name = "test_m20251201_002_add_training_permissions"
 required-features = ["test-utils"]
 
+[[test]]
+path = "migration/tests/test_m20251202_001_enhance_training_schema.rs"
+name = "test_m20251202_001_enhance_training_schema"
+required-features = ["test-utils"]
+
 [package]
 name = "hr-graphql-server"
 edition = "2021"
