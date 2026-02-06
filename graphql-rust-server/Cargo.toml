@@ -105,6 +105,11 @@ name = "test_m20251226_002_enhance_sync_log"
 required-features = ["test-utils"]
 
 [[test]]
+path = "migration/tests/m20251226_002_enforce_email_rules_test.rs"
+name = "test_m20251226_002_enforce_email_rules"
+required-features = ["test-utils"]
+
+[[test]]
 path = "migration/tests/test_m20251202_006_onboarding_documents.rs"
 name = "test_m20251202_006_onboarding_documents"
 required-features = ["test-utils"]

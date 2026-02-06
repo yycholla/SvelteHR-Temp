@@ -68,7 +68,7 @@ pub mod m20251222_003_fix_display_name_add_preferred_name;
 pub mod m20251223_001_add_intuit_department_id;
 pub mod m20251226_001_add_sync_tracking;
 pub mod m20251226_002_enhance_sync_log;
-mod m20251226_002_enforce_email_rules;
+pub mod m20251226_002_enforce_email_rules;
 mod m20251226_003_enforce_department_names;
 mod m20251229_001_create_validation_tables;
 mod m20251229_002_add_sync_permissions;
