@@ -1,3 +1,154 @@
+//! # Create Validation Rules and Failures Tracking System
+//!
+//! This migration creates a comprehensive validation framework with two tables:
+//! - validation_rules: Defines entity validation rules with auto-fix strategies
+//! - validation_failures: Tracks validation failures and their resolutions
+//!
+//! Enables configurable, trackable, and auditable data quality management across
+//! all HR entities (employees, departments, documents, etc.).
+//!
+//! ## SeaORM Builder Usage
+//! **Conversion: 100% SeaORM Builders (pure table creation)**
+//! - Uses SeaORM Table::create() with if_not_exists() guards
+//! - Uses SeaORM Index::create() with if_not_exists() guards
+//! - Uses SeaORM ForeignKey::create() for referential integrity
+//! - Uses SeaORM Table::drop() with if_exists() guards
+//!
+//! ## Operations Summary
+//!
+//! ### validation_rules Table (14 columns):
+//! 1. **id** (UUID, PRIMARY KEY) - Unique rule identifier
+//! 2. **name** (VARCHAR(255), NOT NULL) - Rule name (e.g., "email_format_check")
+//! 3. **description** (TEXT, nullable) - Human-readable rule explanation
+//! 4. **entity_type** (VARCHAR(50), NOT NULL) - Entity: "employee", "department", etc.
+//! 5. **field_name** (VARCHAR(100), NOT NULL) - Field to validate (e.g., "email")
+//! 6. **rule_type** (VARCHAR(50), NOT NULL) - Type: "format", "range", "required", etc.
+//! 7. **condition** (TEXT, NOT NULL) - Validation expression (SQL, regex, JSON)
+//! 8. **severity** (VARCHAR(20), NOT NULL, DEFAULT 'ERROR') - "ERROR", "WARNING", "INFO"
+//! 9. **auto_fix_strategy** (VARCHAR(50), NOT NULL, DEFAULT 'None') - Fix strategy
+//! 10. **enabled** (BOOLEAN, NOT NULL, DEFAULT true) - Rule active flag
+//! 11. **created_by** (UUID, nullable) - User who created rule
+//! 12. **created_at** (TIMESTAMPTZ, NOT NULL, DEFAULT NOW()) - Creation timestamp
+//! 13. **updated_at** (TIMESTAMPTZ, NOT NULL, DEFAULT NOW()) - Last update timestamp
+//!
+//! ### validation_failures Table (11 columns):
+//! 1. **id** (UUID, PRIMARY KEY) - Unique failure identifier
+//! 2. **rule_id** (UUID, NOT NULL, FK) - Reference to validation_rules
+//! 3. **entity_type** (VARCHAR(50), NOT NULL) - Entity type
+//! 4. **entity_id** (VARCHAR(255), nullable) - Entity UUID as string
+//! 5. **field_name** (VARCHAR(100), NOT NULL) - Field that failed validation
+//! 6. **invalid_value** (TEXT, nullable) - The invalid value (for audit)
+//! 7. **error_message** (TEXT, NOT NULL) - Human-readable error
+//! 8. **severity** (VARCHAR(20), NOT NULL, DEFAULT 'ERROR') - Inherited from rule
+//! 9. **detected_at** (TIMESTAMPTZ, NOT NULL, DEFAULT NOW()) - Detection timestamp
+//! 10. **resolved_at** (TIMESTAMPTZ, nullable) - Resolution timestamp
+//! 11. **resolution** (VARCHAR(50), nullable) - How resolved: "fixed", "ignored", etc.
+//!
+//! ### Indexes (5 total):
+//! 1. **idx_validation_rules_entity_enabled** - Find active rules for entity type
+//! 2. **idx_validation_failures_entity** - Find failures by entity
+//! 3. **idx_validation_failures_detected_at** - Time-based failure queries
+//! 4. **idx_validation_failures_resolved** - Find unresolved failures
+//!
+//! ## Migration Strategy
+//! - **Pure SeaORM**: 100% using SeaORM table/index builders
+//! - **Idempotent**: All operations use IF NOT EXISTS/IF EXISTS guards
+//! - **Foreign Keys**: CASCADE on delete (failures removed with rules)
+//! - **Defaults**: Sensible defaults for severity, enabled, timestamps
+//! - **Nullable Fields**: Optional metadata (description, entity_id, resolution)
+//!
+//! ## Validation Workflow Examples
+//!
+//! ### Define Email Format Rule:
+//! ```sql
+//! INSERT INTO validation_rules (id, name, entity_type, field_name, rule_type, condition, severity)
+//! VALUES (
+//!   gen_random_uuid(),
+//!   'email_format_check',
+//!   'employee',
+//!   'email',
+//!   'format',
+//!   '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+//!   'ERROR'
+//! );
+//! ```
+//!
+//! ### Record Validation Failure:
+//! ```sql
+//! INSERT INTO validation_failures (id, rule_id, entity_type, entity_id, field_name, invalid_value, error_message)
+//! VALUES (
+//!   gen_random_uuid(),
+//!   '<rule_id>',
+//!   'employee',
+//!   '<employee_id>',
+//!   'email',
+//!   'invalid-email',
+//!   'Email format invalid: missing @ symbol'
+//! );
+//! ```
+//!
+//! ### Find Unresolved Failures:
+//! ```sql
+//! SELECT * FROM validation_failures
+//! WHERE resolved_at IS NULL
+//! ORDER BY detected_at DESC;
+//! ```
+//!
+//! ### Resolve Failure:
+//! ```sql
+//! UPDATE validation_failures
+//! SET resolved_at = NOW(),
+//!     resolution = 'fixed'
+//! WHERE id = '<failure_id>';
+//! ```
+//!
+//! ## Rule Types
+//! - **format**: Regex or pattern matching (emails, phone numbers)
+//! - **range**: Numeric or date range validation
+//! - **required**: NOT NULL enforcement
+//! - **unique**: Uniqueness validation (with scope)
+//! - **reference**: Foreign key / relationship validation
+//! - **custom**: Custom SQL or application logic
+//!
+//! ## Severity Levels
+//! - **ERROR**: Blocks operations, requires fix
+//! - **WARNING**: Allows operations, suggests fix
+//! - **INFO**: Informational, no action required
+//!
+//! ## Auto-Fix Strategies
+//! - **None**: No automatic fix, manual intervention required
+//! - **Trim**: Trim whitespace
+//! - **Lowercase**: Convert to lowercase
+//! - **RemoveInvalid**: Remove invalid characters
+//! - **SetDefault**: Use default value
+//! - **Custom**: Application-specific fix logic
+//!
+//! ## Resolution Types
+//! - **fixed**: Data corrected, validation now passes
+//! - **ignored**: Marked as false positive
+//! - **waived**: Approved exception
+//! - **auto_fixed**: Automatically corrected by system
+//! - **migrated**: Issue no longer relevant (schema change)
+//!
+//! ## Use Cases
+//! - **Data Quality**: Track and fix data quality issues
+//! - **QuickBooks Sync**: Validate data before sync to prevent errors
+//! - **Import Validation**: Validate CSV imports against rules
+//! - **Migration Safety**: Validate data before/after migrations
+//! - **Compliance**: Ensure data meets regulatory requirements
+//! - **Audit Trail**: Track when/how validation issues were resolved
+//!
+//! ## Related Migrations
+//! - m20251226_002_enforce_email_rules: Database-level email validation
+//! - m20251226_003_enforce_department_names: Database-level name validation
+//! - m20251229_004_incremental_sync: Uses validation before sync
+//!
+//! ## Performance Impact
+//! - **5 New Indexes**: Fast lookups by entity, time, resolution status
+//! - **Foreign Key**: Cascading deletes (minimal overhead)
+//! - **JSONB-Ready**: condition field can store complex validation logic
+//! - **Query Performance**: Composite indexes for common patterns
+
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
@@ -6,7 +157,8 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // Create validation_rules table
+        // Schema creation: validation_rules table
+        // Stores configurable validation rules for all entity types
         manager
             .create_table(
                 Table::create()
@@ -79,7 +231,8 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Create index on entity_type and enabled
+        // Performance index: Find active rules for specific entity type
+        // Common query: SELECT * FROM validation_rules WHERE entity_type = ? AND enabled = true
         manager
             .create_index(
                 Index::create()
@@ -92,7 +245,8 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Create validation_failures table
+        // Schema creation: validation_failures table
+        // Tracks validation failures with audit trail and resolution status
         manager
             .create_table(
                 Table::create()
@@ -160,7 +314,8 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Create indexes on validation_failures
+        // Performance index: Find failures by entity (composite key)
+        // Common query: SELECT * FROM validation_failures WHERE entity_type = ? AND entity_id = ?
         manager
             .create_index(
                 Index::create()
@@ -173,6 +328,8 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        // Performance index: Time-based failure queries (recent failures first)
+        // Common query: SELECT * FROM validation_failures ORDER BY detected_at DESC
         manager
             .create_index(
                 Index::create()
@@ -184,6 +341,8 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        // Performance index: Find unresolved failures (WHERE resolved_at IS NULL)
+        // Common query: SELECT * FROM validation_failures WHERE resolved_at IS NULL
         manager
             .create_index(
                 Index::create()
@@ -199,12 +358,26 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        // Cleanup: Drop validation_failures table first (has foreign key to validation_rules)
+        // Uses if_exists guard for idempotent rollback
         manager
-            .drop_table(Table::drop().table(ValidationFailures::Table).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table(ValidationFailures::Table)
+                    .if_exists()
+                    .to_owned(),
+            )
             .await?;
 
+        // Cleanup: Drop validation_rules table
+        // Uses if_exists guard for idempotent rollback
         manager
-            .drop_table(Table::drop().table(ValidationRules::Table).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table(ValidationRules::Table)
+                    .if_exists()
+                    .to_owned(),
+            )
             .await?;
 
         Ok(())

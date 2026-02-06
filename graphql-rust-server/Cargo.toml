@@ -115,6 +115,11 @@ name = "test_m20251226_003_enforce_department_names"
 required-features = ["test-utils"]
 
 [[test]]
+path = "migration/tests/m20251229_001_create_validation_tables_test.rs"
+name = "test_m20251229_001_create_validation_tables"
+required-features = ["test-utils"]
+
+[[test]]
 path = "migration/tests/test_m20251202_006_onboarding_documents.rs"
 name = "test_m20251202_006_onboarding_documents"
 required-features = ["test-utils"]

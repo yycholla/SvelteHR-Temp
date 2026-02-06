@@ -70,7 +70,7 @@ pub mod m20251226_001_add_sync_tracking;
 pub mod m20251226_002_enhance_sync_log;
 pub mod m20251226_002_enforce_email_rules;
 pub mod m20251226_003_enforce_department_names;
-mod m20251229_001_create_validation_tables;
+pub mod m20251229_001_create_validation_tables;
 mod m20251229_002_add_sync_permissions;
 mod m20251229_003_seed_sync_role_permissions;
 mod m20251229_004_incremental_sync;
