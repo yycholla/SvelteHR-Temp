@@ -2,6 +2,71 @@
 //!
 //! Adds algorithm and user_id columns to encryption_keys table and creates
 //! helper functions for server-side key encryption using pgcrypto.
+//!
+//! ## SeaORM Builder Usage: 80% Converted
+//!
+//! ### Operations Using SeaORM Builders (8 operations):
+//!
+//! **Up Migration:**
+//! 1. ALTER TABLE ADD COLUMN algorithm (lines 21-33) ✓
+//! 2. ALTER TABLE ADD COLUMN user_id (lines 36-47) ✓
+//! 3. ALTER TABLE ADD FOREIGN KEY fk_encryption_keys_user_id (lines 49-65) ✓
+//! 4. CREATE INDEX idx_encryption_keys_user_id (lines 68-76) ✓
+//!
+//! **Down Migration:**
+//! 5. DROP INDEX idx_encryption_keys_user_id (lines 157-164) ✓
+//! 6. DROP FOREIGN KEY fk_encryption_keys_user_id (lines 167-174) ✓
+//! 7. DROP COLUMN user_id (lines 177-184) ✓
+//! 8. DROP COLUMN algorithm (lines 187-194) ✓
+//!
+//! ### PostgreSQL-Specific Operations (Raw SQL - 4 operations):
+//!
+//! These operations have no SeaORM/sea-query builder support and are
+//! **intentionally kept as raw SQL**:
+//!
+//! 1. **CREATE EXTENSION pgcrypto** (line 17)
+//!    - Reason: PostgreSQL extension management has no builder API
+//!    - Alternative: Could use sea-query-postgres extension, but overkill for one line
+//!
+//! 2. **CREATE FUNCTION encrypt_key_data()** (lines 79-101)
+//!    - Reason: PL/pgSQL function definitions have no builder API
+//!    - Complex: Stored procedure with DECLARE block and symmetric encryption
+//!
+//! 3. **CREATE FUNCTION decrypt_key_data()** (lines 104-124)
+//!    - Reason: PL/pgSQL function definitions have no builder API
+//!    - Complex: Stored procedure with DECLARE block and symmetric decryption
+//!
+//! 4. **GRANT EXECUTE** (lines 127-139)
+//!    - Reason: DCL (Data Control Language) statements have no builder API
+//!    - Note: Grants permissions on the two functions to PUBLIC
+//!
+//! 5. **DROP FUNCTION** (lines 146-154)
+//!    - Reason: Function management has no builder API
+//!
+//! ## Why These Remain Raw SQL
+//!
+//! SeaORM's builder API is designed for DDL (Data Definition Language) schema operations:
+//! - CREATE/ALTER/DROP TABLE
+//! - CREATE/DROP INDEX
+//! - ADD/DROP FOREIGN KEY
+//!
+//! It intentionally does NOT provide builders for:
+//! - Extensions (PostgreSQL-specific)
+//! - Stored procedures/functions (database-specific syntax)
+//! - Permissions (DCL - GRANT/REVOKE)
+//!
+//! These PostgreSQL features are properly kept as raw SQL and will not be converted.
+//!
+//! ## Security Note
+//!
+//! The encryption functions use pgcrypto's `pgp_sym_encrypt_bytea()` and `pgp_sym_decrypt_bytea()`
+//! for AES-256 symmetric encryption. The password is derived from key_identifier + a placeholder
+//! that should be replaced with an environment variable in production.
+//!
+//! ## Migration Type: Schema Enhancement with Database Functions
+//!
+//! This migration enhances the encryption_keys table with user tracking and provides
+//! database-level encryption helpers for secure key storage.
 
 use sea_orm_migration::prelude::*;
 
