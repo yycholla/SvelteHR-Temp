@@ -40,6 +40,11 @@ name = "test_m20251202_005_seed_w4_form"
 required-features = ["test-utils"]
 
 [[test]]
+path = "migration/tests/test_m20251202_006_integrate_onboarding_docs.rs"
+name = "test_m20251202_006_integrate_onboarding_docs"
+required-features = ["test-utils"]
+
+[[test]]
 path = "migration/tests/test_m20251217_001_inline_form.rs"
 name = "test_m20251217_001_inline_form"
 required-features = ["test-utils"]
