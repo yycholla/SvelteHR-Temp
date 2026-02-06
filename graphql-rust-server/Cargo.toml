@@ -124,6 +124,11 @@ path = "migration/tests/test_m20251111_003_create_notification_channels.rs"
 name = "test_m20251111_003_create_notification_channels"
 required-features = ["test-utils"]
 
+[[test]]
+path = "migration/tests/test_m20251111_004_extend_users_for_auth_policies.rs"
+name = "test_m20251111_004_extend_users_for_auth_policies"
+required-features = ["test-utils"]
+
 [package]
 name = "hr-graphql-server"
 edition = "2021"
