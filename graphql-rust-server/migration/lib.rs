@@ -82,7 +82,7 @@ pub mod m20251229_009_create_batch_operations;
 pub mod m20251229_010_create_rollback_system;
 pub mod m20251229_011_create_error_recovery;
 pub mod m20251229_012_enhance_audit_trail;
-mod m20251229_012_enhance_audit_trail;
+pub mod m20251229_013_create_compliance_reports;
 mod m20251229_013_create_compliance_reports;
 mod m20251230_001_create_time_entries;
 mod m20251230_002_payroll_integration;
