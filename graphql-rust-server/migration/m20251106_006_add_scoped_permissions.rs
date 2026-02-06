@@ -1,3 +1,50 @@
+//! Migration: Add scoped permissions
+//!
+//! Seeds fine-grained scope-based permissions for comprehensive RBAC control.
+//!
+//! ## SeaORM Builder Usage: Not Applicable (Data Migration)
+//!
+//! ### Why This Migration Uses Raw SQL
+//!
+//! This is a **large-scale data migration** that inserts 104 permission records.
+//! SeaORM's builder API is designed for DDL (Data Definition Language) schema operations,
+//! not DML (Data Manipulation Language) like INSERT/DELETE for data seeding.
+//!
+//! **For bulk data seeding operations, raw SQL is the correct approach.**
+//!
+//! ### Operations (Raw SQL - 2 operations):
+//!
+//! **Up Migration:**
+//! 1. INSERT 104 scoped permission records across 20 resource categories:
+//!    - Scoped read permissions: read:self, read:team, read:all (60 permissions)
+//!    - Standardized write/delete permissions (44 permissions)
+//!    - Uses ON CONFLICT DO NOTHING for idempotency
+//!
+//! **Down Migration:**
+//! 2. DELETE scoped permissions using:
+//!    - action IN ('read:self', 'read:team', 'read:all')
+//!    - Specific (resource, action) pairs for write/delete permissions
+//!
+//! ### Permission Scope Semantics
+//!
+//! - **read:self** - User can only view their own records
+//! - **read:team** - User can view records for their team/managed users
+//! - **read:all** - User can view all records across the organization
+//!
+//! This enables fine-grained access control where a Manager might have
+//! `employees:read:team` (view team members) while an HR Manager has
+//! `employees:read:all` (view all employees).
+//!
+//! ### Idempotency
+//!
+//! The INSERT uses `ON CONFLICT (resource, action) DO NOTHING` to ensure
+//! safe re-runs without creating duplicate permission records.
+//!
+//! ## Migration Type: Seed Data (Scoped Permissions)
+//!
+//! This migration establishes the foundation for scope-based access control,
+//! enabling granular permission assignments like "view own X", "view team X", "view all X".
+
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
@@ -6,6 +53,8 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        // Seed scoped permissions for fine-grained RBAC
+        // Data seeding operation - intentionally raw SQL
         // Add scoped read permissions (read:self, read:team, read:all) and standardized write/delete
         // for all resource categories
         manager.get_connection().execute_unprepared(
@@ -156,6 +205,7 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Remove the scoped permissions
+        // Data cleanup operation - intentionally raw SQL
         manager.get_connection().execute_unprepared(
             "DELETE FROM hr_public.permissions WHERE action IN ('read:self', 'read:team', 'read:all')
             OR (resource, action) IN (
