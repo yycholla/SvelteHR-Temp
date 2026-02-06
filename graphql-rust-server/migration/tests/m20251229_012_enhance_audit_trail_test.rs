@@ -3,8 +3,7 @@
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr, Statement};
 use sea_orm_migration::prelude::*;
 
-mod m20251229_012_enhance_audit_trail;
-use m20251229_012_enhance_audit_trail::Migration;
+use hr_graphql_server::migration::m20251229_012_enhance_audit_trail::Migration;
 
 fn get_test_db_url() -> String {
     std::env::var("DATABASE_URL")

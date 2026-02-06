@@ -7,8 +7,8 @@ use sea_orm::{ConnectionTrait, Database, DbBackend, DbErr, Statement};
 use sea_orm_migration::prelude::*;
 
 // Import the migration
-use migration::m20251202_004_create_onboarding_module::Migration;
-use migration::MigratorTrait;
+use hr_graphql_server::migration::m20251202_004_create_onboarding_module::Migration;
+use hr_graphql_server::migration::MigratorTrait;
 
 /// Helper function to get test database URL from environment
 fn get_test_db_url() -> String {

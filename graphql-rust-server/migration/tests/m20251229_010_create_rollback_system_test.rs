@@ -12,8 +12,7 @@ use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr, S
 use sea_orm_migration::prelude::*;
 
 /// Migration module being tested
-mod m20251229_010_create_rollback_system;
-use m20251229_010_create_rollback_system::Migration;
+use hr_graphql_server::migration::m20251229_010_create_rollback_system::Migration;
 
 /// Test database URL from environment
 fn get_test_db_url() -> String {
@@ -51,8 +50,11 @@ async fn test_up_migration_creates_tables() -> Result<(), DbErr> {
     let db = setup().await?;
     let manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Run up migration
-    Migration.up(&manager).await?;
+    migration.up(&manager).await?;
 
     // Verify sync_snapshots table exists
     let result = db.query_one(Statement::from_string(
@@ -83,7 +85,7 @@ async fn test_up_migration_creates_tables() -> Result<(), DbErr> {
     assert!(exists, "rollback_operations table should exist after up migration");
 
     // Cleanup
-    Migration.down(&manager).await?;
+    migration.down(&manager).await?;
 
     Ok(())
 }
@@ -93,7 +95,10 @@ async fn test_sync_snapshots_columns() -> Result<(), DbErr> {
     let db = setup().await?;
     let manager = SchemaManager::new(&db);
 
-    Migration.up(&manager).await?;
+    let migration = Migration;
+
+
+    migration.up(&manager).await?;
 
     // Verify all required columns exist with correct types
     let columns = db.query_all(Statement::from_string(
@@ -121,7 +126,7 @@ async fn test_sync_snapshots_columns() -> Result<(), DbErr> {
     assert!(column_names.contains(&"can_rollback".to_string()));
     assert!(column_names.contains(&"created_at".to_string()));
 
-    Migration.down(&manager).await?;
+    migration.down(&manager).await?;
 
     Ok(())
 }
@@ -131,7 +136,10 @@ async fn test_rollback_operations_columns() -> Result<(), DbErr> {
     let db = setup().await?;
     let manager = SchemaManager::new(&db);
 
-    Migration.up(&manager).await?;
+    let migration = Migration;
+
+
+    migration.up(&manager).await?;
 
     // Verify all required columns exist
     let columns = db.query_all(Statement::from_string(
@@ -158,7 +166,7 @@ async fn test_rollback_operations_columns() -> Result<(), DbErr> {
     assert!(column_names.contains(&"triggered_by_email".to_string()));
     assert!(column_names.contains(&"created_at".to_string()));
 
-    Migration.down(&manager).await?;
+    migration.down(&manager).await?;
 
     Ok(())
 }
@@ -168,7 +176,10 @@ async fn test_foreign_keys_created() -> Result<(), DbErr> {
     let db = setup().await?;
     let manager = SchemaManager::new(&db);
 
-    Migration.up(&manager).await?;
+    let migration = Migration;
+
+
+    migration.up(&manager).await?;
 
     // Check foreign keys
     let fks = db.query_all(Statement::from_string(
@@ -188,7 +199,7 @@ async fn test_foreign_keys_created() -> Result<(), DbErr> {
     assert!(fk_names.contains(&"fk_rollback_operations_snapshot".to_string()));
     assert!(fk_names.contains(&"fk_rollback_operations_sync_log".to_string()));
 
-    Migration.down(&manager).await?;
+    migration.down(&manager).await?;
 
     Ok(())
 }
@@ -198,7 +209,10 @@ async fn test_indexes_created() -> Result<(), DbErr> {
     let db = setup().await?;
     let manager = SchemaManager::new(&db);
 
-    Migration.up(&manager).await?;
+    let migration = Migration;
+
+
+    migration.up(&manager).await?;
 
     // Check indexes
     let indexes = db.query_all(Statement::from_string(
@@ -220,7 +234,7 @@ async fn test_indexes_created() -> Result<(), DbErr> {
     assert!(index_names.contains(&"idx_rollback_operations_status".to_string()));
     assert!(index_names.contains(&"idx_rollback_operations_snapshot_id".to_string()));
 
-    Migration.down(&manager).await?;
+    migration.down(&manager).await?;
 
     Ok(())
 }
@@ -230,7 +244,10 @@ async fn test_check_constraints_added() -> Result<(), DbErr> {
     let db = setup().await?;
     let manager = SchemaManager::new(&db);
 
-    Migration.up(&manager).await?;
+    let migration = Migration;
+
+
+    migration.up(&manager).await?;
 
     // Verify CHECK constraints exist
     let constraints = db.query_all(Statement::from_string(
@@ -251,7 +268,7 @@ async fn test_check_constraints_added() -> Result<(), DbErr> {
     assert!(constraint_names.contains(&"check_rollback_type".to_string()));
     assert!(constraint_names.contains(&"check_rollback_status".to_string()));
 
-    Migration.down(&manager).await?;
+    migration.down(&manager).await?;
 
     Ok(())
 }
@@ -261,7 +278,10 @@ async fn test_default_values() -> Result<(), DbErr> {
     let db = setup().await?;
     let manager = SchemaManager::new(&db);
 
-    Migration.up(&manager).await?;
+    let migration = Migration;
+
+
+    migration.up(&manager).await?;
 
     // Check default values for sync_snapshots
     let defaults = db.query_all(Statement::from_string(
@@ -288,7 +308,7 @@ async fn test_default_values() -> Result<(), DbErr> {
     assert!(defaults_map.contains_key("can_rollback"));
     assert!(defaults_map.get("can_rollback").unwrap().contains("true"));
 
-    Migration.down(&manager).await?;
+    migration.down(&manager).await?;
 
     Ok(())
 }
@@ -298,9 +318,12 @@ async fn test_idempotent_up_migration() -> Result<(), DbErr> {
     let db = setup().await?;
     let manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Run migration twice
-    Migration.up(&manager).await?;
-    let result = Migration.up(&manager).await;
+    migration.up(&manager).await?;
+    let result = migration.up(&manager).await;
 
     // Should not error on second run
     assert!(result.is_ok(), "Up migration should be idempotent");
@@ -316,7 +339,7 @@ async fn test_idempotent_up_migration() -> Result<(), DbErr> {
     let count: i64 = result.unwrap().try_get("", "count")?;
     assert_eq!(count, 2, "Both tables should exist after idempotent up");
 
-    Migration.down(&manager).await?;
+    migration.down(&manager).await?;
 
     Ok(())
 }
@@ -326,9 +349,12 @@ async fn test_down_migration_removes_tables() -> Result<(), DbErr> {
     let db = setup().await?;
     let manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Run up then down
-    Migration.up(&manager).await?;
-    Migration.down(&manager).await?;
+    migration.up(&manager).await?;
+    migration.down(&manager).await?;
 
     // Verify tables are removed
     let result = db.query_one(Statement::from_string(
@@ -349,12 +375,15 @@ async fn test_idempotent_down_migration() -> Result<(), DbErr> {
     let db = setup().await?;
     let manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Run up migration first
-    Migration.up(&manager).await?;
+    migration.up(&manager).await?;
 
     // Run down migration twice
-    Migration.down(&manager).await?;
-    let result = Migration.down(&manager).await;
+    migration.down(&manager).await?;
+    let result = migration.down(&manager).await;
 
     // Should not error on second run
     assert!(result.is_ok(), "Down migration should be idempotent");
@@ -367,8 +396,11 @@ async fn test_full_migration_cycle() -> Result<(), DbErr> {
     let db = setup().await?;
     let manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Up migration
-    Migration.up(&manager).await?;
+    migration.up(&manager).await?;
 
     // Verify tables exist
     let result = db.query_one(Statement::from_string(
@@ -382,7 +414,7 @@ async fn test_full_migration_cycle() -> Result<(), DbErr> {
     assert_eq!(count, 2, "Tables should exist after up migration");
 
     // Down migration
-    Migration.down(&manager).await?;
+    migration.down(&manager).await?;
 
     // Verify tables are removed
     let result = db.query_one(Statement::from_string(
@@ -396,7 +428,7 @@ async fn test_full_migration_cycle() -> Result<(), DbErr> {
     assert_eq!(count, 0, "Tables should be removed after down migration");
 
     // Up migration again
-    Migration.up(&manager).await?;
+    migration.up(&manager).await?;
 
     // Verify tables exist again
     let result = db.query_one(Statement::from_string(
@@ -410,7 +442,7 @@ async fn test_full_migration_cycle() -> Result<(), DbErr> {
     assert_eq!(count, 2, "Tables should exist after second up migration");
 
     // Final cleanup
-    Migration.down(&manager).await?;
+    migration.down(&manager).await?;
 
     Ok(())
 }
@@ -420,7 +452,10 @@ async fn test_table_comments_added() -> Result<(), DbErr> {
     let db = setup().await?;
     let manager = SchemaManager::new(&db);
 
-    Migration.up(&manager).await?;
+    let migration = Migration;
+
+
+    migration.up(&manager).await?;
 
     // Check table comments
     let comments = db.query_all(Statement::from_string(
@@ -443,7 +478,7 @@ async fn test_table_comments_added() -> Result<(), DbErr> {
     assert!(table_names.contains(&"sync_snapshots".to_string()));
     assert!(table_names.contains(&"rollback_operations".to_string()));
 
-    Migration.down(&manager).await?;
+    migration.down(&manager).await?;
 
     Ok(())
 }
@@ -453,7 +488,10 @@ async fn test_primary_keys_created() -> Result<(), DbErr> {
     let db = setup().await?;
     let manager = SchemaManager::new(&db);
 
-    Migration.up(&manager).await?;
+    let migration = Migration;
+
+
+    migration.up(&manager).await?;
 
     // Verify primary keys exist
     let pks = db.query_all(Statement::from_string(
@@ -474,7 +512,7 @@ async fn test_primary_keys_created() -> Result<(), DbErr> {
     assert!(table_names.contains(&"sync_snapshots".to_string()));
     assert!(table_names.contains(&"rollback_operations".to_string()));
 
-    Migration.down(&manager).await?;
+    migration.down(&manager).await?;
 
     Ok(())
 }

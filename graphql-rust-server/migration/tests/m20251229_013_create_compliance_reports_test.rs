@@ -3,8 +3,7 @@
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr, Statement};
 use sea_orm_migration::prelude::*;
 
-mod m20251229_013_create_compliance_reports;
-use m20251229_013_create_compliance_reports::Migration;
+use hr_graphql_server::migration::m20251229_013_create_compliance_reports::Migration;
 
 fn get_test_db_url() -> String {
     std::env::var("DATABASE_URL")
@@ -27,7 +26,9 @@ async fn test_migration_name() {
 async fn test_up_migration_creates_tables() -> Result<(), DbErr> {
     let db = setup().await?;
     let manager = SchemaManager::new(&db);
-    Migration.up(&manager).await?;
+    let migration = Migration;
+
+    migration.up(&manager).await?;
 
     let result = db.query_one(Statement::from_string(
         DbBackend::Postgres,
@@ -39,6 +40,6 @@ async fn test_up_migration_creates_tables() -> Result<(), DbErr> {
     let count: i64 = result.unwrap().try_get("", "count")?;
     assert_eq!(count, 2);
 
-    Migration.down(&manager).await?;
+    migration.down(&manager).await?;
     Ok(())
 }

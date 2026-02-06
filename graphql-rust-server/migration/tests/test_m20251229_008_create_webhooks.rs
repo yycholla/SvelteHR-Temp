@@ -1,6 +1,6 @@
 //! Tests for m20251229_008_create_webhooks migration
 
-use migration::m20251229_008_create_webhooks::Migration;
+use hr_graphql_server::migration::m20251229_008_create_webhooks::Migration;
 use sea_orm::{Database, DatabaseConnection, DbErr, Statement};
 use sea_orm_migration::prelude::*;
 

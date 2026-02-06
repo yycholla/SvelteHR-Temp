@@ -6,8 +6,8 @@
 //! - Invalid name rejection (NULL, empty, whitespace-only)
 //! - Idempotent up and down migrations
 
-use migration::m20251226_003_enforce_department_names::Migration;
-use migration::{Migrator, MigratorTrait};
+use hr_graphql_server::migration::m20251226_003_enforce_department_names::Migration;
+use hr_graphql_server::migration::{Migrator, MigratorTrait};
 use sea_orm::{Database, DatabaseConnection, DbErr, Statement};
 use sea_orm_migration::prelude::*;
 
@@ -90,7 +90,8 @@ async fn test_up_migration() {
     let schema_manager = SchemaManager::new(&db);
 
     // Run migration
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    let migration = Migration;
+    migration.up(&schema_manager).await.expect("Failed to run up migration");
 
     // Verify constraint exists
     assert!(
@@ -107,7 +108,8 @@ async fn test_constraint_rejects_null_name() {
     let schema_manager = SchemaManager::new(&db);
 
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    let migration = Migration;
+    migration.up(&schema_manager).await.expect("Failed to run up migration");
 
     // Attempt to insert department with NULL name - should fail
     let result = insert_test_department(&db, None).await;
@@ -195,8 +197,11 @@ async fn test_constraint_allows_valid_department_name() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration.up(&schema_manager).await.expect("Failed to run up migration");
 
     // Attempt to insert department with valid name - should succeed
     let result = insert_test_department(&db, Some("Engineering")).await;
@@ -216,8 +221,11 @@ async fn test_constraint_allows_name_with_surrounding_whitespace() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration.up(&schema_manager).await.expect("Failed to run up migration");
 
     // Department name with surrounding whitespace should be accepted (trim() removes it)
     let result = insert_test_department(&db, Some("  Engineering  ")).await;
@@ -274,8 +282,11 @@ async fn test_constraint_allows_single_character_name() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration.up(&schema_manager).await.expect("Failed to run up migration");
 
     // Single character should be valid (length > 0)
     let result = insert_test_department(&db, Some("A")).await;
@@ -295,9 +306,12 @@ async fn test_idempotent_up_migration() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Run migration twice
-    Migration.up(&schema_manager).await.expect("Failed to run first up migration");
-    Migration.up(&schema_manager).await.expect("Failed to run second up migration");
+    migration.up(&schema_manager).await.expect("Failed to run first up migration");
+    migration.up(&schema_manager).await.expect("Failed to run second up migration");
 
     // Verify constraint still exists
     assert!(
@@ -313,8 +327,11 @@ async fn test_down_migration() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Run up migration first
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration.up(&schema_manager).await.expect("Failed to run up migration");
 
     // Verify constraint exists
     assert!(
@@ -325,7 +342,7 @@ async fn test_down_migration() {
     );
 
     // Run down migration
-    Migration.down(&schema_manager).await.expect("Failed to run down migration");
+    migration.down(&schema_manager).await.expect("Failed to run down migration");
 
     // Verify constraint is removed
     assert!(
@@ -341,9 +358,12 @@ async fn test_down_migration_allows_invalid_names() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Run up then down migration
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
-    Migration.down(&schema_manager).await.expect("Failed to run down migration");
+    migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration.down(&schema_manager).await.expect("Failed to run down migration");
 
     // After down migration, empty names should be allowed
     let result = insert_test_department(&db, Some("")).await;
@@ -363,12 +383,15 @@ async fn test_idempotent_down_migration() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Run up migration first
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration.up(&schema_manager).await.expect("Failed to run up migration");
 
     // Run down migration twice
-    Migration.down(&schema_manager).await.expect("Failed to run first down migration");
-    Migration.down(&schema_manager).await.expect("Failed to run second down migration");
+    migration.down(&schema_manager).await.expect("Failed to run first down migration");
+    migration.down(&schema_manager).await.expect("Failed to run second down migration");
 
     // Verify constraint is still removed
     assert!(
@@ -384,8 +407,11 @@ async fn test_full_migration_cycle() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Run up migration
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration.up(&schema_manager).await.expect("Failed to run up migration");
 
     // Verify constraint exists
     assert!(
@@ -402,7 +428,7 @@ async fn test_full_migration_cycle() {
     );
 
     // Run down migration
-    Migration.down(&schema_manager).await.expect("Failed to run down migration");
+    migration.down(&schema_manager).await.expect("Failed to run down migration");
 
     // Verify constraint removed
     assert!(
@@ -413,7 +439,7 @@ async fn test_full_migration_cycle() {
     );
 
     // Run up migration again
-    Migration.up(&schema_manager).await.expect("Failed to run up migration again");
+    migration.up(&schema_manager).await.expect("Failed to run up migration again");
 
     // Verify constraint exists again
     assert!(

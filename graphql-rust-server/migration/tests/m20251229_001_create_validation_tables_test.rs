@@ -8,8 +8,8 @@
 //! - Foreign key relationships
 //! - Idempotent up and down migrations
 
-use migration::m20251229_001_create_validation_tables::Migration;
-use migration::{Migrator, MigratorTrait};
+use hr_graphql_server::migration::m20251229_001_create_validation_tables::Migration;
+use hr_graphql_server::migration::{Migrator, MigratorTrait};
 use sea_orm::{Database, DatabaseConnection, DbErr, Statement};
 use sea_orm_migration::prelude::*;
 

@@ -8,8 +8,8 @@
 //! - Sync permissions seeding (19 permissions)
 //! - Idempotent up and down migrations
 
-use migration::m20251229_002_add_sync_permissions::Migration;
-use migration::{Migrator, MigratorTrait};
+use hr_graphql_server::migration::m20251229_002_add_sync_permissions::Migration;
+use hr_graphql_server::migration::{Migrator, MigratorTrait};
 use sea_orm::{Database, DatabaseConnection, DbErr, Statement};
 use sea_orm_migration::prelude::*;
 
@@ -137,8 +137,11 @@ async fn test_up_migration_creates_table() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Run migration
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration.up(&schema_manager).await.expect("Failed to run up migration");
 
     // Verify sync_permission_audit table exists
     assert!(
@@ -184,8 +187,11 @@ async fn test_indexes_created() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration.up(&schema_manager).await.expect("Failed to run up migration");
 
     // Verify all indexes exist
     assert!(
@@ -215,8 +221,11 @@ async fn test_sync_permissions_seeded() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration.up(&schema_manager).await.expect("Failed to run up migration");
 
     // Verify sync resource permissions (18 permissions)
     let sync_count = count_permissions_by_resource(&db, "sync")
@@ -244,8 +253,11 @@ async fn test_specific_sync_permissions_exist() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration.up(&schema_manager).await.expect("Failed to run up migration");
 
     // Test sync operations permissions
     assert!(
@@ -321,8 +333,11 @@ async fn test_idempotent_permission_seeding() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Run migration twice
-    Migration.up(&schema_manager).await.expect("Failed to run first up migration");
+    migration.up(&schema_manager).await.expect("Failed to run first up migration");
 
     // Get initial count
     let initial_sync_count = count_permissions_by_resource(&db, "sync")
@@ -330,7 +345,7 @@ async fn test_idempotent_permission_seeding() {
         .expect("Failed to count sync permissions");
 
     // Run migration again
-    Migration.up(&schema_manager).await.expect("Failed to run second up migration");
+    migration.up(&schema_manager).await.expect("Failed to run second up migration");
 
     // Get count after second run
     let second_sync_count = count_permissions_by_resource(&db, "sync")
@@ -349,8 +364,11 @@ async fn test_foreign_key_to_users() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration.up(&schema_manager).await.expect("Failed to run up migration");
 
     // Create a test user
     db.execute(Statement::from_string(
@@ -418,8 +436,11 @@ async fn test_cascade_delete_audit_records() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Ensure migration is run
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration.up(&schema_manager).await.expect("Failed to run up migration");
 
     // Create a test user
     db.execute(Statement::from_string(
@@ -476,9 +497,12 @@ async fn test_idempotent_up_migration() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Run migration twice
-    Migration.up(&schema_manager).await.expect("Failed to run first up migration");
-    Migration.up(&schema_manager).await.expect("Failed to run second up migration");
+    migration.up(&schema_manager).await.expect("Failed to run first up migration");
+    migration.up(&schema_manager).await.expect("Failed to run second up migration");
 
     // Verify table still exists
     assert!(
@@ -494,8 +518,11 @@ async fn test_down_migration() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Run up migration first
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration.up(&schema_manager).await.expect("Failed to run up migration");
 
     // Verify table exists
     assert!(
@@ -506,7 +533,7 @@ async fn test_down_migration() {
     );
 
     // Run down migration
-    Migration.down(&schema_manager).await.expect("Failed to run down migration");
+    migration.down(&schema_manager).await.expect("Failed to run down migration");
 
     // Verify table is removed
     assert!(
@@ -522,8 +549,11 @@ async fn test_down_migration_soft_deletes_permissions() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Run up migration first
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration.up(&schema_manager).await.expect("Failed to run up migration");
 
     // Get count before down migration
     let before_count = count_permissions_by_resource(&db, "sync")
@@ -531,7 +561,7 @@ async fn test_down_migration_soft_deletes_permissions() {
         .expect("Failed to count sync permissions");
 
     // Run down migration
-    Migration.down(&schema_manager).await.expect("Failed to run down migration");
+    migration.down(&schema_manager).await.expect("Failed to run down migration");
 
     // Get count after down migration (should be 0 for non-deleted)
     let after_count = count_permissions_by_resource(&db, "sync")
@@ -549,12 +579,15 @@ async fn test_idempotent_down_migration() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Run up migration first
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration.up(&schema_manager).await.expect("Failed to run up migration");
 
     // Run down migration twice
-    Migration.down(&schema_manager).await.expect("Failed to run first down migration");
-    Migration.down(&schema_manager).await.expect("Failed to run second down migration");
+    migration.down(&schema_manager).await.expect("Failed to run first down migration");
+    migration.down(&schema_manager).await.expect("Failed to run second down migration");
 
     // Verify table remains removed
     assert!(
@@ -570,8 +603,11 @@ async fn test_full_migration_cycle() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Run up migration
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    migration.up(&schema_manager).await.expect("Failed to run up migration");
 
     // Verify table exists
     assert!(
@@ -591,7 +627,7 @@ async fn test_full_migration_cycle() {
     );
 
     // Run down migration
-    Migration.down(&schema_manager).await.expect("Failed to run down migration");
+    migration.down(&schema_manager).await.expect("Failed to run down migration");
 
     // Verify table removed
     assert!(
@@ -602,7 +638,7 @@ async fn test_full_migration_cycle() {
     );
 
     // Run up migration again
-    Migration.up(&schema_manager).await.expect("Failed to run up migration again");
+    migration.up(&schema_manager).await.expect("Failed to run up migration again");
 
     // Verify table exists again
     assert!(

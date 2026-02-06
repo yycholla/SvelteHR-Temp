@@ -8,8 +8,8 @@
 //! - Idempotent up and down migrations
 //! - Full migration cycle testing
 
-use migration::m20251229_005_create_sync_health_monitoring::Migration;
-use migration::{Migrator, MigratorTrait};
+use hr_graphql_server::migration::m20251229_005_create_sync_health_monitoring::Migration;
+use hr_graphql_server::migration::{Migrator, MigratorTrait};
 use sea_orm::{Database, DatabaseConnection, DbErr, Statement};
 use sea_orm_migration::prelude::*;
 
@@ -256,7 +256,9 @@ async fn test_sync_health_alerts_columns() {
 async fn test_sync_health_metrics_indexes() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
-    Migration.up(&schema_manager).await.unwrap();
+    let migration = Migration;
+
+    migration.up(&schema_manager).await.unwrap();
 
     // Verify all indexes exist
     assert!(
@@ -278,7 +280,9 @@ async fn test_sync_health_metrics_indexes() {
 async fn test_sync_health_alerts_indexes() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
-    Migration.up(&schema_manager).await.unwrap();
+    let migration = Migration;
+
+    migration.up(&schema_manager).await.unwrap();
 
     // Verify all indexes exist
     assert!(
@@ -336,8 +340,11 @@ async fn test_down_migration() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Run up then down migration
-    Migration.up(&schema_manager).await.unwrap();
+    migration.up(&schema_manager).await.unwrap();
     Migration
         .down(&schema_manager)
         .await
@@ -375,8 +382,11 @@ async fn test_idempotent_down_migration() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
 
+    let migration = Migration;
+
+
     // Run up, then down twice
-    Migration.up(&schema_manager).await.unwrap();
+    migration.up(&schema_manager).await.unwrap();
     Migration
         .down(&schema_manager)
         .await
@@ -441,7 +451,9 @@ async fn test_full_migration_cycle() {
 async fn test_column_defaults() {
     let db = get_test_db().await.expect("Failed to connect to test database");
     let schema_manager = SchemaManager::new(&db);
-    Migration.up(&schema_manager).await.unwrap();
+    let migration = Migration;
+
+    migration.up(&schema_manager).await.unwrap();
 
     // Check that default values are set correctly by inserting minimal data
     let result = db

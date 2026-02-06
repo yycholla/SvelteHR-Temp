@@ -1,6 +1,6 @@
 //! Tests for m20251229_009_create_batch_operations migration
 
-use migration::m20251229_009_create_batch_operations::Migration;
+use hr_graphql_server::migration::m20251229_009_create_batch_operations::Migration;
 use sea_orm::{Database, DatabaseConnection, DbErr, Statement};
 use sea_orm_migration::prelude::*;
 
@@ -37,7 +37,9 @@ async fn test_migration_compiles() {
 async fn test_up_migration() {
     let db = get_test_db().await.expect("Failed to connect");
     let schema_manager = SchemaManager::new(&db);
-    Migration.up(&schema_manager).await.expect("Failed to run up migration");
+    let migration = Migration;
+
+    migration.up(&schema_manager).await.expect("Failed to run up migration");
     
     assert!(table_exists(&db, "hr_public", "batch_operations").await.unwrap());
     assert!(table_exists(&db, "hr_public", "batch_operation_items").await.unwrap());
@@ -47,7 +49,9 @@ async fn test_up_migration() {
 async fn test_indexes() {
     let db = get_test_db().await.expect("Failed to connect");
     let schema_manager = SchemaManager::new(&db);
-    Migration.up(&schema_manager).await.unwrap();
+    let migration = Migration;
+
+    migration.up(&schema_manager).await.unwrap();
     
     assert!(index_exists(&db, "idx_batch_operations_status").await.unwrap());
     assert!(index_exists(&db, "idx_batch_operations_type_entity").await.unwrap());
@@ -59,7 +63,9 @@ async fn test_indexes() {
 async fn test_foreign_key_cascade() {
     let db = get_test_db().await.expect("Failed to connect");
     let schema_manager = SchemaManager::new(&db);
-    Migration.up(&schema_manager).await.unwrap();
+    let migration = Migration;
+
+    migration.up(&schema_manager).await.unwrap();
     
     // Insert batch operation
     let batch_id = db.query_one(Statement::from_string(
@@ -93,7 +99,9 @@ async fn test_foreign_key_cascade() {
 async fn test_check_constraints() {
     let db = get_test_db().await.expect("Failed to connect");
     let schema_manager = SchemaManager::new(&db);
-    Migration.up(&schema_manager).await.unwrap();
+    let migration = Migration;
+
+    migration.up(&schema_manager).await.unwrap();
     
     // Test invalid status
     let result = db.execute(Statement::from_string(
@@ -121,7 +129,9 @@ async fn test_check_constraints() {
 async fn test_column_defaults() {
     let db = get_test_db().await.expect("Failed to connect");
     let schema_manager = SchemaManager::new(&db);
-    Migration.up(&schema_manager).await.unwrap();
+    let migration = Migration;
+
+    migration.up(&schema_manager).await.unwrap();
     
     // Insert with minimal fields
     let result = db.query_one(Statement::from_string(
@@ -137,8 +147,10 @@ async fn test_column_defaults() {
 async fn test_idempotent_up_migration() {
     let db = get_test_db().await.expect("Failed to connect");
     let schema_manager = SchemaManager::new(&db);
-    Migration.up(&schema_manager).await.expect("First up");
-    Migration.up(&schema_manager).await.expect("Second up (idempotent)");
+    let migration = Migration;
+
+    migration.up(&schema_manager).await.expect("First up");
+    migration.up(&schema_manager).await.expect("Second up (idempotent)");
     assert!(table_exists(&db, "hr_public", "batch_operations").await.unwrap());
 }
 
@@ -146,8 +158,10 @@ async fn test_idempotent_up_migration() {
 async fn test_down_migration() {
     let db = get_test_db().await.expect("Failed to connect");
     let schema_manager = SchemaManager::new(&db);
-    Migration.up(&schema_manager).await.unwrap();
-    Migration.down(&schema_manager).await.expect("Down migration");
+    let migration = Migration;
+
+    migration.up(&schema_manager).await.unwrap();
+    migration.down(&schema_manager).await.expect("Down migration");
     assert!(!table_exists(&db, "hr_public", "batch_operations").await.unwrap());
     assert!(!table_exists(&db, "hr_public", "batch_operation_items").await.unwrap());
 }
@@ -157,12 +171,15 @@ async fn test_full_migration_cycle() {
     let db = get_test_db().await.expect("Failed to connect");
     let schema_manager = SchemaManager::new(&db);
     
-    Migration.up(&schema_manager).await.expect("Up");
+    let migration = Migration;
+
+    
+    migration.up(&schema_manager).await.expect("Up");
     assert!(table_exists(&db, "hr_public", "batch_operations").await.unwrap());
     
-    Migration.down(&schema_manager).await.expect("Down");
+    migration.down(&schema_manager).await.expect("Down");
     assert!(!table_exists(&db, "hr_public", "batch_operations").await.unwrap());
     
-    Migration.up(&schema_manager).await.expect("Up again");
+    migration.up(&schema_manager).await.expect("Up again");
     assert!(table_exists(&db, "hr_public", "batch_operations").await.unwrap());
 }
