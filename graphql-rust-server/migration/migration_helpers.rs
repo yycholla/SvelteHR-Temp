@@ -77,6 +77,24 @@ impl MigrationHelpers {
             .await
     }
 
+    /// Drop column with IF EXISTS guard
+    pub async fn drop_column_if_exists(
+        manager: &SchemaManager<'_>,
+        table: &str,
+        column_name: &str,
+    ) -> Result<(), DbErr> {
+        let sql = format!(
+            "ALTER TABLE {} DROP COLUMN IF EXISTS {}",
+            table, column_name
+        );
+        Self::execute_idempotent(
+            manager,
+            &sql,
+            &format!("Drop column {} from {}", column_name, table),
+        )
+        .await
+    }
+
     /// Add multiple columns in a single ALTER TABLE (more efficient)
     /// All columns will use IF NOT EXISTS
     pub async fn add_columns_if_not_exist(

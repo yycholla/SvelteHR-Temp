@@ -35,6 +35,11 @@ name = "stress_test_load"
 required-features = ["test-utils"]
 
 [[test]]
+path = "migration/tests/test_m20251217_001_inline_form.rs"
+name = "test_m20251217_001_inline_form"
+required-features = ["test-utils"]
+
+[[test]]
 path = "migration/tests/test_m20251217_002_media_assets.rs"
 name = "test_m20251217_002_media_assets"
 required-features = ["test-utils"]
