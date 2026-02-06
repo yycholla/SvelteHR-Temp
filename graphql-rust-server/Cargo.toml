@@ -99,6 +99,11 @@ path = "migration/tests/test_m20251106_006_add_scoped_permissions.rs"
 name = "test_m20251106_006_add_scoped_permissions"
 required-features = ["test-utils"]
 
+[[test]]
+path = "migration/tests/test_m20251106_007_assign_scoped_permissions_to_roles.rs"
+name = "test_m20251106_007_assign_scoped_permissions_to_roles"
+required-features = ["test-utils"]
+
 [package]
 name = "hr-graphql-server"
 edition = "2021"

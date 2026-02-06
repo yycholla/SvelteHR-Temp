@@ -40,7 +40,7 @@ pub mod m20251106_003_remove_sidebar_management;
 pub mod m20251106_004_add_sidebar_view_permissions;
 pub mod m20251106_005_assign_sidebar_permissions_to_roles;
 pub mod m20251106_006_add_scoped_permissions;
-mod m20251106_007_assign_scoped_permissions_to_roles;
+pub mod m20251106_007_assign_scoped_permissions_to_roles;
 mod m20251107_001_add_wildcard_permission;
 mod m20251111_001_deprecate_users_role_column;
 mod m20251111_002_create_system_settings;
