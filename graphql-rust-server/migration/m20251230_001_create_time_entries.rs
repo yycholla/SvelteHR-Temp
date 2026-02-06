@@ -15,7 +15,10 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // Create projects table for time allocation
+        // ====================
+        // Schema Modification: Create projects table for time allocation
+        // ====================
+        // Projects/jobs for categorizing and billing time entries
         manager
             .create_table(
                 Table::create()
@@ -96,7 +99,10 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Create unique index on project code
+        // ====================
+        // Schema Modification: Create indexes for projects
+        // ====================
+        // Unique index on project code for fast code-based lookups
         manager
             .create_index(
                 Index::create()
@@ -121,7 +127,10 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Create time_entries table
+        // ====================
+        // Schema Modification: Create time_entries table
+        // ====================
+        // Individual time entry records with approval workflow and QB sync tracking
         manager
             .create_table(
                 Table::create()
@@ -228,7 +237,10 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Add foreign keys using raw SQL for schema specification
+        // ====================
+        // Raw SQL: Add foreign key constraints
+        // ====================
+        // Foreign keys using raw SQL to specify schema (SeaORM limitation)
         manager
             .get_connection()
             .execute_unprepared(
@@ -252,7 +264,10 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Create indexes for efficient queries
+        // ====================
+        // Schema Modification: Create indexes for time_entries
+        // ====================
+        // Indexes for user/date queries, project assignment, status filtering, and QB sync
         manager
             .create_index(
                 Index::create()
@@ -309,7 +324,10 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Add time tracking permissions
+        // ====================
+        // Data Seeding: Add time tracking permissions
+        // ====================
+        // Seed permissions for time entry management, sync operations, and project management
         manager.get_connection().execute_unprepared(
             r#"
             INSERT INTO hr_public.permissions (id, resource, action, description, created_at, updated_at)
@@ -344,7 +362,10 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // Drop indexes
+        // ====================
+        // Schema Rollback: Drop indexes and tables
+        // ====================
+        // Drop time_entries indexes
         manager
             .drop_index(
                 Index::drop()
@@ -408,7 +429,7 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Drop tables
+        // Drop tables (foreign keys CASCADE automatically)
         manager
             .drop_table(
                 Table::drop()
@@ -427,7 +448,10 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Remove permissions (soft delete)
+        // ====================
+        // Data Cleanup: Soft delete permissions
+        // ====================
+        // Mark time tracking permissions as deleted
         manager.get_connection().execute_unprepared(
             r#"
             UPDATE hr_public.permissions
