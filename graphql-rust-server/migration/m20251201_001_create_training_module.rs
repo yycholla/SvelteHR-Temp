@@ -1,3 +1,91 @@
+//! Migration: Create training module with content, assignments, and progress tracking
+//!
+//! This migration creates a comprehensive training/learning management system:
+//! - Training courses with start/end dates and active status
+//! - Training content (text, video, URL) with sequence ordering
+//! - Training assignments to users with due dates
+//! - Progress tracking per user per content item
+//!
+//! ## SeaORM Builder Usage: 100% Converted (10/10 operations)
+//!
+//! All schema operations use SeaORM builders.
+//!
+//! ### Operations (SeaORM Builders - 10 operations):
+//!
+//! **Up Migration:**
+//! 1. CREATE TABLE trainings
+//!    - Using: `manager.create_table()` with Table::create() builder
+//!    - 8 columns: id, title, description, start_date, end_date, is_active, audit fields
+//!    - IF NOT EXISTS for idempotency
+//!
+//! 2. CREATE TABLE training_contents
+//!    - Using: `manager.create_table()` with Table::create() builder
+//!    - 8 columns: id, training_id, title, type (TEXT/VIDEO/URL), data, sequence_order, audit fields
+//!    - Foreign key to trainings with CASCADE delete
+//!
+//! 3. CREATE TABLE assignments
+//!    - Using: `manager.create_table()` with Table::create() builder
+//!    - 5 columns: id, user_id, training_id, assigned_at, due_date
+//!    - 2 foreign keys (user_id, training_id) with CASCADE delete
+//!
+//! 4. CREATE INDEX idx_assignments_user_id
+//!    - Using: `manager.create_index()` with Index::create() builder
+//!    - Optimizes queries for user's assigned trainings
+//!
+//! 5. CREATE TABLE progress
+//!    - Using: `manager.create_table()` with Table::create() builder
+//!    - 6 columns: id, user_id, training_content_id, status, completed_at, last_accessed_at
+//!    - 2 foreign keys (user_id, training_content_id) with CASCADE delete
+//!
+//! 6. CREATE UNIQUE INDEX idx_progress_user_content
+//!    - Using: `manager.create_index()` with Index::create() builder
+//!    - Composite unique index on (user_id, training_content_id)
+//!    - Ensures one progress record per user per content item
+//!
+//! **Down Migration:**
+//! 7. DROP TABLE progress
+//!    - Using: `manager.drop_table()` with Table::drop() builder
+//!    - Dropped first due to foreign key dependencies
+//!
+//! 8. DROP TABLE assignments
+//!    - Using: `manager.drop_table()` with Table::drop() builder
+//!
+//! 9. DROP TABLE training_contents
+//!    - Using: `manager.drop_table()` with Table::drop() builder
+//!
+//! 10. DROP TABLE trainings
+//!     - Using: `manager.drop_table()` with Table::drop() builder
+//!     - Dropped last (no dependencies on it after others removed)
+//!
+//! ### Migration Strategy
+//!
+//! This is a **feature module migration** that:
+//! - Creates complete training/LMS system (4 tables, 6 foreign keys, 2 indexes)
+//! - Supports multiple content types (text, video, URL)
+//! - Tracks assignments to users with due dates
+//! - Records granular progress per content item (not_started, in_progress, completed)
+//! - Enforces referential integrity with CASCADE deletes
+//!
+//! **Training Workflow:**
+//! 1. Create training course (trainings table)
+//! 2. Add content items with sequence ordering (training_contents table)
+//! 3. Assign training to users with due dates (assignments table)
+//! 4. Users progress through content items (progress table tracks status per item)
+//!
+//! **Status Values:**
+//! - Progress status: not_started, in_progress, completed
+//! - Training is_active: true (available) or false (archived)
+//!
+//! **Foreign Key CASCADE Strategy:**
+//! - Delete training → cascades to contents, assignments, progress
+//! - Delete user → cascades to assignments, progress
+//! - Delete content → cascades to progress records
+//!
+//! ## Migration Type: Feature Module (100% SeaORM Builders)
+//!
+//! This migration demonstrates proper use of SeaORM builders for complex multi-table
+//! schemas with foreign keys, unique constraints, and query optimization indexes.
+
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]

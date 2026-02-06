@@ -149,6 +149,11 @@ path = "migration/tests/test_m20251125_003_add_nickname_social.rs"
 name = "test_m20251125_003_add_nickname_social"
 required-features = ["test-utils"]
 
+[[test]]
+path = "migration/tests/test_m20251201_001_create_training_module.rs"
+name = "test_m20251201_001_create_training_module"
+required-features = ["test-utils"]
+
 [package]
 name = "hr-graphql-server"
 edition = "2021"
