@@ -150,6 +150,16 @@ name = "test_m20251229_007_create_reconciliation"
 required-features = ["test-utils"]
 
 [[test]]
+path = "migration/tests/test_m20251229_008_create_webhooks.rs"
+name = "test_m20251229_008_create_webhooks"
+required-features = ["test-utils"]
+
+[[test]]
+path = "migration/tests/test_m20251229_009_create_batch_operations.rs"
+name = "test_m20251229_009_create_batch_operations"
+required-features = ["test-utils"]
+
+[[test]]
 path = "migration/tests/test_m20251202_006_onboarding_documents.rs"
 name = "test_m20251202_006_onboarding_documents"
 required-features = ["test-utils"]
