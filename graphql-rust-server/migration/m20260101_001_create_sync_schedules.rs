@@ -1,3 +1,66 @@
+//! Migration: Sync Schedules for QuickBooks Integration
+//!
+//! Creates tables for managing automated sync schedules and execution history.
+//!
+//! ## SeaORM Builder Usage
+//!
+//! This migration achieves ~70% SeaORM builder coverage:
+//! - ✅ Table creation via `Table::create()` builders
+//! - ✅ Column definitions with proper types and defaults
+//! - ✅ Index creation via `Index::create()` builders
+//! - ❌ Foreign key creation uses raw SQL (explicit schema specification needed)
+//! - ❌ Check constraints use raw SQL (complex regex and enum validation)
+//!
+//! ## Schema Operations
+//!
+//! ### Up Migration
+//! 1. Creates `sync_schedules` table with:
+//!    - name, description: Schedule identification
+//!    - cron_expression: 6-field cron syntax (second minute hour day month day_of_week)
+//!    - entity_type: Employee, Department, or Both
+//!    - sync_direction: Push, Pull, or Bidirectional
+//!    - enabled: Active/inactive flag
+//!    - business_hours_only: Restrict to business hours
+//!    - timezone: Timezone for schedule execution
+//!    - last_run_at/next_run_at: Execution tracking
+//!    - last_run_status/error: Result tracking
+//!    - created_by: Foreign key to users table
+//!    - Soft delete support (deleted_at)
+//! 2. Creates `sync_schedule_history` table for execution tracking:
+//!    - schedule_id: Foreign key to sync_schedules
+//!    - started_at/completed_at: Execution timestamps
+//!    - status: Execution status
+//!    - records_synced/pushed/pulled: Detailed metrics
+//!    - errors_count, error_message: Error tracking
+//!    - execution_time_ms: Performance monitoring
+//! 3. Adds 2 foreign key constraints
+//! 4. Creates 2 compound indexes for query optimization
+//! 5. Adds 3 check constraints for data validation
+//!
+//! ### Down Migration
+//! 1. Drops sync_schedule_history table (cascades foreign keys)
+//! 2. Drops sync_schedules table
+//!
+//! ## Features
+//! - Cron-based scheduling with 6-field syntax support
+//! - Entity type filtering (Employee, Department, Both)
+//! - Sync direction control (Push, Pull, Bidirectional)
+//! - Business hours restriction option
+//! - Timezone-aware scheduling
+//! - Execution history with detailed metrics
+//! - Performance monitoring (execution time tracking)
+//! - Soft delete support for schedules
+//!
+//! ## Migration Strategy
+//!
+//! This migration uses a mixed approach:
+//! - **SeaORM Builders**: Table creation, columns, indexes (type-safe)
+//! - **Raw SQL**: Foreign keys (explicit schema needed), check constraints (complex validation)
+//!
+//! The cron expression check constraint validates the 6-field format required by
+//! cron parsers. Entity type and sync direction constraints ensure only valid
+//! values are stored.
+
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
@@ -6,7 +69,8 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // Create sync_schedules table
+        // Step 1: Create sync_schedules table (schema creation)
+        // Main table for managing automated sync schedules
         manager
             .create_table(
                 Table::create()
@@ -80,13 +144,14 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Add foreign key constraint using raw SQL to specify hr_public schema
+        // Step 2: Add foreign key constraint for created_by (referential integrity)
+        // Uses raw SQL to explicitly specify hr_public schema (SET NULL on delete for audit trail)
         manager
             .get_connection()
             .execute_unprepared(
                 r#"
                 ALTER TABLE hr_public.sync_schedules
-                ADD CONSTRAINT fk_sync_schedules_created_by
+                ADD CONSTRAINT IF NOT EXISTS fk_sync_schedules_created_by
                 FOREIGN KEY (created_by)
                 REFERENCES hr_public.users(id)
                 ON DELETE SET NULL
@@ -94,7 +159,8 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Create index on enabled schedules for faster queries
+        // Step 3: Create compound index on enabled schedules (query optimization)
+        // Optimizes "find enabled schedules due for execution" queries
         manager
             .create_index(
                 Index::create()
@@ -102,11 +168,13 @@ impl MigrationTrait for Migration {
                     .table((Schema::HrPublic, SyncSchedules::Table))
                     .col(SyncSchedules::Enabled)
                     .col(SyncSchedules::NextRunAt)
+                    .if_not_exists()
                     .to_owned(),
             )
             .await?;
 
-        // Create sync_schedule_history table
+        // Step 4: Create sync_schedule_history table (schema creation)
+        // Audit table tracking all schedule execution attempts with detailed metrics
         manager
             .create_table(
                 Table::create()
@@ -151,13 +219,14 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Add foreign key constraint using raw SQL to specify hr_public schema
+        // Step 5: Add foreign key constraint for schedule_id (referential integrity)
+        // Uses raw SQL to explicitly specify hr_public schema (CASCADE on delete)
         manager
             .get_connection()
             .execute_unprepared(
                 r#"
                 ALTER TABLE hr_public.sync_schedule_history
-                ADD CONSTRAINT fk_sync_schedule_history_schedule_id
+                ADD CONSTRAINT IF NOT EXISTS fk_sync_schedule_history_schedule_id
                 FOREIGN KEY (schedule_id)
                 REFERENCES hr_public.sync_schedules(id)
                 ON DELETE CASCADE
@@ -165,7 +234,8 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Create index on history for faster lookups by schedule
+        // Step 6: Create compound index on history (query optimization)
+        // Optimizes "show execution history for schedule X" queries
         manager
             .create_index(
                 Index::create()
@@ -173,42 +243,58 @@ impl MigrationTrait for Migration {
                     .table((Schema::HrPublic, SyncScheduleHistory::Table))
                     .col(SyncScheduleHistory::ScheduleId)
                     .col(SyncScheduleHistory::StartedAt)
+                    .if_not_exists()
                     .to_owned(),
             )
             .await?;
 
-        // Add constraint to validate cron expression format (6 fields: second minute hour day month day_of_week)
+        // Step 7: Add check constraint for cron expression format (data validation)
+        // Validates 6-field cron syntax required by cron parsers
         manager
             .get_connection()
             .execute_unprepared(
                 r#"
-                ALTER TABLE hr_public.sync_schedules
-                ADD CONSTRAINT valid_cron_expression
-                CHECK (cron_expression ~ '^[0-9\*\/\,\-]+ [0-9\*\/\,\-]+ [0-9\*\/\,\-]+ [0-9\*\/\,\-]+ [0-9\*\/\,\-]+ [0-9\*\/\,\-]+$')
+                DO $$ BEGIN
+                    ALTER TABLE hr_public.sync_schedules
+                    ADD CONSTRAINT valid_cron_expression
+                    CHECK (cron_expression ~ '^[0-9\*\/\,\-]+ [0-9\*\/\,\-]+ [0-9\*\/\,\-]+ [0-9\*\/\,\-]+ [0-9\*\/\,\-]+ [0-9\*\/\,\-]+$');
+                EXCEPTION
+                    WHEN duplicate_object THEN NULL;
+                END $$;
                 "#,
             )
             .await?;
 
-        // Add constraint to validate entity type
+        // Step 8: Add check constraint for entity type (data validation)
+        // Ensures only valid entity types (Employee, Department, Both)
         manager
             .get_connection()
             .execute_unprepared(
                 r#"
-                ALTER TABLE hr_public.sync_schedules
-                ADD CONSTRAINT valid_entity_type
-                CHECK (entity_type IN ('Employee', 'Department', 'Both'))
+                DO $$ BEGIN
+                    ALTER TABLE hr_public.sync_schedules
+                    ADD CONSTRAINT valid_entity_type
+                    CHECK (entity_type IN ('Employee', 'Department', 'Both'));
+                EXCEPTION
+                    WHEN duplicate_object THEN NULL;
+                END $$;
                 "#,
             )
             .await?;
 
-        // Add constraint to validate sync direction
+        // Step 9: Add check constraint for sync direction (data validation)
+        // Ensures only valid sync directions (Push, Pull, Bidirectional)
         manager
             .get_connection()
             .execute_unprepared(
                 r#"
-                ALTER TABLE hr_public.sync_schedules
-                ADD CONSTRAINT valid_sync_direction
-                CHECK (sync_direction IN ('Push', 'Pull', 'Bidirectional'))
+                DO $$ BEGIN
+                    ALTER TABLE hr_public.sync_schedules
+                    ADD CONSTRAINT valid_sync_direction
+                    CHECK (sync_direction IN ('Push', 'Pull', 'Bidirectional'));
+                EXCEPTION
+                    WHEN duplicate_object THEN NULL;
+                END $$;
                 "#,
             )
             .await?;
@@ -217,7 +303,7 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // Drop tables in reverse order
+        // Step 1: Drop tables in reverse order (cascades foreign keys, indexes, and constraints)
         manager
             .drop_table(Table::drop().table((Schema::HrPublic, SyncScheduleHistory::Table)).to_owned())
             .await?;
@@ -232,6 +318,7 @@ impl MigrationTrait for Migration {
 
 #[derive(DeriveIden)]
 enum Schema {
+    #[sea_orm(iden = "hr_public")]
     HrPublic,
 }
 
