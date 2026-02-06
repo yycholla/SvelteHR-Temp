@@ -50,7 +50,7 @@ pub mod m20251118_001_add_force_password_change;
 pub mod m20251118_002_fix_email_unique_constraint_for_soft_delete;
 pub mod m20251125_001_employee_import_improvements;
 pub mod m20251125_002_add_phone_fields;
-mod m20251125_003_add_nickname_social;
+pub mod m20251125_003_add_nickname_social;
 mod m20251201_001_create_training_module;
 mod m20251201_002_add_training_permissions;
 mod m20251202_001_enhance_training_schema;
