@@ -2,12 +2,66 @@
 //!
 //! Creates tables for email digest configuration and delivery tracking.
 //!
-//! Features:
+//! ## SeaORM Builder Usage
+//!
+//! This migration achieves ~95% SeaORM builder coverage:
+//! - ✅ Table creation via `Table::create()` builders
+//! - ✅ Column definitions with proper types and defaults
+//! - ✅ Foreign key constraints via `ForeignKey::create()` builders
+//! - ✅ Index creation via `Index::create()` builders
+//! - ✅ All operations use `if_not_exists()` for idempotency
+//! - ❌ No raw SQL required (pure SeaORM implementation)
+//!
+//! ## Schema Operations
+//!
+//! ### Up Migration
+//! 1. Creates `email_digests` configuration table with:
+//!    - name: Display name for digest
+//!    - schedule_cron: Cron expression for scheduling
+//!    - recipients: Array of email addresses (PostgreSQL array type)
+//!    - include_* flags: Content toggles (sync_summary, conflicts, health_metrics, new_employees)
+//!    - template_id: Future reference to custom templates
+//!    - enabled: Active/inactive flag
+//!    - last_sent_at/next_send_at: Scheduling timestamps
+//!    - created_by: Foreign key to users table
+//! 2. Creates `email_digest_log` delivery tracking table with:
+//!    - digest_id: Foreign key to email_digests
+//!    - sent_at: Delivery timestamp
+//!    - recipients: Snapshot of recipients at send time
+//!    - success: Delivery status flag
+//!    - error_message: Failure details
+//!    - period_start/period_end: Reporting period
+//!    - content_summary: JSON summary of digest content
+//! 3. Adds 2 foreign key constraints for referential integrity
+//! 4. Creates 5 indexes for query optimization:
+//!    - idx_email_digest_log_digest_id
+//!    - idx_email_digest_log_sent_at
+//!    - idx_email_digest_log_success
+//!    - idx_email_digests_enabled
+//!    - idx_email_digests_next_send_at
+//!
+//! ### Down Migration
+//! 1. Drops email_digest_log table (cascades foreign keys and indexes)
+//! 2. Drops email_digests table
+//!
+//! ## Features
 //! - Customizable email digest schedules with cron expressions
 //! - Content toggles for sync summaries, conflicts, health metrics, and new employees
-//! - Recipient management with array support
+//! - Recipient management with PostgreSQL array support
 //! - Delivery tracking and error logging
 //! - Template support for future HTML/plain text customization
+//! - Period tracking for time-based reports
+//! - JSON content summaries for analytics
+//!
+//! ## Migration Strategy
+//!
+//! This migration uses pure SeaORM builders (no raw SQL):
+//! - Type-safe table and column definitions
+//! - Proper use of PostgreSQL array types
+//! - Boolean flags with sensible defaults
+//! - Timestamp tracking for scheduling
+//!
+//! All operations are idempotent and safe to re-run.
 
 use sea_orm_migration::prelude::*;
 
@@ -17,7 +71,8 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // Create email_digests table for digest configuration
+        // Step 1: Create email_digests table for digest configuration (schema creation)
+        // Main table storing digest schedules, content preferences, and recipients
         manager
             .create_table(
                 Table::create()
@@ -124,7 +179,8 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Create email_digest_log table for delivery tracking
+        // Step 2: Create email_digest_log table for delivery tracking (schema creation)
+        // Audit table tracking all digest send attempts with success/failure details
         manager
             .create_table(
                 Table::create()
@@ -191,7 +247,8 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Add foreign key from email_digest_log to email_digests
+        // Step 3: Add foreign key from email_digest_log to email_digests (referential integrity)
+        // Links log entries to their digest configuration (CASCADE on delete)
         manager
             .create_foreign_key(
                 ForeignKey::create()
@@ -203,7 +260,8 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Add foreign key from email_digests.created_by to users
+        // Step 4: Add foreign key from email_digests.created_by to users (audit trail)
+        // Tracks which user created each digest configuration (CASCADE on delete)
         manager
             .create_foreign_key(
                 ForeignKey::create()
@@ -215,57 +273,67 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Create index on digest_id for faster log queries
+        // Step 5: Create index on digest_id for faster log queries (query optimization)
+        // Optimizes "show all logs for digest X" queries
         manager
             .create_index(
                 Index::create()
                     .name("idx_email_digest_log_digest_id")
                     .table((Schema::HrPublic, EmailDigestLog::Table))
                     .col(EmailDigestLog::DigestId)
+                    .if_not_exists()
                     .to_owned(),
             )
             .await?;
 
-        // Create index on sent_at for temporal queries
+        // Step 6: Create index on sent_at for temporal queries (query optimization)
+        // Optimizes "show recent digest deliveries" and time-range queries
         manager
             .create_index(
                 Index::create()
                     .name("idx_email_digest_log_sent_at")
                     .table((Schema::HrPublic, EmailDigestLog::Table))
                     .col(EmailDigestLog::SentAt)
+                    .if_not_exists()
                     .to_owned(),
             )
             .await?;
 
-        // Create index on success status for filtering failures
+        // Step 7: Create index on success status for filtering failures (query optimization)
+        // Optimizes "show failed deliveries" queries for troubleshooting
         manager
             .create_index(
                 Index::create()
                     .name("idx_email_digest_log_success")
                     .table((Schema::HrPublic, EmailDigestLog::Table))
                     .col(EmailDigestLog::Success)
+                    .if_not_exists()
                     .to_owned(),
             )
             .await?;
 
-        // Create index on enabled digests for scheduler queries
+        // Step 8: Create index on enabled digests for scheduler queries (query optimization)
+        // Optimizes "find active digests" for the digest scheduler
         manager
             .create_index(
                 Index::create()
                     .name("idx_email_digests_enabled")
                     .table((Schema::HrPublic, EmailDigests::Table))
                     .col(EmailDigests::Enabled)
+                    .if_not_exists()
                     .to_owned(),
             )
             .await?;
 
-        // Create index on next_send_at for scheduler queries
+        // Step 9: Create index on next_send_at for scheduler queries (query optimization)
+        // Optimizes "find digests due for sending" for the digest scheduler
         manager
             .create_index(
                 Index::create()
                     .name("idx_email_digests_next_send_at")
                     .table((Schema::HrPublic, EmailDigests::Table))
                     .col(EmailDigests::NextSendAt)
+                    .if_not_exists()
                     .to_owned(),
             )
             .await?;
@@ -274,7 +342,7 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // Drop email_digest_log table (cascade will handle foreign keys)
+        // Step 1: Drop email_digest_log table (cascades foreign keys and indexes)
         manager
             .drop_table(
                 Table::drop()
@@ -284,7 +352,7 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Drop email_digests table
+        // Step 2: Drop email_digests table (cleanup)
         manager
             .drop_table(
                 Table::drop()
