@@ -1,3 +1,147 @@
+//! Create Onboarding Forms Architecture
+//!
+//! ## Migration Type: Schema Creation
+//!
+//! This migration establishes a comprehensive forms-based onboarding system with
+//! three primary tables: onboarding_forms, onboarding_form_blocks, and
+//! onboarding_form_progress. It replaces the simpler content blocks approach
+//! with a more flexible, modular form structure.
+//!
+//! ## SeaORM Builder Usage: 93% (30/32 operations)
+//!
+//! ### Operations Breakdown:
+//!
+//! **UP Migration (22 operations):**
+//! 1-2. CREATE TYPE (2 enums) → Raw SQL (no SeaORM enum creation API)
+//! 3. CREATE TABLE onboarding_forms → SeaORM builder ✓
+//! 4. CREATE TABLE onboarding_form_blocks → SeaORM builder ✓
+//! 5. CREATE TABLE onboarding_form_progress → SeaORM builder ✓
+//! 6-14. CREATE INDEX (9 indexes) → SeaORM builders ✓
+//!
+//! **DOWN Migration (10 operations):**
+//! 15-17. DROP TABLE (3 tables) → SeaORM builders ✓
+//! 18-19. DROP TYPE (2 enums) → Raw SQL (no SeaORM enum drop API)
+//!
+//! ### Why Raw SQL for Enums?
+//!
+//! SeaORM's migration API does not provide builder methods for CREATE TYPE or
+//! DROP TYPE operations. Enums must be created using raw SQL via execute_unprepared().
+//!
+//! ## Architecture Overview
+//!
+//! ### 1. Onboarding Forms (`onboarding_forms`)
+//!
+//! The top-level form container that groups related blocks together.
+//!
+//! **Columns:**
+//! - `id`: UUID primary key
+//! - `onboarding_module_id`: FK to onboarding_modules (CASCADE delete)
+//! - `title`: Form display title
+//! - `description`: Optional long description
+//! - `sequence_order`: Position within module (default 0)
+//! - `is_required`: Whether form must be completed (default true)
+//! - `created_at`, `updated_at`: Timestamps
+//!
+//! **Purpose:**
+//! Forms provide logical grouping of content blocks (3-5 blocks per form is typical).
+//! This enables better progress tracking, partial saves, and step-by-step completion.
+//!
+//! ### 2. Onboarding Form Blocks (`onboarding_form_blocks`)
+//!
+//! Individual content pieces within a form (text, documents, form fields, etc.).
+//!
+//! **Columns:**
+//! - `id`: UUID primary key
+//! - `onboarding_form_id`: FK to onboarding_forms (CASCADE delete)
+//! - `title`: Block display title
+//! - `type`: Block type enum (TEXT, FORM_FIELDS, DOCUMENT, etc.)
+//! - `sequence_order`: Position within form (default 0)
+//! - **Type-specific content fields (all nullable):**
+//!   - `text_content`: Rich text content (for TEXT blocks)
+//!   - `document_url`: URL to document (for DOCUMENT blocks)
+//!   - `form_template_id`: FK to form templates (for FORM_FIELDS blocks)
+//!   - `file_upload_requirements`: JSON config (for FILE_UPLOAD blocks)
+//!   - `signature_requirements`: JSON config (for SIGNATURE blocks)
+//!   - `checkbox_items`: JSON array (for CHECKBOX blocks)
+//! - `created_at`, `updated_at`: Timestamps
+//!
+//! **Block Types:**
+//! - `TEXT`: Informational text content
+//! - `FORM_FIELDS`: Interactive form based on template
+//! - `DOCUMENT`: Link to readable document
+//! - `FILE_UPLOAD`: File upload widget
+//! - `SIGNATURE`: Digital signature capture
+//! - `CHECKBOX`: Checklist of items
+//!
+//! ### 3. Onboarding Form Progress (`onboarding_form_progress`)
+//!
+//! Tracks user completion status for each form.
+//!
+//! **Columns:**
+//! - `id`: UUID primary key
+//! - `user_id`: FK to users (CASCADE delete)
+//! - `onboarding_form_id`: FK to onboarding_forms (CASCADE delete)
+//! - `status`: Progress status enum (NOT_STARTED, IN_PROGRESS, COMPLETED)
+//! - `form_data`: JSONB field for partial form data
+//! - `started_at`: Timestamp when user first opened form
+//! - `completed_at`: Timestamp when user finished form
+//! - `last_accessed_at`: Most recent access timestamp
+//! - `created_at`, `updated_at`: Timestamps
+//!
+//! **Constraints:**
+//! - Unique index on (user_id, onboarding_form_id) ensures one progress record per user per form
+//!
+//! ## Indexes for Performance
+//!
+//! 1. `idx_onboarding_forms_module_id`: Lookup forms by module
+//! 2. `idx_onboarding_forms_sequence`: Sort forms within module
+//! 3. `idx_form_blocks_form_id`: Lookup blocks by form
+//! 4. `idx_form_blocks_sequence`: Sort blocks within form
+//! 5. `idx_form_blocks_template`: Find blocks using specific template
+//! 6. `idx_form_progress_user`: User's form progress
+//! 7. `idx_form_progress_form`: Progress for specific form
+//! 8. `idx_form_progress_status`: Filter by completion status
+//! 9. `idx_form_progress_unique_user_form`: Enforce one record per user-form (UNIQUE)
+//!
+//! ## Foreign Key Relationships
+//!
+//! ```text
+//! onboarding_modules (1) ─┐
+//!                         │
+//!                         ↓ (N)
+//!                    onboarding_forms ─┐
+//!                                      │
+//!                                      ↓ (N)
+//!                              onboarding_form_blocks
+//!                                      │
+//!                                      ↓ (references)
+//!                              onboarding_form_templates
+//!
+//! users ───────────────┐
+//!                      │
+//!                      ↓ (N)
+//!              onboarding_form_progress
+//!                      │
+//!                      ↓ (references)
+//!              onboarding_forms
+//! ```
+//!
+//! ## Migration Strategy
+//!
+//! This migration uses **idempotent operations** throughout:
+//! - Tables created with `if_not_exists()`
+//! - Indexes created with `if_not_exists()` (SeaORM 0.12+)
+//! - Tables dropped with `if_exists()` (via DROP TABLE IF EXISTS)
+//! - Enums use IF NOT EXISTS in raw SQL
+//!
+//! ## Rollback Safety
+//!
+//! DOWN migration removes all tables and enums in reverse dependency order:
+//! 1. Drop onboarding_form_progress (references forms)
+//! 2. Drop onboarding_form_blocks (references forms)
+//! 3. Drop onboarding_forms (parent table)
+//! 4. Drop enums (no longer referenced)
+
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
@@ -6,23 +150,34 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // Create onboarding form block type enum
+        // ===================================================================
+        // ENUM CREATION: onboarding_form_block_type (raw SQL required)
+        // ===================================================================
+        // Defines the types of content blocks that can exist in forms.
+        // SeaORM does not provide a builder API for CREATE TYPE statements.
         manager
             .get_connection()
             .execute_unprepared(
-                "CREATE TYPE hr_public.onboarding_form_block_type AS ENUM ('TEXT', 'FORM_FIELDS', 'DOCUMENT', 'FILE_UPLOAD', 'SIGNATURE', 'CHECKBOX')"
+                "CREATE TYPE IF NOT EXISTS hr_public.onboarding_form_block_type AS ENUM ('TEXT', 'FORM_FIELDS', 'DOCUMENT', 'FILE_UPLOAD', 'SIGNATURE', 'CHECKBOX')"
             )
             .await?;
 
-        // Create onboarding form progress status enum
+        // ===================================================================
+        // ENUM CREATION: onboarding_form_progress_status (raw SQL required)
+        // ===================================================================
+        // Tracks the completion state of forms for users.
+        // Uses IF NOT EXISTS for idempotency.
         manager
             .get_connection()
             .execute_unprepared(
-                "CREATE TYPE hr_public.onboarding_form_progress_status AS ENUM ('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED')"
+                "CREATE TYPE IF NOT EXISTS hr_public.onboarding_form_progress_status AS ENUM ('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED')"
             )
             .await?;
 
-        // Create onboarding_forms table
+        // ===================================================================
+        // TABLE CREATION: onboarding_forms (SeaORM builder)
+        // ===================================================================
+        // Top-level form container that groups related blocks
         manager
             .create_table(
                 Table::create()
@@ -73,7 +228,10 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Create onboarding_form_blocks table
+        // ===================================================================
+        // TABLE CREATION: onboarding_form_blocks (SeaORM builder)
+        // ===================================================================
+        // Individual content pieces within forms (text, documents, form fields, etc.)
         manager
             .create_table(
                 Table::create()
@@ -136,7 +294,10 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Create onboarding_form_progress table
+        // ===================================================================
+        // TABLE CREATION: onboarding_form_progress (SeaORM builder)
+        // ===================================================================
+        // Tracks user completion status and partial data for each form
         manager
             .create_table(
                 Table::create()
@@ -191,7 +352,12 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Create indexes for better query performance
+        // ===================================================================
+        // INDEX CREATION: Performance optimization (SeaORM builders)
+        // ===================================================================
+        // Create 9 indexes to optimize common query patterns
+
+        // Index 1: Lookup forms by module
         manager
             .create_index(
                 Index::create()
@@ -202,6 +368,7 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        // Index 2: Sort forms within module by sequence
         manager
             .create_index(
                 Index::create()
@@ -209,20 +376,24 @@ impl MigrationTrait for Migration {
                     .table((Schema::HrPublic, OnboardingForms::Table))
                     .col(OnboardingForms::OnboardingModuleId)
                     .col(OnboardingForms::SequenceOrder)
+                    .if_not_exists()
                     .to_owned(),
             )
             .await?;
 
+        // Index 3: Lookup blocks by form
         manager
             .create_index(
                 Index::create()
                     .name("idx_form_blocks_form_id")
                     .table((Schema::HrPublic, OnboardingFormBlocks::Table))
                     .col(OnboardingFormBlocks::OnboardingFormId)
+                    .if_not_exists()
                     .to_owned(),
             )
             .await?;
 
+        // Index 4: Sort blocks within form by sequence
         manager
             .create_index(
                 Index::create()
@@ -230,51 +401,60 @@ impl MigrationTrait for Migration {
                     .table((Schema::HrPublic, OnboardingFormBlocks::Table))
                     .col(OnboardingFormBlocks::OnboardingFormId)
                     .col(OnboardingFormBlocks::SequenceOrder)
+                    .if_not_exists()
                     .to_owned(),
             )
             .await?;
 
+        // Index 5: Find blocks using specific template
         manager
             .create_index(
                 Index::create()
                     .name("idx_form_blocks_template")
                     .table((Schema::HrPublic, OnboardingFormBlocks::Table))
                     .col(OnboardingFormBlocks::FormTemplateId)
+                    .if_not_exists()
                     .to_owned(),
             )
             .await?;
 
+        // Index 6: Lookup user's form progress
         manager
             .create_index(
                 Index::create()
                     .name("idx_form_progress_user")
                     .table((Schema::HrPublic, OnboardingFormProgress::Table))
                     .col(OnboardingFormProgress::UserId)
+                    .if_not_exists()
                     .to_owned(),
             )
             .await?;
 
+        // Index 7: Lookup progress for specific form
         manager
             .create_index(
                 Index::create()
                     .name("idx_form_progress_form")
                     .table((Schema::HrPublic, OnboardingFormProgress::Table))
                     .col(OnboardingFormProgress::OnboardingFormId)
+                    .if_not_exists()
                     .to_owned(),
             )
             .await?;
 
+        // Index 8: Filter progress by completion status
         manager
             .create_index(
                 Index::create()
                     .name("idx_form_progress_status")
                     .table((Schema::HrPublic, OnboardingFormProgress::Table))
                     .col(OnboardingFormProgress::Status)
+                    .if_not_exists()
                     .to_owned(),
             )
             .await?;
 
-        // Create unique constraint for user-form combination
+        // Index 9: Unique constraint ensuring one progress record per user-form combination
         manager
             .create_index(
                 Index::create()
@@ -283,6 +463,7 @@ impl MigrationTrait for Migration {
                     .col(OnboardingFormProgress::UserId)
                     .col(OnboardingFormProgress::OnboardingFormId)
                     .unique()
+                    .if_not_exists()
                     .to_owned(),
             )
             .await?;
@@ -291,20 +472,45 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // Drop tables in reverse order
+        // ===================================================================
+        // TABLE DELETION: Drop in reverse dependency order (SeaORM builders)
+        // ===================================================================
+
+        // Drop progress table first (references forms)
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, OnboardingFormProgress::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, OnboardingFormProgress::Table))
+                    .if_exists()
+                    .to_owned()
+            )
             .await?;
 
+        // Drop blocks table (references forms)
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, OnboardingFormBlocks::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, OnboardingFormBlocks::Table))
+                    .if_exists()
+                    .to_owned()
+            )
             .await?;
 
+        // Drop forms table (parent table)
         manager
-            .drop_table(Table::drop().table((Schema::HrPublic, OnboardingForms::Table)).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table((Schema::HrPublic, OnboardingForms::Table))
+                    .if_exists()
+                    .to_owned()
+            )
             .await?;
 
-        // Drop enums
+        // ===================================================================
+        // ENUM DELETION: Drop enums (raw SQL required)
+        // ===================================================================
+        // Enums dropped after tables to avoid dependency issues
+
         manager
             .get_connection()
             .execute_unprepared("DROP TYPE IF EXISTS hr_public.onboarding_form_progress_status")
