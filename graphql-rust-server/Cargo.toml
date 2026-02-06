@@ -169,6 +169,11 @@ path = "migration/tests/test_m20251202_003_add_training_recurrence.rs"
 name = "test_m20251202_003_add_training_recurrence"
 required-features = ["test-utils"]
 
+[[test]]
+path = "migration/tests/test_m20251202_004_create_onboarding_module.rs"
+name = "test_m20251202_004_create_onboarding_module"
+required-features = ["test-utils"]
+
 [package]
 name = "hr-graphql-server"
 edition = "2021"
