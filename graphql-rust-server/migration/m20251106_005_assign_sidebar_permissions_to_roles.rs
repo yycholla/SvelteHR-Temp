@@ -1,3 +1,48 @@
+//! Migration: Assign sidebar permissions to roles
+//!
+//! Seeds role-permission assignments for RBAC (Role-Based Access Control).
+//!
+//! ## SeaORM Builder Usage: Not Applicable (Data Migration)
+//!
+//! ### Why This Migration Uses Raw SQL
+//!
+//! This is a **complex data migration** that performs relationship seeding between roles and permissions.
+//! SeaORM's builder API is designed for DDL (Data Definition Language) schema operations, not DML
+//! (Data Manipulation Language) operations like:
+//!
+//! - INSERT SELECT with CROSS JOIN (creating role-permission relationships)
+//! - DELETE with subqueries (cleaning up specific relationships)
+//! - Complex WHERE clauses with multiple tables
+//!
+//! **For data operations with joins and subqueries, raw SQL is the correct approach.**
+//!
+//! ### Operations (Raw SQL - 5 operations):
+//!
+//! **Up Migration:**
+//! 1. INSERT role_permissions for Employee role (13 read-only permissions)
+//! 2. INSERT role_permissions for Manager role (24 permissions including management)
+//! 3. INSERT role_permissions for HR Manager role (40 permissions including admin)
+//! 4. INSERT role_permissions for Admin role (wildcard permission *)
+//!
+//! Each INSERT uses:
+//! - `SELECT r.id, p.id FROM roles r CROSS JOIN permissions p` - joins role and permission IDs
+//! - `ON CONFLICT DO NOTHING` - ensures idempotency
+//!
+//! **Down Migration:**
+//! 5. DELETE role_permissions using subqueries to find role and permission IDs
+//!
+//! ### Idempotency
+//!
+//! All INSERTs use `ON CONFLICT DO NOTHING` to safely handle re-runs without creating duplicates.
+//!
+//! ## Migration Type: Seed Data (RBAC Relationships)
+//!
+//! This migration establishes the initial RBAC permission structure:
+//! - **Employee:** Basic read access to most resources
+//! - **Manager:** Employee permissions + team management and approval rights
+//! - **HR Manager:** Manager permissions + employee/department management + admin read access
+//! - **Admin:** Wildcard permission (*:*) granting full access
+
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
@@ -6,7 +51,8 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // Get permission and role IDs for assignments
+        // Seed role-permission assignments for RBAC
+        // Data seeding operation with CROSS JOIN - intentionally raw SQL
         // Note: This migration assumes permissions and roles already exist
 
         // Assign permissions to employee role (basic read access)
@@ -149,6 +195,7 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Remove role-permission assignments added by this migration
+        // Data cleanup operation with subqueries - intentionally raw SQL
         manager.get_connection().execute_unprepared(
             "DELETE FROM hr_public.role_permissions
             WHERE role_id IN (
