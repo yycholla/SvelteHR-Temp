@@ -134,6 +134,11 @@ path = "migration/tests/test_m20251118_001_add_force_password_change.rs"
 name = "test_m20251118_001_add_force_password_change"
 required-features = ["test-utils"]
 
+[[test]]
+path = "migration/tests/test_m20251125_001_employee_import_improvements.rs"
+name = "test_m20251125_001_employee_import_improvements"
+required-features = ["test-utils"]
+
 [package]
 name = "hr-graphql-server"
 edition = "2021"
