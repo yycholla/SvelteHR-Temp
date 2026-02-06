@@ -24,10 +24,32 @@ impl DepartmentMutations {
     ) -> Result<Department> {
         let db = get_db_from_context(ctx)?;
 
+        // Compute ancestor_ids based on parent
+        let ancestor_ids = if let Some(parent_id) = input.parent_id {
+            // Fetch parent to get its ancestor chain
+            if let Some(parent) = crate::models::department::Entity::find_by_id(parent_id)
+                .one(&db)
+                .await?
+            {
+                // Build chain: [parent_id, ...parent's ancestors]
+                let mut chain = vec![parent_id];
+                chain.extend(parent.ancestor_ids);
+                chain
+            } else {
+                // Parent not found - return error
+                return Err(AppError::NotFound(format!("Parent department {} not found", parent_id)).into());
+            }
+        } else {
+            // Root department - empty ancestor chain
+            vec![]
+        };
+
         let department = crate::models::department::ActiveModel {
             name: Set(input.name.clone()),
             description: Set(input.description.clone()),
             manager_id: Set(input.manager_id),
+            parent_department_id: Set(input.parent_id),
+            ancestor_ids: Set(ancestor_ids),
             ..Default::default()
         };
 
@@ -123,8 +145,25 @@ impl DepartmentMutations {
                 dept.manager_id = Set(Some(manager_id));
             }
 
+            // Update parent_department_id and recompute ancestor_ids if parent changed
             if let Some(parent_department_id) = input.parent_department_id {
                 dept.parent_department_id = Set(Some(parent_department_id));
+
+                // Recompute ancestor_ids based on new parent
+                let ancestor_ids = if let Some(parent) = crate::models::department::Entity::find_by_id(parent_department_id)
+                    .one(&txn)
+                    .await?
+                {
+                    // Build chain: [parent_id, ...parent's ancestors]
+                    let mut chain = vec![parent_department_id];
+                    chain.extend(parent.ancestor_ids);
+                    chain
+                } else {
+                    // Parent not found - return error to rollback transaction
+                    return Err(AppError::NotFound(format!("Parent department {} not found", parent_department_id)).into());
+                };
+
+                dept.ancestor_ids = Set(ancestor_ids);
             }
 
             // Update timestamp

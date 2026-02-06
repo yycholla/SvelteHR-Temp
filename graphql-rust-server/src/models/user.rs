@@ -28,6 +28,56 @@ impl UserStatus {
     }
 }
 
+/// Compensation type enumeration for payroll
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Enum, utoipa::ToSchema)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "compensation_type")]
+pub enum CompensationType {
+    #[sea_orm(string_value = "SALARY")]
+    Salary,
+    #[sea_orm(string_value = "HOURLY")]
+    Hourly,
+    #[sea_orm(string_value = "COMMISSION")]
+    Commission,
+    #[sea_orm(string_value = "CONTRACT")]
+    Contract,
+}
+
+impl CompensationType {
+    pub fn as_str(&self) -> &str {
+        match self {
+            CompensationType::Salary => "SALARY",
+            CompensationType::Hourly => "HOURLY",
+            CompensationType::Commission => "COMMISSION",
+            CompensationType::Contract => "CONTRACT",
+        }
+    }
+}
+
+/// Pay schedule enumeration for payroll
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Enum, utoipa::ToSchema)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "pay_schedule")]
+pub enum PaySchedule {
+    #[sea_orm(string_value = "WEEKLY")]
+    Weekly,
+    #[sea_orm(string_value = "BIWEEKLY")]
+    Biweekly,
+    #[sea_orm(string_value = "SEMIMONTHLY")]
+    Semimonthly,
+    #[sea_orm(string_value = "MONTHLY")]
+    Monthly,
+}
+
+impl PaySchedule {
+    pub fn as_str(&self) -> &str {
+        match self {
+            PaySchedule::Weekly => "WEEKLY",
+            PaySchedule::Biweekly => "BIWEEKLY",
+            PaySchedule::Semimonthly => "SEMIMONTHLY",
+            PaySchedule::Monthly => "MONTHLY",
+        }
+    }
+}
+
 /// User ordering options for GraphQL queries
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 pub enum UsersOrderBy {
@@ -143,12 +193,12 @@ pub struct Model {
     pub quickbooks_sync_token: Option<String>,
     pub sync_status: String,
     // Payroll/Compensation fields
-    pub compensation_type: Option<String>,
+    pub compensation_type: Option<CompensationType>,
     #[schema(value_type = Option<String>)]  // Represented as string in OpenAPI
     pub annual_salary: Option<rust_decimal::Decimal>,
     #[schema(value_type = Option<String>)]  // Represented as string in OpenAPI
     pub hourly_rate: Option<rust_decimal::Decimal>,
-    pub pay_schedule: Option<String>,
+    pub pay_schedule: Option<PaySchedule>,
     #[schema(value_type = Option<String>)]  // Represented as string in OpenAPI
     pub commission_rate: Option<rust_decimal::Decimal>,
     pub bonus_eligible: bool,

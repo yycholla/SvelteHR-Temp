@@ -81,6 +81,7 @@ pub struct Model {
     pub last_modified_at: DateTime<Utc>,
     pub quickbooks_sync_token: Option<String>,
     pub sync_status: String,
+    pub ancestor_ids: Vec<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
@@ -141,6 +142,12 @@ impl Model {
         self.intuit_department_id.as_deref()
     }
 
+    /// Ordered list of ancestor department IDs from immediate parent to root
+    /// Empty array for root departments
+    async fn ancestor_ids(&self) -> Vec<Uuid> {
+        self.ancestor_ids.clone()
+    }
+
     /// Record creation timestamp
     async fn created_at(&self) -> DateTime<Utc> {
         self.created_at
@@ -193,6 +200,7 @@ pub struct CreateDepartmentInput {
     pub name: String,
     pub description: Option<String>,
     pub manager_id: Option<Uuid>,
+    pub parent_id: Option<Uuid>,
 }
 
 /// Department update input
@@ -232,11 +240,13 @@ mod tests {
             last_modified_at: Utc::now(),
             quickbooks_sync_token: None,
             sync_status: "not_synced".to_string(),
+            ancestor_ids: vec![],
             created_at: Utc::now(),
             updated_at: Utc::now(),
             deleted_at: None,
         };
 
         assert_eq!(dept.name, "Engineering");
+        assert!(dept.ancestor_ids.is_empty());
     }
 }

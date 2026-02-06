@@ -2,50 +2,74 @@
  * QuickBooks Integration Commands
  *
  * Commands for QuickBooks sync operations and integrations.
+ * Updated to use the new consolidated sync API (sync_v2).
  */
 
 import { goto } from '$app/navigation';
 import type { Command } from '../types';
+import {
+	syncEmployeesBidirectional,
+	syncDepartmentsBidirectional,
+	pullEmployees,
+	pullDepartments,
+	isSyncSuccessful
+} from '$lib/api/sync';
 
 export const quickbooksCommands: Command[] = [
 	// Sync Operations
 	{
 		id: 'qb-sync-employees',
-		label: 'Sync Employees with QuickBooks',
-		description: 'Synchronize all employee data with QuickBooks',
+		label: 'Pull Employees from QuickBooks',
+		description: 'Pull employee data from QuickBooks (incremental)',
 		icon: '👥',
 		category: 'Sync',
 		shortcut: 'Cmd+Shift+E',
-		keywords: ['sync', 'employee', 'quickbooks', 'workforce'],
+		keywords: ['sync', 'employee', 'quickbooks', 'workforce', 'pull'],
 		permission: 'PerformSync',
 		action: async () => {
-			await goto('/admin/settings/integrations');
-			// Trigger sync action will be handled by the page
+			const result = await pullEmployees('INCREMENTAL');
+			if (isSyncSuccessful(result)) {
+				alert(`✅ ${result.message}`);
+			} else {
+				alert(`❌ Sync failed: ${'error' in result ? result.error : 'Unknown error'}`);
+			}
 		}
 	},
 	{
 		id: 'qb-sync-departments',
-		label: 'Sync Departments',
-		description: 'Synchronize department data',
+		label: 'Pull Departments from QuickBooks',
+		description: 'Pull department data from QuickBooks (incremental)',
 		icon: '🏢',
 		category: 'Sync',
 		shortcut: 'Cmd+Shift+D',
-		keywords: ['sync', 'department', 'org'],
+		keywords: ['sync', 'department', 'org', 'pull'],
 		permission: 'PerformSync',
 		action: async () => {
-			await goto('/admin/settings/integrations');
+			const result = await pullDepartments('INCREMENTAL');
+			if (isSyncSuccessful(result)) {
+				alert(`✅ ${result.message}`);
+			} else {
+				alert(`❌ Sync failed: ${'error' in result ? result.error : 'Unknown error'}`);
+			}
 		}
 	},
 	{
 		id: 'qb-sync-bidirectional',
-		label: 'Bidirectional Sync',
-		description: 'Sync data both ways (QuickBooks ↔ SvelteHR)',
+		label: 'Bidirectional Sync (Employees)',
+		description: 'Sync employees both ways with automatic conflict resolution',
 		icon: '🔄',
 		category: 'Sync',
-		keywords: ['sync', 'bidirectional', 'two-way'],
+		keywords: ['sync', 'bidirectional', 'two-way', 'employees'],
 		permission: 'PerformSync',
 		action: async () => {
-			await goto('/admin/settings/integrations');
+			const result = await syncEmployeesBidirectional('INCREMENTAL', 'LAST_WRITE_WINS');
+			if (isSyncSuccessful(result)) {
+				alert(
+					`✅ ${result.message}\n\nPushed: ${result.pushed_count} | Pulled: ${result.pulled_count} | Conflicts: ${result.conflicts_count}`
+				);
+			} else {
+				alert(`❌ Sync failed: ${'error' in result ? result.error : 'Unknown error'}`);
+			}
 		}
 	},
 	{
@@ -62,26 +86,108 @@ export const quickbooksCommands: Command[] = [
 	},
 	{
 		id: 'qb-force-full-sync',
-		label: 'Force Full Sync',
-		description: 'Complete refresh of all data',
+		label: 'Force Full Sync (Employees)',
+		description: 'Complete refresh of all employee data',
 		icon: '⚡',
 		category: 'Sync',
-		keywords: ['full', 'refresh', 'complete'],
+		keywords: ['full', 'refresh', 'complete', 'employees'],
 		permission: 'PerformSync',
 		action: async () => {
-			await goto('/admin/settings/integrations');
+			if (!confirm('This will perform a full sync of all employees. Continue?')) {
+				return;
+			}
+			const result = await syncEmployeesBidirectional('FULL', 'LAST_WRITE_WINS');
+			if (isSyncSuccessful(result)) {
+				alert(
+					`✅ ${result.message}\n\nPushed: ${result.pushed_count} | Pulled: ${result.pulled_count}`
+				);
+			} else {
+				alert(`❌ Sync failed: ${'error' in result ? result.error : 'Unknown error'}`);
+			}
 		}
 	},
 	{
-		id: 'qb-incremental-sync',
-		label: 'Incremental Sync',
-		description: 'Sync only changed data since last sync',
-		icon: '📊',
+		id: 'qb-force-full-sync-departments',
+		label: 'Force Full Sync (Departments)',
+		description: 'Complete refresh of all department data',
+		icon: '🏢',
 		category: 'Sync',
-		keywords: ['incremental', 'delta', 'changes'],
+		keywords: ['full', 'refresh', 'complete', 'departments'],
 		permission: 'PerformSync',
 		action: async () => {
-			await goto('/admin/settings/integrations/incremental');
+			if (!confirm('This will perform a full sync of all departments. Continue?')) {
+				return;
+			}
+			const result = await syncDepartmentsBidirectional('FULL', 'LAST_WRITE_WINS');
+			if (isSyncSuccessful(result)) {
+				alert(
+					`✅ ${result.message}\n\nPushed: ${result.pushed_count} | Pulled: ${result.pulled_count}`
+				);
+			} else {
+				alert(`❌ Sync failed: ${'error' in result ? result.error : 'Unknown error'}`);
+			}
+		}
+	},
+	{
+		id: 'qb-sync-local-wins',
+		label: 'Sync (Local Changes Win)',
+		description: 'Bidirectional sync keeping local changes on conflict',
+		icon: '🏠',
+		category: 'Sync',
+		keywords: ['sync', 'local', 'conflict', 'resolution'],
+		permission: 'PerformSync',
+		action: async () => {
+			const result = await syncEmployeesBidirectional('INCREMENTAL', 'LOCAL_WINS');
+			if (isSyncSuccessful(result)) {
+				alert(
+					`✅ ${result.message}\n\nStrategy: Local Wins\nPushed: ${result.pushed_count} | Pulled: ${result.pulled_count} | Conflicts: ${result.conflicts_count}`
+				);
+			} else {
+				alert(`❌ Sync failed: ${'error' in result ? result.error : 'Unknown error'}`);
+			}
+		}
+	},
+	{
+		id: 'qb-sync-remote-wins',
+		label: 'Sync (Remote Changes Win)',
+		description: 'Bidirectional sync keeping QuickBooks changes on conflict',
+		icon: '☁️',
+		category: 'Sync',
+		keywords: ['sync', 'remote', 'quickbooks', 'conflict', 'resolution'],
+		permission: 'PerformSync',
+		action: async () => {
+			const result = await syncEmployeesBidirectional('INCREMENTAL', 'REMOTE_WINS');
+			if (isSyncSuccessful(result)) {
+				alert(
+					`✅ ${result.message}\n\nStrategy: Remote Wins\nPushed: ${result.pushed_count} | Pulled: ${result.pulled_count} | Conflicts: ${result.conflicts_count}`
+				);
+			} else {
+				alert(`❌ Sync failed: ${'error' in result ? result.error : 'Unknown error'}`);
+			}
+		}
+	},
+	{
+		id: 'qb-sync-manual-conflicts',
+		label: 'Sync (Manual Resolution)',
+		description: 'Bidirectional sync with manual conflict resolution',
+		icon: '✋',
+		category: 'Sync',
+		keywords: ['sync', 'manual', 'conflict', 'resolution', 'review'],
+		permission: 'PerformSync',
+		action: async () => {
+			const result = await syncEmployeesBidirectional('INCREMENTAL', 'MANUAL');
+			if (isSyncSuccessful(result)) {
+				const message =
+					result.conflicts_count > 0
+						? `${result.message}\n\n⚠️ ${result.conflicts_count} conflicts require manual resolution.\nGo to Sync Conflicts to resolve them.`
+						: result.message;
+				alert(`✅ ${message}`);
+				if (result.conflicts_count > 0) {
+					await goto('/admin/settings/integrations/conflicts');
+				}
+			} else {
+				alert(`❌ Sync failed: ${'error' in result ? result.error : 'Unknown error'}`);
+			}
 		}
 	},
 

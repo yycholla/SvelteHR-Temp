@@ -361,6 +361,25 @@ export class Department {
 	}
 
 	/**
+	 * Convert to serializable DTO for transfer across boundaries.
+	 *
+	 * @returns DepartmentDTO with all public state
+	 */
+	toDTO(): import('./types').DepartmentDTO {
+		return {
+			id: this.id,
+			name: this._name.value,
+			parentId: this.parentId,
+			ancestorIds: [...this.ancestorIds],
+			managerId: this.managerId,
+			description: this.description,
+			employeeCount: this.employeeCount,
+			isDeleted: this.isDeleted,
+			depth: this.depth
+		};
+	}
+
+	/**
 	 * String representation for logging/debugging.
 	 */
 	toString(): string {

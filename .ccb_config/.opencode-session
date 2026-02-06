@@ -1,0 +1,17 @@
+{
+  "session_id": "ai-1770307155-124883",
+  "ccb_session_id": "ai-1770307155-124883",
+  "ccb_project_id": "7f7734463bb0bb48c908665e4292f31bf6f47bb05e6d9df8cd250b8bb502f523",
+  "runtime_dir": "/tmp/claude-ai-chanway/ai-1770307155-124883/opencode",
+  "terminal": "tmux",
+  "tmux_session": null,
+  "pane_id": "%5",
+  "pane_title_marker": "CCB-OpenCode",
+  "work_dir": "/home/chanway/Documents/SvelteHR",
+  "work_dir_norm": "/home/chanway/Documents/SvelteHR",
+  "start_dir": "/home/chanway/Documents/SvelteHR",
+  "active": false,
+  "started_at": "2026-02-05 08:59:16",
+  "start_cmd": "export CCB_MANAGED=1; export CCB_PARENT_PID=124883; export CCB_RUN_DIR=/home/chanway/.cache/ccb/projects/7f7734463bb0bb48; export PATH=/home/chanway/.local/share/codex-dual/bin:/home/chanway/.local/share/mise/installs/node/22.22.0/bin:/home/chanway/.local/share/mise/installs/cargo-sea-orm-cli/0.12.15/bin:/home/chanway/.local/share/mise/installs/cargo-cargo-watch/8.5.3/bin:/home/chanway/.config/emacs/bin/:/home/chanway/.local/bin:/home/chanway/.local/bin:/home/chanway/.cargo/bin:/home/chanway/go/bin:/home/chanway/.npm-global/bin:/home/chanway/.atuin/bin:/home/yycholla/.opencode/bin:/home/chanway/.local/share/omarchy/bin:/home/chanway/.config/emacs/bin/:/home/chanway/.local/bin:/home/chanway/.local/bin:/home/chanway/.cargo/bin:/home/chanway/go/bin:/home/chanway/.npm-global/bin:/home/chanway/.atuin/bin:/home/yycholla/.opencode/bin:/home/chanway/.local/share/omarchy/bin:/home/chanway/.config/emacs/bin/:/home/chanway/.local/bin:/home/chanway/.local/bin:/home/chanway/.cargo/bin:/home/chanway/go/bin:/home/chanway/.npm-global/bin:/home/chanway/.atuin/bin:/home/yycholla/.opencode/bin:/home/chanway/.local/share/omarchy/bin:/home/chanway/.config/emacs/bin/:/home/chanway/.local/bin:/home/chanway/.local/bin:/home/chanway/.cargo/bin:/home/chanway/go/bin:/home/chanway/.npm-global/bin:/home/chanway/.atuin/bin:/home/yycholla/.opencode/bin:/home/chanway/.config/emacs/bin/:/home/chanway/.local/bin:/home/chanway/.local/bin:/home/chanway/.cargo/bin:/home/chanway/go/bin:/home/chanway/.npm-global/bin:/home/chanway/.atuin/bin:/home/chanway/.config/carapace/bin:/home/chanway/.local/share/mise/installs/atuin/18.11.0/atuin-x86_64-unknown-linux-musl:/home/chanway/.local/share/mise/installs/carapace/1.5.7:/home/chanway/.local/share/mise/installs/mold/2.40.4/mold-2.40.4-x86_64-linux/bin:/home/chanway/.local/share/mise/installs/node/25.2.1/bin:/home/chanway/.local/share/mise/installs/tmux/3.6a/bin:/home/chanway/.local/share/mise/installs/uv/0.9.27/uv-x86_64-unknown-linux-musl:/home/chanway/.local/share/omarchy/bin:/home/chanway/.cargo/bin:/home/chanway/.atuin/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/yycholla/.spicetify:/home/yycholla/.lmstudio/bin:/home/yycholla/.spicetify:/home/yycholla/.lmstudio/bin:/home/yycholla/.spicetify:/home/yycholla/.lmstudio/bin:/home/yycholla/.spicetify:/home/yycholla/.lmstudio/bin; opencode",
+  "ended_at": "2026-02-05 09:00:55"
+}

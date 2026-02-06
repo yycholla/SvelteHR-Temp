@@ -1,0 +1,2 @@
+warning /home/chanway/Documents/SvelteHR/graphql-rust-server/migration/m20260120_001_clean_invalid_phone_numbers.rs:52:26 unused variable: `manager`
+warning /home/chanway/Documents/SvelteHR/graphql-rust-server/migration/m20260120_002_clean_invalid_hire_dates.rs:46:26 unused variable: `manager`

@@ -44,10 +44,10 @@ pub struct CreatePayrollSyncHistoryInput {
 /// Compensation data structure for change tracking
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompensationData {
-    pub compensation_type: Option<String>,
+    pub compensation_type: Option<crate::models::user::CompensationType>,
     pub annual_salary: Option<f64>,
     pub hourly_rate: Option<f64>,
-    pub pay_schedule: Option<String>,
+    pub pay_schedule: Option<crate::models::user::PaySchedule>,
     pub commission_rate: Option<f64>,
     pub bonus_eligible: Option<bool>,
     pub quickbooks_payroll_item_id: Option<String>,

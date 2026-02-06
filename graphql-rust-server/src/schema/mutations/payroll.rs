@@ -139,10 +139,10 @@ impl PayrollMutations {
                 "Successfully synced compensation for employee {}",
                 input.employee_id
             ),
-            compensation_type: compensation.compensation_type,
+            compensation_type: compensation.compensation_type.map(|ct| ct.as_str().to_string()),
             annual_salary: compensation.annual_salary,
             hourly_rate: compensation.hourly_rate,
-            pay_schedule: compensation.pay_schedule,
+            pay_schedule: compensation.pay_schedule.map(|ps| ps.as_str().to_string()),
         })
     }
 

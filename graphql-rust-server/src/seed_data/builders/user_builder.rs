@@ -9,6 +9,7 @@ use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Pa
 use uuid::Uuid;
 
 use crate::models::{department, role, user, user_role_assignment};
+use crate::models::user::{CompensationType, PaySchedule};
 use crate::seed_data::audit::log_seed_creation;
 use crate::seed_data::config::EntityType;
 use crate::seed_data::context::{EntitySeedResult, SeedContext};
@@ -117,6 +118,10 @@ pub async fn seed_users(
         let dept_index = i % departments.len();
         let department_id = departments[dept_index].id;
 
+        // Generate realistic compensation data based on job title
+        let job_title = generate_job_title(i);
+        let compensation = generate_compensation(&job_title, i);
+
         let new_user = user::ActiveModel {
             id: Set(user_id),
             email: Set(email.clone()),
@@ -130,7 +135,7 @@ pub async fn seed_users(
             mobile_number: Set(None),
             nickname: Set(None),
             social_media_release: Set(false),
-            job_title: Set(Some(generate_job_title(i))),
+            job_title: Set(Some(job_title)),
             status: Set(Some("active".to_string())),
             department_id: Set(Some(department_id)),
             manager_id: Set(None), // Will be assigned in separate function
@@ -149,13 +154,13 @@ pub async fn seed_users(
             last_modified_at: Set(now),
             quickbooks_sync_token: Set(None),
             sync_status: Set("synced".to_string()),
-            // Payroll fields
-            compensation_type: Set(None),
-            annual_salary: Set(None),
-            hourly_rate: Set(None),
-            pay_schedule: Set(None),
-            commission_rate: Set(None),
-            bonus_eligible: Set(false),
+            // Payroll fields with realistic compensation data
+            compensation_type: Set(compensation.compensation_type),
+            annual_salary: Set(compensation.annual_salary),
+            hourly_rate: Set(compensation.hourly_rate),
+            pay_schedule: Set(compensation.pay_schedule),
+            commission_rate: Set(compensation.commission_rate),
+            bonus_eligible: Set(compensation.bonus_eligible),
             quickbooks_payroll_item_id: Set(None),
             created_at: Set(now),
             updated_at: Set(now),
@@ -165,7 +170,8 @@ pub async fn seed_users(
         match new_user.insert(db).await {
             Ok(_) => {
                 result.created_count += 1;
-                tracing::info!("Created user: {}", email);
+                let comp_type = compensation.compensation_type.map(|ct| format!("{:?}", ct)).unwrap_or("NO".to_string());
+                tracing::info!("Created user: {} with {} compensation", email, comp_type);
 
                 // Assign default "Employee" role via RBAC
                 let employee_role = role::Entity::find()
@@ -241,6 +247,110 @@ fn generate_job_title(index: usize) -> String {
     ];
 
     titles[index % titles.len()].to_string()
+}
+
+/// Compensation data structure for seed generation
+#[derive(Debug)]
+struct CompensationData {
+    compensation_type: Option<CompensationType>,
+    annual_salary: Option<rust_decimal::Decimal>,
+    hourly_rate: Option<rust_decimal::Decimal>,
+    pay_schedule: Option<PaySchedule>,
+    commission_rate: Option<rust_decimal::Decimal>,
+    bonus_eligible: bool,
+}
+
+/// Generate realistic compensation data based on job title and index
+///
+/// Compensation Strategy:
+/// - Salaried roles: Engineering Manager, Product Manager, HR Specialist, Finance Analyst, Legal Counsel
+/// - Hourly roles: IT Support, Operations Coordinator, Content Writer, UX Designer
+/// - Commission roles: Sales Representative, Account Executive
+/// - Contract roles: Every 10th employee (regardless of title)
+///
+/// Pay ranges are realistic for US market (2025):
+/// - Entry-level: $45k-$65k salary / $20-$30/hr
+/// - Mid-level: $65k-$95k salary / $30-$45/hr
+/// - Senior: $95k-$140k salary / $45-$70/hr
+/// - Executive/Manager: $120k-$180k salary
+fn generate_compensation(job_title: &str, index: usize) -> CompensationData {
+    use rust_decimal::Decimal;
+    use std::str::FromStr;
+
+    // Contract workers (every 10th employee)
+    if index % 10 == 0 {
+        return CompensationData {
+            compensation_type: Some(CompensationType::Contract),
+            annual_salary: None,
+            hourly_rate: Some(Decimal::from_str(&format!("{}", 75 + (index % 50))).unwrap()),
+            pay_schedule: None, // Contracts typically invoice, not on pay schedule
+            commission_rate: None,
+            bonus_eligible: false,
+        };
+    }
+
+    // Sales roles with commission
+    if job_title.contains("Sales") || job_title.contains("Account Executive") {
+        let base_salary = 55000 + ((index * 1234) % 25000); // $55k-$80k base
+        return CompensationData {
+            compensation_type: Some(CompensationType::Commission),
+            annual_salary: Some(Decimal::from(base_salary)),
+            hourly_rate: None,
+            pay_schedule: Some(PaySchedule::Semimonthly),
+            commission_rate: Some(Decimal::from_str("15.00").unwrap()), // 15% commission
+            bonus_eligible: true,
+        };
+    }
+
+    // Determine if salaried or hourly based on role
+    let is_manager = job_title.contains("Manager");
+    let is_senior = job_title.contains("Senior") || job_title.contains("Staff");
+    let is_hourly_role = job_title.contains("IT Support")
+        || job_title.contains("Operations Coordinator")
+        || job_title.contains("Content Writer")
+        || job_title.contains("UX Designer");
+
+    if is_hourly_role {
+        // Hourly workers
+        let base_rate = if is_senior { 45 } else { 25 };
+        let hourly_rate = base_rate + ((index * 7) % 20); // Varies by $0-$20
+        CompensationData {
+            compensation_type: Some(CompensationType::Hourly),
+            annual_salary: None,
+            hourly_rate: Some(Decimal::from(hourly_rate)),
+            pay_schedule: Some(PaySchedule::Biweekly),
+            commission_rate: None,
+            bonus_eligible: is_senior,
+        }
+    } else {
+        // Salaried workers
+        let base_salary = if is_manager {
+            140000 // Managers start at $140k
+        } else if is_senior {
+            95000 // Senior ICs start at $95k
+        } else {
+            60000 // Entry/mid-level start at $60k
+        };
+
+        let salary_variance = (index * 3456) % 30000; // Varies up to $30k
+        let annual_salary = base_salary + salary_variance;
+
+        // Determine pay schedule (vary for realism)
+        let pay_schedule = match index % 3 {
+            0 => PaySchedule::Biweekly,
+            1 => PaySchedule::Semimonthly,
+            _ => PaySchedule::Monthly,
+        };
+
+        CompensationData {
+            compensation_type: Some(CompensationType::Salary),
+            annual_salary: Some(Decimal::from(annual_salary)),
+            hourly_rate: None,
+            pay_schedule: Some(pay_schedule),
+            commission_rate: None,
+            bonus_eligible: is_senior || is_manager,
+        }
+    }
 }
 
 /// Assign manager hierarchy to users

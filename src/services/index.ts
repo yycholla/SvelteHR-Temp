@@ -8,6 +8,9 @@ export type { User as RBACUser } from './auth/RBACService';
 // Employee Service
 export { EmployeeService } from './EmployeeService';
 
+// Department Service
+export { DepartmentService } from './DepartmentService';
+
 // Auth Ports
 export type { SessionPort, SessionData } from './auth/ports/SessionPort';
 
@@ -17,6 +20,7 @@ export type {
 	EmployeeFilters,
 	EmployeeStatistics
 } from './ports/EmployeeRepository';
+export type { DepartmentRepository } from './ports/DepartmentRepository';
 
 // GraphQL Ports
 export type { GraphQLPort } from './ports/GraphQLPort';

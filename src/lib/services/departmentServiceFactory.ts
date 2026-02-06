@@ -1,0 +1,65 @@
+// src/lib/services/departmentServiceFactory.ts
+import type { RequestEvent } from '@sveltejs/kit';
+import { DepartmentService } from '$services/DepartmentService';
+import { GraphQLDepartmentAdapter } from '$adapters/GraphQLDepartmentAdapter';
+import { createUrqlClient } from '$lib/graphql/client';
+import type { Client } from '@urql/core';
+
+/**
+ * Factory function to create a DepartmentService with GraphQL repository adapter
+ *
+ * This function creates a properly configured DepartmentService instance with:
+ * - GraphQL client configured with session cookies for authentication
+ * - GraphQLDepartmentAdapter as the repository implementation
+ *
+ * @param event - SvelteKit RequestEvent (provides cookies for auth)
+ * @returns Configured DepartmentService instance
+ *
+ * @example
+ * ```typescript
+ * // In +page.server.ts:
+ * export const load: PageServerLoad = async (event) => {
+ *   const departmentService = createDepartmentService(event);
+ *   const result = await departmentService.getDepartments();
+ *
+ *   if (result.isError) {
+ *     throw error(500, result.error.message);
+ *   }
+ *
+ *   return { departments: result.value };
+ * };
+ * ```
+ */
+export function createDepartmentService(event: RequestEvent): DepartmentService {
+	// Extract cookies from request for server-side authentication
+	const cookieHeader = event.request.headers.get('cookie') || '';
+
+	// Create urql client with session cookies for authentication
+	const client = createUrqlClient(undefined, undefined, undefined, cookieHeader);
+
+	// Create GraphQL repository adapter
+	const repository = new GraphQLDepartmentAdapter(client);
+
+	// Return configured service
+	return new DepartmentService(repository);
+}
+
+/**
+ * Factory function to create a DepartmentService with a custom urql Client
+ *
+ * Useful for testing or when you already have a configured client instance.
+ *
+ * @param client - Pre-configured urql Client instance
+ * @returns Configured DepartmentService instance
+ *
+ * @example
+ * ```typescript
+ * // In tests:
+ * const mockClient = createMockUrqlClient();
+ * const service = createDepartmentServiceWithClient(mockClient);
+ * ```
+ */
+export function createDepartmentServiceWithClient(client: Client): DepartmentService {
+	const repository = new GraphQLDepartmentAdapter(client);
+	return new DepartmentService(repository);
+}

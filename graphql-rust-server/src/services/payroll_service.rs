@@ -4,6 +4,7 @@
 
 use crate::integrations::intuit::IntuitClient;
 use crate::models::payroll_sync_history::{CompensationData, CreatePayrollSyncHistoryInput};
+pub use crate::models::user::{CompensationType, PaySchedule};
 use anyhow::{Context, Result};
 use chrono::Utc;
 use rust_decimal::Decimal;
@@ -16,49 +17,7 @@ use uuid::Uuid;
 
 /// Payroll service for managing compensation data
 pub struct PayrollService {
-    db: Arc<DatabaseConnection>,
-}
-
-/// Compensation type enum
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "UPPERCASE")]
-pub enum CompensationType {
-    Salary,
-    Hourly,
-    Commission,
-    Contract,
-}
-
-impl CompensationType {
-    pub fn as_str(&self) -> &str {
-        match self {
-            CompensationType::Salary => "SALARY",
-            CompensationType::Hourly => "HOURLY",
-            CompensationType::Commission => "COMMISSION",
-            CompensationType::Contract => "CONTRACT",
-        }
-    }
-}
-
-/// Pay schedule enum
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "UPPERCASE")]
-pub enum PaySchedule {
-    Weekly,
-    Biweekly,
-    Semimonthly,
-    Monthly,
-}
-
-impl PaySchedule {
-    pub fn as_str(&self) -> &str {
-        match self {
-            PaySchedule::Weekly => "WEEKLY",
-            PaySchedule::Biweekly => "BIWEEKLY",
-            PaySchedule::Semimonthly => "SEMIMONTHLY",
-            PaySchedule::Monthly => "MONTHLY",
-        }
-    }
+    pub db: Arc<DatabaseConnection>,
 }
 
 /// Sync direction
@@ -253,7 +212,7 @@ impl PayrollService {
 
         // Build new compensation data
         let new_compensation = CompensationData {
-            compensation_type: Some(input.compensation_type.as_str().to_string()),
+            compensation_type: Some(input.compensation_type),
             annual_salary: if input.compensation_type == CompensationType::Salary {
                 Some(input.amount.to_string().parse()?)
             } else {
@@ -264,7 +223,7 @@ impl PayrollService {
             } else {
                 None
             },
-            pay_schedule: Some(input.pay_schedule.as_str().to_string()),
+            pay_schedule: Some(input.pay_schedule),
             commission_rate: input.commission_rate.map(|r| r.to_string().parse().unwrap_or(0.0)),
             bonus_eligible: input.bonus_eligible,
             quickbooks_payroll_item_id: None,

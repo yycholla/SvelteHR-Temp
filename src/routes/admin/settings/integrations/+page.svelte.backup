@@ -11,21 +11,16 @@
 		Clock,
 		RotateCcw,
 		Lock,
-		TrendingUp
+		TrendingUp,
+		TrendingDown
 	} from '@lucide/svelte';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
 	import { invalidate } from '$app/navigation';
 	import { errorStore, showSuccess } from '$lib/stores/error.svelte';
 	import * as Dialog from '$lib/components/ui/dialog';
+	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { disconnectIntuit } from '$lib/graphql/intuit-oauth/operations';
-	import { SyncStatusCards, ActionableErrorDisplay } from '$lib/components/integrations';
-	import {
-		syncEmployeesBidirectional,
-		syncDepartmentsBidirectional,
-		isSyncSuccessful
-	} from '$lib/api/sync';
-	import type { SyncResponse, EntityType, ConflictStrategy } from '$lib/types/sync';
 
 	const { data } = $props();
 
@@ -37,7 +32,9 @@
 
 		if (success === 'connected') {
 			showSuccess('Successfully connected to QuickBooks!');
+			// Clear query params
 			window.history.replaceState({}, '', window.location.pathname);
+			// Refresh data
 			invalidate('app:integrations');
 		} else if (success === 'reconnected') {
 			showSuccess('Successfully reconnected to QuickBooks!');
@@ -62,6 +59,8 @@
 			activeAlertsCount: 0
 		}
 	);
+
+	const alerts = $derived(data.alerts || []);
 
 	// Compute derived metrics
 	const hasErrors = $derived(metrics.errorRate > 5);
@@ -91,19 +90,20 @@
 		}
 	);
 
-	// State
 	let disconnecting = $state(false);
 	let resettingForTest = $state(false);
-	let syncingBidirectional = $state(false);
-	let lastSyncResult = $state<SyncResponse | null>(null);
-	let syncErrors = $state<string[]>([]);
 
 	// Dialog states
 	let bidirectionalSyncDialogOpen = $state(false);
 	let resetTestDialogOpen = $state(false);
 	let disconnectDialogOpen = $state(false);
 	let pendingBidirectionalSync = $state<'EMPLOYEE' | 'DEPARTMENT' | 'ALL' | null>(null);
-	let selectedConflictStrategy = $state<ConflictStrategy>('LAST_WRITE_WINS');
+
+	// Two-way sync state
+	let syncingBidirectional = $state(false);
+	let selectedConflictStrategy = $state('LAST_WRITE_WINS');
+	let selectedSyncMode = $state('AUTO');
+	let selectedEntityType = $state<'EMPLOYEE' | 'DEPARTMENT' | 'ALL' | null>(null);
 
 	// Check if we're in development mode
 	const isDev = import.meta.env.DEV;
@@ -121,110 +121,138 @@
 		pendingBidirectionalSync = null;
 
 		syncingBidirectional = true;
-		syncErrors = [];
-		lastSyncResult = null;
+		selectedEntityType = entityType;
 
 		try {
 			if (entityType === 'ALL') {
 				// Sync both employees and departments sequentially
-				let combinedResult: SyncResponse = {
-					success: true,
-					entity_type: 'EMPLOYEE',
-					direction: 'BIDIRECTIONAL',
-					mode: 'INCREMENTAL',
-					status: 'COMPLETED',
-					started_at: new Date().toISOString(),
-					completed_at: null,
-					duration_ms: null,
-					pushed_count: 0,
-					pulled_count: 0,
-					conflicts_count: 0,
-					errors: [],
-					message: ''
-				};
-
-				const allErrors: string[] = [];
+				let totalPushed = 0;
+				let totalPulled = 0;
+				let totalConflicts = 0;
+				let totalDetected = 0;
+				let totalProcessed = 0;
+				let allErrors: any[] = [];
 
 				// Sync employees first
-				const employeeResult = await syncEmployeesBidirectional(
-					'INCREMENTAL',
-					selectedConflictStrategy
-				);
-				if (isSyncSuccessful(employeeResult)) {
-					combinedResult.pushed_count += employeeResult.pushed_count;
-					combinedResult.pulled_count += employeeResult.pulled_count;
-					combinedResult.conflicts_count += employeeResult.conflicts_count;
-					allErrors.push(...employeeResult.errors);
-				} else {
-					allErrors.push(
-						'error' in employeeResult ? employeeResult.error : 'Failed to sync employees'
-					);
+				const employeeResponse = await fetch('/api/intuit/sync-bidirectional', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						entityType: 'EMPLOYEE',
+						conflictStrategy: selectedConflictStrategy,
+						syncMode: selectedSyncMode
+					})
+				});
+
+				const employeeResult = await employeeResponse.json();
+				if (employeeResponse.ok) {
+					totalPushed += employeeResult.pushed_count || 0;
+					totalPulled += employeeResult.pulled_count || 0;
+					totalConflicts += employeeResult.conflicts_resolved || 0;
+					totalDetected += employeeResult.changes_detected || 0;
+					totalProcessed += employeeResult.changes_processed || 0;
+					allErrors = [...allErrors, ...(employeeResult.errors || [])];
 				}
 
 				// Sync departments
-				const deptResult = await syncDepartmentsBidirectional(
-					'INCREMENTAL',
-					selectedConflictStrategy
-				);
-				if (isSyncSuccessful(deptResult)) {
-					combinedResult.pushed_count += deptResult.pushed_count;
-					combinedResult.pulled_count += deptResult.pulled_count;
-					combinedResult.conflicts_count += deptResult.conflicts_count;
-					allErrors.push(...deptResult.errors);
-				} else {
-					allErrors.push('error' in deptResult ? deptResult.error : 'Failed to sync departments');
+				const deptResponse = await fetch('/api/intuit/sync-bidirectional', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						entityType: 'DEPARTMENT',
+						conflictStrategy: selectedConflictStrategy,
+						syncMode: selectedSyncMode
+					})
+				});
+
+				const deptResult = await deptResponse.json();
+				if (deptResponse.ok) {
+					totalPushed += deptResult.pushed_count || 0;
+					totalPulled += deptResult.pulled_count || 0;
+					totalConflicts += deptResult.conflicts_resolved || 0;
+					totalDetected += deptResult.changes_detected || 0;
+					totalProcessed += deptResult.changes_processed || 0;
+					allErrors = [...allErrors, ...(deptResult.errors || [])];
 				}
 
-				combinedResult.completed_at = new Date().toISOString();
-				combinedResult.errors = allErrors;
-				combinedResult.success = allErrors.length === 0;
-				combinedResult.status = allErrors.length > 0 ? 'COMPLETED_WITH_ERRORS' : 'COMPLETED';
-				combinedResult.message = `Synced employees and departments: ${combinedResult.pushed_count} pushed, ${combinedResult.pulled_count} pulled, ${combinedResult.conflicts_count} conflicts resolved`;
-
-				lastSyncResult = combinedResult;
-				syncErrors = allErrors;
-
-				if (allErrors.length === 0) {
-					showSuccess(combinedResult.message);
-				} else {
+				if (!employeeResponse.ok || !deptResponse.ok) {
 					errorStore.add({
-						message: `Sync completed with ${allErrors.length} error(s)`,
-						type: 'error'
+						message: 'Some syncs failed. Check the results below.',
+						type: 'error',
+						details: { employeeResult, deptResult }
 					});
-				}
+				} else {
+					showSuccess(
+						`Sync completed: ${totalDetected} detected, ${totalProcessed} processed (${totalPushed} pushed, ${totalPulled} pulled, ${totalConflicts} conflicts resolved)`
+					);
 
-				await invalidate('app:integrations');
+					if (allErrors.length > 0) {
+						console.warn('Sync errors:', allErrors);
+						errorStore.add({
+							message: `Completed with ${allErrors.length} error(s). Check console for details.`,
+							type: 'error',
+							details: allErrors
+						});
+					}
+
+					await invalidate('app:integrations');
+				}
 			} else {
 				// Single entity type sync
-				const result =
-					entityType === 'EMPLOYEE'
-						? await syncEmployeesBidirectional('INCREMENTAL', selectedConflictStrategy)
-						: await syncDepartmentsBidirectional('INCREMENTAL', selectedConflictStrategy);
+				const response = await fetch('/api/intuit/sync-bidirectional', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						entityType,
+						conflictStrategy: selectedConflictStrategy,
+						syncMode: selectedSyncMode
+					})
+				});
 
-				if (isSyncSuccessful(result)) {
-					lastSyncResult = result;
-					syncErrors = result.errors;
-					showSuccess(result.message);
-					await invalidate('app:integrations');
-				} else {
-					const errorMsg = 'error' in result ? result.error : 'Unknown error';
-					syncErrors = [errorMsg];
+				const result = await response.json();
+
+				if (!response.ok) {
 					errorStore.add({
-						message: errorMsg,
-						type: 'error'
+						message: result.message || result.error || 'Failed to perform bidirectional sync',
+						type: 'error',
+						details: result
 					});
+				} else {
+					const {
+						pushed_count = 0,
+						pulled_count = 0,
+						conflicts_resolved = 0,
+						errors = [],
+						sync_mode = 'unknown',
+						changes_detected = 0,
+						changes_processed = 0
+					} = result;
+					showSuccess(
+						`${sync_mode.toUpperCase()} sync completed: ${changes_detected} detected, ${changes_processed} processed (${pushed_count} pushed, ${pulled_count} pulled, ${conflicts_resolved} conflicts resolved)`
+					);
+
+					if (errors.length > 0) {
+						console.warn('Sync errors:', errors);
+						errorStore.add({
+							message: `Completed with ${errors.length} error(s). Check console for details.`,
+							type: 'error',
+							details: errors
+						});
+					}
+
+					// Reload page after a delay to show the message
+					await invalidate('app:integrations');
 				}
 			}
-		} catch (error: unknown) {
-			const errorMsg =
-				error instanceof Error ? error.message : 'Failed to perform bidirectional sync';
-			syncErrors = [errorMsg];
+		} catch (error: any) {
 			errorStore.add({
-				message: errorMsg,
-				type: 'error'
+				message: 'Failed to perform bidirectional sync',
+				type: 'error',
+				details: error
 			});
 		} finally {
 			syncingBidirectional = false;
+			selectedEntityType = null;
 		}
 	}
 
@@ -252,7 +280,7 @@
 						`Reset ${result.resetCount || 0} item(s) for testing. You can now re-push them.`
 				);
 			}
-		} catch (error: unknown) {
+		} catch (error: any) {
 			errorStore.add({
 				message: 'Failed to reset sync status',
 				type: 'error',
@@ -283,7 +311,7 @@
 				showSuccess('Successfully disconnected from QuickBooks');
 				await invalidate('app:integrations');
 			}
-		} catch (error: unknown) {
+		} catch (error: any) {
 			errorStore.add({
 				message: 'Failed to disconnect from QuickBooks',
 				type: 'error',
@@ -291,15 +319,6 @@
 			});
 		} finally {
 			disconnecting = false;
-		}
-	}
-
-	// Retry sync on error
-	function handleRetrySync() {
-		// Re-trigger the last sync if we know what it was
-		if (lastSyncResult) {
-			const entityType = lastSyncResult.entity_type === 'EMPLOYEE' ? 'EMPLOYEE' : 'DEPARTMENT';
-			openBidirectionalSyncDialog(entityType);
 		}
 	}
 </script>
@@ -348,10 +367,10 @@
 			</div>
 		{/if}
 
-		<div class="flex-1 overflow-auto bg-muted/5 p-6 space-y-6">
+		<div class="flex-1 overflow-auto bg-muted/5">
 			<!-- Metrics Overview -->
-			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-				<div class="p-6 border rounded-lg bg-background flex flex-col justify-between h-32">
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 border-b">
+				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 					<div class="flex items-center justify-between">
 						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
 							>Success Rate</span
@@ -383,7 +402,7 @@
 					</div>
 				</div>
 
-				<div class="p-6 border rounded-lg bg-background flex flex-col justify-between h-32">
+				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 					<div class="flex items-center justify-between">
 						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
 							>Uptime</span
@@ -398,7 +417,7 @@
 					</div>
 				</div>
 
-				<div class="p-6 border rounded-lg bg-background flex flex-col justify-between h-32">
+				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 					<div class="flex items-center justify-between">
 						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
 							>Errors</span
@@ -417,7 +436,7 @@
 					</div>
 				</div>
 
-				<div class="p-6 border rounded-lg bg-background flex flex-col justify-between h-32">
+				<div class="p-6 border-r last:border-r-0 bg-background flex flex-col justify-between h-32">
 					<div class="flex items-center justify-between">
 						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
 							>Active Alerts</span
@@ -436,7 +455,7 @@
 					</div>
 				</div>
 
-				<div class="p-6 border rounded-lg bg-background flex flex-col justify-between h-32">
+				<div class="p-6 bg-background flex flex-col justify-between h-32">
 					<div class="flex items-center justify-between">
 						<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
 							>Last Sync</span
@@ -468,23 +487,9 @@
 				</div>
 			</div>
 
-			<!-- Sync Status Cards -->
-			<SyncStatusCards syncResult={lastSyncResult} loading={syncingBidirectional} />
-
-			<!-- Error Display -->
-			{#if syncErrors.length > 0}
-				<ActionableErrorDisplay
-					errors={syncErrors}
-					onRetry={handleRetrySync}
-					onDismiss={(index) => {
-						syncErrors = syncErrors.filter((_, i) => i !== index);
-					}}
-				/>
-			{/if}
-
 			<!-- Primary Sync Actions -->
 			{#if perms.canTriggerBidirectionalSync}
-				<div class="border rounded-lg bg-background p-6">
+				<div class="border-b bg-background p-6">
 					<div class="flex items-center justify-between mb-4">
 						<div>
 							<h2 class="text-sm font-semibold flex items-center gap-2">
@@ -511,9 +516,9 @@
 							size="sm"
 							class="bg-blue-600 hover:bg-blue-700 h-9"
 						>
-							{#if syncingBidirectional}
+							{#if syncingBidirectional && selectedEntityType === 'ALL'}
 								<RefreshCw class="h-3.5 w-3.5 mr-1.5 animate-spin" />
-								Syncing...
+								Syncing All...
 							{:else}
 								<RefreshCw class="h-3.5 w-3.5 mr-1.5" />
 								Sync All
@@ -527,8 +532,13 @@
 							variant="outline"
 							class="h-9"
 						>
-							<RefreshCw class="h-3.5 w-3.5 mr-1.5" />
-							Sync Employees
+							{#if syncingBidirectional && selectedEntityType === 'EMPLOYEE'}
+								<RefreshCw class="h-3.5 w-3.5 mr-1.5 animate-spin" />
+								Syncing Employees...
+							{:else}
+								<RefreshCw class="h-3.5 w-3.5 mr-1.5" />
+								Sync Employees
+							{/if}
 						</Button>
 
 						<Button
@@ -538,8 +548,13 @@
 							variant="outline"
 							class="h-9"
 						>
-							<RefreshCw class="h-3.5 w-3.5 mr-1.5" />
-							Sync Departments
+							{#if syncingBidirectional && selectedEntityType === 'DEPARTMENT'}
+								<RefreshCw class="h-3.5 w-3.5 mr-1.5 animate-spin" />
+								Syncing Departments...
+							{:else}
+								<RefreshCw class="h-3.5 w-3.5 mr-1.5" />
+								Sync Departments
+							{/if}
 						</Button>
 
 						{#if isDev}
@@ -562,262 +577,270 @@
 					</div>
 
 					<div class="mt-4 text-xs text-muted-foreground bg-muted/50 p-3 rounded border">
-						<strong>Note:</strong> Automatically detects changes on both sides and resolves
-						conflicts using the {selectedConflictStrategy.replace('_', ' ').toLowerCase()} strategy.
+						<strong>Note:</strong> Automatically detects changes on both sides and resolves conflicts
+						using the most recent change.
 					</div>
 				</div>
 			{/if}
 
 			<!-- Feature Grid -->
-			<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+			<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 border-b">
 				<!-- Monitoring & Health -->
-				<div class="space-y-2">
-					<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+				<div class="border-r border-b md:border-b-0 bg-muted/20 p-4">
+					<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
 						Monitoring
 					</h3>
-					<a
-						href="/admin/settings/integrations/sync-status"
-						class="block p-3 rounded-lg border bg-background hover:bg-accent/50 transition-colors"
-					>
-						<div class="flex items-center gap-2 mb-1">
-							<svg
-								class="h-3.5 w-3.5 text-primary"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-								/>
-							</svg>
-							<span class="text-xs font-medium">Sync Dashboard</span>
-						</div>
-						<p class="text-xs text-muted-foreground">View history & stats</p>
-					</a>
-
-					<a
-						href="/admin/settings/integrations/health"
-						class="block p-3 rounded-lg border bg-background hover:bg-accent/50 transition-colors"
-					>
-						<div class="flex items-center gap-2 mb-1">
-							<svg
-								class="h-3.5 w-3.5 text-primary"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-								/>
-							</svg>
-							<span class="text-xs font-medium">Health Monitor</span>
-							{#if hasAlerts}
-								<Badge variant="destructive" class="h-4 px-1 text-[10px] ml-auto"
-									>{metrics.activeAlertsCount}</Badge
+					<div class="space-y-2">
+						<a
+							href="/admin/settings/integrations/sync-status"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
+							<div class="flex items-center gap-2 mb-1">
+								<svg
+									class="h-3.5 w-3.5 text-primary"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
 								>
-							{/if}
-						</div>
-						<p class="text-xs text-muted-foreground">System health & alerts</p>
-					</a>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+									/>
+								</svg>
+								<span class="text-xs font-medium">Sync Dashboard</span>
+							</div>
+							<p class="text-xs text-muted-foreground">View history & stats</p>
+						</a>
 
-					<a
-						href="/admin/settings/integrations/audit"
-						class="block p-3 rounded-lg border bg-background hover:bg-accent/50 transition-colors"
-					>
-						<div class="flex items-center gap-2 mb-1">
-							<svg
-								class="h-3.5 w-3.5 text-primary"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-								/>
-							</svg>
-							<span class="text-xs font-medium">Audit Trail</span>
-						</div>
-						<p class="text-xs text-muted-foreground">Integration activities</p>
-					</a>
+						<a
+							href="/admin/settings/integrations/health"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
+							<div class="flex items-center gap-2 mb-1">
+								<svg
+									class="h-3.5 w-3.5 text-primary"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+									/>
+								</svg>
+								<span class="text-xs font-medium">Health Monitor</span>
+								{#if hasAlerts}
+									<Badge variant="destructive" class="h-4 px-1 text-[10px] ml-auto"
+										>{metrics.activeAlertsCount}</Badge
+									>
+								{/if}
+							</div>
+							<p class="text-xs text-muted-foreground">System health & alerts</p>
+						</a>
+
+						<a
+							href="/admin/settings/integrations/audit"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
+							<div class="flex items-center gap-2 mb-1">
+								<svg
+									class="h-3.5 w-3.5 text-primary"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+									/>
+								</svg>
+								<span class="text-xs font-medium">Audit Trail</span>
+							</div>
+							<p class="text-xs text-muted-foreground">Integration activities</p>
+						</a>
+					</div>
 				</div>
 
 				<!-- Data Operations -->
-				<div class="space-y-2">
-					<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+				<div class="border-r border-b md:border-b-0 bg-muted/20 p-4">
+					<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
 						Data Operations
 					</h3>
-					<a
-						href="/admin/settings/integrations/reconciliation"
-						class="block p-3 rounded-lg border bg-background hover:bg-accent/50 transition-colors"
-					>
-						<div class="flex items-center gap-2 mb-1">
-							<RefreshCw class="h-3.5 w-3.5 text-primary" />
-							<span class="text-xs font-medium">Reconciliation</span>
-						</div>
-						<p class="text-xs text-muted-foreground">Compare & resolve differences</p>
-					</a>
+					<div class="space-y-2">
+						<a
+							href="/admin/settings/integrations/reconciliation"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
+							<div class="flex items-center gap-2 mb-1">
+								<RefreshCw class="h-3.5 w-3.5 text-primary" />
+								<span class="text-xs font-medium">Reconciliation</span>
+							</div>
+							<p class="text-xs text-muted-foreground">Compare & resolve differences</p>
+						</a>
 
-					<a
-						href="/admin/settings/integrations/validation"
-						class="block p-3 rounded-lg border bg-background hover:bg-accent/50 transition-colors"
-					>
-						<div class="flex items-center gap-2 mb-1">
-							<CheckCircle2 class="h-3.5 w-3.5 text-primary" />
-							<span class="text-xs font-medium">Validation</span>
-						</div>
-						<p class="text-xs text-muted-foreground">Data quality rules</p>
-					</a>
+						<a
+							href="/admin/settings/integrations/validation"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
+							<div class="flex items-center gap-2 mb-1">
+								<CheckCircle2 class="h-3.5 w-3.5 text-primary" />
+								<span class="text-xs font-medium">Validation</span>
+							</div>
+							<p class="text-xs text-muted-foreground">Data quality rules</p>
+						</a>
 
-					<a
-						href="/admin/settings/integrations/batches"
-						class="block p-3 rounded-lg border bg-background hover:bg-accent/50 transition-colors"
-					>
-						<div class="flex items-center gap-2 mb-1">
-							<svg
-								class="h-3.5 w-3.5 text-primary"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-								/>
-							</svg>
-							<span class="text-xs font-medium">Batch Operations</span>
-						</div>
-						<p class="text-xs text-muted-foreground">Bulk processing</p>
-					</a>
+						<a
+							href="/admin/settings/integrations/batches"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
+							<div class="flex items-center gap-2 mb-1">
+								<svg
+									class="h-3.5 w-3.5 text-primary"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+									/>
+								</svg>
+								<span class="text-xs font-medium">Batch Operations</span>
+							</div>
+							<p class="text-xs text-muted-foreground">Bulk processing</p>
+						</a>
+					</div>
 				</div>
 
 				<!-- Error Management -->
-				<div class="space-y-2">
-					<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+				<div class="border-r border-b md:border-b-0 lg:border-b-0 bg-muted/20 p-4">
+					<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
 						Error Management
 					</h3>
-					<a
-						href="/admin/settings/integrations/errors"
-						class="block p-3 rounded-lg border bg-background hover:bg-accent/50 transition-colors"
-					>
-						<div class="flex items-center gap-2 mb-1">
-							<AlertCircle class="h-3.5 w-3.5 text-primary" />
-							<span class="text-xs font-medium">Error Recovery</span>
-							{#if hasErrors}
-								<Badge variant="destructive" class="h-4 px-1 text-[10px] ml-auto">
-									{Math.round(metrics.errorRate)}%
-								</Badge>
-							{/if}
-						</div>
-						<p class="text-xs text-muted-foreground">Retry failed operations</p>
-					</a>
+					<div class="space-y-2">
+						<a
+							href="/admin/settings/integrations/errors"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
+							<div class="flex items-center gap-2 mb-1">
+								<AlertCircle class="h-3.5 w-3.5 text-primary" />
+								<span class="text-xs font-medium">Error Recovery</span>
+								{#if hasErrors}
+									<Badge variant="destructive" class="h-4 px-1 text-[10px] ml-auto">
+										{Math.round(metrics.errorRate)}%
+									</Badge>
+								{/if}
+							</div>
+							<p class="text-xs text-muted-foreground">Retry failed operations</p>
+						</a>
 
-					<a
-						href="/admin/settings/integrations/conflicts"
-						class="block p-3 rounded-lg border bg-background hover:bg-accent/50 transition-colors"
-					>
-						<div class="flex items-center gap-2 mb-1">
-							<AlertTriangle class="h-3.5 w-3.5 text-primary" />
-							<span class="text-xs font-medium">Conflicts</span>
-						</div>
-						<p class="text-xs text-muted-foreground">Resolve sync conflicts</p>
-					</a>
+						<a
+							href="/admin/settings/integrations/conflicts"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
+							<div class="flex items-center gap-2 mb-1">
+								<AlertTriangle class="h-3.5 w-3.5 text-primary" />
+								<span class="text-xs font-medium">Conflicts</span>
+							</div>
+							<p class="text-xs text-muted-foreground">Resolve sync conflicts</p>
+						</a>
 
-					<a
-						href="/admin/settings/integrations/rollback"
-						class="block p-3 rounded-lg border bg-background hover:bg-accent/50 transition-colors"
-					>
-						<div class="flex items-center gap-2 mb-1">
-							<svg
-								class="h-3.5 w-3.5 text-primary"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
-								/>
-							</svg>
-							<span class="text-xs font-medium">Rollback</span>
-						</div>
-						<p class="text-xs text-muted-foreground">Undo sync operations</p>
-					</a>
+						<a
+							href="/admin/settings/integrations/rollback"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
+							<div class="flex items-center gap-2 mb-1">
+								<svg
+									class="h-3.5 w-3.5 text-primary"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+									/>
+								</svg>
+								<span class="text-xs font-medium">Rollback</span>
+							</div>
+							<p class="text-xs text-muted-foreground">Undo sync operations</p>
+						</a>
+					</div>
 				</div>
 
 				<!-- Advanced Features -->
-				<div class="space-y-2">
-					<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+				<div class="bg-muted/20 p-4">
+					<h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
 						Advanced
 					</h3>
-					<a
-						href="/admin/settings/integrations/webhooks"
-						class="block p-3 rounded-lg border bg-background hover:bg-accent/50 transition-colors"
-					>
-						<div class="flex items-center gap-2 mb-1">
-							<svg
-								class="h-3.5 w-3.5 text-primary"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M13 10V3L4 14h7v7l9-11h-7z"
-								/>
-							</svg>
-							<span class="text-xs font-medium">Webhooks</span>
-						</div>
-						<p class="text-xs text-muted-foreground">Event notifications</p>
-					</a>
+					<div class="space-y-2">
+						<a
+							href="/admin/settings/integrations/webhooks"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
+							<div class="flex items-center gap-2 mb-1">
+								<svg
+									class="h-3.5 w-3.5 text-primary"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M13 10V3L4 14h7v7l9-11h-7z"
+									/>
+								</svg>
+								<span class="text-xs font-medium">Webhooks</span>
+							</div>
+							<p class="text-xs text-muted-foreground">Event notifications</p>
+						</a>
 
-					<a
-						href="/admin/settings/integrations/compliance"
-						class="block p-3 rounded-lg border bg-background hover:bg-accent/50 transition-colors"
-					>
-						<div class="flex items-center gap-2 mb-1">
-							<svg
-								class="h-3.5 w-3.5 text-primary"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-								/>
-							</svg>
-							<span class="text-xs font-medium">Compliance</span>
-						</div>
-						<p class="text-xs text-muted-foreground">Reports & audits</p>
-					</a>
+						<a
+							href="/admin/settings/integrations/compliance"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
+							<div class="flex items-center gap-2 mb-1">
+								<svg
+									class="h-3.5 w-3.5 text-primary"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+									/>
+								</svg>
+								<span class="text-xs font-medium">Compliance</span>
+							</div>
+							<p class="text-xs text-muted-foreground">Reports & audits</p>
+						</a>
 
-					<a
-						href="/admin/settings/integrations/schedules"
-						class="block p-3 rounded-lg border bg-background hover:bg-accent/50 transition-colors"
-					>
-						<div class="flex items-center gap-2 mb-1">
-							<Clock class="h-3.5 w-3.5 text-primary" />
-							<span class="text-xs font-medium">Schedules</span>
-						</div>
-						<p class="text-xs text-muted-foreground">Automated sync</p>
-					</a>
+						<a
+							href="/admin/settings/integrations/schedules"
+							class="block p-3 rounded border bg-background hover:bg-accent/50 transition-colors"
+						>
+							<div class="flex items-center gap-2 mb-1">
+								<Clock class="h-3.5 w-3.5 text-primary" />
+								<span class="text-xs font-medium">Schedules</span>
+							</div>
+							<p class="text-xs text-muted-foreground">Automated sync</p>
+						</a>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -920,9 +943,8 @@
 					</p>
 					<div class="p-3 bg-blue-50 border border-blue-200 rounded text-sm">
 						<p class="text-blue-900">
-							<strong>Two-way sync</strong> detects changes on both sides and automatically resolves
-							conflicts using
-							<strong>{selectedConflictStrategy.replace('_', ' ').toLowerCase()}</strong> strategy.
+							<strong>Two-way sync</strong> detects changes on both sides and automatically resolves conflicts
+							using the most recent change.
 						</p>
 						{#if pendingBidirectionalSync === 'ALL'}
 							<p class="text-blue-900 mt-2">

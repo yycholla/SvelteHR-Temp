@@ -109,6 +109,11 @@ path = "migration/tests/test_m20251107_001_add_wildcard_permission.rs"
 name = "test_m20251107_001_add_wildcard_permission"
 required-features = ["test-utils"]
 
+[[test]]
+path = "migration/tests/test_m20251111_001_deprecate_users_role_column.rs"
+name = "test_m20251111_001_deprecate_users_role_column"
+required-features = ["test-utils"]
+
 [package]
 name = "hr-graphql-server"
 edition = "2021"

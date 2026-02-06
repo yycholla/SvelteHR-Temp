@@ -2109,6 +2109,7 @@ impl IntuitMutations {
                         last_modified_at: Set(Utc::now()),
                         quickbooks_sync_token: Set(qb_department.sync_token.clone()),
                         sync_status: Set("synced".to_string()),
+                        ancestor_ids: Set(vec![]), // Root departments initially, updated in second pass if needed
                         created_at: Set(Utc::now()),
                         updated_at: Set(Utc::now()),
                         deleted_at: Set(None),

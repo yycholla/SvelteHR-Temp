@@ -20,6 +20,7 @@ rust = "stable"
 # Cargo tools installed via mise
 "cargo:sea-orm-cli" = "0.12"
 "cargo:cargo-watch" = "latest"
+"cargo:bacon" = "latest"
 
 # =============================================================================
 # Settings
@@ -79,7 +80,7 @@ description = "Verify PostgreSQL container is healthy"
 hide = true
 run = """
 #!/usr/bin/env bash
-if ! docker ps --format '{{.Names}}' | grep -q 'sveltehr-postgres-dev'; then
+if ! docker ps --format {% raw %}'{{.Names}}'{% endraw %} | grep -q 'sveltehr-postgres-dev'; then
     echo "❌ PostgreSQL container is not running."
     echo "   Run: mise run backend:start"
     exit 1
@@ -96,7 +97,7 @@ description = "Verify backend container is healthy"
 hide = true
 run = """
 #!/usr/bin/env bash
-if ! docker ps --format '{{.Names}}' | grep -qE 'sveltehr-graphql-rust|sveltehr-backend-dev'; then
+if ! docker ps --format {% raw %}'{{.Names}}'{% endraw %} | grep -qE 'sveltehr-graphql-rust|sveltehr-backend-dev'; then
     echo "❌ Backend container is not running."
     echo "   Run: mise run backend:start"
     exit 1
@@ -246,7 +247,7 @@ depends = ["_docker_check"]
 run = """
 #!/usr/bin/env bash
 echo "🚀 Starting Backend Containers..."
-cd dev-containers && docker compose -f docker-compose.dev.yml up -d postgres-dev redis-dev backend-dev
+cd dev-containers && docker compose -f docker-compose.dev.yml up -d postgres-dev redis-dev hr-graphql-rust
 echo ""
 echo "✅ Backend containers started!"
 echo ""
@@ -635,3 +636,4 @@ run = "npm run codegen:types"
 [tasks."schema:validate"]
 description = "Validate GraphQL schema"
 run = "npm run schema:validate"
+

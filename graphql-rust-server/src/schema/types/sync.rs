@@ -109,6 +109,7 @@ impl From<ConflictStrategy> for DomainConflictStrategy {
 
 /// Sync status
 #[derive(Enum, Clone, Copy, PartialEq, Eq)]
+#[graphql(name = "QuickBooksSyncStatus")]
 pub enum SyncStatus {
     Pending,
     InProgress,

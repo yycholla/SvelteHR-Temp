@@ -4,6 +4,62 @@
 //! 1. Migrates existing user role data from users.role to user_role_assignments table
 //! 2. Removes the legacy users.role column
 //! 3. Makes the system rely entirely on RBAC for role management
+//!
+//! ## SeaORM Builder Usage: Not Applicable (Mixed Migration)
+//!
+//! ### Why This Migration Uses Raw SQL
+//!
+//! This is a **complex mixed migration** combining:
+//! 1. **Data migration:** INSERT SELECT with CROSS JOIN and CASE logic
+//! 2. **Schema migration:** ALTER TABLE DROP/ADD COLUMN with IF EXISTS/IF NOT EXISTS
+//!
+//! **Schema operations use raw SQL because:**
+//! - `DROP COLUMN IF EXISTS` - SeaORM builders don't support IF EXISTS
+//! - `ADD COLUMN IF NOT EXISTS` - SeaORM builders don't support IF NOT EXISTS
+//! - These clauses are critical for idempotency
+//!
+//! **Data operations use raw SQL because:**
+//! - INSERT SELECT with CROSS JOIN and complex WHERE logic
+//! - UPDATE with nested CASE WHEN EXISTS subqueries
+//! - SeaORM builders are for DDL (schema), not DML (data operations)
+//!
+//! **For migrations combining schema and data operations with idempotency requirements, raw SQL is correct.**
+//!
+//! ### Operations (Raw SQL - 4 operations):
+//!
+//! **Up Migration:**
+//! 1. INSERT INTO user_role_assignments SELECT with CROSS JOIN
+//!    - Maps legacy role strings to RBAC role IDs
+//!    - system_admin/admin → Admin, hr_manager → HR Manager, etc.
+//!    - Uses ON CONFLICT DO NOTHING for idempotency
+//!
+//! 2. ALTER TABLE users DROP COLUMN IF EXISTS role
+//!    - Removes legacy role column from users table
+//!    - IF EXISTS ensures safe re-runs
+//!
+//! **Down Migration:**
+//! 3. ALTER TABLE users ADD COLUMN IF NOT EXISTS role
+//!    - Restores legacy role column with default 'employee'
+//!    - IF NOT EXISTS ensures safe re-runs
+//!
+//! 4. UPDATE users SET role with CASE WHEN EXISTS
+//!    - Reverse migration: RBAC roles → legacy role strings
+//!    - Takes highest-level role if user has multiple roles
+//!    - Uses nested EXISTS subqueries for role resolution
+//!
+//! ### Migration Strategy
+//!
+//! This is a **deprecation migration** that transitions from:
+//! - **Legacy:** Single-role column (users.role VARCHAR)
+//! - **RBAC:** Many-to-many role assignments (user_role_assignments table)
+//!
+//! The down migration is best-effort: if a user has multiple RBAC roles,
+//! only the highest-level role is preserved in the legacy column.
+//!
+//! ## Migration Type: Complex Mixed (Schema + Data + Deprecation)
+//!
+//! This migration permanently transitions the system to RBAC while maintaining
+//! data integrity and providing a rollback path (with limitations).
 
 use sea_orm_migration::prelude::*;
 
@@ -13,6 +69,8 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        // Migrate from legacy role column to RBAC
+        // Data + schema migration - intentionally raw SQL
         // Step 1: Migrate existing user roles to user_role_assignments
         // Map legacy role values to RBAC role names:
         // 'system_admin' | 'admin' → 'Admin'
@@ -51,6 +109,8 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        // Reverse migration: RBAC → legacy role column
+        // Data + schema migration - intentionally raw SQL
         // Step 1: Re-add the role column
         manager
             .get_connection()

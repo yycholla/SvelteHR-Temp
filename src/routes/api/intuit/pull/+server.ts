@@ -1,3 +1,11 @@
+/**
+ * @deprecated This endpoint is deprecated. Use POST /api/sync instead.
+ *
+ * Examples:
+ * - Pull employees: { entity_type: 'EMPLOYEE', direction: 'PULL', mode: 'INCREMENTAL' }
+ * - Pull departments: { entity_type: 'DEPARTMENT', direction: 'PULL', mode: 'INCREMENTAL' }
+ */
+
 import type { RequestHandler } from './$types';
 import { json, error } from '@sveltejs/kit';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';

@@ -42,7 +42,7 @@ pub mod m20251106_005_assign_sidebar_permissions_to_roles;
 pub mod m20251106_006_add_scoped_permissions;
 pub mod m20251106_007_assign_scoped_permissions_to_roles;
 pub mod m20251107_001_add_wildcard_permission;
-mod m20251111_001_deprecate_users_role_column;
+pub mod m20251111_001_deprecate_users_role_column;
 mod m20251111_002_create_system_settings;
 mod m20251111_003_create_notification_channels;
 mod m20251111_004_extend_users_for_auth_policies;

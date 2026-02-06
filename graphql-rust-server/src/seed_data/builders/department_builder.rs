@@ -64,6 +64,7 @@ pub async fn seed_departments(
             last_modified_at: Set(now),
             quickbooks_sync_token: Set(None),
             sync_status: Set("synced".to_string()),
+            ancestor_ids: Set(vec![]), // Root departments have no ancestors
             created_at: Set(now),
             updated_at: Set(now),
             deleted_at: Set(None),

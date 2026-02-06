@@ -271,23 +271,42 @@ impl LoadTestMetrics {
     pub fn summary(&self) -> LoadTestSummary {
         let inner = self.inner.lock().unwrap();
 
+        // Calculate all metrics while holding the lock to avoid deadlock
+        let duration = self.start_time.elapsed();
+        let elapsed_secs = duration.as_secs_f64();
+
+        let throughput = if elapsed_secs > 0.0 {
+            inner.total_requests as f64 / elapsed_secs
+        } else {
+            0.0
+        };
+
+        let success_rate = if inner.total_requests > 0 {
+            inner.successful_requests as f64 / inner.total_requests as f64
+        } else {
+            0.0
+        };
+
+        let p50_latency_ms = inner.latency_histogram.value_at_quantile(0.50) as f64 / 1000.0;
+        let p95_latency_ms = inner.latency_histogram.value_at_quantile(0.95) as f64 / 1000.0;
+        let p99_latency_ms = inner.latency_histogram.value_at_quantile(0.99) as f64 / 1000.0;
+        let min_latency_ms = inner.latency_histogram.min() as f64 / 1000.0;
+        let max_latency_ms = inner.latency_histogram.max() as f64 / 1000.0;
+        let mean_latency_ms = inner.latency_histogram.mean() / 1000.0;
+
         LoadTestSummary {
             total_requests: inner.total_requests,
             successful_requests: inner.successful_requests,
             failed_requests: inner.failed_requests,
-            success_rate: if inner.total_requests > 0 {
-                inner.successful_requests as f64 / inner.total_requests as f64
-            } else {
-                0.0
-            },
-            throughput: self.throughput(),
-            p50_latency_ms: self.p50_latency(),
-            p95_latency_ms: self.p95_latency(),
-            p99_latency_ms: self.p99_latency(),
-            min_latency_ms: self.min_latency(),
-            max_latency_ms: self.max_latency(),
-            mean_latency_ms: self.mean_latency(),
-            duration: self.start_time.elapsed(),
+            success_rate,
+            throughput,
+            p50_latency_ms,
+            p95_latency_ms,
+            p99_latency_ms,
+            min_latency_ms,
+            max_latency_ms,
+            mean_latency_ms,
+            duration,
             errors: inner.errors.clone(),
         }
     }

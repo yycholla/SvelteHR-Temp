@@ -1,0 +1,14 @@
+{
+  "session_id": "ai-1770307155-124883",
+  "ccb_project_id": "7f7734463bb0bb48c908665e4292f31bf6f47bb05e6d9df8cd250b8bb502f523",
+  "work_dir": "/home/chanway/Documents/SvelteHR",
+  "work_dir_norm": "/home/chanway/Documents/SvelteHR",
+  "start_dir": "/home/chanway/Documents/SvelteHR",
+  "terminal": "tmux",
+  "active": false,
+  "started_at": "2026-02-05 08:59:15",
+  "updated_at": "2026-02-05 08:59:15",
+  "pane_id": "%4",
+  "pane_title_marker": "CCB-Claude",
+  "ended_at": "2026-02-05 09:00:55"
+}

@@ -28,16 +28,23 @@ impl TestUserRole {
     /// Get the role string for database storage
     pub fn as_str(&self) -> &'static str {
         match self {
-            TestUserRole::Employee => "hr_employee",
-            TestUserRole::HrManager => "hr_manager",
-            TestUserRole::Admin => "admin",
-            TestUserRole::SystemAdmin => "system_admin",
+            TestUserRole::Employee => "Employee",
+            TestUserRole::HrManager => "HR Manager",
+            TestUserRole::Admin => "Admin",
+            TestUserRole::SystemAdmin => "Admin", // Use Admin role for system admin tests
         }
     }
 
     /// Get a test email for this role
     pub fn test_email(&self) -> String {
-        format!("test_{}@example.com", self.as_str())
+        // Use unique email per TestUserRole, not per database role name
+        // This ensures Admin and SystemAdmin get different emails even if they share a role
+        match self {
+            TestUserRole::Employee => "test_employee@example.com".to_string(),
+            TestUserRole::HrManager => "test_hr_manager@example.com".to_string(),
+            TestUserRole::Admin => "test_admin@example.com".to_string(),
+            TestUserRole::SystemAdmin => "test_system_admin@example.com".to_string(),
+        }
     }
 
     /// Get test first name for this role

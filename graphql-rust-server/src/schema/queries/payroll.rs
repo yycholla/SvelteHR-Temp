@@ -102,10 +102,10 @@ impl PayrollQueries {
 
         Ok(EmployeeCompensation {
             employee_id,
-            compensation_type: employee.compensation_type,
+            compensation_type: employee.compensation_type.map(|ct| ct.as_str().to_string()),
             annual_salary: employee.annual_salary.map(|d| d.to_string().parse().unwrap_or(0.0)),
             hourly_rate: employee.hourly_rate.map(|d| d.to_string().parse().unwrap_or(0.0)),
-            pay_schedule: employee.pay_schedule,
+            pay_schedule: employee.pay_schedule.map(|ps| ps.as_str().to_string()),
             commission_rate: employee.commission_rate.map(|d| d.to_string().parse().unwrap_or(0.0)),
             bonus_eligible: employee.bonus_eligible,
             quickbooks_payroll_item_id: employee.quickbooks_payroll_item_id,
@@ -177,8 +177,8 @@ impl PayrollQueries {
                 old_compensation_type: record
                     .old_value
                     .as_ref()
-                    .and_then(|v| v.compensation_type.clone()),
-                new_compensation_type: record.new_value.compensation_type.clone(),
+                    .and_then(|v| v.compensation_type.map(|ct| ct.as_str().to_string())),
+                new_compensation_type: record.new_value.compensation_type.map(|ct| ct.as_str().to_string()),
                 old_amount: record.old_value.as_ref().and_then(|v| {
                     v.annual_salary.or(v.hourly_rate)
                 }),

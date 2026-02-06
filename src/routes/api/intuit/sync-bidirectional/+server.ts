@@ -1,3 +1,15 @@
+/**
+ * @deprecated This endpoint is deprecated. Use POST /api/sync instead.
+ *
+ * Example:
+ * {
+ *   entity_type: 'EMPLOYEE',
+ *   direction: 'BIDIRECTIONAL',
+ *   mode: 'INCREMENTAL',
+ *   conflict_strategy: 'LAST_WRITE_WINS'
+ * }
+ */
+
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 
