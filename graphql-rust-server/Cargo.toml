@@ -50,6 +50,11 @@ name = "test_m20251202_007_create_onboarding_forms"
 required-features = ["test-utils"]
 
 [[test]]
+path = "migration/tests/test_m20251203_001_migrate_content_blocks.rs"
+name = "test_m20251203_001_migrate_content_blocks"
+required-features = ["test-utils"]
+
+[[test]]
 path = "migration/tests/test_m20251217_001_inline_form.rs"
 name = "test_m20251217_001_inline_form"
 required-features = ["test-utils"]
