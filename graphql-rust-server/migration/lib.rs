@@ -61,7 +61,7 @@ mod m20251202_006_integrate_onboarding_documents;
 mod m20251202_007_create_onboarding_forms;
 mod m20251203_001_migrate_content_blocks_to_forms;
 mod m20251217_001_add_inline_form_elements;
-mod m20251217_002_create_media_assets;
+pub mod m20251217_002_create_media_assets;
 mod m20251222_create_intuit_integration;
 mod m20251222_002_add_quickbooks_employee_fields;
 mod m20251222_003_fix_display_name_add_preferred_name;

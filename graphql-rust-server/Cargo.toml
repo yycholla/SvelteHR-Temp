@@ -34,6 +34,11 @@ path = "tests/load/stress_test_load.rs"
 name = "stress_test_load"
 required-features = ["test-utils"]
 
+[[test]]
+path = "migration/tests/test_m20251217_002_media_assets.rs"
+name = "test_m20251217_002_media_assets"
+required-features = ["test-utils"]
+
 [package]
 name = "hr-graphql-server"
 edition = "2021"
