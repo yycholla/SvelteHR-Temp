@@ -44,6 +44,11 @@ path = "migration/tests/test_m20251217_002_media_assets.rs"
 name = "test_m20251217_002_media_assets"
 required-features = ["test-utils"]
 
+[[test]]
+path = "migration/tests/test_m20251118_002_email_constraint.rs"
+name = "test_m20251118_002_email_constraint"
+required-features = ["test-utils"]
+
 [package]
 name = "hr-graphql-server"
 edition = "2021"

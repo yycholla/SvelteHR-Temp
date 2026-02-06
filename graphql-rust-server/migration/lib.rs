@@ -47,7 +47,7 @@ mod m20251111_002_create_system_settings;
 mod m20251111_003_create_notification_channels;
 mod m20251111_004_extend_users_for_auth_policies;
 mod m20251118_001_add_force_password_change;
-mod m20251118_002_fix_email_unique_constraint_for_soft_delete;
+pub mod m20251118_002_fix_email_unique_constraint_for_soft_delete;
 mod m20251125_001_employee_import_improvements;
 mod m20251125_002_add_phone_fields;
 mod m20251125_003_add_nickname_social;

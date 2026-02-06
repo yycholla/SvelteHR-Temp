@@ -5,6 +5,16 @@
 //!
 //! Solution: Replace the simple UNIQUE constraint with a partial unique index
 //! that only applies to non-deleted users (WHERE deleted_at IS NULL).
+//!
+//! SeaORM Support (v0.30.7):
+//! - Index::create() basic support ✓
+//! - Index::drop() supports dropping indexes ✓
+//! - Partial indexes (.and_where) NOT available in v0.30.7 (requires v0.32+) ✗
+//! - DROP CONSTRAINT not supported - use execute_unprepared ✗
+//! - ADD CONSTRAINT not supported - use execute_unprepared ✗
+//!
+//! IMPORTANT: Partial indexes require sea-query >= 0.32.0 with ConditionalStatement trait.
+//! Current version (0.30.7) does not support this, so we use raw SQL for the partial index.
 
 use sea_orm_migration::prelude::*;
 
@@ -15,8 +25,8 @@ pub struct Migration;
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Drop the existing unique constraint on email
-        // Note: SeaORM doesn't have a direct way to drop unique constraints,
-        // so we use raw SQL
+        // NOTE: SeaORM doesn't support DROP CONSTRAINT via builders
+        // This is a schema operation that requires raw SQL
         manager
             .get_connection()
             .execute_unprepared(
@@ -26,6 +36,10 @@ impl MigrationTrait for Migration {
 
         // Create a partial unique index that only applies to non-deleted users
         // This allows deleted users' emails to be reused
+        // NOTE: Partial indexes (WHERE clause) require sea-query >= 0.32.0
+        // Current version is 0.30.7, so we use raw SQL
+        // TODO: Once sea-orm-migration upgrades to sea-query 0.32+, replace with:
+        //   Index::create().and_where(Expr::col(Users::DeletedAt).is_null())
         manager
             .get_connection()
             .execute_unprepared(
@@ -40,6 +54,7 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Drop the partial unique index
+        // Using raw SQL to match PostgreSQL-specific index naming with schema
         manager
             .get_connection()
             .execute_unprepared(
@@ -48,6 +63,8 @@ impl MigrationTrait for Migration {
             .await?;
 
         // Restore the original unique constraint
+        // NOTE: SeaORM doesn't support ADD CONSTRAINT via builders
+        // This is a schema operation that requires raw SQL
         // WARNING: This will fail if there are duplicate emails in soft-deleted records
         manager
             .get_connection()
