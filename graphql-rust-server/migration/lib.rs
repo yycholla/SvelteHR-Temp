@@ -89,6 +89,7 @@ mod m20251231_001_email_digests;
 mod m20260101_001_create_sync_schedules;
 mod m20260107_001_fix_cron_constraint;
 mod m20260113_001_password_reset_tokens;
+mod m20260205_001_add_department_ancestor_ids;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -169,6 +170,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260101_001_create_sync_schedules::Migration),
             Box::new(m20260107_001_fix_cron_constraint::Migration),
             Box::new(m20260113_001_password_reset_tokens::Migration),
+            Box::new(m20260205_001_add_department_ancestor_ids::Migration),
         ]
     }
 }
