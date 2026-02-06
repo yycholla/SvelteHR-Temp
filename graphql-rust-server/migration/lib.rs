@@ -65,7 +65,7 @@ pub mod m20251217_002_create_media_assets;
 pub mod m20251222_create_intuit_integration;
 pub mod m20251222_002_add_quickbooks_employee_fields;
 pub mod m20251222_003_fix_display_name_add_preferred_name;
-mod m20251223_001_add_intuit_department_id;
+pub mod m20251223_001_add_intuit_department_id;
 mod m20251226_001_add_sync_tracking;
 mod m20251226_002_enhance_sync_log;
 mod m20251226_002_enforce_email_rules;
