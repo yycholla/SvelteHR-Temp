@@ -64,6 +64,11 @@ path = "migration/tests/test_m20251020_004_user_addresses.rs"
 name = "test_m20251020_004_user_addresses"
 required-features = ["test-utils"]
 
+[[test]]
+path = "migration/tests/test_m20251020_005_theme_preference.rs"
+name = "test_m20251020_005_theme_preference"
+required-features = ["test-utils"]
+
 [package]
 name = "hr-graphql-server"
 edition = "2021"

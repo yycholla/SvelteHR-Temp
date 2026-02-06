@@ -31,7 +31,7 @@ mod m20251020_001_add_document_expiry_version;
 mod m20251020_002_add_missing_permissions;
 mod m20251020_003_add_teams_permissions;
 pub mod m20251020_004_add_user_addresses;
-mod m20251020_005_add_user_theme_preference;
+pub mod m20251020_005_add_user_theme_preference;
 mod m20251023_003_fix_encryption_keys;
 mod m20251023_004_add_accessed_at_to_document_access_logs;
 mod m20251024_001_fix_document_assignments_schema;
