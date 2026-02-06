@@ -80,7 +80,7 @@ pub mod m20251229_007_create_reconciliation;
 pub mod m20251229_008_create_webhooks;
 pub mod m20251229_009_create_batch_operations;
 pub mod m20251229_010_create_rollback_system;
-mod m20251229_011_create_error_recovery;
+pub mod m20251229_011_create_error_recovery;
 mod m20251229_012_enhance_audit_trail;
 mod m20251229_013_create_compliance_reports;
 mod m20251230_001_create_time_entries;
