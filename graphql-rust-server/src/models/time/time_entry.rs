@@ -46,9 +46,10 @@ impl TimeEntryStatus {
     }
 }
 
-/// Sync status enumeration
+/// Time entry sync state enumeration
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
-pub enum SyncStatus {
+#[graphql(name = "TimeEntrySyncState")]
+pub enum TimeEntrySyncState {
     #[graphql(name = "NOT_SYNCED")]
     NotSynced,
     #[graphql(name = "PENDING")]
@@ -59,23 +60,23 @@ pub enum SyncStatus {
     Failed,
 }
 
-impl SyncStatus {
+impl TimeEntrySyncState {
     pub fn as_str(&self) -> &'static str {
         match self {
-            SyncStatus::NotSynced => "not_synced",
-            SyncStatus::Pending => "pending",
-            SyncStatus::Synced => "synced",
-            SyncStatus::Failed => "failed",
+            TimeEntrySyncState::NotSynced => "not_synced",
+            TimeEntrySyncState::Pending => "pending",
+            TimeEntrySyncState::Synced => "synced",
+            TimeEntrySyncState::Failed => "failed",
         }
     }
 
     pub fn from_str(s: &str) -> Self {
         match s {
-            "not_synced" => SyncStatus::NotSynced,
-            "pending" => SyncStatus::Pending,
-            "synced" => SyncStatus::Synced,
-            "failed" => SyncStatus::Failed,
-            _ => SyncStatus::NotSynced,
+            "not_synced" => TimeEntrySyncState::NotSynced,
+            "pending" => TimeEntrySyncState::Pending,
+            "synced" => TimeEntrySyncState::Synced,
+            "failed" => TimeEntrySyncState::Failed,
+            _ => TimeEntrySyncState::NotSynced,
         }
     }
 }
@@ -225,8 +226,8 @@ impl Model {
     }
 
     #[graphql(name = "syncStatus")]
-    async fn sync_status(&self) -> SyncStatus {
-        SyncStatus::from_str(&self.sync_status)
+    async fn sync_status(&self) -> TimeEntrySyncState {
+        TimeEntrySyncState::from_str(&self.sync_status)
     }
 
     #[graphql(name = "syncedAt")]

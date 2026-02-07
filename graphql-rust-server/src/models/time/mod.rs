@@ -15,7 +15,7 @@ pub use attendance_record::{
     Model as AttendanceRecord, AttendanceStatus, CreateAttendanceRecordInput, UpdateAttendanceRecordInput,
 };
 pub use time_entry::{
-    Model as TimeEntry, TimeEntryStatus, SyncStatus, CreateTimeEntryInput,
+    Model as TimeEntry, TimeEntryStatus, TimeEntrySyncState, CreateTimeEntryInput,
     UpdateTimeEntryInput, ApproveTimeEntryInput,
 };
 pub use project::{

@@ -15,7 +15,7 @@ use uuid::Uuid;
 use crate::{
     auth::UserContext,
     database::get_db_from_context,
-    models::time::{time_entry, project, TimeEntryStatus, SyncStatus},
+    models::time::{time_entry, project, TimeEntryStatus, TimeEntrySyncState},
     services::time_tracking_sync::TimeTrackingSync,
 };
 
@@ -32,7 +32,7 @@ pub struct TimeEntryFilter {
     pub end_date: Option<NaiveDate>,
     pub status: Option<TimeEntryStatus>,
     #[graphql(name = "syncStatus")]
-    pub sync_status: Option<SyncStatus>,
+    pub sync_status: Option<TimeEntrySyncState>,
     #[graphql(name = "isBillable")]
     pub is_billable: Option<bool>,
 }
