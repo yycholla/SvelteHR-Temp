@@ -146,16 +146,19 @@ impl MigrationTrait for Migration {
 
         // Step 2: Add foreign key constraint for created_by (referential integrity)
         // Uses raw SQL to explicitly specify hr_public schema (SET NULL on delete for audit trail)
+        // NOTE: PostgreSQL doesn't support IF NOT EXISTS with ADD CONSTRAINT
         manager
             .get_connection()
             .execute_unprepared(
-                r#"
-                ALTER TABLE hr_public.sync_schedules
-                ADD CONSTRAINT IF NOT EXISTS fk_sync_schedules_created_by
-                FOREIGN KEY (created_by)
-                REFERENCES hr_public.users(id)
-                ON DELETE SET NULL
-                "#,
+                r#"DO $$ BEGIN
+                    ALTER TABLE hr_public.sync_schedules
+                    ADD CONSTRAINT fk_sync_schedules_created_by
+                    FOREIGN KEY (created_by)
+                    REFERENCES hr_public.users(id)
+                    ON DELETE SET NULL;
+                EXCEPTION
+                    WHEN duplicate_object THEN null;
+                END $$;"#,
             )
             .await?;
 
@@ -221,16 +224,19 @@ impl MigrationTrait for Migration {
 
         // Step 5: Add foreign key constraint for schedule_id (referential integrity)
         // Uses raw SQL to explicitly specify hr_public schema (CASCADE on delete)
+        // NOTE: PostgreSQL doesn't support IF NOT EXISTS with ADD CONSTRAINT
         manager
             .get_connection()
             .execute_unprepared(
-                r#"
-                ALTER TABLE hr_public.sync_schedule_history
-                ADD CONSTRAINT IF NOT EXISTS fk_sync_schedule_history_schedule_id
-                FOREIGN KEY (schedule_id)
-                REFERENCES hr_public.sync_schedules(id)
-                ON DELETE CASCADE
-                "#,
+                r#"DO $$ BEGIN
+                    ALTER TABLE hr_public.sync_schedule_history
+                    ADD CONSTRAINT fk_sync_schedule_history_schedule_id
+                    FOREIGN KEY (schedule_id)
+                    REFERENCES hr_public.sync_schedules(id)
+                    ON DELETE CASCADE;
+                EXCEPTION
+                    WHEN duplicate_object THEN null;
+                END $$;"#,
             )
             .await?;
 

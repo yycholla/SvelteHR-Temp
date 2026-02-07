@@ -155,10 +155,16 @@ impl MigrationTrait for Migration {
         // ===================================================================
         // Defines the types of content blocks that can exist in forms.
         // SeaORM does not provide a builder API for CREATE TYPE statements.
+        // NOTE: PostgreSQL doesn't support IF NOT EXISTS with schema-qualified type names,
+        // so we use DO block with exception handling for idempotency.
         manager
             .get_connection()
             .execute_unprepared(
-                "CREATE TYPE IF NOT EXISTS hr_public.onboarding_form_block_type AS ENUM ('TEXT', 'FORM_FIELDS', 'DOCUMENT', 'FILE_UPLOAD', 'SIGNATURE', 'CHECKBOX')"
+                "DO $$ BEGIN
+                    CREATE TYPE hr_public.onboarding_form_block_type AS ENUM ('TEXT', 'FORM_FIELDS', 'DOCUMENT', 'FILE_UPLOAD', 'SIGNATURE', 'CHECKBOX');
+                EXCEPTION
+                    WHEN duplicate_object THEN null;
+                END $$;"
             )
             .await?;
 
@@ -166,11 +172,16 @@ impl MigrationTrait for Migration {
         // ENUM CREATION: onboarding_form_progress_status (raw SQL required)
         // ===================================================================
         // Tracks the completion state of forms for users.
-        // Uses IF NOT EXISTS for idempotency.
+        // Uses DO block for idempotent creation (PostgreSQL doesn't support
+        // IF NOT EXISTS with schema-qualified type names).
         manager
             .get_connection()
             .execute_unprepared(
-                "CREATE TYPE IF NOT EXISTS hr_public.onboarding_form_progress_status AS ENUM ('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED')"
+                "DO $$ BEGIN
+                    CREATE TYPE hr_public.onboarding_form_progress_status AS ENUM ('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED');
+                EXCEPTION
+                    WHEN duplicate_object THEN null;
+                END $$;"
             )
             .await?;
 

@@ -66,19 +66,29 @@ impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Step 1: Create compensation_type enum (raw SQL - PostgreSQL-specific)
         // Defines employee compensation structure types
+        // NOTE: PostgreSQL doesn't support IF NOT EXISTS with schema-qualified type names
         manager
             .get_connection()
             .execute_unprepared(
-                "CREATE TYPE IF NOT EXISTS hr_public.compensation_type AS ENUM ('SALARY', 'HOURLY', 'COMMISSION', 'CONTRACT')"
+                "DO $$ BEGIN
+                    CREATE TYPE hr_public.compensation_type AS ENUM ('SALARY', 'HOURLY', 'COMMISSION', 'CONTRACT');
+                EXCEPTION
+                    WHEN duplicate_object THEN null;
+                END $$;"
             )
             .await?;
 
         // Step 2: Create pay_schedule enum (raw SQL - PostgreSQL-specific)
         // Defines payment frequency options
+        // NOTE: PostgreSQL doesn't support IF NOT EXISTS with schema-qualified type names
         manager
             .get_connection()
             .execute_unprepared(
-                "CREATE TYPE IF NOT EXISTS hr_public.pay_schedule AS ENUM ('WEEKLY', 'BIWEEKLY', 'SEMIMONTHLY', 'MONTHLY')"
+                "DO $$ BEGIN
+                    CREATE TYPE hr_public.pay_schedule AS ENUM ('WEEKLY', 'BIWEEKLY', 'SEMIMONTHLY', 'MONTHLY');
+                EXCEPTION
+                    WHEN duplicate_object THEN null;
+                END $$;"
             )
             .await?;
 
@@ -290,34 +300,49 @@ impl MigrationTrait for Migration {
 
         // Step 10: Add check constraint for annual_salary range (data validation)
         // Ensures annual salary is within reasonable business range ($0-$10M)
+        // NOTE: PostgreSQL doesn't support IF NOT EXISTS with ADD CONSTRAINT
         manager
             .get_connection()
             .execute_unprepared(
-                "ALTER TABLE hr_public.users
-                ADD CONSTRAINT IF NOT EXISTS check_annual_salary_range
-                CHECK (annual_salary IS NULL OR (annual_salary >= 0 AND annual_salary <= 10000000))"
+                "DO $$ BEGIN
+                    ALTER TABLE hr_public.users
+                    ADD CONSTRAINT check_annual_salary_range
+                    CHECK (annual_salary IS NULL OR (annual_salary >= 0 AND annual_salary <= 10000000));
+                EXCEPTION
+                    WHEN duplicate_object THEN null;
+                END $$;"
             )
             .await?;
 
         // Step 11: Add check constraint for hourly_rate range (data validation)
         // Ensures hourly rate is within reasonable business range ($0-$1000/hr)
+        // NOTE: PostgreSQL doesn't support IF NOT EXISTS with ADD CONSTRAINT
         manager
             .get_connection()
             .execute_unprepared(
-                "ALTER TABLE hr_public.users
-                ADD CONSTRAINT IF NOT EXISTS check_hourly_rate_range
-                CHECK (hourly_rate IS NULL OR (hourly_rate >= 0 AND hourly_rate <= 1000))"
+                "DO $$ BEGIN
+                    ALTER TABLE hr_public.users
+                    ADD CONSTRAINT check_hourly_rate_range
+                    CHECK (hourly_rate IS NULL OR (hourly_rate >= 0 AND hourly_rate <= 1000));
+                EXCEPTION
+                    WHEN duplicate_object THEN null;
+                END $$;"
             )
             .await?;
 
         // Step 12: Add check constraint for commission_rate range (data validation)
         // Ensures commission rate is valid percentage (0-100%)
+        // NOTE: PostgreSQL doesn't support IF NOT EXISTS with ADD CONSTRAINT
         manager
             .get_connection()
             .execute_unprepared(
-                "ALTER TABLE hr_public.users
-                ADD CONSTRAINT IF NOT EXISTS check_commission_rate_range
-                CHECK (commission_rate IS NULL OR (commission_rate >= 0 AND commission_rate <= 100))"
+                "DO $$ BEGIN
+                    ALTER TABLE hr_public.users
+                    ADD CONSTRAINT check_commission_rate_range
+                    CHECK (commission_rate IS NULL OR (commission_rate >= 0 AND commission_rate <= 100));
+                EXCEPTION
+                    WHEN duplicate_object THEN null;
+                END $$;"
             )
             .await?;
 
