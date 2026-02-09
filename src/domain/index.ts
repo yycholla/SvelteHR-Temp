@@ -12,6 +12,11 @@ export {
 	InvalidEmailError,
 	InvalidHireDateError,
 	DepartmentNotFoundError,
+	DepartmentAlreadyExistsError,
+	DepartmentDeletionError,
+	CircularDepartmentReferenceError,
+	InvalidDepartmentNameError,
+	DepartmentHierarchyError,
 	ServiceUnavailableError
 } from './errors';
 
