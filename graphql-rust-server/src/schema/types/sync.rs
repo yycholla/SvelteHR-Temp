@@ -14,6 +14,7 @@ use crate::domain::sync::{
 pub enum EntityType {
     Employee,
     Department,
+    TimeEntry,
 }
 
 impl From<EntityType> for DomainEntityType {
@@ -21,6 +22,7 @@ impl From<EntityType> for DomainEntityType {
         match value {
             EntityType::Employee => DomainEntityType::Employee,
             EntityType::Department => DomainEntityType::Department,
+            EntityType::TimeEntry => DomainEntityType::TimeEntry,
         }
     }
 }
@@ -30,6 +32,7 @@ impl From<DomainEntityType> for EntityType {
         match value {
             DomainEntityType::Employee => EntityType::Employee,
             DomainEntityType::Department => EntityType::Department,
+            DomainEntityType::TimeEntry => EntityType::TimeEntry,
         }
     }
 }

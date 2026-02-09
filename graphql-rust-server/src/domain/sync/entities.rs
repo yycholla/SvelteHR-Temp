@@ -2,9 +2,11 @@
 //!
 //! This module contains the core business entities for Intuit/QuickBooks synchronization.
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use uuid::Uuid;
 
 use super::{
     ChangeType, ConflictWinner, EntityId, EntityType, EntityVersion,
@@ -392,5 +394,210 @@ mod tests {
         let set = ChangeSet::new();
         assert!(set.is_empty());
         assert_eq!(set.total_changes(), 0);
+    }
+}
+
+// ============================================================================
+// TimeEntry Domain Entity
+// ============================================================================
+
+/// Hours value object with validation
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Hours(Decimal);
+
+impl Hours {
+    /// Create Hours with validation (0 < hours <= 24)
+    pub fn new(value: f64) -> Result<Self, SyncError> {
+        if value <= 0.0 || value > 24.0 {
+            return Err(SyncError::validation(
+                "time_entry",
+                vec![crate::domain::sync::Violation::new(
+                    "hours",
+                    format!("Hours must be between 0 and 24, got {}", value),
+                    "INVALID_HOURS",
+                )],
+            ));
+        }
+        Ok(Hours(
+            Decimal::from_f64_retain(value).ok_or_else(|| {
+                SyncError::validation(
+                    "time_entry",
+                    vec![crate::domain::sync::Violation::new(
+                        "hours",
+                        "Invalid decimal value",
+                        "INVALID_DECIMAL",
+                    )],
+                )
+            })?,
+        ))
+    }
+
+    pub fn as_decimal(&self) -> Decimal {
+        self.0
+    }
+
+    pub fn as_f64(&self) -> f64 {
+        use rust_decimal::prelude::ToPrimitive;
+        self.0.to_f64().unwrap_or(0.0)
+    }
+}
+
+/// Time entry approval workflow states
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ApprovalStatus {
+    Draft,      // Can be edited, cannot be synced
+    Submitted,  // Pending approval, cannot be edited
+    Approved,   // Can be synced to QuickBooks
+    Rejected,   // Cannot be synced
+}
+
+impl ApprovalStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ApprovalStatus::Draft => "draft",
+            ApprovalStatus::Submitted => "submitted",
+            ApprovalStatus::Approved => "approved",
+            ApprovalStatus::Rejected => "rejected",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Self {
+        match s {
+            "draft" => ApprovalStatus::Draft,
+            "submitted" => ApprovalStatus::Submitted,
+            "approved" => ApprovalStatus::Approved,
+            "rejected" => ApprovalStatus::Rejected,
+            _ => ApprovalStatus::Draft,
+        }
+    }
+}
+
+/// Time entry domain entity
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TimeEntry {
+    // Identity
+    pub id: Uuid,
+    pub employee_id: Uuid,
+
+    // Core data
+    pub entry_date: NaiveDate,
+    pub hours: Hours,
+    pub project_id: Option<Uuid>,
+    pub description: Option<String>,
+    pub is_billable: bool,
+
+    // Workflow state
+    pub approval_status: ApprovalStatus,
+    pub approved_by: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+
+    // Sync metadata
+    pub quickbooks_id: Option<QuickBooksId>,
+    pub last_modified_at: DateTime<Utc>,
+    pub version: EntityVersion,
+}
+
+impl TimeEntry {
+    /// Check if this time entry is eligible for sync
+    pub fn is_syncable(&self) -> bool {
+        self.approval_status == ApprovalStatus::Approved && self.project_id.is_some()
+    }
+
+    /// Check if entry can be edited (not synced, not approved)
+    pub fn can_edit(&self) -> bool {
+        self.quickbooks_id.is_none() && self.approval_status != ApprovalStatus::Approved
+    }
+
+    /// Check if entry can be deleted (not synced)
+    pub fn can_delete(&self) -> bool {
+        self.quickbooks_id.is_none()
+    }
+}
+
+#[cfg(test)]
+mod time_entry_tests {
+    use super::*;
+
+    #[test]
+    fn hours_validates_positive() {
+        assert!(Hours::new(0.0).is_err());
+        assert!(Hours::new(-1.0).is_err());
+        assert!(Hours::new(0.5).is_ok());
+    }
+
+    #[test]
+    fn hours_validates_max() {
+        assert!(Hours::new(24.0).is_ok());
+        assert!(Hours::new(24.1).is_err());
+        assert!(Hours::new(25.0).is_err());
+    }
+
+    #[test]
+    fn hours_decimal_conversion() {
+        let hours = Hours::new(7.5).unwrap();
+        assert_eq!(hours.as_f64(), 7.5);
+    }
+
+    #[test]
+    fn approval_status_string_conversion() {
+        assert_eq!(ApprovalStatus::Approved.as_str(), "approved");
+        assert_eq!(ApprovalStatus::from_str("approved"), ApprovalStatus::Approved);
+    }
+
+    #[test]
+    fn time_entry_syncable_requires_approved_and_project() {
+        let entry = TimeEntry {
+            id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            entry_date: NaiveDate::from_ymd_opt(2026, 2, 6).unwrap(),
+            hours: Hours::new(8.0).unwrap(),
+            project_id: Some(Uuid::new_v4()),
+            description: None,
+            is_billable: false,
+            approval_status: ApprovalStatus::Approved,
+            approved_by: None,
+            approved_at: None,
+            quickbooks_id: None,
+            last_modified_at: Utc::now(),
+            version: EntityVersion::new(Utc::now()),
+        };
+
+        assert!(entry.is_syncable());
+
+        let mut draft = entry.clone();
+        draft.approval_status = ApprovalStatus::Draft;
+        assert!(!draft.is_syncable());
+
+        let mut no_project = entry.clone();
+        no_project.project_id = None;
+        assert!(!no_project.is_syncable());
+    }
+
+    #[test]
+    fn time_entry_can_edit_rules() {
+        let mut entry = TimeEntry {
+            id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            entry_date: NaiveDate::from_ymd_opt(2026, 2, 6).unwrap(),
+            hours: Hours::new(8.0).unwrap(),
+            project_id: None,
+            description: None,
+            is_billable: false,
+            approval_status: ApprovalStatus::Draft,
+            approved_by: None,
+            approved_at: None,
+            quickbooks_id: None,
+            last_modified_at: Utc::now(),
+            version: EntityVersion::new(Utc::now()),
+        };
+
+        assert!(entry.can_edit());
+
+        entry.approval_status = ApprovalStatus::Approved;
+        assert!(!entry.can_edit());
+
+        entry.approval_status = ApprovalStatus::Draft;
+        entry.quickbooks_id = Some(QuickBooksId::new("qb-123"));
+        assert!(!entry.can_edit());
     }
 }

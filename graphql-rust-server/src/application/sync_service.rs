@@ -228,6 +228,10 @@ where
                     })
                     .collect())
             }
+            EntityType::TimeEntry => {
+                // Time entry sync not yet implemented
+                Ok(Vec::new())
+            }
         }
     }
 

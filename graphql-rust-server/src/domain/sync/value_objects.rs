@@ -7,6 +7,7 @@ use std::fmt;
 pub enum EntityType {
     Employee,
     Department,
+    TimeEntry,
 }
 
 impl fmt::Display for EntityType {
@@ -14,6 +15,7 @@ impl fmt::Display for EntityType {
         match self {
             EntityType::Employee => write!(f, "Employee"),
             EntityType::Department => write!(f, "Department"),
+            EntityType::TimeEntry => write!(f, "TimeEntry"),
         }
     }
 }

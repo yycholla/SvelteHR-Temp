@@ -102,6 +102,10 @@ impl SyncRepositoryPort for SeaOrmSyncRepository {
                     .map(|d| self.map_department_to_sync_entity(d))
                     .collect())
             }
+            EntityType::TimeEntry => {
+                // Time entry sync not yet implemented
+                Ok(Vec::new())
+            }
         }
     }
 
@@ -113,6 +117,7 @@ impl SyncRepositoryPort for SeaOrmSyncRepository {
         let entity_type_str = match entity_type {
             EntityType::Employee => "employee",
             EntityType::Department => "department",
+            EntityType::TimeEntry => "time_entry",
         };
 
         let log = intuit_sync_log::Entity::find()
@@ -168,6 +173,9 @@ impl SyncRepositoryPort for SeaOrmSyncRepository {
                                 .await
                                 .map_err(|e| SyncError::RepositoryError { message: e.to_string() })?;
                         }
+                    }
+                    EntityType::TimeEntry => {
+                        // Time entry sync not yet implemented
                     }
                 }
             }
