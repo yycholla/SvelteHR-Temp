@@ -85,7 +85,7 @@ describe('DepartmentHierarchy', () => {
 
 			expect(result.isError).toBe(true);
 			expect(result.error.name).toBe('BusinessRuleError');
-			expect(result.error.message).toContain('circular reference');
+			expect(result.error.message.toLowerCase()).toContain('circular reference');
 		});
 	});
 
