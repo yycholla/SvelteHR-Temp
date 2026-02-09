@@ -2434,6 +2434,9 @@ mod tests {
             .await
             .expect("Failed to create test context");
 
+        // Get a test user for authentication
+        let test_user = ctx.user(TestUserRole::Employee);
+
         let random_id = uuid::Uuid::new_v4();
 
         let query = format!(
@@ -2451,7 +2454,7 @@ mod tests {
         );
 
         // Act
-        let response = ctx.execute_query(&query).await;
+        let response = ctx.execute_query_as(&query, &test_user).await;
 
         // Assert - Should return null for non-existent user
         let data = ctx.extract_data(&response);
@@ -2482,7 +2485,10 @@ mod tests {
                     email
                     firstName
                     lastName
-                    role
+                    roles {{
+                        id
+                        name
+                    }}
                     isActive
                 }}
             }}
@@ -2491,7 +2497,7 @@ mod tests {
         );
 
         // Act
-        let response = ctx.execute_query(&query).await;
+        let response = ctx.execute_query_as(&query, &test_user).await;
 
         // Assert - No errors
         let errors = ctx.extract_errors(&response);
@@ -2530,7 +2536,10 @@ mod tests {
                     email
                     firstName
                     lastName
-                    role
+                    roles {
+                        id
+                        name
+                    }
                 }
             }
         "#;
@@ -2583,19 +2592,25 @@ mod tests {
             .await
             .expect("Failed to create test context");
 
+        // Get a test user for authentication
+        let test_user = ctx.user(TestUserRole::Employee);
+
         let query = r#"
             query {
                 users(limit: 10, offset: 0) {
                     id
                     email
-                    role
+                    roles {
+                        id
+                        name
+                    }
                     isActive
                 }
             }
         "#;
 
         // Act
-        let response = ctx.execute_query(&query).await;
+        let response = ctx.execute_query_as(&query, &test_user).await;
 
         // Assert - No errors
         let errors = ctx.extract_errors(&response);
@@ -2624,12 +2639,18 @@ mod tests {
             .await
             .expect("Failed to create test context");
 
+        // Get a test user for authentication
+        let test_user = ctx.user(TestUserRole::Employee);
+
         let query = r#"
             query GetUsers($limit: Int, $offset: Int) {
                 users(limit: $limit, offset: $offset) {
                     id
                     email
-                    role
+                    roles {
+                        id
+                        name
+                    }
                 }
             }
         "#;
@@ -2644,7 +2665,7 @@ mod tests {
         }));
 
         // Act
-        let response = ctx.execute_with_variables(query, variables).await;
+        let response = ctx.execute_with_variables_as(query, variables, &test_user).await;
 
         // Assert - No errors
         let errors = ctx.extract_errors(&response);
@@ -2670,7 +2691,10 @@ mod tests {
                 user(id: $id) {
                     id
                     email
-                    role
+                    roles {
+                        id
+                        name
+                    }
                 }
             }
         "#;
@@ -2706,6 +2730,9 @@ mod tests {
             .await
             .expect("Failed to create test context");
 
+        // Get a test user for authentication
+        let test_user = ctx.user(TestUserRole::Employee);
+
         // First, get all departments to find one with employees
         let departments_query = r#"
             query {
@@ -2737,7 +2764,7 @@ mod tests {
         );
 
         // Act
-        let response = ctx.execute_query(&query).await;
+        let response = ctx.execute_query_as(&query, &test_user).await;
 
         // Assert - No errors
         let errors = ctx.extract_errors(&response);
@@ -2760,6 +2787,9 @@ mod tests {
             .await
             .expect("Failed to create test context");
 
+        // Get a test user for authentication
+        let test_user = ctx.user(TestUserRole::Employee);
+
         // Use a random UUID that doesn't exist
         let empty_department_id = uuid::Uuid::new_v4();
 
@@ -2773,7 +2803,7 @@ mod tests {
         );
 
         // Act
-        let response = ctx.execute_query(&query).await;
+        let response = ctx.execute_query_as(&query, &test_user).await;
 
         // Assert - No errors
         let errors = ctx.extract_errors(&response);
@@ -2794,6 +2824,9 @@ mod tests {
         let ctx = TestContext::new()
             .await
             .expect("Failed to create test context");
+
+        // Get a test user for authentication
+        let test_user = ctx.user(TestUserRole::Employee);
 
         // Get departments to find one with a parent
         let departments_query = r#"
@@ -2846,7 +2879,7 @@ mod tests {
         );
 
         // Act
-        let response = ctx.execute_query(&query).await;
+        let response = ctx.execute_query_as(&query, &test_user).await;
 
         // Assert - No errors
         let errors = ctx.extract_errors(&response);
@@ -2867,6 +2900,9 @@ mod tests {
         let ctx = TestContext::new()
             .await
             .expect("Failed to create test context");
+
+        // Get a test user for authentication
+        let test_user = ctx.user(TestUserRole::Employee);
 
         // Get departments to find one without a parent
         let departments_query = r#"
@@ -2917,7 +2953,7 @@ mod tests {
         );
 
         // Act
-        let response = ctx.execute_query(&query).await;
+        let response = ctx.execute_query_as(&query, &test_user).await;
 
         // Assert - No errors
         let errors = ctx.extract_errors(&response);
@@ -2938,6 +2974,9 @@ mod tests {
         let ctx = TestContext::new()
             .await
             .expect("Failed to create test context");
+
+        // Get a test user for authentication
+        let test_user = ctx.user(TestUserRole::Employee);
 
         // Get departments to find one that might have children
         let departments_query = r#"
@@ -2973,7 +3012,7 @@ mod tests {
         );
 
         // Act
-        let response = ctx.execute_query(&query).await;
+        let response = ctx.execute_query_as(&query, &test_user).await;
 
         // Assert - No errors
         let errors = ctx.extract_errors(&response);
@@ -2995,6 +3034,9 @@ mod tests {
             .await
             .expect("Failed to create test context");
 
+        // Get a test user for authentication
+        let test_user = ctx.user(TestUserRole::Employee);
+
         let invalid_id = uuid::Uuid::new_v4();
         
         let query = format!(
@@ -3010,7 +3052,7 @@ mod tests {
         );
 
         // Act
-        let response = ctx.execute_query(&query).await;
+        let response = ctx.execute_query_as(&query, &test_user).await;
 
         // Assert - No errors (just returns empty list)
         let errors = ctx.extract_errors(&response);
@@ -3031,6 +3073,9 @@ mod tests {
         let ctx = TestContext::new()
             .await
             .expect("Failed to create test context");
+
+        // Get a test user for authentication
+        let test_user = ctx.user(TestUserRole::Employee);
 
         // Get an existing department name
         let departments_query = r#"
@@ -3067,7 +3112,7 @@ mod tests {
         );
 
         // Act
-        let response = ctx.execute_query(&query).await;
+        let response = ctx.execute_query_as(&query, &test_user).await;
 
         // Assert - No errors
         let errors = ctx.extract_errors(&response);
@@ -3089,6 +3134,9 @@ mod tests {
             .await
             .expect("Failed to create test context");
 
+        // Get a test user for authentication
+        let test_user = ctx.user(TestUserRole::Employee);
+
         // Use a random name that doesn't exist
         let unique_name = format!("Test Department {}", uuid::Uuid::new_v4());
 
@@ -3106,7 +3154,7 @@ mod tests {
         );
 
         // Act
-        let response = ctx.execute_query(&query).await;
+        let response = ctx.execute_query_as(&query, &test_user).await;
 
         // Assert - No errors
         let errors = ctx.extract_errors(&response);
@@ -3127,6 +3175,9 @@ mod tests {
         let ctx = TestContext::new()
             .await
             .expect("Failed to create test context");
+
+        // Get a test user for authentication
+        let test_user = ctx.user(TestUserRole::Employee);
 
         // Get an existing department
         let departments_query = r#"
@@ -3169,7 +3220,7 @@ mod tests {
         );
 
         // Act
-        let response = ctx.execute_query(&query).await;
+        let response = ctx.execute_query_as(&query, &test_user).await;
 
         // Assert - No errors
         let errors = ctx.extract_errors(&response);
@@ -3190,6 +3241,9 @@ mod tests {
         let ctx = TestContext::new()
             .await
             .expect("Failed to create test context");
+
+        // Get a test user for authentication
+        let test_user = ctx.user(TestUserRole::Employee);
 
         // Get an existing department name
         let departments_query = r#"
@@ -3227,7 +3281,7 @@ mod tests {
         );
 
         // Act
-        let response = ctx.execute_query(&query).await;
+        let response = ctx.execute_query_as(&query, &test_user).await;
 
         // Assert - No errors
         let errors = ctx.extract_errors(&response);
