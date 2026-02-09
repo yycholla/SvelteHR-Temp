@@ -655,7 +655,7 @@ describe('GraphQLDepartmentAdapter', () => {
 		});
 
 		it('should handle deletion errors', async () => {
-			mockGraphQL.mutation = vi.fn().mockResolvedValue(null);
+			mockGraphQL.mutation = vi.fn().mockRejectedValue(new Error('Department not found'));
 
 			const result = await adapter.delete('invalid-id');
 
