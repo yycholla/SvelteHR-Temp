@@ -25,7 +25,7 @@ export class DepartmentHierarchy {
 	 * @returns Result containing DepartmentHierarchy for root department
 	 */
 	static createRoot(): Result<DepartmentHierarchy, BusinessRuleError> {
-		return Result.ok(new DepartmentHierarchy(null, []));
+		return Result.ok(new DepartmentHierarchy(null, Object.freeze([])));
 	}
 
 	/**

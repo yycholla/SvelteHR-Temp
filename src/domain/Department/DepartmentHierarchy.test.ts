@@ -15,8 +15,7 @@ describe('DepartmentHierarchy', () => {
 			const result = DepartmentHierarchy.createRoot();
 			const hierarchy = result.value;
 
-			// @ts-expect-error - Testing immutability at runtime
-			expect(() => hierarchy.ancestorIds.push('test')).toThrow();
+			expect(Object.isFrozen(hierarchy.ancestorIds)).toBe(true);
 		});
 	});
 
@@ -47,8 +46,7 @@ describe('DepartmentHierarchy', () => {
 			const result = DepartmentHierarchy.createChild(parentId, [parentId]);
 			const hierarchy = result.value;
 
-			// @ts-expect-error - Testing immutability at runtime
-			expect(() => hierarchy.ancestorIds.push('test')).toThrow();
+			expect(Object.isFrozen(hierarchy.ancestorIds)).toBe(true);
 		});
 
 		it('returns BusinessRuleError with empty parent ID', () => {
