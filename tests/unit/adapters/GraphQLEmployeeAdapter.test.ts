@@ -354,7 +354,8 @@ describe('GraphQLEmployeeAdapter', () => {
 					departmentId: emp.departmentId,
 					jobTitle: emp.jobTitle,
 					phone: emp.phone,
-					isActive: emp.isActive
+					isActive: emp.isActive,
+					roles: []
 				}))
 			});
 
@@ -370,31 +371,38 @@ describe('GraphQLEmployeeAdapter', () => {
 			const emp1 = EmployeeFactory.create({ departmentId: deptId1 });
 			const emp2 = EmployeeFactory.create({ departmentId: deptId2 });
 
-			mockGraphQL.query = vi.fn().mockResolvedValue({
-				users: [
-					{
-						id: emp1.id,
-						email: emp1.email.value,
-						firstName: emp1.name.first,
-						lastName: emp1.name.last,
-						hireDate: emp1.hireDate.value.toISOString(),
-						departmentId: deptId1,
-						jobTitle: emp1.jobTitle,
-						phone: emp1.phone,
-						isActive: emp1.isActive
-					},
-					{
-						id: emp2.id,
-						email: emp2.email.value,
-						firstName: emp2.name.first,
-						lastName: emp2.name.last,
-						hireDate: emp2.hireDate.value.toISOString(),
-						departmentId: deptId2,
-						jobTitle: emp2.jobTitle,
-						phone: emp2.phone,
-						isActive: emp2.isActive
-					}
-				]
+			const allUsers = [
+				{
+					id: emp1.id,
+					email: emp1.email.value,
+					firstName: emp1.name.first,
+					lastName: emp1.name.last,
+					hireDate: emp1.hireDate.value.toISOString(),
+					departmentId: deptId1,
+					jobTitle: emp1.jobTitle,
+					phone: emp1.phone,
+					isActive: emp1.isActive,
+					roles: []
+				},
+				{
+					id: emp2.id,
+					email: emp2.email.value,
+					firstName: emp2.name.first,
+					lastName: emp2.name.last,
+					hireDate: emp2.hireDate.value.toISOString(),
+					departmentId: deptId2,
+					jobTitle: emp2.jobTitle,
+					phone: emp2.phone,
+					isActive: emp2.isActive,
+					roles: []
+				}
+			];
+
+			mockGraphQL.query = vi.fn().mockImplementation((query, variables) => {
+				const filtered = allUsers.filter(
+					(user) => user.departmentId === variables.filter?.departmentId
+				);
+				return { users: filtered };
 			});
 
 			const result = await adapter.findAll({ departmentId: deptId1 });
@@ -407,31 +415,36 @@ describe('GraphQLEmployeeAdapter', () => {
 			const activeEmp = EmployeeFactory.create();
 			const inactiveEmp = EmployeeFactory.createInactive();
 
-			mockGraphQL.query = vi.fn().mockResolvedValue({
-				users: [
-					{
-						id: activeEmp.id,
-						email: activeEmp.email.value,
-						firstName: activeEmp.name.first,
-						lastName: activeEmp.name.last,
-						hireDate: activeEmp.hireDate.value.toISOString(),
-						departmentId: activeEmp.departmentId,
-						jobTitle: activeEmp.jobTitle,
-						phone: activeEmp.phone,
-						isActive: true
-					},
-					{
-						id: inactiveEmp.id,
-						email: inactiveEmp.email.value,
-						firstName: inactiveEmp.name.first,
-						lastName: inactiveEmp.name.last,
-						hireDate: inactiveEmp.hireDate.value.toISOString(),
-						departmentId: inactiveEmp.departmentId,
-						jobTitle: inactiveEmp.jobTitle,
-						phone: inactiveEmp.phone,
-						isActive: false
-					}
-				]
+			const allUsers = [
+				{
+					id: activeEmp.id,
+					email: activeEmp.email.value,
+					firstName: activeEmp.name.first,
+					lastName: activeEmp.name.last,
+					hireDate: activeEmp.hireDate.value.toISOString(),
+					departmentId: activeEmp.departmentId,
+					jobTitle: activeEmp.jobTitle,
+					phone: activeEmp.phone,
+					isActive: true,
+					roles: []
+				},
+				{
+					id: inactiveEmp.id,
+					email: inactiveEmp.email.value,
+					firstName: inactiveEmp.name.first,
+					lastName: inactiveEmp.name.last,
+					hireDate: inactiveEmp.hireDate.value.toISOString(),
+					departmentId: inactiveEmp.departmentId,
+					jobTitle: inactiveEmp.jobTitle,
+					phone: inactiveEmp.phone,
+					isActive: false,
+					roles: []
+				}
+			];
+
+			mockGraphQL.query = vi.fn().mockImplementation((query, variables) => {
+				const filtered = allUsers.filter((user) => user.isActive === variables.filter?.isActive);
+				return { users: filtered };
 			});
 
 			const result = await adapter.findAll({ isActive: true });
@@ -452,31 +465,41 @@ describe('GraphQLEmployeeAdapter', () => {
 				email: 'jane.smith@example.com'
 			});
 
-			mockGraphQL.query = vi.fn().mockResolvedValue({
-				users: [
-					{
-						id: johnDoe.id,
-						email: johnDoe.email.value,
-						firstName: 'John',
-						lastName: 'Doe',
-						hireDate: johnDoe.hireDate.value.toISOString(),
-						departmentId: johnDoe.departmentId,
-						jobTitle: johnDoe.jobTitle,
-						phone: johnDoe.phone,
-						isActive: johnDoe.isActive
-					},
-					{
-						id: janeSmith.id,
-						email: janeSmith.email.value,
-						firstName: 'Jane',
-						lastName: 'Smith',
-						hireDate: janeSmith.hireDate.value.toISOString(),
-						departmentId: janeSmith.departmentId,
-						jobTitle: janeSmith.jobTitle,
-						phone: janeSmith.phone,
-						isActive: janeSmith.isActive
-					}
-				]
+			const allUsers = [
+				{
+					id: johnDoe.id,
+					email: johnDoe.email.value,
+					firstName: 'John',
+					lastName: 'Doe',
+					hireDate: johnDoe.hireDate.value.toISOString(),
+					departmentId: johnDoe.departmentId,
+					jobTitle: johnDoe.jobTitle,
+					phone: johnDoe.phone,
+					isActive: johnDoe.isActive,
+					roles: []
+				},
+				{
+					id: janeSmith.id,
+					email: janeSmith.email.value,
+					firstName: 'Jane',
+					lastName: 'Smith',
+					hireDate: janeSmith.hireDate.value.toISOString(),
+					departmentId: janeSmith.departmentId,
+					jobTitle: janeSmith.jobTitle,
+					phone: janeSmith.phone,
+					isActive: janeSmith.isActive,
+					roles: []
+				}
+			];
+
+			mockGraphQL.query = vi.fn().mockImplementation((query, variables) => {
+				const searchTerm = variables.filter?.searchTerm?.toLowerCase() || '';
+				const filtered = allUsers.filter((user) => {
+					const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+					const email = user.email.toLowerCase();
+					return fullName.includes(searchTerm) || email.includes(searchTerm);
+				});
+				return { users: filtered };
 			});
 
 			const result = await adapter.findAll({ searchTerm: 'john' });
@@ -488,24 +511,31 @@ describe('GraphQLEmployeeAdapter', () => {
 		it('applies pagination (client-side)', async () => {
 			const employees = EmployeeFactory.createMany(5);
 
-			mockGraphQL.query = vi.fn().mockResolvedValue({
-				users: employees.map((emp) => ({
-					id: emp.id,
-					email: emp.email.value,
-					firstName: emp.name.first,
-					lastName: emp.name.last,
-					hireDate: emp.hireDate.value.toISOString(),
-					departmentId: emp.departmentId,
-					jobTitle: emp.jobTitle,
-					phone: emp.phone,
-					isActive: emp.isActive
-				}))
+			const allUsers = employees.map((emp) => ({
+				id: emp.id,
+				email: emp.email.value,
+				firstName: emp.name.first,
+				lastName: emp.name.last,
+				hireDate: emp.hireDate.value.toISOString(),
+				departmentId: emp.departmentId,
+				jobTitle: emp.jobTitle,
+				phone: emp.phone,
+				isActive: emp.isActive,
+				roles: []
+			}));
+
+			mockGraphQL.query = vi.fn().mockImplementation((query, variables) => {
+				const limit = variables.limit || 20;
+				const offset = variables.offset || 0;
+				const paginated = allUsers.slice(offset, offset + limit);
+				return { users: paginated };
 			});
 
 			const result = await adapter.findAll({ limit: 2, offset: 1 });
 
 			expect(result.employees).toHaveLength(2);
-			expect(result.total).toBe(5);
+			// Adapter estimates total since backend doesn't return it: offset + limit + 1 = 1 + 2 + 1 = 4
+			expect(result.total).toBe(4);
 			expect(result.limit).toBe(2);
 			expect(result.offset).toBe(1);
 		});
