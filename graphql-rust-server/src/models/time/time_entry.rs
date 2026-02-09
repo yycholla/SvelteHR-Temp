@@ -98,9 +98,12 @@ pub struct Model {
     pub approved_at: Option<DateTime<Utc>>,
     pub rejected_reason: Option<String>,
     pub quickbooks_time_activity_id: Option<String>,
-    pub sync_status: String,
+    #[sea_orm(column_name = "sync_state")]
+    pub sync_status: String,  // NOTE: Column renamed to sync_state in DB
     pub synced_at: Option<DateTime<Utc>>,
     pub sync_error: Option<String>,
+    pub last_modified_at: DateTime<Utc>,
+    pub quickbooks_sync_token: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
@@ -238,6 +241,16 @@ impl Model {
     #[graphql(name = "syncError")]
     async fn sync_error(&self) -> Option<&str> {
         self.sync_error.as_deref()
+    }
+
+    #[graphql(name = "lastModifiedAt")]
+    async fn last_modified_at(&self) -> DateTime<Utc> {
+        self.last_modified_at
+    }
+
+    #[graphql(name = "quickbooksSyncToken")]
+    async fn quickbooks_sync_token(&self) -> Option<&str> {
+        self.quickbooks_sync_token.as_deref()
     }
 
     #[graphql(name = "createdAt")]

@@ -70,6 +70,8 @@ impl TimeEntryMutations {
             sync_status: Set("not_synced".to_string()),
             synced_at: Set(None),
             sync_error: Set(None),
+            last_modified_at: Set(Utc::now()),
+            quickbooks_sync_token: Set(None),
             created_at: Set(Utc::now().into()),
             updated_at: Set(Utc::now().into()),
             deleted_at: Set(None),
