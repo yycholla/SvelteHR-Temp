@@ -249,7 +249,7 @@ mod tests {
     fn test_require_hr_manager() {
         let hr_ctx = UserContext::new(
             Uuid::new_v4(),
-            vec!["HR_Manager".to_string()],
+            vec!["HR Manager".to_string()],
             vec![],
         );
         assert!(require_hr_manager(&hr_ctx).is_ok());

@@ -130,7 +130,7 @@ mod tests {
     fn test_role_hierarchy() {
         let ctx = UserContext::new(
             Uuid::new_v4(),
-            vec!["HR_Manager".to_string()],
+            vec!["HR Manager".to_string()],
             vec!["employees:read".to_string()],
         );
 
