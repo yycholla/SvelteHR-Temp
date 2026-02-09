@@ -173,21 +173,20 @@ describe('GraphQLEmployeeAdapter', () => {
 		it('returns employee with matching email', async () => {
 			const employee = EmployeeFactory.create({ email: 'test@example.com' });
 
-			// Note: Now uses users query with client-side filtering
+			// Note: Now uses userByEmail query
 			mockGraphQL.query = vi.fn().mockResolvedValue({
-				users: [
-					{
-						id: employee.id,
-						email: employee.email.value,
-						firstName: employee.name.first,
-						lastName: employee.name.last,
-						hireDate: employee.hireDate.value.toISOString(),
-						departmentId: employee.departmentId,
-						jobTitle: employee.jobTitle,
-						phone: employee.phone,
-						isActive: employee.isActive
-					}
-				]
+				userByEmail: {
+					id: employee.id,
+					email: employee.email.value,
+					firstName: employee.name.first,
+					lastName: employee.name.last,
+					hireDate: employee.hireDate.value.toISOString(),
+					departmentId: employee.departmentId,
+					jobTitle: employee.jobTitle,
+					phone: employee.phone,
+					isActive: employee.isActive,
+					roles: []
+				}
 			});
 
 			const result = await adapter.findByEmail('test@example.com');
@@ -197,7 +196,7 @@ describe('GraphQLEmployeeAdapter', () => {
 		});
 
 		it('returns null when not found', async () => {
-			mockGraphQL.query = vi.fn().mockResolvedValue({ users: [] });
+			mockGraphQL.query = vi.fn().mockResolvedValue({ userByEmail: null });
 
 			const result = await adapter.findByEmail('nonexistent@example.com');
 
@@ -208,19 +207,18 @@ describe('GraphQLEmployeeAdapter', () => {
 			const employee = EmployeeFactory.create({ email: 'TEST@EXAMPLE.COM' });
 
 			mockGraphQL.query = vi.fn().mockResolvedValue({
-				users: [
-					{
-						id: employee.id,
-						email: 'TEST@EXAMPLE.COM',
-						firstName: employee.name.first,
-						lastName: employee.name.last,
-						hireDate: employee.hireDate.value.toISOString(),
-						departmentId: employee.departmentId,
-						jobTitle: employee.jobTitle,
-						phone: employee.phone,
-						isActive: employee.isActive
-					}
-				]
+				userByEmail: {
+					id: employee.id,
+					email: 'TEST@EXAMPLE.COM',
+					firstName: employee.name.first,
+					lastName: employee.name.last,
+					hireDate: employee.hireDate.value.toISOString(),
+					departmentId: employee.departmentId,
+					jobTitle: employee.jobTitle,
+					phone: employee.phone,
+					isActive: employee.isActive,
+					roles: []
+				}
 			});
 
 			// Should find with lowercase query
