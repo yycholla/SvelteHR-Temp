@@ -387,7 +387,18 @@ impl DigestService {
             }
             "0 9 * * 1" => {
                 // Weekly Monday at 9 AM
-                let days_until_monday = (8 - after.weekday().num_days_from_monday()) % 7;
+                let current_day = after.weekday().num_days_from_monday();
+                let days_until_monday = if current_day == 0 {
+                    // It's Monday - check if before or after 9 AM
+                    if after.time() < chrono::NaiveTime::from_hms_opt(9, 0, 0)? {
+                        0 // Today at 9 AM
+                    } else {
+                        7 // Next Monday
+                    }
+                } else {
+                    // Days until next Monday
+                    7 - current_day
+                };
                 let next_monday = after + Duration::days(days_until_monday as i64);
                 let next = next_monday.date_naive().and_hms_opt(9, 0, 0)?;
                 Some(DateTime::from_naive_utc_and_offset(next, Utc))
@@ -412,11 +423,12 @@ impl DigestService {
 mod tests {
     use super::*;
     use chrono::{TimeZone, Timelike};
+    use crate::testing::TestContext;
 
     #[tokio::test]
     async fn test_calculate_next_send_time_daily() {
-        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        let service = DigestService::new(Arc::new(db));
+        let ctx = TestContext::new().await.expect("Failed to create test context");
+        let service = DigestService::new(Arc::new(ctx.connection().clone()));
 
         // Test daily cron at 9 AM
         let cron = "0 9 * * *";
@@ -440,8 +452,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_calculate_next_send_time_weekly() {
-        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        let service = DigestService::new(Arc::new(db));
+        let ctx = TestContext::new().await.expect("Failed to create test context");
+        let service = DigestService::new(Arc::new(ctx.connection().clone()));
 
         // Test weekly Monday at 9 AM
         let cron = "0 9 * * 1";
@@ -457,8 +469,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_calculate_next_send_time_monthly() {
-        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        let service = DigestService::new(Arc::new(db));
+        let ctx = TestContext::new().await.expect("Failed to create test context");
+        let service = DigestService::new(Arc::new(ctx.connection().clone()));
 
         // Test monthly on 1st at 9 AM
         let cron = "0 9 1 * *";
@@ -475,8 +487,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_calculate_next_send_time_invalid_cron() {
-        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        let service = DigestService::new(Arc::new(db));
+        let ctx = TestContext::new().await.expect("Failed to create test context");
+        let service = DigestService::new(Arc::new(ctx.connection().clone()));
 
         // Test invalid/unknown cron expression
         let cron = "invalid";
