@@ -222,8 +222,8 @@ mod tests {
             .await
             .expect("Failed to create test user");
 
-        assert_eq!(user.role, "hr_employee");
-        assert_eq!(user.email, "test_hr_employee@example.com");
+        assert_eq!(user.role, "Employee");
+        assert_eq!(user.email, "test_employee@example.com");
         assert!(user.is_active);
         assert_eq!(user.password, "test_password_123");
     }
@@ -236,10 +236,10 @@ mod tests {
             .await
             .expect("Failed to create test users");
 
-        assert_eq!(users.employee.role, "hr_employee");
-        assert_eq!(users.hr_manager.role, "hr_manager");
-        assert_eq!(users.admin.role, "admin");
-        assert_eq!(users.system_admin.role, "system_admin");
+        assert_eq!(users.employee.role, "Employee");
+        assert_eq!(users.hr_manager.role, "HR Manager");
+        assert_eq!(users.admin.role, "Admin");
+        assert_eq!(users.system_admin.role, "Admin"); // SystemAdmin uses Admin role
     }
 
     #[tokio::test]

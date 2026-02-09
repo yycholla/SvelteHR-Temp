@@ -199,10 +199,10 @@ mod tests {
         assert!(ctx.connection().ping().await.is_ok());
 
         // Verify test users exist
-        assert_eq!(ctx.users().employee.role, "hr_employee");
-        assert_eq!(ctx.users().hr_manager.role, "hr_manager");
-        assert_eq!(ctx.users().admin.role, "admin");
-        assert_eq!(ctx.users().system_admin.role, "system_admin");
+        assert_eq!(ctx.users().employee.role, "Employee");
+        assert_eq!(ctx.users().hr_manager.role, "HR Manager");
+        assert_eq!(ctx.users().admin.role, "Admin");
+        assert_eq!(ctx.users().system_admin.role, "Admin"); // SystemAdmin uses Admin role
     }
 
     #[tokio::test]
@@ -212,10 +212,10 @@ mod tests {
             .expect("Failed to create test context");
 
         let employee = ctx.user(TestUserRole::Employee);
-        assert_eq!(employee.role, "hr_employee");
+        assert_eq!(employee.role, "Employee");
 
         let admin = ctx.user(TestUserRole::Admin);
-        assert_eq!(admin.role, "admin");
+        assert_eq!(admin.role, "Admin");
     }
 
     #[tokio::test]
