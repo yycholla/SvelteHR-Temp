@@ -6,6 +6,7 @@ use crate::domain::sync::{EntityType, QuickBooksId, SyncError};
 use crate::integrations::intuit::{Department, EmailAddress, Employee, EmployeeExtended, IntuitClient, NtRef, PhoneNumber};
 use crate::ports::quickbooks::{
     DepartmentData, EmployeeData, QuickBooksPort, RemoteDepartment, RemoteEmployee,
+    RemoteTimeEntry, TimeEntryData,
 };
 
 /// Adapter that implements QuickBooksPort using the existing IntuitClient
@@ -252,5 +253,39 @@ impl QuickBooksPort for QuickBooksAdapter {
             .map_err(|e| self.map_error(e))?;
 
         Ok(self.map_department_to_remote(created))
+    }
+
+    async fn list_time_entries(
+        &self,
+        _since: Option<DateTime<Utc>>,
+    ) -> Result<Vec<RemoteTimeEntry>, SyncError> {
+        // TODO: Implement when QuickBooks TimeActivity API is integrated
+        Ok(Vec::new())
+    }
+
+    async fn get_time_entry(&self, _id: &QuickBooksId) -> Result<RemoteTimeEntry, SyncError> {
+        // TODO: Implement when QuickBooks TimeActivity API is integrated
+        Err(SyncError::EntityNotFound {
+            entity_type: EntityType::TimeEntry,
+            id: _id.as_str().to_string(),
+        })
+    }
+
+    async fn create_time_entry(&self, _data: TimeEntryData) -> Result<RemoteTimeEntry, SyncError> {
+        // TODO: Implement when QuickBooks TimeActivity API is integrated
+        Err(SyncError::Internal {
+            message: "TimeEntry sync not yet implemented".to_string(),
+        })
+    }
+
+    async fn update_time_entry(
+        &self,
+        _id: &QuickBooksId,
+        _data: TimeEntryData,
+    ) -> Result<RemoteTimeEntry, SyncError> {
+        // TODO: Implement when QuickBooks TimeActivity API is integrated
+        Err(SyncError::Internal {
+            message: "TimeEntry sync not yet implemented".to_string(),
+        })
     }
 }
