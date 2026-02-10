@@ -1,5 +1,4 @@
 use async_graphql::{Context, Result, SimpleObject, InputObject};
-use axum_login::AuthSession;
 use chrono::Utc;
 use csv::ReaderBuilder;
 use sea_orm::{EntityTrait, Set, ActiveModelTrait, QueryFilter, ColumnTrait};
@@ -7,7 +6,7 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::{
-    auth::AuthBackend,
+    auth::UserContext,
     database::get_db_from_context,
     error::AppError,
     models::{
@@ -375,14 +374,10 @@ impl UserMutations {
         let db = get_db_from_context(ctx)?;
 
         // Get current authenticated user from context
-        let auth_session = ctx.data::<AuthSession<AuthBackend>>()?;
-        let current_user = auth_session
-            .user
-            .as_ref()
-            .ok_or_else(|| AppError::Authentication("Not authenticated".to_string()))?;
+        let user_context = ctx.data::<UserContext>()?;
 
         // Fetch user from database
-        let user = crate::models::user::Entity::find_by_id(current_user.id)
+        let user = crate::models::user::Entity::find_by_id(user_context.user_id)
             .filter(crate::models::user::Column::DeletedAt.is_null())
             .one(&db)
             .await?
@@ -413,7 +408,7 @@ impl UserMutations {
 
         user.update(&db).await?;
 
-        tracing::info!("Password changed successfully for user ID: {}", current_user.id);
+        tracing::info!("Password changed successfully for user ID: {}", user_context.user_id);
 
         Ok(ChangePasswordResponse {
             success: true,

@@ -4132,14 +4132,13 @@ impl MutationRoot {
         input: UploadDocumentInput,
     ) -> Result<crate::models::documents::document::Model> {
         let db = get_db_from_context(ctx)?;
-        let auth_session = ctx.data::<AuthSession<crate::auth::AuthBackend>>()?;
-        let user = auth_session.user.as_ref().ok_or_else(|| AppError::Authentication("Not authenticated".to_string()))?;
+        let user_context = ctx.data::<UserContext>()?;
 
         // Start transaction for atomic operation
         let txn = db.begin().await?;
 
         // Generate storage path
-        let storage_path = format!("{}/{}", user.id, uuid::Uuid::new_v4());
+        let storage_path = format!("{}/{}", user_context.user_id, uuid::Uuid::new_v4());
 
         // Decode base64 encrypted data
         use base64::{Engine as _, engine::general_purpose};
@@ -4156,7 +4155,7 @@ impl MutationRoot {
             title: Set(input.filename.clone()),
             description: Set(None),
             category_id: Set(None), // TODO: Map category string to ID
-            uploader_id: Set(user.id),
+            uploader_id: Set(user_context.user_id),
             file_path: Set(storage_path.clone()),
             file_size: Set(input.file_size_bytes),
             mime_type: Set(format!("application/{}", input.file_type.to_lowercase())),
@@ -4190,7 +4189,7 @@ impl MutationRoot {
                     user_id: Set(Some(*employee_id)),
                     department_id: Set(None),
                     access_level: Set("read".to_string()),
-                    assigned_by: Set(user.id),
+                    assigned_by: Set(user_context.user_id),
                     ..Default::default()
                 };
                 assignment.insert(&txn).await?;
@@ -4206,7 +4205,7 @@ impl MutationRoot {
                     user_id: Set(None),
                     department_id: Set(Some(*department_id)),
                     access_level: Set("read".to_string()),
-                    assigned_by: Set(user.id),
+                    assigned_by: Set(user_context.user_id),
                     ..Default::default()
                 };
                 assignment.insert(&txn).await?;
@@ -4217,7 +4216,7 @@ impl MutationRoot {
         let audit_log = crate::models::documents::document_access_log::ActiveModel {
             id: Set(uuid::Uuid::new_v4()),
             document_id: Set(document.id),
-            user_id: Set(user.id),
+            user_id: Set(user_context.user_id),
             access_type: Set("upload".to_string()),
             accessed_at: Set(None), // Only set when document is actually accessed (view/download)
             ip_address: Set(None), // TODO: Get from request

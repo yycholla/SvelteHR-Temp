@@ -2,13 +2,35 @@
 //!
 //! Represents organizational departments with hierarchical relationships.
 
-use async_graphql::{Context, Enum, InputObject, Object, Result as GqlResult};
+use async_graphql::{Context, Enum, InputObject, Object, SimpleObject, Result as GqlResult};
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::database::get_db_from_context;
+
+/// Department query result wrapper with pagination metadata
+#[derive(Debug, Clone, SimpleObject)]
+pub struct DepartmentQueryResult {
+    /// The departments matching the query
+    pub items: Vec<Department>,
+    /// Total count of departments matching filters (before pagination)
+    pub total_count: i64,
+    /// Current page number (calculated from offset/limit)
+    pub page: i64,
+    /// Number of items per page
+    pub limit: i64,
+    /// Total number of pages
+    pub total_pages: i64,
+    /// Whether there is a next page
+    pub has_next_page: bool,
+    /// Whether there is a previous page
+    pub has_previous_page: bool,
+}
+
+/// Type alias for Department model to use in DepartmentQueryResult
+pub type Department = Model;
 
 /// Department ordering options for GraphQL queries
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]

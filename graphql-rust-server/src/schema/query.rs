@@ -17,7 +17,7 @@ use crate::{
     models::{
         task::{TaskStatus, TaskPriority, Model as Task, Entity as TaskEntity, Column as TaskColumn},
         user::{Model as User, Entity as UserEntity, Column as UserColumn},
-        department::{Model as Department, Entity as DepartmentEntity, Column as DepartmentColumn, DepartmentsOrderBy},
+        department::{Model as Department, Entity as DepartmentEntity, Column as DepartmentColumn, DepartmentQueryResult, DepartmentsOrderBy},
         tasks::task_type::{Model as TaskTypeModel, Entity as TaskTypeEntity, Column as TaskTypeColumn},
         event::{Model as Event, Entity as EventEntity, Column as EventColumn},
         event_attendee::{Model as EventAttendee, Entity as EventAttendeeEntity, Column as EventAttendeeColumn},
@@ -282,7 +282,7 @@ impl QueryRoot {
         order_by: Option<DepartmentsOrderBy>,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<Department>> {
+    ) -> Result<DepartmentQueryResult> {
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
@@ -345,13 +345,31 @@ impl QueryRoot {
             query = query.order_by_asc(DepartmentColumn::Name);
         }
 
+        // Get total count BEFORE applying pagination (CRITICAL!)
+        let total_count = query.clone().count(&db).await? as i64;
+
+        // Apply pagination
         let departments = query
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
             .await?;
 
-        Ok(departments)
+        // Calculate pagination metadata
+        let page = (offset / limit) + 1;
+        let total_pages = (total_count + limit - 1) / limit;  // Ceiling division
+        let has_next_page = offset + limit < total_count;
+        let has_previous_page = offset > 0;
+
+        Ok(DepartmentQueryResult {
+            items: departments,
+            total_count,
+            page,
+            limit,
+            total_pages,
+            has_next_page,
+            has_previous_page,
+        })
     }
 
     /// Get a single department by ID
@@ -3693,4 +3711,98 @@ mod tests {
         }
     }
     */
+
+    /// Test department pagination metadata
+    #[tokio::test]
+    async fn test_departments_pagination_metadata() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+        let test_user = ctx.user(TestUserRole::Admin);
+
+        // Query first page with limit=5, offset=0
+        let query_page1 = r#"
+            query {
+                departments(limit: 5, offset: 0) {
+                    items {
+                        id
+                        name
+                    }
+                    totalCount
+                    page
+                    limit
+                    totalPages
+                    hasNextPage
+                    hasPreviousPage
+                }
+            }
+        "#;
+
+        // Act - Page 1
+        let response = ctx.execute_query_as(query_page1, &test_user).await;
+
+        // Assert - No errors
+        let errors = ctx.extract_errors(&response);
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+        // Assert - Page 1 metadata
+        let data = ctx.extract_data(&response);
+        let result = &data["departments"];
+
+        let total_count = result["totalCount"].as_i64().expect("totalCount should be an integer");
+        let page = result["page"].as_i64().expect("page should be an integer");
+        let limit = result["limit"].as_i64().expect("limit should be an integer");
+        let total_pages = result["totalPages"].as_i64().expect("totalPages should be an integer");
+        let has_next_page = result["hasNextPage"].as_bool().expect("hasNextPage should be a boolean");
+        let has_previous_page = result["hasPreviousPage"].as_bool().expect("hasPreviousPage should be a boolean");
+
+        assert_eq!(page, 1, "First page should be page 1");
+        assert_eq!(limit, 5, "Limit should be 5");
+        assert_eq!(total_pages, (total_count + limit - 1) / limit, "Total pages should be calculated correctly");
+        assert_eq!(has_previous_page, false, "First page should not have previous page");
+
+        if total_count > 5 {
+            assert_eq!(has_next_page, true, "Should have next page if total count > 5");
+        }
+
+        let items = result["items"].as_array().expect("items should be an array");
+        assert!(items.len() <= 5, "Should not return more than limit items");
+        assert!(items.len() <= total_count as usize, "Items should not exceed total count");
+
+        // Query second page with limit=5, offset=5
+        let query_page2 = r#"
+            query {
+                departments(limit: 5, offset: 5) {
+                    items {
+                        id
+                        name
+                    }
+                    totalCount
+                    page
+                    limit
+                    totalPages
+                    hasNextPage
+                    hasPreviousPage
+                }
+            }
+        "#;
+
+        // Act - Page 2
+        let response = ctx.execute_query_as(query_page2, &test_user).await;
+
+        // Assert - No errors
+        let errors = ctx.extract_errors(&response);
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+        // Assert - Page 2 metadata
+        let data = ctx.extract_data(&response);
+        let result = &data["departments"];
+
+        let page = result["page"].as_i64().expect("page should be an integer");
+        let has_previous_page = result["hasPreviousPage"].as_bool().expect("hasPreviousPage should be a boolean");
+
+        assert_eq!(page, 2, "Second page should be page 2");
+        assert_eq!(has_previous_page, true, "Second page should have previous page");
+    }
 }

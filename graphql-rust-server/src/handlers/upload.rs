@@ -2,8 +2,8 @@ use axum::{
     extract::{Multipart, State},
     http::StatusCode,
     response::Json,
+    Extension,
 };
-use axum_login::AuthSession;
 use sea_orm::{ActiveModelTrait, Set};
 use serde::Serialize;
 use tokio::fs::File;
@@ -12,7 +12,7 @@ use uuid::Uuid;
 use std::path::Path;
 
 use crate::{
-    auth::AuthBackend,
+    auth::UserContext,
     handlers::AppState,
     models::media_asset,
 };
@@ -25,11 +25,11 @@ pub struct UploadResponse {
 }
 
 pub async fn upload_handler(
-    auth_session: AuthSession<AuthBackend>,
+    Extension(user_context): Extension<UserContext>,
     State(app_state): State<AppState>,
     mut multipart: Multipart,
 ) -> Result<Json<UploadResponse>, StatusCode> {
-    let user = auth_session.user.ok_or(StatusCode::UNAUTHORIZED)?;
+    let user_id = user_context.user_id;
 
     while let Some(field) = multipart.next_field().await.map_err(|_| StatusCode::BAD_REQUEST)? {
         let filename = field.file_name().unwrap_or("unknown").to_string();
@@ -66,7 +66,7 @@ pub async fn upload_handler(
             storage_path: Set(filepath),
             mime_type: Set(content_type),
             size_bytes: Set(size_bytes),
-            uploaded_by: Set(Some(user.id)),
+            uploaded_by: Set(Some(user_id)),
             created_at: Set(chrono::Utc::now()),
             updated_at: Set(chrono::Utc::now()),
         };

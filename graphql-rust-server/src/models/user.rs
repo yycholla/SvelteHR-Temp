@@ -225,8 +225,6 @@ pub enum Relation {
     Manager,
     #[sea_orm(has_many = "crate::models::task::Entity")]
     Tasks,
-    #[sea_orm(has_many = "super::user_session::Entity")]
-    UserSessions,
     #[sea_orm(has_many = "super::leave_request::Entity")]
     LeaveRequests,
     #[sea_orm(has_many = "super::performance_review::Entity")]
