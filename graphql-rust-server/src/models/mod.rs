@@ -23,7 +23,6 @@ pub mod task_assignee;
 pub mod task_audit_entry;
 pub mod task_dependency;
 pub mod user;
-pub mod user_session;
 pub mod media_asset;
 pub mod intuit_connection;
 pub mod intuit_sync_log;
@@ -51,6 +50,7 @@ pub mod compliance_reports;
 pub mod email_digests;
 pub mod email_digest_log;
 pub mod password_reset_token;
+pub mod refresh_token;
 pub mod report_schedules;
 pub mod payroll_sync_history;
 
@@ -114,6 +114,7 @@ pub use user::{CreateUserInput, UpdateUserInput, Model as User, UserCondition, U
 pub use user_role_assignment::{AssignRoleInput, Model as UserRoleAssignment, UserRoleAssignmentsConnection};
 pub use session::{Model as Session};
 pub use media_asset::{Model as MediaAsset};
+pub use refresh_token::{Model as RefreshToken};
 
 // New domain model re-exports
 pub use employee::{

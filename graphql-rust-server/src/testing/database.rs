@@ -205,6 +205,16 @@ impl TestDatabase {
     pub fn config(&self) -> &TestConfig {
         &self.config
     }
+
+    /// Explicit cleanup method for tests
+    ///
+    /// Note: Cleanup is automatic via Drop implementation, but this method
+    /// provides explicit cleanup semantics for test readability.
+    pub async fn cleanup(&self) {
+        // Container cleanup is handled automatically by Drop
+        // This method exists for explicit test semantics
+        tracing::debug!("Cleanup requested for test database: {}", self.name);
+    }
 }
 
 // Automatic cleanup on drop

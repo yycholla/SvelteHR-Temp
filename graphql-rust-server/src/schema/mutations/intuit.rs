@@ -1437,6 +1437,7 @@ impl IntuitMutations {
                         quickbooks_payroll_item_id: Set(None),
                         created_at: Set(Utc::now()),
                         updated_at: Set(Utc::now()),
+                        tokens_valid_after: Set(Utc::now()),
                         deleted_at: Set(None),
                     };
 

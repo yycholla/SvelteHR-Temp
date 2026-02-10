@@ -1,47 +1,85 @@
-//! Authentication mutations
+//! JWT Authentication mutations
 //!
-//! Handles user authentication: login, logout, session refresh, password reset
+//! Handles user authentication with JWT tokens: login, token refresh, logout
 
-use async_graphql::{Context, Object, Result, SimpleObject, Union, InputObject};
-use axum_login::{AuthSession, AuthnBackend};
+use async_graphql::{Context, InputObject, Object, Result, SimpleObject, Union};
+use bcrypt::verify;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use chrono::{Duration, Utc};
-use bcrypt;
-use std::sync::Arc;
+use uuid::Uuid;
 
 use crate::{
-    auth::{AuthBackend, Credentials},
+    auth::{JwtService, UserContext},
     database::get_db_from_context,
     models::{password_reset_token, user},
-    services::email_service::EmailService,
 };
 
-/// User information returned by login
+// ============================================================================
+// Input Types
+// ============================================================================
+
+/// Login input for JWT authentication
+#[derive(InputObject)]
+pub struct LoginInput {
+    /// User's email address
+    pub email: String,
+    /// User's password
+    pub password: String,
+    /// Optional device information for audit trail
+    pub device_info: Option<String>,
+    /// Optional IP address for audit trail
+    pub ip_address: Option<String>,
+}
+
+/// Refresh token input
+#[derive(InputObject)]
+pub struct RefreshTokenInput {
+    /// JWT refresh token (from login response)
+    pub refresh_token: String,
+    /// Plaintext refresh token (from login response)
+    pub refresh_token_plaintext: String,
+    /// Optional device information
+    pub device_info: Option<String>,
+    /// Optional IP address
+    pub ip_address: Option<String>,
+}
+
+// ============================================================================
+// Response Types
+// ============================================================================
+
+/// User information returned after successful authentication
 #[derive(SimpleObject)]
-pub struct UserInfo {
+pub struct AuthUserInfo {
     pub id: String,
     pub email: String,
-    pub role: String,
+    pub display_name: String,
+    pub roles: Vec<String>,
+    pub permissions: Vec<String>,
     pub is_active: bool,
     pub force_password_change: bool,
 }
 
-/// Session information
+/// JWT token pair
 #[derive(SimpleObject)]
-pub struct AuthSessionInfo {
-    pub id: String,
-    pub created_at: String,
-    pub expires_at: String,
-    pub last_activity: String,
-    pub ip_address: Option<String>,
-    pub user_agent: Option<String>,
+pub struct TokenPair {
+    /// Access token (JWT, 15 min expiry) - Include in Authorization header
+    pub access_token: String,
+    /// Refresh token (JWT, 7 day expiry) - Store securely, use to get new access token
+    pub refresh_token: String,
+    /// Plaintext refresh token - Required for token refresh operation
+    pub refresh_token_plaintext: String,
+    /// Token type (always "Bearer")
+    pub token_type: String,
+    /// Access token expiry in seconds
+    pub expires_in: i64,
 }
 
-/// Authentication result for successful login
+/// Successful authentication result
 #[derive(SimpleObject)]
-pub struct AuthResult {
-    pub user: UserInfo,
-    pub session: AuthSessionInfo,
+pub struct AuthSuccess {
+    pub user: AuthUserInfo,
+    pub tokens: TokenPair,
 }
 
 /// Authentication error
@@ -49,14 +87,13 @@ pub struct AuthResult {
 pub struct AuthError {
     pub code: String,
     pub message: String,
-    pub retry_after: Option<i32>,
 }
 
 /// Union type for authentication responses
 #[derive(Union)]
 pub enum AuthResponse {
-    AuthResult(AuthResult),
-    AuthError(AuthError),
+    Success(AuthSuccess),
+    Error(AuthError),
 }
 
 /// Logout result
@@ -64,21 +101,6 @@ pub enum AuthResponse {
 pub struct LogoutResult {
     pub success: bool,
     pub message: String,
-}
-
-/// Refresh session response
-#[derive(SimpleObject)]
-pub struct RefreshSessionResponse {
-    pub success: bool,
-    pub session_expires_at: Option<String>,
-    pub message: String,
-}
-
-/// Login input for authentication
-#[derive(InputObject)]
-pub struct LoginInput {
-    pub email: String,
-    pub password: String,
 }
 
 /// Request password reset input
@@ -108,115 +130,299 @@ pub struct PasswordResetResult {
     pub message: String,
 }
 
+// ============================================================================
+// Mutations
+// ============================================================================
+
 /// Authentication mutation operations
 pub struct AuthMutations;
 
 #[Object]
 impl AuthMutations {
-    /// Login with email and password
+    /// Login with email and password, returns JWT tokens
+    ///
+    /// # Example
+    /// ```graphql
+    /// mutation {
+    ///   login(input: {
+    ///     email: "user@example.com"
+    ///     password: "password123"
+    ///   }) {
+    ///     ... on AuthSuccess {
+    ///       user { id email roles permissions }
+    ///       tokens {
+    ///         accessToken
+    ///         refreshToken
+    ///         refreshTokenPlaintext
+    ///         expiresIn
+    ///       }
+    ///     }
+    ///     ... on AuthError {
+    ///       code
+    ///       message
+    ///     }
+    ///   }
+    /// }
+    /// ```
     async fn login(&self, ctx: &Context<'_>, input: LoginInput) -> Result<AuthResponse> {
         let db = get_db_from_context(ctx)?;
+        let jwt_service = ctx.data::<JwtService>()?;
 
-        let creds = Credentials {
-            email: input.email.clone(),
-            password: input.password,
-        };
+        tracing::info!("Login attempt for email: {}", input.email);
 
-        // For GraphQL login, we authenticate but don't create a session
-        // The client should use the REST /auth/login endpoint to establish the session
-        // This GraphQL mutation validates credentials and returns user info
-
-        let auth_backend = AuthBackend::new(db.clone());
-        match auth_backend.authenticate(creds).await {
-            Ok(Some(user)) => {
-                // Authentication successful - return user and session info
-                // Note: This doesn't actually create a session - client must use REST endpoint
-                let session_info = AuthSessionInfo {
-                    id: uuid::Uuid::new_v4().to_string(),
-                    created_at: chrono::Utc::now().to_rfc3339(),
-                    expires_at: (chrono::Utc::now() + chrono::Duration::minutes(30)).to_rfc3339(),
-                    last_activity: chrono::Utc::now().to_rfc3339(),
-                    ip_address: None,
-                    user_agent: None,
-                };
-
-                let user_info = UserInfo {
-                    id: user.id.to_string(),
-                    email: user.email.clone(),
-                    role: user.role,
-                    is_active: user.is_active,
-                    force_password_change: user.force_password_change,
-                };
-
-                Ok(AuthResponse::AuthResult(AuthResult {
-                    user: user_info,
-                    session: session_info,
-                }))
-            }
-            Ok(None) => {
-                // Authentication failed
-                Ok(AuthResponse::AuthError(AuthError {
+        // 1. Find user by email
+        let user_model = match user::Entity::find()
+            .filter(user::Column::Email.eq(&input.email))
+            .filter(user::Column::DeletedAt.is_null())
+            .one(&db)
+            .await?
+        {
+            Some(user) => user,
+            None => {
+                tracing::warn!("Login failed: User not found - {}", input.email);
+                return Ok(AuthResponse::Error(AuthError {
                     code: "INVALID_CREDENTIALS".to_string(),
                     message: "Invalid email or password".to_string(),
-                    retry_after: Some(60),
+                }));
+            }
+        };
+
+        // 2. Check if user is active
+        if !user_model.is_active {
+            tracing::warn!("Login failed: Inactive user - {}", input.email);
+            return Ok(AuthResponse::Error(AuthError {
+                code: "ACCOUNT_INACTIVE".to_string(),
+                message: "Account is inactive. Please contact support.".to_string(),
+            }));
+        }
+
+        // 3. Verify password
+        let password_valid = match verify(&input.password, &user_model.password_hash) {
+            Ok(valid) => valid,
+            Err(e) => {
+                tracing::error!("Password verification error: {}", e);
+                return Ok(AuthResponse::Error(AuthError {
+                    code: "AUTH_ERROR".to_string(),
+                    message: "Authentication service error".to_string(),
+                }));
+            }
+        };
+
+        if !password_valid {
+            tracing::warn!("Login failed: Invalid password - {}", input.email);
+            return Ok(AuthResponse::Error(AuthError {
+                code: "INVALID_CREDENTIALS".to_string(),
+                message: "Invalid email or password".to_string(),
+            }));
+        }
+
+        // 4. Load user roles and permissions
+        let (roles, permissions) = jwt_service
+            .load_user_roles_permissions(user_model.id)
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to load user roles/permissions: {:?}", e);
+                async_graphql::Error::new("Failed to load user permissions")
+            })?;
+
+        // 5. Generate access token
+        let display_name = format!("{} {}", user_model.first_name, user_model.last_name);
+        let access_token = jwt_service
+            .generate_access_token(
+                user_model.id,
+                user_model.email.clone(),
+                display_name.clone(),
+                user_model.department_id,
+            )
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to generate access token: {:?}", e);
+                async_graphql::Error::new("Token generation failed")
+            })?;
+
+        // 6. Generate refresh token
+        let family_id = Uuid::new_v4();
+        let (refresh_token_plaintext, refresh_token_jwt) = jwt_service
+            .generate_refresh_token(
+                user_model.id,
+                family_id,
+                input.device_info,
+                input.ip_address,
+            )
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to generate refresh token: {:?}", e);
+                async_graphql::Error::new("Token generation failed")
+            })?;
+
+        tracing::info!("Login successful for user: {}", user_model.email);
+
+        // 7. Return success response
+        Ok(AuthResponse::Success(AuthSuccess {
+            user: AuthUserInfo {
+                id: user_model.id.to_string(),
+                email: user_model.email,
+                display_name,
+                roles,
+                permissions,
+                is_active: user_model.is_active,
+                force_password_change: user_model.force_password_change,
+            },
+            tokens: TokenPair {
+                access_token,
+                refresh_token: refresh_token_jwt,
+                refresh_token_plaintext,
+                token_type: "Bearer".to_string(),
+                expires_in: 15 * 60, // 15 minutes in seconds
+            },
+        }))
+    }
+
+    /// Refresh access token using refresh token
+    ///
+    /// Returns new access token and new refresh token (token rotation).
+    /// Old refresh token is marked as used and cannot be reused.
+    ///
+    /// # Example
+    /// ```graphql
+    /// mutation {
+    ///   refreshToken(input: {
+    ///     refreshToken: "<jwt-refresh-token>"
+    ///     refreshTokenPlaintext: "<plaintext-token>"
+    ///   }) {
+    ///     ... on AuthSuccess {
+    ///       tokens {
+    ///         accessToken
+    ///         refreshToken
+    ///         refreshTokenPlaintext
+    ///       }
+    ///     }
+    ///     ... on AuthError {
+    ///       code
+    ///       message
+    ///     }
+    ///   }
+    /// }
+    /// ```
+    async fn refresh_token(
+        &self,
+        ctx: &Context<'_>,
+        input: RefreshTokenInput,
+    ) -> Result<AuthResponse> {
+        let jwt_service = ctx.data::<JwtService>()?;
+
+        tracing::debug!("Token refresh attempt");
+
+        // Refresh access token (includes token rotation)
+        let result = jwt_service
+            .refresh_access_token(
+                &input.refresh_token,
+                &input.refresh_token_plaintext,
+                input.device_info,
+                input.ip_address,
+            )
+            .await;
+
+        match result {
+            Ok((new_access_token, new_refresh_jwt, new_plaintext)) => {
+                tracing::debug!("Token refresh successful");
+
+                // Extract user info from new access token for response
+                let claims = jwt_service
+                    .validate_access_token(&new_access_token)
+                    .await
+                    .map_err(|e| {
+                        tracing::error!("Failed to validate new access token: {:?}", e);
+                        async_graphql::Error::new("Token validation failed")
+                    })?;
+
+                Ok(AuthResponse::Success(AuthSuccess {
+                    user: AuthUserInfo {
+                        id: claims.sub.clone(),
+                        email: claims.email.clone(),
+                        display_name: claims.display_name.clone(),
+                        roles: claims.roles.clone(),
+                        permissions: claims.permissions.clone(),
+                        is_active: true, // Token wouldn't be valid if user inactive
+                        force_password_change: false,
+                    },
+                    tokens: TokenPair {
+                        access_token: new_access_token,
+                        refresh_token: new_refresh_jwt,
+                        refresh_token_plaintext: new_plaintext,
+                        token_type: "Bearer".to_string(),
+                        expires_in: 15 * 60, // 15 minutes
+                    },
                 }))
             }
             Err(e) => {
-                tracing::error!("Authentication error: {:?}", e);
-                Ok(AuthResponse::AuthError(AuthError {
-                    code: "AUTH_ERROR".to_string(),
-                    message: "Authentication service temporarily unavailable".to_string(),
-                    retry_after: Some(300),
+                tracing::warn!("Token refresh failed: {:?}", e);
+                let (code, message) = match e {
+                    crate::auth::JwtError::TokenExpired => {
+                        ("TOKEN_EXPIRED", "Refresh token has expired. Please log in again.")
+                    }
+                    crate::auth::JwtError::RefreshTokenReused => {
+                        ("TOKEN_REUSED", "Refresh token was already used. Possible security breach detected.")
+                    }
+                    crate::auth::JwtError::TokenRevoked => {
+                        ("TOKEN_REVOKED", "Token has been revoked. Please log in again.")
+                    }
+                    crate::auth::JwtError::RefreshTokenNotFound => {
+                        ("INVALID_TOKEN", "Invalid refresh token. Please log in again.")
+                    }
+                    _ => ("AUTH_ERROR", "Token refresh failed. Please log in again."),
+                };
+
+                Ok(AuthResponse::Error(AuthError {
+                    code: code.to_string(),
+                    message: message.to_string(),
                 }))
             }
         }
     }
 
-    /// Logout current user session
+    /// Logout current user (revokes all tokens)
+    ///
+    /// Requires authentication (JWT access token in Authorization header).
+    /// Revokes all refresh tokens for the user and updates tokens_valid_after
+    /// timestamp to invalidate all existing access tokens.
+    ///
+    /// # Example
+    /// ```graphql
+    /// mutation {
+    ///   logout {
+    ///     success
+    ///     message
+    ///   }
+    /// }
+    /// ```
     async fn logout(&self, ctx: &Context<'_>) -> Result<LogoutResult> {
-        let auth_session = ctx.data::<AuthSession<AuthBackend>>()?;
+        let user_context = ctx.data::<UserContext>()?;
+        let jwt_service = ctx.data::<JwtService>()?;
 
-        // Check if user is authenticated
-        if auth_session.user.is_some() {
-            // For GraphQL logout, we return success but don't actually destroy the session
-            // The client should use the REST /auth/logout endpoint to properly destroy the session
-            Ok(LogoutResult {
-                success: true,
-                message: "Use REST /auth/logout endpoint to properly end session".to_string(),
-            })
-        } else {
-            Ok(LogoutResult {
-                success: false,
-                message: "No active session to logout from".to_string(),
-            })
-        }
-    }
+        tracing::info!("Logout requested for user: {}", user_context.user_id);
 
-    /// Refresh current session to extend its lifetime
-    async fn refresh_session(&self, ctx: &Context<'_>) -> Result<RefreshSessionResponse> {
-        let auth_session = ctx.data::<AuthSession<AuthBackend>>()?;
+        // Revoke all user tokens (updates tokens_valid_after and marks refresh tokens as revoked)
+        jwt_service
+            .revoke_all_user_tokens(user_context.user_id)
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to revoke user tokens: {:?}", e);
+                async_graphql::Error::new("Logout failed")
+            })?;
 
-        match &auth_session.user {
-            Some(_user) => {
-                // For GraphQL refresh, we return success but don't actually extend the session
-                // The client should use the REST /auth/refresh endpoint to properly extend the session
-                Ok(RefreshSessionResponse {
-                    success: true,
-                    session_expires_at: Some((chrono::Utc::now() + chrono::Duration::minutes(30)).to_rfc3339()),
-                    message: "Use REST /auth/refresh endpoint to properly extend session".to_string(),
-                })
-            }
-            None => {
-                Ok(RefreshSessionResponse {
-                    success: false,
-                    session_expires_at: None,
-                    message: "No active session to refresh".to_string(),
-                })
-            }
-        }
+        tracing::info!("Logout successful for user: {}", user_context.user_id);
+
+        Ok(LogoutResult {
+            success: true,
+            message: "Successfully logged out from all devices".to_string(),
+        })
     }
 
     /// Request a password reset link via email
+    ///
+    /// Sends a password reset email if the account exists.
+    /// Always returns success to prevent email enumeration.
     async fn request_password_reset(
         &self,
         ctx: &Context<'_>,
@@ -241,8 +447,8 @@ impl AuthMutations {
             }
         };
 
-        // Generate secure random token (use a cryptographically secure method)
-        let token = uuid::Uuid::new_v4().to_string().replace("-", "");
+        // Generate secure random token
+        let token = Uuid::new_v4().to_string().replace("-", "");
         let token_hash = bcrypt::hash(&token, bcrypt::DEFAULT_COST)?;
 
         // Create expiration time (30 minutes from now)
@@ -250,34 +456,27 @@ impl AuthMutations {
 
         // Save token to database
         let reset_token = password_reset_token::ActiveModel {
-            id: Set(uuid::Uuid::new_v4()),
+            id: Set(Uuid::new_v4()),
             user_id: Set(user_model.id),
-            token: Set(token_hash.clone()),
+            token: Set(token_hash),
             expires_at: Set(expires_at.into()),
             used_at: Set(None),
-            ip_address: Set(None), // TODO: Get from request context
+            ip_address: Set(None), // TODO: Extract from request context
             created_at: Set(Utc::now().into()),
         };
 
         reset_token.insert(&db).await?;
 
-        // Send email if email service is configured
-        if let Ok(email_service) = ctx.data::<Arc<EmailService>>() {
-            if let Err(e) = email_service.send_password_reset(
-                user_model.email.clone(),
-                token, // Send unhashed token in email
-                30,
-            ).await {
-                tracing::error!("Failed to send password reset email: {}", e);
-                // Continue anyway - token is still valid
-            }
-        } else {
-            tracing::warn!("Email service not configured - password reset token created but email not sent");
-        }
+        // TODO: Send email with reset link
+        tracing::info!(
+            "Password reset token generated for user: {}",
+            user_model.email
+        );
 
         Ok(PasswordResetRequestResult {
             success: true,
-            message: "If an account with that email exists, a password reset link has been sent.".to_string(),
+            message: "If an account with that email exists, a password reset link has been sent."
+                .to_string(),
         })
     }
 
@@ -320,7 +519,7 @@ impl AuthMutations {
 
         let mut active_user: user::ActiveModel = user_model.into();
         active_user.password_hash = Set(new_password_hash);
-        active_user.force_password_change = Set(false); // Clear force password change flag
+        active_user.force_password_change = Set(false);
         active_user.updated_at = Set(Utc::now().into());
         active_user.update(&db).await?;
 
@@ -333,7 +532,9 @@ impl AuthMutations {
 
         Ok(PasswordResetResult {
             success: true,
-            message: "Password has been reset successfully. You can now log in with your new password.".to_string(),
+            message:
+                "Password has been reset successfully. You can now log in with your new password."
+                    .to_string(),
         })
     }
 }

@@ -90,6 +90,8 @@ pub mod m20260101_001_create_sync_schedules;
 pub mod m20260113_001_password_reset_tokens;
 pub mod m20260205_001_add_department_ancestor_ids;
 pub mod m20260206_001_extend_time_entries_for_sync;
+pub mod m20260210_180802_create_refresh_tokens_table;
+pub mod m20260210_180803_add_tokens_valid_after_to_users;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -171,6 +173,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20260113_001_password_reset_tokens::Migration),
             Box::new(m20260205_001_add_department_ancestor_ids::Migration),
             Box::new(m20260206_001_extend_time_entries_for_sync::Migration),
+            Box::new(m20260210_180802_create_refresh_tokens_table::Migration),
+            Box::new(m20260210_180803_add_tokens_valid_after_to_users::Migration),
         ]
     }
 }

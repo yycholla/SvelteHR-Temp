@@ -164,6 +164,7 @@ pub async fn seed_users(
             quickbooks_payroll_item_id: Set(None),
             created_at: Set(now),
             updated_at: Set(now),
+            tokens_valid_after: Set(now),
             deleted_at: Set(None),
         };
 

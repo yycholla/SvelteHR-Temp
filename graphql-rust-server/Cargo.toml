@@ -334,7 +334,6 @@ anyhow = "1.0"
 async-graphql-axum = "7.0"
 async-trait = "0.1"
 axum = { version = "0.8", features = ["multipart"] }
-axum-login = "0.18"
 base64 = "0.22"
 bcrypt = "0.15"
 bytes = "1.0"

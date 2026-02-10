@@ -85,6 +85,15 @@ pub struct TestUser {
 
     /// Test password (for login tests)
     pub password: String,
+
+    /// Display name (first_name + last_name)
+    pub display_name: String,
+
+    /// Department ID (optional)
+    pub department_id: Option<Uuid>,
+
+    /// When the user was created
+    pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
 impl TestUser {
@@ -152,13 +161,84 @@ impl TestUser {
             .await
             .map_err(|e| TestContextError::DatabaseError(e.into()))?;
 
+        // Get the created user to retrieve created_at timestamp
+        let created_user = user::Entity::find_by_id(id)
+            .one(db)
+            .await
+            .map_err(|e| TestContextError::DatabaseError(e.into()))?
+            .ok_or_else(|| TestContextError::SessionError("User not found after creation".to_string()))?;
+
         Ok(Self {
             id,
             email,
             role: role.as_str().to_string(),
             is_active: true,
             password: password.to_string(),
+            display_name: format!("{} {}", role.first_name(), role.last_name()),
+            department_id: None,
+            created_at: created_user.created_at,
         })
+    }
+
+    /// Create an admin test user (convenience method)
+    ///
+    /// # Arguments
+    /// * `test_db` - Test database instance
+    ///
+    /// # Returns
+    /// Admin test user
+    pub async fn admin(test_db: &super::TestDatabase) -> Self {
+        Self::create(test_db.connection(), TestUserRole::Admin)
+            .await
+            .expect("Failed to create admin test user")
+    }
+
+    /// Create a test user without any role assignments
+    ///
+    /// # Arguments
+    /// * `test_db` - Test database instance
+    ///
+    /// # Returns
+    /// Test user with no roles
+    pub async fn without_roles(test_db: &super::TestDatabase) -> Self {
+        let id = Uuid::new_v4();
+        let email = format!("no_roles_{}@example.com", id.as_simple());
+        let password = "test_password_123";
+        let password_hash = hash(password, DEFAULT_COST)
+            .expect("Password hashing should succeed");
+
+        // Create user without any role assignments
+        let user_model = user::ActiveModel {
+            id: Set(id),
+            email: Set(email.clone()),
+            password_hash: Set(password_hash),
+            first_name: Set("No".to_string()),
+            last_name: Set("Roles".to_string()),
+            is_active: Set(true),
+            ..Default::default()
+        };
+
+        user_model.insert(test_db.connection())
+            .await
+            .expect("Failed to insert user");
+
+        // Get the created user to retrieve created_at timestamp
+        let created_user = user::Entity::find_by_id(id)
+            .one(test_db.connection())
+            .await
+            .expect("Failed to find user")
+            .expect("User not found after creation");
+
+        Self {
+            id,
+            email,
+            role: String::new(),
+            is_active: true,
+            password: password.to_string(),
+            display_name: "No Roles".to_string(),
+            department_id: None,
+            created_at: created_user.created_at,
+        }
     }
 
     /// Convert to AuthUser for axum-login
@@ -226,6 +306,8 @@ mod tests {
         assert_eq!(user.email, "test_employee@example.com");
         assert!(user.is_active);
         assert_eq!(user.password, "test_password_123");
+        assert_eq!(user.display_name, "Test Employee");
+        assert!(user.department_id.is_none());
     }
 
     #[tokio::test]

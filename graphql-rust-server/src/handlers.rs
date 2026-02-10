@@ -34,6 +34,7 @@ pub struct AppState {
     pub schema: GraphQLSchema,
     pub dataloaders: DataLoaderContext,
     pub email_service: Option<std::sync::Arc<crate::services::EmailService>>,
+    pub jwt_service: crate::auth::JwtService,
 }
 
 /// GraphQL playground handler (using GraphiQL - no external CDN dependencies)
@@ -491,6 +492,9 @@ pub async fn graphql_handler(
     request = request.data(auth_session.clone());
     request = request.data(request_metadata.clone());
 
+    // Add JwtService to request context for auth mutations
+    request = request.data(app_state.jwt_service.clone());
+
     // Add DataLoaders to request context
     request = request.data(app_state.dataloaders.clone());
 
@@ -499,7 +503,9 @@ pub async fn graphql_handler(
         request = request.data(email_service.clone());
     }
 
-    // Use UserContext from middleware (which has correct roles/permissions from database)
+    // Use UserContext from JWT middleware (contains user_id, roles, permissions, email)
+    let user_context_for_logging = user_context_ext.as_ref().map(|ext| ext.0.clone());
+
     if let Some(Extension(user_context)) = user_context_ext {
         request = request.data(user_context);
     }
@@ -509,8 +515,14 @@ pub async fn graphql_handler(
 
     // Log GraphQL errors with structured JSON logging
     if !response.errors.is_empty() {
-        let user_id = auth_session.user.as_ref().map(|u| u.id.to_string());
-        let user_email = auth_session.user.as_ref().map(|u| u.email.clone());
+        // Get user info from UserContext (JWT authentication)
+        let user_id = user_context_for_logging
+            .as_ref()
+            .map(|ctx| ctx.user_id.to_string());
+
+        let user_email = user_context_for_logging
+            .as_ref()
+            .and_then(|ctx| ctx.email.clone());
 
         for error in &response.errors {
             // Log error with structured context including actual error message

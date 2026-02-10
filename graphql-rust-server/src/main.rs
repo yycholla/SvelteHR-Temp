@@ -1,7 +1,7 @@
-//! HR GraphQL Server with axum-login authentication
+//! HR GraphQL Server with JWT authentication
 //!
 //! This server provides GraphQL API endpoints for the SvelteHR system
-//! with session-based authentication using axum-login.
+//! with JWT-based authentication using RS256 signed tokens.
 
 use std::net::SocketAddr;
 
@@ -12,21 +12,18 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use axum_login::AuthManagerLayerBuilder;
 use tower::ServiceBuilder;
 use tower_http::{
     cors::CorsLayer,
     trace::TraceLayer,
     services::ServeDir,
 };
-use tower_sessions::{cookie::SameSite, Expiry, SessionManagerLayer};
 
 use hr_graphql_server::{
-    auth::AuthBackend,
     database::create_db_connection,
     dataloader::DataLoaderContext,
-    handlers::{graphql_handler, graphql_playground, login_handler, logout_handler, me_handler, refresh_handler, sessions_handler, events::delete_event_handler, roles::get_roles_handler, users::get_users_handler, intuit_webhook::intuit_webhook_handler, intuit_oauth::intuit_oauth_callback_handler, webhook_progress::webhook_progress_stream, AppState},
-    middleware::{optional_session_auth_middleware, security_headers_middleware, session_auth_middleware},
+    handlers::{graphql_handler, graphql_playground, events::delete_event_handler, roles::get_roles_handler, users::get_users_handler, intuit_webhook::intuit_webhook_handler, intuit_oauth::intuit_oauth_callback_handler, webhook_progress::webhook_progress_stream, AppState},
+    middleware::security_headers_middleware,
     schema::create_schema,
     logging,
     scheduler,
@@ -80,6 +77,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db = create_db_connection(&database_url).await?;
     tracing::info!("Connected to database");
 
+    // Initialize JWT service for token-based authentication
+    let jwt_config = auth::JwtConfig::from_env()
+        .expect("Failed to load JWT configuration. Ensure JWT_PRIVATE_KEY and JWT_PUBLIC_KEY are set.");
+    let jwt_keys = auth::JwtKeys::from_env()
+        .expect("Failed to load JWT keys. Ensure JWT_PRIVATE_KEY and JWT_PUBLIC_KEY are valid RSA keys.");
+    let jwt_service = auth::JwtService::new(jwt_config, jwt_keys, db.clone());
+    tracing::info!("JWT service initialized");
+
     // Create GraphQL schema singleton
     let schema = create_schema();
     tracing::info!("GraphQL schema initialized");
@@ -113,32 +118,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         schema,
         dataloaders,
         email_service: email_service.clone(),
+        jwt_service,
     };
 
-    // Create SeaORM session store for persistent sessions
-    let session_store = auth::SeaOrmSessionStore::new(db.clone());
-
-    // Configure session layer with secure cookie settings
-    // Use secure cookies only in production (requires HTTPS)
-    let is_production = std::env::var("NODE_ENV")
-        .or_else(|_| std::env::var("ENVIRONMENT"))
-        .map(|env| env.to_lowercase() == "production")
-        .unwrap_or(false);
-
-    tracing::info!("Session cookie security: secure={}, http_only=true, same_site=Lax", is_production);
-
-    let session_layer = SessionManagerLayer::new(session_store)
-        .with_name("hr_token") // Match frontend expectation
-        .with_secure(is_production) // HTTPS only in production
-        .with_http_only(true) // Prevent JavaScript access
-        .with_same_site(SameSite::Lax) // Lax same-site policy for better compatibility
-        .with_expiry(Expiry::OnInactivity(time::Duration::hours(24))); // 24 hour inactivity
-
-    // Create authentication backend
-    let auth_backend = AuthBackend::new(db.clone());
-
-    // Create authentication layer
-    let auth_layer = AuthManagerLayerBuilder::new(auth_backend, session_layer.clone()).build();
+    // JWT authentication is configured in JwtService and used via jwt_auth_middleware
+    // No session layer needed - JWT tokens are stateless
 
     // Build CORS layer - allow specific origins for credentials
     let cors = CorsLayer::new()
@@ -201,8 +185,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     #[allow(deprecated)]
                     sentry_tower::SentryHttpLayer::with_transaction()
                 )
-                .layer(session_layer)
-                .layer(auth_layer)
+                // JWT authentication handled per-route via jwt_auth_middleware
         )
         // Store application state for handlers
         .with_state(app_state);
@@ -211,24 +194,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = format!("{}:{}", host, port)
         .parse::<SocketAddr>()?;
 
-    // Start session cleanup task
-    let cleanup_db = db.clone();
-    tokio::spawn(async move {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(3600)); // Run every hour
-        loop {
-            interval.tick().await;
-            match auth::session_store::cleanup_expired_sessions(&cleanup_db).await {
-                Ok(count) => {
-                    if count > 0 {
-                        tracing::info!("Cleaned up {} expired sessions", count);
-                    }
-                }
-                Err(e) => {
-                    tracing::error!("Failed to cleanup expired sessions: {:?}", e);
-                }
-            }
-        }
-    });
+    // JWT tokens are stateless - no cleanup task needed
+    // Expired refresh tokens are cleaned up via database migration/cron job if needed
 
     // Start employee statistics scheduler (captures daily snapshots)
     scheduler::start_employee_statistics_scheduler(db.clone()).await;
