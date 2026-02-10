@@ -9,6 +9,17 @@ import { RBACDataLoader } from '$lib/server/route-loaders';
 import { QueryParamExtractor } from '$lib/server/route-helpers/query-params';
 import { createDepartmentService } from '$lib/server/services';
 
+interface UserDTO {
+	id: string;
+	displayName: string;
+	email: string;
+	departmentId: string | null;
+	roles?: { id: string; name: string }[];
+	isActive: boolean;
+}
+
+const DEFAULT_MANAGER_TITLE = 'Manager';
+
 export const load: PageServerLoad = async (event) => {
 	const { url } = event;
 
@@ -38,8 +49,8 @@ export const load: PageServerLoad = async (event) => {
 			// Use DepartmentService instead of direct GraphQL
 			const service = createDepartmentService(event);
 
-			// Fetch departments using service layer
-			const departmentsResult = await service.getDepartments();
+			// Fetch departments using service layer with pagination
+			const departmentsResult = await service.getDepartments({ page, limit });
 
 			if (departmentsResult.isError) {
 				logger.error('[Departments] Failed to load departments', departmentsResult.error);
@@ -87,11 +98,11 @@ export const load: PageServerLoad = async (event) => {
 			const enrichedDepartments = departmentDTOs.map((dept) => {
 				// Find manager/department head from users list
 				const departmentHead = dept.managerId
-					? users.find((u: any) => u.id === dept.managerId)
+					? users.find((u: UserDTO) => u.id === dept.managerId)
 					: null;
 
 				// Count employees in this department
-				const employeesInDept = users.filter((u: any) => u.departmentId === dept.id);
+				const employeesInDept = users.filter((u: UserDTO) => u.departmentId === dept.id);
 				const employeeCount = employeesInDept.length;
 
 				// Find parent department
@@ -108,8 +119,6 @@ export const load: PageServerLoad = async (event) => {
 					description: dept.description || '',
 					managerId: dept.managerId,
 					parentDepartmentId: dept.parentId,
-					createdAt: new Date().toISOString(), // DepartmentDTO doesn't have timestamps
-					updatedAt: new Date().toISOString(),
 					employees: {
 						nodes: employeesInDept,
 						totalCount: employeeCount
@@ -119,7 +128,7 @@ export const load: PageServerLoad = async (event) => {
 								id: departmentHead.id,
 								displayName: departmentHead.displayName,
 								email: departmentHead.email,
-								jobTitle: departmentHead.roles?.[0]?.name || 'Manager'
+								jobTitle: departmentHead.roles?.[0]?.name ?? DEFAULT_MANAGER_TITLE
 							}
 						: null,
 					parentDepartment: parentDepartment
@@ -138,7 +147,7 @@ export const load: PageServerLoad = async (event) => {
 			// Return standardized data structure
 			return {
 				departments: enrichedDepartments,
-				users: users.filter((u: any) => u.isActive),
+				users: users.filter((u: UserDTO) => u.isActive),
 				totalDepartments: total,
 				hierarchy: [],
 				filters: {

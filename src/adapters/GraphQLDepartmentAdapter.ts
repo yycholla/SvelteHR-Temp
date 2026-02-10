@@ -111,8 +111,9 @@ export class GraphQLDepartmentAdapter implements DepartmentRepository {
 		`;
 
 		try {
-			const limit = 100; // Backend default
-			const offset = 0;
+			const limit = filters?.limit ?? 100; // Use filter or backend default
+			const page = filters?.page ?? 1;
+			const offset = (page - 1) * limit;
 
 			const result = await this.graphql.query<{ departments: GraphQLDepartment[] }>(query, {
 				limit,
@@ -136,12 +137,15 @@ export class GraphQLDepartmentAdapter implements DepartmentRepository {
 				.filter((r) => r.isOk && r.value !== null)
 				.map((r) => r.value!);
 
+			// Save original count before filtering
+			const allCount = departments.length;
+
 			// Apply client-side filters (backend limitation)
 			const filtered = this.applyClientSideFilters(departments, filters);
 
 			return Result.ok({
 				departments: filtered.map((dept) => dept.toDTO()),
-				total: filtered.length,
+				total: allCount, // Use original count, not filtered count
 				limit,
 				offset
 			});

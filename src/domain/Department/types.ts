@@ -62,6 +62,12 @@ export interface FindDepartmentsFilter {
 
 	/** Filter by manager ID */
 	managerId?: string;
+
+	/** Page number (1-indexed) */
+	page?: number;
+
+	/** Items per page */
+	limit?: number;
 }
 
 /**
