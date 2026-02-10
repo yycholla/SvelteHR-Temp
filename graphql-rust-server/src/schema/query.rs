@@ -465,10 +465,15 @@ impl QueryRoot {
     /// * `department_id` - Root department UUID
     ///
     /// # Returns
-    /// List of all descendants (breadth-first order)
+    /// List of all descendants (using GIN index for optimal performance)
     ///
     /// # Security: RLS Enforced
     /// Applies user RLS filter to descendant departments
+    ///
+    /// # Performance
+    /// Uses GIN index on ancestor_ids column for O(log n) lookups.
+    /// The query `ancestor_ids @> ARRAY[department_id]` finds all departments
+    /// that have department_id in their ancestor chain.
     ///
     /// # Note
     /// Returns empty list if department has no children or doesn't exist
@@ -483,43 +488,21 @@ impl QueryRoot {
         let user_context = ctx.data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
 
-        let mut descendants = Vec::new();
-        let mut to_process = vec![department_id];
-        let mut processed = std::collections::HashSet::new();
+        // Use GIN index: find all departments where ancestor_ids contains this department's ID
+        // This leverages the idx_departments_ancestor_ids GIN index for O(log n) performance
+        let mut query = DepartmentEntity::find()
+            .filter(
+                Expr::cust_with_values(
+                    "ancestor_ids @> ARRAY[$1]::uuid[]",
+                    vec![department_id]
+                )
+            )
+            .filter(DepartmentColumn::DeletedAt.is_null());
 
-        // Prevent infinite loops - max 1000 departments
-        let max_count = 1000;
+        // Apply RLS filter
+        query = apply_department_rls_filter(query, user_context);
 
-        while let Some(parent_id) = to_process.pop() {
-            if descendants.len() >= max_count {
-                return Err(async_graphql::Error::new(
-                    "Too many departments or circular dependency detected"
-                ));
-            }
-
-            // Skip if already processed (circular reference protection)
-            if !processed.insert(parent_id) {
-                continue;
-            }
-
-            // Find children of current department
-            let mut query = DepartmentEntity::find()
-                .filter(DepartmentColumn::ParentDepartmentId.eq(parent_id))
-                .filter(DepartmentColumn::DeletedAt.is_null());
-
-            // Apply RLS filter
-            query = apply_department_rls_filter(query, user_context);
-
-            let children = query.all(&db).await?;
-
-            for child in children {
-                // Skip the starting department itself
-                if child.id != department_id {
-                    to_process.push(child.id);
-                    descendants.push(child);
-                }
-            }
-        }
+        let descendants = query.all(&db).await?;
 
         Ok(descendants)
     }
