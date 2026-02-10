@@ -17,7 +17,6 @@ pub mod review_feedback;
 pub mod review_goal;
 pub mod role;
 pub mod role_permission;
-pub mod session;
 pub mod task;
 pub mod task_assignee;
 pub mod task_audit_entry;
@@ -112,7 +111,6 @@ pub use task_dependency::{
 };
 pub use user::{CreateUserInput, UpdateUserInput, Model as User, UserCondition, UsersConnection, UsersOrderBy, UserStatus};
 pub use user_role_assignment::{AssignRoleInput, Model as UserRoleAssignment, UserRoleAssignmentsConnection};
-pub use session::{Model as Session};
 pub use media_asset::{Model as MediaAsset};
 pub use refresh_token::{Model as RefreshToken};
 

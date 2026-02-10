@@ -2,6 +2,5 @@
 
 pub mod prelude ;
 
-pub mod sessions ;
 pub mod validation_failures ;
 pub mod validation_rules ;

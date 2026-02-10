@@ -1,0 +1,1184 @@
+{
+	"result": [
+		{
+			"scriptId": "391",
+			"url": "file:///home/chanway/Documents/SvelteHR/tests/setup/vitest-setup.ts",
+			"functions": [
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 0, "endOffset": 12866, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 13, "endOffset": 12866, "count": 1 },
+						{ "startOffset": 2965, "endOffset": 3021, "count": 0 },
+						{ "startOffset": 3064, "endOffset": 3090, "count": 0 },
+						{ "startOffset": 3129, "endOffset": 3170, "count": 0 },
+						{ "startOffset": 3221, "endOffset": 3255, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 251, "endOffset": 299, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 661, "endOffset": 1452, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 806, "endOffset": 819, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 893, "endOffset": 906, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 981, "endOffset": 994, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 1148, "endOffset": 1258, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 1333, "endOffset": 1444, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 1490, "endOffset": 1545, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 1585, "endOffset": 1682, "count": 28 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 1721, "endOffset": 1818, "count": 28 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "waitForNextTick",
+					"ranges": [{ "startOffset": 1865, "endOffset": 1922, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "sleep",
+					"ranges": [{ "startOffset": 1933, "endOffset": 1990, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 2082, "endOffset": 2191, "count": 28 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 2230, "endOffset": 2596, "count": 28 },
+						{ "startOffset": 2434, "endOffset": 2534, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 2632, "endOffset": 2728, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 2763, "endOffset": 2824, "count": 0 }],
+					"isBlockCoverage": false
+				}
+			],
+			"startOffset": 209
+		},
+		{
+			"scriptId": "393",
+			"url": "file:///home/chanway/Documents/SvelteHR/tests/helpers/factories.ts",
+			"functions": [
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 0, "endOffset": 7995, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 13, "endOffset": 7995, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 252, "endOffset": 301, "count": 1 },
+						{ "startOffset": 291, "endOffset": 299, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 349, "endOffset": 400, "count": 1 },
+						{ "startOffset": 390, "endOffset": 398, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 442, "endOffset": 487, "count": 1 },
+						{ "startOffset": 477, "endOffset": 485, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "create",
+					"ranges": [{ "startOffset": 755, "endOffset": 1742, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "createMany",
+					"ranges": [{ "startOffset": 1752, "endOffset": 1858, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "createInactive",
+					"ranges": [{ "startOffset": 1868, "endOffset": 1992, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "createWithDepartment",
+					"ranges": [{ "startOffset": 2002, "endOffset": 2109, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "create",
+					"ranges": [{ "startOffset": 2148, "endOffset": 2370, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "create",
+					"ranges": [{ "startOffset": 2403, "endOffset": 2577, "count": 0 }],
+					"isBlockCoverage": false
+				}
+			],
+			"startOffset": 209
+		},
+		{
+			"scriptId": "478",
+			"url": "file:///home/chanway/Documents/SvelteHR/src/domain/Employee/Employee.ts",
+			"functions": [
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 0, "endOffset": 24907, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 13, "endOffset": 24907, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 245, "endOffset": 287, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "<instance_members_initializer>",
+					"ranges": [{ "startOffset": 1078, "endOffset": 8255, "count": 0 }],
+					"isBlockCoverage": true
+				}
+			],
+			"startOffset": 209
+		},
+		{
+			"scriptId": "479",
+			"url": "file:///home/chanway/Documents/SvelteHR/src/domain/Result.ts",
+			"functions": [
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 0, "endOffset": 4349, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 13, "endOffset": 4349, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 243, "endOffset": 283, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "Result",
+					"ranges": [{ "startOffset": 303, "endOffset": 416, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "ok",
+					"ranges": [{ "startOffset": 426, "endOffset": 485, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "error",
+					"ranges": [{ "startOffset": 495, "endOffset": 560, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "get isOk",
+					"ranges": [{ "startOffset": 563, "endOffset": 610, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "get isError",
+					"ranges": [{ "startOffset": 613, "endOffset": 666, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "get value",
+					"ranges": [{ "startOffset": 669, "endOffset": 811, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "get error",
+					"ranges": [{ "startOffset": 814, "endOffset": 950, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "map",
+					"ranges": [{ "startOffset": 953, "endOffset": 1074, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "flatMap",
+					"ranges": [{ "startOffset": 1077, "endOffset": 1191, "count": 0 }],
+					"isBlockCoverage": false
+				}
+			],
+			"startOffset": 209
+		},
+		{
+			"scriptId": "480",
+			"url": "file:///home/chanway/Documents/SvelteHR/src/domain/errors.ts",
+			"functions": [
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 0, "endOffset": 16843, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 13, "endOffset": 16843, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 248, "endOffset": 293, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 345, "endOffset": 400, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 446, "endOffset": 495, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 544, "endOffset": 596, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 644, "endOffset": 695, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 746, "endOffset": 800, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 848, "endOffset": 899, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 956, "endOffset": 1016, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 1072, "endOffset": 1131, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 1185, "endOffset": 1242, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 1301, "endOffset": 1363, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 1420, "endOffset": 1480, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 1543, "endOffset": 1609, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 1664, "endOffset": 1722, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 1776, "endOffset": 1833, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 1887, "endOffset": 1944, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "DomainError",
+					"ranges": [{ "startOffset": 1983, "endOffset": 2125, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "EmployeeNotFoundError",
+					"ranges": [{ "startOffset": 2181, "endOffset": 2344, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "ValidationError",
+					"ranges": [{ "startOffset": 2394, "endOffset": 2586, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "DataTransformError",
+					"ranges": [{ "startOffset": 2639, "endOffset": 2763, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "BusinessRuleError",
+					"ranges": [{ "startOffset": 2815, "endOffset": 3051, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "InvalidHireDateError",
+					"ranges": [{ "startOffset": 3106, "endOffset": 3247, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "InvalidEmailError",
+					"ranges": [{ "startOffset": 3299, "endOffset": 3429, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "EmployeeAlreadyExistsError",
+					"ranges": [{ "startOffset": 3490, "endOffset": 3656, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "EmployeeDeactivationError",
+					"ranges": [{ "startOffset": 3716, "endOffset": 3936, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "DepartmentNotFoundError",
+					"ranges": [{ "startOffset": 3994, "endOffset": 4169, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "DepartmentAlreadyExistsError",
+					"ranges": [{ "startOffset": 4232, "endOffset": 4536, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "InvalidDepartmentNameError",
+					"ranges": [{ "startOffset": 4597, "endOffset": 4768, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "CircularDepartmentReferenceError",
+					"ranges": [{ "startOffset": 4835, "endOffset": 5114, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "DepartmentHierarchyError",
+					"ranges": [{ "startOffset": 5173, "endOffset": 5424, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "DepartmentDeletionError",
+					"ranges": [{ "startOffset": 5482, "endOffset": 5702, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "ServiceUnavailableError",
+					"ranges": [{ "startOffset": 5760, "endOffset": 5913, "count": 0 }],
+					"isBlockCoverage": false
+				}
+			],
+			"startOffset": 209
+		},
+		{
+			"scriptId": "481",
+			"url": "file:///home/chanway/Documents/SvelteHR/src/domain/Employee/Email.ts",
+			"functions": [
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 0, "endOffset": 3263, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 13, "endOffset": 3263, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 242, "endOffset": 281, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "Email",
+					"ranges": [{ "startOffset": 537, "endOffset": 585, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "create",
+					"ranges": [{ "startOffset": 595, "endOffset": 1148, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "equals",
+					"ranges": [{ "startOffset": 1151, "endOffset": 1209, "count": 0 }],
+					"isBlockCoverage": false
+				}
+			],
+			"startOffset": 209
+		},
+		{
+			"scriptId": "482",
+			"url": "file:///home/chanway/Documents/SvelteHR/src/domain/Employee/PersonName.ts",
+			"functions": [
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 0, "endOffset": 4803, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 13, "endOffset": 4803, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 247, "endOffset": 291, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "PersonName",
+					"ranges": [{ "startOffset": 550, "endOffset": 626, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "create",
+					"ranges": [{ "startOffset": 636, "endOffset": 1492, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "get fullName",
+					"ranges": [{ "startOffset": 1495, "endOffset": 1556, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "get displayName",
+					"ranges": [{ "startOffset": 1559, "endOffset": 1624, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "equals",
+					"ranges": [{ "startOffset": 1627, "endOffset": 1713, "count": 0 }],
+					"isBlockCoverage": false
+				}
+			],
+			"startOffset": 209
+		},
+		{
+			"scriptId": "483",
+			"url": "file:///home/chanway/Documents/SvelteHR/src/domain/Employee/HireDate.ts",
+			"functions": [
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 0, "endOffset": 4489, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 13, "endOffset": 4489, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 245, "endOffset": 287, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "HireDate",
+					"ranges": [{ "startOffset": 549, "endOffset": 597, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "create",
+					"ranges": [{ "startOffset": 607, "endOffset": 1220, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "isBefore",
+					"ranges": [{ "startOffset": 1223, "endOffset": 1281, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "getDaysEmployed",
+					"ranges": [{ "startOffset": 1284, "endOffset": 1462, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "equals",
+					"ranges": [{ "startOffset": 1465, "endOffset": 1543, "count": 0 }],
+					"isBlockCoverage": false
+				}
+			],
+			"startOffset": 209
+		},
+		{
+			"scriptId": "484",
+			"url": "file:///home/chanway/Documents/SvelteHR/src/domain/Employee/EmployeeStatus.ts",
+			"functions": [
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 0, "endOffset": 3038, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 13, "endOffset": 3038, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 251, "endOffset": 299, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "<static_initializer>",
+					"ranges": [{ "startOffset": 323, "endOffset": 938, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "EmployeeStatus",
+					"ranges": [{ "startOffset": 327, "endOffset": 375, "count": 2 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "get isActive",
+					"ranges": [{ "startOffset": 478, "endOffset": 534, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "equals",
+					"ranges": [{ "startOffset": 537, "endOffset": 595, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "toString",
+					"ranges": [{ "startOffset": 598, "endOffset": 637, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "fromString",
+					"ranges": [{ "startOffset": 647, "endOffset": 896, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "toJSON",
+					"ranges": [{ "startOffset": 899, "endOffset": 936, "count": 0 }],
+					"isBlockCoverage": false
+				}
+			],
+			"startOffset": 209
+		},
+		{
+			"scriptId": "485",
+			"url": "file:///home/chanway/Documents/SvelteHR/tests/helpers/test-container.ts",
+			"functions": [
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 0, "endOffset": 4401, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 13, "endOffset": 4401, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 256, "endOffset": 309, "count": 1 },
+						{ "startOffset": 299, "endOffset": 307, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 357, "endOffset": 408, "count": 1 },
+						{ "startOffset": 398, "endOffset": 406, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 453, "endOffset": 501, "count": 1 },
+						{ "startOffset": 491, "endOffset": 499, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 549, "endOffset": 600, "count": 1 },
+						{ "startOffset": 590, "endOffset": 598, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "createTestContainer",
+					"ranges": [{ "startOffset": 784, "endOffset": 891, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "createMockGraphQL",
+					"ranges": [{ "startOffset": 893, "endOffset": 1138, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "createMockAuth",
+					"ranges": [{ "startOffset": 1140, "endOffset": 1296, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "createMockStorage",
+					"ranges": [{ "startOffset": 1298, "endOffset": 1545, "count": 0 }],
+					"isBlockCoverage": false
+				}
+			],
+			"startOffset": 209
+		},
+		{
+			"scriptId": "486",
+			"url": "file:///home/chanway/Documents/SvelteHR/src/services/Container.ts",
+			"functions": [
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 0, "endOffset": 11611, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 13, "endOffset": 11611, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 246, "endOffset": 289, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 338, "endOffset": 390, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 436, "endOffset": 485, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 534, "endOffset": 586, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "<instance_members_initializer>",
+					"ranges": [{ "startOffset": 614, "endOffset": 1522, "count": 0 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "<instance_members_initializer>",
+					"ranges": [{ "startOffset": 1545, "endOffset": 2051, "count": 0 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "<instance_members_initializer>",
+					"ranges": [{ "startOffset": 2077, "endOffset": 2340, "count": 0 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "<static_initializer>",
+					"ranges": [{ "startOffset": 2357, "endOffset": 3274, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "<instance_members_initializer>",
+					"ranges": [{ "startOffset": 2357, "endOffset": 3274, "count": 0 }],
+					"isBlockCoverage": true
+				}
+			],
+			"startOffset": 209
+		},
+		{
+			"scriptId": "487",
+			"url": "file:///home/chanway/Documents/SvelteHR/tests/setup/vitest-setup-server.ts",
+			"functions": [
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 0, "endOffset": 6533, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 13, "endOffset": 6533, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 375, "endOffset": 763, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 812, "endOffset": 900, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 949, "endOffset": 1202, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 1247, "endOffset": 1484, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 1527, "endOffset": 1601, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 1733, "endOffset": 2042, "count": 1 },
+						{ "startOffset": 1778, "endOffset": 1863, "count": 0 },
+						{ "startOffset": 1907, "endOffset": 1937, "count": 0 },
+						{ "startOffset": 1981, "endOffset": 2011, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 2082, "endOffset": 2135, "count": 28 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "mockServerDependencies",
+					"ranges": [{ "startOffset": 2138, "endOffset": 2185, "count": 1 }],
+					"isBlockCoverage": true
+				}
+			],
+			"startOffset": 209
+		},
+		{
+			"scriptId": "488",
+			"url": "file:///home/chanway/Documents/SvelteHR/tests/unit/graphql/jwt-client.test.ts",
+			"functions": [
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 0, "endOffset": 43260, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 13, "endOffset": 43260, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 404, "endOffset": 431, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 495, "endOffset": 529, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 859, "endOffset": 15022, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 906, "endOffset": 963, "count": 28 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 1004, "endOffset": 1061, "count": 28 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 1127, "endOffset": 3263, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 1210, "endOffset": 1504, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 1588, "endOffset": 1895, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 1989, "endOffset": 2264, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 2347, "endOffset": 2682, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 2757, "endOffset": 3257, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 3328, "endOffset": 7584, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 3415, "endOffset": 3740, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 3816, "endOffset": 4129, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 4217, "endOffset": 4545, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 4642, "endOffset": 5072, "count": 1 },
+						{ "startOffset": 4968, "endOffset": 4977, "count": 0 },
+						{ "startOffset": 5025, "endOffset": 5040, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 5167, "endOffset": 5542, "count": 1 },
+						{ "startOffset": 5446, "endOffset": 5455, "count": 0 },
+						{ "startOffset": 5503, "endOffset": 5518, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 5634, "endOffset": 6144, "count": 1 },
+						{ "startOffset": 5963, "endOffset": 5972, "count": 0 },
+						{ "startOffset": 6020, "endOffset": 6035, "count": 0 },
+						{ "startOffset": 6104, "endOffset": 6119, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 6228, "endOffset": 6602, "count": 1 },
+						{ "startOffset": 6565, "endOffset": 6578, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 6695, "endOffset": 7578, "count": 1 },
+						{ "startOffset": 7333, "endOffset": 7342, "count": 0 },
+						{ "startOffset": 7392, "endOffset": 7401, "count": 0 },
+						{ "startOffset": 7450, "endOffset": 7465, "count": 0 },
+						{ "startOffset": 7535, "endOffset": 7550, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 7661, "endOffset": 8316, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 7763, "endOffset": 7983, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 8073, "endOffset": 8310, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 8388, "endOffset": 9685, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 8489, "endOffset": 8918, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 9019, "endOffset": 9679, "count": 1 },
+						{ "startOffset": 9505, "endOffset": 9514, "count": 0 },
+						{ "startOffset": 9564, "endOffset": 9573, "count": 0 },
+						{ "startOffset": 9622, "endOffset": 9637, "count": 0 },
+						{ "startOffset": 9656, "endOffset": 9671, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 9739, "endOffset": 12341, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 9821, "endOffset": 10086, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 10157, "endOffset": 10484, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 10564, "endOffset": 10877, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 10961, "endOffset": 11340, "count": 1 },
+						{ "startOffset": 11244, "endOffset": 11253, "count": 0 },
+						{ "startOffset": 11301, "endOffset": 11316, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 11425, "endOffset": 11917, "count": 1 },
+						{ "startOffset": 11804, "endOffset": 11813, "count": 0 },
+						{ "startOffset": 11861, "endOffset": 11876, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 12010, "endOffset": 12335, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 12410, "endOffset": 14108, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 12502, "endOffset": 13042, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 13132, "endOffset": 13449, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 13552, "endOffset": 14102, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 14167, "endOffset": 15018, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 14284, "endOffset": 14647, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 14456, "endOffset": 14526, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 14568, "endOffset": 14629, "count": 1 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 14745, "endOffset": 15012, "count": 1 }],
+					"isBlockCoverage": true
+				}
+			],
+			"startOffset": 209
+		},
+		{
+			"scriptId": "493",
+			"url": "file:///home/chanway/Documents/SvelteHR/src/lib/graphql/jwt-client.ts",
+			"functions": [
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 0, "endOffset": 13163, "count": 28 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 13, "endOffset": 13163, "count": 28 },
+						{ "startOffset": 3502, "endOffset": 3506, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 259, "endOffset": 315, "count": 13 },
+						{ "startOffset": 305, "endOffset": 313, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 362, "endOffset": 412, "count": 1 },
+						{ "startOffset": 402, "endOffset": 410, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [
+						{ "startOffset": 464, "endOffset": 519, "count": 15 },
+						{ "startOffset": 509, "endOffset": 517, "count": 0 }
+					],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "",
+					"ranges": [{ "startOffset": 1120, "endOffset": 2882, "count": 42 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "addAuthToOperation",
+					"ranges": [{ "startOffset": 1215, "endOffset": 1467, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "didAuthError",
+					"ranges": [{ "startOffset": 1545, "endOffset": 2010, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "willAuthError",
+					"ranges": [{ "startOffset": 2091, "endOffset": 2181, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "refreshAuth",
+					"ranges": [{ "startOffset": 2244, "endOffset": 2875, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "createJwtGraphQLClient",
+					"ranges": [{ "startOffset": 2885, "endOffset": 3387, "count": 43 }],
+					"isBlockCoverage": true
+				},
+				{
+					"functionName": "fetchOptions",
+					"ranges": [{ "startOffset": 3266, "endOffset": 3310, "count": 0 }],
+					"isBlockCoverage": false
+				},
+				{
+					"functionName": "createServerJwtClient",
+					"ranges": [
+						{ "startOffset": 3508, "endOffset": 3903, "count": 17 },
+						{ "startOffset": 3826, "endOffset": 3884, "count": 7 },
+						{ "startOffset": 3885, "endOffset": 3889, "count": 10 }
+					],
+					"isBlockCoverage": true
+				}
+			],
+			"startOffset": 209
+		}
+	]
+}

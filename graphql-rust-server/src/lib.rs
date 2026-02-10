@@ -31,5 +31,3 @@ pub mod migration;
 // Testing infrastructure - only compiled when running tests due to dev-dependencies
 #[cfg(any(test, feature = "test-utils"))]
 pub mod testing;
-
-pub use models::session;
