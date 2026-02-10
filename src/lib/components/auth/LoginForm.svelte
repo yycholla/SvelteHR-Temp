@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { createEventDispatcher, onMount } from 'svelte';
 	import { logger } from '$lib/utils/logger';
-	import { auth } from '$lib/stores/auth.svelte';
+	import { jwtAuth } from '$lib/stores/jwt-auth.svelte';
 	import { resolve } from '$app/paths';
 	import { AlertCircle, Eye, EyeOff, Loader2, Lock, Mail } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -22,7 +22,6 @@
 	// Form state using Svelte 5 runes
 	let email = $state('');
 	let password = $state('');
-	let rememberMe = $state(false);
 	let showPassword = $state(false);
 	let formErrors = $state<Record<string, string>>({});
 	let isSubmitting = $state(false);
@@ -85,7 +84,7 @@
 
 		// SECURITY: Ensure no credentials in URL
 		if (!ensureNoCredentialsInURL()) {
-			auth.setError('Security check failed. Please try again.');
+			jwtAuth.error = 'Security check failed. Please try again.';
 			return;
 		}
 
@@ -93,22 +92,23 @@
 		if (isSubmitting || hasSucceeded || !validateForm()) return;
 
 		isSubmitting = true;
-		auth.setError(null);
+		jwtAuth.error = null;
 
 		try {
-			const success = await auth.login(email, password, rememberMe);
+			const result = await jwtAuth.login(email, password);
 
-			if (success) {
+			if (result.success) {
 				hasSucceeded = true; // Prevent further submissions
 				dispatch('success', { user: { email } });
 				// Let the parent component handle navigation
 			} else {
-				// Error will be set in the auth store, we can read it from auth.error
-				const errorMessage = auth.error || 'Login failed';
+				// Error will be set in the jwt auth store
+				const errorMessage = result.error || 'Login failed';
 				dispatch('error', { message: errorMessage });
 			}
 		} catch (error) {
 			const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+			jwtAuth.error = message;
 			dispatch('error', { message });
 		} finally {
 			isSubmitting = false;
@@ -143,14 +143,7 @@
 </script>
 
 <div class="mx-auto w-full max-w-md">
-	<form
-		method="post"
-		action="/api/auth/login"
-		onsubmit={handleSubmit}
-		class="space-y-6"
-		novalidate
-		data-testid="login-form"
-	>
+	<form onsubmit={handleSubmit} class="space-y-6" novalidate data-testid="login-form">
 		<!-- Header -->
 		<div class="text-center">
 			<h1 class="text-2xl font-semibold text-foreground">Sign in to MountainHR</h1>
@@ -160,11 +153,11 @@
 		</div>
 
 		<!-- Global Error Message -->
-		{#if mounted && auth.error}
+		{#if mounted && jwtAuth.error}
 			<Alert variant="destructive" data-testid="login-error-message">
 				<AlertCircle class="h-4 w-4" />
 				<AlertTitle>Authentication Error</AlertTitle>
-				<AlertDescription>{auth.error}</AlertDescription>
+				<AlertDescription>{jwtAuth.error}</AlertDescription>
 			</Alert>
 		{/if}
 
@@ -189,7 +182,7 @@
 						const error = validateEmail(email);
 						if (error) formErrors.email = error;
 					}}
-					disabled={isSubmitting || (mounted && auth.isLoading)}
+					disabled={isSubmitting || (mounted && jwtAuth.isLoading)}
 					data-testid="login-username-input"
 				/>
 			</div>
@@ -219,7 +212,7 @@
 						const error = validatePassword(password);
 						if (error) formErrors.password = error;
 					}}
-					disabled={isSubmitting || (mounted && auth.isLoading)}
+					disabled={isSubmitting || (mounted && jwtAuth.isLoading)}
 					data-testid="login-password-input"
 				/>
 				<div class="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -227,7 +220,7 @@
 						type="button"
 						class="text-muted-foreground transition-colors hover:text-foreground focus:outline-none"
 						onclick={togglePasswordVisibility}
-						disabled={isSubmitting || (mounted && auth.isLoading)}
+						disabled={isSubmitting || (mounted && jwtAuth.isLoading)}
 					>
 						{#if showPassword}
 							<EyeOff class="h-4 w-4" />
@@ -242,20 +235,8 @@
 			{/if}
 		</div>
 
-		<!-- Remember Me & Forgot Password -->
-		<div class="flex items-center justify-between">
-			<div class="flex items-center space-x-2">
-				<input
-					type="checkbox"
-					id="remember-me"
-					bind:checked={rememberMe}
-					disabled={isSubmitting || (mounted && auth.isLoading)}
-					data-testid="login-remember-me"
-					class="h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-				/>
-				<Label for="remember-me" class="cursor-pointer text-sm font-normal">Remember me</Label>
-			</div>
-
+		<!-- Forgot Password -->
+		<div class="flex items-center justify-end">
 			<div class="text-sm">
 				<a
 					href={resolve('/auth/forgot-password' as any)}
@@ -271,13 +252,13 @@
 			<Button
 				type="submit"
 				disabled={isSubmitting ||
-					(mounted && auth.isLoading) ||
+					(mounted && jwtAuth.isLoading) ||
 					hasSucceeded ||
 					Object.keys(formErrors).length > 0}
 				class="w-full"
 				data-testid="login-submit-button"
 			>
-				{#if isSubmitting || (mounted && auth.isLoading)}
+				{#if isSubmitting || (mounted && jwtAuth.isLoading)}
 					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
 					Signing in...
 				{:else}

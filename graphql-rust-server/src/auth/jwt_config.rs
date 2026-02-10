@@ -128,6 +128,71 @@ impl JwtConfig {
 }
 
 impl JwtKeys {
+    /// Load RSA key pair from files
+    ///
+    /// # Arguments
+    ///
+    /// * `private_key_path` - Path to RSA private key file (PEM format)
+    /// * `public_key_path` - Path to RSA public key file (PEM format)
+    ///
+    /// # Errors
+    ///
+    /// Returns `JwtConfigError` if:
+    /// - Files cannot be read
+    /// - PEM format is invalid (missing BEGIN/END markers)
+    /// - Keys cannot be parsed by jsonwebtoken library
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use hr_graphql_server::auth::jwt_config::JwtKeys;
+    ///
+    /// let keys = JwtKeys::from_files("/app/keys/jwt-private.pem", "/app/keys/jwt-public.pem")
+    ///     .expect("Failed to load JWT keys");
+    /// ```
+    pub fn from_files(private_key_path: &str, public_key_path: &str) -> Result<Self, JwtConfigError> {
+        use std::fs;
+
+        // Read private key file
+        let private_key_pem = fs::read_to_string(private_key_path)
+            .map_err(|e| JwtConfigError::KeyParseError {
+                key_type: "private key file".to_string(),
+                error: format!("Failed to read {}: {}", private_key_path, e),
+            })?;
+
+        // Read public key file
+        let public_key_pem = fs::read_to_string(public_key_path)
+            .map_err(|e| JwtConfigError::KeyParseError {
+                key_type: "public key file".to_string(),
+                error: format!("Failed to read {}: {}", public_key_path, e),
+            })?;
+
+        // Validate private key PEM format
+        Self::validate_pem_format(&private_key_pem, "private key")?;
+
+        // Validate public key PEM format
+        Self::validate_pem_format(&public_key_pem, "public key")?;
+
+        // Parse private key for encoding (signing)
+        let encoding_key = EncodingKey::from_rsa_pem(private_key_pem.as_bytes())
+            .map_err(|e| JwtConfigError::KeyParseError {
+                key_type: "private key".to_string(),
+                error: e.to_string(),
+            })?;
+
+        // Parse public key for decoding (verification)
+        let decoding_key = DecodingKey::from_rsa_pem(public_key_pem.as_bytes())
+            .map_err(|e| JwtConfigError::KeyParseError {
+                key_type: "public key".to_string(),
+                error: e.to_string(),
+            })?;
+
+        Ok(Self {
+            encoding_key,
+            decoding_key,
+        })
+    }
+
     /// Load RSA key pair from environment variables
     ///
     /// Required environment variables:

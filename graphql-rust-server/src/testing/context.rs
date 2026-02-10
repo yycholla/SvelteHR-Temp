@@ -8,7 +8,7 @@ use sea_orm::DatabaseConnection;
 
 use crate::schema::{MutationRoot, QueryRoot};
 use crate::auth::UserContext;
-use super::auth::{TestUser, TestUserRole, TestUsers};
+// use super::auth::{TestUser, TestUserRole, TestUsers}; // REMOVED: Use JWT tokens for test auth
 use super::database::TestDatabase;
 use super::errors::TestContextError;
 
