@@ -4,9 +4,15 @@
 
 **Goal:** Migrate Department, Goals, Performance Reviews, and Tasks modules to hexagonal architecture following the established Employee/LeaveRequest pattern.
 
-**Architecture:** Four-phase incremental migration with Domain → Service → Adapter → Routes → Tests workflow. Each phase deploys independently to production. Follows ports & adapters pattern with Result<T,E> error handling and comprehensive testing (380 new tests total).
+**Architecture:** Five-phase incremental migration with **backend-first approach**. Phase 0 adds missing GraphQL query capabilities (filtering, sorting, pagination) to eliminate client-side workarounds. Phases 1-4 migrate frontend modules following Domain → Service → Adapter → Routes → Tests workflow. Each phase deploys independently to production. Follows ports & adapters pattern with Result<T,E> error handling and comprehensive testing (380+ new tests total).
 
-**Tech Stack:** TypeScript 5, Vitest 3.2.3, SvelteKit 2.43+, GraphQL (urql), Hexagonal Architecture (DDD)
+**Tech Stack:**
+
+- Backend: Rust, Axum, Async-GraphQL, SeaORM, PostgreSQL
+- Frontend: TypeScript 5, Vitest 3.2.3, SvelteKit 2.43+, GraphQL (urql)
+- Architecture: Hexagonal (Ports & Adapters), Domain-Driven Design
+
+**Critical Path:** Phase 0 (backend query capabilities) must complete before Phase 1 (frontend refactoring). Backend changes enable proper separation of concerns and eliminate client-side filtering/sorting workarounds that don't scale.
 
 **Reference Implementations:**
 
@@ -15,38 +21,845 @@
 
 ---
 
-## Phase 1: Department Module (Route Refactoring Only)
+## Phase 0: Backend Query Capabilities (Department Module)
 
-**Duration:** 1-2 days
-**Goal:** Refactor 5 department routes to use existing DepartmentService, validating the route migration pattern.
+**Duration:** 2-9.5 hours (prioritized in sub-phases)
+**Goal:** Add missing GraphQL query capabilities to support hexagonal architecture. Eliminate client-side filtering workarounds.
 
-### Task 1.1: Refactor Main Departments Route
+**Rationale:** The backend currently returns full datasets with limited query capabilities (only limit/offset). The frontend must download all records and filter/sort client-side, which doesn't scale. We need proper filtering, sorting, and pagination metadata on the backend before refactoring frontend routes.
+
+**Current Backend Status:**
+
+- ✅ CRUD mutations complete (create, update, bulkUpdate, delete)
+- ✅ Basic queries with limit/offset
+- ✅ Hierarchy support (parent_id, ancestor_ids with GIN index)
+- ✅ RLS policies and field-level security
+- ❌ Missing filtering (search, parent_id, manager_id, root_only, include_deleted)
+- ❌ Missing sorting (DepartmentsOrderBy enum defined but not used)
+- ❌ Missing pagination metadata (totalCount, hasNextPage)
+- ❌ Inefficient getDepartmentDescendants (N+1 queries, doesn't use GIN index)
+
+### Task 0.1: Add Department Filtering Input Type
+
+**Priority:** HIGHEST (Phase 0a - ~30 minutes)
 
 **Files:**
 
-- Modify: `src/routes/dashboard/departments/+page.server.ts` (254 lines → ~130 lines)
+- Modify: `graphql-rust-server/src/schema/query.rs` (add DepartmentFilter input)
+- Reference: `graphql-rust-server/src/models/department.rs` (field definitions)
+
+**Step 1: Define DepartmentFilter input type**
+
+Add to `graphql-rust-server/src/schema/query.rs` near line 260:
+
+```rust
+#[derive(Debug, Clone, InputObject)]
+pub struct DepartmentFilter {
+    /// Search departments by name (case-insensitive partial match)
+    pub search_term: Option<String>,
+    /// Filter by parent department ID (null for root departments)
+    pub parent_id: Option<Uuid>,
+    /// Show only root departments (no parent)
+    pub root_only: Option<bool>,
+    /// Filter by manager ID
+    pub manager_id: Option<Uuid>,
+    /// Include soft-deleted departments
+    pub include_deleted: Option<bool>,
+}
+```
+
+**Step 2: Update departments query signature**
+
+Replace (line ~261):
+
+```rust
+async fn departments(
+    &self,
+    ctx: &Context<'_>,
+    limit: Option<i64>,
+    offset: Option<i64>,
+) -> Result<Vec<Department>>
+```
+
+With:
+
+```rust
+async fn departments(
+    &self,
+    ctx: &Context<'_>,
+    filter: Option<DepartmentFilter>,
+    limit: Option<i64>,
+    offset: Option<i64>,
+) -> Result<Vec<Department>>
+```
+
+**Step 3: Apply filters in query implementation**
+
+Update query implementation (line ~268):
+
+```rust
+async fn departments(
+    &self,
+    ctx: &Context<'_>,
+    filter: Option<DepartmentFilter>,
+    limit: Option<i64>,
+    offset: Option<i64>,
+) -> Result<Vec<Department>> {
+    let pool = ctx.data::<Pool<Postgres>>()?;
+    let user = ctx.data::<User>()?;
+
+    // Start with base query
+    let mut query = DepartmentEntity::find();
+
+    // Apply filters if provided
+    if let Some(f) = filter {
+        if let Some(search) = f.search_term {
+            query = query.filter(
+                Condition::any()
+                    .add(DepartmentColumn::Name.contains(&search))
+                    .add(DepartmentColumn::Description.contains(&search))
+            );
+        }
+
+        if let Some(parent_id) = f.parent_id {
+            query = query.filter(DepartmentColumn::ParentDepartmentId.eq(parent_id));
+        } else if f.root_only == Some(true) {
+            query = query.filter(DepartmentColumn::ParentDepartmentId.is_null());
+        }
+
+        if let Some(manager_id) = f.manager_id {
+            query = query.filter(DepartmentColumn::ManagerId.eq(manager_id));
+        }
+
+        if f.include_deleted != Some(true) {
+            query = query.filter(DepartmentColumn::DeletedAt.is_null());
+        }
+    } else {
+        // Default: exclude deleted
+        query = query.filter(DepartmentColumn::DeletedAt.is_null());
+    }
+
+    // Apply RLS (existing logic)
+    query = apply_department_rls(query, user)?;
+
+    // Apply pagination
+    if let Some(limit) = limit {
+        query = query.limit(limit as u64);
+    }
+    if let Some(offset) = offset {
+        query = query.offset(offset as u64);
+    }
+
+    let departments: Vec<DepartmentModel> = query.all(pool).await?;
+    Ok(departments.into_iter().map(Department::from).collect())
+}
+```
+
+**Step 4: Verify compilation**
+
+Run: `cargo check --manifest-path=graphql-rust-server/Cargo.toml`
+Expected: No compilation errors
+
+**Step 5: Write integration test**
+
+Add to `graphql-rust-server/src/schema/query.rs` test module:
+
+```rust
+#[tokio::test]
+async fn test_departments_filtering() {
+    // Test search filter
+    let query = r#"
+        query {
+            departments(filter: { searchTerm: "Engineering" }) {
+                id
+                name
+            }
+        }
+    "#;
+    // Assert results contain "Engineering"
+
+    // Test root_only filter
+    let query = r#"
+        query {
+            departments(filter: { rootOnly: true }) {
+                id
+                name
+                parentDepartmentId
+            }
+        }
+    "#;
+    // Assert all results have parentDepartmentId: null
+}
+```
+
+**Step 6: Run tests**
+
+Run: `cargo test --manifest-path=graphql-rust-server/Cargo.toml test_departments_filtering`
+Expected: PASS
+
+**Step 7: Commit**
+
+```bash
+git add graphql-rust-server/src/schema/query.rs
+git commit -m "feat(backend): add DepartmentFilter input type for department queries
+
+Add comprehensive filtering support:
+- search_term: case-insensitive name/description search
+- parent_id: filter by parent department
+- root_only: show only root departments
+- manager_id: filter by department manager
+- include_deleted: optionally include soft-deleted records
+
+Eliminates need for client-side filtering of full datasets.
+Part of Phase 0 backend query capabilities."
+```
+
+### Task 0.2: Add Department Sorting Support
+
+**Priority:** HIGHEST (Phase 0a - ~20 minutes)
+
+**Files:**
+
+- Modify: `graphql-rust-server/src/schema/query.rs` (add order_by parameter)
+- Reference: `graphql-rust-server/src/models/department.rs:14-64` (DepartmentsOrderBy enum)
+
+**Step 1: Add order_by parameter to departments query**
+
+Update query signature (line ~261):
+
+```rust
+async fn departments(
+    &self,
+    ctx: &Context<'_>,
+    filter: Option<DepartmentFilter>,
+    order_by: Option<DepartmentsOrderBy>,  // ADD THIS
+    limit: Option<i64>,
+    offset: Option<i64>,
+) -> Result<Vec<Department>>
+```
+
+**Step 2: Apply sorting in query implementation**
+
+Add before pagination (after RLS, before limit/offset):
+
+```rust
+// Apply sorting
+if let Some(order) = order_by {
+    query = match order {
+        DepartmentsOrderBy::NameAsc => query.order_by_asc(DepartmentColumn::Name),
+        DepartmentsOrderBy::NameDesc => query.order_by_desc(DepartmentColumn::Name),
+        DepartmentsOrderBy::CreatedAtAsc => query.order_by_asc(DepartmentColumn::CreatedAt),
+        DepartmentsOrderBy::CreatedAtDesc => query.order_by_desc(DepartmentColumn::CreatedAt),
+        DepartmentsOrderBy::UpdatedAtAsc => query.order_by_asc(DepartmentColumn::UpdatedAt),
+        DepartmentsOrderBy::UpdatedAtDesc => query.order_by_desc(DepartmentColumn::UpdatedAt),
+        DepartmentsOrderBy::ManagerIdAsc => query.order_by_asc(DepartmentColumn::ManagerId),
+        DepartmentsOrderBy::ManagerIdDesc => query.order_by_desc(DepartmentColumn::ManagerId),
+    };
+} else {
+    // Default sort: name ascending
+    query = query.order_by_asc(DepartmentColumn::Name);
+}
+```
+
+**Step 3: Verify compilation**
+
+Run: `cargo check --manifest-path=graphql-rust-server/Cargo.toml`
+Expected: No compilation errors
+
+**Step 4: Write test**
+
+```rust
+#[tokio::test]
+async fn test_departments_sorting() {
+    let query = r#"
+        query {
+            departments(orderBy: NAME_DESC) {
+                name
+            }
+        }
+    "#;
+    // Assert results are sorted by name descending
+}
+```
+
+**Step 5: Commit**
+
+```bash
+git add graphql-rust-server/src/schema/query.rs
+git commit -m "feat(backend): add sorting support to departments query
+
+Use existing DepartmentsOrderBy enum (name, created_at, updated_at, manager_id).
+Default sort: name ascending.
+Eliminates client-side sorting workarounds."
+```
+
+### Task 0.3: Add Pagination Metadata
+
+**Priority:** HIGHEST (Phase 0a - ~1 hour)
+
+**Files:**
+
+- Modify: `graphql-rust-server/src/schema/query.rs` (add DepartmentQueryResult type)
+- Modify: `graphql-rust-server/src/models/department.rs` (add result wrapper type)
+
+**Step 1: Define pagination result wrapper**
+
+Add to `graphql-rust-server/src/models/department.rs`:
+
+```rust
+#[derive(Debug, Clone, SimpleObject)]
+pub struct DepartmentQueryResult {
+    /// The departments matching the query
+    pub items: Vec<Department>,
+    /// Total count of departments matching filters (before pagination)
+    pub total_count: i64,
+    /// Current page number (calculated from offset/limit)
+    pub page: i64,
+    /// Number of items per page
+    pub limit: i64,
+    /// Total number of pages
+    pub total_pages: i64,
+    /// Whether there is a next page
+    pub has_next_page: bool,
+    /// Whether there is a previous page
+    pub has_previous_page: bool,
+}
+```
+
+**Step 2: Update departments query to return DepartmentQueryResult**
+
+Replace return type (line ~261):
+
+```rust
+async fn departments(
+    &self,
+    ctx: &Context<'_>,
+    filter: Option<DepartmentFilter>,
+    order_by: Option<DepartmentsOrderBy>,
+    limit: Option<i64>,
+    offset: Option<i64>,
+) -> Result<DepartmentQueryResult>  // CHANGED from Vec<Department>
+```
+
+**Step 3: Update query implementation to compute metadata**
+
+```rust
+async fn departments(
+    &self,
+    ctx: &Context<'_>,
+    filter: Option<DepartmentFilter>,
+    order_by: Option<DepartmentsOrderBy>,
+    limit: Option<i64>,
+    offset: Option<i64>,
+) -> Result<DepartmentQueryResult> {
+    let pool = ctx.data::<Pool<Postgres>>()?;
+    let user = ctx.data::<User>()?;
+
+    let limit = limit.unwrap_or(20);
+    let offset = offset.unwrap_or(0);
+
+    // Build base query with filters (same as Task 0.1)
+    let mut query = DepartmentEntity::find();
+    // ... apply filters, RLS, sorting ...
+
+    // Get total count BEFORE pagination
+    let total_count = query.clone().count(pool).await? as i64;
+
+    // Apply pagination
+    query = query.limit(limit as u64).offset(offset as u64);
+
+    let departments: Vec<DepartmentModel> = query.all(pool).await?;
+    let items: Vec<Department> = departments.into_iter().map(Department::from).collect();
+
+    // Calculate pagination metadata
+    let page = (offset / limit) + 1;
+    let total_pages = (total_count + limit - 1) / limit;  // Ceiling division
+    let has_next_page = offset + limit < total_count;
+    let has_previous_page = offset > 0;
+
+    Ok(DepartmentQueryResult {
+        items,
+        total_count,
+        page,
+        limit,
+        total_pages,
+        has_next_page,
+        has_previous_page,
+    })
+}
+```
+
+**Step 4: Update GraphQL schema exports**
+
+Ensure `DepartmentQueryResult` is exported from models module.
+
+**Step 5: Verify compilation and run tests**
+
+Run: `cargo check --manifest-path=graphql-rust-server/Cargo.toml`
+Run: `cargo test --manifest-path=graphql-rust-server/Cargo.toml departments`
+Expected: All pass
+
+**Step 6: Commit**
+
+```bash
+git add graphql-rust-server/src/schema/query.rs graphql-rust-server/src/models/department.rs
+git commit -m "feat(backend): add pagination metadata to departments query
+
+Return DepartmentQueryResult with:
+- items: department list
+- total_count: count before pagination
+- page, limit, total_pages
+- has_next_page, has_previous_page
+
+Enables proper UI pagination controls.
+Part of Phase 0 backend query capabilities."
+```
+
+### Task 0.4: Optimize getDepartmentDescendants Using GIN Index
+
+**Priority:** HIGH (Phase 0a - ~30 minutes)
+
+**Files:**
+
+- Modify: `graphql-rust-server/src/models/department.rs` (getDepartmentDescendants resolver)
+- Reference: `graphql-rust-server/migration/m20260205_001_add_department_ancestor_ids.rs` (GIN index)
+
+**Step 1: Update getDepartmentDescendants to use GIN index**
+
+Replace implementation (line ~85):
+
+```rust
+// BEFORE: Inefficient N+1 queries
+async fn get_department_descendants<'a>(&self, ctx: &Context<'a>) -> Result<Vec<Department>> {
+    // Recursive CTE or N+1 queries
+}
+
+// AFTER: Use GIN index containment operator
+async fn get_department_descendants<'a>(&self, ctx: &Context<'a>) -> Result<Vec<Department>> {
+    let pool = ctx.data::<Pool<Postgres>>()?;
+
+    // Use GIN index: find all departments where ancestor_ids contains this department's ID
+    let descendants: Vec<DepartmentModel> = DepartmentEntity::find()
+        .filter(
+            Expr::cust_with_values(
+                "ancestor_ids @> ARRAY[$1]::uuid[]",
+                vec![self.id]
+            )
+        )
+        .filter(DepartmentColumn::DeletedAt.is_null())
+        .all(pool)
+        .await?;
+
+    Ok(descendants.into_iter().map(Department::from).collect())
+}
+```
+
+**Step 2: Add test for performance**
+
+```rust
+#[tokio::test]
+async fn test_get_descendants_uses_gin_index() {
+    // Query descendants for root department
+    // Verify query plan uses GIN index (not seq scan)
+    // Assert correct descendants returned
+}
+```
+
+**Step 3: Verify with EXPLAIN ANALYZE**
+
+Run in PostgreSQL:
+
+```sql
+EXPLAIN ANALYZE
+SELECT * FROM departments
+WHERE ancestor_ids @> ARRAY['<uuid>']::uuid[]
+AND deleted_at IS NULL;
+```
+
+Expected output should show: `Bitmap Index Scan using idx_departments_ancestor_ids`
+
+**Step 4: Commit**
+
+```bash
+git add graphql-rust-server/src/models/department.rs
+git commit -m "perf(backend): optimize getDepartmentDescendants with GIN index
+
+Replace recursive CTE / N+1 queries with GIN index containment operator.
+Uses existing idx_departments_ancestor_ids for O(log n) lookups.
+Improves performance for large department hierarchies."
+```
+
+### Task 0.5: Add parent_department_id to UpdateDepartmentInput (Optional)
+
+**Priority:** MEDIUM (Phase 0b - ~20 minutes)
+
+**Files:**
+
+- Modify: `graphql-rust-server/src/schema/mutations/department.rs` (UpdateDepartmentInput)
+
+**Step 1: Add parent_department_id field**
+
+Update `UpdateDepartmentInput` (line ~30):
+
+```rust
+#[derive(Debug, InputObject)]
+pub struct UpdateDepartmentInput {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub manager_id: Option<Uuid>,
+    pub parent_department_id: Option<Uuid>,  // ADD THIS
+}
+```
+
+**Step 2: Update update_department mutation logic**
+
+Add to mutation implementation:
+
+```rust
+if let Some(parent_id) = input.parent_department_id {
+    // Validate: prevent circular hierarchy
+    if parent_id == department_id {
+        return Err("Department cannot be its own parent".into());
+    }
+    // Update parent_department_id
+    update_model.parent_department_id = Set(Some(parent_id));
+    // Recalculate ancestor_ids (trigger or manual update)
+}
+```
+
+**Step 3: Add test for hierarchy moves**
+
+```rust
+#[tokio::test]
+async fn test_update_department_parent() {
+    // Move department to new parent
+    // Verify ancestor_ids updated correctly
+    // Verify circular hierarchy prevented
+}
+```
+
+**Step 4: Commit**
+
+```bash
+git add graphql-rust-server/src/schema/mutations/department.rs
+git commit -m "feat(backend): add parent_department_id to UpdateDepartmentInput
+
+Enable moving departments in hierarchy via update mutation.
+Includes circular hierarchy validation.
+Part of Phase 0 backend capabilities."
+```
+
+### Task 0.6: Add Field Resolvers (Optional)
+
+**Priority:** LOW (Phase 0c - ~2 hours)
+
+**Files:**
+
+- Modify: `graphql-rust-server/src/models/department.rs` (add field resolvers)
+
+**Step 1: Add childCount resolver**
+
+```rust
+#[Object]
+impl Department {
+    // ... existing resolvers ...
+
+    async fn child_count<'a>(&self, ctx: &Context<'a>) -> Result<i64> {
+        let pool = ctx.data::<Pool<Postgres>>()?;
+        let count = DepartmentEntity::find()
+            .filter(DepartmentColumn::ParentDepartmentId.eq(self.id))
+            .filter(DepartmentColumn::DeletedAt.is_null())
+            .count(pool)
+            .await?;
+        Ok(count as i64)
+    }
+}
+```
+
+**Step 2: Add descendantCount resolver**
+
+```rust
+async fn descendant_count<'a>(&self, ctx: &Context<'a>) -> Result<i64> {
+    let pool = ctx.data::<Pool<Postgres>>()?;
+    let count = DepartmentEntity::find()
+        .filter(
+            Expr::cust_with_values(
+                "ancestor_ids @> ARRAY[$1]::uuid[]",
+                vec![self.id]
+            )
+        )
+        .filter(DepartmentColumn::DeletedAt.is_null())
+        .count(pool)
+        .await?;
+    Ok(count as i64)
+}
+```
+
+**Step 3: Add isLeaf resolver**
+
+```rust
+async fn is_leaf<'a>(&self, ctx: &Context<'a>) -> Result<bool> {
+    let child_count = self.child_count(ctx).await?;
+    Ok(child_count == 0)
+}
+```
+
+**Step 4: Add path resolver**
+
+```rust
+async fn path<'a>(&self, ctx: &Context<'a>) -> Result<Vec<Department>> {
+    let pool = ctx.data::<Pool<Postgres>>()?;
+
+    // Fetch all ancestors using ancestor_ids
+    if self.ancestor_ids.is_empty() {
+        return Ok(vec![self.clone()]);
+    }
+
+    let ancestors: Vec<DepartmentModel> = DepartmentEntity::find()
+        .filter(DepartmentColumn::Id.is_in(self.ancestor_ids.clone()))
+        .order_by_asc(DepartmentColumn::CreatedAt)  // Root to leaf order
+        .all(pool)
+        .await?;
+
+    let mut path: Vec<Department> = ancestors.into_iter().map(Department::from).collect();
+    path.push(self.clone());
+    Ok(path)
+}
+```
+
+**Step 5: Add tests**
+
+```rust
+#[tokio::test]
+async fn test_department_field_resolvers() {
+    // Test childCount
+    // Test descendantCount
+    // Test isLeaf
+    // Test path (returns ancestors + self)
+}
+```
+
+**Step 6: Commit**
+
+```bash
+git add graphql-rust-server/src/models/department.rs
+git commit -m "feat(backend): add department field resolvers
+
+Add computed fields:
+- childCount: number of direct children
+- descendantCount: total descendants (uses GIN index)
+- isLeaf: true if no children
+- path: full hierarchy path from root to this department
+
+Improves UI hierarchy display capabilities."
+```
+
+### Phase 0 Summary
+
+**Tasks Completed:**
+
+- ✅ Task 0.1: Add DepartmentFilter input type (filtering support) - ~30 min
+- ✅ Task 0.2: Add sorting support with DepartmentsOrderBy - ~20 min
+- ✅ Task 0.3: Add pagination metadata (DepartmentQueryResult) - ~1 hour
+- ✅ Task 0.4: Optimize getDepartmentDescendants with GIN index - ~30 min
+- 🔵 Task 0.5: Add parent_department_id to UpdateDepartmentInput (optional) - ~20 min
+- 🔵 Task 0.6: Add field resolvers (childCount, etc.) (optional) - ~2 hours
+
+**Phase 0a Duration (Required):** ~2 hours
+**Phase 0b-0c Duration (Optional):** ~2.5 hours
+**Total Phase 0 Duration:** 2-4.5 hours (depending on optional tasks)
+
+**Key Benefits:**
+
+- Backend now handles all filtering/sorting/pagination (scalable to any dataset size)
+- Frontend eliminates client-side filtering workarounds
+- Proper pagination metadata for UI controls
+- GIN index optimization for hierarchy queries (O(log n) instead of N+1)
+
+**Breaking Changes:**
+
+- GraphQL query signature changes (requires adapter + route updates in Phase 1)
+- Returns `DepartmentQueryResult` wrapper instead of `Vec<Department>`
+
+---
+
+## Phase 1: Department Module (Route Refactoring)
+
+**Duration:** 1-2 days
+**Goal:** Refactor 5 department routes to use existing DepartmentService with new backend query capabilities.
+**Dependencies:** Phase 0 must be complete (backend filtering/sorting/pagination)
+
+### Task 1.1: Update GraphQL Adapter to Use New Backend Capabilities
+
+**Files:**
+
+- Modify: `src/adapters/GraphQLDepartmentAdapter.ts` (remove client-side filtering)
+- Modify: `src/domain/Department/types.ts` (add sorting options)
+- Reference: `graphql-rust-server/src/schema/query.rs` (new DepartmentFilter, order_by)
+
+**Step 1: Update GraphQL query to use new backend features**
+
+Read: `src/adapters/GraphQLDepartmentAdapter.ts` (current query structure)
+
+Replace the GraphQL query with:
+
+```typescript
+const GET_DEPARTMENTS = gql`
+	query GetDepartments(
+		$filter: DepartmentFilter
+		$orderBy: DepartmentsOrderBy
+		$limit: Int
+		$offset: Int
+	) {
+		departments(filter: $filter, orderBy: $orderBy, limit: $limit, offset: $offset) {
+			items {
+				id
+				name
+				description
+				managerId
+				parentDepartmentId
+				ancestorIds
+				createdAt
+				updatedAt
+			}
+			totalCount
+			page
+			limit
+			totalPages
+			hasNextPage
+			hasPreviousPage
+		}
+	}
+`;
+```
+
+**Step 2: Update FindDepartmentsFilter type to match backend**
+
+Edit `src/domain/Department/types.ts`:
+
+```typescript
+export interface FindDepartmentsFilter {
+	searchTerm?: string; // Maps to filter.search_term
+	parentId?: string | null; // Maps to filter.parent_id
+	rootOnly?: boolean; // Maps to filter.root_only
+	includeDeleted?: boolean; // Maps to filter.include_deleted
+	managerId?: string; // Maps to filter.manager_id
+	page?: number; // For offset calculation
+	limit?: number; // Direct pass-through
+	orderBy?: DepartmentOrderBy; // NEW: sorting option
+}
+
+export enum DepartmentOrderBy {
+	NameAsc = 'NAME_ASC',
+	NameDesc = 'NAME_DESC',
+	CreatedAtAsc = 'CREATED_AT_ASC',
+	CreatedAtDesc = 'CREATED_AT_DESC',
+	UpdatedAtAsc = 'UPDATED_AT_ASC',
+	UpdatedAtDesc = 'UPDATED_AT_DESC'
+}
+```
+
+**Step 3: Remove applyClientSideFilters method**
+
+Delete the entire `applyClientSideFilters` method from `GraphQLDepartmentAdapter.ts` (lines ~150-180). Backend now handles all filtering.
+
+**Step 4: Update findAll implementation to use backend filtering**
+
+```typescript
+async findAll(filter?: FindDepartmentsFilter): Promise<Result<FindDepartmentsResult, DomainError>> {
+	try {
+		const limit = filter?.limit ?? 100;
+		const page = filter?.page ?? 1;
+		const offset = (page - 1) * limit;
+
+		// Build GraphQL filter object (matches backend DepartmentFilter)
+		const gqlFilter: any = {};
+		if (filter?.searchTerm) gqlFilter.searchTerm = filter.searchTerm;
+		if (filter?.parentId !== undefined) gqlFilter.parentId = filter.parentId;
+		if (filter?.rootOnly) gqlFilter.rootOnly = filter.rootOnly;
+		if (filter?.managerId) gqlFilter.managerId = filter.managerId;
+		if (filter?.includeDeleted) gqlFilter.includeDeleted = filter.includeDeleted;
+
+		const result = await this.client
+			.query(GET_DEPARTMENTS, {
+				filter: Object.keys(gqlFilter).length > 0 ? gqlFilter : undefined,
+				orderBy: filter?.orderBy || DepartmentOrderBy.NameAsc,
+				limit,
+				offset
+			})
+			.toPromise();
+
+		if (result.error) {
+			return Result.error(
+				new DomainError('ADAPTER_ERROR', 'Failed to fetch departments', result.error)
+			);
+		}
+
+		const data = result.data.departments;
+
+		// No more client-side filtering needed!
+		const departments = data.items.map((dept: any) =>
+			Department.reconstitute({
+				id: dept.id,
+				name: dept.name,
+				description: dept.description || undefined,
+				managerId: dept.managerId || undefined,
+				parentDepartmentId: dept.parentDepartmentId || undefined,
+				ancestorIds: dept.ancestorIds || [],
+				createdAt: dept.createdAt,
+				updatedAt: dept.updatedAt
+			})
+		);
+
+		return Result.ok({
+			departments,
+			total: data.totalCount, // Use backend count
+			limit,
+			offset,
+			hasNextPage: data.hasNextPage,
+			hasPreviousPage: data.hasPreviousPage
+		});
+	} catch (error) {
+		return Result.error(
+			new DomainError('ADAPTER_ERROR', 'Failed to fetch departments', error as Error)
+		);
+	}
+}
+```
+
+**Step 5: Verify TypeScript compilation**
+
+Run: `npm run check`
+Expected: No errors
+
+**Step 6: Commit adapter changes**
+
+```bash
+git add src/adapters/GraphQLDepartmentAdapter.ts src/domain/Department/types.ts
+git commit -m "refactor(adapter): use backend filtering/sorting/pagination
+
+Remove client-side filtering workarounds.
+Use new DepartmentFilter and DepartmentsOrderBy from backend.
+Adapter now leverages Phase 0 backend capabilities.
+Reduced complexity, improved performance."
+```
+
+### Task 1.2: Refactor Main Departments Route
+
+**Files:**
+
+- Modify: `src/routes/dashboard/departments/+page.server.ts` (254 lines → ~180 lines)
 - Reference: `src/services/DepartmentService.ts` (already exists)
 - Reference: `src/routes/dashboard/management/leave-approvals/+page.server.ts` (refactored route example)
 
-**Step 1: Create backup of original route**
-
-```bash
-cp src/routes/dashboard/departments/+page.server.ts src/routes/dashboard/departments/+page.server.ts.backup
-```
-
-**Step 2: Read existing route to understand current structure**
+**Step 1: Read existing route to understand current structure**
 
 Read: `src/routes/dashboard/departments/+page.server.ts` (lines 1-100)
-Note: GraphQL queries, filters, pagination logic
+Note: Client-side filtering logic (can now be removed)
 
-**Step 3: Read DepartmentService to understand available methods**
+**Step 2: Refactor load function to pass filters to service**
 
-Read: `src/services/DepartmentService.ts`
-Note: getDepartments(), getDepartmentById(), createDepartment(), updateDepartment(), deleteDepartment()
-
-**Step 4: Refactor load function to use service**
-
-Replace direct GraphQL with:
+Replace with:
 
 ```typescript
 export const load: PageServerLoad = async (event) => {
@@ -57,12 +870,16 @@ export const load: PageServerLoad = async (event) => {
 		const { locals } = event;
 		const params = new QueryParamExtractor(url);
 		const { page, limit } = params.getPagination(20);
+		const searchTerm = params.getString('search');
+		const orderBy = params.getString('orderBy') as DepartmentOrderBy | undefined;
 
-		// Use service layer
+		// Use service layer with backend filtering
 		const service = createDepartmentService(event);
 		const result = await service.getDepartments({
 			page,
-			limit
+			limit,
+			searchTerm,
+			orderBy: orderBy || DepartmentOrderBy.NameAsc
 		});
 
 		if (result.isError) {
@@ -74,7 +891,7 @@ export const load: PageServerLoad = async (event) => {
 			};
 		}
 
-		// Transform domain entities to DTOs
+		// No transformation needed - backend returns exactly what we need
 		const departments = result.value.items.map((dept) => ({
 			id: dept.id,
 			name: dept.name,
@@ -97,52 +914,53 @@ export const load: PageServerLoad = async (event) => {
 				page,
 				limit,
 				total: result.value.total,
-				totalPages: Math.ceil(result.value.total / limit)
+				totalPages: Math.ceil(result.value.total / limit),
+				hasNextPage: result.value.hasNextPage,
+				hasPreviousPage: result.value.hasPreviousPage
 			}
 		};
 	});
 };
 ```
 
-**Step 5: Update imports**
+**Step 3: Remove client-side filtering code**
+
+Delete any `.filter()` calls on the departments array (backend now handles this).
+
+**Step 4: Update imports**
 
 Add:
 
 ```typescript
 import { createDepartmentService } from '$lib/server/services';
 import { logger } from '$lib/utils/logger';
+import { DepartmentOrderBy } from '$lib/domain/Department/types';
 ```
 
-Remove:
-
-```typescript
-// Remove any direct GraphQL client imports if present
-// Remove gql template tag imports
-```
-
-**Step 6: Verify TypeScript compilation**
+**Step 5: Verify TypeScript compilation**
 
 Run: `npm run check`
 Expected: No TypeScript errors
 
-**Step 7: Test route manually**
+**Step 6: Test route manually**
 
 Run: `mise run dev`
-Navigate to: `http://localhost:5173/dashboard/departments`
-Expected: Page loads with departments list
+Navigate to: `http://localhost:5173/dashboard/departments?search=Engineering`
+Expected: Filtered results from backend, no full dataset download
 
-**Step 8: Commit refactored route**
+**Step 7: Commit refactored route**
 
 ```bash
 git add src/routes/dashboard/departments/+page.server.ts
-git commit -m "refactor(routes): migrate departments main route to service layer
+git commit -m "refactor(routes): migrate departments main route to backend filtering
 
-Replace direct GraphQL queries with DepartmentService.
-Reduced from 254 to ~130 lines (49% reduction).
-Follows established LeaveRequest route pattern."
+Pass search/sort/pagination to service layer (backend handles it).
+Remove client-side filtering workarounds.
+Reduced from 254 to ~180 lines (29% reduction).
+Scalable to large department counts."
 ```
 
-### Task 1.2: Refactor Department Detail Route
+### Task 1.3: Refactor Department Detail Route
 
 **Files:**
 
@@ -197,7 +1015,7 @@ git add src/routes/dashboard/departments/[id]/+page.server.ts
 git commit -m "refactor(routes): migrate department detail route to service layer"
 ```
 
-### Task 1.3: Refactor Department Edit Route
+### Task 1.4: Refactor Department Edit Route
 
 **Files:**
 
@@ -245,7 +1063,7 @@ git add src/routes/dashboard/departments/[id]/edit/+page.server.ts
 git commit -m "refactor(routes): migrate department edit route to service layer"
 ```
 
-### Task 1.4: Refactor Department Create Route
+### Task 1.5: Refactor Department Create Route
 
 **Files:**
 
@@ -293,13 +1111,13 @@ git add src/routes/dashboard/departments/new/+page.server.ts
 git commit -m "refactor(routes): migrate department create route to service layer"
 ```
 
-### Task 1.5: Refactor Public Departments Route
+### Task 1.6: Refactor Public Departments Route
 
 **Files:**
 
 - Modify: `src/routes/departments/+page.server.ts`
 
-**Step 1: Refactor (similar to Task 1.1 but simpler)**
+**Step 1: Refactor (similar to Task 1.2 but simpler)**
 
 ```typescript
 export const load: PageServerLoad = async (event) => {
@@ -1488,19 +2306,58 @@ Export service from services index."
 
 ---
 
+## Timeline Estimates
+
+**Phase 0 (Backend Query Capabilities):**
+
+- Phase 0a (Required): ~2 hours (Tasks 0.1-0.4)
+- Phase 0b-0c (Optional): ~2.5 hours (Tasks 0.5-0.6)
+- Total: 2-4.5 hours
+
+**Phase 1 (Department Routes):**
+
+- Route refactoring: 1-2 days
+- Total: 1-2 days (depends on Phase 0 completion)
+
+**Phase 2 (Goals Module):**
+
+- Full migration (Domain → Service → Adapter → Routes): 4-6 days
+
+**Phase 3 (Performance Reviews Module):**
+
+- Full migration: 5-7 days
+
+**Phase 4 (Tasks Module):**
+
+- Full migration: 6-8 days
+
+**Overall Timeline:** 16-25 days (including Phase 0)
+**Critical Path:** Phase 0 → Phase 1 (backend must be complete before frontend refactoring)
+
+---
+
 ## Success Metrics
 
-**Per Phase:**
+**Phase 0 (Backend):**
+
+- All Rust tests passing
+- No breaking changes to existing queries (backward compatible until Phase 1)
+- GIN index query plans verified with EXPLAIN ANALYZE
+- Pagination metadata accurate (totalCount, hasNextPage)
+
+**Per Frontend Phase (1-4):**
 
 - Route line reduction: ~50%
 - Test coverage: Domain 100%, Service 95%+, Adapter 85%+
 - Zero `any` types in new code
 - All TypeScript strict checks passing
 
-**Overall (4 Phases):**
+**Overall (5 Phases including Phase 0):**
 
-- 380 new tests added
+- Backend query capabilities complete (filtering, sorting, pagination)
+- 380+ new tests added (frontend + backend)
 - ~1,200 lines of route code reduced
 - 4 modules following consistent hexagonal pattern
 - GraphQL changes isolated to adapters
 - Business logic centralized in domain/service layers
+- Client-side filtering workarounds eliminated
