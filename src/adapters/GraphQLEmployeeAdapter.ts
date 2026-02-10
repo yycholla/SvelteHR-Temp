@@ -116,9 +116,11 @@ export class GraphQLEmployeeAdapter implements EmployeeRepository {
 	}
 
 	async findAll(filters?: EmployeeListFilters): Promise<EmployeeListResult> {
+		// NOTE: Current GraphQL schema only supports limit/offset, not filter/sort
+		// Filtering and sorting will be done client-side for now
 		const query = gql`
-			query GetEmployees($filter: UserFilter, $sort: UserSort, $limit: Int!, $offset: Int!) {
-				users(filter: $filter, sort: $sort, limit: $limit, offset: $offset) {
+			query GetEmployees($limit: Int!, $offset: Int!) {
+				users(limit: $limit, offset: $offset) {
 					id
 					email
 					firstName
@@ -136,41 +138,19 @@ export class GraphQLEmployeeAdapter implements EmployeeRepository {
 			}
 		`;
 
-		// Build filter object for backend
-		const filter: UserFilter = {};
-		if (filters?.searchTerm) filter.searchTerm = filters.searchTerm;
-		if (filters?.departmentId) filter.departmentId = filters.departmentId;
-		if (filters?.isActive !== undefined) filter.isActive = filters.isActive;
-
-		// Build sort object for backend
-		// Map frontend sort field names to backend field names
-		const sortFieldMap: Record<string, string> = {
-			name: 'name',
-			email: 'email',
-			hireDate: 'hireDate',
-			jobTitle: 'jobTitle'
-		};
-
-		const sort: UserSort | undefined = filters?.sortBy
-			? {
-					field: sortFieldMap[filters.sortBy] ?? filters.sortBy,
-					direction: filters.sortOrder ?? 'asc'
-				}
-			: undefined;
-
-		const limit = filters?.limit ?? 20;
+		// Use large limit to fetch all users for client-side filtering
+		// TODO: Once backend supports filter/sort, update this to use server-side filtering
+		const limit = filters?.limit ?? 1000; // Fetch more for client-side filtering
 		const offset = filters?.offset ?? 0;
 
-		logger.debug('[GraphQLEmployeeAdapter] Fetching users with server-side filtering', {
-			filter,
-			sort,
+		logger.debug('[GraphQLEmployeeAdapter] Fetching users (client-side filtering)', {
+			requestedLimit: filters?.limit,
 			limit,
-			offset
+			offset,
+			filters: filters
 		});
 
 		const result = await this.graphql.query<{ users: GraphQLEmployee[] }>(query, {
-			filter: Object.keys(filter).length > 0 ? filter : undefined,
-			sort,
 			limit,
 			offset
 		});
@@ -179,25 +159,87 @@ export class GraphQLEmployeeAdapter implements EmployeeRepository {
 			return {
 				employees: [],
 				total: 0,
-				limit,
+				limit: filters?.limit ?? 20,
 				offset
 			};
 		}
 
 		// Map all users to employees, filtering out invalid records
 		// Note: mapToEmployee returns null for invalid data (logs warnings internally)
-		const employees = result.users
+		let employees = result.users
 			.map((emp: GraphQLEmployee) => this.mapToEmployee(emp))
 			.filter((emp: Employee | null): emp is Employee => emp !== null);
 
-		// TODO: Backend should return total count for pagination
-		// For now, we estimate based on returned results
-		const total = employees.length < limit ? offset + employees.length : offset + limit + 1;
+		// Apply client-side filtering
+		if (filters) {
+			// Filter by search term
+			if (filters.searchTerm) {
+				const searchLower = filters.searchTerm.toLowerCase();
+				employees = employees.filter((emp) => {
+					return (
+						emp.email.value.toLowerCase().includes(searchLower) ||
+						emp.name.first.toLowerCase().includes(searchLower) ||
+						emp.name.last.toLowerCase().includes(searchLower) ||
+						emp.fullName.toLowerCase().includes(searchLower)
+					);
+				});
+			}
+
+			// Filter by department
+			if (filters.departmentId) {
+				employees = employees.filter((emp) => emp.departmentId === filters.departmentId);
+			}
+
+			// Filter by active status
+			if (filters.isActive !== undefined) {
+				employees = employees.filter((emp) => emp.isActive === filters.isActive);
+			}
+
+			// Apply sorting
+			if (filters.sortBy) {
+				const sortOrder = filters.sortOrder ?? 'asc';
+				employees.sort((a, b) => {
+					let aVal: string | Date;
+					let bVal: string | Date;
+
+					switch (filters.sortBy) {
+						case 'name':
+							aVal = a.fullName;
+							bVal = b.fullName;
+							break;
+						case 'email':
+							aVal = a.email.value;
+							bVal = b.email.value;
+							break;
+						case 'hireDate':
+							aVal = a.hireDate.value;
+							bVal = b.hireDate.value;
+							break;
+						case 'jobTitle':
+							aVal = a.jobTitle ?? '';
+							bVal = b.jobTitle ?? '';
+							break;
+						default:
+							return 0;
+					}
+
+					if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+					if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+					return 0;
+				});
+			}
+		}
+
+		const total = employees.length;
+		const requestedLimit = filters?.limit ?? 20;
+
+		// Apply pagination after filtering/sorting
+		const paginatedEmployees = employees.slice(offset, offset + requestedLimit);
 
 		return {
-			employees,
+			employees: paginatedEmployees,
 			total,
-			limit,
+			limit: requestedLimit,
 			offset
 		};
 	}
