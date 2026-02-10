@@ -17,7 +17,7 @@ use crate::{
     models::{
         task::{TaskStatus, TaskPriority, Model as Task, Entity as TaskEntity, Column as TaskColumn},
         user::{Model as User, Entity as UserEntity, Column as UserColumn},
-        department::{Model as Department, Entity as DepartmentEntity, Column as DepartmentColumn},
+        department::{Model as Department, Entity as DepartmentEntity, Column as DepartmentColumn, DepartmentsOrderBy},
         tasks::task_type::{Model as TaskTypeModel, Entity as TaskTypeEntity, Column as TaskTypeColumn},
         event::{Model as Event, Entity as EventEntity, Column as EventColumn},
         event_attendee::{Model as EventAttendee, Entity as EventAttendeeEntity, Column as EventAttendeeColumn},
@@ -271,7 +271,7 @@ impl QueryRoot {
     // Department Queries
     // =========================================================================
 
-    /// Get all departments with optional filtering and pagination
+    /// Get all departments with optional filtering, sorting, and pagination
     ///
     /// # Security: RLS Enforced
     /// Users can only view their own department unless they have Admin role.
@@ -279,6 +279,7 @@ impl QueryRoot {
         &self,
         ctx: &Context<'_>,
         filter: Option<DepartmentFilter>,
+        order_by: Option<DepartmentsOrderBy>,
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<Department>> {
@@ -325,8 +326,26 @@ impl QueryRoot {
         // Apply RLS filter
         query = apply_department_rls_filter(query, user_context);
 
+        // Apply sorting
+        if let Some(order) = order_by {
+            query = match order {
+                DepartmentsOrderBy::IdAsc => query.order_by_asc(DepartmentColumn::Id),
+                DepartmentsOrderBy::IdDesc => query.order_by_desc(DepartmentColumn::Id),
+                DepartmentsOrderBy::NameAsc => query.order_by_asc(DepartmentColumn::Name),
+                DepartmentsOrderBy::NameDesc => query.order_by_desc(DepartmentColumn::Name),
+                DepartmentsOrderBy::ManagerIdAsc => query.order_by_asc(DepartmentColumn::ManagerId),
+                DepartmentsOrderBy::ManagerIdDesc => query.order_by_desc(DepartmentColumn::ManagerId),
+                DepartmentsOrderBy::CreatedAtAsc => query.order_by_asc(DepartmentColumn::CreatedAt),
+                DepartmentsOrderBy::CreatedAtDesc => query.order_by_desc(DepartmentColumn::CreatedAt),
+                DepartmentsOrderBy::UpdatedAtAsc => query.order_by_asc(DepartmentColumn::UpdatedAt),
+                DepartmentsOrderBy::UpdatedAtDesc => query.order_by_desc(DepartmentColumn::UpdatedAt),
+            };
+        } else {
+            // Default sort: name ascending (most intuitive for UI)
+            query = query.order_by_asc(DepartmentColumn::Name);
+        }
+
         let departments = query
-            .order_by_asc(DepartmentColumn::Name)
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
@@ -3556,4 +3575,122 @@ mod tests {
             }
         }
     }
+
+    // NOTE: Test for departments sorting is TEMPORARILY DISABLED
+    // TestContext depends on JWT auth migration (testing infrastructure being updated)
+    // TODO: Re-enable after testing infrastructure is updated for JWT (Phase 4)
+    //
+    // Test validates:
+    // - NAME_ASC and NAME_DESC produce correctly sorted results
+    // - CREATED_AT_DESC produces timestamp-sorted results
+    // - First in ASC equals last in DESC (and vice versa)
+    /*
+    #[tokio::test]
+    async fn test_departments_sorting() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+
+        let test_user = ctx.user(TestUserRole::Admin);
+
+        // Test NAME_ASC
+        let query_asc = r#"
+            query {
+                departments(orderBy: NAME_ASC) {
+                    name
+                }
+            }
+        "#;
+
+        let response_asc = ctx.execute_query_as(query_asc, &test_user).await;
+        let errors_asc = ctx.extract_errors(&response_asc);
+        assert!(errors_asc.is_empty(), "Expected no errors for NAME_ASC, got: {:?}", errors_asc);
+
+        let data_asc = ctx.extract_data(&response_asc);
+        let departments_asc = data_asc["departments"].as_array().expect("Expected array");
+
+        // Verify ascending order
+        let names_asc: Vec<String> = departments_asc
+            .iter()
+            .filter_map(|d| d["name"].as_str().map(|s| s.to_string()))
+            .collect();
+
+        let mut sorted_names_asc = names_asc.clone();
+        sorted_names_asc.sort();
+        assert_eq!(names_asc, sorted_names_asc, "Departments should be sorted by name ascending");
+
+        // Test NAME_DESC
+        let query_desc = r#"
+            query {
+                departments(orderBy: NAME_DESC) {
+                    name
+                }
+            }
+        "#;
+
+        let response_desc = ctx.execute_query_as(query_desc, &test_user).await;
+        let errors_desc = ctx.extract_errors(&response_desc);
+        assert!(errors_desc.is_empty(), "Expected no errors for NAME_DESC, got: {:?}", errors_desc);
+
+        let data_desc = ctx.extract_data(&response_desc);
+        let departments_desc = data_desc["departments"].as_array().expect("Expected array");
+
+        // Verify descending order
+        let names_desc: Vec<String> = departments_desc
+            .iter()
+            .filter_map(|d| d["name"].as_str().map(|s| s.to_string()))
+            .collect();
+
+        let mut sorted_names_desc = names_desc.clone();
+        sorted_names_desc.sort_by(|a, b| b.cmp(a));
+        assert_eq!(names_desc, sorted_names_desc, "Departments should be sorted by name descending");
+
+        // Verify first in DESC is last in ASC (if we have departments)
+        if !names_asc.is_empty() && !names_desc.is_empty() {
+            assert_eq!(
+                names_asc.first(),
+                names_desc.last(),
+                "First department in ASC should be last in DESC"
+            );
+            assert_eq!(
+                names_asc.last(),
+                names_desc.first(),
+                "Last department in ASC should be first in DESC"
+            );
+        }
+
+        // Test CREATED_AT_DESC
+        let query_created = r#"
+            query {
+                departments(orderBy: CREATED_AT_DESC) {
+                    name
+                    createdAt
+                }
+            }
+        "#;
+
+        let response_created = ctx.execute_query_as(query_created, &test_user).await;
+        let errors_created = ctx.extract_errors(&response_created);
+        assert!(errors_created.is_empty(), "Expected no errors for CREATED_AT_DESC, got: {:?}", errors_created);
+
+        let data_created = ctx.extract_data(&response_created);
+        let departments_created = data_created["departments"].as_array().expect("Expected array");
+
+        // Verify timestamps are in descending order
+        let timestamps: Vec<String> = departments_created
+            .iter()
+            .filter_map(|d| d["createdAt"].as_str().map(|s| s.to_string()))
+            .collect();
+
+        for i in 1..timestamps.len() {
+            assert!(
+                timestamps[i-1] >= timestamps[i],
+                "Timestamps should be in descending order: {} should be >= {}",
+                timestamps[i-1],
+                timestamps[i]
+            );
+        }
+    }
+    */
 }
