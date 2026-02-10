@@ -32,7 +32,9 @@ export class DepartmentService {
 	async getDepartmentById(id: string): Promise<Result<Department, DomainError>> {
 		try {
 			const result = await this.departmentRepository.findById(id);
-			if (result.isError) return result;
+			if (result.isError) {
+				return Result.error(result.error);
+			}
 
 			if (!result.value) {
 				return Result.error(new DepartmentNotFoundError(id));
@@ -130,7 +132,9 @@ export class DepartmentService {
 				data.name,
 				data.parentId ?? null
 			);
-			if (uniqueResult.isError) return uniqueResult;
+			if (uniqueResult.isError) {
+				return Result.error(uniqueResult.error);
+			}
 
 			if (!uniqueResult.value) {
 				return Result.error(new DepartmentAlreadyExistsError(data.name, data.parentId ?? null));
@@ -139,7 +143,9 @@ export class DepartmentService {
 			// Validate parent exists if provided
 			if (data.parentId) {
 				const parentResult = await this.departmentRepository.findById(data.parentId);
-				if (parentResult.isError) return parentResult;
+				if (parentResult.isError) {
+					return Result.error(parentResult.error);
+				}
 
 				if (!parentResult.value) {
 					return Result.error(new DepartmentNotFoundError(data.parentId));
@@ -189,7 +195,9 @@ export class DepartmentService {
 		try {
 			// Fetch existing department
 			const deptResult = await this.departmentRepository.findById(id);
-			if (deptResult.isError) return deptResult;
+			if (deptResult.isError) {
+				return Result.error(deptResult.error);
+			}
 
 			if (!deptResult.value) {
 				return Result.error(new DepartmentNotFoundError(id));
@@ -209,7 +217,9 @@ export class DepartmentService {
 						department.parentId,
 						id
 					);
-					if (uniqueResult.isError) return uniqueResult;
+					if (uniqueResult.isError) {
+						return Result.error(uniqueResult.error);
+					}
 
 					if (!uniqueResult.value) {
 						return Result.error(
@@ -268,7 +278,9 @@ export class DepartmentService {
 		try {
 			// Fetch department to move
 			const deptResult = await this.departmentRepository.findById(departmentId);
-			if (deptResult.isError) return deptResult;
+			if (deptResult.isError) {
+				return Result.error(deptResult.error);
+			}
 
 			if (!deptResult.value) {
 				return Result.error(new DepartmentNotFoundError(departmentId));
@@ -285,7 +297,9 @@ export class DepartmentService {
 			let newAncestorIds: string[] = [];
 			if (newParentId) {
 				const parentResult = await this.departmentRepository.findById(newParentId);
-				if (parentResult.isError) return parentResult;
+				if (parentResult.isError) {
+					return Result.error(parentResult.error);
+				}
 
 				if (!parentResult.value) {
 					return Result.error(new DepartmentNotFoundError(newParentId));
@@ -308,7 +322,9 @@ export class DepartmentService {
 
 			// Get all descendants to update their ancestor chains
 			const descendantsResult = await this.departmentRepository.getDescendants(departmentId);
-			if (descendantsResult.isError) return descendantsResult;
+			if (descendantsResult.isError) {
+				return Result.error(descendantsResult.error);
+			}
 
 			const descendants = descendantsResult.value;
 
@@ -337,7 +353,9 @@ export class DepartmentService {
 
 			// Execute atomic bulk update
 			const bulkResult = await this.departmentRepository.bulkUpdate(updates);
-			if (bulkResult.isError) return bulkResult;
+			if (bulkResult.isError) {
+				return Result.error(bulkResult.error);
+			}
 
 			// Return the moved department (first in bulk result)
 			return Result.ok(bulkResult.value[0]);
@@ -363,7 +381,9 @@ export class DepartmentService {
 		try {
 			// Fetch department
 			const deptResult = await this.departmentRepository.findById(id);
-			if (deptResult.isError) return deptResult;
+			if (deptResult.isError) {
+				return Result.error(deptResult.error);
+			}
 
 			if (!deptResult.value) {
 				return Result.error(new DepartmentNotFoundError(id));
@@ -373,7 +393,9 @@ export class DepartmentService {
 
 			// Check constraint: no children
 			const childrenResult = await this.departmentRepository.getChildren(id);
-			if (childrenResult.isError) return childrenResult;
+			if (childrenResult.isError) {
+				return Result.error(childrenResult.error);
+			}
 
 			if (childrenResult.value.length > 0) {
 				return Result.error(
@@ -386,7 +408,9 @@ export class DepartmentService {
 
 			// Check constraint: no employees
 			const employeeCountResult = await this.departmentRepository.getEmployeeCount(id);
-			if (employeeCountResult.isError) return employeeCountResult;
+			if (employeeCountResult.isError) {
+				return Result.error(employeeCountResult.error);
+			}
 
 			if (employeeCountResult.value > 0) {
 				return Result.error(
