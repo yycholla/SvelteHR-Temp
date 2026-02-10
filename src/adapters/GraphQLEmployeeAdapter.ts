@@ -155,7 +155,14 @@ export class GraphQLEmployeeAdapter implements EmployeeRepository {
 			offset
 		});
 
+		logger.info('[GraphQLEmployeeAdapter] Raw GraphQL response', {
+			hasUsers: !!result?.users,
+			userCount: result?.users?.length ?? 0,
+			firstUser: result?.users?.[0]
+		});
+
 		if (!result?.users) {
+			logger.warn('[GraphQLEmployeeAdapter] No users in GraphQL response');
 			return {
 				employees: [],
 				total: 0,
@@ -169,6 +176,12 @@ export class GraphQLEmployeeAdapter implements EmployeeRepository {
 		let employees = result.users
 			.map((emp: GraphQLEmployee) => this.mapToEmployee(emp))
 			.filter((emp: Employee | null): emp is Employee => emp !== null);
+
+		logger.info('[GraphQLEmployeeAdapter] After mapping to domain entities', {
+			inputCount: result.users.length,
+			validCount: employees.length,
+			invalidCount: result.users.length - employees.length
+		});
 
 		// Apply client-side filtering
 		if (filters) {
@@ -235,6 +248,18 @@ export class GraphQLEmployeeAdapter implements EmployeeRepository {
 
 		// Apply pagination after filtering/sorting
 		const paginatedEmployees = employees.slice(offset, offset + requestedLimit);
+
+		logger.info('[GraphQLEmployeeAdapter] Final result', {
+			totalAfterFiltering: total,
+			paginatedCount: paginatedEmployees.length,
+			requestedLimit,
+			offset,
+			appliedFilters: {
+				searchTerm: filters?.searchTerm,
+				departmentId: filters?.departmentId,
+				isActive: filters?.isActive
+			}
+		});
 
 		return {
 			employees: paginatedEmployees,
