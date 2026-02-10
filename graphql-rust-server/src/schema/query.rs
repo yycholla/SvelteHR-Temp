@@ -3369,9 +3369,11 @@ mod tests {
         let query = r#"
             query {
                 departments(filter: { searchTerm: "Engineering" }) {
-                    id
-                    name
-                    description
+                    items {
+                        id
+                        name
+                        description
+                    }
                 }
             }
         "#;
@@ -3385,7 +3387,7 @@ mod tests {
 
         // Assert - Results contain "Engineering" in name or description
         let data = ctx.extract_data(&response);
-        let departments = data["departments"].as_array().expect("Expected array");
+        let departments = data["departments"]["items"].as_array().expect("Expected array");
 
         for dept in departments {
             let name = dept["name"].as_str().unwrap_or("");
@@ -3410,9 +3412,11 @@ mod tests {
         let query = r#"
             query {
                 departments(filter: { rootOnly: true }) {
-                    id
-                    name
-                    parentDepartmentId
+                    items {
+                        id
+                        name
+                        parentDepartmentId
+                    }
                 }
             }
         "#;
@@ -3426,7 +3430,7 @@ mod tests {
 
         // Assert - All results have parentDepartmentId: null
         let data = ctx.extract_data(&response);
-        let departments = data["departments"].as_array().expect("Expected array");
+        let departments = data["departments"]["items"].as_array().expect("Expected array");
 
         for dept in departments {
             assert!(
@@ -3449,14 +3453,16 @@ mod tests {
         let get_root = r#"
             query {
                 departments(filter: { rootOnly: true }, limit: 1) {
-                    id
+                    items {
+                        id
+                    }
                 }
             }
         "#;
 
         let root_response = ctx.execute_query_as(get_root, &test_user).await;
         let root_data = ctx.extract_data(&root_response);
-        let root_id = root_data["departments"][0]["id"]
+        let root_id = root_data["departments"]["items"][0]["id"]
             .as_str()
             .expect("Expected root department ID");
 
@@ -3464,9 +3470,11 @@ mod tests {
             r#"
             query {{
                 departments(filter: {{ parentId: "{}" }}) {{
-                    id
-                    name
-                    parentDepartmentId
+                    items {{
+                        id
+                        name
+                        parentDepartmentId
+                    }}
                 }}
             }}
             "#,
@@ -3482,7 +3490,7 @@ mod tests {
 
         // Assert - All results have matching parentDepartmentId
         let data = ctx.extract_data(&response);
-        let departments = data["departments"].as_array().expect("Expected array");
+        let departments = data["departments"]["items"].as_array().expect("Expected array");
 
         for dept in departments {
             let parent_id = dept["parentDepartmentId"].as_str().unwrap_or("");
