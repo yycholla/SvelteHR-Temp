@@ -24,6 +24,18 @@ impl MigrationTrait for Migration {
             .execute_unprepared("CREATE SCHEMA IF NOT EXISTS hr_public")
             .await?;
 
+        // Set search_path to include hr_public first, then public
+        // This allows unqualified type/table names to resolve to hr_public first
+        // Critical for PostgreSQL enums (compensation_type, pay_schedule, etc.)
+        manager
+            .get_connection()
+            .execute_unprepared(
+                "DO $$ BEGIN
+                    EXECUTE 'ALTER DATABASE ' || current_database() || ' SET search_path TO hr_public, public';
+                END $$;"
+            )
+            .await?;
+
         // Create tower-sessions table in public schema (required by tower-sessions library)
         manager
             .get_connection()

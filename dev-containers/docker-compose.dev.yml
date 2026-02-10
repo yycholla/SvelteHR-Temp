@@ -83,7 +83,7 @@ services:
       SEA_ORM_LOG_QUERIES: false
       SEA_ORM_LOG_LEVEL: warn
       # Seed Data Configuration - automatically populates development database
-      ENABLE_SEED_DATA: true
+      ENABLE_SEED_DATA: ${ENABLE_SEED_DATA:-true}
       SEED_VOLUME_TARGET: small
       SEED_ENABLE_AUDIT: true
       ENVIRONMENT: development
