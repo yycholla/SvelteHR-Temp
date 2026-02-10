@@ -58,6 +58,16 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 		const result = await backendResponse.json();
 
+		// Log errors for debugging
+		if (result.errors || !backendResponse.ok) {
+			logger.error('[GraphQL Proxy] Backend returned error:', {
+				status: backendResponse.status,
+				errors: result.errors,
+				query: query.substring(0, 200), // First 200 chars of query
+				operationName
+			});
+		}
+
 		// Return the result from Rust GraphQL backend
 		return json(result, {
 			status: backendResponse.status,
