@@ -3,9 +3,9 @@
 //! This module implements GraphQL query resolvers using SeaORM.
 //! All queries follow idiomatic Rust patterns with proper error handling.
 
-use async_graphql::{Context, Object, Result};
-use axum_login::AuthSession;
-use sea_orm::{EntityTrait, QueryFilter, QueryOrder, QuerySelect, ColumnTrait, PaginatorTrait};
+use async_graphql::{Context, InputObject, Object, Result};
+// use axum_login::AuthSession; // REMOVED: Using JWT UserContext instead
+use sea_orm::{EntityTrait, QueryFilter, QueryOrder, QuerySelect, ColumnTrait, PaginatorTrait, Condition};
 use uuid::Uuid;
 
 use crate::{
@@ -35,7 +35,7 @@ use crate::{
             system_settings::Model as SystemSettingsModel,
         },
         notification::{Model as Notification, Entity as NotificationEntity, Column as NotificationColumn},
-        user_session::{Entity as UserSessionEntity, Column as UserSessionColumn},
+        // user_session::{Entity as UserSessionEntity, Column as UserSessionColumn}, // REMOVED: JWT-only auth
         employee::employee_goal::{Model as EmployeeGoalModel, Entity as EmployeeGoalEntity, Column as EmployeeGoalColumn},
     },
 };
@@ -53,6 +53,21 @@ pub struct TaskFilter {
     pub task_type_id: Option<Uuid>,
     pub parent_task_id: Option<Uuid>,
     pub archived: Option<bool>,
+}
+
+/// Department filter input for advanced querying
+#[derive(Debug, Clone, InputObject)]
+pub struct DepartmentFilter {
+    /// Search departments by name (case-insensitive partial match)
+    pub search_term: Option<String>,
+    /// Filter by parent department ID (null for root departments)
+    pub parent_id: Option<Uuid>,
+    /// Show only root departments (no parent)
+    pub root_only: Option<bool>,
+    /// Filter by manager ID
+    pub manager_id: Option<Uuid>,
+    /// Include soft-deleted departments
+    pub include_deleted: Option<bool>,
 }
 
 /// Session information for GraphQL responses
@@ -261,6 +276,7 @@ impl QueryRoot {
     async fn departments(
         &self,
         ctx: &Context<'_>,
+        filter: Option<DepartmentFilter>,
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<Department>> {
@@ -272,9 +288,36 @@ impl QueryRoot {
         let user_context = ctx.data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
 
-        // Build query with RLS filter
-        let mut query = DepartmentEntity::find()
-            .filter(DepartmentColumn::DeletedAt.is_null());
+        // Start with base query
+        let mut query = DepartmentEntity::find();
+
+        // Apply filters if provided
+        if let Some(f) = filter {
+            if let Some(search) = f.search_term {
+                query = query.filter(
+                    Condition::any()
+                        .add(DepartmentColumn::Name.contains(&search))
+                        .add(DepartmentColumn::Description.contains(&search))
+                );
+            }
+
+            if let Some(parent_id) = f.parent_id {
+                query = query.filter(DepartmentColumn::ParentDepartmentId.eq(parent_id));
+            } else if f.root_only == Some(true) {
+                query = query.filter(DepartmentColumn::ParentDepartmentId.is_null());
+            }
+
+            if let Some(manager_id) = f.manager_id {
+                query = query.filter(DepartmentColumn::ManagerId.eq(manager_id));
+            }
+
+            if f.include_deleted != Some(true) {
+                query = query.filter(DepartmentColumn::DeletedAt.is_null());
+            }
+        } else {
+            // Default: exclude deleted
+            query = query.filter(DepartmentColumn::DeletedAt.is_null());
+        }
 
         // Apply RLS filter
         query = apply_department_rls_filter(query, user_context);
@@ -982,93 +1025,33 @@ impl QueryRoot {
 
     /// Get current authenticated user information
     async fn me(&self, ctx: &Context<'_>) -> Result<Option<User>> {
-        let auth_session = ctx.data::<AuthSession<crate::auth::AuthBackend>>()?;
-
-        match &auth_session.user {
-            Some(auth_user) => {
-                let db = get_db_from_context(ctx)?;
-                let user = UserEntity::find_by_id(auth_user.id)
-                    .filter(UserColumn::DeletedAt.is_null())
-                    .one(&db)
-                    .await?;
-                Ok(user)
-            }
-            None => Ok(None),
-        }
-    }
-
-    /// Get current user's session information
-    async fn my_session(&self, ctx: &Context<'_>) -> Result<Option<SessionInfo>> {
-        let auth_session = ctx.data::<AuthSession<crate::auth::AuthBackend>>()?;
-
-        match &auth_session.user {
-            Some(_user) => {
-                // For now, return a basic session info since we don't have access to the actual session details
-                // This would need to be enhanced when we implement proper session store integration
-                Ok(Some(SessionInfo {
-                    id: "current".to_string(), // Placeholder
-                    created_at: chrono::Utc::now(), // Placeholder
-                    expires_at: chrono::Utc::now() + chrono::Duration::minutes(30), // Placeholder
-                    last_activity: chrono::Utc::now(),
-                    ip_address: None,
-                    user_agent: None,
-                    is_current_session: true,
-                }))
-            }
-            None => Ok(None),
-        }
-    }
-
-    /// Check authentication status
-    async fn auth_status(&self, ctx: &Context<'_>) -> Result<bool> {
-        let auth_session = ctx.data::<AuthSession<crate::auth::AuthBackend>>()?;
-        Ok(auth_session.user.is_some())
-    }
-
-    /// Get active sessions for the current user
-    async fn sessions(&self, ctx: &Context<'_>) -> Result<Vec<SessionInfo>> {
+        let user_context = ctx.data::<crate::auth::UserContext>()?;
         let db = get_db_from_context(ctx)?;
-        let auth_session = ctx.data::<AuthSession<crate::auth::AuthBackend>>()?;
 
-        let Some(user) = &auth_session.user else {
-            return Err(async_graphql::Error::new("Authentication required"));
-        };
-
-        let sessions = UserSessionEntity::find()
-            .filter(UserSessionColumn::UserId.eq(user.id))
-            .filter(UserSessionColumn::IsActive.eq(true))
-            .filter(UserSessionColumn::ExpiresAt.gt(chrono::Utc::now()))
-            .all(&db)
+        let user = UserEntity::find_by_id(user_context.user_id)
+            .filter(UserColumn::DeletedAt.is_null())
+            .one(&db)
             .await?;
 
-        let current_session_id = None; // TODO: Get current session ID when using proper session store
-
-        let session_infos = sessions
-            .into_iter()
-            .map(|session| SessionInfo {
-                id: session.id.to_string(),
-                created_at: session.created_at.into(),
-                expires_at: session.expires_at.into(),
-                last_activity: session.last_activity.into(),
-                ip_address: session.ip_address,
-                user_agent: session.user_agent,
-                is_current_session: current_session_id.as_ref() == Some(&session.session_token),
-            })
-            .collect();
-
-        Ok(session_infos)
+        Ok(user)
     }
 
-    /// Get CSRF token for the current session
-    async fn csrf_token(&self, ctx: &Context<'_>) -> Result<String> {
-        let auth_session = ctx.data::<AuthSession<crate::auth::AuthBackend>>()?;
+    // ============================================================================
+    // REMOVED: Session-based queries (JWT uses stateless tokens)
+    // ============================================================================
+    //
+    // The following queries have been removed with the migration to JWT:
+    // - my_session: JWT tokens don't have server-side sessions
+    // - auth_status: Use jwtAuth.isAuthenticated in frontend instead
+    // - sessions: JWT is stateless (no session list)
+    // - csrf_token: CSRF protection handled differently with JWT
+    //
+    // ============================================================================
 
-        // Only authenticated users can get CSRF tokens
-        let _user = auth_session.user.as_ref()
-            .ok_or_else(|| async_graphql::Error::new("Authentication required"))?;
-
-        let token = auth_session.backend.generate_csrf_token();
-        Ok(token)
+    /// Check authentication status (JWT-based)
+    async fn auth_status(&self, ctx: &Context<'_>) -> Result<bool> {
+        // User is authenticated if UserContext exists
+        Ok(ctx.data_opt::<crate::auth::UserContext>().is_some())
     }
 
     // =========================================================================
@@ -3332,5 +3315,242 @@ mod tests {
         
         assert!(data_str.contains("isDepartmentNameUnique: false"),
             "Name should not be unique (case-insensitive comparison)");
+    }
+
+    /// Test department filtering by search term
+    #[tokio::test]
+    async fn test_departments_filter_search_term() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+        let test_user = ctx.user(TestUserRole::Admin);
+
+        let query = r#"
+            query {
+                departments(filter: { searchTerm: "Engineering" }) {
+                    id
+                    name
+                    description
+                }
+            }
+        "#;
+
+        // Act
+        let response = ctx.execute_query_as(query, &test_user).await;
+
+        // Assert - No errors
+        let errors = ctx.extract_errors(&response);
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+        // Assert - Results contain "Engineering" in name or description
+        let data = ctx.extract_data(&response);
+        let departments = data["departments"].as_array().expect("Expected array");
+
+        for dept in departments {
+            let name = dept["name"].as_str().unwrap_or("");
+            let description = dept["description"].as_str().unwrap_or("");
+            assert!(
+                name.to_lowercase().contains("engineering") ||
+                description.to_lowercase().contains("engineering"),
+                "Department should contain 'Engineering' in name or description"
+            );
+        }
+    }
+
+    /// Test department filtering by root_only flag
+    #[tokio::test]
+    async fn test_departments_filter_root_only() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+        let test_user = ctx.user(TestUserRole::Admin);
+
+        let query = r#"
+            query {
+                departments(filter: { rootOnly: true }) {
+                    id
+                    name
+                    parentDepartmentId
+                }
+            }
+        "#;
+
+        // Act
+        let response = ctx.execute_query_as(query, &test_user).await;
+
+        // Assert - No errors
+        let errors = ctx.extract_errors(&response);
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+        // Assert - All results have parentDepartmentId: null
+        let data = ctx.extract_data(&response);
+        let departments = data["departments"].as_array().expect("Expected array");
+
+        for dept in departments {
+            assert!(
+                dept["parentDepartmentId"].is_null(),
+                "Root departments should have null parentDepartmentId"
+            );
+        }
+    }
+
+    /// Test department filtering by parent_id
+    #[tokio::test]
+    async fn test_departments_filter_parent_id() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+        let test_user = ctx.user(TestUserRole::Admin);
+
+        // First get a root department to use as parent
+        let get_root = r#"
+            query {
+                departments(filter: { rootOnly: true }, limit: 1) {
+                    id
+                }
+            }
+        "#;
+
+        let root_response = ctx.execute_query_as(get_root, &test_user).await;
+        let root_data = ctx.extract_data(&root_response);
+        let root_id = root_data["departments"][0]["id"]
+            .as_str()
+            .expect("Expected root department ID");
+
+        let query = format!(
+            r#"
+            query {{
+                departments(filter: {{ parentId: "{}" }}) {{
+                    id
+                    name
+                    parentDepartmentId
+                }}
+            }}
+            "#,
+            root_id
+        );
+
+        // Act
+        let response = ctx.execute_query_as(&query, &test_user).await;
+
+        // Assert - No errors
+        let errors = ctx.extract_errors(&response);
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+        // Assert - All results have matching parentDepartmentId
+        let data = ctx.extract_data(&response);
+        let departments = data["departments"].as_array().expect("Expected array");
+
+        for dept in departments {
+            let parent_id = dept["parentDepartmentId"].as_str().unwrap_or("");
+            assert_eq!(
+                parent_id, root_id,
+                "All departments should have the specified parent ID"
+            );
+        }
+    }
+
+    /// Test department filtering excludes deleted by default
+    #[tokio::test]
+    async fn test_departments_filter_excludes_deleted_by_default() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+        let test_user = ctx.user(TestUserRole::Admin);
+
+        let query = r#"
+            query {
+                departments {
+                    id
+                    name
+                    deletedAt
+                }
+            }
+        "#;
+
+        // Act
+        let response = ctx.execute_query_as(query, &test_user).await;
+
+        // Assert - No errors
+        let errors = ctx.extract_errors(&response);
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+        // Assert - No deleted departments returned
+        let data = ctx.extract_data(&response);
+        let departments = data["departments"].as_array().expect("Expected array");
+
+        for dept in departments {
+            assert!(
+                dept["deletedAt"].is_null(),
+                "Should not return deleted departments by default"
+            );
+        }
+    }
+
+    /// Test department filtering by manager_id
+    #[tokio::test]
+    async fn test_departments_filter_manager_id() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+        let test_user = ctx.user(TestUserRole::Admin);
+
+        // First get a department with a manager
+        let get_managed = r#"
+            query {
+                departments(limit: 100) {
+                    id
+                    managerId
+                }
+            }
+        "#;
+
+        let managed_response = ctx.execute_query_as(get_managed, &test_user).await;
+        let managed_data = ctx.extract_data(&managed_response);
+        let departments = managed_data["departments"].as_array().expect("Expected array");
+
+        // Find a department with a manager
+        let dept_with_manager = departments.iter().find(|d| !d["managerId"].is_null());
+
+        if let Some(dept) = dept_with_manager {
+            let manager_id = dept["managerId"].as_str().expect("Expected manager ID");
+
+            let query = format!(
+                r#"
+                query {{
+                    departments(filter: {{ managerId: "{}" }}) {{
+                        id
+                        name
+                        managerId
+                    }}
+                }}
+                "#,
+                manager_id
+            );
+
+            // Act
+            let response = ctx.execute_query_as(&query, &test_user).await;
+
+            // Assert - No errors
+            let errors = ctx.extract_errors(&response);
+            assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+            // Assert - All results have matching managerId
+            let data = ctx.extract_data(&response);
+            let filtered_departments = data["departments"].as_array().expect("Expected array");
+
+            for dept in filtered_departments {
+                let dept_manager_id = dept["managerId"].as_str().unwrap_or("");
+                assert_eq!(
+                    dept_manager_id, manager_id,
+                    "All departments should have the specified manager ID"
+                );
+            }
+        }
     }
 }
