@@ -7,14 +7,13 @@ use async_graphql::{
     extensions::{Extension, ExtensionContext, ExtensionFactory, NextExecute},
     Response, Value, Variables,
 };
-use axum_login::AuthSession;
 use sea_orm::{ActiveModelTrait, ActiveValue::NotSet, DatabaseConnection, Set};
 use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::{
-    auth::AuthBackend,
+    auth::UserContext,
     models::system::activity_log::ActiveModel as ActivityLogActiveModel,
 };
 
@@ -62,13 +61,13 @@ impl Extension for AuditExtensionImpl {
 
                 // Spawn async task for audit logging to avoid blocking response
                 let db = ctx.data_opt::<DatabaseConnection>().cloned();
-                let auth_session = ctx.data_opt::<AuthSession<AuthBackend>>().cloned();
+                let user_context = ctx.data_opt::<UserContext>().cloned();
                 let operation_name = operation_name.map(String::from);
                 let variables = ctx.data_opt::<Variables>().cloned();
                 let request_metadata = ctx.data_opt::<crate::handlers::RequestMetadata>().cloned();
 
-                tracing::debug!("AuditExtension: db={:?}, auth_session={:?}, op_name={:?}, metadata={:?}",
-                    db.is_some(), auth_session.is_some(), operation_name, request_metadata.is_some());
+                tracing::debug!("AuditExtension: db={:?}, user_context={:?}, op_name={:?}, metadata={:?}",
+                    db.is_some(), user_context.is_some(), operation_name, request_metadata.is_some());
 
                 // Clone response data and errors for logging
                 let had_errors = !response.errors.is_empty();
@@ -77,7 +76,7 @@ impl Extension for AuditExtensionImpl {
                 tokio::spawn(async move {
                     if let Err(e) = log_mutation_audit(
                         db,
-                        auth_session,
+                        user_context,
                         operation_name,
                         variables,
                         had_errors,
@@ -221,7 +220,7 @@ fn extract_resource_id_from_response(response_data: &Value) -> Option<Uuid> {
 /// Create audit log entry for mutation
 async fn log_mutation_audit(
     db: Option<DatabaseConnection>,
-    auth_session: Option<AuthSession<AuthBackend>>,
+    user_context: Option<UserContext>,
     operation_name: Option<String>,
     variables: Option<Variables>,
     had_errors: bool,
@@ -229,10 +228,10 @@ async fn log_mutation_audit(
     response_data: Value,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let db = db.ok_or("Database connection not available")?;
-    let auth_session = auth_session.ok_or("Auth session not available")?;
+    let user_context = user_context.ok_or("User context not available")?;
 
-    // Get authenticated user
-    let user = auth_session.user.ok_or("User not authenticated")?;
+    // Get authenticated user ID
+    let user_id = user_context.user_id;
 
     // Get operation name
     let operation_name = operation_name.ok_or("Operation name not available")?;
@@ -278,7 +277,7 @@ async fn log_mutation_audit(
     // Create activity log entry
     let activity_log = ActivityLogActiveModel {
         id: Set(Uuid::new_v4()),
-        user_id: Set(user.id),
+        user_id: Set(user_id),
         employee_id: NotSet, // TODO: Extract from variables if applicable
         action: Set(action),
         resource_type: Set(resource_type),
@@ -301,8 +300,8 @@ async fn log_mutation_audit(
     tracing::debug!(
         "Audit log created for mutation '{}' by user {} ({})",
         operation_name,
-        user.email,
-        user.id
+        user_context.email.as_deref().unwrap_or("unknown"),
+        user_id
     );
 
     Ok(())

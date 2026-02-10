@@ -10,19 +10,12 @@ use utoipa::OpenApi;
     info(
         title = "SvelteHR REST API",
         version = "0.0.1",
-        description = "REST API endpoints for SvelteHR system. GraphQL endpoints are documented separately via the GraphQL playground at /graphql.",
+        description = "REST API endpoints for SvelteHR system. Authentication is handled via GraphQL mutations (login, logout, refreshToken). GraphQL endpoints are documented separately via the GraphQL playground at /graphql.",
         contact(
             name = "SvelteHR Team",
         )
     ),
     paths(
-        // Authentication endpoints
-        crate::handlers::login_handler,
-        crate::handlers::logout_handler,
-        crate::handlers::me_handler,
-        crate::handlers::refresh_handler,
-        crate::handlers::sessions_handler,
-
         // Password reset endpoints (PUBLIC)
         crate::handlers::password_reset::request_password_reset_handler,
         crate::handlers::password_reset::reset_password_handler,
@@ -34,14 +27,6 @@ use utoipa::OpenApi;
     ),
     components(
         schemas(
-            // Authentication types
-            crate::handlers::LoginRequest,
-            crate::handlers::LoginResponse,
-            crate::handlers::UserInfo,
-            crate::handlers::RefreshResponse,
-            crate::handlers::SessionInfoResponse,
-            crate::handlers::SessionsResponse,
-
             // Password reset types
             crate::handlers::password_reset::RequestPasswordResetRequest,
             crate::handlers::password_reset::RequestPasswordResetResponse,
@@ -54,7 +39,7 @@ use utoipa::OpenApi;
         )
     ),
     tags(
-        (name = "Authentication", description = "Session-based authentication endpoints"),
+        (name = "Authentication", description = "JWT authentication via GraphQL mutations (login, logout, refreshToken)"),
         (name = "Events", description = "Event management endpoints"),
         (name = "Roles", description = "Role management endpoints"),
         (name = "Users", description = "User management endpoints"),

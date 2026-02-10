@@ -92,8 +92,8 @@ impl Extension for ErrorLoggingExtensionImpl {
 
 /// Extract user ID from extension context
 fn extract_user_id(ctx: &ExtensionContext<'_>) -> Option<String> {
-    ctx.data_opt::<axum_login::AuthSession<crate::auth::AuthBackend>>()
-        .and_then(|session| session.user.as_ref().map(|u| u.id.to_string()))
+    ctx.data_opt::<crate::auth::UserContext>()
+        .map(|user_context| user_context.user_id.to_string())
 }
 
 /// Extract request metadata from extension context

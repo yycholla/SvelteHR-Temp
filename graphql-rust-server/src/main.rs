@@ -3,6 +3,7 @@
 //! This server provides GraphQL API endpoints for the SvelteHR system
 //! with JWT-based authentication using RS256 signed tokens.
 
+use std::env;
 use std::net::SocketAddr;
 
 use axum::{
@@ -23,7 +24,7 @@ use hr_graphql_server::{
     database::create_db_connection,
     dataloader::DataLoaderContext,
     handlers::{graphql_handler, graphql_playground, events::delete_event_handler, roles::get_roles_handler, users::get_users_handler, intuit_webhook::intuit_webhook_handler, intuit_oauth::intuit_oauth_callback_handler, webhook_progress::webhook_progress_stream, AppState},
-    middleware::security_headers_middleware,
+    middleware::{security_headers_middleware, jwt_auth_middleware, optional_jwt_middleware},
     schema::create_schema,
     logging,
     scheduler,
@@ -80,8 +81,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize JWT service for token-based authentication
     let jwt_config = auth::JwtConfig::from_env()
         .expect("Failed to load JWT configuration. Ensure JWT_PRIVATE_KEY and JWT_PUBLIC_KEY are set.");
-    let jwt_keys = auth::JwtKeys::from_env()
-        .expect("Failed to load JWT keys. Ensure JWT_PRIVATE_KEY and JWT_PUBLIC_KEY are valid RSA keys.");
+
+    // Load JWT keys from files (supports both file paths and environment variables)
+    let jwt_keys = match (
+        env::var("JWT_PRIVATE_KEY_PATH"),
+        env::var("JWT_PUBLIC_KEY_PATH")
+    ) {
+        (Ok(private_path), Ok(public_path)) => {
+            auth::JwtKeys::from_files(&private_path, &public_path)
+                .expect("Failed to load JWT keys from files")
+        }
+        _ => {
+            auth::JwtKeys::from_env()
+                .expect("Failed to load JWT keys. Set JWT_PRIVATE_KEY_PATH/JWT_PUBLIC_KEY_PATH or JWT_PRIVATE_KEY/JWT_PUBLIC_KEY")
+        }
+    };
+
     let jwt_service = auth::JwtService::new(jwt_config, jwt_keys, db.clone());
     tracing::info!("JWT service initialized");
 
@@ -139,37 +154,35 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Swagger UI for REST API documentation
         .merge(SwaggerUi::new("/swagger-ui")
             .url("/api-docs/openapi.json", ApiDoc::openapi()))
-        // Authentication endpoints
-        .route("/auth/login", post(login_handler))
-        .route("/auth/logout", post(logout_handler))
-        .route("/auth/me", get(me_handler))
-        .route("/auth/refresh", post(refresh_handler))
-        .route("/auth/sessions", get(sessions_handler))
+        // JWT Authentication is handled via GraphQL mutations:
+        // - login: mutation { login(input: { email, password }) }
+        // - logout: mutation { logout }
+        // - refreshToken: mutation { refreshToken(input: { refreshToken, refreshTokenPlaintext }) }
         // Password reset endpoints (PUBLIC - no auth required)
         .route("/api/auth/request-reset", post(hr_graphql_server::handlers::password_reset::request_password_reset_handler))
         .route("/api/auth/reset-password", post(hr_graphql_server::handlers::password_reset::reset_password_handler))
         // REST API endpoints
         .route("/api/events/{id}", axum::routing::delete(delete_event_handler)
-            .layer(axum_middleware::from_fn_with_state(app_state.clone(), session_auth_middleware)))
+            .layer(axum_middleware::from_fn_with_state(app_state.clone(), jwt_auth_middleware)))
         .route("/api/roles", axum::routing::get(get_roles_handler)
-            .layer(axum_middleware::from_fn_with_state(app_state.clone(), session_auth_middleware)))
+            .layer(axum_middleware::from_fn_with_state(app_state.clone(), jwt_auth_middleware)))
         .route("/api/users", axum::routing::get(get_users_handler)
-            .layer(axum_middleware::from_fn_with_state(app_state.clone(), session_auth_middleware)))
+            .layer(axum_middleware::from_fn_with_state(app_state.clone(), jwt_auth_middleware)))
         .route("/api/upload", post(hr_graphql_server::handlers::upload::upload_handler)
-            .layer(axum_middleware::from_fn_with_state(app_state.clone(), session_auth_middleware)))
+            .layer(axum_middleware::from_fn_with_state(app_state.clone(), jwt_auth_middleware)))
         // QuickBooks OAuth callback (no auth - public callback from QuickBooks)
         .route("/api/intuit/callback", get(intuit_oauth_callback_handler))
         // QuickBooks webhook endpoint (no auth - uses HMAC signature verification)
         .route("/api/intuit/webhook", post(intuit_webhook_handler))
         // Webhook progress SSE endpoint (requires auth)
         .route("/api/webhooks/process/{batch_id}/progress", get(webhook_progress_stream)
-            .layer(axum_middleware::from_fn_with_state(app_state.clone(), session_auth_middleware)))
+            .layer(axum_middleware::from_fn_with_state(app_state.clone(), jwt_auth_middleware)))
         .nest_service("/uploads", ServeDir::new("uploads"))
-        // GraphQL endpoints with optional session auth
+        // GraphQL endpoints with optional JWT auth
         .route("/graphql",
             get(graphql_playground)
             .post(graphql_handler)
-            .layer(axum_middleware::from_fn_with_state(app_state.clone(), optional_session_auth_middleware))
+            .layer(axum_middleware::from_fn_with_state(app_state.clone(), optional_jwt_middleware))
         )
         // Health check
         .route("/health", get(health_check))
