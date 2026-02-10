@@ -1,16 +1,13 @@
 // Server-side data loading for departments page
-// T036: Fix department management pages with standardized error handling
-// REFACTORED: Phase 1 Foundation - Integration Proof-of-Concept #3
-// Demonstrates: RBACDataLoader, UnifiedGraphQLClient, QueryParamExtractor
+// Refactored to use DepartmentService (Hexagonal Architecture)
 
 import type { Actions, PageServerLoad } from './$types';
 import { fail } from '@sveltejs/kit';
 import { logger } from '$lib/utils/logger';
 import { PermissionChecks } from '$lib/server/rbac-utils';
-
-// Phase 1 Foundation Utilities
 import { RBACDataLoader } from '$lib/server/route-loaders';
 import { QueryParamExtractor } from '$lib/server/route-helpers/query-params';
+import { createDepartmentService } from '$lib/server/services';
 
 export const load: PageServerLoad = async (event) => {
 	const { url } = event;
@@ -37,123 +34,134 @@ export const load: PageServerLoad = async (event) => {
 
 		logger.info('[Departments] Filters', filters);
 
-		// GraphQL query definitions
-		const GET_DEPARTMENTS_QUERY = `
-			query GetDepartments($limit: Int, $offset: Int) {
-				departments(limit: $limit, offset: $offset) {
-					id
-					name
-					description
-					managerId
-					parentDepartmentId
-					createdAt
-					updatedAt
-				}
-			}
-		`;
+		try {
+			// Use DepartmentService instead of direct GraphQL
+			const service = createDepartmentService(event);
 
-		const GET_USERS_QUERY = `
-			query GetUsers {
-				users(limit: 1000) {
-					id
-					displayName
-					email
-					departmentId
-					roles {
+			// Fetch departments using service layer
+			const departmentsResult = await service.getDepartments();
+
+			if (departmentsResult.isError) {
+				logger.error('[Departments] Failed to load departments', departmentsResult.error);
+				return {
+					departments: [],
+					users: [],
+					totalDepartments: 0,
+					hierarchy: [],
+					filters: { ...filters, page, limit },
+					error: departmentsResult.error.message
+				};
+			}
+
+			const { departments: departmentDTOs, total } = departmentsResult.value;
+
+			// Still need users for enrichment (manager info, employee counts)
+			// This will be replaced when we have UserService
+			const GET_USERS_QUERY = `
+				query GetUsers {
+					users(limit: 1000) {
 						id
-						name
+						displayName
+						email
+						departmentId
+						roles {
+							id
+							name
+						}
+						isActive
 					}
-					isActive
 				}
-			}
-		`;
+			`;
 
-		// Use UnifiedGraphQLClient to execute all queries
-		const departments = await client.query(
-			GET_DEPARTMENTS_QUERY,
-			{ limit, offset: (page - 1) * limit },
-			{
-				operationName: 'GetDepartments',
-				errorMessage: 'Failed to load departments',
-				dataPath: 'departments'
-			}
-		);
+			const users = await client.query(
+				GET_USERS_QUERY,
+				{},
+				{
+					operationName: 'GetUsers',
+					errorMessage: 'Failed to load users',
+					dataPath: 'users'
+				}
+			);
 
-		const users = await client.query(
-			GET_USERS_QUERY,
-			{},
-			{
-				operationName: 'GetUsers',
-				errorMessage: 'Failed to load users',
-				dataPath: 'users'
-			}
-		);
+			// Enrich departments with related data
+			const enrichedDepartments = departmentDTOs.map((dept) => {
+				// Find manager/department head from users list
+				const departmentHead = dept.managerId
+					? users.find((u: any) => u.id === dept.managerId)
+					: null;
 
-		logger.info('[Departments] Departments data loaded', {
-			count: departments?.length || 0
-		});
+				// Count employees in this department
+				const employeesInDept = users.filter((u: any) => u.departmentId === dept.id);
+				const employeeCount = employeesInDept.length;
 
-		// Enrich departments with related data
-		const enrichedDepartments = (departments || []).map((dept: any) => {
-			// Find manager/department head from users list
-			const departmentHead = dept.managerId
-				? users.find((u: any) => u.id === dept.managerId)
-				: null;
+				// Find parent department
+				const parentDepartment = dept.parentId
+					? departmentDTOs.find((d) => d.id === dept.parentId)
+					: null;
 
-			// Count employees in this department
-			const employeesInDept = users.filter((u: any) => u.departmentId === dept.id);
-			const employeeCount = employeesInDept.length;
+				// Count sub-departments
+				const subDepartments = departmentDTOs.filter((d) => d.parentId === dept.id);
 
-			// Find parent department
-			const parentDepartment = dept.parentDepartmentId
-				? departments.find((d: any) => d.id === dept.parentDepartmentId)
-				: null;
+				return {
+					id: dept.id,
+					name: dept.name,
+					description: dept.description || '',
+					managerId: dept.managerId,
+					parentDepartmentId: dept.parentId,
+					createdAt: new Date().toISOString(), // DepartmentDTO doesn't have timestamps
+					updatedAt: new Date().toISOString(),
+					employees: {
+						nodes: employeesInDept,
+						totalCount: employeeCount
+					},
+					departmentHead: departmentHead
+						? {
+								id: departmentHead.id,
+								displayName: departmentHead.displayName,
+								email: departmentHead.email,
+								jobTitle: departmentHead.roles?.[0]?.name || 'Manager'
+							}
+						: null,
+					parentDepartment: parentDepartment
+						? {
+								id: parentDepartment.id,
+								name: parentDepartment.name
+							}
+						: null,
+					subDepartments: {
+						nodes: subDepartments,
+						totalCount: subDepartments.length
+					}
+				};
+			});
 
-			// Count sub-departments
-			const subDepartments = (departments || []).filter(
-				(d: any) => d.parentDepartmentId === dept.id
+			// Return standardized data structure
+			return {
+				departments: enrichedDepartments,
+				users: users.filter((u: any) => u.isActive),
+				totalDepartments: total,
+				hierarchy: [],
+				filters: {
+					...filters,
+					page,
+					limit
+				}
+			};
+		} catch (error) {
+			logger.error(
+				'[Departments] Error loading departments',
+				error instanceof Error ? error : new Error(String(error))
 			);
 
 			return {
-				...dept,
-				employees: {
-					nodes: employeesInDept,
-					totalCount: employeeCount
-				},
-				departmentHead: departmentHead
-					? {
-							id: departmentHead.id,
-							displayName: departmentHead.displayName,
-							email: departmentHead.email,
-							jobTitle: departmentHead.roles?.[0]?.name || 'Manager'
-						}
-					: null,
-				parentDepartment: parentDepartment
-					? {
-							id: parentDepartment.id,
-							name: parentDepartment.name
-						}
-					: null,
-				subDepartments: {
-					nodes: subDepartments,
-					totalCount: subDepartments.length
-				}
+				departments: [],
+				users: [],
+				totalDepartments: 0,
+				hierarchy: [],
+				filters: { ...filters, page, limit },
+				error: 'Failed to load departments. Please try again.'
 			};
-		});
-
-		// Return standardized data structure
-		// RBACDataLoader already includes userSession and permissions
-		return {
-			departments: enrichedDepartments,
-			users: users.filter((u: any) => u.isActive), // Return only active users for dropdowns
-			totalDepartments: enrichedDepartments.length,
-			hierarchy: [], // For now, return empty hierarchy
-			filters: {
-				...filters,
-				page,
-				limit
-			}
-		};
+		}
 	});
 };
 
@@ -163,9 +171,6 @@ export const actions: Actions = {
 
 		// RBAC: Check department write permissions
 		PermissionChecks.departmentWrite(event);
-
-		// After permission check, re-destructure locals
-		const { locals } = event;
 
 		try {
 			const formData = await request.formData();
@@ -180,67 +185,36 @@ export const actions: Actions = {
 				});
 			}
 
-			// Make GraphQL mutation with session-based authentication
-			const { getGraphQLEndpoint, authenticatedGraphQLRequest } =
-				await import('$lib/server/api-url');
-			const graphqlEndpoint = getGraphQLEndpoint();
+			// Use DepartmentService to create department
+			const service = createDepartmentService(event);
 
-			// Build input object
-			const input: any = {
+			// Generate a temporary ID (backend will replace this)
+			const tempId = crypto.randomUUID();
+
+			const result = await service.createDepartment({
+				id: tempId,
 				name,
 				description: description || null,
-				managerId: managerId || null
-			};
-
-			const createResponse = await authenticatedGraphQLRequest(
-				graphqlEndpoint,
-				`
-					mutation CreateDepartment($input: CreateDepartmentInput!) {
-						departments {
-							createDepartment(input: $input) {
-								id
-								name
-								description
-								managerId
-							}
-						}
-					}
-				`,
-				{ input },
-				request
-			);
-
-			logger.info('[Departments] Department creation request sent', {
-				name
+				managerId: managerId || null,
+				parentId: null,
+				ancestorIds: []
 			});
 
-			const createData = await createResponse.json();
-
-			if (createData.errors) {
-				const errorMsg = createData.errors[0]?.message || 'Failed to create department';
-				logger.error('[Departments] GraphQL errors', new Error(errorMsg), {
-					errors: createData.errors
-				});
+			if (result.isError) {
+				logger.error('[Departments] Failed to create department', result.error);
 				return fail(500, {
-					error: errorMsg
+					error: result.error.message
 				});
 			}
 
-			const newDepartmentId = createData.data?.departments?.createDepartment?.id;
-
-			if (!newDepartmentId) {
-				return fail(500, {
-					error: 'Department created but ID not returned'
-				});
-			}
+			const newDepartment = result.value;
 
 			logger.info('[Departments] Successfully created department', {
-				departmentId: newDepartmentId
+				departmentId: newDepartment.id
 			});
 
-			// Return success (dialog will close and refresh the page)
-			return { success: true, departmentId: newDepartmentId };
-		} catch (err: any) {
+			return { success: true, departmentId: newDepartment.id };
+		} catch (err: unknown) {
 			logger.error(
 				'[Departments] Error creating department',
 				err instanceof Error ? err : new Error(String(err))

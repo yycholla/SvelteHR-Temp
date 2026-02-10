@@ -10,8 +10,10 @@
 import type { RequestEvent } from '@sveltejs/kit';
 import { createEmployeeService as createEmployeeServiceFactory } from '$lib/services/employeeServiceFactory';
 import { createLeaveRequestService as createLeaveRequestServiceFactory } from '$lib/services/leaveRequestServiceFactory';
+import { createDepartmentService as createDepartmentServiceFactory } from '$lib/services/departmentServiceFactory';
 import type { EmployeeService } from '$services/EmployeeService';
 import type { LeaveRequestService } from '$services/LeaveRequestService';
+import type { DepartmentService } from '$services/DepartmentService';
 
 /**
  * Container for all available services
@@ -22,6 +24,7 @@ import type { LeaveRequestService } from '$services/LeaveRequestService';
 export class ServiceContainer {
 	private _employeeService?: EmployeeService;
 	private _leaveRequestService?: LeaveRequestService;
+	private _departmentService?: DepartmentService;
 
 	constructor(private readonly event: RequestEvent) {}
 
@@ -49,6 +52,19 @@ export class ServiceContainer {
 			this._leaveRequestService = createLeaveRequestServiceFactory(this.event);
 		}
 		return this._leaveRequestService;
+	}
+
+	/**
+	 * Get the DepartmentService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get departmentService(): DepartmentService {
+		if (!this._departmentService) {
+			this._departmentService = createDepartmentServiceFactory(this.event);
+		}
+		return this._departmentService;
 	}
 }
 
@@ -141,4 +157,32 @@ export function createEmployeeService(event: RequestEvent): EmployeeService {
  */
 export function createLeaveRequestService(event: RequestEvent): LeaveRequestService {
 	return createLeaveRequestServiceFactory(event);
+}
+
+/**
+ * Create just the DepartmentService
+ *
+ * Convenience function for routes that only need department operations.
+ *
+ * @param event - SvelteKit RequestEvent
+ * @returns Configured DepartmentService instance
+ *
+ * @example
+ * ```typescript
+ * // In +page.server.ts:
+ * export const load: PageServerLoad = async (event) => {
+ *   const departmentService = createDepartmentService(event);
+ *
+ *   const result = await departmentService.getDepartments({ page: 1, limit: 20 });
+ *
+ *   if (result.isError) {
+ *     throw error(500, result.error.message);
+ *   }
+ *
+ *   return { departments: result.value.departments };
+ * };
+ * ```
+ */
+export function createDepartmentService(event: RequestEvent): DepartmentService {
+	return createDepartmentServiceFactory(event);
 }
