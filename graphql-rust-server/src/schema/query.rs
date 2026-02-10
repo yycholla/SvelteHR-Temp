@@ -6,6 +6,8 @@
 use async_graphql::{Context, InputObject, Object, Result};
 // use axum_login::AuthSession; // REMOVED: Using JWT UserContext instead
 use sea_orm::{EntityTrait, QueryFilter, QueryOrder, QuerySelect, ColumnTrait, PaginatorTrait, Condition};
+use sea_orm::prelude::Expr;
+use sea_orm::sea_query::extension::postgres::PgExpr;
 use uuid::Uuid;
 
 use crate::{
@@ -294,10 +296,11 @@ impl QueryRoot {
         // Apply filters if provided
         if let Some(f) = filter {
             if let Some(search) = f.search_term {
+                let pattern = format!("%{}%", search);
                 query = query.filter(
                     Condition::any()
-                        .add(DepartmentColumn::Name.contains(&search))
-                        .add(DepartmentColumn::Description.contains(&search))
+                        .add(Expr::col(DepartmentColumn::Name.as_column_ref()).ilike(&pattern))
+                        .add(Expr::col(DepartmentColumn::Description.as_column_ref()).ilike(&pattern))
                 );
             }
 
