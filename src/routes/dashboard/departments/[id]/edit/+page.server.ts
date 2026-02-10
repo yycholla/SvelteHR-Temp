@@ -1,203 +1,168 @@
 // Server-side data loading and form handling for department edit page
-// Follows RBAC patterns with server-side API calls only
+// Refactored to use DepartmentService (Hexagonal Architecture)
 
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { logger } from '$lib/utils/logger';
-import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { RBACDataLoader } from '$lib/server/route-loaders';
+import { createDepartmentService } from '$lib/server/services';
 
 export const load: PageServerLoad = async (event) => {
-	const { params, cookies } = event;
-	const departmentId = params.id;
+	const { params } = event;
 
-	// RBAC: Check department write permissions
-	requireAuth(event, {
-		requiredPermissions: [
-			'departments:write',
-			'departments:write:self',
-			'departments:write:team',
-			'departments:write:all'
-		]
-	});
+	// Use RBACDataLoader - handles auth, session, permissions automatically
+	const loader = new RBACDataLoader(event, [
+		'departments:write',
+		'departments:write:self',
+		'departments:write:team',
+		'departments:write:all'
+	]);
 
-	// After permission check, re-destructure locals with guaranteed user
-	const { locals } = event;
+	return loader.loadWithClient(async (client) => {
+		try {
+			// Use DepartmentService to fetch department entity
+			const service = createDepartmentService(event);
+			const departmentResult = await service.getDepartmentById(params.id);
 
-	// Create simple user session object (session-based auth doesn't use JWT)
-	const userSession = {
-		userId: locals.user.id,
-		roles: [locals.user.role || 'employee'],
-		permissions: locals.permissions || [],
-		isAuthenticated: true,
-		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-		metadata: {
-			userEmail: locals.user.email,
-			displayName: locals.user.display_name || locals.user.email
-		},
-		toJSON: () => ({
-			userId: locals.user.id,
-			roles: [locals.user.role || 'employee'],
-			permissions: locals.permissions || [],
-			isAuthenticated: true,
-			expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-			metadata: {
-				userEmail: locals.user.email,
-				displayName: locals.user.display_name || locals.user.email
+			// Handle department not found
+			if (departmentResult.isError) {
+				logger.error('[Department Edit] Department not found', departmentResult.error);
+				throw error(404, 'Department not found');
 			}
-		})
-	};
 
-	try {
-		// Make direct GraphQL calls to Rust GraphQL backend with session-based authentication
-		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
-		const graphqlEndpoint = getGraphQLEndpoint();
+			const dept = departmentResult.value;
 
-		// Headers for session-based authentication
-		// Forward session cookies to Rust GraphQL backend
-		const cookieHeader = event.request.headers.get('cookie') || '';
-		const headers: Record<string, string> = {
-			'Content-Type': 'application/json',
-			Cookie: cookieHeader // Forward all cookies for session authentication
-		};
+			// Convert to DTO for serialization
+			const departmentDTO = dept.toDTO();
 
-		logger.info('[Department Edit] Using Rust GraphQL with session-based auth', {
-			userRole: locals.user?.role
-		});
-
-		// Load department data
-		const departmentResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetDepartmentById($id: UUID!) {
-						department(id: $id) {
-							id
-							name
-							description
-							managerId
-							parentDepartmentId
-							createdAt
-							updatedAt
-						}
+			// Fetch raw GraphQL data for timestamps (not in domain entity)
+			const GET_DEPARTMENT_TIMESTAMPS_QUERY = `
+				query GetDepartmentTimestamps($id: UUID!) {
+					department(id: $id) {
+						createdAt
+						updatedAt
 					}
-				`,
-				variables: { id: departmentId }
-			})
-		});
+				}
+			`;
 
-		const departmentData = await departmentResponse.json();
+			const timestampsData = await client.query(
+				GET_DEPARTMENT_TIMESTAMPS_QUERY,
+				{ id: params.id },
+				{
+					operationName: 'GetDepartmentTimestamps',
+					errorMessage: 'Failed to load department timestamps'
+				}
+			);
 
-		// Check if department exists
-		if (!departmentData?.data?.department) {
-			error(404, 'Department not found');
-		}
+			const timestamps = timestampsData?.department || {
+				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString()
+			};
 
-		const department = departmentData.data.department;
-
-		// Get manager data if managerId exists
-		let manager = null;
-		if (department.managerId) {
-			const managerResponse = await fetch(graphqlEndpoint, {
-				method: 'POST',
-				headers,
-				body: JSON.stringify({
-					query: `
-						query GetUserById($id: UUID!) {
-							user(id: $id) {
-								id
-								displayName
-							}
-						}
-					`,
-					variables: { id: department.managerId }
-				})
-			});
-
-			const managerData = await managerResponse.json();
-			manager = managerData?.data?.user || null;
-		}
-
-		// Get active users for department assignment
-		// NOTE: Rust GraphQL doesn't support filter parameters, fetch all and filter server-side
-		const usersResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetActiveUsers {
-						users(limit: 1000) {
+			// Get manager data if managerId exists
+			// TODO: Replace with UserService when available
+			let manager = null;
+			if (departmentDTO.managerId) {
+				const GET_USER_QUERY = `
+					query GetUserById($id: UUID!) {
+						user(id: $id) {
 							id
 							displayName
-							roles {
-								id
-								name
-							}
-							isActive
 						}
 					}
-				`
-			})
-		});
+				`;
 
-		const usersData = await usersResponse.json();
-		const users = (usersData?.data?.users || [])
-			.filter((user: any) => user.isActive)
-			.map((user: any) => ({
-				id: user.id,
-				displayName: user.displayName || 'Unknown',
-				role: user.role || 'Employee' // Get role or default to Employee
-			}));
+				const managerData = await client.query(
+					GET_USER_QUERY,
+					{ id: departmentDTO.managerId },
+					{
+						operationName: 'GetUserById',
+						errorMessage: 'Failed to load manager data'
+					}
+				);
 
-		// Get standardized user permissions
-		const userPermissions = getUserPermissions(locals);
+				if (managerData?.user) {
+					manager = managerData.user;
+				}
+			}
 
-		// Return server-side loaded data
-		return {
-			userSession: userSession.toJSON(),
-			department: {
-				id: department.id,
-				name: department.name,
-				description: department.description,
-				managerId: department.managerId,
-				parentDepartmentId: department.parentDepartmentId,
-				manager
-			},
-			users,
-			// RBAC: Standardized permission checks
-			...userPermissions,
-			loadedAt: new Date().toISOString()
-		};
-	} catch (err) {
-		logger.error('[Department Edit Load Error]', err as Error);
+			// Get active users for department assignment
+			// TODO: Replace with UserService when available
+			const GET_ACTIVE_USERS_QUERY = `
+				query GetActiveUsers {
+					users(limit: 1000) {
+						id
+						displayName
+						roles {
+							id
+							name
+						}
+						isActive
+					}
+				}
+			`;
 
-		// If it's already a SvelteKit error, rethrow it
-		if (err && typeof err === 'object' && 'status' in err) {
-			throw err;
+			const usersData = await client.query(
+				GET_ACTIVE_USERS_QUERY,
+				{},
+				{
+					operationName: 'GetActiveUsers',
+					errorMessage: 'Failed to load users'
+				}
+			);
+
+			const allUsers = usersData?.users || [];
+			const users = allUsers
+				.filter((user: any) => user.isActive)
+				.map((user: any) => ({
+					id: user.id,
+					displayName: user.displayName || 'Unknown',
+					role: user.role || 'Employee'
+				}));
+
+			logger.info('[Department Edit] Department loaded successfully', {
+				departmentId: params.id,
+				hasManager: !!manager,
+				availableUsersCount: users.length
+			});
+
+			// Return server-side loaded data
+			return {
+				department: {
+					id: departmentDTO.id,
+					name: departmentDTO.name,
+					description: departmentDTO.description,
+					managerId: departmentDTO.managerId,
+					parentDepartmentId: departmentDTO.parentId,
+					createdAt: timestamps.createdAt,
+					updatedAt: timestamps.updatedAt,
+					manager
+				},
+				users
+			};
+		} catch (err) {
+			logger.error('[Department Edit Load Error]', err as Error);
+
+			// If it's already a SvelteKit error, rethrow it
+			if (err && typeof err === 'object' && 'status' in err) {
+				throw err;
+			}
+
+			// Throw generic error
+			throw error(500, 'Unable to load department data');
 		}
-
-		// Throw SvelteKit error with user-friendly message
-		error(500, 'Unable to load department data');
-	}
+	});
 };
 
 export const actions: Actions = {
 	default: async (event) => {
-		const { request, params, cookies } = event;
-		const departmentId = params.id;
+		const { request, params, locals } = event;
 
-		// RBAC: Check department write permissions
-		requireAuth(event, {
-			requiredPermissions: [
-				'departments:write',
-				'departments:write:self',
-				'departments:write:team',
-				'departments:write:all'
-			]
-		});
-
-		// After permission check, re-destructure locals
-		const { locals } = event;
+		// Check authentication
+		if (!locals.user?.id) {
+			logger.warn('[Department Update] Unauthorized update attempt');
+			return fail(401, { error: 'Unauthorized' });
+		}
 
 		try {
 			const formData = await request.formData();
@@ -207,63 +172,46 @@ export const actions: Actions = {
 
 			// Basic validation
 			if (!name) {
-				return fail(400, {
-					error: 'Department name is required'
-				});
+				return fail(400, { error: 'Department name is required' });
 			}
 
-			// Make GraphQL update mutation with session-based authentication
-			const { getGraphQLEndpoint } = await import('$lib/server/api-url');
-			const graphqlEndpoint = getGraphQLEndpoint();
-
-			// Headers for session-based authentication
-			const cookieHeader = request.headers.get('cookie') || '';
-			const headers: Record<string, string> = {
-				'Content-Type': 'application/json',
-				Cookie: cookieHeader
-			};
-
-			// Update department using correct mutation signature with input object
-			const updateResponse = await fetch(graphqlEndpoint, {
-				method: 'POST',
-				headers,
-				body: JSON.stringify({
-					query: `
-						mutation UpdateDepartment($id: UUID!, $input: UpdateDepartmentInput!) {
-							updateDepartment(id: $id, input: $input) {
-								id
-								name
-								description
-								managerId
-								updatedAt
-							}
-						}
-					`,
-					variables: {
-						id: departmentId,
-						input: {
-							name,
-							description: description || null,
-							managerId: managerId || null
-						}
-					}
-				})
+			// Use DepartmentService to update department
+			const service = createDepartmentService(event);
+			const result = await service.updateDepartment(params.id, {
+				name,
+				description: description || null,
+				managerId: managerId || null
 			});
 
-			const updateData = await updateResponse.json();
+			// Handle domain errors
+			if (result.isError) {
+				logger.error('[Department Update] Service error', result.error);
 
-			if (updateData.errors) {
-				const errorMsg = updateData.errors[0]?.message || 'Failed to update department';
-				logger.error('[Department Update Error]', new Error(errorMsg), {
-					errors: updateData.errors
-				});
-				return fail(500, {
-					error: 'Failed to update department'
-				});
+				// Map domain errors to user-friendly messages
+				const errorCode = result.error.code;
+				if (errorCode === 'DEPARTMENT_NOT_FOUND') {
+					return fail(404, { error: 'Department not found' });
+				}
+				if (errorCode === 'DEPARTMENT_ALREADY_EXISTS') {
+					return fail(400, { error: 'A department with this name already exists' });
+				}
+				if (errorCode === 'CIRCULAR_DEPARTMENT_REFERENCE') {
+					return fail(400, {
+						error: 'Cannot set parent department: would create circular reference'
+					});
+				}
+
+				// Generic error
+				return fail(400, { error: result.error.message });
 			}
 
+			logger.info('[Department Update] Department updated successfully', {
+				departmentId: params.id,
+				updatedBy: locals.user.id
+			});
+
 			// Redirect to department detail page on success
-			redirect(303, `/dashboard/departments/${departmentId}`);
+			throw redirect(303, `/dashboard/departments/${params.id}`);
 		} catch (err) {
 			// If it's a redirect, rethrow it
 			if (err && typeof err === 'object' && 'status' in err && (err as any).status === 303) {
@@ -271,9 +219,7 @@ export const actions: Actions = {
 			}
 
 			logger.error('[Department Update Action Error]', err as Error);
-			return fail(500, {
-				error: 'Failed to update department'
-			});
+			return fail(500, { error: 'Failed to update department' });
 		}
 	}
 };
