@@ -194,9 +194,17 @@ impl QueryRoot {
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
+        tracing::info!("[Users Query] Starting query with limit={}, offset={}", limit, offset);
+
         // Extract UserContext for RLS filtering
         let user_context = ctx.data::<UserContext>()
             .map_err(|_| async_graphql::Error::new("Authentication required - UserContext not found"))?;
+
+        tracing::info!("[Users Query] UserContext: user_id={:?}, is_admin={}, is_system={}",
+            user_context.user_id,
+            user_context.is_admin(),
+            user_context.is_system()
+        );
 
         // Build query with RLS filter (removed hardcoded isActive filter - let client filter)
         let mut query = UserEntity::find()
@@ -205,12 +213,15 @@ impl QueryRoot {
         // Apply RLS filter based on user context
         query = apply_user_rls_filter(query, user_context);
 
+        tracing::info!("[Users Query] Executing query...");
         let users = query
             .order_by_desc(UserColumn::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
             .await?;
+
+        tracing::info!("[Users Query] Query completed, returned {} users", users.len());
 
         Ok(users)
     }

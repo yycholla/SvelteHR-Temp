@@ -35,3 +35,34 @@ export {
 	type SortOrder,
 	type BulkOperationResult
 } from './Employee';
+
+// LeaveRequest domain
+export {
+	LeaveRequest,
+	LeaveDateRange,
+	LeaveType,
+	LeaveStatus,
+	type CreateLeaveRequestData,
+	type UpdateLeaveRequestData,
+	type LeaveRequestDTO,
+	type LeaveRequestFilters,
+	type LeaveRequestListResult,
+	type LeaveBalance,
+	type LeaveStatistics,
+	type LeaveStatisticsFilters,
+	LeaveRequestNotFoundError,
+	InvalidDateRangeError,
+	InvalidDateError,
+	PastDateError,
+	FutureDateError,
+	ExcessiveLeaveDurationError,
+	LeaveReasonRequiredError,
+	InvalidLeaveTypeError,
+	InvalidLeaveStatusError,
+	InvalidStatusTransitionError,
+	LeaveRejectionCommentsRequiredError,
+	OverlappingLeaveRequestError,
+	InsufficientLeaveBalanceError,
+	UnauthorizedApprovalError,
+	UnauthorizedCancellationError
+} from './LeaveRequest';

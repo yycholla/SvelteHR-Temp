@@ -1,0 +1,188 @@
+- generic [ref=e2]:
+  - main [ref=e3]:
+    - generic [ref=e4]:
+      - complementary "Main navigation" [ref=e5]:
+        - generic [ref=e6]:
+          - generic [ref=e7]:
+            - link "MountainHR" [ref=e8] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e9]
+              - generic [ref=e13]: MountainHR
+            - generic [ref=e14]:
+              - button "Open command palette (Ctrl+K)" [ref=e15] [cursor=pointer]:
+                - img [ref=e16]
+              - button "Notifications" [ref=e19]:
+                - img [ref=e20]
+                - generic [ref=e23]: Notifications
+              - button "Collapse sidebar" [ref=e24]:
+                - img [ref=e25]
+          - navigation [ref=e29]:
+            - link "Dashboard" [ref=e30] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e31]
+              - text: Dashboard
+            - link "Employees" [ref=e34] [cursor=pointer]:
+              - /url: /dashboard/employees
+              - img [ref=e35]
+              - text: Employees
+            - link "Departments" [ref=e40] [cursor=pointer]:
+              - /url: /dashboard/departments
+              - img [ref=e41]
+              - text: Departments
+            - link "Events" [ref=e45] [cursor=pointer]:
+              - /url: /dashboard/events
+              - img [ref=e46]
+              - text: Events
+            - button "Tasks" [ref=e48]:
+              - generic [ref=e49]:
+                - generic [ref=e50]:
+                  - img [ref=e51]
+                  - text: Tasks
+                - img [ref=e54]
+            - link "Activities" [ref=e56] [cursor=pointer]:
+              - /url: /dashboard/activities
+              - img [ref=e57]
+              - text: Activities
+            - link "Notifications" [ref=e59] [cursor=pointer]:
+              - /url: /dashboard/notifications
+              - img [ref=e60]
+              - text: Notifications
+            - button "Leave & Attendance" [ref=e63]:
+              - generic [ref=e64]:
+                - generic [ref=e65]:
+                  - img [ref=e66]
+                  - text: Leave & Attendance
+                - img [ref=e69]
+            - button "Performance" [ref=e71]:
+              - generic [ref=e72]:
+                - generic [ref=e73]:
+                  - img [ref=e74]
+                  - text: Performance
+                - img [ref=e78]
+            - link "Training" [ref=e80] [cursor=pointer]:
+              - /url: /dashboard/training
+              - img [ref=e81]
+              - text: Training
+            - link "Onboarding" [ref=e84] [cursor=pointer]:
+              - /url: /dashboard/onboarding
+              - img [ref=e85]
+              - text: Onboarding
+            - link "Documents" [ref=e87] [cursor=pointer]:
+              - /url: /dashboard/documents
+              - img [ref=e88]
+              - text: Documents
+          - button "Management" [ref=e91]:
+            - generic [ref=e92]:
+              - generic [ref=e93]:
+                - img [ref=e94]
+                - text: Management
+              - img [ref=e98]
+          - link "Admin Console" [ref=e101] [cursor=pointer]:
+            - /url: /admin
+            - img [ref=e102]
+            - text: Admin Console
+      - main [ref=e106]:
+        - generic [ref=e109]:
+          - generic [ref=e110]:
+            - group [ref=e111]:
+              - link "Import" [ref=e112] [cursor=pointer]:
+                - /url: /dashboard/employees/import
+                - img
+                - text: Import
+              - button "Export" [ref=e113]:
+                - img
+                - text: Export
+            - generic [ref=e114]:
+              - button "Add Employee" [ref=e115]:
+                - img
+                - text: Add Employee
+              - group [ref=e116]:
+                - button "Grid view" [ref=e117]:
+                  - img
+                - button "Table view" [ref=e118]:
+                  - img
+          - generic [ref=e119]:
+            - generic [ref=e120]:
+              - generic [ref=e121]:
+                - generic [ref=e122]:
+                  - text: Search
+                  - button [ref=e124]:
+                    - textbox "Search... (Enter, comma, or space to seperate)" [ref=e125]
+                - generic [ref=e126]:
+                  - text: Department
+                  - combobox "Department" [ref=e127]:
+                    - option "All Departments" [selected]
+                    - option "Customer Support"
+                    - option "Engineering"
+                    - option "Finance"
+                    - option "Human Resources"
+                    - option "IT"
+                    - option "Legal"
+                    - option "Marketing"
+                    - option "Operations"
+                    - option "Product Management"
+                    - option "Sales"
+                - generic [ref=e128]:
+                  - text: Role
+                  - combobox "Role" [ref=e129]:
+                    - option "All Roles" [selected]
+                - generic [ref=e130]:
+                  - text: Status
+                  - combobox "Status" [ref=e131]:
+                    - option "Active Only" [selected]
+                    - option "All Employees"
+                    - option "Inactive Only"
+                - button "Clear" [ref=e133]
+              - generic [ref=e134]:
+                - 'button "Per Page: 20" [ref=e136]':
+                  - text: "Per Page: 20"
+                  - img
+                - button "Columns" [ref=e138]:
+                  - img
+                  - text: Columns
+                  - img
+            - table [ref=e142]:
+              - rowgroup [ref=e143]:
+                - row "Select all rows Name Email Department Role Hire Date Status Actions" [ref=e144]:
+                  - columnheader "Select all rows" [ref=e145]:
+                    - checkbox "Select all rows" [disabled] [ref=e150]
+                  - columnheader "Name" [ref=e151] [cursor=pointer]:
+                    - generic [ref=e152]:
+                      - generic [ref=e153]: Name
+                      - img [ref=e154]
+                  - columnheader "Email" [ref=e157] [cursor=pointer]:
+                    - generic [ref=e158]:
+                      - generic [ref=e159]: Email
+                      - img [ref=e160]
+                  - columnheader "Department" [ref=e163] [cursor=pointer]:
+                    - generic [ref=e164]:
+                      - generic [ref=e165]: Department
+                      - img [ref=e166]
+                  - columnheader "Role" [ref=e169] [cursor=pointer]:
+                    - generic [ref=e170]:
+                      - generic [ref=e171]: Role
+                      - img [ref=e172]
+                  - columnheader "Hire Date" [ref=e175] [cursor=pointer]:
+                    - generic [ref=e176]:
+                      - generic [ref=e177]: Hire Date
+                      - img [ref=e178]
+                  - columnheader "Status" [ref=e181] [cursor=pointer]:
+                    - generic [ref=e182]:
+                      - generic [ref=e183]: Status
+                      - img [ref=e184]
+                  - columnheader "Actions" [ref=e187]:
+                    - generic [ref=e189]: Actions
+              - rowgroup [ref=e190]:
+                - row "No employees found" [ref=e191]:
+                  - cell "No employees found" [ref=e192]:
+                    - generic [ref=e193]:
+                      - img [ref=e194]
+                      - paragraph [ref=e199]: No employees found
+          - generic [ref=e202]:
+            - img [ref=e203]
+            - heading "No employees found" [level=3] [ref=e208]
+            - paragraph [ref=e209]: No employees have been added to the system yet.
+            - button "Add First Employee" [ref=e210]:
+              - img
+              - text: Add First Employee
+  - region "Notifications alt+T"

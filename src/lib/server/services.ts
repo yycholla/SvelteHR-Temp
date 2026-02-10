@@ -9,7 +9,9 @@
 
 import type { RequestEvent } from '@sveltejs/kit';
 import { createEmployeeService as createEmployeeServiceFactory } from '$lib/services/employeeServiceFactory';
+import { createLeaveRequestService as createLeaveRequestServiceFactory } from '$lib/services/leaveRequestServiceFactory';
 import type { EmployeeService } from '$services/EmployeeService';
+import type { LeaveRequestService } from '$services/LeaveRequestService';
 
 /**
  * Container for all available services
@@ -19,6 +21,7 @@ import type { EmployeeService } from '$services/EmployeeService';
  */
 export class ServiceContainer {
 	private _employeeService?: EmployeeService;
+	private _leaveRequestService?: LeaveRequestService;
 
 	constructor(private readonly event: RequestEvent) {}
 
@@ -33,6 +36,19 @@ export class ServiceContainer {
 			this._employeeService = createEmployeeServiceFactory(this.event);
 		}
 		return this._employeeService;
+	}
+
+	/**
+	 * Get the LeaveRequestService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get leaveRequestService(): LeaveRequestService {
+		if (!this._leaveRequestService) {
+			this._leaveRequestService = createLeaveRequestServiceFactory(this.event);
+		}
+		return this._leaveRequestService;
 	}
 }
 
@@ -94,4 +110,35 @@ export function createServices(event: RequestEvent): ServiceContainer {
  */
 export function createEmployeeService(event: RequestEvent): EmployeeService {
 	return createEmployeeServiceFactory(event);
+}
+
+/**
+ * Create just the LeaveRequestService
+ *
+ * Convenience function for routes that only need leave request operations.
+ *
+ * @param event - SvelteKit RequestEvent
+ * @returns Configured LeaveRequestService instance
+ *
+ * @example
+ * ```typescript
+ * // In +page.server.ts:
+ * export const load: PageServerLoad = async (event) => {
+ *   const leaveRequestService = createLeaveRequestService(event);
+ *
+ *   const result = await leaveRequestService.getLeaveRequestById(event.params.id);
+ *
+ *   if (result.isError) {
+ *     if (result.error.code === 'LEAVE_REQUEST_NOT_FOUND') {
+ *       throw error(404, 'Leave request not found');
+ *     }
+ *     throw error(500, result.error.message);
+ *   }
+ *
+ *   return { leaveRequest: result.value };
+ * };
+ * ```
+ */
+export function createLeaveRequestService(event: RequestEvent): LeaveRequestService {
+	return createLeaveRequestServiceFactory(event);
 }

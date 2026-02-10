@@ -1,0 +1,260 @@
+- generic [ref=e2]:
+  - main [ref=e3]:
+    - generic [ref=e59]:
+      - complementary "Main navigation" [ref=e60]:
+        - generic [ref=e61]:
+          - generic [ref=e62]:
+            - link "MountainHR" [ref=e63] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e64]
+              - generic [ref=e65]: MountainHR
+            - generic [ref=e66]:
+              - button "Open command palette (Ctrl+K)" [ref=e67] [cursor=pointer]:
+                - img [ref=e68]
+              - button "Notifications" [ref=e69]:
+                - img [ref=e70]
+                - generic [ref=e71]: Notifications
+              - button "Collapse sidebar" [ref=e72]:
+                - img [ref=e73]
+          - navigation [ref=e75]:
+            - link "Dashboard" [ref=e76] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e77]
+              - text: Dashboard
+            - link "Employees" [ref=e78] [cursor=pointer]:
+              - /url: /dashboard/employees
+              - img [ref=e79]
+              - text: Employees
+            - link "Departments" [ref=e80] [cursor=pointer]:
+              - /url: /dashboard/departments
+              - img [ref=e81]
+              - text: Departments
+            - link "Events" [ref=e82] [cursor=pointer]:
+              - /url: /dashboard/events
+              - img [ref=e83]
+              - text: Events
+            - button "Tasks" [ref=e84]:
+              - generic [ref=e85]:
+                - generic [ref=e86]:
+                  - img [ref=e87]
+                  - text: Tasks
+                - img [ref=e88]
+            - link "Activities" [ref=e89] [cursor=pointer]:
+              - /url: /dashboard/activities
+              - img [ref=e90]
+              - text: Activities
+            - link "Notifications" [ref=e91] [cursor=pointer]:
+              - /url: /dashboard/notifications
+              - img [ref=e92]
+              - text: Notifications
+            - button "Leave & Attendance" [ref=e93]:
+              - generic [ref=e94]:
+                - generic [ref=e95]:
+                  - img [ref=e96]
+                  - text: Leave & Attendance
+                - img [ref=e97]
+            - button "Performance" [ref=e98]:
+              - generic [ref=e99]:
+                - generic [ref=e100]:
+                  - img [ref=e101]
+                  - text: Performance
+                - img [ref=e102]
+            - link "Training" [ref=e103] [cursor=pointer]:
+              - /url: /dashboard/training
+              - img [ref=e104]
+              - text: Training
+            - link "Onboarding" [ref=e105] [cursor=pointer]:
+              - /url: /dashboard/onboarding
+              - img [ref=e106]
+              - text: Onboarding
+            - link "Documents" [ref=e107] [cursor=pointer]:
+              - /url: /dashboard/documents
+              - img [ref=e108]
+              - text: Documents
+          - button "Management" [ref=e110]:
+            - generic [ref=e111]:
+              - generic [ref=e112]:
+                - img [ref=e113]
+                - text: Management
+              - img [ref=e114]
+          - link "Admin Console" [ref=e116] [cursor=pointer]:
+            - /url: /admin
+            - img [ref=e117]
+            - text: Admin Console
+          - generic [ref=e119]:
+            - link "admin admin" [ref=e120] [cursor=pointer]:
+              - /url: /dashboard/profile
+              - img [ref=e122]
+              - generic [ref=e123]:
+                - paragraph [ref=e124]: admin
+                - paragraph [ref=e125]: admin
+            - generic [ref=e126]:
+              - button "Logout" [ref=e127]:
+                - img [ref=e128]
+              - button "Toggle theme" [ref=e129]:
+                - img [ref=e130]
+              - link "Settings" [ref=e131] [cursor=pointer]:
+                - /url: /dashboard/profile/settings
+                - img [ref=e132]
+      - main [ref=e135]:
+        - generic [ref=e138]:
+          - generic [ref=e139]:
+            - generic [ref=e140]:
+              - heading "Good Morning, System" [level=1] [ref=e141]
+              - paragraph [ref=e142]: Here's what's happening today, Tuesday, February 10, 2026.
+            - generic [ref=e143]:
+              - link "View Calendar" [ref=e144] [cursor=pointer]:
+                - /url: /dashboard/events
+                - img
+                - text: View Calendar
+              - link "Create Request" [ref=e145] [cursor=pointer]:
+                - /url: /dashboard/leave/request
+                - img
+                - text: Create Request
+          - generic [ref=e146]:
+            - generic [ref=e147]:
+              - generic [ref=e148]:
+                - generic [ref=e150]:
+                  - generic [ref=e151]:
+                    - heading "Total Tasks" [level=3] [ref=e152]
+                    - img [ref=e153]
+                  - generic [ref=e154]: "6"
+                  - paragraph [ref=e155]: 3 high priority
+                - generic [ref=e157]:
+                  - generic [ref=e158]:
+                    - heading "Leave Balance" [level=3] [ref=e159]
+                    - img [ref=e160]
+                  - generic [ref=e161]: 20 Days
+                  - paragraph [ref=e162]: 0 pending approval
+                - generic [ref=e164]:
+                  - generic [ref=e165]:
+                    - heading "Attendance" [level=3] [ref=e166]
+                    - img [ref=e167]
+                  - generic [ref=e168]: 0%
+                  - paragraph [ref=e169]: This month
+              - generic [ref=e170]:
+                - generic [ref=e171]:
+                  - generic [ref=e172]:
+                    - generic [ref=e173]: Priority Tasks
+                    - paragraph [ref=e174]: Tasks requiring your attention.
+                  - link "View All" [ref=e175] [cursor=pointer]:
+                    - /url: /dashboard/tasks
+                - generic [ref=e176]:
+                  - link "laudantium eos et corrupti optio. Due 2/7/2026 IN PROGRESS" [ref=e177] [cursor=pointer]:
+                    - /url: /dashboard/tasks/fe3bf00b-1946-46a4-b143-d175b73defcb
+                    - generic [ref=e180]:
+                      - paragraph [ref=e181]: laudantium eos et corrupti optio.
+                      - paragraph [ref=e182]: Due 2/7/2026
+                    - generic [ref=e183]: IN PROGRESS
+                  - link "qui et qui quia et officiis tempora. Due 1/19/2026 IN PROGRESS" [ref=e184] [cursor=pointer]:
+                    - /url: /dashboard/tasks/793089a4-02c2-4d6b-8643-faffbef70d8c
+                    - generic [ref=e187]:
+                      - paragraph [ref=e188]: qui et qui quia et officiis tempora.
+                      - paragraph [ref=e189]: Due 1/19/2026
+                    - generic [ref=e190]: IN PROGRESS
+                  - link "odit ut nesciunt. Due 3/6/2026 IN PROGRESS" [ref=e191] [cursor=pointer]:
+                    - /url: /dashboard/tasks/a42d89b6-9672-47b3-9faa-ab22e5543c2c
+                    - generic [ref=e194]:
+                      - paragraph [ref=e195]: odit ut nesciunt.
+                      - paragraph [ref=e196]: Due 3/6/2026
+                    - generic [ref=e197]: IN PROGRESS
+                  - link "et quidem corporis. Due 2/25/2026 IN PROGRESS" [ref=e198] [cursor=pointer]:
+                    - /url: /dashboard/tasks/ed960552-1a9b-4b5c-8ea4-827da561f48b
+                    - generic [ref=e201]:
+                      - paragraph [ref=e202]: et quidem corporis.
+                      - paragraph [ref=e203]: Due 2/25/2026
+                    - generic [ref=e204]: IN PROGRESS
+                  - link "reprehenderit nam omnis. Due 12/31/2025 IN PROGRESS" [ref=e205] [cursor=pointer]:
+                    - /url: /dashboard/tasks/aea5c0c0-439e-4ae7-99e6-28d369fad7b0
+                    - generic [ref=e208]:
+                      - paragraph [ref=e209]: reprehenderit nam omnis.
+                      - paragraph [ref=e210]: Due 12/31/2025
+                    - generic [ref=e211]: IN PROGRESS
+              - generic [ref=e212]:
+                - generic [ref=e214]: Recent Activity
+                - generic [ref=e216]:
+                  - generic [ref=e222]:
+                    - paragraph [ref=e223]: successful_login user
+                    - paragraph [ref=e224]: user successful_login
+                    - paragraph [ref=e225]: 2/10/2026, 9:12:21 AM
+                  - generic [ref=e231]:
+                    - paragraph [ref=e232]: successful_login user
+                    - paragraph [ref=e233]: user successful_login
+                    - paragraph [ref=e234]: 2/10/2026, 8:49:58 AM
+                  - generic [ref=e240]:
+                    - paragraph [ref=e241]: successful_login user
+                    - paragraph [ref=e242]: user successful_login
+                    - paragraph [ref=e243]: 2/10/2026, 8:48:33 AM
+                  - generic [ref=e249]:
+                    - paragraph [ref=e250]: successful_login user
+                    - paragraph [ref=e251]: user successful_login
+                    - paragraph [ref=e252]: 2/10/2026, 8:40:37 AM
+                  - generic [ref=e258]:
+                    - paragraph [ref=e259]: successful_login user
+                    - paragraph [ref=e260]: user successful_login
+                    - paragraph [ref=e261]: 2/10/2026, 8:31:37 AM
+            - generic [ref=e262]:
+              - generic [ref=e263]:
+                - generic [ref=e265]: Upcoming Events
+                - generic [ref=e266]:
+                  - generic [ref=e267]:
+                    - generic [ref=e268]:
+                      - generic [ref=e269]: Feb
+                      - generic [ref=e270]: "10"
+                    - generic [ref=e271]:
+                      - paragraph [ref=e272]: perspiciatis itaque minus reprehenderit commodi.
+                      - paragraph [ref=e273]: 9:21 PM
+                      - generic [ref=e274]:
+                        - img [ref=e275]
+                        - generic [ref=e276]: Conference Room A
+                  - generic [ref=e277]:
+                    - generic [ref=e278]:
+                      - generic [ref=e279]: Feb
+                      - generic [ref=e280]: "10"
+                    - generic [ref=e281]:
+                      - paragraph [ref=e282]: eaque pariatur aut architecto.
+                      - paragraph [ref=e283]: 9:23 PM
+                      - generic [ref=e284]:
+                        - img [ref=e285]
+                        - generic [ref=e286]: Conference Room A
+                  - generic [ref=e287]:
+                    - generic [ref=e288]:
+                      - generic [ref=e289]: Feb
+                      - generic [ref=e290]: "10"
+                    - generic [ref=e291]:
+                      - paragraph [ref=e292]: illum maiores voluptatem.
+                      - paragraph [ref=e293]: 10:21 PM
+                      - generic [ref=e294]:
+                        - img [ref=e295]
+                        - generic [ref=e296]: Conference Room A
+                  - generic [ref=e297]:
+                    - generic [ref=e298]:
+                      - generic [ref=e299]: Feb
+                      - generic [ref=e300]: "10"
+                    - generic [ref=e301]:
+                      - paragraph [ref=e302]: illum laudantium temporibus.
+                      - paragraph [ref=e303]: 10:22 PM
+                      - generic [ref=e304]:
+                        - img [ref=e305]
+                        - generic [ref=e306]: Conference Room A
+              - generic [ref=e307]:
+                - generic [ref=e309]: Quick Access
+                - generic [ref=e310]:
+                  - link "Directory" [ref=e311] [cursor=pointer]:
+                    - /url: /dashboard/employees
+                    - img [ref=e312]
+                    - generic [ref=e313]: Directory
+                  - link "Documents" [ref=e314] [cursor=pointer]:
+                    - /url: /dashboard/documents
+                    - img [ref=e315]
+                    - generic [ref=e316]: Documents
+                  - link "Timesheet" [ref=e317] [cursor=pointer]:
+                    - /url: /dashboard/profile/attendance
+                    - img [ref=e318]
+                    - generic [ref=e319]: Timesheet
+                  - link "Settings" [ref=e320] [cursor=pointer]:
+                    - /url: /settings
+                    - img [ref=e321]
+                    - generic [ref=e322]: Settings
+  - region "Notifications alt+T"
+  - generic [ref=e58]: Dashboard - MountainHR

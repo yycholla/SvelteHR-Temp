@@ -1,0 +1,55 @@
+- generic [ref=e2]:
+  - main [ref=e3]:
+    - generic [ref=e8]:
+      - generic [ref=e10]:
+        - img [ref=e12]
+        - heading "MountainHR" [level=2] [ref=e16]
+        - paragraph [ref=e17]: Human Resources Management System
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - heading "Sign in to MountainHR" [level=1] [ref=e24]
+          - paragraph [ref=e25]: Welcome back! Please sign in to your account.
+        - generic [ref=e26]:
+          - generic [ref=e27]: Email address
+          - generic [ref=e28]:
+            - generic:
+              - img
+            - textbox "Email address" [disabled] [ref=e29]:
+              - /placeholder: Enter your email
+              - text: admin@mountainhr.dev
+        - generic [ref=e30]:
+          - generic [ref=e31]: Password
+          - generic [ref=e32]:
+            - generic:
+              - img
+            - textbox "Password" [disabled] [ref=e33]:
+              - /placeholder: Enter your password
+              - text: admin123
+            - button [disabled] [ref=e35]:
+              - img [ref=e36]
+        - generic [ref=e39]:
+          - generic [ref=e40]:
+            - checkbox "Remember me" [disabled] [ref=e41]
+            - generic [ref=e42] [cursor=pointer]: Remember me
+          - link "Forgot your password?" [ref=e44] [cursor=pointer]:
+            - /url: /auth/forgot-password
+        - generic [ref=e45]:
+          - button "Signing in..." [disabled]:
+            - img
+            - text: Signing in...
+        - paragraph [ref=e48]:
+          - text: Don't have an account?
+          - link "Contact HR to get started" [ref=e49] [cursor=pointer]:
+            - /url: /auth/register
+      - generic [ref=e50]:
+        - paragraph [ref=e51]: © 2026 MountainHR. All rights reserved.
+        - generic [ref=e52]:
+          - link "Privacy Policy" [ref=e53] [cursor=pointer]:
+            - /url: /privacy
+          - generic [ref=e54]: •
+          - link "Terms of Service" [ref=e55] [cursor=pointer]:
+            - /url: /terms
+          - generic [ref=e56]: •
+          - link "Support" [ref=e57] [cursor=pointer]:
+            - /url: /support
+  - region "Notifications alt+T"

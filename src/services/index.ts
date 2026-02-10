@@ -11,6 +11,9 @@ export { EmployeeService } from './EmployeeService';
 // Department Service
 export { DepartmentService } from './DepartmentService';
 
+// Leave Request Service
+export { LeaveRequestService } from './LeaveRequestService';
+
 // Auth Ports
 export type { SessionPort, SessionData } from './auth/ports/SessionPort';
 
@@ -21,6 +24,7 @@ export type {
 	EmployeeStatistics
 } from './ports/EmployeeRepository';
 export type { DepartmentRepository } from './ports/DepartmentRepository';
+export type { LeaveRequestRepository } from './ports/LeaveRequestRepository';
 
 // GraphQL Ports
 export type { GraphQLPort } from './ports/GraphQLPort';

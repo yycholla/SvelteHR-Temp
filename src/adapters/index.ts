@@ -3,6 +3,7 @@
 // Repository Implementations
 export { MockEmployeeRepository } from './MockEmployeeRepository';
 export { GraphQLEmployeeAdapter } from './GraphQLEmployeeAdapter';
+export { GraphQLLeaveRequestAdapter } from './GraphQLLeaveRequestAdapter';
 
 // GraphQL Infrastructure
 export { GraphQLAdapter } from './graphql/GraphQLAdapter';
