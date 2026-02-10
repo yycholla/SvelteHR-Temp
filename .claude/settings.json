@@ -1,12 +1,85 @@
 {
 	"env": {
-		"CLAUDE_FLOW_AUTO_COMMIT": "false",
-		"CLAUDE_FLOW_AUTO_PUSH": "false",
-		"CLAUDE_FLOW_HOOKS_ENABLED": "true",
-		"CLAUDE_FLOW_TELEMETRY_ENABLED": "true",
-		"CLAUDE_FLOW_REMOTE_EXECUTION": "true",
-		"CLAUDE_FLOW_CHECKPOINTS_ENABLED": "true"
+		"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
 	},
+	"hooks": {
+		"SessionStart": [
+			{
+				"matcher": "",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "entire hooks claude-code session-start"
+					}
+				]
+			}
+		],
+		"SessionEnd": [
+			{
+				"matcher": "",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "entire hooks claude-code session-end"
+					}
+				]
+			}
+		],
+		"UserPromptSubmit": [
+			{
+				"matcher": "",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "entire hooks claude-code user-prompt-submit"
+					}
+				]
+			}
+		],
+		"Stop": [
+			{
+				"matcher": "",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "entire hooks claude-code stop"
+					}
+				]
+			}
+		],
+		"PreToolUse": [
+			{
+				"matcher": "Task",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "entire hooks claude-code pre-task"
+					}
+				]
+			}
+		],
+		"PostToolUse": [
+			{
+				"matcher": "Task",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "entire hooks claude-code post-task"
+					}
+				]
+			},
+			{
+				"matcher": "TodoWrite",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "entire hooks claude-code post-todo"
+					}
+				]
+			}
+		]
+	},
+	"includeCoAuthoredBy": false,
 	"permissions": {
 		"allow": [
 			"Bash(npx claude-flow:*)",
@@ -30,9 +103,8 @@
 			"Bash(pwd)",
 			"Bash(ls:*)"
 		],
-		"deny": ["Bash(rm -rf /)"]
+		"deny": ["Bash(rm -rf /)", "Read(./.entire/metadata/**)"]
 	},
-	"includeCoAuthoredBy": false,
 	"statusLine": {
 		"type": "command",
 		"command": "bun x ccusage statusline"

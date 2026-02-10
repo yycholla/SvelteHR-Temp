@@ -60,6 +60,8 @@ services:
       - ../graphql-rust-server/Cargo.toml:/app/Cargo.toml
       - ../graphql-rust-server/Cargo.lock:/app/Cargo.lock
       - ../graphql-rust-server/.cargo:/app/.cargo:ro
+      # Mount JWT keys directory
+      - ../graphql-rust-server/keys:/app/keys:ro
       # CRITICAL: Use Docker volume for target directory (NOT bind-mounted)
       # This avoids I/O overhead and significantly speeds up compilation
       - rust_target_cache:/app/target
@@ -75,6 +77,8 @@ services:
       RUST_LOG: info,hr_graphql_server=debug,sea_orm=warn,sqlx=warn
       CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:3000
       JWT_SECRET: dev-jwt-secret-change-in-production
+      JWT_PRIVATE_KEY_PATH: /app/keys/jwt-private.pem
+      JWT_PUBLIC_KEY_PATH: /app/keys/jwt-public.pem
       SERVICE_AUTH_KEY: dev-service-key-change-in-production-use-strong-random-key
       # Enable backtrace for better debugging
       RUST_BACKTRACE: 1
