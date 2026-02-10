@@ -356,35 +356,11 @@ export class GraphQLEmployeeAdapter implements EmployeeRepository {
 	}
 
 	async getStatistics(): Promise<EmployeeStatistics> {
-		const query = gql`
-			query GetEmployeeStatistics {
-				employeeStatistics {
-					total
-					active
-					inactive
-					byDepartment {
-						departmentId
-						departmentName
-						count
-					}
-				}
-			}
-		`;
-
-		try {
-			const result = await this.graphql.query<{ employeeStatistics: EmployeeStatistics }>(
-				query,
-				{}
-			);
-
-			return result?.employeeStatistics ?? { total: 0, active: 0, inactive: 0, byDepartment: [] };
-		} catch (error) {
-			logger.error(
-				'[GraphQLEmployeeAdapter] Error in getStatistics',
-				error instanceof Error ? error : undefined
-			);
-			return { total: 0, active: 0, inactive: 0, byDepartment: [] };
-		}
+		// TODO: Fix employeeStatistics GraphQL schema mismatch
+		// Current backend schema doesn't match expected fields
+		// For now, return empty statistics to unblock employee list display
+		logger.warn('[GraphQLEmployeeAdapter] getStatistics disabled due to schema mismatch');
+		return { total: 0, active: 0, inactive: 0, byDepartment: [] };
 	}
 
 	/**
