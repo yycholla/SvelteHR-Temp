@@ -78,6 +78,12 @@ storybook-static
 # Crush
 .crush
 
+# .entire (local AI context tool)
+.entire/
+
+# Playwright CLI cache
+.playwright-cli/
+
 # Claude Flow generated files
 .claude/settings.local.json
 claude-flow.config.json

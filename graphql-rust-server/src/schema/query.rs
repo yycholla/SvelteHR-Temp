@@ -3513,9 +3513,11 @@ mod tests {
         let query = r#"
             query {
                 departments {
-                    id
-                    name
-                    deletedAt
+                    items {
+                        id
+                        name
+                        deletedAt
+                    }
                 }
             }
         "#;
@@ -3529,7 +3531,7 @@ mod tests {
 
         // Assert - No deleted departments returned
         let data = ctx.extract_data(&response);
-        let departments = data["departments"].as_array().expect("Expected array");
+        let departments = data["departments"]["items"].as_array().expect("Expected array");
 
         for dept in departments {
             assert!(
@@ -3552,15 +3554,17 @@ mod tests {
         let get_managed = r#"
             query {
                 departments(limit: 100) {
-                    id
-                    managerId
+                    items {
+                        id
+                        managerId
+                    }
                 }
             }
         "#;
 
         let managed_response = ctx.execute_query_as(get_managed, &test_user).await;
         let managed_data = ctx.extract_data(&managed_response);
-        let departments = managed_data["departments"].as_array().expect("Expected array");
+        let departments = managed_data["departments"]["items"].as_array().expect("Expected array");
 
         // Find a department with a manager
         let dept_with_manager = departments.iter().find(|d| !d["managerId"].is_null());
@@ -3572,9 +3576,11 @@ mod tests {
                 r#"
                 query {{
                     departments(filter: {{ managerId: "{}" }}) {{
-                        id
-                        name
-                        managerId
+                        items {{
+                            id
+                            name
+                            managerId
+                        }}
                     }}
                 }}
                 "#,
@@ -3590,7 +3596,7 @@ mod tests {
 
             // Assert - All results have matching managerId
             let data = ctx.extract_data(&response);
-            let filtered_departments = data["departments"].as_array().expect("Expected array");
+            let filtered_departments = data["departments"]["items"].as_array().expect("Expected array");
 
             for dept in filtered_departments {
                 let dept_manager_id = dept["managerId"].as_str().unwrap_or("");
@@ -3624,7 +3630,9 @@ mod tests {
         let query_asc = r#"
             query {
                 departments(orderBy: NAME_ASC) {
-                    name
+                    items {
+                        name
+                    }
                 }
             }
         "#;
@@ -3634,7 +3642,7 @@ mod tests {
         assert!(errors_asc.is_empty(), "Expected no errors for NAME_ASC, got: {:?}", errors_asc);
 
         let data_asc = ctx.extract_data(&response_asc);
-        let departments_asc = data_asc["departments"].as_array().expect("Expected array");
+        let departments_asc = data_asc["departments"]["items"].as_array().expect("Expected array");
 
         // Verify ascending order
         let names_asc: Vec<String> = departments_asc
@@ -3650,7 +3658,9 @@ mod tests {
         let query_desc = r#"
             query {
                 departments(orderBy: NAME_DESC) {
-                    name
+                    items {
+                        name
+                    }
                 }
             }
         "#;
@@ -3660,7 +3670,7 @@ mod tests {
         assert!(errors_desc.is_empty(), "Expected no errors for NAME_DESC, got: {:?}", errors_desc);
 
         let data_desc = ctx.extract_data(&response_desc);
-        let departments_desc = data_desc["departments"].as_array().expect("Expected array");
+        let departments_desc = data_desc["departments"]["items"].as_array().expect("Expected array");
 
         // Verify descending order
         let names_desc: Vec<String> = departments_desc
@@ -3690,8 +3700,10 @@ mod tests {
         let query_created = r#"
             query {
                 departments(orderBy: CREATED_AT_DESC) {
-                    name
-                    createdAt
+                    items {
+                        name
+                        createdAt
+                    }
                 }
             }
         "#;
@@ -3701,7 +3713,7 @@ mod tests {
         assert!(errors_created.is_empty(), "Expected no errors for CREATED_AT_DESC, got: {:?}", errors_created);
 
         let data_created = ctx.extract_data(&response_created);
-        let departments_created = data_created["departments"].as_array().expect("Expected array");
+        let departments_created = data_created["departments"]["items"].as_array().expect("Expected array");
 
         // Verify timestamps are in descending order
         let timestamps: Vec<String> = departments_created
