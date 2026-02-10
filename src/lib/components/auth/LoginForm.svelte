@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, onMount } from 'svelte';
 	import { logger } from '$lib/utils/logger';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { resolve } from '$app/paths';
@@ -27,6 +27,11 @@
 	let formErrors = $state<Record<string, string>>({});
 	let isSubmitting = $state(false);
 	let hasSucceeded = $state(false); // Flag to prevent multiple submissions after success
+	let mounted = $state(false); // Fix hydration mismatch
+
+	onMount(() => {
+		mounted = true;
+	});
 
 	// Validation rules
 	const validateEmail = (email: string): string => {
@@ -155,7 +160,7 @@
 		</div>
 
 		<!-- Global Error Message -->
-		{#if auth.error}
+		{#if mounted && auth.error}
 			<Alert variant="destructive" data-testid="login-error-message">
 				<AlertCircle class="h-4 w-4" />
 				<AlertTitle>Authentication Error</AlertTitle>
@@ -184,7 +189,7 @@
 						const error = validateEmail(email);
 						if (error) formErrors.email = error;
 					}}
-					disabled={isSubmitting || auth.isLoading}
+					disabled={isSubmitting || (mounted && auth.isLoading)}
 					data-testid="login-username-input"
 				/>
 			</div>
@@ -214,7 +219,7 @@
 						const error = validatePassword(password);
 						if (error) formErrors.password = error;
 					}}
-					disabled={isSubmitting || auth.isLoading}
+					disabled={isSubmitting || (mounted && auth.isLoading)}
 					data-testid="login-password-input"
 				/>
 				<div class="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -222,7 +227,7 @@
 						type="button"
 						class="text-muted-foreground transition-colors hover:text-foreground focus:outline-none"
 						onclick={togglePasswordVisibility}
-						disabled={isSubmitting || auth.isLoading}
+						disabled={isSubmitting || (mounted && auth.isLoading)}
 					>
 						{#if showPassword}
 							<EyeOff class="h-4 w-4" />
@@ -244,7 +249,7 @@
 					type="checkbox"
 					id="remember-me"
 					bind:checked={rememberMe}
-					disabled={isSubmitting || auth.isLoading}
+					disabled={isSubmitting || (mounted && auth.isLoading)}
 					data-testid="login-remember-me"
 					class="h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
 				/>
@@ -266,13 +271,13 @@
 			<Button
 				type="submit"
 				disabled={isSubmitting ||
-					auth.isLoading ||
+					(mounted && auth.isLoading) ||
 					hasSucceeded ||
 					Object.keys(formErrors).length > 0}
 				class="w-full"
 				data-testid="login-submit-button"
 			>
-				{#if isSubmitting || auth.isLoading}
+				{#if isSubmitting || (mounted && auth.isLoading)}
 					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
 					Signing in...
 				{:else}

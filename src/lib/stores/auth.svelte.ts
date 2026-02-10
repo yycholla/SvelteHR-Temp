@@ -151,7 +151,11 @@ class AuthStore {
 					role: (result.user as any).role
 				};
 
-				await this.applyUserTheme(user.id);
+				// Apply theme in background (non-blocking) - login succeeds even if this fails
+				this.applyUserTheme(user.id).catch((err) => {
+					logger.warn(`Theme loading failed, using system default: ${err}`);
+				});
+
 				await this.setUser(user);
 				return true;
 			} else {
@@ -224,9 +228,11 @@ class AuthStore {
 
 	async setUser(user: User): Promise<void> {
 		this.user = user;
-		this.isLoading = true;
-		await this.loadUserRoles(user.id);
-		this.isLoading = false;
+		// Load roles in background (non-blocking) - user can navigate while roles load
+		this.loadUserRoles(user.id).catch((err) => {
+			logger.warn(`Role loading failed, using guest permissions: ${err}`);
+			this.isLoading = false;
+		});
 	}
 
 	async loadUserRoles(userId: string): Promise<void> {
