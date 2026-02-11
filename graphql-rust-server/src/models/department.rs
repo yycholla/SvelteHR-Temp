@@ -231,6 +231,7 @@ pub struct UpdateDepartmentInput {
     pub name: Option<String>,
     pub description: Option<String>,
     pub manager_id: Option<Uuid>,
+    pub parent_department_id: Option<Uuid>,
 }
 
 /// Bulk department update input (includes ID)
