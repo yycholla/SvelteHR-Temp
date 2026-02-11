@@ -12,10 +12,12 @@ import { createEmployeeService as createEmployeeServiceFactory } from '$lib/serv
 import { createLeaveRequestService as createLeaveRequestServiceFactory } from '$lib/services/leaveRequestServiceFactory';
 import { createDepartmentService as createDepartmentServiceFactory } from '$lib/services/departmentServiceFactory';
 import { createAuthService as createAuthServiceFactory } from '$lib/services/authServiceFactory';
+import { createTaskService } from '$lib/services/taskServiceFactory';
 import type { EmployeeService } from '$services/EmployeeService';
 import type { LeaveRequestService } from '$services/LeaveRequestService';
 import type { DepartmentService } from '$services/DepartmentService';
 import type { AuthService } from '$services/AuthService';
+import type { TaskService } from '$services/TaskService';
 
 /**
  * Container for all available services
@@ -28,6 +30,7 @@ export class ServiceContainer {
 	private _leaveRequestService?: LeaveRequestService;
 	private _departmentService?: DepartmentService;
 	private _authService?: AuthService;
+	private _taskService?: TaskService;
 
 	constructor(private readonly event: RequestEvent) {}
 
@@ -81,6 +84,19 @@ export class ServiceContainer {
 			this._authService = createAuthServiceFactory(this.event);
 		}
 		return this._authService;
+	}
+
+	/**
+	 * Get the TaskService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get taskService(): TaskService {
+		if (!this._taskService) {
+			this._taskService = createTaskService(this.event);
+		}
+		return this._taskService;
 	}
 }
 
@@ -230,3 +246,6 @@ export function createDepartmentService(event: RequestEvent): DepartmentService 
 export function createAuthService(event: RequestEvent): AuthService {
 	return createAuthServiceFactory(event);
 }
+
+// Re-export createTaskService from factory for convenience
+export { createTaskService } from '$lib/services/taskServiceFactory';
