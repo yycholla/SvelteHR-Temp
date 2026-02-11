@@ -207,7 +207,7 @@ export class GraphQLTaskAdapter implements TaskRepository {
 	}
 
 	async findSubtasks(parentId: string): Promise<Result<Task[], TaskError>> {
-		return this.findAll({ parentTaskId: parentId } as TaskFilter);
+		return this.findAll({ parentTaskId: parentId });
 	}
 
 	/**

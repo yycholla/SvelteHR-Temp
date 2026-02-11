@@ -11,6 +11,7 @@ export interface TaskFilter {
 	dueBefore?: Date;
 	dueAfter?: Date;
 	archived?: boolean;
+	parentTaskId?: string;
 }
 
 export interface CreateTaskData {
