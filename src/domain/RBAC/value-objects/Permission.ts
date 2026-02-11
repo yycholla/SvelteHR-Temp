@@ -76,17 +76,17 @@ export class Permission {
 		const [resource, action, scope] = parts;
 
 		// Validate resource
-		if (!VALID_RESOURCES.includes(resource as any)) {
+		if (!(VALID_RESOURCES as readonly string[]).includes(resource)) {
 			return Result.error(new PermissionValidationError(`Invalid resource: ${resource}`));
 		}
 
 		// Validate action
-		if (!VALID_ACTIONS.includes(action as any)) {
+		if (!(VALID_ACTIONS as readonly string[]).includes(action)) {
 			return Result.error(new PermissionValidationError(`Invalid action: ${action}`));
 		}
 
 		// Validate scope if present
-		if (scope && !VALID_SCOPES.includes(scope as any)) {
+		if (scope && !(VALID_SCOPES as readonly string[]).includes(scope)) {
 			return Result.error(new PermissionValidationError(`Invalid scope: ${scope}`));
 		}
 
