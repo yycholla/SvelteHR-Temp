@@ -11,9 +11,11 @@ import type { RequestEvent } from '@sveltejs/kit';
 import { createEmployeeService as createEmployeeServiceFactory } from '$lib/services/employeeServiceFactory';
 import { createLeaveRequestService as createLeaveRequestServiceFactory } from '$lib/services/leaveRequestServiceFactory';
 import { createDepartmentService as createDepartmentServiceFactory } from '$lib/services/departmentServiceFactory';
+import { createAuthService as createAuthServiceFactory } from '$lib/services/authServiceFactory';
 import type { EmployeeService } from '$services/EmployeeService';
 import type { LeaveRequestService } from '$services/LeaveRequestService';
 import type { DepartmentService } from '$services/DepartmentService';
+import type { AuthService } from '$services/AuthService';
 
 /**
  * Container for all available services
@@ -25,6 +27,7 @@ export class ServiceContainer {
 	private _employeeService?: EmployeeService;
 	private _leaveRequestService?: LeaveRequestService;
 	private _departmentService?: DepartmentService;
+	private _authService?: AuthService;
 
 	constructor(private readonly event: RequestEvent) {}
 
@@ -65,6 +68,19 @@ export class ServiceContainer {
 			this._departmentService = createDepartmentServiceFactory(this.event);
 		}
 		return this._departmentService;
+	}
+
+	/**
+	 * Get the AuthService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get authService(): AuthService {
+		if (!this._authService) {
+			this._authService = createAuthServiceFactory(this.event);
+		}
+		return this._authService;
 	}
 }
 
@@ -185,4 +201,32 @@ export function createLeaveRequestService(event: RequestEvent): LeaveRequestServ
  */
 export function createDepartmentService(event: RequestEvent): DepartmentService {
 	return createDepartmentServiceFactory(event);
+}
+
+/**
+ * Create just the AuthService
+ *
+ * Convenience function for routes that need authentication operations.
+ *
+ * @param event - SvelteKit RequestEvent
+ * @returns Configured AuthService instance
+ *
+ * @example
+ * ```typescript
+ * // In +page.server.ts:
+ * export const load: PageServerLoad = async (event) => {
+ *   const authService = createAuthService(event);
+ *
+ *   const result = await authService.refreshAccessToken();
+ *
+ *   if (result.isError) {
+ *     throw redirect(303, '/login');
+ *   }
+ *
+ *   return { tokens: result.value };
+ * };
+ * ```
+ */
+export function createAuthService(event: RequestEvent): AuthService {
+	return createAuthServiceFactory(event);
 }
