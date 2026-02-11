@@ -5,6 +5,7 @@
 use async_graphql::{Context, Enum, InputObject, Object, SimpleObject, Result as GqlResult};
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
+use sea_orm::prelude::Expr;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -214,6 +215,92 @@ impl Model {
 
         Ok(count as i64)
     }
+
+    /// Number of direct child departments (immediate subordinates)
+    async fn child_count(&self, ctx: &Context<'_>) -> GqlResult<i64> {
+        let db = get_db_from_context(ctx)?;
+
+        let count = Entity::find()
+            .filter(Column::ParentDepartmentId.eq(self.id))
+            .filter(Column::DeletedAt.is_null())
+            .count(&db)
+            .await?;
+
+        Ok(count as i64)
+    }
+
+    /// Total number of descendant departments (all nested children)
+    /// Uses GIN index on ancestor_ids for O(log n) performance
+    async fn descendant_count(&self, ctx: &Context<'_>) -> GqlResult<i64> {
+        let db = get_db_from_context(ctx)?;
+
+        // Use GIN index containment operator
+        let count = Entity::find()
+            .filter(
+                Expr::cust_with_values(
+                    "ancestor_ids @> ARRAY[$1]::uuid[]",
+                    vec![self.id]
+                )
+            )
+            .filter(Column::DeletedAt.is_null())
+            .count(&db)
+            .await?;
+
+        Ok(count as i64)
+    }
+
+    /// Whether this department is a leaf node (has no children)
+    async fn is_leaf(&self, ctx: &Context<'_>) -> GqlResult<bool> {
+        let db = get_db_from_context(ctx)?;
+
+        let count = Entity::find()
+            .filter(Column::ParentDepartmentId.eq(self.id))
+            .filter(Column::DeletedAt.is_null())
+            .count(&db)
+            .await?;
+
+        Ok(count == 0)
+    }
+
+    /// Full hierarchy path from root to this department
+    /// Returns ancestors in order: [root, parent, grandparent, ..., self]
+    async fn path(&self, ctx: &Context<'_>) -> GqlResult<Vec<Department>> {
+        let db = get_db_from_context(ctx)?;
+
+        // If root department (no ancestors), path is just itself
+        if self.ancestor_ids.is_empty() {
+            return Ok(vec![self.clone()]);
+        }
+
+        // Fetch all ancestors by their IDs
+        let ancestors: Vec<Model> = Entity::find()
+            .filter(Column::Id.is_in(self.ancestor_ids.clone()))
+            .filter(Column::DeletedAt.is_null())
+            .all(&db)
+            .await?;
+
+        // Sort ancestors from root to immediate parent
+        // ancestor_ids is stored as [parent, grandparent, ..., root]
+        // so we need to reverse to get [root, ..., grandparent, parent]
+        let mut sorted_ancestors: Vec<Department> = ancestors
+            .into_iter()
+            .map(Department::from)
+            .collect();
+
+        // Sort by finding position in ancestor_ids (reverse order)
+        sorted_ancestors.sort_by_key(|dept| {
+            self.ancestor_ids
+                .iter()
+                .rev()  // Reverse to get root-first order
+                .position(|id| *id == dept.id)
+                .unwrap_or(usize::MAX)
+        });
+
+        // Add self at the end
+        sorted_ancestors.push(self.clone());
+
+        Ok(sorted_ancestors)
+    }
 }
 
 /// Department creation input
@@ -271,5 +358,83 @@ mod tests {
 
         assert_eq!(dept.name, "Engineering");
         assert!(dept.ancestor_ids.is_empty());
+    }
+
+    #[tokio::test]
+    #[ignore]  // Requires database connection (TestContext migration pending)
+    async fn test_child_count_resolver() {
+        // Test that child_count returns the correct number of direct children
+        //
+        // Setup:
+        // 1. Create parent department A
+        // 2. Create 3 child departments (B, C, D) with parent_id = A.id
+        // 3. Create 1 grandchild department (E) with parent_id = B.id
+        //
+        // Expected:
+        // - A.child_count should be 3 (only direct children B, C, D)
+        // - B.child_count should be 1 (only direct child E)
+        // - C.child_count should be 0 (leaf node)
+    }
+
+    #[tokio::test]
+    #[ignore]  // Requires database connection (TestContext migration pending)
+    async fn test_descendant_count_resolver() {
+        // Test that descendant_count returns all nested descendants
+        //
+        // Setup:
+        // Create hierarchy: A -> B -> C -> D
+        //
+        // Expected:
+        // - A.descendant_count should be 3 (B, C, D)
+        // - B.descendant_count should be 2 (C, D)
+        // - C.descendant_count should be 1 (D)
+        // - D.descendant_count should be 0 (leaf node)
+        //
+        // Verify that GIN index is used (check EXPLAIN ANALYZE output)
+    }
+
+    #[tokio::test]
+    #[ignore]  // Requires database connection (TestContext migration pending)
+    async fn test_is_leaf_resolver() {
+        // Test that is_leaf correctly identifies leaf nodes
+        //
+        // Setup:
+        // 1. Create parent department A
+        // 2. Create child department B with parent_id = A.id
+        //
+        // Expected:
+        // - A.is_leaf should be false (has child B)
+        // - B.is_leaf should be true (no children)
+    }
+
+    #[tokio::test]
+    #[ignore]  // Requires database connection (TestContext migration pending)
+    async fn test_path_resolver() {
+        // Test that path returns full hierarchy from root to self
+        //
+        // Setup:
+        // Create hierarchy: A (root) -> B -> C -> D
+        //
+        // Expected:
+        // - A.path should be [A] (root has no ancestors)
+        // - B.path should be [A, B]
+        // - C.path should be [A, B, C]
+        // - D.path should be [A, B, C, D]
+        //
+        // Verify ordering is correct (root first, self last)
+    }
+
+    #[tokio::test]
+    #[ignore]  // Requires database connection (TestContext migration pending)
+    async fn test_path_excludes_soft_deleted_ancestors() {
+        // Test that path excludes soft-deleted ancestors
+        //
+        // Setup:
+        // 1. Create hierarchy: A -> B -> C
+        // 2. Soft-delete B (set deleted_at = now)
+        //
+        // Expected:
+        // - C.path should be [A, C] (B is excluded due to soft-delete)
+        // - A.path should be [A] (unchanged)
     }
 }
