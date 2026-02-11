@@ -29,11 +29,14 @@ import { CREATE_TASK, UPDATE_TASK, DELETE_TASK } from '$lib/graphql/tasks/mutati
 interface GraphQLTask {
 	id: string;
 	title: string;
-	description?: string | null;
+	description: string | null;
 	status: string;
 	priority: string;
+	creatorId: string;
 	assigneeId?: string | null;
 	dueDate?: string | null;
+	completedAt?: string | null;
+	parentTaskId?: string | null;
 	createdAt: string;
 	updatedAt: string;
 	// Extra GraphQL fields we ignore for now
@@ -54,7 +57,7 @@ interface GraphQLTask {
  *
  * @example
  * ```typescript
- * const adapter = new GraphQLTaskAdapter(urqlClient, currentUserId);
+ * const adapter = new GraphQLTaskAdapter(urqlClient);
  * const result = await adapter.findById('task-123');
  * if (result.isOk) {
  *   console.log(result.value.title.value);
@@ -62,10 +65,7 @@ interface GraphQLTask {
  * ```
  */
 export class GraphQLTaskAdapter implements TaskRepository {
-	constructor(
-		private readonly client: Client,
-		private readonly currentUserId: string
-	) {}
+	constructor(private readonly client: Client) {}
 
 	async findById(id: string): Promise<Result<Task, TaskNotFoundError>> {
 		try {
@@ -245,11 +245,11 @@ export class GraphQLTaskAdapter implements TaskRepository {
 			description: descriptionResult.value,
 			status: data.status as TaskStatus,
 			priority: data.priority as TaskPriority,
-			createdBy: this.currentUserId, // GraphQL doesn't return createdBy, use current user
+			createdBy: data.creatorId,
 			assigneeId: data.assigneeId ?? undefined,
 			dueDate,
-			parentTaskId: undefined, // GraphQL doesn't have this field yet
-			completedAt: undefined, // Would need to derive from status or add to GraphQL schema
+			parentTaskId: data.parentTaskId ?? undefined,
+			completedAt: data.completedAt ? new Date(data.completedAt) : undefined,
 			createdAt: new Date(data.createdAt),
 			updatedAt: new Date(data.updatedAt),
 			archived: false, // GraphQL doesn't have this field yet

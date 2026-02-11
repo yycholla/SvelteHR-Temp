@@ -28,8 +28,11 @@ describe('GraphQLTaskAdapter', () => {
 							description: 'Test description',
 							status: 'TODO',
 							priority: 'HIGH',
+							creatorId: 'user-123',
 							assigneeId: null,
 							dueDate: null,
+							completedAt: null,
+							parentTaskId: null,
 							createdAt: '2026-02-11T10:00:00Z',
 							updatedAt: '2026-02-11T10:00:00Z',
 							// Extra GraphQL fields we ignore
@@ -43,7 +46,7 @@ describe('GraphQLTaskAdapter', () => {
 				}
 			});
 
-			const adapter = new GraphQLTaskAdapter(mockClient, 'user-123');
+			const adapter = new GraphQLTaskAdapter(mockClient);
 			const result = await adapter.findById('task-123');
 
 			expect(result.isOk).toBe(true);
@@ -58,7 +61,7 @@ describe('GraphQLTaskAdapter', () => {
 				}
 			});
 
-			const adapter = new GraphQLTaskAdapter(mockClient, 'user-123');
+			const adapter = new GraphQLTaskAdapter(mockClient);
 			const result = await adapter.findById('nonexistent');
 
 			expect(result.isError).toBe(true);
@@ -72,7 +75,7 @@ describe('GraphQLTaskAdapter', () => {
 				}
 			});
 
-			const adapter = new GraphQLTaskAdapter(mockClient, 'user-123');
+			const adapter = new GraphQLTaskAdapter(mockClient);
 			const result = await adapter.findById('task-123');
 
 			expect(result.isError).toBe(true);
@@ -90,8 +93,11 @@ describe('GraphQLTaskAdapter', () => {
 							description: 'Description',
 							status: 'TODO',
 							priority: 'MEDIUM',
+							creatorId: 'user-123',
 							assigneeId: 'user-456',
 							dueDate: null,
+							completedAt: null,
+							parentTaskId: null,
 							createdAt: '2026-02-11T10:00:00Z',
 							updatedAt: '2026-02-11T10:00:00Z',
 							// Extra GraphQL fields
@@ -105,7 +111,7 @@ describe('GraphQLTaskAdapter', () => {
 				}
 			});
 
-			const adapter = new GraphQLTaskAdapter(mockClient, 'user-123');
+			const adapter = new GraphQLTaskAdapter(mockClient);
 			const result = await adapter.create({
 				title: 'New Task',
 				description: 'Description',
@@ -129,8 +135,11 @@ describe('GraphQLTaskAdapter', () => {
 							description: 'Updated description',
 							status: 'IN_PROGRESS',
 							priority: 'HIGH',
+							creatorId: 'user-123',
 							assigneeId: null,
 							dueDate: null,
+							completedAt: null,
+							parentTaskId: null,
 							createdAt: '2026-02-11T10:00:00Z',
 							updatedAt: '2026-02-11T12:00:00Z',
 							// Extra GraphQL fields
@@ -144,7 +153,7 @@ describe('GraphQLTaskAdapter', () => {
 				}
 			});
 
-			const adapter = new GraphQLTaskAdapter(mockClient, 'user-123');
+			const adapter = new GraphQLTaskAdapter(mockClient);
 			const result = await adapter.update('task-123', {
 				title: 'Updated Task'
 			});
@@ -166,8 +175,11 @@ describe('GraphQLTaskAdapter', () => {
 								description: 'Description 1',
 								status: 'TODO',
 								priority: 'HIGH',
+								creatorId: 'user-123',
 								assigneeId: null,
 								dueDate: null,
+								completedAt: null,
+								parentTaskId: null,
 								createdAt: '2026-02-11T10:00:00Z',
 								updatedAt: '2026-02-11T10:00:00Z',
 								departmentId: null,
@@ -182,8 +194,11 @@ describe('GraphQLTaskAdapter', () => {
 								description: 'Description 2',
 								status: 'IN_PROGRESS',
 								priority: 'MEDIUM',
+								creatorId: 'user-123',
 								assigneeId: 'user-456',
 								dueDate: null,
+								completedAt: null,
+								parentTaskId: null,
 								createdAt: '2026-02-11T10:00:00Z',
 								updatedAt: '2026-02-11T10:00:00Z',
 								departmentId: null,
@@ -197,7 +212,7 @@ describe('GraphQLTaskAdapter', () => {
 				}
 			});
 
-			const adapter = new GraphQLTaskAdapter(mockClient, 'user-123');
+			const adapter = new GraphQLTaskAdapter(mockClient);
 			const result = await adapter.findAll();
 
 			expect(result.isOk).toBe(true);
@@ -217,8 +232,11 @@ describe('GraphQLTaskAdapter', () => {
 								description: 'Description',
 								status: 'TODO',
 								priority: 'HIGH',
+								creatorId: 'user-123',
 								assigneeId: null,
 								dueDate: null,
+								completedAt: null,
+								parentTaskId: null,
 								createdAt: '2026-02-11T10:00:00Z',
 								updatedAt: '2026-02-11T10:00:00Z',
 								departmentId: null,
@@ -233,8 +251,11 @@ describe('GraphQLTaskAdapter', () => {
 								description: 'Description',
 								status: 'TODO',
 								priority: 'HIGH',
+								creatorId: 'user-123',
 								assigneeId: null,
 								dueDate: null,
+								completedAt: null,
+								parentTaskId: null,
 								createdAt: '2026-02-11T10:00:00Z',
 								updatedAt: '2026-02-11T10:00:00Z',
 								departmentId: null,
@@ -248,7 +269,7 @@ describe('GraphQLTaskAdapter', () => {
 				}
 			});
 
-			const adapter = new GraphQLTaskAdapter(mockClient, 'user-123');
+			const adapter = new GraphQLTaskAdapter(mockClient);
 			const result = await adapter.findAll();
 
 			expect(result.isOk).toBe(true);
@@ -267,7 +288,7 @@ describe('GraphQLTaskAdapter', () => {
 				}
 			});
 
-			const adapter = new GraphQLTaskAdapter(mockClient, 'user-123');
+			const adapter = new GraphQLTaskAdapter(mockClient);
 			const result = await adapter.delete('task-123');
 
 			expect(result.isOk).toBe(true);
@@ -286,8 +307,11 @@ describe('GraphQLTaskAdapter', () => {
 								description: 'Description',
 								status: 'TODO',
 								priority: 'MEDIUM',
+								creatorId: 'user-123',
 								assigneeId: null,
 								dueDate: null,
+								completedAt: null,
+								parentTaskId: 'parent-123',
 								createdAt: '2026-02-11T10:00:00Z',
 								updatedAt: '2026-02-11T10:00:00Z',
 								departmentId: null,
@@ -301,7 +325,7 @@ describe('GraphQLTaskAdapter', () => {
 				}
 			});
 
-			const adapter = new GraphQLTaskAdapter(mockClient, 'user-123');
+			const adapter = new GraphQLTaskAdapter(mockClient);
 			const result = await adapter.findSubtasks('parent-123');
 
 			expect(result.isOk).toBe(true);

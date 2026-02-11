@@ -12,11 +12,14 @@ export const GET_ALL_TASKS = gql`
 			id
 			title
 			description
+			creatorId
 			assigneeId
 			departmentId
 			status
 			priority
 			dueDate
+			completedAt
+			parentTaskId
 			estimatedHours
 			actualHours
 			tags
@@ -41,12 +44,15 @@ export const GET_TASK = gql`
 			id
 			title
 			description
+			creatorId
 			assigneeId
 			departmentId
 			projectId
 			status
 			priority
 			dueDate
+			completedAt
+			parentTaskId
 			estimatedHours
 			actualHours
 			tags
