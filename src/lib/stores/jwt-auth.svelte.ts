@@ -12,6 +12,7 @@
 
 import { type Client, type CombinedError } from '@urql/core';
 import { browser } from '$app/environment';
+import { AccessToken } from '$domain/Auth/value-objects/AccessToken';
 
 // ============================================================================
 // Types
@@ -129,6 +130,7 @@ class JwtAuthStore {
 	private refreshTokenData = $state<{ jwt: string; plaintext: string } | null>(null);
 	private refreshTimer: ReturnType<typeof setTimeout> | null = null;
 	private graphqlClient: Client | null = null;
+	private tokenExpiresAt: Date | null = null;
 
 	/**
 	 * Initialize the auth store with GraphQL client
@@ -277,6 +279,24 @@ class JwtAuthStore {
 		return permissions.every((permission) => this.hasPermission(permission));
 	}
 
+	/**
+	 * Convert current auth state to domain AccessToken entity.
+	 * Returns null if not authenticated or if token data is invalid.
+	 */
+	toDomainAccessToken(): AccessToken | null {
+		if (!this.accessToken || !this.user) return null;
+
+		const result = AccessToken.create({
+			token: this.accessToken,
+			userId: this.user.id,
+			expiresAt: this.tokenExpiresAt ?? new Date(0),
+			permissions: this.user.permissions,
+			roles: this.user.roles
+		});
+
+		return result.isOk ? result.value : null;
+	}
+
 	// ============================================================================
 	// Private Methods
 	// ============================================================================
@@ -287,6 +307,7 @@ class JwtAuthStore {
 	private setAuthData(user: AuthUser, tokens: TokenPair) {
 		this.user = user;
 		this.accessToken = tokens.accessToken;
+		this.tokenExpiresAt = new Date(Date.now() + tokens.expiresIn * 1000);
 		this.refreshTokenData = {
 			jwt: tokens.refreshToken,
 			plaintext: tokens.refreshTokenPlaintext
@@ -304,6 +325,7 @@ class JwtAuthStore {
 	private clearAuthData() {
 		this.user = null;
 		this.accessToken = null;
+		this.tokenExpiresAt = null;
 		this.refreshTokenData = null;
 		this.error = null;
 
