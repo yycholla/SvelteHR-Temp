@@ -132,6 +132,18 @@ pub enum Relation {
 
 impl ActiveModelBehavior for ActiveModel {}
 
+impl Model {
+    /// Helper method to calculate child count (used by both child_count and is_leaf resolvers)
+    async fn calculate_child_count(&self, db: &DatabaseConnection) -> Result<i64, DbErr> {
+        let count = Entity::find()
+            .filter(Column::ParentDepartmentId.eq(self.id))
+            .filter(Column::DeletedAt.is_null())
+            .count(db)
+            .await?;
+        Ok(count as i64)
+    }
+}
+
 /// GraphQL Object implementation for Department
 #[Object(name = "Department")]
 impl Model {
@@ -219,14 +231,8 @@ impl Model {
     /// Number of direct child departments (immediate subordinates)
     async fn child_count(&self, ctx: &Context<'_>) -> GqlResult<i64> {
         let db = get_db_from_context(ctx)?;
-
-        let count = Entity::find()
-            .filter(Column::ParentDepartmentId.eq(self.id))
-            .filter(Column::DeletedAt.is_null())
-            .count(&db)
-            .await?;
-
-        Ok(count as i64)
+        let count = self.calculate_child_count(&db).await?;
+        Ok(count)
     }
 
     /// Total number of descendant departments (all nested children)
@@ -250,15 +256,10 @@ impl Model {
     }
 
     /// Whether this department is a leaf node (has no children)
+    /// Derived from child_count (no extra query)
     async fn is_leaf(&self, ctx: &Context<'_>) -> GqlResult<bool> {
         let db = get_db_from_context(ctx)?;
-
-        let count = Entity::find()
-            .filter(Column::ParentDepartmentId.eq(self.id))
-            .filter(Column::DeletedAt.is_null())
-            .count(&db)
-            .await?;
-
+        let count = self.calculate_child_count(&db).await?;
         Ok(count == 0)
     }
 
