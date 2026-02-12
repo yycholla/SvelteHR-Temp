@@ -34,6 +34,13 @@ export class GoalTitleValidationError extends GoalValidationError {
 	}
 }
 
+export class GoalDescriptionValidationError extends GoalValidationError {
+	constructor(message: string) {
+		super(message);
+		this.name = 'GoalDescriptionValidationError';
+	}
+}
+
 export class GoalNotFoundError extends GoalError {
 	constructor(goalId: string) {
 		super(`Goal not found: ${goalId}`);
