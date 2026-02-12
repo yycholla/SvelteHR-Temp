@@ -78,8 +78,6 @@ storybook-static
 # Crush
 .crush
 
-# .entire (local AI context tool)
-.entire/
 
 # Playwright CLI cache
 .playwright-cli/
