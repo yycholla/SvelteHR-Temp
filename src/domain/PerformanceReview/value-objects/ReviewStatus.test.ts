@@ -80,6 +80,34 @@ describe('ReviewStatus', () => {
 
 			expect(draft.canTransitionTo(overdue)).toBe(true);
 		});
+
+		it('should allow in_progress to overdue', () => {
+			const inProgress = ReviewStatus.create('in_progress').value;
+			const overdue = ReviewStatus.create('overdue').value;
+
+			expect(inProgress.canTransitionTo(overdue)).toBe(true);
+		});
+
+		it('should allow completed to overdue', () => {
+			const completed = ReviewStatus.create('completed').value;
+			const overdue = ReviewStatus.create('overdue').value;
+
+			expect(completed.canTransitionTo(overdue)).toBe(true);
+		});
+
+		it('should allow overdue to in_progress', () => {
+			const overdue = ReviewStatus.create('overdue').value;
+			const inProgress = ReviewStatus.create('in_progress').value;
+
+			expect(overdue.canTransitionTo(inProgress)).toBe(true);
+		});
+
+		it('should allow overdue to completed', () => {
+			const overdue = ReviewStatus.create('overdue').value;
+			const completed = ReviewStatus.create('completed').value;
+
+			expect(overdue.canTransitionTo(completed)).toBe(true);
+		});
 	});
 
 	describe('equals', () => {
@@ -133,6 +161,29 @@ describe('ReviewStatus', () => {
 			expect(overdue.isInProgress()).toBe(false);
 			expect(overdue.isCompleted()).toBe(false);
 			expect(overdue.isOverdue()).toBe(true);
+		});
+	});
+
+	describe('normalization', () => {
+		it('should normalize uppercase status', () => {
+			const result = ReviewStatus.create('DRAFT');
+
+			expect(result.isOk).toBe(true);
+			expect(result.value.value).toBe('draft');
+		});
+
+		it('should normalize mixed case status', () => {
+			const result = ReviewStatus.create('In_Progress');
+
+			expect(result.isOk).toBe(true);
+			expect(result.value.value).toBe('in_progress');
+		});
+
+		it('should normalize status with whitespace', () => {
+			const result = ReviewStatus.create('  completed  ');
+
+			expect(result.isOk).toBe(true);
+			expect(result.value.value).toBe('completed');
 		});
 	});
 });
