@@ -128,4 +128,14 @@ describe('GoalPriority', () => {
 			expect(priority1.equals(priority2)).toBe(false);
 		});
 	});
+
+	describe('toString', () => {
+		it('should return priority as string', () => {
+			const low = GoalPriority.create('low').value;
+			expect(low.toString()).toBe('low');
+
+			const high = GoalPriority.create('high').value;
+			expect(high.toString()).toBe('high');
+		});
+	});
 });
