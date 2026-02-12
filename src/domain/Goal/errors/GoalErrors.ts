@@ -68,3 +68,10 @@ export class ProgressValidationError extends GoalValidationError {
 		this.name = 'ProgressValidationError';
 	}
 }
+
+export class QuarterValidationError extends GoalValidationError {
+	constructor(message: string) {
+		super(message);
+		this.name = 'QuarterValidationError';
+	}
+}
