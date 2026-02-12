@@ -13,11 +13,13 @@ import { createLeaveRequestService as createLeaveRequestServiceFactory } from '$
 import { createDepartmentService as createDepartmentServiceFactory } from '$lib/services/departmentServiceFactory';
 import { createAuthService as createAuthServiceFactory } from '$lib/services/authServiceFactory';
 import { createTaskService } from '$lib/services/taskServiceFactory';
+import { createRBACService } from '$lib/services/rbacServiceFactory';
 import type { EmployeeService } from '$services/EmployeeService';
 import type { LeaveRequestService } from '$services/LeaveRequestService';
 import type { DepartmentService } from '$services/DepartmentService';
 import type { AuthService } from '$services/AuthService';
 import type { TaskService } from '$services/TaskService';
+import type { RBACService } from '$services/RBACService';
 
 /**
  * Container for all available services
@@ -31,6 +33,7 @@ export class ServiceContainer {
 	private _departmentService?: DepartmentService;
 	private _authService?: AuthService;
 	private _taskService?: TaskService;
+	private _rbacService?: RBACService;
 
 	constructor(private readonly event: RequestEvent) {}
 
@@ -97,6 +100,19 @@ export class ServiceContainer {
 			this._taskService = createTaskService(this.event);
 		}
 		return this._taskService;
+	}
+
+	/**
+	 * Get the RBACService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get rbacService(): RBACService {
+		if (!this._rbacService) {
+			this._rbacService = createRBACService(this.event);
+		}
+		return this._rbacService;
 	}
 }
 
@@ -249,3 +265,6 @@ export function createAuthService(event: RequestEvent): AuthService {
 
 // Re-export createTaskService from factory for convenience
 export { createTaskService } from '$lib/services/taskServiceFactory';
+
+// Re-export createRBACService from factory for convenience
+export { createRBACService } from '$lib/services/rbacServiceFactory';
