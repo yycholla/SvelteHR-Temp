@@ -76,6 +76,22 @@ describe('PerformanceReview', () => {
 
 			expect(result.isError).toBe(true);
 		});
+
+		it('should reject missing required ID', () => {
+			const props = { ...validProps, id: '' };
+			const result = PerformanceReview.create(props);
+
+			expect(result.isError).toBe(true);
+			expect(result.error).toBeInstanceOf(PerformanceReviewValidationError);
+		});
+
+		it('should reject missing required reviewerId', () => {
+			const props = { ...validProps, reviewerId: '' };
+			const result = PerformanceReview.create(props);
+
+			expect(result.isError).toBe(true);
+			expect(result.error).toBeInstanceOf(PerformanceReviewValidationError);
+		});
 	});
 
 	describe('status transitions', () => {
@@ -170,6 +186,17 @@ describe('PerformanceReview', () => {
 			// Average: (3+3+3+3+3+5) / 6 = 3.33...
 			expect(review.getAverageRating()).toBeCloseTo(3.33, 2);
 		});
+
+		it('should update technicalSkills rating', () => {
+			const review = PerformanceReview.create(validProps).value;
+			const technicalSkills = Rating.create(4).value;
+
+			const updated = review.updateRatings({
+				technicalSkills
+			});
+
+			expect(updated.technicalSkills?.value).toBe(4);
+		});
 	});
 
 	describe('completion check', () => {
@@ -199,6 +226,17 @@ describe('PerformanceReview', () => {
 
 			expect(review.isOverdue()).toBe(true);
 		});
+
+		it('should return false for overdue but completed review', () => {
+			const props = {
+				...validProps,
+				status: ReviewStatus.create('completed').value,
+				reviewDate: ReviewDate.create('2020-01-01').value
+			};
+			const review = PerformanceReview.create(props).value;
+
+			expect(review.isOverdue()).toBe(false);
+		});
 	});
 
 	describe('immutability', () => {
@@ -210,6 +248,19 @@ describe('PerformanceReview', () => {
 
 			expect(updated).not.toBe(review);
 			expect(review.status.value).toBe('draft'); // Original unchanged
+		});
+
+		it('should protect internal dates from external mutation', () => {
+			const review = PerformanceReview.create(validProps).value;
+			const originalYear = review.updatedAt.getFullYear();
+
+			// Get the date and mutate it
+			const returnedDate = review.updatedAt;
+			returnedDate.setFullYear(2030);
+
+			// Review should be unaffected
+			expect(review.updatedAt.getFullYear()).toBe(originalYear);
+			expect(review.updatedAt.getFullYear()).not.toBe(2030);
 		});
 	});
 
