@@ -1,6 +1,6 @@
 import { Result } from '$domain/Result';
 import { Role, Permission, RBACError, RoleNotFoundError } from '$domain/RBAC';
-import { RoleRepository } from './ports/RoleRepository';
+import type { RoleRepository } from './ports/RoleRepository';
 
 export class RBACService {
 	constructor(private readonly repository: RoleRepository) {}

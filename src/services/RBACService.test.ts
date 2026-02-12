@@ -1,7 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { RBACService } from './RBACService';
-import { RoleRepository } from './ports/RoleRepository';
-import { Role, Permission, RoleHierarchy, RoleNotFoundError } from '$domain/RBAC';
+import type { RoleRepository, UpdateRoleData, CreateRoleData } from './ports/RoleRepository';
+import {
+	Role,
+	Permission,
+	RoleHierarchy,
+	RoleNotFoundError,
+	RBACError,
+	RoleValidationError
+} from '$domain/RBAC';
 import { Result } from '$domain/Result';
 
 // Mock repository
@@ -9,7 +16,7 @@ class MockRoleRepository implements RoleRepository {
 	private roles: Map<string, Role> = new Map();
 	private userRoles: Map<string, string[]> = new Map();
 
-	async findById(id: string) {
+	async findById(id: string): Promise<Result<Role, RoleNotFoundError>> {
 		const role = this.roles.get(id);
 		if (!role) {
 			return Result.error(new RoleNotFoundError(id));
@@ -17,11 +24,11 @@ class MockRoleRepository implements RoleRepository {
 		return Result.ok(role);
 	}
 
-	async findAll() {
+	async findAll(): Promise<Result<Role[], RBACError>> {
 		return Result.ok(Array.from(this.roles.values()));
 	}
 
-	async create(data: any) {
+	async create(data: CreateRoleData): Promise<Result<Role, RoleValidationError>> {
 		const hierarchy = RoleHierarchy.create('Manager').value;
 		const permissions = data.permissions.map((p: string) => Permission.create(p).value);
 
@@ -39,10 +46,10 @@ class MockRoleRepository implements RoleRepository {
 		return Result.ok(role);
 	}
 
-	async update(id: string, data: any) {
+	async update(id: string, data: UpdateRoleData): Promise<Result<Role, RBACError>> {
 		const existingResult = await this.findById(id);
 		if (existingResult.isError) {
-			return existingResult;
+			return Result.error(new RBACError(existingResult.error.message));
 		}
 
 		const existing = existingResult.value;
@@ -60,7 +67,7 @@ class MockRoleRepository implements RoleRepository {
 		return Result.ok(updatedRole);
 	}
 
-	async delete(id: string) {
+	async delete(id: string): Promise<Result<void, RoleNotFoundError>> {
 		if (!this.roles.has(id)) {
 			return Result.error(new RoleNotFoundError(id));
 		}
@@ -68,10 +75,10 @@ class MockRoleRepository implements RoleRepository {
 		return Result.ok(undefined);
 	}
 
-	async addPermissionToRole(roleId: string, permission: string) {
+	async addPermissionToRole(roleId: string, permission: string): Promise<Result<Role, RBACError>> {
 		const roleResult = await this.findById(roleId);
 		if (roleResult.isError) {
-			return roleResult;
+			return Result.error(new RBACError(roleResult.error.message));
 		}
 
 		const perm = Permission.create(permission).value;
@@ -80,10 +87,13 @@ class MockRoleRepository implements RoleRepository {
 		return Result.ok(updated);
 	}
 
-	async removePermissionFromRole(roleId: string, permission: string) {
+	async removePermissionFromRole(
+		roleId: string,
+		permission: string
+	): Promise<Result<Role, RBACError>> {
 		const roleResult = await this.findById(roleId);
 		if (roleResult.isError) {
-			return roleResult;
+			return Result.error(new RBACError(roleResult.error.message));
 		}
 
 		const perm = Permission.create(permission).value;
@@ -92,7 +102,7 @@ class MockRoleRepository implements RoleRepository {
 		return Result.ok(updated);
 	}
 
-	async getRolesForUser(userId: string) {
+	async getRolesForUser(userId: string): Promise<Result<Role[], RBACError>> {
 		const roleIds = this.userRoles.get(userId) ?? [];
 		const roles = roleIds.map((id) => this.roles.get(id)).filter((r): r is Role => r !== undefined);
 		return Result.ok(roles);
