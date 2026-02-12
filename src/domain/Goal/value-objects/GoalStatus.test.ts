@@ -158,6 +158,12 @@ describe('GoalStatus', () => {
 			expect(from.canTransitionTo(to)).toBe(true);
 		});
 
+		it('should allow cancelled to in_progress (resume)', () => {
+			const from = GoalStatus.create('cancelled').value;
+			const to = GoalStatus.create('in_progress').value;
+			expect(from.canTransitionTo(to)).toBe(true);
+		});
+
 		it('should not allow completed to any status', () => {
 			const from = GoalStatus.create('completed').value;
 			const toNotStarted = GoalStatus.create('not_started').value;
@@ -187,6 +193,13 @@ describe('GoalStatus', () => {
 			const status1 = GoalStatus.create('in_progress').value;
 			const status2 = GoalStatus.create('completed').value;
 			expect(status1.equals(status2)).toBe(false);
+		});
+	});
+
+	describe('toString', () => {
+		it('should return string value via toString', () => {
+			const status = GoalStatus.create('in_progress').value;
+			expect(status.toString()).toBe('in_progress');
 		});
 	});
 });
