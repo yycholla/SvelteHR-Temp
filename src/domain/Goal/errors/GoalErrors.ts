@@ -75,3 +75,10 @@ export class QuarterValidationError extends GoalValidationError {
 		this.name = 'QuarterValidationError';
 	}
 }
+
+export class InvalidStatusTransitionError extends GoalError {
+	constructor(message: string) {
+		super(message);
+		this.name = 'InvalidStatusTransitionError';
+	}
+}
