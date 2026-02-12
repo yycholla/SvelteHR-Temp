@@ -19,6 +19,17 @@ describe('ReviewDate', () => {
 			expect(result.isOk).toBe(true);
 		});
 
+		it('should create defensive copy on creation', () => {
+			const originalDate = new Date('2025-03-15');
+			const result = ReviewDate.create(originalDate);
+
+			// Mutate the original date
+			originalDate.setFullYear(2030);
+
+			// ReviewDate should be unaffected
+			expect(result.value.value.getFullYear()).toBe(2025);
+		});
+
 		it('should reject invalid date string', () => {
 			const result = ReviewDate.create('invalid-date');
 
@@ -44,6 +55,18 @@ describe('ReviewDate', () => {
 
 			expect(result.isError).toBe(true);
 			expect(result.error.message).toContain('too far in the past');
+		});
+
+		it('should accept year 2001 boundary', () => {
+			const result = ReviewDate.create('2001-01-01');
+
+			expect(result.isOk).toBe(true);
+		});
+
+		it('should accept year 2049 boundary', () => {
+			const result = ReviewDate.create('2049-12-31');
+
+			expect(result.isOk).toBe(true);
 		});
 	});
 
@@ -131,6 +154,19 @@ describe('ReviewDate', () => {
 			const date2 = ReviewDate.create('2025-03-16').value;
 
 			expect(date1.equals(date2)).toBe(false);
+		});
+	});
+
+	describe('immutability', () => {
+		it('should return defensive copy from value getter', () => {
+			const reviewDate = ReviewDate.create('2025-03-15').value;
+
+			// Get the value and mutate it
+			const dateValue = reviewDate.value;
+			dateValue.setFullYear(2030);
+
+			// ReviewDate should be unaffected
+			expect(reviewDate.value.getFullYear()).toBe(2025);
 		});
 	});
 });
