@@ -15,6 +15,7 @@ import { createAuthService as createAuthServiceFactory } from '$lib/services/aut
 import { createTaskService } from '$lib/services/taskServiceFactory';
 import { createRBACService } from '$lib/services/rbacServiceFactory';
 import { createPerformanceReviewService } from '$lib/services/performanceReviewServiceFactory';
+import { createGoalService as createGoalServiceFactory } from '$lib/services/goalServiceFactory';
 import type { EmployeeService } from '$services/EmployeeService';
 import type { LeaveRequestService } from '$services/LeaveRequestService';
 import type { DepartmentService } from '$services/DepartmentService';
@@ -22,6 +23,7 @@ import type { AuthService } from '$services/AuthService';
 import type { TaskService } from '$services/TaskService';
 import type { RBACService } from '$services/RBACService';
 import type { PerformanceReviewService } from '$services/PerformanceReviewService';
+import type { GoalService } from '$services/GoalService';
 
 /**
  * Container for all available services
@@ -37,6 +39,7 @@ export class ServiceContainer {
 	private _taskService?: TaskService;
 	private _rbacService?: RBACService;
 	private _performanceReviewService?: PerformanceReviewService;
+	private _goalService?: GoalService;
 
 	constructor(private readonly event: RequestEvent) {}
 
@@ -129,6 +132,19 @@ export class ServiceContainer {
 			this._performanceReviewService = createPerformanceReviewService(this.event);
 		}
 		return this._performanceReviewService;
+	}
+
+	/**
+	 * Get the GoalService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get goalService(): GoalService {
+		if (!this._goalService) {
+			this._goalService = createGoalServiceFactory(this.event);
+		}
+		return this._goalService;
 	}
 }
 
@@ -287,3 +303,6 @@ export { createRBACService } from '$lib/services/rbacServiceFactory';
 
 // Re-export createPerformanceReviewService from factory for convenience
 export { createPerformanceReviewService } from '$lib/services/performanceReviewServiceFactory';
+
+// Re-export createGoalService from factory for convenience
+export { createGoalService } from '$lib/services/goalServiceFactory';
