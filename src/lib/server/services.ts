@@ -14,12 +14,14 @@ import { createDepartmentService as createDepartmentServiceFactory } from '$lib/
 import { createAuthService as createAuthServiceFactory } from '$lib/services/authServiceFactory';
 import { createTaskService } from '$lib/services/taskServiceFactory';
 import { createRBACService } from '$lib/services/rbacServiceFactory';
+import { createPerformanceReviewService } from '$lib/services/performanceReviewServiceFactory';
 import type { EmployeeService } from '$services/EmployeeService';
 import type { LeaveRequestService } from '$services/LeaveRequestService';
 import type { DepartmentService } from '$services/DepartmentService';
 import type { AuthService } from '$services/AuthService';
 import type { TaskService } from '$services/TaskService';
 import type { RBACService } from '$services/RBACService';
+import type { PerformanceReviewService } from '$services/PerformanceReviewService';
 
 /**
  * Container for all available services
@@ -34,6 +36,7 @@ export class ServiceContainer {
 	private _authService?: AuthService;
 	private _taskService?: TaskService;
 	private _rbacService?: RBACService;
+	private _performanceReviewService?: PerformanceReviewService;
 
 	constructor(private readonly event: RequestEvent) {}
 
@@ -113,6 +116,19 @@ export class ServiceContainer {
 			this._rbacService = createRBACService(this.event);
 		}
 		return this._rbacService;
+	}
+
+	/**
+	 * Get the PerformanceReviewService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get performanceReviewService(): PerformanceReviewService {
+		if (!this._performanceReviewService) {
+			this._performanceReviewService = createPerformanceReviewService(this.event);
+		}
+		return this._performanceReviewService;
 	}
 }
 
@@ -268,3 +284,6 @@ export { createTaskService } from '$lib/services/taskServiceFactory';
 
 // Re-export createRBACService from factory for convenience
 export { createRBACService } from '$lib/services/rbacServiceFactory';
+
+// Re-export createPerformanceReviewService from factory for convenience
+export { createPerformanceReviewService } from '$lib/services/performanceReviewServiceFactory';
