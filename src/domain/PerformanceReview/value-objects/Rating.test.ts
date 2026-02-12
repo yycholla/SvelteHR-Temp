@@ -21,6 +21,30 @@ describe('Rating', () => {
 			expect(result.value.label).toBe('Outstanding');
 		});
 
+		it('should create rating with value 2', () => {
+			const result = Rating.create(2);
+
+			expect(result.isOk).toBe(true);
+			expect(result.value.value).toBe(2);
+			expect(result.value.label).toBe('Below Expectations');
+		});
+
+		it('should create rating with value 3', () => {
+			const result = Rating.create(3);
+
+			expect(result.isOk).toBe(true);
+			expect(result.value.value).toBe(3);
+			expect(result.value.label).toBe('Meets Expectations');
+		});
+
+		it('should create rating with value 4', () => {
+			const result = Rating.create(4);
+
+			expect(result.isOk).toBe(true);
+			expect(result.value.value).toBe(4);
+			expect(result.value.label).toBe('Exceeds Expectations');
+		});
+
 		it('should reject rating below 1', () => {
 			const result = Rating.create(0);
 
@@ -46,6 +70,14 @@ describe('Rating', () => {
 			const result = Rating.create(NaN);
 
 			expect(result.isError).toBe(true);
+		});
+
+		it('should reject negative ratings', () => {
+			const result = Rating.create(-1);
+
+			expect(result.isError).toBe(true);
+			expect(result.error).toBeInstanceOf(RatingValidationError);
+			expect(result.error.message).toContain('must be between 1 and 5');
 		});
 	});
 
