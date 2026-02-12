@@ -26,6 +26,14 @@ describe('ReviewPeriod', () => {
 			expect(result.value.isHalfYearly()).toBe(true);
 		});
 
+		it('should create half-year period H2-2025', () => {
+			const result = ReviewPeriod.create('H2-2025');
+
+			expect(result.isOk).toBe(true);
+			expect(result.value.value).toBe('H2-2025');
+			expect(result.value.isHalfYearly()).toBe(true);
+		});
+
 		it('should create annual period Annual-2025', () => {
 			const result = ReviewPeriod.create('Annual-2025');
 
@@ -40,16 +48,38 @@ describe('ReviewPeriod', () => {
 			expect(result.error).toBeInstanceOf(ReviewPeriodValidationError);
 		});
 
+		it('should reject invalid half-year format', () => {
+			const result = ReviewPeriod.create('H3-2025');
+
+			expect(result.isError).toBe(true);
+			expect(result.error).toBeInstanceOf(ReviewPeriodValidationError);
+		});
+
 		it('should reject empty period', () => {
 			const result = ReviewPeriod.create('');
 
 			expect(result.isError).toBe(true);
 		});
 
+		it('should trim whitespace from period', () => {
+			const result = ReviewPeriod.create('  Q1-2025  ');
+
+			expect(result.isOk).toBe(true);
+			expect(result.value.value).toBe('Q1-2025');
+		});
+
 		it('should reject invalid year', () => {
 			const result = ReviewPeriod.create('Q1-999');
 
 			expect(result.isError).toBe(true);
+		});
+
+		it('should reject year beyond 2100', () => {
+			const result = ReviewPeriod.create('Q1-2150');
+
+			expect(result.isError).toBe(true);
+			expect(result.error).toBeInstanceOf(ReviewPeriodValidationError);
+			expect(result.error.message).toContain('between 2000 and 2100');
 		});
 	});
 
