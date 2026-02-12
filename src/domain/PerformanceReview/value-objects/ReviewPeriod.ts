@@ -4,6 +4,9 @@ import { ReviewPeriodValidationError } from '../errors/PerformanceReviewErrors';
 
 interface ReviewPeriodProps {
 	value: string;
+	year: number;
+	quarter?: number; // 1-4 for quarterly, undefined otherwise
+	half?: number; // 1-2 for half-yearly, undefined otherwise
 }
 
 // Valid formats: Q1-2025, Q2-2025, ..., Q4-2025, H1-2025, H2-2025, Annual-2025
@@ -21,34 +24,50 @@ export class ReviewPeriod {
 
 		const trimmed = period.trim();
 
-		// Validate format
-		const isQuarterly = QUARTERLY_PATTERN.test(trimmed);
-		const isHalfYearly = HALF_YEARLY_PATTERN.test(trimmed);
-		const isAnnual = ANNUAL_PATTERN.test(trimmed);
+		// Try quarterly pattern
+		const quarterlyMatch = QUARTERLY_PATTERN.exec(trimmed);
+		if (quarterlyMatch) {
+			const quarter = parseInt(quarterlyMatch[1]);
+			const year = parseInt(quarterlyMatch[2]);
 
-		if (!isQuarterly && !isHalfYearly && !isAnnual) {
-			return Result.error(
-				new ReviewPeriodValidationError(
-					`Invalid review period format: ${period}. Expected formats: Q1-2025, H1-2025, or Annual-2025`
-				)
-			);
+			if (year < 2000 || year > 2100) {
+				return Result.error(new ReviewPeriodValidationError('Year must be between 2000 and 2100'));
+			}
+
+			return Result.ok(new ReviewPeriod({ value: trimmed, year, quarter }));
 		}
 
-		// Validate year (must be 4 digits, reasonable range)
-		let year: number;
-		if (isQuarterly) {
-			year = parseInt(QUARTERLY_PATTERN.exec(trimmed)![2]);
-		} else if (isHalfYearly) {
-			year = parseInt(HALF_YEARLY_PATTERN.exec(trimmed)![2]);
-		} else {
-			year = parseInt(ANNUAL_PATTERN.exec(trimmed)![1]);
+		// Try half-yearly pattern
+		const halfYearlyMatch = HALF_YEARLY_PATTERN.exec(trimmed);
+		if (halfYearlyMatch) {
+			const half = parseInt(halfYearlyMatch[1]);
+			const year = parseInt(halfYearlyMatch[2]);
+
+			if (year < 2000 || year > 2100) {
+				return Result.error(new ReviewPeriodValidationError('Year must be between 2000 and 2100'));
+			}
+
+			return Result.ok(new ReviewPeriod({ value: trimmed, year, half }));
 		}
 
-		if (year < 2000 || year > 2100) {
-			return Result.error(new ReviewPeriodValidationError('Year must be between 2000 and 2100'));
+		// Try annual pattern
+		const annualMatch = ANNUAL_PATTERN.exec(trimmed);
+		if (annualMatch) {
+			const year = parseInt(annualMatch[1]);
+
+			if (year < 2000 || year > 2100) {
+				return Result.error(new ReviewPeriodValidationError('Year must be between 2000 and 2100'));
+			}
+
+			return Result.ok(new ReviewPeriod({ value: trimmed, year }));
 		}
 
-		return Result.ok(new ReviewPeriod({ value: trimmed }));
+		// No pattern matched
+		return Result.error(
+			new ReviewPeriodValidationError(
+				`Invalid review period format: ${period}. Expected formats: Q1-2025, H1-2025, or Annual-2025`
+			)
+		);
 	}
 
 	get value(): string {
@@ -56,48 +75,41 @@ export class ReviewPeriod {
 	}
 
 	isQuarterly(): boolean {
-		return QUARTERLY_PATTERN.test(this.props.value);
+		return this.props.quarter !== undefined;
 	}
 
 	isHalfYearly(): boolean {
-		return HALF_YEARLY_PATTERN.test(this.props.value);
+		return this.props.half !== undefined;
 	}
 
 	isAnnual(): boolean {
-		return ANNUAL_PATTERN.test(this.props.value);
+		return this.props.quarter === undefined && this.props.half === undefined;
 	}
 
 	getYear(): number {
-		if (this.isQuarterly()) {
-			return parseInt(QUARTERLY_PATTERN.exec(this.props.value)![2]);
-		} else if (this.isHalfYearly()) {
-			return parseInt(HALF_YEARLY_PATTERN.exec(this.props.value)![2]);
-		} else {
-			return parseInt(ANNUAL_PATTERN.exec(this.props.value)![1]);
-		}
+		return this.props.year;
 	}
 
 	getQuarter(): number | null {
-		if (!this.isQuarterly()) return null;
-		return parseInt(QUARTERLY_PATTERN.exec(this.props.value)![1]);
+		return this.props.quarter ?? null;
 	}
 
 	isPast(): boolean {
 		const currentYear = new Date().getFullYear();
-		return this.getYear() < currentYear;
+		return this.props.year < currentYear;
 	}
 
 	isCurrent(): boolean {
 		const currentYear = new Date().getFullYear();
 		const currentQuarter = Math.floor(new Date().getMonth() / 3) + 1;
 
-		if (this.getYear() !== currentYear) return false;
+		if (this.props.year !== currentYear) return false;
 
-		if (this.isQuarterly()) {
-			return this.getQuarter() === currentQuarter;
-		} else if (this.isHalfYearly()) {
+		if (this.props.quarter !== undefined) {
+			return this.props.quarter === currentQuarter;
+		} else if (this.props.half !== undefined) {
 			const half = currentQuarter <= 2 ? 1 : 2;
-			return this.props.value.includes(`H${half}`);
+			return this.props.half === half;
 		} else {
 			return true; // Annual period matches current year
 		}
