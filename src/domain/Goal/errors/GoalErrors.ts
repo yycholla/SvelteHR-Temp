@@ -61,3 +61,10 @@ export class InvalidProgressError extends GoalError {
 		this.name = 'InvalidProgressError';
 	}
 }
+
+export class ProgressValidationError extends GoalValidationError {
+	constructor(message: string) {
+		super(message);
+		this.name = 'ProgressValidationError';
+	}
+}
