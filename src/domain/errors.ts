@@ -195,3 +195,79 @@ export class ServiceUnavailableError extends DomainError {
 		this.name = 'ServiceUnavailableError';
 	}
 }
+
+/**
+ * Error thrown when attendance record is not found.
+ */
+export class AttendanceNotFoundError extends DomainError {
+	constructor(recordId: string) {
+		super(`Attendance record with ID ${recordId} not found`, 'ATTENDANCE_NOT_FOUND', {
+			recordId
+		});
+		this.name = 'AttendanceNotFoundError';
+	}
+}
+
+/**
+ * Error thrown when clock time validation fails.
+ */
+export class InvalidClockTimeError extends DomainError {
+	constructor(reason: string) {
+		super(`Invalid clock time: ${reason}`, 'INVALID_CLOCK_TIME', { reason });
+		this.name = 'InvalidClockTimeError';
+	}
+}
+
+/**
+ * Error thrown when shift type validation fails.
+ */
+export class InvalidShiftTypeError extends DomainError {
+	constructor(value: string) {
+		super(`Invalid shift type: ${value}`, 'INVALID_SHIFT_TYPE', { value });
+		this.name = 'InvalidShiftTypeError';
+	}
+}
+
+/**
+ * Error thrown when attendance status validation fails.
+ */
+export class InvalidAttendanceStatusError extends DomainError {
+	constructor(value: string) {
+		super(`Invalid attendance status: ${value}`, 'INVALID_ATTENDANCE_STATUS', { value });
+		this.name = 'InvalidAttendanceStatusError';
+	}
+}
+
+/**
+ * Error thrown when work hours validation fails.
+ */
+export class InvalidWorkHoursError extends DomainError {
+	constructor(reason: string, hours?: number) {
+		super(`Invalid work hours: ${reason}`, 'INVALID_WORK_HOURS', { reason, hours });
+		this.name = 'InvalidWorkHoursError';
+	}
+}
+
+/**
+ * Error thrown when overtime hours validation fails.
+ */
+export class InvalidOvertimeHoursError extends DomainError {
+	constructor(reason: string, hours?: number) {
+		super(`Invalid overtime hours: ${reason}`, 'INVALID_OVERTIME_HOURS', { reason, hours });
+		this.name = 'InvalidOvertimeHoursError';
+	}
+}
+
+/**
+ * Error thrown when attendance record already exists.
+ */
+export class AttendanceAlreadyExistsError extends DomainError {
+	constructor(employeeId: string, date: string) {
+		super(
+			`Attendance record for employee ${employeeId} on ${date} already exists`,
+			'ATTENDANCE_ALREADY_EXISTS',
+			{ employeeId, date }
+		);
+		this.name = 'AttendanceAlreadyExistsError';
+	}
+}
