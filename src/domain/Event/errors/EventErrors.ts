@@ -25,3 +25,10 @@ export class EventTitleValidationError extends EventError {
 		this.name = 'EventTitleValidationError';
 	}
 }
+
+export class EventDescriptionValidationError extends EventError {
+	constructor(message: string) {
+		super(message);
+		this.name = 'EventDescriptionValidationError';
+	}
+}
