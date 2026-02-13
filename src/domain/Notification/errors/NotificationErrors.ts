@@ -40,6 +40,13 @@ export class NotificationMessageValidationError extends NotificationError {
 	}
 }
 
+export class ReadStatusValidationError extends NotificationError {
+	constructor(message: string) {
+		super(message);
+		this.name = 'ReadStatusValidationError';
+	}
+}
+
 export class NotificationNotFoundError extends NotificationError {
 	constructor(id: string) {
 		super(`Notification not found: ${id}`);
