@@ -53,3 +53,10 @@ export class EventTimeValidationError extends EventError {
 		this.name = 'EventTimeValidationError';
 	}
 }
+
+export class EventColorValidationError extends EventError {
+	constructor(message: string) {
+		super(message);
+		this.name = 'EventColorValidationError';
+	}
+}
