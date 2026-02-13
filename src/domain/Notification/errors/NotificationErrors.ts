@@ -47,6 +47,13 @@ export class ReadStatusValidationError extends NotificationError {
 	}
 }
 
+export class ResourceLinkValidationError extends NotificationError {
+	constructor(message: string) {
+		super(message);
+		this.name = 'ResourceLinkValidationError';
+	}
+}
+
 export class NotificationNotFoundError extends NotificationError {
 	constructor(id: string) {
 		super(`Notification not found: ${id}`);
