@@ -74,3 +74,10 @@ export class EventValidationError extends EventError {
 		this.name = 'EventValidationError';
 	}
 }
+
+export class EventNotFoundError extends EventError {
+	constructor(eventId: string) {
+		super(`Event not found: ${eventId}`);
+		this.name = 'EventNotFoundError';
+	}
+}
