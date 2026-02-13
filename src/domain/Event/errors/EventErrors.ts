@@ -32,3 +32,10 @@ export class EventDescriptionValidationError extends EventError {
 		this.name = 'EventDescriptionValidationError';
 	}
 }
+
+export class LocationValidationError extends EventError {
+	constructor(message: string) {
+		super(message);
+		this.name = 'LocationValidationError';
+	}
+}
