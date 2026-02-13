@@ -46,3 +46,10 @@ export class RsvpStatusValidationError extends EventError {
 		this.name = 'RsvpStatusValidationError';
 	}
 }
+
+export class EventTimeValidationError extends EventError {
+	constructor(message: string) {
+		super(message);
+		this.name = 'EventTimeValidationError';
+	}
+}
