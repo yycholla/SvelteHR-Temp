@@ -39,3 +39,10 @@ export class LocationValidationError extends EventError {
 		this.name = 'LocationValidationError';
 	}
 }
+
+export class RsvpStatusValidationError extends EventError {
+	constructor(message: string) {
+		super(message);
+		this.name = 'RsvpStatusValidationError';
+	}
+}
