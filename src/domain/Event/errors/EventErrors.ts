@@ -11,3 +11,10 @@ export class EventStatusValidationError extends EventError {
 		this.name = 'EventStatusValidationError';
 	}
 }
+
+export class EventTypeValidationError extends EventError {
+	constructor(message: string) {
+		super(message);
+		this.name = 'EventTypeValidationError';
+	}
+}
