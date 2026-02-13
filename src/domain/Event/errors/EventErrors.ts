@@ -67,3 +67,10 @@ export class EventAttendeeValidationError extends EventError {
 		this.name = 'EventAttendeeValidationError';
 	}
 }
+
+export class EventValidationError extends EventError {
+	constructor(message: string) {
+		super(message);
+		this.name = 'EventValidationError';
+	}
+}
