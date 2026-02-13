@@ -60,3 +60,10 @@ export class EventColorValidationError extends EventError {
 		this.name = 'EventColorValidationError';
 	}
 }
+
+export class EventAttendeeValidationError extends EventError {
+	constructor(message: string) {
+		super(message);
+		this.name = 'EventAttendeeValidationError';
+	}
+}
