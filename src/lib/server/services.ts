@@ -16,6 +16,7 @@ import { createTaskService } from '$lib/services/taskServiceFactory';
 import { createRBACService } from '$lib/services/rbacServiceFactory';
 import { createPerformanceReviewService } from '$lib/services/performanceReviewServiceFactory';
 import { createGoalService as createGoalServiceFactory } from '$lib/services/goalServiceFactory';
+import { createEventService as createEventServiceFactory } from '$lib/services/eventServiceFactory';
 import type { EmployeeService } from '$services/EmployeeService';
 import type { LeaveRequestService } from '$services/LeaveRequestService';
 import type { DepartmentService } from '$services/DepartmentService';
@@ -24,6 +25,7 @@ import type { TaskService } from '$services/TaskService';
 import type { RBACService } from '$services/RBACService';
 import type { PerformanceReviewService } from '$services/PerformanceReviewService';
 import type { GoalService } from '$services/GoalService';
+import type { EventService } from '$services/EventService';
 
 /**
  * Container for all available services
@@ -40,6 +42,7 @@ export class ServiceContainer {
 	private _rbacService?: RBACService;
 	private _performanceReviewService?: PerformanceReviewService;
 	private _goalService?: GoalService;
+	private _eventService?: EventService;
 
 	constructor(private readonly event: RequestEvent) {}
 
@@ -145,6 +148,19 @@ export class ServiceContainer {
 			this._goalService = createGoalServiceFactory(this.event);
 		}
 		return this._goalService;
+	}
+
+	/**
+	 * Get the EventService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get eventService(): EventService {
+		if (!this._eventService) {
+			this._eventService = createEventServiceFactory(this.event);
+		}
+		return this._eventService;
 	}
 }
 
@@ -306,3 +322,31 @@ export { createPerformanceReviewService } from '$lib/services/performanceReviewS
 
 // Re-export createGoalService from factory for convenience
 export { createGoalService } from '$lib/services/goalServiceFactory';
+
+/**
+ * Create just the EventService
+ *
+ * Convenience function for routes that only need event operations.
+ *
+ * @param event - SvelteKit RequestEvent
+ * @returns Configured EventService instance
+ *
+ * @example
+ * ```typescript
+ * // In +page.server.ts:
+ * export const load: PageServerLoad = async (event) => {
+ *   const eventService = createEventService(event);
+ *
+ *   const result = await eventService.getAllEvents({ upcomingOnly: true });
+ *
+ *   if (result.isError) {
+ *     throw error(500, result.error.message);
+ *   }
+ *
+ *   return { events: result.value };
+ * };
+ * ```
+ */
+export function createEventService(event: RequestEvent): EventService {
+	return createEventServiceFactory(event);
+}
