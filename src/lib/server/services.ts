@@ -17,6 +17,7 @@ import { createRBACService } from '$lib/services/rbacServiceFactory';
 import { createPerformanceReviewService } from '$lib/services/performanceReviewServiceFactory';
 import { createGoalService as createGoalServiceFactory } from '$lib/services/goalServiceFactory';
 import { createEventService as createEventServiceFactory } from '$lib/services/eventServiceFactory';
+import { createNotificationService as createNotificationServiceFactory } from '$lib/services/notificationServiceFactory';
 import type { EmployeeService } from '$services/EmployeeService';
 import type { LeaveRequestService } from '$services/LeaveRequestService';
 import type { DepartmentService } from '$services/DepartmentService';
@@ -26,6 +27,7 @@ import type { RBACService } from '$services/RBACService';
 import type { PerformanceReviewService } from '$services/PerformanceReviewService';
 import type { GoalService } from '$services/GoalService';
 import type { EventService } from '$services/EventService';
+import type { NotificationService } from '$services/NotificationService';
 
 /**
  * Container for all available services
@@ -43,6 +45,7 @@ export class ServiceContainer {
 	private _performanceReviewService?: PerformanceReviewService;
 	private _goalService?: GoalService;
 	private _eventService?: EventService;
+	private _notificationService?: NotificationService;
 
 	constructor(private readonly event: RequestEvent) {}
 
@@ -161,6 +164,19 @@ export class ServiceContainer {
 			this._eventService = createEventServiceFactory(this.event);
 		}
 		return this._eventService;
+	}
+
+	/**
+	 * Get the NotificationService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get notificationService(): NotificationService {
+		if (!this._notificationService) {
+			this._notificationService = createNotificationServiceFactory(this.event);
+		}
+		return this._notificationService;
 	}
 }
 
@@ -349,4 +365,32 @@ export { createGoalService } from '$lib/services/goalServiceFactory';
  */
 export function createEventService(event: RequestEvent): EventService {
 	return createEventServiceFactory(event);
+}
+
+/**
+ * Create just the NotificationService
+ *
+ * Convenience function for routes that only need notification operations.
+ *
+ * @param event - SvelteKit RequestEvent
+ * @returns Configured NotificationService instance
+ *
+ * @example
+ * ```typescript
+ * // In +page.server.ts:
+ * export const load: PageServerLoad = async (event) => {
+ *   const notificationService = createNotificationService(event);
+ *
+ *   const result = await notificationService.getNotificationsForRecipient('user-123');
+ *
+ *   if (result.isError) {
+ *     throw error(500, result.error.message);
+ *   }
+ *
+ *   return { notifications: result.value };
+ * };
+ * ```
+ */
+export function createNotificationService(event: RequestEvent): NotificationService {
+	return createNotificationServiceFactory(event);
 }
