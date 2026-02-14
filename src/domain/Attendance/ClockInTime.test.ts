@@ -13,7 +13,7 @@ describe('ClockInTime', () => {
 		});
 
 		it('returns Ok with valid ISO string', () => {
-			const timeStr = '2026-02-13T08:00:00Z';
+			const timeStr = '2026-02-13T08:00:00.000Z';
 			const result = ClockInTime.create(timeStr);
 
 			expect(result.isOk).toBe(true);
@@ -50,11 +50,11 @@ describe('ClockInTime', () => {
 
 			expect(result.isOk).toBe(true);
 
-			// Mutate original
-			originalDate.setHours(12);
+			// Mutate original (use UTC methods to avoid timezone issues)
+			originalDate.setUTCHours(12);
 
 			// Value should not be affected
-			expect(result.value.value.getHours()).toBe(8);
+			expect(result.value.value.getUTCHours()).toBe(8);
 		});
 
 		it('value getter returns defensive copy', () => {
@@ -70,9 +70,9 @@ describe('ClockInTime', () => {
 			// But same time
 			expect(value1.getTime()).toBe(value2.getTime());
 
-			// Mutating one should not affect the other
-			value1.setHours(12);
-			expect(value2.getHours()).toBe(8);
+			// Mutating one should not affect the other (use UTC methods to avoid timezone issues)
+			value1.setUTCHours(12);
+			expect(value2.getUTCHours()).toBe(8);
 		});
 	});
 
