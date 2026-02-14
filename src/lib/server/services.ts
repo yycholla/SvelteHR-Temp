@@ -18,6 +18,8 @@ import { createPerformanceReviewService } from '$lib/services/performanceReviewS
 import { createGoalService as createGoalServiceFactory } from '$lib/services/goalServiceFactory';
 import { createEventService as createEventServiceFactory } from '$lib/services/eventServiceFactory';
 import { createNotificationService as createNotificationServiceFactory } from '$lib/services/notificationServiceFactory';
+import { createDocumentService as createDocumentServiceFactory } from '$lib/services/documentServiceFactory';
+import { createAttendanceService as createAttendanceServiceFactory } from '$lib/services/attendanceServiceFactory';
 import type { EmployeeService } from '$services/EmployeeService';
 import type { LeaveRequestService } from '$services/LeaveRequestService';
 import type { DepartmentService } from '$services/DepartmentService';
@@ -28,6 +30,8 @@ import type { PerformanceReviewService } from '$services/PerformanceReviewServic
 import type { GoalService } from '$services/GoalService';
 import type { EventService } from '$services/EventService';
 import type { NotificationService } from '$services/NotificationService';
+import type { DocumentService } from '$services/DocumentService';
+import type { AttendanceService } from '$services/AttendanceService';
 
 /**
  * Container for all available services
@@ -46,6 +50,8 @@ export class ServiceContainer {
 	private _goalService?: GoalService;
 	private _eventService?: EventService;
 	private _notificationService?: NotificationService;
+	private _documentService?: DocumentService;
+	private _attendanceService?: AttendanceService;
 
 	constructor(private readonly event: RequestEvent) {}
 
@@ -177,6 +183,32 @@ export class ServiceContainer {
 			this._notificationService = createNotificationServiceFactory(this.event);
 		}
 		return this._notificationService;
+	}
+
+	/**
+	 * Get the DocumentService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get documentService(): DocumentService {
+		if (!this._documentService) {
+			this._documentService = createDocumentServiceFactory(this.event);
+		}
+		return this._documentService;
+	}
+
+	/**
+	 * Get the AttendanceService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get attendanceService(): AttendanceService {
+		if (!this._attendanceService) {
+			this._attendanceService = createAttendanceServiceFactory(this.event);
+		}
+		return this._attendanceService;
 	}
 }
 
@@ -393,4 +425,60 @@ export function createEventService(event: RequestEvent): EventService {
  */
 export function createNotificationService(event: RequestEvent): NotificationService {
 	return createNotificationServiceFactory(event);
+}
+
+/**
+ * Create just the DocumentService
+ *
+ * Convenience function for routes that only need document operations.
+ *
+ * @param event - SvelteKit RequestEvent
+ * @returns Configured DocumentService instance
+ *
+ * @example
+ * ```typescript
+ * // In +page.server.ts:
+ * export const load: PageServerLoad = async (event) => {
+ *   const documentService = createDocumentService(event);
+ *
+ *   const result = await documentService.getAllDocuments();
+ *
+ *   if (result.isError) {
+ *     throw error(500, result.error.message);
+ *   }
+ *
+ *   return { documents: result.value };
+ * };
+ * ```
+ */
+export function createDocumentService(event: RequestEvent): DocumentService {
+	return createDocumentServiceFactory(event);
+}
+
+/**
+ * Create just the AttendanceService
+ *
+ * Convenience function for routes that only need attendance operations.
+ *
+ * @param event - SvelteKit RequestEvent
+ * @returns Configured AttendanceService instance
+ *
+ * @example
+ * ```typescript
+ * // In +page.server.ts:
+ * export const load: PageServerLoad = async (event) => {
+ *   const attendanceService = createAttendanceService(event);
+ *
+ *   const result = await attendanceService.getByEmployeeId('employee-123');
+ *
+ *   if (result.isError) {
+ *     throw error(500, result.error.message);
+ *   }
+ *
+ *   return { records: result.value };
+ * };
+ * ```
+ */
+export function createAttendanceService(event: RequestEvent): AttendanceService {
+	return createAttendanceServiceFactory(event);
 }
