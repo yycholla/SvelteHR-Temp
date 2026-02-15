@@ -21,6 +21,7 @@ import { createNotificationService as createNotificationServiceFactory } from '$
 import { createDocumentService as createDocumentServiceFactory } from '$lib/services/documentServiceFactory';
 import { createAttendanceService as createAttendanceServiceFactory } from '$lib/services/attendanceServiceFactory';
 import { createTimeOffBalanceService as createTimeOffBalanceServiceFactory } from '$lib/services/timeOffBalanceServiceFactory';
+import { createCompensationService as createCompensationServiceFactory } from '$lib/services/compensationServiceFactory';
 import type { EmployeeService } from '$services/EmployeeService';
 import type { LeaveRequestService } from '$services/LeaveRequestService';
 import type { DepartmentService } from '$services/DepartmentService';
@@ -34,6 +35,7 @@ import type { NotificationService } from '$services/NotificationService';
 import type { DocumentService } from '$services/DocumentService';
 import type { AttendanceService } from '$services/AttendanceService';
 import type { TimeOffBalanceService } from '$services/TimeOffBalanceService';
+import type { CompensationService } from '$services/CompensationService';
 
 /**
  * Container for all available services
@@ -55,6 +57,7 @@ export class ServiceContainer {
 	private _documentService?: DocumentService;
 	private _attendanceService?: AttendanceService;
 	private _timeOffBalanceService?: TimeOffBalanceService;
+	private _compensationService?: CompensationService;
 
 	constructor(private readonly event: RequestEvent) {}
 
@@ -225,6 +228,19 @@ export class ServiceContainer {
 			this._timeOffBalanceService = createTimeOffBalanceServiceFactory(this.event);
 		}
 		return this._timeOffBalanceService;
+	}
+
+	/**
+	 * Get the CompensationService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get compensationService(): CompensationService {
+		if (!this._compensationService) {
+			this._compensationService = createCompensationServiceFactory(this.event);
+		}
+		return this._compensationService;
 	}
 }
 
@@ -506,23 +522,19 @@ export function createAttendanceService(event: RequestEvent): AttendanceService 
  *
  * @param event - SvelteKit RequestEvent
  * @returns Configured TimeOffBalanceService instance
- *
- * @example
- * ```typescript
- * // In +page.server.ts:
- * export const load: PageServerLoad = async (event) => {
- *   const timeOffBalanceService = createTimeOffBalanceService(event);
- *
- *   const result = await timeOffBalanceService.getByEmployeeId('employee-123');
- *
- *   if (result.isError) {
- *     throw error(500, result.error.message);
- *   }
- *
- *   return { balances: result.value };
- * };
- * ```
  */
 export function createTimeOffBalanceService(event: RequestEvent): TimeOffBalanceService {
 	return createTimeOffBalanceServiceFactory(event);
+}
+
+/**
+ * Create just the CompensationService
+ *
+ * Convenience function for routes that only need compensation operations.
+ *
+ * @param event - SvelteKit RequestEvent
+ * @returns Configured CompensationService instance
+ */
+export function createCompensationService(event: RequestEvent): CompensationService {
+	return createCompensationServiceFactory(event);
 }
