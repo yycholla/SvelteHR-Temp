@@ -2,6 +2,7 @@ test-results
 coverage
 coverage/.tmp
 node_modules
+.worktrees
 
 # Verification reports (generated during schema checks)
 verification-reports/
