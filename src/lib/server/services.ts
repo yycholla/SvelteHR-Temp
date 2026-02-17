@@ -29,6 +29,7 @@ import { createEmergencyContactService as createEmergencyContactServiceFactory }
 import { createVehicleService as createVehicleServiceFactory } from '$lib/services/vehicleServiceFactory';
 import { createSkillService as createSkillServiceFactory } from '$lib/services/skillServiceFactory';
 import { createCertificationService as createCertificationServiceFactory } from '$lib/services/certificationServiceFactory';
+import { createUserSettingsService as createUserSettingsServiceFactory } from '$lib/services/userSettingsServiceFactory';
 import type { EmployeeService } from '$services/EmployeeService';
 import type { LeaveRequestService } from '$services/LeaveRequestService';
 import type { DepartmentService } from '$services/DepartmentService';
@@ -50,6 +51,7 @@ import type { EmergencyContactService } from '$services/EmergencyContactService'
 import type { VehicleService } from '$services/VehicleService';
 import type { SkillService } from '$services/SkillService';
 import type { CertificationService } from '$services/CertificationService';
+import type { UserSettingsService } from '$services/UserSettingsService';
 
 /**
  * Container for all available services
@@ -79,6 +81,7 @@ export class ServiceContainer {
 	private _vehicleService?: VehicleService;
 	private _skillService?: SkillService;
 	private _certificationService?: CertificationService;
+	private _userSettingsService?: UserSettingsService;
 
 	constructor(private readonly event: RequestEvent) {}
 
@@ -353,6 +356,19 @@ export class ServiceContainer {
 			this._certificationService = createCertificationServiceFactory(this.event);
 		}
 		return this._certificationService;
+	}
+
+	/**
+	 * Get the UserSettingsService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get userSettingsService(): UserSettingsService {
+		if (!this._userSettingsService) {
+			this._userSettingsService = createUserSettingsServiceFactory(this.event);
+		}
+		return this._userSettingsService;
 	}
 }
 
@@ -781,4 +797,16 @@ export function createSkillService(event: RequestEvent): SkillService {
  */
 export function createCertificationService(event: RequestEvent): CertificationService {
 	return createCertificationServiceFactory(event);
+}
+
+/**
+ * Create just the UserSettingsService
+ *
+ * Convenience function for routes that only need user settings operations.
+ *
+ * @param event - SvelteKit RequestEvent
+ * @returns Configured UserSettingsService instance
+ */
+export function createUserSettingsService(event: RequestEvent): UserSettingsService {
+	return createUserSettingsServiceFactory(event);
 }
