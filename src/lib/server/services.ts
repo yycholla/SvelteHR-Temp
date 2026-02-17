@@ -31,6 +31,7 @@ import { createSkillService as createSkillServiceFactory } from '$lib/services/s
 import { createCertificationService as createCertificationServiceFactory } from '$lib/services/certificationServiceFactory';
 import { createUserSettingsService as createUserSettingsServiceFactory } from '$lib/services/userSettingsServiceFactory';
 import { createComplianceService as createComplianceServiceFactory } from '$lib/services/complianceServiceFactory';
+import { createActivityLogService as createActivityLogServiceFactory } from '$lib/services/activityLogServiceFactory';
 import type { EmployeeService } from '$services/EmployeeService';
 import type { LeaveRequestService } from '$services/LeaveRequestService';
 import type { DepartmentService } from '$services/DepartmentService';
@@ -54,6 +55,7 @@ import type { SkillService } from '$services/SkillService';
 import type { CertificationService } from '$services/CertificationService';
 import type { UserSettingsService } from '$services/UserSettingsService';
 import type { ComplianceService } from '$services/ComplianceService';
+import type { ActivityLogService } from '$services/ActivityLogService';
 
 /**
  * Container for all available services
@@ -85,6 +87,7 @@ export class ServiceContainer {
 	private _certificationService?: CertificationService;
 	private _userSettingsService?: UserSettingsService;
 	private _complianceService?: ComplianceService;
+	private _activityLogService?: ActivityLogService;
 
 	constructor(private readonly event: RequestEvent) {}
 
@@ -385,6 +388,19 @@ export class ServiceContainer {
 			this._complianceService = createComplianceServiceFactory(this.event);
 		}
 		return this._complianceService;
+	}
+
+	/**
+	 * Get the ActivityLogService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get activityLogService(): ActivityLogService {
+		if (!this._activityLogService) {
+			this._activityLogService = createActivityLogServiceFactory(this.event);
+		}
+		return this._activityLogService;
 	}
 }
 
@@ -837,4 +853,16 @@ export function createUserSettingsService(event: RequestEvent): UserSettingsServ
  */
 export function createComplianceService(event: RequestEvent): ComplianceService {
 	return createComplianceServiceFactory(event);
+}
+
+/**
+ * Create just the ActivityLogService
+ *
+ * Convenience function for routes that only need activity log operations.
+ *
+ * @param event - SvelteKit RequestEvent
+ * @returns Configured ActivityLogService instance
+ */
+export function createActivityLogService(event: RequestEvent): ActivityLogService {
+	return createActivityLogServiceFactory(event);
 }
