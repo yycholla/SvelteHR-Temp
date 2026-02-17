@@ -26,6 +26,7 @@ import { createOnboardingService as createOnboardingServiceFactory } from '$lib/
 import { createTrainingService as createTrainingServiceFactory } from '$lib/services/trainingServiceFactory';
 import { createHrReportService as createHrReportServiceFactory } from '$lib/services/hrReportServiceFactory';
 import { createEmergencyContactService as createEmergencyContactServiceFactory } from '$lib/services/emergencyContactServiceFactory';
+import { createVehicleService as createVehicleServiceFactory } from '$lib/services/vehicleServiceFactory';
 import type { EmployeeService } from '$services/EmployeeService';
 import type { LeaveRequestService } from '$services/LeaveRequestService';
 import type { DepartmentService } from '$services/DepartmentService';
@@ -44,6 +45,7 @@ import type { OnboardingService } from '$services/OnboardingService';
 import type { TrainingService } from '$services/TrainingService';
 import type { HrReportService } from '$services/HrReportService';
 import type { EmergencyContactService } from '$services/EmergencyContactService';
+import type { VehicleService } from '$services/VehicleService';
 
 /**
  * Container for all available services
@@ -70,6 +72,7 @@ export class ServiceContainer {
 	private _trainingService?: TrainingService;
 	private _hrReportService?: HrReportService;
 	private _emergencyContactService?: EmergencyContactService;
+	private _vehicleService?: VehicleService;
 
 	constructor(private readonly event: RequestEvent) {}
 
@@ -305,6 +308,19 @@ export class ServiceContainer {
 			this._emergencyContactService = createEmergencyContactServiceFactory(this.event);
 		}
 		return this._emergencyContactService;
+	}
+
+	/**
+	 * Get the VehicleService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get vehicleService(): VehicleService {
+		if (!this._vehicleService) {
+			this._vehicleService = createVehicleServiceFactory(this.event);
+		}
+		return this._vehicleService;
 	}
 }
 
@@ -697,4 +713,32 @@ export function createHrReportService(event: RequestEvent): HrReportService {
  */
 export function createEmergencyContactService(event: RequestEvent): EmergencyContactService {
 	return createEmergencyContactServiceFactory(event);
+}
+
+/**
+ * Create just the VehicleService
+ *
+ * Convenience function for routes that only need vehicle operations.
+ *
+ * @param event - SvelteKit RequestEvent
+ * @returns Configured VehicleService instance
+ *
+ * @example
+ * ```typescript
+ * // In +page.server.ts:
+ * export const load: PageServerLoad = async (event) => {
+ *   const vehicleService = createVehicleService(event);
+ *
+ *   const result = await vehicleService.getByEmployeeId(event.params.id);
+ *
+ *   if (result.isError) {
+ *     throw error(500, result.error.message);
+ *   }
+ *
+ *   return { vehicles: result.value };
+ * };
+ * ```
+ */
+export function createVehicleService(event: RequestEvent): VehicleService {
+	return createVehicleServiceFactory(event);
 }
