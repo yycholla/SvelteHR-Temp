@@ -22,6 +22,7 @@ import { createDocumentService as createDocumentServiceFactory } from '$lib/serv
 import { createAttendanceService as createAttendanceServiceFactory } from '$lib/services/attendanceServiceFactory';
 import { createTimeOffBalanceService as createTimeOffBalanceServiceFactory } from '$lib/services/timeOffBalanceServiceFactory';
 import { createCompensationService as createCompensationServiceFactory } from '$lib/services/compensationServiceFactory';
+import { createOnboardingService as createOnboardingServiceFactory } from '$lib/services/onboardingServiceFactory';
 import type { EmployeeService } from '$services/EmployeeService';
 import type { LeaveRequestService } from '$services/LeaveRequestService';
 import type { DepartmentService } from '$services/DepartmentService';
@@ -36,6 +37,7 @@ import type { DocumentService } from '$services/DocumentService';
 import type { AttendanceService } from '$services/AttendanceService';
 import type { TimeOffBalanceService } from '$services/TimeOffBalanceService';
 import type { CompensationService } from '$services/CompensationService';
+import type { OnboardingService } from '$services/OnboardingService';
 
 /**
  * Container for all available services
@@ -58,6 +60,7 @@ export class ServiceContainer {
 	private _attendanceService?: AttendanceService;
 	private _timeOffBalanceService?: TimeOffBalanceService;
 	private _compensationService?: CompensationService;
+	private _onboardingService?: OnboardingService;
 
 	constructor(private readonly event: RequestEvent) {}
 
@@ -241,6 +244,19 @@ export class ServiceContainer {
 			this._compensationService = createCompensationServiceFactory(this.event);
 		}
 		return this._compensationService;
+	}
+
+	/**
+	 * Get the OnboardingService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get onboardingService(): OnboardingService {
+		if (!this._onboardingService) {
+			this._onboardingService = createOnboardingServiceFactory(this.event);
+		}
+		return this._onboardingService;
 	}
 }
 
@@ -537,4 +553,16 @@ export function createTimeOffBalanceService(event: RequestEvent): TimeOffBalance
  */
 export function createCompensationService(event: RequestEvent): CompensationService {
 	return createCompensationServiceFactory(event);
+}
+
+/**
+ * Create just the OnboardingService
+ *
+ * Convenience function for routes that only need onboarding operations.
+ *
+ * @param event - SvelteKit RequestEvent
+ * @returns Configured OnboardingService instance
+ */
+export function createOnboardingService(event: RequestEvent): OnboardingService {
+	return createOnboardingServiceFactory(event);
 }
