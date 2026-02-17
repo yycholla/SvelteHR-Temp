@@ -30,7 +30,7 @@ describe('CompensationService', () => {
 		if (gradeResult.isError) throw new Error('Test setup failed: invalid grade');
 		const grade = gradeResult.value;
 
-		const typeResult = CompensationType.create('salary');
+		const typeResult = CompensationType.create('base_salary');
 		if (typeResult.isError) throw new Error('Test setup failed: invalid type');
 		const type = typeResult.value;
 
@@ -187,7 +187,7 @@ describe('CompensationService', () => {
 				salary: 75000,
 				currency: 'USD',
 				salaryGrade: 'mid',
-				compensationType: 'salary',
+				compensationType: 'base_salary',
 				paymentFrequency: 'monthly',
 				effectiveDate: '2024-01-01'
 			};
@@ -207,7 +207,7 @@ describe('CompensationService', () => {
 				salary: -1000, // Invalid negative salary
 				currency: 'USD',
 				salaryGrade: 'mid',
-				compensationType: 'salary',
+				compensationType: 'base_salary',
 				paymentFrequency: 'monthly',
 				effectiveDate: '2024-01-01'
 			};
@@ -225,7 +225,7 @@ describe('CompensationService', () => {
 				salary: 75000,
 				currency: 'USD',
 				salaryGrade: 'INVALID', // Invalid grade
-				compensationType: 'salary',
+				compensationType: 'base_salary',
 				paymentFrequency: 'monthly',
 				effectiveDate: '2024-01-01'
 			};
@@ -259,7 +259,7 @@ describe('CompensationService', () => {
 				salary: 75000,
 				currency: 'USD',
 				salaryGrade: 'mid',
-				compensationType: 'salary',
+				compensationType: 'base_salary',
 				paymentFrequency: 'monthly',
 				effectiveDate: '2024-01-01',
 				endDate: '2024-12-31'

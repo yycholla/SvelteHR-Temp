@@ -31,7 +31,7 @@ function createValidCompensationData() {
 		salary: 75000,
 		currency: 'USD',
 		salaryGrade: 'mid',
-		compensationType: 'salary',
+		compensationType: 'base_salary',
 		paymentFrequency: 'monthly',
 		effectiveDate: '2024-01-01T00:00:00Z',
 		endDate: null,
@@ -140,7 +140,11 @@ describe('GraphQLCompensationAdapter', () => {
 				query: {
 					compensationsByEmployee: [
 						createValidCompensationData(),
-						{ ...createValidCompensationData(), id: 'comp-456', salary: 80000 }
+						{
+							...createValidCompensationData(),
+							id: '123e4567-e89b-12d3-a456-426614174002',
+							salary: 80000
+						}
 					]
 				}
 			});
@@ -174,7 +178,11 @@ describe('GraphQLCompensationAdapter', () => {
 					compensationsByEmployee: [
 						createValidCompensationData(),
 						{ ...createValidCompensationData(), salary: -1000 }, // Invalid
-						{ ...createValidCompensationData(), id: 'comp-789', salary: 90000 }
+						{
+							...createValidCompensationData(),
+							id: '123e4567-e89b-12d3-a456-426614174003',
+							salary: 90000
+						}
 					]
 				}
 			});
@@ -253,7 +261,7 @@ describe('GraphQLCompensationAdapter', () => {
 				query: {
 					compensations: [
 						createValidCompensationData(),
-						{ ...createValidCompensationData(), id: 'comp-456' }
+						{ ...createValidCompensationData(), id: '123e4567-e89b-12d3-a456-426614174002' }
 					]
 				}
 			});
@@ -288,7 +296,7 @@ describe('GraphQLCompensationAdapter', () => {
 					compensations: [
 						createValidCompensationData(),
 						{ ...createValidCompensationData(), currency: '' }, // Invalid
-						{ ...createValidCompensationData(), id: 'comp-789' }
+						{ ...createValidCompensationData(), id: '123e4567-e89b-12d3-a456-426614174003' }
 					]
 				}
 			});
@@ -315,7 +323,7 @@ describe('GraphQLCompensationAdapter', () => {
 				salary: 75000,
 				currency: 'USD',
 				salaryGrade: 'mid',
-				compensationType: 'salary',
+				compensationType: 'base_salary',
 				paymentFrequency: 'monthly',
 				effectiveDate: '2024-01-01'
 			});
@@ -335,7 +343,7 @@ describe('GraphQLCompensationAdapter', () => {
 				salary: 75000,
 				currency: 'USD',
 				salaryGrade: 'mid',
-				compensationType: 'salary',
+				compensationType: 'base_salary',
 				paymentFrequency: 'monthly',
 				effectiveDate: '2024-01-01'
 			});
@@ -355,7 +363,7 @@ describe('GraphQLCompensationAdapter', () => {
 				salary: 75000,
 				currency: 'USD',
 				salaryGrade: 'mid',
-				compensationType: 'salary',
+				compensationType: 'base_salary',
 				paymentFrequency: 'monthly',
 				effectiveDate: '2024-01-01'
 			});
