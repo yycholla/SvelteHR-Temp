@@ -25,6 +25,7 @@ import { createCompensationService as createCompensationServiceFactory } from '$
 import { createOnboardingService as createOnboardingServiceFactory } from '$lib/services/onboardingServiceFactory';
 import { createTrainingService as createTrainingServiceFactory } from '$lib/services/trainingServiceFactory';
 import { createHrReportService as createHrReportServiceFactory } from '$lib/services/hrReportServiceFactory';
+import { createEmergencyContactService as createEmergencyContactServiceFactory } from '$lib/services/emergencyContactServiceFactory';
 import type { EmployeeService } from '$services/EmployeeService';
 import type { LeaveRequestService } from '$services/LeaveRequestService';
 import type { DepartmentService } from '$services/DepartmentService';
@@ -42,6 +43,7 @@ import type { CompensationService } from '$services/CompensationService';
 import type { OnboardingService } from '$services/OnboardingService';
 import type { TrainingService } from '$services/TrainingService';
 import type { HrReportService } from '$services/HrReportService';
+import type { EmergencyContactService } from '$services/EmergencyContactService';
 
 /**
  * Container for all available services
@@ -67,6 +69,7 @@ export class ServiceContainer {
 	private _onboardingService?: OnboardingService;
 	private _trainingService?: TrainingService;
 	private _hrReportService?: HrReportService;
+	private _emergencyContactService?: EmergencyContactService;
 
 	constructor(private readonly event: RequestEvent) {}
 
@@ -289,6 +292,19 @@ export class ServiceContainer {
 			this._hrReportService = createHrReportServiceFactory(this.event);
 		}
 		return this._hrReportService;
+	}
+
+	/**
+	 * Get the EmergencyContactService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get emergencyContactService(): EmergencyContactService {
+		if (!this._emergencyContactService) {
+			this._emergencyContactService = createEmergencyContactServiceFactory(this.event);
+		}
+		return this._emergencyContactService;
 	}
 }
 
@@ -653,4 +669,32 @@ export function createTrainingService(event: RequestEvent): TrainingService {
  */
 export function createHrReportService(event: RequestEvent): HrReportService {
 	return createHrReportServiceFactory(event);
+}
+
+/**
+ * Create just the EmergencyContactService
+ *
+ * Convenience function for routes that only need emergency contact operations.
+ *
+ * @param event - SvelteKit RequestEvent
+ * @returns Configured EmergencyContactService instance
+ *
+ * @example
+ * ```typescript
+ * // In +page.server.ts:
+ * export const load: PageServerLoad = async (event) => {
+ *   const emergencyContactService = createEmergencyContactService(event);
+ *
+ *   const result = await emergencyContactService.getByEmployeeId(event.params.id);
+ *
+ *   if (result.isError) {
+ *     throw error(500, result.error.message);
+ *   }
+ *
+ *   return { contacts: result.value };
+ * };
+ * ```
+ */
+export function createEmergencyContactService(event: RequestEvent): EmergencyContactService {
+	return createEmergencyContactServiceFactory(event);
 }
