@@ -23,6 +23,8 @@ import { createAttendanceService as createAttendanceServiceFactory } from '$lib/
 import { createTimeOffBalanceService as createTimeOffBalanceServiceFactory } from '$lib/services/timeOffBalanceServiceFactory';
 import { createCompensationService as createCompensationServiceFactory } from '$lib/services/compensationServiceFactory';
 import { createOnboardingService as createOnboardingServiceFactory } from '$lib/services/onboardingServiceFactory';
+import { createTrainingService as createTrainingServiceFactory } from '$lib/services/trainingServiceFactory';
+import { createHrReportService as createHrReportServiceFactory } from '$lib/services/hrReportServiceFactory';
 import type { EmployeeService } from '$services/EmployeeService';
 import type { LeaveRequestService } from '$services/LeaveRequestService';
 import type { DepartmentService } from '$services/DepartmentService';
@@ -38,6 +40,8 @@ import type { AttendanceService } from '$services/AttendanceService';
 import type { TimeOffBalanceService } from '$services/TimeOffBalanceService';
 import type { CompensationService } from '$services/CompensationService';
 import type { OnboardingService } from '$services/OnboardingService';
+import type { TrainingService } from '$services/TrainingService';
+import type { HrReportService } from '$services/HrReportService';
 
 /**
  * Container for all available services
@@ -61,6 +65,8 @@ export class ServiceContainer {
 	private _timeOffBalanceService?: TimeOffBalanceService;
 	private _compensationService?: CompensationService;
 	private _onboardingService?: OnboardingService;
+	private _trainingService?: TrainingService;
+	private _hrReportService?: HrReportService;
 
 	constructor(private readonly event: RequestEvent) {}
 
@@ -257,6 +263,32 @@ export class ServiceContainer {
 			this._onboardingService = createOnboardingServiceFactory(this.event);
 		}
 		return this._onboardingService;
+	}
+
+	/**
+	 * Get the TrainingService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get trainingService(): TrainingService {
+		if (!this._trainingService) {
+			this._trainingService = createTrainingServiceFactory(this.event);
+		}
+		return this._trainingService;
+	}
+
+	/**
+	 * Get the HrReportService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get hrReportService(): HrReportService {
+		if (!this._hrReportService) {
+			this._hrReportService = createHrReportServiceFactory(this.event);
+		}
+		return this._hrReportService;
 	}
 }
 
@@ -565,4 +597,60 @@ export function createCompensationService(event: RequestEvent): CompensationServ
  */
 export function createOnboardingService(event: RequestEvent): OnboardingService {
 	return createOnboardingServiceFactory(event);
+}
+
+/**
+ * Create just the TrainingService
+ *
+ * Convenience function for routes that only need training operations.
+ *
+ * @param event - SvelteKit RequestEvent
+ * @returns Configured TrainingService instance
+ *
+ * @example
+ * ```typescript
+ * // In +page.server.ts:
+ * export const load: PageServerLoad = async (event) => {
+ *   const trainingService = createTrainingService(event);
+ *
+ *   const result = await trainingService.getAll();
+ *
+ *   if (result.isError) {
+ *     throw error(500, result.error.message);
+ *   }
+ *
+ *   return { trainings: result.value };
+ * };
+ * ```
+ */
+export function createTrainingService(event: RequestEvent): TrainingService {
+	return createTrainingServiceFactory(event);
+}
+
+/**
+ * Create just the HrReportService
+ *
+ * Convenience function for routes that only need HR report operations.
+ *
+ * @param event - SvelteKit RequestEvent
+ * @returns Configured HrReportService instance
+ *
+ * @example
+ * ```typescript
+ * // In +page.server.ts:
+ * export const load: PageServerLoad = async (event) => {
+ *   const reportService = createHrReportService(event);
+ *
+ *   const result = await reportService.getAll();
+ *
+ *   if (result.isError) {
+ *     throw error(500, result.error.message);
+ *   }
+ *
+ *   return { reports: result.value };
+ * };
+ * ```
+ */
+export function createHrReportService(event: RequestEvent): HrReportService {
+	return createHrReportServiceFactory(event);
 }
