@@ -242,5 +242,27 @@ describe('OnboardingAssignment', () => {
 
 			expect(assignment.dueDate!.getTime()).toBe(expectedTime);
 		});
+
+		it('completedAt getter returns defensive copy', () => {
+			const completedAt = new Date('2024-06-15T00:00:00Z');
+			const data = { ...validData(), completedAt };
+			const assignment = OnboardingAssignment.create(data).value;
+
+			const returned = assignment.completedAt!;
+			returned.setUTCFullYear(2000);
+
+			expect(assignment.completedAt!.getTime()).toBe(completedAt.getTime());
+		});
+
+		it('completedAt in create is stored as defensive copy', () => {
+			const originalCompletedAt = new Date('2024-06-15T00:00:00Z');
+			const data = { ...validData(), completedAt: originalCompletedAt };
+			const assignment = OnboardingAssignment.create(data).value;
+
+			const expectedTime = originalCompletedAt.getTime();
+			originalCompletedAt.setUTCFullYear(2000);
+
+			expect(assignment.completedAt!.getTime()).toBe(expectedTime);
+		});
 	});
 });

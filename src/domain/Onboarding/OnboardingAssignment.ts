@@ -61,7 +61,7 @@ export class OnboardingAssignment {
 				assignedById: data.assignedById,
 				assignedAt: new Date(data.assignedAt.getTime()),
 				dueDate: data.dueDate !== null ? new Date(data.dueDate.getTime()) : null,
-				completedAt: data.completedAt
+				completedAt: data.completedAt !== null ? new Date(data.completedAt.getTime()) : null
 			})
 		);
 	}
@@ -91,7 +91,7 @@ export class OnboardingAssignment {
 	}
 
 	get completedAt(): Date | null {
-		return this.props.completedAt;
+		return this.props.completedAt !== null ? new Date(this.props.completedAt.getTime()) : null;
 	}
 
 	/**
