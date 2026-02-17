@@ -30,6 +30,7 @@ import { createVehicleService as createVehicleServiceFactory } from '$lib/servic
 import { createSkillService as createSkillServiceFactory } from '$lib/services/skillServiceFactory';
 import { createCertificationService as createCertificationServiceFactory } from '$lib/services/certificationServiceFactory';
 import { createUserSettingsService as createUserSettingsServiceFactory } from '$lib/services/userSettingsServiceFactory';
+import { createComplianceService as createComplianceServiceFactory } from '$lib/services/complianceServiceFactory';
 import type { EmployeeService } from '$services/EmployeeService';
 import type { LeaveRequestService } from '$services/LeaveRequestService';
 import type { DepartmentService } from '$services/DepartmentService';
@@ -52,6 +53,7 @@ import type { VehicleService } from '$services/VehicleService';
 import type { SkillService } from '$services/SkillService';
 import type { CertificationService } from '$services/CertificationService';
 import type { UserSettingsService } from '$services/UserSettingsService';
+import type { ComplianceService } from '$services/ComplianceService';
 
 /**
  * Container for all available services
@@ -82,6 +84,7 @@ export class ServiceContainer {
 	private _skillService?: SkillService;
 	private _certificationService?: CertificationService;
 	private _userSettingsService?: UserSettingsService;
+	private _complianceService?: ComplianceService;
 
 	constructor(private readonly event: RequestEvent) {}
 
@@ -369,6 +372,19 @@ export class ServiceContainer {
 			this._userSettingsService = createUserSettingsServiceFactory(this.event);
 		}
 		return this._userSettingsService;
+	}
+
+	/**
+	 * Get the ComplianceService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get complianceService(): ComplianceService {
+		if (!this._complianceService) {
+			this._complianceService = createComplianceServiceFactory(this.event);
+		}
+		return this._complianceService;
 	}
 }
 
@@ -809,4 +825,16 @@ export function createCertificationService(event: RequestEvent): CertificationSe
  */
 export function createUserSettingsService(event: RequestEvent): UserSettingsService {
 	return createUserSettingsServiceFactory(event);
+}
+
+/**
+ * Create just the ComplianceService
+ *
+ * Convenience function for routes that only need compliance operations.
+ *
+ * @param event - SvelteKit RequestEvent
+ * @returns Configured ComplianceService instance
+ */
+export function createComplianceService(event: RequestEvent): ComplianceService {
+	return createComplianceServiceFactory(event);
 }
