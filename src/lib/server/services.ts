@@ -27,6 +27,8 @@ import { createTrainingService as createTrainingServiceFactory } from '$lib/serv
 import { createHrReportService as createHrReportServiceFactory } from '$lib/services/hrReportServiceFactory';
 import { createEmergencyContactService as createEmergencyContactServiceFactory } from '$lib/services/emergencyContactServiceFactory';
 import { createVehicleService as createVehicleServiceFactory } from '$lib/services/vehicleServiceFactory';
+import { createSkillService as createSkillServiceFactory } from '$lib/services/skillServiceFactory';
+import { createCertificationService as createCertificationServiceFactory } from '$lib/services/certificationServiceFactory';
 import type { EmployeeService } from '$services/EmployeeService';
 import type { LeaveRequestService } from '$services/LeaveRequestService';
 import type { DepartmentService } from '$services/DepartmentService';
@@ -46,6 +48,8 @@ import type { TrainingService } from '$services/TrainingService';
 import type { HrReportService } from '$services/HrReportService';
 import type { EmergencyContactService } from '$services/EmergencyContactService';
 import type { VehicleService } from '$services/VehicleService';
+import type { SkillService } from '$services/SkillService';
+import type { CertificationService } from '$services/CertificationService';
 
 /**
  * Container for all available services
@@ -73,6 +77,8 @@ export class ServiceContainer {
 	private _hrReportService?: HrReportService;
 	private _emergencyContactService?: EmergencyContactService;
 	private _vehicleService?: VehicleService;
+	private _skillService?: SkillService;
+	private _certificationService?: CertificationService;
 
 	constructor(private readonly event: RequestEvent) {}
 
@@ -321,6 +327,32 @@ export class ServiceContainer {
 			this._vehicleService = createVehicleServiceFactory(this.event);
 		}
 		return this._vehicleService;
+	}
+
+	/**
+	 * Get the SkillService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get skillService(): SkillService {
+		if (!this._skillService) {
+			this._skillService = createSkillServiceFactory(this.event);
+		}
+		return this._skillService;
+	}
+
+	/**
+	 * Get the CertificationService instance
+	 *
+	 * Creates and caches the service on first access.
+	 * The service is configured with authentication from the request cookies.
+	 */
+	get certificationService(): CertificationService {
+		if (!this._certificationService) {
+			this._certificationService = createCertificationServiceFactory(this.event);
+		}
+		return this._certificationService;
 	}
 }
 
@@ -722,23 +754,31 @@ export function createEmergencyContactService(event: RequestEvent): EmergencyCon
  *
  * @param event - SvelteKit RequestEvent
  * @returns Configured VehicleService instance
- *
- * @example
- * ```typescript
- * // In +page.server.ts:
- * export const load: PageServerLoad = async (event) => {
- *   const vehicleService = createVehicleService(event);
- *
- *   const result = await vehicleService.getByEmployeeId(event.params.id);
- *
- *   if (result.isError) {
- *     throw error(500, result.error.message);
- *   }
- *
- *   return { vehicles: result.value };
- * };
- * ```
  */
 export function createVehicleService(event: RequestEvent): VehicleService {
 	return createVehicleServiceFactory(event);
+}
+
+/**
+ * Create just the SkillService
+ *
+ * Convenience function for routes that only need skill operations.
+ *
+ * @param event - SvelteKit RequestEvent
+ * @returns Configured SkillService instance
+ */
+export function createSkillService(event: RequestEvent): SkillService {
+	return createSkillServiceFactory(event);
+}
+
+/**
+ * Create just the CertificationService
+ *
+ * Convenience function for routes that only need certification operations.
+ *
+ * @param event - SvelteKit RequestEvent
+ * @returns Configured CertificationService instance
+ */
+export function createCertificationService(event: RequestEvent): CertificationService {
+	return createCertificationServiceFactory(event);
 }
