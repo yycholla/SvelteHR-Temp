@@ -8,7 +8,7 @@ use sea_orm::DatabaseConnection;
 
 use crate::schema::{MutationRoot, QueryRoot};
 use crate::auth::UserContext;
-// use super::auth::{TestUser, TestUserRole, TestUsers}; // REMOVED: Use JWT tokens for test auth
+use super::auth::{TestUser, TestUserRole, TestUsers};
 use super::database::TestDatabase;
 use super::errors::TestContextError;
 
@@ -79,6 +79,7 @@ impl TestContext {
     pub fn user(&self, role: TestUserRole) -> &TestUser {
         match role {
             TestUserRole::Employee => &self.users.employee,
+            TestUserRole::Manager => &self.users.manager,
             TestUserRole::HrManager => &self.users.hr_manager,
             TestUserRole::Admin => &self.users.admin,
             TestUserRole::SystemAdmin => &self.users.system_admin,
