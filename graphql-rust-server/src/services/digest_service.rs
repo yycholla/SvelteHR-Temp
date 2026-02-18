@@ -423,12 +423,12 @@ impl DigestService {
 mod tests {
     use super::*;
     use chrono::{TimeZone, Timelike};
-    use crate::testing::TestContext;
+    use sea_orm::{DatabaseBackend, MockDatabase};
 
     #[tokio::test]
     async fn test_calculate_next_send_time_daily() {
-        let ctx = TestContext::new().await.expect("Failed to create test context");
-        let service = DigestService::new(Arc::new(ctx.connection().clone()));
+        let db = MockDatabase::new(DatabaseBackend::Postgres).into_connection();
+        let service = DigestService::new(Arc::new(db));
 
         // Test daily cron at 9 AM
         let cron = "0 9 * * *";
@@ -452,8 +452,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_calculate_next_send_time_weekly() {
-        let ctx = TestContext::new().await.expect("Failed to create test context");
-        let service = DigestService::new(Arc::new(ctx.connection().clone()));
+        let db = MockDatabase::new(DatabaseBackend::Postgres).into_connection();
+        let service = DigestService::new(Arc::new(db));
 
         // Test weekly Monday at 9 AM
         let cron = "0 9 * * 1";
@@ -469,8 +469,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_calculate_next_send_time_monthly() {
-        let ctx = TestContext::new().await.expect("Failed to create test context");
-        let service = DigestService::new(Arc::new(ctx.connection().clone()));
+        let db = MockDatabase::new(DatabaseBackend::Postgres).into_connection();
+        let service = DigestService::new(Arc::new(db));
 
         // Test monthly on 1st at 9 AM
         let cron = "0 9 1 * *";
@@ -487,8 +487,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_calculate_next_send_time_invalid_cron() {
-        let ctx = TestContext::new().await.expect("Failed to create test context");
-        let service = DigestService::new(Arc::new(ctx.connection().clone()));
+        let db = MockDatabase::new(DatabaseBackend::Postgres).into_connection();
+        let service = DigestService::new(Arc::new(db));
 
         // Test invalid/unknown cron expression
         let cron = "invalid";
