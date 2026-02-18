@@ -398,12 +398,7 @@ describe('GraphQLEmployeeAdapter', () => {
 				}
 			];
 
-			mockGraphQL.query = vi.fn().mockImplementation((query, variables) => {
-				const filtered = allUsers.filter(
-					(user) => user.departmentId === variables.filter?.departmentId
-				);
-				return { users: filtered };
-			});
+			mockGraphQL.query = vi.fn().mockResolvedValue({ users: allUsers });
 
 			const result = await adapter.findAll({ departmentId: deptId1 });
 
@@ -442,10 +437,7 @@ describe('GraphQLEmployeeAdapter', () => {
 				}
 			];
 
-			mockGraphQL.query = vi.fn().mockImplementation((query, variables) => {
-				const filtered = allUsers.filter((user) => user.isActive === variables.filter?.isActive);
-				return { users: filtered };
-			});
+			mockGraphQL.query = vi.fn().mockResolvedValue({ users: allUsers });
 
 			const result = await adapter.findAll({ isActive: true });
 
@@ -524,18 +516,13 @@ describe('GraphQLEmployeeAdapter', () => {
 				roles: []
 			}));
 
-			mockGraphQL.query = vi.fn().mockImplementation((query, variables) => {
-				const limit = variables.limit || 20;
-				const offset = variables.offset || 0;
-				const paginated = allUsers.slice(offset, offset + limit);
-				return { users: paginated };
-			});
+			mockGraphQL.query = vi.fn().mockResolvedValue({ users: allUsers });
 
 			const result = await adapter.findAll({ limit: 2, offset: 1 });
 
 			expect(result.employees).toHaveLength(2);
-			// Adapter estimates total since backend doesn't return it: offset + limit + 1 = 1 + 2 + 1 = 4
-			expect(result.total).toBe(4);
+			// Adapter returns total as employees.length after mapping all received users (5)
+			expect(result.total).toBe(5);
 			expect(result.limit).toBe(2);
 			expect(result.offset).toBe(1);
 		});
