@@ -3,7 +3,7 @@
 //! Provides complete test environment setup combining TestDatabase,
 //! authenticated test users, GraphQL schema, and execution helpers.
 
-use async_graphql::{EmptySubscription, Request, Response, Schema, Value};
+use async_graphql::{EmptySubscription, Request, Response, Schema};
 use sea_orm::DatabaseConnection;
 
 use crate::schema::{MutationRoot, QueryRoot};
@@ -162,15 +162,11 @@ impl TestContext {
         self.schema.execute(request).await
     }
 
-    /// Helper method to extract data from GraphQL response
+    /// Helper method to extract data from GraphQL response as serde_json::Value
     ///
-    /// # Arguments
-    /// * `response` - GraphQL response
-    ///
-    /// # Returns
-    /// Reference to JSON value containing response data
-    pub fn extract_data<'a>(&self, response: &'a Response) -> &'a Value {
-        &response.data
+    /// Returns serde_json::Value which supports `[]` indexing syntax in tests.
+    pub fn extract_data(&self, response: &Response) -> serde_json::Value {
+        serde_json::to_value(&response.data).unwrap_or(serde_json::Value::Null)
     }
 
     /// Helper method to extract errors from GraphQL response
@@ -243,6 +239,6 @@ mod tests {
 
         // Check that we got schema data back
         let data = ctx.extract_data(&response);
-        assert!(matches!(data, Value::Object(_)));
+        assert!(data.is_object());
     }
 }
