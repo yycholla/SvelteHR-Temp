@@ -35,6 +35,27 @@ vi.mock('$lib/stores/jwt-auth.svelte', () => ({
 	jwtAuth: mockJwtAuth
 }));
 
+// Track Client constructor calls by wrapping @urql/core
+// We capture the options passed to each `new Client(...)` call.
+const capturedClientOpts: Record<string, unknown>[] = [];
+const RealClient = Client;
+
+vi.mock('@urql/core', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('@urql/core')>();
+
+	class TrackedClient extends actual.Client {
+		constructor(opts: Record<string, unknown>) {
+			super(opts as ConstructorParameters<typeof actual.Client>[0]);
+			capturedClientOpts.push(opts);
+		}
+	}
+
+	return {
+		...actual,
+		Client: TrackedClient
+	};
+});
+
 // ============================================================================
 // Test Suite
 // ============================================================================
@@ -42,6 +63,7 @@ vi.mock('$lib/stores/jwt-auth.svelte', () => ({
 describe('JWT GraphQL Client', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		capturedClientOpts.length = 0;
 	});
 
 	afterEach(() => {
@@ -58,16 +80,17 @@ describe('JWT GraphQL Client', () => {
 
 			const client = createJwtGraphQLClient('http://localhost:8080/graphql');
 
-			expect(client).toBeInstanceOf(Client);
+			expect(client).toBeInstanceOf(RealClient);
 		});
 
 		test('should create client with correct endpoint', async () => {
 			const { createJwtGraphQLClient } = await import('$lib/graphql/jwt-client');
 
 			const endpoint = 'http://localhost:8080/graphql';
-			const client = createJwtGraphQLClient(endpoint);
+			createJwtGraphQLClient(endpoint);
 
-			expect(client.url).toBe(endpoint);
+			const lastOpts = capturedClientOpts[capturedClientOpts.length - 1];
+			expect(lastOpts.url).toBe(endpoint);
 		});
 
 		test('should initialize JWT auth store with created client', async () => {
@@ -83,7 +106,7 @@ describe('JWT GraphQL Client', () => {
 
 			createJwtGraphQLClient('http://localhost:8080/graphql');
 
-			expect(mockJwtAuth.initialize).toHaveBeenCalledWith(expect.any(Client));
+			expect(mockJwtAuth.initialize).toHaveBeenCalledWith(expect.any(RealClient));
 		});
 
 		test('should handle different endpoints', async () => {
@@ -92,11 +115,12 @@ describe('JWT GraphQL Client', () => {
 			const endpoint1 = 'http://api1.example.com/graphql';
 			const endpoint2 = 'https://api2.example.com/graphql';
 
-			const client1 = createJwtGraphQLClient(endpoint1);
-			const client2 = createJwtGraphQLClient(endpoint2);
+			const before = capturedClientOpts.length;
+			createJwtGraphQLClient(endpoint1);
+			createJwtGraphQLClient(endpoint2);
 
-			expect(client1.url).toBe(endpoint1);
-			expect(client2.url).toBe(endpoint2);
+			expect(capturedClientOpts[before].url).toBe(endpoint1);
+			expect(capturedClientOpts[before + 1].url).toBe(endpoint2);
 		});
 	});
 
@@ -109,27 +133,29 @@ describe('JWT GraphQL Client', () => {
 			const { createServerJwtClient } = await import('$lib/graphql/jwt-client');
 
 			const mockFetch = vi.fn();
-			const client = createServerJwtClient(mockFetch as any);
+			const client = createServerJwtClient(mockFetch as unknown as typeof globalThis.fetch);
 
-			expect(client).toBeInstanceOf(Client);
+			expect(client).toBeInstanceOf(RealClient);
 		});
 
 		test('should use provided fetch function', async () => {
 			const { createServerJwtClient } = await import('$lib/graphql/jwt-client');
 
 			const mockFetch = vi.fn();
-			const client = createServerJwtClient(mockFetch as any);
+			const before = capturedClientOpts.length;
+			createServerJwtClient(mockFetch as unknown as typeof globalThis.fetch);
 
-			expect(client.opts.fetch).toBe(mockFetch);
+			expect(capturedClientOpts[before].fetch).toBe(mockFetch);
 		});
 
 		test('should set default GraphQL endpoint for server', async () => {
 			const { createServerJwtClient } = await import('$lib/graphql/jwt-client');
 
 			const mockFetch = vi.fn();
-			const client = createServerJwtClient(mockFetch as any);
+			const before = capturedClientOpts.length;
+			createServerJwtClient(mockFetch as unknown as typeof globalThis.fetch);
 
-			expect(client.url).toBe('http://localhost:8080/graphql');
+			expect(capturedClientOpts[before].url).toBe('http://localhost:8080/graphql');
 		});
 
 		test('should include Authorization header when token provided', async () => {
@@ -137,10 +163,12 @@ describe('JWT GraphQL Client', () => {
 
 			const mockFetch = vi.fn();
 			const token = 'server-jwt-token';
+			const before = capturedClientOpts.length;
 
-			const client = createServerJwtClient(mockFetch as any, token);
+			createServerJwtClient(mockFetch as unknown as typeof globalThis.fetch, token);
 
-			const headers = client.opts.fetchOptions?.headers as Record<string, string>;
+			const fetchOptions = capturedClientOpts[before].fetchOptions as RequestInit;
+			const headers = fetchOptions?.headers as Record<string, string>;
 
 			expect(headers?.Authorization).toBe(`Bearer ${token}`);
 		});
@@ -149,9 +177,11 @@ describe('JWT GraphQL Client', () => {
 			const { createServerJwtClient } = await import('$lib/graphql/jwt-client');
 
 			const mockFetch = vi.fn();
-			const client = createServerJwtClient(mockFetch as any);
+			const before = capturedClientOpts.length;
+			createServerJwtClient(mockFetch as unknown as typeof globalThis.fetch);
 
-			const headers = client.opts.fetchOptions?.headers as Record<string, string>;
+			const fetchOptions = capturedClientOpts[before].fetchOptions as RequestInit;
+			const headers = fetchOptions?.headers as Record<string, string>;
 
 			expect(headers?.Authorization).toBeUndefined();
 		});
@@ -161,10 +191,12 @@ describe('JWT GraphQL Client', () => {
 
 			const mockFetch = vi.fn();
 			const token = 'my-jwt-token-abc123';
+			const before = capturedClientOpts.length;
 
-			const client = createServerJwtClient(mockFetch as any, token);
+			createServerJwtClient(mockFetch as unknown as typeof globalThis.fetch, token);
 
-			const headers = client.opts.fetchOptions?.headers as Record<string, string>;
+			const fetchOptions = capturedClientOpts[before].fetchOptions as RequestInit;
+			const headers = fetchOptions?.headers as Record<string, string>;
 
 			expect(headers?.Authorization).toMatch(/^Bearer /);
 			expect(headers?.Authorization).toContain(token);
@@ -174,9 +206,10 @@ describe('JWT GraphQL Client', () => {
 			const { createServerJwtClient } = await import('$lib/graphql/jwt-client');
 
 			const mockFetch = vi.fn();
-			const client = createServerJwtClient(mockFetch as any);
+			const before = capturedClientOpts.length;
+			createServerJwtClient(mockFetch as unknown as typeof globalThis.fetch);
 
-			const fetchOptions = client.opts.fetchOptions as Record<string, unknown>;
+			const fetchOptions = capturedClientOpts[before].fetchOptions as Record<string, unknown>;
 
 			expect(fetchOptions?.credentials).toBe('include');
 		});
@@ -186,16 +219,27 @@ describe('JWT GraphQL Client', () => {
 
 			const mockFetch1 = vi.fn();
 			const mockFetch2 = vi.fn();
+			const before = capturedClientOpts.length;
 
-			const client1 = createServerJwtClient(mockFetch1 as any, 'token1');
-			const client2 = createServerJwtClient(mockFetch2 as any, 'token2');
+			const client1 = createServerJwtClient(
+				mockFetch1 as unknown as typeof globalThis.fetch,
+				'token1'
+			);
+			const client2 = createServerJwtClient(
+				mockFetch2 as unknown as typeof globalThis.fetch,
+				'token2'
+			);
 
 			expect(client1).not.toBe(client2);
-			expect(client1.opts.fetch).toBe(mockFetch1);
-			expect(client2.opts.fetch).toBe(mockFetch2);
 
-			const headers1 = client1.opts.fetchOptions?.headers as Record<string, string>;
-			const headers2 = client2.opts.fetchOptions?.headers as Record<string, string>;
+			const opts1 = capturedClientOpts[before];
+			const opts2 = capturedClientOpts[before + 1];
+
+			expect(opts1.fetch).toBe(mockFetch1);
+			expect(opts2.fetch).toBe(mockFetch2);
+
+			const headers1 = (opts1.fetchOptions as RequestInit)?.headers as Record<string, string>;
+			const headers2 = (opts2.fetchOptions as RequestInit)?.headers as Record<string, string>;
 
 			expect(headers1?.Authorization).toContain('token1');
 			expect(headers2?.Authorization).toContain('token2');
@@ -211,14 +255,14 @@ describe('JWT GraphQL Client', () => {
 			// Already mocked as browser: true
 			const { jwtGraphQLClient } = await import('$lib/graphql/jwt-client');
 
-			expect(jwtGraphQLClient).toBeInstanceOf(Client);
+			expect(jwtGraphQLClient).toBeInstanceOf(RealClient);
 		});
 
 		test('should initialize auth store with default client', async () => {
 			// Import triggers initialization
 			await import('$lib/graphql/jwt-client');
 
-			expect(mockJwtAuth.initialize).toHaveBeenCalledWith(expect.any(Client));
+			expect(mockJwtAuth.initialize).toHaveBeenCalledWith(expect.any(RealClient));
 		});
 	});
 
@@ -230,11 +274,16 @@ describe('JWT GraphQL Client', () => {
 		test('should create separate clients for different endpoints', async () => {
 			const { createJwtGraphQLClient } = await import('$lib/graphql/jwt-client');
 
+			const before = capturedClientOpts.length;
 			const client1 = createJwtGraphQLClient('http://localhost:8080/graphql');
 			const client2 = createJwtGraphQLClient('http://localhost:9090/graphql');
 
 			expect(client1).not.toBe(client2);
-			expect(client1.url).not.toBe(client2.url);
+
+			const url1 = capturedClientOpts[before].url;
+			const url2 = capturedClientOpts[before + 1].url;
+
+			expect(url1).not.toBe(url2);
 		});
 
 		test('should create separate server clients with different tokens', async () => {
@@ -242,14 +291,25 @@ describe('JWT GraphQL Client', () => {
 
 			const mockFetch1 = vi.fn();
 			const mockFetch2 = vi.fn();
+			const before = capturedClientOpts.length;
 
-			const client1 = createServerJwtClient(mockFetch1 as any, 'token-a');
-			const client2 = createServerJwtClient(mockFetch2 as any, 'token-b');
+			const client1 = createServerJwtClient(
+				mockFetch1 as unknown as typeof globalThis.fetch,
+				'token-a'
+			);
+			const client2 = createServerJwtClient(
+				mockFetch2 as unknown as typeof globalThis.fetch,
+				'token-b'
+			);
 
 			expect(client1).not.toBe(client2);
 
-			const headers1 = client1.opts.fetchOptions?.headers as Record<string, string>;
-			const headers2 = client2.opts.fetchOptions?.headers as Record<string, string>;
+			const headers1 = (capturedClientOpts[before].fetchOptions as RequestInit)?.headers as Record<
+				string,
+				string
+			>;
+			const headers2 = (capturedClientOpts[before + 1].fetchOptions as RequestInit)
+				?.headers as Record<string, string>;
 
 			expect(headers1?.Authorization).not.toBe(headers2?.Authorization);
 		});
@@ -263,38 +323,43 @@ describe('JWT GraphQL Client', () => {
 		test('should handle empty endpoint string', async () => {
 			const { createJwtGraphQLClient } = await import('$lib/graphql/jwt-client');
 
-			const client = createJwtGraphQLClient('');
-
-			expect(client).toBeInstanceOf(Client);
+			expect(() => createJwtGraphQLClient('')).toThrow(
+				'You are creating an urql-client without a url.'
+			);
 		});
 
 		test('should handle HTTPS endpoints', async () => {
 			const { createJwtGraphQLClient } = await import('$lib/graphql/jwt-client');
 
 			const secureEndpoint = 'https://api.example.com/graphql';
-			const client = createJwtGraphQLClient(secureEndpoint);
+			const before = capturedClientOpts.length;
+			createJwtGraphQLClient(secureEndpoint);
 
-			expect(client.url).toBe(secureEndpoint);
+			expect(capturedClientOpts[before].url).toBe(secureEndpoint);
 		});
 
 		test('should handle port numbers in endpoint', async () => {
 			const { createJwtGraphQLClient } = await import('$lib/graphql/jwt-client');
 
 			const customPort = 'http://localhost:4000/graphql';
-			const client = createJwtGraphQLClient(customPort);
+			const before = capturedClientOpts.length;
+			createJwtGraphQLClient(customPort);
 
-			expect(client.url).toBe(customPort);
+			expect(capturedClientOpts[before].url).toBe(customPort);
 		});
 
 		test('should handle empty token in server client', async () => {
 			const { createServerJwtClient } = await import('$lib/graphql/jwt-client');
 
 			const mockFetch = vi.fn();
-			const client = createServerJwtClient(mockFetch as any, '');
+			const before = capturedClientOpts.length;
+			createServerJwtClient(mockFetch as unknown as typeof globalThis.fetch, '');
 
-			const headers = client.opts.fetchOptions?.headers as Record<string, string>;
+			const fetchOptions = capturedClientOpts[before].fetchOptions as RequestInit;
+			const headers = fetchOptions?.headers as Record<string, string>;
 
-			expect(headers?.Authorization).toBe('Bearer ');
+			// Empty string token is falsy — no Authorization header is injected
+			expect(headers?.Authorization).toBeUndefined();
 		});
 
 		test('should handle token with special characters', async () => {
@@ -302,10 +367,12 @@ describe('JWT GraphQL Client', () => {
 
 			const mockFetch = vi.fn();
 			const tokenWithSpecialChars = 'eyJ.hGci.OiJIUzI1NiIsInR5cCI6IkpXVCJ9';
+			const before = capturedClientOpts.length;
 
-			const client = createServerJwtClient(mockFetch as any, tokenWithSpecialChars);
+			createServerJwtClient(mockFetch as unknown as typeof globalThis.fetch, tokenWithSpecialChars);
 
-			const headers = client.opts.fetchOptions?.headers as Record<string, string>;
+			const fetchOptions = capturedClientOpts[before].fetchOptions as RequestInit;
+			const headers = fetchOptions?.headers as Record<string, string>;
 
 			expect(headers?.Authorization).toContain(tokenWithSpecialChars);
 		});
@@ -314,9 +381,9 @@ describe('JWT GraphQL Client', () => {
 			const { createServerJwtClient } = await import('$lib/graphql/jwt-client');
 
 			const mockFetch = vi.fn();
-			const client = createServerJwtClient(mockFetch as any);
+			const client = createServerJwtClient(mockFetch as unknown as typeof globalThis.fetch);
 
-			expect(client).toBeInstanceOf(Client);
+			expect(client).toBeInstanceOf(RealClient);
 		});
 	});
 
@@ -332,11 +399,11 @@ describe('JWT GraphQL Client', () => {
 			const mockFetch = vi.fn();
 
 			const browserClient = createJwtGraphQLClient('http://localhost:8080/graphql');
-			const serverClient = createServerJwtClient(mockFetch as any);
+			const serverClient = createServerJwtClient(mockFetch as unknown as typeof globalThis.fetch);
 
 			// Both should be valid Client instances
-			expect(browserClient).toBeInstanceOf(Client);
-			expect(serverClient).toBeInstanceOf(Client);
+			expect(browserClient).toBeInstanceOf(RealClient);
+			expect(serverClient).toBeInstanceOf(RealClient);
 		});
 
 		test('should initialize auth store with browser client', async () => {
@@ -354,14 +421,13 @@ describe('JWT GraphQL Client', () => {
 				await import('$lib/graphql/jwt-client');
 
 			const mockFetch = vi.fn();
+			const before = capturedClientOpts.length;
 
-			const browserClient = createJwtGraphQLClient('https://api.example.com/graphql');
-			const serverClient = createServerJwtClient(mockFetch as any);
+			createJwtGraphQLClient('https://api.example.com/graphql');
+			createServerJwtClient(mockFetch as unknown as typeof globalThis.fetch);
 
-			// Browser client uses the provided endpoint
-			expect(browserClient.url).toBe('https://api.example.com/graphql');
-			// Server client uses default endpoint
-			expect(serverClient.url).toBe('http://localhost:8080/graphql');
+			expect(capturedClientOpts[before].url).toBe('https://api.example.com/graphql');
+			expect(capturedClientOpts[before + 1].url).toBe('http://localhost:8080/graphql');
 		});
 	});
 
@@ -385,9 +451,9 @@ describe('JWT GraphQL Client', () => {
 			const { createServerJwtClient } = await import('$lib/graphql/jwt-client');
 
 			// Calling with undefined should still work
-			const client = createServerJwtClient(undefined as any);
+			const client = createServerJwtClient(undefined as unknown as typeof globalThis.fetch);
 
-			expect(client).toBeInstanceOf(Client);
+			expect(client).toBeInstanceOf(RealClient);
 		});
 	});
 });
