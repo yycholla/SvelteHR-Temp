@@ -15,8 +15,8 @@ export class LeaveDateRange {
 	) {}
 
 	static create(startStr: string, endStr: string): Result<LeaveDateRange, DomainError> {
-		const startDate = new Date(startStr);
-		const endDate = new Date(endStr);
+		const startDate = new Date(startStr + 'T00:00:00');
+		const endDate = new Date(endStr + 'T00:00:00');
 
 		// Business Rule: Valid dates
 		if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
