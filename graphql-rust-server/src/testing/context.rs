@@ -4,7 +4,7 @@
 //! authenticated test users, GraphQL schema, and execution helpers.
 
 use async_graphql::{EmptySubscription, Request, Response, Schema};
-use sea_orm::DatabaseConnection;
+use sea_orm::{Database, DatabaseConnection};
 
 use crate::schema::{MutationRoot, QueryRoot};
 use crate::auth::UserContext;
@@ -47,9 +47,15 @@ impl TestContext {
         // Create test users
         let users = TestUsers::create_all(db.connection()).await?;
 
-        // Build GraphQL schema with database connection
+        // Build GraphQL schema with a dedicated database connection.
+        // DatabaseConnection doesn't implement Clone, so we create a second connection
+        // to the same test database URL for use by the schema data context.
+        let schema_db = Database::connect(&db.url)
+            .await
+            .map_err(|e| TestContextError::SessionError(format!("Schema DB connection failed: {}", e)))?;
+
         let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
-            .data(db.connection().clone())
+            .data(schema_db)
             .finish();
 
         Ok(Self { db, schema, users })
