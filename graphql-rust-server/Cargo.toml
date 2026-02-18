@@ -409,6 +409,7 @@ features = [
   "with-uuid",
   "with-chrono",
   "postgres-array",
+  "mock",
 ]
 
 [dependencies.sea-orm-migration]
