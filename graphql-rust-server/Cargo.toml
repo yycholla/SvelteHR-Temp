@@ -409,6 +409,17 @@ features = [
   "with-uuid",
   "with-chrono",
   "postgres-array",
+]
+
+[dev-dependencies.sea-orm]
+version = "0.12"
+features = [
+  "sqlx-postgres",
+  "runtime-tokio-rustls",
+  "macros",
+  "with-uuid",
+  "with-chrono",
+  "postgres-array",
   "mock",
 ]
 
