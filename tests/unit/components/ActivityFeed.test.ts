@@ -40,7 +40,7 @@ interface ActivityFeedProps {
 	onRollback?: (logId: string) => void;
 }
 
-describe.skip('ActivityFeed Component Enhancements (TDD RED - should fail)', () => {
+describe('ActivityFeed Component Enhancements', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
