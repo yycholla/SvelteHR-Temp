@@ -51,7 +51,7 @@ interface RollbackRequestCardProps {
 	onReject?: (requestId: string, reason: string) => Promise<void>;
 }
 
-describe.skip('RollbackRequestCard Component (TDD RED - should fail)', () => {
+describe('RollbackRequestCard Component', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
