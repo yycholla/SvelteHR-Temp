@@ -26,7 +26,7 @@ interface RollbackButtonProps {
 	onError?: (error: string) => void;
 }
 
-describe.skip('RollbackButton Component (TDD RED - should fail)', () => {
+describe('RollbackButton Component', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
