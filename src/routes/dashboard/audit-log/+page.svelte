@@ -3,9 +3,7 @@
 	let { data } = $props();
 
 	// State placeholders - will be populated in Task 43: Integration
-	type AuditLogFilters = {
-		// Filter types will be defined when AuditLogFilters component is integrated
-	};
+	type AuditLogFilters = Record<string, never>;
 	let filters = $state<AuditLogFilters>({});
 	let selectedLogIds = $state<Set<string>>(new Set());
 </script>
