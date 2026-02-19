@@ -40,7 +40,7 @@ interface ConflictResolutionModalProps {
 	onCancel: () => void;
 }
 
-describe.skip('ConflictResolutionModal Component (TDD RED - should fail)', () => {
+describe('ConflictResolutionModal Component', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
