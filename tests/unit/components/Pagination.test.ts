@@ -27,7 +27,7 @@ interface PaginationProps {
 	pageSizeOptions?: number[];
 }
 
-describe.skip('Pagination Component (TDD RED - should fail)', () => {
+describe('Pagination Component', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
