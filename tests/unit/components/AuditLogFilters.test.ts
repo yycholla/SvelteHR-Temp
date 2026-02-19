@@ -35,7 +35,7 @@ interface AuditLogFiltersProps {
 	onClear: () => void;
 }
 
-describe.skip('AuditLogFilters Component (TDD RED - should fail)', () => {
+describe('AuditLogFilters Component', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
