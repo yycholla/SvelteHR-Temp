@@ -17,10 +17,18 @@
 	let resourceSearchQuery = $state('');
 	let employeeSearchQuery = $state('');
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+	let resourcePopoverOpen = $state(false);
 
 	let filteredResourceTypes = $derived(
 		resourceTypes.filter((rt) => rt.toLowerCase().includes(resourceSearchQuery.toLowerCase()))
 	);
+
+	// Cleanup effect for debounce timer
+	$effect(() => {
+		return () => {
+			if (debounceTimer) clearTimeout(debounceTimer);
+		};
+	});
 
 	function isValidAction(value: string): value is 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' {
 		return ['CREATE', 'READ', 'UPDATE', 'DELETE'].includes(value);
@@ -37,6 +45,7 @@
 	function handleResourceTypeChange(value: string) {
 		filters = { ...filters, resourceType: value || null };
 		onFilterChange(filters);
+		resourcePopoverOpen = false;
 	}
 
 	function handleDateChange(field: 'startDate' | 'endDate', value: string) {
@@ -82,7 +91,7 @@
 
 	<div class="filter-group">
 		<label for="resource-filter" class="block text-sm font-medium mb-2">Resource Type</label>
-		<Popover.Root>
+		<Popover.Root bind:open={resourcePopoverOpen}>
 			<Popover.Trigger asChild let:builder>
 				<Button variant="outline" builders={[builder]} class="w-full justify-start">
 					{filters.resourceType || 'Select resource type...'}
