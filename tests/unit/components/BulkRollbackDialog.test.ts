@@ -46,7 +46,7 @@ interface BulkRollbackProgress {
 	lastError?: string;
 }
 
-describe.skip('BulkRollbackDialog Component (TDD RED - should fail)', () => {
+describe('BulkRollbackDialog Component', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
