@@ -43,12 +43,7 @@
 		DELETE: '×'
 	};
 
-	let hasSnapshots = $derived(
-		log.beforeSnapshot !== null ||
-			log.beforeSnapshot !== undefined ||
-			log.afterSnapshot !== null ||
-			log.afterSnapshot !== undefined
-	);
+	let hasSnapshots = $derived(log.beforeSnapshot != null || log.afterSnapshot != null);
 
 	function getChangedFields(): string[] {
 		if (!log.beforeSnapshot || !log.afterSnapshot) return [];

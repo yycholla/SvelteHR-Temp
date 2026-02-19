@@ -42,33 +42,52 @@
 		onSelectionChange?.(newSelection);
 	}
 
-	function handleScroll(event: Event) {
-		const target = event.currentTarget as HTMLDivElement;
-		const bottom = target.scrollHeight - target.scrollTop - target.clientHeight;
-
-		if (bottom < 200 && hasMore && !loading && onLoadMore) {
-			onLoadMore();
-		}
-	}
-
 	// Track the current event for accessing shift key
 	let currentEvent: MouseEvent | null = null;
 
 	function handleCheckboxClick(event: MouseEvent) {
 		currentEvent = event;
 	}
-</script>
 
-<svelte:window
-	onclick={(e) => {
-		currentEvent = e;
-	}}
-/>
+	// Intersection Observer for infinite scroll
+	let loadMoreTrigger: HTMLElement | undefined;
+
+	$effect(() => {
+		if (!loadMoreTrigger) return;
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0]?.isIntersecting && hasMore && !loading && onLoadMore) {
+					onLoadMore();
+				}
+			},
+			{ threshold: 0.1 }
+		);
+
+		observer.observe(loadMoreTrigger);
+
+		return () => {
+			observer.disconnect();
+		};
+	});
+
+	// Window click event listener with cleanup
+	$effect(() => {
+		const handleClick = (e: MouseEvent) => {
+			currentEvent = e;
+		};
+
+		window.addEventListener('click', handleClick);
+
+		return () => {
+			window.removeEventListener('click', handleClick);
+		};
+	});
+</script>
 
 <div
 	class="activity-feed max-h-[600px] overflow-y-auto"
 	data-scroll-container
-	onscroll={handleScroll}
 	role="feed"
 	aria-label="Audit log activity feed"
 	aria-busy={loading}
@@ -116,6 +135,10 @@
 					Load More
 				</Button>
 			</div>
+		{/if}
+
+		{#if hasMore}
+			<div bind:this={loadMoreTrigger} class="h-px" aria-hidden="true"></div>
 		{/if}
 	{/if}
 </div>
