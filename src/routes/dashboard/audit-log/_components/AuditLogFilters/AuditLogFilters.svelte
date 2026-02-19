@@ -1,7 +1,6 @@
 <!-- src/routes/dashboard/audit-log/_components/AuditLogFilters/AuditLogFilters.svelte -->
 <script lang="ts">
 	import type { FilterValues, AuditLogFiltersProps } from './filters.types';
-	import { Button } from '$lib/components/ui/button';
 	import * as Select from '$lib/components/ui/select';
 
 	let {
@@ -13,10 +12,14 @@
 
 	let filters = $state<FilterValues>(initialFilters);
 
+	function isValidAction(value: string): value is 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' {
+		return ['CREATE', 'READ', 'UPDATE', 'DELETE'].includes(value);
+	}
+
 	function handleActionChange(value: string) {
 		filters = {
 			...filters,
-			action: value === 'ALL' ? null : (value as FilterValues['action'])
+			action: value === 'ALL' ? null : isValidAction(value) ? value : null
 		};
 		onFilterChange(filters);
 	}
@@ -25,7 +28,7 @@
 <div class="audit-log-filters space-y-4 p-4">
 	<div class="filter-group">
 		<label for="action-filter" class="block text-sm font-medium mb-2">Action Type</label>
-		<Select.Root onValueChange={handleActionChange}>
+		<Select.Root value={filters.action ?? 'ALL'} onValueChange={handleActionChange}>
 			<Select.Trigger id="action-filter" class="w-full">
 				<Select.Value placeholder="ALL" />
 			</Select.Trigger>
