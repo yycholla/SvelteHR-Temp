@@ -53,16 +53,19 @@ src/routes/dashboard/audit-log/
 ### Design Patterns
 
 **1. Compound Component Pattern**
+
 - Smart containers handle state and data fetching
 - Presentational components handle rendering
 - Clear separation of concerns
 
 **2. Feature Module Pattern**
+
 - GraphQL queries co-located with components
 - Types defined per feature module
 - Improved maintainability and parallel development
 
 **3. Svelte 5 Runes**
+
 - `$state` for reactive local state
 - `$derived` for computed values
 - `$props` for component props
@@ -71,6 +74,7 @@ src/routes/dashboard/audit-log/
 ### Route Orchestration
 
 The `+page.svelte` acts as the orchestrator:
+
 - Manages global state (filters, selection)
 - Coordinates communication between components
 - Handles authentication and permissions
@@ -78,14 +82,14 @@ The `+page.svelte` acts as the orchestrator:
 
 ```svelte
 <script lang="ts">
-  let filters = $state<FilterValues>({});
-  let selectedLogIds = $state<Set<string>>(new Set());
-  let drawerOpen = $state(false);
+	let filters = $state<FilterValues>({});
+	let selectedLogIds = $state<Set<string>>(new Set());
+	let drawerOpen = $state(false);
 
-  function handleFilterChange(newFilters: FilterValues) {
-    filters = newFilters;
-    selectedLogIds.clear();
-  }
+	function handleFilterChange(newFilters: FilterValues) {
+		filters = newFilters;
+		selectedLogIds.clear();
+	}
 </script>
 ```
 
@@ -96,18 +100,20 @@ The `+page.svelte` acts as the orchestrator:
 **Purpose:** Display audit logs with rollback indicators and diff visualization.
 
 **Props Interface:**
+
 ```typescript
 interface ActivityFeedProps {
-  logs: ActivityLogEntry[];
-  onLoadMore?: () => void;
-  hasMore?: boolean;
-  loading?: boolean;
-  selectedIds?: Set<string>;
-  onSelectionChange?: (ids: Set<string>) => void;
+	logs: ActivityLogEntry[];
+	onLoadMore?: () => void;
+	hasMore?: boolean;
+	loading?: boolean;
+	selectedIds?: Set<string>;
+	onSelectionChange?: (ids: Set<string>) => void;
 }
 ```
 
 **Key Features:**
+
 - Infinite scroll with "Load More" fallback
 - Shift+Click range selection
 - Expandable entries showing before/after diffs
@@ -115,6 +121,7 @@ interface ActivityFeedProps {
 - Skeleton loaders during loading
 
 **Test Categories:**
+
 - Rollback indicator rendering (completed/pending states, icons)
 - Diff visualization (before/after snapshots, field diffs)
 - Infinite scroll behavior
@@ -125,21 +132,23 @@ interface ActivityFeedProps {
 **Purpose:** Left sidebar filters for action type, resource, date range, employee.
 
 **Props Interface:**
+
 ```typescript
 interface AuditLogFiltersProps {
-  onChange: (filters: FilterValues) => void;
-  initialFilters?: FilterValues;
+	onChange: (filters: FilterValues) => void;
+	initialFilters?: FilterValues;
 }
 
 interface FilterValues {
-  actionTypes: string[];
-  resourceTypes: string[];
-  dateRange: { start: string; end: string } | null;
-  employeeId: string | null;
+	actionTypes: string[];
+	resourceTypes: string[];
+	dateRange: { start: string; end: string } | null;
+	employeeId: string | null;
 }
 ```
 
 **Key Features:**
+
 - Multi-select action type checkboxes
 - Resource type autocomplete (GraphQL-backed)
 - Date range picker with validation (start < end)
@@ -147,6 +156,7 @@ interface FilterValues {
 - Active filter count badge
 
 **Test Categories:**
+
 - Action type multi-select
 - Resource type autocomplete with GraphQL query
 - Date range validation (start < end)
@@ -157,16 +167,18 @@ interface FilterValues {
 **Purpose:** Modal dialog for bulk rollback with real-time progress via SSE.
 
 **Props Interface:**
+
 ```typescript
 interface BulkRollbackDialogProps {
-  selectedLogIds: Set<string>;
-  open: boolean;
-  onClose: () => void;
-  onComplete?: () => void;
+	selectedLogIds: Set<string>;
+	open: boolean;
+	onClose: () => void;
+	onComplete?: () => void;
 }
 ```
 
 **Key Features:**
+
 - Server-Sent Events (SSE) for progress updates
 - Progress bar with percentage (0% → 100%)
 - Detailed stats (X of Y completed, Z failed)
@@ -174,18 +186,20 @@ interface BulkRollbackDialogProps {
 - Auto-close on 100% completion (3s delay)
 
 **SSE Event Format:**
+
 ```typescript
 interface BulkRollbackProgress {
-  batchId: string;
-  total: number;
-  completed: number;
-  failed: number;
-  percentage: number;
-  errors?: Array<{ logId: string; message: string }>;
+	batchId: string;
+	total: number;
+	completed: number;
+	failed: number;
+	percentage: number;
+	errors?: Array<{ logId: string; message: string }>;
 }
 ```
 
 **Test Categories:**
+
 - SSE connection lifecycle (connect on open, close on unmount)
 - Progress bar updates (0% → 100%)
 - Batch status display (X of Y completed, Z failed)
@@ -196,24 +210,26 @@ interface BulkRollbackProgress {
 **Purpose:** Modal for resolving conflicts when rollback encounters data changes.
 
 **Props Interface:**
+
 ```typescript
 interface ConflictResolutionModalProps {
-  conflicts: ConflictData;
-  onResolve: (strategy: ResolutionStrategy) => Promise<void>;
-  onCancel: () => void;
+	conflicts: ConflictData;
+	onResolve: (strategy: ResolutionStrategy) => Promise<void>;
+	onCancel: () => void;
 }
 
 interface ConflictData {
-  hasConflicts: boolean;
-  conflictFields: string[];
-  currentState: Record<string, unknown>;
-  targetState: Record<string, unknown>;
+	hasConflicts: boolean;
+	conflictFields: string[];
+	currentState: Record<string, unknown>;
+	targetState: Record<string, unknown>;
 }
 
 type ResolutionStrategy = 'force' | 'cancel' | 'merge';
 ```
 
 **Key Features:**
+
 - Side-by-side diff view (current vs target state)
 - Three resolution strategies:
   - **Force:** Overwrite current with target
@@ -223,6 +239,7 @@ type ResolutionStrategy = 'force' | 'cancel' | 'merge';
 - Validation before submission
 
 **Test Categories:**
+
 - Strategy selection (force/cancel/merge)
 - Field-level diff display
 - Submit button disabled until strategy selected
@@ -239,15 +256,17 @@ type ResolutionStrategy = 'force' | 'cancel' | 'merge';
 **Purpose:** Single-log rollback button (appears in expanded diff view only).
 
 **Props Interface:**
+
 ```typescript
 interface RollbackButtonProps {
-  log: ActivityLogEntry;
-  userRole: string;
-  onRollbackComplete?: () => void;
+	log: ActivityLogEntry;
+	userRole: string;
+	onRollbackComplete?: () => void;
 }
 ```
 
 **Key Features:**
+
 - Visibility: super_admin only
 - Disabled states (already rolled back, in progress)
 - Confirmation dialog
@@ -255,6 +274,7 @@ interface RollbackButtonProps {
 - Shows in expanded diff view only
 
 **Test Categories:**
+
 - Visibility based on user role (super_admin only)
 - Disabled states (log already rolled back)
 - Confirmation dialog
@@ -265,24 +285,26 @@ interface RollbackButtonProps {
 **Purpose:** Collapsible drawer showing pending rollback requests (HR Manager approval).
 
 **Props Interface:**
+
 ```typescript
 interface RollbackRequestsDrawerProps {
-  requests: RollbackRequest[];
-  currentUserRole: string;
-  onApprove?: (requestId: string) => Promise<void>;
-  onReject?: (requestId: string, reason: string) => Promise<void>;
+	requests: RollbackRequest[];
+	currentUserRole: string;
+	onApprove?: (requestId: string) => Promise<void>;
+	onReject?: (requestId: string, reason: string) => Promise<void>;
 }
 
 interface RollbackRequest {
-  id: string;
-  status: 'pending' | 'approved' | 'rejected';
-  requestedBy: string;
-  targetLogId: string;
-  createdAt: string;
+	id: string;
+	status: 'pending' | 'approved' | 'rejected';
+	requestedBy: string;
+	targetLogId: string;
+	createdAt: string;
 }
 ```
 
 **Key Features:**
+
 - Collapsed by default
 - Shows request count badge
 - Approve/Reject actions (HR Manager only)
@@ -290,11 +312,13 @@ interface RollbackRequest {
 - Real-time updates via GraphQL subscriptions (future enhancement)
 
 **Child Component: RollbackRequestCard.svelte**
+
 - Individual request display
 - Action buttons (approve/reject)
 - Requester and target log info
 
 **Test Categories:**
+
 - Request status display (pending/approved/rejected)
 - Approve/Reject actions (HR Manager only)
 - Requester and target log info
@@ -310,23 +334,26 @@ import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
 import { GET_INITIAL_AUDIT_LOGS } from './_components/ActivityFeed/activityFeed.graphql';
 
 export const load: PageServerLoad = async ({ fetch, cookies, locals }) => {
-  const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
+	const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
 
-  const result = await client.query(GET_INITIAL_AUDIT_LOGS, {
-    limit: 50,
-    offset: 0
-  }).toPromise();
+	const result = await client
+		.query(GET_INITIAL_AUDIT_LOGS, {
+			limit: 50,
+			offset: 0
+		})
+		.toPromise();
 
-  return {
-    initialLogs: result.data?.auditLogs ?? [],
-    user: locals.user
-  };
+	return {
+		initialLogs: result.data?.auditLogs ?? [],
+		user: locals.user
+	};
 };
 ```
 
 ### Client-Side State Flow
 
 **1. Filter Changes**
+
 ```
 AuditLogFilters (onChange)
   → +page.svelte (handleFilterChange)
@@ -335,6 +362,7 @@ AuditLogFilters (onChange)
 ```
 
 **2. Bulk Rollback**
+
 ```
 ActivityFeed (selectedIds)
   → Floating Action Button
@@ -346,6 +374,7 @@ ActivityFeed (selectedIds)
 ```
 
 **3. Single Rollback with Conflict**
+
 ```
 ActivityFeedEntry (expand)
   → RollbackButton (click)
@@ -363,105 +392,108 @@ ActivityFeedEntry (expand)
 ```typescript
 // bulkRollback.sse.ts
 export function createProgressStream(batchId: string) {
-  const eventSource = new EventSource(`/api/rollback-progress/${batchId}`);
+	const eventSource = new EventSource(`/api/rollback-progress/${batchId}`);
 
-  return {
-    onProgress(callback: (progress: BulkRollbackProgress) => void) {
-      eventSource.addEventListener('progress', (e) => {
-        callback(JSON.parse(e.data));
-      });
-    },
-    onComplete(callback: () => void) {
-      eventSource.addEventListener('complete', () => {
-        callback();
-        eventSource.close();
-      });
-    },
-    onError(callback: (error: Error) => void) {
-      eventSource.addEventListener('error', (e) => {
-        callback(new Error('SSE connection failed'));
-      });
-    },
-    close() {
-      eventSource.close();
-    }
-  };
+	return {
+		onProgress(callback: (progress: BulkRollbackProgress) => void) {
+			eventSource.addEventListener('progress', (e) => {
+				callback(JSON.parse(e.data));
+			});
+		},
+		onComplete(callback: () => void) {
+			eventSource.addEventListener('complete', () => {
+				callback();
+				eventSource.close();
+			});
+		},
+		onError(callback: (error: Error) => void) {
+			eventSource.addEventListener('error', (e) => {
+				callback(new Error('SSE connection failed'));
+			});
+		},
+		close() {
+			eventSource.close();
+		}
+	};
 }
 ```
 
 **Usage in Component:**
+
 ```svelte
 <script lang="ts">
-  import { createProgressStream } from './bulkRollback.sse';
+	import { createProgressStream } from './bulkRollback.sse';
 
-  let progress = $state({ percentage: 0, completed: 0, total: 0 });
+	let progress = $state({ percentage: 0, completed: 0, total: 0 });
 
-  $effect(() => {
-    if (!open || !batchId) return;
+	$effect(() => {
+		if (!open || !batchId) return;
 
-    const stream = createProgressStream(batchId);
+		const stream = createProgressStream(batchId);
 
-    stream.onProgress((update) => {
-      progress = update;
-    });
+		stream.onProgress((update) => {
+			progress = update;
+		});
 
-    stream.onComplete(() => {
-      setTimeout(() => onClose(), 3000);
-    });
+		stream.onComplete(() => {
+			setTimeout(() => onClose(), 3000);
+		});
 
-    return () => stream.close();
-  });
+		return () => stream.close();
+	});
 </script>
 ```
 
 ### GraphQL Operations
 
 **Queries:**
+
 ```typescript
 // activityFeed.graphql.ts
 export const GET_AUDIT_LOGS = gql`
-  query GetAuditLogs($limit: Int!, $offset: Int!, $filters: AuditLogFilters) {
-    auditLogs(limit: $limit, offset: $offset, filters: $filters) {
-      id
-      action
-      resourceType
-      resourceId
-      changes
-      performedBy
-      timestamp
-      rollbackStatus
-      beforeSnapshot
-      afterSnapshot
-    }
-  }
+	query GetAuditLogs($limit: Int!, $offset: Int!, $filters: AuditLogFilters) {
+		auditLogs(limit: $limit, offset: $offset, filters: $filters) {
+			id
+			action
+			resourceType
+			resourceId
+			changes
+			performedBy
+			timestamp
+			rollbackStatus
+			beforeSnapshot
+			afterSnapshot
+		}
+	}
 `;
 ```
 
 **Mutations:**
+
 ```typescript
 // rollback.graphql.ts
 export const ROLLBACK_AUDIT_LOG = gql`
-  mutation RollbackLog($logId: ID!) {
-    rollbackAuditLog(logId: $logId) {
-      success
-      conflicts {
-        hasConflicts
-        conflictFields
-        currentState
-        targetState
-      }
-    }
-  }
+	mutation RollbackLog($logId: ID!) {
+		rollbackAuditLog(logId: $logId) {
+			success
+			conflicts {
+				hasConflicts
+				conflictFields
+				currentState
+				targetState
+			}
+		}
+	}
 `;
 
 // bulkRollback.graphql.ts
 export const CREATE_BULK_ROLLBACK = gql`
-  mutation CreateBulkRollback($logIds: [ID!]!) {
-    createBulkRollback(logIds: $logIds) {
-      success
-      batchId
-    }
-  }
+	mutation CreateBulkRollback($logIds: [ID!]!) {
+		createBulkRollback(logIds: $logIds) {
+			success
+			batchId
+		}
+	}
 `;
 ```
 
@@ -493,6 +525,7 @@ async function loadLogs() {
 ```
 
 **UI Treatment:**
+
 - Show error alert at top of feed
 - Preserve existing data if available
 - Provide retry button
@@ -507,19 +540,22 @@ let reconnectAttempts = $state(0);
 const MAX_RECONNECT_ATTEMPTS = 3;
 
 $effect(() => {
-  const stream = createProgressStream(batchId);
+	const stream = createProgressStream(batchId);
 
-  stream.onError((error) => {
-    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-      reconnectAttempts++;
-      setTimeout(() => {
-        // Retry SSE connection
-      }, 1000 * Math.pow(2, reconnectAttempts));
-    } else {
-      // Fallback to polling
-      startPolling();
-    }
-  });
+	stream.onError((error) => {
+		if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+			reconnectAttempts++;
+			setTimeout(
+				() => {
+					// Retry SSE connection
+				},
+				1000 * Math.pow(2, reconnectAttempts)
+			);
+		} else {
+			// Fallback to polling
+			startPolling();
+		}
+	});
 });
 ```
 
@@ -532,13 +568,13 @@ let selectedStrategy = $state<ResolutionStrategy | null>(null);
 let canSubmit = $derived(selectedStrategy !== null);
 
 async function handleSubmit() {
-  if (!canSubmit) return; // Should never happen due to disabled button
+	if (!canSubmit) return; // Should never happen due to disabled button
 
-  try {
-    await onResolve(selectedStrategy);
-  } catch (e) {
-    error = 'Failed to resolve conflict. Please try again.';
-  }
+	try {
+		await onResolve(selectedStrategy);
+	} catch (e) {
+		error = 'Failed to resolve conflict. Please try again.';
+	}
 }
 ```
 
@@ -548,16 +584,16 @@ async function handleSubmit() {
 
 ```typescript
 interface BulkRollbackResult {
-  succeeded: string[];
-  failed: Array<{ logId: string; error: string }>;
+	succeeded: string[];
+	failed: Array<{ logId: string; error: string }>;
 }
 
 // After completion
 if (result.failed.length > 0) {
-  showResultDialog({
-    message: `${result.succeeded.length} succeeded, ${result.failed.length} failed`,
-    failedLogs: result.failed
-  });
+	showResultDialog({
+		message: `${result.succeeded.length} succeeded, ${result.failed.length} failed`,
+		failedLogs: result.failed
+	});
 }
 ```
 
@@ -567,11 +603,11 @@ if (result.failed.length > 0) {
 
 ```svelte
 {#if userRole === 'super_admin'}
-  <RollbackButton {log} {userRole} />
+	<RollbackButton {log} {userRole} />
 {/if}
 
 {#if userRole === 'hr_manager' && request.status === 'pending'}
-  <Button on:click={handleApprove}>Approve</Button>
+	<Button on:click={handleApprove}>Approve</Button>
 {/if}
 ```
 
@@ -581,10 +617,10 @@ if (result.failed.length > 0) {
 
 ```svelte
 {#if logs.length === 0 && !loading && !error}
-  <EmptyState>
-    <p>No audit logs found matching your filters.</p>
-    <Button on:click={clearFilters}>Clear Filters</Button>
-  </EmptyState>
+	<EmptyState>
+		<p>No audit logs found matching your filters.</p>
+		<Button on:click={clearFilters}>Clear Filters</Button>
+	</EmptyState>
 {/if}
 ```
 
@@ -599,13 +635,14 @@ if (result.failed.length > 0) {
 #### 1. ActivityFeed.svelte (49 tests)
 
 **Implementation Strategy:**
+
 ```typescript
 // Tests expect these props
 interface ActivityFeedProps {
-  logs: ActivityLogEntry[];
-  onLoadMore?: () => void;
-  hasMore?: boolean;
-  loading?: boolean;
+	logs: ActivityLogEntry[];
+	onLoadMore?: () => void;
+	hasMore?: boolean;
+	loading?: boolean;
 }
 
 // Key test assertions to satisfy:
@@ -618,13 +655,14 @@ interface ActivityFeedProps {
 #### 2. AuditLogFilters.svelte (47 tests)
 
 **Implementation Strategy:**
+
 ```typescript
 // Tests expect onChange callback with FilterValues
 interface FilterValues {
-  actionTypes: string[];
-  resourceTypes: string[];
-  dateRange: { start: string; end: string } | null;
-  employeeId: string | null;
+	actionTypes: string[];
+	resourceTypes: string[];
+	dateRange: { start: string; end: string } | null;
+	employeeId: string | null;
 }
 
 // Key test assertions:
@@ -637,15 +675,16 @@ interface FilterValues {
 #### 3. BulkRollbackDialog.svelte (51 tests)
 
 **Implementation Strategy:**
+
 ```typescript
 // Tests expect SSE events in this format:
 interface BulkRollbackProgress {
-  batchId: string;
-  total: number;
-  completed: number;
-  failed: number;
-  percentage: number;
-  errors?: Array<{ logId: string; message: string }>;
+	batchId: string;
+	total: number;
+	completed: number;
+	failed: number;
+	percentage: number;
+	errors?: Array<{ logId: string; message: string }>;
 }
 
 // Key test assertions:
@@ -658,11 +697,12 @@ interface BulkRollbackProgress {
 #### 4. ConflictResolutionModal.svelte (46 tests)
 
 **Implementation Strategy:**
+
 ```typescript
 interface ConflictResolutionProps {
-  conflicts: ConflictData;
-  onResolve: (strategy: ResolutionStrategy) => Promise<void>;
-  onCancel: () => void;
+	conflicts: ConflictData;
+	onResolve: (strategy: ResolutionStrategy) => Promise<void>;
+	onCancel: () => void;
 }
 
 // Key test assertions:
@@ -679,11 +719,12 @@ interface ConflictResolutionProps {
 #### 6. RollbackButton.svelte (36 tests)
 
 **Implementation Strategy:**
+
 ```typescript
 interface RollbackButtonProps {
-  log: ActivityLogEntry;
-  userRole: string;
-  onRollbackComplete?: () => void;
+	log: ActivityLogEntry;
+	userRole: string;
+	onRollbackComplete?: () => void;
 }
 
 // Key test assertions:
@@ -697,12 +738,13 @@ interface RollbackButtonProps {
 #### 7. RollbackRequestCard.svelte (46 tests)
 
 **Implementation Strategy:**
+
 ```typescript
 interface RollbackRequestCardProps {
-  request: RollbackRequest;
-  currentUserRole: string;
-  onApprove?: (requestId: string) => Promise<void>;
-  onReject?: (requestId: string, reason: string) => Promise<void>;
+	request: RollbackRequest;
+	currentUserRole: string;
+	onApprove?: (requestId: string) => Promise<void>;
+	onReject?: (requestId: string, reason: string) => Promise<void>;
 }
 
 // Key test assertions:
@@ -722,19 +764,19 @@ import { fromValue, pipe, map } from 'wonka';
 import { vi } from 'vitest';
 
 const mockClient = {
-  executeMutation: vi.fn((mutation) => {
-    return pipe(
-      fromValue({
-        data: {
-          createBulkRollback: {
-            success: true,
-            batchId: 'batch-123'
-          }
-        }
-      }),
-      map(result => result)
-    );
-  })
+	executeMutation: vi.fn((mutation) => {
+		return pipe(
+			fromValue({
+				data: {
+					createBulkRollback: {
+						success: true,
+						batchId: 'batch-123'
+					}
+				}
+			}),
+			map((result) => result)
+		);
+	})
 };
 ```
 
@@ -745,69 +787,74 @@ const mockClient = {
 ```typescript
 // Example from BulkRollbackDialog.test.ts
 test('updates progress from SSE events', async () => {
-  const { component } = render(BulkRollbackDialog, {
-    props: { batchId: 'batch-123', open: true }
-  });
+	const { component } = render(BulkRollbackDialog, {
+		props: { batchId: 'batch-123', open: true }
+	});
 
-  // Mock SSE endpoint with test server
-  const mockSSE = new MockEventSource('/api/rollback-progress/batch-123');
+	// Mock SSE endpoint with test server
+	const mockSSE = new MockEventSource('/api/rollback-progress/batch-123');
 
-  mockSSE.emit('progress', {
-    data: JSON.stringify({ percentage: 50, completed: 5, total: 10 })
-  });
+	mockSSE.emit('progress', {
+		data: JSON.stringify({ percentage: 50, completed: 5, total: 10 })
+	});
 
-  await waitFor(() => {
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
-  });
+	await waitFor(() => {
+		expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
+	});
 });
 ```
 
 ### Component Testing Patterns (Svelte 5 Runes)
 
 **State Testing:**
+
 ```typescript
 // Test $state reactivity
 test('updates filter count when filters change', async () => {
-  const { component } = render(AuditLogFilters);
+	const { component } = render(AuditLogFilters);
 
-  const actionTypeCheckbox = screen.getByLabelText('Create');
-  await userEvent.click(actionTypeCheckbox);
+	const actionTypeCheckbox = screen.getByLabelText('Create');
+	await userEvent.click(actionTypeCheckbox);
 
-  // Derived state should update automatically
-  expect(screen.getByText('1 filter active')).toBeInTheDocument();
+	// Derived state should update automatically
+	expect(screen.getByText('1 filter active')).toBeInTheDocument();
 });
 ```
 
 **Effect Testing:**
+
 ```typescript
 // Test $effect side effects
 test('loads more logs when scrolled to bottom', async () => {
-  const onLoadMore = vi.fn();
-  const { container } = render(ActivityFeed, {
-    props: { logs: mockLogs, onLoadMore, hasMore: true }
-  });
+	const onLoadMore = vi.fn();
+	const { container } = render(ActivityFeed, {
+		props: { logs: mockLogs, onLoadMore, hasMore: true }
+	});
 
-  const scrollContainer = container.querySelector('[data-scroll-container]');
-  scrollContainer.scrollTop = scrollContainer.scrollHeight;
+	const scrollContainer = container.querySelector('[data-scroll-container]');
+	scrollContainer.scrollTop = scrollContainer.scrollHeight;
 
-  // $effect should trigger onLoadMore
-  await waitFor(() => expect(onLoadMore).toHaveBeenCalledOnce());
+	// $effect should trigger onLoadMore
+	await waitFor(() => expect(onLoadMore).toHaveBeenCalledOnce());
 });
 ```
 
 ### Integration Testing Priority
 
 **Phase 1: Individual Components (Unit Tests)**
+
 - Remove `describe.skip()` one component at a time
 - Implement component to satisfy existing tests
 - Target: 100% test pass rate per component
 
 **Phase 2: Page Integration**
+
 - Test +page.svelte orchestration
 - Verify component communication (filter → feed, selection → dialog)
 - Test SSE connection lifecycle
 
 **Phase 3: E2E (Playwright)**
+
 - Full user flows (filter → select logs → bulk rollback)
 - Real GraphQL backend
 - Real SSE connections
@@ -843,24 +890,28 @@ npx vitest run --coverage --coverage.include=src/routes/dashboard/audit-log/**
 ## Implementation Phases
 
 ### Phase 1: Foundation (Days 1-2)
+
 - Create directory structure
 - Set up +page.svelte orchestrator
 - Implement AuditLogFilters (simplest component)
 - Implement Pagination (even though not used, tests exist)
 
 ### Phase 2: Core Components (Days 3-5)
+
 - Implement ActivityFeed with infinite scroll
 - Implement ActivityFeedEntry with diff view
 - Implement RollbackButton
 - Wire up basic GraphQL queries
 
 ### Phase 3: Advanced Features (Days 6-8)
+
 - Implement BulkRollbackDialog with SSE
 - Implement ConflictResolutionModal
 - Implement RollbackRequestsDrawer
 - Add real-time updates
 
 ### Phase 4: Polish & Testing (Days 9-10)
+
 - Remove all describe.skip()
 - Fix failing tests
 - Add E2E tests

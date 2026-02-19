@@ -13,6 +13,7 @@
 ## Task 1: Foundation - Directory Structure
 
 **Files:**
+
 - Create: `src/routes/dashboard/audit-log/_components/` (directory)
 - Create: `src/routes/dashboard/audit-log/+page.svelte`
 - Create: `src/routes/dashboard/audit-log/+page.server.ts`
@@ -77,6 +78,7 @@ git commit -m "feat(audit-log): create foundation directory structure and page f
 ## Task 2: AuditLogFilters - Component Setup
 
 **Files:**
+
 - Create: `src/routes/dashboard/audit-log/_components/AuditLogFilters/filters.types.ts`
 - Create: `src/routes/dashboard/audit-log/_components/AuditLogFilters/AuditLogFilters.svelte`
 - Modify: `tests/unit/components/AuditLogFilters.test.ts:38` (remove describe.skip)
@@ -135,6 +137,7 @@ export interface AuditLogFiltersProps {
 ```
 
 Use this command:
+
 ```bash
 sed -i "s/describe.skip('AuditLogFilters Component (TDD RED - should fail)'/describe('AuditLogFilters Component'/" tests/unit/components/AuditLogFilters.test.ts
 ```
@@ -159,6 +162,7 @@ git commit -m "feat(audit-log): create AuditLogFilters component structure and e
 ## Task 3: AuditLogFilters - Action Type Filter
 
 **Files:**
+
 - Modify: `src/routes/dashboard/audit-log/_components/AuditLogFilters/AuditLogFilters.svelte`
 
 **Step 1: Add action type dropdown UI**
@@ -227,6 +231,7 @@ git commit -m "feat(audit-log): implement action type filter dropdown"
 ## Task 4: AuditLogFilters - Resource Type & Date Range
 
 **Files:**
+
 - Modify: `src/routes/dashboard/audit-log/_components/AuditLogFilters/AuditLogFilters.svelte`
 
 **Step 1: Add resource type autocomplete and date range**
@@ -242,9 +247,7 @@ git commit -m "feat(audit-log): implement action type filter dropdown"
 
 	let resourceSearchQuery = $state('');
 	let filteredResourceTypes = $derived(
-		resourceTypes.filter(rt =>
-			rt.toLowerCase().includes(resourceSearchQuery.toLowerCase())
-		)
+		resourceTypes.filter((rt) => rt.toLowerCase().includes(resourceSearchQuery.toLowerCase()))
 	);
 
 	function handleResourceTypeChange(value: string) {
@@ -268,12 +271,7 @@ git commit -m "feat(audit-log): implement action type filter dropdown"
 			</Button>
 		</Popover.Trigger>
 		<Popover.Content class="w-64">
-			<Input
-				type="text"
-				placeholder="Search..."
-				bind:value={resourceSearchQuery}
-				class="mb-2"
-			/>
+			<Input type="text" placeholder="Search..." bind:value={resourceSearchQuery} class="mb-2" />
 			<div class="max-h-48 overflow-y-auto">
 				{#each filteredResourceTypes as rt}
 					<button
@@ -330,6 +328,7 @@ git commit -m "feat(audit-log): implement resource type autocomplete and date ra
 ## Task 5: AuditLogFilters - Employee Filter & Clear
 
 **Files:**
+
 - Modify: `src/routes/dashboard/audit-log/_components/AuditLogFilters/AuditLogFilters.svelte`
 
 **Step 1: Add employee filter with debouncing**
@@ -374,9 +373,7 @@ git commit -m "feat(audit-log): implement resource type autocomplete and date ra
 </div>
 
 <div class="filter-actions mt-4">
-	<Button variant="outline" onclick={handleClearFilters} class="w-full">
-		Clear Filters
-	</Button>
+	<Button variant="outline" onclick={handleClearFilters} class="w-full">Clear Filters</Button>
 </div>
 ```
 
@@ -400,6 +397,7 @@ git commit -m "feat(audit-log): implement employee filter with debouncing and cl
 ## Task 6: Pagination Component (Optional)
 
 **Files:**
+
 - Create: `src/routes/dashboard/audit-log/_components/Pagination/Pagination.svelte`
 - Modify: `tests/unit/components/Pagination.test.ts:38` (remove describe.skip)
 
@@ -437,16 +435,12 @@ git commit -m "feat(audit-log): implement employee filter with debouncing and cl
 
 <div class="pagination flex items-center justify-between gap-4">
 	<div class="text-sm text-gray-600">
-		Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalItems)} of {totalItems} items
+		Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalItems)} of {totalItems}
+		items
 	</div>
 
 	<div class="flex items-center gap-2">
-		<Button
-			variant="outline"
-			size="sm"
-			disabled={isPrevDisabled}
-			onclick={() => onPageChange(1)}
-		>
+		<Button variant="outline" size="sm" disabled={isPrevDisabled} onclick={() => onPageChange(1)}>
 			First
 		</Button>
 		<Button
@@ -511,6 +505,7 @@ git commit -m "feat(audit-log): implement Pagination component (future use)"
 ## Task 7: RollbackButton - Setup & Basic Implementation
 
 **Files:**
+
 - Create: `src/routes/dashboard/audit-log/_components/RollbackButton/RollbackButton.svelte`
 - Create: `src/routes/dashboard/audit-log/_components/RollbackButton/rollback.graphql.ts`
 - Modify: `tests/unit/components/RollbackButton.test.ts:38` (remove describe.skip)
@@ -576,9 +571,7 @@ export interface RollbackResponse {
 	let isRollingBack = $state(false);
 
 	let isVisible = $derived(userRole === 'super_admin');
-	let isDisabled = $derived(
-		log.rollbackStatus === 'completed' || log.rollbackStatus === 'pending'
-	);
+	let isDisabled = $derived(log.rollbackStatus === 'completed' || log.rollbackStatus === 'pending');
 
 	async function handleRollback() {
 		isRollingBack = true;
@@ -608,12 +601,7 @@ export interface RollbackResponse {
 {#if isVisible}
 	<AlertDialog.Root bind:open={showConfirmDialog}>
 		<AlertDialog.Trigger asChild let:builder>
-			<Button
-				variant="destructive"
-				size="sm"
-				disabled={isDisabled}
-				builders={[builder]}
-			>
+			<Button variant="destructive" size="sm" disabled={isDisabled} builders={[builder]}>
 				{isRollingBack ? 'Rolling back...' : 'Rollback'}
 			</Button>
 		</AlertDialog.Trigger>
@@ -654,6 +642,7 @@ git commit -m "feat(audit-log): implement RollbackButton with confirmation and c
 ## Task 8: ActivityFeed - Setup & Types
 
 **Files:**
+
 - Create: `src/routes/dashboard/audit-log/_components/ActivityFeed/activityFeed.types.ts`
 - Create: `src/routes/dashboard/audit-log/_components/ActivityFeed/activityFeed.graphql.ts`
 - Create: `src/routes/dashboard/audit-log/_components/ActivityFeed/ActivityFeedSkeleton.svelte`
@@ -764,6 +753,7 @@ git commit -m "feat(audit-log): create ActivityFeed types, GraphQL queries, and 
 ## Task 9: ActivityFeed - Main Component
 
 **Files:**
+
 - Create: `src/routes/dashboard/audit-log/_components/ActivityFeed/ActivityFeed.svelte`
 - Create: `src/routes/dashboard/audit-log/_components/ActivityFeed/ActivityFeedEntry.svelte`
 
@@ -787,24 +777,15 @@ git commit -m "feat(audit-log): create ActivityFeed types, GraphQL queries, and 
 		onConflict?: (conflicts: unknown) => void;
 	}
 
-	let {
-		log,
-		isSelected,
-		userRole,
-		onToggleSelect,
-		onRollbackComplete,
-		onConflict
-	}: EntryProps = $props();
+	let { log, isSelected, userRole, onToggleSelect, onRollbackComplete, onConflict }: EntryProps =
+		$props();
 
 	let isExpanded = $state(false);
 </script>
 
 <div class="activity-feed-entry border-b p-4 hover:bg-gray-50">
 	<div class="flex items-start gap-3">
-		<Checkbox
-			checked={isSelected}
-			onCheckedChange={() => onToggleSelect(log.id)}
-		/>
+		<Checkbox checked={isSelected} onCheckedChange={() => onToggleSelect(log.id)} />
 
 		<div class="flex-1">
 			<div class="flex justify-between items-start mb-2">
@@ -829,11 +810,7 @@ git commit -m "feat(audit-log): create ActivityFeed types, GraphQL queries, and 
 				Performed by: {log.performedBy}
 			</div>
 
-			<Button
-				variant="ghost"
-				size="sm"
-				onclick={() => isExpanded = !isExpanded}
-			>
+			<Button variant="ghost" size="sm" onclick={() => (isExpanded = !isExpanded)}>
 				{isExpanded ? 'Hide' : 'Show'} Details
 			</Button>
 
@@ -855,12 +832,7 @@ git commit -m "feat(audit-log): create ActivityFeed types, GraphQL queries, and 
 					</div>
 
 					<div class="mt-3">
-						<RollbackButton
-							{log}
-							{userRole}
-							{onRollbackComplete}
-							{onConflict}
-						/>
+						<RollbackButton {log} {userRole} {onRollbackComplete} {onConflict} />
 					</div>
 				</div>
 			{/if}
@@ -949,9 +921,7 @@ git commit -m "feat(audit-log): create ActivityFeed types, GraphQL queries, and 
 
 		{#if hasMore && !loading}
 			<div class="p-4 text-center">
-				<Button variant="outline" onclick={onLoadMore}>
-					Load More
-				</Button>
+				<Button variant="outline" onclick={onLoadMore}>Load More</Button>
 			</div>
 		{/if}
 	{/if}
@@ -979,6 +949,7 @@ git commit -m "feat(audit-log): implement ActivityFeed with infinite scroll and 
 ## Task 10: RollbackRequestCard - Component
 
 **Files:**
+
 - Create: `src/routes/dashboard/audit-log/_components/RollbackRequestsDrawer/rollbackRequests.types.ts`
 - Create: `src/routes/dashboard/audit-log/_components/RollbackRequestsDrawer/RollbackRequestCard.svelte`
 - Modify: `tests/unit/components/RollbackRequestCard.test.ts:38` (remove describe.skip)
@@ -1015,20 +986,13 @@ export interface RollbackRequestCardProps {
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
 
-	let {
-		request,
-		currentUserRole,
-		onApprove,
-		onReject
-	}: RollbackRequestCardProps = $props();
+	let { request, currentUserRole, onApprove, onReject }: RollbackRequestCardProps = $props();
 
 	let showRejectDialog = $state(false);
 	let rejectReason = $state('');
 	let isProcessing = $state(false);
 
-	let canApprove = $derived(
-		currentUserRole === 'hr_manager' && request.status === 'pending'
-	);
+	let canApprove = $derived(currentUserRole === 'hr_manager' && request.status === 'pending');
 
 	async function handleApprove() {
 		isProcessing = true;
@@ -1065,13 +1029,11 @@ export interface RollbackRequestCardProps {
 			</div>
 		</div>
 		<Badge
-			variant={
-				request.status === 'approved'
-					? 'default'
-					: request.status === 'rejected'
-						? 'destructive'
-						: 'secondary'
-			}
+			variant={request.status === 'approved'
+				? 'default'
+				: request.status === 'rejected'
+					? 'destructive'
+					: 'secondary'}
 		>
 			{request.status.toUpperCase()}
 		</Badge>
@@ -1083,21 +1045,10 @@ export interface RollbackRequestCardProps {
 
 	{#if canApprove}
 		<div class="flex gap-2">
-			<Button
-				size="sm"
-				onclick={handleApprove}
-				disabled={isProcessing}
-			>
-				Approve
-			</Button>
+			<Button size="sm" onclick={handleApprove} disabled={isProcessing}>Approve</Button>
 			<Dialog.Root bind:open={showRejectDialog}>
 				<Dialog.Trigger asChild let:builder>
-					<Button
-						variant="destructive"
-						size="sm"
-						builders={[builder]}
-						disabled={isProcessing}
-					>
+					<Button variant="destructive" size="sm" builders={[builder]} disabled={isProcessing}>
 						Reject
 					</Button>
 				</Dialog.Trigger>
@@ -1109,16 +1060,10 @@ export interface RollbackRequestCardProps {
 						</Dialog.Description>
 					</Dialog.Header>
 					<div class="py-4">
-						<Input
-							type="text"
-							placeholder="Reason for rejection..."
-							bind:value={rejectReason}
-						/>
+						<Input type="text" placeholder="Reason for rejection..." bind:value={rejectReason} />
 					</div>
 					<Dialog.Footer>
-						<Button variant="outline" onclick={() => showRejectDialog = false}>
-							Cancel
-						</Button>
+						<Button variant="outline" onclick={() => (showRejectDialog = false)}>Cancel</Button>
 						<Button
 							variant="destructive"
 							onclick={handleReject}
@@ -1155,6 +1100,7 @@ git commit -m "feat(audit-log): implement RollbackRequestCard with approve/rejec
 ## Task 11: BulkRollbackDialog - SSE Setup
 
 **Files:**
+
 - Create: `src/routes/dashboard/audit-log/_components/BulkRollbackDialog/bulkRollback.sse.ts`
 - Create: `src/routes/dashboard/audit-log/_components/BulkRollbackDialog/bulkRollback.graphql.ts`
 
@@ -1233,6 +1179,7 @@ git commit -m "feat(audit-log): create SSE utility and GraphQL mutation for bulk
 ## Task 12: BulkRollbackDialog - Component
 
 **Files:**
+
 - Create: `src/routes/dashboard/audit-log/_components/BulkRollbackDialog/BulkRollbackDialog.svelte`
 - Create: `src/routes/dashboard/audit-log/_components/BulkRollbackDialog/ProgressBar.svelte`
 - Modify: `tests/unit/components/BulkRollbackDialog.test.ts:38` (remove describe.skip)
@@ -1389,15 +1336,17 @@ git commit -m "feat(audit-log): create SSE utility and GraphQL mutation for bulk
 				{/if}
 
 				{#if progress.percentage === 100}
-					<div class="mt-4 text-center text-green-600 font-medium">
-						Rollback complete!
-					</div>
+					<div class="mt-4 text-center text-green-600 font-medium">Rollback complete!</div>
 				{/if}
 			{/if}
 		</div>
 
 		<Dialog.Footer>
-			<Button variant="outline" onclick={onClose} disabled={hasStarted && progress.percentage < 100}>
+			<Button
+				variant="outline"
+				onclick={onClose}
+				disabled={hasStarted && progress.percentage < 100}
+			>
 				{progress.percentage === 100 ? 'Close' : 'Cancel'}
 			</Button>
 		</Dialog.Footer>
@@ -1426,6 +1375,7 @@ git commit -m "feat(audit-log): implement BulkRollbackDialog with SSE progress t
 ## Task 13: ConflictResolutionModal - Component
 
 **Files:**
+
 - Create: `src/routes/dashboard/audit-log/_components/ConflictResolutionModal/ConflictResolutionModal.svelte`
 - Create: `src/routes/dashboard/audit-log/_components/ConflictResolutionModal/ConflictDiff.svelte`
 - Create: `src/routes/dashboard/audit-log/_components/ConflictResolutionModal/conflictResolution.graphql.ts`
@@ -1445,11 +1395,7 @@ export const RESOLVE_ROLLBACK_CONFLICT = gql`
 		$strategy: ResolutionStrategy!
 		$mergeFields: [String!]
 	) {
-		resolveRollbackConflict(
-			logId: $logId
-			strategy: $strategy
-			mergeFields: $mergeFields
-		) {
+		resolveRollbackConflict(logId: $logId, strategy: $strategy, mergeFields: $mergeFields) {
 			success
 		}
 	}
@@ -1594,9 +1540,7 @@ export interface ConflictData {
 		</div>
 
 		<Dialog.Footer>
-			<Button variant="outline" onclick={onCancel} disabled={isResolving}>
-				Cancel
-			</Button>
+			<Button variant="outline" onclick={onCancel} disabled={isResolving}>Cancel</Button>
 			<Button onclick={handleSubmit} disabled={!canSubmit || isResolving}>
 				{isResolving ? 'Resolving...' : 'Resolve'}
 			</Button>
@@ -1626,6 +1570,7 @@ git commit -m "feat(audit-log): implement ConflictResolutionModal with diff view
 ## Task 14: Integration - Wire Components Together
 
 **Files:**
+
 - Modify: `src/routes/dashboard/audit-log/+page.svelte`
 - Modify: `src/routes/dashboard/audit-log/+page.server.ts`
 
@@ -1640,9 +1585,11 @@ import { GET_INITIAL_AUDIT_LOGS } from './_components/ActivityFeed/activityFeed.
 export const load: PageServerLoad = async ({ fetch, cookies, locals }) => {
 	const client = createUrqlClient(fetch, undefined, undefined, serializeCookies(cookies));
 
-	const result = await client.query(GET_INITIAL_AUDIT_LOGS, {
-		limit: 50
-	}).toPromise();
+	const result = await client
+		.query(GET_INITIAL_AUDIT_LOGS, {
+			limit: 50
+		})
+		.toPromise();
 
 	return {
 		initialLogs: result.data?.auditLogs ?? [],
@@ -1689,11 +1636,13 @@ export const load: PageServerLoad = async ({ fetch, cookies, locals }) => {
 		loading = true;
 
 		try {
-			const result = await client.query(GET_AUDIT_LOGS, {
-				limit: 50,
-				offset: reset ? 0 : offset,
-				filters
-			}).toPromise();
+			const result = await client
+				.query(GET_AUDIT_LOGS, {
+					limit: 50,
+					offset: reset ? 0 : offset,
+					filters
+				})
+				.toPromise();
 
 			if (result.error) {
 				console.error('Failed to load logs:', result.error);
@@ -1781,7 +1730,7 @@ export const load: PageServerLoad = async ({ fetch, cookies, locals }) => {
 	{#if selectedLogIds.size > 0}
 		<button
 			class="fixed bottom-6 right-6 bg-blue-600 text-white rounded-full p-4 shadow-lg hover:bg-blue-700"
-			onclick={() => showBulkDialog = true}
+			onclick={() => (showBulkDialog = true)}
 		>
 			<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -1795,7 +1744,7 @@ export const load: PageServerLoad = async ({ fetch, cookies, locals }) => {
 <BulkRollbackDialog
 	{selectedLogIds}
 	open={showBulkDialog}
-	onClose={() => showBulkDialog = false}
+	onClose={() => (showBulkDialog = false)}
 	onComplete={handleBulkRollbackComplete}
 />
 
@@ -1843,6 +1792,7 @@ git commit -m "feat(audit-log): integrate all components into audit log page"
 ## Task 15: Final Testing & Cleanup
 
 **Files:**
+
 - Run: Full test suite
 - Check: TypeScript errors
 - Verify: All describe.skip removed

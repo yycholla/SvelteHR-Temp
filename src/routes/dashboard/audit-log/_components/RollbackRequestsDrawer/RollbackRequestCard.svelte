@@ -107,13 +107,15 @@
 		<div class="mt-3 space-y-2">
 			<div>
 				<div class="text-xs font-medium text-gray-600 mb-1">Before Snapshot:</div>
-				<pre
-					class="text-xs bg-gray-100 p-2 rounded overflow-x-auto">{truncateSnapshot(request.activityLog.beforeSnapshot)}</pre>
+				<pre class="text-xs bg-gray-100 p-2 rounded overflow-x-auto">{truncateSnapshot(
+						request.activityLog.beforeSnapshot
+					)}</pre>
 			</div>
 			<div>
 				<div class="text-xs font-medium text-gray-600 mb-1">After Snapshot:</div>
-				<pre
-					class="text-xs bg-gray-100 p-2 rounded overflow-x-auto">{truncateSnapshot(request.activityLog.afterSnapshot)}</pre>
+				<pre class="text-xs bg-gray-100 p-2 rounded overflow-x-auto">{truncateSnapshot(
+						request.activityLog.afterSnapshot
+					)}</pre>
 			</div>
 			<Button variant="outline" size="sm" onclick={() => (showSnapshotDialog = true)}>
 				View Full Snapshots
@@ -177,7 +179,9 @@
 				<Dialog.Content>
 					<Dialog.Header>
 						<Dialog.Title>Reject Rollback Request</Dialog.Title>
-						<Dialog.Description>Please provide a reason for rejecting this request.</Dialog.Description>
+						<Dialog.Description
+							>Please provide a reason for rejecting this request.</Dialog.Description
+						>
 					</Dialog.Header>
 					<div class="py-4">
 						<Textarea
@@ -206,18 +210,26 @@
 	<Dialog.Content class="max-w-3xl max-h-[80vh] overflow-y-auto">
 		<Dialog.Header>
 			<Dialog.Title>Full Snapshot Comparison</Dialog.Title>
-			<Dialog.Description>Complete before and after snapshots for this activity log.</Dialog.Description>
+			<Dialog.Description
+				>Complete before and after snapshots for this activity log.</Dialog.Description
+			>
 		</Dialog.Header>
 		<div class="space-y-4 py-4">
 			<div>
 				<div class="text-sm font-medium mb-2">Before Snapshot:</div>
-				<pre
-					class="text-xs bg-gray-100 p-3 rounded overflow-x-auto">{JSON.stringify(request.activityLog.beforeSnapshot, null, 2)}</pre>
+				<pre class="text-xs bg-gray-100 p-3 rounded overflow-x-auto">{JSON.stringify(
+						request.activityLog.beforeSnapshot,
+						null,
+						2
+					)}</pre>
 			</div>
 			<div>
 				<div class="text-sm font-medium mb-2">After Snapshot:</div>
-				<pre
-					class="text-xs bg-gray-100 p-3 rounded overflow-x-auto">{JSON.stringify(request.activityLog.afterSnapshot, null, 2)}</pre>
+				<pre class="text-xs bg-gray-100 p-3 rounded overflow-x-auto">{JSON.stringify(
+						request.activityLog.afterSnapshot,
+						null,
+						2
+					)}</pre>
 			</div>
 		</div>
 		<Dialog.Footer>
