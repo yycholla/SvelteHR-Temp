@@ -21,11 +21,30 @@
 	let loading = $state(false);
 	let showBulkRollbackDialog = $state(false);
 	let showConflictModal = $state(false);
+	interface ConflictField {
+		field: string;
+		currentValue: unknown;
+		targetValue: unknown;
+		snapshotValue: unknown;
+	}
+
+	interface ConflictDetails {
+		hasConflicts: boolean;
+		conflictFields: string[];
+		conflicts: ConflictField[];
+		currentState: Record<string, unknown>;
+		targetState: Record<string, unknown>;
+	}
+
 	let conflictData = $state<{
 		logId: string;
-		currentState: Record<string, unknown>;
-		rollbackState: Record<string, unknown>;
+		conflicts: ConflictDetails;
 	} | null>(null);
+
+	// Selected logs for bulk rollback
+	let selectedLogsForRollback = $derived.by(() => {
+		return logs.filter((log) => selectedLogIds.has(log.id));
+	});
 
 	// Derived resource types from logs
 	let resourceTypes = $derived.by(() => {
@@ -114,10 +133,11 @@
 		showConflictModal = true;
 	}
 
-	function handleConflictResolved() {
+	async function handleConflictResolved(strategy: string, mergeFields?: string[]) {
+		console.log('Conflict resolved:', strategy, mergeFields);
 		showConflictModal = false;
 		conflictData = null;
-		loadLogs(0, true);
+		await loadLogs(0, true);
 	}
 
 	function handleConflictCancelled() {
@@ -183,21 +203,20 @@
 	{/if}
 
 	<!-- Bulk Rollback Dialog -->
-	{#if showBulkRollbackDialog}
-		<BulkRollbackDialog
-			logIds={Array.from(selectedLogIds)}
-			onClose={handleCloseBulkRollback}
-			onComplete={handleBulkRollbackComplete}
-			onConflictDetected={handleConflictDetected}
-		/>
-	{/if}
+	<BulkRollbackDialog
+		logs={selectedLogsForRollback}
+		isOpen={showBulkRollbackDialog}
+		{userRole}
+		onClose={handleCloseBulkRollback}
+		onComplete={handleBulkRollbackComplete}
+	/>
 
 	<!-- Conflict Resolution Modal -->
-	{#if showConflictModal && conflictData}
+	{#if conflictData}
 		<ConflictResolutionModal
+			isOpen={showConflictModal}
 			logId={conflictData.logId}
-			currentState={conflictData.currentState}
-			rollbackState={conflictData.rollbackState}
+			conflicts={conflictData.conflicts}
 			onResolve={handleConflictResolved}
 			onCancel={handleConflictCancelled}
 		/>
