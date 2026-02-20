@@ -6,6 +6,7 @@
 	import { page } from '$app/stores';
 	import { get } from 'svelte/store';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { jwtAuth } from '$lib/stores/jwt-auth.svelte';
 	import { toast } from 'svelte-sonner';
 	import AuthLayout from '$lib/components/auth/AuthLayout.svelte';
 	import LoginForm from '$lib/components/auth/LoginForm.svelte';
@@ -71,6 +72,23 @@
 		}
 
 		try {
+			// Synchronize JWT auth user to regular auth store
+			if (jwtAuth.user) {
+				console.log('[Login] JWT user data:', jwtAuth.user);
+				console.log('[Login] JWT user roles:', jwtAuth.user.roles);
+				await auth.setUser({
+					id: jwtAuth.user.id,
+					email: jwtAuth.user.email,
+					displayName: jwtAuth.user.displayName || jwtAuth.user.email.split('@')[0],
+					role: jwtAuth.user.roles?.[0] || 'Employee', // Take first role from array
+					onboardingStatus: jwtAuth.user.onboardingStatus || 'Active',
+					isActive: true
+				});
+				console.log('[Login] Auth user set:', auth.user);
+			} else {
+				console.error('[Login] No JWT user data available!');
+			}
+
 			// Wait for auth state to fully load (including roles)
 			logger.info('Waiting for auth state to complete...');
 

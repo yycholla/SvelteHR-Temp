@@ -4,6 +4,7 @@ import { goto } from '$app/navigation';
 import { type UserRoleAssignment, createRBACManager } from '$lib/auth/rbac';
 import { secureAuthService } from '$lib/auth/secure-auth-service';
 import { createUrqlClient } from '$lib/graphql/client';
+import { jwtGraphQLClient } from '$lib/graphql/jwt-client';
 import { GET_EMPLOYEE_BY_ID_QUERY } from '$lib/graphql/employee-operations';
 
 // User interface
@@ -228,17 +229,27 @@ class AuthStore {
 
 	async setUser(user: User): Promise<void> {
 		this.user = user;
-		// Load roles in background (non-blocking) - user can navigate while roles load
-		this.loadUserRoles(user.id).catch((err) => {
+		// Load roles and await completion - ensures isLoading updates correctly
+		try {
+			await this.loadUserRoles(user.id);
+		} catch (err) {
 			logger.warn(`Role loading failed, using guest permissions: ${err}`);
 			this.isLoading = false;
-		});
+		}
 	}
 
 	async loadUserRoles(userId: string): Promise<void> {
+		if (!browser) {
+			// Skip during SSR - will be called client-side
+			return;
+		}
+
 		this.isLoading = true;
 		try {
-			const client = createUrqlClient();
+			const client = jwtGraphQLClient;
+
+			console.log('[Auth] Loading roles for user:', this.user);
+			console.log('[Auth] User role to match:', this.user?.role);
 
 			// Strategy: Fetch all roles with permissions and find the one matching user's role name
 			// This is robust because we have user.role string from login/session
@@ -258,6 +269,9 @@ class AuthStore {
 			`;
 
 			const result = await client.query(query, {}).toPromise();
+
+			console.log('[Auth] Roles query result:', result);
+			console.log('[Auth] Roles data:', result.data?.roles);
 
 			if (result.data?.roles && this.user?.role) {
 				const userRoleName = this.user.role;
