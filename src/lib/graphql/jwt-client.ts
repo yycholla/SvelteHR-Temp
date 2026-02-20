@@ -71,8 +71,9 @@ const jwtAuthExchange: Exchange = authExchange<AuthState>(async (utils) => {
 		 */
 		willAuthError(_operation) {
 			// For JWT, expiration is managed by the auth store's automatic refresh
-			// If we have a token, assume it's valid (store handles refresh)
-			return !jwtAuth.accessToken;
+			// No need to proactively check expiration here - let the request proceed
+			// and handle auth errors reactively in didAuthError
+			return false;
 		},
 
 		/**
@@ -119,7 +120,8 @@ export function createJwtGraphQLClient(graphqlEndpoint: string): Client {
 		],
 		// Include credentials for cookie-based refresh tokens
 		fetchOptions: () => ({
-			credentials: 'include'
+			credentials: 'include',
+			method: 'POST' // Force POST for all operations (backend returns GraphiQL HTML for GET)
 		})
 	});
 
@@ -137,7 +139,7 @@ export function createJwtGraphQLClient(graphqlEndpoint: string): Client {
  * Default JWT-authenticated GraphQL client for browser
  */
 export const jwtGraphQLClient = browser
-	? createJwtGraphQLClient('http://localhost:8080/graphql')
+	? createJwtGraphQLClient('http://localhost:4000/graphql')
 	: ({} as Client); // Placeholder for SSR
 
 // ============================================================================
@@ -159,7 +161,7 @@ export function createServerJwtClient(
 	accessToken?: string
 ): Client {
 	return new Client({
-		url: 'http://localhost:8080/graphql',
+		url: 'http://localhost:4000/graphql',
 		exchanges: [cacheExchange, fetchExchange],
 		fetch,
 		fetchOptions: {
@@ -172,3 +174,12 @@ export function createServerJwtClient(
 		}
 	});
 }
+
+// ============================================================================
+// Export Alias (for convenience)
+// ============================================================================
+
+/**
+ * Alias for createJwtGraphQLClient (for convenience in imports)
+ */
+export const createJwtClient = createJwtGraphQLClient;

@@ -248,8 +248,9 @@ class AuthStore {
 		try {
 			const client = jwtGraphQLClient;
 
-			console.log('[Auth] Loading roles for user:', this.user);
-			console.log('[Auth] User role to match:', this.user?.role);
+			const userEmail = this.user?.email || 'unknown';
+			const userRole = this.user?.role || 'undefined';
+			console.error(`[Auth] Loading roles for user: ${userEmail}, role: ${userRole}`);
 
 			// Strategy: Fetch all roles with permissions and find the one matching user's role name
 			// This is robust because we have user.role string from login/session
@@ -270,8 +271,16 @@ class AuthStore {
 
 			const result = await client.query(query, {}).toPromise();
 
-			console.log('[Auth] Roles query result:', result);
-			console.log('[Auth] Roles data:', result.data?.roles);
+			const hasData = !!result.data;
+			const hasRoles = !!result.data?.roles;
+			const rolesCount = result.data?.roles?.length || 0;
+			const hasError = !!result.error;
+			const errorMessage = result.error?.message || 'no error';
+			console.error(
+				`[Auth] Roles query - has data: ${hasData}, has roles: ${hasRoles}, roles count: ${rolesCount}`
+			);
+			console.error(`[Auth] Roles query - has error: ${hasError}, error: ${errorMessage}`);
+			console.error(`[Auth] User role to match: ${userRole}`);
 
 			if (result.data?.roles && this.user?.role) {
 				const userRoleName = this.user.role;

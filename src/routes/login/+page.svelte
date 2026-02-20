@@ -64,6 +64,7 @@
 
 	// Handle successful login
 	const handleLoginSuccess = async (event: CustomEvent) => {
+		console.error('[Login] handleLoginSuccess called!');
 		// Clear all session storage flags on successful login
 		if (browser) {
 			sessionStorage.removeItem(LOGIN_REDIRECT_KEY);
@@ -72,10 +73,12 @@
 		}
 
 		try {
+			console.error('[Login] About to sync JWT user to auth store');
 			// Synchronize JWT auth user to regular auth store
 			if (jwtAuth.user) {
-				console.log('[Login] JWT user data:', jwtAuth.user);
-				console.log('[Login] JWT user roles:', jwtAuth.user.roles);
+				const userEmail = jwtAuth.user.email;
+				const userRoles = JSON.stringify(jwtAuth.user.roles);
+				console.error(`[Login] JWT user email: ${userEmail}, roles: ${userRoles}`);
 				await auth.setUser({
 					id: jwtAuth.user.id,
 					email: jwtAuth.user.email,
@@ -84,9 +87,9 @@
 					onboardingStatus: jwtAuth.user.onboardingStatus || 'Active',
 					isActive: true
 				});
-				console.log('[Login] Auth user set:', auth.user);
+				logger.info(`[Login] Auth user role set: ${auth.user?.role}`);
 			} else {
-				console.error('[Login] No JWT user data available!');
+				logger.error('[Login] No JWT user data available!');
 			}
 
 			// Wait for auth state to fully load (including roles)

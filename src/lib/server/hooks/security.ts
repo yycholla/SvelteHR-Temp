@@ -71,7 +71,7 @@ export function applySecurityHeaders(response: Response, pathname: string): void
 		"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net", // Allow FullCalendar CSS from CDN
 		"img-src 'self' data: https:",
 		"font-src 'self' data:",
-		"connect-src 'self' https://cloudflareinsights.com https://*.ingest.us.sentry.io", // Allow Cloudflare and Sentry
+		"connect-src 'self' http://localhost:4000 https://cloudflareinsights.com https://*.ingest.us.sentry.io", // Allow backend GraphQL, Cloudflare and Sentry
 		"worker-src 'self' blob:", // Allow Sentry session replay workers
 		"frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com", // Allow YouTube embeds
 		isPreviewEndpoint ? "frame-ancestors 'self'" : "frame-ancestors 'none'",

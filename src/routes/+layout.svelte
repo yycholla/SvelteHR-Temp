@@ -6,7 +6,7 @@
 	import ToastContainer from '$lib/components/ui/toast-container.svelte';
 	import { Toaster } from 'svelte-sonner';
 	import { setContextClient } from '@urql/svelte';
-	import { createUrqlClient } from '$lib/graphql/client';
+	import { jwtGraphQLClient } from '$lib/graphql/jwt-client';
 	import { ModeWatcher } from 'mode-watcher';
 	import { toast } from 'svelte-sonner';
 	import { type SessionTimeoutManager, initSessionTimeout } from '$lib/services/session-timeout';
@@ -17,8 +17,8 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { sidebarState } from '$lib/stores/sidebar.svelte';
 
-	// Initialize PostGraphile GraphQL client for the entire app
-	setContextClient(createUrqlClient());
+	// Initialize JWT-authenticated GraphQL client for the entire app
+	setContextClient(jwtGraphQLClient);
 
 	const { children, data } = $props();
 
