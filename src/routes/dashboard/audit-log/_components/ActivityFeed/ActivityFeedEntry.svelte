@@ -129,15 +129,17 @@
 				<div class="mb-2 text-sm">
 					<span class="text-gray-600">Rollback of:</span>
 					<Tooltip.Root>
-						<Tooltip.Trigger asChild let:builder>
-							<button
-								class="ml-1 text-blue-600 hover:underline"
-								onclick={handleRolledBackLogClick}
-								builders={[builder]}
-								aria-label="View original log entry"
-							>
-								Log #{log.rolledBackLogId}
-							</button>
+						<Tooltip.Trigger>
+							{#snippet child({ props })}
+								<button
+									{...props}
+									class="ml-1 text-blue-600 hover:underline"
+									onclick={handleRolledBackLogClick}
+									aria-label="View original log entry"
+								>
+									Log #{log.rolledBackLogId}
+								</button>
+							{/snippet}
 						</Tooltip.Trigger>
 						<Tooltip.Content>
 							<p>Log ID: {log.rolledBackLogId}</p>

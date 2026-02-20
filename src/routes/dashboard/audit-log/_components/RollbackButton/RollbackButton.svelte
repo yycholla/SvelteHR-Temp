@@ -88,62 +88,67 @@
 
 {#if isVisible}
 	<Tooltip.Root>
-		<Tooltip.Trigger asChild let:builder>
-			<div>
-				<AlertDialog.Root bind:open={showConfirmDialog}>
-					<AlertDialog.Trigger asChild let:builder>
-						<Button
-							variant="destructive"
-							size="sm"
-							disabled={isDisabled}
-							builders={[builder]}
-							aria-label="Rollback this change"
-						>
-							{isRollingBack ? 'Rolling back...' : 'Rollback'}
-						</Button>
-					</AlertDialog.Trigger>
-					<AlertDialog.Content>
-						<AlertDialog.Header>
-							<AlertDialog.Title>Confirm Rollback</AlertDialog.Title>
-							<AlertDialog.Description>
-								This will revert the {log.action} operation{log.resourceType
-									? ` on ${log.resourceType}`
-									: ''}. This action cannot be undone.
-							</AlertDialog.Description>
-						</AlertDialog.Header>
+		<Tooltip.Trigger>
+			{#snippet child({ props })}
+				<div>
+					<AlertDialog.Root bind:open={showConfirmDialog}>
+						<AlertDialog.Trigger>
+							{#snippet child({ props: dialogProps })}
+								<Button
+									{...dialogProps}
+									{...props}
+									variant="destructive"
+									size="sm"
+									disabled={isDisabled}
+									aria-label="Rollback this change"
+								>
+									{isRollingBack ? 'Rolling back...' : 'Rollback'}
+								</Button>
+							{/snippet}
+						</AlertDialog.Trigger>
+						<AlertDialog.Content>
+							<AlertDialog.Header>
+								<AlertDialog.Title>Confirm Rollback</AlertDialog.Title>
+								<AlertDialog.Description>
+									This will revert the {log.action} operation{log.resourceType
+										? ` on ${log.resourceType}`
+										: ''}. This action cannot be undone.
+								</AlertDialog.Description>
+							</AlertDialog.Header>
 
-						<div class="py-4">
-							<label for="rollback-reason" class="block text-sm font-medium mb-2">
-								Reason for rollback (required)
-							</label>
-							<Input
-								id="rollback-reason"
-								type="text"
-								placeholder="Enter reason for rollback..."
-								bind:value={reason}
-								disabled={isRollingBack}
-								aria-required="true"
-							/>
-							{#if errorMessage}
-								<p class="text-red-500 text-sm mt-2" role="alert">{errorMessage}</p>
-							{/if}
-						</div>
+							<div class="py-4">
+								<label for="rollback-reason" class="block text-sm font-medium mb-2">
+									Reason for rollback (required)
+								</label>
+								<Input
+									id="rollback-reason"
+									type="text"
+									placeholder="Enter reason for rollback..."
+									bind:value={reason}
+									disabled={isRollingBack}
+									aria-required="true"
+								/>
+								{#if errorMessage}
+									<p class="text-red-500 text-sm mt-2" role="alert">{errorMessage}</p>
+								{/if}
+							</div>
 
-						<AlertDialog.Footer>
-							<AlertDialog.Cancel onclick={handleCancel} disabled={isRollingBack}>
-								Cancel
-							</AlertDialog.Cancel>
-							<Button
-								variant="destructive"
-								onclick={handleRollback}
-								disabled={isRollingBack || !reason.trim()}
-							>
-								{isRollingBack ? 'Rolling back...' : 'Confirm Rollback'}
-							</Button>
-						</AlertDialog.Footer>
-					</AlertDialog.Content>
-				</AlertDialog.Root>
-			</div>
+							<AlertDialog.Footer>
+								<AlertDialog.Cancel onclick={handleCancel} disabled={isRollingBack}>
+									Cancel
+								</AlertDialog.Cancel>
+								<Button
+									variant="destructive"
+									onclick={handleRollback}
+									disabled={isRollingBack || !reason.trim()}
+								>
+									{isRollingBack ? 'Rolling back...' : 'Confirm Rollback'}
+								</Button>
+							</AlertDialog.Footer>
+						</AlertDialog.Content>
+					</AlertDialog.Root>
+				</div>
+			{/snippet}
 		</Tooltip.Trigger>
 		{#if isDisabled && disabledTooltip()}
 			<Tooltip.Content>

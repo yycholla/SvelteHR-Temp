@@ -1,6 +1,6 @@
 export interface ActivityLogEntry {
 	id: string;
-	action: string;
+	action: 'CREATE' | 'READ' | 'UPDATE' | 'DELETE';
 	resourceType: string;
 	resourceId: string;
 	changes: Record<string, unknown>;

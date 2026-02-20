@@ -150,8 +150,10 @@
 	{#if canApprove}
 		<div class="flex gap-2 border-t pt-3">
 			<Dialog.Root bind:open={showApproveDialog}>
-				<Dialog.Trigger asChild let:builder>
-					<Button size="sm" builders={[builder]} disabled={isProcessing}>Approve</Button>
+				<Dialog.Trigger>
+					{#snippet child({ props })}
+						<Button {...props} size="sm" disabled={isProcessing}>Approve</Button>
+					{/snippet}
 				</Dialog.Trigger>
 				<Dialog.Content>
 					<Dialog.Header>
@@ -171,10 +173,12 @@
 			</Dialog.Root>
 
 			<Dialog.Root bind:open={showRejectDialog}>
-				<Dialog.Trigger asChild let:builder>
-					<Button variant="destructive" size="sm" builders={[builder]} disabled={isProcessing}>
-						Reject
-					</Button>
+				<Dialog.Trigger>
+					{#snippet child({ props })}
+						<Button {...props} variant="destructive" size="sm" disabled={isProcessing}>
+							Reject
+						</Button>
+					{/snippet}
 				</Dialog.Trigger>
 				<Dialog.Content>
 					<Dialog.Header>

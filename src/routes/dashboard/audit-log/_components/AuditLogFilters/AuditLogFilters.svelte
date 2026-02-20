@@ -75,7 +75,15 @@
 <div class="audit-log-filters space-y-4 p-4">
 	<div class="filter-group">
 		<label for="action-filter" class="block text-sm font-medium mb-2">Action Type</label>
-		<Select.Root value={filters.action ?? 'ALL'} onValueChange={handleActionChange}>
+		<Select.Root
+			type="single"
+			selected={{ value: filters.action ?? 'ALL', label: filters.action ?? 'ALL' }}
+			onSelectedChange={(v) => {
+				if (v && v.value) {
+					handleActionChange(v.value);
+				}
+			}}
+		>
 			<Select.Trigger id="action-filter" class="w-full">
 				<Select.Value placeholder="ALL" />
 			</Select.Trigger>
@@ -92,10 +100,12 @@
 	<div class="filter-group">
 		<label for="resource-filter" class="block text-sm font-medium mb-2">Resource Type</label>
 		<Popover.Root bind:open={resourcePopoverOpen}>
-			<Popover.Trigger asChild let:builder>
-				<Button variant="outline" builders={[builder]} class="w-full justify-start">
-					{filters.resourceType || 'Select resource type...'}
-				</Button>
+			<Popover.Trigger>
+				{#snippet child({ props })}
+					<Button {...props} variant="outline" class="w-full justify-start">
+						{filters.resourceType || 'Select resource type...'}
+					</Button>
+				{/snippet}
 			</Popover.Trigger>
 			<Popover.Content class="w-64">
 				<Input type="text" placeholder="Search..." bind:value={resourceSearchQuery} class="mb-2" />

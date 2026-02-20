@@ -49,7 +49,6 @@
 
 <nav
 	class="pagination flex items-center justify-between gap-4 p-4 border-t"
-	role="navigation"
 	aria-label="Pagination navigation"
 >
 	<!-- Total count display -->
@@ -152,9 +151,11 @@
 	<div class="flex items-center gap-2">
 		<label for="page-size" class="text-sm text-gray-600">Items per page:</label>
 		<Select.Root
-			onValueChange={(v) => {
-				if (v) {
-					onPageSizeChange(Number(v));
+			type="single"
+			selected={{ value: String(pageSize), label: `${pageSize} / page` }}
+			onSelectedChange={(v) => {
+				if (v && v.value) {
+					onPageSizeChange(Number(v.value));
 					onPageChange(1); // Reset to page 1 when page size changes
 				}
 			}}
