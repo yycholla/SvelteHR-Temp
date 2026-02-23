@@ -23,6 +23,38 @@ export interface RouteViolation {
 }
 
 /**
+ * Per-module statistics
+ */
+export interface ModuleStats {
+	/** Total routes analyzed for this module */
+	total: number;
+	/** Routes that are compliant (using service layer) */
+	compliant: number;
+	/** Routes with violations (using direct GraphQL) */
+	violations: number;
+}
+
+/**
+ * Overall audit statistics
+ */
+export interface AuditStats {
+	/** ISO 8601 timestamp of audit execution */
+	timestamp: string;
+	/** Total number of routes analyzed */
+	totalRoutes: number;
+	/** Number of compliant routes */
+	compliant: number;
+	/** Number of routes with violations */
+	violations: number;
+	/** Compliance rate as percentage string (e.g., "33%") */
+	complianceRate: string;
+	/** Per-module statistics */
+	byModule: Record<string, ModuleStats>;
+	/** Detailed list of violations only */
+	violationDetails: RouteViolation[];
+}
+
+/**
  * Detects if code contains violations (direct GraphQL usage instead of service layer)
  *
  * @param code - Source code to analyze
@@ -193,5 +225,85 @@ export function scanRouteFile(filePath: string, content: string): RouteViolation
 		isViolation: hasViolation,
 		violationType: violationTypes,
 		suggestion
+	};
+}
+
+/**
+ * Groups violations by module name
+ *
+ * @param violations - Array of route violations to categorize
+ * @returns Record mapping module names to arrays of violations
+ * @example
+ * categorizeByModule([
+ *   { module: 'Task', ... },
+ *   { module: 'Task', ... },
+ *   { module: 'Event', ... }
+ * ])
+ * // Returns: { Task: [violation1, violation2], Event: [violation3] }
+ */
+export function categorizeByModule(violations: RouteViolation[]): Record<string, RouteViolation[]> {
+	const categorized: Record<string, RouteViolation[]> = {};
+
+	for (const violation of violations) {
+		if (!categorized[violation.module]) {
+			categorized[violation.module] = [];
+		}
+		categorized[violation.module].push(violation);
+	}
+
+	return categorized;
+}
+
+/**
+ * Calculates overall audit statistics from all route scan results
+ *
+ * @param allRoutes - Array of all routes (both compliant and violations)
+ * @returns AuditStats object with aggregated metrics
+ * @example
+ * calculateStats([
+ *   { module: 'Task', isViolation: true, ... },
+ *   { module: 'Task', isViolation: false, ... },
+ *   { module: 'Event', isViolation: true, ... }
+ * ])
+ * // Returns statistics with compliance rate and per-module breakdown
+ */
+export function calculateStats(allRoutes: RouteViolation[]): AuditStats {
+	// Separate violations from compliant routes
+	const violations = allRoutes.filter((route) => route.isViolation);
+	const compliant = allRoutes.filter((route) => !route.isViolation);
+
+	// Calculate per-module statistics
+	const byModule: Record<string, ModuleStats> = {};
+
+	for (const route of allRoutes) {
+		if (!byModule[route.module]) {
+			byModule[route.module] = {
+				total: 0,
+				compliant: 0,
+				violations: 0
+			};
+		}
+
+		byModule[route.module].total++;
+
+		if (route.isViolation) {
+			byModule[route.module].violations++;
+		} else {
+			byModule[route.module].compliant++;
+		}
+	}
+
+	// Calculate compliance rate
+	const complianceRate =
+		allRoutes.length > 0 ? Math.round((compliant.length / allRoutes.length) * 100) : 0;
+
+	return {
+		timestamp: new Date().toISOString(),
+		totalRoutes: allRoutes.length,
+		compliant: compliant.length,
+		violations: violations.length,
+		complianceRate: `${complianceRate}%`,
+		byModule,
+		violationDetails: violations
 	};
 }

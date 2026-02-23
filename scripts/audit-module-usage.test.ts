@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { isViolation, detectModule, scanRouteFile } from './audit-module-usage';
+import {
+	isViolation,
+	detectModule,
+	scanRouteFile,
+	categorizeByModule,
+	calculateStats
+} from './audit-module-usage';
 
 describe('isViolation', () => {
 	it('should detect direct GraphQL client import', () => {
@@ -148,5 +154,126 @@ export const load = async () => {
 		expect(result.isViolation).toBe(true);
 		expect(result.module).toBe('Unknown');
 		expect(result.suggestion).toContain('service layer');
+	});
+});
+
+describe('categorizeByModule', () => {
+	it('should group violations by module', () => {
+		const violations = [
+			{
+				path: 'src/routes/dashboard/tasks/a/+page.server.ts',
+				module: 'Task',
+				isViolation: true,
+				violationType: ['direct-import'],
+				suggestion: 'Use createTaskService'
+			},
+			{
+				path: 'src/routes/dashboard/tasks/b/+page.server.ts',
+				module: 'Task',
+				isViolation: true,
+				violationType: ['inline-query'],
+				suggestion: 'Use createTaskService'
+			},
+			{
+				path: 'src/routes/dashboard/events/a/+page.server.ts',
+				module: 'Event',
+				isViolation: true,
+				violationType: ['direct-import'],
+				suggestion: 'Use createEventService'
+			}
+		];
+
+		const result = categorizeByModule(violations);
+
+		expect(result.Task).toHaveLength(2);
+		expect(result.Event).toHaveLength(1);
+		expect(result.Task[0].path).toContain('tasks/a');
+		expect(result.Task[1].path).toContain('tasks/b');
+		expect(result.Event[0].path).toContain('events/a');
+	});
+
+	it('should handle empty violations array', () => {
+		const result = categorizeByModule([]);
+		expect(result).toEqual({});
+	});
+});
+
+describe('calculateStats', () => {
+	it('should calculate statistics for mixed routes', () => {
+		const allRoutes = [
+			{
+				path: 'src/routes/dashboard/tasks/a/+page.server.ts',
+				module: 'Task',
+				isViolation: true,
+				violationType: ['direct-import'],
+				suggestion: 'Use createTaskService'
+			},
+			{
+				path: 'src/routes/dashboard/tasks/b/+page.server.ts',
+				module: 'Task',
+				isViolation: false,
+				violationType: [],
+				suggestion: ''
+			},
+			{
+				path: 'src/routes/dashboard/events/a/+page.server.ts',
+				module: 'Event',
+				isViolation: true,
+				violationType: ['inline-query'],
+				suggestion: 'Use createEventService'
+			}
+		];
+
+		const stats = calculateStats(allRoutes);
+
+		expect(stats.totalRoutes).toBe(3);
+		expect(stats.compliant).toBe(1);
+		expect(stats.violations).toBe(2);
+		expect(stats.complianceRate).toBe('33%');
+		expect(stats.byModule.Task.total).toBe(2);
+		expect(stats.byModule.Task.compliant).toBe(1);
+		expect(stats.byModule.Task.violations).toBe(1);
+		expect(stats.byModule.Event.total).toBe(1);
+		expect(stats.byModule.Event.compliant).toBe(0);
+		expect(stats.byModule.Event.violations).toBe(1);
+		expect(stats.violationDetails).toHaveLength(2);
+		expect(stats.timestamp).toBeDefined();
+	});
+
+	it('should calculate 100% compliance rate correctly', () => {
+		const allRoutes = [
+			{
+				path: 'src/routes/dashboard/tasks/a/+page.server.ts',
+				module: 'Task',
+				isViolation: false,
+				violationType: [],
+				suggestion: ''
+			},
+			{
+				path: 'src/routes/dashboard/events/a/+page.server.ts',
+				module: 'Event',
+				isViolation: false,
+				violationType: [],
+				suggestion: ''
+			}
+		];
+
+		const stats = calculateStats(allRoutes);
+
+		expect(stats.totalRoutes).toBe(2);
+		expect(stats.compliant).toBe(2);
+		expect(stats.violations).toBe(0);
+		expect(stats.complianceRate).toBe('100%');
+	});
+
+	it('should handle empty routes array', () => {
+		const stats = calculateStats([]);
+
+		expect(stats.totalRoutes).toBe(0);
+		expect(stats.compliant).toBe(0);
+		expect(stats.violations).toBe(0);
+		expect(stats.complianceRate).toBe('0%');
+		expect(stats.byModule).toEqual({});
+		expect(stats.violationDetails).toEqual([]);
 	});
 });
