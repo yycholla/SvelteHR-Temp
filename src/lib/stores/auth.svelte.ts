@@ -4,7 +4,6 @@ import { goto } from '$app/navigation';
 import { type UserRoleAssignment, createRBACManager } from '$lib/auth/rbac';
 import { secureAuthService } from '$lib/auth/secure-auth-service';
 import { createUrqlClient } from '$lib/graphql/client';
-import { jwtGraphQLClient } from '$lib/graphql/jwt-client';
 import { GET_EMPLOYEE_BY_ID_QUERY } from '$lib/graphql/employee-operations';
 import { createClientServices } from '$lib/client/services';
 import type { Role } from '$domain/RBAC/entities/Role';
@@ -167,7 +166,7 @@ class AuthStore {
 					const user: User = {
 						id: result.user.id,
 						email: result.user.email,
-
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
 						displayName:
 							(result.user as any).displayName ?? result.user.email.split('@')[0] ?? 'User',
 						onboardingStatus: 'Active',
@@ -190,7 +189,7 @@ class AuthStore {
 				const user: User = {
 					id: result.user.id,
 					email: result.user.email,
-
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					displayName:
 						(result.user as any).displayName ?? result.user.email.split('@')[0] ?? 'User',
 					onboardingStatus: 'Active',
