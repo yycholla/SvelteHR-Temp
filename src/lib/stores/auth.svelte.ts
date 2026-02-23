@@ -6,6 +6,8 @@ import { secureAuthService } from '$lib/auth/secure-auth-service';
 import { createUrqlClient } from '$lib/graphql/client';
 import { jwtGraphQLClient } from '$lib/graphql/jwt-client';
 import { GET_EMPLOYEE_BY_ID_QUERY } from '$lib/graphql/employee-operations';
+import { createClientServices } from '$lib/client/services';
+import type { Role } from '$domain/RBAC/entities/Role';
 
 // User interface
 export interface User {
@@ -86,6 +88,14 @@ class AuthStore {
 			};
 		}
 	});
+
+	/**
+	 * Client-side service container
+	 *
+	 * Provides access to domain services (RBACService, etc.) with proper
+	 * hexagonal architecture. Created once and reused.
+	 */
+	private services = createClientServices();
 
 	private safeCheck(check: () => boolean): boolean {
 		try {
@@ -238,127 +248,95 @@ class AuthStore {
 		}
 	}
 
+	/**
+	 * Load user roles from the backend via RBACService
+	 *
+	 * Uses domain service layer instead of direct GraphQL access.
+	 * Errors are handled gracefully - role loading failures do not block login.
+	 *
+	 * @param userId - The ID of the user to load roles for
+	 */
 	async loadUserRoles(userId: string): Promise<void> {
+		// Skip during SSR - no jwtGraphQLClient available
 		if (!browser) {
-			// Skip during SSR - will be called client-side
 			return;
 		}
 
 		this.isLoading = true;
-		try {
-			const client = jwtGraphQLClient;
 
-			const userEmail = this.user?.email || 'unknown';
-			const userRole = this.user?.role || 'undefined';
-			console.error(`[Auth] Loading roles for user: ${userEmail}, role: ${userRole}`);
+		// Use RBACService instead of direct GraphQL
+		const result = await this.services.rbacService.getAllRoles();
 
-			// Strategy: Fetch all roles with permissions and find the one matching user's role name
-			// This is robust because we have user.role string from login/session
-			const query = `
-				query GetAllRoles {
-					roles {
-						id
-						name
-						level
-						permissions {
-							id
-							resource
-							action
-						}
-					}
-				}
-			`;
-
-			const result = await client.query(query, {}).toPromise();
-
-			const hasData = !!result.data;
-			const hasRoles = !!result.data?.roles;
-			const rolesCount = result.data?.roles?.length || 0;
-			const hasError = !!result.error;
-			const errorMessage = result.error?.message || 'no error';
-			console.error(
-				`[Auth] Roles query - has data: ${hasData}, has roles: ${hasRoles}, roles count: ${rolesCount}`
-			);
-			console.error(`[Auth] Roles query - has error: ${hasError}, error: ${errorMessage}`);
-			console.error(`[Auth] User role to match: ${userRole}`);
-
-			if (result.data?.roles && this.user?.role) {
-				const userRoleName = this.user.role;
-				// Case-insensitive match
-				const matchingRole = result.data.roles.find(
-					(r: any) => r.name.toLowerCase() === userRoleName.toLowerCase()
-				);
-
-				if (matchingRole) {
-					// Construct a UserRoleAssignment structure for RBAC manager
-					// Note: Backend permissions don't have 'name' field, so we construct it from resource:action
-					const roleWithPermissionNames = {
-						...matchingRole,
-						permissions:
-							matchingRole.permissions?.map((p: any) => ({
-								...p,
-								name: `${p.resource}:${p.action}`,
-								isActive: true
-							})) || []
-					};
-
-					this.roles = [
-						{
-							id: `assignment-${userId}`,
-							userId,
-							roleId: matchingRole.id,
-							role: roleWithPermissionNames,
-							assignedAt: new Date().toISOString(),
-							isActive: true
-						}
-					];
-					logger.info(
-						`[Auth] Loaded ${roleWithPermissionNames.permissions.length} permissions for role: ${matchingRole.name}`
-					);
-				} else {
-					logger.warn(`[Auth] Role definition not found for user role: ${userRoleName}`);
-					this.roles = [];
-				}
-			} else {
-				// Fallback: If roles query failed or no data
-				logger.warn('[Auth] Could not load roles metadata from backend');
-				// Note: The User type does not have roleAssignments field in the current schema
-				// Using role string from user object instead
-				this.roles = [];
-			}
-		} catch (error) {
-			logger.error('Catch failed', error as Error);
-
-			// Emergency fallback for Admin users if API fails completely
-			if (
-				this.user?.role &&
-				['admin', 'super admin', 'system admin'].includes(this.user.role.toLowerCase())
-			) {
-				logger.info('[Auth] Applying emergency Admin permissions (API failed)');
-				this.roles = [
-					{
-						id: 'admin-fallback',
-						userId,
-						roleId: 'admin',
-						role: {
-							id: 'admin',
-							name: 'Admin',
-							level: 100,
-							description: 'Fallback Admin',
-							isActive: true,
-							permissions: [{ id: 'all', name: '*', resource: '*', action: '*', isActive: true }]
-						},
-						assignedAt: new Date().toISOString(),
-						isActive: true
-					}
-				];
-			} else {
-				this.roles = [];
-				this.error = 'Failed to load user permissions';
-			}
-		} finally {
+		if (result.isError) {
+			// All role loading failures are non-critical (matches current behavior)
+			logger.warn(`[Auth] Could not load roles: ${result.error.message}`);
 			this.isLoading = false;
+			return;
 		}
+
+		// Success - process domain entities
+		const roles = result.value;
+		this.processRoles(roles, userId);
+		this.isLoading = false;
+	}
+
+	/**
+	 * Process Role domain entities into store state
+	 *
+	 * Maps domain entities to serializable store state. Finds the role
+	 * that matches the current user's role name (case-insensitive).
+	 *
+	 * @param roles - Array of Role domain entities
+	 * @param userId - The user ID for the role assignment
+	 */
+	private processRoles(roles: Role[], userId: string): void {
+		if (!this.user?.role) {
+			logger.warn('[Auth] No user role set, skipping role assignment');
+			this.roles = [];
+			return;
+		}
+
+		const userRoleName = this.user.role;
+
+		// Find matching role (case-insensitive)
+		const matchingRole = roles.find((r) => r.name.toLowerCase() === userRoleName.toLowerCase());
+
+		if (!matchingRole) {
+			logger.warn(`[Auth] Role definition not found for user role: ${userRoleName}`);
+			this.roles = [];
+			return;
+		}
+
+		// Map domain entity to UserRoleAssignment format
+		const roleWithPermissionNames = {
+			id: matchingRole.id,
+			name: matchingRole.name,
+			level: matchingRole.hierarchy.level,
+			description: matchingRole.description,
+			isActive: true,
+			permissions: matchingRole.permissions.map((p) => ({
+				id: p.toString(),
+				name: p.toString(),
+				resource: p.resource,
+				action: p.action,
+				isActive: true
+			}))
+		};
+
+		this.roles = [
+			{
+				id: `assignment-${userId}`,
+				userId,
+				roleId: matchingRole.id,
+				role: roleWithPermissionNames,
+				assignedAt: new Date().toISOString(),
+				isActive: true
+			}
+		];
+
+		logger.info(
+			`[Auth] Loaded ${roleWithPermissionNames.permissions.length} permissions for role: ${matchingRole.name}`
+		);
 	}
 
 	async validateSession(): Promise<boolean> {

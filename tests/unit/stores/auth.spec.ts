@@ -67,6 +67,13 @@ vi.mock('$lib/graphql/client', () => ({
 	createUrqlClient: vi.fn(() => mockUrqlClient)
 }));
 
+// Mock jwtGraphQLClient to use the same structure
+vi.mock('$lib/graphql/jwt-client', () => ({
+	jwtGraphQLClient: {
+		query: mockQuery
+	}
+}));
+
 vi.mock('$lib/stores/permission-test.svelte', () => ({
 	clearTestModeOnLogout: vi.fn()
 }));
@@ -517,16 +524,17 @@ describe('AuthStore', () => {
 
 	describe('Role Loading', () => {
 		test('should load user roles successfully', async () => {
+			// Mock data matching GraphQL schema structure (permissions as strings)
 			const mockRolesData = {
 				roles: [
 					{
 						id: 'admin-role',
 						name: 'Admin',
-						level: 100,
-						permissions: [
-							{ id: '1', resource: 'users', action: 'read' },
-							{ id: '2', resource: 'users', action: 'write' }
-						]
+						hierarchyLevel: 100,
+						permissions: ['employees:read:all', 'employees:write:all'],
+						description: 'Administrator role',
+						createdAt: new Date().toISOString(),
+						updatedAt: new Date().toISOString()
 					}
 				]
 			};
@@ -549,7 +557,7 @@ describe('AuthStore', () => {
 			expect(auth.roles[0].role.permissions).toHaveLength(2);
 		});
 
-		test('should construct permission names from resource:action', async () => {
+		test('should construct permission names from resource:action:scope', async () => {
 			auth.user = {
 				id: 'user-1',
 				email: 'test@example.com',
@@ -565,8 +573,11 @@ describe('AuthStore', () => {
 						{
 							id: 'manager-role',
 							name: 'Manager',
-							level: 50,
-							permissions: [{ id: '1', resource: 'employees', action: 'read' }]
+							hierarchyLevel: 50,
+							permissions: ['employees:read:team'],
+							description: 'Manager role',
+							createdAt: new Date().toISOString(),
+							updatedAt: new Date().toISOString()
 						}
 					]
 				}
@@ -574,10 +585,11 @@ describe('AuthStore', () => {
 
 			await auth.loadUserRoles('user-1');
 
-			expect(auth.roles[0].role.permissions[0].name).toBe('employees:read');
+			expect(auth.roles[0].role.permissions[0].name).toBe('employees:read:team');
 		});
 
-		test('should apply emergency admin permissions on API failure', async () => {
+		test('should handle service errors gracefully (no emergency fallback)', async () => {
+			// After refactor: simplified error handling, no emergency admin permissions
 			auth.user = {
 				id: 'admin-1',
 				email: 'admin@example.com',
@@ -591,12 +603,13 @@ describe('AuthStore', () => {
 
 			await auth.loadUserRoles('admin-1');
 
-			expect(auth.roles).toHaveLength(1);
-			expect(auth.roles[0].role.name).toBe('Admin');
-			expect(auth.roles[0].role.permissions[0].name).toBe('*');
+			// New behavior: all errors treated as non-critical, empty roles
+			expect(auth.roles).toEqual([]);
+			expect(auth.isLoading).toBe(false);
 		});
 
-		test('should set empty roles for non-admin on API failure', async () => {
+		test('should handle errors for all users consistently', async () => {
+			// After refactor: all users get same error handling (no special admin treatment)
 			auth.user = {
 				id: 'user-1',
 				email: 'user@example.com',
@@ -610,8 +623,10 @@ describe('AuthStore', () => {
 
 			await auth.loadUserRoles('user-1');
 
+			// New behavior: warning logged, empty roles, no error set
 			expect(auth.roles).toEqual([]);
-			expect(auth.error).toBe('Failed to load user permissions');
+			expect(auth.error).toBeNull();
+			expect(auth.isLoading).toBe(false);
 		});
 	});
 
@@ -771,6 +786,70 @@ describe('AuthStore', () => {
 			expect(auth.roles).toEqual([]);
 			expect(auth.isLoading).toBe(false);
 			expect(auth.error).toBeNull();
+		});
+	});
+
+	describe('Service Layer Integration', () => {
+		test('should use RBACService via hexagonal architecture', async () => {
+			// Verifies that auth store uses service layer (not direct GraphQL)
+			auth.user = {
+				id: 'user-1',
+				email: 'test@example.com',
+				displayName: 'Test',
+				role: 'Manager',
+				onboardingStatus: 'Active',
+				isActive: true
+			};
+
+			mockToPromise.mockResolvedValue({
+				data: {
+					roles: [
+						{
+							id: 'manager-role',
+							name: 'Manager',
+							hierarchyLevel: 50,
+							permissions: ['employees:read:team'],
+							description: 'Manager role',
+							createdAt: new Date().toISOString(),
+							updatedAt: new Date().toISOString()
+						}
+					]
+				}
+			});
+
+			await auth.loadUserRoles('user-1');
+
+			// Verify service layer flow: Store → Service → Adapter → GraphQL
+			expect(auth.roles).toHaveLength(1);
+			expect(auth.roles[0].role.name).toBe('Manager');
+			expect(auth.roles[0].role.level).toBe(50);
+		});
+
+		test('should handle service layer errors gracefully (non-blocking)', async () => {
+			// All RBACService errors logged as warnings, don't block login
+			auth.user = {
+				id: 'user-1',
+				email: 'test@example.com',
+				displayName: 'Test',
+				role: 'Employee',
+				onboardingStatus: 'Active',
+				isActive: true
+			};
+
+			// Simulate error
+			mockToPromise.mockRejectedValue(new Error('Service unavailable'));
+
+			// Should not throw
+			await expect(auth.loadUserRoles('user-1')).resolves.not.toThrow();
+
+			// Should set loading to false
+			expect(auth.isLoading).toBe(false);
+
+			// Should not set error (non-critical)
+			expect(auth.error).toBeNull();
+
+			// Should have empty roles
+			expect(auth.roles).toEqual([]);
 		});
 	});
 });
