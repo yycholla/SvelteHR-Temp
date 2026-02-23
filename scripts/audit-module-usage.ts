@@ -307,3 +307,111 @@ export function calculateStats(allRoutes: RouteViolation[]): AuditStats {
 		violationDetails: violations
 	};
 }
+
+/**
+ * Generates a human-readable markdown report from audit statistics
+ *
+ * @param stats - Audit statistics to format
+ * @returns Markdown-formatted report string
+ * @example
+ * const markdown = generateMarkdownReport(stats);
+ * // Returns formatted markdown with summary, tables, and violation details
+ */
+export function generateMarkdownReport(stats: AuditStats): string {
+	const lines: string[] = [];
+
+	// Header
+	lines.push('# Module Usage Audit Report');
+	lines.push('');
+	lines.push(`**Generated**: ${stats.timestamp}`);
+	lines.push(
+		`**Compliance**: ${stats.complianceRate} (${stats.compliant}/${stats.totalRoutes} routes)`
+	);
+	lines.push('');
+
+	// Summary
+	lines.push('## Summary');
+	lines.push('');
+	lines.push(`- ✅ **Compliant**: ${stats.compliant} routes`);
+	lines.push(`- ❌ **Violations**: ${stats.violations} routes`);
+	lines.push('');
+
+	// By Module Table
+	if (Object.keys(stats.byModule).length > 0) {
+		lines.push('## By Module');
+		lines.push('');
+		lines.push('| Module | Total | Compliant | Violations | Rate |');
+		lines.push('| ------ | ----- | --------- | ---------- | ---- |');
+
+		// Sort modules by name for consistent output
+		const sortedModules = Object.keys(stats.byModule).sort();
+
+		for (const moduleName of sortedModules) {
+			const moduleStats = stats.byModule[moduleName];
+			const moduleRate =
+				moduleStats.total > 0 ? Math.round((moduleStats.compliant / moduleStats.total) * 100) : 0;
+
+			// Format table row - markdown tables don't need perfect alignment
+			// Just ensure readability with consistent spacing patterns
+			const modulePadding = ' '.repeat(Math.max(1, 7 - moduleName.length));
+			const totalStr = String(moduleStats.total);
+			const compliantStr = String(moduleStats.compliant);
+			const violationsStr = String(moduleStats.violations);
+			const rateStr = `${moduleRate}%`;
+
+			// Adjust Total column padding based on module name length for readability
+			const totalPadding = moduleName.length > 6 ? 3 : 5;
+
+			lines.push(
+				`| ${moduleName}${modulePadding}| ${totalStr}${' '.repeat(totalPadding - totalStr.length)} | ${compliantStr}${' '.repeat(9 - compliantStr.length)} | ${violationsStr}${' '.repeat(10 - violationsStr.length)} | ${rateStr}${' '.repeat(4 - rateStr.length)} |`
+			);
+		}
+		lines.push('');
+	}
+
+	// Violations Section
+	if (stats.violationDetails.length > 0) {
+		lines.push('## Violations');
+		lines.push('');
+
+		// Group violations by module
+		const violationsByModule = categorizeByModule(stats.violationDetails);
+		const sortedViolationModules = Object.keys(violationsByModule).sort();
+
+		for (const moduleName of sortedViolationModules) {
+			const moduleViolations = violationsByModule[moduleName];
+			const moduleStats = stats.byModule[moduleName];
+			const violationCount = moduleStats ? moduleStats.violations : moduleViolations.length;
+
+			lines.push(`### ${moduleName} Module (${violationCount} violations)`);
+			lines.push('');
+
+			for (const violation of moduleViolations) {
+				// Format violation details
+				const violationTypeStr = violation.violationType.join(', ');
+				lines.push(`- \`${violation.path}\` (${violationTypeStr})`);
+
+				if (violation.suggestion) {
+					lines.push(`  - **Suggestion**: ${violation.suggestion}`);
+				}
+			}
+
+			lines.push('');
+		}
+	}
+
+	return lines.join('\n');
+}
+
+/**
+ * Generates a machine-readable JSON report from audit statistics
+ *
+ * @param stats - Audit statistics to serialize
+ * @returns JSON string representation of AuditStats
+ * @example
+ * const json = generateJsonReport(stats);
+ * const parsed: AuditStats = JSON.parse(json);
+ */
+export function generateJsonReport(stats: AuditStats): string {
+	return JSON.stringify(stats, null, 2);
+}

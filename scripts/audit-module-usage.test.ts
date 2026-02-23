@@ -4,7 +4,10 @@ import {
 	detectModule,
 	scanRouteFile,
 	categorizeByModule,
-	calculateStats
+	calculateStats,
+	generateMarkdownReport,
+	generateJsonReport,
+	type AuditStats
 } from './audit-module-usage';
 
 describe('isViolation', () => {
@@ -275,5 +278,105 @@ describe('calculateStats', () => {
 		expect(stats.complianceRate).toBe('0%');
 		expect(stats.byModule).toEqual({});
 		expect(stats.violationDetails).toEqual([]);
+	});
+});
+
+describe('Report Generation', () => {
+	const mockStats: AuditStats = {
+		timestamp: '2026-02-23T10:00:00Z',
+		totalRoutes: 10,
+		compliant: 3,
+		violations: 7,
+		complianceRate: '30%',
+		byModule: {
+			Task: { total: 5, compliant: 1, violations: 4 },
+			Event: { total: 3, compliant: 2, violations: 1 },
+			Employee: { total: 2, compliant: 0, violations: 2 }
+		},
+		violationDetails: [
+			{
+				path: 'src/routes/dashboard/tasks/+page.server.ts',
+				module: 'Task',
+				isViolation: true,
+				violationType: ['direct-import'],
+				suggestion:
+					"Replace direct GraphQL client imports with: import { createTaskService } from '$lib/server/services'"
+			},
+			{
+				path: 'src/routes/dashboard/tasks/edit/+page.server.ts',
+				module: 'Task',
+				isViolation: true,
+				violationType: ['inline-query'],
+				suggestion:
+					'Remove inline GraphQL queries and use createTaskService from the service layer instead'
+			}
+		]
+	};
+
+	describe('generateMarkdownReport', () => {
+		it('should generate valid markdown with summary', () => {
+			const markdown = generateMarkdownReport(mockStats);
+
+			expect(markdown).toContain('# Module Usage Audit Report');
+			expect(markdown).toContain('**Generated**:');
+			expect(markdown).toContain('**Compliance**: 30% (3/10 routes)');
+			expect(markdown).toContain('## Summary');
+			expect(markdown).toContain('✅ **Compliant**: 3 routes');
+			expect(markdown).toContain('❌ **Violations**: 7 routes');
+		});
+
+		it('should include by-module breakdown table', () => {
+			const markdown = generateMarkdownReport(mockStats);
+
+			expect(markdown).toContain('## By Module');
+			expect(markdown).toContain('| Module | Total | Compliant | Violations | Rate |');
+			expect(markdown).toContain('| Task   | 5     | 1         | 4          | 20%  |');
+			expect(markdown).toContain('| Event  | 3     | 2         | 1          | 67%  |');
+			expect(markdown).toContain('| Employee | 2   | 0         | 2          | 0%   |');
+		});
+
+		it('should include violation details section', () => {
+			const markdown = generateMarkdownReport(mockStats);
+
+			expect(markdown).toContain('## Violations');
+			expect(markdown).toContain('### Task Module (4 violations)');
+			expect(markdown).toContain('src/routes/dashboard/tasks/+page.server.ts');
+			expect(markdown).toContain('(direct-import)');
+			expect(markdown).toContain('**Suggestion**:');
+		});
+	});
+
+	describe('generateJsonReport', () => {
+		it('should generate valid JSON', () => {
+			const json = generateJsonReport(mockStats);
+			const parsed = JSON.parse(json);
+
+			expect(parsed.totalRoutes).toBe(10);
+			expect(parsed.compliant).toBe(3);
+			expect(parsed.violations).toBe(7);
+			expect(parsed.complianceRate).toBe('30%');
+		});
+
+		it('should include all AuditStats fields', () => {
+			const json = generateJsonReport(mockStats);
+			const parsed = JSON.parse(json);
+
+			expect(parsed.timestamp).toBe('2026-02-23T10:00:00Z');
+			expect(parsed.byModule).toEqual(mockStats.byModule);
+			expect(parsed.violationDetails).toHaveLength(2);
+			expect(parsed.violationDetails[0].path).toBe('src/routes/dashboard/tasks/+page.server.ts');
+		});
+
+		it('should be parseable back to AuditStats', () => {
+			const json = generateJsonReport(mockStats);
+			const parsed: AuditStats = JSON.parse(json);
+
+			expect(parsed.totalRoutes).toBe(mockStats.totalRoutes);
+			expect(parsed.compliant).toBe(mockStats.compliant);
+			expect(parsed.violations).toBe(mockStats.violations);
+			expect(parsed.complianceRate).toBe(mockStats.complianceRate);
+			expect(parsed.byModule).toEqual(mockStats.byModule);
+			expect(parsed.violationDetails).toEqual(mockStats.violationDetails);
+		});
 	});
 });
