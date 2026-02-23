@@ -9,6 +9,43 @@ import { GET_EMPLOYEE_BY_ID_QUERY } from '$lib/graphql/employee-operations';
 import { createClientServices } from '$lib/client/services';
 import type { Role } from '$domain/RBAC/entities/Role';
 
+/**
+ * Authentication Store (Svelte 5 Runes)
+ *
+ * Manages user authentication state and role-based access control.
+ *
+ * ## Architecture
+ *
+ * This store follows hexagonal architecture by using the domain service layer:
+ *
+ * ```
+ * AuthStore → ClientServiceContainer → RBACService → GraphQLRoleAdapter → Backend
+ * ```
+ *
+ * **DO NOT** import `jwtGraphQLClient` or raw GraphQL queries directly.
+ * **ALWAYS** use `this.services.rbacService` for role operations.
+ *
+ * ## Usage
+ *
+ * ```typescript
+ * import { auth } from '$lib/stores/auth.svelte';
+ *
+ * // Login
+ * await auth.setUser(userData);
+ *
+ * // Check permissions
+ * if (auth.hasPermission('employees:read:all')) {
+ *   // Show admin UI
+ * }
+ *
+ * // Logout
+ * auth.logout();
+ * ```
+ *
+ * @see {createClientServices} for client-side service access
+ * @see {RBACService} for role and permission operations
+ */
+
 // User interface
 export interface User {
 	id: string;
