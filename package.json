@@ -17,6 +17,7 @@
 		"start": "node build",
 		"prepare": "husky",
 		"codegen:types": "graphql-codegen --config codegen.graphql-types.ts",
+		"audit:routes": "tsx scripts/audit-module-usage.ts",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json src/",
 		"check:test": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json tests/",
 		"check:all": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

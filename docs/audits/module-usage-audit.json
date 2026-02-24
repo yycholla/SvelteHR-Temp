@@ -1,0 +1,87 @@
+{
+	"timestamp": "2026-02-24T14:25:34.309Z",
+	"totalRoutes": 155,
+	"compliant": 152,
+	"violations": 3,
+	"complianceRate": "98%",
+	"byModule": {
+		"Unknown": {
+			"total": 119,
+			"compliant": 117,
+			"violations": 2
+		},
+		"Training": {
+			"total": 2,
+			"compliant": 2,
+			"violations": 0
+		},
+		"Task": {
+			"total": 9,
+			"compliant": 9,
+			"violations": 0
+		},
+		"PerformanceReview": {
+			"total": 3,
+			"compliant": 3,
+			"violations": 0
+		},
+		"Onboarding": {
+			"total": 2,
+			"compliant": 1,
+			"violations": 1
+		},
+		"Notification": {
+			"total": 1,
+			"compliant": 1,
+			"violations": 0
+		},
+		"Employee": {
+			"total": 5,
+			"compliant": 5,
+			"violations": 0
+		},
+		"Event": {
+			"total": 5,
+			"compliant": 5,
+			"violations": 0
+		},
+		"Document": {
+			"total": 4,
+			"compliant": 4,
+			"violations": 0
+		},
+		"Department": {
+			"total": 4,
+			"compliant": 4,
+			"violations": 0
+		},
+		"AuditLog": {
+			"total": 1,
+			"compliant": 1,
+			"violations": 0
+		}
+	},
+	"violationDetails": [
+		{
+			"path": "src/routes/dashboard/onboarding/[id]/+page.server.ts",
+			"module": "Onboarding",
+			"isViolation": true,
+			"violationType": ["direct-import"],
+			"suggestion": "Replace direct GraphQL client imports with: import { createOnboardingService } from '$lib/server/services'"
+		},
+		{
+			"path": "src/routes/admin/forms/[id]/+page.server.ts",
+			"module": "Unknown",
+			"isViolation": true,
+			"violationType": ["direct-import"],
+			"suggestion": "Replace direct GraphQL client imports with: import { the appropriate service layer factory } from '$lib/server/services'"
+		},
+		{
+			"path": "src/routes/admin/onboarding/[id]/forms/+page.server.ts",
+			"module": "Unknown",
+			"isViolation": true,
+			"violationType": ["direct-import"],
+			"suggestion": "Replace direct GraphQL client imports with: import { the appropriate service layer factory } from '$lib/server/services'"
+		}
+	]
+}

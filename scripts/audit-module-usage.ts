@@ -6,6 +6,10 @@
  * direct GraphQL clients.
  */
 
+import { glob } from 'glob';
+import * as fs from 'fs/promises';
+import * as path from 'path';
+
 /**
  * Represents a route file analysis result
  */
@@ -414,4 +418,101 @@ export function generateMarkdownReport(stats: AuditStats): string {
  */
 export function generateJsonReport(stats: AuditStats): string {
 	return JSON.stringify(stats, null, 2);
+}
+
+/**
+ * Main audit function that scans all routes and generates reports
+ *
+ * @returns AuditStats object with complete audit results
+ */
+export async function auditRoutes(): Promise<AuditStats> {
+	console.log('🔍 Scanning route files...\n');
+
+	// 1. Find all +page.server.ts and +server.ts files
+	const patterns = ['src/routes/**/*+page.server.ts', 'src/routes/**/*+server.ts'];
+	const ignorePatterns = ['**/node_modules/**', '**/*.test.ts', '**/*.spec.ts'];
+
+	const files: string[] = [];
+	for (const pattern of patterns) {
+		const matchedFiles = await glob(pattern, { ignore: ignorePatterns });
+		files.push(...matchedFiles);
+	}
+
+	console.log(`Found ${files.length} route files\n`);
+
+	// 2. Scan each file using scanRouteFile()
+	const allRoutes: RouteViolation[] = [];
+
+	for (const filePath of files) {
+		try {
+			const content = await fs.readFile(filePath, 'utf-8');
+			const result = scanRouteFile(filePath, content);
+			allRoutes.push(result);
+		} catch (error) {
+			console.warn(`⚠️  Warning: Could not read ${filePath}:`, error);
+			// Continue with other files
+		}
+	}
+
+	// 3. Calculate statistics using calculateStats()
+	const stats = calculateStats(allRoutes);
+
+	// 4. Generate reports using both report functions
+	const markdownReport = generateMarkdownReport(stats);
+	const jsonReport = generateJsonReport(stats);
+
+	// 5. Save reports to docs/audits/
+	const auditsDir = path.join('docs', 'audits');
+
+	// Create directory if it doesn't exist
+	try {
+		await fs.mkdir(auditsDir, { recursive: true });
+	} catch (error) {
+		console.error('❌ Failed to create audits directory:', error);
+		throw error;
+	}
+
+	// Generate dated markdown filename (YYYY-MM-DD format)
+	const now = new Date();
+	const dateStr = now.toISOString().split('T')[0]; // Extract YYYY-MM-DD
+	const markdownPath = path.join(auditsDir, `${dateStr}-module-usage-audit.md`);
+	const jsonPath = path.join(auditsDir, 'module-usage-audit.json');
+
+	try {
+		await fs.writeFile(markdownPath, markdownReport, 'utf-8');
+		await fs.writeFile(jsonPath, jsonReport, 'utf-8');
+	} catch (error) {
+		console.error('❌ Failed to write reports:', error);
+		throw error;
+	}
+
+	// 6. Log summary to console
+	console.log('📊 Audit Report:\n');
+	console.log(`Total Routes: ${stats.totalRoutes}`);
+	console.log(`✅ Compliant: ${stats.compliant}`);
+	console.log(`❌ Violations: ${stats.violations}`);
+	console.log(`📈 Compliance Rate: ${stats.complianceRate}\n`);
+
+	console.log('📄 Reports saved:');
+	console.log(`  - ${markdownPath}`);
+	console.log(`  - ${jsonPath}\n`);
+
+	// 7. Return stats
+	return stats;
+}
+
+// CLI runner
+if (import.meta.url === `file://${process.argv[1]}`) {
+	auditRoutes()
+		.then((stats) => {
+			const complianceNum = parseInt(stats.complianceRate);
+			if (complianceNum < 100) {
+				console.log(`⚠️  Compliance below 100% (${stats.complianceRate})`);
+				process.exit(1);
+			}
+		})
+		.catch((error) => {
+			console.error('❌ Audit failed:', error);
+			process.exit(1);
+		});
 }
