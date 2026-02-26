@@ -6,7 +6,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { logger } from '$lib/utils/logger';
 import { RBACDataLoader } from '$lib/server/route-loaders';
-import { requireAuth } from '$lib/server/rbac-utils';
+import { requireAuth, AccessTier } from '$lib/server/rbac-utils';
 import { gql } from '@urql/svelte';
 
 export const load: PageServerLoad = async (event) => {
@@ -186,14 +186,7 @@ export const actions: Actions = {
 		// Check permissions
 		if (!locals.user) throw error(401, 'Unauthorized');
 
-		requireAuth(event, {
-			requiredPermissions: [
-				'tasks:write',
-				'tasks:write:self',
-				'tasks:write:team',
-				'tasks:write:all'
-			]
-		});
+		requireAuth(event, { minTier: AccessTier.SELF });
 
 		const { UnifiedGraphQLClient } = await import('$lib/server/graphql/unified-client');
 		const client = new UnifiedGraphQLClient(event);

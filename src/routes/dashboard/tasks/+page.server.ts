@@ -7,18 +7,10 @@
 import type { Actions, PageServerLoad } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
 import { logger } from '$lib/utils/logger';
-import { requireAuth } from '$lib/server/rbac-utils';
+import { requireAuth, AccessTier } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
-	requireAuth(event, {
-		requiredPermissions: [
-			'tasks:read',
-			'tasks:read:self',
-			'tasks:read:team',
-			'tasks:read:all',
-			'admin:read'
-		]
-	});
+	requireAuth(event, { minTier: AccessTier.SELF });
 
 	const role = (event.locals.user?.role || '').toLowerCase();
 	const teamTaskRoles = new Set([
@@ -43,14 +35,7 @@ export const actions: Actions = {
 		const { request } = event;
 
 		// Check authentication
-		requireAuth(event, {
-			requiredPermissions: [
-				'tasks:write',
-				'tasks:write:self',
-				'tasks:write:team',
-				'tasks:write:all'
-			]
-		});
+		requireAuth(event, { minTier: AccessTier.SELF });
 
 		// After permission check, re-destructure locals
 		const { locals } = event;
