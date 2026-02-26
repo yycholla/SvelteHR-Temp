@@ -1,6 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { createUrqlClient, serializeCookies } from '$lib/graphql/client';
-import { requireAuth } from '$lib/server/rbac-utils';
+import { requireAuth, AccessTier } from '$lib/server/rbac-utils';
 import { logger } from '$lib/utils/logger';
 import { EventsOperations } from '$lib/graphql/events-operations';
 import { gql } from '@urql/svelte';
@@ -41,14 +41,7 @@ export const eventActions = {
 
 		if (!locals.user) return fail(401, { error: 'Unauthorized' });
 
-		requireAuth(event, {
-			requiredPermissions: [
-				'events:write',
-				'events:write:self',
-				'events:write:team',
-				'events:write:all'
-			]
-		});
+		requireAuth(event, { minTier: AccessTier.SELF });
 
 		const formData = await request.formData();
 		const eventId = formData.get('eventId') as string;
@@ -108,14 +101,7 @@ export const eventActions = {
 
 		if (!locals.user) return fail(401, { error: 'Unauthorized' });
 
-		requireAuth(event, {
-			requiredPermissions: [
-				'events:write',
-				'events:write:self',
-				'events:write:team',
-				'events:write:all'
-			]
-		});
+		requireAuth(event, { minTier: AccessTier.SELF });
 
 		const formData = await request.formData();
 		const title = formData.get('title') as string;
@@ -199,14 +185,7 @@ export const eventActions = {
 
 		if (!locals.user) return fail(401, { error: 'Unauthorized' });
 
-		requireAuth(event, {
-			requiredPermissions: [
-				'events:write',
-				'events:write:self',
-				'events:write:team',
-				'events:write:all'
-			]
-		});
+		requireAuth(event, { minTier: AccessTier.SELF });
 
 		const formData = await request.formData();
 		const eventId = formData.get('eventId') as string;
@@ -287,19 +266,12 @@ export const eventActions = {
 	},
 
 	deleteEvent: async (event: RequestEvent) => {
-		const { request, cookies, locals } = event; // Destructure locals here
+		const { request, cookies, locals } = event;
 		if (!locals.user) return fail(401, { error: 'Unauthorized' });
 
 		logger.info('[SERVER] deleteEvent action called');
 
-		requireAuth(event, {
-			requiredPermissions: [
-				'events:write',
-				'events:write:self',
-				'events:write:team',
-				'events:write:all'
-			]
-		});
+		requireAuth(event, { minTier: AccessTier.SELF });
 
 		const formData = await request.formData();
 		const eventId = formData.get('eventId') as string;
@@ -346,14 +318,7 @@ export const eventActions = {
 		if (!locals.user) return fail(401, { error: 'Unauthorized' });
 		const userId = locals.user.id;
 
-		requireAuth(event, {
-			requiredPermissions: [
-				'events:read',
-				'events:read:self',
-				'events:read:team',
-				'events:read:all'
-			]
-		});
+		requireAuth(event, { minTier: AccessTier.SELF });
 
 		const formData = await request.formData();
 		const attendeeId = formData.get('attendeeId') as string | null;
@@ -460,14 +425,7 @@ export const eventActions = {
 		if (!locals.user) return fail(401, { error: 'Unauthorized' });
 		const userId = locals.user.id;
 
-		requireAuth(event, {
-			requiredPermissions: [
-				'events:read',
-				'events:read:self',
-				'events:read:team',
-				'events:read:all'
-			]
-		});
+		requireAuth(event, { minTier: AccessTier.SELF });
 
 		const formData = await request.formData();
 		const eventId = formData.get('eventId') as string;
