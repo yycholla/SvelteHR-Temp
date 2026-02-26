@@ -67,7 +67,6 @@ export const load: PageServerLoad = async (event) => {
 			const { departments: departmentDTOs, total } = departmentsResult.value;
 
 			// Still need users for enrichment (manager info, employee counts)
-			// This will be replaced when we have UserService
 			const GET_USERS_QUERY = `
 				query GetUsers {
 					users(limit: 1000) {
@@ -84,33 +83,35 @@ export const load: PageServerLoad = async (event) => {
 				}
 			`;
 
-			const users = await client.query(
-				GET_USERS_QUERY,
-				{},
-				{
-					operationName: 'GetUsers',
-					errorMessage: 'Failed to load users',
-					dataPath: 'users'
-				}
-			);
+			let users: UserDTO[] = [];
+			try {
+				const usersResult = await client.query(
+					GET_USERS_QUERY,
+					{},
+					{
+						operationName: 'GetUsers',
+						errorMessage: 'Failed to load users',
+						dataPath: 'users'
+					}
+				);
+				users = Array.isArray(usersResult) ? usersResult : [];
+			} catch (err) {
+				logger.warn('[Departments] Failed to load users for enrichment, using empty list');
+			}
 
 			// Enrich departments with related data
 			const enrichedDepartments = departmentDTOs.map((dept) => {
-				// Find manager/department head from users list
 				const departmentHead = dept.managerId
 					? users.find((u: UserDTO) => u.id === dept.managerId)
 					: null;
 
-				// Count employees in this department
 				const employeesInDept = users.filter((u: UserDTO) => u.departmentId === dept.id);
 				const employeeCount = employeesInDept.length;
 
-				// Find parent department
 				const parentDepartment = dept.parentId
 					? departmentDTOs.find((d) => d.id === dept.parentId)
 					: null;
 
-				// Count sub-departments
 				const subDepartments = departmentDTOs.filter((d) => d.parentId === dept.id);
 
 				return {
@@ -144,7 +145,6 @@ export const load: PageServerLoad = async (event) => {
 				};
 			});
 
-			// Return standardized data structure
 			return {
 				departments: enrichedDepartments,
 				users: users.filter((u: UserDTO) => u.isActive),
@@ -187,17 +187,13 @@ export const actions: Actions = {
 			const description = formData.get('description')?.toString();
 			const managerId = formData.get('managerId')?.toString();
 
-			// Validate required fields
 			if (!name) {
 				return fail(400, {
 					error: 'Department name is required'
 				});
 			}
 
-			// Use DepartmentService to create department
 			const service = createDepartmentService(event);
-
-			// Generate a temporary ID (backend will replace this)
 			const tempId = crypto.randomUUID();
 
 			const result = await service.createDepartment({

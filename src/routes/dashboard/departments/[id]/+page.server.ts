@@ -4,7 +4,7 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { logger } from '$lib/utils/logger';
-import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth, AccessTier } from '$lib/server/rbac-utils';
 import { RBACDataLoader } from '$lib/server/route-loaders';
 import { createDepartmentService } from '$lib/server/services';
 
@@ -15,14 +15,7 @@ export const load: PageServerLoad = async (event) => {
 	// Handle "new" department creation route
 	if (departmentId === 'new') {
 		// RBAC: Check department write permissions for creating new department
-		requireAuth(event, {
-			requiredPermissions: [
-				'departments:write',
-				'departments:write:self',
-				'departments:write:team',
-				'departments:write:all'
-			]
-		});
+		requireAuth(event, { minTier: AccessTier.TEAM });
 
 		// After permission check, re-destructure locals with guaranteed user
 		const { locals } = event;
@@ -64,15 +57,12 @@ export const load: PageServerLoad = async (event) => {
 			const service = createDepartmentService(event);
 			const departmentResult = await service.getDepartmentById(departmentId);
 
-			// Handle department not found
 			if (departmentResult.isError) {
 				logger.error('[Department Detail] Department not found', departmentResult.error);
 				throw error(404, 'Department not found');
 			}
 
 			const dept = departmentResult.value;
-
-			// Convert to DTO for serialization
 			const departmentDTO = dept.toDTO();
 
 			// Fetch raw GraphQL data for timestamps (not in domain entity)
@@ -95,7 +85,6 @@ export const load: PageServerLoad = async (event) => {
 			};
 
 			// Get manager data if managerId exists
-			// TODO: Replace with UserService when available
 			let manager = null;
 			if (departmentDTO.managerId) {
 				const GET_USER_QUERY = `
@@ -126,8 +115,6 @@ export const load: PageServerLoad = async (event) => {
 			}
 
 			// Get employees for this department
-			// TODO: Replace with UserService when available
-			// NOTE: Backend doesn't support departmentId filter, so fetch all and filter server-side
 			const GET_USERS_QUERY = `
 				query GetAllUsers {
 					users(limit: 1000) {
@@ -157,7 +144,6 @@ export const load: PageServerLoad = async (event) => {
 				employeeCount: employees.length
 			});
 
-			// Return server-side loaded data
 			return {
 				department: {
 					id: departmentDTO.id,
@@ -175,12 +161,10 @@ export const load: PageServerLoad = async (event) => {
 		} catch (err) {
 			logger.error('[Department Detail Load Error]', err as Error);
 
-			// If it's already a SvelteKit error, rethrow it
 			if (err && typeof err === 'object' && 'status' in err) {
 				throw err;
 			}
 
-			// Throw generic error
 			throw error(500, 'Department details temporarily unavailable');
 		}
 	});

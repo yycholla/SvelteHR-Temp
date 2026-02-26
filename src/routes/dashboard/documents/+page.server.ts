@@ -1,5 +1,6 @@
 // Document list page server-side loader (Feature 024)
 // Server-side data loading with GraphQL API
+// Fixed: Removed direct SQL queries, replaced with pure GraphQL
 
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
@@ -20,7 +21,6 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 	const userPermissions = locals.permissions || [];
 
 	try {
-		// Step 2: Parse query parameters
 		const page = parseInt(url.searchParams.get('page') || '1');
 		const limit = parseInt(url.searchParams.get('limit') || '20');
 		const sortBy = url.searchParams.get('sortBy') || 'uploaded_at';
@@ -28,16 +28,10 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 		const filterCategory = url.searchParams.get('category') || null;
 		const searchQuery = url.searchParams.get('search') || '';
 
-		// Step 3: Create GraphQL client with session cookies
 		const client = GraphQLClient.fromCookies(cookies);
-
-		// Step 4: Query documents via GraphQL
 		const offset = (page - 1) * limit;
 
-		const response = await client.query(GET_DOCUMENTS, {
-			limit,
-			offset
-		});
+		const response = await client.query(GET_DOCUMENTS, { limit, offset });
 
 		if (response.errors && response.errors.length > 0) {
 			logger.error(
@@ -50,64 +44,46 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 			});
 		}
 
-		// Step 5: Load database utilities
-		const { transaction: dbTransaction, setJWTClaims: setDbClaims } =
-			await import('$lib/server/db');
+		const allDocuments = response.data?.documents || [];
 
-		// Step 6: Get total count from database and load assignee data
-		const allAssignments =
-			response.data?.documents?.flatMap((doc: any) => doc.assignments || []) || [];
-		const uniqueUserIds = [...new Set(allAssignments.map((a: any) => a.userId))];
+		// Build assignee map from GraphQL user queries
+		const allAssignments = allDocuments.flatMap((doc: any) => doc.assignments || []) || [];
+		const uniqueUserIds = [...new Set(allAssignments.map((a: any) => a.userId))] as string[];
 
-		const transactionResult = await dbTransaction(async (dbClient) => {
-			await setDbClaims(dbClient, userId, locals.user!.role || 'employee');
+		const assigneeMap = new Map<string, { id: string; displayName: string; email: string }>();
 
-			// Get document count
-			const countResult = await dbClient.query(
-				`SELECT COUNT(DISTINCT d.id) as count
-				 FROM hr_public.documents d
-				 INNER JOIN hr_public.document_assignments da ON d.id = da.document_id
-				 WHERE d.deleted_at IS NULL
-				 AND da.user_id = $1::uuid`,
-				[userId]
-			);
-
-			const count = parseInt(countResult.rows[0].count, 10);
-
-			// Load user data for assignees
-			const userMap = new Map();
-
-			if (uniqueUserIds.length > 0) {
-				const userResult = await dbClient.query(
-					`SELECT id, display_name, email
-					 FROM hr_public.users
-					 WHERE id = ANY($1::uuid[])`,
-					[uniqueUserIds]
-				);
-
-				userResult.rows.forEach((user) => {
-					userMap.set(user.id, {
-						id: user.id,
-						displayName: user.display_name,
-						email: user.email
+		for (const uid of uniqueUserIds) {
+			try {
+				const userQuery = `
+					query GetUser($id: UUID!) {
+						user(id: $id) {
+							id
+							email
+							displayName
+						}
+					}
+				`;
+				const userRes = await client.query(userQuery, { id: uid });
+				const u = userRes.data?.user;
+				if (u) {
+					assigneeMap.set(u.id, {
+						id: u.id,
+						displayName: u.displayName || 'Unknown User',
+						email: u.email || 'Unknown'
 					});
-				});
+				}
+			} catch (e) {
+				logger.warn(`[Documents] Failed to resolve user ${uid}`, { error: e });
 			}
+		}
 
-			return [count, userMap];
-		});
-
-		const [totalCount, assigneeMap] = transactionResult as [
-			number,
-			Map<string, { id: string; displayName: string; email: string }>
-		];
-
-		// Step 7: Filter documents to only show those assigned to current user
-		const userDocuments = (response.data?.documents || []).filter((doc: any) => {
+		// Filter documents to only show those assigned to current user
+		const userDocuments = allDocuments.filter((doc: any) => {
 			return (doc.assignments || []).some((a: any) => a.userId === userId);
 		});
 
-		// Step 8: Transform GraphQL response to match page format
+		const totalCount = userDocuments.length;
+
 		const documents = userDocuments.map((doc: any) => ({
 			id: doc.id,
 			filename: doc.title,
@@ -132,14 +108,12 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 			})
 		}));
 
-		// Step 9: Get all assignee options for MultiSearchInput
 		const assigneeOptions = Array.from(assigneeMap.values()).map((user) => ({
 			id: user.id,
 			displayName: user.displayName,
 			email: user.email
 		}));
 
-		// Step 10: Load user with roles
 		const userQuery = `
 			query GetUser($id: UUID!) {
 				user(id: $id) {
@@ -157,7 +131,6 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 		const userResponse = await client.query(userQuery, { id: userId });
 		const currentUser = userResponse.data?.user || locals.user;
 
-		// Step 11: Return data for the page
 		return {
 			documents,
 			totalCount,
@@ -175,12 +148,10 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 	} catch (err) {
 		logger.error('Document list load error:', err as Error);
 
-		// Re-throw redirects and errors
 		if (err && typeof err === 'object' && ('status' in err || 'location' in err)) {
 			throw err;
 		}
 
-		// Generic error fallback
 		error(500, {
 			message: 'Failed to load documents. Please try again later.'
 		});
