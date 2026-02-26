@@ -10,6 +10,7 @@
 import type { Actions, PageServerLoad } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
 import { RBACDataLoader } from '$lib/server/route-loaders';
+import { AccessTier } from '$lib/server/rbac-utils';
 import { QueryParamExtractor } from '$lib/server/route-helpers';
 import { logger } from '$lib/utils/logger';
 
@@ -80,12 +81,7 @@ const REVIEW_TYPES_METADATA = [
 ] as const;
 
 export const load: PageServerLoad = async (event) => {
-	const loader = new RBACDataLoader(event, [
-		'performance:write',
-		'performance:write:self',
-		'performance:write:team',
-		'performance:write:all'
-	]);
+	const loader = new RBACDataLoader(event, AccessTier.TEAM);
 
 	return loader.loadWithClient(async () => {
 		const { url, cookies } = event;
