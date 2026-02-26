@@ -4,21 +4,14 @@
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { requireAuth } from '$lib/server/rbac-utils';
+import { requireAuth, AccessTier } from '$lib/server/rbac-utils';
 import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
 	const { cookies } = event;
 
 	// Check authentication and permissions
-	requireAuth(event, {
-		requiredPermissions: [
-			'employees:read',
-			'employees:read:self',
-			'employees:read:team',
-			'employees:read:all'
-		]
-	});
+	requireAuth(event, { minTier: AccessTier.SELF });
 
 	// After permission check, re-destructure locals with guaranteed user
 	const { locals } = event;
@@ -87,8 +80,55 @@ export const load: PageServerLoad = async (event) => {
 		const userResult = await graphqlClient.query(userQuery, { userId });
 		const user = userResult.data?.user;
 
+		// Handle case where user data is null or unexpected shape - return defaults
 		if (!user) {
-			error(404, 'User profile not found');
+			logger.warn('[Profile Settings] User data not found from GraphQL, returning defaults', { userId });
+			const themePreference = cookies.get('theme-preference') || 'system';
+			return {
+				user: {
+					id: locals.user.id,
+					email: locals.user.email || '',
+					displayName: locals.user.display_name || '',
+					role: locals.user.role || 'employee'
+				},
+				profile: {
+					id: locals.user.id,
+					firstName: '',
+					lastName: '',
+					displayName: locals.user.display_name || '',
+					fullName: locals.user.display_name || '',
+					email: locals.user.email || '',
+					phoneNumber: null,
+					alternatePhone: null,
+					jobTitle: null,
+					status: null,
+					addressLine1: null,
+					addressLine2: null,
+					city: null,
+					stateProvince: null,
+					postalCode: null,
+					country: null,
+					hireDate: null,
+					department: null,
+					managerId: null,
+					role: locals.user.role || 'employee',
+					isActive: true,
+					createdAt: new Date().toISOString(),
+					updatedAt: new Date().toISOString()
+				},
+				addresses: [],
+				notificationPreferences: {
+					emailNotifications: true,
+					pushNotifications: false,
+					leaveRequestUpdates: true,
+					taskAssignments: true,
+					performanceReviews: true,
+					systemAnnouncements: true,
+					teamUpdates: true,
+					weeklyDigest: false
+				},
+				themePreference
+			};
 		}
 
 		// Load notification preferences (if table exists)
@@ -149,7 +189,59 @@ export const load: PageServerLoad = async (event) => {
 		};
 	} catch (err) {
 		logger.error('[Settings Load Error]', err as Error);
-		error(500, 'Failed to load profile settings');
+
+		// Re-throw redirects and SvelteKit errors
+		if (err && typeof err === 'object' && ('status' in err || 'location' in err)) {
+			throw err;
+		}
+
+		// Return safe defaults instead of crashing
+		const themePreference = cookies.get('theme-preference') || 'system';
+		return {
+			user: {
+				id: locals.user.id,
+				email: locals.user.email || '',
+				displayName: locals.user.display_name || '',
+				role: locals.user.role || 'employee'
+			},
+			profile: {
+				id: locals.user.id,
+				firstName: '',
+				lastName: '',
+				displayName: locals.user.display_name || '',
+				fullName: locals.user.display_name || '',
+				email: locals.user.email || '',
+				phoneNumber: null,
+				alternatePhone: null,
+				jobTitle: null,
+				status: null,
+				addressLine1: null,
+				addressLine2: null,
+				city: null,
+				stateProvince: null,
+				postalCode: null,
+				country: null,
+				hireDate: null,
+				department: null,
+				managerId: null,
+				role: locals.user.role || 'employee',
+				isActive: true,
+				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString()
+			},
+			addresses: [],
+			notificationPreferences: {
+				emailNotifications: true,
+				pushNotifications: false,
+				leaveRequestUpdates: true,
+				taskAssignments: true,
+				performanceReviews: true,
+				systemAnnouncements: true,
+				teamUpdates: true,
+				weeklyDigest: false
+			},
+			themePreference
+		};
 	}
 };
 
@@ -158,9 +250,7 @@ export const actions: Actions = {
 	updateNotifications: async (event) => {
 		const { request, cookies } = event;
 
-		requireAuth(event, {
-			requiredPermissions: ['employees:write', 'employees:write:self']
-		});
+		requireAuth(event, { minTier: AccessTier.SELF });
 
 		// After permission check, re-destructure locals
 		const { locals } = event;
@@ -191,9 +281,7 @@ export const actions: Actions = {
 	updateTheme: async (event) => {
 		const { request, cookies } = event;
 
-		requireAuth(event, {
-			requiredPermissions: ['employees:write', 'employees:write:self']
-		});
+		requireAuth(event, { minTier: AccessTier.SELF });
 
 		// After permission check, re-destructure locals
 		const { locals } = event;
@@ -260,9 +348,7 @@ export const actions: Actions = {
 	requestInfoChange: async (event) => {
 		const { request, cookies } = event;
 
-		requireAuth(event, {
-			requiredPermissions: ['employees:write', 'employees:write:self']
-		});
+		requireAuth(event, { minTier: AccessTier.SELF });
 
 		// After permission check, re-destructure locals
 		const { locals } = event;

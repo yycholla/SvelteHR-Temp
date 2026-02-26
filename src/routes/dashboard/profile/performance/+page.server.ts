@@ -3,7 +3,7 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { requireAuth } from '$lib/server/rbac-utils';
+import { requireAuth, AccessTier } from '$lib/server/rbac-utils';
 import { ensureBackendReady } from '$lib/server/backend-init';
 import { logger } from '$lib/utils/logger';
 
@@ -62,14 +62,7 @@ export const load: PageServerLoad = async (event) => {
 	const { url, cookies } = event;
 
 	// Check authentication and permissions
-	requireAuth(event, {
-		requiredPermissions: [
-			'performance:read',
-			'performance:read:self',
-			'performance:read:team',
-			'performance:read:all'
-		]
-	});
+	requireAuth(event, { minTier: AccessTier.SELF });
 
 	// After permission check, re-destructure locals with guaranteed user
 	const { locals } = event;
