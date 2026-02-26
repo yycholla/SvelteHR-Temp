@@ -1,133 +1,171 @@
-import { error, redirect } from '@sveltejs/kit';
-import type { RequestEvent } from '@sveltejs/kit';
+// RBAC Core - Unified tier-based access control
+// AccessTier: SELF=1 (employee), TEAM=2 (manager), ALL=3 (admin/hr_manager)
 
-export interface RBACConfig {
-	requiredPermissions?: string[];
-	requiredRoles?: string[];
-	allowedRoles?: string[];
-	requireAll?: boolean; // If true, user must have ALL permissions/roles, if false, ANY will do
+import { error, redirect, type RequestEvent } from '@sveltejs/kit';
+import { logger } from '$lib/utils/logger';
+
+/**
+ * Hierarchical access tiers for view-level gating.
+ * Higher tier = broader access.
+ */
+export enum AccessTier {
+	/** Employee: can only see own data */
+	SELF = 1,
+	/** Manager: can see team data */
+	TEAM = 2,
+	/** Admin / HR Manager: can see everything */
+	ALL = 3
 }
 
 /**
- * Check if user has required permissions
+ * Map a role string to its AccessTier.
+ * Normalises to lowercase and strips separators so
+ * 'HR_Manager', 'hr-manager', 'HR Manager' all resolve the same way.
  */
-export function hasPermission(
-	userPermissions: string[],
-	requiredPermissions: string[],
-	requireAll: boolean = false
-): boolean {
-	if (!requiredPermissions || requiredPermissions.length === 0) return true;
-	if (!userPermissions || userPermissions.length === 0) return false;
+export function roleToTier(role: string): AccessTier {
+	const normalised = role.toLowerCase().replace(/[\s_-]+/g, '');
 
-	// Admin users with '*' or '*:*' permission have access to everything
-	if (userPermissions.includes('*') || userPermissions.includes('*:*')) return true;
+	switch (normalised) {
+		case 'admin':
+		case 'superadmin':
+		case 'systemadmin':
+		case 'superadministrator':
+			return AccessTier.ALL;
 
-	if (requireAll) {
-		// User must have ALL required permissions
-		return requiredPermissions.every((permission) => userPermissions.includes(permission));
-	} else {
-		// User needs ANY of the required permissions
-		return requiredPermissions.some((permission) => userPermissions.includes(permission));
+		case 'hrmanager':
+		case 'hr':
+			return AccessTier.ALL;
+
+		case 'manager':
+		case 'teamlead':
+		case 'supervisor':
+			return AccessTier.TEAM;
+
+		default:
+			return AccessTier.SELF;
 	}
 }
 
 /**
- * Check if user has required roles
+ * Derive the effective AccessTier for the current user.
+ * Takes the *highest* tier across all of the user's roles.
  */
-export function hasRole(
-	userRoles: string[],
-	requiredRoles: string[],
-	requireAll: boolean = false
-): boolean {
-	if (!requiredRoles || requiredRoles.length === 0) return true;
-	if (!userRoles || userRoles.length === 0) return false;
+export function getAccessTier(event: RequestEvent): AccessTier {
+	const { locals } = event;
+	const user = locals.user;
+	if (!user) return AccessTier.SELF;
 
-	if (requireAll) {
-		// User must have ALL required roles
-		return requiredRoles.every((role) => userRoles.includes(role));
-	} else {
-		// User needs ANY of the required roles
-		return requiredRoles.some((role) => userRoles.includes(role));
+	const roles: string[] = [
+		...(user.roles || []),
+		...(locals.roles || []),
+		...(user.role ? [user.role] : [])
+	];
+
+	let maxTier = AccessTier.SELF;
+	for (const role of roles) {
+		const tier = roleToTier(role);
+		if (tier > maxTier) maxTier = tier;
+	}
+
+	return maxTier;
+}
+
+/**
+ * Guard that throws 403 when the user's tier is below `minTier`.
+ * Drop-in replacement for per-page permission arrays.
+ *
+ * @example
+ *   requireAccess(event, AccessTier.TEAM);   // managers + admins
+ *   requireAccess(event, AccessTier.ALL);     // admins only
+ */
+export function requireAccess(event: RequestEvent, minTier: AccessTier): void {
+	const userTier = getAccessTier(event);
+
+	if (userTier < minTier) {
+		logger.warn('[RBAC] Access denied', {
+			userId: event.locals.user?.id,
+			userTier,
+			minTier,
+			path: event.url.pathname
+		});
+		throw error(403, { message: 'You do not have permission to view this page.' });
+	}
+}
+
+// ── Flat-permission helpers (kept for action-level checks) ──────────
+
+/**
+ * Check whether the user holds a specific flat permission string.
+ * Supports wildcards: '*', '*:*', 'resource:*'.
+ */
+export function hasPermission(event: RequestEvent, permission: string): boolean {
+	const permissions: string[] = event.locals.permissions || [];
+
+	if (permissions.includes('*') || permissions.includes('*:*')) return true;
+
+	const [resource] = permission.split(':');
+	if (permissions.includes(`${resource}:*`)) return true;
+
+	return permissions.includes(permission);
+}
+
+/**
+ * Guard that throws 403 when the user lacks the required flat permission.
+ */
+export function requirePermission(event: RequestEvent, permission: string): void {
+	if (!hasPermission(event, permission)) {
+		throw error(403, { message: 'You do not have permission to perform this action.' });
 	}
 }
 
 /**
- * Main RBAC guard function for server-side load functions
- * Uses TypeScript assertion to guarantee locals.user is defined after this call
+ * Convenience: require *any one* of the listed permissions.
+ */
+export function requireAnyPermission(event: RequestEvent, permissions: string[]): void {
+	if (!permissions.some((p) => hasPermission(event, p))) {
+		throw error(403, { message: 'You do not have permission to perform this action.' });
+	}
+}
+
+/**
+ * Resolve a flexible access requirement to a concrete tier check.
+ * Accepts either an AccessTier (new system) or a string[] of flat
+ * permissions (legacy compatibility).
+ */
+export function resolveAccessRequirement(
+	event: RequestEvent,
+	requirement: AccessTier | string[]
+): void {
+	if (typeof requirement === 'number') {
+		requireAccess(event, requirement);
+	} else {
+		requireAnyPermission(event, requirement);
+	}
+}
+
+/**
+ * Combined auth check: verifies user is logged in, then checks
+ * access requirements.
+ *
+ * @param options.minTier   - minimum AccessTier required (new system)
+ * @param options.permissions - flat permission strings (legacy)
+ *
+ * If `minTier` is provided it takes precedence.
+ * If neither is provided, only login is checked.
  */
 export function requireAuth(
 	event: RequestEvent,
-	config: RBACConfig = {}
-): asserts event is RequestEvent & {
-	locals: { user: NonNullable<RequestEvent['locals']['user']> };
-} {
-	const { locals } = event;
+	options: { minTier?: AccessTier; permissions?: string[] } = {}
+): void {
+	const { locals, url } = event;
 
-	// Check if user is authenticated
 	if (!locals.user) {
-		const redirectTo =
-			event.url.pathname === '/' ? '' : `?redirectTo=${encodeURIComponent(event.url.pathname)}`;
-		throw redirect(303, `/login${redirectTo}`);
+		throw redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
-	const {
-		requiredPermissions = [],
-		requiredRoles = [],
-		allowedRoles = [],
-		requireAll = false
-	} = config;
-
-	// Check permissions if specified
-	if (requiredPermissions.length > 0) {
-		const hasRequiredPermissions = hasPermission(
-			locals.permissions || [],
-			requiredPermissions,
-			requireAll
-		);
-
-		if (!hasRequiredPermissions) {
-			throw error(
-				403,
-				'Access forbidden: You do not have the required permissions to access this resource'
-			);
-		}
-	}
-
-	// Check required roles if specified
-	if (requiredRoles.length > 0) {
-		const hasRequiredRoles = hasRole(locals.roles || [], requiredRoles, requireAll);
-
-		if (!hasRequiredRoles) {
-			throw error(
-				403,
-				'Access forbidden: You do not have the required role to access this resource'
-			);
-		}
-	}
-
-	// Check allowed roles if specified (alternative to required roles)
-	if (allowedRoles.length > 0 && requiredRoles.length === 0) {
-		const hasAllowedRole = hasRole(
-			locals.roles || [],
-			allowedRoles,
-			false // ANY of the allowed roles is sufficient
-		);
-
-		if (!hasAllowedRole) {
-			throw error(403, 'Access forbidden: Your role does not have access to this resource');
-		}
-	}
-}
-
-/**
- * Assert that user is authenticated (for API handlers)
- * This is a simpler version of requireAuth for use in API routes that don't have full RequestEvent
- * Uses TypeScript assertion to guarantee locals.user is defined after this call
- */
-export function assertUser(
-	locals: App.Locals
-): asserts locals is App.Locals & { user: NonNullable<App.Locals['user']> } {
-	if (!locals.user) {
-		throw error(401, 'Authentication required');
+	if (options.minTier !== undefined) {
+		requireAccess(event, options.minTier);
+	} else if (options.permissions?.length) {
+		requireAnyPermission(event, options.permissions);
 	}
 }
