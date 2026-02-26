@@ -1,27 +1,22 @@
 // Audit log page server-side loader (Feature 024)
-// Server-side data loading for audit logs with session-based authentication (HR/Admin only)
+// Fixed: Replaced direct SQL queries with GraphQL activityLogs query
 
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { requireAuth } from '$lib/server/rbac-utils';
-import { transaction } from '$lib/server/db';
+import { requireAuth, AccessTier } from '$lib/server/rbac-utils';
+import { GraphQLClient } from '$lib/server/graphql-client';
 import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
-	const { url } = event;
+	const { url, cookies } = event;
 
-	// Check authentication and permissions
-	requireAuth(event, {
-		requiredPermissions: ['admin:read', 'admin:read:self', 'admin:read:team', 'admin:read:all']
-	});
+	requireAuth(event, { minTier: AccessTier.ALL });
 
-	// After permission check, re-destructure locals with guaranteed user
 	const { locals } = event;
 
 	const userPermissions = locals.permissions || [];
 	const userRoles = locals.roles || [];
 
-	// Log successful access
 	logger.info('[DOCUMENT AUDIT ACCESS GRANTED]', {
 		userId: locals.user.id,
 		userEmail: locals.user.email,
@@ -34,7 +29,6 @@ export const load: PageServerLoad = async (event) => {
 		userPermissions.includes('*:*');
 
 	try {
-		// Step 3: Parse query parameters
 		const page = parseInt(url.searchParams.get('page') || '1');
 		const limit = parseInt(url.searchParams.get('limit') || '50');
 		const documentId = url.searchParams.get('documentId') || null;
@@ -43,85 +37,76 @@ export const load: PageServerLoad = async (event) => {
 		const dateFrom = url.searchParams.get('dateFrom') || null;
 		const dateTo = url.searchParams.get('dateTo') || null;
 
-		// Step 4: Query access logs from database (no RLS needed - permission already checked)
-		const { accessLogs, totalCount } = await transaction(async (client) => {
-			// Build WHERE clause dynamically
-			const conditions: string[] = [];
-			const params: unknown[] = [];
-			let paramIndex = 1;
+		const client = GraphQLClient.fromCookies(cookies);
 
-			if (documentId) {
-				conditions.push(`dal.document_id = $${paramIndex++}`);
-				params.push(documentId);
+		const activityLogsQuery = `
+			query GetActivityLogs {
+				activityLogs {
+					id
+					userId
+					action
+					resourceType
+					resourceId
+					details
+					createdAt
+				}
 			}
+		`;
 
-			if (filterUserId) {
-				conditions.push(`dal.user_id = $${paramIndex++}`);
-				params.push(filterUserId);
-			}
+		const response = await client.query(activityLogsQuery, {});
 
-			if (accessType) {
-				conditions.push(`dal.access_type = $${paramIndex++}`);
-				params.push(accessType);
-			}
+		if (response.errors && response.errors.length > 0) {
+			logger.warn('[Admin Audit] GraphQL errors fetching activity logs', {
+				errors: response.errors.map((e: any) => e.message)
+			});
+		}
 
-			if (dateFrom) {
-				conditions.push(`dal.created_at >= $${paramIndex++}`);
-				params.push(new Date(dateFrom));
-			}
+		const rawLogs = response.data?.activityLogs || [];
 
-			if (dateTo) {
-				const endDate = new Date(dateTo);
-				endDate.setHours(23, 59, 59, 999); // End of day
-				conditions.push(`dal.created_at <= $${paramIndex++}`);
-				params.push(endDate);
-			}
+		let filteredLogs = rawLogs;
 
-			const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-
-			// Get total count
-			const countResult = await client.query(
-				`SELECT COUNT(*) as count
-				 FROM hr_public.document_access_logs dal
-				 ${whereClause}`,
-				params
+		if (documentId) {
+			filteredLogs = filteredLogs.filter((log: any) => log.resourceId === documentId);
+		}
+		if (filterUserId) {
+			filteredLogs = filteredLogs.filter((log: any) => log.userId === filterUserId);
+		}
+		if (accessType) {
+			filteredLogs = filteredLogs.filter((log: any) => log.action === accessType);
+		}
+		if (dateFrom) {
+			const fromDate = new Date(dateFrom);
+			filteredLogs = filteredLogs.filter(
+				(log: any) => new Date(log.createdAt) >= fromDate
 			);
-
-			const total = parseInt(countResult.rows[0].count);
-
-			// Get paginated logs
-			const offset = (page - 1) * limit;
-			params.push(limit, offset);
-
-			const logsResult = await client.query(
-				`SELECT
-					dal.id,
-					dal.document_id,
-					dal.user_id,
-					dal.access_type,
-					dal.created_at as accessed_at,
-					dal.ip_address,
-					u.email as user_email,
-					u.first_name,
-					u.last_name,
-					d.title as document_title,
-					d.mime_type as document_type
-				 FROM hr_public.document_access_logs dal
-				 LEFT JOIN hr_public.users u ON dal.user_id = u.id
-				 LEFT JOIN hr_public.documents d ON dal.document_id = d.id
-				 ${whereClause}
-				 ORDER BY dal.created_at DESC
-				 LIMIT $${paramIndex++} OFFSET $${paramIndex++}`,
-				params
+		}
+		if (dateTo) {
+			const endDate = new Date(dateTo);
+			endDate.setHours(23, 59, 59, 999);
+			filteredLogs = filteredLogs.filter(
+				(log: any) => new Date(log.createdAt) <= endDate
 			);
+		}
 
-			return {
-				accessLogs: logsResult.rows,
-				totalCount: total
-			};
-		});
+		const totalCount = filteredLogs.length;
 
-		// Step 5: Return data
+		const offset = (page - 1) * limit;
+		const paginatedLogs = filteredLogs.slice(offset, offset + limit);
+
+		const accessLogs = paginatedLogs.map((log: any) => ({
+			id: log.id,
+			document_id: log.resourceId || null,
+			user_id: log.userId,
+			access_type: log.action,
+			accessed_at: log.createdAt,
+			ip_address: null,
+			user_email: null,
+			first_name: null,
+			last_name: null,
+			document_title: null,
+			document_type: null
+		}));
+
 		return {
 			accessLogs,
 			totalCount,
@@ -142,12 +127,10 @@ export const load: PageServerLoad = async (event) => {
 	} catch (err) {
 		logger.error('Audit log load error:', err as Error);
 
-		// Re-throw redirects and errors
 		if (err && typeof err === 'object' && ('status' in err || 'location' in err)) {
 			throw err;
 		}
 
-		// Generic error fallback
 		error(500, {
 			message: 'Failed to load audit logs. Please try again later.'
 		});

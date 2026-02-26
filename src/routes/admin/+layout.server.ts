@@ -3,6 +3,7 @@
 
 import type { LayoutServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
+import { getAccessTier, AccessTier } from '$lib/server/rbac-utils';
 import { logger } from '$lib/utils/logger';
 
 export const load: LayoutServerLoad = async ({ locals }) => {
@@ -11,37 +12,26 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		error(401, 'Authentication required');
 	}
 
-	// Check if user has admin access permissions
-	const userPermissions = locals.permissions || [];
 	const userRoles = locals.roles || [];
+	const tier = getAccessTier(userRoles);
 
-	// Admin access granted if:
-	// 1. User has wildcard (*) or (*:*) permission
-	// 2. User has admin:read permission
-	// 3. User has Admin role
-	const isAdmin =
-		userPermissions.includes('*') ||
-		userPermissions.includes('*:*') ||
-		userPermissions.includes('admin:read') ||
-		userRoles.includes('Admin');
-
-	if (!isAdmin) {
-		// Log admin access attempt for audit purposes
+	// Admin pages require ALL tier (admin / hr_manager)
+	if (tier < AccessTier.ALL) {
 		logger.warn('[ADMIN ACCESS DENIED]', {
 			userId: locals.user.id,
 			userEmail: locals.user.email,
 			roles: userRoles,
-			permissions: userPermissions,
+			tier,
 			timestamp: new Date().toISOString()
 		});
 
 		error(403, 'Insufficient permissions - Admin access required');
 	}
 
-	// Log successful admin access
 	logger.info('[ADMIN ACCESS GRANTED]', {
 		userId: locals.user.id,
 		userEmail: locals.user.email,
+		tier,
 		timestamp: new Date().toISOString()
 	});
 
@@ -49,7 +39,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	return {
 		isAdmin: true,
 		user: locals.user,
-		roles: locals.roles || [],
+		roles: userRoles,
 		permissions: locals.permissions || []
 	};
 };
