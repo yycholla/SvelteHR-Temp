@@ -5,7 +5,7 @@
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { logger } from '$lib/utils/logger';
-import { getUserPermissions, requireAuth } from '$lib/server/rbac-utils';
+import { getUserPermissions, requireAuth, AccessTier } from '$lib/server/rbac-utils';
 import { createEmployeeService } from '$lib/server/services';
 
 // Type definitions for GraphQL responses
@@ -113,14 +113,7 @@ export const load: PageServerLoad = async (event) => {
 	const employeeId = params.id;
 
 	// RBAC: Check employee write permissions (details view requires write access)
-	requireAuth(event, {
-		requiredPermissions: [
-			'employees:write',
-			'employees:write:self',
-			'employees:write:team',
-			'employees:write:all'
-		]
-	});
+	requireAuth(event, { minTier: AccessTier.SELF });
 
 	// After permission check, re-destructure locals with guaranteed user
 	const { locals } = event;
@@ -182,8 +175,8 @@ export const load: PageServerLoad = async (event) => {
 
 		// Determine if user can view detailed employee information
 		// Note: Role names from RBAC: "Admin", "HR Manager", "Manager", "Employee"
-		const userRoles = locals.roles || [];
-		const isAdmin = userRoles.includes('Admin') || userRoles.includes('HR Manager');
+		const userRoles = (locals.roles || []).map((r: string) => r.toLowerCase().replace(/[\s-]+/g,'_'));
+		const isAdmin = userRoles.includes('admin') || userRoles.includes('hr_manager') || userRoles.includes('super_admin');
 		const isViewingSelf = locals.user.id === employeeId;
 
 		// Headers for GraphQL requests to fetch related entities
@@ -658,8 +651,8 @@ export const actions: Actions = {
 		}
 
 		// Permission check - require Admin or HR Manager role
-		const userRoles = locals.roles || [];
-		const canDelete = userRoles.includes('Admin') || userRoles.includes('HR Manager');
+		const userRoles = (locals.roles || []).map((r: string) => r.toLowerCase().replace(/[\s-]+/g,'_'));
+		const canDelete = userRoles.includes('admin') || userRoles.includes('hr_manager') || userRoles.includes('super_admin');
 		if (!canDelete) {
 			error(403, 'You do not have permission to delete employees');
 		}

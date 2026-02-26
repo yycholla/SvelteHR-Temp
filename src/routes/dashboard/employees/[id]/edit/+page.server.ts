@@ -33,8 +33,8 @@ export const load: PageServerLoad = async (event) => {
 
 		try {
 			// Determine if user can edit detailed employee information
-			const userRoles = locals.roles || [];
-			const isAdmin = userRoles.includes('Admin') || userRoles.includes('HR Manager');
+			const userRoles = (locals.roles || []).map((r: string) => r.toLowerCase().replace(/[\s-]+/g,'_'));
+			const isAdmin = userRoles.includes('admin') || userRoles.includes('hr_manager') || userRoles.includes('super_admin');
 			const isViewingSelf = userId === employeeId;
 
 			// Use EmployeeService for core employee data
